@@ -167,6 +167,7 @@ Auth::~Auth() { DeleteInternal(); }
 // holds nothing but a pointer to AuthData, which never changes.
 // All User functions that require synchronization go through AuthData's mutex.
 User* Auth::current_user() {
+  if (!auth_data_) return nullptr;
   MutexLock lock(auth_data_->future_impl.mutex());
   User* user =
       auth_data_->user_impl == nullptr ? nullptr : &auth_data_->current_user;
@@ -174,7 +175,10 @@ User* Auth::current_user() {
 }
 
 // Always non-nullptr since set in constructor.
-App& Auth::app() { return *auth_data_->app; }
+App& Auth::app() {
+  FIREBASE_ASSERT(auth_data_ != nullptr);
+  return *auth_data_->app;
+}
 
 template <typename T>
 static bool PushBackIfMissing(const T& entry, std::vector<T>* v) {
@@ -205,11 +209,13 @@ static void AddListener(T listener, std::vector<T>* listener_vector, Auth* auth,
 }
 
 void Auth::AddAuthStateListener(AuthStateListener* listener) {
+  if (!auth_data_) return;
   AddListener(listener, &auth_data_->listeners, this, &listener->auths_,
               &auth_data_->listeners_mutex);
 }
 
 void Auth::AddIdTokenListener(IdTokenListener* listener) {
+  if (!auth_data_) return;
   int listener_count = auth_data_->id_token_listeners.size();
   AddListener(listener, &auth_data_->id_token_listeners, this,
               &listener->auths_, &auth_data_->listeners_mutex);
@@ -253,11 +259,13 @@ static void RemoveListener(T listener, std::vector<T>* listener_vector,
 }
 
 void Auth::RemoveAuthStateListener(AuthStateListener* listener) {
+  if (!auth_data_) return;
   RemoveListener(listener, &auth_data_->listeners, this, &listener->auths_,
                  &auth_data_->listeners_mutex);
 }
 
 void Auth::RemoveIdTokenListener(IdTokenListener* listener) {
+  if (!auth_data_) return;
   int listener_count = auth_data_->id_token_listeners.size();
   RemoveListener(listener, &auth_data_->id_token_listeners, this,
                  &listener->auths_, &auth_data_->listeners_mutex);
