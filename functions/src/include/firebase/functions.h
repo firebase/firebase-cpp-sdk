@@ -99,6 +99,9 @@ class Functions {
   Functions(const Functions& src);
   Functions& operator=(const Functions& src);
 
+  // Delete the internal_ data.
+  void DeleteInternal();
+
   internal::FunctionsInternal* internal_;
   /// @endcond
 };

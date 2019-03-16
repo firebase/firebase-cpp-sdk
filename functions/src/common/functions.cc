@@ -115,13 +115,18 @@ Functions::Functions(::firebase::App* app, const char *region) {
             static_cast<int>(reinterpret_cast<intptr_t>(functions)),
             static_cast<int>(reinterpret_cast<intptr_t>(
                 functions->app())));
-        delete functions;
+        functions->DeleteInternal();
       });
   }
 }
 
-Functions::~Functions() {
+Functions::~Functions() { DeleteInternal(); }
+
+void Functions::DeleteInternal() {
   MutexLock lock(g_functions_lock);
+
+  if (!internal_) return;
+
   CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app());
   assert(app_notifier);
   app_notifier->UnregisterObject(this);
@@ -140,13 +145,17 @@ Functions::~Functions() {
   }
 }
 
-::firebase::App* Functions::app() { return internal_->app(); }
+::firebase::App* Functions::app() {
+  return internal_ ? internal_->app() : nullptr;
+}
 
 HttpsCallableReference Functions::GetHttpsCallable(const char* name) const {
+  if (!internal_) return HttpsCallableReference();
   return HttpsCallableReference(internal_->GetHttpsCallable(name));
 }
 
 void Functions::UseFunctionsEmulator(const char* origin) {
+  if (!internal_) return;
   internal_->UseFunctionsEmulator(origin);
 }
 
