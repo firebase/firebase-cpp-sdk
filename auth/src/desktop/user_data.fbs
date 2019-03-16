@@ -1,0 +1,70 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// The FlatBuffers schema for auth desktop user data.
+
+// The namespace is defined to match the internal package.
+namespace firebase.auth;
+
+// LINT.IfChange
+// Data table that maps UserData struct in user_desktop.h
+table UserDataDesktop {
+  // UserInfoImpl fields
+
+  // The user's ID, unique to the Firebase project.
+  uid:string;
+
+  // The associated email, if any.
+  email:string;
+
+  // The display name, if any.
+  display_name:string;
+
+  // Associated photo url, if any.
+  photo_url:string;
+
+  // A provider ID for the user e.g. "Facebook".
+  provider_id:string;
+
+  // The user's phone number, if any.
+  phone_number:string;
+
+  // UserData fields
+  // Whether is anonymous.
+  is_anonymous:bool;
+
+  // Whether email is verified.
+  is_email_verified:bool;
+
+  // Tokens for authentication and authorization.
+  id_token:string;
+  refresh_token:string;
+  access_token:string;
+
+  // The approximate expiration date of the access token.
+  access_token_expiration_date:long;
+
+  // Whether or not the user can be authenticated by provider 'password'.
+  has_email_password_credential:bool;
+
+  // The last sign in UTC timestamp in milliseconds.
+  // See https://en.wikipedia.org/wiki/Unix_time for details of UTC.
+  last_sign_in_timestamp:ulong;
+
+  // The Firebase user creation UTC timestamp in milliseconds.
+  creation_timestamp:ulong;
+}
+// LINT.ThenChange(//depot_firebase_cpp/auth/client/cpp/src/desktop/user_desktop.h)
+
+root_type UserDataDesktop;

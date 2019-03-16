@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- [START messaging_manifest_tools] -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.google.firebase.messaging.cpp.samples"
+    xmlns:tools="http://schemas.android.com/tools">
+<!-- [END messaging_manifest_tools] -->
+
+    <uses-feature android:glEsVersion="0x00020000" />
+
+    <application
+        android:label="@string/app_name"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher">
+
+        <meta-data android:name="android.app.lib_name"
+                   android:value="MyGame" />
+
+        <activity
+            android:name="com.google.firebase.messaging.cpp.samples.Activity"
+            android:screenOrientation="landscape"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/app_name"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- [START messaging_deep_link_intent_filter] -->
+            <intent-filter>
+              <action android:name="android.intent.action.VIEW"/>
+              <category android:name="android.intent.category.DEFAULT"/>
+              <category android:name="android.intent.category.BROWSABLE"/>
+              <data android:host="CHANGE_THIS_DOMAIN.example.com" android:scheme="http"/>
+              <data android:host="CHANGE_THIS_DOMAIN.example.com" android:scheme="https"/>
+            </intent-filter>
+            <!-- [END messaging_deep_link_intent_filter] -->
+
+            <!-- [START messaging_deep_link_intent_filter_wildcard] -->
+            <intent-filter>
+              <action android:name="android.intent.action.VIEW"/>
+              <category android:name="android.intent.category.DEFAULT"/>
+              <category android:name="android.intent.category.BROWSABLE"/>
+              <data android:host="*.example.com" android:scheme="http"/>
+              <data android:host="*.example.com" android:scheme="https"/>
+            </intent-filter>
+            <!-- [END messaging_deep_link_intent_filter_wildcard] -->
+        </activity>
+
+        <!-- [START messaging_remove_listener_service] -->
+        <service android:name="com.google.firebase.messaging.cpp.ListenerService"
+                 tools:node="remove" />
+        <!-- [END messaging_remove_listener_service] -->
+
+        <!-- [START messaging_add_custom_listener_service] -->
+        <service android:name="com.google.firebase.messaging.cpp.samples.MyListenerService"
+                 android:exported="false">
+          <intent-filter>
+            <action android:name="com.google.firebase.MESSAGING_EVENT"/>
+          </intent-filter>
+        </service>
+        <!-- [END messaging_add_custom_listener_service] -->
+    </application>
+
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+</manifest>

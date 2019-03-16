@@ -1,0 +1,76 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Note that this is not supported if used outside of the Remote Config desktop
+// implementation, and is subject to change without warning in the future.
+
+syntax = "proto2";
+
+package desktop.config;
+
+message PackageData {
+  optional string package_name = 1;
+  optional string gmp_project_id = 6;
+  repeated NamedValue namespace_digest = 8;
+  repeated NamedValue custom_variable = 9;
+  optional int32 sdk_version = 16;
+  optional int32 requested_cache_expiration_seconds = 18;
+  optional int32 fetched_config_age_seconds = 19;
+  optional int32 active_config_age_seconds = 20;
+}
+
+message KeyValue {
+  optional string key = 1;
+  optional bytes value = 2;
+}
+
+message NamedValue {
+  optional string name = 1;
+  optional string value = 2;
+}
+
+message ConfigFetchRequest {
+  repeated PackageData package_data = 2;
+  optional int32 client_version = 6;
+  optional int32 device_type = 11;
+  optional int32 device_subtype = 12;
+}
+
+message AppNamespaceConfigTable {
+  optional string namespace_but_not_a_cpp_reserved_word = 1;
+  optional string digest = 2;
+  repeated KeyValue entry = 3;
+  enum NamespaceStatus {
+    UPDATE = 0;
+    NO_TEMPLATE = 1;
+    NO_CHANGE = 2;
+    EMPTY_CONFIG = 3;
+    NOT_AUTHORIZED = 4;
+  }
+  optional NamespaceStatus status = 4;
+}
+
+message AppConfigTable {
+  optional string app_name = 1;
+  repeated AppNamespaceConfigTable namespace_config = 2;
+}
+
+message ConfigFetchResponse {
+  enum ResponseStatus {
+    SUCCESS = 0;
+    NO_PACKAGES_IN_REQUEST = 1;
+  }
+  optional ResponseStatus status = 2;
+  repeated AppConfigTable app_config = 4;
+}

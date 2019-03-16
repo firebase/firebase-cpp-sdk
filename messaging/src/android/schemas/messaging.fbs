@@ -1,0 +1,241 @@
+// Copyright 2016 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+namespace com.google.firebase.messaging.cpp;
+
+table DataPair {
+  key:string;
+  value:string;
+}
+
+// Used for messages that display a notification.
+//
+// On android, this requires that the app is using the Play Services client
+// library.
+table SerializedNotification {
+  // Indicates notification title. This field is not visible on iOS phones
+  // and tablets.
+  title:string;
+
+  // Indicates notification body text.
+  body:string;
+
+  // Indicates notification icon. Sets value to myicon for drawable resource
+  // myicon.
+  icon:string;
+
+  // Indicates a sound to play when the device receives the notification.
+  // Supports default, or the filename of a sound resource bundled in the
+  // app.
+  //
+  // Android sound files must reside in /res/raw/, while iOS sound files
+  // can be in the main bundle of the client app or in the Library/Sounds
+  // folder of the app’s data container.
+  sound:string;
+
+  // Indicates the badge on the client app home icon. iOS only.
+  badge:string;
+
+  // Indicates whether each notification results in a new entry in the
+  // notification drawer on Android. If not set, each request creates a new
+  // notification. If set, and a notification with the same tag is already
+  // being shown, the new notification replaces the existing one in the
+  // notification drawer.
+  tag:string;
+
+  // Indicates color of the icon, expressed in \#rrggbb format. Android only.
+  color:string;
+
+  // The action associated with a user click on the notification.
+  //
+  // On Android, if this is set, an activity with a matching intent filter is
+  // launched when user clicks the notification.
+  //
+  // If set on iOS, corresponds to category in APNS payload.
+  click_action:string;
+
+  // Indicates the key to the body string for localization.
+  //
+  // On iOS, this corresponds to "loc-key" in APNS payload.
+  //
+  // On Android, use the key in the app's string resources when populating this
+  // value.
+  body_loc_key:string;
+
+  // Indicates the string value to replace format specifiers in body string
+  // for localization.
+  //
+  // On iOS, this corresponds to "loc-args" in APNS payload.
+  //
+  // On Android, these are the format arguments for the string resource. For
+  // more information, see [Formatting strings][1].
+  //
+  // [1]: https://developer.android.com/guide/topics/resources/string-resource.html#FormattingAndStyling
+  body_loc_args:[string];
+
+  // Indicates the key to the title string for localization.
+  //
+  // On iOS, this corresponds to "title-loc-key" in APNS payload.
+  //
+  // On Android, use the key in the app's string resources when populating this
+  // value.
+  title_loc_key:string;
+
+  // Indicates the string value to replace format specifiers in title string
+  // for localization.
+  //
+  // On iOS, this corresponds to "title-loc-args" in APNS payload.
+  //
+  // On Android, these are the format arguments for the string resource. For
+  // more information, see [Formatting strings][1].
+  //
+  // [1]: https://developer.android.com/guide/topics/resources/string-resource.html#FormattingAndStyling
+  title_loc_args:[string];
+}
+
+table SerializedMessage {
+  // Authenticated ID of the sender.
+  //
+  // Any value starting with google.com, goog. or gcm. are reserved.
+  //
+  //   google.com - used for legacy sync, deprecated.
+  from:string;
+
+  // This parameter specifies the recipient of a message.
+  //
+  // For example it can be a registration token, a topic name, a IID or project
+  // ID.
+  //
+  // For upstream messages, PROJECT_ID@gcm.googleapis.com or the more general
+  // IID format are accepted.
+  to:string;
+
+  // This parameter identifies a group of messages (e.g., with collapse_key:
+  // "Updates Available") that can be collapsed, so that only the last message
+  // gets sent when delivery can be resumed.  This is intended to avoid sending
+  // too many of the same messages when the device comes back online or becomes
+  // active.
+  //
+  // Note that there is no guarantee of the order in which messages get sent.
+  //
+  // Note: A maximum of 4 different collapse keys is allowed at any given time.
+  // This means a GCM connection server can simultaneously store 4 different
+  // send-to-sync messages per client app. If you exceed this number, there is
+  // no guarantee which 4 collapse keys the GCM connection server will keep.
+  collapse_key:string;
+
+  // The metadata, including all original key/value pairs. Includes some of the
+  // HTTP headers used when sending the message. `gcm`, `google` and `goog`
+  // prefixes are reserved for internal use.
+  data:[DataPair];
+
+  // Binary payload. For webpush and non-json messages, this is the body of the
+  // request entity.
+  raw_data:string;
+
+  // Message ID. This can be specified by sender. Internally a hash of the
+  // message ID and other elements will be used for storage. The ID must be
+  // unique for each topic subscription - using the same ID may result in
+  // overriding the original message or duplicate delivery.
+  message_id:string;
+
+  // Equivalent with a content-type.
+  //
+  // Defined values:
+  //   - "deleted_messages" - indicates the server had too many messages and
+  //     dropped some, and the client should sync with his own server.
+  //     Current limit is 100 messages stored.
+  //   - "send_event" - indicates an upstream message has been pushed to the
+  //     GCM server. It does not guarantee the upstream destination received
+  //     it.
+  //     Parameters: "message_id"
+  //   - "send_error" - indicates an upstream message expired, without being
+  //     sent to the GCM server.
+  //     Parameters: "message_id" and "error"
+  //
+  // If this field is missing, the message is a regular message.
+  message_type:string;
+
+  // Sets the priority of the message. Valid values are "normal" and "high." On
+  // iOS, these correspond to APNs priority 5 and 10.
+  //
+  // By default, messages are sent with normal priority. Normal priority
+  // optimizes the client app's battery consumption, and should be used unless
+  // immediate delivery is required. For messages with normal priority, the app
+  // may receive the message with unspecified delay.
+  //
+  // When a message is sent with high priority, it is sent immediately, and the
+  // app can wake a sleeping device and open a network connection to your
+  // server.
+  //
+  // For more information, see Setting the priority of a message.
+  priority:string;
+
+  // This parameter specifies how long (in seconds) the message should be kept
+  // in GCM storage if the device is offline. The maximum time to live
+  // supported is 4 weeks, and the default value is 4 weeks. For more
+  // information, see Setting the lifespan of a message.
+  time_to_live:int;
+
+  // Error code. Used in "nack" messages for CCS, and in responses from the
+  // server.
+  // See the CCS specification for the externally-supported list.
+  error:string;
+
+  // Human readable details about the error.
+  error_description:string;
+
+  // Optional notification to show. This only set if a notification was
+  // received with this message, otherwise it is null. The notification is only
+  // guaranteed to be good during the call to Listener::OnMessage().
+  notification:SerializedNotification;
+
+  // Set to true if the message was opened by tapping on a notification in the
+  // system tray of the OS.
+  notification_opened:bool;
+
+  /// The link into the app from the message in the form of a URL.
+  link:string;
+
+  // Time in milliseconds from the Linux Epoch that the message was sent.
+  sent_time:long;
+
+  // Original priority of the message.  Value values are "normal" and "high".
+  //
+  //
+  // For more information, see Setting the priority of a message.
+  original_priority:string;
+}
+
+// This represents a registration token to be passed to the OnTokenReceived
+// callback. (Rather than add a string to the union, a table is used in case we
+// add another type of event that only has a single string as its payload data.)
+table SerializedTokenReceived {
+  // The new token.
+  token:string;
+}
+
+union SerializedEventUnion {
+  // This event represents receiving a new message.
+  SerializedMessage,
+
+  // This event represents receiving a new registration token.
+  SerializedTokenReceived,
+}
+
+table SerializedEvent {
+  event:SerializedEventUnion;
+}
+
+root_type SerializedEvent;

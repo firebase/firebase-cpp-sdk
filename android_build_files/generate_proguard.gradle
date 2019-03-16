@@ -1,0 +1,151 @@
+// Copyright 2019 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Generates a proguard file for the given C++ library.
+// Args:
+//   library: The C++ library to generate the proguard from.
+//   outCppPro: The path to the output proguard file.
+def generateCppProguard(File library, String outCppPro) {
+  def stringsOutStream = new ByteArrayOutputStream()
+  exec {
+    executable 'strings'
+    args "$library"
+    standardOutput = stringsOutStream
+  }
+
+  List<String> proguardLines = new ArrayList<String>()
+  for (String line : stringsOutStream.toString().split("[\\r\\n]+")) {
+    // The classes to keep are prefixed with %PG%, so find those.
+    if (line.startsWith("%PG%")) {
+      proguardLines.add(
+          "-keep,includedescriptorclasses public class " +
+          // Remove the %PG%, and replace any slashes with dots.
+          line.replaceFirst("%PG%", "").replace('/', '.') +
+          " { *; }");
+    }
+  }
+
+  new File("$outCppPro").text = String.join('\n', proguardLines.toSorted())
+}
+
+// Combines the given set of proguard files into a single one.
+// Args:
+//   proguardSet: The set of proguard files to use.
+//   outputProguard: The path to the output proguard file.
+def generateFinalProguard(Set<File> proguardSet, String outputProguard) {
+  Set<String> proguardLineSet = new HashSet<String>()
+  for (File pro : proguardSet) {
+    for (String line : pro.text.split("[\\r\\n]+")) {
+      // Ignore commented out lines.
+      if (!line.startsWith("#")) {
+        proguardLineSet.add(line)
+      }
+    }
+  }
+
+  // Sort the lines, and then write it out to the file.
+  String proguardLines = String.join('\n', proguardLineSet.toSorted())
+  new File("$outputProguard").text = proguardLines
+}
+
+// Adds the logic to generate a proguard file from the static library,
+// and then combining the proguard files into a single file.
+def defineGenerateProguardFile(String subproject, String buildType,
+                               Action<File> callback) {
+  Task t = tasks.getByName("externalNativeBuild$buildType").with {
+    String outputProguard = "$buildDir/${subproject}.pro"
+
+    outputs.file "$outputProguard"
+    doLast {
+      String nativeBuildDir =
+          project.android.externalNativeBuild.cmake.buildStagingDirectory
+      if (nativeBuildDir == null || nativeBuildDir.isEmpty()) {
+        nativeBuildDir = file('.externalNativeBuild/cmake').absolutePath
+      }
+
+      // Find the static library that was built. Note that there are multiple
+      // versions, based on the architecture, but we just need any one of them.
+      Set<File> librarySet = fileTree("$nativeBuildDir")
+          .matching({ include "**/*firebase_${subproject}*" }).getFiles()
+      String cppProguard = "$buildDir/cpp_${subproject}.pro"
+      if (!librarySet.isEmpty()) {
+        File lib = librarySet.iterator().next()
+        generateCppProguard(lib, cppProguard)
+      }
+
+      // Combine the proguard files into a single file.
+      File proguardFile = new File(outputProguard)
+      if (proguardFile.exists()) {
+        proguardFile.delete()
+      }
+      // If the Firebase C++ SDK directory is defined, so that, otherwise use
+      // the project directory.
+      String proguardSearchDir
+      if (project.hasProperty('firebase_cpp_sdk_dir')) {
+        proguardSearchDir = "${firebase_cpp_sdk_dir}/$subproject"
+      } else {
+        proguardSearchDir = "$projectDir"
+      }
+      FileTree proguardFileTree = fileTree("$proguardSearchDir")
+          .matching({ include "**/*.pro" })
+      // The app directory contains invites, which we don't want to include in
+      // the app proguard file.
+      if ("${subproject}" == "app") {
+        proguardFileTree = proguardFileTree.matching({ exclude "*invites*" })
+      }
+      // We don't want to include proguard files from any external libraries.
+      proguardFileTree =
+          proguardFileTree.matching({ exclude "**/external/src/**" })
+      Set<File> proguardSet = proguardFileTree.getFiles()
+
+      // On the other hand, if building dynamic_links or invites, we want to
+      // include the invites proguard file contained in app.
+      if ("${subproject}" == "dynamic_links" || "${subproject}" == "invites") {
+        FileTree invitesResourceTree = fileTree("$proguardSearchDir/../app")
+            .matching({ include "**/invites_resources.pro" })
+        proguardSet.addAll(invitesResourceTree.getFiles())
+      }
+      // The proguard file generated from the C++ library might not be in the
+      // search directory, so add it if it is missing.
+      File cppProguardFile = new File(cppProguard)
+      if (!proguardSet.contains(cppProguardFile) && cppProguardFile.exists()) {
+        proguardSet.add(cppProguardFile)
+      }
+
+      generateFinalProguard(proguardSet, outputProguard)
+
+      if (callback != null && proguardFile.exists()) {
+        callback.execute(proguardFile)
+      }
+    }
+  }
+}
+
+// Set up the tasks to generate the proguard file for the subproject
+def generateProguardFile(String subproject) {
+  defineGenerateProguardFile(subproject, 'Debug', null)
+  defineGenerateProguardFile(subproject, 'Release', null)
+}
+
+// Set up the tasks to generate the proguard file for the subproject,
+// passing along a callback to call when finished
+def generateProguardFileWithCallback(String subproject, Action<File> callback) {
+  defineGenerateProguardFile(subproject, 'Debug', callback)
+  defineGenerateProguardFile(subproject, 'Release', callback)
+}
+
+ext {
+  generateProguardFile = this.&generateProguardFile
+  generateProguardFileWithCallback = this.&generateProguardFileWithCallback
+}

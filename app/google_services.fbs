@@ -1,0 +1,93 @@
+// The FlatBuffers schema for configuring Firebase desktop support. Right now
+// it is defined as a subset of JSON format for Firebase Android platform. App
+// developer can download google-services.json from Firebase console and use it
+// for desktop development.
+
+// All FlatBuffers class is under namespace firebase::fbs to avoid contaminating
+// the top namespace firebase. Field name must match what is used in the .json
+// file and preferably table name is the Camel case of the field.
+namespace firebase.fbs;
+
+//
+// Below are types to specify each field.
+//
+
+//
+// Project information.
+//
+table ProjectInfo {
+  project_number: string;
+  firebase_url: string;
+  project_id: string;
+  storage_bucket: string;
+}
+
+// General app client information.
+table AndroidClientInfo {
+  package_name: string;
+}
+table ClientInfo {
+  mobilesdk_app_id: string;
+  android_client_info: AndroidClientInfo;
+}
+table AndroidInfo {
+  package_name: string;
+  certificate_hash: string;
+}
+table OAuthClient {
+  client_id: string;
+  client_type: int;
+  android_info: AndroidInfo;
+}
+table ApiKey {
+  current_key: string;
+}
+
+// Services information.
+table AnalyticsProperty {
+  tracking_id: string;
+}
+table AnalyticsService {
+  status: int;
+  analytics_property: AnalyticsProperty;
+}
+table AppInviteService {
+  status: int;
+}
+table AdsService {
+  status: int;
+  test_banner_ad_unit_id: string;
+  test_interstitial_ad_unit_id: string;
+  analytics_service: AnalyticsService;
+}
+table Services {
+  analytics_service: AnalyticsService;
+  appinvite_service: AppInviteService;
+  ads_service: AdsService;
+}
+
+//
+// Top level app client information.
+//
+table Client {
+  client_info: ClientInfo;
+  oauth_client: [OAuthClient];
+  api_key: [ApiKey];
+  services: Services;
+}
+
+//
+// This is the top level type to specify a configuration file.
+//
+table GoogleServices {
+  // Project information.
+  project_info: ProjectInfo;
+
+  // App information.
+  client: [Client];
+
+  // Project version string.
+  configuration_version: string;
+}
+
+root_type GoogleServices;

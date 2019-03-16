@@ -1,0 +1,126 @@
+// Copyright 2018 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// A map of library to the dependencies that need to be added for it.
+def firebaseDependenciesMap = [
+  'app' : ['com.google.firebase:firebase-core:16.0.7'],
+  'admob' : ['com.google.firebase:firebase-ads:17.1.3'],
+  'analytics' : ['com.google.firebase:firebase-analytics:16.3.0'],
+  'auth' : ['com.google.firebase:firebase-auth:16.2.0'],
+  'database' : ['com.google.firebase:firebase-database:16.1.0'],
+  'dynamic_links' : ['com.google.firebase:firebase-invites:16.1.0'],
+  'functions' : ['com.google.firebase:firebase-functions:16.2.0'],
+  'instance_id' : ['com.google.firebase:firebase-iid:17.1.0'],
+  'invites' : ['com.google.firebase:firebase-invites:16.1.0'],
+  'messaging' : ['com.google.firebase.messaging.cpp:firebase_messaging_cpp@aar',
+                 'com.google.firebase:firebase-messaging:17.4.0'],
+  'remote_config' : ['com.google.firebase:firebase-config:16.4.0'],
+  'storage' : ['com.google.firebase:firebase-storage:16.1.0']
+]
+
+// Handles adding the Firebase C++ dependencies as properties.
+class Dependencies {
+  HashSet<String> libSet = new HashSet<String>()
+
+  def getApp() {
+    libSet.add('app')
+  }
+  def getAdmob() {
+    libSet.add('admob')
+  }
+  def getAnalytics() {
+    libSet.add('analytics')
+  }
+  def getAuth() {
+    libSet.add('auth')
+  }
+  def getDatabase() {
+    libSet.add('database')
+  }
+  def getDynamicLinks() {
+    libSet.add('dynamic_links')
+  }
+  def getFunctions() {
+    libSet.add('functions')
+  }
+  def getInstanceId() {
+    libSet.add('instance_id')
+  }
+  def getInvites() {
+    libSet.add('invites')
+  }
+  def getMessaging() {
+    libSet.add('messaging')
+  }
+  def getPerformance() {
+    libSet.add('performance')
+  }
+  def getRemoteConfig() {
+    libSet.add('remote_config')
+  }
+  def getStorage() {
+    libSet.add('storage')
+  }
+}
+
+// Extension to handle which Firebase C++ dependencies are being added to the
+// gradle project.
+// They are added via: firebaseCpp.dependencies "admob", "analytics", ...
+class FirebaseCppExtension {
+  Dependencies dependencies = new Dependencies()
+
+  void dependencies(Closure c) {
+    ConfigureUtil.configure(c, dependencies)
+  }
+  void dependencies(Action<? super Dependencies> action) {
+    action.execute(dependencies)
+  }
+}
+
+project.extensions.create('firebaseCpp', FirebaseCppExtension)
+
+// Adds the proguard file for the given library.
+def addProguard(String lib) {
+  project.android.buildTypes.release.proguardFile file(
+    "${gradle.firebase_cpp_sdk_dir}/libs/android/${lib}.pro")
+}
+
+project.afterEvaluate {
+  if (!firebaseCpp.dependencies.libSet.isEmpty()) {
+    // App is required, so add it if it wasn't included.
+    if (!firebaseCpp.dependencies.libSet.contains('app')) {
+      firebaseCpp.dependencies.libSet.add('app')
+    }
+
+    for (String lib : firebaseCpp.dependencies.libSet) {
+      // Messaging includes an aar, which to be depended on properly requires
+      // the folder containing it to be added this way.
+      if (lib == 'messaging') {
+        repositories {
+          flatDir {
+            dirs gradle.firebase_cpp_sdk_dir + "/libs/android"
+          }
+        }
+      }
+
+      // Add the proguard file and dependencies for the library
+      addProguard(lib)
+      for (String dep : firebaseDependenciesMap.get(lib)) {
+        project.dependencies {
+          implementation "$dep"
+        }
+      }
+    }
+  }
+}
