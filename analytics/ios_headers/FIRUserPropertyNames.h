@@ -32,3 +32,7 @@
 /// The method used to sign in. For example, "google", "facebook" or "twitter".
 static NSString *const kFIRUserPropertySignUpMethod
     NS_SWIFT_NAME(AnalyticsUserPropertySignUpMethod) = @"sign_up_method";
+
+/// User property to allow events to be used as signals for ad personalization.
+static NSString *const kFIRUserPropertyAllowAdPersonalizationSignals
+    NS_SWIFT_NAME(AnalyticsUserPropertyAllowAdPersonalizationSignals) = @"allow_personalized_ads";
