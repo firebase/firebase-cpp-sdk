@@ -93,8 +93,8 @@ if(IOS)
   set(pod_target_name "download_instance_id_pod_headers")
   set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
   set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '5.18.0'")
-  list(APPEND pod_list "'FirebaseInstanceID', '3.7.0'")
+  list(APPEND pod_list "'Firebase/Core', '5.20.0'")
+  list(APPEND pod_list "'FirebaseInstanceID', '3.8.1'")
 
   setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
 
