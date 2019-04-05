@@ -20,6 +20,13 @@
 #include <android/log.h>
 #endif  // !defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
+#if !defined(FIREBASE_NAMESPACE)
+#define FIREBASE_NAMESPACE firebase
+#endif
+
+#define STR_EXPAND(x) #x
+#define STR(x) STR_EXPAND(x)
+
 #include <assert.h>
 #include <jni.h>
 #include <stdarg.h>
@@ -27,13 +34,9 @@
 
 #include "app/src/util_android.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
 namespace FIREBASE_NAMESPACE {
 
-const char* kDefaultTag = "firebase";
+const char* kDefaultTag = STR(FIREBASE_NAMESPACE);
 
 // TODO(zxu): Instead of linking on log_stdio, mock the __android_log_vprint
 // and use the logic here.
