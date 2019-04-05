@@ -40,6 +40,11 @@ class FunctionRegistry;
 namespace auth {
 class Auth;
 }  // namespace auth
+namespace crashlytics {
+namespace internal {
+class CrashlyticsInternal;
+}  // namespace internal
+}  // namespace crashlytics
 namespace database {
 namespace internal {
 class DatabaseInternal;
@@ -622,6 +627,7 @@ class App {
  private:
   /// @cond FIREBASE_APP_INTERNAL
   friend class auth::Auth;
+  friend class crashlytics::internal::CrashlyticsInternal;
   friend class database::internal::DatabaseInternal;
 #ifdef INTERNAL_EXPERIMENTAL
   friend class firestore::FirestoreInternal;

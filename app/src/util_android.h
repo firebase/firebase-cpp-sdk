@@ -506,6 +506,8 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
 // Used to call android.app.Activity methods.
 // clang-format off
 #define ACTIVITY_BASE_METHODS(X)                                        \
+  X(GetApplicationContext, "getApplicationContext",                     \
+  "()Landroid/content/Context;"),                                       \
   X(GetCacheDir, "getCacheDir", "()Ljava/io/File;"),                    \
   X(GetClassLoader, "getClassLoader", "()Ljava/lang/ClassLoader;"),     \
   X(GetIntent, "getIntent", "()Landroid/content/Intent;"),              \
