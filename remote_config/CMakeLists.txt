@@ -43,22 +43,22 @@ if (NOT PROTOBUF_FOUND)
             your PATH, or set the CMake option FIREBASE_INCLUDE_REMOTE_CONFIG \
             to OFF to disable the firebase_remote_config build target.")
   endif()
+else()
+  # Generates config.pb.c and config.pb.h
+  NANOPB_GENERATE_CPP(PROTO_SRCS PROTO_HDRS src_protos/config.proto)
+  set(desktop_SRCS
+      src/desktop/remote_config.cc
+      src/desktop/rest.cc
+      src/desktop/config_data.cc
+      src/desktop/file_manager.cc
+      src/desktop/metadata.cc
+      src/desktop/notification_channel.cc
+      src/desktop/remote_config_desktop.cc
+      src/desktop/rest_nanopb_decode.cc
+      src/desktop/rest_nanopb_encode.cc
+      "${PROJECT_BINARY_DIR}/config.pb.c"
+      "${PROJECT_BINARY_DIR}/config.pb.h")
 endif()
-
-# Generates config.pb.c and config.pb.h
-NANOPB_GENERATE_CPP(PROTO_SRCS PROTO_HDRS src_protos/config.proto)
-set(desktop_SRCS
-    src/desktop/remote_config.cc
-    src/desktop/rest.cc
-    src/desktop/config_data.cc
-    src/desktop/file_manager.cc
-    src/desktop/metadata.cc
-    src/desktop/notification_channel.cc
-    src/desktop/remote_config_desktop.cc
-    src/desktop/rest_nanopb_decode.cc
-    src/desktop/rest_nanopb_encode.cc
-    "${PROJECT_BINARY_DIR}/config.pb.c"
-    "${PROJECT_BINARY_DIR}/config.pb.h")
 
 if(ANDROID)
   set(remote_config_platform_SRCS
