@@ -14,20 +14,20 @@
 
 // A map of library to the dependencies that need to be added for it.
 def firebaseDependenciesMap = [
-  'app' : ['com.google.firebase:firebase-core:16.0.7'],
-  'admob' : ['com.google.firebase:firebase-ads:17.1.3'],
-  'analytics' : ['com.google.firebase:firebase-analytics:16.3.0'],
-  'auth' : ['com.google.firebase:firebase-auth:16.2.0'],
+  'app' : ['com.google.firebase:firebase-core:16.0.8'],
+  'admob' : ['com.google.firebase:firebase-ads:17.2.0'],
+  'analytics' : ['com.google.firebase:firebase-analytics:16.4.0'],
+  'auth' : ['com.google.firebase:firebase-auth:16.2.1'],
   'database' : ['com.google.firebase:firebase-database:16.1.0'],
-  'dynamic_links' : ['com.google.firebase:firebase-invites:16.1.0'],
-  'functions' : ['com.google.firebase:firebase-functions:16.2.0'],
-  'instance_id' : ['com.google.firebase:firebase-iid:17.1.0'],
-  'invites' : ['com.google.firebase:firebase-invites:16.1.0'],
+  'dynamic_links' : ['com.google.firebase:firebase-invites:16.1.1'],
+  'functions' : ['com.google.firebase:firebase-functions:16.3.0'],
+  'instance_id' : ['com.google.firebase:firebase-iid:17.1.2'],
+  'invites' : ['com.google.firebase:firebase-invites:16.1.1'],
   // Messaging has an additional local dependency to include.
-  'messaging' : ['com.google.firebase:firebase-messaging:17.4.0',
+  'messaging' : ['com.google.firebase:firebase-messaging:17.6.0',
                  'firebase_cpp_sdk.messaging:messaging_java'],
-  'performance' : ['com.google.firebase:firebase-perf:16.2.4'],
-  'remote_config' : ['com.google.firebase:firebase-config:16.4.0'],
+  'performance' : ['com.google.firebase:firebase-perf:16.2.5'],
+  'remote_config' : ['com.google.firebase:firebase-config:16.5.0'],
   'storage' : ['com.google.firebase:firebase-storage:16.1.0']
 ]
 
