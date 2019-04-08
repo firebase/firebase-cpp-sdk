@@ -40,20 +40,15 @@ public class RegistrationIntentService extends IntentService {
   // Fetch the latest registration token and notify the C++ layer.
   @Override
   protected void onHandleIntent(Intent intent) {
-    refreshToken(this);
-  }
-
-  // Get the current instance ID token and send it to the C++ layer.
-  // This is public so that it can be called by FcmInstanceIDListenerService.
-  public static void refreshToken(Context context) {
     String token = FirebaseInstanceId.getInstance().getToken();
     DebugLogging.log(TAG, String.format("onHandleIntent token=%s", token));
     if (token != null) {
-      writeTokenToInternalStorage(context, token);
+      writeTokenToInternalStorage(this, token);
     }
   }
 
-  private static void writeTokenToInternalStorage(Context context, String token) {
+  /** Write token to internal storage so it can be accessed by the C++ layer. */
+  public static void writeTokenToInternalStorage(Context context, String token) {
     byte[] buffer = generateTokenByteBuffer(token);
     ByteBuffer sizeBuffer = ByteBuffer.allocate(4);
     // Write out the buffer length into the first four bytes.

@@ -67,4 +67,10 @@ public class ListenerService extends FirebaseMessagingService {
     messageWriter.writeMessageEventToInternalStorage(
         this, messageId, MESSAGE_TYPE_SEND_ERROR, exception.toString());
   }
+
+  @Override
+  public void onNewToken(String token) {
+    DebugLogging.log(TAG, String.format("onNewToken token=%s", token));
+    RegistrationIntentService.writeTokenToInternalStorage(this, token);
+  }
 }
