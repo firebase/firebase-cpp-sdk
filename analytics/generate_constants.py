@@ -112,8 +112,9 @@ DOC_STRING_GLOBAL_REPLACEMENTS = [
      r'\1FirebaseAnalytics.Parameter'),
 ]
 
+
 def main(unused_argv):
-  """Convert the the specified Objective-C header to C++."""
+  """Convert the specified Objective-C header to C++."""
   cpp_header_basename = os.path.basename(FLAGS.cpp_header)
   replacements = list(DOC_STRING_LINE_REPLACEMENTS)
   replacements.insert(0, (r'FIR.*\.h', cpp_header_basename))
