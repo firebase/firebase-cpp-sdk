@@ -13,7 +13,10 @@
 // limitations under the License.
 
 #include "auth/src/desktop/user_desktop.h"
+
+#include <fstream>
 #include <memory>
+
 #include "app/rest/transport_builder.h"
 #include "app/rest/util.h"
 #include "app/src/thread.h"
