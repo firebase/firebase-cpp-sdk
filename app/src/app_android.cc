@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-#include "app/src/include/firebase/app.h"
-
 #include <jni.h>
 #include <string.h>
+
 #include <string>
 
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
 #include "app/src/google_play_services/availability_android.h"
+#include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
@@ -117,6 +117,26 @@ METHOD_LOOKUP_DEFINITION(options,
                          "com/google/firebase/FirebaseOptions",
                          FIREBASE_OPTIONS_METHODS)
 
+// clang-format off
+#define GLOBAL_LIBRARY_VERSION_REGISTAR_METHODS(X)                             \
+  X(GetInstance, "getInstance",                                                \
+    "()Lcom/google/firebase/platforminfo/GlobalLibraryVersionRegistrar;",      \
+    util::kMethodTypeStatic),                                                  \
+  X(RegisterVersion, "registerVersion",                                        \
+    "(Ljava/lang/String;Ljava/lang/String;)V",                                 \
+    util::kMethodTypeInstance),                                                \
+  X(GetRegisteredVersions, "getRegisteredVersions", "()Ljava/util/Set;",       \
+    util::kMethodTypeInstance)
+// clang-format on
+
+METHOD_LOOKUP_DECLARATION(version_registrar,
+                          GLOBAL_LIBRARY_VERSION_REGISTAR_METHODS)
+METHOD_LOOKUP_DEFINITION(
+    version_registrar,
+    PROGUARD_KEEP_CLASS
+    "com/google/firebase/platforminfo/GlobalLibraryVersionRegistrar",
+    GLOBAL_LIBRARY_VERSION_REGISTAR_METHODS)
+
 const char* kDefaultAppName = "__FIRAPP_DEFAULT";
 
 namespace {
@@ -137,6 +157,7 @@ bool CacheMethods(JNIEnv* env, jobject activity) {
     if (!(app::CacheMethodIds(env, activity) &&
           options_builder::CacheMethodIds(env, activity) &&
           options::CacheMethodIds(env, activity) &&
+          version_registrar::CacheMethodIds(env, activity) &&
           google_play_services::Initialize(env, activity))) {
       ReleaseClasses(env);
       return false;
@@ -152,6 +173,7 @@ void ReleaseClasses(JNIEnv* env) {
     app::ReleaseClass(env);
     options_builder::ReleaseClass(env);
     options::ReleaseClass(env);
+    version_registrar::ReleaseClass(env);
     google_play_services::Terminate(env);
     util::Terminate(env);
   }
@@ -410,7 +432,30 @@ App* App::GetInstance(const char* name) {
 
 JNIEnv* App::GetJNIEnv() const { return util::GetThreadsafeJNIEnv(java_vm()); }
 
+static void RegisterLibraryWithVersionRegistrar(JNIEnv* env,
+                                                const char* library,
+                                                const char* version) {
+  jobject registrar = env->CallStaticObjectMethod(
+      version_registrar::GetClass(),
+      version_registrar::GetMethodId(version_registrar::kGetInstance));
+  util::CheckAndClearJniExceptions(env);
+  FIREBASE_ASSERT(registrar != nullptr);
+
+  jstring library_string = env->NewStringUTF(library);
+  jstring version_string = env->NewStringUTF(version);
+  env->CallVoidMethod(
+      registrar,
+      version_registrar::GetMethodId(version_registrar::kRegisterVersion),
+      library_string, version_string);
+  util::CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(version_string);
+  env->DeleteLocalRef(library_string);
+  env->DeleteLocalRef(registrar);
+}
+
 void App::RegisterLibrary(const char* library, const char* version) {
+  RegisterLibraryWithVersionRegistrar(util::GetJNIEnvFromApp(), library,
+                                      version);
   app_common::RegisterLibrary(library, version);
 }
 
