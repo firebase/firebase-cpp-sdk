@@ -16,12 +16,13 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_REPO_H_
 
 #include <vector>
+
 #include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/safe_reference.h"
 #include "database/src/desktop/connection/persistent_connection.h"
-#include "database/src/desktop/connection/safe_reference.h"
 #include "database/src/desktop/core/event_registration.h"
 #include "database/src/desktop/core/sparse_snapshot_tree.h"
 #include "database/src/desktop/core/sync_tree.h"
@@ -40,8 +41,8 @@ class EventRegistration;
 
 class Repo : public connection::PersistentConnectionEventHandler {
  public:
-  typedef connection::SafeReference<Repo> ThisRef;
-  typedef connection::SafeReferenceLock<Repo> ThisRefLock;
+  typedef firebase::internal::SafeReference<Repo> ThisRef;
+  typedef firebase::internal::SafeReferenceLock<Repo> ThisRefLock;
 
   explicit Repo(App* app, DatabaseInternal* database, const char* url);
 

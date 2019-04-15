@@ -12,16 +12,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CONNECTION_SAFE_REFERENCE_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CONNECTION_SAFE_REFERENCE_H_
+#ifndef FIREBASE_APP_CLIENT_CPP_SRC_SAFE_REFERENCE_H_
+#define FIREBASE_APP_CLIENT_CPP_SRC_SAFE_REFERENCE_H_
 
 #include "app/memory/shared_ptr.h"
 #include "app/src/mutex.h"
 
-namespace firebase {
-namespace database {
+#if !defined(FIREBASE_NAMESPACE)
+#define FIREBASE_NAMESPACE firebase
+#endif
+
+namespace FIREBASE_NAMESPACE {
 namespace internal {
-namespace connection {
+
+// TODO(b/130544650): Add unit test to this file.
 
 // SafeReference owns a pointers to an object which can be deleted in anytime.
 // SafeReference can be shared to different thread that potentially have longer
@@ -72,9 +76,8 @@ class SafeReferenceLock {
   SafeReference<T>* ref_;
   MutexLock lock_;
 };
-}  // namespace connection
-}  // namespace internal
-}  // namespace database
-}  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CONNECTION_SAFE_REFERENCE_H_
+}  // namespace internal
+}  // namespace FIREBASE_NAMESPACE
+
+#endif  // FIREBASE_APP_CLIENT_CPP_SRC_SAFE_REFERENCE_H_

@@ -20,9 +20,9 @@
 #include "app/memory/atomic.h"
 #include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/variant.h"
+#include "app/src/safe_reference.h"
 #include "app/src/scheduler.h"
 #include "database/src/desktop/connection/host_info.h"
-#include "database/src/desktop/connection/safe_reference.h"
 #include "database/src/desktop/connection/web_socket_client_interface.h"
 
 namespace firebase {
@@ -175,8 +175,8 @@ class Connection : public WebSocketClientEventHandler {
   // Safe reference to this.  Set in constructor and cleared in destructor
   // Should be safe to be copied in any thread because the SharedPtr never
   // changes, until safe_this_ is completely destroyed.
-  typedef SafeReference<Connection> ConnectionRef;
-  typedef SafeReferenceLock<Connection> ConnectionRefLock;
+  typedef firebase::internal::SafeReference<Connection> ConnectionRef;
+  typedef firebase::internal::SafeReferenceLock<Connection> ConnectionRefLock;
   ConnectionRef safe_this_;
 
   // Event handler for higher level

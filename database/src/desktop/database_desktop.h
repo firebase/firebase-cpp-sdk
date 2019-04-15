@@ -17,16 +17,17 @@
 
 #include <list>
 #include <string>
+
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/mutex.h"
+#include "app/src/safe_reference.h"
 #include "app/src/scheduler.h"
 #include "database/src/common/listener.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/connection/host_info.h"
 #include "database/src/desktop/connection/persistent_connection.h"
-#include "database/src/desktop/connection/safe_reference.h"
 #include "database/src/desktop/core/indexed_variant.h"
 #include "database/src/desktop/core/repo.h"
 #include "database/src/desktop/push_child_name_generator.h"
@@ -144,8 +145,8 @@ class DatabaseInternal {
     }
   }
 
-  typedef connection::SafeReference<DatabaseInternal> ThisRef;
-  typedef connection::SafeReferenceLock<DatabaseInternal> ThisRefLock;
+  typedef firebase::internal::SafeReference<DatabaseInternal> ThisRef;
+  typedef firebase::internal::SafeReferenceLock<DatabaseInternal> ThisRefLock;
 
   // Call from transaction response to handle the response result.
   void HandleTransactionResponse(const connection::ResponsePtr& ptr);

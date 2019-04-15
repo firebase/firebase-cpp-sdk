@@ -29,11 +29,11 @@
 #include "app/src/include/firebase/variant.h"
 #include "app/src/optional.h"
 #include "app/src/path.h"
+#include "app/src/safe_reference.h"
 #include "app/src/scheduler.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/connection/connection.h"
 #include "database/src/desktop/connection/host_info.h"
-#include "database/src/desktop/connection/safe_reference.h"
 #include "database/src/include/firebase/database/common.h"
 
 namespace firebase {
@@ -465,8 +465,9 @@ class PersistentConnection : public ConnectionEventHandler {
   // Safe reference to this.  Set in constructor and cleared in destructor
   // Should be safe to be copied in any thread because the SharedPtr never
   // changes, until safe_this_ is completely destroyed.
-  typedef SafeReference<PersistentConnection> ThisRef;
-  typedef SafeReferenceLock<PersistentConnection> ThisRefLock;
+  typedef firebase::internal::SafeReference<PersistentConnection> ThisRef;
+  typedef firebase::internal::SafeReferenceLock<PersistentConnection>
+      ThisRefLock;
   ThisRef safe_this_;
 
   // Scheduler to make sure all Connection events are handled in worker
