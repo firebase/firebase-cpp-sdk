@@ -96,11 +96,7 @@ static const struct {
     {FIRAuthErrorCodeWebContextAlreadyPresented, kAuthErrorWebContextAlreadyPresented},
     {FIRAuthErrorCodeWebContextCancelled, kAuthErrorWebContextCancelled},
     {FIRAuthErrorCodeWrongPassword, kAuthErrorWrongPassword},
-    // TODO(b/128614989): Uncomment this when the Firebase Auth iOS SDK can handle the
-    // INVALID_PROVIDER_ID error, returned by the backend when an app does not have a specific
-    // provider enabled in the console.
-    //
-    // {FIRAuthErrorCodeInvalidProviderId, kAuthErrorInvalidProviderId},
+    {FIRAuthErrorCodeInvalidProviderID, kAuthErrorInvalidProviderId},
 };
 
 template<typename T>
