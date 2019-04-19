@@ -103,8 +103,7 @@ if(IOS)
   target_include_directories(firebase_instance_id
     PRIVATE
       ${base_header_dir}/FirebaseCore
-      # FirebaseInstanceID headers are stored in a subdirectory
-      ${base_header_dir}/FirebaseInstanceID/FirebaseInstanceID
+      ${base_header_dir}/FirebaseInstanceID
   )
 
   # Add a dependency to downloading the headers onto instance_id.

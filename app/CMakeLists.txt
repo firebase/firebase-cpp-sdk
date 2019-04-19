@@ -292,8 +292,7 @@ if(IOS)
     PRIVATE
       ${base_header_dir}/FirebaseCore
       ${base_header_dir}/FirebaseDynamicLinks
-      # FirebaseInstanceID headers are stored in a subdirectory
-      ${base_header_dir}/FirebaseInstanceID/FirebaseInstanceID
+      ${base_header_dir}/FirebaseInstanceID
   )
 
   # Add a dependency to downloading the headers onto app.
