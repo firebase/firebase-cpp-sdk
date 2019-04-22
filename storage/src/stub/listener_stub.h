@@ -1,4 +1,4 @@
-// Copyright 2017 Google LLC
+// Copyright 2018 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,19 +12,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_INVITES_CLIENT_CPP_SRC_IOS_INVITES_H_
-#define FIREBASE_INVITES_CLIENT_CPP_SRC_IOS_INVITES_H_
+#ifndef FIREBASE_STORAGE_CLIENT_CPP_SRC_STUB_LISTENER_STUB_H_
+#define FIREBASE_STORAGE_CLIENT_CPP_SRC_STUB_LISTENER_STUB_H_
+
+#include "firebase/storage/listener.h"
 
 namespace firebase {
-namespace invites {
+namespace storage {
 namespace internal {
 
-// Plain C++ methods used to initialize iOS specific callbacks.
-void InitializeIos();
-void TerminateIos();
+class ListenerInternal {
+ public:
+  explicit ListenerInternal(Listener *listener) : listener_(listener) {}
+  ~ListenerInternal() {}
+
+ private:
+  Listener* listener_;
+};
 
 }  // namespace internal
-}  // namespace invites
+}  // namespace storage
 }  // namespace firebase
 
-#endif  // FIREBASE_INVITES_CLIENT_CPP_SRC_IOS_INVITES_H_
+#endif  // FIREBASE_STORAGE_CLIENT_CPP_SRC_STUB_LISTENER_STUB_H_
