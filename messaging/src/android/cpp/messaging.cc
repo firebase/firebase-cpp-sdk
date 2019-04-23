@@ -13,8 +13,10 @@
 // limitations under the License.
 
 #include "messaging/src/include/firebase/messaging.h"
+
 #include <assert.h>
 #include <jni.h>
+#include <limits.h>
 #include <pthread.h>
 #include <stdio.h>
 #include <sys/file.h>
@@ -22,6 +24,7 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
+
 #include <set>
 #include <string>
 
