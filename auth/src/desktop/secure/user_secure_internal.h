@@ -1,3 +1,4 @@
+
 // Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +19,6 @@
 #include <string>
 
 #include "app/src/scheduler.h"
-#include "auth/src/desktop/secure/user_secure_data_handle.h"
 
 namespace firebase {
 namespace auth {
@@ -26,18 +26,17 @@ namespace secure {
 
 class UserSecureInternal {
  public:
-  UserSecureInternal() = default;
   virtual ~UserSecureInternal() = default;
 
   // Load persisted user data for given app name.
-  virtual std::string LoadUserData(const std::string appName) = 0;
+  virtual std::string LoadUserData(const std::string& app_name) = 0;
 
   // Save user data under the key of given app name.
-  virtual void SaveUserData(const std::string appName,
-                            const std::string userData) = 0;
+  virtual void SaveUserData(const std::string& app_name,
+                            const std::string& user_data) = 0;
 
   // Delete user data under the given app name.
-  virtual void DeleteUserData(const std::string appName) = 0;
+  virtual void DeleteUserData(const std::string& app_name) = 0;
 
   // Delete all user data.
   virtual void DeleteAllData() = 0;
