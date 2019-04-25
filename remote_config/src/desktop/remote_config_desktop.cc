@@ -104,8 +104,7 @@ std::string RemoteConfigDesktop::VariantToString(const Variant& variant,
 
 #ifndef SWIG
 void RemoteConfigDesktop::SetDefaults(const ConfigKeyValueVariant* defaults,
-                                      size_t number_of_defaults,
-                                      const char* config_namespace) {
+                                      size_t number_of_defaults) {
   if (defaults == nullptr) {
     return;
   }
@@ -118,13 +117,12 @@ void RemoteConfigDesktop::SetDefaults(const ConfigKeyValueVariant* defaults,
       defaults_map[key] = value;
     }
   }
-  SetDefaults(defaults_map, config_namespace);
+  SetDefaults(defaults_map);
 }
 #endif  // SWIG
 
 void RemoteConfigDesktop::SetDefaults(const ConfigKeyValue* defaults,
-                                      size_t number_of_defaults,
-                                      const char* config_namespace) {
+                                      size_t number_of_defaults) {
   if (defaults == nullptr) {
     return;
   }
@@ -136,16 +134,14 @@ void RemoteConfigDesktop::SetDefaults(const ConfigKeyValue* defaults,
       defaults_map[key] = value;
     }
   }
-  SetDefaults(defaults_map, config_namespace);
+  SetDefaults(defaults_map);
 }
 
 void RemoteConfigDesktop::SetDefaults(
-    const std::map<std::string, std::string>& defaults_map,
-    const char* config_namespace) {
+    const std::map<std::string, std::string>& defaults_map) {
   {
     std::unique_lock<std::mutex> lock(mutex_);
-    configs_.defaults.SetNamespace(
-        defaults_map, config_namespace ? config_namespace : kDefaultNamespace);
+    configs_.defaults.SetNamespace(defaults_map, kDefaultNamespace);
   }
   save_channel_.Put();
 }
@@ -167,29 +163,28 @@ void RemoteConfigDesktop::SetConfigSetting(ConfigSetting setting,
   save_channel_.Put();
 }
 
-bool RemoteConfigDesktop::CheckValueInActiveAndDefault(
-    const char* key, const char* config_namespace, ValueInfo* info,
-    std::string* value) {
-  return CheckValueInConfig(configs_.active, kValueSourceRemoteValue, key,
-                            config_namespace, info, value) ||
+bool RemoteConfigDesktop::CheckValueInActiveAndDefault(const char* key,
+                                                       ValueInfo* info,
+                                                       std::string* value) {
+  return CheckValueInConfig(configs_.active, kValueSourceRemoteValue, key, info,
+                            value) ||
          CheckValueInConfig(configs_.defaults, kValueSourceDefaultValue, key,
-                            config_namespace, info, value);
+                            info, value);
 }
 
-bool RemoteConfigDesktop::CheckValueInConfig(
-    const NamespacedConfigData& config, ValueSource source, const char* key,
-    const char* config_namespace, ValueInfo* info, std::string* value) {
+bool RemoteConfigDesktop::CheckValueInConfig(const NamespacedConfigData& config,
+                                             ValueSource source,
+                                             const char* key, ValueInfo* info,
+                                             std::string* value) {
   if (!key) return false;
 
   {
     // TODO(b/74461360): Replace the thread locks with firebase ones.
     std::unique_lock<std::mutex> lock(mutex_);
-    if (!config.HasValue(
-            key, config_namespace ? config_namespace : kDefaultNamespace)) {
+    if (!config.HasValue(key, kDefaultNamespace)) {
       return false;
     }
-    *value = config.GetValue(
-        key, config_namespace ? config_namespace : kDefaultNamespace);
+    *value = config.GetValue(key, kDefaultNamespace);
   }
 
   if (info) info->source = source;
@@ -231,10 +226,9 @@ bool RemoteConfigDesktop::IsDouble(const std::string& str) {
 }
 
 bool RemoteConfigDesktop::GetBoolean(const char* key,
-                                     const char* config_namespace,
                                      ValueInfo* info) {
   std::string value;
-  if (!CheckValueInActiveAndDefault(key, config_namespace, info, &value)) {
+  if (!CheckValueInActiveAndDefault(key, info, &value)) {
     if (info) {
       info->source = kValueSourceStaticValue;
       info->conversion_successful = true;
@@ -255,10 +249,9 @@ bool RemoteConfigDesktop::GetBoolean(const char* key,
 }
 
 std::string RemoteConfigDesktop::GetString(const char* key,
-                                           const char* config_namespace,
                                            ValueInfo* info) {
   std::string value;
-  if (!CheckValueInActiveAndDefault(key, config_namespace, info, &value)) {
+  if (!CheckValueInActiveAndDefault(key, info, &value)) {
     if (info) {
       info->source = kValueSourceStaticValue;
       info->conversion_successful = true;
@@ -271,10 +264,9 @@ std::string RemoteConfigDesktop::GetString(const char* key,
 }
 
 int64_t RemoteConfigDesktop::GetLong(const char* key,
-                                     const char* config_namespace,
                                      ValueInfo* info) {
   std::string value;
-  if (!CheckValueInActiveAndDefault(key, config_namespace, info, &value)) {
+  if (!CheckValueInActiveAndDefault(key, info, &value)) {
     if (info) {
       info->source = kValueSourceStaticValue;
       info->conversion_successful = true;
@@ -295,10 +287,9 @@ int64_t RemoteConfigDesktop::GetLong(const char* key,
 }
 
 double RemoteConfigDesktop::GetDouble(const char* key,
-                                      const char* config_namespace,
                                       ValueInfo* info) {
   std::string value;
-  if (!CheckValueInActiveAndDefault(key, config_namespace, info, &value)) {
+  if (!CheckValueInActiveAndDefault(key, info, &value)) {
     if (info) {
       info->source = kValueSourceStaticValue;
       info->conversion_successful = true;
@@ -318,10 +309,10 @@ double RemoteConfigDesktop::GetDouble(const char* key,
   return convertation_failure ? kDefaultValueForDouble : double_value;
 }
 
-std::vector<unsigned char> RemoteConfigDesktop::GetData(
-    const char* key, const char* config_namespace, ValueInfo* info) {
+std::vector<unsigned char> RemoteConfigDesktop::GetData(const char* key,
+                                                        ValueInfo* info) {
   std::string value;
-  if (!CheckValueInActiveAndDefault(key, config_namespace, info, &value)) {
+  if (!CheckValueInActiveAndDefault(key, info, &value)) {
     if (info) {
       info->source = kValueSourceStaticValue;
       info->conversion_successful = true;
@@ -338,23 +329,18 @@ std::vector<unsigned char> RemoteConfigDesktop::GetData(
   return data_value;
 }
 
-std::vector<std::string> RemoteConfigDesktop::GetKeys(
-    const char* config_namespace) {
-  return GetKeysByPrefix("", config_namespace);
+std::vector<std::string> RemoteConfigDesktop::GetKeys() {
+  return GetKeysByPrefix("");
 }
 
 std::vector<std::string> RemoteConfigDesktop::GetKeysByPrefix(
-    const char* prefix, const char* config_namespace) {
+    const char* prefix) {
   if (prefix == nullptr) return std::vector<std::string>();
   std::set<std::string> unique_keys;
   {
     std::unique_lock<std::mutex> lock(mutex_);
-    configs_.active.GetKeysByPrefix(
-        prefix, config_namespace ? config_namespace : kDefaultNamespace,
-        &unique_keys);
-    configs_.defaults.GetKeysByPrefix(
-        prefix, config_namespace ? config_namespace : kDefaultNamespace,
-        &unique_keys);
+    configs_.active.GetKeysByPrefix(prefix, kDefaultNamespace, &unique_keys);
+    configs_.defaults.GetKeysByPrefix(prefix, kDefaultNamespace, &unique_keys);
   }
   return std::vector<std::string>(unique_keys.begin(), unique_keys.end());
 }

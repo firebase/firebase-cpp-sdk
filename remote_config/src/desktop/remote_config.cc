@@ -65,27 +65,15 @@ void Terminate() {
 #ifndef SWIG
 void SetDefaults(const ConfigKeyValueVariant* defaults,
                  size_t number_of_defaults) {
-  SetDefaults(defaults, number_of_defaults, nullptr);
+  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
+  g_remote_config_desktop_instance->SetDefaults(defaults, number_of_defaults);
 }
 
-void SetDefaults(const ConfigKeyValueVariant* defaults,
-                 size_t number_of_defaults, const char* config_namespace) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  g_remote_config_desktop_instance->SetDefaults(defaults, number_of_defaults,
-                                                config_namespace);
-}
 #endif  // SWIG
 
 void SetDefaults(const ConfigKeyValue* defaults, size_t number_of_defaults) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  SetDefaults(defaults, number_of_defaults, nullptr);
-}
-
-void SetDefaults(const ConfigKeyValue* defaults, size_t number_of_defaults,
-                 const char* config_namespace) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  g_remote_config_desktop_instance->SetDefaults(defaults, number_of_defaults,
-                                                config_namespace);
+  g_remote_config_desktop_instance->SetDefaults(defaults, number_of_defaults);
 }
 
 std::string GetConfigSetting(ConfigSetting setting) {
@@ -99,124 +87,59 @@ void SetConfigSetting(ConfigSetting setting, const char* value) {
 }
 
 bool GetBoolean(const char* key) {
-  return GetBoolean(key, static_cast<char*>(nullptr),
-                    static_cast<ValueInfo*>(nullptr));
-}
-
-bool GetBoolean(const char* key, const char* config_namespace) {
-  return GetBoolean(key, config_namespace, static_cast<ValueInfo*>(nullptr));
+  return GetBoolean(key, static_cast<ValueInfo*>(nullptr));
 }
 
 bool GetBoolean(const char* key, ValueInfo* info) {
-  return GetBoolean(key, static_cast<char*>(nullptr), info);
-}
-
-bool GetBoolean(const char* key, const char* config_namespace,
-                ValueInfo* info) {
   FIREBASE_ASSERT_RETURN(false, internal::IsInitialized());
-  return g_remote_config_desktop_instance->GetBoolean(key, config_namespace,
-                                                      info);
+  return g_remote_config_desktop_instance->GetBoolean(key, info);
 }
 
 int64_t GetLong(const char* key) {
-  return GetLong(key, static_cast<char*>(nullptr),
-                 static_cast<ValueInfo*>(nullptr));
-}
-
-int64_t GetLong(const char* key, const char* config_namespace) {
-  return GetLong(key, config_namespace, static_cast<ValueInfo*>(nullptr));
+  return GetLong(key, static_cast<ValueInfo*>(nullptr));
 }
 
 int64_t GetLong(const char* key, ValueInfo* info) {
-  return GetLong(key, static_cast<char*>(nullptr), info);
-}
-
-int64_t GetLong(const char* key, const char* config_namespace,
-                ValueInfo* info) {
   FIREBASE_ASSERT_RETURN(0, internal::IsInitialized());
-  return g_remote_config_desktop_instance->GetLong(key, config_namespace, info);
+  return g_remote_config_desktop_instance->GetLong(key, info);
 }
 
 double GetDouble(const char* key) {
-  return GetDouble(key, static_cast<char*>(nullptr),
-                   static_cast<ValueInfo*>(nullptr));
-}
-
-double GetDouble(const char* key, const char* config_namespace) {
-  return GetDouble(key, config_namespace, static_cast<ValueInfo*>(nullptr));
+  return GetDouble(key, static_cast<ValueInfo*>(nullptr));
 }
 
 double GetDouble(const char* key, ValueInfo* info) {
-  return GetDouble(key, static_cast<char*>(nullptr), info);
-}
-
-double GetDouble(const char* key, const char* config_namespace,
-                 ValueInfo* info) {
   FIREBASE_ASSERT_RETURN(0.0, internal::IsInitialized());
-  return g_remote_config_desktop_instance->GetDouble(key, config_namespace,
-                                                     info);
+  return g_remote_config_desktop_instance->GetDouble(key, info);
 }
 
 std::string GetString(const char* key) {
-  return GetString(key, static_cast<char*>(nullptr),
-                   static_cast<ValueInfo*>(nullptr));
-}
-
-std::string GetString(const char* key, const char* config_namespace) {
-  return GetString(key, config_namespace, static_cast<ValueInfo*>(nullptr));
+  return GetString(key, static_cast<ValueInfo*>(nullptr));
 }
 
 std::string GetString(const char* key, ValueInfo* info) {
-  return GetString(key, static_cast<char*>(nullptr), info);
-}
-
-std::string GetString(const char* key, const char* config_namespace,
-                      ValueInfo* info) {
   FIREBASE_ASSERT_RETURN(std::string(), internal::IsInitialized());
-  return g_remote_config_desktop_instance->GetString(key, config_namespace,
-                                                     info);
+  return g_remote_config_desktop_instance->GetString(key, info);
 }
 
 std::vector<unsigned char> GetData(const char* key) {
-  return GetData(key, static_cast<char*>(nullptr),
-                 static_cast<ValueInfo*>(nullptr));
-}
-
-std::vector<unsigned char> GetData(const char* key,
-                                   const char* config_namespace) {
-  return GetData(key, config_namespace, static_cast<ValueInfo*>(nullptr));
+  return GetData(key, static_cast<ValueInfo*>(nullptr));
 }
 
 std::vector<unsigned char> GetData(const char* key, ValueInfo* info) {
-  return GetData(key, static_cast<char*>(nullptr), info);
-}
-
-std::vector<unsigned char> GetData(const char* key,
-                                   const char* config_namespace,
-                                   ValueInfo* info) {
   FIREBASE_ASSERT_RETURN(std::vector<unsigned char>(),
                          internal::IsInitialized());
-  return g_remote_config_desktop_instance->GetData(key, config_namespace, info);
+  return g_remote_config_desktop_instance->GetData(key, info);
 }
 
 std::vector<std::string> GetKeysByPrefix(const char* prefix) {
-  return GetKeysByPrefix(prefix, static_cast<char*>(nullptr));
-}
-
-std::vector<std::string> GetKeysByPrefix(const char* prefix,
-                                         const char* config_namespace) {
   FIREBASE_ASSERT_RETURN(std::vector<std::string>(), internal::IsInitialized());
-  return g_remote_config_desktop_instance->GetKeysByPrefix(prefix,
-                                                           config_namespace);
+  return g_remote_config_desktop_instance->GetKeysByPrefix(prefix);
 }
 
 std::vector<std::string> GetKeys() {
-  return GetKeys(static_cast<char*>(nullptr));
-}
-
-std::vector<std::string> GetKeys(const char* config_namespace) {
   FIREBASE_ASSERT_RETURN(std::vector<std::string>(), internal::IsInitialized());
-  return g_remote_config_desktop_instance->GetKeys(config_namespace);
+  return g_remote_config_desktop_instance->GetKeys();
 }
 
 bool ActivateFetched() {

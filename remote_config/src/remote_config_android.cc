@@ -15,7 +15,6 @@
 #include "remote_config/src/include/firebase/remote_config.h"
 
 #include <assert.h>
-#include <map>
 #include <set>
 #include <string>
 
@@ -39,37 +38,19 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
     util::kMethodTypeStatic),                                              \
   X(ActivateFetched, "activateFetched", "()Z"),                            \
   X(SetDefaults, "setDefaults", "(I)V"),                                   \
-  X(SetNamespaceDefaults, "setDefaults", "(ILjava/lang/String;)V"),        \
   X(SetDefaultsUsingMap, "setDefaults", "(Ljava/util/Map;)V"),             \
-  X(SetNamespaceDefaultsUsingMap, "setDefaults",                           \
-    "(Ljava/util/Map;Ljava/lang/String;)V"),                               \
   X(SetConfigSettings, "setConfigSettings",                                \
     "(Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigSettings;)V"), \
   X(GetLong, "getLong", "(Ljava/lang/String;)J"),                          \
-  X(GetNamespaceLong, "getLong",                                           \
-    "(Ljava/lang/String;Ljava/lang/String;)J"),                            \
   X(GetByteArray, "getByteArray", "(Ljava/lang/String;)[B"),               \
-  X(GetNamespaceByteArray, "getByteArray",                                 \
-    "(Ljava/lang/String;Ljava/lang/String;)[B"),                           \
   X(GetString, "getString", "(Ljava/lang/String;)Ljava/lang/String;"),     \
-  X(GetNamespaceString, "getString",                                       \
-    "(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;"),           \
   X(GetBoolean, "getBoolean", "(Ljava/lang/String;)Z"),                    \
-  X(GetNamespaceBoolean, "getBoolean",                                     \
-    "(Ljava/lang/String;Ljava/lang/String;)Z"),                            \
   X(GetDouble, "getDouble", "(Ljava/lang/String;)D"),                      \
-  X(GetNamespaceDouble, "getDouble",                                       \
-    "(Ljava/lang/String;Ljava/lang/String;)D"),                            \
   X(GetValue, "getValue",                                                  \
     "(Ljava/lang/String;)"                                                 \
     "Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigValue;"),       \
-  X(GetNamespaceValue, "getValue",                                         \
-    "(Ljava/lang/String;Ljava/lang/String;)"                               \
-    "Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigValue;"),       \
   X(GetKeysByPrefix, "getKeysByPrefix",                                    \
     "(Ljava/lang/String;)Ljava/util/Set;"),                                \
-  X(GetNamespaceKeysByPrefix, "getKeysByPrefix",                           \
-    "(Ljava/lang/String;Ljava/lang/String;)Ljava/util/Set;"),              \
   X(GetInfo, "getInfo",                                                    \
     "()Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigInfo;"),      \
   X(Fetch, "fetch", "(J)Lcom/google/android/gms/tasks/Task;")              \
@@ -180,11 +161,8 @@ static const ValueSource kFirebaseRemoteConfigSourceToValueSourceMap[] = {
 
 static const char* kApiIdentifier = "Remote Config";
 
-// Saved default keys for each namespace.
-static std::map<std::string, std::vector<std::string>>* g_default_keys =
-    nullptr;
-// Defaults uses "" to represent the root namespace.
-static const char kRootNamespace[] = "";
+// Saved default keys.
+static std::vector<std::string>* g_default_keys = nullptr;
 
 static void ReleaseClasses(JNIEnv* env) {
   config::ReleaseClass(env);
@@ -196,14 +174,12 @@ static void ReleaseClasses(JNIEnv* env) {
 }
 
 template <typename T>
-static void SaveDefaultKeys(const char* config_namespace, const T* defaults,
-                            size_t number_of_defaults) {
+static void SaveDefaultKeys(const T* defaults, size_t number_of_defaults) {
   assert(g_default_keys);
-  std::vector<std::string>& vect = (*g_default_keys)[config_namespace];
-  vect.clear();
-  vect.reserve(number_of_defaults);
+  g_default_keys->clear();
+  g_default_keys->reserve(number_of_defaults);
   for (size_t i = 0; i < number_of_defaults; i++) {
-    vect.push_back(defaults[i].key);
+    g_default_keys->push_back(defaults[i].key);
   }
 }
 
@@ -246,7 +222,7 @@ InitResult Initialize(const App& app) {
   env->DeleteLocalRef(config_instance_local);
 
   FutureData::Create();
-  g_default_keys = new std::map<std::string, std::vector<std::string>>;
+  g_default_keys = new std::vector<std::string>;
   LogInfo("%s API Initialized", kApiIdentifier);
   return kInitResultSuccess;
 }
@@ -289,24 +265,6 @@ void SetDefaults(int defaults_resource_id) {
     env->ExceptionClear();
     LogError("Remote Config: Unable to set defaults from resource ID %d",
              defaults_resource_id);
-  }
-}
-
-void SetDefaults(int defaults_resource_id, const char* defaults_namespace) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
-  jstring namespace_string = env->NewStringUTF(defaults_namespace);
-  env->CallVoidMethod(g_remote_config_class_instance,
-                      config::GetMethodId(config::kSetNamespaceDefaults),
-                      defaults_resource_id, namespace_string);
-  env->DeleteLocalRef(namespace_string);
-  if (env->ExceptionCheck()) {
-    env->ExceptionDescribe();
-    env->ExceptionClear();
-    LogError(
-        "Remote Config: Unable to set defaults for namespace %s from resource "
-        "ID %d",
-        defaults_namespace, defaults_resource_id);
   }
 }
 #endif  // defined(__ANDROID__)
@@ -370,36 +328,8 @@ void SetDefaults(const ConfigKeyValue* defaults, size_t number_of_defaults) {
     env->ExceptionClear();
     LogError("Remote Config: Unable to set defaults using map");
   } else {
-    SaveDefaultKeys(kRootNamespace, defaults, number_of_defaults);
+    SaveDefaultKeys(defaults, number_of_defaults);
   }
-  env->DeleteLocalRef(hash_map);
-}
-
-void SetDefaults(const ConfigKeyValue* defaults, size_t number_of_defaults,
-                 const char* defaults_namespace) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  if (!defaults_namespace) {
-    SetDefaults(defaults, number_of_defaults);
-    return;
-  }
-  JNIEnv* env = g_app->GetJNIEnv();
-  jobject hash_map =
-      ConfigKeyValueArrayToHashMap(env, defaults, number_of_defaults);
-  jstring namespace_string = env->NewStringUTF(defaults_namespace);
-  env->CallVoidMethod(
-      g_remote_config_class_instance,
-      config::GetMethodId(config::kSetNamespaceDefaultsUsingMap), hash_map,
-      namespace_string);
-  if (env->ExceptionCheck()) {
-    env->ExceptionDescribe();
-    env->ExceptionClear();
-    LogError("Remote Config: Unable to set defaults for namespace %s using map",
-             defaults_namespace);
-  } else {
-    SaveDefaultKeys(defaults_namespace, defaults, number_of_defaults);
-  }
-
-  env->DeleteLocalRef(namespace_string);
   env->DeleteLocalRef(hash_map);
 }
 
@@ -466,35 +396,8 @@ void SetDefaults(const ConfigKeyValueVariant* defaults,
     env->ExceptionClear();
     LogError("Remote Config: Unable to set defaults using map");
   } else {
-    SaveDefaultKeys(kRootNamespace, defaults, number_of_defaults);
+    SaveDefaultKeys(defaults, number_of_defaults);
   }
-  env->DeleteLocalRef(hash_map);
-}
-
-void SetDefaults(const ConfigKeyValueVariant* defaults,
-                 size_t number_of_defaults, const char* defaults_namespace) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  if (!defaults_namespace) {
-    SetDefaults(defaults, number_of_defaults);
-    return;
-  }
-  JNIEnv* env = g_app->GetJNIEnv();
-  jobject hash_map =
-      ConfigKeyValueVariantArrayToHashMap(env, defaults, number_of_defaults);
-  jstring namespace_string = env->NewStringUTF(defaults_namespace);
-  env->CallVoidMethod(
-      g_remote_config_class_instance,
-      config::GetMethodId(config::kSetNamespaceDefaultsUsingMap), hash_map,
-      namespace_string);
-  if (env->ExceptionCheck()) {
-    env->ExceptionDescribe();
-    env->ExceptionClear();
-    LogError("Remote Config: Unable to set defaults for namespace %s using map",
-             defaults_namespace);
-  } else {
-    SaveDefaultKeys(defaults_namespace, defaults, number_of_defaults);
-  }
-  env->DeleteLocalRef(namespace_string);
   env->DeleteLocalRef(hash_map);
 }
 
@@ -531,20 +434,12 @@ void SetConfigSetting(ConfigSetting setting, const char* value) {
 // failure occurred.  If an error occurs this method returns true, false
 // otherwise.
 static bool CheckKeyRetrievalLogError(JNIEnv* env, const char* key,
-                                      const char* namespace_name,
                                       const char* value_type) {
   if (env->ExceptionCheck()) {
     env->ExceptionDescribe();
     env->ExceptionClear();
-    if (namespace_name) {
-      LogError(
-          "Remote Config: Failed to retrieve %s value from key %s in namespace "
-          "%s",
-          value_type, key, namespace_name);
-    } else {
-      LogError("Remote Config: Failed to retrieve %s value from key %s",
-               value_type, key);
-    }
+    LogError("Remote Config: Failed to retrieve %s value from key %s",
+             value_type, key);
     return true;
   }
   return false;
@@ -552,45 +447,32 @@ static bool CheckKeyRetrievalLogError(JNIEnv* env, const char* key,
 
 // Generate the logic to retrieve an integral type value and source from
 // a FirebaseRemoteConfigValue interface.
-// key is a string with the key to retrieve, config_namespace is a string with
-// the namespace to query, info is a pointer to ValueInfo which receives the
-// source of the retrieved value, c_type is the integral type being retrieved,
-// c_type_name is a human readable string for the value being retrieved and
-// java_type is the type portion of the JNI function to call.
-#define CONFIG_GET_INTEGRAL_TYPE_FROM_VALUE(key, config_namespace, info,    \
-                                            c_type, c_type_name, java_type) \
+// key is a string with the key to retrieve, info is a pointer to ValueInfo
+// which receives the source of the retrieved value, c_type is the integral type
+// being retrieved, c_type_name is a human readable string for the value being
+// retrieved and java_type is the type portion of the JNI function to call.
+#define CONFIG_GET_INTEGRAL_TYPE_FROM_VALUE(key, info, c_type, c_type_name, \
+                                            java_type)                      \
   {                                                                         \
     JNIEnv* env = g_app->GetJNIEnv();                                       \
-    jobject value_object = GetValue(env, key, config_namespace, info);      \
+    jobject value_object = GetValue(env, key, info);                        \
     if (!value_object) return 0;                                            \
     c_type value = env->Call##java_type##Method(                            \
         value_object,                                                       \
         config_value::GetMethodId(config_value::kAs##java_type));           \
-    bool failed =                                                           \
-        CheckKeyRetrievalLogError(env, key, config_namespace, c_type_name); \
+    bool failed = CheckKeyRetrievalLogError(env, key, c_type_name);         \
     env->DeleteLocalRef(value_object);                                      \
     if (info) info->conversion_successful = !failed;                        \
     return failed ? static_cast<c_type>(0) : value;                         \
   }
 
 // Get the FirebaseRemoteConfigValue interface and the value source for a key.
-static jobject GetValue(JNIEnv* env, const char* key,
-                        const char* config_namespace, ValueInfo* info) {
+static jobject GetValue(JNIEnv* env, const char* key, ValueInfo* info) {
   jstring key_string = env->NewStringUTF(key);
-  jstring namespace_string =
-      config_namespace ? env->NewStringUTF(config_namespace) : nullptr;
   jobject config_value =
-      namespace_string
-          ? env->CallObjectMethod(
-                g_remote_config_class_instance,
-                config::GetMethodId(config::kGetNamespaceValue), key_string,
-                namespace_string)
-          : env->CallObjectMethod(g_remote_config_class_instance,
-                                  config::GetMethodId(config::kGetValue),
-                                  key_string);
-  bool failed =
-      CheckKeyRetrievalLogError(env, key, config_namespace, "<unknown>");
-  if (namespace_string) env->DeleteLocalRef(namespace_string);
+      env->CallObjectMethod(g_remote_config_class_instance,
+                            config::GetMethodId(config::kGetValue), key_string);
+  bool failed = CheckKeyRetrievalLogError(env, key, "<unknown>");
   env->DeleteLocalRef(key_string);
   if (info) {
     info->source = kValueSourceStaticValue;
@@ -610,10 +492,9 @@ static jobject GetValue(JNIEnv* env, const char* key,
       info->source = kFirebaseRemoteConfigSourceToValueSourceMap[value_source];
     } else {
       LogError(
-          "Unable to convert source (%d) of key %s %s%sto a ValueSource "
+          "Unable to convert source (%d) of key %s to a ValueSource "
           "enumeration value.",
-          value_source, key, config_namespace ? config_namespace : "",
-          config_namespace ? " namespace " : "");
+          value_source, key);
     }
   }
   return failed ? nullptr : config_value;
@@ -621,114 +502,59 @@ static jobject GetValue(JNIEnv* env, const char* key,
 
 // Generate the logic to retrieve an integral type value from the
 // FirebaseRemoteConfig class.
-// key is a string with the key to retrieve, config_namespace is a string with
-// the namespace to query, c_type is the integral type being retrieved,
-// c_type_name is a human readable string for the value being retrieved and
-// java_type is the type portion of the JNI function to call.
-#define CONFIG_GET_INTEGRAL_TYPE(key, config_namespace, c_type, c_type_name, \
-                                 java_type)                                  \
-  {                                                                          \
-    JNIEnv* env = g_app->GetJNIEnv();                                        \
-    jstring key_string = env->NewStringUTF(key);                             \
-    jstring namespace_string =                                               \
-        config_namespace ? env->NewStringUTF(config_namespace) : nullptr;    \
-    c_type value =                                                           \
-        namespace_string                                                     \
-            ? env->Call##java_type##Method(                                  \
-                  g_remote_config_class_instance,                            \
-                  config::GetMethodId(config::kGetNamespace##java_type),     \
-                  key_string, namespace_string)                              \
-            : env->Call##java_type##Method(                                  \
-                  g_remote_config_class_instance,                            \
-                  config::GetMethodId(config::kGet##java_type), key_string); \
-    bool failed =                                                            \
-        CheckKeyRetrievalLogError(env, key, config_namespace, c_type_name);  \
-    if (namespace_string) env->DeleteLocalRef(namespace_string);             \
-    env->DeleteLocalRef(key_string);                                         \
-    return failed ? static_cast<c_type>(0) : value;                          \
+// key is a string with the key to retrieve, c_type is the integral type being
+// retrieved, c_type_name is a human readable string for the value being
+// retrieved and java_type is the type portion of the JNI function to call.
+#define CONFIG_GET_INTEGRAL_TYPE(key, c_type, c_type_name, java_type) \
+  {                                                                   \
+    JNIEnv* env = g_app->GetJNIEnv();                                 \
+    jstring key_string = env->NewStringUTF(key);                      \
+    c_type value = env->Call##java_type##Method(                      \
+        g_remote_config_class_instance,                               \
+        config::GetMethodId(config::kGet##java_type), key_string);    \
+    bool failed = CheckKeyRetrievalLogError(env, key, c_type_name);   \
+    env->DeleteLocalRef(key_string);                                  \
+    return failed ? static_cast<c_type>(0) : value;                   \
   }
 
 int64_t GetLong(const char* key) {
-  return GetLong(key, static_cast<const char*>(nullptr));
-}
-
-int64_t GetLong(const char* key, const char* config_namespace) {
   FIREBASE_ASSERT_RETURN(0, internal::IsInitialized());
-  CONFIG_GET_INTEGRAL_TYPE(key, config_namespace, int64_t, "long", Long);
+  CONFIG_GET_INTEGRAL_TYPE(key, int64_t, "long", Long);
 }
 
 int64_t GetLong(const char* key, ValueInfo* info) {
-  return GetLong(key, nullptr, info);
-}
-
-int64_t GetLong(const char* key, const char* config_namespace,
-                ValueInfo* info) {
   FIREBASE_ASSERT_RETURN(0, internal::IsInitialized());
-  CONFIG_GET_INTEGRAL_TYPE_FROM_VALUE(key, config_namespace, info, int64_t,
-                                      "long", Long);
+  CONFIG_GET_INTEGRAL_TYPE_FROM_VALUE(key, info, int64_t, "long", Long);
 }
 
 double GetDouble(const char* key) {
-  return GetDouble(key, static_cast<const char*>(nullptr));
-}
-
-double GetDouble(const char* key, const char* config_namespace) {
   FIREBASE_ASSERT_RETURN(0.0, internal::IsInitialized());
-  CONFIG_GET_INTEGRAL_TYPE(key, config_namespace, double, "double", Double);
+  CONFIG_GET_INTEGRAL_TYPE(key, double, "double", Double);
 }
 
 double GetDouble(const char* key, ValueInfo* info) {
-  return GetDouble(key, nullptr, info);
-}
-
-double GetDouble(const char* key, const char* config_namespace,
-                 ValueInfo* info) {
   FIREBASE_ASSERT_RETURN(0.0, internal::IsInitialized());
-  CONFIG_GET_INTEGRAL_TYPE_FROM_VALUE(key, config_namespace, info, double,
-                                      "double", Double);
+  CONFIG_GET_INTEGRAL_TYPE_FROM_VALUE(key, info, double, "double", Double);
 }
 
 bool GetBoolean(const char* key) {
-  return GetBoolean(key, static_cast<const char*>(nullptr));
-}
-
-bool GetBoolean(const char* key, const char* config_namespace) {
   FIREBASE_ASSERT_RETURN(false, internal::IsInitialized());
-  CONFIG_GET_INTEGRAL_TYPE(key, config_namespace, bool, "boolean", Boolean);
+  CONFIG_GET_INTEGRAL_TYPE(key, bool, "boolean", Boolean);
 }
 
 bool GetBoolean(const char* key, ValueInfo* info) {
-  return GetBoolean(key, nullptr, info);
-}
-
-bool GetBoolean(const char* key, const char* config_namespace,
-                ValueInfo* info) {
   FIREBASE_ASSERT_RETURN(false, internal::IsInitialized());
-  CONFIG_GET_INTEGRAL_TYPE_FROM_VALUE(key, config_namespace, info, bool,
-                                      "boolean", Boolean);
+  CONFIG_GET_INTEGRAL_TYPE_FROM_VALUE(key, info, bool, "boolean", Boolean);
 }
 
 std::string GetString(const char* key) {
-  return GetString(key, static_cast<const char*>(nullptr));
-}
-
-std::string GetString(const char* key, const char* config_namespace) {
   FIREBASE_ASSERT_RETURN(std::string(), internal::IsInitialized());
   JNIEnv* env = g_app->GetJNIEnv();
   jstring key_string = env->NewStringUTF(key);
-  jstring namespace_string =
-      config_namespace ? env->NewStringUTF(config_namespace) : nullptr;
-  jobject value_string =
-      config_namespace
-          ? env->CallObjectMethod(
-                g_remote_config_class_instance,
-                config::GetMethodId(config::kGetNamespaceString), key_string,
-                namespace_string)
-          : env->CallObjectMethod(g_remote_config_class_instance,
-                                  config::GetMethodId(config::kGetString),
-                                  key_string);
-  bool failed = CheckKeyRetrievalLogError(env, key, config_namespace, "string");
-  if (namespace_string) env->DeleteLocalRef(namespace_string);
+  jobject value_string = env->CallObjectMethod(
+      g_remote_config_class_instance, config::GetMethodId(config::kGetString),
+      key_string);
+  bool failed = CheckKeyRetrievalLogError(env, key, "string");
   env->DeleteLocalRef(key_string);
   std::string value;
   if (!failed) value = util::JniStringToString(env, value_string);
@@ -736,20 +562,14 @@ std::string GetString(const char* key, const char* config_namespace) {
 }
 
 std::string GetString(const char* key, ValueInfo* info) {
-  return GetString(key, nullptr, info);
-}
-
-std::string GetString(const char* key, const char* config_namespace,
-                      ValueInfo* info) {
   FIREBASE_ASSERT_RETURN(std::string(), internal::IsInitialized());
   std::string value;
   JNIEnv* env = g_app->GetJNIEnv();
-  jobject value_object = GetValue(env, key, config_namespace, info);
+  jobject value_object = GetValue(env, key, info);
   if (value_object) {
     jobject value_string = env->CallObjectMethod(
         value_object, config_value::GetMethodId(config_value::kAsString));
-    bool failed =
-        CheckKeyRetrievalLogError(env, key, config_namespace, "string");
+    bool failed = CheckKeyRetrievalLogError(env, key, "string");
     env->DeleteLocalRef(value_object);
     if (!failed) value = util::JniStringToString(env, value_string);
     if (info) info->conversion_successful = !failed;
@@ -758,53 +578,32 @@ std::string GetString(const char* key, const char* config_namespace,
 }
 
 std::vector<unsigned char> GetData(const char* key) {
-  return GetData(key, static_cast<const char*>(nullptr));
-}
-
-std::vector<unsigned char> GetData(const char* key,
-                                   const char* config_namespace) {
   FIREBASE_ASSERT_RETURN(std::vector<unsigned char>(),
                          internal::IsInitialized());
   std::vector<unsigned char> value;
   JNIEnv* env = g_app->GetJNIEnv();
   jstring key_string = env->NewStringUTF(key);
-  jstring namespace_string =
-      config_namespace ? env->NewStringUTF(config_namespace) : nullptr;
-  jobject array =
-      namespace_string
-          ? env->CallObjectMethod(
-                g_remote_config_class_instance,
-                config::GetMethodId(config::kGetNamespaceByteArray), key_string,
-                namespace_string)
-          : env->CallObjectMethod(g_remote_config_class_instance,
-                                  config::GetMethodId(config::kGetByteArray),
-                                  key_string);
+  jobject array = env->CallObjectMethod(
+      g_remote_config_class_instance,
+      config::GetMethodId(config::kGetByteArray), key_string);
 
-  bool failed = CheckKeyRetrievalLogError(env, key, config_namespace, "vector");
+  bool failed = CheckKeyRetrievalLogError(env, key, "vector");
 
-  if (namespace_string) env->DeleteLocalRef(namespace_string);
   env->DeleteLocalRef(key_string);
   if (!failed) value = util::JniByteArrayToVector(env, array);
   return value;
 }
 
 std::vector<unsigned char> GetData(const char* key, ValueInfo* info) {
-  return GetData(key, nullptr, info);
-}
-
-std::vector<unsigned char> GetData(const char* key,
-                                   const char* config_namespace,
-                                   ValueInfo* info) {
   FIREBASE_ASSERT_RETURN(std::vector<unsigned char>(),
                          internal::IsInitialized());
   std::vector<unsigned char> value;
   JNIEnv* env = g_app->GetJNIEnv();
-  jobject value_object = GetValue(env, key, config_namespace, info);
+  jobject value_object = GetValue(env, key, info);
   if (value_object) {
     jobject value_array = env->CallObjectMethod(
         value_object, config_value::GetMethodId(config_value::kAsByteArray));
-    bool failed =
-        CheckKeyRetrievalLogError(env, key, config_namespace, "vector");
+    bool failed = CheckKeyRetrievalLogError(env, key, "vector");
     env->DeleteLocalRef(value_object);
     if (!failed) value = util::JniByteArrayToVector(env, value_array);
     if (info) info->conversion_successful = !failed;
@@ -813,27 +612,14 @@ std::vector<unsigned char> GetData(const char* key,
 }
 
 std::vector<std::string> GetKeysByPrefix(const char* prefix) {
-  return GetKeysByPrefix(prefix, nullptr);
-}
-
-std::vector<std::string> GetKeysByPrefix(const char* prefix,
-                                         const char* config_namespace) {
   FIREBASE_ASSERT_RETURN(std::vector<std::string>(), internal::IsInitialized());
   std::vector<std::string> keys;
   std::set<std::string> key_set;
   JNIEnv* env = g_app->GetJNIEnv();
   jstring prefix_string = prefix ? env->NewStringUTF(prefix) : nullptr;
-  jstring namespace_string =
-      config_namespace ? env->NewStringUTF(config_namespace) : nullptr;
-  jobject key_set_java =
-      namespace_string
-          ? env->CallObjectMethod(
-                g_remote_config_class_instance,
-                config::GetMethodId(config::kGetNamespaceKeysByPrefix),
-                prefix_string, namespace_string)
-          : env->CallObjectMethod(g_remote_config_class_instance,
-                                  config::GetMethodId(config::kGetKeysByPrefix),
-                                  prefix_string);
+  jobject key_set_java = env->CallObjectMethod(
+      g_remote_config_class_instance,
+      config::GetMethodId(config::kGetKeysByPrefix), prefix_string);
   if (key_set_java) {
     util::JavaSetToStdStringVector(env, &keys, key_set_java);
     env->DeleteLocalRef(key_set_java);
@@ -842,14 +628,11 @@ std::vector<std::string> GetKeysByPrefix(const char* prefix,
     }
   }
   if (prefix_string) env->DeleteLocalRef(prefix_string);
-  if (namespace_string) env->DeleteLocalRef(namespace_string);
 
   // Add any extra keys that were previously included in defaults but not
   // returned by Get*KeysByPrefix.
-  std::vector<std::string>& vect =
-      (*g_default_keys)[config_namespace ? config_namespace : ""];
   size_t prefix_length = prefix ? strlen(prefix) : 0;
-  for (auto i = vect.begin(); i != vect.end(); ++i) {
+  for (auto i = g_default_keys->begin(); i != g_default_keys->end(); ++i) {
     if (key_set.find(*i) != key_set.end()) {
       // Already in the list of keys, no need to add it.
       continue;
@@ -864,11 +647,7 @@ std::vector<std::string> GetKeysByPrefix(const char* prefix,
   return keys;
 }
 
-std::vector<std::string> GetKeys() { return GetKeysByPrefix(nullptr, nullptr); }
-
-std::vector<std::string> GetKeys(const char* config_namespace) {
-  return GetKeysByPrefix(nullptr, config_namespace);
-}
+std::vector<std::string> GetKeys() { return GetKeysByPrefix(nullptr); }
 
 Future<void> Fetch() { return Fetch(kDefaultCacheExpiration); }
 

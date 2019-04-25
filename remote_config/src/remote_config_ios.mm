@@ -57,10 +57,8 @@ static NSString *false_pattern = @"^(0|false|f|no|n|off|)$";
 // finished, in milliseconds since epoch.
 static NSNumber *g_throttled_end_time = @0;
 
-// Saved default keys for each namespace.
-static std::map<std::string, std::vector<std::string>> *g_default_keys = nullptr;
-// Defaults uses "" to represent the root namespace.
-static const char kRootNamespace[] = "";
+// Saved default keys.
+static std::vector<std::string> *g_default_keys = nullptr;
 
 InitResult Initialize(const App &app) {
   if (g_app) {
@@ -76,7 +74,7 @@ InitResult Initialize(const App &app) {
   g_remote_config_instance = [FIRRemoteConfig remoteConfig];
 
   FutureData::Create();
-  g_default_keys = new std::map<std::string, std::vector<std::string>>;
+  g_default_keys = new std::vector<std::string>;
 
   LogInfo("Remote Config API Initialized");
   return kInitResultSuccess;
@@ -103,28 +101,16 @@ void Terminate() {
 }
 
 void SetDefaults(const ConfigKeyValue *defaults, size_t number_of_defaults) {
-  SetDefaults(defaults, number_of_defaults, nullptr);
-}
-
-void SetDefaults(const ConfigKeyValue *defaults, size_t number_of_defaults,
-                 const char *defaults_namespace) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
-  const char* defaults_namespace_key = defaults_namespace ? defaults_namespace : kRootNamespace;
-  std::vector<std::string> &defaults_vect =
-      (*g_default_keys)[defaults_namespace_key];
-  defaults_vect.clear();
-  defaults_vect.reserve(number_of_defaults);
+  g_default_keys->clear();
+  g_default_keys->reserve(number_of_defaults);
   for (size_t i = 0; i < number_of_defaults; ++i) {
     const char* key = defaults[i].key;
     dict[@(key)] = @(defaults[i].value);
-    defaults_vect.push_back(key);
+    g_default_keys->push_back(key);
   }
-  if (defaults_namespace) {
-    [g_remote_config_instance setDefaults:dict namespace:@(defaults_namespace)];
-  } else {
-    [g_remote_config_instance setDefaults:dict];
-  }
+  [g_remote_config_instance setDefaults:dict];
 }
 
 static id VariantToNSObject(const Variant &variant) {
@@ -144,33 +130,21 @@ static id VariantToNSObject(const Variant &variant) {
 }
 
 void SetDefaults(const ConfigKeyValueVariant *defaults, size_t number_of_defaults) {
-  SetDefaults(defaults, number_of_defaults, nullptr);
-}
-
-void SetDefaults(const ConfigKeyValueVariant *defaults, size_t number_of_defaults,
-                 const char *defaults_namespace) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
-  const char* defaults_namespace_key = defaults_namespace ? defaults_namespace : kRootNamespace;
-  std::vector<std::string> &defaults_vect =
-      (*g_default_keys)[defaults_namespace_key];
-  defaults_vect.clear();
-  defaults_vect.reserve(number_of_defaults);
+  g_default_keys->clear();
+  g_default_keys->reserve(number_of_defaults);
   for (size_t i = 0; i < number_of_defaults; ++i) {
     const char* key = defaults[i].key;
     id value = VariantToNSObject(defaults[i].value);
     if (value) {
       dict[@(key)] = value;
-      defaults_vect.push_back(key);
+      g_default_keys->push_back(key);
     } else {
       LogError("Remote Config: Invalid Variant type for SetDefaults() key %s", key);
     }
   }
-  if (defaults_namespace) {
-    [g_remote_config_instance setDefaults:dict namespace:@(defaults_namespace)];
-  } else {
-    [g_remote_config_instance setDefaults:dict];
-  }
+  [g_remote_config_instance setDefaults:dict];
 }
 
 std::string GetConfigSetting(ConfigSetting setting) {
@@ -197,14 +171,9 @@ void SetConfigSetting(ConfigSetting setting, const char *value) {
 }
 
 // Shared helper function for retrieving the FIRRemoteConfigValue.
-static FIRRemoteConfigValue *GetValue(const char *key, const char *config_namespace,
-                                      ValueInfo *info) {
+static FIRRemoteConfigValue *GetValue(const char *key, ValueInfo *info) {
   FIRRemoteConfigValue *value;
-  if (config_namespace) {
-    value = [g_remote_config_instance configValueForKey:@(key) namespace:@(config_namespace)];
-  } else {
-    value = [g_remote_config_instance configValueForKey:@(key)];
-  }
+  value = [g_remote_config_instance configValueForKey:@(key)];
   if (info) {
     int source_index = static_cast<int>(value.source);
     if (source_index >= 0 && source_index < sizeof(kFirebaseRemoteConfigSourceToValueSourceMap)) {
@@ -233,14 +202,10 @@ static void CheckBoolConversion(FIRRemoteConfigValue *value, ValueInfo *info) {
   }
 }
 
-bool GetBoolean(const char *key) { return GetBoolean(key, nullptr, nullptr); }
-bool GetBoolean(const char *key, const char *config_namespace) {
-  return GetBoolean(key, config_namespace, nullptr);
-}
-bool GetBoolean(const char *key, ValueInfo *info) { return GetBoolean(key, nullptr, info); }
-bool GetBoolean(const char *key, const char *config_namespace, ValueInfo *info) {
+bool GetBoolean(const char *key) { return GetBoolean(key, nullptr); }
+bool GetBoolean(const char *key, ValueInfo *info) {
   FIREBASE_ASSERT_RETURN(false, internal::IsInitialized());
-  FIRRemoteConfigValue *value = GetValue(key, config_namespace, info);
+  FIRRemoteConfigValue *value = GetValue(key, info);
   CheckBoolConversion(value, info);
   return static_cast<bool>(value.boolValue);
 }
@@ -259,14 +224,10 @@ static void CheckLongConversion(FIRRemoteConfigValue *value, ValueInfo *info) {
   }
 }
 
-int64_t GetLong(const char *key) { return GetLong(key, nullptr, nullptr); }
-int64_t GetLong(const char *key, const char *config_namespace) {
-  return GetLong(key, config_namespace, nullptr);
-}
-int64_t GetLong(const char *key, ValueInfo *info) { return GetLong(key, nullptr, info); }
-int64_t GetLong(const char *key, const char *config_namespace, ValueInfo *info) {
+int64_t GetLong(const char *key) { return GetLong(key, nullptr); }
+int64_t GetLong(const char *key, ValueInfo *info) {
   FIREBASE_ASSERT_RETURN(0, internal::IsInitialized());
-  FIRRemoteConfigValue *value = GetValue(key, config_namespace, info);
+  FIRRemoteConfigValue *value = GetValue(key, info);
   CheckLongConversion(value, info);
   return value.numberValue.longLongValue;
 }
@@ -282,26 +243,18 @@ static void CheckDoubleConversion(FIRRemoteConfigValue *value, ValueInfo *info) 
   }
 }
 
-double GetDouble(const char *key) { return GetDouble(key, nullptr, nullptr); }
-double GetDouble(const char *key, const char *config_namespace) {
-  return GetDouble(key, config_namespace, nullptr);
-}
-double GetDouble(const char *key, ValueInfo *info) { return GetDouble(key, nullptr, info); }
-double GetDouble(const char *key, const char *config_namespace, ValueInfo *info) {
+double GetDouble(const char *key) { return GetDouble(key, nullptr); }
+double GetDouble(const char *key, ValueInfo *info) {
   FIREBASE_ASSERT_RETURN(0.0, internal::IsInitialized());
-  FIRRemoteConfigValue *value = GetValue(key, config_namespace, info);
+  FIRRemoteConfigValue *value = GetValue(key, info);
   CheckDoubleConversion(value, info);
   return value.numberValue.doubleValue;
 }
 
-std::string GetString(const char *key) { return GetString(key, nullptr, nullptr); }
-std::string GetString(const char *key, const char *config_namespace) {
-  return GetString(key, config_namespace, nullptr);
-}
-std::string GetString(const char *key, ValueInfo *info) { return GetString(key, nullptr, info); }
-std::string GetString(const char *key, const char *config_namespace, ValueInfo *info) {
+std::string GetString(const char *key) { return GetString(key, nullptr); }
+std::string GetString(const char *key, ValueInfo *info) {
   FIREBASE_ASSERT_RETURN(std::string(), internal::IsInitialized());
-  return util::NSStringToString(GetValue(key, config_namespace, info).stringValue);
+  return util::NSStringToString(GetValue(key, info).stringValue);
 }
 
 std::vector<unsigned char> ConvertData(FIRRemoteConfigValue *value) {
@@ -311,37 +264,20 @@ std::vector<unsigned char> ConvertData(FIRRemoteConfigValue *value) {
   return std::vector<unsigned char>(bytes, bytes + size);
 }
 
-std::vector<unsigned char> GetData(const char *key) { return GetData(key, nullptr, nullptr); }
-
-std::vector<unsigned char> GetData(const char *key, const char *config_namespace) {
-  return GetData(key, config_namespace, nullptr);
-}
+std::vector<unsigned char> GetData(const char *key) { return GetData(key, nullptr); }
 
 std::vector<unsigned char> GetData(const char *key, ValueInfo *info) {
-  return GetData(key, nullptr, info);
-}
-
-std::vector<unsigned char> GetData(const char *key, const char *config_namespace, ValueInfo *info) {
   FIREBASE_ASSERT_RETURN(std::vector<unsigned char>(), internal::IsInitialized());
-  return ConvertData(GetValue(key, config_namespace, info));
+  return ConvertData(GetValue(key, info));
 }
 
 std::vector<std::string> GetKeysByPrefix(const char *prefix) {
-  return GetKeysByPrefix(prefix, nullptr);
-}
-
-std::vector<std::string> GetKeysByPrefix(const char *prefix, const char *config_namespace) {
   FIREBASE_ASSERT_RETURN(std::vector<std::string>(), internal::IsInitialized());
   std::vector<std::string> keys;
   std::set<std::string> key_set;
   NSSet<NSString *> *ios_keys;
   NSString *prefix_string = prefix ? @(prefix) : nil;
-  if (config_namespace) {
-    ios_keys =
-        [g_remote_config_instance keysWithPrefix:prefix_string namespace:@(config_namespace)];
-  } else {
-    ios_keys = [g_remote_config_instance keysWithPrefix:prefix_string];
-  }
+  ios_keys = [g_remote_config_instance keysWithPrefix:prefix_string];
   for (NSString *key in ios_keys) {
     keys.push_back(key.UTF8String);
     key_set.insert(key.UTF8String);
@@ -349,11 +285,8 @@ std::vector<std::string> GetKeysByPrefix(const char *prefix, const char *config_
 
   // Add any extra keys that were previously included in defaults but not returned by
   // keysWithPrefix.
-  const char* config_namespace_key = config_namespace ? config_namespace : kRootNamespace;
-  std::vector<std::string> &vect =
-      (*g_default_keys)[config_namespace_key];
   size_t prefix_length = prefix ? strlen(prefix) : 0;
-  for (auto i = vect.begin(); i != vect.end(); ++i) {
+  for (auto i = g_default_keys->begin(); i != g_default_keys->end(); ++i) {
     if (key_set.find(*i) != key_set.end()) {
       // Already in the list of keys, no need to add it.
       continue;
@@ -369,11 +302,7 @@ std::vector<std::string> GetKeysByPrefix(const char *prefix, const char *config_
   return keys;
 }
 
-std::vector<std::string> GetKeys() { return GetKeysByPrefix(nullptr, nullptr); }
-
-std::vector<std::string> GetKeys(const char *config_namespace) {
-  return GetKeysByPrefix(nullptr, config_namespace);
-}
+std::vector<std::string> GetKeys() { return GetKeysByPrefix(nullptr); }
 
 Future<void> Fetch() { return Fetch(kDefaultCacheExpiration); }
 

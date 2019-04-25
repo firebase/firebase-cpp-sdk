@@ -68,34 +68,26 @@ class RemoteConfigDesktop {
 
 #ifndef SWIG
   void SetDefaults(const ConfigKeyValueVariant* defaults,
-                   size_t number_of_defaults, const char* config_namespace);
+                   size_t number_of_defaults);
 #endif  // SWIG
-  void SetDefaults(const ConfigKeyValue* defaults, size_t number_of_defaults,
-                   const char* config_namespace);
+  void SetDefaults(const ConfigKeyValue* defaults, size_t number_of_defaults);
 
   std::string GetConfigSetting(ConfigSetting setting);
   void SetConfigSetting(ConfigSetting setting, const char* value);
 
-  bool GetBoolean(const char* key, const char* config_namespace,
-                  ValueInfo* info);
+  bool GetBoolean(const char* key, ValueInfo* info);
 
-  std::string GetString(const char* key, const char* config_namespace,
-                        ValueInfo* info);
+  std::string GetString(const char* key, ValueInfo* info);
 
-  int64_t GetLong(const char* key, const char* config_namespace,
-                  ValueInfo* info);
+  int64_t GetLong(const char* key, ValueInfo* info);
 
-  double GetDouble(const char* key, const char* config_namespace,
-                   ValueInfo* info);
+  double GetDouble(const char* key, ValueInfo* info);
 
-  std::vector<unsigned char> GetData(const char* key,
-                                     const char* config_namespace,
-                                     ValueInfo* info);
+  std::vector<unsigned char> GetData(const char* key, ValueInfo* info);
 
-  std::vector<std::string> GetKeys(const char* config_namespace);
+  std::vector<std::string> GetKeys();
 
-  std::vector<std::string> GetKeysByPrefix(const char* prefix,
-                                           const char* config_namespace);
+  std::vector<std::string> GetKeysByPrefix(const char* prefix);
 
   bool ActivateFetched();
 
@@ -125,25 +117,22 @@ class RemoteConfigDesktop {
   // Otherwise will assign `true` to the `failure` variable.
   std::string VariantToString(const Variant& variant, bool* failure);
 
-  // Set default values by namespace to `configs_.defaults` holder.
-  void SetDefaults(const std::map<std::string, std::string>& defaults_map,
-                   const char* config_namespace);
+  // Set default values to `configs_.defaults` holder.
+  void SetDefaults(const std::map<std::string, std::string>& defaults_map);
 
-  // Return true and assign the found record to the `value` if `active` or
-  // `defaults` holders contatin record by the key and the namespace.
+  // Returns true and assigns the found record to the `value` if the `active` or
+  // `defaults` holders contains a record for the key.
   //
   // Assing `info->source` If info is not nullptr.
   bool CheckValueInActiveAndDefault(const char* key,
-                                    const char* config_namespace,
                                     ValueInfo* info, std::string* value);
 
-  // Return true and assign the found record to the `value` if `holder`
-  // contatins record by the key and the namespace.
+  // Returns true and assigns the found record to the `value` if the `holder`
+  // contains a record for the key.
   //
   // Assing `info->source` If info is not nullptr.
   bool CheckValueInConfig(const NamespacedConfigData& config,
-                          ValueSource source, const char* key,
-                          const char* config_namespace, ValueInfo* info,
+                          ValueSource source, const char* key, ValueInfo* info,
                           std::string* value);
 
   static const char* const kDefaultNamespace;
