@@ -19,7 +19,9 @@
 
 #include "app/rest/transport_builder.h"
 #include "app/rest/util.h"
+#include "app/src/include/firebase/future.h"
 #include "app/src/thread.h"
+#include "app/src/util_desktop.h"
 #include "auth/src/common.h"
 #include "auth/src/data.h"
 #include "auth/src/desktop/auth_data_handle.h"
@@ -39,12 +41,16 @@
 #include "auth/src/desktop/rpcs/verify_assertion_response.h"
 #include "auth/src/desktop/rpcs/verify_password_request.h"
 #include "auth/src/desktop/rpcs/verify_password_response.h"
+#include "auth/src/desktop/secure/user_secure_manager.h"
 #include "auth/src/desktop/set_account_info_result.h"
 #include "auth/src/desktop/sign_in_flow.h"
 #include "auth/src/desktop/user_view.h"
 #include "auth/src/desktop/validate_credential.h"
 #include "auth/src/include/firebase/auth/types.h"
+#include "auth/user_data_generated.h"
+#include "auth/user_data_resource.h"
 #include "flatbuffers/idl.h"
+#include "secure/user_secure_data_handle.h"
 
 namespace firebase {
 namespace auth {
@@ -390,19 +396,37 @@ Future<ResultT> DoReauthenticate(Promise<ResultT> promise,
 
 }  // namespace
 
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
+UserDataPersist::UserDataPersist() {
+  user_secure_manager_ = MakeUnique<secure::UserSecureManager>();
+}
+
+UserDataPersist::UserDataPersist(
+    UniquePtr<secure::UserSecureManager> user_secure_manager)
+    : user_secure_manager_(std::move(user_secure_manager)) {}
 
 void UserDataPersist::OnAuthStateChanged(Auth* auth) {  // NOLINT
   SaveUserData(auth->auth_data_);
 }
 
-void UserDataPersist::LoadUserData(AuthData* auth_data) {
-  if (auth_data == nullptr) {
+void AssignLoadedData(const Future<std::string>& future, void* auth_data) {
+  if (future.error() == secure::kNoEntry) {
+    LogWarning("Future no entry: %s", future.error_message());
+    return;
+  } else if (future.error() == secure::kNoInternal) {
+    LogError("Future error: %s", future.error_message());
     return;
   }
-  // TODO add async thread logic to protect reading.
-  std::string buf;
-  auto userData = LoadBuffer(auth_data->app->name(), &buf);
+
+  std::string loaded_string = *(future.result());
+  if (loaded_string.length() == 0) {
+    return;
+  }
+
+  // Decode to flatbuffer
+  std::string decoded;
+  firebase::Base64Decode(loaded_string, &decoded);
+
+  auto userData = GetUserDataDesktop(decoded.c_str());
   if (userData != nullptr) {
     UserData loaded_user;
     loaded_user.uid = userData->uid()->c_str();
@@ -423,89 +447,72 @@ void UserDataPersist::LoadUserData(AuthData* auth_data) {
     loaded_user.last_sign_in_timestamp = userData->last_sign_in_timestamp();
     loaded_user.creation_timestamp = userData->creation_timestamp();
 
-    UserView::ResetUser(auth_data, loaded_user);
+    UserView::ResetUser(static_cast<AuthData*>(auth_data), loaded_user);
   }
 }
 
-void UserDataPersist::SaveUserData(AuthData* auth_data) {
+Future<std::string> UserDataPersist::LoadUserData(AuthData* auth_data) {
   if (auth_data == nullptr) {
-    return;
+    return Future<std::string>();
   }
 
-  // TODO add async thread logic to protect multiple writing.
+  Future<std::string> future =
+      user_secure_manager_->LoadUserData(auth_data->app->name());
+  future.OnCompletion(AssignLoadedData, auth_data);
+  return future;
+}
+
+Future<void> UserDataPersist::SaveUserData(AuthData* auth_data) {
+  if (auth_data == nullptr) {
+    return Future<void>();
+  }
+
   const auto user = UserView::GetReader(auth_data);
-  if (user.IsValid()) {
-    // Build up a serialized buffer algorithmically:
-    flatbuffers::FlatBufferBuilder builder;
-
-    // Compile data using schema
-    auto uid = builder.CreateString(user->uid);
-    auto email = builder.CreateString(user->email);
-    auto display_name = builder.CreateString(user->display_name);
-    auto photo_url = builder.CreateString(user->photo_url);
-    auto provider_id = builder.CreateString(user->provider_id);
-    auto phone_number = builder.CreateString(user->phone_number);
-
-    auto id_token = builder.CreateString(user->id_token);
-    auto refresh_token = builder.CreateString(user->refresh_token);
-    auto access_token = builder.CreateString(user->access_token);
-
-    auto desktop = CreateUserDataDesktop(
-        builder, uid, email, display_name, photo_url, provider_id, phone_number,
-        user->is_anonymous, user->is_email_verified, id_token, refresh_token,
-        access_token, user->access_token_expiration_date,
-        user->has_email_password_credential, user->last_sign_in_timestamp,
-        user->creation_timestamp);
-    builder.Finish(desktop);
-
-    SaveBuffer(auth_data->app->name(), (char*)builder.GetBufferPointer(),
-               builder.GetSize());
-  }
-}
-
-void UserDataPersist::DeleteUserData(AuthData* auth_data) {}
-
-void UserDataPersist::Destroy() {}
-
-const UserDataDesktop* UserDataPersist::LoadBuffer(std::string app_name,
-                                                   std::string* output) {
-  // TODO add platform secret loading impl.
-  std::string filename = GetTestFileName(std::move(app_name));
-  std::ifstream infile;
-  infile.open(filename, std::ios::binary);
-  if (infile.fail()) {
-    return nullptr;
+  if (!user.IsValid()) {
+    return Future<void>();
   }
 
-  infile.seekg(0, std::ios::end);
-  int64_t length = infile.tellg();
-  infile.seekg(0, std::ios::beg);
-  output->resize(length);
-  infile.read(&*output->begin(), length);
-  if (infile.fail()) {
-    return nullptr;
-  }
-  infile.close();
-  return GetUserDataDesktop(&*output->cbegin());
+  // Build up a serialized buffer algorithmically:
+  flatbuffers::FlatBufferBuilder builder;
+
+  // Compile data using schema
+  auto uid = builder.CreateString(user->uid);
+  auto email = builder.CreateString(user->email);
+  auto display_name = builder.CreateString(user->display_name);
+  auto photo_url = builder.CreateString(user->photo_url);
+  auto provider_id = builder.CreateString(user->provider_id);
+  auto phone_number = builder.CreateString(user->phone_number);
+
+  auto id_token = builder.CreateString(user->id_token);
+  auto refresh_token = builder.CreateString(user->refresh_token);
+  auto access_token = builder.CreateString(user->access_token);
+
+  auto desktop = CreateUserDataDesktop(
+      builder, uid, email, display_name, photo_url, provider_id, phone_number,
+      user->is_anonymous, user->is_email_verified, id_token, refresh_token,
+      access_token, user->access_token_expiration_date,
+      user->has_email_password_credential, user->last_sign_in_timestamp,
+      user->creation_timestamp);
+  builder.Finish(desktop);
+
+  std::string save_string;
+  auto bufferpointer =
+      reinterpret_cast<const char*>(builder.GetBufferPointer());
+  save_string.assign(bufferpointer, bufferpointer + builder.GetSize());
+  // Encode flatbuffer
+  std::string encoded;
+  firebase::Base64Encode(save_string, &encoded);
+
+  return user_secure_manager_->SaveUserData(auth_data->app->name(), encoded);
 }
 
-void UserDataPersist::SaveBuffer(std::string app_name, char* buffer,
-                                 int32_t buffer_size) {
-  // TODO add platform secret saving impl.
-  // Write data to binary
-  std::string filename = GetTestFileName(std::move(app_name));
-
-  std::ofstream ofile(filename, std::ios::binary);
-  ofile.write(buffer, buffer_size);
-  ofile.close();
+Future<void> UserDataPersist::DeleteUserData(AuthData* auth_data) {
+  return user_secure_manager_->DeleteUserData(auth_data->app->name());
 }
 
-std::string UserDataPersist::GetTestFileName(std::string app_name) {
-  // Only for dev purpose, to create the file under local folder.
-  std::string suffix = "_user.bin";
-  return app_name + suffix;
+Future<void> UserDataPersist::DeleteAllData() {
+  return user_secure_manager_->DeleteAllData();
 }
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
 
 User::~User() {
   // Make sure we don't have any pending futures in flight before we disappear.

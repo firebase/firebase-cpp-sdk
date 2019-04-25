@@ -102,7 +102,9 @@ class IdTokenRefreshThread {
 
 // The desktop-specific Auth implementation.
 struct AuthImpl {
-  AuthImpl() : async_sem(0), active_async_calls(0) {}
+  AuthImpl() : async_sem(0), active_async_calls(0) {
+    user_data_persist = MakeUnique<UserDataPersist>();
+  }
 
   // The application's API key.
   std::string api_key;
@@ -113,9 +115,8 @@ struct AuthImpl {
 
   // Thread responsible for refreshing the auth token periodically.
   IdTokenRefreshThread token_refresh_thread;
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
-  UserDataPersist user_data_persist;
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
+  // Instance responsible for user data persistence.
+  UniquePtr<UserDataPersist> user_data_persist;
   // Synchronization primitives used for managing threads spawned by CallAsync.
   Semaphore async_sem;
   Mutex async_mutex;
@@ -128,10 +129,8 @@ const int kMinutesPerTokenRefresh = 58;
 const int kMsPerTokenRefresh =
     kMinutesPerTokenRefresh * internal::kMillisecondsPerMinute;
 
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
 void InitializeUserDataPersist(AuthData* auth_data);
 void DestroyUserDataPersist(AuthData* auth_data);
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
 
 }  // namespace auth
 }  // namespace firebase

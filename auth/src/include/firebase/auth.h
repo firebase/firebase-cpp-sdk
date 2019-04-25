@@ -477,9 +477,7 @@ class Auth {
   friend class ::firebase::auth::PhoneAuthProvider;
   friend class IdTokenRefreshListener;
   friend class IdTokenRefreshThread;
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
   friend class UserDataPersist;
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
 
   friend void EnableTokenAutoRefresh(AuthData* authData);
   friend void DisableTokenAutoRefresh(AuthData* authData);

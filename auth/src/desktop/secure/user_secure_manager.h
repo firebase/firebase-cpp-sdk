@@ -33,17 +33,18 @@ class UserSecureManager {
   ~UserSecureManager();
 
   // Overloaded constructor to set the internal instance.
-  explicit UserSecureManager(UniquePtr<UserSecureInternal> userSecureInternal);
+  explicit UserSecureManager(
+      UniquePtr<UserSecureInternal> user_secure_internal);
 
   // Load persisted user data for given app name.
-  Future<std::string> LoadUserData(const std::string& appName);
+  Future<std::string> LoadUserData(const std::string& app_name);
 
   // Save user data under the key of given app name.
-  Future<void> SaveUserData(const std::string& appName,
-                            const std::string& userData);
+  Future<void> SaveUserData(const std::string& app_name,
+                            const std::string& user_data);
 
   // Delete user data under the given app name.
-  Future<void> DeleteUserData(const std::string& appName);
+  Future<void> DeleteUserData(const std::string& app_name);
 
   // Delete all user data.
   Future<void> DeleteAllData();
@@ -52,8 +53,13 @@ class UserSecureManager {
   UniquePtr<UserSecureInternal> user_secure_;
   ReferenceCountedFutureImpl future_api_;
 
-  // Static scheduler to shared among all auth instance.
-  scheduler::Scheduler scheduler_;
+  static void CreateScheduler();
+  static void DestroyScheduler();
+
+  // Guards static scheduler pointer
+  static Mutex s_scheduler_mutex_;  // NOLINT
+  static scheduler::Scheduler* s_scheduler_;
+  static int32_t s_scheduler_ref_count_;
 
   // Safe reference to this.  Set in constructor and cleared in destructor
   // Should be safe to be copied in any thread because the SharedPtr never

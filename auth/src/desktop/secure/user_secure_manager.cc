@@ -17,34 +17,74 @@
 #include "app/src/callback.h"
 #include "auth/src/desktop/secure/user_secure_internal.h"
 
+#ifdef __APPLE__
+#include "TargetConditionals.h"
+#endif  // __APPLE__
+
+#if defined(_WIN32)
+#include "auth/src/desktop/secure/user_secure_windows_internal.h"
+#define USER_SECURE_TYPE UserSecureWindowsInternal
+
+#elif defined(TARGET_OS_OSX) && TARGET_OS_OSX
+#include "auth/src/desktop/secure/user_secure_fake_internal.h"
+#define USER_SECURE_TYPE UserSecureFakeInternal
+
+#elif defined(__linux__)
+#include "auth/src/desktop/secure/user_secure_fake_internal.h"
+#define USER_SECURE_TYPE UserSecureFakeInternal
+
+#else  // Unknown platform, use fake version.
+#warning "No secure storage for Auth persistence is available on this platform."
+#include "auth/src/desktop/secure/user_secure_fake_internal.h"
+#define USER_SECURE_TYPE UserSecureFakeInternal
+#endif
+
 namespace firebase {
 namespace auth {
 namespace secure {
 
 using callback::NewCallback;
 
+Mutex UserSecureManager::s_scheduler_mutex_;  // NOLINT
+scheduler::Scheduler* UserSecureManager::s_scheduler_;
+int32_t UserSecureManager::s_scheduler_ref_count_;
+
+#if defined(_WIN32) || defined(TARGET_OS_OSX) && TARGET_OS_OSX || \
+    defined(__linux__)
+const char kAuthKeyName[] = "com.google.firebase.auth.Keys";
+#else
+// fake internal would use current folder.
+const char kAuthKeyName[] = "./";
+#endif
+
 UserSecureManager::UserSecureManager()
-    : future_api_(kUserSecureFnCount), safe_this_(this) {}
+    : future_api_(kUserSecureFnCount), safe_this_(this) {
+  user_secure_ = MakeUnique<USER_SECURE_TYPE>(kAuthKeyName);
+  CreateScheduler();
+}
 
 UserSecureManager::UserSecureManager(
-    UniquePtr<UserSecureInternal> userSecureInternal)
-    : user_secure_(std::move(userSecureInternal)),
+    UniquePtr<UserSecureInternal> user_secure_internal)
+    : user_secure_(std::move(user_secure_internal)),
       future_api_(kUserSecureFnCount),
-      safe_this_(this) {}
+      safe_this_(this) {
+  CreateScheduler();
+}
 
 UserSecureManager::~UserSecureManager() {
   // Clear safe reference immediately so that scheduled callback can skip
   // executing code which requires reference to this.
   safe_this_.ClearReference();
+  DestroyScheduler();
 }
 
 Future<std::string> UserSecureManager::LoadUserData(
-    const std::string& appName) {
+    const std::string& app_name) {
   const auto future_handle =
       future_api_.SafeAlloc<std::string>(kUserSecureFnLoad);
 
   auto data_handle = MakeShared<UserSecureDataHandle<std::string>>(
-      appName, "", &future_api_, future_handle);
+      app_name, "", &future_api_, future_handle);
 
   auto callback = NewCallback(
       [](ThisRef ref, SharedPtr<UserSecureDataHandle<std::string>> handle,
@@ -59,8 +99,9 @@ Future<std::string> UserSecureManager::LoadUserData(
           std::string result = internal->LoadUserData(handle->app_name);
           std::string empty_str("");
           if (result.empty()) {
-            handle->future_api->CompleteWithResult(handle->future_handle,
-                                                   kNoEntry, "", empty_str);
+            std::string message("No entry for key:" + handle->app_name);
+            handle->future_api->CompleteWithResult(
+                handle->future_handle, kNoEntry, message.c_str(), empty_str);
           } else {
             handle->future_api->CompleteWithResult(handle->future_handle,
                                                    kSuccess, "", result);
@@ -68,16 +109,16 @@ Future<std::string> UserSecureManager::LoadUserData(
         }
       },
       safe_this_, data_handle, user_secure_.get());
-  scheduler_.Schedule(callback);
+  s_scheduler_->Schedule(callback);
   return MakeFuture(&future_api_, future_handle);
 }
 
-Future<void> UserSecureManager::SaveUserData(const std::string& appName,
-                                             const std::string& userData) {
+Future<void> UserSecureManager::SaveUserData(const std::string& app_name,
+                                             const std::string& user_data) {
   const auto future_handle = future_api_.SafeAlloc<void>(kUserSecureFnSave);
 
   auto data_handle = MakeShared<UserSecureDataHandle<void>>(
-      appName, userData, &future_api_, future_handle);
+      app_name, user_data, &future_api_, future_handle);
 
   auto callback = NewCallback(
       [](ThisRef ref, SharedPtr<UserSecureDataHandle<void>> handle,
@@ -94,15 +135,15 @@ Future<void> UserSecureManager::SaveUserData(const std::string& appName,
         }
       },
       safe_this_, data_handle, user_secure_.get());
-  scheduler_.Schedule(callback);
+  s_scheduler_->Schedule(callback);
   return MakeFuture(&future_api_, future_handle);
 }
 
-Future<void> UserSecureManager::DeleteUserData(const std::string& appName) {
+Future<void> UserSecureManager::DeleteUserData(const std::string& app_name) {
   const auto future_handle = future_api_.SafeAlloc<void>(kUserSecureFnDelete);
 
   auto data_handle = MakeShared<UserSecureDataHandle<void>>(
-      appName, "", &future_api_, future_handle);
+      app_name, "", &future_api_, future_handle);
 
   auto callback = NewCallback(
       [](ThisRef ref, SharedPtr<UserSecureDataHandle<void>> handle,
@@ -119,7 +160,7 @@ Future<void> UserSecureManager::DeleteUserData(const std::string& appName) {
         }
       },
       safe_this_, data_handle, user_secure_.get());
-  scheduler_.Schedule(callback);
+  s_scheduler_->Schedule(callback);
   return MakeFuture(&future_api_, future_handle);
 }
 
@@ -144,8 +185,34 @@ Future<void> UserSecureManager::DeleteAllData() {
         }
       },
       safe_this_, data_handle, user_secure_.get());
-  scheduler_.Schedule(callback);
+  s_scheduler_->Schedule(callback);
   return MakeFuture(&future_api_, future_handle);
+}
+
+void UserSecureManager::CreateScheduler() {
+  MutexLock lock(s_scheduler_mutex_);
+  if (s_scheduler_ == nullptr) {
+    s_scheduler_ = new scheduler::Scheduler();
+    // reset count
+    s_scheduler_ref_count_ = 0;
+  }
+  s_scheduler_ref_count_++;
+}
+
+void UserSecureManager::DestroyScheduler() {
+  MutexLock lock(s_scheduler_mutex_);
+  if (s_scheduler_ == nullptr) {
+    // reset count
+    s_scheduler_ref_count_ = 0;
+    return;
+  }
+  s_scheduler_ref_count_--;
+  if (s_scheduler_ref_count_ <= 0) {
+    delete s_scheduler_;
+    s_scheduler_ = nullptr;
+    // reset count
+    s_scheduler_ref_count_ = 0;
+  }
 }
 
 }  // namespace secure

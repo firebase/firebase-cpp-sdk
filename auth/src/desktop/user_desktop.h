@@ -16,11 +16,12 @@
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_USER_DESKTOP_H_
 
 #include <firebase/auth.h>
+
 #include <ctime>
 #include <string>
 #include <vector>
-#include "auth/user_data_generated.h"
-#include "auth/user_data_resource.h"
+
+#include "auth/src/desktop/secure/user_secure_manager.h"
 
 namespace firebase {
 namespace auth {
@@ -93,28 +94,27 @@ struct UserData : public UserInfoImpl {
 
 // LINT.ThenChange(//depot_firebase_cpp/auth/client/cpp/src/desktop/user_data.fbs)
 
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
 // Class to save/load UserData for desktop. UserData will be persisted in
 // os specific secret locations for security reason.
 class UserDataPersist : public firebase::auth::AuthStateListener {
  public:
-  UserDataPersist() {}
+  UserDataPersist();
   ~UserDataPersist() {}
+
+  // Overloaded constructor to set the internal instance.
+  explicit UserDataPersist(
+      UniquePtr<secure::UserSecureManager> user_secure_manager);
 
   void OnAuthStateChanged(Auth* auth) override;
 
-  void SaveUserData(AuthData* auth_data);
-  void LoadUserData(AuthData* auth_data);
-  void DeleteUserData(AuthData* auth_data);
-  void Destroy();
+  Future<void> SaveUserData(AuthData* auth_data);
+  Future<std::string> LoadUserData(AuthData* auth_data);
+  Future<void> DeleteUserData(AuthData* auth_data);
+  Future<void> DeleteAllData();
 
  private:
-  void SaveBuffer(std::string app_name, char* buffer, int32_t buffer_size);
-  const UserDataDesktop* LoadBuffer(std::string app_name, std::string* output);
-  // Temp function to get a local file name for dev purpose
-  std::string GetTestFileName(std::string app_name);
+  UniquePtr<secure::UserSecureManager> user_secure_manager_;
 };
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
 
 }  // namespace auth
 }  // namespace firebase
