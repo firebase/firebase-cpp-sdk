@@ -73,6 +73,9 @@ void UserSecureFakeInternal::DeleteUserData(const std::string& app_name) {
 void UserSecureFakeInternal::DeleteAllData() {
   // These are data types defined in the "dirent" header
   DIR* theFolder = opendir(secure_path_.c_str());
+  if (!theFolder) {
+    return;
+  }
   struct dirent* next_file;
 
   while ((next_file = readdir(theFolder)) != nullptr) {

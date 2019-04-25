@@ -26,8 +26,8 @@
 #define USER_SECURE_TYPE UserSecureWindowsInternal
 
 #elif defined(TARGET_OS_OSX) && TARGET_OS_OSX
-#include "auth/src/desktop/secure/user_secure_fake_internal.h"
-#define USER_SECURE_TYPE UserSecureFakeInternal
+#include "auth/src/desktop/secure/user_secure_darwin_internal.h"
+#define USER_SECURE_TYPE UserSecureDarwinInternal
 
 #elif defined(__linux__)
 #include "auth/src/desktop/secure/user_secure_fake_internal.h"
