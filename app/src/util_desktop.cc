@@ -17,7 +17,15 @@
 #include "app/src/util_desktop.h"
 
 #include "app/src/log.h"
+
+// If building against OpenSSL, use the evp header for base64 encoding logic,
+// otherwise assume to be building against BoringSSL, which uses a different
+// header file.
+#ifdef OPENSSL_IS_BORINGSSL
 #include "openssl/base64.h"
+#else
+#include "openssl/evp.h"
+#endif
 
 namespace firebase {
 
