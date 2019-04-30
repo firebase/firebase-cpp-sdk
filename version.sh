@@ -18,9 +18,9 @@
 
 # Used to generate Pod dependencies in the Firebase Unity plugin.
 declare -A POD_SDK_VERSIONS=(
-  ["released"]="5.20.2"  # gen_build.sh: [FIR] Managed by a script. DO NOT EDIT.
-  ["stable"]="5.20.2"  # gen_build.sh: [FIR] Managed by a script. DO NOT EDIT.
-  ["head"]="5.20.2"  # gen_build.sh: [FIR] Managed by a script. DO NOT EDIT.
+  ["released"]="6.0.0"  # gen_build.sh: [FIR] Managed by a script. DO NOT EDIT.
+  ["stable"]="6.0.0"  # gen_build.sh: [FIR] Managed by a script. DO NOT EDIT.
+  ["head"]="6.0.0"  # gen_build.sh: [FIR] Managed by a script. DO NOT EDIT.
 )
 
 help() {

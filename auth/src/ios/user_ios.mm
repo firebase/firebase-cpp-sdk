@@ -182,9 +182,9 @@ Future<User*> User::LinkWithCredential(const Credential &credential) {
   const auto handle = futures.SafeAlloc<User*>(kUserFn_LinkWithCredential);
   [UserImpl(auth_data_)
       linkWithCredential:CredentialFromImpl(credential.impl_)
-              completion:^(FIRUser *_Nullable user, NSError *_Nullable error) {
-                  SignInCallback(user, error, handle, auth_data_);
-                }];
+              completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
+                SignInCallback(auth_result.user, error, handle, auth_data_);
+              }];
   return MakeFuture(&futures, handle);
 }
 
@@ -259,11 +259,13 @@ Future<void> User::Reauthenticate(const Credential& credential) {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_Reauthenticate);
 
-  [UserImpl(auth_data_) reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
-                                          completion:^(NSError *_Nullable error) {
-    futures.Complete(handle, AuthErrorFromNSError(error),
-                     [error.localizedDescription UTF8String]);
-  }];
+  [UserImpl(auth_data_)
+      reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
+                        completion:^(FIRAuthDataResult *_Nullable auth_result,
+                                     NSError *_Nullable error) {
+                          futures.Complete(handle, AuthErrorFromNSError(error),
+                                           [error.localizedDescription UTF8String]);
+                        }];
   return MakeFuture(&futures, handle);
 }
 

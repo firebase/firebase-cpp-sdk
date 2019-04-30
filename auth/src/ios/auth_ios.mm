@@ -296,10 +296,11 @@ Future<User *> Auth::SignInWithCredential(const Credential &credential) {
   ReferenceCountedFutureImpl &futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User *>(kAuthFn_SignInWithCredential, nullptr);
 
-  [AuthImpl(auth_data_) signInWithCredential:CredentialFromImpl(credential.impl_)
-                                  completion:^(FIRUser *_Nullable user, NSError *_Nullable error) {
-                                    SignInCallback(user, error, handle, auth_data_);
-                                  }];
+  [AuthImpl(auth_data_)
+      signInWithCredential:CredentialFromImpl(credential.impl_)
+                completion:^(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error) {
+                  SignInCallback(auth_result.user, error, handle, auth_data_);
+                }];
 
   return MakeFuture(&futures, handle);
 }

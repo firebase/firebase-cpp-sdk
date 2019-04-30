@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cstring>
+
 #include "dynamic_links/src/include/firebase/dynamic_links.h"
 #include "dynamic_links/src/include/firebase/dynamic_links/components.h"
 
@@ -119,9 +121,16 @@ static FIRDynamicLinkComponents* GetFIRComponentsAndGeneratedLink(
     generated_link->error = kUrlEncodingError;
     return nil;
   }
+  // If components.dynamic_link_domain doesn't start with "https://", add it.
+  static const char kHttpsPrefix[] = "https://";
+  static const size_t kHttpsPrefixLength = sizeof(kHttpsPrefix) - 1;
+  std::string dynamic_link_domain =
+      strncmp(components.dynamic_link_domain, kHttpsPrefix, kHttpsPrefixLength) == 0
+          ? components.dynamic_link_domain
+          : std::string(kHttpsPrefix) + components.dynamic_link_domain;
   FIRDynamicLinkComponents* fir_components =
       [FIRDynamicLinkComponents componentsWithLink:link_url
-                                            domain:@(components.dynamic_link_domain)];
+                                   domainURIPrefix:@(dynamic_link_domain.c_str())];
   {
     auto* cpp_params = components.google_analytics_parameters;
     if (cpp_params) {

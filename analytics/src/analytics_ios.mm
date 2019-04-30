@@ -17,7 +17,6 @@
 #import <Foundation/Foundation.h>
 
 #import "FIRAnalytics.h"
-#import "FIRAnalyticsConfiguration.h"
 
 #include "analytics/src/include/firebase/analytics.h"
 
@@ -59,7 +58,7 @@ void Terminate() {
 // Enable / disable measurement and reporting.
 void SetAnalyticsCollectionEnabled(bool enabled) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  [FIRAnalyticsConfiguration.sharedInstance setAnalyticsCollectionEnabled:enabled];
+  [FIRAnalytics setAnalyticsCollectionEnabled:enabled];
 }
 
 // Due to overloads of LogEvent(), it's possible for users to call variants that require a
@@ -151,16 +150,15 @@ void SetUserId(const char* user_id) {
 }
 
 // Sets the minimum engagement time required before starting a session.
+// (No longer functional.)
 void SetMinimumSessionDuration(int64_t milliseconds) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  [FIRAnalyticsConfiguration.sharedInstance
-      setMinimumSessionInterval:static_cast<NSTimeInterval>(milliseconds) / kMillisecondsPerSecond];
+  LogWarning("SetMinimumSessionDuration is deprecated and no longer functional.");
 }
 
 // Sets the duration of inactivity that terminates the current session.
 void SetSessionTimeoutDuration(int64_t milliseconds) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  [FIRAnalyticsConfiguration.sharedInstance
+  [FIRAnalytics
       setSessionTimeoutInterval:static_cast<NSTimeInterval>(milliseconds) / kMillisecondsPerSecond];
 }
 

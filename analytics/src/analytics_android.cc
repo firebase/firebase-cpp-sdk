@@ -20,9 +20,8 @@
 #include <cstdint>
 #include <cstring>
 
-#include "analytics/src/include/firebase/analytics.h"
-
 #include "analytics/src/analytics_common.h"
+#include "analytics/src/include/firebase/analytics.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/version.h"
@@ -54,7 +53,6 @@ static const ::firebase::App* g_app = nullptr;
   X(SetCurrentScreen, "setCurrentScreen",                                     \
     "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;)V"),         \
   X(SetUserId, "setUserId", "(Ljava/lang/String;)V"),                         \
-  X(SetMinimumSessionDuration, "setMinimumSessionDuration", "(J)V"),          \
   X(SetSessionTimeoutDuration, "setSessionTimeoutDuration", "(J)V"),          \
   X(ResetAnalyticsData, "resetAnalyticsData", "()V"),                         \
   X(GetAppInstanceId, "getAppInstanceId",                                     \
@@ -302,13 +300,8 @@ void SetUserId(const char* user_id) {
 
 // Sets the minimum engagement time required before starting a session.
 void SetMinimumSessionDuration(int64_t milliseconds) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
-  env->CallVoidMethod(
-      g_analytics_class_instance,
-      analytics::GetMethodId(analytics::kSetMinimumSessionDuration),
-      milliseconds);
-  util::CheckAndClearJniExceptions(env);
+  LogWarning(
+      "SetMinimumSessionDuration is deprecated and no longer functional.");
 }
 
 // Sets the duration of inactivity that terminates the current session.

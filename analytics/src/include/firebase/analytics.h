@@ -495,7 +495,10 @@ void SetUserId(const char* user_id);
 ///
 /// @param milliseconds The minimum engagement time required to start a new
 /// session.
-void SetMinimumSessionDuration(int64_t milliseconds);
+///
+/// @deprecated SetMinimumSessionDuration is deprecated and no longer
+/// functional.
+FIREBASE_DEPRECATED void SetMinimumSessionDuration(int64_t milliseconds);
 
 /// @brief Sets the duration of inactivity that terminates the current session.
 ///
