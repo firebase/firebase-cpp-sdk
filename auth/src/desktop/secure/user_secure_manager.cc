@@ -49,17 +49,9 @@ Mutex UserSecureManager::s_scheduler_mutex_;  // NOLINT
 scheduler::Scheduler* UserSecureManager::s_scheduler_;
 int32_t UserSecureManager::s_scheduler_ref_count_;
 
-#if defined(_WIN32) || defined(TARGET_OS_OSX) && TARGET_OS_OSX || \
-    defined(__linux__)
-const char kAuthKeyName[] = "com.google.firebase.auth.Keys";
-#else
-// fake internal would use current folder.
-const char kAuthKeyName[] = "./";
-#endif
-
-UserSecureManager::UserSecureManager()
+UserSecureManager::UserSecureManager(const char* app_id)
     : future_api_(kUserSecureFnCount), safe_this_(this) {
-  user_secure_ = MakeUnique<USER_SECURE_TYPE>(kAuthKeyName);
+  user_secure_ = MakeUnique<USER_SECURE_TYPE>(app_id);
   CreateScheduler();
 }
 

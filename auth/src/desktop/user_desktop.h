@@ -98,7 +98,7 @@ struct UserData : public UserInfoImpl {
 // os specific secret locations for security reason.
 class UserDataPersist : public firebase::auth::AuthStateListener {
  public:
-  UserDataPersist();
+  UserDataPersist(const char* app_id);
   ~UserDataPersist() {}
 
   // Overloaded constructor to set the internal instance.

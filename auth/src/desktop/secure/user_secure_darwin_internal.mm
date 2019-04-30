@@ -21,11 +21,12 @@ namespace firebase {
 namespace auth {
 namespace secure {
 
-static const char kServicePrefix[] = "firebase.auth.cpp.cred/";
+static const char kServicePrefix[] = "";
+static const char kServiceSuffix[] = " [Firebase Auth]";
 static const int kMaxAllowedKeychainEntries = INT_MAX;
 
 UserSecureDarwinInternal::UserSecureDarwinInternal(const char* service) {
-  service_ = std::string(kServicePrefix) + service;
+  service_ = std::string(kServicePrefix) + service + std::string(kServiceSuffix);
 }
 
 UserSecureDarwinInternal::~UserSecureDarwinInternal() {}

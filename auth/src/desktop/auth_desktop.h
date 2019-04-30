@@ -16,6 +16,7 @@
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_DESKTOP_H_
 
 #include <memory>
+
 #include "app/rest/request.h"
 #include "app/src/semaphore.h"
 #include "app/src/thread.h"
@@ -102,9 +103,7 @@ class IdTokenRefreshThread {
 
 // The desktop-specific Auth implementation.
 struct AuthImpl {
-  AuthImpl() : async_sem(0), active_async_calls(0) {
-    user_data_persist = MakeUnique<UserDataPersist>();
-  }
+  AuthImpl() : async_sem(0), active_async_calls(0) {}
 
   // The application's API key.
   std::string api_key;

@@ -21,11 +21,13 @@ namespace firebase {
 namespace auth {
 namespace secure {
 
-static const char kNamespacePrefix[] = "firebase.auth.cpp.cred/";
+static const char kNamespacePrefix[] = "";
+static const char kNamespaceSuffix[] = " [Firebase Auth]";
 
 UserSecureWindowsInternal::UserSecureWindowsInternal(
     const char* key_namespace) {
-  namespace_ = std::string(kNamespacePrefix) + key_namespace;
+  namespace_ = std::string(kNamespacePrefix) + key_namespace +
+               std::string(kNamespaceSuffix);
 }
 
 UserSecureWindowsInternal::~UserSecureWindowsInternal() {}

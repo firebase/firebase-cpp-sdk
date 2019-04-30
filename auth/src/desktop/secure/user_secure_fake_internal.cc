@@ -15,6 +15,8 @@
 #include "auth/src/desktop/secure/user_secure_fake_internal.h"
 
 #include <dirent.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 
 #include <cstdio>
 #include <fstream>
@@ -52,6 +54,9 @@ std::string UserSecureFakeInternal::LoadUserData(const std::string& app_name) {
 
 void UserSecureFakeInternal::SaveUserData(const std::string& app_name,
                                           const std::string& user_data) {
+  // Make the directory in case it doesn't already exist, ignoring errors.
+  mkdir(secure_path_.c_str(), 0700);
+
   std::string filename = GetFilePath(app_name);
 
   std::ofstream ofile(filename, std::ios::binary);
@@ -85,6 +90,9 @@ void UserSecureFakeInternal::DeleteAllData() {
     remove(filepath.c_str());
   }
   closedir(theFolder);
+
+  // Remove the directory if it's empty, ignoring errors.
+  rmdir(secure_path_.c_str());
 }
 
 std::string UserSecureFakeInternal::GetFilePath(const std::string& app_name) {
