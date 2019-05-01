@@ -33,6 +33,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
+#include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
@@ -70,7 +71,7 @@ static const ::firebase::App* g_app = nullptr;
 
 // Mutex used to arbitrate access to g_app between the thread calling this
 // module and MessageProcessingThread().
-static pthread_mutex_t g_app_mutex;
+static Mutex g_app_mutex;
 
 // Global reference to the Firebase Cloud Messaging instance.
 // This is initialized in messaging::Initialize() and never released
@@ -297,10 +298,9 @@ static void ConsumeEvents() {
 // thread knows that it is time to quit.
 static bool TerminateRequested() {
   bool result;
-  pthread_mutex_lock(&g_app_mutex);
+  MutexLock lock(g_app_mutex);
   // If the app is removed, Terminate() has been called.
   result = !g_app;
-  pthread_mutex_unlock(&g_app_mutex);
   return result;
 }
 
@@ -336,9 +336,11 @@ Future<void> RequestPermissionLastResult() {
 
 // Process queued messages & tokens.
 void ProcessMessages() {
-  pthread_mutex_lock(&g_app_mutex);
-  JNIEnv* env = g_app ? g_app->GetJNIEnv() : nullptr;
-  pthread_mutex_unlock(&g_app_mutex);
+  JNIEnv* env;
+  {
+    MutexLock lock(g_app_mutex);
+    env = g_app ? g_app->GetJNIEnv() : nullptr;
+  }
   if (HasListener() && env) {
     // Check to see if there was a message in the intent that started this
     // activity.
@@ -352,10 +354,12 @@ void ProcessMessages() {
 // changes to that file and when messages are written it relays them to the
 // OnMessage callback.
 static void* MessageProcessingThread(void*) {
-  pthread_mutex_lock(&g_app_mutex);
-  JavaVM* jvm = g_app ? g_app->java_vm() : nullptr;
-  pthread_mutex_unlock(&g_app_mutex);
-  if (jvm == nullptr) return nullptr;
+  JavaVM* jvm;
+  {
+    MutexLock lock(g_app_mutex);
+    jvm = g_app ? g_app->java_vm() : nullptr;
+    if (jvm == nullptr) return nullptr;
+  }
 
   // Set up inotify.
   int file_descriptor = inotify_init();
@@ -408,7 +412,6 @@ static void TerminateMessageProcessingThread() {
   pthread_join(g_poll_thread, nullptr);
   pthread_mutex_destroy(&g_thread_wait_mutex);
   pthread_cond_destroy(&g_thread_wait_cond);
-  pthread_mutex_destroy(&g_app_mutex);
 }
 
 static bool StringStartsWith(const char* s, const char* prefix) {
@@ -494,11 +497,19 @@ static void FireIntentMessage(JNIEnv* env) {
   // when retrieving a notification via an Intent. http://b/32316101
   if (g_intent_message_fired || !HasListener()) return;
   g_intent_message_fired = true;
+  jobject activity;
+  {
+    MutexLock lock(g_app_mutex);
+    if (!g_app) return;
+    activity = env->NewLocalRef(g_app->activity());
+    assert(env->ExceptionCheck() == false);
+  }
   // Intent intent = app.getIntent();
   jobject intent = env->CallObjectMethod(
-      g_app->activity(),
+      activity,
       util::activity::GetMethodId(util::activity::kGetIntent));
   assert(env->ExceptionCheck() == false);
+  env->DeleteLocalRef(activity);
 
   if (intent != nullptr) {
     // Bundle bundle = intent.getExtras();
@@ -578,10 +589,10 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
     return kInitResultFailedMissingDependency;
   }
 
-  g_app_mutex = PTHREAD_MUTEX_INITIALIZER;
-  pthread_mutex_lock(&g_app_mutex);
-  g_app = &app;
-  pthread_mutex_unlock(&g_app_mutex);
+  {
+    MutexLock lock(g_app_mutex);
+    g_app = &app;
+  }
   g_registration_token_mutex = new Mutex();
   g_file_locker_mutex = new Mutex();
   g_pending_subscriptions = new std::vector<PendingTopic>();
@@ -666,9 +677,10 @@ void Terminate() {
   internal::UnregisterTerminateOnDefaultAppDestroy();
   JNIEnv* env = g_app->GetJNIEnv();
   // Dereference the app.
-  pthread_mutex_lock(&g_app_mutex);
-  g_app = nullptr;
-  pthread_mutex_unlock(&g_app_mutex);
+  {
+    MutexLock lock(g_app_mutex);
+    g_app = nullptr;
+  }
   TerminateMessageProcessingThread();
 
   delete g_registration_token_mutex;
