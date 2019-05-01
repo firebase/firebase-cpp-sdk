@@ -81,17 +81,18 @@ Future<std::string> UserSecureManager::LoadUserData(
   auto callback = NewCallback(
       [](ThisRef ref, SharedPtr<UserSecureDataHandle<std::string>> handle,
          UserSecureInternal* internal) {
-        if (internal == nullptr) {
-          handle->future_api->Complete(handle->future_handle, kNoInternal,
-                                       "manager doesn't have valid internal");
-          return;
-        }
+        FIREBASE_ASSERT(internal);
         ThisRefLock lock(&ref);
         if (lock.GetReference() != nullptr) {
           std::string result = internal->LoadUserData(handle->app_name);
           std::string empty_str("");
           if (result.empty()) {
-            std::string message("No entry for key:" + handle->app_name);
+            std::string message(
+                "Authentication failed to read user credentials for app (" +
+                handle->app_name +
+                ").  This could happen if the current user doesn't have access "
+                "to the key store, the key store has been corrupted or the app "
+                "intentionally signed out the user.");
             handle->future_api->CompleteWithResult(
                 handle->future_handle, kNoEntry, message.c_str(), empty_str);
           } else {
@@ -115,11 +116,7 @@ Future<void> UserSecureManager::SaveUserData(const std::string& app_name,
   auto callback = NewCallback(
       [](ThisRef ref, SharedPtr<UserSecureDataHandle<void>> handle,
          UserSecureInternal* internal) {
-        if (internal == nullptr) {
-          handle->future_api->Complete(handle->future_handle, kNoInternal,
-                                       "manager doesn't have valid internal");
-          return;
-        }
+        FIREBASE_ASSERT(internal);
         ThisRefLock lock(&ref);
         if (lock.GetReference() != nullptr) {
           internal->SaveUserData(handle->app_name, handle->user_data);
@@ -140,11 +137,7 @@ Future<void> UserSecureManager::DeleteUserData(const std::string& app_name) {
   auto callback = NewCallback(
       [](ThisRef ref, SharedPtr<UserSecureDataHandle<void>> handle,
          UserSecureInternal* internal) {
-        if (internal == nullptr) {
-          handle->future_api->Complete(handle->future_handle, kNoInternal,
-                                       "manager doesn't have valid internal");
-          return;
-        }
+        FIREBASE_ASSERT(internal);
         ThisRefLock lock(&ref);
         if (lock.GetReference() != nullptr) {
           internal->DeleteUserData(handle->app_name);
@@ -165,11 +158,7 @@ Future<void> UserSecureManager::DeleteAllData() {
   auto callback = NewCallback(
       [](ThisRef ref, SharedPtr<UserSecureDataHandle<void>> handle,
          UserSecureInternal* internal) {
-        if (internal == nullptr) {
-          handle->future_api->Complete(handle->future_handle, kNoInternal,
-                                       "manager doesn't have valid internal");
-          return;
-        }
+        FIREBASE_ASSERT(internal);
         ThisRefLock lock(&ref);
         if (lock.GetReference() != nullptr) {
           internal->DeleteAllData();

@@ -414,10 +414,7 @@ void UserDataPersist::OnAuthStateChanged(Auth* auth) {  // NOLINT
 
 void AssignLoadedData(const Future<std::string>& future, void* auth_data) {
   if (future.error() == secure::kNoEntry) {
-    LogWarning("Future no entry: %s", future.error_message());
-    return;
-  } else if (future.error() == secure::kNoInternal) {
-    LogError("Future error: %s", future.error_message());
+    LogDebug(future.error_message());
     return;
   }
 

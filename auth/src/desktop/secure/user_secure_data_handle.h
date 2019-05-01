@@ -35,7 +35,6 @@ enum UserSecureFn {
 enum UserSecureFutureResult {
   kSuccess,
   kNoEntry,
-  kNoInternal,
 };
 
 template <typename T>
