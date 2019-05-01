@@ -185,8 +185,8 @@ Additional examples of how to do this for each library are available in the
 ### Including in Android Gradle Projects
 In order to link the Firebase C++ SDK with your gradle project, in addition to
 the CMake instructions above, you can use
-[Android/firebase_dependencies.gradle](/Android/firebase_dependencies) to link
-the libraries, their dependencies, and the generated proguard files. For
+[Android/firebase_dependencies.gradle](/Android/firebase_dependencies.gradle)
+to link the libraries, their dependencies, and the generated proguard files. For
 example, to add Analytics, you could add the following to your build.gradle
 file:
 
