@@ -21,12 +21,19 @@ namespace firebase {
 namespace auth {
 namespace secure {
 
+// Prefix and suffix to add to keychain service name.
 static const char kServicePrefix[] = "";
 static const char kServiceSuffix[] = " [Firebase Auth]";
 static const int kMaxAllowedKeychainEntries = INT_MAX;
 
+// Prefix and suffix for the key for NSUserDefaults.
+static const char kUserDefaultsPrefix[] = "com.google.firebase.auth.";
+static const char kUserDefaultsSuffix[] = ".has_saved_user";
+
 UserSecureDarwinInternal::UserSecureDarwinInternal(const char* service) {
   service_ = std::string(kServicePrefix) + service + std::string(kServiceSuffix);
+  user_defaults_key_ =
+      std::string(kUserDefaultsPrefix) + service + std::string(kUserDefaultsSuffix);
 }
 
 UserSecureDarwinInternal::~UserSecureDarwinInternal() {}
@@ -47,7 +54,27 @@ std::string UserSecureDarwinInternal::GetKeystoreLocation(const std::string& app
   return service_ + "/" + app;
 }
 
+bool UserSecureDarwinInternal::UserHasSecureData() {
+  NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
+  if (!defaults) {
+    // For some reason we can't get NSUserDefaults, so just err on the safe side and return true so
+    // we check the keychain directly.
+    return true;
+  }
+  return [defaults boolForKey:@(user_defaults_key_.c_str())] ? true : false;
+}
+
+void UserSecureDarwinInternal::SetUserHasSecureData(bool b) {
+  NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
+  [defaults setBool:(b ? YES : NO) forKey:@(user_defaults_key_.c_str())];
+  [defaults synchronize];
+}
+
 std::string UserSecureDarwinInternal::LoadUserData(const std::string& app_name) {
+  if (!UserHasSecureData()) {
+    LogDebug("LoadUserData: User has no data stored.");
+    return "";
+  }
   NSMutableDictionary* query = GetQueryForApp(service_.c_str(), app_name.c_str());
   std::string keystore_location = GetKeystoreLocation(app_name);
   // We want to return the data and attributes.
@@ -111,9 +138,16 @@ void UserSecureDarwinInternal::SaveUserData(const std::string& app_name,
              error_string.UTF8String);
     return;
   }
+
+  SetUserHasSecureData(true);
 }
 
 void UserSecureDarwinInternal::DeleteData(const char* app_name, const char* func_name) {
+  if (!UserHasSecureData()) {
+    LogDebug("%s: User has no data stored.", func_name);
+    return;
+  }
+
   NSMutableDictionary* query = GetQueryForApp(service_.c_str(), app_name);
   std::string keystore_location = app_name ? GetKeystoreLocation(app_name) : service_;
 
@@ -125,11 +159,11 @@ void UserSecureDarwinInternal::DeleteData(const char* app_name, const char* func
   OSStatus status = SecItemDelete((__bridge CFDictionaryRef)query);
 
   if (status == errSecItemNotFound) {
-    LogDebug("%s: Key %s not found", keystore_location.c_str());
+    LogDebug("%s: Key %s not found", func_name, keystore_location.c_str());
     return;
   } else if (status != noErr) {
     NSString* error_string = (__bridge_transfer NSString*)SecCopyErrorMessageString(status, NULL);
-    LogError("%s: Error %d deleting %s: %s", status, keystore_location.c_str(),
+    LogError("%s: Error %d deleting %s: %s", func_name, status, keystore_location.c_str(),
              error_string.UTF8String);
     return;
   }
@@ -139,7 +173,10 @@ void UserSecureDarwinInternal::DeleteUserData(const std::string& app_name) {
   DeleteData(app_name.c_str(), "DeleteUserData");
 }
 
-void UserSecureDarwinInternal::DeleteAllData() { DeleteData(nullptr, "DeleteAllData"); }
+void UserSecureDarwinInternal::DeleteAllData() {
+  DeleteData(nullptr, "DeleteAllData");
+  SetUserHasSecureData(false);
+}
 
 }  // namespace secure
 }  // namespace auth

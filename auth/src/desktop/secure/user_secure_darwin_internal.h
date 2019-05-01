@@ -24,6 +24,13 @@ namespace auth {
 namespace secure {
 
 // Darwin-specific implementation for the secure manager of user data.
+//
+// Stores the secure data in the user's default keychain.
+//
+// Also sets an entry in NSUserDefaults for the app the first time data is
+// written; unless that entry is set, we won't check the keychain (if we do,
+// their system will prompt the user for a password if we try to access the
+// keychain before writing to it, which is not a great user experience).
 class UserSecureDarwinInternal : public UserSecureInternal {
  public:
   explicit UserSecureDarwinInternal(const char* service);
@@ -40,6 +47,12 @@ class UserSecureDarwinInternal : public UserSecureInternal {
   void DeleteAllData() override;
 
  private:
+  // Does the user have secure data set for this app? Don't access the keychain
+  // unless this is true.
+  bool UserHasSecureData();
+  // Set whether the user has secure data set for this app.
+  void SetUserHasSecureData(bool b);
+
   // Delete either a single key, or (if app_name is null) all keys.
   // func_name is used for error messages.
   void DeleteData(const char* app_name, const char* func_name);
@@ -47,6 +60,7 @@ class UserSecureDarwinInternal : public UserSecureInternal {
   std::string GetKeystoreLocation(const std::string& app);
 
   std::string service_;
+  std::string user_defaults_key_;
 };
 
 }  // namespace secure
