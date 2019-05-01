@@ -30,8 +30,8 @@
 #define USER_SECURE_TYPE UserSecureDarwinInternal
 
 #elif defined(__linux__)
-#include "auth/src/desktop/secure/user_secure_fake_internal.h"
-#define USER_SECURE_TYPE UserSecureFakeInternal
+#include "auth/src/desktop/secure/user_secure_linux_internal.h"
+#define USER_SECURE_TYPE UserSecureLinuxInternal
 
 #else  // Unknown platform, use fake version.
 #warning "No secure storage for Auth persistence is available on this platform."

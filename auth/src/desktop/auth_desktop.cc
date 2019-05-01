@@ -422,11 +422,22 @@ void ResetTokenRefreshCounter(AuthData* auth_data) {
 void InitializeUserDataPersist(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   // Combine bundle ID with project ID to create an app identifier.
-  std::string app_identifier = auth_data->app->options().package_name();
-  app_identifier += ".";
-  app_identifier += auth_data->app->options().project_id();
+  std::string package_name = auth_data->app->options().package_name();
+  std::string project_id = auth_data->app->options().project_id();
+  std::string app_identifier;
+
+  if (package_name.length() > 0) {
+    app_identifier += package_name;
+    if (project_id.length() > 0) {
+      app_identifier += ".";
+      app_identifier += project_id;
+    }
+  } else if (project_id.length() > 0) {
+    app_identifier += project_id;
+  }
   auth_impl->user_data_persist =
       MakeUnique<UserDataPersist>(app_identifier.c_str());
+
   auth_data->auth->AddAuthStateListener(auth_impl->user_data_persist.get());
   auth_impl->user_data_persist->LoadUserData(auth_data);
 }

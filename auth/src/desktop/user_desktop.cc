@@ -405,7 +405,11 @@ UserDataPersist::UserDataPersist(
     : user_secure_manager_(std::move(user_secure_manager)) {}
 
 void UserDataPersist::OnAuthStateChanged(Auth* auth) {  // NOLINT
-  SaveUserData(auth->auth_data_);
+  if (auth->current_user() != nullptr) {
+    SaveUserData(auth->auth_data_);
+  } else {
+    DeleteUserData(auth->auth_data_);
+  }
 }
 
 void AssignLoadedData(const Future<std::string>& future, void* auth_data) {
