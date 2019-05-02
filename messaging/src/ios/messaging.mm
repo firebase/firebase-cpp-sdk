@@ -239,7 +239,7 @@ Future<void> RequestPermission() {
       g_launch_notification = nil;
     }
   });
-  return RequestPermissionLastResult();
+  return MakeFuture(api, g_permission_prompt_future_handle);
 }
 
 Future<void> RequestPermissionLastResult() {
@@ -620,6 +620,9 @@ void Send(const Message &message) {
                              timeToLive:message.time_to_live];
 }
 
+static const char kErrorMessageNoRegistrationToken[] =
+    "Cannot update subscritption when SetTokenRegistrationOnInitEnabled is set to false";
+
 Future<void> Subscribe(const char *topic) {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
 
@@ -628,12 +631,18 @@ Future<void> Subscribe(const char *topic) {
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnSubscribe);
 
   LogInfo("FCM: Subscribe to topic `%s`", topic);
+
+  if (!IsTokenRegistrationOnInitEnabled()) {
+    api->Complete(handle, kErrorNoRegistrationToken,
+                  kErrorMessageNoRegistrationToken);
+    return MakeFuture(api, handle);
+  }
   if (![FIRMessaging normalizeTopic:@(topic)]) {
     std::string error = "Cannot parse topic name ";
     error += topic;
     error += ". Will not subscribe.";
     api->Complete(handle, kErrorInvalidTopicName, error.c_str());
-    return Future<void>(api, handle.get());
+    return MakeFuture(api, handle);
   }
   [[FIRMessaging messaging] subscribeToTopic:@(topic)
                                   completion:^void(NSError *error) {
@@ -643,7 +652,7 @@ Future<void> Subscribe(const char *topic) {
           api->Complete(handle, kErrorNone);
         }
       }];
-  return Future<void>(api, handle.get());
+  return MakeFuture(api, handle);
 }
 
 Future<void> SubscribeLastResult() {
@@ -661,12 +670,18 @@ Future<void> Unsubscribe(const char *topic) {
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnUnsubscribe);
 
   LogInfo("FCM: Unsubscribe to topic `%s`", topic);
+
+  if (!IsTokenRegistrationOnInitEnabled()) {
+    api->Complete(handle, kErrorNoRegistrationToken,
+                  kErrorMessageNoRegistrationToken);
+    return MakeFuture(api, handle);
+  }
   if (![FIRMessaging normalizeTopic:@(topic)]) {
     std::string error = "Cannot parse topic name ";
     error += topic;
     error += ". Will not unsubscribe.";
     api->Complete(handle, kErrorInvalidTopicName, error.c_str());
-    return Future<void>(api, handle.get());
+    return MakeFuture(api, handle);
   }
   [[FIRMessaging messaging] unsubscribeFromTopic:@(topic)
                                       completion:^void(NSError *error) {
@@ -676,7 +691,7 @@ Future<void> Unsubscribe(const char *topic) {
           api->Complete(handle, kErrorNone);
         }
       }];
-  return Future<void>(api, handle.get());
+  return MakeFuture(api, handle);
 }
 
 Future<void> UnsubscribeLastResult() {

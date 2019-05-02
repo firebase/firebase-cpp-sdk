@@ -324,7 +324,7 @@ Future<void> RequestPermission() {
   SafeFutureHandle<void> handle =
       api->SafeAlloc<void>(kMessagingFnRequestPermission);
   api->Complete(handle, kErrorNone);
-  return Future<void>(api, handle.get());
+  return MakeFuture(api, handle);
 }
 
 Future<void> RequestPermissionLastResult() {
@@ -886,6 +886,10 @@ static void HandlePendingSubscriptions() {
   }
 }
 
+static const char kErrorMessageNoRegistrationToken[] =
+    "Cannot update subscription when SetTokenRegistrationOnInitEnabled is set "
+    "to false.";
+
 Future<void> Subscribe(const char* topic) {
   FIREBASE_ASSERT_MESSAGE_RETURN(Future<void>(), internal::IsInitialized(),
                                  kMessagingNotInitializedError);
@@ -894,10 +898,14 @@ Future<void> Subscribe(const char* topic) {
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnSubscribe);
   if (g_registration_token_received) {
     SubscribeInternal(topic, handle);
+  } else if (g_registration_token_request_state ==
+             kRegistrationTokenRequestStateDisable) {
+    api->Complete(handle, kErrorNoRegistrationToken,
+                  kErrorMessageNoRegistrationToken);
   } else if (g_pending_subscriptions) {
     g_pending_subscriptions->push_back(PendingTopic(topic, handle));
   }
-  return Future<void>(api, handle.get());
+  return MakeFuture(api, handle);
 }
 
 Future<void> SubscribeLastResult() {
@@ -915,10 +923,14 @@ Future<void> Unsubscribe(const char* topic) {
   SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnSubscribe);
   if (g_registration_token_received) {
     UnsubscribeInternal(topic, handle);
+  } else if (g_registration_token_request_state ==
+             kRegistrationTokenRequestStateDisable) {
+    api->Complete(handle, kErrorNoRegistrationToken,
+                  kErrorMessageNoRegistrationToken);
   } else if (g_pending_unsubscriptions) {
     g_pending_unsubscriptions->push_back(PendingTopic(topic, handle));
   }
-  return Future<void>(api, handle.get());
+  return MakeFuture(api, handle);
 }
 
 Future<void> UnsubscribeLastResult() {

@@ -16,9 +16,11 @@
 #define FIREBASE_MESSAGING_CLIENT_CPP_INCLUDE_FIREBASE_MESSAGING_H_
 
 #include <stdint.h>
+
 #include <map>
 #include <string>
 #include <vector>
+
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
@@ -486,6 +488,8 @@ enum Error {
   kErrorFailedToRegisterForRemoteNotifications,
   /// Topic name is invalid for subscription/unsubscription.
   kErrorInvalidTopicName,
+  /// Could not subscribe/unsubscribe because there is no registration token.
+  kErrorNoRegistrationToken,
   /// Unknown error.
   kErrorUnknown,
 };
