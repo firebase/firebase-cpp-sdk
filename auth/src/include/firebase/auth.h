@@ -137,10 +137,17 @@ class Auth {
   ~Auth();
 
   /// Synchronously gets the cached current user, or nullptr if there is none.
+  /// Current user might not be available immediately after Auth is created, if
+  /// a user has signed in before. It is recommended to use AuthStateListener as
+  /// the source of truth whether a user has logged in or not.
   /// <SWIG>
   /// @xmlonly
   /// <csproperty name="CurrentUser">
   /// Synchronously gets the cached current user, or null if there is none.
+  /// CurrentUser might not be available immediately after FirebaseAuth is
+  /// created, if a user has signed in before. It is recommended to use
+  /// StateChanged delegate as the source of truth whether a user has logged in
+  /// or not.
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
@@ -399,6 +406,7 @@ class Auth {
   /// The listeners are called asynchronously, possibly on a different thread.
   ///
   /// Authentication state changes are:
+  ///   - Right after the listener has been registered
   ///   - When a user signs in
   ///   - When the current user signs out
   ///   - When the current user changes
@@ -430,6 +438,7 @@ class Auth {
   /// The listeners are called asynchronously, possibly on a different thread.
   ///
   /// Authentication state changes are:
+  ///   - Right after the listener has been registered
   ///   - When a user signs in
   ///   - When the current user signs out
   ///   - When the current user changes
@@ -526,6 +535,7 @@ class AuthStateListener {
   virtual ~AuthStateListener();
 
   /// Called when the authentication state of `auth` changes.
+  ///   - Right after the listener has been registered
   ///   - When a user is signed in
   ///   - When the current user is signed out
   ///   - When the current user changes
@@ -558,6 +568,11 @@ class IdTokenListener {
   virtual ~IdTokenListener();
 
   /// Called when there is a change in the current user's token.
+  ///   - Right after the listener has been registered
+  ///   - When a user signs in
+  ///   - When the current user signs out
+  ///   - When the current user changes
+  ///   - When there is a change in the current user's token
   ///
   /// @param[in] auth Disambiguates which @ref Auth instance the event
   /// corresponds to, in the case where you are using more than one at the same
