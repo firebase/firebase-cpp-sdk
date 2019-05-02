@@ -15,6 +15,7 @@
  */
 
 #include <jni.h>
+
 #include <algorithm>
 #include <cstring>
 
@@ -31,7 +32,7 @@ using util::JniStringToString;
 
 // clang-format off
 #define CREDENTIAL_METHODS(X)                                                  \
-    X(GetProvider, "getProvider", "()Ljava/lang/String;")
+    X(GetSignInMethod, "getSignInMethod", "()Ljava/lang/String;")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(credential, CREDENTIAL_METHODS)
 METHOD_LOOKUP_DEFINITION(credential,
@@ -289,9 +290,9 @@ Credential& Credential::operator=(const Credential& rhs) {
 std::string Credential::provider() const {
   JNIEnv* env = GetJniEnv();
   if (!impl_) return std::string();
-  jobject j_provider =
-      env->CallObjectMethod(CredentialFromImpl(impl_),
-                            credential::GetMethodId(credential::kGetProvider));
+  jobject j_provider = env->CallObjectMethod(
+      CredentialFromImpl(impl_),
+      credential::GetMethodId(credential::kGetSignInMethod));
   return JniStringToString(env, j_provider);
 }
 
@@ -471,8 +472,8 @@ Future<Credential> GameCenterAuthProvider::GetCredential() {
   bool is_gamecenter_available_on_android = false;
 
   auto future_api = GetCredentialFutureImpl();
-  const auto handle = future_api->SafeAlloc<Credential>(
-      kCredentialFn_GameCenterGetCredential);
+  const auto handle =
+      future_api->SafeAlloc<Credential>(kCredentialFn_GameCenterGetCredential);
 
   future_api->Complete(handle, kAuthErrorInvalidCredential,
                        "GameCenter is not supported on Android.");
@@ -538,8 +539,9 @@ PhoneAuthProvider::ForceResendingToken::ForceResendingToken(
   data_->SetRef(rhs.data_->token_global_ref());
 }
 
-PhoneAuthProvider::ForceResendingToken& PhoneAuthProvider::ForceResendingToken::
-operator=(const ForceResendingToken& rhs) {
+PhoneAuthProvider::ForceResendingToken&
+PhoneAuthProvider::ForceResendingToken::operator=(
+    const ForceResendingToken& rhs) {
   data_->SetRef(rhs.data_->token_global_ref());
   return *this;
 }

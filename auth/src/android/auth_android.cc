@@ -46,7 +46,7 @@ using util::JniStringToString;
   X(RemoveIdTokenListener, "removeIdTokenListener",                            \
     "(Lcom/google/firebase/auth/FirebaseAuth$IdTokenListener;)V"),             \
   X(SignOut, "signOut", "()V"),                                                \
-  X(FetchProvidersForEmail, "fetchProvidersForEmail",                          \
+  X(FetchSignInMethodsForEmail, "fetchSignInMethodsForEmail",                  \
     "(Ljava/lang/String;)"                                                     \
     "Lcom/google/android/gms/tasks/Task;"),                                    \
   X(SignInWithCustomToken, "signInWithCustomToken",                            \
@@ -75,14 +75,14 @@ METHOD_LOOKUP_DEFINITION(auth,
                          AUTH_METHODS)
 
 // clang-format off
-#define PROVIDER_QUERY_RESULT_METHODS(X)                                       \
-  X(GetProviders, "getProviders", "()Ljava/util/List;")
+#define SIGNIN_METHOD_QUERY_RESULT_METHODS(X)                                  \
+  X(GetSignInMethods, "getSignInMethods", "()Ljava/util/List;")
 // clang-format on
-METHOD_LOOKUP_DECLARATION(providerqueryresult, PROVIDER_QUERY_RESULT_METHODS)
-METHOD_LOOKUP_DEFINITION(providerqueryresult,
+METHOD_LOOKUP_DECLARATION(signinmethodquery, SIGNIN_METHOD_QUERY_RESULT_METHODS)
+METHOD_LOOKUP_DEFINITION(signinmethodquery,
                          PROGUARD_KEEP_CLASS
-                         "com/google/firebase/auth/ProviderQueryResult",
-                         PROVIDER_QUERY_RESULT_METHODS)
+                         "com/google/firebase/auth/SignInMethodQueryResult",
+                         SIGNIN_METHOD_QUERY_RESULT_METHODS)
 
 // clang-format off
 #define JNI_LISTENER_CALLBACK_METHODS(X)                                       \
@@ -125,7 +125,7 @@ static const JNINativeMethod kNativeOnIdTokenChangedMethod = {
 bool CacheAuthMethodIds(JNIEnv* env, jobject activity,
                         const std::vector<util::EmbeddedFile>& embedded_files) {
   if (!(auth::CacheMethodIds(env, activity) &&
-        providerqueryresult::CacheMethodIds(env, activity))) {
+        signinmethodquery::CacheMethodIds(env, activity))) {
     return false;
   }
 
@@ -147,7 +147,7 @@ bool CacheAuthMethodIds(JNIEnv* env, jobject activity,
 
 void ReleaseAuthClasses(JNIEnv* env) {
   auth::ReleaseClass(env);
-  providerqueryresult::ReleaseClass(env);
+  signinmethodquery::ReleaseClass(env);
   jnilistener::ReleaseClass(env);
   jni_id_token_listener::ReleaseClass(env);
 }
@@ -315,11 +315,12 @@ static void ReadProviderResult(
   // `result` comes from the successfully completed Task in Java. If the Task
   // completed successfully, `result` should be valid.
   FIREBASE_ASSERT(!success || result != nullptr);
-  // `result` is of type ProviderQueryResult when `success` is true.
-  jobject list = success ? env->CallObjectMethod(
-                               result, providerqueryresult::GetMethodId(
-                                           providerqueryresult::kGetProviders))
-                         : nullptr;
+  // `result` is of type SignInMethodQueryResult when `success` is true.
+  jobject list = success
+                     ? env->CallObjectMethod(
+                           result, signinmethodquery::GetMethodId(
+                                       signinmethodquery::kGetSignInMethods))
+                     : nullptr;
   if (firebase::util::CheckAndClearJniExceptions(env)) list = nullptr;
 
   // `list` is of type List<String>. Loop through it.
@@ -347,8 +348,8 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
 
   jstring j_email = env->NewStringUTF(email);
   jobject pending_result = env->CallObjectMethod(
-      AuthImpl(auth_data_), auth::GetMethodId(auth::kFetchProvidersForEmail),
-      j_email);
+      AuthImpl(auth_data_),
+      auth::GetMethodId(auth::kFetchSignInMethodsForEmail), j_email);
   env->DeleteLocalRef(j_email);
 
   if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
