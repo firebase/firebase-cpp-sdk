@@ -14,9 +14,13 @@
 
 #include "auth/src/desktop/secure/user_secure_fake_internal.h"
 
+#if defined(_WIN32)
+#include <windows.h>
+#else
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#endif  // defined(_WIN32)
 
 #include <cstdio>
 #include <fstream>
@@ -55,7 +59,11 @@ std::string UserSecureFakeInternal::LoadUserData(const std::string& app_name) {
 void UserSecureFakeInternal::SaveUserData(const std::string& app_name,
                                           const std::string& user_data) {
   // Make the directory in case it doesn't already exist, ignoring errors.
+#if defined(_WIN32)
+  CreateDirectory(secure_path_.c_str(), NULL);
+#else
   mkdir(secure_path_.c_str(), 0700);
+#endif
 
   std::string filename = GetFilePath(app_name);
 
@@ -72,10 +80,27 @@ void UserSecureFakeInternal::DeleteUserData(const std::string& app_name) {
     return;
   }
   infile.close();
-  std::remove(filename.c_str());
+#if defined(_WIN32)
+  DeleteFile(filename.c_str());
+#else
+  unlink(filename.c_str());
+#endif  // defined(_WIN32)
 }
 
 void UserSecureFakeInternal::DeleteAllData() {
+#if defined(_WIN32)
+  WIN32_FIND_DATA file_data;
+  HANDLE handle = FindFirstFile(secure_path_.c_str(), &file_data);
+  if (INVALID_HANDLE_VALUE == handle) {
+    return;
+  }
+  DeleteFile(file_data.cFileName);
+  while (FindNextFile(handle, &file_data)) {
+    DeleteFile(file_data.cFileName);
+  }
+  FindClose(handle);
+  RemoveDirectory(secure_path_.c_str());
+#else
   // These are data types defined in the "dirent" header
   DIR* theFolder = opendir(secure_path_.c_str());
   if (!theFolder) {
@@ -87,12 +112,13 @@ void UserSecureFakeInternal::DeleteAllData() {
     // build the path for each file in the folder
     std::string filepath = secure_path_ + "/";
     filepath.append(next_file->d_name);
-    remove(filepath.c_str());
+    unlink(filepath.c_str());
   }
   closedir(theFolder);
 
   // Remove the directory if it's empty, ignoring errors.
   rmdir(secure_path_.c_str());
+#endif
 }
 
 std::string UserSecureFakeInternal::GetFilePath(const std::string& app_name) {
