@@ -204,9 +204,10 @@ void Auth::InitPlatformAuth(AuthData* const auth_data) {
   auth_data->app->function_registry()->RegisterFunction(
       internal::FnAuthStopTokenListener,
       Auth::StopTokenRefreshThreadForRegistry);
-
+#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
   // Load existing UserData
   InitializeUserDataPersist(auth_data);
+#endif  //  FIREBASE_EARLY_ACCESS_PREVIEW
   InitializeTokenRefresher(auth_data);
 }
 
@@ -230,7 +231,9 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
     auth_data->id_token_listeners.clear();
   }
 
+#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
   DestroyUserDataPersist(auth_data);
+#endif  //  FIREBASE_EARLY_ACCESS_PREVIEW
 
   UserView::ClearUser(auth_data);
 
