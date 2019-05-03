@@ -242,6 +242,8 @@ std::pair<Variant, Variant> MakePost(const QueryParams& params,
                                      const std::string& name,
                                      const Variant& value);
 
+bool IsValidPriority(const Variant& variant);
+
 // Check whether the given params contain either a start_at_value or an
 // equal_to_value.
 bool HasStart(const QueryParams& params);
@@ -263,12 +265,12 @@ std::string GetEndName(const QueryParams& params);
 // Get the lower bound of the value for the earliest element that can appear in
 // an IndexedVariant associated with these QueryParams. This will either be the
 // start_at_value or the equal_to_value if either is set.
-Variant GetStartValue(const QueryParams& params);
+const Variant& GetStartValue(const QueryParams& params);
 
 // Get the upper bound of the value for the latest element that can appear in
 // an IndexedVariant associated with these QueryParams. This will either be the
 // end_at_value or the equal_to_value if either is set.
-Variant GetEndValue(const QueryParams& params);
+const Variant& GetEndValue(const QueryParams& params);
 
 // Get the earliest key/value pair that can appear in a given IndexedVariant,
 // based on the sorting order and range given in the QueryParams.

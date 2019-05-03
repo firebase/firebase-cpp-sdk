@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include "database/src/desktop/query_desktop.h"
+
 #include <sstream>
+
 #include "app/memory/unique_ptr.h"
 #include "app/rest/transport_builder.h"
 #include "app/rest/transport_curl.h"
@@ -39,6 +41,47 @@ using callback::NewCallback;
 
 namespace database {
 namespace internal {
+
+// This method validates that key index has been called with the correct
+// combination of parameters
+static bool ValidateQueryEndpoints(const QueryParams& params) {
+  if (params.order_by == QueryParams::kOrderByKey) {
+    const char message[] =
+        "You must use StartAt(String value), EndAt(String value) or "
+        "EqualTo(String value) in combination with orderByKey(). Other type of "
+        "values or using the version with 2 parameters is not supported";
+    if (HasStart(params)) {
+      const Variant& start_node = GetStartValue(params);
+      std::string start_name = GetStartName(params);
+      if ((start_name != QueryParamsComparator::kMinKey) ||
+          !(start_node.is_string())) {
+        LogWarning(message);
+        return false;
+      }
+    }
+    if (HasEnd(params)) {
+      const Variant& end_node = GetEndValue(params);
+      std::string end_name = GetEndName(params);
+      if ((end_name != QueryParamsComparator::kMaxKey) ||
+          !(end_node.is_string())) {
+        LogWarning(message);
+        return false;
+      }
+    }
+  } else {
+    if (params.order_by == QueryParams::kOrderByPriority) {
+      if ((HasStart(params) && !IsValidPriority(GetStartValue(params))) ||
+          (HasEnd(params) && !IsValidPriority(GetEndValue(params)))) {
+        LogWarning(
+            "When using orderByPriority(), values provided to "
+            "StartAt(), EndAt(), or EqualTo() must be valid "
+            "priorities.");
+        return false;
+      }
+    }
+  }
+  return true;
+}
 
 QueryInternal::QueryInternal(DatabaseInternal* database,
                              const QuerySpec& query_spec)
@@ -241,8 +284,15 @@ QueryInternal* QueryInternal::StartAt(const Variant& value) {
         query_spec_.path.c_str());
     return nullptr;
   }
+  if (HasStart(query_spec_.params)) {
+    LogWarning("Can't Call StartAt() or EqualTo() multiple times");
+    return nullptr;
+  }
   QuerySpec spec = query_spec_;
   spec.params.start_at_value = value;
+  if (!ValidateQueryEndpoints(spec.params)) {
+    return nullptr;
+  }
   return new QueryInternal(database_, spec);
 }
 
@@ -259,6 +309,9 @@ QueryInternal* QueryInternal::StartAt(const Variant& value,
   QuerySpec spec = query_spec_;
   spec.params.start_at_value = value;
   spec.params.start_at_child_key = child_key;
+  if (!ValidateQueryEndpoints(spec.params)) {
+    return nullptr;
+  }
   return new QueryInternal(database_, spec);
 }
 
@@ -270,8 +323,15 @@ QueryInternal* QueryInternal::EndAt(const Variant& value) {
         query_spec_.path.c_str());
     return nullptr;
   }
+  if (HasEnd(query_spec_.params)) {
+    LogWarning("Can't Call EndAt() or EqualTo() multiple times");
+    return nullptr;
+  }
   QuerySpec spec = query_spec_;
   spec.params.end_at_value = value;
+  if (!ValidateQueryEndpoints(spec.params)) {
+    return nullptr;
+  }
   return new QueryInternal(database_, spec);
 }
 
@@ -288,6 +348,9 @@ QueryInternal* QueryInternal::EndAt(const Variant& value,
   QuerySpec spec = query_spec_;
   spec.params.end_at_value = value;
   spec.params.end_at_child_key = child_key;
+  if (!ValidateQueryEndpoints(spec.params)) {
+    return nullptr;
+  }
   return new QueryInternal(database_, spec);
 }
 
@@ -301,6 +364,9 @@ QueryInternal* QueryInternal::EqualTo(const Variant& value) {
   }
   QuerySpec spec = query_spec_;
   spec.params.equal_to_value = value;
+  if (!ValidateQueryEndpoints(spec.params)) {
+    return nullptr;
+  }
   return new QueryInternal(database_, spec);
 }
 
@@ -316,6 +382,9 @@ QueryInternal* QueryInternal::EqualTo(const Variant& value,
   QuerySpec spec = query_spec_;
   spec.params.equal_to_value = value;
   spec.params.equal_to_child_key = child_key;
+  if (!ValidateQueryEndpoints(spec.params)) {
+    return nullptr;
+  }
   return new QueryInternal(database_, spec);
 }
 

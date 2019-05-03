@@ -812,6 +812,10 @@ const std::string& GetHash(const Variant& data, std::string* output) {
   return *output;
 }
 
+bool IsValidPriority(const Variant& variant) {
+  return variant.is_numeric() || variant.is_string();
+}
+
 std::pair<Variant, Variant> MakePost(const QueryParams& params,
                                      const std::string& name,
                                      const Variant& value) {
@@ -866,7 +870,7 @@ std::string GetEndName(const QueryParams& params) {
   }
 }
 
-Variant GetStartValue(const QueryParams& params) {
+const Variant& GetStartValue(const QueryParams& params) {
   FIREBASE_DEV_ASSERT_MESSAGE(
       HasStart(params),
       "Cannot get index start value if start has not been set");
@@ -874,7 +878,7 @@ Variant GetStartValue(const QueryParams& params) {
                                          : params.equal_to_value;
 }
 
-Variant GetEndValue(const QueryParams& params) {
+const Variant& GetEndValue(const QueryParams& params) {
   FIREBASE_DEV_ASSERT_MESSAGE(
       HasEnd(params), "Cannot get index end value if end has not been set");
   return params.equal_to_value.is_null() ? params.end_at_value
