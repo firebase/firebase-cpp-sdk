@@ -187,6 +187,9 @@ void PersistentConnection::OnReady(int64_t timestamp,
   LogDebug("%s calling restore state", log_id_.c_str());
   assert(connection_state_ == kConnecting);
 
+  // Try to retrieve auth token synchronously when connection is ready.
+  GetAuthToken(&auth_token_);
+
   if (auth_token_.empty()) {
     LogDebug("%s Not restoring auth because token is null.", log_id_.c_str());
     connection_state_ = kConnected;
