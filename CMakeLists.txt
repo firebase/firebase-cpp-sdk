@@ -31,7 +31,6 @@ option(FIREBASE_INCLUDE_FUNCTIONS
        "Include the Cloud Functions for Firebase library." ON)
 option(FIREBASE_INCLUDE_INSTANCE_ID
        "Include the Firebase Instance ID library." ON)
-option(FIREBASE_INCLUDE_INVITES "Include the Firebase Invites library." ON)
 option(FIREBASE_INCLUDE_MESSAGING
        "Include the Firebase Cloud Messaging library." ON)
 option(FIREBASE_INCLUDE_REMOTE_CONFIG
@@ -269,9 +268,6 @@ if (FIREBASE_INCLUDE_FUNCTIONS)
 endif()
 if (FIREBASE_INCLUDE_INSTANCE_ID)
   add_subdirectory(instance_id)
-endif()
-if (FIREBASE_INCLUDE_INVITES)
-  add_subdirectory(invites)
 endif()
 if (FIREBASE_INCLUDE_MESSAGING)
   add_subdirectory(messaging)

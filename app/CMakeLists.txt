@@ -128,7 +128,6 @@ set(invites_SRCS
 
 set(app_android_SRCS
     src/app_android.cc
-    src/iid_android.cc
     src/google_play_services/availability_android.cc
     ${app_resources_source}
     ${google_api_resources_source}
@@ -137,13 +136,11 @@ set(app_android_SRCS
     src/invites/android/invites_android_helper.cc)
 set(app_ios_SRCS
     src/app_ios.mm
-    src/iid_ios.mm
     src/util_ios.mm
     src/invites/ios/invites_receiver_internal_ios.mm
     src/invites/ios/invites_ios_startup.mm)
 set(app_desktop_SRCS
     src/app_desktop.cc
-    src/iid_stub.cc
     src/invites/stub/invites_receiver_internal_stub.cc
     src/variant_util.cc)
 if(ANDROID)
@@ -176,7 +173,6 @@ set(utility_common_HDRS
     src/cleanup_notifier.h
     src/function_registry.h
     src/future_manager.h
-    src/iid.h
     src/log.h
     src/mutex.h
     src/optional.h
@@ -281,8 +277,8 @@ if(IOS)
   set(pod_target_name "download_app_pod_headers")
   set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
   set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '5.20.2'")
-  list(APPEND pod_list "'Firebase/DynamicLinks', '5.20.2'")
+  list(APPEND pod_list "'Firebase/Core', '6.0.0'")
+  list(APPEND pod_list "'Firebase/DynamicLinks', '6.0.0'")
 
   setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
 

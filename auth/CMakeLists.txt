@@ -17,6 +17,7 @@
 cmake_minimum_required (VERSION 3.1)
 set (CMAKE_CXX_STANDARD 11)
 
+include(FindPkgConfig)
 include(binary_to_array)
 include(download_pod_headers)
 
@@ -132,7 +133,8 @@ set(desktop_SRCS
     src/desktop/rpcs/sign_up_new_user_request.cc
     src/desktop/rpcs/verify_assertion_request.cc
     src/desktop/rpcs/verify_custom_token_request.cc
-    src/desktop/rpcs/verify_password_request.cc)
+    src/desktop/rpcs/verify_password_request.cc
+    src/desktop/secure/user_secure_manager.cc)
 
 if(ANDROID)
   set(auth_platform_SRCS
@@ -141,18 +143,35 @@ elseif(IOS)
   set(auth_platform_SRCS
       "${ios_SRCS}")
 else()
+  if(MSVC)
+    set(desktop_extra_SRCS
+        src/desktop/secure/user_secure_windows_internal.cc)
+  elseif(APPLE)
+    set(desktop_extra_SRCS
+        src/desktop/secure/user_secure_darwin_internal.mm)
+  else()
+    pkg_check_modules(LIBSECRET libsecret-1 REQUIRED)
+
+    set(desktop_extra_SRCS
+        src/desktop/secure/user_secure_linux_internal.cc)
+  endif()
+
   set(auth_platform_SRCS
-      "${desktop_SRCS}")
+      "${desktop_SRCS}"
+      "${desktop_extra_SRCS}")
 endif()
 
 if(ANDROID OR IOS)
   set(additional_include_DIR)
   set(additional_link_LIB)
+  set(additional_target_definitions)
 else()
   set(additional_include_DIR
-      ${flatbuffers_SOURCE_DIR}/include)
+      ${flatbuffers_SOURCE_DIR}/include
+      ${LIBSECRET_INCLUDE_DIRS})
   set(additional_link_LIB
-      firebase_rest_lib)
+      firebase_rest_lib
+      ${LIBSECRET_LIBRARIES})
 endif()
 
 add_library(firebase_auth STATIC
@@ -197,8 +216,8 @@ if(IOS)
   set(pod_target_name "download_auth_pod_headers")
   set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
   set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '5.20.2'")
-  list(APPEND pod_list "'Firebase/Auth', '5.20.2'")
+  list(APPEND pod_list "'Firebase/Core', '6.0.0'")
+  list(APPEND pod_list "'Firebase/Auth', '6.0.0'")
 
   setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
 
