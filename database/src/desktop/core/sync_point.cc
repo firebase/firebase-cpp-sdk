@@ -183,7 +183,7 @@ const View* SyncPoint::ViewForQuery(const QuerySpec& query_spec) const {
   if (QuerySpecLoadsAllData(query_spec)) {
     return GetCompleteView();
   } else {
-    return MapGet(views_, query_spec.params);
+    return MapGet(&views_, query_spec.params);
   }
 }
 

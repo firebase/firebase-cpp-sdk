@@ -67,9 +67,9 @@ ValueType* MapGet(std::map<KeyType, ValueType>* map, const ArgType& key) {
 }
 
 template <typename KeyType, typename ValueType, typename ArgType>
-const ValueType* MapGet(const std::map<KeyType, ValueType>& map,
+const ValueType* MapGet(const std::map<KeyType, ValueType>* map,
                         const ArgType& key) {
-  return MapGet(const_cast<std::map<KeyType, ValueType>*>(&map), key);
+  return MapGet(const_cast<std::map<KeyType, ValueType>*>(map), key);
 }
 
 // Adds all elements from `extension` to `v`.

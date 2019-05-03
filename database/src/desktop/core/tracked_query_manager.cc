@@ -13,9 +13,11 @@
 // limitations under the License.
 
 #include "database/src/desktop/core/tracked_query_manager.h"
+
 #include <algorithm>
 #include <cstdint>
 #include <map>
+
 #include "app/src/assert.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
@@ -31,13 +33,13 @@ TrackedQueryManagerInterface::~TrackedQueryManagerInterface() {}
 // Returns true if the given TrackedQueryMap has a complete default query.
 static bool HasDefaultCompletePredicate(
     const TrackedQueryMap& tracked_queries) {
-  const TrackedQuery* tracked_query = MapGet(tracked_queries, QueryParams());
+  const TrackedQuery* tracked_query = MapGet(&tracked_queries, QueryParams());
   return tracked_query && tracked_query->complete;
 }
 
 // Returns true if the given TrackedQueryMap has a complete active query.
 static bool HasActiveDefaultPredicate(const TrackedQueryMap& tracked_queries) {
-  const TrackedQuery* tracked_query = MapGet(tracked_queries, QueryParams());
+  const TrackedQuery* tracked_query = MapGet(&tracked_queries, QueryParams());
   return tracked_query && tracked_query->active;
 }
 
@@ -87,7 +89,7 @@ const TrackedQuery* TrackedQueryManager::FindTrackedQuery(
   QuerySpec normalized_spec = GetNormalizedQuery(query_spec);
   const TrackedQueryMap* set =
       tracked_query_tree_.GetValueAt(normalized_spec.path);
-  return set ? MapGet(*set, normalized_spec.params) : nullptr;
+  return set ? MapGet(set, normalized_spec.params) : nullptr;
 }
 
 void TrackedQueryManager::RemoveTrackedQuery(const QuerySpec& query_spec) {
@@ -166,7 +168,7 @@ bool TrackedQueryManager::IsQueryComplete(const QuerySpec& query_spec) {
       return false;
     }
     const TrackedQuery* tracked_query =
-        MapGet(*tracked_queries, query_spec.params);
+        MapGet(tracked_queries, query_spec.params);
     return tracked_query && tracked_query->complete;
   }
 }

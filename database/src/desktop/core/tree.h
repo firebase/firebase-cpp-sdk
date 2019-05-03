@@ -164,7 +164,7 @@ class Tree {
     if (key.empty()) {
       return this;
     }
-    return MapGet(children_, key);
+    return MapGet(&children_, key);
   }
 
   // Get a child node using the given path. If there is no node at the given
