@@ -110,7 +110,16 @@ class UserDataPersist : public firebase::auth::AuthStateListener {
   Future<void> SaveUserData(AuthData* auth_data);
   Future<std::string> LoadUserData(AuthData* auth_data);
   Future<void> DeleteUserData(AuthData* auth_data);
+
   Future<void> DeleteAllData();
+
+  // Encode a binary string into hex characters 0123456789ABCDEF, big-endian.
+  // For example, the string "hello" encodes into "68656C6C6F".
+  static void HexEncode(const std::string& original, std::string* encoded);
+  // Decode a binary string encoded via HexEncode, returning true if
+  // successful. If the hex string is invalid (an odd size, contains characters
+  // other than hex digits), returns false and sets decoded to empty string.
+  static bool HexDecode(const std::string& encoded, std::string* decoded);
 
  private:
   UniquePtr<secure::UserSecureManager> user_secure_manager_;

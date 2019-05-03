@@ -21,7 +21,6 @@
 #include "app/rest/util.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/thread.h"
-#include "app/src/util_desktop.h"
 #include "auth/src/common.h"
 #include "auth/src/data.h"
 #include "auth/src/desktop/auth_data_handle.h"
@@ -412,6 +411,56 @@ void UserDataPersist::OnAuthStateChanged(Auth* auth) {  // NOLINT
   }
 }
 
+static bool IsHexDigit(char c) {
+  if (c >= '0' && c <= '9') return true;
+  if (c >= 'A' && c <= 'F') return true;
+  return false;
+}
+
+static uint8_t HexToValue(char digit) {
+  if (digit >= '0' && digit <= '9') {
+    return static_cast<uint8_t>(digit - '0');
+  }
+  if (digit >= 'A' && digit <= 'F') {
+    return 10 + static_cast<uint8_t>(digit - 'A');
+  }
+  FIREBASE_ASSERT("Not a hex digit" == nullptr);
+  return 0;
+}
+
+bool UserDataPersist::HexDecode(const std::string& encoded,
+                                std::string* decoded) {
+  FIREBASE_ASSERT(decoded != nullptr);
+  if (encoded.length() % 2 != 0) {
+    *decoded = std::string();
+    return false;
+  }
+  decoded->resize(encoded.length() / 2);
+  for (int i = 0; i < encoded.length(); i += 2) {
+    char hi = toupper(encoded[i]);
+    char lo = toupper(encoded[i + 1]);
+    if (!IsHexDigit(hi) || !IsHexDigit(lo)) {
+      *decoded = std::string();
+      return false;
+    }
+    (*decoded)[i / 2] = (HexToValue(hi) << 4) | HexToValue(lo);
+  }
+  return true;
+}
+
+void UserDataPersist::HexEncode(const std::string& original,
+                                std::string* encoded) {
+  FIREBASE_ASSERT(encoded != nullptr);
+  encoded->resize(original.length() * 2);
+  for (int i = 0; i < encoded->length(); i += 2) {
+    unsigned char value = original[i / 2];
+    unsigned char hi = (value & 0xF0) >> 4;
+    unsigned char lo = (value & 0x0F) >> 0;
+    (*encoded)[i + 0] = (hi < 10) ? ('0' + hi) : ('A' + hi - 10);
+    (*encoded)[i + 1] = (lo < 10) ? ('0' + lo) : ('A' + lo - 10);
+  }
+}
+
 void AssignLoadedData(const Future<std::string>& future, void* auth_data) {
   if (future.error() == secure::kNoEntry) {
     LogDebug(future.error_message());
@@ -425,7 +474,9 @@ void AssignLoadedData(const Future<std::string>& future, void* auth_data) {
 
   // Decode to flatbuffer
   std::string decoded;
-  firebase::Base64Decode(loaded_string, &decoded);
+  if (!UserDataPersist::HexDecode(loaded_string, &decoded)) {
+    return;  // Invalid data.
+  }
 
   auto userData = GetUserDataDesktop(decoded.c_str());
   if (userData != nullptr) {
@@ -502,7 +553,7 @@ Future<void> UserDataPersist::SaveUserData(AuthData* auth_data) {
   save_string.assign(bufferpointer, bufferpointer + builder.GetSize());
   // Encode flatbuffer
   std::string encoded;
-  firebase::Base64Encode(save_string, &encoded);
+  HexEncode(save_string, &encoded);
 
   return user_secure_manager_->SaveUserData(auth_data->app->name(), encoded);
 }
