@@ -17,6 +17,7 @@
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/connection/persistent_connection.h"
 #include "database/src/desktop/core/listen_provider.h"
+#include "database/src/desktop/view/view.h"
 
 namespace firebase {
 namespace database {
@@ -25,8 +26,66 @@ namespace internal {
 using connection::PersistentConnection;
 using connection::ResponsePtr;
 
-void WebSocketListenProvider::StartListening(const QuerySpec& query_spec) {
-  connection_->Listen(query_spec, PersistentConnection::Tag(), ResponsePtr());
+class WebSocketListenResponse : public connection::Response {
+ public:
+  WebSocketListenResponse(const Response::ResponseCallback& callback,
+                          const Repo::ThisRef& repo_ref, SyncTree* sync_tree,
+                          const QuerySpec& query_spec, const View* view)
+      : connection::Response(callback),
+        repo_ref_(repo_ref),
+        sync_tree_(sync_tree),
+        query_spec_(query_spec),
+        view_(view) {}
+
+  Repo::ThisRef& repo_ref() { return repo_ref_; }
+  SyncTree* sync_tree() { return sync_tree_; }
+  const QuerySpec& query_spec() { return query_spec_; }
+  const View* view() { return view_; }
+
+ private:
+  Repo::ThisRef repo_ref_;
+  SyncTree* sync_tree_;
+  QuerySpec query_spec_;
+  const View* view_;
+};
+
+void WebSocketListenProvider::StartListening(const QuerySpec& query_spec,
+                                             const View* view) {
+  connection_->Listen(
+      query_spec, PersistentConnection::Tag(),
+      MakeShared<WebSocketListenResponse>(
+          [](const SharedPtr<connection::Response>& connection_response) {
+            WebSocketListenResponse* response =
+                static_cast<WebSocketListenResponse*>(
+                    connection_response.get());
+
+            Repo::ThisRefLock lock(&response->repo_ref());
+            Repo* repo = lock.GetReference();
+            if (repo == nullptr) {
+              // Repo was deleted, do not proceed.
+              return;
+            }
+
+            std::vector<Event> events;
+            if (!response->HasError()) {
+              const QuerySpec& query_spec = response->view()->query_spec();
+              events =
+                  response->sync_tree()->ApplyListenComplete(query_spec.path);
+            } else {
+              LogWarning("Listen at %s failed: %s",
+                         response->query_spec().path.c_str(),
+                         response->GetErrorMessage().c_str());
+
+              // If a listen failed, kill all of the listeners here, not just
+              // the one that triggered the error. Note that this may need to be
+              // scoped to just this listener if we change permissions on
+              // filtered children
+              events = response->sync_tree()->RemoveAllEventRegistrations(
+                  response->query_spec(), response->GetErrorCode());
+            }
+            repo->PostEvents(events);
+          },
+          repo_->this_ref(), sync_tree_, query_spec, view));
 }
 
 void WebSocketListenProvider::StopListening(const QuerySpec& query_spec) {

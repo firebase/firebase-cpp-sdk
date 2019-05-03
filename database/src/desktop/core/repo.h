@@ -107,6 +107,8 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   static scheduler::Scheduler& scheduler() { return s_scheduler_; }
 
+  ThisRef& this_ref() { return safe_this_; }
+
  private:
   WriteId GetNextWriteId();
 

@@ -391,11 +391,13 @@ void Repo::DeferredInitialization() {
   UniquePtr<PersistenceManager> persistence_manager =
       MakeUnique<PersistenceManager>(std::move(persistence_storage_engine),
                                      std::move(tracked_query_manager));
-  UniquePtr<ListenProvider> listen_provider =
-      MakeUnique<WebSocketListenProvider>(connection_.get());
+  UniquePtr<WebSocketListenProvider> listen_provider =
+      MakeUnique<WebSocketListenProvider>(this, connection_.get());
+  WebSocketListenProvider* listen_provider_ptr = listen_provider.get();
   server_sync_tree_ = MakeUnique<SyncTree>(std::move(pending_write_tree),
                                            std::move(persistence_manager),
                                            std::move(listen_provider));
+  listen_provider_ptr->set_sync_tree(server_sync_tree_.get());
 }
 
 void Repo::PostEvents(const std::vector<Event>& events) {

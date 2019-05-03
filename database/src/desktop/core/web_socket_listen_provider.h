@@ -18,6 +18,7 @@
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/connection/persistent_connection.h"
 #include "database/src/desktop/core/listen_provider.h"
+#include "database/src/desktop/core/repo.h"
 
 namespace firebase {
 namespace database {
@@ -25,16 +26,21 @@ namespace internal {
 
 class WebSocketListenProvider : public ListenProvider {
  public:
-  WebSocketListenProvider(connection::PersistentConnection* connection)
-      : connection_(connection) {}
+  WebSocketListenProvider(Repo* repo,
+                          connection::PersistentConnection* connection)
+      : repo_(repo), sync_tree_(nullptr), connection_(connection) {}
 
-  virtual ~WebSocketListenProvider() {}
+  ~WebSocketListenProvider() override {}
 
-  void StartListening(const QuerySpec& query_spec) override;
+  void set_sync_tree(SyncTree* sync_tree) { sync_tree_ = sync_tree; }
+
+  void StartListening(const QuerySpec& query_spec, const View* view) override;
 
   void StopListening(const QuerySpec& query_spec) override;
 
  private:
+  Repo* repo_;
+  SyncTree* sync_tree_;
   connection::PersistentConnection* connection_;
 };
 

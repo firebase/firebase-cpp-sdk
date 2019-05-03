@@ -454,7 +454,7 @@ static QuerySpec QuerySpecForListening(const QuerySpec& query_spec) {
 
 void SyncTree::SetupListener(const QuerySpec& query_spec, const View* view) {
   const Path& path = query_spec.path;
-  listen_provider_->StartListening(QuerySpecForListening(query_spec));
+  listen_provider_->StartListening(QuerySpecForListening(query_spec), view);
 
   Tree<SyncPoint>* subtree = sync_point_tree_.GetChild(path);
 
@@ -557,7 +557,8 @@ std::vector<Event> SyncTree::RemoveEventRegistration(
           // Ok, we've collected all the listens we need. Set them up.
           for (const View* view : new_views) {
             QuerySpec new_query = view->query_spec();
-            listen_provider_->StartListening(QuerySpecForListening(new_query));
+            listen_provider_->StartListening(QuerySpecForListening(new_query),
+                                             view);
           }
         } else {
           // There's nothing below us, so nothing we need to start listening on
