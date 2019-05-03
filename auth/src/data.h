@@ -90,7 +90,6 @@ struct AuthData {
 
     app = nullptr;
     auth = nullptr;
-    current_user = nullptr;
     auth_impl = nullptr;
     user_impl = nullptr;
     listener_impl = nullptr;

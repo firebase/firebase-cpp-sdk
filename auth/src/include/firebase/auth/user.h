@@ -439,7 +439,7 @@ class User : public UserInfoInterface {
  private:
   friend struct AuthData;
   // Only exists in AuthData. Access via @ref Auth::CurrentUser().
-  User(AuthData* auth_data) : auth_data_(auth_data) {}
+  explicit User(AuthData* auth_data) : auth_data_(auth_data) {}
 
 #if defined(INTERNAL_EXPERIMENTAL)
   // Doxygen should not make docs for this function.
