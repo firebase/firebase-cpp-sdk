@@ -87,6 +87,14 @@ struct AuthData {
     // Reset the listeners so that they don't try to unregister themselves
     // when they are destroyed.
     ClearListeners();
+
+    app = nullptr;
+    auth = nullptr;
+    current_user = nullptr;
+    auth_impl = nullptr;
+    user_impl = nullptr;
+    listener_impl = nullptr;
+    id_token_listener_impl = nullptr;
   }
 
   void ClearListeners() {

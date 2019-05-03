@@ -22,13 +22,33 @@ import com.google.firebase.auth.FirebaseAuth;
  * Implements AuthStateListener by redirecting calls into C++.
  */
 public class JniAuthStateListener implements FirebaseAuth.AuthStateListener {
+
+  /**
+   * Lock that controls access to authData.
+   */
+  private final Object lock = new Object();
+
+  /**
+   * Pointer to an AuthData structure.
+   */
+  private long cppAuthData;
+
   /**
    * Constructor is called via JNI from C++.
-   * The `long` value is actually a pointer to the data we pass back to
-   * the caller in onAuthStateChanged(). It provides the caller with context.
+   * cppAuthData is a pointer to the AuthData structure which is passed back to the caller in
+   * onAuthStateChanged(). It provides the caller with context.
    */
-  public JniAuthStateListener(long callbackData) {
-    this.callbackData = callbackData;
+  public JniAuthStateListener(long cppAuthData) {
+    this.cppAuthData = cppAuthData;
+  }
+
+  /**
+   * Remove the reference to the C++ AuthData object
+   */
+  public void disconnect() {
+    synchronized (lock) {
+      cppAuthData = 0;
+    }
   }
 
   @Override
@@ -36,7 +56,11 @@ public class JniAuthStateListener implements FirebaseAuth.AuthStateListener {
     AuthCommon.safeRunNativeMethod(new Runnable() {
         @Override
         public void run() {
-          nativeOnAuthStateChanged(callbackData);
+          synchronized (lock) {
+            if (cppAuthData != 0) {
+              nativeOnAuthStateChanged(cppAuthData);
+            }
+          }
         }
       });
   }
@@ -44,7 +68,5 @@ public class JniAuthStateListener implements FirebaseAuth.AuthStateListener {
   /**
    * This function is implemented in the Auth C++ library (auth_android.cc).
    */
-  private native void nativeOnAuthStateChanged(long callbackData);
-
-  private long callbackData;
+  private native void nativeOnAuthStateChanged(long cppAuthData);
 }

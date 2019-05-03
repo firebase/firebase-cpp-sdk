@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#include <assert.h>
 #include <jni.h>
 
 #include "app/src/assert.h"
@@ -86,7 +87,8 @@ METHOD_LOOKUP_DEFINITION(signinmethodquery,
 
 // clang-format off
 #define JNI_LISTENER_CALLBACK_METHODS(X)                                       \
-  X(Constructor, "<init>", "(J)V")
+  X(Constructor, "<init>", "(J)V"),                                            \
+  X(Disconnect, "disconnect", "()V")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(jnilistener, JNI_LISTENER_CALLBACK_METHODS)
 METHOD_LOOKUP_DEFINITION(
@@ -95,7 +97,8 @@ METHOD_LOOKUP_DEFINITION(
 
 // clang-format off
 #define JNI_ID_TOKEN_LISTENER_CALLBACK_METHODS(X)                              \
-  X(Constructor, "<init>", "(J)V")
+  X(Constructor, "<init>", "(J)V"),                                            \
+  X(Disconnect, "disconnect", "()V")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(jni_id_token_listener,
                           JNI_ID_TOKEN_LISTENER_CALLBACK_METHODS)
@@ -217,6 +220,7 @@ void* CreatePlatformAuth(App* app, void* app_impl) {
   // Create the FirebaseAuth class in Java.
   jobject j_auth_impl = env->CallStaticObjectMethod(
       auth::GetClass(), auth::GetMethodId(auth::kGetInstance), j_app);
+  assert(env->ExceptionCheck() == false);
 
   // Ensure the reference hangs around.
   void* auth_impl = nullptr;
@@ -237,6 +241,7 @@ void Auth::InitPlatformAuth(AuthData* auth_data) {
   env->CallVoidMethod(AuthImpl(auth_data),
                       auth::GetMethodId(auth::kAddAuthStateListener),
                       j_listener);
+  assert(env->ExceptionCheck() == false);
   // Convert listener from local to global ref, so it stays around.
   SetImplFromLocalRef(env, j_listener, &auth_data->listener_impl);
 
@@ -250,6 +255,7 @@ void Auth::InitPlatformAuth(AuthData* auth_data) {
   env->CallVoidMethod(AuthImpl(auth_data),
                       auth::GetMethodId(auth::kAddIdTokenListener),
                       j_id_token_listener);
+  assert(env->ExceptionCheck() == false);
   // Convert listener from local to global ref, so it stays around.
   SetImplFromLocalRef(env, j_id_token_listener,
                       &auth_data->id_token_listener_impl);
@@ -266,12 +272,21 @@ void Auth::DestroyPlatformAuth(AuthData* auth_data) {
 
   // Unregister the JniAuthStateListener and IdTokenListener from the
   // FirebaseAuth class.
+  env->CallVoidMethod(static_cast<jobject>(auth_data->listener_impl),
+                      jnilistener::GetMethodId(jnilistener::kDisconnect));
+  assert(env->ExceptionCheck() == false);
   env->CallVoidMethod(AuthImpl(auth_data),
                       auth::GetMethodId(auth::kRemoveAuthStateListener),
                       static_cast<jobject>(auth_data->listener_impl));
+  assert(env->ExceptionCheck() == false);
+  env->CallVoidMethod(static_cast<jobject>(auth_data->id_token_listener_impl),
+                      jni_id_token_listener::GetMethodId(
+                          jni_id_token_listener::kDisconnect));
+  assert(env->ExceptionCheck() == false);
   env->CallVoidMethod(AuthImpl(auth_data),
                       auth::GetMethodId(auth::kRemoveIdTokenListener),
                       static_cast<jobject>(auth_data->id_token_listener_impl));
+  assert(env->ExceptionCheck() == false);
 
   // Deleting our global references should trigger the FirebaseAuth class and
   // FirebaseUser Java objects to be deleted.
@@ -327,12 +342,14 @@ static void ReadProviderResult(
   if (list != nullptr) {
     const int num_providers =
         env->CallIntMethod(list, util::list::GetMethodId(util::list::kSize));
+    assert(env->ExceptionCheck() == false);
     data->providers.resize(num_providers);
 
     for (int i = 0; i < num_providers; ++i) {
       // provider local reference is released in JniStringToString().
       jstring provider = static_cast<jstring>(env->CallObjectMethod(
           list, util::list::GetMethodId(util::list::kGet), i));
+      assert(env->ExceptionCheck() == false);
       data->providers[i] = JniStringToString(env, provider);
     }
     env->DeleteLocalRef(list);
