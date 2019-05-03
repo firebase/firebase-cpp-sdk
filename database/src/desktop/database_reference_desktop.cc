@@ -78,8 +78,10 @@ Database* DatabaseReferenceInternal::GetDatabase() const {
 std::string DatabaseReferenceInternal::GetUrl() const {
   std::stringstream url;
   url << database_->database_url();
-  url << '/';
-  url << query_spec_.path.str();
+  if (!query_spec_.path.str().empty()) {
+    url << '/';
+    url << query_spec_.path.str();
+  }
   return url.str();
 }
 
