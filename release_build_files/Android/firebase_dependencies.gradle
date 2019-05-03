@@ -15,7 +15,8 @@
 // A map of library to the dependencies that need to be added for it.
 def firebaseDependenciesMap = [
   'app' : ['com.google.firebase:firebase-analytics:16.5.0'],
-  'admob' : ['com.google.firebase:firebase-ads:17.2.0'],
+  'admob' : ['com.google.firebase:firebase-ads:17.2.0',
+             'com.google.android.gms:play-services-measurement-sdk-api:16.5.0'],
   'analytics' : ['com.google.firebase:firebase-analytics:16.5.0'],
   'auth' : ['com.google.firebase:firebase-auth:17.0.0'],
   'database' : ['com.google.firebase:firebase-database:17.0.0'],
