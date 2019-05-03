@@ -16,6 +16,8 @@
 
 cmake_minimum_required(VERSION 3.1)
 
+include(FindPkgConfig)
+
 # Determine the location of the libraries to use based on the platform.
 if(ANDROID)
   string(REPLACE "_" ";" SPLIT_STL ${ANDROID_STL})
