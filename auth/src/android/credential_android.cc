@@ -293,6 +293,7 @@ std::string Credential::provider() const {
   jobject j_provider = env->CallObjectMethod(
       CredentialFromImpl(impl_),
       credential::GetMethodId(credential::kGetSignInMethod));
+  assert(env->ExceptionCheck() == false);
   return JniStringToString(env, j_provider);
 }
 
@@ -613,6 +614,7 @@ PhoneAuthProvider::Listener::~Listener() {
   // (which is being destroyed).
   env->CallVoidMethod(data_->j_listener,
                       jniphone::GetMethodId(jniphone::kDisconnect));
+  assert(env->ExceptionCheck() == false);
 
   // Remove our reference to the Java Listener. Once Auth Java is done with it,
   // it will be garbage collected.

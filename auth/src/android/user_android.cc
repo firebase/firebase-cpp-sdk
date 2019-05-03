@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include <assert.h>
+
 #include "app/src/time.h"
 #include "auth/src/android/common_android.h"
 
@@ -286,6 +288,7 @@ void ReadTokenResult(jobject result, FutureCallbackData<std::string>* d,
     FIREBASE_ASSERT(result != nullptr);
     jstring j_token = static_cast<jstring>(env->CallObjectMethod(
         result, tokenresult::GetMethodId(tokenresult::kGetToken)));
+    assert(env->ExceptionCheck() == false);
     *data = JniStringToString(env, j_token);
   } else {
     *data = std::string();
@@ -323,11 +326,13 @@ const std::vector<UserInfoInterface*>& User::provider_data() const {
     // getProviderData returns `List<? extends UserInfo>`
     const jobject list = env->CallObjectMethod(
         UserImpl(auth_data_), user::GetMethodId(user::kProviderData));
+    assert(env->ExceptionCheck() == false);
 
     // Copy the list into auth_data_->user_infos.
     if (list != nullptr) {
       const int num_providers =
           env->CallIntMethod(list, util::list::GetMethodId(util::list::kSize));
+      assert(env->ExceptionCheck() == false);
       auth_data_->user_infos.resize(num_providers);
 
       for (int i = 0; i < num_providers; ++i) {
@@ -335,6 +340,7 @@ const std::vector<UserInfoInterface*>& User::provider_data() const {
         // AndroidWrappedUserInfo() and the local reference is released.
         jobject user_info = env->CallObjectMethod(
             list, util::list::GetMethodId(util::list::kGet), i);
+        assert(env->ExceptionCheck() == false);
         auth_data_->user_infos[i] =
             new AndroidWrappedUserInfo(auth_data_, user_info);
       }
@@ -664,8 +670,10 @@ UserMetadata User::metadata() const {
   UserMetadata data;
   data.last_sign_in_timestamp = env->CallLongMethod(
       userMetadata, metadata::GetMethodId(metadata::kGetLastSignInTimestamp));
+  assert(env->ExceptionCheck() == false);
   data.creation_timestamp = env->CallLongMethod(
       userMetadata, metadata::GetMethodId(metadata::kGetCreationTimestamp));
+  assert(env->ExceptionCheck() == false);
 
   env->DeleteLocalRef(userMetadata);
 
