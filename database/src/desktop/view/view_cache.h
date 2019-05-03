@@ -39,12 +39,7 @@ class CacheNode {
             bool filtered)
       : indexed_variant_(indexed_variant),
         fully_initialized_(fully_initialized),
-        filtered_(filtered) {
-    if (filtered) {
-      int i = 10;
-      (void)i;
-    }
-  }
+        filtered_(filtered) {}
 
   const IndexedVariant& indexed_variant() const { return indexed_variant_; }
   IndexedVariant& indexed_variant() { return indexed_variant_; }
