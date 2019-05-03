@@ -75,7 +75,26 @@ add_firebase_target(firebase_database)
 add_firebase_target(firebase_dynamic_links)
 add_firebase_target(firebase_functions)
 add_firebase_target(firebase_instance_id)
-add_firebase_target(firebase_invites)
 add_firebase_target(firebase_messaging)
 add_firebase_target(firebase_remote_config)
 add_firebase_target(firebase_storage)
+
+# Auth on Linux desktop has an additional dependency on libsecret,
+# which needs to be added. If it cannot be found, we don't want to
+# error, since the user might not be using auth, and the user will
+# get a linker error if it is needed.
+if(NOT APPLE AND UNIX)
+  pkg_check_modules(LIBSECRET libsecret-1)
+
+  if(NOT LIBSECRET_FOUND)
+    message(WARNING "Unable to find libsecret, which is needed by \
+                     Authentication's desktop implementation. \
+                     It can be installed on supported systems via: \
+                     apt-get install libsecret-1-dev")
+  else()
+    set_target_properties(firebase_auth PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${LIBSECRET_INCLUDE_DIRS}"
+      INTERFACE_LINK_LIBRARIES "${LIBSECRET_LIBRARIES}"
+    )
+  endif()
+endif()
