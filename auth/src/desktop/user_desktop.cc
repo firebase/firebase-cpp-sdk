@@ -475,32 +475,44 @@ void AssignLoadedData(const Future<std::string>& future, void* auth_data) {
   // Decode to flatbuffer
   std::string decoded;
   if (!UserDataPersist::HexDecode(loaded_string, &decoded)) {
-    return;  // Invalid data.
+    LogWarning("Auth: Error decoding persistent user data.");
+    return;
+  }
+
+  // Verify the Flatbuffer is valid.
+  flatbuffers::Verifier verifier(
+      reinterpret_cast<const uint8_t*>(decoded.c_str()), decoded.length());
+  if (!VerifyUserDataDesktopBuffer(verifier)) {
+    LogWarning("Auth: Error verifying persistent user data.");
+    return;
   }
 
   auto userData = GetUserDataDesktop(decoded.c_str());
-  if (userData != nullptr) {
-    UserData loaded_user;
-    loaded_user.uid = userData->uid()->c_str();
-    loaded_user.email = userData->email()->c_str();
-    loaded_user.display_name = userData->display_name()->c_str();
-    loaded_user.photo_url = userData->photo_url()->c_str();
-    loaded_user.provider_id = userData->provider_id()->c_str();
-    loaded_user.phone_number = userData->phone_number()->c_str();
-    loaded_user.is_anonymous = userData->is_anonymous();
-    loaded_user.is_email_verified = userData->is_email_verified();
-    loaded_user.id_token = userData->id_token()->c_str();
-    loaded_user.refresh_token = userData->refresh_token()->c_str();
-    loaded_user.access_token = userData->access_token()->c_str();
-    loaded_user.access_token_expiration_date =
-        userData->access_token_expiration_date();
-    loaded_user.has_email_password_credential =
-        userData->has_email_password_credential();
-    loaded_user.last_sign_in_timestamp = userData->last_sign_in_timestamp();
-    loaded_user.creation_timestamp = userData->creation_timestamp();
-
-    UserView::ResetUser(static_cast<AuthData*>(auth_data), loaded_user);
+  if (userData == nullptr) {
+    LogWarning("Auth: Error reading persistent user data.");
+    return;
   }
+
+  UserData loaded_user;
+  loaded_user.uid = userData->uid()->c_str();
+  loaded_user.email = userData->email()->c_str();
+  loaded_user.display_name = userData->display_name()->c_str();
+  loaded_user.photo_url = userData->photo_url()->c_str();
+  loaded_user.provider_id = userData->provider_id()->c_str();
+  loaded_user.phone_number = userData->phone_number()->c_str();
+  loaded_user.is_anonymous = userData->is_anonymous();
+  loaded_user.is_email_verified = userData->is_email_verified();
+  loaded_user.id_token = userData->id_token()->c_str();
+  loaded_user.refresh_token = userData->refresh_token()->c_str();
+  loaded_user.access_token = userData->access_token()->c_str();
+  loaded_user.access_token_expiration_date =
+      userData->access_token_expiration_date();
+  loaded_user.has_email_password_credential =
+      userData->has_email_password_credential();
+  loaded_user.last_sign_in_timestamp = userData->last_sign_in_timestamp();
+  loaded_user.creation_timestamp = userData->creation_timestamp();
+
+  UserView::ResetUser(static_cast<AuthData*>(auth_data), loaded_user);
 }
 
 Future<std::string> UserDataPersist::LoadUserData(AuthData* auth_data) {
