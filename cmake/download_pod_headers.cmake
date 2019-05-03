@@ -33,22 +33,15 @@ function(setup_pod_headers_target TARGET_NAME POD_DIR POD_LIST)
   set(pod_lines "")
   foreach(pod ${POD_LIST})
     string(CONCAT pod_lines "${pod_lines}"
-           "  pod ${pod}\\n")
+           "  pod ${pod}\n")
   endforeach(pod)
   string(CONCAT podfile_contents
-        "source 'https://github.com/CocoaPods/Specs.git'\\n"
-        "platform :ios, '8.0'\\n"
-        "target 'GetPods' do\\n"
+        "source 'https://github.com/CocoaPods/Specs.git'\n"
+        "platform :ios, '8.0'\n"
+        "target 'GetPods' do\n"
         "${pod_lines}"
         "end")
-  add_custom_command(
-    OUTPUT ${podfile}
-    COMMAND echo -e "${podfile_contents}" > ${podfile}
-    VERBATIM
-    # Add a dependency on the CMakeLists file, so that any changes force a
-    # rebuild of this process.
-    DEPENDS ${CMAKE_CURRENT_LIST_FILE}
-  )
+  file(WRITE "${podfile}" "${podfile_contents}")
 
   # Create the CMake file needed for the xcode project.
   # This can be done at configure time since the files will never change.
