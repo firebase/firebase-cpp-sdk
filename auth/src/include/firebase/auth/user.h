@@ -437,9 +437,16 @@ class User : public UserInfoInterface {
   virtual std::string phone_number() const;
 
  private:
+  /// @cond FIREBASE_APP_INTERNAL
   friend struct AuthData;
   // Only exists in AuthData. Access via @ref Auth::CurrentUser().
   explicit User(AuthData* auth_data) : auth_data_(auth_data) {}
+
+  // Disable copy constructor.
+  User(const User&) = delete;
+  // Disable copy operator.
+  User& operator=(const User&) = delete;
+  /// @endcond
 
 #if defined(INTERNAL_EXPERIMENTAL)
   // Doxygen should not make docs for this function.
@@ -448,7 +455,7 @@ class User : public UserInfoInterface {
   friend class IdTokenRefreshListener;
   Future<std::string> GetTokenInternal(const bool force_refresh,
                                        const int future_identifier);
-  /// @endcon
+  /// @endcond
 #endif  // defined(INTERNAL_EXPERIMENTAL)
 
   // Use the pimpl mechanism to hide data details in the cpp files.
