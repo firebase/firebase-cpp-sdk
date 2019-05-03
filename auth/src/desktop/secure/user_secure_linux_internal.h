@@ -44,7 +44,7 @@ class UserSecureLinuxInternal : public UserSecureInternal {
 
  private:
   const std::string key_namespace_;
-  const SecretSchema storage_schema_;
+  SecretSchema storage_schema_;
 };
 
 }  // namespace secure

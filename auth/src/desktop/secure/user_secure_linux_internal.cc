@@ -45,8 +45,9 @@ SecretSchema BuildSchema(const char key_namespace[]) {
 }  // namespace
 
 UserSecureLinuxInternal::UserSecureLinuxInternal(const char* key_namespace)
-    : key_namespace_(key_namespace),
-      storage_schema_(BuildSchema(key_namespace)) {}
+    : key_namespace_(key_namespace) {
+  storage_schema_ = BuildSchema(key_namespace_.c_str());
+}
 
 UserSecureLinuxInternal::~UserSecureLinuxInternal() {}
 
