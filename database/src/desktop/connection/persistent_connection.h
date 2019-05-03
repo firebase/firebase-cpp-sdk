@@ -455,6 +455,8 @@ class PersistentConnection : public ConnectionEventHandler {
   static const char* kServerDataWarnings;
   static const char* kServerResponseData;
 
+  static int kInvalidAuthTokenThreshold;
+
   // Log id.  Unique for each persistent connection.
   static compat::Atomic<uint32_t> next_log_id_;
   std::string log_id_;
@@ -488,6 +490,9 @@ class PersistentConnection : public ConnectionEventHandler {
 
   // Session
   std::string last_session_id_;
+
+  // Number of time when auth token is rejected by the server
+  int invalid_auth_token_count;
 
   // Request/Response
   uint64_t next_request_id_;

@@ -86,6 +86,8 @@ const char* PersistentConnection::kServerDataTag = "t";
 const char* PersistentConnection::kServerDataWarnings = "w";
 const char* PersistentConnection::kServerResponseData = "d";
 
+int PersistentConnection::kInvalidAuthTokenThreshold = 3;
+
 compat::Atomic<uint32_t> PersistentConnection::next_log_id_(0);
 
 // Util function to print QuerySpec in debug logs.
@@ -108,6 +110,7 @@ PersistentConnection::PersistentConnection(
       realtime_(nullptr),
       connection_state_(kDisconnected),
       is_first_connection_(true),
+      invalid_auth_token_count(0),
       next_request_id_(0),
       force_auth_refresh_(false),
       next_listen_id_(0),
@@ -926,6 +929,7 @@ void PersistentConnection::HandleAuthTokenResponse(const Variant& message,
   std::string status = GetStringValue(message, kRequestStatus);
 
   if (status == kRequestStatusOk) {
+    invalid_auth_token_count = 0;
     event_handler_->OnAuthStatus(true);
     LogDebug("%s Authentication success", log_id_.c_str());
 
@@ -944,8 +948,25 @@ void PersistentConnection::HandleAuthTokenResponse(const Variant& message,
              status.c_str(), reason.c_str());
     realtime_->Close();
 
-    // TODO(chkuang): schedule another time to retrieve and send another auth
-    // token
+    Error error = StatusStringToErrorCode(status);
+    if (error == kErrorInvalidToken) {
+      // We'll wait a couple times before logging the warning / increasing the
+      // retry period since oauth tokens will report as "invalid" if they're
+      // just expired. Plus there may be transient issues that resolve
+      // themselves.
+      ++invalid_auth_token_count;
+
+      if (invalid_auth_token_count >= kInvalidAuthTokenThreshold) {
+        // TODO(chkuang): Maximize retry interval (after retry is properly
+        //                implemented).
+        LogWarning(
+            "Provided authentication credentials are invalid. This indicates "
+            "your FirebaseApp instance was not initialized correctly. Make "
+            "sure your google-services.json file has the correct firebase_url "
+            "and api_key. You can re-download google-services.json from "
+            "https://console.firebase.google.com/.");
+      }
+    }
   }
 }
 
