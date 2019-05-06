@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "database/src/desktop/core/repo.h"
+
 #include "app/src/callback.h"
 #include "app/src/log.h"
 #include "app/src/scheduler.h"
@@ -87,8 +88,6 @@ Repo::Repo(App* app, DatabaseInternal* database, const char* url)
 
   connection_.reset(new connection::PersistentConnection(app, host_info_, this,
                                                          &s_scheduler_));
-  connection_->ScheduleInitialize();
-
   // Kick off any expensive additional initialization
   s_scheduler_.Schedule(NewCallback(
       [](ThisRef ref) {
@@ -98,9 +97,17 @@ Repo::Repo(App* app, DatabaseInternal* database, const char* url)
         }
       },
       safe_this_));
+
+  // Schedule the connection to initialize after the SyncTree is set up.
+  connection_->ScheduleInitialize();
 }
 
-Repo::~Repo() { safe_this_.ClearReference(); }
+Repo::~Repo() {
+  // Terminate the connection immediately to prevent messages from arriving
+  // while the SyncTree is being torn down.
+  connection_.reset(nullptr);
+  safe_this_.ClearReference();
+}
 
 void Repo::AddEventCallback(UniquePtr<EventRegistration> event_registration) {
   PostEvents(server_sync_tree_->AddEventRegistration(Move(event_registration)));
