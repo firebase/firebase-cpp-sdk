@@ -42,11 +42,11 @@ add_library(firebase_rest_lib STATIC
 target_include_directories(firebase_rest_lib
   PUBLIC
     ${FIREBASE_CPP_SDK_ROOT_DIR}
-    ${flatbuffers_SOURCE_DIR}/include
-    ${zlib_SOURCE_DIR}/..
-    ${zlib_BINARY_DIR}
+    ${FLATBUFFERS_SOURCE_DIR}/include
+    ${ZLIB_SOURCE_DIR}/..
+    ${ZLIB_BINARY_DIR}
   PRIVATE
-    ${curl_SOURCE_DIR}/include
+    ${CURL_SOURCE_DIR}/include
 )
 
 if(MSVC)

@@ -14,11 +14,9 @@
 
 include(ExternalProject)
 
-if(TARGET zlib)
+if(TARGET zlib OR NOT DOWNLOAD_ZLIB)
   return()
 endif()
-
-# TODO(b/117950963): Use a system- or user-supplied zlib if available
 
 ExternalProject_Add(
   zlib

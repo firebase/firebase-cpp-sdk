@@ -14,11 +14,9 @@
 
 include(ExternalProject)
 
-if(TARGET uWebSockets)
+if(TARGET uWebSockets OR NOT DOWNLOAD_UWEBSOCKETS)
   return()
 endif()
-
-# TODO(b/117950963): Use a system- or user-supplied openssl if available
 
 ExternalProject_Add(
   uWebSockets

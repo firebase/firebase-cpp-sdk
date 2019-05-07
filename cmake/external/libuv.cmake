@@ -14,11 +14,9 @@
 
 include(ExternalProject)
 
-if(TARGET libuv)
+if(TARGET libuv OR NOT DOWNLOAD_LIBUV)
   return()
 endif()
-
-# TODO(b/117950963): Use a system- or user-supplied libuv if available
 
 ExternalProject_Add(
   libuv

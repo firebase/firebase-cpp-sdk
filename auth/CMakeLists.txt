@@ -167,7 +167,7 @@ if(ANDROID OR IOS)
   set(additional_target_definitions)
 else()
   set(additional_include_DIR
-      ${flatbuffers_SOURCE_DIR}/include
+      ${FLATBUFFERS_SOURCE_DIR}/include
       ${LIBSECRET_INCLUDE_DIRS})
   set(additional_link_LIB
       firebase_rest_lib

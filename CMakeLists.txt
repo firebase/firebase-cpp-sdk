@@ -88,8 +88,7 @@ set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "")
 
 # Add flatbuffers as a subdirectory, and set the directory variables for it,
 # so that the sub Firebase projects can depend upon it if necessary.
-add_external_subdirectory(flatbuffers)
-populate_external_source_vars(flatbuffers)
+add_external_library(flatbuffers)
 
 # Some of the external libraries are not used for mobile.
 if (NOT ANDROID AND NOT IOS)
@@ -98,18 +97,15 @@ if (NOT ANDROID AND NOT IOS)
   if (WIN32)
     set(CMAKE_USE_WINSSL ON CACHE BOOL "")
   endif()
-  add_external_subdirectory(curl)
-  populate_external_source_vars(curl)
+  add_external_library(curl)
 
-  add_external_subdirectory(libuv)
-  populate_external_source_vars(libuv)
+  add_external_library(libuv)
 
   find_package(OpenSSL)
 
-  add_external_subdirectory(zlib)
-  populate_external_source_vars(zlib)
+  add_external_library(zlib)
 
-  populate_external_source_vars(uWebSockets)
+  add_external_library(uWebSockets)
   # uWebSockets does not come with a CMakeLists file, so define the target.
   # Note that since it depends on OpenSSL, only do so if that was found.
   if (OPENSSL_FOUND)
@@ -118,18 +114,18 @@ if (NOT ANDROID AND NOT IOS)
     else()
       # Epoll is only used on Linux, otherwise LibUV is used.
       set(uWebSockets_extra_src
-          ${uWebSockets_SOURCE_DIR}/src/Epoll.cpp)
+          ${UWEBSOCKETS_SOURCE_DIR}/src/Epoll.cpp)
     endif()
     add_library(libuWS STATIC
         ${uWebSockets_extra_src}
-        ${uWebSockets_SOURCE_DIR}/src/Extensions.cpp
-        ${uWebSockets_SOURCE_DIR}/src/Group.cpp
-        ${uWebSockets_SOURCE_DIR}/src/HTTPSocket.cpp
-        ${uWebSockets_SOURCE_DIR}/src/Hub.cpp
-        ${uWebSockets_SOURCE_DIR}/src/Networking.cpp
-        ${uWebSockets_SOURCE_DIR}/src/Node.cpp
-        ${uWebSockets_SOURCE_DIR}/src/Socket.cpp
-        ${uWebSockets_SOURCE_DIR}/src/WebSocket.cpp)
+        ${UWEBSOCKETS_SOURCE_DIR}/src/Extensions.cpp
+        ${UWEBSOCKETS_SOURCE_DIR}/src/Group.cpp
+        ${UWEBSOCKETS_SOURCE_DIR}/src/HTTPSocket.cpp
+        ${UWEBSOCKETS_SOURCE_DIR}/src/Hub.cpp
+        ${UWEBSOCKETS_SOURCE_DIR}/src/Networking.cpp
+        ${UWEBSOCKETS_SOURCE_DIR}/src/Node.cpp
+        ${UWEBSOCKETS_SOURCE_DIR}/src/Socket.cpp
+        ${UWEBSOCKETS_SOURCE_DIR}/src/WebSocket.cpp)
     if(MSVC)
       set(websockets_additional_defines
         -DWIN32_LEAN_AND_MEAN # Ensure that windows doesn't include winsock.h by
@@ -149,10 +145,10 @@ if (NOT ANDROID AND NOT IOS)
     )
     target_include_directories(libuWS
       PUBLIC
-        ${libuv_SOURCE_DIR}/include
-        ${uWebSockets_SOURCE_DIR}
-        ${zlib_SOURCE_DIR}
-        ${zlib_BINARY_DIR}
+        ${LIBUV_SOURCE_DIR}/include
+        ${UWEBSOCKETS_SOURCE_DIR}
+        ${ZLIB_SOURCE_DIR}
+        ${ZLIB_BINARY_DIR}
       PRIVATE
         ${OPENSSL_INCLUDE_DIR}
     )
@@ -167,11 +163,10 @@ if (NOT ANDROID AND NOT IOS)
   find_package(Protobuf)
   if (PROTOBUF_FOUND)
     # NanoPB requires Protobuf to be present, so only add it if it was found.
-    add_external_subdirectory(nanopb)
-    populate_external_source_vars(nanopb)
+    add_external_library(nanopb)
     # NanoPB has a FindNanopb which defines the function to generate files, so
     # add it to the module path, and use that.
-    list(INSERT CMAKE_MODULE_PATH 0 ${nanopb_SOURCE_DIR}/extra)
+    list(INSERT CMAKE_MODULE_PATH 0 ${NANOPB_SOURCE_DIR}/extra)
     find_package(Nanopb)
   endif()
 endif()
@@ -179,7 +174,7 @@ endif()
 if(ANDROID OR IOS)
   # Mobile platforms build flatc externally so that it works on the platform
   # performing the build.
-  set(firebase_external_flatc_build_dir "${flatbuffers_BINARY_DIR}-flatc")
+  set(firebase_external_flatc_build_dir "${FLATBUFFERS_BINARY_DIR}-flatc")
   set(firebase_external_flatc "${firebase_external_flatc_build_dir}/flatc")
 
   if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
@@ -224,7 +219,7 @@ if(ANDROID OR IOS)
   add_custom_command(
     OUTPUT ${firebase_external_flatc}
     COMMAND cd ${firebase_external_flatc_build_dir} ${COMMAND_CONCAT}
-            ${ENV_COMMAND} cmake ${flatbuffers_SOURCE_DIR} ${COMMAND_CONCAT}
+            ${ENV_COMMAND} cmake ${FLATBUFFERS_SOURCE_DIR} ${COMMAND_CONCAT}
             ${ENV_COMMAND} cmake --build . --target flatc
     COMMENT "Building flatc (the FlatBuffer schema compiler)")
 

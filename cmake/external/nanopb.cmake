@@ -14,7 +14,7 @@
 
 include(ExternalProject)
 
-if(TARGET nanopb)
+if(TARGET nanopb OR NOT DOWNLOAD_NANOPB)
   return()
 endif()
 

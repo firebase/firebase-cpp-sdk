@@ -97,7 +97,7 @@ target_include_directories(firebase_messaging
 if(ANDROID)
   target_include_directories(firebase_messaging
     PRIVATE
-      ${flatbuffers_SOURCE_DIR}/include
+      ${FLATBUFFERS_SOURCE_DIR}/include
   )
 endif()
 target_compile_definitions(firebase_messaging

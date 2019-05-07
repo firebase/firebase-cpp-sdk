@@ -76,7 +76,7 @@ if(ANDROID OR IOS OR use_stub)
   set(additional_link_LIB)
 else()
   set(additional_include_DIR
-      ${flatbuffers_SOURCE_DIR}/include
+      ${FLATBUFFERS_SOURCE_DIR}/include
       ${NANOPB_INCLUDE_DIRS}
       ${PROJECT_BINARY_DIR}/..)
   set(additional_link_LIB

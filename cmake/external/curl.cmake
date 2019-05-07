@@ -14,11 +14,9 @@
 
 include(ExternalProject)
 
-if(TARGET curl)
+if(TARGET curl OR NOT DOWNLOAD_CURL)
   return()
 endif()
-
-# TODO(b/117950963): Use a system- or user-supplied curl if available
 
 ExternalProject_Add(
   curl

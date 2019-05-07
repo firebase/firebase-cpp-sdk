@@ -14,7 +14,7 @@
 
 include(ExternalProject)
 
-if(TARGET flatbuffers)
+if(TARGET flatbuffers OR NOT DOWNLOAD_FLATBUFFERS)
   return()
 endif()
 

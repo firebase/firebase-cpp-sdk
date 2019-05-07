@@ -134,9 +134,9 @@ if(ANDROID OR IOS)
   set(additional_DEFINES)
 else()
   set(additional_include_DIR
-      ${flatbuffers_SOURCE_DIR}/include
+      ${FLATBUFFERS_SOURCE_DIR}/include
       ${OPENSSL_INCLUDE_DIR}
-      ${uWebSockets_SOURCE_DIR}/..)
+      ${UWEBSOCKETS_SOURCE_DIR}/..)
 
   set(additional_link_LIB
       flatbuffers

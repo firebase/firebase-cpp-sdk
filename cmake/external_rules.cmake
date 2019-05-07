@@ -36,13 +36,35 @@ function(download_external_sources)
   else()
     set(external_platform DESKTOP)
   endif()
-  
+
+  # Set variables to indicate if local versions of third party libraries should
+  # be used instead of downloading them.
+  function(check_use_local_directory NAME)
+    if (EXISTS ${${NAME}_SOURCE_DIR})
+      set(DOWNLOAD_${NAME} OFF PARENT_SCOPE)
+    else()
+      set(DOWNLOAD_${NAME} ON PARENT_SCOPE)
+    endif()
+  endfunction()
+  check_use_local_directory(CURL)
+  check_use_local_directory(FLATBUFFERS)
+  check_use_local_directory(LIBUV)
+  check_use_local_directory(NANOPB)
+  check_use_local_directory(UWEBSOCKETS)
+  check_use_local_directory(ZLIB)
+
   execute_process(
     COMMAND
       ${ENV_COMMAND} cmake
       -DCMAKE_INSTALL_PREFIX=${FIREBASE_INSTALL_DIR}
       -DFIREBASE_DOWNLOAD_DIR=${FIREBASE_DOWNLOAD_DIR}
       -DFIREBASE_EXTERNAL_PLATFORM=${external_platform}
+      -DDOWNLOAD_CURL=${DOWNLOAD_CURL}
+      -DDOWNLOAD_FLATBUFFERS=${DOWNLOAD_FLATBUFFERS}
+      -DDOWNLOAD_LIBUV=${DOWNLOAD_LIBUV}
+      -DDOWNLOAD_NANOPB=${DOWNLOAD_NANOPB}
+      -DDOWNLOAD_UWEBSOCKETS=${DOWNLOAD_UWEBSOCKETS}
+      -DDOWNLOAD_ZLIB=${DOWNLOAD_ZLIB}
       ${PROJECT_SOURCE_DIR}/cmake/external
     OUTPUT_FILE ${PROJECT_BINARY_DIR}/external/output_cmake_config.txt
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external
@@ -60,20 +82,24 @@ function(download_external_sources)
   )
 endfunction()
 
-# Populates directory variables for the given name, to the location that name
-# would be in after a call to download_external_sources.
-function(populate_external_source_vars NAME)
-  set(${NAME}_SOURCE_DIR "${FIREBASE_BINARY_DIR}/external/src/${NAME}"
-      PARENT_SCOPE)
-  set(${NAME}_BINARY_DIR "${FIREBASE_BINARY_DIR}/external/src/${NAME}-build"
-      PARENT_SCOPE)
-endfunction()
+# Populates directory variables for the given name to the location that name
+# would be in after a call to download_external_sources, if the variable is
+# not already a valid directory.
+# Adds the source directory as a subdirectory if a CMakeLists file is found.
+function(add_external_library NAME)
+  string(TOUPPER ${NAME} UPPER_NAME)
+  if (NOT EXISTS ${${UPPER_NAME}_SOURCE_DIR})
+    set(${UPPER_NAME}_SOURCE_DIR "${FIREBASE_BINARY_DIR}/external/src/${NAME}")
+    set(${UPPER_NAME}_SOURCE_DIR "${${UPPER_NAME}_SOURCE_DIR}" PARENT_SCOPE)
+  endif()
 
-# Adds the given library's location as a subdirectory that the caller uses.
-function(add_external_subdirectory NAME)
-  add_subdirectory(
-    ${FIREBASE_BINARY_DIR}/external/src/${NAME}
-    ${FIREBASE_BINARY_DIR}/external/src/${NAME}-build
-    EXCLUDE_FROM_ALL
-  )
+  if (NOT EXISTS ${${UPPER_NAME}_BINARY_DIR})
+    set(${UPPER_NAME}_BINARY_DIR "${${UPPER_NAME}_SOURCE_DIR}-build")
+    set(${UPPER_NAME}_BINARY_DIR "${${UPPER_NAME}_BINARY_DIR}" PARENT_SCOPE)
+  endif()
+
+  if (EXISTS "${${UPPER_NAME}_SOURCE_DIR}/CMakeLists.txt")
+    add_subdirectory(${${UPPER_NAME}_SOURCE_DIR} ${${UPPER_NAME}_BINARY_DIR}
+                     EXCLUDE_FROM_ALL)
+  endif()
 endfunction()

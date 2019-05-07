@@ -248,7 +248,7 @@ target_include_directories(firebase_app
     ${FIREBASE_GEN_FILE_DIR}
   PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
-    ${flatbuffers_SOURCE_DIR}/include
+    ${FLATBUFFERS_SOURCE_DIR}/include
 )
 target_compile_definitions(firebase_app
   PRIVATE

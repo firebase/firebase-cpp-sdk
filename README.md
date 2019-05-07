@@ -119,6 +119,34 @@ cmake -G “Visual Studio 15 2017” ..
 More information on generators can be found at
 <https://cmake.org/cmake/help/latest/manual/cmake-generators.7.html>.
 
+By default, when building the SDK, the CMake process will download any third
+party dependencies that are needed for the build. This logic is in
+[cmake/external_rules.cmake](/cmake/external_rules.cmake), and the accompanying
+[cmake/external/CMakeLists.txt](/cmake/external/CMakeLists.txt). If you would
+like to provide your own directory for these dependencies, you can override
+`[[dependency_name]]_SOURCE_DIR` and `[[dependency_name]]_BINARY_DIR`. If the
+binary directory is not provided, it defaults to the given source directory,
+appended with `-build`.
+
+For example, to provide a custom flatbuffer directory you could run:
+
+``` bash
+cmake -DFLATBUFFERS_SOURCE_DIR=/tmp/flatbuffers ..
+```
+
+And the binary directory would automatically be set to `/tmp/flatbuffers-build`.
+
+Currently, the third party libraries that can be provided this way are:
+
+| Library |
+| ------- |
+| CURL |
+| FLATBUFFERS |
+| LIBUV |
+| NANOPB |
+| UWEBSOCKETS |
+| ZLIB |
+
 #### Building with CMake for iOS
 The Firebase C++ SDK comes with a CMake config file to build the library for
 iOS platforms, [cmake/ios.cmake](/cmake/ios.cmake).  In order to build with it,
