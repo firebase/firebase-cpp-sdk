@@ -85,7 +85,7 @@ add_firebase_target(firebase_storage)
 # which needs to be added. If it cannot be found, we don't want to
 # error, since the user might not be using auth, and the user will
 # get a linker error if it is needed.
-if(NOT APPLE AND UNIX)
+if(NOT APPLE AND NOT ANDROID AND UNIX)
   pkg_check_modules(LIBSECRET libsecret-1)
 
   if(NOT LIBSECRET_FOUND)
