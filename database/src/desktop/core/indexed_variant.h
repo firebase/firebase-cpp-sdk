@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_INDEXED_VARIANT_H_
 
 #include <set>
+
 #include "app/src/include/firebase/variant.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/query_params_comparator.h"
@@ -108,7 +109,6 @@ class IndexedVariant {
   // of the variant_ map as it may invalidate these pointers. All updates should
   // be funneled through UpdateChild or UpdatePriority.
   Index index_;
-  bool use_index_;
 
   friend class IndexedVariantGetOrderByVariantTest;
 };

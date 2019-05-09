@@ -13,8 +13,10 @@
 // limitations under the License.
 
 #include "database/src/desktop/core/indexed_variant.h"
+
 #include <algorithm>
 #include <cassert>
+
 #include "app/src/include/firebase/variant.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/query_params_comparator.h"
@@ -142,7 +144,6 @@ void IndexedVariant::EnsureIndexed() {
   PruneNulls(&variant_);
 
   for (const auto& entry : variant_.map()) {
-    use_index_ |= IsDefinedOn(entry.second, query_params_);
     index_.insert(entry);
   }
 }
