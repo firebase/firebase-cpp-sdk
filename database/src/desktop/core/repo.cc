@@ -430,7 +430,7 @@ static std::map<Path, Variant> VariantToPathMap(const Variant& data) {
         key = key_string_variant.string_value();
       }
       const Variant& value = key_value.second;
-      path_map.insert(std::make_pair(Path(key), std::move(value)));
+      path_map.insert(std::make_pair(Path(key), value));
     }
   }
   return path_map;
