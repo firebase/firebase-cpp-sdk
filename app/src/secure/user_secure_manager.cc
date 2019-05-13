@@ -12,35 +12,48 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "auth/src/desktop/secure/user_secure_manager.h"
+#include "app/src/secure/user_secure_manager.h"
 
 #include "app/src/callback.h"
-#include "auth/src/desktop/secure/user_secure_internal.h"
+#include "app/src/secure/user_secure_internal.h"
 
 #ifdef __APPLE__
 #include "TargetConditionals.h"
 #endif  // __APPLE__
 
+// If building for iOS or Android, omit this entire implementation. Until we
+// implement UserSecureInternal for those platforms, referencing this class
+// will cause a linker error. TODO(b/132622988): Add mobile support.
+#if defined(TARGET_OS_IOS) && TARGET_OS_IOS
+#define SKIP_IMPLEMENTATION_ON_MOBILE 1
+#elif defined(__ANDROID__)
+#define SKIP_IMPLEMENTATION_ON_MOBILE 1
+#else
+#define SKIP_IMPLEMENTATION_ON_MOBILE 0
+#endif
+
+#if !SKIP_IMPLEMENTATION_ON_MOBILE
+
 #if defined(_WIN32)
-#include "auth/src/desktop/secure/user_secure_windows_internal.h"
+#include "app/src/secure/user_secure_windows_internal.h"
 #define USER_SECURE_TYPE UserSecureWindowsInternal
 
 #elif defined(TARGET_OS_OSX) && TARGET_OS_OSX
-#include "auth/src/desktop/secure/user_secure_darwin_internal.h"
+#include "app/src/secure/user_secure_darwin_internal.h"
 #define USER_SECURE_TYPE UserSecureDarwinInternal
 
 #elif defined(__linux__)
-#include "auth/src/desktop/secure/user_secure_linux_internal.h"
+#include "app/src/secure/user_secure_linux_internal.h"
 #define USER_SECURE_TYPE UserSecureLinuxInternal
 
 #else  // Unknown platform, use fake version.
 #warning "No secure storage for Auth persistence is available on this platform."
-#include "auth/src/desktop/secure/user_secure_fake_internal.h"
+#include "app/src/secure/user_secure_fake_internal.h"
 #define USER_SECURE_TYPE UserSecureFakeInternal
 #endif
 
 namespace firebase {
-namespace auth {
+namespace app {
 namespace secure {
 
 using callback::NewCallback;
@@ -88,11 +101,10 @@ Future<std::string> UserSecureManager::LoadUserData(
           std::string empty_str("");
           if (result.empty()) {
             std::string message(
-                "Authentication failed to read user credentials for app (" +
-                handle->app_name +
+                "Failed to read user data for app (" + handle->app_name +
                 ").  This could happen if the current user doesn't have access "
-                "to the key store, the key store has been corrupted or the app "
-                "intentionally signed out the user.");
+                "to the keystore, the keystore has been corrupted or the app "
+                "intentionally deleted the stored data.");
             handle->future_api->CompleteWithResult(
                 handle->future_handle, kNoEntry, message.c_str(), empty_str);
           } else {
@@ -196,6 +208,78 @@ void UserSecureManager::DestroyScheduler() {
   }
 }
 
+static bool IsHexDigit(char c) {
+  if (c >= '0' && c <= '9') return true;
+  if (c >= 'A' && c <= 'F') return true;
+  return false;
+}
+
+static uint8_t HexToValue(char digit) {
+  if (digit >= '0' && digit <= '9') {
+    return static_cast<uint8_t>(digit - '0');
+  }
+  if (digit >= 'A' && digit <= 'F') {
+    return 10 + static_cast<uint8_t>(digit - 'A');
+  }
+  FIREBASE_ASSERT("Not a hex digit" == nullptr);
+  return 0;
+}
+
+// A single character at the start of the encoding specifies how it's encoded,
+// in case we change to Base64/etc. in the future.
+static const char kHeaderHexEncoded = '$';
+
+bool UserSecureManager::AsciiToBinary(const std::string& encoded,
+                                      std::string* decoded) {
+  FIREBASE_ASSERT(decoded != nullptr);
+  if (encoded.length() == 0) {
+    // Should be at least one byte of header.
+    *decoded = std::string();
+    return false;
+  }
+  if (encoded[0] == kHeaderHexEncoded) {
+    // Decode hex bytes.
+    if (encoded.length() % 2 != 1) {
+      *decoded = std::string();
+      return false;
+    }
+    decoded->resize((encoded.length() - 1) / 2);
+    for (int e = 1, d = 0; e < encoded.length(); ++d, e += 2) {
+      char hi = toupper(encoded[e + 0]);
+      char lo = toupper(encoded[e + 1]);
+      if (!IsHexDigit(hi) || !IsHexDigit(lo)) {
+        *decoded = std::string();
+        return false;
+      }
+      (*decoded)[d] = (HexToValue(hi) << 4) | HexToValue(lo);
+    }
+    return true;
+  } else {
+    // Unknown header byte, can't decode.
+    *decoded = std::string();
+    return false;
+  }
+}
+
+void UserSecureManager::BinaryToAscii(const std::string& original,
+                                      std::string* encoded) {
+  FIREBASE_ASSERT(encoded != nullptr);
+  encoded->resize(1 + original.length() * 2);
+
+  // Emit header byte to signify hex encoding.
+  (*encoded)[0] = kHeaderHexEncoded;
+  for (int o = 0, e = 1; e < encoded->length(); ++o, e += 2) {
+    unsigned char value = original[o];
+    unsigned char hi = (value & 0xF0) >> 4;
+    unsigned char lo = (value & 0x0F) >> 0;
+    // First byte is the header, so add 1.
+    (*encoded)[e + 0] = (hi < 10) ? ('0' + hi) : ('A' + hi - 10);
+    (*encoded)[e + 1] = (lo < 10) ? ('0' + lo) : ('A' + lo - 10);
+  }
+}
+
 }  // namespace secure
-}  // namespace auth
+}  // namespace app
 }  // namespace firebase
+
+#endif  // SKIP_IMPLEMENTATION_ON_MOBILE

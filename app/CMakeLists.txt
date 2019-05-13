@@ -17,6 +17,7 @@
 cmake_minimum_required (VERSION 3.1)
 set (CMAKE_CXX_STANDARD 11)
 
+include(FindPkgConfig)
 include(binary_to_array)
 include(download_pod_headers)
 
@@ -119,6 +120,7 @@ set(common_SRCS
     src/thread_cpp11.cc
     src/thread_pthread.cc
     src/time.cc
+    src/secure/user_secure_manager.cc
     src/util.cc
     src/variant.cc)
 
@@ -150,8 +152,22 @@ elseif(IOS)
   set(app_platform_SRCS
       "${app_ios_SRCS}")
 else()
+  if(MSVC)
+    set(app_desktop_extra_SRCS
+        src/secure/user_secure_windows_internal.cc)
+  elseif(APPLE)
+    set(app_desktop_extra_SRCS
+        src/secure/user_secure_darwin_internal.mm)
+  else()
+    # Linux requires libsecret.
+    pkg_check_modules(LIBSECRET libsecret-1 REQUIRED)
+    set(app_desktop_extra_SRCS
+        src/secure/user_secure_linux_internal.cc)
+  endif()
+
   set(app_platform_SRCS
-      "${app_desktop_SRCS}")
+      "${app_desktop_SRCS}"
+      "${app_desktop_extra_SRCS}")
 endif()
 
 set(internal_HDRS

@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "auth/src/desktop/secure/user_secure_darwin_internal.h"
+#include "app/src/secure/user_secure_darwin_internal.h"
 
 #import <Foundation/Foundation.h>
 #import <Security/Security.h>
 
 namespace firebase {
-namespace auth {
+namespace app {
 namespace secure {
 
 // Prefix and suffix to add to keychain service name.
@@ -179,5 +179,5 @@ void UserSecureDarwinInternal::DeleteAllData() {
 }
 
 }  // namespace secure
-}  // namespace auth
+}  // namespace app
 }  // namespace firebase

@@ -12,19 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_SECURE_USER_SECURE_MANAGER_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_SECURE_USER_SECURE_MANAGER_H_
+#ifndef FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_MANAGER_H_
+#define FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_MANAGER_H_
 
 #include <string>
 
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/safe_reference.h"
-#include "auth/src/desktop/secure/user_secure_data_handle.h"
-#include "auth/src/desktop/secure/user_secure_internal.h"
+#include "app/src/secure/user_secure_data_handle.h"
+#include "app/src/secure/user_secure_internal.h"
 
 namespace firebase {
-namespace auth {
+namespace app {
 namespace secure {
 
 class UserSecureManager {
@@ -49,6 +49,11 @@ class UserSecureManager {
   // Delete all user data.
   Future<void> DeleteAllData();
 
+  // Decode the given ASCII string into binary data.
+  static bool AsciiToBinary(const std::string& encoded, std::string* decoded);
+  // Encode the given binary string into ASCII-friendly data.
+  static void BinaryToAscii(const std::string& original, std::string* encoded);
+
  private:
   UniquePtr<UserSecureInternal> user_secure_;
   ReferenceCountedFutureImpl future_api_;
@@ -70,7 +75,7 @@ class UserSecureManager {
 };
 
 }  // namespace secure
-}  // namespace auth
+}  // namespace app
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_SECURE_USER_SECURE_MANAGER_H_
+#endif  // FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_MANAGER_H_

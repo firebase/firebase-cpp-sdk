@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "auth/src/desktop/secure/user_secure_darwin_internal_testlib.h"
+#include "app/src/secure/user_secure_darwin_internal_testlib.h"
 
 #include "app/src/log.h"
 
@@ -20,7 +20,7 @@
 #import <Security/Security.h>
 
 namespace firebase {
-namespace auth {
+namespace app {
 namespace secure {
 
 static const char kTestKeychainPassword[] = "password";
@@ -66,5 +66,5 @@ UserSecureDarwinTestHelper::~UserSecureDarwinTestHelper() {
 }
 
 }  // namespace secure
-}  // namespace auth
+}  // namespace app
 }  // namespace firebase

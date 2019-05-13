@@ -21,7 +21,7 @@
 #include <string>
 #include <vector>
 
-#include "auth/src/desktop/secure/user_secure_manager.h"
+#include "app/src/secure/user_secure_manager.h"
 
 namespace firebase {
 namespace auth {
@@ -103,7 +103,7 @@ class UserDataPersist : public firebase::auth::AuthStateListener {
 
   // Overloaded constructor to set the internal instance.
   explicit UserDataPersist(
-      UniquePtr<secure::UserSecureManager> user_secure_manager);
+      UniquePtr<firebase::app::secure::UserSecureManager> user_secure_manager);
 
   void OnAuthStateChanged(Auth* auth) override;
 
@@ -113,16 +113,8 @@ class UserDataPersist : public firebase::auth::AuthStateListener {
 
   Future<void> DeleteAllData();
 
-  // Encode a binary string into hex characters 0123456789ABCDEF, big-endian.
-  // For example, the string "hello" encodes into "68656C6C6F".
-  static void HexEncode(const std::string& original, std::string* encoded);
-  // Decode a binary string encoded via HexEncode, returning true if
-  // successful. If the hex string is invalid (an odd size, contains characters
-  // other than hex digits), returns false and sets decoded to empty string.
-  static bool HexDecode(const std::string& encoded, std::string* decoded);
-
  private:
-  UniquePtr<secure::UserSecureManager> user_secure_manager_;
+  UniquePtr<firebase::app::secure::UserSecureManager> user_secure_manager_;
 };
 
 }  // namespace auth

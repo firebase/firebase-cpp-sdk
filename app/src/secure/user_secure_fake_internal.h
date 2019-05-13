@@ -12,23 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_SECURE_USER_SECURE_WINDOWS_INTERNAL_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_SECURE_USER_SECURE_WINDOWS_INTERNAL_H_
+#ifndef FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_FAKE_INTERNAL_H_
+#define FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_FAKE_INTERNAL_H_
 
 #include <string>
 
-#include "auth/src/desktop/secure/user_secure_internal.h"
+#include "app/src/secure/user_secure_internal.h"
 
 namespace firebase {
-namespace auth {
+namespace app {
 namespace secure {
 
-// Windows specific implementation for the secure manager of user data.
-class UserSecureWindowsInternal : public UserSecureInternal {
+// Fake implementation for the secure manager of user data.
+class UserSecureFakeInternal : public UserSecureInternal {
  public:
-  explicit UserSecureWindowsInternal(const char* key_namespace);
-
-  ~UserSecureWindowsInternal() override;
+  explicit UserSecureFakeInternal(const char* secure_path);
+  ~UserSecureFakeInternal() override;
 
   std::string LoadUserData(const std::string& app_name) override;
 
@@ -40,14 +39,13 @@ class UserSecureWindowsInternal : public UserSecureInternal {
   void DeleteAllData() override;
 
  private:
-  std::string GetTargetName(const std::string& app_name);
-  std::string GetTargetName(const std::string& app_name, size_t idx);
+  std::string GetFilePath(const std::string& app_name);
 
-  std::string namespace_;
+  const std::string secure_path_;
 };
 
 }  // namespace secure
-}  // namespace auth
+}  // namespace app
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_SECURE_USER_SECURE_WINDOWS_INTERNAL_H_
+#endif  // FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_FAKE_INTERNAL_H_

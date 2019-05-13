@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_SECURE_USER_SECURE_DATA_HANDLE_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_SECURE_USER_SECURE_DATA_HANDLE_H_
+#ifndef FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_DATA_HANDLE_H_
+#define FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_DATA_HANDLE_H_
 
 #include <string>
 
@@ -21,7 +21,7 @@
 #include "app/src/reference_counted_future_impl.h"
 
 namespace firebase {
-namespace auth {
+namespace app {
 namespace secure {
 
 enum UserSecureFn {
@@ -54,7 +54,7 @@ struct UserSecureDataHandle {
 };
 
 }  // namespace secure
-}  // namespace auth
+}  // namespace app
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_SECURE_USER_SECURE_DATA_HANDLE_H_
+#endif  // FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_DATA_HANDLE_H_

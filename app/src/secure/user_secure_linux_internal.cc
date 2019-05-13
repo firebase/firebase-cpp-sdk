@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "auth/src/desktop/secure/user_secure_linux_internal.h"
+#include "app/src/secure/user_secure_linux_internal.h"
 
 #include <dlfcn.h>
 
 #include <iostream>
 
-#include "auth/src/desktop/secure/user_secure_data_handle.h"
+#include "app/src/secure/user_secure_data_handle.h"
 
 namespace firebase {
-namespace auth {
+namespace app {
 namespace secure {
 
 namespace {
@@ -112,5 +112,5 @@ void UserSecureLinuxInternal::DeleteAllData() {
 }
 
 }  // namespace secure
-}  // namespace auth
+}  // namespace app
 }  // namespace firebase

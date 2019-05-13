@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "auth/src/desktop/secure/user_secure_fake_internal.h"
+#include "app/src/secure/user_secure_fake_internal.h"
 
 #if defined(_WIN32)
 #include <direct.h>
@@ -30,7 +30,7 @@
 #include <string>
 
 namespace firebase {
-namespace auth {
+namespace app {
 namespace secure {
 
 #if defined(_WIN32)
@@ -172,5 +172,5 @@ std::string UserSecureFakeInternal::GetFilePath(const std::string& app_name) {
 }
 
 }  // namespace secure
-}  // namespace auth
+}  // namespace app
 }  // namespace firebase

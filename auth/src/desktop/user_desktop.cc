@@ -20,6 +20,7 @@
 #include "app/rest/transport_builder.h"
 #include "app/rest/util.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/secure/user_secure_manager.h"
 #include "app/src/thread.h"
 #include "auth/src/common.h"
 #include "auth/src/data.h"
@@ -40,7 +41,6 @@
 #include "auth/src/desktop/rpcs/verify_assertion_response.h"
 #include "auth/src/desktop/rpcs/verify_password_request.h"
 #include "auth/src/desktop/rpcs/verify_password_response.h"
-#include "auth/src/desktop/secure/user_secure_manager.h"
 #include "auth/src/desktop/set_account_info_result.h"
 #include "auth/src/desktop/sign_in_flow.h"
 #include "auth/src/desktop/user_view.h"
@@ -49,10 +49,11 @@
 #include "auth/user_data_generated.h"
 #include "auth/user_data_resource.h"
 #include "flatbuffers/idl.h"
-#include "secure/user_secure_data_handle.h"
 
 namespace firebase {
 namespace auth {
+
+using firebase::app::secure::UserSecureManager;
 
 namespace {
 
@@ -396,11 +397,11 @@ Future<ResultT> DoReauthenticate(Promise<ResultT> promise,
 }  // namespace
 
 UserDataPersist::UserDataPersist(const char* app_id) {
-  user_secure_manager_ = MakeUnique<secure::UserSecureManager>(app_id);
+  user_secure_manager_ = MakeUnique<UserSecureManager>(app_id);
 }
 
 UserDataPersist::UserDataPersist(
-    UniquePtr<secure::UserSecureManager> user_secure_manager)
+    UniquePtr<UserSecureManager> user_secure_manager)
     : user_secure_manager_(std::move(user_secure_manager)) {}
 
 void UserDataPersist::OnAuthStateChanged(Auth* auth) {  // NOLINT
@@ -411,58 +412,8 @@ void UserDataPersist::OnAuthStateChanged(Auth* auth) {  // NOLINT
   }
 }
 
-static bool IsHexDigit(char c) {
-  if (c >= '0' && c <= '9') return true;
-  if (c >= 'A' && c <= 'F') return true;
-  return false;
-}
-
-static uint8_t HexToValue(char digit) {
-  if (digit >= '0' && digit <= '9') {
-    return static_cast<uint8_t>(digit - '0');
-  }
-  if (digit >= 'A' && digit <= 'F') {
-    return 10 + static_cast<uint8_t>(digit - 'A');
-  }
-  FIREBASE_ASSERT("Not a hex digit" == nullptr);
-  return 0;
-}
-
-bool UserDataPersist::HexDecode(const std::string& encoded,
-                                std::string* decoded) {
-  FIREBASE_ASSERT(decoded != nullptr);
-  if (encoded.length() % 2 != 0) {
-    *decoded = std::string();
-    return false;
-  }
-  decoded->resize(encoded.length() / 2);
-  for (int i = 0; i < encoded.length(); i += 2) {
-    char hi = toupper(encoded[i]);
-    char lo = toupper(encoded[i + 1]);
-    if (!IsHexDigit(hi) || !IsHexDigit(lo)) {
-      *decoded = std::string();
-      return false;
-    }
-    (*decoded)[i / 2] = (HexToValue(hi) << 4) | HexToValue(lo);
-  }
-  return true;
-}
-
-void UserDataPersist::HexEncode(const std::string& original,
-                                std::string* encoded) {
-  FIREBASE_ASSERT(encoded != nullptr);
-  encoded->resize(original.length() * 2);
-  for (int i = 0; i < encoded->length(); i += 2) {
-    unsigned char value = original[i / 2];
-    unsigned char hi = (value & 0xF0) >> 4;
-    unsigned char lo = (value & 0x0F) >> 0;
-    (*encoded)[i + 0] = (hi < 10) ? ('0' + hi) : ('A' + hi - 10);
-    (*encoded)[i + 1] = (lo < 10) ? ('0' + lo) : ('A' + lo - 10);
-  }
-}
-
 void AssignLoadedData(const Future<std::string>& future, void* auth_data) {
-  if (future.error() == secure::kNoEntry) {
+  if (future.error() == firebase::app::secure::kNoEntry) {
     LogDebug(future.error_message());
     return;
   }
@@ -474,7 +425,7 @@ void AssignLoadedData(const Future<std::string>& future, void* auth_data) {
 
   // Decode to flatbuffer
   std::string decoded;
-  if (!UserDataPersist::HexDecode(loaded_string, &decoded)) {
+  if (!UserSecureManager::AsciiToBinary(loaded_string, &decoded)) {
     LogWarning("Auth: Error decoding persistent user data.");
     return;
   }
@@ -565,7 +516,7 @@ Future<void> UserDataPersist::SaveUserData(AuthData* auth_data) {
   save_string.assign(bufferpointer, bufferpointer + builder.GetSize());
   // Encode flatbuffer
   std::string encoded;
-  HexEncode(save_string, &encoded);
+  UserSecureManager::BinaryToAscii(save_string, &encoded);
 
   return user_secure_manager_->SaveUserData(auth_data->app->name(), encoded);
 }
