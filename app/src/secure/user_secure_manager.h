@@ -29,7 +29,7 @@ namespace secure {
 
 class UserSecureManager {
  public:
-  explicit UserSecureManager(const char* app_id);
+  explicit UserSecureManager(const char* domain, const char* app_id);
   ~UserSecureManager();
 
   // Overloaded constructor to set the internal instance.

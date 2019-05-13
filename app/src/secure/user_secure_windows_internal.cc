@@ -21,13 +21,19 @@ namespace firebase {
 namespace app {
 namespace secure {
 
+// Prefix and suffix to add to specified namespace.
 static const char kNamespacePrefix[] = "";
-static const char kNamespaceSuffix[] = " [Firebase Auth]";
+static const char kNamespaceSuffix1[] = " [firebase.";
+static const char kNamespaceSuffix2[] = " ]";
+// For example:
+// com.my_company.my_app [firebase.auth]
+// com.my_company.my_app [firebase.iid]
 
-UserSecureWindowsInternal::UserSecureWindowsInternal(
-    const char* key_namespace) {
+UserSecureWindowsInternal::UserSecureWindowsInternal(const char* domain,
+                                                     const char* key_namespace)
+    : domain_(domain) {
   namespace_ = std::string(kNamespacePrefix) + key_namespace +
-               std::string(kNamespaceSuffix);
+               kNamespaceSuffix1 + domain + kNamespaceSuffix2;
 }
 
 UserSecureWindowsInternal::~UserSecureWindowsInternal() {}
@@ -114,7 +120,7 @@ void UserSecureWindowsInternal::SaveUserData(const std::string& app_name,
     credential.Type = CRED_TYPE_GENERIC;
     credential.TargetName = const_cast<LPSTR>(target.c_str());
     std::string comment =
-        std::string("Firebase Auth persistent user data for ") + target;
+        std::string("Firebase ") + domain_ + " persistent data for " + target;
     credential.Comment = const_cast<LPSTR>(comment.c_str());
     credential.CredentialBlobSize = chunk_size;
     credential.CredentialBlob =

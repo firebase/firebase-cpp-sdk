@@ -27,25 +27,26 @@ namespace secure {
 namespace {
 // key entry for the app name in the schema. When save the user data with a
 // given app name, the app name is the attribute of this key inside schema.
-const char kAppNameKey[] = "auth_app_name";
+const char kAppNameKey[] = "firebase_app_name";
 // A common attribute-value pair is added to all the device keys. This makes it
 // possible to match all the keys easily (and remove them all at once).
-const char kCommonKeyId[] = "common_key_id";
-const char kCommonKeyValue[] = "common_key_value";
+const char kStorageDomainKey[] = "user_secure_domain";
 
 SecretSchema BuildSchema(const char key_namespace[]) {
-  SecretSchema schema = {key_namespace,
-                         SECRET_SCHEMA_NONE,
-                         {
-                             {kAppNameKey, SECRET_SCHEMA_ATTRIBUTE_STRING},
-                             {kCommonKeyId, SECRET_SCHEMA_ATTRIBUTE_STRING},
-                         }};
+  SecretSchema schema = {
+      key_namespace,
+      SECRET_SCHEMA_NONE,
+      {
+          {kAppNameKey, SECRET_SCHEMA_ATTRIBUTE_STRING},
+          {kStorageDomainKey, SECRET_SCHEMA_ATTRIBUTE_STRING},
+      }};
   return schema;
 }
 }  // namespace
 
-UserSecureLinuxInternal::UserSecureLinuxInternal(const char* key_namespace)
-    : key_namespace_(key_namespace) {
+UserSecureLinuxInternal::UserSecureLinuxInternal(const char* domain,
+                                                 const char* key_namespace)
+    : domain_(domain), key_namespace_(key_namespace) {
   storage_schema_ = BuildSchema(key_namespace_.c_str());
 }
 
@@ -59,12 +60,13 @@ std::string UserSecureLinuxInternal::LoadUserData(const std::string& app_name) {
   }
 
   GError* error = nullptr;
-  char* result =
-      secret_password_lookup_sync(&storage_schema_,
-                                  /* cancellable= */ nullptr,
-                                  /* error= */ &error,
-                                  /* key1= */ kAppNameKey,
-                                  /* value1= */ app_name.c_str(), nullptr);
+  char* result = secret_password_lookup_sync(
+      &storage_schema_,
+      /* cancellable= */ nullptr,
+      /* error= */ &error,
+      /* key1= */ kAppNameKey,
+      /* value1= */ app_name.c_str(), /* key2= */ kStorageDomainKey,
+      /* value2= */ domain_.c_str(), nullptr);
   if (error) {
     g_error_free(error);
     return empty_str;
@@ -89,7 +91,7 @@ void UserSecureLinuxInternal::SaveUserData(const std::string& app_name,
       /* password= */ user_data.c_str(), /* cancellable= */ nullptr,
       /* error= */ nullptr, /* key1= */ kAppNameKey,
       /* value1= */ app_name.c_str(),
-      /* key2= */ kCommonKeyId, /* value2= */ kCommonKeyValue, nullptr);
+      /* key2= */ kStorageDomainKey, /* value2= */ domain_.c_str(), nullptr);
 }
 
 void UserSecureLinuxInternal::DeleteUserData(const std::string& app_name) {
@@ -99,7 +101,9 @@ void UserSecureLinuxInternal::DeleteUserData(const std::string& app_name) {
   secret_password_clear_sync(&storage_schema_,
                              /* cancellable= */ nullptr, /* error= */ nullptr,
                              /* key1= */ kAppNameKey,
-                             /* value1= */ app_name.c_str(), nullptr);
+                             /* value1= */ app_name.c_str(),
+                             /* key2= */ kStorageDomainKey,
+                             /* value2= */ domain_.c_str(), nullptr);
 }
 
 void UserSecureLinuxInternal::DeleteAllData() {
@@ -107,8 +111,9 @@ void UserSecureLinuxInternal::DeleteAllData() {
     return;
   }
   secret_password_clear_sync(&storage_schema_, /* cancellable= */ nullptr,
-                             /* error= */ nullptr, /* key2= */ kCommonKeyId,
-                             /* value2= */ kCommonKeyValue, nullptr);
+                             /* error= */ nullptr,
+                             /* key2= */ kStorageDomainKey,
+                             /* value2= */ domain_.c_str(), nullptr);
 }
 
 }  // namespace secure

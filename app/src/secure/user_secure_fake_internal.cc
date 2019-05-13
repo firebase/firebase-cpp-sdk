@@ -42,10 +42,13 @@ static const char kDirectorySeparator[] = "\\";
 static const char kDirectorySeparator[] = "/";
 #endif  // defined(_WIN32)
 
-static const char kFileExtension[] = ".authbin";
+static const char kFileExtension[] = ".firbin";
 
-UserSecureFakeInternal::UserSecureFakeInternal(const char* secure_path)
-    : secure_path_(secure_path) {}
+UserSecureFakeInternal::UserSecureFakeInternal(const char* domain,
+                                               const char* base_path)
+    : domain_(domain), base_path_(base_path) {
+  full_path_ = base_path_ + kDirectorySeparator + domain_;
+}
 
 UserSecureFakeInternal::~UserSecureFakeInternal() {}
 
@@ -75,11 +78,18 @@ std::string UserSecureFakeInternal::LoadUserData(const std::string& app_name) {
 void UserSecureFakeInternal::SaveUserData(const std::string& app_name,
                                           const std::string& user_data) {
   // Make the directory in case it doesn't already exist, ignoring errors.
-  if (mkdir(secure_path_.c_str(), 0700) < 0) {
+  if (mkdir(base_path_.c_str(), 0700) < 0) {
     int error = errno;
     if (error != 0 && error != EEXIST) {
       LogWarning("SaveUserData: Couldn't create directory %s: %d",
-                 secure_path_.c_str(), error);
+                 base_path_.c_str(), error);
+    }
+  }
+  if (mkdir(full_path_.c_str(), 0700) < 0) {
+    int error = errno;
+    if (error != 0 && error != EEXIST) {
+      LogWarning("SaveUserData: Couldn't create directory %s: %d",
+                 full_path_.c_str(), error);
     }
   }
 
@@ -109,7 +119,7 @@ void UserSecureFakeInternal::DeleteAllData() {
   std::vector<std::string> files_to_delete;
 #if defined(_WIN32)
   std::string file_spec =
-      secure_path_ + kDirectorySeparator + "*" + kFileExtension;
+      full_path_ + kDirectorySeparator + "*" + kFileExtension;
   WIN32_FIND_DATA file_data;
   HANDLE handle = FindFirstFile(file_spec.c_str(), &file_data);
   if (INVALID_HANDLE_VALUE == handle) {
@@ -122,13 +132,13 @@ void UserSecureFakeInternal::DeleteAllData() {
   }
   do {
     std::string file_path =
-        secure_path_ + kDirectorySeparator + file_data.cFileName;
+        full_path_ + kDirectorySeparator + file_data.cFileName;
     files_to_delete.push_back(file_path);
   } while (FindNextFile(handle, &file_data));
   FindClose(handle);
 #else
   // These are data types defined in the "dirent" header
-  DIR* the_folder = opendir(secure_path_.c_str());
+  DIR* the_folder = opendir(full_path_.c_str());
   if (!the_folder) {
     return;
   }
@@ -143,7 +153,7 @@ void UserSecureFakeInternal::DeleteAllData() {
     }
     // Build the path for each file in the folder
     std::string file_path =
-        secure_path_ + kDirectorySeparator + next_file->d_name;
+        full_path_ + kDirectorySeparator + next_file->d_name;
     files_to_delete.push_back(file_path);
   }
   closedir(the_folder);
@@ -158,16 +168,16 @@ void UserSecureFakeInternal::DeleteAllData() {
     }
   }
   // Remove the directory if it's empty, ignoring errors.
-  if (rmdir(secure_path_.c_str()) == -1) {
+  if (rmdir(full_path_.c_str()) == -1) {
     int error = errno;
     LogDebug("DeleteAllData: Couldn't remove directory %s: %d",
-             secure_path_.c_str(), error);
+             full_path_.c_str(), error);
   }
 }
 
 std::string UserSecureFakeInternal::GetFilePath(const std::string& app_name) {
   std::string filepath =
-      secure_path_ + kDirectorySeparator + app_name + kFileExtension;
+      full_path_ + kDirectorySeparator + app_name + kFileExtension;
   return filepath;
 }
 

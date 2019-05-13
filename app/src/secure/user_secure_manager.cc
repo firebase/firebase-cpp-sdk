@@ -47,7 +47,7 @@
 #define USER_SECURE_TYPE UserSecureLinuxInternal
 
 #else  // Unknown platform, use fake version.
-#warning "No secure storage for Auth persistence is available on this platform."
+#warning "No secure storage is available on this platform."
 #include "app/src/secure/user_secure_fake_internal.h"
 #define USER_SECURE_TYPE UserSecureFakeInternal
 #endif
@@ -62,9 +62,9 @@ Mutex UserSecureManager::s_scheduler_mutex_;  // NOLINT
 scheduler::Scheduler* UserSecureManager::s_scheduler_;
 int32_t UserSecureManager::s_scheduler_ref_count_;
 
-UserSecureManager::UserSecureManager(const char* app_id)
+UserSecureManager::UserSecureManager(const char* domain, const char* app_id)
     : future_api_(kUserSecureFnCount), safe_this_(this) {
-  user_secure_ = MakeUnique<USER_SECURE_TYPE>(app_id);
+  user_secure_ = MakeUnique<USER_SECURE_TYPE>(domain, app_id);
   CreateScheduler();
 }
 

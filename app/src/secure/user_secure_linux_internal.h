@@ -31,7 +31,9 @@ class UserSecureLinuxInternal : public UserSecureInternal {
   ~UserSecureLinuxInternal() override;
 
   // Overloaded constructor to set the storage schema for keys.
-  explicit UserSecureLinuxInternal(const char* key_namespace);
+  // domain = Library name (e.g. "auth", "iid", "fis")
+  // key_namespace = app ID (e.g. "com.mycompany.myapp");
+  UserSecureLinuxInternal(const char* domain, const char* key_namespace);
 
   std::string LoadUserData(const std::string& app_name) override;
 
@@ -43,6 +45,7 @@ class UserSecureLinuxInternal : public UserSecureInternal {
   void DeleteAllData() override;
 
  private:
+  const std::string domain_;
   const std::string key_namespace_;
   SecretSchema storage_schema_;
 };

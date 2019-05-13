@@ -26,7 +26,7 @@ namespace secure {
 // Fake implementation for the secure manager of user data.
 class UserSecureFakeInternal : public UserSecureInternal {
  public:
-  explicit UserSecureFakeInternal(const char* secure_path);
+  explicit UserSecureFakeInternal(const char* domain, const char* base_path);
   ~UserSecureFakeInternal() override;
 
   std::string LoadUserData(const std::string& app_name) override;
@@ -41,7 +41,9 @@ class UserSecureFakeInternal : public UserSecureInternal {
  private:
   std::string GetFilePath(const std::string& app_name);
 
-  const std::string secure_path_;
+  const std::string domain_;
+  const std::string base_path_;
+  std::string full_path_;
 };
 
 }  // namespace secure

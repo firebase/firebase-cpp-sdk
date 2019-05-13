@@ -397,7 +397,7 @@ Future<ResultT> DoReauthenticate(Promise<ResultT> promise,
 }  // namespace
 
 UserDataPersist::UserDataPersist(const char* app_id) {
-  user_secure_manager_ = MakeUnique<UserSecureManager>(app_id);
+  user_secure_manager_ = MakeUnique<UserSecureManager>("auth", app_id);
 }
 
 UserDataPersist::UserDataPersist(

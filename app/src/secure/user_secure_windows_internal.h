@@ -26,7 +26,9 @@ namespace secure {
 // Windows specific implementation for the secure manager of user data.
 class UserSecureWindowsInternal : public UserSecureInternal {
  public:
-  explicit UserSecureWindowsInternal(const char* key_namespace);
+  // domain = Library name (e.g. "auth", "iid", "fis")
+  // key_namespace = app ID (e.g. "com.mycompany.myapp");
+  UserSecureWindowsInternal(const char* domain, const char* key_namespace);
 
   ~UserSecureWindowsInternal() override;
 
@@ -43,6 +45,7 @@ class UserSecureWindowsInternal : public UserSecureInternal {
   std::string GetTargetName(const std::string& app_name);
   std::string GetTargetName(const std::string& app_name, size_t idx);
 
+  const std::string domain_;
   std::string namespace_;
 };
 

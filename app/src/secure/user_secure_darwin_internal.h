@@ -33,7 +33,9 @@ namespace secure {
 // keychain before writing to it, which is not a great user experience).
 class UserSecureDarwinInternal : public UserSecureInternal {
  public:
-  explicit UserSecureDarwinInternal(const char* service);
+  // domain = Library name (e.g. "auth", "iid", "fis")
+  // service = app ID (e.g. "com.mycompany.myapp");
+  UserSecureDarwinInternal(const char* domain, const char* service);
 
   ~UserSecureDarwinInternal() override;
 
@@ -59,6 +61,7 @@ class UserSecureDarwinInternal : public UserSecureInternal {
 
   std::string GetKeystoreLocation(const std::string& app);
 
+  const std::string domain_;
   std::string service_;
   std::string user_defaults_key_;
 };

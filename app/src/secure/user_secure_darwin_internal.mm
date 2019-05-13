@@ -23,17 +23,23 @@ namespace secure {
 
 // Prefix and suffix to add to keychain service name.
 static const char kServicePrefix[] = "";
-static const char kServiceSuffix[] = " [Firebase Auth]";
+static const char kServiceSuffix1[] = " [firebase.";
+static const char kServiceSuffix2[] = " ]";
+// For example: com.my_company.my_app [firebase.auth], com.my_company.my_app [firebase.iid]
+
 static const int kMaxAllowedKeychainEntries = INT_MAX;
 
-// Prefix and suffix for the key for NSUserDefaults.
-static const char kUserDefaultsPrefix[] = "com.google.firebase.auth.";
-static const char kUserDefaultsSuffix[] = ".has_saved_user";
+// Prefix and suffix for the key for NSUserDefaults. domain and service are inserted in the middle.
+static const char kUserDefaultsPrefix[] = "com.google.firebase.";
+static const char kUserDefaultsSuffix[] = ".has_secure_data";
+// For example: com.google.firebase.auth.com.my_company.my_app.has_secure_data
 
-UserSecureDarwinInternal::UserSecureDarwinInternal(const char* service) {
-  service_ = std::string(kServicePrefix) + service + std::string(kServiceSuffix);
+UserSecureDarwinInternal::UserSecureDarwinInternal(const char* domain, const char* service)
+    : domain_(domain) {
+  service_ = std::string(kServicePrefix) + service + std::string(kServiceSuffix1) + domain +
+             std::string(kServiceSuffix2);
   user_defaults_key_ =
-      std::string(kUserDefaultsPrefix) + service + std::string(kUserDefaultsSuffix);
+      std::string(kUserDefaultsPrefix) + service + "." + domain + std::string(kUserDefaultsSuffix);
 }
 
 UserSecureDarwinInternal::~UserSecureDarwinInternal() {}
@@ -116,8 +122,8 @@ void UserSecureDarwinInternal::SaveUserData(const std::string& app_name,
   DeleteUserData(app_name);
   NSMutableDictionary* query = GetQueryForApp(service_.c_str(), app_name.c_str());
   std::string keystore_location = GetKeystoreLocation(app_name);
-  std::string comment =
-      std::string("Firebase Auth persistent user data for ") + GetKeystoreLocation(app_name);
+  std::string comment = std::string("Firebase ") + domain_ + " persistent user data for " +
+                        GetKeystoreLocation(app_name);
   // Set the binary data, what type of accesibility it should have, and a comment.
   NSDictionary* attributes = @{
     (__bridge id)
