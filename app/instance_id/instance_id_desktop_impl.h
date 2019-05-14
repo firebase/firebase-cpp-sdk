@@ -15,17 +15,22 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_INSTANCE_ID_INSTANCE_ID_DESKTOP_IMPL_H_
 #define FIREBASE_APP_CLIENT_CPP_INSTANCE_ID_INSTANCE_ID_DESKTOP_IMPL_H_
 
+#include <cstdint>
 #include <map>
 #include <string>
 
+#include "app/memory/unique_ptr.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
-#include "app/src/mutex.h"
+#include "app/src/secure/user_secure_manager.h"
+#include "app/src/semaphore.h"
 
 namespace firebase {
 namespace instance_id {
 namespace internal {
+
+class InstanceIdDesktopImplTest;  // For testing.
 
 class InstanceIdDesktopImpl {
  public:
@@ -35,6 +40,9 @@ class InstanceIdDesktopImpl {
     kInstanceIdFnRemoveId,
     kInstanceIdFnGetToken,
     kInstanceIdFnRemoveToken,
+    kInstanceIdFnStorageSave,
+    kInstanceIdFnStorageLoad,
+    kInstanceIdFnStorageDelete,
     kInstanceIdFnCount,
   };
 
@@ -90,6 +98,8 @@ class InstanceIdDesktopImpl {
   App& app() { return *app_; }
 
  private:
+  friend class InstanceIdDesktopImplTest;
+
   explicit InstanceIdDesktopImpl(App* app);
 
   // Get future manager of this object
@@ -100,11 +110,42 @@ class InstanceIdDesktopImpl {
     return future_manager().GetFutureApi(this);
   }
 
+  // Verify and parse the stored IID data, called by LoadFromStorage(), and fill
+  // in this class. Returns false if there are any parsing errors.
+  bool ReadStoredInstanceIdData(const std::string& loaded_string);
+
+  // For testing only, to use a fake UserSecureManager.
+  void SetUserSecureManager(
+      UniquePtr<firebase::app::secure::UserSecureManager> manager) {
+    user_secure_manager_ = manager;
+  }
+
+  // Save the instance ID to local secure storage. Blocking.
+  bool SaveToStorage();
+  // Load the instance ID from local secure storage. Blocking.
+  bool LoadFromStorage();
+  // Delete the instance ID from local secure storage. Blocking.
+  bool DeleteFromStorage();
+
+  // Used to wait for async storage functions to finish.
+  Semaphore storage_semaphore_;
+
+  struct CheckinData {
+    std::string security_token;
+    std::string device_id;
+  };
+
   // Future manager of this object
   FutureManager future_manager_;
 
   // The App this object is connected to.
   App* app_;
+
+  UniquePtr<firebase::app::secure::UserSecureManager> user_secure_manager_;
+
+  CheckinData checkin_data_;
+  std::string instance_id_;
+  uint64_t expiration_time_;
 
   // Global map of App to InstanceIdDesktopImpl
   static std::map<App*, InstanceIdDesktopImpl*> instance_id_by_app_;

@@ -16,18 +16,31 @@
 
 #include <assert.h>
 
+#include "app/instance_id/iid_data_generated.h"
+#include "app/src/app_identifier.h"
 #include "app/src/cleanup_notifier.h"
 
 namespace firebase {
 namespace instance_id {
 namespace internal {
 
+using firebase::app::secure::UserSecureManager;
+
 std::map<App*, InstanceIdDesktopImpl*>
     InstanceIdDesktopImpl::instance_id_by_app_;          // NOLINT
 Mutex InstanceIdDesktopImpl::instance_id_by_app_mutex_;  // NOLINT
 
-InstanceIdDesktopImpl::InstanceIdDesktopImpl(App* app) : app_(app) {
+InstanceIdDesktopImpl::InstanceIdDesktopImpl(App* app)
+    : storage_semaphore_(0), app_(app) {
   future_manager().AllocFutureApi(this, kInstanceIdFnCount);
+
+  std::string package_name = app->options().package_name();
+  std::string project_id = app->options().project_id();
+  std::string app_identifier;
+
+  user_secure_manager_ = MakeUnique<UserSecureManager>(
+      "iid", firebase::internal::CreateAppIdentifierFromOptions(app_->options())
+                 .c_str());
 
   // Guarded through GetInstance() already.
   instance_id_by_app_[app] = this;
@@ -130,6 +143,98 @@ Future<void> InstanceIdDesktopImpl::DeleteToken() {
 Future<void> InstanceIdDesktopImpl::DeleteTokenLastResult() {
   return static_cast<const Future<void>&>(
       ref_future()->LastResult(kInstanceIdFnRemoveToken));
+}
+
+// Save the instance ID to local secure storage.
+bool InstanceIdDesktopImpl::SaveToStorage() {
+  // Build up a serialized buffer algorithmically:
+  flatbuffers::FlatBufferBuilder builder;
+
+  auto iid_data_table = CreateInstanceIdDesktopDataDirect(
+      builder, instance_id_.c_str(), checkin_data_.device_id.c_str(),
+      checkin_data_.security_token.c_str(), expiration_time_);
+  builder.Finish(iid_data_table);
+
+  std::string save_string;
+  auto bufferpointer =
+      reinterpret_cast<const char*>(builder.GetBufferPointer());
+  save_string.assign(bufferpointer, bufferpointer + builder.GetSize());
+  // Encode flatbuffer
+  std::string encoded;
+  UserSecureManager::BinaryToAscii(save_string, &encoded);
+
+  Future<void> future =
+      user_secure_manager_->SaveUserData(app_->name(), encoded);
+
+  future.OnCompletion(
+      [](const Future<void>& result, void* sem_void) {
+        Semaphore* sem_ptr = reinterpret_cast<Semaphore*>(sem_void);
+        sem_ptr->Post();
+      },
+      &storage_semaphore_);
+  storage_semaphore_.Wait();
+  return future.error() == 0;
+}
+
+// Load the instance ID from local secure storage.
+bool InstanceIdDesktopImpl::LoadFromStorage() {
+  Future<std::string> future = user_secure_manager_->LoadUserData(app_->name());
+
+  future.OnCompletion(
+      [](const Future<std::string>& result, void* sem_void) {
+        Semaphore* sem_ptr = reinterpret_cast<Semaphore*>(sem_void);
+        sem_ptr->Post();
+      },
+      &storage_semaphore_);
+  storage_semaphore_.Wait();
+  if (future.error() == 0) {
+    ReadStoredInstanceIdData(*future.result());
+  }
+  return future.error() == 0;
+}
+
+// Delete the instance ID from local secure storage.
+bool InstanceIdDesktopImpl::DeleteFromStorage() {
+  Future<void> future = user_secure_manager_->DeleteUserData(app_->name());
+
+  future.OnCompletion(
+      [](const Future<void>& result, void* sem_void) {
+        Semaphore* sem_ptr = reinterpret_cast<Semaphore*>(sem_void);
+        sem_ptr->Post();
+      },
+      &storage_semaphore_);
+  storage_semaphore_.Wait();
+  return future.error() == 0;
+}
+
+// Returns true if data was successfully read.
+bool InstanceIdDesktopImpl::ReadStoredInstanceIdData(
+    const std::string& loaded_string) {
+  // Decode to flatbuffer
+  std::string decoded;
+  if (!UserSecureManager::AsciiToBinary(loaded_string, &decoded)) {
+    LogWarning("Error decoding saved Instance ID.");
+    return false;
+  }
+  // Verify the Flatbuffer is valid.
+  flatbuffers::Verifier verifier(
+      reinterpret_cast<const uint8_t*>(decoded.c_str()), decoded.length());
+  if (!VerifyInstanceIdDesktopDataBuffer(verifier)) {
+    LogWarning("Error verifying saved Instance ID.");
+    return false;
+  }
+
+  auto iid_data_fb = GetInstanceIdDesktopData(decoded.c_str());
+  if (iid_data_fb == nullptr) {
+    LogWarning("Error reading table for saved Instance ID.");
+    return false;
+  }
+
+  instance_id_ = iid_data_fb->instance_id()->c_str();
+  checkin_data_.device_id = iid_data_fb->device_id()->c_str();
+  checkin_data_.security_token = iid_data_fb->security_token()->c_str();
+  expiration_time_ = iid_data_fb->expiration_time();
+  return true;
 }
 
 }  // namespace internal
