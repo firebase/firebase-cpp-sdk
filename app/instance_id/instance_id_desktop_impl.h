@@ -215,7 +215,10 @@ class InstanceIdDesktopImpl {
   UniquePtr<firebase::app::secure::UserSecureManager> user_secure_manager_;
 
   CheckinData checkin_data_;
+  // Cached instance ID.
   std::string instance_id_;
+  // Tokens indexed by scope.
+  std::map<std::string, std::string> tokens_;
 
   // Locale used to check-in.
   std::string locale_;

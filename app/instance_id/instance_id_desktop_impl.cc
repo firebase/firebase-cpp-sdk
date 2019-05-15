@@ -188,10 +188,16 @@ bool InstanceIdDesktopImpl::SaveToStorage() {
   // Build up a serialized buffer algorithmically:
   flatbuffers::FlatBufferBuilder builder;
 
+  std::vector<flatbuffers::Offset<Token>> token_offsets;
+  for (auto it = tokens_.begin(); it != tokens_.end(); ++it) {
+    token_offsets.push_back(CreateTokenDirect(
+        builder, it->first.c_str() /* scope */,
+        it->second.c_str() /* token */));
+  }
   auto iid_data_table = CreateInstanceIdDesktopDataDirect(
       builder, instance_id_.c_str(), checkin_data_.device_id.c_str(),
       checkin_data_.security_token.c_str(), checkin_data_.digest.c_str(),
-      checkin_data_.last_checkin_time_ms);
+      checkin_data_.last_checkin_time_ms, &token_offsets);
   builder.Finish(iid_data_table);
 
   std::string save_string;
@@ -276,6 +282,11 @@ bool InstanceIdDesktopImpl::ReadStoredInstanceIdData(
   checkin_data_.security_token = iid_data_fb->security_token()->c_str();
   checkin_data_.digest = iid_data_fb->digest()->c_str();
   checkin_data_.last_checkin_time_ms = iid_data_fb->last_checkin_time_ms();
+  tokens_.clear();
+  auto fbtokens = iid_data_fb->tokens();
+  for (auto it = fbtokens->begin(); it != fbtokens->end(); ++it) {
+    tokens_[it->scope()->c_str()] = it->token()->c_str();
+  }
   return true;
 }
 
