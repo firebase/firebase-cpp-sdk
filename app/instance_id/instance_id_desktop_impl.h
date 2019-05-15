@@ -20,11 +20,15 @@
 #include <string>
 
 #include "app/memory/unique_ptr.h"
+#include "app/rest/transport_curl.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/mutex.h"
+#include "app/src/scheduler.h"
 #include "app/src/secure/user_secure_manager.h"
 #include "app/src/semaphore.h"
+#include "flatbuffers/stl_emulation.h"
 
 namespace firebase {
 namespace instance_id {
@@ -99,6 +103,74 @@ class InstanceIdDesktopImpl {
 
  private:
   friend class InstanceIdDesktopImplTest;
+  // Response that signals this class when it's complete or canceled.
+  class SignalSemaphoreResponse : public rest::Response {
+   public:
+    explicit SignalSemaphoreResponse(Semaphore* complete)
+        : complete_(complete) {}
+
+    void MarkCompleted() override {
+      rest::Response::MarkCompleted();
+      complete_->Post();
+    }
+
+    void MarkCanceled() override {
+      rest::Response::MarkCompleted();
+      complete_->Post();
+    }
+
+    void Wait() { complete_->Wait(); }
+
+   private:
+    Semaphore* complete_;
+  };
+
+  // State for the current network operation.
+  struct NetworkOperation {
+    NetworkOperation(const std::string& request_data, Semaphore* complete)
+        : request(request_data.c_str(), request_data.length()),
+          response(complete) {}
+
+    // Schedule the network operation.
+    void Perform(rest::Transport* transport) {
+      transport->Perform(request, &response, &controller);
+    }
+
+    // Cancel the current operation.
+    void Cancel() {
+      rest::Controller* ctrl = controller.get();
+      if (ctrl) ctrl->Cancel();
+    }
+
+    // Data sent to the server.
+    rest::Request request;
+    // Data returned by the server.
+    SignalSemaphoreResponse response;
+    // Progress of the request and allows us to cancel the request.
+    flatbuffers::unique_ptr<rest::Controller> controller;
+  };
+
+  // Data cached from a check-in and required to perform instance ID operations.
+  struct CheckinData {
+    CheckinData() : last_checkin_time_ms(0) {}
+
+    // Reset to the default state.
+    void Clear() {
+      security_token.clear();
+      device_id.clear();
+      digest.clear();
+      last_checkin_time_ms = 0;
+    }
+
+    // Security token from the last check-in.
+    std::string security_token;
+    // Device ID from the last check-in.
+    std::string device_id;
+    // Digest from the previous checkin.
+    std::string digest;
+    // Last check-in time in milliseconds since the Linux epoch.
+    uint64_t last_checkin_time_ms;
+  };
 
   explicit InstanceIdDesktopImpl(App* app);
 
@@ -130,10 +202,9 @@ class InstanceIdDesktopImpl {
   // Used to wait for async storage functions to finish.
   Semaphore storage_semaphore_;
 
-  struct CheckinData {
-    std::string security_token;
-    std::string device_id;
-  };
+  // Fetch the current device ID and security token or check-in to retrieve
+  // a new device ID and security token.
+  bool InitialOrRefreshCheckin();
 
   // Future manager of this object
   FutureManager future_manager_;
@@ -145,7 +216,33 @@ class InstanceIdDesktopImpl {
 
   CheckinData checkin_data_;
   std::string instance_id_;
-  uint64_t expiration_time_;
+
+  // Locale used to check-in.
+  std::string locale_;
+  // Time-zone used to check-in.
+  std::string timezone_;
+  // Logging ID for check-in requests.
+  int logging_id_;
+  // iOS device to spoof.
+  std::string ios_device_model_;
+  // iOS device version.
+  std::string ios_device_version_;
+
+  // Performs network operations for this object.
+  UniquePtr<rest::Transport> transport_;
+  Mutex network_operation_mutex_;
+  // A network operation if a request is in progress, null otherwise.
+  // Guarded by network_operation_mutex_.
+  UniquePtr<NetworkOperation> network_operation_;
+  // Buffer for the request in progress.
+  std::string request_buffer_;
+  // Signaled when the current network operation is complete.
+  Semaphore network_operation_complete_;
+  // Serializes all network operations from this object.
+  scheduler::Scheduler scheduler_;
+  // Whether tasks should continue to be scheduled.
+  // Guarded by network_operation_mutex_.
+  bool terminating_;
 
   // Global map of App to InstanceIdDesktopImpl
   static std::map<App*, InstanceIdDesktopImpl*> instance_id_by_app_;

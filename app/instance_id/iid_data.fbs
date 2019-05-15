@@ -28,9 +28,11 @@ table InstanceIdDesktopData {
   // Security token returned by the check-in service.  This is used to request
   // tokens from the IID service.
   security_token:string;
-  // When the device ID and security token expire in UTC milliseconds since the
+  // Check-in digest, required for refresh requests.
+  digest:string;
+  // Time of the last succeessful checkin request in UTC milliseconds since the
   // epoch.
-  expiration_time:uint64;
+  last_checkin_time_ms:uint64;
 }
 
 root_type InstanceIdDesktopData;
