@@ -123,6 +123,9 @@ class Scheduler {
                           ScheduleTimeMs delay = 0, ScheduleTimeMs repeat = 0);
 #endif  // FIREBASE_USE_STD_FUNCTION
 
+  // Cancel all scheduled callbacks and shut down the worker thread.
+  void CancelAllAndShutdownWorkerThread();
+
  private:
   typedef uint64_t RequestId;
   // The request data for all scheduled callback.

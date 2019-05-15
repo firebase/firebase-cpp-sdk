@@ -72,9 +72,14 @@ Scheduler::Scheduler()
 }
 
 Scheduler::~Scheduler() {
+  CancelAllAndShutdownWorkerThread();
+}
+
+void Scheduler::CancelAllAndShutdownWorkerThread() {
   {
-    // Notify the worker thread to stop processing anymore request
+    // Notify the worker thread to stop processing anymore requests.
     MutexLock lock(request_mutex_);
+    if (terminating_) return;
     terminating_ = true;
   }
 
