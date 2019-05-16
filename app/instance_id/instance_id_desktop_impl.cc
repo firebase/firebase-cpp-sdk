@@ -17,6 +17,8 @@
 #include <assert.h>
 
 #include "app/instance_id/iid_data_generated.h"
+#include "app/rest/util.h"
+#include "app/rest/www_form_url_encoded.h"
 #include "app/src/app_identifier.h"
 #include "app/src/base64.h"
 #include "app/src/cleanup_notifier.h"
@@ -54,9 +56,13 @@ InstanceIdDesktopImpl::InstanceIdDesktopImpl(App* app)
       logging_id_(rand()),  // NOLINT
       ios_device_model_("iPhone 8" /* TODO */),
       ios_device_version_("8.0" /* TODO */),
+      app_version_("1.2.3" /* TODO */),
+      os_version_("freedos-10.0.0" /* TODO */),
+      platform_(0),
       network_operation_complete_(0),
       terminating_(false) {
   rest::InitTransportCurl();
+  rest::util::Initialize();
   transport_.reset(new rest::TransportCurl());
   (void)kInstanceIdUrl;  // TODO(smiles): Remove this when registration is in.
 
@@ -107,6 +113,7 @@ InstanceIdDesktopImpl::~InstanceIdDesktopImpl() {
   scheduler_.CancelAllAndShutdownWorkerThread();
 
   rest::CleanupTransportCurl();
+  rest::util::Terminate();
   {
     MutexLock lock(instance_id_by_app_mutex_);
     auto it = instance_id_by_app_.find(app_);
@@ -394,6 +401,7 @@ bool InstanceIdDesktopImpl::InitialOrRefreshCheckin() {
     rest::Request* request = &network_operation_->request;
     request->set_url(kCheckinUrl);
     request->set_method(rest::util::kPost);
+    request->add_header(rest::util::kAccept, rest::util::kApplicationJson);
     request->add_header(rest::util::kContentType, rest::util::kApplicationJson);
     network_operation_->Perform(transport_.get());
   }
@@ -426,8 +434,8 @@ bool InstanceIdDesktopImpl::InitialOrRefreshCheckin() {
       network_operation_.reset(nullptr);
       return false;
     }
-    checkin_data_.device_id = root["android_id"].AsString().c_str();
-    checkin_data_.security_token = root["security_token"].AsString().c_str();
+    checkin_data_.device_id = root["android_id"].ToString();
+    checkin_data_.security_token = root["security_token"].ToString();
     checkin_data_.digest = root["digest"].AsString().c_str();
     checkin_data_.last_checkin_time_ms = firebase::internal::GetTimestamp();
     network_operation_.reset(nullptr);
@@ -461,6 +469,102 @@ std::string InstanceIdDesktopImpl::GenerateAppId() {
     return output;
   }
   return "";  // Error encoding.
+}
+
+std::string InstanceIdDesktopImpl::FindCachedToken(const char* scope) {
+  auto cached_token = tokens_.find(scope);
+  if (cached_token == tokens_.end()) return std::string();
+  return cached_token->second;
+}
+
+void InstanceIdDesktopImpl::DeleteCachedToken(const char* scope) {
+  auto cached_token = tokens_.find(scope);
+  if (cached_token != tokens_.end()) {
+    tokens_.erase(cached_token);
+  }
+}
+
+bool InstanceIdDesktopImpl::FetchToken(const char* scope) {
+  if (terminating_ || !InitialOrRefreshCheckin()) return false;
+
+  // If we already have a token, don't refresh.
+  std::string token = FindCachedToken(scope);
+  if (!token.empty()) return true;
+
+  const AppOptions& app_options = app_->options();
+  request_buffer_.clear();
+  rest::WwwFormUrlEncoded form(&request_buffer_);
+  form.Add("sender", app_options.messaging_sender_id());
+  form.Add("app", app_options.package_name());
+  form.Add("app_ver", app_version_.c_str());
+  form.Add("device", checkin_data_.device_id.c_str());
+  // NOTE: We're not providing the Xcliv field here as we don't support
+  // FCM on desktop yet.
+  form.Add("X-scope", scope);
+  form.Add("X-subtype", app_options.messaging_sender_id());
+  form.Add("X-osv", os_version_.c_str());
+  form.Add("plat", flatbuffers::NumToString(platform_).c_str());
+  form.Add("app_id", instance_id_.c_str());
+
+  // Send request to the server then wait for the response or for the request
+  // to be canceled by another thread.
+  {
+    MutexLock lock(network_operation_mutex_);
+    network_operation_.reset(
+        new NetworkOperation(request_buffer_, &network_operation_complete_));
+    rest::Request* request = &network_operation_->request;
+    request->set_url(kInstanceIdUrl);
+    request->set_method(rest::util::kPost);
+    request->add_header(rest::util::kAccept,
+                        rest::util::kApplicationWwwFormUrlencoded);
+    request->add_header(rest::util::kContentType,
+                        rest::util::kApplicationWwwFormUrlencoded);
+    request->add_header(rest::util::kAuthorization,
+                        (std::string("AidLogin ") + checkin_data_.device_id +
+                         std::string(":") + checkin_data_.security_token)
+                            .c_str());
+    network_operation_->Perform(transport_.get());
+  }
+  network_operation_complete_.Wait();
+
+  {
+    MutexLock lock(network_operation_mutex_);
+    assert(network_operation_.get());
+    const rest::Response& response = network_operation_->response;
+    // Check for errors
+    if (response.status() != rest::util::HttpSuccess) {
+      LogError("Instance ID token fetch failed with response %d '%s'",
+               response.status(), response.GetBody());
+      network_operation_.reset(nullptr);
+      return false;
+    }
+    // Parse the response.
+    auto form_data = rest::WwwFormUrlEncoded::Parse(response.GetBody());
+
+    std::string error;
+
+    // Search the response for a token or an error.
+    for (size_t i = 0; i < form_data.size(); ++i) {
+      const auto& item = form_data[i];
+      if (item.key == "token") {
+        token = item.value;
+      } else if (item.key == "Error") {
+        error = item.value;
+      }
+    }
+
+    if (token.empty()) {
+      LogError(
+          "No token returned in instance ID token fetch. "
+          "Responded with '%s'",
+          response.GetBody());
+      return false;
+    }
+
+    // Cache the token.
+    tokens_[scope] = token;
+  }
+  return true;
 }
 
 }  // namespace internal

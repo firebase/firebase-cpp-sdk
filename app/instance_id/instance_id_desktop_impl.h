@@ -207,6 +207,16 @@ class InstanceIdDesktopImpl {
   // randomness, then base64-encoded until golden brown.
   std::string GenerateAppId();
 
+  // Find cached token for a scope.
+  std::string FindCachedToken(const char* scope);
+
+  // Clear a token for a scope.
+  void DeleteCachedToken(const char* scope);
+
+  // Fetch a new token.  Scope can be either "FCM" or "*" for remote config
+  // and other users.
+  bool FetchToken(const char* scope);
+
   // Used to wait for async storage functions to finish.
   Semaphore storage_semaphore_;
 
@@ -234,6 +244,12 @@ class InstanceIdDesktopImpl {
   std::string ios_device_model_;
   // iOS device version.
   std::string ios_device_version_;
+  // Application version.
+  std::string app_version_;
+  // Operating system version.
+  std::string os_version_;
+  // Platform requesting a token. 0 = UNKNOWN
+  int platform_;
 
   // Performs network operations for this object.
   UniquePtr<rest::Transport> transport_;

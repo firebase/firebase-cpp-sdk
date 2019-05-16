@@ -33,8 +33,12 @@ namespace rest {
 namespace util {
 
 const char kHttpHeaderSeparator = ':';
+const char kAccept[] = "Accept";
+const char kAuthorization[] = "Authorization";
 const char kContentType[] = "Content-Type";
 const char kApplicationJson[] = "application/json";
+const char kApplicationWwwFormUrlencoded[] =
+    "application/x-www-form-urlencoded";
 const char kDate[] = "Date";
 const char kCrLf[] = "\r\n";
 const char kGet[] = "GET";

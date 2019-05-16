@@ -18,6 +18,7 @@
 #define FIREBASE_APP_CLIENT_CPP_REST_UTIL_H_
 
 #include <string>
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/mutex.h"
 #include "flatbuffers/idl.h"
@@ -29,8 +30,11 @@ namespace util {
 // The separator between field name and value in HTTP headers.
 extern const char kHttpHeaderSeparator;
 // String literals for a few common header strings (names and values).
+extern const char kAccept[];
+extern const char kAuthorization[];
 extern const char kContentType[];
 extern const char kApplicationJson[];
+extern const char kApplicationWwwFormUrlencoded[];
 extern const char kDate[];
 // The CRLF literal.
 extern const char kCrLf[];
