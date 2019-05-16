@@ -18,8 +18,10 @@
 
 #include "app/instance_id/iid_data_generated.h"
 #include "app/src/app_identifier.h"
+#include "app/src/base64.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/time.h"
+#include "app/src/uuid.h"
 #include "flatbuffers/flexbuffers.h"
 
 namespace firebase {
@@ -190,9 +192,9 @@ bool InstanceIdDesktopImpl::SaveToStorage() {
 
   std::vector<flatbuffers::Offset<Token>> token_offsets;
   for (auto it = tokens_.begin(); it != tokens_.end(); ++it) {
-    token_offsets.push_back(CreateTokenDirect(
-        builder, it->first.c_str() /* scope */,
-        it->second.c_str() /* token */));
+    token_offsets.push_back(CreateTokenDirect(builder,
+                                              it->first.c_str() /* scope */,
+                                              it->second.c_str() /* token */));
   }
   auto iid_data_table = CreateInstanceIdDesktopDataDirect(
       builder, instance_id_.c_str(), checkin_data_.device_id.c_str(),
@@ -299,6 +301,11 @@ bool InstanceIdDesktopImpl::InitialOrRefreshCheckin() {
     // because the data doesn't exist or if there is an I/O error, just
     // continue.
     LoadFromStorage();
+  }
+
+  // If we don't have an instance_id_ yet, generate one now.
+  if (instance_id_.empty()) {
+    instance_id_ = GenerateAppId();
   }
 
   // If we've already checked in.
@@ -431,6 +438,29 @@ bool InstanceIdDesktopImpl::InitialOrRefreshCheckin() {
     }
   }
   return true;
+}
+
+std::string InstanceIdDesktopImpl::GenerateAppId() {
+  firebase::internal::Uuid uuid;
+  uuid.Generate();
+  // Collapse into 8 bytes, forcing the top 4 bits to be 0x70.
+  uint8_t buffer[8];
+  buffer[0] = ((uuid.data[0] ^ uuid.data[8]) & 0x0f) | 0x70;
+  buffer[1] = uuid.data[1] ^ uuid.data[9];
+  buffer[2] = uuid.data[2] ^ uuid.data[10];
+  buffer[3] = uuid.data[3] ^ uuid.data[11];
+  buffer[4] = uuid.data[4] ^ uuid.data[12];
+  buffer[5] = uuid.data[5] ^ uuid.data[13];
+  buffer[6] = uuid.data[6] ^ uuid.data[14];
+  buffer[7] = uuid.data[7] ^ uuid.data[15];
+
+  std::string input(reinterpret_cast<char*>(buffer), sizeof(buffer));
+  std::string output;
+
+  if (firebase::internal::Base64Encode(input, &output)) {
+    return output;
+  }
+  return "";  // Error encoding.
 }
 
 }  // namespace internal

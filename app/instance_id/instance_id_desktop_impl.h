@@ -199,12 +199,16 @@ class InstanceIdDesktopImpl {
   // Delete the instance ID from local secure storage. Blocking.
   bool DeleteFromStorage();
 
-  // Used to wait for async storage functions to finish.
-  Semaphore storage_semaphore_;
-
   // Fetch the current device ID and security token or check-in to retrieve
   // a new device ID and security token.
   bool InitialOrRefreshCheckin();
+
+  // Generate a new appid. This is 4 bits of 0x7 followed by 60 bits of
+  // randomness, then base64-encoded until golden brown.
+  std::string GenerateAppId();
+
+  // Used to wait for async storage functions to finish.
+  Semaphore storage_semaphore_;
 
   // Future manager of this object
   FutureManager future_manager_;
