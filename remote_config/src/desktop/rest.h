@@ -18,6 +18,7 @@
 #include <cstdint>
 
 #include "firebase/app.h"
+#include "app/src/semaphore.h"
 #ifndef REST_STUB_IMPL  // These pull in unnecessary deps for the stub
 #include "app/rest/request_binary_gzip.h"
 #include "app/rest/response_binary.h"
@@ -73,10 +74,12 @@ class RemoteConfigREST {
 
   ~RemoteConfigREST();
 
-  // 1. Setup REST request;
-  // 2. Make REST request;
-  // 3. Parse REST response.
-  void Fetch();
+  // 1. Attempt to Fetch Instance Id and token.  App is required to get an
+  //    instance of InstanceIdDesktopImpl.
+  // 2. Setup REST request;
+  // 3. Make REST request;
+  // 4. Parse REST response.
+  void Fetch(const App& app);
 
   // After Fetch() will return updated fetched holder. Otherwise will return not
   // updated fetched holder.
@@ -87,6 +90,10 @@ class RemoteConfigREST {
   const RemoteConfigMetadata& metadata() const { return configs_.metadata; }
 
  private:
+  // Attempt to get Instance Id and token from app synchronously.  This will
+  // block the current thread and wait until the futures are complete.
+  void TryGetInstanceIdAndToken(const App& app);
+
   // Setup all values to make REST request. Call `SetupProtoRequest` to setup
   // post fields.
   void SetupRestRequest();
@@ -122,6 +129,13 @@ class RemoteConfigREST {
 
   // cache expiration
   uint64_t cache_expiration_in_seconds_;
+
+  // Instance Id data
+  std::string app_instance_id_;
+  std::string app_instance_id_token_;
+
+  // The semaphore to block the thread and wait for.
+  Semaphore fetch_future_sem_;
 
 #ifndef REST_STUB_IMPL
   // HTTP request/response

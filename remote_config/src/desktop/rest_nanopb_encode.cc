@@ -113,7 +113,9 @@ pb_callback_t EncodePackageDataCB(const PackageData& source) {
 
     npb_package.namespace_digest = EncodeNamedValuesCB(source.namespace_digest);
     npb_package.custom_variable = EncodeNamedValuesCB(source.custom_variable);
-
+    npb_package.app_instance_id = EncodeStringCB(source.app_instance_id);
+    npb_package.app_instance_id_token =
+        EncodeStringCB(source.app_instance_id_token);
     npb_package.sdk_version = source.sdk_version;
     npb_package.has_sdk_version = (source.sdk_version != 0);
     npb_package.requested_cache_expiration_seconds =

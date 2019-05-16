@@ -376,7 +376,7 @@ void RemoteConfigDesktop::AsyncFetch() {
       }
 
       // Fetch fresh config from server.
-      rest->Fetch();
+      rest->Fetch(app_);
 
       {
         std::unique_lock<std::mutex> lock(mutex_);

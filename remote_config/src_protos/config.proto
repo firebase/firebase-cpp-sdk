@@ -24,6 +24,8 @@ message PackageData {
   optional string gmp_project_id = 6;
   repeated NamedValue namespace_digest = 8;
   repeated NamedValue custom_variable = 9;
+  optional string app_instance_id = 12;
+  optional string app_instance_id_token = 14;
   optional int32 sdk_version = 16;
   optional int32 requested_cache_expiration_seconds = 18;
   optional int32 fetched_config_age_seconds = 19;

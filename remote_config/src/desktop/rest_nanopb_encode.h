@@ -39,6 +39,14 @@ struct PackageData {
   // custom variables as defined by the client app.
   NamedValues custom_variable;
 
+  // optional
+  // The instance id of the app.
+  std::string app_instance_id;
+
+  // optional
+  // The instance id token of the app.
+  std::string app_instance_id_token;
+
   // version of the firebase remote config sdk. constructed by a major version,
   // a minor version, and a patch version, using the formula:
   // (major * 10000) + (minor * 100) + patch

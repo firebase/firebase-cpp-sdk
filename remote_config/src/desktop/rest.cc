@@ -20,6 +20,7 @@
 #include <sstream>
 
 #include "firebase/app.h"
+#include "app/instance_id/instance_id_desktop_impl.h"
 #include "app/meta/move.h"
 #include "app/rest/request_binary.h"
 #include "app/rest/response_binary.h"
@@ -53,7 +54,8 @@ RemoteConfigREST::RemoteConfigREST(const firebase::AppOptions& app_options,
     : app_package_name_(app_options.package_name()),
       app_gmp_project_id_(app_options.app_id()),
       configs_(configs),
-      cache_expiration_in_seconds_(cache_expiration_in_seconds) {
+      cache_expiration_in_seconds_(cache_expiration_in_seconds),
+      fetch_future_sem_(0) {
   rest::util::Initialize();
   firebase::rest::InitTransportCurl();
 }
@@ -63,10 +65,55 @@ RemoteConfigREST::~RemoteConfigREST() {
   rest::util::Terminate();
 }
 
-void RemoteConfigREST::Fetch() {
+void RemoteConfigREST::Fetch(const App& app) {
+  TryGetInstanceIdAndToken(app);
   SetupRestRequest();
   firebase::rest::CreateTransport()->Perform(rest_request_, &rest_response_);
   ParseRestResponse();
+}
+
+void WaitForFuture(const Future<std::string>& future, Semaphore* future_sem,
+                   std::string* result, const char* action_name) {
+  // Block and wait until Future is complete.
+  future.OnCompletion(
+      [](const firebase::Future<std::string>& result, void* data) {
+        Semaphore* sem = static_cast<Semaphore*>(data);
+        sem->Post();
+      },
+      future_sem);
+  future_sem->Wait();
+
+  if (future.status() == firebase::kFutureStatusComplete &&
+      future.error() ==
+          firebase::instance_id::internal::InstanceIdDesktopImpl::kErrorNone) {
+    *result = *future.result();
+  } else if (future.status() != firebase::kFutureStatusComplete) {
+    // It is fine if timeout
+    LogWarning("Remote Config Fetch: %s timeout", action_name);
+  } else {
+    // It is fine if failed
+    LogWarning("Remote Config Fetch: Failed to %s. Error %d: %s", action_name,
+               future.error(), future.error_message());
+  }
+}
+
+void RemoteConfigREST::TryGetInstanceIdAndToken(const App& app) {
+  // Convert the app reference stored in RemoteConfigDesktop
+  // pointer for InstanceIdDesktopImpl.
+  App* non_const_app = const_cast<App*>(&app);
+  auto* iid_impl =
+      firebase::instance_id::internal::InstanceIdDesktopImpl::GetInstance(
+          non_const_app);
+  assert(iid_impl);
+
+  WaitForFuture(iid_impl->GetId(), &fetch_future_sem_, &app_instance_id_,
+                "Get Instance Id");
+
+  // Only get token if instance id is retrieved.
+  if (!app_instance_id_.empty()) {
+    WaitForFuture(iid_impl->GetToken(), &fetch_future_sem_,
+                  &app_instance_id_token_, "Get Instance Id Token");
+  }
 }
 
 void RemoteConfigREST::SetupRestRequest() {
@@ -112,6 +159,9 @@ void RemoteConfigREST::GetPackageData(PackageData* package_data) {
   if (configs_.metadata.GetSetting(kConfigSettingDeveloperMode) == "1") {
     package_data->custom_variable[kDeveloperModeKey] = "1";
   }
+
+  package_data->app_instance_id = app_instance_id_;
+  package_data->app_instance_id_token = app_instance_id_token_;
 
   package_data->requested_cache_expiration_seconds =
       static_cast<int32_t>(cache_expiration_in_seconds_);
