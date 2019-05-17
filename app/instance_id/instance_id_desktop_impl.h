@@ -213,9 +213,21 @@ class InstanceIdDesktopImpl {
   // Clear a token for a scope.
   void DeleteCachedToken(const char* scope);
 
-  // Fetch a new token.  Scope can be either "FCM" or "*" for remote config
-  // and other users.
-  bool FetchToken(const char* scope);
+  // Perform a token fetch or delete network operation with an optional
+  // callback to modify the request before the network operation is scheduled.
+  void ServerTokenOperation(const char* scope,
+                            void (*request_callback)(rest::Request* request,
+                                                     void* state),
+                            void* state);
+
+  // Fetch a token from the cache or retrieve a new token from the server.
+  // The scope can be either "FCM" or "*" for remote config and other users.
+  bool FetchServerToken(const char* scope);
+
+  // Delete a server-side token for a scope and remove it from the cache.
+  // If delete_id is true all tokens are deleted along with the server
+  // registration of instance ID.
+  bool DeleteServerToken(const char* scope, bool delete_id);
 
   // Used to wait for async storage functions to finish.
   Semaphore storage_semaphore_;

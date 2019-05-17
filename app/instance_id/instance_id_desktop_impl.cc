@@ -19,9 +19,11 @@
 #include "app/instance_id/iid_data_generated.h"
 #include "app/rest/util.h"
 #include "app/rest/www_form_url_encoded.h"
+#include "app/src/app_common.h"
 #include "app/src/app_identifier.h"
 #include "app/src/base64.h"
 #include "app/src/cleanup_notifier.h"
+#include "app/src/locale.h"
 #include "app/src/time.h"
 #include "app/src/uuid.h"
 #include "flatbuffers/flexbuffers.h"
@@ -44,6 +46,13 @@ static const int kCheckinProtocolVersion = 2;
 // Instance ID backend.
 static const char kInstanceIdUrl[] = "https://fcmtoken.googleapis.com/register";
 
+// Backend had a temporary failure, the client should retry. http://b/27043795
+static const char kPhoneRegistrationError[] = "PHONE_REGISTRATION_ERROR";
+// Server detected the token is no longer valid.
+static const char kTokenResetError[] = "RST";
+// Wildcard scope used to delete all tokens and the ID in a server registration.
+static const char kWildcardTokenScope[] = "*";
+
 std::map<App*, InstanceIdDesktopImpl*>
     InstanceIdDesktopImpl::instance_id_by_app_;          // NOLINT
 Mutex InstanceIdDesktopImpl::instance_id_by_app_mutex_;  // NOLINT
@@ -51,20 +60,18 @@ Mutex InstanceIdDesktopImpl::instance_id_by_app_mutex_;  // NOLINT
 InstanceIdDesktopImpl::InstanceIdDesktopImpl(App* app)
     : storage_semaphore_(0),
       app_(app),
-      locale_("en_US" /* TODO(b/132732303) */),
-      timezone_("America/Los_Angeles" /* TODO(b/132733022) */),
+      locale_(firebase::internal::GetLocale()),
       logging_id_(rand()),  // NOLINT
-      ios_device_model_("iPhone 8" /* TODO */),
-      ios_device_version_("8.0" /* TODO */),
+      ios_device_model_(app_common::kOperatingSystem),
+      ios_device_version_("0.0.0" /* TODO */),
       app_version_("1.2.3" /* TODO */),
-      os_version_("freedos-10.0.0" /* TODO */),
+      os_version_(app_common::kOperatingSystem /* TODO add: version */),
       platform_(0),
       network_operation_complete_(0),
       terminating_(false) {
   rest::InitTransportCurl();
   rest::util::Initialize();
   transport_.reset(new rest::TransportCurl());
-  (void)kInstanceIdUrl;  // TODO(smiles): Remove this when registration is in.
 
   future_manager().AllocFutureApi(this, kInstanceIdFnCount);
 
@@ -160,21 +167,11 @@ Future<void> InstanceIdDesktopImpl::DeleteId() {
   SafeFutureHandle<void> handle =
       ref_future()->SafeAlloc<void>(kInstanceIdFnRemoveId);
 
-  std::vector<std::string> token_scopes;
-  for (auto i = tokens_.begin(); i != tokens_.end(); ++i) {
-    token_scopes.push_back(i->first);
+  if (DeleteServerToken(nullptr, true)) {
+    ref_future()->Complete(handle, 0, "");
+  } else {
+    ref_future()->Complete(handle, kErrorUnknownError, "DeleteId failed");
   }
-  // Delete all tokens.
-  while (!token_scopes.empty()) {
-    /* TODO DeleteTokenRequest(token_scopes.back()); */
-    DeleteCachedToken(token_scopes.back().c_str());
-    token_scopes.pop_back();
-  }
-  instance_id_ = "";
-  DeleteFromStorage();
-  checkin_data_.Clear();
-  ref_future()->Complete(handle, 0, "");
-
   return MakeFuture(ref_future(), handle);
 }
 
@@ -191,7 +188,7 @@ Future<std::string> InstanceIdDesktopImpl::GetToken(const char* scope) {
       ref_future()->SafeAlloc<std::string>(kInstanceIdFnGetToken);
 
   std::string scope_str(scope);
-  if (FetchToken(scope_str.c_str())) {
+  if (FetchServerToken(scope_str.c_str())) {
     ref_future()->CompleteWithResult(handle, 0, "",
                                      FindCachedToken(scope_str.c_str()));
   } else {
@@ -213,9 +210,7 @@ Future<void> InstanceIdDesktopImpl::DeleteToken(const char* scope) {
       ref_future()->SafeAlloc<void>(kInstanceIdFnRemoveToken);
 
   std::string scope_str(scope);
-  DeleteCachedToken(scope_str.c_str());
-  if (/*ServerDeleteToken(scope_str.c_str() && */
-      tokens_.find(scope_str) == tokens_.end()) {
+  if (DeleteServerToken(scope_str.c_str(), false)) {
     ref_future()->Complete(handle, 0, "");
   } else {
     ref_future()->Complete(handle, kErrorUnknownError, "DeleteToken failed");
@@ -392,7 +387,9 @@ bool InstanceIdDesktopImpl::InitialOrRefreshCheckin() {
     int logging_id;
     const char* ios_device_model;
     const char* ios_device_version;
-  } builder_scope(&fbb, &checkin_data_, locale_.c_str(), timezone_.c_str(),
+  } builder_scope(&fbb, &checkin_data_, locale_.c_str(),
+                  timezone_.empty() ? firebase::internal::GetTimezone().c_str()
+                                    : timezone_.c_str(),
                   logging_id_, ios_device_model_.c_str(),
                   ios_device_version_.c_str());
   fbb.Map(
@@ -520,18 +517,13 @@ std::string InstanceIdDesktopImpl::FindCachedToken(const char* scope) {
 
 void InstanceIdDesktopImpl::DeleteCachedToken(const char* scope) {
   auto cached_token = tokens_.find(scope);
-  if (cached_token != tokens_.end()) {
-    tokens_.erase(cached_token);
-  }
+  if (cached_token != tokens_.end()) tokens_.erase(cached_token);
 }
 
-bool InstanceIdDesktopImpl::FetchToken(const char* scope) {
-  if (terminating_ || !InitialOrRefreshCheckin()) return false;
-
-  // If we already have a token, don't refresh.
-  std::string token = FindCachedToken(scope);
-  if (!token.empty()) return true;
-
+void InstanceIdDesktopImpl::ServerTokenOperation(
+    const char* scope,
+    void (*request_callback)(rest::Request* request, void* state),
+    void* state) {
   const AppOptions& app_options = app_->options();
   request_buffer_.clear();
   rest::WwwFormUrlEncoded form(&request_buffer_);
@@ -564,10 +556,20 @@ bool InstanceIdDesktopImpl::FetchToken(const char* scope) {
                         (std::string("AidLogin ") + checkin_data_.device_id +
                          std::string(":") + checkin_data_.security_token)
                             .c_str());
+    if (request_callback) request_callback(request, state);
     network_operation_->Perform(transport_.get());
   }
   network_operation_complete_.Wait();
+}
 
+bool InstanceIdDesktopImpl::FetchServerToken(const char* scope) {
+  if (terminating_ || !InitialOrRefreshCheckin()) return false;
+
+  // If we already have a token, don't refresh.
+  std::string token = FindCachedToken(scope);
+  if (!token.empty()) return true;
+
+  ServerTokenOperation(scope, nullptr, nullptr);
   {
     MutexLock lock(network_operation_mutex_);
     assert(network_operation_.get());
@@ -581,9 +583,7 @@ bool InstanceIdDesktopImpl::FetchToken(const char* scope) {
     }
     // Parse the response.
     auto form_data = rest::WwwFormUrlEncoded::Parse(response.GetBody());
-
     std::string error;
-
     // Search the response for a token or an error.
     for (size_t i = 0; i < form_data.size(); ++i) {
       const auto& item = form_data[i];
@@ -594,18 +594,120 @@ bool InstanceIdDesktopImpl::FetchToken(const char* scope) {
       }
     }
 
+    // Parse any returned errors.
+    if (!error.empty()) {
+      size_t component_start = 0;
+      size_t component_end;
+      do {
+        component_end = error.find(":", component_start);
+        std::string error_component =
+            error.substr(component_start, component_end - component_start);
+        if (error_component == kPhoneRegistrationError) {
+          // TODO(smiles): Retry with expodential backoff.
+          network_operation_.reset(nullptr);
+          return true;
+        } else if (error_component == kTokenResetError) {
+          // Server requests that the token is reset.
+          DeleteServerToken(nullptr, true);
+          network_operation_.reset(nullptr);
+          return false;
+        }
+        component_start = component_end + 1;
+      } while (component_end != std::string::npos);
+    }
+
     if (token.empty()) {
       LogError(
           "No token returned in instance ID token fetch. "
           "Responded with '%s'",
           response.GetBody());
+      network_operation_.reset(nullptr);
       return false;
     }
 
     // Cache the token.
     tokens_[scope] = token;
+    network_operation_.reset(nullptr);
+  }
+  if (!SaveToStorage()) {
+    LogError("Failed to save token for scope %s to storage", scope);
+    return false;
   }
   return true;
+}
+
+bool InstanceIdDesktopImpl::DeleteServerToken(const char* scope,
+                                              bool delete_id) {
+  if (terminating_) return false;
+
+  // Load credentials from storage as we'll need them to delete the ID.
+  LoadFromStorage();
+
+  if (delete_id) {
+    if (tokens_.empty() && instance_id_.empty()) return true;
+    scope = kWildcardTokenScope;
+  } else {
+    // If we don't have a token, we have nothing to do.
+    std::string token = FindCachedToken(scope);
+    if (token.empty()) return true;
+  }
+
+  ServerTokenOperation(
+      scope,
+      [](rest::Request* request, void* delete_id) {
+        std::string body;
+        request->ReadBodyIntoString(&body);
+        rest::WwwFormUrlEncoded form(&body);
+        form.Add("delete", "true");
+        if (delete_id) form.Add("iid-operation", "delete");
+        request->set_post_fields(body.c_str(), body.length());
+      },
+      reinterpret_cast<void*>(delete_id ? 1 : 0));
+
+  {
+    MutexLock lock(network_operation_mutex_);
+    assert(network_operation_.get());
+    const rest::Response& response = network_operation_->response;
+    // Check for errors
+    if (response.status() != rest::util::HttpSuccess) {
+      LogError("Instance ID token delete failed with response %d '%s'",
+               response.status(), response.GetBody());
+      network_operation_.reset(nullptr);
+      return false;
+    }
+    // Parse the response.
+    auto form_data = rest::WwwFormUrlEncoded::Parse(response.GetBody());
+    bool found_valid_response = false;
+    for (int i = 0; i < form_data.size(); ++i) {
+      const auto& item = form_data[i];
+      if (item.key == "deleted" || item.key == "token") {
+        found_valid_response = true;
+        break;
+      }
+    }
+    if (found_valid_response) {
+      if (delete_id) {
+        checkin_data_.Clear();
+        instance_id_.clear();
+        tokens_.clear();
+        DeleteFromStorage();
+      } else {
+        DeleteCachedToken(scope);
+        if (!SaveToStorage()) {
+          LogError("Failed to delete tokens for scope %s from storage", scope);
+          network_operation_.reset(nullptr);
+          return false;
+        }
+      }
+    } else {
+      LogError(
+          "Instance ID token delete failed, server returned invalid "
+          "response '%s'",
+          response.GetBody());
+      network_operation_.reset(nullptr);
+    }
+    return found_valid_response;
+  }
 }
 
 }  // namespace internal
