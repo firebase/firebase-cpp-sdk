@@ -31,7 +31,8 @@ class WwwFormUrlEncoded {
   // Form item.
   struct Item {
     Item() {}
-    Item(const string& key_, const string& value_) : key(key_), value(value_) {}
+    Item(const std::string& key_, const std::string& value_)
+        : key(key_), value(value_) {}
 
     std::string key;
     std::string value;
