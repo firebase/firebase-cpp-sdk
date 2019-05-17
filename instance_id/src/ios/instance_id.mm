@@ -111,6 +111,14 @@ static void AppDelegateApplicationDidRegisterForRemoteNotificationsWithDeviceTok
     id self, SEL selector_value, UIApplication *application, NSData *device_token) {
   LogDebug("Caching device token");
   g_device_token = device_token;
+  IMP app_delegate_application_did_register_for_remote_notifications_with_device_token =
+      SwizzledMethodCache().GetMethodForObject(
+          self, @selector(application:didRegisterForRemoteNotificationsWithDeviceToken:));
+  if (app_delegate_application_did_register_for_remote_notifications_with_device_token) {
+    ((util::AppDelegateApplicationDidRegisterForRemoteNotificationsWithDeviceTokenFunc)
+         app_delegate_application_did_register_for_remote_notifications_with_device_token)(
+        self, selector_value, application, device_token);
+  }
 }
 // Hook all AppDelegate methods that IID requires to cache data for token fetch operations.
 //
