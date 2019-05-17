@@ -34,10 +34,10 @@ Future<std::string> InstanceId::GetId() const {
       InstanceIdInternal::kApiFunctionGetId);
 
   const auto internal_future = instance_id_internal_->impl()->GetId();
-  InstanceIdInternal::InternalRef internal_ref =
+  InstanceIdInternal::InternalRef& internal_ref =
       instance_id_internal_->safe_ref();
   internal_future.OnCompletion(
-      [&internal_ref, &future_handle](const Future<std::string>& result) {
+      [&internal_ref, future_handle](const Future<std::string>& result) {
         InstanceIdInternal::InternalRefLock lock(&internal_ref);
         if (lock.GetReference() == nullptr) {
           return;  // deleted.
@@ -61,10 +61,10 @@ Future<void> InstanceId::DeleteId() {
 
   const auto internal_future = instance_id_internal_->impl()->DeleteId();
 
-  InstanceIdInternal::InternalRef internal_ref =
+  InstanceIdInternal::InternalRef& internal_ref =
       instance_id_internal_->safe_ref();
   internal_future.OnCompletion([&internal_ref,
-                                &future_handle](const Future<void>& result) {
+                                future_handle](const Future<void>& result) {
     InstanceIdInternal::InternalRefLock lock(&internal_ref);
     if (lock.GetReference() == nullptr) {
       return;  // deleted.
@@ -89,10 +89,10 @@ Future<std::string> InstanceId::GetToken(const char* entity,
 
   const auto internal_future = instance_id_internal_->impl()->GetToken(scope);
 
-  InstanceIdInternal::InternalRef internal_ref =
+  InstanceIdInternal::InternalRef& internal_ref =
       instance_id_internal_->safe_ref();
   internal_future.OnCompletion(
-      [&internal_ref, &future_handle](const Future<std::string>& result) {
+      [&internal_ref, future_handle](const Future<std::string>& result) {
         InstanceIdInternal::InternalRefLock lock(&internal_ref);
         if (lock.GetReference() == nullptr) {
           return;  // deleted.
@@ -116,11 +116,11 @@ Future<void> InstanceId::DeleteToken(const char* entity, const char* scope) {
 
   const auto internal_future =
       instance_id_internal_->impl()->DeleteToken(scope);
-  InstanceIdInternal::InternalRef internal_ref =
+  InstanceIdInternal::InternalRef& internal_ref =
       instance_id_internal_->safe_ref();
 
   internal_future.OnCompletion([&internal_ref,
-                                &future_handle](const Future<void>& result) {
+                                future_handle](const Future<void>& result) {
     InstanceIdInternal::InternalRefLock lock(&internal_ref);
     if (lock.GetReference() == nullptr) {
       return;  // deleted.

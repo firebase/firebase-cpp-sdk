@@ -64,6 +64,8 @@ class InstanceIdDesktopImpl {
     kErrorUnavailable,
     // An unknown error occurred.
     kErrorUnknownError,
+    // App shutdown is in progress.
+    kErrorShutdown,
   };
 
   virtual ~InstanceIdDesktopImpl();

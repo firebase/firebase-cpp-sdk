@@ -24,6 +24,7 @@
 #include "app/src/app_common.h"
 #include "app/src/app_identifier.h"
 #include "app/src/base64.h"
+#include "app/src/callback.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/locale.h"
 #include "app/src/time.h"
@@ -36,12 +37,12 @@ namespace instance_id {
 namespace internal {
 
 using firebase::app::secure::UserSecureManager;
+using firebase::callback::NewCallback;
 
 // Response that signals this class when it's complete or canceled.
 class SignalSemaphoreResponse : public rest::Response {
  public:
-  explicit SignalSemaphoreResponse(Semaphore* complete)
-      : complete_(complete) {}
+  explicit SignalSemaphoreResponse(Semaphore* complete) : complete_(complete) {}
 
   void MarkCompleted() override {
     rest::Response::MarkCompleted();
@@ -196,14 +197,27 @@ Future<std::string> InstanceIdDesktopImpl::GetId() {
   SafeFutureHandle<std::string> handle =
       ref_future()->SafeAlloc<std::string>(kInstanceIdFnGetId);
 
-  Future<std::string> future = MakeFuture(ref_future(), handle);
-  if (!InitialOrRefreshCheckin()) {
-    ref_future()->Complete(handle, kErrorUnavailable, "Error in checkin");
-    return future;
-  }
-  ref_future()->CompleteWithResult(handle, 0, "", instance_id_);
+  if (terminating_) {
+    ref_future()->Complete(handle, kErrorShutdown,
+                           "Failed due to App shutdown in progress");
+  } else {
+    auto callback = NewCallback(
+        [](InstanceIdDesktopImpl* _this,
+           SafeFutureHandle<std::string> _handle) {
+          if (_this->InitialOrRefreshCheckin()) {
+            _this->ref_future()->CompleteWithResult(_handle, kErrorNone, "",
+                                                    _this->instance_id_);
+          } else {
+            _this->ref_future()->Complete(_handle, kErrorUnavailable,
+                                          "Error in checkin");
+          }
+        },
+        this, handle);
 
-  return future;
+    scheduler_.Schedule(callback);
+  }
+
+  return MakeFuture(ref_future(), handle);
 }
 
 Future<std::string> InstanceIdDesktopImpl::GetIdLastResult() {
@@ -217,10 +231,22 @@ Future<void> InstanceIdDesktopImpl::DeleteId() {
   SafeFutureHandle<void> handle =
       ref_future()->SafeAlloc<void>(kInstanceIdFnRemoveId);
 
-  if (DeleteServerToken(nullptr, true)) {
-    ref_future()->Complete(handle, 0, "");
+  if (terminating_) {
+    ref_future()->Complete(handle, kErrorShutdown,
+                           "Failed due to App shutdown in progress");
   } else {
-    ref_future()->Complete(handle, kErrorUnknownError, "DeleteId failed");
+    auto callback = NewCallback(
+        [](InstanceIdDesktopImpl* _this, SafeFutureHandle<void> _handle) {
+          if (_this->DeleteServerToken(nullptr, true)) {
+            _this->ref_future()->Complete(_handle, kErrorNone, "");
+          } else {
+            _this->ref_future()->Complete(_handle, kErrorUnknownError,
+                                          "DeleteId failed");
+          }
+        },
+        this, handle);
+
+    scheduler_.Schedule(callback);
   }
   return MakeFuture(ref_future(), handle);
 }
@@ -237,12 +263,26 @@ Future<std::string> InstanceIdDesktopImpl::GetToken(const char* scope) {
   SafeFutureHandle<std::string> handle =
       ref_future()->SafeAlloc<std::string>(kInstanceIdFnGetToken);
 
-  std::string scope_str(scope);
-  if (FetchServerToken(scope_str.c_str())) {
-    ref_future()->CompleteWithResult(handle, 0, "",
-                                     FindCachedToken(scope_str.c_str()));
+  if (terminating_) {
+    ref_future()->Complete(handle, kErrorShutdown,
+                           "Failed due to App shutdown in progress");
   } else {
-    ref_future()->Complete(handle, kErrorUnknownError, "FetchToken failed");
+    std::string scope_str(scope);
+    auto callback = NewCallback(
+        [](InstanceIdDesktopImpl* _this, std::string _scope_str,
+           SafeFutureHandle<std::string> _handle) {
+          if (_this->FetchServerToken(_scope_str.c_str())) {
+            _this->ref_future()->CompleteWithResult(
+                _handle, kErrorNone, "",
+                _this->FindCachedToken(_scope_str.c_str()));
+          } else {
+            _this->ref_future()->Complete(_handle, kErrorUnknownError,
+                                          "FetchToken failed");
+          }
+        },
+        this, scope_str, handle);
+
+    scheduler_.Schedule(callback);
   }
 
   return MakeFuture(ref_future(), handle);
@@ -255,16 +295,30 @@ Future<std::string> InstanceIdDesktopImpl::GetTokenLastResult() {
 
 Future<void> InstanceIdDesktopImpl::DeleteToken(const char* scope) {
   // DeleteToken() --> delete token request and remove from the cache
-
   SafeFutureHandle<void> handle =
       ref_future()->SafeAlloc<void>(kInstanceIdFnRemoveToken);
 
-  std::string scope_str(scope);
-  if (DeleteServerToken(scope_str.c_str(), false)) {
-    ref_future()->Complete(handle, 0, "");
+  if (terminating_) {
+    ref_future()->Complete(handle, kErrorShutdown,
+                           "Failed due to App shutdown in progress");
   } else {
-    ref_future()->Complete(handle, kErrorUnknownError, "DeleteToken failed");
+    std::string scope_str(scope);
+
+    auto callback = NewCallback(
+        [](InstanceIdDesktopImpl* _this, std::string _scope_str,
+           SafeFutureHandle<void> _handle) {
+          if (_this->DeleteServerToken(_scope_str.c_str(), false)) {
+            _this->ref_future()->Complete(_handle, kErrorNone, "");
+          } else {
+            _this->ref_future()->Complete(_handle, kErrorUnknownError,
+                                          "DeleteToken failed");
+          }
+        },
+        this, scope_str, handle);
+
+    scheduler_.Schedule(callback);
   }
+
   return MakeFuture(ref_future(), handle);
 }
 
