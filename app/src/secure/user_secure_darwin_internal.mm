@@ -23,9 +23,9 @@ namespace secure {
 
 // Prefix and suffix to add to keychain service name.
 static const char kServicePrefix[] = "";
-static const char kServiceSuffix1[] = " [firebase.";
-static const char kServiceSuffix2[] = " ]";
-// For example: com.my_company.my_app [firebase.auth], com.my_company.my_app [firebase.iid]
+static const char kServiceSuffix1[] = ".firebase.";
+static const char kServiceSuffix2[] = "";
+// For example: com.my_company.my_app.firebase.auth, com.my_company.my_app.firebase.iid
 
 static const int kMaxAllowedKeychainEntries = INT_MAX;
 

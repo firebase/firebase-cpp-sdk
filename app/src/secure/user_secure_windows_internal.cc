@@ -23,11 +23,11 @@ namespace secure {
 
 // Prefix and suffix to add to specified namespace.
 static const char kNamespacePrefix[] = "";
-static const char kNamespaceSuffix1[] = " [firebase.";
-static const char kNamespaceSuffix2[] = " ]";
+static const char kNamespaceSuffix1[] = ".firebase.";
+static const char kNamespaceSuffix2[] = "";
 // For example:
-// com.my_company.my_app [firebase.auth]
-// com.my_company.my_app [firebase.iid]
+// com.my_company.my_app.firebase.auth
+// com.my_company.my_app.firebase.iid
 
 UserSecureWindowsInternal::UserSecureWindowsInternal(const char* domain,
                                                      const char* key_namespace)
