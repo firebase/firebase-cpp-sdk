@@ -17,6 +17,8 @@
 #include <assert.h>
 
 #include "app/instance_id/iid_data_generated.h"
+#include "app/rest/transport_curl.h"
+#include "app/rest/transport_interface.h"
 #include "app/rest/util.h"
 #include "app/rest/www_form_url_encoded.h"
 #include "app/src/app_common.h"
@@ -27,12 +29,60 @@
 #include "app/src/time.h"
 #include "app/src/uuid.h"
 #include "flatbuffers/flexbuffers.h"
+#include "flatbuffers/stl_emulation.h"
 
 namespace firebase {
 namespace instance_id {
 namespace internal {
 
 using firebase::app::secure::UserSecureManager;
+
+// Response that signals this class when it's complete or canceled.
+class SignalSemaphoreResponse : public rest::Response {
+ public:
+  explicit SignalSemaphoreResponse(Semaphore* complete)
+      : complete_(complete) {}
+
+  void MarkCompleted() override {
+    rest::Response::MarkCompleted();
+    complete_->Post();
+  }
+
+  void MarkCanceled() override {
+    rest::Response::MarkCompleted();
+    complete_->Post();
+  }
+
+  void Wait() { complete_->Wait(); }
+
+ private:
+  Semaphore* complete_;
+};
+
+// State for the current network operation.
+struct NetworkOperation {
+  NetworkOperation(const std::string& request_data, Semaphore* complete)
+      : request(request_data.c_str(), request_data.length()),
+        response(complete) {}
+
+  // Schedule the network operation.
+  void Perform(rest::Transport* transport) {
+    transport->Perform(request, &response, &controller);
+  }
+
+  // Cancel the current operation.
+  void Cancel() {
+    rest::Controller* ctrl = controller.get();
+    if (ctrl) ctrl->Cancel();
+  }
+
+  // Data sent to the server.
+  rest::Request request;
+  // Data returned by the server.
+  SignalSemaphoreResponse response;
+  // Progress of the request and allows us to cancel the request.
+  flatbuffers::unique_ptr<rest::Controller> controller;
+};
 
 // Check-in backend.
 static const char kCheckinUrl[] =

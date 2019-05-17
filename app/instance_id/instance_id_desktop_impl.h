@@ -20,7 +20,6 @@
 #include <string>
 
 #include "app/memory/unique_ptr.h"
-#include "app/rest/transport_curl.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
@@ -28,13 +27,20 @@
 #include "app/src/scheduler.h"
 #include "app/src/secure/user_secure_manager.h"
 #include "app/src/semaphore.h"
-#include "flatbuffers/stl_emulation.h"
 
 namespace firebase {
+
+namespace rest {
+class Request;
+class Transport;
+}  // namespace rest
+
 namespace instance_id {
 namespace internal {
 
 class InstanceIdDesktopImplTest;  // For testing.
+class NetworkOperation;  // Defined in instance_id_desktop_impl.cc
+class SignalSemaphoreResponse;  // Defined in instance_id_desktop_impl.cc
 
 class InstanceIdDesktopImpl {
  public:
@@ -103,52 +109,6 @@ class InstanceIdDesktopImpl {
 
  private:
   friend class InstanceIdDesktopImplTest;
-  // Response that signals this class when it's complete or canceled.
-  class SignalSemaphoreResponse : public rest::Response {
-   public:
-    explicit SignalSemaphoreResponse(Semaphore* complete)
-        : complete_(complete) {}
-
-    void MarkCompleted() override {
-      rest::Response::MarkCompleted();
-      complete_->Post();
-    }
-
-    void MarkCanceled() override {
-      rest::Response::MarkCompleted();
-      complete_->Post();
-    }
-
-    void Wait() { complete_->Wait(); }
-
-   private:
-    Semaphore* complete_;
-  };
-
-  // State for the current network operation.
-  struct NetworkOperation {
-    NetworkOperation(const std::string& request_data, Semaphore* complete)
-        : request(request_data.c_str(), request_data.length()),
-          response(complete) {}
-
-    // Schedule the network operation.
-    void Perform(rest::Transport* transport) {
-      transport->Perform(request, &response, &controller);
-    }
-
-    // Cancel the current operation.
-    void Cancel() {
-      rest::Controller* ctrl = controller.get();
-      if (ctrl) ctrl->Cancel();
-    }
-
-    // Data sent to the server.
-    rest::Request request;
-    // Data returned by the server.
-    SignalSemaphoreResponse response;
-    // Progress of the request and allows us to cancel the request.
-    flatbuffers::unique_ptr<rest::Controller> controller;
-  };
 
   // Data cached from a check-in and required to perform instance ID operations.
   struct CheckinData {
