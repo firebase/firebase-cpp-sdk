@@ -48,6 +48,8 @@ const int SDK_MAJOR_VERSION = 1;
 const int SDK_MINOR_VERSION = 3;
 const int SDK_PATCH_VERSION = 0;
 
+const char kTokenScope[] = "*";
+
 RemoteConfigREST::RemoteConfigREST(const firebase::AppOptions& app_options,
                                    const LayeredConfigs& configs,
                                    uint64_t cache_expiration_in_seconds)
@@ -111,7 +113,7 @@ void RemoteConfigREST::TryGetInstanceIdAndToken(const App& app) {
 
   // Only get token if instance id is retrieved.
   if (!app_instance_id_.empty()) {
-    WaitForFuture(iid_impl->GetToken(), &fetch_future_sem_,
+    WaitForFuture(iid_impl->GetToken(kTokenScope), &fetch_future_sem_,
                   &app_instance_id_token_, "Get Instance Id Token");
   }
 }

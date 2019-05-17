@@ -1,4 +1,4 @@
-// Copyright 2017 Google LLC
+// Copyright 2019 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,19 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_INSTANCE_ID_CLIENT_CPP_SRC_INSTANCE_ID_INTERNAL_H_
-#define FIREBASE_INSTANCE_ID_CLIENT_CPP_SRC_INSTANCE_ID_INTERNAL_H_
-
-#if defined(__APPLE__)
-#include "TargetConditionals.h"
-#endif  // defined(__APPLE__)
-
-#if defined(__ANDROID__)
-#include "instance_id/src/android/instance_id_internal.h"
-#elif TARGET_OS_IPHONE
-#include "instance_id/src/ios/instance_id_internal.h"
-#else
 #include "instance_id/src/desktop/instance_id_internal.h"
-#endif
 
-#endif  // FIREBASE_INSTANCE_ID_CLIENT_CPP_SRC_INSTANCE_ID_INTERNAL_H_
+namespace firebase {
+namespace instance_id {
+namespace internal {
+
+InstanceIdInternal::InstanceIdInternal(App* app)
+    : InstanceIdInternalBase(), safe_ref_(this) {
+  impl_ = InstanceIdDesktopImpl::GetInstance(app);
+}
+
+InstanceIdInternal::~InstanceIdInternal() {
+  safe_ref_.ClearReference();
+  // App will make sure impl_ gets deleted.
+}
+
+}  // namespace internal
+}  // namespace instance_id
+}  // namespace firebase

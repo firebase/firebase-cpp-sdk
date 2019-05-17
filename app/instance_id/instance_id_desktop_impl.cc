@@ -135,12 +135,18 @@ InstanceIdDesktopImpl* InstanceIdDesktopImpl::GetInstance(App* app) {
 }
 
 Future<std::string> InstanceIdDesktopImpl::GetId() {
-  // TODO(b/132622932)
+  // GetId() -> Check-in, generate an ID / get cached ID, return the ID
   SafeFutureHandle<std::string> handle =
       ref_future()->SafeAlloc<std::string>(kInstanceIdFnGetId);
-  ref_future()->Complete(handle, kErrorUnavailable, "Not Implemented yet");
 
-  return MakeFuture(ref_future(), handle);
+  Future<std::string> future = MakeFuture(ref_future(), handle);
+  if (!InitialOrRefreshCheckin()) {
+    ref_future()->Complete(handle, kErrorUnavailable, "Error in checkin");
+    return future;
+  }
+  ref_future()->CompleteWithResult(handle, 0, "", instance_id_);
+
+  return future;
 }
 
 Future<std::string> InstanceIdDesktopImpl::GetIdLastResult() {
@@ -149,10 +155,25 @@ Future<std::string> InstanceIdDesktopImpl::GetIdLastResult() {
 }
 
 Future<void> InstanceIdDesktopImpl::DeleteId() {
-  // TODO(b/132621850)
+  // DeleteId() -> Delete all tokens and remove them from the cache, then clear
+  // ID.
   SafeFutureHandle<void> handle =
       ref_future()->SafeAlloc<void>(kInstanceIdFnRemoveId);
-  ref_future()->Complete(handle, kErrorUnavailable, "Not Implemented yet");
+
+  std::vector<std::string> token_scopes;
+  for (auto i = tokens_.begin(); i != tokens_.end(); ++i) {
+    token_scopes.push_back(i->first);
+  }
+  // Delete all tokens.
+  while (!token_scopes.empty()) {
+    /* TODO DeleteTokenRequest(token_scopes.back()); */
+    DeleteCachedToken(token_scopes.back().c_str());
+    token_scopes.pop_back();
+  }
+  instance_id_ = "";
+  DeleteFromStorage();
+  checkin_data_.Clear();
+  ref_future()->Complete(handle, 0, "");
 
   return MakeFuture(ref_future(), handle);
 }
@@ -162,11 +183,20 @@ Future<void> InstanceIdDesktopImpl::DeleteIdLastResult() {
       ref_future()->LastResult(kInstanceIdFnRemoveId));
 }
 
-Future<std::string> InstanceIdDesktopImpl::GetToken() {
-  // TODO(b/132622932)
+Future<std::string> InstanceIdDesktopImpl::GetToken(const char* scope) {
+  // GetToken() -> GetId() then get token from cache or using check-in
+  // information, return the token
+
   SafeFutureHandle<std::string> handle =
       ref_future()->SafeAlloc<std::string>(kInstanceIdFnGetToken);
-  ref_future()->Complete(handle, kErrorUnavailable, "Not Implemented yet");
+
+  std::string scope_str(scope);
+  if (FetchToken(scope_str.c_str())) {
+    ref_future()->CompleteWithResult(handle, 0, "",
+                                     FindCachedToken(scope_str.c_str()));
+  } else {
+    ref_future()->Complete(handle, kErrorUnknownError, "FetchToken failed");
+  }
 
   return MakeFuture(ref_future(), handle);
 }
@@ -176,12 +206,20 @@ Future<std::string> InstanceIdDesktopImpl::GetTokenLastResult() {
       ref_future()->LastResult(kInstanceIdFnGetToken));
 }
 
-Future<void> InstanceIdDesktopImpl::DeleteToken() {
-  // TODO(b/132621850)
+Future<void> InstanceIdDesktopImpl::DeleteToken(const char* scope) {
+  // DeleteToken() --> delete token request and remove from the cache
+
   SafeFutureHandle<void> handle =
       ref_future()->SafeAlloc<void>(kInstanceIdFnRemoveToken);
-  ref_future()->Complete(handle, kErrorUnavailable, "Not Implemented yet");
 
+  std::string scope_str(scope);
+  DeleteCachedToken(scope_str.c_str());
+  if (/*ServerDeleteToken(scope_str.c_str() && */
+      tokens_.find(scope_str) == tokens_.end()) {
+    ref_future()->Complete(handle, 0, "");
+  } else {
+    ref_future()->Complete(handle, kErrorUnknownError, "DeleteToken failed");
+  }
   return MakeFuture(ref_future(), handle);
 }
 
@@ -315,11 +353,14 @@ bool InstanceIdDesktopImpl::InitialOrRefreshCheckin() {
     instance_id_ = GenerateAppId();
   }
 
+  if (checkin_data_.device_id.empty() || checkin_data_.security_token.empty() ||
+      checkin_data_.digest.empty()) {
+    // If any of these aren't set, checkin data is incomplete, so clear it.
+    checkin_data_.Clear();
+  }
+
   // If we've already checked in.
   if (checkin_data_.last_checkin_time_ms > 0) {
-    FIREBASE_ASSERT(!checkin_data_.device_id.empty() &&
-                    !checkin_data_.security_token.empty() &&
-                    !checkin_data_.digest.empty());
     // Make sure the device ID and token aren't expired.
     uint64_t time_elapsed_ms =
         firebase::internal::GetTimestamp() - checkin_data_.last_checkin_time_ms;
@@ -465,7 +506,7 @@ std::string InstanceIdDesktopImpl::GenerateAppId() {
   std::string input(reinterpret_cast<char*>(buffer), sizeof(buffer));
   std::string output;
 
-  if (firebase::internal::Base64Encode(input, &output)) {
+  if (firebase::internal::Base64EncodeUrlSafe(input, &output)) {
     return output;
   }
   return "";  // Error encoding.

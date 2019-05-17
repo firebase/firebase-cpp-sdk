@@ -27,6 +27,8 @@ namespace internal {
 // Maps 6-bit index to base64 encoded character.
 static const char kBase64Table[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+static const char kBase64TableUrlSafe[] =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
 
 // Reverse lookup for kBase64Table above; -1 signifies an invalid character.
 // Maps ASCII value to 6-bit index.
@@ -34,10 +36,10 @@ static const char kBase64Table[] =
 static const int8_t kBase64TableReverse[256] = {
   /*   0 */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
   /*  16 */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
-  /*  32 */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, -1, -1, 63,
+  /*  32 */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 62, -1, 62, -1, 63,
   /*  48 */ 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, -1, -1, -1,  0, -1, -1,
   /*  64 */ -1,  0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14,
-  /*  80 */ 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, -1,
+  /*  80 */ 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, -1, -1, -1, -1, 63,
   /*  96 */ -1, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40,
   /* 112 */ 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, -1, -1, -1, -1, -1,
   /* 128 */ -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -58,7 +60,7 @@ static const char kBase64NullEnding = '=';
 
 // Base64 encode a string (binary allowed). Returns true if successful.
 static bool Base64EncodeInternal(const std::string& input, std::string* output,
-                                 bool pad_to_32_bits) {
+                                 bool url_safe, bool pad_to_32_bits) {
   if (!output) {
     return false;
   }
@@ -67,6 +69,8 @@ static bool Base64EncodeInternal(const std::string& input, std::string* output,
   bool inplace = (output == &input);
   std::string inplace_buffer;
   std::string* output_ptr = inplace ? &inplace_buffer : output;
+
+  const char* base64_table = url_safe ? kBase64TableUrlSafe : kBase64Table;
 
   // The base64 algorithm is pretty simple: take 3 bytes = 24 bits of data at a
   // time, and encode them in four 6-bit chunks.
@@ -80,13 +84,13 @@ static bool Base64EncodeInternal(const std::string& input, std::string* output,
 
     uint32_t stream = (b2 & 0xFF) | ((b1 & 0xFF) << 8) | ((b0 & 0xFF) << 16);
 
-    (*output_ptr)[o + 0] = kBase64Table[(stream >> 18) & 0x3F];
-    (*output_ptr)[o + 1] = kBase64Table[(stream >> 12) & 0x3F];
+    (*output_ptr)[o + 0] = base64_table[(stream >> 18) & 0x3F];
+    (*output_ptr)[o + 1] = base64_table[(stream >> 12) & 0x3F];
     (*output_ptr)[o + 2] = (i + 1 < input.size())
-                               ? kBase64Table[(stream >> 6) & 0x3F]
+                               ? base64_table[(stream >> 6) & 0x3F]
                                : kBase64NullEnding;
     (*output_ptr)[o + 3] = (i + 2 < input.size())
-                               ? kBase64Table[(stream >> 0) & 0x3F]
+                               ? base64_table[(stream >> 0) & 0x3F]
                                : kBase64NullEnding;
   }
   if (!pad_to_32_bits) {
@@ -108,11 +112,20 @@ static bool Base64EncodeInternal(const std::string& input, std::string* output,
 }
 
 bool Base64Encode(const std::string& input, std::string* output) {
-  return Base64EncodeInternal(input, output, false);
+  return Base64EncodeInternal(input, output, false, false);
 }
 
 bool Base64EncodeWithPadding(const std::string& input, std::string* output) {
-  return Base64EncodeInternal(input, output, true);
+  return Base64EncodeInternal(input, output, false, true);
+}
+
+bool Base64EncodeUrlSafe(const std::string& input, std::string* output) {
+  return Base64EncodeInternal(input, output, true, false);
+}
+
+bool Base64EncodeUrlSafeWithPadding(const std::string& input,
+                                    std::string* output) {
+  return Base64EncodeInternal(input, output, true, true);
 }
 
 // Get the size that a given string would take up if encoded to Base64.

@@ -29,16 +29,23 @@ bool Base64Encode(const std::string& input, std::string* output);
 // Pads output to 32 bits by adding = or == to the end, as is tradition.
 bool Base64EncodeWithPadding(const std::string& input, std::string* output);
 
+// Base64 encode a string (binary allowed). Returns true if successful.
+// Uses URL-safe characters (- and _ in place of + and /).
+bool Base64EncodeUrlSafe(const std::string& input, std::string* output);
+
+// Base64 encode a string (binary allowed). Returns true if successful.
+// Pads output to 32 bits by adding = or == to the end, as is tradition.
+// Uses URL-safe characters (- and _ in place of + and /).
+bool Base64EncodeUrlSafeWithPadding(const std::string& input,
+                                    std::string* output);
+
 // Get the size that a given string would take up if encoded to Base64, rounded
 // up to the next 4 bytes.
 size_t GetBase64EncodedSize(const std::string& input);
 
 // Base64 decode a string (may output binary). Returns true if successful, or
 // false if there is an error (in which case the output string is undefined).
-bool Base64Decode(const std::string& input, std::string* output);
-
-// Base64 decode a string (may output binary). Returns true if successful, or
-// false if there is an error (in which case the output string is undefined).
+// Can parse standard or url-safe characters.
 bool Base64Decode(const std::string& input, std::string* output);
 
 // Get the size that a given string would take up if decoded from Base64.

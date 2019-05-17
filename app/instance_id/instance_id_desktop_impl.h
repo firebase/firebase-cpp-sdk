@@ -87,13 +87,13 @@ class InstanceIdDesktopImpl {
 
   // Returns a token that authorizes an Entity to perform an action on
   // behalf of the application identified by Instance ID.
-  Future<std::string> GetToken();
+  Future<std::string> GetToken(const char* scope);
 
   // Get the results of the most recent call to @ref GetToken.
   Future<std::string> GetTokenLastResult();
 
   // Revokes access to a scope (action)
-  Future<void> DeleteToken();
+  Future<void> DeleteToken(const char* scope);
 
   // Get the results of the most recent call to @ref DeleteToken.
   Future<void> DeleteTokenLastResult();
