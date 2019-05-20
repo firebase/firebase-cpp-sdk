@@ -106,7 +106,10 @@ void RemoteConfigREST::TryGetInstanceIdAndToken(const App& app) {
   auto* iid_impl =
       firebase::instance_id::internal::InstanceIdDesktopImpl::GetInstance(
           non_const_app);
-  assert(iid_impl);
+  if (iid_impl == nullptr) {
+    // Instance ID not supported.
+    return;
+  }
 
   WaitForFuture(iid_impl->GetId(), &fetch_future_sem_, &app_instance_id_,
                 "Get Instance Id");

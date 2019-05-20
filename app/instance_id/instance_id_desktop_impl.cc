@@ -213,10 +213,15 @@ InstanceIdDesktopImpl::~InstanceIdDesktopImpl() {
 }
 
 InstanceIdDesktopImpl* InstanceIdDesktopImpl::GetInstance(App* app) {
+#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
   MutexLock lock(instance_id_by_app_mutex_);
   auto it = instance_id_by_app_.find(app);
   return it != instance_id_by_app_.end() ? it->second
                                          : new InstanceIdDesktopImpl(app);
+#else
+  // Callers know that nullptr means "act as a stub".
+  return nullptr;
+#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
 }
 
 Future<std::string> InstanceIdDesktopImpl::GetId() {
