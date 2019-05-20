@@ -16,6 +16,8 @@
 
 #include <assert.h>
 
+#include <algorithm>
+
 #include "app/instance_id/iid_data_generated.h"
 #include "app/rest/transport_curl.h"
 #include "app/rest/transport_interface.h"
@@ -104,9 +106,34 @@ static const char kTokenResetError[] = "RST";
 // Wildcard scope used to delete all tokens and the ID in a server registration.
 static const char kWildcardTokenScope[] = "*";
 
+// Minimum retry time (in seconds) when a fetch token request fails.
+static const uint64_t kMinimumFetchTokenDelaySec = 30;
+// Maximum retry time (in seconds) when a fetch token request fails.
+static const uint64_t kMaximumFetchTokenDelaySec =
+    8 * firebase::internal::kMinutesPerHour *
+    firebase::internal::kSecondsPerMinute;
+
 std::map<App*, InstanceIdDesktopImpl*>
     InstanceIdDesktopImpl::instance_id_by_app_;          // NOLINT
 Mutex InstanceIdDesktopImpl::instance_id_by_app_mutex_;  // NOLINT
+
+void InstanceIdDesktopImpl::FetchServerTokenCallback::Run() {
+  bool retry;
+  bool fetched_token = iid_->FetchServerToken(scope_.c_str(), &retry);
+  if (fetched_token) {
+    iid_->ref_future()->CompleteWithResult(
+        future_handle_, kErrorNone, "", iid_->FindCachedToken(scope_.c_str()));
+  } else if (retry) {
+    // Retry with an expodential backoff.
+    retry_delay_time_ =
+        std::min(std::max(retry_delay_time_ * 2, kMinimumFetchTokenDelaySec),
+                 kMaximumFetchTokenDelaySec);
+    iid_->scheduler_.Schedule(this, retry_delay_time_);
+  } else {
+    iid_->ref_future()->Complete(future_handle_, kErrorUnknownError,
+                                 "FetchToken failed");
+  }
+}
 
 InstanceIdDesktopImpl::InstanceIdDesktopImpl(App* app)
     : storage_semaphore_(0),
@@ -267,22 +294,7 @@ Future<std::string> InstanceIdDesktopImpl::GetToken(const char* scope) {
     ref_future()->Complete(handle, kErrorShutdown,
                            "Failed due to App shutdown in progress");
   } else {
-    std::string scope_str(scope);
-    auto callback = NewCallback(
-        [](InstanceIdDesktopImpl* _this, std::string _scope_str,
-           SafeFutureHandle<std::string> _handle) {
-          if (_this->FetchServerToken(_scope_str.c_str())) {
-            _this->ref_future()->CompleteWithResult(
-                _handle, kErrorNone, "",
-                _this->FindCachedToken(_scope_str.c_str()));
-          } else {
-            _this->ref_future()->Complete(_handle, kErrorUnknownError,
-                                          "FetchToken failed");
-          }
-        },
-        this, scope_str, handle);
-
-    scheduler_.Schedule(callback);
+    scheduler_.Schedule(new FetchServerTokenCallback(this, scope, handle));
   }
 
   return MakeFuture(ref_future(), handle);
@@ -666,7 +678,8 @@ void InstanceIdDesktopImpl::ServerTokenOperation(
   network_operation_complete_.Wait();
 }
 
-bool InstanceIdDesktopImpl::FetchServerToken(const char* scope) {
+bool InstanceIdDesktopImpl::FetchServerToken(const char* scope, bool* retry) {
+  *retry = false;
   if (terminating_ || !InitialOrRefreshCheckin()) return false;
 
   // If we already have a token, don't refresh.
@@ -707,9 +720,9 @@ bool InstanceIdDesktopImpl::FetchServerToken(const char* scope) {
         std::string error_component =
             error.substr(component_start, component_end - component_start);
         if (error_component == kPhoneRegistrationError) {
-          // TODO(smiles): Retry with expodential backoff.
           network_operation_.reset(nullptr);
-          return true;
+          *retry = true;
+          return false;
         } else if (error_component == kTokenResetError) {
           // Server requests that the token is reset.
           DeleteServerToken(nullptr, true);

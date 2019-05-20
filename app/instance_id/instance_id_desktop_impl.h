@@ -20,6 +20,7 @@
 #include <string>
 
 #include "app/memory/unique_ptr.h"
+#include "app/src/callback.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
@@ -134,6 +135,26 @@ class InstanceIdDesktopImpl {
     uint64_t last_checkin_time_ms;
   };
 
+  // Fetches a token with expodential backoff using the scheduler.
+  class FetchServerTokenCallback : public callback::Callback {
+   public:
+    FetchServerTokenCallback(InstanceIdDesktopImpl* iid,
+                             const std::string& scope,
+                             SafeFutureHandle<std::string> future_handle)
+        : iid_(iid),
+          scope_(scope),
+          future_handle_(future_handle),
+          retry_delay_time_(0) {}
+
+    void Run() override;
+
+   private:
+    InstanceIdDesktopImpl* iid_;
+    std::string scope_;
+    SafeFutureHandle<std::string> future_handle_;
+    uint64_t retry_delay_time_;
+  };
+
   explicit InstanceIdDesktopImpl(App* app);
 
   // Get future manager of this object
@@ -184,7 +205,9 @@ class InstanceIdDesktopImpl {
 
   // Fetch a token from the cache or retrieve a new token from the server.
   // The scope can be either "FCM" or "*" for remote config and other users.
-  bool FetchServerToken(const char* scope);
+  // retry is set to "true" if the server response requires a retry with
+  // exponential back-off.
+  bool FetchServerToken(const char* scope, bool* retry);
 
   // Delete a server-side token for a scope and remove it from the cache.
   // If delete_id is true all tokens are deleted along with the server
