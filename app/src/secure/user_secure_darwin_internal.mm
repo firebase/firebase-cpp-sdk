@@ -13,6 +13,9 @@
 // limitations under the License.
 
 #include "app/src/secure/user_secure_darwin_internal.h"
+#include <functional>
+#include "app/src/assert.h"
+#include "app/src/base64.h"
 
 #import <Foundation/Foundation.h>
 #import <Security/Security.h>
@@ -23,23 +26,40 @@ namespace secure {
 
 // Prefix and suffix to add to keychain service name.
 static const char kServicePrefix[] = "";
+static const char kServiceSeparator[] = ".";
 static const char kServiceSuffix1[] = ".firebase.";
 static const char kServiceSuffix2[] = "";
-// For example: com.my_company.my_app.firebase.auth, com.my_company.my_app.firebase.iid
+// For example:
+// com.my_company.my_app.firebase_project_id.process_name_hash.firebase.auth
+// com.my_company.my_app.firebase_project_id.process_hash.firebase.iid
 
 static const int kMaxAllowedKeychainEntries = INT_MAX;
 
 // Prefix and suffix for the key for NSUserDefaults. domain and service are inserted in the middle.
 static const char kUserDefaultsPrefix[] = "com.google.firebase.";
+static const char kUserDefaultsSeparator[] = ".";
 static const char kUserDefaultsSuffix[] = ".has_secure_data";
-// For example: com.google.firebase.auth.com.my_company.my_app.has_secure_data
+// For example:
+// com.google.firebase.com.my_company.my_app.firebase_project_id.process_hash.auth.has_secure_data
+
+static std::string GetProcessId() {
+  std::string process_name = [[NSProcessInfo processInfo] processName].UTF8String;
+  size_t hash = std::hash<std::string>()(process_name);
+  std::string process_name_hash_binary(reinterpret_cast<const char*>(&hash), sizeof(hash));
+  std::string output;
+  bool hash_encode_success = internal::Base64Encode(process_name_hash_binary, &output);
+  FIREBASE_ASSERT(hash_encode_success);
+  return output;
+}
 
 UserSecureDarwinInternal::UserSecureDarwinInternal(const char* domain, const char* service)
     : domain_(domain) {
-  service_ = std::string(kServicePrefix) + service + std::string(kServiceSuffix1) + domain +
-             std::string(kServiceSuffix2);
-  user_defaults_key_ =
-      std::string(kUserDefaultsPrefix) + service + "." + domain + std::string(kUserDefaultsSuffix);
+  std::string process_id = GetProcessId();
+  service_ = std::string(kServicePrefix) + service + std::string(kServiceSeparator) + process_id +
+             std::string(kServiceSuffix1) + domain + std::string(kServiceSuffix2);
+  user_defaults_key_ = std::string(kUserDefaultsPrefix) + service + kUserDefaultsSeparator +
+                       process_id + kUserDefaultsSeparator + domain +
+                       std::string(kUserDefaultsSuffix);
 }
 
 UserSecureDarwinInternal::~UserSecureDarwinInternal() {}
