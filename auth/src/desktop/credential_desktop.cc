@@ -12,11 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "auth/src/include/firebase/auth/credential.h"
-
 #include "app/src/assert.h"
 #include "auth/src/desktop/auth_credential.h"
 #include "auth/src/desktop/credential_impl.h"
+#include "auth/src/include/firebase/auth/credential.h"
 
 namespace firebase {
 namespace auth {
@@ -27,6 +26,8 @@ Credential::Credential(const Credential& rhs) : impl_(nullptr) {
   if (rhs.impl_) {
     impl_ = new CredentialImpl(*(static_cast<CredentialImpl*>(rhs.impl_)));
   }
+  error_code_ = rhs.error_code_;
+  error_message_ = rhs.error_message_;
 }
 
 Credential& Credential::operator=(const Credential& rhs) {
@@ -36,6 +37,9 @@ Credential& Credential::operator=(const Credential& rhs) {
   if (rhs.impl_) {
     impl_ = new CredentialImpl(*(static_cast<CredentialImpl*>(rhs.impl_)));
   }
+
+  error_code_ = rhs.error_code_;
+  error_message_ = rhs.error_message_;
 
   return *this;
 }

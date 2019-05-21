@@ -273,7 +273,10 @@ Credential::~Credential() {
   }
 }
 
-Credential::Credential(const Credential& rhs) : impl_(nullptr) { *this = rhs; }
+Credential::Credential(const Credential& rhs)
+    : impl_(nullptr), error_code_(kAuthErrorNone) {
+  *this = rhs;
+}
 
 // Increase the reference count when copying.
 Credential& Credential::operator=(const Credential& rhs) {
@@ -284,6 +287,8 @@ Credential& Credential::operator=(const Credential& rhs) {
   } else {
     impl_ = nullptr;
   }
+  error_code_ = rhs.error_code_;
+  error_message_ = rhs.error_message_;
   return *this;
 }
 
@@ -324,11 +329,33 @@ Credential EmailAuthProvider::GetCredential(const char* email,
   jobject j_cred = env->CallStaticObjectMethod(
       emailcred::GetClass(), emailcred::GetMethodId(emailcred::kGetCredential),
       j_email, j_password);
-  if (firebase::util::CheckAndClearJniExceptions(env)) j_cred = nullptr;
   env->DeleteLocalRef(j_email);
   env->DeleteLocalRef(j_password);
+  AuthError error_code = kAuthErrorNone;
+  std::string error_message;
+  if (!j_cred) {
+    // Read error from exception, except give more specific errors for email and
+    // password being blank.
+    if (strlen(email) == 0) {
+      firebase::util::CheckAndClearJniExceptions(env);
+      error_code = kAuthErrorMissingEmail;
+      error_message = "An email address must be provided.";
+    } else if (strlen(password) == 0) {
+      firebase::util::CheckAndClearJniExceptions(env);
+      error_code = kAuthErrorMissingPassword;
+      error_message = "A password must be provided.";
+    } else {
+      error_code = CheckAndClearJniAuthExceptions(env, &error_message);
+    }
+  }
 
-  return Credential(CredentialLocalToGlobalRef(j_cred));
+  Credential cred = Credential(CredentialLocalToGlobalRef(j_cred));
+  if (!j_cred) {
+    cred.error_code_ = error_code;
+    cred.error_message_ = error_message;
+  }
+
+  return cred;
 }
 
 // static

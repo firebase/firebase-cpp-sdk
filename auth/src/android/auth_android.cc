@@ -279,9 +279,9 @@ void Auth::DestroyPlatformAuth(AuthData* auth_data) {
                       auth::GetMethodId(auth::kRemoveAuthStateListener),
                       static_cast<jobject>(auth_data->listener_impl));
   assert(env->ExceptionCheck() == false);
-  env->CallVoidMethod(static_cast<jobject>(auth_data->id_token_listener_impl),
-                      jni_id_token_listener::GetMethodId(
-                          jni_id_token_listener::kDisconnect));
+  env->CallVoidMethod(
+      static_cast<jobject>(auth_data->id_token_listener_impl),
+      jni_id_token_listener::GetMethodId(jni_id_token_listener::kDisconnect));
   assert(env->ExceptionCheck() == false);
   env->CallVoidMethod(AuthImpl(auth_data),
                       auth::GetMethodId(auth::kRemoveIdTokenListener),
@@ -400,14 +400,20 @@ Future<User*> Auth::SignInWithCredential(const Credential& credential) {
   const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInWithCredential);
   JNIEnv* env = Env(auth_data_);
 
-  jobject pending_result = env->CallObjectMethod(
-      AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInWithCredential),
-      CredentialFromImpl(credential.impl_));
+  // If the credential itself is in an error state, don't try signing in.
+  if (credential.error_code_ != kAuthErrorNone) {
+    futures.Complete(handle, credential.error_code_,
+                     credential.error_message_.c_str());
+  } else {
+    jobject pending_result = env->CallObjectMethod(
+        AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInWithCredential),
+        CredentialFromImpl(credential.impl_));
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_,
-                     ReadUserFromSignInResult);
-    env->DeleteLocalRef(pending_result);
+    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+      RegisterCallback(pending_result, handle, auth_data_,
+                       ReadUserFromSignInResult);
+      env->DeleteLocalRef(pending_result);
+    }
   }
   return MakeFuture(&futures, handle);
 }
@@ -419,13 +425,19 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential(
       kAuthFn_SignInAndRetrieveDataWithCredential);
   JNIEnv* env = Env(auth_data_);
 
-  jobject pending_result = env->CallObjectMethod(
-      AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInWithCredential),
-      CredentialFromImpl(credential.impl_));
+  // If the credential itself is in an error state, don't try signing in.
+  if (credential.error_code_ != kAuthErrorNone) {
+    futures.Complete(handle, credential.error_code_,
+                     credential.error_message_.c_str());
+  } else {
+    jobject pending_result = env->CallObjectMethod(
+        AuthImpl(auth_data_), auth::GetMethodId(auth::kSignInWithCredential),
+        CredentialFromImpl(credential.impl_));
 
-  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-    RegisterCallback(pending_result, handle, auth_data_, ReadSignInResult);
-    env->DeleteLocalRef(pending_result);
+    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+      RegisterCallback(pending_result, handle, auth_data_, ReadSignInResult);
+      env->DeleteLocalRef(pending_result);
+    }
   }
   return MakeFuture(&futures, handle);
 }
