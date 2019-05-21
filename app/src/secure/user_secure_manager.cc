@@ -14,6 +14,7 @@
 
 #include "app/src/secure/user_secure_manager.h"
 
+#include "app/src/base64.h"
 #include "app/src/callback.h"
 #include "app/src/secure/user_secure_internal.h"
 
@@ -226,8 +227,9 @@ static uint8_t HexToValue(char digit) {
 }
 
 // A single character at the start of the encoding specifies how it's encoded,
-// in case we change to Base64/etc. in the future.
+// in case we change to different formats in the future.
 static const char kHeaderHexEncoded = '$';
+static const char kHeaderBase64Encoded = '#';
 
 bool UserSecureManager::AsciiToBinary(const std::string& encoded,
                                       std::string* decoded) {
@@ -254,6 +256,8 @@ bool UserSecureManager::AsciiToBinary(const std::string& encoded,
       (*decoded)[d] = (HexToValue(hi) << 4) | HexToValue(lo);
     }
     return true;
+  } else if (encoded[0] == kHeaderBase64Encoded) {
+    return internal::Base64Decode(encoded.substr(1), decoded);
   } else {
     // Unknown header byte, can't decode.
     *decoded = std::string();
@@ -264,17 +268,13 @@ bool UserSecureManager::AsciiToBinary(const std::string& encoded,
 void UserSecureManager::BinaryToAscii(const std::string& original,
                                       std::string* encoded) {
   FIREBASE_ASSERT(encoded != nullptr);
-  encoded->resize(1 + original.length() * 2);
 
-  // Emit header byte to signify hex encoding.
-  (*encoded)[0] = kHeaderHexEncoded;
-  for (int o = 0, e = 1; e < encoded->length(); ++o, e += 2) {
-    unsigned char value = original[o];
-    unsigned char hi = (value & 0xF0) >> 4;
-    unsigned char lo = (value & 0x0F) >> 0;
-    // First byte is the header, so add 1.
-    (*encoded)[e + 0] = (hi < 10) ? ('0' + hi) : ('A' + hi - 10);
-    (*encoded)[e + 1] = (lo < 10) ? ('0' + lo) : ('A' + lo - 10);
+  // Use base64 encoding.
+  std::string base64;
+  if (internal::Base64Encode(original, &base64)) {
+    *encoded = std::string() + kHeaderBase64Encoded + base64;
+  } else {
+    *encoded = std::string();
   }
 }
 
