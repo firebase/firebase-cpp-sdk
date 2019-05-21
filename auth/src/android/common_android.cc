@@ -15,6 +15,7 @@
  */
 
 #include "auth/src/android/common_android.h"
+
 #include "app/src/log.h"
 
 namespace firebase {
@@ -73,7 +74,7 @@ static const ErrorCodeMapping kRecentLoginCodes[] = {
     {nullptr},
 };
 static const ErrorCodeMapping kUserCollisionCodes[] = {
-    {"ERROR_ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIALS",
+    {"ERROR_ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL",
      kAuthErrorAccountExistsWithDifferentCredentials},
     {"ERROR_CREDENTIAL_ALREADY_IN_USE", kAuthErrorCredentialAlreadyInUse},
     {"ERROR_EMAIL_ALREADY_IN_USE", kAuthErrorEmailAlreadyInUse},
