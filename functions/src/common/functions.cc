@@ -23,6 +23,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/log.h"
 #include "app/src/util.h"
 
 #ifdef __APPLE__
@@ -108,8 +109,7 @@ Functions::Functions(::firebase::App* app, const char *region) {
     assert(app_notifier);
     app_notifier->RegisterObject(this, [](void *object) {
         Functions* functions = reinterpret_cast<Functions*>(object);
-        FIREBASE_ASSERT_MESSAGE(
-            false,
+        LogWarning(
             "Functions object 0x%08x should be deleted before the App 0x%08x "
             "it depends upon.",
             static_cast<int>(reinterpret_cast<intptr_t>(functions)),
