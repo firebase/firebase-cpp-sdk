@@ -46,9 +46,6 @@ class IdTokenRefreshListener : public IdTokenListener {
   Mutex mutex_;
   uint64_t token_timestamp_;
   std::string current_token_;
-  // Acquired (decremented) when a GetToken() is in progress, signaled
-  // incremented when GetToken() completes().
-  Semaphore get_token_semaphore_;
 };
 
 // This class handles the full lifecycle of the token refresh thread.  It

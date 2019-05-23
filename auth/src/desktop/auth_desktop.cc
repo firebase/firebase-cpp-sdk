@@ -91,13 +91,9 @@ void* CreatePlatformAuth(App* const app, void* const /*app_impl*/) {
   return auth;
 }
 
-IdTokenRefreshListener::IdTokenRefreshListener()
-    : token_timestamp_(0), get_token_semaphore_(1) {}
+IdTokenRefreshListener::IdTokenRefreshListener() : token_timestamp_(0) {}
 
-IdTokenRefreshListener::~IdTokenRefreshListener() {
-  // Wait for get token to complete.
-  get_token_semaphore_.Wait();
-}
+IdTokenRefreshListener::~IdTokenRefreshListener() {}
 
 void IdTokenRefreshListener::OnIdTokenChanged(Auth* auth) {
   // Note:  Make sure to always make future_impl.mutex the innermost lock,
@@ -107,30 +103,13 @@ void IdTokenRefreshListener::OnIdTokenChanged(Auth* auth) {
   if (auth->current_user()) {
     ResetTokenRefreshCounter(auth->auth_data_);
 
-    if (get_token_semaphore_.TryWait()) {
-      // Grab the current token, now that the token has been changed.
-      // Since the system's token is fairly fresh (since we're in the callback
-      // from having received it!) this should be a near-instant call, and
-      // the system should never try to refresh the token.  (Since we're not
-      // asking it to force-refresh)
-      Future<std::string> token_future = auth->current_user()->GetTokenInternal(
-          false, kInternalFn_GetTokenForRefresher);
-
-      token_future.OnCompletion(
-          [](const Future<std::string>& result, void* ptr) {
-            auto listener = static_cast<IdTokenRefreshListener*>(ptr);
-            MutexLock lock(listener->mutex_);
-            if (result.status() == kFutureStatusComplete) {
-              listener->current_token_ = *result.result();
-              listener->token_timestamp_ = internal::GetTimestampEpoch();
-            }
-            listener->get_token_semaphore_.Post();
-          },
-          this);
-      // Wait for the future to complete before we exit.
-      // (Should be fast, since the token listener fired, so it should just
-      // be cached.)
+    // Retrieve id_token from auth_data
+    {
+      UserView::Reader reader = UserView::GetReader(auth->auth_data_);
+      assert(reader.IsValid());
+      current_token_ = reader->id_token;
     }
+    token_timestamp_ = internal::GetTimestampEpoch();
   } else {
     current_token_ = "";
   }
