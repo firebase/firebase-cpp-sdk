@@ -91,9 +91,9 @@ DataSnapshot& DataSnapshot::operator=(DataSnapshot&& snapshot) {
 
 DataSnapshot::~DataSnapshot() {
   CleanupFnDataSnapshot::Unregister(this, internal_);
-  if (internal_) {
-    delete internal_;
-  }
+
+  delete internal_;
+  internal_ = nullptr;
 }
 
 bool DataSnapshot::exists() const { return internal_ && internal_->Exists(); }
