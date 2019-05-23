@@ -15,10 +15,14 @@
 #include "database/src/desktop/data_snapshot_desktop.h"
 
 #include <stddef.h>
+
 #include <string>
+
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"
+#include "database/src/common/query_spec.h"
 #include "database/src/desktop/database_reference_desktop.h"
+#include "database/src/desktop/query_params_comparator.h"
 #include "database/src/desktop/util_desktop.h"
 
 namespace firebase {
@@ -26,9 +30,9 @@ namespace database {
 namespace internal {
 
 DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* database,
-                                           const Path& path,
-                                           const Variant& data)
-    : database_(database), path_(path), data_(data) {
+                                           const Variant& data,
+                                           const QuerySpec& query_spec)
+    : database_(database), data_(data), query_spec_(query_spec) {
   if (HasVector(data_)) {
     ConvertVectorToMap(&data_);
   }
@@ -36,14 +40,14 @@ DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* database,
 
 DataSnapshotInternal::DataSnapshotInternal(const DataSnapshotInternal& internal)
     : database_(internal.database_),
-      path_(internal.path_),
-      data_(internal.data_) {}
+      data_(internal.data_),
+      query_spec_(internal.query_spec_) {}
 
 DataSnapshotInternal& DataSnapshotInternal::operator=(
     const DataSnapshotInternal& internal) {
   database_ = internal.database_;
-  path_ = internal.path_;
   data_ = internal.data_;
+  query_spec_ = internal.query_spec_;
   return *this;
 }
 
@@ -51,14 +55,14 @@ DataSnapshotInternal& DataSnapshotInternal::operator=(
 DataSnapshotInternal::DataSnapshotInternal(DataSnapshotInternal&& internal) {
   database_ = internal.database_;
   data_ = std::move(internal.data_);
-  path_ = std::move(internal.path_);
+  query_spec_ = std::move(internal.query_spec_);
 }
 
 DataSnapshotInternal& DataSnapshotInternal::operator=(
     DataSnapshotInternal&& internal) {
   database_ = internal.database_;
   data_ = std::move(internal.data_);
-  path_ = std::move(internal.path_);
+  query_spec_ = std::move(internal.query_spec_);
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
@@ -68,11 +72,9 @@ DataSnapshotInternal::~DataSnapshotInternal() {}
 bool DataSnapshotInternal::Exists() const { return data_ != Variant::Null(); }
 
 DataSnapshotInternal* DataSnapshotInternal::Child(const char* path) const {
-  const Variant* child = GetInternalVariant(&data_, Path(path));
-  if (child != nullptr) {
-    return new DataSnapshotInternal(database_, path_.GetChild(path), *child);
-  }
-  return nullptr;
+  const Variant& child = VariantGetChild(&data_, Path(path));
+  return new DataSnapshotInternal(database_, child,
+                                  QuerySpec(query_spec_.path.GetChild(path)));
 }
 
 std::vector<DataSnapshot> DataSnapshotInternal::GetChildren() {
@@ -83,8 +85,18 @@ std::vector<DataSnapshot> DataSnapshotInternal::GetChildren() {
   for (auto& child : children) {
     assert(child.first.is_string());
     result.push_back(DataSnapshot(new DataSnapshotInternal(
-        database_, path_.GetChild(child.first.string_value()), *child.second)));
+        database_, *child.second,
+        QuerySpec(query_spec_.path.GetChild(child.first.string_value())))));
   }
+
+  QueryParamsComparator cmp(&query_spec_.params);
+  std::sort(result.begin(), result.end(),
+            [&cmp](const DataSnapshot& lhs, const DataSnapshot& rhs) {
+              return cmp.Compare(lhs.internal_->path().c_str(),
+                                 lhs.internal_->data_,
+                                 rhs.internal_->path().c_str(),
+                                 rhs.internal_->data_) < 0;
+            });
 
   return result;
 }
@@ -97,10 +109,12 @@ bool DataSnapshotInternal::HasChildren() {
   return CountEffectiveChildren(data_) != 0;
 }
 
-const char* DataSnapshotInternal::GetKey() const { return path_.GetBaseName(); }
+const char* DataSnapshotInternal::GetKey() const {
+  return query_spec_.path.GetBaseName();
+}
 
 std::string DataSnapshotInternal::GetKeyString() const {
-  return path_.GetBaseName();
+  return query_spec_.path.GetBaseName();
 }
 
 Variant DataSnapshotInternal::GetValue() const {
@@ -110,24 +124,20 @@ Variant DataSnapshotInternal::GetValue() const {
 }
 
 Variant DataSnapshotInternal::GetPriority() {
-  auto* priority = GetVariantPriority(data_);
-  if (priority) {
-    return *priority;
-  }
-  return Variant::Null();
+  return GetVariantPriority(data_);
 }
 
 DatabaseReferenceInternal* DataSnapshotInternal::GetReference() const {
-  return new DatabaseReferenceInternal(database_, path_);
+  return new DatabaseReferenceInternal(database_, query_spec_.path);
 }
 
 bool DataSnapshotInternal::HasChild(const char* path) const {
-  return GetInternalVariant(&data_, Path(path)) != nullptr;
+  return !VariantIsEmpty(VariantGetChild(&data_, Path(path)));
 }
 
 bool DataSnapshotInternal::operator==(const DataSnapshotInternal& other) const {
-  return database_ == other.database_ && path_ == other.path_ &&
-         data_ == other.data_;
+  return database_ == other.database_ && data_ == other.data_ &&
+         query_spec_ == other.query_spec_;
 }
 
 bool DataSnapshotInternal::operator!=(const DataSnapshotInternal& other) const {

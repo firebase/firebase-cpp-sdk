@@ -810,8 +810,8 @@ void Repo::HandleTransactionResponse(const connection::ResponsePtr& ptr) {
       TransactionDataPtr& transaction = future_to_complete.transaction;
       const Variant& node = future_to_complete.node;
 
-      DataSnapshot snapshot(
-          new DataSnapshotInternal(database_, transaction->path, node));
+      DataSnapshot snapshot(new DataSnapshotInternal(
+          database_, node, QuerySpec(transaction->path)));
       transaction->ref_future->CompleteWithResult(transaction->future_handle,
                                                   kErrorNone, snapshot);
     }
@@ -962,8 +962,8 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
     TransactionDataPtr& transaction = future_to_complete.transaction;
     Error& abort_reason = future_to_complete.abort_reason;
     Variant& node = future_to_complete.node;
-    DataSnapshot snapshot(
-        new DataSnapshotInternal(database_, transaction->path, node));
+    DataSnapshot snapshot(new DataSnapshotInternal(
+        database_, node, QuerySpec(transaction->path)));
     transaction->ref_future->CompleteWithResult(transaction->future_handle,
                                                 abort_reason, snapshot);
   }

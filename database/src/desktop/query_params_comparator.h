@@ -76,10 +76,12 @@ class QueryParamsComparator {
     return Compare(a.first, a.second, b.first, b.second);
   }
 
-  // Utility function to compare two variants as keys
+  // Utility function to compare two variants as keys.
   static int CompareKeys(const Variant& key_a, const Variant& key_b);
-  // Utility function to compare two variants as values
+  // Utility function to compare two variants as values.
   static int CompareValues(const Variant& variant_a, const Variant& variant_b);
+  // Utility function to compare two variant priorities.
+  static int ComparePriorities(const Variant& value_a, const Variant& value_b);
 
   // Special values for the minimum and maximum keys and values a node can have.
   // These values will always be sorted before or after all over values.
@@ -89,7 +91,6 @@ class QueryParamsComparator {
   static const std::pair<Variant, Variant> kMaxNode;
 
  private:
-  int ComparePriorities(const Variant& value_a, const Variant& value_b) const;
   int CompareChildren(const Variant& value_a, const Variant& value_b) const;
 
   const QueryParams* query_params_;

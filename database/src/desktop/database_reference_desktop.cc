@@ -166,6 +166,7 @@ Future<void> DatabaseReferenceInternal::SetPriority(const Variant& priority) {
     Repo::scheduler().Schedule(NewCallback(
         [](Repo* repo, Path path, Variant priority,
            ReferenceCountedFutureImpl* api, SafeFutureHandle<void> handle) {
+          ConvertVectorToMap(&priority);
           repo->SetValue(path, priority, api, handle);
         },
         database_->repo(), query_spec_.path.GetChild(kPriorityKey), priority,
@@ -189,6 +190,7 @@ Future<void> DatabaseReferenceInternal::SetValue(const Variant& value) {
     Repo::scheduler().Schedule(NewCallback(
         [](Repo* repo, Path path, Variant value,
            ReferenceCountedFutureImpl* api, SafeFutureHandle<void> handle) {
+          ConvertVectorToMap(&value);
           repo->SetValue(path, value, api, handle);
         },
         database_->repo(), query_spec_.path, value, ref_future(), handle));
@@ -235,6 +237,7 @@ Future<void> DatabaseReferenceInternal::SetValueAndPriority(
     Repo::scheduler().Schedule(NewCallback(
         [](Repo* repo, Path path, Variant value_priority,
            ReferenceCountedFutureImpl* api, SafeFutureHandle<void> handle) {
+          ConvertVectorToMap(&value_priority);
           repo->SetValue(path, value_priority, api, handle);
         },
         database_->repo(), query_spec_.path, value_priority, ref_future(),
@@ -258,6 +261,7 @@ Future<void> DatabaseReferenceInternal::UpdateChildren(const Variant& values) {
     Repo::scheduler().Schedule(NewCallback(
         [](Repo* repo, Path path, Variant values,
            ReferenceCountedFutureImpl* api, SafeFutureHandle<void> handle) {
+          ConvertVectorToMap(&values);
           repo->UpdateChildren(path, values, api, handle);
         },
         database_->repo(), query_spec_.path, values, ref_future(), handle));

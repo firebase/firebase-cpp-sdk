@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "database/src/desktop/core/value_event_registration.h"
+
 #include "database/src/desktop/data_snapshot_desktop.h"
 #include "database/src/include/firebase/database/common.h"
 #include "firebase/database/data_snapshot.h"
@@ -29,10 +30,15 @@ bool ValueEventRegistration::RespondsTo(EventType event_type) {
 
 Event ValueEventRegistration::GenerateEvent(const Change& change,
                                             const QuerySpec& query_spec) {
-  return Event(kEventTypeValue, this,
-               DataSnapshotInternal(database_,
-                                    query_spec.path.GetChild(change.child_key),
-                                    change.indexed_variant.variant()));
+  // return Event(kEventTypeValue, this,
+  //              DataSnapshotInternal(database_,
+  //                                   query_spec.path.GetChild(change.child_key),
+  //                                   change.indexed_variant.variant()));
+  return Event(
+      kEventTypeValue, this,
+      DataSnapshotInternal(database_, change.indexed_variant.variant(),
+                           QuerySpec(query_spec.path.GetChild(change.child_key),
+                                     change.indexed_variant.query_params())));
 }
 
 void ValueEventRegistration::FireEvent(const Event& event) {

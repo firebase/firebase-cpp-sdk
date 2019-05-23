@@ -13,9 +13,11 @@
 // limitations under the License.
 
 #include "database/src/desktop/persistence/persistence_manager.h"
+
 #include <set>
 #include <string>
 #include <vector>
+
 #include "app/src/assert.h"
 #include "app/src/log.h"
 #include "app/src/path.h"
@@ -99,15 +101,13 @@ CacheNode PersistenceManager::ServerCache(const QuerySpec& query_spec) {
         tracked_query_manager_->GetKnownCompleteChildren(query_spec.path);
   }
 
+  // Make this a const ref
   Variant server_cache_node = storage_engine_->ServerCache(query_spec.path);
   if (found_tracked_keys) {
     Variant filtered_node = Variant::EmptyMap();
     for (std::string key : tracked_keys) {
-      const Variant* tracked_node =
-          GetInternalVariant(&server_cache_node, key.c_str());
-      if (tracked_node) {
-        filtered_node.map()[key] = *tracked_node;
-      }
+      VariantUpdateChild(&filtered_node, key,
+                         VariantGetChild(&server_cache_node, key));
     }
     return CacheNode(IndexedVariant(filtered_node, query_spec.params), complete,
                      true);

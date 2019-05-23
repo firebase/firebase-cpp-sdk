@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_UTIL_DESKTOP_H_
 
 #include <string>
+
 #include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
@@ -39,9 +40,6 @@ class VariantFilter;
 // Rather than construct a null_variant in the current scope any place where
 // this happens, it can be helpful to have a persistent one that can be used
 // from anywhere.
-// TODO(amablue): Consider making GetInternalVariant return this on failure
-// instead of a nullptr. I need to verify that that doesn't break anything
-// before making the change, but if it works it would clean up a bunch of code.
 extern const Variant kNullVariant;
 
 // The virtual key for the value. This has special meaning to the database, and
@@ -84,6 +82,30 @@ void Extend(std::vector<T>* v, const std::vector<T>& extension) {
 // either Variant is not a map, this function fails and returns false.
 bool PatchVariant(const Variant& patch_data, Variant* out_data);
 
+// Get a child of a given variant, respecting .value and .priorty virtual keys
+// appropriately. This will always return some value. If there is a value at the
+// given path, a reference to that value will be returned. If there is not, a
+// reference to kNullVariant will be returned.
+//
+// This function is designed to perfectly mimic the behavior of Node.getChild in
+// the Java API. This should be used in place of GetInternalVariant, which is
+// more naive in how it gets the child variant.
+const Variant& VariantGetChild(const Variant* variant, const Path& path);
+const Variant& VariantGetChild(const Variant* variant, const std::string& key);
+
+// Update the child of variant at the given path with value. If necessary this
+// will convert the given Variant into a map and recursively add child map
+// Variants as needed.
+//
+// This function is designed to perfectly mimic the behavior of Node.updateChild
+// in the Java API. This should be used in place of SetVariantAtPath, which is
+// more naive in how it updates the child variant, and is not guarenteed to
+// update the .priority or .value keys correctly.
+void VariantUpdateChild(Variant* variant, const Path& path,
+                        const Variant& value);
+void VariantUpdateChild(Variant* variant, const std::string& key,
+                        const Variant& value);
+
 // Given a root Variant and a Path, get the Variant at that path. This returns a
 // pointer to the variant within the given variant (the result will be the same
 // as the input if the path is the root). If the path could not be completed for
@@ -107,6 +129,8 @@ Variant* MakeVariantAtPath(Variant* variant, const Path& path);
 
 // Set a value in the variant at the given path, creating intermediate map
 // variants as necessary.
+//
+// TODO(amablue): Remove remaining references to this function.
 void SetVariantAtPath(Variant* variant, const Path& path, const Variant& value);
 
 // The Parse() function take the input url and breakdown a url into hostname,
@@ -198,7 +222,7 @@ Variant* GetVariantValue(Variant* variant);
 // Returns the Variant representing a Priority if one exists. Returns true if a
 // priority is found and sets the priorty_out variable. Otherwise returns a
 // nullptr.
-const Variant* GetVariantPriority(const Variant& variant);
+const Variant& GetVariantPriority(const Variant& variant);
 
 // A function to merge value and priority into one Variant.  This due to the
 // nature of ".priority" being inlined in map but not other types.

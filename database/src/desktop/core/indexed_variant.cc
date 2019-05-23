@@ -95,7 +95,7 @@ const Variant* IndexedVariant::GetOrderByVariant(const Variant& key,
                                                  const Variant& value) {
   switch (query_params_.order_by) {
     case QueryParams::kOrderByPriority: {
-      return GetVariantPriority(value);
+      return &GetVariantPriority(value);
     }
     case QueryParams::kOrderByChild: {
       if (value.is_map()) {
@@ -118,16 +118,14 @@ const Variant* IndexedVariant::GetOrderByVariant(const Variant& key,
 static bool IsDefinedOn(const Variant& variant, const QueryParams& params) {
   switch (params.order_by) {
     case QueryParams::kOrderByPriority: {
-      const Variant* priority = GetVariantPriority(variant);
-      return priority && !VariantIsEmpty(*priority);
+      return !VariantIsEmpty(GetVariantPriority(variant));
     }
     case QueryParams::kOrderByKey: {
       return true;
     }
     case QueryParams::kOrderByChild: {
-      const Variant* child =
-          GetInternalVariant(&variant, Path(params.order_by_child));
-      return child && !VariantIsEmpty(*child);
+      return !VariantIsEmpty(
+          VariantGetChild(&variant, Path(params.order_by_child)));
     }
     case QueryParams::kOrderByValue: {
       return true;

@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <set>
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
@@ -132,7 +133,7 @@ class PersistenceStorageEngine {
   //
   // @param path The path at which to load the data.
   // @return The data that was loaded.
-  virtual Variant ServerCache(const Path& path) = 0;
+  virtual const Variant& ServerCache(const Path& path) = 0;
 
   // Overwrite the server cache at the given path with the given data.
   //

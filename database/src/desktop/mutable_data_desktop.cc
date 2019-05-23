@@ -15,6 +15,7 @@
 #include "database/src/desktop/mutable_data_desktop.h"
 
 #include <stdlib.h>
+
 #include <cassert>
 #include <sstream>
 
@@ -29,8 +30,8 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-MutableDataInternal::MutableDataInternal(
-    DatabaseInternal* database, const Variant& data)
+MutableDataInternal::MutableDataInternal(DatabaseInternal* database,
+                                         const Variant& data)
     : db_(database), path_(), holder_(MakeShared<Variant>(data)) {
   if (HasVector(*holder_)) {
     ConvertVectorToMap(holder_.get());
@@ -93,42 +94,21 @@ Variant MutableDataInternal::GetValue() {
 
 Variant MutableDataInternal::GetPriority() {
   Variant* node = GetNode();
-
   if (node != nullptr) {
-    const Variant* priority = GetVariantPriority(*node);
-    return priority == nullptr ? Variant::Null() : *priority;
+    return GetVariantPriority(*node);
   } else {
     return Variant::Null();
   }
 }
 
 bool MutableDataInternal::HasChild(const char* path) const {
-  return GetInternalVariant(holder_.get(), path_.GetChild(path)) != nullptr;
+  return !VariantIsEmpty(VariantGetChild(holder_.get(), path_.GetChild(path)));
 }
 
 void MutableDataInternal::SetValue(const Variant& value) {
   Variant value_converted = value;
   ConvertVectorToMap(&value_converted);
-
-  // Force to create the variant
-  Variant* result = MakeVariantAtPath(holder_.get(), path_);
-  assert(result != nullptr);
-
-  // TODO(chkuang): make a utility function
-  auto priority_variant = GetVariantPriority(*result);
-  if (priority_variant != nullptr) {
-    Variant priority = *priority_variant;
-    if (value_converted.is_map()) {
-      // Add priority to the map since it is inlined
-      *result = value_converted;
-    } else {
-      *result = Variant::EmptyMap();
-      result->map()[".value"] = value_converted;
-    }
-    result->map()[".priority"] = priority;
-  } else {
-    *result = value_converted;
-  }
+  VariantUpdateChild(holder_.get(), path_, value_converted);
 }
 
 void MutableDataInternal::SetPriority(const Variant& priority) {
@@ -136,28 +116,7 @@ void MutableDataInternal::SetPriority(const Variant& priority) {
     LogError(kErrorMsgInvalidVariantForPriority);
     return;
   }
-
-  // Force to create the variant
-  Variant* result = MakeVariantAtPath(holder_.get(), path_);
-  assert(result != nullptr);
-
-  // TODO(chkuang): make a utility function
-  if (priority.is_null()) {
-    PrunePriorities(result, false);
-  } else {
-    auto priority_variant = GetVariantPriority(*result);
-    if (priority_variant != nullptr) {
-      assert(result->is_map());
-      result->map()[".priority"] = priority;
-    } else {
-      if (!result->is_map()) {
-        Variant map = Variant::EmptyMap();
-        map.map()[".value"] = *result;
-        *result = map;
-      }
-      result->map()[".priority"] = priority;
-    }
-  }
+  VariantUpdateChild(holder_.get(), path_.GetChild(kPriorityKey), priority);
 }
 
 Variant* MutableDataInternal::GetNode() {

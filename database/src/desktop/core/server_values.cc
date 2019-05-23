@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include "database/src/desktop/core/server_values.h"
+
 #include <ctime>
+
 #include "app/src/include/firebase/variant.h"
 #include "database/src/desktop/core/compound_write.h"
 #include "database/src/desktop/util_desktop.h"
@@ -69,12 +71,11 @@ static void ResolveDeferredValueSnapshotHelper(Variant* data,
 
 Variant ResolveDeferredValueSnapshot(const Variant& data,
                                      const Variant& server_values) {
-  const Variant* priority = GetVariantPriority(data);
-  priority = priority ? &ResolveDeferredValue(*priority, server_values)
-                      : &kNullVariant;
+  Variant priority = GetVariantPriority(data);
+  priority = ResolveDeferredValue(priority, server_values);
   Variant new_data = data;
   ResolveDeferredValueSnapshotHelper(&new_data, server_values);
-  return CombineValueAndPriority(new_data, *priority);
+  return CombineValueAndPriority(new_data, priority);
 }
 
 CompoundWrite ResolveDeferredValueMerge(const CompoundWrite& merge,

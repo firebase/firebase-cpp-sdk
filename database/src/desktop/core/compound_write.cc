@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "database/src/desktop/core/compound_write.h"
+
 #include "app/src/assert.h"
 #include "database/src/desktop/core/tree.h"
 #include "database/src/desktop/util_desktop.h"
@@ -70,19 +71,18 @@ CompoundWrite CompoundWrite::AddWrite(const Path& path,
       // TODO(amablue): Consider making FindRootMostPathWithValue also return
       // the remainder and not just the root most path.
       Optional<Path> relative_path = Path::GetRelative(*root_most_path, path);
-      const Variant* value = write_tree_.GetValueAt(root_most_path.value());
+      const Variant* value = write_tree_.GetValueAt(*root_most_path);
       std::vector<std::string> directories = relative_path->GetDirectories();
       std::string back = directories.empty() ? "" : directories.back();
-      const Variant* internal_variant =
-          GetInternalVariant(value, relative_path->GetParent());
-      if (!relative_path->empty() && back == ".priority" &&
-          (internal_variant == nullptr || internal_variant->is_null())) {
+
+      if (!relative_path->empty() && IsPriorityKey(back) &&
+          VariantIsEmpty(VariantGetChild(value, relative_path->GetParent()))) {
         // Ignore priority updates on empty variants
         return *this;
       } else {
         CompoundWrite result = *this;
         Variant updated_variant = *value;
-        *MakeVariantAtPath(&updated_variant, *relative_path) = *variant;
+        VariantUpdateChild(&updated_variant, *relative_path, *variant);
         result.write_tree_.SetValueAt(*root_most_path, updated_variant);
         return result;
       }
@@ -144,11 +144,9 @@ const Optional<Variant>& CompoundWrite::GetRootWrite() const {
 Optional<Variant> CompoundWrite::GetCompleteVariant(const Path& path) const {
   Optional<Path> root_most = write_tree_.FindRootMostPathWithValue(path);
   if (root_most.has_value()) {
-    const Path& root_most_path = root_most.value();
-    const Variant* root_most_value = write_tree_.GetValueAt(root_most_path);
-    Optional<Path> remaining_path = Path::GetRelative(root_most_path, path);
-    return OptionalFromPointer(
-        GetInternalVariant(root_most_value, *remaining_path));
+    const Variant* root_most_value = write_tree_.GetValueAt(*root_most);
+    Optional<Path> remaining_path = Path::GetRelative(*root_most, path);
+    return Optional<Variant>(VariantGetChild(root_most_value, *remaining_path));
   } else {
     return Optional<Variant>();
   }
@@ -213,14 +211,13 @@ Variant CompoundWrite::ApplySubtreeWrite(const Path& relative_path,
                                          Variant variant) const {
   if (write_tree->value().has_value()) {
     // Since there a write is always a leaf, we're done here
-    *MakeVariantAtPath(&variant, relative_path) = write_tree->value().value();
-    return variant;
+    VariantUpdateChild(&variant, relative_path, write_tree->value().value());
   } else {
     Optional<Variant> priority_write;
     for (auto& key_tree_pair : write_tree->children()) {
       const std::string& child_key = key_tree_pair.first;
       const Tree<Variant>& child_tree = key_tree_pair.second;
-      if (child_key == ".priority") {
+      if (IsPriorityKey(child_key)) {
         // Apply priorities at the end so we don't update priorities for
         // either empty variants or forget to apply priorities to empty
         // variants that are later filled
@@ -235,13 +232,13 @@ Variant CompoundWrite::ApplySubtreeWrite(const Path& relative_path,
     }
     // If there was a priority write, we only apply it if the variant is not
     // empty.
-    if (GetInternalVariant(&variant, relative_path) != nullptr &&
+    if (!VariantIsEmpty(VariantGetChild(&variant, relative_path)) &&
         priority_write.has_value()) {
-      *MakeVariantAtPath(&variant, relative_path.GetChild(".priority")) =
-          priority_write.value();
+      VariantUpdateChild(&variant, relative_path.GetChild(kPriorityKey),
+                         priority_write.value());
     }
-    return variant;
   }
+  return variant;
 }
 
 }  // namespace internal

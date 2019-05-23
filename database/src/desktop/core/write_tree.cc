@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include "database/src/desktop/core/write_tree.h"
+
 #include <algorithm>
+
 #include "app/src/assert.h"
 #include "database/src/desktop/core/compound_write.h"
 #include "database/src/desktop/query_params_comparator.h"
@@ -273,8 +275,8 @@ Optional<Variant> WriteTree::CalcEventCacheAfterServerOverwrite(
     CompoundWrite child_merge = visible_writes_.ChildCompoundWrite(path);
     if (child_merge.IsEmpty()) {
       // We're not shadowing at all. Case 1.
-      return OptionalFromPointer(
-          GetInternalVariant(existing_server_snap, child_path));
+      return Optional<Variant>(
+          VariantGetChild(existing_server_snap, child_path));
     } else {
       // This could be more efficient if the server_node + updates doesn't
       // change the local_snap However this is tricky to find out, since user
@@ -284,8 +286,8 @@ Optional<Variant> WriteTree::CalcEventCacheAfterServerOverwrite(
       // therefore not enough to only check if the updates change the
       // server_node. Maybe check if the merge tree contains these special
       // cases and only do a full overwrite in that case?
-      return Optional<Variant>(child_merge.Apply(
-          *GetInternalVariant(existing_server_snap, child_path)));
+      return Optional<Variant>(
+          child_merge.Apply(VariantGetChild(existing_server_snap, child_path)));
     }
   }
 }
@@ -301,11 +303,9 @@ Optional<Variant> WriteTree::CalcCompleteChild(
   } else {
     if (existing_server_snap.IsCompleteForChild(child_key)) {
       CompoundWrite child_merge = visible_writes_.ChildCompoundWrite(path);
-      const Variant* child =
-          GetInternalVariant(&existing_server_snap.variant(), child_key);
-      if (child) {
-        return Optional<Variant>(child_merge.Apply(*child));
-      }
+      const Variant& child =
+          VariantGetChild(&existing_server_snap.variant(), child_key);
+      return Optional<Variant>(child_merge.Apply(child));
     }
     return Optional<Variant>();
   }
@@ -402,8 +402,8 @@ CompoundWrite WriteTree::LayerTree(const std::vector<UserWriteRecord>& writes,
         } else if (write_path.StartsWith(tree_root)) {
           compound_write = compound_write.AddWrite(
               Path(),
-              *GetInternalVariant(&write.overwrite,
-                                  *Path::GetRelative(write_path, tree_root)));
+              VariantGetChild(&write.overwrite,
+                              *Path::GetRelative(write_path, tree_root)));
         } else {
           // There is no overlap between root path and write path, ignore
           // write

@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "database/src/desktop/view/indexed_filter.h"
+
 #include "app/src/assert.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
@@ -22,10 +23,6 @@
 namespace firebase {
 namespace database {
 namespace internal {
-
-static bool PointerOrValueEquality(const Variant* a, const Variant* b) {
-  return ((a == b) || (a && b && VariantsAreEquivalent(*a, *b)));
-}
 
 IndexedFilter::~IndexedFilter() {}
 
@@ -38,42 +35,37 @@ IndexedVariant IndexedFilter::UpdateChild(
       indexed_variant.query_params().order_by == query_params().order_by,
       "The index must match the filter");
   const Variant& snap = indexed_variant.variant();
-  const Variant* old_child = GetInternalVariant(&snap, key);
+  const Variant& old_child = VariantGetChild(&snap, key);
   // Check if anything actually changed.
-  const Variant* old_descendant =
-      old_child ? GetInternalVariant(old_child, affected_path) : nullptr;
-  if (old_descendant == nullptr) old_descendant = &kNullVariant;
-  const Variant* new_descendant = GetInternalVariant(&new_child, affected_path);
-  if (new_descendant == nullptr) new_descendant = &kNullVariant;
-  bool old_child_null = !old_child || VariantIsEmpty(*old_child);
-
-  if (PointerOrValueEquality(old_descendant, new_descendant)) {
+  const Variant& old_descendant = VariantGetChild(&old_child, affected_path);
+  const Variant& new_descendant = VariantGetChild(&new_child, affected_path);
+  if (VariantsAreEquivalent(old_descendant, new_descendant)) {
     // There's an edge case where a child can enter or leave the view because
     // affected_path was set to null. In this case, affected_path will appear
     // null in both the old and new snapshots. So we need to avoid treating
     // these cases as "nothing changed."
-    if (old_child_null == new_child.is_null()) {
+    if (VariantIsEmpty(old_child) == VariantIsEmpty(new_child)) {
       // Nothing changed.
       return indexed_variant;
     }
   }
   // If we have a ChangeAccumulator, accumulate the changes.
   if (opt_change_accumulator != nullptr) {
-    if (!old_child_null && new_child.is_null()) {
+    if (VariantIsEmpty(new_child)) {
       // If the new child is null, something was removed. Track the removal.
-      TrackChildChange(ChildRemovedChange(key, *old_child),
+      TrackChildChange(ChildRemovedChange(key, old_child),
                        opt_change_accumulator);
-    } else if (old_child_null) {
+    } else if (VariantIsEmpty(old_child)) {
       // If the old child was null, something was added. Track the addition.
       TrackChildChange(ChildAddedChange(key, new_child),
                        opt_change_accumulator);
     } else {
       // Otherwise, something was changed. Track the change.
-      TrackChildChange(ChildChangedChange(key, new_child, *old_child),
+      TrackChildChange(ChildChangedChange(key, new_child, old_child),
                        opt_change_accumulator);
     }
   }
-  if (snap.is_fundamental_type() && new_child.is_null()) {
+  if (VariantIsLeaf(snap) && VariantIsEmpty(new_child)) {
     return indexed_variant;
   } else {
     // Make sure the variant is indexed.

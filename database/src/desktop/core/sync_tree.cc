@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include "database/src/desktop/core/sync_tree.h"
+
 #include <vector>
+
 #include "app/memory/unique_ptr.h"
 #include "app/src/assert.h"
 #include "app/src/callback.h"
@@ -172,10 +174,10 @@ std::vector<Event> SyncTree::AddEventRegistration(
         auto& variant = persistent_server_cache.indexed_variant().variant();
         if (variant.is_map()) {
           for (auto& key_value_pair : variant.map()) {
-            Path key(key_value_pair.first.AsString().string_value());
+            const char* key = key_value_pair.first.AsString().string_value();
+            const Variant& value = key_value_pair.second;
             if (GetInternalVariant(&*server_cache_variant, key) == nullptr) {
-              SetVariantAtPath(&*server_cache_variant, key,
-                               key_value_pair.second);
+              VariantUpdateChild(&server_cache_variant.value(), key, value);
             }
           }
         }
@@ -270,7 +272,7 @@ std::vector<Event> SyncTree::ApplyOperationHelper(
     Tree<SyncPoint>* child_tree = sync_point_tree->GetChild(child_key);
     if (child_tree && child_operation.has_value()) {
       const Variant* child_server_cache =
-          server_cache ? GetInternalVariant(server_cache, child_key) : nullptr;
+          server_cache ? &VariantGetChild(server_cache, child_key) : nullptr;
       WriteTreeRef child_writes_cache = writes_cache->Child(child_key);
       events = ApplyOperationHelper(*child_operation, child_tree,
                                     child_server_cache, &child_writes_cache);

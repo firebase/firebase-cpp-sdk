@@ -13,10 +13,12 @@
 // limitations under the License.
 
 #include "database/src/desktop/persistence/in_memory_persistence_storage_engine.h"
+
 #include <functional>
 #include <set>
 #include <string>
 #include <vector>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/log.h"
@@ -72,18 +74,16 @@ void InMemoryPersistenceStorageEngine::RemoveAllUserWrites() {
   VerifyInTransaction();
 }
 
-Variant InMemoryPersistenceStorageEngine::ServerCache(const Path& path) {
-  const Variant* value = GetInternalVariant(&server_cache_, path);
-  return value ? *value : Variant::Null();
+const Variant& InMemoryPersistenceStorageEngine::ServerCache(const Path& path) {
+  return VariantGetChild(&server_cache_, path);
 }
 
 void InMemoryPersistenceStorageEngine::OverwriteServerCache(
     const Path& path, const Variant& data) {
   VerifyInTransaction();
-  SetVariantAtPath(&server_cache_, path, data);
-  // Clean up in case anything was removed.
-  Variant* target = GetInternalVariant(&server_cache_, path.GetParent());
-  PruneNulls(target);
+  Variant pruned_data = data;
+  PruneNulls(&pruned_data);
+  VariantUpdateChild(&server_cache_, path, data);
 }
 
 void InMemoryPersistenceStorageEngine::MergeIntoServerCache(

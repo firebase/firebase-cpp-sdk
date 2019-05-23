@@ -13,10 +13,12 @@
 // limitations under the License.
 
 #include "database/src/desktop/view/event_generator.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <vector>
+
 #include "app/memory/unique_ptr.h"
 #include "app/src/assert.h"
 #include "app/src/variant_util.h"
@@ -52,7 +54,9 @@ std::vector<Event> GenerateEventsForChanges(
     if (change.event_type == kEventTypeChildChanged) {
       const Variant& old_variant = change.old_indexed_variant.variant();
       const Variant& variant = change.indexed_variant.variant();
-      bool different = comparator.Compare("", old_variant, "", variant) != 0;
+      bool different =
+          comparator.Compare(QueryParamsComparator::kMinKey, old_variant,
+                             QueryParamsComparator::kMinKey, variant) != 0;
       if (different) {
         moves.push_back(
             ChildMovedChange(change.child_key, change.indexed_variant));

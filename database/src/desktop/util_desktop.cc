@@ -13,12 +13,15 @@
 // limitations under the License.
 
 #include "database/src/desktop/util_desktop.h"
+
 #include <algorithm>
 #include <cassert>
 #include <cstdlib>
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <utility>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/variant.h"
 #include "database/src/common/query_spec.h"
@@ -60,6 +63,8 @@ static const char kQueryParamsIndex[] = "i";
 static const char kQueryParamsIndexByValue[] = ".value";
 static const char kQueryParamsIndexByKey[] = ".key";
 
+void CombineValueAndPriorityInPlace(Variant* value, const Variant& priority);
+
 bool IsPriorityKey(const std::string& priority_key) {
   return priority_key == kPriorityKey;
 }
@@ -80,10 +85,110 @@ bool PatchVariant(const Variant& patch_data, Variant* out_data) {
   return true;
 }
 
+static const Variant& VariantGetImmediateChild(const Variant* variant,
+                                               const std::string& key) {
+  if (VariantIsLeaf(*variant)) {
+    if (IsPriorityKey(key)) {
+      return GetVariantPriority(*variant);
+    } else {
+      return kNullVariant;
+    }
+  } else {
+    if (IsPriorityKey(key)) {
+      return GetVariantPriority(*variant);
+    } else {
+      const Variant* result = MapGet(&variant->map(), key);
+      return result ? *result : kNullVariant;
+    }
+  }
+}
+
+const Variant& VariantGetChild(const Variant* variant, const Path& path) {
+  if (VariantIsLeaf(*variant)) {
+    if (path.empty()) {
+      return *variant;
+    } else if (IsPriorityKey(path.FrontDirectory().str())) {
+      return GetVariantPriority(*variant);
+    } else {
+      return kNullVariant;
+    }
+  } else {
+    std::string front = path.FrontDirectory().str();
+    if (front.empty()) {
+      return *variant;
+    } else {
+      const Variant& child = VariantGetImmediateChild(variant, front);
+      return VariantGetChild(&child, path.PopFrontDirectory());
+    }
+  }
+}
+
+const Variant& VariantGetChild(const Variant* variant, const std::string& key) {
+  return VariantGetChild(variant, Path(key));
+}
+
+void VariantUpdateChild(Variant* variant, const Path& path,
+                        const Variant& value) {
+  std::string front = path.FrontDirectory().str();
+  if (front.empty()) {
+    *variant = value;
+  } else if (variant->is_null()) {
+    *variant = Variant::EmptyMap();
+    Variant& immediate_child = variant->map()[front];
+    VariantUpdateChild(&immediate_child, path.PopFrontDirectory(), value);
+    if (VariantIsEmpty(immediate_child)) {
+      variant->map().erase(variant->map().find(front));
+    }
+    if (VariantIsEmpty(*variant)) {
+      *variant = Variant::Null();
+    }
+  } else if (VariantIsLeaf(*variant)) {
+    std::string front = path.FrontDirectory().str();
+    if (VariantIsEmpty(value) && !IsPriorityKey(front)) {
+      // Do nothing.
+    } else if (IsPriorityKey(front)) {
+      CombineValueAndPriorityInPlace(variant, value);
+    } else {
+      if (!variant->is_map()) {
+        *variant = Variant::EmptyMap();
+      }
+      auto dot_value_iter = variant->map().find(kValueKey);
+      if (dot_value_iter != variant->map().end()) {
+        variant->map().erase(dot_value_iter);
+      }
+      Variant& immediate_child = variant->map()[front];
+      VariantUpdateChild(&immediate_child, path.PopFrontDirectory(), value);
+      if (VariantIsEmpty(immediate_child)) {
+        variant->map().erase(variant->map().find(front));
+      }
+      if (VariantIsEmpty(*variant)) {
+        *variant = Variant::Null();
+      }
+    }
+  } else {
+    if (IsPriorityKey(front)) {
+      CombineValueAndPriorityInPlace(variant, value);
+    } else {
+      Variant& immediate_child = variant->map()[front];
+      VariantUpdateChild(&immediate_child, path.PopFrontDirectory(), value);
+      if (VariantIsEmpty(immediate_child)) {
+        variant->map().erase(variant->map().find(front));
+      }
+      if (VariantIsEmpty(*variant)) {
+        *variant = Variant::Null();
+      }
+    }
+  }
+}
+
+void VariantUpdateChild(Variant* variant, const std::string& key,
+                        const Variant& value) {
+  VariantUpdateChild(variant, Path(key), value);
+}
+
 Variant* GetInternalVariant(Variant* variant, const Path& path) {
   Variant* result = variant;
   for (const std::string& directory : path.GetDirectories()) {
-    result = GetVariantValue(result);
     result = GetInternalVariant(result, directory);
     if (result == nullptr) break;
   }
@@ -95,7 +200,9 @@ const Variant* GetInternalVariant(const Variant* variant, const Path& path) {
 }
 
 Variant* GetInternalVariant(Variant* variant, const Variant& key) {
-  variant = GetVariantValue(variant);
+  if (key != Variant::FromStaticString(kPriorityKey)) {
+    variant = GetVariantValue(variant);
+  }
   // Ensure we're operating on a map.
   if (!variant->is_map()) {
     return nullptr;
@@ -422,20 +529,19 @@ void ConvertVectorToMap(Variant* variant) {
       ConvertVectorToMap(&it_child.second);
     }
   } else if (variant->is_map()) {
-    auto value = GetVariantValue(variant);
+    const Variant* value = GetVariantValue(variant);
     assert(value);
-    auto priority = GetVariantPriority(*variant);
+    const Variant& priority = GetVariantPriority(*variant);
 
     // Handle the case like
     //   {".value":[0,1],".priority":1} => {"0":0,"1":1,".priority":1}
     // Surprisingly the other SDK supports such case
     if (value->is_vector()) {
       // If the value is vector, it is impossible that priority is nullptr
-      assert(priority);
       Variant new_data = *value;
       ConvertVectorToMap(&new_data);
       assert(new_data.is_map());
-      new_data.map()[kPriorityKey] = *priority;
+      new_data.map()[kPriorityKey] = priority;
       *variant = new_data;
     }
 
@@ -504,15 +610,34 @@ Variant* GetVariantValue(Variant* variant) {
   return &iter->second;
 }
 
-const Variant* GetVariantPriority(const Variant& variant) {
+const Variant& GetVariantPriority(const Variant& variant) {
   if (!variant.is_map()) {
-    return nullptr;
+    return kNullVariant;
   }
   auto iter = variant.map().find(kPriorityKey);
   if (iter == variant.map().end()) {
-    return nullptr;
+    return kNullVariant;
   }
-  return &iter->second;
+  return iter->second;
+}
+
+void CombineValueAndPriorityInPlace(Variant* value, const Variant& priority) {
+  // If the value is already null, return null regardless of the priority
+  // If the priority is null, only the value
+  if (VariantIsEmpty(*value)) {
+    *value = Variant::Null();
+  } else if (VariantIsEmpty(priority)) {
+    PrunePriorities(value, false);
+  } else {
+    if (!value->is_map()) {
+      // If the value is not a map, ex. int, double or vector, create a map to
+      // wrap the value under ".value" key
+      *value = Variant(std::map<Variant, Variant>{
+          std::make_pair(kValueKey, *value),
+      });
+    }
+    value->map()[kPriorityKey] = priority;
+  }
 }
 
 Variant CombineValueAndPriority(const Variant& value, const Variant& priority) {
@@ -520,8 +645,10 @@ Variant CombineValueAndPriority(const Variant& value, const Variant& priority) {
 
   // If the value is already null, return null regardless of the priority
   // If the priority is null, only the value
-  if (value == Variant::Null() || priority == Variant::Null()) {
+  if (VariantIsEmpty(value) || VariantIsEmpty(priority)) {
+    // If we are operating on a map, remove the priority entry.
     result = value;
+    PrunePriorities(&result, false);
   } else {
     if (value.is_map()) {
       // If the value is a map, just inline priority later
@@ -551,32 +678,23 @@ bool VariantIsEmpty(const Variant& variant) {
     if (map.empty()) return true;
     // If there's only one element and it's the priority then this is
     // effectively an empty map.
-    if (map.size() == 1 && GetVariantPriority(value->map())) return true;
+    if (map.size() == 1 && !GetVariantPriority(value->map()).is_null()) {
+      return true;
+    }
   }
   return false;
 }
 
-// Do not consider ".priority" entries when iterating over a map.
-static std::map<Variant, Variant>::const_iterator SkipPriority(
-    std::map<Variant, Variant>::const_iterator iter,
-    std::map<Variant, Variant>::const_iterator end) {
-  if (iter != end && iter->first.is_string() &&
-      strcmp(iter->first.string_value(), kPriorityKey) == 0) {
-    ++iter;
-  }
-  return iter;
-}
-
 bool VariantsAreEquivalent(const Variant& a, const Variant& b) {
-  if (QueryParamsComparator::CompareValues(a, b) != 0) {
+  if (QueryParamsComparator::CompareValues(a, b) != 0 ||
+      QueryParamsComparator::ComparePriorities(a, b) != 0) {
     return false;
   }
   if (a.is_map() && b.is_map()) {
-    auto iter_a = SkipPriority(a.map().begin(), a.map().end());
-    auto iter_b = SkipPriority(b.map().begin(), b.map().end());
+    auto iter_a = a.map().begin();
+    auto iter_b = b.map().begin();
     for (; iter_a != a.map().end() && iter_b != b.map().end();
-         SkipPriority(++iter_a, a.map().end()),
-         SkipPriority(++iter_b, b.map().end())) {
+         ++iter_a, ++iter_b) {
       const auto& key_a = iter_a->first;
       const auto& key_b = iter_b->first;
       if (QueryParamsComparator::CompareValues(key_a, key_b) != 0) {
@@ -746,7 +864,7 @@ void AppendHashRepAsContainer(std::stringstream* ss, const Variant& data) {
     for (auto& it_child : data.map()) {
       nodes.push_back(NodeSortingData(&it_child.first, &it_child.second));
       saw_priority =
-          saw_priority || (GetVariantPriority(it_child.second) != nullptr);
+          saw_priority || !GetVariantPriority(it_child.second).is_null();
     }
     ProcessChildNodes(ss, &nodes, saw_priority);
   }

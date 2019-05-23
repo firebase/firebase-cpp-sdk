@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include "database/src/desktop/query_params_comparator.h"
+
 #include <cassert>
+
 #include "app/src/util.h"
 #include "database/src/desktop/util_desktop.h"
 
@@ -91,29 +93,25 @@ int QueryParamsComparator::Compare(const Variant& key_a, const Variant& value_a,
 }
 
 int QueryParamsComparator::ComparePriorities(const Variant& value_a,
-                                             const Variant& value_b) const {
-  const Variant* priority_a = GetVariantPriority(value_a);
-  const Variant* priority_b = GetVariantPriority(value_b);
-  if (!priority_a) priority_a = &kNullVariant;
-  if (!priority_b) priority_b = &kNullVariant;
+                                             const Variant& value_b) {
+  const Variant& priority_a = GetVariantPriority(value_a);
+  const Variant& priority_b = GetVariantPriority(value_b);
   // Priority comparisons follow the same rules as values.
-  return CompareValues(*priority_a, *priority_b);
+  return CompareValues(priority_a, priority_b);
 }
 
 int QueryParamsComparator::CompareChildren(const Variant& value_a,
                                            const Variant& value_b) const {
   const Path path(query_params_->order_by_child);
-  const Variant* descendant_a = GetInternalVariant(&value_a, path);
-  const Variant* descendant_b = GetInternalVariant(&value_b, path);
-  if (!descendant_a) descendant_a = &kNullVariant;
-  if (!descendant_b) descendant_b = &kNullVariant;
+  const Variant& descendant_a = VariantGetChild(&value_a, path);
+  const Variant& descendant_b = VariantGetChild(&value_b, path);
   // Child comparisons follow the same rules as values.
-  return CompareValues(*descendant_a, *descendant_b);
+  return CompareValues(descendant_a, descendant_b);
 }
 
 int QueryParamsComparator::CompareKeys(const Variant& key_a,
                                        const Variant& key_b) {
-  if (&key_a == &key_b) {
+  if (key_a == key_b) {
     return 0;
   } else if (key_a == kMinKey || key_b == kMaxKey) {
     return -1;

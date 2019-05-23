@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include "database/src/desktop/core/operation.h"
+
 #include <iostream>
+
 #include "app/src/assert.h"
 #include "app/src/path.h"
 #include "database/src/desktop/util_desktop.h"
@@ -58,11 +60,8 @@ Operation Operation::ListenComplete(const OperationSource& source,
 static Optional<Operation> OperationForChildOverwrite(
     const Operation& op, const std::string& child_key) {
   if (op.path.empty()) {
-    const Variant* child_snapshot_ptr =
-        GetInternalVariant(&op.snapshot, child_key);
     return Optional<Operation>(Operation::Overwrite(
-        op.source, Path(),
-        child_snapshot_ptr ? *child_snapshot_ptr : Variant::Null()));
+        op.source, Path(), VariantGetChild(&op.snapshot, child_key)));
   } else {
     std::vector<std::string> directories = op.path.GetDirectories();
     Path child_path(std::next(directories.begin()), directories.end());

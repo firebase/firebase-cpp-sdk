@@ -13,8 +13,10 @@
 // limitations under the License.
 
 #include "database/src/desktop/view/view_processor.h"
+
 #include <algorithm>
 #include <vector>
+
 #include "app/src/assert.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/log.h"
@@ -260,9 +262,9 @@ void ViewProcessor::MaybeAddValueEvent(const ViewCache& old_view_cache,
         !old_view_cache.local_snap().fully_initialized() ||
         (is_leaf_or_empty &&
          local_snap.variant() != old_view_cache.local_snap().variant()) ||
-        (OptionalFromPointer(GetVariantPriority(local_snap.variant())) !=
-         OptionalFromPointer(
-             GetVariantPriority(*old_view_cache.GetCompleteLocalSnap())))) {
+        !VariantsAreEquivalent(
+            GetVariantPriority(local_snap.variant()),
+            GetVariantPriority(*old_view_cache.GetCompleteLocalSnap()))) {
       accumulator->push_back(ValueChange(local_snap.indexed_variant()));
     }
   }
@@ -291,7 +293,7 @@ ViewCache ViewProcessor::GenerateEventCacheAfterServerEvent(
       // guaranteed to be complete.
       const Variant* server_cache = view_cache.GetCompleteServerSnap();
       Variant complete_children = Variant::Null();
-      if (server_cache && VariantIsLeaf(*server_cache)) {
+      if (server_cache && !VariantIsLeaf(*server_cache)) {
         complete_children = *server_cache;
       }
       node_with_local_writes =
@@ -341,20 +343,14 @@ ViewCache ViewProcessor::GenerateEventCacheAfterServerEvent(
             writes_cache.CalcEventCacheAfterServerOverwrite(
                 change_path, &old_local_snap.variant(), &server_node);
         if (local_child_update.has_value()) {
-          const Variant* child =
-              GetInternalVariant(&old_local_snap.variant(), child_key);
-          new_local_child = child ? OptionalFromPointer(child)
-                                  : Optional<Variant>(Variant::Null());
-          SetVariantAtPath(&new_local_child.value(), child_change_path,
-                           *local_child_update);
-
+          new_local_child =
+              VariantGetChild(&old_local_snap.variant(), child_key);
+          VariantUpdateChild(&new_local_child.value(), child_change_path,
+                             *local_child_update);
         } else {
           // Nothing changed, just keep the old child.
-          new_local_child = OptionalFromPointer(
-              GetInternalVariant(&old_local_snap.variant(), child_key));
-          if (!new_local_child.has_value()) {
-            new_local_child = Variant::Null();
-          }
+          new_local_child =
+              VariantGetChild(&old_local_snap.variant(), child_key);
         }
       } else {
         // If the child isn't complete, we calculate it as best we can.
@@ -398,14 +394,12 @@ ViewCache ViewProcessor::ApplyServerOverwrite(
   } else if (server_filter->FiltersVariants() && !old_server_snap.filtered()) {
     // We want to filter the server node, but we didn't filter the server
     // node yet, so simulate a full update.
-    Path child_key = change_path.FrontDirectory();
+    std::string child_key = change_path.FrontDirectory().str();
     Path update_path = change_path.PopFrontDirectory();
-    Variant child_node = old_server_snap.variant();
-    Variant* new_child = MakeVariantAtPath(&child_node, child_key);
-    SetVariantAtPath(new_child, change_path, changed_snap);
+    Variant new_child = VariantGetChild(&old_server_snap.variant(), child_key);
+    VariantUpdateChild(&new_child, update_path, changed_snap);
     IndexedVariant new_server_node =
-        old_server_snap.indexed_variant().UpdateChild(child_key.str(),
-                                                      *new_child);
+        old_server_snap.indexed_variant().UpdateChild(child_key, new_child);
     new_server_cache = server_filter->UpdateFullVariant(
         old_server_snap.indexed_variant(), new_server_node, nullptr);
   } else {
@@ -419,22 +413,18 @@ ViewCache ViewProcessor::ApplyServerOverwrite(
     // Apply the server overwrite to the appropriate child.
     Path child_change_path = change_path.PopFrontDirectory();
     // Get a copy of the child (if present) so that it can be mutated.
-    Variant child_node = old_server_snap.variant();
-    Variant* new_child_node = MakeVariantAtPath(&child_node, child_key);
-
-    // Get the child node that is to be updated, creating it if necessary.
-    SetVariantAtPath(new_child_node, child_change_path, changed_snap);
-
+    Variant new_child_node = old_server_snap.variant();
+    VariantUpdateChild(&new_child_node, child_change_path, changed_snap);
     if (IsPriorityKey(child_key.str())) {
       // If this is a priority node, update the priority on the indexed node.
       new_server_cache = server_filter->UpdatePriority(
-          old_server_snap.indexed_variant(), *new_child_node);
+          old_server_snap.indexed_variant(), new_child_node);
     } else {
       // If this is a regular update, the update through the filter to make sure
       // we get only the values that are not filtered by the query spec.
       NoCompleteSource source;
       new_server_cache = server_filter->UpdateChild(
-          old_server_snap.indexed_variant(), child_key.str(), *new_child_node,
+          old_server_snap.indexed_variant(), child_key.str(), new_child_node,
           child_change_path, &source, nullptr);
     }
   }
@@ -480,9 +470,9 @@ ViewCache ViewProcessor::ApplyUserOverwrite(
     } else {
       // Get the cached child variant that needs updating.
       Path child_change_path = change_path.PopFrontDirectory();
-      Optional<Variant> old_child = OptionalFromPointer(
-          GetInternalVariant(&old_local_snap.variant(), child_key));
-      Optional<Variant> new_child;
+      const Variant& old_child =
+          VariantGetChild(&old_local_snap.variant(), child_key);
+      Variant new_child;
       if (child_change_path.empty()) {
         // Child overwrite, we can replace the child.
         new_child = changed_snap;
@@ -490,25 +480,24 @@ ViewCache ViewProcessor::ApplyUserOverwrite(
         Optional<Variant> child_node = source.GetCompleteChild(child_key);
         if (child_node.has_value()) {
           if (IsPriorityKey(child_change_path.str()) &&
-              GetInternalVariant(&child_node.value(),
-                                 child_change_path.GetParent()) == nullptr) {
+              VariantIsEmpty(VariantGetChild(&child_node.value(),
+                                             child_change_path.GetParent()))) {
             // This is a priority update on an empty node. If this node
             // exists on the server, the server will send down the priority
-            // in the update, so ignore for now
-            new_child = child_node;
+            // in the update, so ignore for now.
+            new_child = *child_node;
           } else {
-            new_child = child_node;
-            SetVariantAtPath(&new_child.value(), child_change_path,
-                             changed_snap);
+            new_child = *child_node;
+            VariantUpdateChild(&new_child, child_change_path, changed_snap);
           }
         } else {
           // There is no complete child node available
-          new_child.reset();
+          new_child = Variant::Null();
         }
       }
-      if (old_child != new_child) {
+      if (!VariantsAreEquivalent(old_child, new_child)) {
         IndexedVariant new_local_snap = filter_->UpdateChild(
-            old_local_snap.indexed_variant(), child_key, *new_child,
+            old_local_snap.indexed_variant(), child_key, new_child,
             child_change_path, &source, accumulator);
         new_view_cache = old_view_cache.UpdateLocalSnap(
             new_local_snap, old_local_snap.fully_initialized(),

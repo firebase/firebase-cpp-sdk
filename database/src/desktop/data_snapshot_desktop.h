@@ -16,9 +16,11 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_DATA_SNAPSHOT_DESKTOP_H_
 
 #include <stddef.h>
+
 #include <string>
+
 #include "app/src/include/firebase/variant.h"
-#include "app/src/path.h"
+#include "database/src/common/query_spec.h"
 #include "database/src/include/firebase/database/common.h"
 #include "database/src/include/firebase/database/data_snapshot.h"
 
@@ -36,8 +38,8 @@ class DatabaseReferenceInternal;
 // Firebase Database location.
 class DataSnapshotInternal {
  public:
-  DataSnapshotInternal(DatabaseInternal* database, const Path& path,
-                       const Variant& data);
+  DataSnapshotInternal(DatabaseInternal* database, const Variant& data,
+                       const QuerySpec& query_spec);
 
   DataSnapshotInternal(const DataSnapshotInternal& snapshot);
 
@@ -95,7 +97,7 @@ class DataSnapshotInternal {
 
   DatabaseInternal* database_internal() const { return database_; }
 
-  const Path& path() const { return path_; }
+  const Path& path() const { return query_spec_.path; }
 
   // Special method to create an invalid DataSnapshot, because
   // DataSnapshot's constructor is private.
@@ -107,9 +109,9 @@ class DataSnapshotInternal {
  private:
   DatabaseInternal* database_;
 
-  Path path_;
-
   Variant data_;
+
+  QuerySpec query_spec_;
 };
 
 }  // namespace internal
