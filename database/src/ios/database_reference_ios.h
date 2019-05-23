@@ -17,6 +17,7 @@
 
 #include <map>
 #include <string>
+
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"
@@ -110,26 +111,27 @@ class DatabaseReferenceInternal : public QueryInternal {
 
   // Sets the priority of this field, which controls its sort
   // order relative to its siblings.
-  Future<void> SetPriority(Variant priority);
+  Future<void> SetPriority(const Variant& priority);
 
   // Gets the result of the most recent call to SetPriority().
   Future<void> SetPriorityLastResult();
 
   // Sets the data at this location to the given value.
-  Future<void> SetValue(Variant value);
+  Future<void> SetValue(const Variant& value);
 
   // Gets the result of the most recent call to SetValue().
   Future<void> SetValueLastResult();
 
   // Sets both the data and priority of this location. See SetValue() and
   // SetPriority() for context on the parameters.
-  Future<void> SetValueAndPriority(Variant value, Variant priority);
+  Future<void> SetValueAndPriority(const Variant& value,
+                                   const Variant& priority);
 
   // Get the result of the most recent call to SetValueAndPriority().
   Future<void> SetValueAndPriorityLastResult();
 
   // Updates the specified child keys to the given values.
-  Future<void> UpdateChildren(Variant values);
+  Future<void> UpdateChildren(const Variant& values);
 
   // Gets the result of the most recent call to either version of
   // UpdateChildren().

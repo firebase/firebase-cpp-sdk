@@ -185,7 +185,7 @@ Future<DataSnapshot> DatabaseReferenceInternal::RunTransactionLastResult() {
       ref_future()->LastResult(kDatabaseReferenceFnRunTransaction));
 }
 
-Future<void> DatabaseReferenceInternal::SetPriority(Variant priority) {
+Future<void> DatabaseReferenceInternal::SetPriority(const Variant& priority) {
   SafeFutureHandle<void> handle = ref_future()->SafeAlloc<void>(kDatabaseReferenceFnSetPriority);
   if (SetValueAndPriorityLastResult().status() == kFutureStatusPending) {
     ref_future()->Complete(
@@ -204,7 +204,7 @@ Future<void> DatabaseReferenceInternal::SetPriorityLastResult() {
       static_cast<const Future<void>&>(ref_future()->LastResult(kDatabaseReferenceFnSetPriority));
 }
 
-Future<void> DatabaseReferenceInternal::SetValue(Variant value) {
+Future<void> DatabaseReferenceInternal::SetValue(const Variant& value) {
   SafeFutureHandle<void> handle = ref_future()->SafeAlloc<void>(kDatabaseReferenceFnSetValue);
   if (SetValueAndPriorityLastResult().status() == kFutureStatusPending) {
     ref_future()->Complete(handle, kErrorConflictingOperationInProgress, kErrorMsgConflictSetValue);
@@ -219,8 +219,8 @@ Future<void> DatabaseReferenceInternal::SetValueLastResult() {
   return static_cast<const Future<void>&>(ref_future()->LastResult(kDatabaseReferenceFnSetValue));
 }
 
-Future<void> DatabaseReferenceInternal::SetValueAndPriority(Variant value,
-                                                            Variant priority) {
+Future<void> DatabaseReferenceInternal::SetValueAndPriority(const Variant& value,
+                                                            const Variant& priority) {
   SafeFutureHandle<void> handle =
       ref_future()->SafeAlloc<void>(kDatabaseReferenceFnSetValueAndPriority);
   if (SetValueLastResult().status() == kFutureStatusPending) {
@@ -243,7 +243,7 @@ Future<void> DatabaseReferenceInternal::SetValueAndPriorityLastResult() {
       ref_future()->LastResult(kDatabaseReferenceFnSetValueAndPriority));
 }
 
-Future<void> DatabaseReferenceInternal::UpdateChildren(Variant values) {
+Future<void> DatabaseReferenceInternal::UpdateChildren(const Variant& values) {
   SafeFutureHandle<void> handle = ref_future()->SafeAlloc<void>(kDatabaseReferenceFnUpdateChildren);
   id values_id = VariantToId(values);
   if (!values.is_map()) {
