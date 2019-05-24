@@ -108,12 +108,16 @@ class Storage {
   /// @brief Get a StorageReference for the specified path.
   StorageReference GetReference(const char* path) const;
   /// @brief Get a StorageReference for the specified path.
-  StorageReference GetReference(const std::string& path) const;
+  StorageReference GetReference(const std::string& path) const {
+    return GetReference(path.c_str());
+  }
 
   /// @brief Get a StorageReference for the provided URL.
   StorageReference GetReferenceFromUrl(const char* url) const;
   /// @brief Get a StorageReference for the provided URL.
-  StorageReference GetReferenceFromUrl(const std::string& url) const;
+  StorageReference GetReferenceFromUrl(const std::string& url) const {
+    return GetReferenceFromUrl(url.c_str());
+  }
 
   /// @brief Returns the maximum time in seconds to retry a download if a
   /// failure occurs.
