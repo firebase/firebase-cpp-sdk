@@ -67,9 +67,7 @@ Scheduler::Scheduler()
       next_request_id_(0),
       terminating_(false),
       request_mutex_(Mutex::kModeRecursive),
-      sleep_sem_(0) {
-  thread_ = new Thread(WorkerThreadRoutine, this);
-}
+      sleep_sem_(0) {}
 
 Scheduler::~Scheduler() {
   CancelAllAndShutdownWorkerThread();
@@ -99,6 +97,10 @@ RequestHandle Scheduler::Schedule(callback::Callback* callback,
   assert(callback);
 
   MutexLock lock(request_mutex_);
+
+  if (!thread_ && !terminating_) {
+    thread_ = new Thread(WorkerThreadRoutine, this);
+  }
 
   RequestDataPtr request(
       new RequestData(++next_request_id_, callback, delay, repeat));
