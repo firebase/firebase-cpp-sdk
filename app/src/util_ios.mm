@@ -197,7 +197,7 @@ id VariantToId(const Variant& variant) {
       return [NSNull null];
     }
     case Variant::kTypeInt64: {
-      return [NSNumber numberWithLong:variant.int64_value()];
+      return [NSNumber numberWithLongLong:variant.int64_value()];
     }
     case Variant::kTypeDouble: {
       return [NSNumber numberWithDouble:variant.double_value()];
