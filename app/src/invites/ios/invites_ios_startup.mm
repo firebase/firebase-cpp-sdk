@@ -56,6 +56,19 @@ static BOOL AppDelegateApplicationOpenUrlSourceApplicationAnnotation(id self, SE
     return ((util::AppDelegateApplicationOpenUrlSourceApplicationAnnotationFunc)
                 app_delegate_application_open_url_source_application_annotation)(
         self, selectorValue, application, url, sourceApplication, annotation);
+  } else if ([self methodForSelector:@selector(forwardInvocation:)] !=
+             [NSObject instanceMethodForSelector:@selector(forwardInvocation:)]) {
+    NSMethodSignature *signature = [[self class] instanceMethodSignatureForSelector:selectorValue];
+    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+    [invocation setSelector:selectorValue];
+    [invocation setTarget:self];
+    [invocation setArgument:&application atIndex:2];
+    [invocation setArgument:&url atIndex:3];
+    [invocation setArgument:&sourceApplication atIndex:4];
+    [invocation setArgument:&annotation atIndex:5];
+    [self forwardInvocation:invocation];
+    // Read the return value from the invocation.
+    [invocation getReturnValue:&ret];
   }
   return ret;
 }
@@ -76,6 +89,18 @@ static BOOL AppDelegateApplicationContinueUserActivityRestorationHandler(
     return ((util::AppDelegateApplicationContinueUserActivityRestorationHandlerFunc)
                 app_delegate_application_continue_user_activity_restoration_handler)(
         self, selectorValue, application, userActivity, restorationHandler);
+  } else if ([self methodForSelector:@selector(forwardInvocation:)] !=
+             [NSObject instanceMethodForSelector:@selector(forwardInvocation:)]) {
+    NSMethodSignature *signature = [[self class] instanceMethodSignatureForSelector:selectorValue];
+    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+    [invocation setSelector:selectorValue];
+    [invocation setTarget:self];
+    [invocation setArgument:&application atIndex:2];
+    [invocation setArgument:&userActivity atIndex:3];
+    [invocation setArgument:&restorationHandler atIndex:4];
+    [self forwardInvocation:invocation];
+    // Read the return value from the invocation.
+    [invocation getReturnValue:&ret];
   }
   return ret;
 }
@@ -96,22 +121,41 @@ static BOOL AppDelegateApplicationOpenUrlOptions(id self, SEL selectorValue,
     return (
         (util::AppDelegateApplicationOpenUrlOptionsFunc)app_delegate_application_open_url_options)(
         self, selectorValue, application, url, options);
+  } else if ([self methodForSelector:@selector(forwardInvocation:)] !=
+             [NSObject instanceMethodForSelector:@selector(forwardInvocation:)]) {
+    NSMethodSignature *signature = [[self class] instanceMethodSignatureForSelector:selectorValue];
+    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+    [invocation setSelector:selectorValue];
+    [invocation setTarget:self];
+    [invocation setArgument:&application atIndex:2];
+    [invocation setArgument:&url atIndex:3];
+    [invocation setArgument:&options atIndex:4];
+    [self forwardInvocation:invocation];
+    // Read the return value from the invocation.
+    [invocation getReturnValue:&ret];
   }
   return ret;
 }
 
 // Fetch link when entering foreground.
-static void AppDelegateApplicationDidBecomeActive(id self, SEL selector_value,
+static void AppDelegateApplicationDidBecomeActive(id self, SEL selectorValue,
                                                   UIApplication *application) {
   internal::InvitesIosStartup::DidBecomeActive(application);
   IMP app_delegate_application_did_become_active =
       SwizzledMethodCache().GetMethodForObject(self, @selector(applicationDidBecomeActive:));
   if (app_delegate_application_did_become_active) {
     ((util::AppDelegateApplicationDidBecomeActiveFunc)app_delegate_application_did_become_active)(
-        self, selector_value, application);
+        self, selectorValue, application);
+  } else if ([self methodForSelector:@selector(forwardInvocation:)] !=
+             [NSObject instanceMethodForSelector:@selector(forwardInvocation:)]) {
+    NSMethodSignature *signature = [[self class] instanceMethodSignatureForSelector:selectorValue];
+    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+    [invocation setSelector:selectorValue];
+    [invocation setTarget:self];
+    [invocation setArgument:&application atIndex:2];
+    [self forwardInvocation:invocation];
   }
 }
-
 
 // Hook all AppDelegate methods that Firebase Invites requires to intercept incoming invites and
 // dynamic links.

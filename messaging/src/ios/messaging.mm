@@ -287,6 +287,14 @@ static void AppDelegateApplicationDidBecomeActive(id self, SEL selector_value,
   if (app_delegate_application_did_become_active) {
     ((util::AppDelegateApplicationDidBecomeActiveFunc)app_delegate_application_did_become_active)(
         self, selector_value, application);
+  } else if ([self methodForSelector:@selector(forwardInvocation:)] !=
+             [NSObject instanceMethodForSelector:@selector(forwardInvocation:)]) {
+    NSMethodSignature *signature = [[self class] instanceMethodSignatureForSelector:selector_value];
+    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+    [invocation setSelector:selector_value];
+    [invocation setTarget:self];
+    [invocation setArgument:&application atIndex:2];
+    [self forwardInvocation:invocation];
   }
 }
 
@@ -298,6 +306,14 @@ static void AppDelegateApplicationDidEnterBackground(id self, SEL selector_value
   if (app_delegate_application_did_enter_background) {
     ((util::AppDelegateApplicationDidEnterBackgroundFunc)
          app_delegate_application_did_enter_background)(self, selector_value, application);
+  } else if ([self methodForSelector:@selector(forwardInvocation:)] !=
+             [NSObject instanceMethodForSelector:@selector(forwardInvocation:)]) {
+    NSMethodSignature *signature = [[self class] instanceMethodSignatureForSelector:selector_value];
+    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+    [invocation setSelector:selector_value];
+    [invocation setTarget:self];
+    [invocation setArgument:&application atIndex:2];
+    [self forwardInvocation:invocation];
   }
   if (MessagingIsInitialized()) {
     LogInfo("FCM: Disconnect FCM service");
@@ -341,6 +357,15 @@ static void AppDelegateApplicationDidRegisterForRemoteNotificationsWithDeviceTok
     ((util::AppDelegateApplicationDidRegisterForRemoteNotificationsWithDeviceTokenFunc)
          app_delegate_application_did_register_for_remote_notifications_with_device_token)(
         self, selector_value, application, deviceToken);
+  } else if ([self methodForSelector:@selector(forwardInvocation:)] !=
+             [NSObject instanceMethodForSelector:@selector(forwardInvocation:)]) {
+    NSMethodSignature *signature = [[self class] instanceMethodSignatureForSelector:selector_value];
+    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+    [invocation setSelector:selector_value];
+    [invocation setTarget:self];
+    [invocation setArgument:&application atIndex:2];
+    [invocation setArgument:&deviceToken atIndex:3];
+    [self forwardInvocation:invocation];
   }
 }
 
@@ -358,6 +383,15 @@ static void AppDelegateApplicationDidFailToRegisterForRemoteNotificationsWithErr
     ((util::AppDelegateApplicationDidFailToRegisterForRemoteNotificationsWithErrorFunc)
          app_delegate_application_did_fail_to_register_for_remote_notifications_with_error)(
         self, selector_value, application, error);
+  } else if ([self methodForSelector:@selector(forwardInvocation:)] !=
+             [NSObject instanceMethodForSelector:@selector(forwardInvocation:)]) {
+    NSMethodSignature *signature = [[self class] instanceMethodSignatureForSelector:selector_value];
+    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+    [invocation setSelector:selector_value];
+    [invocation setTarget:self];
+    [invocation setArgument:&application atIndex:2];
+    [invocation setArgument:&error atIndex:3];
+    [self forwardInvocation:invocation];
   }
 }
 
@@ -475,7 +509,7 @@ static BOOL AppDelegateApplicationDidFinishLaunchingWithOptions(id self, SEL sel
                                                                 NSDictionary *launch_options) {
   // Set up Messaging on iOS 10, if possible.
   Class notification_center_class = NSClassFromString(@"UNUserNotificationCenter");
-  if (notification_center_class) {
+  if (notification_center_class && application) {
     LogInfo("Setting up iOS 10 message delegate.");
 
     // Cache the existing delegate if one exists it so we can pass along messages when needed.
@@ -499,6 +533,19 @@ static BOOL AppDelegateApplicationDidFinishLaunchingWithOptions(id self, SEL sel
     return ((util::AppDelegateApplicationDidFinishLaunchingWithOptionsFunc)
                 app_delegate_application_did_finish_launching_with_options)(
         self, selector_value, application, launch_options);
+  } else if ([self methodForSelector:@selector(forwardInvocation:)] !=
+             [NSObject instanceMethodForSelector:@selector(forwardInvocation:)]) {
+    NSMethodSignature *signature = [[self class] instanceMethodSignatureForSelector:selector_value];
+    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+    [invocation setSelector:selector_value];
+    [invocation setTarget:self];
+    [invocation setArgument:&application atIndex:2];
+    [invocation setArgument:&launch_options atIndex:3];
+    [self forwardInvocation:invocation];
+    // Read the return value from the invocation.
+    BOOL ret = NO;
+    [invocation getReturnValue:&ret];
+    return ret;
   }
   return NO;
 }
@@ -525,6 +572,15 @@ static void AppDelegateApplicationDidReceiveRemoteNotification(id self, SEL sele
     ((util::AppDelegateApplicationDidReceiveRemoteNotificationFunc)
          app_delegate_application_did_receive_remote_notification)(self, selector_value,
                                                                    application, user_info);
+  } else if ([self methodForSelector:@selector(forwardInvocation:)] !=
+             [NSObject instanceMethodForSelector:@selector(forwardInvocation:)]) {
+    NSMethodSignature *signature = [[self class] instanceMethodSignatureForSelector:selector_value];
+    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+    [invocation setSelector:selector_value];
+    [invocation setTarget:self];
+    [invocation setArgument:&application atIndex:2];
+    [invocation setArgument:&user_info atIndex:3];
+    [self forwardInvocation:invocation];
   }
 }
 
@@ -550,6 +606,16 @@ static void AppDelegateApplicationDidReceiveRemoteNotificationFetchCompletionHan
     ((util::AppDelegateApplicationDidReceiveRemoteNotificationFetchCompletionHandlerFunc)
          app_delegate_application_did_receive_remote_notification_fetch_completion_handler)(
              self, selector_value, application, user_info, handler);
+  } else if ([self methodForSelector:@selector(forwardInvocation:)] !=
+             [NSObject instanceMethodForSelector:@selector(forwardInvocation:)]) {
+    NSMethodSignature *signature = [[self class] instanceMethodSignatureForSelector:selector_value];
+    NSInvocation *invocation = [NSInvocation invocationWithMethodSignature:signature];
+    [invocation setSelector:selector_value];
+    [invocation setTarget:self];
+    [invocation setArgument:&application atIndex:2];
+    [invocation setArgument:&user_info atIndex:3];
+    [invocation setArgument:&handler atIndex:4];
+    [self forwardInvocation:invocation];
   } else {
     // TODO(smiles): We should determine whether the entire message is sent to this notification
     // method, if not this is clearly wrong and will need to download the rest of the message.

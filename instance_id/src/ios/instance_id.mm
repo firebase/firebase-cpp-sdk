@@ -118,6 +118,15 @@ static void AppDelegateApplicationDidRegisterForRemoteNotificationsWithDeviceTok
     ((util::AppDelegateApplicationDidRegisterForRemoteNotificationsWithDeviceTokenFunc)
          app_delegate_application_did_register_for_remote_notifications_with_device_token)(
         self, selector_value, application, device_token);
+  } else if ([self methodForSelector:@selector(forwardInvocation:)] !=
+             [NSObject instanceMethodForSelector:@selector(forwardInvocation:)]) {
+    NSMethodSignature* signature = [[self class] instanceMethodSignatureForSelector:selector_value];
+    NSInvocation* invocation = [NSInvocation invocationWithMethodSignature:signature];
+    [invocation setSelector:selector_value];
+    [invocation setTarget:self];
+    [invocation setArgument:&application atIndex:2];
+    [invocation setArgument:&device_token atIndex:3];
+    [self forwardInvocation:invocation];
   }
 }
 // Hook all AppDelegate methods that IID requires to cache data for token fetch operations.
