@@ -26,6 +26,48 @@
 
 #import "FIRDatabase.h"
 
+@implementation FIRCPPDatabaseQueryCallbackState
+NSMutableArray *_observers;
+
+-(_Nonnull instancetype)
+    initWithDatabase:(firebase::database::internal::DatabaseInternal* _Nonnull)databaseInternal
+            andQuery:(FIRDatabaseQuery* _Nonnull)databaseQuery
+    andValueListener:(firebase::database::ValueListener* _Nullable)valueListener
+    andChildListener:(firebase::database::ChildListener* _Nullable)childListener {
+  self = [super init];
+  if (self) {
+    // "4" is the maximum number of observers for a child listener.
+    _observers = [NSMutableArray arrayWithCapacity:4];
+    _databaseInternal = databaseInternal;
+    _lock = databaseInternal->query_lock();
+    _databaseQuery = databaseQuery;
+    _valueListener = valueListener;
+    _childListener = childListener;
+  }
+  return self;
+}
+
+-(void)addObserverHandle:(FIRDatabaseHandle)handle {
+  [_lock lock];
+  [_observers addObject:[NSNumber numberWithUnsignedLong:handle]];
+  [_lock unlock];
+}
+
+-(void)removeAllObservers {
+  [_lock lock];
+  for (NSNumber* handleValue in _observers) {
+    FIRDatabaseHandle handle = handleValue.unsignedLongValue;
+    [_databaseQuery removeObserverWithHandle:handle];
+  }
+  [_observers removeAllObjects];
+  _databaseInternal = nullptr;
+  _databaseQuery = nil;
+  _valueListener = nullptr;
+  _childListener = nullptr;
+  [_lock unlock];
+}
+@end
+
 namespace firebase {
 namespace database {
 namespace internal {
@@ -85,58 +127,105 @@ QueryInternal::~QueryInternal() {
   database_->future_manager().ReleaseFutureApi(&future_api_id_);
 }
 
-SingleValueListener::SingleValueListener(DatabaseInternal* database,
-                                         ReferenceCountedFutureImpl* future,
-                                         const SafeFutureHandle<DataSnapshot>& handle)
-    : database_(database), future_(future), handle_(handle) {}
+SingleValueListener::SingleValueListener(
+    ReferenceCountedFutureImpl* future,
+    const SafeFutureHandle<DataSnapshot>& handle,
+    const FIRCPPDatabaseQueryCallbackStatePointer& callback_state)
+    : future_(future), handle_(handle),
+    callback_state_(MakeUnique<FIRCPPDatabaseQueryCallbackStatePointer>(callback_state)) {}
 
-SingleValueListener::~SingleValueListener() {}
+SingleValueListener::~SingleValueListener() {
+  [callback_state_->ptr removeAllObservers];
+}
 
 void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {
-  database_->RemoveSingleValueListener(this);
   future_->Complete<DataSnapshot>(
       handle_, kErrorNone, "", [&snapshot](DataSnapshot* data) { *data = snapshot; });
-  delete this;
 }
 
 void SingleValueListener::OnCancelled(const Error& error_code, const char* error_message) {
-  database_->RemoveSingleValueListener(this);
   future_->Complete(handle_, error_code, error_message);
-  delete this;
+}
+
+typedef void (*NotifyValueListenerFunc)(DatabaseInternal* _Nonnull database,
+                                        ValueListener* _Nonnull listener,
+                                        const DataSnapshot& snapshot);
+
+// Safely attempt to notify a value listener.
+static void NotifyValueListener(FIRCPPDatabaseQueryCallbackState* _Nonnull callback_state,
+                                FIRDataSnapshot* _Nonnull snapshot_impl,
+                                NotifyValueListenerFunc _Nonnull notify) {
+  [callback_state.lock lock];
+  DatabaseInternal* database = callback_state.databaseInternal;
+  ValueListener* listener = callback_state.valueListener;
+  if (database && listener) {
+    notify(
+        database, listener, DataSnapshot(
+            new DataSnapshotInternal(
+                database, MakeUnique<FIRDataSnapshotPointer>(snapshot_impl))));
+  }
+  [callback_state.lock unlock];
+}
+
+
+typedef void (*CancelValueListenerFunc)(DatabaseInternal* _Nonnull database,
+                                        ValueListener* _Nonnull listener,
+                                        const Error& error_code,
+                                        const char* _Nonnull error_string);
+
+// Safely attempt to cancel a value listener.
+static void CancelValueListener(FIRCPPDatabaseQueryCallbackState* _Nonnull callback_state,
+                                NSError *_Nonnull error,
+                                CancelValueListenerFunc _Nonnull notify) {
+  Error error_code = NSErrorToErrorCode(error);
+  const char* error_string = GetErrorMessage(error_code);
+  [callback_state.lock lock];
+  DatabaseInternal* database = callback_state.databaseInternal;
+  ValueListener* listener = callback_state.valueListener;
+  if (database && listener) notify(database, listener, error_code, error_string);
+  [callback_state.lock unlock];
 }
 
 Future<DataSnapshot> QueryInternal::GetValue() {
   // Register a one-time ValueEventListener with the query.
+  FIRCPPDatabaseQueryCallbackState* callback_state =
+      [[FIRCPPDatabaseQueryCallbackState alloc] initWithDatabase:database_
+                                                        andQuery:impl()
+                                                andValueListener:nullptr
+                                                andChildListener:nullptr];
   SafeFutureHandle<DataSnapshot> future_handle =
       query_future()->SafeAlloc<DataSnapshot>(kQueryFnGetValue, DataSnapshot(nullptr));
   SingleValueListener* single_listener =
-      new SingleValueListener(database_, query_future(), future_handle);
+      new SingleValueListener(query_future(), future_handle,
+                              FIRCPPDatabaseQueryCallbackStatePointer(callback_state));
+  callback_state.valueListener = single_listener;
 
-  // If the database goes away, we need to be able to reach into these blocks and clear their
-  // single_listener pointer. We can't do that directly, but we can cache a pointer to the pointer,
-  // and clear that instead.
-  SingleValueListener** single_listener_holder = database_->AddSingleValueListener(single_listener);
-
-  DatabaseInternal* database = database_;  // in case `this` goes away.
   void (^block)(FIRDataSnapshot *_Nonnull) = ^(FIRDataSnapshot *_Nonnull snapshot_impl) {
-    if (*single_listener_holder) {
-      DataSnapshot snapshot(
-          new DataSnapshotInternal(database, MakeUnique<FIRDataSnapshotPointer>(snapshot_impl)));
-      (*single_listener_holder)->OnValueChanged(snapshot);
-    }
+    NotifyValueListener(callback_state, snapshot_impl, [](DatabaseInternal* _Nonnull database,
+                                                          ValueListener* _Nonnull listener,
+                                                          const DataSnapshot& snapshot) {
+                          listener->OnValueChanged(snapshot);
+                          database->RemoveSingleValueListener(listener);
+                          delete listener;
+                        });
   };
 
   void (^cancel_block)(NSError *_Nonnull) = ^(NSError *_Nonnull error) {
-    if (*single_listener_holder) {
-      Error error_code = NSErrorToErrorCode(error);
-      const char* error_string = GetErrorMessage(error_code);
-      (*single_listener_holder)->OnCancelled(error_code, error_string);
-    }
+    CancelValueListener(callback_state, error, [](DatabaseInternal* _Nonnull database,
+                                                  ValueListener* _Nonnull listener,
+                                                  const Error& error_code,
+                                                  const char* _Nonnull error_string) {
+                          listener->OnCancelled(error_code, error_string);
+                          database->RemoveSingleValueListener(listener);
+                          delete listener;
+                        });
   };
 
   [impl() observeSingleEventOfType:FIRDataEventTypeValue
                          withBlock:block
                    withCancelBlock:cancel_block];
+
+  database_->AddSingleValueListener(single_listener);
 
   return MakeFuture(query_future(), future_handle);
 }
@@ -146,26 +235,34 @@ Future<DataSnapshot> QueryInternal::GetValueLastResult() {
 }
 
 void QueryInternal::AddValueListener(ValueListener* value_listener) {
-  DatabaseInternal* database = database_;  // in case `this` goes away.
+  FIRCPPDatabaseQueryCallbackState* callback_state =
+      [[FIRCPPDatabaseQueryCallbackState alloc] initWithDatabase:database_
+                                                        andQuery:impl()
+                                                andValueListener:value_listener
+                                                andChildListener:nullptr];
   void (^block)(FIRDataSnapshot* _Nonnull) = ^(FIRDataSnapshot* _Nonnull snapshot_impl) {
-    DataSnapshot snapshot(
-        new DataSnapshotInternal(database, MakeUnique<FIRDataSnapshotPointer>(snapshot_impl)));
-    value_listener->OnValueChanged(snapshot);
+    NotifyValueListener(callback_state, snapshot_impl, [](DatabaseInternal* _Nonnull database,
+                                                          ValueListener* _Nonnull listener,
+                                                          const DataSnapshot& snapshot) {
+                          (void)database;
+                          listener->OnValueChanged(snapshot);
+                        });
   };
 
   void (^cancel_block)(NSError *_Nonnull) = ^(NSError *_Nonnull error) {
-    Error error_code = NSErrorToErrorCode(error);
-    const char* error_string = GetErrorMessage(error_code);
-    value_listener->OnCancelled(error_code, error_string);
+    CancelValueListener(callback_state, error, [](DatabaseInternal* _Nonnull database,
+                                                  ValueListener* _Nonnull listener,
+                                                  const Error& error_code,
+                                                  const char* _Nonnull error_string) {
+                          (void)database;
+                          listener->OnCancelled(error_code, error_string);
+                        });
   };
 
-  FIRDatabaseHandle handle = [impl() observeEventType:FIRDataEventTypeValue
-                                            withBlock:block
-                                      withCancelBlock:cancel_block];
-
-  ValueListenerCleanupData cleanup_data;
-  cleanup_data.observer_handle = handle;
-  if (!database_->RegisterValueListener(query_spec_, value_listener, cleanup_data)) {
+  [callback_state addObserverHandle:[impl() observeEventType:FIRDataEventTypeValue
+                                                   withBlock:block
+                                             withCancelBlock:cancel_block]];
+  if (!database_->RegisterValueListener(query_spec_, value_listener, callback_state)) {
     LogWarning("Query::AddValueListener (URL = %s): You may not register the same ValueListener"
                "more than once on the same Query.",
                query_spec_.path.c_str());
@@ -180,61 +277,100 @@ void QueryInternal::RemoveAllValueListeners() {
   database_->UnregisterAllValueListeners(query_spec_, impl());
 }
 
+typedef void (*NotifyChildListenerFunc)(ChildListener* listener,
+                                        const DataSnapshot& snapshot,
+                                        const char* key);
+
+// Safely attempt to notify a child listener.
+static void NotifyChildListener(FIRCPPDatabaseQueryCallbackState* callback_state,
+                                FIRDataSnapshot* _Nonnull snapshot_impl,
+                                NSString* previous_key,
+                                NotifyChildListenerFunc _Nonnull notify) {
+  [callback_state.lock lock];
+  DatabaseInternal* database = callback_state.databaseInternal;
+  ChildListener* listener = callback_state.childListener;
+  if (database && listener) {
+    notify(
+        listener, DataSnapshot(
+            new DataSnapshotInternal(
+                database, MakeUnique<FIRDataSnapshotPointer>(snapshot_impl))),
+        [previous_key UTF8String]);
+  }
+  [callback_state.lock unlock];
+
+}
+
 void QueryInternal::AddChildListener(ChildListener* child_listener) {
   typedef void (^CallbackBlock)(FIRDataSnapshot *_Nonnull, NSString *_Nullable);
   typedef void (^CancelBlock)(NSError *_Nonnull);
-  DatabaseInternal* database = database_;  // in case `this` goes away.
-  CallbackBlock child_added_block =
-      ^(FIRDataSnapshot* _Nonnull snapshot_impl, NSString* previous_key) {
-        DataSnapshot snapshot(
-            new DataSnapshotInternal(database, MakeUnique<FIRDataSnapshotPointer>(snapshot_impl)));
-        child_listener->OnChildAdded(snapshot, [previous_key UTF8String]);
-      };
+  FIRCPPDatabaseQueryCallbackState* callback_state =
+      [[FIRCPPDatabaseQueryCallbackState alloc] initWithDatabase:database_
+                                                        andQuery:impl()
+                                                andValueListener:nullptr
+                                                andChildListener:child_listener];
 
-  CallbackBlock child_changed_block =
-      ^(FIRDataSnapshot* _Nonnull snapshot_impl, NSString* previous_key) {
-        DataSnapshot snapshot(
-            new DataSnapshotInternal(database, MakeUnique<FIRDataSnapshotPointer>(snapshot_impl)));
-        child_listener->OnChildChanged(snapshot, [previous_key UTF8String]);
-      };
+  CallbackBlock child_added_block = ^(FIRDataSnapshot* _Nonnull snapshot_impl,
+                                      NSString* previous_key) {
+    NotifyChildListener(
+        callback_state, snapshot_impl, previous_key,
+        [](ChildListener* listener, const DataSnapshot& snapshot, const char* key) {
+          listener->OnChildAdded(snapshot, key);
+        });
+  };
 
-  CallbackBlock child_moved_block =
-      ^(FIRDataSnapshot* _Nonnull snapshot_impl, NSString* previous_key) {
-        DataSnapshot snapshot(
-            new DataSnapshotInternal(database, MakeUnique<FIRDataSnapshotPointer>(snapshot_impl)));
-        child_listener->OnChildMoved(snapshot, [previous_key UTF8String]);
-      };
+  CallbackBlock child_changed_block = ^(FIRDataSnapshot* _Nonnull snapshot_impl,
+                                        NSString* previous_key) {
+    NotifyChildListener(
+        callback_state, snapshot_impl, previous_key,
+        [](ChildListener* listener, const DataSnapshot& snapshot, const char* key) {
+          listener->OnChildChanged(snapshot, key);
+        });
+  };
+
+  CallbackBlock child_moved_block = ^(FIRDataSnapshot* _Nonnull snapshot_impl,
+                                      NSString* previous_key) {
+    NotifyChildListener(
+        callback_state, snapshot_impl, previous_key,
+        [](ChildListener* listener, const DataSnapshot& snapshot, const char* key) {
+          listener->OnChildMoved(snapshot, key);
+        });
+  };
 
   CallbackBlock child_removed_block = ^(FIRDataSnapshot *_Nonnull snapshot_impl,
                                         NSString *previous_key) {
-    (void)previous_key;
-    DataSnapshot snapshot(
-        new DataSnapshotInternal(database, MakeUnique<FIRDataSnapshotPointer>(snapshot_impl)));
-    child_listener->OnChildRemoved(snapshot);
+    NotifyChildListener(
+        callback_state, snapshot_impl, previous_key,
+        [](ChildListener* listener, const DataSnapshot& snapshot, const char* key) {
+          (void)key;
+          listener->OnChildRemoved(snapshot);
+        });
   };
 
   CancelBlock cancel_block = ^(NSError *_Nonnull error) {
     Error error_code = NSErrorToErrorCode(error);
     const char* error_string = GetErrorMessage(error_code);
-    child_listener->OnCancelled(error_code, error_string);
+    [callback_state.lock lock];
+    ChildListener* listener = callback_state.childListener;
+    if (listener) listener->OnCancelled(error_code, error_string);
+    [callback_state.lock unlock];
   };
 
-  FIRDatabaseHandle child_added_handle = [impl() observeEventType:FIRDataEventTypeChildAdded
-                                   andPreviousSiblingKeyWithBlock:child_added_block
-                                                  withCancelBlock:cancel_block];
-  FIRDatabaseHandle child_changed_handle = [impl() observeEventType:FIRDataEventTypeChildChanged
-                                     andPreviousSiblingKeyWithBlock:child_changed_block];
-  FIRDatabaseHandle child_moved_handle = [impl() observeEventType:FIRDataEventTypeChildMoved
-                                   andPreviousSiblingKeyWithBlock:child_moved_block];
-  FIRDatabaseHandle child_removed_handle = [impl() observeEventType:FIRDataEventTypeChildRemoved
-                                     andPreviousSiblingKeyWithBlock:child_removed_block];
+  FIRDatabaseQuery* query = impl();
+  [callback_state addObserverHandle:[query
+                                      observeEventType:FIRDataEventTypeChildAdded
+                        andPreviousSiblingKeyWithBlock:child_added_block
+                                       withCancelBlock:cancel_block]];
+  [callback_state addObserverHandle:[query
+                                      observeEventType:FIRDataEventTypeChildChanged
+                        andPreviousSiblingKeyWithBlock:child_changed_block]];
+  [callback_state addObserverHandle:[query
+                                      observeEventType:FIRDataEventTypeChildMoved
+                        andPreviousSiblingKeyWithBlock:child_moved_block]];
+  [callback_state addObserverHandle:[query
+                                      observeEventType:FIRDataEventTypeChildRemoved
+                        andPreviousSiblingKeyWithBlock:child_removed_block]];
 
-  ChildListenerCleanupData cleanup_data;
-  cleanup_data.child_added_handle = child_added_handle;
-  cleanup_data.child_changed_handle = child_changed_handle;
-  cleanup_data.child_moved_handle = child_moved_handle;
-  cleanup_data.child_removed_handle = child_removed_handle;
-  if (!database_->RegisterChildListener(query_spec_, child_listener, cleanup_data)) {
+  if (!database_->RegisterChildListener(query_spec_, child_listener, callback_state)) {
     LogWarning("Query::AddChildListener (URL = %s): You may not register the same ChildListener"
                "more than once on the same Query.",
                query_spec_.path.c_str());

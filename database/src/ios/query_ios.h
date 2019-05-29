@@ -25,7 +25,42 @@
 #include "database/src/include/firebase/database/listener.h"
 
 #ifdef __OBJC__
+#include <Foundation/Foundation.h>
+
 #import "FIRDatabase.h"
+#endif  // __OBJC__
+
+#ifdef __OBJC__
+// Object which stores references to C++ objects that are used by observer
+// blocks.
+@interface FIRCPPDatabaseQueryCallbackState : NSObject
+// Guarded by lock.
+@property(nonatomic, nullable) firebase::database::internal::DatabaseInternal*
+    databaseInternal;
+// Guarded by lock.
+@property(nonatomic, nullable) FIRDatabaseQuery* databaseQuery;
+// Guarded by lock.
+@property(nonatomic, nullable) firebase::database::ValueListener* valueListener;
+// Guarded by lock.
+@property(nonatomic, nullable) firebase::database::ChildListener* childListener;
+// Callers should lock the lock property while using any properties of this
+// object.
+@property(nonatomic, readonly) NSRecursiveLock* _Nonnull lock;
+-(_Nullable instancetype) init NS_UNAVAILABLE;
+// Initialize this state.
+-(_Nonnull instancetype)
+    initWithDatabase:(firebase::database::internal::DatabaseInternal* _Nonnull)
+                     databaseInternal
+            andQuery:(FIRDatabaseQuery* _Nonnull)databaseQuery
+    andValueListener:(firebase::database::ValueListener* _Nullable)valueListener
+    andChildListener:(firebase::database::ChildListener* _Nullable)
+                     childListener NS_DESIGNATED_INITIALIZER;
+// Associate an observer with this state.
+-(void)addObserverHandle:(FIRDatabaseHandle)handle;
+// Remove all observer handles managed by this state from the database and
+// remove references to C++ objects.
+-(void)removeAllObservers;
+@end
 #endif  // __OBJC__
 
 namespace firebase {
@@ -36,6 +71,13 @@ namespace internal {
 // This defines the class FIRDatabaseQueryPointer, which is a C++-compatible
 // wrapper around the FIRDatabaseQuery Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRDatabaseQuery);
+
+// This defines the class FIRCPPDatabaseQueryCallbackStatePointer, which is a
+// C++-compatible wrapper around the FIRCPPDatabaseQueryCallbackState Obj-C
+// class.
+OBJ_C_PTR_WRAPPER(FIRCPPDatabaseQueryCallbackState);
+
+#pragma clang assume_nonnull begin
 
 /// The iOS implementation of the Query class, used for reading data.
 class QueryInternal {
@@ -99,7 +141,7 @@ class QueryInternal {
   // returned Query.
   //
   // The returned pointer should be passed to a Query for lifetime management.
-  QueryInternal* OrderByChild(const char* path);
+  QueryInternal* OrderByChild(const char* _Nonnull path);
   // Gets a query in which child nodes are ordered by the values of the
   // specified path. Any previous OrderBy directive will be replaced in the
   // returned Query.
@@ -161,7 +203,7 @@ class QueryInternal {
 
  protected:
 #ifdef __OBJC__
-  FIRDatabaseQuery* _Nonnull impl() const { return impl_->ptr; }
+  FIRDatabaseQuery* impl() const { return impl_->ptr; }
 #endif  // __OBJC__
 
   internal::QuerySpec query_spec_;
@@ -183,38 +225,25 @@ class QueryInternal {
   int future_api_id_;
 };
 
-#ifdef __OBJC__
-struct ValueListenerCleanupData {
-  FIRDatabaseHandle observer_handle;
-};
-
-struct ChildListenerCleanupData {
-  FIRDatabaseHandle child_added_handle;
-  FIRDatabaseHandle child_changed_handle;
-  FIRDatabaseHandle child_moved_handle;
-  FIRDatabaseHandle child_removed_handle;
-};
-#else  // !__OBJC__
-struct ChildListenerCleanupData;
-struct ValueListenerCleanupData;
-
-#endif  // __OBJC__
+#pragma clang assume_nonnull end
 
 // Used by Query::GetValue().
 class SingleValueListener : public ValueListener {
  public:
-  SingleValueListener(DatabaseInternal* database,
-                      ReferenceCountedFutureImpl* future,
-                      const SafeFutureHandle<DataSnapshot>& handle);
+  SingleValueListener(
+      ReferenceCountedFutureImpl* _Nonnull future,
+      const SafeFutureHandle<DataSnapshot>& handle,
+      const FIRCPPDatabaseQueryCallbackStatePointer& callback_state);
   // Unregister ourselves from the database.
   virtual ~SingleValueListener();
   virtual void OnValueChanged(const DataSnapshot& snapshot);
-  virtual void OnCancelled(const Error& error_code, const char* error_message);
+  virtual void OnCancelled(const Error& error_code,
+                           const char* _Nullable error_message);
 
  private:
-  DatabaseInternal* database_;
-  ReferenceCountedFutureImpl* future_;
+  ReferenceCountedFutureImpl* _Nonnull future_;
   SafeFutureHandle<DataSnapshot> handle_;
+  UniquePtr<FIRCPPDatabaseQueryCallbackStatePointer> callback_state_;
 };
 
 }  // namespace internal

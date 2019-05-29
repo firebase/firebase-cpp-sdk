@@ -30,6 +30,7 @@ DatabaseInternal::DatabaseInternal(App* app)
   @try {
     impl_.reset(new FIRDatabasePointer(
         [FIRDatabase databaseForApp:static_cast<FIRAppPointer*>(app->data_)->ptr]));
+    query_lock_.reset(new NSRecursiveLockPointer([[NSRecursiveLock alloc] init]));
   }
   @catch (NSException* exception) {
     LogError(
@@ -43,6 +44,7 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
   @try {
     impl_.reset(new FIRDatabasePointer(
         [FIRDatabase databaseForApp:static_cast<FIRAppPointer*>(app->data_)->ptr URL:@(url)]));
+    query_lock_.reset(new NSRecursiveLockPointer([[NSRecursiveLock alloc] init]));
   }
   @catch (NSException* exception) {
     LogError(
@@ -57,12 +59,12 @@ DatabaseInternal::~DatabaseInternal() {
   // If there are any pending listeners, delete their pointers.
   {
     MutexLock lock(listener_mutex_);
-    for (auto i = single_value_listeners_.begin(); i != single_value_listeners_.end(); ++i) {
-      SingleValueListener** listener_holder = *i;
-        delete *listener_holder;
-        *listener_holder = nullptr;
+    while (single_value_listeners_.begin() != single_value_listeners_.end()) {
+      auto it = single_value_listeners_.begin();
+      auto* listener = *it;
+      single_value_listeners_.erase(it);
+      delete listener;
     }
-    single_value_listeners_.clear();
   }
 }
 
@@ -108,12 +110,14 @@ void DatabaseInternal::SetVerboseLogging(bool enable) {
 
 bool DatabaseInternal::RegisterValueListener(
     const internal::QuerySpec& spec, ValueListener* listener,
-    const ValueListenerCleanupData& cleanup_data) {
+    FIRCPPDatabaseQueryCallbackState* callback_state) {
   MutexLock lock(listener_mutex_);
   if (value_listeners_by_query_.Register(spec, listener)) {
     auto found = cleanup_value_listener_lookup_.find(listener);
     if (found == cleanup_value_listener_lookup_.end()) {
-      cleanup_value_listener_lookup_.insert(std::make_pair(listener, cleanup_data));
+      cleanup_value_listener_lookup_.insert(std::make_pair(
+          listener, FIRCPPDatabaseQueryCallbackStatePointer(
+              callback_state)));
     }
     return true;
   }
@@ -127,8 +131,7 @@ bool DatabaseInternal::UnregisterValueListener(const internal::QuerySpec& spec,
   if (value_listeners_by_query_.Unregister(spec, listener)) {
     auto found = cleanup_value_listener_lookup_.find(listener);
     if (found != cleanup_value_listener_lookup_.end()) {
-      ValueListenerCleanupData& cleanup_data = found->second;
-      [query_impl removeObserverWithHandle: cleanup_data.observer_handle];
+      [found->second.ptr removeAllObservers];
       cleanup_value_listener_lookup_.erase(found);
     }
     return true;
@@ -146,13 +149,16 @@ void DatabaseInternal::UnregisterAllValueListeners(const internal::QuerySpec& sp
   }
 }
 
-bool DatabaseInternal::RegisterChildListener(const internal::QuerySpec& spec,
-    ChildListener* listener, const ChildListenerCleanupData& cleanup_data) {
+bool DatabaseInternal::RegisterChildListener(
+    const internal::QuerySpec& spec, ChildListener* listener,
+    FIRCPPDatabaseQueryCallbackState* _Nonnull callback_state) {
   MutexLock lock(listener_mutex_);
   if (child_listeners_by_query_.Register(spec, listener)) {
     auto found = cleanup_child_listener_lookup_.find(listener);
     if (found == cleanup_child_listener_lookup_.end()) {
-      cleanup_child_listener_lookup_.insert(std::make_pair(listener, cleanup_data));
+      cleanup_child_listener_lookup_.insert(std::make_pair(
+          listener, FIRCPPDatabaseQueryCallbackStatePointer(
+              callback_state)));
     }
     return true;
   }
@@ -166,11 +172,7 @@ bool DatabaseInternal::UnregisterChildListener(const internal::QuerySpec& spec,
   if (child_listeners_by_query_.Unregister(spec, listener)) {
     auto found = cleanup_child_listener_lookup_.find(listener);
     if (found != cleanup_child_listener_lookup_.end()) {
-      ChildListenerCleanupData& cleanup_data = found->second;
-      [query_impl removeObserverWithHandle: cleanup_data.child_added_handle];
-      [query_impl removeObserverWithHandle: cleanup_data.child_changed_handle];
-      [query_impl removeObserverWithHandle: cleanup_data.child_moved_handle];
-      [query_impl removeObserverWithHandle: cleanup_data.child_removed_handle];
+      [found->second.ptr removeAllObservers];
       cleanup_child_listener_lookup_.erase(found);
     }
     return true;

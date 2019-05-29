@@ -40,6 +40,8 @@ class DatabaseReferenceInternal;
 // wrapper around the FIRDataSnapshot Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRDataSnapshot);
 
+#pragma clang assume_nonnull begin
+
 // The iOS implementation of the DataSnapshot, which contains data from a
 // Firebase Database location.
 class DataSnapshotInternal {
@@ -109,7 +111,7 @@ class DataSnapshotInternal {
 
  private:
 #ifdef __OBJC__
-  FIRDataSnapshot* _Nonnull impl() const { return impl_->ptr; }
+  FIRDataSnapshot* impl() const { return impl_->ptr; }
 #endif  // __OBJC__
 
   DatabaseInternal* database_;
@@ -117,6 +119,8 @@ class DataSnapshotInternal {
   // Object lifetime managed by Objective C ARC.
   UniquePtr<FIRDataSnapshotPointer> impl_;
 };
+
+#pragma clang assume_nonnull end
 
 }  // namespace internal
 }  // namespace database

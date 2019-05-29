@@ -33,6 +33,8 @@ namespace internal {
 // wrapper around the FIRMutableData Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRMutableData);
 
+#pragma clang assume_nonnull begin
+
 class DatabaseReferenceInternal;
 
 // The iOS implementation of MutableData, which encapsulates the data and
@@ -87,12 +89,14 @@ class MutableDataInternal {
                       UniquePtr<FIRMutableDataPointer> impl);
 
 #ifdef __OBJC__
-  FIRMutableData* _Nonnull impl() const { return impl_->ptr; }
+  FIRMutableData* impl() const { return impl_->ptr; }
 #endif  // __OBJC__
 
   DatabaseInternal* db_;
   UniquePtr<FIRMutableDataPointer> impl_;
 };
+
+#pragma clang assume_nonnull end
 
 }  // namespace internal
 }  // namespace database

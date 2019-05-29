@@ -29,6 +29,8 @@ namespace firebase {
 namespace database {
 namespace internal {
 
+#pragma clang assume_nonnull begin
+
 class FIRDatabaseReferencePointer;
 class DatabaseInternal;
 class DatabaseReferenceInternal;
@@ -92,10 +94,11 @@ class DisconnectionHandlerInternal {
   friend class DatabaseReferenceInternal;
 
   explicit DisconnectionHandlerInternal(
-      DatabaseInternal* database, UniquePtr<FIRDatabaseReferencePointer> impl);
+      DatabaseInternal* database,
+      UniquePtr<FIRDatabaseReferencePointer> impl);
 
 #ifdef __OBJC__
-  FIRDatabaseReference* _Nonnull impl() const;
+  FIRDatabaseReference* impl() const;
 #endif  // __OBJC__
 
   // Get the Future for the DatabaseReferenceInternal.
@@ -105,6 +108,8 @@ class DisconnectionHandlerInternal {
 
   UniquePtr<FIRDatabaseReferencePointer> impl_;
 };
+
+#pragma clang assume_nonnull end
 
 }  // namespace internal
 }  // namespace database
