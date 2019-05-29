@@ -195,8 +195,7 @@ static bool PushBackIfMissing(const T& entry, std::vector<T>* v) {
 // Return whether the listener is added.
 template <typename T>
 static bool AddListener(T listener, std::vector<T>* listener_vector, Auth* auth,
-                        std::vector<Auth*>* auth_vector, Mutex* mutex) {
-  MutexLock lock(*mutex);
+                        std::vector<Auth*>* auth_vector) {
   // Add to array of listeners if not already there.
   const bool listener_added = PushBackIfMissing(listener, listener_vector);
   // Add auth to array of Auths if not already there.
@@ -212,20 +211,27 @@ static bool AddListener(T listener, std::vector<T>* listener_vector, Auth* auth,
 
 void Auth::AddAuthStateListener(AuthStateListener* listener) {
   if (!auth_data_) return;
-  bool added = AddListener(listener, &auth_data_->listeners, this,
-                           &listener->auths_, &auth_data_->listeners_mutex);
+  // Would have to lock mutex till the method ends to protect on race
+  // conditions.
+  MutexLock lock(auth_data_->listeners_mutex);
+  bool added =
+      AddListener(listener, &auth_data_->listeners, this, &listener->auths_);
+
   // If the listener is registered successfully and persistent cache has been
   // loaded, trigger OnAuthStateChanged() immediately.  Otherwise, wait until
   // the cache is loaded, through AuthStateListener event
-  if (added && auth_data_->persistent_cache_loaded) {
+  if (added && !auth_data_->persistent_cache_load_pending) {
     listener->OnAuthStateChanged(this);
   }
 }
 
 void Auth::AddIdTokenListener(IdTokenListener* listener) {
   if (!auth_data_) return;
+  // Would have to lock mutex till the method ends to protect on race
+  // conditions.
+  MutexLock lock(auth_data_->listeners_mutex);
   bool added = AddListener(listener, &auth_data_->id_token_listeners, this,
-                           &listener->auths_, &auth_data_->listeners_mutex);
+                           &listener->auths_);
   // AddListener is valid even if the listener is already registered.
   // This makes sure that we only increase the reference count if a listener
   // was actually added.
@@ -233,7 +239,7 @@ void Auth::AddIdTokenListener(IdTokenListener* listener) {
     // If the listener is registered successfully and persistent cache has been
     // loaded, trigger OnAuthStateChanged() immediately.  Otherwise, wait until
     // the cache is loaded, through AuthStateListener event
-    if (auth_data_->persistent_cache_loaded) {
+    if (!auth_data_->persistent_cache_load_pending) {
       listener->OnIdTokenChanged(this);
     }
     EnableTokenAutoRefresh(auth_data_);
@@ -337,7 +343,7 @@ static inline bool VectorContains(const T& entry, const std::vector<T>& v) {
                                                                                \
     /* Auth should have loaded persistent cache if exists when the listener */ \
     /* event is triggered for the first time. */                               \
-    auth_data->persistent_cache_loaded = true;                                 \
+    auth_data->persistent_cache_load_pending = false;                          \
   }
 
 AUTH_NOTIFY_LISTENERS(NotifyAuthStateListeners, "Auth state", listeners,

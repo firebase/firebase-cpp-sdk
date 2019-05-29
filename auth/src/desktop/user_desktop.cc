@@ -412,7 +412,10 @@ void UserDataPersist::OnAuthStateChanged(Auth* auth) {  // NOLINT
   }
 }
 
-void AssignLoadedData(const Future<std::string>& future, void* auth_data) {
+void AssignLoadedData(const Future<std::string>& future, AuthData* auth_data) {
+  // This function will change the persistent_cache_load_pending, which is
+  // a critical flag to decide listener trigger event, so lock listener_mutex
+  // to protect it.
   if (future.error() == firebase::app::secure::kNoEntry) {
     LogDebug(future.error_message());
     return;
@@ -463,7 +466,13 @@ void AssignLoadedData(const Future<std::string>& future, void* auth_data) {
   loaded_user.last_sign_in_timestamp = userData->last_sign_in_timestamp();
   loaded_user.creation_timestamp = userData->creation_timestamp();
 
-  UserView::ResetUser(static_cast<AuthData*>(auth_data), loaded_user);
+  UserView::ResetUser(auth_data, loaded_user);
+}
+
+void HandleLoadedData(const Future<std::string>& future, void* auth_data) {
+  auto cast_auth_data = static_cast<AuthData*>(auth_data);
+  AssignLoadedData(future, cast_auth_data);
+  LoadFinishTriggerListeners(cast_auth_data);
 }
 
 Future<std::string> UserDataPersist::LoadUserData(AuthData* auth_data) {
@@ -473,7 +482,7 @@ Future<std::string> UserDataPersist::LoadUserData(AuthData* auth_data) {
 
   Future<std::string> future =
       user_secure_manager_->LoadUserData(auth_data->app->name());
-  future.OnCompletion(AssignLoadedData, auth_data);
+  future.OnCompletion(HandleLoadedData, auth_data);
   return future;
 }
 

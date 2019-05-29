@@ -79,7 +79,7 @@ struct AuthData {
         listener_impl(nullptr),
         id_token_listener_impl(nullptr),
         expect_id_token_listener_callback(false),
-        persistent_cache_loaded(false) {}
+        persistent_cache_load_pending(true) {}
 
   ~AuthData() {
     ClearUserInfos(this);
@@ -155,6 +155,7 @@ struct AuthData {
   /// Mutex protecting the `listeners`, `id_token_listeners`, and
   /// `phone_auth_provider.data_->listeners vectors`.
   /// 'listeners' are added and removed and accessed on different threads.
+  /// This is also protecting persistent_cache_load_pending flag.
   Mutex listeners_mutex;
 
   // Mutex for changes to the internal token listener state.
@@ -163,8 +164,8 @@ struct AuthData {
   // Tracks if the Id Token listener is expecting a callback to occur.
   bool expect_id_token_listener_callback;
 
-  // Tracks if the persistent cache has been loaded.
-  bool persistent_cache_loaded;
+  // Tracks if the persistent cache load is pending.
+  bool persistent_cache_load_pending;
 
   // Mutex protecting `expect_id_token_listener_callback`
   Mutex expect_id_token_mutex;

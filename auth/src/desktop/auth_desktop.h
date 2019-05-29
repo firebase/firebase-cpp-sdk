@@ -127,6 +127,7 @@ const int kMsPerTokenRefresh =
 
 void InitializeUserDataPersist(AuthData* auth_data);
 void DestroyUserDataPersist(AuthData* auth_data);
+void LoadFinishTriggerListeners(AuthData* auth_data);
 
 }  // namespace auth
 }  // namespace firebase

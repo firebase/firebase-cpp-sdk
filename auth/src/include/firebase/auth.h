@@ -487,6 +487,8 @@ class Auth {
   friend class IdTokenRefreshListener;
   friend class IdTokenRefreshThread;
   friend class UserDataPersist;
+  friend class UserDesktopTest;
+  friend class AuthDesktopTest;
 
   friend void EnableTokenAutoRefresh(AuthData* authData);
   friend void DisableTokenAutoRefresh(AuthData* authData);

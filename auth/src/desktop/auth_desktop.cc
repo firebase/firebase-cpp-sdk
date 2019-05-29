@@ -184,10 +184,10 @@ void Auth::InitPlatformAuth(AuthData* const auth_data) {
   auth_data->app->function_registry()->RegisterFunction(
       internal::FnAuthStopTokenListener,
       Auth::StopTokenRefreshThreadForRegistry);
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
+
   // Load existing UserData
   InitializeUserDataPersist(auth_data);
-#endif  //  FIREBASE_EARLY_ACCESS_PREVIEW
+
   InitializeTokenRefresher(auth_data);
 }
 
@@ -211,9 +211,7 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
     auth_data->id_token_listeners.clear();
   }
 
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
   DestroyUserDataPersist(auth_data);
-#endif  //  FIREBASE_EARLY_ACCESS_PREVIEW
 
   UserView::ClearUser(auth_data);
 
@@ -416,6 +414,15 @@ void InitializeUserDataPersist(AuthData* auth_data) {
 void DestroyUserDataPersist(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_data->auth->RemoveAuthStateListener(auth_impl->user_data_persist.get());
+}
+
+void LoadFinishTriggerListeners(AuthData* auth_data) {
+  // We would have to block other listener changes to protect race condition
+  // on how many times a listener should be triggered. We would rely on first
+  // listener trigger to flip the persistence loading bit.
+  MutexLock lock(auth_data->listeners_mutex);
+  NotifyAuthStateListeners(auth_data);
+  NotifyIdTokenListeners(auth_data);
 }
 
 void IdTokenRefreshThread::WakeThread() { wakeup_sem_.Post(); }
