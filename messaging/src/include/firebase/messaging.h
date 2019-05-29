@@ -61,11 +61,52 @@ struct MessagingOptions {
   bool suppress_notification_permission_prompt;
 };
 
+/// @brief Data structure for parameters that are unique to the Android
+/// implementation.
+struct AndroidNotificationParams {
+  /// The channel id that was provided when the message was sent.
+  std::string channel_id;
+};
+
 /// Used for messages that display a notification.
 ///
 /// On android, this requires that the app is using the Play Services client
 /// library.
 struct Notification {
+  Notification() : android(nullptr) {}
+
+#ifndef SWIG
+  /// Copy constructor. Makes a deep copy of this Message.
+  Notification(const Notification& other) : android(nullptr) { *this = other; }
+#endif  // !SWIG
+
+#ifndef SWIG
+  /// Copy assignment operator. Makes a deep copy of this Message.
+  Notification& operator=(const Notification& other) {
+    this->title = other.title;
+    this->body = other.body;
+    this->icon = other.icon;
+    this->sound = other.sound;
+    this->tag = other.tag;
+    this->color = other.color;
+    this->click_action = other.click_action;
+    this->body_loc_key = other.body_loc_key;
+    this->body_loc_args = other.body_loc_args;
+    this->title_loc_key = other.title_loc_key;
+    this->title_loc_args = other.title_loc_args;
+    delete this->android;
+    if (other.android) {
+      this->android = new AndroidNotificationParams(*other.android);
+    } else {
+      this->android = nullptr;
+    }
+    return *this;
+  }
+#endif  // !SWIG
+
+  /// Destructor.
+  ~Notification() { delete android; }
+
   /// Indicates notification title. This field is not visible on iOS phones
   /// and tablets.
   std::string title;
@@ -146,6 +187,9 @@ struct Notification {
   /// [1]:
   /// https://developer.android.com/guide/topics/resources/string-resource.html#FormattingAndStyling
   std::vector<std::string> title_loc_args;
+
+  /// Parameters that are unique to the Android implementation.
+  AndroidNotificationParams* android;
 };
 
 /// @brief Data structure used to send messages to, and receive messages from,

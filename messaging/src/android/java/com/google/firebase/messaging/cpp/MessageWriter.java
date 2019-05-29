@@ -243,6 +243,7 @@ public class MessageWriter {
       int tagOffset = builder.createString(emptyIfNull(notification.getTag()));
       int colorOffset = builder.createString(emptyIfNull(notification.getColor()));
       int clickActionOffset = builder.createString(emptyIfNull(notification.getClickAction()));
+      int androidChannelIdOffset = builder.createString(emptyIfNull(notification.getChannelId()));
       int bodyLocalizationKeyOffset =
           builder.createString(emptyIfNull(notification.getBodyLocalizationKey()));
       int bodyLocalizationArgsOffset = 0;
@@ -278,6 +279,7 @@ public class MessageWriter {
       SerializedNotification.addTag(builder, tagOffset);
       SerializedNotification.addColor(builder, colorOffset);
       SerializedNotification.addClickAction(builder, clickActionOffset);
+      SerializedNotification.addAndroidChannelId(builder, androidChannelIdOffset);
       SerializedNotification.addBodyLocKey(builder, bodyLocalizationKeyOffset);
       SerializedNotification.addBodyLocArgs(builder, bodyLocalizationArgsOffset);
       SerializedNotification.addTitleLocKey(builder, titleLocalizationKeyOffset);

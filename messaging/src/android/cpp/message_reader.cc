@@ -109,6 +109,7 @@ void MessageReader::ConsumeMessage(
     const SerializedMessage* serialized_message) const {
   Message message;
   Notification notification;
+  AndroidNotificationParams android;
   message.from = SafeFlatbufferString(serialized_message->from());
   message.to = SafeFlatbufferString(serialized_message->to());
   if (serialized_message->data()) {
@@ -171,10 +172,13 @@ void MessageReader::ConsumeMessage(
             serialized_notification->title_loc_args()->Get(i));
       }
     }
+    android.channel_id =
+        SafeFlatbufferString(serialized_notification->android_channel_id());
 
     // The notification has been allocated on the stack for speed. Set this
     // pointer to null before the notification leaves scope or it will be
     // deleted.
+    notification.android = &android;
     message.notification = &notification;
   }
 
@@ -182,7 +186,10 @@ void MessageReader::ConsumeMessage(
   message_callback_(message, message_callback_data_);
   // Ensure that the stack allocated pointer is null before it goes out of
   // scope so it doesn't get deleted.
-  message.notification = nullptr;
+  if (message.notification) {
+    message.notification->android = nullptr;
+    message.notification = nullptr;
+  }
 }
 
 // Convert the SerializedTokenReceived to a token and calls the registered

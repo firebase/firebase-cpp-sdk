@@ -102,6 +102,9 @@ table SerializedNotification {
   //
   // [1]: https://developer.android.com/guide/topics/resources/string-resource.html#FormattingAndStyling
   title_loc_args:[string];
+
+  // The channel id that was provided when the message was sent.
+  android_channel_id:string;
 }
 
 table SerializedMessage {
@@ -205,14 +208,13 @@ table SerializedMessage {
   // system tray of the OS.
   notification_opened:bool;
 
-  /// The link into the app from the message in the form of a URL.
+  // The link into the app from the message in the form of a URL.
   link:string;
 
   // Time in milliseconds from the Linux Epoch that the message was sent.
   sent_time:long;
 
   // Original priority of the message.  Value values are "normal" and "high".
-  //
   //
   // For more information, see Setting the priority of a message.
   original_priority:string;
