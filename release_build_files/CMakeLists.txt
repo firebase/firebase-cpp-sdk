@@ -89,12 +89,21 @@ if(NOT APPLE AND NOT ANDROID AND UNIX)
   pkg_check_modules(LIBSECRET libsecret-1)
 
   if(NOT LIBSECRET_FOUND)
-    message(WARNING "Unable to find libsecret, which is needed by \
-                     Authentication's desktop implementation. \
+    message(WARNING "Unable to find libsecret, which is needed by Linux \
+                     desktop implementations of Auth, Instance ID, and \
+                     Remote Config. \
                      It can be installed on supported systems via: \
                      apt-get install libsecret-1-dev")
   else()
     set_target_properties(firebase_auth PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${LIBSECRET_INCLUDE_DIRS}"
+      INTERFACE_LINK_LIBRARIES "${LIBSECRET_LIBRARIES}"
+    )
+    set_target_properties(firebase_instance_id PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${LIBSECRET_INCLUDE_DIRS}"
+      INTERFACE_LINK_LIBRARIES "${LIBSECRET_LIBRARIES}"
+    )
+    set_target_properties(firebase_remote_config PROPERTIES
       INTERFACE_INCLUDE_DIRECTORIES "${LIBSECRET_INCLUDE_DIRS}"
       INTERFACE_LINK_LIBRARIES "${LIBSECRET_LIBRARIES}"
     )
