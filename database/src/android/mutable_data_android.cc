@@ -126,7 +126,6 @@ size_t MutableDataInternal::GetChildrenCount() {
 const char* MutableDataInternal::GetKey() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   if (cached_key_.is_null()) {
-    JNIEnv* env = db_->GetApp()->GetJNIEnv();
     jstring key_string = static_cast<jstring>(env->CallObjectMethod(
         obj_, mutable_data::GetMethodId(mutable_data::kGetKey)));
     if (util::LogException(env, kLogLevelError,
