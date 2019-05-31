@@ -81,6 +81,7 @@ else()
       ${PROJECT_BINARY_DIR}/..)
   set(additional_link_LIB
       firebase_rest_lib
+      firebase_instance_id_desktop_impl
       flatbuffers
       protobuf-nanopb)
 endif()

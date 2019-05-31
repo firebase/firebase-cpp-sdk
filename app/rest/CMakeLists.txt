@@ -34,6 +34,7 @@ set(rest_SRCS
     transport_curl.cc
     transport_interface.cc
     util.cc
+    www_form_url_encoded.cc
     zlibwrapper.cc)
 
 add_library(firebase_rest_lib STATIC

@@ -41,7 +41,8 @@ set(ios_SRCS
 
 # Source files used by the desktop implementation.
 set(desktop_SRCS
-    src/stub/instance_id.cc)
+    src/desktop/instance_id.cc
+    src/desktop/instance_id_internal.cc)
 
 if(ANDROID)
   set(instance_id_platform_SRCS
@@ -54,6 +55,13 @@ else()
       "${desktop_SRCS}")
 endif()
 
+if(ANDROID OR IOS OR use_stub)
+  set(additional_link_LIB)
+else()
+  set(additional_link_LIB
+      firebase_instance_id_desktop_impl)
+endif()
+
 add_library(firebase_instance_id STATIC
     ${common_SRCS}
     ${instance_id_platform_SRCS})
@@ -62,6 +70,8 @@ add_library(firebase_instance_id STATIC
 target_link_libraries(firebase_instance_id
   PUBLIC
     firebase_app
+  PRIVATE
+    ${additional_link_LIB}
 )
 # Public headers all refer to each other relative to the src/include directory,
 # while private headers are relative to the entire C++ SDK directory.

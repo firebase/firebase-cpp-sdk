@@ -109,6 +109,7 @@ set(common_SRCS
     ${google_services_resource_source}
     ${google_services_resource_header}
     src/app_common.cc
+    src/app_identifier.cc
     src/app_options.cc
     src/callback.cc
     src/cleanup_notifier.cc
@@ -122,7 +123,8 @@ set(common_SRCS
     src/time.cc
     src/secure/user_secure_manager.cc
     src/util.cc
-    src/variant.cc)
+    src/variant.cc
+    src/base64.cc)
 
 set(invites_SRCS
     src/invites/cached_receiver.cc
@@ -135,12 +137,14 @@ set(app_android_SRCS
     ${google_api_resources_source}
     ${invites_resources_source}
     src/invites/android/invites_receiver_internal_android.cc
-    src/invites/android/invites_android_helper.cc)
+    src/invites/android/invites_android_helper.cc
+    src/uuid.cc)
 set(app_ios_SRCS
     src/app_ios.mm
     src/util_ios.mm
     src/invites/ios/invites_receiver_internal_ios.mm
-    src/invites/ios/invites_ios_startup.mm)
+    src/invites/ios/invites_ios_startup.mm
+    src/uuid_ios_darwin.mm)
 set(app_desktop_SRCS
     src/app_desktop.cc
     src/invites/stub/invites_receiver_internal_stub.cc
@@ -154,15 +158,21 @@ elseif(IOS)
 else()
   if(MSVC)
     set(app_desktop_extra_SRCS
-        src/secure/user_secure_windows_internal.cc)
+        src/secure/user_secure_windows_internal.cc
+        src/locale.cc
+        src/uuid.cc)
   elseif(APPLE)
     set(app_desktop_extra_SRCS
-        src/secure/user_secure_darwin_internal.mm)
+        src/secure/user_secure_darwin_internal.mm
+        src/locale_apple.mm
+        src/uuid_ios_darwin.mm)
   else()
     # Linux requires libsecret.
     pkg_check_modules(LIBSECRET libsecret-1 REQUIRED)
     set(app_desktop_extra_SRCS
-        src/secure/user_secure_linux_internal.cc)
+        src/secure/user_secure_linux_internal.cc
+        src/locale.cc
+        src/uuid.cc)
   endif()
 
   set(app_platform_SRCS
@@ -265,6 +275,7 @@ target_include_directories(firebase_app
   PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
     ${FLATBUFFERS_SOURCE_DIR}/include
+    ${LIBSECRET_INCLUDE_DIRS}
 )
 target_compile_definitions(firebase_app
   PRIVATE
@@ -274,6 +285,7 @@ target_compile_definitions(firebase_app
 target_link_libraries(firebase_app
   PRIVATE
     flatbuffers
+    ${LIBSECRET_LIBRARIES}
 )
 # Automatically include headers that might not be declared.
 if(MSVC)
@@ -313,3 +325,4 @@ endif()
 
 # Add the rest subdirectory, so that other libraries can access it
 add_subdirectory(rest)
+add_subdirectory(instance_id)
