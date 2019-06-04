@@ -137,17 +137,16 @@ class Auth {
   ~Auth();
 
   /// Synchronously gets the cached current user, or nullptr if there is none.
-  /// Current user might not be available immediately after Auth is created, if
-  /// a user has signed in before. It is recommended to use AuthStateListener as
-  /// the source of truth whether a user has logged in or not.
+  /// @note This function may block and wait until the Auth instance finishes
+  /// loading the saved user's state. This should only happen for a short
+  /// period of time after the Auth instance is created.
   /// <SWIG>
   /// @xmlonly
   /// <csproperty name="CurrentUser">
   /// Synchronously gets the cached current user, or null if there is none.
-  /// CurrentUser might not be available immediately after FirebaseAuth is
-  /// created, if a user has signed in before. It is recommended to use
-  /// StateChanged delegate as the source of truth whether a user has logged in
-  /// or not.
+  /// @note This function may block and wait until the Auth instance finishes
+  /// loading the saved user's state. This should only happen for a short
+  /// period of time after the Auth instance is created.
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>

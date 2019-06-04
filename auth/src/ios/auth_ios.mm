@@ -227,6 +227,20 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(const char *emai
   return MakeFuture(&futures, handle);
 }
 
+// It's safe to return a direct pointer to `current_user` because that class
+// holds nothing but a pointer to AuthData, which never changes.
+// All User functions that require synchronization go through AuthData's mutex.
+User *Auth::current_user() {
+  if (!auth_data_) return nullptr;
+  MutexLock lock(auth_data_->future_impl.mutex());
+
+  // auth_data_->current_user should be available after Auth is created because
+  // [AuthImpl(auth_data) currentUser] is called during Auth::InitPlatformAuth()
+  // and it would block until persistence is loaded.
+  User *user = auth_data_->user_impl == nullptr ? nullptr : &auth_data_->current_user;
+  return user;
+}
+
 static User* AssignUser(FIRUser *_Nullable user, AuthData *auth_data) {
   // Update our pointer to the iOS user that we're wrapping.
   MutexLock lock(auth_data->future_impl.mutex());

@@ -163,17 +163,6 @@ void Auth::DeleteInternal() {
 
 Auth::~Auth() { DeleteInternal(); }
 
-// It's safe to return a direct pointer to `current_user` because that class
-// holds nothing but a pointer to AuthData, which never changes.
-// All User functions that require synchronization go through AuthData's mutex.
-User* Auth::current_user() {
-  if (!auth_data_) return nullptr;
-  MutexLock lock(auth_data_->future_impl.mutex());
-  User* user =
-      auth_data_->user_impl == nullptr ? nullptr : &auth_data_->current_user;
-  return user;
-}
-
 // Always non-nullptr since set in constructor.
 App& Auth::app() {
   FIREBASE_ASSERT(auth_data_ != nullptr);
@@ -219,7 +208,9 @@ void Auth::AddAuthStateListener(AuthStateListener* listener) {
 
   // If the listener is registered successfully and persistent cache has been
   // loaded, trigger OnAuthStateChanged() immediately.  Otherwise, wait until
-  // the cache is loaded, through AuthStateListener event
+  // the cache is loaded, through AuthStateListener event.
+  // NOTE: This should be called synchronously or current_user() for desktop
+  // implementation may not work.
   if (added && !auth_data_->persistent_cache_load_pending) {
     listener->OnAuthStateChanged(this);
   }
@@ -321,6 +312,10 @@ static inline bool VectorContains(const T& entry, const std::vector<T>& v) {
   void notify_method_name(AuthData* auth_data) {                               \
     MutexLock lock(auth_data->listeners_mutex);                                \
                                                                                \
+    /* Auth should have loaded persistent cache if exists when the listener */ \
+    /* event is triggered for the first time. */                               \
+    auth_data->persistent_cache_load_pending = false;                          \
+                                                                               \
     /* Make a copy of the listener list in case it gets modified during */     \
     /* notification_method(). Note that modification is possible because */    \
     /* the same thread is allowed to reaquire the `listeners_mutex` */         \
@@ -340,10 +335,6 @@ static inline bool VectorContains(const T& entry, const std::vector<T>& v) {
       /* Notify the listener. */                                               \
       listener->notification_method(auth_data->auth);                          \
     }                                                                          \
-                                                                               \
-    /* Auth should have loaded persistent cache if exists when the listener */ \
-    /* event is triggered for the first time. */                               \
-    auth_data->persistent_cache_load_pending = false;                          \
   }
 
 AUTH_NOTIFY_LISTENERS(NotifyAuthStateListeners, "Auth state", listeners,

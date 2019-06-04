@@ -371,6 +371,44 @@ void Auth::SignOut() {
   AuthenticationResult::SignOut(auth_data_);
 }
 
+// AuthStateListener to wait for current_user() until persistent cache load is
+// finished.
+class CurrentUserBlockListener : public firebase::auth::AuthStateListener {
+ public:
+  explicit CurrentUserBlockListener() : semaphore_(0) {}
+  ~CurrentUserBlockListener() override {}
+
+  void OnAuthStateChanged(Auth* auth) override { semaphore_.Post(); }
+
+  void WaitForEvent() { semaphore_.Wait(); }
+
+ private:
+  Semaphore semaphore_;
+};
+
+// It's safe to return a direct pointer to `current_user` because that class
+// holds nothing but a pointer to AuthData, which never changes.
+// All User functions that require synchronization go through AuthData's mutex.
+User* Auth::current_user() {
+  if (!auth_data_) return nullptr;
+
+  // Add a listener and wait for the first trigger.
+  CurrentUserBlockListener listener;
+  AddAuthStateListener(&listener);
+  // If the persistent cache has not be loaded, this would wait until the
+  // loading is finished and OnAuthStateChanged() is triggered.
+  // If it has been loaded, OnAuthStateChanged() should be triggered recursively
+  // and synchronously when AddAuthStateListener() is called.
+  listener.WaitForEvent();
+  RemoveAuthStateListener(&listener);
+
+  {
+    MutexLock lock(auth_data_->future_impl.mutex());
+    return auth_data_->user_impl == nullptr ? nullptr
+                                            : &auth_data_->current_user;
+  }
+}
+
 void InitializeTokenRefresher(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->token_refresh_thread.Initialize(auth_data);
@@ -448,7 +486,7 @@ void IdTokenRefreshThread::Initialize(AuthData* auth_data) {
           // lock, to prevent deadlocks!
           refresh_thread->ref_count_mutex_.Acquire();
           auth->auth_data_->future_impl.mutex().Acquire();
-          if (auth->current_user() && refresh_thread->ref_count_ > 0) {
+          if (auth->auth_data_->user_impl && refresh_thread->ref_count_ > 0) {
             // The internal identifier kInternalFn_GetTokenForRefresher,
             // ensures that we won't mess with the LastResult for the
             // user-facing one.
@@ -459,8 +497,8 @@ void IdTokenRefreshThread::Initialize(AuthData* auth_data) {
 
             if (ms_since_last_refresh >= kMsPerTokenRefresh) {
               Future<std::string> future =
-                  refresh_thread->auth->current_user()->GetTokenInternal(
-                      true, kInternalFn_GetTokenForRefresher);
+                  refresh_thread->auth->auth_data_->current_user
+                      .GetTokenInternal(true, kInternalFn_GetTokenForRefresher);
               auth->auth_data_->future_impl.mutex().Release();
               refresh_thread->ref_count_mutex_.Release();
 

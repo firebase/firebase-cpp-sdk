@@ -524,6 +524,24 @@ Future<User*> Auth::CreateUserWithEmailAndPassword(const char* email,
   return MakeFuture(&futures, handle);
 }
 
+// It's safe to return a direct pointer to `current_user` because that class
+// holds nothing but a pointer to AuthData, which never changes.
+// All User functions that require synchronization go through AuthData's mutex.
+User* Auth::current_user() {
+  if (!auth_data_) return nullptr;
+  MutexLock lock(auth_data_->future_impl.mutex());
+
+  // auth_data_->current_user should be available after Auth is created because
+  // persistent is loaded during the constructor of Android FirebaseAuth.
+  // This may change to make FirebaseAuth.getCurrentUser() to block and wait for
+  // persistent loading.  However, it is safe to access auth_data_->current_user
+  // here since FirebaseAuth.getCurrentUser() (Android) is called in
+  // InitPlatformAuth().
+  User* user =
+      auth_data_->user_impl == nullptr ? nullptr : &auth_data_->current_user;
+  return user;
+}
+
 void Auth::SignOut() {
   JNIEnv* env = Env(auth_data_);
   env->CallVoidMethod(AuthImpl(auth_data_), auth::GetMethodId(auth::kSignOut));
