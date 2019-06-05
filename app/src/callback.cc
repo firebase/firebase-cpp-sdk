@@ -230,7 +230,9 @@ void Terminate(bool flush_all) {
   // the outstanding number of items in the queue.  In particular,
   // PollDispatcher() could be executing at this point since g_callback_mutex
   // isn't held by the ref count is > 0 for the duration of the function.
-  if (flush_all) ref_count += g_callback_dispatcher->FlushCallbacks();
+  if (flush_all && g_callback_dispatcher) {
+    ref_count += g_callback_dispatcher->FlushCallbacks();
+  }
   Terminate(ref_count);
 }
 
