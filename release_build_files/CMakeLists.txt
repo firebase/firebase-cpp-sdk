@@ -18,6 +18,10 @@ cmake_minimum_required(VERSION 3.1)
 
 include(FindPkgConfig)
 
+if (NOT DEFINED FIREBASE_CPP_SDK_DIR)
+  set(FIREBASE_CPP_SDK_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+endif ()
+
 # Determine the location of the libraries to use based on the platform.
 if(ANDROID)
   string(REPLACE "_" ";" SPLIT_STL ${ANDROID_STL})
