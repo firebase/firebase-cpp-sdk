@@ -27,12 +27,7 @@
 #define STR_EXPAND(x) #x
 #define STR(x) STR_EXPAND(x)
 
-#include <assert.h>
-#include <jni.h>
 #include <stdarg.h>
-#include <stdio.h>
-
-#include "app/src/util_android.h"
 
 namespace FIREBASE_NAMESPACE {
 
@@ -74,29 +69,6 @@ void LogMessageV(LogLevel log_level, const char* format, va_list args) {
   }
 }
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
-
-// Called from com.google.firebase.app.internal.cpp.Log.
-extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_app_internal_cpp_Log_nativeLog(
-    JNIEnv* env, jobject instance, jint priority, jstring tag, jstring msg) {
-  std::string ctag = util::JStringToString(env, tag);
-  std::string cmsg = util::JStringToString(env, msg);
-  static const LogLevel kLogPriorityToLogLevel[] = {
-      kLogLevelDebug,    // 0 = undocumented
-      kLogLevelDebug,    // 1 = undocumented
-      kLogLevelVerbose,  // 2 = android.util.Log.VERBOSE
-      kLogLevelDebug,    // 3 = android.util.Log.DEBUG
-      kLogLevelInfo,     // 4 = android.util.Log.INFO
-      kLogLevelWarning,  // 5 = android.util.Log.WARN
-      kLogLevelError,    // 6 = android.util.Log.ERROR
-      kLogLevelAssert,   // 7 = android.util.Log.ASSERT
-  };
-  assert(priority <
-         sizeof(kLogPriorityToLogLevel) / sizeof(kLogPriorityToLogLevel[0]));
-  assert(priority >= 0);
-  LogMessage(kLogPriorityToLogLevel[priority], "(%s) %s", ctag.c_str(),
-             cmsg.c_str());
-}
 
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace FIREBASE_NAMESPACE

@@ -18,10 +18,15 @@
 #define FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_UTIL_H_
 
 #include "firebase/app.h"
-#include "firebase/future.h"
 
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase
+#endif
+
+#ifdef USE_PLAYBILLING_FUTURE
+#include "playbillingclient/future.h"
+#else
+#include "firebase/future.h"
 #endif
 
 namespace FIREBASE_NAMESPACE {

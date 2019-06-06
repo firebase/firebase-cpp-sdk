@@ -22,12 +22,17 @@
 #include <vector>
 
 #include "app/src/cleanup_notifier.h"
-#include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/mutex.h"
 
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase
+#endif
+
+#ifdef USE_PLAYBILLING_FUTURE
+#include "playbillingclient/future.h"
+#else
+#include "app/src/include/firebase/future.h"
 #endif
 
 namespace FIREBASE_NAMESPACE {

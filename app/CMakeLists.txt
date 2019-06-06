@@ -86,6 +86,7 @@ set(log_common_SRCS
     src/log.cc)
 set(log_android_SRCS
     src/log_android.cc
+    src/log_android_callback.cc
     src/util_android.cc)
 set(log_ios_SRCS
     src/log_ios.mm)
