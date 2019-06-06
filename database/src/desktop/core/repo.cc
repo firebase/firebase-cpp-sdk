@@ -512,9 +512,10 @@ void Repo::StartTransaction(const Path& path,
       new DatabaseReferenceInternal(database_, path);
   DatabaseReference watch_ref(ref_impl);
   UniquePtr<NoopListener> listener = MakeUnique<NoopListener>();
+  NoopListener* listener_ptr = listener.get();
   QuerySpec query_spec(path);
-  AddEventCallback(MakeUnique<ValueEventRegistration>(database_, listener.get(),
-                                                      query_spec));
+  AddEventCallback(
+      MakeUnique<ValueEventRegistration>(database_, listener_ptr, query_spec));
 
   TransactionDataPtr transaction_data = MakeShared<TransactionData>(
       handle, api, query_spec.path, transaction_function, context,
@@ -535,6 +536,9 @@ void Repo::StartTransaction(const Path& path,
     transaction_data->status = TransactionData::kStatusNeedsAbort;
     transaction_data->ref_future->Complete(transaction_data->future_handle,
                                            kErrorWriteCanceled);
+    // If there was an error, the listener must be removed to prevent calls to
+    // it in case the listener is destroyed.
+    RemoveEventCallback(listener_ptr, query_spec);
   } else {
     // Mark as run and add to our queue.
     transaction_data->status = TransactionData::kStatusRun;
