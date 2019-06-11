@@ -19,7 +19,8 @@
 
 #include <stdarg.h>
 
-#include "firebase/log.h"
+#include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/log.h"
 
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase
@@ -30,9 +31,13 @@ namespace FIREBASE_NAMESPACE {
 // Common log methods.
 
 // All messages at or above the specified log level value are displayed.
-void LogSetLevel(LogLevel level);
+void SetLogLevel(LogLevel level);
 // Get the currently set log level.
-LogLevel LogGetLevel();
+LogLevel GetLogLevel();
+// Use firebase::SetLogLevel() instead.
+FIREBASE_DEPRECATED void LogSetLevel(LogLevel level);
+// Use firebase::GetLogLevel() instead.
+FIREBASE_DEPRECATED LogLevel LogGetLevel();
 // Log a debug message to the system log.
 void LogDebug(const char* format, ...);
 // Log an info message to the system log.

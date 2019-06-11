@@ -141,16 +141,22 @@ static void LogMessageWithCallbackV(LogLevel log_level, const char* format,
   va_copy(log_to_file_args, args);
   LogToFile(log_level, format, log_to_file_args);
 #endif  // FIREBASE_LOG_TO_FILE
-  if (log_level < LogGetLevel()) return;
+  if (log_level < GetLogLevel()) return;
 
   static char log_buffer[512] = {0};
   vsnprintf(log_buffer, sizeof(log_buffer) - 1, format, args);
   g_log_callback(log_level, log_buffer, g_log_callback_data);
 }
 
-void LogSetLevel(LogLevel level) { g_log_level = level; }
+void SetLogLevel(LogLevel level) {
+  g_log_level = level;
+}
 
-LogLevel LogGetLevel() { return g_log_level; }
+LogLevel GetLogLevel() { return g_log_level; }
+
+void LogSetLevel(LogLevel level) { SetLogLevel(level); }
+
+LogLevel LogGetLevel() { return GetLogLevel(); }
 
 // Log a debug message to the system log.
 void LogDebug(const char* format, ...) {

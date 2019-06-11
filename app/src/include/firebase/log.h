@@ -42,6 +42,20 @@ enum LogLevel {
   kLogLevelAssert,
 };
 
+#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
+/// @brief Sets the logging verbosity.
+/// All log messages at or above the specific log level.
+///
+/// @param[in] log_level Log level to display, by default this is set to
+/// kLogLevelInfo.
+void SetLogLevel(LogLevel level);
+
+/// @brief Gets the logging verbosity.
+///
+/// @return Get the currently configured logging verbosity.
+LogLevel GetLogLevel();
+#endif  // defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
+
 /// @endcond
 
 // NOLINTNEXTLINE - allow namespace overridden

@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_DATABASE_H_
 
 #include "firebase/app.h"
+#include "firebase/log.h"
 #include "firebase/internal/common.h"
 #include "firebase/database/common.h"
 #include "firebase/database/data_snapshot.h"
@@ -161,6 +162,18 @@ class Database {
   /// @param[in] enabled Set this to true to persist write data to on-device
   /// (disk) storage, or false to discard pending writes when the app exists.
   void set_persistence_enabled(bool enabled);
+
+#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
+  /// Set the log verbosity of this object.
+  ///
+  /// @param[in] log_level Log level, by default this is set to kLogLevelInfo.
+  void set_log_level(LogLevel log_level);
+
+  /// Get the log verbosity of this object.
+  ///
+  /// @return Get the currently configured logging verbosity.
+  LogLevel log_level() const;
+#endif  // defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 
  private:
   friend Database* GetDatabaseInstance(::firebase::App* app, const char* url,
