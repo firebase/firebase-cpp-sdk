@@ -18,12 +18,27 @@
 
 #import <Foundation/Foundation.h>
 
+#import "FIRLoggerLevel.h"
+
 #include <stdarg.h>
+
+// Private API to set the logger level in Firebase/Core/Private/FIRLogger.h.
+extern "C" void FIRSetLoggerLevel(FIRLoggerLevel loggerLevel);
 
 namespace firebase {
 
 // Key used in Info.plist to configure the log level before a load of code is executed.
 static NSString* kLogLevelInfoPlistKey = @"FIRCPPLogLevel";
+
+// Maps C++ to iOS SDK log levels.
+static const FIRLoggerLevel kCppToIOSLogLevel[] = {
+  FIRLoggerLevelDebug, // kLogLevelVerbose = 0,
+  FIRLoggerLevelDebug, // kLogLevelDebug,
+  FIRLoggerLevelInfo,  // kLogLevelInfo,
+  FIRLoggerLevelWarning, // kLogLevelWarning,
+  FIRLoggerLevelError, // kLogLevelError,
+  FIRLoggerLevelError, // kLogLevelAssert,
+};
 
 // Initialize the logging system.
 void LogInitialize() {
@@ -38,6 +53,14 @@ void LogInitialize() {
       LogSetLevel(static_cast<LogLevel>(log_level_value));
     }
   }
+  // Synchronize the platform logger with the C++ log level.
+  LogSetPlatformLevel(LogGetLevel());
+}
+
+// Set the platform specific SDK log level.
+void LogSetPlatformLevel(LogLevel level) {
+  assert(level < sizeof(kCppToIOSLogLevel) / sizeof(kCppToIOSLogLevel[0]));
+  FIRSetLoggerLevel(kCppToIOSLogLevel[level]);
 }
 
 // Log a firebase message.
@@ -63,6 +86,5 @@ void LogMessageV(LogLevel log_level, const char* format, va_list args) {
       break;
   }
 }
-
 
 }  // namespace firebase

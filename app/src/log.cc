@@ -150,6 +150,7 @@ static void LogMessageWithCallbackV(LogLevel log_level, const char* format,
 
 void SetLogLevel(LogLevel level) {
   g_log_level = level;
+  LogSetPlatformLevel(level);
 }
 
 LogLevel GetLogLevel() { return g_log_level; }

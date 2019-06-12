@@ -38,6 +38,9 @@ LogLevel GetLogLevel();
 FIREBASE_DEPRECATED void LogSetLevel(LogLevel level);
 // Use firebase::GetLogLevel() instead.
 FIREBASE_DEPRECATED LogLevel LogGetLevel();
+// Set the platform specific SDK log level.
+// This is called internally by LogSetLevel().
+void LogSetPlatformLevel(LogLevel level);
 // Log a debug message to the system log.
 void LogDebug(const char* format, ...);
 // Log an info message to the system log.

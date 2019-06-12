@@ -16,8 +16,17 @@
 
 #include "app/src/log.h"
 
+#include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <string.h>
+
+#ifdef _WIN32
+#include <Windows.h>
+#endif  // _WIN32
+
+#include "app/src/mutex.h"
+#include "app/src/include/firebase/internal/platform.h"
 
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase
@@ -25,32 +34,47 @@
 
 namespace FIREBASE_NAMESPACE {
 
+// Prefix for log messages at each level.
+static const char* kLogLevelPrefix[] = {
+  "VERBOSE: ",  // kLogLevelVerbose = 0,
+  "DEBUG: ",  // kLogLevelDebug,
+  "INFO: ",   // kLogLevelInfo,
+  "WARNING: ",  // kLogLevelWarning,
+  "ERROR: ",  // kLogLevelError,
+  "ASSERT: ",  // kLogLevelAssert,
+};
+
+#ifdef _WIN32
+// Guards the log buffer on Windows.
+static Mutex g_log_mutex;  // NOLINT
+#endif  // _WIN32
+
 // Initializes the logging module.
 void LogInitialize() {}
 
+// Set the platform specific SDK log level.
+void LogSetPlatformLevel(LogLevel level) {}
+
 // Log a firebase message.
 void LogMessageV(LogLevel log_level, const char* format, va_list args) {
-  switch (log_level) {
-    case kLogLevelVerbose:
-      printf("VERBOSE: ");
-      break;
-    case kLogLevelDebug:
-      printf("DEBUG: ");
-      break;
-    case kLogLevelInfo:
-      break;
-    case kLogLevelWarning:
-      printf("WARNING: ");
-      break;
-    case kLogLevelError:
-      printf("ERROR: ");
-      break;
-    case kLogLevelAssert:
-      printf("ASSERT: ");
-      break;
-  }
+  assert(log_level < (sizeof(kLogLevelPrefix) / sizeof(kLogLevelPrefix[0])));
+  const char* prefix = kLogLevelPrefix[log_level];
+  printf("%s", prefix);
   vprintf(format, args);
   printf("\n");
+  // Platform specific logging.
+#if FIREBASE_PLATFORM_WINDOWS
+  {
+    MutexLock lock(g_log_mutex);
+    static char log_buffer[1024];
+    size_t prefix_length = strlen(prefix);
+    strcpy(log_buffer, prefix);  // // NOLINT
+    vsnprintf(log_buffer + prefix_length,
+              sizeof(log_buffer) - 1 - prefix_length, format, args);  // NOLINT
+    log_buffer[sizeof(log_buffer) - 1] = '\0';
+    OutputDebugString(log_buffer);
+  }
+#endif  // FIREBASE_PLATFORM_WINDOWS
 }
 
 // NOLINTNEXTLINE - allow namespace overridden

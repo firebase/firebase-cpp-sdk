@@ -45,6 +45,15 @@ void AndroidLogMessageV(int priority, const char* tag, const char* format,
   __android_log_vprint(priority, tag, format, args);
 }
 
+// Set the platform specific SDK log level.
+void LogSetPlatformLevel(LogLevel level) {
+  // This isn't available on Android, instead logs go through the framework's
+  // android.util.Log.  Some modules, like Analytics and Realtime Database,
+  // have their own custom logging which are enabled via system configuration
+  // variables or module-specific API calls.
+  (void)level;
+}
+
 // Log a firebase message.
 void LogMessageV(LogLevel log_level, const char* format, va_list args) {
   switch (log_level) {
