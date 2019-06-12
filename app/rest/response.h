@@ -69,12 +69,11 @@ class Response : public Transfer {
     body_completed_ = true;
   }
 
-  // Marks the response as canceled.  There will never be a response, so stop
+  // Marks the response as failed. There will never be a response, so stop
   // waiting for one.
-  void MarkCanceled() override {
+  void MarkFailed() override {
     header_completed_ = false;
     body_completed_ = false;
-    status_ = rest::util::HttpNoContent;
   }
 
   // Getters.
@@ -85,6 +84,8 @@ class Response : public Transfer {
   std::time_t fetch_time() const { return fetch_time_; }
 
   // Setters.
+  void set_status(int status) { status_ = status; }
+
   void set_sdk_error_code(int sdk_error_code) {
     sdk_error_code_ = sdk_error_code;
   }

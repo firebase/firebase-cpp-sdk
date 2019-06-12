@@ -168,7 +168,8 @@ class BackgroundTransportCurl {
 
   CURL* curl() const { return curl_; }
   Response* response() const { return response_; }
-  void set_canceled(bool canceled) { canceled_ = true; }
+  void set_canceled(bool canceled) { canceled_ = canceled; }
+  void set_timed_out(bool timed_out) { timed_out_ = timed_out; }
   ControllerCurl* controller() const { return controller_; }
   TransportCurl* transport_curl() const { return transport_curl_; }
 
@@ -203,6 +204,8 @@ class BackgroundTransportCurl {
   void* complete_data_;
   // Whether the operation has been canceled.
   bool canceled_;
+  // Whether the operation timed out.
+  bool timed_out_;
 };
 
 // The data common to both threads. This is used to communicate when the
@@ -358,7 +361,8 @@ BackgroundTransportCurl::BackgroundTransportCurl(
       transport_curl_(transport_curl),
       complete_(complete),
       complete_data_(complete_data),
-      canceled_(false) {
+      canceled_(false),
+      timed_out_(false) {
   assert(curl_multi_);
   assert(curl_);
   assert(transport_curl);
@@ -389,7 +393,7 @@ BackgroundTransportCurl::~BackgroundTransportCurl() {
     request_header_ = nullptr;
   }
 
-  // If this is an asynchronous operation, MarkCanceled() or MarkCompleted()
+  // If this is an asynchronous operation, MarkFailed() or MarkCompleted()
   // could end up attempting to tear down TransportCurl so we signal
   // completion here.
   if (transport_curl_->is_async()) {
@@ -397,7 +401,7 @@ BackgroundTransportCurl::~BackgroundTransportCurl() {
     CompleteOperation();
   } else {
     // Synchronous operations need all data present in the response before
-    // Perform() returns so signal complete after MarkCanceled() or
+    // Perform() returns so signal complete after MarkFailed() or
     // MarkCompleted().
     CompleteOperation();
     transport_curl_->SignalTransferComplete();
@@ -407,8 +411,13 @@ BackgroundTransportCurl::~BackgroundTransportCurl() {
 void BackgroundTransportCurl::CompleteOperation() {
   if (complete_) complete_(this, complete_data_);
   if (canceled_) {
-    request_->MarkCanceled();
-    response_->MarkCanceled();
+    response_->set_status(rest::util::HttpNoContent);
+    request_->MarkFailed();
+    response_->MarkFailed();
+  } else if (timed_out_) {
+    response_->set_status(rest::util::HttpRequestTimeout);
+    request_->MarkFailed();
+    response_->MarkFailed();
   } else {
     request_->MarkCompleted();
     response_->MarkCompleted();
@@ -456,6 +465,8 @@ bool BackgroundTransportCurl::PerformBackground(Request* request) {
           "set http body read callback");
   CheckOk(curl_easy_setopt(curl_, CURLOPT_READDATA, request),
           "set http body read callback data");
+  CheckOk(curl_easy_setopt(curl_, CURLOPT_TIMEOUT_MS, options.timeout_ms),
+          "set http timeout milliseconds");
 
   // SDK error in initialization stage is not recoverable.
   FIREBASE_ASSERT(err_code_ == CURLE_OK);
@@ -872,9 +883,16 @@ void CurlThread::ProcessRequests() {
             char* char_pointer;
             curl_easy_getinfo(handle, CURLINFO_PRIVATE, &char_pointer);
             curl_multi_remove_handle(curl_multi, handle);
+            BackgroundTransportCurl* transport =
+                reinterpret_cast<BackgroundTransportCurl*>(char_pointer);
+
+            // Determine if the request timed out.
+            if (message->data.result == CURLE_OPERATION_TIMEDOUT) {
+              transport->set_timed_out(true);
+            }
 
             // Mark the response complete.
-            delete reinterpret_cast<BackgroundTransportCurl*>(char_pointer);
+            delete transport;
             expected_running_handles--;
             break;
           }

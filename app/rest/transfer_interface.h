@@ -27,8 +27,8 @@ class Transfer {
   // Mark the transfer completed.
   virtual void MarkCompleted() = 0;
 
-  // Mark the transfer canceled.
-  virtual void MarkCanceled() = 0;
+  // Mark the transfer failed, usually from cancellation or timeout.
+  virtual void MarkFailed() = 0;
 };
 
 }  // namespace rest

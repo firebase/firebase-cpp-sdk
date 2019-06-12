@@ -51,8 +51,8 @@ class SignalSemaphoreResponse : public rest::Response {
     complete_->Post();
   }
 
-  void MarkCanceled() override {
-    rest::Response::MarkCompleted();
+  void MarkFailed() override {
+    rest::Response::MarkFailed();
     complete_->Post();
   }
 

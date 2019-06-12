@@ -31,8 +31,8 @@ class HttpsCallableRequest : public rest::Request {
   // Mark the transfer completed.
   void MarkCompleted() override;
 
-  // Mark the transfer canceled.
-  void MarkCanceled() override;
+  // Mark the transfer failed.
+  void MarkFailed() override;
 
   void set_future_impl(ReferenceCountedFutureImpl* impl) {
     future_impl_ = impl;

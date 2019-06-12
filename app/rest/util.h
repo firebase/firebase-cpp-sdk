@@ -51,7 +51,8 @@ enum HttpStatusCode {
   HttpPaymentRequired = 402,
   HttpUnauthorized = 401,
   HttpForbidden = 403,
-  HttpNotFound = 404
+  HttpNotFound = 404,
+  HttpRequestTimeout = 408
 };
 
 // Initialize utilities.  This must be called before any functions that

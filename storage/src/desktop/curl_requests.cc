@@ -12,14 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdio.h>
-#include <string>
-
 #include "storage/src/desktop/curl_requests.h"
+
+#include <stdio.h>
+
+#include <string>
 
 #include "app/rest/util.h"
 #include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/rest_operation.h"
+#include "storage/src/include/firebase/storage/common.h"
 #include "storage/src/include/firebase/storage/metadata.h"
 
 namespace firebase {
@@ -64,24 +66,28 @@ BlockingResponse::BlockingResponse(FutureHandle handle,
 
 BlockingResponse::~BlockingResponse() {
   // If the response isn't complete, cancel it.
-  if (status() == rest::util::HttpInvalid) MarkCanceled();
+  if (status() == rest::util::HttpInvalid) {
+    set_status(rest::util::HttpNoContent);
+    MarkFailed();
+  }
 }
 
 void BlockingResponse::MarkCompleted() { rest::Response::MarkCompleted(); }
 
-void BlockingResponse::MarkCanceled() {
-  rest::Response::MarkCanceled();
-  ref_future_->Complete(SafeFutureHandle<void>(handle_), kErrorCancelled);
-  NotifyCanceled();
+void BlockingResponse::MarkFailed() {
+  rest::Response::MarkFailed();
+  if (status() == rest::util::HttpRequestTimeout) {
+    ref_future_->Complete(SafeFutureHandle<void>(handle_),
+                          kErrorRetryLimitExceeded);
+  } else {
+    ref_future_->Complete(SafeFutureHandle<void>(handle_), kErrorCancelled);
+  }
+  NotifyFailed();
 }
 
-void BlockingResponse::NotifyComplete() {
-  notifier_.NotifyComplete();
-}
+void BlockingResponse::NotifyComplete() { notifier_.NotifyComplete(); }
 
-void BlockingResponse::NotifyCanceled() {
-  notifier_.NotifyCanceled();
-}
+void BlockingResponse::NotifyFailed() { notifier_.NotifyFailed(); }
 
 // Read in the raw response string, and try to make sense of it.
 bool StorageNetworkError::Parse(const char* json_txt) {

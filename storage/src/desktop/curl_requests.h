@@ -44,7 +44,7 @@ class Notifier {
   // progress to report, is complete or canceled.
   enum UpdateCallbackType {
     kUpdateCallbackTypeComplete = 0,
-    kUpdateCallbackTypeCanceled,
+    kUpdateCallbackTypeFailed,
     kUpdateCallbackTypeProgress,
   };
 
@@ -69,12 +69,12 @@ class Notifier {
       update_callback_(kUpdateCallbackTypeComplete, update_callback_data_);
     }
   }
-  // Report cancelation of this response.
+  // Report failure of this response.
   // This *must* be performed at a point where it's possible to delete this
   // object.
-  void NotifyCanceled() {
+  void NotifyFailed() {
     if (update_callback_) {
-      update_callback_(kUpdateCallbackTypeCanceled, update_callback_data_);
+      update_callback_(kUpdateCallbackTypeFailed, update_callback_data_);
     }
   }
 
@@ -101,10 +101,10 @@ class Notifier {
     base_class_name::MarkCompleted();                                    \
   }                                                                      \
                                                                          \
-  void MarkCanceled() override {                                         \
+  void MarkFailed() override {                                           \
     notifier_.NotifyProgress();                                          \
-    notifier_.NotifyCanceled();                                          \
-    base_class_name::MarkCanceled();                                     \
+    notifier_.NotifyFailed();                                            \
+    base_class_name::MarkFailed();                                       \
   }                                                                      \
                                                                          \
   size_t ReadBody(char* buffer, size_t length, bool* abort) override {   \
@@ -155,9 +155,9 @@ class BlockingResponse : public rest::Response {
   // manually complete with NotifyComplete.
   void MarkCompleted() override;
 
-  // NOTE: This calls NotifyCanceled which will notify the UpdateCallback with
-  // a cancelation event.
-  void MarkCanceled() override;
+  // NOTE: This calls NotifyFailed which will notify the UpdateCallback with
+  // a failure event.
+  void MarkFailed() override;
 
   // Set the callback to be notified about this object.
   void set_update_callback(Notifier::UpdateCallback callback,
@@ -170,10 +170,10 @@ class BlockingResponse : public rest::Response {
   // This should be the last thing a request calls.  This *must* be performed at
   // a point where it's possible to delete this object.
   void NotifyComplete();
-  // Report cancelation of this response.
+  // Report failure of this response.
   // This *must* be performed at a point where it's possible to delete this
   // object.
-  void NotifyCanceled();
+  void NotifyFailed();
   // Convenience function to perform null checks and update the listener when
   // progress has happened.
   void NotifyProgress() { notifier_.NotifyProgress(); }

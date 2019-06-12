@@ -27,8 +27,11 @@ namespace rest {
 // transport_interface.h. The actual HTTP transporter could be either library
 // Curl or a test mock.
 struct RequestOptions {
-  RequestOptions() :
-      method("GET"), stream_post_fields(false), verbose(false) {}
+  RequestOptions()
+      : method("GET"),
+        stream_post_fields(false),
+        timeout_ms(300000),  // Same timeout used by Chromium.
+        verbose(false) {}
 
   // The URL to use in the request.
   std::string url;
@@ -42,6 +45,8 @@ struct RequestOptions {
   bool stream_post_fields;
   // Stores key-value pairs in header.
   std::map<std::string, std::string> header;
+  // The maximum time in milliseconds to allow the request and response.
+  int64_t timeout_ms;
 
   // Set true to make the library display more verbose info to help debug. Does
   // not really affect the connection.

@@ -97,8 +97,8 @@ void HttpsCallableRequest::MarkCompleted() {
                                                 response_);
 }
 
-void HttpsCallableRequest::MarkCanceled() {
-  rest::Request::MarkCanceled();
+void HttpsCallableRequest::MarkFailed() {
+  rest::Request::MarkFailed();
   HttpsCallableReferenceInternal::ResolveFuture(future_impl_, future_handle_,
                                                 response_);
 }

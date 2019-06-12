@@ -81,8 +81,8 @@ class Request : public Transfer {
   // Mark the transfer completed.
   void MarkCompleted() override { completed_ = true; }
 
-  // Mark the transfer canceled.
-  void MarkCanceled() override { completed_ = false; }
+  // Mark the transfer failed, usually from cancellation or timeout.
+  void MarkFailed() override { completed_ = false; }
 
   bool completed() const { return completed_; }
 

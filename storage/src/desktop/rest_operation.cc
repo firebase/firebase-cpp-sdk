@@ -51,7 +51,7 @@ RestOperation::RestOperation(StorageInternal* storage_internal,
             operation->NotifyListenerOfProgress();
             break;
           case Notifier::kUpdateCallbackTypeComplete:
-          case Notifier::kUpdateCallbackTypeCanceled:
+          case Notifier::kUpdateCallbackTypeFailed:
             // The caller will set the response to completed which will allow
             // StorageInternal::CleanupOperations() to delete this operation.
             operation->is_complete_ = true;
