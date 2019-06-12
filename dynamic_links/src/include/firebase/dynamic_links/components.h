@@ -15,6 +15,7 @@
 #ifndef FIREBASE_DYNAMIC_LINKS_CLIENT_CPP_SRC_INCLUDE_FIREBASE_DYNAMIC_LINKS_COMPONENTS_H_
 #define FIREBASE_DYNAMIC_LINKS_CLIENT_CPP_SRC_INCLUDE_FIREBASE_DYNAMIC_LINKS_COMPONENTS_H_
 
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -230,12 +231,23 @@ struct DynamicLinkComponents {
   /// URL, be properly URL-encoded, and use the HTTP or HTTPS scheme.
   /// Note, this field is required.
   const char* link;
-  /// The domain (of the form "xyz.app.goo.gl") to use for this Dynamic Link.
+  /// Deprecated: The domain (of the form "xyz.app.goo.gl") to use for this
+  /// Dynamic Link.
   ///
-  /// You can find this value in the Dynamic Links section of the Firebase
+  /// @deprecated The dynamic_link_domain field is deprecated. Use
+  /// domain_uri_prefix instead, which also supports custom domains.
+  FIREBASE_DEPRECATED const char* dynamic_link_domain;
+  /// The domain (of the form "https://xyz.app.goo.gl") to use for this Dynamic
+  /// Link. You can find this value in the Dynamic Links section of the Firebase
   /// console.
+  ///
+  /// If you have set up custom domains on your project, set this to your
+  /// project's custom domain as listed in the Firebase console.
+  ///
+  /// Only https:// links are supported.
+  ///
   /// Note, this field is required.
-  const char* dynamic_link_domain;
+  const char* domain_uri_prefix;
   /// The Google Analytics parameters.
   GoogleAnalyticsParameters* google_analytics_parameters;
   /// The iOS parameters.
@@ -251,6 +263,7 @@ struct DynamicLinkComponents {
   DynamicLinkComponents()
       : link(nullptr),
         dynamic_link_domain(nullptr),
+        domain_uri_prefix(nullptr),
         google_analytics_parameters(nullptr),
         ios_parameters(nullptr),
         itunes_connect_analytics_parameters(nullptr),
@@ -260,17 +273,37 @@ struct DynamicLinkComponents {
   /// Constructor that initializes with the given link and domain.
   ///
   /// @param link_ The link your app will open.
-  /// @param dynamic_link_domain_ The domain (of the form "xyz.app.goo.gl") to
-  /// use for this Dynamic Link. You can find this value in the Dynamic Links
-  /// section of the Firebase console.
-  DynamicLinkComponents(const char* link_, const char* dynamic_link_domain_)
+  /// @param domain_uri_prefix_ The domain (of the form
+  /// "https://xyz.app.goo.gl") to use for this Dynamic Link. You can find this
+  /// value in the Dynamic Links section of the Firebase console. If you have
+  /// set up custom domains on your project, set this to your project's custom
+  /// domain as listed in the Firebase console. Note: If you do not specify
+  /// "https://" as the URI scheme, it will be added.
+  DynamicLinkComponents(const char* link_, const char* domain_uri_prefix_)
       : link(link_),
-        dynamic_link_domain(dynamic_link_domain_),
+        dynamic_link_domain(nullptr),
+        domain_uri_prefix(domain_uri_prefix_),
         google_analytics_parameters(nullptr),
         ios_parameters(nullptr),
         itunes_connect_analytics_parameters(nullptr),
         android_parameters(nullptr),
-        social_meta_tag_parameters(nullptr) {}
+        social_meta_tag_parameters(nullptr) {
+    // For backwards compatibility with dynamic_link_domain, if
+    // domain_uri_prefix doesn't start with "https://", add it.
+    static const char kHttpsPrefix[] = "https://";
+    static const size_t kHttpsPrefixLength = sizeof(kHttpsPrefix) - 1;
+    if (strncmp(domain_uri_prefix, kHttpsPrefix, kHttpsPrefixLength) != 0) {
+      domain_uri_prefix_with_scheme =
+          std::string(kHttpsPrefix) + domain_uri_prefix;
+      domain_uri_prefix = domain_uri_prefix_with_scheme.c_str();
+    }
+  }
+
+#ifndef INTERNAL_EXPERIMENTAL
+
+ private:
+#endif  // INTERNAL_EXPERIMENTAL
+  std::string domain_uri_prefix_with_scheme;
 };
 
 /// Creates a long Dynamic Link from the given parameters.

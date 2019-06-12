@@ -15,16 +15,15 @@
 #include <assert.h>
 #include <jni.h>
 
-#include "dynamic_links/src/common.h"
-#include "dynamic_links/src/include/firebase/dynamic_links.h"
-#include "dynamic_links/src/include/firebase/dynamic_links/components.h"
-
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
+#include "dynamic_links/src/common.h"
+#include "dynamic_links/src/include/firebase/dynamic_links.h"
+#include "dynamic_links/src/include/firebase/dynamic_links/components.h"
 
 namespace firebase {
 namespace dynamic_links {
@@ -72,7 +71,7 @@ METHOD_LOOKUP_DEFINITION(dlink,
   X(SetLink, "setLink",                                                     \
     "(Landroid/net/Uri;)"                                                   \
     "Lcom/google/firebase/dynamiclinks/DynamicLink$Builder;"),              \
-  X(SetDynamicLinkDomain, "setDynamicLinkDomain",                           \
+  X(SetDomainUriPrefix, "setDomainUriPrefix",                               \
     "(Ljava/lang/String;)"                                                  \
     "Lcom/google/firebase/dynamiclinks/DynamicLink$Builder;"),              \
   X(SetAndroidParameters, "setAndroidParameters",                           \
@@ -679,10 +678,12 @@ static jobject PopulateLinkBuilder(JNIEnv* jni_env,
     *error_out = "Link is missing.";
     return nullptr;
   }
-  if (!components.dynamic_link_domain || !*components.dynamic_link_domain) {
+  if ((!components.dynamic_link_domain || !*components.dynamic_link_domain) &&
+      (!components.domain_uri_prefix || !*components.domain_uri_prefix)) {
     *error_out =
-        "DynamicLinkComponents.dynamic_link_domain "
-        " is required and cannot be empty.";
+        "DynamicLinkComponents.domain_uri_prefix is required and cannot be "
+        "empty (unless you set DynamicLinkComponents.dynamic_link_domain, "
+        "which is deprecated).";
     return nullptr;
   }
 
@@ -699,11 +700,16 @@ static jobject PopulateLinkBuilder(JNIEnv* jni_env,
     return nullptr;
   }
 
+  static const char kHttpsPrefix[] = "https://";
+  std::string domain =
+      components.domain_uri_prefix != nullptr
+          ? components.domain_uri_prefix
+          : std::string(kHttpsPrefix) + components.dynamic_link_domain;
   link_builder = SetBuilderString(
-      jni_env, link_builder, components.dynamic_link_domain,
-      dlink_builder::GetMethodId(dlink_builder::kSetDynamicLinkDomain));
+      jni_env, link_builder, domain.c_str(),
+      dlink_builder::GetMethodId(dlink_builder::kSetDomainUriPrefix));
   if (util::GetExceptionMessage(jni_env, error_out)) {
-    // setDynamicLinkDomain() threw an exception.
+    // setDomainUriPrefix() threw an exception.
     jni_env->DeleteLocalRef(link_builder);
     return nullptr;
   }
