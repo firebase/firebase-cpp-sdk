@@ -23,8 +23,10 @@ https://googleplex-android.googlesource.com/platform/tools/base/+/studio-master-
 __author__ = 'Wouter van Oortmerssen'
 
 import argparse
+import ctypes
 import json
 import os
+import platform
 import sys
 from xml.etree import ElementTree
 
@@ -218,6 +220,33 @@ def indent(elem, level=0):
       elem.tail = i
 
 
+def argv_as_unicode_win32():
+  """Returns unicode command line arguments on windows.
+  """
+
+  get_command_line_w = ctypes.cdll.kernel32.GetCommandLineW
+  get_command_line_w.restype = ctypes.wintypes.LPCWSTR
+
+  # CommandLineToArgvW parses the Unicode command line
+  command_line_to_argv_w = ctypes.windll.shell32.CommandLineToArgvW
+  command_line_to_argv_w.argtypes = [
+      ctypes.wintypes.LPCWSTR,
+      ctypes.wintypes.POINTER(ctypes.wintypes.c_int)
+  ]
+  command_line_to_argv_w.restype = ctypes.wintypes.POINTER(
+      ctypes.wintypes.LPWSTR)
+
+  argc = ctypes.wintypes.c_int(0)
+  argv = command_line_to_argv_w(get_command_line_w(), argc)
+
+  # Strip the python executable from the arguments if it exists
+  # (It would be listed as the first argument on the windows command line, but
+  # not in the arguments to the python script)
+  sys_argv_len = len(sys.argv)
+  return [unicode(argv[i]) for i in
+          range(argc.value - sys_argv_len, argc.value)]
+
+
 def main():
   parser = argparse.ArgumentParser(
       description=((
@@ -254,6 +283,11 @@ def main():
       default=False,
       required=False)
 
+  # python 2 on Windows doesn't handle unicode arguments well, so we need to
+  # pre-process the command line arguments before trying to parse them.
+  if platform.system() == 'Windows':
+    sys.argv = argv_as_unicode_win32()
+
   args = parser.parse_args()
 
   if args.plist:
@@ -264,12 +298,18 @@ def main():
     output_filename = DEFAULT_OUTPUT_FILENAME
 
   if args.i:
-    input_filename = args.i
+    input_filename_raw = args.i
+    # Encode the input string (type unicode) as a normal string (type str)
+    # using the 'utf-8' encoding so that it can be worked with the same as
+    # input names from other sources (like the defaults).
+    input_filename = input_filename_raw.encode('utf-8')
 
   if args.o:
     output_filename = args.o
 
-  with open(input_filename, 'r') as ifile:
+  # Decode the filename to a unicode string using the 'utf-8' encoding to
+  # properly handle filepaths with unicode characters in them.
+  with open(input_filename.decode('utf-8'), 'r') as ifile:
     file_string = ifile.read()
 
   json_string = None
@@ -387,7 +427,9 @@ def main():
   if args.l:
     for package in packages:
       if package:
-        sys.stdout.write(package + '\n')
+        # Encode the output string in case the system's default encoding differs
+        # from the encoding of the string being printed.
+        sys.stdout.write((package + '\n').encode(sys.getdefaultencoding()))
   else:
     path = os.path.dirname(output_filename)
 
