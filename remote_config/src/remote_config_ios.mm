@@ -44,9 +44,9 @@ static const ValueSource kFirebaseRemoteConfigSourceToValueSourceMap[] = {
     kValueSourceDefaultValue,  // FIRRemoteConfigSourceDefault
     kValueSourceStaticValue,   // FIRRemoteConfigSourceStatic
 };
-static_assert(FIRRemoteConfigSourceRemote == 0);
-static_assert(FIRRemoteConfigSourceDefault == 1);
-static_assert(FIRRemoteConfigSourceStatic == 2);
+static_assert(FIRRemoteConfigSourceRemote == 0, "FIRRemoteConfigSourceRemote is not 0");
+static_assert(FIRRemoteConfigSourceDefault == 1, "FIRRemoteConfigSourceDefault is not 1");
+static_assert(FIRRemoteConfigSourceStatic == 2, "FIRRemoteConfigSourceStatic is not 2");
 
 // Regular expressions used to determine if the config value is a "valid" bool.
 // Written to match what is used internally by the Java implementation.
