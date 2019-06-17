@@ -14,19 +14,19 @@
 
 // A map of library to the dependencies that need to be added for it.
 def firebaseDependenciesMap = [
-  'app' : ['com.google.firebase:firebase-analytics:16.5.0'],
-  'admob' : ['com.google.firebase:firebase-ads:17.2.1',
-             'com.google.android.gms:play-services-measurement-sdk-api:16.5.0'],
-  'analytics' : ['com.google.firebase:firebase-analytics:16.5.0'],
-  'auth' : ['com.google.firebase:firebase-auth:17.0.0'],
-  'database' : ['com.google.firebase:firebase-database:17.0.0'],
-  'dynamic_links' : ['com.google.firebase:firebase-invites:17.0.0'],
-  'functions' : ['com.google.firebase:firebase-functions:17.0.0'],
-  'instance_id' : ['com.google.firebase:firebase-iid:18.0.0'],
+  'app' : ['com.google.firebase:firebase-analytics:17.0.0'],
+  'admob' : ['com.google.firebase:firebase-ads:18.0.0',
+             'com.google.android.gms:play-services-measurement-sdk-api:17.0.0'],
+  'analytics' : ['com.google.firebase:firebase-analytics:17.0.0'],
+  'auth' : ['com.google.firebase:firebase-auth:18.0.0'],
+  'database' : ['com.google.firebase:firebase-database:18.0.0'],
+  'dynamic_links' : ['com.google.firebase:firebase-invites:18.0.0'],
+  'functions' : ['com.google.firebase:firebase-functions:18.0.0'],
+  'instance_id' : ['com.google.firebase:firebase-iid:19.0.0'],
   'messaging' : ['com.google.firebase.messaging.cpp:firebase_messaging_cpp@aar',
-                 'com.google.firebase:firebase-messaging:18.0.0'],
-  'remote_config' : ['com.google.firebase:firebase-config:17.0.0'],
-  'storage' : ['com.google.firebase:firebase-storage:17.0.0']
+                 'com.google.firebase:firebase-messaging:19.0.0'],
+  'remote_config' : ['com.google.firebase:firebase-config:18.0.0'],
+  'storage' : ['com.google.firebase:firebase-storage:18.0.0']
 ]
 
 // Handles adding the Firebase C++ dependencies as properties.
