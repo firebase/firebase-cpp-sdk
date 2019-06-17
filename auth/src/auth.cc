@@ -14,8 +14,11 @@
  * limitations under the License.
  */
 
+#include "auth/src/include/firebase/auth.h"
+
 #include <assert.h>
 #include <stdio.h>
+
 #include <algorithm>
 #include <cstdint>
 #include <map>
@@ -32,7 +35,6 @@
 #include "app/src/util.h"
 #include "auth/src/common.h"
 #include "auth/src/data.h"
-#include "auth/src/include/firebase/auth.h"
 
 // Workaround MSVC's incompatible libc headers.
 #ifdef _WIN32
@@ -242,12 +244,14 @@ static bool ReplaceEntryWithBack(const T& entry, std::vector<T>* v) {
   auto it = std::find(v->begin(), v->end(), entry);
   if (it == v->end()) return false;
 
+  // If it's not already the back element, move/copy the back element onto it.
+  if (&(*it) != &(v->back())) {
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
-  *it = std::move(v->back());
+    *it = std::move(v->back());
 #else
-  *it = v->back();
+    *it = v->back();
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
-
+  }
   v->pop_back();
   return true;
 }
