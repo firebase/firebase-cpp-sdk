@@ -229,6 +229,7 @@ Future<void> InstanceId::DeleteToken(const char* entity,
 
 InstanceId* InstanceId::GetInstanceId(App* app, InitResult* init_result_out) {
   FIREBASE_ASSERT_MESSAGE_RETURN(nullptr, app, "App must be specified.");
+  MutexLock lock(InstanceIdInternal::mutex());
   if (app != App::GetInstance()) {
     LogError("InstanceId can only be created for the default app on iOS. "
              "App %s is not the default app.", app->name());

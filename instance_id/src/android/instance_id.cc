@@ -309,6 +309,7 @@ Future<void> InstanceId::DeleteToken(const char* entity, const char* scope) {
 InstanceId* InstanceId::GetInstanceId(App* app, InitResult* init_result_out) {
   FIREBASE_ASSERT_MESSAGE_RETURN(nullptr, app, "App must be specified.");
   FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(*app, init_result_out);
+  MutexLock lock(InstanceIdInternal::mutex());
   if (init_result_out) *init_result_out = kInitResultSuccess;
   auto instance_id = InstanceIdInternal::FindInstanceIdByApp(app);
   if (instance_id) return instance_id;
