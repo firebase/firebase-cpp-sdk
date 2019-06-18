@@ -163,7 +163,6 @@ class Database {
   /// (disk) storage, or false to discard pending writes when the app exists.
   void set_persistence_enabled(bool enabled);
 
-#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
   /// Set the log verbosity of this object.
   ///
   /// @param[in] log_level Log level, by default this is set to kLogLevelInfo.
@@ -173,7 +172,6 @@ class Database {
   ///
   /// @return Get the currently configured logging verbosity.
   LogLevel log_level() const;
-#endif  // defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 
  private:
   friend Database* GetDatabaseInstance(::firebase::App* app, const char* url,
