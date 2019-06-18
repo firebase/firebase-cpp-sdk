@@ -23,6 +23,7 @@ project(Firebase-cpp-download C CXX)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 
 include(flatbuffers)
+include(googletest)
 
 # Some of the external dependencies are not needed for mobile.
 if (${FIREBASE_EXTERNAL_PLATFORM} STREQUAL "DESKTOP")

@@ -37,9 +37,19 @@ option(FIREBASE_INCLUDE_REMOTE_CONFIG
        "Include the Firebase Remote Config library." ON)
 option(FIREBASE_INCLUDE_STORAGE
        "Include the Cloud Storage for Firebase library." ON)
+option(FIREBASE_CPP_BUILD_TESTS
+       "Enable the Firebase C++ Build Tests." OFF)
 
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(external_rules)
+
+if(FIREBASE_CPP_BUILD_TESTS)
+  enable_testing()
+  include(test_rules)
+  # Copy the custom CTest file into the binary directory, so that it is used.
+  configure_file(${CMAKE_CURRENT_LIST_DIR}/cmake/CTestCustom.cmake
+               ${CMAKE_BINARY_DIR})
+endif()
 
 # Occasionally ANDROID is not being set correctly when invoked by gradle, so
 # set it manually if ANDROID_NDK has been defined.
@@ -89,6 +99,10 @@ set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "")
 # Add flatbuffers as a subdirectory, and set the directory variables for it,
 # so that the sub Firebase projects can depend upon it if necessary.
 add_external_library(flatbuffers)
+
+if(FIREBASE_CPP_BUILD_TESTS)
+  add_external_library(googletest)
+endif()
 
 # Some of the external libraries are not used for mobile.
 if (NOT ANDROID AND NOT IOS)
