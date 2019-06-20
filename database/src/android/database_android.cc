@@ -18,6 +18,7 @@
 #include <jni.h>
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/log.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
 #include "database/database_resources.h"
@@ -34,6 +35,19 @@ namespace database {
 namespace internal {
 
 const char kApiIdentifier[] = "Database";
+
+// clang-format off
+#define LOGGER_LEVEL_METHODS(X)                                         \
+  X(ValueOf, "valueOf",                                                 \
+    "(Ljava/lang/String;)Lcom/google/firebase/database/Logger$Level;",  \
+    util::kMethodTypeStatic)
+// clang-format on
+METHOD_LOOKUP_DECLARATION(logger_level, LOGGER_LEVEL_METHODS)
+
+METHOD_LOOKUP_DEFINITION(
+    logger_level,
+    PROGUARD_KEEP_CLASS "com/google/firebase/database/Logger$Level",
+    LOGGER_LEVEL_METHODS)
 
 // clang-format off
 #define FIREBASE_DATABASE_METHODS(X)                                    \
@@ -147,7 +161,7 @@ Mutex DatabaseInternal::init_mutex_;  // NOLINT
 int DatabaseInternal::initialize_count_ = 0;
 std::map<jint, Error>* DatabaseInternal::java_error_to_cpp_ = nullptr;
 
-DatabaseInternal::DatabaseInternal(App* app) {
+DatabaseInternal::DatabaseInternal(App* app) : log_level_(kLogLevelInfo) {
   app_ = nullptr;
   if (!Initialize(app)) return;
   app_ = app;
@@ -170,7 +184,7 @@ DatabaseInternal::DatabaseInternal(App* app) {
 }
 
 DatabaseInternal::DatabaseInternal(App* app, const char* url)
-    : constructor_url_(url) {
+    : constructor_url_(url), log_level_(kLogLevelInfo) {
   app_ = nullptr;
   if (!Initialize(app)) return;
   app_ = app;
@@ -213,12 +227,23 @@ static const struct {
     {database_error::kFieldCount, kErrorNone},  // sentinel value for end
 };
 
+// C++ log levels mapped to Logger.Level enum value names.
+const char* kCppLogLevelToLoggerLevelName[] = {
+  "DEBUG",  // kLogLevelVerbose --> Logger.Level.DEBUG
+  "DEBUG",  // kLogLevelDebug --> Logger.Level.DEBUG
+  "INFO",  // kLogLevelInfo --> Logger.Level.INFO
+  "WARN",  // kLogLevelWarning --> Logger.Level.WARN
+  "ERROR",  // kLogLevelError --> Logger.Level.ERROR
+  "NONE",  // kLogLevelAssert --> Logger.Level.NONE
+};
+
 bool DatabaseInternal::Initialize(App* app) {
   MutexLock init_lock(init_mutex_);
   if (initialize_count_ == 0) {
     JNIEnv* env = app->GetJNIEnv();
     jobject activity = app->activity();
     if (!(firebase_database::CacheMethodIds(env, activity) &&
+          logger_level::CacheMethodIds(env, activity) &&
           database_error::CacheMethodIds(env, activity) &&
           database_error::CacheFieldIds(env, activity) &&
           // Call Initialize on all other RTDB internal classes.
@@ -332,6 +357,7 @@ bool DatabaseInternal::InitializeEmbeddedClasses(App* app) {
 void DatabaseInternal::ReleaseClasses(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   firebase_database::ReleaseClass(env);
+  logger_level::ReleaseClass(env);
   database_error::ReleaseClass(env);
 
   // Call Terminate on all other RTDB internal classes.
@@ -492,6 +518,33 @@ void DatabaseInternal::SetPersistenceEnabled(bool enabled) const {
       enabled);
   util::CheckAndClearJniExceptions(env);
 }
+
+void DatabaseInternal::set_log_level(LogLevel log_level) {
+  FIREBASE_ASSERT_RETURN_VOID(log_level <
+                              (sizeof(kCppLogLevelToLoggerLevelName) /
+                               sizeof(kCppLogLevelToLoggerLevelName[0])));
+  JNIEnv* env = app_->GetJNIEnv();
+  jstring enum_name = env->NewStringUTF(
+      kCppLogLevelToLoggerLevelName[log_level]);
+  if (!util::CheckAndClearJniExceptions(env)) {
+    jobject log_level_enum_obj = env->CallStaticObjectMethod(
+        logger_level::GetClass(),
+        logger_level::GetMethodId(logger_level::kValueOf), enum_name);
+    if (!util::CheckAndClearJniExceptions(env)) {
+      env->CallVoidMethod(
+          obj_,
+          firebase_database::GetMethodId(firebase_database::kSetLogLevel),
+          log_level_enum_obj);
+      if (!util::CheckAndClearJniExceptions(env)) {
+        log_level_ = log_level;
+      }
+      env->DeleteLocalRef(log_level_enum_obj);
+    }
+    env->DeleteLocalRef(enum_name);
+  }
+}
+
+LogLevel DatabaseInternal::log_level() const { return log_level_; }
 
 Error DatabaseInternal::ErrorFromResultAndErrorCode(
     util::FutureResult result_code, jint error_code) const {

@@ -15,6 +15,7 @@
 #include "database/src/ios/database_ios.h"
 
 #include "app/src/app_ios.h"
+#include "app/src/util.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -26,7 +27,7 @@ namespace database {
 namespace internal {
 
 DatabaseInternal::DatabaseInternal(App* app)
-    : app_(app) {
+    : app_(app), log_level_(kLogLevelInfo) {
   @try {
     impl_.reset(new FIRDatabasePointer(
         [FIRDatabase databaseForApp:static_cast<FIRAppPointer*>(app->data_)->ptr]));
@@ -40,7 +41,7 @@ DatabaseInternal::DatabaseInternal(App* app)
 }
 
 DatabaseInternal::DatabaseInternal(App* app, const char* url)
-    : app_(app), constructor_url_(url) {
+    : app_(app), constructor_url_(url), log_level_(kLogLevelInfo) {
   @try {
     impl_.reset(new FIRDatabasePointer(
         [FIRDatabase databaseForApp:static_cast<FIRAppPointer*>(app->data_)->ptr URL:@(url)]));
@@ -104,8 +105,31 @@ const char* DatabaseInternal::GetSdkVersion() {
 
 void DatabaseInternal::SetPersistenceEnabled(bool enabled) { impl().persistenceEnabled = enabled; }
 
-void DatabaseInternal::SetVerboseLogging(bool enable) {
-  [FIRDatabase setLoggingEnabled:enable ? YES : NO];
+void DatabaseInternal::set_log_level(LogLevel log_level) {
+  // iOS FIRDatabase only supports logging or not logging.  Since the default logging level (Info)
+  // should be quiet except for notices that can be resolved by the developer fixing their code,
+  // logging is enabled for only kLogLevelVerbose & kLogLevelDebug.
+  switch (log_level) {
+    case kLogLevelVerbose:
+      FIREBASE_CASE_FALLTHROUGH;
+    case kLogLevelDebug:
+      [FIRDatabase setLoggingEnabled:YES];
+      break;
+    case kLogLevelInfo:
+      FIREBASE_CASE_FALLTHROUGH;
+    case kLogLevelWarning:
+      FIREBASE_CASE_FALLTHROUGH;
+    case kLogLevelError:
+      FIREBASE_CASE_FALLTHROUGH;
+    case kLogLevelAssert:
+      [FIRDatabase setLoggingEnabled:NO];
+      break;
+  }
+  log_level_ = log_level;
+}
+
+LogLevel DatabaseInternal::log_level() const {
+  return log_level_;
 }
 
 bool DatabaseInternal::RegisterValueListener(

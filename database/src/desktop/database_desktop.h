@@ -85,6 +85,12 @@ class DatabaseInternal {
 
   void SetPersistenceEnabled(bool enabled);
 
+  // Set the logging verbosity.
+  void set_log_level(LogLevel log_level);
+
+  // Get the logging verbosity.
+  LogLevel log_level() const;
+
   static void SetVerboseLogging(bool enable);
 
   FutureManager& future_manager() { return future_manager_; }
@@ -189,6 +195,8 @@ class DatabaseInternal {
 
   // The local copy of the repository, for offline support and local caching.
   Repo repo_;
+
+  LogLevel log_level_;
 };
 
 }  // namespace internal

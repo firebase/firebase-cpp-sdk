@@ -195,12 +195,13 @@ void Database::set_persistence_enabled(bool enabled) {
   if (internal_) internal_->SetPersistenceEnabled(enabled);
 }
 
-#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
-void Database::set_log_level(LogLevel level) {
+void Database::set_log_level(LogLevel log_level) {
+  if (internal_) internal_->set_log_level(log_level);
 }
 
-LogLevel Database::log_level() const { return kLogLevelInfo; }
-#endif  // defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
+LogLevel Database::log_level() const {
+  return internal_ ? internal_->log_level() : kLogLevelInfo;
+}
 
 }  // namespace database
 }  // namespace firebase

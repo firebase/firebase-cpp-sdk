@@ -85,7 +85,13 @@ class DatabaseInternal {
   // Sets whether pending write data will persist between application exits.
   void SetPersistenceEnabled(bool enabled);
 
-  static void SetVerboseLogging(bool enable);
+  // Set the logging verbosity.
+  // The iOS implementation only enables logging for kLogLevelVerbose &
+  // kLogLevelDebug, logging is disabled in for all other levels.
+  void set_log_level(LogLevel log_level);
+
+  // Get the logging verbosity.
+  LogLevel log_level() const;
 
 #ifdef __OBJC__
   bool RegisterValueListener(
@@ -180,6 +186,8 @@ class DatabaseInternal {
   // The url passed to the constructor (or "" if none was passed).
   // We keep it so that we can find the database in our cache.
   std::string constructor_url_;
+
+  LogLevel log_level_;
 };
 
 #pragma clang assume_nonnull end

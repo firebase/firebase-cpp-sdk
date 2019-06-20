@@ -22,6 +22,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/log.h"
 #include "app/src/mutex.h"
 #include "app/src/util_android.h"
 #include "database/src/android/database_reference_android.h"
@@ -63,6 +64,14 @@ class DatabaseInternal {
   void PurgeOutstandingWrites() const;
 
   void SetPersistenceEnabled(bool enabled) const;
+
+  // Set the logging verbosity.
+  // kLogLevelDebug and kLogLevelVerbose are interpreted as the same level by
+  // the Android implementation.
+  void set_log_level(LogLevel log_level);
+
+  // Get the logging verbosity.
+  LogLevel log_level() const;
 
   // Convert a future result code and error code from a Java DatabaseError into
   // a C++ Error enum.
@@ -203,6 +212,8 @@ class DatabaseInternal {
   // The url passed to the constructor (or "" if none was passed).
   // We keep it so that we can find the database in our cache.
   std::string constructor_url_;
+
+  LogLevel log_level_;
 };
 
 }  // namespace internal

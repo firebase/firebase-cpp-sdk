@@ -69,7 +69,8 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
       cleanup_(),
       safe_this_(this),
       constructor_url_(url),
-      repo_(app, this, url) {
+      repo_(app, this, url),
+      log_level_(kLogLevelInfo) {
   assert(app);
   assert(url);
 
@@ -184,6 +185,12 @@ void DatabaseInternal::SetPersistenceEnabled(bool /*enabled*/) {
   // TODO(b/67910033): Support persistence.
   LogWarning("Persistence is not currently supported.");
 }
+
+void DatabaseInternal::set_log_level(LogLevel log_level) {
+  log_level_ = log_level;
+}
+
+LogLevel DatabaseInternal::log_level() const { return log_level_; }
 
 void DatabaseInternal::SetVerboseLogging(bool /*enable*/) {}
 
