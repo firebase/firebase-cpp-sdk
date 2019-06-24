@@ -84,7 +84,10 @@ class InstanceIdInternal : public InstanceIdInternalBase {
   InstanceId* instance_id() const { return instance_id_; }
 
   // Store a reference to a scheduled operation.
-  SharedPtr<AsyncOperation>* AddOperation(AsyncOperation* operation);
+  SharedPtr<AsyncOperation> AddOperation(AsyncOperation* operation);
+
+  // Find the SharedPtr to the operation using raw pointer.
+  SharedPtr<AsyncOperation> GetOperationSharedPtr(AsyncOperation* operation);
 
   // Remove a reference to a schedule operation.
   void RemoveOperation(const SharedPtr<AsyncOperation>& operation);
@@ -127,8 +130,12 @@ class InstanceIdInternal : public InstanceIdInternalBase {
   // Complete a future with an error when an operation is canceled.
   template <typename T>
   static void CanceledWithResult(void* function_data) {
-    SharedPtr<AsyncOperation>& operation =
-        *(static_cast<SharedPtr<AsyncOperation>*>(function_data));
+    AsyncOperation* ptr = static_cast<AsyncOperation*>(function_data);
+    // Hold a reference to AsyncOperation so that it will not be deleted during
+    // this callback.
+    SharedPtr<AsyncOperation> operation =
+        ptr->instance_id_internal()->GetOperationSharedPtr(ptr);
+    if (!operation) return;
     operation->instance_id_internal()->CancelOperationWithResult<T>(operation);
   }
 

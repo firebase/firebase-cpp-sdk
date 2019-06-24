@@ -121,7 +121,7 @@ Future<std::string> InstanceId::GetId() const {
   if (!instance_id_internal_) return Future<std::string>();
 
   JNIEnv* env = app().GetJNIEnv();
-  SharedPtr<AsyncOperation>* operation =
+  SharedPtr<AsyncOperation> operation =
       instance_id_internal_->AddOperation(new AsyncOperation(
           env, instance_id_internal_,
           instance_id_internal_
@@ -130,10 +130,18 @@ Future<std::string> InstanceId::GetId() const {
   util::RunOnBackgroundThread(
       env,
       [](void* function_data) {
-        SharedPtr<AsyncOperation> operation =
-            *(static_cast<SharedPtr<AsyncOperation>*>(function_data));
+        // Assume that when this callback is called, AsyncOperation should still
+        // be in instance_id_internal->operations_ or this callback should not
+        // be called at all due to the lock in CppThreadDispatcherContext.
+        AsyncOperation* op_ptr = static_cast<AsyncOperation*>(function_data);
         InstanceIdInternal* instance_id_internal =
-            operation->instance_id_internal();
+            op_ptr->instance_id_internal();
+        // Hold a reference to AsyncOperation so that it will not be deleted
+        // during this callback.
+        SharedPtr<AsyncOperation> operation =
+            instance_id_internal->GetOperationSharedPtr(op_ptr);
+        if (!operation) return;
+
         JNIEnv* env = instance_id_internal->instance_id()->app().GetJNIEnv();
         jobject java_instance_id =
             env->NewLocalRef(instance_id_internal->java_instance_id());
@@ -151,8 +159,8 @@ Future<std::string> InstanceId::GetId() const {
               error.c_str());
         }
       },
-      operation, InstanceIdInternal::CanceledWithResult<std::string>,
-      &(**operation));
+      &(*operation), InstanceIdInternal::CanceledWithResult<std::string>,
+      &(*operation));
   return GetIdLastResult();
 }
 
@@ -160,7 +168,7 @@ Future<void> InstanceId::DeleteId() {
   if (!instance_id_internal_) return Future<void>();
 
   JNIEnv* env = app().GetJNIEnv();
-  SharedPtr<AsyncOperation>* operation = instance_id_internal_->AddOperation(
+  SharedPtr<AsyncOperation> operation = instance_id_internal_->AddOperation(
       new AsyncOperation(env, instance_id_internal_,
                          instance_id_internal_
                              ->FutureAlloc<std::string>(
@@ -169,10 +177,17 @@ Future<void> InstanceId::DeleteId() {
   util::RunOnBackgroundThread(
       env,
       [](void* function_data) {
-        SharedPtr<AsyncOperation> operation =
-            *(static_cast<SharedPtr<AsyncOperation>*>(function_data));
+        // Assume that when this callback is called, AsyncOperation should still
+        // be in instance_id_internal->operations_ or this callback should not
+        // be called at all due to the lock in CppThreadDispatcherContext.
+        AsyncOperation* op_ptr = static_cast<AsyncOperation*>(function_data);
         InstanceIdInternal* instance_id_internal =
-            operation->instance_id_internal();
+            op_ptr->instance_id_internal();
+        // Hold a reference to AsyncOperation so that it will not be deleted
+        // during this callback.
+        SharedPtr<AsyncOperation> operation =
+            instance_id_internal->GetOperationSharedPtr(op_ptr);
+        if (!operation) return;
         JNIEnv* env = instance_id_internal->instance_id()->app().GetJNIEnv();
         jobject java_instance_id =
             env->NewLocalRef(instance_id_internal->java_instance_id());
@@ -187,7 +202,7 @@ Future<void> InstanceId::DeleteId() {
               operation, ExceptionStringToError(error.c_str()), error.c_str());
         }
       },
-      operation, InstanceIdInternal::Canceled, &(**operation));
+      &(*operation), InstanceIdInternal::Canceled, &(*operation));
   return DeleteIdLastResult();
 }
 
@@ -218,7 +233,7 @@ Future<std::string> InstanceId::GetToken(const char* entity,
   if (!instance_id_internal_) return Future<std::string>();
 
   JNIEnv* env = app().GetJNIEnv();
-  SharedPtr<AsyncOperation>* operation = instance_id_internal_->AddOperation(
+  SharedPtr<AsyncOperation> operation = instance_id_internal_->AddOperation(
       new AsyncTokenOperation(env, instance_id_internal_,
                               instance_id_internal_
                                   ->FutureAlloc<std::string>(
@@ -228,19 +243,26 @@ Future<std::string> InstanceId::GetToken(const char* entity,
   util::RunOnBackgroundThread(
       env,
       [](void* function_data) {
-        SharedPtr<AsyncOperation> base_operation =
-            *(static_cast<SharedPtr<AsyncOperation>*>(function_data));
-        AsyncTokenOperation* operation =
-            static_cast<AsyncTokenOperation*>(base_operation->derived());
+        // Assume that when this callback is called, AsyncOperation should still
+        // be in instance_id_internal->operations_ or this callback should not
+        // be called at all due to the lock in CppThreadDispatcherContext.
+        AsyncTokenOperation* op_ptr =
+            static_cast<AsyncTokenOperation*>(function_data);
         InstanceIdInternal* instance_id_internal =
-            operation->instance_id_internal();
+            op_ptr->instance_id_internal();
+        // Hold a reference to AsyncOperation so that it will not be deleted
+        // during this callback.
+        SharedPtr<AsyncOperation> operation =
+            instance_id_internal->GetOperationSharedPtr(op_ptr);
+        if (!operation) return;
+
         JNIEnv* env = instance_id_internal->instance_id()->app().GetJNIEnv();
         jobject java_instance_id =
             env->NewLocalRef(instance_id_internal->java_instance_id());
         jmethodID java_instance_id_method =
             instance_id::GetMethodId(instance_id::kGetToken);
-        jobject entity_jstring = env->NewStringUTF(operation->entity().c_str());
-        jobject scope_jstring = env->NewStringUTF(operation->scope().c_str());
+        jobject entity_jstring = env->NewStringUTF(op_ptr->entity().c_str());
+        jobject scope_jstring = env->NewStringUTF(op_ptr->scope().c_str());
         operation->ReleaseExecuteCancelLock();
         jobject token_jstring =
             env->CallObjectMethod(java_instance_id, java_instance_id_method,
@@ -252,12 +274,12 @@ Future<std::string> InstanceId::GetToken(const char* entity,
         env->DeleteLocalRef(scope_jstring);
         if (operation->AcquireExecuteCancelLock()) {
           instance_id_internal->CompleteOperationWithResult(
-              base_operation, token, ExceptionStringToError(error.c_str()),
+              operation, token, ExceptionStringToError(error.c_str()),
               error.c_str());
         }
       },
-      operation, InstanceIdInternal::CanceledWithResult<std::string>,
-      &(**operation));
+      &(*operation), InstanceIdInternal::CanceledWithResult<std::string>,
+      &(*operation));
   return GetTokenLastResult();
 }
 
@@ -265,7 +287,7 @@ Future<void> InstanceId::DeleteToken(const char* entity, const char* scope) {
   if (!instance_id_internal_) return Future<void>();
 
   JNIEnv* env = app().GetJNIEnv();
-  SharedPtr<AsyncOperation>* operation =
+  SharedPtr<AsyncOperation> operation =
       instance_id_internal_->AddOperation(new AsyncTokenOperation(
           env, instance_id_internal_,
           instance_id_internal_
@@ -276,15 +298,22 @@ Future<void> InstanceId::DeleteToken(const char* entity, const char* scope) {
   util::RunOnBackgroundThread(
       env,
       [](void* function_data) {
-        SharedPtr<AsyncOperation> base_operation =
-            *(static_cast<SharedPtr<AsyncOperation>*>(function_data));
-        AsyncTokenOperation* operation =
-            static_cast<AsyncTokenOperation*>(base_operation->derived());
+        // Assume that when this callback is called, AsyncOperation should still
+        // be in instance_id_internal->operations_ or this callback should not
+        // be called at all due to the lock in CppThreadDispatcherContext.
+        AsyncTokenOperation* op_ptr =
+            static_cast<AsyncTokenOperation*>(function_data);
         InstanceIdInternal* instance_id_internal =
-            operation->instance_id_internal();
+            op_ptr->instance_id_internal();
+        // Hold a reference to AsyncOperation so that it will not be deleted
+        // during this callback.
+        SharedPtr<AsyncOperation> operation =
+            instance_id_internal->GetOperationSharedPtr(op_ptr);
+        if (!operation) return;
+
         JNIEnv* env = instance_id_internal->instance_id()->app().GetJNIEnv();
-        jobject entity_jstring = env->NewStringUTF(operation->entity().c_str());
-        jobject scope_jstring = env->NewStringUTF(operation->scope().c_str());
+        jobject entity_jstring = env->NewStringUTF(op_ptr->entity().c_str());
+        jobject scope_jstring = env->NewStringUTF(op_ptr->scope().c_str());
         jobject java_instance_id =
             env->NewLocalRef(instance_id_internal->java_instance_id());
         jmethodID java_instance_id_method =
@@ -298,11 +327,10 @@ Future<void> InstanceId::DeleteToken(const char* entity, const char* scope) {
         env->DeleteLocalRef(scope_jstring);
         if (operation->AcquireExecuteCancelLock()) {
           instance_id_internal->CompleteOperation(
-              base_operation, ExceptionStringToError(error.c_str()),
-              error.c_str());
+              operation, ExceptionStringToError(error.c_str()), error.c_str());
         }
       },
-      operation, InstanceIdInternal::Canceled, &(**operation));
+      &(*operation), InstanceIdInternal::Canceled, &(*operation));
   return DeleteTokenLastResult();
 }
 

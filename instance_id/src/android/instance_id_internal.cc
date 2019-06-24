@@ -44,11 +44,11 @@ void InstanceIdInternal::Initialize(InstanceId* instance_id,
 }
 
 // Store a reference to a scheduled operation.
-SharedPtr<AsyncOperation>* InstanceIdInternal::AddOperation(
+SharedPtr<AsyncOperation> InstanceIdInternal::AddOperation(
     AsyncOperation* operation) {
   MutexLock lock(operations_mutex_);
   operations_.push_back(SharedPtr<AsyncOperation>(operation));
-  return &operations_[operations_.size() - 1];
+  return operations_[operations_.size() - 1];
 }
 
 // Remove a reference to a schedule operation.
@@ -63,11 +63,32 @@ void InstanceIdInternal::RemoveOperation(
   }
 }
 
+// Find the SharedPtr to the operation using raw pointer.
+SharedPtr<AsyncOperation> InstanceIdInternal::GetOperationSharedPtr(
+    AsyncOperation* operation) {
+  MutexLock lock(operations_mutex_);
+  for (auto it = operations_.begin(); it != operations_.end(); ++it) {
+    if (&(**it) == operation) {
+      return *it;
+    }
+  }
+  return SharedPtr<AsyncOperation>();
+}
+
 // Cancel all scheduled operations.
 void InstanceIdInternal::CancelOperations() {
-  MutexLock lock(operations_mutex_);
-  while (operations_.size()) {
-    operations_[0]->Cancel();
+  while (true) {
+    SharedPtr<AsyncOperation> operation_ptr;
+    {
+      MutexLock lock(operations_mutex_);
+      if (operations_.empty()) {
+        break;
+      }
+      operation_ptr = operations_[0];
+    }
+    if (operation_ptr) {
+      operation_ptr->Cancel();
+    }
   }
 }
 
@@ -80,9 +101,13 @@ void InstanceIdInternal::CompleteOperation(
 }
 
 void InstanceIdInternal::Canceled(void* function_data) {
-    SharedPtr<AsyncOperation>& operation =
-        *(static_cast<SharedPtr<AsyncOperation>*>(function_data));
-    operation->instance_id_internal()->CancelOperation(operation);
+  AsyncOperation* ptr = static_cast<AsyncOperation*>(function_data);
+  // Hold a reference to AsyncOperation so that it will not be deleted during
+  // this callback.
+  SharedPtr<AsyncOperation> operation =
+      ptr->instance_id_internal()->GetOperationSharedPtr(ptr);
+  if (!operation) return;
+  operation->instance_id_internal()->CancelOperation(operation);
 }
 
 }  // namespace internal
