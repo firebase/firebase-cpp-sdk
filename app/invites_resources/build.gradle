@@ -46,7 +46,7 @@ android {
 
 dependencies {
   implementation 'com.google.firebase:firebase-analytics:17.0.0'
-  implementation 'com.google.firebase:firebase-invites:18.0.0'
+  implementation 'com.google.firebase:firebase-invites:17.0.0'
   implementation project(':app:app_resources')
 }
 
