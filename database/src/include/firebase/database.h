@@ -165,6 +165,9 @@ class Database {
 
   /// Set the log verbosity of this object.
   ///
+  /// @note On Android this can only be set before any operations have been
+  /// performed with the object.
+  ///
   /// @param[in] log_level Log level, by default this is set to kLogLevelInfo.
   void set_log_level(LogLevel log_level);
 
