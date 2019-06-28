@@ -321,6 +321,7 @@ if(IOS)
   set(base_header_dir "${pods_dir}/Pods/Headers/Public")
   target_include_directories(firebase_app
     PRIVATE
+      ${base_header_dir}
       ${base_header_dir}/FirebaseCore
       ${base_header_dir}/FirebaseDynamicLinks
       ${base_header_dir}/FirebaseInstanceID
