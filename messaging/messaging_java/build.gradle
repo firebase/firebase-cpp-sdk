@@ -37,7 +37,7 @@ allprojects {
 apply plugin: 'com.android.library'
 
 android {
-  compileSdkVersion 26
+  compileSdkVersion 28
 
   sourceSets {
     main {

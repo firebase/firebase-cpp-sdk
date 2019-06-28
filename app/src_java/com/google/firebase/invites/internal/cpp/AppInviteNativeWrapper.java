@@ -24,8 +24,6 @@ import android.app.Fragment;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import com.google.android.gms.appinvite.AppInvite;
 import com.google.android.gms.appinvite.AppInviteInvitation;
 import com.google.android.gms.appinvite.AppInviteInvitationResult;
@@ -180,7 +178,7 @@ public class AppInviteNativeWrapper
   }
 
   @Override
-  public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+  public void onConnectionFailed(ConnectionResult connectionResult) {
     /* do something with the error...? */
     safeConnectionFailedCallback(
         nativeInternalPtr, connectionResult.getErrorCode(), connectionResult.getErrorMessage());
@@ -439,7 +437,7 @@ public class AppInviteNativeWrapper
   boolean waitingToFetchInvites = false;
 
   @Override
-  public void onConnected(@Nullable Bundle bundle) {
+  public void onConnected(Bundle bundle) {
     activity.runOnUiThread(
         new Runnable() {
           @Override
@@ -475,7 +473,7 @@ public class AppInviteNativeWrapper
             .setResultCallback(
                 new ResultCallback<AppInviteInvitationResult>() {
                   @Override
-                  public void onResult(@NonNull AppInviteInvitationResult result) {
+                  public void onResult(AppInviteInvitationResult result) {
                     Log.d(TAG, "getInvitation:onResult:" + result.getStatus());
                     Intent invitation = result.getInvitationIntent();
                     if (invitation != null && AppInviteReferral.hasReferral(invitation)) {
@@ -558,7 +556,7 @@ public class AppInviteNativeWrapper
                     .setResultCallback(
                         new ResultCallback<Status>() {
                           @Override
-                          public void onResult(@NonNull Status status) {
+                          public void onResult(Status status) {
                             Log.d(TAG, "convertInvitation:onResult:" + status);
                             if (status.isSuccess()) {
                               safeConvertedInviteCallback(
