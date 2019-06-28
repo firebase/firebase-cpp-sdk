@@ -105,7 +105,7 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   const std::string& url() const { return url_; }
 
-  static scheduler::Scheduler& scheduler() { return s_scheduler_; }
+  static scheduler::Scheduler& scheduler() { return *s_scheduler_; }
 
   ThisRef& this_ref() { return safe_this_; }
 
@@ -158,7 +158,7 @@ class Repo : public connection::PersistentConnectionEventHandler {
   // The scheduler shared with every DatabaseInternal. It is designed to
   // out-live any class which is using it, so that it is safe to use even in
   // destructor.
-  static scheduler::Scheduler s_scheduler_;
+  static scheduler::Scheduler* s_scheduler_;
 
   // Caches information about the connection to the host.
   connection::HostInfo host_info_;

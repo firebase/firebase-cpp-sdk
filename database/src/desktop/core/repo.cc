@@ -15,6 +15,7 @@
 #include "database/src/desktop/core/repo.h"
 
 #include "app/src/callback.h"
+#include "app/src/mutex.h"
 #include "app/src/log.h"
 #include "app/src/scheduler.h"
 #include "app/src/variant_util.h"
@@ -40,7 +41,9 @@ using callback::NewCallback;
 namespace database {
 namespace internal {
 
-scheduler::Scheduler Repo::s_scheduler_;
+static Mutex g_scheduler_mutex;  // NOLINT
+static int g_scheduler_ref_count = 0;
+scheduler::Scheduler* Repo::s_scheduler_;
 
 // Transaction Response class to pass to PersistentConnection.
 // This is used to capture all the data to use when ResponseCallback is
@@ -86,10 +89,16 @@ Repo::Repo(App* app, DatabaseInternal* database, const char* url)
                                     parser.secure);
   url_ = host_info_.ToString();
 
+  {
+    MutexLock lock(g_scheduler_mutex);
+    g_scheduler_ref_count++;
+    if (s_scheduler_ == nullptr) s_scheduler_ = new scheduler::Scheduler();
+  }
+
   connection_.reset(new connection::PersistentConnection(app, host_info_, this,
-                                                         &s_scheduler_));
+                                                         s_scheduler_));
   // Kick off any expensive additional initialization
-  s_scheduler_.Schedule(NewCallback(
+  s_scheduler_->Schedule(NewCallback(
       [](ThisRef ref) {
         ThisRefLock lock(&ref);
         if (lock.GetReference() != nullptr) {
@@ -107,6 +116,14 @@ Repo::~Repo() {
   // while the SyncTree is being torn down.
   safe_this_.ClearReference();
   connection_.reset(nullptr);
+  {
+    MutexLock lock(g_scheduler_mutex);
+    if (g_scheduler_ref_count) g_scheduler_ref_count--;
+    if (g_scheduler_ref_count == 0) {
+      delete s_scheduler_;
+      s_scheduler_ = nullptr;
+    }
+  }
 }
 
 void Repo::AddEventCallback(UniquePtr<EventRegistration> event_registration) {
