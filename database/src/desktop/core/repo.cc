@@ -105,8 +105,8 @@ Repo::Repo(App* app, DatabaseInternal* database, const char* url)
 Repo::~Repo() {
   // Terminate the connection immediately to prevent messages from arriving
   // while the SyncTree is being torn down.
-  connection_.reset(nullptr);
   safe_this_.ClearReference();
+  connection_.reset(nullptr);
 }
 
 void Repo::AddEventCallback(UniquePtr<EventRegistration> event_registration) {

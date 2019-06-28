@@ -196,19 +196,25 @@ void QueryInternal::RemoveAllValueListeners() {
 void QueryInternal::AddEventRegistration(
     UniquePtr<EventRegistration> registration) {
   Repo::scheduler().Schedule(NewCallback(
-      [](Repo* repo, UniquePtr<EventRegistration> registration) {
-        repo->AddEventCallback(Move(registration));
+      [](Repo::ThisRef ref, UniquePtr<EventRegistration> registration) {
+        Repo::ThisRefLock lock(&ref);
+        if (lock.GetReference() != nullptr) {
+          lock.GetReference()->AddEventCallback(Move(registration));
+        }
       },
-      database_->repo(), Move(registration)));
+      database_->repo()->this_ref(), Move(registration)));
 }
 
 void QueryInternal::RemoveEventRegistration(void* listener_ptr,
                                             const QuerySpec& query_spec) {
   Repo::scheduler().Schedule(NewCallback(
-      [](Repo* repo, void* listener_ptr, QuerySpec query_spec) {
-        repo->RemoveEventCallback(listener_ptr, query_spec);
+      [](Repo::ThisRef ref, void* listener_ptr, QuerySpec query_spec) {
+        Repo::ThisRefLock lock(&ref);
+        if (lock.GetReference() != nullptr) {
+          lock.GetReference()->RemoveEventCallback(listener_ptr, query_spec);
+        }
       },
-      database_->repo(), listener_ptr, query_spec));
+      database_->repo()->this_ref(), listener_ptr, query_spec));
 }
 
 void QueryInternal::RemoveEventRegistration(ValueListener* listener,
@@ -245,10 +251,14 @@ DatabaseReferenceInternal* QueryInternal::GetReference() {
 
 void QueryInternal::SetKeepSynchronized(bool keep_synchronized) {
   Repo::scheduler().Schedule(NewCallback(
-      [](Repo* repo, QuerySpec query_spec, bool keep_synchronized) {
-        repo->SetKeepSynchronized(query_spec, keep_synchronized);
+      [](Repo::ThisRef ref, QuerySpec query_spec, bool keep_synchronized) {
+        Repo::ThisRefLock lock(&ref);
+        if (lock.GetReference() != nullptr) {
+          lock.GetReference()->SetKeepSynchronized(query_spec,
+                                                   keep_synchronized);
+        }
       },
-      database_->repo(), query_spec_, keep_synchronized));
+      database_->repo()->this_ref(), query_spec_, keep_synchronized));
 }
 
 QueryInternal* QueryInternal::OrderByChild(const char* path) {
