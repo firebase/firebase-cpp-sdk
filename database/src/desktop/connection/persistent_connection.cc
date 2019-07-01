@@ -25,6 +25,7 @@
 #include "app/src/path.h"
 #include "app/src/time.h"
 #include "app/src/variant_util.h"
+#include "database/src/desktop/core/constants.h"
 #include "database/src/desktop/util_desktop.h"
 #include "database/src/include/firebase/database/common.h"
 
@@ -172,7 +173,10 @@ void PersistentConnection::OnReady(int64_t timestamp,
   // Trigger OnServerInfoUpdate based on timestamp delta
   LogDebug("%s Handle timestamp: %lld in ms", log_id_.c_str(), timestamp);
   int64_t time_delta = timestamp - ::firebase::internal::GetTimestampEpoch();
-  event_handler_->OnServerInfoUpdate(time_delta);
+  std::map<Variant, Variant> updates{
+      std::make_pair(kDotInfoServerTimeOffset, time_delta),
+  };
+  event_handler_->OnServerInfoUpdate(updates);
 
   // Send client SDK status
   if (is_first_connection_) {

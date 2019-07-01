@@ -82,8 +82,10 @@ set(desktop_SRCS
     src/desktop/connection/web_socket_client_impl.cc
     src/desktop/core/child_event_registration.cc
     src/desktop/core/compound_write.cc
+    src/desktop/core/constants.cc
     src/desktop/core/event_registration.cc
     src/desktop/core/indexed_variant.cc
+    src/desktop/core/info_listen_provider.cc
     src/desktop/core/keep_synced_event_registration.cc
     src/desktop/core/listen_provider.cc
     src/desktop/core/operation.cc

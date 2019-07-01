@@ -59,7 +59,8 @@ class SyncTree {
   // accepted or rejected (meaning that is should be reverted) and generate any
   // necessary events that result from the change to the sync tree.
   virtual std::vector<Event> AckUserWrite(WriteId write_id, AckStatus revert,
-                                          Persist persist);
+                                          Persist persist,
+                                          int64_t server_time_offset);
 
   // Add an event registration to the sync tree. The listener attached to that
   // registration will now receive the appropriate events when changes are made

@@ -26,9 +26,10 @@ namespace internal {
 
 static const char kNameSubkeyServerValue[] = ".sv";
 
-Variant GenerateServerValues() {
+Variant GenerateServerValues(int64_t server_time_offset) {
   Variant server_values = Variant::EmptyMap();
-  server_values.map()["timestamp"] = Variant::FromInt64(time(nullptr) * 1000L);
+  int64_t corrected_time = time(nullptr) * 1000L + server_time_offset;
+  server_values.map()["timestamp"] = Variant::FromInt64(corrected_time);
   return server_values;
 }
 

@@ -23,7 +23,7 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-Variant GenerateServerValues();
+Variant GenerateServerValues(int64_t server_time_offset);
 
 const Variant& ResolveDeferredValue(const Variant& value,
                                     const Variant& server_values);

@@ -45,7 +45,8 @@ namespace internal {
 bool SyncTree::IsEmpty() { return sync_point_tree_.IsEmpty(); }
 
 std::vector<Event> SyncTree::AckUserWrite(WriteId write_id, AckStatus revert,
-                                          Persist persist) {
+                                          Persist persist,
+                                          int64_t server_time_offset) {
   std::vector<Event> results;
   persistence_manager_->RunInTransaction([&, this]() -> bool {
     if (persist) {
@@ -60,7 +61,7 @@ std::vector<Event> SyncTree::AckUserWrite(WriteId write_id, AckStatus revert,
         // time. However, if a server value like {".sv": "timestamp"} is sent up
         // the server will still resolve that to the appropriate value (in this
         // case, the server timestamp).
-        Variant server_values = GenerateServerValues();
+        Variant server_values = GenerateServerValues(server_time_offset);
         if (write.is_overwrite) {
           Variant resolved_variant =
               ResolveDeferredValueSnapshot(write.overwrite, server_values);

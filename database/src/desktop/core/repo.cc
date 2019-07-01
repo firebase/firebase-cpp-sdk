@@ -15,11 +15,13 @@
 #include "database/src/desktop/core/repo.h"
 
 #include "app/src/callback.h"
-#include "app/src/mutex.h"
 #include "app/src/log.h"
+#include "app/src/mutex.h"
 #include "app/src/scheduler.h"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/connection/persistent_connection.h"
+#include "database/src/desktop/core/constants.h"
+#include "database/src/desktop/core/info_listen_provider.h"
 #include "database/src/desktop/core/server_values.h"
 #include "database/src/desktop/core/value_event_registration.h"
 #include "database/src/desktop/core/web_socket_listen_provider.h"
@@ -77,6 +79,7 @@ Repo::Repo(App* app, DatabaseInternal* database, const char* url)
     : database_(database),
       host_info_(),
       connection_(),
+      server_time_offset_(0),
       next_write_id_(0),
       safe_this_(this) {
   ParseUrl parser;
@@ -127,13 +130,26 @@ Repo::~Repo() {
 }
 
 void Repo::AddEventCallback(UniquePtr<EventRegistration> event_registration) {
-  PostEvents(server_sync_tree_->AddEventRegistration(Move(event_registration)));
+  std::vector<Event> events;
+  if (StringStartsWith(event_registration->query_spec().path.str(), kDotInfo)) {
+    events = info_sync_tree_->AddEventRegistration(Move(event_registration));
+  } else {
+    events = server_sync_tree_->AddEventRegistration(Move(event_registration));
+  }
+  PostEvents(events);
 }
 
 void Repo::RemoveEventCallback(void* listener_ptr,
                                const QuerySpec& query_spec) {
-  PostEvents(server_sync_tree_->RemoveEventRegistration(
-      query_spec, listener_ptr, kErrorNone));
+  std::vector<Event> events;
+  if (StringStartsWith(query_spec.path.str(), kDotInfo)) {
+    events = info_sync_tree_->RemoveEventRegistration(query_spec, listener_ptr,
+                                                      kErrorNone);
+  } else {
+    events = server_sync_tree_->RemoveEventRegistration(
+        query_spec, listener_ptr, kErrorNone);
+  }
+  PostEvents(events);
 }
 
 class OnDisconnectResponse : public connection::Response {
@@ -313,7 +329,7 @@ class SetValueResponse : public connection::Response {
 void Repo::SetValue(const Path& path, const Variant& new_data_unresolved,
                     ReferenceCountedFutureImpl* api,
                     SafeFutureHandle<void> handle) {
-  Variant server_values = GenerateServerValues();
+  Variant server_values = GenerateServerValues(server_time_offset_);
   Variant new_data =
       ResolveDeferredValueSnapshot(new_data_unresolved, server_values);
 
@@ -397,16 +413,16 @@ void Repo::AckWriteAndRerunTransactions(WriteId write_id, const Path& path,
 
   bool success = (error == kErrorNone);
   AckStatus ack_status = success ? kAckConfirm : kAckRevert;
-  std::vector<Event> events =
-      server_sync_tree_->AckUserWrite(write_id, ack_status, kPersist);
+  std::vector<Event> events = server_sync_tree_->AckUserWrite(
+      write_id, ack_status, kPersist, server_time_offset_);
   if (events.size() > 0) {
     RerunTransactions(path);
   }
   PostEvents(events);
 }
 
-// Defers any initialization that is potentially expensive (e.g. disk access).
-void Repo::DeferredInitialization() {
+static UniquePtr<SyncTree> InitializeSyncTree(
+    UniquePtr<ListenProvider> listen_provider) {
   UniquePtr<WriteTree> pending_write_tree = MakeUnique<WriteTree>();
   UniquePtr<PersistenceStorageEngine> persistence_storage_engine =
       MakeUnique<InMemoryPersistenceStorageEngine>();
@@ -415,13 +431,33 @@ void Repo::DeferredInitialization() {
   UniquePtr<PersistenceManager> persistence_manager =
       MakeUnique<PersistenceManager>(std::move(persistence_storage_engine),
                                      std::move(tracked_query_manager));
-  UniquePtr<WebSocketListenProvider> listen_provider =
-      MakeUnique<WebSocketListenProvider>(this, connection_.get());
-  WebSocketListenProvider* listen_provider_ptr = listen_provider.get();
-  server_sync_tree_ = MakeUnique<SyncTree>(std::move(pending_write_tree),
-                                           std::move(persistence_manager),
-                                           std::move(listen_provider));
-  listen_provider_ptr->set_sync_tree(server_sync_tree_.get());
+  return MakeUnique<SyncTree>(std::move(pending_write_tree),
+                              std::move(persistence_manager),
+                              std::move(listen_provider));
+}
+
+// Defers any initialization that is potentially expensive (e.g. disk access).
+void Repo::DeferredInitialization() {
+  // Set up server sync tree.
+  {
+    UniquePtr<WebSocketListenProvider> listen_provider =
+        MakeUnique<WebSocketListenProvider>(this, connection_.get());
+    WebSocketListenProvider* listen_provider_ptr = listen_provider.get();
+    server_sync_tree_ = InitializeSyncTree(std::move(listen_provider));
+    listen_provider_ptr->set_sync_tree(server_sync_tree_.get());
+  }
+
+  // Set up info sync tree.
+  {
+    UniquePtr<InfoListenProvider> listen_provider =
+        MakeUnique<InfoListenProvider>(this, &info_data_);
+    InfoListenProvider* listen_provider_ptr = listen_provider.get();
+    info_sync_tree_ = InitializeSyncTree(std::move(listen_provider));
+    listen_provider_ptr->set_sync_tree(info_sync_tree_.get());
+  }
+
+  UpdateInfo(kDotInfoAuthenticated, false);
+  UpdateInfo(kDotInfoConnected, false);
 }
 
 void Repo::PostEvents(const std::vector<Event>& events) {
@@ -453,12 +489,15 @@ static std::map<Path, Variant> VariantToPathMap(const Variant& data) {
   return path_map;
 }
 
-void Repo::OnConnect() {
-  //
-}
+void Repo::OnConnect() { OnServerInfoUpdate(kDotInfoConnected, true); }
 
 void Repo::OnDisconnect() {
-  Variant server_values = GenerateServerValues();
+  OnServerInfoUpdate(kDotInfoConnected, false);
+  RunOnDisconnectEvents();
+}
+
+void Repo::RunOnDisconnectEvents() {
+  Variant server_values = GenerateServerValues(server_time_offset_);
   SparseSnapshotTree resolved_tree =
       ResolveDeferredValueTree(on_disconnect_, server_values);
   std::vector<Event> events;
@@ -476,11 +515,19 @@ void Repo::OnDisconnect() {
 }
 
 void Repo::OnAuthStatus(bool auth_ok) {
-  //
+  OnServerInfoUpdate(kDotInfoAuthenticated, auth_ok);
 }
 
-void Repo::OnServerInfoUpdate(int64_t timestamp_delta) {
-  //
+void Repo::OnServerInfoUpdate(const std::string& key, const Variant& value) {
+  UpdateInfo(key, value);
+}
+
+void Repo::OnServerInfoUpdate(const std::map<Variant, Variant>& updates) {
+  for (const std::pair<Variant, Variant> element : updates) {
+    const Variant& key = element.first;
+    const Variant& value = element.second;
+    UpdateInfo(key.AsString().mutable_string(), value);
+  }
 }
 
 void Repo::OnDataUpdate(const Path& path, const Variant& data, bool is_merge,
@@ -566,7 +613,7 @@ void Repo::StartTransaction(const Path& path,
     }
     queue_node->value()->push_back(transaction_data);
 
-    Variant server_values = GenerateServerValues();
+    Variant server_values = GenerateServerValues(server_time_offset_);
     const Variant* new_node_unresolved = mutable_data_impl->GetNode();
     Variant new_node_resolved =
         ResolveDeferredValueSnapshot(*new_node_unresolved, server_values);
@@ -682,9 +729,9 @@ void Repo::AbortTransactionsAtNode(Tree<std::vector<TransactionDataPtr>>* node,
         RemoveEventCallback(transaction->outstanding_listener.get(),
                             QuerySpec(transaction->path));
         if (reason == kErrorOverriddenBySet) {
-          Extend(&events,
-                 server_sync_tree_->AckUserWrite(transaction->current_write_id,
-                                                 kAckRevert, kDoNotPersist));
+          Extend(&events, server_sync_tree_->AckUserWrite(
+                              transaction->current_write_id, kAckRevert,
+                              kDoNotPersist, server_time_offset_));
         } else {
           FIREBASE_DEV_ASSERT_MESSAGE(reason == kErrorWriteCanceled,
                                       "Unknown transaction abort reason");
@@ -808,7 +855,8 @@ void Repo::HandleTransactionResponse(const connection::ResponsePtr& ptr) {
       transaction->status = TransactionData::kStatusComplete;
 
       events = server_sync_tree_->AckUserWrite(transaction->current_write_id,
-                                               kAckConfirm, kDoNotPersist);
+                                               kAckConfirm, kDoNotPersist,
+                                               server_time_offset_);
 
       futures_to_complete.push_back(FutureToComplete(
           transaction, transaction->current_output_snapshot_resolved));
@@ -894,17 +942,17 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
       abort_transaction = true;
       abort_reason = transaction->abort_reason;
       if (abort_reason != kErrorWriteCanceled) {
-        Extend(&events,
-               server_sync_tree_->AckUserWrite(transaction->current_write_id,
-                                               kAckRevert, kDoNotPersist));
+        Extend(&events, server_sync_tree_->AckUserWrite(
+                            transaction->current_write_id, kAckRevert,
+                            kDoNotPersist, server_time_offset_));
       }
     } else if (transaction->status == TransactionData::kStatusRun) {
       if (transaction->retry_count >= TransactionData::kTransactionMaxRetries) {
         abort_transaction = true;
         abort_reason = kErrorMaxRetries;
-        Extend(&events,
-               server_sync_tree_->AckUserWrite(transaction->current_write_id,
-                                               kAckRevert, kDoNotPersist));
+        Extend(&events, server_sync_tree_->AckUserWrite(
+                            transaction->current_write_id, kAckRevert,
+                            kDoNotPersist, server_time_offset_));
       } else {
         // This code rerun a transaction
         Variant current_input =
@@ -926,7 +974,7 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
         if (result == kTransactionResultSuccess) {
           WriteId old_write_id = transaction->current_write_id;
 
-          Variant server_values = GenerateServerValues();
+          Variant server_values = GenerateServerValues(server_time_offset_);
           Variant* new_data_node = mutable_data_impl->GetNode();
           Variant new_node_resolved =
               ResolveDeferredValueSnapshot(*new_data_node, server_values);
@@ -944,13 +992,14 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
                                                        : kOverwriteInvisible,
                      kPersist));
           Extend(&events, server_sync_tree_->AckUserWrite(
-                              old_write_id, kAckRevert, kDoNotPersist));
+                              old_write_id, kAckRevert, kDoNotPersist,
+                              server_time_offset_));
         } else {
           abort_transaction = true;
           abort_reason = error;
-          Extend(&events,
-                 server_sync_tree_->AckUserWrite(transaction->current_write_id,
-                                                 kAckRevert, kDoNotPersist));
+          Extend(&events, server_sync_tree_->AckUserWrite(
+                              transaction->current_write_id, kAckRevert,
+                              kDoNotPersist, server_time_offset_));
         }
       }
     }
@@ -1056,6 +1105,15 @@ void Repo::AggregateTransactionQueues(
     Tree<std::vector<TransactionDataPtr>>& subtree = key_subtree_pair.second;
     AggregateTransactionQueues(queue, &subtree);
   }
+}
+
+void Repo::UpdateInfo(const std::string& key, const Variant& value) {
+  if (key == kDotInfoServerTimeOffset) {
+    server_time_offset_ = value.AsInt64().int64_value();
+  }
+  Path path = Path(kDotInfo).GetChild(key);
+  VariantUpdateChild(&info_data_, path, value);
+  PostEvents(info_sync_tree_->ApplyServerOverwrite(path, value));
 }
 
 }  // namespace internal

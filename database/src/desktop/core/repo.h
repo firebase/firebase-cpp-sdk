@@ -97,7 +97,9 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   void OnAuthStatus(bool auth_ok) override;
 
-  void OnServerInfoUpdate(int64_t timestamp_delta) override;
+  void OnServerInfoUpdate(const std::string& key, const Variant& value);
+
+  void OnServerInfoUpdate(const std::map<Variant, Variant>& updates) override;
 
   void OnDataUpdate(const Path& path, const Variant& payload_data,
                     bool is_merge,
@@ -151,6 +153,10 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   Variant GetLatestState(const Path& path, std::vector<WriteId> sets_to_ignore);
 
+  void RunOnDisconnectEvents();
+
+  void UpdateInfo(const std::string& key, const Variant& value);
+
   DatabaseInternal* database_;
 
   SparseSnapshotTree on_disconnect_;
@@ -169,7 +175,13 @@ class Repo : public connection::PersistentConnectionEventHandler {
   // Firebase websocket connection with wire protocol support
   UniquePtr<connection::PersistentConnection> connection_;
 
+  UniquePtr<SyncTree> info_sync_tree_;
+
   UniquePtr<SyncTree> server_sync_tree_;
+
+  Variant info_data_;
+
+  int64_t server_time_offset_;
 
   WriteId next_write_id_;
 

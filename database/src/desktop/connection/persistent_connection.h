@@ -543,7 +543,8 @@ class PersistentConnectionEventHandler {
 
   virtual void OnAuthStatus(bool auth_ok) = 0;
 
-  virtual void OnServerInfoUpdate(int64_t timestamp_delta) = 0;
+  virtual void OnServerInfoUpdate(
+      const std::map<Variant, Variant>& updates) = 0;
 
   virtual void OnDataUpdate(const Path& path, const Variant& payload_data,
                             bool is_merge,
