@@ -1,0 +1,25 @@
+package com.google.firebase.test.runner;
+
+import androidx.test.rule.ActivityTestRule;
+import androidx.test.runner.AndroidJUnit4;
+import com.google.firebase.test.$activity_name;
+import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+/** A test wrapper that wraps around native C++ code that calls RUN_ALL_TESTS(). */
+@RunWith(AndroidJUnit4.class)
+public class $wrapper_name {
+  @Rule
+  public final ActivityTestRule<$activity_name> activityTestRule =
+      new ActivityTestRule<$activity_name>($activity_name.class);
+
+  @Test
+  public void runTest() {
+    $activity_name activity = activityTestRule.getActivity();
+    int result = activity.run();
+    Assert.assertEquals(
+        "Error running a C++ test! Check logcat file in sponge for details.", 0, result);
+  }
+}

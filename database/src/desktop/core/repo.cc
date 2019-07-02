@@ -296,25 +296,25 @@ void Repo::PurgeOutstandingWrites() {
 // triggered.
 class SetValueResponse : public connection::Response {
  public:
-  SetValueResponse(const DatabaseInternal::ThisRef& database, const Path& path,
+  SetValueResponse(const Repo::ThisRef& repo, const Path& path,
                    WriteId write_id, ReferenceCountedFutureImpl* api,
                    SafeFutureHandle<void> handle, ResponseCallback callback)
       : connection::Response(callback),
-        database_ref_(database),
+        repo_ref_(repo),
         path_(path),
         write_id_(write_id),
         api_(api),
         handle_(handle) {}
 
-  DatabaseInternal::ThisRef& database_ref() { return database_ref_; }
+  Repo::ThisRef& repo_ref() { return repo_ref_; }
   const Path& path() { return path_; }
   WriteId write_id() { return write_id_; }
   ReferenceCountedFutureImpl* api() { return api_; }
   SafeFutureHandle<void> handle() { return handle_; }
 
  private:
-  // Database reference
-  DatabaseInternal::ThisRef database_ref_;
+  // Repo reference
+  Repo::ThisRef repo_ref_;
 
   // Database path for this write request
   Path path_;
@@ -339,22 +339,21 @@ void Repo::SetValue(const Path& path, const Variant& new_data_unresolved,
       kPersist);
   PostEvents(events);
 
-  connection_->Put(
-      path, new_data_unresolved,
-      MakeShared<SetValueResponse>(
-          DatabaseInternal::ThisRef(database_), path, write_id, api, handle,
-          [](const connection::ResponsePtr& ptr) {
-            auto* response = static_cast<SetValueResponse*>(ptr.get());
-            DatabaseInternal::ThisRefLock lock(&response->database_ref());
-            DatabaseInternal* database = lock.GetReference();
-            Repo* repo = database->repo();
-            repo->AckWriteAndRerunTransactions(response->write_id(),
-                                               response->path(),
-                                               response->GetErrorCode());
-            response->api()->Complete(
-                response->handle(), response->GetErrorCode(),
-                GetErrorMessage(response->GetErrorCode()));
-          }));
+  connection_->Put(path, new_data_unresolved,
+                   MakeShared<SetValueResponse>(
+                       Repo::ThisRef(this), path, write_id, api, handle,
+                       [](const connection::ResponsePtr& ptr) {
+                         auto* response =
+                             static_cast<SetValueResponse*>(ptr.get());
+                         Repo::ThisRefLock lock(&response->repo_ref());
+                         Repo* repo = lock.GetReference();
+                         repo->AckWriteAndRerunTransactions(
+                             response->write_id(), response->path(),
+                             response->GetErrorCode());
+                         response->api()->Complete(
+                             response->handle(), response->GetErrorCode(),
+                             GetErrorMessage(response->GetErrorCode()));
+                       }));
 
   Path affected_path = AbortTransactions(path, kErrorOverriddenBySet);
   RerunTransactions(affected_path);
@@ -379,22 +378,21 @@ void Repo::UpdateChildren(const Path& path, const Variant& data,
       path, updates, resolved, write_id, kPersist);
   PostEvents(events);
 
-  connection_->Merge(
-      path, data,
-      MakeShared<SetValueResponse>(
-          DatabaseInternal::ThisRef(database_), path, write_id, api, handle,
-          [](const connection::ResponsePtr& ptr) {
-            auto* response = static_cast<SetValueResponse*>(ptr.get());
-            DatabaseInternal::ThisRefLock lock(&response->database_ref());
-            DatabaseInternal* database = lock.GetReference();
-            Repo* repo = database->repo();
-            repo->AckWriteAndRerunTransactions(response->write_id(),
-                                               response->path(),
-                                               response->GetErrorCode());
-            response->api()->Complete(
-                response->handle(), response->GetErrorCode(),
-                GetErrorMessage(response->GetErrorCode()));
-          }));
+  connection_->Merge(path, data,
+                     MakeShared<SetValueResponse>(
+                         Repo::ThisRef(this), path, write_id, api, handle,
+                         [](const connection::ResponsePtr& ptr) {
+                           auto* response =
+                               static_cast<SetValueResponse*>(ptr.get());
+                           Repo::ThisRefLock lock(&response->repo_ref());
+                           Repo* repo = lock.GetReference();
+                           repo->AckWriteAndRerunTransactions(
+                               response->write_id(), response->path(),
+                               response->GetErrorCode());
+                           response->api()->Complete(
+                               response->handle(), response->GetErrorCode(),
+                               GetErrorMessage(response->GetErrorCode()));
+                         }));
 
   updates.write_tree().CallOnEach(
       Path(), [this](const Path& path_from_root, const Variant& variant) {

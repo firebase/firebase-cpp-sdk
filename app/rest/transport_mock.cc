@@ -17,7 +17,7 @@
 #include "app/rest/transport_mock.h"
 #include <string>
 #include "app/rest/util.h"
-#include "firebase/testing/cppsdk/config_desktop.h"
+#include "testing/config_desktop.h"
 
 namespace firebase {
 namespace rest {

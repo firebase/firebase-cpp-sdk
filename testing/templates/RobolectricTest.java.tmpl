@@ -1,0 +1,21 @@
+package com.google.firebase.test.runner;
+
+import com.google.firebase.test.$activity_name;
+import com.google.thirdparty.robolectric.GoogleRobolectricTestRunner;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
+import org.robolectric.annotation.Config;
+
+/** A test wrapper that wraps around native C++ code that calls RUN_ALL_TESTS(). */
+@RunWith(GoogleRobolectricTestRunner.class)
+@Config(manifest = Config.NONE)
+public class $wrapper_name {
+  @Test
+  public void testFirebase() throws Exception {
+    $activity_name activity = Robolectric.buildActivity($activity_name.class).setup().get();
+    int result = activity.run();
+    Assert.assertEquals("Error running a C++ test! Check sponge for details.", 0, result);
+  }
+}

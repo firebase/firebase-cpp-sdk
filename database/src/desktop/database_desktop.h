@@ -185,10 +185,6 @@ class DatabaseInternal {
   // Needed to generate names that are guarenteed to be unique.
   PushChildNameGenerator name_generator_;
 
-  // Safe reference to this.  Set in constructor and cleared in destructor
-  // Should be safe to be copied to any thread.
-  ThisRef safe_this_;
-
   // The url passed to the constructor (or "" if none was passed).
   // We keep it so that we can find the database in our cache.
   std::string constructor_url_;

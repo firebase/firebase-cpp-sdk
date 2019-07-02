@@ -16,6 +16,7 @@
 
 #include <queue>
 #include <stack>
+
 #include "app/memory/shared_ptr.h"
 #include "app/src/assert.h"
 #include "app/src/function_registry.h"
@@ -67,7 +68,6 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
     : app_(app),
       future_manager_(),
       cleanup_(),
-      safe_this_(this),
       constructor_url_(url),
       repo_(app, this, url),
       log_level_(kLogLevelInfo) {
@@ -81,9 +81,6 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
 
 DatabaseInternal::~DatabaseInternal() {
   cleanup_.CleanupAll();
-  // Clear safe reference immediately so that scheduled callback can skip
-  // executing code which requires reference to this.
-  safe_this_.ClearReference();
 
   // If initialization failed, there is nothing to clean up.
   if (app_ == nullptr) return;
@@ -142,35 +139,35 @@ DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) const {
 
 void DatabaseInternal::GoOffline() {
   Repo::scheduler().Schedule(NewCallback(
-      [](ThisRef ref) {
-        ThisRefLock lock(&ref);
+      [](Repo::ThisRef ref) {
+        Repo::ThisRefLock lock(&ref);
         if (lock.GetReference() != nullptr) {
-          lock.GetReference()->repo_.connection()->Interrupt();
+          lock.GetReference()->connection()->Interrupt();
         }
       },
-      safe_this_));
+      repo_.this_ref()));
 }
 
 void DatabaseInternal::GoOnline() {
   Repo::scheduler().Schedule(NewCallback(
-      [](ThisRef ref) {
-        ThisRefLock lock(&ref);
+      [](Repo::ThisRef ref) {
+        Repo::ThisRefLock lock(&ref);
         if (lock.GetReference() != nullptr) {
-          lock.GetReference()->repo_.connection()->Resume();
+          lock.GetReference()->connection()->Resume();
         }
       },
-      safe_this_));
+      repo_.this_ref()));
 }
 
 void DatabaseInternal::PurgeOutstandingWrites() {
   Repo::scheduler().Schedule(NewCallback(
-      [](ThisRef ref) {
-        ThisRefLock lock(&ref);
+      [](Repo::ThisRef ref) {
+        Repo::ThisRefLock lock(&ref);
         if (lock.GetReference() != nullptr) {
-          lock.GetReference()->repo_.PurgeOutstandingWrites();
+          lock.GetReference()->PurgeOutstandingWrites();
         }
       },
-      safe_this_));
+      repo_.this_ref()));
 }
 
 static std::string* g_sdk_version = nullptr;

@@ -1,0 +1,20 @@
+package com.google.firebase.test;
+
+import android.app.Activity;
+import com.google.common.jni.JniLoader;
+import java.io.File;
+
+/** Helper activity that wraps a C++ test as a simple way to provide Android environment. */
+public final class $activity_name extends Activity {
+  private static final String NATIVE_LIB = "$native_lib_name";
+  static {
+    JniLoader.loadLibrary(NATIVE_LIB);
+  }
+
+  public int run() {
+    final String log = new File(this.getFilesDir(), "googletest.log").getAbsolutePath();
+    return runAllTests(log, null);
+  }
+
+  private native int runAllTests(String log, Activity activity);
+}

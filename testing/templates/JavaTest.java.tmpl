@@ -1,0 +1,27 @@
+package com.google.firebase.test;
+
+import android.app.Activity;
+import com.google.thirdparty.robolectric.GoogleRobolectricTestRunner;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.rules.TemporaryFolder;
+import org.junit.runner.RunWith;
+import org.robolectric.Robolectric;
+import org.robolectric.annotation.Config;
+
+/** A test wrapper that wraps around native C++ code that calls RUN_ALL_TESTS(). */
+@RunWith(GoogleRobolectricTestRunner.class)
+@Config(manifest = Config.NONE)
+public final class $wrapper_name {
+  @Test
+  public void testFirebase() throws Exception {
+    Activity activity = Robolectric.buildActivity(Activity.class).setup().get();
+    TemporaryFolder tempDir = new TemporaryFolder();
+    tempDir.create();
+    final String log = tempDir.newFile("googletest.log").getAbsolutePath();
+    int result = runAllTests(log, activity);
+    Assert.assertEquals("Error running a C++ test! Check sponge for details.", 0, result);
+  }
+
+  private native int runAllTests(String log, Activity activity);
+}
