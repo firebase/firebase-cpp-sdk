@@ -334,3 +334,8 @@ endif()
 # Add the rest subdirectory, so that other libraries can access it
 add_subdirectory(rest)
 add_subdirectory(instance_id)
+
+if(FIREBASE_CPP_BUILD_TESTS)
+  # Add the tests subdirectory
+  add_subdirectory(tests)
+endif()
