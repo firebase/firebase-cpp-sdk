@@ -45,7 +45,7 @@ static std::string g_default_config_path;  // NOLINT
 }  // namespace internal
 
 // The default App name, the same string as what are used for Android and iOS.
-const char* kDefaultAppName = "__FIRAPP_DEFAULT";
+const char* const kDefaultAppName = "__FIRAPP_DEFAULT";
 
 App::App() {
   LogDebug("Creating firebase::App for %s", kFirebaseVersionString);

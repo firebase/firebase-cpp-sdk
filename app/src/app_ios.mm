@@ -51,7 +51,7 @@ namespace firebase {
 
 DEFINE_FIREBASE_VERSION_STRING(Firebase);
 
-const char* kDefaultAppName = "__FIRAPP_DEFAULT";
+const char* const kDefaultAppName = "__FIRAPP_DEFAULT";
 
 App::App() : data_(nullptr) {
   LogDebug("Creating firebase::App for %s", kFirebaseVersionString);

@@ -137,7 +137,7 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/firebase/platforminfo/GlobalLibraryVersionRegistrar",
     GLOBAL_LIBRARY_VERSION_REGISTAR_METHODS)
 
-const char* kDefaultAppName = "__FIRAPP_DEFAULT";
+const char* const kDefaultAppName = "__FIRAPP_DEFAULT";
 
 namespace {
 
