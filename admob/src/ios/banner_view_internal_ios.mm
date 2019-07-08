@@ -142,6 +142,7 @@ Future<void> BannerViewInternalIOS::MoveTo(int x, int y) {
       [banner_view_ moveBannerViewToXCoordinate:x yCoordinate:y];
       error = kAdMobErrorNone;
       error_msg = nullptr;
+      NotifyListenerOfPresentationStateChange([banner_view_ presentationState]);
     }
     CompleteFuture(error, error_msg, handle, &future_data_);
   });
@@ -157,6 +158,7 @@ Future<void> BannerViewInternalIOS::MoveTo(BannerView::Position position) {
       [banner_view_ moveBannerViewToPosition:position];
       error = kAdMobErrorNone;
       error_msg = nullptr;
+      NotifyListenerOfPresentationStateChange([banner_view_ presentationState]);
     }
     CompleteFuture(error, error_msg, handle, &future_data_);
   });
