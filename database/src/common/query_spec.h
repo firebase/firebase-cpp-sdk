@@ -71,10 +71,12 @@ struct QueryParams {
     return false;
   }
 
+  enum OrderBy { kOrderByPriority, kOrderByChild, kOrderByKey, kOrderByValue };
+
   // Set by Query::OrderByPriority(), Query::OrderByChild(),
   // Query::OrderByKey(), and Query::OrderByValue().
   // Default is kOrderByPriority.
-  enum { kOrderByPriority, kOrderByChild, kOrderByKey, kOrderByValue } order_by;
+  OrderBy order_by;
 
   // Set by Query::OrderByChild(). Only valid if order_by is kOrderByChild.
   std::string order_by_child;
