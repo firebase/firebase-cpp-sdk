@@ -104,6 +104,7 @@ set(desktop_SRCS
     src/desktop/disconnection_desktop.cc
     src/desktop/mutable_data_desktop.cc
     src/desktop/persistence/in_memory_persistence_storage_engine.cc
+    src/desktop/persistence/noop_persistence_storage_engine.cc
     src/desktop/persistence/persistence_manager.cc
     src/desktop/push_child_name_generator.cc
     src/desktop/query_desktop.cc
