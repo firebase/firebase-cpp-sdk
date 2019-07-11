@@ -344,6 +344,10 @@ enum AuthError {
   /// Indicates that a request was made to the backend with an invalid tenant
   /// ID.
   kAuthErrorInvalidTenantId,
+
+  /// Indicates that a request was made to the backend without a valid client
+  /// identifier.
+  kAuthErrorMissingClientIdentifier,
 };
 
 }  // namespace auth

@@ -97,6 +97,9 @@ static const struct {
     {FIRAuthErrorCodeWebContextCancelled, kAuthErrorWebContextCancelled},
     {FIRAuthErrorCodeWrongPassword, kAuthErrorWrongPassword},
     {FIRAuthErrorCodeInvalidProviderID, kAuthErrorInvalidProviderId},
+    // TODO(b/137141080): Handle New Thick Client Error
+    // Uncomment once support for MISSING_CLIENT_IDENTIFIER is added to the iOS SDK.
+    // {FIRAuthErrorCodeMissingClientIdentifier, kAuthErrorMissingClientIdentifier},
 };
 
 template<typename T>

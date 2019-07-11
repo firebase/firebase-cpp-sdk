@@ -65,6 +65,7 @@ static const BackendErrorToCode kBackendErrorsToErrorCodeMap[] = {
     {"QUOTA_EXCEEDED", kAuthErrorQuotaExceeded},
     {"SESSION_EXPIRED", kAuthErrorSessionExpired},
     {"INVALID_APP_CREDENTIAL", kAuthErrorAppNotAuthorized},
+    {"MISSING_CLIENT_IDENTIFIER", kAuthErrorMissingClientIdentifier},
 };
 
 static const struct ErrorCodeToDescription {
@@ -171,7 +172,8 @@ static const struct ErrorCodeToDescription {
      "The requested provider ID is invalid. You must enable this provider in "
      "the console."},
     {kAuthErrorFailure, "An internal error has occurred."},
-};
+    {kAuthErrorMissingClientIdentifier,
+     "This request is missing a reCAPTCHA token."}};
 
 }  // namespace
 

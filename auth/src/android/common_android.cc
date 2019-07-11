@@ -99,6 +99,7 @@ static const ErrorCodeMapping kFirebaseAuthCodes[] = {
     {"ERROR_INVALID_TENANT_ID", kAuthErrorInvalidTenantId},
     {"ERROR_INVALID_DYNAMIC_LINK_DOMAIN", kAuthErrorInvalidLinkDomain},
     {"ERROR_TENANT_ID_MISMATCH", kAuthErrorTenantIdMismatch},
+    {"ERROR_MISSING_CLIENT_IDENTIFIER", kAuthErrorMissingClientIdentifier},
     {nullptr},
 };
 // NOTE: THIS IS WHERE IT GETS REALLY DODGY
