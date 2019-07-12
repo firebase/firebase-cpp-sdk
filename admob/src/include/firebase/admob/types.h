@@ -23,7 +23,7 @@
 
 #if defined(__ANDROID__)
 #include <jni.h>
-#elif defined(TARGET_OS_IPHONE)
+#elif (TARGET_OS_IPHONE==1)
 extern "C" {
 #include <objc/objc.h>
 }  // extern "C"
@@ -42,7 +42,7 @@ namespace admob {
 #if defined(__ANDROID__)
 /// An Android Activity from Java.
 typedef jobject AdParent;
-#elif defined(TARGET_OS_IPHONE)
+#elif (TARGET_OS_IPHONE==1)
 /// A pointer to an iOS UIView.
 typedef id AdParent;
 #else
