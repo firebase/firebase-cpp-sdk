@@ -494,9 +494,20 @@ class Auth {
   friend void ResetTokenRefreshCounter(AuthData* authData);
   /// @endcond
 
+  // Find Auth instance using App.  Return null if the instance does not exist.
+  static Auth* FindAuth(App* app);
+
   // Provides access to the auth token for the current user.  Returns the
   // current user's auth token, or an empty string, if there isn't one.
+  // Note that this can potentially return an expired token from the cache.
   static bool GetAuthTokenForRegistry(App* app, void* /*unused*/, void* out);
+
+  // Provides asynchronous access to the auth token for the current user. Allow
+  // the caller to force-refresh the token.  Even without force-refresh, this
+  // ensure the future contain a fresh current user's auth token.  This function
+  // returns invalid future if user data is not available.
+  static bool GetAuthTokenAsyncForRegistry(App* app, void* force_refresh,
+                                           void* out_future);
 
   // Starts and stops a thread to ensure that the cached auth token is never
   // kept long enough for it to expire.  Refcounted, so multiple classes can

@@ -453,6 +453,7 @@ class User : public UserInfoInterface {
   /// @cond FIREBASE_APP_INTERNAL
   friend class IdTokenRefreshThread;
   friend class IdTokenRefreshListener;
+  friend class Auth;
   Future<std::string> GetTokenInternal(const bool force_refresh,
                                        const int future_identifier);
   /// @endcond

@@ -68,11 +68,12 @@ Mutex g_auths_mutex;  // NOLINT
 Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
   MutexLock lock(g_auths_mutex);
   // Return the Auth if it already exists.
-  std::map<App*, Auth*>::iterator it = g_auths.find(app);
-  if (it != g_auths.end()) {
+  Auth* existing_auth = FindAuth(app);
+  if (existing_auth) {
     if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
-    return it->second;
+    return existing_auth;
   }
+
   FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(*app, init_result_out);
 
   // Create the platform dependent version of Auth.
@@ -89,6 +90,17 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
 
   if (init_result_out) *init_result_out = kInitResultSuccess;
   return auth;
+}
+
+// static
+Auth* Auth::FindAuth(App* app) {
+  MutexLock lock(g_auths_mutex);
+  // Return the Auth if it already exists.
+  std::map<App*, Auth*>::iterator it = g_auths.find(app);
+  if (it != g_auths.end()) {
+    return it->second;
+  }
+  return nullptr;
 }
 
 // Auth uses the pimpl mechanism to hide internal data types from the interface.

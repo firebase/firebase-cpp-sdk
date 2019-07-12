@@ -58,6 +58,7 @@ enum AuthApiFunction {
 
   // Internal functions that are still handles, but are only used internally:
   kInternalFn_GetTokenForRefresher,
+  kInternalFn_GetTokenForFunctionRegistry,
 
   kNumAuthFunctions
 };

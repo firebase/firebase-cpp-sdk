@@ -138,9 +138,11 @@ uint64_t IdTokenRefreshListener::GetTokenTimestamp() {
 // GetAuthToken function on the current auth object.
 bool Auth::GetAuthTokenForRegistry(App* app, void* /*unused*/, void* out) {
   if (!app) return false;
-  InitResult init_result;
-  Auth* auth = Auth::GetAuth(app, &init_result);
+  Auth* auth = Auth::FindAuth(app);
   if (auth) {
+    // Make sure the persistent cache is loaded.
+    auth->current_user();
+
     auto result = static_cast<std::string*>(out);
     MutexLock lock(auth->auth_data_->token_listener_mutex);
     auto auth_impl = static_cast<AuthImpl*>(auth->auth_data_->auth_impl);
@@ -150,11 +152,37 @@ bool Auth::GetAuthTokenForRegistry(App* app, void* /*unused*/, void* out) {
   return false;
 }
 
+// It basically just calls the public GetToken function on the current user and
+// output the Future.
+bool Auth::GetAuthTokenAsyncForRegistry(App* app, void* force_refresh,
+                                        void* out) {
+  Future<std::string>* out_future = static_cast<Future<std::string>*>(out);
+  // Reset the future
+  if (out_future) *out_future = Future<std::string>();
+  bool* in_force_refresh = static_cast<bool*>(force_refresh);
+
+  if (!app) return false;
+  assert(force_refresh);
+
+  Auth* auth = Auth::FindAuth(app);
+  if (auth) {
+    User* user = auth->current_user();
+    if (user) {
+      Future<std::string> future = user->GetTokenInternal(
+          *in_force_refresh, kInternalFn_GetTokenForFunctionRegistry);
+      if (out_future) {
+        *out_future = future;
+      }
+      return true;
+    }
+  }
+  return false;
+}
+
 bool Auth::StartTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
                                               void* /*unused*/) {
   if (!app) return false;
-  InitResult init_result;
-  Auth* auth = Auth::GetAuth(app, &init_result);
+  Auth* auth = Auth::FindAuth(app);
   if (auth) {
     EnableTokenAutoRefresh(auth->auth_data_);
     return true;
@@ -165,8 +193,7 @@ bool Auth::StartTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
 bool Auth::StopTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
                                              void* /*unused*/) {
   if (!app) return false;
-  InitResult init_result;
-  Auth* auth = Auth::GetAuth(app, &init_result);
+  Auth* auth = Auth::FindAuth(app);
   if (auth) {
     DisableTokenAutoRefresh(auth->auth_data_);
     return true;
@@ -184,6 +211,8 @@ void Auth::InitPlatformAuth(AuthData* const auth_data) {
   auth_data->app->function_registry()->RegisterFunction(
       internal::FnAuthStopTokenListener,
       Auth::StopTokenRefreshThreadForRegistry);
+  auth_data->app->function_registry()->RegisterFunction(
+      internal::FnAuthGetTokenAsync, Auth::GetAuthTokenAsyncForRegistry);
 
   // Load existing UserData
   InitializeUserDataPersist(auth_data);
@@ -201,6 +230,9 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
       internal::FnAuthStartTokenListener);
   auth_data->app->function_registry()->UnregisterFunction(
       internal::FnAuthStopTokenListener);
+  auth_data->app->function_registry()->UnregisterFunction(
+      internal::FnAuthGetTokenAsync);
+
   DestroyTokenRefresher(auth_data);
 
   {

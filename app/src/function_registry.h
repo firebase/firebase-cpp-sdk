@@ -33,7 +33,8 @@ namespace internal {
 enum FunctionId {
   FnAuthGetCurrentToken,
   FnAuthStartTokenListener,
-  FnAuthStopTokenListener
+  FnAuthStopTokenListener,
+  FnAuthGetTokenAsync
 };
 
 // Class for providing a generic way for firebase libraries to expose their
