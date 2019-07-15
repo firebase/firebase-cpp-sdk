@@ -27,7 +27,7 @@ function(cc_test name)
   # Parse the arguments into cc_test_SOURCES and cc_test_DEPENDS.
   cmake_parse_arguments(cc_test "" "" "${multi}" ${ARGN})
 
-  list(APPEND cc_test_DEPENDS gtest gtest_main)
+  list(APPEND cc_test_DEPENDS gmock gtest gtest_main)
 
   add_executable(${name} ${cc_test_SOURCES})
   add_test(${name} ${name})
@@ -36,4 +36,8 @@ function(cc_test name)
       ${FIREBASE_SOURCE_DIR}
   )
   target_link_libraries(${name} PRIVATE ${cc_test_DEPENDS})
+  target_compile_definitions(${name}
+    PRIVATE
+      -DINTERNAL_EXPERIMENTAL=1
+  )
 endfunction()

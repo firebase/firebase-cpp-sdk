@@ -102,6 +102,7 @@ add_external_library(flatbuffers)
 
 if(FIREBASE_CPP_BUILD_TESTS)
   add_external_library(googletest)
+  add_external_library(absl)
 endif()
 
 # Some of the external libraries are not used for mobile.
@@ -254,6 +255,12 @@ endif()
 # Define this directory to be the root of the C++ SDK, which the libraries can
 # then refer to.
 set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
+
+# If we're building tests, we need to include the 'testing' folder before any
+# of the tests actually get built.
+if(FIREBASE_CPP_BUILD_TESTS)
+  add_subdirectory(testing)
+endif()
 
 # App needs to come first, since other libraries will depend upon it.
 add_subdirectory(app)

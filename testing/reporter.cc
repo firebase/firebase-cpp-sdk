@@ -1,12 +1,11 @@
 #include <algorithm>
 #include <set>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "testing/reporter.h"
-#include "third_party/absl/strings/str_cat.h"
-#include "third_party/absl/strings/str_join.h"
 
 namespace firebase {
 namespace testing {
@@ -72,8 +71,17 @@ bool ReportRow::operator<(const ReportRow& other) const {
 }
 
 std::string ReportRow::toString() const {
-  return absl::StrCat(fake_, " ", result_, " ", getPlatformString(), " [",
-                      absl::StrJoin(args_, " "), "]");
+  std::ostringstream stream;
+
+  stream << fake_ << " " << result_ << " " << getPlatformString() << " [";
+  for (int i = 0; i < args_.size(); i++) {
+    stream << args_[i];
+    if (i < args_.size()-1)
+      stream << " ";
+  }
+  stream << "]";
+
+  return stream.str();
 }
 
 ::std::ostream& operator<<(::std::ostream& os, const ReportRow& r) {

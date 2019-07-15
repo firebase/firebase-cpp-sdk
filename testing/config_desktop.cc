@@ -1,10 +1,13 @@
 #include "testing/config_desktop.h"
 #include "testing/config.h"
 
+#include <cassert>
 #include <cstdint>
+#include <cstdlib>
 
-#include "base/logging.h"
 #include "app/src/mutex.h"
+#include "gtest/gtest.h"
+#include "gmock/gmock.h"
 #include "testing/testdata_config_generated.h"
 #include "flatbuffers/idl.h"
 
@@ -23,7 +26,12 @@ static std::vector<uint8_t*> g_all_test_data;  // NOLINT
 
 const ConfigRow* ConfigGet(const char* fake) {
   MutexLock lock(testing_mutex);
-  CHECK(g_test_data_config != nullptr) << "No test data at all";
+
+  if (g_test_data_config == nullptr) {
+    ADD_FAILURE() << "No test data at all";
+    assert(false);
+  }
+
   const TestDataConfig* config = GetTestDataConfig(g_test_data_config);
   // LookupByKey() does not work because the data passed in may not conform. So
   // we just iterate over the test data.

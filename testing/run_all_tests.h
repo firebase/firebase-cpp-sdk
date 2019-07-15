@@ -4,6 +4,8 @@
 #ifndef FIREBASE_TESTING_CPPSDK_RUN_ALL_TESTS_H_
 #define FIREBASE_TESTING_CPPSDK_RUN_ALL_TESTS_H_
 
+#if defined(__ANDROID__) || defined(FIREBASE_ANDROID_FOR_DESKTOP)
+
 #include <jni.h>
 
 namespace firebase {
@@ -26,5 +28,7 @@ inline jobject GetTestActivity() {
 }  // namespace cppsdk
 }  // namespace testing
 }  // namespace firebase
+
+#endif  // defined(__ANDROID__) || defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
 #endif  // FIREBASE_TESTING_CPPSDK_RUN_ALL_TESTS_H_
