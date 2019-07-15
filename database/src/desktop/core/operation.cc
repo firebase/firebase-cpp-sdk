@@ -118,8 +118,9 @@ static Optional<Operation> OperationForChildAckUserWrite(
     return Optional<Operation>(op);
   } else {
     const Tree<bool>* child_tree = op.affected_tree.GetChild(child_key);
-    return Optional<Operation>(Operation::AckUserWrite(
-        Path(), *child_tree, op.revert ? kAckRevert : kAckConfirm));
+    return Optional<Operation>(
+        Operation::AckUserWrite(Path(), child_tree ? *child_tree : Tree<bool>(),
+                                op.revert ? kAckRevert : kAckConfirm));
   }
 }
 
