@@ -131,6 +131,15 @@ PersistentConnection::~PersistentConnection() {
   // executing code which requires reference to this.
   safe_this_.ClearReference();
 
+  // Clear OnCompletion function for pending token future
+  {
+    MutexLock future_lock(pending_token_future_mutex_);
+    if (pending_token_future_.status() != kFutureStatusInvalid) {
+      pending_token_future_.OnCompletion(nullptr, nullptr);
+      pending_token_future_ = Future<std::string>();
+    }
+  }
+
   // Destroy the client so that no more event will be triggered from this point.
   realtime_.reset(nullptr);
 }
@@ -487,21 +496,75 @@ void PersistentConnection::TryScheduleReconnect() {
   }
 
   assert(connection_state_ == kDisconnected);
-
+  bool force_refresh = force_auth_refresh_;
+  force_auth_refresh_ = false;
   LogDebug("%s Scheduling connection attempt", log_id_.c_str());
 
-  // TODO(chkuang): Implement Retry
-  Reconnect();
+  // TODO(chkuang): Implement Exponential Backoff Retry
+  connection_state_ = kGettingToken;
+  LogDebug("%s Trying to fetch auth token", log_id_.c_str());
+
+  // Get Token Asynchronously to make sure the token is not expired.
+  Future<std::string> future;
+  bool succeeded = app_->function_registry()->CallFunction(
+      ::firebase::internal::FnAuthGetTokenAsync, app_, &force_refresh, &future);
+  if (succeeded && future.status() != kFutureStatusInvalid) {
+    // Set pending future
+    MutexLock future_lock(pending_token_future_mutex_);
+    pending_token_future_ = future;
+    future.OnCompletion(OnTokenFutureComplete, this);
+  } else {
+    // Auth is not available now.  Start the connection anyway.
+    OpenNetworkConnection();
+  }
 }
 
-void PersistentConnection::Reconnect() {
-  assert(connection_state_ == kDisconnected);
-  connection_state_ = kGettingToken;
+void PersistentConnection::OnTokenFutureComplete(
+    const Future<std::string>& result_data, void* user_data) {
+  assert(user_data);
+  PersistentConnection* connection =
+      static_cast<PersistentConnection*>(user_data);
+  ThisRefLock lock(&connection->safe_this_);
+  // If the connection is destroyed or being destroyed, do nothing.
+  if (!lock.GetReference()) return;
 
-  LogDebug("%s Trying to fetch auth token", log_id_.c_str());
-  GetAuthToken(&auth_token_);
+  {
+    // Clear pending future
+    MutexLock future_lock(connection->pending_token_future_mutex_);
+    connection->pending_token_future_ = Future<std::string>();
+  }
 
-  OpenNetworkConnection();
+  connection->scheduler_->Schedule(
+      new callback::CallbackValue2<ThisRef, Future<std::string>>(
+          connection->safe_this_, result_data,
+          [](ThisRef ref, Future<std::string> future) {
+            ThisRefLock lock(&ref);
+            if (lock.GetReference()) {
+              lock.GetReference()->HandleTokenFuture(future);
+            }
+          }));
+}
+
+void PersistentConnection::HandleTokenFuture(Future<std::string> future) {
+  if (future.error() == 0) {
+    if (connection_state_ == kGettingToken) {
+      LogDebug("%s Successfully fetched token, opening connection",
+               log_id_.c_str());
+      auth_token_ = *future.result();
+      OpenNetworkConnection();
+    } else {
+      assert(connection_state_ == kDisconnected);
+      LogDebug(
+          "%s Not opening connection after token refresh, because "
+          "connection was set to disconnected",
+          log_id_.c_str());
+    }
+  } else {
+    connection_state_ = kDisconnected;
+    LogDebug("%s Error fetching token: %s", log_id_.c_str(),
+             future.error_message());
+    TryScheduleReconnect();
+  }
 }
 
 void PersistentConnection::OpenNetworkConnection() {
@@ -945,6 +1008,7 @@ void PersistentConnection::HandleAuthTokenResponse(const Variant& message,
     }
   } else {
     auth_token_.clear();
+    force_auth_refresh_ = true;
     event_handler_->OnAuthStatus(false);
 
     std::string reason = GetStringValue(message, kServerResponseData);

@@ -26,6 +26,7 @@
 #include "app/memory/shared_ptr.h"
 #include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/optional.h"
 #include "app/src/path.h"
@@ -313,8 +314,21 @@ class PersistentConnection : public ConnectionEventHandler {
   }
 
   bool ShouldReconnect() { return interrupt_reasons_.empty(); }
+
+  // Try to reconnect to RT DB server.
   void TryScheduleReconnect();
-  void Reconnect();
+
+  // Callback function when the future to fetch token is complete.
+  static void OnTokenFutureComplete(const Future<std::string>& result_data,
+                                    void* user_data);
+  void HandleTokenFuture(Future<std::string> future);
+
+  // Pending future to fetch the token.
+  Future<std::string> pending_token_future_;
+  // Mutex to protect pending_token_future_
+  Mutex pending_token_future_mutex_;
+
+  // Start to establish connection to RT DB server.
   void OpenNetworkConnection();
 
   bool CanSendWrites() const { return connection_state_ == kConnected; }
