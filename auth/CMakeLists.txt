@@ -220,3 +220,8 @@ if(IOS)
   # Add a dependency to downloading the headers onto auth.
   add_dependencies(firebase_auth ${pod_target_name})
 endif()
+
+if(FIREBASE_CPP_BUILD_TESTS)
+  # Add the tests subdirectory
+  add_subdirectory(tests)
+endif()

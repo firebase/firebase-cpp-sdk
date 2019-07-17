@@ -30,6 +30,7 @@ const ConfigRow* ConfigGet(const char* fake) {
   if (g_test_data_config == nullptr) {
     ADD_FAILURE() << "No test data at all";
     assert(false);
+    return nullptr;
   }
 
   const TestDataConfig* config = GetTestDataConfig(g_test_data_config);
