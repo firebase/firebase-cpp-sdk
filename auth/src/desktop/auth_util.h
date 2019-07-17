@@ -21,9 +21,10 @@
 #include "app/rest/request.h"
 #include "app/rest/transport_builder.h"
 #include "app/src/assert.h"
+#include "app/src/callback.h"
 #include "app/src/log.h"
+#include "app/src/scheduler.h"
 #include "app/src/semaphore.h"
-#include "app/src/thread.h"
 #include "auth/src/common.h"
 #include "auth/src/data.h"
 #include "auth/src/desktop/auth_constants.h"
@@ -38,6 +39,8 @@
 
 namespace firebase {
 namespace auth {
+
+using firebase::callback::NewCallback;
 
 const char* GetApiKey(const AuthData& auth_data);
 
@@ -99,14 +102,17 @@ inline Future<ResultT> CallAsync(
 
   StartAsyncFunction(auth_data->auth_impl);
   typedef AuthDataHandle<ResultT, RequestT> HandleT;
-  firebase::Thread(
+
+  auto scheduler_callback = NewCallback(
       [](HandleT* const raw_auth_data_handle) {
         std::unique_ptr<HandleT> handle(raw_auth_data_handle);
         handle->callback(handle.get());
         EndAsyncFunction(handle->auth_data->auth_impl);
       },
-      new HandleT(auth_data, promise, std::move(request), callback))
-      .Detach();
+      new HandleT(auth_data, promise, std::move(request), callback));
+  auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
+  auth_impl->scheduler_.Schedule(scheduler_callback);
+
   return promise.future();
 }
 

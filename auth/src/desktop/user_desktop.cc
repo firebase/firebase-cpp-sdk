@@ -19,9 +19,10 @@
 
 #include "app/rest/transport_builder.h"
 #include "app/rest/util.h"
+#include "app/src/callback.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/scheduler.h"
 #include "app/src/secure/user_secure_manager.h"
-#include "app/src/thread.h"
 #include "auth/src/common.h"
 #include "auth/src/data.h"
 #include "auth/src/desktop/auth_data_handle.h"
@@ -54,6 +55,7 @@ namespace firebase {
 namespace auth {
 
 using firebase::app::secure::UserSecureManager;
+using firebase::callback::NewCallback;
 
 namespace {
 
@@ -112,7 +114,8 @@ GetTokenResult GetTokenIfFresh(const UserView::Reader& user,
 // Note: this is a blocking call! The caller is supposed to call this function
 // on the appropriate thread.
 GetTokenResult EnsureFreshToken(AuthData* const auth_data,
-                                const bool force_refresh) {
+                                const bool force_refresh,
+                                const bool notify_listener) {
   FIREBASE_ASSERT_RETURN(GetTokenResult(kAuthErrorFailure), auth_data);
 
   GetTokenResult old_token(kAuthErrorFailure);
@@ -149,11 +152,16 @@ GetTokenResult EnsureFreshToken(AuthData* const auth_data,
       return GetTokenResult(kAuthErrorNoSignedInUser);
     }
   }
-  if (has_token_changed) {
+  if (has_token_changed && notify_listener) {
     NotifyIdTokenListeners(auth_data);
   }
 
   return GetTokenResult(response.id_token());
+}
+
+GetTokenResult EnsureFreshToken(AuthData* const auth_data,
+                                const bool force_refresh) {
+  return EnsureFreshToken(auth_data, force_refresh, true);
 }
 
 // Checks whether there is a currently logged in user. If no user is signed in,
@@ -181,7 +189,8 @@ Future<ResultT> CallAsyncWithFreshToken(
   StartAsyncFunction(auth_data->auth_impl);
 
   typedef AuthDataHandle<ResultT, RequestT> HandleT;
-  firebase::Thread(
+
+  auto scheduler_callback = NewCallback(
       [](HandleT* const raw_auth_data_handle) {
         std::unique_ptr<HandleT> handle(raw_auth_data_handle);
 
@@ -197,8 +206,10 @@ Future<ResultT> CallAsyncWithFreshToken(
         handle->callback(handle.get());
         EndAsyncFunction(handle->auth_data->auth_impl);
       },
-      new HandleT(auth_data, promise, std::move(request), callback))
-      .Detach();
+      new HandleT(auth_data, promise, std::move(request), callback));
+  auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
+  auth_impl->scheduler_.Schedule(scheduler_callback);
+
   return promise.LastResult();
 }
 
@@ -472,7 +483,29 @@ void AssignLoadedData(const Future<std::string>& future, AuthData* auth_data) {
 void HandleLoadedData(const Future<std::string>& future, void* auth_data) {
   auto cast_auth_data = static_cast<AuthData*>(auth_data);
   AssignLoadedData(future, cast_auth_data);
-  LoadFinishTriggerListeners(cast_auth_data);
+
+  // End async call for LoadUserData
+  EndAsyncFunction(cast_auth_data->auth_impl);
+
+  auto scheduler_callback = NewCallback(
+      [](AuthData* callback_auth_data) {
+        // Don't trigger token listeners if token get refreshed, since
+        // it will get triggered inside LoadFinishTriggerListeners anyways.
+        const GetTokenResult get_token_result =
+            EnsureFreshToken(callback_auth_data, false, false);
+        LoadFinishTriggerListeners(callback_auth_data);
+        EndAsyncFunction(callback_auth_data->auth_impl);
+      },
+      cast_auth_data);
+  // Start Async call for EnsureFreshToken
+  StartAsyncFunction(cast_auth_data->auth_impl);
+  auto auth_impl = static_cast<AuthImpl*>(cast_auth_data->auth_impl);
+  auth_impl->scheduler_.Schedule(scheduler_callback);
+}
+
+void HandlePersistenceComplete(const Future<void>& future, void* auth_data) {
+  auto cast_auth_data = static_cast<AuthData*>(auth_data);
+  EndAsyncFunction(cast_auth_data->auth_impl);
 }
 
 Future<std::string> UserDataPersist::LoadUserData(AuthData* auth_data) {
@@ -480,6 +513,7 @@ Future<std::string> UserDataPersist::LoadUserData(AuthData* auth_data) {
     return Future<std::string>();
   }
 
+  StartAsyncFunction(auth_data->auth_impl);
   Future<std::string> future =
       user_secure_manager_->LoadUserData(auth_data->app->name());
   future.OnCompletion(HandleLoadedData, auth_data);
@@ -531,11 +565,11 @@ Future<void> UserDataPersist::SaveUserData(AuthData* auth_data) {
 }
 
 Future<void> UserDataPersist::DeleteUserData(AuthData* auth_data) {
-  return user_secure_manager_->DeleteUserData(auth_data->app->name());
-}
-
-Future<void> UserDataPersist::DeleteAllData() {
-  return user_secure_manager_->DeleteAllData();
+  StartAsyncFunction(auth_data->auth_impl);
+  Future<void> future =
+      user_secure_manager_->DeleteUserData(auth_data->app->name());
+  future.OnCompletion(HandlePersistenceComplete, auth_data);
+  return future;
 }
 
 User::~User() {

@@ -18,6 +18,7 @@
 #include <memory>
 
 #include "app/rest/request.h"
+#include "app/src/scheduler.h"
 #include "app/src/semaphore.h"
 #include "app/src/thread.h"
 #include "app/src/time.h"
@@ -117,6 +118,9 @@ struct AuthImpl {
   Semaphore async_sem;
   Mutex async_mutex;
   int active_async_calls;
+
+  // Serializes all REST call from this object.
+  scheduler::Scheduler scheduler_;
 };
 
 // Constant, describing how often we automatically fetch a new auth token.

@@ -111,8 +111,6 @@ class UserDataPersist : public firebase::auth::AuthStateListener {
   Future<std::string> LoadUserData(AuthData* auth_data);
   Future<void> DeleteUserData(AuthData* auth_data);
 
-  Future<void> DeleteAllData();
-
  private:
   UniquePtr<firebase::app::secure::UserSecureManager> user_secure_manager_;
 };
