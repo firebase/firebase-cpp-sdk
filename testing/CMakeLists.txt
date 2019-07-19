@@ -115,11 +115,17 @@ else()
     set(util_SRCS "")
 endif()
 
+set(json_util_SRCS
+    json_util.h
+    json_util.cc)
+
 add_library(firebase_testing STATIC
     ${config_SRCS}
+    ${json_util_SRCS}
     ${reporter_SRCS}
     ${ticker_SRCS}
-    ${util_SRCS})
+    ${util_SRCS}
+)
 
 target_include_directories(firebase_testing
     PUBLIC

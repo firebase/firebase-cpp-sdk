@@ -149,3 +149,8 @@ if(IOS)
   # Add a dependency to downloading the headers onto admob.
   add_dependencies(firebase_storage ${pod_target_name})
 endif()
+
+if(FIREBASE_CPP_BUILD_TESTS)
+  # Add the tests subdirectory
+  add_subdirectory(tests)
+endif()
