@@ -791,7 +791,7 @@ void PersistentConnection::PutInternal(const char* action, const Path& path,
   request.map()[kRequestPath] = path.str();
   request.map()[kRequestDataPayload] = data;
   if (hash != nullptr) {
-    request.map()[kRequestDataHash] = hash;
+    request.map()[kRequestDataHash] = std::string(hash);
   }
 
   uint64_t write_id = next_write_id_++;
