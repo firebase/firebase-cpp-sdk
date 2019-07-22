@@ -91,28 +91,33 @@ class PhoneAuthProvider;
 ///
 /// For example:
 /// @code{.cpp}
-///  // Get the Auth class for your App.
-///  firebase::auth::Auth* auth = firebase::auth::Auth::GetAuth(app);
 ///
-///  // Request anonymous sign-in and wait until asynchronous call completes.
-///  firebase::Future<firebase::auth::User*> sign_in_future =
-///      auth->SignInAnonymously();
-///  while (sign_in_future.status() == firebase::kFutureStatusPending) {
-///    Wait(100);
-///    printf("Signing in...\n");
-///  }
+/// // Get the Auth class for your App.
+/// firebase::auth::Auth* auth = firebase::auth::Auth::GetAuth(app);
 ///
-///  // Print sign in results.
-///  const firebase::auth::AuthError error =
-///      static_cast<firebase::auth::AuthError>(sign_in_future.error());
-///  if (error != firebase::auth::kAuthErrorNone) {
-///    printf("Sign in failed with error `%s`\n",
-///           sign_in_future.error_message());
-///  } else {
-///    firebase::auth::User* user = *sign_in_future.result();
-///    printf("Signed in as %s user.\n",
-///           user->Anonymous() ? "an anonymous" : "a non-anonymous");
-///  }
+/// // Request anonymous sign-in and wait until asynchronous call completes.
+/// firebase::Future<firebase::auth::User*> sign_in_future =
+///     auth->SignInAnonymously();
+/// while(sign_in_future.status() == firebase::kFutureStatusPending) {
+///     // when polling, like this, make sure you service your platform's
+///     // message loop
+///     // see https://github.com/firebase/quickstart-cpp for a sample
+///     ProcessEvents(300);
+///     std::cout << "Signing in...\n";
+/// }
+///
+/// const firebase::auth::AuthError error =
+///     static_cast<firebase::auth::AuthError>(sign_in_future.error());
+/// if (error != firebase::auth::kAuthErrorNone) {
+///     std::cout << "Sign in failed with error '"
+///         << sign_in_future.error_message() << "'\n";
+/// } else {
+///     firebase::auth::User* user = *sign_in_future.result();
+///     // is_anonymous from Anonymous
+///     std::cout << "Signed in as "
+///         << (user->is_anonymous() ? "an anonymous" : "a non-anonymous")
+///         << " user\n";
+/// }
 /// @endcode
 /// @endif
 class Auth {
