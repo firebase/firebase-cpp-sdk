@@ -22,7 +22,11 @@
 #include "app/src/log.h"
 #include "app/src/util_android.h"
 
-namespace firebase {
+#if !defined(FIREBASE_NAMESPACE)
+#define FIREBASE_NAMESPACE firebase
+#endif
+
+namespace FIREBASE_NAMESPACE {
 
 // Called from com.google.firebase.app.internal.cpp.Log.
 extern "C" JNIEXPORT void JNICALL
@@ -47,4 +51,5 @@ Java_com_google_firebase_app_internal_cpp_Log_nativeLog(
              cmsg.c_str());
 }
 
-}  // namespace firebase
+// NOLINTNEXTLINE - allow namespace overridden
+}  // namespace FIREBASE_NAMESPACE
