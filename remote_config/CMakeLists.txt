@@ -143,3 +143,8 @@ if(IOS)
   # Add a dependency to downloading the headers onto remote_config.
   add_dependencies(firebase_remote_config ${pod_target_name})
 endif()
+
+if(FIREBASE_CPP_BUILD_TESTS)
+  # Add the tests subdirectory
+  add_subdirectory(tests)
+endif()
