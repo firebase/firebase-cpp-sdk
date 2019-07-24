@@ -69,8 +69,8 @@ if(DEFINED CMAKE_TOOLCHAIN_FILE AND NOT ANDROID)
   endif()
 endif()
 
-# We're on iOS if the system root is set to "iphoneos" or some variant.
-if("${CMAKE_OSX_SYSROOT}" MATCHES "iphoneos")
+# We're on iOS if the system root is set to "iphone" or some variant.
+if("${CMAKE_OSX_SYSROOT}" MATCHES "iphone")
   set(IOS TRUE CACHE BOOL "Target platform is iOS.")
 endif()
 

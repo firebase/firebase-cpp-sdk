@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set(CMAKE_OSX_SYSROOT iphoneos)
-set(CMAKE_OSX_ARCHITECTURES "arm64")
-set(CMAKE_XCODE_EFFECTIVE_PLATFORMS "-iphoneos")
+set(CMAKE_OSX_SYSROOT iphonesimulator)
+set(CMAKE_OSX_ARCHITECTURES "x86_64")
+set(CMAKE_XCODE_EFFECTIVE_PLATFORMS "-iphonesimulator")
 set(CMAKE_XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "NO")
 set(CMAKE_XCODE_ATTRIBUTE_ENABLE_BITCODE "YES")
 

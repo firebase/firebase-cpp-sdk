@@ -331,9 +331,11 @@ if(IOS)
   add_dependencies(firebase_app ${pod_target_name})
 endif()
 
-# Add the rest subdirectory, so that other libraries can access it
-add_subdirectory(rest)
-add_subdirectory(instance_id)
+if (NOT ANDROID AND NOT IOS)
+  # Add the rest subdirectory, so that other libraries can access it
+  add_subdirectory(rest)
+  add_subdirectory(instance_id)
+endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)
   # Add the tests subdirectory

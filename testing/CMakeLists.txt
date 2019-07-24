@@ -28,7 +28,6 @@ binary_to_array("testdata_config_resource"
 set(config_common_SRCS
     config.h
     config.cc
-    config_test.cc
     ${FIREBASE_GEN_FILE_DIR}/testing/testdata_config_generated.h
     ${FIREBASE_GEN_FILE_DIR}/testing/testdata_config_resource.h
     ${FIREBASE_GEN_FILE_DIR}/testing/testdata_config_resource.cc)
@@ -57,10 +56,8 @@ endif()
 set(reporter_common_SRCS
     reporter.h
     reporter.cc
-    reporter_test.cc
     reporter_impl.h
     reporter_impl.cc
-    reporter_impl_test.cc
 )
 set(reporter_android_SRCS
     reporter_android.cc)
@@ -74,8 +71,7 @@ else()
 endif()
 
 set(ticker_common_SRCS
-    ticker.h
-    ticker_test.cc)
+    ticker.h)
 set(ticker_android_SRCS
     ticker_android.cc)
 set(ticker_ios_SRCS
@@ -99,12 +95,10 @@ endif()
 
 set(util_android_SRCS
     util_android.h
-    util_android.cc
-    util_android_test.cc)
+    util_android.cc)
 set(util_ios_SRCS
     util_ios.h
-    util_ios.mm
-    util_ios_test.mm)
+    util_ios.mm)
 if(ANDROID)
     set(util_SRCS
         "${util_android_SRCS}")
