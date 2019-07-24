@@ -23,7 +23,7 @@ include(CMakeParseArguments)
 # Defines a new test executable target with the given target name, sources, and
 # dependencies.  Implicitly adds DEPENDS on gtest and gtest_main.
 function(cc_test name)
-  set(multi DEPENDS SOURCES)
+  set(multi DEPENDS SOURCES INCLUDES DEFINES)
   # Parse the arguments into cc_test_SOURCES and cc_test_DEPENDS.
   cmake_parse_arguments(cc_test "" "" "${multi}" ${ARGN})
 
@@ -34,10 +34,12 @@ function(cc_test name)
   target_include_directories(${name}
     PRIVATE
       ${FIREBASE_SOURCE_DIR}
+      ${cc_test_INCLUDES}
   )
   target_link_libraries(${name} PRIVATE ${cc_test_DEPENDS})
   target_compile_definitions(${name}
     PRIVATE
       -DINTERNAL_EXPERIMENTAL=1
+      ${cc_test_DEFINES}
   )
 endfunction()

@@ -219,3 +219,8 @@ if(IOS)
   # Add a dependency to downloading the headers onto database.
   add_dependencies(firebase_database ${pod_target_name})
 endif()
+
+if(FIREBASE_CPP_BUILD_TESTS)
+  # Add the tests subdirectory
+  add_subdirectory(tests)
+endif()
