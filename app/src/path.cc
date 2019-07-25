@@ -15,6 +15,7 @@
  */
 
 #include "app/src/path.h"
+
 #include <algorithm>
 #include <cstring>
 #include <iterator>
@@ -130,16 +131,16 @@ const char* Path::GetBaseName() const {
   return path_.c_str() + index + 1;
 }
 
-bool Path::StartsWith(const Path& prefix) const {
-  if (prefix.empty()) return true;
-  if (prefix.path_.size() > path_.size()) return false;
+bool Path::IsParent(const Path& other) const {
+  if (empty()) return true;
+  if (path_.size() > other.path_.size()) return false;
+  auto other_iter = other.path_.begin();
   auto this_iter = path_.begin();
-  auto prefix_iter = prefix.path_.begin();
-  for (; this_iter != path_.end() && prefix_iter != prefix.path_.end();
-       ++this_iter, ++prefix_iter) {
-    if (*this_iter != *prefix_iter) break;
+  for (; other_iter != other.path_.end() && this_iter != path_.end();
+       ++other_iter, ++this_iter) {
+    if (*other_iter != *this_iter) break;
   }
-  return this_iter == path_.end() || *this_iter == '/';
+  return other_iter == other.path_.end() || *other_iter == '/';
 }
 
 std::vector<std::string> Path::GetDirectories() const {

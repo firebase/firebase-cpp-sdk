@@ -19,6 +19,7 @@
 
 #include <string>
 #include <vector>
+
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/optional.h"
 
@@ -73,11 +74,11 @@ class Path {
   // In the path: path/to/object/in/database, it would return "database".
   const char* GetBaseName() const;
 
-  // Returns true if this path starts with the prefix path. The prefix path is
-  // compared on a per-directory basis, not per-character. That is, for the path
-  // "foo/bar/baz", the path "foo/bar" would be return true, but "foo/ba" would
-  // return false.
-  bool StartsWith(const Path& prefix) const;
+  // Returns true if this path is the parent of the other path. The other path
+  // is compared on a per-directory basis, not per-character. That is, for the
+  // path "foo/bar/baz", the path "foo/bar" would be return true, but "foo/ba"
+  // would return false.
+  bool IsParent(const Path& other) const;
 
   // Returns a vector containing each directory in the path in order.
   // The path "foo/bar/baz" would return a vector containing "foo", "bar", and

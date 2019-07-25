@@ -97,7 +97,7 @@ bool WriteTree::RemoveWrite(WriteId write_id) {
         // The removed write was completely shadowed by a subsequent write.
         removed_write_was_visible = false;
         break;
-      } else if (write_to_remove.path.StartsWith(current_write.path)) {
+      } else if (write_to_remove.path.IsParent(current_write.path)) {
         // Either we're covering some writes or they're covering part of us
         // (depending on which came first).
         removed_write_overlaps_with_other_writes = true;
@@ -198,8 +198,8 @@ Optional<Variant> WriteTree::CalcCompleteEventCache(
                                   filter_data->write_ids_to_exclude->end(),
                                   write.write_id);
             if (iter == filter_data->write_ids_to_exclude->end()) {
-              return write.path.StartsWith(*filter_data->tree_path) ||
-                     filter_data->tree_path->StartsWith(write.path);
+              return write.path.IsParent(*filter_data->tree_path) ||
+                     filter_data->tree_path->IsParent(write.path);
             }
           }
           return false;
@@ -358,12 +358,12 @@ Optional<Variant> WriteTree::ShadowingWrite(const Path& path) const {
 bool WriteTree::RecordContainsPath(const UserWriteRecord& write_record,
                                    const Path& path) {
   if (write_record.is_overwrite) {
-    return write_record.path.StartsWith(path);
+    return write_record.path.IsParent(path);
   } else {
     bool result = false;
     write_record.merge.write_tree().CallOnEach(
         Path(), [&](const Path& current_path, Variant) {
-          if (write_record.path.GetChild(current_path).StartsWith(path)) {
+          if (write_record.path.GetChild(current_path).IsParent(path)) {
             result = true;
           }
         });
@@ -394,12 +394,12 @@ CompoundWrite WriteTree::LayerTree(const std::vector<UserWriteRecord>& writes,
     if (filter(write, filter_userdata)) {
       Path write_path = write.path;
       if (write.is_overwrite) {
-        if (tree_root.StartsWith(write_path)) {
+        if (tree_root.IsParent(write_path)) {
           Optional<Path> relative_path =
               Path::GetRelative(tree_root, write_path);
           compound_write =
               compound_write.AddWrite(*relative_path, write.overwrite);
-        } else if (write_path.StartsWith(tree_root)) {
+        } else if (write_path.IsParent(tree_root)) {
           compound_write = compound_write.AddWrite(
               Path(),
               VariantGetChild(&write.overwrite,
@@ -409,12 +409,12 @@ CompoundWrite WriteTree::LayerTree(const std::vector<UserWriteRecord>& writes,
           // write
         }
       } else {
-        if (tree_root.StartsWith(write_path)) {
+        if (tree_root.IsParent(write_path)) {
           Optional<Path> relative_path =
               Path::GetRelative(tree_root, write_path);
           compound_write =
               compound_write.AddWrites(*relative_path, write.merge);
-        } else if (write_path.StartsWith(tree_root)) {
+        } else if (write_path.IsParent(tree_root)) {
           Optional<Path> relative_path =
               Path::GetRelative(write_path, tree_root);
           if (relative_path->empty()) {
