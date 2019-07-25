@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import org.gradle.util.ConfigureUtil;
+
 // A map of library to the dependencies that need to be added for it.
 def firebaseDependenciesMap = [
   'app' : ['com.google.firebase:firebase-analytics:17.0.0'],
