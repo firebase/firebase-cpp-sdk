@@ -29,5 +29,10 @@ Credential FacebookAuthProvider::GetCredential(const char* const access_token) {
       new CredentialImpl{new FacebookAuthCredential(access_token)}};
 }
 
+// static
+const char* FacebookAuthProvider::GetProviderId()  {
+  return "facebook.com";
+}
+
 }  // namespace auth
 }  // namespace firebase

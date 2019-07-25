@@ -283,6 +283,12 @@ Future<User*> Auth::SignInWithCredential(const Credential& credential) {
                                 credential.impl_);
 }
 
+Future<SignInResult> Auth::SignInWithProvider(
+      FederatedAuthProvider* provider) {
+  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
+  return provider->SignIn(auth_data_);
+}
+
 Future<User*> Auth::SignInAnonymously() {
   Promise<User*> promise(&auth_data_->future_impl, kAuthFn_SignInAnonymously);
 

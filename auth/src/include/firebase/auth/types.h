@@ -17,6 +17,12 @@
 #ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_TYPES_H_
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_TYPES_H_
 
+#ifdef INTERNAL_EXPERIMENTAL
+#include <map>
+#include <string>
+#include <vector>
+#endif  // INTERNAL_EXPERIMENTAL
+
 namespace firebase {
 namespace auth {
 
@@ -348,7 +354,39 @@ enum AuthError {
   /// Indicates that a request was made to the backend without a valid client
   /// identifier.
   kAuthErrorMissingClientIdentifier,
+
+#ifdef INTERNAL_EXPERIMENTAL
+  /// Indicates that the provided event handler is null or invalid.
+  kAuthErrorInvalidEventHandler,
+
+  /// Indicates that the federated provider is busy with a previous
+  /// authorization request. Try again when the previous authorization request
+  /// completes.
+  kAuthErrorFederatedProviderAreadyInUse,
+
+  /// Indicates that one or more fields of the provided AuthenticatedUserData
+  /// are invalid.
+  kAuthErrorInvalidAuthenticatedUserData,
+#endif  // INTERNAL_EXEPERIMENTAL
 };
+
+#ifdef INTERNAL_EXPERIMENTAL
+// @brief Contains information to identify a Federated Auth Provider.
+struct FederatedProviderData {
+  // @brief The name of the provider against which authentication attempts will
+  // take place.
+  std::string provider_id;
+};
+
+// @brief Contains information to identify an OAuth povider.
+struct FederatedOAuthProviderData : FederatedProviderData {
+  // OAuth parmeters which specify which rights of access are being requested.
+  std::vector<std::string> scopes;
+
+  // OAuth parameters which are provided to the federated provider service.
+  std::map<std::string, std::string> custom_parameters;
+};
+#endif  // INTERNAL_EXPERIMENTAL
 
 }  // namespace auth
 }  // namespace firebase

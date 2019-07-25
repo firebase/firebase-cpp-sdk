@@ -30,5 +30,10 @@ Credential PlayGamesAuthProvider::GetCredential(
       new CredentialImpl{new PlayGamesAuthCredential(server_auth_code)}};
 }
 
+// static
+const char* PlayGamesAuthProvider::GetProviderId() {
+  return "playgames.google.com";
+}
+
 }  // namespace auth
 }  // namespace firebase

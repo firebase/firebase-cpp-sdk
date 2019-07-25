@@ -142,6 +142,17 @@ class FacebookAuthProvider {
   ///
   /// @returns New Credential.
   static Credential GetCredential(const char* access_token);
+
+#ifdef INTERNAL_EXPERIMENTAL
+  /// Return the providerId used for FederatedAuth.
+  ///
+  /// @return A string representation of the FacebookAuthProvider.
+  /// @see FederatedAuthProvider::SetProviderData
+  /// @see Auth::SignInWithProvider
+  /// @see User::ReauthenticateWithProvider
+  /// @see User::LinkWithProvider
+  static const char* GetProviderId();
+#endif  // INTERNAL_EXPERIMENTAL
 };
 
 /// @brief Use an access token provided by GitHub to authenticate.
@@ -153,6 +164,17 @@ class GitHubAuthProvider {
   ///
   /// @returns New Credential.
   static Credential GetCredential(const char* token);
+
+#ifdef INTERNAL_EXPERIMENTAL
+  /// Return the providerId used for FederatedAuth.
+  ///
+  /// @return A string representation of the FacebookAuthProvider.
+  /// @see FederatedAuthProvider::SetProviderData
+  /// @see Auth::SignInWithProvider
+  /// @see User::ReauthenticateWithProvider
+  /// @see User::LinkWithProvider
+  static const char* GetProviderId();
+#endif  // INTERNAL_EXPERIMENTAL
 };
 
 /// @brief Use an ID token and access token provided by Google to authenticate.
@@ -166,6 +188,17 @@ class GoogleAuthProvider {
   /// @returns New Credential.
   static Credential GetCredential(const char* id_token,
                                   const char* access_token);
+
+#ifdef INTERNAL_EXPERIMENTAL
+  /// Return the providerId used for FederatedAuth.
+  ///
+  /// @return A string representation of the FacebookAuthProvider.
+  /// @see FederatedAuthProvider::SetProviderData
+  /// @see Auth::SignInWithProvider
+  /// @see User::ReauthenticateWithProvider
+  /// @see User::LinkWithProvider
+  static const char* GetProviderId();
+#endif  // INTERNAL_EXPERIMENTAL
 };
 
 /// @brief Use a server auth code provided by Google Play Games to authenticate.
@@ -177,6 +210,17 @@ class PlayGamesAuthProvider {
   ///
   /// @returns New Credential.
   static Credential GetCredential(const char* server_auth_code);
+
+#ifdef INTERNAL_EXPERIMENTAL
+  /// Return the providerId used for FederatedAuth.
+  ///
+  /// @return A string representation of the FacebookAuthProvider.
+  /// @see FederatedAuthProvider::SetProviderData
+  /// @see Auth::SignInWithProvider
+  /// @see User::ReauthenticateWithProvider
+  /// @see User::LinkWithProvider
+  static const char* GetProviderId();
+#endif  // INTERNAL_EXPERIMENTAL
 };
 
 /// @brief Use a token and secret provided by Twitter to authenticate.
@@ -189,6 +233,17 @@ class TwitterAuthProvider {
   ///
   /// @returns New Credential.
   static Credential GetCredential(const char* token, const char* secret);
+
+#ifdef INTERNAL_EXPERIMENTAL
+  /// Return the providerId used for FederatedAuth.
+  ///
+  /// @return A string representation of the FacebookAuthProvider.
+  /// @see FederatedAuthProvider::SetProviderData
+  /// @see Auth::SignInWithProvider
+  /// @see User::ReauthenticateWithProvider
+  /// @see User::LinkWithProvider
+  static const char* GetProviderId();
+#endif  // INTERNAL_EXPERIMENTAL
 };
 
 /// @brief OAuth2.0+UserInfo auth provider (OIDC compliant and non-compliant).

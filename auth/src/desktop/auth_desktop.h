@@ -99,6 +99,27 @@ class IdTokenRefreshThread {
   Auth* auth;
 };
 
+// Facilitates completion of Federated Auth operations on non-mobile
+// environments. Custom application logic fulfills the authentication request
+// and uses this completion handle in callbacks. Our callbacks observe
+// contextual information in these handles to access to trigger the
+// corresponding Future<SignInResult>.
+struct AuthCompletionHandle {
+ public:
+  AuthCompletionHandle(const SafeFutureHandle<SignInResult>& handle,
+                       AuthData* auth_data)
+      : future_handle(handle), auth_data(auth_data) {}
+
+  AuthCompletionHandle() = delete;
+
+  virtual ~AuthCompletionHandle() {
+    auth_data = nullptr;
+  }
+
+  SafeFutureHandle<SignInResult> future_handle;
+  AuthData* auth_data;
+};
+
 // The desktop-specific Auth implementation.
 struct AuthImpl {
   AuthImpl() : async_sem(0), active_async_calls(0) {}
@@ -121,6 +142,9 @@ struct AuthImpl {
 
   // Serializes all REST call from this object.
   scheduler::Scheduler scheduler_;
+
+  // Synchronization primative for tracking sate of FederatedAuth futures.
+  Mutex provider_mutex;
 };
 
 // Constant, describing how often we automatically fetch a new auth token.

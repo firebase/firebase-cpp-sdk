@@ -77,6 +77,26 @@ inline AuthenticationResult CompleteSignInFlow(AuthData* const auth_data,
   return auth_result;
 }
 
+inline AuthenticationResult CompleteAuthenticedUserSignInFlow(
+    AuthData* const auth_data,
+    const FederatedAuthProvider::AuthenticatedUserData& user_data) {
+  FIREBASE_ASSERT_RETURN(AuthenticationResult(kAuthErrorFailure), auth_data);
+
+  auto auth_result = AuthenticationResult::FromAuthenticatedUserData(user_data);
+  if (!auth_result.IsValid()) {
+    return auth_result;
+  }
+
+  const GetAccountInfoResult user_account_info =
+      GetAccountInfo(*auth_data, auth_result.id_token());
+  if (!user_account_info.IsValid()) {
+    return AuthenticationResult(user_account_info.error());
+  }
+
+  auth_result.SetAccountInfo(user_account_info);
+  return auth_result;
+}
+
 template <typename ResponseT, typename FutureResultT, typename RequestT>
 inline void PerformSignInFlow(
     AuthDataHandle<FutureResultT, RequestT>* const handle) {

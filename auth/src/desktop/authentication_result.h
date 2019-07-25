@@ -15,7 +15,9 @@
 #ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTHENTICATION_RESULT_H_
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTHENTICATION_RESULT_H_
 
+#include <cstddef>
 #include <string>
+
 #include "app/rest/util.h"
 #include "app/src/log.h"
 #include "auth/src/common.h"
@@ -24,6 +26,7 @@
 #include "auth/src/desktop/get_additional_user_info.h"
 #include "auth/src/desktop/rpcs/sign_up_new_user_response.h"
 #include "auth/src/desktop/user_desktop.h"
+#include "auth/src/include/firebase/auth.h"
 
 namespace firebase {
 namespace auth {
@@ -45,6 +48,10 @@ class AuthenticationResult {
   // (!IsValid()) if the response contains an error.
   template <typename ResponseT>
   static AuthenticationResult FromResponse(const ResponseT& response);
+
+  // Creates a sign-in result corresponding to the provided user data.
+  static AuthenticationResult FromAuthenticatedUserData(
+      const FederatedAuthProvider::AuthenticatedUserData& user_data);
 
   // Signs out the currently signed-in user; no-op if no user has been signed
   // in. Updates to AuthData are done in a thread-safe manner.
@@ -143,6 +150,24 @@ inline AuthenticationResult AuthenticationResult::FromResponse(
       response.fetch_time() + response.expires_in();
 
   result.info_ = GetAdditionalUserInfo(response);
+
+  return result;
+}
+
+inline AuthenticationResult AuthenticationResult::FromAuthenticatedUserData(
+    const FederatedAuthProvider::AuthenticatedUserData& user_data) {
+  AuthenticationResult result;
+
+  result.user_impl_.is_anonymous = false;
+  result.user_impl_.uid = user_data.uid;
+  result.user_impl_.id_token = user_data.access_token;
+  result.user_impl_.refresh_token = user_data.refresh_token;
+  result.user_impl_.provider_id = user_data.provider_id;
+  result.user_impl_.access_token = user_data.access_token;
+  result.user_impl_.access_token_expiration_date =
+      std::time(nullptr) + user_data.token_expires_in_seconds;
+
+  result.info_ = GetAdditionalUserInfo(user_data);
 
   return result;
 }

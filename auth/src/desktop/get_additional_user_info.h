@@ -23,6 +23,7 @@
 #include "auth/src/data.h"
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/rpcs/verify_assertion_response.h"
+#include "auth/src/include/firebase/auth.h"
 
 namespace firebase {
 namespace auth {
@@ -42,26 +43,40 @@ inline AdditionalUserInfo GetAdditionalUserInfo(const ResponseT& /*unused*/) {
   return AdditionalUserInfo();
 }
 
+inline std::string ParseFieldFromRawUserInfo(AdditionalUserInfo* info,
+                                             const std::string& key) {
+  assert(info);
+  if (info->profile.count(key) > 0 && info->profile[key].is_string()) {
+    return info->profile[key].string_value();
+  }
+  return "";
+}
+
+inline void ParseFieldsFromRawUserInfo(AdditionalUserInfo* info) {
+  assert(info);
+  if (info->provider_id == kGitHubAuthProviderId) {
+    info->user_name = ParseFieldFromRawUserInfo(info, "login");
+  } else if (info->provider_id == kTwitterAuthProviderId) {
+    info->user_name = ParseFieldFromRawUserInfo(info, "screen_name");
+  }
+}
+
+inline AdditionalUserInfo GetAdditionalUserInfo(
+    const FederatedAuthProvider::AuthenticatedUserData& user_data) {
+  AdditionalUserInfo info;
+  info.provider_id = user_data.provider_id;
+  info.profile = user_data.raw_user_info;
+  ParseFieldsFromRawUserInfo(&info);
+  return info;
+}
+
 template <>
 inline AdditionalUserInfo GetAdditionalUserInfo(
     const VerifyAssertionResponse& response) {
   AdditionalUserInfo info;
   info.provider_id = response.provider_id();
   info.profile = detail::ParseUserProfile(response.raw_user_info());
-
-  const auto get_username = [&](const std::string& key) {
-    if (info.profile.count(key) > 0 && info.profile[key].is_string()) {
-      return info.profile[key].string_value();
-    }
-    return "";
-  };
-
-  if (info.provider_id == kGitHubAuthProviderId) {
-    info.user_name = get_username("login");
-  } else if (info.provider_id == kTwitterAuthProviderId) {
-    info.user_name = get_username("screen_name");
-  }
-
+  ParseFieldsFromRawUserInfo(&info);
   return info;
 }
 

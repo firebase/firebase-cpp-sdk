@@ -33,6 +33,10 @@ namespace auth {
 class Auth;
 struct AuthData;
 
+#ifdef INTERNAL_EXPERIMENTAL
+class FederatedAuthProvider;
+#endif  // INTERNAL_EXPERIMENTAL
+
 /// @brief Interface implemented by each identity provider.
 class UserInfoInterface {
  public:
@@ -277,6 +281,17 @@ class User : public UserInfoInterface {
   /// Get results of the most recent call to @ref ReauthenticateAndRetrieveData.
   Future<SignInResult> ReauthenticateAndRetrieveDataLastResult() const;
 
+#ifdef INTERNAL_EXPERIMENTAL
+  /// @brief Re-authenticates the user with a federated auth provider.
+  ///
+  /// @param[in] provider Contains information on the auth provider to
+  /// authenticate with.
+  /// @return A Future<SignInResult> with the result of the re-authentication
+  /// request.
+  Future<SignInResult> ReauthenticateWithProvider(
+      FederatedAuthProvider* provider) const;
+#endif  // INTERNAL_EXPERIMENTAL
+
   /// Initiates email verification for the user.
   Future<void> SendEmailVerification();
 
@@ -313,6 +328,16 @@ class User : public UserInfoInterface {
   /// Get results of the most recent call to
   /// @ref LinkAndRetrieveDataWithCredential.
   Future<SignInResult> LinkAndRetrieveDataWithCredentialLastResult() const;
+
+#ifdef INTERNAL_EXPERIMENTAL
+  /// Links this user with a federated auth provider.
+  ///
+  /// @param[in] provider Contains information on the auth provider to link
+  /// with.
+  /// @return A Future<SignInResult> with the user data result of the link
+  /// request.
+  Future<SignInResult> LinkWithProvider(FederatedAuthProvider* provider) const;
+#endif  // INTERNAL_EXPERIMENTAL
 
   /// Unlinks the current user from the provider specified.
   /// Status will be an error if the user is not linked to the given provider.

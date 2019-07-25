@@ -797,6 +797,12 @@ Future<SignInResult> User::LinkAndRetrieveDataWithCredential(
                           credential.impl_);
 }
 
+Future<SignInResult> User::LinkWithProvider(
+    FederatedAuthProvider* provider) const {
+  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
+  return provider->Link(auth_data_);
+}
+
 Future<void> User::Reauthenticate(const Credential& credential) {
   Promise<void> promise(&auth_data_->future_impl, kUserFn_Reauthenticate);
   return DoReauthenticate(promise, auth_data_, credential.provider(),
@@ -809,6 +815,12 @@ Future<SignInResult> User::ReauthenticateAndRetrieveData(
                                 kUserFn_ReauthenticateAndRetrieveData);
   return DoReauthenticate(promise, auth_data_, credential.provider(),
                           credential.impl_);
+}
+
+Future<SignInResult> User::ReauthenticateWithProvider(
+    FederatedAuthProvider* provider) const {
+  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
+  return provider->Reauthenticate(auth_data_);
 }
 
 const std::vector<UserInfoInterface*>& User::provider_data() const {
