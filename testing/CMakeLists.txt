@@ -27,16 +27,17 @@ binary_to_array("testdata_config_resource"
 
 set(config_common_SRCS
     config.h
-    config.cc
     ${FIREBASE_GEN_FILE_DIR}/testing/testdata_config_generated.h
     ${FIREBASE_GEN_FILE_DIR}/testing/testdata_config_resource.h
     ${FIREBASE_GEN_FILE_DIR}/testing/testdata_config_resource.cc)
 set(config_android_SRCS
+    config.cc
     config_android.cc)
 set(config_ios_SRCS
     config_ios.h
     config_ios.mm)
 set(config_desktop_SRCS
+    config.cc
     config_desktop.h
     config_desktop.cc)
 if(ANDROID)
@@ -75,7 +76,11 @@ set(ticker_common_SRCS
 set(ticker_android_SRCS
     ticker_android.cc)
 set(ticker_ios_SRCS
-    ticker_ios.h)
+    ticker_ios.h
+    # Right now, we re-use the desktop implementation for iOS
+    ticker_desktop.h
+    ticker_desktop.cc
+    )
 set(ticker_desktop_SRCS
     ticker_desktop.h
     ticker_desktop.cc)
