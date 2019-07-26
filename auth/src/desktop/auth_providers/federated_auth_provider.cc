@@ -95,7 +95,7 @@ Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), handler_);
   Future<SignInResult> future =
       CreateAuthFuture(auth_data, kAuthFn_LinkWithProvider);
-  if (future.status() != kFutureStatusPending) {
+  if (future.status() == kFutureStatusPending) {
     AuthCompletionHandle* auth_completion_handle = new AuthCompletionHandle(
         SafeFutureHandle<SignInResult>(future.GetHandle()), auth_data);
     handler_->OnLink(provider_data_, auth_completion_handle);
@@ -109,7 +109,7 @@ Future<SignInResult> FederatedOAuthProvider::Reauthenticate(
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), handler_);
   Future<SignInResult> future =
       CreateAuthFuture(auth_data, kAuthFn_ReauthenticateWithProvider);
-  if (future.status() != kFutureStatusPending) {
+  if (future.status() == kFutureStatusPending) {
     AuthCompletionHandle* auth_completion_handle = new AuthCompletionHandle(
         SafeFutureHandle<SignInResult>(future.GetHandle()), auth_data);
     handler_->OnReauthenticate(provider_data_, auth_completion_handle);
