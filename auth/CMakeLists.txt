@@ -101,6 +101,7 @@ set(desktop_SRCS
     src/desktop/auth_desktop.cc
     src/desktop/auth_providers/email_auth_provider.cc
     src/desktop/auth_providers/facebook_auth_provider.cc
+    src/desktop/auth_providers/federated_auth_provider.cc
     src/desktop/auth_providers/gamecenter_auth_provider.cc
     src/desktop/auth_providers/github_auth_provider.cc
     src/desktop/auth_providers/google_auth_provider.cc
