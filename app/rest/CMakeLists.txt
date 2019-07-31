@@ -117,3 +117,8 @@ else()
     -DCURL_MAX_WRITE_SIZE=65536
   )
 endif()
+
+if(FIREBASE_CPP_BUILD_TESTS)
+  # Add the tests subdirectory
+  add_subdirectory(tests)
+endif()
