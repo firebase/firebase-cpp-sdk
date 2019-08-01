@@ -366,8 +366,7 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   size_t GetLastResultCount() { return last_results_.size(); }
 
   /// Check if it's safe to delete this API. It's only safe to delete this if
-  /// no futures are Pending, and if there are no references to Futures other
-  /// than in last_results_.
+  /// no futures are Pending.
   bool IsSafeToDelete() const;
 
   /// Sets temporary context data associated with a FutureHandle that will be

@@ -490,25 +490,11 @@ void ReferenceCountedFutureImpl::SetCompletionCallbackLambda(
 bool ReferenceCountedFutureImpl::IsSafeToDelete() const {
   MutexLock lock(mutex_);
   // Check if any Futures we have are still pending.
-  int total_references = 0;
-  int internal_references = 0;
   for (auto i = backings_.begin(); i != backings_.end(); ++i) {
     // If any Future is still pending, not safe to delete.
     if (i->second->status == kFutureStatusPending) return false;
-    // Count the total number of references to all valid Futures.
-    total_references += i->second->reference_count;
   }
-  for (int i = 0; i < last_results_.size(); i++) {
-    if (last_results_[i].status() != kFutureStatusInvalid) {
-      // If the status is not invalid, this entry is using up a reference.
-      // Count up the internal references.
-      internal_references++;
-    }
-  }
-  // If the only references are internal references, we're safe to delete.
-  // Otherwise, someone somewhere is holding onto a Future, and it's not
-  // yet safe to delete.
-  return total_references == internal_references;
+  return true;
 }
 
 void ReferenceCountedFutureImpl::SetContextData(
