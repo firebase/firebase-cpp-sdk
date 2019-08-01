@@ -29,6 +29,10 @@
 #endif
 
 namespace FIREBASE_NAMESPACE {
+
+// Default app name.
+extern const char* const kDefaultAppName;
+
 namespace app_common {
 
 // Prefix applied to components of Firebase user agent strings.
@@ -45,8 +49,7 @@ extern const char* kCpuArchitecture;
 extern const char* kApiClientHeader;
 
 // Add an app to the set of apps.
-App* AddApp(App* app, bool is_default,
-            std::map<std::string, InitResult>* results);
+App* AddApp(App* app, std::map<std::string, InitResult>* results);
 
 // Find an app in the set of apps.
 App* FindAppByName(const char* name);
@@ -64,6 +67,9 @@ void RemoveApp(App* app);
 
 // Destroy all apps.
 void DestroyAllApps();
+
+// Determine whether the specified app name refers to the default app.
+bool IsDefaultAppName(const char* name);
 
 // Register a library which uses this SDK.
 // Library registrations are not thread safe as we build the user agent string

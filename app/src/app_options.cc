@@ -23,6 +23,7 @@
 #include "app/google_services_resource.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/log.h"
 #include "flatbuffers/idl.h"
 #include "flatbuffers/util.h"
@@ -170,6 +171,35 @@ AppOptions* AppOptions::LoadFromJsonConfig(const char* config,  // NOLINT
     return nullptr;
   }
   return options;
+}
+
+// Attempt to populate required options with default values if not specified.
+bool AppOptions::PopulateRequiredWithDefaults(
+#if FIREBASE_PLATFORM_ANDROID
+    JNIEnv* jni_env, jobject activity
+#endif  // FIREBASE_PLATFORM_ANDROID
+) {
+  // Populate App ID and API key from the default options if they're not
+  // specified.
+  if (app_id_.empty() || api_key_.empty()) {
+    AppOptions default_options;
+    if (AppOptions::LoadDefault(&default_options
+#if FIREBASE_PLATFORM_ANDROID
+                                , jni_env, activity
+#endif  // FIREBASE_PLATFORM_ANDROID
+                                )) {
+      if (app_id_.empty()) app_id_ = default_options.app_id_;
+      if (api_key_.empty()) api_key_ = default_options.api_key_;
+    } else {
+      LogError("Failed to load default options when attempting to populate "
+               "missing fields");
+    }
+  }
+  if (app_id_.empty() || api_key_.empty()) {
+    LogError("App ID and API key must be specified in App options.");
+    return false;
+  }
+  return true;
 }
 
 }  // namespace firebase

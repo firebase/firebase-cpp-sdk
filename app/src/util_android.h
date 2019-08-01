@@ -611,7 +611,8 @@ METHOD_LOOKUP_DECLARATION(file, FILE_METHODS)
 #define CONTEXT_METHODS(X)                             \
     X(GetFilesDir, "getFilesDir", "()Ljava/io/File;"), \
     X(StartService, "startService",                    \
-      "(Landroid/content/Intent;)Landroid/content/ComponentName;")
+      "(Landroid/content/Intent;)Landroid/content/ComponentName;"), \
+    X(GetPackageName, "getPackageName", "()Ljava/lang/String;")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(context, CONTEXT_METHODS);
 

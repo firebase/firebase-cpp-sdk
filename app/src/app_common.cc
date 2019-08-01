@@ -47,6 +47,10 @@
 #endif
 
 namespace FIREBASE_NAMESPACE {
+
+// Default app name.
+const char* const kDefaultAppName = "__FIRAPP_DEFAULT";
+
 namespace app_common {
 
 // clang-format=off
@@ -232,14 +236,13 @@ static std::map<std::string, UniquePtr<AppData>>* g_apps;
 static App* g_default_app = nullptr;
 LibraryRegistry* LibraryRegistry::library_registry_ = nullptr;
 
-App* AddApp(App* app, bool is_default,
-            std::map<std::string, InitResult>* results) {
+App* AddApp(App* app, std::map<std::string, InitResult>* results) {
   bool created_first_app = false;
   assert(app);
   App* existing_app = FindAppByName(app->name());
   FIREBASE_ASSERT_RETURN(nullptr, !existing_app);
   MutexLock lock(g_app_mutex);
-  if (is_default) {
+  if (IsDefaultAppName(app->name())) {
     assert(!g_default_app);
     g_default_app = app;
     created_first_app = true;
@@ -350,6 +353,11 @@ void DestroyAllApps() {
       delete *it;
     }
   }
+}
+
+// Determine whether the specified app name refers to the default app.
+bool IsDefaultAppName(const char* name) {
+  return strcmp(kDefaultAppName, name) == 0;
 }
 
 void RegisterLibrary(const char* library, const char* version) {

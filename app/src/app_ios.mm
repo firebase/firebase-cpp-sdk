@@ -42,20 +42,178 @@
 // Use the private method firebaseUserAgent to get propagate the set of register libraries into
 // the C++ SDK.
 + (NSString *)firebaseUserAgent;
-// Methods for managing automatic data collection, not yet publicly exposed.
-- (BOOL)isDataCollectionDefaultEnabled;
-- (void)setDataCollectionDefaultEnabled:(BOOL)dataCollectionDefaultEnabled;
 @end
 
 namespace firebase {
 
 DEFINE_FIREBASE_VERSION_STRING(Firebase);
 
-const char* const kDefaultAppName = "__FIRAPP_DEFAULT";
+namespace {
 
-App::App() : data_(nullptr) {
-  LogDebug("Creating firebase::App for %s", kFirebaseVersionString);
+// Copy values of FIROptions into AppOptions.
+static void PlatformOptionsToAppOptions(FIROptions* platform_options,
+                                        AppOptions* app_options) {
+  if (!strlen(app_options->app_id())) {
+    const char* value = platform_options.googleAppID.UTF8String;
+    if (value) app_options->set_app_id(value);
+  }
+  if (!strlen(app_options->api_key())) {
+    const char* value = platform_options.APIKey.UTF8String;
+    if (value) app_options->set_api_key(value);
+  }
+  if (!strlen(app_options->package_name())) {
+    const char* value = platform_options.bundleID.UTF8String;
+    if (value) app_options->set_package_name(value);
+  }
+  if (!strlen(app_options->messaging_sender_id())) {
+    const char* value = platform_options.GCMSenderID.UTF8String;
+    if (value) app_options->set_messaging_sender_id(value);
+  }
+  if (!strlen(app_options->database_url())) {
+    const char* value = platform_options.databaseURL.UTF8String;
+    if (value) app_options->set_database_url(value);
+  }
+  if (!strlen(app_options->ga_tracking_id())) {
+    const char* value = platform_options.trackingID.UTF8String;
+    if (value) app_options->set_ga_tracking_id(value);
+  }
+  if (!strlen(app_options->storage_bucket())) {
+    const char* value = platform_options.storageBucket.UTF8String;
+    if (value) app_options->set_storage_bucket(value);
+  }
+  if (!strlen(app_options->project_id())) {
+    NSString* value = platform_options.projectID;
+    if (value) app_options->set_project_id(value.UTF8String);
+  }
 }
+
+// Copy AppOptions into a FIROptions instance.
+static FIROptions* AppOptionsToPlatformOptions(const AppOptions& app_options) {
+  FIROptions* platform_options = [[FIROptions alloc] initWithGoogleAppID:@""
+                                                        GCMSenderID:@""];
+  if (strlen(app_options.app_id())) {
+    platform_options.googleAppID = @(app_options.app_id());
+  }
+  if (strlen(app_options.api_key())) {
+    platform_options.APIKey = @(app_options.api_key());
+  }
+  if (strlen(app_options.package_name())) {
+    platform_options.bundleID = @(app_options.package_name());
+  }
+  if (strlen(app_options.messaging_sender_id())) {
+    platform_options.GCMSenderID = @(app_options.messaging_sender_id());
+  }
+  if (strlen(app_options.database_url())) {
+    platform_options.databaseURL = @(app_options.database_url());
+  }
+  if (strlen(app_options.ga_tracking_id())) {
+    platform_options.trackingID = @(app_options.ga_tracking_id());
+  }
+  if (strlen(app_options.storage_bucket())) {
+    platform_options.storageBucket = @(app_options.storage_bucket());
+  }
+  if (strlen(app_options.project_id())) {
+    platform_options.projectID = @(app_options.project_id());
+  }
+  return platform_options;
+}
+
+// Find an iOS SDK FIRApp instance by name.
+static FIRApp* GetPlatformAppByName(const char* name) {
+  // Silence iOS SDKs warnings about FIRApp instances being missing.
+  LogLevel log_level = GetLogLevel();
+  SetLogLevel(kLogLevelAssert);
+  FIRApp *platform_app = app_common::IsDefaultAppName(name) ?
+                         [FIRApp defaultApp] : [FIRApp appNamed:@(name)];
+  SetLogLevel(log_level);
+  return platform_app;
+}
+
+// Create an iOS FIRApp instance.
+static FIRApp* CreatePlatformApp(const AppOptions& options, const char* name) {
+  __block FIRApp* platform_app = nil;
+  AppOptions options_with_defaults = options;
+  if (options_with_defaults.PopulateRequiredWithDefaults()) {
+    FIROptions* platform_options = AppOptionsToPlatformOptions(options_with_defaults);
+    // FIRApp will fail configuration if the bundle ID isn't set so fallback
+    // to the main bundle ID.
+    if (!platform_options.bundleID.length) {
+      platform_options.bundleID = [[NSBundle mainBundle] bundleIdentifier];
+    }
+    if (platform_options) {
+      // TODO: Re-evaluate this workaround
+      // Workaround: App configuration needs to run from the main thread.
+      void (^closure)(void) = ^{
+        @try {
+          if (app_common::IsDefaultAppName(name)) {
+            [FIRApp configureWithOptions:platform_options];
+          } else {
+            [FIRApp configureWithName:@(name) options:platform_options];
+          }
+          platform_app = GetPlatformAppByName(name);
+        } @catch (NSException* e) {
+          LogError("Unable to configure Firebase app (%s)",
+                   util::NSStringToString(e.reason).c_str());
+          platform_app = nil;
+        }
+      };
+      if ([NSThread isMainThread]) {
+        closure();
+      } else {
+        dispatch_sync(dispatch_get_main_queue(), closure);
+      }
+    }
+  }
+  return platform_app;
+}
+
+// Create or get a iOS SDK FIRApp instance.
+static FIRApp* CreateOrGetPlatformApp(const AppOptions& options,
+                                      const char* name) {
+  FIRApp* platform_app = GetPlatformAppByName(name);
+  if (platform_app) {
+    // If a FIRApp exists, make sure it has the requested options.
+    AppOptions existing_options;
+    PlatformOptionsToAppOptions(platform_app.options, &existing_options);
+    if (options != existing_options) {
+      LogWarning("Existing instance of App %s found and options do not match "
+                 "the requested options.  Deleting %s to attempt recreation "
+                 "with requested options.", name, name);
+      dispatch_semaphore_t block_semaphore = dispatch_semaphore_create(0);
+      [platform_app deleteApp:^(BOOL /*success*/) {
+          // NOTE: The delete will always succeed if the app previously existed.
+          dispatch_semaphore_signal(block_semaphore);
+        }];
+      dispatch_semaphore_wait(block_semaphore, DISPATCH_TIME_FOREVER);
+      platform_app = nil;
+    }
+  }
+  return platform_app ? platform_app : CreatePlatformApp(options, name);;
+}
+
+}  // namespace
+
+AppOptions* AppOptions::LoadDefault(AppOptions* app_options) {
+  NSString* error_message;
+  FIROptions* platform_options;
+  @try {
+    platform_options = [FIROptions defaultOptions];
+  } @catch (NSException* e) {
+    error_message = e.reason;
+    platform_options = nil;
+  }
+  if (platform_options) {
+    app_options = app_options ? app_options : new AppOptions();
+    PlatformOptionsToAppOptions(platform_options, app_options);
+  } else {
+    LogError("Failed to read Firebase options from the app's resources (%s). "
+             "Either make sure GoogleService-Info.plist is included in your build or specify "
+             "options explicitly.", util::NSStringToString(error_message).c_str());
+  }
+  return app_options;
+}
+
+App::App() : data_(nullptr) {}
 
 App::~App() {
   app_common::RemoveApp(this);
@@ -65,147 +223,29 @@ App::~App() {
   }
 }
 
-App* App::Create() { return Create(AppOptions()); }
+App* App::Create() {
+  AppOptions options;
+  return AppOptions::LoadDefault(&options) ? Create(options) : nullptr;
+}
 
 App* App::Create(const AppOptions& options) { return Create(options, kDefaultAppName); }
 
-// Copy values of FIROptions into AppOptions.
-static void FirOptionsToAppOptions(FIROptions* fir_options, AppOptions* app_options) {
-  if (!strlen(app_options->app_id())) {
-    const char* value = fir_options.googleAppID.UTF8String;
-    if (value) app_options->set_app_id(value);
-  }
-  if (!strlen(app_options->api_key())) {
-    const char* value = fir_options.APIKey.UTF8String;
-    if (value) app_options->set_api_key(value);
-  }
-  if (!strlen(app_options->messaging_sender_id())) {
-    const char* value = fir_options.GCMSenderID.UTF8String;
-    if (value) app_options->set_messaging_sender_id(value);
-  }
-  if (!strlen(app_options->database_url())) {
-    const char* value = fir_options.databaseURL.UTF8String;
-    if (value) app_options->set_database_url(value);
-  }
-  if (!strlen(app_options->ga_tracking_id())) {
-    const char* value = fir_options.trackingID.UTF8String;
-    if (value) app_options->set_ga_tracking_id(value);
-  }
-  if (!strlen(app_options->storage_bucket())) {
-    const char* value = fir_options.storageBucket.UTF8String;
-    if (value) app_options->set_storage_bucket(value);
-  }
-  if (!strlen(app_options->project_id())) {
-    NSString* value = fir_options.projectID;
-    if (value) app_options->set_project_id(value.UTF8String);
-  }
-}
-
 App* App::Create(const AppOptions& options, const char* name) {
-  App* existing_app = GetInstance(name);
-  if (existing_app) {
-    LogError("firebase::App %s already created, options will not be applied.", name);
-    return existing_app;
+  App* app = GetInstance(name);
+  if (app) {
+    LogError("App %s already created, options will not be applied.", name);
+    return app;
   }
-
-  __block AppOptions options_in_use = options;
-  __block FIRApp* fir_app;
-  __block NSError* error = nil;
-  bool default_app = strcmp(name, kDefaultAppName) == 0;
-  void (^closure)(void) = ^{
-    FIROptions* fir_options;
-    @try {
-      // Try to load / access default options.
-      fir_options = [FIROptions defaultOptions];
-    } @catch (NSException* e) {
-      LogWarning("Unable to load default Firebase options, is GoogleServices-Info.plist "
-                 "included in your project?");
-      fir_options = nullptr;
-    }
-    if (fir_options) FirOptionsToAppOptions(fir_options, &options_in_use);
-    FIROptions *new_fir_options = [[FIROptions alloc]
-                                    initWithGoogleAppID:@(options_in_use.app_id())
-                                            GCMSenderID:@(options_in_use.messaging_sender_id())];
-    new_fir_options.APIKey = @(options_in_use.api_key());
-    new_fir_options.clientID = fir_options ? fir_options.clientID : @"";
-    new_fir_options.trackingID = @(options_in_use.ga_tracking_id());
-    new_fir_options.androidClientID = fir_options ? fir_options.androidClientID : @"";
-    new_fir_options.databaseURL = @(options_in_use.database_url());
-    new_fir_options.deepLinkURLScheme = fir_options ? fir_options.deepLinkURLScheme : @"";
-    new_fir_options.storageBucket = @(options_in_use.storage_bucket());
-    new_fir_options.projectID = @(options_in_use.project_id());
-    fir_options = new_fir_options;
-
-    // Convert back to AppOptions again since it's possible for the initializer to mutate
-    // some of the config values we provide.
-    FirOptionsToAppOptions(fir_options, &options_in_use);
-
-    @try {
-      if (default_app) {
-        FIRApp* current_default_app = nil;
-        // If isDefaultAppConfigured is supported by the current version of the iOS SDK use it
-        // to silently determine whether the default app has been configured otherwise fallback
-        // to a query that could report an error.
-        if ([[FIRApp class] respondsToSelector:@selector(isDefaultAppConfigured)]) {
-          if ([FIRApp isDefaultAppConfigured]) {
-            current_default_app = [FIRApp defaultApp];
-          }
-        } else {
-          current_default_app = [FIRApp defaultApp];
-          if (!current_default_app) {
-            LogInfo("No default app present, ignore the previous FIRApp configuration warning "
-                    "(I-COR000003).");
-          }
-        }
-        // If a default app already exists we need to explicitly delete it then recreate it.
-        if (current_default_app) {
-          dispatch_semaphore_t block_semaphore = dispatch_semaphore_create(0);
-          __block BOOL delete_succeeded = NO;
-          LogInfo("Default app is already present, deleting the existing "
-                  "default app and recreating");
-          [current_default_app deleteApp:^(BOOL success) {
-              delete_succeeded = success;
-              dispatch_semaphore_signal(block_semaphore);
-            }];
-          dispatch_semaphore_wait(block_semaphore, DISPATCH_TIME_FOREVER);
-          if (!delete_succeeded) {
-            LogError("Failed to delete existing default app");
-            fir_options = nil;
-            fir_app = nil;
-            return;
-          }
-        }
-        if (fir_options) {
-          [FIRApp configureWithOptions:fir_options];
-        } else {
-          [FIRApp configure];
-        }
-        fir_app = [FIRApp defaultApp];
-      } else {
-        [FIRApp configureWithName:@(name) options:fir_options];
-        fir_app = [FIRApp appNamed:@(name)];
-      }
-    } @catch (NSException* e) {
-      LogError("Unable to configure Firebase services: %s", [e.reason UTF8String]);
-      error = [[NSError alloc] initWithDomain:e.reason code:0 userInfo:e.userInfo];
-    }
-  };
-
-  // Workaround: App configuration needs to run from the main thread,
-  // configure on the main thread, synchronously.
-  if ([NSThread isMainThread]) {
-    closure();
-  } else {
-    dispatch_sync(dispatch_get_main_queue(), closure);
+  LogDebug("Creating Firebase App %s for %s", name, kFirebaseVersionString);
+  FIRApp* platform_app = CreateOrGetPlatformApp(options, name);
+  if (platform_app) {
+    app = new App();
+    app->options_ = options;
+    app->name_ = name;
+    app->data_ = new FIRAppPointer(platform_app);
+    app_common::AddApp(app, &app->init_results_);
   }
-
-  if (error) return nullptr;
-
-  App* new_app = new App();
-  new_app->options_ = options_in_use;
-  new_app->name_ = name;
-  new_app->data_ = new FIRAppPointer(fir_app);
-  return app_common::AddApp(new_app, default_app, &new_app->init_results_);
+  return app;
 }
 
 App* App::GetInstance() { return app_common::GetDefaultApp(); }
@@ -225,25 +265,11 @@ const char* App::GetUserAgent() {
 void App::SetDefaultConfigPath(const char* path) { }
 
 void App::SetDataCollectionDefaultEnabled(bool enabled) {
-  FIRApp* app = static_cast<FIRAppPointer*>(data_)->ptr;
-  if (![app respondsToSelector:@selector(setDataCollectionDefaultEnabled:)]) {
-    LogError("App::SetDataCollectionDefaultEnabled() is not supported by this "
-             "version of the Firebase iOS library. Please update your project's "
-             "Firebase iOS dependencies to Firebase/Core 5.5.0 or higher and try "
-             "again.");
-    return;
-  }
-  [app setDataCollectionDefaultEnabled:enabled ? YES : NO];
+  static_cast<FIRAppPointer*>(data_)->ptr.dataCollectionDefaultEnabled = (enabled ? YES : NO);
 }
 
 bool App::IsDataCollectionDefaultEnabled() const {
-  FIRApp* app = static_cast<FIRAppPointer*>(data_)->ptr;
-  if (![app respondsToSelector:@selector(isDataCollectionDefaultEnabled)]) {
-    // By default, if this feature isn't supported, data collection must be
-    // enabled.
-    return true;
-  }
-  return [app isDataCollectionDefaultEnabled] ? true : false;
+  return static_cast<FIRAppPointer*>(data_)->ptr.isDataCollectionDefaultEnabled ? true : false;
 }
 
 }  // namespace firebase

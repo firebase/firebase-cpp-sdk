@@ -44,27 +44,15 @@ static std::string g_default_config_path;  // NOLINT
 
 }  // namespace internal
 
-// The default App name, the same string as what are used for Android and iOS.
-const char* const kDefaultAppName = "__FIRAPP_DEFAULT";
-
-App::App() {
-  LogDebug("Creating firebase::App for %s", kFirebaseVersionString);
-  data_ = new internal::PrivateAppData();
-}
-
-App::~App() {
-  app_common::RemoveApp(this);
-  // Once we use data_, we should delete it here.
-  delete static_cast<internal::PrivateAppData*>(data_);
-  data_ = nullptr;
-}
+namespace {
 
 // Size is arbitrary, just making sure that there is a sane limit.
-const int kMaxBuffersize = 1024 * 500;
+static const int kMaxBuffersize = 1024 * 500;
 
 // Attempts to load a config file from the path specified, and use it to
 // populate the AppOptions pointer.  Returns true on success, false otherwise.
-bool LoadFromJsonConfigFile(const char* path, AppOptions* options) {
+static bool LoadAppOptionsFromJsonConfigFile(const char* path,
+                                             AppOptions* options) {
   bool loaded_options = false;
   std::ifstream infile(path, std::ifstream::binary);
   if (infile) {
@@ -91,32 +79,58 @@ bool LoadFromJsonConfigFile(const char* path, AppOptions* options) {
   return loaded_options;
 }
 
-const char* kDefaultGoogleServicesNames[] = {"google-services-desktop.json",
-                                             "google-services.json"};
+}  // namespace
+
+// Searches internal::g_default_config_path for filenames matching
+// kDefaultGoogleServicesNames attempting to load the app options from each
+// config file in turn.
+AppOptions* AppOptions::LoadDefault(AppOptions* options) {
+  static const char* kDefaultGoogleServicesNames[] = {
+    "google-services-desktop.json",
+    "google-services.json"
+  };
+  bool allocated_options;
+  if (options) {
+    allocated_options = false;
+  } else {
+    options = new AppOptions();
+    allocated_options = true;
+  }
+  std::string config_files;
+  size_t number_of_config_filenames = sizeof(kDefaultGoogleServicesNames) /
+                                      sizeof(kDefaultGoogleServicesNames[0]);
+  for (size_t i = 0; i < number_of_config_filenames; i++) {
+    std::string full_path = internal::g_default_config_path +
+                            kDefaultGoogleServicesNames[i];
+    if (LoadAppOptionsFromJsonConfigFile(full_path.c_str(), options)) {
+      return options;
+    }
+    config_files += full_path;
+    if (i < number_of_config_filenames - 1) config_files += ", ";
+  }
+  if (allocated_options) delete options;
+  LogError("Unable to load Firebase app options ([%s] are missing or "
+           "malformed)", config_files.c_str());
+  return nullptr;
+}
+
+App::App() {
+  data_ = new internal::PrivateAppData();
+}
+
+App::~App() {
+  app_common::RemoveApp(this);
+  // Once we use data_, we should delete it here.
+  delete static_cast<internal::PrivateAppData*>(data_);
+  data_ = nullptr;
+}
 
 // On desktop, if you create an app with no arguments, it will try to
 // load any data it can find from the google-services-desktop.json
 // file, or the google-services.json file, in that order.
 App* App::Create() {
-  std::string config_files;
-  size_t number_of_config_filenames = sizeof(kDefaultGoogleServicesNames) /
-                                      sizeof(kDefaultGoogleServicesNames[0]);
-  for (size_t i = 0; i < number_of_config_filenames; i++) {
-    AppOptions options;
-    std::string full_path =
-        internal::g_default_config_path + kDefaultGoogleServicesNames[i];
-
-    if (LoadFromJsonConfigFile(full_path.c_str(), &options)) {
-      return Create(options);
-    }
-    config_files += full_path;
-    if (i < number_of_config_filenames - 1) config_files += ", ";
-  }
-  LogError(
-      "Unable to load options for default app ([%s] are missing or "
-      "malformed)",
-      config_files.c_str());
-  return nullptr;
+  AppOptions options;
+  return AppOptions::LoadDefault(&options) ? Create(options) : nullptr;
 }
 
 App* App::Create(const AppOptions& options) {  // NOLINT
@@ -124,21 +138,20 @@ App* App::Create(const AppOptions& options) {  // NOLINT
 }
 
 App* App::Create(const AppOptions& options, const char* name) {  // NOLINT
-  App* existing_app = GetInstance(name);
-  if (existing_app) {
-    LogError("firebase::App %s already created, options will not be applied.",
-             name);
-    return existing_app;
+  App* app = GetInstance(name);
+  if (app) {
+    LogError("App %s already created, options will not be applied.", name);
+    return app;
   }
-  bool is_default_app = strcmp(kDefaultAppName, name) == 0;
-  LogInfo("Firebase App initializing app %s (default %d).", name,
-          is_default_app ? 1 : 0);
-
-  App* new_app = new App();
-  new_app->name_ = name;
-  new_app->options_ = options;
-
-  return app_common::AddApp(new_app, is_default_app, &new_app->init_results_);
+  LogDebug("Creating Firebase App %s for %s", name, kFirebaseVersionString);
+  AppOptions options_with_defaults = options;
+  if (options_with_defaults.PopulateRequiredWithDefaults()) {
+    app = new App();
+    app->name_ = name;
+    app->options_ = options_with_defaults;
+    app = app_common::AddApp(app, &app->init_results_);
+  }
+  return app;
 }
 
 App* App::GetInstance() {  // NOLINT

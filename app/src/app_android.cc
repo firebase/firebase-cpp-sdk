@@ -50,6 +50,9 @@ DEFINE_FIREBASE_VERSION_STRING(Firebase);
   X(GetInstanceByName, "getInstance",                                          \
     "(Ljava/lang/String;)Lcom/google/firebase/FirebaseApp;",                   \
     util::kMethodTypeStatic),                                                  \
+  X(GetOptions, "getOptions", "()Lcom/google/firebase/FirebaseOptions;",       \
+    util::kMethodTypeInstance),                                                \
+  X(Delete, "delete", "()V", util::kMethodTypeInstance),                       \
   X(IsDataCollectionDefaultEnabled, "isDataCollectionDefaultEnabled",          \
     "()Z", util::kMethodTypeInstance, util::kMethodOptional),                  \
   X(SetDataCollectionDefaultEnabled, "setDataCollectionDefaultEnabled",        \
@@ -137,8 +140,6 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/firebase/platforminfo/GlobalLibraryVersionRegistrar",
     GLOBAL_LIBRARY_VERSION_REGISTAR_METHODS)
 
-const char* const kDefaultAppName = "__FIRAPP_DEFAULT";
-
 namespace {
 
 static int g_methods_cached_count = 0;
@@ -179,7 +180,7 @@ void ReleaseClasses(JNIEnv* env) {
   }
 }
 
-static void FirebaseOptionsBuilderSetString(JNIEnv* jni_env, jobject builder,
+static void PlatformOptionsBuilderSetString(JNIEnv* jni_env, jobject builder,
                                             const char* value,
                                             options_builder::Method setter_id) {
   jstring string_value = jni_env->NewStringUTF(value);
@@ -191,37 +192,37 @@ static void FirebaseOptionsBuilderSetString(JNIEnv* jni_env, jobject builder,
 }
 
 // Returns a reference to a new FirebaseOptions class.
-static jobject CreateFirebaseOptions(JNIEnv* jni_env,
-                                     const AppOptions& app_options) {
+static jobject AppOptionsToPlatformOptions(JNIEnv* jni_env,
+                                           const AppOptions& app_options) {
   // Create a new android.net.Uri.Builder.
   jobject builder;
   builder = jni_env->NewObject(
       options_builder::GetClass(),
       options_builder::GetMethodId(options_builder::kConstructor));
-  FirebaseOptionsBuilderSetString(jni_env, builder, app_options.api_key(),
+  PlatformOptionsBuilderSetString(jni_env, builder, app_options.api_key(),
                                   options_builder::kSetApiKey);
 
   if (strlen(app_options.database_url())) {
-    FirebaseOptionsBuilderSetString(jni_env, builder,
+    PlatformOptionsBuilderSetString(jni_env, builder,
                                     app_options.database_url(),
                                     options_builder::kSetDatabaseUrl);
   }
   if (strlen(app_options.app_id())) {
-    FirebaseOptionsBuilderSetString(jni_env, builder, app_options.app_id(),
+    PlatformOptionsBuilderSetString(jni_env, builder, app_options.app_id(),
                                     options_builder::kSetApplicationId);
   }
   if (strlen(app_options.messaging_sender_id())) {
-    FirebaseOptionsBuilderSetString(jni_env, builder,
+    PlatformOptionsBuilderSetString(jni_env, builder,
                                     app_options.messaging_sender_id(),
                                     options_builder::kSetGcmSenderId);
   }
   if (strlen(app_options.storage_bucket())) {
-    FirebaseOptionsBuilderSetString(jni_env, builder,
+    PlatformOptionsBuilderSetString(jni_env, builder,
                                     app_options.storage_bucket(),
                                     options_builder::kSetStorageBucket);
   }
   if (strlen(app_options.project_id())) {
-    FirebaseOptionsBuilderSetString(jni_env, builder, app_options.project_id(),
+    PlatformOptionsBuilderSetString(jni_env, builder, app_options.project_id(),
                                     options_builder::kSetProjectId);
   }
   // Call builder.build() and release the builder.
@@ -235,25 +236,11 @@ static jobject CreateFirebaseOptions(JNIEnv* jni_env,
   return failed ? nullptr : firebase_options;
 }
 
-// Read FirebaseOptions from the application's resources.
-static bool ReadOptionsFromResources(JNIEnv* jni_env, jobject activity,
-                                     AppOptions* app_options) {
-  jobject firebase_options = jni_env->CallStaticObjectMethod(
-      options::GetClass(), options::GetMethodId(options::kFromResource),
-      activity);
-  bool exception = jni_env->ExceptionCheck();
-  if (!firebase_options || exception) {
-    firebase_options = nullptr;
-    if (exception) {
-      jni_env->ExceptionClear();
-    }
-    FIREBASE_ASSERT_MESSAGE_RETURN(
-        false, strlen(app_options->app_id()) && strlen(app_options->api_key()),
-        "Failed to read Firebase options from the app's resources.  "
-        "You'll need to either at least set App ID and "
-        "API key or include google-services.json your app's "
-        "resources.");
-  }
+// Convert Android SDK FirebaseOptions into AppOptions for all fields that are
+// not populated in AppOptions.
+static void PlatformOptionsToAppOptions(JNIEnv* jni_env,
+                                        jobject firebase_options,
+                                        AppOptions* app_options) {
   if (!strlen(app_options->api_key())) {
     jobject api_key = jni_env->CallObjectMethod(
         firebase_options, options::GetMethodId(options::kGetApiKey));
@@ -301,15 +288,132 @@ static bool ReadOptionsFromResources(JNIEnv* jni_env, jobject activity,
           util::JniStringToString(jni_env, project_id).c_str());
     }
   }
-  jni_env->DeleteLocalRef(firebase_options);
-  return true;
+}
+
+// Find an Android SDK FirebaseApp instance by name.
+// Returns a local jobject reference if successful, nullptr otherwise.
+static jobject GetPlatformAppByName(JNIEnv* jni_env, const char* name) {
+  jobject platform_app;
+  if (app_common::IsDefaultAppName(name)) {
+    platform_app = jni_env->CallStaticObjectMethod(
+        app::GetClass(), app::GetMethodId(app::kGetInstance));
+  } else {
+    jobject name_string = jni_env->NewStringUTF(name);
+    platform_app = jni_env->CallStaticObjectMethod(
+        app::GetClass(), app::GetMethodId(app::kGetInstanceByName),
+        name_string);
+    jni_env->DeleteLocalRef(name_string);
+  }
+  jni_env->ExceptionCheck();
+  jni_env->ExceptionClear();
+  return platform_app;
+}
+
+// Get options from an Android SDK FirebaseApp instance.
+static void GetAppOptionsFromPlatformApp(JNIEnv* jni_env, jobject platform_app,
+                                         AppOptions* app_options) {
+  jobject platform_options = jni_env->CallObjectMethod(
+      platform_app, app::GetMethodId(app::kGetOptions));
+  util::CheckAndClearJniExceptions(jni_env);
+  assert(platform_options);
+  PlatformOptionsToAppOptions(jni_env, platform_options, app_options);
+  jni_env->DeleteLocalRef(platform_options);
+}
+
+// Create an Android SDK FirebaseApp instance.
+static jobject CreatePlatformApp(JNIEnv* jni_env, const AppOptions& options,
+                                  const char* name, jobject activity) {
+  jobject platform_app = nullptr;
+  jobject platform_options = AppOptionsToPlatformOptions(jni_env, options);
+  if (platform_options != nullptr) {
+    if (app_common::IsDefaultAppName(name)) {
+      platform_app = jni_env->CallStaticObjectMethod(
+          app::GetClass(), app::GetMethodId(app::kInitializeDefaultApp),
+          activity, platform_options);
+    } else {
+      jstring app_name = jni_env->NewStringUTF(name);
+      platform_app = jni_env->CallStaticObjectMethod(
+          app::GetClass(), app::GetMethodId(app::kInitializeApp),
+          activity, platform_options, app_name);
+      jni_env->DeleteLocalRef(app_name);
+    }
+    jni_env->DeleteLocalRef(platform_options);
+    util::CheckAndClearJniExceptions(jni_env);
+  }
+  return platform_app;
+}
+
+// Create or get an Android SDK FirebaseApp instance.
+// Returns local jobject reference to the Android SDK app if successful,
+// nullptr otherwise.
+static jobject CreateOrGetPlatformApp(JNIEnv* jni_env,
+                                      const AppOptions& options,
+                                      const char* name, jobject activity) {
+  jobject platform_app = GetPlatformAppByName(jni_env, name);
+  if (platform_app) {
+    AppOptions options_to_compare = options;
+    // Package name isn't available in the platform app's options so ignore it.
+    options_to_compare.set_package_name("");
+    // If a FirebaseApp exists, make sure it has the requested options.
+    AppOptions existing_options;
+    GetAppOptionsFromPlatformApp(jni_env, platform_app, &existing_options);
+    if (options_to_compare != existing_options) {
+      LogWarning("Existing instance of App %s found and options do not match "
+                 "the requested options.  Deleting %s to attempt recreation "
+                 "with requested options.", name, name);
+      // Delete this FirebaseApp instance.
+      jni_env->CallVoidMethod(platform_app, app::GetMethodId(app::kDelete));
+      util::CheckAndClearJniExceptions(jni_env);
+      jni_env->DeleteLocalRef(platform_app);
+      platform_app = nullptr;
+    }
+  }
+  if (!platform_app) {
+    AppOptions options_with_defaults = options;
+    if (options_with_defaults.PopulateRequiredWithDefaults(jni_env, activity)) {
+      platform_app = CreatePlatformApp(jni_env, options_with_defaults, name,
+                                       activity);
+    }
+  }
+  return platform_app;
 }
 
 }  // namespace
 
-App::App() : activity_(nullptr), data_(nullptr) {
-  LogDebug("Creating Firebase App for %s", kFirebaseVersionString);
+AppOptions* AppOptions::LoadDefault(AppOptions* app_options,
+                                    JNIEnv* jni_env, jobject activity) {
+  if (CacheMethods(jni_env, activity)) {
+    // Read the options from the embedded resources.
+    jobject platform_options = jni_env->CallStaticObjectMethod(
+        options::GetClass(), options::GetMethodId(options::kFromResource),
+        activity);
+    if (jni_env->ExceptionCheck() || !platform_options) {
+      jni_env->ExceptionClear();
+      platform_options = nullptr;
+      app_options = nullptr;
+    }
+
+    if (platform_options) {
+      // Get the package name.
+      jobject package_name = jni_env->CallObjectMethod(
+          activity, util::context::GetMethodId(util::context::kGetPackageName));
+      if (util::CheckAndClearJniExceptions(jni_env)) {
+        app_options = nullptr;
+      } else {
+        // Populate the C++ structure.
+        app_options = app_options ? app_options : new AppOptions();
+        PlatformOptionsToAppOptions(jni_env, platform_options, app_options);
+        app_options->set_package_name(
+            util::JniStringToString(jni_env, package_name).c_str());
+      }
+      jni_env->DeleteLocalRef(platform_options);
+    }
+    ReleaseClasses(jni_env);
+  }
+  return app_options;
 }
+
+App::App() : activity_(nullptr), data_(nullptr) {}
 
 App::~App() {
   app_common::RemoveApp(this);
@@ -325,6 +429,22 @@ App::~App() {
   ReleaseClasses(env);
 }
 
+App* App::Create(JNIEnv* jni_env, jobject activity) {
+  App* app = nullptr;
+  if (CacheMethods(jni_env, activity)) {
+    AppOptions options;
+    if (AppOptions::LoadDefault(&options, jni_env, activity)) {
+      app = Create(options, jni_env, activity);
+    } else {
+      LogError("Failed to read Firebase options from the app's resources. "
+               "Either make sure google-services.json is included in your "
+               "build or specify options explicitly.");
+    }
+    ReleaseClasses(jni_env);
+  }
+  return app;
+}
+
 App* App::Create(const AppOptions& options, JNIEnv* jni_env, jobject activity) {
   return Create(options, kDefaultAppName, jni_env, activity);
 }
@@ -332,96 +452,30 @@ App* App::Create(const AppOptions& options, JNIEnv* jni_env, jobject activity) {
 App* App::Create(const AppOptions& options, const char* name, JNIEnv* jni_env,
                  jobject activity) {
   // If the app has already been initialize log an error.
-  App* existing_app = GetInstance(name);
-  if (existing_app) {
-    LogError("firebase::App %s already created, options will not be applied.",
-             name);
-    return existing_app;
+  App* app = GetInstance(name);
+  if (app) {
+    LogError("App %s already created, options will not be applied.", name);
+    return app;
   }
-  if (!CacheMethods(jni_env, activity)) return nullptr;
-
-  App* new_app = new App();
-  new_app->options_ = options;
-  new_app->name_ = name;
-  new_app->activity_ = jni_env->NewGlobalRef(activity);
-  jint result = jni_env->GetJavaVM(&new_app->java_vm_);
-  FIREBASE_ASSERT(result == JNI_OK);
-
-  bool default_app = strcmp(kDefaultAppName, name) == 0;
-  std::string package_name = util::GetPackageName(jni_env, activity);
-  name = default_app ? package_name.c_str() : name;
-  LogInfo("Firebase App initializing app %s (default %d).", name,
-          default_app ? 1 : 0);
-  if (default_app && app::GetMethodId(app::kInitializeDefaultApp)) {
-    jobject java_app = nullptr;
-    AppOptions options_with_defaults = options;
-    if (ReadOptionsFromResources(jni_env, activity, &options_with_defaults)) {
-      // If options can be loaded via resources then it's possible to infer the
-      // default app has already been created.
-      if (strlen(options.app_id()) || strlen(options.api_key()) ||
-          strlen(options.messaging_sender_id())) {
-        LogWarning(
-            "AppOptions will be ignored as the default app has "
-            "already been initialized.  To disable automatic app "
-            "initialization remove or rename resources derived from "
-            "google-services.json.");
-      }
-      java_app = jni_env->CallStaticObjectMethod(
-          app::GetClass(), app::GetMethodId(app::kGetInstance));
-      if (util::CheckAndClearJniExceptions(jni_env)) java_app = nullptr;
+  LogDebug("Creating Firebase App %s for %s", name, kFirebaseVersionString);
+  if (CacheMethods(jni_env, activity)) {
+    // Try to get or create a new FirebaseApp object.
+    jobject platform_app = CreateOrGetPlatformApp(jni_env, options, name,
+                                                  activity);
+    if (platform_app) {
+        app = new App();
+        app->name_ = name;
+        app->activity_ = jni_env->NewGlobalRef(activity);
+        jint result = jni_env->GetJavaVM(&app->java_vm_);
+        FIREBASE_ASSERT(result == JNI_OK);
+        GetAppOptionsFromPlatformApp(jni_env, platform_app, &app->options_);
+        app->data_ = static_cast<void*>(jni_env->NewGlobalRef(platform_app));
+        app = app_common::AddApp(app, &app->init_results_);
     } else {
-      // Try creating the app using the specified options.
-      jobject java_options =
-          CreateFirebaseOptions(jni_env, options_with_defaults);
-      if (java_options != nullptr) {
-        java_app = jni_env->CallStaticObjectMethod(
-            app::GetClass(), app::GetMethodId(app::kInitializeDefaultApp),
-            activity, java_options);
-        if (util::CheckAndClearJniExceptions(jni_env)) java_app = nullptr;
-        jni_env->DeleteLocalRef(java_options);
-      }
+      ReleaseClasses(jni_env);
     }
-    if (!java_app) {
-      delete new_app;
-      new_app = nullptr;
-    }
-    FIREBASE_ASSERT_MESSAGE_RETURN(
-        nullptr, new_app, "Failed to initialize the default Firebase App.");
-    new_app->options_ = options_with_defaults;
-    new_app->data_ = static_cast<void*>(jni_env->NewGlobalRef(java_app));
-    LogDebug("App local ref (%x), global ref (%x).",
-             static_cast<int>(reinterpret_cast<intptr_t>(java_app)),
-             static_cast<int>(reinterpret_cast<intptr_t>(new_app->data_)));
-    FIREBASE_ASSERT(new_app->data_ != nullptr);
-    jni_env->DeleteLocalRef(java_app);
-  } else {
-    AppOptions options_with_defaults = options;
-    ReadOptionsFromResources(jni_env, activity, &options_with_defaults);
-    jobject java_app = nullptr;
-    jobject java_options =
-        CreateFirebaseOptions(jni_env, options_with_defaults);
-    if (java_options != nullptr) {
-      jobject java_name = jni_env->NewStringUTF(name);
-      java_app = jni_env->CallStaticObjectMethod(
-          app::GetClass(), app::GetMethodId(app::kInitializeApp), activity,
-          java_options, java_name);
-      if (util::CheckAndClearJniExceptions(jni_env)) java_app = nullptr;
-      jni_env->DeleteLocalRef(java_name);
-      jni_env->DeleteLocalRef(java_options);
-    }
-    if (!java_app) {
-      delete new_app;
-      return nullptr;
-    }
-    new_app->options_ = options_with_defaults;
-    new_app->data_ = static_cast<void*>(jni_env->NewGlobalRef(java_app));
-    LogDebug("App local ref (%x), global ref (%x).",
-             static_cast<int>(reinterpret_cast<intptr_t>(java_app)),
-             static_cast<int>(reinterpret_cast<intptr_t>(new_app->data_)));
-    FIREBASE_ASSERT(new_app->data_ != nullptr);
-    jni_env->DeleteLocalRef(java_app);
   }
-  return app_common::AddApp(new_app, default_app, &new_app->init_results_);
+  return app;
 }
 
 App* App::GetInstance() { return app_common::GetDefaultApp(); }

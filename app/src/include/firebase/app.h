@@ -23,6 +23,8 @@
 #include <map>
 #include <string>
 
+#include "firebase/internal/platform.h"
+
 /// @brief Namespace that encompasses all Firebase APIs.
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase
@@ -114,6 +116,8 @@ extern const char* const kDefaultAppName;
 /// @endif
 /// </SWIG>
 class AppOptions {
+  friend class App;
+
  public:
   /// @brief Create AppOptions.
   ///
@@ -315,6 +319,91 @@ class AppOptions {
   static AppOptions* LoadFromJsonConfig(const char* config,
                                         AppOptions* options = nullptr);
 
+#if INTERNAL_EXPERIMENTAL
+  /// @brief Determine whether the specified options match this set of options.
+  ///
+  /// Fields of this object that are empty are ignored in the comparison.
+  ///
+  /// @param[in] options Options to compare with.
+  bool operator==(const AppOptions& options) const {
+    return (package_name_.empty() || package_name_ == options.package_name_) &&
+           (api_key_.empty() || api_key_ == options.api_key_) &&
+           (app_id_.empty() || app_id_ == options.app_id_) &&
+           (database_url_.empty() || database_url_ == options.database_url_) &&
+           (ga_tracking_id_.empty() ||
+            ga_tracking_id_ == options.ga_tracking_id_) &&
+           (fcm_sender_id_.empty() ||
+            fcm_sender_id_ == options.fcm_sender_id_) &&
+           (storage_bucket_.empty() ||
+            storage_bucket_ == options.storage_bucket_) &&
+           (project_id_.empty() || project_id_ == options.project_id_);
+  }
+#endif  // INTERNAL_EXPERIMENTAL
+
+#if INTERNAL_EXPERIMENTAL
+  /// @brief Determine whether the specified options don't match this set of
+  /// options.
+  ///
+  /// Fields of this object that are empty are ignored in the comparison.
+  ///
+  /// @param[in] options Options to compare with.
+  bool operator!=(const AppOptions& options) const {
+    return !operator==(options);
+  }
+#endif  // INTERNAL_EXPERIMENTAL
+
+#if INTERNAL_EXPERIMENTAL
+#if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
+  /// @brief Load default options from the resource file.
+  ///
+  /// @param[in] jni_env JNI environment required to allow Firebase services
+  /// to interact with the Android framework.
+  /// @param[in] activity JNI reference to the Android activity, required to
+  /// allow Firebase services to interact with the Android application.
+  /// @param options Options to populate from a resource file.
+  ///
+  /// @return An instance containing the loaded options if successful.
+  /// If the options argument to this function is null, this method returns an
+  /// AppOptions instance allocated from the heap..
+  static AppOptions* LoadDefault(AppOptions* options, JNIEnv* jni_env,
+                                 jobject activity);
+#endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
+
+#if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
+  /// @brief Load default options from the resource file.
+  ///
+  /// @param options Options to populate from a resource file.
+  ///
+  /// @return An instance containing the loaded options if successful.
+  /// If the options argument to this function is null, this method returns an
+  /// AppOptions instance allocated from the heap.
+  static AppOptions* LoadDefault(AppOptions* options);
+#endif  // !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
+#endif  // INTERNAL_EXPERIMENTAL
+
+#if INTERNAL_EXPERIMENTAL
+#if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
+  /// @brief Attempt to populate required options with default values if not
+  /// specified.
+  ///
+  /// @param[in] jni_env JNI environment required to allow Firebase services
+  /// to interact with the Android framework.
+  /// @param[in] activity JNI reference to the Android activity, required to
+  /// allow Firebase services to interact with the Android application.
+  ///
+  /// @return true if successful, false otherwise.
+  bool PopulateRequiredWithDefaults(JNIEnv* jni_env, jobject activity);
+#endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
+
+#if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
+  /// @brief Attempt to populate required options with default values if not
+  /// specified.
+  ///
+  /// @return true if successful, false otherwise.
+  bool PopulateRequiredWithDefaults();
+#endif  // !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
+#endif  // INTERNAL_EXPERIMENTAL
+
   /// @cond FIREBASE_APP_INTERNAL
  private:
   /// Application package name (e.g Android package name or iOS bundle ID).
@@ -362,22 +451,22 @@ class App {
  public:
   ~App();
 
-#if !defined(__ANDROID__) || defined(DOXYGEN)
+#if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
   /// @brief Initializes the default firebase::App with default options.
   ///
   /// @note This method is specific to non-Android implementations.
   ///
-  /// @returns New App instance, the App should not be destroyed for the
+  /// @return New App instance, the App should not be destroyed for the
   /// lifetime of the application.  If default options can't be loaded this
   /// will return null.
   static App* Create();
-#endif  // !defined(__ANDROID__) || defined(DOXYGEN)
+#endif  // !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 
 #ifndef SWIG
 // <SWIG>
 // For Unity, we actually use the simpler, iOS version for both platforms
 // </SWIG>
-#if defined(__ANDROID__) || defined(DOXYGEN)
+#if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
   /// @brief Initializes the default firebase::App with default options.
   ///
   /// @note This method is specific to the Android implementation.
@@ -387,16 +476,14 @@ class App {
   /// @param[in] activity JNI reference to the Android activity, required to
   /// allow Firebase services to interact with the Android application.
   ///
-  /// @returns New App instance. The App should not be destroyed for the
+  /// @return New App instance. The App should not be destroyed for the
   /// lifetime of the application.  If default options can't be loaded this
   /// will return null.
-  static App* Create(JNIEnv* jni_env, jobject activity) {
-    return Create(AppOptions(), jni_env, activity);
-  }
-#endif  // defined(__ANDROID__) || defined(DOXYGEN)
+  static App* Create(JNIEnv* jni_env, jobject activity);
+#endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 #endif  // SWIG
 
-#if !defined(__ANDROID__) || defined(DOXYGEN)
+#if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
   /// @brief Initializes the default firebase::App with the given options.
   ///
   /// @note This method is specific to non-Android implementations.
@@ -405,16 +492,16 @@ class App {
   /// ignored.
   /// @param[in] options Options that control the creation of the App.
   ///
-  /// @returns New App instance, the App should not be destroyed for the
+  /// @return New App instance, the App should not be destroyed for the
   /// lifetime of the application.
   static App* Create(const AppOptions& options);
-#endif  // !defined(__ANDROID__) || defined(DOXYGEN)
+#endif  // !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 
 #ifndef SWIG
 // <SWIG>
 // For Unity, we actually use the simpler, iOS version for both platforms
 // </SWIG>
-#if defined(__ANDROID__) || defined(DOXYGEN)
+#if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
   /// @brief Initializes the default firebase::App with the given options.
   ///
   /// @note This method is specific to the Android implementation.
@@ -427,14 +514,14 @@ class App {
   /// @param[in] activity JNI reference to the Android activity, required to
   /// allow Firebase services to interact with the Android application.
   ///
-  /// @returns New App instance. The App should not be destroyed for the
+  /// @return New App instance. The App should not be destroyed for the
   /// lifetime of the application.
   static App* Create(const AppOptions& options, JNIEnv* jni_env,
                      jobject activity);
-#endif  // defined(__ANDROID__) || defined(DOXYGEN)
+#endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 #endif  // SWIG
 
-#if !defined(__ANDROID__) || defined(DOXYGEN)
+#if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
   /// @brief Initializes a firebase::App with the given options that operates
   /// on the named app.
   ///
@@ -446,16 +533,16 @@ class App {
   /// @param[in] name Name of this App instance.  This is only required when
   /// one application uses multiple App instances.
   ///
-  /// @returns New App instance, the App should not be destroyed for the
+  /// @return New App instance, the App should not be destroyed for the
   /// lifetime of the application.
   static App* Create(const AppOptions& options, const char* name);
-#endif  // !defined(__ANDROID__) || defined(DOXYGEN)
+#endif  // !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 
 #ifndef SWIG
 // <SWIG>
 // For Unity, we actually use the simpler iOS version for both platforms
 // </SWIG>
-#if defined(__ANDROID__) || defined(DOXYGEN)
+#if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
   /// @brief Initializes a firebase::App with the given options that operates
   /// on the named app.
   ///
@@ -471,11 +558,11 @@ class App {
   /// @param[in] activity JNI reference to the Android activity, required to
   /// allow Firebase services to interact with the Android application.
   ///
-  /// @returns New App instance. The App should not be destroyed for the
+  /// @return New App instance. The App should not be destroyed for the
   /// lifetime of the application.
   static App* Create(const AppOptions& options, const char* name,
                      JNIEnv* jni_env, jobject activity);
-#endif  // defined(__ANDROID__) || defined(DOXYGEN)
+#endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 #endif  // SWIG
 
   /// Get the default App, or nullptr if none has been created.
@@ -488,32 +575,32 @@ class App {
 // <SWIG>
 // Unity doesn't need the JNI from here, it has its method to access JNI.
 // </SWIG>
-#if defined(__ANDROID__) || defined(DOXYGEN)
+#if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
   /// Get Java virtual machine, retrieved from the initial JNI environment.
   /// @note This method is specific to the Android implementation.
   ///
-  /// @returns JNI Java virtual machine object.
+  /// @return JNI Java virtual machine object.
   JavaVM* java_vm() const { return java_vm_; }
   /// Get JNI environment, needed for performing JNI calls, set on creation.
   /// This is not trivial as the correct environment needs to retrieved per
   /// thread.
   /// @note This method is specific to the Android implementation.
   ///
-  /// @returns JNI environment object.
+  /// @return JNI environment object.
   JNIEnv* GetJNIEnv() const;
   /// Get a global reference to the Android activity provided to the App on
   /// creation. Also serves as the Context needed for Firebase calls.
   /// @note This method is specific to the Android implementation.
   ///
-  /// @returns Global JNI reference to the Android activity used to create
+  /// @return Global JNI reference to the Android activity used to create
   /// the App.  The reference count of the returned object is not increased.
   jobject activity() const { return activity_; }
-#endif  // defined(__ANDROID__) || defined(DOXYGEN)
+#endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 #endif  // SWIG
 
   /// Get the name of this App instance.
   ///
-  /// @returns The name of this App instance.  If a name wasn't provided via
+  /// @return The name of this App instance.  If a name wasn't provided via
   /// Create(), this returns @ref kDefaultAppName.
   /// <SWIG>
   /// @xmlonly
@@ -527,12 +614,12 @@ class App {
 
   /// Get options the App was created with.
   ///
-  /// @returns Options used to create the App.
+  /// @return Options used to create the App.
   /// <SWIG>
   /// @xmlonly
   /// <csproperty name="AppOptions">
   /// @brief Get the AppOptions the FirebaseApp was created with.
-  /// @returns AppOptions used to create the FirebaseApp.
+  /// @return AppOptions used to create the FirebaseApp.
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
@@ -583,7 +670,7 @@ class App {
   /// Android manifest and FirebaseDataCollectionDefaultEnabled is set to NO
   /// in your iOS app's Info.plist.
   ///
-  /// @returns Whether or not automatic data collection is enabled for all
+  /// @return Whether or not automatic data collection is enabled for all
   /// products.
   bool IsDataCollectionDefaultEnabled() const;
 #endif  // INTERNAL_EXPERIMENTAL
@@ -597,7 +684,7 @@ class App {
   /// Get the initialization results of modules that were initialized when
   /// creating this app.
   ///
-  /// @returns Initialization results of modules indexed by module name.
+  /// @return Initialization results of modules indexed by module name.
   const std::map<std::string, InitResult>& init_results() const {
     return init_results_;
   }
@@ -644,7 +731,7 @@ class App {
 // <SWIG>
 // Unity doesn't need the JNI from here, it has its method to access JNI.
 // </SWIG>
-#if defined(__ANDROID__) || defined(DOXYGEN)
+#if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
   /// JNI reference to the Java virtual machine associated with the App's
   /// process.
   /// @note This is specific to Android.
@@ -652,7 +739,7 @@ class App {
   /// Android activity.
   /// @note This is specific to Android.
   jobject activity_;
-#endif  // defined(__ANDROID__) || defined(DOXYGEN)
+#endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 #endif  // SWIG
 
   /// Name of the App instance.
