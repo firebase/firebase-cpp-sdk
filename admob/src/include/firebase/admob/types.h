@@ -42,7 +42,7 @@ namespace admob {
 #if defined(__ANDROID__)
 /// An Android Activity from Java.
 typedef jobject AdParent;
-#elif defined(TARGET_OS_IPHONE)
+#elif defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE
 /// A pointer to an iOS UIView.
 typedef id AdParent;
 #else
