@@ -222,28 +222,39 @@ void RemoteConfigREST::ParseProtoResponse(const std::string& proto_str) {
   // Start with a copy of the fetched config state.
   NamespaceKeyValueMap config_map(configs_.fetched.config());
 
+  LogDebug("Parsing config response...");
   for (auto app_config : response.configs) {
+    LogDebug("Found response config checking app name %s vs %s",
+             app_package_name_.c_str(), app_config.app_name.c_str());
     // Check the same app name.
     if (app_package_name_.compare(app_config.app_name) != 0) continue;
 
+    LogDebug("Parsing config for app...");
     for (auto config : app_config.ns_configs) {
       switch (config.status) {
         case CONFIG_NAMESPACESTATUS(NO_CHANGE):
           meta_digest[config.config_namespace] = config.digest;
+          LogDebug("No change: ns=%s digest=%s",
+                   config.config_namespace.c_str(), config.digest.c_str());
           break;
         case CONFIG_NAMESPACESTATUS(UPDATE):
           meta_digest[config.config_namespace] = config.digest;
           config_map[config.config_namespace].clear();
           for (auto keyvalue : config.key_values) {
             config_map[config.config_namespace][keyvalue.key] = keyvalue.value;
+            LogDebug("Update: ns=%s kv=(%s, %s)",
+                     config.config_namespace.c_str(), keyvalue.key.c_str(),
+                     keyvalue.value.c_str());
           }
           break;
         case CONFIG_NAMESPACESTATUS(NO_TEMPLATE):
         case CONFIG_NAMESPACESTATUS(NOT_AUTHORIZED):
+          LogDebug("NotAuthorized: ns=%s", config.config_namespace.c_str());
           meta_digest.erase(config.config_namespace);
           config_map.erase(config.config_namespace);
           break;
         case CONFIG_NAMESPACESTATUS(EMPTY_CONFIG):
+          LogDebug("EmptyConfig: ns=%s", config.config_namespace.c_str());
           meta_digest[config.config_namespace] = config.digest;
           config_map[config.config_namespace].clear();
           break;
