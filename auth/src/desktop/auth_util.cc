@@ -47,35 +47,5 @@ void CompletePromise(Promise<void>* const promise,
   promise->Complete();
 }
 
-// Utility functions for making sure that the CallAsync functions end before
-// we destruct, etc.
-void StartAsyncFunction(void* auth_impl_void) {
-  auto auth_impl = static_cast<AuthImpl*>(auth_impl_void);
-  MutexLock lock(auth_impl->async_mutex);
-  auth_impl->active_async_calls++;
-}
-
-void EndAsyncFunction(void* auth_impl_void) {
-  auto auth_impl = static_cast<AuthImpl*>(auth_impl_void);
-  {
-    MutexLock lock(auth_impl->async_mutex);
-    auth_impl->active_async_calls--;
-    auth_impl->async_sem.Post();
-  }
-}
-
-void WaitForAllAsyncToComplete(void* auth_impl_void) {
-  auto auth_impl = static_cast<AuthImpl*>(auth_impl_void);
-  for (;;) {
-    bool transfers_complete = false;
-    {
-      MutexLock lock(auth_impl->async_mutex);
-      transfers_complete = auth_impl->active_async_calls == 0;
-    }
-    if (transfers_complete) break;
-    auth_impl->async_sem.Wait();
-  }
-}
-
 }  // namespace auth
 }  // namespace firebase

@@ -73,12 +73,6 @@ Future<ResultT> CallAsync(
     std::unique_ptr<RequestT> request,
     const typename AuthDataHandle<ResultT, RequestT>::CallbackT callback);
 
-// Utility functions for making sure that the CallAsync functions end before
-// we destruct, etc.
-void StartAsyncFunction(void* auth_impl_void);
-void EndAsyncFunction(void* auth_impl_void);
-void WaitForAllAsyncToComplete(void* auth_impl_void);
-
 // Sends the given request on the network and returns the response. The response
 // is cast to the specified T without any checks, so it's the caller's
 // responsibility to ensure the correct type is given.
@@ -100,14 +94,12 @@ inline Future<ResultT> CallAsync(
   // doesn't need to access the request anyway.
   FIREBASE_ASSERT_RETURN(Future<ResultT>(), auth_data && callback);
 
-  StartAsyncFunction(auth_data->auth_impl);
   typedef AuthDataHandle<ResultT, RequestT> HandleT;
 
   auto scheduler_callback = NewCallback(
       [](HandleT* const raw_auth_data_handle) {
         std::unique_ptr<HandleT> handle(raw_auth_data_handle);
         handle->callback(handle.get());
-        EndAsyncFunction(handle->auth_data->auth_impl);
       },
       new HandleT(auth_data, promise, std::move(request), callback));
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);

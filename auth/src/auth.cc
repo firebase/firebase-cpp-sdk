@@ -140,6 +140,11 @@ void Auth::DeleteInternal() {
 
   if (!auth_data_) return;
 
+  {
+    MutexLock destructing_lock(auth_data_->desctruting_mutex);
+    auth_data_->destructing = true;
+  }
+
   CleanupNotifier* notifier = CleanupNotifier::FindByOwner(auth_data_->app);
   assert(notifier);
   notifier->UnregisterObject(this);

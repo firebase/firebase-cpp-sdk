@@ -27,6 +27,13 @@ namespace firebase {
 namespace app {
 namespace secure {
 
+enum SecureOperationType {
+  kLoadUserData,
+  kSaveUserData,
+  kDeleteUserData,
+  kDeleteAllData,
+};
+
 class UserSecureManager {
  public:
   explicit UserSecureManager(const char* domain, const char* app_id);
@@ -55,6 +62,11 @@ class UserSecureManager {
   static void BinaryToAscii(const std::string& original, std::string* encoded);
 
  private:
+  // Cancel already scheduled tasks in destruction.
+  void CancelScheduledTasks();
+
+  void CancelOperation(SecureOperationType operation_type);
+
   UniquePtr<UserSecureInternal> user_secure_;
   ReferenceCountedFutureImpl future_api_;
 
@@ -65,6 +77,10 @@ class UserSecureManager {
   static Mutex s_scheduler_mutex_;  // NOLINT
   static scheduler::Scheduler* s_scheduler_;
   static int32_t s_scheduler_ref_count_;
+
+  // map from operation type to scheduled request handle. Make sure only one
+  // request exist in scheduler for each type.
+  std::map<SecureOperationType, scheduler::RequestHandle> operation_handles_;
 
   // Safe reference to this.  Set in constructor and cleared in destructor
   // Should be safe to be copied in any thread because the SharedPtr never

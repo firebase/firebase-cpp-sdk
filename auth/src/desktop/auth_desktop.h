@@ -122,7 +122,7 @@ struct AuthCompletionHandle {
 
 // The desktop-specific Auth implementation.
 struct AuthImpl {
-  AuthImpl() : async_sem(0), active_async_calls(0) {}
+  AuthImpl() {}
 
   // The application's API key.
   std::string api_key;
@@ -135,10 +135,6 @@ struct AuthImpl {
   IdTokenRefreshThread token_refresh_thread;
   // Instance responsible for user data persistence.
   UniquePtr<UserDataPersist> user_data_persist;
-  // Synchronization primitives used for managing threads spawned by CallAsync.
-  Semaphore async_sem;
-  Mutex async_mutex;
-  int active_async_calls;
 
   // Serializes all REST call from this object.
   scheduler::Scheduler scheduler_;

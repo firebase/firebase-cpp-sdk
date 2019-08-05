@@ -83,7 +83,8 @@ struct AuthData {
         listener_impl(nullptr),
         id_token_listener_impl(nullptr),
         expect_id_token_listener_callback(false),
-        persistent_cache_load_pending(true) {}
+        persistent_cache_load_pending(true),
+        destructing(false) {}
 
   ~AuthData() {
     ClearUserInfos(this);
@@ -173,6 +174,12 @@ struct AuthData {
 
   // Mutex protecting `expect_id_token_listener_callback`
   Mutex expect_id_token_mutex;
+
+  // Tracks if auth is being destroyed.
+  bool destructing;
+
+  // Mutex protecting destructing
+  Mutex desctruting_mutex;
 
   // Sets if the Id Token Listener is expecting a callback.
   // Used to workaround an issue where the Id Token is not reset with a new one,

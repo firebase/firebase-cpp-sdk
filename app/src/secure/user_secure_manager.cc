@@ -78,6 +78,7 @@ UserSecureManager::UserSecureManager(
 }
 
 UserSecureManager::~UserSecureManager() {
+  CancelScheduledTasks();
   // Clear safe reference immediately so that scheduled callback can skip
   // executing code which requires reference to this.
   safe_this_.ClearReference();
@@ -115,7 +116,9 @@ Future<std::string> UserSecureManager::LoadUserData(
         }
       },
       safe_this_, data_handle, user_secure_.get());
-  s_scheduler_->Schedule(callback);
+
+  CancelOperation(kLoadUserData);
+  operation_handles_[kLoadUserData] = s_scheduler_->Schedule(callback);
   return MakeFuture(&future_api_, future_handle);
 }
 
@@ -137,7 +140,9 @@ Future<void> UserSecureManager::SaveUserData(const std::string& app_name,
         }
       },
       safe_this_, data_handle, user_secure_.get());
-  s_scheduler_->Schedule(callback);
+
+  CancelOperation(kSaveUserData);
+  operation_handles_[kSaveUserData] = s_scheduler_->Schedule(callback);
   return MakeFuture(&future_api_, future_handle);
 }
 
@@ -158,7 +163,9 @@ Future<void> UserSecureManager::DeleteUserData(const std::string& app_name) {
         }
       },
       safe_this_, data_handle, user_secure_.get());
-  s_scheduler_->Schedule(callback);
+
+  CancelOperation(kDeleteUserData);
+  operation_handles_[kDeleteUserData] = s_scheduler_->Schedule(callback);
   return MakeFuture(&future_api_, future_handle);
 }
 
@@ -179,7 +186,9 @@ Future<void> UserSecureManager::DeleteAllData() {
         }
       },
       safe_this_, data_handle, user_secure_.get());
-  s_scheduler_->Schedule(callback);
+
+  CancelOperation(kDeleteAllData);
+  operation_handles_[kDeleteAllData] = s_scheduler_->Schedule(callback);
   return MakeFuture(&future_api_, future_handle);
 }
 
@@ -275,6 +284,23 @@ void UserSecureManager::BinaryToAscii(const std::string& original,
     *encoded = std::string() + kHeaderBase64Encoded + base64;
   } else {
     *encoded = std::string();
+  }
+}
+
+void UserSecureManager::CancelScheduledTasks() {
+  for (auto it = operation_handles_.begin(); it != operation_handles_.end();
+       ++it) {
+    it->second.Cancel();
+  }
+  operation_handles_.clear();
+}
+
+void UserSecureManager::CancelOperation(SecureOperationType operation_type) {
+  // Cancel and remove existing handle.
+  auto it = operation_handles_.find(operation_type);
+  if (it != operation_handles_.end()) {
+    it->second.Cancel();
+    operation_handles_.erase(it);
   }
 }
 

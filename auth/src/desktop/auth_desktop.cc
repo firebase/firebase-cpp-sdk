@@ -222,7 +222,8 @@ void Auth::InitPlatformAuth(AuthData* const auth_data) {
 
 void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
   FIREBASE_ASSERT_RETURN_VOID(auth_data);
-  WaitForAllAsyncToComplete(auth_data->auth_impl);
+  auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
+  auth_impl->scheduler_.CancelAllAndShutdownWorkerThread();
   // Unregister from the function registry.
   auth_data->app->function_registry()->UnregisterFunction(
       internal::FnAuthGetCurrentToken);
@@ -234,14 +235,6 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
       internal::FnAuthGetTokenAsync);
 
   DestroyTokenRefresher(auth_data);
-
-  {
-    // Acquire listeners' mutex to avoid race condition if another thread is
-    // about to notify listeners.
-    MutexLock lock(auth_data->listeners_mutex);
-    auth_data->listeners.clear();
-    auth_data->id_token_listeners.clear();
-  }
 
   DestroyUserDataPersist(auth_data);
 
@@ -493,6 +486,11 @@ void DestroyUserDataPersist(AuthData* auth_data) {
 }
 
 void LoadFinishTriggerListeners(AuthData* auth_data) {
+  MutexLock destructing_lock(auth_data->desctruting_mutex);
+  if (auth_data->destructing) {
+    // If auth is destructing, abort.
+    return;
+  }
   // We would have to block other listener changes to protect race condition
   // on how many times a listener should be triggered. We would rely on first
   // listener trigger to flip the persistence loading bit.
