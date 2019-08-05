@@ -23,6 +23,7 @@ def firebaseDependenciesMap = [
   'auth' : ['com.google.firebase:firebase-auth:18.1.0'],
   'database' : ['com.google.firebase:firebase-database:18.0.1'],
   'dynamic_links' : ['com.google.firebase:firebase-invites:17.0.0'],
+  'firestore' : ['com.google.firebase:firebase-firestore:20.2.0'],
   'functions' : ['com.google.firebase:firebase-functions:18.1.0'],
   'instance_id' : ['com.google.firebase:firebase-iid:19.0.1'],
   'messaging' : ['com.google.firebase.messaging.cpp:firebase_messaging_cpp@aar',
@@ -52,6 +53,9 @@ class Dependencies {
   }
   def getDynamicLinks() {
     libSet.add('dynamic_links')
+  }
+  def getFirestore() {
+    libSet.add('firestore')
   }
   def getFunctions() {
     libSet.add('functions')
