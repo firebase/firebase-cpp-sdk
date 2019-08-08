@@ -85,6 +85,10 @@ static void PlatformOptionsToAppOptions(FIROptions* platform_options,
     NSString* value = platform_options.projectID;
     if (value) app_options->set_project_id(value.UTF8String);
   }
+  if (!strlen(app_options->client_id())) {
+    const char* value = platform_options.clientID.UTF8String;
+    if (value) app_options->set_client_id(value);
+  }
 }
 
 // Copy AppOptions into a FIROptions instance.
@@ -114,6 +118,9 @@ static FIROptions* AppOptionsToPlatformOptions(const AppOptions& app_options) {
   }
   if (strlen(app_options.project_id())) {
     platform_options.projectID = @(app_options.project_id());
+  }
+  if (strlen(app_options.client_id())) {
+    platform_options.clientID = @(app_options.client_id());
   }
   return platform_options;
 }

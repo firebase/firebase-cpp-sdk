@@ -291,6 +291,18 @@ class AppOptions {
   /// </SWIG>
   const char* project_id() const { return project_id_.c_str(); }
 
+#if INTERNAL_EXPERIMENTAL
+  /// @brief set the iOS client ID.
+  ///
+  /// This is the clientID in the GoogleService-Info.plist.
+  void set_client_id(const char* client_id) { client_id_ = client_id; }
+
+  /// @brief Get the iOS client ID.
+  ///
+  /// This is the client_id in the GoogleService-Info.plist.
+  const char* client_id() const { return client_id_.c_str(); }
+#endif  // INTERNAL_EXPERIMENTAL
+
 #ifdef INTERNAL_EXPERIMENTAL
   /// @brief Set the Android or iOS client project name.
   ///
@@ -412,6 +424,8 @@ class AppOptions {
   std::string api_key_;
   /// ID of the app.
   std::string app_id_;
+  /// ClientID of the app.
+  std::string client_id_;
   /// Database root URL.
   std::string database_url_;
   /// Google analytics tracking ID.
