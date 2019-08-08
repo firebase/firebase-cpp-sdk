@@ -33,6 +33,14 @@ function(cc_test name)
 
   list(APPEND cc_test_DEPENDS gmock gtest gtest_main)
 
+  # Include Foundation and Security frameworks, as multiple tests require them
+  # when running on Mac.
+  if (APPLE)
+    list(APPEND cc_test_DEPENDS
+         "-framework Foundation"
+         "-framework Security")
+  endif()
+
   add_executable(${name} ${cc_test_SOURCES})
   add_test(${name} ${name})
   target_include_directories(${name}
