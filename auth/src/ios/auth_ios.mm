@@ -97,6 +97,8 @@ static const struct {
     {FIRAuthErrorCodeWebContextCancelled, kAuthErrorWebContextCancelled},
     {FIRAuthErrorCodeWrongPassword, kAuthErrorWrongPassword},
     {FIRAuthErrorCodeInvalidProviderID, kAuthErrorInvalidProviderId},
+    {FIRAuthErrorCodeWebSignInUserInteractionFailure,
+     kAuthErrorFederatedSignInUserInteractionFailure},
     // TODO(b/137141080): Handle New Thick Client Error
     // Uncomment once support for MISSING_CLIENT_IDENTIFIER is added to the iOS SDK.
     // {FIRAuthErrorCodeMissingClientIdentifier, kAuthErrorMissingClientIdentifier},
@@ -335,6 +337,11 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential(
                           }];
 
   return MakeFuture(&futures, handle);
+}
+
+Future<SignInResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
+  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
+  return provider->SignIn(auth_data_);
 }
 
 Future<User *> Auth::SignInAnonymously() {

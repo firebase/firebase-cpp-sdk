@@ -37,10 +37,5 @@ Credential GoogleAuthProvider::GetCredential(const char* const id_token,
   }
 }
 
-// static
-const char* GoogleAuthProvider::GetProviderId() {
-  return "google.com";
-}
-
 }  // namespace auth
 }  // namespace firebase

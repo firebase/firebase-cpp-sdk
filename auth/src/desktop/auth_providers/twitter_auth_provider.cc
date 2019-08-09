@@ -30,10 +30,5 @@ Credential TwitterAuthProvider::GetCredential(const char* const token,
       new CredentialImpl{new TwitterAuthCredential(token, secret)}};
 }
 
-// static
-const char* TwitterAuthProvider::GetProviderId() {
-  return "twitter.com";
-}
-
 }  // namespace auth
 }  // namespace firebase

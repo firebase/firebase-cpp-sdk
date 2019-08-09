@@ -367,6 +367,10 @@ enum AuthError {
   /// Indicates that one or more fields of the provided AuthenticatedUserData
   /// are invalid.
   kAuthErrorInvalidAuthenticatedUserData,
+
+  /// Indicates that an error occurred during a Federated Auth UI Flow when the
+  /// user was prompted to enter their credentials.
+  kAuthErrorFederatedSignInUserInteractionFailure,
 #endif  // INTERNAL_EXEPERIMENTAL
 };
 

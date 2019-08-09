@@ -38,8 +38,6 @@ enum AuthApiFunction {
   kAuthFn_SignInAnonymously,
   kAuthFn_SignInWithEmailAndPassword,
   kAuthFn_SignInWithProvider,
-  kAuthFn_LinkWithProvider,
-  kAuthFn_ReauthenticateWithProvider,
   kAuthFn_CreateUserWithEmailAndPassword,
   kAuthFn_SendPasswordResetEmail,
 
@@ -54,6 +52,8 @@ enum AuthApiFunction {
   kUserFn_UpdateUserProfile,
   kUserFn_LinkWithCredential,
   kUserFn_LinkAndRetrieveDataWithCredential,
+  kUserFn_LinkWithProvider,
+  kUserFn_ReauthenticateWithProvider,
   kUserFn_Unlink,
   kUserFn_UpdatePhoneNumberCredential,
   kUserFn_Reload,

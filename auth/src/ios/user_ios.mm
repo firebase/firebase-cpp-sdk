@@ -204,6 +204,11 @@ Future<SignInResult> User::LinkAndRetrieveDataWithCredential(const Credential &c
   return MakeFuture(&futures, handle);
 }
 
+Future<SignInResult> User::LinkWithProvider(FederatedAuthProvider* provider) const {
+  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
+  return provider->Link(auth_data_);
+}
+
 Future<User*> User::Unlink(const char *provider) {
   if (!ValidUser(auth_data_)) {
     return Future<User*>();
@@ -286,6 +291,11 @@ Future<SignInResult> User::ReauthenticateAndRetrieveData(const Credential& crede
   return MakeFuture(&futures, handle);
 }
 
+Future<SignInResult> User::ReauthenticateWithProvider(FederatedAuthProvider* provider) const {
+  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
+  return provider->Reauthenticate(auth_data_);
+}
+
 Future<void> User::Delete() {
   if (!ValidUser(auth_data_)) {
     return Future<void>();
@@ -294,9 +304,13 @@ Future<void> User::Delete() {
   const auto handle = futures.SafeAlloc<void>(kUserFn_Delete);
 
   [UserImpl(auth_data_) deleteWithCompletion:^(NSError *_Nullable error) {
-    if (!error) UpdateCurrentUser(auth_data_);
-    futures.Complete(handle, AuthErrorFromNSError(error),
-                     [error.localizedDescription UTF8String]);
+    if (!error) {
+      UpdateCurrentUser(auth_data_);
+      futures.Complete(handle, kAuthErrorNone, "");
+    } else {
+      futures.Complete(handle, AuthErrorFromNSError(error),
+                       [error.localizedDescription UTF8String]);
+    }
   }];
   return MakeFuture(&futures, handle);
 }

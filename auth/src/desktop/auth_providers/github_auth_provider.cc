@@ -28,10 +28,5 @@ Credential GitHubAuthProvider::GetCredential(const char* const token) {
   return Credential{new CredentialImpl{new GitHubAuthCredential(token)}};
 }
 
-// static
-const char* GitHubAuthProvider::GetProviderId() {
-  return "github.com";
-}
-
 }  // namespace auth
 }  // namespace firebase

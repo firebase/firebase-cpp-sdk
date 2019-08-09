@@ -157,6 +157,14 @@ std::string NSStringToString(NSString *str) {
     std::string();
 }
 
+NSMutableArray *StringVectorToNSMutableArray(const std::vector<std::string> &vector) {
+  NSMutableArray<NSString *> *array = [[NSMutableArray alloc] initWithCapacity:vector.size()];
+  for (auto &element : vector) {
+    [array addObject:StringToNSString(element)];
+  }
+  return array;
+}
+
 NSMutableArray* StdVectorToNSMutableArray(const std::vector<Variant>& vector) {
   NSMutableArray* array =
       [[NSMutableArray alloc] initWithCapacity:vector.size()];

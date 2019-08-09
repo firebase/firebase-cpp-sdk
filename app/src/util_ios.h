@@ -138,6 +138,10 @@ typedef BOOL (
 // blacklist we keep).
 void ForEachAppDelegateClass(void (^block)(Class));
 
+ // Convert a string array into an NSMutableArray.
+NSMutableArray *StringVectorToNSMutableArray(
+    const std::vector<std::string> &vector);
+
 // Convert a string map to NSDictionary.
 NSDictionary *StringMapToNSDictionary(
     const std::map<std::string, std::string> &string_map);

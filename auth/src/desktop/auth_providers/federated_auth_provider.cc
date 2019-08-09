@@ -59,7 +59,7 @@ Future<SignInResult> CreateAuthFuture(AuthData* auth_data,
     auth_data->future_impl.CompleteWithResult(
         handle, kAuthErrorFederatedProviderAreadyInUse,
         "Provider operation already in progress.",
-        /*SignInResult=*/{});
+        /*result=*/{});
     return MakeFuture(&auth_data->future_impl, handle);
   } else if (future_base.status() == kFutureStatusInvalid) {
     // initialize the future.
@@ -94,7 +94,7 @@ Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
   assert(auth_data);
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), handler_);
   Future<SignInResult> future =
-      CreateAuthFuture(auth_data, kAuthFn_LinkWithProvider);
+      CreateAuthFuture(auth_data, kUserFn_LinkWithProvider);
   if (future.status() == kFutureStatusPending) {
     AuthCompletionHandle* auth_completion_handle = new AuthCompletionHandle(
         SafeFutureHandle<SignInResult>(future.GetHandle()), auth_data);
@@ -108,7 +108,7 @@ Future<SignInResult> FederatedOAuthProvider::Reauthenticate(
   assert(auth_data);
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), handler_);
   Future<SignInResult> future =
-      CreateAuthFuture(auth_data, kAuthFn_ReauthenticateWithProvider);
+      CreateAuthFuture(auth_data, kUserFn_ReauthenticateWithProvider);
   if (future.status() == kFutureStatusPending) {
     AuthCompletionHandle* auth_completion_handle = new AuthCompletionHandle(
         SafeFutureHandle<SignInResult>(future.GetHandle()), auth_data);

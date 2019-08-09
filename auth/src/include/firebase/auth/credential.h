@@ -151,7 +151,7 @@ class FacebookAuthProvider {
   /// @see Auth::SignInWithProvider
   /// @see User::ReauthenticateWithProvider
   /// @see User::LinkWithProvider
-  static const char* GetProviderId();
+  static const char* GetProviderId() { return "facebook.com"; }
 #endif  // INTERNAL_EXPERIMENTAL
 };
 
@@ -173,7 +173,7 @@ class GitHubAuthProvider {
   /// @see Auth::SignInWithProvider
   /// @see User::ReauthenticateWithProvider
   /// @see User::LinkWithProvider
-  static const char* GetProviderId();
+  static const char* GetProviderId() { return "github.com"; }
 #endif  // INTERNAL_EXPERIMENTAL
 };
 
@@ -197,7 +197,7 @@ class GoogleAuthProvider {
   /// @see Auth::SignInWithProvider
   /// @see User::ReauthenticateWithProvider
   /// @see User::LinkWithProvider
-  static const char* GetProviderId();
+  static const char* GetProviderId() { return "google.com"; }
 #endif  // INTERNAL_EXPERIMENTAL
 };
 
@@ -219,7 +219,7 @@ class PlayGamesAuthProvider {
   /// @see Auth::SignInWithProvider
   /// @see User::ReauthenticateWithProvider
   /// @see User::LinkWithProvider
-  static const char* GetProviderId();
+  static const char* GetProviderId() { return "playgames.google.com"; }
 #endif  // INTERNAL_EXPERIMENTAL
 };
 
@@ -242,7 +242,7 @@ class TwitterAuthProvider {
   /// @see Auth::SignInWithProvider
   /// @see User::ReauthenticateWithProvider
   /// @see User::LinkWithProvider
-  static const char* GetProviderId();
+  static const char* GetProviderId()  { return "twitter.com"; }
 #endif  // INTERNAL_EXPERIMENTAL
 };
 
