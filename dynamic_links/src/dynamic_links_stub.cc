@@ -14,17 +14,17 @@
 
 #include <assert.h>
 
+#include <cstddef>
 #include <map>
 #include <string>
-
-#include "dynamic_links/src/include/firebase/dynamic_links.h"
-#include "dynamic_links/src/include/firebase/dynamic_links/components.h"
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "dynamic_links/src/common.h"
+#include "dynamic_links/src/include/firebase/dynamic_links.h"
+#include "dynamic_links/src/include/firebase/dynamic_links/components.h"
 
 namespace firebase {
 namespace dynamic_links {
@@ -96,10 +96,15 @@ std::string QueryStringFromMap(
 static GeneratedDynamicLink LongLinkFromComponents(
     const DynamicLinkComponents& components) {
   GeneratedDynamicLink generated_link;
-  if (components.link == nullptr || components.dynamic_link_domain == nullptr ||
-      strlen(components.link) == 0 ||
-      strlen(components.dynamic_link_domain) == 0) {
-    generated_link.error = "No domain or target link specified.";
+  if (components.link == nullptr || strlen(components.link) == 0) {
+    generated_link.error = "No target link specified.";
+    return generated_link;
+  }
+  if ((components.dynamic_link_domain == nullptr ||
+       strlen(components.dynamic_link_domain) == 0) &&
+      (components.domain_uri_prefix == nullptr ||
+       strlen(components.domain_uri_prefix) == 0)) {
+    generated_link.error = "No domain specified.";
     return generated_link;
   }
   std::map<std::string, std::string> query_parameters;
@@ -170,9 +175,11 @@ static GeneratedDynamicLink LongLinkFromComponents(
                                      params->image_url);
     }
   }
-  generated_link.url = std::string("https://") +
-                       components.dynamic_link_domain + "/" +
-                       QueryStringFromMap(query_parameters);
+  std::string domain =
+      components.domain_uri_prefix != nullptr
+          ? components.domain_uri_prefix
+          : std::string("https://") + components.dynamic_link_domain;
+  generated_link.url = domain + "/" + QueryStringFromMap(query_parameters);
   return generated_link;
 }
 
