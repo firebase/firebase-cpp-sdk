@@ -55,6 +55,10 @@ if(MSVC)
       -DWIN32_LEAN_AND_MEAN
       CURL_STATICLIB=1
       )
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+  set(rest_additional_defines
+      -DFIREBASE_SSL_CAPATH="/etc/ssl/certs"
+      )
 else()
   set(rest_additional_defines)
 endif()

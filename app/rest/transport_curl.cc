@@ -452,6 +452,11 @@ bool BackgroundTransportCurl::PerformBackground(Request* request) {
   CheckOk(curl_easy_setopt(curl_, CURLOPT_SSL_VERIFYPEER, 1L), "verify peer");
   CheckOk(curl_easy_setopt(curl_, CURLOPT_SSL_VERIFYHOST, 2L), "verify host");
 
+#ifdef FIREBASE_SSL_CAPATH
+  CheckOk(curl_easy_setopt(curl_, CURLOPT_CAPATH, FIREBASE_SSL_CAPATH),
+          "CA Path");
+#endif
+
   // Set callback functions.
   CheckOk(curl_easy_setopt(curl_, CURLOPT_HEADERFUNCTION, CurlHeaderCallback),
           "set http header callback");
