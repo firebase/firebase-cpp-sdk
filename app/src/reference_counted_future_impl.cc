@@ -61,8 +61,8 @@ namespace {
 // This class manages the link between the two.
 class FutureProxyManager {
  public:
-  FutureProxyManager(ReferenceCountedFutureImpl* api, FutureHandle subject) :
-    api_(api), subject_(subject) {}
+  FutureProxyManager(ReferenceCountedFutureImpl* api, FutureHandle subject)
+      : api_(api), subject_(subject) {}
 
   void RegisterClient(FutureHandle handle) {
     // We create one reference per client to the Future.
@@ -73,8 +73,8 @@ class FutureProxyManager {
   }
 
   struct UnregisterData {
-    UnregisterData(FutureProxyManager* proxy, FutureHandle handle) :
-      proxy(proxy), handle(handle) {}
+    UnregisterData(FutureProxyManager* proxy, FutureHandle handle)
+        : proxy(proxy), handle(handle) {}
     FutureProxyManager* proxy;
     FutureHandle handle;
   };
@@ -203,7 +203,7 @@ FutureApiInterface::~FutureApiInterface() {}
 }  // namespace detail
 
 const char ReferenceCountedFutureImpl::kErrorMessageFutureIsNoLongerValid[] =
-  "Invalid Future";
+    "Invalid Future";
 
 ReferenceCountedFutureImpl::~ReferenceCountedFutureImpl() {
   // All futures should be released before we destroy ourselves.
@@ -270,8 +270,7 @@ void ReferenceCountedFutureImpl::CompleteProxy(FutureBackingData* backing) {
   // This function is in the cpp instead of the header because
   // FutureBackingData is only declared in the cpp.
   if (backing->proxy) {
-    backing->proxy->CompleteClients(backing->error,
-                                    backing->error_msg.c_str());
+    backing->proxy->CompleteClients(backing->error, backing->error_msg.c_str());
   }
 }
 
@@ -303,17 +302,26 @@ void ReferenceCountedFutureImpl::ReleaseMutexAndRunCallback(
     backing->completion_callback = nullptr;
     backing->callback_user_data_delete_fn = nullptr;
     backing->callback_user_data = nullptr;
+
+    // Make sure we're not deallocated while running the callback, because it
+    // would make `future_base` invalid.
+    is_running_callback_ = true;
+
     // Release the lock, which is assumed to be obtained by the caller, before
     // calling the callback.
     mutex_.Release();
 
     callback(future_base, user_data);
 
-    if (delete_fn) {
-      // Lock again, as we can't assume that the callback is thread-safe from
-      // the user's perspective.
+    {
       MutexLock lock(mutex_);
-      delete_fn(user_data);
+      is_running_callback_ = false;
+
+      // Call this while holding lock, as we can't assume that the callback is
+      // thread-safe from the user's perspective.
+      if (delete_fn) {
+        delete_fn(user_data);
+      }
     }
   } else {
     mutex_.Release();
@@ -494,6 +502,11 @@ bool ReferenceCountedFutureImpl::IsSafeToDelete() const {
     // If any Future is still pending, not safe to delete.
     if (i->second->status == kFutureStatusPending) return false;
   }
+
+  if (is_running_callback_) {
+    return false;
+  }
+
   return true;
 }
 
@@ -544,7 +557,7 @@ FutureBase ReferenceCountedFutureImpl::LastResultProxy(int fn_idx) {
 
   return FutureBase(this, client_handle);
 }
-#endif   // defined(INTERNAL_EXPERIMENTAL)
+#endif  // defined(INTERNAL_EXPERIMENTAL)
 
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace FIREBASE_NAMESPACE

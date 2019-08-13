@@ -519,6 +519,12 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   /// Clean up any stale Future instances.
   TypedCleanupNotifier<FutureBase> cleanup_;
+
+  /// True while running the user-supplied callback upon a future's completion.
+  /// This flag prevents this instance from being considered safe to delete
+  /// before the callback is finished, which would be unsafe because it would
+  /// clean up the future that is passed to the callback.
+  bool is_running_callback_ = false;
 };
 
 /// Specialize the case where the data is void since we don't need to
