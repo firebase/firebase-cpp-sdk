@@ -269,6 +269,13 @@ add_library(firebase_app STATIC
     memory/unique_ptr.h
     memory/shared_ptr.h)
 
+# Disable exceptions in std
+if (MSVC)
+  target_compile_options(firebase_app PUBLIC /EHs-c-)
+else()
+  target_compile_options(firebase_app PUBLIC -fno-exceptions)
+endif()
+
 target_include_directories(firebase_app
   PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/include
