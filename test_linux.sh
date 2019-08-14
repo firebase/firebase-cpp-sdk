@@ -32,4 +32,4 @@ cmake .. -DFIREBASE_CPP_BUILD_TESTS=ON
 cmake --build .
 
 # Run the tests
-ctest
+ctest --verbose

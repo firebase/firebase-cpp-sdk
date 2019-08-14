@@ -52,7 +52,7 @@ class SetAccountInfoResponse : public AuthResponse {
 
   std::string password_hash() const { return application_data_->passwordHash; }
 
-  const std::vector<std::unique_ptr<fbs::ProviderUserInfoT>>&
+  const std::vector<flatbuffers::unique_ptr<fbs::ProviderUserInfoT>>&
   providerUserInfos() const {
     return application_data_->providerUserInfo;
   }

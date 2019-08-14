@@ -84,12 +84,13 @@ class GetAccountInfoResponse : public AuthResponse {
                : 0;
   }
 
-  const std::vector<std::unique_ptr<fbs::ProviderUserInfoT>>&
+  const std::vector<flatbuffers::unique_ptr<fbs::ProviderUserInfoT>>&
   providerUserInfos() const {
     if (!application_data_->users.empty()) {
       return application_data_->users[0]->providerUserInfo;
     }
-    static std::vector<std::unique_ptr<fbs::ProviderUserInfoT>> fallback;
+    static std::vector<flatbuffers::unique_ptr<fbs::ProviderUserInfoT>>
+        fallback;
     return fallback;
   }
 };

@@ -84,6 +84,15 @@ project (firebase NONE)
 enable_language(C)
 enable_language(CXX)
 
+if (FIREBASE_CPP_BUILD_TESTS AND MSVC)
+  # Googletest requires MSVC to compile with the static version of the runtime
+  # library, so define the appropriate runtime flag, before adding libraries.
+  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
+  set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
+  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+endif()
+
 # Set variables that are used by download_external_sources.
 set(FIREBASE_SOURCE_DIR ${PROJECT_SOURCE_DIR})
 set(FIREBASE_BINARY_DIR ${PROJECT_BINARY_DIR})

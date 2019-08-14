@@ -109,7 +109,7 @@ class RestOperation {
   FutureHandle handle_;
   CleanupNotifier cleanup_;
   rest::TransportCurl transport_;
-  std::unique_ptr<rest::Controller> rest_controller_;
+  flatbuffers::unique_ptr<rest::Controller> rest_controller_;
   // Storage controller that delegates to this object.
   storage::Controller controller_;
   bool is_complete_;
