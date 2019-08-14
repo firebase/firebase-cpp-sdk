@@ -53,6 +53,7 @@ function(cc_test name)
     PRIVATE
       -DINTERNAL_EXPERIMENTAL=1
       ${cc_test_DEFINES}
+      -DDEATHTEST_SIGABRT=""
   )
 endfunction()
 
@@ -94,5 +95,6 @@ function(cc_test_on_ios name)
     PRIVATE
       -DINTERNAL_EXPERIMENTAL=1
       ${cc_test_DEFINES}
+      -DDEATHTEST_SIGABRT="SIGABRT"
   )
 endfunction()
