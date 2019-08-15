@@ -79,7 +79,7 @@ class Thread {
   Thread();
 
   // When a Thread is destroyed the underlying thread must be either join()'ed
-  // or detach()'ed. Otherwise the process will be aborted(this is inline with
+  // or detach()'ed. Otherwise the process will be aborted (this is in line with
   // what std::thread does).
   ~Thread();
 
@@ -130,7 +130,7 @@ class Thread {
          AdapterRoutine adapter_routine);
 
   pthread_t thread_;
-  // TODO(vkryachko): replace with atomic<bool> + cas(or guard midifications
+  // TODO(vkryachko): replace with atomic<bool> + cas (or guard modifications
   // with a mutex) to allow moving the object between threads.
   bool is_joinable_;
 #else
