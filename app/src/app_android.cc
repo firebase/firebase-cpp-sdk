@@ -463,14 +463,15 @@ App* App::Create(const AppOptions& options, const char* name, JNIEnv* jni_env,
     jobject platform_app = CreateOrGetPlatformApp(jni_env, options, name,
                                                   activity);
     if (platform_app) {
-        app = new App();
-        app->name_ = name;
-        app->activity_ = jni_env->NewGlobalRef(activity);
-        jint result = jni_env->GetJavaVM(&app->java_vm_);
-        FIREBASE_ASSERT(result == JNI_OK);
-        GetAppOptionsFromPlatformApp(jni_env, platform_app, &app->options_);
-        app->data_ = static_cast<void*>(jni_env->NewGlobalRef(platform_app));
-        app = app_common::AddApp(app, &app->init_results_);
+      app = new App();
+      app->name_ = name;
+      app->activity_ = jni_env->NewGlobalRef(activity);
+      jint result = jni_env->GetJavaVM(&app->java_vm_);
+      FIREBASE_ASSERT(result == JNI_OK);
+      GetAppOptionsFromPlatformApp(jni_env, platform_app, &app->options_);
+      app->data_ = static_cast<void*>(jni_env->NewGlobalRef(platform_app));
+      jni_env->DeleteLocalRef(platform_app);
+      app = app_common::AddApp(app, &app->init_results_);
     } else {
       ReleaseClasses(jni_env);
     }
