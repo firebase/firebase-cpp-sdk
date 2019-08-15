@@ -786,7 +786,15 @@ Future<SignInResult> User::LinkAndRetrieveDataWithCredential(
 Future<SignInResult> User::LinkWithProvider(
     FederatedAuthProvider* provider) const {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
-  return provider->Link(auth_data_);
+  // TODO(b/139363200)
+  // return provider->Link(auth_data_);
+  SafeFutureHandle<SignInResult> handle =
+      auth_data_->future_impl.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider);
+  auth_data_->future_impl.CompleteWithResult(
+      handle, kAuthErrorUnimplemented,
+      "Operation is not supported on non-mobile systems.",
+      /*result=*/{});
+  return MakeFuture(&auth_data_->future_impl, handle);
 }
 
 Future<void> User::Reauthenticate(const Credential& credential) {
@@ -806,7 +814,16 @@ Future<SignInResult> User::ReauthenticateAndRetrieveData(
 Future<SignInResult> User::ReauthenticateWithProvider(
     FederatedAuthProvider* provider) const {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
-  return provider->Reauthenticate(auth_data_);
+  // TODO(b/139363200)
+  // return provider->Reauthenticate(auth_data_);
+  SafeFutureHandle<SignInResult> handle =
+      auth_data_->future_impl.SafeAlloc<SignInResult>(
+          kUserFn_ReauthenticateWithProvider);
+  auth_data_->future_impl.CompleteWithResult(
+      handle, kAuthErrorUnimplemented,
+      "Operation is not supported on non-mobile systems.",
+      /*result=*/{});
+  return MakeFuture(&auth_data_->future_impl, handle);
 }
 
 const std::vector<UserInfoInterface*>& User::provider_data() const {

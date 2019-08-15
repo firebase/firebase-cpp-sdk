@@ -245,6 +245,10 @@ class Auth {
   /// with.
   ///
   /// @return A Future with the result of the sign-in request.
+  ///
+  /// @note: This operation is supported only on iOS and Android platforms. On
+  /// non-mobile platforms this method will return a Future with a preset error
+  /// code: kAuthErrorUnimplemented.
   Future<SignInResult> SignInWithProvider(
       FederatedAuthProvider* provider);
 #endif  // INTERNAL_EXPERIMENTAL

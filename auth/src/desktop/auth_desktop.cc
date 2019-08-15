@@ -279,7 +279,17 @@ Future<User*> Auth::SignInWithCredential(const Credential& credential) {
 Future<SignInResult> Auth::SignInWithProvider(
       FederatedAuthProvider* provider) {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
-  return provider->SignIn(auth_data_);
+  // TODO(b/139363200)
+  // return provider->SignIn(auth_data_);
+
+  SafeFutureHandle<SignInResult> handle =
+      auth_data_->future_impl.SafeAlloc<SignInResult>(
+          kAuthFn_SignInWithProvider);
+  auth_data_->future_impl.CompleteWithResult(
+      handle, kAuthErrorUnimplemented,
+      "Operation is not supported on non-mobile systems.",
+      /*result=*/{});
+  return MakeFuture(&auth_data_->future_impl, handle);
 }
 
 Future<User*> Auth::SignInAnonymously() {
