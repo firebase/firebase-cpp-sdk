@@ -266,8 +266,7 @@ static const char kMissingJavaMethodFieldError[] =
     "Unable to find %s.  "
     "Please verify the AAR which contains the %s class is included "
     "in your app.";
-// LINT.ThenChange(//depot_firebase_cpp/app/client/cpp/src/include/\
-//         firebase/csharp/app.SWIG)
+// LINT.ThenChange(//depot_firebase_cpp/app/client/unity/src/swig/app.SWIG)
 
 std::vector<EmbeddedFile> ArrayToEmbeddedFiles(const char* filename,
                                                const unsigned char* data,
@@ -1180,6 +1179,16 @@ jbyteArray ByteBufferToJavaByteArray(JNIEnv* env, const uint8_t* data,
   return output_array;
 }
 
+// Convert a local to global reference, deleting the specified local reference.
+jobject LocalToGlobalReference(JNIEnv* env, jobject local_reference) {
+  jobject global_reference = nullptr;
+  if (local_reference) {
+    global_reference = env->NewGlobalRef(local_reference);
+    env->DeleteLocalRef(local_reference);
+  }
+  return global_reference;
+}
+
 jobject ContinueBuilder(JNIEnv* env, jobject old_builder, jobject new_builder) {
   env->DeleteLocalRef(old_builder);
   return new_builder;
@@ -1300,9 +1309,17 @@ JNIEnv* JObjectReference::GetJNIEnv() const {
   return GetThreadsafeJNIEnv(jvm_);
 }
 
+JObjectReference JObjectReference::FromLocalReference(JNIEnv* env,
+                                                      jobject local_reference) {
+  JObjectReference jobject_reference = JObjectReference(env, local_reference);
+  if (local_reference) env->DeleteLocalRef(local_reference);
+  return jobject_reference;
+}
+
 void JObjectReference::Initialize(JavaVM* jvm, JNIEnv* env,
                                   jobject jobject_reference) {
   jvm_ = jvm;
+  object_ = nullptr;
   if (jobject_reference) object_ = env->NewGlobalRef(jobject_reference);
 }
 

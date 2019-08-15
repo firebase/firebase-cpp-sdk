@@ -749,6 +749,11 @@ class JObjectReference {
   // reference count.
   jobject object() const { return object_; }
 
+  // Convert a local reference to a JObjectReference, deleting the local
+  // reference.
+  static JObjectReference FromLocalReference(JNIEnv* env,
+                                             jobject local_reference);
+
  private:
   // Initialize this instance by adding a reference to the specified Java
   // object.
@@ -984,6 +989,9 @@ std::vector<unsigned char> JniByteArrayToVector(JNIEnv* env, jobject array);
 // The caller must call env->DeleteLocalRef() on the returned object.
 jbyteArray ByteBufferToJavaByteArray(JNIEnv* env, const uint8_t* data,
                                      size_t size);
+
+// Convert a local to global reference, deleting the specified local reference.
+jobject LocalToGlobalReference(JNIEnv* env, jobject local_reference);
 
 // Convenience function for using the Java builder pattern via JNI.
 //
