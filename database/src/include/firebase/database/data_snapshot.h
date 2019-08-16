@@ -173,7 +173,7 @@ class DataSnapshot {
 
   /// @brief Returns true if this snapshot is valid, false if it is not
   /// valid. An invalid snapshot could be returned by a transaction where an
-  /// error has occured.
+  /// error has occurred.
   ///
   /// @returns true if this snapshot is valid, false if this snapshot is
   /// invalid.

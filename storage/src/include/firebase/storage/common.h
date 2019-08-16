@@ -39,7 +39,7 @@ enum Error {
   /// The maximum time limit on an operation (upload, download, delete, etc.)
   /// has been exceeded.
   kErrorRetryLimitExceeded,
-  /// File on the client does not match the checksum of the file recieved by the
+  /// File on the client does not match the checksum of the file received by the
   /// server.
   kErrorNonMatchingChecksum,
   /// Size of the downloaded file exceeds the amount of memory allocated for the

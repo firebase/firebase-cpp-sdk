@@ -34,7 +34,7 @@ namespace google_play_services {
 
 /// @brief Possible availability states for Google Play services.
 enum Availability {
-  /// Gooogle Play services are available.
+  /// Google Play services are available.
   kAvailabilityAvailable,
 
   /// Google Play services is disabled in Settings.

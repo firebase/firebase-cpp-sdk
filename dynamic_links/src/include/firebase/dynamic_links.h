@@ -86,7 +86,7 @@ class Listener {
 /// Listener provided at any time.
 ///
 /// @param[in] app The Firebase App object for this application.
-/// @param[in] listener A Listener object that recieves Dynamic Links.
+/// @param[in] listener A Listener object that receives Dynamic Links.
 ///
 /// @return kInitResultSuccess if initialization succeeded, or
 /// kInitResultFailedMissingDependency on Android if Google Play services is

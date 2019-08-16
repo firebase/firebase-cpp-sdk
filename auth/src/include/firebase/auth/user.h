@@ -145,7 +145,7 @@ struct SignInResult {
   User* user;
 
   /// Identity-provider specific information for the user, if the provider is
-  /// one of Facebook, Github, Google, or Twitter.
+  /// one of Facebook, GitHub, Google, or Twitter.
   AdditionalUserInfo info;
 
   /// Metadata associated with the Firebase user.
