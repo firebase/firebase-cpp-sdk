@@ -66,6 +66,17 @@ static const BackendErrorToCode kBackendErrorsToErrorCodeMap[] = {
     {"SESSION_EXPIRED", kAuthErrorSessionExpired},
     {"INVALID_APP_CREDENTIAL", kAuthErrorAppNotAuthorized},
     {"MISSING_CLIENT_IDENTIFIER", kAuthErrorMissingClientIdentifier},
+    {"MISSING_MFA_PENDING_CREDENTIAL", kAuthErrorMissingMultiFactorSession},
+    {"MISSING_MFA_ENROLLMENT_ID", kAuthErrorMissingMultiFactorInfo},
+    {"INVALID_MFA_PENDING_CREDENTIAL", kAuthErrorInvalidMultiFactorSession},
+    {"MFA_ENROLLMENT_NOT_FOUND", kAuthErrorMultiFactorInfoNotFound},
+    {"ADMIN_ONLY_OPERATION", kAuthErrorAdminRestrictedOperation},
+    {"UNVERIFIED_EMAIL", kAuthErrorUnverifiedEmail},
+    {"SECOND_FACTOR_EXISTS", kAuthErrorSecondFactorAlreadyEnrolled},
+    {"SECOND_FACTOR_LIMIT_EXCEEDED",
+     kAuthErrorMaximumSecondFactorCountExceeded},
+    {"UNSUPPORTED_FIRST_FACTOR", kAuthErrorUnsupportedFirstFactor},
+    {"EMAIL_CHANGE_NEEDS_VERIFICATION", kAuthErrorEmailChangeNeedsVerification},
 };
 
 static const struct ErrorCodeToDescription {
@@ -173,7 +184,30 @@ static const struct ErrorCodeToDescription {
      "the console."},
     {kAuthErrorFailure, "An internal error has occurred."},
     {kAuthErrorMissingClientIdentifier,
-     "This request is missing a reCAPTCHA token."}};
+     "This request is missing a reCAPTCHA token."},
+    {kAuthErrorMissingMultiFactorSession,
+     "The request is missing proof of first factor successful sign-in."},
+    {kAuthErrorMissingMultiFactorInfo,
+     "No second factor identifier is provided."},
+    {kAuthErrorInvalidMultiFactorSession,
+     "The request does not contain a valid proof of first factor successful "
+     "sign-in."},
+    {kAuthErrorMultiFactorInfoNotFound,
+     "The user does not have a second factor matching the identifier "
+     "provided."},
+    {kAuthErrorAdminRestrictedOperation,
+     "This operation is restricted to administrators only."},
+    {kAuthErrorUnverifiedEmail, "This operation requires a verified email."},
+    {kAuthErrorSecondFactorAlreadyEnrolled,
+     "The second factor is already enrolled on this account."},
+    {kAuthErrorMaximumSecondFactorCountExceeded,
+     "The maximum allowed number of second factors on a user has been "
+     "exceeded."},
+    {kAuthErrorUnsupportedFirstFactor,
+     "Enrolling a second factor or signing in with a multi-factor account "
+     "requires sign-in with a supported first factor."},
+    {kAuthErrorEmailChangeNeedsVerification,
+     "Multi-factor users must always have a verified email."}};
 
 }  // namespace
 

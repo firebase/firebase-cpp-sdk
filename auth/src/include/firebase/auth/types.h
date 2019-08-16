@@ -355,6 +355,46 @@ enum AuthError {
   /// identifier.
   kAuthErrorMissingClientIdentifier,
 
+  /// Indicates that a second factor challenge request was made without proof of
+  /// a successful first factor sign-in.
+  kAuthErrorMissingMultiFactorSession,
+
+  /// Indicates that a second factor challenge request was made where a second
+  /// factor identifier was not provided.
+  kAuthErrorMissingMultiFactorInfo,
+
+  /// Indicates that a second factor challenge request was made containing an
+  /// invalid proof of first factor sign-in.
+  kAuthErrorInvalidMultiFactorSession,
+
+  /// Indicates that the user does not have a second factor matching the
+  /// provided identifier.
+  kAuthErrorMultiFactorInfoNotFound,
+
+  /// Indicates that a request was made that is restricted to administrators
+  /// only.
+  kAuthErrorAdminRestrictedOperation,
+
+  /// Indicates that the user's email must be verified to perform that request.
+  kAuthErrorUnverifiedEmail,
+
+  /// Indicates that the user is trying to enroll a second factor that already
+  /// exists on their account.
+  kAuthErrorSecondFactorAlreadyEnrolled,
+
+  /// Indicates that the user has reached the maximum number of allowed second
+  /// factors and is attempting to enroll another one.
+  kAuthErrorMaximumSecondFactorCountExceeded,
+
+  /// Indicates that a user either attempted to enroll in 2FA with an
+  /// unsupported first factor or is enrolled and attempts a first factor sign
+  /// in that is not supported for 2FA users.
+  kAuthErrorUnsupportedFirstFactor,
+
+  /// Indicates that a second factor users attempted to change their email with
+  /// updateEmail instead of verifyBeforeUpdateEmail.
+  kAuthErrorEmailChangeNeedsVerification,
+
 #ifdef INTERNAL_EXPERIMENTAL
   /// Indicates that the provided event handler is null or invalid.
   kAuthErrorInvalidEventHandler,

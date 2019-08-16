@@ -102,6 +102,19 @@ static const struct {
     // TODO(b/137141080): Handle New Thick Client Error
     // Uncomment once support for MISSING_CLIENT_IDENTIFIER is added to the iOS SDK.
     // {FIRAuthErrorCodeMissingClientIdentifier, kAuthErrorMissingClientIdentifier},
+    // TODO(b/139495259): Handle MFA errors
+    // Uncomment once support for MFA errors is added to the iOS SDK.
+    // {FIRAuthErrorCodeMissingMultiFactorSession, kAuthErrorMissingMultiFactorSession},
+    // {FIRAuthErrorCodeMissingMultiFactorInfo, kAuthErrorMissingMultiFactorInfo},
+    // {FIRAuthErrorCodeInvalidMultiFactorSession, kAuthErrorInvalidMultiFactorSession},
+    // {FIRAuthErrorCodeMultiFactorInfoNotFound, kAuthErrorMultiFactorInfoNotFound},
+    // {FIRAuthErrorCodeAdminRestrictedOperation, kAuthErrorAdminRestrictedOperation},
+    // {FIRAuthErrorCodeUnverifiedEmail, kAuthErrorUnverifiedEmail},
+    // {FIRAuthErrorCodeSecondFactorAlreadyEnrolled, kAuthErrorSecondFactorAlreadyEnrolled},
+    // {FIRAuthErrorCodeMaximumSecondFactorCountExceeded,
+    // kAuthErrorMaximumSecondFactorCountExceeded}, {FIRAuthErrorCodeUnsupportedFirstFactor,
+    // kAuthErrorUnsupportedFirstFactor}, {FIRAuthErrorCodeEmailChangeNeedsVerification,
+    // kAuthErrorEmailChangeNeedsVerification},
 };
 
 template<typename T>

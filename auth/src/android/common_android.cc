@@ -60,6 +60,10 @@ static const ErrorCodeMapping kCredentialCodes[] = {
     {"ERROR_SESSION_EXPIRED", kAuthErrorSessionExpired},
     {"ERROR_REJECTED_CREDENTIAL", kAuthErrorRejectedCredential},
     {"ERROR_PHONE_NUMBER_NOT_FOUND", kAuthErrorPhoneNumberNotFound},
+    {"ERROR_MISSING_MULTI_FACTOR_SESSION", kAuthErrorMissingMultiFactorSession},
+    {"ERROR_MISSING_MULTI_FACTOR_INFO", kAuthErrorMissingMultiFactorInfo},
+    {"ERROR_INVALID_MULTI_FACTOR_SESSION", kAuthErrorInvalidMultiFactorSession},
+    {"ERROR_MULTI_FACTOR_INFO_NOT_FOUND", kAuthErrorMultiFactorInfoNotFound},
     {nullptr},
 };
 static const ErrorCodeMapping kUserCodes[] = {
@@ -100,8 +104,18 @@ static const ErrorCodeMapping kFirebaseAuthCodes[] = {
     {"ERROR_INVALID_DYNAMIC_LINK_DOMAIN", kAuthErrorInvalidLinkDomain},
     {"ERROR_TENANT_ID_MISMATCH", kAuthErrorTenantIdMismatch},
     {"ERROR_MISSING_CLIENT_IDENTIFIER", kAuthErrorMissingClientIdentifier},
+    {"ERROR_ADMIN_RESTRICTED_OPERATION", kAuthErrorAdminRestrictedOperation},
+    {"ERROR_UNVERIFIED_EMAIL", kAuthErrorUnverifiedEmail},
+    {"ERROR_SECOND_FACTOR_ALREADY_ENROLLED",
+     kAuthErrorSecondFactorAlreadyEnrolled},
+    {"ERROR_MAXIMUM_SECOND_FACTOR_COUNT_EXCEEDED",
+     kAuthErrorMaximumSecondFactorCountExceeded},
+    {"ERROR_UNSUPPORTED_FIRST_FACTOR", kAuthErrorUnsupportedFirstFactor},
+    {"ERROR_EMAIL_CHANGE_NEEDS_VERIFICATION",
+     kAuthErrorEmailChangeNeedsVerification},
     {nullptr},
 };
+
 // NOTE: THIS IS WHERE IT GETS REALLY DODGY
 // The rest of these have to match the exception message.
 // However, only enough of the string needs to be present to be unique relative
