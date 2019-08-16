@@ -848,6 +848,11 @@ bool IsJArray(JNIEnv* env, jobject obj);
 // Return the name of the class of obj.
 std::string JObjectClassName(JNIEnv* env, jobject obj);
 
+// Converts a `std::vector<std::string>` to a `java.util.ArrayList<String>`
+// Returns a local ref to a List.
+jobject StdVectorToJavaList(JNIEnv* env,
+                            const std::vector<std::string>& string_vector);
+
 // Converts an `std::map<const char*, const char*>` to a
 // `java.util.Map<String, String>`.
 void StdMapToJavaMap(JNIEnv* env, jobject* to,

@@ -442,6 +442,11 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential(
   return MakeFuture(&futures, handle);
 }
 
+Future<SignInResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
+  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
+  return provider->SignIn(auth_data_);
+}
+
 Future<User*> Auth::SignInAnonymously() {
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User*>(kAuthFn_SignInAnonymously);

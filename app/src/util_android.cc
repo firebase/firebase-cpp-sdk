@@ -655,6 +655,23 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
   return true;
 }
 
+// Converts a `std::vector<std::string>` to a `java.util.ArrayList<String>`
+// Returns a local ref to a List.
+jobject StdVectorToJavaList(JNIEnv* env,
+                            const std::vector<std::string>& string_vector) {
+  jobject java_list =
+      env->NewObject(array_list::GetClass(),
+                     array_list::GetMethodId(array_list::kConstructor));
+  jmethodID add_method = array_list::GetMethodId(array_list::kAdd);
+  for (auto it = string_vector.begin(); it != string_vector.end(); ++it) {
+    jstring value = env->NewStringUTF(it->c_str());
+    env->CallBooleanMethod(java_list, add_method, value);
+    CheckAndClearJniExceptions(env);
+    env->DeleteLocalRef(value);
+  }
+  return java_list;
+}
+
 // Converts a `std::map<Variant, Variant>` to a `java.util.Map<Object, Object>`.
 // Returns a local ref to a Map.
 jobject VariantMapToJavaMap(JNIEnv* env,

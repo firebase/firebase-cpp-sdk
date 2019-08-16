@@ -114,16 +114,20 @@ METHOD_LOOKUP_DEFINITION(twittercred,
                          TWITTER_CRED_METHODS)
 
 // clang-format off
-#define OAUTH_CRED_METHODS(X)                                                  \
+#define OAUTHPROVIDER_METHODS(X)                                               \
     X(GetCredential, "getCredential",                                          \
       "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)"               \
-      "Lcom/google/firebase/auth/AuthCredential;", util::kMethodTypeStatic)
+      "Lcom/google/firebase/auth/AuthCredential;", util::kMethodTypeStatic),   \
+    X(NewBuilder, "newBuilder",                                                \
+      "(Ljava/lang/String;Lcom/google/firebase/auth/FirebaseAuth;)"            \
+      "Lcom/google/firebase/auth/OAuthProvider$Builder;",                      \
+      util::kMethodTypeStatic)
 // clang-format on
-METHOD_LOOKUP_DECLARATION(oauthcred, OAUTH_CRED_METHODS)
-METHOD_LOOKUP_DEFINITION(oauthcred,
+METHOD_LOOKUP_DECLARATION(oauthprovider, OAUTHPROVIDER_METHODS)
+METHOD_LOOKUP_DEFINITION(oauthprovider,
                          PROGUARD_KEEP_CLASS
                          "com/google/firebase/auth/OAuthProvider",
-                         OAUTH_CRED_METHODS)
+                         OAUTHPROVIDER_METHODS)
 
 // clang-format off
 #define TIME_UNIT_METHODS(X)                                                   \
@@ -159,6 +163,48 @@ METHOD_LOOKUP_DEFINITION(phonecred,
                          PROGUARD_KEEP_CLASS
                          "com/google/firebase/auth/PhoneAuthProvider",
                          PHONE_CRED_METHODS)
+// clang-format off
+#define OAUTHPROVIDER_BUILDER_METHODS(X)                                       \
+  X(AddCustomParameters, "addCustomParameters",                                \
+    "(Ljava/util/Map;)Lcom/google/firebase/auth/OAuthProvider$Builder;"),      \
+  X(SetScopes, "setScopes",                                                    \
+    "(Ljava/util/List;)Lcom/google/firebase/auth/OAuthProvider$Builder;"),     \
+  X(Build, "build", "()Lcom/google/firebase/auth/OAuthProvider;")
+// clang-format on
+
+METHOD_LOOKUP_DECLARATION(oauthprovider_builder, OAUTHPROVIDER_BUILDER_METHODS)
+METHOD_LOOKUP_DEFINITION(oauthprovider_builder,
+                         PROGUARD_KEEP_CLASS
+                         "com/google/firebase/auth/OAuthProvider$Builder",
+                         OAUTHPROVIDER_BUILDER_METHODS)
+// clang-format off
+#define AUTH_IDP_METHODS(X)                                                    \
+  X(StartActivityForSignInWithProvider, "startActivityForSignInWithProvider",  \
+    "(Landroid/app/Activity;Lcom/google/firebase/auth/FederatedAuthProvider;)" \
+    "Lcom/google/android/gms/tasks/Task;")
+// clang-format on
+METHOD_LOOKUP_DECLARATION(auth_idp, AUTH_IDP_METHODS)
+METHOD_LOOKUP_DEFINITION(auth_idp,
+                         PROGUARD_KEEP_CLASS
+                         "com/google/firebase/auth/FirebaseAuth",
+                         AUTH_IDP_METHODS)
+
+// clang-format off
+#define USER_IDP_METHODS(X)                                                    \
+  X(StartActivityForLinkWithProvider, "startActivityForLinkWithProvider",      \
+    "(Landroid/app/Activity;Lcom/google/firebase/auth/FederatedAuthProvider;)" \
+    "Lcom/google/android/gms/tasks/Task;"),                                    \
+  X(StartActivityForReauthenticateWithProvider,                                \
+    "startActivityForReauthenticateWithProvider",                              \
+    "(Landroid/app/Activity;Lcom/google/firebase/auth/FederatedAuthProvider;)" \
+    "Lcom/google/android/gms/tasks/Task;")
+
+// clang-format on
+METHOD_LOOKUP_DECLARATION(user_idp, USER_IDP_METHODS)
+METHOD_LOOKUP_DEFINITION(user_idp,
+                         PROGUARD_KEEP_CLASS
+                         "com/google/firebase/auth/FirebaseUser",
+                         USER_IDP_METHODS)
 
 // clang-format off
 #define JNI_PHONE_LISTENER_CALLBACK_METHODS(X)                                 \
@@ -232,7 +278,10 @@ bool CacheCredentialMethodIds(
                      facebookcred::CacheMethodIds(env, activity) &&
                      githubcred::CacheMethodIds(env, activity) &&
                      googlecred::CacheMethodIds(env, activity) &&
-                     oauthcred::CacheMethodIds(env, activity) &&
+                     oauthprovider::CacheMethodIds(env, activity) &&
+                     oauthprovider_builder::CacheMethodIds(env, activity) &&
+                     auth_idp::CacheMethodIds(env, activity) &&
+                     user_idp::CacheMethodIds(env, activity) &&
                      phonecred::CacheMethodIds(env, activity) &&
                      timeunit::CacheFieldIds(env, activity) &&
                      playgamescred::CacheMethodIds(env, activity) &&
@@ -242,6 +291,7 @@ bool CacheCredentialMethodIds(
 }
 
 void ReleaseCredentialClasses(JNIEnv* env) {
+  auth_idp::ReleaseClass(env);
   credential::ReleaseClass(env);
   emailcred::ReleaseClass(env);
   facebookcred::ReleaseClass(env);
@@ -249,10 +299,12 @@ void ReleaseCredentialClasses(JNIEnv* env) {
   googlecred::ReleaseClass(env);
   playgamescred::ReleaseClass(env);
   jniphone::ReleaseClass(env);
-  oauthcred::ReleaseClass(env);
+  oauthprovider::ReleaseClass(env);
+  oauthprovider_builder::ReleaseClass(env);
   phonecred::ReleaseClass(env);
   timeunit::ReleaseClass(env);
   twittercred::ReleaseClass(env);
+  user_idp::ReleaseClass(env);
   g_methods_cached = false;
 }
 
@@ -483,8 +535,10 @@ Credential OAuthProvider::GetCredential(const char* provider_id,
   jstring j_access_token = env->NewStringUTF(access_token);
 
   jobject j_cred = env->CallStaticObjectMethod(
-      oauthcred::GetClass(), oauthcred::GetMethodId(oauthcred::kGetCredential),
-      j_provider_id, j_id_token, j_access_token);
+      oauthprovider::GetClass(),
+      oauthprovider::GetMethodId(oauthprovider::kGetCredential), j_provider_id,
+      j_id_token, j_access_token);
+
   if (firebase::util::CheckAndClearJniExceptions(env)) j_cred = nullptr;
 
   env->DeleteLocalRef(j_provider_id);
@@ -776,6 +830,152 @@ JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnCodeAutoRetrievalTimeOut(
   auto listener = reinterpret_cast<PhoneAuthProvider::Listener*>(c_listener);
   listener->OnCodeAutoRetrievalTimeOut(
       util::JniStringToString(env, j_verification_id));
+}
+
+// FederatedAuthHandlers
+FederatedOAuthProvider::FederatedOAuthProvider() { }
+
+FederatedOAuthProvider::~FederatedOAuthProvider() { }
+
+void FederatedOAuthProvider::SetProviderData(
+    const FederatedOAuthProviderData& provider_data) {
+  provider_data_ = provider_data;
+}
+
+namespace {
+// Pulls data out of the C++ FederatedOAuthProviderData structure and
+// constructs a com.google.firebase.OAuthProvider object.
+// @note This function detects but does not clear jni exceptions.
+// @return A pointer to an OAuthProvider, or nullptr on failure.
+jobject ConstructOAuthProvider(
+    AuthData* auth_data, const FederatedOAuthProviderData& provider_data) {
+  JNIEnv* env = Env(auth_data);
+  assert(env);
+  jstring provider_id = env->NewStringUTF(provider_data.provider_id.c_str());
+  jobject oauthprovider_builder = env->CallStaticObjectMethod(
+      oauthprovider::GetClass(),
+      oauthprovider::GetMethodId(oauthprovider::kNewBuilder), provider_id,
+      AuthImpl(auth_data));
+  env->DeleteLocalRef(provider_id);
+  if (env->ExceptionCheck()) {
+    return nullptr;
+  }
+
+  jobject scopes_list = util::StdVectorToJavaList(env, provider_data.scopes);
+  if (env->ExceptionCheck()) {
+    return nullptr;
+  }
+
+  jobject builder_return_ref = env->CallObjectMethod(
+      oauthprovider_builder,
+      oauthprovider_builder::GetMethodId(oauthprovider_builder::kSetScopes),
+      scopes_list);
+  env->DeleteLocalRef(scopes_list);
+  if (env->ExceptionCheck()) {
+    env->DeleteLocalRef(oauthprovider_builder);
+    return nullptr;
+  }
+  env->DeleteLocalRef(builder_return_ref);
+
+  jobject custom_parameters_map =
+      env->NewObject(util::hash_map::GetClass(),
+                     util::hash_map::GetMethodId(util::hash_map::kConstructor));
+  util::StdMapToJavaMap(env, &custom_parameters_map,
+                        provider_data.custom_parameters);
+  builder_return_ref =
+      env->CallObjectMethod(oauthprovider_builder,
+                            oauthprovider_builder::GetMethodId(
+                                oauthprovider_builder::kAddCustomParameters),
+                            custom_parameters_map);
+  env->DeleteLocalRef(custom_parameters_map);
+  if (env->ExceptionCheck()) {
+    env->DeleteLocalRef(oauthprovider_builder);
+    return nullptr;
+  }
+  env->DeleteLocalRef(builder_return_ref);
+
+  jobject oauthprovider = env->CallObjectMethod(
+      oauthprovider_builder,
+      oauthprovider_builder::GetMethodId(oauthprovider_builder::kBuild));
+  env->DeleteLocalRef(oauthprovider_builder);
+  if (env->ExceptionCheck()) {
+    return nullptr;
+  }
+
+  return oauthprovider;
+}
+}  // namespace
+
+Future<SignInResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
+  assert(auth_data);
+  JNIEnv* env = Env(auth_data);
+
+  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
+  const auto handle = futures.SafeAlloc<SignInResult>(
+      kAuthFn_SignInWithProvider, SignInResult());
+
+  jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
+  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    jobject task = env->CallObjectMethod(
+        AuthImpl(auth_data),
+        auth_idp::GetMethodId(auth_idp::kStartActivityForSignInWithProvider),
+        auth_data->app->activity(), oauthprovider);
+    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+      RegisterCallback(task, handle, auth_data, ReadSignInResult);
+    }
+    env->DeleteLocalRef(task);
+  }
+
+  env->DeleteLocalRef(oauthprovider);
+  return MakeFuture(&futures, handle);
+}
+
+Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
+  assert(auth_data);
+  JNIEnv* env = Env(auth_data);
+  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
+  const auto handle =
+      futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider, SignInResult());
+
+  jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
+  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    jobject task = env->CallObjectMethod(
+        UserImpl(auth_data),
+        user_idp::GetMethodId(user_idp::kStartActivityForLinkWithProvider),
+        auth_data->app->activity(), oauthprovider);
+    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+      RegisterCallback(task, handle, auth_data, ReadSignInResult);
+    }
+    env->DeleteLocalRef(task);
+  }
+
+  env->DeleteLocalRef(oauthprovider);
+  return MakeFuture(&futures, handle);
+}
+
+Future<SignInResult> FederatedOAuthProvider::Reauthenticate(
+    AuthData* auth_data) {
+  assert(auth_data);
+  JNIEnv* env = Env(auth_data);
+  ReferenceCountedFutureImpl& futures = auth_data->future_impl;
+  const auto handle = futures.SafeAlloc<SignInResult>(
+      kUserFn_ReauthenticateWithProvider, SignInResult());
+
+  jobject oauthprovider = ConstructOAuthProvider(auth_data, provider_data_);
+  if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+    jobject task = env->CallObjectMethod(
+        UserImpl(auth_data),
+        user_idp::GetMethodId(
+            user_idp::kStartActivityForReauthenticateWithProvider),
+        auth_data->app->activity(), oauthprovider);
+    if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
+      RegisterCallback(task, handle, auth_data, ReadSignInResult);
+    }
+    env->DeleteLocalRef(task);
+  }
+
+  env->DeleteLocalRef(oauthprovider);
+  return MakeFuture(&futures, handle);
 }
 
 }  // namespace auth

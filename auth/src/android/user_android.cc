@@ -507,6 +507,12 @@ Future<SignInResult> User::LinkAndRetrieveDataWithCredential(
   return MakeFuture(&futures, handle);
 }
 
+Future<SignInResult> User::LinkWithProvider(
+    FederatedAuthProvider* provider) const {
+  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
+  return provider->Link(auth_data_);
+}
+
 Future<User*> User::Unlink(const char* provider) {
   if (!ValidUser(auth_data_)) {
     return Future<User*>();
@@ -613,6 +619,13 @@ Future<SignInResult> User::ReauthenticateAndRetrieveData(
   }
   return MakeFuture(&futures, handle);
 }
+
+Future<SignInResult> User::ReauthenticateWithProvider(
+    FederatedAuthProvider* provider) const {
+  FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
+  return provider->Reauthenticate(auth_data_);
+}
+
 
 Future<void> User::SendEmailVerification() {
   if (!ValidUser(auth_data_)) {
