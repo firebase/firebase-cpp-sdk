@@ -22,11 +22,12 @@ set -e
 set -x
 
 # Make a directory to work in
-mkdir macos_build
+mkdir -p macos_build
 cd macos_build
 
 # Configure cmake with tests enabled
-cmake .. -DFIREBASE_CPP_BUILD_TESTS=ON
+# and disable use of libsecret due to not working on kokoro builders
+cmake .. -DFIREBASE_CPP_BUILD_TESTS=ON -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON
 
 # Build the SDK and the tests
 cmake --build .

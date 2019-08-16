@@ -39,6 +39,8 @@ option(FIREBASE_INCLUDE_STORAGE
        "Include the Cloud Storage for Firebase library." ON)
 option(FIREBASE_CPP_BUILD_TESTS
        "Enable the Firebase C++ Build Tests." OFF)
+option(FIREBASE_FORCE_FAKE_SECURE_STORAGE
+       "Disable use of platform secret store and use fake impl." OFF)
 
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(external_rules)

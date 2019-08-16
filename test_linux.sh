@@ -21,12 +21,13 @@ set -e
 # Display commands being run.
 set -x
 
-# Make a directory to work in
-mkdir linux_build
+# Make a directory to work in (if doesn't exist)
+mkdir -p linux_build
 cd linux_build
 
 # Configure cmake with tests enabled
-cmake .. -DFIREBASE_CPP_BUILD_TESTS=ON
+# and disable use of libsecret due to not working on kokoro builders
+cmake .. -DFIREBASE_CPP_BUILD_TESTS=ON -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON
 
 # Build the SDK and the tests
 cmake --build .
