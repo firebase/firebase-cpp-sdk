@@ -102,6 +102,12 @@ class UserView {
     Mutex* mutex_;
   };
 
+  // Construct a user view from an existing set of user data.
+  explicit UserView(const UserData& user_data) : user_data_(user_data) {}
+
+  // Exposed for testing.
+  const UserData& user_data() const { return user_data_; }
+
   // Resets the currently signed-in user with the given user_data and returns
   // a writeable view of the user for additional reads or modifications (e.g.,
   // to update UserInfos). Optionally, provide out_previous_user to save the
@@ -156,8 +162,6 @@ class UserView {
   static Writer GetWriter(AuthData* auth_data);
 
  private:
-  explicit UserView(const UserData& user_data) : user_data_(user_data) {}
-
   static UserView* CastToUser(AuthData* auth_data);
 
   UserData user_data_;
