@@ -142,11 +142,11 @@ ConfigFetchRequest RemoteConfigREST::GetFetchRequestData() {
 
   request.client_version = 2;
   request.device_type = 5;  // DESKTOP
-#if defined(_WIN32)
+#if FIREBASE_PLATFORM_WINDOWS
   request.device_subtype = 8;  // WINDOWS
-#elif defined(__APPLE__)
+#elif FIREBASE_PLATFORM_OSX
   request.device_subtype = 9;  // OS X
-#elif defined(__linux__)
+#elif FIREBASE_PLATFORM_LINUX
   request.device_subtype = 10;  // LINUX
 #else
 #error Unknown operating system.

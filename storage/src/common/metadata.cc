@@ -15,24 +15,21 @@
 #include "storage/src/include/firebase/storage/metadata.h"
 
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "storage/src/include/firebase/storage.h"
 #include "storage/src/include/firebase/storage/storage_reference.h"
 
-#ifdef __APPLE__
-#include "TargetConditionals.h"
-#endif  // __APPLE__
-
 // Metadata is defined in these 3 files, one implementation for each OS.
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
 #include "storage/src/android/metadata_android.h"
 #include "storage/src/android/storage_android.h"
-#elif TARGET_OS_IPHONE
+#elif FIREBASE_PLATFORM_IOS
 #include "storage/src/ios/metadata_ios.h"
 #include "storage/src/ios/storage_ios.h"
 #else
 #include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/storage_desktop.h"
-#endif  // defined(__ANDROID__), TARGET_OS_IPHONE
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 
 namespace firebase {
 namespace storage {

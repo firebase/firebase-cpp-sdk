@@ -15,13 +15,11 @@
 #ifndef FIREBASE_INSTANCE_ID_CLIENT_CPP_SRC_INSTANCE_ID_INTERNAL_H_
 #define FIREBASE_INSTANCE_ID_CLIENT_CPP_SRC_INSTANCE_ID_INTERNAL_H_
 
-#if defined(__APPLE__)
-#include "TargetConditionals.h"
-#endif  // defined(__APPLE__)
+#include "app/src/include/firebase/internal/platform.h"
 
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
 #include "instance_id/src/android/instance_id_internal.h"
-#elif TARGET_OS_IPHONE
+#elif FIREBASE_PLATFORM_IOS
 #include "instance_id/src/ios/instance_id_internal.h"
 #else
 #include "instance_id/src/desktop/instance_id_internal.h"

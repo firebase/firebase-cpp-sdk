@@ -15,23 +15,20 @@
 #include "functions/src/include/firebase/functions/callable_reference.h"
 
 #include "app/src/assert.h"
-
-#ifdef __APPLE__
-#include "TargetConditionals.h"
-#endif  // __APPLE__
+#include "app/src/include/firebase/internal/platform.h"
 
 // CallableReference is defined in these 3 files, one implementation for each
 // OS.
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
 #include "functions/src/android/callable_reference_android.h"
 #include "functions/src/android/functions_android.h"
-#elif TARGET_OS_IPHONE
+#elif FIREBASE_PLATFORM_IOS
 #include "functions/src/ios/callable_reference_ios.h"
 #include "functions/src/ios/functions_ios.h"
 #else
 #include "functions/src/desktop/callable_reference_desktop.h"
 #include "functions/src/desktop/functions_desktop.h"
-#endif  // defined(__ANDROID__), TARGET_OS_IPHONE
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 
 namespace firebase {
 class Variant;

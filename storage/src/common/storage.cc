@@ -16,28 +16,26 @@
 
 #include <assert.h>
 #include <string.h>
+
 #include <map>
 #include <string>
 
 #include "app/src/assert.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/util.h"
 #include "storage/src/common/storage_uri_parser.h"
 
-#ifdef __APPLE__
-#include "TargetConditionals.h"
-#endif  // __APPLE__
-
 // QueryInternal is defined in these 3 files, one implementation for each OS.
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
 #include "storage/src/android/storage_android.h"
-#elif TARGET_OS_IPHONE
+#elif FIREBASE_PLATFORM_IOS
 #include "storage/src/ios/storage_ios.h"
 #else
 #include "storage/src/desktop/storage_desktop.h"
-#endif  // defined(__ANDROID__), TARGET_OS_IPHONE
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(

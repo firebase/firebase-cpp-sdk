@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_CLIENT_CPP_INCLUDE_FIREBASE_ADMOB_H_
-#define FIREBASE_ADMOB_CLIENT_CPP_INCLUDE_FIREBASE_ADMOB_H_
+#ifndef FIREBASE_ADMOB_CLIENT_CPP_SRC_INCLUDE_FIREBASE_ADMOB_H_
+#define FIREBASE_ADMOB_CLIENT_CPP_SRC_INCLUDE_FIREBASE_ADMOB_H_
 
-#ifdef __ANDROID__
+#include "firebase/internal/platform.h"
+
+#if FIREBASE_PLATFORM_ANDROID
 #include <jni.h>
-#endif  // __ANDROID__
+#endif  // FIREBASE_PLATFORM_ANDROID
 
 #include "firebase/admob/banner_view.h"
 #include "firebase/admob/interstitial_ad.h"
@@ -69,7 +71,7 @@ InitResult Initialize(const ::firebase::App& app);
 /// Google Play services (for example, when using 'play-services-ads-lite').
 InitResult Initialize(const ::firebase::App& app, const char* admob_app_id);
 
-#if defined(__ANDROID__) || defined(DOXYGEN)
+#if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 /// Initializes AdMob without Firebase for Android.
 ///
 /// The arguments to @ref Initialize are platform-specific so the caller must do
@@ -122,7 +124,7 @@ InitResult Initialize(JNIEnv* jni_env, jobject activity);
 InitResult Initialize(JNIEnv* jni_env, jobject activity,
                       const char* admob_app_id);
 #endif  // defined(__ANDROID__) || defined(DOXYGEN)
-#if !defined(__ANDROID__) || defined(DOXYGEN)
+#if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 /// Initializes AdMob without Firebase for iOS.
 InitResult Initialize();
 
@@ -152,4 +154,4 @@ void Terminate();
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_CLIENT_CPP_INCLUDE_FIREBASE_ADMOB_H_
+#endif  // FIREBASE_ADMOB_CLIENT_CPP_SRC_INCLUDE_FIREBASE_ADMOB_H_

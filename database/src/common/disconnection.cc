@@ -14,16 +14,14 @@
 
 #include "database/src/include/firebase/database/disconnection.h"
 
-#ifdef __APPLE__
-#include "TargetConditionals.h"
-#endif  // __APPLE__
+#include "app/src/include/firebase/internal/platform.h"
 
 // DisconnectionHandlerInternal is defined in these 3 files, one implementation
 // for each OS.
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
 #include "database/src/android/database_android.h"
 #include "database/src/android/disconnection_android.h"
-#elif TARGET_OS_IPHONE
+#elif FIREBASE_PLATFORM_IOS
 #include "database/src/ios/database_ios.h"
 #include "database/src/ios/disconnection_ios.h"
 #elif defined(FIREBASE_TARGET_DESKTOP)
@@ -32,7 +30,8 @@
 #else
 #include "database/src/stub/database_stub.h"
 #include "database/src/stub/disconnection_stub.h"
-#endif  // defined(__ANDROID__), TARGET_OS_IPHONE
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // defined(FIREBASE_TARGET_DESKTOP)
 
 #include "database/src/common/cleanup.h"
 

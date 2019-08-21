@@ -12,8 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "instance_id/src/instance_id_internal.h"
-
 #include <assert.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -22,14 +20,16 @@
 #include "app/src/app_common.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/log.h"
 #include "app/src/mutex.h"
 #include "instance_id/src/include/firebase/instance_id.h"
+#include "instance_id/src/instance_id_internal.h"
 
 // Workaround MSVC's incompatible libc headers.
-#ifdef _WIN32
+#if FIREBASE_PLATFORM_WINDOWS
 #define snprintf _snprintf
-#endif  // _WIN32
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 // Module initializer does nothing at the moment.
 FIREBASE_APP_REGISTER_CALLBACKS(instance_id,

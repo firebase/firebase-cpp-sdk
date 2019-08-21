@@ -22,6 +22,7 @@
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/google_play_services/availability.h"
 #include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -35,7 +36,7 @@ namespace FIREBASE_NAMESPACE {
 // Macros that allow Android code to easily fail initialization if Google Play
 // services is unavailable.
 
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
 // Return kInitResultFailedMissingDependency if Google Play is unavailable.
 #define FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(app) \
   if (::google_play_services::CheckAvailability((app).GetJNIEnv(),   \
@@ -54,7 +55,7 @@ namespace FIREBASE_NAMESPACE {
       *(output) = ::firebase::kInitResultFailedMissingDependency;         \
     return nullptr;                                                       \
   }
-#else  // defined(__ANDROID__)
+#else  // !FIREBASE_PLATFORM_ANDROID
 // No-ops on other platforms. Consume the variables to prevent warnings.
 #define FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(x) \
   { (void)(x); }
@@ -63,7 +64,7 @@ namespace FIREBASE_NAMESPACE {
     (void)(x);                                                     \
     (void)(y);                                                     \
   }
-#endif  // defined(__ANDROID__)
+#endif  // FIREBASE_PLATFORM_ANDROID
 
 // Macro that silences switch case fallthrough warnings when using certain
 // compilers.
@@ -87,9 +88,9 @@ namespace FIREBASE_NAMESPACE {
 class AppCallback {
  public:
   // Method which initializes a Firebase module.
-  typedef InitResult (*Created)(FIREBASE_NAMESPACE::App *app);
+  typedef InitResult (*Created)(FIREBASE_NAMESPACE::App* app);
   // Method which terminates / shuts down a Firebase module.
-  typedef void (*Destroyed)(FIREBASE_NAMESPACE::App *app);
+  typedef void (*Destroyed)(FIREBASE_NAMESPACE::App* app);
 
   // Initialize a module instance.
   //
@@ -97,7 +98,7 @@ class AppCallback {
   // initialization can be enabled on a case by case basis using
   // SetEnabledByName() before creating an App object, for example:
   // SetEnabledByName("analytics", true);
-  AppCallback(const char *module_name, Created created, Destroyed destroyed)
+  AppCallback(const char* module_name, Created created, Destroyed destroyed)
       : module_name_(module_name),
         created_(created),
         destroyed_(destroyed),
@@ -106,7 +107,7 @@ class AppCallback {
   }
 
   // Get the name of the module associated with this callback class.
-  const char *module_name() const { return module_name_; }
+  const char* module_name() const { return module_name_; }
 
   // Get whether this is enabled.
   bool enabled() const { return enabled_; }
@@ -120,40 +121,40 @@ class AppCallback {
 
   // Called by firebase::App when an instance is created.
   static void NotifyAllAppCreated(
-      FIREBASE_NAMESPACE::App *app,
-      std::map<std::string, InitResult> *results = nullptr);
+      FIREBASE_NAMESPACE::App* app,
+      std::map<std::string, InitResult>* results = nullptr);
 
   // Called by firebase::App when an App instance is about to be destroyed.
-  static void NotifyAllAppDestroyed(FIREBASE_NAMESPACE::App *app);
+  static void NotifyAllAppDestroyed(FIREBASE_NAMESPACE::App* app);
 
   // Enable a module callback by name.
-  static void SetEnabledByName(const char *name, bool enable);
+  static void SetEnabledByName(const char* name, bool enable);
 
   // Determine whether a module callback is enabled, by name.
-  static bool GetEnabledByName(const char *name);
+  static bool GetEnabledByName(const char* name);
 
   // Enable / disable all callbacks.
   static void SetEnabledAll(bool enable);
 
  private:
   // Called by App when an instance is created.
-  InitResult NotifyAppCreated(FIREBASE_NAMESPACE::App *app) const {
+  InitResult NotifyAppCreated(FIREBASE_NAMESPACE::App* app) const {
     return created_ ? created_(app) : kInitResultSuccess;
   }
 
   // Called by App when an App instance is about to be destroyed.
-  void NotifyAppDestroyed(FIREBASE_NAMESPACE::App *app) const {
+  void NotifyAppDestroyed(FIREBASE_NAMESPACE::App* app) const {
     if (destroyed_) destroyed_(app);
   }
 
   // Add a callback class to the list.
   // NOTE: This is *not* synchronized as it's not possible to use Mutex
   // from static constructors on some platforms.
-  static void AddCallback(AppCallback *callback);
+  static void AddCallback(AppCallback* callback);
 
  private:
   // Name of the module associated with this callback.
-  const char *module_name_;
+  const char* module_name_;
   // Called when an app has just been created.
   Created created_;
   // Called when an app is about to be destroyed.
@@ -162,7 +163,7 @@ class AppCallback {
   bool enabled_;
 
   // Global set of callbacks.
-  static std::map<std::string, AppCallback *> *callbacks_;
+  static std::map<std::string, AppCallback*>* callbacks_;
   // Mutex which controls access to callbacks during notification.
   // NOTE: This violates Google's C++ style guide as we do not have access to
   // module initializers in //base so this replicates part of that behavior.
@@ -191,15 +192,15 @@ class AppCallback {
 #define FIREBASE_APP_REGISTER_CALLBACKS(module_name, created_code,             \
                                         destroyed_code)                        \
   namespace firebase {                                                         \
-  static InitResult module_name##Created(::firebase::App *app) {               \
+  static InitResult module_name##Created(::firebase::App* app) {               \
     created_code;                                                              \
   }                                                                            \
-  static void module_name##Destroyed(::firebase::App *app) { destroyed_code; } \
+  static void module_name##Destroyed(::firebase::App* app) { destroyed_code; } \
   static ::firebase::AppCallback module_name##_app_callback(                   \
       #module_name, module_name##Created, module_name##Destroyed);             \
   /* This is a global symbol that is referenced from all compilation units */  \
   /* that include this module. */                                              \
-  void *FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name)          \
+  void* FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name)          \
       FIREBASE_APP_KEEP_SYMBOL = &module_name##_app_callback;                  \
   } /* namespace firebase */
 
@@ -229,7 +230,7 @@ class StaticFutureData {
   // that should be declared in the module to serve as a unique identifier.
   static std::map<const void*, StaticFutureData*>* s_future_datas_;
 
-  static StaticFutureData *CreateNewData(const void *module_identifier,
+  static StaticFutureData* CreateNewData(const void* module_identifier,
                                          int num_functions);
 };
 

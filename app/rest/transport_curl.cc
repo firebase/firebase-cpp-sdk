@@ -23,17 +23,18 @@
 #include "app/rest/controller_curl.h"
 #include "app/rest/util.h"
 #include "app/src/assert.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/mutex.h"
 #include "app/src/semaphore.h"
 #include "app/src/thread.h"
 #include "app/src/util.h"
 #include "curl/curl.h"
 
-#ifdef _WIN32
+#if FIREBASE_PLATFORM_WINDOWS
 #include "Winsock2.h"
 #else
 #include <sys/select.h>
-#endif  // _WIN32
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 namespace firebase {
 namespace rest {
@@ -560,8 +561,8 @@ bool BackgroundTransportCurl::PerformBackground(Request* request) {
                              options.post_fields.c_str()),
             "set http post fields");
     if (controller_) {
-      controller_->set_transfer_size(static_cast<int64_t>(
-          options.post_fields.size()));
+      controller_->set_transfer_size(
+          static_cast<int64_t>(options.post_fields.size()));
     }
   }
 

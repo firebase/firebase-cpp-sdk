@@ -14,15 +14,13 @@
 
 #include "database/src/include/firebase/database/mutable_data.h"
 
-#ifdef __APPLE__
-#include "TargetConditionals.h"
-#endif  // __APPLE__
+#include "app/src/include/firebase/internal/platform.h"
 
 // QueryInternal is defined in these 3 files, one implementation for each OS.
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
 #include "database/src/android/database_android.h"
 #include "database/src/android/mutable_data_android.h"
-#elif TARGET_OS_IPHONE
+#elif FIREBASE_PLATFORM_IOS
 #include "database/src/ios/database_ios.h"
 #include "database/src/ios/mutable_data_ios.h"
 #elif defined(FIREBASE_TARGET_DESKTOP)
@@ -31,7 +29,8 @@
 #else
 #include "database/src/stub/database_stub.h"
 #include "database/src/stub/mutable_data_stub.h"
-#endif  // defined(__ANDROID__), TARGET_OS_IPHONE
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // defined(FIREBASE_TARGET_DESKTOP)
 
 #include "database/src/common/cleanup.h"
 
@@ -44,8 +43,9 @@ MutableData GetInvalidMutableData() { return MutableData(nullptr); }
 
 typedef CleanupFn<MutableData, MutableDataInternal> CleanupFnMutableData;
 
-template<> CleanupFnMutableData::CreateInvalidObjectFn
-CleanupFnMutableData::create_invalid_object = GetInvalidMutableData;
+template <>
+CleanupFnMutableData::CreateInvalidObjectFn
+    CleanupFnMutableData::create_invalid_object = GetInvalidMutableData;
 
 MutableData::MutableData(MutableDataInternal* internal) : internal_(internal) {
   CleanupFnMutableData::Register(this, internal_);

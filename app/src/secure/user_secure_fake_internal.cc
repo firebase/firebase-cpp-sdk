@@ -14,14 +14,16 @@
 
 #include "app/src/secure/user_secure_fake_internal.h"
 
-#if defined(_WIN32)
+#include "app/src/include/firebase/internal/platform.h"
+
+#if FIREBASE_PLATFORM_WINDOWS
 #include <direct.h>
 #include <windows.h>
 #else
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#endif  // defined(_WIN32)
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 #include <errno.h>
 
@@ -33,14 +35,14 @@ namespace firebase {
 namespace app {
 namespace secure {
 
-#if defined(_WIN32)
+#if FIREBASE_PLATFORM_WINDOWS
 static const char kDirectorySeparator[] = "\\";
 #define unlink _unlink
 #define mkdir(x, y) _mkdir(x)
 #define rmdir _rmdir
 #else
 static const char kDirectorySeparator[] = "/";
-#endif  // defined(_WIN32)
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 static const char kFileExtension[] = ".firbin";
 
@@ -108,16 +110,16 @@ void UserSecureFakeInternal::DeleteUserData(const std::string& app_name) {
     return;
   }
   infile.close();
-#if defined(_WIN32)
+#if FIREBASE_PLATFORM_WINDOWS
   DeleteFile(filename.c_str());
 #else
   unlink(filename.c_str());
-#endif  // defined(_WIN32)
+#endif  // FIREBASE_PLATFORM_WINDOWS
 }
 
 void UserSecureFakeInternal::DeleteAllData() {
   std::vector<std::string> files_to_delete;
-#if defined(_WIN32)
+#if FIREBASE_PLATFORM_WINDOWS
   std::string file_spec =
       full_path_ + kDirectorySeparator + "*" + kFileExtension;
   WIN32_FIND_DATA file_data;

@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-#if defined(_WIN32)
+#include "app/src/include/firebase/internal/platform.h"
+
+#if FIREBASE_PLATFORM_WINDOWS
 #include <combaseapi.h>
 #elif HAVE_LIBUUID
 #include <uuid/uuid.h>
@@ -22,7 +24,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#endif  // defined(_WIN32)
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 #include "app/src/assert.h"
 #include "app/src/uuid.h"
@@ -31,7 +33,7 @@ namespace firebase {
 namespace internal {
 
 void Uuid::Generate() {
-#if defined(_WIN32)
+#if FIREBASE_PLATFORM_WINDOWS
   FIREBASE_ASSERT(sizeof(GUID) == sizeof(data));
   HRESULT result = CoCreateGuid(reinterpret_cast<GUID*>(data));
   FIREBASE_ASSERT(result == S_OK);
@@ -45,7 +47,7 @@ void Uuid::Generate() {
   size_t bytes_read = read(file, data, sizeof(data));
   FIREBASE_ASSERT(bytes_read == sizeof(data));
   close(file);
-#endif  // defined(_WIN32)
+#endif  // FIREBASE_PLATFORM_WINDOWS
 }
 
 }  // namespace internal

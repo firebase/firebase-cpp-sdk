@@ -14,19 +14,19 @@
  * limitations under the License.
  */
 
-#include "app/src/log.h"
-
 #include <assert.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
-#ifdef _WIN32
-#include <Windows.h>
-#endif  // _WIN32
+#include "app/src/include/firebase/internal/platform.h"
+#include "app/src/log.h"
+
+#if FIREBASE_PLATFORM_WINDOWS
+#include <windows.h>
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 #include "app/src/mutex.h"
-#include "app/src/include/firebase/internal/platform.h"
 
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase
@@ -36,18 +36,18 @@ namespace FIREBASE_NAMESPACE {
 
 // Prefix for log messages at each level.
 static const char* kLogLevelPrefix[] = {
-  "VERBOSE: ",  // kLogLevelVerbose = 0,
-  "DEBUG: ",  // kLogLevelDebug,
-  "INFO: ",   // kLogLevelInfo,
-  "WARNING: ",  // kLogLevelWarning,
-  "ERROR: ",  // kLogLevelError,
-  "ASSERT: ",  // kLogLevelAssert,
+    "VERBOSE: ",  // kLogLevelVerbose = 0,
+    "DEBUG: ",    // kLogLevelDebug,
+    "INFO: ",     // kLogLevelInfo,
+    "WARNING: ",  // kLogLevelWarning,
+    "ERROR: ",    // kLogLevelError,
+    "ASSERT: ",   // kLogLevelAssert,
 };
 
-#ifdef _WIN32
+#if FIREBASE_PLATFORM_WINDOWS
 // Guards the log buffer on Windows.
 static Mutex g_log_mutex;  // NOLINT
-#endif  // _WIN32
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 // Initializes the logging module.
 void LogInitialize() {}

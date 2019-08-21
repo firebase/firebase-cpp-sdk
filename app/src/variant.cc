@@ -18,10 +18,12 @@
 
 #include <limits.h>
 #include <stdlib.h>
+
 #include <iomanip>
 #include <sstream>
 
 #include "app/src/assert.h"
+#include "app/src/include/firebase/internal/platform.h"
 
 namespace firebase {
 
@@ -354,11 +356,11 @@ void Variant::assert_is_blob() const {
       kTypeNames[this->type()]);
 }
 
-#ifdef _WIN32
+#if FIREBASE_PLATFORM_WINDOWS
 #define INT64FORMAT "%I64d"
 #else
 #define INT64FORMAT "%jd"
-#endif  // _WIN32
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 Variant Variant::AsString() const {
 #ifdef FIREBASE_USE_SNPRINTF
@@ -395,7 +397,9 @@ Variant Variant::AsString() const {
     case kTypeStaticString: {
       return *this;
     }
-    default: { return Variant::EmptyString(); }
+    default: {
+      return Variant::EmptyString();
+    }
   }
 }
 
@@ -414,7 +418,9 @@ Variant Variant::AsInt64() const {
     case kTypeStaticString: {
       return Variant::FromInt64(strtol(string_value(), nullptr, 10));  // NOLINT
     }
-    default: { return Variant::Zero(); }
+    default: {
+      return Variant::Zero();
+    }
   }
 }
 
@@ -433,7 +439,9 @@ Variant Variant::AsDouble() const {
     case kTypeStaticString: {
       return Variant::FromDouble(strtod(string_value(), nullptr));
     }
-    default: { return Variant::ZeroPointZero(); }
+    default: {
+      return Variant::ZeroPointZero();
+    }
   }
 }
 

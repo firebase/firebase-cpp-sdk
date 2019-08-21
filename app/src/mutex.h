@@ -16,13 +16,15 @@
 
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_MUTEX_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_MUTEX_H_
-
 #include <errno.h>
-#if !defined(_WIN32)
+
+#include "app/src/include/firebase/internal/platform.h"
+
+#if !FIREBASE_PLATFORM_WINDOWS
 #include <pthread.h>
 #else
 #include <windows.h>
-#endif  // !defined(_WIN32)
+#endif  // !FIREBASE_PLATFORM_WINDOWS
 
 #include "app/src/assert.h"
 
@@ -46,17 +48,17 @@ class Mutex {
   explicit Mutex(Mode mode) { Initialize(mode); }
 
   ~Mutex() {
-#if !defined(_WIN32)
+#if !FIREBASE_PLATFORM_WINDOWS
     int ret = pthread_mutex_destroy(&mutex_);
     FIREBASE_ASSERT(ret == 0);
     (void)ret;
 #else
     CloseHandle(synchronization_object_);
-#endif  // !defined(_WIN32)
+#endif  // !FIREBASE_PLATFORM_WINDOWS
   }
 
   void Acquire() {
-#if !defined(_WIN32)
+#if !FIREBASE_PLATFORM_WINDOWS
     int ret = pthread_mutex_lock(&mutex_);
     if (ret == EINVAL) {
       return;
@@ -72,11 +74,11 @@ class Mutex {
     DWORD ret = WaitForSingleObject(synchronization_object_, INFINITE);
     FIREBASE_ASSERT(ret == WAIT_OBJECT_0);
     (void)ret;
-#endif  // !defined(_WIN32)
+#endif  // !FIREBASE_PLATFORM_WINDOWS
   }
 
   void Release() {
-#if !defined(_WIN32)
+#if !FIREBASE_PLATFORM_WINDOWS
     int ret = pthread_mutex_unlock(&mutex_);
 #if defined(__APPLE__)
     // Lock / unlock will fail in a static initializer on OSX and iOS.
@@ -91,12 +93,12 @@ class Mutex {
     } else {
       ReleaseSemaphore(synchronization_object_, 1, 0);
     }
-#endif  // !defined(_WIN32)
+#endif  // !FIREBASE_PLATFORM_WINDOWS
   }
 
 // Returns the implementation-defined native mutex handle.
 // Used by firebase::Thread implementation.
-#if !defined(_WIN32)
+#if !FIREBASE_PLATFORM_WINDOWS
   pthread_mutex_t* native_handle() { return &mutex_; }
 #else
   HANDLE* native_handle() { return &synchronization_object_; }
@@ -107,7 +109,7 @@ class Mutex {
   Mutex& operator=(const Mutex&) = delete;
 
   void Initialize(Mode mode) {
-#if !defined(_WIN32)
+#if !FIREBASE_PLATFORM_WINDOWS
     pthread_mutexattr_t attr;
     int ret = pthread_mutexattr_init(&attr);
     FIREBASE_ASSERT(ret == 0);
@@ -126,15 +128,15 @@ class Mutex {
     } else {
       synchronization_object_ = CreateSemaphore(nullptr, 1, 1, nullptr);
     }
-#endif  // !defined(_WIN32)
+#endif  // !FIREBASE_PLATFORM_WINDOWS
   }
 
-#if !defined(_WIN32)
+#if !FIREBASE_PLATFORM_WINDOWS
   pthread_mutex_t mutex_;
 #else
   HANDLE synchronization_object_;
   Mode mode_;
-#endif  // !defined(_WIN32)
+#endif  // !FIREBASE_PLATFORM_WINDOWS
 };
 
 /// @brief Acquire and hold a /ref Mutex, while in scope.
@@ -154,7 +156,7 @@ class MutexLock {
 
  private:
   // Copy is disallowed.
-  MutexLock(const MutexLock& rhs);
+  MutexLock(const MutexLock& rhs);  // NOLINT
   MutexLock& operator=(const MutexLock& rhs);
 
   Mutex* mutex_;

@@ -15,21 +15,22 @@
 #include "app/src/secure/user_secure_manager_fake.h"
 
 #include "app/memory/unique_ptr.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/secure/user_secure_fake_internal.h"
 
 namespace firebase {
 namespace app {
 namespace secure {
 
-#if defined(_WIN32)
+#if FIREBASE_PLATFORM_WINDOWS
 static const char kDirectorySeparator[] = "\\";
 #else
 static const char kDirectorySeparator[] = "/";
-#endif  // defined(_WIN32)
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 // Get temp directory for fake secure storage.
 static std::string GetTestTmpDir(const char test_namespace[]) {
-#if defined(_WIN32)
+#if FIREBASE_PLATFORM_WINDOWS
   char buf[MAX_PATH + 1];
   if (GetEnvironmentVariable("TEST_TMPDIR", buf, sizeof(buf))) {
     return std::string(buf) + kDirectorySeparator + test_namespace;
@@ -39,7 +40,7 @@ static std::string GetTestTmpDir(const char test_namespace[]) {
   if (const char* value = getenv("TEST_TMPDIR")) {
     return std::string(value) + kDirectorySeparator + test_namespace;
   }
-#endif  // defined(_WIN32)
+#endif  // FIREBASE_PLATFORM_WINDOWS
   // If we weren't able to get TEST_TMPDIR, just use a subdirectory.
   return test_namespace;
 }

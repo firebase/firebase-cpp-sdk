@@ -18,28 +18,28 @@
 #define FIREBASE_APP_CLIENT_CPP_SRC_SEMAPHORE_H_
 
 #include <errno.h>
+
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/time.h"
-#if !defined(_WIN32)
+
+#if FIREBASE_PLATFORM_WINDOWS
+#include <limits.h>
+#include <windows.h>
+#else
 #include <fcntl.h>
 #include <semaphore.h>
 #include <sys/stat.h>
 #include <time.h>
-#include <string>
-#else
-#include <limits.h>
-#include <windows.h>
-#endif  // !defined(_WIN32)
 
-#ifdef __APPLE__
-#include "TargetConditionals.h"
-#endif  // __APPLE__
+#include <string>
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 #include <cassert>
 
-#if defined(TARGET_OS_OSX) || defined(TARGET_OS_IOS)
+#if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
 #include "app/src/mutex.h"
 #include "app/src/pthread_condvar.h"
-#endif  // !defined(_WIN32) && !defined(__APPLE__)
+#endif  //  FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
 
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase
@@ -50,7 +50,7 @@ namespace FIREBASE_NAMESPACE {
 class Semaphore {
  public:
   explicit Semaphore(int initial_count) {
-#if defined(TARGET_OS_OSX) || defined(TARGET_OS_IOS)
+#if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
     // MacOS requires named semaphores, and does not support unnamed.
     // Generate a unique string for the semaphore name:
     static const char kPrefix[] = "/firebase-";
@@ -78,7 +78,7 @@ class Semaphore {
     bool success = (sem_unlink(buffer) == 0);
     assert(success);
     (void)success;
-#elif !defined(_WIN32)
+#elif !FIREBASE_PLATFORM_WINDOWS
     // Android requires unnamed semaphores, and does not support sem_open
     semaphore_ = &semaphore_value_;
     bool success = sem_init(semaphore_, 0, initial_count) == 0;
@@ -94,12 +94,12 @@ class Semaphore {
   }
 
   ~Semaphore() {
-#if defined(TARGET_OS_OSX) || defined(TARGET_OS_IOS)
+#if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
     // Because we use named semaphores on MacOS, we need to close them.
     bool success = (sem_close(semaphore_) == 0);
     assert(success);
     (void)success;
-#elif !defined(_WIN32)
+#elif !FIREBASE_PLATFORM_WINDOWS
     // Because we use unnamed semaphores otherwise, we need to destroy them.
     bool success = (sem_destroy(semaphore_) == 0);
     assert(success);
@@ -110,11 +110,11 @@ class Semaphore {
   }
 
   void Post() {
-#if defined(TARGET_OS_OSX) || defined(TARGET_OS_IOS)
+#if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
     MutexLock lock(cond_mutex_);
-#endif  // defined(TARGET_OS_OSX) || defined(TARGET_OS_IOS)
+#endif  // FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
 
-#if !defined(_WIN32)
+#if !FIREBASE_PLATFORM_WINDOWS
     bool success = (sem_post(semaphore_) == 0);
     assert(success);
     (void)success;
@@ -124,14 +124,14 @@ class Semaphore {
     (void)success;
 #endif
 
-#if defined(TARGET_OS_OSX) || defined(TARGET_OS_IOS)
+#if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
     // Notify any potential timedWait calls that are waiting for this.
     cond_.NotifyAll();
-#endif  // defined(TARGET_OS_OSX) || defined(TARGET_OS_IOS)
+#endif  // FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
   }
 
   void Wait() {
-#if !defined(_WIN32)
+#if !FIREBASE_PLATFORM_WINDOWS
     bool success = (sem_wait(semaphore_) == 0);
     assert(success);
     (void)success;
@@ -144,7 +144,7 @@ class Semaphore {
 
   // Returns false if it was unable to acquire a lock.  True otherwise.
   bool TryWait() {
-#if !defined(_WIN32)
+#if !FIREBASE_PLATFORM_WINDOWS
     int ret = sem_trywait(semaphore_);
     if (ret != 0) {
       // If we couldn't lock the semaphore, make sure it's because there are
@@ -164,12 +164,12 @@ class Semaphore {
   // before returning.
   // Returns false if it was unable to acquire a lock, true otherwise.
   bool TimedWait(int milliseconds) {
-#if defined(TARGET_OS_OSX) || defined(TARGET_OS_IOS)
+#if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
     MutexLock lock(cond_mutex_);
-    return cond_.TimedWait(cond_mutex_.native_handle(),
-                           [this] { return this->TryWait(); },
-                           milliseconds);
-#elif defined(_WIN32)
+    return cond_.TimedWait(
+        cond_mutex_.native_handle(), [this] { return this->TryWait(); },
+        milliseconds);
+#elif FIREBASE_PLATFORM_WINDOWS
     return WaitForSingleObject(semaphore_, milliseconds) == 0;
 #else  // not windows and not mac - should be Linux.
     timespec t = internal::MsToAbsoluteTimespec(milliseconds);
@@ -178,20 +178,20 @@ class Semaphore {
   }
 
  private:
-#if !defined(_WIN32)
+#if !FIREBASE_PLATFORM_WINDOWS
   sem_t* semaphore_;
 #else
   HANDLE semaphore_;
 #endif
 
-#if defined(TARGET_OS_OSX) || defined(TARGET_OS_IOS)
+#if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
   // Apple implementations need a condition variable to make TimedWait() work.
   Mutex cond_mutex_;
   internal::ConditionVariable cond_;
-#elif !defined(_WIN32)
+#elif !FIREBASE_PLATFORM_WINDOWS
   // On non-Mac POSIX systems, we keep our own sem_t object.
   sem_t semaphore_value_;
-#endif  // defined(TARGET_OS_OSX) || defined(TARGET_OS_IOS)
+#endif  // FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
 };
 
 // NOLINTNEXTLINE - allow namespace overridden

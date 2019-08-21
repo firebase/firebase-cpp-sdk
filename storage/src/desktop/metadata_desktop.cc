@@ -24,6 +24,7 @@
 
 #include "app/rest/util.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/path.h"
 #include "app/src/time.h"
 #include "app/src/variant_util.h"
@@ -159,10 +160,10 @@ int64_t MetadataInternal::LookUpInt64(Variant* root, const char* key) {
                                      : -1;
 }
 
-#if defined(_WIN32)
+#if FIREBASE_PLATFORM_WINDOWS
 // Use secure sscanf on Windows.
 #define sscanf sscanf_s
-#endif  // defined(_WIN32)
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 // Times are saved in the metadata object as a string, in the following format:
 // 2017-10-16T18:23:30.879Z
@@ -188,13 +189,13 @@ int64_t MetadataInternal::GetTimeFromTimeString(const std::string& time_str) {
   tm.tm_isdst = -1;
   int milliseconds =
       deciseconds * (firebase::internal::kMillisecondsPerSecond / 10);
-#if !defined(_WIN32)
+#if !FIREBASE_PLATFORM_WINDOWS
   return (timegm(&tm) * firebase::internal::kMillisecondsPerSecond) +
          milliseconds;
 #else
   return (_mkgmtime(&tm) * firebase::internal::kMillisecondsPerSecond) +
          milliseconds;
-#endif
+#endif  // !FIREBASE_PLATFORM_WINDOWS
 }
 
 bool MetadataInternal::ImportFromJson(const char* json) {

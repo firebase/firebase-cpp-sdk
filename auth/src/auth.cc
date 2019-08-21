@@ -29,6 +29,7 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/mutex.h"
 #include "app/src/semaphore.h"
@@ -37,9 +38,9 @@
 #include "auth/src/data.h"
 
 // Workaround MSVC's incompatible libc headers.
-#ifdef _WIN32
+#if FIREBASE_PLATFORM_WINDOWS
 #define snprintf _snprintf
-#endif  // _WIN32
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(

@@ -15,22 +15,20 @@
  */
 
 #include "admob/src/common/rewarded_video_internal.h"
+
 #include "admob/src/include/firebase/admob/rewarded_video.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 
-#if defined(__APPLE__)
-#include "TargetConditionals.h"
-#endif  // __APPLE__
-
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
 #include "admob/src/android/rewarded_video_internal_android.h"
-#elif TARGET_OS_IPHONE
+#elif FIREBASE_PLATFORM_IOS
 #include "admob/src/ios/rewarded_video_internal_ios.h"
 #else
 #include "admob/src/stub/rewarded_video_internal_stub.h"
-#endif  // __ANDROID__, TARGET_OS_IPHONE
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 
 namespace firebase {
 namespace admob {
@@ -41,13 +39,13 @@ RewardedVideoInternal::RewardedVideoInternal()
     : future_data_(kRewardedVideoFnCount), listener_(nullptr) {}
 
 RewardedVideoInternal* RewardedVideoInternal::CreateInstance() {
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
   return new RewardedVideoInternalAndroid();
-#elif TARGET_OS_IPHONE
+#elif FIREBASE_PLATFORM_IOS
   return new RewardedVideoInternalIOS();
 #else
   return new RewardedVideoInternalStub();
-#endif  // __ANDROID__, TARGET_OS_IPHONE
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 }
 
 void RewardedVideoInternal::SetListener(Listener* listener) {

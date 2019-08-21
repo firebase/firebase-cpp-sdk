@@ -14,17 +14,15 @@
 
 #include "storage/src/include/firebase/storage/listener.h"
 
-#ifdef __APPLE__
-#include "TargetConditionals.h"
-#endif  // __APPLE__
+#include "app/src/include/firebase/internal/platform.h"
 
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
 #include "storage/src/stub/listener_stub.h"
-#elif TARGET_OS_IPHONE
+#elif FIREBASE_PLATFORM_IOS
 #include "storage/src/ios/listener_ios.h"
 #else
 #include "storage/src/desktop/listener_desktop.h"
-#endif  // defined(__ANDROID__), TARGET_OS_IPHONE
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 
 namespace firebase {
 namespace storage {

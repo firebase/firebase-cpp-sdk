@@ -17,22 +17,20 @@
 #include "app/src/invites/invites_receiver_internal.h"
 
 #include <assert.h>
-#include <algorithm>
 
-#ifdef __APPLE__
-#include "TargetConditionals.h"
-#endif  // __APPLE__
+#include <algorithm>
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/reference_counted_future_impl.h"
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
 #include "app/src/invites/android/invites_receiver_internal_android.h"
-#elif TARGET_OS_IPHONE
+#elif FIREBASE_PLATFORM_IOS
 #include "app/src/invites/ios/invites_receiver_internal_ios.h"
 #else
 #include "app/src/invites/stub/invites_receiver_internal_stub.h"
-#endif  // __ANDROID__, TARGET_OS_IPHONE
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 
 namespace firebase {
 namespace invites {
@@ -55,13 +53,13 @@ InvitesReceiverInternal* InvitesReceiverInternal::CreateInstance(
     const ::firebase::App& app, ReceiverInterface* receiver_implementation) {
   InvitesReceiverInternal* receiver = g_receiver;
   if (!receiver) {
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
     receiver = new InvitesReceiverInternalAndroid(app);
-#elif TARGET_OS_IPHONE
+#elif FIREBASE_PLATFORM_IOS
     receiver = new InvitesReceiverInternalIos(app);
 #else
     receiver = new InvitesReceiverInternalStub(app);
-#endif  // __ANDROID__, TARGET_OS_IPHONE
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
     if (!receiver->initialized()) {
       delete receiver;
       return nullptr;

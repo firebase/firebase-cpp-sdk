@@ -17,13 +17,16 @@
 #include "app/src/include/firebase/util.h"
 
 #include <assert.h>
+
 #include <map>
 #include <string>
 #include <vector>
 
-#if defined(__ANDROID__)
+#include "app/src/include/firebase/internal/platform.h"
+
+#if FIREBASE_PLATFORM_ANDROID
 #include "app/src/include/google_play_services/availability.h"
-#endif  // defined(__ANDROID__)
+#endif  // FIREBASE_PLATFORM_ANDROID
 #include "app/src/log.h"
 #include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -76,7 +79,7 @@ static void PerformInitialize(ModuleInitializerData* data) {
     InitResult init_result;
     init_result = data->init_fns[data->init_fn_idx](data->app, data->context);
 
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
     if (init_result == kInitResultFailedMissingDependency) {
       // On Android, we need to update or activate Google Play services
       // before we can initialize this Firebase module.
@@ -105,10 +108,10 @@ static void PerformInitialize(ModuleInitializerData* data) {
           },
           data);
     }
-#else   // !defined(__ANDROID__)
+#else   // !FIREBASE_PLATFORM_ANDROID
     // Outside of Android, we shouldn't get kInitResultFailedMissingDependency.
     FIREBASE_ASSERT(init_result != kInitResultFailedMissingDependency);
-#endif  // defined(__ANDROID__)
+#endif  // FIREBASE_PLATFORM_ANDROID
     if (init_result == kInitResultSuccess) {
       data->init_fn_idx++;  // This function succeeded, move on to the next one.
     } else {
@@ -239,7 +242,7 @@ void AppCallback::AddCallback(AppCallback* callback) {
   }
 }
 
-Mutex StaticFutureData::s_futures_mutex_; // NOLINT
+Mutex StaticFutureData::s_futures_mutex_;  // NOLINT
 std::map<const void*, StaticFutureData*>* StaticFutureData::s_future_datas_;
 
 // static
@@ -247,14 +250,12 @@ void StaticFutureData::CleanupFutureDataForModule(
     const void* module_identifier) {
   MutexLock lock(s_futures_mutex_);
 
-  if (s_future_datas_ == nullptr)
-    return;
+  if (s_future_datas_ == nullptr) return;
 
   auto it = s_future_datas_->find(module_identifier);
   if (it != s_future_datas_->end()) {
     StaticFutureData* existing_data = it->second;
-    if (existing_data != nullptr)
-      delete existing_data;
+    if (existing_data != nullptr) delete existing_data;
 
     s_future_datas_->erase(it);
   }

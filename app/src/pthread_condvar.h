@@ -17,7 +17,9 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_PTHREAD_CONDVAR_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_PTHREAD_CONDVAR_H_
 
-#ifndef __WIN32
+#include "app/src/include/firebase/internal/platform.h"
+
+#if !FIREBASE_PLATFORM_WINDOWS
 
 #include <errno.h>
 #include <pthread.h>
@@ -89,6 +91,6 @@ class ConditionVariable {
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace FIREBASE_NAMESPACE
 
-#endif  // !__WIN32
+#endif  // !FIREBASE_PLATFORM_WINDOWS
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_PTHREAD_CONDVAR_H_

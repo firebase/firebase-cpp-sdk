@@ -15,22 +15,20 @@
  */
 
 #include "admob/src/common/banner_view_internal.h"
+
 #include "admob/src/include/firebase/admob/banner_view.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 
-#if defined(__APPLE__)
-#include "TargetConditionals.h"
-#endif  // __APPLE__
-
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
 #include "admob/src/android/banner_view_internal_android.h"
-#elif TARGET_OS_IPHONE
+#elif FIREBASE_PLATFORM_IOS
 #include "admob/src/ios/banner_view_internal_ios.h"
 #else
 #include "admob/src/stub/banner_view_internal_stub.h"
-#endif  // __ANDROID__, TARGET_OS_IPHONE
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 
 namespace firebase {
 namespace admob {
@@ -40,13 +38,13 @@ BannerViewInternal::BannerViewInternal(BannerView* base)
     : base_(base), future_data_(kBannerViewFnCount), listener_(nullptr) {}
 
 BannerViewInternal* BannerViewInternal::CreateInstance(BannerView* base) {
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
   return new BannerViewInternalAndroid(base);
-#elif TARGET_OS_IPHONE
+#elif FIREBASE_PLATFORM_IOS
   return new BannerViewInternalIOS(base);
 #else
   return new BannerViewInternalStub(base);
-#endif  // __ANDROID__, TARGET_OS_IPHONE
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 }
 
 void BannerViewInternal::SetListener(BannerView::Listener* listener) {

@@ -16,24 +16,15 @@
 
 #include "app/src/base64.h"
 #include "app/src/callback.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/secure/user_secure_internal.h"
 
-#ifdef __APPLE__
-#include "TargetConditionals.h"
-#endif  // __APPLE__
+// Only build this implementation on desktop. If building for iOS or Android,
+// omit it entirely. Until we implement UserSecureInternal for those platforms,
+// referencing this class will cause a linker error.
+// TODO(b/132622988): Add mobile support.
 
-// If building for iOS or Android, omit this entire implementation. Until we
-// implement UserSecureInternal for those platforms, referencing this class
-// will cause a linker error. TODO(b/132622988): Add mobile support.
-#if defined(TARGET_OS_IOS) && TARGET_OS_IOS
-#define SKIP_IMPLEMENTATION_ON_MOBILE 1
-#elif defined(__ANDROID__)
-#define SKIP_IMPLEMENTATION_ON_MOBILE 1
-#else
-#define SKIP_IMPLEMENTATION_ON_MOBILE 0
-#endif
-
-#if !SKIP_IMPLEMENTATION_ON_MOBILE
+#if FIREBASE_PLATFORM_DESKTOP
 
 #if defined(_WIN32)
 #include "app/src/secure/user_secure_windows_internal.h"
@@ -308,4 +299,4 @@ void UserSecureManager::CancelOperation(SecureOperationType operation_type) {
 }  // namespace app
 }  // namespace firebase
 
-#endif  // SKIP_IMPLEMENTATION_ON_MOBILE
+#endif  // FIREBASE_PLATFORM_DESKTOP

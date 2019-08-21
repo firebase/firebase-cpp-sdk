@@ -15,22 +15,20 @@
  */
 
 #include "admob/src/common/interstitial_ad_internal.h"
+
 #include "admob/src/include/firebase/admob/interstitial_ad.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 
-#if defined(__APPLE__)
-#include "TargetConditionals.h"
-#endif  // __APPLE__
-
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
 #include "admob/src/android/interstitial_ad_internal_android.h"
-#elif TARGET_OS_IPHONE
+#elif FIREBASE_PLATFORM_IOS
 #include "admob/src/ios/interstitial_ad_internal_ios.h"
 #else
 #include "admob/src/stub/interstitial_ad_internal_stub.h"
-#endif  // __ANDROID__, TARGET_OS_IPHONE
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 
 namespace firebase {
 namespace admob {
@@ -41,13 +39,13 @@ InterstitialAdInternal::InterstitialAdInternal(InterstitialAd* base)
 
 InterstitialAdInternal* InterstitialAdInternal::CreateInstance(
     InterstitialAd* base) {
-#if defined(__ANDROID__)
+#if FIREBASE_PLATFORM_ANDROID
   return new InterstitialAdInternalAndroid(base);
-#elif TARGET_OS_IPHONE
+#elif FIREBASE_PLATFORM_IOS
   return new InterstitialAdInternalIOS(base);
 #else
   return new InterstitialAdInternalStub(base);
-#endif  // __ANDROID__, TARGET_OS_IPHONE
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 }
 
 void InterstitialAdInternal::SetListener(InterstitialAd::Listener* listener) {

@@ -17,13 +17,13 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_APP_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_APP_H_
 
-#ifdef __ANDROID__
+#include "firebase/internal/platform.h"
+
+#if FIREBASE_PLATFORM_ANDROID
 #include <jni.h>
-#endif  // __ANDROID__
+#endif  // FIREBASE_PLATFORM_ANDROID
 #include <map>
 #include <string>
-
-#include "firebase/internal/platform.h"
 
 /// @brief Namespace that encompasses all Firebase APIs.
 #if !defined(FIREBASE_NAMESPACE)
@@ -170,7 +170,7 @@ class AppOptions {
 
   /// API key used to authenticate requests from your app.
   ///
-  /// For example, "AIzaSyDdVgKwhZl0sTTTLZ7iTmt1r3N2cJLnaDk" used to identify
+  /// For example, "the API key" used to identify
   /// your app to Google servers.
   ///
   /// This only needs to be specified if your application does not include
@@ -188,7 +188,7 @@ class AppOptions {
   /// <csproperty name="ApiKey">
   /// Gets or sets the API key used to authenticate requests from your app.
   ///
-  /// For example, \"AIzaSyDdVgKwhZl0sTTTLZ7iTmt1r3N2cJLnaDk\" used to identify
+  /// For example, \"the API key\" used to identify
   /// your app to Google servers.
   ///
   /// This only needs to be specified if your application does not include

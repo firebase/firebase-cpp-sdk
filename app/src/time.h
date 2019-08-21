@@ -16,21 +16,23 @@
 
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_TIME_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_TIME_H_
-#include <cstdint>
 #include <cassert>
+#include <cstdint>
 
-#ifdef WIN32
+#include "app/src/include/firebase/internal/platform.h"
+
+#if FIREBASE_PLATFORM_WINDOWS
 #include <windows.h>
-#else  // WIN32
-#include <unistd.h>
+#else  // !FIREBASE_PLATFORM_WINDOWS
 #include <sys/time.h>
 #include <time.h>
-#endif  // WIN32
+#include <unistd.h>
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
-#ifdef __MACH__
+#if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
 #include <mach/mach.h>
 #include <mach/mach_time.h>
-#endif
+#endif  // FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
 
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase
@@ -52,18 +54,18 @@ const int64_t kNanosecondsPerMillisecond = 1000000;
 // Platform agnostic sleep function, for situations where need to just have
 // the current thread stop and wait for a bit.
 inline void Sleep(int64_t milliseconds) {
-#ifdef WIN32
+#if FIREBASE_PLATFORM_WINDOWS
   // win32 sleep accepts milliseconds, which seems reasonable
   const int64_t max_time = static_cast<int64_t>(~static_cast<DWORD>(0));
   if (milliseconds > max_time) milliseconds = max_time;
   ::Sleep(static_cast<DWORD>(milliseconds));
-#else   // WIN32
+#else   // !FIREBASE_PLATFORM_WINDOWS
   // Unix/Linux/Mac usleep accepts microseconds.
   usleep(milliseconds * kMicrosecondsPerMillisecond);
-#endif  // WIN32
+#endif  // FIREBASE_PLATFORM_WINDOWS
 }
 
-#ifndef WIN32
+#if !FIREBASE_PLATFORM_WINDOWS
 // Utility function for normalizing a timespec.
 inline void NormalizeTimespec(timespec* t) {
   t->tv_sec += t->tv_nsec / kNanosecondsPerSecond;
@@ -112,20 +114,20 @@ inline int64_t TimespecCmp(const timespec& t1, const timespec& t2) {
     }
   }
 }
-#endif  // ifndef _WIN32
+#endif  // !FIREBASE_PLATFORM_WINDOWS
 
 // Return a timestamp in milliseconds since a starting time which varies for
 // different platform.
 // This is a light-weight function best suitable to calculate elapse time
 // locally.
 inline uint64_t GetTimestamp() {
-#if defined(WIN32)
+#if FIREBASE_PLATFORM_WINDOWS
   // return the elapse time since the system is started in milliseconds
   return GetTickCount64();
-#elif defined(__MACH__)
+#elif FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
   // clock_gettime is only supported on macOS after 10.10 Sierra.
   // mach_absolute_time() returns absolute time in nano seconds.
-#ifdef TARGET_OS_IOS
+#if FIREBASE_PLATFORM_IOS
   // Note that the same function does NOT return nano seconds in iOS.  Requires
   // mach_timebase_info_data_t to convert returned value into nano seconds.
   // However, the conversion may have potential risk to introduce overflow or
@@ -133,18 +135,18 @@ inline uint64_t GetTimestamp() {
   assert(false);
 #endif
   return mach_absolute_time() / internal::kNanosecondsPerMillisecond;
-#else
+#else   // Linux
   timespec t;
   clock_gettime(CLOCK_MONOTONIC, &t);
   return t.tv_sec * internal::kMillisecondsPerSecond +
          t.tv_nsec / internal::kNanosecondsPerMillisecond;
-#endif  // ifdef WIN32
+#endif  // platform select
 }
 
 // Return a timestamp in milliseconds since Epoch.
 // This is used to communicate with Firebase server which uses epoch time in ms.
 inline uint64_t GetTimestampEpoch() {
-#if defined(WIN32)
+#if FIREBASE_PLATFORM_WINDOWS
   // Get the current file time, the number of 100-nanosecond intervals since
   // January 1, 1601 (UTC).
   FILETIME ft;
@@ -164,7 +166,7 @@ inline uint64_t GetTimestampEpoch() {
   clock_gettime(CLOCK_REALTIME, &t);
   return t.tv_sec * internal::kMillisecondsPerSecond +
          t.tv_nsec / internal::kNanosecondsPerMillisecond;
-#endif  // ifdef WIN32
+#endif  // FIREBASE_PLATFORM_WINDOWS
 }
 
 // High resolution timer.
@@ -177,14 +179,10 @@ class Timer {
   }
 
   // Save the current number of counter ticks.
-  void Reset() {
-    start_ = GetTicks();
-  }
+  void Reset() { start_ = GetTicks(); }
 
   // Get the time elapsed in counter ticks since Reset() was called.
-  uint64_t GetElapsedTicks() {
-    return GetTicks() - start_;
-  }
+  uint64_t GetElapsedTicks() { return GetTicks() - start_; }
 
   // Get the time elapsed in seconds since Reset() was called.
   double GetElapsedSeconds() {
@@ -197,17 +195,17 @@ class Timer {
     if (tick_period_ != 0) {
       return;
     }
-#if defined(_WIN32)
+#if FIREBASE_PLATFORM_WINDOWS
     LARGE_INTEGER frequency;
     QueryPerformanceFrequency(&frequency);
     tick_period_ = 1.0 / static_cast<double>(frequency.QuadPart);
-#elif defined(__linux__)
+#elif FIREBASE_PLATFORM_LINUX
     // Use a fixed frequency of 1ns to match timespec.
     tick_period_ = 1e-9;
 #else
     // Use a fixed frequency of 1us to match timeval.
     tick_period_ = 1e-6;
-#endif  // defined(_WIN32)
+#endif  // FIREBASE_PLATFORM_WINDOWS, FIREBASE_PLATFORM_LINUX
   }
 
   // Get the period of one counter tick.
@@ -218,21 +216,19 @@ class Timer {
 
   // Get the number of counter ticks elapsed.
   static uint64_t GetTicks() {
-#if defined(_WIN32)
+#if FIREBASE_PLATFORM_WINDOWS
     LARGE_INTEGER ticks;
     QueryPerformanceCounter(&ticks);
     return ticks.QuadPart;
-#elif defined(__linux__)
+#elif FIREBASE_PLATFORM_LINUX
     struct timespec time;
     clock_gettime(CLOCK_MONOTONIC, &time);
-    return (static_cast<uint64_t>(time.tv_sec) * 1000000000ULL) +
-        time.tv_nsec;
+    return (static_cast<uint64_t>(time.tv_sec) * 1000000000ULL) + time.tv_nsec;
 #else
     struct timeval time;
     gettimeofday(&time, NULL);
-    return (static_cast<uint64_t>(time.tv_sec) * 1000000ULL) +
-        time.tv_usec;
-#endif  // defined(_WIN32)
+    return (static_cast<uint64_t>(time.tv_sec) * 1000000ULL) + time.tv_usec;
+#endif  // FIREBASE_PLATFORM_WINDOWS, FIREBASE_PLATFORM_LINUX
   }
 
  private:

@@ -24,23 +24,20 @@
 #include <utility>  // Used to detect STL variant.
 #include <vector>
 
-#ifdef __APPLE__
-#include "TargetConditionals.h"
-#endif  // __APPLE__
-
 #include "app/memory/unique_ptr.h"
 #include "app/src/assert.h"
 #include "app/src/callback.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/mutex.h"
 #include "app/src/util.h"
 
 // strtok_r is strtok_s on Windows.
-#if defined(_WIN32)
+#if FIREBASE_PLATFORM_WINDOWS
 #define strtok_r strtok_s
-#endif  // defined(_WIN32)
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase
@@ -55,7 +52,7 @@ namespace app_common {
 
 // clang-format=off
 // Detect operating system and architecture.
-#if defined(_MSVC_VER) || defined(_WIN32)
+#if FIREBASE_PLATFORM_WINDOWS
 
 const char* kOperatingSystem = "windows";
 #if defined(_DLL) && _DLL == 1
@@ -79,9 +76,9 @@ const char* kCpuArchitecture = "arm32";
 
 #elif defined(__APPLE__)
 const char* kCppRuntimeOrStl = "libcpp";
-#if TARGET_OS_IOS
+#if FIREBASE_PLATFORM_IOS
 const char* kOperatingSystem = "ios";
-#elif TARGET_OS_OSX
+#elif FIREBASE_PLATFORM_OSX
 const char* kOperatingSystem = "darwin";
 #else
 #error Unknown Apple operating system.
@@ -99,7 +96,7 @@ const char* kCpuArchitecture = "arm32";
 #error Unknown Apple architecture.
 #endif  // Architecture
 
-#elif __ANDROID__
+#elif FIREBASE_PLATFORM_ANDROID
 const char* kOperatingSystem = "android";
 
 #if __i386__
@@ -132,7 +129,7 @@ const char* kCppRuntimeOrStl = "libcpp";
 #error Unknown Android STL.
 #endif  // STL
 
-#elif __linux__
+#elif FIREBASE_PLATFORM_LINUX
 const char* kOperatingSystem = "linux";
 const char* kCppRuntimeOrStl = "gnustl";
 

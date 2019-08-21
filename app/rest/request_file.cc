@@ -16,18 +16,21 @@
 
 #include "app/rest/request_file.h"
 
+#include "app/src/include/firebase/internal/platform.h"
+
 #ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
 #endif  // _FILE_OFFSET_BITS
 #include <stdio.h>
+
 #include <cassert>
 #include <cstddef>
 
 // Map to POSIX compliant fseek on Windows.
-#ifdef _WIN32
+#if FIREBASE_PLATFORM_WINDOWS
 #define fseeko _fseeki64
 #define ftello _ftelli64
-#endif  // _WIN32
+#endif  // FIREBASE_PLATFORM_WINDOWS
 
 namespace firebase {
 namespace rest {
