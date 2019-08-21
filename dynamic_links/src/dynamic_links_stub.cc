@@ -196,8 +196,8 @@ Future<GeneratedDynamicLink> GetShortLink(
   auto long_link = GetLongLink(components);
   long_link.warnings.push_back(kLinkShorteningNotSupported);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-  const FutureHandle handle =
-      api->Alloc<GeneratedDynamicLink>(kDynamicLinksFnGetShortLink);
+  const auto handle =
+      api->SafeAlloc<GeneratedDynamicLink>(kDynamicLinksFnGetShortLink);
   api->CompleteWithResult(handle, 0, "", long_link);
   return GetShortLinkLastResult();
 }
@@ -216,8 +216,8 @@ Future<GeneratedDynamicLink> GetShortLink(
   long_link.url = long_dynamic_link;
   long_link.warnings.push_back(kLinkShorteningNotSupported);
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-  const FutureHandle handle =
-      api->Alloc<GeneratedDynamicLink>(kDynamicLinksFnGetShortLink);
+  const auto handle =
+      api->SafeAlloc<GeneratedDynamicLink>(kDynamicLinksFnGetShortLink);
   api->CompleteWithResult(handle, 0, "", long_link);
   return GetShortLinkLastResult();
 }
