@@ -35,9 +35,11 @@ const ConfigRow* ConfigGet(const char* fake) {
   const TestDataConfig* config = GetTestDataConfig(g_test_data_config);
   // LookupByKey() does not work because the data passed in may not conform. So
   // we just iterate over the test data.
-  for (const ConfigRow* row : *(config->config())) {
-    if (strcmp(row->fake()->c_str(), fake) == 0) {
-      return row;
+  if (config->config()) {
+    for (const ConfigRow* row : *(config->config())) {
+      if (row->fake() && strcmp(row->fake()->c_str(), fake) == 0) {
+        return row;
+      }
     }
   }
   return nullptr;
