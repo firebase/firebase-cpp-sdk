@@ -34,6 +34,8 @@
 // around the FIRFunctions Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRFunctions);
 
+#pragma clang assume_nonnull begin
+
 namespace firebase {
 namespace functions {
 namespace internal {
@@ -77,6 +79,8 @@ class FunctionsInternal {
 
   CleanupNotifier cleanup_;
 };
+
+#pragma clang assume_nonnull end
 
 }  // namespace internal
 }  // namespace functions

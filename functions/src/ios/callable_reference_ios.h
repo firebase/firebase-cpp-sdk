@@ -36,6 +36,8 @@ class Variant;
 namespace functions {
 namespace internal {
 
+#pragma clang assume_nonnull begin
+
 class HttpsCallableReferenceInternal {
  public:
   explicit HttpsCallableReferenceInternal(FunctionsInternal* functions,
@@ -91,6 +93,8 @@ class HttpsCallableReferenceInternal {
 
   Mutex controller_init_mutex_;
 };
+
+#pragma clang assume_nonnull end
 
 }  // namespace internal
 }  // namespace functions
