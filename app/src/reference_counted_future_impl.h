@@ -369,6 +369,10 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// no futures are Pending.
   bool IsSafeToDelete() const;
 
+  /// Check if the Future is being referenced by something other than
+  /// last_results_.
+  bool IsReferencedExternally() const;
+
   /// Sets temporary context data associated with a FutureHandle that will be
   /// deallocated alongside the FutureBackingData. This will occur when there
   /// are no more Futures referencing it.

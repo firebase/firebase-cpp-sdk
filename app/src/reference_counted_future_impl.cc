@@ -21,6 +21,7 @@
 
 #include "app/src/assert.h"
 #include "app/src/log.h"
+#include "app/src/mutex.h"
 
 // Set this to 1 to enable verbose logging in this module.
 #if !defined(FIREBASE_FUTURE_TRACE_ENABLE)
@@ -508,6 +509,27 @@ bool ReferenceCountedFutureImpl::IsSafeToDelete() const {
   }
 
   return true;
+}
+
+bool ReferenceCountedFutureImpl::IsReferencedExternally() const {
+  MutexLock lock(mutex_);
+
+  int total_references = 0;
+  int internal_references = 0;
+  for (auto i = backings_.begin(); i != backings_.end(); ++i) {
+    // Count the total number of references to all valid Futures.
+    total_references += i->second->reference_count;
+  }
+  for (int i = 0; i < last_results_.size(); i++) {
+    if (last_results_[i].status() != kFutureStatusInvalid) {
+      // If the status is not invalid, this entry is using up a reference.
+      // Count up the internal references.
+      internal_references++;
+    }
+  }
+  // If there are more references than the internal ones, someone is holding
+  // onto a Future.
+  return total_references > internal_references;
 }
 
 void ReferenceCountedFutureImpl::SetContextData(
