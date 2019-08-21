@@ -133,7 +133,7 @@ class InvitesReceiverInternal : public SenderReceiverInterface {
   // When a conversion begins, future_handle_convert_ will be non-0
   // until the conversion finishes. The future for the convert can be accessed
   // via `future_impl_.LastResult(kInvitesFnConvert)`.
-  FutureHandle future_handle_convert_;
+  SafeFutureHandle<void> future_handle_convert_;
 
   // Need to add a cache which stores the last invite and forwards it to the
   // newly registered receiver.

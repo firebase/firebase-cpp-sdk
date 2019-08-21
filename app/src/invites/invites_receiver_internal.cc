@@ -128,17 +128,18 @@ void InvitesReceiverInternal::ReceivedInviteCallback(
 Future<void> InvitesReceiverInternal::ConvertInvitation(
     const char* invitation_id) {
   if (!future_impl_.ValidFuture(future_handle_convert_)) {
-    future_handle_convert_ = future_impl_.Alloc<void>(kInvitesFnConvert);
+    future_handle_convert_ = future_impl_.SafeAlloc<void>(kInvitesFnConvert);
     if (!PerformConvertInvitation(invitation_id)) {
       future_impl_.Complete(future_handle_convert_, kConvertFailedCode,
                             kConvertFailedMessage);
       // This will tell all of the pending Futures that we have failed. Once all
       // those futures are gone, the RefFuture will automatically be deleted.
-      future_handle_convert_ = ReferenceCountedFutureImpl::kInvalidHandle;
+      future_handle_convert_ = SafeFutureHandle<void>::kInvalidHandle;
     }
   } else {
     // If there's already a convert in progress, fail.
-    const FutureHandle handle = future_impl_.Alloc<void>(kInvitesFnConvert);
+    const SafeFutureHandle<void> handle =
+        future_impl_.SafeAlloc<void>(kInvitesFnConvert);
     future_impl_.Complete(handle, kConvertInProgressCode,
                           kConvertInProgressMessage);
   }
@@ -155,7 +156,7 @@ void InvitesReceiverInternal::ConvertedInviteCallback(
     std::string error_message) {
   future_impl_.Complete(future_handle_convert_, result_code,
                         error_message.c_str());
-  future_handle_convert_ = ReferenceCountedFutureImpl::kInvalidHandle;
+  future_handle_convert_ = SafeFutureHandle<void>::kInvalidHandle;
 }
 
 }  // namespace internal
