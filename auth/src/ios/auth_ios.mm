@@ -228,19 +228,20 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(const char *emai
       futures.SafeAlloc<FetchProvidersResult>(kAuthFn_FetchProvidersForEmail, initial_data);
 
   [AuthImpl(auth_data_)
-      fetchProvidersForEmail:@(email)
-                  completion:^(NSArray<NSString *> *_Nullable providers, NSError *_Nullable error) {
-                    futures.Complete<FetchProvidersResult>(
-                        handle, AuthErrorFromNSError(error),
-                        [error.localizedDescription UTF8String],
-                        [providers](FetchProvidersResult* data) {
-                          // Copy data to our result format.
-                          data->providers.resize(providers.count);
-                          for (size_t i = 0; i < providers.count; ++i) {
-                            data->providers[i] = util::StringFromNSString(providers[i]);
-                          }
-                        });
-                  }];
+      fetchSignInMethodsForEmail:@(email)
+                      completion:^(NSArray<NSString *> *_Nullable providers,
+                                   NSError *_Nullable error) {
+      futures.Complete<FetchProvidersResult>(
+          handle, AuthErrorFromNSError(error),
+          [error.localizedDescription UTF8String],
+          [providers](FetchProvidersResult* data) {
+            // Copy data to our result format.
+            data->providers.resize(providers.count);
+            for (size_t i = 0; i < providers.count; ++i) {
+              data->providers[i] = util::StringFromNSString(providers[i]);
+            }
+          });
+    }];
 
   return MakeFuture(&futures, handle);
 }
@@ -343,11 +344,11 @@ Future<SignInResult> Auth::SignInAndRetrieveDataWithCredential(
   const auto handle =
       futures.SafeAlloc<SignInResult>(kAuthFn_SignInAndRetrieveDataWithCredential, SignInResult());
 
-  [AuthImpl(auth_data_) signInAndRetrieveDataWithCredential:CredentialFromImpl(credential.impl_)
-                          completion:^(FIRAuthDataResult *_Nullable auth_result,
-                                       NSError *_Nullable error) {
-                               SignInResultCallback(auth_result, error, handle, auth_data_);
-                          }];
+  [AuthImpl(auth_data_) signInWithCredential:CredentialFromImpl(credential.impl_)
+                                  completion:^(FIRAuthDataResult *_Nullable auth_result,
+                                               NSError *_Nullable error) {
+      SignInResultCallback(auth_result, error, handle, auth_data_);
+    }];
 
   return MakeFuture(&futures, handle);
 }
