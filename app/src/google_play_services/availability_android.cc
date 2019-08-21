@@ -101,7 +101,7 @@ struct AvailabilityData {
 
   // Future support for MakeGooglePlayServicesAvailable.
   firebase::ReferenceCountedFutureImpl future_impl;
-  FutureHandle future_handle_make;
+  firebase::SafeFutureHandle<void> future_handle_make;
   bool classes_loaded;
   // Whether we've already checked for Google Play services availability.
   bool fetched_availability;
@@ -120,7 +120,7 @@ JNIEXPORT void JNICALL GoogleApiAvailabilityHelper_onCompleteNative(
       g_data->cached_availability = kAvailabilityAvailable;
     }
     g_data->future_impl.Complete(
-        reinterpret_cast<FutureHandle>(g_data->future_handle_make), status_code,
+        g_data->future_handle_make, status_code,
         firebase::util::JniStringToString(env, status_message).c_str());
   }
 }
@@ -275,7 +275,7 @@ Future<void> MakeAvailable(JNIEnv* env, jobject activity) {
 
   if (g_data && !g_data->future_impl.ValidFuture(g_data->future_handle_make)) {
     g_data->future_handle_make =
-        g_data->future_impl.Alloc<void>(kAvailabilityFnMakeAvail);
+        g_data->future_impl.SafeAlloc<void>(kAvailabilityFnMakeAvail);
 
     if (g_data->fetched_availability &&
         g_data->cached_availability == kAvailabilityAvailable) {
