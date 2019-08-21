@@ -196,11 +196,11 @@ Future<SignInResult> User::LinkAndRetrieveDataWithCredential(const Credential &c
   const auto handle = auth_data_->future_impl.SafeAlloc<SignInResult>(
     kUserFn_LinkAndRetrieveDataWithCredential, SignInResult());
   [UserImpl(auth_data_)
-      linkAndRetrieveDataWithCredential:CredentialFromImpl(credential.impl_)
-                             completion:^(FIRAuthDataResult *_Nullable auth_result,
-                                          NSError *_Nullable error) {
-                   SignInResultCallback(auth_result, error, handle, auth_data_);
-              }];
+      linkWithCredential:CredentialFromImpl(credential.impl_)
+              completion:^(FIRAuthDataResult *_Nullable auth_result,
+                           NSError *_Nullable error) {
+      SignInResultCallback(auth_result, error, handle, auth_data_);
+    }];
   return MakeFuture(&futures, handle);
 }
 
@@ -283,11 +283,11 @@ Future<SignInResult> User::ReauthenticateAndRetrieveData(const Credential& crede
       kUserFn_ReauthenticateAndRetrieveData, SignInResult());
 
   [UserImpl(auth_data_)
-      reauthenticateAndRetrieveDataWithCredential:CredentialFromImpl(credential.impl_)
-                                       completion:^(FIRAuthDataResult *_Nullable auth_result,
-                                                    NSError *_Nullable error) {
-                             SignInResultCallback(auth_result, error, handle, auth_data_);
-                        }];
+      reauthenticateWithCredential:CredentialFromImpl(credential.impl_)
+                        completion:^(FIRAuthDataResult *_Nullable auth_result,
+                                     NSError *_Nullable error) {
+      SignInResultCallback(auth_result, error, handle, auth_data_);
+    }];
   return MakeFuture(&futures, handle);
 }
 
