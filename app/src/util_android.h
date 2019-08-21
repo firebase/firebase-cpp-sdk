@@ -732,10 +732,18 @@ class JObjectReference {
   JObjectReference(JNIEnv* env, jobject object);
   // Copy
   JObjectReference(const JObjectReference& reference);
+  // Move
+#ifdef FIREBASE_USE_MOVE_OPERATORS
+  JObjectReference(JObjectReference&& reference);
+#endif  // FIREBASE_USE_MOVE_OPERATORS
   // Delete the reference to the java object.
   ~JObjectReference();
   // Copy this reference.
   JObjectReference& operator=(const JObjectReference& reference);
+  // Move this reference.
+#ifdef FIREBASE_USE_MOVE_OPERATORS
+  JObjectReference& operator=(JObjectReference&& reference);
+#endif  // FIREBASE_USE_MOVE_OPERATORS
 
   // Add a global reference to the specified object, removing the reference
   // to the object currently referenced by this class.  If jobject_reference
@@ -745,9 +753,19 @@ class JObjectReference {
   // Get a JNIEnv from the JavaVM associated with this class.
   JNIEnv* GetJNIEnv() const;
 
+  // Get the JavaVM associated with this class.
+  JavaVM* java_vm() const { return java_vm_; }
+
   // Get the global reference to the Java object without incrementing the
   // reference count.
   jobject object() const { return object_; }
+
+  // Get a local reference to the object. The returned reference must be
+  // deleted after use with DeleteLocalRef().
+  jobject GetLocalRef() const;
+
+  // Same as object()
+  jobject operator*() const { return object(); }
 
   // Convert a local reference to a JObjectReference, deleting the local
   // reference.
@@ -762,9 +780,33 @@ class JObjectReference {
   static JavaVM* GetJavaVM(JNIEnv* env);
 
  private:
-  JavaVM* jvm_;
+  JavaVM* java_vm_;
   jobject object_;
 };
+
+// Creates an alias of util::JObjectReference named classname.
+// This is useful when defining the implementation of a forward declared class
+// using JObjectReference.
+#define JOBJECT_REFERENCE(classname)                                    \
+  class classname : public firebase::util::JObjectReference {           \
+   public:                                                              \
+     explicit classname(JNIEnv *env) :                                  \
+         firebase::util::JObjectReference(env) {}                       \
+     explicit classname(const firebase::util::JObjectReference& obj) :  \
+         firebase::util::JObjectReference(obj) {}                       \
+     explicit classname(firebase::util::JObjectReference&& obj) :       \
+         firebase::util::JObjectReference(obj) {}                       \
+     classname(JNIEnv *env, jobject obj) :                              \
+         util::JObjectReference(env, obj) {}                            \
+     classname& operator=(const util::JObjectReference& rhs) {          \
+       util::JObjectReference::operator=(rhs);                          \
+       return *this;                                                    \
+     }                                                                  \
+     classname& operator=(util::JObjectReference&& rhs) {               \
+       util::JObjectReference::operator=(rhs);                          \
+       return *this;                                                    \
+     }                                                                  \
+  }
 
 // Holds a reference to a Java thread that will execute a C++ method.
 //

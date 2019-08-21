@@ -29,6 +29,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <utility>
 
 #include "app/app_resources.h"
 #include "app/src/app_common.h"
@@ -1295,15 +1296,21 @@ JNIEXPORT void JNICALL JniResultCallback_nativeOnResult(
 }
 
 JObjectReference::JObjectReference(JNIEnv* env)
-    : jvm_(GetJavaVM(env)), object_(nullptr) {}
+    : java_vm_(GetJavaVM(env)), object_(nullptr) {}
 
 JObjectReference::JObjectReference(JNIEnv* env, jobject object) {
   Initialize(GetJavaVM(env), env, object);
 }
 
 JObjectReference::JObjectReference(const JObjectReference& reference) {
-  Initialize(reference.jvm_, reference.GetJNIEnv(), reference.object());
+  Initialize(reference.java_vm_, reference.GetJNIEnv(), reference.object());
 }
+
+#ifdef FIREBASE_USE_MOVE_OPERATORS
+JObjectReference::JObjectReference(JObjectReference&& reference) {
+  operator=(std::move(reference));
+}
+#endif  // FIREBASE_USE_MOVE_OPERATORS
 
 JObjectReference::~JObjectReference() { Set(nullptr); }
 
@@ -1313,17 +1320,30 @@ JObjectReference& JObjectReference::operator=(
   return *this;
 }
 
+#ifdef FIREBASE_USE_MOVE_OPERATORS
+JObjectReference& JObjectReference::operator=(JObjectReference&& reference) {
+  java_vm_ = reference.java_vm_;
+  object_ = reference.object_;
+  return *this;
+}
+#endif  // FIREBASE_USE_MOVE_OPERATORS
+
 void JObjectReference::Set(jobject jobject_reference) {
   JNIEnv* env = GetJNIEnv();
   if (object_) {
     env->DeleteGlobalRef(object_);
     object_ = nullptr;
   }
-  Initialize(jvm_, env, jobject_reference);
+  Initialize(java_vm_, env, jobject_reference);
 }
 
 JNIEnv* JObjectReference::GetJNIEnv() const {
-  return GetThreadsafeJNIEnv(jvm_);
+  return GetThreadsafeJNIEnv(java_vm_);
+}
+
+jobject JObjectReference::GetLocalRef() const {
+  JNIEnv* env = GetJNIEnv();
+  return object_ ? env->NewLocalRef(object_) : nullptr;
 }
 
 JObjectReference JObjectReference::FromLocalReference(JNIEnv* env,
@@ -1335,7 +1355,7 @@ JObjectReference JObjectReference::FromLocalReference(JNIEnv* env,
 
 void JObjectReference::Initialize(JavaVM* jvm, JNIEnv* env,
                                   jobject jobject_reference) {
-  jvm_ = jvm;
+  java_vm_ = jvm;
   object_ = nullptr;
   if (jobject_reference) object_ = env->NewGlobalRef(jobject_reference);
 }
