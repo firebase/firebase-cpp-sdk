@@ -151,7 +151,9 @@ std::string GetConfigSetting(ConfigSetting setting) {
   FIREBASE_ASSERT_RETURN(std::string(), internal::IsInitialized());
   switch (setting) {
   case kConfigSettingDeveloperMode:
-    return g_remote_config_instance.configSettings.isDeveloperModeEnabled ? "1" : "0";
+    // This setting is deprecated.
+    LogWarning("Remote Config: Developer mode setting is deprecated.");
+    return "1";
   default:
     LogError("Remote Config: GetConfigSetting called with unknown setting: %d", setting);
     return std::string();
@@ -161,8 +163,7 @@ std::string GetConfigSetting(ConfigSetting setting) {
 void SetConfigSetting(ConfigSetting setting, const char *value) {
   switch (setting) {
   case kConfigSettingDeveloperMode:
-    g_remote_config_instance.configSettings =
-        [[FIRRemoteConfigSettings alloc] initWithDeveloperModeEnabled:@(value).boolValue];
+    LogWarning("Remote Config: Developer mode setting is deprecated.");
     break;
   default:
     LogError("Remote Config: SetConfigSetting called with unknown setting: %d", setting);
@@ -309,7 +310,7 @@ Future<void> Fetch() { return Fetch(kDefaultCacheExpiration); }
 Future<void> Fetch(uint64_t cache_expiration_in_seconds) {
   FIREBASE_ASSERT_RETURN(FetchLastResult(), internal::IsInitialized());
   ReferenceCountedFutureImpl *api = FutureData::Get()->api();
-  const FutureHandle handle = api->Alloc<void>(kRemoteConfigFnFetch);
+  const auto handle = api->SafeAlloc<void>(kRemoteConfigFnFetch);
 
   FIRRemoteConfigFetchCompletion completion = ^(FIRRemoteConfigFetchStatus status, NSError *error) {
     if (error) {
@@ -327,13 +328,13 @@ Future<void> Fetch(uint64_t cache_expiration_in_seconds) {
                         "Fetch encountered an error.");
     } else {
       // Everything worked!
-      api->Complete(handle, kFetchFutureStatusSuccess, nullptr);
+      api->Complete(handle, kFetchFutureStatusSuccess);
     }
   };
   [g_remote_config_instance fetchWithExpirationDuration:cache_expiration_in_seconds
                                       completionHandler:completion];
 
-  return static_cast<const Future<void> &>(api->LastResult(kRemoteConfigFnFetch));
+  return MakeFuture<void>(api, handle);
 }
 
 Future<void> FetchLastResult() {
@@ -344,7 +345,14 @@ Future<void> FetchLastResult() {
 
 bool ActivateFetched() {
   FIREBASE_ASSERT_RETURN(false, internal::IsInitialized());
-  return static_cast<bool>([g_remote_config_instance activateFetched]);
+  __block bool succeeded = true;
+  __block dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
+  [g_remote_config_instance activateWithCompletionHandler:^(NSError *_Nullable error) {
+      if (error) succeeded = false;
+      dispatch_semaphore_signal(semaphore);
+    }];
+  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
+  return succeeded;
 }
 
 const ConfigInfo &GetInfo() {

@@ -364,7 +364,7 @@ const ConfigInfo& RemoteConfigDesktop::GetInfo() const {
 
 void RemoteConfigDesktop::AsyncFetch() {
   fetch_thread_ = std::thread([this]() {
-    FutureHandle handle;
+    SafeFutureHandle<void> handle;
     while (fetch_channel_.Get()) {
       RemoteConfigREST* rest = nullptr;
 
@@ -425,7 +425,7 @@ Future<void> RemoteConfigDesktop::Fetch(uint64_t cache_expiration_in_seconds) {
       ((cache_expiration_in_seconds == 0) ||
        (cache_expiration_timestamp < milliseconds_since_epoch))) {
     ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-    fetch_handle_ = api->Alloc<void>(kRemoteConfigFnFetch);
+    fetch_handle_ = api->SafeAlloc<void>(kRemoteConfigFnFetch);
     is_fetch_process_have_task_ = true;
     fetch_channel_.Put();
     cache_expiration_in_seconds_ = cache_expiration_in_seconds;

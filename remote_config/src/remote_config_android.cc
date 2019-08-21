@@ -665,30 +665,32 @@ static void FutureCallback(JNIEnv* env, jobject result,
   }
   // If the API has being shut down this will be nullptr.
   FutureData* future_data = FutureData::Get();
+  auto* future_handle =
+      reinterpret_cast<SafeFutureHandle<void>*>(callback_data);
   if (future_data) {
-    future_data->api()->Complete(reinterpret_cast<FutureHandle>(callback_data),
+    future_data->api()->Complete(*future_handle,
                                  success ? kFetchFutureStatusSuccess
                                  : kFetchFutureStatusFailure);
   }
+  delete future_handle;
 }
 
 Future<void> Fetch(uint64_t cache_expiration_in_seconds) {
   FIREBASE_ASSERT_RETURN(FetchLastResult(), internal::IsInitialized());
   // Create the future.
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-  const FutureHandle handle = api->Alloc<void>(kRemoteConfigFnFetch);
+  const auto handle = api->SafeAlloc<void>(kRemoteConfigFnFetch);
   JNIEnv* env = g_app->GetJNIEnv();
   jobject task = env->CallObjectMethod(
       g_remote_config_class_instance, config::GetMethodId(config::kFetch),
       static_cast<jlong>(cache_expiration_in_seconds));
 
-  util::RegisterCallbackOnTask(env, task, FutureCallback,
-                               *(reinterpret_cast<void* const*>(&handle)),
-                               kApiIdentifier);
+  util::RegisterCallbackOnTask(
+      env, task, FutureCallback, new SafeFutureHandle<void>(handle),
+      kApiIdentifier);
 
   env->DeleteLocalRef(task);
-  return static_cast<const Future<void>&>(
-      api->LastResult(kRemoteConfigFnFetch));
+  return MakeFuture<void>(api, handle);
 }
 
 Future<void> FetchLastResult() {

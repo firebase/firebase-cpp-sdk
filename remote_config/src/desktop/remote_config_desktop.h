@@ -19,6 +19,7 @@
 #include <string>
 #include <thread>  // NOLINT
 
+#include "app/src/reference_counted_future_impl.h"
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "remote_config/src/desktop/config_data.h"
@@ -178,7 +179,7 @@ class RemoteConfigDesktop {
 
   // Create new FutureHandle when it's possible to start fetching and complete
   // future with `fetch_handle_` after fetching.
-  FutureHandle fetch_handle_;
+  firebase::SafeFutureHandle<void> fetch_handle_;
 
   // Last value of `Fetch` function argument. Update only if we will fetch.
   uint64_t cache_expiration_in_seconds_;
