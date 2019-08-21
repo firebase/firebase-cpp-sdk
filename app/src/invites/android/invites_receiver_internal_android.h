@@ -20,6 +20,7 @@
 #define FIREBASE_APP_CLIENT_CPP_SRC_INVITES_ANDROID_INVITES_RECEIVER_INTERNAL_ANDROID_H_
 
 #include <jni.h>
+
 #include "app/src/invites/android/invites_android_helper.h"
 #include "app/src/invites/invites_receiver_internal.h"
 

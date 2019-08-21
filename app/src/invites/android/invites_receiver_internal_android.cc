@@ -15,7 +15,9 @@
  */
 
 #include "app/src/invites/android/invites_receiver_internal_android.h"
+
 #include <assert.h>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/invites/android/invites_android_helper.h"
 #include "app/src/invites/invites_receiver_internal.h"
@@ -31,13 +33,14 @@ InvitesReceiverInternalAndroid::InvitesReceiverInternalAndroid(
 }
 
 bool InvitesReceiverInternalAndroid::PerformFetch() {
-  return android.CallBooleanMethod(invite::kFetchInvite);
+  return android.CallBooleanMethod(
+      dynamic_links_native_wrapper::kFetchDynamicLink);
 }
 
 bool InvitesReceiverInternalAndroid::PerformConvertInvitation(
-    const char *invitation_id) {
-  return android.CallBooleanMethodString(invite::kConvertInvitation,
-                                         invitation_id);
+    const char * /*invitation_id*/) {
+  LogWarning("ConvertInvitation is not implemented.");
+  return false;
 }
 
 }  // namespace internal
