@@ -114,7 +114,7 @@ Future<void> DisconnectionHandlerInternal::Cancel() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject task = env->CallObjectMethod(
       obj_, on_disconnect::GetMethodId(on_disconnect::kCancel));
-  util::RegisterCallbackOnPendingResultOrTask(
+  util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(handle, future(), db_)),
@@ -135,7 +135,7 @@ Future<void> DisconnectionHandlerInternal::RemoveValue() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject task = env->CallObjectMethod(
       obj_, on_disconnect::GetMethodId(on_disconnect::kRemoveValue));
-  util::RegisterCallbackOnPendingResultOrTask(
+  util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(handle, future(), db_)),
@@ -160,7 +160,7 @@ Future<void> DisconnectionHandlerInternal::SetValue(Variant value) {
     jobject value_obj = internal::VariantToJavaObject(env, value);
     jobject task = env->CallObjectMethod(
         obj_, on_disconnect::GetMethodId(on_disconnect::kSetValue), value_obj);
-    util::RegisterCallbackOnPendingResultOrTask(
+    util::RegisterCallbackOnTask(
         env, task, FutureCallback,
         // FutureCallback will delete the newed FutureCallbackData.
         reinterpret_cast<void*>(new FutureCallbackData(handle, future(), db_)),
@@ -205,7 +205,7 @@ Future<void> DisconnectionHandlerInternal::SetValueAndPriority(
           value_obj, priority.AsDouble().double_value());
     }
     util::CheckAndClearJniExceptions(env);
-    util::RegisterCallbackOnPendingResultOrTask(
+    util::RegisterCallbackOnTask(
         env, task, FutureCallback,
         // FutureCallback will delete the newed FutureCallbackData.
         reinterpret_cast<void*>(new FutureCallbackData(handle, future(), db_)),
@@ -234,7 +234,7 @@ Future<void> DisconnectionHandlerInternal::UpdateChildren(Variant values) {
         obj_, on_disconnect::GetMethodId(on_disconnect::kUpdateChildren),
         values_obj);
     util::CheckAndClearJniExceptions(env);
-    util::RegisterCallbackOnPendingResultOrTask(
+    util::RegisterCallbackOnTask(
         env, task, FutureCallback,
         // FutureCallback will delete the newed FutureCallbackData.
         reinterpret_cast<void*>(new FutureCallbackData(handle, future(), db_)),

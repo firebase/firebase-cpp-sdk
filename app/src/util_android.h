@@ -1047,23 +1047,6 @@ void RegisterCallbackOnTask(JNIEnv* env, jobject task,
                             TaskCallbackFn callback_fn, void* callback_data,
                             const char* api_identifier);
 
-// Alias TaskCallbackFn to PendingResultCallbackFn.
-typedef TaskCallbackFn PendingResultCallbackFn;
-
-// Calls callback_fn when the PendingResult `pending_result_or_task` is
-// complete.  Where pending_result_or_task is either an instance of
-// com.google.android.gms.common.api.PendingResult or
-// com.google.android.gms.tasks.Task.
-// NOTE: api_identifier must *not* be deallocated or can be nullptr to place
-// the callback in the global pool.
-FIREBASE_DEPRECATED inline void RegisterCallbackOnPendingResultOrTask(
-    JNIEnv* env, jobject pending_result_or_task,
-    PendingResultCallbackFn callback_fn, void* callback_data,
-    const char* api_identifier) {
-  return RegisterCallbackOnTask(env, pending_result_or_task, callback_fn,
-                                callback_data, api_identifier);
-}
-
 // Cancel all callbacks associated with the specified API identifier.  If an
 // API identifier isn't specified, all pending callbacks are cancelled.
 void CancelCallbacks(JNIEnv* env, const char* api_identifier);

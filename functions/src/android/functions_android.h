@@ -33,7 +33,7 @@ namespace functions {
 namespace internal {
 
 // Used for registering global callbacks. See
-// firebase::util::RegisterCallbackOnPendingResultOrTask for context.
+// firebase::util::RegisterCallbackOnTask for context.
 extern const char kApiIdentifier[];
 
 class FunctionsInternal {

@@ -682,9 +682,9 @@ Future<void> Fetch(uint64_t cache_expiration_in_seconds) {
       g_remote_config_class_instance, config::GetMethodId(config::kFetch),
       static_cast<jlong>(cache_expiration_in_seconds));
 
-  util::RegisterCallbackOnPendingResultOrTask(
-      env, task, FutureCallback, *(reinterpret_cast<void* const*>(&handle)),
-      kApiIdentifier);
+  util::RegisterCallbackOnTask(env, task, FutureCallback,
+                               *(reinterpret_cast<void* const*>(&handle)),
+                               kApiIdentifier);
 
   env->DeleteLocalRef(task);
   return static_cast<const Future<void>&>(

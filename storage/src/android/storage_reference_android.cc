@@ -346,7 +346,7 @@ Future<void> StorageReferenceInternal::Delete() {
   FutureHandle handle = future_impl->Alloc<void>(kStorageReferenceFnDelete);
   jobject task = env->CallObjectMethod(
       obj_, storage_reference::GetMethodId(storage_reference::kDelete));
-  util::RegisterCallbackOnPendingResultOrTask(
+  util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
@@ -387,7 +387,7 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
       obj_, storage_reference::GetMethodId(storage_reference::kGetFileUri),
       uri);
   jobject java_listener = AssignListenerToTask(listener, task);
-  util::RegisterCallbackOnPendingResultOrTask(
+  util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(handle, future(), storage_,
@@ -449,7 +449,7 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
       obj_, storage_reference::GetMethodId(storage_reference::kGetStream),
       byte_downloader);
   jobject java_listener = AssignListenerToTask(listener, task);
-  util::RegisterCallbackOnPendingResultOrTask(
+  util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData, and will
       // handle copying the data into the buffer.
@@ -477,7 +477,7 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
       future_impl->Alloc<std::string>(kStorageReferenceFnGetDownloadUrl);
   jobject task = env->CallObjectMethod(
       obj_, storage_reference::GetMethodId(storage_reference::kGetDownloadUrl));
-  util::RegisterCallbackOnPendingResultOrTask(
+  util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
@@ -501,7 +501,7 @@ Future<Metadata> StorageReferenceInternal::GetMetadata() {
       future_impl->Alloc<Metadata>(kStorageReferenceFnGetMetadata);
   jobject task = env->CallObjectMethod(
       obj_, storage_reference::GetMethodId(storage_reference::kGetMetadata));
-  util::RegisterCallbackOnPendingResultOrTask(
+  util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
@@ -527,7 +527,7 @@ Future<Metadata> StorageReferenceInternal::UpdateMetadata(
   jobject task = env->CallObjectMethod(
       obj_, storage_reference::GetMethodId(storage_reference::kUpdateMetadata),
       metadata->internal_->obj());
-  util::RegisterCallbackOnPendingResultOrTask(
+  util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
@@ -603,7 +603,7 @@ Future<Metadata> StorageReferenceInternal::PutBytes(
     exception_message = util::GetAndClearExceptionMessage(env);
     if (exception_message.empty()) {
       jobject java_listener = AssignListenerToTask(listener, task);
-      util::RegisterCallbackOnPendingResultOrTask(
+      util::RegisterCallbackOnTask(
           env, task, FutureCallback,
           // FutureCallback will delete the newed FutureCallbackData.
           reinterpret_cast<void*>(new FutureCallbackData(
@@ -637,7 +637,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
   jobject task = env->CallObjectMethod(
       obj_, storage_reference::GetMethodId(storage_reference::kPutFile), uri);
   jobject java_listener = AssignListenerToTask(listener, task);
-  util::RegisterCallbackOnPendingResultOrTask(
+  util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(handle, future(), storage_,
@@ -668,7 +668,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
       storage_reference::GetMethodId(storage_reference::kPutFileWithMetadata),
       uri, metadata->internal_->obj());
   jobject java_listener = AssignListenerToTask(listener, task);
-  util::RegisterCallbackOnPendingResultOrTask(
+  util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(handle, future(), storage_,

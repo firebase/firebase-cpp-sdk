@@ -182,7 +182,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
   jobject task = env->CallObjectMethod(
       obj_, callable_reference::GetMethodId(callable_reference::kCall));
 
-  util::RegisterCallbackOnPendingResultOrTask(
+  util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(
@@ -213,7 +213,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
       java_data);
   env->DeleteLocalRef(java_data);
 
-  util::RegisterCallbackOnPendingResultOrTask(
+  util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(new FutureCallbackData(

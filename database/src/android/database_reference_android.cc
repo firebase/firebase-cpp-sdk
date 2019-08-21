@@ -323,7 +323,7 @@ Future<void> DatabaseReferenceInternal::RemoveValue() {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   jobject task = env->CallObjectMethod(
       obj_, database_reference::GetMethodId(database_reference::kRemoveValue));
-  util::RegisterCallbackOnPendingResultOrTask(
+  util::RegisterCallbackOnTask(
       env, task, FutureCallback,
       // FutureCallback will delete the newed FutureCallbackData.
       reinterpret_cast<void*>(
@@ -352,7 +352,7 @@ Future<void> DatabaseReferenceInternal::SetValue(Variant value) {
         obj_, database_reference::GetMethodId(database_reference::kSetValue),
         value_obj);
     util::CheckAndClearJniExceptions(env);
-    util::RegisterCallbackOnPendingResultOrTask(
+    util::RegisterCallbackOnTask(
         env, task, FutureCallback,
         // FutureCallback will delete the newed FutureCallbackData.
         reinterpret_cast<void*>(
@@ -385,7 +385,7 @@ Future<void> DatabaseReferenceInternal::SetPriority(Variant priority) {
         obj_, database_reference::GetMethodId(database_reference::kSetPriority),
         priority_obj);
     util::CheckAndClearJniExceptions(env);
-    util::RegisterCallbackOnPendingResultOrTask(
+    util::RegisterCallbackOnTask(
         env, task, FutureCallback,
         // FutureCallback will delete the newed FutureCallbackData.
         reinterpret_cast<void*>(
@@ -426,7 +426,7 @@ Future<void> DatabaseReferenceInternal::SetValueAndPriority(Variant value,
                                   database_reference::kSetValueAndPriority),
                               value_obj, priority_obj);
     util::CheckAndClearJniExceptions(env);
-    util::RegisterCallbackOnPendingResultOrTask(
+    util::RegisterCallbackOnTask(
         env, task, FutureCallback,
         // FutureCallback will delete the newed FutureCallbackData.
         reinterpret_cast<void*>(
@@ -458,7 +458,7 @@ Future<void> DatabaseReferenceInternal::UpdateChildren(Variant values) {
         database_reference::GetMethodId(database_reference::kUpdateChildren),
         values_obj);
     util::CheckAndClearJniExceptions(env);
-    util::RegisterCallbackOnPendingResultOrTask(
+    util::RegisterCallbackOnTask(
         env, task, FutureCallback,
         // FutureCallback will delete the newed FutureCallbackData.
         reinterpret_cast<void*>(

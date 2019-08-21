@@ -54,7 +54,7 @@ METHOD_LOOKUP_DECLARATION(cpp_byte_downloader, CPP_BYTE_DOWNLOADER_METHODS)
 METHOD_LOOKUP_DECLARATION(cpp_byte_uploader, CPP_BYTE_UPLOADER_METHODS)
 
 // Used for registering global callbacks. See
-// firebase::util::RegisterCallbackOnPendingResultOrTask for context.
+// firebase::util::RegisterCallbackOnTask for context.
 extern const char kApiIdentifier[];
 
 class StorageInternal {

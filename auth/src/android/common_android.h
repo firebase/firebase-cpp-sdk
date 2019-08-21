@@ -211,7 +211,7 @@ void RegisterCallback(
     jobject pending_result, SafeFutureHandle<T> handle, AuthData* auth_data,
     typename FutureCallbackData<T>::ReadFutureResultFn read_result_fn) {
   // The FutureCallbackData structure is deleted in FutureCallback().
-  util::RegisterCallbackOnPendingResultOrTask(
+  util::RegisterCallbackOnTask(
       Env(auth_data), pending_result, FutureCallback<T>,
       new FutureCallbackData<T>(handle, auth_data, read_result_fn),
       auth_data->future_api_id.c_str());

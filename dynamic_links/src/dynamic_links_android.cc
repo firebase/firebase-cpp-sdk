@@ -956,9 +956,9 @@ static Future<GeneratedDynamicLink> HandleShortLinkTask(
     api->CompleteWithResult(handle, kErrorCodeFailed, exception_message.c_str(),
                             gen_link);
   } else {
-    util::RegisterCallbackOnPendingResultOrTask(
-        jni_env, task, FutureShortLinkCallback,
-        *(reinterpret_cast<void* const*>(&handle)), kApiIdentifier);
+    util::RegisterCallbackOnTask(jni_env, task, FutureShortLinkCallback,
+                                 *(reinterpret_cast<void* const*>(&handle)),
+                                 kApiIdentifier);
   }
 
   jni_env->DeleteLocalRef(link_builder);
