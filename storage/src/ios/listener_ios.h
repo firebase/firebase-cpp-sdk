@@ -72,20 +72,20 @@ class ListenerInternal {
 #ifdef __OBJC__
   // Guards task_, pause_observer_handle_, progress_observer_handle_,
   // listener_handle_.
-  NSRecursiveLock* _Nonnull listener_handle_lock() const { return listener_handle_lock_->ptr; }
+  NSRecursiveLock* _Nonnull listener_handle_lock() const { return listener_handle_lock_->get(); }
   // Task monitored by this listener.
   FIRStorageObservableTask<FIRStorageTaskManagement>* _Nullable task() const {
-    return (FIRStorageObservableTask<FIRStorageTaskManagement>*)(task_->ptr);
+    return (FIRStorageObservableTask<FIRStorageTaskManagement>*)(task_->get());
   }
   // Handle to the pause observer block, used to unregister pause notifications.
-  FIRStorageHandle _Nullable pause_observer_handle() const { return pause_observer_handle_->ptr; }
+  FIRStorageHandle _Nullable pause_observer_handle() const { return pause_observer_handle_->get(); }
   // Handle to the progress observer block, used to unregister progress
   // notifications.
   FIRStorageHandle _Nullable progress_observer_handle() const {
-    return progress_observer_handle_->ptr;
+    return progress_observer_handle_->get();
   }
   // Obj-C reference to this object.
-  FIRCPPStorageListenerHandle* _Nullable listener_handle() const { return listener_handle_->ptr; }
+  FIRCPPStorageListenerHandle* _Nullable listener_handle() const { return listener_handle_->get(); }
 #endif  // __OBJC__
 
   // Guards task_, pause_observer_handle_, progress_observer_handle_,

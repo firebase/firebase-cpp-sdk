@@ -125,7 +125,7 @@ struct ListenerHandleHolder {
 
 // Platform-specific method to create the wrapped Auth class.
 void *CreatePlatformAuth(App *app, void *app_impl) {
-  FIRApp *fir_app = static_cast<FIRAppPointer *>(app_impl)->ptr;
+  FIRApp *fir_app = static_cast<FIRAppPointer *>(app_impl)->get();
 
   // Grab the auth for our app.
   FIRAuth *auth = [FIRAuth authWithApp:fir_app];
@@ -133,7 +133,7 @@ void *CreatePlatformAuth(App *app, void *app_impl) {
 
   // Create a FIRAuth* that uses Objective-C's automatic reference counting.
   AuthDataIos *auth_impl = new AuthDataIos();
-  auth_impl->fir_auth.ptr = auth;
+  auth_impl->fir_auth = auth;
   return auth_impl;
 }
 
@@ -149,7 +149,7 @@ void Auth::InitPlatformAuth(AuthData *auth_data) {
   FIRCPPAuthListenerHandle* listener_cpp_handle =
       [[FIRCPPAuthListenerHandle alloc] init];
   listener_cpp_handle.authData = auth_data;
-  reinterpret_cast<AuthDataIos*>(auth_data->auth_impl)->listener_handle.ptr = listener_cpp_handle;
+  reinterpret_cast<AuthDataIos*>(auth_data->auth_impl)->listener_handle = listener_cpp_handle;
   // Register a listening block that will notify all the C++ listeners on
   // auth state change.
   FIRAuthStateDidChangeListenerHandle listener_handle =
@@ -192,7 +192,7 @@ void Auth::InitPlatformAuth(AuthData *auth_data) {
 void Auth::DestroyPlatformAuth(AuthData *auth_data) {
   // Remove references from listener blocks.
   AuthDataIos* auth_data_ios = reinterpret_cast<AuthDataIos *>(auth_data->auth_impl);
-  FIRCPPAuthListenerHandle *listener_cpp_handle = auth_data_ios->listener_handle.ptr;
+  FIRCPPAuthListenerHandle *listener_cpp_handle = auth_data_ios->listener_handle.get();
   @synchronized (listener_cpp_handle) {
     listener_cpp_handle.authData = nullptr;
   }

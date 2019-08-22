@@ -95,12 +95,12 @@ QueryInternal::QueryInternal(DatabaseInternal* database, UniquePtr<FIRDatabaseQu
 
 QueryInternal::QueryInternal(const QueryInternal& other)
     : query_spec_(other.query_spec_), database_(other.database_) {
-  impl_.reset(new FIRDatabaseQueryPointer(other.impl_->ptr));
+  impl_.reset(new FIRDatabaseQueryPointer(*other.impl_));
   database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
 }
 
 QueryInternal& QueryInternal::operator=(const QueryInternal& other) {
-  impl_.reset(new FIRDatabaseQueryPointer(other.impl_->ptr));
+  impl_.reset(new FIRDatabaseQueryPointer(*other.impl_));
   query_spec_ = other.query_spec_;
   database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
   return *this;
@@ -135,7 +135,7 @@ SingleValueListener::SingleValueListener(
     callback_state_(MakeUnique<FIRCPPDatabaseQueryCallbackStatePointer>(callback_state)) {}
 
 SingleValueListener::~SingleValueListener() {
-  [callback_state_->ptr removeAllObservers];
+  [callback_state_->get() removeAllObservers];
 }
 
 void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {

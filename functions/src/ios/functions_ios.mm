@@ -29,7 +29,7 @@ namespace internal {
 FunctionsInternal::FunctionsInternal(App* app, const char* region)
     : app_(app), region_(region) {
   impl_.reset(new FIRFunctionsPointer([FIRFunctions
-      functionsForApp:static_cast<FIRAppPointer*>(app->data_)->ptr
+      functionsForApp:static_cast<FIRAppPointer*>(app->data_)->get()
                region:@(region)]));
 }
 
@@ -44,11 +44,11 @@ HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(const char* 
   // HttpsCallableReferenceInternal handles deleting the wrapper pointer.
   return new HttpsCallableReferenceInternal(
       const_cast<FunctionsInternal*>(this),
-      MakeUnique<FIRHTTPSCallablePointer>([impl_.get()->ptr HTTPSCallableWithName:@(name)]));
+      MakeUnique<FIRHTTPSCallablePointer>([impl_.get()->get() HTTPSCallableWithName:@(name)]));
 }
 
 void FunctionsInternal::UseFunctionsEmulator(const char* origin) {
-  [impl_.get()->ptr useFunctionsEmulatorOrigin:@(origin)];
+  [impl_.get()->get() useFunctionsEmulatorOrigin:@(origin)];
 }
 
 }  // namespace internal

@@ -203,7 +203,7 @@ class QueryInternal {
 
  protected:
 #ifdef __OBJC__
-  FIRDatabaseQuery* impl() const { return impl_->ptr; }
+  FIRDatabaseQuery* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
   internal::QuerySpec query_spec_;

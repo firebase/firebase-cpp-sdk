@@ -163,7 +163,7 @@ class DatabaseReferenceInternal : public QueryInternal {
 
  protected:
 #ifdef __OBJC__
-  FIRDatabaseReference* impl() const { return impl_->ptr; }
+  FIRDatabaseReference* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
  private:

@@ -89,7 +89,7 @@ class MutableDataInternal {
                       UniquePtr<FIRMutableDataPointer> impl);
 
 #ifdef __OBJC__
-  FIRMutableData* impl() const { return impl_->ptr; }
+  FIRMutableData* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
   DatabaseInternal* db_;

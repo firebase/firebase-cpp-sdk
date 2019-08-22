@@ -36,12 +36,14 @@ namespace internal {
 // wrapper around the FIRStorageMetadata Obj-C class.
 OBJ_C_PTR_WRAPPER(FIRStorageMetadata);
 
+#pragma clang assume_nonnull begin
+
 class MetadataInternal {
  public:
   MetadataInternal();
 
   // Construct a MetadataInternal with an empty FIRStorageMetadata.
-  explicit MetadataInternal(StorageInternal* storage);
+  explicit MetadataInternal(StorageInternal* _Nullable storage);
 
   MetadataInternal(StorageInternal* storage,
                    UniquePtr<FIRStorageMetadataPointer> impl);
@@ -135,7 +137,7 @@ class MetadataInternal {
 
  private:
 #ifdef __OBJC__
-  FIRStorageMetadata* impl() const { return impl_->ptr; }
+  FIRStorageMetadata* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
   friend class StorageReferenceInternal;
@@ -158,6 +160,8 @@ class MetadataInternal {
 
   std::map<std::string, std::string>* custom_metadata_;
 };
+
+#pragma clang assume_nonnull end
 
 }  // namespace internal
 }  // namespace storage

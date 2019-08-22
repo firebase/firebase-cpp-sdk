@@ -30,7 +30,7 @@ DatabaseInternal::DatabaseInternal(App* app)
     : app_(app), log_level_(kLogLevelInfo) {
   @try {
     impl_.reset(new FIRDatabasePointer(
-        [FIRDatabase databaseForApp:static_cast<FIRAppPointer*>(app->data_)->ptr]));
+        [FIRDatabase databaseForApp:static_cast<FIRAppPointer*>(app->data_)->get()]));
     query_lock_.reset(new NSRecursiveLockPointer([[NSRecursiveLock alloc] init]));
   }
   @catch (NSException* exception) {
@@ -44,7 +44,7 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
     : app_(app), constructor_url_(url), log_level_(kLogLevelInfo) {
   @try {
     impl_.reset(new FIRDatabasePointer(
-        [FIRDatabase databaseForApp:static_cast<FIRAppPointer*>(app->data_)->ptr URL:@(url)]));
+        [FIRDatabase databaseForApp:static_cast<FIRAppPointer*>(app->data_)->get() URL:@(url)]));
     query_lock_.reset(new NSRecursiveLockPointer([[NSRecursiveLock alloc] init]));
   }
   @catch (NSException* exception) {
@@ -155,7 +155,7 @@ bool DatabaseInternal::UnregisterValueListener(const internal::QuerySpec& spec,
   if (value_listeners_by_query_.Unregister(spec, listener)) {
     auto found = cleanup_value_listener_lookup_.find(listener);
     if (found != cleanup_value_listener_lookup_.end()) {
-      [found->second.ptr removeAllObservers];
+      [found->second.get() removeAllObservers];
       cleanup_value_listener_lookup_.erase(found);
     }
     return true;
@@ -196,7 +196,7 @@ bool DatabaseInternal::UnregisterChildListener(const internal::QuerySpec& spec,
   if (child_listeners_by_query_.Unregister(spec, listener)) {
     auto found = cleanup_child_listener_lookup_.find(listener);
     if (found != cleanup_child_listener_lookup_.end()) {
-      [found->second.ptr removeAllObservers];
+      [found->second.get() removeAllObservers];
       cleanup_child_listener_lookup_.erase(found);
     }
     return true;

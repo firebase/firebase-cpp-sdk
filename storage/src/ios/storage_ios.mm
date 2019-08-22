@@ -61,7 +61,7 @@ StorageInternal::StorageInternal(App* app, const char* url)
       impl_(new FIRStoragePointer(nil)),
       session_fetcher_service_(new FIRCPPGTMSessionFetcherServicePointer(nil)) {
   url_ = url ? url : "";
-  FIRApp* fir_app = static_cast<FIRAppPointer*>(app->data_)->ptr;
+  FIRApp* fir_app = static_cast<FIRAppPointer*>(app->data_)->get();
   if (url_.empty()) {
     impl_.reset(new FIRStoragePointer([FIRStorage storageForApp:fir_app]));
   } else {

@@ -33,7 +33,7 @@ using util::VariantToId;
 
 DatabaseReferenceInternal::DatabaseReferenceInternal(DatabaseInternal* database,
                                                      UniquePtr<FIRDatabaseReferencePointer> impl)
-    : QueryInternal(database, MakeUnique<FIRDatabaseQueryPointer>(impl->ptr)),
+    : QueryInternal(database, MakeUnique<FIRDatabaseQueryPointer>(impl->get())),
       cached_disconnection_handler_(nullptr) {
   impl_ = std::move(impl);
   database_->future_manager().AllocFutureApi(&future_api_id_, kDatabaseReferenceFnCount);
@@ -51,14 +51,14 @@ DatabaseReferenceInternal::~DatabaseReferenceInternal() {
 
 DatabaseReferenceInternal::DatabaseReferenceInternal(const DatabaseReferenceInternal& other)
     : QueryInternal(other), cached_disconnection_handler_(nullptr) {
-  impl_.reset(new FIRDatabaseReferencePointer(other.impl_->ptr));
+  impl_.reset(new FIRDatabaseReferencePointer(*other.impl_));
   database_->future_manager().AllocFutureApi(&future_api_id_, kDatabaseReferenceFnCount);
 }
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
     const DatabaseReferenceInternal& other) {
   QueryInternal::operator=(other);
-  impl_.reset(new FIRDatabaseReferencePointer(other.impl_->ptr));
+  impl_.reset(new FIRDatabaseReferencePointer(*other.impl_));
   return *this;
 }
 

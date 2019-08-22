@@ -120,7 +120,7 @@ Future<void> DisconnectionHandlerInternal::UpdateChildrenLastResult() {
       static_cast<const Future<void>&>(future()->LastResult(kDisconnectionHandlerFnUpdateChildren));
 }
 
-FIRDatabaseReference* _Nonnull DisconnectionHandlerInternal::impl() const { return impl_->ptr; }
+FIRDatabaseReference* _Nonnull DisconnectionHandlerInternal::impl() const { return impl_->get(); }
 
 ReferenceCountedFutureImpl* DisconnectionHandlerInternal::future() {
   return database_->future_manager().GetFutureApi(this);

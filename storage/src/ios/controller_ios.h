@@ -81,7 +81,7 @@ class ControllerInternal {
   FIRStorageObservableTask<FIRStorageTaskManagement> *_Nullable task_impl()
       const {
     return (FIRStorageObservableTask<FIRStorageTaskManagement> *)
-        task_impl_->ptr;
+        task_impl_->get();
   }
 #endif  // __OBJC__
   StorageInternal *_Nullable storage_;

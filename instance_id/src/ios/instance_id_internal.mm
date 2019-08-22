@@ -105,18 +105,18 @@ InstanceIdInternal::InstanceIdInternal(
 }
 
 InstanceIdInternal::~InstanceIdInternal() {
-  [operation_list_->ptr disconnectAll];
+  [operation_list_->get() disconnectAll];
   delete fir_instance_id_pointer_;
   delete operation_list_;
 }
 
 FIRInstanceIdInternalOperation *_Nonnull InstanceIdInternal::AddOperation() {
-  return [operation_list_->ptr add:this];
+  return [operation_list_->get() add:this];
 }
 
 void InstanceIdInternal::RemoveOperation(
     FIRInstanceIdInternalOperation *_Nonnull operation) {
-  [operation_list_->ptr remove:operation];
+  [operation_list_->get() remove:operation];
 }
 
 }  // namespace internal

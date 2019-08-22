@@ -125,7 +125,7 @@ class StorageInternal {
 #ifdef __OBJC__
   // Get the session fetcher for streaming.
   FIRCPPGTMSessionFetcherService* _Nonnull session_fetcher_service() const {
-    return session_fetcher_service_->ptr;
+    return session_fetcher_service_->get();
   }
 #endif  // __OBJC__
 
@@ -134,7 +134,7 @@ class StorageInternal {
 
  private:
 #ifdef __OBJC__
-  FIRStorage* _Nullable impl() const { return impl_->ptr; }
+  FIRStorage* _Nullable impl() const { return impl_->get(); }
 #endif
   // The firease::App that this Storage was created with.
   App* _Nonnull app_;

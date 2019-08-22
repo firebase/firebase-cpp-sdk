@@ -147,13 +147,13 @@ class DatabaseInternal {
   // Guard access to C++ objects referenced by
   // FIRCPPDatabaseQueryCallbackStatePointer.
   NSRecursiveLock* query_lock() const {
-    return query_lock_->ptr;
+    return query_lock_->get();
   }
 #endif  // __OBJC__
 
  private:
 #ifdef __OBJC__
-  FIRDatabase* impl() const { return impl_->ptr; }
+  FIRDatabase* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
   // The firebase::App that this Database was created with.

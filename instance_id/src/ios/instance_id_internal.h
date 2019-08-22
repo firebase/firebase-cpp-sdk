@@ -87,7 +87,7 @@ class InstanceIdInternal : public InstanceIdInternalBase {
 #if defined(__OBJC__)
   // Get the Obj-C instance ID object.
   FIRInstanceID *_Nullable GetFIRInstanceID() const {
-    return fir_instance_id_pointer_->ptr;
+    return fir_instance_id_pointer_->get();
   }
 
   // Create a reference to an instance ID object to the array tracking

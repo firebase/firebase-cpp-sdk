@@ -100,13 +100,13 @@ StorageReferenceInternal::~StorageReferenceInternal() {
 
 StorageReferenceInternal::StorageReferenceInternal(const StorageReferenceInternal& other)
     : storage_(other.storage_) {
-  impl_.reset(new FIRStorageReferencePointer(other.impl_->ptr));
+  impl_.reset(new FIRStorageReferencePointer(*other.impl_));
   storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
 }
 
 StorageReferenceInternal& StorageReferenceInternal::operator=(
     const StorageReferenceInternal& other) {
-  impl_.reset(new FIRStorageReferencePointer(other.impl_->ptr));
+  impl_.reset(new FIRStorageReferencePointer(*other.impl_));
   return *this;
 }
 

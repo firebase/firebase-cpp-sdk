@@ -22,7 +22,11 @@
 
 namespace firebase {
 
-OBJ_C_PTR_WRAPPER(FIRApp);
+namespace internal {
+OBJ_C_PTR_WRAPPER_NAMED(AppInternal, FIRApp);
+}  // namespace internal
+
+typedef internal::AppInternal FIRAppPointer;
 
 }  // namespace firebase
 

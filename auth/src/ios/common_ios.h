@@ -52,9 +52,8 @@ struct AuthDataIos {
 
 /// Convert from the platform-independent void* to the Obj-C FIRUser pointer.
 static inline FIRUser *_Nullable UserImpl(AuthData *_Nonnull auth_data) {
-  return auth_data->user_impl == nullptr
-             ? nullptr
-             : static_cast<FIRUserPointer *>(auth_data->user_impl)->ptr;
+  return FIRUserPointer::SafeGet(
+    static_cast<FIRUserPointer *>(auth_data->user_impl));
 }
 
 /// Release the platform-dependent FIRUser object.
@@ -76,14 +75,14 @@ static inline void SetUserImpl(AuthData *_Nonnull auth_data,
 
 /// Convert from the platform-independent void* to the Obj-C FIRAuth pointer.
 static inline FIRAuth *_Nonnull AuthImpl(AuthData *_Nonnull auth_data) {
-  return static_cast<AuthDataIos *>(auth_data->auth_impl)->fir_auth.ptr;
+  return static_cast<AuthDataIos *>(auth_data->auth_impl)->fir_auth.get();
 }
 
 /// Convert from the void* credential implementation pointer into the Obj-C
 /// FIRAuthCredential pointer.
 static inline FIRAuthCredential *_Nonnull CredentialFromImpl(
     void *_Nonnull impl) {
-  return static_cast<FIRAuthCredentialPointer *>(impl)->ptr;
+  return static_cast<FIRAuthCredentialPointer *>(impl)->get();
 }
 
 AuthError AuthErrorFromNSError(NSError *_Nullable error);

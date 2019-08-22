@@ -71,14 +71,14 @@ HttpsCallableReferenceInternal::~HttpsCallableReferenceInternal() {
 HttpsCallableReferenceInternal::HttpsCallableReferenceInternal(
     const HttpsCallableReferenceInternal& other)
     : functions_(other.functions_) {
-  impl_.reset(new FIRHTTPSCallablePointer(other.impl_->ptr));
+  impl_.reset(new FIRHTTPSCallablePointer(*other.impl_));
   functions_->future_manager().AllocFutureApi(this, kCallableReferenceFnCount);
 }
 
 HttpsCallableReferenceInternal& HttpsCallableReferenceInternal::operator=(
     const HttpsCallableReferenceInternal& other) {
   functions_ = other.functions_;
-  impl_.reset(new FIRHTTPSCallablePointer(other.impl_->ptr));
+  impl_.reset(new FIRHTTPSCallablePointer(*other.impl_));
   return *this;
 }
 
@@ -135,7 +135,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
         CompleteFuture(future_impl, handle, result, error);
       };
 
-  [impl_.get()->ptr callWithCompletion:completion];
+  [impl_.get()->get() callWithCompletion:completion];
   return CallLastResult();
 }
 
@@ -151,7 +151,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(const Variant& 
         CompleteFuture(future_impl, handle, result, error);
       };
 
-  [impl_.get()->ptr callWithObject:data completion:completion];
+  [impl_.get()->get() callWithObject:data completion:completion];
   return CallLastResult();
 }
 

@@ -174,7 +174,7 @@ class StorageReferenceInternal {
       FIRStorageVoidDataError _Nonnull completion, void* _Nonnull buffer,
       size_t buffer_size);
 
-  FIRStorageReference* _Nullable impl() const { return impl_->ptr; }
+  FIRStorageReference* _Nullable impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
   // Get the Future for the StorageReferenceInternal.

@@ -36,12 +36,12 @@ DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* database,
 
 DataSnapshotInternal::DataSnapshotInternal(const DataSnapshotInternal& other)
     : database_(other.database_) {
-  impl_.reset(new FIRDataSnapshotPointer(other.impl_->ptr));
+  impl_.reset(new FIRDataSnapshotPointer(*other.impl_));
 }
 
 DataSnapshotInternal& DataSnapshotInternal::operator=(const DataSnapshotInternal& other) {
   database_ = other.database_;
-  impl_.reset(new FIRDataSnapshotPointer(other.impl_->ptr));
+  impl_.reset(new FIRDataSnapshotPointer(*other.impl_));
   return *this;
 }
 

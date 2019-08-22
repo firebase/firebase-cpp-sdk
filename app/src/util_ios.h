@@ -30,23 +30,11 @@
 namespace firebase {
 namespace util {
 
-/// Define a simple struct to wrap an Objective-C pointer.
+/// Define a class to wrap an Objective-C pointer.
 /// Objective-C uses automatic reference counting, we can't just cast them to
-/// void* to reference them from platform-independent data structures
-/// (like firebase::App's data_ pointer). Instead, we wrap the pointer in this
-/// struct, and point our void* at an instance of this struct.
-/// It's awkward. A better solution would be welcome.
-///
-/// Unfortunately, the _Nullable types can't be used with templates,
-/// so we use a hokey macro instead.
-///
-/// OBJ_C_PTR_WRAPPER(MyClass) unwraps to:
-///   struct MyClassPointer {
-///     MyClassPointer() : ptr(nil) {}
-///     explicit MyClassPointer(MyClass *_Nullable ptr) : ptr(ptr) {}
-///     ~MyClassPointer() { ptr = nil; }
-///     MyClass *_Nullable ptr;
-///   };
+/// void* or a forward declared C++ class to reference them from
+//  platform-independent data structures (like firebase::App's data_ pointer).
+/// Instead, we wrap the pointer in this class.
 ///
 /// Usage:
 ///
@@ -56,7 +44,11 @@ namespace util {
 ///   };
 ///
 ///   // .cpp
-///   OBJ_C_PTR_WRAPPER(MyObjCClass);
+///   typedef ObjCPointer<MyObjCClass> MyObjCClassPointer;
+///   // or OBJ_C_PTR_WRAPPER(MyObjCClass);
+///   // or OBJ_C_PTR_WRAPPER_NAMED(MyObjCClassPointer, MyObjCClass);
+//    // OBJ_C_PTR_WRAPPER* define a class rather than a typedef which
+//    // is useful when defining a forward declared class.
 ///
 ///   void Init(MyPlatformIndependentClass* c, MyObjCClass* obj_c) {
 ///     c->platform_indep_ptr_ = new MyObjCClassPointer(obj_c);
@@ -68,15 +60,73 @@ namespace util {
 ///   }
 ///
 ///   void DoSomething(MyPlatformIndependentClass* c) {
-///     [static_cast<MyObjCClassPointer*>(c->platform_indep_ptr_)->ptr fn_name];
+///     [static_cast<MyObjCClassPointer*>(
+///        c->platform_indep_ptr_)->get() fn_name];
 ///   }
 ///
-#define OBJ_C_PTR_WRAPPER(type_name)                                    \
-  struct type_name##Pointer {                                           \
-    type_name##Pointer() : ptr(nil) {}                                  \
-    explicit type_name##Pointer(type_name *_Nullable ptr) : ptr(ptr) {} \
-    ~type_name##Pointer() { ptr = nil; }                                \
-    type_name *_Nullable ptr;                                           \
+template <typename T>
+class ObjCPointer {
+ public:
+  // Construct with an empty class.
+  ObjCPointer() : objc_object_(nil) {}
+
+  // Construct with a reference to an Obj-C object.
+  explicit ObjCPointer(T *_Nullable objc_object) : objc_object_(objc_object) {}
+
+  // Release the reference to the Obj-C object.
+  ~ObjCPointer() { release(); }
+
+  // Determine whether the Obj-C object is valid.
+  explicit operator bool() const { return get() != nil; }
+
+  // Get the Obj-C object.
+  T *_Nullable operator*() const { return get(); }
+
+  // Get the Obj-C object.
+  T *_Nullable get() const { return objc_object_; }
+
+  // Release the reference to the Obj-C object.
+  T *_Nullable release() {
+    T *released = objc_object_;
+    objc_object_ = nil;
+    return released;
+  }
+
+  // Assign a new Obj-C object.
+  void reset(T *_Nullable objc_object) { objc_object_ = objc_object; }
+
+  // Assign a new Obj-C object.
+  ObjCPointer &operator=(T *_Nullable objc_object) {
+    reset(objc_object);
+    return *this;
+  }
+
+  // Get the Obj-C object from an ObjCPointer if the specified object is
+  // non-null.
+  static T *_Nullable SafeGet(const ObjCPointer *_Nullable reference) {
+    return reference ? reference->get() : nil;
+  }
+
+ private:
+  /* This should be private */
+  T *_Nullable objc_object_;
+};
+
+// Generate the class named class_name as an alias of ObjCPointer to contain
+// the Objective-C type objc_type_name.
+#define OBJ_C_PTR_WRAPPER_NAMED(class_name, objc_type_name)               \
+  class class_name : public firebase::util::ObjCPointer<objc_type_name> { \
+   public:                                                                \
+    class_name() {}                                                       \
+    explicit class_name(                                                  \
+        const firebase::util::ObjCPointer<objc_type_name>& obj)           \
+        : firebase::util::ObjCPointer<objc_type_name>(obj) {}             \
+    explicit class_name(objc_type_name *_Nullable objc_object)            \
+        : firebase::util::ObjCPointer<objc_type_name>(objc_object) {}     \
+    class_name &operator=(objc_type_name *_Nullable objc_object) {        \
+      ObjCPointer<objc_type_name>::operator=(objc_object);                \
+      return *this;                                                       \
+    }                                                                     \
   }
 
 /// Return an std::string created from an NSString pointer.
@@ -138,7 +188,7 @@ typedef BOOL (
 // blacklist we keep).
 void ForEachAppDelegateClass(void (^block)(Class));
 
- // Convert a string array into an NSMutableArray.
+// Convert a string array into an NSMutableArray.
 NSMutableArray *StringVectorToNSMutableArray(
     const std::vector<std::string> &vector);
 
@@ -175,7 +225,8 @@ id VariantToId(const Variant &variant);
 Variant IdToVariant(id value);
 
 // Converts an NSMutableDictionary mapping id-to-id to a map<Variant, Variant>.
-void NSDictionaryToStdMap(NSDictionary *dictionary, std::map<Variant, Variant> *map);
+void NSDictionaryToStdMap(NSDictionary *dictionary,  // NOLINT
+                          std::map<Variant, Variant> *map);
 
 // Runs a block on the main/UI thread immediately if the current thread is the
 // main thread; otherwise, dispatches asynchronously to the main thread.
@@ -269,16 +320,21 @@ NS_ASSUME_NONNULL_END
 // setting the existing method implementation on an app delegate. You can use
 // this as the type encoding class for ReplaceOrAddMethod, if you are
 // modifying methods on an app delegate class.
-@interface FIRSAMAppDelegate : UIResponder<UIApplicationDelegate>
+@interface FIRSAMAppDelegate : UIResponder <UIApplicationDelegate>
 @end
 
 #else
 
 // Define an opaque type for the Obj-C pointer wrapper struct when this header
 // is included in plain C++ files.
-#define OBJ_C_PTR_WRAPPER(type_name)                                    \
-  struct type_name##Pointer;
+#define OBJ_C_PTR_WRAPPER_NAMED(class_name, objc_type_name) class class_name;
 
 #endif  // __OBJC__
+
+// Generate the class definition objc_type_name##Pointer which is a container
+// of the Objective-C type objc_type_name.
+// For more information, see ObjCPointer.
+#define OBJ_C_PTR_WRAPPER(objc_type_name) \
+  OBJ_C_PTR_WRAPPER_NAMED(objc_type_name##Pointer, objc_type_name)
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_UTIL_IOS_H_

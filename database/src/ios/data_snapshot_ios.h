@@ -111,7 +111,7 @@ class DataSnapshotInternal {
 
  private:
 #ifdef __OBJC__
-  FIRDataSnapshot* impl() const { return impl_->ptr; }
+  FIRDataSnapshot* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
   DatabaseInternal* database_;
