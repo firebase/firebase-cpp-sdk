@@ -231,6 +231,13 @@ void CompleteSetAccountInfoPromise(Promise<SignInResult>* const promise,
   promise->CompleteWithResult(result);
 }
 
+void TriggerSaveUserFlow(AuthData* const auth_data) {
+  auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
+  if (auth_impl != nullptr) {
+    auth_impl->user_data_persist->SaveUserData(auth_data);
+  }
+}
+
 template <typename ResultT>
 void PerformSetAccountInfoFlow(
     AuthDataHandle<ResultT, SetAccountInfoRequest>* const handle) {
@@ -240,6 +247,8 @@ void PerformSetAccountInfoFlow(
   if (account_info.IsValid()) {
     User* api_user_to_return =
         account_info.MergeToCurrentUser(handle->auth_data);
+
+    TriggerSaveUserFlow(handle->auth_data);
     CompleteSetAccountInfoPromise(&handle->promise, api_user_to_return);
   } else {
     SignOutIfUserNoLongerValid(handle->auth_data->auth, account_info.error());
@@ -367,6 +376,8 @@ void PerformReauthFlow(AuthDataHandle<FutureResultT, RequestT>* const handle) {
   if (auth_result.uid() == current_uid) {
     const SignInResult sign_in_result =
         auth_result.SetAsCurrentUser(handle->auth_data);
+
+    TriggerSaveUserFlow(handle->auth_data);
     CompletePromise(&handle->promise, sign_in_result);
   } else {
     FailPromise(&handle->promise, kAuthErrorUserMismatch);
