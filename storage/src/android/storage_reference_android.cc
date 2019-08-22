@@ -699,7 +699,6 @@ void StorageReferenceInternal::CppByteDownloaderWriteBytes(
   if (!buffer_ptr) return;
   FIREBASE_ASSERT(buffer_offset + num_bytes_to_copy <= buffer_size);
 
-  void* dest = reinterpret_cast<void*>(buffer_ptr);
   jbyte* jbytes = env->GetByteArrayElements(byte_array, nullptr);
   memcpy(reinterpret_cast<void*>(buffer_ptr + buffer_offset),
          reinterpret_cast<void*>(jbytes), num_bytes_to_copy);
