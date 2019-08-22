@@ -858,9 +858,6 @@ void Repo::HandleTransactionResponse(const connection::ResponsePtr& ptr) {
 
       futures_to_complete.push_back(FutureToComplete(
           transaction, transaction->current_output_snapshot_resolved));
-
-      RemoveEventCallback(transaction->outstanding_listener.get(),
-                          QuerySpec(path));
     }
 
     // Now remove the completed transactions.
@@ -881,6 +878,9 @@ void Repo::HandleTransactionResponse(const connection::ResponsePtr& ptr) {
           database_, node, QuerySpec(transaction->path)));
       transaction->ref_future->CompleteWithResult(transaction->future_handle,
                                                   kErrorNone, snapshot);
+
+      RemoveEventCallback(transaction->outstanding_listener.get(),
+                          QuerySpec(path));
     }
   } else {
     // Transactions are no longer sent. Update their status appropriately.
