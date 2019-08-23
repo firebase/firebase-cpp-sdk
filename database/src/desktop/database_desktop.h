@@ -40,6 +40,9 @@ namespace firebase {
 namespace database {
 namespace internal {
 
+// For constructing, copying or moving DatabaseReferences atomically.
+extern Mutex g_database_reference_constructor_mutex;
+
 typedef int64_t WriteId;
 
 class SingleValueListener : public ValueListener {

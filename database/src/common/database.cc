@@ -133,8 +133,11 @@ void Database::DeleteInternal() {
     app_notifier->UnregisterObject(this);
   }
 
-  // Force cleanup to happen first.
-  internal_->cleanup().CleanupAll();
+  {
+    MutexLock db_ref_lock(internal::g_database_reference_constructor_mutex);
+    // Force cleanup to happen first.
+    internal_->cleanup().CleanupAll();
+  }
   delete internal_;
   internal_ = nullptr;
   // If a Database is explicitly deleted, remove it from our cache.

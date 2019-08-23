@@ -39,6 +39,8 @@ using callback::NewCallback;
 namespace database {
 namespace internal {
 
+Mutex g_database_reference_constructor_mutex;  // NOLINT
+
 SingleValueListener::SingleValueListener(DatabaseInternal* database,
                                          ReferenceCountedFutureImpl* future,
                                          SafeFutureHandle<DataSnapshot> handle)

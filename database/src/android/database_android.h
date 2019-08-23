@@ -36,6 +36,9 @@ class ReferenceCountedFutureImpl;
 namespace database {
 namespace internal {
 
+// For constructing, copying or moving DatabaseReferences atomically.
+extern Mutex g_database_reference_constructor_mutex;
+
 // Used for registering global callbacks. See
 // firebase::util::RegisterCallbackOnTask for context.
 extern const char kApiIdentifier[];

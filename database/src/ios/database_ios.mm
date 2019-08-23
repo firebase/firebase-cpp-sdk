@@ -26,6 +26,8 @@ namespace firebase {
 namespace database {
 namespace internal {
 
+Mutex g_database_reference_constructor_mutex;  // NOLINT
+
 DatabaseInternal::DatabaseInternal(App* app)
     : app_(app), log_level_(kLogLevelInfo) {
   @try {

@@ -34,6 +34,8 @@ namespace firebase {
 namespace database {
 namespace internal {
 
+Mutex g_database_reference_constructor_mutex;  // NOLINT
+
 const char kApiIdentifier[] = "Database";
 
 // clang-format off
