@@ -145,6 +145,8 @@ PersistentConnection::~PersistentConnection() {
 }
 
 void PersistentConnection::OnCacheHost(const std::string& host) {
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
+
   // TODO(chkuang): Ignore cache host for now.
 }
 
@@ -177,6 +179,8 @@ bool HasKey(const Variant& data, const char* key) {
 
 void PersistentConnection::OnReady(int64_t timestamp,
                                    const std::string& session_id) {
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
+
   LogDebug("%s OnReady", log_id_.c_str());
 
   // Trigger OnServerInfoUpdate based on timestamp delta
@@ -241,6 +245,8 @@ void PersistentConnection::HandleConnectStatsResponse(
 void PersistentConnection::OnDataMessage(const Variant& message) {
   assert(message.is_map());
 
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
+
   if (HasKey(message, kRequestNumber)) {
     auto it_request_number = message.map().find(kRequestNumber);
     assert(it_request_number->second.is_numeric());
@@ -285,6 +291,8 @@ void PersistentConnection::OnDataMessage(const Variant& message) {
 }
 
 void PersistentConnection::OnDisconnect(Connection::DisconnectReason reason) {
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
+
   LogDebug("%s Got on disconnect due to %d", log_id_.c_str(),
            static_cast<int>(reason));
 
@@ -311,6 +319,8 @@ void PersistentConnection::OnDisconnect(Connection::DisconnectReason reason) {
 }
 
 void PersistentConnection::OnKill(const std::string& reason) {
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
+
   LogDebug(
       "%s Firebase Database connection was forcefully killed by the server. "
       "Will not attempt reconnect. Reason: %s",

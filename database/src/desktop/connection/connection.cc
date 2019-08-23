@@ -166,6 +166,8 @@ void Connection::Send(const Variant& message, bool is_sensitive) {
 }
 
 void Connection::OnOpen() {
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
+
   LogDebug("%s websocket opened", log_id_.c_str());
 
   scheduler_->Schedule(new callback::CallbackValue1<ConnectionRef>(
@@ -196,6 +198,8 @@ void Connection::OnOpen() {
 }
 
 void Connection::OnMessage(const char* msg) {
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
+
   LogDebug("%s websocket message received", log_id_.c_str());
   scheduler_->Schedule(new callback::CallbackValue1String1<ConnectionRef>(
       safe_this_, msg, [](ConnectionRef conn_ref, const char* msg) {
@@ -208,6 +212,8 @@ void Connection::OnMessage(const char* msg) {
 }
 
 void Connection::OnClose() {
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
+
   LogDebug("%s websocket closed", log_id_.c_str());
 
   scheduler_->Schedule(new callback::CallbackValue1<ConnectionRef>(
@@ -228,6 +234,8 @@ void Connection::OnClose() {
 }
 
 void Connection::OnError(const WebSocketClientErrorData& error_data) {
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
+
   LogDebug("%s websocket error occurred.  Uri: %s", log_id_.c_str(),
            error_data.GetUri().c_str());
 

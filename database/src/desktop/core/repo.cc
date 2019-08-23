@@ -487,9 +487,15 @@ static std::map<Path, Variant> VariantToPathMap(const Variant& data) {
   return path_map;
 }
 
-void Repo::OnConnect() { OnServerInfoUpdate(kDotInfoConnected, true); }
+void Repo::OnConnect() {
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
+
+  OnServerInfoUpdate(kDotInfoConnected, true);
+}
 
 void Repo::OnDisconnect() {
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
+
   OnServerInfoUpdate(kDotInfoConnected, false);
   RunOnDisconnectEvents();
 }
@@ -513,6 +519,8 @@ void Repo::RunOnDisconnectEvents() {
 }
 
 void Repo::OnAuthStatus(bool auth_ok) {
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
+
   OnServerInfoUpdate(kDotInfoAuthenticated, auth_ok);
 }
 
@@ -521,6 +529,8 @@ void Repo::OnServerInfoUpdate(const std::string& key, const Variant& value) {
 }
 
 void Repo::OnServerInfoUpdate(const std::map<Variant, Variant>& updates) {
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
+
   for (const std::pair<Variant, Variant> element : updates) {
     const Variant& key = element.first;
     const Variant& value = element.second;
@@ -530,6 +540,8 @@ void Repo::OnServerInfoUpdate(const std::map<Variant, Variant>& updates) {
 
 void Repo::OnDataUpdate(const Path& path, const Variant& data, bool is_merge,
                         const connection::PersistentConnection::Tag& tag) {
+  SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
+
   std::vector<Event> events;
   if (is_merge) {
     std::map<Path, Variant> changed_children = VariantToPathMap(data);

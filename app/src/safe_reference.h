@@ -77,6 +77,12 @@ class SafeReferenceLock {
   MutexLock lock_;
 };
 
+// A macro to check if the safe_reference is valid.  Early out if not.
+#define SAFE_REFERENCE_RETURN_VOID_IF_INVALID(lock_type, lock_name, \
+                                              safe_reference)       \
+  lock_type lock_name(&safe_reference);                             \
+  if (!lock_name.GetReference()) return;
+
 }  // namespace internal
 }  // namespace FIREBASE_NAMESPACE
 
