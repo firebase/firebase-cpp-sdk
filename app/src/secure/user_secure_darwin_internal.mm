@@ -80,27 +80,7 @@ std::string UserSecureDarwinInternal::GetKeystoreLocation(const std::string& app
   return service_ + "/" + app;
 }
 
-bool UserSecureDarwinInternal::UserHasSecureData() {
-  NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
-  if (!defaults) {
-    // For some reason we can't get NSUserDefaults, so just err on the safe side and return true so
-    // we check the keychain directly.
-    return true;
-  }
-  return [defaults boolForKey:@(user_defaults_key_.c_str())] ? true : false;
-}
-
-void UserSecureDarwinInternal::SetUserHasSecureData(bool b) {
-  NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
-  [defaults setBool:(b ? YES : NO) forKey:@(user_defaults_key_.c_str())];
-  [defaults synchronize];
-}
-
 std::string UserSecureDarwinInternal::LoadUserData(const std::string& app_name) {
-  if (!UserHasSecureData()) {
-    LogDebug("LoadUserData: User has no data stored.");
-    return "";
-  }
   NSMutableDictionary* query = GetQueryForApp(service_.c_str(), app_name.c_str());
   std::string keystore_location = GetKeystoreLocation(app_name);
   // We want to return the data and attributes.
@@ -164,16 +144,9 @@ void UserSecureDarwinInternal::SaveUserData(const std::string& app_name,
              error_string.UTF8String);
     return;
   }
-
-  SetUserHasSecureData(true);
 }
 
 void UserSecureDarwinInternal::DeleteData(const char* app_name, const char* func_name) {
-  if (!UserHasSecureData()) {
-    LogDebug("%s: User has no data stored.", func_name);
-    return;
-  }
-
   NSMutableDictionary* query = GetQueryForApp(service_.c_str(), app_name);
   std::string keystore_location = app_name ? GetKeystoreLocation(app_name) : service_;
 
@@ -201,7 +174,6 @@ void UserSecureDarwinInternal::DeleteUserData(const std::string& app_name) {
 
 void UserSecureDarwinInternal::DeleteAllData() {
   DeleteData(nullptr, "DeleteAllData");
-  SetUserHasSecureData(false);
 }
 
 }  // namespace secure

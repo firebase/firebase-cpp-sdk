@@ -49,12 +49,6 @@ class UserSecureDarwinInternal : public UserSecureInternal {
   void DeleteAllData() override;
 
  private:
-  // Does the user have secure data set for this app? Don't access the keychain
-  // unless this is true.
-  bool UserHasSecureData();
-  // Set whether the user has secure data set for this app.
-  void SetUserHasSecureData(bool b);
-
   // Delete either a single key, or (if app_name is null) all keys.
   // func_name is used for error messages.
   void DeleteData(const char* app_name, const char* func_name);
