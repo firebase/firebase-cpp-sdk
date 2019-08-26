@@ -22,8 +22,15 @@
 #if FIREBASE_PLATFORM_ANDROID
 #include <jni.h>
 #endif  // FIREBASE_PLATFORM_ANDROID
+
 #include <map>
 #include <string>
+
+#if FIREBASE_PLATFORM_IOS
+#ifdef __OBJC__
+@class FIRApp;
+#endif  // __OBJC__
+#endif  // FIREBASE_PLATFORM_IOS
 
 /// @brief Namespace that encompasses all Firebase APIs.
 #if !defined(FIREBASE_NAMESPACE)
@@ -36,6 +43,7 @@ namespace FIREBASE_NAMESPACE {
 #ifdef INTERNAL_EXPERIMENTAL
 namespace internal {
 class FunctionRegistry;
+class AppInternal;
 }  // namespace internal
 #endif  // INTERNAL_EXPERIMENTAL
 
@@ -594,7 +602,7 @@ class App {
   /// @note This method is specific to the Android implementation.
   ///
   /// @return JNI Java virtual machine object.
-  JavaVM* java_vm() const { return java_vm_; }
+  JavaVM* java_vm() const;
   /// Get JNI environment, needed for performing JNI calls, set on creation.
   /// This is not trivial as the correct environment needs to retrieved per
   /// thread.
@@ -725,19 +733,24 @@ class App {
   static void SetDefaultConfigPath(const char* path);
 #endif  // INTERNAL_EXPERIMENTAL
 
- private:
-  /// @cond FIREBASE_APP_INTERNAL
-  friend class auth::Auth;
-  friend class crashlytics::internal::CrashlyticsInternal;
-  friend class database::internal::DatabaseInternal;
 #ifdef INTERNAL_EXPERIMENTAL
-  friend class firestore::FirestoreInternal;
+#if FIREBASE_PLATFORM_ANDROID
+  /// Get the platform specific app implementation referenced by this object.
+  ///
+  /// @return Global reference to the FirebaseApp.  The returned reference
+  /// most be deleted after use.
+  jobject GetPlatformApp() const;
+#elif FIREBASE_PLATFORM_IOS
+#ifdef __OBJC__
+  /// Get the platform specific app implementation referenced by this object.
+  ///
+  /// @return Reference to the FIRApp object owned by this app.
+  FIRApp* GetPlatformApp() const;
+#endif  // __OBJC__
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 #endif  // INTERNAL_EXPERIMENTAL
-  friend class functions::internal::FunctionsInternal;
-  friend class instance_id::InstanceId;
-  friend class internal::InstanceId;
-  friend class storage::internal::StorageInternal;
 
+ private:
   /// Construct the object.
   App();
 
@@ -746,10 +759,6 @@ class App {
 // Unity doesn't need the JNI from here, it has its method to access JNI.
 // </SWIG>
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
-  /// JNI reference to the Java virtual machine associated with the App's
-  /// process.
-  /// @note This is specific to Android.
-  JavaVM* java_vm_;
   /// Android activity.
   /// @note This is specific to Android.
   jobject activity_;
@@ -763,7 +772,7 @@ class App {
   /// Module initialization results.
   std::map<std::string, InitResult> init_results_;
   /// Pointer to other internal data used by this instance.
-  void* data_;
+  internal::AppInternal* internal_;
 
   /// @endcond
 };

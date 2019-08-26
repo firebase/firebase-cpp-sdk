@@ -169,10 +169,12 @@ DatabaseInternal::DatabaseInternal(App* app) : log_level_(kLogLevelInfo) {
   app_ = app;
 
   JNIEnv* env = app_->GetJNIEnv();
+  jobject platform_app = app->GetPlatformApp();
   jobject database_obj = env->CallStaticObjectMethod(
       firebase_database::GetClass(),
       firebase_database::GetMethodId(firebase_database::kGetInstance),
-      reinterpret_cast<jobject>(app_->data_));
+      platform_app);
+  env->DeleteLocalRef(platform_app);
   if (database_obj == nullptr) {
     LogWarning("Could not create default Database");
     util::CheckAndClearJniExceptions(env);
@@ -193,10 +195,12 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
 
   JNIEnv* env = app_->GetJNIEnv();
   jobject url_string = env->NewStringUTF(url);
+  jobject platform_app = app->GetPlatformApp();
   jobject database_obj = env->CallStaticObjectMethod(
       firebase_database::GetClass(),
       firebase_database::GetMethodId(firebase_database::kGetInstanceFromUrl),
-      reinterpret_cast<jobject>(app_->data_), url_string);
+      platform_app, url_string);
+  env->DeleteLocalRef(platform_app);
   if (database_obj == nullptr) {
     LogWarning("Could not create Database with URL '%s' .", url);
     util::CheckAndClearJniExceptions(env);

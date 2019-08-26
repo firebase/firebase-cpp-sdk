@@ -142,18 +142,20 @@ StorageInternal::StorageInternal(App* app, const char* url) {
 
   JNIEnv* env = app_->GetJNIEnv();
   jobject url_jstring = env->NewStringUTF(url_.c_str());
+  jobject platform_app = app_->GetPlatformApp();
   jobject storage_obj =
       url_.empty()
           ? env->CallStaticObjectMethod(
                 firebase_storage::GetClass(),
                 firebase_storage::GetMethodId(firebase_storage::kGetInstance),
-                reinterpret_cast<jobject>(app_->data_))
+                platform_app)
           : env->CallStaticObjectMethod(
                 firebase_storage::GetClass(),
                 firebase_storage::GetMethodId(
                     firebase_storage::kGetInstanceWithUrl),
-                reinterpret_cast<jobject>(app_->data_), url_jstring);
+                platform_app, url_jstring);
   std::string exception = util::GetAndClearExceptionMessage(env);
+  env->DeleteLocalRef(platform_app);
   env->DeleteLocalRef(url_jstring);
   obj_ = nullptr;
   FIREBASE_ASSERT_MESSAGE_RETURN_VOID(

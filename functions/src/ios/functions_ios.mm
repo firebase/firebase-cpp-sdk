@@ -29,7 +29,7 @@ namespace internal {
 FunctionsInternal::FunctionsInternal(App* app, const char* region)
     : app_(app), region_(region) {
   impl_.reset(new FIRFunctionsPointer([FIRFunctions
-      functionsForApp:static_cast<FIRAppPointer*>(app->data_)->get()
+      functionsForApp:app->GetPlatformApp()
                region:@(region)]));
 }
 

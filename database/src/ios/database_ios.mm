@@ -32,7 +32,7 @@ DatabaseInternal::DatabaseInternal(App* app)
     : app_(app), log_level_(kLogLevelInfo) {
   @try {
     impl_.reset(new FIRDatabasePointer(
-        [FIRDatabase databaseForApp:static_cast<FIRAppPointer*>(app->data_)->get()]));
+        [FIRDatabase databaseForApp:app->GetPlatformApp()]));
     query_lock_.reset(new NSRecursiveLockPointer([[NSRecursiveLock alloc] init]));
   }
   @catch (NSException* exception) {
@@ -46,7 +46,7 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
     : app_(app), constructor_url_(url), log_level_(kLogLevelInfo) {
   @try {
     impl_.reset(new FIRDatabasePointer(
-        [FIRDatabase databaseForApp:static_cast<FIRAppPointer*>(app->data_)->get() URL:@(url)]));
+        [FIRDatabase databaseForApp:app->GetPlatformApp() URL:@(url)]));
     query_lock_.reset(new NSRecursiveLockPointer([[NSRecursiveLock alloc] init]));
   }
   @catch (NSException* exception) {

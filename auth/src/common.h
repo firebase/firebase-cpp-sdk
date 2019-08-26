@@ -31,7 +31,7 @@ enum CredentialApiFunction {
 };
 
 // Platform-specific method to create the wrapped Auth class.
-void* CreatePlatformAuth(App* app, void* app_impl);
+void* CreatePlatformAuth(App* app);
 
 // Platform-specific method to initialize AuthData.
 void InitPlatformAuth(AuthData* auth_data);

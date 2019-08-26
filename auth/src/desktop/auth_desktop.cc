@@ -82,7 +82,7 @@ Future<ResultT> DoSignInWithCredential(Promise<ResultT> promise,
 
 }  // namespace
 
-void* CreatePlatformAuth(App* const app, void* const /*app_impl*/) {
+void* CreatePlatformAuth(App* const app) {
   FIREBASE_ASSERT_RETURN(nullptr, app);
 
   AuthImpl* const auth = new AuthImpl();

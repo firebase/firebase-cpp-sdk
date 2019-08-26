@@ -78,7 +78,7 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
   FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(*app, init_result_out);
 
   // Create the platform dependent version of Auth.
-  void* auth_impl = CreatePlatformAuth(app, app->data_);
+  void* auth_impl = CreatePlatformAuth(app);
   if (!auth_impl) return nullptr;
 
   // Create a new Auth and initialize.

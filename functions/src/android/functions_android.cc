@@ -83,11 +83,13 @@ FunctionsInternal::FunctionsInternal(App* app, const char* region)
   app_ = app;
   JNIEnv* env = app_->GetJNIEnv();
   jstring region_str = env->NewStringUTF(region);
+  jobject platform_app = app_->GetPlatformApp();
   jobject functions_obj = env->CallStaticObjectMethod(
       firebase_functions::GetClass(),
       firebase_functions::GetMethodId(firebase_functions::kGetInstance),
-      reinterpret_cast<jobject>(app_->data_), region_str);
+      platform_app, region_str);
   util::CheckAndClearJniExceptions(env);
+  env->DeleteLocalRef(platform_app);
   env->DeleteLocalRef(region_str);
   assert(functions_obj != nullptr);
   obj_ = env->NewGlobalRef(functions_obj);

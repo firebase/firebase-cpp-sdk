@@ -29,7 +29,9 @@ namespace firebase {
 DEFINE_FIREBASE_VERSION_STRING(Firebase);
 
 namespace internal {
-struct PrivateAppData {
+
+class AppInternal {
+ public:
   // A registry that modules can use to expose functions to each other, without
   // requiring a linkage dependency.
   // todo - make all the implementations use something like this, for internal
@@ -115,14 +117,13 @@ AppOptions* AppOptions::LoadDefault(AppOptions* options) {
 }
 
 App::App() {
-  data_ = new internal::PrivateAppData();
+  internal_ = new internal::AppInternal();
 }
 
 App::~App() {
   app_common::RemoveApp(this);
-  // Once we use data_, we should delete it here.
-  delete static_cast<internal::PrivateAppData*>(data_);
-  data_ = nullptr;
+  delete internal_;
+  internal_ = nullptr;
 }
 
 // On desktop, if you create an app with no arguments, it will try to
@@ -164,7 +165,7 @@ App* App::GetInstance(const char* name) {  // NOLINT
 
 #ifdef INTERNAL_EXPERIMENTAL
 internal::FunctionRegistry* App::function_registry() {
-  return &(static_cast<internal::PrivateAppData*>(data_)->function_registry);
+  return &internal_->function_registry;
 }
 #endif
 

@@ -220,14 +220,12 @@ AppOptions* AppOptions::LoadDefault(AppOptions* app_options) {
   return app_options;
 }
 
-App::App() : data_(nullptr) {}
+App::App() : internal_(nullptr) {}
 
 App::~App() {
   app_common::RemoveApp(this);
-  if (data_) {
-    delete static_cast<internal::AppInternal*>(data_);
-    data_ = nullptr;
-  }
+  delete internal_;
+  internal_ = nullptr;
 }
 
 App* App::Create() {
@@ -249,7 +247,7 @@ App* App::Create(const AppOptions& options, const char* name) {
     app = new App();
     app->options_ = options;
     app->name_ = name;
-    app->data_ = new internal::AppInternal(platform_app);
+    app->internal_ = new internal::AppInternal(platform_app);
     app_common::AddApp(app, &app->init_results_);
   }
   return app;
@@ -272,13 +270,15 @@ const char* App::GetUserAgent() {
 void App::SetDefaultConfigPath(const char* path) { }
 
 void App::SetDataCollectionDefaultEnabled(bool enabled) {
-  (**static_cast<internal::AppInternal*>(data_)).dataCollectionDefaultEnabled =
-      (enabled ? YES : NO);
+  GetPlatformApp().dataCollectionDefaultEnabled = (enabled ? YES : NO);
 }
 
 bool App::IsDataCollectionDefaultEnabled() const {
-  return (**static_cast<internal::AppInternal*>(data_)).isDataCollectionDefaultEnabled ?
-      true : false;
+  return GetPlatformApp().isDataCollectionDefaultEnabled ? true : false;
+}
+
+FIRApp* App::GetPlatformApp() const {
+  return internal_->get();
 }
 
 }  // namespace firebase

@@ -32,6 +32,12 @@ namespace firebase {
 
 DEFINE_FIREBASE_VERSION_STRING(Firebase);
 
+namespace internal {
+
+JOBJECT_REFERENCE(AppInternal);
+
+}  // namespace internal
+
 // Namespace and class for FirebaseApp.
 // java/com/google/android/gmscore/*/client/firebase-common/src/com/google/\
 // firebase/FirebaseApp.java
@@ -413,15 +419,13 @@ AppOptions* AppOptions::LoadDefault(AppOptions* app_options,
   return app_options;
 }
 
-App::App() : activity_(nullptr), data_(nullptr) {}
+App::App() : activity_(nullptr), internal_(nullptr) {}
 
 App::~App() {
   app_common::RemoveApp(this);
   JNIEnv* env = GetJNIEnv();
-  if (data_) {
-    env->DeleteGlobalRef(reinterpret_cast<jobject>(data_));
-    data_ = nullptr;
-  }
+  delete internal_;
+  internal_ = nullptr;
   if (activity_) {
     env->DeleteGlobalRef(reinterpret_cast<jobject>(activity_));
     activity_ = nullptr;
@@ -466,11 +470,9 @@ App* App::Create(const AppOptions& options, const char* name, JNIEnv* jni_env,
       app = new App();
       app->name_ = name;
       app->activity_ = jni_env->NewGlobalRef(activity);
-      jint result = jni_env->GetJavaVM(&app->java_vm_);
-      FIREBASE_ASSERT(result == JNI_OK);
       GetAppOptionsFromPlatformApp(jni_env, platform_app, &app->options_);
-      app->data_ = static_cast<void*>(jni_env->NewGlobalRef(platform_app));
-      jni_env->DeleteLocalRef(platform_app);
+      app->internal_ = new internal::AppInternal(
+          internal::AppInternal::FromLocalReference(jni_env, platform_app));
       app = app_common::AddApp(app, &app->init_results_);
     } else {
       ReleaseClasses(jni_env);
@@ -526,8 +528,7 @@ void App::SetDataCollectionDefaultEnabled(bool enabled) {
     return;
   }
   JNIEnv* env = GetJNIEnv();
-  jobject obj = reinterpret_cast<jobject>(data_);
-  env->CallVoidMethod(obj,
+  env->CallVoidMethod(**internal_,
                       app::GetMethodId(app::kSetDataCollectionDefaultEnabled),
                       enabled ? JNI_TRUE : JNI_FALSE);
   util::CheckAndClearJniExceptions(env);
@@ -540,13 +541,16 @@ bool App::IsDataCollectionDefaultEnabled() const {
     return true;
   }
   JNIEnv* env = GetJNIEnv();
-  jobject obj = reinterpret_cast<jobject>(data_);
   jboolean result = env->CallBooleanMethod(
-      obj, app::GetMethodId(app::kIsDataCollectionDefaultEnabled));
+      **internal_, app::GetMethodId(app::kIsDataCollectionDefaultEnabled));
   util::CheckAndClearJniExceptions(env);
   return result != JNI_FALSE;
 }
 
 const char* App::GetUserAgent() { return app_common::GetUserAgent(); }
+
+JavaVM* App::java_vm() const { return internal_->java_vm(); }
+
+jobject App::GetPlatformApp() const { return internal_->GetLocalRef(); }
 
 }  // namespace firebase

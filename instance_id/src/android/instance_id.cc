@@ -346,10 +346,12 @@ InstanceId* InstanceId::GetInstanceId(App* app, InitResult* init_result_out) {
     return nullptr;
   }
   JNIEnv* env = app->GetJNIEnv();
+  jobject platform_app = app->GetPlatformApp();
   jobject java_instance_id = env->CallStaticObjectMethod(
       instance_id::GetClass(),
       instance_id::GetMethodId(instance_id::kGetInstance),
-      reinterpret_cast<jobject>(app->data_));
+      platform_app);
+  env->DeleteLocalRef(platform_app);
   if (firebase::util::CheckAndClearJniExceptions(env) || !java_instance_id) {
     Terminate(*app);
     if (init_result_out) *init_result_out = kInitResultFailedMissingDependency;

@@ -186,13 +186,10 @@ static void ReleaseClasses(JNIEnv* env) {
   ReleaseCommonClasses(env);
 }
 
-void* CreatePlatformAuth(App* app, void* app_impl) {
-  FIREBASE_ASSERT(app_impl != nullptr);
-
+void* CreatePlatformAuth(App* app) {
   // Grab varous java objects from the app.
   JNIEnv* env = app->GetJNIEnv();
   jobject activity = app->activity();
-  jobject j_app = reinterpret_cast<jobject>(app_impl);
 
   // Cache the JNI method ids so we only have to look them up by name once.
   if (!g_initialized_count) {
@@ -218,9 +215,11 @@ void* CreatePlatformAuth(App* app, void* app_impl) {
   g_initialized_count++;
 
   // Create the FirebaseAuth class in Java.
+  jobject platform_app = app->GetPlatformApp();
   jobject j_auth_impl = env->CallStaticObjectMethod(
-      auth::GetClass(), auth::GetMethodId(auth::kGetInstance), j_app);
-  assert(env->ExceptionCheck() == false);
+      auth::GetClass(), auth::GetMethodId(auth::kGetInstance), platform_app);
+  FIREBASE_ASSERT(!util::CheckAndClearJniExceptions(env));
+  env->DeleteLocalRef(platform_app);
 
   // Ensure the reference hangs around.
   void* auth_impl = nullptr;

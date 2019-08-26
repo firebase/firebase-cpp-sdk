@@ -26,8 +26,6 @@ namespace internal {
 OBJ_C_PTR_WRAPPER_NAMED(AppInternal, FIRApp);
 }  // namespace internal
 
-typedef internal::AppInternal FIRAppPointer;
-
 }  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_APP_IOS_H_

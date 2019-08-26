@@ -124,11 +124,9 @@ struct ListenerHandleHolder {
 };
 
 // Platform-specific method to create the wrapped Auth class.
-void *CreatePlatformAuth(App *app, void *app_impl) {
-  FIRApp *fir_app = static_cast<FIRAppPointer *>(app_impl)->get();
-
+void *CreatePlatformAuth(App *app) {
   // Grab the auth for our app.
-  FIRAuth *auth = [FIRAuth authWithApp:fir_app];
+  FIRAuth *auth = [FIRAuth authWithApp:app->GetPlatformApp()];
   FIREBASE_ASSERT(auth != nullptr);
 
   // Create a FIRAuth* that uses Objective-C's automatic reference counting.

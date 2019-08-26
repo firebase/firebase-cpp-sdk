@@ -61,12 +61,13 @@ StorageInternal::StorageInternal(App* app, const char* url)
       impl_(new FIRStoragePointer(nil)),
       session_fetcher_service_(new FIRCPPGTMSessionFetcherServicePointer(nil)) {
   url_ = url ? url : "";
-  FIRApp* fir_app = static_cast<FIRAppPointer*>(app->data_)->get();
+  FIRApp* platform_app = app->GetPlatformApp();
   if (url_.empty()) {
-    impl_.reset(new FIRStoragePointer([FIRStorage storageForApp:fir_app]));
+    impl_.reset(new FIRStoragePointer([FIRStorage storageForApp:platform_app]));
   } else {
     @try {
-      impl_.reset(new FIRStoragePointer([FIRStorage storageForApp:fir_app URL:@(url_.c_str())]));
+      impl_.reset(new FIRStoragePointer([FIRStorage storageForApp:platform_app
+                                                              URL:@(url_.c_str())]));
     } @catch(NSException* exception) {
       LogWarning("Failed to create storage instance for bucket URL '%s'.  %s", url_.c_str(),
                  exception.reason.UTF8String);
