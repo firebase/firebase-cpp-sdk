@@ -219,8 +219,6 @@ Future<void> NativeExpressAdViewInternalAndroid::InvokeNullary(
   FutureCallbackData* callback_data =
       CreateFutureCallbackData(&future_data_, fn);
 
-  JNIEnv* env = ::firebase::admob::GetJNI();
-
   ::firebase::admob::GetJNI()->CallVoidMethod(
       helper_, native_express_ad_view_helper::GetMethodId(method),
       reinterpret_cast<jlong>(callback_data));
