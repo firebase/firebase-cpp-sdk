@@ -1161,13 +1161,6 @@ bool CheckAndClearJniExceptions(JNIEnv* env);
 // Otherwise, it will return an empty string.
 std::string GetAndClearExceptionMessage(JNIEnv* env);
 
-// Deprecated method.
-static inline bool GetExceptionMessage(JNIEnv* env,
-                                       std::string* exception_message_out) {
-  *exception_message_out = GetAndClearExceptionMessage(env);
-  return !exception_message_out->empty();
-}
-
 // Returns the message from an exception.
 // This does not clear the JNI exception state.
 std::string GetMessageFromException(JNIEnv* env, jobject exception);

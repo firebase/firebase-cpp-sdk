@@ -694,7 +694,8 @@ static jobject PopulateLinkBuilder(JNIEnv* jni_env,
   link_builder =
       SetBuilderUri(jni_env, link_builder, components.link,
                     dlink_builder::GetMethodId(dlink_builder::kSetLink));
-  if (util::GetExceptionMessage(jni_env, error_out)) {
+  *error_out = util::GetAndClearExceptionMessage(jni_env);
+  if (error_out->size()) {
     // setLink() threw an exception.
     jni_env->DeleteLocalRef(link_builder);
     return nullptr;
@@ -708,7 +709,8 @@ static jobject PopulateLinkBuilder(JNIEnv* jni_env,
   link_builder = SetBuilderString(
       jni_env, link_builder, domain.c_str(),
       dlink_builder::GetMethodId(dlink_builder::kSetDomainUriPrefix));
-  if (util::GetExceptionMessage(jni_env, error_out)) {
+  *error_out = util::GetAndClearExceptionMessage(jni_env);
+  if (error_out->size()) {
     // setDomainUriPrefix() threw an exception.
     jni_env->DeleteLocalRef(link_builder);
     return nullptr;
@@ -787,7 +789,8 @@ static jobject PopulateLinkBuilder(JNIEnv* jni_env, const char* long_link,
   jobject link_builder = jni_env->CallObjectMethod(
       g_dynamic_links_class_instance,
       dynamic_links::GetMethodId(dynamic_links::kCreateDynamicLink));
-  if (util::GetExceptionMessage(jni_env, error_out)) {
+  *error_out = util::GetAndClearExceptionMessage(jni_env);
+  if (error_out->size()) {
     jni_env->DeleteLocalRef(link_builder);
     return nullptr;
   }
@@ -844,7 +847,8 @@ GeneratedDynamicLink GetLongLink(const DynamicLinkComponents& components) {
   jobject dlink_local = jni_env->CallObjectMethod(
       link_builder,
       dlink_builder::GetMethodId(dlink_builder::kBuildDynamicLink));
-  if (util::GetExceptionMessage(jni_env, &gen_link.error)) {
+  gen_link.error = util::GetAndClearExceptionMessage(jni_env);
+  if (gen_link.error.size()) {
     jni_env->DeleteLocalRef(dlink_local);
     jni_env->DeleteLocalRef(link_builder);
     return gen_link;
@@ -852,7 +856,8 @@ GeneratedDynamicLink GetLongLink(const DynamicLinkComponents& components) {
 
   jobject uri_local = jni_env->CallObjectMethod(
       dlink_local, dlink::GetMethodId(dlink::kGetUri));
-  if (util::GetExceptionMessage(jni_env, &gen_link.error)) {
+  gen_link.error = util::GetAndClearExceptionMessage(jni_env);
+  if (gen_link.error.size()) {
     jni_env->DeleteLocalRef(uri_local);
     jni_env->DeleteLocalRef(dlink_local);
     jni_env->DeleteLocalRef(link_builder);
@@ -948,8 +953,8 @@ static Future<GeneratedDynamicLink> HandleShortLinkTask(
         dlink_builder::GetMethodId(dlink_builder::kBuildShortDynamicLink));
   }
 
-  std::string exception_message;
-  if (util::GetExceptionMessage(jni_env, &exception_message)) {
+  std::string exception_message = util::GetAndClearExceptionMessage(jni_env);
+  if (exception_message.size()) {
     GeneratedDynamicLink gen_link;
     gen_link.error = exception_message;
     LogError("Couldn't build short link: %s", exception_message.c_str());
