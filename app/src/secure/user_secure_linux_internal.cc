@@ -18,6 +18,7 @@
 
 #include <iostream>
 
+#include "app/src/log.h"
 #include "app/src/secure/user_secure_data_handle.h"
 
 namespace firebase {
@@ -69,6 +70,8 @@ std::string UserSecureLinuxInternal::LoadUserData(const std::string& app_name) {
       /* value2= */ domain_.c_str(), nullptr);
   if (error) {
     g_error_free(error);
+    LogWarning("Secret lookup failed, please make sure libsecret is "
+               "installed.");
     return empty_str;
   }
 
@@ -86,34 +89,51 @@ void UserSecureLinuxInternal::SaveUserData(const std::string& app_name,
   if (key_namespace_.length() <= 0) {
     return;
   }
+  GError* error = nullptr;
   secret_password_store_sync(
       &storage_schema_, SECRET_COLLECTION_DEFAULT, /* label= */ "UserSecure",
       /* password= */ user_data.c_str(), /* cancellable= */ nullptr,
-      /* error= */ nullptr, /* key1= */ kAppNameKey,
+      /* error= */ &error, /* key1= */ kAppNameKey,
       /* value1= */ app_name.c_str(),
       /* key2= */ kStorageDomainKey, /* value2= */ domain_.c_str(), nullptr);
+
+  if (error) {
+    g_error_free(error);
+    LogWarning("Secret store failed, please make sure libsecret is installed.");
+  }
 }
 
 void UserSecureLinuxInternal::DeleteUserData(const std::string& app_name) {
   if (key_namespace_.length() <= 0) {
     return;
   }
+  GError* error = nullptr;
   secret_password_clear_sync(&storage_schema_,
-                             /* cancellable= */ nullptr, /* error= */ nullptr,
+                             /* cancellable= */ nullptr, /* error= */ &error,
                              /* key1= */ kAppNameKey,
                              /* value1= */ app_name.c_str(),
                              /* key2= */ kStorageDomainKey,
                              /* value2= */ domain_.c_str(), nullptr);
+
+  if (error) {
+    g_error_free(error);
+    LogWarning("Secret clear failed, please make sure libsecret is installed.");
+  }
 }
 
 void UserSecureLinuxInternal::DeleteAllData() {
   if (key_namespace_.length() <= 0) {
     return;
   }
+  GError* error = nullptr;
   secret_password_clear_sync(&storage_schema_, /* cancellable= */ nullptr,
-                             /* error= */ nullptr,
+                             /* error= */ &error,
                              /* key2= */ kStorageDomainKey,
                              /* value2= */ domain_.c_str(), nullptr);
+  if (error) {
+    g_error_free(error);
+    LogWarning("Secret clear failed, please make sure libsecret is installed.");
+  }
 }
 
 }  // namespace secure
