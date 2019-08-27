@@ -43,10 +43,12 @@ namespace FIREBASE_NAMESPACE {
 #ifdef INTERNAL_EXPERIMENTAL
 namespace internal {
 class FunctionRegistry;
-class AppInternal;
 }  // namespace internal
 #endif  // INTERNAL_EXPERIMENTAL
 
+namespace internal {
+class AppInternal;
+}  // namespace internal
 namespace auth {
 class Auth;
 }  // namespace auth
