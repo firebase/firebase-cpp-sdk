@@ -85,6 +85,7 @@ build_flatbuffers("${CMAKE_CURRENT_LIST_DIR}/google_services.fbs"
 set(log_common_SRCS
     src/log.cc)
 set(log_android_SRCS
+    src/jobject_reference.cc
     src/log_android.cc
     src/log_android_callback.cc
     src/util_android.cc)

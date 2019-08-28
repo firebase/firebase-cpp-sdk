@@ -24,6 +24,7 @@
 #include "app/src/google_play_services/availability_android.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/version.h"
+#include "app/src/jobject_reference.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
 #include "app/src/util_android.h"
