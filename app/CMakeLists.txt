@@ -205,6 +205,7 @@ set(utility_common_HDRS
     src/optional.h
     src/path.h
     src/pthread_condvar.h
+    src/reference_count.h
     src/reference_counted_future_impl.h
     src/scheduler.h
     src/semaphore.h
