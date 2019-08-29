@@ -16,6 +16,8 @@
 
 #include <assert.h>
 #include <jni.h>
+
+#include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/log.h"
@@ -324,10 +326,10 @@ bool DatabaseInternal::InitializeEmbeddedClasses(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   // Terminate() handles tearing this down.
   // Load embedded classes.
-  const std::vector<util::EmbeddedFile> embedded_files =
+  const std::vector<firebase::internal::EmbeddedFile> embedded_files =
       util::CacheEmbeddedFiles(
           env, app->activity(),
-          util::ArrayToEmbeddedFiles(
+          firebase::internal::EmbeddedFile::ToVector(
               firebase_database_resources::database_resources_filename,
               firebase_database_resources::database_resources_data,
               firebase_database_resources::database_resources_size));

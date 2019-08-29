@@ -17,9 +17,11 @@
 #include "app/src/google_play_services/availability_android.h"
 
 #include <jni.h>
+
 #include <map>
 
 #include "app/google_api_resources.h"
+#include "app/src/embedded_file.h"
 #include "app/src/log.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
@@ -158,10 +160,10 @@ bool Initialize(JNIEnv* env, jobject activity) {
     if (availability_class != nullptr) {
       env->DeleteLocalRef(availability_class);
       // Cache embedded files and load embedded classes.
-      const std::vector<firebase::util::EmbeddedFile> embedded_files =
+      const std::vector<firebase::internal::EmbeddedFile> embedded_files =
           firebase::util::CacheEmbeddedFiles(
               env, activity,
-              firebase::util::ArrayToEmbeddedFiles(
+              firebase::internal::EmbeddedFile::ToVector(
                   google_api::google_api_resources_filename,
                   google_api::google_api_resources_data,
                   google_api::google_api_resources_size));

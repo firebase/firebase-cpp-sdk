@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "admob/src/android/admob_android.h"
+
 #include <jni.h>
 #include <stddef.h>
 
@@ -22,7 +24,6 @@
 
 #include "admob/admob_resources.h"
 #include "admob/src/android/ad_request_converter.h"
-#include "admob/src/android/admob_android.h"
 #include "admob/src/android/banner_view_internal_android.h"
 #include "admob/src/android/interstitial_ad_internal_android.h"
 #include "admob/src/android/native_express_ad_view_internal_android.h"
@@ -31,6 +32,7 @@
 #include "admob/src/include/firebase/admob.h"
 #include "admob/src/include/firebase/admob/types.h"
 #include "app/src/assert.h"
+#include "app/src/embedded_file.h"
 #include "app/src/include/google_play_services/availability.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
@@ -157,12 +159,12 @@ InitResult Initialize(JNIEnv* env, jobject activity, const char* admob_app_id) {
     return kInitResultFailedMissingDependency;
   }
 
-  const std::vector<util::EmbeddedFile> embedded_files =
-      util::CacheEmbeddedFiles(
-          env, activity,
-          util::ArrayToEmbeddedFiles(firebase_admob::admob_resources_filename,
-                                     firebase_admob::admob_resources_data,
-                                     firebase_admob::admob_resources_size));
+  const std::vector<firebase::internal::EmbeddedFile> embedded_files =
+      util::CacheEmbeddedFiles(env, activity,
+                               firebase::internal::EmbeddedFile::ToVector(
+                                   firebase_admob::admob_resources_filename,
+                                   firebase_admob::admob_resources_data,
+                                   firebase_admob::admob_resources_size));
 
   if (!(mobile_ads::CacheMethodIds(env, activity) &&
         ad_request_helper::CacheClassFromFiles(env, activity,

@@ -83,28 +83,44 @@ build_flatbuffers("${CMAKE_CURRENT_LIST_DIR}/google_services.fbs"
                   "")
 
 set(log_common_SRCS
-    src/log.cc)
+    src/log.cc
+    set/log.h)
+set(log_common_HDRS)
 set(log_android_SRCS
     src/jobject_reference.cc
     src/log_android.cc
     src/log_android_callback.cc
     src/util_android.cc)
+set(log_android_HDRS
+    src/jobject_reference.h
+    src/util_android.h)
 set(log_ios_SRCS
     src/log_ios.mm)
+set(log_ios_HDRS)
 set(log_desktop_SRCS
     src/log_stdio.cc)
+set(log_desktop_HDRS)
 if(ANDROID)
   set(log_SRCS
       "${log_common_SRCS}"
       "${log_android_SRCS}")
+  set(log_HDRS
+      "${log_common_HDRS}"
+      "${log_android_HDRS}")
 elseif(IOS)
   set(log_SRCS
       "${log_common_SRCS}"
       "${log_ios_SRCS}")
+  set(log_HDRS
+      "${log_common_HDRS}"
+      "${log_ios_HDRS}")
 else()
   set(log_SRCS
       "${log_common_SRCS}"
       "${log_desktop_SRCS}")
+  set(log_HDRS
+      "${log_common_HDRS}"
+      "${log_desktop_HDRS}")
 endif()
 
 set(common_SRCS
@@ -199,6 +215,7 @@ set(utility_common_HDRS
     ${build_type_header}
     src/callback.h
     src/cleanup_notifier.h
+    src/embedded_file.h
     src/function_registry.h
     src/future_manager.h
     src/log.h
@@ -258,6 +275,7 @@ endif()
 
 add_library(firebase_app STATIC
     ${log_SRCS}
+    ${log_HDRS}
     ${common_SRCS}
     ${invites_SRCS}
     ${app_platform_SRCS}

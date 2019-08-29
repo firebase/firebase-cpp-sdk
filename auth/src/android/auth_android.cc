@@ -18,6 +18,7 @@
 #include <jni.h>
 
 #include "app/src/assert.h"
+#include "app/src/embedded_file.h"
 #include "app/src/log.h"
 #include "app/src/mutex.h"
 #include "app/src/util_android.h"
@@ -125,8 +126,9 @@ static const JNINativeMethod kNativeOnIdTokenChangedMethod = {
     "nativeOnIdTokenChanged", "(J)V",
     reinterpret_cast<void*>(JniIdTokenListener_nativeOnIdTokenChanged)};
 
-bool CacheAuthMethodIds(JNIEnv* env, jobject activity,
-                        const std::vector<util::EmbeddedFile>& embedded_files) {
+bool CacheAuthMethodIds(
+    JNIEnv* env, jobject activity,
+    const std::vector<internal::EmbeddedFile>& embedded_files) {
   if (!(auth::CacheMethodIds(env, activity) &&
         signinmethodquery::CacheMethodIds(env, activity))) {
     return false;
@@ -196,12 +198,12 @@ void* CreatePlatformAuth(App* app) {
     if (!util::Initialize(env, activity)) return nullptr;
 
     // Cache embedded files and load embedded classes.
-    const std::vector<util::EmbeddedFile> embedded_files =
-        util::CacheEmbeddedFiles(
-            env, activity,
-            util::ArrayToEmbeddedFiles(firebase_auth::auth_resources_filename,
-                                       firebase_auth::auth_resources_data,
-                                       firebase_auth::auth_resources_size));
+    const std::vector<internal::EmbeddedFile> embedded_files =
+        util::CacheEmbeddedFiles(env, activity,
+                                 internal::EmbeddedFile::ToVector(
+                                     firebase_auth::auth_resources_filename,
+                                     firebase_auth::auth_resources_data,
+                                     firebase_auth::auth_resources_size));
 
     if (!(CacheAuthMethodIds(env, activity, embedded_files) &&
           CacheUserMethodIds(env, activity) &&

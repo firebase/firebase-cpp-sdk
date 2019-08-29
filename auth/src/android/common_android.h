@@ -17,6 +17,7 @@
 #ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_ANDROID_COMMON_ANDROID_H_
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_ANDROID_COMMON_ANDROID_H_
 
+#include "app/src/embedded_file.h"
 #include "app/src/util_android.h"
 #include "auth/src/common.h"
 #include "auth/src/include/firebase/auth/user.h"
@@ -144,7 +145,7 @@ void ReleaseUserClasses(JNIEnv* env);
 // Cache the method ids so we don't have to look up JNI functions by name.
 bool CacheCredentialMethodIds(
     JNIEnv* env, jobject activity,
-    const std::vector<util::EmbeddedFile>& embedded_files);
+    const std::vector<internal::EmbeddedFile>& embedded_files);
 // Release credential classes cached by CacheCredentialMethodIds().
 void ReleaseCredentialClasses(JNIEnv* env);
 

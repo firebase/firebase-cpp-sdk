@@ -20,6 +20,7 @@
 #include <string.h>
 
 #include "app/invites_resources.h"
+#include "app/src/embedded_file.h"
 #include "app/src/invites/receiver_interface.h"
 #include "app/src/invites/sender_receiver_interface.h"
 #include "app/src/log.h"
@@ -64,10 +65,10 @@ AndroidHelper::AndroidHelper(const ::firebase::App& app,
            reinterpret_cast<void*>(
                &Java_com_google_firebase_dynamiclinks_internal_cpp_DynamicLinksNativeWrapper_receivedDynamicLinkCallback)}  // NOLINT
       };
-      const std::vector<util::EmbeddedFile> embedded_files =
+      const std::vector<firebase::internal::EmbeddedFile> embedded_files =
           util::CacheEmbeddedFiles(
               env, app_->activity(),
-              util::ArrayToEmbeddedFiles(
+              firebase::internal::EmbeddedFile::ToVector(
                   firebase_invites::invites_resources_filename,
                   firebase_invites::invites_resources_data,
                   firebase_invites::invites_resources_size));

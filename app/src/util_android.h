@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "app/src/assert.h"
+#include "app/src/embedded_file.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/jobject_reference.h"
@@ -133,13 +134,6 @@ enum ClassRequirement {
                    // to look it up and it doesn't exist.
 };
 
-// File embedded in the binary.
-struct EmbeddedFile {
-  const char* name;
-  const unsigned char* data;
-  size_t size;
-};
-
 // Maps ResourceType enumeration values to strings.
 // clang-format off
 #define RESOURCE_TYPES(X) \
@@ -154,38 +148,6 @@ struct EmbeddedFile {
 // See http://developer.android.com/guide/topics/resources/
 // NOTE: This is not an exhaustive set of all resource types.
 enum ResourceType { RESOURCE_TYPES(RESOURCE_TYPE_ENUM) };
-
-// Create an EmbeddedFile array from a FileToc list.
-//
-// This is required since FileToc list could change and this library should have
-// almost no dependencies.
-//
-// For example, if resources have been generated using a my_resources
-// cc_embed_data() build target:
-//
-// vector<FIREBASE_NAMESPACE::util::EmbeddedFile> embedded_files;
-// FIREBASE_NAMESPACE::util::FileTocsToEmbeddedFiles(my_resources::create(),
-//                                         &embedded_files);
-//
-// For more information, see
-// http://g3doc/devtools/blaze/g3doc/be/c-cpp.html?cl=head#cc_embed_data
-template <typename FILE_TOC_TYPE>
-std::vector<EmbeddedFile> FileTocsToEmbeddedFiles(
-    FILE_TOC_TYPE* file_toc_list) {
-  std::vector<EmbeddedFile> embedded_files;
-  for (const FILE_TOC_TYPE* file_toc = file_toc_list; file_toc->name != nullptr;
-       ++file_toc) {
-    EmbeddedFile embedded_file = {file_toc->name, file_toc->data,
-                                  file_toc->size};
-    embedded_files.push_back(embedded_file);
-  }
-  return embedded_files;
-}
-
-// Generate an EmbeddedFile array from a single file's data.
-std::vector<EmbeddedFile> ArrayToEmbeddedFiles(const char* filename,
-                                               const unsigned char* data,
-                                               size_t size);
 
 // Initialize the utilities library. It is safe to call this multiple times
 // though each call should be paired with a Terminate() as the initialization
@@ -303,7 +265,7 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
   /* CacheEmbeddedFiles(). */                                                 \
   jclass CacheClassFromFiles(                                                 \
       JNIEnv *env, jobject activity_object,                                   \
-      const std::vector<::FIREBASE_NAMESPACE::util::EmbeddedFile>*            \
+      const std::vector<::FIREBASE_NAMESPACE::internal::EmbeddedFile>*        \
           embedded_files);                                                    \
                                                                               \
   /* Find and hold a reference to this namespace's class. */                  \
@@ -388,7 +350,7 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
   /* does not exist. */                                                       \
   jclass CacheClassFromFiles(                                                 \
       JNIEnv *env, jobject activity_object,                                   \
-      const std::vector<::FIREBASE_NAMESPACE::util::EmbeddedFile>*            \
+      const std::vector<::FIREBASE_NAMESPACE::internal::EmbeddedFile>*        \
           embedded_files,                                                     \
       ::FIREBASE_NAMESPACE::util::ClassRequirement optional) {                \
     if (!g_class) {                                                           \
@@ -400,7 +362,7 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
                                                                               \
   jclass CacheClassFromFiles(                                                 \
       JNIEnv *env, jobject activity_object,                                   \
-      const std::vector<::FIREBASE_NAMESPACE::util::EmbeddedFile>*            \
+      const std::vector<::FIREBASE_NAMESPACE::internal::EmbeddedFile>*        \
           embedded_files) {                                                   \
     return CacheClassFromFiles(                                               \
         env, activity_object, embedded_files,                                 \
@@ -769,8 +731,9 @@ class JavaThreadContext {
   bool AcquireExecuteCancelLock();
 
   // Cache classes for this module.
-  static bool Initialize(JNIEnv* env, jobject activity_object,
-                         const std::vector<EmbeddedFile>& embedded_files);
+  static bool Initialize(
+      JNIEnv* env, jobject activity_object,
+      const std::vector<internal::EmbeddedFile>& embedded_files);
   // Discard classes for this module.
   static void Terminate(JNIEnv* env);
 
@@ -1015,9 +978,10 @@ void CancelCallbacks(JNIEnv* env, const char* api_identifier);
 // path, the files will be searched for the class and loaded.
 // NOTE: This method will log an error if the class isn't found unless
 // optional == kClassOptional.
-jclass FindClassGlobal(JNIEnv* env, jobject activity_object,
-                       const std::vector<EmbeddedFile>* embedded_files,
-                       const char* class_name, ClassRequirement optional);
+jclass FindClassGlobal(
+    JNIEnv* env, jobject activity_object,
+    const std::vector<internal::EmbeddedFile>* embedded_files,
+    const char* class_name, ClassRequirement optional);
 
 // Find a class, attempting to load the class if it's not found.
 jclass FindClass(JNIEnv* env, const char* class_name);
@@ -1028,15 +992,16 @@ static inline jclass FindClass(JNIEnv* env, jobject activity_object,
 }
 
 // Cache a list of embedded files to the activity's cache directory.
-const std::vector<EmbeddedFile>& CacheEmbeddedFiles(
+const std::vector<internal::EmbeddedFile>& CacheEmbeddedFiles(
     JNIEnv* env, jobject activity_object,
-    const std::vector<EmbeddedFile>& embedded_files);
+    const std::vector<internal::EmbeddedFile>& embedded_files);
 
 // Attempt to load a class from a set of files which have been cached to local
 // storage using CacheEmbeddedFiles().
-jclass FindClassInFiles(JNIEnv* env, jobject activity_object,
-                        const std::vector<EmbeddedFile>& embedded_files,
-                        const char* class_name);
+jclass FindClassInFiles(
+    JNIEnv* env, jobject activity_object,
+    const std::vector<internal::EmbeddedFile>& embedded_files,
+    const char* class_name);
 
 // Get a resource ID from the activity's package.
 int GetResourceIdFromActivity(JNIEnv* env, jobject activity_object,

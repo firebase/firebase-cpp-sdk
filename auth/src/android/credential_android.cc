@@ -21,6 +21,7 @@
 
 #include "app/src/assert.h"
 #include "app/src/build_type_generated.h"
+#include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_android.h"
 #include "auth/src/android/common_android.h"
@@ -261,7 +262,7 @@ const char kMethodsNotCachedError[] =
 
 bool CacheCredentialMethodIds(
     JNIEnv* env, jobject activity,
-    const std::vector<util::EmbeddedFile>& embedded_files) {
+    const std::vector<internal::EmbeddedFile>& embedded_files) {
   // Cache the JniAuthPhoneListener class and register the native callback
   // methods.
   if (!(jniphone::CacheClassFromFiles(env, activity, &embedded_files) &&

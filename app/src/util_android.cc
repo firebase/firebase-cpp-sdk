@@ -28,11 +28,12 @@
 #include <list>
 #include <map>
 #include <string>
-#include <vector>
 #include <utility>
+#include <vector>
 
 #include "app/app_resources.h"
 #include "app/src/app_common.h"
+#include "app/src/embedded_file.h"
 #include "app/src/log.h"
 
 #if !defined(FIREBASE_NAMESPACE)
@@ -269,15 +270,6 @@ static const char kMissingJavaMethodFieldError[] =
     "in your app.";
 // LINT.ThenChange(//depot_firebase_cpp/app/client/unity/src/swig/app.SWIG)
 
-std::vector<EmbeddedFile> ArrayToEmbeddedFiles(const char* filename,
-                                               const unsigned char* data,
-                                               size_t size) {
-  std::vector<EmbeddedFile> embedded_files;
-  EmbeddedFile embedded_file = {filename, data, size};
-  embedded_files.push_back(embedded_file);
-  return embedded_files;
-}
-
 // Create a global reference to the specified class loader add it to the
 // list
 // of class loaders and release the local reference.
@@ -507,11 +499,12 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
   // Cache embedded files and load embedded classes.
-  const std::vector<EmbeddedFile> embedded_files = util::CacheEmbeddedFiles(
-      env, activity_object,
-      ArrayToEmbeddedFiles(firebase_app::app_resources_filename,
-                           firebase_app::app_resources_data,
-                           firebase_app::app_resources_size));
+  const std::vector<internal::EmbeddedFile> embedded_files =
+      util::CacheEmbeddedFiles(
+          env, activity_object,
+          internal::EmbeddedFile::ToVector(firebase_app::app_resources_filename,
+                                           firebase_app::app_resources_data,
+                                           firebase_app::app_resources_size));
 
   // Cache the Log class and register the native log method.
   if (!(log::CacheClassFromFiles(env, activity_object, &embedded_files) !=
@@ -1348,7 +1341,7 @@ bool JavaThreadContext::AcquireExecuteCancelLock() {
 
 bool JavaThreadContext::Initialize(
     JNIEnv* env, jobject activity_object,
-    const std::vector<EmbeddedFile>& embedded_files) {
+    const std::vector<internal::EmbeddedFile>& embedded_files) {
   static const JNINativeMethod kCppThreadMethods[] = {
       {"nativeFunction", "(JJ)V",
        reinterpret_cast<void*>(CppThreadDispatcherContext_nativeFunction)}};
@@ -1483,9 +1476,10 @@ void CancelCallbacks(JNIEnv* env, const char* api_identifier) {
 
 // Find a class and retrieve a global reference to it.
 // NOTE: This method will assert if the class isn't found.
-jclass FindClassGlobal(JNIEnv* env, jobject activity_object,
-                       const std::vector<EmbeddedFile>* embedded_files,
-                       const char* class_name, ClassRequirement optional) {
+jclass FindClassGlobal(
+    JNIEnv* env, jobject activity_object,
+    const std::vector<internal::EmbeddedFile>* embedded_files,
+    const char* class_name, ClassRequirement optional) {
   LogDebug("Looking up class %s", class_name);
   jclass local_class = FindClass(env, class_name);
   if (!local_class && embedded_files) {
@@ -1529,14 +1523,14 @@ jclass FindClass(JNIEnv* env, const char* class_name) {
 }
 
 // Cache a list of embedded files to the activity's cache directory.
-const std::vector<EmbeddedFile>& CacheEmbeddedFiles(
+const std::vector<internal::EmbeddedFile>& CacheEmbeddedFiles(
     JNIEnv* env, jobject activity_object,
-    const std::vector<EmbeddedFile>& embedded_files) {
+    const std::vector<internal::EmbeddedFile>& embedded_files) {
   jobject cache_dir = env->CallObjectMethod(
       activity_object, activity::GetMethodId(activity::kGetCacheDir));
   CheckAndClearJniExceptions(env);
   // Write each file in the resources to the cache.
-  for (std::vector<util::EmbeddedFile>::const_iterator it =
+  for (std::vector<internal::EmbeddedFile>::const_iterator it =
            embedded_files.begin();
        it != embedded_files.end(); ++it) {
     LogDebug("Caching %s", it->name);
@@ -1582,9 +1576,10 @@ const std::vector<EmbeddedFile>& CacheEmbeddedFiles(
 
 // Attempt to load a class from a set of files which have been cached to local
 // storage using CacheEmbeddedFiles().
-jclass FindClassInFiles(JNIEnv* env, jobject activity_object,
-                        const std::vector<EmbeddedFile>& embedded_files,
-                        const char* class_name) {
+jclass FindClassInFiles(
+    JNIEnv* env, jobject activity_object,
+    const std::vector<internal::EmbeddedFile>& embedded_files,
+    const char* class_name) {
   if (!embedded_files.size()) {
     return nullptr;
   }
@@ -1657,7 +1652,7 @@ jclass FindClassInFiles(JNIEnv* env, jobject activity_object,
   env->DeleteLocalRef(cache_dir);
 
   std::string dex_path;
-  for (std::vector<util::EmbeddedFile>::const_iterator it =
+  for (std::vector<internal::EmbeddedFile>::const_iterator it =
            embedded_files.begin();
        it != embedded_files.end(); ++it) {
     dex_path += cache_dir_path + kPathSeparator + std::string(it->name);
