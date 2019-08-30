@@ -28,6 +28,8 @@
 
 namespace FIREBASE_NAMESPACE {
 
+extern const LogLevel kDefaultLogLevel;
+
 // Common log methods.
 
 // All messages at or above the specified log level value are displayed.

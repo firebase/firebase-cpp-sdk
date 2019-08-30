@@ -147,12 +147,18 @@ const char* kCpuArchitecture = "x86";
 
 const char* kApiClientHeader = "x-goog-api-client";
 
+SystemLogger g_system_logger;  // NOLINT
+
 // Private cross platform data associated with an app.
 struct AppData {
+  AppData() : logger(&g_system_logger) {}
+
   // App associated with this data.
   App* app;
   // Notifies subscribers when the app is about to be destroyed.
   CleanupNotifier cleanup_notifier;
+  // A per-app logger.
+  Logger logger;
 };
 
 // Tracks library registrations.
@@ -244,7 +250,7 @@ App* AddApp(App* app, std::map<std::string, InitResult>* results) {
     g_default_app = app;
     created_first_app = true;
   }
-  UniquePtr<AppData> app_data(new AppData);
+  UniquePtr<AppData> app_data = MakeUnique<AppData>();
   app_data->app = app;
   app_data->cleanup_notifier.RegisterOwner(app);
   if (!g_apps) g_apps = new std::map<std::string, UniquePtr<AppData>>();
@@ -429,6 +435,18 @@ void GetOuterMostSdkAndVersion(std::string* sdk, std::string* version) {
       break;
     }
   }
+}
+
+// Find a logger associated with an app by app name.
+Logger* FindAppLoggerByName(const char* name) {
+  assert(name);
+  MutexLock lock(g_app_mutex);
+  if (g_apps) {
+    auto it = g_apps->find(std::string(name));
+    if (it == g_apps->end()) return nullptr;
+    return &it->second->logger;
+  }
+  return nullptr;
 }
 
 }  // namespace app_common

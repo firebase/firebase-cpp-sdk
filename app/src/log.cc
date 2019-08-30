@@ -18,6 +18,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+
 #include <cstdlib>
 
 #include "app/src/assert.h"
@@ -45,9 +46,9 @@ static void DefaultLogCallback(LogLevel log_level, const char* message,
                                void* /*callback_data*/);
 
 #if FIREBASE_LOG_DEBUG
-static const LogLevel kDefaultLogLevel = kLogLevelDebug;
+const LogLevel kDefaultLogLevel = kLogLevelDebug;
 #else
-static const LogLevel kDefaultLogLevel = kLogLevelInfo;
+const LogLevel kDefaultLogLevel = kLogLevelInfo;
 #endif  // FIREBASE_LOG_DEBUG
 
 LogLevel g_log_level = kDefaultLogLevel;

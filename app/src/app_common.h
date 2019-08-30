@@ -23,6 +23,7 @@
 #include <string>
 
 #include "app/src/include/firebase/app.h"
+#include "app/src/logger.h"
 
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase
@@ -94,6 +95,9 @@ std::string GetLibraryVersion(const char* library);
 // sdk can be one of "fire-unity", "fire-mono" or "fire-cpp".
 // version is the version of the SDK respective SDK.
 void GetOuterMostSdkAndVersion(std::string* sdk, std::string* version);
+
+// Find a logger associated with an app by app name.
+Logger* FindAppLoggerByName(const char* name);
 
 }  // namespace app_common
 // NOLINTNEXTLINE - allow namespace overridden
