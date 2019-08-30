@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/log.h"
 
@@ -57,7 +58,7 @@ void LogSetPlatformLevel(LogLevel level) {}
 
 // Log a firebase message.
 void LogMessageV(LogLevel log_level, const char* format, va_list args) {
-  assert(log_level < (sizeof(kLogLevelPrefix) / sizeof(kLogLevelPrefix[0])));
+  assert(log_level < FIREBASE_ARRAYSIZE(kLogLevelPrefix));
   const char* prefix = kLogLevelPrefix[log_level];
   printf("%s", prefix);
   vprintf(format, args);

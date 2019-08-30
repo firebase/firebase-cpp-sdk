@@ -16,6 +16,7 @@
 
 #include "auth/src/android/common_android.h"
 
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/log.h"
 
 namespace firebase {
@@ -387,8 +388,7 @@ AuthError ErrorCodeFromException(JNIEnv* env, jobject exception) {
       {firebase_exception::GetClass(), kFirebaseCodes, kAuthErrorUnimplemented},
   };
 
-  size_t array_size = sizeof(exception_map) / sizeof(exception_map[0]);
-  for (size_t i = 0; i < array_size; i++) {
+  for (size_t i = 0; i < FIREBASE_ARRAYSIZE(exception_map); i++) {
     if (exception_map[i].exception_class &&
         env->IsInstanceOf(exception, exception_map[i].exception_class)) {
       const ErrorCodeMapping* error_map = exception_map[i].error_map;

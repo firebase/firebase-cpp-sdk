@@ -121,4 +121,10 @@ struct AlignedStorage {
 #endif
 #endif  // FIREBASE_DEPRECATED
 
+// Calculates the number of elements in an array.
+#define FIREBASE_ARRAYSIZE(x) (sizeof(x) / sizeof((x)[0]))
+
+// Guaranteed compile time strlen.
+#define FIREBASE_STRLEN(s) (FIREBASE_ARRAYSIZE(s) - sizeof((s)[0]))
+
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_INTERNAL_COMMON_H_

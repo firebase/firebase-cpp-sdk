@@ -12,15 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "storage/src/desktop/storage_path.h"
+
 #include <string.h>
 
 #include <string>
 
 #include "app/rest/util.h"
-#include "storage/src/desktop/storage_path.h"
-
-// Guaranteed compile time strlen.
-#define FIREBASE_STRLEN(s) (sizeof(s) / sizeof(s[0]) - sizeof(s[0]))
+#include "app/src/include/firebase/internal/common.h"
 
 namespace firebase {
 namespace storage {

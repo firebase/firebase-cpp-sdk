@@ -14,6 +14,8 @@
 
 #include "database/src/include/firebase/database/common.h"
 
+#include "app/src/include/firebase/internal/common.h"
+
 namespace firebase {
 namespace database {
 
@@ -51,10 +53,8 @@ static const char* g_error_messages[] = {
 };
 
 const char* GetErrorMessage(Error error) {
-  if (error < sizeof(g_error_messages) / sizeof(g_error_messages[0]))
-    return g_error_messages[error];
-  else
-    return "";
+  return error < FIREBASE_ARRAYSIZE(g_error_messages) ? g_error_messages[error]
+                                                      : "";
 }
 
 static const Variant* g_server_value_timestamp = nullptr;

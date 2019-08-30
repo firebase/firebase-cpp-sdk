@@ -21,6 +21,7 @@
 
 #include "app/src/app_ios.h"
 #include "app/src/assert.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/log.h"
 #include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -273,8 +274,7 @@ AuthError AuthErrorFromNSError(NSError *_Nullable error) {
   if (!error || error.code == 0) {
     return kAuthErrorNone;
   }
-  size_t array_size = sizeof(kIosToCppErrorMap) / sizeof(kIosToCppErrorMap[0]);
-  for (size_t i = 0; i < array_size; i++) {
+  for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kIosToCppErrorMap); i++) {
     if (error.code == kIosToCppErrorMap[i].ios_error) return kIosToCppErrorMap[i].cpp_error;
   }
   return kAuthErrorUnimplemented;

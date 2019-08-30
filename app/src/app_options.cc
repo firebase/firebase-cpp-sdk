@@ -23,6 +23,7 @@
 #include "app/google_services_resource.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/log.h"
 #include "flatbuffers/idl.h"
@@ -158,8 +159,7 @@ AppOptions* AppOptions::LoadFromJsonConfig(const char* config,  // NOLINT
       // We explicitly ignore the value of GA tracking ID and Messaging Sender
       // ID as we don't support analytics on desktop at the moment.
   };
-  for (size_t i = 0;
-       i < sizeof(options_to_validate) / sizeof(options_to_validate[0]); ++i) {
+  for (size_t i = 0; i < FIREBASE_ARRAYSIZE(options_to_validate); ++i) {
     const auto& validate_option = options_to_validate[i];
     if (strlen(validate_option.option_value) == 0) {
       LogWarning("%s not set in the Firebase config.",

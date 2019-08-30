@@ -29,6 +29,7 @@
 #include "app/src/callback.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/mutex.h"
@@ -425,8 +426,7 @@ void GetOuterMostSdkAndVersion(std::string* sdk, std::string* version) {
       FIREBASE_CPP_USER_AGENT_PREFIX,
   };
   LibraryRegistry* registry = LibraryRegistry::Initialize();
-  for (size_t i = 0; i < sizeof(kLibraryVersions) / sizeof(kLibraryVersions[0]);
-       ++i) {
+  for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kLibraryVersions); ++i) {
     std::string library(kLibraryVersions[i]);
     std::string library_version = registry->GetLibraryVersion(library);
     if (!library_version.empty()) {

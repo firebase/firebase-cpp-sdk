@@ -16,6 +16,7 @@
 
 #include <string.h>
 
+#include "app/src/include/firebase/internal/common.h"
 #include "storage/src/common/common_internal.h"
 #include "storage/src/include/firebase/storage/metadata.h"
 
@@ -53,10 +54,8 @@ static const char* g_error_messages[] = {
 };
 
 const char* GetErrorMessage(Error error) {
-  if (error < sizeof(g_error_messages) / sizeof(g_error_messages[0]))
-    return g_error_messages[error];
-  else
-    return "";
+  return error < FIREBASE_ARRAYSIZE(g_error_messages) ? g_error_messages[error]
+                                                      : "";
 }
 
 namespace internal {

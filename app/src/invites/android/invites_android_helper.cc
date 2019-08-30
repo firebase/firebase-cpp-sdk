@@ -21,6 +21,7 @@
 
 #include "app/invites_resources.h"
 #include "app/src/embedded_file.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/invites/receiver_interface.h"
 #include "app/src/invites/sender_receiver_interface.h"
 #include "app/src/log.h"
@@ -81,8 +82,7 @@ AndroidHelper::AndroidHelper(const ::firebase::App& app,
             dynamic_links_native_wrapper::CacheMethodIds(env,
                                                          app_->activity()) &&
             dynamic_links_native_wrapper::RegisterNatives(
-                env, kNativeMethods,
-                sizeof(kNativeMethods) / sizeof(kNativeMethods[0])))) {
+                env, kNativeMethods, FIREBASE_ARRAYSIZE(kNativeMethods)))) {
         util::Terminate(env);
         app_ = nullptr;
         return;

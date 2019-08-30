@@ -17,6 +17,7 @@
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
@@ -387,9 +388,7 @@ InitResult Initialize(const App& app, Listener* listener) {
   // Cache PathLength codes
   {
     int i;
-    int num_paths =
-        sizeof(g_path_length_codes) / sizeof(g_path_length_codes[0]);
-    for (i = 0; i < num_paths; ++i) {
+    for (i = 0; i < FIREBASE_ARRAYSIZE(g_path_length_codes); ++i) {
       g_path_length_codes[i].value = env->GetStaticIntField(
           short_dynamic_link_suffix::GetClass(),
           short_dynamic_link_suffix::GetFieldId(
@@ -917,8 +916,7 @@ static void FutureShortLinkCallback(JNIEnv* jni_env, jobject result,
 }
 
 static jint GetSuffixOption(const PathLength& path_length) {
-  int num_paths = sizeof(g_path_length_codes) / sizeof(g_path_length_codes[0]);
-  for (int i = 0; i < num_paths; ++i) {
+  for (int i = 0; i < FIREBASE_ARRAYSIZE(g_path_length_codes); ++i) {
     if (g_path_length_codes[i].path_length_code == path_length)
       return g_path_length_codes[i].value;
   }

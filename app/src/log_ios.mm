@@ -20,6 +20,8 @@
 
 #import "FIRConfiguration.h"
 
+#include "app/src/include/firebase/internal/common.h"
+
 #include <stdarg.h>
 
 namespace firebase {
@@ -58,7 +60,7 @@ void LogInitialize() {
 
 // Set the platform specific SDK log level.
 void LogSetPlatformLevel(LogLevel level) {
-  assert(level < sizeof(kCppToIOSLogLevel) / sizeof(kCppToIOSLogLevel[0]));
+  assert(level < FIREBASE_ARRAYSIZE(kCppToIOSLogLevel));
   [[FIRConfiguration sharedInstance] setLoggerLevel:kCppToIOSLogLevel[level]];
 }
 

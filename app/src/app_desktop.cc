@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
-#include "app/src/include/firebase/app.h"
-
 #include <string.h>
+
 #include <fstream>
 
 #include "app/src/app_common.h"
 #include "app/src/function_registry.h"
+#include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
@@ -99,8 +100,8 @@ AppOptions* AppOptions::LoadDefault(AppOptions* options) {
     allocated_options = true;
   }
   std::string config_files;
-  size_t number_of_config_filenames = sizeof(kDefaultGoogleServicesNames) /
-                                      sizeof(kDefaultGoogleServicesNames[0]);
+  size_t number_of_config_filenames =
+      FIREBASE_ARRAYSIZE(kDefaultGoogleServicesNames);
   for (size_t i = 0; i < number_of_config_filenames; i++) {
     std::string full_path = internal::g_default_config_path +
                             kDefaultGoogleServicesNames[i];

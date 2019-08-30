@@ -21,6 +21,7 @@
 
 #import "FIRInstanceID.h"
 
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/util_ios.h"
 #include "instance_id/src/include/firebase/instance_id.h"
 #include "instance_id/src/instance_id_internal.h"
@@ -56,8 +57,7 @@ static Error NSErrorToErrorCode(NSError *_Nullable nserror) {
   };
   if (nserror) {
     NSInteger nserror_code = nserror.code;
-    for (int i = 0; i < sizeof(kIIDErrorsToCodes) /
-             sizeof(kIIDErrorsToCodes[0]); ++i) {
+    for (int i = 0; i < FIREBASE_ARRAYSIZE(kIIDErrorsToCodes); ++i) {
       const auto& iid_error_to_code = kIIDErrorsToCodes[i];
       if (iid_error_to_code.nserror_code == nserror_code) {
         return iid_error_to_code.code;

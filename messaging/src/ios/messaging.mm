@@ -26,6 +26,7 @@
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/mutex.h"
@@ -438,7 +439,7 @@ static bool IsUnreservedKey(NSString *key) {
   static NSString *const reserved_keys[] = {kFrom, kTo, kCollapseKey, kMessageID,
                                             kMessageType, kPriority, kTimeToLive, kError,
                                             kErrorDescription};
-  for (int i = 0; i < (sizeof(reserved_keys) / sizeof(reserved_keys[0])); i++) {
+  for (int i = 0; i < FIREBASE_ARRAYSIZE(reserved_keys); ++i) {
     if ([key isEqualToString:reserved_keys[i]]) {
       return false;
     }

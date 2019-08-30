@@ -33,6 +33,7 @@
 #include "admob/src/include/firebase/admob/types.h"
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/google_play_services/availability.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
@@ -426,18 +427,16 @@ bool RegisterNatives() {
   };
   JNIEnv* env = GetJNI();
   return banner_view_helper::RegisterNatives(
-             env, kBannerMethods,
-             sizeof(kBannerMethods) / sizeof(kBannerMethods[0])) &&
+             env, kBannerMethods, FIREBASE_ARRAYSIZE(kBannerMethods)) &&
          interstitial_ad_helper::RegisterNatives(
              env, kInterstitialMethods,
-             sizeof(kInterstitialMethods) / sizeof(kInterstitialMethods[0])) &&
+             FIREBASE_ARRAYSIZE(kInterstitialMethods)) &&
          native_express_ad_view_helper::RegisterNatives(
              env, kNativeExpressMethods,
-             sizeof(kNativeExpressMethods) /
-                 sizeof(kNativeExpressMethods[0])) &&
+             FIREBASE_ARRAYSIZE(kNativeExpressMethods)) &&
          rewarded_video::rewarded_video_helper::RegisterNatives(
              env, kRewardedVideoMethods,
-             sizeof(kRewardedVideoMethods) / sizeof(kRewardedVideoMethods[0]));
+             FIREBASE_ARRAYSIZE(kRewardedVideoMethods));
 }
 
 }  // namespace admob

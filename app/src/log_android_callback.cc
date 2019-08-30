@@ -19,6 +19,7 @@
 
 #include <string>
 
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/log.h"
 #include "app/src/util_android.h"
 
@@ -44,8 +45,7 @@ Java_com_google_firebase_app_internal_cpp_Log_nativeLog(
       kLogLevelError,    // 6 = android.util.Log.ERROR
       kLogLevelAssert,   // 7 = android.util.Log.ASSERT
   };
-  assert(priority <
-         sizeof(kLogPriorityToLogLevel) / sizeof(kLogPriorityToLogLevel[0]));
+  assert(priority < FIREBASE_ARRAYSIZE(kLogPriorityToLogLevel));
   assert(priority >= 0);
   LogMessage(kLogPriorityToLogLevel[priority], "(%s) %s", ctag.c_str(),
              cmsg.c_str());

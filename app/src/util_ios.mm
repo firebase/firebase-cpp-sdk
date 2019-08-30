@@ -17,6 +17,7 @@
 #include "app/src/util_ios.h"
 
 #include "app/src/assert.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/log.h"
 
 #include <assert.h>
@@ -94,9 +95,7 @@ void ForEachAppDelegateClass(void (^block)(Class)) {
           "FIRAAppDelegate",
           // Declared here.
           "FIRSAMAppDelegate"};
-      for (size_t i = 0;
-           i < sizeof(kClassNameBlacklist) / sizeof(kClassNameBlacklist[0]);
-           ++i) {
+      for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kClassNameBlacklist); ++i) {
         if (strcmp(class_name, kClassNameBlacklist[i]) == 0) {
           blacklisted = true;
           break;

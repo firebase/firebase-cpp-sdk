@@ -20,6 +20,7 @@
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/log.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
@@ -344,19 +345,16 @@ bool DatabaseInternal::InitializeEmbeddedClasses(App* app) {
         cpp_transaction_handler::CacheMethodIds(env, app->activity()) &&
         cpp_transaction_handler::RegisterNatives(
             env, kCppTransactionHandler,
-            sizeof(kCppTransactionHandler) /
-                sizeof(kCppTransactionHandler[0])) &&
+            FIREBASE_ARRAYSIZE(kCppTransactionHandler)) &&
         cpp_event_listener::CacheMethodIds(env, app->activity()) &&
         cpp_value_event_listener::CacheMethodIds(env, app->activity()) &&
         cpp_value_event_listener::RegisterNatives(
             env, kCppValueEventListenerNatives,
-            sizeof(kCppValueEventListenerNatives) /
-                sizeof(kCppValueEventListenerNatives[0])) &&
+            FIREBASE_ARRAYSIZE(kCppValueEventListenerNatives)) &&
         cpp_child_event_listener::CacheMethodIds(env, app->activity()) &&
         cpp_child_event_listener::RegisterNatives(
             env, kCppChildEventListenerNatives,
-            sizeof(kCppChildEventListenerNatives) /
-                sizeof(kCppChildEventListenerNatives[0])))) {
+            FIREBASE_ARRAYSIZE(kCppChildEventListenerNatives)))) {
     return false;
   }
   return true;

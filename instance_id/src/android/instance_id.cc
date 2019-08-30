@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "instance_id/src/include/firebase/instance_id.h"
+
 #include <jni.h>
 
 #include <cstdint>
@@ -19,9 +21,9 @@
 
 #include "app/memory/shared_ptr.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/util_android.h"
 #include "instance_id/src/android/instance_id_internal.h"
-#include "instance_id/src/include/firebase/instance_id.h"
 
 namespace firebase {
 namespace instance_id {
@@ -90,9 +92,7 @@ static Error ExceptionStringToError(const char* error_message) {
       {/* ERROR_INSTANCE_ID_RESET */ "INSTANCE_ID_RESET", kErrorIdInvalid},
   };
   if (strlen(error_message)) {
-    for (int i = 0;
-         i < sizeof(kErrorMessageToCodes) / sizeof(kErrorMessageToCodes[0]);
-         ++i) {
+    for (int i = 0; i < FIREBASE_ARRAYSIZE(kErrorMessageToCodes); ++i) {
       const auto& message_to_code = kErrorMessageToCodes[i];
       if (strcmp(message_to_code.message, error_message) == 0) {
         return message_to_code.code;

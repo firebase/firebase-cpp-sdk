@@ -19,6 +19,7 @@
 #include "app/src/assert.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/util_android.h"
 #include "storage/src/android/controller_android.h"
 #include "storage/src/android/metadata_android.h"
@@ -261,16 +262,14 @@ bool StorageInternal::InitializeEmbeddedClasses(App* app) {
                                                   &embedded_files) &&
         cpp_storage_listener::RegisterNatives(
             env, kCppStorageListener,
-            sizeof(kCppStorageListener) / sizeof(kCppStorageListener[0])) &&
+            FIREBASE_ARRAYSIZE(kCppStorageListener)) &&
         cpp_byte_downloader::CacheMethodIds(env, app->activity()) &&
         cpp_byte_downloader::RegisterNatives(
-            env, kCppByteDownloader,
-            sizeof(kCppByteDownloader) / sizeof(kCppByteDownloader[0])) &&
+            env, kCppByteDownloader, FIREBASE_ARRAYSIZE(kCppByteDownloader)) &&
         cpp_storage_listener::CacheMethodIds(env, app->activity()) &&
         cpp_byte_uploader::CacheMethodIds(env, app->activity()) &&
         cpp_byte_uploader::RegisterNatives(
-            env, kCppByteUploader,
-            sizeof(kCppByteUploader) / sizeof(kCppByteUploader[0])))) {
+            env, kCppByteUploader, FIREBASE_ARRAYSIZE(kCppByteUploader)))) {
     return false;
   }
   util::CheckAndClearJniExceptions(env);

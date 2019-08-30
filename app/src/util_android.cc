@@ -34,6 +34,7 @@
 #include "app/app_resources.h"
 #include "app/src/app_common.h"
 #include "app/src/embedded_file.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/log.h"
 
 #if !defined(FIREBASE_NAMESPACE)
@@ -293,9 +294,7 @@ static jclass FindOrLoadClassFromLoaders(JNIEnv* env, const char* class_name) {
       class_loader::kFindLoadedClass, class_loader::kLoadClass};
   jstring class_name_object = env->NewStringUTF(class_name);
   jclass class_object = nullptr;
-  for (size_t i = 0;
-       i < sizeof(kFindLoadClassMethods) / sizeof(kFindLoadClassMethods[0]);
-       ++i) {
+  for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kFindLoadClassMethods); ++i) {
     for (auto it = g_class_loaders->begin();
          !class_object && it != g_class_loaders->end(); ++it) {
       class_object = static_cast<jclass>(env->CallObjectMethod(
@@ -510,9 +509,8 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
   if (!(log::CacheClassFromFiles(env, activity_object, &embedded_files) !=
             nullptr &&
         log::CacheMethodIds(env, activity_object) &&
-        log::RegisterNatives(
-            env, kNativeLogMethods,
-            sizeof(kNativeLogMethods) / sizeof(kNativeLogMethods[0])))) {
+        log::RegisterNatives(env, kNativeLogMethods,
+                             FIREBASE_ARRAYSIZE(kNativeLogMethods)))) {
     return false;
   }
 
@@ -1350,8 +1348,7 @@ bool JavaThreadContext::Initialize(
                                                         &embedded_files) &&
         cppthreaddispatchercontext::CacheMethodIds(env, activity_object) &&
         cppthreaddispatchercontext::RegisterNatives(
-            env, kCppThreadMethods,
-            sizeof(kCppThreadMethods) / sizeof(kCppThreadMethods[0])) &&
+            env, kCppThreadMethods, FIREBASE_ARRAYSIZE(kCppThreadMethods)) &&
         cppthreaddispatcher::CacheClassFromFiles(env, activity_object,
                                                  &embedded_files) &&
         cppthreaddispatcher::CacheMethodIds(env, activity_object))) {

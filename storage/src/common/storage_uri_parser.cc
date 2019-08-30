@@ -16,6 +16,7 @@
 
 #include <string>
 
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/log.h"
 
 namespace firebase {
@@ -62,8 +63,7 @@ bool UriToComponents(const std::string& url, const char* object_type,
     scheme = url.substr(0, scheme_separator_index);
   }
 
-  size_t number_of_valid_schemes =
-      sizeof(kValidSchemes) / sizeof(kValidSchemes[0]);
+  size_t number_of_valid_schemes = FIREBASE_ARRAYSIZE(kValidSchemes);
   for (size_t i = 0; i < number_of_valid_schemes && !valid_scheme; ++i) {
     const char* current_scheme = kValidSchemes[i];
     if (scheme.compare(current_scheme) == 0) {

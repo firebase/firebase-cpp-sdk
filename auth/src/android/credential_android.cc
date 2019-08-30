@@ -23,6 +23,7 @@
 #include "app/src/build_type_generated.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/util_android.h"
 #include "auth/src/android/common_android.h"
 
@@ -269,8 +270,7 @@ bool CacheCredentialMethodIds(
         jniphone::CacheMethodIds(env, activity) &&
         jniphone::RegisterNatives(
             env, kNativeJniAuthPhoneListenerMethods,
-            sizeof(kNativeJniAuthPhoneListenerMethods) /
-                sizeof(kNativeJniAuthPhoneListenerMethods[0])))) {
+            FIREBASE_ARRAYSIZE(kNativeJniAuthPhoneListenerMethods)))) {
     return false;
   }
 

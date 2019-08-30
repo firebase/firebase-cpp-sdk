@@ -22,6 +22,7 @@
 
 #include "app/google_api_resources.h"
 #include "app/src/embedded_file.h"
+#include "app/src/include/firebase/internal/common.h"
 #include "app/src/log.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
@@ -174,8 +175,7 @@ bool Initialize(JNIEnv* env, jobject activity) {
                                                            &embedded_files) &&
           googleapiavailabilityhelper::CacheMethodIds(env, activity) &&
           googleapiavailabilityhelper::RegisterNatives(
-              env, kHelperMethods,
-              sizeof(kHelperMethods) / sizeof(kHelperMethods[0]))) {
+              env, kHelperMethods, FIREBASE_ARRAYSIZE(kHelperMethods))) {
         // Everything initialized properly.
         g_data->classes_loaded = true;
         return true;
@@ -232,8 +232,7 @@ Availability CheckAvailability(JNIEnv* env, jobject activity) {
         activity);
     firebase::util::CheckAndClearJniExceptions(env);
     env->DeleteLocalRef(api);
-    for (size_t i = 0; i < sizeof(ConnectionResultToAvailability) /
-                               sizeof(ConnectionResultToAvailability[0]);
+    for (size_t i = 0; i < FIREBASE_ARRAYSIZE(ConnectionResultToAvailability);
          i++) {
       if (result == ConnectionResultToAvailability[i].java) {
         g_data->cached_availability = ConnectionResultToAvailability[i].cpp;
