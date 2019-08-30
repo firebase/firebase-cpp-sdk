@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include "database/src/desktop/rest_interface.h"
+
 #include <string>
+
 #include "app/rest/controller_interface.h"
 #include "app/rest/request.h"
 #include "app/rest/response.h"
@@ -125,7 +127,7 @@ ParseStatus ParseResponse(const std::string& body, Path* out_relative_path,
       *out_error = kErrorPermissionDenied;
       return kParseError;
     } else {
-      LogError("Unexpected method (%s).", method.c_str());
+      logger_->LogError("Unexpected method (%s).", method.c_str());
       // If we've errored at this point something has gone wrong on the server
       // and it sent us bad data.
       *out_error = kErrorUnknownError;
@@ -136,8 +138,8 @@ ParseStatus ParseResponse(const std::string& body, Path* out_relative_path,
   // Get the JSON string.
   std::getline(input, line);
   if (!StringStartsWith(line, kDataPrefix)) {
-    LogError("Malformed data sent to client: Expected %s, got %s.",
-             kDataPrefix.c_str(), line.c_str());
+    logger_->LogError("Malformed data sent to client: Expected %s, got %s.",
+                      kDataPrefix.c_str(), line.c_str());
     // If we've errored at this point something has gone wrong on the server and
     // it sent us bad data.
     *out_error = kErrorUnknownError;
@@ -150,8 +152,8 @@ ParseStatus ParseResponse(const std::string& body, Path* out_relative_path,
   // "data", which is the data to be placed at the location given by "path".
   Variant json_data = util::JsonToVariant(json.c_str());
   if (!json_data.is_map()) {
-    LogError("Malformed JSON sent to client: Expected object, got %s.",
-             Variant::TypeName(json_data.type()));
+    logger_->LogError("Malformed JSON sent to client: Expected object, got %s.",
+                      Variant::TypeName(json_data.type()));
     // If we've errored at this point something has gone wrong on the server and
     // it sent us bad data.
     *out_error = kErrorUnknownError;
@@ -160,7 +162,8 @@ ParseStatus ParseResponse(const std::string& body, Path* out_relative_path,
   // Get the path from the variant.
   auto path_iter = json_data.map().find(Variant("path"));
   if (path_iter == json_data.map().end() || !path_iter->second.is_string()) {
-    LogError("Malformed JSON sent to client: Expected \"path\" field.");
+    logger_->LogError(
+        "Malformed JSON sent to client: Expected \"path\" field.");
     // If we've errored at this point something has gone wrong on the server and
     // it sent us bad data.
     *out_error = kErrorUnknownError;
@@ -171,7 +174,8 @@ ParseStatus ParseResponse(const std::string& body, Path* out_relative_path,
   // Get the data from the variant.
   auto data_iter = json_data.map().find(Variant("data"));
   if (data_iter == json_data.map().end()) {
-    LogError("Malformed JSON sent to client: Expected \"data\" field.");
+    logger_->LogError(
+        "Malformed JSON sent to client: Expected \"data\" field.");
     // If we've errored at this point something has gone wrong on the server and
     // it sent us bad data.
     *out_error = kErrorUnknownError;

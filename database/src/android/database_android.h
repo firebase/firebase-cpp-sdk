@@ -16,13 +16,16 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_ANDROID_DATABASE_ANDROID_H_
 
 #include <jni.h>
+
 #include <map>
 #include <set>
 #include <vector>
+
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/log.h"
+#include "app/src/logger.h"
 #include "app/src/mutex.h"
 #include "app/src/util_android.h"
 #include "database/src/android/database_reference_android.h"
@@ -178,6 +181,8 @@ class DatabaseInternal {
   // The url that was passed to the constructor.
   const std::string& constructor_url() const { return constructor_url_; }
 
+  Logger* logger() { return &logger_; }
+
  private:
   static bool Initialize(App* app);
   static void ReleaseClasses(App* app);
@@ -216,7 +221,7 @@ class DatabaseInternal {
   // We keep it so that we can find the database in our cache.
   std::string constructor_url_;
 
-  LogLevel log_level_;
+  Logger logger_;
 };
 
 }  // namespace internal

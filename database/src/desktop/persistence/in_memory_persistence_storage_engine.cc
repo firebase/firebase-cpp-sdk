@@ -35,8 +35,9 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-InMemoryPersistenceStorageEngine::InMemoryPersistenceStorageEngine()
-    : server_cache_(), inside_transaction_(false) {}
+InMemoryPersistenceStorageEngine::InMemoryPersistenceStorageEngine(
+    Logger* logger)
+    : server_cache_(), inside_transaction_(false), logger_(logger) {}
 
 InMemoryPersistenceStorageEngine::~InMemoryPersistenceStorageEngine() {}
 
@@ -153,14 +154,14 @@ bool InMemoryPersistenceStorageEngine::BeginTransaction() {
   FIREBASE_DEV_ASSERT_MESSAGE(!inside_transaction_,
                               "runInTransaction called when an existing "
                               "transaction is already in progress.");
-  LogDebug("Starting transaction.");
+  logger_->LogDebug("Starting transaction.");
   inside_transaction_ = true;
   return true;
 }
 
 void InMemoryPersistenceStorageEngine::EndTransaction() {
   inside_transaction_ = false;
-  LogDebug("Transaction completed.");
+  logger_->LogDebug("Transaction completed.");
 }
 
 void InMemoryPersistenceStorageEngine::SetTransactionSuccessful() {}

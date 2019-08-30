@@ -75,16 +75,18 @@ class TransactionResponse : public connection::Response {
   std::vector<TransactionDataPtr> queue_;
 };
 
-Repo::Repo(App* app, DatabaseInternal* database, const char* url)
+Repo::Repo(App* app, DatabaseInternal* database, const char* url,
+           Logger* logger)
     : database_(database),
       host_info_(),
       connection_(),
       server_time_offset_(0),
       next_write_id_(0),
-      safe_this_(this) {
+      safe_this_(this),
+      logger_(logger) {
   ParseUrl parser;
   if (parser.Parse(url) != ParseUrl::kParseOk) {
-    LogError("Database Url is not valid: %s", url);
+    logger_->LogError("Database Url is not valid: %s", url);
     return;
   }
 
@@ -98,8 +100,8 @@ Repo::Repo(App* app, DatabaseInternal* database, const char* url)
     if (s_scheduler_ == nullptr) s_scheduler_ = new scheduler::Scheduler();
   }
 
-  connection_.reset(new connection::PersistentConnection(app, host_info_, this,
-                                                         s_scheduler_));
+  connection_.reset(new connection::PersistentConnection(
+      app, host_info_, this, s_scheduler_, logger_));
   // Kick off any expensive additional initialization
   s_scheduler_->Schedule(NewCallback(
       [](ThisRef ref) {
@@ -420,10 +422,10 @@ void Repo::AckWriteAndRerunTransactions(WriteId write_id, const Path& path,
 }
 
 static UniquePtr<SyncTree> InitializeSyncTree(
-    UniquePtr<ListenProvider> listen_provider) {
+    UniquePtr<ListenProvider> listen_provider, Logger* logger) {
   UniquePtr<WriteTree> pending_write_tree = MakeUnique<WriteTree>();
   UniquePtr<PersistenceStorageEngine> persistence_storage_engine =
-      MakeUnique<InMemoryPersistenceStorageEngine>();
+      MakeUnique<InMemoryPersistenceStorageEngine>(logger);
   UniquePtr<TrackedQueryManager> tracked_query_manager =
       MakeUnique<TrackedQueryManager>(persistence_storage_engine.get());
   UniquePtr<PersistenceManager> persistence_manager =
@@ -439,9 +441,9 @@ void Repo::DeferredInitialization() {
   // Set up server sync tree.
   {
     UniquePtr<WebSocketListenProvider> listen_provider =
-        MakeUnique<WebSocketListenProvider>(this, connection_.get());
+        MakeUnique<WebSocketListenProvider>(this, connection_.get(), logger_);
     WebSocketListenProvider* listen_provider_ptr = listen_provider.get();
-    server_sync_tree_ = InitializeSyncTree(std::move(listen_provider));
+    server_sync_tree_ = InitializeSyncTree(std::move(listen_provider), logger_);
     listen_provider_ptr->set_sync_tree(server_sync_tree_.get());
   }
 
@@ -450,7 +452,7 @@ void Repo::DeferredInitialization() {
     UniquePtr<InfoListenProvider> listen_provider =
         MakeUnique<InfoListenProvider>(this, &info_data_);
     InfoListenProvider* listen_provider_ptr = listen_provider.get();
-    info_sync_tree_ = InitializeSyncTree(std::move(listen_provider));
+    info_sync_tree_ = InitializeSyncTree(std::move(listen_provider), logger_);
     listen_provider_ptr->set_sync_tree(info_sync_tree_.get());
   }
 
@@ -790,8 +792,8 @@ Path Repo::RerunTransactions(const Path& changed_path) {
 void Repo::SendTransactionQueue(const std::vector<TransactionDataPtr>& queue,
                                 const Path& path) {
   assert(!queue.empty());
-  LogDebug("SendTransactionQueue @ %s (# of transaction : %d)", path.c_str(),
-           static_cast<int>(queue.size()));
+  logger_->LogDebug("SendTransactionQueue @ %s (# of transaction : %d)",
+                    path.c_str(), static_cast<int>(queue.size()));
 
   std::vector<WriteId> sets_to_ignore;
   for (const TransactionDataPtr& transaction : queue) {
@@ -917,8 +919,8 @@ void Repo::HandleTransactionResponse(const connection::ResponsePtr& ptr) {
 
 void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
                                  const Path& path) {
-  LogDebug("RerunTransactionQueue @ %s (# of transaction : %d)", path.c_str(),
-           static_cast<int>(queue.size()));
+  logger_->LogDebug("RerunTransactionQueue @ %s (# of transaction : %d)",
+                    path.c_str(), static_cast<int>(queue.size()));
 
   if (queue.empty()) {
     // Nothing to do!

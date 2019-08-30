@@ -44,7 +44,7 @@ class Repo : public connection::PersistentConnectionEventHandler {
   typedef firebase::internal::SafeReference<Repo> ThisRef;
   typedef firebase::internal::SafeReferenceLock<Repo> ThisRefLock;
 
-  explicit Repo(App* app, DatabaseInternal* database, const char* url);
+  Repo(App* app, DatabaseInternal* database, const char* url, Logger* logger);
 
   ~Repo() override;
 
@@ -190,6 +190,8 @@ class Repo : public connection::PersistentConnectionEventHandler {
   // Safe reference to this.  Set in constructor and cleared in destructor
   // Should be safe to be copied to any thread.
   ThisRef safe_this_;
+
+  Logger* logger_;
 };
 
 }  // namespace internal

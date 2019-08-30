@@ -21,6 +21,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/logger.h"
 #include "app/src/mutex.h"
 #include "app/src/safe_reference.h"
 #include "app/src/scheduler.h"
@@ -94,8 +95,6 @@ class DatabaseInternal {
   // Get the logging verbosity.
   LogLevel log_level() const;
 
-  static void SetVerboseLogging(bool enable);
-
   FutureManager& future_manager() { return future_manager_; }
 
   // Whether this object was successfully initialized by the constructor.
@@ -167,6 +166,8 @@ class DatabaseInternal {
 
   Mutex* listener_mutex() { return &listener_mutex_; }
 
+  Logger* logger() { return &logger_; }
+
  private:
   App* app_;
 
@@ -192,10 +193,11 @@ class DatabaseInternal {
   // We keep it so that we can find the database in our cache.
   std::string constructor_url_;
 
+  // The logger for this instance of the database.
+  Logger logger_;
+
   // The local copy of the repository, for offline support and local caching.
   Repo repo_;
-
-  LogLevel log_level_;
 };
 
 }  // namespace internal

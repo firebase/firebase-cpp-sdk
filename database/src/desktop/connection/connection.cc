@@ -52,7 +52,7 @@ compat::Atomic<uint32_t> Connection::next_log_id_(0);
 
 Connection::Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
                        const char* opt_last_session_id,
-                       ConnectionEventHandler* event_handler)
+                       ConnectionEventHandler* event_handler, Logger* logger)
     : safe_this_(this),
       event_handler_(event_handler),
       scheduler_(scheduler),
@@ -60,7 +60,8 @@ Connection::Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
       state_(kStateNone),
       ws_connected_(false),
       client_(nullptr),
-      expected_incoming_frames_(0) {
+      expected_incoming_frames_(0),
+      logger_(logger) {
   assert(scheduler);
   assert(event_handler);
 
@@ -70,7 +71,8 @@ Connection::Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
   log_id_ = log_id_stream.str();
 
   // Create web socket client regardless of its implementation
-  client_ = CreateWebSocketClient(host_info_, this, opt_last_session_id);
+  client_ =
+      CreateWebSocketClient(host_info_, this, opt_last_session_id, logger);
 }
 
 Connection::~Connection() {
@@ -94,12 +96,12 @@ Connection::~Connection() {
 void Connection::Open() {
   assert(client_);
   if (state_ != kStateNone) {
-    LogError("%s Cannot open. Connection has be opened before",
-             log_id_.c_str());
+    logger_->LogError("%s Cannot open. Connection has be opened before",
+                      log_id_.c_str());
     return;
   }
 
-  LogDebug("%s Opening a connection", log_id_.c_str());
+  logger_->LogDebug("%s Opening a connection", log_id_.c_str());
   state_ = kStateConnecting;
   client_->Connect(kConnectTimeoutMs);
 }
@@ -108,12 +110,13 @@ void Connection::Close(DisconnectReason reason /* = kReasonOther */) {
   assert(client_);
 
   if (state_ == kStateDisconnected) {
-    LogError("%s Cannot close. Connection has been closed.", log_id_.c_str());
+    logger_->LogError("%s Cannot close. Connection has been closed.",
+                      log_id_.c_str());
     return;
   }
 
-  LogDebug("%s Closing connection. Reason: %d", log_id_.c_str(),
-           static_cast<int>(reason));
+  logger_->LogDebug("%s Closing connection. Reason: %d", log_id_.c_str(),
+                    static_cast<int>(reason));
 
   state_ = kStateDisconnected;
 
@@ -132,7 +135,8 @@ void Connection::Send(const Variant& message, bool is_sensitive) {
   assert(!message.is_null());
 
   if (state_ != kStateReady) {
-    LogError("%s Tried to send on an unconnected connection", log_id_.c_str());
+    logger_->LogError("%s Tried to send on an unconnected connection",
+                      log_id_.c_str());
     return;
   }
 
@@ -142,14 +146,14 @@ void Connection::Send(const Variant& message, bool is_sensitive) {
   request.map()[kRequestPayload] = message;
 
   std::string to_send = util::VariantToJson(request);
-  LogDebug("%s Sending data: %s", log_id_.c_str(),
-           is_sensitive ? "(contents hidden)" : to_send.c_str());
+  logger_->LogDebug("%s Sending data: %s", log_id_.c_str(),
+                    is_sensitive ? "(contents hidden)" : to_send.c_str());
 
   // Split info frames if the length is larger than kMaxFrameSize
   int num_of_frame = to_send.length() / kMaxFrameSize + 1;
   if (num_of_frame > 1) {
-    LogDebug("%s Split data into %d frames (size: %d)", log_id_.c_str(),
-             num_of_frame, to_send.length());
+    logger_->LogDebug("%s Split data into %d frames (size: %d)",
+                      log_id_.c_str(), num_of_frame, to_send.length());
 
     // Send number of frames
     std::stringstream frame_size_str;
@@ -168,7 +172,7 @@ void Connection::Send(const Variant& message, bool is_sensitive) {
 void Connection::OnOpen() {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
 
-  LogDebug("%s websocket opened", log_id_.c_str());
+  logger_->LogDebug("%s websocket opened", log_id_.c_str());
 
   scheduler_->Schedule(new callback::CallbackValue1<ConnectionRef>(
       safe_this_, [](ConnectionRef conn_ref) {
@@ -200,7 +204,7 @@ void Connection::OnOpen() {
 void Connection::OnMessage(const char* msg) {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
 
-  LogDebug("%s websocket message received", log_id_.c_str());
+  logger_->LogDebug("%s websocket message received", log_id_.c_str());
   scheduler_->Schedule(new callback::CallbackValue1String1<ConnectionRef>(
       safe_this_, msg, [](ConnectionRef conn_ref, const char* msg) {
         ConnectionRefLock lock(&conn_ref);
@@ -214,7 +218,7 @@ void Connection::OnMessage(const char* msg) {
 void Connection::OnClose() {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
 
-  LogDebug("%s websocket closed", log_id_.c_str());
+  logger_->LogDebug("%s websocket closed", log_id_.c_str());
 
   scheduler_->Schedule(new callback::CallbackValue1<ConnectionRef>(
       safe_this_, [](ConnectionRef conn_ref) {
@@ -236,8 +240,8 @@ void Connection::OnClose() {
 void Connection::OnError(const WebSocketClientErrorData& error_data) {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
 
-  LogDebug("%s websocket error occurred.  Uri: %s", log_id_.c_str(),
-           error_data.GetUri().c_str());
+  logger_->LogDebug("%s websocket error occurred.  Uri: %s", log_id_.c_str(),
+                    error_data.GetUri().c_str());
 
   scheduler_->Schedule(new callback::CallbackValue1<ConnectionRef>(
       safe_this_, [](ConnectionRef conn_ref) {
@@ -269,8 +273,8 @@ void Connection::HandleIncomingFrame(const char* msg) {
     incoming_buffer_ << msg;
     --expected_incoming_frames_;
 
-    LogDebug("%s Received a frame (length: %d), %d more to come",
-             log_id_.c_str(), strlen(msg), expected_incoming_frames_);
+    logger_->LogDebug("%s Received a frame (length: %d), %d more to come",
+                      log_id_.c_str(), strlen(msg), expected_incoming_frames_);
 
     // If buffer is complete, process it
     if (expected_incoming_frames_ == 0) {
@@ -289,8 +293,8 @@ void Connection::HandleIncomingFrame(const char* msg) {
     }
 
     if (num_of_frame > 0) {
-      LogDebug("%s Received a frame count. Expecting %d frames later",
-               log_id_.c_str(), num_of_frame);
+      logger_->LogDebug("%s Received a frame count. Expecting %d frames later",
+                        log_id_.c_str(), num_of_frame);
 
       // Start the buffer
       expected_incoming_frames_ = num_of_frame;
@@ -304,7 +308,8 @@ void Connection::HandleIncomingFrame(const char* msg) {
 
 void Connection::ProcessMessage(const char* message) {
   Variant message_data = util::JsonToVariant(message);
-  LogDebug("%s ProcessMessage (length: %d)", log_id_.c_str(), strlen(message));
+  logger_->LogDebug("%s ProcessMessage (length: %d)", log_id_.c_str(),
+                    strlen(message));
 
   assert(!message_data.is_null());
 
@@ -325,31 +330,32 @@ void Connection::ProcessMessage(const char* message) {
           OnControlMessage(itData->second);
         }
       } else {
-        LogDebug("%s Ignore unknown server message type: %s", log_id_.c_str(),
-                 type.c_str());
+        logger_->LogDebug("%s Ignore unknown server message type: %s",
+                          log_id_.c_str(), type.c_str());
       }
     } else {
-      LogDebug("%s Fail to parse server message: %s", log_id_.c_str(),
-               util::VariantToJson(message_data).c_str());
+      logger_->LogDebug("%s Fail to parse server message: %s", log_id_.c_str(),
+                        util::VariantToJson(message_data).c_str());
       Close(kDisconnectReasonProtocolError);
     }
   } else {
-    LogDebug("%s Failed to parse server message: missing message type: %s",
-             log_id_.c_str(), util::VariantToJson(message_data).c_str());
+    logger_->LogDebug(
+        "%s Failed to parse server message: missing message type: %s",
+        log_id_.c_str(), util::VariantToJson(message_data).c_str());
     Close(kDisconnectReasonProtocolError);
   }
 }
 
 void Connection::OnDataMessage(const Variant& data) {
-  LogDebug("%s received data message", log_id_.c_str());
+  logger_->LogDebug("%s received data message", log_id_.c_str());
 
   // Do not decode data message in this level
   event_handler_->OnDataMessage(data);
 }
 
 void Connection::OnControlMessage(const Variant& data) {
-  LogDebug("%s received control message: %s", log_id_.c_str(),
-           util::VariantToJson(data).c_str());
+  logger_->LogDebug("%s received control message: %s", log_id_.c_str(),
+                    util::VariantToJson(data).c_str());
 
   assert(!data.is_null());
 
@@ -364,8 +370,8 @@ void Connection::OnControlMessage(const Variant& data) {
         if (itReason != data_map.end() && itReason->second.is_string()) {
           OnConnectionShutdown(itReason->second.string_value());
         } else {
-          LogDebug("%s Shut down connection for unknown reasons",
-                   log_id_.c_str());
+          logger_->LogDebug("%s Shut down connection for unknown reasons",
+                            log_id_.c_str());
           OnConnectionShutdown("unknown");
         }
       } else if (messageType == kServerControlMessageReset) {
@@ -373,8 +379,8 @@ void Connection::OnControlMessage(const Variant& data) {
         if (itHost != data_map.end() && itHost->second.is_string()) {
           OnReset(itHost->second.string_value());
         } else {
-          LogDebug("%s Reset connection with unknown host: %s", log_id_.c_str(),
-                   util::VariantToJson(data).c_str());
+          logger_->LogDebug("%s Reset connection with unknown host: %s",
+                            log_id_.c_str(), util::VariantToJson(data).c_str());
           OnReset("");
         }
       } else if (messageType == kServerControlMessageHello) {
@@ -382,37 +388,38 @@ void Connection::OnControlMessage(const Variant& data) {
         if (itHandshake != data_map.end()) {
           OnHandshake(itHandshake->second);
         } else {
-          LogDebug("%s Handshake received with no data: %s", log_id_.c_str(),
-                   util::VariantToJson(data).c_str());
+          logger_->LogDebug("%s Handshake received with no data: %s",
+                            log_id_.c_str(), util::VariantToJson(data).c_str());
           OnHandshake(Variant());
         }
       } else if (messageType == kServerControlMessageError) {
         auto itError = data_map.find(kServerControlMessageData);
         if (itError != data_map.end() && itError->second.is_string()) {
-          LogError("%s Error control message: %s", log_id_.c_str(),
-                   itError->second.string_value());
+          logger_->LogError("%s Error control message: %s", log_id_.c_str(),
+                            itError->second.string_value());
         } else {
-          LogError("%s Error control message with no data", log_id_.c_str());
+          logger_->LogError("%s Error control message with no data",
+                            log_id_.c_str());
         }
       } else {
-        LogDebug("%s Ignore unknown control message type: %s", log_id_.c_str(),
-                 messageType.c_str());
+        logger_->LogDebug("%s Ignore unknown control message type: %s",
+                          log_id_.c_str(), messageType.c_str());
       }
     } else {
-      LogDebug("%s Fail to parse control message: %s", log_id_.c_str(),
-               util::VariantToJson(data).c_str());
+      logger_->LogDebug("%s Fail to parse control message: %s", log_id_.c_str(),
+                        util::VariantToJson(data).c_str());
       Close(kDisconnectReasonProtocolError);
     }
   } else {
-    LogDebug("%s Got invalid control message: %s", log_id_.c_str(),
-             util::VariantToJson(data).c_str());
+    logger_->LogDebug("%s Got invalid control message: %s", log_id_.c_str(),
+                      util::VariantToJson(data).c_str());
     Close(kDisconnectReasonProtocolError);
   }
 }
 
 void Connection::OnConnectionShutdown(const std::string& reason) {
-  LogDebug("%s Connection shutdown command received. Shutting down...",
-           log_id_.c_str());
+  logger_->LogDebug("%s Connection shutdown command received. Shutting down...",
+                    log_id_.c_str());
 
   event_handler_->OnKill(reason);
 
@@ -427,7 +434,8 @@ void Connection::OnHandshake(const Variant& handshake) {
   if (itTimestamp != data_map.end()) {
     timestamp = itTimestamp->second.int64_value();
   } else {
-    LogDebug("%s No timestamp from handshake message", log_id_.c_str());
+    logger_->LogDebug("%s No timestamp from handshake message",
+                      log_id_.c_str());
   }
 
   std::string host;
@@ -435,7 +443,7 @@ void Connection::OnHandshake(const Variant& handshake) {
   if (itHost != data_map.end()) {
     host = itHost->second.string_value();
   } else {
-    LogDebug("%s No host uri from handshake message", log_id_.c_str());
+    logger_->LogDebug("%s No host uri from handshake message", log_id_.c_str());
   }
 
   event_handler_->OnCacheHost(host);
@@ -445,7 +453,8 @@ void Connection::OnHandshake(const Variant& handshake) {
   if (itSession != data_map.end()) {
     sessionId = itSession->second.string_value();
   } else {
-    LogDebug("%s No session id from handshake message", log_id_.c_str());
+    logger_->LogDebug("%s No session id from handshake message",
+                      log_id_.c_str());
   }
 
   if (state_ == kStateConnecting) {
@@ -455,7 +464,7 @@ void Connection::OnHandshake(const Variant& handshake) {
 
 void Connection::OnConnectionReady(int64_t timestamp,
                                    const std::string& sessionId) {
-  LogDebug("%s Connection established", log_id_.c_str());
+  logger_->LogDebug("%s Connection established", log_id_.c_str());
 
   state_ = kStateReady;
 
@@ -463,7 +472,7 @@ void Connection::OnConnectionReady(int64_t timestamp,
 }
 
 void Connection::OnReset(const std::string& host) {
-  LogDebug(
+  logger_->LogDebug(
       "%s Got a reset; killing connection to %s; Updateing internalHost to %s",
       log_id_.c_str(), host_info_.GetHost().c_str(), host.c_str());
 

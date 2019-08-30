@@ -13,12 +13,13 @@
 // limitations under the License.
 
 #include "database/src/android/query_android.h"
-#include "database/src/common/query.h"
 
 #include <jni.h>
+
 #include "app/src/util_android.h"
 #include "database/src/android/database_android.h"
 #include "database/src/android/database_reference_android.h"
+#include "database/src/common/query.h"
 #include "database/src/common/query_spec.h"
 
 namespace firebase {
@@ -270,8 +271,9 @@ QueryInternal* QueryInternal::LimitToLast(size_t limit) {
 }
 
 QueryInternal* QueryInternal::StartAt(Variant value) {
+  Logger* logger = db_->logger();
   if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    LogWarning(
+    logger->LogWarning(
         "Query::StartAt(): Only strings, numbers, and boolean values are "
         "allowed. (URL = %s)",
         query_spec_.path.c_str());
@@ -304,8 +306,9 @@ QueryInternal* QueryInternal::StartAt(Variant value) {
 }
 
 QueryInternal* QueryInternal::StartAt(Variant value, const char* key) {
+  Logger* logger = db_->logger();
   if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    LogWarning(
+    logger->LogWarning(
         "Query::StartAt: Only strings, numbers, and boolean values are "
         "allowed. (URL = %s)",
         query_spec_.path.c_str());
@@ -344,8 +347,9 @@ QueryInternal* QueryInternal::StartAt(Variant value, const char* key) {
 }
 
 QueryInternal* QueryInternal::EndAt(Variant value) {
+  Logger* logger = db_->logger();
   if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    LogWarning(
+    logger->LogWarning(
         "Query::EndAt: Only strings, numbers, and boolean values are "
         "allowed. (URL = %s)",
         query_spec_.path.c_str());
@@ -378,8 +382,9 @@ QueryInternal* QueryInternal::EndAt(Variant value) {
 }
 
 QueryInternal* QueryInternal::EndAt(Variant value, const char* key) {
+  Logger* logger = db_->logger();
   if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    LogWarning(
+    logger->LogWarning(
         "Query::EndAt: Only strings, numbers, and boolean values are "
         "allowed. (URL = %s)",
         query_spec_.path.c_str());
@@ -418,8 +423,9 @@ QueryInternal* QueryInternal::EndAt(Variant value, const char* key) {
 }
 
 QueryInternal* QueryInternal::EqualTo(Variant value) {
+  Logger* logger = db_->logger();
   if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    LogWarning(
+    logger->LogWarning(
         "Query::EqualTo: Only strings, numbers, and boolean values are "
         "allowed. (URL = %s)",
         query_spec_.path.c_str());
@@ -452,8 +458,9 @@ QueryInternal* QueryInternal::EqualTo(Variant value) {
 }
 
 QueryInternal* QueryInternal::EqualTo(Variant value, const char* key) {
+  Logger* logger = db_->logger();
   if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    LogWarning(
+    logger->LogWarning(
         "Query::EqualTo: Only strings, numbers, and boolean values are "
         "allowed. (URL = %s)",
         query_spec_.path.c_str());
@@ -574,7 +581,8 @@ void QueryInternal::AddValueListener(ValueListener* value_listener) {
                        "Query::AddValueListener (URL = %s) failed",
                        query_spec_.path.c_str());
   } else {
-    LogWarning(
+    Logger* logger = db_->logger();
+    logger->LogWarning(
         "Query::AddValueListener (URL = %s): You may not register the same "
         "ValueListener more than once on the same Query.",
         query_spec_.path.c_str());
@@ -622,7 +630,8 @@ void QueryInternal::AddChildListener(ChildListener* child_listener) {
                        "Query::AddChildListener (URL = %s) failed",
                        query_spec_.path.c_str());
   } else {
-    LogWarning(
+    Logger* logger = db_->logger();
+    logger->LogWarning(
         "Query::AddChildListener (URL = %s): You may not register the same "
         "ChildListener more than once on the same Query.",
         query_spec_.path.c_str());

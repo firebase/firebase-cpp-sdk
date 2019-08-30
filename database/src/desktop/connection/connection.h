@@ -20,6 +20,7 @@
 #include "app/memory/atomic.h"
 #include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/variant.h"
+#include "app/src/logger.h"
 #include "app/src/safe_reference.h"
 #include "app/src/scheduler.h"
 #include "database/src/desktop/connection/host_info.h"
@@ -74,7 +75,7 @@ class Connection : public WebSocketClientEventHandler {
 
   explicit Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
                       const char* opt_last_session_id,
-                      ConnectionEventHandler* event_handler);
+                      ConnectionEventHandler* event_handler, Logger* logger);
   ~Connection() override;
 
   // Connection is neither copyable nor movable.
@@ -206,6 +207,8 @@ class Connection : public WebSocketClientEventHandler {
   // Incoming message buffer
   std::stringstream incoming_buffer_;
   uint32_t expected_incoming_frames_;
+
+  Logger* logger_;
 };
 
 // Event Handler interface for higher-level class to implement.

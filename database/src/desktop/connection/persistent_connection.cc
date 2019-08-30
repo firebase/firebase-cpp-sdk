@@ -102,7 +102,7 @@ std::string GetDebugQuerySpecString(const QuerySpec& query_spec) {
 PersistentConnection::PersistentConnection(
     App* app, const HostInfo& info,
     PersistentConnectionEventHandler* event_handler,
-    scheduler::Scheduler* scheduler)
+    scheduler::Scheduler* scheduler, Logger* logger)
     : app_(app),
       safe_this_(this),
       scheduler_(scheduler),
@@ -115,7 +115,8 @@ PersistentConnection::PersistentConnection(
       next_request_id_(0),
       force_auth_refresh_(false),
       next_listen_id_(0),
-      next_write_id_(0) {
+      next_write_id_(0),
+      logger_(logger) {
   assert(app);
   assert(scheduler);
   assert(event_handler_);
@@ -181,10 +182,11 @@ void PersistentConnection::OnReady(int64_t timestamp,
                                    const std::string& session_id) {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
 
-  LogDebug("%s OnReady", log_id_.c_str());
+  logger_->LogDebug("%s OnReady", log_id_.c_str());
 
   // Trigger OnServerInfoUpdate based on timestamp delta
-  LogDebug("%s Handle timestamp: %lld in ms", log_id_.c_str(), timestamp);
+  logger_->LogDebug("%s Handle timestamp: %lld in ms", log_id_.c_str(),
+                    timestamp);
   int64_t time_delta = timestamp - ::firebase::internal::GetTimestampEpoch();
   std::map<Variant, Variant> updates{
       std::make_pair(kDotInfoServerTimeOffset, time_delta),
@@ -195,7 +197,7 @@ void PersistentConnection::OnReady(int64_t timestamp,
   if (is_first_connection_) {
     Variant stats = Variant::EmptyMap();
     stats.map()[host_info_.web_socket_user_agent()] = 1;
-    LogDebug("%s Sending first connection stats", log_id_.c_str());
+    logger_->LogDebug("%s Sending first connection stats", log_id_.c_str());
     Variant request = Variant::EmptyMap();
     request.map()[kRequestCounters] = stats;
     SendSensitive(kRequestActionStats, false, request, ResponsePtr(),
@@ -204,18 +206,19 @@ void PersistentConnection::OnReady(int64_t timestamp,
   is_first_connection_ = false;
 
   // Restore Auth
-  LogDebug("%s calling restore state", log_id_.c_str());
+  logger_->LogDebug("%s calling restore state", log_id_.c_str());
   assert(connection_state_ == kConnecting);
 
   // Try to retrieve auth token synchronously when connection is ready.
   GetAuthToken(&auth_token_);
 
   if (auth_token_.empty()) {
-    LogDebug("%s Not restoring auth because token is null.", log_id_.c_str());
+    logger_->LogDebug("%s Not restoring auth because token is null.",
+                      log_id_.c_str());
     connection_state_ = kConnected;
     RestoreOutstandingRequests();
   } else {
-    LogDebug("%s Restoring auth", log_id_.c_str());
+    logger_->LogDebug("%s Restoring auth", log_id_.c_str());
     connection_state_ = kAuthenticating;
     // Only need to restore outstanding if it is sent from OnReady() since
     // all the request are deferred for auth message
@@ -236,8 +239,8 @@ void PersistentConnection::HandleConnectStatsResponse(
     auto error = GetStringValue(message, kServerDataUpdateBody, true);
 
     if (LogGetLevel() > kLogLevelInfo) {
-      LogDebug("%s Failed to send stats: %s  (message: %s)", log_id_.c_str(),
-               status.c_str(), error.c_str());
+      logger_->LogDebug("%s Failed to send stats: %s  (message: %s)",
+                        log_id_.c_str(), status.c_str(), error.c_str());
     }
   }
 }
@@ -264,7 +267,8 @@ void PersistentConnection::OnDataMessage(const Variant& message) {
       auto it_response_message = message.map().find(kResponseForRequest);
       assert(it_response_message != message.map().end());
       if (it_response_message != message.map().end()) {
-        LogDebug("%s Trigger handler for request %llu", log_id_.c_str(), rn);
+        logger_->LogDebug("%s Trigger handler for request %llu",
+                          log_id_.c_str(), rn);
         if (request_ptr->callback) {
           (*this.*request_ptr->callback)(it_response_message->second,
                                          request_ptr->response,
@@ -273,28 +277,28 @@ void PersistentConnection::OnDataMessage(const Variant& message) {
       }
     }
   } else if (HasKey(message, kRequestError)) {
-    LogError("%s Received Error Data Message: %s", log_id_.c_str(),
-             GetStringValue(message, kRequestError, true).c_str());
+    logger_->LogError("%s Received Error Data Message: %s", log_id_.c_str(),
+                      GetStringValue(message, kRequestError, true).c_str());
   } else if (HasKey(message, kServerAsyncAction)) {
     auto* action = GetInternalVariant(&message, kServerAsyncAction);
     if (!action || !action->is_string())
-      LogError("Received Server Async Action is not a string.");
+      logger_->LogError("Received Server Async Action is not a string.");
 
     auto* body = GetInternalVariant(&message, kServerAsyncPayload);
     if (action && body) {
       OnDataPush(action->string_value(), *body);
     }
   } else {
-    LogDebug("%s Ignoring unknown message: %s", log_id_.c_str(),
-             util::VariantToJson(message).c_str());
+    logger_->LogDebug("%s Ignoring unknown message: %s", log_id_.c_str(),
+                      util::VariantToJson(message).c_str());
   }
 }
 
 void PersistentConnection::OnDisconnect(Connection::DisconnectReason reason) {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
 
-  LogDebug("%s Got on disconnect due to %d", log_id_.c_str(),
-           static_cast<int>(reason));
+  logger_->LogDebug("%s Got on disconnect due to %d", log_id_.c_str(),
+                    static_cast<int>(reason));
 
   connection_state_ = kDisconnected;
   realtime_.reset(nullptr);
@@ -304,7 +308,7 @@ void PersistentConnection::OnDisconnect(Connection::DisconnectReason reason) {
   // TODO(chkuang): Implement Idle Check
   // this.hasOnDisconnects = false;
   //  if (inactivityTimer != null) {
-  //    LogDebug("%s cancelling idle time checker", log_id_.c_str());
+  //    logger_->LogDebug("%s cancelling idle time checker", log_id_.c_str());
   //    inactivityTimer.Cancel();
   //  }
 
@@ -321,7 +325,7 @@ void PersistentConnection::OnDisconnect(Connection::DisconnectReason reason) {
 void PersistentConnection::OnKill(const std::string& reason) {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
 
-  LogDebug(
+  logger_->LogDebug(
       "%s Firebase Database connection was forcefully killed by the server. "
       "Will not attempt reconnect. Reason: %s",
       log_id_.c_str(), reason.c_str());
@@ -352,8 +356,8 @@ void PersistentConnection::Listen(const QuerySpec& query_spec,
                                   const Optional<int64_t>& tag,
                                   ResponsePtr response) {
   CheckAuthTokenAndSendOnChange();
-  LogDebug("%s Listening on %s", log_id_.c_str(),
-           GetDebugQuerySpecString(query_spec).c_str());
+  logger_->LogDebug("%s Listening on %s", log_id_.c_str(),
+                    GetDebugQuerySpecString(query_spec).c_str());
 
   FIREBASE_DEV_ASSERT_MESSAGE(listens_.find(query_spec) == listens_.end(),
                               "Listen() called twice for same QuerySpec.");
@@ -375,8 +379,8 @@ void PersistentConnection::Listen(const QuerySpec& query_spec,
 
 void PersistentConnection::Unlisten(const QuerySpec& query_spec) {
   CheckAuthTokenAndSendOnChange();
-  LogDebug("%s Unlisten on %s", log_id_.c_str(),
-           GetDebugQuerySpecString(query_spec).c_str());
+  logger_->LogDebug("%s Unlisten on %s", log_id_.c_str(),
+                    GetDebugQuerySpecString(query_spec).c_str());
 
   OutstandingListenPtr listen = Move(RemoveListen(query_spec));
 
@@ -472,8 +476,8 @@ bool PersistentConnection::IsInterrupted() {
 }
 
 void PersistentConnection::InterruptInternal(InterruptReason reason) {
-  LogDebug("%s Connection interrupted for: %d", log_id_.c_str(),
-           static_cast<int>(reason));
+  logger_->LogDebug("%s Connection interrupted for: %d", log_id_.c_str(),
+                    static_cast<int>(reason));
 
   interrupt_reasons_.insert(reason);
 
@@ -490,8 +494,8 @@ void PersistentConnection::InterruptInternal(InterruptReason reason) {
 }
 
 void PersistentConnection::ResumeInternal(InterruptReason reason) {
-  LogDebug("%s Connection no longer interrupted for: %d", log_id_.c_str(),
-           static_cast<int>(reason));
+  logger_->LogDebug("%s Connection no longer interrupted for: %d",
+                    log_id_.c_str(), static_cast<int>(reason));
 
   interrupt_reasons_.erase(reason);
 
@@ -508,11 +512,11 @@ void PersistentConnection::TryScheduleReconnect() {
   assert(connection_state_ == kDisconnected);
   bool force_refresh = force_auth_refresh_;
   force_auth_refresh_ = false;
-  LogDebug("%s Scheduling connection attempt", log_id_.c_str());
+  logger_->LogDebug("%s Scheduling connection attempt", log_id_.c_str());
 
   // TODO(chkuang): Implement Exponential Backoff Retry
   connection_state_ = kGettingToken;
-  LogDebug("%s Trying to fetch auth token", log_id_.c_str());
+  logger_->LogDebug("%s Trying to fetch auth token", log_id_.c_str());
 
   // Get Token Asynchronously to make sure the token is not expired.
   Future<std::string> future;
@@ -558,21 +562,21 @@ void PersistentConnection::OnTokenFutureComplete(
 void PersistentConnection::HandleTokenFuture(Future<std::string> future) {
   if (future.error() == 0) {
     if (connection_state_ == kGettingToken) {
-      LogDebug("%s Successfully fetched token, opening connection",
-               log_id_.c_str());
+      logger_->LogDebug("%s Successfully fetched token, opening connection",
+                        log_id_.c_str());
       auth_token_ = *future.result();
       OpenNetworkConnection();
     } else {
       assert(connection_state_ == kDisconnected);
-      LogDebug(
+      logger_->LogDebug(
           "%s Not opening connection after token refresh, because "
           "connection was set to disconnected",
           log_id_.c_str());
     }
   } else {
     connection_state_ = kDisconnected;
-    LogDebug("%s Error fetching token: %s", log_id_.c_str(),
-             future.error_message());
+    logger_->LogDebug("%s Error fetching token: %s", log_id_.c_str(),
+                      future.error_message());
     TryScheduleReconnect();
   }
 }
@@ -591,7 +595,8 @@ void PersistentConnection::OpenNetworkConnection() {
 
   realtime_ = MakeUnique<Connection>(
       scheduler_, host_info_,
-      last_session_id_.empty() ? nullptr : last_session_id_.c_str(), this);
+      last_session_id_.empty() ? nullptr : last_session_id_.c_str(), this,
+      logger_);
   realtime_->Open();
 }
 
@@ -635,22 +640,23 @@ void PersistentConnection::HandleListenResponse(const Variant& message,
                                                 uint64_t listen_id) {
   auto it_spec = listen_id_to_query_.find(listen_id);
   if (it_spec == listen_id_to_query_.end()) {
-    LogDebug("%s Listen Id has been removed.  Do nothing. response: %s",
-             log_id_.c_str(), util::VariantToJson(message).c_str());
+    logger_->LogDebug(
+        "%s Listen Id has been removed.  Do nothing. response: %s",
+        log_id_.c_str(), util::VariantToJson(message).c_str());
     return;
   }
 
   auto it_listen = listens_.find(it_spec->second);
   if (it_listen == listens_.end()) {
-    LogDebug(
+    logger_->LogDebug(
         "%s Listen Request for %s has been removed.  Do nothing. response: %s",
         log_id_.c_str(), GetDebugQuerySpecString(it_spec->second).c_str(),
         util::VariantToJson(message).c_str());
     return;
   }
 
-  LogDebug("%s Listen response: %s", log_id_.c_str(),
-           util::VariantToJson(message).c_str());
+  logger_->LogDebug("%s Listen response: %s", log_id_.c_str(),
+                    util::VariantToJson(message).c_str());
 
   std::string status_string = GetStringValue(message, kRequestStatus);
   Error error_code = StatusStringToErrorCode(status_string);
@@ -686,7 +692,7 @@ void PersistentConnection::WarnOnListenerWarnings(const Variant& warnings,
       Variant wire_protocol = GetWireProtocolParams(query_spec.params);
       const Variant* index_on =
           GetInternalVariant(&wire_protocol, Variant("i"));
-      LogWarning(
+      logger_->LogWarning(
           "%s Using an unspecified index. Consider adding '\".indexOn\": "
           "\"%s\"' at %s to your security and Firebase Database rules for "
           "better performance",
@@ -701,12 +707,12 @@ void PersistentConnection::WarnOnListenerWarnings(const Variant& warnings,
 
 PersistentConnection::OutstandingListenPtr PersistentConnection::RemoveListen(
     const QuerySpec& query_spec) {
-  LogDebug("%s Removing query ", log_id_.c_str(),
-           GetDebugQuerySpecString(query_spec).c_str());
+  logger_->LogDebug("%s Removing query ", log_id_.c_str(),
+                    GetDebugQuerySpecString(query_spec).c_str());
 
   auto it_listen = listens_.find(query_spec);
   if (it_listen == listens_.end()) {
-    LogDebug(
+    logger_->LogDebug(
         "%s Trying to remove listener for QuerySpec %s but no listener exists.",
         log_id_.c_str(), GetDebugQuerySpecString(query_spec).c_str());
     return OutstandingListenPtr();
@@ -720,24 +726,25 @@ PersistentConnection::OutstandingListenPtr PersistentConnection::RemoveListen(
 
 void PersistentConnection::OnDataPush(const std::string& action,
                                       const Variant& body) {
-  LogDebug("%s handleServerMessage %s %s", log_id_.c_str(), action.c_str(),
-           util::VariantToJson(body).c_str());
+  logger_->LogDebug("%s handleServerMessage %s %s", log_id_.c_str(),
+                    action.c_str(), util::VariantToJson(body).c_str());
 
   if (action == kServerAsyncDataUpdate || action == kServerAsyncDataMerge) {
     bool is_merge = action.compare(kServerAsyncDataMerge) == 0;
     auto* path_variant = GetInternalVariant(&body, kServerDataUpdatePath);
     if (!path_variant)
-      LogError("Received path from Server Async Action is missing.");
+      logger_->LogError("Received path from Server Async Action is missing.");
     auto* payload_data = GetInternalVariant(&body, kServerDataUpdateBody);
     if (!payload_data)
-      LogError("Received payload data from Server Async Action is missing.");
+      logger_->LogError(
+          "Received payload data from Server Async Action is missing.");
     auto* tag_variant = GetInternalVariant(&body, kServerDataTag);
 
     // Ignore empty merges
     if (is_merge && payload_data != nullptr && payload_data->is_map() &&
         payload_data->map().empty()) {
-      LogDebug("%s ignoring empty merge for path %s", log_id_.c_str(),
-               path_variant->AsString().string_value());
+      logger_->LogDebug("%s ignoring empty merge for path %s", log_id_.c_str(),
+                        path_variant->AsString().string_value());
     } else {
       Path path(path_variant->AsString().string_value());
       event_handler_->OnDataUpdate(
@@ -763,11 +770,12 @@ void PersistentConnection::OnDataPush(const std::string& action,
   } else if (action.compare(kServerAsyncSecurityDebug) == 0) {
     auto* msg = GetInternalVariant(&body, "msg");
     if (msg) {
-      LogInfo("%s %s", log_id_.c_str(), util::VariantToJson(*msg).c_str());
+      logger_->LogInfo("%s %s", log_id_.c_str(),
+                       util::VariantToJson(*msg).c_str());
     }
   } else {
-    LogDebug("%s Unrecognized action from server: %s", log_id_.c_str(),
-             util::VariantToJson(action).c_str());
+    logger_->LogDebug("%s Unrecognized action from server: %s", log_id_.c_str(),
+                      util::VariantToJson(action).c_str());
   }
 }
 
@@ -831,8 +839,9 @@ void PersistentConnection::HandlePutResponse(const Variant& message,
   auto it_put = outstanding_puts_.find(outstanding_id);
   if (it_put != outstanding_puts_.end()) {
     auto& put_ptr = it_put->second;
-    LogDebug("%s %s response: %s", log_id_.c_str(), put_ptr->action.c_str(),
-             util::VariantToJson(message).c_str());
+    logger_->LogDebug("%s %s response: %s", log_id_.c_str(),
+                      put_ptr->action.c_str(),
+                      util::VariantToJson(message).c_str());
     std::string status_string = GetStringValue(message, kRequestStatus);
     Error error_code = StatusStringToErrorCode(status_string);
     bool is_ok = error_code == kErrorNone;
@@ -842,7 +851,7 @@ void PersistentConnection::HandlePutResponse(const Variant& message,
         is_ok ? "" : GetStringValue(message, kServerDataUpdateBody, true));
     outstanding_puts_.erase(it_put);
   } else {
-    LogDebug(
+    logger_->LogDebug(
         "%s Ignore on complete for put (%llu) because it was removed already.",
         log_id_.c_str(), outstanding_id);
   }
@@ -917,10 +926,11 @@ void PersistentConnection::RestoreOutstandingRequests() {
   assert(connection_state_ == kConnected);
 
   // Restore listens
-  LogDebug("%s Restoring outstanding listens", log_id_.c_str());
+  logger_->LogDebug("%s Restoring outstanding listens", log_id_.c_str());
   for (auto& it_listen : listens_) {
-    LogDebug("%s Restoring listen %s", log_id_.c_str(),
-             GetDebugQuerySpecString(it_listen.second->query_spec).c_str());
+    logger_->LogDebug(
+        "%s Restoring listen %s", log_id_.c_str(),
+        GetDebugQuerySpecString(it_listen.second->query_spec).c_str());
     SendListen(*it_listen.second);
   }
 
@@ -982,7 +992,7 @@ class SendAuthResponse : public Response {
 
 void PersistentConnection::SendAuthToken(const std::string& token,
                                          bool restore_outstanding_on_response) {
-  LogDebug("%s Sending auth token", log_id_.c_str());
+  logger_->LogDebug("%s Sending auth token", log_id_.c_str());
   Variant request = Variant::EmptyMap();
   request.map()[kRequestCredential] = token;
   SendSensitive(kRequestActionAuth, true, request,
@@ -991,7 +1001,7 @@ void PersistentConnection::SendAuthToken(const std::string& token,
 }
 
 void PersistentConnection::SendUnauth() {
-  LogDebug("%s Sending unauth", log_id_.c_str());
+  logger_->LogDebug("%s Sending unauth", log_id_.c_str());
   SendSensitive(kRequestActionUnauth, false, Variant::EmptyMap(), ResponsePtr(),
                 nullptr, 0);
 }
@@ -1008,7 +1018,7 @@ void PersistentConnection::HandleAuthTokenResponse(const Variant& message,
   if (status == kRequestStatusOk) {
     invalid_auth_token_count = 0;
     event_handler_->OnAuthStatus(true);
-    LogDebug("%s Authentication success", log_id_.c_str());
+    logger_->LogDebug("%s Authentication success", log_id_.c_str());
 
     SendAuthResponse* send_auth_response =
         static_cast<SendAuthResponse*>(response.get());
@@ -1022,8 +1032,8 @@ void PersistentConnection::HandleAuthTokenResponse(const Variant& message,
     event_handler_->OnAuthStatus(false);
 
     std::string reason = GetStringValue(message, kServerResponseData);
-    LogDebug("%s Authentication failed: %s (%s)", log_id_.c_str(),
-             status.c_str(), reason.c_str());
+    logger_->LogDebug("%s Authentication failed: %s (%s)", log_id_.c_str(),
+                      status.c_str(), reason.c_str());
     realtime_->Close();
 
     Error error = StatusStringToErrorCode(status);
@@ -1037,7 +1047,7 @@ void PersistentConnection::HandleAuthTokenResponse(const Variant& message,
       if (invalid_auth_token_count >= kInvalidAuthTokenThreshold) {
         // TODO(chkuang): Maximize retry interval (after retry is properly
         //                implemented).
-        LogWarning(
+        logger_->LogWarning(
             "Provided authentication credentials are invalid. This indicates "
             "your FirebaseApp instance was not initialized correctly. Make "
             "sure your google-services.json file has the correct firebase_url "
@@ -1053,8 +1063,8 @@ void PersistentConnection::OnAuthRevoked(Error error_code,
   // This might be for an earlier token than we just recently sent. But since we
   // need to close the connection anyways, we can set it to null here and we
   // will refresh the token later on reconnect.
-  LogDebug("%s Auth token revoked: %i (%s)", log_id_.c_str(), error_code,
-           reason.c_str());
+  logger_->LogDebug("%s Auth token revoked: %i (%s)", log_id_.c_str(),
+                    error_code, reason.c_str());
   auth_token_ = "";
   force_auth_refresh_ = true;
   event_handler_->OnAuthStatus(false);

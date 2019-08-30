@@ -16,10 +16,12 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_REST_INTERFACE_H_
 
 #include <string>
+
 #include "app/rest/controller_interface.h"
 #include "app/rest/response.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"
+#include "app/src/logger.h"
 #include "app/src/path.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/semaphore.h"

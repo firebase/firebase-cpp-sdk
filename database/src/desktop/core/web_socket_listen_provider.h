@@ -27,8 +27,12 @@ namespace internal {
 class WebSocketListenProvider : public ListenProvider {
  public:
   WebSocketListenProvider(Repo* repo,
-                          connection::PersistentConnection* connection)
-      : repo_(repo), sync_tree_(nullptr), connection_(connection) {}
+                          connection::PersistentConnection* connection,
+                          Logger* logger)
+      : repo_(repo),
+        sync_tree_(nullptr),
+        connection_(connection),
+        logger_(logger) {}
 
   ~WebSocketListenProvider() override {}
 
@@ -42,6 +46,7 @@ class WebSocketListenProvider : public ListenProvider {
   Repo* repo_;
   SyncTree* sync_tree_;
   connection::PersistentConnection* connection_;
+  Logger* logger_;
 };
 
 }  // namespace internal

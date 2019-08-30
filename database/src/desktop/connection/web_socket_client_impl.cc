@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include "database/src/desktop/connection/web_socket_client_impl.h"
+
 #include <cassert>
+
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
@@ -27,7 +29,7 @@ namespace internal {
 namespace connection {
 
 WebSocketClientImpl::WebSocketClientImpl(
-    const std::string& uri, const std::string& user_agent,
+    const std::string& uri, const std::string& user_agent, Logger* logger,
     WebSocketClientEventHandler* handler /*=nullptr*/)
     : uri_(uri),
       handler_(handler),
@@ -39,7 +41,8 @@ WebSocketClientImpl::WebSocketClientImpl(
       callback_queue_mutex_(Mutex::kModeNonRecursive),
       is_destructing_(0),
       websocket_(nullptr),
-      user_agent_(user_agent) {
+      user_agent_(user_agent),
+      logger_(logger) {
   // Bind callback function
   hub_.onError(WebSocketClientImpl::OnError);
   hub_.onConnection(WebSocketClientImpl::OnConnection);
@@ -81,10 +84,11 @@ WebSocketClientImpl::WebSocketClientImpl(
 void WebSocketClientImpl::EventLoopRoutine(void* data) {
   assert(data != nullptr);
   WebSocketClientImpl* client = static_cast<WebSocketClientImpl*>(data);
+  Logger* logger = client->logger_;
 
-  LogDebug("=== uWebSockets Event Loop Start ===");
+  logger->LogDebug("=== uWebSockets Event Loop Start ===");
   client->hub_.run();
-  LogDebug("=== uWebSockets Event Loop End ===");
+  logger->LogDebug("=== uWebSockets Event Loop End ===");
 }
 
 WebSocketClientImpl::~WebSocketClientImpl() {
@@ -111,14 +115,15 @@ WebSocketClientImpl::~WebSocketClientImpl() {
 void WebSocketClientImpl::Connect(int timeout_ms) {
   ScheduleOnce(
       [](WebSocketClientImpl* client, int timeout_ms, const std::string&) {
+        Logger* logger = client->logger_;
         if (client->websocket_ == nullptr) {
           std::map<std::string, std::string> headers;
           headers["User-Agent"] = client->user_agent_;
           headers[app_common::kApiClientHeader] = App::GetUserAgent();
           client->hub_.connect(client->uri_, client, headers, timeout_ms);
         } else {
-          LogWarning("websocket has already been connected to %s",
-                     client->uri_.c_str());
+          logger->LogWarning("websocket has already been connected to %s",
+                             client->uri_.c_str());
         }
       },
       timeout_ms, "");
@@ -141,10 +146,12 @@ void WebSocketClientImpl::Send(const char* msg) {
 
   ScheduleOnce(
       [](WebSocketClientImpl* client, int, const std::string& msg) {
+        Logger* logger = client->logger_;
         if (client->IsWebSocketAvailable()) {
           client->websocket_->send(msg.c_str());
         } else {
-          LogWarning("Cannot send message.  websocket is not available");
+          logger->LogWarning(
+              "Cannot send message.  websocket is not available");
         }
       },
       0, msg);
@@ -153,6 +160,7 @@ void WebSocketClientImpl::Send(const char* msg) {
 void WebSocketClientImpl::OnError(void* data) {
   assert(data != nullptr);
   WebSocketClientImpl* client = static_cast<WebSocketClientImpl*>(data);
+  Logger* logger = client->logger_;
 
   if (client->handler_) {
     // TODO(b/71873743): Modify uWebSockets to provide more context, ex. reasons
@@ -160,8 +168,8 @@ void WebSocketClientImpl::OnError(void* data) {
     client->handler_->OnError(error);
   }
 
-  LogDebug("Error occurred while establishing connection to %s",
-           client->uri_.c_str());
+  logger->LogDebug("Error occurred while establishing connection to %s",
+                   client->uri_.c_str());
 }
 
 void WebSocketClientImpl::OnConnection(ClientWebSocket* ws,

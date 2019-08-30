@@ -44,7 +44,7 @@ namespace internal {
 
 // This method validates that key index has been called with the correct
 // combination of parameters
-static bool ValidateQueryEndpoints(const QueryParams& params) {
+static bool ValidateQueryEndpoints(const QueryParams& params, Logger* logger) {
   if (params.order_by == QueryParams::kOrderByKey) {
     const char message[] =
         "You must use StartAt(String value), EndAt(String value) or "
@@ -55,7 +55,7 @@ static bool ValidateQueryEndpoints(const QueryParams& params) {
       std::string start_name = GetStartName(params);
       if ((start_name != QueryParamsComparator::kMinKey) ||
           !(start_node.is_string())) {
-        LogWarning(message);
+        logger->LogWarning(message);
         return false;
       }
     }
@@ -64,7 +64,7 @@ static bool ValidateQueryEndpoints(const QueryParams& params) {
       std::string end_name = GetEndName(params);
       if ((end_name != QueryParamsComparator::kMaxKey) ||
           !(end_node.is_string())) {
-        LogWarning(message);
+        logger->LogWarning(message);
         return false;
       }
     }
@@ -72,7 +72,7 @@ static bool ValidateQueryEndpoints(const QueryParams& params) {
     if (params.order_by == QueryParams::kOrderByPriority) {
       if ((HasStart(params) && !IsValidPriority(GetStartValue(params))) ||
           (HasEnd(params) && !IsValidPriority(GetEndValue(params)))) {
-        LogWarning(
+        logger->LogWarning(
             "When using orderByPriority(), values provided to "
             "StartAt(), EndAt(), or EqualTo() must be valid "
             "priorities.");
@@ -287,20 +287,21 @@ QueryInternal* QueryInternal::OrderByValue() {
 }
 
 QueryInternal* QueryInternal::StartAt(const Variant& value) {
+  Logger* logger = database_->logger();
   if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    LogWarning(
+    logger->LogWarning(
         "Query::StartAt(): Only strings, numbers, and boolean values are "
         "allowed. (URL = %s)",
         query_spec_.path.c_str());
     return nullptr;
   }
   if (HasStart(query_spec_.params)) {
-    LogWarning("Can't Call StartAt() or EqualTo() multiple times");
+    logger->LogWarning("Can't Call StartAt() or EqualTo() multiple times");
     return nullptr;
   }
   QuerySpec spec = query_spec_;
   spec.params.start_at_value = value;
-  if (!ValidateQueryEndpoints(spec.params)) {
+  if (!ValidateQueryEndpoints(spec.params, database_->logger())) {
     return nullptr;
   }
   return new QueryInternal(database_, spec);
@@ -308,8 +309,9 @@ QueryInternal* QueryInternal::StartAt(const Variant& value) {
 
 QueryInternal* QueryInternal::StartAt(const Variant& value,
                                       const char* child_key) {
+  Logger* logger = database_->logger();
   if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    LogWarning(
+    logger->LogWarning(
         "Query::StartAt: Only strings, numbers, and boolean values are "
         "allowed. (URL = %s)",
         query_spec_.path.c_str());
@@ -319,27 +321,28 @@ QueryInternal* QueryInternal::StartAt(const Variant& value,
   QuerySpec spec = query_spec_;
   spec.params.start_at_value = value;
   spec.params.start_at_child_key = child_key;
-  if (!ValidateQueryEndpoints(spec.params)) {
+  if (!ValidateQueryEndpoints(spec.params, database_->logger())) {
     return nullptr;
   }
   return new QueryInternal(database_, spec);
 }
 
 QueryInternal* QueryInternal::EndAt(const Variant& value) {
+  Logger* logger = database_->logger();
   if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    LogWarning(
+    logger->LogWarning(
         "Query::EndAt: Only strings, numbers, and boolean values are "
         "allowed. (URL = %s)",
         query_spec_.path.c_str());
     return nullptr;
   }
   if (HasEnd(query_spec_.params)) {
-    LogWarning("Can't Call EndAt() or EqualTo() multiple times");
+    logger->LogWarning("Can't Call EndAt() or EqualTo() multiple times");
     return nullptr;
   }
   QuerySpec spec = query_spec_;
   spec.params.end_at_value = value;
-  if (!ValidateQueryEndpoints(spec.params)) {
+  if (!ValidateQueryEndpoints(spec.params, database_->logger())) {
     return nullptr;
   }
   return new QueryInternal(database_, spec);
@@ -347,8 +350,9 @@ QueryInternal* QueryInternal::EndAt(const Variant& value) {
 
 QueryInternal* QueryInternal::EndAt(const Variant& value,
                                     const char* child_key) {
+  Logger* logger = database_->logger();
   if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    LogWarning(
+    logger->LogWarning(
         "Query::EndAt: Only strings, numbers, and boolean values are "
         "allowed. (URL = %s)",
         query_spec_.path.c_str());
@@ -358,15 +362,16 @@ QueryInternal* QueryInternal::EndAt(const Variant& value,
   QuerySpec spec = query_spec_;
   spec.params.end_at_value = value;
   spec.params.end_at_child_key = child_key;
-  if (!ValidateQueryEndpoints(spec.params)) {
+  if (!ValidateQueryEndpoints(spec.params, database_->logger())) {
     return nullptr;
   }
   return new QueryInternal(database_, spec);
 }
 
 QueryInternal* QueryInternal::EqualTo(const Variant& value) {
+  Logger* logger = database_->logger();
   if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    LogWarning(
+    logger->LogWarning(
         "Query::EqualTo: Only strings, numbers, and boolean values are "
         "allowed. (URL = %s)",
         query_spec_.path.c_str());
@@ -374,7 +379,7 @@ QueryInternal* QueryInternal::EqualTo(const Variant& value) {
   }
   QuerySpec spec = query_spec_;
   spec.params.equal_to_value = value;
-  if (!ValidateQueryEndpoints(spec.params)) {
+  if (!ValidateQueryEndpoints(spec.params, database_->logger())) {
     return nullptr;
   }
   return new QueryInternal(database_, spec);
@@ -382,8 +387,9 @@ QueryInternal* QueryInternal::EqualTo(const Variant& value) {
 
 QueryInternal* QueryInternal::EqualTo(const Variant& value,
                                       const char* child_key) {
+  Logger* logger = database_->logger();
   if (!value.is_numeric() && !value.is_string() && !value.is_bool()) {
-    LogWarning(
+    logger->LogWarning(
         "Query::EqualTo: Only strings, numbers, and boolean values are "
         "allowed. (URL = %s)",
         query_spec_.path.c_str());
@@ -392,7 +398,7 @@ QueryInternal* QueryInternal::EqualTo(const Variant& value,
   QuerySpec spec = query_spec_;
   spec.params.equal_to_value = value;
   spec.params.equal_to_child_key = child_key;
-  if (!ValidateQueryEndpoints(spec.params)) {
+  if (!ValidateQueryEndpoints(spec.params, database_->logger())) {
     return nullptr;
   }
   return new QueryInternal(database_, spec);

@@ -17,6 +17,7 @@
 
 #include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/variant.h"
+#include "app/src/logger.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/compound_write.h"
@@ -31,7 +32,7 @@ class DatabaseInternal;
 
 class InMemoryPersistenceStorageEngine : public PersistenceStorageEngine {
  public:
-  InMemoryPersistenceStorageEngine();
+  explicit InMemoryPersistenceStorageEngine(Logger* logger);
 
   virtual ~InMemoryPersistenceStorageEngine();
 
@@ -166,6 +167,8 @@ class InMemoryPersistenceStorageEngine : public PersistenceStorageEngine {
 
   Variant server_cache_;
   bool inside_transaction_;
+
+  Logger* logger_;
 };
 
 }  // namespace internal

@@ -14,11 +14,12 @@
 
 #include "database/src/ios/database_ios.h"
 
+#include "app/src/app_common.h"
 #include "app/src/app_ios.h"
-#include "app/src/util.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/util.h"
 #include "database/src/include/firebase/database/database_reference.h"
 #include "database/src/ios/database_reference_ios.h"
 
@@ -29,30 +30,26 @@ namespace internal {
 Mutex g_database_reference_constructor_mutex;  // NOLINT
 
 DatabaseInternal::DatabaseInternal(App* app)
-    : app_(app), log_level_(kLogLevelInfo) {
+    : app_(app), logger_(app_common::FindAppLoggerByName(app->name())) {
   @try {
-    impl_.reset(new FIRDatabasePointer(
-        [FIRDatabase databaseForApp:app->GetPlatformApp()]));
+    impl_.reset(new FIRDatabasePointer([FIRDatabase databaseForApp:app->GetPlatformApp()]));
     query_lock_.reset(new NSRecursiveLockPointer([[NSRecursiveLock alloc] init]));
-  }
-  @catch (NSException* exception) {
-    LogError(
-      [[NSString stringWithFormat:@"Database::GetInstance(): %@", exception] UTF8String]);
+  } @catch (NSException* exception) {
+    logger_.LogError(
+        [[NSString stringWithFormat:@"Database::GetInstance(): %@", exception] UTF8String]);
     impl_ = MakeUnique<FIRDatabasePointer>(nil);
   }
 }
 
 DatabaseInternal::DatabaseInternal(App* app, const char* url)
-    : app_(app), constructor_url_(url), log_level_(kLogLevelInfo) {
+    : app_(app), constructor_url_(url), logger_(app_common::FindAppLoggerByName(app->name())) {
   @try {
-    impl_.reset(new FIRDatabasePointer(
-        [FIRDatabase databaseForApp:app->GetPlatformApp() URL:@(url)]));
+    impl_.reset(new FIRDatabasePointer([FIRDatabase databaseForApp:app->GetPlatformApp()
+                                                               URL:@(url)]));
     query_lock_.reset(new NSRecursiveLockPointer([[NSRecursiveLock alloc] init]));
-  }
-  @catch (NSException* exception) {
-    LogError(
-      [[NSString stringWithFormat:@"Database::GetInstance(%s): %@",
-          url, exception] UTF8String]);
+  } @catch (NSException* exception) {
+    logger_.LogError(
+        [[NSString stringWithFormat:@"Database::GetInstance(%s): %@", url, exception] UTF8String]);
     impl_ = MakeUnique<FIRDatabasePointer>(nil);
   }
 }
@@ -127,23 +124,20 @@ void DatabaseInternal::set_log_level(LogLevel log_level) {
       [FIRDatabase setLoggingEnabled:NO];
       break;
   }
-  log_level_ = log_level;
+  logger_.SetLogLevel(log_level);
 }
 
-LogLevel DatabaseInternal::log_level() const {
-  return log_level_;
-}
+LogLevel DatabaseInternal::log_level() const { return logger_.GetLogLevel(); }
 
-bool DatabaseInternal::RegisterValueListener(
-    const internal::QuerySpec& spec, ValueListener* listener,
-    FIRCPPDatabaseQueryCallbackState* callback_state) {
+bool DatabaseInternal::RegisterValueListener(const internal::QuerySpec& spec,
+                                             ValueListener* listener,
+                                             FIRCPPDatabaseQueryCallbackState* callback_state) {
   MutexLock lock(listener_mutex_);
   if (value_listeners_by_query_.Register(spec, listener)) {
     auto found = cleanup_value_listener_lookup_.find(listener);
     if (found == cleanup_value_listener_lookup_.end()) {
-      cleanup_value_listener_lookup_.insert(std::make_pair(
-          listener, FIRCPPDatabaseQueryCallbackStatePointer(
-              callback_state)));
+      cleanup_value_listener_lookup_.insert(
+          std::make_pair(listener, FIRCPPDatabaseQueryCallbackStatePointer(callback_state)));
     }
     return true;
   }
@@ -152,7 +146,7 @@ bool DatabaseInternal::RegisterValueListener(
 
 bool DatabaseInternal::UnregisterValueListener(const internal::QuerySpec& spec,
                                                ValueListener* listener,
-                                               FIRDatabaseQuery *query_impl) {
+                                               FIRDatabaseQuery* query_impl) {
   MutexLock lock(listener_mutex_);
   if (value_listeners_by_query_.Unregister(spec, listener)) {
     auto found = cleanup_value_listener_lookup_.find(listener);
@@ -166,7 +160,7 @@ bool DatabaseInternal::UnregisterValueListener(const internal::QuerySpec& spec,
 }
 
 void DatabaseInternal::UnregisterAllValueListeners(const internal::QuerySpec& spec,
-                                                   FIRDatabaseQuery *query_impl) {
+                                                   FIRDatabaseQuery* query_impl) {
   std::vector<ValueListener*> listeners;
   if (value_listeners_by_query_.Get(spec, &listeners)) {
     for (int i = 0; i < listeners.size(); i++) {
@@ -182,9 +176,8 @@ bool DatabaseInternal::RegisterChildListener(
   if (child_listeners_by_query_.Register(spec, listener)) {
     auto found = cleanup_child_listener_lookup_.find(listener);
     if (found == cleanup_child_listener_lookup_.end()) {
-      cleanup_child_listener_lookup_.insert(std::make_pair(
-          listener, FIRCPPDatabaseQueryCallbackStatePointer(
-              callback_state)));
+      cleanup_child_listener_lookup_.insert(
+          std::make_pair(listener, FIRCPPDatabaseQueryCallbackStatePointer(callback_state)));
     }
     return true;
   }
@@ -193,7 +186,7 @@ bool DatabaseInternal::RegisterChildListener(
 
 bool DatabaseInternal::UnregisterChildListener(const internal::QuerySpec& spec,
                                                ChildListener* listener,
-                                               FIRDatabaseQuery *query_impl) {
+                                               FIRDatabaseQuery* query_impl) {
   MutexLock lock(listener_mutex_);
   if (child_listeners_by_query_.Unregister(spec, listener)) {
     auto found = cleanup_child_listener_lookup_.find(listener);
@@ -207,7 +200,7 @@ bool DatabaseInternal::UnregisterChildListener(const internal::QuerySpec& spec,
 }
 
 void DatabaseInternal::UnregisterAllChildListeners(const internal::QuerySpec& spec,
-                                                   FIRDatabaseQuery *query_impl) {
+                                                   FIRDatabaseQuery* query_impl) {
   std::vector<ChildListener*> listeners;
   if (child_listeners_by_query_.Get(spec, &listeners)) {
     for (int i = 0; i < listeners.size(); i++) {

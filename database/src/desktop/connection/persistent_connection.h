@@ -104,7 +104,8 @@ class PersistentConnection : public ConnectionEventHandler {
 
   explicit PersistentConnection(App* app, const HostInfo& info,
                                 PersistentConnectionEventHandler* event_handler,
-                                scheduler::Scheduler* scheduler);
+                                scheduler::Scheduler* scheduler,
+                                Logger* logger);
   ~PersistentConnection();
 
   // PersistentConnection is neither copyable nor movable.
@@ -545,6 +546,8 @@ class PersistentConnection : public ConnectionEventHandler {
 
   // Next write id for put requests
   uint64_t next_write_id_;
+
+  Logger* logger_;
 };
 
 class PersistentConnectionEventHandler {

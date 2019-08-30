@@ -17,6 +17,7 @@
 #include <assert.h>
 #include <jni.h>
 
+#include "app/src/app_common.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
@@ -49,10 +50,10 @@ const char kApiIdentifier[] = "Database";
 // clang-format on
 METHOD_LOOKUP_DECLARATION(logger_level, LOGGER_LEVEL_METHODS)
 
-METHOD_LOOKUP_DEFINITION(
-    logger_level,
-    PROGUARD_KEEP_CLASS "com/google/firebase/database/Logger$Level",
-    LOGGER_LEVEL_METHODS)
+METHOD_LOOKUP_DEFINITION(logger_level,
+                         PROGUARD_KEEP_CLASS
+                         "com/google/firebase/database/Logger$Level",
+                         LOGGER_LEVEL_METHODS)
 
 // clang-format off
 #define FIREBASE_DATABASE_METHODS(X)                                    \
@@ -166,7 +167,8 @@ Mutex DatabaseInternal::init_mutex_;  // NOLINT
 int DatabaseInternal::initialize_count_ = 0;
 std::map<jint, Error>* DatabaseInternal::java_error_to_cpp_ = nullptr;
 
-DatabaseInternal::DatabaseInternal(App* app) : log_level_(kLogLevelInfo) {
+DatabaseInternal::DatabaseInternal(App* app)
+    : logger_(app_common::FindAppLoggerByName(app->name())) {
   app_ = nullptr;
   if (!Initialize(app)) return;
   app_ = app;
@@ -179,7 +181,7 @@ DatabaseInternal::DatabaseInternal(App* app) : log_level_(kLogLevelInfo) {
       platform_app);
   env->DeleteLocalRef(platform_app);
   if (database_obj == nullptr) {
-    LogWarning("Could not create default Database");
+    logger_.LogWarning("Could not create default Database");
     util::CheckAndClearJniExceptions(env);
     // Something went wrong -> uninitialize the database
     Terminate(app_);
@@ -191,7 +193,8 @@ DatabaseInternal::DatabaseInternal(App* app) : log_level_(kLogLevelInfo) {
 }
 
 DatabaseInternal::DatabaseInternal(App* app, const char* url)
-    : constructor_url_(url), log_level_(kLogLevelInfo) {
+    : constructor_url_(url),
+      logger_(app_common::FindAppLoggerByName(app->name())) {
   app_ = nullptr;
   if (!Initialize(app)) return;
   app_ = app;
@@ -205,7 +208,7 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
       platform_app, url_string);
   env->DeleteLocalRef(platform_app);
   if (database_obj == nullptr) {
-    LogWarning("Could not create Database with URL '%s' .", url);
+    logger_.LogWarning("Could not create Database with URL '%s' .", url);
     util::CheckAndClearJniExceptions(env);
     // Something went wrong -> uninitialize the database
     Terminate(app_);
@@ -238,12 +241,12 @@ static const struct {
 
 // C++ log levels mapped to Logger.Level enum value names.
 const char* kCppLogLevelToLoggerLevelName[] = {
-  "DEBUG",  // kLogLevelVerbose --> Logger.Level.DEBUG
-  "DEBUG",  // kLogLevelDebug --> Logger.Level.DEBUG
-  "INFO",  // kLogLevelInfo --> Logger.Level.INFO
-  "WARN",  // kLogLevelWarning --> Logger.Level.WARN
-  "ERROR",  // kLogLevelError --> Logger.Level.ERROR
-  "NONE",  // kLogLevelAssert --> Logger.Level.NONE
+    "DEBUG",  // kLogLevelVerbose --> Logger.Level.DEBUG
+    "DEBUG",  // kLogLevelDebug --> Logger.Level.DEBUG
+    "INFO",   // kLogLevelInfo --> Logger.Level.INFO
+    "WARN",   // kLogLevelWarning --> Logger.Level.WARN
+    "ERROR",  // kLogLevelError --> Logger.Level.ERROR
+    "NONE",   // kLogLevelAssert --> Logger.Level.NONE
 };
 
 bool DatabaseInternal::Initialize(App* app) {
@@ -462,7 +465,8 @@ DatabaseReference DatabaseInternal::GetReference(const char* path) const {
       path_string);
   env->DeleteLocalRef(path_string);
   if (database_reference_obj == nullptr) {
-    LogWarning("Database::GetReference(): Invalid path specified: %s", path);
+    logger_.LogWarning("Database::GetReference(): Invalid path specified: %s",
+                       path);
     util::CheckAndClearJniExceptions(env);
     return DatabaseReference(nullptr);
   }
@@ -482,7 +486,7 @@ DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) const {
       url_string);
   env->DeleteLocalRef(url_string);
   if (database_reference_obj == nullptr) {
-    LogWarning(
+    logger_.LogWarning(
         "Database::GetReferenceFromUrl(): URL '%s' does not match the "
         "Database URL.",
         url);
@@ -530,19 +534,18 @@ void DatabaseInternal::set_log_level(LogLevel log_level) {
                               (sizeof(kCppLogLevelToLoggerLevelName) /
                                sizeof(kCppLogLevelToLoggerLevelName[0])));
   JNIEnv* env = app_->GetJNIEnv();
-  jstring enum_name = env->NewStringUTF(
-      kCppLogLevelToLoggerLevelName[log_level]);
+  jstring enum_name =
+      env->NewStringUTF(kCppLogLevelToLoggerLevelName[log_level]);
   if (!util::CheckAndClearJniExceptions(env)) {
     jobject log_level_enum_obj = env->CallStaticObjectMethod(
         logger_level::GetClass(),
         logger_level::GetMethodId(logger_level::kValueOf), enum_name);
     if (!util::CheckAndClearJniExceptions(env)) {
       env->CallVoidMethod(
-          obj_,
-          firebase_database::GetMethodId(firebase_database::kSetLogLevel),
+          obj_, firebase_database::GetMethodId(firebase_database::kSetLogLevel),
           log_level_enum_obj);
       if (!util::CheckAndClearJniExceptions(env)) {
-        log_level_ = log_level;
+        logger_.SetLogLevel(log_level);
       }
       env->DeleteLocalRef(log_level_enum_obj);
     }
@@ -550,7 +553,7 @@ void DatabaseInternal::set_log_level(LogLevel log_level) {
   }
 }
 
-LogLevel DatabaseInternal::log_level() const { return log_level_; }
+LogLevel DatabaseInternal::log_level() const { return logger_.GetLogLevel(); }
 
 Error DatabaseInternal::ErrorFromResultAndErrorCode(
     util::FutureResult result_code, jint error_code) const {

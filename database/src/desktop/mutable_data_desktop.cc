@@ -22,6 +22,7 @@
 #include "app/memory/shared_ptr.h"
 #include "app/src/log.h"
 #include "database/src/common/database_reference.h"
+#include "database/src/desktop/database_desktop.h"
 #include "database/src/desktop/database_reference_desktop.h"
 #include "database/src/desktop/util_desktop.h"
 #include "database/src/include/firebase/database/mutable_data.h"
@@ -113,7 +114,7 @@ void MutableDataInternal::SetValue(const Variant& value) {
 
 void MutableDataInternal::SetPriority(const Variant& priority) {
   if (!priority.is_fundamental_type()) {
-    LogError(kErrorMsgInvalidVariantForPriority);
+    db_->logger()->LogError(kErrorMsgInvalidVariantForPriority);
     return;
   }
   VariantUpdateChild(holder_.get(), path_.GetChild(kPriorityKey), priority);

@@ -19,6 +19,7 @@
 #include "app/src/util_ios.h"
 #include "database/src/common/database_reference.h"
 #include "database/src/include/firebase/database/mutable_data.h"
+#include "database/src/ios/database_ios.h"
 #include "database/src/ios/database_reference_ios.h"
 
 namespace firebase {
@@ -74,7 +75,7 @@ void MutableDataInternal::SetValue(Variant value) { impl().value = VariantToId(v
 
 void MutableDataInternal::SetPriority(Variant priority) {
   if (!IsValidPriority(priority)) {
-    LogError(kErrorMsgInvalidVariantForPriority);
+    db_->logger()->LogError(kErrorMsgInvalidVariantForPriority);
   } else {
     impl().priority = VariantToId(priority);
   }

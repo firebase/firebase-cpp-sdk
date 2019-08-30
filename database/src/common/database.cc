@@ -19,6 +19,7 @@
 #include <map>
 #include <string>
 
+#include "app/src/app_common.h"
 #include "app/src/assert.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/app.h"
@@ -108,7 +109,8 @@ Database::Database(::firebase::App* app, internal::DatabaseInternal* internal)
     assert(app_notifier);
     app_notifier->RegisterObject(this, [](void* object) {
       Database* database = reinterpret_cast<Database*>(object);
-      LogWarning(
+      Logger* logger = app_common::FindAppLoggerByName(database->app()->name());
+      logger->LogWarning(
           "Database object 0x%08x should be deleted before the App 0x%08x it "
           "depends upon.",
           static_cast<int>(reinterpret_cast<intptr_t>(database)),

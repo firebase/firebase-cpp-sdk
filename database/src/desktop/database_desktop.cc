@@ -18,6 +18,7 @@
 #include <stack>
 
 #include "app/memory/shared_ptr.h"
+#include "app/src/app_common.h"
 #include "app/src/assert.h"
 #include "app/src/function_registry.h"
 #include "app/src/include/firebase/app.h"
@@ -71,8 +72,8 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
       future_manager_(),
       cleanup_(),
       constructor_url_(url),
-      repo_(app, this, url),
-      log_level_(kLogLevelInfo) {
+      logger_(app_common::FindAppLoggerByName(app->name())),
+      repo_(app, this, url, &logger_) {
   assert(app);
   assert(url);
 
@@ -117,7 +118,7 @@ DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) const {
   ParseUrl parser;
   auto result = parser.Parse(url);
   if (parser.Parse(url) != ParseUrl::kParseOk) {
-    LogError("Url is not valid: %s", url);
+    logger_.LogError("Url is not valid: %s", url);
   }
 
   if (result != ParseUrl::kParseOk) {
@@ -128,7 +129,7 @@ DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) const {
                                  parser.secure);
 
   if (host_info.ToString() != database_url()) {
-    LogError(
+    logger_.LogError(
         "The hostname of this url (%s) is different from the database url "
         "(%s)",
         url, database_url());
@@ -182,16 +183,14 @@ const char* DatabaseInternal::GetSdkVersion() {
 
 void DatabaseInternal::SetPersistenceEnabled(bool /*enabled*/) {
   // TODO(b/67910033): Support persistence.
-  LogWarning("Persistence is not currently supported.");
+  logger_.LogWarning("Persistence is not currently supported.");
 }
 
 void DatabaseInternal::set_log_level(LogLevel log_level) {
-  log_level_ = log_level;
+  logger_.SetLogLevel(log_level);
 }
 
-LogLevel DatabaseInternal::log_level() const { return log_level_; }
-
-void DatabaseInternal::SetVerboseLogging(bool /*enable*/) {}
+LogLevel DatabaseInternal::log_level() const { return logger_.GetLogLevel(); }
 
 bool DatabaseInternal::RegisterValueListener(
     const internal::QuerySpec& spec, ValueListener* listener,

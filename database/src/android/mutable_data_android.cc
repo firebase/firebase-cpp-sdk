@@ -15,6 +15,7 @@
 #include "database/src/android/mutable_data_android.h"
 
 #include <jni.h>
+
 #include "app/src/util_android.h"
 #include "database/src/android/database_android.h"
 #include "database/src/android/util_android.h"
@@ -192,7 +193,7 @@ void MutableDataInternal::SetValue(Variant value) {
 void MutableDataInternal::SetPriority(Variant priority) {
   JNIEnv* env = db_->GetApp()->GetJNIEnv();
   if (!IsValidPriority(priority)) {
-    LogError(
+    db_->logger()->LogError(
         "MutableData::SetPriority(): Invalid Variant type given for priority. "
         "Container types (Vector/Map) are not allowed.");
   } else {

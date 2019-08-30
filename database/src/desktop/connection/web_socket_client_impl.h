@@ -15,10 +15,12 @@
 #ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CONNECTION_WEB_SOCKET_CLIENT_IMPL_H_
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CONNECTION_WEB_SOCKET_CLIENT_IMPL_H_
 
-#include <string>
 #include <queue>
+#include <string>
+
 #include "app/memory/atomic.h"
 #include "app/memory/unique_ptr.h"
+#include "app/src/logger.h"
 #include "app/src/mutex.h"
 #include "app/src/thread.h"
 #include "database/src/desktop/connection/web_socket_client_interface.h"
@@ -32,6 +34,7 @@ namespace connection {
 class WebSocketClientImpl : public WebSocketClientInterface {
  public:
   WebSocketClientImpl(const std::string& uri, const std::string& user_agent,
+                      Logger* logger,
                       WebSocketClientEventHandler* handler = nullptr);
   ~WebSocketClientImpl() override;
 
@@ -74,8 +77,7 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   // Schedule an async callback to be trigger in the next iteration of the event
   // loop.  This call is thread-safe and is to prevent multiple threads fighting
   // for the same resource, such as websocket_
-  void ScheduleOnce(Callback cb,
-                    int int_value,
+  void ScheduleOnce(Callback cb, int int_value,
                     const std::string& string_value);
 
   // Process callback queue in event loop thread
@@ -112,11 +114,9 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   // the event loop thread.  The callback member is called with a reference to
   // the client, int_value and string_value stored in this data structure.
   struct CallbackData {
-    explicit CallbackData(
-        Callback c, WebSocketClientImpl* ws_client, int i,
-        const std::string& str)
-        : callback(c), client(ws_client), int_value(i),
-          string_value(str) {}
+    explicit CallbackData(Callback c, WebSocketClientImpl* ws_client, int i,
+                          const std::string& str)
+        : callback(c), client(ws_client), int_value(i), string_value(str) {}
 
     Callback callback;
 
@@ -149,6 +149,8 @@ class WebSocketClientImpl : public WebSocketClientInterface {
 
   // User agent used when opening the connection.
   std::string user_agent_;
+
+  Logger* logger_;
 };
 
 }  // namespace connection

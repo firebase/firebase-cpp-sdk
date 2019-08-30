@@ -22,6 +22,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
+#include "app/src/logger.h"
 #include "app/src/mutex.h"
 #include "app/src/util_ios.h"
 #include "database/src/common/listener.h"
@@ -97,9 +98,9 @@ class DatabaseInternal {
   LogLevel log_level() const;
 
 #ifdef __OBJC__
-  bool RegisterValueListener(
-      const internal::QuerySpec& spec, ValueListener* listener,
-      FIRCPPDatabaseQueryCallbackState* callback_state);
+  bool RegisterValueListener(const internal::QuerySpec& spec,
+                             ValueListener* listener,
+                             FIRCPPDatabaseQueryCallbackState* callback_state);
 
   bool UnregisterValueListener(const internal::QuerySpec& spec,
                                ValueListener* listener,
@@ -108,9 +109,9 @@ class DatabaseInternal {
   void UnregisterAllValueListeners(const internal::QuerySpec& spec,
                                    FIRDatabaseQuery* query_impl);
 
-  bool RegisterChildListener(
-      const internal::QuerySpec& spec, ChildListener* listener,
-      FIRCPPDatabaseQueryCallbackState* callback_state);
+  bool RegisterChildListener(const internal::QuerySpec& spec,
+                             ChildListener* listener,
+                             FIRCPPDatabaseQueryCallbackState* callback_state);
 
   bool UnregisterChildListener(const internal::QuerySpec& spec,
                                ChildListener* listener,
@@ -149,10 +150,10 @@ class DatabaseInternal {
 #ifdef __OBJC__
   // Guard access to C++ objects referenced by
   // FIRCPPDatabaseQueryCallbackStatePointer.
-  NSRecursiveLock* query_lock() const {
-    return query_lock_->get();
-  }
+  NSRecursiveLock* query_lock() const { return query_lock_->get(); }
 #endif  // __OBJC__
+
+  Logger* logger() { return &logger_; }
 
  private:
 #ifdef __OBJC__
@@ -190,7 +191,7 @@ class DatabaseInternal {
   // We keep it so that we can find the database in our cache.
   std::string constructor_url_;
 
-  LogLevel log_level_;
+  Logger logger_;
 };
 
 #pragma clang assume_nonnull end
