@@ -123,13 +123,13 @@ class FutureBase {
   /// Completion status of the asynchronous call.
   FutureStatus status() const;
 
-  /// When status() is kFutureStatusComplete, returns the API-defined
+  /// When status() is firebase::kFutureStatusComplete, returns the API-defined
   /// error code. Otherwise, return value is undefined.
   int error() const;
 
-  /// When status() is kFutureStatusComplete, returns the API-defined error
-  /// message, as human-readable text, or an empty string if the API does not
-  /// provide a human readable description of the error.
+  /// When status() is firebase::kFutureStatusComplete, returns the API-defined
+  /// error message, as human-readable text, or an empty string if the API does
+  /// not provide a human readable description of the error.
   ///
   /// @note The returned pointer is only valid for the lifetime of the Future
   ///       or its copies.
@@ -163,7 +163,7 @@ class FutureBase {
   /// @param[in] callback Function or lambda to call.
   ///
   /// @note This method is not available when using STLPort on Android, as
-  /// std::function is not supported on STLPort.
+  /// `std::function` is not supported on STLPort.
   void OnCompletion(std::function<void(const FutureBase&)> callback) const;
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
@@ -313,7 +313,7 @@ class Future : public FutureBase {
   /// @param[in] callback Function or lambda to call.
   ///
   /// @note This method is not available when using STLPort on Android, as
-  /// std::function is not supported on STLPort.
+  /// `std::function` is not supported on STLPort.
   ///
   /// @note This is the same callback as FutureBase::OnCompletion(), so you
   /// can't expect to set both and have both run; again, only the most recently
