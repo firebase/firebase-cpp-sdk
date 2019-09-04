@@ -16,15 +16,12 @@
 
 #include "app/src/reference_counted_future_impl.h"
 
-#include <algorithm>
 #include <cstdint>
 #include <string>
 
 #include "app/src/assert.h"
-#include "app/src/include/firebase/future.h"
 #include "app/src/log.h"
 #include "app/src/mutex.h"
-#include "app/src/intrusive_list.h"
 
 // Set this to 1 to enable verbose logging in this module.
 #if !defined(FIREBASE_FUTURE_TRACE_ENABLE)
@@ -117,31 +114,7 @@ class FutureProxyManager {
   FutureHandle subject_;
 };
 
-struct CompletionCallbackData {
-  // Pointers to the next and previous nodes in the list.
-  intrusive_list_node node;
-
-  // The function to call once the future is marked completed.
-  FutureBase::CompletionCallback completion_callback;
-
-  // The data to pass into `completion_callback`.
-  void* callback_user_data;
-
-  // If set, this function will be called to delete callback_user_data after the
-  // callback runs or the Future is destroyed.
-  void (*callback_user_data_delete_fn)(void*);
-
-  CompletionCallbackData(FutureBase::CompletionCallback callback,
-                         void *user_data,
-                         void (* user_data_delete_fn)(void *))
-    : completion_callback(callback), callback_user_data(user_data),
-      callback_user_data_delete_fn(user_data_delete_fn) {}
-};
-
-using intrusive_list_iterator =
-    intrusive_list<CompletionCallbackData>::iterator;
-
-}  // anonymous namespace
+}  // namespace
 
 struct FutureBackingData {
   // Create with type-specific data.
@@ -153,25 +126,31 @@ struct FutureBackingData {
         data_delete_fn(delete_data_fn),
         context_data(nullptr),
         context_data_delete_fn(nullptr),
-        completion_single_callback(nullptr),
-        completion_multiple_callbacks(&CompletionCallbackData::node),
+        completion_callback(nullptr),
+        callback_user_data(nullptr),
+        callback_user_data_delete_fn(nullptr),
         proxy(nullptr) {}
 
   // Call the type-specific destructor on data.
-  // Also call the type-specific context data destructor on context_data.
-  // Also deallocate the completion_callbacks and proxy.
-  ~FutureBackingData();
+  ~FutureBackingData() {
+    if (callback_user_data_delete_fn) {
+      callback_user_data_delete_fn(callback_user_data);
+      callback_user_data_delete_fn = nullptr;
+    }
+    if (data != nullptr) {
+      FIREBASE_ASSERT(data_delete_fn != nullptr);
+      data_delete_fn(data);
+      data = nullptr;
+    }
 
-  // Clear out any existing callback functions,
-  // and deallocate the memory associated with them.
-  void ClearExistingCallbacks();
+    if (context_data != nullptr) {
+      FIREBASE_ASSERT(context_data_delete_fn != nullptr);
+      context_data_delete_fn(context_data);
+      context_data = nullptr;
+    }
 
-  // Remove the specified callback from the list of callbacks,
-  // and deallocate the memory associated with it.
-  intrusive_list_iterator ClearCallbackData(intrusive_list_iterator it);
-
-  // Deallocate the memory associated with a single callback.
-  static void ClearSingleCallbackData(CompletionCallbackData *data);
+    delete proxy;
+  }
 
   // Status of the asynchronous call.
   FutureStatus status;
@@ -203,65 +182,18 @@ struct FutureBackingData {
   // A function that deletes the context_data.
   DataDeleteFn* context_data_delete_fn;
 
-  // A single function to call when the future completes.
-  // Dynamically allocated with 'new'.
-  CompletionCallbackData *completion_single_callback;
+  // The function to call once the future is marked completed.
+  FutureBase::CompletionCallback completion_callback;
 
-  // A list of functions to call when the future completes.
-  // Note that the elements of this list are themselves dynamically allocated
-  // using 'new', and must be deleted when removing them from the list.
-  // (We can't use a list of pointers here, because intrusive_list requires
-  // that the list element type must contain an instrusive_list_node.)
-  intrusive_list<CompletionCallbackData> completion_multiple_callbacks;
+  // The data to pass into `completion_callback`.
+  void* callback_user_data;
+
+  // If set, this function will be called to delete callback_user_data after the
+  // callback runs or the Future is destroyed.
+  void (*callback_user_data_delete_fn)(void*);
 
   FutureProxyManager* proxy;
 };
-
-FutureBackingData::~FutureBackingData() {
-  ClearExistingCallbacks();
-  if (data != nullptr) {
-    FIREBASE_ASSERT(data_delete_fn != nullptr);
-    data_delete_fn(data);
-    data = nullptr;
-  }
-
-  if (context_data != nullptr) {
-    FIREBASE_ASSERT(context_data_delete_fn != nullptr);
-    context_data_delete_fn(context_data);
-    context_data = nullptr;
-  }
-
-  delete proxy;
-}
-
-void FutureBackingData::ClearExistingCallbacks() {
-  // Clear out any existing callbacks.
-  ClearSingleCallbackData(completion_single_callback);
-  completion_single_callback = nullptr;
-  auto it = completion_multiple_callbacks.begin();
-  while (it != completion_multiple_callbacks.end()) {
-    it = ClearCallbackData(it);
-  }
-}
-
-intrusive_list_iterator FutureBackingData::ClearCallbackData(
-    intrusive_list_iterator it) {
-  CompletionCallbackData* data = &*it;
-  it = completion_multiple_callbacks.erase(it);
-  ClearSingleCallbackData(data);
-  return it;
-}
-
-void FutureBackingData::ClearSingleCallbackData(
-    CompletionCallbackData* data) {
-  if (data == nullptr) {
-    return;
-  }
-  if (data->callback_user_data_delete_fn != nullptr) {
-    data->callback_user_data_delete_fn(data->callback_user_data);
-  }
-  delete data;
-}
 
 namespace detail {
 
@@ -355,58 +287,45 @@ void ReferenceCountedFutureImpl::CompleteHandle(FutureHandle handle) {
   backing->status = kFutureStatusComplete;
 }
 
-void ReferenceCountedFutureImpl::ReleaseMutexAndRunCallbacks(
+void ReferenceCountedFutureImpl::ReleaseMutexAndRunCallback(
     FutureHandle handle) {
   FutureBackingData* backing = BackingFromHandle(handle);
   FIREBASE_ASSERT(backing != nullptr);
 
-  // Call the completion callbacks, if any have been registered,
-  // removing them from the list as we go.
-  if (backing->completion_single_callback != nullptr ||
-      !backing->completion_multiple_callbacks.empty()) {
+  // Call callback, if one has been registered.
+  if (backing->completion_callback != nullptr) {
     FutureBase future_base(this, handle);
-    if (backing->completion_single_callback != nullptr) {
-      CompletionCallbackData* data = backing->completion_single_callback;
-      auto callback = data->completion_callback;
-      auto user_data = data->callback_user_data;
-      auto delete_fn = data->callback_user_data_delete_fn;
-      delete data;
-      backing->completion_single_callback = nullptr;
-      RunCallback(&future_base, callback, user_data, delete_fn);
+    auto callback = backing->completion_callback;
+    auto user_data = backing->callback_user_data;
+    auto delete_fn = backing->callback_user_data_delete_fn;
+
+    // Consume the callback and user_data, so the callback is only called once.
+    backing->completion_callback = nullptr;
+    backing->callback_user_data_delete_fn = nullptr;
+    backing->callback_user_data = nullptr;
+
+    // Make sure we're not deallocated while running the callback, because it
+    // would make `future_base` invalid.
+    is_running_callback_ = true;
+
+    // Release the lock, which is assumed to be obtained by the caller, before
+    // calling the callback.
+    mutex_.Release();
+
+    callback(future_base, user_data);
+
+    {
+      MutexLock lock(mutex_);
+      is_running_callback_ = false;
+
+      // Call this while holding lock, as we can't assume that the callback is
+      // thread-safe from the user's perspective.
+      if (delete_fn) {
+        delete_fn(user_data);
+      }
     }
-    while (!backing->completion_multiple_callbacks.empty()) {
-      CompletionCallbackData* data =
-          &backing->completion_multiple_callbacks.front();
-      auto callback = data->completion_callback;
-      auto user_data = data->callback_user_data;
-      auto delete_fn = data->callback_user_data_delete_fn;
-      backing->completion_multiple_callbacks.pop_front();
-      RunCallback(&future_base, callback, user_data, delete_fn);
-      delete data;
-    }
-  }
-  mutex_.Release();
-}
-
-void ReferenceCountedFutureImpl::RunCallback(
-    FutureBase *future_base, FutureBase::CompletionCallback callback,
-    void *user_data, void (*delete_fn)(void *)) {
-  // Make sure we're not deallocated while running the callback, because it
-  // would make `future_base` invalid.
-  is_running_callback_ = true;
-
-  // Release the lock, which is assumed to be obtained by the caller, before
-  // calling the callback.
-  mutex_.Release();
-  callback(*future_base, user_data);
-  mutex_.Acquire();
-
-  is_running_callback_ = false;
-
-  // Call this while holding lock, as we can't assume that the callback is
-  // thread-safe from the user's perspective.
-  if (delete_fn) {
-    delete_fn(user_data);
+  } else {
+    mutex_.Release();
   }
 }
 
@@ -491,19 +410,12 @@ FutureBackingData* ReferenceCountedFutureImpl::BackingFromHandle(
   return it == backings_.end() ? nullptr : it->second;
 }
 
-detail::CompletionCallbackHandle
-ReferenceCountedFutureImpl::AddCompletionCallback(
+void ReferenceCountedFutureImpl::SetCompletionCallback(
     FutureHandle handle, FutureBase::CompletionCallback callback,
-    void* user_data,
-    void (*user_data_delete_fn_ptr)(void *),
-    bool single_completion) {
-  // Record the callback parameters.
-  CompletionCallbackData *callback_data = new CompletionCallbackData(
-      callback, user_data, user_data_delete_fn_ptr);
-
+    void* user_data) {
   // To handle the case where the future is already complete and we want to
   // call the callback immediately, we acquire the mutex directly, so that
-  // it can be freed in ReleaseMutexAndRunCallbacks, prior to calling the
+  // it can be freed in ReleaseMutexAndRunCallback, prior to calling the
   // callback.
   mutex_.Acquire();
 
@@ -511,72 +423,25 @@ ReferenceCountedFutureImpl::AddCompletionCallback(
   FutureBackingData* backing = BackingFromHandle(handle);
   if (backing == nullptr) {
     mutex_.Release();
-    delete callback_data;
-    return detail::CompletionCallbackHandle();
+    return;
   }
 
-  if (single_completion) {
-    FutureBackingData::ClearSingleCallbackData(
-        backing->completion_single_callback);
-    backing->completion_single_callback = callback_data;
-  } else {
-    backing->completion_multiple_callbacks.push_back(*callback_data);
+  // Record the callback parameters.
+  backing->completion_callback = callback;
+  if (backing->callback_user_data_delete_fn) {
+    backing->callback_user_data_delete_fn(backing->callback_user_data);
   }
+  backing->callback_user_data = user_data;
+  backing->callback_user_data_delete_fn = nullptr;
 
   // If the future was already completed, call the callback now.
   if (backing->status == kFutureStatusComplete) {
-    // ReleaseMutexAndRunCallbacks is in charge of releasing the mutex.
-    ReleaseMutexAndRunCallbacks(handle);
-    return detail::CompletionCallbackHandle();
+    // ReleaseMutexAndRunCallback is in charge of releasing the mutex.
+    ReleaseMutexAndRunCallback(handle);
   } else {
     mutex_.Release();
-    return detail::CompletionCallbackHandle(
-        callback, user_data, user_data_delete_fn_ptr);
   }
 }
-
-class CompletionMatcher {
- private:
-  CompletionCallbackData match_;
- public:
-  CompletionMatcher(FutureBase::CompletionCallback callback,
-                    void *user_data,
-                    void (* user_data_delete_fn)(void *))
-    : match_(callback, user_data, user_data_delete_fn) {}
-  bool operator() (const CompletionCallbackData &data) const {
-    return data.completion_callback == match_.completion_callback &&
-        data.callback_user_data == match_.callback_user_data &&
-        data.callback_user_data_delete_fn ==
-            match_.callback_user_data_delete_fn;
-  }
-};
-
-void ReferenceCountedFutureImpl::RemoveCompletionCallback(
-    FutureHandle handle,
-    detail::CompletionCallbackHandle callback_handle) {
-  MutexLock lock(mutex_);
-  FutureBackingData* backing = BackingFromHandle(handle);
-  if (backing != nullptr) {
-    CompletionMatcher matches_callback_handle(
-        callback_handle.callback_,
-        callback_handle.user_data_,
-        callback_handle.user_data_delete_fn_);
-    if (backing->completion_single_callback != nullptr &&
-        matches_callback_handle(*backing->completion_single_callback)) {
-      FutureBackingData::ClearSingleCallbackData(
-          backing->completion_single_callback);
-      backing->completion_single_callback = nullptr;
-    }
-    auto it = std::find_if<intrusive_list_iterator, const CompletionMatcher &>(
-        backing->completion_multiple_callbacks.begin(),
-        backing->completion_multiple_callbacks.end(),
-        matches_callback_handle);
-    if (it != backing->completion_multiple_callbacks.end()) {
-      backing->ClearCallbackData(it);
-    }
-  }
-}
-
 
 #ifdef FIREBASE_USE_STD_FUNCTION
 
@@ -598,19 +463,11 @@ static void DeleteStdFunction(void* function_void) {
   }
 }
 
-detail::CompletionCallbackHandle
-ReferenceCountedFutureImpl::AddCompletionCallbackLambda(
-    FutureHandle handle, std::function<void(const FutureBase&)> callback,
-    bool single_completion) {
-  // Record the callback parameters.
-  CompletionCallbackData *completion_callback_data = new CompletionCallbackData(
-      /*callback=*/ CallStdFunction,
-      /*user_data=*/ new std::function<void(const FutureBase&)>(callback),
-      /*user_data_delete_fn=*/ DeleteStdFunction);
-
+void ReferenceCountedFutureImpl::SetCompletionCallbackLambda(
+    FutureHandle handle, std::function<void(const FutureBase&)> callback) {
   // To handle the case where the future is already complete and we want to
   // call the callback immediately, we acquire the mutex directly, so that
-  // it can be freed in ReleaseMutexAndRunCallbacks, prior to calling the
+  // it can be freed in ReleaseMutexAndRunCallback, prior to calling the
   // callback.
   mutex_.Acquire();
 
@@ -618,32 +475,25 @@ ReferenceCountedFutureImpl::AddCompletionCallbackLambda(
   FutureBackingData* backing = BackingFromHandle(handle);
   if (backing == nullptr) {
     mutex_.Release();
-    delete completion_callback_data;
-    return detail::CompletionCallbackHandle();
+    return;
   }
 
-  if (single_completion) {
-    FutureBackingData::ClearSingleCallbackData(
-        backing->completion_single_callback);
-    backing->completion_single_callback = completion_callback_data;
-  } else {
-    backing->completion_multiple_callbacks.push_back(*completion_callback_data);
+  // Record the callback parameters.
+  backing->completion_callback = CallStdFunction;
+  if (backing->callback_user_data_delete_fn) {
+    backing->callback_user_data_delete_fn(backing->callback_user_data);
   }
-
-  // If the future was already completed, call the callback(s) now.
+  backing->callback_user_data =
+      new std::function<void(const FutureBase&)>(callback);
+  backing->callback_user_data_delete_fn = DeleteStdFunction;
+  // If the future was already completed, call the callback now.
   if (backing->status == kFutureStatusComplete) {
-    // ReleaseMutexAndRunCallbacks is in charge of releasing the mutex.
-    ReleaseMutexAndRunCallbacks(handle);
-    return detail::CompletionCallbackHandle();
+    // ReleaseMutexAndRunCallback is in charge of releasing the mutex.
+    ReleaseMutexAndRunCallback(handle);
   } else {
     mutex_.Release();
-    return detail::CompletionCallbackHandle(
-        completion_callback_data->completion_callback,
-        completion_callback_data->callback_user_data,
-        completion_callback_data->callback_user_data_delete_fn);
   }
 }
-
 #endif  // FIREBASE_USE_STD_FUNCTION
 
 bool ReferenceCountedFutureImpl::IsSafeToDelete() const {
