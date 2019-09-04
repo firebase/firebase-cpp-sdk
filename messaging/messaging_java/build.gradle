@@ -51,7 +51,7 @@ android {
 }
 
 dependencies {
-  implementation 'com.google.firebase:firebase-analytics:17.1.0'
+  implementation 'com.google.firebase:firebase-analytics:17.2.0'
   implementation 'com.google.firebase:firebase-messaging:20.0.0'
   implementation 'com.google.flatbuffers:flatbuffers-java:1.9.0'
 }

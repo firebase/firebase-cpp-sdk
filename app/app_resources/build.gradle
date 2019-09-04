@@ -46,7 +46,7 @@ android {
 }
 
 dependencies {
-  implementation 'com.google.firebase:firebase-analytics:17.1.0'
+  implementation 'com.google.firebase:firebase-analytics:17.2.0'
 }
 
 afterEvaluate {
