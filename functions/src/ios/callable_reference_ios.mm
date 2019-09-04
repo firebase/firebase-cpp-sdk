@@ -127,7 +127,7 @@ void HttpsCallableReferenceInternal::CompleteFuture(ReferenceCountedFutureImpl* 
 
 Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call() {
   ReferenceCountedFutureImpl* future_impl = future();
-  HttpsCallableResult null_result(std::move(Variant::Null()));
+  HttpsCallableResult null_result(Variant::Null());
   SafeFutureHandle<HttpsCallableResult> handle =
       future_impl->SafeAlloc(kCallableReferenceFnCall, null_result);
   void (^completion)(FIRHTTPSCallableResult* _Nullable, NSError* _Nullable) =
@@ -143,7 +143,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(const Variant& 
   id data = util::VariantToId(variant);
 
   ReferenceCountedFutureImpl* future_impl = future();
-  HttpsCallableResult null_result(std::move(Variant::Null()));
+  HttpsCallableResult null_result(Variant::Null());
   SafeFutureHandle<HttpsCallableResult> handle =
       future_impl->SafeAlloc(kCallableReferenceFnCall, null_result);
   void (^completion)(FIRHTTPSCallableResult* _Nullable, NSError* _Nullable) =
