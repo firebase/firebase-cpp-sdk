@@ -125,13 +125,19 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   int GetFutureError(FutureHandle handle) const override;
   const char* GetFutureErrorMessage(FutureHandle handle) const override;
   const void* GetFutureResult(FutureHandle handle) const override;
-  void SetCompletionCallback(FutureHandle handle,
-                             FutureBase::CompletionCallback callback,
-                             void* user_data) override;
+  detail::CompletionCallbackHandle AddCompletionCallback(FutureHandle handle,
+      FutureBase::CompletionCallback callback,
+      void* user_data,
+      void (*user_data_delete_fn_ptr)(void *),
+      bool single_completion) override;
+  void RemoveCompletionCallback(
+      FutureHandle handle, detail::CompletionCallbackHandle callback_handle)
+      override;
 #ifdef FIREBASE_USE_STD_FUNCTION
-  void SetCompletionCallbackLambda(
+  detail::CompletionCallbackHandle AddCompletionCallbackLambda(
       FutureHandle handle,
-      std::function<void(const FutureBase&)> callback) override;
+      std::function<void(const FutureBase&)> callback,
+      bool single_completion) override;
 #endif  // FIREBASE_USE_STD_FUNCTION
   void RegisterFutureForCleanup(FutureBase* future) override;
   void UnregisterFutureForCleanup(FutureBase* future) override;
@@ -376,8 +382,8 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// Sets temporary context data associated with a FutureHandle that will be
   /// deallocated alongside the FutureBackingData. This will occur when there
   /// are no more Futures referencing it.
-  void SetContextData(FutureHandle handle, void* internal_data,
-                      void (*delete_internal_data_fn)(void* data_to_delete));
+  void SetContextData(FutureHandle handle, void* context_data,
+                      void (*delete_context_data_fn)(void* data_to_delete));
 
   /// CleanupNotifier will invalidate any stale Future instances that
   /// are held by outside code, when this is deleted.
@@ -478,9 +484,9 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
     // Complete proxied futures.
     CompleteProxy(backing);
 
-    // Call callback, if one is registered, releasing the mutex that
+    // Call callbacks, if any were registered, releasing the mutex that
     // was previously acquired in any case.
-    ReleaseMutexAndRunCallback(handle);
+    ReleaseMutexAndRunCallbacks(handle);
   }
 
   // See CompleteWithResult.
@@ -499,9 +505,13 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
     CompleteInternal<void>(handle, error, error_msg, [](void*) {});
   }
 
-  /// Releases the mutex, calling the Future's completion callback if there is
-  /// one. (The mutex is released before calling the callback.)
-  void ReleaseMutexAndRunCallback(FutureHandle handle);
+  /// Releases the mutex, calling the Future's completion callbacks, if any.
+  /// (The mutex is released before calling the callbacks.)
+  void ReleaseMutexAndRunCallbacks(FutureHandle handle);
+
+  void RunCallback(
+    FutureBase *future_base, FutureBase::CompletionCallback callback,
+    void *user_data, void (*delete_fn)(void *));
 
   /// Mutex protecting all asynchronous data operations.
   /// Marked as `mutable` so that const functions can still be protected.
