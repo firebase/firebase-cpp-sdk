@@ -152,7 +152,9 @@ SystemLogger g_system_logger;  // NOLINT
 
 // Private cross platform data associated with an app.
 struct AppData {
-  AppData() : logger(&g_system_logger) {}
+  // TODO(b/140528778): Remove kLogLevelVerbose here and add [GS]etLogLevel
+  // member functions to app.
+  AppData() : logger(&g_system_logger, kLogLevelVerbose) {}
 
   // App associated with this data.
   App* app;
