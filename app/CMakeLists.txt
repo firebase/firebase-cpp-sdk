@@ -84,7 +84,7 @@ build_flatbuffers("${CMAKE_CURRENT_LIST_DIR}/google_services.fbs"
 
 set(log_common_SRCS
     src/log.cc
-    set/log.h
+    src/log.h
     src/logger.cc
     src/logger.h)
 set(log_common_HDRS)
