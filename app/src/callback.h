@@ -369,6 +369,16 @@ Callback* NewCallback(CallbackAndArgs... callback_and_args) {
 void* AddCallback(Callback* callback);
 
 /// Adds a Callback to be called on the next PollCallbacks call.
+/// This function returns a reference in the queue that can be used to remove
+/// the callback from the queue.  The reference is only valid until the
+/// callback is executed.
+/// If AddCallbackWithThreadCheck is called from the callback thread,
+/// the new callback is executed immediately to avoid deadlocks and return a
+/// nullptr.
+/// This is a temporary solution for C++->C# log callback.
+void* AddCallbackWithThreadCheck(Callback* callback);
+
+/// Adds a Callback to be called on the next PollCallbacks call.
 /// This function blocks until the callback has been executed or removed from
 /// the queue.  If AddBlockingCallback is called from the callback thread,
 /// the new callback is executed immediately to avoid deadlocks.

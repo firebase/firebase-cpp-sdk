@@ -242,6 +242,20 @@ void* AddCallback(Callback* callback) {
   return g_callback_dispatcher->AddCallback(callback);
 }
 
+// TODO(chkuang): remove this once we properly implement C++->C# log callback.
+void* AddCallbackWithThreadCheck(Callback* callback) {
+  if (g_callback_thread_id_initialized &&
+      Thread::IsCurrentThread(g_callback_thread_id)) {
+    // If we are on the callback thread, we can safely execute the callback
+    // right away and blocking would be a deadlock, so we run it.
+    callback->Run();
+    delete callback;
+    return nullptr;
+  } else {
+    return AddCallback(callback);
+  }
+}
+
 // A blocking callback posts a semaphore after being done.
 // This allows the caller to wait for its completion.
 class BlockingCallback : public Callback {
