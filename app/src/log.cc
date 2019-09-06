@@ -126,8 +126,8 @@ static void LogToFile(LogLevel log_level, const char* format, va_list args) {
 #endif  // FIREBASE_LOG_TO_FILE
 
 // Log a firebase message (implemented by the platform specific logger).
-static void LogMessageWithCallbackV(LogLevel log_level, const char* format,
-                                    va_list args) {
+void LogMessageWithCallbackV(LogLevel log_level, const char* format,
+                             va_list args) {
   // We create the mutex on the heap as this can be called before the C++
   // runtime is initialized on iOS.  This ensures the Mutex class is
   // constructed before we attempt to use it.  Of course, this isn't thread

@@ -55,8 +55,11 @@ void LogError(const char* format, ...);
 void LogAssert(const char* format, ...);
 // Log a firebase message (implemented by the platform specific logger).
 void LogMessageV(LogLevel log_level, const char* format, va_list args);
-// Log a firebase message via LogMessageV().
+// Log a firebase message via LogMessageWithCallbackV().
 void LogMessage(LogLevel log_level, const char* format, ...);
+// Log a firebase message through log callback.
+void LogMessageWithCallbackV(LogLevel log_level, const char* format,
+                             va_list args);
 
 // Callback which can be used to override message logging.
 typedef void (*LogCallback)(LogLevel log_level, const char* log_message,

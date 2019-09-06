@@ -86,7 +86,7 @@ LogLevel SystemLogger::GetLogLevel() const {
 
 void SystemLogger::LogMessageImplV(LogLevel log_level, const char* format,
                                    va_list args) const {
-  ::FIREBASE_NAMESPACE::LogMessageV(log_level, format, args);
+  ::FIREBASE_NAMESPACE::LogMessageWithCallbackV(log_level, format, args);
 }
 
 Logger::~Logger() {}
