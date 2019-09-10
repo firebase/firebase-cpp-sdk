@@ -188,7 +188,13 @@ else()
         src/uuid_ios_darwin.mm)
   else()
     # Linux requires libsecret.
-    pkg_check_modules(LIBSECRET libsecret-1 REQUIRED)
+    pkg_check_modules(LIBSECRET libsecret-1)
+    if(NOT LIBSECRET_FOUND)
+      message(FATAL_ERROR "Unable to find libsecret, which is needed by \
+                           Firebase.  It can be installed on supported \
+                           systems via: \
+                           apt-get install libsecret-1-dev")
+    endif()
     set(app_desktop_extra_SRCS
         src/secure/user_secure_linux_internal.cc
         src/locale.cc
