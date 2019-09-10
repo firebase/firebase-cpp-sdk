@@ -93,6 +93,8 @@ add_library(firebase_storage STATIC
     ${common_SRCS}
     ${storage_platform_SRCS})
 
+set_property(TARGET firebase_storage PROPERTY FOLDER "Firebase Cpp")
+
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_storage
   PUBLIC

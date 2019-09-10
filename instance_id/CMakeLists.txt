@@ -66,6 +66,8 @@ add_library(firebase_instance_id STATIC
     ${common_SRCS}
     ${instance_id_platform_SRCS})
 
+set_property(TARGET firebase_instance_id PROPERTY FOLDER "Firebase Cpp")
+
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_instance_id
   PUBLIC

@@ -74,6 +74,8 @@ add_library(firebase_messaging STATIC
     ${common_SRCS}
     ${messaging_platform_SRCS})
 
+set_property(TARGET firebase_messaging PROPERTY FOLDER "Firebase Cpp")
+
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_messaging
   PUBLIC

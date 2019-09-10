@@ -291,6 +291,8 @@ add_library(firebase_app STATIC
     memory/unique_ptr.h
     memory/shared_ptr.h)
 
+set_property(TARGET firebase_app PROPERTY FOLDER "Firebase Cpp")
+
 # Disable exceptions in std
 if (MSVC)
   target_compile_options(firebase_app PUBLIC /EHs-c-)

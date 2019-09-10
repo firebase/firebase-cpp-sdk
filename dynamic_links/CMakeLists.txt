@@ -56,6 +56,8 @@ add_library(firebase_dynamic_links STATIC
     ${common_SRCS}
     ${dynamic_links_platform_SRCS})
 
+set_property(TARGET firebase_dynamic_links PROPERTY FOLDER "Firebase Cpp")
+
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_dynamic_links
     firebase_app)

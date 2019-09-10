@@ -17,6 +17,9 @@
 cmake_minimum_required (VERSION 3.1)
 set (CMAKE_CXX_STANDARD 11)
 
+# Turn on virtual folders for visual studio
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
 # Different options to enable/disable each library being included during
 # configuration.
 option(FIREBASE_INCLUDE_ADMOB "Include the AdMob library." ON)

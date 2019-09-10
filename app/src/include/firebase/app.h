@@ -180,7 +180,7 @@ class AppOptions {
 
   /// API key used to authenticate requests from your app.
   ///
-  /// For example, "the API key" used to identify
+  /// For example, "AIzaSyDdVgKwhZl0sTTTLZ7iTmt1r3N2cJLnaDk" used to identify
   /// your app to Google servers.
   ///
   /// This only needs to be specified if your application does not include
@@ -198,7 +198,7 @@ class AppOptions {
   /// <csproperty name="ApiKey">
   /// Gets or sets the API key used to authenticate requests from your app.
   ///
-  /// For example, \"the API key\" used to identify
+  /// For example, \"AIzaSyDdVgKwhZl0sTTTLZ7iTmt1r3N2cJLnaDk\" used to identify
   /// your app to Google servers.
   ///
   /// This only needs to be specified if your application does not include

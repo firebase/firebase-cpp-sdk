@@ -83,6 +83,8 @@ add_library(firebase_admob STATIC
     ${common_SRCS}
     ${admob_platform_SRCS})
 
+set_property(TARGET firebase_admob PROPERTY FOLDER "Firebase Cpp")
+
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_admob
     firebase_app)

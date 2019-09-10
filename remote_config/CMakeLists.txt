@@ -90,6 +90,8 @@ add_library(firebase_remote_config STATIC
     ${common_SRCS}
     ${remote_config_platform_SRCS})
 
+set_property(TARGET firebase_remote_config PROPERTY FOLDER "Firebase Cpp")
+
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_remote_config
   PUBLIC

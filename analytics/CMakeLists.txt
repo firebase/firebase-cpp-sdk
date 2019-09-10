@@ -95,6 +95,8 @@ add_library(firebase_analytics STATIC
     ${common_SRCS}
     ${analytics_platform_SRCS})
 
+set_property(TARGET firebase_analytics PROPERTY FOLDER "Firebase Cpp")
+
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_analytics
     firebase_app)
