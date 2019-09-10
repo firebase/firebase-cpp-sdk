@@ -135,6 +135,9 @@ if (NOT ANDROID AND NOT IOS)
   add_external_library(zlib)
 
   add_external_library(uWebSockets)
+
+  set(websockets_additional_defines "")
+
   # uWebSockets does not come with a CMakeLists file, so define the target.
   # Note that since it depends on OpenSSL, only do so if that was found.
   if (OPENSSL_FOUND)
@@ -161,7 +164,7 @@ if (NOT ANDROID AND NOT IOS)
                               # default, as it can cause issues when libraries try
                               # to include winsock2.h later on in the process.
         -DUSE_LIBUV=1
-        )
+      )
     elseif(APPLE)
       set(websockets_additional_defines
         -DUSE_LIBUV=1
@@ -170,7 +173,7 @@ if (NOT ANDROID AND NOT IOS)
 
     target_compile_definitions(libuWS
       PRIVATE
-        "${websockets_additional_defines}"
+        ${websockets_additional_defines}
     )
     target_include_directories(libuWS
       PUBLIC
