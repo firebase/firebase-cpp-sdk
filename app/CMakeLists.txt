@@ -226,6 +226,7 @@ set(utility_common_HDRS
     src/embedded_file.h
     src/function_registry.h
     src/future_manager.h
+    src/intrusive_list.h
     src/log.h
     src/mutex.h
     src/optional.h
