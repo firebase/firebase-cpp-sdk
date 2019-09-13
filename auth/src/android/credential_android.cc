@@ -20,6 +20,7 @@
 #include <cstring>
 
 #include "app/src/assert.h"
+#include "app/src/app_common.h"
 #include "app/src/build_type_generated.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
@@ -310,9 +311,8 @@ void ReleaseCredentialClasses(JNIEnv* env) {
 }
 
 static JNIEnv* GetJniEnv() {
-  // The default App must always exist, and the JNI environment is the same
-  // regardless of App.
-  App* app = App::GetInstance();
+  // The JNI environment is the same regardless of App.
+  App* app = app_common::GetAnyApp();
   FIREBASE_ASSERT(app != nullptr);
   return app->GetJNIEnv();
 }

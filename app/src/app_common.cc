@@ -301,6 +301,10 @@ App* FindAppByName(const char* name) {
 App* GetDefaultApp() { return g_default_app; }
 
 App* GetAnyApp() {
+  if (g_default_app) {
+    return g_default_app;
+  }
+
   MutexLock lock(g_app_mutex);
   if (g_apps && !g_apps->empty()) {
     return g_apps->begin()->second->app;
