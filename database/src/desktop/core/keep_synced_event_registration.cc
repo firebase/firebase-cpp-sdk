@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "database/src/desktop/core/keep_synced_event_registration.h"
+
 #include "app/src/assert.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/include/firebase/database/common.h"
@@ -39,19 +40,9 @@ Event KeepSyncedEventRegistration::GenerateEvent(const Change& change,
                Path());
 }
 
-void KeepSyncedEventRegistration::FireEvent(const Event& event) {
-  (void)event;
-  FIREBASE_DEV_ASSERT_MESSAGE(
-      false,
-      "FireEvent should never be reached on KeepSyncedEventRegistration");
-}
+void KeepSyncedEventRegistration::FireEvent(const Event& event) { (void)event; }
 
-void KeepSyncedEventRegistration::FireCancelEvent(Error error) {
-  (void)error;
-  FIREBASE_DEV_ASSERT_MESSAGE(
-      false,
-      "FireCancelEvent should never be reached on KeepSyncedEventRegistration");
-}
+void KeepSyncedEventRegistration::FireCancelEvent(Error error) { (void)error; }
 
 bool KeepSyncedEventRegistration::MatchesListener(
     const void* listener_ptr) const {
