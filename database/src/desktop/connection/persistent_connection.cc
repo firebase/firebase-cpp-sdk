@@ -360,7 +360,8 @@ void PersistentConnection::Listen(const QuerySpec& query_spec,
                     GetDebugQuerySpecString(query_spec).c_str());
 
   FIREBASE_DEV_ASSERT_MESSAGE(listens_.find(query_spec) == listens_.end(),
-                              "Listen() called twice for same QuerySpec.");
+                              "Listen() called twice for same QuerySpec. %s",
+                              GetDebugQuerySpecString(query_spec).c_str());
 
   // listen_id is used to search for QuerySpec later when the response message
   // is received.
@@ -707,7 +708,7 @@ void PersistentConnection::WarnOnListenerWarnings(const Variant& warnings,
 
 PersistentConnection::OutstandingListenPtr PersistentConnection::RemoveListen(
     const QuerySpec& query_spec) {
-  logger_->LogDebug("%s Removing query ", log_id_.c_str(),
+  logger_->LogDebug("%s Removing query %s", log_id_.c_str(),
                     GetDebugQuerySpecString(query_spec).c_str());
 
   auto it_listen = listens_.find(query_spec);
