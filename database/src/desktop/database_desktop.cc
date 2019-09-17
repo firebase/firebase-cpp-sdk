@@ -43,9 +43,13 @@ namespace internal {
 Mutex g_database_reference_constructor_mutex;  // NOLINT
 
 SingleValueListener::SingleValueListener(DatabaseInternal* database,
+                                         const QuerySpec& query_spec,
                                          ReferenceCountedFutureImpl* future,
                                          SafeFutureHandle<DataSnapshot> handle)
-    : database_(database), future_(future), handle_(handle) {}
+    : database_(database),
+      query_spec_(query_spec),
+      future_(future),
+      handle_(handle) {}
 
 SingleValueListener::~SingleValueListener() {
   database_->RemoveSingleValueListener(this);

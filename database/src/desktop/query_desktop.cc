@@ -156,7 +156,7 @@ Future<DataSnapshot> QueryInternal::GetValue() {
   // TODO(b/68878322): Refactor this code to be less brittle, possibly using the
   // CleanupNotifier or something like it.
   SingleValueListener* single_listener =
-      new SingleValueListener(database_, query_future(), handle);
+      new SingleValueListener(database_, query_spec_, query_future(), handle);
 
   // If the database goes away, we need to be able to reach into these blocks
   // and clear their single_listener pointer. We can't do that directly, but we

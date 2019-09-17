@@ -48,16 +48,18 @@ typedef int64_t WriteId;
 
 class SingleValueListener : public ValueListener {
  public:
-  SingleValueListener(DatabaseInternal* database,
+  SingleValueListener(DatabaseInternal* database, const QuerySpec& query_spec,
                       ReferenceCountedFutureImpl* future,
                       SafeFutureHandle<DataSnapshot> handle);
   // Unregister ourselves from the database.
   ~SingleValueListener() override;
   void OnValueChanged(const DataSnapshot& snapshot) override;
   void OnCancelled(const Error& error_code, const char* error_message) override;
+  const QuerySpec& query_spec() { return query_spec_; }
 
  private:
   DatabaseInternal* database_;
+  QuerySpec query_spec_;
   ReferenceCountedFutureImpl* future_;
   SafeFutureHandle<DataSnapshot> handle_;
 };
@@ -148,6 +150,7 @@ class DatabaseInternal {
           return *listener_holder == listener;
         });
     if (iter != single_value_listeners_.end()) {
+      repo_.RemoveEventCallback(listener, listener->query_spec());
       delete *iter;
       single_value_listeners_.erase(iter);
     }
