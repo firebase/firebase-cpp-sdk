@@ -134,6 +134,7 @@ set(common_SRCS
     src/callback.cc
     src/cleanup_notifier.cc
     src/function_registry.cc
+    src/future.cc
     src/future_manager.cc
     src/path.cc
     src/reference_counted_future_impl.cc

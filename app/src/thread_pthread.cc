@@ -146,4 +146,5 @@ void Thread::Detach() {
 
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace FIREBASE_NAMESPACE
-#endif
+
+#endif  // defined(_STLPORT_VERSION)

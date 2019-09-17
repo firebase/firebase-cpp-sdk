@@ -146,6 +146,27 @@ class FutureBase {
   /// pending. Cast is required since GetFutureResult() returns void*.
   const void* result_void() const;
 
+#if defined(INTERNAL_EXPERIMENTAL)
+  /// Special timeout value indicating an infinite timeout.
+  ///
+  /// Passing this value to FutureBase::Wait() or Future<T>::Await() will cause
+  /// those methods to wait until the future is complete.
+  ///
+  /// @Warning It is inadvisable to use this from code that could be called
+  /// from an event loop.
+  static const int kWaitTimeoutInfinite;
+
+  /// Block (i.e. suspend the current thread) until either the future is
+  /// completed or the specified timeout period (in milliseconds) has elapsed.
+  /// If `timeout_milliseconds` is `kWaitTimeoutInfinite`, then the timeout
+  /// period is treated as being infinite, i.e. this will block until the
+  /// future is completed.
+  ///
+  /// @return True if the future completed, or
+  ///         false if the timeout period elapsed before the future completed.
+  bool Wait(int timeout_milliseconds) const;
+#endif  // defined(INTERNAL_EXPERIMENTAL)
+
   /// Register a single callback that will be called at most once, when the
   /// future is completed.
   ///
@@ -367,6 +388,22 @@ class Future : public FutureBase {
   const ResultType* result() const {
     return static_cast<const ResultType*>(result_void());
   }
+
+#if defined(INTERNAL_EXPERIMENTAL)
+  /// Waits (blocks) until either the future is completed, or the specified
+  /// timeout period (in milliseconds) has elapsed, then returns the result of
+  /// the asynchronous call.
+  ///
+  /// This is a convenience method that calls Wait() and then returns result().
+  ///
+  /// If `timeout_milliseconds` is `kWaitTimeoutInfinite`, then the timeout
+  /// period is treated as being infinite, i.e. this will block until the
+  /// future is completed.
+  const ResultType* Await(int timeout_milliseconds) const {
+    Wait(timeout_milliseconds);
+    return result();
+  }
+#endif  // defined(INTERNAL_EXPERIMENTAL)
 
   /// Register a single callback that will be called at most once, when the
   /// future is completed.
