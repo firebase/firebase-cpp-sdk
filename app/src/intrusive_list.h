@@ -56,6 +56,43 @@
 
 namespace FIREBASE_NAMESPACE {
 
+namespace emulate_std {
+
+// conditional<B, T1, T2>::type is T1 if B is true, or T2 if B is false.
+// This is the same as std::conditional<B, T1, T2>, but works with
+// older compilers that don't support std::conditional.
+
+template <bool B, typename T1, typename T2>
+struct conditional;
+
+template <typename T1, typename T2>
+struct conditional<true, T1, T2> {
+  typedef T1 type;
+};
+
+template <typename T1, typename T2>
+struct conditional<false, T1, T2> {
+  typedef T2 type;
+};
+
+// Same as std::prev,
+// but works with older compilers that don't support std::prev.
+template<class BidirectionalIt>
+BidirectionalIt prev(BidirectionalIt it) {
+    std::advance(it, -1);
+    return it;
+}
+
+// Same as std::next,
+// but works with older compilers that don't support std::prev.
+template<class ForwardIt>
+ForwardIt next(ForwardIt it) {
+    std::advance(it, 1);
+    return it;
+}
+
+}  // namespace emulate_std.
+
 class intrusive_list_node;
 
 template <typename T>
@@ -213,6 +250,7 @@ class intrusive_list {
   explicit intrusive_list(intrusive_list_node T::*node_member)
       : data_(&data_, &data_), node_offset_(offset_of_node(node_member)) {}
 
+#if defined(FIREBASE_USE_MOVE_OPERATORS)
   intrusive_list(this_type&& other) { *this = std::move(other); }
 
   intrusive_list& operator=(this_type&& other) {
@@ -220,6 +258,7 @@ class intrusive_list {
     node_offset_ = std::move(other.node_offset_);
     return *this;
   }
+#endif
 
 #if defined(_MSC_VER)
   // Normally we need to disallow copying. Ideally we'd put this in the
@@ -423,7 +462,7 @@ class intrusive_list {
   }
 
   void splice(iterator pos, iterator iter) {
-    splice(pos, iter, std::next(iter));
+    splice(pos, iter, emulate_std::next(iter));
   }
 
   void splice(iterator pos, iterator first, iterator last) {
@@ -473,8 +512,8 @@ class intrusive_list {
       return;
     }
     iterator iter = begin();
-    while (iter != std::prev(end())) {
-      iterator next_iter = std::next(iter);
+    while (iter != emulate_std::prev(end())) {
+      iterator next_iter = emulate_std::next(iter);
       if (pred(*iter, *next_iter)) {
         remove(*next_iter, node_offset_);
       } else {
@@ -494,9 +533,9 @@ class intrusive_list {
     iterator next;
     for (iterator i = begin(); i != end(); i = next) {
       // Cache the `next` node because `i` might move.
-      next = std::next(i);
+      next = emulate_std::next(i);
       iterator j = i;
-      while (j != begin() && compare(*i, *std::prev(j))) {
+      while (j != begin() && compare(*i, *emulate_std::prev(j))) {
         --j;
       }
       if (i != j) {
@@ -540,11 +579,13 @@ class intrusive_list {
     typedef intrusive_list_iterator<is_const> this_type;
     typedef T value_type;
     typedef std::ptrdiff_t difference_type;
-    typedef typename std::conditional<is_const, const T&, T&>::type reference;
-    typedef typename std::conditional<is_const, const T*, T*>::type pointer;
+    typedef typename emulate_std::conditional<is_const, const T&, T&>::type
+        reference;
+    typedef typename emulate_std::conditional<is_const, const T*, T*>::type
+        pointer;
     typedef std::bidirectional_iterator_tag iterator_category;
-    typedef typename std::conditional<is_const, const intrusive_list_node,
-                                      intrusive_list_node>::type node_type;
+    typedef typename emulate_std::conditional<is_const,
+        const intrusive_list_node, intrusive_list_node>::type node_type;
 
     intrusive_list_iterator() : value_(nullptr) {}
 
