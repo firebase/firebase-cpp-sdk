@@ -35,6 +35,7 @@
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/connection/connection.h"
 #include "database/src/desktop/connection/host_info.h"
+#include "database/src/desktop/core/tag.h"
 #include "database/src/include/firebase/database/common.h"
 
 namespace firebase {
@@ -100,7 +101,7 @@ typedef SharedPtr<Response> ResponsePtr;
 class PersistentConnection : public ConnectionEventHandler {
  public:
   // Tag for listen request/response
-  typedef Optional<int64_t> Tag;
+  typedef Tag Tag;
 
   explicit PersistentConnection(App* app, const HostInfo& info,
                                 PersistentConnectionEventHandler* event_handler,
@@ -564,8 +565,7 @@ class PersistentConnectionEventHandler {
       const std::map<Variant, Variant>& updates) = 0;
 
   virtual void OnDataUpdate(const Path& path, const Variant& payload_data,
-                            bool is_merge,
-                            const PersistentConnection::Tag& tag) = 0;
+                            bool is_merge, const Tag& tag) = 0;
 };
 
 }  // namespace connection

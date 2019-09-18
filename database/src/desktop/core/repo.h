@@ -26,6 +26,7 @@
 #include "database/src/desktop/core/event_registration.h"
 #include "database/src/desktop/core/sparse_snapshot_tree.h"
 #include "database/src/desktop/core/sync_tree.h"
+#include "database/src/desktop/core/tag.h"
 #include "database/src/desktop/core/tree.h"
 #include "database/src/desktop/transaction_data.h"
 #include "database/src/desktop/view/event.h"
@@ -102,8 +103,7 @@ class Repo : public connection::PersistentConnectionEventHandler {
   void OnServerInfoUpdate(const std::map<Variant, Variant>& updates) override;
 
   void OnDataUpdate(const Path& path, const Variant& payload_data,
-                    bool is_merge,
-                    const connection::PersistentConnection::Tag& tag) override;
+                    bool is_merge, const Tag& tag) override;
 
   const std::string& url() const { return url_; }
 

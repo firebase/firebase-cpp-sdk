@@ -23,6 +23,7 @@
 #include "database/src/desktop/core/constants.h"
 #include "database/src/desktop/core/info_listen_provider.h"
 #include "database/src/desktop/core/server_values.h"
+#include "database/src/desktop/core/tag.h"
 #include "database/src/desktop/core/value_event_registration.h"
 #include "database/src/desktop/core/web_socket_listen_provider.h"
 #include "database/src/desktop/core/write_tree.h"
@@ -541,7 +542,7 @@ void Repo::OnServerInfoUpdate(const std::map<Variant, Variant>& updates) {
 }
 
 void Repo::OnDataUpdate(const Path& path, const Variant& data, bool is_merge,
-                        const connection::PersistentConnection::Tag& tag) {
+                        const Tag& tag) {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
 
   std::vector<Event> events;

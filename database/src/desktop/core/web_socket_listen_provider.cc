@@ -17,6 +17,7 @@
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/connection/persistent_connection.h"
 #include "database/src/desktop/core/listen_provider.h"
+#include "database/src/desktop/core/tag.h"
 #include "database/src/desktop/view/view.h"
 
 namespace firebase {
@@ -56,7 +57,7 @@ class WebSocketListenResponse : public connection::Response {
 void WebSocketListenProvider::StartListening(const QuerySpec& query_spec,
                                              const View* view) {
   connection_->Listen(
-      query_spec, PersistentConnection::Tag(),
+      query_spec, Tag(),
       MakeShared<WebSocketListenResponse>(
           [](const SharedPtr<connection::Response>& connection_response) {
             WebSocketListenResponse* response =

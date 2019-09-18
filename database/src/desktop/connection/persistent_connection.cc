@@ -26,6 +26,7 @@
 #include "app/src/time.h"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/core/constants.h"
+#include "database/src/desktop/core/tag.h"
 #include "database/src/desktop/util_desktop.h"
 #include "database/src/include/firebase/database/common.h"
 
@@ -352,8 +353,7 @@ void PersistentConnection::ScheduleShutdown() {
       }));
 }
 
-void PersistentConnection::Listen(const QuerySpec& query_spec,
-                                  const Optional<int64_t>& tag,
+void PersistentConnection::Listen(const QuerySpec& query_spec, const Tag& tag,
                                   ResponsePtr response) {
   CheckAuthTokenAndSendOnChange();
   logger_->LogDebug("%s Listening on %s", log_id_.c_str(),
