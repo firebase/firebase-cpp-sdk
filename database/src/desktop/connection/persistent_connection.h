@@ -100,9 +100,6 @@ typedef SharedPtr<Response> ResponsePtr;
 
 class PersistentConnection : public ConnectionEventHandler {
  public:
-  // Tag for listen request/response
-  typedef Tag Tag;
-
   explicit PersistentConnection(App* app, const HostInfo& info,
                                 PersistentConnectionEventHandler* event_handler,
                                 scheduler::Scheduler* scheduler,
