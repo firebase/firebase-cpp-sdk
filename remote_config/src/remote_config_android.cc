@@ -12,9 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "remote_config/src/include/firebase/remote_config.h"
-
 #include <assert.h>
+
 #include <set>
 #include <string>
 
@@ -24,6 +23,7 @@
 #include "app/src/util.h"
 #include "app/src/util_android.h"
 #include "remote_config/src/common.h"
+#include "remote_config/src/include/firebase/remote_config.h"
 
 namespace firebase {
 namespace remote_config {
@@ -308,8 +308,19 @@ static jobject VariantToJavaObject(JNIEnv* env, const Variant& variant) {
   } else if (variant.is_string()) {
     return env->NewStringUTF(variant.string_value());
   } else if (variant.is_blob()) {
-    return static_cast<jobject>(util::ByteBufferToJavaByteArray(
-        env, variant.blob_data(), variant.blob_size()));
+    // Workaround a Remote Config Android SDK bug: rather than using a byte[]
+    // array, use a String containing binary data instead.
+    jchar* unicode_bytes = new jchar[variant.blob_size()];
+    for (int i = 0; i < variant.blob_size(); ++i) {
+      unicode_bytes[i] = variant.blob_data()[i];
+    }
+    jobject the_string = env->NewString(unicode_bytes, variant.blob_size());
+    delete[] unicode_bytes;
+    return the_string;
+    // TODO(b/141322200) Remote the code above and restore the code below once
+    // this bug is fixed.
+    // return static_cast<jobject>(util::ByteBufferToJavaByteArray(env,
+    // variant.blob_data(), variant.blob_size()));
   } else {
     return nullptr;
   }
@@ -588,7 +599,6 @@ std::vector<unsigned char> GetData(const char* key) {
       config::GetMethodId(config::kGetByteArray), key_string);
 
   bool failed = CheckKeyRetrievalLogError(env, key, "vector");
-
   env->DeleteLocalRef(key_string);
   if (!failed) value = util::JniByteArrayToVector(env, array);
   return value;
@@ -668,9 +678,9 @@ static void FutureCallback(JNIEnv* env, jobject result,
   auto* future_handle =
       reinterpret_cast<SafeFutureHandle<void>*>(callback_data);
   if (future_data) {
-    future_data->api()->Complete(*future_handle,
-                                 success ? kFetchFutureStatusSuccess
-                                 : kFetchFutureStatusFailure);
+    future_data->api()->Complete(
+        *future_handle,
+        success ? kFetchFutureStatusSuccess : kFetchFutureStatusFailure);
   }
   delete future_handle;
 }
@@ -685,9 +695,9 @@ Future<void> Fetch(uint64_t cache_expiration_in_seconds) {
       g_remote_config_class_instance, config::GetMethodId(config::kFetch),
       static_cast<jlong>(cache_expiration_in_seconds));
 
-  util::RegisterCallbackOnTask(
-      env, task, FutureCallback, new SafeFutureHandle<void>(handle),
-      kApiIdentifier);
+  util::RegisterCallbackOnTask(env, task, FutureCallback,
+                               new SafeFutureHandle<void>(handle),
+                               kApiIdentifier);
 
   env->DeleteLocalRef(task);
   return MakeFuture<void>(api, handle);
