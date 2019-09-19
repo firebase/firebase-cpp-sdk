@@ -66,6 +66,7 @@ DatabaseInternal::~DatabaseInternal() {
       delete listener;
     }
   }
+  impl_ = MakeUnique<FIRDatabasePointer>(nil);
 }
 
 App* DatabaseInternal::GetApp() { return app_; }
@@ -102,7 +103,13 @@ const char* DatabaseInternal::GetSdkVersion() {
   return g_sdk_version->c_str();
 }
 
-void DatabaseInternal::SetPersistenceEnabled(bool enabled) { impl().persistenceEnabled = enabled; }
+void DatabaseInternal::SetPersistenceEnabled(bool enabled) {
+  @try {
+    impl().persistenceEnabled = enabled;
+  } @catch (NSException* e) {
+    LogError("SetPersistenceEnabled error: %s", e.reason.UTF8String);
+  }
+}
 
 void DatabaseInternal::set_log_level(LogLevel log_level) {
   // iOS FIRDatabase only supports logging or not logging.  Since the default logging level (Info)
