@@ -91,6 +91,7 @@ void InMemoryPersistenceStorageEngine::MergeIntoServerCache(
     const Path& path, const Variant& data) {
   VerifyInTransaction();
   Variant* target = MakeVariantAtPath(&server_cache_, path);
+  if (!target->is_map()) *target = Variant::EmptyMap();
   PatchVariant(data, target);
   // Clean up in case anything was removed.
   PruneNulls(target);
@@ -127,27 +128,33 @@ void InMemoryPersistenceStorageEngine::ResetPreviouslyActiveTrackedQueries(
 
 void InMemoryPersistenceStorageEngine::SaveTrackedQueryKeys(
     QueryId query_id, const std::set<std::string>& keys) {
-  // No persistence, so nothing to save.
+  tracked_query_keys_[query_id] = keys;
   VerifyInTransaction();
 }
 
 void InMemoryPersistenceStorageEngine::UpdateTrackedQueryKeys(
     QueryId query_id, const std::set<std::string>& added,
     const std::set<std::string>& removed) {
-  // No persistence, so nothing to save.
   VerifyInTransaction();
+
+  std::set<std::string>& tracked_keys = tracked_query_keys_[query_id];
+  tracked_keys.insert(added.begin(), added.end());
+  tracked_keys.insert(removed.begin(), removed.end());
 }
 
 std::set<std::string> InMemoryPersistenceStorageEngine::LoadTrackedQueryKeys(
     QueryId query_id) {
-  // No persistence, so nothing to load.
-  return std::set<std::string>();
+  return tracked_query_keys_[query_id];
 }
 
 std::set<std::string> InMemoryPersistenceStorageEngine::LoadTrackedQueryKeys(
     const std::set<QueryId>& query_ids) {
-  // No persistence, so nothing to load.
-  return std::set<std::string>();
+  std::set<std::string> result;
+  for (QueryId query_id : query_ids) {
+    const std::set<std::string>& tracked_keys = tracked_query_keys_[query_id];
+    result.insert(tracked_keys.begin(), tracked_keys.end());
+  }
+  return result;
 }
 
 bool InMemoryPersistenceStorageEngine::BeginTransaction() {

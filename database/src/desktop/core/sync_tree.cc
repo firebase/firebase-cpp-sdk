@@ -30,6 +30,7 @@
 #include "database/src/desktop/core/listen_provider.h"
 #include "database/src/desktop/core/server_values.h"
 #include "database/src/desktop/core/sync_point.h"
+#include "database/src/desktop/core/tag.h"
 #include "database/src/desktop/core/tree.h"
 #include "database/src/desktop/util_desktop.h"
 #include "database/src/desktop/view/event.h"
@@ -190,6 +191,14 @@ std::vector<Event> SyncTree::AddEventRegistration(
     // Now that we have the sync point, see if there is an existing view of the
     // database, and if there isn't, then set one up.
     bool view_already_exists = sync_point->ViewExistsForQuery(query_spec);
+    if (!view_already_exists && !QuerySpecLoadsAllData(query_spec)) {
+      // We need to track a tag for this query
+      FIREBASE_DEV_ASSERT_MESSAGE(!query_spec_to_tag_map_.count(query_spec),
+                                  "View does not exist but we have a tag");
+      Tag tag = GetNextQueryTag();
+      query_spec_to_tag_map_[query_spec] = tag;
+      tag_to_query_spec_map_[*tag] = query_spec;
+    }
     WriteTreeRef writes_cache = pending_write_tree_->ChildWrites(path);
     events = sync_point->AddEventRegistration(Move(event_registration),
                                               writes_cache, server_cache,
@@ -201,6 +210,86 @@ std::vector<Event> SyncTree::AddEventRegistration(
     return true;
   });
   return events;
+}
+
+// Apply a listen complete to a path.
+std::vector<Event> SyncTree::ApplyTaggedListenComplete(const Tag& tag) {
+  std::vector<Event> results;
+  persistence_manager_->RunInTransaction([&, this]() -> bool {
+    const QuerySpec* query_spec = this->QuerySpecForTag(tag);
+    if (query_spec != nullptr) {
+      this->persistence_manager_->SetQueryComplete(*query_spec);
+      Operation op = Operation::ListenComplete(
+          OperationSource::ForServerTaggedQuery(query_spec->params), Path());
+      results = this->ApplyTaggedOperation(*query_spec, op);
+      return true;
+    } else {
+      // We've already removed the query. No big deal, ignore the update
+      return true;
+    }
+  });
+  return results;
+}
+
+std::vector<Event> SyncTree::ApplyTaggedOperation(const QuerySpec& query_spec,
+                                                  const Operation& operation) {
+  const Path& query_path = query_spec.path;
+  SyncPoint* sync_point = sync_point_tree_.GetValueAt(query_path);
+  FIREBASE_DEV_ASSERT_MESSAGE(
+      sync_point != nullptr,
+      "Missing sync point for query tag that we're tracking");
+  WriteTreeRef writes_cache = pending_write_tree_->ChildWrites(query_path);
+  return sync_point->ApplyOperation(operation, writes_cache, nullptr,
+                                    persistence_manager_.get());
+}
+
+// Apply new server data for the specified tagged query.
+std::vector<Event> SyncTree::ApplyTaggedQueryOverwrite(const Path& path,
+                                                       const Variant& snap,
+                                                       const Tag& tag) {
+  std::vector<Event> results;
+  persistence_manager_->RunInTransaction([&, this]() -> bool {
+    const QuerySpec* query_spec = this->QuerySpecForTag(tag);
+    if (query_spec != nullptr) {
+      Optional<Path> relative_path = Path::GetRelative(query_spec->path, path);
+      QuerySpec query_to_overwrite =
+          relative_path->empty() ? *query_spec : QuerySpec(path);
+      this->persistence_manager_->UpdateServerCache(query_to_overwrite, snap);
+      Operation op = Operation::Overwrite(
+          OperationSource::ForServerTaggedQuery(query_spec->params),
+          *relative_path, snap);
+      results = this->ApplyTaggedOperation(*query_spec, op);
+      return true;
+    } else {
+      // Query must have been removed already
+      return true;
+    }
+  });
+  return results;
+}
+
+std::vector<Event> SyncTree::ApplyTaggedQueryMerge(
+    const Path& path, const std::map<Path, Variant>& changed_children,
+    const Tag& tag) {
+  std::vector<Event> results;
+  persistence_manager_->RunInTransaction([&, this]() -> bool {
+    const QuerySpec* query_spec = QuerySpecForTag(tag);
+    if (query_spec != nullptr) {
+      Optional<Path> relative_path = Path::GetRelative(query_spec->path, path);
+      FIREBASE_DEV_ASSERT(relative_path.has_value());
+      CompoundWrite merge = CompoundWrite::FromPathMerge(changed_children);
+      this->persistence_manager_->UpdateServerCache(path, merge);
+      Operation op = Operation::Merge(
+          OperationSource::ForServerTaggedQuery(query_spec->params),
+          *relative_path, merge);
+      results = ApplyTaggedOperation(*query_spec, op);
+      return true;
+    } else {
+      // We've already removed the query. No big deal, ignore the update
+      return true;
+    }
+  });
+  return results;
 }
 
 std::vector<Event> SyncTree::ApplyListenComplete(const Path& path) {
@@ -457,30 +546,40 @@ static QuerySpec QuerySpecForListening(const QuerySpec& query_spec) {
 
 void SyncTree::SetupListener(const QuerySpec& query_spec, const View* view) {
   const Path& path = query_spec.path;
-  listen_provider_->StartListening(QuerySpecForListening(query_spec), view);
+  const Tag& tag = TagForQuerySpec(query_spec);
+  listen_provider_->StartListening(QuerySpecForListening(query_spec), tag,
+                                   view);
 
   Tree<SyncPoint>* subtree = sync_point_tree_.GetChild(path);
 
   // The root of this subtree has our query. We're here because we definitely
   // need to send a listen for that, but we may need to shadow other listens
   // as well.
-
-  // Shadow everything at or below this location, this is a default listener.
-  subtree->CallOnEach(path, [this](const Path& relative_path,
-                                   const SyncPoint& child_sync_point) {
-    if (!relative_path.empty() && child_sync_point.HasCompleteView()) {
-      const QuerySpec& query_spec =
-          child_sync_point.GetCompleteView()->query_spec();
-      listen_provider_->StopListening(MakeDefaultQuerySpec(query_spec));
-    } else {
-      // No default listener here.
-      for (const View* sync_point_view :
-           child_sync_point.GetIncompleteQueryViews()) {
-        const QuerySpec& child_query_spec = sync_point_view->query_spec();
-        listen_provider_->StopListening(MakeDefaultQuerySpec(child_query_spec));
+  if (tag.has_value()) {
+    FIREBASE_DEV_ASSERT_MESSAGE(
+        !subtree->value()->HasCompleteView(),
+        "If we're adding a query, it shouldn't be shadowed");
+  } else {
+    // Shadow everything at or below this location, this is a default listener.
+    subtree->CallOnEach(path, [this](const Path& relative_path,
+                                     const SyncPoint& child_sync_point) {
+      if (!relative_path.empty() && child_sync_point.HasCompleteView()) {
+        const QuerySpec& query_spec =
+            child_sync_point.GetCompleteView()->query_spec();
+        listen_provider_->StopListening(QuerySpecForListening(query_spec),
+                                        TagForQuerySpec(query_spec));
+      } else {
+        // No default listener here.
+        for (const View* sync_point_view :
+             child_sync_point.GetIncompleteQueryViews()) {
+          const QuerySpec& child_query_spec = sync_point_view->query_spec();
+          listen_provider_->StopListening(
+              QuerySpecForListening(child_query_spec),
+              TagForQuerySpec(child_query_spec));
+        }
       }
-    }
-  });
+    });
+  }
 }
 
 static void CollectDistinctViewsForSubTree(Tree<SyncPoint>* subtree,
@@ -561,7 +660,7 @@ std::vector<Event> SyncTree::RemoveEventRegistration(
           for (const View* view : new_views) {
             QuerySpec new_query = view->query_spec();
             listen_provider_->StartListening(QuerySpecForListening(new_query),
-                                             view);
+                                             TagForQuerySpec(new_query), view);
           }
         } else {
           // There's nothing below us, so nothing we need to start listening on
@@ -578,14 +677,19 @@ std::vector<Event> SyncTree::RemoveEventRegistration(
         // other queries here. Just cancel the one default. Otherwise, we need
         // to iterate through and cancel each individual query
         if (removing_default) {
-          listen_provider_->StopListening(QuerySpecForListening(query_spec));
+          listen_provider_->StopListening(QuerySpecForListening(query_spec),
+                                          Tag());
         } else {
           for (QuerySpec query_to_remove : removed) {
+            Tag tag = TagForQuerySpec(query_to_remove);
+            FIREBASE_DEV_ASSERT(tag.has_value());
             listen_provider_->StopListening(
-                QuerySpecForListening(query_to_remove));
+                QuerySpecForListening(query_to_remove), tag);
           }
         }
       }
+      // Now, clear all of the tags we're tracking for the removed listens.
+      RemoveTags(removed);
     } else {
       // No-op, this listener must've been already removed.
     }
@@ -593,6 +697,29 @@ std::vector<Event> SyncTree::RemoveEventRegistration(
   });
   return cancel_events;
 }
+
+void SyncTree::RemoveTags(const std::vector<QuerySpec>& queries) {
+  for (const QuerySpec& removed_query : queries) {
+    if (!QuerySpecLoadsAllData(removed_query)) {
+      // We should have a tag for this
+      Tag tag = TagForQuerySpec(removed_query);
+      FIREBASE_DEV_ASSERT(tag.has_value());
+      query_spec_to_tag_map_.erase(removed_query);
+      tag_to_query_spec_map_.erase(*tag);
+    }
+  }
+}
+
+const QuerySpec* SyncTree::QuerySpecForTag(const Tag& tag) {
+  return MapGet(&tag_to_query_spec_map_, *tag);
+}
+
+Tag SyncTree::TagForQuerySpec(const QuerySpec& query_spec) {
+  const Tag* tag_ptr = MapGet(&query_spec_to_tag_map_, query_spec);
+  return tag_ptr ? *tag_ptr : Tag();
+}
+
+Tag SyncTree::GetNextQueryTag() { return Tag(next_query_tag_++); }
 
 }  // namespace internal
 }  // namespace database

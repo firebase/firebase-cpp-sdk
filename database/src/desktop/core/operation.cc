@@ -25,9 +25,15 @@ namespace database {
 namespace internal {
 
 const OperationSource OperationSource::kUser(OperationSource::kSourceUser,
-                                             Optional<QueryParams>());
+                                             Optional<QueryParams>(), false);
 const OperationSource OperationSource::kServer(OperationSource::kSourceServer,
-                                               Optional<QueryParams>());
+                                               Optional<QueryParams>(), false);
+
+OperationSource OperationSource::ForServerTaggedQuery(
+    const QueryParams& params) {
+  return OperationSource(OperationSource::kSourceServer,
+                         Optional<QueryParams>(params), true);
+}
 
 Operation Operation::Overwrite(const OperationSource& source, const Path& path,
                                const Variant& snapshot) {

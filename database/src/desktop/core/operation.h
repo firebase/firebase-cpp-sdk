@@ -15,6 +15,7 @@
 #ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_OPERATION_H_
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_OPERATION_H_
 
+#include "app/src/assert.h"
 #include "app/src/optional.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
@@ -30,20 +31,28 @@ namespace internal {
 struct OperationSource {
   enum Source { kSourceUser, kSourceServer };
 
-  explicit OperationSource(Source _source) : source(_source), query_params() {}
+  explicit OperationSource(Source _source)
+      : source(_source), query_params(), tagged(false) {}
 
   explicit OperationSource(const Optional<QueryParams>& _query_params)
-      : source(kSourceServer), query_params(_query_params) {}
+      : source(kSourceServer), query_params(_query_params), tagged(false) {}
 
-  OperationSource(Source _source, const Optional<QueryParams>& _query_params)
-      : source(_source), query_params(_query_params) {}
+  OperationSource(Source _source, const Optional<QueryParams>& _query_params,
+                  bool _tagged)
+      : source(_source), query_params(_query_params), tagged(_tagged) {
+    FIREBASE_DEV_ASSERT(!tagged || source == kSourceServer);
+  }
 
   // Whether this operation originated on the client or the server.
-  Source source;
+  const Source source;
 
   // The parameters, if any, that are associated with this operation. This is
   // used to determine which View the operation should apply to.
   const Optional<QueryParams> query_params;
+
+  const bool tagged;
+
+  static OperationSource ForServerTaggedQuery(const QueryParams& params);
 
   static const OperationSource kUser;
   static const OperationSource kServer;

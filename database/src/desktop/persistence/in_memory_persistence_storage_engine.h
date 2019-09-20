@@ -166,6 +166,9 @@ class InMemoryPersistenceStorageEngine : public PersistenceStorageEngine {
   void VerifyInTransaction();
 
   Variant server_cache_;
+
+  std::map<QueryId, std::set<std::string>> tracked_query_keys_;
+
   bool inside_transaction_;
 
   Logger* logger_;

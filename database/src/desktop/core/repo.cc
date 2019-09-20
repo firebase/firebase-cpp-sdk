@@ -546,11 +546,21 @@ void Repo::OnDataUpdate(const Path& path, const Variant& data, bool is_merge,
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
 
   std::vector<Event> events;
-  if (is_merge) {
-    std::map<Path, Variant> changed_children = VariantToPathMap(data);
-    events = server_sync_tree_->ApplyServerMerge(path, changed_children);
+  if (tag.has_value()) {
+    if (is_merge) {
+      std::map<Path, Variant> changed_children = VariantToPathMap(data);
+      events =
+          server_sync_tree_->ApplyTaggedQueryMerge(path, changed_children, tag);
+    } else {
+      events = server_sync_tree_->ApplyTaggedQueryOverwrite(path, data, tag);
+    }
   } else {
-    events = server_sync_tree_->ApplyServerOverwrite(path, data);
+    if (is_merge) {
+      std::map<Path, Variant> changed_children = VariantToPathMap(data);
+      events = server_sync_tree_->ApplyServerMerge(path, changed_children);
+    } else {
+      events = server_sync_tree_->ApplyServerOverwrite(path, data);
+    }
   }
   if (events.size() > 0) {
     // Since we have a listener outstanding for each transaction, receiving any

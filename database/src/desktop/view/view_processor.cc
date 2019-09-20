@@ -122,10 +122,11 @@ void ViewProcessor::ApplyOperation(const ViewCache& old_view_cache,
                                              operation.snapshot, writes_cache,
                                              opt_complete_cache, &accumulator);
       } else {
-        // We filter the node if the node has been previously filtered and the
-        // update is not at the root in which case it is ok (and necessary) to
-        // mark the node unfiltered again
-        bool filter_server_node = (old_view_cache.server_snap().filtered() &&
+        // We filter the node if it's a tagged update or the node has been
+        // previously filtered and the update is not at the root in which case
+        // it is ok (and necessary) to mark the node unfiltered again
+        bool filter_server_node = operation.source.tagged ||
+                                  (old_view_cache.server_snap().filtered() &&
                                    !operation.path.empty());
         *out_view_cache = ApplyServerOverwrite(
             old_view_cache, operation.path, operation.snapshot, writes_cache,
@@ -140,7 +141,8 @@ void ViewProcessor::ApplyOperation(const ViewCache& old_view_cache,
                            writes_cache, *opt_complete_cache, &accumulator);
       } else {
         // We filter the node if the node has been previously filtered.
-        bool filter_server_node = old_view_cache.server_snap().filtered();
+        bool filter_server_node =
+            operation.source.tagged || old_view_cache.server_snap().filtered();
         *out_view_cache = ApplyServerMerge(
             old_view_cache, operation.path, operation.children, writes_cache,
             *opt_complete_cache, filter_server_node, &accumulator);

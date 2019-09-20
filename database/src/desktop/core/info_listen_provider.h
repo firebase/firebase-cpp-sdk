@@ -19,6 +19,7 @@
 #include "database/src/desktop/connection/persistent_connection.h"
 #include "database/src/desktop/core/listen_provider.h"
 #include "database/src/desktop/core/repo.h"
+#include "database/src/desktop/core/tag.h"
 
 namespace firebase {
 namespace database {
@@ -33,9 +34,10 @@ class InfoListenProvider : public ListenProvider {
 
   void set_sync_tree(SyncTree* sync_tree) { sync_tree_ = sync_tree; }
 
-  void StartListening(const QuerySpec& query_spec, const View* view) override;
+  void StartListening(const QuerySpec& query_spec, const Tag& tag,
+                      const View* view) override;
 
-  void StopListening(const QuerySpec& query_spec) override;
+  void StopListening(const QuerySpec& query_spec, const Tag& tag) override;
 
  private:
   Repo* repo_;

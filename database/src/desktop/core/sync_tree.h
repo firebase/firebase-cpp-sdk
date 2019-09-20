@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_SYNC_TREE_H_
 
 #include <vector>
+
 #include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/optional.h"
@@ -25,6 +26,7 @@
 #include "database/src/desktop/core/listen_provider.h"
 #include "database/src/desktop/core/operation.h"
 #include "database/src/desktop/core/sync_point.h"
+#include "database/src/desktop/core/tag.h"
 #include "database/src/desktop/core/tree.h"
 #include "database/src/desktop/core/write_tree.h"
 #include "database/src/desktop/persistence/persistence_manager.h"
@@ -48,6 +50,7 @@ class SyncTree {
            UniquePtr<ListenProvider> listen_provider)
       : pending_write_tree_(std::move(pending_write_tree)),
         persistence_manager_(std::move(persistence_manager)),
+        next_query_tag_(1L),
         listen_provider_(std::move(listen_provider)) {}
 
   virtual ~SyncTree() {}
@@ -68,6 +71,24 @@ class SyncTree {
   // Listener based on the data already cached.
   virtual std::vector<Event> AddEventRegistration(
       UniquePtr<EventRegistration> event_registration);
+
+  // Listening is now complete at the location in the QuerySpec associated with
+  // the given tag (which can be for a number of reasons, like losing read
+  // permission at that location), and generate any necessary events that result
+  // from the change to the sync tree.
+  virtual std::vector<Event> ApplyTaggedListenComplete(const Tag& tag);
+
+  // Apply an overwrite from the server to the given path, and generate any
+  // necessary events that result from the change to the sync tree.
+  virtual std::vector<Event> ApplyTaggedQueryOverwrite(const Path& path,
+                                                       const Variant& snap,
+                                                       const Tag& tag);
+
+  // Apply a merge from the server to the given path, and generate any necessary
+  // events that result from the change to the sync tree.
+  virtual std::vector<Event> ApplyTaggedQueryMerge(
+      const Path& path, const std::map<Path, Variant>& changed_children,
+      const Tag& tag);
 
   // Listening is now complete at the given location (which can be for a number
   // of reasons, like losing read permission at that location), and generate any
@@ -141,6 +162,25 @@ class SyncTree {
   // Apply the operation to all applicable SyncPoints.
   std::vector<Event> ApplyOperationToSyncPoints(const Operation& operation);
 
+  // This is a thin wrapper around SyncPoint::ApplyOperation, which is used by
+  // the various functions above that take Tag arguments. It ensures that there
+  // is a SyncPoint at the appropriate location in the database, and grabs the
+  // appropriate cache data to pass to ApplyOperation.
+  std::vector<Event> ApplyTaggedOperation(const QuerySpec& query_spec,
+                                          const Operation& operation);
+
+  // Remove the tags associated with the given QuerySpecs.
+  void RemoveTags(const std::vector<QuerySpec>& queries);
+
+  // Get the QuerySpec for the given tag, if one exists.
+  const QuerySpec* QuerySpecForTag(const Tag& tag);
+
+  // Return the tag associated with the given query.
+  Tag TagForQuerySpec(const QuerySpec& query);
+
+  // Accessor for query tags.
+  Tag GetNextQueryTag();
+
   // A tree of all pending user writes (user-initiated set()'s, transaction()'s,
   // update()'s, etc.).
   UniquePtr<WriteTree> pending_write_tree_;
@@ -152,6 +192,15 @@ class SyncTree {
   // A tree that contains the SyncPoints for each location being watched in the
   // database.
   Tree<SyncPoint> sync_point_tree_;
+
+  // Maps that associate Tags with QuerySpecs and vice versa. Used when sending
+  // data to and receiving data from the server to disambiguate what QuerySpec
+  // data at a location should be applied to.
+  std::map<uint64_t, QuerySpec> tag_to_query_spec_map_;
+  std::map<QuerySpec, Tag> query_spec_to_tag_map_;
+
+  // Static tracker for next query tag.
+  int64_t next_query_tag_;
 
   // Locations that are being kept synchronized without use of a listener (i.e.
   // through Query::SetKeepSynchronized).

@@ -23,6 +23,10 @@ namespace firebase {
 namespace database {
 namespace internal {
 
+// Tags are used when sending requests to the server that only ask for a subset
+// of the data. Because the server can send back multiple different responses to
+// the same location, the tag is used to differentiate which Query at the
+// location the response is directed at.
 typedef Optional<int64_t> Tag;
 
 }  // namespace internal
