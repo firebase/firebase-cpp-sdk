@@ -19,8 +19,8 @@
 #include <algorithm>
 #include <cstring>
 
-#include "app/src/assert.h"
 #include "app/src/app_common.h"
+#include "app/src/assert.h"
 #include "app/src/build_type_generated.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
@@ -659,7 +659,7 @@ struct PhoneAuthProviderData {
 PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {}
 PhoneAuthProvider::~PhoneAuthProvider() {
   if (data_ != nullptr) {
-    JNIEnv* env = Env(data_->auth_data);
+    JNIEnv* env = GetJniEnv();
     env->DeleteGlobalRef(data_->j_phone_auth_provider);
     delete data_;
   }
@@ -834,9 +834,9 @@ JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnCodeAutoRetrievalTimeOut(
 }
 
 // FederatedAuthHandlers
-FederatedOAuthProvider::FederatedOAuthProvider() { }
+FederatedOAuthProvider::FederatedOAuthProvider() {}
 
-FederatedOAuthProvider::~FederatedOAuthProvider() { }
+FederatedOAuthProvider::~FederatedOAuthProvider() {}
 
 void FederatedOAuthProvider::SetProviderData(
     const FederatedOAuthProviderData& provider_data) {
