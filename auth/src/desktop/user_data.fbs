@@ -17,6 +17,27 @@
 // The namespace is defined to match the internal package.
 namespace firebase.auth;
 
+// Data table that describes other providers for the user data
+table UserProviderData {
+  // The user's ID, unique to the Firebase project.
+  uid:string;
+
+  // The associated email, if any.
+  email:string;
+
+  // The display name, if any.
+  display_name:string;
+
+  // Associated photo url, if any.
+  photo_url:string;
+
+  // A provider ID for the user e.g. "Facebook".
+  provider_id:string;
+
+  // The user's phone number, if any.
+  phone_number:string;
+}
+
 // LINT.IfChange
 // Data table that maps UserData struct in user_desktop.h
 table UserDataDesktop {
@@ -64,6 +85,9 @@ table UserDataDesktop {
 
   // The Firebase user creation UTC timestamp in milliseconds.
   creation_timestamp:ulong;
+
+  // other providers for current user
+  provider_data:[UserProviderData];
 }
 // LINT.ThenChange(//depot_firebase_cpp/auth/client/cpp/src/desktop/user_desktop.h)
 

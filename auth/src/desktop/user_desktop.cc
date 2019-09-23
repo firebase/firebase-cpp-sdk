@@ -485,7 +485,26 @@ void AssignLoadedData(const Future<std::string>& future, AuthData* auth_data) {
   loaded_user.last_sign_in_timestamp = userData->last_sign_in_timestamp();
   loaded_user.creation_timestamp = userData->creation_timestamp();
 
-  UserView::ResetUser(auth_data, loaded_user);
+  std::vector<UserInfoImpl> loaded_provider_data;
+  const auto& provider_data = userData->provider_data();
+  if (provider_data) {
+    for (size_t i = 0; i < provider_data->size(); ++i) {
+      auto providerData = provider_data->Get(i);
+
+      UserInfoImpl loaded_user_info;
+      loaded_user_info.uid = providerData->uid()->c_str();
+      loaded_user_info.email = providerData->email()->c_str();
+      loaded_user_info.display_name = providerData->display_name()->c_str();
+      loaded_user_info.photo_url = providerData->photo_url()->c_str();
+      loaded_user_info.provider_id = providerData->provider_id()->c_str();
+      loaded_user_info.phone_number = providerData->phone_number()->c_str();
+
+      loaded_provider_data.push_back(loaded_user_info);
+    }
+  }
+
+  auto writer = UserView::ResetUser(auth_data, loaded_user);
+  writer.ResetUserInfos(loaded_provider_data);
 }
 
 void HandleLoadedData(const Future<std::string>& future, void* auth_data) {
@@ -534,6 +553,26 @@ Future<void> UserDataPersist::SaveUserData(AuthData* auth_data) {
   // Build up a serialized buffer algorithmically:
   flatbuffers::FlatBufferBuilder builder;
 
+  const auto& user_infos = user.GetUserInfos();
+
+  auto create_callback = [&builder, &user_infos](size_t index){
+    const auto& user_info = user_infos[index];
+
+    auto uid = builder.CreateString(user_info->uid());
+    auto email = builder.CreateString(user_info->email());
+    auto display_name = builder.CreateString(user_info->display_name());
+    auto photo_url = builder.CreateString(user_info->photo_url());
+    auto provider_id = builder.CreateString(user_info->provider_id());
+    auto phone_number = builder.CreateString(user_info->phone_number());
+
+    return CreateUserProviderData(
+      builder, uid, email, display_name, photo_url, provider_id, phone_number);
+  };
+
+  auto provider_data_list =
+      builder.CreateVector<flatbuffers::Offset<UserProviderData>>(
+        user_infos.size(), create_callback);
+
   // Compile data using schema
   auto uid = builder.CreateString(user->uid);
   auto email = builder.CreateString(user->email);
@@ -551,7 +590,7 @@ Future<void> UserDataPersist::SaveUserData(AuthData* auth_data) {
       user->is_anonymous, user->is_email_verified, id_token, refresh_token,
       access_token, user->access_token_expiration_date,
       user->has_email_password_credential, user->last_sign_in_timestamp,
-      user->creation_timestamp);
+      user->creation_timestamp, provider_data_list);
   builder.Finish(desktop);
 
   std::string save_string;
