@@ -437,6 +437,10 @@ bool HasVector(const Variant& variant) {
 bool ParseInteger(const char* str, int32_t* output) {
   assert(output);
   assert(str);
+  // Integers must not have leading zeroes.
+  if (str[0] == '0' && str[1] != '\0') {
+    return false;
+  }
   // Check if the key is numeric
   bool is_int = false;
   char* end_ptr = nullptr;
@@ -449,32 +453,30 @@ bool ParseInteger(const char* str, int32_t* output) {
 }
 
 // Convert one level of map to vector if applicable.
-// Convert map to vector if
-// 1. map is not empty
-// 2. All the key are numeric
-// 3. If less or equal to half of the keys in the array is missing
+// Convert map to vector if:
+//   1. map is not empty and
+//   2. All the key are numeric and
+//   3. If less or equal to half of the keys in the array is missing.
 // This function assume no priority information remains in the variant.
 void ConvertMapToVector(Variant* variant) {
   assert(variant);
 
   if (variant->is_map() && !variant->map().empty()) {
     int64_t max_index = -1;
-    bool all_numeric = true;
     for (auto& it_child : variant->map()) {
       // Check if the key is numeric
       int32_t parse_value = 0;
       bool is_number =
           ParseInteger(it_child.first.string_value(), &parse_value);
       if (!is_number || parse_value < 0) {
-        all_numeric = false;
         // If any one of the key is not numeric, there is no need to verify
         // other keys
-        break;
+        return;
       }
       max_index = max_index < parse_value ? parse_value : max_index;
     }
 
-    if (all_numeric && max_index < (2 * variant->map().size())) {
+    if (max_index < (2 * variant->map().size())) {
       Variant array_result(
           std::vector<Variant>(max_index + 1, Variant::Null()));
       for (int i = 0; i <= max_index; ++i) {

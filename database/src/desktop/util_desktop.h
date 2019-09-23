@@ -188,7 +188,10 @@ size_t GetEffectiveChildren(const Variant& variant,
 // Check if the variant or any of its children is vector.
 bool HasVector(const Variant& variant);
 
-// Parse a base-ten input string into 32-bit integer
+// Parse a base-ten input string into 32-bit integer. Strings are parsed as
+// integers if they do not have leading 0's - if they do they are simply treated
+// as strings. This is done to match the behavior of the other database
+// implementations.
 bool ParseInteger(const char* str, int32_t* output);
 
 // Prune the priorities and convert map into vector if applicable, to the
