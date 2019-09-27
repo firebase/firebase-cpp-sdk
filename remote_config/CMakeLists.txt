@@ -47,6 +47,8 @@ else()
   # Generates config.pb.c and config.pb.h
   NANOPB_GENERATE_CPP(PROTO_SRCS PROTO_HDRS src_protos/config.proto)
   set(desktop_SRCS
+      ${PROTO_SRCS}
+      ${PROTO_HDRS}
       src/desktop/remote_config.cc
       src/desktop/rest.cc
       src/desktop/config_data.cc
@@ -82,8 +84,7 @@ else()
   set(additional_link_LIB
       firebase_rest_lib
       firebase_instance_id_desktop_impl
-      flatbuffers
-      protobuf-nanopb)
+      flatbuffers)
 endif()
 
 add_library(firebase_remote_config STATIC
