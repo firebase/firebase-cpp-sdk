@@ -629,13 +629,13 @@ class IdTokenListener {
 #endif  // not SWIG
 
 #ifdef INTERNAL_EXPERIMENTAL
-#ifndef SWIG
 /// @brief Used to authenticate with Federated Auth Providers.
 ///
 /// The federated auth provider implementation may facilitate multiple provider
 /// types in the future, with support for OAuth to start.
 class FederatedAuthProvider {
  public:
+#ifndef SWIG
   /// @brief Contains resulting information of a user authenticated by a
   /// Federated Auth Provider.  This information will be used by the internal
   /// implementation to construct a corresponding User object.
@@ -792,6 +792,7 @@ class FederatedAuthProvider {
                                 AuthError auth_error,
                                 const char* error_message);
   };
+#endif  // not SWIG
 
   FederatedAuthProvider() { }
   virtual ~FederatedAuthProvider() {}
@@ -815,6 +816,7 @@ class FederatedAuthProvider {
 /// account linking and user reauthentication, respectively.
 class FederatedOAuthProvider : public FederatedAuthProvider {
  public:
+#ifndef SWIG
   /// @brief A FederatedAuthProvider typed specifically for OAuth Authentication
   /// handling.
   ///
@@ -822,10 +824,12 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   /// UI flows.
   typedef FederatedAuthProvider::Handler<FederatedOAuthProviderData>
       AuthHandler;
+#endif  // !SWIG
 
   /// Constructs an unconfigured provider.
   FederatedOAuthProvider();
 
+#ifndef SWIG
   /// @brief Constructs a provider with the required information to authenticate
   /// using an OAuth Provider.
   ///
@@ -841,6 +845,7 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   /// to handle authentication requests.
   FederatedOAuthProvider(const FederatedOAuthProviderData& provider_data,
                          AuthHandler* handler);
+#endif  // !SWIG
 
   ~FederatedOAuthProvider() override;
 
@@ -850,6 +855,8 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   /// scopes and OAuth custom parameters required for user authentication and
   /// user linking.
   void SetProviderData(const FederatedOAuthProviderData& provider_data);
+
+#ifndef SWIG
   /// @brief Configures the use of an AuthHandler for non-mobile systems.
   ///
   /// The existence of a handler is required for non-mobile systems, and is
@@ -860,6 +867,7 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   /// to handle authentication requests. The handler must outlive the instance
   /// of this FederatedOAuthProvider.
   void SetAuthHandler(AuthHandler* handler);
+#endif  // !SWIG
 
  private:
   friend class ::firebase::auth::Auth;
@@ -871,7 +879,6 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   FederatedOAuthProviderData provider_data_;
   AuthHandler* handler_;
 };
-#endif  // not SWIG
 #endif  // INTERNAL_EXPERIMENTAL
 
 

@@ -415,19 +415,20 @@ enum AuthError {
 };
 
 #ifdef INTERNAL_EXPERIMENTAL
-// @brief Contains information to identify a Federated Auth Provider.
+/// @brief Contains information required to authenticate with a third party
+/// provider.
 struct FederatedProviderData {
-  // @brief The name of the provider against which authentication attempts will
-  // take place.
+  /// @brief contains the id of the provider to be used during sign-in, link, or
+  /// reauthentication requests.
   std::string provider_id;
 };
 
-// @brief Contains information to identify an OAuth povider.
+/// @brief Contains information to identify an OAuth povider.
 struct FederatedOAuthProviderData : FederatedProviderData {
-  // OAuth parmeters which specify which rights of access are being requested.
+  /// OAuth parmeters which specify which rights of access are being requested.
   std::vector<std::string> scopes;
 
-  // OAuth parameters which are provided to the federated provider service.
+  /// OAuth parameters which are provided to the federated provider service.
   std::map<std::string, std::string> custom_parameters;
 };
 #endif  // INTERNAL_EXPERIMENTAL

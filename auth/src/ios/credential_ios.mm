@@ -312,7 +312,7 @@ void LinkWithProviderGetCredentialCallback(FIRAuthCredential* _Nullable credenti
                                            NSError* _Nullable error,
                                            SafeFutureHandle<SignInResult> handle,
                                            AuthData* auth_data,
-                                           const FederatedOAuthProviderData& provider_data) {
+                                           const FIROAuthProvider* ios_auth_provider) {
   if (error && error.code != 0) {
     ReferenceCountedFutureImpl& futures = auth_data->future_impl;
     futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
@@ -330,10 +330,11 @@ void LinkWithProviderGetCredentialCallback(FIRAuthCredential* _Nullable credenti
 // Callback to funnel a result from a GetCredential request to reauthetnicateWithCredential request.
 // This fulfills User::ReauthenticateWithProvider functionality on iOS, which currently isn't
 // accessible via their current API.
-void ReauthenticateWithProviderGetCredentialCallback(
-    FIRAuthCredential* _Nullable credential, NSError* _Nullable error,
-    SafeFutureHandle<SignInResult> handle, AuthData* auth_data,
-    const FederatedOAuthProviderData& provider_data) {
+void ReauthenticateWithProviderGetCredentialCallback(FIRAuthCredential* _Nullable credential,
+                                                     NSError* _Nullable error,
+                                                     SafeFutureHandle<SignInResult> handle,
+                                                     AuthData* auth_data,
+                                                     const FIROAuthProvider* ios_auth_provider) {
   if (error && error.code != 0) {
     ReferenceCountedFutureImpl& futures = auth_data->future_impl;
     futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
@@ -363,7 +364,8 @@ Future<SignInResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
         signInWithProvider:ios_provider
                 UIDelegate:nullptr
                 completion:^(FIRAuthDataResult* _Nullable auth_result, NSError* _Nullable error) {
-                  SignInResultCallback(auth_result, error, handle, auth_data);
+                  SignInResultWithProviderCallback(auth_result, error, handle, auth_data,
+                                                   ios_provider);
                 }];
     return MakeFuture(&futures, handle);
   } else {
@@ -392,7 +394,7 @@ Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
                          completion:^(FIRAuthCredential* _Nullable credential,
                                       NSError* _Nullable error) {
                            LinkWithProviderGetCredentialCallback(
-                               credential, error, handle, auth_data, provider_data_);
+                               credential, error, handle, auth_data, ios_provider);
                          }];
     return MakeFuture(&futures, handle);
   } else {
@@ -421,7 +423,7 @@ Future<SignInResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data)
                          completion:^(FIRAuthCredential* _Nullable credential,
                                       NSError* _Nullable error) {
                            ReauthenticateWithProviderGetCredentialCallback(
-                               credential, error, handle, auth_data, provider_data_);
+                               credential, error, handle, auth_data, ios_provider);
                          }];
     return MakeFuture(&futures, handle);
   } else {

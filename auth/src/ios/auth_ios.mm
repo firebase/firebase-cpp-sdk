@@ -291,6 +291,15 @@ void SignInCallback(FIRUser *_Nullable user, NSError *_Nullable error,
                              result);
 }
 
+void SignInResultWithProviderCallback(
+    FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error,
+    SafeFutureHandle<SignInResult> handle, AuthData *_Nonnull auth_data,
+    const FIROAuthProvider *_Nonnull ios_auth_provider /*unused */) {
+  // ios_auth_provider exists as a parameter to hold a reference to the FIROAuthProvider preventing
+  // its release by the Objective-C runtime during the asynchronous SignIn operation.
+  SignInResultCallback(auth_result, error, handle, auth_data);
+}
+
 void SignInResultCallback(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error,
                           SafeFutureHandle<SignInResult> handle, AuthData *auth_data) {
   User* user = AssignUser(auth_result.user, auth_data);
