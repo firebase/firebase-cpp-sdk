@@ -10,8 +10,14 @@ static const int DEPRECATED_DEFAULT_ERROR_VALUE = 100;
 
 CallbackTicker::CallbackTicker(NSString* config_key, ParamCallback completion, id param,
                                int error_code)
-    : eta_(0), error_(nil), has_param_(true), param_(nil), completion_(nil),
-      param_completion_(completion), key_(config_key), error_code_(error_code) {
+    : key_(config_key),
+      eta_(0),
+      error_(nil),
+      has_param_(true),
+      param_(nil),
+      error_code_(error_code),
+      completion_(nil),
+      param_completion_(completion) {
   const ConfigRow* row = ConfigGet([config_key UTF8String]);
 
   if (row == nullptr) {
@@ -27,8 +33,13 @@ CallbackTicker::CallbackTicker(NSString* config_key, ParamCallback completion, i
 }
 
 CallbackTicker::CallbackTicker(NSString* config_key, Callback completion, int error_code)
-    : eta_(0), error_(nil), has_param_(false), param_(nil), completion_(completion),
-      param_completion_(nil), error_code_(error_code) {
+    : eta_(0),
+      error_(nil),
+      has_param_(false),
+      param_(nil),
+      error_code_(error_code),
+      completion_(completion),
+      param_completion_(nil) {
   const ConfigRow* row = ConfigGet([config_key UTF8String]);
 
   if (row == nullptr) {
