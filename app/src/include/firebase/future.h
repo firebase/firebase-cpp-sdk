@@ -188,13 +188,7 @@ class FutureBase {
   /// @param[in] callback Function pointer to your callback.
   /// @param[in] user_data Optional user data. We will pass this back to your
   /// callback.
-#if defined(INTERNAL_EXPERIMENTAL)
-  /// @return A handle that can be passed to RemoveOnCompletion.
-  CompletionCallbackHandle
-#else
-  void
-#endif
-  OnCompletion(CompletionCallback callback, void* user_data) const;
+  void OnCompletion(CompletionCallback callback, void* user_data) const;
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /// Register a single callback that will be called at most once, when the
@@ -216,13 +210,7 @@ class FutureBase {
   ///
   /// @note This method is not available when using STLPort on Android, as
   /// `std::function` is not supported on STLPort.
-#if defined(INTERNAL_EXPERIMENTAL)
-  /// @return A handle that can be passed to RemoveOnCompletion.
-  CompletionCallbackHandle
-#else
-  void
-#endif
-  OnCompletion(std::function<void(const FutureBase&)> callback) const;
+  void OnCompletion(std::function<void(const FutureBase&)> callback) const;
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 #if defined(INTERNAL_EXPERIMENTAL)
@@ -267,10 +255,10 @@ class FutureBase {
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
   /// Unregisters a callback that was previously registered with
-  /// AddOnCompletion or OnCompletion.
+  /// AddOnCompletion.
   ///
   /// @param[in] completion_handle The return value of a previous call to
-  ///                              AddOnCompletion or OnCompletion.
+  ///                              AddOnCompletion.
   void RemoveOnCompletion(CompletionCallbackHandle completion_handle) const;
 #endif  // defined(INTERNAL_EXPERIMENTAL)
 
@@ -421,12 +409,7 @@ class Future : public FutureBase {
   /// @note This is the same callback as FutureBase::OnCompletion(), so you
   /// can't expect to set both and have both run; again, only the most recently
   /// registered one will run.
-#if defined(INTERNAL_EXPERIMENTAL)
-  /// @return A handle that can be passed to RemoveOnCompletion.
-  inline CompletionCallbackHandle
-#else
   inline void
-#endif
   OnCompletion(TypedCompletionCallback callback, void* user_data) const;
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
@@ -444,12 +427,7 @@ class Future : public FutureBase {
   /// @note This is the same callback as FutureBase::OnCompletion(), so you
   /// can't expect to set both and have both run; again, only the most recently
   /// registered one will run.
-#if defined(INTERNAL_EXPERIMENTAL)
-  /// @return A handle that can be passed to RemoveOnCompletion.
-  inline CompletionCallbackHandle
-#else
   inline void
-#endif
   OnCompletion(std::function<void(const Future<ResultType>&)> callback) const;
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
