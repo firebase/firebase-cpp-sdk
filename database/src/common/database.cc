@@ -175,10 +175,12 @@ DatabaseReference Database::GetReference() const {
 }
 
 DatabaseReference Database::GetReference(const char* path) const {
+  FIREBASE_ASSERT_RETURN(DatabaseReference(), path != nullptr);
   return internal_ ? internal_->GetReference(path) : DatabaseReference();
 }
 
 DatabaseReference Database::GetReferenceFromUrl(const char* url) const {
+  FIREBASE_ASSERT_RETURN(DatabaseReference(), url != nullptr);
   return internal_ ? internal_->GetReferenceFromUrl(url) : DatabaseReference();
 }
 

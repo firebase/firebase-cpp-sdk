@@ -14,6 +14,7 @@
 
 #include "database/src/common/query.h"
 
+#include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "database/src/include/firebase/database.h"
 #include "database/src/include/firebase/database/query.h"
@@ -120,10 +121,13 @@ Future<DataSnapshot> Query::GetValueLastResult() {
 }
 
 void Query::AddValueListener(ValueListener* listener) {
+  FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
   if (internal_) internal_->AddValueListener(listener);
 }
 
 void Query::RemoveValueListener(ValueListener* listener) {
+  // listener is allowed to be a nullptr. nullptr represents removing all
+  // listeners at this location.
   if (internal_) internal_->RemoveValueListener(listener);
 }
 
@@ -132,10 +136,13 @@ void Query::RemoveAllValueListeners() {
 }
 
 void Query::AddChildListener(ChildListener* listener) {
+  FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
   if (internal_) internal_->AddChildListener(listener);
 }
 
 void Query::RemoveChildListener(ChildListener* listener) {
+  // listener is allowed to be a nullptr. nullptr represents removing all
+  // listeners at this location.
   if (internal_) internal_->RemoveChildListener(listener);
 }
 
@@ -153,6 +160,7 @@ void Query::SetKeepSynchronized(bool keep_sync) {
 }
 
 Query Query::OrderByChild(const char* path) {
+  FIREBASE_ASSERT_RETURN(Query(), path != nullptr);
   return internal_ ? Query(internal_->OrderByChild(path)) : Query(nullptr);
 }
 
@@ -177,6 +185,7 @@ Query Query::StartAt(Variant order_value) {
 }
 
 Query Query::StartAt(Variant order_value, const char* child_key) {
+  FIREBASE_ASSERT_RETURN(Query(), child_key != nullptr);
   return internal_ ? Query(internal_->StartAt(order_value, child_key))
                    : Query(nullptr);
 }
@@ -186,6 +195,7 @@ Query Query::EndAt(Variant order_value) {
 }
 
 Query Query::EndAt(Variant order_value, const char* child_key) {
+  FIREBASE_ASSERT_RETURN(Query(), child_key != nullptr);
   return internal_ ? Query(internal_->EndAt(order_value, child_key))
                    : Query(nullptr);
 }
@@ -195,6 +205,7 @@ Query Query::EqualTo(Variant order_value) {
 }
 
 Query Query::EqualTo(Variant order_value, const char* child_key) {
+  FIREBASE_ASSERT_RETURN(Query(), child_key != nullptr);
   return internal_ ? Query(internal_->EqualTo(order_value, child_key))
                    : Query(nullptr);
 }

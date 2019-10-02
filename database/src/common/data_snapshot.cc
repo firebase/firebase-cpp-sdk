@@ -14,6 +14,7 @@
 
 #include "database/src/include/firebase/database/data_snapshot.h"
 
+#include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "database/src/include/firebase/database.h"
 #include "database/src/include/firebase/database/database_reference.h"
@@ -97,6 +98,7 @@ DataSnapshot::~DataSnapshot() {
 bool DataSnapshot::exists() const { return internal_ && internal_->Exists(); }
 
 DataSnapshot DataSnapshot::Child(const char* path) const {
+  FIREBASE_ASSERT_RETURN(DataSnapshot(), path != nullptr);
   return internal_ ? DataSnapshot(internal_->Child(path))
                    : DataSnapshot(nullptr);
 }
@@ -139,6 +141,7 @@ DatabaseReference DataSnapshot::GetReference() const {
 }
 
 bool DataSnapshot::HasChild(const char* path) const {
+  FIREBASE_ASSERT_RETURN(false, path != nullptr);
   return internal_ && internal_->HasChild(path);
 }
 
