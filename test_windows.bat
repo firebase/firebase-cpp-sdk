@@ -76,7 +76,7 @@ EXIT /B %status%
   )
 
   :: Run the tests
-  ctest --verbose
+  ctest --verbose %CTEST_SKIP_FILTER%
 
   popd
   @echo off
