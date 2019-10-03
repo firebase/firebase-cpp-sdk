@@ -16,6 +16,7 @@
 #define FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_ANDROID_CALLABLE_REFERENCE_ANDROID_H_
 
 #include <jni.h>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -68,7 +69,7 @@ class HttpsCallableReferenceInternal {
 
  private:
   static void FutureCallback(JNIEnv* env, jobject result,
-                             util::FutureResult result_code, int status,
+                             util::FutureResult result_code,
                              const char* status_message, void* callback_data);
 
   ReferenceCountedFutureImpl* future();

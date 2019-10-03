@@ -15,6 +15,7 @@
 #include "functions/src/android/callable_reference_android.h"
 
 #include <jni.h>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/util_android.h"
@@ -142,7 +143,7 @@ struct FutureCallbackData {
 // Universal callback handler.
 void HttpsCallableReferenceInternal::FutureCallback(
     JNIEnv* env, jobject java_result, util::FutureResult result_code,
-    int status, const char* status_message, void* callback_data) {
+    const char* status_message, void* callback_data) {
   auto data = reinterpret_cast<FutureCallbackData*>(callback_data);
   assert(data != nullptr);
   if (result_code != util::kFutureResultSuccess) {

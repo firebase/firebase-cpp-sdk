@@ -242,11 +242,11 @@ static std::vector<jobject>* g_class_loaders;
 
 JNIEXPORT void JNICALL JniResultCallback_nativeOnResult(
     JNIEnv* env, jobject clazz, jobject result, jboolean success,
-    jboolean cancelled, jint status, jstring status_message,
-    jlong callback_fn_param, jlong callback_data);
+    jboolean cancelled, jstring status_message, jlong callback_fn_param,
+    jlong callback_data);
 
 static const JNINativeMethod kJniCallbackMethod = {
-    "nativeOnResult", "(Ljava/lang/Object;ZZILjava/lang/String;JJ)V",
+    "nativeOnResult", "(Ljava/lang/Object;ZZLjava/lang/String;JJ)V",
     reinterpret_cast<void*>(JniResultCallback_nativeOnResult)};
 
 static const JNINativeMethod kNativeLogMethods[] = {
@@ -1252,8 +1252,8 @@ void RegisterCallbackOnTask(JNIEnv* env, jobject task,
 
 JNIEXPORT void JNICALL JniResultCallback_nativeOnResult(
     JNIEnv* env, jobject clazz, jobject result, jboolean success,
-    jboolean cancelled, jint status, jstring status_message,
-    jlong callback_fn_param, jlong callback_data) {
+    jboolean cancelled, jstring status_message, jlong callback_fn_param,
+    jlong callback_data) {
   void* user_callback_data;
   pthread_mutex_lock(&g_task_callbacks_mutex);
   {
@@ -1282,8 +1282,8 @@ JNIEXPORT void JNICALL JniResultCallback_nativeOnResult(
   FutureResult result_code =
       success ? kFutureResultSuccess
               : (cancelled ? kFutureResultCancelled : kFutureResultFailure);
-  callback_fn(env, result, result_code, static_cast<int>(status),
-              status_message_c.c_str(), user_callback_data);
+  callback_fn(env, result, result_code, status_message_c.c_str(),
+              user_callback_data);
 }
 
 // Call a C++ function pointer, passing in a given data pointer. This is called

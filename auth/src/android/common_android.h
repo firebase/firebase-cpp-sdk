@@ -170,8 +170,7 @@ AuthError CheckAndClearJniAuthExceptions(JNIEnv* env,
 // The function called by the Java thread when a result completes.
 template <typename T>
 void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
-                    int status, const char* status_message,
-                    void* callback_data) {
+                    const char* status_message, void* callback_data) {
   FutureCallbackData<T>* data =
       static_cast<FutureCallbackData<T>*>(callback_data);
 

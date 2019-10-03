@@ -954,11 +954,10 @@ enum FutureResult {
 // @param result The result referred to by `task` in the
 // call to RegisterCallbackOnTask().
 // @param result_code The result of the Future (Success, Failure, Cancelled).
-// @param status This value is 0 but present for historical reasons.
 // @param callback_data Passed through verbatim from
 // RegisterCallbackOnTask().
 typedef void TaskCallbackFn(JNIEnv* env, jobject result,
-                            FutureResult result_code, int status,
+                            FutureResult result_code,
                             const char* status_message, void* callback_data);
 
 // Calls callback_fn when the Task `task` is complete, where `task` is an

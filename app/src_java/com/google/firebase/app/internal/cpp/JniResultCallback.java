@@ -35,7 +35,7 @@ public class JniResultCallback<TResult> {
      * Remove this class from the callback.
      */
     public void disconnect();
-  };
+  }
 
   // C++ pointers. Use `long` type since it is a 64-bit integer.
   private long callbackFn;
@@ -64,7 +64,7 @@ public class JniResultCallback<TResult> {
     public void onSuccess(TResult result) {
       synchronized (lockObject) {
         if (task != null) {
-          onCompletion(result, true, false, 0, null);
+          onCompletion(result, true, false, null);
         }
         disconnect();
       }
@@ -74,7 +74,7 @@ public class JniResultCallback<TResult> {
     public void onFailure(Exception exception) {
       synchronized (lockObject) {
         if (task != null) {
-          onCompletion(exception, false, false, 0, exception.getMessage());
+          onCompletion(exception, false, false, exception.getMessage());
         }
         disconnect();
       }
@@ -140,16 +140,15 @@ public class JniResultCallback<TResult> {
    */
   public void cancel() {
     // Complete the native callback to free data associated with callbackData.
-    onCompletion(null, false, true, -1, "cancelled");
+    onCompletion(null, false, true, "cancelled");
   }
 
   /** Call nativeOnResult with the registered callbackFn and callbackData. */
   public void onCompletion(
-      Object result, boolean success, boolean cancelled, int statusCode, String statusMessage) {
+      Object result, boolean success, boolean cancelled, String statusMessage) {
     synchronized (this) {
       if (callbackHandler != null) {
-        nativeOnResult(
-            result, success, cancelled, statusCode, statusMessage, callbackFn, callbackData);
+        nativeOnResult(result, success, cancelled, statusMessage, callbackFn, callbackData);
         callbackHandler.disconnect();
         callbackHandler = null;
       }
@@ -161,7 +160,6 @@ public class JniResultCallback<TResult> {
       Object result,
       boolean success,
       boolean cancelled,
-      int status,
       String statusString,
       long callbackFn,
       long callbackData);

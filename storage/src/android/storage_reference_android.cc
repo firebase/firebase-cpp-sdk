@@ -224,7 +224,6 @@ struct FutureCallbackData {
 // and completes a different typed Future depending on that type.
 void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
                                               util::FutureResult result_code,
-                                              int status,
                                               const char* status_message,
                                               void* callback_data) {
   FutureCallbackData* data =
@@ -241,8 +240,7 @@ void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
         (result_code == util::kFutureResultCancelled)
             ? kErrorCancelled
             : data->storage->ErrorFromJavaStorageException(result, &message);
-    LogDebug("FutureCallback: Completing a Future with an error (%d, %d).",
-             status, code);
+    LogDebug("FutureCallback: Completing a Future with an error (%d).", code);
     if (data->func == kStorageReferenceFnPutFile ||
         data->func == kStorageReferenceFnPutBytes ||
         data->func == kStorageReferenceFnGetMetadata ||
