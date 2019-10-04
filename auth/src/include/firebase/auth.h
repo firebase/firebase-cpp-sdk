@@ -829,6 +829,14 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   /// Constructs an unconfigured provider.
   FederatedOAuthProvider();
 
+  /// Constructs a FederatedOAuthProvider preconfigured with provider data.
+  ///
+  /// @param[in] provider_data Contains the federated provider id and OAuth
+  /// scopes and OAuth custom parameters required for user authentication and
+  /// user linking.
+  explicit FederatedOAuthProvider(
+      const FederatedOAuthProviderData& provider_data);
+
 #ifndef SWIG
   /// @brief Constructs a provider with the required information to authenticate
   /// using an OAuth Provider.

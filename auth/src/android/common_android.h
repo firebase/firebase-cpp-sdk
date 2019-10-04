@@ -167,26 +167,52 @@ AuthError ErrorCodeFromException(JNIEnv* env, jobject exception);
 AuthError CheckAndClearJniAuthExceptions(JNIEnv* env,
                                          std::string* error_message);
 
+// Checks for Future success / failure or Android based exceptions, and maps
+// them to corresponding AuthError codes.
+AuthError MapFutureCallbackResultToAuthError(JNIEnv* env, jobject result,
+                                             util::FutureResult result_code,
+                                             bool* success);
+
 // The function called by the Java thread when a result completes.
 template <typename T>
 void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
                     const char* status_message, void* callback_data) {
   FutureCallbackData<T>* data =
       static_cast<FutureCallbackData<T>*>(callback_data);
-
-  AuthError error;
   bool success = false;
-  switch (result_code) {
-    case util::kFutureResultSuccess:
-      error = kAuthErrorNone;
-      success = true;
-      break;
-    case util::kFutureResultFailure:
-      error = ErrorCodeFromException(env, result);
-      break;
-    case util::kFutureResultCancelled:
-      error = kAuthErrorCancelled;
-      break;
+  const AuthError error =
+      MapFutureCallbackResultToAuthError(env, result, result_code, &success);
+  // Finish off the asynchronous call so that the caller can read it.
+  data->auth_data->future_impl.Complete(
+      data->handle, error, status_message,
+      [result, success, data](void* user_data) {
+        if (data->future_data_read_fn != nullptr) {
+          data->future_data_read_fn(result, data, success, user_data);
+        }
+      });
+
+  // Remove the callback structure that was allocated when the callback was
+  // created in SetupFuture().
+  delete data;
+  data = nullptr;
+}
+
+// The function called by the Java thread when a result completes.
+template <typename T>
+void FederatedAuthProviderFutureCallback(JNIEnv* env, jobject result,
+                                         util::FutureResult result_code,
+                                         const char* status_message,
+                                         void* callback_data) {
+  FutureCallbackData<T>* data =
+      static_cast<FutureCallbackData<T>*>(callback_data);
+  bool success = false;
+  AuthError error =
+      MapFutureCallbackResultToAuthError(env, result, result_code, &success);
+  // The Android SDK Web Activity returns Operation Not Allowed when the
+  // provider id is invalid or a federated auth operation is requested of a
+  // disabled provider.
+  if (error == kAuthErrorOperationNotAllowed) {
+    error = kAuthErrorInvalidProviderId;
   }
   // Finish off the asynchronous call so that the caller can read it.
   data->auth_data->future_impl.Complete(
@@ -213,6 +239,23 @@ void RegisterCallback(
   // The FutureCallbackData structure is deleted in FutureCallback().
   util::RegisterCallbackOnTask(
       Env(auth_data), pending_result, FutureCallback<T>,
+      new FutureCallbackData<T>(handle, auth_data, read_result_fn),
+      auth_data->future_api_id.c_str());
+}
+
+// Akin to RegisterCallback above, but has a special callback handler
+// to detect specific error codes associated with the phone's
+// Web Activity implementation. This lets us map SDK-specific error idioms
+// to consistent error codes for both iOS and Android without interfering
+// with the existing API behavior for other sign in events.
+template <typename T>
+void RegisterFederatedAuthProviderCallback(
+    jobject pending_result, SafeFutureHandle<T> handle, AuthData* auth_data,
+    typename FutureCallbackData<T>::ReadFutureResultFn read_result_fn) {
+  // The FutureCallbackData structure is deleted in
+  // FederatedAuthProviderFutureCallback().
+  util::RegisterCallbackOnTask(
+      Env(auth_data), pending_result, FederatedAuthProviderFutureCallback<T>,
       new FutureCallbackData<T>(handle, auth_data, read_result_fn),
       auth_data->future_api_id.c_str());
 }

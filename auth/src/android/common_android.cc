@@ -424,6 +424,25 @@ AuthError CheckAndClearJniAuthExceptions(JNIEnv* env,
   return kAuthErrorNone;
 }
 
+// Checks for Future success and/or Android based Exceptions, and maps them
+// to corresonding AuthError codes.
+AuthError MapFutureCallbackResultToAuthError(JNIEnv* env, jobject result,
+                                             util::FutureResult result_code,
+                                             bool* success) {
+  *success = false;
+  switch (result_code) {
+    case util::kFutureResultSuccess:
+      *success = true;
+      return kAuthErrorNone;
+    case util::kFutureResultFailure:
+      return ErrorCodeFromException(env, result);
+    case util::kFutureResultCancelled:
+      return kAuthErrorCancelled;
+    default:
+      return kAuthErrorFailure;
+  }
+}
+
 // Convert j_user (a local reference to FirebaseUser) into a global reference,
 // delete the local reference, and update the user_impl pointer in auth_data
 // to refer to it, deleted the existing auth_data->user_impl reference if it

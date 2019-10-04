@@ -836,6 +836,11 @@ JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnCodeAutoRetrievalTimeOut(
 // FederatedAuthHandlers
 FederatedOAuthProvider::FederatedOAuthProvider() {}
 
+FederatedOAuthProvider::FederatedOAuthProvider(
+    const FederatedOAuthProviderData& provider_data) {
+  provider_data_ = provider_data;
+}
+
 FederatedOAuthProvider::~FederatedOAuthProvider() {}
 
 void FederatedOAuthProvider::SetProviderData(
@@ -922,7 +927,8 @@ Future<SignInResult> FederatedOAuthProvider::SignIn(AuthData* auth_data) {
         auth_idp::GetMethodId(auth_idp::kStartActivityForSignInWithProvider),
         auth_data->app->activity(), oauthprovider);
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterCallback(task, handle, auth_data, ReadSignInResult);
+      RegisterFederatedAuthProviderCallback(task, handle, auth_data,
+                                            ReadSignInResult);
     }
     env->DeleteLocalRef(task);
   }
@@ -945,7 +951,8 @@ Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
         user_idp::GetMethodId(user_idp::kStartActivityForLinkWithProvider),
         auth_data->app->activity(), oauthprovider);
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterCallback(task, handle, auth_data, ReadSignInResult);
+      RegisterFederatedAuthProviderCallback(task, handle, auth_data,
+                                            ReadSignInResult);
     }
     env->DeleteLocalRef(task);
   }
@@ -970,7 +977,8 @@ Future<SignInResult> FederatedOAuthProvider::Reauthenticate(
             user_idp::kStartActivityForReauthenticateWithProvider),
         auth_data->app->activity(), oauthprovider);
     if (!CheckAndCompleteFutureOnError(env, &futures, handle)) {
-      RegisterCallback(task, handle, auth_data, ReadSignInResult);
+      RegisterFederatedAuthProviderCallback(task, handle, auth_data,
+                                            ReadSignInResult);
     }
     env->DeleteLocalRef(task);
   }

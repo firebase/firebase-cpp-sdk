@@ -425,6 +425,24 @@ struct FederatedProviderData {
 
 /// @brief Contains information to identify an OAuth povider.
 struct FederatedOAuthProviderData : FederatedProviderData {
+  /// Initailizes an empty provider data structure.
+  FederatedOAuthProviderData() { }
+
+  /// Initializes the provider data structure with a provider id.
+  explicit FederatedOAuthProviderData(const std::string& provider) {
+    this->provider_id = provider;
+  }
+
+  /// @brief Initializes the provider data structure with the specified provider
+  /// id, scopes and custom parameters.
+  FederatedOAuthProviderData(
+      const std::string& provider, std::vector<std::string> scopes,
+      std::map<std::string, std::string> custom_parameters) {
+    this->provider_id = provider;
+    this->scopes = scopes;
+    this->custom_parameters = custom_parameters;
+  }
+
   /// OAuth parmeters which specify which rights of access are being requested.
   std::vector<std::string> scopes;
 

@@ -299,6 +299,10 @@ PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
 // FederatedAuthHandlers
 FederatedOAuthProvider::FederatedOAuthProvider() { }
 
+FederatedOAuthProvider::FederatedOAuthProvider(const FederatedOAuthProviderData& provider_data) {
+  provider_data_ = provider_data;
+}
+
 FederatedOAuthProvider::~FederatedOAuthProvider() { }
 
 void FederatedOAuthProvider::SetProviderData(const FederatedOAuthProviderData& provider_data) {
@@ -315,6 +319,7 @@ void LinkWithProviderGetCredentialCallback(FIRAuthCredential* _Nullable credenti
                                            const FIROAuthProvider* ios_auth_provider) {
   if (error && error.code != 0) {
     ReferenceCountedFutureImpl& futures = auth_data->future_impl;
+    error = RemapBadProviderIDErrors(error);
     futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
                                util::NSStringToString(error.localizedDescription).c_str(),
                                SignInResult());
@@ -322,7 +327,8 @@ void LinkWithProviderGetCredentialCallback(FIRAuthCredential* _Nullable credenti
     [UserImpl(auth_data)
         linkWithCredential:credential
                 completion:^(FIRAuthDataResult* _Nullable auth_result, NSError* _Nullable error) {
-                  SignInResultCallback(auth_result, error, handle, auth_data);
+                  SignInResultWithProviderCallback(auth_result, error, handle, auth_data,
+                                                   ios_auth_provider);
                 }];
   }
 }
@@ -337,15 +343,18 @@ void ReauthenticateWithProviderGetCredentialCallback(FIRAuthCredential* _Nullabl
                                                      const FIROAuthProvider* ios_auth_provider) {
   if (error && error.code != 0) {
     ReferenceCountedFutureImpl& futures = auth_data->future_impl;
+    error = RemapBadProviderIDErrors(error);
     futures.CompleteWithResult(handle, AuthErrorFromNSError(error),
                                util::NSStringToString(error.localizedDescription).c_str(),
                                SignInResult());
   } else {
     [UserImpl(auth_data)
         reauthenticateWithCredential:credential
-                completion:^(FIRAuthDataResult* _Nullable auth_result, NSError* _Nullable error) {
-                  SignInResultCallback(auth_result, error, handle, auth_data);
-                }];
+                          completion:^(FIRAuthDataResult* _Nullable auth_result,
+                                       NSError* _Nullable error) {
+                            SignInResultWithProviderCallback(auth_result, error, handle, auth_data,
+                                                             ios_auth_provider);
+                          }];
   }
 }
 

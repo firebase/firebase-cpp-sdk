@@ -110,6 +110,11 @@ void SignInResultWithProviderCallback(
     SafeFutureHandle<SignInResult> handle, AuthData *_Nonnull auth_data,
     const FIROAuthProvider *_Nonnull ios_auth_provider);
 
+/// Remap iOS SDK errors reported by the UIDelegate. While these errors seem
+/// like user interaction errors, they are actually caused by bad provider ids.
+NSError* RemapBadProviderIDErrors(NSError* _Nonnull error);
+
+
 }  // namespace auth
 }  // namespace firebase
 
