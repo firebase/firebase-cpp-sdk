@@ -18,11 +18,13 @@
 #define FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_VARIANT_H_
 
 #include <stdint.h>
+
 #include <cstring>
 #include <map>
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "firebase/internal/common.h"
 
 /// @brief Namespace that encompasses all Firebase APIs.
@@ -77,74 +79,52 @@ class Variant {
   /// @brief Construct a null Variant.
   ///
   /// The Variant constructed will be of type Null.
-  Variant() : type_(kTypeNull) {}
+  Variant()
+    : type_(kTypeNull)
+    , value_({}) {}
 
-  /// @brief Construct a Variant containing the given 64-bit integer.
+  /// @brief Construct a Variant with the given templated type.
   ///
-  /// The Variant constructed will be of type Int64.
+  /// @param[in] value The value to construct the variant.
   ///
-  /// param[in] value The 64-bit integer value for the Variant.
-  Variant(int64_t value) : type_(kTypeNull) { set_int64_value(value); }
-
-  /// @brief Construct a Variant containing the given integer.
+  /// Valid types for this constructor are `int`, `int64_t`, `float`, `double`,
+  /// `bool`, `const char*`, and `char*` (but see below for additional Variant
+  /// types).
   ///
-  /// The Variant constructed will be of type Int64.
   ///
-  /// @param[in] value The 32-bit integer value for the Variant.
-  Variant(int value) : type_(kTypeNull) {
-    set_int64_value(static_cast<int64_t>(value));
+  /// Type `int` or `int64_t`:
+  ///   * The Variant constructed will be of type Int64.
+  ///
+  /// Type `double` or `float`:
+  ///   * The Variant constructed will be of type Double.
+  ///
+  /// Type `bool`:
+  ///   * The Variant constructed will be of type Bool.
+  ///
+  /// Type `const char*`:
+  ///   * The Variant constructed will be of type StaticString, and is_string()
+  ///     will return true. **Note:** If you use this constructor, you must
+  ///     ensure that the memory pointed to stays valid for the life of the
+  ///     Variant, otherwise call mutable_string() or set_mutable_string(),
+  ///     which will copy the string to an internal buffer.
+  ///
+  /// Type `char*`:
+  ///   * The Variant constructed will be of type MutableString, and is_string()
+  ///     will return true.
+  ///
+  /// Other types will result in compiler error unless using the following
+  /// constructor overloads:
+  ///   * `std::string`
+  ///   * `std::vector<Variant>`
+  ///   * `std::vector<T>` where T is convertible to variant type
+  ///   * `T*`, `size_t` where T is convertible to variant type
+  ///   * `std::map<Variant, Variant>`
+  ///   * `std::map<K, V>` where K and V is convertible to variant type
+  template <typename T>
+  Variant(T value)  // NOLINT
+    : type_(kTypeNull) {
+    set_value_t<T>(value);
   }
-
-  /// @brief Construct a Variant containing the given double-precision floating
-  /// point value.
-  ///
-  /// The Variant constructed will be of type Double.
-  ///
-  /// @param[in] value The double-precision floating point value for the
-  /// Variant.
-  Variant(double value) : type_(kTypeNull) { set_double_value(value); }
-
-  /// @brief Construct a Variant containing the given single-precision floating
-  /// point value.
-  ///
-  /// The Variant constructed will be of type Double.
-  ///
-  /// @param[in] value The single-precision floating point value for the
-  /// Variant.
-  Variant(float value) : type_(kTypeNull) {
-    set_double_value(static_cast<double>(value));
-  }
-
-  /// @brief Construct a Variant containing the given boolean value.
-  ///
-  /// The Variant constructed will be of type Bool.
-  ///
-  /// @param[in] value The boolean value for the Variant.
-  Variant(bool value) : type_(kTypeNull) { set_bool_value(value); }
-
-  /// @brief Construct a Variant with the given static const string (no copy).
-  ///
-  /// The Variant constructed will be of type StaticString, and is_string() will
-  /// return true.
-  ///
-  /// @param[in] value A pointer to the static null-terminated string for the
-  /// Variant.
-  ///
-  /// @note If you use this constructor, you must ensure that the memory pointed
-  /// to stays valid for the life of the Variant, otherwise call
-  /// mutable_string() or set_mutable_string(), which will copy the string to an
-  /// internal buffer.
-  Variant(const char* value) : type_(kTypeNull) { set_string_value(value); }
-
-  /// @brief Construct a Variant containing the given string value (makes a
-  /// copy).
-  ///
-  /// The Variant constructed will be of type MutableString, and is_string()
-  /// will return true.
-  ///
-  /// @param[in] value A pointer to a null-terminated string, which will be
-  /// copied into to the Variant.
-  Variant(char* value) : type_(kTypeNull) { set_mutable_string(value); }
 
   /// @brief Construct a Variant containing the given string value (makes a
   /// copy).
@@ -179,7 +159,7 @@ class Variant {
     Clear(kTypeVector);
     vector().reserve(value.size());
     for (size_t i = 0; i < value.size(); i++) {
-      vector().push_back(Variant(value[i]));
+      vector().push_back(Variant(static_cast<T>(value[i])));
     }
   }
 
@@ -1043,6 +1023,15 @@ class Variant {
     value_.blob_value.size = size;
   }
 
+  // Templated helper function to ensure the value 0 is constructed as int
+  // instead of nullptr char*
+  //
+  // If you hit a compiler error here it means you are trying to construct a
+  // variant with unsupported type. Ether cast to correct type or add support
+  // below.
+  template <typename T>
+  void set_value_t(T value);
+
   // Current type contained in this Variant.
   Type type_;
   // Union of plain old data (scalars or pointers).
@@ -1060,6 +1049,61 @@ class Variant {
     } blob_value;
   } value_;
 };
+
+template <>
+inline void Variant::set_value_t<int64_t>(int64_t value) {
+  set_int64_value(value);
+}
+
+template <>
+inline void Variant::set_value_t<int>(int value) {
+  set_int64_value(static_cast<int64_t>(value));
+}
+
+template <>
+inline void Variant::set_value_t<int16_t>(int16_t value) {
+  set_int64_value(static_cast<int64_t>(value));
+}
+
+template <>
+inline void Variant::set_value_t<uint8_t>(uint8_t value) {
+  set_int64_value(static_cast<int64_t>(value));
+}
+
+template <>
+inline void Variant::set_value_t<int8_t>(int8_t value) {
+  set_int64_value(static_cast<int64_t>(value));
+}
+
+template <>
+inline void Variant::set_value_t<char>(char value) {
+  set_int64_value(static_cast<int64_t>(value));
+}
+
+template <>
+inline void Variant::set_value_t<double>(double value) {
+  set_double_value(value);
+}
+
+template <>
+inline void Variant::set_value_t<float>(float value) {
+  set_double_value(static_cast<double>(value));
+}
+
+template <>
+inline void Variant::set_value_t<bool>(bool value) {
+  set_bool_value(value);
+}
+
+template <>
+inline void Variant::set_value_t<const char*>(const char* value) {
+  set_string_value(value);
+}
+
+template <>
+inline void Variant::set_value_t<char*>(char* value) {
+  set_mutable_string(value);
+}
 
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace FIREBASE_NAMESPACE
