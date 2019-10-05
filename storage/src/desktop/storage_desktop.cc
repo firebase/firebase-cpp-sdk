@@ -32,19 +32,20 @@ namespace internal {
 
 StorageInternal::StorageInternal(App* app, const char* url) {
   app_ = app;
+
   if (url) {
     url_ = url;
+    root_ = StoragePath(url_);
   } else {
     const char* bucket = app->options().storage_bucket();
-    if (bucket) url_ = std::string(kGsScheme) + bucket;
+    root_ = StoragePath(bucket ? std::string(kGsScheme) + bucket : "");
   }
-  root_ = StoragePath(url_);
 
   // LINT.IfChange
   max_download_retry_time_ = 600.0;
   max_operation_retry_time_ = 120.0;
   max_upload_retry_time_ = 600.0;
-  // LINT.ThenChange(//depot_android_gmscore_dev/\
+  // LINT.ThenChange(//depot/google3/java/com/google/android/gmscore/integ/\
   //            client/firebase-storage-api/src/com/google/firebase/\
   //            storage/FirebaseStorage.java,
   //         //depot_firebase_ios_Releases/FirebaseStorage/\
@@ -126,8 +127,8 @@ void StorageInternal::CleanupCompletedOperations() {
   for (auto it = operations_.begin(); it != operations_.end(); ++it) {
     if ((*it)->is_complete()) operations_to_delete.push_back(*it);
   }
-  for (auto it = operations_to_delete.begin();
-       it != operations_to_delete.end(); ++it) {
+  for (auto it = operations_to_delete.begin(); it != operations_to_delete.end();
+       ++it) {
     RemoveOperation(*it);
     delete *it;
   }
