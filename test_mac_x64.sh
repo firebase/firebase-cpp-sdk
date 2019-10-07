@@ -22,8 +22,8 @@ set -e
 set -x
 
 # Make a directory to work in
-mkdir -p macos_build
-cd macos_build
+mkdir -p mac_x64_build
+cd mac_x64_build
 
 # Configure cmake with tests enabled
 # and disable use of libsecret due to not working on kokoro builders

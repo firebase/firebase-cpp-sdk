@@ -30,17 +30,7 @@ IF EXIST "C:\Program Files (x86)\OpenSSL-Win32" (
   EXIT /B -1
 )
 
-IF EXIST "C:\Program Files\OpenSSL-Win64" (
-  SET OPENSSL_x64=C:/Program Files/OpenSSL-Win64
-) ELSE (
-  ECHO ERROR: Cant find open ssl x64
-  EXIT /B -1
-)
-
 CALL :BUILD x32, "%OPENSSL_x32%", ""
-if %errorlevel% neq 0 (SET status=%errorlevel%)
-
-CALL :BUILD x64, "%OPENSSL_x64%", "-A x64"
 if %errorlevel% neq 0 (SET status=%errorlevel%)
 
 EXIT /B %status%
