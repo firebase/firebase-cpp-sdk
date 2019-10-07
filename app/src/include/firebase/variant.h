@@ -69,6 +69,11 @@ class Variant {
     /// Variant::FromMutableBlob() to create a Variant of this type, and copy
     /// binary data from an existing source.
     kTypeMutableBlob,
+    /// A c string stored in the Variant internal data blob as opposed to be
+    /// newed as a std::string. Max size is 16 bytes on x64 and 8 bytes on x86.
+    kTypeSmallString,
+    /// Not a valid type. Used to get the total number of Variant types.
+    kMaxTypeValue,
   };
 
 // <SWIG>
@@ -455,14 +460,21 @@ class Variant {
   /// @return True if the Variant's type is MutableString, false otherwise.
   bool is_mutable_string() const { return type() == kTypeMutableString; }
 
+  /// @brief Get whether this Variant contains a small string.
+  ///
+  /// @return True if the Variant's type is SmallString, false otherwise.
+  bool is_small_string() const { return type() == kTypeSmallString; }
+
   /// @brief Get whether this Variant contains a string.
   ///
   /// @return True if the Variant's type is either StaticString or
-  /// MutableString; false otherwise.
+  /// MutableString or SmallString; false otherwise.
   ///
   /// @note No matter which type of string the Variant contains, you can read
   /// its value via string_value().
-  bool is_string() const { return is_static_string() || is_mutable_string(); }
+  bool is_string() const {
+    return is_static_string() || is_mutable_string() || is_small_string();
+  }
 
   /// @brief Get whether this Variant contains a static blob.
   ///
@@ -554,9 +566,9 @@ class Variant {
   ///
   /// @note If the Variant is not one of the two String types, this will assert.
   std::string& mutable_string() {
-    if (type_ == kTypeStaticString) {
-      // Automatically promote a static string to a mutable string.
-      set_mutable_string(string_value());
+    if (type_ == kTypeStaticString || type_ == kTypeSmallString) {
+      // Automatically promote a static or small string to a mutable string.
+      set_mutable_string(string_value(), false);
     }
     assert_is_type(kTypeMutableString);
     return *value_.mutable_string_value;
@@ -674,8 +686,10 @@ class Variant {
     assert_is_string();
     if (type_ == kTypeMutableString)
       return value_.mutable_string_value->c_str();
-    else  // type_ == kTypeStaticString
+    else if (type_ == kTypeStaticString)
       return value_.static_string_value;
+    else  // if (type_ == kTypeSmallString)
+      return value_.small_string;
   }
 
   /// @brief Const accessor for a Variant containing a mutable string only.
@@ -770,7 +784,15 @@ class Variant {
   ///
   /// @param[in] value A pointer to a null-terminated string, which will be
   /// copied into to the Variant.
-  void set_string_value(char* value) { set_mutable_string(value); }
+  void set_string_value(char* value) {
+    size_t len = strlen(value);
+    if (len < kMaxSmallStringSize) {
+      Clear(kTypeSmallString);
+      strncpy(value_.small_string, value, len + 1);
+    } else {
+      set_mutable_string(std::string(value, len));
+    }
+  }
 
   /// @brief Sets the Variant to a mutable string.
   ///
@@ -781,12 +803,22 @@ class Variant {
 
   /// @brief Sets the Variant to a copy of the given string.
   ///
-  /// The Variant's type will be set to MutableString.
+  /// The Variant's type will be set to SmallString if the size of the string is
+  /// less than kMaxSmallStringSize (8 bytes on x86, 16 bytes on x64) or
+  /// otherwise set to MutableString.
   ///
   /// @param[in] value The string to use for the Variant.
-  void set_mutable_string(const std::string& value) {
-    Clear(kTypeMutableString);
-    *value_.mutable_string_value = value;
+  /// @param[in] use_small_string Check to see if the input string should be
+  ///            treated as a small string or left as a mutable string
+  void set_mutable_string(const std::string& value,
+                          bool use_small_string = true) {
+    if (value.size() < kMaxSmallStringSize && use_small_string) {
+      Clear(kTypeSmallString);
+      strncpy(value_.small_string, value.data(), value.size() + 1);
+    } else {
+      Clear(kTypeMutableString);
+      *value_.mutable_string_value = value;
+    }
   }
 
   /// @brief Sets the Variant to a copy of the given binary data.
@@ -1047,7 +1079,10 @@ class Variant {
       const uint8_t* ptr;
       size_t size;
     } blob_value;
+    char small_string[sizeof(blob_value)];
   } value_;
+
+  static const size_t kMaxSmallStringSize = sizeof(Value::small_string);
 };
 
 template <>

@@ -54,6 +54,10 @@ Variant& Variant::operator=(const Variant& other) {
         set_mutable_string(other.mutable_string());
         break;
       }
+      case kTypeSmallString: {
+        strcpy(value_.small_string, other.value_.small_string);  // NOLINT
+        break;
+      }
       case kTypeVector: {
         set_vector(other.vector());
         break;
@@ -72,6 +76,9 @@ Variant& Variant::operator=(const Variant& other) {
                          other.value_.blob_value.size);
         break;
       }
+      case kMaxTypeValue:
+        FIREBASE_ASSERT(false);  // Should never hit this
+        break;
     }
   }
   return *this;
@@ -110,6 +117,12 @@ Variant& Variant::operator=(Variant&& other) {
         other.value_.mutable_string_value = nullptr;
         break;
       }
+      case kTypeSmallString: {
+        memcpy(value_.small_string, other.value_.small_string,
+               kMaxSmallStringSize);
+        other.value_.small_string[0] = '\0';
+        break;
+      }
       case kTypeVector: {
         value_.vector_value = other.value_.vector_value;
         other.value_.vector_value = nullptr;
@@ -132,6 +145,9 @@ Variant& Variant::operator=(Variant&& other) {
         other.value_.blob_value.size = 0;
         break;
       }
+      case kMaxTypeValue:
+        FIREBASE_ASSERT(false);  // Should never hit this
+        break;
     }
   }
   return *this;
@@ -156,6 +172,7 @@ bool Variant::operator==(const Variant& other) const {
       return bool_value() == other.bool_value();
     case kTypeMutableString:
     case kTypeStaticString:
+    case kTypeSmallString:
       // string == performs string comparison
       return strcmp(string_value(), other.string_value()) == 0;
     case kTypeVector:
@@ -172,16 +189,45 @@ bool Variant::operator==(const Variant& other) const {
              ((is_static_blob() && other.is_static_blob() &&
                blob_data() == other.blob_data()) ||
               memcmp(blob_data(), other.blob_data(), blob_size()) == 0);
+    case kMaxTypeValue:
+      FIREBASE_ASSERT(false);  // Should never hit this
+      break;
   }
   return false;  // Should never reach this.
 }
 
 bool Variant::operator<(const Variant& other) const {
+  Type left_type = type();
+  Type right_type = other.type();
+
+  // If we are any string type set type to static string as we care about string
+  // value not type of string.
+  if (is_string()) {
+    left_type = kTypeStaticString;
+  }
+
+  // If other is any string type set type to static string as we care about
+  // string value not type of string.
+  if (other.is_string()) {
+    right_type = kTypeStaticString;
+  }
+
+  // If we are any blob type set type to static blob as we care about blob value
+  // not type of blob.
+  if (is_blob()) {
+    left_type = kTypeStaticBlob;
+  }
+
+  // If other is any blob type set type to static blob as we care about blob
+  // value not type of blob.
+  if (other.is_blob()) {
+    right_type = kTypeStaticBlob;
+  }
+
   // If the types don't match (except count both string types as matching, and
   // both blob types as matching), compare the types.
-  if (type() != other.type() && !(is_string() && other.is_string()) &&
-      !(is_blob() && other.is_blob()))
-    return static_cast<int>(type()) < static_cast<int>(other.type());
+  if (left_type != right_type)
+    return static_cast<int>(left_type) < static_cast<int>(right_type);
   // Type is now equal (or both strings, or both blobs).
   switch (type_) {
     case kTypeNull: {
@@ -198,6 +244,7 @@ bool Variant::operator<(const Variant& other) const {
     }
     case kTypeMutableString:
     case kTypeStaticString:
+    case kTypeSmallString:
       return strcmp(string_value(), other.string_value()) < 0;
     case kTypeVector: {
       auto i = vector().begin();
@@ -229,6 +276,9 @@ bool Variant::operator<(const Variant& other) const {
       return blob_size() == other.blob_size()
                  ? memcmp(blob_data(), other.blob_data(), blob_size()) < 0
                  : blob_size() < other.blob_size();
+    case kMaxTypeValue:
+      FIREBASE_ASSERT(false);  // Should never hit this
+      break;
   }
   return false;  // Should never reach this.
 }
@@ -255,18 +305,35 @@ void Variant::Clear(Type new_type) {
       break;
     }
     case kTypeMutableString: {
-      delete value_.mutable_string_value;
-      value_.mutable_string_value = nullptr;
+      if (new_type != kTypeMutableString
+          || value_.mutable_string_value == nullptr) {
+        delete value_.mutable_string_value;
+        value_.mutable_string_value = nullptr;
+      } else {
+        value_.mutable_string_value->clear();
+      }
+      break;
+    }
+    case kTypeSmallString: {
+      value_.small_string[0] = '\0';
       break;
     }
     case kTypeVector: {
-      delete value_.vector_value;
-      value_.vector_value = nullptr;
+      if (new_type != kTypeVector || value_.vector_value == nullptr) {
+        delete value_.vector_value;
+        value_.vector_value = nullptr;
+      } else {
+        value_.vector_value->clear();
+      }
       break;
     }
     case kTypeMap: {
-      delete value_.map_value;
-      value_.map_value = nullptr;
+      if (new_type != kTypeMap || value_.map_value == nullptr) {
+        delete value_.map_value;
+        value_.map_value = nullptr;
+      } else {
+        value_.map_value->clear();
+      }
       break;
     }
     case kTypeStaticBlob: {
@@ -279,7 +346,12 @@ void Variant::Clear(Type new_type) {
       delete[] prev_data;
       break;
     }
+    case kMaxTypeValue:
+      FIREBASE_ASSERT(false);  // Should never hit this
+      break;
   }
+
+  Type old_type = type_;
   type_ = new_type;
   switch (type_) {
     case kTypeNull: {
@@ -302,15 +374,26 @@ void Variant::Clear(Type new_type) {
       break;
     }
     case kTypeMutableString: {
-      value_.mutable_string_value = new std::string();
+      if (old_type != kTypeMutableString ||
+          value_.mutable_string_value == nullptr) {
+        value_.mutable_string_value = new std::string();
+      }
+      break;
+    }
+    case kTypeSmallString: {
+      value_.small_string[0] = '\0';
       break;
     }
     case kTypeVector: {
-      value_.vector_value = new std::vector<Variant>(0);
+      if (old_type != kTypeVector || value_.vector_value == nullptr) {
+        value_.vector_value = new std::vector<Variant>(0);
+      }
       break;
     }
     case kTypeMap: {
-      value_.map_value = new std::map<Variant, Variant>();
+      if (old_type != kTypeMap || value_.map_value == nullptr) {
+        value_.map_value = new std::map<Variant, Variant>();
+      }
       break;
     }
     case kTypeStaticBlob: {
@@ -321,17 +404,24 @@ void Variant::Clear(Type new_type) {
       set_blob_pointer(nullptr, 0);
       break;
     }
+    case kMaxTypeValue:
+      FIREBASE_ASSERT(false);  // Should never hit this
+      break;
   }
 }
 
 const char* const Variant::kTypeNames[] = {
     // In case you want to iterate through these for some reason.
-    "Null",         "Int64",         "Double", "Bool",
-    "StaticString", "MutableString", "Vector", "Map",
-    "StaticBlob",   "MutableBlob",   nullptr,
+    "Null",         "Int64",         "Double",      "Bool",
+    "StaticString", "MutableString", "Vector",      "Map",
+    "StaticBlob",   "MutableBlob",   "SmallString", nullptr,
 };
 
 void Variant::assert_is_type(Variant::Type type) const {
+    static_assert(FIREBASE_ARRAYSIZE(Variant::kTypeNames) ==
+                Variant::kMaxTypeValue + 1,
+                  "Type Enum should match kTypeNames");
+
   FIREBASE_ASSERT_MESSAGE(
       this->type() == type,
       "Expected Variant to be of type %s, but it was of type %s.",
@@ -394,7 +484,8 @@ Variant Variant::AsString() const {
       return bool_value() ? Variant("true") : Variant("false");
     }
     case kTypeMutableString:
-    case kTypeStaticString: {
+    case kTypeStaticString:
+    case kTypeSmallString: {
       return *this;
     }
     default: {
@@ -415,7 +506,8 @@ Variant Variant::AsInt64() const {
       return bool_value() ? Variant::One() : Variant::Zero();
     }
     case kTypeMutableString:
-    case kTypeStaticString: {
+    case kTypeStaticString:
+    case kTypeSmallString: {
       return Variant::FromInt64(strtol(string_value(), nullptr, 10));  // NOLINT
     }
     default: {
@@ -436,7 +528,8 @@ Variant Variant::AsDouble() const {
       return bool_value() ? Variant::OnePointZero() : Variant::ZeroPointZero();
     }
     case kTypeMutableString:
-    case kTypeStaticString: {
+    case kTypeStaticString:
+    case kTypeSmallString: {
       return Variant::FromDouble(strtod(string_value(), nullptr));
     }
     default: {

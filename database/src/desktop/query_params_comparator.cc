@@ -164,7 +164,13 @@ int QueryParamsComparator::CompareValues(const Variant& variant_a,
       kPrecedenceMap,       // kTypeMap
       kPrecedenceSentinel,  // kTypeStaticBlob
       kPrecedenceError,     // kTypeMutableBlob
+      kPrecedenceString,    // kTypeSmallString
   };
+
+  static_assert(FIREBASE_ARRAYSIZE(kPrecedenceLookupTable) ==
+                Variant::kMaxTypeValue,
+                "Variant Type Enum should match kPrecedenceLookupTable");
+
   Variant::Type type_a = value_a->type();
   Variant::Type type_b = value_b->type();
   Precedence precedence_a = kPrecedenceLookupTable[type_a];

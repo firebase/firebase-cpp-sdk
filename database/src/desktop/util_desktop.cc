@@ -764,7 +764,8 @@ void AppendHashRepAsFundamental(std::stringstream* ss, const Variant& data) {
       // Empty
       break;
     case Variant::kTypeStaticString:
-    case Variant::kTypeMutableString: {
+    case Variant::kTypeMutableString:
+    case Variant::kTypeSmallString: {
       *ss << "string:";
       // Note: Use HashVersion.V1 since ChildrenNode only support V1
       //       HashVersion.V2 would convert '\\' to "\\\\" and '"' to "\\\""
@@ -812,6 +813,7 @@ UtilLeafType GetLeafType(Variant::Type type) {
       break;
     case Variant::kTypeMutableString:
     case Variant::kTypeStaticString:
+    case Variant::kTypeSmallString:
       leaf_type = kUtilLeafTypeString;
       break;
     default:

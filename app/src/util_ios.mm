@@ -213,7 +213,8 @@ id VariantToId(const Variant& variant) {
       return [NSNumber numberWithBool:variant.bool_value()];
     }
     case Variant::kTypeStaticString:
-    case Variant::kTypeMutableString: {
+    case Variant::kTypeMutableString:
+    case Variant::kTypeSmallString: {
       return @(variant.string_value());
     }
     case Variant::kTypeVector: {
