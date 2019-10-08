@@ -1066,6 +1066,14 @@ class Variant {
 
   // Current type contained in this Variant.
   Type type_;
+
+  // Older versions of visual studio cant have this inline in the union and do
+  // sizeof for small string
+  typedef struct {
+      const uint8_t* ptr;
+      size_t size;
+  } BlobValue;
+
   // Union of plain old data (scalars or pointers).
   union Value {
     int64_t int64_value;
@@ -1075,11 +1083,8 @@ class Variant {
     std::string* mutable_string_value;
     std::vector<Variant>* vector_value;
     std::map<Variant, Variant>* map_value;
-    struct {
-      const uint8_t* ptr;
-      size_t size;
-    } blob_value;
-    char small_string[sizeof(blob_value)];
+    BlobValue blob_value;
+    char small_string[sizeof(BlobValue)];
   } value_;
 
   static const size_t kMaxSmallStringSize = sizeof(Value::small_string);
