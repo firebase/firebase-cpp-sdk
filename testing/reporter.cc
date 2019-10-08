@@ -5,6 +5,10 @@
 #include <utility>
 #include <vector>
 
+#ifdef __APPLE__
+#include "TargetConditionals.h"
+#endif
+
 #include "testing/reporter.h"
 
 namespace firebase {
@@ -96,7 +100,7 @@ void Reporter::addExpectation(const ReportRow& expectation) {
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP) || defined(__ANDROID__)
   if (expectation.getPlatform() == kAndroid)
     expectations_.push_back(expectation);
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) && TARGET_OS_IPHONE
   if (expectation.getPlatform() == kIos) expectations_.push_back(expectation);
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || defined(__ANDROID__)
 }
