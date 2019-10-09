@@ -140,7 +140,7 @@ if(IOS)
   target_include_directories(firebase_remote_config
     PRIVATE
       ${base_header_dir}/FirebaseCore
-      ${base_header_dir}/FirebaseRemoteConfig/FirebaseRemoteConfig
+      ${base_header_dir}/FirebaseRemoteConfig
   )
 
   # Add a dependency to downloading the headers onto remote_config.

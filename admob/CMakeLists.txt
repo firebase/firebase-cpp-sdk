@@ -129,6 +129,14 @@ if(IOS)
     PRIVATE
       ${base_header_dir}/Google-Mobile-Ads-SDK
   )
+  string(CONCAT google_mobile_ads_framework_path
+    "${pods_dir}/Pods/Google-Mobile-Ads-SDK/"
+    "Frameworks/GoogleMobileAdsFramework-Current/GoogleMobileAds.framework")
+  # AdMob expects the header files to be in a subfolder, so set up a symlink to
+  # accomplish that.
+  symlink_framework_headers(firebase_admob ${pod_target_name}
+    ${google_mobile_ads_framework_path} GoogleMobileAds
+  )
 
   # Add a dependency to downloading the headers onto admob.
   add_dependencies(firebase_admob ${pod_target_name})

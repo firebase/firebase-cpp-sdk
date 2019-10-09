@@ -139,10 +139,12 @@ if(IOS)
 
   # Add the Cocoapod headers to the include directories
   set(base_header_dir "${pods_dir}/Pods/Headers/Public")
+  set(analytics_framework_path
+    "${pods_dir}/Pods/FirebaseAnalytics/Frameworks/FirebaseAnalytics.framework")
   target_include_directories(firebase_analytics
     PRIVATE
       ${base_header_dir}/FirebaseCore
-      ${base_header_dir}/FirebaseAnalytics/FirebaseAnalytics
+      ${analytics_framework_path}/Headers
   )
 
   # Add a dependency to downloading the headers onto analytics.

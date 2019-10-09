@@ -77,3 +77,33 @@ function(setup_pod_headers_target TARGET_NAME POD_DIR POD_LIST)
   )
 
 endfunction()
+
+# Creates a symlink to the header files of the given framework. Used when
+# include paths are expecting the header files to be in a subdirectory, when
+# accessing the header files directly does not have them in the same structure.
+#
+# Args:
+#   LIBRARY_TARGET: The library to add the include directory to.
+#   DOWNLOAD_POD_TARGET: The target that downloads the pod files which will
+#                        contain the framework. From the above function.
+#   FRAMEWORK_PATH: The full path to the framework.
+#   SYMLINK_NAME: The name of the symlink to use. Usually the framework name.
+function(symlink_framework_headers LIBRARY_TARGET DOWNLOAD_POD_TARGET
+         FRAMEWORK_PATH SYMLINK_NAME)
+  # Guarantee the directory exists
+  set(HEADER_DIR "${PROJECT_BINARY_DIR}/FrameworkHeaders")
+  file(MAKE_DIRECTORY "${HEADER_DIR}")
+
+  # Create a symlink to the headers
+  add_custom_command(TARGET ${DOWNLOAD_POD_TARGET}
+    POST_BUILD
+    COMMAND ln -sf ${FRAMEWORK_PATH}/Headers ${HEADER_DIR}/${SYMLINK_NAME}
+    COMMENT "Setting up the framework header directory for ${SYMLINK_NAME}."
+  )
+
+  # Add the symlink directory to the list of includes
+  target_include_directories(${LIBRARY_TARGET}
+    PRIVATE
+      ${HEADER_DIR}
+  )
+endfunction()
