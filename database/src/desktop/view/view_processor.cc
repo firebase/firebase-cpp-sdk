@@ -415,12 +415,13 @@ ViewCache ViewProcessor::ApplyServerOverwrite(
     // Apply the server overwrite to the appropriate child.
     Path child_change_path = change_path.PopFrontDirectory();
     // Get a copy of the child (if present) so that it can be mutated.
-    Variant new_child_node = old_server_snap.variant();
+    Variant new_child_node =
+        VariantGetChild(&old_server_snap.variant(), child_key);
     VariantUpdateChild(&new_child_node, child_change_path, changed_snap);
     if (IsPriorityKey(child_key.str())) {
       // If this is a priority node, update the priority on the indexed node.
-      new_server_cache = server_filter->UpdatePriority(
-          old_server_snap.indexed_variant(), new_child_node);
+      new_server_cache =
+          server_filter->UpdatePriority(new_server_cache, new_child_node);
     } else {
       // If this is a regular update, the update through the filter to make sure
       // we get only the values that are not filtered by the query spec.
