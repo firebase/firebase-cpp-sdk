@@ -36,9 +36,7 @@ android {
 
   sourceSets {
     main {
-      // Use the manifest that gives access to the internet, as some of the
-      // AdMob classes have linter problems without it.
-      manifest.srcFile '../../android_build_files/AndroidManifest-internet.xml'
+      manifest.srcFile 'AndroidManifest.xml'
       java {
         srcDirs = ['../src_java/com/google/firebase/admob/internal/cpp']
       }
