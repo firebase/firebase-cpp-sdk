@@ -411,6 +411,11 @@ enum AuthError {
   /// Indicates that an error occurred during a Federated Auth UI Flow when the
   /// user was prompted to enter their credentials.
   kAuthErrorFederatedSignInUserInteractionFailure,
+
+  /// Indicates that a request was made with a missing or invalid nonce.
+  /// This can happen if the hash of the provided raw nonce did not match the
+  /// hashed nonce in the OIDC ID token payload.
+  kAuthErrorMissingOrInvalidNonce,
 #endif  // INTERNAL_EXEPERIMENTAL
 };
 
@@ -426,7 +431,7 @@ struct FederatedProviderData {
 /// @brief Contains information to identify an OAuth povider.
 struct FederatedOAuthProviderData : FederatedProviderData {
   /// Initailizes an empty provider data structure.
-  FederatedOAuthProviderData() { }
+  FederatedOAuthProviderData() {}
 
   /// Initializes the provider data structure with a provider id.
   explicit FederatedOAuthProviderData(const std::string& provider) {

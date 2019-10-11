@@ -65,6 +65,7 @@ static const ErrorCodeMapping kCredentialCodes[] = {
     {"ERROR_MISSING_MULTI_FACTOR_INFO", kAuthErrorMissingMultiFactorInfo},
     {"ERROR_INVALID_MULTI_FACTOR_SESSION", kAuthErrorInvalidMultiFactorSession},
     {"ERROR_MULTI_FACTOR_INFO_NOT_FOUND", kAuthErrorMultiFactorInfoNotFound},
+    {"ERROR_MISSING_OR_INVALID_NONCE", kAuthErrorMissingOrInvalidNonce},
     {nullptr},
 };
 static const ErrorCodeMapping kUserCodes[] = {
