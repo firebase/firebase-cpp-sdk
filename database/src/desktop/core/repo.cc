@@ -374,7 +374,7 @@ void Repo::UpdateChildren(const Path& path, const Variant& data,
 
   // Start with our existing data and merge each child into it.
   Variant server_values = GenerateServerValues(server_time_offset_);
-  const CompoundWrite& resolved =
+  CompoundWrite resolved =
       ResolveDeferredValueMerge(updates, server_values);
 
   WriteId write_id = GetNextWriteId();
