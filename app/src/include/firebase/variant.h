@@ -692,16 +692,16 @@ class Variant {
       return value_.small_string;
   }
 
-  /// @brief Const accessor for a Variant containing a mutable string only.
+  /// @brief Const accessor for a Variant containing a string.
   ///
   /// @note Unlike the non-const accessor, this accessor cannot "promote" a
-  /// static string to mutable, and thus will assert if the Variant you pass in
-  /// is not of MutableString type.
+  /// static string to mutable, and thus returns a std::string copy instead of a
+  /// const reference to a std::string
   ///
-  /// @return Reference to the string contained in this Variant.
-  const std::string& mutable_string() const {
-    assert_is_type(kTypeMutableString);
-    return *value_.mutable_string_value;
+  /// @return std::string with the string contents contained in this Variant.
+  std::string mutable_string() const {
+    assert_is_string();
+    return string_value();
   }
 
   /// @brief Const accessor for a Variant containing a vector of Variant data.
