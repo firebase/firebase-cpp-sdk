@@ -47,7 +47,7 @@ EXIT /B %status%
   mkdir windows_%~1
   pushd windows_%~1
 
-  cmake .. -DFIREBASE_CPP_BUILD_TESTS=ON -DPROTOBUF_SRC_ROOT_FOLDER=%PROTOBUF_SRC_ROOT_FOLDER% -DOPENSSL_ROOT_DIR="%~2" %~3
+  cmake .. -DFIREBASE_CPP_BUILD_TESTS=ON -DFIREBASE_INSTANCE_ID_DESKTOP=ON -DPROTOBUF_SRC_ROOT_FOLDER=%PROTOBUF_SRC_ROOT_FOLDER% -DOPENSSL_ROOT_DIR="%~2" %~3
 
   :: Check for errors, and return if there were any
   if %errorlevel% neq 0 (

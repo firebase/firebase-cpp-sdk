@@ -373,7 +373,9 @@ endif()
 if (NOT ANDROID AND NOT IOS)
   # Add the rest subdirectory, so that other libraries can access it
   add_subdirectory(rest)
-  add_subdirectory(instance_id)
+  if (FIREBASE_INSTANCE_ID_DESKTOP)
+    add_subdirectory(instance_id)
+  endif()
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

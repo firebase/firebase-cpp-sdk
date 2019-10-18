@@ -44,6 +44,8 @@ option(FIREBASE_CPP_BUILD_TESTS
        "Enable the Firebase C++ Build Tests." OFF)
 option(FIREBASE_FORCE_FAKE_SECURE_STORAGE
        "Disable use of platform secret store and use fake impl." OFF)
+option(FIREBASE_INSTANCE_ID_DESKTOP
+       "Use the experimental Instance Id desktop implementation." OFF)
 
 if(WIN32)
   # Turn on the use of the __cplusplus compiler define that is used to detect if

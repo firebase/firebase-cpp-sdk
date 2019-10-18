@@ -81,9 +81,14 @@ else()
       ${FLATBUFFERS_SOURCE_DIR}/include
       ${NANOPB_INCLUDE_DIRS}
       ${PROJECT_BINARY_DIR}/..)
+  if(FIREBASE_INSTANCE_ID_DESKTOP)
+    set(iid_desktop firebase_instance_id_desktop_impl)
+  else()
+    set(iid_desktop)
+  endif()
   set(additional_link_LIB
       firebase_rest_lib
-      firebase_instance_id_desktop_impl
+      ${iid_desktop}
       flatbuffers)
 endif()
 
