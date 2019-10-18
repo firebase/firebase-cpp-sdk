@@ -434,17 +434,13 @@ bool HasVector(const Variant& variant) {
   return false;
 }
 
-bool ParseInteger(const char* str, int32_t* output) {
+bool ParseInteger(const char* str, int64_t* output) {
   assert(output);
   assert(str);
-  // Integers must not have leading zeroes.
-  if (str[0] == '0' && str[1] != '\0') {
-    return false;
-  }
   // Check if the key is numeric
   bool is_int = false;
   char* end_ptr = nullptr;
-  int32_t parse_value = strtol(str, &end_ptr, 10);  // NOLINT
+  int64_t parse_value = strtoll(str, &end_ptr, 10);  // NOLINT
   if (end_ptr != nullptr && end_ptr != str && *end_ptr == '\0') {
     is_int = true;
     *output = parse_value;
@@ -454,7 +450,7 @@ bool ParseInteger(const char* str, int32_t* output) {
 
 // A Variant map can be converted into a Variant vector if:
 //   1. map is not empty and
-//   2. All the key are numeric and
+//   2. All the key are integer (no leading 0) and
 //   3. If less or equal to half of the keys in the array is missing.
 // Return whether the map can be converted into a vector, and output
 // max_index_out as the highest numeric key found in the map.
@@ -464,8 +460,14 @@ bool CanConvertVariantMapToVector(const Variant& variant,
 
   int64_t max_index = -1;
   for (auto& it_child : variant.map()) {
+    assert(it_child.first.is_string());
+    // Integers must not have leading zeroes.
+    if (it_child.first.string_value()[0] == '0' &&
+        it_child.first.string_value()[1] != '\0') {
+      return false;
+    }
     // Check if the key is numeric
-    int32_t parse_value = 0;
+    int64_t parse_value = 0;
     bool is_number = ParseInteger(it_child.first.string_value(), &parse_value);
     if (!is_number || parse_value < 0) {
       // If any one of the key is not numeric, there is no need to verify
@@ -835,26 +837,55 @@ UtilLeafType GetLeafType(Variant::Type type) {
 // Store the pointers to the key and the value Variant in a map for sorting
 typedef std::pair<const Variant*, const Variant*> NodeSortingData;
 
-// Comparer for std::sort to sort nodes by key as numeric value
-// Return true if right node is greater than left node
-bool KeyAsNumberSortingFunction(const NodeSortingData& left,
-                                const NodeSortingData& right) {
-  return left.first->AsInt64().int64_value() <
-         right.first->AsInt64().int64_value();
+int ChildKeyCompareTo(const Variant& left, const Variant& right) {
+  const Variant kMinChildKey(QueryParamsComparator::kMinKey);
+  const Variant kMaxChildKey(QueryParamsComparator::kMaxKey);
+
+  FIREBASE_DEV_ASSERT(left.is_string());
+  FIREBASE_DEV_ASSERT(right.is_string());
+
+  if (left == right) {
+    return 0;
+  } else if (left == kMinChildKey || right == kMaxChildKey) {
+    return -1;
+  } else if (right == kMinChildKey || left == kMaxChildKey) {
+    return 1;
+  } else {
+    int64_t left_int_key = -1;
+    bool left_is_int = ParseInteger(left.string_value(), &left_int_key);
+    int64_t right_int_key = -1;
+    bool right_is_int = ParseInteger(right.string_value(), &right_int_key);
+    if (left_is_int) {
+      if (right_is_int) {
+        int cmp = left_int_key - right_int_key;
+        return cmp == 0 ? (strlen(left.string_value()) -
+                           strlen(right.string_value()))
+                        : cmp;
+      } else {
+        return -1;
+      }
+    } else if (right_is_int) {
+      return 1;
+    } else {
+      return left > right ? 1 : -1;
+    }
+  }
 }
 
 // Private function to serialize all child nodes
 void ProcessChildNodes(std::stringstream* ss,
-                       std::vector<NodeSortingData>* nodes, bool saw_priority,
-                       bool can_convert_vector) {
+                       std::vector<NodeSortingData>* nodes, bool saw_priority) {
   // If any node has priority, sort using priority.
   if (saw_priority) {
     QueryParams params;
     assert(params.order_by == QueryParams::kOrderByPriority);
     std::sort(nodes->begin(), nodes->end(), QueryParamsLesser(&params));
-  } else if (can_convert_vector) {
-    // If the nodes can be converted to a vector, sort using key as number.
-    std::sort(nodes->begin(), nodes->end(), KeyAsNumberSortingFunction);
+  } else {
+    // Otherwise, use default sorting function.
+    std::sort(nodes->begin(), nodes->end(),
+              [](const NodeSortingData& left, const NodeSortingData& right) {
+                return ChildKeyCompareTo(*left.first, *right.first) < 0;
+              });
   }
 
   // Serialize each child with its key and its hashed value
@@ -888,7 +919,7 @@ void AppendHashRepAsContainer(std::stringstream* ss, const Variant& data) {
       saw_priority =
           saw_priority || !GetVariantPriority(data.vector()[i]).is_null();
     }
-    ProcessChildNodes(ss, &nodes, saw_priority, true);
+    ProcessChildNodes(ss, &nodes, saw_priority);
   } else if (data.is_map()) {
     bool saw_priority = false;
     for (auto& it_child : data.map()) {
@@ -896,8 +927,7 @@ void AppendHashRepAsContainer(std::stringstream* ss, const Variant& data) {
       saw_priority =
           saw_priority || !GetVariantPriority(it_child.second).is_null();
     }
-    bool can_convert_vector = CanConvertVariantMapToVector(data, nullptr);
-    ProcessChildNodes(ss, &nodes, saw_priority, can_convert_vector);
+    ProcessChildNodes(ss, &nodes, saw_priority);
   }
 }
 
