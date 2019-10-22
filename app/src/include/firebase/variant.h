@@ -32,6 +32,12 @@
 #define FIREBASE_NAMESPACE firebase
 #endif
 
+namespace firebase {
+namespace internal {
+class VariantInternal;
+}
+}
+
 namespace FIREBASE_NAMESPACE {
 
 // <SWIG>
@@ -69,11 +75,8 @@ class Variant {
     /// Variant::FromMutableBlob() to create a Variant of this type, and copy
     /// binary data from an existing source.
     kTypeMutableBlob,
-    /// A c string stored in the Variant internal data blob as opposed to be
-    /// newed as a std::string. Max size is 16 bytes on x64 and 8 bytes on x86.
-    kTypeSmallString,
-    /// Not a valid type. Used to get the total number of Variant types.
-    kMaxTypeValue,
+
+    // Note: If you add new types update enum InternalType;
   };
 
 // <SWIG>
@@ -85,7 +88,7 @@ class Variant {
   ///
   /// The Variant constructed will be of type Null.
   Variant()
-    : type_(kTypeNull)
+    : type_(kInternalTypeNull)
     , value_({}) {}
 
   /// @brief Construct a Variant with the given templated type.
@@ -127,7 +130,7 @@ class Variant {
   ///   * `std::map<K, V>` where K and V is convertible to variant type
   template <typename T>
   Variant(T value)  // NOLINT
-    : type_(kTypeNull) {
+    : type_(kInternalTypeNull) {
     set_value_t<T>(value);
   }
 
@@ -138,7 +141,8 @@ class Variant {
   /// will return true.
   ///
   /// @param[in] value The string to use for the Variant.
-  Variant(const std::string& value) : type_(kTypeNull) {
+  Variant(const std::string& value)  // NOLINT
+    : type_(kInternalTypeNull) {
     set_mutable_string(value);
   }
 
@@ -147,7 +151,8 @@ class Variant {
   /// The Variant constructed will be of type Vector.
   ///
   /// @param[in] value The STL vector to copy into the Variant.
-  Variant(const std::vector<Variant>& value) : type_(kTypeNull) {
+  Variant(const std::vector<Variant>& value)  // NOLINT
+    : type_(kInternalTypeNull) {
     set_vector(value);
   }
 
@@ -160,7 +165,8 @@ class Variant {
   /// to Variant (such as ints, strings, vectors). A Variant will be created for
   /// each element, and copied into the Vector Variant constructed here.
   template <typename T>
-  Variant(const std::vector<T>& value) : type_(kTypeNull) {
+  Variant(const std::vector<T>& value)  // NOLINT
+    : type_(kInternalTypeNull) {
     Clear(kTypeVector);
     vector().reserve(value.size());
     for (size_t i = 0; i < value.size(); i++) {
@@ -178,7 +184,8 @@ class Variant {
   /// here.
   /// @param[in] array_size Number of elements of the array.
   template <typename T>
-  Variant(const T array_of_values[], size_t array_size) : type_(kTypeNull) {
+  Variant(const T array_of_values[], size_t array_size)
+    : type_(kInternalTypeNull) {
     Clear(kTypeVector);
     vector().reserve(array_size);
     for (size_t i = 0; i < array_size; i++) {
@@ -192,7 +199,8 @@ class Variant {
   /// The Variant constructed will be of type Map.
   ///
   /// @param[in] value The STL map to copy into the Variant.
-  Variant(const std::map<Variant, Variant>& value) : type_(kTypeNull) {
+  Variant(const std::map<Variant, Variant>& value)  // NOLINT
+  : type_(kInternalTypeNull) {
     set_map(value);
   }
 
@@ -207,7 +215,8 @@ class Variant {
   /// created for each key and for each value, and copied by pairs into the Map
   /// Variant constructed here.
   template <typename K, typename V>
-  Variant(const std::map<K, V>& value) : type_(kTypeNull) {
+  Variant(const std::map<K, V>& value)  // NOLINT
+    : type_(kInternalTypeNull) {
     Clear(kTypeMap);
     for (typename std::map<K, V>::const_iterator i = value.begin();
          i != value.end(); ++i) {
@@ -218,7 +227,7 @@ class Variant {
   /// @brief Copy constructor. Performs a deep copy.
   ///
   /// @param[in] other Source Variant to copy from.
-  Variant(const Variant& other) : type_(kTypeNull) { *this = other; }
+  Variant(const Variant& other) : type_(kInternalTypeNull) { *this = other; }
 
   /// @brief Copy assignment operator. Performs a deep copy.
   ///
@@ -231,7 +240,9 @@ class Variant {
   /// simply reassigning pointer ownership.
   ///
   /// @param[in] other Source Variant to move from.
-  Variant(Variant&& other) : type_(kTypeNull) { *this = std::move(other); }
+  Variant(Variant&& other) : type_(kInternalTypeNull) {
+    *this = std::move(other);
+  }
 
   /// @brief Move assignment operator. Efficiently moves the more complex data
   /// types by simply reassigning pointer ownership.
@@ -418,7 +429,15 @@ class Variant {
   /// @brief Get the current type contained in this Variant.
   ///
   /// @return The Variant's type.
-  Type type() const { return type_; }
+  Type type() const {
+    // To avoid breaking user code, alias the small string type to mutable
+    // string.
+    if (type_ == kInternalTypeSmallString) {
+      return kTypeMutableString;
+    }
+
+    return static_cast<Type>(type_);
+  }
 
   /// @brief Get whether this Variant is currently null.
   ///
@@ -459,11 +478,6 @@ class Variant {
   ///
   /// @return True if the Variant's type is MutableString, false otherwise.
   bool is_mutable_string() const { return type() == kTypeMutableString; }
-
-  /// @brief Get whether this Variant contains a small string.
-  ///
-  /// @return True if the Variant's type is SmallString, false otherwise.
-  bool is_small_string() const { return type() == kTypeSmallString; }
 
   /// @brief Get whether this Variant contains a string.
   ///
@@ -566,7 +580,8 @@ class Variant {
   ///
   /// @note If the Variant is not one of the two String types, this will assert.
   std::string& mutable_string() {
-    if (type_ == kTypeStaticString || type_ == kTypeSmallString) {
+    if (type_ == kInternalTypeStaticString ||
+        type_ == kInternalTypeSmallString) {
       // Automatically promote a static or small string to a mutable string.
       set_mutable_string(string_value(), false);
     }
@@ -602,7 +617,7 @@ class Variant {
   /// @returns Pointer to a mutable buffer of binary data. The size of the
   /// buffer cannot be changed, but the contents are mutable.
   uint8_t* mutable_blob_data() {
-    if (type_ == kTypeStaticBlob) {
+    if (type_ == kInternalTypeStaticBlob) {
       // Automatically promote a static blob to a mutable blob.
       set_mutable_blob(blob_data(), blob_size());
     }
@@ -684,11 +699,11 @@ class Variant {
   /// will assert.
   const char* string_value() const {
     assert_is_string();
-    if (type_ == kTypeMutableString)
+    if (type_ == kInternalTypeMutableString)
       return value_.mutable_string_value->c_str();
-    else if (type_ == kTypeStaticString)
+    else if (type_ == kInternalTypeStaticString)
       return value_.static_string_value;
-    else  // if (type_ == kTypeSmallString)
+    else  // if (type_ == kInternalTypeSmallString)
       return value_.small_string;
   }
 
@@ -787,7 +802,7 @@ class Variant {
   void set_string_value(char* value) {
     size_t len = strlen(value);
     if (len < kMaxSmallStringSize) {
-      Clear(kTypeSmallString);
+      Clear(static_cast<Type>(kInternalTypeSmallString));
       strncpy(value_.small_string, value, len + 1);
     } else {
       set_mutable_string(std::string(value, len));
@@ -813,7 +828,7 @@ class Variant {
   void set_mutable_string(const std::string& value,
                           bool use_small_string = true) {
     if (value.size() < kMaxSmallStringSize && use_small_string) {
-      Clear(kTypeSmallString);
+      Clear(static_cast<Type>(kInternalTypeSmallString));
       strncpy(value_.small_string, value.data(), value.size() + 1);
     } else {
       Clear(kTypeMutableString);
@@ -889,7 +904,7 @@ class Variant {
   /// you passed in to NULL.
   void AssignMutableString(std::string** str) {
     Clear(kTypeNull);
-    type_ = kTypeMutableString;
+    type_ = kInternalTypeMutableString;
     value_.mutable_string_value = *str;
     *str = NULL;  // NOLINT
   }
@@ -906,7 +921,7 @@ class Variant {
   /// you passed in to NULL.
   void AssignVector(std::vector<Variant>** vect) {
     Clear(kTypeNull);
-    type_ = kTypeVector;
+    type_ = kInternalTypeVector;
     value_.vector_value = *vect;
     *vect = NULL;  // NOLINT
   }
@@ -923,7 +938,7 @@ class Variant {
   /// passed in to NULL.
   void AssignMap(std::map<Variant, Variant>** map) {
     Clear(kTypeNull);
-    type_ = kTypeMap;
+    type_ = kInternalTypeMap;
     value_.map_value = *map;
     *map = NULL;  // NOLINT
   }
@@ -1029,6 +1044,40 @@ class Variant {
   static const char* TypeName(Type type);
 
  private:
+  // Internal Type of data that this variant object contains to avoid breaking
+  // API
+  enum InternalType {
+    /// Null, or no data.
+    kInternalTypeNull = kTypeNull,
+    /// A 64-bit integer.
+    kInternalTypeInt64 = kTypeInt64,
+    /// A double-precision floating point number.
+    kInternalTypeDouble = kTypeDouble,
+    /// A boolean value.
+    kInternalTypeBool = kTypeBool,
+    /// A statically-allocated string we point to.
+    kInternalTypeStaticString = kTypeStaticString,
+    /// A std::string.
+    kInternalTypeMutableString = kTypeMutableString,
+    /// A std::vector of Variant.
+    kInternalTypeVector = kTypeVector,
+    /// A std::map, mapping Variant to Variant.
+    kInternalTypeMap = kTypeMap,
+    /// An statically-allocated blob of data that we point to. Never constructed
+    /// by default. Use Variant::FromStaticBlob() to create a Variant of this
+    /// type.
+    kInternalTypeStaticBlob = kTypeStaticBlob,
+    /// A blob of data that the Variant holds. Never constructed by default. Use
+    /// Variant::FromMutableBlob() to create a Variant of this type, and copy
+    /// binary data from an existing source.
+    kInternalTypeMutableBlob = kTypeMutableBlob,
+    // A c string stored in the Variant internal data blob as opposed to be
+    // newed as a std::string. Max size is 16 bytes on x64 and 8 bytes on x86.
+    kInternalTypeSmallString = kTypeMutableBlob + 1,
+    // Not a valid type. Used to get the total number of Variant types.
+    kMaxTypeValue,
+  };
+
   /// Human-readable type names, for error logging.
   static const char* const kTypeNames[];
 
@@ -1064,8 +1113,11 @@ class Variant {
   template <typename T>
   void set_value_t(T value);
 
+  // Get whether this Variant contains a small string.
+  bool is_small_string() const { return type_ == kInternalTypeSmallString; }
+
   // Current type contained in this Variant.
-  Type type_;
+  InternalType type_;
 
   // Older versions of visual studio cant have this inline in the union and do
   // sizeof for small string
@@ -1088,6 +1140,8 @@ class Variant {
   } value_;
 
   static const size_t kMaxSmallStringSize = sizeof(Value::small_string);
+
+  friend class firebase::internal::VariantInternal;
 };
 
 template <>

@@ -45,7 +45,7 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-const Variant kNullVariant = Variant::Null();
+const Variant kNullVariant = Variant::Null();  // NOLINT
 
 const char kValueKey[] = ".value";
 const char kPriorityKey[] = ".priority";
@@ -773,8 +773,7 @@ void AppendHashRepAsFundamental(std::stringstream* ss, const Variant& data) {
       // Empty
       break;
     case Variant::kTypeStaticString:
-    case Variant::kTypeMutableString:
-    case Variant::kTypeSmallString: {
+    case Variant::kTypeMutableString: {
       *ss << "string:";
       // Note: Use HashVersion.V1 since ChildrenNode only support V1
       //       HashVersion.V2 would convert '\\' to "\\\\" and '"' to "\\\""
@@ -822,7 +821,6 @@ UtilLeafType GetLeafType(Variant::Type type) {
       break;
     case Variant::kTypeMutableString:
     case Variant::kTypeStaticString:
-    case Variant::kTypeSmallString:
       leaf_type = kUtilLeafTypeString;
       break;
     default:

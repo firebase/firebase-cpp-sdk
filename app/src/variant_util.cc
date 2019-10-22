@@ -79,8 +79,7 @@ static bool VariantToJson(const Variant& variant, bool prettyPrint,
       break;
     }
     case Variant::kTypeStaticString:
-    case Variant::kTypeMutableString:
-    case Variant::kTypeSmallString: {
+    case Variant::kTypeMutableString: {
       std::string escaped_string;
       const char* str = variant.string_value();
       size_t len = variant.is_mutable_string() ? variant.mutable_string().size()
@@ -106,9 +105,6 @@ static bool VariantToJson(const Variant& variant, bool prettyPrint,
       LogError("Variants containing blobs are not supported.");
       return false;
     }
-    case Variant::kMaxTypeValue:
-      FIREBASE_ASSERT(false);  // Should never hit this.
-      return false;
   }
   return true;
 }
@@ -299,8 +295,7 @@ static bool VariantToFlexbuffer(const Variant& variant,
       break;
     }
     case Variant::kTypeStaticString:
-    case Variant::kTypeMutableString:
-    case Variant::kTypeSmallString: {
+    case Variant::kTypeMutableString: {
       const char* str = variant.string_value();
       size_t len = variant.is_mutable_string() ? variant.mutable_string().size()
                                                : strlen(str);
@@ -324,9 +319,6 @@ static bool VariantToFlexbuffer(const Variant& variant,
       LogError("Variants containing blobs are not supported.");
       return false;
     }
-    case Variant::kMaxTypeValue:
-      FIREBASE_ASSERT(false);  // Should never hit this.
-      return false;
   }
   return true;
 }

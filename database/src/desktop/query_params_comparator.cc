@@ -30,14 +30,14 @@ const char QueryParamsComparator::kMaxKey[] = "[MAX_KEY]";
 // down values with these types. These are never compared to other variants
 // directly - they should only be used with the QueryParamsComparator, which
 // uses the Variant::type() to do comparisons.
-static const Variant kMinVariant = Variant::FromStaticBlob(
+static const Variant kMinVariant = Variant::FromStaticBlob(  // NOLINT
     QueryParamsComparator::kMinKey, sizeof(QueryParamsComparator::kMinKey));
-static const Variant kMaxVariant = Variant::FromStaticBlob(
+static const Variant kMaxVariant = Variant::FromStaticBlob(  // NOLINT
     QueryParamsComparator::kMaxKey, sizeof(QueryParamsComparator::kMaxKey));
 
-const std::pair<Variant, Variant> QueryParamsComparator::kMinNode =
+const std::pair<Variant, Variant> QueryParamsComparator::kMinNode =  // NOLINT
     std::make_pair(QueryParamsComparator::kMinKey, kMinVariant);
-const std::pair<Variant, Variant> QueryParamsComparator::kMaxNode =
+const std::pair<Variant, Variant> QueryParamsComparator::kMaxNode =  // NOLINT
     std::make_pair(QueryParamsComparator::kMaxKey, kMaxVariant);
 
 static int VariantIsSentinel(const Variant& key, const Variant& value) {
@@ -164,12 +164,7 @@ int QueryParamsComparator::CompareValues(const Variant& variant_a,
       kPrecedenceMap,       // kTypeMap
       kPrecedenceSentinel,  // kTypeStaticBlob
       kPrecedenceError,     // kTypeMutableBlob
-      kPrecedenceString,    // kTypeSmallString
   };
-
-  static_assert(FIREBASE_ARRAYSIZE(kPrecedenceLookupTable) ==
-                Variant::kMaxTypeValue,
-                "Variant Type Enum should match kPrecedenceLookupTable");
 
   Variant::Type type_a = value_a->type();
   Variant::Type type_b = value_b->type();
