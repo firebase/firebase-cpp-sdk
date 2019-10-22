@@ -121,8 +121,7 @@ Future<DataSnapshot> Query::GetValueLastResult() {
 }
 
 void Query::AddValueListener(ValueListener* listener) {
-  FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
-  if (internal_) internal_->AddValueListener(listener);
+  if (internal_ && listener) internal_->AddValueListener(listener);
 }
 
 void Query::RemoveValueListener(ValueListener* listener) {
@@ -136,8 +135,7 @@ void Query::RemoveAllValueListeners() {
 }
 
 void Query::AddChildListener(ChildListener* listener) {
-  FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
-  if (internal_) internal_->AddChildListener(listener);
+  if (internal_ && listener) internal_->AddChildListener(listener);
 }
 
 void Query::RemoveChildListener(ChildListener* listener) {
@@ -160,8 +158,8 @@ void Query::SetKeepSynchronized(bool keep_sync) {
 }
 
 Query Query::OrderByChild(const char* path) {
-  FIREBASE_ASSERT_RETURN(Query(), path != nullptr);
-  return internal_ ? Query(internal_->OrderByChild(path)) : Query(nullptr);
+  return internal_ && path ? Query(internal_->OrderByChild(path))
+                           : Query(nullptr);
 }
 
 Query Query::OrderByChild(const std::string& path) {
@@ -185,9 +183,9 @@ Query Query::StartAt(Variant order_value) {
 }
 
 Query Query::StartAt(Variant order_value, const char* child_key) {
-  FIREBASE_ASSERT_RETURN(Query(), child_key != nullptr);
-  return internal_ ? Query(internal_->StartAt(order_value, child_key))
-                   : Query(nullptr);
+  return internal_ && child_key
+             ? Query(internal_->StartAt(order_value, child_key))
+             : Query(nullptr);
 }
 
 Query Query::EndAt(Variant order_value) {
@@ -195,9 +193,9 @@ Query Query::EndAt(Variant order_value) {
 }
 
 Query Query::EndAt(Variant order_value, const char* child_key) {
-  FIREBASE_ASSERT_RETURN(Query(), child_key != nullptr);
-  return internal_ ? Query(internal_->EndAt(order_value, child_key))
-                   : Query(nullptr);
+  return internal_ && child_key
+             ? Query(internal_->EndAt(order_value, child_key))
+             : Query(nullptr);
 }
 
 Query Query::EqualTo(Variant order_value) {
@@ -205,9 +203,9 @@ Query Query::EqualTo(Variant order_value) {
 }
 
 Query Query::EqualTo(Variant order_value, const char* child_key) {
-  FIREBASE_ASSERT_RETURN(Query(), child_key != nullptr);
-  return internal_ ? Query(internal_->EqualTo(order_value, child_key))
-                   : Query(nullptr);
+  return internal_ && child_key
+             ? Query(internal_->EqualTo(order_value, child_key))
+             : Query(nullptr);
 }
 
 Query Query::LimitToFirst(size_t limit) {

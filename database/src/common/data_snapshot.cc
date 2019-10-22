@@ -98,9 +98,8 @@ DataSnapshot::~DataSnapshot() {
 bool DataSnapshot::exists() const { return internal_ && internal_->Exists(); }
 
 DataSnapshot DataSnapshot::Child(const char* path) const {
-  FIREBASE_ASSERT_RETURN(DataSnapshot(), path != nullptr);
-  return internal_ ? DataSnapshot(internal_->Child(path))
-                   : DataSnapshot(nullptr);
+  return internal_ && path ? DataSnapshot(internal_->Child(path))
+                           : DataSnapshot(nullptr);
 }
 
 DataSnapshot DataSnapshot::Child(const std::string& path) const {
@@ -141,8 +140,7 @@ DatabaseReference DataSnapshot::GetReference() const {
 }
 
 bool DataSnapshot::HasChild(const char* path) const {
-  FIREBASE_ASSERT_RETURN(false, path != nullptr);
-  return internal_ && internal_->HasChild(path);
+  return internal_ && path && internal_->HasChild(path);
 }
 
 bool DataSnapshot::HasChild(const std::string& path) const {

@@ -167,9 +167,8 @@ DatabaseReference DatabaseReference::GetRoot() const {
 }
 
 DatabaseReference DatabaseReference::Child(const char* path) const {
-  FIREBASE_ASSERT_RETURN(DatabaseReference(), path != nullptr);
-  return internal_ ? DatabaseReference(internal_->Child(path))
-                   : DatabaseReference(nullptr);
+  return internal_ && path ? DatabaseReference(internal_->Child(path))
+                           : DatabaseReference(nullptr);
 }
 
 DatabaseReference DatabaseReference::Child(const std::string& path) const {

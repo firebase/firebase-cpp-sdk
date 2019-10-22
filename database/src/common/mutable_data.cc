@@ -89,8 +89,8 @@ MutableData::~MutableData() {
 }
 
 MutableData MutableData::Child(const char* path) {
-  FIREBASE_ASSERT_RETURN(GetInvalidMutableData(), path != nullptr);
-  return internal_ ? MutableData(internal_->Child(path)) : MutableData(nullptr);
+  return internal_ && path ? MutableData(internal_->Child(path))
+                           : GetInvalidMutableData();
 }
 
 MutableData MutableData::Child(const std::string& path) {
@@ -122,8 +122,7 @@ Variant MutableData::priority() {
 }
 
 bool MutableData::HasChild(const char* path) const {
-  FIREBASE_ASSERT_RETURN(false, path != nullptr);
-  return internal_ ? internal_->HasChild(path) : false;
+  return internal_ && path ? internal_->HasChild(path) : false;
 }
 
 bool MutableData::HasChild(const std::string& path) const {
