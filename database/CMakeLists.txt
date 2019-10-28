@@ -19,6 +19,7 @@ set (CMAKE_CXX_STANDARD 11)
 
 include(binary_to_array)
 include(download_pod_headers)
+include(firebase_cpp_gradle)
 
 project(firebase_database NONE)
 enable_language(C)
@@ -36,6 +37,8 @@ set(common_SRCS
     src/common/query.cc)
 
 # Define the resource build needed for Android
+firebase_cpp_gradle(":database:database_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/database_resources/build/dexed.jar")
 binary_to_array("database_resources"
     "${CMAKE_CURRENT_LIST_DIR}/database_resources/build/dexed.jar"
     "firebase_database_resources"
@@ -194,7 +197,9 @@ else()
   add_definitions(-include assert.h -include string.h)
 endif()
 
-if(IOS)
+if(ANDROID)
+  firebase_cpp_proguard_file(database)
+elseif(IOS)
   # Enable Automatic Reference Counting (ARC)
   set_property(
     TARGET firebase_database

@@ -19,6 +19,7 @@ set (CMAKE_CXX_STANDARD 11)
 
 include(binary_to_array)
 include(download_pod_headers)
+include(firebase_cpp_gradle)
 
 project(firebase_messaging NONE)
 enable_language(C)
@@ -113,7 +114,9 @@ else()
   add_definitions(-include assert.h -include string.h)
 endif()
 
-if(IOS)
+if(ANDROID)
+  firebase_cpp_proguard_file(messaging)
+elseif(IOS)
   # Enable Automatic Reference Counting (ARC).
   set_property(
     TARGET firebase_messaging

@@ -17,7 +17,9 @@
 cmake_minimum_required (VERSION 3.1)
 set (CMAKE_CXX_STANDARD 11)
 
+include(binary_to_array)
 include(download_pod_headers)
+include(firebase_cpp_gradle)
 
 project(firebase_storage NONE)
 enable_language(C)
@@ -34,6 +36,8 @@ set(common_SRCS
     src/common/storage_uri_parser.cc)
 
 # Define the resource build needed for Android
+firebase_cpp_gradle(":storage:storage_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/storage_resources/build/dexed.jar")
 binary_to_array("storage_resources"
     "${CMAKE_CURRENT_LIST_DIR}/storage_resources/build/dexed.jar"
     "firebase_storage_resources"
@@ -122,7 +126,9 @@ else()
   add_definitions(-include assert.h -include string.h)
 endif()
 
-if(IOS)
+if(ANDROID)
+  firebase_cpp_proguard_file(storage)
+elseif(IOS)
   # Enable Automatic Reference Counting (ARC)
   set_property(
     TARGET firebase_storage

@@ -20,6 +20,7 @@ set (CMAKE_CXX_STANDARD 11)
 include(FindPkgConfig)
 include(binary_to_array)
 include(download_pod_headers)
+include(firebase_cpp_gradle)
 
 project(firebase_app NONE)
 enable_language(C)
@@ -32,14 +33,20 @@ binary_to_array("google_services_resource"
     "${FIREBASE_GEN_FILE_DIR}/app")
 
 # Define the resource builds needed for Android
+firebase_cpp_gradle(":app:app_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/app_resources/build/dexed.jar")
 binary_to_array("app_resources"
     "${CMAKE_CURRENT_LIST_DIR}/app_resources/build/dexed.jar"
     "firebase_app"
     "${FIREBASE_GEN_FILE_DIR}/app")
+firebase_cpp_gradle(":app:google_api_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/google_api_resources/build/dexed.jar")
 binary_to_array("google_api_resources"
     "${CMAKE_CURRENT_LIST_DIR}/google_api_resources/build/dexed.jar"
     "google_api"
     "${FIREBASE_GEN_FILE_DIR}/app")
+firebase_cpp_gradle(":app:invites_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/invites_resources/build/dexed.jar")
 binary_to_array("invites_resources"
     "${CMAKE_CURRENT_LIST_DIR}/invites_resources/build/dexed.jar"
     "firebase_invites"
@@ -340,7 +347,9 @@ if(MSVC)
   add_definitions(-DNOMINMAX)
 endif()
 
-if(IOS)
+if(ANDROID)
+  firebase_cpp_proguard_file(app)
+elseif(IOS)
   # Enable Automatic Reference Counting (ARC).
   set_property(
     TARGET firebase_app

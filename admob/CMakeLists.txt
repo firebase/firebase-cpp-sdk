@@ -17,7 +17,9 @@
 cmake_minimum_required (VERSION 3.1)
 set (CMAKE_CXX_STANDARD 11)
 
+include(binary_to_array)
 include(download_pod_headers)
+include(firebase_cpp_gradle)
 
 project(firebase_admob NONE)
 enable_language(C)
@@ -36,6 +38,8 @@ set(common_SRCS
     src/common/rewarded_video_internal.cc)
 
 # Define the resource build needed for Android
+firebase_cpp_gradle(":admob:admob_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/admob_resources/build/dexed.jar")
 binary_to_array("admob_resources"
     "${CMAKE_CURRENT_LIST_DIR}/admob_resources/build/dexed.jar"
     "firebase_admob"
@@ -107,7 +111,9 @@ else()
   add_definitions(-include assert.h -include string.h)
 endif()
 
-if(IOS)
+if(ANDROID)
+  firebase_cpp_proguard_file(admob)
+elseif(IOS)
   # AdMob for iOS uses weak references, which requires enabling Automatic
   # Reference Counting (ARC).
   set_property(
