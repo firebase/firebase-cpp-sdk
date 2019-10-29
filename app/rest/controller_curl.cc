@@ -45,11 +45,11 @@ ControllerCurl::~ControllerCurl() {
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-ControllerCurl::ControllerCurl(ControllerCurl&& other) {
+ControllerCurl::ControllerCurl(ControllerCurl&& other) noexcept {
   *this = std::move(other);
 }
 
-ControllerCurl& ControllerCurl::operator=(ControllerCurl&& other) {
+ControllerCurl& ControllerCurl::operator=(ControllerCurl&& other) noexcept {
   direction_ = other.direction_;
   transport_ = other.transport_;
   is_paused_ = other.is_paused_;

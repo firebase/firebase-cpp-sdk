@@ -86,7 +86,7 @@ Variant& Variant::operator=(const Variant& other) {
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
 
-Variant& Variant::operator=(Variant&& other) {
+Variant& Variant::operator=(Variant&& other) noexcept {
   if (this != &other) {
     Clear();
     type_ = other.type_;

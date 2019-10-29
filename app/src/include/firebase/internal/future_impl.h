@@ -231,7 +231,7 @@ inline FutureBase& FutureBase::operator=(const FutureBase& rhs) {
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
-inline FutureBase::FutureBase(FutureBase&& rhs)
+inline FutureBase::FutureBase(FutureBase&& rhs) noexcept
     : api_(NULL)  // NOLINT
 {
   detail::UnregisterForCleanup(rhs.api_, &rhs);
@@ -239,7 +239,7 @@ inline FutureBase::FutureBase(FutureBase&& rhs)
   detail::RegisterForCleanup(api_, this);
 }
 
-inline FutureBase& FutureBase::operator=(FutureBase&& rhs) {
+inline FutureBase& FutureBase::operator=(FutureBase&& rhs) noexcept {
   Release();
   detail::UnregisterForCleanup(rhs.api_, &rhs);
   api_ = rhs.api_;

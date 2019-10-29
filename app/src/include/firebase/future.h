@@ -117,10 +117,10 @@ class FutureBase {
   /// Move constructor and operator.
   /// Move is more efficient than copy and delete because we don't touch the
   /// reference counting in the API.
-  FutureBase(FutureBase&& rhs);
+  FutureBase(FutureBase&& rhs) noexcept;
 
   /// Copy an untyped future.
-  FutureBase& operator=(FutureBase&& rhs);
+  FutureBase& operator=(FutureBase&& rhs) noexcept;
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
   /// Explicitly release the internal resources for a future.

@@ -240,7 +240,7 @@ class Variant {
   /// simply reassigning pointer ownership.
   ///
   /// @param[in] other Source Variant to move from.
-  Variant(Variant&& other) : type_(kInternalTypeNull) {
+  Variant(Variant&& other) noexcept : type_(kInternalTypeNull) {
     *this = std::move(other);
   }
 
@@ -248,7 +248,7 @@ class Variant {
   /// types by simply reassigning pointer ownership.
   ///
   /// @param[in] other Source Variant to move from.
-  Variant& operator=(Variant&& other);
+  Variant& operator=(Variant&& other) noexcept;
 
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 #endif  // SWIG
