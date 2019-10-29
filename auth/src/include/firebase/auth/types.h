@@ -416,6 +416,11 @@ enum AuthError {
   /// This can happen if the hash of the provided raw nonce did not match the
   /// hashed nonce in the OIDC ID token payload.
   kAuthErrorMissingOrInvalidNonce,
+
+  /// Indicates that the user did not authorize the application during Generic
+  /// IDP sign-in.
+  kAuthErrorUserCancelled,
+
 #endif  // INTERNAL_EXEPERIMENTAL
 };
 
