@@ -24,19 +24,103 @@
 #include "app/src/include/firebase/version.h"
 #include "app/src/assert.h"
 #include "app/src/log.h"
+#include "app/src/mutex.h"
+#include "app/src/time.h"
+#include "app/src/thread.h"
+#include "app/src/util.h"
 #include "app/src/util_ios.h"
 
 namespace firebase {
 namespace analytics {
 
+// Used to workaround b/143656277 and b/110166640
+class AnalyticsDataResetter {
+ private:
+  enum ResetState {
+    kResetStateNone = 0,
+    kResetStateRequested,
+    kResetStateRetry,
+  };
+ public:
+  // Initialize the class.
+  AnalyticsDataResetter() : reset_state_(kResetStateNone), reset_timestamp_(0) {}
+
+  // Reset analytics data.
+  void Reset() {
+    MutexLock lock(mutex_);
+    reset_timestamp_ = firebase::internal::GetTimestampEpoch();
+    reset_state_ = kResetStateRequested;
+    instance_id_ = util::StringFromNSString([FIRAnalytics appInstanceID]);
+    [FIRAnalytics resetAnalyticsData];
+  }
+
+  // Get the instance ID, returning a non-empty string if it's valid or an empty string if it's
+  // still being reset.
+  std::string GetInstanceId() {
+    MutexLock lock(mutex_);
+    std::string current_instance_id = util::StringFromNSString([FIRAnalytics appInstanceID]);
+    uint64_t reset_time_elapsed_milliseconds = GetResetTimeElapsedMilliseconds();
+    switch (reset_state_) {
+      case kResetStateNone:
+        break;
+      case kResetStateRequested:
+        if (reset_time_elapsed_milliseconds >= kResetRetryIntervalMilliseconds) {
+          // Firebase Analytics on iOS can take a while to initialize, in this case we try to reset
+          // again if the instance ID hasn't changed for a while.
+          reset_state_ = kResetStateRetry;
+          reset_timestamp_ = firebase::internal::GetTimestampEpoch();
+          [FIRAnalytics resetAnalyticsData];
+          return std::string();
+        }
+        FIREBASE_CASE_FALLTHROUGH;
+
+      case kResetStateRetry:
+        if ((current_instance_id.empty() || current_instance_id == instance_id_) &&
+            reset_time_elapsed_milliseconds < kResetTimeoutMilliseconds) {
+          return std::string();
+        }
+        break;
+    }
+    instance_id_ = current_instance_id;
+    return current_instance_id;
+  }
+
+ private:
+  // Get the time elapsed in milliseconds since reset was requested.
+  uint64_t GetResetTimeElapsedMilliseconds() const {
+    return firebase::internal::GetTimestampEpoch() - reset_timestamp_;
+  }
+
+ private:
+  Mutex mutex_;
+  // Reset attempt.
+  ResetState reset_state_;
+  // When a reset was last requested.
+  uint64_t reset_timestamp_;
+  // Instance ID before it was reset.
+  std::string instance_id_;
+
+  // Time to wait before trying to reset again.
+  static const uint64_t kResetRetryIntervalMilliseconds;
+  // Time to wait before giving up on resetting the ID.
+  static const uint64_t kResetTimeoutMilliseconds;
+};
+
 DEFINE_FIREBASE_VERSION_STRING(FirebaseAnalytics);
 
+const uint64_t AnalyticsDataResetter::kResetRetryIntervalMilliseconds = 1000;
+const uint64_t AnalyticsDataResetter::kResetTimeoutMilliseconds = 5000;
+
 static const double kMillisecondsPerSecond = 1000.0;
+static Mutex g_mutex;  // NOLINT
 static bool g_initialized = false;
+static AnalyticsDataResetter *g_resetter = nullptr;
 
 // Initialize the API.
 void Initialize(const ::firebase::App& app) {
+  MutexLock lock(g_mutex);
   g_initialized = true;
+  g_resetter = new AnalyticsDataResetter();
   internal::RegisterTerminateOnDefaultAppDestroy();
   internal::FutureData::Create();
 }
@@ -50,8 +134,11 @@ bool IsInitialized() { return g_initialized; }
 
 // Terminate the API.
 void Terminate() {
+  MutexLock lock(g_mutex);
   internal::FutureData::Destroy();
   internal::UnregisterTerminateOnDefaultAppDestroy();
+  delete g_resetter;
+  g_resetter = nullptr;
   g_initialized = false;
 }
 
@@ -169,22 +256,40 @@ void SetCurrentScreen(const char* screen_name, const char* screen_class) {
 }
 
 void ResetAnalyticsData() {
+  MutexLock lock(g_mutex);
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  [FIRAnalytics resetAnalyticsData];
+  g_resetter->Reset();
 }
 
 Future<std::string> GetAnalyticsInstanceId() {
+  MutexLock lock(g_mutex);
   FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
   auto* api = internal::FutureData::Get()->api();
   const auto future_handle = api->SafeAlloc<std::string>(
       internal::kAnalyticsFnGetAnalyticsInstanceId);
-  api->CompleteWithResult(
-      future_handle, 0, "",
-      util::StringFromNSString([FIRAnalytics appInstanceID]));
+  static int kPollTimeMs = 100;
+  Thread get_id_thread([](SafeFutureHandle<std::string>* handle) {
+      for ( ; ; ) {
+        {
+          MutexLock lock(g_mutex);
+          if (!internal::IsInitialized()) break;
+          std::string instance_id = g_resetter->GetInstanceId();
+          if (!instance_id.empty()) {
+            internal::FutureData::Get()->api()->CompleteWithResult(
+                *handle, 0, "", instance_id);
+            break;
+          }
+        }
+        firebase::internal::Sleep(kPollTimeMs);
+      }
+      delete handle;
+    }, new SafeFutureHandle<std::string>(future_handle));
+  get_id_thread.Detach();
   return Future<std::string>(api, future_handle.get());
 }
 
 Future<std::string> GetAnalyticsInstanceIdLastResult() {
+  MutexLock lock(g_mutex);
   FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
   return static_cast<const Future<std::string>&>(
       internal::FutureData::Get()->api()->LastResult(
