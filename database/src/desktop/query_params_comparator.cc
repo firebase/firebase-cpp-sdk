@@ -15,6 +15,7 @@
 #include "database/src/desktop/query_params_comparator.h"
 
 #include <cassert>
+#include <cstdint>
 
 #include "app/src/util.h"
 #include "database/src/desktop/util_desktop.h"
@@ -212,7 +213,12 @@ int QueryParamsComparator::CompareValues(const Variant& variant_a,
     case kPrecedenceNumber: {
       // If they're both integers.
       if (type_a == Variant::kTypeInt64 && type_b == Variant::kTypeInt64) {
-        return value_a->int64_value() - value_b->int64_value();
+        int64_t int64_a = value_a->int64_value();
+        int64_t int64_b = value_b->int64_value();
+
+        if (int64_a < int64_b) return -1;
+        if (int64_a > int64_b) return 1;
+        return 0;
       }
 
       // At least one of them is a double, so we treat them both as doubles.
@@ -227,8 +233,10 @@ int QueryParamsComparator::CompareValues(const Variant& variant_a,
       double double_b = (type_b == Variant::kTypeDouble)
                             ? value_b->double_value()
                             : static_cast<double>(value_b->int64_value());
-      double result = double_a - double_b;
-      return (result == 0.0) ? 0 : (result > 0.0 ? 1 : -1);
+
+      if (double_a < double_b) return -1;
+      if (double_a > double_b) return 1;
+      return 0;
     }
     case kPrecedenceString: {
       return strcmp(value_a->string_value(), value_b->string_value());
