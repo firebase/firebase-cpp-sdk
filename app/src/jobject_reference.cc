@@ -101,9 +101,10 @@ void JObjectReference::Initialize(JavaVM* jvm, JNIEnv* env,
 }
 
 JavaVM* JObjectReference::GetJavaVM(JNIEnv* env) {
-  JavaVM* jvm;
+  FIREBASE_DEV_ASSERT(env);
+  JavaVM* jvm = nullptr;
   jint result = env->GetJavaVM(&jvm);
-  assert(result == JNI_OK);
+  FIREBASE_DEV_ASSERT(result == JNI_OK);
   return jvm;
 }
 
