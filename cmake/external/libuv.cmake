@@ -22,7 +22,7 @@ ExternalProject_Add(
   libuv
 
   GIT_REPOSITORY https://github.com/libuv/libuv
-  GIT_TAG        v1.23.2
+  GIT_TAG        v1.28.0
 
   PREFIX ${PROJECT_BINARY_DIR}
 
