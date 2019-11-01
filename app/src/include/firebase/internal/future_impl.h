@@ -171,9 +171,8 @@ Future<T>::OnCompletion(
       reinterpret_cast<CompletionCallback>(callback), user_data);
 }
 #else
-void
 template <class T>
-Future<T>::OnCompletion(
+void Future<T>::OnCompletion(
     TypedCompletionCallback callback, void* user_data) const {
   FutureBase::OnCompletion(
       reinterpret_cast<CompletionCallback>(callback), user_data);
