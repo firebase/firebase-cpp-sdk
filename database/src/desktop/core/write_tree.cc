@@ -40,7 +40,7 @@ void WriteTree::AddOverwrite(const Path& path, const Variant& snap,
   all_writes_.push_back(
       UserWriteRecord(write_id, path, snap, visibility == kOverwriteVisible));
   if (visibility == kOverwriteVisible) {
-    visible_writes_ = visible_writes_.AddWrite(path, snap);
+    visible_writes_.AddWriteInline(path, snap);
   }
   last_write_id_ = write_id;
 }
@@ -51,7 +51,7 @@ void WriteTree::AddMerge(const Path& path,
   // Stacking an older write on top of newer ones.
   FIREBASE_DEV_ASSERT(write_id > last_write_id_);
   all_writes_.push_back(UserWriteRecord(write_id, path, changed_children));
-  visible_writes_ = visible_writes_.AddWrites(path, changed_children);
+  visible_writes_.AddWritesInline(path, changed_children);
   last_write_id_ = write_id;
 }
 
@@ -116,12 +116,11 @@ bool WriteTree::RemoveWrite(WriteId write_id) {
     // There's no shadowing.  We can safely just remove the write(s) from
     // visible_writes_.
     if (write_to_remove.is_overwrite) {
-      visible_writes_ = visible_writes_.RemoveWrite(write_to_remove.path);
+      visible_writes_.RemoveWriteInline(write_to_remove.path);
     } else {
       for (auto& entry : write_to_remove.merge.write_tree().children()) {
         Path path(entry.first);
-        visible_writes_ =
-            visible_writes_.RemoveWrite(write_to_remove.path.GetChild(path));
+        visible_writes_.RemoveWriteInline(write_to_remove.path.GetChild(path));
       }
     }
     return true;
