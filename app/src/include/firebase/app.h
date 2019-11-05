@@ -39,6 +39,11 @@
 
 namespace FIREBASE_NAMESPACE {
 
+#ifdef FIREBASE_LINUX_BUILD_CONFIG_STRING
+// Check to see if the shared object compiler string matches the input
+void CheckCompilerString(const char* input);
+#endif  // FIREBASE_LINUX_BUILD_CONFIG_STRING
+
 // Predeclarations.
 #ifdef INTERNAL_EXPERIMENTAL
 namespace internal {
@@ -754,7 +759,21 @@ class App {
 
  private:
   /// Construct the object.
-  App();
+  App() :
+#if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
+    activity_(nullptr),
+#endif
+    internal_(nullptr) {
+    Initialize();
+
+#ifdef FIREBASE_LINUX_BUILD_CONFIG_STRING
+  CheckCompilerString(FIREBASE_LINUX_BUILD_CONFIG_STRING);
+#endif  // FIREBASE_LINUX_BUILD_CONFIG_STRING
+  }
+
+
+  /// Initialize internal implementation
+  void Initialize();
 
 #ifndef SWIG
 // <SWIG>

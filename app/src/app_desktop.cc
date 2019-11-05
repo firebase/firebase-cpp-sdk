@@ -117,7 +117,7 @@ AppOptions* AppOptions::LoadDefault(AppOptions* options) {
   return nullptr;
 }
 
-App::App() {
+void App::Initialize() {
   internal_ = new internal::AppInternal();
 }
 

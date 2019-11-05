@@ -46,6 +46,17 @@
 
 namespace FIREBASE_NAMESPACE {
 
+#ifdef FIREBASE_LINUX_BUILD_CONFIG_STRING
+void CheckCompilerString(const char* input) {
+  FIREBASE_ASSERT_MESSAGE(
+      strcmp(FIREBASE_LINUX_BUILD_CONFIG_STRING, input) == 0,
+      "The compiler or stdlib library Firebase was compiled with does not "
+      "match what is being used to compile this application."
+      " [Lib: '%s' != Bin: '%s']",
+      FIREBASE_LINUX_BUILD_CONFIG_STRING, input);
+}
+#endif  // FIREBASE_LINUX_BUILD_CONFIG_STRING
+
 // Default app name.
 const char* const kDefaultAppName = "__FIRAPP_DEFAULT";
 
