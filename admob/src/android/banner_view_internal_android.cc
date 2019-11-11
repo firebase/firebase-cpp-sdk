@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "admob/src/android/banner_view_internal_android.h"
+
 #include <assert.h>
 #include <jni.h>
 
@@ -23,13 +25,13 @@
 #include "admob/admob_resources.h"
 #include "admob/src/android/ad_request_converter.h"
 #include "admob/src/android/admob_android.h"
-#include "admob/src/android/banner_view_internal_android.h"
 #include "admob/src/common/admob_common.h"
 #include "admob/src/include/firebase/admob.h"
 #include "admob/src/include/firebase/admob/banner_view.h"
 #include "admob/src/include/firebase/admob/types.h"
 #include "app/src/assert.h"
 #include "app/src/mutex.h"
+#include "app/src/semaphore.h"
 #include "app/src/util_android.h"
 
 namespace firebase {
@@ -59,21 +61,13 @@ BannerViewInternalAndroid::BannerViewInternalAndroid(BannerView* base)
 BannerViewInternalAndroid::~BannerViewInternalAndroid() {
   JNIEnv* env = ::firebase::admob::GetJNI();
 
-  // Destroy the banner view so all pending futures / callbacks complete.
-  {
-    Mutex mutex(Mutex::kModeNonRecursive);
-    mutex.Acquire();
-    Destroy().OnCompletion(
-        [](const Future<void>&, void* mutex) {
-          reinterpret_cast<Mutex*>(mutex)->Release();
-        },
-        &mutex);
-    // Acquire a second Mutex lock to block until the Future for the last call
-    // to Destroy() completes at which point the lambda function in OnCompletion
-    // is called and the Mutex lock is released.
-    mutex.Acquire();
-    mutex.Release();
-  }
+  DestroyInternalData();
+
+  Semaphore semaphore(0);
+  InvokeNullary(kBannerViewFnDestroyOnDelete, banner_view_helper::kDestroy)
+      .OnCompletion([&semaphore](const Future<void>&) { semaphore.Post(); });
+  semaphore.Wait();
+
   env->DeleteGlobalRef(helper_);
   helper_ = nullptr;
 }
@@ -131,8 +125,7 @@ Future<void> BannerViewInternalAndroid::Resume() {
 }
 
 Future<void> BannerViewInternalAndroid::Destroy() {
-  // The bounding box is zeroed on destroy.
-  bounding_box_ = {};
+  DestroyInternalData();
   return InvokeNullary(kBannerViewFnDestroy, banner_view_helper::kDestroy);
 }
 
@@ -213,6 +206,12 @@ Future<void> BannerViewInternalAndroid::InvokeNullary(
 
   return GetLastResult(fn);
 }
+
+void BannerViewInternalAndroid::DestroyInternalData() {
+  // The bounding box is zeroed on destroy.
+  bounding_box_ = {};
+}
+
 
 }  // namespace internal
 }  // namespace admob
