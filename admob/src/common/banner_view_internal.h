@@ -35,7 +35,6 @@ enum BannerViewFn {
   kBannerViewFnPause,
   kBannerViewFnResume,
   kBannerViewFnDestroy,
-  kBannerViewFnDestroyOnDelete,
   kBannerViewFnMoveTo,
   kBannerViewFnCount
 };
