@@ -22,7 +22,7 @@ ExternalProject_Add(
   curl
 
   GIT_REPOSITORY https://github.com/curl/curl.git
-  GIT_TAG        curl-7_66_0
+  GIT_TAG        curl-7_58_0
 
   PREFIX ${PROJECT_BINARY_DIR}
 
