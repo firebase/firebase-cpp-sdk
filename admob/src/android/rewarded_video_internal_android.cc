@@ -83,7 +83,7 @@ Future<void> RewardedVideoInternalAndroid::LoadAd(const char* ad_unit_id,
 
   jstring ad_unit_id_str = env->NewStringUTF(ad_unit_id);
   jstring user_id_str = NULL;
-  if (user_id) jstring user_id_str = env->NewStringUTF(user_id);
+  if (user_id) user_id_str = env->NewStringUTF(user_id);
 
   AdRequestConverter converter(request);
   jobject request_ref = converter.GetJavaRequestObject();
