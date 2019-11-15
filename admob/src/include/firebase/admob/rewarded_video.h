@@ -178,6 +178,7 @@ Future<void> InitializeLastResult();
 /// @param[in] request An AdRequest struct with information about the request
 ///                    to be made (such as targeting info).
 Future<void> LoadAd(const char* ad_unit_id, const AdRequest& request);
+Future<void> LoadAd(const char* ad_unit_id, const char* user_id, const AdRequest& request);
 
 /// Returns a @ref Future containing the status of the last call to
 /// @ref LoadAd.

@@ -59,7 +59,7 @@ Future<void> RewardedVideoInternalIOS::Initialize() {
   return GetLastResult(kRewardedVideoFnInitialize);
 }
 
-Future<void> RewardedVideoInternalIOS::LoadAd(const char* ad_unit_id, const AdRequest& request) {
+Future<void> RewardedVideoInternalIOS::LoadAd(const char* ad_unit_id, const char* user_id, const AdRequest& request) {
   if (future_handle_for_load != ReferenceCountedFutureImpl::kInvalidHandle) {
     // Checks if an outstanding Future exists.
     // It is safe to call the LoadAd method concurrently on multiple threads; however, the second
@@ -79,13 +79,15 @@ Future<void> RewardedVideoInternalIOS::LoadAd(const char* ad_unit_id, const AdRe
   AdRequest *request_copy = new AdRequest;
   *request_copy = request;
   NSString *adUnitId = @(ad_unit_id ? ad_unit_id : "");
+  NSString *userId = @(user_id ? user_id : "");
   dispatch_async(dispatch_get_main_queue(), ^{
     // A GADRequest from an admob::AdRequest.
     GADRequest *ad_request = GADRequestFromCppAdRequest(*request_copy);
     delete request_copy;
     // Make the reward based video ad request.
-    [[GADRewardBasedVideoAd sharedInstance] loadRequest:ad_request
-                                           withAdUnitID:adUnitId];
+    GADRewardBasedVideoAd* vid = [GADRewardBasedVideoAd sharedInstance];
+    vid.userIdentifier = userId;
+    [vid loadRequest:ad_request withAdUnitID:adUnitId];
   });
   return GetLastResult(kRewardedVideoFnLoadAd);
 }

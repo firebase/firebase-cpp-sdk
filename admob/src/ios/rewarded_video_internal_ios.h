@@ -35,6 +35,7 @@ class RewardedVideoInternalIOS : public RewardedVideoInternal {
 
   Future<void> Initialize() override;
   Future<void> LoadAd(const char* ad_unit_id,
+                      const char* user_id,
                       const AdRequest& request) override;
   Future<void> Show(AdParent parent) override;
   Future<void> Pause() override;

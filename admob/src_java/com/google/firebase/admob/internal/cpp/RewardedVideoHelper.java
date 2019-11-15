@@ -158,7 +158,7 @@ public class RewardedVideoHelper {
    * @param adUnitId the AdMob ad unit ID to use in making the request.
    * @param request an AdRequest object with targeting/extra info.
    */
-  public void loadAd(long callbackDataPtr, final String adUnitId, final AdRequest request) {
+  public void loadAd(long callbackDataPtr, final String adUnitId, final String userId, final AdRequest request) {
     synchronized (mRewardedVideoLock) {
       if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
         completeRewardedVideoFutureCallback(
@@ -176,6 +176,7 @@ public class RewardedVideoHelper {
           @Override
           public void run() {
             RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
+            if (userId != null) ad.setUserId(userId);
             ad.loadAd(adUnitId, request);
           }
         });

@@ -74,6 +74,7 @@ Future<void> RewardedVideoInternalAndroid::Initialize() {
 }
 
 Future<void> RewardedVideoInternalAndroid::LoadAd(const char* ad_unit_id,
+                                                  const char* user_id,
                                                   const AdRequest& request) {
   FutureCallbackData* callback_data =
       CreateFutureCallbackData(&future_data_, kRewardedVideoFnLoadAd);
@@ -81,6 +82,8 @@ Future<void> RewardedVideoInternalAndroid::LoadAd(const char* ad_unit_id,
   JNIEnv* env = ::firebase::admob::GetJNI();
 
   jstring ad_unit_id_str = env->NewStringUTF(ad_unit_id);
+  jstring user_id_str = NULL;
+  if (user_id) jstring user_id_str = env->NewStringUTF(user_id);
 
   AdRequestConverter converter(request);
   jobject request_ref = converter.GetJavaRequestObject();
@@ -88,9 +91,10 @@ Future<void> RewardedVideoInternalAndroid::LoadAd(const char* ad_unit_id,
   env->CallVoidMethod(
       helper_,
       rewarded_video_helper::GetMethodId(rewarded_video_helper::kLoadAd),
-      reinterpret_cast<jlong>(callback_data), ad_unit_id_str, request_ref);
+      reinterpret_cast<jlong>(callback_data), ad_unit_id_str, user_id_str, request_ref);
 
   env->DeleteLocalRef(ad_unit_id_str);
+  if (user_id) env->DeleteLocalRef(user_id_str);
 
   return GetLastResult(kRewardedVideoFnLoadAd);
 }

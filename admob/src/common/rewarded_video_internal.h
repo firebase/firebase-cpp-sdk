@@ -58,6 +58,7 @@ class RewardedVideoInternal {
 
   // Initiates an ad request.
   virtual Future<void> LoadAd(const char* ad_unit_id,
+                              const char* user_id,
                               const AdRequest& request) = 0;
 
   // Displays a rewarded video ad.
