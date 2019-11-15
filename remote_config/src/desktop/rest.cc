@@ -20,9 +20,7 @@
 #include <sstream>
 
 #include "firebase/app.h"
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
 #include "app/instance_id/instance_id_desktop_impl.h"
-#endif
 #include "app/meta/move.h"
 #include "app/rest/request_binary.h"
 #include "app/rest/response_binary.h"
@@ -52,35 +50,6 @@ const int SDK_PATCH_VERSION = 0;
 
 const char kTokenScope[] = "*";
 
-namespace {
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
-  void WaitForInstanceIdFuture(const Future<std::string>& future,
-    Semaphore* future_sem, std::string* result, const char* action_name) {
-    // Block and wait until Future is complete.
-    future.OnCompletion(
-      [](const firebase::Future<std::string>& result, void* data) {
-      Semaphore* sem = static_cast<Semaphore*>(data);
-      sem->Post();
-    },
-      future_sem);
-    future_sem->Wait();
-
-    if (future.status() == firebase::kFutureStatusComplete &&
-      future.error() ==
-      firebase::instance_id::internal::InstanceIdDesktopImpl::kErrorNone) {
-      *result = *future.result();
-    } else if (future.status() != firebase::kFutureStatusComplete) {
-      // It is fine if timeout
-      LogWarning("Remote Config Fetch: %s timeout", action_name);
-    } else {
-      // It is fine if failed
-      LogWarning("Remote Config Fetch: Failed to %s. Error %d: %s", action_name,
-        future.error(), future.error_message());
-    }
-  }
-#endif
-}  // namespace
-
 RemoteConfigREST::RemoteConfigREST(const firebase::AppOptions& app_options,
                                    const LayeredConfigs& configs,
                                    uint64_t cache_expiration_in_seconds)
@@ -105,8 +74,32 @@ void RemoteConfigREST::Fetch(const App& app) {
   ParseRestResponse();
 }
 
+void WaitForFuture(const Future<std::string>& future, Semaphore* future_sem,
+                   std::string* result, const char* action_name) {
+  // Block and wait until Future is complete.
+  future.OnCompletion(
+      [](const firebase::Future<std::string>& result, void* data) {
+        Semaphore* sem = static_cast<Semaphore*>(data);
+        sem->Post();
+      },
+      future_sem);
+  future_sem->Wait();
+
+  if (future.status() == firebase::kFutureStatusComplete &&
+      future.error() ==
+          firebase::instance_id::internal::InstanceIdDesktopImpl::kErrorNone) {
+    *result = *future.result();
+  } else if (future.status() != firebase::kFutureStatusComplete) {
+    // It is fine if timeout
+    LogWarning("Remote Config Fetch: %s timeout", action_name);
+  } else {
+    // It is fine if failed
+    LogWarning("Remote Config Fetch: Failed to %s. Error %d: %s", action_name,
+               future.error(), future.error_message());
+  }
+}
+
 void RemoteConfigREST::TryGetInstanceIdAndToken(const App& app) {
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
   // Convert the app reference stored in RemoteConfigDesktop
   // pointer for InstanceIdDesktopImpl.
   App* non_const_app = const_cast<App*>(&app);
@@ -118,15 +111,14 @@ void RemoteConfigREST::TryGetInstanceIdAndToken(const App& app) {
     return;
   }
 
-  WaitForInstanceIdFuture(iid_impl->GetId(), &fetch_future_sem_,
-                          &app_instance_id_, "Get Instance Id");
+  WaitForFuture(iid_impl->GetId(), &fetch_future_sem_, &app_instance_id_,
+                "Get Instance Id");
 
   // Only get token if instance id is retrieved.
   if (!app_instance_id_.empty()) {
-    WaitForInstanceIdFuture(iid_impl->GetToken(kTokenScope), &fetch_future_sem_,
-                            &app_instance_id_token_, "Get Instance Id Token");
+    WaitForFuture(iid_impl->GetToken(kTokenScope), &fetch_future_sem_,
+                  &app_instance_id_token_, "Get Instance Id Token");
   }
-#endif
 }
 
 void RemoteConfigREST::SetupRestRequest() {
