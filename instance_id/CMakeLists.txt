@@ -56,7 +56,7 @@ else()
       "${desktop_SRCS}")
 endif()
 
-if(ANDROID OR IOS OR use_stub OR NOT FIREBASE_INSTANCE_ID_DESKTOP)
+if(ANDROID OR IOS OR use_stub)
   set(additional_link_LIB)
 else()
   set(additional_link_LIB
