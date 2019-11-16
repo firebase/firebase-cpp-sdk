@@ -291,6 +291,16 @@ void SignInCallback(FIRUser *_Nullable user, NSError *_Nullable error,
                              result);
 }
 
+void SignInResultWithProviderCallback(
+    FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error,
+    SafeFutureHandle<SignInResult> handle, AuthData *_Nonnull auth_data,
+    const FIROAuthProvider *_Nonnull ios_auth_provider /*unused */) {
+  // ios_auth_provider exists as a parameter to hold a reference to the FIROAuthProvider preventing
+  // its release by the Objective-C runtime during the asynchronous SignIn operation.
+  error = RemapBadProviderIDErrors(error);
+  SignInResultCallback(auth_result, error, handle, auth_data);
+}
+
 void SignInResultCallback(FIRAuthDataResult *_Nullable auth_result, NSError *_Nullable error,
                           SafeFutureHandle<SignInResult> handle, AuthData *auth_data) {
   User* user = AssignUser(auth_result.user, auth_data);
@@ -424,6 +434,18 @@ Future<void> Auth::SendPasswordResetEmail(const char *email) {
                                           }];
 
   return MakeFuture(&futures, handle);
+}
+
+// Remap iOS SDK errors reported by the UIDelegate. While these errors seem like
+// user interaction errors, they are actually caused by bad provider ids.
+NSError* RemapBadProviderIDErrors(NSError* _Nonnull error) {
+  if (error.code == FIRAuthErrorCodeWebSignInUserInteractionFailure &&
+      [error.domain isEqualToString:@"FIRAuthErrorDomain"]) {
+    return [[NSError alloc] initWithDomain:error.domain
+                                      code:FIRAuthErrorCodeInvalidProviderID
+                                  userInfo:error.userInfo];
+  }
+  return error;
 }
 
 // Not implemented for iOS.

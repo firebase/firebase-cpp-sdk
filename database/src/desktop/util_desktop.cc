@@ -45,7 +45,7 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-const Variant kNullVariant = Variant::Null();
+const Variant kNullVariant = Variant::Null();  // NOLINT
 
 const char kValueKey[] = ".value";
 const char kPriorityKey[] = ".priority";
@@ -434,17 +434,13 @@ bool HasVector(const Variant& variant) {
   return false;
 }
 
-bool ParseInteger(const char* str, int32_t* output) {
+bool ParseInteger(const char* str, int64_t* output) {
   assert(output);
   assert(str);
-  // Integers must not have leading zeroes.
-  if (str[0] == '0' && str[1] != '\0') {
-    return false;
-  }
   // Check if the key is numeric
   bool is_int = false;
   char* end_ptr = nullptr;
-  int32_t parse_value = strtol(str, &end_ptr, 10);  // NOLINT
+  int64_t parse_value = strtoll(str, &end_ptr, 10);  // NOLINT
   if (end_ptr != nullptr && end_ptr != str && *end_ptr == '\0') {
     is_int = true;
     *output = parse_value;
@@ -452,43 +448,56 @@ bool ParseInteger(const char* str, int32_t* output) {
   return is_int;
 }
 
-// Convert one level of map to vector if applicable.
-// Convert map to vector if:
+// A Variant map can be converted into a Variant vector if:
 //   1. map is not empty and
-//   2. All the key are numeric and
+//   2. All the key are integer (no leading 0) and
 //   3. If less or equal to half of the keys in the array is missing.
+// Return whether the map can be converted into a vector, and output
+// max_index_out as the highest numeric key found in the map.
+bool CanConvertVariantMapToVector(const Variant& variant,
+                                  int64_t* max_index_out) {
+  if (!variant.is_map() || variant.map().empty()) return false;
+
+  int64_t max_index = -1;
+  for (auto& it_child : variant.map()) {
+    assert(it_child.first.is_string());
+    // Integers must not have leading zeroes.
+    if (it_child.first.string_value()[0] == '0' &&
+        it_child.first.string_value()[1] != '\0') {
+      return false;
+    }
+    // Check if the key is numeric
+    int64_t parse_value = 0;
+    bool is_number = ParseInteger(it_child.first.string_value(), &parse_value);
+    if (!is_number || parse_value < 0) {
+      // If any one of the key is not numeric, there is no need to verify
+      // other keys
+      return false;
+    }
+    max_index = max_index < parse_value ? parse_value : max_index;
+  }
+
+  if (max_index_out) *max_index_out = max_index;
+  return max_index < (2 * variant.map().size());
+}
+
+// Convert one level of map to vector if applicable.
 // This function assume no priority information remains in the variant.
 void ConvertMapToVector(Variant* variant) {
   assert(variant);
 
-  if (variant->is_map() && !variant->map().empty()) {
-    int64_t max_index = -1;
-    for (auto& it_child : variant->map()) {
-      // Check if the key is numeric
-      int32_t parse_value = 0;
-      bool is_number =
-          ParseInteger(it_child.first.string_value(), &parse_value);
-      if (!is_number || parse_value < 0) {
-        // If any one of the key is not numeric, there is no need to verify
-        // other keys
-        return;
+  int64_t max_index = -1;
+  if (CanConvertVariantMapToVector(*variant, &max_index)) {
+    Variant array_result(std::vector<Variant>(max_index + 1, Variant::Null()));
+    for (int i = 0; i <= max_index; ++i) {
+      std::stringstream ss;
+      ss << i;
+      auto it_child = variant->map().find(ss.str());
+      if (it_child != variant->map().end()) {
+        array_result.vector()[i] = it_child->second;
       }
-      max_index = max_index < parse_value ? parse_value : max_index;
     }
-
-    if (max_index < (2 * variant->map().size())) {
-      Variant array_result(
-          std::vector<Variant>(max_index + 1, Variant::Null()));
-      for (int i = 0; i <= max_index; ++i) {
-        std::stringstream ss;
-        ss << i;
-        auto it_child = variant->map().find(ss.str());
-        if (it_child != variant->map().end()) {
-          array_result.vector()[i] = it_child->second;
-        }
-      }
-      *variant = array_result;
-    }
+    *variant = array_result;
   }
 }
 
@@ -826,13 +835,55 @@ UtilLeafType GetLeafType(Variant::Type type) {
 // Store the pointers to the key and the value Variant in a map for sorting
 typedef std::pair<const Variant*, const Variant*> NodeSortingData;
 
+int ChildKeyCompareTo(const Variant& left, const Variant& right) {
+  const Variant kMinChildKey(QueryParamsComparator::kMinKey);
+  const Variant kMaxChildKey(QueryParamsComparator::kMaxKey);
+
+  FIREBASE_DEV_ASSERT(left.is_string());
+  FIREBASE_DEV_ASSERT(right.is_string());
+
+  if (left == right) {
+    return 0;
+  } else if (left == kMinChildKey || right == kMaxChildKey) {
+    return -1;
+  } else if (right == kMinChildKey || left == kMaxChildKey) {
+    return 1;
+  } else {
+    int64_t left_int_key = -1;
+    bool left_is_int = ParseInteger(left.string_value(), &left_int_key);
+    int64_t right_int_key = -1;
+    bool right_is_int = ParseInteger(right.string_value(), &right_int_key);
+    if (left_is_int) {
+      if (right_is_int) {
+        int cmp = left_int_key - right_int_key;
+        return cmp == 0 ? (strlen(left.string_value()) -
+                           strlen(right.string_value()))
+                        : cmp;
+      } else {
+        return -1;
+      }
+    } else if (right_is_int) {
+      return 1;
+    } else {
+      return left > right ? 1 : -1;
+    }
+  }
+}
+
 // Private function to serialize all child nodes
 void ProcessChildNodes(std::stringstream* ss,
                        std::vector<NodeSortingData>* nodes, bool saw_priority) {
-  // If any node has priority, sort the vector
+  // If any node has priority, sort using priority.
   if (saw_priority) {
     QueryParams params;
+    assert(params.order_by == QueryParams::kOrderByPriority);
     std::sort(nodes->begin(), nodes->end(), QueryParamsLesser(&params));
+  } else {
+    // Otherwise, use default sorting function.
+    std::sort(nodes->begin(), nodes->end(),
+              [](const NodeSortingData& left, const NodeSortingData& right) {
+                return ChildKeyCompareTo(*left.first, *right.first) < 0;
+              });
   }
 
   // Serialize each child with its key and its hashed value
@@ -852,15 +903,21 @@ void AppendHashRepAsContainer(std::stringstream* ss, const Variant& data) {
   std::vector<NodeSortingData> nodes;
 
   if (data.is_vector()) {
-    // Convert vector into map before process it.  The map use index string as
-    // the key.
-    Variant map = Variant::EmptyMap();
+    // Store index as string to be used for hash calculating, since
+    // NodeSortingData stores the pointer to the Variant.
+    // This is to avoid making copies of Variant from data.
+    std::vector<Variant> index_variants;
+    index_variants.reserve(data.vector().size());
+    bool saw_priority = false;
     for (int i = 0; i < data.vector().size(); ++i) {
       std::stringstream index_stream;
       index_stream << i;
-      map.map()[index_stream.str()] = data.vector()[i];
+      index_variants.push_back(index_stream.str());
+      nodes.push_back(NodeSortingData(&index_variants[i], &data.vector()[i]));
+      saw_priority =
+          saw_priority || !GetVariantPriority(data.vector()[i]).is_null();
     }
-    AppendHashRepAsContainer(ss, map);
+    ProcessChildNodes(ss, &nodes, saw_priority);
   } else if (data.is_map()) {
     bool saw_priority = false;
     for (auto& it_child : data.map()) {

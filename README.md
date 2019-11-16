@@ -49,20 +49,61 @@ git clone https://github.com/firebase/firebase-cpp-sdk.git
 ## Prerequisites
 The following prerequisites are required for all platforms.  Be sure to add any
 directories to your PATH as needed.
+
 - [CMake](https://cmake.org/), version 3.1, or newer
-- [Python](https://www.python.com/), the latest version of 2.7, or newer
+- [Python2](https://www.python.com/), version of 2.7, or newer
 - [Abseil-py](https://github.com/abseil/abseil-py)
+
+Note: Once python is installed you can use the following commands to install
+required packages:
+
+* python -m ensurepip --default-pip
+* python -m pip install --user absl-py
+* python -m pip install --user protobuf
 
 ### Prerequisites for Desktop
 The following prerequisites are required when building the libraries for
 desktop platforms.
+
 - [OpenSSL](https://www.openssl.org/), needed for Realtime Database
 - [Protobuf](https://github.com/protocolbuffers/protobuf/blob/master/src/README.md),
   needed for Remote Config
 
+### Prerequisites for Windows
+Prebuilt packages for openssl can be found using google and if CMake fails to
+find the install path use the command line option
+**-DOPENSSL_ROOT_DIR=[Open SSL Dir]**.
+
+Since there are no prebuilt packages for protobuf, getting it working on Windows
+is a little tricky. The following steps can be used as a guide:
+
+* Download source [zip from github](https://github.com/protocolbuffers/protobuf/releases/download/v3.9.2/protobuf-all-3.9.2.zip).
+* Extract source and open command prompt to root folder
+* Make new folder **vsprojects**
+* CD to **vsprojects**
+* run cmake: **cmake ..\cmake -Dprotobuf_BUILD_TESTS=OFF -A Win32**
+* Build solution
+* Add command line define to firebase cmake command (see below)
+  **-DPROTOBUF_SRC_ROOT_FOLDER=[Source Root Folder]**
+
+Note: For x64 builds folder needs to be **vsprojects\x64** and change **Win32**
+in cmake command to **x64**
+
+### Prerequisites for Mac
+Home brew can be used to install required dependencies:
+
+```bash
+# https://github.com/protocolbuffers/protobuf/blob/master/kokoro/macos/prepare_build_macos_rc#L20
+ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+source $HOME/.rvm/scripts/rvm
+brew install cmake protobuf python2
+sudo chown -R $(whoami) /usr/local
+```
+
 ### Prerequisites for Android
 The following prerequisites are required when building the libraries for
 Android.
+
 - Android SDK, Android NDK, and CMake for Android (version 3.10.2 recommended)
   - Download sdkmanager (either independently, or as a part of Android Studio)
     [here](https://developer.android.com/studio/#downloads)

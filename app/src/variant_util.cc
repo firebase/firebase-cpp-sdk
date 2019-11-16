@@ -15,7 +15,10 @@
  */
 
 #include "app/src/variant_util.h"
+
 #include <sstream>
+
+#include "app/src/assert.h"
 #include "app/src/log.h"
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers/flexbuffers.h"

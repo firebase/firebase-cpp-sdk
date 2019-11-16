@@ -39,7 +39,7 @@ JObjectReference::JObjectReference(const JObjectReference& reference) {
 }
 
 #ifdef FIREBASE_USE_MOVE_OPERATORS
-JObjectReference::JObjectReference(JObjectReference&& reference) {
+JObjectReference::JObjectReference(JObjectReference&& reference) noexcept {
   operator=(std::move(reference));
 }
 #endif  // FIREBASE_USE_MOVE_OPERATORS
@@ -53,7 +53,8 @@ JObjectReference& JObjectReference::operator=(
 }
 
 #ifdef FIREBASE_USE_MOVE_OPERATORS
-JObjectReference& JObjectReference::operator=(JObjectReference&& reference) {
+JObjectReference& JObjectReference::operator=(JObjectReference&& reference)
+    noexcept {
   java_vm_ = reference.java_vm_;
   object_ = reference.object_;
   reference.java_vm_ = nullptr;
@@ -100,9 +101,10 @@ void JObjectReference::Initialize(JavaVM* jvm, JNIEnv* env,
 }
 
 JavaVM* JObjectReference::GetJavaVM(JNIEnv* env) {
-  JavaVM* jvm;
+  FIREBASE_DEV_ASSERT(env);
+  JavaVM* jvm = nullptr;
   jint result = env->GetJavaVM(&jvm);
-  assert(result == JNI_OK);
+  FIREBASE_DEV_ASSERT(result == JNI_OK);
   return jvm;
 }
 

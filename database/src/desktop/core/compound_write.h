@@ -66,9 +66,19 @@ class CompoundWrite {
                          const Optional<Variant>& value) const;
   CompoundWrite AddWrite(const std::string& key, const Variant& value) const;
 
+  // Incorperate the new value to write at the given path.
+  void AddWriteInline(const Path& path, const Optional<Variant>& variant);
+  void AddWriteInline(const Path& path, const Variant& value);
+  void AddWriteInline(const std::string& key,
+    const Optional<Variant>& value);
+  void AddWriteInline(const std::string& key, const Variant& value);
+
   // Create a new CompoundWrite that incorperates all of the writes in the given
   // CompoundWrite at the given path.
   CompoundWrite AddWrites(const Path& path, const CompoundWrite& updates) const;
+
+  // Incorperate all of the writes in the given CompoundWrite at the given path.
+  void AddWritesInline(const Path& path, const CompoundWrite& updates);
 
   // Will remove a write at the given path and deeper paths. This will not
   // modify a write at a higher location, which must be removed by calling this
@@ -76,6 +86,11 @@ class CompoundWrite {
   //
   // Returns the new WriteCompound with the removed path
   CompoundWrite RemoveWrite(const Path& path) const;
+
+  // Will remove a write at the given path and deeper paths. This will not
+  // modify a write at a higher location, which must be removed by calling this
+  // method with that path.
+  void RemoveWriteInline(const Path& path);
 
   // Returns whether this CompoundWrite will fully overwrite a node at a given
   // location and can therefore be considered "complete".

@@ -65,6 +65,37 @@
 #define FIREBASE_PLATFORM_UNKNOWN 1
 #endif
 
+#if FIREBASE_PLATFORM_LINUX
+
+// Include std library header to get version defines
+#include <stdexcept>
+
+#if defined(__clang__)
+#define FIREBASE_COMPILER_CLANG 1
+#elif defined(__GNUC__)
+#define FIREBASE_COMPILER_GCC 1
+#endif
+
+#if defined(_LIBCPP_VERSION)
+#define FIREBASE_STANDARD_LIBCPP 1
+#elif defined(__GLIBCXX__)
+#define FIREBASE_STANDARD_LIBSTDCPP 1
+#endif
+
+#if (FIREBASE_COMPILER_CLANG && FIREBASE_STANDARD_LIBCPP)
+#define FIREBASE_LINUX_BUILD_CONFIG_STRING "clang_libstdcpp"
+#elif (FIREBASE_COMPILER_CLANG && FIREBASE_STANDARD_LIBSTDCPP)
+#define FIREBASE_LINUX_BUILD_CONFIG_STRING "clang_libcpp"
+#elif (FIREBASE_COMPILER_GCC && FIREBASE_STANDARD_LIBCPP)
+#define FIREBASE_LINUX_BUILD_CONFIG_STRING "gcc_libstdcpp"
+#elif (FIREBASE_COMPILER_GCC && FIREBASE_STANDARD_LIBSTDCPP)
+#define FIREBASE_LINUX_BUILD_CONFIG_STRING "gcc_libcpp"
+#else
+#error "Unsupported compiler or standard library"
+#endif
+
+#endif  // FIREBASE_PLATFORM_LINUX
+
 #define FIREBASE_PLATFORM_MOBILE \
   (FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_ANDROID)
 #define FIREBASE_PLATFORM_DESKTOP                          \

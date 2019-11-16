@@ -22,8 +22,8 @@ ExternalProject_Add(
   nanopb
 
   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-  URL https://github.com/nanopb/nanopb/archive/nanopb-0.3.9.1.tar.gz
-  URL_HASH SHA256=67460d0c0ad331ef4d5369ad337056d0cd2f900c94887628d287eb56c69324bc
+  URL https://github.com/nanopb/nanopb/archive/0.3.9.2.tar.gz
+  URL_HASH SHA256=b8dd5cb0d184d424ddfea13ddee3f7b0920354334cbb44df434d55e5f0086b12
 
   PREFIX ${PROJECT_BINARY_DIR}
 

@@ -53,8 +53,8 @@ std::vector<Event> SyncTree::AckUserWrite(WriteId write_id, AckStatus revert,
     if (persist) {
       this->persistence_manager_->RemoveUserWrite(write_id);
     }
-    // Need to move the write out, as it is about to be deleted.
-    UserWriteRecord write = std::move(*pending_write_tree_->GetWrite(write_id));
+    // Make a copy of the write, as it is about to be deleted.
+    UserWriteRecord write = *pending_write_tree_->GetWrite(write_id);
     bool need_to_reevaluate = pending_write_tree_->RemoveWrite(write_id);
     if (write.visible) {
       if (!revert) {

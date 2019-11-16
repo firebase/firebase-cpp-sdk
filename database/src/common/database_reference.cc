@@ -14,6 +14,7 @@
 
 #include "database/src/include/firebase/database/database_reference.h"
 
+#include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "database/src/common/database_reference.h"
 
@@ -166,8 +167,8 @@ DatabaseReference DatabaseReference::GetRoot() const {
 }
 
 DatabaseReference DatabaseReference::Child(const char* path) const {
-  return internal_ ? DatabaseReference(internal_->Child(path))
-                   : DatabaseReference(nullptr);
+  return internal_ && path ? DatabaseReference(internal_->Child(path))
+                           : DatabaseReference(nullptr);
 }
 
 DatabaseReference DatabaseReference::Child(const std::string& path) const {

@@ -251,9 +251,9 @@ class intrusive_list {
       : data_(&data_, &data_), node_offset_(offset_of_node(node_member)) {}
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
-  intrusive_list(this_type&& other) { *this = std::move(other); }
+  intrusive_list(this_type&& other) noexcept { *this = std::move(other); }
 
-  intrusive_list& operator=(this_type&& other) {
+  intrusive_list& operator=(this_type&& other) noexcept {
     data_ = std::move(other.data_);
     node_offset_ = std::move(other.node_offset_);
     return *this;

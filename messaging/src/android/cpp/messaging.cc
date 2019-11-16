@@ -506,8 +506,7 @@ static void FireIntentMessage(JNIEnv* env) {
   }
   // Intent intent = app.getIntent();
   jobject intent = env->CallObjectMethod(
-      activity,
-      util::activity::GetMethodId(util::activity::kGetIntent));
+      activity, util::activity::GetMethodId(util::activity::kGetIntent));
   assert(env->ExceptionCheck() == false);
   env->DeleteLocalRef(activity);
 
@@ -793,7 +792,7 @@ void Send(const Message& message) {
 
 static void SubscriptionUpdateComplete(JNIEnv* env, jobject result,
                                        util::FutureResult result_code,
-                                       int status, const char* status_message,
+                                       const char* status_message,
                                        void* callback_data) {
   SafeFutureHandle<void>* handle =
       reinterpret_cast<SafeFutureHandle<void>*>(callback_data);

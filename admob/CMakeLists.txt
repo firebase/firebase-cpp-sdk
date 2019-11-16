@@ -17,7 +17,9 @@
 cmake_minimum_required (VERSION 3.1)
 set (CMAKE_CXX_STANDARD 11)
 
+include(binary_to_array)
 include(download_pod_headers)
+include(firebase_cpp_gradle)
 
 project(firebase_admob NONE)
 enable_language(C)
@@ -36,6 +38,8 @@ set(common_SRCS
     src/common/rewarded_video_internal.cc)
 
 # Define the resource build needed for Android
+firebase_cpp_gradle(":admob:admob_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/admob_resources/build/dexed.jar")
 binary_to_array("admob_resources"
     "${CMAKE_CURRENT_LIST_DIR}/admob_resources/build/dexed.jar"
     "firebase_admob"
@@ -107,7 +111,9 @@ else()
   add_definitions(-include assert.h -include string.h)
 endif()
 
-if(IOS)
+if(ANDROID)
+  firebase_cpp_proguard_file(admob)
+elseif(IOS)
   # AdMob for iOS uses weak references, which requires enabling Automatic
   # Reference Counting (ARC).
   set_property(
@@ -119,7 +125,7 @@ if(IOS)
   set(pod_target_name "download_admob_pod_headers")
   set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
   set(pod_list "")
-  list(APPEND pod_list "'Firebase/AdMob', '6.9.0'")
+  list(APPEND pod_list "'Firebase/AdMob', '6.10.0'")
 
   setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
 
@@ -128,6 +134,14 @@ if(IOS)
   target_include_directories(firebase_admob
     PRIVATE
       ${base_header_dir}/Google-Mobile-Ads-SDK
+  )
+  string(CONCAT google_mobile_ads_framework_path
+    "${pods_dir}/Pods/Google-Mobile-Ads-SDK/"
+    "Frameworks/GoogleMobileAdsFramework-Current/GoogleMobileAds.framework")
+  # AdMob expects the header files to be in a subfolder, so set up a symlink to
+  # accomplish that.
+  symlink_framework_headers(firebase_admob ${pod_target_name}
+    ${google_mobile_ads_framework_path} GoogleMobileAds
   )
 
   # Add a dependency to downloading the headers onto admob.

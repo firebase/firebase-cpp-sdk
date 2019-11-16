@@ -663,9 +663,9 @@ Future<void> Fetch() { return Fetch(kDefaultCacheExpiration); }
 
 // Complete a pending future.
 static void FutureCallback(JNIEnv* env, jobject result,
-                           util::FutureResult result_code, int status,
+                           util::FutureResult result_code,
                            const char* status_message, void* callback_data) {
-  bool success = status == util::kFutureResultSuccess;
+  bool success = (result_code == util::kFutureResultSuccess);
   if (!success && result) {
     if (env->IsInstanceOf(result, throttled_exception::GetClass())) {
       g_throttled_end_time = static_cast<int64_t>(env->CallLongMethod(

@@ -19,6 +19,7 @@ set (CMAKE_CXX_STANDARD 11)
 
 include(binary_to_array)
 include(download_pod_headers)
+include(firebase_cpp_gradle)
 
 project(firebase_database NONE)
 enable_language(C)
@@ -36,6 +37,8 @@ set(common_SRCS
     src/common/query.cc)
 
 # Define the resource build needed for Android
+firebase_cpp_gradle(":database:database_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/database_resources/build/dexed.jar")
 binary_to_array("database_resources"
     "${CMAKE_CURRENT_LIST_DIR}/database_resources/build/dexed.jar"
     "firebase_database_resources"
@@ -194,7 +197,9 @@ else()
   add_definitions(-include assert.h -include string.h)
 endif()
 
-if(IOS)
+if(ANDROID)
+  firebase_cpp_proguard_file(database)
+elseif(IOS)
   # Enable Automatic Reference Counting (ARC)
   set_property(
     TARGET firebase_database
@@ -205,8 +210,8 @@ if(IOS)
   set(pod_target_name "download_database_pod_headers")
   set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
   set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '6.9.0'")
-  list(APPEND pod_list "'Firebase/Database', '6.9.0'")
+  list(APPEND pod_list "'Firebase/Core', '6.10.0'")
+  list(APPEND pod_list "'Firebase/Database', '6.10.0'")
 
   setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
 

@@ -397,7 +397,7 @@ Future<std::string> GetAnalyticsInstanceId() {
     util::RegisterCallbackOnTask(
         env, task,
         [](JNIEnv* env, jobject result, util::FutureResult result_code,
-           int status, const char* status_message, void* callback_data) {
+           const char* status_message, void* callback_data) {
           auto* future_data = internal::FutureData::Get();
           if (future_data) {
             bool success =

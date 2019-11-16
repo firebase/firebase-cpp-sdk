@@ -18,6 +18,7 @@ cmake_minimum_required (VERSION 3.1)
 set (CMAKE_CXX_STANDARD 11)
 
 include(download_pod_headers)
+include(firebase_cpp_gradle)
 
 project(firebase_remote_config NONE)
 enable_language(C)
@@ -47,6 +48,8 @@ else()
   # Generates config.pb.c and config.pb.h
   NANOPB_GENERATE_CPP(PROTO_SRCS PROTO_HDRS src_protos/config.proto)
   set(desktop_SRCS
+      ${PROTO_SRCS}
+      ${PROTO_HDRS}
       src/desktop/remote_config.cc
       src/desktop/rest.cc
       src/desktop/config_data.cc
@@ -82,8 +85,7 @@ else()
   set(additional_link_LIB
       firebase_rest_lib
       firebase_instance_id_desktop_impl
-      flatbuffers
-      protobuf-nanopb)
+      flatbuffers)
 endif()
 
 add_library(firebase_remote_config STATIC
@@ -118,7 +120,9 @@ else()
   add_definitions(-include assert.h -include string.h)
 endif()
 
-if(IOS)
+if(ANDROID)
+  firebase_cpp_proguard_file(remote_config)
+elseif(IOS)
   # Enable Automatic Reference Counting (ARC).
   set_property(
     TARGET firebase_remote_config
@@ -129,8 +133,8 @@ if(IOS)
   set(pod_target_name "download_remote_config_pod_headers")
   set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
   set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '6.9.0'")
-  list(APPEND pod_list "'Firebase/RemoteConfig', '6.9.0'")
+  list(APPEND pod_list "'Firebase/Core', '6.10.0'")
+  list(APPEND pod_list "'Firebase/RemoteConfig', '6.10.0'")
 
   setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
 
@@ -139,7 +143,7 @@ if(IOS)
   target_include_directories(firebase_remote_config
     PRIVATE
       ${base_header_dir}/FirebaseCore
-      ${base_header_dir}/FirebaseRemoteConfig/FirebaseRemoteConfig
+      ${base_header_dir}/FirebaseRemoteConfig
   )
 
   # Add a dependency to downloading the headers onto remote_config.

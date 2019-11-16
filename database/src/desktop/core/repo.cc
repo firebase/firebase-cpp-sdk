@@ -373,8 +373,9 @@ void Repo::UpdateChildren(const Path& path, const Variant& data,
   }
 
   // Start with our existing data and merge each child into it.
-  // std::map<std::string, Variant> serverValues =
-  const CompoundWrite& resolved = updates;
+  Variant server_values = GenerateServerValues(server_time_offset_);
+  CompoundWrite resolved =
+      ResolveDeferredValueMerge(updates, server_values);
 
   WriteId write_id = GetNextWriteId();
   std::vector<Event> events = server_sync_tree_->ApplyUserMerge(

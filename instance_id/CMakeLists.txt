@@ -19,6 +19,7 @@ set (CMAKE_CXX_STANDARD 11)
 
 include(binary_to_array)
 include(download_pod_headers)
+include(firebase_cpp_gradle)
 
 project(firebase_instance_id NONE)
 enable_language(C)
@@ -94,7 +95,9 @@ else()
   add_definitions(-include assert.h -include string.h)
 endif()
 
-if(IOS)
+if(ANDROID)
+  firebase_cpp_proguard_file(instance_id)
+elseif(IOS)
   # Enable Automatic Reference Counting (ARC).
   set_property(
     TARGET firebase_instance_id
@@ -105,7 +108,7 @@ if(IOS)
   set(pod_target_name "download_instance_id_pod_headers")
   set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
   set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '6.9.0'")
+  list(APPEND pod_list "'Firebase/Core', '6.10.0'")
   list(APPEND pod_list "'FirebaseInstanceID', '4.2.5'")
 
   setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")

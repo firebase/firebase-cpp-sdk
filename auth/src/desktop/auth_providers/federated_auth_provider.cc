@@ -27,6 +27,11 @@ namespace auth {
 
 FederatedOAuthProvider::FederatedOAuthProvider() { }
 
+FederatedOAuthProvider::FederatedOAuthProvider(
+    const FederatedOAuthProviderData& provider_data) {
+  provider_data_ = provider_data;
+}
+
 FederatedOAuthProvider::~FederatedOAuthProvider() {
   handler_ = nullptr;
 }

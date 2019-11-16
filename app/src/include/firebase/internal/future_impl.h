@@ -162,34 +162,15 @@ class CompletionCallbackHandle {
 
 }  // namespace detail
 
-#ifdef INTERNAL_EXPERIMENTAL
 template <class T>
-FutureBase::CompletionCallbackHandle
-Future<T>::OnCompletion(
-    TypedCompletionCallback callback, void* user_data) const {
-  return FutureBase::OnCompletion(
-      reinterpret_cast<CompletionCallback>(callback), user_data);
-}
-#else
 void
-template <class T>
 Future<T>::OnCompletion(
     TypedCompletionCallback callback, void* user_data) const {
   FutureBase::OnCompletion(
       reinterpret_cast<CompletionCallback>(callback), user_data);
 }
-#endif
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
-#if defined(INTERNAL_EXPERIMENTAL)
-template <class ResultType>
-inline FutureBase::CompletionCallbackHandle
-Future<ResultType>::OnCompletion(
-    std::function<void(const Future<ResultType>&)> callback) const {
-  return FutureBase::OnCompletion(
-      *reinterpret_cast<std::function<void(const FutureBase&)>*>(&callback));
-}
-#else
 template <class ResultType>
 inline void
 Future<ResultType>::OnCompletion(
@@ -197,7 +178,6 @@ Future<ResultType>::OnCompletion(
   FutureBase::OnCompletion(
       *reinterpret_cast<std::function<void(const FutureBase&)>*>(&callback));
 }
-#endif
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
 #if defined(INTERNAL_EXPERIMENTAL)
@@ -251,7 +231,7 @@ inline FutureBase& FutureBase::operator=(const FutureBase& rhs) {
 }
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
-inline FutureBase::FutureBase(FutureBase&& rhs)
+inline FutureBase::FutureBase(FutureBase&& rhs) noexcept
     : api_(NULL)  // NOLINT
 {
   detail::UnregisterForCleanup(rhs.api_, &rhs);
@@ -259,7 +239,7 @@ inline FutureBase::FutureBase(FutureBase&& rhs)
   detail::RegisterForCleanup(api_, this);
 }
 
-inline FutureBase& FutureBase::operator=(FutureBase&& rhs) {
+inline FutureBase& FutureBase::operator=(FutureBase&& rhs) noexcept {
   Release();
   detail::UnregisterForCleanup(rhs.api_, &rhs);
   api_ = rhs.api_;
@@ -296,16 +276,6 @@ inline const void* FutureBase::result_void() const {
   return api_ == NULL ? NULL : api_->GetFutureResult(handle_);  // NOLINT
 }
 
-#if defined(INTERNAL_EXPERIMENTAL)
-inline FutureBase::CompletionCallbackHandle FutureBase::OnCompletion(
-    CompletionCallback callback, void* user_data) const {
-  if (api_ != NULL) {  // NOLINT
-    return api_->AddCompletionCallback(handle_, callback, user_data, nullptr,
-                                       /*clear_existing_callbacks=*/ true);
-  }
-  return CompletionCallbackHandle();
-}
-#else
 inline void FutureBase::OnCompletion(CompletionCallback callback,
                                      void* user_data) const {
   if (api_ != NULL) {  // NOLINT
@@ -313,7 +283,6 @@ inline void FutureBase::OnCompletion(CompletionCallback callback,
                                 /*clear_existing_callbacks=*/ true);
   }
 }
-#endif
 
 #if defined(INTERNAL_EXPERIMENTAL)
 inline FutureBase::CompletionCallbackHandle
@@ -335,16 +304,6 @@ inline void FutureBase::RemoveOnCompletion(
 #endif  // defined(INTERNAL_EXPERIMENTAL)
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
-#if defined(INTERNAL_EXPERIMENTAL)
-inline FutureBase::CompletionCallbackHandle FutureBase::OnCompletion(
-    std::function<void(const FutureBase&)> callback) const {
-  if (api_ != NULL) {  // NOLINT
-    return api_->AddCompletionCallbackLambda(handle_, callback,
-                                      /*clear_existing_callbacks=*/ true);
-  }
-  return CompletionCallbackHandle();
-}
-#else
 inline void FutureBase::OnCompletion(
     std::function<void(const FutureBase&)> callback) const {
   if (api_ != NULL) {  // NOLINT
@@ -352,7 +311,6 @@ inline void FutureBase::OnCompletion(
                                       /*clear_existing_callbacks=*/ true);
   }
 }
-#endif
 
 #if defined(INTERNAL_EXPERIMENTAL)
 inline FutureBase::CompletionCallbackHandle FutureBase::AddOnCompletion(

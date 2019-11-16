@@ -420,7 +420,7 @@ AppOptions* AppOptions::LoadDefault(AppOptions* app_options,
   return app_options;
 }
 
-App::App() : activity_(nullptr), internal_(nullptr) {}
+void App::Initialize() {}
 
 App::~App() {
   app_common::RemoveApp(this);

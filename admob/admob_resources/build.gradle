@@ -36,7 +36,7 @@ android {
 
   sourceSets {
     main {
-      manifest.srcFile '../../android_build_files/AndroidManifest.xml'
+      manifest.srcFile 'AndroidManifest.xml'
       java {
         srcDirs = ['../src_java/com/google/firebase/admob/internal/cpp']
       }

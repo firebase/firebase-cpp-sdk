@@ -13,8 +13,10 @@
 // limitations under the License.
 
 #include "database/src/android/disconnection_android.h"
+
 #include <assert.h>
 #include <jni.h>
+
 #include "app/src/future_manager.h"
 #include "app/src/util_android.h"
 #include "database/src/android/database_android.h"
@@ -94,8 +96,8 @@ struct FutureCallbackData {
 };
 
 void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
-                    int status, const char* status_message,
-                    void* callback_data) {
+                    const char* status_message, void* callback_data) {
+  int status = 0;  // TODO(140207379): populate with proper status code
   FutureCallbackData* data =
       reinterpret_cast<FutureCallbackData*>(callback_data);
   if (data != nullptr) {

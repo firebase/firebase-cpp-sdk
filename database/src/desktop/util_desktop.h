@@ -188,11 +188,11 @@ size_t GetEffectiveChildren(const Variant& variant,
 // Check if the variant or any of its children is vector.
 bool HasVector(const Variant& variant);
 
-// Parse a base-ten input string into 32-bit integer. Strings are parsed as
+// Parse a base-ten input string into 64-bit integer. Strings are parsed as
 // integers if they do not have leading 0's - if they do they are simply treated
 // as strings. This is done to match the behavior of the other database
 // implementations.
-bool ParseInteger(const char* str, int32_t* output);
+bool ParseInteger(const char* str, int64_t* output);
 
 // Prune the priorities and convert map into vector if applicable, to the
 // variant and its children.  This function assumes the variant or its children
@@ -253,6 +253,20 @@ bool VariantsAreEquivalent(const Variant& a, const Variant& b);
 // Returns a string which is hashed with SHA-1 and then Base64 encoded
 // using the input string.
 const std::string& GetBase64SHA1(const std::string& input, std::string* output);
+
+// Compare two Variant as child keys for sorting.
+// Expect both Variants are string.
+// Returns 0 if both Variants are equal.
+// Returns greater than 0 if left is greater than right.
+// Returns less than 0 if left is less than right.
+// Child key comparison is based on the following rules.
+// 1. "[MAX_KEY]" is greater than everything
+// 2. "[MIN_KEY]" is less than everything
+// 3. Integer key is less than string key
+// 4. If both keys are integer and are equal, ex. "1" and "001", one with the
+//    shorter length as a string is less than the other.
+// 5. Otherwise, compare as a string.
+int ChildKeyCompareTo(const Variant& left, const Variant& right);
 
 // Returns serialized string of a Variant to be used for GetHash() function.
 // The implementation is based on Node.java and its derived classes from Android

@@ -54,9 +54,9 @@ class ControllerCurl : public Controller {
   ~ControllerCurl() override;
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
-  ControllerCurl(ControllerCurl&& other);
+  ControllerCurl(ControllerCurl&& other) noexcept;
 
-  ControllerCurl& operator=(ControllerCurl&& other);
+  ControllerCurl& operator=(ControllerCurl&& other) noexcept;
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   // Pauses whatever the handle is doing.

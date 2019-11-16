@@ -19,6 +19,7 @@ set (CMAKE_CXX_STANDARD 11)
 
 include(binary_to_array)
 include(download_pod_headers)
+include(firebase_cpp_gradle)
 
 project(firebase_auth NONE)
 enable_language(C)
@@ -64,6 +65,8 @@ set(common_SRCS
     src/user.cc)
 
 # Define the resource build needed for Android
+firebase_cpp_gradle(":auth:auth_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/auth_resources/build/dexed.jar")
 binary_to_array("auth_resources"
     "${CMAKE_CURRENT_LIST_DIR}/auth_resources/build/dexed.jar"
     "firebase_auth"
@@ -196,7 +199,9 @@ if(MSVC)
   add_definitions(-DNOMINMAX)
 endif()
 
-if(IOS)
+if(ANDROID)
+  firebase_cpp_proguard_file(auth)
+elseif(IOS)
   # Enable Automatic Reference Counting (ARC).
   set_property(
     TARGET firebase_auth
@@ -207,8 +212,8 @@ if(IOS)
   set(pod_target_name "download_auth_pod_headers")
   set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
   set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '6.9.0'")
-  list(APPEND pod_list "'Firebase/Auth', '6.9.0'")
+  list(APPEND pod_list "'Firebase/Core', '6.10.0'")
+  list(APPEND pod_list "'Firebase/Auth', '6.10.0'")
 
   setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
 
