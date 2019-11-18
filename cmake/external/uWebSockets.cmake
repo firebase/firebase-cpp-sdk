@@ -23,6 +23,7 @@ ExternalProject_Add(
 
   GIT_REPOSITORY https://github.com/uNetworking/uWebSockets
   GIT_TAG        4d94401b9c98346f9afd838556fdc7dce30561eb
+  GIT_SHALLOW    1
 
   PREFIX ${PROJECT_BINARY_DIR}
 
