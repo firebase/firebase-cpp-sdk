@@ -14,16 +14,6 @@
 
 # CMake file for the firebase_analytics library
 
-cmake_minimum_required (VERSION 3.1)
-set (CMAKE_CXX_STANDARD 11)
-
-include(download_pod_headers)
-include(firebase_cpp_gradle)
-
-project(firebase_analytics NONE)
-enable_language(C)
-enable_language(CXX)
-
 # Analytics generates header files for default events, parameters, and
 # properties based on the iOS SDK, that are used across all platforms.
 set(analytics_generated_headers_dir
@@ -131,27 +121,12 @@ elseif(IOS)
     APPEND_STRING PROPERTY
     COMPILE_FLAGS "-fobjc-arc")
 
-  # Setup the target for getting the Firebase iOS SDK headers through Cocoapods.
-  set(pod_target_name "download_analytics_pod_headers")
-  set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
-  set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '6.10.0'")
-  list(APPEND pod_list "'Firebase/Analytics', '6.10.0'")
-
-  setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
-
-  # Add the Cocoapod headers to the include directories
-  set(base_header_dir "${pods_dir}/Pods/Headers/Public")
-  set(analytics_framework_path
-    "${pods_dir}/Pods/FirebaseAnalytics/Frameworks/FirebaseAnalytics.framework")
-  target_include_directories(firebase_analytics
-    PRIVATE
-      ${base_header_dir}/FirebaseCore
-      ${analytics_framework_path}/Headers
+  setup_pod_headers(
+    firebase_analytics
+    POD_NAMES
+      FirebaseCore
+      FirebaseAnalytics
   )
-
-  # Add a dependency to downloading the headers onto analytics.
-  add_dependencies(firebase_analytics ${pod_target_name})
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

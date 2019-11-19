@@ -279,6 +279,11 @@ endif()
 # then refer to.
 set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
+include(binary_to_array)
+include(firebase_cpp_gradle)
+
+add_subdirectory(ios_pod)
+
 # If we're building tests, we need to include the 'testing' folder before any
 # of the tests actually get built.
 if(FIREBASE_CPP_BUILD_TESTS)

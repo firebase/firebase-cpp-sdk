@@ -14,17 +14,6 @@
 
 # CMake file for the firebase_instance_id library
 
-cmake_minimum_required (VERSION 3.1)
-set (CMAKE_CXX_STANDARD 11)
-
-include(binary_to_array)
-include(download_pod_headers)
-include(firebase_cpp_gradle)
-
-project(firebase_instance_id NONE)
-enable_language(C)
-enable_language(CXX)
-
 # Common source files used by all platforms
 set(common_SRCS
     src/instance_id.cc
@@ -104,25 +93,12 @@ elseif(IOS)
     APPEND_STRING PROPERTY
     COMPILE_FLAGS "-fobjc-arc")
 
-  # Setup the target for getting the Firebase iOS SDK headers through Cocoapods.
-  set(pod_target_name "download_instance_id_pod_headers")
-  set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
-  set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '6.10.0'")
-  list(APPEND pod_list "'FirebaseInstanceID', '4.2.5'")
-
-  setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
-
-  # Add the Cocoapod headers to the include directories
-  set(base_header_dir "${pods_dir}/Pods/Headers/Public")
-  target_include_directories(firebase_instance_id
-    PRIVATE
-      ${base_header_dir}/FirebaseCore
-      ${base_header_dir}/FirebaseInstanceID
+  setup_pod_headers(
+    firebase_instance_id
+    POD_NAMES
+      FirebaseCore
+      FirebaseInstanceID
   )
-
-  # Add a dependency to downloading the headers onto instance_id.
-  add_dependencies(firebase_instance_id ${pod_target_name})
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)
