@@ -68,23 +68,6 @@ if(DEFINED ANDROID_NDK)
   set(ANDROID 1)
 endif()
 
-if(DEFINED CMAKE_TOOLCHAIN_FILE AND NOT ANDROID)
-  # Force using the toolchain file, as otherwise it loads it later in the
-  # process, after several of the checks against it have failed.
-  if(IS_ABSOLUTE ${CMAKE_TOOLCHAIN_FILE})
-    message("Using Toolchain File: ${CMAKE_TOOLCHAIN_FILE}")
-    include("${CMAKE_TOOLCHAIN_FILE}")
-  else()
-    message("Using Toolchain File: ${CMAKE_BINARY_DIR}/${CMAKE_TOOLCHAIN_FILE}")
-    include("${CMAKE_BINARY_DIR}/${CMAKE_TOOLCHAIN_FILE}")
-  endif()
-endif()
-
-# We're on iOS if the system root is set to "iphone" or some variant.
-if("${CMAKE_OSX_SYSROOT}" MATCHES "iphone")
-  set(IOS TRUE CACHE BOOL "Target platform is iOS.")
-endif()
-
 # Set directories needed by the Firebase subprojects
 # Directory to store generated files.
 set(FIREBASE_GEN_FILE_DIR ${CMAKE_BINARY_DIR}/generated)
@@ -113,8 +96,15 @@ set(FIREBASE_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads)
 # Run the CMake build logic that will download all the external dependencies.
 download_external_sources()
 
-# Disable the Flatbuffer build tests
+# Disable the Flatbuffer build tests, install and flathash
 set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "")
+set(FLATBUFFERS_INSTALL OFF CACHE BOOL "")
+set(FLATBUFFERS_FLATHASH OFF CACHE BOOL "")
+
+# Disable buliding flatc if cross compiling
+if(IOS OR ANDROID)
+  set(FLATBUFFERS_BUILD_FLATC OFF CACHE BOOL "")
+endif()
 
 # Add flatbuffers as a subdirectory, and set the directory variables for it,
 # so that the sub Firebase projects can depend upon it if necessary.
@@ -230,7 +220,6 @@ if(ANDROID OR IOS)
   endif()
 
   set(FLATBUFFERS_FLATC_EXECUTABLE ${firebase_external_flatc} CACHE STRING "")
-  set(FLATBUFFERS_BUILD_FLATC OFF CACHE BOOL "")
 
   # Setup the flatc custom build target.
   # These commands are executed from within the currect context, which has set

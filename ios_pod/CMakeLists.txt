@@ -34,25 +34,15 @@ file(
     "${FIREBASE_POD_DIR}/CMakeLists.txt"
 )
 
-# We use "env -i" to clear the environment variables, and manually keep
-# the PATH to regular bash path.
-# If we didn't do this, we'd end up building for iOS instead of OSX,
-# since the default Xcode environment variables target iOS when you're in
-# an iOS project.
-set(firebase_command_line_path "$ENV{PATH}")
-add_custom_command(
-  # Depend on the lock file, as depending on directories can report false
-  # positives.
-  OUTPUT "${FIREBASE_POD_DIR}/Podfile.lock"
-  COMMAND env -i PATH=${firebase_command_line_path} cmake . -G Xcode &&
-          pod install
-  DEPENDS ${FIREBASE_POD_DIR}/Podfile
-  DEPENDS ${FIREBASE_POD_DIR}/empty.cc
-  DEPENDS ${FIREBASE_POD_DIR}/CMakeLists.txt
-  WORKING_DIRECTORY ${FIREBASE_POD_DIR}
+message("Downloading cocoa pods...")
+
+execute_process(
+  COMMAND /bin/bash -c
+          "mkdir -p ${FIREBASE_POD_DIR} && cd ${FIREBASE_POD_DIR} && cmake . -G Xcode && pod install"
+  OUTPUT_VARIABLE pods_output
 )
 
-add_custom_target(ios_pod_download DEPENDS ${FIREBASE_POD_DIR}/Podfile.lock)
+message("${pods_output}")
 
 set(FIREBASE_POD_DIR ${FIREBASE_POD_DIR} PARENT_SCOPE)
 set(FIREBASE_POD_HEADER_DIR
@@ -77,8 +67,6 @@ function(setup_pod_headers target_name)
 
   # Parse the arguments into SETUP_POD_HEADERS_POD_NAMES.
   cmake_parse_arguments(SETUP_POD_HEADERS "" "" "${multi}" ${ARGN})
-
-  add_dependencies(${target_name} ios_pod_download)
 
   if(NOT "${SETUP_POD_HEADERS_POD_NAMES}" STREQUAL "")
     foreach (pod ${SETUP_POD_HEADERS_POD_NAMES})
@@ -124,8 +112,6 @@ function(symlink_pod_headers target_name pod_name dir_name)
   if(NOT EXISTS ${framework_dir})
     return()
   endif()
-
-  message(" ## ${target_name} '${glob_dir}'")
 
   add_custom_command(
     OUTPUT "${gen_file}"
