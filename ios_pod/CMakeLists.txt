@@ -16,7 +16,12 @@ if(NOT IOS)
   return()
 endif()
 
-set(FIREBASE_POD_DIR ${CMAKE_CURRENT_BINARY_DIR})
+# Add these two vars to the cache to make them avaliable in global scope
+set(FIREBASE_POD_DIR ${CMAKE_CURRENT_BINARY_DIR} CACHE STRING "")
+set(FIREBASE_POD_HEADER_DIR
+  "${FIREBASE_POD_DIR}/Pods/Headers/Public"
+  CACHE STRING ""
+)
 
 # Copy build files to trigger pod install as it requires a valid Xcode project
 file(
@@ -44,11 +49,6 @@ execute_process(
 
 message("${pods_output}")
 
-set(FIREBASE_POD_DIR ${FIREBASE_POD_DIR} PARENT_SCOPE)
-set(FIREBASE_POD_HEADER_DIR
-  "${CMAKE_CURRENT_BINARY_DIR}/Pods/Headers/Public"
-  PARENT_SCOPE
-)
 
 
 # Sets up a target to have the correct dependencie on the install pods target
@@ -87,24 +87,38 @@ endfunction()
 # include paths are expecting the header files to be in a subdirectory, when
 # accessing the header files directly does not have them in the same structure.
 #
-# Usage: symlink_pod_headers(<target_name> <pod_name> <dir_name>)
+# Usage: symlink_pod_headers(<target_name> <pod_name> <dir_name>
+#                             [FRAMEWORK_DIR_NAME <framework_dir>]
+#                           )
 #
 # Args:
 #   target_name: Name of target to add includes to
 #   pod_name: Name of the pod in the Podfile
 #   dir_name: Name of the dir for the symlink (most cases should be same as pod_name)
+#   framework_dir: Set if pod uses a different folder name for frameworks
 #
 function(symlink_pod_headers target_name pod_name dir_name)
 
+  set(multi OUTPUT_NAME FRAMEWORK_DIR_NAME)
+
+  # Parse the arguments into SYMLINK_POD_FRAMEWORK_DIR_NAME.
+  cmake_parse_arguments(SYMLINK_POD "" "" "${multi}" ${ARGN})
+
+  set(FRAMEWORK_DIR "Frameworks")
+
+  if(NOT "${SYMLINK_POD_FRAMEWORK_DIR_NAME}" STREQUAL "")
+    set(FRAMEWORK_DIR "${SYMLINK_POD_FRAMEWORK_DIR_NAME}")
+  endif()
+
   set(gen_file ${CMAKE_CURRENT_BINARY_DIR}/pod_sym_links/gen_${dir_name}.txt)
   set(symlink_dir ${CMAKE_CURRENT_BINARY_DIR}/pod_sym_links/${dir_name})
-  set(glob_dir "${FIREBASE_POD_DIR}/Pods/${pod_name}/Frameworks/*/*.framework/Headers")
+  set(glob_dir "${FIREBASE_POD_DIR}/Pods/${pod_name}/${FRAMEWORK_DIR}/*/*.framework/Headers")
 
   file(GLOB framework_dir ${glob_dir})
 
   # If failed to find headers, try again one folder up
   if(NOT EXISTS ${framework_dir})
-    set(glob_dir "${FIREBASE_POD_DIR}/Pods/${pod_name}/Frameworks/*.framework/Headers")
+    set(glob_dir "${FIREBASE_POD_DIR}/Pods/${pod_name}/${FRAMEWORK_DIR}/*.framework/Headers")
     file(GLOB framework_dir ${glob_dir})
   endif()
 

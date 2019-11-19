@@ -49,8 +49,7 @@ else()
       src/desktop/remote_config_desktop.cc
       src/desktop/rest_nanopb_decode.cc
       src/desktop/rest_nanopb_encode.cc
-      "${PROJECT_BINARY_DIR}/config.pb.c"
-      "${PROJECT_BINARY_DIR}/config.pb.h")
+  )
 endif()
 
 if(ANDROID)
