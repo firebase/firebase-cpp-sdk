@@ -70,6 +70,7 @@ else()
   set(additional_include_DIR
       ${FLATBUFFERS_SOURCE_DIR}/include
       ${NANOPB_INCLUDE_DIRS}
+      ${PROJECT_BINARY_DIR}
       ${PROJECT_BINARY_DIR}/..)
   set(additional_link_LIB
       firebase_rest_lib
