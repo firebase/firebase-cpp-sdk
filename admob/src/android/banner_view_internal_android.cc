@@ -187,7 +187,7 @@ BoundingBox BannerViewInternalAndroid::GetBoundingBox() const {
   // The bounding box array must consist of 4 integers: width, height,
   // x-coordinate, and y-coordinate.
   int count = static_cast<int>(env->GetArrayLength(jni_int_array));
-  assert(count == 4);
+  FIREBASE_ASSERT(count == 4);
 
   jint* bounding_box_elements =
       env->GetIntArrayElements(jni_int_array, nullptr);
