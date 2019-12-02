@@ -43,7 +43,7 @@ namespace internal {
 //
 // This class implements functions from `firebase/remote_config.h` header.
 // See `firebase/remote_config.h` for all public functions documentation.
-class RemoteConfigDesktop {
+class RemoteConfigInternal {
  public:
 #ifdef FIREBASE_TESTING
   friend class RemoteConfigDesktopTest;
@@ -63,9 +63,9 @@ class RemoteConfigDesktop {
   FRIEND_TEST(RemoteConfigDesktopTest, Fetch);
 #endif  // FIREBASE_TESTING
 
-  explicit RemoteConfigDesktop(const firebase::App& app,
-                               const RemoteConfigFileManager& file_manager);
-  ~RemoteConfigDesktop();
+  explicit RemoteConfigInternal(const firebase::App& app,
+                                const RemoteConfigFileManager& file_manager);
+  ~RemoteConfigInternal();
 
 #ifndef SWIG
   void SetDefaults(const ConfigKeyValueVariant* defaults,

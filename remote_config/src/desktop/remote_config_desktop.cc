@@ -40,13 +40,13 @@ namespace firebase {
 namespace remote_config {
 namespace internal {
 
-const char* const RemoteConfigDesktop::kDefaultNamespace = "configns:firebase";
-const char* const RemoteConfigDesktop::kDefaultValueForString = "";
-const int64_t RemoteConfigDesktop::kDefaultValueForLong = 0L;
-const double RemoteConfigDesktop::kDefaultValueForDouble = 0.0;
-const bool RemoteConfigDesktop::kDefaultValueForBool = false;
+const char* const RemoteConfigInternal::kDefaultNamespace = "configns:firebase";
+const char* const RemoteConfigInternal::kDefaultValueForString = "";
+const int64_t RemoteConfigInternal::kDefaultValueForLong = 0L;
+const double RemoteConfigInternal::kDefaultValueForDouble = 0.0;
+const bool RemoteConfigInternal::kDefaultValueForBool = false;
 
-RemoteConfigDesktop::RemoteConfigDesktop(
+RemoteConfigInternal::RemoteConfigInternal(
     const firebase::App& app, const RemoteConfigFileManager& file_manager)
     : app_(app),
       file_manager_(file_manager),
@@ -56,7 +56,7 @@ RemoteConfigDesktop::RemoteConfigDesktop(
   AsyncFetch();
 }
 
-RemoteConfigDesktop::~RemoteConfigDesktop() {
+RemoteConfigInternal::~RemoteConfigInternal() {
   fetch_channel_.Close();
   if (fetch_thread_.joinable()) {
     fetch_thread_.join();
@@ -68,7 +68,7 @@ RemoteConfigDesktop::~RemoteConfigDesktop() {
   }
 }
 
-void RemoteConfigDesktop::AsyncSaveToFile() {
+void RemoteConfigInternal::AsyncSaveToFile() {
   save_thread_ = std::thread([this]() {
     while (save_channel_.Get()) {
       LayeredConfigs copy;
@@ -81,8 +81,8 @@ void RemoteConfigDesktop::AsyncSaveToFile() {
   });
 }
 
-std::string RemoteConfigDesktop::VariantToString(const Variant& variant,
-                                                 bool* failure) {
+std::string RemoteConfigInternal::VariantToString(const Variant& variant,
+                                                  bool* failure) {
   if (variant.is_blob()) {
     const uint8_t* blob_data = variant.blob_data();
     size_t blob_size = variant.blob_size();
@@ -103,8 +103,8 @@ std::string RemoteConfigDesktop::VariantToString(const Variant& variant,
 }
 
 #ifndef SWIG
-void RemoteConfigDesktop::SetDefaults(const ConfigKeyValueVariant* defaults,
-                                      size_t number_of_defaults) {
+void RemoteConfigInternal::SetDefaults(const ConfigKeyValueVariant* defaults,
+                                       size_t number_of_defaults) {
   if (defaults == nullptr) {
     return;
   }
@@ -121,8 +121,8 @@ void RemoteConfigDesktop::SetDefaults(const ConfigKeyValueVariant* defaults,
 }
 #endif  // SWIG
 
-void RemoteConfigDesktop::SetDefaults(const ConfigKeyValue* defaults,
-                                      size_t number_of_defaults) {
+void RemoteConfigInternal::SetDefaults(const ConfigKeyValue* defaults,
+                                       size_t number_of_defaults) {
   if (defaults == nullptr) {
     return;
   }
@@ -137,7 +137,7 @@ void RemoteConfigDesktop::SetDefaults(const ConfigKeyValue* defaults,
   SetDefaults(defaults_map);
 }
 
-void RemoteConfigDesktop::SetDefaults(
+void RemoteConfigInternal::SetDefaults(
     const std::map<std::string, std::string>& defaults_map) {
   {
     std::unique_lock<std::mutex> lock(mutex_);
@@ -146,13 +146,13 @@ void RemoteConfigDesktop::SetDefaults(
   save_channel_.Put();
 }
 
-std::string RemoteConfigDesktop::GetConfigSetting(ConfigSetting setting) {
+std::string RemoteConfigInternal::GetConfigSetting(ConfigSetting setting) {
   std::unique_lock<std::mutex> lock(mutex_);
   return configs_.metadata.GetSetting(setting);
 }
 
-void RemoteConfigDesktop::SetConfigSetting(ConfigSetting setting,
-                                           const char* value) {
+void RemoteConfigInternal::SetConfigSetting(ConfigSetting setting,
+                                            const char* value) {
   if (value == nullptr) {
     return;
   }
@@ -163,19 +163,18 @@ void RemoteConfigDesktop::SetConfigSetting(ConfigSetting setting,
   save_channel_.Put();
 }
 
-bool RemoteConfigDesktop::CheckValueInActiveAndDefault(const char* key,
-                                                       ValueInfo* info,
-                                                       std::string* value) {
+bool RemoteConfigInternal::CheckValueInActiveAndDefault(const char* key,
+                                                        ValueInfo* info,
+                                                        std::string* value) {
   return CheckValueInConfig(configs_.active, kValueSourceRemoteValue, key, info,
                             value) ||
          CheckValueInConfig(configs_.defaults, kValueSourceDefaultValue, key,
                             info, value);
 }
 
-bool RemoteConfigDesktop::CheckValueInConfig(const NamespacedConfigData& config,
-                                             ValueSource source,
-                                             const char* key, ValueInfo* info,
-                                             std::string* value) {
+bool RemoteConfigInternal::CheckValueInConfig(
+    const NamespacedConfigData& config, ValueSource source, const char* key,
+    ValueInfo* info, std::string* value) {
   if (!key) return false;
 
   {
@@ -191,19 +190,19 @@ bool RemoteConfigDesktop::CheckValueInConfig(const NamespacedConfigData& config,
   return true;
 }
 
-bool RemoteConfigDesktop::IsBoolTrue(const std::string& str) {
+bool RemoteConfigInternal::IsBoolTrue(const std::string& str) {
   // regex: ^(1|true|t|yes|y|on)$
   return str == "1" || str == "true" || str == "t" || str == "yes" ||
          str == "y" || str == "on";
 }
 
-bool RemoteConfigDesktop::IsBoolFalse(const std::string& str) {
+bool RemoteConfigInternal::IsBoolFalse(const std::string& str) {
   // regex: ^(0|false|f|no|n|off)$
   return str == "0" || str == "false" || str == "f" || str == "no" ||
          str == "n" || str == "off";
 }
 
-bool RemoteConfigDesktop::IsLong(const std::string& str) {
+bool RemoteConfigInternal::IsLong(const std::string& str) {
   // regex: ^[-+]?[0-9]+$
   // Don't allow empty string.
   if (str.length() == 0) return false;
@@ -214,7 +213,7 @@ bool RemoteConfigDesktop::IsLong(const std::string& str) {
   return (*endptr == '\0');  // Ensure we consumed the whole string.
 }
 
-bool RemoteConfigDesktop::IsDouble(const std::string& str) {
+bool RemoteConfigInternal::IsDouble(const std::string& str) {
   // regex: ^[-+]?[0-9]*.?[0-9]+([eE][-+]?[0-9]+)?
   // Don't allow empty string.
   if (str.length() == 0) return false;
@@ -225,8 +224,7 @@ bool RemoteConfigDesktop::IsDouble(const std::string& str) {
   return (*endptr == '\0');  // Ensure we consumed the whole string.
 }
 
-bool RemoteConfigDesktop::GetBoolean(const char* key,
-                                     ValueInfo* info) {
+bool RemoteConfigInternal::GetBoolean(const char* key, ValueInfo* info) {
   std::string value;
   if (!CheckValueInActiveAndDefault(key, info, &value)) {
     if (info) {
@@ -248,8 +246,7 @@ bool RemoteConfigDesktop::GetBoolean(const char* key,
   return kDefaultValueForBool;
 }
 
-std::string RemoteConfigDesktop::GetString(const char* key,
-                                           ValueInfo* info) {
+std::string RemoteConfigInternal::GetString(const char* key, ValueInfo* info) {
   std::string value;
   if (!CheckValueInActiveAndDefault(key, info, &value)) {
     if (info) {
@@ -263,8 +260,7 @@ std::string RemoteConfigDesktop::GetString(const char* key,
   return value;
 }
 
-int64_t RemoteConfigDesktop::GetLong(const char* key,
-                                     ValueInfo* info) {
+int64_t RemoteConfigInternal::GetLong(const char* key, ValueInfo* info) {
   std::string value;
   if (!CheckValueInActiveAndDefault(key, info, &value)) {
     if (info) {
@@ -286,8 +282,7 @@ int64_t RemoteConfigDesktop::GetLong(const char* key,
   return convertation_failure ? kDefaultValueForLong : long_value;
 }
 
-double RemoteConfigDesktop::GetDouble(const char* key,
-                                      ValueInfo* info) {
+double RemoteConfigInternal::GetDouble(const char* key, ValueInfo* info) {
   std::string value;
   if (!CheckValueInActiveAndDefault(key, info, &value)) {
     if (info) {
@@ -309,8 +304,8 @@ double RemoteConfigDesktop::GetDouble(const char* key,
   return convertation_failure ? kDefaultValueForDouble : double_value;
 }
 
-std::vector<unsigned char> RemoteConfigDesktop::GetData(const char* key,
-                                                        ValueInfo* info) {
+std::vector<unsigned char> RemoteConfigInternal::GetData(const char* key,
+                                                         ValueInfo* info) {
   std::string value;
   if (!CheckValueInActiveAndDefault(key, info, &value)) {
     if (info) {
@@ -329,11 +324,11 @@ std::vector<unsigned char> RemoteConfigDesktop::GetData(const char* key,
   return data_value;
 }
 
-std::vector<std::string> RemoteConfigDesktop::GetKeys() {
+std::vector<std::string> RemoteConfigInternal::GetKeys() {
   return GetKeysByPrefix("");
 }
 
-std::vector<std::string> RemoteConfigDesktop::GetKeysByPrefix(
+std::vector<std::string> RemoteConfigInternal::GetKeysByPrefix(
     const char* prefix) {
   if (prefix == nullptr) return std::vector<std::string>();
   std::set<std::string> unique_keys;
@@ -345,7 +340,7 @@ std::vector<std::string> RemoteConfigDesktop::GetKeysByPrefix(
   return std::vector<std::string>(unique_keys.begin(), unique_keys.end());
 }
 
-bool RemoteConfigDesktop::ActivateFetched() {
+bool RemoteConfigInternal::ActivateFetched() {
   {
     std::unique_lock<std::mutex> lock(mutex_);
     // Fetched config not found or already activated.
@@ -357,12 +352,12 @@ bool RemoteConfigDesktop::ActivateFetched() {
   return true;
 }
 
-const ConfigInfo& RemoteConfigDesktop::GetInfo() const {
+const ConfigInfo& RemoteConfigInternal::GetInfo() const {
   std::unique_lock<std::mutex> lock(mutex_);
   return configs_.metadata.info();
 }
 
-void RemoteConfigDesktop::AsyncFetch() {
+void RemoteConfigInternal::AsyncFetch() {
   fetch_thread_ = std::thread([this]() {
     SafeFutureHandle<void> handle;
     while (fetch_channel_.Get()) {
@@ -404,7 +399,7 @@ void RemoteConfigDesktop::AsyncFetch() {
   });
 }
 
-Future<void> RemoteConfigDesktop::Fetch(uint64_t cache_expiration_in_seconds) {
+Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
   std::unique_lock<std::mutex> lock(mutex_);
 
   uint64_t milliseconds_since_epoch =
@@ -433,7 +428,7 @@ Future<void> RemoteConfigDesktop::Fetch(uint64_t cache_expiration_in_seconds) {
   return FetchLastResult();
 }
 
-Future<void> RemoteConfigDesktop::FetchLastResult() {
+Future<void> RemoteConfigInternal::FetchLastResult() {
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<void>&>(
       api->LastResult(kRemoteConfigFnFetch));
