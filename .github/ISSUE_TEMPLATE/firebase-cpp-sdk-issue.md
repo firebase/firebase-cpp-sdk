@@ -8,6 +8,7 @@ assignees: ''
 ---
 
 ### Please fill in the following fields:
+Pre-built SDK from the [website](https://firebase.google.com/download/cpp) or open-source from this repo:
 Firebase C++ SDK version: 
 Firebase plugins in use (Auth, Database, etc.):
 Additional SDKs you are using (Facebook, AdMob, etc.): 
