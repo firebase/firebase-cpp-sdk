@@ -14,17 +14,6 @@
 
 # CMake file for the firebase_storage library
 
-cmake_minimum_required (VERSION 3.1)
-set (CMAKE_CXX_STANDARD 11)
-
-include(binary_to_array)
-include(download_pod_headers)
-include(firebase_cpp_gradle)
-
-project(firebase_storage NONE)
-enable_language(C)
-enable_language(CXX)
-
 # Common source files used by all platforms
 set(common_SRCS
     src/common/common.cc
@@ -135,27 +124,14 @@ elseif(IOS)
     APPEND_STRING PROPERTY
     COMPILE_FLAGS "-fobjc-arc")
 
-  # Setup the target for getting the Firebase iOS SDK headers through Cocoapods.
-  set(pod_target_name "download_storage_pod_headers")
-  set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
-  set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '6.10.0'")
-  list(APPEND pod_list "'Firebase/Storage', '6.10.0'")
-
-  setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
-
-  # Add the Cocoapod headers to the include directories
-  set(base_header_dir "${pods_dir}/Pods/Headers/Public")
-  target_include_directories(firebase_storage
-    PRIVATE
-    ${base_header_dir}/FirebaseCore
-    ${base_header_dir}/FirebaseStorage
-    # To point to the GTMSessionFetcher folder.
-    ${base_header_dir}
+  # Empty entry to point to the GTMSessionFetcher folder '.'
+  setup_pod_headers(
+    firebase_storage
+    POD_NAMES
+      .
+      FirebaseCore
+      FirebaseStorage
   )
-
-  # Add a dependency to downloading the headers onto admob.
-  add_dependencies(firebase_storage ${pod_target_name})
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

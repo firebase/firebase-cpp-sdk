@@ -78,6 +78,9 @@ class BannerViewInternalAndroid : public BannerViewInternal {
   // the future callback pointer.
   Future<void> InvokeNullary(BannerViewFn fn,
                              banner_view_helper::Method method);
+
+  // Cleans up any C++ side data before invoking the Android SDK to do the same.
+  void DestroyInternalData();
 };
 
 }  // namespace internal

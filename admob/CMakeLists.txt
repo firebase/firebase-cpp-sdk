@@ -14,17 +14,6 @@
 
 # CMake file for the firebase_admob library
 
-cmake_minimum_required (VERSION 3.1)
-set (CMAKE_CXX_STANDARD 11)
-
-include(binary_to_array)
-include(download_pod_headers)
-include(firebase_cpp_gradle)
-
-project(firebase_admob NONE)
-enable_language(C)
-enable_language(CXX)
-
 # Common source files used by all platforms
 set(common_SRCS
     src/common/admob_common.cc
@@ -121,29 +110,13 @@ elseif(IOS)
     APPEND_STRING PROPERTY
     COMPILE_FLAGS "-fobjc-arc")
 
-  # Setup the target for getting the Firebase iOS SDK headers through Cocoapods.
-  set(pod_target_name "download_admob_pod_headers")
-  set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
-  set(pod_list "")
-  list(APPEND pod_list "'Firebase/AdMob', '6.10.0'")
-
-  setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
-
-  # Add the Cocoapod headers to the include directories
-  set(base_header_dir "${pods_dir}/Pods/Headers/Public")
-  target_include_directories(firebase_admob
-    PRIVATE
-      ${base_header_dir}/Google-Mobile-Ads-SDK
+  setup_pod_headers(
+    firebase_admob
+    POD_NAMES
+      Google-Mobile-Ads-SDK
   )
-  string(CONCAT google_mobile_ads_framework_path
-    "${pods_dir}/Pods/Google-Mobile-Ads-SDK/"
-    "Frameworks/GoogleMobileAdsFramework-Current/GoogleMobileAds.framework")
+
   # AdMob expects the header files to be in a subfolder, so set up a symlink to
   # accomplish that.
-  symlink_framework_headers(firebase_admob ${pod_target_name}
-    ${google_mobile_ads_framework_path} GoogleMobileAds
-  )
-
-  # Add a dependency to downloading the headers onto admob.
-  add_dependencies(firebase_admob ${pod_target_name})
+  symlink_pod_headers(firebase_admob Google-Mobile-Ads-SDK GoogleMobileAds)
 endif()

@@ -336,7 +336,7 @@ def main():
     if not project_info:
       sys.stderr.write('No project info found in %s.' % input_filename)
       return 1
-    for field, value in project_info.iteritems():
+    for field, value in sorted(project_info.items()):
       sys.stdout.write('%s=%s\n' % (field, value))
     return 0
 
@@ -425,11 +425,9 @@ def main():
   indent(root)
 
   if args.l:
-    for package in packages:
+    for package in sorted(packages):
       if package:
-        # Encode the output string in case the system's default encoding differs
-        # from the encoding of the string being printed.
-        sys.stdout.write((package + '\n').encode(sys.getdefaultencoding()))
+        sys.stdout.write(package + '\n')
   else:
     path = os.path.dirname(output_filename)
 

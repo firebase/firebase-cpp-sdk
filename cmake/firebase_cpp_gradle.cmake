@@ -51,7 +51,7 @@ function(firebase_cpp_proguard_file LIBRARY_NAME)
                       "${${proguard_var}}")
 
   add_custom_target(
-    "${LIBRARY_NAME}_cpp_proguard"
+    "${proguard_var}"
     DEPENDS ${${proguard_var}}
   )
 endfunction()

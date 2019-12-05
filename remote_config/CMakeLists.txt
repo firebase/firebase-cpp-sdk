@@ -14,16 +14,6 @@
 
 # CMake file for the firebase_remote_config library
 
-cmake_minimum_required (VERSION 3.1)
-set (CMAKE_CXX_STANDARD 11)
-
-include(download_pod_headers)
-include(firebase_cpp_gradle)
-
-project(firebase_remote_config NONE)
-enable_language(C)
-enable_language(CXX)
-
 # Common source files used by all platforms
 set(common_SRCS
     src/common.cc)
@@ -59,8 +49,7 @@ else()
       src/desktop/remote_config_desktop.cc
       src/desktop/rest_nanopb_decode.cc
       src/desktop/rest_nanopb_encode.cc
-      "${PROJECT_BINARY_DIR}/config.pb.c"
-      "${PROJECT_BINARY_DIR}/config.pb.h")
+  )
 endif()
 
 if(ANDROID)
@@ -81,6 +70,7 @@ else()
   set(additional_include_DIR
       ${FLATBUFFERS_SOURCE_DIR}/include
       ${NANOPB_INCLUDE_DIRS}
+      ${PROJECT_BINARY_DIR}
       ${PROJECT_BINARY_DIR}/..)
   set(additional_link_LIB
       firebase_rest_lib
@@ -129,25 +119,12 @@ elseif(IOS)
     APPEND_STRING PROPERTY
     COMPILE_FLAGS "-fobjc-arc")
 
-  # Setup the target for getting the Firebase iOS SDK headers through Cocoapods.
-  set(pod_target_name "download_remote_config_pod_headers")
-  set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
-  set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '6.10.0'")
-  list(APPEND pod_list "'Firebase/RemoteConfig', '6.10.0'")
-
-  setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
-
-  # Add the Cocoapod headers to the include directories
-  set(base_header_dir "${pods_dir}/Pods/Headers/Public")
-  target_include_directories(firebase_remote_config
-    PRIVATE
-      ${base_header_dir}/FirebaseCore
-      ${base_header_dir}/FirebaseRemoteConfig
+  setup_pod_headers(
+    firebase_remote_config
+    POD_NAMES
+      FirebaseCore
+      FirebaseRemoteConfig
   )
-
-  # Add a dependency to downloading the headers onto remote_config.
-  add_dependencies(firebase_remote_config ${pod_target_name})
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)
