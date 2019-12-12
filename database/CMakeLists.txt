@@ -72,6 +72,7 @@ set(desktop_SRCS
     src/desktop/connection/persistent_connection.cc
     src/desktop/connection/util_connection.cc
     src/desktop/connection/web_socket_client_impl.cc
+    src/desktop/core/cache_policy.cc
     src/desktop/core/child_event_registration.cc
     src/desktop/core/compound_write.cc
     src/desktop/core/constants.cc
@@ -98,6 +99,7 @@ set(desktop_SRCS
     src/desktop/persistence/in_memory_persistence_storage_engine.cc
     src/desktop/persistence/noop_persistence_storage_engine.cc
     src/desktop/persistence/persistence_manager.cc
+    src/desktop/persistence/prune_forest.cc
     src/desktop/push_child_name_generator.cc
     src/desktop/query_desktop.cc
     src/desktop/query_params_comparator.cc

@@ -49,6 +49,10 @@ void NoopPersistenceStorageEngine::MergeIntoServerCache(const Path& path,
 void NoopPersistenceStorageEngine::MergeIntoServerCache(
     const Path& path, const CompoundWrite& children) {}
 
+uint64_t NoopPersistenceStorageEngine::ServerCacheEstimatedSizeInBytes() const {
+  return 0;
+}
+
 void NoopPersistenceStorageEngine::SaveTrackedQuery(
     const TrackedQuery& tracked_query) {}
 
@@ -77,6 +81,9 @@ std::set<std::string> NoopPersistenceStorageEngine::LoadTrackedQueryKeys(
     const std::set<QueryId>& query_ids) {
   return std::set<std::string>();
 }
+
+void NoopPersistenceStorageEngine::PruneCache(
+    const Path& root, const PruneForestRef& prune_forest) {}
 
 bool NoopPersistenceStorageEngine::BeginTransaction() { return true; }
 
