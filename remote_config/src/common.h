@@ -22,6 +22,11 @@ namespace remote_config {
 
 enum RemoteConfigFn {
   kRemoteConfigFnFetch,
+  kRemoteConfigFnEnsureInitialized,
+  kRemoteConfigFnActivate,
+  kRemoteConfigFnFetchAndActivate,
+  kRemoteConfigFnSetDefaults,
+  kRemoteConfigFnSetConfigSettings,
   kRemoteConfigFnCount
 };
 

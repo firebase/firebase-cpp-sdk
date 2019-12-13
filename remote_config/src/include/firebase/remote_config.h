@@ -425,6 +425,10 @@ const ConfigInfo& GetInfo();
 
 #ifdef FIREBASE_EARLY_ACCESS_PREVIEW
 
+namespace internal {
+class RemoteConfigInternal;
+}  // namespace internal
+
 #ifndef SWIG
 /// @brief Entry point for the Firebase C++ SDK for Remote Config.
 ///
@@ -482,7 +486,7 @@ class RemoteConfig {
   /// FetchAndActivate() call.
   ///
   /// @return The future result from the last call to FetchAndActivate().
-  Future<bool> FetchAndActiveLastResult();
+  Future<bool> FetchAndActivateLastResult();
 
   /// @brief Fetches config data from the server.
   ///
@@ -744,6 +748,10 @@ class RemoteConfig {
 
   /// The Firebase App this remote config is connected to.
   App* app_;
+
+  bool InitInternal();
+
+  internal::RemoteConfigInternal* internal_;
 };
 
 #endif  // FIREBASE_EARLY_ACCESS_PREVIEW

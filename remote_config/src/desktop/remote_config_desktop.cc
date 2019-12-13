@@ -46,14 +46,23 @@ const int64_t RemoteConfigInternal::kDefaultValueForLong = 0L;
 const double RemoteConfigInternal::kDefaultValueForDouble = 0.0;
 const bool RemoteConfigInternal::kDefaultValueForBool = false;
 
+static const char* kFilePathSuffix = "remote_config_data";
+
 RemoteConfigInternal::RemoteConfigInternal(
     const firebase::App& app, const RemoteConfigFileManager& file_manager)
     : app_(app),
       file_manager_(file_manager),
-      is_fetch_process_have_task_(false) {
-  file_manager.Load(&configs_);
-  AsyncSaveToFile();
-  AsyncFetch();
+      is_fetch_process_have_task_(false),
+      future_impl_(kRemoteConfigFnCount) {
+  InternalInit();
+}
+
+RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
+    : app_(app),
+      file_manager_(kFilePathSuffix),
+      is_fetch_process_have_task_(false),
+      future_impl_(kRemoteConfigFnCount) {
+  InternalInit();
 }
 
 RemoteConfigInternal::~RemoteConfigInternal() {
@@ -66,6 +75,75 @@ RemoteConfigInternal::~RemoteConfigInternal() {
   if (save_thread_.joinable()) {
     save_thread_.join();
   }
+}
+
+void RemoteConfigInternal::InternalInit() {
+  file_manager_.Load(&configs_);
+  AsyncSaveToFile();
+  AsyncFetch();
+}
+
+bool RemoteConfigInternal::Initialized() const{
+  // TODO(cynthiajiang) implement
+  return true;
+}
+
+void RemoteConfigInternal::Cleanup() {
+  // TODO(cynthiajiang) implement
+}
+
+Future<ConfigInfo> RemoteConfigInternal::EnsureInitialized() {
+  const auto handle =
+      future_impl_.SafeAlloc<ConfigInfo>(kRemoteConfigFnEnsureInitialized);
+  // TODO(cynthiajiang) implement
+  return MakeFuture<ConfigInfo>(&future_impl_, handle);
+}
+
+Future<ConfigInfo> RemoteConfigInternal::EnsureInitializedLastResult() {
+  return static_cast<const Future<ConfigInfo>&>(
+      future_impl_.LastResult(kRemoteConfigFnEnsureInitialized));
+}
+
+Future<bool> RemoteConfigInternal::Activate() {
+  const auto handle = future_impl_.SafeAlloc<bool>(kRemoteConfigFnActivate);
+  // TODO(cynthiajiang) implement
+  return MakeFuture<bool>(&future_impl_, handle);
+}
+
+Future<bool> RemoteConfigInternal::ActivateLastResult() {
+  return static_cast<const Future<bool>&>(
+      future_impl_.LastResult(kRemoteConfigFnActivate));
+}
+
+Future<bool> RemoteConfigInternal::FetchAndActivate() {
+  const auto handle =
+      future_impl_.SafeAlloc<bool>(kRemoteConfigFnFetchAndActivate);
+  // TODO(cynthiajiang) implement
+  return MakeFuture<bool>(&future_impl_, handle);
+}
+
+Future<bool> RemoteConfigInternal::FetchAndActivateLastResult() {
+  return static_cast<const Future<bool>&>(
+      future_impl_.LastResult(kRemoteConfigFnFetchAndActivate));
+}
+
+Future<void> RemoteConfigInternal::SetDefaultsLastResult() {
+  return static_cast<const Future<void>&>(
+      future_impl_.LastResult(kRemoteConfigFnSetDefaults));
+}
+
+#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
+Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
+  const auto handle =
+      future_impl_.SafeAlloc<void>(kRemoteConfigFnSetConfigSettings);
+  // TODO(cynthiajiang) implement
+  return MakeFuture<void>(&future_impl_, handle);
+}
+#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
+
+Future<void> RemoteConfigInternal::SetConfigSettingsLastResult() {
+  return static_cast<const Future<void>&>(
+      future_impl_.LastResult(kRemoteConfigFnSetConfigSettings));
 }
 
 void RemoteConfigInternal::AsyncSaveToFile() {
@@ -103,10 +181,12 @@ std::string RemoteConfigInternal::VariantToString(const Variant& variant,
 }
 
 #ifndef SWIG
-void RemoteConfigInternal::SetDefaults(const ConfigKeyValueVariant* defaults,
-                                       size_t number_of_defaults) {
+Future<void> RemoteConfigInternal::SetDefaults(
+    const ConfigKeyValueVariant* defaults, size_t number_of_defaults) {
+  const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetDefaults);
+  // TODO(cynthiajiang) : wrap following blocking call into thread.
   if (defaults == nullptr) {
-    return;
+    return MakeFuture<void>(&future_impl_, handle);
   }
   std::map<std::string, std::string> defaults_map;
   for (size_t i = 0; i < number_of_defaults; i++) {
@@ -118,13 +198,17 @@ void RemoteConfigInternal::SetDefaults(const ConfigKeyValueVariant* defaults,
     }
   }
   SetDefaults(defaults_map);
+  return MakeFuture<void>(&future_impl_, handle);
 }
 #endif  // SWIG
 
-void RemoteConfigInternal::SetDefaults(const ConfigKeyValue* defaults,
-                                       size_t number_of_defaults) {
+Future<void> RemoteConfigInternal::SetDefaults(const ConfigKeyValue* defaults,
+                                               size_t number_of_defaults) {
+  const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetDefaults);
+  // TODO(cynthiajiang) : wrap following blocking call into thread.
+
   if (defaults == nullptr) {
-    return;
+    return MakeFuture<void>(&future_impl_, handle);
   }
   std::map<std::string, std::string> defaults_map;
   for (size_t i = 0; i < number_of_defaults; i++) {
@@ -135,6 +219,7 @@ void RemoteConfigInternal::SetDefaults(const ConfigKeyValue* defaults,
     }
   }
   SetDefaults(defaults_map);
+  return MakeFuture<void>(&future_impl_, handle);
 }
 
 void RemoteConfigInternal::SetDefaults(
@@ -338,6 +423,12 @@ std::vector<std::string> RemoteConfigInternal::GetKeysByPrefix(
     configs_.defaults.GetKeysByPrefix(prefix, kDefaultNamespace, &unique_keys);
   }
   return std::vector<std::string>(unique_keys.begin(), unique_keys.end());
+}
+
+std::map<std::string, Variant> RemoteConfigInternal::GetAll() {
+  std::map<std::string, Variant> value;
+  // TODO(cynthiajiang) implement
+  return value;
 }
 
 bool RemoteConfigInternal::ActivateFetched() {

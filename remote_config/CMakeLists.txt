@@ -16,15 +16,16 @@
 
 # Common source files used by all platforms
 set(common_SRCS
-    src/common.cc)
+    src/common.cc
+    src/remote_config.cc)
 
 # Source files used by the Android implementation.
 set(android_SRCS
-    src/remote_config_android.cc)
+    src/android/remote_config_android.cc)
 
 # Source files used by the iOS implementation.
 set(ios_SRCS
-    src/remote_config_ios.mm)
+    src/ios/remote_config_ios.mm)
 
 if (NOT PROTOBUF_FOUND)
   # Only log a message if building for Desktop, since mobile doesn't care.
@@ -40,7 +41,7 @@ else()
   set(desktop_SRCS
       ${PROTO_SRCS}
       ${PROTO_HDRS}
-      src/desktop/remote_config.cc
+      src/desktop/remote_config_legacy.cc
       src/desktop/rest.cc
       src/desktop/config_data.cc
       src/desktop/file_manager.cc
