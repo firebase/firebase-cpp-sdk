@@ -28,6 +28,7 @@ namespace storage {
 namespace internal {
 class MetadataInternal;
 class MetadataInternalCommon;
+class StorageInternal;
 class StorageReferenceInternal;
 }  // namespace internal
 
