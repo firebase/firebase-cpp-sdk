@@ -27,6 +27,17 @@ namespace {
 static const char kCredentialFutureIdentifier[17] = "Auth-Credentials";
 }
 
+const char* const EmailAuthProvider::kProviderId = "password";
+const char* const FacebookAuthProvider::kProviderId = "facebook.com";
+const char* const GameCenterAuthProvider::kProviderId = "gc.apple.com";
+const char* const GitHubAuthProvider::kProviderId = "github.com";
+const char* const GoogleAuthProvider::kProviderId = "google.com";
+const char* const MicrosoftAuthProvider::kProviderId = "microsoft.com";
+const char* const PhoneAuthProvider::kProviderId = "phone";
+const char* const PlayGamesAuthProvider::kProviderId = "playgames.google.com";
+const char* const TwitterAuthProvider::kProviderId = "twitter.com";
+const char* const YahooAuthProvider::kProviderId = "yahoo.com";
+
 ReferenceCountedFutureImpl* GetCredentialFutureImpl() {
   StaticFutureData* future_data = StaticFutureData::GetFutureDataForModule(
       &kCredentialFutureIdentifier, kNumCredentialFunctions);

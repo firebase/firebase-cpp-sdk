@@ -54,14 +54,16 @@ class Credential {
   /// @cond FIREBASE_APP_INTERNAL
   friend class EmailAuthProvider;
   friend class FacebookAuthProvider;
+  friend class GameCenterAuthProvider;
   friend class GitHubAuthProvider;
   friend class GoogleAuthProvider;
   friend class JniAuthPhoneListener;
+  friend class MicrosoftAuthProvider;
   friend class OAuthProvider;
   friend class PhoneAuthProvider;
   friend class PlayGamesAuthProvider;
   friend class TwitterAuthProvider;
-  friend class GameCenterAuthProvider;
+  friend class YahooAuthProvider;
   /// @endcond
 #endif  // !SWIG
 
@@ -131,6 +133,9 @@ class EmailAuthProvider {
   ///
   /// @returns New Credential.
   static Credential GetCredential(const char* email, const char* password);
+
+  /// The string used to identify this provider.
+  static const char* const kProviderId;
 };
 
 /// @brief Use an access token provided by Facebook to authenticate.
@@ -143,109 +148,8 @@ class FacebookAuthProvider {
   /// @returns New Credential.
   static Credential GetCredential(const char* access_token);
 
-#ifdef INTERNAL_EXPERIMENTAL
-  /// The provider id string used for FederatedAuth.
-  static constexpr const char* const kProviderId = "facebook.com";
-#endif  // INTERNAL_EXPERIMENTAL
-};
-
-/// @brief Use an access token provided by GitHub to authenticate.
-class GitHubAuthProvider {
- public:
-  /// Generate a credential from the given GitHub token.
-  ///
-  /// @param token The GitHub OAuth access token.
-  ///
-  /// @returns New Credential.
-  static Credential GetCredential(const char* token);
-
-#ifdef INTERNAL_EXPERIMENTAL
-  /// The provider id string used for FederatedAuth.
-  constexpr static const char* const kProviderId = "github.com";
-#endif  // INTERNAL_EXPERIMENTAL
-};
-
-/// @brief Use an ID token and access token provided by Google to authenticate.
-class GoogleAuthProvider {
- public:
-  /// Generate a credential from the given Google ID token and/or access token.
-  ///
-  /// @param id_token Google Sign-In ID token.
-  /// @param access_token Google Sign-In access token.
-  ///
-  /// @returns New Credential.
-  static Credential GetCredential(const char* id_token,
-                                  const char* access_token);
-
-#ifdef INTERNAL_EXPERIMENTAL
-  /// The provider id string used for FederatedAuth.
-  constexpr static const char* const kProviderId = "google.com";
-#endif  // INTERNAL_EXPERIMENTAL
-};
-
-/// @brief Use a server auth code provided by Google Play Games to authenticate.
-class PlayGamesAuthProvider {
- public:
-  /// Generate a credential from the given Server Auth Code.
-  ///
-  /// @param server_auth_code Play Games Sign in Server Auth Code.
-  ///
-  /// @returns New Credential.
-  static Credential GetCredential(const char* server_auth_code);
-
-#ifdef INTERNAL_EXPERIMENTAL
-  /// The provider id string used for FederatedAuth.
-  constexpr static const char* const kProviderId = "playgames.google.com";
-#endif  // INTERNAL_EXPERIMENTAL
-};
-
-/// @brief Use a token and secret provided by Twitter to authenticate.
-class TwitterAuthProvider {
- public:
-  /// Generate a credential from the given Twitter token and password.
-  ///
-  /// @param token The Twitter OAuth token.
-  /// @param secret The Twitter OAuth secret.
-  ///
-  /// @returns New Credential.
-  static Credential GetCredential(const char* token, const char* secret);
-
-#ifdef INTERNAL_EXPERIMENTAL
-  /// The provider id string used for FederatedAuth.
-  constexpr static const char* const kProviderId = "twitter.com";
-#endif  // INTERNAL_EXPERIMENTAL
-};
-
-
-#ifdef INTERNAL_EXPERIMENTAL
-/// @brief Use an access token provided by Yahoo to authenticate.
-class YahooAuthProvider {
- public:
-  /// The provider id string used for FederatedAuth.
-  constexpr static const char* const kProviderId = "yahoo.com";
-};
-
-/// @brief Use an access token provided by Microsoft to authenticate.
-class MicrosoftAuthProvider {
- public:
-  /// The provider id string used for FederatedAuth.
-  constexpr static const char* const kProviderId = "microsoft.com";
-};
-#endif  // INTERNAL_EXPERIMENTAL
-
-
-/// @brief OAuth2.0+UserInfo auth provider (OIDC compliant and non-compliant).
-class OAuthProvider {
- public:
-  /// Generate a credential for an OAuth2 provider.
-  ///
-  /// @param provider_id Name of the OAuth2 provider
-  ///    TODO(jsanmiya) add examples.
-  /// @param id_token The authentication token (OIDC only).
-  /// @param access_token TODO(jsanmiya) add explanation (currently missing
-  ///    from Android and iOS implementations).
-  static Credential GetCredential(const char* provider_id, const char* id_token,
-                                  const char* access_token);
+  /// The string used to identify this provider.
+  static const char* const kProviderId;
 };
 
 /// @brief GameCenter (iOS) auth provider
@@ -265,6 +169,61 @@ class GameCenterAuthProvider {
   ///
   /// @return true if the user is signed in, false otherwise.
   static bool IsPlayerAuthenticated();
+
+  /// The string used to identify this provider.
+  static const char* const kProviderId;
+};
+
+/// @brief Use an access token provided by GitHub to authenticate.
+class GitHubAuthProvider {
+ public:
+  /// Generate a credential from the given GitHub token.
+  ///
+  /// @param token The GitHub OAuth access token.
+  ///
+  /// @returns New Credential.
+  static Credential GetCredential(const char* token);
+
+  /// The string used to identify this provider.
+  static const char* const kProviderId;
+};
+
+/// @brief Use an ID token and access token provided by Google to authenticate.
+class GoogleAuthProvider {
+ public:
+  /// Generate a credential from the given Google ID token and/or access token.
+  ///
+  /// @param id_token Google Sign-In ID token.
+  /// @param access_token Google Sign-In access token.
+  ///
+  /// @returns New Credential.
+  static Credential GetCredential(const char* id_token,
+                                  const char* access_token);
+
+  /// The string used to identify this provider.
+  static const char* const kProviderId;
+};
+
+
+/// @brief Use an access token provided by Microsoft to authenticate.
+class MicrosoftAuthProvider {
+ public:
+  /// The string used to identify this provider.
+  static const char* const kProviderId;
+};
+
+/// @brief OAuth2.0+UserInfo auth provider (OIDC compliant and non-compliant).
+class OAuthProvider {
+ public:
+  /// Generate a credential for an OAuth2 provider.
+  ///
+  /// @param provider_id Name of the OAuth2 provider
+  ///    TODO(jsanmiya) add examples.
+  /// @param id_token The authentication token (OIDC only).
+  /// @param access_token TODO(jsanmiya) add explanation (currently missing
+  ///    from Android and iOS implementations).
+  static Credential GetCredential(const char* provider_id, const char* id_token,
+                                  const char* access_token);
 };
 
 /// @brief Use phone number text messages to authenticate.
@@ -595,6 +554,9 @@ class PhoneAuthProvider {
   ///    PhoneAuthProvider.
   static PhoneAuthProvider& GetInstance(Auth* auth);
 
+  /// The string used to identify this provider.
+  static const char* const kProviderId;
+
  private:
   friend struct AuthData;
   friend class JniAuthPhoneListener;
@@ -607,6 +569,44 @@ class PhoneAuthProvider {
 
   PhoneAuthProviderData* data_;
 };
+
+/// @brief Use a server auth code provided by Google Play Games to authenticate.
+class PlayGamesAuthProvider {
+ public:
+  /// Generate a credential from the given Server Auth Code.
+  ///
+  /// @param server_auth_code Play Games Sign in Server Auth Code.
+  ///
+  /// @return New Credential.
+  static Credential GetCredential(const char* server_auth_code);
+
+  /// The string used to identify this provider.
+  static const char* const kProviderId;
+};
+
+/// @brief Use a token and secret provided by Twitter to authenticate.
+class TwitterAuthProvider {
+ public:
+  /// Generate a credential from the given Twitter token and password.
+  ///
+  /// @param token The Twitter OAuth token.
+  /// @param secret The Twitter OAuth secret.
+  ///
+  /// @return New Credential.
+  static Credential GetCredential(const char* token, const char* secret);
+
+  /// The string used to identify this provider.
+  static const char* const kProviderId;
+};
+
+
+/// @brief Use an access token provided by Yahoo to authenticate.
+class YahooAuthProvider {
+ public:
+  /// The string used to identify this provider.
+  static const char* const kProviderId;
+};
+
 
 }  // namespace auth
 }  // namespace firebase
