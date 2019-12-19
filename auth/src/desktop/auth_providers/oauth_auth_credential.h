@@ -32,24 +32,28 @@ class OAuthCredential : public IdentityProviderCredential {
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
       const char* const api_key) const override {
+    const char* raw_nonce =
+        (!raw_nonce_.empty()) ? raw_nonce_.c_str() : nullptr;
     if (!id_token_.empty()) {
       return VerifyAssertionRequest::FromIdToken(api_key, provider_id_.c_str(),
-                                                 id_token_.c_str());
+                                                 id_token_.c_str(), raw_nonce);
     } else {
       return VerifyAssertionRequest::FromAccessToken(
-          api_key, provider_id_.c_str(), access_token_.c_str());
+          api_key, provider_id_.c_str(), access_token_.c_str(), raw_nonce);
     }
   }
 
  private:
   OAuthCredential(const std::string& provider_id, const std::string& id_token,
-                  const std::string& access_token)
+                  const std::string& raw_nonce, const std::string& access_token)
       : provider_id_(provider_id),
         id_token_(id_token),
+        raw_nonce_(raw_nonce),
         access_token_(access_token) {}
 
   const std::string provider_id_;
   const std::string id_token_;
+  const std::string raw_nonce_;
   const std::string access_token_;
 
   friend class OAuthProvider;

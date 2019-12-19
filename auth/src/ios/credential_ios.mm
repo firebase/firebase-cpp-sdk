@@ -145,6 +145,23 @@ Credential OAuthProvider::GetCredential(
 }
 
 // static
+Credential OAuthProvider::GetCredential(const char* provider_id,
+                                        const char* id_token,
+                                        const char* raw_nonce,
+                                        const char* access_token) {
+  FIREBASE_ASSERT_RETURN(Credential(), provider_id && id_token && raw_nonce);
+
+  NSString* access_token_string =
+      (access_token != nullptr) ? util::CStringToNSString(access_token) : nullptr;
+  FIRAuthCredential* credential =
+      (FIRAuthCredential*)[FIROAuthProvider credentialWithProviderID:@(provider_id)
+                                                             IDToken:@(id_token)
+                                                            rawNonce:@(raw_nonce)
+                                                         accessToken:access_token_string];
+  return Credential(new FIRAuthCredentialPointer(credential));
+}
+
+// static
 Future<Credential> GameCenterAuthProvider::GetCredential() {
   auto future_api = GetCredentialFutureImpl();
   FIREBASE_ASSERT(future_api != nullptr);
