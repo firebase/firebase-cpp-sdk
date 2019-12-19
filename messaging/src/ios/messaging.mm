@@ -768,6 +768,18 @@ Future<void> UnsubscribeLastResult() {
       api->LastResult(kMessagingFnUnsubscribe));
 }
 
+bool DeliveryMetricsExportToBigQueryEnabled() {
+  // TODO(146362498): Implement this once the underlying API is ready on iOS.
+  LogWarning("DeliveryMetricsExportToBigQueryEnabled is not currently implemented on iOS");
+
+  return false;
+}
+
+void SetDeliveryMetricsExportToBigQuery(bool /*enable*/) {
+  // TODO(146362498): Implement this once the underlying API is ready on iOS.
+  LogWarning("SetDeliveryMetricsExportToBigQuery is not currently implemented on iOS");
+}
+
 bool IsTokenRegistrationOnInitEnabled() { return [FIRMessaging messaging].autoInitEnabled; }
 
 void SetTokenRegistrationOnInitEnabled(bool enable) {

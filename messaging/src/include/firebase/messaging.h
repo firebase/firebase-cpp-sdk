@@ -596,6 +596,34 @@ Future<void> Unsubscribe(const char* topic);
 /// @returns Result of the most recent call to Unsubscribe().
 Future<void> UnsubscribeLastResult();
 
+/// Determines whether Firebase Cloud Messaging exports message delivery metrics
+/// to BigQuery.
+///
+/// This function is currently only implemented on Android, and returns false
+/// with no other behavior on other platforms.
+///
+/// @return true if Firebase Cloud Messaging exports message delivery metrics to
+/// BigQuery.
+bool DeliveryMetricsExportToBigQueryEnabled();
+
+/// Enables or disables Firebase Cloud Messaging message delivery metrics export
+/// to BigQuery.
+///
+/// By default, message delivery metrics are not exported to BigQuery. Use this
+/// method to enable or disable the export at runtime. In addition, you can
+/// enable the export by adding to your manifest. Note that the run-time method
+/// call will override the manifest value.
+///
+/// <meta-data android:name= "delivery_metrics_exported_to_big_query_enabled"
+///            android:value="true"/>
+///
+/// This function is currently only implemented on Android, and has no behavior
+/// on other platforms.
+///
+/// @param[in] enable Whether Firebase Cloud Messaging should export message
+///            delivery metrics to BigQuery.
+void SetDeliveryMetricsExportToBigQuery(bool enable);
+
 class PollableListenerImpl;
 
 /// @brief A listener that can be polled to consume pending `Message`s.

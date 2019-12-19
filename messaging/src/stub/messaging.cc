@@ -194,5 +194,9 @@ bool IsTokenRegistrationOnInitEnabled() { return true; }
 
 void SetTokenRegistrationOnInitEnabled(bool /*enable*/) {}
 
+bool DeliveryMetricsExportToBigQueryEnabled() { return false; }
+
+void SetDeliveryMetricsExportToBigQuery(bool /*enable*/) {}
+
 }  // namespace messaging
 }  // namespace firebase
