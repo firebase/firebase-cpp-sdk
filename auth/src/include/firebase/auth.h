@@ -18,6 +18,7 @@
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_H_
 
 #include <vector>
+
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
@@ -246,8 +247,7 @@ class Auth {
   /// @note: This operation is supported only on iOS and Android platforms. On
   /// non-mobile platforms this method will return a Future with a preset error
   /// code: kAuthErrorUnimplemented.
-  Future<SignInResult> SignInWithProvider(
-      FederatedAuthProvider* provider);
+  Future<SignInResult> SignInWithProvider(FederatedAuthProvider* provider);
 
   /// Asynchronously logs into Firebase with the given credentials.
   ///
@@ -791,7 +791,7 @@ class FederatedAuthProvider {
 #endif  // not SWIG
 #endif  // INTERNAL_EXPERIMENTAL
 
-  FederatedAuthProvider() { }
+  FederatedAuthProvider() {}
   virtual ~FederatedAuthProvider() {}
 
  private:
@@ -801,7 +801,6 @@ class FederatedAuthProvider {
   virtual Future<SignInResult> Link(AuthData* auth_data) = 0;
   virtual Future<SignInResult> Reauthenticate(AuthData* auth_data) = 0;
 };
-
 
 /// @brief Authenticates with Federated OAuth Providers via the
 /// firebase::auth::Auth and firebase::auth::User classes.
@@ -813,7 +812,6 @@ class FederatedAuthProvider {
 /// account linking and user reauthentication, respectively.
 class FederatedOAuthProvider : public FederatedAuthProvider {
  public:
-#ifdef INTERNAL_EXPERIMENTAL
 #ifndef SWIG
   /// @brief A FederatedAuthProvider typed specifically for OAuth Authentication
   /// handling.
@@ -823,7 +821,6 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   typedef FederatedAuthProvider::Handler<FederatedOAuthProviderData>
       AuthHandler;
 #endif  // !SWIG
-#endif  // INTERNAL_EXPERIMENTAL
 
   /// Constructs an unconfigured provider.
   FederatedOAuthProvider();
@@ -888,7 +885,6 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   FederatedOAuthProviderData provider_data_;
   AuthHandler* handler_;
 };
-
 
 }  // namespace auth
 }  // namespace firebase
