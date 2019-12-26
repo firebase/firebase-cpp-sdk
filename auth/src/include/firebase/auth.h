@@ -630,7 +630,6 @@ class IdTokenListener {
 /// types in the future, with support for OAuth to start.
 class FederatedAuthProvider {
  public:
-#ifdef INTERNAL_EXPERIMENTAL
 #ifndef SWIG
   /// @brief Contains resulting information of a user authenticated by a
   /// Federated Auth Provider.  This information will be used by the internal
@@ -789,7 +788,6 @@ class FederatedAuthProvider {
                                 const char* error_message);
   };
 #endif  // not SWIG
-#endif  // INTERNAL_EXPERIMENTAL
 
   FederatedAuthProvider() {}
   virtual ~FederatedAuthProvider() {}
