@@ -721,6 +721,13 @@ class RemoteConfig {
   /// key. The default value, if the key was set with @ref SetDefaults().
   std::map<std::string, Variant> GetAll();
 
+  /// @brief Returns information about the last fetch request, in the form
+  /// of a ConfigInfo struct.
+  ///
+  /// @return A ConfigInfo struct, containing fields reflecting the state
+  /// of the most recent fetch request.
+  const ConfigInfo& GetInfo();
+
   /// Gets the App this remote config object is connected to.
   App* app() { return app_; }
 

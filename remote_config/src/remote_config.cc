@@ -220,6 +220,11 @@ std::vector<std::string> RemoteConfig::GetKeys() {
 std::map<std::string, Variant> RemoteConfig::GetAll() {
   return internal_->GetAll();
 }
+
+// TODO(b/147143718): Change to a more descriptive name.
+const ConfigInfo& RemoteConfig::GetInfo() {
+  return internal_->GetInfo();
+}
 #endif  // FIREBASE_EARLY_ACCESS_PREVIEW
 
 }  // namespace remote_config

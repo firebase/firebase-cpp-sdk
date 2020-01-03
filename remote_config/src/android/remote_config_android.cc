@@ -907,6 +907,12 @@ std::map<std::string, Variant> RemoteConfigInternal::GetAll() {
   // TODO(cynthiajiang) implement
   return value;
 }
+
+const ConfigInfo& RemoteConfigInternal::GetInfo() const {
+  static ConfigInfo config_info;
+  // TODO(cynthiajiang) implement
+  return config_info;
+}
 }  // namespace internal
 }  // namespace remote_config
 }  // namespace firebase
