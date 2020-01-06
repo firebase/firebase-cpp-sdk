@@ -630,6 +630,7 @@ class IdTokenListener {
 /// types in the future, with support for OAuth to start.
 class FederatedAuthProvider {
  public:
+#ifdef INTERNAL_EXPERIMENTAL
 #ifndef SWIG
   /// @brief Contains resulting information of a user authenticated by a
   /// Federated Auth Provider.  This information will be used by the internal
@@ -788,6 +789,7 @@ class FederatedAuthProvider {
                                 const char* error_message);
   };
 #endif  // not SWIG
+#endif  // INTERNAL_EXPERIMENTAL
 
   FederatedAuthProvider() {}
   virtual ~FederatedAuthProvider() {}
@@ -810,6 +812,7 @@ class FederatedAuthProvider {
 /// account linking and user reauthentication, respectively.
 class FederatedOAuthProvider : public FederatedAuthProvider {
  public:
+#ifdef INTERNAL_EXPERIMENTAL
 #ifndef SWIG
   /// @brief A FederatedAuthProvider typed specifically for OAuth Authentication
   /// handling.
@@ -819,6 +822,7 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   typedef FederatedAuthProvider::Handler<FederatedOAuthProviderData>
       AuthHandler;
 #endif  // !SWIG
+#endif  // INTERNAL_EXPERIMENTAL
 
   /// Constructs an unconfigured provider.
   FederatedOAuthProvider();
@@ -831,6 +835,7 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   explicit FederatedOAuthProvider(
       const FederatedOAuthProviderData& provider_data);
 
+#ifdef INTERNAL_EXPERIMENTAL
 #ifndef SWIG
   /// @brief Constructs a provider with the required information to authenticate
   /// using an OAuth Provider.
@@ -848,6 +853,7 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   FederatedOAuthProvider(const FederatedOAuthProviderData& provider_data,
                          AuthHandler* handler);
 #endif  // !SWIG
+#endif  // INTERNAL_EXPERIMENTAL
 
   ~FederatedOAuthProvider() override;
 
@@ -881,7 +887,9 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   Future<SignInResult> Reauthenticate(AuthData* auth_data) override;
 
   FederatedOAuthProviderData provider_data_;
+#ifdef INTERNAL_EXPERIMENTAL
   AuthHandler* handler_;
+#endif  // INTERNAL_EXPERIMENTAL
 };
 
 }  // namespace auth
