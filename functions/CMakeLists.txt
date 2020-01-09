@@ -103,3 +103,5 @@ elseif(IOS)
       FirebaseFunctions
   )
 endif()
+
+cpp_pack_library(firebase_functions "")

@@ -209,3 +209,9 @@ if(FIREBASE_CPP_BUILD_TESTS)
   # Add the tests subdirectory
   add_subdirectory(tests)
 endif()
+
+cpp_pack_library(firebase_database "")
+if (NOT ANDROID AND NOT IOS)
+  cpp_pack_library(uv_a "deps/database/external")
+  cpp_pack_library(libuWS "deps/database/external")
+endif()

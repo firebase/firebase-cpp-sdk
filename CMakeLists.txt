@@ -44,9 +44,20 @@ option(FIREBASE_CPP_BUILD_TESTS
        "Enable the Firebase C++ Build Tests." OFF)
 option(FIREBASE_FORCE_FAKE_SECURE_STORAGE
        "Disable use of platform secret store and use fake impl." OFF)
+option(FIREBASE_CPP_BUILD_PACKAGE
+       "Bundle the Firebase C++ libraries into a zip file." OFF)
+
+# Define this directory to be the root of the C++ SDK, which the libraries can
+# then refer to.
+set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
+
+project (firebase NONE)
+enable_language(C)
+enable_language(CXX)
 
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(external_rules)
+include(cpp_pack)
 
 if(FIREBASE_CPP_BUILD_TESTS)
   enable_testing()
@@ -67,10 +78,6 @@ endif()
 set(FIREBASE_GEN_FILE_DIR ${CMAKE_BINARY_DIR}/generated)
 # Directory for any shared scripts.
 set(FIREBASE_SCRIPT_DIR ${CMAKE_CURRENT_LIST_DIR})
-
-project (firebase NONE)
-enable_language(C)
-enable_language(CXX)
 
 if (FIREBASE_CPP_BUILD_TESTS AND MSVC)
   # Googletest requires MSVC to compile with the static version of the runtime
@@ -258,10 +265,6 @@ else()
   set(FIREBASE_FLATBUFFERS_DEPENDENCIES "")
 endif()
 
-# Define this directory to be the root of the C++ SDK, which the libraries can
-# then refer to.
-set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
-
 include(binary_to_array)
 include(firebase_cpp_gradle)
 
@@ -305,3 +308,10 @@ endif()
 if (FIREBASE_INCLUDE_STORAGE)
   add_subdirectory(storage)
 endif()
+
+# Place the CMake and gradle build files provided to easily link against the
+# prebuilt libraries at the root of the package.
+cpp_pack_dir(
+  "${CMAKE_CURRENT_LIST_DIR}/release_build_files/"
+  .
+)

@@ -86,3 +86,5 @@ elseif(IOS)
       FirebaseDynamicLinks
   )
 endif()
+
+cpp_pack_library(firebase_dynamic_links "")
