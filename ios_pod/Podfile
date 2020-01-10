@@ -10,10 +10,10 @@ target 'GetPods' do
   pod 'Firebase/Database', '6.14.0'
   pod 'Firebase/DynamicLinks', '6.14.0'
   pod 'Firebase/Functions', '6.14.0'
-  pod 'FirebaseInstanceID', '4.2.5'
+  pod 'FirebaseInstanceID', '4.2.8'
   pod 'Firebase/Messaging', '6.14.0'
   pod 'Firebase/RemoteConfig', '6.14.0'
   pod 'Firebase/Storage', '6.14.0'
 
-  pod 'Crashlytics', '3.13.4'
+  pod 'Crashlytics', '3.14.0'
 end
