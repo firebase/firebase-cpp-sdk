@@ -31,7 +31,7 @@ if(ANDROID)
 elseif(APPLE)
   if(IOS)
     set(FIREBASE_SDK_LIBDIR ${FIREBASE_CPP_SDK_DIR}/libs/ios/universal)
-  elseif(MACOS)
+  else() #Assume MacOS
     set(FIREBASE_SDK_LIBDIR ${FIREBASE_CPP_SDK_DIR}/libs/darwin/universal)
   endif()
 elseif(MSVC)
