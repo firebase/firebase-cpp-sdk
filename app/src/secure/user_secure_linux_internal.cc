@@ -69,9 +69,9 @@ std::string UserSecureLinuxInternal::LoadUserData(const std::string& app_name) {
       /* value1= */ app_name.c_str(), /* key2= */ kStorageDomainKey,
       /* value2= */ domain_.c_str(), nullptr);
   if (error) {
+    LogWarning("Secret lookup failed. Error %d: %s", error->code,
+               error->message);
     g_error_free(error);
-    LogWarning("Secret lookup failed, please make sure libsecret is "
-               "installed.");
     return empty_str;
   }
 
@@ -98,8 +98,9 @@ void UserSecureLinuxInternal::SaveUserData(const std::string& app_name,
       /* key2= */ kStorageDomainKey, /* value2= */ domain_.c_str(), nullptr);
 
   if (error) {
+    LogWarning("Secret store failed. Error %d: %s", error->code,
+               error->message);
     g_error_free(error);
-    LogWarning("Secret store failed, please make sure libsecret is installed.");
   }
 }
 
@@ -116,8 +117,9 @@ void UserSecureLinuxInternal::DeleteUserData(const std::string& app_name) {
                              /* value2= */ domain_.c_str(), nullptr);
 
   if (error) {
+    LogWarning("Secret clear failed. Error %d: %s", error->code,
+               error->message);
     g_error_free(error);
-    LogWarning("Secret clear failed, please make sure libsecret is installed.");
   }
 }
 
@@ -131,8 +133,9 @@ void UserSecureLinuxInternal::DeleteAllData() {
                              /* key2= */ kStorageDomainKey,
                              /* value2= */ domain_.c_str(), nullptr);
   if (error) {
+    LogWarning("Secret clear failed. Error %d: %s", error->code,
+               error->message);
     g_error_free(error);
-    LogWarning("Secret clear failed, please make sure libsecret is installed.");
   }
 }
 
