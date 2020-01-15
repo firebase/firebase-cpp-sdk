@@ -61,26 +61,80 @@ endfunction()
 #   target
 #   SOURCES sources...
 #   DEPENDS libraries...
+#   CUSTOM_FRAMEWORKS frameworks...
 # )
 #
 # Defines a new test executable target with the given target name, sources, and
 # dependencies.  Implicitly adds DEPENDS on gtest, gtest_main, Foundation and
-# CoreFoundation frameworks.
+# CoreFoundation frameworks. CUSTOM_FRAMEWORKS will include any custom Cocoapods
+# frameworks beyond the baseline FirebaseAnalytics.
 function(cc_test_on_ios name)
   if (NOT IOS)
     return()
   endif()
 
-  set(multi DEPENDS SOURCES INCLUDES DEFINES)
+  set(multi DEPENDS SOURCES INCLUDES DEFINES CUSTOM_FRAMEWORKS)
   # Parse the arguments into cc_test_SOURCES and cc_test_DEPENDS.
   cmake_parse_arguments(cc_test "" "" "${multi}" ${ARGN})
+
+  set(SDK_FRAMEWORK_DIR_NAMES 
+    FirebaseABTesting
+    FirebaseAnalytics
+    FirebaseAuth
+    FirebaseDatabase
+    FirebaseDynamicLinks
+    FirebaseFunctions
+    FirebaseMessaging
+    FirebaseRemoteConfig
+    FirebaseStorage
+    GoogleSignIn
+  )
+
+  # The build environment can use a user-downloaded Firebase IOS SDK defined by
+  # FIREBASE_IOS_SDK_DIR.  Alternatively download the SDK directly if it's not
+  # configured and store the files in external/firebase_ios_sdk.
+  if(NOT DEFINED ${FIREBASE_IOS_SDK_DIR})
+    set(FIREBASE_IOS_SDK_DIR 
+        "${CMAKE_BINARY_DIR}/external/firebase_ios_sdk/Firebase")
+  endif()
+
+  # Add the directories of the SDK download to the framework searchpath.
+  foreach(FRAMEWORK IN LISTS SDK_FRAMEWORK_DIR_NAMES)
+    set(directory "${FIREBASE_IOS_SDK_DIR}/${FRAMEWORK}")
+    LIST(APPEND FRAMEWORK_DIRS "-F ${directory}")
+  endforeach()
+
+  # All Firebase SDK modules require the Firebase Analytics Frameworks
+  # so include them by default:
+  set(DEFAULT_FRAMEWORKS
+    FIRAnalyticsConnector
+    FirebaseAnalytics
+    FirebaseCore
+    FirebaseCoreDiagnostics
+    FirebaseInstanceID
+    GTMSessionFetcher
+    GoogleAppMeasurement
+    GoogleDataTransport
+    GoogleDataTransportCCTSupport
+    GoogleUtilities
+    nanopb
+  )
+
+  # Construct a command line list of frameworks from the default frameworks
+  # (above) and for those passed to this function through the CUSTOM_FRAMEWORKS
+  # parameter.
+  foreach(FRAMEWORK IN LISTS DEFAULT_FRAMEWORKS cc_test_CUSTOM_FRAMEWORKS)
+    LIST(APPEND FRAMEWORK_INCLUDES "-framework ${FRAMEWORK}")
+  endforeach()
 
   list(APPEND cc_test_DEPENDS
        gmock
        gtest
        gtest_main
+       "${FRAMEWORK_DIRS}"
        "-framework CoreFoundation"
        "-framework Foundation"
+       "${FRAMEWORK_INCLUDES}"
   )
 
   add_executable(${name} ${cc_test_SOURCES})

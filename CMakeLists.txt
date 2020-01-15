@@ -95,7 +95,9 @@ set(FIREBASE_INSTALL_DIR ${PROJECT_BINARY_DIR}/opt)
 set(FIREBASE_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads)
 
 # Run the CMake build logic that will download all the external dependencies.
+message(STATUS "Downloading external project dependencies...")
 download_external_sources()
+message(STATUS "Download complete.")
 
 # Disable the Flatbuffer build tests, install and flathash
 set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "")

@@ -52,6 +52,7 @@ function(download_external_sources)
   check_use_local_directory(NANOPB)
   check_use_local_directory(UWEBSOCKETS)
   check_use_local_directory(ZLIB)
+  check_use_local_directory(FIREBASE_IOS_SDK)
 
   execute_process(
     COMMAND
@@ -66,6 +67,8 @@ function(download_external_sources)
       -DDOWNLOAD_NANOPB=${DOWNLOAD_NANOPB}
       -DDOWNLOAD_UWEBSOCKETS=${DOWNLOAD_UWEBSOCKETS}
       -DDOWNLOAD_ZLIB=${DOWNLOAD_ZLIB}
+      -DDOWNLOAD_FIREBASE_IOS_SDK=${DOWNLOAD_FIREBASE_IOS_SDK}
+      -DFIREBASE_CPP_BUILD_TESTS=${FIREBASE_CPP_BUILD_TESTS}
       ${PROJECT_SOURCE_DIR}/cmake/external
     OUTPUT_FILE ${PROJECT_BINARY_DIR}/external/output_cmake_config.txt
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external
