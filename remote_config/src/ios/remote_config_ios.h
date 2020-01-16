@@ -73,7 +73,7 @@ class RemoteConfigInternal {
 
   std::map<std::string, Variant> GetAll();
 
-  const ConfigInfo& GetInfo() const;
+  const ConfigInfo GetInfo() const;
 
   bool Initialized() const;
 

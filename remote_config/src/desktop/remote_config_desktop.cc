@@ -443,7 +443,7 @@ bool RemoteConfigInternal::ActivateFetched() {
   return true;
 }
 
-const ConfigInfo& RemoteConfigInternal::GetInfo() const {
+const ConfigInfo RemoteConfigInternal::GetInfo() const {
   std::unique_lock<std::mutex> lock(mutex_);
   return configs_.metadata.info();
 }
@@ -480,9 +480,10 @@ void RemoteConfigInternal::AsyncFetch() {
 
         is_fetch_process_have_task_ = false;
       }
-      FetchFutureStatus futureResult =
+      FutureStatus futureResult =
           (GetInfo().last_fetch_status == kLastFetchStatusSuccess)
-          ? kFetchFutureStatusSuccess : kFetchFutureStatusFailure;
+              ? kFutureStatusSuccess
+              : kFutureStatusFailure;
 
       FutureData* future_data = FutureData::Get();
       future_data->api()->Complete(handle, futureResult);

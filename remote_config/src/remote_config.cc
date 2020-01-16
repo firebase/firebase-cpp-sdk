@@ -58,14 +58,16 @@ RemoteConfig* RemoteConfig::GetInstance(App* app) {
           "it depends upon.",
           static_cast<int>(reinterpret_cast<intptr_t>(rc)),
           static_cast<int>(reinterpret_cast<intptr_t>(rc->app())));
-      DeleteInternal(rc);
+      rc->DeleteInternal();
     });
+
+    // Stick it in the global map so we remember it, and can delete it on
+    // shutdown.
+    g_rcs[app] = rc;
+    return rc;
   }
 
-  // Stick it in the global map so we remember it, and can delete it on
-  // shutdown.
-  g_rcs[app] = rc;
-  return rc;
+  return nullptr;
 }
 
 RemoteConfig* RemoteConfig::FindRemoteConfig(App* app) {
@@ -78,18 +80,20 @@ RemoteConfig* RemoteConfig::FindRemoteConfig(App* app) {
   return nullptr;
 }
 
-void RemoteConfig::DeleteInternal(RemoteConfig* rc) {
+void RemoteConfig::DeleteInternal() {
   MutexLock lock(g_rc_mutex);
+  if (!internal_) return;
 
-  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(rc->app());
+  CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app());
   assert(notifier);
-  notifier->UnregisterObject(rc);
+  notifier->UnregisterObject(this);
+
+  internal_->Cleanup();
+  delete internal_;
+  internal_ = nullptr;
 
   // Remove rc from the g_rcs map.
-  g_rcs.erase(rc->app());
-
-  delete rc;
-  rc = nullptr;
+  g_rcs.erase(app());
 }
 
 RemoteConfig::RemoteConfig(App* app) {
@@ -98,11 +102,7 @@ RemoteConfig::RemoteConfig(App* app) {
   internal_ = new internal::RemoteConfigInternal(*app);
 }
 
-RemoteConfig::~RemoteConfig() {
-  internal_->Cleanup();
-  delete internal_;
-  internal_ = nullptr;
-}
+RemoteConfig::~RemoteConfig() { DeleteInternal(); }
 
 bool RemoteConfig::InitInternal() { return internal_->Initialized(); }
 
@@ -199,9 +199,7 @@ std::string RemoteConfig::GetString(const char* key, ValueInfo* info) {
 }
 
 std::vector<unsigned char> RemoteConfig::GetData(const char* key) {
-  std::vector<unsigned char> value;
-  // TODO(cynthiajiang) implement
-  return value;
+  return GetData(key, static_cast<ValueInfo*>(nullptr));
 }
 
 std::vector<unsigned char> RemoteConfig::GetData(const char* key,
@@ -222,9 +220,7 @@ std::map<std::string, Variant> RemoteConfig::GetAll() {
 }
 
 // TODO(b/147143718): Change to a more descriptive name.
-const ConfigInfo& RemoteConfig::GetInfo() {
-  return internal_->GetInfo();
-}
+const ConfigInfo RemoteConfig::GetInfo() { return internal_->GetInfo(); }
 #endif  // FIREBASE_EARLY_ACCESS_PREVIEW
 
 }  // namespace remote_config

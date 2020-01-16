@@ -150,7 +150,8 @@ bool ActivateFetched() {
 const ConfigInfo& GetInfo() {
   static ConfigInfo config_info;
   FIREBASE_ASSERT_RETURN(config_info, internal::IsInitialized());
-  return g_remote_config_desktop_instance->GetInfo();
+  config_info = g_remote_config_desktop_instance->GetInfo();
+  return config_info;
 }
 
 Future<void> Fetch() { return Fetch(kDefaultCacheExpiration); }

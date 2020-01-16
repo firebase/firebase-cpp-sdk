@@ -16,7 +16,10 @@
 #define FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_ANDROID_REMOTE_CONFIG_ANDROID_H_
 
 #include "firebase/app.h"
+#include "app/src/mutex.h"
+#include "app/src/reference_count.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/util_android.h"
 #include "firebase/future.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
@@ -76,20 +79,38 @@ class RemoteConfigInternal {
 
   std::map<std::string, Variant> GetAll();
 
-  const ConfigInfo& GetInfo() const;
+  const ConfigInfo GetInfo() const;
 
   bool Initialized() const;
 
   void Cleanup();
 
+  void set_throttled_end_time(int64_t end_time) {
+    throttled_end_time_ = end_time;
+  }
+
+  void SaveTmpKeysToDefault(std::vector<std::string> tmp_default_keys) {
+    MutexLock lock(default_key_mutex_);
+    default_keys_ = std::move(tmp_default_keys);
+  }
+
  private:
+  static firebase::internal::ReferenceCount initializer_;
   // app
   const firebase::App& app_;
 
   /// Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;
 
-  jobject* internal_obj_;
+  jobject internal_obj_;
+
+  Mutex default_key_mutex_;
+  std::vector<std::string> tmp_default_keys_;
+  std::vector<std::string> default_keys_;
+
+  // If a fetch was throttled, this is set to the time when throttling is
+  // finished, in milliseconds since epoch.
+  int64_t throttled_end_time_ = 0;
 };
 
 }  // namespace internal

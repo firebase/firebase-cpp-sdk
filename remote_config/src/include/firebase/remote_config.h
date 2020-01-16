@@ -726,7 +726,7 @@ class RemoteConfig {
   ///
   /// @return A ConfigInfo struct, containing fields reflecting the state
   /// of the most recent fetch request.
-  const ConfigInfo& GetInfo();
+  const ConfigInfo GetInfo();
 
   /// Gets the App this remote config object is connected to.
   App* app() { return app_; }
@@ -751,7 +751,7 @@ class RemoteConfig {
   static RemoteConfig* FindRemoteConfig(App* app);
 
   // Clean up RemoteConfig instance.
-  static void DeleteInternal(RemoteConfig* rc);
+  void DeleteInternal();
 
   /// The Firebase App this remote config is connected to.
   App* app_;

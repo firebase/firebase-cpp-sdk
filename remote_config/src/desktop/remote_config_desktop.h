@@ -116,7 +116,7 @@ class RemoteConfigInternal {
 
   bool ActivateFetched();
 
-  const ConfigInfo& GetInfo() const;
+  const ConfigInfo GetInfo() const;
 
   static bool IsBoolTrue(const std::string& str);
   static bool IsBoolFalse(const std::string& str);

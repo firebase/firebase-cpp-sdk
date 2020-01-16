@@ -321,14 +321,13 @@ Future<void> Fetch(uint64_t cache_expiration_in_seconds) {
             ((NSNumber *)error.userInfo[FIRRemoteConfigThrottledEndTimeInSecondsKey]);
       }
       // If we got an error code back, return that, with the associated string.
-      api->Complete(handle, kFetchFutureStatusFailure,
+      api->Complete(handle, kFutureStatusFailure,
                     util::NSStringToString(error.localizedDescription).c_str());
     } else if (status != FIRRemoteConfigFetchStatusSuccess) {
-          api->Complete(handle, kFetchFutureStatusFailure,
-                        "Fetch encountered an error.");
+      api->Complete(handle, kFutureStatusFailure, "Fetch encountered an error.");
     } else {
       // Everything worked!
-      api->Complete(handle, kFetchFutureStatusSuccess);
+      api->Complete(handle, kFutureStatusSuccess);
     }
   };
   [g_remote_config_instance fetchWithExpirationDuration:cache_expiration_in_seconds
@@ -522,8 +521,8 @@ std::map<std::string, Variant> RemoteConfigInternal::GetAll() {
   return value;
 }
 
-const ConfigInfo& RemoteConfigInternal::GetInfo() const {
-  static ConfigInfo config_info;
+const ConfigInfo RemoteConfigInternal::GetInfo() const {
+  ConfigInfo config_info;
   // TODO(cynthiajiang) implement
   return config_info;
 }
