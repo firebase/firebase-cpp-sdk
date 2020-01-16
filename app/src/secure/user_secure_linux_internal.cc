@@ -47,7 +47,7 @@ SecretSchema BuildSchema(const char key_namespace[]) {
 
 UserSecureLinuxInternal::UserSecureLinuxInternal(const char* domain,
                                                  const char* key_namespace)
-    : domain_(domain), key_namespace_(key_namespace) {
+    : domain_(domain), key_namespace_(key_namespace), known_error_code_(0) {
   storage_schema_ = BuildSchema(key_namespace_.c_str());
 }
 
@@ -68,14 +68,8 @@ std::string UserSecureLinuxInternal::LoadUserData(const std::string& app_name) {
       /* key1= */ kAppNameKey,
       /* value1= */ app_name.c_str(), /* key2= */ kStorageDomainKey,
       /* value2= */ domain_.c_str(), nullptr);
-  if (error) {
-    LogWarning("Secret lookup failed. Error %d: %s", error->code,
-               error->message);
-    g_error_free(error);
-    return empty_str;
-  }
 
-  if (result == nullptr) {
+  if (CheckForError(&error, "lookup") || result == nullptr) {
     return empty_str;
   }
   std::string str_result(result);
@@ -97,11 +91,7 @@ void UserSecureLinuxInternal::SaveUserData(const std::string& app_name,
       /* value1= */ app_name.c_str(),
       /* key2= */ kStorageDomainKey, /* value2= */ domain_.c_str(), nullptr);
 
-  if (error) {
-    LogWarning("Secret store failed. Error %d: %s", error->code,
-               error->message);
-    g_error_free(error);
-  }
+  CheckForError(&error, "store");
 }
 
 void UserSecureLinuxInternal::DeleteUserData(const std::string& app_name) {
@@ -116,11 +106,7 @@ void UserSecureLinuxInternal::DeleteUserData(const std::string& app_name) {
                              /* key2= */ kStorageDomainKey,
                              /* value2= */ domain_.c_str(), nullptr);
 
-  if (error) {
-    LogWarning("Secret clear failed. Error %d: %s", error->code,
-               error->message);
-    g_error_free(error);
-  }
+  CheckForError(&error, "clear");
 }
 
 void UserSecureLinuxInternal::DeleteAllData() {
@@ -132,11 +118,20 @@ void UserSecureLinuxInternal::DeleteAllData() {
                              /* error= */ &error,
                              /* key2= */ kStorageDomainKey,
                              /* value2= */ domain_.c_str(), nullptr);
-  if (error) {
-    LogWarning("Secret clear failed. Error %d: %s", error->code,
-               error->message);
-    g_error_free(error);
+  CheckForError(&error, "clear");
+}
+
+bool UserSecureLinuxInternal::CheckForError(GError** error,
+                                            const char* function_name) {
+  if (error == nullptr || *error == nullptr) return false;
+  if ((*error)->code != known_error_code_) {
+    LogWarning("Secret %s failed. Error %d: %s", function_name, (*error)->code,
+               (*error)->message);
+    known_error_code_ = (*error)->code;
   }
+  g_error_free(*error);
+  *error = nullptr;
+  return true;
 }
 
 }  // namespace secure
