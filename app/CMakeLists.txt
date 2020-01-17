@@ -367,6 +367,7 @@ if(FIREBASE_CPP_BUILD_TESTS)
 endif()
 
 cpp_pack_library(firebase_app "")
+cpp_pack_public_headers()
 if (NOT ANDROID AND NOT IOS)
   cpp_pack_library(flatbuffers "deps/app/external")
 endif()

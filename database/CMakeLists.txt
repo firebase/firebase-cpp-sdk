@@ -211,6 +211,7 @@ if(FIREBASE_CPP_BUILD_TESTS)
 endif()
 
 cpp_pack_library(firebase_database "")
+cpp_pack_public_headers()
 if (NOT ANDROID AND NOT IOS)
   cpp_pack_library(uv_a "deps/database/external")
   cpp_pack_library(libuWS "deps/database/external")

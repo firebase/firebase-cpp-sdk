@@ -134,3 +134,4 @@ if(FIREBASE_CPP_BUILD_TESTS)
 endif()
 
 cpp_pack_library(firebase_remote_config "")
+cpp_pack_public_headers()

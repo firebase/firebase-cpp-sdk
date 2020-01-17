@@ -140,3 +140,4 @@ if(FIREBASE_CPP_BUILD_TESTS)
 endif()
 
 cpp_pack_library(firebase_storage "")
+cpp_pack_public_headers()

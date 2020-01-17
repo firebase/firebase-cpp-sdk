@@ -88,3 +88,4 @@ elseif(IOS)
 endif()
 
 cpp_pack_library(firebase_dynamic_links "")
+cpp_pack_public_headers()

@@ -122,3 +122,4 @@ elseif(IOS)
 endif()
 
 cpp_pack_library(firebase_admob "")
+cpp_pack_public_headers()

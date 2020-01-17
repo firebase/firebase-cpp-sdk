@@ -105,3 +105,4 @@ elseif(IOS)
 endif()
 
 cpp_pack_library(firebase_functions "")
+cpp_pack_public_headers()

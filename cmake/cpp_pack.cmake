@@ -96,3 +96,8 @@ function(cpp_pack_dir DIR_TO_PACK DESTINATION)
     DESTINATION ${DESTINATION}
   )
 endfunction()
+
+# Packs the files located in the calling CMake file's src/include directory.
+function(cpp_pack_public_headers)
+  cpp_pack_dir("${CMAKE_CURRENT_LIST_DIR}/src/include" .)
+endfunction()
