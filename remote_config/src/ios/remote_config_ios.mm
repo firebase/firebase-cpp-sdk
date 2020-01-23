@@ -12,14 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "remote_config/src/include/firebase/remote_config.h"
+#include "remote_config/src/ios/remote_config_ios.h"
 
 #include <map>
 #include <set>
 #include <string>
 
-#include "app/src/include/firebase/version.h"
 #include "app/src/assert.h"
+#include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
@@ -321,14 +321,13 @@ Future<void> Fetch(uint64_t cache_expiration_in_seconds) {
             ((NSNumber *)error.userInfo[FIRRemoteConfigThrottledEndTimeInSecondsKey]);
       }
       // If we got an error code back, return that, with the associated string.
-      api->Complete(handle, kFetchFutureStatusFailure,
+      api->Complete(handle, kFutureStatusFailure,
                     util::NSStringToString(error.localizedDescription).c_str());
     } else if (status != FIRRemoteConfigFetchStatusSuccess) {
-          api->Complete(handle, kFetchFutureStatusFailure,
-                        "Fetch encountered an error.");
+      api->Complete(handle, kFutureStatusFailure, "Fetch encountered an error.");
     } else {
       // Everything worked!
-      api->Complete(handle, kFetchFutureStatusSuccess);
+      api->Complete(handle, kFutureStatusSuccess);
     }
   };
   [g_remote_config_instance fetchWithExpirationDuration:cache_expiration_in_seconds
@@ -389,5 +388,144 @@ const ConfigInfo &GetInfo() {
   return kConfigInfo;
 }
 
+namespace internal {
+RemoteConfigInternal::RemoteConfigInternal(const firebase::App &app)
+    : app_(app), future_impl_(kRemoteConfigFnCount) {}
+
+RemoteConfigInternal::~RemoteConfigInternal() {
+  // TODO(cynthiajiang) ios clean up
+}
+
+bool RemoteConfigInternal::Initialized() const{
+  // TODO(cynthiajiang) implement
+  return true;
+}
+
+void RemoteConfigInternal::Cleanup() {
+  // TODO(cynthiajiang) implement
+}
+
+Future<ConfigInfo> RemoteConfigInternal::EnsureInitialized() {
+  const auto handle = future_impl_.SafeAlloc<ConfigInfo>(kRemoteConfigFnEnsureInitialized);
+  // TODO(cynthiajiang) implement
+  return MakeFuture<ConfigInfo>(&future_impl_, handle);
+}
+
+Future<ConfigInfo> RemoteConfigInternal::EnsureInitializedLastResult() {
+  return static_cast<const Future<ConfigInfo> &>(
+      future_impl_.LastResult(kRemoteConfigFnEnsureInitialized));
+}
+
+Future<bool> RemoteConfigInternal::Activate() {
+  const auto handle = future_impl_.SafeAlloc<bool>(kRemoteConfigFnActivate);
+  // TODO(cynthiajiang) implement
+  return MakeFuture<bool>(&future_impl_, handle);
+}
+
+Future<bool> RemoteConfigInternal::ActivateLastResult() {
+  return static_cast<const Future<bool> &>(future_impl_.LastResult(kRemoteConfigFnActivate));
+}
+
+Future<bool> RemoteConfigInternal::FetchAndActivate() {
+  const auto handle = future_impl_.SafeAlloc<bool>(kRemoteConfigFnFetchAndActivate);
+  // TODO(cynthiajiang) implement
+  return MakeFuture<bool>(&future_impl_, handle);
+}
+
+Future<bool> RemoteConfigInternal::FetchAndActivateLastResult() {
+  return static_cast<const Future<bool> &>(
+      future_impl_.LastResult(kRemoteConfigFnFetchAndActivate));
+}
+
+Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
+  const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnFetch);
+  // TODO(cynthiajiang) implement
+  return MakeFuture<void>(&future_impl_, handle);
+}
+
+Future<void> RemoteConfigInternal::FetchLastResult() {
+  return static_cast<const Future<void> &>(future_impl_.LastResult(kRemoteConfigFnFetch));
+}
+
+Future<void> RemoteConfigInternal::SetDefaults(const ConfigKeyValueVariant *defaults,
+                                               size_t number_of_defaults) {
+  const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetDefaults);
+  // TODO(cynthiajiang) implement
+  return MakeFuture<void>(&future_impl_, handle);
+}
+
+Future<void> RemoteConfigInternal::SetDefaults(const ConfigKeyValue *defaults,
+                                               size_t number_of_defaults) {
+  const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetDefaults);
+  // TODO(cynthiajiang) implement
+  return MakeFuture<void>(&future_impl_, handle);
+}
+
+Future<void> RemoteConfigInternal::SetDefaultsLastResult() {
+  return static_cast<const Future<void> &>(future_impl_.LastResult(kRemoteConfigFnSetDefaults));
+}
+
+#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
+Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
+  const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetConfigSettings);
+  // TODO(cynthiajiang) implement
+  return MakeFuture<void>(&future_impl_, handle);
+}
+#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
+Future<void> RemoteConfigInternal::SetConfigSettingsLastResult() {
+  return static_cast<const Future<void> &>(
+      future_impl_.LastResult(kRemoteConfigFnSetConfigSettings));
+}
+
+bool RemoteConfigInternal::GetBoolean(const char *key, ValueInfo *info) {
+  // TODO(cynthiajiang) implement
+  return true;
+}
+
+int64_t RemoteConfigInternal::GetLong(const char *key, ValueInfo *info) {
+  // TODO(cynthiajiang) implement
+  return 0;
+}
+
+double RemoteConfigInternal::GetDouble(const char *key, ValueInfo *info) {
+  // TODO(cynthiajiang) implement
+  return 0.0f;
+}
+
+std::string RemoteConfigInternal::GetString(const char *key, ValueInfo *info) {
+  // TODO(cynthiajiang) implement
+  return "";
+}
+
+std::vector<unsigned char> RemoteConfigInternal::GetData(const char *key, ValueInfo *info) {
+  std::vector<unsigned char> value;
+  // TODO(cynthiajiang) implement
+  return value;
+}
+
+std::vector<std::string> RemoteConfigInternal::GetKeysByPrefix(const char *prefix) {
+  std::vector<std::string> value;
+  // TODO(cynthiajiang) implement
+  return value;
+}
+
+std::vector<std::string> RemoteConfigInternal::GetKeys() {
+  std::vector<std::string> value;
+  // TODO(cynthiajiang) implement
+  return value;
+}
+
+std::map<std::string, Variant> RemoteConfigInternal::GetAll() {
+  std::map<std::string, Variant> value;
+  // TODO(cynthiajiang) implement
+  return value;
+}
+
+const ConfigInfo RemoteConfigInternal::GetInfo() const {
+  ConfigInfo config_info;
+  // TODO(cynthiajiang) implement
+  return config_info;
+}
+}  // namespace internal
 }  // namespace remote_config
 }  // namespace firebase

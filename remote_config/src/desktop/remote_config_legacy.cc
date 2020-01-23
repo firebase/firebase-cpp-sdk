@@ -28,7 +28,7 @@ namespace firebase {
 namespace remote_config {
 
 static const char* kFilePath = "remote_config_data";
-static internal::RemoteConfigDesktop* g_remote_config_desktop_instance =
+static internal::RemoteConfigInternal* g_remote_config_desktop_instance =
     nullptr;
 static internal::RemoteConfigFileManager* g_file_manager = nullptr;
 
@@ -46,7 +46,7 @@ InitResult Initialize(const App& app) {
     }
     FutureData::Create();
     g_remote_config_desktop_instance =
-        new internal::RemoteConfigDesktop(app, *g_file_manager);
+        new internal::RemoteConfigInternal(app, *g_file_manager);
   }
   internal::RegisterTerminateOnDefaultAppDestroy();
   return kInitResultSuccess;
@@ -150,7 +150,8 @@ bool ActivateFetched() {
 const ConfigInfo& GetInfo() {
   static ConfigInfo config_info;
   FIREBASE_ASSERT_RETURN(config_info, internal::IsInitialized());
-  return g_remote_config_desktop_instance->GetInfo();
+  config_info = g_remote_config_desktop_instance->GetInfo();
+  return config_info;
 }
 
 Future<void> Fetch() { return Fetch(kDefaultCacheExpiration); }

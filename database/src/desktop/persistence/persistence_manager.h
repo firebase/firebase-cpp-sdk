@@ -19,10 +19,12 @@
 #include <set>
 #include <string>
 #include <vector>
+
 #include "app/memory/unique_ptr.h"
 #include "app/src/mutex.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
+#include "database/src/desktop/core/cache_policy.h"
 #include "database/src/desktop/core/tracked_query_manager.h"
 #include "database/src/desktop/persistence/persistence_manager.h"
 #include "database/src/desktop/persistence/persistence_manager_interface.h"
@@ -37,7 +39,8 @@ class PersistenceManager : public PersistenceManagerInterface {
  public:
   PersistenceManager(
       UniquePtr<PersistenceStorageEngine> storage_engine,
-      UniquePtr<TrackedQueryManagerInterface> tracked_query_manager);
+      UniquePtr<TrackedQueryManagerInterface> tracked_query_manager,
+      UniquePtr<CachePolicy> cache_policy, LoggerBase* logger);
 
   // Persist a user write to the storage engine.
   //
@@ -130,11 +133,19 @@ class PersistenceManager : public PersistenceManagerInterface {
   }
 
  private:
+  void DoPruneCheckAfterServerUpdate();
+
   UniquePtr<PersistenceStorageEngine> storage_engine_;
 
   UniquePtr<TrackedQueryManagerInterface> tracked_query_manager_;
 
+  UniquePtr<CachePolicy> cache_policy_;
+
+  uint64_t server_cache_updates_since_last_prune_check_;
+
   Mutex transaction_mutex_;
+
+  LoggerBase* logger_;
 };
 
 }  // namespace internal

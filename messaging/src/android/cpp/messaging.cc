@@ -88,6 +88,17 @@ enum RegistrationTokenRequestState {
 static RegistrationTokenRequestState g_registration_token_request_state =
     kRegistrationTokenRequestStateNone;
 
+// Global flag indicating if metrics export to big query was enabled or
+// disabled before app initialization.
+enum DeliveryMetricsExportToBigQueryState {
+  kDeliveryMetricsExportToBigQueryNone,
+  kDeliveryMetricsExportToBigQueryEnable,
+  kDeliveryMetricsExportToBigQueryDisable,
+};
+static DeliveryMetricsExportToBigQueryState
+    g_delivery_metrics_export_to_big_query_state =
+        kDeliveryMetricsExportToBigQueryNone;
+
 // Indicates whether a registration token has been received, which is necessary
 // to perform certain actions related to topic subscriptions.
 // NOTE: The registration token is received by RegistrationIntentService which
@@ -164,7 +175,11 @@ METHOD_LOOKUP_DEFINITION(remote_message_builder,
       "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;"),              \
     X(GetInstance, "getInstance",                                              \
       "()Lcom/google/firebase/messaging/FirebaseMessaging;",                   \
-      firebase::util::kMethodTypeStatic)
+      firebase::util::kMethodTypeStatic),                                      \
+    X(DeliveryMetricsExportToBigQueryEnabled,                                  \
+      "deliveryMetricsExportToBigQueryEnabled", "()Z"),                        \
+    X(SetDeliveryMetricsExportToBigQuery,                                      \
+      "setDeliveryMetricsExportToBigQuery", "(Z)V")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(firebase_messaging, FIREBASE_MESSAGING_METHODS);
 METHOD_LOOKUP_DEFINITION(firebase_messaging,
@@ -645,6 +660,15 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
                                       kRegistrationTokenRequestStateEnable);
   }
 
+  if (g_delivery_metrics_export_to_big_query_state !=
+      kDeliveryMetricsExportToBigQueryNone) {
+    // Calling this again, now that we're initialized.
+    assert(internal::IsInitialized());
+    SetTokenRegistrationOnInitEnabled(
+        g_delivery_metrics_export_to_big_query_state ==
+        kDeliveryMetricsExportToBigQueryEnable);
+  }
+
   FutureData::Create();
 
   // Supposedly App creation also creates a registration token, but this seems
@@ -694,6 +718,9 @@ void Terminate() {
   g_local_storage_file_path = nullptr;
   delete g_lockfile_path;
   g_lockfile_path = nullptr;
+
+  g_delivery_metrics_export_to_big_query_state =
+      kDeliveryMetricsExportToBigQueryNone;
 
   env->DeleteGlobalRef(g_firebase_messaging);
   g_firebase_messaging = nullptr;
@@ -937,6 +964,44 @@ Future<void> UnsubscribeLastResult() {
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<void>&>(
       api->LastResult(kMessagingFnUnsubscribe));
+}
+
+bool DeliveryMetricsExportToBigQueryEnabled() {
+  if (!internal::IsInitialized()) {
+    // If the user previously called SetDeliveryMetricsExportToBigQuery(true),
+    // then return true. If they did not set it, or set it to false, return
+    // false.
+    return g_delivery_metrics_export_to_big_query_state ==
+           kDeliveryMetricsExportToBigQueryEnable;
+  }
+
+  JNIEnv* env = g_app->GetJNIEnv();
+  jboolean result = env->CallBooleanMethod(
+      g_firebase_messaging,
+      firebase_messaging::GetMethodId(
+          firebase_messaging::kDeliveryMetricsExportToBigQueryEnabled));
+  assert(env->ExceptionCheck() == false);
+  return static_cast<bool>(result);
+}
+
+void SetDeliveryMetricsExportToBigQuery(bool enabled) {
+  // If this is called before JNI is initialized, we'll just cache the intent
+  // and handle it on actual init.
+  // Otherwise if we've already initialized, the underlying API will persist the
+  // value.
+  if (internal::IsInitialized()) {
+    JNIEnv* env = g_app->GetJNIEnv();
+    env->CallVoidMethod(
+        g_firebase_messaging,
+        firebase_messaging::GetMethodId(
+            firebase_messaging::kSetDeliveryMetricsExportToBigQuery),
+        static_cast<jboolean>(enabled));
+    assert(env->ExceptionCheck() == false);
+  } else {
+    g_delivery_metrics_export_to_big_query_state =
+        enabled ? kDeliveryMetricsExportToBigQueryEnable
+                : kDeliveryMetricsExportToBigQueryDisable;
+  }
 }
 
 void SetTokenRegistrationOnInitEnabled(bool enabled) {

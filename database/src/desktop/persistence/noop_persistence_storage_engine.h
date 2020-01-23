@@ -52,6 +52,8 @@ class NoopPersistenceStorageEngine : public PersistenceStorageEngine {
   void MergeIntoServerCache(const Path& path,
                             const CompoundWrite& children) override;
 
+  uint64_t ServerCacheEstimatedSizeInBytes() const override;
+
   void SaveTrackedQuery(const TrackedQuery& tracked_query) override;
 
   void DeleteTrackedQuery(QueryId query_id) override;
@@ -71,6 +73,9 @@ class NoopPersistenceStorageEngine : public PersistenceStorageEngine {
 
   std::set<std::string> LoadTrackedQueryKeys(
       const std::set<QueryId>& query_ids) override;
+
+  void PruneCache(const Path& root,
+                  const PruneForestRef& prune_forest) override;
 
   bool BeginTransaction() override;
 

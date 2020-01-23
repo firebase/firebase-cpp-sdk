@@ -100,7 +100,7 @@ void WaitForFuture(const Future<std::string>& future, Semaphore* future_sem,
 }
 
 void RemoteConfigREST::TryGetInstanceIdAndToken(const App& app) {
-  // Convert the app reference stored in RemoteConfigDesktop
+  // Convert the app reference stored in RemoteConfigInternal
   // pointer for InstanceIdDesktopImpl.
   App* non_const_app = const_cast<App*>(&app);
   auto* iid_impl =

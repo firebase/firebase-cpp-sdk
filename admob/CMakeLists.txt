@@ -120,3 +120,6 @@ elseif(IOS)
   # accomplish that.
   symlink_pod_headers(firebase_admob Google-Mobile-Ads-SDK GoogleMobileAds)
 endif()
+
+cpp_pack_library(firebase_admob "")
+cpp_pack_public_headers()

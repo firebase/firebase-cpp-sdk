@@ -124,3 +124,6 @@ if(FIREBASE_CPP_BUILD_TESTS)
   # Add the tests subdirectory
   add_subdirectory(tests)
 endif()
+
+cpp_pack_library(firebase_messaging "")
+cpp_pack_public_headers()

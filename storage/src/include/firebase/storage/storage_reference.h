@@ -33,6 +33,7 @@ class Storage;
 namespace internal {
 class ControllerInternal;
 class MetadataInternal;
+class StorageInternal;
 class StorageReferenceInternalCommon;
 class StorageReferenceInternal;
 }  // namespace internal

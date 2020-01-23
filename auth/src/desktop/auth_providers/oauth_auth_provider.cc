@@ -27,8 +27,21 @@ Credential OAuthProvider::GetCredential(const char* const provider_id,
                                         const char* const id_token,
                                         const char* const access_token) {
   FIREBASE_ASSERT_RETURN(Credential(), provider_id && id_token && access_token);
+  return Credential{new CredentialImpl{new OAuthCredential{
+      provider_id, id_token, /*raw_nonce=*/"", access_token}}};
+}
+
+// static
+Credential OAuthProvider::GetCredential(const char* provider_id,
+                                        const char* id_token,
+                                        const char* raw_nonce,
+                                        const char* access_token) {
+  FIREBASE_ASSERT_RETURN(Credential(), provider_id && id_token && raw_nonce);
+  if (access_token == nullptr) {
+    access_token = "";
+  }
   return Credential{new CredentialImpl{
-      new OAuthCredential{provider_id, id_token, access_token}}};
+      new OAuthCredential{provider_id, id_token, raw_nonce, access_token}}};
 }
 
 }  // namespace auth

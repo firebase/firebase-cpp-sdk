@@ -54,40 +54,6 @@ class FunctionRegistry;
 namespace internal {
 class AppInternal;
 }  // namespace internal
-namespace auth {
-class Auth;
-}  // namespace auth
-namespace crashlytics {
-namespace internal {
-class CrashlyticsInternal;
-}  // namespace internal
-}  // namespace crashlytics
-namespace database {
-namespace internal {
-class DatabaseInternal;
-}  // namespace internal
-}  // namespace database
-#ifdef INTERNAL_EXPERIMENTAL
-namespace firestore {
-class FirestoreInternal;
-}  // namespace firestore
-#endif  // INTERNAL_EXPERIMENTAL
-namespace functions {
-namespace internal {
-class FunctionsInternal;
-}  // namespace internal
-}  // namespace functions
-namespace internal {
-class InstanceId;
-}  // namespace internal
-namespace instance_id {
-class InstanceId;
-}  // namespace instance_id
-namespace storage {
-namespace internal {
-class StorageInternal;
-}  // namespace internal
-}  // namespace storage
 
 /// @brief Reports whether a Firebase module initialized successfully.
 enum InitResult {

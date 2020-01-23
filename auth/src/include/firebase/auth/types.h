@@ -17,11 +17,9 @@
 #ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_TYPES_H_
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_TYPES_H_
 
-#ifdef INTERNAL_EXPERIMENTAL
 #include <map>
 #include <string>
 #include <vector>
-#endif  // INTERNAL_EXPERIMENTAL
 
 namespace firebase {
 namespace auth {
@@ -424,7 +422,6 @@ enum AuthError {
 #endif  // INTERNAL_EXEPERIMENTAL
 };
 
-#ifdef INTERNAL_EXPERIMENTAL
 /// @brief Contains information required to authenticate with a third party
 /// provider.
 struct FederatedProviderData {
@@ -443,6 +440,7 @@ struct FederatedOAuthProviderData : FederatedProviderData {
     this->provider_id = provider;
   }
 
+  #ifndef SWIG
   /// @brief Initializes the provider data structure with the specified provider
   /// id, scopes and custom parameters.
   FederatedOAuthProviderData(
@@ -452,6 +450,7 @@ struct FederatedOAuthProviderData : FederatedProviderData {
     this->scopes = scopes;
     this->custom_parameters = custom_parameters;
   }
+  #endif
 
   /// OAuth parmeters which specify which rights of access are being requested.
   std::vector<std::string> scopes;
@@ -459,7 +458,6 @@ struct FederatedOAuthProviderData : FederatedProviderData {
   /// OAuth parameters which are provided to the federated provider service.
   std::map<std::string, std::string> custom_parameters;
 };
-#endif  // INTERNAL_EXPERIMENTAL
 
 }  // namespace auth
 }  // namespace firebase

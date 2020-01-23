@@ -18,10 +18,14 @@
 #include <cstdint>
 #include <map>
 #include <set>
+
+#include "app/src/logger.h"
 #include "app/src/optional.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
+#include "database/src/desktop/core/cache_policy.h"
 #include "database/src/desktop/core/tree.h"
+#include "database/src/desktop/persistence/prune_forest.h"
 
 namespace firebase {
 namespace database {
@@ -35,7 +39,12 @@ struct TrackedQuery {
   enum CompletionStatus { kIncomplete, kComplete };
   enum ActivityStatus { kInactive, kActive };
 
-  TrackedQuery() : query_id(), query_spec(), last_use(), complete(), active() {}
+  TrackedQuery()
+      : query_id(0),
+        query_spec(),
+        last_use(0),
+        complete(false),
+        active(false) {}
 
   TrackedQuery(QueryId _query_id, const QuerySpec& _query_spec,
                uint64_t _last_use, CompletionStatus _complete,
@@ -91,6 +100,10 @@ class TrackedQueryManagerInterface {
   // complete.
   virtual bool IsQueryComplete(const QuerySpec& query) = 0;
 
+  // Remove queries that no longer need to be cached based on the given cache
+  // policy.
+  virtual PruneForest PruneOldQueries(const CachePolicy& cache_policy) = 0;
+
   // Return the keys of the completed TrackedQueries at the given location.
   virtual std::set<std::string> GetKnownCompleteChildren(const Path& path) = 0;
 
@@ -108,7 +121,10 @@ class TrackedQueryManagerInterface {
 
 class TrackedQueryManager : public TrackedQueryManagerInterface {
  public:
-  explicit TrackedQueryManager(PersistenceStorageEngine* storage_engine);
+  TrackedQueryManager(PersistenceStorageEngine* storage_engine,
+                      LoggerBase* logger);
+
+  ~TrackedQueryManager() override;
 
   // Find and return the TrackedQuery associated with the given QuerySpec, or
   // nullptr if there is no associated TrackedQuery.
@@ -135,6 +151,10 @@ class TrackedQueryManager : public TrackedQueryManagerInterface {
   // Check if the TrackedQuery associated with the given QuerySpec is
   // complete.
   bool IsQueryComplete(const QuerySpec& query) override;
+
+  // Remove queries that no longer need to be cached based on the given cache
+  // policy.
+  PruneForest PruneOldQueries(const CachePolicy& cache_policy) override;
 
   // Return the keys of the completed TrackedQueries at the given location.
   std::set<std::string> GetKnownCompleteChildren(const Path& path) override;
@@ -183,6 +203,8 @@ class TrackedQueryManager : public TrackedQueryManagerInterface {
 
   // ID we'll assign to the next tracked query.
   QueryId next_query_id_;
+
+  LoggerBase* logger_;
 };
 
 }  // namespace internal

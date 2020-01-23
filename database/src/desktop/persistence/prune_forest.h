@@ -106,9 +106,9 @@ class PruneForestRef {
   T FoldKeptNodes(const T& start_value, const Func& visitor) const {
     return prune_forest_->Fold(
         start_value,
-        [visitor](const Path& relative_path, bool prune, const T& accum) -> T {
+        [visitor](const Path& relative_path, bool prune, T accum) -> T {
           if (!prune) {
-            return visitor(relative_path, nullptr, accum);
+            return visitor(relative_path, accum);
           } else {
             return accum;
           }

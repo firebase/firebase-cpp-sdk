@@ -58,3 +58,5 @@ target_compile_definitions(firebase_instance_id_desktop_impl
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
 )
+
+cpp_pack_library(firebase_instance_id_desktop_impl "deps/app")

@@ -56,7 +56,7 @@ EXIT /B %status%
     exit /b %errorlevel%
   )
 
-  cmake --build . --config Release
+  cmake --build . --config Debug
 
   :: Again, check for errors, and return if there were any
   if %errorlevel% neq 0 (
