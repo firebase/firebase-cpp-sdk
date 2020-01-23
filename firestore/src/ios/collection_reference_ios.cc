@@ -7,7 +7,7 @@
 #include "firestore/src/ios/document_reference_ios.h"
 #include "firestore/src/ios/field_value_ios.h"
 #include "firestore/src/ios/user_data_converter_ios.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/core/user_data.h"
+#include "Firestore/core/src/firebase/firestore/core/user_data.h"
 
 namespace firebase {
 namespace firestore {

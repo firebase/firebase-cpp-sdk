@@ -13,14 +13,14 @@
 #include "firestore/src/ios/listener_ios.h"
 #include "absl/memory/memory.h"
 #include "absl/types/any.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/api/document_reference.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/api/query_core.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/model/database_id.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/model/resource_path.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/util/async_queue.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/util/executor.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/util/log.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/util/status.h"
+#include "Firestore/core/src/firebase/firestore/api/document_reference.h"
+#include "Firestore/core/src/firebase/firestore/api/query_core.h"
+#include "Firestore/core/src/firebase/firestore/model/database_id.h"
+#include "Firestore/core/src/firebase/firestore/model/resource_path.h"
+#include "Firestore/core/src/firebase/firestore/util/async_queue.h"
+#include "Firestore/core/src/firebase/firestore/util/executor.h"
+#include "Firestore/core/src/firebase/firestore/util/log.h"
+#include "Firestore/core/src/firebase/firestore/util/status.h"
 
 namespace firebase {
 namespace firestore {

@@ -10,13 +10,13 @@
 #include "firestore/src/ios/set_options_ios.h"
 #include "firestore/src/ios/util_ios.h"
 #include "absl/types/optional.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/core/user_data.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/model/document.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/model/document_key.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/model/field_path.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/model/maybe_document.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/util/status.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/util/statusor.h"
+#include "Firestore/core/src/firebase/firestore/core/user_data.h"
+#include "Firestore/core/src/firebase/firestore/model/document.h"
+#include "Firestore/core/src/firebase/firestore/model/document_key.h"
+#include "Firestore/core/src/firebase/firestore/model/field_path.h"
+#include "Firestore/core/src/firebase/firestore/model/maybe_document.h"
+#include "Firestore/core/src/firebase/firestore/util/status.h"
+#include "Firestore/core/src/firebase/firestore/util/statusor.h"
 
 namespace firebase {
 namespace firestore {

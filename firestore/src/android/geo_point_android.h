@@ -4,7 +4,7 @@
 #include <jni.h>
 
 #include "app/src/include/firebase/app.h"
-#include "firebase-ios-sdk/Firestore/core/include/firebase/firestore/geo_point.h"
+#include "Firestore/core/include/firebase/firestore/geo_point.h"
 
 namespace firebase {
 namespace firestore {

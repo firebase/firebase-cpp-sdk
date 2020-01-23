@@ -3,7 +3,7 @@
 #include <dispatch/dispatch.h>
 
 #include "absl/memory/memory.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/util/executor_libdispatch.h"
+#include "Firestore/core/src/firebase/firestore/util/executor_libdispatch.h"
 
 namespace firebase {
 namespace firestore {

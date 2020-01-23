@@ -21,7 +21,7 @@
 #include <utility>
 
 #include "absl/base/optimization.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/util/exception.h"
+#include "Firestore/core/src/firebase/firestore/util/exception.h"
 
 // TODO(b/147444199): delete this file and use the one that comes from the
 // GitHub repo. This file provides simplified versions of `HARD_ASSERT` and
