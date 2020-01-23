@@ -2,7 +2,7 @@
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_FIREBASE_FIRESTORE_SETTINGS_IOS_H_
 
 #include "firestore/src/include/firebase/firestore/settings.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/api/settings.h"
+#include "Firestore/core/src/firebase/firestore/api/settings.h"
 
 namespace firebase {
 namespace firestore {

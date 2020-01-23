@@ -7,9 +7,9 @@
 
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/promise_ios.h"
-#include "firebase-ios-sdk/Firestore/core/include/firebase/firestore/firestore_errors.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/core/event_listener.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/util/statusor.h"
+#include "Firestore/core/include/firebase/firestore/firestore_errors.h"
+#include "Firestore/core/src/firebase/firestore/core/event_listener.h"
+#include "Firestore/core/src/firebase/firestore/util/statusor.h"
 
 namespace firebase {
 namespace firestore {

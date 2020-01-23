@@ -7,8 +7,8 @@
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/stub/firestore_stub.h"
-#include "firebase-ios-sdk/Firestore/core/include/firebase/firestore/geo_point.h"
-#include "firebase-ios-sdk/Firestore/core/include/firebase/firestore/timestamp.h"
+#include "Firestore/core/include/firebase/firestore/geo_point.h"
+#include "Firestore/core/include/firebase/firestore/timestamp.h"
 
 namespace firebase {
 namespace firestore {

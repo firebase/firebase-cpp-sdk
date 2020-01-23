@@ -11,8 +11,8 @@
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
 #include "firestore/src/include/firebase/firestore/snapshot_metadata.h"
 #include "firestore/src/ios/firestore_ios.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/api/document_snapshot.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/model/field_value.h"
+#include "Firestore/core/src/firebase/firestore/api/document_snapshot.h"
+#include "Firestore/core/src/firebase/firestore/model/field_value.h"
 
 namespace firebase {
 namespace firestore {

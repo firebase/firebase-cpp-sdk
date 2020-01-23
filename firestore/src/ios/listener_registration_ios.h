@@ -4,7 +4,7 @@
 #include <memory>
 
 #include "firestore/src/ios/firestore_ios.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/api/listener_registration.h"
+#include "Firestore/core/src/firebase/firestore/api/listener_registration.h"
 
 namespace firebase {
 namespace firestore {

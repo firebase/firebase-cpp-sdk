@@ -6,7 +6,7 @@
 #if defined(__ANDROID__)
 #include "firestore/src/android/field_path_portable.h"
 #else  // defined(__ANDROID__)
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/model/field_path.h"
+#include "Firestore/core/src/firebase/firestore/model/field_path.h"
 #endif  // defined(__ANDROID__)
 
 namespace firebase {

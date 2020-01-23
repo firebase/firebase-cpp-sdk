@@ -14,9 +14,9 @@
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/settings.h"
 #include "firestore/src/ios/promise_factory_ios.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/api/firestore.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/auth/credentials_provider.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/model/database_id.h"
+#include "Firestore/core/src/firebase/firestore/api/firestore.h"
+#include "Firestore/core/src/firebase/firestore/auth/credentials_provider.h"
+#include "Firestore/core/src/firebase/firestore/model/database_id.h"
 
 namespace firebase {
 namespace firestore {

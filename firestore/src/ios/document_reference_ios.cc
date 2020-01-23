@@ -7,9 +7,9 @@
 #include "firestore/src/ios/set_options_ios.h"
 #include "firestore/src/ios/source_ios.h"
 #include "firestore/src/ios/util_ios.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/api/listener_registration.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/core/listen_options.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/core/user_data.h"
+#include "Firestore/core/src/firebase/firestore/api/listener_registration.h"
+#include "Firestore/core/src/firebase/firestore/core/listen_options.h"
+#include "Firestore/core/src/firebase/firestore/core/user_data.h"
 
 namespace firebase {
 namespace firestore {
