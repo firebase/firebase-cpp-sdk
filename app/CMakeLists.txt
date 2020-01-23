@@ -191,6 +191,11 @@ else()
                            systems via: \
                            apt-get install libsecret-1-dev")
     endif()
+    # If building for 32 bit, the include directories might need to be fixed.
+    if("${CMAKE_CXX_FLAGS}" MATCHES "-m32")
+      string(REGEX REPLACE "x86_64" "i386"
+             LIBSECRET_INCLUDE_DIRS "${LIBSECRET_INCLUDE_DIRS}")
+    endif()
     set(app_desktop_extra_SRCS
         src/secure/user_secure_linux_internal.cc
         src/locale.cc
