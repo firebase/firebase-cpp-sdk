@@ -12,7 +12,7 @@
 #include "firestore/src/include/firebase/firestore/snapshot_metadata.h"
 #include "firestore/src/ios/firestore_ios.h"
 #include "absl/types/optional.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/api/query_snapshot.h"
+#include "Firestore/core/src/firebase/firestore/api/query_snapshot.h"
 
 namespace firebase {
 namespace firestore {

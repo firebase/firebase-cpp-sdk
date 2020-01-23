@@ -190,14 +190,14 @@ Currently, the third party libraries that can be provided this way are:
 
 #### Building with CMake for iOS
 The Firebase C++ SDK comes with a CMake config file to build the library for
-iOS platforms, [cmake/ios.cmake](/cmake/ios.cmake).  In order to build with it,
-when running the CMake configuration pass it in with the CMAKE_TOOLCHAIN_FILE
-definition.  For example, to build the Analytics library for iOS, you could run
-the following commands:
+iOS platforms, [cmake/toolchains/ios.cmake](/cmake/toolchains/ios.cmake).  In
+order to build with it, when running the CMake configuration pass it in with
+the CMAKE_TOOLCHAIN_FILE definition.  For example, to build the Analytics
+library for iOS, you could run the following commands:
 
 ``` bash
 mkdir ios_build && cd ios_build
-cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.cmake ..
+cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/ios.cmake ..
 cmake --build . --target firebase_analytics
 ```
 

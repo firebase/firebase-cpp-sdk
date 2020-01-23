@@ -10,9 +10,9 @@
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/ios/firestore_ios.h"
 #include "absl/types/variant.h"
-#include "firebase-ios-sdk/Firestore/core/include/firebase/firestore/geo_point.h"
-#include "firebase-ios-sdk/Firestore/core/include/firebase/firestore/timestamp.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/model/field_value.h"
+#include "Firestore/core/include/firebase/firestore/geo_point.h"
+#include "Firestore/core/include/firebase/firestore/timestamp.h"
+#include "Firestore/core/src/firebase/firestore/model/field_value.h"
 
 namespace firebase {
 namespace firestore {

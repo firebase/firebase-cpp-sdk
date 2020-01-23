@@ -6,11 +6,11 @@
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/util_ios.h"
 #include "absl/memory/memory.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/api/document_reference.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/model/database_id.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/model/document_key.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/model/field_path.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/model/field_value_options.h"
+#include "Firestore/core/src/firebase/firestore/api/document_reference.h"
+#include "Firestore/core/src/firebase/firestore/model/database_id.h"
+#include "Firestore/core/src/firebase/firestore/model/document_key.h"
+#include "Firestore/core/src/firebase/firestore/model/field_path.h"
+#include "Firestore/core/src/firebase/firestore/model/field_value_options.h"
 
 namespace firebase {
 namespace firestore {

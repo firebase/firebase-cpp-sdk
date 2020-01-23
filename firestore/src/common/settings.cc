@@ -5,7 +5,7 @@
 #include "app/meta/move.h"
 
 #if !defined(__ANDROID__) && !defined(FIRESTORE_STUB_BUILD)
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/util/executor.h"
+#include "Firestore/core/src/firebase/firestore/util/executor.h"
 #endif
 
 namespace firebase {

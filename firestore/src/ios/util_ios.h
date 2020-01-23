@@ -3,7 +3,7 @@
 
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/ios/firestore_ios.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/api/firestore.h"
+#include "Firestore/core/src/firebase/firestore/api/firestore.h"
 
 namespace firebase {
 namespace firestore {

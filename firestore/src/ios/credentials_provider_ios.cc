@@ -3,8 +3,8 @@
 #include <utility>
 
 #include "firestore/src/ios/hard_assert_ios.h"
-#include "firebase-ios-sdk/Firestore/core/include/firebase/firestore/firestore_errors.h"
-#include "firebase-ios-sdk/Firestore/core/src/firebase/firestore/util/status.h"
+#include "Firestore/core/include/firebase/firestore/firestore_errors.h"
+#include "Firestore/core/src/firebase/firestore/util/status.h"
 
 namespace firebase {
 namespace firestore {
