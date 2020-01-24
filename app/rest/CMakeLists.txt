@@ -76,6 +76,7 @@ target_link_libraries(firebase_rest_lib
     flatbuffers
     libcurl
     zlibstatic
+    ${CMAKE_DL_LIBS}
 )
 # Automatically include headers that might not be declared.
 if(MSVC)

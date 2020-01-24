@@ -120,6 +120,18 @@ endif()
 
 # Some of the external libraries are not used for mobile.
 if (NOT ANDROID AND NOT IOS)
+  # Use the static versions of the OpenSSL libraries.
+  set(OPENSSL_USE_STATIC_LIBS TRUE)
+  if (MSVC)
+    # Get the correct version of the OpenSSL libraries based on building for MT.
+    if ("${CMAKE_CXX_FLAGS_DEBUG}" MATCHES "/MT" OR
+        "${CMAKE_CXX_FLAGS_RELEASE}" MATCHES "/MT")
+      set(OPENSSL_MSVC_STATIC_RT TRUE)
+    else()
+      set(OPENSSL_MSVC_STATIC_RT FALSE)
+    endif()
+  endif()
+
   # Build curl as a static library
   set(CURL_STATICLIB ON CACHE BOOL "")
   if (WIN32)
@@ -185,7 +197,7 @@ if (NOT ANDROID AND NOT IOS)
     )
     target_link_libraries(libuWS
       PRIVATE
-        ${OPENSSL_SSL_LIBRARY}
+        ${OPENSSL_LIBRARIES}
         uv_a
         zlibstatic
     )
