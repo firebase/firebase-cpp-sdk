@@ -69,9 +69,6 @@ blaze test --config=ios_fat --notest_loasd //firebase/firestore/client/cpp:ios_i
 
 #### Android:
 
-(TODO: Right now, running below would not succeed, there needs to be a hack to
-fix the gmscore version built on rabbit first, eliminate the hack)
-
 ```bash
 blaze --blazerc=//google/src/head/depot/google3/java/com/google/android/gmscore/blaze/blazerc \
 test --define=firebase_build=head --config=gmscore_x86 \
