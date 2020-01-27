@@ -251,8 +251,8 @@ class Auth {
 
   /// Asynchronously logs into Firebase with the given credentials.
   ///
-  /// For example, the credential could wrap a Facebook login access token,
-  /// a Twitter token/token-secret pair).
+  /// For example, the credential could wrap a Facebook login access token or
+  /// a Twitter token/token-secret pair.
   ///
   /// The SignInResult contains both a reference to the User (which can be null
   /// if the sign in failed), and AdditionalUserInfo, which holds details
