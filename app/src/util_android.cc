@@ -182,12 +182,17 @@ METHOD_LOOKUP_DEFINITION(resources, "android/content/res/Resources",
 
 METHOD_LOOKUP_DEFINITION(activity, "android/app/Activity", ACTIVITY_METHODS)
 METHOD_LOOKUP_DEFINITION(array_list, "java/util/ArrayList", ARRAY_LIST_METHODS)
+METHOD_LOOKUP_DEFINITION(asset_file_descriptor,
+                         "android/content/res/AssetFileDescriptor",
+                         ASSETFILEDESCRIPTOR_METHODS)
 METHOD_LOOKUP_DEFINITION(boolean_class, "java/lang/Boolean", BOOLEAN_METHODS)
 METHOD_LOOKUP_DEFINITION(bundle, "android/os/Bundle", BUNDLE_METHODS)
 METHOD_LOOKUP_DEFINITION(byte_class, "java/lang/Byte", BYTE_METHODS)
 METHOD_LOOKUP_DEFINITION(character_class, "java/lang/Character",
                          CHARACTER_METHODS);
 METHOD_LOOKUP_DEFINITION(class_class, "java/lang/Class", CLASS_METHODS)
+METHOD_LOOKUP_DEFINITION(content_resolver, "android/content/ContentResolver",
+                         CONTENTRESOLVER_METHODS)
 METHOD_LOOKUP_DEFINITION(context, "android/content/Context", CONTEXT_METHODS)
 METHOD_LOOKUP_DEFINITION(date, "java/util/Date", DATE_METHODS);
 METHOD_LOOKUP_DEFINITION(double_class, "java/lang/Double", DOUBLE_METHODS)
@@ -201,6 +206,9 @@ METHOD_LOOKUP_DEFINITION(iterator, "java/util/Iterator", ITERATOR_METHODS)
 METHOD_LOOKUP_DEFINITION(list, "java/util/List", LIST_METHODS)
 METHOD_LOOKUP_DEFINITION(long_class, "java/lang/Long", LONG_METHODS)
 METHOD_LOOKUP_DEFINITION(map, "java/util/Map", MAP_METHODS)
+METHOD_LOOKUP_DEFINITION(parcel_file_descriptor,
+                         "android/os/ParcelFileDescriptor",
+                         PARCELFILEDESCRIPTOR_METHODS)
 METHOD_LOOKUP_DEFINITION(set, "java/util/Set", SET_METHODS)
 METHOD_LOOKUP_DEFINITION(short_class, "java/lang/Short", SHORT_METHODS);
 METHOD_LOOKUP_DEFINITION(string, "java/lang/String", STRING_METHODS)
@@ -355,12 +363,14 @@ class ScopedCleanup {
 
 // Release cached classes.
 static void ReleaseClasses(JNIEnv* env) {
+  asset_file_descriptor::ReleaseClass(env);
   array_list::ReleaseClass(env);
   boolean_class::ReleaseClass(env);
   bundle::ReleaseClass(env);
   byte_class::ReleaseClass(env);
   character_class::ReleaseClass(env);
   class_class::ReleaseClass(env);
+  content_resolver::ReleaseClass(env);
   context::ReleaseClass(env);
   date::ReleaseClass(env);
   dex_class_loader::ReleaseClass(env);
@@ -377,6 +387,7 @@ static void ReleaseClasses(JNIEnv* env) {
   long_class::ReleaseClass(env);
   list::ReleaseClass(env);
   map::ReleaseClass(env);
+  parcel_file_descriptor::ReleaseClass(env);
   resources::ReleaseClass(env);
   set::ReleaseClass(env);
   short_class::ReleaseClass(env);
@@ -449,11 +460,13 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
 
   // Cache method pointers.
   if (!(array_list::CacheMethodIds(env, activity_object) &&
+        asset_file_descriptor::CacheMethodIds(env, activity_object) &&
         boolean_class::CacheMethodIds(env, activity_object) &&
         bundle::CacheMethodIds(env, activity_object) &&
         byte_class::CacheMethodIds(env, activity_object) &&
         character_class::CacheMethodIds(env, activity_object) &&
         class_class::CacheMethodIds(env, activity_object) &&
+        content_resolver::CacheMethodIds(env, activity_object) &&
         context::CacheMethodIds(env, activity_object) &&
         date::CacheMethodIds(env, activity_object) &&
         dex_class_loader::CacheMethodIds(env, activity_object) &&
@@ -469,6 +482,7 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
         list::CacheMethodIds(env, activity_object) &&
         long_class::CacheMethodIds(env, activity_object) &&
         map::CacheMethodIds(env, activity_object) &&
+        parcel_file_descriptor::CacheMethodIds(env, activity_object) &&
         resources::CacheMethodIds(env, activity_object) &&
         set::CacheMethodIds(env, activity_object) &&
         short_class::CacheMethodIds(env, activity_object) &&
