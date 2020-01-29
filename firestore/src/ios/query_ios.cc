@@ -74,6 +74,18 @@ Query QueryInternal::Where(const FieldPath& field_path, Operator op,
   return MakePublic(std::move(decorated));
 }
 
+Query QueryInternal::Where(const FieldPath& field_path, Operator op,
+                           const std::vector<FieldValue>& values) const {
+  const model::FieldPath& path = GetInternal(field_path);
+  auto array_value = FieldValue::FromArray(values);
+  model::FieldValue parsed =
+      user_data_converter_.ParseQueryValue(array_value, true);
+  auto describer = [&array_value] { return Describe(array_value.type()); };
+
+  api::Query decorated = query_.Filter(path, op, std::move(parsed), describer);
+  return MakePublic(std::move(decorated));
+}
+
 Query QueryInternal::WithBound(BoundPosition bound_pos,
                                const DocumentSnapshot& snapshot) const {
   core::Bound bound = ToBound(bound_pos, snapshot);
