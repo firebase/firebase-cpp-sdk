@@ -50,7 +50,7 @@ Query QueryInternal::OrderBy(const FieldPath& field_path,
 }
 
 Query QueryInternal::Limit(int32_t limit) {
-  return MakePublic(query_.Limit(limit));
+  return MakePublic(query_.LimitToFirst(limit));
 }
 
 Future<QuerySnapshot> QueryInternal::Get(Source source) {
