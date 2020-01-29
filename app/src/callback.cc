@@ -18,6 +18,7 @@
 
 #include <list>
 
+#include "app/memory/shared_ptr.h"
 #include "app/src/log.h"
 #include "app/src/mutex.h"
 #include "app/src/semaphore.h"
@@ -32,7 +33,7 @@ namespace callback {
 
 class CallbackEntry;
 
-class CallbackQueue : public std::list<CallbackEntry*> {
+class CallbackQueue : public std::list<SharedPtr<CallbackEntry>> {
  public:
   CallbackQueue() {}
   ~CallbackQueue() {}
@@ -51,7 +52,7 @@ class CallbackEntry {
   // callback_mutex_ is used to enforce a critical section for callback
   // execution and destruction.
   CallbackEntry(Callback* callback, Mutex* callback_mutex)
-      : callback_(callback), mutex_(callback_mutex) {}
+      : callback_(callback), mutex_(callback_mutex), executing_(false) {}
 
   // Destroy the callback.  This blocks if the callback is currently
   // executing.
@@ -61,35 +62,47 @@ class CallbackEntry {
   // Returns true if a callback was associated with this entry and was executed,
   // false otherwise.
   bool Execute() {
-    bool executed = false;
-    MutexLock lock(*mutex_);
-    if (callback_) {
-      callback_->Run();
-      // Note: The implementation of BlockingCallback below relies on the
-      // callback being disabled after being run. If that changes, please
-      // make sure to also update BlockingCallback.
-      DisableCallback();
-      executed = true;
+    {
+      MutexLock lock(*mutex_);
+      if (!callback_) return false;
+      executing_ = true;
     }
-    return executed;
+
+    callback_->Run();
+
+    {
+      MutexLock lock(*mutex_);
+      executing_ = false;
+    }
+
+    // Note: The implementation of BlockingCallback below relies on the
+    // callback being disabled after being run. If that changes, please
+    // make sure to also update BlockingCallback.
+    DisableCallback();
+
+    return true;
   }
 
   // Remove the callback method from this entry.
   bool DisableCallback() {
-    MutexLock lock(*mutex_);
-    if (callback_) {
-      delete callback_;
+    Callback* callback_to_delete = nullptr;
+    {
+      MutexLock lock(*mutex_);
+      if (executing_ || !callback_) return false;
+      callback_to_delete = callback_;
       callback_ = nullptr;
-      return true;
     }
-    return false;
+    delete callback_to_delete;
+    return true;
   }
 
  private:
   // Callback to call from PollCallbacks().
   Callback* callback_;
-  // Mutex that is held when modifying callback_.
+  // Mutex that is held when modifying callback_ and executing_.
   Mutex* mutex_;
+  // A flag set to true when callback_ is about to be called.
+  bool executing_;
 };
 
 // Dispatches a queue of callbacks.
@@ -106,7 +119,7 @@ class CallbackDispatcher {
                  remaining_callbacks);
     }
     while (!queue_.empty()) {
-      delete queue_.back();
+      queue_.back().reset();
       queue_.pop_back();
     }
   }
@@ -114,10 +127,10 @@ class CallbackDispatcher {
   // Add a callback to the dispatch queue returning a reference
   // to the entry which can be optionally be removed prior to dispatch.
   void* AddCallback(Callback* callback) {
-    CallbackEntry* entry = new CallbackEntry(callback, &execution_mutex_);
+    auto entry = MakeShared<CallbackEntry>(callback, &execution_mutex_);
     MutexLock lock(*queue_.mutex());
     queue_.push_back(entry);
-    return entry;
+    return entry.get();
   }
 
   // Remove the callback reference from the specified entry.
@@ -137,16 +150,19 @@ class CallbackDispatcher {
   int DispatchCallbacks() {
     int dispatched = 0;
     Mutex* queue_mutex = queue_.mutex();
-    MutexLock lock(*queue_mutex);
+    queue_mutex->Acquire();
     while (!queue_.empty()) {
-      CallbackEntry* callback_entry = queue_.front();
+      // Make a copy of the SharedPtr in case FlushCallbacks() is called
+      // currently.
+      SharedPtr<CallbackEntry> callback_entry = queue_.front();
       queue_.pop_front();
       queue_mutex->Release();
       callback_entry->Execute();
       dispatched++;
       queue_mutex->Acquire();
-      delete callback_entry;
+      callback_entry.reset();
     }
+    queue_mutex->Release();
     return dispatched;
   }
 
@@ -155,7 +171,7 @@ class CallbackDispatcher {
     int flushed = 0;
     MutexLock lock(*queue_.mutex());
     while (!queue_.empty()) {
-      delete queue_.front();
+      queue_.front().reset();
       queue_.pop_front();
       flushed++;
     }
@@ -299,7 +315,7 @@ void RemoveCallback(void* callback_reference) {
     // remove the CallbackEntry from the queue so we don't need an additional
     // Terminate() here to decrement the reference count that was added by
     // AddCallback().
-    static_cast<CallbackEntry*>(callback_reference)->DisableCallback();
+    g_callback_dispatcher->DisableCallback(callback_reference);
     Terminate(false);
   }
 }
