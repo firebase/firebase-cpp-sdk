@@ -220,9 +220,10 @@ ParsedSetData UserDataConverter::ParseMergeData(
                  CreateFieldMask(accumulator, maybe_field_mask.value()));
 }
 
-model::FieldValue UserDataConverter::ParseQueryValue(
-    const FieldValue& input) const {
-  ParseAccumulator accumulator{UserDataSource::Argument};
+model::FieldValue UserDataConverter::ParseQueryValue(const FieldValue& input,
+                                                     bool allow_arrays) const {
+  ParseAccumulator accumulator{allow_arrays ? UserDataSource::ArrayArgument
+                                           : UserDataSource::Argument};
 
   absl::optional<model::FieldValue> parsed =
       ParseData(input, accumulator.RootContext());
@@ -266,7 +267,12 @@ absl::optional<model::FieldValue> UserDataConverter::ParseData(
 
 model::FieldValue::Array UserDataConverter::ParseArray(
     const std::vector<FieldValue>& input, ParseContext&& context) const {
-  if (context.array_element()) {
+  // In the case of IN queries, the parsed data is an array (representing the
+  // set of values to be included for the IN query) that may directly contain
+  // additional arrays (each representing an individual field value), so we
+  // disable this validation.
+  if (context.array_element() &&
+      context.data_source() != core::UserDataSource::ArrayArgument) {
     ThrowInvalidArgument("Nested arrays are not supported");
   }
 

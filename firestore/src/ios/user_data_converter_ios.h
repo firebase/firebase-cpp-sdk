@@ -47,7 +47,8 @@ class UserDataConverter {
    * Parse a "query value" (e.g. value in a where filter or a value in a cursor
    * bound).
    */
-  model::FieldValue ParseQueryValue(const FieldValue& input) const;
+  model::FieldValue ParseQueryValue(const FieldValue& input,
+                                    bool allow_arrays = false) const;
 
  private:
   using UpdateDataInput =
