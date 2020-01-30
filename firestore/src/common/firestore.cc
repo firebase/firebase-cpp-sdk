@@ -119,7 +119,7 @@ Firestore::Firestore(::firebase::App* app)
     : Firestore{new FirestoreInternal{app}} {}
 
 Firestore::Firestore(FirestoreInternal* internal)
-    // TODO(zxu): use make_unique once it is supported for our build here.
+    // TODO(wuandy): use make_unique once it is supported for our build here.
     : internal_(internal) {
   if (internal_->initialized()) {
     CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app());
