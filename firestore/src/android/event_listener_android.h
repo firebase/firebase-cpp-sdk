@@ -21,6 +21,8 @@ class EventListenerInternal {
                                               jlong firestore_ptr,
                                               jlong listener_ptr, jobject value,
                                               jobject error);
+  static void VoidEventListenerNativeOnEvent(JNIEnv* env, jclass clazz,
+                                             jlong listener_ptr);
 
   static jobject EventListenerToJavaEventListener(
       JNIEnv* env, FirestoreInternal* firestore,
@@ -29,6 +31,9 @@ class EventListenerInternal {
   static jobject EventListenerToJavaEventListener(
       JNIEnv* env, FirestoreInternal* firestore,
       EventListener<QuerySnapshot>* listener);
+
+  static jobject EventListenerToJavaRunnable(JNIEnv* env,
+                                             EventListener<void>* listener);
 
  private:
   friend class FirestoreInternal;

@@ -40,6 +40,13 @@ class EventListener {
   virtual void OnEvent(const T& value, Error error) = 0;
 };
 
+template <>
+class EventListener<void> {
+ public:
+  virtual ~EventListener() = default;
+  virtual void OnEvent(Error error) = 0;
+};
+
 }  // namespace firestore
 }  // namespace firebase
 

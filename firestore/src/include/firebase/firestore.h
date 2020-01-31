@@ -337,6 +337,50 @@ class Firestore {
   /** Gets the result of the most recent call to ClearPersistence(). */
   Future<void> ClearPersistenceLastResult();
 
+#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+  /**
+   * Attaches a listener for a snapshots-in-sync event. Server-generated
+   * updates and local changes can affect multiple snapshot listeners.
+   * The snapshots-in-sync event indicates that all listeners affected by
+   * a given change have fired.
+   *
+   * NOTE: The snapshots-in-sync event only indicates that listeners are
+   * in sync with each other, but does not relate to whether those
+   * snapshots are in sync with the server. Use `SnapshotMetadata` in the
+   * individual listeners to determine if a snapshot is from the cache or
+   * the server.
+   *
+   * @param callback A callback to be called every time all snapshot
+   * listeners are in sync with each other.
+   * @return A `ListenerRegistration` object that can be used to remove the
+   * listener.
+   */
+  virtual ListenerRegistration AddSnapshotsInSyncListener(
+      std::function<void()> callback);
+#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
+#if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+  /**
+   * Attaches a listener for a snapshots-in-sync event. Server-generated
+   * updates and local changes can affect multiple snapshot listeners.
+   * The snapshots-in-sync event indicates that all listeners affected by
+   * a given change have fired.
+   *
+   * NOTE: The snapshots-in-sync event only indicates that listeners are
+   * in sync with each other, but does not relate to whether those
+   * snapshots are in sync with the server. Use `SnapshotMetadata` in the
+   * individual listeners to determine if a snapshot is from the cache or
+   * the server.
+   *
+   * @param listener A callback to be called every time all snapshot
+   * listeners are in sync with each other.
+   * @return A `ListenerRegistration` object that can be used to remove the
+   * listener.
+   */
+  virtual ListenerRegistration AddSnapshotsInSyncListener(
+      EventListener<void>* listener);
+#endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
  protected:
   /**
    * Default constructor, to be used only for mocking `Firestore`.
