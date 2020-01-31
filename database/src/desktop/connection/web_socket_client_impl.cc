@@ -30,6 +30,7 @@ namespace connection {
 
 WebSocketClientImpl::WebSocketClientImpl(
     const std::string& uri, const std::string& user_agent, Logger* logger,
+    scheduler::Scheduler* scheduler,
     WebSocketClientEventHandler* handler /*=nullptr*/)
     : uri_(uri),
       handler_(handler),
@@ -42,7 +43,9 @@ WebSocketClientImpl::WebSocketClientImpl(
       is_destructing_(0),
       websocket_(nullptr),
       user_agent_(user_agent),
-      logger_(logger) {
+      logger_(logger),
+      scheduler_(scheduler),
+      safe_this_(this) {
   // Bind callback function
   hub_.onError(WebSocketClientImpl::OnError);
   hub_.onConnection(WebSocketClientImpl::OnConnection);
@@ -92,6 +95,10 @@ void WebSocketClientImpl::EventLoopRoutine(void* data) {
 }
 
 WebSocketClientImpl::~WebSocketClientImpl() {
+  // Clear safe reference immediately so that scheduled callback can skip
+  // executing code which requires reference to this.
+  safe_this_.ClearReference();
+
   is_destructing_.store(1);
 
   // Remove the handler to keep event loop alive
@@ -187,7 +194,14 @@ void WebSocketClientImpl::OnConnection(ClientWebSocket* ws,
   client->websocket_ = ws;
 
   if (client->handler_) {
-    client->handler_->OnOpen();
+    client->scheduler_->Schedule(new callback::CallbackValue1<ClientRef>(
+        client->safe_this_, [](ClientRef client_ref) {
+          ClientRefLock lock(&client_ref);
+          auto client = lock.GetReference();
+          if (client != nullptr && client->handler_ != nullptr) {
+            client->handler_->OnOpen();
+          }
+        }));
   }
 
   // Just in case of the client is delete right after connection request is sent
@@ -208,7 +222,16 @@ void WebSocketClientImpl::OnMessage(ClientWebSocket* ws, char* message,
 
   if (client->handler_) {
     std::string message_string(message, length);
-    client->handler_->OnMessage(message_string.c_str());
+    client->scheduler_->Schedule(
+        new callback::CallbackValue2<ClientRef, std::string>(
+            client->safe_this_, message_string,
+            [](ClientRef client_ref, std::string msg) {
+              ClientRefLock lock(&client_ref);
+              auto client = lock.GetReference();
+              if (client != nullptr && client->handler_ != nullptr) {
+                client->handler_->OnMessage(msg.c_str());
+              }
+            }));
   }
 }
 
@@ -223,7 +246,14 @@ void WebSocketClientImpl::OnDisconnection(ClientWebSocket* ws, int code,
   client->websocket_ = nullptr;
 
   if (client->handler_) {
-    client->handler_->OnClose();
+    client->scheduler_->Schedule(new callback::CallbackValue1<ClientRef>(
+        client->safe_this_, [](ClientRef client_ref) {
+          ClientRefLock lock(&client_ref);
+          auto client = lock.GetReference();
+          if (client != nullptr && client->handler_ != nullptr) {
+            client->handler_->OnClose();
+          }
+        }));
   }
 }
 
