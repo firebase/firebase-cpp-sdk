@@ -23,11 +23,12 @@ namespace connection {
 
 UniquePtr<WebSocketClientInterface> CreateWebSocketClient(
     const HostInfo& info, WebSocketClientEventHandler* delegate,
-    const char* opt_last_session_id, Logger* logger) {
+    const char* opt_last_session_id, Logger* logger,
+    scheduler::Scheduler* scheduler) {
   // Currently we use uWebSockets implementation.
   std::string uri = info.GetConnectionUrl(opt_last_session_id);
   return MakeUnique<WebSocketClientImpl>(uri, info.user_agent(), logger,
-                                         delegate);
+                                         scheduler, delegate);
 }
 
 }  // namespace connection

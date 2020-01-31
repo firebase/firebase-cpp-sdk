@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CONNECTION_UTIL_CONNECTION_H_
 #include "app/memory/unique_ptr.h"
 #include "app/src/logger.h"
+#include "app/src/scheduler.h"
 #include "database/src/desktop/connection/host_info.h"
 #include "database/src/desktop/connection/web_socket_client_interface.h"
 
@@ -28,7 +29,8 @@ namespace connection {
 // platform
 UniquePtr<WebSocketClientInterface> CreateWebSocketClient(
     const HostInfo& info, WebSocketClientEventHandler* delegate,
-    const char* opt_last_session_id, Logger* logger);
+    const char* opt_last_session_id, Logger* logger,
+    scheduler::Scheduler* scheduler);
 
 }  // namespace connection
 }  // namespace internal
