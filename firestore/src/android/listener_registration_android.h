@@ -33,6 +33,10 @@ class ListenerRegistrationInternal {
                                EventListener<QuerySnapshot>* event_listener,
                                bool owning_event_listener,
                                jobject listener_registration);
+  ListenerRegistrationInternal(FirestoreInternal* firestore,
+                               EventListener<void>* event_listener,
+                               bool owning_event_listener,
+                               jobject listener_registration);
 
   // Delete the default one to make the ownership more obvious i.e.
   // FirestoreInternal owns each instance and forbid anyone else to make copy.
@@ -66,6 +70,7 @@ class ListenerRegistrationInternal {
   // then the registration owns the LambdaEventListener that wraps the lambda.
   EventListener<DocumentSnapshot>* document_event_listener_ = nullptr;
   EventListener<QuerySnapshot>* query_event_listener_ = nullptr;
+  EventListener<void>* void_event_listener_ = nullptr;
   bool owning_event_listener_;
 };
 

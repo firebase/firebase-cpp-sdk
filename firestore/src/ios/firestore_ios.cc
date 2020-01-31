@@ -242,16 +242,33 @@ void FirestoreInternal::ClearListeners() {
   listeners_.clear();
 }
 
+ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
+    EventListener<void>* listener) {
+  std::function<void()> listener_function = [listener] {
+    listener->OnEvent(Error::Ok);
+  };
+  auto result = firestore_->AddSnapshotsInSyncListener(
+      ListenerWithCallback(std::move(listener_function)));
+  return MakePublic(std::move(result), this);
+}
+
+ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
+    std::function<void()> callback) {
+  auto result = firestore_->AddSnapshotsInSyncListener(
+      ListenerWithCallback(std::move(callback)));
+  return MakePublic(std::move(result), this);
+}
+
 void FirestoreInternal::RegisterListenerRegistration(
-    ListenerRegistrationInternal* listener) {
+    ListenerRegistrationInternal* registration) {
   std::lock_guard<std::mutex> lock(listeners_mutex_);
-  listeners_.insert(listener);
+  listeners_.insert(registration);
 }
 
 void FirestoreInternal::UnregisterListenerRegistration(
-    ListenerRegistrationInternal* listener) {
+    ListenerRegistrationInternal* registration) {
   std::lock_guard<std::mutex> lock(listeners_mutex_);
-  auto iter = listeners_.find(listener);
+  auto iter = listeners_.find(registration);
   if (iter != listeners_.end()) {
     delete *iter;
     listeners_.erase(iter);

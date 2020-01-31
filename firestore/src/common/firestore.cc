@@ -286,5 +286,21 @@ Future<void> Firestore::ClearPersistenceLastResult() {
   return internal_->ClearPersistenceLastResult();
 }
 
+#if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+ListenerRegistration Firestore::AddSnapshotsInSyncListener(
+    EventListener<void>* listener) {
+  if (!internal_) return {};
+  return internal_->AddSnapshotsInSyncListener(listener);
+}
+#endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
+#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+ListenerRegistration Firestore::AddSnapshotsInSyncListener(
+    std::function<void()> callback) {
+  if (!internal_) return {};
+  return internal_->AddSnapshotsInSyncListener(std::move(callback));
+}
+#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
 }  // namespace firestore
 }  // namespace firebase

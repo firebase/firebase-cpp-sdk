@@ -77,6 +77,11 @@ class FirestoreInternal {
   Future<void> ClearPersistence();
   Future<void> ClearPersistenceLastResult();
 
+  ListenerRegistration AddSnapshotsInSyncListener(
+      EventListener<void>* listener);
+  ListenerRegistration AddSnapshotsInSyncListener(
+      std::function<void()> callback);
+
   const model::DatabaseId& database_id() const {
     return firestore_->database_id();
   }

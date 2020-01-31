@@ -6,6 +6,10 @@
 #include <cstdint>
 #include <unordered_set>
 
+#if defined(FIREBASE_USE_STD_FUNCTION)
+#include <functional>
+#endif
+
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -105,6 +109,14 @@ class FirestoreInternal {
 
   Future<void> ClearPersistence();
   Future<void> ClearPersistenceLastResult();
+
+  ListenerRegistration AddSnapshotsInSyncListener(
+      EventListener<void>* listener, bool passing_listener_ownership = false);
+
+#if defined(FIREBASE_USE_STD_FUNCTION)
+  ListenerRegistration AddSnapshotsInSyncListener(
+      std::function<void()> callback);
+#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
   // Manages the ListenerRegistrationInternal objects.
   void RegisterListenerRegistration(ListenerRegistrationInternal* registration);

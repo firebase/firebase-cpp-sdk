@@ -55,6 +55,14 @@ std::unique_ptr<core::EventListener<From>> ListenerWithCallback(
       });
 }
 
+inline std::unique_ptr<core::EventListener<util::Empty>> ListenerWithCallback(
+    std::function<void()> callback) {
+  return core::EventListener<util::Empty>::Create(
+      [callback](util::StatusOr<util::Empty> maybe_value) mutable {
+        callback();
+      });
+}
+
 // Creates an `EventListener` that will:
 // - invoke `OnEvent` on the given `listener`;
 // - convert the Core API value given to it upon invocation (`From`) into

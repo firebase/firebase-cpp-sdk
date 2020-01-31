@@ -45,6 +45,21 @@ ListenerRegistrationInternal::ListenerRegistrationInternal(
   firestore->RegisterListenerRegistration(this);
 }
 
+ListenerRegistrationInternal::ListenerRegistrationInternal(
+    FirestoreInternal* firestore, EventListener<void>* event_listener,
+    bool owning_event_listener, jobject listener_registration)
+    : firestore_(firestore),
+      listener_registration_(
+          firestore->app()->GetJNIEnv()->NewGlobalRef(listener_registration)),
+      void_event_listener_(event_listener),
+      owning_event_listener_(owning_event_listener) {
+  FIREBASE_ASSERT(firestore != nullptr);
+  FIREBASE_ASSERT(event_listener != nullptr);
+  FIREBASE_ASSERT(listener_registration != nullptr);
+
+  firestore->RegisterListenerRegistration(this);
+}
+
 // Destruction only happens when FirestoreInternal de-allocate them.
 // FirestoreInternal will hold the lock and unregister all of them. So we do not
 // call UnregisterListenerRegistration explicitly here.
@@ -66,6 +81,7 @@ ListenerRegistrationInternal::~ListenerRegistrationInternal() {
   if (owning_event_listener_) {
     delete document_event_listener_;
     delete query_event_listener_;
+    delete void_event_listener_;
   }
 }
 
