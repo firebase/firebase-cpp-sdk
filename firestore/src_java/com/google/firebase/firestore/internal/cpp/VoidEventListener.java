@@ -11,7 +11,7 @@ public class VoidEventListener extends CppEventListener implements Runnable {
    * when creating the {@code ListenerRegistration}. If the ListenerRegistration owns the
    * EventListener, it will de-allocate the EventListener in its destructor.
    *
-   * <p>Passing in 0 is considered a null pointer and will result in an early return.
+   * <p>Passing in 0 is considered a null pointer and will result in {@code run} becoming a no-op.
    *
    * @param cppListenerObject Pointer to a {@code firebase::firestore::EventListener<void>}.
    */
@@ -29,6 +29,9 @@ public class VoidEventListener extends CppEventListener implements Runnable {
    * invokes the listener's {@code OnEvent} method with {@code Error::Ok}. The EventListener will
    * never be passed anything other than Ok because VoidEventListener can only be used in
    * circumstances where the callback can't fail.
+   *
+   * <p>This native method is implemented in the Firestore C++ library {@code
+   * event_listener_android.cc}.
    */
   private static native void nativeOnEvent(long listenerObject);
 }

@@ -132,7 +132,7 @@ FieldValueInternal::FieldValueInternal(std::vector<FieldValue> value)
   JNIEnv* env = firestore_->app()->GetJNIEnv();
   jmethodID add_method = util::array_list::GetMethodId(util::array_list::kAdd);
   for (const FieldValue& element : value) {
-    // ArrayList.Add() always returns true, which we have no use of.
+    // ArrayList.Add() always returns true, which we have no use for.
     env->CallBooleanMethod(obj_, add_method, element.internal_->obj_);
   }
   CheckAndClearJniExceptions(env);
@@ -147,7 +147,7 @@ FieldValueInternal::FieldValueInternal(MapFieldValue value)
   for (const auto& kv : value) {
     jobject key = env->NewStringUTF(kv.first.c_str());
     // Map::Put() returns previously associated value or null, which we have no
-    // use of.
+    // use for.
     env->CallObjectMethod(obj_, put_method, key, kv.second.internal_->obj_);
     env->DeleteLocalRef(key);
   }
