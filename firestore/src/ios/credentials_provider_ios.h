@@ -67,6 +67,9 @@ class FirebaseCppCredentialsProvider
     // mutex is always already locked. The mutex is recursive to avoid one
     // potential case of deadlock (attaching a continuation to a `Future` which
     // may be invoked immediately or asynchronously).
+    //
+    // TODO(b/148688333): make sure not to hold the mutex while calling methods
+    // on `firebase_auth`.
     std::recursive_mutex mutex;
 
     ::firebase::auth::Auth* firebase_auth = nullptr;

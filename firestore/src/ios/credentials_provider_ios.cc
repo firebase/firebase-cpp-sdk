@@ -63,9 +63,6 @@ void OnToken(const Future<std::string>& future_token, Auth* firebase_auth,
 FirebaseCppCredentialsProvider::FirebaseCppCredentialsProvider(
     Auth* firebase_auth)
     : contents_(std::make_shared<Contents>(NOT_NULL(firebase_auth))) {
-  // Always listen to Auth events -- if there is no `change_listener_` set, the
-  // events will simply be ignored.
-  contents_->firebase_auth->AddAuthStateListener(this);
 }
 
 void FirebaseCppCredentialsProvider::SetCredentialChangeListener(
@@ -76,12 +73,22 @@ void FirebaseCppCredentialsProvider::SetCredentialChangeListener(
     HARD_ASSERT_IOS(change_listener_,
                     "Change listener removed without being set!");
     change_listener_ = {};
+    // Note: not removing the Auth listener here because the Auth might already
+    // be destroyed. Note that Auth listeners unregister themselves upon
+    // destruction anyway.
     return;
   }
 
   HARD_ASSERT_IOS(!change_listener_, "Set change listener twice!");
   change_listener_ = std::move(listener);
   change_listener_(GetCurrentUser(contents_->firebase_auth));
+
+  // Note: make sure to only register the Auth listener _after_ calling
+  // `Auth::current_user` for the first time. The reason is that upon the only
+  // first call only, `Auth::current_user` might block as it would
+  // asynchronously notify Auth listeners; getting the Firestore listener
+  // notified while `Auth::current_user` is pending can lead to a deadlock.
+  contents_->firebase_auth->AddAuthStateListener(this);
 }
 
 void FirebaseCppCredentialsProvider::GetToken(TokenListener listener) {

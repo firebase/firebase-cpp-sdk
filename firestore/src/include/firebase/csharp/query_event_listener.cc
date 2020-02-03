@@ -22,6 +22,11 @@ void QueryEventListener::OnEvent(const QuerySnapshot& value, Error error) {
 /* static */
 void QueryEventListener::SetCallback(QueryEventListenerCallback callback) {
   MutexLock lock(g_mutex);
+  if (!callback) {
+    g_query_snapshot_event_listener_callback = nullptr;
+    return;
+  }
+
   if (g_query_snapshot_event_listener_callback) {
     FIREBASE_ASSERT(g_query_snapshot_event_listener_callback == callback);
   } else {
