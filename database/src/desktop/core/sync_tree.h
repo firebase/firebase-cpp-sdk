@@ -46,7 +46,7 @@ enum Persist {
 class SyncTree {
  public:
   SyncTree(UniquePtr<WriteTree> pending_write_tree,
-           UniquePtr<PersistenceManager> persistence_manager,
+           UniquePtr<PersistenceManagerInterface> persistence_manager,
            UniquePtr<ListenProvider> listen_provider)
       : pending_write_tree_(std::move(pending_write_tree)),
         persistence_manager_(std::move(persistence_manager)),
@@ -187,7 +187,7 @@ class SyncTree {
 
   // The persistence manager, which is used to interact with the persisted data
   // on disk (both reads and writes).
-  UniquePtr<PersistenceManager> persistence_manager_;
+  UniquePtr<PersistenceManagerInterface> persistence_manager_;
 
   // A tree that contains the SyncPoints for each location being watched in the
   // database.

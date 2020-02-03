@@ -1,4 +1,4 @@
-// Copyright 2019 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_PERSISTENCE_PERSISTENCE_MANAGER_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_PERSISTENCE_PERSISTENCE_MANAGER_H_
+#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_PERSISTENCE_NOOP_PERSISTENCE_MANAGER_H_
+#define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_PERSISTENCE_NOOP_PERSISTENCE_MANAGER_H_
 
 #include <functional>
 #include <set>
@@ -26,6 +26,7 @@
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/cache_policy.h"
 #include "database/src/desktop/core/tracked_query_manager.h"
+#include "database/src/desktop/persistence/persistence_manager.h"
 #include "database/src/desktop/persistence/persistence_manager_interface.h"
 #include "database/src/desktop/persistence/persistence_storage_engine.h"
 #include "database/src/desktop/view/view_cache.h"
@@ -34,12 +35,9 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-class PersistenceManager : public PersistenceManagerInterface {
+class NoopPersistenceManager : public PersistenceManagerInterface {
  public:
-  PersistenceManager(
-      UniquePtr<PersistenceStorageEngine> storage_engine,
-      UniquePtr<TrackedQueryManagerInterface> tracked_query_manager,
-      UniquePtr<CachePolicy> cache_policy, LoggerBase* logger);
+  NoopPersistenceManager();
 
   // Persist a user write to the storage engine.
   //
@@ -115,32 +113,20 @@ class PersistenceManager : public PersistenceManagerInterface {
 
   // Run a transaction. Transactions are functions that are going to change
   // values in the database, and they must do so effectively atomically. Two
-  // transactions cannot be run at the same time in different threads, they
+  // transacations cannot be run at the same time in different threads, they
   // must be scheduled to run by Scheduler. A transaction should return true to
   // signal that it completed successfully, or false if there was an error.
   // Certain actions can only be performed from inside a transaction, and those
   // functions will assert if they are not called between calls to
   // BeingTransaction and EndTransaction.
-  bool RunInTransaction(std::function<bool()> transaction_func) override;
+  bool RunInTransaction(std::function<bool()> func) override;
 
  private:
-  void DoPruneCheckAfterServerUpdate();
-
-  UniquePtr<PersistenceStorageEngine> storage_engine_;
-
-  UniquePtr<TrackedQueryManagerInterface> tracked_query_manager_;
-
-  UniquePtr<CachePolicy> cache_policy_;
-
-  uint64_t server_cache_updates_since_last_prune_check_;
-
-  Mutex transaction_mutex_;
-
-  LoggerBase* logger_;
+  bool inside_transaction_;
 };
 
 }  // namespace internal
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_PERSISTENCE_PERSISTENCE_MANAGER_H_
+#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_PERSISTENCE_NOOP_PERSISTENCE_MANAGER_H_
