@@ -40,39 +40,51 @@ sys.exit(1)
 ' "${1:-0}"
 }
 
+# Find JAVA
+JAVABIN=$( "$TEST_SRCDIR"/google3/third_party/java/jdk/java_path )
+if [[ ! -f "$JAVABIN" ]]; then
+  echo "Failed to locate java.";
+exit 1
+fi
+
 # Find executable and shared libs
 BINDIR="$TEST_SRCDIR/google3/firebase/firestore/client/cpp"
 FIRESTORE_EMULATOR_JAR=$BINDIR/CloudFirestore_emulator.jar
 # Pick a random available port with timeout 0
 EMULATOR_PORT=$( reserve_random_unused_tcp_port 0 )
 
-# Add java to PATH
-JAVABIN=$( ls -d "$TEST_SRCDIR"/google3/third_party/java/jdk/jdk*-k8/bin | \
-            tail -1 )
-PATH=$JAVABIN:$PATH
-
 # Start Firestore Emulator
-echo "Running java -jar $FIRESTORE_EMULATOR_JAR --port=$EMULATOR_PORT"
-java -jar "$FIRESTORE_EMULATOR_JAR" --port="$EMULATOR_PORT" &
+echo "Running $JAVABIN -jar $FIRESTORE_EMULATOR_JAR --port=$EMULATOR_PORT"
+"$JAVABIN" -jar "$FIRESTORE_EMULATOR_JAR" --port="$EMULATOR_PORT" &
 EMULATOR_PID=$!
 sleep 3
 
 # Running Android tests.
 if [[ -f "$(ls "$BINDIR"/*_test_android_prod)" ]]; then
-  for test in $(ls "$BINDIR"/*_test_android_prod); do
-    "$test" --test_args=firestore_emulator_port="$EMULATOR_PORT" || \
-            die "Test $test failed" $?
-  done
+ for test in $(ls "$BINDIR"/*_test_android_prod); do
+   "$test" --test_args=firestore_emulator_port="$EMULATOR_PORT" || \
+           die "Test $test failed" $?
+ done
 fi
 
 # Running iOS tests.
 if [[ -f "$(ls "$BINDIR"/*_test_ios)" ]]; then
-  # Write Firestore Emulator address to a temp file
-  echo "localhost:$EMULATOR_PORT" > /tmp/emulator_address
-  for TEST in $(ls "$BINDIR"/*_test_ios); do
-    "$TEST" || die "Test $TEST failed" $?
-  done
-  rm /tmp/emulator_address
+ # Write Firestore Emulator address to a temp file
+ echo "localhost:$EMULATOR_PORT" > /tmp/emulator_address
+ for TEST in $(ls "$BINDIR"/*_test_ios); do
+   "$TEST" || die "Test $TEST failed" $?
+ done
+ rm /tmp/emulator_address
+fi
+
+# Running Linux tests.
+if [[ -f "$(ls "$BINDIR"/*_test)" ]]; then
+ # Write Firestore Emulator address to a temp file
+ echo "localhost:$EMULATOR_PORT" > /tmp/emulator_address
+ for TEST in $(ls "$BINDIR"/*_test); do
+   "$TEST" || die "Test $TEST failed" $?
+ done
+ rm /tmp/emulator_address
 fi
 
 kill $EMULATOR_PID

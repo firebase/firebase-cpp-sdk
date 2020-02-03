@@ -29,6 +29,12 @@ Note this means on mobile platforms, the integration tests are run within
 simulation, as there is no way to setup Firestore emulator if they are run on
 real devices.
 
+#### Linux:
+
+```bash
+blaze test //firebase/firestore/client/cpp:cc_emulator_tests
+```
+
 #### iOS (running within iOS simulator on forge-on-mac, hence `darwin_x86_64`):
 
 (TODO: When tests fail, the messages are not properly formatted, especially
