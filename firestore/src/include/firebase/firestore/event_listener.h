@@ -40,10 +40,17 @@ class EventListener {
   virtual void OnEvent(const T& value, Error error) = 0;
 };
 
+/** Interface used for void EventListeners that don't produce a value. */
 template <>
 class EventListener<void> {
  public:
   virtual ~EventListener() = default;
+
+   /**
+   * @brief OnEvent will be called with the error if an error occurred.
+   *
+   * @param error The error if there was error. Error::Ok otherwise.
+   */
   virtual void OnEvent(Error error) = 0;
 };
 
