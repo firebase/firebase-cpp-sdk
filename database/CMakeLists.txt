@@ -96,6 +96,7 @@ set(desktop_SRCS
     src/desktop/database_reference_desktop.cc
     src/desktop/disconnection_desktop.cc
     src/desktop/mutable_data_desktop.cc
+    src/desktop/persistence/file_io.cc
     src/desktop/persistence/in_memory_persistence_storage_engine.cc
     src/desktop/persistence/noop_persistence_manager.cc
     src/desktop/persistence/persistence_manager.cc
