@@ -35,9 +35,9 @@ using util::AsyncQueue;
 using util::Executor;
 using util::Status;
 
-std::unique_ptr<AsyncQueue> CreateWorkerQueue() {
+std::shared_ptr<AsyncQueue> CreateWorkerQueue() {
   auto executor = Executor::CreateSerial("com.google.firebase.firestore");
-  return absl::make_unique<AsyncQueue>(std::move(executor));
+  return AsyncQueue::Create(std::move(executor));
 }
 
 std::unique_ptr<CredentialsProvider> CreateCredentialsProvider(App* app) {
