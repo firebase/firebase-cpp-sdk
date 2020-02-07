@@ -17,7 +17,7 @@
 #include <fstream>
 #include <iostream>
 
-#include "third_party/flatbuffers/include/flatbuffers/util.h"
+#include "flatbuffers/util.h"
 
 namespace firebase {
 namespace database {
