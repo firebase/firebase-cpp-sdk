@@ -1,6 +1,6 @@
-#!/bin/bash
+# !/bin/bash
 #
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,12 +22,13 @@ set -e
 set -x
 
 # Make a directory to work in
-mkdir -p mac_ios_build
-cd mac_ios_build
+mkdir -p mac_ios_simulator_build
+cd mac_ios_simulator_build
 
 # Configure cmake with tests enabled
 # and disable use of libsecret due to not working on kokoro builders
-cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/ios.cmake .. -DFIREBASE_CPP_BUILD_TESTS=ON -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON
+cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/ios_simulator.cmake .. -DCLANG_ENABLE_MODULES=YES -DFIREBASE_CPP_BUILD_TESTS=ON -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON
 
 # Build the SDK and the tests
 cmake --build .
+
