@@ -3,6 +3,7 @@
 
 #include <utility>
 
+#include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firestore/src/ios/hard_assert_ios.h"
@@ -27,10 +28,70 @@ template <typename ResultT>
 class Promise {
  public:
   // Creates a future backed by `LastResults` cache.
-  Promise(ReferenceCountedFutureImpl* future_api, int identifier)
-      : future_api_{NOT_NULL(future_api)},
+  Promise(CleanupNotifier* cleanup, ReferenceCountedFutureImpl* future_api,
+          int identifier)
+      : cleanup_{NOT_NULL(cleanup)},
+        future_api_{NOT_NULL(future_api)},
         identifier_{identifier},
-        handle_{future_api->SafeAlloc<ResultT>(identifier)} {}
+        handle_{future_api->SafeAlloc<ResultT>(identifier)} {
+    RegisterForCleanup();
+  }
+
+  ~Promise() { UnregisterForCleanup(); }
+
+  Promise(const Promise& rhs)
+      : cleanup_{rhs.cleanup_},
+        future_api_{rhs.future_api_},
+        identifier_{rhs.identifier_},
+        handle_{rhs.handle_} {
+    RegisterForCleanup();
+  }
+
+  Promise(Promise&& rhs) noexcept
+      : cleanup_{rhs.cleanup_},
+        future_api_{rhs.future_api_},
+        identifier_{rhs.identifier_},
+        handle_{rhs.handle_} {
+    rhs.UnregisterForCleanup();
+    rhs.cleanup_ = nullptr;
+    rhs.future_api_ = nullptr;
+    rhs.identifier_ = 0;
+    rhs.handle_ = {};
+
+    RegisterForCleanup();
+  }
+
+  Promise& operator=(const Promise& rhs) {
+    UnregisterForCleanup();
+
+    cleanup_ = rhs.cleanup_;
+    future_api_ = rhs.future_api_;
+    identifier_ = rhs.identifier_;
+    handle_ = rhs.handle_;
+
+    RegisterForCleanup();
+
+    return *this;
+  }
+
+  Promise& operator=(Promise&& rhs) noexcept {
+    rhs.UnregisterForCleanup();
+    UnregisterForCleanup();
+
+    cleanup_ = rhs.cleanup_;
+    future_api_ = rhs.future_api_;
+    identifier_ = rhs.identifier_;
+    handle_ = rhs.handle_;
+
+    RegisterForCleanup();
+
+    rhs.cleanup_ = nullptr;
+    rhs.future_api_ = nullptr;
+    rhs.identifier_ = 0;
+    rhs.handle_ = {};
+
+    return *this;
+  }
 
   // This is only a template function to enable SFINAE. The `Promise` will have
   // either `SetValue(ResultT)` or `SetValue()` defined, based on whether
@@ -43,6 +104,9 @@ class Promise {
   template <typename DummyT = ResultT,
             typename = absl::enable_if_t<!std::is_void<DummyT>::value>>
   void SetValue(DummyT result) {
+    if (IsCleanedUp()) {
+      return;
+    }
     future_api_->Complete(handle_, NoError(), /*error_message=*/"",
                           [&](ResultT* value) {
                             // Future API doesn't support moving the value, use
@@ -54,6 +118,9 @@ class Promise {
   template <typename DummyT = ResultT,
             typename = absl::enable_if_t<std::is_void<DummyT>::value>>
   void SetValue() {
+    if (IsCleanedUp()) {
+      return;
+    }
     future_api_->Complete(handle_, NoError());
   }
 
@@ -61,17 +128,50 @@ class Promise {
     HARD_ASSERT_IOS(
         !status.ok(),
         "To fulfill a promise with 'ok' status, use Promise::SetValue.");
+    if (IsCleanedUp()) {
+      return;
+    }
+
     future_api_->Complete(handle_, status.code(),
                           status.error_message().c_str());
   }
 
   Future<ResultT> future() {
+    if (IsCleanedUp()) {
+      return Future<ResultT>{};
+    }
+
     return Future<ResultT>{future_api_, handle_.get()};
   }
 
  private:
+  Promise() = default;
+
   int NoError() const { return static_cast<int>(Error::Ok); }
 
+  // Note: `CleanupFn` is not used because `Promise` is a header-only class, to
+  // avoid a circular dependency between headers.
+  void RegisterForCleanup() {
+    if (IsCleanedUp()) {
+      return;
+    }
+
+    cleanup_->RegisterObject(this, [](void* raw_this) {
+      auto* this_ptr = static_cast<Promise*>(raw_this);
+      *this_ptr = {};
+    });
+  }
+
+  void UnregisterForCleanup() {
+    if (IsCleanedUp()) {
+      return;
+    }
+    cleanup_->UnregisterObject(this);
+  }
+
+  bool IsCleanedUp() const { return cleanup_ == nullptr; }
+
+  CleanupNotifier* cleanup_ = nullptr;
   ReferenceCountedFutureImpl* future_api_ = nullptr;
   int identifier_ = 0;
   SafeFutureHandle<ResultT> handle_;

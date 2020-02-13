@@ -132,7 +132,7 @@ class FirestoreInternal {
   CleanupNotifier cleanup_;
 
   FutureManager future_manager_;
-  PromiseFactory<AsyncApi> promise_factory_{&future_manager_};
+  PromiseFactory<AsyncApi> promise_factory_{&cleanup_, &future_manager_};
 
   // TODO(b/136119216): revamp this mechanism on both iOS and Android.
   std::mutex listeners_mutex_;
