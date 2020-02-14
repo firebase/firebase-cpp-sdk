@@ -24,7 +24,8 @@ METHOD_LOOKUP_DEFINITION(query,
                          QUERY_METHODS)
 
 Firestore* QueryInternal::firestore() {
-  return Firestore::GetInstance(firestore_->app());
+  FIREBASE_ASSERT(firestore_->firestore_public() != nullptr);
+  return firestore_->firestore_public();
 }
 
 Query QueryInternal::OrderBy(const FieldPath& field,

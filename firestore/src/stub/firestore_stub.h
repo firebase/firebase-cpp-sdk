@@ -120,6 +120,8 @@ class FirestoreInternal {
     return static_cast<InternalType*>(value.internal_);
   }
 
+  void set_firestore_public(Firestore*) {}
+
  private:
   CleanupNotifier cleanup_;
   App* app_;

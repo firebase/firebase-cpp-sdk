@@ -44,7 +44,8 @@ METHOD_LOOKUP_DEFINITION(document_snapshot,
                          DOCUMENT_SNAPSHOT_METHODS)
 
 Firestore* DocumentSnapshotInternal::firestore() const {
-  return Firestore::GetInstance(firestore_->app());
+  FIREBASE_ASSERT(firestore_->firestore_public() != nullptr);
+  return firestore_->firestore_public();
 }
 
 const std::string& DocumentSnapshotInternal::id() const {
