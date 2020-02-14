@@ -52,11 +52,8 @@ METHOD_LOOKUP_DEFINITION(document_reference,
                          DOCUMENT_REFERENCE_METHODS)
 
 Firestore* DocumentReferenceInternal::firestore() {
-  App* app = firestore_->app();
-  FIREBASE_ASSERT(app != nullptr);
-  Firestore* firestore = Firestore::GetInstance(app);
-  FIREBASE_ASSERT(firestore != nullptr);
-  return firestore;
+  FIREBASE_ASSERT(firestore_->firestore_public() != nullptr);
+  return firestore_->firestore_public();
 }
 
 const std::string& DocumentReferenceInternal::id() const {

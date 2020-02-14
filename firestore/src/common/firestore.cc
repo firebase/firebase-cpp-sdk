@@ -121,6 +121,8 @@ Firestore::Firestore(::firebase::App* app)
 Firestore::Firestore(FirestoreInternal* internal)
     // TODO(wuandy): use make_unique once it is supported for our build here.
     : internal_(internal) {
+  internal_->set_firestore_public(this);
+
   if (internal_->initialized()) {
     CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app());
     assert(app_notifier);
