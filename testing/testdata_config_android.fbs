@@ -1,0 +1,85 @@
+// Copyright 2020 Google
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// The FlatBuffers schema for configuring unit-test test data.
+
+// The namespace is defined to match the google3 package.
+namespace com.google.firebase.testing.cppsdk;
+
+// Captures the general three-value logic: true, false, error. In practice, it
+// could mean Success, Failure, Exception or Valid, Invalid, Exception, etc.
+// To reduce the work in dealing with test data, we want the default be true,
+// which is why 0 is assigned to true.
+enum FutureBoolResult : byte { True, False, Error }
+
+// Bool in the future.
+table FutureBool {
+  value:FutureBoolResult;
+  ticker:long;  // On which ticker, the value becomes available.
+}
+
+// Integer in the future.
+table FutureInt {
+  value:int;
+  ticker:long;  // On which ticker, the value becomes available.
+}
+
+// A generic value in the future; a relevant fake class is expected to provide
+// the actual value at call time. The config will only state whether that value
+// or an exception is returned.
+table FutureGeneric {
+  // If true, return an exception. If false, return the default value specified
+  // in code.
+  throwexception:bool;
+  exceptionmsg:string;  // The message of the exception;
+  ticker:long;  // On which ticker, the value becomes available.
+}
+
+// Use this to tell fake function what value if should return.
+// If return value is complicated you can convert into string.
+table ReturnValue {
+  tint:int;
+  tbool:bool;
+  tlong:long;
+  tdouble:double;
+  tstring:string;
+}
+
+// Describe an HTTP/REST response.
+table HttpResponse {
+  header: [string];
+  body: [string];
+}
+
+// A row in the config. When new data type is needed, add it here. (Order does
+// not matter right now since we do not store serialized data file yet.)
+table ConfigRow {
+  // The magic key string to index test data.
+  fake:string (required, key);
+
+  // Data type varies for different test fakes. Here we embed the type directly
+  // inside row table instead of wrapping around by a table or union type. This
+  // way the JSON string is less cumbersome.
+  futurebool:FutureBool;
+  futureint:FutureInt;
+  futuregeneric:FutureGeneric;
+  returnvalue:ReturnValue;
+  httpresponse:HttpResponse;
+}
+
+table TestDataConfig {
+  config: [ConfigRow];
+}
+
+root_type TestDataConfig;
