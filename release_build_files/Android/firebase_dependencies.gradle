@@ -28,6 +28,7 @@ def firebaseDependenciesMap = [
   'instance_id' : ['com.google.firebase:firebase-iid:20.0.2'],
   'messaging' : ['com.google.firebase.messaging.cpp:firebase_messaging_cpp@aar',
                  'com.google.firebase:firebase-messaging:20.1.0'],
+  'performance' : ['com.google.firebase:firebase-perf:19.0.5'],
   'remote_config' : ['com.google.firebase:firebase-config:19.1.1'],
   'storage' : ['com.google.firebase:firebase-storage:19.1.1']
 ]
