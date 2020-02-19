@@ -24,8 +24,8 @@
 #include "Firestore/core/src/firebase/firestore/util/exception.h"
 
 // TODO(b/147444199): delete this file and use the one that comes from the
-// GitHub repo. This file provides simplified versions of `HARD_ASSERT` and
-// `HARD_FAIL` that don't support string formatting.
+// GitHub repo. This file provides simplified versions of `HARD_ASSERT`,
+// `HARD_FAIL`, and `ThrowInvalidArgument` that don't support string formatting.
 
 #if defined(_MSC_VER)
 #define FIRESTORE_FUNCTION_NAME __FUNCSIG__
@@ -116,6 +116,13 @@ ABSL_ATTRIBUTE_NORETURN void FailAssertion(const char* file, const char* func,
                                            const char* condition);
 
 }  // namespace internal
+
+// This is a workaround for the fact that `util::ThrowInvalidArgument` calls
+// `StringFormat` in its implementation, which leads to linkage problems due to
+// the use of `absl::string_view` in its signature.
+ABSL_ATTRIBUTE_NORETURN void ThrowInvalidArgumentIos(
+    const std::string& message);
+
 }  // namespace util
 }  // namespace firestore
 }  // namespace firebase

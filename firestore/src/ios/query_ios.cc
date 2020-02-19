@@ -25,7 +25,7 @@ namespace firestore {
 
 using model::DocumentKey;
 using model::ResourcePath;
-using util::ThrowInvalidArgument;
+using util::ThrowInvalidArgumentIos;
 
 QueryInternal::QueryInternal(api::Query&& query)
     : query_{std::move(query)},
@@ -124,7 +124,7 @@ bool operator==(const QueryInternal& lhs, const QueryInternal& rhs) {
 core::Bound QueryInternal::ToBound(
     BoundPosition bound_pos, const DocumentSnapshot& public_snapshot) const {
   if (!public_snapshot.exists()) {
-    ThrowInvalidArgument(
+    ThrowInvalidArgumentIos(
         "Invalid query. You are trying to start or end a query using a "
         "document that doesn't exist.");
   }
@@ -163,7 +163,7 @@ core::Bound QueryInternal::ToBound(
                          "query using a document for which the field '") +
                      field_path.CanonicalString() +
                      "' (used as the order by) does not exist.";
-      ThrowInvalidArgument(message.c_str());
+      ThrowInvalidArgumentIos(message.c_str());
     }
 
     if (value->type() == model::FieldValue::Type::ServerTimestamp) {
@@ -181,7 +181,7 @@ core::Bound QueryInternal::ToBound(
           field_path.CanonicalString() +
           "' is an uncommitted server timestamp. (Since the value of this"
           "field is unknown, you cannot start/end a query with it.)";
-      ThrowInvalidArgument(message.c_str());
+      ThrowInvalidArgumentIos(message.c_str());
     }
 
     components.push_back(std::move(value).value());
@@ -199,7 +199,7 @@ core::Bound QueryInternal::ToBound(
       internal_query.explicit_order_bys();
 
   if (field_values.size() > explicit_order_bys.size()) {
-    ThrowInvalidArgument(
+    ThrowInvalidArgumentIos(
         "Invalid query. You are trying to start or end a query using more "
         "values than were specified in the order by.");
   }
@@ -223,7 +223,7 @@ core::Bound QueryInternal::ToBound(
 model::FieldValue QueryInternal::ConvertDocumentId(
     const model::FieldValue& from, const core::Query& internal_query) const {
   if (from.type() != model::FieldValue::Type::String) {
-    ThrowInvalidArgument(
+    ThrowInvalidArgumentIos(
         "Invalid query. Expected a string for the document ID.");
   }
   const std::string& document_id = from.string_value();
@@ -240,7 +240,7 @@ model::FieldValue QueryInternal::ConvertDocumentId(
                        "by document "
                        "ID, you must pass a plain document ID, but '") +
                    document_id + "' contains a slash.";
-    ThrowInvalidArgument(message.c_str());
+    ThrowInvalidArgumentIos(message.c_str());
   }
 
   ResourcePath path =
@@ -259,7 +259,7 @@ model::FieldValue QueryInternal::ConvertDocumentId(
             "document path, but '") +
         path.CanonicalString() +
         "' is not because it contains an odd number of segments.";
-    ThrowInvalidArgument(message.c_str());
+    ThrowInvalidArgumentIos(message.c_str());
   }
 
   const model::DatabaseId& database_id = firestore_internal()->database_id();
