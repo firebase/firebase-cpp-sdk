@@ -50,11 +50,17 @@ enum class QueryFn {
   X(ArrayContains, "whereArrayContains",                            \
     "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)" \
     "Lcom/google/firebase/firestore/Query;"),                       \
+  X(ArrayContainsAny, "whereArrayContainsAny",                      \
+    "(Lcom/google/firebase/firestore/FieldPath;Ljava/util/List;)"   \
+    "Lcom/google/firebase/firestore/Query;"),                       \
+  X(In, "whereIn",                                                  \
+    "(Lcom/google/firebase/firestore/FieldPath;Ljava/util/List;)"   \
+    "Lcom/google/firebase/firestore/Query;"),                       \
   X(OrderBy, "orderBy",                                             \
     "(Lcom/google/firebase/firestore/FieldPath;"                    \
     "Lcom/google/firebase/firestore/Query$Direction;)"              \
     "Lcom/google/firebase/firestore/Query;"),                       \
-  X(Limit, "limit", "(J)Lcom/google/firebase/firestore/Query;"),  \
+  X(Limit, "limit", "(J)Lcom/google/firebase/firestore/Query;"),    \
   X(StartAtSnapshot, "startAt",                                     \
     "(Lcom/google/firebase/firestore/DocumentSnapshot;)"            \
     "Lcom/google/firebase/firestore/Query;"),                       \
@@ -171,7 +177,7 @@ class QueryInternal : public WrapperFuture<QueryFn, QueryFn::kCount> {
    * documents must contain the specified field, the value must be an array, and
    * that the array must contain the provided value.
    *
-   * A Query can have only one WhereArrayContains() filter.
+   * A Query can have only one `WhereArrayContains()` filter.
    *
    * @param[in] field The path of the field containing an array to search
    * @param[in] value The value that must be contained in the array
@@ -180,6 +186,41 @@ class QueryInternal : public WrapperFuture<QueryFn, QueryFn::kCount> {
    */
   Query WhereArrayContains(const FieldPath& field, const FieldValue& value) {
     return Where(field, query::kArrayContains, value);
+  }
+
+  /**
+   * @brief Creates and returns a new Query with the additional filter that
+   * documents must contain the specified field, the value must be an array, and
+   * that the array must contain at least one value from the provided list.
+   *
+   * A Query can have only one `WhereArrayContainsAny()` filter and it cannot be
+   * combined with `WhereArrayContains()` or `WhereIn()`.
+   *
+   * @param[in] field The path of the field containing an array to search.
+   * @param[in] values The list that contains the values to match.
+   *
+   * @return The created Query.
+   */
+  Query WhereArrayContainsAny(const FieldPath& field,
+                              const std::vector<FieldValue>& values) {
+    return Where(field, query::kArrayContainsAny, values);
+  }
+
+  /**
+   * @brief Creates and returns a new Query with the additional filter that
+   * documents must contain the specified field and the value must equal one of
+   * the values from the provided list.
+   *
+   * A Query can have only one `WhereIn()` filter and it cannot be
+   * combined with `WhereArrayContainsAny()`.
+   *
+   * @param[in] field The path of the field containing an array to search.
+   * @param[in] values The list that contains the values to match.
+   *
+   * @return The created Query.
+   */
+  Query WhereIn(const FieldPath& field, const std::vector<FieldValue>& values) {
+    return Where(field, query::kIn, values);
   }
 
   /**
@@ -387,6 +428,8 @@ class QueryInternal : public WrapperFuture<QueryFn, QueryFn::kCount> {
   // A generalized function for all WhereFoo calls.
   Query Where(const FieldPath& field, query::Method method,
               const FieldValue& value);
+  Query Where(const FieldPath& field, query::Method method,
+              const std::vector<FieldValue>& values);
 
   // A generalized function for all {Start|End}{Before|After|At} calls.
   Query WithBound(query::Method method, const DocumentSnapshot& snapshot);

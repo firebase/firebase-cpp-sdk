@@ -26,6 +26,11 @@ Error UnityTransactionFunction::Apply(Transaction* transaction,
 void UnityTransactionFunction::SetCallback(
     UnityTransactionFunctionCallback callback) {
   MutexLock lock(*mutex_);
+  if (!callback) {
+    transaction_function_callback_ = nullptr;
+    return;
+  }
+
   if (transaction_function_callback_) {
     FIREBASE_ASSERT(transaction_function_callback_ == callback);
   } else {

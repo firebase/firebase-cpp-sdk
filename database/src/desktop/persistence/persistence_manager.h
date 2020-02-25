@@ -26,7 +26,6 @@
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/cache_policy.h"
 #include "database/src/desktop/core/tracked_query_manager.h"
-#include "database/src/desktop/persistence/persistence_manager.h"
 #include "database/src/desktop/persistence/persistence_manager_interface.h"
 #include "database/src/desktop/persistence/persistence_storage_engine.h"
 #include "database/src/desktop/view/view_cache.h"
@@ -116,21 +115,13 @@ class PersistenceManager : public PersistenceManagerInterface {
 
   // Run a transaction. Transactions are functions that are going to change
   // values in the database, and they must do so effectively atomically. Two
-  // transacations cannot be run at the same time in different threads, they
+  // transactions cannot be run at the same time in different threads, they
   // must be scheduled to run by Scheduler. A transaction should return true to
   // signal that it completed successfully, or false if there was an error.
   // Certain actions can only be performed from inside a transaction, and those
   // functions will assert if they are not called between calls to
   // BeingTransaction and EndTransaction.
-  bool RunInTransaction(std::function<bool()> func) {
-    storage_engine_->BeginTransaction();
-    bool success = func();
-    if (success) {
-      storage_engine_->SetTransactionSuccessful();
-    }
-    storage_engine_->EndTransaction();
-    return success;
-  }
+  bool RunInTransaction(std::function<bool()> transaction_func) override;
 
  private:
   void DoPruneCheckAfterServerUpdate();

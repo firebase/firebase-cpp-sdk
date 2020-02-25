@@ -24,7 +24,8 @@ METHOD_LOOKUP_DEFINITION(query,
                          QUERY_METHODS)
 
 Firestore* QueryInternal::firestore() {
-  return Firestore::GetInstance(firestore_->app());
+  FIREBASE_ASSERT(firestore_->firestore_public() != nullptr);
+  return firestore_->firestore_public();
 }
 
 Query QueryInternal::OrderBy(const FieldPath& field,
@@ -103,6 +104,36 @@ Query QueryInternal::Where(const FieldPath& field, query::Method method,
   env->DeleteLocalRef(query);
 
   CheckAndClearJniExceptions(env);
+  return Query{internal};
+}
+
+Query QueryInternal::Where(const FieldPath& field, query::Method method,
+                           const std::vector<FieldValue>& values) {
+  JNIEnv* env = firestore_->app()->GetJNIEnv();
+
+  // Convert std::vector into java.util.List object.
+  // TODO(chenbrian): Refactor this into a helper function.
+  jobject converted_values = env->NewObject(
+      util::array_list::GetClass(),
+      util::array_list::GetMethodId(util::array_list::kConstructor));
+  jmethodID add_method = util::array_list::GetMethodId(util::array_list::kAdd);
+  jsize size = static_cast<jsize>(values.size());
+  for (jsize i = 0; i < size; ++i) {
+    // ArrayList.Add() always returns true, which we have no use for.
+    env->CallBooleanMethod(converted_values, add_method,
+                           values[i].internal_->java_object());
+    CheckAndClearJniExceptions(env);
+  }
+
+  jobject path = FieldPathConverter::ToJavaObject(env, field);
+  jobject query = env->CallObjectMethod(obj_, query::GetMethodId(method), path,
+                                        converted_values);
+  CheckAndClearJniExceptions(env);
+  QueryInternal* internal = new QueryInternal{firestore_, query};
+  env->DeleteLocalRef(path);
+  env->DeleteLocalRef(query);
+  env->DeleteLocalRef(converted_values);
+
   return Query{internal};
 }
 

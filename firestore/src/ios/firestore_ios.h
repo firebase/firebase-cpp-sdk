@@ -21,6 +21,7 @@
 namespace firebase {
 namespace firestore {
 
+class Firestore;
 class ListenerRegistrationInternal;
 class Transaction;
 class TransactionFunction;
@@ -28,6 +29,7 @@ class WriteBatch;
 
 class FirestoreInternal {
  public:
+  // Note: call `set_firestore_public` immediately after construction.
   explicit FirestoreInternal(App* app);
   ~FirestoreInternal();
 
@@ -77,8 +79,13 @@ class FirestoreInternal {
   Future<void> ClearPersistence();
   Future<void> ClearPersistenceLastResult();
 
+  ListenerRegistration AddSnapshotsInSyncListener(
+      EventListener<void>* listener);
+  ListenerRegistration AddSnapshotsInSyncListener(
+      std::function<void()> callback);
+
   const model::DatabaseId& database_id() const {
-    return firestore_->database_id();
+    return firestore_core_->database_id();
   }
 
   // Manages the ListenerRegistrationInternal objects.
@@ -86,10 +93,15 @@ class FirestoreInternal {
   void UnregisterListenerRegistration(
       ListenerRegistrationInternal* registration);
 
-  // TODO(varconst): this method should become unnecessary once
-  // `api::Transaction::Lookup()` starts returning C++ documents.
+  void set_firestore_public(Firestore* firestore_public) {
+    firestore_public_ = firestore_public;
+  }
+
+  Firestore* firestore_public() { return firestore_public_; }
+  const Firestore* firestore_public() const { return firestore_public_; }
+
   const std::shared_ptr<api::Firestore>& firestore_core() const {
-    return firestore_;
+    return firestore_core_;
   }
 
  private:
@@ -122,12 +134,13 @@ class FirestoreInternal {
   void ApplyDefaultSettings();
 
   App* app_ = nullptr;
-  std::shared_ptr<api::Firestore> firestore_;
+  Firestore* firestore_public_ = nullptr;
+  std::shared_ptr<api::Firestore> firestore_core_;
 
   CleanupNotifier cleanup_;
 
   FutureManager future_manager_;
-  PromiseFactory<AsyncApi> promise_factory_{&future_manager_};
+  PromiseFactory<AsyncApi> promise_factory_{&cleanup_, &future_manager_};
 
   // TODO(b/136119216): revamp this mechanism on both iOS and Android.
   std::mutex listeners_mutex_;

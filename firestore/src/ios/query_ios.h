@@ -69,6 +69,15 @@ class QueryInternal {
     return Where(field, Operator::ArrayContains, value);
   }
 
+  Query WhereArrayContainsAny(const FieldPath& field,
+                              const std::vector<FieldValue>& values) {
+    return Where(field, Operator::ArrayContainsAny, values);
+  }
+
+  Query WhereIn(const FieldPath& field, const std::vector<FieldValue>& values) {
+    return Where(field, Operator::In, values);
+  }
+
   Query StartAt(const DocumentSnapshot& snapshot) {
     return WithBound(BoundPosition::kStartAt, snapshot);
   }
@@ -140,6 +149,8 @@ class QueryInternal {
 
   Query Where(const FieldPath& field, Operator op,
               const FieldValue& value) const;
+  Query Where(const FieldPath& field, Operator op,
+              const std::vector<FieldValue>& values) const;
 
   Query WithBound(BoundPosition bound_pos,
                   const DocumentSnapshot& snapshot) const;

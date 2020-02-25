@@ -35,9 +35,9 @@ using util::AsyncQueue;
 using util::Executor;
 using util::Status;
 
-std::unique_ptr<AsyncQueue> CreateWorkerQueue() {
+std::shared_ptr<AsyncQueue> CreateWorkerQueue() {
   auto executor = Executor::CreateSerial("com.google.firebase.firestore");
-  return absl::make_unique<AsyncQueue>(std::move(executor));
+  return AsyncQueue::Create(std::move(executor));
 }
 
 std::unique_ptr<CredentialsProvider> CreateCredentialsProvider(App* app) {
@@ -52,7 +52,7 @@ FirestoreInternal::FirestoreInternal(App* app)
 FirestoreInternal::FirestoreInternal(
     App* app, std::unique_ptr<CredentialsProvider> credentials)
     : app_(NOT_NULL(app)),
-      firestore_(CreateFirestore(app, std::move(credentials))) {
+      firestore_core_(CreateFirestore(app, std::move(credentials))) {
   ApplyDefaultSettings();
 }
 
@@ -68,25 +68,25 @@ std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
 
 CollectionReference FirestoreInternal::Collection(
     const char* collection_path) const {
-  auto result = firestore_->GetCollection(collection_path);
+  auto result = firestore_core_->GetCollection(collection_path);
   return MakePublic(std::move(result));
 }
 
 DocumentReference FirestoreInternal::Document(const char* document_path) const {
-  auto result = firestore_->GetDocument(document_path);
+  auto result = firestore_core_->GetDocument(document_path);
   return MakePublic(std::move(result));
 }
 
 Query FirestoreInternal::CollectionGroup(const char* collection_id) const {
-  core::Query core_query = firestore_->GetCollectionGroup(collection_id);
-  api::Query api_query(std::move(core_query), firestore_);
+  core::Query core_query = firestore_core_->GetCollectionGroup(collection_id);
+  api::Query api_query(std::move(core_query), firestore_core_);
   return MakePublic(std::move(api_query));
 }
 
 Settings FirestoreInternal::settings() const {
   Settings result;
 
-  const api::Settings& from = firestore_->settings();
+  const api::Settings& from = firestore_core_->settings();
   result.set_host(from.host());
   result.set_ssl_enabled(from.ssl_enabled());
   result.set_persistence_enabled(from.persistence_enabled());
@@ -105,14 +105,14 @@ void FirestoreInternal::set_settings(const Settings& from) {
   // TODO(varconst): implement `cache_size_bytes` in public `Settings` and
   // uncomment.
   // settings.set_cache_size_bytes(from.cache_size_bytes());
-  firestore_->set_settings(settings);
+  firestore_core_->set_settings(settings);
 
   std::unique_ptr<Executor> user_executor = from.CreateExecutor();
-  firestore_->set_user_executor(std::move(user_executor));
+  firestore_core_->set_user_executor(std::move(user_executor));
 }
 
 WriteBatch FirestoreInternal::batch() const {
-  return MakePublic(firestore_->GetBatch());
+  return MakePublic(firestore_core_->GetBatch());
 }
 
 Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update) {
@@ -170,8 +170,8 @@ Future<void> FirestoreInternal::RunTransaction(
     }
   };
 
-  firestore_->RunTransaction(std::move(update_callback),
-                             std::move(final_result_callback));
+  firestore_core_->RunTransaction(std::move(update_callback),
+                                  std::move(final_result_callback));
 
   return promise.future();
 }
@@ -183,7 +183,7 @@ Future<void> FirestoreInternal::RunTransactionLastResult() {
 Future<void> FirestoreInternal::DisableNetwork() {
   auto promise =
       promise_factory_.CreatePromise<void>(AsyncApi::kDisableNetwork);
-  firestore_->DisableNetwork(StatusCallbackWithPromise(promise));
+  firestore_core_->DisableNetwork(StatusCallbackWithPromise(promise));
   return promise.future();
 }
 
@@ -193,7 +193,7 @@ Future<void> FirestoreInternal::DisableNetworkLastResult() {
 
 Future<void> FirestoreInternal::EnableNetwork() {
   auto promise = promise_factory_.CreatePromise<void>(AsyncApi::kEnableNetwork);
-  firestore_->EnableNetwork(StatusCallbackWithPromise(promise));
+  firestore_core_->EnableNetwork(StatusCallbackWithPromise(promise));
   return promise.future();
 }
 
@@ -204,7 +204,7 @@ Future<void> FirestoreInternal::EnableNetworkLastResult() {
 Future<void> FirestoreInternal::Terminate() {
   auto promise = promise_factory_.CreatePromise<void>(AsyncApi::kTerminate);
   ClearListeners();
-  firestore_->Terminate(StatusCallbackWithPromise(promise));
+  firestore_core_->Terminate(StatusCallbackWithPromise(promise));
   return promise.future();
 }
 
@@ -215,7 +215,7 @@ Future<void> FirestoreInternal::TerminateLastResult() {
 Future<void> FirestoreInternal::WaitForPendingWrites() {
   auto promise =
       promise_factory_.CreatePromise<void>(AsyncApi::kWaitForPendingWrites);
-  firestore_->WaitForPendingWrites(StatusCallbackWithPromise(promise));
+  firestore_core_->WaitForPendingWrites(StatusCallbackWithPromise(promise));
   return promise.future();
 }
 
@@ -226,7 +226,7 @@ Future<void> FirestoreInternal::WaitForPendingWritesLastResult() {
 Future<void> FirestoreInternal::ClearPersistence() {
   auto promise =
       promise_factory_.CreatePromise<void>(AsyncApi::kClearPersistence);
-  firestore_->ClearPersistence(StatusCallbackWithPromise(promise));
+  firestore_core_->ClearPersistence(StatusCallbackWithPromise(promise));
   return promise.future();
 }
 
@@ -242,16 +242,33 @@ void FirestoreInternal::ClearListeners() {
   listeners_.clear();
 }
 
+ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
+    EventListener<void>* listener) {
+  std::function<void()> listener_function = [listener] {
+    listener->OnEvent(Error::Ok);
+  };
+  auto result = firestore_core_->AddSnapshotsInSyncListener(
+      ListenerWithCallback(std::move(listener_function)));
+  return MakePublic(std::move(result), this);
+}
+
+ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
+    std::function<void()> callback) {
+  auto result = firestore_core_->AddSnapshotsInSyncListener(
+      ListenerWithCallback(std::move(callback)));
+  return MakePublic(std::move(result), this);
+}
+
 void FirestoreInternal::RegisterListenerRegistration(
-    ListenerRegistrationInternal* listener) {
+    ListenerRegistrationInternal* registration) {
   std::lock_guard<std::mutex> lock(listeners_mutex_);
-  listeners_.insert(listener);
+  listeners_.insert(registration);
 }
 
 void FirestoreInternal::UnregisterListenerRegistration(
-    ListenerRegistrationInternal* listener) {
+    ListenerRegistrationInternal* registration) {
   std::lock_guard<std::mutex> lock(listeners_mutex_);
-  auto iter = listeners_.find(listener);
+  auto iter = listeners_.find(registration);
   if (iter != listeners_.end()) {
     delete *iter;
     listeners_.erase(iter);

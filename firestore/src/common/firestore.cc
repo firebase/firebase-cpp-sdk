@@ -119,8 +119,10 @@ Firestore::Firestore(::firebase::App* app)
     : Firestore{new FirestoreInternal{app}} {}
 
 Firestore::Firestore(FirestoreInternal* internal)
-    // TODO(zxu): use make_unique once it is supported for our build here.
+    // TODO(wuandy): use make_unique once it is supported for our build here.
     : internal_(internal) {
+  internal_->set_firestore_public(this);
+
   if (internal_->initialized()) {
     CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app());
     assert(app_notifier);
@@ -285,6 +287,22 @@ Future<void> Firestore::ClearPersistenceLastResult() {
   if (!internal_) return FailedFuture<void>();
   return internal_->ClearPersistenceLastResult();
 }
+
+#if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+ListenerRegistration Firestore::AddSnapshotsInSyncListener(
+    EventListener<void>* listener) {
+  if (!internal_) return {};
+  return internal_->AddSnapshotsInSyncListener(listener);
+}
+#endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
+#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+ListenerRegistration Firestore::AddSnapshotsInSyncListener(
+    std::function<void()> callback) {
+  if (!internal_) return {};
+  return internal_->AddSnapshotsInSyncListener(std::move(callback));
+}
+#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 }  // namespace firestore
 }  // namespace firebase

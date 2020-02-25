@@ -15,7 +15,6 @@
 #include "database/src/desktop/connection/persistent_connection.h"
 
 #include <algorithm>
-#include <cassert>
 #include <sstream>
 
 #include "app/src/app_common.h"
@@ -118,9 +117,9 @@ PersistentConnection::PersistentConnection(
       next_listen_id_(0),
       next_write_id_(0),
       logger_(logger) {
-  assert(app);
-  assert(scheduler);
-  assert(event_handler_);
+  FIREBASE_DEV_ASSERT(app);
+  FIREBASE_DEV_ASSERT(scheduler);
+  FIREBASE_DEV_ASSERT(event_handler_);
 
   // Create log id like "[pc_0]" for debugging
   std::stringstream log_id_stream;
@@ -208,7 +207,7 @@ void PersistentConnection::OnReady(int64_t timestamp,
 
   // Restore Auth
   logger_->LogDebug("%s calling restore state", log_id_.c_str());
-  assert(connection_state_ == kConnecting);
+  FIREBASE_DEV_ASSERT(connection_state_ == kConnecting);
 
   // Try to retrieve auth token synchronously when connection is ready.
   GetAuthToken(&auth_token_);
@@ -247,26 +246,26 @@ void PersistentConnection::HandleConnectStatsResponse(
 }
 
 void PersistentConnection::OnDataMessage(const Variant& message) {
-  assert(message.is_map());
+  FIREBASE_DEV_ASSERT(message.is_map());
 
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
 
   if (HasKey(message, kRequestNumber)) {
     auto it_request_number = message.map().find(kRequestNumber);
-    assert(it_request_number->second.is_numeric());
+    FIREBASE_DEV_ASSERT(it_request_number->second.is_numeric());
     uint64_t rn = it_request_number->second.int64_value();
 
     RequestDataPtr request_ptr;
     auto it_request = request_map_.find(rn);
-    assert(it_request != request_map_.end());
+    FIREBASE_DEV_ASSERT(it_request != request_map_.end());
     if (it_request != request_map_.end()) {
       request_ptr = Move(it_request->second);
       request_map_.erase(it_request);
     }
-    assert(request_ptr);
+    FIREBASE_DEV_ASSERT(request_ptr);
     if (request_ptr) {
       auto it_response_message = message.map().find(kResponseForRequest);
-      assert(it_response_message != message.map().end());
+      FIREBASE_DEV_ASSERT(it_response_message != message.map().end());
       if (it_response_message != message.map().end()) {
         logger_->LogDebug("%s Trigger handler for request %llu",
                           log_id_.c_str(), rn);
@@ -510,33 +509,41 @@ void PersistentConnection::TryScheduleReconnect() {
     return;
   }
 
-  assert(connection_state_ == kDisconnected);
+  FIREBASE_DEV_ASSERT(connection_state_ == kDisconnected);
   bool force_refresh = force_auth_refresh_;
   force_auth_refresh_ = false;
   logger_->LogDebug("%s Scheduling connection attempt", log_id_.c_str());
 
-  // TODO(chkuang): Implement Exponential Backoff Retry
-  connection_state_ = kGettingToken;
-  logger_->LogDebug("%s Trying to fetch auth token", log_id_.c_str());
+  scheduler_->Schedule(new callback::CallbackValue2<ThisRef, bool>(
+      safe_this_, force_refresh, [](ThisRef ref, bool force_refresh) {
+        ThisRefLock lock(&ref);
+        auto* connection = lock.GetReference();
+        if (!connection) return;
+        // TODO(chkuang): Implement Exponential Backoff Retry
+        connection->connection_state_ = kGettingToken;
+        connection->logger_->LogDebug("%s Trying to fetch auth token",
+                                      connection->log_id_.c_str());
 
-  // Get Token Asynchronously to make sure the token is not expired.
-  Future<std::string> future;
-  bool succeeded = app_->function_registry()->CallFunction(
-      ::firebase::internal::FnAuthGetTokenAsync, app_, &force_refresh, &future);
-  if (succeeded && future.status() != kFutureStatusInvalid) {
-    // Set pending future
-    MutexLock future_lock(pending_token_future_mutex_);
-    pending_token_future_ = future;
-    future.OnCompletion(OnTokenFutureComplete, this);
-  } else {
-    // Auth is not available now.  Start the connection anyway.
-    OpenNetworkConnection();
-  }
+        // Get Token Asynchronously to make sure the token is not expired.
+        Future<std::string> future;
+        bool succeeded = connection->app_->function_registry()->CallFunction(
+            ::firebase::internal::FnAuthGetTokenAsync, connection->app_,
+            &force_refresh, &future);
+        if (succeeded && future.status() != kFutureStatusInvalid) {
+          // Set pending future
+          MutexLock future_lock(connection->pending_token_future_mutex_);
+          connection->pending_token_future_ = future;
+          future.OnCompletion(OnTokenFutureComplete, connection);
+        } else {
+          // Auth is not available now.  Start the connection anyway.
+          connection->OpenNetworkConnection();
+        }
+      }));
 }
 
 void PersistentConnection::OnTokenFutureComplete(
     const Future<std::string>& result_data, void* user_data) {
-  assert(user_data);
+  FIREBASE_DEV_ASSERT(user_data);
   PersistentConnection* connection =
       static_cast<PersistentConnection*>(user_data);
   ThisRefLock lock(&connection->safe_this_);
@@ -568,7 +575,7 @@ void PersistentConnection::HandleTokenFuture(Future<std::string> future) {
       auth_token_ = *future.result();
       OpenNetworkConnection();
     } else {
-      assert(connection_state_ == kDisconnected);
+      FIREBASE_DEV_ASSERT(connection_state_ == kDisconnected);
       logger_->LogDebug(
           "%s Not opening connection after token refresh, because "
           "connection was set to disconnected",
@@ -583,7 +590,7 @@ void PersistentConnection::HandleTokenFuture(Future<std::string> future) {
 }
 
 void PersistentConnection::OpenNetworkConnection() {
-  assert(connection_state_ == kGettingToken);
+  FIREBASE_DEV_ASSERT(connection_state_ == kGettingToken);
 
   // User might have logged out. Positive auth status is handled after
   // authenticating with the server
@@ -823,10 +830,10 @@ void PersistentConnection::PutInternal(const char* action, const Path& path,
 }
 
 void PersistentConnection::SendPut(uint64_t write_id) {
-  assert(CanSendWrites());
+  FIREBASE_DEV_ASSERT(CanSendWrites());
 
   auto it_put = outstanding_puts_.find(write_id);
-  assert(it_put != outstanding_puts_.end());
+  FIREBASE_DEV_ASSERT(it_put != outstanding_puts_.end());
 
   it_put->second->MarkSent();
   SendSensitive(it_put->second->action.c_str(), false, it_put->second->data,
@@ -908,7 +915,7 @@ void PersistentConnection::SendSensitive(const char* action, bool sensitive,
                                          ResponsePtr response,
                                          ConnectionResponseHandler callback,
                                          uint64_t outstanding_id) {
-  assert(realtime_);
+  FIREBASE_DEV_ASSERT(realtime_);
 
   // Varient only accept int64_t
   int64_t rn = ++next_request_id_;
@@ -924,7 +931,7 @@ void PersistentConnection::SendSensitive(const char* action, bool sensitive,
 }
 
 void PersistentConnection::RestoreOutstandingRequests() {
-  assert(connection_state_ == kConnected);
+  FIREBASE_DEV_ASSERT(connection_state_ == kConnected);
 
   // Restore listens
   logger_->LogDebug("%s Restoring outstanding listens", log_id_.c_str());
@@ -950,7 +957,7 @@ void PersistentConnection::RestoreOutstandingRequests() {
 }
 
 void PersistentConnection::GetAuthToken(std::string* out) {
-  assert(out);
+  FIREBASE_DEV_ASSERT(out);
   app_->function_registry()->CallFunction(
       ::firebase::internal::FnAuthGetCurrentToken, app_, nullptr, out);
 }
@@ -1010,7 +1017,7 @@ void PersistentConnection::SendUnauth() {
 void PersistentConnection::HandleAuthTokenResponse(const Variant& message,
                                                    const ResponsePtr& response,
                                                    uint64_t outstanding_id) {
-  assert(response);
+  FIREBASE_DEV_ASSERT(response);
 
   connection_state_ = kConnected;
 

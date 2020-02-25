@@ -21,13 +21,19 @@ with all possible setups.
 ### Against Firestore emulator
 
 This is the preferred way to run integration tests. The way it is configured is
-we have a controlling `go_test` (`integration_test_emulator.go`), which will
+we have a controlling `sh_test` (`integration_test_emulator.sh`), which will
 pull Firestore emulator as a `data` dependency and set it up before it finds and
 runs the actual integration tests in separate processes.
 
 Note this means on mobile platforms, the integration tests are run within
 simulation, as there is no way to setup Firestore emulator if they are run on
 real devices.
+
+#### Linux:
+
+```bash
+blaze test //firebase/firestore/client/cpp:cc_emulator_tests
+```
 
 #### iOS (running within iOS simulator on forge-on-mac, hence `darwin_x86_64`):
 
@@ -61,6 +67,13 @@ impossible (such as Forge).
 It is useful still, for example, to run it before a release or to debug issues
 that only happen with real backend.
 
+#### Linux:
+
+```bash
+# Run the tests locally (`--test_output=streamed`) so they have network access.
+blaze test --test_output=streamed //firebase/firestore/client/cpp:cc_tests
+```
+
 #### iOS (Runs on real devices via MobileHarness):
 
 ```bash
@@ -68,9 +81,6 @@ blaze test --config=ios_fat --notest_loasd //firebase/firestore/client/cpp:ios_i
 ```
 
 #### Android:
-
-(TODO: Right now, running below would not succeed, there needs to be a hack to
-fix the gmscore version built on rabbit first, eliminate the hack)
 
 ```bash
 blaze --blazerc=//google/src/head/depot/google3/java/com/google/android/gmscore/blaze/blazerc \

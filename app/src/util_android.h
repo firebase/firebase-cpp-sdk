@@ -476,6 +476,9 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
   X(GetIntent, "getIntent", "()Landroid/content/Intent;"),              \
   X(GetPackageName, "getPackageName", "()Ljava/lang/String;"),          \
   X(GetResources, "getResources", "()Landroid/content/res/Resources;"), \
+  X(Finish, "finish", "()V"),                                           \
+  X(GetContentResolver, "getContentResolver",                           \
+    "()Landroid/content/ContentResolver;"),                             \
   X(GetString, "getString", "(I)Ljava/lang/String;")
 #if !defined(FIREBASE_ANDROID_FOR_DESKTOP)
 #define ACTIVITY_METHODS(X)                                             \
@@ -524,8 +527,8 @@ METHOD_LOOKUP_DECLARATION(iterator, ITERATOR_METHODS)
 // clang-format on
 METHOD_LOOKUP_DECLARATION(iterable, ITERABLE_METHODS)
 
-// Used to setup the cache of Set class method IDs to reduce time spent looking
-// up methods by string.
+// Used to setup the cache of Set class method IDs to reduce time spent
+// looking up methods by string.
 // clang-format off
 #define SET_METHODS(X) \
     X(Iterator, "iterator", "()Ljava/util/Iterator;")
@@ -557,6 +560,7 @@ METHOD_LOOKUP_DECLARATION(array_list, ARRAY_LIST_METHODS)
     X(PutExtraString, "putExtra",                                             \
       "(Ljava/lang/String;Ljava/lang/String;)Landroid/content/Intent;"),      \
     X(GetExtras, "getExtras", "()Landroid/os/Bundle;"),                       \
+    X(GetIntExtra, "getIntExtra", "(Ljava/lang/String;I)I"),                  \
     X(GetData, "getData", "()Landroid/net/Uri;")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(intent, INTENT_METHODS);
@@ -686,6 +690,27 @@ METHOD_LOOKUP_DECLARATION(uri, URI_METHODS)
     X(ToString, "toString", "()Ljava/lang/String;")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(object, OBJECT_METHODS)
+
+// clang-format off
+#define CONTENTRESOLVER_METHODS(X)                         \
+    X(OpenAssetFileDescriptor, "openAssetFileDescriptor",  \
+      "(Landroid/net/Uri;Ljava/lang/String;)"              \
+      "Landroid/content/res/AssetFileDescriptor;")
+// clang-format on
+METHOD_LOOKUP_DECLARATION(content_resolver, CONTENTRESOLVER_METHODS)
+
+// clang-format off
+#define ASSETFILEDESCRIPTOR_METHODS(X)                     \
+    X(GetParcelFileDescriptor, "getParcelFileDescriptor",  \
+      "()Landroid/os/ParcelFileDescriptor;")
+// clang-format on
+METHOD_LOOKUP_DECLARATION(asset_file_descriptor, ASSETFILEDESCRIPTOR_METHODS)
+//
+// clang-format off
+#define PARCELFILEDESCRIPTOR_METHODS(X)  \
+    X(DetachFd, "detachFd", "()I")
+// clang-format on
+METHOD_LOOKUP_DECLARATION(parcel_file_descriptor, PARCELFILEDESCRIPTOR_METHODS)
 
 // Holds a reference to a Java thread that will execute a C++ method.
 //

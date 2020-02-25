@@ -16,8 +16,7 @@ FirestoreInternal* GetFirestoreInternal(T* object) {
 
 template <typename T>
 Firestore* GetFirestore(T* object) {
-  FirestoreInternal* internal = GetFirestoreInternal(object);
-  return Firestore::GetInstance(internal->app());
+  return GetFirestoreInternal(object)->firestore_public();
 }
 
 }  // namespace firestore

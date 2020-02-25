@@ -155,6 +155,29 @@ Query Query::WhereArrayContains(const FieldPath& field,
   return internal_->WhereArrayContains(field, value);
 }
 
+Query Query::WhereArrayContainsAny(const std::string& field,
+                                   const std::vector<FieldValue>& values) {
+  return WhereArrayContainsAny(FieldPath::FromDotSeparatedString(field),
+                               values);
+}
+
+Query Query::WhereArrayContainsAny(const FieldPath& field,
+                                   const std::vector<FieldValue>& values) {
+  if (!internal_) return {};
+  return internal_->WhereArrayContainsAny(field, values);
+}
+
+Query Query::WhereIn(const std::string& field,
+                     const std::vector<FieldValue>& values) {
+  return WhereIn(FieldPath::FromDotSeparatedString(field), values);
+}
+
+Query Query::WhereIn(const FieldPath& field,
+                     const std::vector<FieldValue>& values) {
+  if (!internal_) return {};
+  return internal_->WhereIn(field, values);
+}
+
 Query Query::OrderBy(const std::string& field, Direction direction) {
   return OrderBy(FieldPath::FromDotSeparatedString(field), direction);
 }

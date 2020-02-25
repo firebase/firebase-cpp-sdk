@@ -6,6 +6,10 @@
 #include <cstdint>
 #include <unordered_set>
 
+#if defined(FIREBASE_USE_STD_FUNCTION)
+#include <functional>
+#endif
+
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -18,10 +22,11 @@
 namespace firebase {
 namespace firestore {
 
+class Firestore;
+class ListenerRegistrationInternal;
 class Transaction;
 class TransactionFunction;
 class WriteBatch;
-class ListenerRegistrationInternal;
 
 // Used for registering global callbacks. See
 // firebase::util::RegisterCallbackOnTask for context.
@@ -48,6 +53,7 @@ class FirestoreInternal {
  public:
   using ApiType = Firestore;
 
+  // Note: call `set_firestore_public` immediately after construction.
   explicit FirestoreInternal(App* app);
   ~FirestoreInternal();
 
@@ -106,6 +112,14 @@ class FirestoreInternal {
   Future<void> ClearPersistence();
   Future<void> ClearPersistenceLastResult();
 
+  ListenerRegistration AddSnapshotsInSyncListener(
+      EventListener<void>* listener, bool passing_listener_ownership = false);
+
+#if defined(FIREBASE_USE_STD_FUNCTION)
+  ListenerRegistration AddSnapshotsInSyncListener(
+      std::function<void()> callback);
+#endif  // defined(FIREBASE_USE_STD_FUNCTION)
+
   // Manages the ListenerRegistrationInternal objects.
   void RegisterListenerRegistration(ListenerRegistrationInternal* registration);
   void UnregisterListenerRegistration(
@@ -130,6 +144,13 @@ class FirestoreInternal {
     return static_cast<InternalType*>(value.internal_);
   }
 
+  void set_firestore_public(Firestore* firestore_public) {
+    firestore_public_ = firestore_public;
+  }
+
+  Firestore* firestore_public() { return firestore_public_; }
+  const Firestore* firestore_public() const { return firestore_public_; }
+
  private:
   // Gets the reference-counted Future implementation of this instance, which
   // can be used to create a Future.
@@ -153,6 +174,7 @@ class FirestoreInternal {
   static int initialize_count_;
 
   App* app_ = nullptr;
+  Firestore* firestore_public_ = nullptr;
   // Java Firestore global ref.
   jobject obj_;
 

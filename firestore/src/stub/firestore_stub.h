@@ -90,6 +90,18 @@ class FirestoreInternal {
   Future<void> ClearPersistence() { return FailedFuture<void>(); }
   Future<void> ClearPersistenceLastResult() { return FailedFuture<void>(); }
 
+  ListenerRegistration AddSnapshotsInSyncListener(
+      EventListener<void>* listener) {
+    return ListenerRegistration{};
+  }
+#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+  ListenerRegistration AddSnapshotsInSyncListener(
+      // NOLINTNEXTLINE (performance-unnecessary-value-param)
+      std::function<void()> callback) {
+    return ListenerRegistration{};
+  }
+#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
   void UnregisterListenerRegistration(
       ListenerRegistrationInternal* registration) {}
 
@@ -107,6 +119,8 @@ class FirestoreInternal {
     // for more details).
     return static_cast<InternalType*>(value.internal_);
   }
+
+  void set_firestore_public(Firestore*) {}
 
  private:
   CleanupNotifier cleanup_;

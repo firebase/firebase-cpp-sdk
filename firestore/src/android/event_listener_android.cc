@@ -39,6 +39,13 @@ METHOD_LOOKUP_DEFINITION(
     "com/google/firebase/firestore/internal/cpp/QueryEventListener",
     QUERY_EVENT_LISTENER_METHODS)
 
+#define VOID_EVENT_LISTENER_METHODS(X) X(Constructor, "<init>", "(J)V")
+METHOD_LOOKUP_DECLARATION(void_event_listener, VOID_EVENT_LISTENER_METHODS)
+METHOD_LOOKUP_DEFINITION(
+    void_event_listener,
+    "com/google/firebase/firestore/internal/cpp/VoidEventListener",
+    VOID_EVENT_LISTENER_METHODS)
+
 /* static */
 void EventListenerInternal::DocumentEventListenerNativeOnEvent(
     JNIEnv* env, jclass clazz, jlong firestore_ptr, jlong listener_ptr,
@@ -84,6 +91,19 @@ void EventListenerInternal::QueryEventListenerNativeOnEvent(
 }
 
 /* static */
+void EventListenerInternal::VoidEventListenerNativeOnEvent(JNIEnv* env,
+                                                           jclass clazz,
+                                                           jlong listener_ptr) {
+  if (listener_ptr == 0) {
+    return;
+  }
+  EventListener<void>* listener =
+      reinterpret_cast<EventListener<void>*>(listener_ptr);
+
+  listener->OnEvent(Error::Ok);
+}
+
+/* static */
 jobject EventListenerInternal::EventListenerToJavaEventListener(
     JNIEnv* env, FirestoreInternal* firestore,
     EventListener<DocumentSnapshot>* listener) {
@@ -109,6 +129,17 @@ jobject EventListenerInternal::EventListenerToJavaEventListener(
 }
 
 /* static */
+jobject EventListenerInternal::EventListenerToJavaRunnable(
+    JNIEnv* env, EventListener<void>* listener) {
+  jobject result = env->NewObject(
+      void_event_listener::GetClass(),
+      void_event_listener::GetMethodId(void_event_listener::kConstructor),
+      reinterpret_cast<jlong>(listener));
+  CheckAndClearJniExceptions(env);
+  return result;
+}
+
+/* static */
 bool EventListenerInternal::InitializeEmbeddedClasses(
     App* app, const std::vector<internal::EmbeddedFile>* embedded_files) {
   static const JNINativeMethod kDocumentEventListenerNatives[] = {
@@ -123,6 +154,10 @@ bool EventListenerInternal::InitializeEmbeddedClasses(
        "FirebaseFirestoreException;)V",
        reinterpret_cast<void*>(
            &EventListenerInternal::QueryEventListenerNativeOnEvent)}};
+  static const JNINativeMethod kVoidEventListenerNatives[] = {
+      {"nativeOnEvent", "(J)V",
+       reinterpret_cast<void*>(
+           &EventListenerInternal::VoidEventListenerNativeOnEvent)}};
 
   JNIEnv* env = app->GetJNIEnv();
   jobject activity = app->activity();
@@ -133,17 +168,22 @@ bool EventListenerInternal::InitializeEmbeddedClasses(
                                                    embedded_files) &&
       query_event_listener::CacheClassFromFiles(env, activity,
                                                 embedded_files) &&
+      void_event_listener::CacheClassFromFiles(env, activity, embedded_files) &&
       // Cache method-ids
       cpp_event_listener::CacheMethodIds(env, activity) &&
       document_event_listener::CacheMethodIds(env, activity) &&
       query_event_listener::CacheMethodIds(env, activity) &&
+      void_event_listener::CacheMethodIds(env, activity) &&
       // Register natives
       document_event_listener::RegisterNatives(
           env, kDocumentEventListenerNatives,
           FIREBASE_ARRAYSIZE(kDocumentEventListenerNatives)) &&
       query_event_listener::RegisterNatives(
           env, kQueryEventListenerNatives,
-          FIREBASE_ARRAYSIZE(kQueryEventListenerNatives));
+          FIREBASE_ARRAYSIZE(kQueryEventListenerNatives)) &&
+      void_event_listener::RegisterNatives(
+          env, kVoidEventListenerNatives,
+          FIREBASE_ARRAYSIZE(kVoidEventListenerNatives));
   util::CheckAndClearJniExceptions(env);
   return result;
 }
@@ -155,6 +195,7 @@ void EventListenerInternal::Terminate(App* app) {
   cpp_event_listener::ReleaseClass(env);
   document_event_listener::ReleaseClass(env);
   query_event_listener::ReleaseClass(env);
+  void_event_listener::ReleaseClass(env);
   util::CheckAndClearJniExceptions(env);
 }
 

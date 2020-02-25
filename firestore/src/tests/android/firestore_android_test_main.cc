@@ -35,12 +35,12 @@
 
 // non-google3 code should include "firebase/app.h" instead.
 #include "app/src/include/firebase/app.h"
+#include "app/src/assert.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/android/firestore_android.h"
 // non-google3 code should include "gtest/gtest.h" instead.
 #include "testing/base/public/gunit.h"
 // For GTEST_FLAG(filter).
-#include "Firestore/core/src/firebase/firestore/util/hard_assert.h"
 #include "third_party/googletest/googletest/src/gtest-internal-inl.h"
 
 #ifndef NATIVE_FUNCTION_NAME
@@ -87,7 +87,7 @@ App* GetApp(const char* name) {
     return App::Create(g_env, g_activity);
   } else {
     App* default_app = App::GetInstance();
-    HARD_ASSERT(default_app,
+    FIREBASE_ASSERT_MESSAGE(default_app,
                 "Cannot create a named app before the default app");
     return App::Create(default_app->options(), name, g_env, g_activity);
   }

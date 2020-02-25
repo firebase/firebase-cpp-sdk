@@ -25,6 +25,11 @@ void DocumentEventListener::OnEvent(const DocumentSnapshot& value,
 void DocumentEventListener::SetCallback(
     DocumentEventListenerCallback callback) {
   MutexLock lock(g_mutex);
+  if (!callback) {
+    g_document_snapshot_event_listener_callback = nullptr;
+    return;
+  }
+
   if (g_document_snapshot_event_listener_callback) {
     FIREBASE_ASSERT(g_document_snapshot_event_listener_callback == callback);
   } else {

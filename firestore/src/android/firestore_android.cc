@@ -22,6 +22,7 @@
 #include "firestore/src/android/firebase_firestore_exception_android.h"
 #include "firestore/src/android/firebase_firestore_settings_android.h"
 #include "firestore/src/android/geo_point_android.h"
+#include "firestore/src/android/lambda_event_listener.h"
 #include "firestore/src/android/lambda_transaction_function.h"
 #include "firestore/src/android/metadata_changes_android.h"
 #include "firestore/src/android/promise_android.h"
@@ -78,7 +79,11 @@ const char kApiIdentifier[] = "Firestore";
   X(WaitForPendingWrites, "waitForPendingWrites",                       \
     "()Lcom/google/android/gms/tasks/Task;"),                           \
   X(ClearPersistence, "clearPersistence",                               \
-    "()Lcom/google/android/gms/tasks/Task;")
+    "()Lcom/google/android/gms/tasks/Task;"),                           \
+  X(AddSnapshotsInSyncListener, "addSnapshotsInSyncListener",           \
+    "(Ljava/lang/Runnable;)"                                            \
+    "Lcom/google/firebase/firestore/ListenerRegistration;")
+
 // clang-format on
 
 METHOD_LOOKUP_DECLARATION(firebase_firestore, FIREBASE_FIRESTORE_METHODS)
@@ -462,6 +467,41 @@ Future<void> FirestoreInternal::ClearPersistence() {
 Future<void> FirestoreInternal::ClearPersistenceLastResult() {
   return LastResult(FirestoreFn::kClearPersistence);
 }
+
+ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
+    EventListener<void>* listener, bool passing_listener_ownership) {
+  JNIEnv* env = app_->GetJNIEnv();
+
+  // Create listener.
+  jobject java_runnable =
+      EventListenerInternal::EventListenerToJavaRunnable(env, listener);
+
+  // Register listener.
+  jobject java_registration = env->CallObjectMethod(
+      obj_,
+      firebase_firestore::GetMethodId(
+          firebase_firestore::kAddSnapshotsInSyncListener),
+      java_runnable);
+  env->DeleteLocalRef(java_runnable);
+  CheckAndClearJniExceptions(env);
+
+  // Wrapping
+  ListenerRegistrationInternal* registration = new ListenerRegistrationInternal{
+      this, listener, passing_listener_ownership, java_registration};
+  env->DeleteLocalRef(java_registration);
+  return ListenerRegistration{registration};
+}
+
+#if defined(FIREBASE_USE_STD_FUNCTION)
+
+ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
+    std::function<void()> callback) {
+  auto* listener = new LambdaEventListener<void>(firebase::Move(callback));
+  return AddSnapshotsInSyncListener(listener,
+                                    /*passing_listener_ownership=*/true);
+}
+
+#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
 void FirestoreInternal::RegisterListenerRegistration(
     ListenerRegistrationInternal* registration) {

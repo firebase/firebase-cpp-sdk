@@ -10,6 +10,8 @@
 #include "firestore/src/ios/promise_ios.h"
 
 namespace firebase {
+class CleanupNotifier;
+
 namespace firestore {
 
 // Wraps a `FutureManager` and allows creating `Promise`s and getting
@@ -23,22 +25,24 @@ class PromiseFactory {
   // convention that the object has `firestore_internal` member function.
   template <typename T>
   static PromiseFactory Create(T* object) {
-    return PromiseFactory(&object->firestore_internal()->future_manager());
+    return PromiseFactory(&object->firestore_internal()->cleanup(),
+                          &object->firestore_internal()->future_manager());
   }
 
-  explicit PromiseFactory(FutureManager* future_manager)
-      : future_manager_{NOT_NULL(future_manager)} {
+  PromiseFactory(CleanupNotifier* cleanup, FutureManager* future_manager)
+      : cleanup_{NOT_NULL(cleanup)}, future_manager_{NOT_NULL(future_manager)} {
     future_manager_->AllocFutureApi(this, ApisCount());
   }
 
   ~PromiseFactory() { future_manager_->ReleaseFutureApi(this); }
 
   PromiseFactory(const PromiseFactory& rhs)
-      : future_manager_{rhs.future_manager_} {
+      : cleanup_{rhs.cleanup_}, future_manager_{rhs.future_manager_} {
     future_manager_->AllocFutureApi(this, ApisCount());
   }
 
-  PromiseFactory(PromiseFactory&& rhs) : future_manager_{rhs.future_manager_} {
+  PromiseFactory(PromiseFactory&& rhs)
+      : cleanup_{rhs.cleanup_}, future_manager_{rhs.future_manager_} {
     future_manager_->MoveFutureApi(&rhs, this);
   }
 
@@ -47,7 +51,7 @@ class PromiseFactory {
 
   template <typename T>
   Promise<T> CreatePromise(ApiEnum index) {
-    return Promise<T>{future_api(), static_cast<int>(index)};
+    return Promise<T>{cleanup_, future_api(), static_cast<int>(index)};
   }
 
   template <typename T>
@@ -63,6 +67,7 @@ class PromiseFactory {
 
   int ApisCount() const { return static_cast<int>(ApiEnum::kCount); }
 
+  CleanupNotifier* cleanup_ = nullptr;
   FutureManager* future_manager_ = nullptr;
 };
 

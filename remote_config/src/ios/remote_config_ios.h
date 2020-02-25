@@ -16,15 +16,26 @@
 #define FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_IOS_REMOTE_CONFIG_IOS_H_
 
 #include "firebase/app.h"
+#include "app/memory/unique_ptr.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/util_ios.h"
 #include "firebase/future.h"
+
 #include "remote_config/src/include/firebase/remote_config.h"
+
+#ifdef __OBJC__
+#import "FIRRemoteConfig.h"
+#endif  // __OBJC__
 
 namespace firebase {
 namespace remote_config {
 namespace internal {
 // Remote Config Client implementation for iOS.
-//
+
+// This defines the class FIRRemoteConfigPointer, which is a C++-compatible wrapper
+// around the FIRRemoteConfig Obj-C class.
+OBJ_C_PTR_WRAPPER(FIRRemoteConfig);
+
 // This class implements functions from `firebase/remote_config.h` header.
 // See `firebase/remote_config.h` for all public functions documentation.
 class RemoteConfigInternal {
@@ -80,11 +91,21 @@ class RemoteConfigInternal {
   void Cleanup();
 
  private:
+#ifdef __OBJC__
+  FIRRemoteConfig* _Nullable impl() const { return impl_->get(); }
+#endif
   // app
   const firebase::App& app_;
 
+  UniquePtr<FIRRemoteConfigPointer> impl_;
+
   /// Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;
+
+  // Saved default keys.
+  std::vector<std::string> default_keys_;
+
+  int64_t throttled_end_time_in_sec_;
 };
 }  // namespace internal
 }  // namespace remote_config

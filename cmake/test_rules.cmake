@@ -57,98 +57,122 @@ function(cc_test name)
   )
 endfunction()
 
+# ios_test_add_frameworks(
+#   target
+#   CUSTOM_FRAMEWORKS ...
+# )
+#
+# Rolls up a list of the required iOS frameworks for building Firebase
+# apps for iOS.  Implicitly adds DEPENDS on FirebaseAnalytics framework
+# requirements, which is the base requirements for all Firebase SDKs.
+# CUSTOM_FRAMEWORKS will be added to this list.
+# The result of this function sets FRAMEWORK_DIRS and FRAMEWORK_INCLUDES
+# in the parent scope. These variables should be passed to target_link_libraries
+# for linking the final app.
+function(ios_test_add_frameworks name)
+  set(multi CUSTOM_FRAMEWORKS)
+  cmake_parse_arguments(ios_test_add_frameworks "" "" "${multi}" ${ARGN})
+
+  if(NOT DEFINED ${FIREBASE_IOS_SDK_DIR})
+    set(FIREBASE_IOS_SDK_DIR
+        "${CMAKE_BINARY_DIR}/external/firebase_ios_sdk/Firebase")
+  endif()
+
+  set(SDK_FRAMEWORK_DIR_NAMES FirebaseABTesting FirebaseAnalytics FirebaseAuth
+                              FirebaseDatabase FirebaseDynamicLinks
+                              FirebaseFunctions FirebaseMessaging
+                              FirebaseRemoteConfig FirebaseStorage
+                              GoogleSignIn )
+
+  foreach(FRAMEWORK IN LISTS SDK_FRAMEWORK_DIR_NAMES)
+    LIST(APPEND DIRS "-F ${FIREBASE_IOS_SDK_DIR}/${FRAMEWORK}")
+  endforeach()
+
+  # All Firebase SDK modules require the Firebase Analytics Frameworks
+  # so include them by default:
+  set(DEFAULT_FRAMEWORKS FIRAnalyticsConnector FirebaseAnalytics FirebaseCore
+                         FirebaseCoreDiagnostics FirebaseInstanceID
+                         GTMSessionFetcher GoogleAppMeasurement
+                         GoogleDataTransport GoogleDataTransportCCTSupport
+                         GoogleUtilities nanopb )
+
+  foreach(FRAMEWORK IN LISTS DEFAULT_FRAMEWORKS 
+          ios_test_add_frameworks_CUSTOM_FRAMEWORKS)
+    LIST(APPEND INCLUDES "-framework ${FRAMEWORK}")
+  endforeach()
+
+  set(FRAMEWORK_DIRS ${DIRS} PARENT_SCOPE)
+  set(FRAMEWORK_INCLUDES ${INCLUDES} PARENT_SCOPE)
+endfunction()
+
 # cc_test_on_ios(
 #   target
+#   HOST host
 #   SOURCES sources...
 #   DEPENDS libraries...
 #   CUSTOM_FRAMEWORKS frameworks...
+#   DEFINES defines...
 # )
 #
 # Defines a new test executable target with the given target name, sources, and
 # dependencies.  Implicitly adds DEPENDS on gtest, gtest_main, Foundation and
-# CoreFoundation frameworks. CUSTOM_FRAMEWORKS will include any custom Cocoapods
-# frameworks beyond the baseline FirebaseAnalytics.
+# CoreFoundation frameworks and attaches them to the predefined HOST executable.
+# CUSTOM_FRAMEWORKS will include any custom Cocoapods frameworks beyond the
+
+# baseline FirebaseAnalytics.  DEFINES will be added to the
+# target_compile_definitions call.
 function(cc_test_on_ios name)
   if (NOT IOS)
     return()
   endif()
 
-  set(multi DEPENDS SOURCES INCLUDES DEFINES CUSTOM_FRAMEWORKS)
-  # Parse the arguments into cc_test_SOURCES and cc_test_DEPENDS.
+  enable_testing()
+  find_package(XCTest REQUIRED)
+
+  set(multi HOST DEPENDS SOURCES INCLUDES DEFINES CUSTOM_FRAMEWORKS)
   cmake_parse_arguments(cc_test "" "" "${multi}" ${ARGN})
 
-  set(SDK_FRAMEWORK_DIR_NAMES 
-    FirebaseABTesting
-    FirebaseAnalytics
-    FirebaseAuth
-    FirebaseDatabase
-    FirebaseDynamicLinks
-    FirebaseFunctions
-    FirebaseMessaging
-    FirebaseRemoteConfig
-    FirebaseStorage
-    GoogleSignIn
+  ios_test_add_frameworks(${name}
+    CUSTOM_FRAMEWORKS
+      ${cc_test_CUSTOM_FRAMEWORKS}
   )
-
-  # The build environment can use a user-downloaded Firebase IOS SDK defined by
-  # FIREBASE_IOS_SDK_DIR.  Alternatively download the SDK directly if it's not
-  # configured and store the files in external/firebase_ios_sdk.
-  if(NOT DEFINED ${FIREBASE_IOS_SDK_DIR})
-    set(FIREBASE_IOS_SDK_DIR 
-        "${CMAKE_BINARY_DIR}/external/firebase_ios_sdk/Firebase")
-  endif()
-
-  # Add the directories of the SDK download to the framework searchpath.
-  foreach(FRAMEWORK IN LISTS SDK_FRAMEWORK_DIR_NAMES)
-    set(directory "${FIREBASE_IOS_SDK_DIR}/${FRAMEWORK}")
-    LIST(APPEND FRAMEWORK_DIRS "-F ${directory}")
-  endforeach()
-
-  # All Firebase SDK modules require the Firebase Analytics Frameworks
-  # so include them by default:
-  set(DEFAULT_FRAMEWORKS
-    FIRAnalyticsConnector
-    FirebaseAnalytics
-    FirebaseCore
-    FirebaseCoreDiagnostics
-    FirebaseInstanceID
-    GTMSessionFetcher
-    GoogleAppMeasurement
-    GoogleDataTransport
-    GoogleDataTransportCCTSupport
-    GoogleUtilities
-    nanopb
-  )
-
-  # Construct a command line list of frameworks from the default frameworks
-  # (above) and for those passed to this function through the CUSTOM_FRAMEWORKS
-  # parameter.
-  foreach(FRAMEWORK IN LISTS DEFAULT_FRAMEWORKS cc_test_CUSTOM_FRAMEWORKS)
-    LIST(APPEND FRAMEWORK_INCLUDES "-framework ${FRAMEWORK}")
-  endforeach()
 
   list(APPEND cc_test_DEPENDS
-       gmock
-       gtest
-       gtest_main
-       "${FRAMEWORK_DIRS}"
-       "-framework CoreFoundation"
-       "-framework Foundation"
-       "${FRAMEWORK_INCLUDES}"
+       gmock gtest gtest_main
   )
 
-  add_executable(${name} ${cc_test_SOURCES})
-  add_test(${name} ${name})
+  xctest_add_bundle(
+      ${name}
+      ${cc_test_HOST}
+      ${cc_test_SOURCES}
+  )
+
+  # Library Links
+  target_link_libraries(
+    ${name}
+    PRIVATE
+      ${cc_test_DEPENDS} ${FRAMEWORK_DIRS} ${FRAMEWORK_INCLUDES} objc
+  )
+
+  # Compile Options
+  target_compile_options(
+    ${name} PRIVATE
+    ${FIREBASE_CXX_FLAGS}
+  )
+
+  # Include Paths
   target_include_directories(${name}
     PRIVATE
       ${FIREBASE_SOURCE_DIR}
-      ${cc_test_INCLUDES}
+      ${FIREBASE_SOURCE_DIR}/app/src/include
   )
-  target_link_libraries(${name} PRIVATE ${cc_test_DEPENDS})
-  target_compile_definitions(${name}
-    PRIVATE
-      -DINTERNAL_EXPERIMENTAL=1
-      ${cc_test_DEFINES}
-      -DDEATHTEST_SIGABRT="SIGABRT"
+
+  # Preprocessor Definitions
+  target_compile_definitions(${name} PRIVATE
+       -DINTERNAL_EXPERIMENTAL=1
+       -DDEATHTEST_SIGABRT="SIGABRT"
+       ${cc_test_DEFINES}
   )
+
+  xctest_add_test(${name} ${name})
 endfunction()

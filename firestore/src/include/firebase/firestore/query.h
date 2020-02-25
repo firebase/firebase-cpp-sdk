@@ -275,7 +275,8 @@ class Query {
    * documents must contain the specified field, the value must be an array, and
    * that the array must contain the provided value.
    *
-   * A Query can have only one WhereArrayContains() filter.
+   * A Query can have only one `WhereArrayContains()` filter and it cannot be
+   * combined with `WhereArrayContainsAny()` or `WhereIn()`.
    *
    * @param[in] field The name of the field containing an array to search.
    * @param[in] value The value that must be contained in the array.
@@ -290,7 +291,8 @@ class Query {
    * documents must contain the specified field, the value must be an array, and
    * that the array must contain the provided value.
    *
-   * A Query can have only one WhereArrayContains() filter.
+   * A Query can have only one `WhereArrayContains()` filter and it cannot be
+   * combined with `WhereArrayContainsAny()` or `WhereIn()`.
    *
    * @param[in] field The path of the field containing an array to search.
    * @param[in] value The value that must be contained in the array.
@@ -299,6 +301,70 @@ class Query {
    */
   virtual Query WhereArrayContains(const FieldPath& field,
                                    const FieldValue& value);
+
+  /**
+   * @brief Creates and returns a new Query with the additional filter that
+   * documents must contain the specified field, the value must be an array, and
+   * that the array must contain at least one value from the provided list.
+   *
+   * A Query can have only one `WhereArrayContainsAny()` filter and it cannot be
+   * combined with `WhereArrayContains()` or `WhereIn()`.
+   *
+   * @param[in] field The name of the field containing an array to search.
+   * @param[in] values The list that contains the values to match.
+   *
+   * @return The created Query.
+   */
+  virtual Query WhereArrayContainsAny(const std::string& field,
+                                      const std::vector<FieldValue>& values);
+
+  /**
+   * @brief Creates and returns a new Query with the additional filter that
+   * documents must contain the specified field, the value must be an array, and
+   * that the array must contain at least one value from the provided list.
+   *
+   * A Query can have only one `WhereArrayContainsAny()` filter and it cannot be
+   * combined with` WhereArrayContains()` or `WhereIn()`.
+   *
+   * @param[in] field The path of the field containing an array to search.
+   * @param[in] values The list that contains the values to match.
+   *
+   * @return The created Query.
+   */
+  virtual Query WhereArrayContainsAny(const FieldPath& field,
+                                      const std::vector<FieldValue>& values);
+
+  /**
+   * @brief Creates and returns a new Query with the additional filter that
+   * documents must contain the specified field and the value must equal one of
+   * the values from the provided list.
+   *
+   * A Query can have only one `WhereIn()` filter and it cannot be
+   * combined with `WhereArrayContainsAny()`.
+   *
+   * @param[in] field The name of the field containing an array to search.
+   * @param[in] values The list that contains the values to match.
+   *
+   * @return The created Query.
+   */
+  virtual Query WhereIn(const std::string& field,
+                        const std::vector<FieldValue>& values);
+
+  /**
+   * @brief Creates and returns a new Query with the additional filter that
+   * documents must contain the specified field and the value must equal one of
+   * the values from the provided list.
+   *
+   * A Query can have only one `WhereIn()` filter and it cannot be
+   * combined with `WhereArrayContainsAny()`.
+   *
+   * @param[in] field The path of the field containing an array to search.
+   * @param[in] values The list that contains the values to match.
+   *
+   * @return The created Query.
+   */
+  virtual Query WhereIn(const FieldPath& field,
+                        const std::vector<FieldValue>& values);
 
   /**
    * @brief Creates and returns a new Query that's additionally sorted by the

@@ -31,7 +31,7 @@ using model::NumericIncrementTransform;
 using model::ServerTimestampTransform;
 using model::TransformOperation;
 using nanopb::ByteString;
-using util::ThrowInvalidArgument;
+using util::ThrowInvalidArgumentIos;
 
 using Type = FieldValue::Type;
 
@@ -58,7 +58,7 @@ void ParseDelete(ParseContext&& context) {
             "FieldValue::Delete() can only appear at the top level of your "
             "update data") +
         context.FieldDescription();
-    ThrowInvalidArgument(message.c_str());
+    ThrowInvalidArgumentIos(message.c_str());
   }
 
   // We shouldn't encounter delete sentinels for queries or non-merge `Set`
@@ -73,7 +73,7 @@ void ParseDelete(ParseContext&& context) {
           "FieldValue::Delete() can only be used with Update() and Set() with "
           "merge == true") +
       context.FieldDescription();
-  ThrowInvalidArgument(message.c_str());
+  ThrowInvalidArgumentIos(message.c_str());
 }
 
 void ParseServerTimestamp(ParseContext&& context) {
@@ -141,7 +141,7 @@ FieldMask CreateFieldMask(const ParseAccumulator& accumulator,
       auto message =
           std::string("Field '") + path.CanonicalString() +
           "' is specified in your field mask but missing from your input data.";
-      ThrowInvalidArgument(message.c_str());
+      ThrowInvalidArgumentIos(message.c_str());
     }
 
     validated.insert(path);
@@ -220,9 +220,10 @@ ParsedSetData UserDataConverter::ParseMergeData(
                  CreateFieldMask(accumulator, maybe_field_mask.value()));
 }
 
-model::FieldValue UserDataConverter::ParseQueryValue(
-    const FieldValue& input) const {
-  ParseAccumulator accumulator{UserDataSource::Argument};
+model::FieldValue UserDataConverter::ParseQueryValue(const FieldValue& input,
+                                                     bool allow_arrays) const {
+  ParseAccumulator accumulator{allow_arrays ? UserDataSource::ArrayArgument
+                                           : UserDataSource::Argument};
 
   absl::optional<model::FieldValue> parsed =
       ParseData(input, accumulator.RootContext());
@@ -266,8 +267,13 @@ absl::optional<model::FieldValue> UserDataConverter::ParseData(
 
 model::FieldValue::Array UserDataConverter::ParseArray(
     const std::vector<FieldValue>& input, ParseContext&& context) const {
-  if (context.array_element()) {
-    ThrowInvalidArgument("Nested arrays are not supported");
+  // In the case of IN queries, the parsed data is an array (representing the
+  // set of values to be included for the IN query) that may directly contain
+  // additional arrays (each representing an individual field value), so we
+  // disable this validation.
+  if (context.array_element() &&
+      context.data_source() != core::UserDataSource::ArrayArgument) {
+    ThrowInvalidArgumentIos("Nested arrays are not supported");
   }
 
   model::FieldValue::Array result;
@@ -319,7 +325,7 @@ void UserDataConverter::ParseSentinel(const FieldValue& value,
     auto message = Describe(value.type()) +
                    " can only be used with Update() and Set()" +
                    context.FieldDescription();
-    ThrowInvalidArgument(message.c_str());
+    ThrowInvalidArgumentIos(message.c_str());
   }
 
   if (!context.path()) {
@@ -328,7 +334,7 @@ void UserDataConverter::ParseSentinel(const FieldValue& value,
     //                      Describe(value.type()));
     auto message =
         Describe(value.type()) + " is not currently supported inside arrays";
-    ThrowInvalidArgument(message.c_str());
+    ThrowInvalidArgumentIos(message.c_str());
   }
 
   switch (value.type()) {
@@ -409,7 +415,7 @@ model::FieldValue UserDataConverter::ParseScalar(const FieldValue& value,
         auto message = std::string("DocumentReference is for database ") +
                        actual_db + " but should be for database " +
                        expected_db + context.FieldDescription();
-        ThrowInvalidArgument(message.c_str());
+        ThrowInvalidArgumentIos(message.c_str());
       }
 
       const model::DocumentKey& key = GetInternal(&reference)->key();

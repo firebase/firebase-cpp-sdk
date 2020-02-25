@@ -31,6 +31,3 @@ cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/ios.cmake .. -DFIREBASE_CPP_BUI
 
 # Build the SDK and the tests
 cmake --build .
-
-# Run the tests
-ctest --verbose
