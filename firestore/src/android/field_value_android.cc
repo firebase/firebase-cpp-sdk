@@ -112,8 +112,7 @@ FieldValueInternal::FieldValueInternal(const uint8_t* value, size_t size)
 }
 
 FieldValueInternal::FieldValueInternal(DocumentReference value)
-    : Wrapper(firebase::Move(*value.internal_)),
-      cached_type_(Type::kReference) {}
+    : Wrapper(value.internal_), cached_type_{Type::kReference} {}
 
 FieldValueInternal::FieldValueInternal(GeoPoint value)
     : cached_type_(Type::kGeoPoint) {
@@ -133,7 +132,8 @@ FieldValueInternal::FieldValueInternal(std::vector<FieldValue> value)
   jmethodID add_method = util::array_list::GetMethodId(util::array_list::kAdd);
   for (const FieldValue& element : value) {
     // ArrayList.Add() always returns true, which we have no use for.
-    env->CallBooleanMethod(obj_, add_method, element.internal_->obj_);
+    // TODO(b/150016438): don't conflate invalid `FieldValue`s and null.
+    env->CallBooleanMethod(obj_, add_method, TryGetJobject(element));
   }
   CheckAndClearJniExceptions(env);
 }
@@ -148,7 +148,8 @@ FieldValueInternal::FieldValueInternal(MapFieldValue value)
     jobject key = env->NewStringUTF(kv.first.c_str());
     // Map::Put() returns previously associated value or null, which we have no
     // use for.
-    env->CallObjectMethod(obj_, put_method, key, kv.second.internal_->obj_);
+    // TODO(b/150016438): don't conflate invalid `FieldValue`s and null.
+    env->CallObjectMethod(obj_, put_method, key, TryGetJobject(kv.second));
     env->DeleteLocalRef(key);
   }
   CheckAndClearJniExceptions(env);
@@ -345,6 +346,10 @@ DocumentReference FieldValueInternal::reference_value() const {
     FIREBASE_ASSERT(cached_type_ == Type::kReference);
   }
 
+  if (!obj_) {
+    // Reference may be invalid.
+    return DocumentReference{};
+  }
   return DocumentReference{new DocumentReferenceInternal(firestore_, obj_)};
 }
 
@@ -583,6 +588,10 @@ bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
   }
 
   return lhs.EqualsJavaObject(rhs);
+}
+
+jobject FieldValueInternal::TryGetJobject(const FieldValue& value) {
+  return value.internal_ ? value.internal_->obj_ : nullptr;
 }
 
 }  // namespace firestore

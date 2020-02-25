@@ -37,7 +37,7 @@ class Wrapper {
 
   Wrapper(const Wrapper& wrapper);
 
-  Wrapper(Wrapper&& wrapper);
+  Wrapper(Wrapper&& wrapper) noexcept;
 
   virtual ~Wrapper();
 
@@ -61,6 +61,9 @@ class Wrapper {
   // Similar to Wrapper(FirestoreInternal*, jobject) but allowing obj be Null
   // Java object a.k.a. nullptr.
   Wrapper(FirestoreInternal* firestore, jobject obj, AllowNullObject);
+
+  // Similar to a copy constructor, but can handle the case where `rhs` is null.
+  explicit Wrapper(Wrapper* rhs);
 
   // Converts a java list of java type e.g. java.util.List<FirestoreJavaType> to
   // a C++ vector of equivalent type e.g. std::vector<FirestoreType>.
@@ -100,8 +103,8 @@ class Wrapper {
       FirestoreInternal* firestore, MapFieldPathValue::const_iterator begin,
       MapFieldPathValue::const_iterator end);
 
-  FirestoreInternal* firestore_;  // not owning
-  jobject obj_;
+  FirestoreInternal* firestore_ = nullptr;  // not owning
+  jobject obj_ = nullptr;
 
  private:
   friend class FirestoreInternal;

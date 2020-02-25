@@ -47,7 +47,7 @@ Wrapper::Wrapper(jclass clazz, jmethodID method_id, ...) {
 Wrapper::Wrapper(const Wrapper& wrapper)
     : Wrapper(wrapper.firestore_, wrapper.obj_, AllowNullObject::Yes) {}
 
-Wrapper::Wrapper(Wrapper&& wrapper)
+Wrapper::Wrapper(Wrapper&& wrapper) noexcept
     : firestore_(wrapper.firestore_), obj_(wrapper.obj_) {
   FIREBASE_ASSERT(firestore_ != nullptr);
   wrapper.obj_ = nullptr;
@@ -58,6 +58,14 @@ Wrapper::Wrapper() : obj_(nullptr) {
   FIREBASE_ASSERT(firestore != nullptr);
   firestore_ = firestore->internal_;
   FIREBASE_ASSERT(firestore_ != nullptr);
+}
+
+Wrapper::Wrapper(Wrapper* rhs) : Wrapper() {
+  if (rhs) {
+    firestore_ = rhs->firestore_;
+    FIREBASE_ASSERT(firestore_ != nullptr);
+    obj_ = firestore_->app()->GetJNIEnv()->NewGlobalRef(rhs->obj_);
+  }
 }
 
 Wrapper::Wrapper(FirestoreInternal* firestore, jobject obj, AllowNullObject)
