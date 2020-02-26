@@ -26,7 +26,13 @@ namespace firestore {
  * trigger snapshot events.
  */
 enum class MetadataChanges {
+  /** Snapshot events will not be triggered by metadata-only changes. */
   kExclude,
+
+  /**
+   * Snapshot events will be triggered by any changes, including metadata-only
+   * changes.
+   */
   kInclude,
 };
 
