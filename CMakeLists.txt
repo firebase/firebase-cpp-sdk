@@ -55,6 +55,12 @@ option(FIREBASE_INCLUDE_STORAGE
        "Include the Cloud Storage for Firebase library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 
+option(FIREBASE_CPP_BUILD_TESTS
+       "Enable the Firebase C++ Build Tests." OFF)
+option(FIREBASE_FORCE_FAKE_SECURE_STORAGE
+       "Disable use of platform secret store and use fake impl." OFF)
+option(FIREBASE_CPP_BUILD_PACKAGE
+       "Bundle the Firebase C++ libraries into a zip file." OFF)
 option(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD
         "When building with Gradle, use the previously built libraries." OFF)
 
