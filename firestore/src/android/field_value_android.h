@@ -9,8 +9,8 @@
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
-#include "Firestore/core/include/firebase/firestore/geo_point.h"
-#include "Firestore/core/include/firebase/firestore/timestamp.h"
+#include "firebase/firestore/geo_point.h"
+#include "firebase/firestore/timestamp.h"
 
 namespace firebase {
 namespace firestore {

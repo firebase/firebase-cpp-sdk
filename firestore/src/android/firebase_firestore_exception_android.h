@@ -5,7 +5,7 @@
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_android.h"
-#include "Firestore/core/include/firebase/firestore/firestore_errors.h"
+#include "firebase/firestore/firestore_errors.h"
 
 namespace firebase {
 namespace firestore {

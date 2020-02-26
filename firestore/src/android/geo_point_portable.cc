@@ -27,7 +27,7 @@
 #include <sstream>
 
 #include "app/src/assert.h"
-#include "Firestore/core/include/firebase/firestore/geo_point.h"
+#include "firebase/firestore/geo_point.h"
 
 namespace firebase {
 namespace firestore {

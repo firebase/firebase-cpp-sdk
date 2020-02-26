@@ -91,9 +91,17 @@ endfunction()
 # not already a valid directory.
 # Adds the source directory as a subdirectory if a CMakeLists file is found.
 function(add_external_library NAME)
+  cmake_parse_arguments(optional "" "BINARY_DIR" "" ${ARGN})
+
+  if(optional_BINARY_DIR)
+      set(BINARY_DIR "${optional_BINARY_DIR}")
+  else()
+      set(BINARY_DIR "${FIREBASE_BINARY_DIR}")
+  endif()
+
   string(TOUPPER ${NAME} UPPER_NAME)
   if (NOT EXISTS ${${UPPER_NAME}_SOURCE_DIR})
-    set(${UPPER_NAME}_SOURCE_DIR "${FIREBASE_BINARY_DIR}/external/src/${NAME}")
+    set(${UPPER_NAME}_SOURCE_DIR "${BINARY_DIR}/external/src/${NAME}")
     set(${UPPER_NAME}_SOURCE_DIR "${${UPPER_NAME}_SOURCE_DIR}" PARENT_SCOPE)
   endif()
 
@@ -102,8 +110,11 @@ function(add_external_library NAME)
     set(${UPPER_NAME}_BINARY_DIR "${${UPPER_NAME}_BINARY_DIR}" PARENT_SCOPE)
   endif()
 
+  message(STATUS "add_ext... ${UPPER_NAME}_SOURCE_DIR: ${${UPPER_NAME}_SOURCE_DIR}")
+  message(STATUS "add_ext... ${UPPER_NAME}_BINARY_DIR: ${${UPPER_NAME}_BINARY_DIR}")
+
   if (EXISTS "${${UPPER_NAME}_SOURCE_DIR}/CMakeLists.txt")
     add_subdirectory(${${UPPER_NAME}_SOURCE_DIR} ${${UPPER_NAME}_BINARY_DIR}
-                     EXCLUDE_FROM_ALL)
+            EXCLUDE_FROM_ALL)
   endif()
 endfunction()

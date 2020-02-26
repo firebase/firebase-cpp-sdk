@@ -4,7 +4,7 @@
 #include <jni.h>
 
 #include "app/src/include/firebase/app.h"
-#include "Firestore/core/include/firebase/firestore/timestamp.h"
+#include "firebase/firestore/timestamp.h"
 
 namespace firebase {
 namespace firestore {

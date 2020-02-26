@@ -25,7 +25,7 @@
 #include <ostream>
 #include <sstream>
 
-#include "Firestore/core/include/firebase/firestore/timestamp.h"
+#include "firebase/firestore/timestamp.h"
 
 #if defined(__APPLE__)
 #import <CoreFoundation/CoreFoundation.h>

@@ -8,7 +8,7 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "firestore/src/ios/hard_assert_ios.h"
 #include "absl/meta/type_traits.h"
-#include "Firestore/core/include/firebase/firestore/firestore_errors.h"
+#include "firebase/firestore/firestore_errors.h"
 #include "Firestore/core/src/firebase/firestore/util/status.h"
 #include "Firestore/core/src/firebase/firestore/util/statusor.h"
 

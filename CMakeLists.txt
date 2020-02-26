@@ -20,32 +20,43 @@ set (CMAKE_CXX_STANDARD 11)
 # Turn on virtual folders for visual studio
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+# Top level option that determines the default behavior of the include options
+# below. Useful for turning off all at once, and then turning on a specific one.
+option(FIREBASE_INCLUDE_LIBRARY_DEFAULT
+       "Should each library be included by default." ON)
 # Different options to enable/disable each library being included during
 # configuration.
-option(FIREBASE_INCLUDE_ADMOB "Include the AdMob library." ON)
+option(FIREBASE_INCLUDE_ADMOB "Include the AdMob library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_ANALYTICS
-       "Include the Google Analytics for Firebase library." ON)
-option(FIREBASE_INCLUDE_AUTH "Include the Firebase Authentication library." ON)
+       "Include the Google Analytics for Firebase library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
+option(FIREBASE_INCLUDE_AUTH "Include the Firebase Authentication library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_DATABASE
-       "Include the Firebase Realtime Database library." ON)
+       "Include the Firebase Realtime Database library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_DYNAMIC_LINKS
-       "Include the Firebase Dynamic Links library." ON)
+       "Include the Firebase Dynamic Links library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_FUNCTIONS
-       "Include the Cloud Functions for Firebase library." ON)
+       "Include the Cloud Functions for Firebase library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_INSTANCE_ID
-       "Include the Firebase Instance ID library." ON)
+       "Include the Firebase Instance ID library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_MESSAGING
-       "Include the Firebase Cloud Messaging library." ON)
+       "Include the Firebase Cloud Messaging library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_REMOTE_CONFIG
-       "Include the Firebase Remote Config library." ON)
+       "Include the Firebase Remote Config library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_STORAGE
-       "Include the Cloud Storage for Firebase library." ON)
-option(FIREBASE_CPP_BUILD_TESTS
-       "Enable the Firebase C++ Build Tests." OFF)
-option(FIREBASE_FORCE_FAKE_SECURE_STORAGE
-       "Disable use of platform secret store and use fake impl." OFF)
-option(FIREBASE_CPP_BUILD_PACKAGE
-       "Bundle the Firebase C++ libraries into a zip file." OFF)
+       "Include the Cloud Storage for Firebase library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
+
+option(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD
+        "When building with Gradle, use the previously built libraries." OFF)
 
 # Define this directory to be the root of the C++ SDK, which the libraries can
 # then refer to.
@@ -94,10 +105,18 @@ set(FIREBASE_BINARY_DIR ${PROJECT_BINARY_DIR})
 set(FIREBASE_INSTALL_DIR ${PROJECT_BINARY_DIR}/opt)
 set(FIREBASE_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads)
 
-# Run the CMake build logic that will download all the external dependencies.
-message(STATUS "Downloading external project dependencies...")
-download_external_sources()
-message(STATUS "Download complete.")
+if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
+  # Figure out where app's binary_dir was.
+  string(REGEX REPLACE
+    "${CMAKE_CURRENT_LIST_DIR}/[^/]+/(.*)"
+    "${CMAKE_CURRENT_LIST_DIR}/app/\\1"
+    APP_BINARY_DIR "${FIREBASE_BINARY_DIR}")
+else()
+  # Run the CMake build logic that will download all the external dependencies.
+  message(STATUS "Downloading external project dependencies...")
+  download_external_sources()
+  message(STATUS "Download complete.")
+endif()
 
 # Disable the Flatbuffer build tests, install and flathash
 set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "")
@@ -109,9 +128,13 @@ if(IOS OR ANDROID)
   set(FLATBUFFERS_BUILD_FLATC OFF CACHE BOOL "")
 endif()
 
-# Add flatbuffers as a subdirectory, and set the directory variables for it,
-# so that the sub Firebase projects can depend upon it if necessary.
-add_external_library(flatbuffers)
+if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
+  message(STATUS "flatbuffers is added with APP_BINARY_DIR ${APP_BINARY_DIR}")
+  add_external_library(flatbuffers BINARY_DIR "${APP_BINARY_DIR}")
+else()
+  message(STATUS "flatbuffers is added normally")
+  add_external_library(flatbuffers)
+endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)
   add_external_library(googletest)
@@ -290,8 +313,24 @@ if(FIREBASE_CPP_BUILD_TESTS)
   add_subdirectory(testing)
 endif()
 
-# App needs to come first, since other libraries will depend upon it.
-add_subdirectory(app)
+if(NOT FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
+  add_subdirectory(app)
+else()
+  # Add firebase_app as a target on the previously built app.
+  add_library(firebase_app STATIC IMPORTED GLOBAL)
+  file(MAKE_DIRECTORY "${APP_BINARY_DIR}/generated")
+  file(MAKE_DIRECTORY "${FIREBASE_BINARY_DIR}/generated")
+  set(app_include_dirs
+      "${CMAKE_CURRENT_LIST_DIR}/app/src/include"
+      "${APP_BINARY_DIR}/generated"
+      "${FIREBASE_BINARY_DIR}/generated"
+  )
+  set_target_properties(firebase_app PROPERTIES
+    IMPORTED_LOCATION "${APP_BINARY_DIR}/libfirebase_app.a"
+    INTERFACE_INCLUDE_DIRECTORIES "${app_include_dirs}"
+  )
+endif()
+
 if (FIREBASE_INCLUDE_ADMOB)
   add_subdirectory(admob)
 endif()
