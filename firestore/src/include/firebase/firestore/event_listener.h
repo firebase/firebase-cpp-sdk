@@ -22,7 +22,12 @@
 namespace firebase {
 namespace firestore {
 
-/** An interface for event listeners. */
+/**
+ * An interface for event listeners.
+ *
+ * @note This class should only be used when using the STLPort C++ runtime
+ * library.
+ */
 template <typename T>
 class EventListener {
  public:
@@ -40,13 +45,18 @@ class EventListener {
   virtual void OnEvent(const T& value, Error error) = 0;
 };
 
-/** Interface used for void EventListeners that don't produce a value. */
+/**
+ * Interface used for void EventListeners that don't produce a value.
+ *
+ * @note This class should only be used when using the STLPort C++ runtime
+ * library.
+ */
 template <>
 class EventListener<void> {
  public:
   virtual ~EventListener() = default;
 
-   /**
+  /**
    * @brief OnEvent will be called with the error if an error occurred.
    *
    * @param error The error if there was error. Error::Ok otherwise.
