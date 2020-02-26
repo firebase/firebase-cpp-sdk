@@ -70,6 +70,8 @@ class FieldValueInternal : public Wrapper {
   static bool Initialize(App* app);
   static void Terminate(App* app);
 
+  static jobject TryGetJobject(const FieldValue& value);
+
   static jobject delete_;
   static jobject server_timestamp_;
 

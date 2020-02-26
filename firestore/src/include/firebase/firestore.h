@@ -51,6 +51,12 @@
 #include "firebase/firestore/timestamp.h"
 
 namespace firebase {
+/**
+ * @brief Cloud Firestore API.
+ *
+ * Cloud Firestore is a flexible, scalable database for mobile, web, and server
+ * development from Firebase and Google Cloud Platform.
+ */
 namespace firestore {
 
 class FirestoreInternal;

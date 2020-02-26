@@ -535,7 +535,7 @@ class Tree {
   }
 
   // The key of this element in the Tree. This will the eqivalent to the
-  // std:;string stored in the children_ map in the parent Tree node.
+  // std::string stored in the children_ map in the parent Tree node.
   std::string key_;
 
   // The value stored at this location in the tree. A location in a tree is not
