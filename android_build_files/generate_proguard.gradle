@@ -64,7 +64,7 @@ def generateFinalProguard(Set<File> proguardSet, String outputProguard) {
 def defineGenerateProguardFile(String subproject, String buildType,
                                Action<File> callback) {
   Task t = tasks.getByName("externalNativeBuild$buildType").with {
-    String outputProguard = "$buildDir/${subproject}.pro"
+    String outputProguard = "$buildDir/$buildType/${subproject}.pro"
 
     outputs.file "$outputProguard"
     doLast {

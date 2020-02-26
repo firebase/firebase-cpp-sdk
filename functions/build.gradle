@@ -62,6 +62,12 @@ android {
     externalNativeBuild {
       cmake {
         targets 'firebase_functions'
+        // Args are: Re-use app library prebuilt by app gradle project.
+        //           Don't configure all the cmake subprojects.
+        //           Only include needed project.
+        arguments '-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON',
+                '-DFIREBASE_INCLUDE_LIBRARY_DEFAULT=OFF',
+                '-DFIREBASE_INCLUDE_FUNCTIONS=ON'
       }
     }
   }

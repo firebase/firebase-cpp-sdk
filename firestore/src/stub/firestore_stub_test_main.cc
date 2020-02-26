@@ -2,7 +2,7 @@
 #include "app/src/include/firebase/app.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "testing/base/public/gmock.h"
-#include "testing/base/public/gunit.h"
+#include "gtest/gtest.h"
 
 #ifdef _WIN32
 #include <windows.h>

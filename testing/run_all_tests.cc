@@ -22,7 +22,7 @@
 #include <stdio.h>
 
 #include "base/logging.h"
-#include "testing/base/public/gunit.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace testing {

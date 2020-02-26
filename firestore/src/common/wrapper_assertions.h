@@ -10,7 +10,7 @@
 #include "firestore/src/stub/firestore_stub.h"
 #endif  // defined(__ANDROID__)
 
-#include "testing/base/public/gunit.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace firestore {

@@ -44,7 +44,7 @@ function(firebase_cpp_proguard_file LIBRARY_NAME)
   string(TOUPPER "${LIBRARY_NAME}" upper_name)
   set(proguard_var "FIREBASE_CPP_${upper_name}_PROGUARD")
   set(${proguard_var}
-      "${FIREBASE_SOURCE_DIR}/${LIBRARY_NAME}/build/${LIBRARY_NAME}.pro"
+      "${FIREBASE_SOURCE_DIR}/${LIBRARY_NAME}/build/${CMAKE_BUILD_TYPE}/${LIBRARY_NAME}.pro"
       CACHE FILEPATH "Proguard file for ${LIBRARY_NAME}" FORCE)
 
   firebase_cpp_gradle(":${LIBRARY_NAME}:externalNativeBuildRelease"

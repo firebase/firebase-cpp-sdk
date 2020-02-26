@@ -11,7 +11,7 @@
 #include "firestore/src/android/query_snapshot_android.h"
 #include "firestore/src/android/util_android.h"
 #include "firestore/src/include/firebase/firestore/query_snapshot.h"
-#include "Firestore/core/include/firebase/firestore/firestore_errors.h"
+#include "firebase/firestore/firestore_errors.h"
 
 namespace firebase {
 namespace firestore {

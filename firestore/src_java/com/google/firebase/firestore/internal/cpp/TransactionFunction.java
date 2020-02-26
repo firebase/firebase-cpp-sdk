@@ -1,6 +1,6 @@
 package com.google.firebase.firestore.internal.cpp;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.FirebaseFirestoreException.Code;
 import com.google.firebase.firestore.Transaction;

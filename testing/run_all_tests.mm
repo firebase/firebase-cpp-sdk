@@ -15,7 +15,7 @@
 #import <Foundation/Foundation.h>
 #import <XCTest/XCTest.h>
 
-#include "testing/base/public/gunit.h"
+#include "gtest/gtest.h"
 
 @interface RunAllTests : XCTestCase
 @end
