@@ -37,6 +37,23 @@ function(download_external_sources)
     set(external_platform DESKTOP)
   endif()
 
+  # Prepare the Firestore CMake build as well.
+  if(FIREBASE_INCLUDE_FIRESTORE)
+    set(FIRESTORE_BINARY_DIR ${PROJECT_BINARY_DIR}/external/src/firestore-build)
+
+    execute_process(
+      COMMAND
+        ${ENV_COMMAND} cmake
+        -DFIREBASE_DOWNLOAD_DIR=${FIREBASE_DOWNLOAD_DIR}
+        -DCMAKE_INSTALL_PREFIX=${FIREBASE_INSTALL_DIR}
+        ${PROJECT_BINARY_DIR}/external/src/firestore
+
+      WORKING_DIRECTORY ${FIRESTORE_BINARY_DIR}
+    )
+
+    set(NANOPB_SRC_DIR ${FIRESTORE_BINARY_DIR}/external/src/nanopb)
+  endif()
+
   # Set variables to indicate if local versions of third party libraries should
   # be used instead of downloading them.
   function(check_use_local_directory NAME)
