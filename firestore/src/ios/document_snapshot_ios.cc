@@ -11,6 +11,7 @@
 #include "Firestore/core/src/firebase/firestore/model/document_key.h"
 #include "Firestore/core/src/firebase/firestore/model/field_path.h"
 #include "Firestore/core/src/firebase/firestore/model/field_value_options.h"
+#include "Firestore/core/src/firebase/firestore/nanopb/byte_string.h"
 
 namespace firebase {
 namespace firestore {
