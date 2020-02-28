@@ -39,6 +39,9 @@ option(FIREBASE_INCLUDE_DATABASE
 option(FIREBASE_INCLUDE_DYNAMIC_LINKS
        "Include the Firebase Dynamic Links library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
+option(FIREBASE_INCLUDE_FIRESTORE
+       "Include the Cloud Firestore library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_FUNCTIONS
        "Include the Cloud Functions for Firebase library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
@@ -122,6 +125,22 @@ else()
   message(STATUS "Downloading external project dependencies...")
   download_external_sources()
   message(STATUS "Download complete.")
+
+  # Include Firestore's external build early to resolve conflicts on packages.
+  if(FIREBASE_INCLUDE_FIRESTORE)
+    set(FIRESTORE_SOURCE_DIR ${FIREBASE_BINARY_DIR}/external/src/firestore)
+    set(FIRESTORE_BINARY_DIR ${FIRESTORE_SOURCE_DIR}-build)
+
+    set(
+      FIREBASE_IOS_BUILD_TESTS
+      ${FIREBASE_CPP_BUILD_TESTS}
+      CACHE BOOL "Force Firestore build tests to match"
+    )
+
+    add_subdirectory(${FIRESTORE_SOURCE_DIR} ${FIRESTORE_BINARY_DIR})
+
+    copy_subdirectory_definition(${FIRESTORE_SOURCE_DIR} NANOPB_SOURCE_DIR)
+  endif()
 endif()
 
 # Disable the Flatbuffer build tests, install and flathash
@@ -142,9 +161,9 @@ else()
   add_external_library(flatbuffers)
 endif()
 
-if(FIREBASE_CPP_BUILD_TESTS)
+if(FIREBASE_CPP_BUILD_TESTS AND NOT FIREBASE_INCLUDE_FIRESTORE)
+  # Firestore's external build pulls in googletest
   add_external_library(googletest)
-  add_external_library(absl)
 endif()
 
 # Some of the external libraries are not used for mobile.
@@ -231,15 +250,30 @@ if (NOT ANDROID AND NOT IOS)
         zlibstatic
     )
   endif()
+endif()
 
+if(FIREBASE_INCLUDE_FIRESTORE)
+  # The Firestore build includes protobuf and nanopb already
+  list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
+  find_package(Nanopb REQUIRED)
+
+  set(PROTOBUF_FOUND ON)
+
+else()
   find_package(Protobuf)
   if (PROTOBUF_FOUND)
     # NanoPB requires Protobuf to be present, so only add it if it was found.
     add_external_library(nanopb)
+
     # NanoPB has a FindNanopb which defines the function to generate files, so
     # add it to the module path, and use that.
-    list(INSERT CMAKE_MODULE_PATH 0 ${NANOPB_SOURCE_DIR}/extra)
+    list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
     find_package(Nanopb)
+
+    target_compile_definitions(
+      protobuf-nanopb-static
+      PUBLIC -DPB_FIELD_32BIT -DPB_ENABLE_MALLOC
+    )
   endif()
 endif()
 
@@ -351,6 +385,9 @@ if (FIREBASE_INCLUDE_DATABASE)
 endif()
 if (FIREBASE_INCLUDE_DYNAMIC_LINKS)
   add_subdirectory(dynamic_links)
+endif()
+if (FIREBASE_INCLUDE_FIRESTORE)
+  add_subdirectory(firestore)
 endif()
 if (FIREBASE_INCLUDE_FUNCTIONS)
   add_subdirectory(functions)

@@ -135,3 +135,12 @@ function(add_external_library NAME)
             EXCLUDE_FROM_ALL)
   endif()
 endfunction()
+
+# Copies a variable definition from a subdirectory into the parent scope
+macro(copy_subdirectory_definition DIRECTORY VARIABLE)
+  get_directory_property(
+    ${VARIABLE}
+    DIRECTORY ${DIRECTORY}
+    DEFINITION ${VARIABLE}
+  )
+endmacro()
