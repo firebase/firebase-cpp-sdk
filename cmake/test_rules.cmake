@@ -24,7 +24,7 @@ include(CMakeParseArguments)
 #
 # Defines a new test executable target with the given target name, sources, and
 # dependencies.  Implicitly adds DEPENDS on gtest and gtest_main.
-function(cc_test name)
+function(firebase_cpp_cc_test name)
   if (ANDROID OR IOS)
     return()
   endif()
