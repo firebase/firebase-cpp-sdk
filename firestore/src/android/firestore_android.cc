@@ -233,8 +233,11 @@ FirestoreInternal::~FirestoreInternal() {
 
   {
     MutexLock lock(listener_registration_mutex_);
-    for (ListenerRegistrationInternal* registration : listener_registrations_) {
-      delete registration;
+    // TODO(varconst): investigate why not all listener registrations are
+    // cleared.
+    // FIREBASE_ASSERT(listener_registrations_.empty());
+    for (auto* reg : listener_registrations_) {
+      delete reg;
     }
     listener_registrations_.clear();
   }
