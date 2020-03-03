@@ -10,6 +10,7 @@
 #include "firestore/src/ios/credentials_provider_ios.h"
 #include "firestore/src/ios/document_reference_ios.h"
 #include "firestore/src/ios/document_snapshot_ios.h"
+#include "firestore/src/ios/hard_assert_ios.h"
 #include "firestore/src/ios/listener_ios.h"
 #include "absl/memory/memory.h"
 #include "absl/types/any.h"
@@ -56,7 +57,12 @@ FirestoreInternal::FirestoreInternal(
   ApplyDefaultSettings();
 }
 
-FirestoreInternal::~FirestoreInternal() { ClearListeners(); }
+FirestoreInternal::~FirestoreInternal() {
+  std::lock_guard<std::mutex> lock(listeners_mutex_);
+  HARD_ASSERT_IOS(listeners_.empty(),
+                  "Expected all listeners to be unregistered by the time "
+                  "FirestoreInternal is destroyed.");
+}
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
     App* app, std::unique_ptr<CredentialsProvider> credentials) {
