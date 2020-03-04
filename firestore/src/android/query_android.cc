@@ -46,10 +46,24 @@ Query QueryInternal::OrderBy(const FieldPath& field,
 
 Query QueryInternal::Limit(int32_t limit) {
   JNIEnv* env = firestore_->app()->GetJNIEnv();
-  // Although the backend supports signed int32, Android client SDK use long
-  // as parameter type. So we up-cast it to jlong instead of jint here.
+  // Although the backend supports signed int32, Android client SDK uses long
+  // as parameter type. So we cast it to jlong instead of jint here.
   jobject query = env->CallObjectMethod(obj_, query::GetMethodId(query::kLimit),
                                         static_cast<jlong>(limit));
+  CheckAndClearJniExceptions(env);
+  QueryInternal* internal = new QueryInternal{firestore_, query};
+  env->DeleteLocalRef(query);
+
+  CheckAndClearJniExceptions(env);
+  return Query{internal};
+}
+
+Query QueryInternal::LimitToLast(int32_t limit) {
+  JNIEnv* env = firestore_->app()->GetJNIEnv();
+  // Although the backend supports signed int32, Android client SDK uses long
+  // as parameter type. So we cast it to jlong instead of jint here.
+  jobject query = env->CallObjectMethod(
+      obj_, query::GetMethodId(query::kLimitToLast), static_cast<jlong>(limit));
   CheckAndClearJniExceptions(env);
   QueryInternal* internal = new QueryInternal{firestore_, query};
   env->DeleteLocalRef(query);

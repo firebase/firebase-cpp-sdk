@@ -30,6 +30,7 @@ class QueryInternal {
 
   Query OrderBy(const FieldPath& field, Query::Direction direction);
   Query Limit(int32_t limit);
+  Query LimitToLast(int32_t limit);
 
   virtual Future<QuerySnapshot> Get(Source source);
   virtual Future<QuerySnapshot> GetLastResult();

@@ -53,6 +53,10 @@ Query QueryInternal::Limit(int32_t limit) {
   return MakePublic(query_.LimitToFirst(limit));
 }
 
+Query QueryInternal::LimitToLast(int32_t limit) {
+  return MakePublic(query_.LimitToLast(limit));
+}
+
 Future<QuerySnapshot> QueryInternal::Get(Source source) {
   auto promise = promise_factory_.CreatePromise<QuerySnapshot>(AsyncApis::kGet);
   auto listener = ListenerWithPromise<api::QuerySnapshot>(promise);
