@@ -393,8 +393,8 @@ class Query {
                         Direction direction = Direction::kAscending);
 
   /**
-   * @brief Creates and returns a new Query that's additionally limited to only
-   * return up to the specified number of documents.
+   * @brief Creates and returns a new Query that only returns the first matching
+   * documents up to the specified number.
    *
    * @param[in] limit A non-negative integer to specify the maximum number of
    * items to return.
@@ -402,6 +402,17 @@ class Query {
    * @return The created Query.
    */
   virtual Query Limit(int32_t limit);
+
+  /**
+   * @brief Creates and returns a new Query that only returns the last matching
+   * documents up to the specified number.
+   *
+   * @param[in] limit A non-negative integer to specify the maximum number of
+   * items to return.
+   *
+   * @return The created Query.
+   */
+  virtual Query LimitToLast(int32_t limit);
 
   /**
    * @brief Creates and returns a new Query that starts at the provided document

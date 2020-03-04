@@ -192,6 +192,11 @@ Query Query::Limit(int32_t limit) {
   return internal_->Limit(limit);
 }
 
+Query Query::LimitToLast(int32_t limit) {
+  if (!internal_) return {};
+  return internal_->LimitToLast(limit);
+}
+
 Query Query::StartAt(const DocumentSnapshot& snapshot) {
   if (!internal_) return {};
   return internal_->StartAt(snapshot);

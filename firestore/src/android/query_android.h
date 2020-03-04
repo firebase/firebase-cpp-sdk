@@ -61,6 +61,8 @@ enum class QueryFn {
     "Lcom/google/firebase/firestore/Query$Direction;)"              \
     "Lcom/google/firebase/firestore/Query;"),                       \
   X(Limit, "limit", "(J)Lcom/google/firebase/firestore/Query;"),    \
+  X(LimitToLast, "limitToLast",                                     \
+      "(J)Lcom/google/firebase/firestore/Query;"),                  \
   X(StartAtSnapshot, "startAt",                                     \
     "(Lcom/google/firebase/firestore/DocumentSnapshot;)"            \
     "Lcom/google/firebase/firestore/Query;"),                       \
@@ -235,15 +237,26 @@ class QueryInternal : public WrapperFuture<QueryFn, QueryFn::kCount> {
   Query OrderBy(const FieldPath& field, Query::Direction direction);
 
   /**
-   * @brief Creates and returns a new Query that's additionally limited to only
-   * return up to the specified number of documents.
+   * @brief Creates and returns a new Query that only returns the first matching
+   * documents up to the specified number.
    *
    * @param[in] limit A non-negative integer to specify the maximum number of
    * items to return.
    *
    * @return The created Query.
    */
-  Query Limit(int32_t limit);
+  virtual Query Limit(int32_t limit);
+
+  /**
+   * @brief Creates and returns a new Query that only returns the last matching
+   * documents up to the specified number.
+   *
+   * @param[in] limit A non-negative integer to specify the maximum number of
+   * items to return.
+   *
+   * @return The created Query.
+   */
+  virtual Query LimitToLast(int32_t limit);
 
   /**
    * @brief Creates and returns a new Query that starts at the provided document
