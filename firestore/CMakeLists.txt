@@ -12,6 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+if(APPLE AND NOT ANDROID)
+  set(settings_apple_SRCS
+      src/common/settings_ios.mm)
+else()
+  set(settings_apple_SRCS)
+endif()
+
 set(common_SRCS
     src/common/cleanup.h
     src/common/collection_reference.cc
@@ -28,14 +35,14 @@ set(common_SRCS
     src/common/query_snapshot.cc
     src/common/set_options.cc
     src/common/settings.cc
-    src/common/settings_ios.mm
     src/common/snapshot_metadata.cc
     src/common/to_string.cc
     src/common/to_string.h
     src/common/transaction.cc
     src/common/util.cc
     src/common/util.h
-    src/common/write_batch.cc)
+    src/common/write_batch.cc
+    ${settings_apple_SRCS})
 
 set(android_SRCS
     src/android/blob_android.cc
