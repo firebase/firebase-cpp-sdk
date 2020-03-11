@@ -127,11 +127,12 @@ else()
   message(STATUS "Downloading external project dependencies...")
   download_external_sources()
   message(STATUS "Download complete.")
+
+  set(FIRESTORE_SOURCE_DIR ${FIREBASE_BINARY_DIR}/external/src/firestore)
 endif()
 
 # Include Firestore's external build early to resolve conflicts on packages.
 if(NOT ANDROID AND FIREBASE_INCLUDE_FIRESTORE)
-  set(FIRESTORE_SOURCE_DIR ${FIREBASE_BINARY_DIR}/external/src/firestore)
   set(FIRESTORE_BINARY_DIR ${FIRESTORE_SOURCE_DIR}-build)
 
   set(
