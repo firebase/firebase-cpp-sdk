@@ -23,6 +23,7 @@ def firebaseDependenciesMap = [
   'auth' : ['com.google.firebase:firebase-auth:19.2.0'],
   'database' : ['com.google.firebase:firebase-database:19.2.1'],
   'dynamic_links' : ['com.google.firebase:firebase-dynamic-links:19.1.0'],
+  'firestore' : ['com.google.firebase:firebase-firestore:21.4.0'],
   'functions' : ['com.google.firebase:firebase-functions:19.0.2'],
   'instance_id' : ['com.google.firebase:firebase-iid:20.0.2'],
   'invites' : ['com.google.firebase:firebase-invites:17.0.0'],
@@ -42,6 +43,7 @@ def firebaseResourceDependenciesMap = [
   'admob' : [':admob:admob_resources'],
   'auth' : [':auth:auth_resources'],
   'database' : [':database:database_resources'],
+  'firestore' : [':firestore:firestore_resources'],
   'storage' : [':storage:storage_resources']
 ]
 
@@ -73,6 +75,9 @@ class Dependencies {
   }
   def getDynamicLinks() {
     libSet.add('dynamic_links')
+  }
+  def getFirestore() {
+    libSet.add('firestore')
   }
   def getFunctions() {
     libSet.add('functions')
