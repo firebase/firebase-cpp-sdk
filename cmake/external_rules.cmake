@@ -51,7 +51,7 @@ function(download_external_sources)
       WORKING_DIRECTORY ${FIRESTORE_BINARY_DIR}
     )
 
-    set(NANOPB_SRC_DIR ${FIRESTORE_BINARY_DIR}/external/src/nanopb)
+    set(NANOPB_SOURCE_DIR ${FIRESTORE_BINARY_DIR}/external/src/nanopb)
   endif()
 
   # Set variables to indicate if local versions of third party libraries should

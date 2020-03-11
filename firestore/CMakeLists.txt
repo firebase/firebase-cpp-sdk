@@ -44,7 +44,16 @@ set(common_SRCS
     src/common/write_batch.cc
     ${settings_apple_SRCS})
 
+# Define the resource build needed for Android
+firebase_cpp_gradle(":firestore:firestore_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/firestore_resources/build/dexed.jar")
+binary_to_array("firestore_resources"
+    "${CMAKE_CURRENT_LIST_DIR}/firestore_resources/build/dexed.jar"
+    "firebase_firestore"
+    "${FIREBASE_GEN_FILE_DIR}/firestore")
+
 set(android_SRCS
+    ${firestore_resources_source}
     src/android/blob_android.cc
     src/android/blob_android.h
     src/android/collection_reference_android.cc
@@ -164,15 +173,20 @@ add_library(firebase_firestore STATIC
 
 set_property(TARGET firebase_firestore PROPERTY FOLDER "Firebase Cpp")
 
+if(NOT ANDROID)
+  set(firestore_api_dep firebase_firestore_api)
+else()
+  set(firestore_api_dep)
+endif()
+
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_firestore
   PUBLIC
     firebase_app
     firebase_auth
   PRIVATE
-    firebase_firestore_api
+    ${firestore_api_dep}
 )
-
 
 # Public headers all refer to each other relative to the src/include directory,
 # while private headers are relative to the entire C++ SDK directory.
@@ -182,6 +196,10 @@ target_include_directories(firebase_firestore
     ${FIRESTORE_SOURCE_DIR}/Firestore/core/include
   PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
+)
+target_compile_definitions(firebase_firestore
+  PRIVATE
+    -DINTERNAL_EXPERIMENTAL=1
 )
 
 if(ANDROID)

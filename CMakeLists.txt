@@ -120,27 +120,29 @@ if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
     "${CMAKE_CURRENT_LIST_DIR}/[^/]+/(.*)"
     "${CMAKE_CURRENT_LIST_DIR}/app/\\1"
     APP_BINARY_DIR "${FIREBASE_BINARY_DIR}")
+
+  set(FIRESTORE_SOURCE_DIR ${APP_BINARY_DIR}/external/src/firestore)
 else()
   # Run the CMake build logic that will download all the external dependencies.
   message(STATUS "Downloading external project dependencies...")
   download_external_sources()
   message(STATUS "Download complete.")
+endif()
 
-  # Include Firestore's external build early to resolve conflicts on packages.
-  if(FIREBASE_INCLUDE_FIRESTORE)
-    set(FIRESTORE_SOURCE_DIR ${FIREBASE_BINARY_DIR}/external/src/firestore)
-    set(FIRESTORE_BINARY_DIR ${FIRESTORE_SOURCE_DIR}-build)
+# Include Firestore's external build early to resolve conflicts on packages.
+if(NOT ANDROID AND FIREBASE_INCLUDE_FIRESTORE)
+  set(FIRESTORE_SOURCE_DIR ${FIREBASE_BINARY_DIR}/external/src/firestore)
+  set(FIRESTORE_BINARY_DIR ${FIRESTORE_SOURCE_DIR}-build)
 
-    set(
-      FIREBASE_IOS_BUILD_TESTS
-      ${FIREBASE_CPP_BUILD_TESTS}
-      CACHE BOOL "Force Firestore build tests to match"
-    )
+  set(
+    FIREBASE_IOS_BUILD_TESTS
+    ${FIREBASE_CPP_BUILD_TESTS}
+    CACHE BOOL "Force Firestore build tests to match"
+  )
 
-    add_subdirectory(${FIRESTORE_SOURCE_DIR} ${FIRESTORE_BINARY_DIR})
+  add_subdirectory(${FIRESTORE_SOURCE_DIR} ${FIRESTORE_BINARY_DIR})
 
-    copy_subdirectory_definition(${FIRESTORE_SOURCE_DIR} NANOPB_SOURCE_DIR)
-  endif()
+  copy_subdirectory_definition(${FIRESTORE_SOURCE_DIR} NANOPB_SOURCE_DIR)
 endif()
 
 # Disable the Flatbuffer build tests, install and flathash
@@ -252,28 +254,29 @@ if (NOT ANDROID AND NOT IOS)
   endif()
 endif()
 
-if(FIREBASE_INCLUDE_FIRESTORE)
-  # The Firestore build includes protobuf and nanopb already
-  list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
-  find_package(Nanopb REQUIRED)
-
-  set(PROTOBUF_FOUND ON)
-
-else()
-  find_package(Protobuf)
-  if (PROTOBUF_FOUND)
-    # NanoPB requires Protobuf to be present, so only add it if it was found.
-    add_external_library(nanopb)
-
-    # NanoPB has a FindNanopb which defines the function to generate files, so
-    # add it to the module path, and use that.
+if(NOT ANDROID)
+  if(FIREBASE_INCLUDE_FIRESTORE)
+    # The Firestore build includes protobuf and nanopb already
     list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
-    find_package(Nanopb)
+    find_package(Nanopb REQUIRED)
 
-    target_compile_definitions(
-      protobuf-nanopb-static
-      PUBLIC -DPB_FIELD_32BIT -DPB_ENABLE_MALLOC
-    )
+    set(PROTOBUF_FOUND ON)
+  else()
+    find_package(Protobuf)
+    if (PROTOBUF_FOUND)
+      # NanoPB requires Protobuf to be present, so only add it if it was found.
+      add_external_library(nanopb)
+
+      # NanoPB has a FindNanopb which defines the function to generate files,
+      # so add it to the module path, and use that.
+      list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
+      find_package(Nanopb)
+
+      target_compile_definitions(
+        protobuf-nanopb-static
+        PUBLIC -DPB_FIELD_32BIT -DPB_ENABLE_MALLOC
+      )
+    endif()
   endif()
 endif()
 
