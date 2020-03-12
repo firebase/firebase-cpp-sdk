@@ -1,4 +1,4 @@
-// Copyright 2018 Google LLC
+// Copyright 2020 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -47,8 +47,8 @@ android {
   }
 
   defaultConfig {
-    // This is the platform API where NativeActivity was introduced.
-    minSdkVersion 9
+    // Jelly Bean is the minimum supported version needed by Firebase.
+    minSdkVersion 16
     targetSdkVersion 28
     versionCode 1
     versionName "1.0"
@@ -61,13 +61,13 @@ android {
 
     externalNativeBuild {
       cmake {
-        targets 'firebase_dynamic_links'
+        targets 'firebase_firestore'
         // Args are: Re-use app library prebuilt by app gradle project.
         //           Don't configure all the cmake subprojects.
         //           Only include needed project.
         arguments '-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON',
                 '-DFIREBASE_INCLUDE_LIBRARY_DEFAULT=OFF',
-                '-DFIREBASE_INCLUDE_DYNAMIC_LINKS=ON'
+                '-DFIREBASE_INCLUDE_FIRESTORE=ON'
       }
     }
   }
@@ -80,7 +80,9 @@ android {
 dependencies {
   implementation project(':app')
 }
+apply from: "$rootDir/android_build_files/extract_and_dex.gradle"
 apply from: "$rootDir/android_build_files/generate_proguard.gradle"
 project.afterEvaluate {
-  generateProguardFile('dynamic_links')
+  generateProguardFile('firestore')
+  setupDexDependencies(':firestore:firestore_resources')
 }

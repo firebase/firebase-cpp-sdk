@@ -1,4 +1,4 @@
-# Copyright 2019 Google
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,11 +18,14 @@ if(TARGET uWebSockets OR NOT DOWNLOAD_UWEBSOCKETS)
   return()
 endif()
 
+set(commit 4d94401b9c98346f9afd838556fdc7dce30561eb)
+
 ExternalProject_Add(
   uWebSockets
 
-  GIT_REPOSITORY https://github.com/uNetworking/uWebSockets
-  GIT_TAG        4d94401b9c98346f9afd838556fdc7dce30561eb
+  DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
+  DOWNLOAD_NAME uWebSockets-${commit}.tar.gz
+  URL https://github.com/uNetworking/uWebSockets/archive/${commit}.tar.gz
 
   PREFIX ${PROJECT_BINARY_DIR}
 

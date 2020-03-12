@@ -1,4 +1,4 @@
-# Copyright 2019 Google
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,21 +14,23 @@
 
 include(CMakeParseArguments)
 
-# cc_test(
+# firebase_cpp_cc_test(
 #   target
 #   SOURCES sources...
 #   DEPENDS libraries...
+#   INCLUDES include directories...
+#   DEFINES definitions...
 # )
 #
 # Defines a new test executable target with the given target name, sources, and
 # dependencies.  Implicitly adds DEPENDS on gtest and gtest_main.
-function(cc_test name)
+function(firebase_cpp_cc_test name)
   if (ANDROID OR IOS)
     return()
   endif()
 
   set(multi DEPENDS SOURCES INCLUDES DEFINES)
-  # Parse the arguments into cc_test_SOURCES and cc_test_DEPENDS.
+  # Parse the arguments into cc_test_SOURCES, ..._DEPENDS, etc.
   cmake_parse_arguments(cc_test "" "" "${multi}" ${ARGN})
 
   list(APPEND cc_test_DEPENDS gmock gtest gtest_main)
@@ -96,7 +98,7 @@ function(ios_test_add_frameworks name)
                          GoogleDataTransport GoogleDataTransportCCTSupport
                          GoogleUtilities nanopb )
 
-  foreach(FRAMEWORK IN LISTS DEFAULT_FRAMEWORKS 
+  foreach(FRAMEWORK IN LISTS DEFAULT_FRAMEWORKS
           ios_test_add_frameworks_CUSTOM_FRAMEWORKS)
     LIST(APPEND INCLUDES "-framework ${FRAMEWORK}")
   endforeach()
@@ -105,7 +107,7 @@ function(ios_test_add_frameworks name)
   set(FRAMEWORK_INCLUDES ${INCLUDES} PARENT_SCOPE)
 endfunction()
 
-# cc_test_on_ios(
+# firebase_cpp_cc_test_on_ios(
 #   target
 #   HOST host
 #   SOURCES sources...
@@ -121,7 +123,7 @@ endfunction()
 
 # baseline FirebaseAnalytics.  DEFINES will be added to the
 # target_compile_definitions call.
-function(cc_test_on_ios name)
+function(firebase_cpp_cc_test_on_ios name)
   if (NOT IOS)
     return()
   endif()

@@ -28,7 +28,7 @@
 #include "remote_config/src/include/firebase/remote_config.h"
 
 #ifdef FIREBASE_TESTING
-#include "testing/base/public/gunit.h"
+#include "gtest/gtest.h"
 #endif  // FIREBASE_TESTING
 
 #ifndef SWIG

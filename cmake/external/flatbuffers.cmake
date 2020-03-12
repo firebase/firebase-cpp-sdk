@@ -1,4 +1,4 @@
-# Copyright 2018 Google
+# Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,12 +18,14 @@ if(TARGET flatbuffers OR NOT DOWNLOAD_FLATBUFFERS)
   return()
 endif()
 
+set(version c957550511689e1052059fc2cf2e43a06a24a05b)
+
 ExternalProject_Add(
   flatbuffers
 
-  GIT_REPOSITORY https://github.com/google/flatbuffers.git
-  GIT_TAG        v1.10.0
-  GIT_SHALLOW    1
+  DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
+  DOWNLOAD_NAME flatbuffers-${version}.tar.gz
+  URL https://github.com/google/flatbuffers/archive/${version}.tar.gz
 
   PREFIX ${PROJECT_BINARY_DIR}
 

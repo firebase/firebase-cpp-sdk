@@ -249,7 +249,7 @@ Variant FlexbufferToVariant(const flexbuffers::Reference& ref) {
     case flexbuffers::FBT_VECTOR_INT4:
     case flexbuffers::FBT_VECTOR_INT:
     case flexbuffers::FBT_VECTOR_KEY:
-    case flexbuffers::FBT_VECTOR_STRING:
+    case flexbuffers::FBT_VECTOR_STRING_DEPRECATED:
     case flexbuffers::FBT_VECTOR_UINT2:
     case flexbuffers::FBT_VECTOR_UINT3:
     case flexbuffers::FBT_VECTOR_UINT4:

@@ -26,7 +26,7 @@
 #include "remote_config/src/desktop/config_data.h"
 
 #ifdef FIREBASE_TESTING
-#include "testing/base/public/gunit.h"
+#include "gtest/gtest.h"
 #endif  // FIREBASE_TESTING
 
 namespace firebase {

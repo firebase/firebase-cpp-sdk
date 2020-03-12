@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2020 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,17 +14,25 @@
 
 include(ExternalProject)
 
-if(TARGET curl OR NOT DOWNLOAD_CURL)
+if(TARGET firestore)
   return()
 endif()
 
-set(version 7_58_0)
+# Pin to the first revision that includes these changes:
+# https://github.com/firebase/firebase-ios-sdk/pull/4984
+# https://github.com/firebase/firebase-ios-sdk/pull/5027
+#
+# These changes are required for the firebase-ios-sdk build to interoperate
+# well with a wrapper build. Once M67 iOS releases this should point to the
+# Firestore release tag.
+set(version fb0fc07609a55cd2e5acf47fe034bf0c8e8419ad)
 
 ExternalProject_Add(
-  curl
+  firestore
 
   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-  URL https://github.com/curl/curl/archive/curl-${version}.tar.gz
+  DOWNLOAD_NAME firestore-${version}.tar.gz
+  URL https://github.com/firebase/firebase-ios-sdk/archive/${version}.tar.gz
 
   PREFIX ${PROJECT_BINARY_DIR}
 

@@ -336,8 +336,9 @@ std::string FieldValue::ToString() const {
              ValueToString(integer_increment_value()) + ")";
   }
 
-  FIREBASE_ASSERT_MESSAGE(false, "Unexpected FieldValue type: %d",
-                          static_cast<int>(type()));
+  FIREBASE_ASSERT_MESSAGE_RETURN("<invalid>", false,
+                                 "Unexpected FieldValue type: %d",
+                                 static_cast<int>(type()));
 }
 
 bool operator==(const FieldValue& lhs, const FieldValue& rhs) {

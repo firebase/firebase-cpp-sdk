@@ -99,10 +99,7 @@ void ListenerRegistration::Remove() {
 }
 
 void ListenerRegistration::Cleanup() {
-  delete internal_;
-  internal_ = nullptr;
-  // `ListenerRegistration` additionally holds a pointer to `FirestoreInternal`,
-  // which must also be set to null.
+  Remove();
   firestore_ = nullptr;
 }
 

@@ -5,6 +5,7 @@
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/hard_assert_ios.h"
+#include "Firestore/core/src/firebase/firestore/nanopb/byte_string.h"
 
 namespace firebase {
 namespace firestore {

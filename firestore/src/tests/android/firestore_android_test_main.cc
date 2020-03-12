@@ -39,7 +39,7 @@
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/android/firestore_android.h"
 // non-google3 code should include "gtest/gtest.h" instead.
-#include "testing/base/public/gunit.h"
+#include "gtest/gtest.h"
 // For GTEST_FLAG(filter).
 #include "third_party/googletest/googletest/src/gtest-internal-inl.h"
 

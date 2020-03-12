@@ -1,6 +1,6 @@
 package com.google.firebase.firestore.internal.cpp;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestoreException;
