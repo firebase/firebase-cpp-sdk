@@ -9,6 +9,7 @@ target 'GetPods' do
   pod 'Firebase/Auth', '6.16.0'
   pod 'Firebase/Database', '6.16.0'
   pod 'Firebase/DynamicLinks', '6.16.0'
+  pod 'Firebase/Firestore', '6.16.0'
   pod 'Firebase/Functions', '6.16.0'
   pod 'FirebaseInstanceID', '4.3.0'
   pod 'Firebase/Messaging', '6.16.0'

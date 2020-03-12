@@ -1,4 +1,4 @@
-# Copyright 2018 Google
+# Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -90,7 +90,13 @@ endif()
 # Occasionally ANDROID is not being set correctly when invoked by gradle, so
 # set it manually if ANDROID_NDK has been defined.
 if(DEFINED ANDROID_NDK)
-  set(ANDROID 1)
+  set(ANDROID ON)
+endif()
+
+if(NOT ANDROID AND NOT IOS)
+  set(DESKTOP ON)
+else()
+  set(DESKTOP OFF)
 endif()
 
 # Set directories needed by the Firebase subprojects
@@ -100,7 +106,7 @@ set(FIREBASE_GEN_FILE_DIR ${CMAKE_BINARY_DIR}/generated)
 set(FIREBASE_SCRIPT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
 if (FIREBASE_CPP_BUILD_TESTS AND MSVC)
-  # Googletest requires MSVC to compile with the static version of the runtime
+  # GoogleTest requires MSVC to compile with the static version of the runtime
   # library, so define the appropriate runtime flag, before adding libraries.
   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
@@ -113,6 +119,20 @@ set(FIREBASE_SOURCE_DIR ${PROJECT_SOURCE_DIR})
 set(FIREBASE_BINARY_DIR ${PROJECT_BINARY_DIR})
 set(FIREBASE_INSTALL_DIR ${PROJECT_BINARY_DIR}/opt)
 set(FIREBASE_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads)
+
+# Firestore is split into a public C++ component and the Firestore core, a
+# non-public C++ API used for building other language bindings. Desktop
+# platforms get the Firestore core from the CMake build in firebase-ios-sdk.
+#
+# Mobile platforms do not:
+#
+#   * Android uses the Android SDK via JNI and does not use the Firestore
+#     core.
+#   * iOS gets the Firestore core from the FirebaseFirestore CocoaPod and
+#     does not build the core via CMake.
+if(FIREBASE_INCLUDE_FIRESTORE AND DESKTOP)
+  set(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD ON)
+endif()
 
 if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
   # Figure out where app's binary_dir was.
@@ -132,7 +152,7 @@ else()
 endif()
 
 # Include Firestore's external build early to resolve conflicts on packages.
-if(NOT ANDROID AND FIREBASE_INCLUDE_FIRESTORE)
+if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
   set(FIRESTORE_BINARY_DIR ${FIRESTORE_SOURCE_DIR}-build)
 
   set(
@@ -151,7 +171,7 @@ set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "")
 set(FLATBUFFERS_INSTALL OFF CACHE BOOL "")
 set(FLATBUFFERS_FLATHASH OFF CACHE BOOL "")
 
-# Disable buliding flatc if cross compiling
+# Disable building flatc if cross compiling
 if(IOS OR ANDROID)
   set(FLATBUFFERS_BUILD_FLATC OFF CACHE BOOL "")
 endif()
@@ -164,13 +184,13 @@ else()
   add_external_library(flatbuffers)
 endif()
 
-if(FIREBASE_CPP_BUILD_TESTS AND NOT FIREBASE_INCLUDE_FIRESTORE)
-  # Firestore's external build pulls in googletest
+if(FIREBASE_CPP_BUILD_TESTS AND NOT FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
+  # Firestore's external build pulls in GoogleTest
   add_external_library(googletest)
 endif()
 
 # Some of the external libraries are not used for mobile.
-if (NOT ANDROID AND NOT IOS)
+if(DESKTOP)
   # Use the static versions of the OpenSSL libraries.
   set(OPENSSL_USE_STATIC_LIBS TRUE)
   if (MSVC)
@@ -255,8 +275,8 @@ if (NOT ANDROID AND NOT IOS)
   endif()
 endif()
 
-if(NOT ANDROID)
-  if(FIREBASE_INCLUDE_FIRESTORE)
+if(DESKTOP)
+  if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
     # The Firestore build includes protobuf and nanopb already
     list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
     find_package(Nanopb REQUIRED)
@@ -281,7 +301,11 @@ if(NOT ANDROID)
   endif()
 endif()
 
-if(ANDROID OR IOS)
+if(DESKTOP)
+  # Desktop platforms do not need to declare this dependency, as they will build
+  # flatc correctly when needed.
+  set(FIREBASE_FLATBUFFERS_DEPENDENCIES "")
+else()
   # Mobile platforms build flatc externally so that it works on the platform
   # performing the build.
   set(firebase_external_flatc_build_dir "${FLATBUFFERS_BINARY_DIR}-flatc")
@@ -304,7 +328,7 @@ if(ANDROID OR IOS)
   set(FLATBUFFERS_FLATC_EXECUTABLE ${firebase_external_flatc} CACHE STRING "")
 
   # Setup the flatc custom build target.
-  # These commands are executed from within the currect context, which has set
+  # These commands are executed from within the current context, which has set
   # variables for the target platform. We use "env -i" to clear these
   # variables, and manually keep the PATH to regular bash path.
   # If we didn't do this, we'd end up building flatc for the target platform
@@ -340,10 +364,6 @@ if(ANDROID OR IOS)
   # Set a variable that the dependencies can use, to trigger the build before
   # using flatbuffers.
   set(FIREBASE_FLATBUFFERS_DEPENDENCIES "firebase_flatc_prebuild")
-else()
-  # Other platforms do not need to declare this dependency, as they will build
-  # flatc correctly when needed.
-  set(FIREBASE_FLATBUFFERS_DEPENDENCIES "")
 endif()
 
 include(binary_to_array)

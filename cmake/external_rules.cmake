@@ -29,12 +29,12 @@ function(download_external_sources)
     set(ENV_COMMAND env -i PATH=${firebase_command_line_path})
   endif()
 
-  if (IOS)
-    set(external_platform IOS)
+  if(IOS)
+    set(external_platform "IOS")
   elseif(ANDROID)
-    set(external_platform ANDROID)
+    set(external_platform "ANDROID")
   else()
-    set(external_platform DESKTOP)
+    set(external_platform "DESKTOP")
   endif()
 
   # When building with Firestore, use the NanoPB source from that instead.
