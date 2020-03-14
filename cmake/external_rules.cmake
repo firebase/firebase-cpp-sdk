@@ -37,6 +37,12 @@ function(download_external_sources)
     set(external_platform DESKTOP)
   endif()
 
+  # When building with Firestore, use the NanoPB source from that instead.
+  if(FIREBASE_INCLUDE_FIRESTORE)
+    set(FIRESTORE_BINARY_DIR ${PROJECT_BINARY_DIR}/external/src/firestore-build)
+    set(NANOPB_SOURCE_DIR ${FIRESTORE_BINARY_DIR}/external/src/nanopb)
+  endif()
+
   # Set variables to indicate if local versions of third party libraries should
   # be used instead of downloading them.
   function(check_use_local_directory NAME)
@@ -52,6 +58,7 @@ function(download_external_sources)
   check_use_local_directory(NANOPB)
   check_use_local_directory(UWEBSOCKETS)
   check_use_local_directory(ZLIB)
+  check_use_local_directory(FIREBASE_IOS_SDK)
 
   execute_process(
     COMMAND
@@ -66,6 +73,8 @@ function(download_external_sources)
       -DDOWNLOAD_NANOPB=${DOWNLOAD_NANOPB}
       -DDOWNLOAD_UWEBSOCKETS=${DOWNLOAD_UWEBSOCKETS}
       -DDOWNLOAD_ZLIB=${DOWNLOAD_ZLIB}
+      -DDOWNLOAD_FIREBASE_IOS_SDK=${DOWNLOAD_FIREBASE_IOS_SDK}
+      -DFIREBASE_CPP_BUILD_TESTS=${FIREBASE_CPP_BUILD_TESTS}
       ${PROJECT_SOURCE_DIR}/cmake/external
     OUTPUT_FILE ${PROJECT_BINARY_DIR}/external/output_cmake_config.txt
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external
@@ -88,9 +97,17 @@ endfunction()
 # not already a valid directory.
 # Adds the source directory as a subdirectory if a CMakeLists file is found.
 function(add_external_library NAME)
+  cmake_parse_arguments(optional "" "BINARY_DIR" "" ${ARGN})
+
+  if(optional_BINARY_DIR)
+      set(BINARY_DIR "${optional_BINARY_DIR}")
+  else()
+      set(BINARY_DIR "${FIREBASE_BINARY_DIR}")
+  endif()
+
   string(TOUPPER ${NAME} UPPER_NAME)
   if (NOT EXISTS ${${UPPER_NAME}_SOURCE_DIR})
-    set(${UPPER_NAME}_SOURCE_DIR "${FIREBASE_BINARY_DIR}/external/src/${NAME}")
+    set(${UPPER_NAME}_SOURCE_DIR "${BINARY_DIR}/external/src/${NAME}")
     set(${UPPER_NAME}_SOURCE_DIR "${${UPPER_NAME}_SOURCE_DIR}" PARENT_SCOPE)
   endif()
 
@@ -99,8 +116,20 @@ function(add_external_library NAME)
     set(${UPPER_NAME}_BINARY_DIR "${${UPPER_NAME}_BINARY_DIR}" PARENT_SCOPE)
   endif()
 
+  message(STATUS "add_ext... ${UPPER_NAME}_SOURCE_DIR: ${${UPPER_NAME}_SOURCE_DIR}")
+  message(STATUS "add_ext... ${UPPER_NAME}_BINARY_DIR: ${${UPPER_NAME}_BINARY_DIR}")
+
   if (EXISTS "${${UPPER_NAME}_SOURCE_DIR}/CMakeLists.txt")
     add_subdirectory(${${UPPER_NAME}_SOURCE_DIR} ${${UPPER_NAME}_BINARY_DIR}
-                     EXCLUDE_FROM_ALL)
+            EXCLUDE_FROM_ALL)
   endif()
 endfunction()
+
+# Copies a variable definition from a subdirectory into the parent scope
+macro(copy_subdirectory_definition DIRECTORY VARIABLE)
+  get_directory_property(
+    ${VARIABLE}
+    DIRECTORY ${DIRECTORY}
+    DEFINITION ${VARIABLE}
+  )
+endmacro()

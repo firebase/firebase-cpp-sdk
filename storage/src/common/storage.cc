@@ -184,15 +184,13 @@ StorageReference Storage::GetReferenceFromUrl(const char* url) const {
 
   static const char kObjectName[] = "StorageReference";
   // Extract components from this storage object's URL.
-  std::string this_bucket;
-  internal::UriToComponents(const_cast<Storage*>(this)->url(), kObjectName,
-                            &this_bucket, nullptr);
+  std::string this_bucket = const_cast<Storage*>(this)->GetReference().bucket();
   // Make sure the specified URL is valid.
   std::string bucket;
   bool valid = internal::UriToComponents(std::string(url), kObjectName, &bucket,
                                          nullptr);
   if (valid) {
-    if (bucket != this_bucket) {
+    if (!this_bucket.empty() && bucket != this_bucket) {
       LogError(
           "Unable to create %s from URL %s. "
           "URL specifies a different bucket (%s) than this instance (%s)",

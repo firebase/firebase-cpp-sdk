@@ -45,6 +45,12 @@ VerifyAssertionRequest::VerifyAssertionRequest(const char* const api_key,
 std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromIdToken(
     const char* const api_key, const char* const provider_id,
     const char* const id_token) {
+  return FromIdToken(api_key, provider_id, id_token, /*nonce=*/nullptr);
+}
+
+std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromIdToken(
+    const char* const api_key, const char* const provider_id,
+    const char* const id_token, const char* nonce) {
   auto request = std::unique_ptr<VerifyAssertionRequest>(  // NOLINT
       new VerifyAssertionRequest{api_key, provider_id});
 
@@ -52,6 +58,10 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromIdToken(
     request->post_body_ += std::string{"&id_token="} + id_token;
   } else {
     LogError("No id token given");
+  }
+
+  if (nonce) {
+    request->post_body_ += std::string{"&nonce="} + nonce;
   }
 
   request->application_data_->postBody = request->post_body_;
@@ -62,6 +72,13 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromIdToken(
 std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAccessToken(
     const char* const api_key, const char* const provider_id,
     const char* const access_token) {
+  return FromAccessToken(api_key, provider_id, access_token,
+                                /*nonce=*/nullptr);
+}
+
+std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAccessToken(
+    const char* const api_key, const char* const provider_id,
+    const char* const access_token, const char* nonce) {
   auto request = std::unique_ptr<VerifyAssertionRequest>(  // NOLINT
       new VerifyAssertionRequest{api_key, provider_id});
 
@@ -69,6 +86,10 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAccessToken(
     request->post_body_ += std::string{"&access_token="} + access_token;
   } else {
     LogError("No access token given");
+  }
+
+  if (nonce) {
+    request->post_body_ += std::string{"&nonce="} + nonce;
   }
 
   request->application_data_->postBody = request->post_body_;

@@ -871,7 +871,7 @@ GeneratedDynamicLink GetLongLink(const DynamicLinkComponents& components) {
 }
 
 static void FutureShortLinkCallback(JNIEnv* jni_env, jobject result,
-                                    util::FutureResult result_code, int status,
+                                    util::FutureResult result_code,
                                     const char* status_message,
                                     void* callback_data) {
   if (result_code == util::kFutureResultSuccess) {

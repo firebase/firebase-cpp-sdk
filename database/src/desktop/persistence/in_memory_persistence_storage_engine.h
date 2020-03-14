@@ -32,9 +32,9 @@ class DatabaseInternal;
 
 class InMemoryPersistenceStorageEngine : public PersistenceStorageEngine {
  public:
-  explicit InMemoryPersistenceStorageEngine(Logger* logger);
+  explicit InMemoryPersistenceStorageEngine(LoggerBase* logger);
 
-  virtual ~InMemoryPersistenceStorageEngine();
+  ~InMemoryPersistenceStorageEngine() override;
 
   // Loads the server cache from disk into memory.
   Variant LoadServerCache();
@@ -100,6 +100,12 @@ class InMemoryPersistenceStorageEngine : public PersistenceStorageEngine {
   void MergeIntoServerCache(const Path& path,
                             const CompoundWrite& children) override;
 
+  // Estimate the size of the Server Cache. This is not an exact byte count, of
+  // the memory or disk space being used, just an estimate.
+  //
+  // @return The estimated server cache size.
+  uint64_t ServerCacheEstimatedSizeInBytes() const override;
+
   // Write the tracked query to the cache.
   //
   // @param tracked_query the tracked query to persist.
@@ -115,6 +121,9 @@ class InMemoryPersistenceStorageEngine : public PersistenceStorageEngine {
   //
   // @return The std::vector of TrackedQueries.
   std::vector<TrackedQuery> LoadTrackedQueries() override;
+
+  void PruneCache(const Path& root,
+                  const PruneForestRef& prune_forest) override;
 
   // Update the last_use time on all active tracked queries.
   //
@@ -162,7 +171,7 @@ class InMemoryPersistenceStorageEngine : public PersistenceStorageEngine {
   // Declare that a transaction completed successfully.
   void SetTransactionSuccessful() override;
 
- private:
+ protected:
   void VerifyInTransaction();
 
   Variant server_cache_;
@@ -171,7 +180,7 @@ class InMemoryPersistenceStorageEngine : public PersistenceStorageEngine {
 
   bool inside_transaction_;
 
-  Logger* logger_;
+  LoggerBase* logger_;
 };
 
 }  // namespace internal

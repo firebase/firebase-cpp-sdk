@@ -1,4 +1,4 @@
-# Copyright 2018 Google
+# Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,8 @@ project(Firebase-cpp-download C CXX)
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_LIST_DIR})
 
 include(flatbuffers)
-include(googletest)
+include(firestore)
+
 
 # Some of the external dependencies are not needed for mobile.
 if (${FIREBASE_EXTERNAL_PLATFORM} STREQUAL "DESKTOP")
@@ -32,4 +33,14 @@ if (${FIREBASE_EXTERNAL_PLATFORM} STREQUAL "DESKTOP")
   include(nanopb)
   include(uWebSockets)
   include(zlib)
+endif()
+
+# Support files for the test framework.
+if(FIREBASE_CPP_BUILD_TESTS)
+  include(googletest)
+
+  # Download the iOS SDK Frameworks required for linking the tests.
+  if (${FIREBASE_EXTERNAL_PLATFORM} STREQUAL "IOS")
+    include(firebase_ios_sdk)
+  endif()
 endif()

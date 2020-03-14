@@ -373,8 +373,8 @@ void Repo::UpdateChildren(const Path& path, const Variant& data,
   }
 
   // Start with our existing data and merge each child into it.
-  // std::map<std::string, Variant> serverValues =
-  const CompoundWrite& resolved = updates;
+  Variant server_values = GenerateServerValues(server_time_offset_);
+  CompoundWrite resolved = ResolveDeferredValueMerge(updates, server_values);
 
   WriteId write_id = GetNextWriteId();
   std::vector<Event> events = server_sync_tree_->ApplyUserMerge(
@@ -424,14 +424,19 @@ void Repo::AckWriteAndRerunTransactions(WriteId write_id, const Path& path,
 
 static UniquePtr<SyncTree> InitializeSyncTree(
     UniquePtr<ListenProvider> listen_provider, Logger* logger) {
+  static const uint64_t kDefaultCacheSize = 10 * 1024 * 1024;
+
   UniquePtr<WriteTree> pending_write_tree = MakeUnique<WriteTree>();
   UniquePtr<PersistenceStorageEngine> persistence_storage_engine =
       MakeUnique<InMemoryPersistenceStorageEngine>(logger);
   UniquePtr<TrackedQueryManager> tracked_query_manager =
-      MakeUnique<TrackedQueryManager>(persistence_storage_engine.get());
+      MakeUnique<TrackedQueryManager>(persistence_storage_engine.get(), logger);
+  UniquePtr<CachePolicy> cache_policy =
+      MakeUnique<LRUCachePolicy>(kDefaultCacheSize);
   UniquePtr<PersistenceManager> persistence_manager =
       MakeUnique<PersistenceManager>(std::move(persistence_storage_engine),
-                                     std::move(tracked_query_manager));
+                                     std::move(tracked_query_manager),
+                                     std::move(cache_policy), logger);
   return MakeUnique<SyncTree>(std::move(pending_write_tree),
                               std::move(persistence_manager),
                               std::move(listen_provider));

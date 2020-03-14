@@ -28,7 +28,7 @@
 #include "remote_config/src/include/firebase/remote_config.h"
 
 #ifdef FIREBASE_TESTING
-#include "testing/base/public/gunit.h"
+#include "gtest/gtest.h"
 #endif  // FIREBASE_TESTING
 
 #ifndef SWIG
@@ -43,7 +43,7 @@ namespace internal {
 //
 // This class implements functions from `firebase/remote_config.h` header.
 // See `firebase/remote_config.h` for all public functions documentation.
-class RemoteConfigDesktop {
+class RemoteConfigInternal {
  public:
 #ifdef FIREBASE_TESTING
   friend class RemoteConfigDesktopTest;
@@ -63,15 +63,37 @@ class RemoteConfigDesktop {
   FRIEND_TEST(RemoteConfigDesktopTest, Fetch);
 #endif  // FIREBASE_TESTING
 
-  explicit RemoteConfigDesktop(const firebase::App& app,
-                               const RemoteConfigFileManager& file_manager);
-  ~RemoteConfigDesktop();
+  explicit RemoteConfigInternal(const firebase::App& app,
+                                const RemoteConfigFileManager& file_manager);
+
+  explicit RemoteConfigInternal(const firebase::App& app);
+
+  ~RemoteConfigInternal();
+
+  Future<ConfigInfo> EnsureInitialized();
+  Future<ConfigInfo> EnsureInitializedLastResult();
+
+  Future<bool> Activate();
+  Future<bool> ActivateLastResult();
+
+  Future<bool> FetchAndActivate();
+  Future<bool> FetchAndActivateLastResult();
+
+  Future<void> Fetch(uint64_t cache_expiration_in_seconds);
+  Future<void> FetchLastResult();
+
+#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
+  Future<void> SetConfigSettings(ConfigSettings settings);
+#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
+  Future<void> SetConfigSettingsLastResult();
 
 #ifndef SWIG
-  void SetDefaults(const ConfigKeyValueVariant* defaults,
-                   size_t number_of_defaults);
+  Future<void> SetDefaults(const ConfigKeyValueVariant* defaults,
+                           size_t number_of_defaults);
 #endif  // SWIG
-  void SetDefaults(const ConfigKeyValue* defaults, size_t number_of_defaults);
+  Future<void> SetDefaults(const ConfigKeyValue* defaults,
+                           size_t number_of_defaults);
+  Future<void> SetDefaultsLastResult();
 
   std::string GetConfigSetting(ConfigSetting setting);
   void SetConfigSetting(ConfigSetting setting, const char* value);
@@ -90,18 +112,19 @@ class RemoteConfigDesktop {
 
   std::vector<std::string> GetKeysByPrefix(const char* prefix);
 
+  std::map<std::string, Variant> GetAll();
+
   bool ActivateFetched();
 
-  const ConfigInfo& GetInfo() const;
-
-  Future<void> Fetch(uint64_t cache_expiration_in_seconds);
-
-  Future<void> FetchLastResult();
+  const ConfigInfo GetInfo() const;
 
   static bool IsBoolTrue(const std::string& str);
   static bool IsBoolFalse(const std::string& str);
   static bool IsLong(const std::string& str);
   static bool IsDouble(const std::string& str);
+
+  bool Initialized() const;
+  void Cleanup();
 
  private:
   // Open a new thread for saving state in the file. Thread will wait
@@ -111,6 +134,8 @@ class RemoteConfigDesktop {
   // Open a new thread for fetching fresh config. Thread will wait nofitications
   // in loop from the `fetch_channel_` until it will be closed.
   void AsyncFetch();
+
+  void InternalInit();
 
   // Convert the `firebase::Variant` type to the `std::string` type.
   //
@@ -192,6 +217,9 @@ class RemoteConfigDesktop {
   bool is_fetch_process_have_task_;
 
   mutable std::mutex mutex_;
+
+  /// Handle calls from Futures that the API returns.
+  ReferenceCountedFutureImpl future_impl_;
 };
 
 }  // namespace internal

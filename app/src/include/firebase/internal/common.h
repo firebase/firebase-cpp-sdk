@@ -23,10 +23,12 @@
 #include <utility>
 
 // Move operators use rvalue references, which are a C++11 extension.
+// Also, Visual Studio 2010 and later actually support move operators despite
+// reporting __cplusplus to be 199711L, so explicitly check for that.
 // Also, stlport doesn't implement std::move().
-#if __cplusplus >= 201103L && !defined(_STLPORT_VERSION)
+#if (__cplusplus >= 201103L || _MSC_VER >= 1600) && !defined(_STLPORT_VERSION)
 #define FIREBASE_USE_MOVE_OPERATORS
-#endif  // __cplusplus >= 201103L && !defined(_STLPORT_VERSION)
+#endif
 
 // stlport doesn't implement std::function.
 #if !defined(_STLPORT_VERSION)

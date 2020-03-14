@@ -65,6 +65,7 @@ static const ErrorCodeMapping kCredentialCodes[] = {
     {"ERROR_MISSING_MULTI_FACTOR_INFO", kAuthErrorMissingMultiFactorInfo},
     {"ERROR_INVALID_MULTI_FACTOR_SESSION", kAuthErrorInvalidMultiFactorSession},
     {"ERROR_MULTI_FACTOR_INFO_NOT_FOUND", kAuthErrorMultiFactorInfoNotFound},
+    {"ERROR_MISSING_OR_INVALID_NONCE", kAuthErrorMissingOrInvalidNonce},
     {nullptr},
 };
 static const ErrorCodeMapping kUserCodes[] = {
@@ -114,6 +115,7 @@ static const ErrorCodeMapping kFirebaseAuthCodes[] = {
     {"ERROR_UNSUPPORTED_FIRST_FACTOR", kAuthErrorUnsupportedFirstFactor},
     {"ERROR_EMAIL_CHANGE_NEEDS_VERIFICATION",
      kAuthErrorEmailChangeNeedsVerification},
+    {"ERROR_USER_CANCELLED", kAuthErrorMissingOrInvalidNonce},
     {nullptr},
 };
 
@@ -422,6 +424,25 @@ AuthError CheckAndClearJniAuthExceptions(JNIEnv* env,
     return error_code;
   }
   return kAuthErrorNone;
+}
+
+// Checks for Future success and/or Android based Exceptions, and maps them
+// to corresonding AuthError codes.
+AuthError MapFutureCallbackResultToAuthError(JNIEnv* env, jobject result,
+                                             util::FutureResult result_code,
+                                             bool* success) {
+  *success = false;
+  switch (result_code) {
+    case util::kFutureResultSuccess:
+      *success = true;
+      return kAuthErrorNone;
+    case util::kFutureResultFailure:
+      return ErrorCodeFromException(env, result);
+    case util::kFutureResultCancelled:
+      return kAuthErrorCancelled;
+    default:
+      return kAuthErrorFailure;
+  }
 }
 
 // Convert j_user (a local reference to FirebaseUser) into a global reference,

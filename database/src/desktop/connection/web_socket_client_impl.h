@@ -22,6 +22,8 @@
 #include "app/memory/unique_ptr.h"
 #include "app/src/logger.h"
 #include "app/src/mutex.h"
+#include "app/src/safe_reference.h"
+#include "app/src/scheduler.h"
 #include "app/src/thread.h"
 #include "database/src/desktop/connection/web_socket_client_interface.h"
 #include "uWebSockets/src/uWS.h"
@@ -34,7 +36,7 @@ namespace connection {
 class WebSocketClientImpl : public WebSocketClientInterface {
  public:
   WebSocketClientImpl(const std::string& uri, const std::string& user_agent,
-                      Logger* logger,
+                      Logger* logger, scheduler::Scheduler* scheduler,
                       WebSocketClientEventHandler* handler = nullptr);
   ~WebSocketClientImpl() override;
 
@@ -151,6 +153,18 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   std::string user_agent_;
 
   Logger* logger_;
+
+  scheduler::Scheduler* scheduler_;
+
+  // Safe reference to this.  Set in constructor and cleared in destructor
+  // Should be safe to be copied in any thread because the SharedPtr never
+  // changes, until safe_this_ is completely destroyed.
+  typedef firebase::internal::SafeReference<WebSocketClientImpl> ClientRef;
+  typedef firebase::internal::SafeReferenceLock<WebSocketClientImpl>
+      ClientRefLock;
+  ClientRef safe_this_;
+
+  friend class PersistentConnectionTest;
 };
 
 }  // namespace connection

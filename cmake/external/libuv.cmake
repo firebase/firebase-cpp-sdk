@@ -1,4 +1,4 @@
-# Copyright 2019 Google
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,11 +18,14 @@ if(TARGET libuv OR NOT DOWNLOAD_LIBUV)
   return()
 endif()
 
+set(version v1.33.1)
+
 ExternalProject_Add(
   libuv
 
-  GIT_REPOSITORY https://github.com/libuv/libuv
-  GIT_TAG        v1.23.2
+  DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
+  DOWNLOAD_NAME libuv-${version}.tar.gz
+  URL https://github.com/libuv/libuv/archive/${version}.tar.gz
 
   PREFIX ${PROJECT_BINARY_DIR}
 

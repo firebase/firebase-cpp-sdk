@@ -27,10 +27,11 @@ cd linux_build
 
 # Configure cmake with tests enabled
 # and disable use of libsecret due to not working on kokoro builders
-cmake .. -DFIREBASE_CPP_BUILD_TESTS=ON -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON
+cmake .. -DFIREBASE_CPP_BUILD_TESTS=ON -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON "$@"
 
 # Build the SDK and the tests
-cmake --build .
+cpus=$(nproc --all)
+cmake --build . -- -j $cpus
 
 # Run the tests
 ctest --verbose

@@ -126,7 +126,7 @@ class MutableData {
   ///
   /// @param[in] path Path relative to this data's location.
   /// @returns True if there is data at the specified location, false if not.
-  bool HasChild(const std::string& path);
+  bool HasChild(const std::string& path) const;
 
   /// @brief Sets the data at this location to the given value.
   ///
@@ -164,7 +164,7 @@ class MutableData {
   friend MutableData GetInvalidMutableData();
   /// @endcond
 
-  MutableData(internal::MutableDataInternal* internal);
+  explicit MutableData(internal::MutableDataInternal* internal);
 
   internal::MutableDataInternal* internal_;
 };

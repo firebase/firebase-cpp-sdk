@@ -14,6 +14,7 @@
 
 #include "database/src/desktop/persistence/persistence_manager.h"
 
+#include <iostream>
 #include <set>
 #include <string>
 #include <vector>
@@ -21,6 +22,7 @@
 #include "app/src/assert.h"
 #include "app/src/log.h"
 #include "app/src/path.h"
+#include "app/src/variant_util.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/tracked_query_manager.h"
 #include "database/src/desktop/persistence/persistence_storage_engine.h"
@@ -33,9 +35,13 @@ namespace internal {
 
 PersistenceManager::PersistenceManager(
     UniquePtr<PersistenceStorageEngine> storage_engine,
-    UniquePtr<TrackedQueryManagerInterface> tracked_query_manager)
+    UniquePtr<TrackedQueryManagerInterface> tracked_query_manager,
+    UniquePtr<CachePolicy> cache_policy, LoggerBase* logger)
     : storage_engine_(std::move(storage_engine)),
-      tracked_query_manager_(std::move(tracked_query_manager)) {}
+      tracked_query_manager_(std::move(tracked_query_manager)),
+      cache_policy_(std::move(cache_policy)),
+      server_cache_updates_since_last_prune_check_(0),
+      logger_(logger) {}
 
 void PersistenceManager::SaveUserOverwrite(const Path& path,
                                            const Variant& variant,
@@ -101,8 +107,8 @@ CacheNode PersistenceManager::ServerCache(const QuerySpec& query_spec) {
         tracked_query_manager_->GetKnownCompleteChildren(query_spec.path);
   }
 
-  // Make this a const ref
-  Variant server_cache_node = storage_engine_->ServerCache(query_spec.path);
+  const Variant& server_cache_node =
+      storage_engine_->ServerCache(query_spec.path);
   if (found_tracked_keys) {
     Variant filtered_node = Variant::EmptyMap();
     for (std::string key : tracked_keys) {
@@ -125,11 +131,13 @@ void PersistenceManager::UpdateServerCache(const QuerySpec& query_spec,
     storage_engine_->MergeIntoServerCache(query_spec.path, variant);
   }
   SetQueryComplete(query_spec);
+  DoPruneCheckAfterServerUpdate();
 }
 
 void PersistenceManager::UpdateServerCache(const Path& path,
                                            const CompoundWrite& children) {
   storage_engine_->MergeIntoServerCache(path, children);
+  DoPruneCheckAfterServerUpdate();
 }
 
 void PersistenceManager::SetQueryActive(const QuerySpec& query_spec) {
@@ -178,6 +186,48 @@ void PersistenceManager::UpdateTrackedQueryKeys(
 
   storage_engine_->UpdateTrackedQueryKeys(tracked_query->query_id, added,
                                           removed);
+}
+
+void PersistenceManager::DoPruneCheckAfterServerUpdate() {
+  server_cache_updates_since_last_prune_check_++;
+  if (cache_policy_->ShouldCheckCacheSize(
+          server_cache_updates_since_last_prune_check_)) {
+    logger_->LogDebug("Reached prune check threshold.");
+
+    server_cache_updates_since_last_prune_check_ = 0;
+    bool can_prune = true;
+    uint64_t cache_size = storage_engine_->ServerCacheEstimatedSizeInBytes();
+    logger_->LogDebug("Cache size: %i", static_cast<int>(cache_size));
+
+    while (can_prune &&
+           cache_policy_->ShouldPrune(
+               cache_size, tracked_query_manager_->CountOfPrunableQueries())) {
+      PruneForest prune_forest =
+          tracked_query_manager_->PruneOldQueries(*cache_policy_);
+      PruneForestRef prune_forest_ref(&prune_forest);
+      if (prune_forest_ref.PrunesAnything()) {
+        std::cout << __LINE__ << std::endl;
+        storage_engine_->PruneCache(Path(), prune_forest_ref);
+      } else {
+        std::cout << __LINE__ << std::endl;
+        can_prune = false;
+      }
+      cache_size = storage_engine_->ServerCacheEstimatedSizeInBytes();
+      logger_->LogDebug("Cache size after prune: %i",
+                        static_cast<int>(cache_size));
+    }
+  }
+}
+
+bool PersistenceManager::RunInTransaction(
+    std::function<bool()> transaction_func) {
+  storage_engine_->BeginTransaction();
+  bool success = transaction_func();
+  if (success) {
+    storage_engine_->SetTransactionSuccessful();
+  }
+  storage_engine_->EndTransaction();
+  return success;
 }
 
 }  // namespace internal

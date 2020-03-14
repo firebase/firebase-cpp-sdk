@@ -62,6 +62,8 @@ android {
     externalNativeBuild {
       cmake {
         targets 'firebase_app'
+        // Don't configure all the cmake subprojects.
+        arguments '-DFIREBASE_INCLUDE_LIBRARY_DEFAULT=OFF'
       }
     }
   }

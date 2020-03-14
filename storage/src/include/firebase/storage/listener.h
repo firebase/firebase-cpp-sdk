@@ -23,6 +23,7 @@ namespace storage {
 /// @cond FIREBASE_APP_INTERNAL
 namespace internal {
 class ListenerInternal;
+class StorageInternal;
 class StorageReferenceInternal;
 class RestOperation;
 }  // namespace internal

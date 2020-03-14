@@ -1,4 +1,4 @@
-# Copyright 2019 Google
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ target_include_directories(sample_resource_lib
     ${FLATBUFFERS_SOURCE_DIR}/include
 )
 
-cc_test(firebase_app_rest_request_test
+firebase_cpp_cc_test(firebase_app_rest_request_test
   SOURCES
     request_test.h
     request_test.cc
@@ -50,14 +50,14 @@ cc_test(firebase_app_rest_request_test
     firebase_rest_lib
 )
 
-cc_test(firebase_app_rest_request_binary_test
+firebase_cpp_cc_test(firebase_app_rest_request_binary_test
   SOURCES
     request_binary_test.cc
   DEPENDS
     firebase_rest_lib
 )
 
-cc_test(firebase_app_rest_request_json_test
+firebase_cpp_cc_test(firebase_app_rest_request_json_test
   SOURCES
     ../request_json.h
     request_json_test.cc
@@ -67,21 +67,21 @@ cc_test(firebase_app_rest_request_json_test
     sample_resource_lib
 )
 
-cc_test(firebase_app_rest_response_test
+firebase_cpp_cc_test(firebase_app_rest_response_test
   SOURCES
     response_test.cc
   DEPENDS
     firebase_rest_lib
 )
 
-cc_test(firebase_app_rest_response_binary_test
+firebase_cpp_cc_test(firebase_app_rest_response_binary_test
   SOURCES
     response_binary_test.cc
   DEPENDS
     firebase_rest_lib
 )
 
-cc_test(firebase_app_rest_response_json_test
+firebase_cpp_cc_test(firebase_app_rest_response_json_test
   SOURCES
     response_json_test.cc
   DEPENDS
@@ -89,21 +89,21 @@ cc_test(firebase_app_rest_response_json_test
     sample_resource_lib
 )
 
-cc_test(firebase_app_rest_util_test
+firebase_cpp_cc_test(firebase_app_rest_util_test
   SOURCES
     util_test.cc
   DEPENDS
     firebase_rest_lib
 )
 
-cc_test(firebase_app_rest_www_form_url_encoded_test
+firebase_cpp_cc_test(firebase_app_rest_www_form_url_encoded_test
   SOURCES
     www_form_url_encoded_test.cc
   DEPENDS
     firebase_rest_lib
 )
 
-cc_test(firebase_app_rest_transport_mock_test
+firebase_cpp_cc_test(firebase_app_rest_transport_mock_test
   SOURCES
     transport_mock_test.cc
     ../transport_mock.h
@@ -119,7 +119,7 @@ cc_test(firebase_app_rest_transport_mock_test
 #[[
 
 # google3 Dependency: FLAGS_test_tmpdir, CHECK(), CHECK_EQ
-cc_test(firebase_app_rest_request_file_test
+firebase_cpp_cc_test(firebase_app_rest_request_file_test
   SOURCES
     request_file_test.cc
   DEPENDS
@@ -127,7 +127,7 @@ cc_test(firebase_app_rest_request_file_test
 )
 
 # google3 Dependency: absl/strings/escaping (absl::CEscape)
-cc_test(firebase_app_rest_gzipheader_unittest
+firebase_cpp_cc_test(firebase_app_rest_gzipheader_unittest
   SOURCES
     gzipheader_unittest.cc
   DEPENDS
@@ -135,7 +135,7 @@ cc_test(firebase_app_rest_gzipheader_unittest
 )
 
 # google3 Dependency: absl/strings/escaping (absl::CEscape)
-cc_test(firebase_app_rest_zlibwrapper_unittest
+firebase_cpp_cc_test(firebase_app_rest_zlibwrapper_unittest
   SOURCES
     zlibwrapper_unittest.cc
   DEPENDS
@@ -143,7 +143,7 @@ cc_test(firebase_app_rest_zlibwrapper_unittest
 )
 
 # google3 Dependency: net/.../http2server, net/util/ports.h (net_util::PickUnusedPort())
-cc_test(firebase_app_rest_transport_curl_test
+firebase_cpp_cc_test(firebase_app_rest_transport_curl_test
   SOURCES
     transport_curl_test.cc
   DEPENDS

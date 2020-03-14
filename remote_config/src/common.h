@@ -22,17 +22,22 @@ namespace remote_config {
 
 enum RemoteConfigFn {
   kRemoteConfigFnFetch,
+  kRemoteConfigFnEnsureInitialized,
+  kRemoteConfigFnActivate,
+  kRemoteConfigFnFetchAndActivate,
+  kRemoteConfigFnSetDefaults,
+  kRemoteConfigFnSetConfigSettings,
   kRemoteConfigFnCount
 };
 
-/// @brief Describes the error codes returned by fetch futures.
-enum FetchFutureStatus {
+/// @brief Describes the error codes returned by futures.
+enum FutureStatus {
   // The future returned successfully.
   // This should always evaluate to zero, to ensure that the future returns
   // a zero result on success.
-  kFetchFutureStatusSuccess = 0,
+  kFutureStatusSuccess = 0,
   // The future returned unsuccessfully.  Check GetInfo() for further details.
-  kFetchFutureStatusFailure,
+  kFutureStatusFailure,
 };
 
 // Data structure which holds the Future API implementation with the only

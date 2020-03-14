@@ -14,6 +14,7 @@
 
 #include "database/src/common/query.h"
 
+#include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
 #include "database/src/include/firebase/database.h"
 #include "database/src/include/firebase/database/query.h"
@@ -120,10 +121,12 @@ Future<DataSnapshot> Query::GetValueLastResult() {
 }
 
 void Query::AddValueListener(ValueListener* listener) {
-  if (internal_) internal_->AddValueListener(listener);
+  if (internal_ && listener) internal_->AddValueListener(listener);
 }
 
 void Query::RemoveValueListener(ValueListener* listener) {
+  // listener is allowed to be a nullptr. nullptr represents removing all
+  // listeners at this location.
   if (internal_) internal_->RemoveValueListener(listener);
 }
 
@@ -132,10 +135,12 @@ void Query::RemoveAllValueListeners() {
 }
 
 void Query::AddChildListener(ChildListener* listener) {
-  if (internal_) internal_->AddChildListener(listener);
+  if (internal_ && listener) internal_->AddChildListener(listener);
 }
 
 void Query::RemoveChildListener(ChildListener* listener) {
+  // listener is allowed to be a nullptr. nullptr represents removing all
+  // listeners at this location.
   if (internal_) internal_->RemoveChildListener(listener);
 }
 
@@ -153,7 +158,8 @@ void Query::SetKeepSynchronized(bool keep_sync) {
 }
 
 Query Query::OrderByChild(const char* path) {
-  return internal_ ? Query(internal_->OrderByChild(path)) : Query(nullptr);
+  return internal_ && path ? Query(internal_->OrderByChild(path))
+                           : Query(nullptr);
 }
 
 Query Query::OrderByChild(const std::string& path) {
@@ -177,8 +183,9 @@ Query Query::StartAt(Variant order_value) {
 }
 
 Query Query::StartAt(Variant order_value, const char* child_key) {
-  return internal_ ? Query(internal_->StartAt(order_value, child_key))
-                   : Query(nullptr);
+  return internal_ && child_key
+             ? Query(internal_->StartAt(order_value, child_key))
+             : Query(nullptr);
 }
 
 Query Query::EndAt(Variant order_value) {
@@ -186,8 +193,9 @@ Query Query::EndAt(Variant order_value) {
 }
 
 Query Query::EndAt(Variant order_value, const char* child_key) {
-  return internal_ ? Query(internal_->EndAt(order_value, child_key))
-                   : Query(nullptr);
+  return internal_ && child_key
+             ? Query(internal_->EndAt(order_value, child_key))
+             : Query(nullptr);
 }
 
 Query Query::EqualTo(Variant order_value) {
@@ -195,8 +203,9 @@ Query Query::EqualTo(Variant order_value) {
 }
 
 Query Query::EqualTo(Variant order_value, const char* child_key) {
-  return internal_ ? Query(internal_->EqualTo(order_value, child_key))
-                   : Query(nullptr);
+  return internal_ && child_key
+             ? Query(internal_->EqualTo(order_value, child_key))
+             : Query(nullptr);
 }
 
 Query Query::LimitToFirst(size_t limit) {

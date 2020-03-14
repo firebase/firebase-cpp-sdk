@@ -76,6 +76,7 @@ target_link_libraries(firebase_rest_lib
     flatbuffers
     libcurl
     zlibstatic
+    ${CMAKE_DL_LIBS}
 )
 # Automatically include headers that might not be declared.
 if(MSVC)
@@ -126,3 +127,9 @@ if(FIREBASE_CPP_BUILD_TESTS)
   # Add the tests subdirectory
   add_subdirectory(tests)
 endif()
+
+cpp_pack_library(firebase_rest_lib "deps/app")
+cpp_pack_library(libcurl "deps/app/external")
+cpp_pack_library(zlibstatic "deps/app/external")
+cpp_pack_library_file(${OPENSSL_SSL_LIBRARY} "deps/app/external")
+cpp_pack_library_file(${OPENSSL_CRYPTO_LIBRARY} "deps/app/external")

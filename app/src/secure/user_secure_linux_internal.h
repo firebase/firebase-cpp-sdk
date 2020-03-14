@@ -45,9 +45,15 @@ class UserSecureLinuxInternal : public UserSecureInternal {
   void DeleteAllData() override;
 
  private:
+  // Check if there is an error, log it and free it if there is.
+  // Returns true iff there was an error.
+  bool CheckForError(GError** error, const char* function_name);
+
   const std::string domain_;
   const std::string key_namespace_;
   SecretSchema storage_schema_;
+  int known_error_code_;  // If nonzero, this error was already logged, so
+                          // don't be too spammy about it.
 };
 
 }  // namespace secure

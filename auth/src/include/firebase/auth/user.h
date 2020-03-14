@@ -33,9 +33,7 @@ namespace auth {
 class Auth;
 struct AuthData;
 
-#ifdef INTERNAL_EXPERIMENTAL
 class FederatedAuthProvider;
-#endif  // INTERNAL_EXPERIMENTAL
 
 /// @brief Interface implemented by each identity provider.
 class UserInfoInterface {
@@ -281,7 +279,6 @@ class User : public UserInfoInterface {
   /// Get results of the most recent call to @ref ReauthenticateAndRetrieveData.
   Future<SignInResult> ReauthenticateAndRetrieveDataLastResult() const;
 
-#ifdef INTERNAL_EXPERIMENTAL
   /// @brief Re-authenticates the user with a federated auth provider.
   ///
   /// @param[in] provider Contains information on the auth provider to
@@ -293,7 +290,6 @@ class User : public UserInfoInterface {
   /// code: kAuthErrorUnimplemented.
   Future<SignInResult> ReauthenticateWithProvider(
       FederatedAuthProvider* provider) const;
-#endif  // INTERNAL_EXPERIMENTAL
 
   /// Initiates email verification for the user.
   Future<void> SendEmailVerification();
@@ -332,7 +328,6 @@ class User : public UserInfoInterface {
   /// @ref LinkAndRetrieveDataWithCredential.
   Future<SignInResult> LinkAndRetrieveDataWithCredentialLastResult() const;
 
-#ifdef INTERNAL_EXPERIMENTAL
   /// Links this user with a federated auth provider.
   ///
   /// @param[in] provider Contains information on the auth provider to link
@@ -344,7 +339,6 @@ class User : public UserInfoInterface {
   /// non-mobile platforms this method will return a Future with a preset error
   /// code: kAuthErrorUnimplemented.
   Future<SignInResult> LinkWithProvider(FederatedAuthProvider* provider) const;
-#endif  // INTERNAL_EXPERIMENTAL
 
   /// Unlinks the current user from the provider specified.
   /// Status will be an error if the user is not linked to the given provider.

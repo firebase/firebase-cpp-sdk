@@ -31,7 +31,8 @@ DEFINE_FIREBASE_VERSION_STRING(Firebase);
 
 const char* const kDefaultAppName = "default";
 
-App::App() : data_(new internal::FunctionRegistry) {
+void App::Initialize() {
+  data_ = new internal::FunctionRegistry;
   LogDebug("Creating firebase::App for %s", kFirebaseVersionString);
 }
 

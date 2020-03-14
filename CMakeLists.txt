@@ -20,33 +20,64 @@ set (CMAKE_CXX_STANDARD 11)
 # Turn on virtual folders for visual studio
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+# Top level option that determines the default behavior of the include options
+# below. Useful for turning off all at once, and then turning on a specific one.
+option(FIREBASE_INCLUDE_LIBRARY_DEFAULT
+       "Should each library be included by default." ON)
 # Different options to enable/disable each library being included during
 # configuration.
-option(FIREBASE_INCLUDE_ADMOB "Include the AdMob library." ON)
+option(FIREBASE_INCLUDE_ADMOB "Include the AdMob library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_ANALYTICS
-       "Include the Google Analytics for Firebase library." ON)
-option(FIREBASE_INCLUDE_AUTH "Include the Firebase Authentication library." ON)
+       "Include the Google Analytics for Firebase library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
+option(FIREBASE_INCLUDE_AUTH "Include the Firebase Authentication library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_DATABASE
-       "Include the Firebase Realtime Database library." ON)
+       "Include the Firebase Realtime Database library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_DYNAMIC_LINKS
-       "Include the Firebase Dynamic Links library." ON)
+       "Include the Firebase Dynamic Links library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
+option(FIREBASE_INCLUDE_FIRESTORE
+       "Include the Cloud Firestore library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_FUNCTIONS
-       "Include the Cloud Functions for Firebase library." ON)
+       "Include the Cloud Functions for Firebase library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_INSTANCE_ID
-       "Include the Firebase Instance ID library." ON)
+       "Include the Firebase Instance ID library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_MESSAGING
-       "Include the Firebase Cloud Messaging library." ON)
+       "Include the Firebase Cloud Messaging library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_REMOTE_CONFIG
-       "Include the Firebase Remote Config library." ON)
+       "Include the Firebase Remote Config library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_STORAGE
-       "Include the Cloud Storage for Firebase library." ON)
+       "Include the Cloud Storage for Firebase library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
+
 option(FIREBASE_CPP_BUILD_TESTS
        "Enable the Firebase C++ Build Tests." OFF)
 option(FIREBASE_FORCE_FAKE_SECURE_STORAGE
        "Disable use of platform secret store and use fake impl." OFF)
+option(FIREBASE_CPP_BUILD_PACKAGE
+       "Bundle the Firebase C++ libraries into a zip file." OFF)
+option(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD
+        "When building with Gradle, use the previously built libraries." OFF)
+
+# Define this directory to be the root of the C++ SDK, which the libraries can
+# then refer to.
+set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
+
+project (firebase NONE)
+enable_language(C)
+enable_language(CXX)
 
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(external_rules)
+include(cpp_pack)
 
 if(FIREBASE_CPP_BUILD_TESTS)
   enable_testing()
@@ -62,32 +93,11 @@ if(DEFINED ANDROID_NDK)
   set(ANDROID 1)
 endif()
 
-if(DEFINED CMAKE_TOOLCHAIN_FILE AND NOT ANDROID)
-  # Force using the toolchain file, as otherwise it loads it later in the
-  # process, after several of the checks against it have failed.
-  if(IS_ABSOLUTE ${CMAKE_TOOLCHAIN_FILE})
-    message("Using Toolchain File: ${CMAKE_TOOLCHAIN_FILE}")
-    include("${CMAKE_TOOLCHAIN_FILE}")
-  else()
-    message("Using Toolchain File: ${CMAKE_BINARY_DIR}/${CMAKE_TOOLCHAIN_FILE}")
-    include("${CMAKE_BINARY_DIR}/${CMAKE_TOOLCHAIN_FILE}")
-  endif()
-endif()
-
-# We're on iOS if the system root is set to "iphone" or some variant.
-if("${CMAKE_OSX_SYSROOT}" MATCHES "iphone")
-  set(IOS TRUE CACHE BOOL "Target platform is iOS.")
-endif()
-
 # Set directories needed by the Firebase subprojects
 # Directory to store generated files.
 set(FIREBASE_GEN_FILE_DIR ${CMAKE_BINARY_DIR}/generated)
 # Directory for any shared scripts.
 set(FIREBASE_SCRIPT_DIR ${CMAKE_CURRENT_LIST_DIR})
-
-project (firebase NONE)
-enable_language(C)
-enable_language(CXX)
 
 if (FIREBASE_CPP_BUILD_TESTS AND MSVC)
   # Googletest requires MSVC to compile with the static version of the runtime
@@ -104,23 +114,75 @@ set(FIREBASE_BINARY_DIR ${PROJECT_BINARY_DIR})
 set(FIREBASE_INSTALL_DIR ${PROJECT_BINARY_DIR}/opt)
 set(FIREBASE_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads)
 
-# Run the CMake build logic that will download all the external dependencies.
-download_external_sources()
+if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
+  # Figure out where app's binary_dir was.
+  string(REGEX REPLACE
+    "${CMAKE_CURRENT_LIST_DIR}/[^/]+/(.*)"
+    "${CMAKE_CURRENT_LIST_DIR}/app/\\1"
+    APP_BINARY_DIR "${FIREBASE_BINARY_DIR}")
 
-# Disable the Flatbuffer build tests
+  set(FIRESTORE_SOURCE_DIR ${APP_BINARY_DIR}/external/src/firestore)
+else()
+  # Run the CMake build logic that will download all the external dependencies.
+  message(STATUS "Downloading external project dependencies...")
+  download_external_sources()
+  message(STATUS "Download complete.")
+
+  set(FIRESTORE_SOURCE_DIR ${FIREBASE_BINARY_DIR}/external/src/firestore)
+endif()
+
+# Include Firestore's external build early to resolve conflicts on packages.
+if(NOT ANDROID AND FIREBASE_INCLUDE_FIRESTORE)
+  set(FIRESTORE_BINARY_DIR ${FIRESTORE_SOURCE_DIR}-build)
+
+  set(
+    FIREBASE_IOS_BUILD_TESTS
+    ${FIREBASE_CPP_BUILD_TESTS}
+    CACHE BOOL "Force Firestore build tests to match"
+  )
+
+  add_subdirectory(${FIRESTORE_SOURCE_DIR} ${FIRESTORE_BINARY_DIR})
+
+  copy_subdirectory_definition(${FIRESTORE_SOURCE_DIR} NANOPB_SOURCE_DIR)
+endif()
+
+# Disable the Flatbuffer build tests, install and flathash
 set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "")
+set(FLATBUFFERS_INSTALL OFF CACHE BOOL "")
+set(FLATBUFFERS_FLATHASH OFF CACHE BOOL "")
 
-# Add flatbuffers as a subdirectory, and set the directory variables for it,
-# so that the sub Firebase projects can depend upon it if necessary.
-add_external_library(flatbuffers)
+# Disable buliding flatc if cross compiling
+if(IOS OR ANDROID)
+  set(FLATBUFFERS_BUILD_FLATC OFF CACHE BOOL "")
+endif()
 
-if(FIREBASE_CPP_BUILD_TESTS)
+if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
+  message(STATUS "flatbuffers is added with APP_BINARY_DIR ${APP_BINARY_DIR}")
+  add_external_library(flatbuffers BINARY_DIR "${APP_BINARY_DIR}")
+else()
+  message(STATUS "flatbuffers is added normally")
+  add_external_library(flatbuffers)
+endif()
+
+if(FIREBASE_CPP_BUILD_TESTS AND NOT FIREBASE_INCLUDE_FIRESTORE)
+  # Firestore's external build pulls in googletest
   add_external_library(googletest)
-  add_external_library(absl)
 endif()
 
 # Some of the external libraries are not used for mobile.
 if (NOT ANDROID AND NOT IOS)
+  # Use the static versions of the OpenSSL libraries.
+  set(OPENSSL_USE_STATIC_LIBS TRUE)
+  if (MSVC)
+    # Get the correct version of the OpenSSL libraries based on building for MT.
+    if ("${CMAKE_CXX_FLAGS_DEBUG}" MATCHES "/MT" OR
+        "${CMAKE_CXX_FLAGS_RELEASE}" MATCHES "/MT")
+      set(OPENSSL_MSVC_STATIC_RT TRUE)
+    else()
+      set(OPENSSL_MSVC_STATIC_RT FALSE)
+    endif()
+  endif()
+
   # Build curl as a static library
   set(CURL_STATICLIB ON CACHE BOOL "")
   if (WIN32)
@@ -186,20 +248,36 @@ if (NOT ANDROID AND NOT IOS)
     )
     target_link_libraries(libuWS
       PRIVATE
-        ${OPENSSL_SSL_LIBRARY}
+        ${OPENSSL_LIBRARIES}
         uv_a
         zlibstatic
     )
   endif()
+endif()
 
-  find_package(Protobuf)
-  if (PROTOBUF_FOUND)
-    # NanoPB requires Protobuf to be present, so only add it if it was found.
-    add_external_library(nanopb)
-    # NanoPB has a FindNanopb which defines the function to generate files, so
-    # add it to the module path, and use that.
-    list(INSERT CMAKE_MODULE_PATH 0 ${NANOPB_SOURCE_DIR}/extra)
-    find_package(Nanopb)
+if(NOT ANDROID)
+  if(FIREBASE_INCLUDE_FIRESTORE)
+    # The Firestore build includes protobuf and nanopb already
+    list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
+    find_package(Nanopb REQUIRED)
+
+    set(PROTOBUF_FOUND ON)
+  else()
+    find_package(Protobuf)
+    if (PROTOBUF_FOUND)
+      # NanoPB requires Protobuf to be present, so only add it if it was found.
+      add_external_library(nanopb)
+
+      # NanoPB has a FindNanopb which defines the function to generate files,
+      # so add it to the module path, and use that.
+      list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
+      find_package(Nanopb)
+
+      target_compile_definitions(
+        protobuf-nanopb-static
+        PUBLIC -DPB_FIELD_32BIT -DPB_ENABLE_MALLOC
+      )
+    endif()
   endif()
 endif()
 
@@ -224,7 +302,6 @@ if(ANDROID OR IOS)
   endif()
 
   set(FLATBUFFERS_FLATC_EXECUTABLE ${firebase_external_flatc} CACHE STRING "")
-  set(FLATBUFFERS_BUILD_FLATC OFF CACHE BOOL "")
 
   # Setup the flatc custom build target.
   # These commands are executed from within the currect context, which has set
@@ -269,9 +346,10 @@ else()
   set(FIREBASE_FLATBUFFERS_DEPENDENCIES "")
 endif()
 
-# Define this directory to be the root of the C++ SDK, which the libraries can
-# then refer to.
-set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
+include(binary_to_array)
+include(firebase_cpp_gradle)
+
+add_subdirectory(ios_pod)
 
 # If we're building tests, we need to include the 'testing' folder before any
 # of the tests actually get built.
@@ -279,8 +357,24 @@ if(FIREBASE_CPP_BUILD_TESTS)
   add_subdirectory(testing)
 endif()
 
-# App needs to come first, since other libraries will depend upon it.
-add_subdirectory(app)
+if(NOT FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
+  add_subdirectory(app)
+else()
+  # Add firebase_app as a target on the previously built app.
+  add_library(firebase_app STATIC IMPORTED GLOBAL)
+  file(MAKE_DIRECTORY "${APP_BINARY_DIR}/generated")
+  file(MAKE_DIRECTORY "${FIREBASE_BINARY_DIR}/generated")
+  set(app_include_dirs
+      "${CMAKE_CURRENT_LIST_DIR}/app/src/include"
+      "${APP_BINARY_DIR}/generated"
+      "${FIREBASE_BINARY_DIR}/generated"
+  )
+  set_target_properties(firebase_app PROPERTIES
+    IMPORTED_LOCATION "${APP_BINARY_DIR}/libfirebase_app.a"
+    INTERFACE_INCLUDE_DIRECTORIES "${app_include_dirs}"
+  )
+endif()
+
 if (FIREBASE_INCLUDE_ADMOB)
   add_subdirectory(admob)
 endif()
@@ -295,6 +389,9 @@ if (FIREBASE_INCLUDE_DATABASE)
 endif()
 if (FIREBASE_INCLUDE_DYNAMIC_LINKS)
   add_subdirectory(dynamic_links)
+endif()
+if (FIREBASE_INCLUDE_FIRESTORE)
+  add_subdirectory(firestore)
 endif()
 if (FIREBASE_INCLUDE_FUNCTIONS)
   add_subdirectory(functions)
@@ -311,3 +408,10 @@ endif()
 if (FIREBASE_INCLUDE_STORAGE)
   add_subdirectory(storage)
 endif()
+
+# Place the CMake and gradle build files provided to easily link against the
+# prebuilt libraries at the root of the package.
+cpp_pack_dir(
+  "${CMAKE_CURRENT_LIST_DIR}/release_build_files/"
+  .
+)

@@ -1,4 +1,4 @@
-# Copyright 2019 Google
+# Copyright 2019 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,11 +18,13 @@ if(TARGET curl OR NOT DOWNLOAD_CURL)
   return()
 endif()
 
+set(version 7_58_0)
+
 ExternalProject_Add(
   curl
 
-  GIT_REPOSITORY https://github.com/curl/curl.git
-  GIT_TAG        curl-7_58_0
+  DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
+  URL https://github.com/curl/curl/archive/curl-${version}.tar.gz
 
   PREFIX ${PROJECT_BINARY_DIR}
 
