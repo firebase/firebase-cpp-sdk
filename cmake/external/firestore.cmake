@@ -19,13 +19,12 @@ if(TARGET firestore)
 endif()
 
 # Pin to the first revision that includes these changes:
-# https://github.com/firebase/firebase-ios-sdk/pull/4984
-# https://github.com/firebase/firebase-ios-sdk/pull/5027
+# https://github.com/firebase/firebase-ios-sdk/pull/5052
 #
 # These changes are required for the firebase-ios-sdk build to interoperate
-# well with a wrapper build. Once M67 iOS releases this should point to the
-# Firestore release tag.
-set(version fb0fc07609a55cd2e5acf47fe034bf0c8e8419ad)
+# well with a wrapper build that also uses googletest. Once M67 iOS
+# releases with that change, this should point to the Firestore release tag.
+set(version a568a96f7e6cf26f74d3c04892d02c4a218d5566)
 
 ExternalProject_Add(
   firestore
