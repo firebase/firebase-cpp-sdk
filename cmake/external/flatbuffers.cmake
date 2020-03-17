@@ -18,7 +18,7 @@ if(TARGET flatbuffers OR NOT DOWNLOAD_FLATBUFFERS)
   return()
 endif()
 
-set(version c957550511689e1052059fc2cf2e43a06a24a05b)
+set(version 97ffc590e336b800d346bdf2f4876394bb353f97)
 
 ExternalProject_Add(
   flatbuffers
