@@ -369,6 +369,12 @@ endif()
 include(binary_to_array)
 include(firebase_cpp_gradle)
 
+# Ensure min/max macros don't get declared on Windows
+# (so we can use std::min/max), before including the Firebase subdirectories.
+if(MSVC)
+  add_definitions(-DNOMINMAX)
+endif()
+
 add_subdirectory(ios_pod)
 
 # If we're building tests, we need to include the 'testing' folder before any

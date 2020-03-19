@@ -182,12 +182,6 @@ else()
   add_definitions(-include assert.h -include string.h)
 endif()
 
-# Ensure min/max macros don't get declared on Windows
-# (so we can use std::min/max)
-if(MSVC)
-  add_definitions(-DNOMINMAX)
-endif()
-
 if(ANDROID)
   firebase_cpp_proguard_file(auth)
 elseif(IOS)
