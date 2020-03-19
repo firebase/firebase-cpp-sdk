@@ -272,7 +272,7 @@ class AppOptions {
   /// </SWIG>
   const char* project_id() const { return project_id_.c_str(); }
 
-#if INTERNAL_EXPERIMENTAL
+#ifdef INTERNAL_EXPERIMENTAL
   /// @brief set the iOS client ID.
   ///
   /// This is the clientID in the GoogleService-Info.plist.
