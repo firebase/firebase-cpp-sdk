@@ -115,14 +115,14 @@ std::vector<FieldValue> FieldValueInternal::array_transform_value() const {
   return absl::get<ArrayT>(value_);
 }
 
-double FieldValueInternal::double_increment_value() const {
-  HARD_ASSERT_IOS(type_ == Type::kIncrementDouble);
-  return absl::get<model::FieldValue>(value_).double_value();
-}
-
 std::int64_t FieldValueInternal::integer_increment_value() const {
   HARD_ASSERT_IOS(type_ == Type::kIncrementInteger);
   return absl::get<model::FieldValue>(value_).integer_value();
+}
+
+double FieldValueInternal::double_increment_value() const {
+  HARD_ASSERT_IOS(type_ == Type::kIncrementDouble);
+  return absl::get<model::FieldValue>(value_).double_value();
 }
 
 // Creating sentinels
@@ -146,14 +146,14 @@ FieldValue FieldValueInternal::ArrayRemove(std::vector<FieldValue> elements) {
       FieldValueInternal{Type::kArrayRemove, std::move(elements)});
 }
 
-FieldValue FieldValueInternal::Increment(double d) {
-  return MakePublic(FieldValueInternal{Type::kIncrementDouble,
-                                       model::FieldValue::FromDouble(d)});
+FieldValue FieldValueInternal::IntegerIncrement(std::int64_t by_value) {
+  return MakePublic(FieldValueInternal{
+      Type::kIncrementInteger, model::FieldValue::FromInteger(by_value)});
 }
 
-FieldValue FieldValueInternal::Increment(std::int64_t l) {
-  return MakePublic(FieldValueInternal{Type::kIncrementInteger,
-                                       model::FieldValue::FromInteger(l)});
+FieldValue FieldValueInternal::DoubleIncrement(double by_value) {
+  return MakePublic(FieldValueInternal{
+      Type::kIncrementDouble, model::FieldValue::FromDouble(by_value)});
 }
 
 // Equality operator
@@ -235,9 +235,10 @@ std::string Describe(Type type) {
       return "FieldValue::ArrayUnion()";
     case Type::kArrayRemove:
       return "FieldValue::ArrayRemove()";
-    case Type::kIncrementDouble:
     case Type::kIncrementInteger:
-      return "FieldValue::Increment()";
+      return "FieldValue::IntegerIncrement()";
+    case Type::kIncrementDouble:
+      return "FieldValue::DoubleIncrement()";
     default: {
       // TODO(b/147444199): use string formatting.
       // HARD_FAIL("Unexpected type '%s'", type);

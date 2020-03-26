@@ -72,8 +72,8 @@ class FieldValue final {
     kServerTimestamp,
     kArrayUnion,
     kArrayRemove,
-    kIncrementDouble,
     kIncrementInteger,
+    kIncrementDouble,
   };
 
   /**
@@ -261,18 +261,6 @@ class FieldValue final {
   MapFieldValue map_value() const;
 
   /**
-   * @brief Gets the value to increment by, if this `FieldValue` was
-   *        created using `FieldValue::Increment(double)`.
-   */
-  double double_increment_value() const;
-
-  /**
-   * @brief Gets the value to increment by, if this `FieldValue` was
-   *        created using `FieldValue::Increment(int64_t)`.
-   */
-  int64_t integer_increment_value() const;
-
-  /**
    * @brief Returns `true` if this `FieldValue` is valid, `false` if it is not
    * valid. An invalid `FieldValue` could be the result of:
    *   - Creating a `FieldValue` using the default constructor.
@@ -324,6 +312,7 @@ class FieldValue final {
    */
   static FieldValue ArrayRemove(std::vector<FieldValue> elements);
 
+#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
   /**
    * Returns a special value that can be used with `Set()` or `Update()` that
    * tells the server to increment the field's current value by the given value.
@@ -336,11 +325,13 @@ class FieldValue final {
    * If field is not an integer or a double, or if the field does not yet exist,
    * the transformation will set the field to the given value.
    *
-   * @param d The double value to increment by.
+   * @param by_value The integer value to increment by.
    * @return The FieldValue sentinel for use in a call to `Set()` or `Update().`
    */
-  static FieldValue Increment(double d);
+  static FieldValue IntegerIncrement(int64_t by_value);
+#endif  // if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 
+#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
   /**
    * Returns a special value that can be used with `Set()` or `Update()` that
    * tells the server to increment the field's current value by the given value.
@@ -353,10 +344,11 @@ class FieldValue final {
    * If field is not an integer or a double, or if the field does not yet exist,
    * the transformation will set the field to the given value.
    *
-   * @param l The integer value to increment by.
+   * @param by_value The double value to increment by.
    * @return The FieldValue sentinel for use in a call to `Set()` or `Update().`
    */
-  static FieldValue Increment(int64_t l);
+  static FieldValue DoubleIncrement(double by_value);
+#endif  // if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 
   /**
    * Returns a string representation of this `FieldValue` for logging/debugging

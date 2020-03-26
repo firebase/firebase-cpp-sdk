@@ -108,11 +108,13 @@ void ParseNumericIncrement(const FieldValue& value, ParseContext&& context) {
 
   switch (value.type()) {
     case Type::kIncrementDouble:
-      operand = model::FieldValue::FromDouble(value.double_increment_value());
+      operand = model::FieldValue::FromDouble(
+          GetInternal(&value)->double_increment_value());
       break;
 
     case Type::kIncrementInteger:
-      operand = model::FieldValue::FromInteger(value.integer_increment_value());
+      operand = model::FieldValue::FromInteger(
+          GetInternal(&value)->integer_increment_value());
       break;
 
     default:
