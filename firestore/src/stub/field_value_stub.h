@@ -73,12 +73,6 @@ class FieldValueInternal {
   MapFieldValue map_value() const {
     return MapFieldValue{};
   }
-  double double_increment_value() const {
-    return {};
-  }
-  std::int64_t integer_increment_value() const {
-    return {};
-  }
   static FieldValue Delete() {
     return FieldValue{};
   }
@@ -93,14 +87,8 @@ class FieldValueInternal {
   static FieldValue ArrayRemove(std::vector<FieldValue> elements) {
     return FieldValue{};
   }
-  // NOLINTNEXTLINE (performance-unnecessary-value-param)
-  static FieldValue Increment(double) {
-    return FieldValue{};
-  }
-  // NOLINTNEXTLINE (performance-unnecessary-value-param)
-  static FieldValue Increment(std::int64_t) {
-    return FieldValue{};
-  }
+  static FieldValue IntegerIncrement(std::int64_t) { return FieldValue{}; }
+  static FieldValue DoubleIncrement(double) { return FieldValue{}; }
 };
 
 inline bool operator==(const FieldValueInternal& lhs,

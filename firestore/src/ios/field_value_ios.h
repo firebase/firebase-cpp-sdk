@@ -55,8 +55,8 @@ class FieldValueInternal {
   static FieldValue ServerTimestamp();
   static FieldValue ArrayUnion(std::vector<FieldValue> elements);
   static FieldValue ArrayRemove(std::vector<FieldValue> elements);
-  static FieldValue Increment(double l);
-  static FieldValue Increment(std::int64_t d);
+  static FieldValue IntegerIncrement(std::int64_t by_value);
+  static FieldValue DoubleIncrement(double by_value);
 
  private:
   friend class FirestoreInternal;

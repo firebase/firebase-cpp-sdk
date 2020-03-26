@@ -300,7 +300,7 @@ void AddDataTransactions(firebase::firestore::Firestore* db) {
           transaction->Get(sf_doc_ref, &error, out_error_message);
 
       // Note: this could be done without a transaction by updating the
-      // population using FieldValue::Increment().
+      // population using FieldValue::IntegerIncrement().
       std::int64_t new_population =
           snapshot.Get("population").integer_value() + 1;
       transaction->Update(

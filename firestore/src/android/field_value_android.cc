@@ -19,16 +19,24 @@ using Type = FieldValue::Type;
 // static methods to build sentinel values.
 // clang-format off
 #define FIELD_VALUE_METHODS(X)                                                 \
-  X(Delete, "delete", "()Lcom/google/firebase/firestore/FieldValue;",          \
+  X(ArrayRemove, "arrayRemove",                                                \
+    "([Ljava/lang/Object;)Lcom/google/firebase/firestore/FieldValue;",         \
     util::kMethodTypeStatic),                                                  \
-  X(ServerTimestamp, "serverTimestamp",                                        \
-    "()Lcom/google/firebase/firestore/FieldValue;", util::kMethodTypeStatic),  \
   X(ArrayUnion, "arrayUnion",                                                  \
     "([Ljava/lang/Object;)Lcom/google/firebase/firestore/FieldValue;",         \
     util::kMethodTypeStatic),                                                  \
-  X(ArrayRemove, "arrayRemove",                                                \
-    "([Ljava/lang/Object;)Lcom/google/firebase/firestore/FieldValue;",         \
-    util::kMethodTypeStatic)
+  X(Delete, "delete",                                                          \
+    "()Lcom/google/firebase/firestore/FieldValue;",                            \
+    util::kMethodTypeStatic),                                                  \
+  X(IncrementInteger, "increment",                                             \
+    "(J)Lcom/google/firebase/firestore/FieldValue;",                           \
+    util::kMethodTypeStatic),                                                  \
+  X(IncrementDouble, "increment",                                              \
+    "(D)Lcom/google/firebase/firestore/FieldValue;",                           \
+    util::kMethodTypeStatic),                                                  \
+  X(ServerTimestamp, "serverTimestamp",                                        \
+    "()Lcom/google/firebase/firestore/FieldValue;",                            \
+    util::kMethodTypeStatic)                                                   \
 // clang-format on
 
 METHOD_LOOKUP_DECLARATION(field_value, FIELD_VALUE_METHODS)
@@ -448,19 +456,9 @@ MapFieldValue FieldValueInternal::map_value() const {
   return result;
 }
 
-double FieldValueInternal::double_increment_value() const {
-  // TODO(varconst): implement and test.
-  return {};
-}
-
-int64_t FieldValueInternal::integer_increment_value() const {
-  // TODO(varconst): implement and test.
-  return {};
-}
-
 /* static */
 FieldValue FieldValueInternal::Delete() {
-  FieldValueInternal* value = new FieldValueInternal();
+  auto* value = new FieldValueInternal();
   value->cached_type_ = Type::kDelete;
 
   JNIEnv* env = value->firestore_->app()->GetJNIEnv();
@@ -471,7 +469,7 @@ FieldValue FieldValueInternal::Delete() {
 
 /* static */
 FieldValue FieldValueInternal::ServerTimestamp() {
-  FieldValueInternal* value = new FieldValueInternal();
+  auto* value = new FieldValueInternal();
   value->cached_type_ = Type::kServerTimestamp;
 
   JNIEnv* env = value->firestore_->app()->GetJNIEnv();
@@ -482,7 +480,7 @@ FieldValue FieldValueInternal::ServerTimestamp() {
 
 /* static */
 FieldValue FieldValueInternal::ArrayUnion(std::vector<FieldValue> elements) {
-  FieldValueInternal* value = new FieldValueInternal();
+  auto* value = new FieldValueInternal();
   value->cached_type_ = Type::kArrayUnion;
 
   JNIEnv* env = value->firestore_->app()->GetJNIEnv();
@@ -506,7 +504,7 @@ FieldValue FieldValueInternal::ArrayUnion(std::vector<FieldValue> elements) {
 
 /* static */
 FieldValue FieldValueInternal::ArrayRemove(std::vector<FieldValue> elements) {
-  FieldValueInternal* value = new FieldValueInternal();
+  auto* value = new FieldValueInternal();
   value->cached_type_ = Type::kArrayRemove;
   JNIEnv* env = value->firestore_->app()->GetJNIEnv();
   jobjectArray array =
@@ -527,15 +525,45 @@ FieldValue FieldValueInternal::ArrayRemove(std::vector<FieldValue> elements) {
 }
 
 /* static */
-FieldValue FieldValueInternal::Increment(double) {
-  // TODO(varconst): implement and test.
-  return {};
+FieldValue FieldValueInternal::IntegerIncrement(int64_t by_value) {
+  auto* value = new FieldValueInternal();
+  value->cached_type_ = Type::kIncrementInteger;
+
+  JNIEnv* env = value->firestore_->app()->GetJNIEnv();
+
+  jobject obj = env->CallStaticObjectMethod(
+      field_value::GetClass(),
+      field_value::GetMethodId(field_value::kIncrementInteger),
+      static_cast<jlong>(by_value));
+
+  CheckAndClearJniExceptions(env);
+
+  FIREBASE_ASSERT(obj != nullptr);
+  value->obj_ = env->NewGlobalRef(obj);
+  env->DeleteLocalRef(obj);
+
+  return FieldValue{value};
 }
 
 /* static */
-FieldValue FieldValueInternal::Increment(int64_t) {
-  // TODO(varconst): implement and test.
-  return {};
+FieldValue FieldValueInternal::DoubleIncrement(double by_value) {
+  auto* value = new FieldValueInternal();
+  value->cached_type_ = Type::kIncrementDouble;
+
+  JNIEnv* env = value->firestore_->app()->GetJNIEnv();
+
+  jobject obj = env->CallStaticObjectMethod(
+      field_value::GetClass(),
+      field_value::GetMethodId(field_value::kIncrementDouble),
+      static_cast<jdouble>(by_value));
+
+  CheckAndClearJniExceptions(env);
+
+  FIREBASE_ASSERT(obj != nullptr);
+  value->obj_ = env->NewGlobalRef(obj);
+  env->DeleteLocalRef(obj);
+
+  return FieldValue{value};
 }
 
 /* static */

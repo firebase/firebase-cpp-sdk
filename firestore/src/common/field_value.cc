@@ -231,16 +231,6 @@ MapFieldValue FieldValue::map_value() const {
   return internal_->map_value();
 }
 
-double FieldValue::double_increment_value() const {
-  if (!internal_) return {};
-  return internal_->double_increment_value();
-}
-
-int64_t FieldValue::integer_increment_value() const {
-  if (!internal_) return {};
-  return internal_->integer_increment_value();
-}
-
 /* static */
 FieldValue FieldValue::Null() {
   FieldValue result;
@@ -266,15 +256,19 @@ FieldValue FieldValue::ArrayRemove(std::vector<FieldValue> elements) {
   return FieldValueInternal::ArrayRemove(firebase::Move(elements));
 }
 
+#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 /* static */
-FieldValue FieldValue::Increment(double d) {
-  return FieldValueInternal::Increment(d);
+FieldValue FieldValue::IntegerIncrement(int64_t by_value) {
+  return FieldValueInternal::IntegerIncrement(by_value);
 }
+#endif  // if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 
+#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 /* static */
-FieldValue FieldValue::Increment(int64_t l) {
-  return FieldValueInternal::Increment(l);
+FieldValue FieldValue::DoubleIncrement(double by_value) {
+  return FieldValueInternal::DoubleIncrement(by_value);
 }
+#endif  // if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 
 // TODO(varconst): consider reversing the role of the two output functions, so
 // that `ToString` delegates to `operator<<`, not the other way round.
@@ -327,13 +321,11 @@ std::string FieldValue::ToString() const {
     case Type::kArrayRemove:
       return "FieldValue::ArrayRemove()";
 
-    case Type::kIncrementDouble:
-      return std::string("FieldValue::Increment(") +
-             ValueToString(double_increment_value()) + ")";
-
     case Type::kIncrementInteger:
-      return std::string("FieldValue::Increment(") +
-             ValueToString(integer_increment_value()) + ")";
+      return "FieldValue::IntegerIncrement()";
+
+    case Type::kIncrementDouble:
+      return "FieldValue::DoubleIncrement()";
   }
 
   FIREBASE_ASSERT_MESSAGE_RETURN("<invalid>", false,

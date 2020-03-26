@@ -52,15 +52,13 @@ class FieldValueInternal : public Wrapper {
   GeoPoint geo_point_value() const;
   std::vector<FieldValue> array_value() const;
   MapFieldValue map_value() const;
-  double double_increment_value() const;
-  int64_t integer_increment_value() const;
 
   static FieldValue Delete();
   static FieldValue ServerTimestamp();
   static FieldValue ArrayUnion(std::vector<FieldValue> elements);
   static FieldValue ArrayRemove(std::vector<FieldValue> elements);
-  static FieldValue Increment(double d);
-  static FieldValue Increment(int64_t l);
+  static FieldValue IntegerIncrement(int64_t by_value);
+  static FieldValue DoubleIncrement(double by_value);
 
  private:
   friend class FirestoreInternal;
