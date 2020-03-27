@@ -198,6 +198,11 @@ DocumentReference Firestore::Document(const std::string& document_path) const {
   return Document(document_path.c_str());
 }
 
+Query Firestore::CollectionGroup(const char* collection_id) const {
+  if (!internal_) return {};
+  return internal_->CollectionGroup(collection_id);
+}
+
 Query Firestore::CollectionGroup(const std::string& collection_id) const {
   if (!internal_) return {};
   return internal_->CollectionGroup(collection_id.c_str());
@@ -208,9 +213,9 @@ Settings Firestore::settings() const {
   return internal_->settings();
 }
 
-void Firestore::set_settings(const Settings& settings) {
+void Firestore::set_settings(Settings settings) {
   if (!internal_) return;
-  internal_->set_settings(settings);
+  internal_->set_settings(firebase::Move(settings));
 }
 
 WriteBatch Firestore::batch() const {

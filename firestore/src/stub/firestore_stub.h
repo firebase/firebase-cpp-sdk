@@ -33,9 +33,6 @@ class FirestoreInternal {
   // Default CleanupNotifier as required by the shared code; nothing more.
   CleanupNotifier& cleanup() { return cleanup_; }
 
-  // Do nothing yet for the stub.
-  void set_logging_enabled(bool logging_enabled) {}
-
   // Returns a null Collection.
   CollectionReference Collection(const char* collection_path) const {
     return CollectionReference{};
@@ -53,7 +50,7 @@ class FirestoreInternal {
   Settings settings() const { return settings_; }
 
   // Sets the settings class member. Has no effect to the stub yet.
-  void set_settings(const Settings& settings) { settings_ = settings; }
+  void set_settings(Settings settings) { settings_ = settings; }
 
   WriteBatch batch() const { return WriteBatch{}; }
 
@@ -101,6 +98,8 @@ class FirestoreInternal {
     return ListenerRegistration{};
   }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
+  static void set_log_level(LogLevel level);
 
   void UnregisterListenerRegistration(
       ListenerRegistrationInternal* registration) {}

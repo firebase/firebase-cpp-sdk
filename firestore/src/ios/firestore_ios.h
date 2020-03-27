@@ -55,7 +55,7 @@ class FirestoreInternal {
   Query CollectionGroup(const char* collection_id) const;
 
   Settings settings() const;
-  void set_settings(const Settings& settings);
+  void set_settings(Settings settings);
 
   WriteBatch batch() const;
 

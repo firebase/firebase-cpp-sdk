@@ -5,8 +5,7 @@
 namespace firebase {
 namespace firestore {
 
-/* static */
-void Firestore::set_logging_enabled(bool logging_enabled) {}
+void Firestore::set_log_level(LogLevel) {}
 
 }  // namespace firestore
 }  // namespace firebase
