@@ -82,7 +82,7 @@ class FirestoreInternal {
   Settings settings() const;
 
   // Sets any custom settings used to configure this Firestore object.
-  void set_settings(const Settings& settings);
+  void set_settings(Settings settings);
 
   WriteBatch batch() const;
 

@@ -26,6 +26,7 @@
 
 #include "firebase/app.h"
 #include "firebase/future.h"
+#include "firebase/log.h"
 // Include *all* the public headers to make sure including just "firestore.h" is
 // sufficient for users.
 #include "firebase/firestore/collection_reference.h"
@@ -201,13 +202,26 @@ class Firestore {
    *
    * @return The Query instance.
    */
+  virtual Query CollectionGroup(const char* collection_id) const;
+
+  /**
+   * @brief Returns a Query instance that includes all documents in the
+   * database that are contained in a collection or subcollection with the
+   * given collection_id.
+   *
+   * @param[in] collection_id Identifies the collections to query over. Every
+   * collection or subcollection with this ID as the last segment of its path
+   * will be included. Cannot contain a slash.
+   *
+   * @return The Query instance.
+   */
   virtual Query CollectionGroup(const std::string& collection_id) const;
 
   /** Returns the settings used by this Firestore object. */
   virtual Settings settings() const;
 
   /** Sets any custom settings used to configure this Firestore object. */
-  virtual void set_settings(const Settings& settings);
+  virtual void set_settings(Settings settings);
 
   /**
    * Creates a write batch, used for performing multiple writes as a single
@@ -252,8 +266,14 @@ class Firestore {
   /** Gets the result of the most recent call to RunTransaction(). */
   virtual Future<void> RunTransactionLastResult();
 
-  /** Globally enables / disables Firestore logging for the SDK. */
-  static void set_logging_enabled(bool logging_enabled);
+  /**
+   * Sets the log verbosity of all Firestore instances.
+   *
+   * The default verbosity level is `kLogLevelInfo`.
+   *
+   * @param[in] log_level The desired verbosity.
+   */
+  static void set_log_level(LogLevel log_level);
 
   /**
    * Disables network access for this instance. While the network is disabled,

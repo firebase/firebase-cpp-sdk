@@ -103,9 +103,9 @@ Settings FirestoreInternal::settings() const {
   return result;
 }
 
-void FirestoreInternal::set_settings(const Settings& from) {
+void FirestoreInternal::set_settings(Settings from) {
   api::Settings settings;
-  settings.set_host(from.host());
+  settings.set_host(std::move(from.host()));
   settings.set_ssl_enabled(from.is_ssl_enabled());
   settings.set_persistence_enabled(from.is_persistence_enabled());
   // TODO(varconst): implement `cache_size_bytes` in public `Settings` and
@@ -288,8 +288,27 @@ void FirestoreInternal::ApplyDefaultSettings() {
   set_settings(settings());
 }
 
-void Firestore::set_logging_enabled(bool logging_enabled) {
-  LogSetLevel(logging_enabled ? util::kLogLevelDebug : util::kLogLevelNotice);
+void Firestore::set_log_level(LogLevel log_level) {
+  switch (log_level) {
+    case kLogLevelVerbose:
+    case kLogLevelDebug:
+      // Firestore doesn't have the distinction between "verbose" and "debug".
+      LogSetLevel(util::kLogLevelDebug);
+      return;
+    case kLogLevelInfo:
+      LogSetLevel(util::kLogLevelNotice);
+      return;
+    case kLogLevelWarning:
+      LogSetLevel(util::kLogLevelWarning);
+      return;
+    case kLogLevelError:
+    case kLogLevelAssert:
+      // Firestore doesn't have a separate "assert" log level.
+      LogSetLevel(util::kLogLevelError);
+      return;
+  }
+
+  UNREACHABLE();
 }
 
 }  // namespace firestore

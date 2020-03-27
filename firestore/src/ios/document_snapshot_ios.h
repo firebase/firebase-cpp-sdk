@@ -41,7 +41,6 @@ class DocumentSnapshotInternal {
     return snapshot_;
   }
 
-  // Unimplemented
   DocumentReference reference() const;
 
  private:
