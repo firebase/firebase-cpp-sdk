@@ -234,6 +234,24 @@ class Firestore {
    */
   virtual WriteBatch batch() const;
 
+#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+  /**
+   * Executes the given update and then attempts to commit the changes applied
+   * within the transaction. If any document read within the transaction has
+   * changed, the update function will be retried. If it fails to commit after
+   * 5 attempts, the transaction will fail.
+   *
+   * @param update function or lambda to execute within the transaction context.
+   *
+   * @return A Future that will be resolved when the transaction finishes.
+   *
+   * @note This method is not available when using the STLPort C++ runtime
+   * library.
+   */
+  virtual Future<void> RunTransaction(
+      std::function<Error(Transaction*, std::string*)> update);
+#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
   /**
    * Executes the given update and then attempts to commit the changes applied
    * within the transaction. If any document read within the transaction has
@@ -247,21 +265,6 @@ class Firestore {
    * @return A Future that will be resolved when the transaction finishes.
    */
   virtual Future<void> RunTransaction(TransactionFunction* update);
-
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
-  /**
-   * Executes the given update and then attempts to commit the changes applied
-   * within the transaction. If any document read within the transaction has
-   * changed, the update function will be retried. If it fails to commit after
-   * 5 attempts, the transaction will fail.
-   *
-   * @param update function or lambda to execute within the transaction context.
-   *
-   * @return A Future that will be resolved when the transaction finishes.
-   */
-  virtual Future<void> RunTransaction(
-      std::function<Error(Transaction*, std::string*)> update);
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
   /** Gets the result of the most recent call to RunTransaction(). */
   virtual Future<void> RunTransactionLastResult();

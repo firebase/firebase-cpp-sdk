@@ -326,8 +326,15 @@ class DocumentReference {
    * valid and the listener is registered.)
    *
    * @return A registration object that can be used to remove the listener.
+   *
+   * @note This method is only available when using the STLPort C++ runtime
+   * library.
+   *
+   * @deprecated STLPort support in Firestore is deprecated and will be removed
+   * in a future release. Note that STLPort has been deprecated in the Android
+   * NDK since r17 (May 2018) and removed since r18 (September 2018).
    */
-  virtual ListenerRegistration AddSnapshotListener(
+  FIREBASE_DEPRECATED virtual ListenerRegistration AddSnapshotListener(
       EventListener<DocumentSnapshot>* listener);
 
   /**
@@ -344,8 +351,15 @@ class DocumentReference {
    * valid and the listener is registered.)
    *
    * @return A registration object that can be used to remove the listener.
+   *
+   * @note This method is only available when using the STLPort C++ runtime
+   * library.
+   *
+   * @deprecated STLPort support in Firestore is deprecated and will be removed
+   * in a future release. Note that STLPort has been deprecated in the Android
+   * NDK since r17 (May 2018) and removed since r18 (September 2018).
    */
-  virtual ListenerRegistration AddSnapshotListener(
+  FIREBASE_DEPRECATED virtual ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
       EventListener<DocumentSnapshot>* listener);
 

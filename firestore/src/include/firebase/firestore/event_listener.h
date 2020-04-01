@@ -27,6 +27,10 @@ namespace firestore {
  *
  * @note This class should only be used when using the STLPort C++ runtime
  * library.
+ *
+ * @deprecated STLPort support in Firestore is deprecated and will be removed in
+ * a future release. Note that STLPort has been deprecated in the Android NDK
+ * since r17 (May 2018) and removed since r18 (September 2018).
  */
 template <typename T>
 class EventListener {
@@ -50,6 +54,10 @@ class EventListener {
  *
  * @note This class should only be used when using the STLPort C++ runtime
  * library.
+ *
+ * @deprecated STLPort support in Firestore is deprecated and will be removed in
+ * a future release. Note that STLPort has been deprecated in the Android NDK
+ * since r17 (May 2018) and removed since r18 (September 2018).
  */
 template <>
 class EventListener<void> {
