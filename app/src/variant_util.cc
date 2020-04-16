@@ -47,18 +47,6 @@ static bool StdVectorToJson(const std::vector<Variant>& vector,
                             bool prettyPrint, const std::string& indent,
                             std::stringstream* ss);
 
-// Forward declarations for flexbuffer::Builder variations of the *ToFlexbuffer
-// functions since these aren't made available in the header. These return true
-// on success and false on failure. Failure is a result of using binary blobs in
-// the variant, or using types that cannot be coerced to a string as a key in a
-// map.
-static bool VariantToFlexbuffer(const Variant& variant,
-                                flexbuffers::Builder* fbb);
-static bool VariantMapToFlexbuffer(const std::map<Variant, Variant>& map,
-                                   flexbuffers::Builder* fbb);
-static bool VariantVectorToFlexbuffer(const std::vector<Variant>& vector,
-                                      flexbuffers::Builder* fbb);
-
 static bool VariantToJson(const Variant& variant, bool prettyPrint,
                           const std::string& indent, std::stringstream* ss) {
   switch (variant.type()) {
@@ -275,8 +263,7 @@ Variant JsonToVariant(const char* json) {
   return FlexbufferToVariant(root);
 }
 
-static bool VariantToFlexbuffer(const Variant& variant,
-                                flexbuffers::Builder* fbb) {
+bool VariantToFlexbuffer(const Variant& variant, flexbuffers::Builder* fbb) {
   switch (variant.type()) {
     case Variant::kTypeNull: {
       fbb->Null();
@@ -323,8 +310,8 @@ static bool VariantToFlexbuffer(const Variant& variant,
   return true;
 }
 
-static bool VariantMapToFlexbuffer(const std::map<Variant, Variant>& map,
-                                   flexbuffers::Builder* fbb) {
+bool VariantMapToFlexbuffer(const std::map<Variant, Variant>& map,
+                            flexbuffers::Builder* fbb) {
   auto start = fbb->StartMap();
   for (auto iter = map.begin(); iter != map.end(); ++iter) {
     // Flexbuffers only supports string keys, return false if the key is not a
@@ -347,8 +334,8 @@ static bool VariantMapToFlexbuffer(const std::map<Variant, Variant>& map,
   return true;
 }
 
-static bool VariantVectorToFlexbuffer(const std::vector<Variant>& vector,
-                                      flexbuffers::Builder* fbb) {
+bool VariantVectorToFlexbuffer(const std::vector<Variant>& vector,
+                               flexbuffers::Builder* fbb) {
   auto start = fbb->StartVector();
   for (auto iter = vector.begin(); iter != vector.end(); ++iter) {
     if (!VariantToFlexbuffer(*iter, fbb)) {
