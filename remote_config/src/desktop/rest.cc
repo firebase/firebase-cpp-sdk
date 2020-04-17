@@ -223,14 +223,14 @@ void RemoteConfigREST::ParseProtoResponse(const std::string& proto_str) {
   NamespaceKeyValueMap config_map(configs_.fetched.config());
 
   LogDebug("Parsing config response...");
-  for (auto app_config : response.configs) {
+  for (const auto& app_config : response.configs) {
     LogDebug("Found response config checking app name %s vs %s",
              app_package_name_.c_str(), app_config.app_name.c_str());
     // Check the same app name.
     if (app_package_name_.compare(app_config.app_name) != 0) continue;
 
     LogDebug("Parsing config for app...");
-    for (auto config : app_config.ns_configs) {
+    for (const auto& config : app_config.ns_configs) {
       switch (config.status) {
         case CONFIG_NAMESPACESTATUS(NO_CHANGE):
           meta_digest[config.config_namespace] = config.digest;
@@ -240,7 +240,7 @@ void RemoteConfigREST::ParseProtoResponse(const std::string& proto_str) {
         case CONFIG_NAMESPACESTATUS(UPDATE):
           meta_digest[config.config_namespace] = config.digest;
           config_map[config.config_namespace].clear();
-          for (auto keyvalue : config.key_values) {
+          for (const auto& keyvalue : config.key_values) {
             config_map[config.config_namespace][keyvalue.key] = keyvalue.value;
             LogDebug("Update: ns=%s kv=(%s, %s)",
                      config.config_namespace.c_str(), keyvalue.key.c_str(),
