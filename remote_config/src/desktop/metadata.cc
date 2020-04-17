@@ -44,7 +44,7 @@ std::string RemoteConfigMetadata::Serialize() const {
     fbb.Add("digest_by_namespace", digest_by_namespace_);
 
     fbb.Map("settings", [&]() {
-      for (auto setting : settings_) {
+      for (const auto& setting : settings_) {
         fbb.String(std::to_string(setting.first).c_str(), setting.second);
       }
     });

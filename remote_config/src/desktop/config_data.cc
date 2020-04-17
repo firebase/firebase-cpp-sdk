@@ -33,7 +33,7 @@ std::string NamespacedConfigData::Serialize() const {
   fbb.Map([&]() {
     // Map of Namespace to KeyVal
     fbb.Map("config_", [&]() {
-      for (auto key_to_map : config_) {
+      for (const auto& key_to_map : config_) {
         // Map of Key to Val
         fbb.Add(key_to_map.first.c_str(), key_to_map.second);
       }
