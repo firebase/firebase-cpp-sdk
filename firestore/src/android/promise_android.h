@@ -86,7 +86,7 @@ class Promise {
         return;
       }
 
-      Error error_code = Unknown;
+      Error error_code = Error::kUnknown;
       switch (result_code) {
         case util::kFutureResultFailure:
           // When failed, result is the exception raised.
@@ -94,10 +94,10 @@ class Promise {
               this->firestore_->app()->GetJNIEnv(), result);
           break;
         case util::kFutureResultCancelled:
-          error_code = Cancelled;
+          error_code = Error::kCancelled;
           break;
         default:
-          error_code = Unknown;
+          error_code = Error::kUnknown;
           FIREBASE_ASSERT_MESSAGE(false, "unknown FutureResult %d",
                                   result_code);
           break;
@@ -130,10 +130,10 @@ class Promise {
       PublicT future_result = FirestoreInternal::Wrap<InternalT>(
           new InternalT(this->firestore_, result));
 
-      this->impl_->CompleteWithResult(this->handle_, Ok, /*error_msg=*/"",
-                                      future_result);
+      this->impl_->CompleteWithResult(this->handle_, Error::kOk,
+                                      /*error_msg=*/"", future_result);
       if (this->completion_ != nullptr) {
-        this->completion_->CompleteWith(Ok, /*error_message*/ "",
+        this->completion_->CompleteWith(Error::kOk, /*error_message*/ "",
                                         &future_result);
       }
       delete this;
@@ -146,9 +146,10 @@ class Promise {
     using CompleterBase<void>::CompleterBase;
 
     void SucceedWithResult(jobject result) override {
-      this->impl_->Complete(this->handle_, Ok, /*error_msg=*/"");
+      this->impl_->Complete(this->handle_, Error::kOk, /*error_msg=*/"");
       if (this->completion_ != nullptr) {
-        this->completion_->CompleteWith(Ok, /*error_message*/ "", nullptr);
+        this->completion_->CompleteWith(Error::kOk, /*error_message*/ "",
+                                        nullptr);
       }
       delete this;
     }

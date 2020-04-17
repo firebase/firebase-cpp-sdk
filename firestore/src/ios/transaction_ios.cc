@@ -134,7 +134,7 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
 
   if (result.ok()) {
     if (error_code != nullptr) {
-      *error_code = Error::Ok;
+      *error_code = Error::kOk;
     }
     if (error_message != nullptr) {
       *error_message = "";

@@ -26,7 +26,7 @@ public class VoidEventListener extends CppEventListener implements Runnable {
 
   /**
    * Interprets the {@code listenerObject} as a {@code firebase::firestore::EventListener<void>} and
-   * invokes the listener's {@code OnEvent} method with {@code Error::Ok}. The EventListener will
+   * invokes the listener's {@code OnEvent} method with {@code Error::kOk}. The EventListener will
    * never be passed anything other than Ok because VoidEventListener can only be used in
    * circumstances where the callback can't fail.
    *

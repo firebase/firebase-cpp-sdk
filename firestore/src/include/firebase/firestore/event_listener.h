@@ -41,10 +41,10 @@ class EventListener {
    * @brief OnEvent will be called with the new value or the error if an error
    * occurred.
    *
-   * It's guaranteed that value is valid if and only if error is Error::Ok.
+   * It's guaranteed that value is valid if and only if error is Error::kOk.
    *
    * @param value The value of the event. Invalid if there was an error.
-   * @param error The error if there was error. Error::Ok otherwise.
+   * @param error The error if there was error. Error::kOk otherwise.
    */
   virtual void OnEvent(const T& value, Error error) = 0;
 };
@@ -67,7 +67,7 @@ class EventListener<void> {
   /**
    * @brief OnEvent will be called with the error if an error occurred.
    *
-   * @param error The error if there was error. Error::Ok otherwise.
+   * @param error The error if there was error. Error::kOk otherwise.
    */
   virtual void OnEvent(Error error) = 0;
 };
