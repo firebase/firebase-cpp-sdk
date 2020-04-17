@@ -19,7 +19,7 @@ Error UnityTransactionFunction::Apply(Transaction* transaction,
   } else {
     FIREBASE_ASSERT_MESSAGE(
         false, "C++ transaction callback called before C# registered.");
-    return Error::Ok;
+    return Error::kOk;
   }
 }
 

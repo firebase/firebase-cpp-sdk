@@ -284,7 +284,7 @@ class DocumentReference {
    * DocumentReference.
    *
    * @param[in] callback The std::function to call. When this function is
-   * called, snapshot value is valid if and only if error is Error::Ok.
+   * called, snapshot value is valid if and only if error is Error::kOk.
    *
    * @return A registration object that can be used to remove the listener.
    *
@@ -302,7 +302,7 @@ class DocumentReference {
    * is, only DocumentSnapshot::metadata() changed) should trigger snapshot
    * events.
    * @param[in] callback The std::function to call. When this function is
-   * called, snapshot value is valid if and only if error is Error::Ok.
+   * called, snapshot value is valid if and only if error is Error::kOk.
    *
    * @return A registration object that can be used to remove the listener.
    *

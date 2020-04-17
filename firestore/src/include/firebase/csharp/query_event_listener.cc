@@ -54,7 +54,8 @@ ListenerRegistration QueryEventListener::AddListenerTo(
 void QueryEventListener::QuerySnapshotEvent(int callback_id,
                                             QuerySnapshot value, Error error) {
   MutexLock lock(g_mutex);
-  if (error != Ok || g_query_snapshot_event_listener_callback == nullptr) {
+  if (error != Error::kOk ||
+      g_query_snapshot_event_listener_callback == nullptr) {
     return;
   }
   // The ownership is passed through the call to C# handler.

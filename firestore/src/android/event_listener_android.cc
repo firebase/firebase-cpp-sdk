@@ -57,7 +57,7 @@ void EventListenerInternal::DocumentEventListenerNativeOnEvent(
       reinterpret_cast<EventListener<DocumentSnapshot>*>(listener_ptr);
   Error error_code =
       FirebaseFirestoreExceptionInternal::ToErrorCode(env, error);
-  if (error_code != Ok) {
+  if (error_code != Error::kOk) {
     listener->OnEvent(DocumentSnapshot{}, error_code);
     return;
   }
@@ -79,7 +79,7 @@ void EventListenerInternal::QueryEventListenerNativeOnEvent(
       reinterpret_cast<EventListener<QuerySnapshot>*>(listener_ptr);
   Error error_code =
       FirebaseFirestoreExceptionInternal::ToErrorCode(env, error);
-  if (error_code != Ok) {
+  if (error_code != Error::kOk) {
     listener->OnEvent(QuerySnapshot{}, error_code);
     return;
   }
@@ -100,7 +100,7 @@ void EventListenerInternal::VoidEventListenerNativeOnEvent(JNIEnv* env,
   EventListener<void>* listener =
       reinterpret_cast<EventListener<void>*>(listener_ptr);
 
-  listener->OnEvent(Error::Ok);
+  listener->OnEvent(Error::kOk);
 }
 
 /* static */

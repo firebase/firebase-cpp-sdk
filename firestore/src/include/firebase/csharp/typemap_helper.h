@@ -18,7 +18,7 @@ namespace csharp {
 
 struct TransactionGetResult {
   DocumentSnapshot snapshot;
-  Error error_code = Unknown;
+  Error error_code = Error::kUnknown;
   std::string error_message;
 };
 

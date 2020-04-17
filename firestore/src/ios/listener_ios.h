@@ -35,7 +35,7 @@ std::unique_ptr<core::EventListener<From>> ListenerWithPromise(
 }
 
 // Creates an `EventListener` that will:
-// - invoke the given `callback` with either a valid value and `Error::Ok`, or
+// - invoke the given `callback` with either a valid value and `Error::kOk`, or
 //   a default-constructed value and an error indicating the failure;
 // - convert the Core API value given to it upon invocation (`From`) into
 //   a public API type (`To`).
@@ -47,7 +47,7 @@ std::unique_ptr<core::EventListener<From>> ListenerWithCallback(
         if (maybe_value.ok()) {
           From from = std::move(maybe_value).ValueOrDie();
           To to = MakePublic(std::move(from));
-          callback(std::move(to), Error::Ok);
+          callback(std::move(to), Error::kOk);
 
         } else {
           callback(To{}, maybe_value.status().code());

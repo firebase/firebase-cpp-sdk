@@ -59,7 +59,8 @@ void DocumentEventListener::DocumentSnapshotEvent(int callback_id,
                                                   DocumentSnapshot value,
                                                   Error error) {
   MutexLock lock(g_mutex);
-  if (error != Ok || g_document_snapshot_event_listener_callback == nullptr) {
+  if (error != Error::kOk ||
+      g_document_snapshot_event_listener_callback == nullptr) {
     return;
   }
   // The ownership is passed through the call to C# handler.

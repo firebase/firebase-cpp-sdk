@@ -401,7 +401,7 @@ class QueryInternal : public WrapperFuture<QueryFn, QueryFn::kCount> {
    * @param[in] metadata_changes Indicates whether metadata-only changes (i.e.
    * only QuerySnapshot.getMetadata() changed) should trigger snapshot events.
    * @param[in] When this function is called, snapshot value is valid if and
-   * only if error is Error::Ok.
+   * only if error is Error::kOk.
    *
    * @return A registration object that can be used to remove the listener.
    *
