@@ -42,27 +42,27 @@ struct remove_reference<T&&> {
 
 template <typename T>
 struct is_array {
-  static const bool value = false;
+  static constexpr bool value = false;
 };
 
 template <typename T>
 struct is_array<T[]> {
-  static const bool value = true;
+  static constexpr bool value = true;
 };
 
 template <typename T, std::size_t N>
 struct is_array<T[N]> {
-  static const bool value = true;
+  static constexpr bool value = true;
 };
 
 template <typename T>
 struct is_lvalue_reference {
-  static const bool value = false;
+  static constexpr bool value = false;
 };
 
 template <typename T>
 struct is_lvalue_reference<T&> {
-  static const bool value = true;
+  static constexpr bool value = true;
 };
 
 // NOLINTNEXTLINE - allow namespace overridden

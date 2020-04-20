@@ -1139,7 +1139,7 @@ class Variant {
     char small_string[sizeof(BlobValue)];
   } value_;
 
-  static const size_t kMaxSmallStringSize = sizeof(Value::small_string);
+  static constexpr size_t kMaxSmallStringSize = sizeof(Value::small_string);
 
   friend class firebase::internal::VariantInternal;
 };
