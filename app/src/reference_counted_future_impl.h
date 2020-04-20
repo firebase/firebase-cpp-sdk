@@ -100,10 +100,10 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
  public:
   /// This handle will never be returned by @ref Alloc, so you can use it
   /// to signify an uninitialized or invalid value.
-  static const FutureHandle kInvalidHandle = kInvalidFutureHandle;
+  static constexpr FutureHandle kInvalidHandle = kInvalidFutureHandle;
 
   /// Returned by @ref GetFutureError when the passed in handle is invalid.
-  static const int kErrorFutureIsNoLongerValid = -1;
+  static constexpr int kErrorFutureIsNoLongerValid = -1;
 
   /// Returned by @ref GetFutureErrorMessage when the passed in handle is
   /// invalid.
@@ -111,7 +111,7 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   /// Pass into @ref Alloc for `fn_idx` when you don't want to update any
   /// function.
-  static const int kNoFunctionIndex = -1;
+  static constexpr int kNoFunctionIndex = -1;
 
   explicit ReferenceCountedFutureImpl(size_t last_result_count)
       : next_future_handle_(kInvalidHandle + 1),
