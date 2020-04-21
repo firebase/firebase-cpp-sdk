@@ -237,29 +237,14 @@ Future<void> Firestore::RunTransaction(
 }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
-Future<void> Firestore::RunTransactionLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->RunTransactionLastResult();
-}
-
 Future<void> Firestore::DisableNetwork() {
   if (!internal_) return FailedFuture<void>();
   return internal_->DisableNetwork();
 }
 
-Future<void> Firestore::DisableNetworkLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->DisableNetworkLastResult();
-}
-
 Future<void> Firestore::EnableNetwork() {
   if (!internal_) return FailedFuture<void>();
   return internal_->EnableNetwork();
-}
-
-Future<void> Firestore::EnableNetworkLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->EnableNetworkLastResult();
 }
 
 Future<void> Firestore::Terminate() {
@@ -268,29 +253,14 @@ Future<void> Firestore::Terminate() {
   return internal_->Terminate();
 }
 
-Future<void> Firestore::TerminateLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->TerminateLastResult();
-}
-
 Future<void> Firestore::WaitForPendingWrites() {
   if (!internal_) return FailedFuture<void>();
   return internal_->WaitForPendingWrites();
 }
 
-Future<void> Firestore::WaitForPendingWritesLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->WaitForPendingWritesLastResult();
-}
-
 Future<void> Firestore::ClearPersistence() {
   if (!internal_) return FailedFuture<void>();
   return internal_->ClearPersistence();
-}
-
-Future<void> Firestore::ClearPersistenceLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->ClearPersistenceLastResult();
 }
 
 #if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)

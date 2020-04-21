@@ -524,14 +524,6 @@ class Query {
    */
   virtual Future<QuerySnapshot> Get(Source source = Source::kDefault) const;
 
-  /**
-   * @brief Gets the result of the most recent call to the Get() method.
-   *
-   * @return The result of last call to Get() or an invalid Future, if there is
-   * no such call.
-   */
-  virtual Future<QuerySnapshot> GetLastResult() const;
-
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /**
    * @brief Starts listening to the QuerySnapshot events referenced by this
