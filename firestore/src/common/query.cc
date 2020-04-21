@@ -242,11 +242,6 @@ Future<QuerySnapshot> Query::Get(Source source) const {
   return internal_->Get(source);
 }
 
-Future<QuerySnapshot> Query::GetLastResult() const {
-  if (!internal_) return FailedFuture<QuerySnapshot>();
-  return internal_->GetLastResult();
-}
-
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 ListenerRegistration Query::AddSnapshotListener(
     std::function<void(const QuerySnapshot&, Error)> callback) {

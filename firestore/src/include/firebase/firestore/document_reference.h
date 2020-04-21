@@ -201,14 +201,6 @@ class DocumentReference {
   virtual Future<DocumentSnapshot> Get(Source source = Source::kDefault) const;
 
   /**
-   * @brief Gets the result of the most recent call to the Get() method.
-   *
-   * @return The result of last call to Get() or an invalid Future, if there is
-   * no such call.
-   */
-  virtual Future<DocumentSnapshot> GetLastResult() const;
-
-  /**
    * @brief Writes to the document referred to by this DocumentReference.
    *
    * If the document does not yet exist, it will be created. If you pass
@@ -221,14 +213,6 @@ class DocumentReference {
    */
   virtual Future<void> Set(const MapFieldValue& data,
                            const SetOptions& options = SetOptions());
-
-  /**
-   * @brief Gets the result of the most recent call to the Set() method.
-   *
-   * @return The result of last call to Set() or an invalid Future, if there is
-   * no such call.
-   */
-  virtual Future<void> SetLastResult() const;
 
   /**
    * @brief Updates fields in the document referred to by this
@@ -256,27 +240,11 @@ class DocumentReference {
   virtual Future<void> Update(const MapFieldPathValue& data);
 
   /**
-   * @brief Gets the result of the most recent call to Update().
-   *
-   * @return The result of last call to Update() or an invalid Future, if there
-   * is no such call.
-   */
-  virtual Future<void> UpdateLastResult() const;
-
-  /**
    * @brief Removes the document referred to by this DocumentReference.
    *
    * @return A Future that will be resolved when the delete completes.
    */
   virtual Future<void> Delete();
-
-  /**
-   * @brief Gets the result of the most recent call to Delete().
-   *
-   * @return The result of last call to Delete() or an invalid Future, if there
-   * is no such call.
-   */
-  virtual Future<void> DeleteLastResult() const;
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /**

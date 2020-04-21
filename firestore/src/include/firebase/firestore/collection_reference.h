@@ -164,14 +164,6 @@ class CollectionReference : public Query {
    */
   virtual Future<DocumentReference> Add(const MapFieldValue& data);
 
-  /**
-   * @brief Gets the result of the most recent call to Add().
-   *
-   * @return The result of last call to Add() or an invalid Future, if there is
-   * no such call.
-   */
-  virtual Future<DocumentReference> AddLastResult() const;
-
  private:
   friend class DocumentReference;
   friend class DocumentReferenceInternal;

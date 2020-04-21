@@ -87,11 +87,6 @@ Future<DocumentReference> CollectionReference::Add(const MapFieldValue& data) {
   return internal()->Add(data);
 }
 
-Future<DocumentReference> CollectionReference::AddLastResult() const {
-  if (!internal()) return FailedFuture<DocumentReference>();
-  return internal()->AddLastResult();
-}
-
 CollectionReferenceInternal* CollectionReference::internal() const {
   return static_cast<CollectionReferenceInternal*>(internal_);
 }

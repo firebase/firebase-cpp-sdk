@@ -266,9 +266,6 @@ class Firestore {
    */
   virtual Future<void> RunTransaction(TransactionFunction* update);
 
-  /** Gets the result of the most recent call to RunTransaction(). */
-  virtual Future<void> RunTransactionLastResult();
-
   /**
    * Sets the log verbosity of all Firestore instances.
    *
@@ -286,17 +283,11 @@ class Firestore {
    */
   virtual Future<void> DisableNetwork();
 
-  /** Gets the result of the most recent call to DisableNetwork(). */
-  Future<void> DisableNetworkLastResult();
-
   /**
    * Re-enables network usage for this instance after a prior call to
    * DisableNetwork().
    */
   virtual Future<void> EnableNetwork();
-
-  /** Gets the result of the most recent call to EnableNetwork(). */
-  Future<void> EnableNetworkLastResult();
 
   /**
    * Terminates this `Firestore` instance.
@@ -322,9 +313,6 @@ class Firestore {
    */
   virtual Future<void> Terminate();
 
-  /** Gets the result of the most recent call to `Terminate()`. */
-  Future<void> TerminateLastResult();
-
   /**
    * Waits until all currently pending writes for the active user have been
    * acknowledged by the backend.
@@ -340,9 +328,6 @@ class Firestore {
    * error during user change.
    */
   virtual Future<void> WaitForPendingWrites();
-
-  /** Gets the result of the most recent call to WaitForPendingWrites(). */
-  Future<void> WaitForPendingWritesLastResult();
 
   /**
    * Clears the persistent storage. This includes pending writes and cached
@@ -362,9 +347,6 @@ class Firestore {
    * we strongly recommend not to enable persistence in the first place.
    */
   virtual Future<void> ClearPersistence();
-
-  /** Gets the result of the most recent call to ClearPersistence(). */
-  Future<void> ClearPersistenceLastResult();
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /**
