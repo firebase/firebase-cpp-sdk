@@ -104,7 +104,7 @@ class CollectionReference : public Query {
    *
    * @return The ID as a std::string.
    */
-  virtual std::string id() const;
+  virtual const std::string& id() const;
 
   /**
    * @brief Returns the path of this collection (relative to the root of the

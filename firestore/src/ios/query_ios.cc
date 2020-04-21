@@ -81,7 +81,7 @@ Query QueryInternal::Where(const FieldPath& field_path, Operator op,
 Query QueryInternal::Where(const FieldPath& field_path, Operator op,
                            const std::vector<FieldValue>& values) const {
   const model::FieldPath& path = GetInternal(field_path);
-  auto array_value = FieldValue::FromArray(values);
+  auto array_value = FieldValue::Array(values);
   model::FieldValue parsed =
       user_data_converter_.ParseQueryValue(array_value, true);
   auto describer = [&array_value] { return Describe(array_value.type()); };
