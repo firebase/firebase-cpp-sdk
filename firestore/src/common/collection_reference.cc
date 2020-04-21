@@ -3,7 +3,7 @@
 #include "app/meta/move.h"
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/futures.h"
-
+#include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/collection_reference_android.h"
@@ -50,8 +50,8 @@ CollectionReference& CollectionReference::operator=(
   return *this;
 }
 
-std::string CollectionReference::id() const {
-  if (!internal()) return "";
+const std::string& CollectionReference::id() const {
+  if (!internal()) return EmptyString();
   return internal()->id();
 }
 

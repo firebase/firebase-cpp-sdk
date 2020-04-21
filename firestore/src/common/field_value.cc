@@ -122,52 +122,52 @@ FieldValue& FieldValue::operator=(FieldValue&& value) noexcept {
 }
 
 /* static */
-FieldValue FieldValue::FromBoolean(bool value) {
+FieldValue FieldValue::Boolean(bool value) {
   return FieldValue{new FieldValueInternal(value)};
 }
 
 /* static */
-FieldValue FieldValue::FromInteger(int64_t value) {
+FieldValue FieldValue::Integer(int64_t value) {
   return FieldValue{new FieldValueInternal(value)};
 }
 
 /* static */
-FieldValue FieldValue::FromDouble(double value) {
+FieldValue FieldValue::Double(double value) {
   return FieldValue{new FieldValueInternal(value)};
 }
 
 /* static */
-FieldValue FieldValue::FromTimestamp(Timestamp value) {
+FieldValue FieldValue::Timestamp(class Timestamp value) {
   return FieldValue{new FieldValueInternal(value)};
 }
 
 /* static */
-FieldValue FieldValue::FromString(std::string value) {
+FieldValue FieldValue::String(std::string value) {
   return FieldValue{new FieldValueInternal(firebase::Move(value))};
 }
 
 /* static */
-FieldValue FieldValue::FromBlob(const uint8_t* value, size_t size) {
+FieldValue FieldValue::Blob(const uint8_t* value, size_t size) {
   return FieldValue{new FieldValueInternal(value, size)};
 }
 
 /* static */
-FieldValue FieldValue::FromReference(DocumentReference value) {
+FieldValue FieldValue::Reference(DocumentReference value) {
   return FieldValue{new FieldValueInternal(firebase::Move(value))};
 }
 
 /* static */
-FieldValue FieldValue::FromGeoPoint(GeoPoint value) {
+FieldValue FieldValue::GeoPoint(class GeoPoint value) {
   return FieldValue{new FieldValueInternal(value)};
 }
 
 /* static */
-FieldValue FieldValue::FromArray(std::vector<FieldValue> value) {
+FieldValue FieldValue::Array(std::vector<FieldValue> value) {
   return FieldValue{new FieldValueInternal(firebase::Move(value))};
 }
 
 /* static */
-FieldValue FieldValue::FromMap(MapFieldValue value) {
+FieldValue FieldValue::Map(MapFieldValue value) {
   return FieldValue{new FieldValueInternal(firebase::Move(value))};
 }
 

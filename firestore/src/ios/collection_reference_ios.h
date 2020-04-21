@@ -15,7 +15,7 @@ class CollectionReferenceInternal : public QueryInternal {
  public:
   explicit CollectionReferenceInternal(api::CollectionReference&& collection);
 
-  std::string id() const;
+  const std::string& id() const;
   std::string path() const;
 
   DocumentReference Parent() const;

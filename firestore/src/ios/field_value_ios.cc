@@ -206,26 +206,26 @@ std::string Describe(Type type) {
     case Type::kNull:
       return "FieldValue::Null()";
     case Type::kBoolean:
-      return "FieldValue::FromBoolean()";
+      return "FieldValue::Boolean()";
     case Type::kInteger:
-      return "FieldValue::FromInteger()";
+      return "FieldValue::Integer()";
     case Type::kDouble:
-      return "FieldValue::FromDouble()";
+      return "FieldValue::Double()";
     case Type::kTimestamp:
-      return "FieldValue::FromTimestamp()";
+      return "FieldValue::Timestamp()";
     case Type::kString:
-      return "FieldValue::FromString()";
+      return "FieldValue::String()";
     case Type::kBlob:
-      return "FieldValue::FromBlob()";
+      return "FieldValue::Blob()";
     case Type::kReference:
-      return "FieldValue::FromReference()";
+      return "FieldValue::Reference()";
     case Type::kGeoPoint:
-      return "FieldValue::FromGeoPoint()";
+      return "FieldValue::GeoPoint()";
     // Containers
     case Type::kArray:
-      return "FieldValue::FromArray()";
+      return "FieldValue::Array()";
     case Type::kMap:
-      return "FieldValue::FromMap()";
+      return "FieldValue::Map()";
     // Sentinels
     case Type::kDelete:
       return "FieldValue::Delete()";

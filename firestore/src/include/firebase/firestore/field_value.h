@@ -135,55 +135,55 @@ class FieldValue final {
   /**
    * @brief Constructs a FieldValue containing the given boolean value.
    */
-  static FieldValue FromBoolean(bool value);
+  static FieldValue Boolean(bool value);
 
   /**
    * @brief Constructs a FieldValue containing the given 64-bit integer value.
    */
-  static FieldValue FromInteger(int64_t value);
+  static FieldValue Integer(int64_t value);
 
   /**
    * @brief Constructs a FieldValue containing the given double-precision
    * floating point value.
    */
-  static FieldValue FromDouble(double value);
+  static FieldValue Double(double value);
 
   /**
    * @brief Constructs a FieldValue containing the given Timestamp value.
    */
-  static FieldValue FromTimestamp(Timestamp value);
+  static FieldValue Timestamp(Timestamp value);
 
   /**
    * @brief Constructs a FieldValue containing the given std::string value.
    */
-  static FieldValue FromString(std::string value);
+  static FieldValue String(std::string value);
 
   /**
    * @brief Constructs a FieldValue containing the given blob value of given
    * size. `value` is copied into the returned FieldValue.
    */
-  static FieldValue FromBlob(const uint8_t* value, size_t size);
+  static FieldValue Blob(const uint8_t* value, size_t size);
 
   /**
    * @brief Constructs a FieldValue containing the given reference value.
    */
-  static FieldValue FromReference(DocumentReference value);
+  static FieldValue Reference(DocumentReference value);
 
   /**
    * @brief Constructs a FieldValue containing the given GeoPoint value.
    */
-  static FieldValue FromGeoPoint(GeoPoint value);
+  static FieldValue GeoPoint(GeoPoint value);
 
   /**
    * @brief Constructs a FieldValue containing the given FieldValue vector
    * value.
    */
-  static FieldValue FromArray(std::vector<FieldValue> value);
+  static FieldValue Array(std::vector<FieldValue> value);
 
   /**
    * @brief Constructs a FieldValue containing the given FieldValue map value.
    */
-  static FieldValue FromMap(MapFieldValue value);
+  static FieldValue Map(MapFieldValue value);
 
   /** @brief Gets the current type contained in this FieldValue. */
   Type type() const;
@@ -235,7 +235,7 @@ class FieldValue final {
   double double_value() const;
 
   /** @brief Gets the timestamp value contained in this FieldValue. */
-  Timestamp timestamp_value() const;
+  class Timestamp timestamp_value() const;
 
   /** @brief Gets the string value contained in this FieldValue. */
   std::string string_value() const;
@@ -250,7 +250,7 @@ class FieldValue final {
   DocumentReference reference_value() const;
 
   /** @brief Gets the GeoPoint value contained in this FieldValue. */
-  GeoPoint geo_point_value() const;
+  class GeoPoint geo_point_value() const;
 
   /** @brief Gets the vector of FieldValues contained in this FieldValue. */
   std::vector<FieldValue> array_value() const;

@@ -32,7 +32,7 @@ CollectionReferenceInternal::collection_core_api() const {
   return static_cast<const api::CollectionReference&>(query_core_api());
 }
 
-std::string CollectionReferenceInternal::id() const {
+const std::string& CollectionReferenceInternal::id() const {
   return collection_core_api().collection_id();
 }
 

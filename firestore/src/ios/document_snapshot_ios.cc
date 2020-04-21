@@ -100,7 +100,7 @@ FieldValue DocumentSnapshotInternal::ConvertObject(
     result[kv.first] = ConvertAnyValue(kv.second, stb);
   }
 
-  return FieldValue::FromMap(std::move(result));
+  return FieldValue::Map(std::move(result));
 }
 
 FieldValue DocumentSnapshotInternal::ConvertArray(
@@ -110,7 +110,7 @@ FieldValue DocumentSnapshotInternal::ConvertArray(
     result.push_back(ConvertAnyValue(value, stb));
   }
 
-  return FieldValue::FromArray(std::move(result));
+  return FieldValue::Array(std::move(result));
 }
 
 FieldValue DocumentSnapshotInternal::ConvertScalar(
@@ -119,20 +119,20 @@ FieldValue DocumentSnapshotInternal::ConvertScalar(
     case Type::Null:
       return FieldValue::Null();
     case Type::Boolean:
-      return FieldValue::FromBoolean(scalar.boolean_value());
+      return FieldValue::Boolean(scalar.boolean_value());
     case Type::Integer:
-      return FieldValue::FromInteger(scalar.integer_value());
+      return FieldValue::Integer(scalar.integer_value());
     case Type::Double:
-      return FieldValue::FromDouble(scalar.double_value());
+      return FieldValue::Double(scalar.double_value());
     case Type::String:
-      return FieldValue::FromString(scalar.string_value());
+      return FieldValue::String(scalar.string_value());
     case Type::Timestamp:
-      return FieldValue::FromTimestamp(scalar.timestamp_value());
+      return FieldValue::Timestamp(scalar.timestamp_value());
     case Type::GeoPoint:
-      return FieldValue::FromGeoPoint(scalar.geo_point_value());
+      return FieldValue::GeoPoint(scalar.geo_point_value());
     case Type::Blob:
-      return FieldValue::FromBlob(scalar.blob_value().data(),
-                                  scalar.blob_value().size());
+      return FieldValue::Blob(scalar.blob_value().data(),
+                              scalar.blob_value().size());
     case Type::Reference:
       return ConvertReference(scalar.reference_value());
     case Type::ServerTimestamp:
@@ -154,7 +154,7 @@ FieldValue DocumentSnapshotInternal::ConvertReference(
       "Converted reference is from another database");
 
   api::DocumentReference api_reference{reference.key(), snapshot_.firestore()};
-  return FieldValue::FromReference(MakePublic(std::move(api_reference)));
+  return FieldValue::Reference(MakePublic(std::move(api_reference)));
 }
 
 FieldValue DocumentSnapshotInternal::ConvertServerTimestamp(
@@ -164,7 +164,7 @@ FieldValue DocumentSnapshotInternal::ConvertServerTimestamp(
     case ServerTimestampBehavior::kNone:
       return FieldValue::Null();
     case ServerTimestampBehavior::kEstimate: {
-      return FieldValue::FromTimestamp(server_timestamp.local_write_time());
+      return FieldValue::Timestamp(server_timestamp.local_write_time());
     }
     case ServerTimestampBehavior::kPrevious:
       if (server_timestamp.previous_value()) {
