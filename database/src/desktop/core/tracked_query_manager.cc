@@ -30,6 +30,16 @@ namespace firebase {
 namespace database {
 namespace internal {
 
+bool operator==(const TrackedQuery& lhs, const TrackedQuery& rhs) {
+  return lhs.query_id == rhs.query_id && lhs.query_spec == rhs.query_spec &&
+         lhs.last_use == rhs.last_use && lhs.complete == rhs.complete &&
+         lhs.active == rhs.active;
+}
+
+bool operator!=(const TrackedQuery& lhs, const TrackedQuery& rhs) {
+  return !(lhs == rhs);
+}
+
 TrackedQueryManagerInterface::~TrackedQueryManagerInterface() {}
 
 // Returns true if the given TrackedQueryMap has a complete default query.
