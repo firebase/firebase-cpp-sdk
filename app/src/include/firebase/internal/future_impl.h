@@ -52,34 +52,35 @@ class FutureApiInterface {
 
   /// Increment the reference count on handle's asynchronous call.
   /// Called when the Future is copied.
-  virtual void ReferenceFuture(FutureHandle handle) = 0;
+  virtual void ReferenceFuture(const FutureHandle& handle) = 0;
 
   /// Decrement the reference count on handle's asynchronous call.
   /// Called when the Future is destroyed or moved.
   /// If the reference count drops to zero, the asynchronous call can be
   /// forgotten.
-  virtual void ReleaseFuture(FutureHandle handle) = 0;
+  virtual void ReleaseFuture(const FutureHandle& handle) = 0;
 
   /// Return the status of the asynchronous call.
-  virtual FutureStatus GetFutureStatus(FutureHandle handle) const = 0;
+  virtual FutureStatus GetFutureStatus(const FutureHandle& handle) const = 0;
 
   /// Return the API-specific error.
   /// Valid when GetFutureStatus() is kFutureStatusComplete, and undefined
   /// otherwise.
-  virtual int GetFutureError(FutureHandle handle) const = 0;
+  virtual int GetFutureError(const FutureHandle& handle) const = 0;
 
   /// Return the API-specific error, in human-readable form, or "" if no message
   /// has been provided.
   /// Valid when GetFutureStatus() is kFutureStatusComplete, and undefined
   /// otherwise.
-  virtual const char* GetFutureErrorMessage(FutureHandle handle) const = 0;
+  virtual const char* GetFutureErrorMessage(
+      const FutureHandle& handle) const = 0;
 
   /// Return a pointer to the completed asynchronous result, or NULL if
   /// result is still pending.
   /// After an asynchronous call is marked complete, the API should not
   /// modify the result (especially on a callback thread), since the threads
   /// owning the Future can reference the result memory via this function.
-  virtual const void* GetFutureResult(FutureHandle handle) const = 0;
+  virtual const void* GetFutureResult(const FutureHandle& handle) const = 0;
 
   /// Register a callback that will be called when this future's status is set
   /// to Complete. If clear_existing_callbacks is true, then the new callback
@@ -92,16 +93,14 @@ class FutureApiInterface {
   /// After the callback has been called, if `user_data_delete_fn_ptr` is
   /// non-null, then `(*user_data_delete_fn_ptr)(user_data)` will be called.
   virtual CompletionCallbackHandle AddCompletionCallback(
-      FutureHandle handle, FutureBase::CompletionCallback callback,
-      void* user_data,
-      void (* user_data_delete_fn)(void *),
+      const FutureHandle& handle, FutureBase::CompletionCallback callback,
+      void* user_data, void (*user_data_delete_fn)(void*),
       bool clear_existing_callbacks) = 0;
 
   /// Unregister a callback that was previously registered with
   /// `AddCompletionCallback`.
   virtual void RemoveCompletionCallback(
-      FutureHandle handle,
-      CompletionCallbackHandle callback_handle) = 0;
+      const FutureHandle& handle, CompletionCallbackHandle callback_handle) = 0;
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
   /// Register a callback that will be called when this future's status is set
@@ -116,7 +115,8 @@ class FutureApiInterface {
   ///
   /// @return A handle that can be passed to `FutureBase::RemoveCompletion`.
   virtual CompletionCallbackHandle AddCompletionCallbackLambda(
-      FutureHandle handle, std::function<void(const FutureBase&)> callback,
+      const FutureHandle& handle,
+      std::function<void(const FutureBase&)> callback,
       bool clear_existing_callbacks) = 0;
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
@@ -143,37 +143,36 @@ class CompletionCallbackHandle {
  public:
   // Construct a null CompletionCallbackHandle.
   CompletionCallbackHandle()
-      : callback_(nullptr), user_data_(nullptr),
-      user_data_delete_fn_(nullptr) {}
+      : callback_(nullptr),
+        user_data_(nullptr),
+        user_data_delete_fn_(nullptr) {}
+
  private:
   friend class ::FIREBASE_NAMESPACE::FutureBase;
   friend class ::FIREBASE_NAMESPACE::ReferenceCountedFutureImpl;
-  CompletionCallbackHandle(
-      FutureBase::CompletionCallback callback,
-      void* user_data,
-      void (* user_data_delete_fn)(void *))
-      : callback_(callback), user_data_(user_data),
-      user_data_delete_fn_(user_data_delete_fn) {}
+  CompletionCallbackHandle(FutureBase::CompletionCallback callback,
+                           void* user_data, void (*user_data_delete_fn)(void*))
+      : callback_(callback),
+        user_data_(user_data),
+        user_data_delete_fn_(user_data_delete_fn) {}
 
   FutureBase::CompletionCallback callback_;
   void* user_data_;
-  void (* user_data_delete_fn_)(void *);
+  void (*user_data_delete_fn_)(void*);
 };
 
 }  // namespace detail
 
 template <class T>
-void
-Future<T>::OnCompletion(
-    TypedCompletionCallback callback, void* user_data) const {
-  FutureBase::OnCompletion(
-      reinterpret_cast<CompletionCallback>(callback), user_data);
+void Future<T>::OnCompletion(TypedCompletionCallback callback,
+                             void* user_data) const {
+  FutureBase::OnCompletion(reinterpret_cast<CompletionCallback>(callback),
+                           user_data);
 }
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
 template <class ResultType>
-inline void
-Future<ResultType>::OnCompletion(
+inline void Future<ResultType>::OnCompletion(
     std::function<void(const Future<ResultType>&)> callback) const {
   FutureBase::OnCompletion(
       *reinterpret_cast<std::function<void(const FutureBase&)>*>(&callback));
@@ -182,8 +181,7 @@ Future<ResultType>::OnCompletion(
 
 #if defined(INTERNAL_EXPERIMENTAL)
 template <class T>
-FutureBase::CompletionCallbackHandle
-Future<T>::AddOnCompletion(
+FutureBase::CompletionCallbackHandle Future<T>::AddOnCompletion(
     TypedCompletionCallback callback, void* user_data) const {
   return FutureBase::AddOnCompletion(
       reinterpret_cast<CompletionCallback>(callback), user_data);
@@ -191,8 +189,7 @@ Future<T>::AddOnCompletion(
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
 template <class ResultType>
-inline FutureBase::CompletionCallbackHandle
-Future<ResultType>::AddOnCompletion(
+inline FutureBase::CompletionCallbackHandle Future<ResultType>::AddOnCompletion(
     std::function<void(const Future<ResultType>&)> callback) const {
   return FutureBase::AddOnCompletion(
       *reinterpret_cast<std::function<void(const FutureBase&)>*>(&callback));
@@ -204,7 +201,7 @@ Future<ResultType>::AddOnCompletion(
 inline FutureBase::FutureBase() : api_(NULL), handle_(0) {}  // NOLINT
 
 inline FutureBase::FutureBase(detail::FutureApiInterface* api,
-                              FutureHandle handle)
+                              const FutureHandle& handle)
     : api_(api), handle_(handle) {
   api_->ReferenceFuture(handle_);
   detail::RegisterForCleanup(api_, this);
@@ -280,17 +277,16 @@ inline void FutureBase::OnCompletion(CompletionCallback callback,
                                      void* user_data) const {
   if (api_ != NULL) {  // NOLINT
     api_->AddCompletionCallback(handle_, callback, user_data, nullptr,
-                                /*clear_existing_callbacks=*/ true);
+                                /*clear_existing_callbacks=*/true);
   }
 }
 
 #if defined(INTERNAL_EXPERIMENTAL)
-inline FutureBase::CompletionCallbackHandle
-FutureBase::AddOnCompletion(CompletionCallback callback,
-                            void* user_data) const {
+inline FutureBase::CompletionCallbackHandle FutureBase::AddOnCompletion(
+    CompletionCallback callback, void* user_data) const {
   if (api_ != NULL) {  // NOLINT
     return api_->AddCompletionCallback(handle_, callback, user_data, nullptr,
-                                       /*clear_existing_callbacks=*/ false);
+                                       /*clear_existing_callbacks=*/false);
   }
   return CompletionCallbackHandle();
 }
@@ -308,7 +304,7 @@ inline void FutureBase::OnCompletion(
     std::function<void(const FutureBase&)> callback) const {
   if (api_ != NULL) {  // NOLINT
     api_->AddCompletionCallbackLambda(handle_, callback,
-                                      /*clear_existing_callbacks=*/ true);
+                                      /*clear_existing_callbacks=*/true);
   }
 }
 
@@ -316,8 +312,9 @@ inline void FutureBase::OnCompletion(
 inline FutureBase::CompletionCallbackHandle FutureBase::AddOnCompletion(
     std::function<void(const FutureBase&)> callback) const {
   if (api_ != NULL) {  // NOLINT
-    return api_->AddCompletionCallbackLambda(handle_, callback,
-                                      /*clear_existing_callbacks=*/ false);
+    return api_->AddCompletionCallbackLambda(
+        handle_, callback,
+        /*clear_existing_callbacks=*/false);
   }
   return CompletionCallbackHandle();
 }
