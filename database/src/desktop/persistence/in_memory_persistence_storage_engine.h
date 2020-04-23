@@ -77,7 +77,7 @@ class InMemoryPersistenceStorageEngine : public PersistenceStorageEngine {
   //
   // @param path The path at which to load the data.
   // @return The data that was loaded.
-  const Variant& ServerCache(const Path& path) override;
+  Variant ServerCache(const Path& path) override;
 
   // Overwrite the server cache at the given path with the given data.
   //

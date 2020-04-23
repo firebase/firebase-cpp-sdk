@@ -133,7 +133,7 @@ class PersistenceStorageEngine {
   //
   // @param path The path at which to load the data.
   // @return The data that was loaded.
-  virtual const Variant& ServerCache(const Path& path) = 0;
+  virtual Variant ServerCache(const Path& path) = 0;
 
   // Overwrite the server cache at the given path with the given data.
   //
