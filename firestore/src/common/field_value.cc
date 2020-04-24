@@ -256,19 +256,15 @@ FieldValue FieldValue::ArrayRemove(std::vector<FieldValue> elements) {
   return FieldValueInternal::ArrayRemove(firebase::Move(elements));
 }
 
-#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 /* static */
 FieldValue FieldValue::IntegerIncrement(int64_t by_value) {
   return FieldValueInternal::IntegerIncrement(by_value);
 }
-#endif  // if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 
-#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 /* static */
 FieldValue FieldValue::DoubleIncrement(double by_value) {
   return FieldValueInternal::DoubleIncrement(by_value);
 }
-#endif  // if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 
 // TODO(varconst): consider reversing the role of the two output functions, so
 // that `ToString` delegates to `operator<<`, not the other way round.
@@ -322,10 +318,8 @@ std::string FieldValue::ToString() const {
       return "FieldValue::ArrayRemove()";
 
     case Type::kIncrementInteger:
-      return "FieldValue::IntegerIncrement()";
-
     case Type::kIncrementDouble:
-      return "FieldValue::DoubleIncrement()";
+      return "FieldValue::Increment()";
   }
 
   FIREBASE_ASSERT_MESSAGE_RETURN("<invalid>", false,

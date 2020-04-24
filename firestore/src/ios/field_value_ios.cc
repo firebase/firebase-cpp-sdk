@@ -236,9 +236,8 @@ std::string Describe(Type type) {
     case Type::kArrayRemove:
       return "FieldValue::ArrayRemove()";
     case Type::kIncrementInteger:
-      return "FieldValue::IntegerIncrement()";
     case Type::kIncrementDouble:
-      return "FieldValue::DoubleIncrement()";
+      return "FieldValue::Increment()";
     default: {
       // TODO(b/147444199): use string formatting.
       // HARD_FAIL("Unexpected type '%s'", type);

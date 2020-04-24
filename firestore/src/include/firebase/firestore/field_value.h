@@ -19,9 +19,11 @@
 
 #include <cstdint>
 #include <iosfwd>
+#include <limits>
 #include <string>
 #include <vector>
 
+#include "app/meta/type_traits.h"
 #include "firebase/firestore/map_field_value.h"
 
 namespace firebase {
@@ -50,6 +52,17 @@ class GeoPoint;
  * foo_value() will fail (and cause a crash).
  */
 class FieldValue final {
+  // Helper aliases for `Increment` member functions.
+  // Qualifying `is_integer` is to prevent ambiguity with the
+  // `FieldValue::is_integer` member function.
+  // Note: normally, `enable_if::type` would be included in the alias, but such
+  // a declaration breaks SWIG (presumably, SWIG cannot handle `typename` within
+  // an alias template).
+  template <typename T>
+  using EnableIfIntegral = enable_if<::firebase::is_integer<T>::value, int>;
+  template <typename T>
+  using EnableIfFloatingPoint = enable_if<is_floating_point<T>::value, int>;
+
  public:
   /**
    * The enumeration of all valid runtime types of FieldValue.
@@ -315,7 +328,8 @@ class FieldValue final {
 #if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
   /**
    * Returns a special value that can be used with `Set()` or `Update()` that
-   * tells the server to increment the field's current value by the given value.
+   * tells the server to increment the field's current value by the given
+   * integer value.
    *
    * If the current field value is an integer, possible integer overflows are
    * resolved to `LONG_MAX` or `LONG_MIN`. If the current field value is a
@@ -325,16 +339,29 @@ class FieldValue final {
    * If field is not an integer or a double, or if the field does not yet exist,
    * the transformation will set the field to the given value.
    *
-   * @param by_value The integer value to increment by.
+   * @param by_value The integer value to increment by. Should be an integer
+   * type not larger than `int64_t`.
    * @return The FieldValue sentinel for use in a call to `Set()` or `Update().`
    */
-  static FieldValue IntegerIncrement(int64_t by_value);
+  template <typename T, typename EnableIfIntegral<T>::type = 0>
+  static FieldValue Increment(T by_value) {
+    // Note: Doxygen will run into trouble if this function's definition is
+    // moved outside the class body.
+    static_assert(
+        std::numeric_limits<T>::max() <= std::numeric_limits<int64_t>::max(),
+        "The integer type you provided is larger than can fit in an int64_t. "
+        "If you are sure the value will not be truncated, please explicitly "
+        "cast to int64_t before passing it to FieldValue::Increment().");
+    return IntegerIncrement(static_cast<int64_t>(by_value));
+  }
+
 #endif  // if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 
 #if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
   /**
    * Returns a special value that can be used with `Set()` or `Update()` that
-   * tells the server to increment the field's current value by the given value.
+   * tells the server to increment the field's current value by the given
+   * floating point value.
    *
    * If the current field value is an integer, possible integer overflows are
    * resolved to `LONG_MAX` or `LONG_MIN`. If the current field value is a
@@ -344,10 +371,23 @@ class FieldValue final {
    * If field is not an integer or a double, or if the field does not yet exist,
    * the transformation will set the field to the given value.
    *
-   * @param by_value The double value to increment by.
+   * @param by_value The double value to increment by. Should be a floating
+   * point type no larger than `double`.
    * @return The FieldValue sentinel for use in a call to `Set()` or `Update().`
    */
-  static FieldValue DoubleIncrement(double by_value);
+  template <typename T, typename EnableIfFloatingPoint<T>::type = 0>
+  static FieldValue Increment(T by_value) {
+    // Note: Doxygen will run into trouble if this function's definition is
+    // moved outside the class body.
+    static_assert(
+        std::numeric_limits<T>::max() <= std::numeric_limits<double>::max(),
+        "The floating point type you provided is larger than can fit in a "
+        "double. If you are sure the value will not be truncated, please "
+        "explicitly cast to double before passing it to "
+        "FieldValue::Increment().");
+    return DoubleIncrement(static_cast<double>(by_value));
+  }
+
 #endif  // if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 
   /**
@@ -379,6 +419,9 @@ class FieldValue final {
   friend bool operator==(const FieldValue& lhs, const FieldValue& rhs);
 
   explicit FieldValue(FieldValueInternal* internal);
+
+  static FieldValue IntegerIncrement(int64_t by_value);
+  static FieldValue DoubleIncrement(double by_value);
 
   FieldValueInternal* internal_ = nullptr;
 };
