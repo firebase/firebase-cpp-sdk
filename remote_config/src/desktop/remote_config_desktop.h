@@ -149,14 +149,14 @@ class RemoteConfigInternal {
   // Returns true and assigns the found record to the `value` if the `active` or
   // `defaults` holders contains a record for the key.
   //
-  // Assing `info->source` If info is not nullptr.
+  // Assign `info->source` If info is not nullptr.
   bool CheckValueInActiveAndDefault(const char* key,
                                     ValueInfo* info, std::string* value);
 
   // Returns true and assigns the found record to the `value` if the `holder`
   // contains a record for the key.
   //
-  // Assing `info->source` If info is not nullptr.
+  // Assign `info->source` If info is not nullptr.
   bool CheckValueInConfig(const NamespacedConfigData& config,
                           ValueSource source, const char* key, ValueInfo* info,
                           std::string* value);
@@ -211,7 +211,7 @@ class RemoteConfigInternal {
 
   // Avoid using more than one fetching process per time.
   //
-  // Call `fetch_channel_.Put()` and assing `true` only if value is
+  // Call `fetch_channel_.Put()` and assign `true` only if value is
   // `false`. Fetching thread will notify and fetch config. When fetching
   // will finish it will be assigned to `false`.
   bool is_fetch_process_have_task_;
