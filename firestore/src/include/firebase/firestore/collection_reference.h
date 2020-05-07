@@ -33,9 +33,9 @@ class CollectionReferenceInternal;
 class DocumentReference;
 
 /**
- * @brief A CollectionReference refers to a collection of documents location in
- * a Firestore database and can be used for adding documents, getting document
- * references, and querying for documents.
+ * @brief A CollectionReference can be used for adding documents, getting
+ * document references, and querying for documents (using the methods inherited
+ * from `Query`).
  *
  * @note Firestore classes are not meant to be subclassed except for use in test
  * mocks. Subclassing is not supported in production code and new SDK releases

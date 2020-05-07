@@ -223,7 +223,9 @@ class DocumentReference {
    * @param[in] data A map of field / value pairs to update. Fields can contain
    * dots to reference nested fields within the document.
    *
-   * @return A Future that will be resolved when the write finishes.
+   * @return A Future that will be resolved when the client is online and the
+   * commit has completed against the server. The future will not resolve when
+   * the device is offline, though local changes will be visible immediately.
    */
   virtual Future<void> Update(const MapFieldValue& data);
 
@@ -235,7 +237,9 @@ class DocumentReference {
    *
    * @param[in] data A map from FieldPath to FieldValue to update.
    *
-   * @return A Future that will be resolved when the write finishes.
+   * @return A Future that will be resolved when the client is online and the
+   * commit has completed against the server. The future will not resolve when
+   * the device is offline, though local changes will be visible immediately.
    */
   virtual Future<void> Update(const MapFieldPathValue& data);
 
