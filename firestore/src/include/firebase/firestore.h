@@ -280,12 +280,17 @@ class Firestore {
    * any snapshot listeners or Get() calls will return results from cache, and
    * any write operations will be queued until network usage is re-enabled via a
    * call to EnableNetwork().
+   *
+   * If the network was already disabled, calling `DisableNetwork()` again is
+   * a no-op.
    */
   virtual Future<void> DisableNetwork();
 
   /**
    * Re-enables network usage for this instance after a prior call to
    * DisableNetwork().
+   *
+   * If the network is currently enabled, calling `EnableNetwork()` is a no-op.
    */
   virtual Future<void> EnableNetwork();
 
@@ -296,7 +301,7 @@ class Firestore {
    * used. Calling any other methods will result in an error.
    *
    * To restart after termination, simply create a new instance of `Firestore`
-   * with `Firestore::GetInstance`.
+   * with `Firestore::GetInstance()`.
    *
    * `Terminate()` does not cancel any pending writes and any tasks that are
    * awaiting a response from the server will not be resolved. The next time you
