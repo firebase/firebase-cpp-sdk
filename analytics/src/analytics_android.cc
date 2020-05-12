@@ -402,22 +402,23 @@ Future<std::string> GetAnalyticsInstanceId() {
           if (future_data) {
             bool success =
                 result_code == util::kFutureResultSuccess && result != nullptr;
+            FutureHandleId future_id =
+                reinterpret_cast<FutureHandleId>(callback_data);
+            FutureHandle handle(future_id);
             future_data->api()->CompleteWithResult(
-                SafeFutureHandle<std::string>(
-                    *(reinterpret_cast<FutureHandle*>(&callback_data))),
-                success ? 0 : -1,
+                handle, success ? 0 : -1,
                 success ? ""
                         : status_message ? status_message
                                          : "Unknown error occurred",
-                // Both JStringToString and GetMessageFromException are able to
-                // handle a nullptr being passed in, and neither deletes the
-                // object passed in (so delete it below).
+                // Both JStringToString and GetMessageFromException are
+                // able to handle a nullptr being passed in, and neither
+                // deletes the object passed in (so delete it below).
                 success ? util::JStringToString(env, result)
                         : util::GetMessageFromException(env, result));
           }
           if (result) env->DeleteLocalRef(result);
         },
-        *(reinterpret_cast<void* const*>(&future_handle)),
+        reinterpret_cast<void*>(safe_future_handle.get().id()),
         internal::kAnalyticsModuleName);
     env->DeleteLocalRef(task);
   } else {
