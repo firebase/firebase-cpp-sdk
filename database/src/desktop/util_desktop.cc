@@ -1017,6 +1017,8 @@ std::pair<Variant, Variant> MakePost(const QueryParams& params,
       return std::make_pair(name, value);
     }
   }
+  FIREBASE_DEV_ASSERT_MESSAGE(false, "Invalid QueryParams::OrderBy");
+  return std::pair<Variant, Variant>();
 }
 
 bool HasStart(const QueryParams& params) {
