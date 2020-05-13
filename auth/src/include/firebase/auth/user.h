@@ -120,6 +120,13 @@ struct AdditionalUserInfo {
   /// Most likely a hierarchical key-value mapping, like a parsed JSON file.
   /// Note we use map instead of unordered_map to support older compilers.
   std::map<Variant, Variant> profile;
+
+  /// On a nonce-based credential link failure where the user has already linked
+  /// to the provider, the Firebase auth service may provide an updated
+  /// Credential. If is_valid returns true on this credential, then it may be
+  /// passed to a new firebase::auth::Auth::SignInWithCredential request to sign
+  /// the user in with the provider.
+  Credential updated_credential;
 };
 
 /// @brief Metadata corresponding to a Firebase user.
