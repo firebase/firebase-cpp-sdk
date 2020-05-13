@@ -9,7 +9,7 @@
 #include "firestore/src/include/firebase/firestore/transaction.h"
 #include "firestore/src/ios/firestore_ios.h"
 #include "firestore/src/ios/user_data_converter_ios.h"
-#include "Firestore/core/src/firebase/firestore/core/transaction.h"
+#include "Firestore/core/src/core/transaction.h"
 
 namespace firebase {
 namespace firestore {

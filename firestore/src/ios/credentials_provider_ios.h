@@ -7,10 +7,10 @@
 
 #include "app/src/include/firebase/future.h"
 #include "auth/src/include/firebase/auth.h"
-#include "Firestore/core/src/firebase/firestore/auth/credentials_provider.h"
-#include "Firestore/core/src/firebase/firestore/auth/token.h"
-#include "Firestore/core/src/firebase/firestore/auth/user.h"
-#include "Firestore/core/src/firebase/firestore/util/statusor.h"
+#include "Firestore/core/src/auth/credentials_provider.h"
+#include "Firestore/core/src/auth/token.h"
+#include "Firestore/core/src/auth/user.h"
+#include "Firestore/core/src/util/statusor.h"
 
 namespace firebase {
 namespace firestore {

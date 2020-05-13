@@ -6,7 +6,7 @@
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/ios/promise_factory_ios.h"
 #include "firestore/src/ios/query_ios.h"
-#include "Firestore/core/src/firebase/firestore/api/collection_reference.h"
+#include "Firestore/core/src/api/collection_reference.h"
 
 namespace firebase {
 namespace firestore {
