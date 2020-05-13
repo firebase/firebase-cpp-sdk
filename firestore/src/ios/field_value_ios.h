@@ -12,7 +12,7 @@
 #include "absl/types/variant.h"
 #include "firebase/firestore/geo_point.h"
 #include "firebase/firestore/timestamp.h"
-#include "Firestore/core/src/firebase/firestore/model/field_value.h"
+#include "Firestore/core/src/model/field_value.h"
 
 namespace firebase {
 namespace firestore {

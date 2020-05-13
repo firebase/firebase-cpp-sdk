@@ -8,11 +8,11 @@
 #include "firestore/src/ios/hard_assert_ios.h"
 #include "firestore/src/ios/set_options_ios.h"
 #include "absl/memory/memory.h"
-#include "Firestore/core/src/firebase/firestore/core/user_data.h"
-#include "Firestore/core/src/firebase/firestore/model/field_mask.h"
-#include "Firestore/core/src/firebase/firestore/model/transform_operation.h"
-#include "Firestore/core/src/firebase/firestore/nanopb/byte_string.h"
-#include "Firestore/core/src/firebase/firestore/util/exception.h"
+#include "Firestore/core/src/core/user_data.h"
+#include "Firestore/core/src/model/field_mask.h"
+#include "Firestore/core/src/model/transform_operation.h"
+#include "Firestore/core/src/nanopb/byte_string.h"
+#include "Firestore/core/src/util/exception.h"
 
 namespace firebase {
 namespace firestore {

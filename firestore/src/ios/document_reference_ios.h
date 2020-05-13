@@ -11,7 +11,7 @@
 #include "firestore/src/ios/firestore_ios.h"
 #include "firestore/src/ios/promise_factory_ios.h"
 #include "firestore/src/ios/user_data_converter_ios.h"
-#include "Firestore/core/src/firebase/firestore/api/document_reference.h"
+#include "Firestore/core/src/api/document_reference.h"
 
 namespace firebase {
 namespace firestore {

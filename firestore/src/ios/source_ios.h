@@ -3,7 +3,7 @@
 
 #include "firestore/src/include/firebase/firestore/source.h"
 #include "firestore/src/ios/hard_assert_ios.h"
-#include "Firestore/core/src/firebase/firestore/api/source.h"
+#include "Firestore/core/src/api/source.h"
 
 namespace firebase {
 namespace firestore {

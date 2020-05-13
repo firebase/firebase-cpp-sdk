@@ -9,8 +9,8 @@
 #include "firestore/src/ios/hard_assert_ios.h"
 #include "absl/meta/type_traits.h"
 #include "firebase/firestore/firestore_errors.h"
-#include "Firestore/core/src/firebase/firestore/util/status.h"
-#include "Firestore/core/src/firebase/firestore/util/statusor.h"
+#include "Firestore/core/src/util/status.h"
+#include "Firestore/core/src/util/statusor.h"
 
 namespace firebase {
 namespace firestore {

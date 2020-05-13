@@ -27,8 +27,8 @@
 #if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
 #include "firestore/src/android/field_path_portable.h"
 #else
-#include "Firestore/core/src/firebase/firestore/model/field_path.h"
-#include "Firestore/core/src/firebase/firestore/util/hashing.h"
+#include "Firestore/core/src/model/field_path.h"
+#include "Firestore/core/src/util/hashing.h"
 #endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
 
 namespace firebase {
