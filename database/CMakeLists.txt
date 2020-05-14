@@ -65,6 +65,22 @@ if (NOT OPENSSL_FOUND)
   endif()
 endif()
 
+# Flatbuffer schemas used by the desktop implementation.
+set(desktop_flatbuffers_schema_dir
+    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/persistence/schemas")
+set(desktop_flatbuffers_schemas
+    "${desktop_flatbuffers_schema_dir}/persisted_compound_write.fbs"
+    "${desktop_flatbuffers_schema_dir}/persisted_query_params.fbs"
+    "${desktop_flatbuffers_schema_dir}/persisted_query_spec.fbs"
+    "${desktop_flatbuffers_schema_dir}/persisted_tracked_query.fbs"
+    "${desktop_flatbuffers_schema_dir}/persisted_user_write_record.fbs")
+
+flatbuffers_generate_headers(
+    TARGET desktop_flatbuffers
+    INCLUDE "${CMAKE_CURRENT_LIST_DIR}"
+    INCLUDE_PREFIX "database/src/desktop/persistence"
+    SCHEMAS ${desktop_flatbuffers_schemas})
+
 # Source files used by the desktop implementation.
 set(desktop_SRCS
     src/desktop/connection/connection.cc
@@ -96,6 +112,7 @@ set(desktop_SRCS
     src/desktop/database_reference_desktop.cc
     src/desktop/disconnection_desktop.cc
     src/desktop/mutable_data_desktop.cc
+    src/desktop/persistence/flatbuffer_conversions.cc
     src/desktop/persistence/in_memory_persistence_storage_engine.cc
     src/desktop/persistence/noop_persistence_manager.cc
     src/desktop/persistence/persistence_manager.cc
@@ -137,6 +154,7 @@ else()
 
   set(additional_link_LIB
       flatbuffers
+      desktop_flatbuffers
       firebase_rest_lib
       ${OPENSSL_CRYPTO_LIBRARY}
       libuWS)
