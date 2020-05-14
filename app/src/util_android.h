@@ -692,10 +692,13 @@ METHOD_LOOKUP_DECLARATION(uri, URI_METHODS)
 METHOD_LOOKUP_DECLARATION(object, OBJECT_METHODS)
 
 // clang-format off
-#define CONTENTRESOLVER_METHODS(X)                         \
-    X(OpenAssetFileDescriptor, "openAssetFileDescriptor",  \
-      "(Landroid/net/Uri;Ljava/lang/String;)"              \
-      "Landroid/content/res/AssetFileDescriptor;")
+#define CONTENTRESOLVER_METHODS(X)                                \
+    X(OpenAssetFileDescriptor, "openAssetFileDescriptor",         \
+      "(Landroid/net/Uri;Ljava/lang/String;)"                     \
+      "Landroid/content/res/AssetFileDescriptor;"),               \
+    X(Query, "query",                                             \
+      "(Landroid/net/Uri;[Ljava/lang/String;Ljava/lang/String;"   \
+      "[Ljava/lang/String;Ljava/lang/String;)Landroid/database/Cursor;")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(content_resolver, CONTENTRESOLVER_METHODS)
 
@@ -705,12 +708,21 @@ METHOD_LOOKUP_DECLARATION(content_resolver, CONTENTRESOLVER_METHODS)
       "()Landroid/os/ParcelFileDescriptor;")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(asset_file_descriptor, ASSETFILEDESCRIPTOR_METHODS)
-//
+
 // clang-format off
 #define PARCELFILEDESCRIPTOR_METHODS(X)  \
     X(DetachFd, "detachFd", "()I")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(parcel_file_descriptor, PARCELFILEDESCRIPTOR_METHODS)
+
+// clang-format off
+#define CURSOR_METHODS(X)  \
+    X(GetColumnIndex, "getColumnIndex", "(Ljava/lang/String;)I"), \
+    X(GetInt, "getInt", "(I)I"),                                  \
+    X(GetString, "getString", "(I)Ljava/lang/String;"),           \
+    X(MoveToFirst, "moveToFirst", "()Z")
+// clang-format on
+METHOD_LOOKUP_DECLARATION(cursor, CURSOR_METHODS)
 
 // Holds a reference to a Java thread that will execute a C++ method.
 //
