@@ -479,7 +479,7 @@ void Repo::PostEvents(const std::vector<Event>& events) {
 static std::map<Path, Variant> VariantToPathMap(const Variant& data) {
   std::map<Path, Variant> path_map;
   if (data.is_map()) {
-    for (std::pair<Variant, Variant> key_value : data.map()) {
+    for (const auto& key_value : data.map()) {
       Variant key_string_variant;
       const char* key;
       if (key_value.first.is_string()) {
@@ -539,7 +539,7 @@ void Repo::OnServerInfoUpdate(const std::string& key, const Variant& value) {
 void Repo::OnServerInfoUpdate(const std::map<Variant, Variant>& updates) {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
 
-  for (const std::pair<Variant, Variant> element : updates) {
+  for (const auto& element : updates) {
     const Variant& key = element.first;
     const Variant& value = element.second;
     UpdateInfo(key.AsString().mutable_string(), value);

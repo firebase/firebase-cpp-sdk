@@ -111,7 +111,7 @@ CacheNode PersistenceManager::ServerCache(const QuerySpec& query_spec) {
       storage_engine_->ServerCache(query_spec.path);
   if (found_tracked_keys) {
     Variant filtered_node = Variant::EmptyMap();
-    for (std::string key : tracked_keys) {
+    for (const std::string& key : tracked_keys) {
       VariantUpdateChild(&filtered_node, key,
                          VariantGetChild(&server_cache_node, key));
     }
