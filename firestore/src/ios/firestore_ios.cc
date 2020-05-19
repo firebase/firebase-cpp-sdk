@@ -53,7 +53,9 @@ FirestoreInternal::FirestoreInternal(App* app)
 FirestoreInternal::FirestoreInternal(
     App* app, std::unique_ptr<CredentialsProvider> credentials)
     : app_(NOT_NULL(app)),
-      firestore_core_(CreateFirestore(app, std::move(credentials))) {
+      firestore_core_(CreateFirestore(app, std::move(credentials))),
+      transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
+          "com.google.firebase.firestore.transaction", /*threads=*/5))) {
   ApplyDefaultSettings();
 }
 
@@ -130,8 +132,7 @@ Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update) {
 
 Future<void> FirestoreInternal::RunTransaction(
     std::function<Error(Transaction&, std::string&)> update) {
-  auto executor = absl::ShareUniquePtr(Executor::CreateConcurrent(
-      "com.google.firebase.firestore.transaction", /*threads=*/5));
+  auto executor = transaction_executor_;
   auto promise =
       promise_factory_.CreatePromise<void>(AsyncApi::kRunTransaction);
 
