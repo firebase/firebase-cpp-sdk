@@ -27,6 +27,10 @@ class Transaction;
 class TransactionFunction;
 class WriteBatch;
 
+namespace util {
+class Executor;
+}
+
 class FirestoreInternal {
  public:
   // Note: call `set_firestore_public` immediately after construction.
@@ -145,6 +149,8 @@ class FirestoreInternal {
   // TODO(b/136119216): revamp this mechanism on both iOS and Android.
   std::mutex listeners_mutex_;
   std::unordered_set<ListenerRegistrationInternal*> listeners_;
+
+  std::shared_ptr<util::Executor> transaction_executor_;
 };
 
 }  // namespace firestore
