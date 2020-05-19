@@ -215,7 +215,7 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
   Transaction cpp_transaction(new TransactionInternal{firestore, transaction});
   cpp_transaction.internal_->ClearException();
   std::string message;
-  Error code = transaction_function->Apply(&cpp_transaction, &message);
+  Error code = transaction_function->Apply(cpp_transaction, message);
 
   jobject first_exception =
       env->NewLocalRef(*(cpp_transaction.internal_->first_exception_));

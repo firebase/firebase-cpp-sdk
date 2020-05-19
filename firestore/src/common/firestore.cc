@@ -230,7 +230,7 @@ Future<void> Firestore::RunTransaction(TransactionFunction* update) {
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 Future<void> Firestore::RunTransaction(
-    std::function<Error(Transaction*, std::string*)> update) {
+    std::function<Error(Transaction&, std::string&)> update) {
   FIREBASE_ASSERT_MESSAGE(update, "invalid update parameter is passed in.");
   if (!internal_) return FailedFuture<void>();
   return internal_->RunTransaction(firebase::Move(update));

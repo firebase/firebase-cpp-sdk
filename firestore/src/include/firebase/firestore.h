@@ -242,6 +242,7 @@ class Firestore {
    * 5 attempts, the transaction will fail.
    *
    * @param update function or lambda to execute within the transaction context.
+   * The string reference parameter can be used to set the error message.
    *
    * @return A Future that will be resolved when the transaction finishes.
    *
@@ -249,7 +250,7 @@ class Firestore {
    * library.
    */
   virtual Future<void> RunTransaction(
-      std::function<Error(Transaction*, std::string*)> update);
+      std::function<Error(Transaction&, std::string&)> update);
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
   /**

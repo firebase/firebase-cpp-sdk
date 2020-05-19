@@ -60,7 +60,7 @@ class FirestoreInternal {
   WriteBatch batch() const;
 
   Future<void> RunTransaction(
-      std::function<Error(Transaction*, std::string*)> update);
+      std::function<Error(Transaction&, std::string&)> update);
   Future<void> RunTransaction(TransactionFunction* update);
   Future<void> RunTransactionLastResult();
 
