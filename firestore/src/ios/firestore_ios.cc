@@ -123,13 +123,13 @@ WriteBatch FirestoreInternal::batch() const {
 
 Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update) {
   return RunTransaction(
-      [update](Transaction* transaction, std::string* error_message) {
+      [update](Transaction& transaction, std::string& error_message) {
         return update->Apply(transaction, error_message);
       });
 }
 
 Future<void> FirestoreInternal::RunTransaction(
-    std::function<Error(Transaction*, std::string*)> update) {
+    std::function<Error(Transaction&, std::string&)> update) {
   auto executor = absl::ShareUniquePtr(Executor::CreateConcurrent(
       "com.google.firebase.firestore.transaction", /*threads=*/5));
   auto promise =
@@ -151,7 +151,7 @@ Future<void> FirestoreInternal::RunTransaction(
                   new TransactionInternal(core_transaction, this);
               Transaction transaction{transaction_internal};
 
-              Error error_code = update(&transaction, &error_message);
+              Error error_code = update(transaction, error_message);
               if (error_code == Error::kOk) {
                 eventual_result_callback(Status::OK());
               } else {

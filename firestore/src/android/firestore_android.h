@@ -91,7 +91,7 @@ class FirestoreInternal {
                               bool is_lambda = false);
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   Future<void> RunTransaction(
-      std::function<Error(Transaction*, std::string*)> update);
+      std::function<Error(Transaction&, std::string&)> update);
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   Future<void> RunTransactionLastResult();
 

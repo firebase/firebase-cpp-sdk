@@ -61,7 +61,7 @@ class FirestoreInternal {
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   Future<void> RunTransaction(
-      std::function<Error(Transaction*, std::string*)> update) {
+      std::function<Error(Transaction&, std::string&)> update) {
     return FailedFuture<void>();
   }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)

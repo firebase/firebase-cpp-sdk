@@ -28,13 +28,13 @@ class LambdaTransactionFunction
       public Promise<void, void, FirestoreFn>::Completion<void> {
  public:
   LambdaTransactionFunction(
-      std::function<Error(Transaction*, std::string*)> update)
+      std::function<Error(Transaction&, std::string&)> update)
       : update_(firebase::Move(update)) {
     FIREBASE_ASSERT(update_);
   }
 
   // Override TransactionFunction::Apply().
-  Error Apply(Transaction* transaction, std::string* error_message) override {
+  Error Apply(Transaction& transaction, std::string& error_message) override {
     Error result = update_(transaction, error_message);
     return result;
   }
@@ -46,7 +46,7 @@ class LambdaTransactionFunction
   }
 
  private:
-  std::function<Error(Transaction*, std::string*)> update_;
+  std::function<Error(Transaction&, std::string&)> update_;
 };
 
 }  // namespace firestore

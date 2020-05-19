@@ -370,7 +370,7 @@ Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update,
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 Future<void> FirestoreInternal::RunTransaction(
-    std::function<Error(Transaction*, std::string*)> update) {
+    std::function<Error(Transaction&, std::string&)> update) {
   LambdaTransactionFunction* lambda_update =
       new LambdaTransactionFunction(firebase::Move(update));
   return RunTransaction(lambda_update, /*is_lambda=*/true);
