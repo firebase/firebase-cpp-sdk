@@ -19,8 +19,11 @@
 #include <string>
 #include <thread>  // NOLINT
 
-#include "app/src/reference_counted_future_impl.h"
 #include "firebase/app.h"
+#include "app/src/mutex.h"
+#include "app/src/reference_counted_future_impl.h"
+#include "app/src/safe_reference.h"
+#include "app/src/scheduler.h"
 #include "firebase/future.h"
 #include "remote_config/src/desktop/config_data.h"
 #include "remote_config/src/desktop/file_manager.h"
@@ -131,10 +134,6 @@ class RemoteConfigInternal {
   // notifications in loop from the `save_channel_` until it will be closed.
   void AsyncSaveToFile();
 
-  // Open a new thread for fetching fresh config. Thread will wait nofitications
-  // in loop from the `fetch_channel_` until it will be closed.
-  void AsyncFetch();
-
   void InternalInit();
 
   // Convert the `firebase::Variant` type to the `std::string` type.
@@ -190,22 +189,6 @@ class RemoteConfigInternal {
   // `configs_` variable. Call `save_channel_.Close()` to close the channel.
   NotificationChannel save_channel_;
 
-  // Used for fetching the fresh config in background. Will be created in the
-  // constructor and removed in the destructor.
-  //
-  // Wait notifications in loop from `fetch_channel_` until it will be closed.
-  std::thread fetch_thread_;
-
-  // Thread safety notification channel.
-  //
-  // Call non blocking `fetch_channel_.Put()` function to fetch config. Call
-  // `fetch_channel_.Close()` to close the channel.
-  NotificationChannel fetch_channel_;
-
-  // Create new FutureHandle when it's possible to start fetching and complete
-  // future with `fetch_handle_` after fetching.
-  firebase::SafeFutureHandle<void> fetch_handle_;
-
   // Last value of `Fetch` function argument. Update only if we will fetch.
   uint64_t cache_expiration_in_seconds_;
 
@@ -216,10 +199,20 @@ class RemoteConfigInternal {
   // will finish it will be assigned to `false`.
   bool is_fetch_process_have_task_;
 
-  mutable std::mutex mutex_;
+  mutable Mutex internal_mutex_;
 
-  /// Handle calls from Futures that the API returns.
+  // Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;
+
+  scheduler::Scheduler scheduler_;
+
+  // Safe reference to this.  Set in constructor and cleared in destructor
+  // Should be safe to be copied in any thread because the SharedPtr never
+  // changes, until safe_this_ is completely destroyed.
+  typedef firebase::internal::SafeReference<RemoteConfigInternal> ThisRef;
+  typedef firebase::internal::SafeReferenceLock<RemoteConfigInternal>
+      ThisRefLock;
+  ThisRef safe_this_;
 };
 
 }  // namespace internal
