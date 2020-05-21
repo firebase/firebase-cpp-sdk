@@ -212,6 +212,7 @@ set(internal_HDRS
     src/include/firebase/future.h
     src/include/firebase/internal/common.h
     src/include/firebase/internal/future_impl.h
+    src/include/firebase/internal/type_traits.h
     src/include/firebase/log.h
     src/include/firebase/util.h
     src/include/firebase/variant.h
@@ -294,7 +295,6 @@ add_library(firebase_app STATIC
     ${app_platform_HDRS}
     ${FIREBASE_GEN_FILE_DIR}/app/google_services_generated.h
     memory/atomic.h
-    meta/type_traits.h
     meta/move.h
     memory/unique_ptr.h
     memory/shared_ptr.h)

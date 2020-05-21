@@ -23,7 +23,7 @@
 #include <string>
 #include <vector>
 
-#include "app/meta/type_traits.h"
+#include "firebase/internal/type_traits.h"
 #include "firebase/firestore/map_field_value.h"
 
 namespace firebase {

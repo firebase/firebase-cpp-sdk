@@ -17,7 +17,7 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_META_MOVE_H_
 #define FIREBASE_APP_CLIENT_CPP_META_MOVE_H_
 
-#include "app/meta/type_traits.h"
+#include "app/src/include/firebase/internal/type_traits.h"
 
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase
