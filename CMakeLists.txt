@@ -189,6 +189,12 @@ if(FIREBASE_CPP_BUILD_TESTS AND NOT FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
   add_external_library(googletest)
 endif()
 
+if((FIREBASE_INCLUDE_DATABASE AND DESKTOP) AND NOT FIREBASE_INCLUDE_FIRESTORE)
+  # LevelDB is needed for Desktop and Firestore, but if firestore is being built
+  # LevelDB will already be included.
+  add_external_library(leveldb)
+endif()
+
 # Some of the external libraries are not used for mobile.
 if(DESKTOP)
   # Use the static versions of the OpenSSL libraries.
