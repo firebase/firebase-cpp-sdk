@@ -114,6 +114,7 @@ set(desktop_SRCS
     src/desktop/mutable_data_desktop.cc
     src/desktop/persistence/flatbuffer_conversions.cc
     src/desktop/persistence/in_memory_persistence_storage_engine.cc
+    src/desktop/persistence/level_db_persistence_storage_engine.cc
     src/desktop/persistence/noop_persistence_manager.cc
     src/desktop/persistence/persistence_manager.cc
     src/desktop/persistence/prune_forest.cc
@@ -157,6 +158,7 @@ else()
       desktop_flatbuffers
       firebase_rest_lib
       ${OPENSSL_CRYPTO_LIBRARY}
+      leveldb
       libuWS)
 
   set(additional_DEFINES
