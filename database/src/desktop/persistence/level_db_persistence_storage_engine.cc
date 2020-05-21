@@ -124,6 +124,9 @@ class ChildrenAtPath {
 };
 
 // Call the given function on each leaf of the given variant.
+// Returns true on success, false if there was a failure. Failure can mean that
+// the callback reported a failure by returning false, or that it encountered a
+// type it doesn't know how to handle (vector, blobs).
 template <typename Func>
 bool CallOnEachLeaf(const Path& path, const Variant& variant,
                     const Func& func) {
@@ -156,11 +159,13 @@ bool CallOnEachLeaf(const Path& path, const Variant& variant,
       // We expect for vectors to have been converted to maps by the time they
       // reach this point.
       assert(false);
+      return false;
     }
     case Variant::kTypeStaticBlob:
     case Variant::kTypeMutableBlob: {
       // Blobs are not supported types.
       assert(false);
+      return false;
     }
     default: {
       // All types have cases. If we reach this point something has gone wrong.
