@@ -961,7 +961,7 @@ static Future<GeneratedDynamicLink> HandleShortLinkTask(
   } else {
     util::RegisterCallbackOnTask(
         jni_env, task, FutureShortLinkCallback,
-        *(reinterpret_cast<void* const*>(handle.get().id())), kApiIdentifier);
+        reinterpret_cast<void*>(handle.get().id()), kApiIdentifier);
   }
 
   jni_env->DeleteLocalRef(link_builder);
