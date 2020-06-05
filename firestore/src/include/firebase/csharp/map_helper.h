@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "app/meta/move.h"
+#include "firebase/future.h"
 #include "firebase/firestore/document_reference.h"
 #include "firebase/firestore/document_snapshot.h"
 #include "firebase/firestore/field_path.h"
