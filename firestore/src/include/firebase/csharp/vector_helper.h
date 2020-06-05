@@ -11,36 +11,55 @@ namespace firebase {
 namespace firestore {
 namespace csharp {
 
-// FieldValue is converted to FieldValueInternal of internal access, which makes
-// it impossible to convert std::vector<FieldValue> with std_vector.i. Instead
-// of making a fully working std::vector<FieldValue>, we defined a few function
-// here.
+// Simple wrappers to avoid exposing C++ standard library containers to SWIG.
+//
+// While it's normally possible to work with standard library containers in SWIG
+// (by instantiating them for each template type used via the `%template`
+// directive), issues in the build environment make that approach too
+// complicated to be worth it. Instead, use simple wrappers and make sure the
+// underlying containers are never exposed to C#.
+//
+// Note: most of the time, these classes should be declared with a `using`
+// statement to ensure predictable lifetime of the object when dealing with
+// iterators or unsafe views.
 
-// We cannot call std::vector<FieldValue>::foo() in C# since it is not exposed
-// via the .dll interface as SWIG cannot convert it. Here we essentially define
-// a function, which SWIG can convert and thus expose it via the .dll. So C#
-// code can call it.
+// Wraps `std::vector<FieldValue>` for use in C# code.
+class FieldValueVector {
+ public:
+  FieldValueVector() = default;
+
+  explicit FieldValueVector(const FieldValue& value)
+      : container_(value.array_value()) {}
+
+  std::size_t Size() const { return container_.size(); }
+
+  // The returned reference is only valid as long as this `FieldValueVector` is
+  // valid. In C#, declare the vector with a `using` statement to ensure its
+  // lifetime exceeds the lifetime of the reference.
+  const FieldValue& GetUnsafeView(std::size_t i) const { return container_[i]; }
+
+  FieldValue GetCopy(std::size_t i) const { return container_[i]; }
+
+  void PushBack(const FieldValue& value) {
+    container_.push_back(value);
+  }
+
+ private:
+  friend FieldValue ArrayToFieldValue(const FieldValueVector& wrapper);
+
+  const std::vector<FieldValue>& Unwrap() const { return container_; }
+
+  std::vector<FieldValue> container_;
+};
+
+FieldValue ArrayToFieldValue(const FieldValueVector& wrapper) {
+  return FieldValue::Array(wrapper.Unwrap());
+}
+
+// TODO(varconst): handle everything below in a similar way.
 
 inline std::size_t vector_size(const std::vector<FieldValue>& self) {
   return self.size();
-}
-
-inline const FieldValue& vector_get(const std::vector<FieldValue>& self,
-                                       std::size_t index) {
-  return self[index];
-}
-
-inline std::vector<FieldValue> vector_fv_create(std::size_t size) {
-  std::vector<FieldValue> result(size);
-  return result;
-}
-
-// This is the only way to make it efficient for non-STLPort and also
-// STLPort-compatible.
-inline void vector_set(std::vector<FieldValue>* self, std::size_t index,
-                          FieldValue field_value) {
-  // This could be either a move-assignment or a normal assignment.
-  (*self)[index] = firebase::Move(field_value);
 }
 
 // Similarly, DocumentSnapshot is converted to DocumentSnapshotInternal and we
