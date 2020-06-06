@@ -212,8 +212,8 @@ enum AuthError {
   /// @note This error is only reported on Android.
   kAuthErrorMissingPassword,
 
-  /// Indicates that the quota of SMS messages for a given project has been
-  /// exceeded.
+  /// Indicates that the project's quota for this operation (SMS messages,
+  /// sign-ins, account creation) has been exceeded. Try again later.
   kAuthErrorQuotaExceeded,
 
   /// Thrown when one or more of the credentials passed to a method fail to
@@ -440,7 +440,7 @@ struct FederatedOAuthProviderData : FederatedProviderData {
     this->provider_id = provider;
   }
 
-  #ifndef SWIG
+#ifndef SWIG
   /// @brief Initializes the provider data structure with the specified provider
   /// id, scopes and custom parameters.
   FederatedOAuthProviderData(
@@ -450,7 +450,7 @@ struct FederatedOAuthProviderData : FederatedProviderData {
     this->scopes = scopes;
     this->custom_parameters = custom_parameters;
   }
-  #endif
+#endif
 
   /// OAuth parmeters which specify which rights of access are being requested.
   std::vector<std::string> scopes;
