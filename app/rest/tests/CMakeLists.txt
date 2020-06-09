@@ -19,13 +19,16 @@ set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--gen-generated"
     "--gen-object-api"
     "--cpp-ptr-type" "flatbuffers::unique_ptr")
-flatbuffers_generate_headers(
-    TARGET generate_app_rest_tests_fbs
-    SCHEMAS "${CMAKE_CURRENT_LIST_DIR}/testdata/sample.fbs"
-    FLAGS ${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}
-    INCLUDE ${FIREBASE_FLATBUFFERS_DEPENDENCIES}
-    INCLUDE_PREFIX "app/rest"
-)
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
+build_flatbuffers("${CMAKE_CURRENT_LIST_DIR}/testdata/sample.fbs"
+                  ""
+                  "app_rest_generated_includes"
+                  "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
+                  "${FIREBASE_GEN_FILE_DIR}/app/rest"
+                  ""
+                  "")
 
 binary_to_array("sample_resource"
     "${CMAKE_CURRENT_LIST_DIR}/testdata/sample.fbs"
@@ -35,16 +38,12 @@ binary_to_array("sample_resource"
 add_library(sample_resource_lib STATIC
   ${sample_resource_source}
   ${sample_resource_header}
+  ${FIREBASE_GEN_FILE_DIR}/app/rest/sample_generated.h
 )
 
 target_include_directories(sample_resource_lib
   PUBLIC
     ${FLATBUFFERS_SOURCE_DIR}/include
-)
-
-target_link_libraries(sample_resource_lib
-  PUBLIC
-    generate_app_rest_tests_fbs
 )
 
 firebase_cpp_cc_test(firebase_app_rest_request_test
