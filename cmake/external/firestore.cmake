@@ -18,19 +18,12 @@ if(TARGET firestore)
   return()
 endif()
 
-# Pin to the first revision that includes these changes:
-# https://github.com/firebase/firebase-ios-sdk/pull/5052
-#
-# These changes are required for the firebase-ios-sdk build to interoperate
-# well with a wrapper build that also uses googletest. Once M67 iOS
-# releases with that change, this should point to the Firestore release tag.
-set(version a568a96f7e6cf26f74d3c04892d02c4a218d5566)
+set(version Firestore-1.13.0)
 
 ExternalProject_Add(
   firestore
 
   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-  DOWNLOAD_NAME firestore-${version}.tar.gz
   URL https://github.com/firebase/firebase-ios-sdk/archive/${version}.tar.gz
 
   PREFIX ${PROJECT_BINARY_DIR}
