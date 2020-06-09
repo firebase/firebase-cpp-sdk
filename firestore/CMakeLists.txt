@@ -184,7 +184,7 @@ target_link_libraries(firebase_firestore
 if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
   target_link_libraries(firebase_firestore
     PRIVATE
-      firebase_firestore_api
+      firestore_core
   )
 endif()
 

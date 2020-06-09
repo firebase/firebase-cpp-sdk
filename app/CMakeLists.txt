@@ -67,15 +67,16 @@ add_custom_command(
 # Build the google_services_generated.h header from the flatbuffer schema file.
 set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
+    "--gen-generated"
     "--gen-object-api"
     "--cpp-ptr-type" "flatbuffers::unique_ptr")
-build_flatbuffers("${CMAKE_CURRENT_LIST_DIR}/google_services.fbs"
-                  ""
-                  "app_generated_includes"
-                  "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
-                  "${FIREBASE_GEN_FILE_DIR}/app"
-                  ""
-                  "")
+flatbuffers_generate_headers(
+    TARGET generate_app_fbs
+    SCHEMAS "${CMAKE_CURRENT_LIST_DIR}/google_services.fbs"
+    FLAGS ${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}
+    INCLUDE ${FIREBASE_FLATBUFFERS_DEPENDENCIES}
+    INCLUDE_PREFIX "app"
+)
 
 set(log_common_SRCS
     src/log.cc
@@ -293,7 +294,6 @@ add_library(firebase_app STATIC
     ${internal_HDRS}
     ${utility_HDRS}
     ${app_platform_HDRS}
-    ${FIREBASE_GEN_FILE_DIR}/app/google_services_generated.h
     memory/atomic.h
     meta/move.h
     memory/unique_ptr.h
@@ -326,6 +326,7 @@ target_link_libraries(firebase_app
   PRIVATE
     flatbuffers
     ${LIBSECRET_LIBRARIES}
+    generate_app_fbs
 )
 # Automatically include headers that might not be declared.
 if(MSVC)

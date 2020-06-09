@@ -17,17 +17,18 @@
 # Build the generated header from the flatbuffer schema files.
 set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
+    "--gen-generated"
     "--gen-object-api"
     "--cpp-ptr-type" "flatbuffers::unique_ptr")
 set(flatbuffer_schemas
     ${CMAKE_CURRENT_LIST_DIR}/src/android/schemas/messaging.fbs)
-build_flatbuffers("${flatbuffer_schemas}"
-                  ""
-                  "generate_messaging_fbs"
-                  "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
-                  "${FIREBASE_GEN_FILE_DIR}/messaging"
-                  ""
-                  "")
+flatbuffers_generate_headers(
+    TARGET generate_messaging_fbs
+    SCHEMAS "${flatbuffer_schemas}"
+    FLAGS ${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}
+    INCLUDE ${FIREBASE_FLATBUFFERS_DEPENDENCIES}
+    INCLUDE_PREFIX "messaging"
+)
 
 # Common source files used by all platforms
 set(common_SRCS
@@ -36,7 +37,6 @@ set(common_SRCS
 
 # Source files used by the Android implementation.
 set(android_SRCS
-    ${FIREBASE_GEN_FILE_DIR}/messaging/messaging_generated.h
     src/android/cpp/message_reader.cc
     src/android/cpp/message_reader.h
     src/android/cpp/messaging.cc)
@@ -76,6 +76,7 @@ if(ANDROID)
   target_link_libraries(firebase_messaging
     PRIVATE
       flatbuffers
+      generate_messaging_fbs
   )
 endif()
 # Public headers all refer to each other relative to the src/include directory,

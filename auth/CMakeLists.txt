@@ -37,6 +37,9 @@ set(flatbuffer_schemas
     ${CMAKE_CURRENT_LIST_DIR}/src/desktop/rpcs/request.fbs
     ${CMAKE_CURRENT_LIST_DIR}/src/desktop/rpcs/response.fbs
     ${CMAKE_CURRENT_LIST_DIR}/src/desktop/user_data.fbs)
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
 build_flatbuffers("${flatbuffer_schemas}"
                   ""
                   "generate_request_fbs"
