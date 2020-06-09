@@ -59,13 +59,12 @@ void DocumentEventListener::DocumentSnapshotEvent(int callback_id,
                                                   DocumentSnapshot value,
                                                   Error error) {
   MutexLock lock(g_mutex);
-  if (error != Error::kOk ||
-      g_document_snapshot_event_listener_callback == nullptr) {
+  if (g_document_snapshot_event_listener_callback == nullptr) {
     return;
   }
   // The ownership is passed through the call to C# handler.
   DocumentSnapshot* copy = new DocumentSnapshot(value);
-  g_document_snapshot_event_listener_callback(callback_id, copy);
+  g_document_snapshot_event_listener_callback(callback_id, copy, error);
 }
 
 }  // namespace csharp
