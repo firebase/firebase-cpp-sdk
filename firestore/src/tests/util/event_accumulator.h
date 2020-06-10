@@ -17,7 +17,7 @@ class EventAccumulator {
   std::vector<T> Await(int num_events) {
     max_events_ += num_events;
     FirestoreIntegrationTest::Await(listener_, max_events_);
-    EXPECT_EQ(Error::kOk, listener_.first_error());
+    EXPECT_EQ(Error::kErrorOk, listener_.first_error());
 
     std::vector<T> result;
     // We cannot use listener.last_result() as it goes backward and can

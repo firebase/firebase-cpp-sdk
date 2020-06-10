@@ -29,7 +29,7 @@ User GetCurrentUser(Auth* firebase_auth) {
 
 StatusOr<Token> ConvertToken(const Future<std::string>& future,
                              Auth* firebase_auth) {
-  if (future.error() != Error::kOk) {
+  if (future.error() != Error::kErrorOk) {
     return Status(static_cast<Error>(future.error()), future.error_message());
   }
 
@@ -51,8 +51,8 @@ void OnToken(const Future<std::string>& future_token, Auth* firebase_auth,
     // Cancel the request since the user may have changed while the request was
     // outstanding, so the response is likely for a previous user (which user,
     // we can't be sure).
-    listener(
-        Status(Error::kAborted, "GetToken() aborted due to token change."));
+    listener(Status(Error::kErrorAborted,
+                    "GetToken() aborted due to token change."));
     return;
   }
 
