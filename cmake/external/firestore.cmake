@@ -18,7 +18,7 @@ if(TARGET firestore)
   return()
 endif()
 
-set(version Firestore-1.13.0)
+set(version Firestore-1.15.0)
 
 ExternalProject_Add(
   firestore

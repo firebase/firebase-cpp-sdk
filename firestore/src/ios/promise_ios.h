@@ -147,7 +147,7 @@ class Promise {
  private:
   Promise() = default;
 
-  int NoError() const { return static_cast<int>(Error::kOk); }
+  int NoError() const { return static_cast<int>(Error::kErrorOk); }
 
   // Note: `CleanupFn` is not used because `Promise` is a header-only class, to
   // avoid a circular dependency between headers.

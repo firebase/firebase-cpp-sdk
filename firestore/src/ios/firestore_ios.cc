@@ -153,7 +153,7 @@ Future<void> FirestoreInternal::RunTransaction(
               Transaction transaction{transaction_internal};
 
               Error error_code = update(transaction, error_message);
-              if (error_code == Error::kOk) {
+              if (error_code == Error::kErrorOk) {
                 eventual_result_callback(Status::OK());
               } else {
                 // TODO(varconst): port this from iOS
@@ -252,7 +252,7 @@ void FirestoreInternal::ClearListeners() {
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
     EventListener<void>* listener) {
   std::function<void()> listener_function = [listener] {
-    listener->OnEvent(Error::kOk);
+    listener->OnEvent(Error::kErrorOk);
   };
   auto result = firestore_core_->AddSnapshotsInSyncListener(
       ListenerWithCallback(std::move(listener_function)));

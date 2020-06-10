@@ -18,7 +18,7 @@ Future<T> CreateFailedFuture(
     ReferenceCountedFutureImpl* ref_counted_future_impl) {
   SafeFutureHandle<T> handle = ref_counted_future_impl->SafeAlloc<T>();
   ref_counted_future_impl->Complete(
-      handle, Error::kFailedPrecondition,
+      handle, Error::kErrorFailedPrecondition,
       "This instance is in an invalid state. This could either because the "
       "underlying Firestore instance has been destructed or because you're "
       "running on an unsupported platform. Currently the Firestore C++/Unity "

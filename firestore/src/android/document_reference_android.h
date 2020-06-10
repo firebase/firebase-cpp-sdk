@@ -167,7 +167,7 @@ class DocumentReferenceInternal
    * only DocumentSnapshot.getMetadata() changed) should trigger snapshot
    * events.
    * @param[in] callback function or lambda to call. When this function is
-   * called, snapshot value is valid if and only if error is Error::kOk.
+   * called, snapshot value is valid if and only if error is Error::kErrorOk.
    *
    * @return A registration object that can be used to remove the listener.
    *
