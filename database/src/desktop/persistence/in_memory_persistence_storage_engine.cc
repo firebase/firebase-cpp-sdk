@@ -76,7 +76,7 @@ void InMemoryPersistenceStorageEngine::RemoveAllUserWrites() {
   VerifyInTransaction();
 }
 
-const Variant& InMemoryPersistenceStorageEngine::ServerCache(const Path& path) {
+Variant InMemoryPersistenceStorageEngine::ServerCache(const Path& path) {
   return VariantGetChild(&server_cache_, path);
 }
 

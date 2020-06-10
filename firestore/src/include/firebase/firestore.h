@@ -26,6 +26,7 @@
 
 #include "firebase/app.h"
 #include "firebase/future.h"
+#include "firebase/log.h"
 // Include *all* the public headers to make sure including just "firestore.h" is
 // sufficient for users.
 #include "firebase/firestore/collection_reference.h"
@@ -201,13 +202,26 @@ class Firestore {
    *
    * @return The Query instance.
    */
+  virtual Query CollectionGroup(const char* collection_id) const;
+
+  /**
+   * @brief Returns a Query instance that includes all documents in the
+   * database that are contained in a collection or subcollection with the
+   * given collection_id.
+   *
+   * @param[in] collection_id Identifies the collections to query over. Every
+   * collection or subcollection with this ID as the last segment of its path
+   * will be included. Cannot contain a slash.
+   *
+   * @return The Query instance.
+   */
   virtual Query CollectionGroup(const std::string& collection_id) const;
 
   /** Returns the settings used by this Firestore object. */
   virtual Settings settings() const;
 
   /** Sets any custom settings used to configure this Firestore object. */
-  virtual void set_settings(const Settings& settings);
+  virtual void set_settings(Settings settings);
 
   /**
    * Creates a write batch, used for performing multiple writes as a single
@@ -219,6 +233,25 @@ class Firestore {
    * @return The created WriteBatch object.
    */
   virtual WriteBatch batch() const;
+
+#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+  /**
+   * Executes the given update and then attempts to commit the changes applied
+   * within the transaction. If any document read within the transaction has
+   * changed, the update function will be retried. If it fails to commit after
+   * 5 attempts, the transaction will fail.
+   *
+   * @param update function or lambda to execute within the transaction context.
+   * The string reference parameter can be used to set the error message.
+   *
+   * @return A Future that will be resolved when the transaction finishes.
+   *
+   * @note This method is not available when using the STLPort C++ runtime
+   * library.
+   */
+  virtual Future<void> RunTransaction(
+      std::function<Error(Transaction&, std::string&)> update);
+#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
   /**
    * Executes the given update and then attempts to commit the changes applied
@@ -234,46 +267,33 @@ class Firestore {
    */
   virtual Future<void> RunTransaction(TransactionFunction* update);
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /**
-   * Executes the given update and then attempts to commit the changes applied
-   * within the transaction. If any document read within the transaction has
-   * changed, the update function will be retried. If it fails to commit after
-   * 5 attempts, the transaction will fail.
+   * Sets the log verbosity of all Firestore instances.
    *
-   * @param update function or lambda to execute within the transaction context.
+   * The default verbosity level is `kLogLevelInfo`.
    *
-   * @return A Future that will be resolved when the transaction finishes.
+   * @param[in] log_level The desired verbosity.
    */
-  virtual Future<void> RunTransaction(
-      std::function<Error(Transaction*, std::string*)> update);
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
-
-  /** Gets the result of the most recent call to RunTransaction(). */
-  virtual Future<void> RunTransactionLastResult();
-
-  /** Globally enables / disables Firestore logging for the SDK. */
-  static void set_logging_enabled(bool logging_enabled);
+  static void set_log_level(LogLevel log_level);
 
   /**
    * Disables network access for this instance. While the network is disabled,
    * any snapshot listeners or Get() calls will return results from cache, and
    * any write operations will be queued until network usage is re-enabled via a
    * call to EnableNetwork().
+   *
+   * If the network was already disabled, calling `DisableNetwork()` again is
+   * a no-op.
    */
   virtual Future<void> DisableNetwork();
-
-  /** Gets the result of the most recent call to DisableNetwork(). */
-  Future<void> DisableNetworkLastResult();
 
   /**
    * Re-enables network usage for this instance after a prior call to
    * DisableNetwork().
+   *
+   * If the network is currently enabled, calling `EnableNetwork()` is a no-op.
    */
   virtual Future<void> EnableNetwork();
-
-  /** Gets the result of the most recent call to EnableNetwork(). */
-  Future<void> EnableNetworkLastResult();
 
   /**
    * Terminates this `Firestore` instance.
@@ -282,7 +302,7 @@ class Firestore {
    * used. Calling any other methods will result in an error.
    *
    * To restart after termination, simply create a new instance of `Firestore`
-   * with `Firestore::GetInstance`.
+   * with `Firestore::GetInstance()`.
    *
    * `Terminate()` does not cancel any pending writes and any tasks that are
    * awaiting a response from the server will not be resolved. The next time you
@@ -299,9 +319,6 @@ class Firestore {
    */
   virtual Future<void> Terminate();
 
-  /** Gets the result of the most recent call to `Terminate()`. */
-  Future<void> TerminateLastResult();
-
   /**
    * Waits until all currently pending writes for the active user have been
    * acknowledged by the backend.
@@ -317,9 +334,6 @@ class Firestore {
    * error during user change.
    */
   virtual Future<void> WaitForPendingWrites();
-
-  /** Gets the result of the most recent call to WaitForPendingWrites(). */
-  Future<void> WaitForPendingWritesLastResult();
 
   /**
    * Clears the persistent storage. This includes pending writes and cached
@@ -339,9 +353,6 @@ class Firestore {
    * we strongly recommend not to enable persistence in the first place.
    */
   virtual Future<void> ClearPersistence();
-
-  /** Gets the result of the most recent call to ClearPersistence(). */
-  Future<void> ClearPersistenceLastResult();
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /**

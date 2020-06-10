@@ -12,7 +12,7 @@
 #include "absl/types/variant.h"
 #include "firebase/firestore/geo_point.h"
 #include "firebase/firestore/timestamp.h"
-#include "Firestore/core/src/firebase/firestore/model/field_value.h"
+#include "Firestore/core/src/model/field_value.h"
 
 namespace firebase {
 namespace firestore {
@@ -55,8 +55,8 @@ class FieldValueInternal {
   static FieldValue ServerTimestamp();
   static FieldValue ArrayUnion(std::vector<FieldValue> elements);
   static FieldValue ArrayRemove(std::vector<FieldValue> elements);
-  static FieldValue Increment(double l);
-  static FieldValue Increment(std::int64_t d);
+  static FieldValue IntegerIncrement(std::int64_t by_value);
+  static FieldValue DoubleIncrement(double by_value);
 
  private:
   friend class FirestoreInternal;

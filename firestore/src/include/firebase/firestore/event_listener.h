@@ -27,6 +27,10 @@ namespace firestore {
  *
  * @note This class should only be used when using the STLPort C++ runtime
  * library.
+ *
+ * @deprecated STLPort support in Firestore is deprecated and will be removed in
+ * a future release. Note that STLPort has been deprecated in the Android NDK
+ * since r17 (May 2018) and removed since r18 (September 2018).
  */
 template <typename T>
 class EventListener {
@@ -37,10 +41,10 @@ class EventListener {
    * @brief OnEvent will be called with the new value or the error if an error
    * occurred.
    *
-   * It's guaranteed that value is valid if and only if error is Error::Ok.
+   * It's guaranteed that value is valid if and only if error is Error::kOk.
    *
    * @param value The value of the event. Invalid if there was an error.
-   * @param error The error if there was error. Error::Ok otherwise.
+   * @param error The error if there was error. Error::kOk otherwise.
    */
   virtual void OnEvent(const T& value, Error error) = 0;
 };
@@ -50,6 +54,10 @@ class EventListener {
  *
  * @note This class should only be used when using the STLPort C++ runtime
  * library.
+ *
+ * @deprecated STLPort support in Firestore is deprecated and will be removed in
+ * a future release. Note that STLPort has been deprecated in the Android NDK
+ * since r17 (May 2018) and removed since r18 (September 2018).
  */
 template <>
 class EventListener<void> {
@@ -59,7 +67,7 @@ class EventListener<void> {
   /**
    * @brief OnEvent will be called with the error if an error occurred.
    *
-   * @param error The error if there was error. Error::Ok otherwise.
+   * @param error The error if there was error. Error::kOk otherwise.
    */
   virtual void OnEvent(Error error) = 0;
 };

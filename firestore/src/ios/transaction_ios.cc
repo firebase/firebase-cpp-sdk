@@ -10,13 +10,13 @@
 #include "firestore/src/ios/set_options_ios.h"
 #include "firestore/src/ios/util_ios.h"
 #include "absl/types/optional.h"
-#include "Firestore/core/src/firebase/firestore/core/user_data.h"
-#include "Firestore/core/src/firebase/firestore/model/document.h"
-#include "Firestore/core/src/firebase/firestore/model/document_key.h"
-#include "Firestore/core/src/firebase/firestore/model/field_path.h"
-#include "Firestore/core/src/firebase/firestore/model/maybe_document.h"
-#include "Firestore/core/src/firebase/firestore/util/status.h"
-#include "Firestore/core/src/firebase/firestore/util/statusor.h"
+#include "Firestore/core/src/core/user_data.h"
+#include "Firestore/core/src/model/document.h"
+#include "Firestore/core/src/model/document_key.h"
+#include "Firestore/core/src/model/field_path.h"
+#include "Firestore/core/src/model/maybe_document.h"
+#include "Firestore/core/src/util/status.h"
+#include "Firestore/core/src/util/statusor.h"
 
 namespace firebase {
 namespace firestore {
@@ -134,7 +134,7 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
 
   if (result.ok()) {
     if (error_code != nullptr) {
-      *error_code = Error::Ok;
+      *error_code = Error::kOk;
     }
     if (error_message != nullptr) {
       *error_message = "";

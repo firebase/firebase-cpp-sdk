@@ -33,9 +33,9 @@ class CollectionReferenceInternal;
 class DocumentReference;
 
 /**
- * @brief A CollectionReference refers to a collection of documents location in
- * a Firestore database and can be used for adding documents, getting document
- * references, and querying for documents.
+ * @brief A CollectionReference can be used for adding documents, getting
+ * document references, and querying for documents (using the methods inherited
+ * from `Query`).
  *
  * @note Firestore classes are not meant to be subclassed except for use in test
  * mocks. Subclassing is not supported in production code and new SDK releases
@@ -104,7 +104,7 @@ class CollectionReference : public Query {
    *
    * @return The ID as a std::string.
    */
-  virtual std::string id() const;
+  virtual const std::string& id() const;
 
   /**
    * @brief Returns the path of this collection (relative to the root of the
@@ -163,14 +163,6 @@ class CollectionReference : public Query {
    * newly created document.
    */
   virtual Future<DocumentReference> Add(const MapFieldValue& data);
-
-  /**
-   * @brief Gets the result of the most recent call to Add().
-   *
-   * @return The result of last call to Add() or an invalid Future, if there is
-   * no such call.
-   */
-  virtual Future<DocumentReference> AddLastResult() const;
 
  private:
   friend class DocumentReference;

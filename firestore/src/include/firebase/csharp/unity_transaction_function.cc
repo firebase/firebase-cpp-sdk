@@ -10,16 +10,16 @@ namespace csharp {
 UnityTransactionFunctionCallback
     UnityTransactionFunction::transaction_function_callback_ = nullptr;
 
-Error UnityTransactionFunction::Apply(Transaction* transaction,
-                                      std::string* error_message) {
+Error UnityTransactionFunction::Apply(Transaction& transaction,
+                                      std::string& error_message) {
   MutexLock lock(*mutex_);
   if (transaction_function_callback_ != nullptr) {
-    return transaction_function_callback_(callback_id_, transaction,
-                                          error_message);
+    return transaction_function_callback_(callback_id_, &transaction,
+                                          &error_message);
   } else {
     FIREBASE_ASSERT_MESSAGE(
         false, "C++ transaction callback called before C# registered.");
-    return Error::Ok;
+    return Error::kOk;
   }
 }
 
@@ -42,8 +42,8 @@ Future<void> UnityTransactionFunction::RunTransactionOn(int32_t callback_id,
                                                         Firestore* firestore) {
   UnityTransactionFunction unity_transaction_function(callback_id);
   return firestore->RunTransaction(
-      [unity_transaction_function](Transaction* transaction,
-                                   std::string* error_message) mutable {
+      [unity_transaction_function](Transaction& transaction,
+                                   std::string& error_message) mutable {
         return unity_transaction_function.Apply(transaction, error_message);
       });
 }

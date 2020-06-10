@@ -14,9 +14,9 @@
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/settings.h"
 #include "firestore/src/ios/promise_factory_ios.h"
-#include "Firestore/core/src/firebase/firestore/api/firestore.h"
-#include "Firestore/core/src/firebase/firestore/auth/credentials_provider.h"
-#include "Firestore/core/src/firebase/firestore/model/database_id.h"
+#include "Firestore/core/src/api/firestore.h"
+#include "Firestore/core/src/auth/credentials_provider.h"
+#include "Firestore/core/src/model/database_id.h"
 
 namespace firebase {
 namespace firestore {
@@ -26,6 +26,10 @@ class ListenerRegistrationInternal;
 class Transaction;
 class TransactionFunction;
 class WriteBatch;
+
+namespace util {
+class Executor;
+}
 
 class FirestoreInternal {
  public:
@@ -55,12 +59,12 @@ class FirestoreInternal {
   Query CollectionGroup(const char* collection_id) const;
 
   Settings settings() const;
-  void set_settings(const Settings& settings);
+  void set_settings(Settings settings);
 
   WriteBatch batch() const;
 
   Future<void> RunTransaction(
-      std::function<Error(Transaction*, std::string*)> update);
+      std::function<Error(Transaction&, std::string&)> update);
   Future<void> RunTransaction(TransactionFunction* update);
   Future<void> RunTransactionLastResult();
 
@@ -145,6 +149,8 @@ class FirestoreInternal {
   // TODO(b/136119216): revamp this mechanism on both iOS and Android.
   std::mutex listeners_mutex_;
   std::unordered_set<ListenerRegistrationInternal*> listeners_;
+
+  std::shared_ptr<util::Executor> transaction_executor_;
 };
 
 }  // namespace firestore

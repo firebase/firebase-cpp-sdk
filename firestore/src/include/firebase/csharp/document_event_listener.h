@@ -27,7 +27,8 @@ namespace csharp {
 // The callbacks that are used by the listener, that need to reach back to C#
 // callbacks.
 typedef void(SWIGSTDCALL* DocumentEventListenerCallback)(int callback_id,
-                                                         void* snapshot);
+                                                         void* snapshot,
+                                                         Error error);
 
 // Provide a C++ implementation of the EventListener for DocumentSnapshot that
 // can forward the calls back to the C# delegates.

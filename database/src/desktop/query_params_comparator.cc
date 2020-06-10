@@ -17,6 +17,7 @@
 #include <cassert>
 #include <cstdint>
 
+#include "app/src/assert.h"
 #include "app/src/util.h"
 #include "database/src/desktop/util_desktop.h"
 
@@ -91,6 +92,8 @@ int QueryParamsComparator::Compare(const Variant& key_a, const Variant& value_a,
       return result;
     }
   }
+  FIREBASE_DEV_ASSERT_MESSAGE(false, "Invalid QueryParams::OrderBy");
+  return 0;
 }
 
 int QueryParamsComparator::ComparePriorities(const Variant& value_a,

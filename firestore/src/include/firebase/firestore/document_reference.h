@@ -201,14 +201,6 @@ class DocumentReference {
   virtual Future<DocumentSnapshot> Get(Source source = Source::kDefault) const;
 
   /**
-   * @brief Gets the result of the most recent call to the Get() method.
-   *
-   * @return The result of last call to Get() or an invalid Future, if there is
-   * no such call.
-   */
-  virtual Future<DocumentSnapshot> GetLastResult() const;
-
-  /**
    * @brief Writes to the document referred to by this DocumentReference.
    *
    * If the document does not yet exist, it will be created. If you pass
@@ -223,14 +215,6 @@ class DocumentReference {
                            const SetOptions& options = SetOptions());
 
   /**
-   * @brief Gets the result of the most recent call to the Set() method.
-   *
-   * @return The result of last call to Set() or an invalid Future, if there is
-   * no such call.
-   */
-  virtual Future<void> SetLastResult() const;
-
-  /**
    * @brief Updates fields in the document referred to by this
    * DocumentReference.
    *
@@ -239,7 +223,9 @@ class DocumentReference {
    * @param[in] data A map of field / value pairs to update. Fields can contain
    * dots to reference nested fields within the document.
    *
-   * @return A Future that will be resolved when the write finishes.
+   * @return A Future that will be resolved when the client is online and the
+   * commit has completed against the server. The future will not resolve when
+   * the device is offline, though local changes will be visible immediately.
    */
   virtual Future<void> Update(const MapFieldValue& data);
 
@@ -251,17 +237,11 @@ class DocumentReference {
    *
    * @param[in] data A map from FieldPath to FieldValue to update.
    *
-   * @return A Future that will be resolved when the write finishes.
+   * @return A Future that will be resolved when the client is online and the
+   * commit has completed against the server. The future will not resolve when
+   * the device is offline, though local changes will be visible immediately.
    */
   virtual Future<void> Update(const MapFieldPathValue& data);
-
-  /**
-   * @brief Gets the result of the most recent call to Update().
-   *
-   * @return The result of last call to Update() or an invalid Future, if there
-   * is no such call.
-   */
-  virtual Future<void> UpdateLastResult() const;
 
   /**
    * @brief Removes the document referred to by this DocumentReference.
@@ -270,21 +250,13 @@ class DocumentReference {
    */
   virtual Future<void> Delete();
 
-  /**
-   * @brief Gets the result of the most recent call to Delete().
-   *
-   * @return The result of last call to Delete() or an invalid Future, if there
-   * is no such call.
-   */
-  virtual Future<void> DeleteLastResult() const;
-
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /**
    * @brief Starts listening to the document referenced by this
    * DocumentReference.
    *
    * @param[in] callback The std::function to call. When this function is
-   * called, snapshot value is valid if and only if error is Error::Ok.
+   * called, snapshot value is valid if and only if error is Error::kOk.
    *
    * @return A registration object that can be used to remove the listener.
    *
@@ -302,7 +274,7 @@ class DocumentReference {
    * is, only DocumentSnapshot::metadata() changed) should trigger snapshot
    * events.
    * @param[in] callback The std::function to call. When this function is
-   * called, snapshot value is valid if and only if error is Error::Ok.
+   * called, snapshot value is valid if and only if error is Error::kOk.
    *
    * @return A registration object that can be used to remove the listener.
    *
@@ -326,8 +298,15 @@ class DocumentReference {
    * valid and the listener is registered.)
    *
    * @return A registration object that can be used to remove the listener.
+   *
+   * @note This method is only available when using the STLPort C++ runtime
+   * library.
+   *
+   * @deprecated STLPort support in Firestore is deprecated and will be removed
+   * in a future release. Note that STLPort has been deprecated in the Android
+   * NDK since r17 (May 2018) and removed since r18 (September 2018).
    */
-  virtual ListenerRegistration AddSnapshotListener(
+  FIREBASE_DEPRECATED virtual ListenerRegistration AddSnapshotListener(
       EventListener<DocumentSnapshot>* listener);
 
   /**
@@ -344,8 +323,15 @@ class DocumentReference {
    * valid and the listener is registered.)
    *
    * @return A registration object that can be used to remove the listener.
+   *
+   * @note This method is only available when using the STLPort C++ runtime
+   * library.
+   *
+   * @deprecated STLPort support in Firestore is deprecated and will be removed
+   * in a future release. Note that STLPort has been deprecated in the Android
+   * NDK since r17 (May 2018) and removed since r18 (September 2018).
    */
-  virtual ListenerRegistration AddSnapshotListener(
+  FIREBASE_DEPRECATED virtual ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
       EventListener<DocumentSnapshot>* listener);
 

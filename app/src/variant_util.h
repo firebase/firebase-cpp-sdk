@@ -62,6 +62,20 @@ std::vector<uint8_t> VariantMapToFlexbuffer(
 std::vector<uint8_t> VariantVectorToFlexbuffer(
     const std::vector<Variant>& vector);
 
+// Convert from a variant to a Flexbuffer using the given flexbuffer Builder.
+// Returns true on success, false otherwise.
+bool VariantToFlexbuffer(const Variant& variant, flexbuffers::Builder* fbb);
+
+// Convert from a variant to a Flexbuffer using the given flexbuffer Builder.
+// Returns true on success, false otherwise.
+bool VariantMapToFlexbuffer(const std::map<Variant, Variant>& map,
+                            flexbuffers::Builder* fbb);
+
+// Convert from a variant to a Flexbuffer using the given flexbuffer Builder.
+// Returns true on success, false otherwise.
+bool VariantVectorToFlexbuffer(const std::vector<Variant>& vector,
+                               flexbuffers::Builder* fbb);
+
 }  // namespace util
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace FIREBASE_NAMESPACE

@@ -900,8 +900,8 @@ static void FutureShortLinkCallback(JNIEnv* jni_env, jobject result,
     FutureData* future_data = FutureData::Get();
     if (future_data) {
       future_data->api()->CompleteWithResult(
-          reinterpret_cast<FutureHandle>(callback_data), kErrorCodeSuccess,
-          result_link);
+          FutureHandle(reinterpret_cast<FutureHandleId>(callback_data)),
+          kErrorCodeSuccess, result_link);
     }
   } else {  // result_code != Success
     GeneratedDynamicLink result_link;
@@ -909,8 +909,8 @@ static void FutureShortLinkCallback(JNIEnv* jni_env, jobject result,
     if (future_data) {
       result_link.error = status_message;
       future_data->api()->CompleteWithResult(
-          reinterpret_cast<FutureHandle>(callback_data), kErrorCodeFailed,
-          status_message, result_link);
+          FutureHandle(reinterpret_cast<FutureHandleId>(callback_data)),
+          kErrorCodeFailed, status_message, result_link);
     }
   }
 }
@@ -959,9 +959,9 @@ static Future<GeneratedDynamicLink> HandleShortLinkTask(
     api->CompleteWithResult(handle, kErrorCodeFailed, exception_message.c_str(),
                             gen_link);
   } else {
-    util::RegisterCallbackOnTask(jni_env, task, FutureShortLinkCallback,
-                                 *(reinterpret_cast<void* const*>(&handle)),
-                                 kApiIdentifier);
+    util::RegisterCallbackOnTask(
+        jni_env, task, FutureShortLinkCallback,
+        reinterpret_cast<void*>(handle.get().id()), kApiIdentifier);
   }
 
   jni_env->DeleteLocalRef(link_builder);

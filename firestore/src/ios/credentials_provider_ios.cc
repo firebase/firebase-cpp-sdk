@@ -4,7 +4,7 @@
 
 #include "firestore/src/ios/hard_assert_ios.h"
 #include "firebase/firestore/firestore_errors.h"
-#include "Firestore/core/src/firebase/firestore/util/status.h"
+#include "Firestore/core/src/util/status.h"
 
 namespace firebase {
 namespace firestore {
@@ -29,7 +29,7 @@ User GetCurrentUser(Auth* firebase_auth) {
 
 StatusOr<Token> ConvertToken(const Future<std::string>& future,
                              Auth* firebase_auth) {
-  if (future.error() != Error::Ok) {
+  if (future.error() != Error::kOk) {
     return Status(static_cast<Error>(future.error()), future.error_message());
   }
 
@@ -51,7 +51,8 @@ void OnToken(const Future<std::string>& future_token, Auth* firebase_auth,
     // Cancel the request since the user may have changed while the request was
     // outstanding, so the response is likely for a previous user (which user,
     // we can't be sure).
-    listener(Status(Error::Aborted, "GetToken() aborted due to token change."));
+    listener(
+        Status(Error::kAborted, "GetToken() aborted due to token change."));
     return;
   }
 
@@ -62,8 +63,7 @@ void OnToken(const Future<std::string>& future_token, Auth* firebase_auth,
 
 FirebaseCppCredentialsProvider::FirebaseCppCredentialsProvider(
     Auth* firebase_auth)
-    : contents_(std::make_shared<Contents>(NOT_NULL(firebase_auth))) {
-}
+    : contents_(std::make_shared<Contents>(NOT_NULL(firebase_auth))) {}
 
 void FirebaseCppCredentialsProvider::SetCredentialChangeListener(
     CredentialChangeListener listener) {

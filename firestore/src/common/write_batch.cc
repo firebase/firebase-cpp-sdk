@@ -110,10 +110,5 @@ Future<void> WriteBatch::Commit() {
   return internal_->Commit();
 }
 
-Future<void> WriteBatch::CommitLastResult() const {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->CommitLastResult();
-}
-
 }  // namespace firestore
 }  // namespace firebase

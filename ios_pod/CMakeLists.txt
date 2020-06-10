@@ -39,7 +39,7 @@ file(
     "${FIREBASE_POD_DIR}/CMakeLists.txt"
 )
 
-message("Downloading cocoa pods...")
+message("Downloading CocoaPods...")
 
 execute_process(
   COMMAND /bin/bash -c
@@ -51,7 +51,7 @@ message("${pods_output}")
 
 
 
-# Sets up a target to have the correct dependencie on the install pods target
+# Sets up a target to have the correct dependencies on the install pods target
 # and also adds the correct include paths to the pod header files
 #
 # Usage: setup_pod_headers(<target_name>

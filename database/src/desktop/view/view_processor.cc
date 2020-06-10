@@ -667,7 +667,7 @@ ViewCache ViewProcessor::AckUserWrite(const ViewCache& view_cache,
       // in our cache as a merge.
       CompoundWrite changed_children = CompoundWrite::EmptyWrite();
       if (server_cache.variant().is_map()) {
-        for (auto key_value : server_cache.variant().map()) {
+        for (const auto& key_value : server_cache.variant().map()) {
           CompoundWrite temp = changed_children.AddWrite(
               key_value.first.AsString().mutable_string(), key_value.second);
           changed_children = temp;

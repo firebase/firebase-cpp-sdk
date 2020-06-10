@@ -52,7 +52,7 @@ class UnityTransactionFunction : public TransactionFunction {
    * Implementation of TransactionFunction::Apply() that forwards to the C#
    * global delegate, passing along this->callback_id_ for context.
    */
-  Error Apply(Transaction* transaction, std::string* error_message) override;
+  Error Apply(Transaction& transaction, std::string& error_message) override;
 
  private:
   explicit UnityTransactionFunction(int32_t callback_id)

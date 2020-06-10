@@ -82,7 +82,7 @@ class FirestoreInternal {
   Settings settings() const;
 
   // Sets any custom settings used to configure this Firestore object.
-  void set_settings(const Settings& settings);
+  void set_settings(Settings settings);
 
   WriteBatch batch() const;
 
@@ -91,7 +91,7 @@ class FirestoreInternal {
                               bool is_lambda = false);
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   Future<void> RunTransaction(
-      std::function<Error(Transaction*, std::string*)> update);
+      std::function<Error(Transaction&, std::string&)> update);
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   Future<void> RunTransactionLastResult();
 

@@ -68,6 +68,9 @@ struct TrackedQuery {
   bool active;
 };
 
+bool operator==(const TrackedQuery& lhs, const TrackedQuery& rhs);
+bool operator!=(const TrackedQuery& lhs, const TrackedQuery& rhs);
+
 typedef std::map<QueryParams, TrackedQuery> TrackedQueryMap;
 
 class TrackedQueryManagerInterface {

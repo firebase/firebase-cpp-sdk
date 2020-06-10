@@ -116,8 +116,7 @@ FirestoreInternal::FirestoreInternal(App* app) {
   // default in native SDK. The C++ implementation relies on that for reading
   // timestamp FieldValues correctly. TODO(zxu): Once it is set to true by
   // default, we may safely remove the calls below.
-  Settings setting = settings();
-  set_settings(setting);
+  set_settings(settings());
 
   future_manager_.AllocFutureApi(this, static_cast<int>(FirestoreFn::kCount));
 }
@@ -319,7 +318,7 @@ Settings FirestoreInternal::settings() const {
   return result;
 }
 
-void FirestoreInternal::set_settings(const Settings& settings) {
+void FirestoreInternal::set_settings(Settings settings) {
   JNIEnv* env = app_->GetJNIEnv();
   jobject settings_jobj =
       FirebaseFirestoreSettingsInternal::SettingToJavaSetting(env, settings);
@@ -371,7 +370,7 @@ Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update,
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 Future<void> FirestoreInternal::RunTransaction(
-    std::function<Error(Transaction*, std::string*)> update) {
+    std::function<Error(Transaction&, std::string&)> update) {
   LambdaTransactionFunction* lambda_update =
       new LambdaTransactionFunction(firebase::Move(update));
   return RunTransaction(lambda_update, /*is_lambda=*/true);
@@ -523,7 +522,10 @@ void FirestoreInternal::UnregisterListenerRegistration(
 }
 
 /* static */
-void Firestore::set_logging_enabled(bool logging_enabled) {
+void Firestore::set_log_level(LogLevel log_level) {
+  // "Verbose" and "debug" map to logging enabled.
+  // "Info", "warning", "error", and "assert" map to logging disabled.
+  bool logging_enabled = log_level < LogLevel::kLogLevelInfo;
   JNIEnv* env = firebase::util::GetJNIEnvFromApp();
   env->CallStaticVoidMethod(
       firebase_firestore::GetClass(),

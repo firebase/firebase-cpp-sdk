@@ -122,52 +122,52 @@ FieldValue& FieldValue::operator=(FieldValue&& value) noexcept {
 }
 
 /* static */
-FieldValue FieldValue::FromBoolean(bool value) {
+FieldValue FieldValue::Boolean(bool value) {
   return FieldValue{new FieldValueInternal(value)};
 }
 
 /* static */
-FieldValue FieldValue::FromInteger(int64_t value) {
+FieldValue FieldValue::Integer(int64_t value) {
   return FieldValue{new FieldValueInternal(value)};
 }
 
 /* static */
-FieldValue FieldValue::FromDouble(double value) {
+FieldValue FieldValue::Double(double value) {
   return FieldValue{new FieldValueInternal(value)};
 }
 
 /* static */
-FieldValue FieldValue::FromTimestamp(Timestamp value) {
+FieldValue FieldValue::Timestamp(class Timestamp value) {
   return FieldValue{new FieldValueInternal(value)};
 }
 
 /* static */
-FieldValue FieldValue::FromString(std::string value) {
+FieldValue FieldValue::String(std::string value) {
   return FieldValue{new FieldValueInternal(firebase::Move(value))};
 }
 
 /* static */
-FieldValue FieldValue::FromBlob(const uint8_t* value, size_t size) {
+FieldValue FieldValue::Blob(const uint8_t* value, size_t size) {
   return FieldValue{new FieldValueInternal(value, size)};
 }
 
 /* static */
-FieldValue FieldValue::FromReference(DocumentReference value) {
+FieldValue FieldValue::Reference(DocumentReference value) {
   return FieldValue{new FieldValueInternal(firebase::Move(value))};
 }
 
 /* static */
-FieldValue FieldValue::FromGeoPoint(GeoPoint value) {
+FieldValue FieldValue::GeoPoint(class GeoPoint value) {
   return FieldValue{new FieldValueInternal(value)};
 }
 
 /* static */
-FieldValue FieldValue::FromArray(std::vector<FieldValue> value) {
+FieldValue FieldValue::Array(std::vector<FieldValue> value) {
   return FieldValue{new FieldValueInternal(firebase::Move(value))};
 }
 
 /* static */
-FieldValue FieldValue::FromMap(MapFieldValue value) {
+FieldValue FieldValue::Map(MapFieldValue value) {
   return FieldValue{new FieldValueInternal(firebase::Move(value))};
 }
 
@@ -231,16 +231,6 @@ MapFieldValue FieldValue::map_value() const {
   return internal_->map_value();
 }
 
-double FieldValue::double_increment_value() const {
-  if (!internal_) return {};
-  return internal_->double_increment_value();
-}
-
-int64_t FieldValue::integer_increment_value() const {
-  if (!internal_) return {};
-  return internal_->integer_increment_value();
-}
-
 /* static */
 FieldValue FieldValue::Null() {
   FieldValue result;
@@ -267,13 +257,13 @@ FieldValue FieldValue::ArrayRemove(std::vector<FieldValue> elements) {
 }
 
 /* static */
-FieldValue FieldValue::Increment(double d) {
-  return FieldValueInternal::Increment(d);
+FieldValue FieldValue::IntegerIncrement(int64_t by_value) {
+  return FieldValueInternal::IntegerIncrement(by_value);
 }
 
 /* static */
-FieldValue FieldValue::Increment(int64_t l) {
-  return FieldValueInternal::Increment(l);
+FieldValue FieldValue::DoubleIncrement(double by_value) {
+  return FieldValueInternal::DoubleIncrement(by_value);
 }
 
 // TODO(varconst): consider reversing the role of the two output functions, so
@@ -327,13 +317,9 @@ std::string FieldValue::ToString() const {
     case Type::kArrayRemove:
       return "FieldValue::ArrayRemove()";
 
-    case Type::kIncrementDouble:
-      return std::string("FieldValue::Increment(") +
-             ValueToString(double_increment_value()) + ")";
-
     case Type::kIncrementInteger:
-      return std::string("FieldValue::Increment(") +
-             ValueToString(integer_increment_value()) + ")";
+    case Type::kIncrementDouble:
+      return "FieldValue::Increment()";
   }
 
   FIREBASE_ASSERT_MESSAGE_RETURN("<invalid>", false,

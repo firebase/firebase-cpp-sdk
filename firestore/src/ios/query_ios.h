@@ -9,10 +9,10 @@
 #include "firestore/src/ios/firestore_ios.h"
 #include "firestore/src/ios/promise_factory_ios.h"
 #include "firestore/src/ios/user_data_converter_ios.h"
-#include "Firestore/core/src/firebase/firestore/api/query_core.h"
-#include "Firestore/core/src/firebase/firestore/core/bound.h"
-#include "Firestore/core/src/firebase/firestore/core/order_by.h"
-#include "Firestore/core/src/firebase/firestore/core/query.h"
+#include "Firestore/core/src/api/query_core.h"
+#include "Firestore/core/src/core/bound.h"
+#include "Firestore/core/src/core/order_by.h"
+#include "Firestore/core/src/core/query.h"
 
 namespace firebase {
 namespace firestore {

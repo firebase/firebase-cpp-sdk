@@ -153,7 +153,7 @@ static const struct ErrorCodeToDescription {
     {kAuthErrorMissingEmail, "An email address must be provided."},
     {kAuthErrorMissingPassword, "A password must be provided."},
     {kAuthErrorQuotaExceeded,
-     "The sms quota for this project has been exceeded."},
+     "The project's quota for this operation has been exceeded."},
     {kAuthErrorSessionExpired,
      "The sms code has expired. Please re-send the verification code to try "
      "again."},

@@ -7,7 +7,7 @@
 #include "firestore/src/ios/document_reference_ios.h"
 #include "firestore/src/ios/field_value_ios.h"
 #include "firestore/src/ios/user_data_converter_ios.h"
-#include "Firestore/core/src/firebase/firestore/core/user_data.h"
+#include "Firestore/core/src/core/user_data.h"
 
 namespace firebase {
 namespace firestore {
@@ -32,7 +32,7 @@ CollectionReferenceInternal::collection_core_api() const {
   return static_cast<const api::CollectionReference&>(query_core_api());
 }
 
-std::string CollectionReferenceInternal::id() const {
+const std::string& CollectionReferenceInternal::id() const {
   return collection_core_api().collection_id();
 }
 

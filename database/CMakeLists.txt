@@ -65,6 +65,33 @@ if (NOT OPENSSL_FOUND)
   endif()
 endif()
 
+# Flatbuffer schemas used by the desktop implementation.
+set(desktop_flatbuffers_schema_dir
+    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/persistence/schemas")
+set(desktop_flatbuffers_schemas
+    "${desktop_flatbuffers_schema_dir}/persisted_compound_write.fbs"
+    "${desktop_flatbuffers_schema_dir}/persisted_query_params.fbs"
+    "${desktop_flatbuffers_schema_dir}/persisted_query_spec.fbs"
+    "${desktop_flatbuffers_schema_dir}/persisted_tracked_query.fbs"
+    "${desktop_flatbuffers_schema_dir}/persisted_user_write_record.fbs")
+set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
+    "--no-union-value-namespacing"
+    "--gen-generated"
+    "--gen-object-api"
+    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
+set(DATABASE_PERSISTENCE_GEN_DIR
+    "${FIREBASE_GEN_FILE_DIR}/database/src/desktop/persistence")
+build_flatbuffers("${desktop_flatbuffers_schemas}"
+                  "${CMAKE_CURRENT_LIST_DIR}"
+                  "database_persistence_generated_includes"
+                  "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
+                  "${DATABASE_PERSISTENCE_GEN_DIR}"
+                  ""
+                  "")
+
 # Source files used by the desktop implementation.
 set(desktop_SRCS
     src/desktop/connection/connection.cc
@@ -96,8 +123,9 @@ set(desktop_SRCS
     src/desktop/database_reference_desktop.cc
     src/desktop/disconnection_desktop.cc
     src/desktop/mutable_data_desktop.cc
-    src/desktop/persistence/file_io.cc
+    src/desktop/persistence/flatbuffer_conversions.cc
     src/desktop/persistence/in_memory_persistence_storage_engine.cc
+    src/desktop/persistence/level_db_persistence_storage_engine.cc
     src/desktop/persistence/noop_persistence_manager.cc
     src/desktop/persistence/persistence_manager.cc
     src/desktop/persistence/prune_forest.cc
@@ -113,7 +141,12 @@ set(desktop_SRCS
     src/desktop/view/limited_filter.cc
     src/desktop/view/ranged_filter.cc
     src/desktop/view/view.cc
-    src/desktop/view/view_processor.cc)
+    src/desktop/view/view_processor.cc
+    ${DATABASE_PERSISTENCE_GEN_DIR}/persisted_compound_write_generated.h
+    ${DATABASE_PERSISTENCE_GEN_DIR}/persisted_query_params_generated.h
+    ${DATABASE_PERSISTENCE_GEN_DIR}/persisted_query_spec_generated.h
+    ${DATABASE_PERSISTENCE_GEN_DIR}/persisted_tracked_query_generated.h
+    ${DATABASE_PERSISTENCE_GEN_DIR}/persisted_user_write_record_generated.h)
 
 if(ANDROID)
   set(database_platform_SRCS
@@ -122,8 +155,18 @@ elseif(IOS)
   set(database_platform_SRCS
       "${ios_SRCS}")
 else()
+  # Add platform-specific util files.
+  if(MSVC)
+    set(desktop_extra_SRCS src/desktop/util_desktop_windows.cc)
+  elseif(APPLE)
+    set(desktop_extra_SRCS src/desktop/util_desktop_macos.mm)
+  else()
+    # Linux
+    set(desktop_extra_SRCS src/desktop/util_desktop_linux.cc)
+  endif()
   set(database_platform_SRCS
-      "${desktop_SRCS}")
+        "${desktop_SRCS}"
+        "${desktop_extra_SRCS}")
 endif()
 
 if(ANDROID OR IOS)
@@ -140,6 +183,7 @@ else()
       flatbuffers
       firebase_rest_lib
       ${OPENSSL_CRYPTO_LIBRARY}
+      leveldb
       libuWS)
 
   set(additional_DEFINES

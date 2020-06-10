@@ -161,6 +161,7 @@ set(wrapper_assertions_SRCS
 
 if(ANDROID)
   set(firestore_platform_SRCS "${android_SRCS}")
+
 else()
   # The iOS implementation is actually portable to desktop environments as
   # well.
@@ -173,30 +174,56 @@ add_library(firebase_firestore STATIC
 
 set_property(TARGET firebase_firestore PROPERTY FOLDER "Firebase Cpp")
 
-if(NOT ANDROID)
-  set(firestore_api_dep firebase_firestore_api)
-else()
-  set(firestore_api_dep)
-endif()
-
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_firestore
   PUBLIC
     firebase_app
     firebase_auth
-  PRIVATE
-    ${firestore_api_dep}
 )
 
-# Public headers all refer to each other relative to the src/include directory,
-# while private headers are relative to the entire C++ SDK directory.
+if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
+  target_link_libraries(firebase_firestore
+    PRIVATE
+      firestore_core
+  )
+endif()
+
+# Public C++ headers all refer to each other relative to the src/include
+# directory, while private headers are relative to the entire C++ SDK
+# directory.
 target_include_directories(firebase_firestore
   PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/src/include
-    ${FIRESTORE_SOURCE_DIR}/Firestore/core/include
   PRIVATE
     ${FIREBASE_CPP_SDK_ROOT_DIR}
 )
+
+# Additional public headers come from the Firestore core
+if(IOS)
+  target_include_directories(firebase_firestore
+    PUBLIC
+      # The Firestore core on iOS comes via the FirebaseFirestore CocoaPod, and
+      # public headers should come from there.
+      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include
+    PRIVATE
+      # Additionally, the core C++ API is not declared publicly within the
+      # FirebaseFirestore pod, so depend on headers available in the source
+      # distribution.
+      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore
+  )
+
+else()
+  # Desktop and Android get their public headers from the CMake build in
+  # firebase-ios-sdk.
+  target_include_directories(firebase_firestore
+    PUBLIC
+      ${FIRESTORE_SOURCE_DIR}/Firestore/core/include
+    PRIVATE
+      ${FIRESTORE_SOURCE_DIR}
+  )
+endif()
+
+
 target_compile_definitions(firebase_firestore
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
@@ -211,6 +238,15 @@ elseif(IOS)
     TARGET firebase_firestore
     APPEND_STRING PROPERTY
     COMPILE_FLAGS "-fobjc-arc")
+
+  setup_pod_headers(
+    firebase_firestore
+    POD_NAMES
+      FirebaseCore
+      FirebaseFirestore
+      abseil
+      nanopb
+  )
 endif()
 
 cpp_pack_library(firebase_firestore "")

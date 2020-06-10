@@ -198,6 +198,11 @@ DocumentReference Firestore::Document(const std::string& document_path) const {
   return Document(document_path.c_str());
 }
 
+Query Firestore::CollectionGroup(const char* collection_id) const {
+  if (!internal_) return {};
+  return internal_->CollectionGroup(collection_id);
+}
+
 Query Firestore::CollectionGroup(const std::string& collection_id) const {
   if (!internal_) return {};
   return internal_->CollectionGroup(collection_id.c_str());
@@ -208,9 +213,9 @@ Settings Firestore::settings() const {
   return internal_->settings();
 }
 
-void Firestore::set_settings(const Settings& settings) {
+void Firestore::set_settings(Settings settings) {
   if (!internal_) return;
-  internal_->set_settings(settings);
+  internal_->set_settings(firebase::Move(settings));
 }
 
 WriteBatch Firestore::batch() const {
@@ -225,36 +230,21 @@ Future<void> Firestore::RunTransaction(TransactionFunction* update) {
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 Future<void> Firestore::RunTransaction(
-    std::function<Error(Transaction*, std::string*)> update) {
+    std::function<Error(Transaction&, std::string&)> update) {
   FIREBASE_ASSERT_MESSAGE(update, "invalid update parameter is passed in.");
   if (!internal_) return FailedFuture<void>();
   return internal_->RunTransaction(firebase::Move(update));
 }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
-Future<void> Firestore::RunTransactionLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->RunTransactionLastResult();
-}
-
 Future<void> Firestore::DisableNetwork() {
   if (!internal_) return FailedFuture<void>();
   return internal_->DisableNetwork();
 }
 
-Future<void> Firestore::DisableNetworkLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->DisableNetworkLastResult();
-}
-
 Future<void> Firestore::EnableNetwork() {
   if (!internal_) return FailedFuture<void>();
   return internal_->EnableNetwork();
-}
-
-Future<void> Firestore::EnableNetworkLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->EnableNetworkLastResult();
 }
 
 Future<void> Firestore::Terminate() {
@@ -263,29 +253,14 @@ Future<void> Firestore::Terminate() {
   return internal_->Terminate();
 }
 
-Future<void> Firestore::TerminateLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->TerminateLastResult();
-}
-
 Future<void> Firestore::WaitForPendingWrites() {
   if (!internal_) return FailedFuture<void>();
   return internal_->WaitForPendingWrites();
 }
 
-Future<void> Firestore::WaitForPendingWritesLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->WaitForPendingWritesLastResult();
-}
-
 Future<void> Firestore::ClearPersistence() {
   if (!internal_) return FailedFuture<void>();
   return internal_->ClearPersistence();
-}
-
-Future<void> Firestore::ClearPersistenceLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->ClearPersistenceLastResult();
 }
 
 #if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)

@@ -157,6 +157,8 @@ Optional<Operation> OperationForChild(const Operation& op,
       return OperationForChildListenComplete(op, child_key);
     }
   }
+  FIREBASE_DEV_ASSERT_MESSAGE(false, "Invalid Operation::Type");
+  return Optional<Operation>();
 }
 
 }  // namespace internal

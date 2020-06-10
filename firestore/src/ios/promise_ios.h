@@ -9,8 +9,8 @@
 #include "firestore/src/ios/hard_assert_ios.h"
 #include "absl/meta/type_traits.h"
 #include "firebase/firestore/firestore_errors.h"
-#include "Firestore/core/src/firebase/firestore/util/status.h"
-#include "Firestore/core/src/firebase/firestore/util/statusor.h"
+#include "Firestore/core/src/util/status.h"
+#include "Firestore/core/src/util/statusor.h"
 
 namespace firebase {
 namespace firestore {
@@ -147,7 +147,7 @@ class Promise {
  private:
   Promise() = default;
 
-  int NoError() const { return static_cast<int>(Error::Ok); }
+  int NoError() const { return static_cast<int>(Error::kOk); }
 
   // Note: `CleanupFn` is not used because `Promise` is a header-only class, to
   // avoid a circular dependency between headers.

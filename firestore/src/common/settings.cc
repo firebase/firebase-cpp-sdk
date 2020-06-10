@@ -5,7 +5,7 @@
 #include "app/meta/move.h"
 
 #if !defined(__ANDROID__) && !defined(FIRESTORE_STUB_BUILD)
-#include "Firestore/core/src/firebase/firestore/util/executor.h"
+#include "Firestore/core/src/util/executor.h"
 #endif
 
 namespace firebase {
@@ -17,7 +17,9 @@ const char kDefaultHost[] = "firestore.googleapis.com";
 
 }
 
+#if !defined(__APPLE__)
 Settings::Settings() : host_(kDefaultHost) {}
+#endif
 
 void Settings::set_host(std::string host) { host_ = firebase::Move(host); }
 

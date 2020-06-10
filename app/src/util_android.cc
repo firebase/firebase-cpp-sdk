@@ -194,6 +194,7 @@ METHOD_LOOKUP_DEFINITION(class_class, "java/lang/Class", CLASS_METHODS)
 METHOD_LOOKUP_DEFINITION(content_resolver, "android/content/ContentResolver",
                          CONTENTRESOLVER_METHODS)
 METHOD_LOOKUP_DEFINITION(context, "android/content/Context", CONTEXT_METHODS)
+METHOD_LOOKUP_DEFINITION(cursor, "android/database/Cursor", CURSOR_METHODS)
 METHOD_LOOKUP_DEFINITION(date, "java/util/Date", DATE_METHODS);
 METHOD_LOOKUP_DEFINITION(double_class, "java/lang/Double", DOUBLE_METHODS)
 METHOD_LOOKUP_DEFINITION(file, "java/io/File", FILE_METHODS)
@@ -372,6 +373,7 @@ static void ReleaseClasses(JNIEnv* env) {
   class_class::ReleaseClass(env);
   content_resolver::ReleaseClass(env);
   context::ReleaseClass(env);
+  cursor::ReleaseClass(env);
   date::ReleaseClass(env);
   dex_class_loader::ReleaseClass(env);
   double_class::ReleaseClass(env);
@@ -468,6 +470,7 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
         class_class::CacheMethodIds(env, activity_object) &&
         content_resolver::CacheMethodIds(env, activity_object) &&
         context::CacheMethodIds(env, activity_object) &&
+        cursor::CacheMethodIds(env, activity_object) &&
         date::CacheMethodIds(env, activity_object) &&
         dex_class_loader::CacheMethodIds(env, activity_object) &&
         double_class::CacheMethodIds(env, activity_object) &&

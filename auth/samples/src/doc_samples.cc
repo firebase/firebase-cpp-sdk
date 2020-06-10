@@ -545,6 +545,32 @@ void UnLinkCredential(const char* providerId, firebase::auth::Auth* auth) {
   // [END user_unlink]
 }
 
+void LinkCredentialFailAppleSignIn(const firebase::auth::Credential& credential,
+                                   firebase::auth::Auth* auth) {
+  // [START link_credential_apple_signin]
+  firebase::Future<firebase::auth::SignInResult> link_result =
+      auth->current_user()->LinkAndRetrieveDataWithCredential(credential);
+
+  // To keep example simple, wait on the current thread until call completes.
+  while (link_result.status() == firebase::kFutureStatusPending) {
+    Wait(100);
+  }
+
+  // Determine the result of the link attempt
+  if (link_result.error() == firebase::auth::kAuthErrorNone) {
+    // user linked correctly.
+  } else if (link_result.error() ==
+                 firebase::auth::kAuthErrorCredentialAlreadyInUse &&
+             link_result.result()->info.updated_credential.is_valid()) {
+    // Sign In with the new credential
+    firebase::Future<firebase::auth::User*> result = auth->SignInWithCredential(
+        link_result.result()->info.updated_credential);
+  } else {
+    // Another link error occurred.
+  }
+  // [END link_credential_apple_signin]
+}
+
 void MergeCredentials(const firebase::auth::Credential& credential,
                       firebase::auth::Auth* auth) {
   // [START user_merge]

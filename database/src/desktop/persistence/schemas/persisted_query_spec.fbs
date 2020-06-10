@@ -1,0 +1,30 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+include "src/desktop/persistence/schemas/persisted_query_params.fbs";
+
+namespace firebase.database.internal.persistence;
+
+table PersistedQuerySpec {
+  // Full path this query refers to. Only changes when a DatabaseReference is
+  // created.
+  path:string (id: 0);
+
+  // Parameters that define how a query is being filtered.
+  params:PersistedQueryParams (id: 1);
+}
+
+// This only has a root type for testing purposes, so they are easier to
+// construct.
+root_type PersistedQuerySpec;

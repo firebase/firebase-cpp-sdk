@@ -14,14 +14,14 @@
 #include "firestore/src/ios/listener_ios.h"
 #include "absl/memory/memory.h"
 #include "absl/types/any.h"
-#include "Firestore/core/src/firebase/firestore/api/document_reference.h"
-#include "Firestore/core/src/firebase/firestore/api/query_core.h"
-#include "Firestore/core/src/firebase/firestore/model/database_id.h"
-#include "Firestore/core/src/firebase/firestore/model/resource_path.h"
-#include "Firestore/core/src/firebase/firestore/util/async_queue.h"
-#include "Firestore/core/src/firebase/firestore/util/executor.h"
-#include "Firestore/core/src/firebase/firestore/util/log.h"
-#include "Firestore/core/src/firebase/firestore/util/status.h"
+#include "Firestore/core/src/api/document_reference.h"
+#include "Firestore/core/src/api/query_core.h"
+#include "Firestore/core/src/model/database_id.h"
+#include "Firestore/core/src/model/resource_path.h"
+#include "Firestore/core/src/util/async_queue.h"
+#include "Firestore/core/src/util/executor.h"
+#include "Firestore/core/src/util/log.h"
+#include "Firestore/core/src/util/status.h"
 
 namespace firebase {
 namespace firestore {
@@ -53,7 +53,9 @@ FirestoreInternal::FirestoreInternal(App* app)
 FirestoreInternal::FirestoreInternal(
     App* app, std::unique_ptr<CredentialsProvider> credentials)
     : app_(NOT_NULL(app)),
-      firestore_core_(CreateFirestore(app, std::move(credentials))) {
+      firestore_core_(CreateFirestore(app, std::move(credentials))),
+      transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
+          "com.google.firebase.firestore.transaction", /*threads=*/5))) {
   ApplyDefaultSettings();
 }
 
@@ -103,9 +105,9 @@ Settings FirestoreInternal::settings() const {
   return result;
 }
 
-void FirestoreInternal::set_settings(const Settings& from) {
+void FirestoreInternal::set_settings(Settings from) {
   api::Settings settings;
-  settings.set_host(from.host());
+  settings.set_host(std::move(from.host()));
   settings.set_ssl_enabled(from.is_ssl_enabled());
   settings.set_persistence_enabled(from.is_persistence_enabled());
   // TODO(varconst): implement `cache_size_bytes` in public `Settings` and
@@ -123,15 +125,14 @@ WriteBatch FirestoreInternal::batch() const {
 
 Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update) {
   return RunTransaction(
-      [update](Transaction* transaction, std::string* error_message) {
+      [update](Transaction& transaction, std::string& error_message) {
         return update->Apply(transaction, error_message);
       });
 }
 
 Future<void> FirestoreInternal::RunTransaction(
-    std::function<Error(Transaction*, std::string*)> update) {
-  auto executor = absl::ShareUniquePtr(Executor::CreateConcurrent(
-      "com.google.firebase.firestore.transaction", /*threads=*/5));
+    std::function<Error(Transaction&, std::string&)> update) {
+  auto executor = transaction_executor_;
   auto promise =
       promise_factory_.CreatePromise<void>(AsyncApi::kRunTransaction);
 
@@ -151,8 +152,8 @@ Future<void> FirestoreInternal::RunTransaction(
                   new TransactionInternal(core_transaction, this);
               Transaction transaction{transaction_internal};
 
-              Error error_code = update(&transaction, &error_message);
-              if (error_code == Error::Ok) {
+              Error error_code = update(transaction, error_message);
+              if (error_code == Error::kOk) {
                 eventual_result_callback(Status::OK());
               } else {
                 // TODO(varconst): port this from iOS
@@ -251,7 +252,7 @@ void FirestoreInternal::ClearListeners() {
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
     EventListener<void>* listener) {
   std::function<void()> listener_function = [listener] {
-    listener->OnEvent(Error::Ok);
+    listener->OnEvent(Error::kOk);
   };
   auto result = firestore_core_->AddSnapshotsInSyncListener(
       ListenerWithCallback(std::move(listener_function)));
@@ -288,8 +289,27 @@ void FirestoreInternal::ApplyDefaultSettings() {
   set_settings(settings());
 }
 
-void Firestore::set_logging_enabled(bool logging_enabled) {
-  LogSetLevel(logging_enabled ? util::kLogLevelDebug : util::kLogLevelNotice);
+void Firestore::set_log_level(LogLevel log_level) {
+  switch (log_level) {
+    case kLogLevelVerbose:
+    case kLogLevelDebug:
+      // Firestore doesn't have the distinction between "verbose" and "debug".
+      LogSetLevel(util::kLogLevelDebug);
+      return;
+    case kLogLevelInfo:
+      LogSetLevel(util::kLogLevelNotice);
+      return;
+    case kLogLevelWarning:
+      LogSetLevel(util::kLogLevelWarning);
+      return;
+    case kLogLevelError:
+    case kLogLevelAssert:
+      // Firestore doesn't have a separate "assert" log level.
+      LogSetLevel(util::kLogLevelError);
+      return;
+  }
+
+  UNREACHABLE();
 }
 
 }  // namespace firestore

@@ -524,21 +524,13 @@ class Query {
    */
   virtual Future<QuerySnapshot> Get(Source source = Source::kDefault) const;
 
-  /**
-   * @brief Gets the result of the most recent call to the Get() method.
-   *
-   * @return The result of last call to Get() or an invalid Future, if there is
-   * no such call.
-   */
-  virtual Future<QuerySnapshot> GetLastResult() const;
-
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /**
    * @brief Starts listening to the QuerySnapshot events referenced by this
    * query.
    *
    * @param[in] callback The std::function to call. When this function is
-   * called, snapshot value is valid if and only if error is Error::Ok.
+   * called, snapshot value is valid if and only if error is Error::kOk.
    *
    * @return A registration object that can be used to remove the listener.
    *
@@ -556,7 +548,7 @@ class Query {
    * is, only DocumentSnapshot::metadata() changed) should trigger snapshot
    * events.
    * @param[in] callback The std::function to call. When this function is
-   * called, snapshot value is valid if and only if error is Error::Ok.
+   * called, snapshot value is valid if and only if error is Error::kOk.
    *
    * @return A registration object that can be used to remove the listener.
    *
@@ -580,8 +572,15 @@ class Query {
    * the listener is registered.)
    *
    * @return A registration object that can be used to remove the listener.
+   *
+   * @note This method is only available when using the STLPort C++ runtime
+   * library.
+   *
+   * @deprecated STLPort support in Firestore is deprecated and will be removed
+   * in a future release. Note that STLPort has been deprecated in the Android
+   * NDK since r17 (May 2018) and removed since r18 (September 2018).
    */
-  virtual ListenerRegistration AddSnapshotListener(
+  FIREBASE_DEPRECATED virtual ListenerRegistration AddSnapshotListener(
       EventListener<QuerySnapshot>* listener);
 
   /**
@@ -598,8 +597,15 @@ class Query {
    * the listener is registered.)
    *
    * @return A registration object that can be used to remove the listener.
+   *
+   * @note This method is only available when using the STLPort C++ runtime
+   * library.
+   *
+   * @deprecated STLPort support in Firestore is deprecated and will be removed
+   * in a future release. Note that STLPort has been deprecated in the Android
+   * NDK since r17 (May 2018) and removed since r18 (September 2018).
    */
-  virtual ListenerRegistration AddSnapshotListener(
+  FIREBASE_DEPRECATED virtual ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes, EventListener<QuerySnapshot>* listener);
 #endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 

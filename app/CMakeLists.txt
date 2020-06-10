@@ -67,8 +67,12 @@ add_custom_command(
 # Build the google_services_generated.h header from the flatbuffer schema file.
 set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
+    "--gen-generated"
     "--gen-object-api"
     "--cpp-ptr-type" "flatbuffers::unique_ptr")
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
 build_flatbuffers("${CMAKE_CURRENT_LIST_DIR}/google_services.fbs"
                   ""
                   "app_generated_includes"
@@ -212,6 +216,7 @@ set(internal_HDRS
     src/include/firebase/future.h
     src/include/firebase/internal/common.h
     src/include/firebase/internal/future_impl.h
+    src/include/firebase/internal/type_traits.h
     src/include/firebase/log.h
     src/include/firebase/util.h
     src/include/firebase/variant.h
@@ -294,7 +299,6 @@ add_library(firebase_app STATIC
     ${app_platform_HDRS}
     ${FIREBASE_GEN_FILE_DIR}/app/google_services_generated.h
     memory/atomic.h
-    meta/type_traits.h
     meta/move.h
     memory/unique_ptr.h
     memory/shared_ptr.h)
@@ -332,12 +336,6 @@ if(MSVC)
   add_definitions(/FI"assert.h" /FI"string.h" /FI"stdint.h")
 else()
   add_definitions(-include assert.h -include string.h)
-endif()
-
-# Ensure min/max macros don't get declared on Windows
-# (so we can use std::min/max)
-if(MSVC)
-  add_definitions(-DNOMINMAX)
 endif()
 
 if(ANDROID)

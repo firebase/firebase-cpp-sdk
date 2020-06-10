@@ -78,7 +78,7 @@ pb_callback_t EncodeNamedValuesCB(const NamedValues& source) {
                              void* const* arg) {
     auto& source = *static_cast<const NamedValues*>(*arg);
 
-    for (auto named_value : source) {
+    for (const auto& named_value : source) {
       NpbNamedValue npb_named_value = kDefaultNpbNamedValue;
       npb_named_value.name = EncodeStringCB(named_value.first);
       npb_named_value.value = EncodeStringCB(named_value.second);
