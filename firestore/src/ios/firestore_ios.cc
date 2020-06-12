@@ -60,10 +60,13 @@ FirestoreInternal::FirestoreInternal(
 }
 
 FirestoreInternal::~FirestoreInternal() {
-  std::lock_guard<std::mutex> lock(listeners_mutex_);
-  HARD_ASSERT_IOS(listeners_.empty(),
-                  "Expected all listeners to be unregistered by the time "
-                  "FirestoreInternal is destroyed.");
+  {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
+    HARD_ASSERT_IOS(listeners_.empty(),
+                    "Expected all listeners to be unregistered by the time "
+                    "FirestoreInternal is destroyed.");
+  }
+  firestore_core_->Dispose();
 }
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
