@@ -18,7 +18,11 @@ if(TARGET firestore)
   return()
 endif()
 
-set(version Firestore-1.13.0)
+# Pin to the first revision that includes these changes:
+# https://github.com/firebase/firebase-ios-sdk/pull/5807.
+#
+# This should be released with the next version after Firestore-1.15.0.
+set(version 05026f3df92cdee7b91fccc72a7195be2618acdf)
 
 ExternalProject_Add(
   firestore

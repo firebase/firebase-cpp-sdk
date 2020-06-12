@@ -60,10 +60,13 @@ FirestoreInternal::FirestoreInternal(
 }
 
 FirestoreInternal::~FirestoreInternal() {
-  std::lock_guard<std::mutex> lock(listeners_mutex_);
-  HARD_ASSERT_IOS(listeners_.empty(),
-                  "Expected all listeners to be unregistered by the time "
-                  "FirestoreInternal is destroyed.");
+  {
+    std::lock_guard<std::mutex> lock(listeners_mutex_);
+    HARD_ASSERT_IOS(listeners_.empty(),
+                    "Expected all listeners to be unregistered by the time "
+                    "FirestoreInternal is destroyed.");
+  }
+  firestore_core_->Dispose();
 }
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
@@ -153,7 +156,7 @@ Future<void> FirestoreInternal::RunTransaction(
               Transaction transaction{transaction_internal};
 
               Error error_code = update(transaction, error_message);
-              if (error_code == Error::kOk) {
+              if (error_code == Error::kErrorOk) {
                 eventual_result_callback(Status::OK());
               } else {
                 // TODO(varconst): port this from iOS
@@ -252,7 +255,7 @@ void FirestoreInternal::ClearListeners() {
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
     EventListener<void>* listener) {
   std::function<void()> listener_function = [listener] {
-    listener->OnEvent(Error::kOk);
+    listener->OnEvent(Error::kErrorOk);
   };
   auto result = firestore_core_->AddSnapshotsInSyncListener(
       ListenerWithCallback(std::move(listener_function)));

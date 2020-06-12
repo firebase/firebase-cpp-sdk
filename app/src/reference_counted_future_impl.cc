@@ -701,10 +701,9 @@ bool ReferenceCountedFutureImpl::IsReferencedExternally() const {
   }
   for (int i = 0; i < last_results_.size(); i++) {
     if (last_results_[i].status() != kFutureStatusInvalid) {
-      // If the status is not invalid, this entry is using up 2 references,
-      // one for the Future and one for the FutureHandle it holds.
+      // If the status is not invalid, this entry is using up a reference.
       // Count up the internal references.
-      internal_references += 2;
+      internal_references++;
     }
   }
   // If there are more references than the internal ones, someone is holding

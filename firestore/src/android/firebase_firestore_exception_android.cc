@@ -51,16 +51,16 @@ METHOD_LOOKUP_DEFINITION(illegal_state_exception,
 Error FirebaseFirestoreExceptionInternal::ToErrorCode(JNIEnv* env,
                                                       jobject exception) {
   if (exception == nullptr) {
-    return Error::kOk;
+    return Error::kErrorOk;
   }
 
   // Some of the Precondition failure is thrown as IllegalStateException instead
   // of a FirebaseFirestoreException. So we convert them into a more meaningful
   // code.
   if (env->IsInstanceOf(exception, illegal_state_exception::GetClass())) {
-    return Error::kFailedPrecondition;
+    return Error::kErrorFailedPrecondition;
   } else if (!IsInstance(env, exception)) {
-    return Error::kUnknown;
+    return Error::kErrorUnknown;
   }
 
   jobject code = env->CallObjectMethod(
@@ -72,8 +72,9 @@ Error FirebaseFirestoreExceptionInternal::ToErrorCode(JNIEnv* env,
   env->DeleteLocalRef(code);
   CheckAndClearJniExceptions(env);
 
-  if (code_value > Error::kUnauthenticated || code_value < Error::kOk) {
-    return Error::kUnknown;
+  if (code_value > Error::kErrorUnauthenticated ||
+      code_value < Error::kErrorOk) {
+    return Error::kErrorUnknown;
   }
   return static_cast<Error>(code_value);
 }
@@ -87,7 +88,7 @@ std::string FirebaseFirestoreExceptionInternal::ToString(JNIEnv* env,
 /* static */
 jthrowable FirebaseFirestoreExceptionInternal::ToException(
     JNIEnv* env, Error code, const char* message) {
-  if (code == Error::kOk) {
+  if (code == Error::kErrorOk) {
     return nullptr;
   }
   // FirebaseFirestoreException requires message to be non-empty. If the caller

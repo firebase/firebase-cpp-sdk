@@ -204,6 +204,8 @@ inline FutureBase::FutureBase(detail::FutureApiInterface* api,
                               const FutureHandle& handle)
     : api_(api), handle_(handle) {
   api_->ReferenceFuture(handle_);
+  // Once the FutureBase has reference, we don't need extra handle reference.
+  handle_.Detach();
   detail::RegisterForCleanup(api_, this);
 }
 

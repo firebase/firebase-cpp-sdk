@@ -18,7 +18,7 @@ ListenerRegistration SnapshotsInSyncListener::AddListenerTo(
   SnapshotsInSyncListener listener(callback_id, callback);
 
   return firestore->AddSnapshotsInSyncListener(
-      [listener]() mutable { listener.OnEvent(Error::kOk); });
+      [listener]() mutable { listener.OnEvent(Error::kErrorOk); });
 }
 
 }  // namespace csharp
