@@ -670,7 +670,7 @@ TEST_F(ValidationTest,
   Await(firestore()->EnableNetwork());
   Await(future);
 
-  snapshot = accumulator.Await();
+  snapshot = accumulator.AwaitRemoteEvent();
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
   EXPECT_NO_THROW(collection.OrderBy(FieldPath({"timestamp"}))
                    .EndAt(snapshot.documents().at(0))
