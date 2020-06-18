@@ -9,7 +9,9 @@ target 'GetPods' do
   pod 'Firebase/Auth', '6.24.0'
   pod 'Firebase/Database', '6.24.0'
   pod 'Firebase/DynamicLinks', '6.24.0'
-  pod 'Firebase/Firestore', '6.24.0'
+  # Firestore is pinned to Firebase/Firebase 6.26.0
+  # Return back to Firebase/Firebase when updating the rest
+  pod 'FirebaseFirestore', '1.15.0'
   pod 'Firebase/Functions', '6.24.0'
   pod 'FirebaseInstanceID', '4.3.4'
   pod 'Firebase/Messaging', '6.24.0'
