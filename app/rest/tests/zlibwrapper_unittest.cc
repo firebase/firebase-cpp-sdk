@@ -891,7 +891,7 @@ TEST_P(ZLibWrapperTest, ChunkedCompression) {
   TestGzip(&zlib, uncompbuf);
 }
 
-// Simple helper to force specialization of strings::Split.
+// Simple helper to force specialization of absl::StrSplit.
 std::vector<std::string> GetFilesToProcess() {
   std::string files_to_process =
       FLAGS_files_to_process.empty()
