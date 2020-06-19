@@ -1,0 +1,79 @@
+name: Windows Builds
+
+on: 
+  push:
+  pull_request:
+
+jobs:
+  build:
+    name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # If any of the configurations fail, others will proceed to run
+      fail-fast: false
+      matrix:
+        os: [windows-latest,]
+        build_type: ["Release", "Debug"]
+        architecture: ["x64",]
+        python_version: [2.7]
+        generator: ["Visual Studio 16 2019",]
+        include:
+        - os: windows-latest
+          architecture: "x64"
+          vcpkg_triplet: "x64-windows-static"
+          # For x64, this variable probably doesnt make sense but
+          # for x86, the command line argument to pass to cmake is -A Win32 and not -A x86
+          msbuild_platform: "x64"
+
+    steps:
+      # Check out with submodule (vcpkg is a submodule)
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install Ninja
+        if: startsWith(matrix.generator, 'Ninja') && startsWith(matrix.os, 'windows')
+        run: |
+          choco install ninja
+
+      - name: Install vcpkg packages (windows)
+        if: startsWith(matrix.os, 'windows')
+        run: |
+          ${{ github.workspace }}/external/vcpkg/bootstrap-vcpkg.bat -disableMetrics
+          ${{ github.workspace }}/external/vcpkg/vcpkg install openssl protobuf zlib abseil --triplet ${{ matrix.vcpkg_triplet }}
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+          architecture: ${{ matrix.architecture }}
+
+      - name: Install pip packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install absl-py protobuf
+
+      - name: Configure
+        shell: bash
+        run: |
+          mkdir build
+          cmake \
+            -S . \
+            -B build \
+            -G "${{ matrix.generator }}" \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_TOOLCHAIN_FILE=vcpkg/scripts/buildsystems/vcpkg.cmake \
+            -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }} \
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --config ${{ matrix.build_type }} -j 8
+
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find build -name "*.lib"
+          find build -name "*.dll"
+          find build -name "*.dylib"
+          find build -name "*.a"
+          find build -name "*.so"
