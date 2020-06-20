@@ -46,7 +46,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: external/vcpkg/installed
-          key: dev-vcpkg-${{ matrix.vcpkg_triplet }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/vcpkg/HEAD') }}
+          key: dev-vcpkg-${{ matrix.vcpkg_triplet }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
 
       - name: Install vcpkg packages (windows)
         if: startsWith(matrix.os, 'windows')
