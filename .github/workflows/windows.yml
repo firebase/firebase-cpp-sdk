@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest,]
-        build_type: ["Release", "Debug"]
+        build_type: ["Release"]
         architecture: ["x64",]
         python_version: [2.7]
         generator: ["Visual Studio 16 2019",]
@@ -31,16 +31,28 @@ jobs:
         with:
           submodules: true
 
+      - name: Set env variables for subsequent steps (all)
+        run: |
+          echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt"
+          echo "::set-env name=PIP_REQUIREMENTS_FILE::external/pip_requirements.txt"
+
       - name: Install Ninja
         if: startsWith(matrix.generator, 'Ninja') && startsWith(matrix.os, 'windows')
         run: |
           choco install ninja
 
+      - name: Cache vcpkg C++ dependencies
+        id: cache_vcpkg
+        uses: actions/cache@v2
+        with:
+          path: external/vcpkg/installed
+          key: dev-vcpkg-${{ matrix.vcpkg_triplet }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/vcpkg/HEAD') }}
+
       - name: Install vcpkg packages (windows)
         if: startsWith(matrix.os, 'windows')
         run: |
           ${{ github.workspace }}/external/vcpkg/bootstrap-vcpkg.bat -disableMetrics
-          ${{ github.workspace }}/external/vcpkg/vcpkg install openssl protobuf zlib abseil --triplet ${{ matrix.vcpkg_triplet }}
+          ${{ github.workspace }}/external/vcpkg/vcpkg install @${{env.VCPKG_RESPONSE_FILE}}
 
       - name: Setup python
         uses: actions/setup-python@v2
@@ -51,7 +63,7 @@ jobs:
       - name: Install pip packages
         run: |
           python -m pip install --upgrade pip
-          pip install absl-py protobuf
+          pip install -r ${{ env.PIP_REQUIREMENTS_FILE }}
 
       - name: Configure
         shell: bash
