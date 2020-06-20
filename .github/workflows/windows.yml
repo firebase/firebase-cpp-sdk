@@ -49,7 +49,7 @@ jobs:
           key: dev-vcpkg-${{ matrix.vcpkg_triplet }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
 
       - name: Install vcpkg packages (windows)
-        if: startsWith(matrix.os, 'windows')
+        if: steps.cache_vcpkg.outputs.cache-hit!='true' && startsWith(matrix.os, 'windows')
         run: |
           ${{ github.workspace }}/external/vcpkg/bootstrap-vcpkg.bat -disableMetrics
           ${{ github.workspace }}/external/vcpkg/vcpkg install @${{env.VCPKG_RESPONSE_FILE}}
