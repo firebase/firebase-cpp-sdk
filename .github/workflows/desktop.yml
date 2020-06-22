@@ -76,7 +76,7 @@ jobs:
 
       - name: Install system level applications (linux)
         if: startsWith(matrix.os, 'ubuntu')
-        id: ubuntu-brew-install
+        id: ubuntu-apt-install
         run: |
           sudo apt install ccache
 
