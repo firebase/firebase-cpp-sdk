@@ -205,8 +205,8 @@ ListenerRegistration QueryInternal::AddSnapshotListener(
 
   // Register listener.
   jobject java_registration = env->CallObjectMethod(
-      obj_, query::GetMethodId(query::kAddSnapshotListener),
-      firestore_->user_callback_executor(), java_metadata, java_listener);
+      obj_, query::GetMethodId(query::kAddSnapshotListener), java_metadata,
+      java_listener);
   env->DeleteLocalRef(java_listener);
   CheckAndClearJniExceptions(env);
 

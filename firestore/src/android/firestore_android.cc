@@ -81,7 +81,7 @@ const char kApiIdentifier[] = "Firestore";
   X(ClearPersistence, "clearPersistence",                               \
     "()Lcom/google/android/gms/tasks/Task;"),                           \
   X(AddSnapshotsInSyncListener, "addSnapshotsInSyncListener",           \
-    "(Ljava/util/concurrent/Executor;Ljava/lang/Runnable;)"             \
+    "(Ljava/lang/Runnable;)"                                            \
     "Lcom/google/firebase/firestore/ListenerRegistration;")
 
 // clang-format on
@@ -91,15 +91,6 @@ METHOD_LOOKUP_DEFINITION(firebase_firestore,
                          PROGUARD_KEEP_CLASS
                          "com/google/firebase/firestore/FirebaseFirestore",
                          FIREBASE_FIRESTORE_METHODS)
-
-#define SILENT_REJECTION_EXECUTOR_METHODS(X) X(Constructor, "<init>", "()V")
-METHOD_LOOKUP_DECLARATION(silent_rejection_executor,
-                          SILENT_REJECTION_EXECUTOR_METHODS)
-METHOD_LOOKUP_DEFINITION(silent_rejection_executor,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/firestore/internal/cpp/"
-                         "SilentRejectionSingleThreadExecutor",
-                         SILENT_REJECTION_EXECUTOR_METHODS)
 
 Mutex FirestoreInternal::init_mutex_;  // NOLINT
 int FirestoreInternal::initialize_count_ = 0;
@@ -126,16 +117,6 @@ FirestoreInternal::FirestoreInternal(App* app) {
   // timestamp FieldValues correctly. TODO(zxu): Once it is set to true by
   // default, we may safely remove the calls below.
   set_settings(settings());
-
-  jobject user_callback_executor_obj =
-      env->NewObject(silent_rejection_executor::GetClass(),
-                     silent_rejection_executor::GetMethodId(
-                         silent_rejection_executor::kConstructor));
-
-  CheckAndClearJniExceptions(env);
-  FIREBASE_ASSERT(user_callback_executor_obj != nullptr);
-  user_callback_executor_ = env->NewGlobalRef(user_callback_executor_obj);
-  env->DeleteLocalRef(user_callback_executor_obj);
 
   future_manager_.AllocFutureApi(this, static_cast<int>(FirestoreFn::kCount));
 }
@@ -198,17 +179,13 @@ bool FirestoreInternal::InitializeEmbeddedClasses(App* app) {
               ::firebase_firestore::firestore_resources_size));
   return EventListenerInternal::InitializeEmbeddedClasses(app,
                                                           &embedded_files) &&
-         TransactionInternal::InitializeEmbeddedClasses(app, &embedded_files) &&
-         silent_rejection_executor::CacheClassFromFiles(env, activity,
-                                                        &embedded_files) &&
-         silent_rejection_executor::CacheMethodIds(env, activity);
+         TransactionInternal::InitializeEmbeddedClasses(app, &embedded_files);
 }
 
 /* static */
 void FirestoreInternal::ReleaseClasses(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   firebase_firestore::ReleaseClass(env);
-  silent_rejection_executor::ReleaseClass(env);
   util::CheckAndClearJniExceptions(env);
 
   // Call Terminate on each Firestore internal class.
@@ -249,13 +226,6 @@ void FirestoreInternal::Terminate(App* app) {
   }
 }
 
-void FirestoreInternal::ShutdownUserCallbackExecutor() {
-  JNIEnv* env = app_->GetJNIEnv();
-  auto shutdown_method = env->GetMethodID(
-      env->GetObjectClass(user_callback_executor_), "shutdown", "()V");
-  env->CallVoidMethod(user_callback_executor_, shutdown_method);
-}
-
 FirestoreInternal::~FirestoreInternal() {
   // If initialization failed, there is nothing to clean up.
   if (app_ == nullptr) return;
@@ -273,11 +243,7 @@ FirestoreInternal::~FirestoreInternal() {
 
   future_manager_.ReleaseFutureApi(this);
 
-  ShutdownUserCallbackExecutor();
-
   JNIEnv* env = app_->GetJNIEnv();
-  env->DeleteGlobalRef(user_callback_executor_);
-  user_callback_executor_ = nullptr;
   env->DeleteGlobalRef(obj_);
   obj_ = nullptr;
   Terminate(app_);
@@ -453,7 +419,6 @@ Future<void> FirestoreInternal::EnableNetworkLastResult() {
 
 Future<void> FirestoreInternal::Terminate() {
   JNIEnv* env = app_->GetJNIEnv();
-
   jobject task = env->CallObjectMethod(
       obj_, firebase_firestore::GetMethodId(firebase_firestore::kTerminate));
   CheckAndClearJniExceptions(env);
@@ -462,7 +427,6 @@ Future<void> FirestoreInternal::Terminate() {
   promise.RegisterForTask(FirestoreFn::kTerminate, task);
   env->DeleteLocalRef(task);
   CheckAndClearJniExceptions(env);
-
   return promise.GetFuture();
 }
 
@@ -519,7 +483,7 @@ ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
       obj_,
       firebase_firestore::GetMethodId(
           firebase_firestore::kAddSnapshotsInSyncListener),
-      user_callback_executor(), java_runnable);
+      java_runnable);
   env->DeleteLocalRef(java_runnable);
   CheckAndClearJniExceptions(env);
 

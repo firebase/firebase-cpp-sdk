@@ -40,8 +40,7 @@ namespace firestore {
    "[Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;"),        \
   X(Delete, "delete", "()Lcom/google/android/gms/tasks/Task;"),       \
   X(AddSnapshotListener, "addSnapshotListener",                       \
-    "(Ljava/util/concurrent/Executor;"                                \
-    "Lcom/google/firebase/firestore/MetadataChanges;"                 \
+    "(Lcom/google/firebase/firestore/MetadataChanges;"                \
     "Lcom/google/firebase/firestore/EventListener;)"                  \
     "Lcom/google/firebase/firestore/ListenerRegistration;")
 // clang-format on
@@ -247,7 +246,7 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
   jobject java_registration = env->CallObjectMethod(
       obj_,
       document_reference::GetMethodId(document_reference::kAddSnapshotListener),
-      firestore_->user_callback_executor(), java_metadata, java_listener);
+      java_metadata, java_listener);
   env->DeleteLocalRef(java_listener);
   CheckAndClearJniExceptions(env);
 

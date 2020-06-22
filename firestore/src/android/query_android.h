@@ -87,8 +87,7 @@ enum class QueryFn {
     "(Lcom/google/firebase/firestore/Source;)"                      \
     "Lcom/google/android/gms/tasks/Task;"),                         \
   X(AddSnapshotListener, "addSnapshotListener",                     \
-    "(Ljava/util/concurrent/Executor;"                              \
-    "Lcom/google/firebase/firestore/MetadataChanges;"               \
+    "(Lcom/google/firebase/firestore/MetadataChanges;"              \
     "Lcom/google/firebase/firestore/EventListener;)"                \
     "Lcom/google/firebase/firestore/ListenerRegistration;")
 // clang-format on
