@@ -8,18 +8,8 @@
 namespace firebase {
 namespace firestore {
 
-namespace {
-
-const char kDefaultHost[] = "firestore.googleapis.com";
-
-}
-
 using util::Executor;
 using util::ExecutorLibdispatch;
-
-Settings::Settings()
-    : host_(kDefaultHost),
-      executor_(Executor::CreateSerial("com.google.firebase.firestore.callback")) {}
 
 std::unique_ptr<Executor> Settings::CreateExecutor() const {
   return absl::make_unique<ExecutorLibdispatch>(dispatch_queue());

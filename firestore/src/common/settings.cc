@@ -17,9 +17,7 @@ const char kDefaultHost[] = "firestore.googleapis.com";
 
 }
 
-#if !defined(__APPLE__)
 Settings::Settings() : host_(kDefaultHost) {}
-#endif
 
 void Settings::set_host(std::string host) { host_ = firebase::Move(host); }
 

@@ -15,6 +15,15 @@ namespace firestore {
 
 void InitializeFirestore(Firestore* instance) {
   Firestore::set_log_level(LogLevel::kLogLevelDebug);
+
+  // By default, Firestore runs user callbacks on the main thread; because the
+  // test also runs on the main thread, the callback will never be invoked. Use
+  // a different dispatch queue instead.
+  auto settings = instance->settings();
+  auto queue = dispatch_queue_create("user_executor", DISPATCH_QUEUE_SERIAL);
+  settings.set_dispatch_queue(queue);
+
+  instance->set_settings(settings);
 }
 
 }  // namespace firestore
