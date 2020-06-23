@@ -419,6 +419,9 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
     return cleanup_handles_;
   }
 
+  /// Force reset the ref count and release the handle.
+  void ForceReleaseFuture(const FutureHandle& handle);
+
  private:
   template <typename T>
   static void DeleteT(void* ptr_to_delete) {
