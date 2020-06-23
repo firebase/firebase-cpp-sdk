@@ -73,7 +73,17 @@ class FutureProxyManager {
                      const FutureHandle& subject)
       : api_(api), subject_(subject) {}
 
+  ~FutureProxyManager() {
+    MutexLock lock(mutex_);
+    for (FutureHandle& h : clients_) {
+      api_->ForceReleaseFuture(h);
+      h = ReferenceCountedFutureImpl::kInvalidHandle;
+    }
+    clients_.clear();
+  }
+
   void RegisterClient(const FutureHandle& handle) {
+    MutexLock lock(mutex_);
     // We create one reference per client to the Future.
     // This way the ReferenceCountedFutureImpl will do the right thing if one
     // thread tries to unregister the last client while adding a new one.
@@ -89,12 +99,18 @@ class FutureProxyManager {
   };
 
   static void UnregisterCallback(void* data) {
+    if (data == nullptr) {
+      return;
+    }
     UnregisterData* udata = static_cast<UnregisterData*>(data);
-    udata->proxy->UnregisterClient(udata->handle);
-    delete udata;
+    if (udata != nullptr) {
+      udata->proxy->UnregisterClient(udata->handle);
+      delete udata;
+    }
   }
 
   void UnregisterClient(const FutureHandle& handle) {
+    MutexLock lock(mutex_);
     for (FutureHandle& h : clients_) {
       if (h == handle) {
         h = ReferenceCountedFutureImpl::kInvalidHandle;
@@ -108,6 +124,7 @@ class FutureProxyManager {
   }
 
   void CompleteClients(int error, const char* error_msg) {
+    MutexLock lock(mutex_);
     for (const FutureHandle& h : clients_) {
       if (h != ReferenceCountedFutureImpl::kInvalidHandle) {
         api_->Complete(h, error, error_msg);
@@ -120,6 +137,8 @@ class FutureProxyManager {
   ReferenceCountedFutureImpl* api_;
   // We need to keep the subject alive, as it owns us and the data.
   FutureHandle subject_;
+  // mutex to protect register/unregister operation.
+  mutable Mutex mutex_;
 };
 
 struct CompletionCallbackData {
@@ -245,7 +264,10 @@ FutureBackingData::~FutureBackingData() {
     context_data = nullptr;
   }
 
-  delete proxy;
+  if (proxy != nullptr) {
+    delete proxy;
+    proxy = nullptr;
+  }
 }
 
 void FutureBackingData::ClearExistingCallbacks() {
@@ -466,11 +488,14 @@ void ReferenceCountedFutureImpl::ReleaseFuture(const FutureHandle& handle) {
   MutexLock lock(mutex_);
   FIREBASE_FUTURE_TRACE("API: Release future %d", (int)handle.id());
 
-  // Assert if the handle isn't registered.
   // If a Future exists with a handle, then the backing should still exist for
-  // it, too.
+  // it, too. However it might be possible during the deallocate phase when
+  // FutureBase and FutureHandle and FutureProxyManager are still having
+  // dependencies.
   auto it = backings_.find(handle.id());
-  FIREBASE_ASSERT(it != backings_.end());
+  if (it == backings_.end()) {
+    return;
+  }
 
   // Decrement the reference count.
   FutureBackingData* backing = it->second;
@@ -765,6 +790,17 @@ static void CleanupFutureHandle(FutureHandle* handle) { handle->Cleanup(); }
 TypedCleanupNotifier<FutureHandle>& CleanupMgr(
     detail::FutureApiInterface* api) {
   return static_cast<ReferenceCountedFutureImpl*>(api)->cleanup_handles();
+}
+
+void ReferenceCountedFutureImpl::ForceReleaseFuture(
+    const FutureHandle& handle) {
+  MutexLock lock(mutex_);
+  FutureBackingData* backing = BackingFromHandle(handle.id());
+  if (backing != nullptr) {
+    backing->reference_count = 1;
+    ReleaseFuture(handle);
+  }
+  FIREBASE_FUTURE_TRACE("API: ForceReleaseFuture handle %d", handle.id());
 }
 
 // Implementation of FutureHandle from future.h

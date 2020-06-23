@@ -474,6 +474,10 @@ bool BackgroundTransportCurl::PerformBackground(Request* request) {
   CheckOk(curl_easy_setopt(curl_, CURLOPT_TIMEOUT_MS, options.timeout_ms),
           "set http timeout milliseconds");
 
+  // curl library is using http2 as default, so need to specify this.
+  CheckOk(curl_easy_setopt(curl_, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1),
+          "set http version to http1");
+
   // SDK error in initialization stage is not recoverable.
   FIREBASE_ASSERT(err_code_ == CURLE_OK);
 
