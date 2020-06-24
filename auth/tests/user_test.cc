@@ -166,9 +166,8 @@ class UserTest : public ::testing::Test {
     firebase_app_ = testing::CreateApp();
     firebase_auth_ = Auth::GetAuth(firebase_app_);
     Future<User*> result = firebase_auth_->SignInAnonymously();
-
+    MaybeWaitForFuture(result);
     firebase_user_ = firebase_auth_->current_user();
-    
     EXPECT_NE(nullptr, firebase_user_);
   }
 
