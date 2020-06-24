@@ -1,0 +1,65 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+buildscript {
+  repositories {
+    mavenLocal()
+    maven { url 'https://maven.google.com'  }
+    jcenter()
+  }
+  dependencies {
+    classpath 'com.android.tools.build:gradle:3.2.1'
+    classpath 'com.google.gms:google-services:4.0.1'
+  }
+}
+
+allprojects {
+  repositories {
+    mavenLocal()
+    maven { url 'https://maven.google.com'  }
+    jcenter()
+  }
+}
+
+apply plugin: 'com.android.application'
+
+android {
+  compileSdkVersion 28
+  buildToolsVersion '28.0.3'
+
+  sourceSets {
+    main {
+      jniLibs.srcDirs = ['libs']
+      manifest.srcFile 'AndroidManifest.xml'
+      java.srcDirs = ['src/android/java']
+      res.srcDirs = ['res']
+    }
+  }
+
+  defaultConfig {
+    applicationId 'com.google.firebase.cpp.storage.testapp'
+    minSdkVersion 16
+    targetSdkVersion 28
+    versionCode 1
+    versionName '1.0'
+    externalNativeBuild.cmake {
+      arguments "-DFIREBASE_CPP_SDK_DIR=$gradle.firebase_cpp_sdk_dir"
+    }
+  }
+  externalNativeBuild.cmake {
+    path 'CMakeLists.txt'
+  }
+  buildTypes {
+    release {
+      minifyEnabled true
+      proguardFile getDefaultProguardFile('proguard-android.txt')
+      proguardFile file('proguard.pro')
+    }
+  }
+}
+
+apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
+firebaseCpp.dependencies {
+  auth
+  storage
+}
+
+apply plugin: 'com.google.gms.google-services'

@@ -1,0 +1,13 @@
+source 'sso://cpdc-internal/firebase.git'
+source 'https://github.com/CocoaPods/Specs.git'
+platform :ios, '8.0'
+# Firebase Cloud Messaging test application.
+
+target 'integration_test' do
+  pod 'Firebase/Messaging', '6.24.0'
+end
+
+post_install do |installer|
+  system("/usr/bin/python ./download_googletest.py")
+end
+

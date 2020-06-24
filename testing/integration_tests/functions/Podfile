@@ -1,0 +1,14 @@
+source 'sso://cpdc-internal/firebase.git'
+source 'https://github.com/CocoaPods/Specs.git'
+platform :ios, '8.0'
+# Cloud Functions for Firebase test application.
+
+target 'integration_test' do
+  pod 'Firebase/Functions', '6.24.0'
+  pod 'Firebase/Auth', '6.24.0'
+end
+
+post_install do |installer|
+  system("/usr/bin/python ./download_googletest.py")
+end
+

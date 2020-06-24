@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <string name="app_name" description="Integration Test app name" translatable="false">Firebase Firestore Integration Test</string>
+</resources>
