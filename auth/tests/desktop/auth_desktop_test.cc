@@ -50,6 +50,7 @@ using test::GetUrlForApi;
 using test::InitializeConfigWithAFake;
 using test::InitializeConfigWithFakes;
 using test::OAuthProviderTestHandler;
+using test::SleepUponDestruction;
 using test::VerifySignInResult;
 using test::WaitForFuture;
 using ::testing::IsEmpty;
@@ -457,6 +458,7 @@ TEST_F(AuthDesktopTest, TestGetAccountInfo) {
   // getAccountInfo never returns new tokens, and can't change current user.
   id_token_listener.ExpectChanges(1);
   auth_state_listener.ExpectChanges(1);
+  SleepUponDestruction sleep_for_listeners;
 
   // Call the function and verify results.
   AuthData auth_data;
@@ -474,6 +476,7 @@ TEST_F(AuthDesktopTest, TestGetAccountInfo) {
   EXPECT_EQ("519", user.phone_number);
   EXPECT_FALSE(user.is_email_verified);
   EXPECT_TRUE(user.has_email_password_credential);
+
 }
 
 // Test the helper function CompleteSignIn. Since we do not have the access to
@@ -488,6 +491,7 @@ TEST_F(AuthDesktopTest, CompleteSignInWithFailedResponse) {
   // Because the API call fails, current user shouldn't have changed.
   id_token_listener.ExpectChanges(1);
   auth_state_listener.ExpectChanges(1);
+  SleepUponDestruction sleep_for_listeners;
 
   // Call the function and verify results.
   const User* const user =
@@ -514,6 +518,7 @@ TEST_F(AuthDesktopTest, CompleteSignInWithGetAccountInfoFailure) {
   // getAccountInfo fails, current user shouldn't have changed.
   id_token_listener.ExpectChanges(1);
   auth_state_listener.ExpectChanges(1);
+  SleepUponDestruction sleep_for_listeners;
 
   // Call the function and verify results.
   const User* const user =
@@ -546,6 +551,7 @@ TEST_F(AuthDesktopTest, TestSignInAnonymously) {
 
   id_token_listener.ExpectChanges(2);
   auth_state_listener.ExpectChanges(2);
+  SleepUponDestruction sleep_for_listeners;
 
   const User* const user = WaitForFuture(firebase_auth_->SignInAnonymously());
   EXPECT_TRUE(user->is_anonymous());
@@ -574,6 +580,7 @@ TEST_F(AuthDesktopTest, TestSignInWithEmailAndPassword) {
 
   id_token_listener.ExpectChanges(2);
   auth_state_listener.ExpectChanges(2);
+  SleepUponDestruction sleep_for_listeners;
 
   // Call the function and verify results.
   const Future<User*> future = firebase_auth_->SignInWithEmailAndPassword(
@@ -610,6 +617,7 @@ TEST_F(AuthDesktopTest, TestCreateUserWithEmailAndPassword) {
 
   id_token_listener.ExpectChanges(2);
   auth_state_listener.ExpectChanges(2);
+  SleepUponDestruction sleep_for_listeners;
 
   const Future<User*> future = firebase_auth_->CreateUserWithEmailAndPassword(
       "testsignin@example.com", "testsignin");
@@ -633,6 +641,7 @@ TEST_F(AuthDesktopTest, TestSignInWithCustomToken) {
 
   id_token_listener.ExpectChanges(2);
   auth_state_listener.ExpectChanges(2);
+  SleepUponDestruction sleep_for_listeners;
 
   const User* const user =
       WaitForFuture(firebase_auth_->SignInWithCustomToken("fake_custom_token"));
@@ -647,6 +656,7 @@ TEST_F(AuthDesktopTest, TestSignInWithCredential_GoogleIdToken) {
 
   id_token_listener.ExpectChanges(2);
   auth_state_listener.ExpectChanges(2);
+  SleepUponDestruction sleep_for_listeners;
 
   const Credential credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
@@ -661,6 +671,7 @@ TEST_F(AuthDesktopTest, TestSignInWithCredential_GoogleAccessToken) {
 
   id_token_listener.ExpectChanges(2);
   auth_state_listener.ExpectChanges(2);
+  SleepUponDestruction sleep_for_listeners;
 
   const Credential credential =
       GoogleAuthProvider::GetCredential("", "fake_access_token");
@@ -679,6 +690,7 @@ TEST_F(AuthDesktopTest,
 
   id_token_listener.ExpectChanges(1);
   auth_state_listener.ExpectChanges(1);
+  SleepUponDestruction sleep_for_listeners;
 
   const Credential credential =
       GoogleAuthProvider::GetCredential("", "fake_access_token");
@@ -697,6 +709,7 @@ TEST_F(AuthDesktopTest,
 
   id_token_listener.ExpectChanges(1);
   auth_state_listener.ExpectChanges(1);
+  SleepUponDestruction sleep_for_listeners;
 
   const Credential credential =
       GoogleAuthProvider::GetCredential("", "fake_access_token");
@@ -714,6 +727,7 @@ TEST_F(AuthDesktopTest, TestSignInWithCredential_NeedsConfirmation) {
   // shouldn't have been updated.
   id_token_listener.ExpectChanges(1);
   auth_state_listener.ExpectChanges(1);
+  SleepUponDestruction sleep_for_listeners;
 
   const Credential credential =
       GoogleAuthProvider::GetCredential("fake_id_token", "");
@@ -731,6 +745,7 @@ TEST_F(AuthDesktopTest, TestSignInAndRetrieveDataWithCredential_GitHub) {
 
   id_token_listener.ExpectChanges(2);
   auth_state_listener.ExpectChanges(2);
+  SleepUponDestruction sleep_for_listeners;
 
   const Credential credential =
       GitHubAuthProvider::GetCredential("fake_access_token");
@@ -760,6 +775,7 @@ TEST_F(AuthDesktopTest, TestSignInAndRetrieveDataWithCredential_Twitter) {
 
   id_token_listener.ExpectChanges(2);
   auth_state_listener.ExpectChanges(2);
+  SleepUponDestruction sleep_for_listeners;
 
   const Credential credential = TwitterAuthProvider::GetCredential(
       "fake_access_token", "fake_oauth_token");
@@ -780,6 +796,7 @@ TEST_F(AuthDesktopTest,
 
   id_token_listener.ExpectChanges(2);
   auth_state_listener.ExpectChanges(2);
+  SleepUponDestruction sleep_for_listeners;
 
   const Credential credential = TwitterAuthProvider::GetCredential(
       "fake_access_token", "fake_oauth_token");
@@ -803,6 +820,7 @@ TEST_F(AuthDesktopTest,
 
   id_token_listener.ExpectChanges(2);
   auth_state_listener.ExpectChanges(2);
+  SleepUponDestruction sleep_for_listeners;
 
   const Credential credential = TwitterAuthProvider::GetCredential(
       "fake_access_token", "fake_oauth_token");
@@ -827,6 +845,7 @@ TEST_F(AuthDesktopTest, TestFetchProvidersForEmail) {
   // Fetch providers flow shouldn't affect current user in any way.
   id_token_listener.ExpectChanges(1);
   auth_state_listener.ExpectChanges(1);
+  SleepUponDestruction sleep_for_listeners;
 
   const Auth::FetchProvidersResult result = WaitForFuture(
       firebase_auth_->FetchProvidersForEmail("fake_email@example.com"));
@@ -844,6 +863,7 @@ TEST_F(AuthDesktopTest, TestSendPasswordResetEmail) {
   // Sending password reset email shouldn't affect current user in any way.
   id_token_listener.ExpectChanges(1);
   auth_state_listener.ExpectChanges(1);
+  SleepUponDestruction sleep_for_listeners;
 
   WaitForFuture(
       firebase_auth_->SendPasswordResetEmail("fake_email@example.com"));

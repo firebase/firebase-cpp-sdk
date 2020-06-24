@@ -42,6 +42,7 @@ using test::GetUrlForApi;
 using test::InitializeConfigWithAFake;
 using test::InitializeConfigWithFakes;
 using test::OAuthProviderTestHandler;
+using test::SleepUponDestruction;
 using test::VerifySignInResult;
 using test::WaitForFuture;
 
@@ -287,6 +288,9 @@ class UserDesktopTest : public ::testing::Test {
   }
 
   void TearDown() override {
+    {
+      SleepUponDestruction sleep_for_listeners;
+    }
     // Reset listeners before signing out.
     id_token_listener.VerifyAndReset();
     auth_state_listener.VerifyAndReset();
