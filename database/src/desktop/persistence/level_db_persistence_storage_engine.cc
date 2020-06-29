@@ -19,9 +19,6 @@
 #include <string>
 #include <vector>
 
-//
-#include <iostream>
-
 #include "app/src/assert.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/log.h"
