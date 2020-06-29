@@ -151,6 +151,8 @@ class FirestoreInternal {
   Firestore* firestore_public() { return firestore_public_; }
   const Firestore* firestore_public() const { return firestore_public_; }
 
+  jobject user_callback_executor() const { return user_callback_executor_; }
+
  private:
   // Gets the reference-counted Future implementation of this instance, which
   // can be used to create a Future.
@@ -163,6 +165,8 @@ class FirestoreInternal {
     return static_cast<const Future<void>&>(result);
   }
 
+  void ShutdownUserCallbackExecutor();
+
   static bool Initialize(App* app);
   static void ReleaseClasses(App* app);
   static void Terminate(App* app);
@@ -172,6 +176,8 @@ class FirestoreInternal {
 
   static Mutex init_mutex_;
   static int initialize_count_;
+
+  jobject user_callback_executor_;
 
   App* app_ = nullptr;
   Firestore* firestore_public_ = nullptr;
