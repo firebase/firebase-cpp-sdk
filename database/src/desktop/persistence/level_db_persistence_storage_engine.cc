@@ -11,12 +11,16 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 #include "database/src/desktop/persistence/level_db_persistence_storage_engine.h"
 
 #include <functional>
 #include <set>
 #include <string>
 #include <vector>
+
+//
+#include <iostream>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/variant.h"
@@ -38,17 +42,6 @@
 #include "leveldb/db.h"
 #include "leveldb/write_batch.h"
 
-// Special database paths
-//
-// These are special database paths contain data we need to track, but that
-// don't want the developer or user editing. These keys are intentionally
-// invalid database paths to ensure that.
-static const char kDbKeyUserWriteRecords[] = "$user_write_records/";
-static const char kDbKeyTrackedQueries[] = "$tracked_queries/";
-static const char kDbKeyTrackedQueryKeys[] = "$tracked_query_keys/";
-
-static const char kSeparator = '/';
-
 using firebase::database::internal::persistence::GetPersistedTrackedQuery;
 using firebase::database::internal::persistence::GetPersistedUserWriteRecord;
 using firebase::database::internal::persistence::PersistedTrackedQuery;
@@ -63,6 +56,19 @@ using leveldb::Slice;
 using leveldb::Status;
 using leveldb::WriteBatch;
 using leveldb::WriteOptions;
+
+// Special database paths
+//
+// These are special database paths contain data we need to track, but that
+// don't want the developer or user editing. These keys are intentionally
+// invalid database paths to ensure that.
+static const char kDbKeyUserWriteRecords[] = "$user_write_records/";
+static const char kDbKeyTrackedQueries[] = "$tracked_queries/";
+static const char kDbKeyTrackedQueryKeys[] = "$tracked_query_keys/";
+
+static const char kSeparator = '/';
+
+static const Slice kValueSlice(".value/");
 
 namespace firebase {
 namespace database {
@@ -176,6 +182,11 @@ bool CallOnEachLeaf(const Path& path, const Variant& variant,
   return true;
 }
 
+static bool SliceEndsWith(const Slice& slice, const Slice& end) {
+  return slice.size() >= end.size() &&
+         Slice(slice.data() + slice.size() - end.size(), end.size()) == end;
+}
+
 class BufferedWriteBatch {
  public:
   explicit BufferedWriteBatch(DB* database)
@@ -199,6 +210,15 @@ class BufferedWriteBatch {
       return false;
     }
     key_slice.size = buffer_.size() - key_slice.offset;
+
+    // If the key ends in .value, we prune it off to make reconstructing the
+    // cache simpler. This ensures that values are always stored in leveldb at
+    // foo/bar and never at foo/bar/.value. Since there can only be one
+    // representation of a value's path instead of two, rebuilding the cache is
+    // simpler.
+    if (SliceEndsWith(ToSlice(key_slice), kValueSlice)) {
+      key_slice.size -= kValueSlice.size();
+    }
 
     // Write value bytes to buffer.
     OffsetSlice& value_slice = key_value_pair.second;
@@ -225,16 +245,10 @@ class BufferedWriteBatch {
     FIREBASE_ASSERT(error_detected_ == false);
 
     for (const KeyValuePair& key_value_pair : offset_slices_) {
-      const OffsetSlice& key_slice = key_value_pair.first;
-      const char* key_ptr =
-          reinterpret_cast<const char*>(buffer_.data()) + key_slice.offset;
+      const OffsetSlice& key = key_value_pair.first;
+      const OffsetSlice& value = key_value_pair.second;
 
-      const OffsetSlice& value_slice = key_value_pair.second;
-      const char* value_ptr =
-          reinterpret_cast<const char*>(buffer_.data()) + value_slice.offset;
-
-      batch_.Put(Slice(key_ptr, key_slice.size),
-                 Slice(value_ptr, value_slice.size));
+      batch_.Put(ToSlice(key), ToSlice(value));
       has_operation_to_write_ = true;
     }
 
@@ -252,6 +266,12 @@ class BufferedWriteBatch {
     size_t offset;
     size_t size;
   };
+
+  Slice ToSlice(const OffsetSlice& offset_slice) {
+    return Slice(
+        reinterpret_cast<const char*>(buffer_.data()) + offset_slice.offset,
+        offset_slice.size);
+  }
 
   // A key/value pair to insert into the database, represented as OffsetSlices.
   typedef std::pair<OffsetSlice, OffsetSlice> KeyValuePair;
@@ -280,11 +300,17 @@ LevelDbPersistenceStorageEngine::LevelDbPersistenceStorageEngine(
     : database_(nullptr), inside_transaction_(false), logger_(logger) {}
 
 bool LevelDbPersistenceStorageEngine::Initialize(
-    const std::string& database_path) {
+    const std::string& level_db_path) {
   Options options;
   options.create_if_missing = true;
   DB* database;
-  Status status = DB::Open(options, database_path, &database);
+  Status status = DB::Open(options, level_db_path, &database);
+  if (!status.ok()) {
+    logger_->LogError(
+        "Failed to initialize persistence storage engine at path %s: %s",
+        level_db_path.c_str(), status.ToString().c_str());
+    assert(false);
+  }
   database_.reset(database);
   return status.ok();
 }
@@ -366,12 +392,57 @@ std::vector<UserWriteRecord> LevelDbPersistenceStorageEngine::LoadUserWrites() {
   }
   return result;
 }
-
 void LevelDbPersistenceStorageEngine::RemoveAllUserWrites() {
   VerifyInsideTransaction();
   BufferedWriteBatch buffered_write_batch(database_.get());
   buffered_write_batch.DeleteLocation(kDbKeyUserWriteRecords);
   buffered_write_batch.Commit();
+}
+
+// This adds the value into the given value at the given path. There are other
+// utility functions that handle this, but they have more complex logic to
+// handle all possible cases of adding a value to a variant. This version of the
+// function is simpler and faster, because it can rely on the fact that all
+// fields being stored are leaves (as in, not maps or vectors), and it does not
+// have to deal with the rules about merging .value and .priority fields, as
+// that is all handled before it is written to the database.
+static void VariantAddCachedValue(Variant* variant, const Path& path,
+                                  const Variant& value) {
+  for (const std::string& directory : path.GetDirectories()) {
+    // Ensure we're operating on a map.
+    if (!variant->is_map()) {
+      // Special case: If we are adding a priority, then ensure we do not blow
+      // away the value, which at this point will be directly in the
+      // variant and not in a .value field. Note that values will never be
+      // stored in a .value peudofield.
+      if (IsPriorityKey(directory)) {
+        *variant = std::map<Variant, Variant>{
+            std::make_pair(kValueKey, std::move(*variant)),
+        };
+      } else {
+        // In all other cases, just add an empty map.
+        *variant = Variant::EmptyMap();
+      }
+    }
+
+    // Get the child Variant at the given path.
+    auto& map = variant->map();
+
+    // Create the new map if necessary.
+    auto iter = map.find(directory);
+    if (iter == map.end()) {
+      auto insertion = map.insert(std::make_pair(directory, Variant::Null()));
+      iter = insertion.first;
+      bool success = insertion.second;
+      assert(success);
+      (void)success;
+    }
+    // Prepare the next iteration.
+    variant = &iter->second;
+  }
+
+  // Now that we have the variant we are to operate on, insert the value in.
+  *variant = value;
 }
 
 Variant LevelDbPersistenceStorageEngine::ServerCache(const Path& path) {
@@ -390,7 +461,7 @@ Variant LevelDbPersistenceStorageEngine::ServerCache(const Path& path) {
     Path key_path(child.key().ToString());
     Optional<Path> relative_path = Path::GetRelative(path, key_path);
     assert(relative_path.has_value());
-    SetVariantAtPath(&result, *relative_path, variant);
+    VariantAddCachedValue(&result, *relative_path, variant);
   }
   return result;
 }

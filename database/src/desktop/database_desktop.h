@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_DATABASE_DESKTOP_H_
 
 #include <list>
+#include <memory>
 #include <string>
 
 #include "app/src/cleanup_notifier.h"
@@ -75,11 +76,11 @@ class DatabaseInternal {
 
   App* GetApp();
 
-  DatabaseReference GetReference() const;
+  DatabaseReference GetReference();
 
-  DatabaseReference GetReference(const char* path) const;
+  DatabaseReference GetReference(const char* path);
 
-  DatabaseReference GetReferenceFromUrl(const char* url) const;
+  DatabaseReference GetReferenceFromUrl(const char* url);
 
   void GoOffline();
 
@@ -102,7 +103,7 @@ class DatabaseInternal {
   // Whether this object was successfully initialized by the constructor.
   bool initialized() const { return app_ != nullptr; }
 
-  const char* database_url() const { return repo_.url().c_str(); }
+  const char* database_url() const { return database_url_.c_str(); }
 
   CleanupNotifier& cleanup() { return cleanup_; }
 
@@ -150,7 +151,7 @@ class DatabaseInternal {
           return *listener_holder == listener;
         });
     if (iter != single_value_listeners_.end()) {
-      repo_.RemoveEventCallback(listener, listener->query_spec());
+      repo_->RemoveEventCallback(listener, listener->query_spec());
       delete *iter;
       single_value_listeners_.erase(iter);
     }
@@ -165,13 +166,15 @@ class DatabaseInternal {
   // The url that was passed to the constructor.
   const std::string& constructor_url() const { return constructor_url_; }
 
-  Repo* repo() { return &repo_; }
+  Repo* repo() { return repo_.get(); }
 
   Mutex* listener_mutex() { return &listener_mutex_; }
 
   Logger* logger() { return &logger_; }
 
  private:
+  void EnsureRepo();
+
   App* app_;
 
   ListenerCollection<ValueListener> value_listeners_by_query_;
@@ -192,15 +195,20 @@ class DatabaseInternal {
   // Needed to generate names that are guarenteed to be unique.
   PushChildNameGenerator name_generator_;
 
+  std::string database_url_;
+
   // The url passed to the constructor (or "" if none was passed).
   // We keep it so that we can find the database in our cache.
   std::string constructor_url_;
 
+  bool persistence_enabled_;
+
   // The logger for this instance of the database.
   Logger logger_;
 
+  Mutex repo_mutex_;
   // The local copy of the repository, for offline support and local caching.
-  Repo repo_;
+  std::unique_ptr<Repo> repo_;
 };
 
 }  // namespace internal
