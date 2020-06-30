@@ -142,6 +142,9 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DCMAKE_TOOLCHAIN_FILE=external/vcpkg/scripts/buildsystems/vcpkg.cmake \
             -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }} \
+            -DFIREBASE_CPP_BUILD_TESTS=ON \
+            -DFIREBASE_INCLUDE_FIRESTORE=OFF \
+            -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON
 
       - name: Build
         shell: bash
@@ -159,3 +162,8 @@ jobs:
           find build -name "*.dylib"
           find build -name "*.a"
           find build -name "*.so"
+
+      - name: Run tests
+        run: |
+          cd build
+          ctest --verbose
