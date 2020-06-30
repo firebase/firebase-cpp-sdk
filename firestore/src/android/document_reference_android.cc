@@ -119,7 +119,7 @@ Future<DocumentSnapshot> DocumentReferenceInternal::Get(Source source) {
       SourceInternal::ToJavaObject(env, source));
   CheckAndClearJniExceptions(env);
 
-  auto promise = MakePromise<DocumentSnapshot>();
+  auto promise = promises_.MakePromise<DocumentSnapshot>();
   promise.RegisterForTask(DocumentReferenceFn::kGet, task);
   env->DeleteLocalRef(task);
   CheckAndClearJniExceptions(env);
@@ -127,7 +127,7 @@ Future<DocumentSnapshot> DocumentReferenceInternal::Get(Source source) {
 }
 
 Future<DocumentSnapshot> DocumentReferenceInternal::GetLastResult() {
-  return LastResult<DocumentSnapshot>(DocumentReferenceFn::kGet);
+  return promises_.LastResult<DocumentSnapshot>(DocumentReferenceFn::kGet);
 }
 
 Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
@@ -142,7 +142,7 @@ Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
   env->DeleteLocalRef(java_options);
   CheckAndClearJniExceptions(env);
 
-  auto promise = MakePromise<void>();
+  auto promise = promises_.MakePromise<void>();
   promise.RegisterForTask(DocumentReferenceFn::kSet, task);
   env->DeleteLocalRef(task);
   CheckAndClearJniExceptions(env);
@@ -150,7 +150,7 @@ Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
 }
 
 Future<void> DocumentReferenceInternal::SetLastResult() {
-  return LastResult<void>(DocumentReferenceFn::kSet);
+  return promises_.LastResult<void>(DocumentReferenceFn::kSet);
 }
 
 Future<void> DocumentReferenceInternal::Update(const MapFieldValue& data) {
@@ -161,7 +161,7 @@ Future<void> DocumentReferenceInternal::Update(const MapFieldValue& data) {
       map_value.java_object());
   CheckAndClearJniExceptions(env);
 
-  auto promise = MakePromise<void>();
+  auto promise = promises_.MakePromise<void>();
   promise.RegisterForTask(DocumentReferenceFn::kUpdate, task);
   env->DeleteLocalRef(task);
   CheckAndClearJniExceptions(env);
@@ -190,7 +190,7 @@ Future<void> DocumentReferenceInternal::Update(const MapFieldPathValue& data) {
   env->DeleteLocalRef(more_fields_and_values);
   CheckAndClearJniExceptions(env);
 
-  auto promise = MakePromise<void>();
+  auto promise = promises_.MakePromise<void>();
   promise.RegisterForTask(DocumentReferenceFn::kUpdate, task);
   env->DeleteLocalRef(task);
   CheckAndClearJniExceptions(env);
@@ -198,7 +198,7 @@ Future<void> DocumentReferenceInternal::Update(const MapFieldPathValue& data) {
 }
 
 Future<void> DocumentReferenceInternal::UpdateLastResult() {
-  return LastResult<void>(DocumentReferenceFn::kUpdate);
+  return promises_.LastResult<void>(DocumentReferenceFn::kUpdate);
 }
 
 Future<void> DocumentReferenceInternal::Delete() {
@@ -207,7 +207,7 @@ Future<void> DocumentReferenceInternal::Delete() {
       obj_, document_reference::GetMethodId(document_reference::kDelete));
   CheckAndClearJniExceptions(env);
 
-  auto promise = MakePromise<void>();
+  auto promise = promises_.MakePromise<void>();
   promise.RegisterForTask(DocumentReferenceFn::kDelete, task);
   env->DeleteLocalRef(task);
   CheckAndClearJniExceptions(env);
@@ -215,7 +215,7 @@ Future<void> DocumentReferenceInternal::Delete() {
 }
 
 Future<void> DocumentReferenceInternal::DeleteLastResult() {
-  return LastResult<void>(DocumentReferenceFn::kDelete);
+  return promises_.LastResult<void>(DocumentReferenceFn::kDelete);
 }
 
 #if defined(FIREBASE_USE_STD_FUNCTION)

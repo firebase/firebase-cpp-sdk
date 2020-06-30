@@ -7,7 +7,8 @@
 
 #include "app/src/reference_counted_future_impl.h"
 #include "firestore/src/android/firestore_android.h"
-#include "firestore/src/android/wrapper_future.h"
+#include "firestore/src/android/promise_factory_android.h"
+#include "firestore/src/android/wrapper.h"
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 
 namespace firebase {
@@ -16,9 +17,9 @@ namespace firestore {
 class Firestore;
 
 // Each API of DocumentReference that returns a Future needs to define an enum
-// value here. For example, Foo() and FooLastResult() implementation relies on
-// the enum value kFoo. The enum values are used to identify and manage Future
-// in the Firestore Future manager.
+// value here. For example, a Future-returning method Foo() relies on the enum
+// value kFoo. The enum values are used to identify and manage Future in the
+// Firestore Future manager.
 enum class DocumentReferenceFn {
   kGet = 0,
   kSet,
@@ -28,11 +29,12 @@ enum class DocumentReferenceFn {
 };
 
 // This is the Android implementation of DocumentReference.
-class DocumentReferenceInternal
-    : public WrapperFuture<DocumentReferenceFn, DocumentReferenceFn::kCount> {
+class DocumentReferenceInternal : public Wrapper {
  public:
   using ApiType = DocumentReference;
-  using WrapperFuture::WrapperFuture;
+
+  DocumentReferenceInternal(FirestoreInternal* firestore, jobject object)
+      : Wrapper(firestore, object), promises_(firestore) {}
 
   /** Gets the Firestore instance associated with this document reference. */
   Firestore* firestore();
@@ -208,6 +210,8 @@ class DocumentReferenceInternal
 
   static bool Initialize(App* app);
   static void Terminate(App* app);
+
+  PromiseFactory<DocumentReferenceFn> promises_;
 
   // Below are cached call results.
   mutable std::string cached_id_;

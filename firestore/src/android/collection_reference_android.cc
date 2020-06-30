@@ -114,7 +114,7 @@ Future<DocumentReference> CollectionReferenceInternal::Add(
       map_value.java_object());
   CheckAndClearJniExceptions(env);
 
-  auto promise = MakePromise<DocumentReference>();
+  auto promise = promises_.MakePromise<DocumentReference>();
   promise.RegisterForTask(CollectionReferenceFn::kAdd, task);
   env->DeleteLocalRef(task);
   CheckAndClearJniExceptions(env);
@@ -122,7 +122,7 @@ Future<DocumentReference> CollectionReferenceInternal::Add(
 }
 
 Future<DocumentReference> CollectionReferenceInternal::AddLastResult() {
-  return LastResult<DocumentReference>(CollectionReferenceFn::kAdd);
+  return promises_.LastResult<DocumentReference>(CollectionReferenceFn::kAdd);
 }
 
 /* static */

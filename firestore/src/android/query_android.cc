@@ -79,7 +79,7 @@ Future<QuerySnapshot> QueryInternal::Get(Source source) {
                             SourceInternal::ToJavaObject(env, source));
   CheckAndClearJniExceptions(env);
 
-  auto promise = MakePromise<QuerySnapshot>();
+  auto promise = promises_.MakePromise<QuerySnapshot>();
   promise.RegisterForTask(QueryFn::kGet, task);
   env->DeleteLocalRef(task);
   CheckAndClearJniExceptions(env);
@@ -87,7 +87,7 @@ Future<QuerySnapshot> QueryInternal::Get(Source source) {
 }
 
 Future<QuerySnapshot> QueryInternal::GetLastResult() {
-  return LastResult<QuerySnapshot>(QueryFn::kGet);
+  return promises_.LastResult<QuerySnapshot>(QueryFn::kGet);
 }
 
 /* static */

@@ -113,7 +113,6 @@ set(android_SRCS
     src/android/util_android.h
     src/android/wrapper.cc
     src/android/wrapper.h
-    src/android/wrapper_future.h
     src/android/write_batch_android.cc
     src/android/write_batch_android.h)
 

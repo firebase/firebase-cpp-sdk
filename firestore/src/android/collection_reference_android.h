@@ -5,7 +5,6 @@
 
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/query_android.h"
-#include "firestore/src/android/wrapper_future.h"
 
 namespace firebase {
 namespace firestore {
