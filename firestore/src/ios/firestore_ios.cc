@@ -270,21 +270,28 @@ void Firestore::set_log_level(LogLevel log_level) {
     case kLogLevelDebug:
       // Firestore doesn't have the distinction between "verbose" and "debug".
       LogSetLevel(util::kLogLevelDebug);
-      return;
+      break;
     case kLogLevelInfo:
       LogSetLevel(util::kLogLevelNotice);
-      return;
+      break;
     case kLogLevelWarning:
       LogSetLevel(util::kLogLevelWarning);
-      return;
+      break;
     case kLogLevelError:
     case kLogLevelAssert:
       // Firestore doesn't have a separate "assert" log level.
       LogSetLevel(util::kLogLevelError);
-      return;
+      break;
+    default:
+      UNREACHABLE();
+      break;
   }
 
-  UNREACHABLE();
+  // Call SetLogLevel() to keep the C++ log level in sync with FIRLogger's.
+  // Convert kLogLevelDebug to kLogLevelVerbose to force debug logs to be
+  // emitted. See b/159048318 for details.
+  firebase::SetLogLevel(log_level == kLogLevelDebug ? kLogLevelVerbose
+                                                    : log_level);
 }
 
 }  // namespace firestore
