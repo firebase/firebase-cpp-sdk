@@ -1,7 +1,9 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_WRAPPER_ASSERTIONS_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_WRAPPER_ASSERTIONS_H_
 
+#include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore.h"
+
 #if defined(__ANDROID__)
 #include <jni.h>
 
@@ -77,7 +79,8 @@ FirestoreTypeInternal* NewInternal() {
 //     nullptr as its internal but we do not check that because the standard
 //     forbids the programming practise to do anything on it after move.
 // Here we assume FirestoreTypeInternal is default constructable.
-template <typename FirestoreType, typename FirestoreTypeInternal>
+template <typename FirestoreType,
+          typename FirestoreTypeInternal = InternalType<FirestoreType>>
 void AssertWrapperConstructionContract() {
   FirestoreType default_instance;
   EXPECT_EQ(nullptr, FirestoreInternal::Internal<FirestoreTypeInternal>(
@@ -109,8 +112,9 @@ void AssertWrapperConstructionContract() {
 //     set to the internal_ of the other FirestoreType, which now should has
 //     nullptr as its internal but we do not check that because the standard
 //     forbids the programming practise to do anything on it after move.
-// Here we assume irestoreTypeInternal is default constructable.
-template <typename FirestoreType, typename FirestoreTypeInternal>
+// Here we assume FirestoreTypeInternal is default constructable.
+template <typename FirestoreType,
+          typename FirestoreTypeInternal = InternalType<FirestoreType>>
 void AssertWrapperAssignmentContract() {
   FirestoreTypeInternal* internal = NewInternal<FirestoreTypeInternal>();
   FirestoreType instance = FirestoreInternal::Wrap(internal);

@@ -23,7 +23,7 @@
 namespace firebase {
 namespace firestore {
 
-using CleanupFnQuery = CleanupFn<Query, QueryInternal>;
+using CleanupFnQuery = CleanupFn<Query>;
 
 Query::Query() {}
 

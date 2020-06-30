@@ -17,8 +17,7 @@
 namespace firebase {
 namespace firestore {
 
-using CleanupFnDocumentChange =
-    CleanupFn<DocumentChange, DocumentChangeInternal>;
+using CleanupFnDocumentChange = CleanupFn<DocumentChange>;
 using Type = DocumentChange::Type;
 
 DocumentChange::DocumentChange() {}

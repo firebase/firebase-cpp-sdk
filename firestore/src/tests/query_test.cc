@@ -685,11 +685,11 @@ TEST_F(FirestoreIntegrationTest,
 
 #if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
 TEST_F(QueryTest, Construction) {
-  testutil::AssertWrapperConstructionContract<Query, QueryInternal>();
+  testutil::AssertWrapperConstructionContract<Query>();
 }
 
 TEST_F(QueryTest, Assignment) {
-  testutil::AssertWrapperAssignmentContract<Query, QueryInternal>();
+  testutil::AssertWrapperAssignmentContract<Query>();
 }
 #endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
 

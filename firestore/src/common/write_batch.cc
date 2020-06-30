@@ -19,7 +19,7 @@
 namespace firebase {
 namespace firestore {
 
-using CleanupFnWriteBatch = CleanupFn<WriteBatch, WriteBatchInternal>;
+using CleanupFnWriteBatch = CleanupFn<WriteBatch>;
 
 WriteBatch::WriteBatch() {}
 

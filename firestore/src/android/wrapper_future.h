@@ -6,6 +6,7 @@
 #include "app/meta/move.h"
 #include "firestore/src/android/promise_android.h"
 #include "firestore/src/android/wrapper.h"
+#include "firestore/src/common/type_mapping.h"
 
 namespace firebase {
 namespace firestore {
@@ -47,10 +48,9 @@ class WrapperFuture : public Wrapper {
   // Creates a Promise representing the completion of an underlying Java Task.
   // This can be used to implement APIs that return Futures of some public type.
   // Use MakePromise<void, void>() to create a Future<void>.
-  template <typename PublicType, typename InternalType>
-  Promise<PublicType, InternalType, EnumType> MakePromise() {
-    return Promise<PublicType, InternalType, EnumType>{ref_future(),
-                                                       firestore_};
+  template <typename PublicT, typename InternalT = InternalType<PublicT>>
+  Promise<PublicT, InternalT, EnumType> MakePromise() {
+    return Promise<PublicT, InternalT, EnumType>{ref_future(), firestore_};
   }
 
   // A helper that generalizes the logic for FooLastResult() of each Foo()

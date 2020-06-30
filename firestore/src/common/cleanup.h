@@ -3,6 +3,7 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_CLEANUP_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_CLEANUP_H_
 
+#include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore/listener_registration.h"
 
 namespace firebase {
@@ -16,7 +17,8 @@ class FirestoreInternal;
 // F is almost always FirestoreInternal unless one wants something else to
 // manage the cleanup process. We define type F to make this CleanupFn
 // implementation platform-independent.
-template <typename T, typename U, typename F = FirestoreInternal>
+template <typename T, typename U = InternalType<T>,
+          typename F = FirestoreInternal>
 struct CleanupFn {
   static void Cleanup(void* obj_void) { DoCleanup(static_cast<T*>(obj_void)); }
 

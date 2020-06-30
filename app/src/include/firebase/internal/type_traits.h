@@ -82,6 +82,9 @@ struct is_lvalue_reference<T&> {
 #define FIREBASE_TYPE_TRAITS_NS std
 #endif
 
+template <typename T>
+using decay = FIREBASE_TYPE_TRAITS_NS::decay<T>;
+
 template <bool value, typename T = void>
 using enable_if = FIREBASE_TYPE_TRAITS_NS::enable_if<value, T>;
 
