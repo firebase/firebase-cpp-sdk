@@ -86,10 +86,6 @@ Future<QuerySnapshot> QueryInternal::Get(Source source) {
   return promise.GetFuture();
 }
 
-Future<QuerySnapshot> QueryInternal::GetLastResult() {
-  return promises_.LastResult<QuerySnapshot>(QueryFn::kGet);
-}
-
 /* static */
 bool QueryInternal::Initialize(App* app) {
   JNIEnv* env = app->GetJNIEnv();

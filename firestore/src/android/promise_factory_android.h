@@ -40,14 +40,6 @@ class PromiseFactory {
     return Promise<PublicT, InternalT, EnumT>{future_api(), firestore_};
   }
 
-  // A helper that generalizes the logic for FooLastResult() of each Foo()
-  // defined.
-  template <typename ResultType>
-  Future<ResultType> LastResult(EnumT index) {
-    const auto& result = future_api()->LastResult(static_cast<int>(index));
-    return static_cast<const Future<ResultType>&>(result);
-  }
-
  private:
   // Gets the reference-counted Future implementation of this instance, which
   // can be used to create a Future.

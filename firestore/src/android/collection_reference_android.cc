@@ -121,10 +121,6 @@ Future<DocumentReference> CollectionReferenceInternal::Add(
   return promise.GetFuture();
 }
 
-Future<DocumentReference> CollectionReferenceInternal::AddLastResult() {
-  return promises_.LastResult<DocumentReference>(CollectionReferenceFn::kAdd);
-}
-
 /* static */
 bool CollectionReferenceInternal::Initialize(App* app) {
   JNIEnv* env = app->GetJNIEnv();

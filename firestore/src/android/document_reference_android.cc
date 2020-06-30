@@ -126,10 +126,6 @@ Future<DocumentSnapshot> DocumentReferenceInternal::Get(Source source) {
   return promise.GetFuture();
 }
 
-Future<DocumentSnapshot> DocumentReferenceInternal::GetLastResult() {
-  return promises_.LastResult<DocumentSnapshot>(DocumentReferenceFn::kGet);
-}
-
 Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
                                             const SetOptions& options) {
   FieldValueInternal map_value(data);
@@ -147,10 +143,6 @@ Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
   env->DeleteLocalRef(task);
   CheckAndClearJniExceptions(env);
   return promise.GetFuture();
-}
-
-Future<void> DocumentReferenceInternal::SetLastResult() {
-  return promises_.LastResult<void>(DocumentReferenceFn::kSet);
 }
 
 Future<void> DocumentReferenceInternal::Update(const MapFieldValue& data) {
@@ -197,10 +189,6 @@ Future<void> DocumentReferenceInternal::Update(const MapFieldPathValue& data) {
   return promise.GetFuture();
 }
 
-Future<void> DocumentReferenceInternal::UpdateLastResult() {
-  return promises_.LastResult<void>(DocumentReferenceFn::kUpdate);
-}
-
 Future<void> DocumentReferenceInternal::Delete() {
   JNIEnv* env = firestore_->app()->GetJNIEnv();
   jobject task = env->CallObjectMethod(
@@ -212,10 +200,6 @@ Future<void> DocumentReferenceInternal::Delete() {
   env->DeleteLocalRef(task);
   CheckAndClearJniExceptions(env);
   return promise.GetFuture();
-}
-
-Future<void> DocumentReferenceInternal::DeleteLastResult() {
-  return promises_.LastResult<void>(DocumentReferenceFn::kDelete);
 }
 
 #if defined(FIREBASE_USE_STD_FUNCTION)

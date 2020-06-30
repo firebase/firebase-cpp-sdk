@@ -111,10 +111,6 @@ Future<void> WriteBatchInternal::Commit() {
   return promise.GetFuture();
 }
 
-Future<void> WriteBatchInternal::CommitLastResult() {
-  return promises_.LastResult<void>(WriteBatchFn::kCommit);
-}
-
 /* static */
 bool WriteBatchInternal::Initialize(App* app) {
   JNIEnv* env = app->GetJNIEnv();

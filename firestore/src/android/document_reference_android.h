@@ -85,14 +85,6 @@ class DocumentReferenceInternal : public Wrapper {
   Future<DocumentSnapshot> Get(Source source);
 
   /**
-   * Gets the result of the most recent call to either of the Get() methods.
-   *
-   * @return The result of last call to Get() or an invalid Future, if there is
-   * no such call.
-   */
-  Future<DocumentSnapshot> GetLastResult();
-
-  /**
    * Writes to this document.
    *
    * If the document does not yet exist, it will be created. If you pass
@@ -104,15 +96,6 @@ class DocumentReferenceInternal : public Wrapper {
    * @return A Future that will be resolved when the write finishes.
    */
   Future<void> Set(const MapFieldValue& data, const SetOptions& options);
-
-  /**
-   * Gets the result of the most recent call to either of the Set()
-   * methods.
-   *
-   * @return The result of last call to Set() or an invalid Future, if there is
-   * no such call.
-   */
-  Future<void> SetLastResult();
 
   /**
    * Updates fields in this document.
@@ -138,27 +121,11 @@ class DocumentReferenceInternal : public Wrapper {
   Future<void> Update(const MapFieldPathValue& data);
 
   /**
-   * Gets the result of the most recent call to Update().
-   *
-   * @return The result of last call to Update() or an invalid Future, if there
-   * is no such call.
-   */
-  Future<void> UpdateLastResult();
-
-  /**
    * Removes this document.
    *
    * @return A Future that will be resolved when the delete completes.
    */
   Future<void> Delete();
-
-  /**
-   * Gets the result of the most recent call to Delete().
-   *
-   * @return The result of last call to Delete() or an invalid Future, if there
-   * is no such call.
-   */
-  Future<void> DeleteLastResult();
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
   /**

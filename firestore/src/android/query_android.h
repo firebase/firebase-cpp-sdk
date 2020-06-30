@@ -389,15 +389,6 @@ class QueryInternal : public Wrapper {
    */
   virtual Future<QuerySnapshot> Get(Source source);
 
-  /**
-   * @brief Gets the result of the most recent call to either of the Get()
-   * methods.
-   *
-   * @return The result of last call to Get() or an invalid Future, if there is
-   * no such call.
-   */
-  virtual Future<QuerySnapshot> GetLastResult();
-
 #if defined(FIREBASE_USE_STD_FUNCTION)
   /**
    * @brief Starts listening to the QuerySnapshot events referenced by this

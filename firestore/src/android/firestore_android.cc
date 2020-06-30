@@ -411,10 +411,6 @@ Future<void> FirestoreInternal::RunTransaction(
 }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
-Future<void> FirestoreInternal::RunTransactionLastResult() {
-  return LastResult(FirestoreFn::kRunTransaction);
-}
-
 Future<void> FirestoreInternal::DisableNetwork() {
   JNIEnv* env = app_->GetJNIEnv();
   jobject task = env->CallObjectMethod(
@@ -429,10 +425,6 @@ Future<void> FirestoreInternal::DisableNetwork() {
   return promise.GetFuture();
 }
 
-Future<void> FirestoreInternal::DisableNetworkLastResult() {
-  return LastResult(FirestoreFn::kDisableNetwork);
-}
-
 Future<void> FirestoreInternal::EnableNetwork() {
   JNIEnv* env = app_->GetJNIEnv();
   jobject task = env->CallObjectMethod(
@@ -445,10 +437,6 @@ Future<void> FirestoreInternal::EnableNetwork() {
   env->DeleteLocalRef(task);
   CheckAndClearJniExceptions(env);
   return promise.GetFuture();
-}
-
-Future<void> FirestoreInternal::EnableNetworkLastResult() {
-  return LastResult(FirestoreFn::kEnableNetwork);
 }
 
 Future<void> FirestoreInternal::Terminate() {
@@ -466,10 +454,6 @@ Future<void> FirestoreInternal::Terminate() {
   return promise.GetFuture();
 }
 
-Future<void> FirestoreInternal::TerminateLastResult() {
-  return LastResult(FirestoreFn::kTerminate);
-}
-
 Future<void> FirestoreInternal::WaitForPendingWrites() {
   JNIEnv* env = app_->GetJNIEnv();
   jobject task = env->CallObjectMethod(
@@ -484,10 +468,6 @@ Future<void> FirestoreInternal::WaitForPendingWrites() {
   return promise.GetFuture();
 }
 
-Future<void> FirestoreInternal::WaitForPendingWritesLastResult() {
-  return LastResult(FirestoreFn::kWaitForPendingWrites);
-}
-
 Future<void> FirestoreInternal::ClearPersistence() {
   JNIEnv* env = app_->GetJNIEnv();
   jobject task = env->CallObjectMethod(
@@ -500,10 +480,6 @@ Future<void> FirestoreInternal::ClearPersistence() {
   env->DeleteLocalRef(task);
   CheckAndClearJniExceptions(env);
   return promise.GetFuture();
-}
-
-Future<void> FirestoreInternal::ClearPersistenceLastResult() {
-  return LastResult(FirestoreFn::kClearPersistence);
 }
 
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(

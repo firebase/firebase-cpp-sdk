@@ -23,7 +23,6 @@ class CollectionReferenceInternal : public QueryInternal {
   DocumentReference Document(const std::string& document_path) const;
 
   Future<DocumentReference> Add(const MapFieldValue& data);
-  Future<DocumentReference> AddLastResult();
 
  private:
   const api::CollectionReference& collection_core_api() const;

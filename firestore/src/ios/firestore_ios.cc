@@ -181,10 +181,6 @@ Future<void> FirestoreInternal::RunTransaction(
   return promise.future();
 }
 
-Future<void> FirestoreInternal::RunTransactionLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApi::kRunTransaction);
-}
-
 Future<void> FirestoreInternal::DisableNetwork() {
   auto promise =
       promise_factory_.CreatePromise<void>(AsyncApi::kDisableNetwork);
@@ -192,18 +188,10 @@ Future<void> FirestoreInternal::DisableNetwork() {
   return promise.future();
 }
 
-Future<void> FirestoreInternal::DisableNetworkLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApi::kDisableNetwork);
-}
-
 Future<void> FirestoreInternal::EnableNetwork() {
   auto promise = promise_factory_.CreatePromise<void>(AsyncApi::kEnableNetwork);
   firestore_core_->EnableNetwork(StatusCallbackWithPromise(promise));
   return promise.future();
-}
-
-Future<void> FirestoreInternal::EnableNetworkLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApi::kEnableNetwork);
 }
 
 Future<void> FirestoreInternal::Terminate() {
@@ -213,10 +201,6 @@ Future<void> FirestoreInternal::Terminate() {
   return promise.future();
 }
 
-Future<void> FirestoreInternal::TerminateLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApi::kTerminate);
-}
-
 Future<void> FirestoreInternal::WaitForPendingWrites() {
   auto promise =
       promise_factory_.CreatePromise<void>(AsyncApi::kWaitForPendingWrites);
@@ -224,19 +208,11 @@ Future<void> FirestoreInternal::WaitForPendingWrites() {
   return promise.future();
 }
 
-Future<void> FirestoreInternal::WaitForPendingWritesLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApi::kWaitForPendingWrites);
-}
-
 Future<void> FirestoreInternal::ClearPersistence() {
   auto promise =
       promise_factory_.CreatePromise<void>(AsyncApi::kClearPersistence);
   firestore_core_->ClearPersistence(StatusCallbackWithPromise(promise));
   return promise.future();
-}
-
-Future<void> FirestoreInternal::ClearPersistenceLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApi::kClearPersistence);
 }
 
 void FirestoreInternal::ClearListeners() {

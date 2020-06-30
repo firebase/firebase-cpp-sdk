@@ -37,8 +37,6 @@ class WriteBatchInternal : public Wrapper {
 
   Future<void> Commit();
 
-  Future<void> CommitLastResult();
-
  private:
   friend class FirestoreInternal;
 
