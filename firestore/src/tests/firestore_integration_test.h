@@ -46,15 +46,17 @@ class TestEventListener : public EventListener<T> {
       std::cout << "TestEventListener got: ";
       if (error == Error::kErrorOk) {
         std::cout << &value
-                  << " from_cache:" << value.metadata().is_from_cache()
-                  << " has_pending_write:"
-                  << value.metadata().has_pending_writes() << std::endl;
+                  << " from_cache=" << value.metadata().is_from_cache()
+                  << " has_pending_write="
+                  << value.metadata().has_pending_writes()
+                  << " event_count=" << event_count() << std::endl;
       } else {
-        std::cout << "error:" << error << std::endl;
+        std::cout << "error=" << error << " event_count=" << event_count()
+                  << std::endl;
       }
     }
 
-    event_count_++;
+    MutexLock lock(mutex_);
     if (error != Error::kErrorOk) {
       std::cerr << "ERROR: EventListener " << name_ << " got " << error
                 << std::endl;
@@ -62,16 +64,18 @@ class TestEventListener : public EventListener<T> {
         first_error_ = error;
       }
     }
-    MutexLock lock(mutex_);
-    last_result_.push_back(value);
+    last_results_.push_back(value);
   }
 
-  int event_count() const { return event_count_; }
+  int event_count() const {
+    MutexLock lock(mutex_);
+    return static_cast<int>(last_results_.size());
+  }
 
   const T& last_result(int i = 0) {
-    FIREBASE_ASSERT(i >= 0 && i < last_result_.size());
+    FIREBASE_ASSERT(i >= 0 && i < last_results_.size());
     MutexLock lock(mutex_);
-    return last_result_[last_result_.size() - 1 - i];
+    return last_results_[last_results_.size() - 1 - i];
   }
 
   // Hides the STLPort-related quirk that `AddSnapshotListener` has different
@@ -88,23 +92,32 @@ class TestEventListener : public EventListener<T> {
 #endif
   }
 
-  Error first_error() { return first_error_; }
+  Error first_error() {
+    MutexLock lock(mutex_);
+    return first_error_;
+  }
 
   // Set this to true to print more details for each arrived event for debug.
   void set_print_debug_info(bool value) { print_debug_info_ = value; }
 
+  // Copies events from the internal buffer, starting from `start`, up to but
+  // not including `end`.
+  std::vector<T> GetEventsInRange(int start, int end) const {
+    MutexLock lock(mutex_);
+    FIREBASE_ASSERT(start <= end);
+    FIREBASE_ASSERT(end <= last_results_.size());
+    return std::vector<T>(last_results_.begin() + start,
+                          last_results_.begin() + end);
+  }
+
  private:
-  friend class EventAccumulator<T>;
+  mutable Mutex mutex_;
 
   std::string name_;
-  int event_count_ = 0;
 
   // We may want the last N result. So we store all in a vector in the order
   // they arrived.
-  std::vector<T> last_result_;
-  // We add a mutex to protect the calls to push_back, which is not thread-safe.
-  // Marked as `mutable` so that const functions can still be protected.
-  mutable Mutex mutex_;
+  std::vector<T> last_results_;
 
   // We generally only check to see if there is any error. So we only store the
   // first non-OK error, if any.
