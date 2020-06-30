@@ -24,7 +24,7 @@ class ArrayTransformTest : public FirestoreIntegrationTest {
         &document_, MetadataChanges::kInclude);
 
     // Wait for initial null snapshot to avoid potential races.
-    DocumentSnapshot snapshot = accumulator_.Await();
+    DocumentSnapshot snapshot = accumulator_.AwaitServerEvent();
     EXPECT_FALSE(snapshot.exists());
   }
 

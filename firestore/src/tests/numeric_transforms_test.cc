@@ -19,7 +19,7 @@ class NumericTransformsTest : public FirestoreIntegrationTest {
         accumulator_.listener()->AttachTo(&doc_ref_, MetadataChanges::kInclude);
 
     // Wait for initial null snapshot to avoid potential races.
-    DocumentSnapshot initial_snapshot = accumulator_.AwaitRemoteEvent();
+    DocumentSnapshot initial_snapshot = accumulator_.AwaitServerEvent();
     EXPECT_FALSE(initial_snapshot.exists());
   }
 
