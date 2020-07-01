@@ -144,7 +144,8 @@ jobs:
             -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }} \
             -DFIREBASE_CPP_BUILD_TESTS=ON \
             -DFIREBASE_INCLUDE_FIRESTORE=OFF \
-            -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON
+            -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON \
+            -DLEVELDB_BUILD_TESTS=OFF
 
       - name: Build
         shell: bash
