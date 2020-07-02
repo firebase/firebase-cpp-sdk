@@ -30,6 +30,7 @@
 #include <clocale>
 #include <ctime>
 #include <locale>
+#include <iostream>
 #else
 #error "Unknown platform."
 #endif  // platform selector
