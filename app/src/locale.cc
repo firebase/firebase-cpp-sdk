@@ -66,7 +66,6 @@ std::string GetLocale() {
   std::cout << "GETENV (LC_CTYPE): " << getenv("LC_CTYPE") << std::endl;
   std::cout << "GETENV (TEST_TMPDIR): " << getenv("TEST_TMPDIR") << std::endl;
 
-  std::cout << std::locale().name()
   std::string output = std::locale().name() != "C"
                            ? std::locale().name()
                            : getenv("LANG")
