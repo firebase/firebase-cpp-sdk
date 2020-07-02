@@ -165,7 +165,7 @@ jobs:
           find build -name "*.so"
 
       - name: Run tests
-        if: startsWith(matrix.config, "Debug")
+        if: startsWith(matrix.config, 'Debug')
         run: |
           cd build
           ctest --verbose
