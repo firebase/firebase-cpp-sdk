@@ -241,7 +241,7 @@ TEST_F(SchedulerTest, RepeatCallbackNoDelay) {
 }
 
 TEST_F(SchedulerTest, RepeatCallbackWithDelay) {
-  int delay = 100;
+  int delay = 1000;
   scheduler_.Schedule(new callback::CallbackVoid(SemaphorePost1), delay, 1);
 
   auto start = internal::GetTimestamp();
