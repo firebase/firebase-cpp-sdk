@@ -325,9 +325,12 @@ TEST_F(UserTest, TestReauthenticate) {
       "}";
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
-  Future<void> result = firebase_user_->Reauthenticate(
-      EmailAuthProvider::GetCredential("i@email.com", "pw"));
-  Verify(result);
+  Credential credential = EmailAuthProvider::GetCredential("i@email.com", "pw");
+  Future<User*> sign_in_result = firebase_auth_->SignInWithCredential(credential);
+  Verify(sign_in_result);
+
+  Future<void> reauthenticate_result = firebase_user_->Reauthenticate(credential);
+  Verify(reauthenticate_result);
 }
 
 #if !defined(__APPLE__) && !defined(FIREBASE_WAIT_ASYNC_IN_TEST)
