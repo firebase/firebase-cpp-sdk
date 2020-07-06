@@ -30,7 +30,6 @@
 #include <clocale>
 #include <ctime>
 #include <locale>
-#include <iostream>
 #else
 #error "Unknown platform."
 #endif  // platform selector
@@ -60,12 +59,6 @@ std::string GetLocale() {
   // of the LANG or LC_CTYPE environment variables if set, or otherwise return a
   // default locale (empty in real life, or placeholder when running in a unit
   // test, as the test environment has no locale variables set).
-  std::cout << "LINUX and GetLocale" << std::endl;
-  std::cout << "Locale: " <<std::locale().name() << std::endl;
-  std::cout << "GETENV (LANG): " << getenv("LANG") << std::endl;
-  std::cout << "GETENV (LC_CTYPE): " << getenv("LC_CTYPE") << std::endl;
-  std::cout << "GETENV (TEST_TMPDIR): " << getenv("TEST_TMPDIR") << std::endl;
-
   std::string output = std::locale().name() != "C"
                            ? std::locale().name()
                            : getenv("LANG")

@@ -165,6 +165,8 @@ jobs:
           find build -name "*.so"
 
       - name: Run tests
+        env:
+          LANG: en_US
         if: startsWith(matrix.build_type, 'Debug')
         run: |
           cd build
