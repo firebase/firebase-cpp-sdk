@@ -52,9 +52,13 @@ TEST_F(InMemoryPersistenceStorageEngineTest, LoadServerCache) {
   EXPECT_EQ(engine_.LoadServerCache(), Variant::Null());
 }
 
+#ifndef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveUserOverwrite) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveUserOverwrite) {
-  EXPECT_DEBUG_DEATH(engine_.SaveUserOverwrite(Path(), Variant::Null(), 100),
-                     DEATHTEST_SIGABRT);
+#endif
+  EXPECT_DEATH(engine_.SaveUserOverwrite(Path(), Variant::Null(), 100),
+               DEATHTEST_SIGABRT);
 }
 
 TEST_F(InMemoryPersistenceStorageEngineTest, SaveUserOverwrite) {
@@ -66,9 +70,13 @@ TEST_F(InMemoryPersistenceStorageEngineTest, SaveUserOverwrite) {
   engine_.EndTransaction();
 }
 
+#ifndef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveUserMerge) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveUserMerge) {
-  EXPECT_DEBUG_DEATH(engine_.SaveUserMerge(Path(), CompoundWrite(), 100),
-                     DEATHTEST_SIGABRT);
+#endif
+  EXPECT_DEATH(engine_.SaveUserMerge(Path(), CompoundWrite(), 100),
+               DEATHTEST_SIGABRT);
 }
 
 TEST_F(InMemoryPersistenceStorageEngineTest, SaveUserMerge) {
@@ -80,8 +88,12 @@ TEST_F(InMemoryPersistenceStorageEngineTest, SaveUserMerge) {
   engine_.EndTransaction();
 }
 
+#ifndef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_RemoveUserWrite) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, RemoveUserWrite) {
-  EXPECT_DEBUG_DEATH(engine_.RemoveUserWrite(100), DEATHTEST_SIGABRT);
+#endif
+  EXPECT_DEATH(engine_.RemoveUserWrite(100), DEATHTEST_SIGABRT);
 }
 
 TEST_F(InMemoryPersistenceStorageEngineTest, RemoveUserWrite) {
@@ -96,9 +108,13 @@ TEST_F(InMemoryPersistenceStorageEngineTest, LoadUserWrites) {
   EXPECT_TRUE(engine_.LoadUserWrites().empty());
 }
 
+#ifndef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_RemoveAllUserWrites) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, RemoveAllUserWrites) {
+#endif
   // Must be in a transaction.
-  EXPECT_DEBUG_DEATH(engine_.RemoveAllUserWrites(), DEATHTEST_SIGABRT);
+  EXPECT_DEATH(engine_.RemoveAllUserWrites(), DEATHTEST_SIGABRT);
 }
 
 TEST_F(InMemoryPersistenceStorageEngineTest, RemoveAllUserWrites) {
@@ -110,8 +126,12 @@ TEST_F(InMemoryPersistenceStorageEngineTest, RemoveAllUserWrites) {
   engine_.EndTransaction();
 }
 
+#ifndef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_OverwriteServerCache) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, OverwriteServerCache) {
-  EXPECT_DEBUG_DEATH(engine_.OverwriteServerCache(Path(), Variant::Null()),
+#endif
+  EXPECT_DEATH(engine_.OverwriteServerCache(Path(), Variant::Null()),
                      DEATHTEST_SIGABRT);
 }
 
@@ -145,10 +165,15 @@ TEST_F(InMemoryPersistenceStorageEngineTest, OverwriteServerCache) {
   // clang-format on
 }
 
+#ifndef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest,
+       DISABLED_MergeIntoServerCache_Variant) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest,
        MergeIntoServerCache_Variant) {
-  EXPECT_DEBUG_DEATH(engine_.MergeIntoServerCache(Path(), Variant::Null()),
-                     DEATHTEST_SIGABRT);
+#endif
+  EXPECT_DEATH(engine_.MergeIntoServerCache(Path(), Variant::Null()),
+               DEATHTEST_SIGABRT);
 }
 
 TEST_F(InMemoryPersistenceStorageEngineTest, MergeIntoServerCache_Variant) {
@@ -188,10 +213,15 @@ TEST_F(InMemoryPersistenceStorageEngineTest, MergeIntoServerCache_Variant) {
   // clang-format on
 }
 
+#ifndef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest,
+       DISABLED_MergeIntoServerCache_CompoundWrite) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest,
        MergeIntoServerCache_CompoundWrite) {
-  EXPECT_DEBUG_DEATH(engine_.MergeIntoServerCache(Path(), CompoundWrite()),
-                     DEATHTEST_SIGABRT);
+#endif
+  EXPECT_DEATH(engine_.MergeIntoServerCache(Path(), CompoundWrite()),
+               DEATHTEST_SIGABRT);
 }
 
 TEST_F(InMemoryPersistenceStorageEngineTest,
@@ -251,9 +281,13 @@ TEST_F(InMemoryPersistenceStorageEngineTest, ServerCacheEstimatedSizeInBytes) {
             9 * sizeof(Variant) + 4 * kKeyLengths + 2 * kValueLengths);
 }
 
+#ifndef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveTrackedQuery) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveTrackedQuery) {
+#endif
   // Must be in a transaction.
-  EXPECT_DEBUG_DEATH(engine_.SaveTrackedQuery(TrackedQuery()), DEATHTEST_SIGABRT);
+  EXPECT_DEATH(engine_.SaveTrackedQuery(TrackedQuery()), DEATHTEST_SIGABRT);
 }
 
 TEST_F(InMemoryPersistenceStorageEngineTest, SaveTrackedQuery) {
@@ -265,9 +299,13 @@ TEST_F(InMemoryPersistenceStorageEngineTest, SaveTrackedQuery) {
   engine_.EndTransaction();
 }
 
+#ifndef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_DeleteTrackedQuery) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DeleteTrackedQuery) {
+#endif
   // Must be in a transaction.
-  EXPECT_DEBUG_DEATH(engine_.DeleteTrackedQuery(100), DEATHTEST_SIGABRT);
+  EXPECT_DEATH(engine_.DeleteTrackedQuery(100), DEATHTEST_SIGABRT);
 }
 
 TEST_F(InMemoryPersistenceStorageEngineTest, DeleteTrackedQuery) {
@@ -327,11 +365,16 @@ TEST_F(InMemoryPersistenceStorageEngineTest, PruneCache) {
   // clang-format on
 }
 
+#ifndef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest,
+       DISABLED_ResetPreviouslyActiveTrackedQueries) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest,
        ResetPreviouslyActiveTrackedQueries) {
+#endif
   // Must be in a transaction.
-  EXPECT_DEBUG_DEATH(engine_.ResetPreviouslyActiveTrackedQueries(100),
-                     DEATHTEST_SIGABRT);
+  EXPECT_DEATH(engine_.ResetPreviouslyActiveTrackedQueries(100),
+               DEATHTEST_SIGABRT);
 }
 
 TEST_F(InMemoryPersistenceStorageEngineTest,
@@ -344,16 +387,24 @@ TEST_F(InMemoryPersistenceStorageEngineTest,
   engine_.EndTransaction();
 }
 
+#ifndef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveTrackedQueryKeys) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveTrackedQueryKeys) {
+#endif
   // Must be in a transaction.
-  EXPECT_DEBUG_DEATH(engine_.SaveTrackedQueryKeys(100, std::set<std::string>()),
-                     DEATHTEST_SIGABRT);
+  EXPECT_DEATH(engine_.SaveTrackedQueryKeys(100, std::set<std::string>()),
+               DEATHTEST_SIGABRT);
 }
 
+#ifndef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_UpdateTrackedQueryKeys) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, UpdateTrackedQueryKeys) {
-  EXPECT_DEBUG_DEATH(engine_.UpdateTrackedQueryKeys(100, std::set<std::string>(),
+#endif
+  EXPECT_DEATH(engine_.UpdateTrackedQueryKeys(100, std::set<std::string>(),
                                               std::set<std::string>()),
-                     DEATHTEST_SIGABRT);
+               DEATHTEST_SIGABRT);
 }
 
 TEST_F(InMemoryPersistenceStorageEngineTest, TrackedQueryKeys) {
@@ -388,7 +439,11 @@ TEST_F(InMemoryPersistenceStorageEngineTest, TrackedQueryKeys) {
   engine_.EndTransaction();
 }
 
+#ifndef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_BeginTransaction) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, BeginTransaction) {
+#endif
   EXPECT_TRUE(engine_.BeginTransaction());
   // Cannot begin a transaction while in a transaction.
   EXPECT_DEATH(engine_.BeginTransaction(), DEATHTEST_SIGABRT);
@@ -399,7 +454,11 @@ TEST_F(InMemoryPersistenceStorageEngineTest, BeginTransaction) {
   EXPECT_TRUE(engine_.BeginTransaction());
 }
 
+#ifndef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_EndTransaction) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, EndTransaction) {
+#endif
   // Cannot end a transaction unless in a transaction.
   EXPECT_DEATH(engine_.EndTransaction(), DEATHTEST_SIGABRT);
 }

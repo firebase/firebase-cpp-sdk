@@ -318,27 +318,35 @@ TEST_F(EventGeneratorTest, GenerateEventsForChangesWithDifferentQuerySpec) {
   EXPECT_THAT(result, Pointwise(Eq(), expected));
 }
 
+#ifndef NDEBUG
+TEST_F(EventGeneratorDeathTest, DISABLED_MissingChildName) {
+#else
 TEST_F(EventGeneratorDeathTest, MissingChildName) {
+#endif
   std::vector<Change> changes{
       ChildAddedChange("", CombineValueAndPriority(100, 1)),
   };
   // All child changes are expected to have a key. Missing a key means we have a
   // malformed Change object.
-  EXPECT_DEBUG_DEATH(GenerateEventsForChanges(QuerySpec(), changes, event_cache_,
+  EXPECT_DEATH(GenerateEventsForChanges(QuerySpec(), changes, event_cache_,
                                         event_registrations_),
-                     DEATHTEST_SIGABRT);
+               DEATHTEST_SIGABRT);
 }
 
+#ifndef NDEBUG
+TEST_F(EventGeneratorDeathTest, DISABLED_MultipleValueChanges) {
+#else
 TEST_F(EventGeneratorDeathTest, MultipleValueChanges) {
+#endif
   std::vector<Change> changes{
       ValueChange(IndexedVariant(Variant("aaa"))),
       ValueChange(IndexedVariant(Variant("bbb"))),
   };
   // Value changes only occur one at a time, so if we have two something has
   // gone wrong at the call site.
-  EXPECT_DEBUG_DEATH(GenerateEventsForChanges(QuerySpec(), changes, event_cache_,
+  EXPECT_DEATH(GenerateEventsForChanges(QuerySpec(), changes, event_cache_,
                                         event_registrations_),
-                     DEATHTEST_SIGABRT);
+               DEATHTEST_SIGABRT);
 }
 
 }  // namespace internal

@@ -187,10 +187,14 @@ TEST_F(TrackedQueryManagerTest, RemoveTrackedQuery) {
   EXPECT_EQ(manager_->FindTrackedQuery(spec_complete_active_), nullptr);
 }
 
+#ifndef NDEBUG
+TEST_F(TrackedQueryManagerDeathTest, DISABLED_RemoveTrackedQuery_Failure) {
+#else
 TEST_F(TrackedQueryManagerDeathTest, RemoveTrackedQuery_Failure) {
+#endif
   QuerySpec not_tracked(Path("a/path/not/being/tracked"));
   // Can't remove a query unless you're already tracking it.
-  EXPECT_DEBUG_DEATH(manager_->RemoveTrackedQuery(not_tracked), DEATHTEST_SIGABRT);
+  EXPECT_DEATH(manager_->RemoveTrackedQuery(not_tracked), DEATHTEST_SIGABRT);
 }
 
 TEST_F(TrackedQueryManagerTest, SetQueryActiveFlag_NewQuery) {
@@ -233,7 +237,11 @@ TEST_F(TrackedQueryManagerTest, SetQueryActiveFlag_ExistingQueryWasFalse) {
   EXPECT_TRUE(result->active);
 }
 
+#ifndef NDEBUG
+TEST_F(TrackedQueryManagerDeathTest, DISABLED_SetQueryInactive_NewQuery) {
+#else
 TEST_F(TrackedQueryManagerDeathTest, SetQueryInactive_NewQuery) {
+#endif
   QuerySpec new_spec(Path("new/active/query"));
   // Can't set a query inactive unless you are already tracking it.
   EXPECT_DEATH(manager_->SetQueryActiveFlag(new_spec, TrackedQuery::kInactive),

@@ -379,7 +379,11 @@ TEST(View, RemoveEventRegistration_RemoveAll) {
 // difficult to mock the interaction. Those functions are themselves tested in
 // view_processor_test.cc and event_generator_test.cc respectively.
 
+#ifndef NDEBUG
+TEST(ViewDeathTest, DISABLED_ApplyOperation_MustHaveLocalCache) {
+#else
 TEST(ViewDeathTest, ApplyOperation_MustHaveLocalCache) {
+#endif
   QuerySpec query_spec;
   CacheNode local_cache(IndexedVariant(Variant()), true, false);
   CacheNode server_cache(IndexedVariant(Variant()), false, false);
@@ -394,12 +398,16 @@ TEST(ViewDeathTest, ApplyOperation_MustHaveLocalCache) {
   Variant complete_server_cache;
   std::vector<Change> changes;
 
-  EXPECT_DEBUG_DEATH(view.ApplyOperation(operation, writes_cache,
+  EXPECT_DEATH(view.ApplyOperation(operation, writes_cache,
                                    &complete_server_cache, &changes),
-                     DEATHTEST_SIGABRT);
+               DEATHTEST_SIGABRT);
 }
 
+#ifndef NDEBUG
+TEST(ViewDeathTest, DISABLED_ApplyOperation_MustHaveServerCache) {
+#else
 TEST(ViewDeathTest, ApplyOperation_MustHaveServerCache) {
+#endif
   QuerySpec query_spec;
   CacheNode local_cache(IndexedVariant(Variant()), false, false);
   CacheNode server_cache(IndexedVariant(Variant()), true, false);
@@ -414,9 +422,9 @@ TEST(ViewDeathTest, ApplyOperation_MustHaveServerCache) {
   Variant complete_server_cache;
   std::vector<Change> changes;
 
-  EXPECT_DEBUG_DEATH(view.ApplyOperation(operation, writes_cache,
+  EXPECT_DEATH(view.ApplyOperation(operation, writes_cache,
                                    &complete_server_cache, &changes),
-                     DEATHTEST_SIGABRT);
+               DEATHTEST_SIGABRT);
 }
 
 TEST(View, GetInitialEvents) {

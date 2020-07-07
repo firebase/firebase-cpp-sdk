@@ -733,16 +733,20 @@ TEST_F(SyncTreeTest, RemoveEventRegistration) {
   EXPECT_EQ(results, std::vector<Event>{expected_event});
 }
 
+#ifndef NDEBUG
+TEST_F(SyncTreeDeathTest, DISABLED_RemoveEventRegistration) {
+#else
 TEST_F(SyncTreeDeathTest, RemoveEventRegistration) {
+#endif
   QuerySpec query_spec(Path("i/am/become/death"));
   MockChildListener listener;
   ChildEventRegistration* event_registration =
       new ChildEventRegistration(nullptr, &listener, query_spec);
   sync_tree_->AddEventRegistration(
       UniquePtr<ChildEventRegistration>(event_registration));
-  EXPECT_DEBUG_DEATH(sync_tree_->RemoveEventRegistration(query_spec, &listener,
+  EXPECT_DEATH(sync_tree_->RemoveEventRegistration(query_spec, &listener,
                                                    kErrorExpiredToken),
-                     DEATHTEST_SIGABRT);
+               DEATHTEST_SIGABRT);
 }
 
 TEST(SyncTree, CalcCompleteEventCache) {

@@ -193,7 +193,11 @@ TEST(IndexedFilter, UpdateChild_RemovedValue) {
   EXPECT_THAT(change_accumulator, Pointwise(Eq(), expected_changes));
 }
 
+#ifndef NDEBUG
+TEST(IndexedFilterDeathTest, DISABLED_UpdateChild_OrderByMismatch) {
+#else
 TEST(IndexedFilterDeathTest, UpdateChild_OrderByMismatch) {
+#endif
   QueryParams params;
   params.order_by = QueryParams::kOrderByChild;
   IndexedFilter filter(params);
@@ -206,10 +210,10 @@ TEST(IndexedFilterDeathTest, UpdateChild_OrderByMismatch) {
                      Path("irrelevant/path"), nullptr, nullptr);
 
   // Should die.
-  EXPECT_DEBUG_DEATH(filter.UpdateChild(bad_snap, "irrelevant_key",
+  EXPECT_DEATH(filter.UpdateChild(bad_snap, "irrelevant_key",
                                   Variant("irrelevant variant"),
                                   Path("irrelevant/path"), nullptr, nullptr),
-                    DEATHTEST_SIGABRT);
+               DEATHTEST_SIGABRT);
 }
 
 TEST(IndexedFilter, UpdateFullVariant) {
@@ -311,7 +315,11 @@ TEST(IndexedFilter, UpdateFullVariant) {
   }
 }
 
+#ifndef NDEBUG
+TEST(IndexedFilterDeathTest, DISABLED_UpdateFullVariant_OrderByMismatch) {
+#else
 TEST(IndexedFilterDeathTest, UpdateFullVariant_OrderByMismatch) {
+#endif
   QueryParams params;
   params.order_by = QueryParams::kOrderByChild;
   IndexedFilter filter(params);
@@ -324,8 +332,8 @@ TEST(IndexedFilterDeathTest, UpdateFullVariant_OrderByMismatch) {
   filter.UpdateFullVariant(irrelevant_snap, good_new_snap, nullptr);
 
   // Should die.
-  EXPECT_DEBUG_DEATH(filter.UpdateFullVariant(irrelevant_snap, bad_new_snap, nullptr),
-                     DEATHTEST_SIGABRT);
+  EXPECT_DEATH(filter.UpdateFullVariant(irrelevant_snap, bad_new_snap, nullptr),
+               DEATHTEST_SIGABRT);
 }
 
 TEST(IndexedFilter, UpdatePriority_Null) {

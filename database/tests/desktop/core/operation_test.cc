@@ -71,11 +71,15 @@ TEST(OperationSource, OperationSourceAllArgConstructor) {
   }
 }
 
+#ifndef NDEBUG
+TEST(OperationSourceDeathTest, DISABLED_BadConstructorArgs) {
+#else
 TEST(OperationSourceDeathTest, BadConstructorArgs) {
+#endif
   QueryParams params;
-  EXPECT_DEBUG_DEATH(OperationSource(OperationSource::kSourceUser,
+  EXPECT_DEATH(OperationSource(OperationSource::kSourceUser,
                                Optional<QueryParams>(params), true),
-                    "");
+               "");
 }
 
 TEST(OperationSource, ForServerTaggedQuery) {
@@ -154,10 +158,14 @@ TEST(Operation, ListenComplete) {
   EXPECT_EQ(op.path.str(), "A/B/C");
 }
 
+#ifndef NDEBUG
+TEST(OperationDeathTest, DISABLED_ListenCompleteWithWrongSource) {
+#else
 TEST(OperationDeathTest, ListenCompleteWithWrongSource) {
+#endif
   // ListenCompletes must come from the server, not the user.
-  EXPECT_DEBUG_DEATH(Operation::ListenComplete(OperationSource::kUser, Path("A/B/C")),
-                     DEATHTEST_SIGABRT);
+  EXPECT_DEATH(Operation::ListenComplete(OperationSource::kUser, Path("A/B/C")),
+               DEATHTEST_SIGABRT);
 }
 
 TEST(Operation, OperationForChildOverwriteEmptyPath) {
@@ -307,8 +315,13 @@ TEST(Operation, OperationForChildAckUserWriteNonEmptyPath) {
   EXPECT_TRUE(result->revert);
 }
 
+#ifndef NDEBUG
+TEST(OperationDeathTest,
+     DISABLED_OperationForChildAckUserWriteNonEmptyPathWithUnrelatedChild) {
+#else
 TEST(OperationDeathTest,
      OperationForChildAckUserWriteNonEmptyPathWithUnrelatedChild) {
+#endif
   Tree<bool> affected_tree;
   affected_tree.SetValueAt(Path("aaa"), true);
   affected_tree.SetValueAt(Path("bbb"), false);
@@ -318,7 +331,7 @@ TEST(OperationDeathTest,
       Operation::AckUserWrite(Path("A/B/C"), affected_tree, kAckRevert);
 
   // Cannot ack an unrelated path.
-  EXPECT_DEBUG_DEATH(OperationForChild(op, "Z"), DEATHTEST_SIGABRT);
+  EXPECT_DEATH(OperationForChild(op, "Z"), DEATHTEST_SIGABRT);
 }
 
 TEST(Operation, OperationForChildAckUserWriteEmptyPathHasValue) {
@@ -337,8 +350,13 @@ TEST(Operation, OperationForChildAckUserWriteEmptyPathHasValue) {
   EXPECT_TRUE(result->revert);
 }
 
+#ifndef NDEBUG
+TEST(OperationDeathTest,
+     DISABLED_OperationForChildAckUserWriteEmptyPathOverlappingChildren) {
+#else
 TEST(OperationDeathTest,
      OperationForChildAckUserWriteEmptyPathOverlappingChildren) {
+#endif
   Tree<bool> affected_tree;
   affected_tree.SetValueAt(Path(), false);
   affected_tree.SetValueAt(Path("aaa"), true);
@@ -348,7 +366,7 @@ TEST(OperationDeathTest,
   Operation op = Operation::AckUserWrite(Path(), affected_tree, kAckRevert);
 
   // The affected tree has a value at the root which overlaps the affected path.
-  EXPECT_DEBUG_DEATH(OperationForChild(op, "ccc"), DEATHTEST_SIGABRT);
+  EXPECT_DEATH(OperationForChild(op, "ccc"), DEATHTEST_SIGABRT);
 }
 
 TEST(Operation, OperationForChildAckUserWriteEmptyPathDoesNotHasValue) {

@@ -397,9 +397,13 @@ TEST_F(OptionalTest, HasValue) {
   EXPECT_FALSE(optional_int.has_value());
 }
 
+#ifndef NDEBUG
+TEST_F(OptionalTest, DISABLED_ValueDeathTest) {
+#else
 TEST_F(OptionalTest, ValueDeathTest) {
+#endif
   Optional<int> empty;
-  EXPECT_DEBUG_DEATH(empty.value(), "");
+  EXPECT_DEATH(empty.value(), "");
 }
 
 TEST_F(OptionalTest, ValueOr) {
