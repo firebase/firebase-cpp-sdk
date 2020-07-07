@@ -266,7 +266,7 @@ class AuthStateChangesCounter : public detail::ListenerChangeCounter,
 class SleepUponDestruction {
   public:
   ~SleepUponDestruction() {
-    firebase::internal::Sleep(1000);
+    firebase::internal::Sleep(200);
   }
 };
 
