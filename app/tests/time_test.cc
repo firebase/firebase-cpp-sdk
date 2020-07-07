@@ -95,7 +95,7 @@ TEST(TimeTests, GetTimestampEpochTest) {
   printf("%llu -> %llu (%lld)\n", start, end, error);
 #endif  // __linux__
 
-  EXPECT_LT(error, 0.10 * firebase::internal::kMillisecondsPerSecond);
+  EXPECT_LT(error, 0.15 * firebase::internal::kMillisecondsPerSecond);
 }
 
 }  // namespace
