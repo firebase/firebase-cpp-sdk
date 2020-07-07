@@ -241,7 +241,7 @@ TEST_F(SchedulerTest, RepeatCallbackNoDelay) {
 }
 
 TEST_F(SchedulerTest, RepeatCallbackWithDelay) {
-  int delay = 1000;
+  int delay = 100;
   scheduler_.Schedule(new callback::CallbackVoid(SemaphorePost1), delay, 1);
 
   auto start = internal::GetTimestamp();
@@ -253,7 +253,7 @@ TEST_F(SchedulerTest, RepeatCallbackWithDelay) {
   int error = abs(actual_delay - delay);
   printf("Delay: %dms. Actual delay: %dms. Error: %dms\n", delay, actual_delay,
          error);
-  EXPECT_TRUE(error < 0.1 * internal::kMillisecondsPerSecond);
+  EXPECT_TRUE(error < 0.2 * internal::kMillisecondsPerSecond);
 
   // Wait for it to repeat 100 times
   for (int i = 0; i < 100; ++i) {
