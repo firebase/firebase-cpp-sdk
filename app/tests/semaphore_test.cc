@@ -71,7 +71,7 @@ TEST(SemaphoreTest, TimedWait) {
   EXPECT_FALSE(sem.TimedWait(firebase::internal::kMillisecondsPerSecond));
   int64_t finish_ms = firebase::internal::GetTimestamp();
 
-  EXPECT_LE(labs((finish_ms - start_ms) -
+  EXPECT_LT(labs((finish_ms - start_ms) -
               firebase::internal::kMillisecondsPerSecond),
          0.20 * firebase::internal::kMillisecondsPerSecond);
 }

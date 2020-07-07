@@ -253,7 +253,7 @@ TEST_F(SchedulerTest, RepeatCallbackWithDelay) {
   int error = abs(actual_delay - delay);
   printf("Delay: %dms. Actual delay: %dms. Error: %dms\n", delay, actual_delay,
          error);
-  EXPECT_TRUE(error < 0.1 * internal::kMillisecondsPerSecond);
+  EXPECT_LE(error, 0.1 * internal::kMillisecondsPerSecond);
 
   // Wait for it to repeat 100 times
   for (int i = 0; i < 100; ++i) {
