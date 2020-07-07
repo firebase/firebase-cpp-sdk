@@ -74,7 +74,7 @@ TEST(TimeTests, GetTimestampTest) {
 
   int64_t error = llabs(static_cast<int64_t>(end - start) - 500);
 
-  EXPECT_LT(error, 0.10 * firebase::internal::kMillisecondsPerSecond);
+  EXPECT_LT(error, 0.15 * firebase::internal::kMillisecondsPerSecond);
 }
 
 // Test GetTimestampEpoch function
