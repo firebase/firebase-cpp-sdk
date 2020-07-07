@@ -52,7 +52,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, LoadServerCache) {
   EXPECT_EQ(engine_.LoadServerCache(), Variant::Null());
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveUserOverwrite) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveUserOverwrite) {
@@ -70,7 +70,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, SaveUserOverwrite) {
   engine_.EndTransaction();
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveUserMerge) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveUserMerge) {
@@ -88,7 +88,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, SaveUserMerge) {
   engine_.EndTransaction();
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_RemoveUserWrite) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, RemoveUserWrite) {
@@ -108,7 +108,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, LoadUserWrites) {
   EXPECT_TRUE(engine_.LoadUserWrites().empty());
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_RemoveAllUserWrites) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, RemoveAllUserWrites) {
@@ -126,7 +126,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, RemoveAllUserWrites) {
   engine_.EndTransaction();
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_OverwriteServerCache) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, OverwriteServerCache) {
@@ -165,7 +165,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, OverwriteServerCache) {
   // clang-format on
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest,
        DISABLED_MergeIntoServerCache_Variant) {
 #else
@@ -213,7 +213,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, MergeIntoServerCache_Variant) {
   // clang-format on
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest,
        DISABLED_MergeIntoServerCache_CompoundWrite) {
 #else
@@ -281,7 +281,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, ServerCacheEstimatedSizeInBytes) {
             9 * sizeof(Variant) + 4 * kKeyLengths + 2 * kValueLengths);
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveTrackedQuery) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveTrackedQuery) {
@@ -299,7 +299,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, SaveTrackedQuery) {
   engine_.EndTransaction();
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_DeleteTrackedQuery) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DeleteTrackedQuery) {
@@ -365,7 +365,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, PruneCache) {
   // clang-format on
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest,
        DISABLED_ResetPreviouslyActiveTrackedQueries) {
 #else
@@ -387,7 +387,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest,
   engine_.EndTransaction();
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveTrackedQueryKeys) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveTrackedQueryKeys) {
@@ -397,7 +397,7 @@ TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveTrackedQueryKeys) {
                DEATHTEST_SIGABRT);
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_UpdateTrackedQueryKeys) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, UpdateTrackedQueryKeys) {
@@ -439,7 +439,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, TrackedQueryKeys) {
   engine_.EndTransaction();
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_BeginTransaction) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, BeginTransaction) {
@@ -454,7 +454,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, BeginTransaction) {
   EXPECT_TRUE(engine_.BeginTransaction());
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_EndTransaction) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, EndTransaction) {

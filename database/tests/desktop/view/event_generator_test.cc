@@ -318,7 +318,7 @@ TEST_F(EventGeneratorTest, GenerateEventsForChangesWithDifferentQuerySpec) {
   EXPECT_THAT(result, Pointwise(Eq(), expected));
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(EventGeneratorDeathTest, DISABLED_MissingChildName) {
 #else
 TEST_F(EventGeneratorDeathTest, MissingChildName) {
@@ -333,7 +333,7 @@ TEST_F(EventGeneratorDeathTest, MissingChildName) {
                DEATHTEST_SIGABRT);
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(EventGeneratorDeathTest, DISABLED_MultipleValueChanges) {
 #else
 TEST_F(EventGeneratorDeathTest, MultipleValueChanges) {

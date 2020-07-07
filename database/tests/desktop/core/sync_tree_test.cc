@@ -733,7 +733,7 @@ TEST_F(SyncTreeTest, RemoveEventRegistration) {
   EXPECT_EQ(results, std::vector<Event>{expected_event});
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(SyncTreeDeathTest, DISABLED_RemoveEventRegistration) {
 #else
 TEST_F(SyncTreeDeathTest, RemoveEventRegistration) {

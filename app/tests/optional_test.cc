@@ -397,7 +397,7 @@ TEST_F(OptionalTest, HasValue) {
   EXPECT_FALSE(optional_int.has_value());
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(OptionalTest, DISABLED_ValueDeathTest) {
 #else
 TEST_F(OptionalTest, ValueDeathTest) {

@@ -187,7 +187,7 @@ TEST_F(TrackedQueryManagerTest, RemoveTrackedQuery) {
   EXPECT_EQ(manager_->FindTrackedQuery(spec_complete_active_), nullptr);
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(TrackedQueryManagerDeathTest, DISABLED_RemoveTrackedQuery_Failure) {
 #else
 TEST_F(TrackedQueryManagerDeathTest, RemoveTrackedQuery_Failure) {
@@ -237,7 +237,7 @@ TEST_F(TrackedQueryManagerTest, SetQueryActiveFlag_ExistingQueryWasFalse) {
   EXPECT_TRUE(result->active);
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST_F(TrackedQueryManagerDeathTest, DISABLED_SetQueryInactive_NewQuery) {
 #else
 TEST_F(TrackedQueryManagerDeathTest, SetQueryInactive_NewQuery) {

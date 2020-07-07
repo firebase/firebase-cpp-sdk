@@ -71,7 +71,7 @@ TEST(OperationSource, OperationSourceAllArgConstructor) {
   }
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST(OperationSourceDeathTest, DISABLED_BadConstructorArgs) {
 #else
 TEST(OperationSourceDeathTest, BadConstructorArgs) {
@@ -158,7 +158,7 @@ TEST(Operation, ListenComplete) {
   EXPECT_EQ(op.path.str(), "A/B/C");
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST(OperationDeathTest, DISABLED_ListenCompleteWithWrongSource) {
 #else
 TEST(OperationDeathTest, ListenCompleteWithWrongSource) {
@@ -315,7 +315,7 @@ TEST(Operation, OperationForChildAckUserWriteNonEmptyPath) {
   EXPECT_TRUE(result->revert);
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST(OperationDeathTest,
      DISABLED_OperationForChildAckUserWriteNonEmptyPathWithUnrelatedChild) {
 #else
@@ -350,7 +350,7 @@ TEST(Operation, OperationForChildAckUserWriteEmptyPathHasValue) {
   EXPECT_TRUE(result->revert);
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST(OperationDeathTest,
      DISABLED_OperationForChildAckUserWriteEmptyPathOverlappingChildren) {
 #else

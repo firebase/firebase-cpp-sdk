@@ -64,7 +64,7 @@ TEST(NoopPersistenceManager, InsideTransaction) {
   }));
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST(NoopPersistenceManagerDeathTest, DISABLED_NestedTransaction) {
 #else
 TEST(NoopPersistenceManagerDeathTest, NestedTransaction) {

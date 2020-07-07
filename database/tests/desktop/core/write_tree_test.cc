@@ -68,7 +68,7 @@ TEST(WriteTree, AddMerge) {
   EXPECT_EQ(record->path, Path("test/path"));
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST(WriteTreeDeathTest, DISABLED_AddMerge) {
 #else
 TEST(WriteTreeDeathTest, AddMerge) {
@@ -134,7 +134,11 @@ TEST(WriteTree, RemoveWrite) {
   EXPECT_NE(write_tree.GetWrite(102), nullptr);
 }
 
+#ifdef NDEBUG
+TEST(WriteTreeDeathTest, DISABLED_RemoveWrite) {
+#else
 TEST(WriteTreeDeathTest, RemoveWrite) {
+#endif
   WriteTree write_tree;
   Variant snap("test_data");
   write_tree.AddOverwrite(Path("test/path/one/visible"), snap, 100,
@@ -145,7 +149,7 @@ TEST(WriteTreeDeathTest, RemoveWrite) {
                           kOverwriteVisible);
 
   // Cannot remove a write that never happened.
-  EXPECT_DEBUG_DEATH(write_tree.RemoveWrite(200), DEATHTEST_SIGABRT);
+  EXPECT_DEATH(write_tree.RemoveWrite(200), DEATHTEST_SIGABRT);
 }
 
 TEST(WriteTree, GetCompleteWriteData) {

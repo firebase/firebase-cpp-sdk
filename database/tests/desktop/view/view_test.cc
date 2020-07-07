@@ -379,7 +379,7 @@ TEST(View, RemoveEventRegistration_RemoveAll) {
 // difficult to mock the interaction. Those functions are themselves tested in
 // view_processor_test.cc and event_generator_test.cc respectively.
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST(ViewDeathTest, DISABLED_ApplyOperation_MustHaveLocalCache) {
 #else
 TEST(ViewDeathTest, ApplyOperation_MustHaveLocalCache) {
@@ -403,7 +403,7 @@ TEST(ViewDeathTest, ApplyOperation_MustHaveLocalCache) {
                DEATHTEST_SIGABRT);
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST(ViewDeathTest, DISABLED_ApplyOperation_MustHaveServerCache) {
 #else
 TEST(ViewDeathTest, ApplyOperation_MustHaveServerCache) {

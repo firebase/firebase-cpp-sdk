@@ -193,7 +193,7 @@ TEST(IndexedFilter, UpdateChild_RemovedValue) {
   EXPECT_THAT(change_accumulator, Pointwise(Eq(), expected_changes));
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST(IndexedFilterDeathTest, DISABLED_UpdateChild_OrderByMismatch) {
 #else
 TEST(IndexedFilterDeathTest, UpdateChild_OrderByMismatch) {
@@ -315,7 +315,7 @@ TEST(IndexedFilter, UpdateFullVariant) {
   }
 }
 
-#ifndef NDEBUG
+#ifdef NDEBUG
 TEST(IndexedFilterDeathTest, DISABLED_UpdateFullVariant_OrderByMismatch) {
 #else
 TEST(IndexedFilterDeathTest, UpdateFullVariant_OrderByMismatch) {
