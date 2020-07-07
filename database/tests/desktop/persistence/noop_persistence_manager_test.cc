@@ -68,7 +68,7 @@ TEST(NoopPersistenceManagerDeathTest, NestedTransaction) {
   // Make sure none of these functions result in a crash. There is no state we
   // can query or other side effects that we can test.
   NoopPersistenceManager manager;
-  EXPECT_DEATH(manager.RunInTransaction([&manager]() {
+  EXPECT_DEBUG_DEATH(manager.RunInTransaction([&manager]() {
     // This transaction should run.
     manager.RunInTransaction([]() {
       // This transaction should not run, since the nested call to

@@ -73,9 +73,9 @@ TEST(OperationSource, OperationSourceAllArgConstructor) {
 
 TEST(OperationSourceDeathTest, BadConstructorArgs) {
   QueryParams params;
-  EXPECT_DEATH(OperationSource(OperationSource::kSourceUser,
+  EXPECT_DEBUG_DEATH(OperationSource(OperationSource::kSourceUser,
                                Optional<QueryParams>(params), true),
-               "");
+                    "");
 }
 
 TEST(OperationSource, ForServerTaggedQuery) {
@@ -156,8 +156,8 @@ TEST(Operation, ListenComplete) {
 
 TEST(OperationDeathTest, ListenCompleteWithWrongSource) {
   // ListenCompletes must come from the server, not the user.
-  EXPECT_DEATH(Operation::ListenComplete(OperationSource::kUser, Path("A/B/C")),
-               DEATHTEST_SIGABRT);
+  EXPECT_DEBUG_DEATH(Operation::ListenComplete(OperationSource::kUser, Path("A/B/C")),
+                     DEATHTEST_SIGABRT);
 }
 
 TEST(Operation, OperationForChildOverwriteEmptyPath) {
@@ -318,7 +318,7 @@ TEST(OperationDeathTest,
       Operation::AckUserWrite(Path("A/B/C"), affected_tree, kAckRevert);
 
   // Cannot ack an unrelated path.
-  EXPECT_DEATH(OperationForChild(op, "Z"), DEATHTEST_SIGABRT);
+  EXPECT_DEBUG_DEATH(OperationForChild(op, "Z"), DEATHTEST_SIGABRT);
 }
 
 TEST(Operation, OperationForChildAckUserWriteEmptyPathHasValue) {
@@ -348,7 +348,7 @@ TEST(OperationDeathTest,
   Operation op = Operation::AckUserWrite(Path(), affected_tree, kAckRevert);
 
   // The affected tree has a value at the root which overlaps the affected path.
-  EXPECT_DEATH(OperationForChild(op, "ccc"), DEATHTEST_SIGABRT);
+  EXPECT_DEBUG_DEATH(OperationForChild(op, "ccc"), DEATHTEST_SIGABRT);
 }
 
 TEST(Operation, OperationForChildAckUserWriteEmptyPathDoesNotHasValue) {

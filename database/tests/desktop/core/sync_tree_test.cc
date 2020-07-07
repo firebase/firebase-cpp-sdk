@@ -740,9 +740,9 @@ TEST_F(SyncTreeDeathTest, RemoveEventRegistration) {
       new ChildEventRegistration(nullptr, &listener, query_spec);
   sync_tree_->AddEventRegistration(
       UniquePtr<ChildEventRegistration>(event_registration));
-  EXPECT_DEATH(sync_tree_->RemoveEventRegistration(query_spec, &listener,
+  EXPECT_DEBUG_DEATH(sync_tree_->RemoveEventRegistration(query_spec, &listener,
                                                    kErrorExpiredToken),
-               DEATHTEST_SIGABRT);
+                     DEATHTEST_SIGABRT);
 }
 
 TEST(SyncTree, CalcCompleteEventCache) {

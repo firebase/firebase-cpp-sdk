@@ -324,9 +324,9 @@ TEST_F(EventGeneratorDeathTest, MissingChildName) {
   };
   // All child changes are expected to have a key. Missing a key means we have a
   // malformed Change object.
-  EXPECT_DEATH(GenerateEventsForChanges(QuerySpec(), changes, event_cache_,
+  EXPECT_DEBUG_DEATH(GenerateEventsForChanges(QuerySpec(), changes, event_cache_,
                                         event_registrations_),
-               DEATHTEST_SIGABRT);
+                     DEATHTEST_SIGABRT);
 }
 
 TEST_F(EventGeneratorDeathTest, MultipleValueChanges) {
@@ -336,9 +336,9 @@ TEST_F(EventGeneratorDeathTest, MultipleValueChanges) {
   };
   // Value changes only occur one at a time, so if we have two something has
   // gone wrong at the call site.
-  EXPECT_DEATH(GenerateEventsForChanges(QuerySpec(), changes, event_cache_,
+  EXPECT_DEBUG_DEATH(GenerateEventsForChanges(QuerySpec(), changes, event_cache_,
                                         event_registrations_),
-               DEATHTEST_SIGABRT);
+                     DEATHTEST_SIGABRT);
 }
 
 }  // namespace internal

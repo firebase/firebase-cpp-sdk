@@ -394,9 +394,9 @@ TEST(ViewDeathTest, ApplyOperation_MustHaveLocalCache) {
   Variant complete_server_cache;
   std::vector<Change> changes;
 
-  EXPECT_DEATH(view.ApplyOperation(operation, writes_cache,
+  EXPECT_DEBUG_DEATH(view.ApplyOperation(operation, writes_cache,
                                    &complete_server_cache, &changes),
-               DEATHTEST_SIGABRT);
+                     DEATHTEST_SIGABRT);
 }
 
 TEST(ViewDeathTest, ApplyOperation_MustHaveServerCache) {
@@ -414,9 +414,9 @@ TEST(ViewDeathTest, ApplyOperation_MustHaveServerCache) {
   Variant complete_server_cache;
   std::vector<Change> changes;
 
-  EXPECT_DEATH(view.ApplyOperation(operation, writes_cache,
+  EXPECT_DEBUG_DEATH(view.ApplyOperation(operation, writes_cache,
                                    &complete_server_cache, &changes),
-               DEATHTEST_SIGABRT);
+                     DEATHTEST_SIGABRT);
 }
 
 TEST(View, GetInitialEvents) {

@@ -190,7 +190,7 @@ TEST_F(TrackedQueryManagerTest, RemoveTrackedQuery) {
 TEST_F(TrackedQueryManagerDeathTest, RemoveTrackedQuery_Failure) {
   QuerySpec not_tracked(Path("a/path/not/being/tracked"));
   // Can't remove a query unless you're already tracking it.
-  EXPECT_DEATH(manager_->RemoveTrackedQuery(not_tracked), DEATHTEST_SIGABRT);
+  EXPECT_DEBUG_DEATH(manager_->RemoveTrackedQuery(not_tracked), DEATHTEST_SIGABRT);
 }
 
 TEST_F(TrackedQueryManagerTest, SetQueryActiveFlag_NewQuery) {

@@ -206,10 +206,10 @@ TEST(IndexedFilterDeathTest, UpdateChild_OrderByMismatch) {
                      Path("irrelevant/path"), nullptr, nullptr);
 
   // Should die.
-  EXPECT_DEATH(filter.UpdateChild(bad_snap, "irrelevant_key",
+  EXPECT_DEBUG_DEATH(filter.UpdateChild(bad_snap, "irrelevant_key",
                                   Variant("irrelevant variant"),
                                   Path("irrelevant/path"), nullptr, nullptr),
-               DEATHTEST_SIGABRT);
+                    DEATHTEST_SIGABRT);
 }
 
 TEST(IndexedFilter, UpdateFullVariant) {
@@ -324,8 +324,8 @@ TEST(IndexedFilterDeathTest, UpdateFullVariant_OrderByMismatch) {
   filter.UpdateFullVariant(irrelevant_snap, good_new_snap, nullptr);
 
   // Should die.
-  EXPECT_DEATH(filter.UpdateFullVariant(irrelevant_snap, bad_new_snap, nullptr),
-               DEATHTEST_SIGABRT);
+  EXPECT_DEBUG_DEATH(filter.UpdateFullVariant(irrelevant_snap, bad_new_snap, nullptr),
+                     DEATHTEST_SIGABRT);
 }
 
 TEST(IndexedFilter, UpdatePriority_Null) {

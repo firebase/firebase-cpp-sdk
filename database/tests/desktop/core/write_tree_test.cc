@@ -72,8 +72,8 @@ TEST(WriteTreeDeathTest, AddMerge) {
   WriteTree write_tree;
   CompoundWrite changed_children;
   write_tree.AddMerge(Path("test/path"), changed_children, 100);
-  EXPECT_DEATH(write_tree.AddMerge(Path("test/path"), changed_children, 50),
-               DEATHTEST_SIGABRT);
+  EXPECT_DEBUG_DEATH(write_tree.AddMerge(Path("test/path"), changed_children, 50),
+                     DEATHTEST_SIGABRT);
 }
 
 TEST(WriteTree, GetWrite) {

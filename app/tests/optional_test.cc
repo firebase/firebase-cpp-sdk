@@ -399,7 +399,7 @@ TEST_F(OptionalTest, HasValue) {
 
 TEST_F(OptionalTest, ValueDeathTest) {
   Optional<int> empty;
-  EXPECT_DEATH(empty.value(), "");
+  EXPECT_DEBUG_DEATH(empty.value(), "");
 }
 
 TEST_F(OptionalTest, ValueOr) {
