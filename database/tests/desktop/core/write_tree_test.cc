@@ -141,7 +141,7 @@ TEST(WriteTreeDeathTest, RemoveWrite) {
                           kOverwriteVisible);
 
   // Cannot remove a write that never happened.
-  EXPECT_DEATH(write_tree.RemoveWrite(200), DEATHTEST_SIGABRT);
+  EXPECT_DEBUG_DEATH(write_tree.RemoveWrite(200), DEATHTEST_SIGABRT);
 }
 
 TEST(WriteTree, GetCompleteWriteData) {
