@@ -157,6 +157,8 @@ firebase_cpp_cc_test(
     firebase_rest_lib
     firebase_rest_mocks
     firebase_testing
+  DEFINES
+    -DFIREBASE_WAIT_ASYNC_IN_TEST
 )
 
 firebase_cpp_cc_test(
@@ -170,6 +172,8 @@ firebase_cpp_cc_test(
     firebase_rest_lib
     firebase_rest_mocks
     firebase_testing
+  DEFINES
+    -DFIREBASE_WAIT_ASYNC_IN_TEST
 )
 
 firebase_cpp_cc_test(
