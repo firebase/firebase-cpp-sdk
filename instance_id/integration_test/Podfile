@@ -1,0 +1,14 @@
+
+source 'https://github.com/CocoaPods/Specs.git'
+platform :ios, '8.0'
+# Firebase Instance ID test application.
+
+target 'integration_test' do
+  pod 'Firebase/Analytics', '6.24.0'
+  pod 'FirebaseInstanceID', '4.3.4'
+end
+
+post_install do |installer|
+  system("/usr/bin/python ./download_googletest.py")
+end
+
