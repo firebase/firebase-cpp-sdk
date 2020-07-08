@@ -8,7 +8,8 @@ target 'integration_test' do
 end
 
 post_install do |installer|
-  system("/usr/bin/python ../../setup_integration_test.sh")
+  # If this is running from inside the SDK directory, run the setup script.
+  system("if [[ -r ../../setup_integration_tests.sh ]]; then projDir=$(pwd); cd ../.. ; ./setup_integration_tests.sh ${projDir} ; cd ${projDir}; fi")
   system("/usr/bin/python ./download_googletest.py")
 end
 

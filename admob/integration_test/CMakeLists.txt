@@ -22,6 +22,7 @@ endif()
 # Copy all prerequisite files for integration tests to run.
 if(NOT ANDROID)
   if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.sh)
+    # If this is running from inside the SDK directory, run the setup script.
     execute_process(COMMAND "${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.sh" "${CMAKE_CURRENT_LIST_DIR}"
                     WORKING_DIRECTORY "${CMAKE_CURRENT_LIST_DIR}/../..")
   endif()

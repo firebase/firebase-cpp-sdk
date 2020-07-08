@@ -64,8 +64,14 @@ firebaseCpp.dependencies {
 apply plugin: 'com.google.gms.google-services'
 
 task copyIntegrationTestFiles(type:Exec) {
-  workingDir '../..'
-  commandLine './setup_integration_tests.sh' project.projectDir.toString()
+  // If this is running form inside the SDK directory, run the setup script.
+  if (project.file('../../setup_integration_tests.sh').exists()) {
+    workingDir '../..'
+    commandLine './setup_integration_tests.sh', project.projectDir.toString()
+  }
+  else {
+    commandLine 'echo', ''
+  }
 }
 
 build.dependsOn(copyIntegrationTestFiles)
