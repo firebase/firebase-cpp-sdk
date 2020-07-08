@@ -9,7 +9,7 @@ end
 
 post_install do |installer|
   # If this is running from inside the SDK directory, run the setup script.
-  system("if [[ -r ../../setup_integration_tests.sh ]]; then projDir=$(pwd); cd ../.. ; ./setup_integration_tests.sh ${projDir} ; cd ${projDir}; fi")
+  system("if [[ -r ../../setup_integration_tests.py ]]; then python ../../setup_integration_tests.py .; fi")
   system("/usr/bin/python ./download_googletest.py")
 end
 
