@@ -6,13 +6,25 @@ cmake_minimum_required(VERSION 2.8)
 if (NOT "$ENV{FIREBASE_CPP_SDK_DIR}" STREQUAL "")
   set(DEFAULT_FIREBASE_CPP_SDK_DIR "$ENV{FIREBASE_CPP_SDK_DIR}")
 else()
-  set(DEFAULT_FIREBASE_CPP_SDK_DIR "firebase_cpp_sdk")
+  if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/../../cpp_sdk_version.json")
+    set(DEFAULT_FIREBASE_CPP_SDK_DIR "${CMAKE_CURRENT_LIST_DIR}/../..")
+  else()
+    set(DEFAULT_FIREBASE_CPP_SDK_DIR "firebase_cpp_sdk")
+  endif()
 endif()
 if ("${FIREBASE_CPP_SDK_DIR}" STREQUAL "")
   set(FIREBASE_CPP_SDK_DIR ${DEFAULT_FIREBASE_CPP_SDK_DIR})
 endif()
 if(NOT EXISTS ${FIREBASE_CPP_SDK_DIR})
   message(FATAL_ERROR "The Firebase C++ SDK directory does not exist: ${FIREBASE_CPP_SDK_DIR}. See the readme.md for more information")
+endif()
+
+# Copy all prerequisite files for integration tests to run.
+if(NOT ANDROID)
+  if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.py)
+    # If this is running from inside the SDK directory, run the setup script.
+    execute_process(COMMAND "python" "${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.py" "${CMAKE_CURRENT_LIST_DIR}")
+  endif()
 endif()
 
 # Windows runtime mode, either MD or MT depending on whether you are using
