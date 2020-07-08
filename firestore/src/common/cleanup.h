@@ -49,8 +49,19 @@ struct CleanupFn {
  private:
   template <typename Object>
   static void DoCleanup(Object* obj) {
-    delete obj->internal_;
+    // Order is crucially important here: under rare conditions, during cleanup,
+    // the destructor of the `internal_` object can trigger the deletion of the
+    // containing object. For example, this can happen when the `internal_`
+    // object destroys its Future API, which deletes a Future referring to the
+    // public object containing this `internal_` object. See
+    // http://go/paste/4669581387890688 for an example of what this looks like.
+    //
+    // By setting `internal_` to null before deleting it, the destructor of the
+    // outer object is prevented from deleting `internal_` twice.
+    auto internal = obj->internal_;
     obj->internal_ = nullptr;
+
+    delete internal;
   }
 
   // `ListenerRegistration` objects differ from the common pattern.
