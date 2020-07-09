@@ -246,6 +246,9 @@ class AuthDesktopTest : public ::testing::Test {
   }
 
   void TearDown() override {
+    {
+      SleepUponDestruction sleep_for_listeners;
+    }
     // Reset listeners before signing out.
     id_token_listener.VerifyAndReset();
     auth_state_listener.VerifyAndReset();

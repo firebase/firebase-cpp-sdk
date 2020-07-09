@@ -281,8 +281,10 @@ class UserDesktopTest : public ::testing::Test {
     }
     firebase_user_ = firebase_auth_->current_user();
     EXPECT_NE(nullptr, firebase_user_);
-
-    SleepUponDestruction sleep_for_listeners;
+    
+    {
+      SleepUponDestruction sleep_for_listeners;
+    }
     // Reset listeners before tests are run.
     id_token_listener.VerifyAndReset();
     auth_state_listener.VerifyAndReset();
