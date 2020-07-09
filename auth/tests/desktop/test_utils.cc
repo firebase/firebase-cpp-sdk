@@ -28,13 +28,27 @@ void ListenerChangeCounter::ExpectChanges(const int num) {
   expected_changes_ = num;
 }
 void ListenerChangeCounter::VerifyAndReset() {
-  Verify();
+  int timeout_value = -1;
+#ifdef __APPLE__
+    timeout_value = 10000;
+#endif
+  Verify(timeout_value);
   expected_changes_ = -1;
   actual_changes_ = 0;
 }
 
-void ListenerChangeCounter::Verify() {
+void ListenerChangeCounter::Verify(int timeout) {
   if (expected_changes_ != -1) {
+    if (timeout >= 0) {
+      int elapsed_time = 0;
+      while( elapsed_time <= timeout ) {
+        if(expected_changes_ == actual_changes_) {
+          break;
+        }
+        firebase::internal::Sleep(100);
+        elapsed_time += 100; // only estimating elapsed time to simplfy portability.
+      }
+    }
     EXPECT_EQ(expected_changes_, actual_changes_);
   }
 }

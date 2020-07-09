@@ -45,9 +45,9 @@ class ListenerChangeCounter {
   int actual_changes_;
 
  private:
-  void Verify();
+  void Verify(int timeout = -1);
 
-  int expected_changes_;
+  volatile int expected_changes_;
 };
 }  // namespace detail
 
