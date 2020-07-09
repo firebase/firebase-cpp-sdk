@@ -35,6 +35,7 @@ jobs:
         run: |
           echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt"
           echo "::set-env name=PIP_REQUIREMENTS_FILE::external/pip_requirements.txt"
+          echo "just to trigger workflow"
 
       - name: Install Ninja
         if: startsWith(matrix.generator, 'Ninja') && startsWith(matrix.os, 'windows')
