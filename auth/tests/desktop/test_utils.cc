@@ -39,15 +39,17 @@ void ListenerChangeCounter::VerifyAndReset() {
 
 void ListenerChangeCounter::Verify(int timeout) {
   if (expected_changes_ != -1) {
-    if (timeout >= 0) {
+    if (timeout >= 0 && expected_changes_ != actual_changes_) {
       int elapsed_time = 0;
       while( elapsed_time <= timeout ) {
+        printf(".");
+        firebase::internal::Sleep(100);
+        elapsed_time += 100; // only estimating elapsed time to simplfy portability.
         if(expected_changes_ == actual_changes_) {
           break;
         }
-        firebase::internal::Sleep(100);
-        elapsed_time += 100; // only estimating elapsed time to simplfy portability.
       }
+      printf("\n");
     }
     EXPECT_EQ(expected_changes_, actual_changes_);
   }
