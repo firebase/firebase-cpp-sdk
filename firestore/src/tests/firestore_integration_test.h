@@ -252,12 +252,12 @@ class FirestoreIntegrationTest : public testing::Test {
     EXPECT_GT(cycles, 0) << "Waiting listener timed out.";
   }
 
-  template <typename T>
-  static std::string DescribeFailedFuture(const Future<T>& future) {
-    return "WARNING: Future failed. Error code " +
-           std::to_string(future.error()) + ", message " +
-           future.error_message();
-  }
+  // Fails the current test if the given future did not complete or contained an
+  // error. Returns true if the future has failed.
+  static bool FailIfUnsuccessful(const char* operation,
+                                 const FutureBase& future);
+
+  static std::string DescribeFailedFuture(const FutureBase& future);
 
   // Creates a new Firestore instance, without any caching, using a uniquely-
   // generated app_name.

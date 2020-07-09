@@ -141,8 +141,7 @@ void FirestoreIntegrationTest::WriteDocument(DocumentReference reference,
                                              const MapFieldValue& data) const {
   Future<void> future = reference.Set(data);
   Await(future);
-  EXPECT_EQ(FutureStatus::kFutureStatusComplete, future.status());
-  EXPECT_EQ(0, future.error()) << DescribeFailedFuture(future) << std::endl;
+  FailIfUnsuccessful("WriteDocument", future);
 }
 
 void FirestoreIntegrationTest::WriteDocuments(
@@ -157,28 +156,29 @@ DocumentSnapshot FirestoreIntegrationTest::ReadDocument(
     const DocumentReference& reference) const {
   Future<DocumentSnapshot> future = reference.Get();
   const DocumentSnapshot* result = Await(future);
-  EXPECT_EQ(FutureStatus::kFutureStatusComplete, future.status());
-  EXPECT_EQ(0, future.error()) << DescribeFailedFuture(future) << std::endl;
-  EXPECT_NE(nullptr, result) << DescribeFailedFuture(future) << std::endl;
-  return *result;
+  if (FailIfUnsuccessful("ReadDocument", future)) {
+    return {};
+  } else {
+    return *result;
+  }
 }
 
 QuerySnapshot FirestoreIntegrationTest::ReadDocuments(
     const Query& reference) const {
   Future<QuerySnapshot> future = reference.Get();
   const QuerySnapshot* result = Await(future);
-  EXPECT_EQ(FutureStatus::kFutureStatusComplete, future.status());
-  EXPECT_EQ(0, future.error()) << DescribeFailedFuture(future) << std::endl;
-  EXPECT_NE(nullptr, result) << DescribeFailedFuture(future) << std::endl;
-  return *result;
+  if (FailIfUnsuccessful("ReadDocuments", future)) {
+    return {};
+  } else {
+    return *result;
+  }
 }
 
 void FirestoreIntegrationTest::DeleteDocument(
     DocumentReference reference) const {
   Future<void> future = reference.Delete();
   Await(future);
-  EXPECT_EQ(FutureStatus::kFutureStatusComplete, future.status());
-  EXPECT_EQ(0, future.error()) << DescribeFailedFuture(future) << std::endl;
+  FailIfUnsuccessful("DeleteDocument", future);
 }
 
 std::vector<std::string> FirestoreIntegrationTest::QuerySnapshotToIds(
@@ -208,6 +208,29 @@ void FirestoreIntegrationTest::Await(const Future<void>& future) {
       break;
     }
   }
+}
+
+/* static */
+bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,
+                                                  const FutureBase& future) {
+  if (future.status() != FutureStatus::kFutureStatusComplete) {
+    ADD_FAILURE() << operation << " timed out: " << DescribeFailedFuture(future)
+                  << std::endl;
+    return true;
+  } else if (future.error() != Error::kErrorOk) {
+    ADD_FAILURE() << operation << "failed: " << DescribeFailedFuture(future)
+                  << std::endl;
+    return true;
+  } else {
+    return false;
+  }
+}
+
+/* static */
+std::string FirestoreIntegrationTest::DescribeFailedFuture(
+    const FutureBase& future) {
+  return "WARNING: Future failed. Error code " +
+         std::to_string(future.error()) + ", message " + future.error_message();
 }
 
 void FirestoreIntegrationTest::TerminateAndRelease(Firestore* firestore) {
