@@ -19,6 +19,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
+#include <string>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -28,7 +29,6 @@
 #include "firebase/util.h"
 #include "firebase/variant.h"
 #include "firebase_test_framework.h"  // NOLINT
-#include "third_party/absl/strings/string_view.h"
 
 // The TO_STRING macro is useful for command line defined strings as the quotes
 // get stripped.
@@ -120,7 +120,7 @@ class FirebaseAuthTest : public FirebaseTest {
   // Custom WaitForCompletion that checks if User and Provider ID matches
   // afterwards.
   bool WaitForCompletion(firebase::Future<firebase::auth::SignInResult> future,
-                         const char* fn, absl::string_view provider_id);
+                         const char* fn, const std::string& provider_id);
 
   bool initialized_;
   firebase::auth::Auth* auth_;
@@ -231,7 +231,7 @@ bool FirebaseAuthTest::WaitForCompletion(
 
 bool FirebaseAuthTest::WaitForCompletion(
     firebase::Future<firebase::auth::SignInResult> future, const char* fn,
-    absl::string_view provider_id) {
+    const std::string& provider_id) {
   bool succeeded = FirebaseTest::WaitForCompletion(future, fn);
   if (succeeded) {
     const firebase::auth::SignInResult* result_ptr = future.result();

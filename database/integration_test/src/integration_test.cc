@@ -20,6 +20,7 @@
 #include <cstring>
 #include <ctime>
 #include <map>
+#include <string>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -28,7 +29,6 @@
 #include "firebase/internal/platform.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
-#include "third_party/absl/strings/string_view.h"
 
 // The TO_STRING macro is useful for command line defined strings as the quotes
 // get stripped.
@@ -788,7 +788,7 @@ class LoggingChildListener : public firebase::database::ChildListener {
   size_t total_events() { return events_.size(); }
 
   // Get the number of times this event was seen.
-  int num_events(absl::string_view event) {
+  int num_events(const std::string& event) {
     int count = 0;
     for (int i = 0; i < events_.size(); i++) {
       if (events_[i] == event) {
