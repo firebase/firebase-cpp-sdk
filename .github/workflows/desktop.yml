@@ -164,6 +164,8 @@ jobs:
           find build -name "*.so"
 
       - name: Run tests
+        env:
+          LANG: en_US
         run: |
           cd build
           ctest --verbose
