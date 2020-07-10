@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
-        build_type: ["Release"]
+        build_type: ["Release", "Debug"]
         architecture: ["x64",]
         python_version: [2.7]
         generator: ["Visual Studio 16 2019", "Unix Makefiles", "Ninja"]
@@ -142,6 +142,9 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
             -DCMAKE_TOOLCHAIN_FILE=external/vcpkg/scripts/buildsystems/vcpkg.cmake \
             -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }} \
+            -DFIREBASE_CPP_BUILD_TESTS=ON \
+            -DFIREBASE_INCLUDE_FIRESTORE=OFF \
+            -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON
 
       - name: Build
         shell: bash
@@ -159,3 +162,8 @@ jobs:
           find build -name "*.dylib"
           find build -name "*.a"
           find build -name "*.so"
+
+      - name: Run tests
+        run: |
+          cd build
+          ctest --verbose
