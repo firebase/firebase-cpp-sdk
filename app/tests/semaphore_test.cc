@@ -71,9 +71,8 @@ TEST(SemaphoreTest, TimedWait) {
   EXPECT_FALSE(sem.TimedWait(firebase::internal::kMillisecondsPerSecond));
   int64_t finish_ms = firebase::internal::GetTimestamp();
 
-  assert(labs((finish_ms - start_ms) -
-              firebase::internal::kMillisecondsPerSecond) <
-         0.10 * firebase::internal::kMillisecondsPerSecond);
+  ASSERT_LT(labs((finish_ms - start_ms) - firebase::internal::kMillisecondsPerSecond),
+            0.10 * firebase::internal::kMillisecondsPerSecond);
 }
 
 TEST(SemaphoreTest, DISABLED_MultithreadedStressTest) {
