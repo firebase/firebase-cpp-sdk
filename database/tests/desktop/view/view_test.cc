@@ -379,7 +379,13 @@ TEST(View, RemoveEventRegistration_RemoveAll) {
 // difficult to mock the interaction. Those functions are themselves tested in
 // view_processor_test.cc and event_generator_test.cc respectively.
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST(ViewDeathTest, DISABLED_ApplyOperation_MustHaveLocalCache) {
+#else
 TEST(ViewDeathTest, ApplyOperation_MustHaveLocalCache) {
+#endif
   QuerySpec query_spec;
   CacheNode local_cache(IndexedVariant(Variant()), true, false);
   CacheNode server_cache(IndexedVariant(Variant()), false, false);
@@ -399,7 +405,13 @@ TEST(ViewDeathTest, ApplyOperation_MustHaveLocalCache) {
                DEATHTEST_SIGABRT);
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST(ViewDeathTest, DISABLED_ApplyOperation_MustHaveServerCache) {
+#else
 TEST(ViewDeathTest, ApplyOperation_MustHaveServerCache) {
+#endif
   QuerySpec query_spec;
   CacheNode local_cache(IndexedVariant(Variant()), false, false);
   CacheNode server_cache(IndexedVariant(Variant()), true, false);

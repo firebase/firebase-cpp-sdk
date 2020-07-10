@@ -71,7 +71,13 @@ TEST(OperationSource, OperationSourceAllArgConstructor) {
   }
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST(OperationSourceDeathTest, DISABLED_BadConstructorArgs) {
+#else
 TEST(OperationSourceDeathTest, BadConstructorArgs) {
+#endif
   QueryParams params;
   EXPECT_DEATH(OperationSource(OperationSource::kSourceUser,
                                Optional<QueryParams>(params), true),
@@ -154,7 +160,13 @@ TEST(Operation, ListenComplete) {
   EXPECT_EQ(op.path.str(), "A/B/C");
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST(OperationDeathTest, DISABLED_ListenCompleteWithWrongSource) {
+#else
 TEST(OperationDeathTest, ListenCompleteWithWrongSource) {
+#endif
   // ListenCompletes must come from the server, not the user.
   EXPECT_DEATH(Operation::ListenComplete(OperationSource::kUser, Path("A/B/C")),
                DEATHTEST_SIGABRT);
@@ -307,8 +319,15 @@ TEST(Operation, OperationForChildAckUserWriteNonEmptyPath) {
   EXPECT_TRUE(result->revert);
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST(OperationDeathTest,
+     DISABLED_OperationForChildAckUserWriteNonEmptyPathWithUnrelatedChild) {
+#else
 TEST(OperationDeathTest,
      OperationForChildAckUserWriteNonEmptyPathWithUnrelatedChild) {
+#endif
   Tree<bool> affected_tree;
   affected_tree.SetValueAt(Path("aaa"), true);
   affected_tree.SetValueAt(Path("bbb"), false);
@@ -337,8 +356,15 @@ TEST(Operation, OperationForChildAckUserWriteEmptyPathHasValue) {
   EXPECT_TRUE(result->revert);
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST(OperationDeathTest,
+     DISABLED_OperationForChildAckUserWriteEmptyPathOverlappingChildren) {
+#else
 TEST(OperationDeathTest,
      OperationForChildAckUserWriteEmptyPathOverlappingChildren) {
+#endif
   Tree<bool> affected_tree;
   affected_tree.SetValueAt(Path(), false);
   affected_tree.SetValueAt(Path("aaa"), true);
