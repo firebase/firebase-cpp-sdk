@@ -26,6 +26,7 @@
 #include "app/src/mutex.h"
 #include "app/src/safe_reference.h"
 #include "app/src/scheduler.h"
+#include "app/memory/unique_ptr.h"
 #include "database/src/common/listener.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/connection/host_info.h"
@@ -208,7 +209,7 @@ class DatabaseInternal {
 
   Mutex repo_mutex_;
   // The local copy of the repository, for offline support and local caching.
-  std::unique_ptr<Repo> repo_;
+  UniquePtr<Repo> repo_;
 };
 
 }  // namespace internal
