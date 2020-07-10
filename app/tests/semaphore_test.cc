@@ -72,7 +72,7 @@ TEST(SemaphoreTest, TimedWait) {
   int64_t finish_ms = firebase::internal::GetTimestamp();
 
   ASSERT_LT(labs((finish_ms - start_ms) - firebase::internal::kMillisecondsPerSecond),
-            0.10 * firebase::internal::kMillisecondsPerSecond);
+            0.20 * firebase::internal::kMillisecondsPerSecond);
 }
 
 TEST(SemaphoreTest, DISABLED_MultithreadedStressTest) {
