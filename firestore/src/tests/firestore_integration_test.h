@@ -274,10 +274,6 @@ class FirestoreIntegrationTest : public testing::Test {
   template <typename T>
   friend class EventAccumulator;
 
-  // Blocks until the given Firestore instance terminates, deletes the instance
-  // and removes the pointer to it from the cache.
-  void TerminateAndRelease(Firestore* firestore);
-
   // The Firestore instance cache.
   mutable std::map<std::string, Firestore*> firestores_;
 };

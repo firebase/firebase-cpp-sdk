@@ -61,7 +61,6 @@ FirestoreIntegrationTest::FirestoreIntegrationTest() {
 
 FirestoreIntegrationTest::~FirestoreIntegrationTest() {
   for (auto named_firestore : firestores_) {
-    Await(named_firestore.second->Terminate());
     Release(named_firestore.second);
     firestores_[named_firestore.first] = nullptr;
   }
@@ -108,7 +107,7 @@ void FirestoreIntegrationTest::DeleteFirestore(const std::string& name) {
       found != firestores_.end(),
       "Couldn't find Firestore corresponding to app name '%s'", name.c_str());
 
-  TerminateAndRelease(found->second);
+  Release(found->second);
   firestores_.erase(found);
 }
 
@@ -231,11 +230,6 @@ std::string FirestoreIntegrationTest::DescribeFailedFuture(
     const FutureBase& future) {
   return "WARNING: Future failed. Error code " +
          std::to_string(future.error()) + ", message " + future.error_message();
-}
-
-void FirestoreIntegrationTest::TerminateAndRelease(Firestore* firestore) {
-  Await(firestore->Terminate());
-  Release(firestore);
 }
 
 }  // namespace firestore
