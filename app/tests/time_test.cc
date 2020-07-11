@@ -72,9 +72,7 @@ TEST(TimeTests, GetTimestampTest) {
 
   uint64_t end = firebase::internal::GetTimestamp();
 
-  int64_t error = llabs(static_cast<int64_t>(end - start) - 500);
-
-  EXPECT_LT(error, 0.15 * firebase::internal::kMillisecondsPerSecond);
+  EXPECT_GE(end, start+500);
 }
 
 // Test GetTimestampEpoch function
@@ -95,7 +93,7 @@ TEST(TimeTests, GetTimestampEpochTest) {
   printf("%llu -> %llu (%lld)\n", start, end, error);
 #endif  // __linux__
 
-  EXPECT_LT(error, 0.15 * firebase::internal::kMillisecondsPerSecond);
+  EXPECT_GE(end, start+500);
 }
 
 }  // namespace
