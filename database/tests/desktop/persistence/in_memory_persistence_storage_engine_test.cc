@@ -142,7 +142,7 @@ TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_OverwriteServerCache)
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, OverwriteServerCache) {
 #endif
   EXPECT_DEATH(engine_.OverwriteServerCache(Path(), Variant::Null()),
-                     DEATHTEST_SIGABRT);
+               DEATHTEST_SIGABRT);
 }
 
 TEST_F(InMemoryPersistenceStorageEngineTest, OverwriteServerCache) {
