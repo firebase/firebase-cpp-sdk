@@ -164,6 +164,7 @@ jobs:
           find build -name "*.so"
 
       - name: test access to core dump directory
+        shell: bash
         run: |
           ls /var/crash
           sudo touch /var/crash/test
