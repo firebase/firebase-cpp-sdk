@@ -166,10 +166,9 @@ jobs:
       - name: test access to core dump directory
         shell: bash
         run: |
-          ls /var/crash
-          sudo touch /var/crash/test
-          ls /var/crash
+          coredumpctl
           cat /proc/sys/kernel/core_pattern
+          ls -l /var/lib/systemd/coredump/
           sudo touch /cores/test
           ls /cores
           sudo rm /cores/test
