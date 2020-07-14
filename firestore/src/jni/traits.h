@@ -4,12 +4,11 @@
 #include <jni.h>
 
 #include "app/src/include/firebase/internal/type_traits.h"
+#include "firestore/src/jni/jni_fwd.h"
 
 namespace firebase {
 namespace firestore {
 namespace jni {
-
-class Object;
 
 // clang-format off
 

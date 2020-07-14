@@ -38,6 +38,7 @@
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/android/write_batch_android.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/jni.h"
 
 namespace firebase {
 namespace firestore {
@@ -144,6 +145,8 @@ FirestoreInternal::FirestoreInternal(App* app) {
 bool FirestoreInternal::Initialize(App* app) {
   MutexLock init_lock(init_mutex_);
   if (initialize_count_ == 0) {
+    jni::Initialize(app->java_vm());
+
     JNIEnv* env = app->GetJNIEnv();
     jobject activity = app->activity();
     if (!(firebase_firestore::CacheMethodIds(env, activity) &&
