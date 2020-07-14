@@ -167,5 +167,13 @@ jobs:
         env:
           LANG: en_US
         run: |
+          ulimit -c unlimited    # Enable crash dumps
           cd build
-          ctest --verbose
+          sudo ctest --verbose
+          sudo chmod -R +rwx /cores/*  
+    
+      - name: Archive crashes
+        uses: actions/upload-artifact@v2
+        with:
+          name: crashes
+          path: /cores
