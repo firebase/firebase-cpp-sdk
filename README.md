@@ -234,6 +234,32 @@ that should be included in your application.  The generated file is located in
 each library’s build directory.  For example, the Analytics proguard file would
 be generated to `analytics/build/analytics.pro`.
 
+## Testing
+Each Firebase SDK in this repo includes a series of unit tests. These tests are
+built and executed by the CI system in order to validate changes and pull
+requests.
+
+Tests for the desktop targets may be built and executed locally on Windows 32,
+Windows 64, Linux and MacOS using the test_windows_x32.bat,
+test_windows_x64.bat, test_linux.sh and test_mac_x64.sh scripts, respectively.
+These scripts reside the base directory of the repository.
+
+### Testing Known Issues
+- Mac 
+  - Firestore unit tests are disabled due to a compilation error.
+  - When executing unit tests you may be requested to unlock your Mac OS
+    keychain for tests that leverage secure storage.  Please enter your
+    keychain password and select **Always Allow**. If you still encounter
+    repeated access request dialogs then you must unlock the key
+    chain manually otherwise some tests will fail.
+      - Open the **Keychain access** application on your Mac.
+      - Under **Keychains** (upper left) select the **login** keychain.
+      - Under **Category** select **Passwords** as a category (lower left) and
+        find the entiry not_a_real_project_id.{hashcode}.  Right click it.
+      - Select **Get Info**, select **Access Control** and enable the 
+        **Allow all applications to access this item** radio button.
+      - Re-run the tests.
+
 ## Including in Projects
 ### Including in CMake Projects
 Including the Firebase C++ SDK to another CMake project is fairly
