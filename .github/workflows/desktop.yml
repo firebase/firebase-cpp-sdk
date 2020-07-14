@@ -165,6 +165,10 @@ jobs:
 
       - name: test access to core dump directory
         run: |
+          ls /var/crash
+          sudo touch /var/crash/test
+          ls /var/crash
+          cat /proc/sys/kernel/core_pattern
           sudo touch /cores/test
           ls /cores
           sudo rm /cores/test
