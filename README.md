@@ -242,9 +242,9 @@ requests.
 The provided `test_windows_x32.bat`, `test_windows_x64.bat`,
 `test_linux.sh` and `test_mac_x64.sh` scripts build the SDKs and execute
 the unit tests via **ctest** on Windows32, Windows64, Linux and MacOS hosts,
-respectively.  These scripts reside the base directory of the repository.
+respectively.  These scripts reside in the base directory of the repository.
 
-### Testing Known Issues
+### Known Issues
 - Mac 
   - Firestore unit tests are disabled due to a compilation error.
   - When executing tests you may be requested to unlock your Mac OS keychain.
@@ -254,7 +254,7 @@ respectively.  These scripts reside the base directory of the repository.
       - Open the **Keychain access** application on your Mac.
       - Under **Keychains** (upper left) select the **login** keychain.
       - Under **Category** select **Passwords** as a category (lower left) and
-        find the entiry `not_a_real_project_id.{hashcode}`.  Right click it.
+        find the entry **not_a_real_project_id.{hashcode}**.  Right click it.
       - Select **Get Info**, select **Access Control** and enable the 
         **Allow all applications to access this item** radio button.
       - Re-run the tests.
