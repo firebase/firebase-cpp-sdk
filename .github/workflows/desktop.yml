@@ -164,9 +164,9 @@ jobs:
           find build -name "*.so"
 
       - name: test access to core dump directory
-        sudo touch /cores/test
-        ls /cores
-        sudo rm /cores/test
+          sudo touch /cores/test
+          ls /cores
+          sudo rm /cores/test
 
       - name: Run tests
         env:
