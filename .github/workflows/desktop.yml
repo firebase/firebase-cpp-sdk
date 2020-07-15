@@ -181,7 +181,7 @@ jobs:
           # || : silently fails if there are no crashes.
           sudo chmod -R +rwx /var/crash/* || : 
 
-      - name: Run tests 
+      - name: Run tests (windows & macos)
         if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')
         env:
           LANG: en_US
