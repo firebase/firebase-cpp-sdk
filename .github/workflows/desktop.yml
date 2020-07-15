@@ -191,7 +191,7 @@ jobs:
           
       - name: Archive crashes (linux)
         uses: actions/upload-artifact@v2
-        if: startsWith(matrix.os, 'ubuntu')
+        if: always() && startsWith(matrix.os, 'ubuntu')
         with:
           name: crashes
           path: /var/crash/
