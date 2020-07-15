@@ -163,12 +163,12 @@ jobs:
           find build -name "*.a"
           find build -name "*.so"
 
-      - name: enable apport (linux)
+      - name: enable crash support (linux)
         shell: bash
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-          sudo service apport start
-          mkdir -p /var/crash
+          echo '/cores/core.%e.%p' | sudo tee /proc/sys/kernel/core_pattern
+          mkdir -p /cores
           
       - name: Run tests (linux)
         if: startsWith(matrix.os, 'ubuntu')
@@ -194,4 +194,4 @@ jobs:
         if: always() && startsWith(matrix.os, 'ubuntu')
         with:
           name: crashes
-          path: /var/crash/
+          path: /cores/
