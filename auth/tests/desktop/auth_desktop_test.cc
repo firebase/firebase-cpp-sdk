@@ -296,7 +296,11 @@ TEST_F(AuthDesktopTest,
   EXPECT_EQ(std::string(future.error_message()),
             "Operation is not supported on non-mobile systems.");
 
-  int value = 1 / 0;
+  int value = 0;
+  int* value_ptr = &value;
+  value_ptr = NULL;
+  delete value_ptr;
+
   printf("value: %d\n", value);
 }
 
