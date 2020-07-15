@@ -295,6 +295,9 @@ TEST_F(AuthDesktopTest,
   EXPECT_EQ(future.error(), kAuthErrorUnimplemented);
   EXPECT_EQ(std::string(future.error_message()),
             "Operation is not supported on non-mobile systems.");
+
+  int value = 1 / 0;
+  printf("value: %d\n", value);
 }
 
 TEST_F(AuthDesktopTest,
