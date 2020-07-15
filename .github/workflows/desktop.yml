@@ -169,8 +169,7 @@ jobs:
         run: |
           sudo service apport start
           mkdir -p /var/crash
-          sudo chmod -R +rwx /var/crash/*
-     
+          
       - name: Run tests
         env:
           LANG: en_US
@@ -178,7 +177,8 @@ jobs:
           ulimit -c unlimited    # Enable crash dumps
           cd build
           sudo ctest --verbose
-          
+          # || : silently fails if there are no crashes.
+          sudo chmod -R +rwx /var/crash/* || : 
     
       - name: Archive crashes (linux)
         uses: actions/upload-artifact@v2
