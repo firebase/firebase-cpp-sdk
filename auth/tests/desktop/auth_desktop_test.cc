@@ -297,9 +297,8 @@ TEST_F(AuthDesktopTest,
             "Operation is not supported on non-mobile systems.");
 
   int value = 0;
-  int* value_ptr = &value;
-  value_ptr = NULL;
-  delete value_ptr;
+  int* value_ptr = NULL;
+  *value_ptr = value;
 
   printf("value: %d\n", value);
 }
