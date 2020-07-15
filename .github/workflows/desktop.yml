@@ -167,6 +167,7 @@ jobs:
         shell: bash
         run: |
           sudo service apport start
+          mkdir /var/crash
           sudo chmod -R +rwx /var/crash/*
      
       - name: Run tests
