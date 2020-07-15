@@ -176,10 +176,10 @@ jobs:
           ulimit -c unlimited    # Enable crash dumps
           cd build
           sudo ctest --verbose
-          sudo chmod -R +rwx /cores/*  
+          sudo chmod -R +rwx /var/crash/*
     
       - name: Archive crashes
         uses: actions/upload-artifact@v2
         with:
           name: crashes
-          path: /cores
+          path: /var/crash/
