@@ -246,7 +246,6 @@ respectively.  These scripts reside in the base directory of the repository.
 
 ### Known Issues
 - Mac 
-  - Firestore unit tests are disabled due to a compilation error.
   - When executing tests you may be requested to unlock your Mac OS keychain.
     Please enter your keychain password and select **Always Allow**. If you
     still encounter repeated access request dialogs then you must unlock the
