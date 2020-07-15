@@ -170,7 +170,8 @@ jobs:
           sudo service apport start
           mkdir -p /var/crash
           
-      - name: Run tests
+      - name: Run tests (linux)
+        if: startsWith(matrix.os, 'ubuntu')
         env:
           LANG: en_US
         run: |
@@ -179,7 +180,15 @@ jobs:
           sudo ctest --verbose
           # || : silently fails if there are no crashes.
           sudo chmod -R +rwx /var/crash/* || : 
-    
+
+      - name: Run tests 
+        if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')
+        env:
+          LANG: en_US
+        run: |
+          cd build
+          sudo ctest --verbose
+          
       - name: Archive crashes (linux)
         uses: actions/upload-artifact@v2
         if: startsWith(matrix.os, 'ubuntu')
