@@ -168,14 +168,14 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           echo '/cores/core.%e.%p' | sudo tee /proc/sys/kernel/core_pattern
-          mkdir -p /cores
+          sudo mkdir -p /cores
           
       - name: Run tests (linux)
         if: startsWith(matrix.os, 'ubuntu')
         env:
           LANG: en_US
         run: |
-          ulimit -c unlimited    # Enable crash dumps
+          ulimit -c unlimited    # Enable unlimited crash dumps
           cd build
           sudo ctest --verbose
           # || : silently fails if there are no crashes.
