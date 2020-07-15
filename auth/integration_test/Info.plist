@@ -22,10 +22,10 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.google.FirebaseCppAuthTestApp.dev</string>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.google.FirebaseCppAuthTestApp.dev</string>
+				<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 			</array>
 		</dict>
 		<dict>
@@ -35,7 +35,7 @@
 			<string>google</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.53101460582-aosfj1hlbc89719t6qfian100u6hehh8</string>
+				<string>REPLACE_WITH_REVERSED_CLIENT_ID</string>
                                 <string>firebase-game-loop</string>
 			</array>
 		</dict>
