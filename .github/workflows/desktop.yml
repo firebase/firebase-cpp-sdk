@@ -178,11 +178,3 @@ jobs:
           ulimit -c unlimited    # Enable crash dumps
           cd build
           sudo ctest --verbose
-          
-    
-      - name: Archive crashes (linux)
-        uses: actions/upload-artifact@v2
-        if: startsWith(matrix.os, 'ubuntu')
-        with:
-          name: crashes
-          path: /var/crash/
