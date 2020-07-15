@@ -167,6 +167,7 @@ jobs:
         shell: bash
         run: |
           cat /proc/sys/kernel/core_pattern
+          ls -l /var/crash/
      
       - name: Run tests
         env:
