@@ -166,13 +166,8 @@ jobs:
       - name: test access to core dump directory
         shell: bash
         run: |
-          coredumpctl
           cat /proc/sys/kernel/core_pattern
-          ls -l /var/lib/systemd/coredump/
-          sudo touch /cores/test
-          ls /cores
-          sudo rm /cores/test
-
+     
       - name: Run tests
         env:
           LANG: en_US
