@@ -165,7 +165,6 @@ jobs:
 
       - name: enable apport (linux)
         shell: bash
-        if: startsWith(matrix.os, 'ubuntu')
         run: |
           sudo service apport start
           mkdir /var/crash
@@ -178,3 +177,4 @@ jobs:
           ulimit -c unlimited    # Enable crash dumps
           cd build
           sudo ctest --verbose
+          
