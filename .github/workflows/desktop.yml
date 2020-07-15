@@ -187,7 +187,7 @@ jobs:
           LANG: en_US
         run: |
           cd build
-          sudo ctest --verbose
+          ctest --verbose
           
       - name: Archive crashes (linux)
         uses: actions/upload-artifact@v2
