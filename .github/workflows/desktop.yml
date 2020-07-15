@@ -163,8 +163,9 @@ jobs:
           find build -name "*.a"
           find build -name "*.so"
 
-      - name: enable apport
+      - name: enable apport (linux)
         shell: bash
+        if: startsWith(matrix.os, 'ubuntu')
         run: |
           sudo service apport start
           mkdir /var/crash
@@ -179,8 +180,9 @@ jobs:
           sudo ctest --verbose
           
     
-      - name: Archive crashes
+      - name: Archive crashes (linux)
         uses: actions/upload-artifact@v2
+        if: startsWith(matrix.os, 'ubuntu')
         with:
           name: crashes
           path: /var/crash/
