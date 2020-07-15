@@ -6,7 +6,7 @@
   <string>$(AppIdentifierPrefix)$(CFBundleIdentifier)</string>
   <key>com.apple.developer.associated-domains</key>
   <array>
-    <string>applinks:zx93d.app.goo.gl</string>
+    <string>applinks:REPLACE_WITH_YOUR_URI_PREFIX</string>
   </array>
 </dict>
 </plist>
