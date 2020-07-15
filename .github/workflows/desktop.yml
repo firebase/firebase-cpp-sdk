@@ -168,7 +168,7 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu')
         run: |
           sudo service apport start
-          mkdir /var/crash
+          mkdir -p /var/crash
           sudo chmod -R +rwx /var/crash/*
      
       - name: Run tests
