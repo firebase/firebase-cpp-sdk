@@ -179,7 +179,7 @@ jobs:
           cd build
           sudo ctest --verbose
           # || : silently fails if there are no crashes.
-          sudo chmod -R +rwx /var/crash/* || : 
+          sudo chmod -R +rwx /cores || : 
 
       - name: Run tests (windows & macos)
         if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')
