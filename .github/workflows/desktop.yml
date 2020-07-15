@@ -163,11 +163,11 @@ jobs:
           find build -name "*.a"
           find build -name "*.so"
 
-      - name: test access to core dump directory
+      - name: enable apport
         shell: bash
         run: |
-          cat /proc/sys/kernel/core_pattern
-          ls -l /var/crash/
+          sudo service apport start
+          sudo chmod -R +rwx /var/crash/*
      
       - name: Run tests
         env:
@@ -176,7 +176,7 @@ jobs:
           ulimit -c unlimited    # Enable crash dumps
           cd build
           sudo ctest --verbose
-          sudo chmod -R +rwx /var/crash/*
+          
     
       - name: Archive crashes
         uses: actions/upload-artifact@v2
