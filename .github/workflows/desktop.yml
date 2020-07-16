@@ -167,9 +167,10 @@ jobs:
         shell: bash
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-          echo '/cores/core.%e.%p' | sudo tee /proc/sys/kernel/core_pattern
-          sudo mkdir -p /cores
-          rm -rf /cores/*
+          echo '/tmp/cores/core.%e.%p.%h.%t' | sudo tee /proc/sys/kernel/core_pattern
+          cat /proc/sys/kernel/core_pattern
+          sudo mkdir -p /tmp/cores
+          sudo rm -rf /tmp/cores/*
           
       - name: Run tests (linux)
         if: startsWith(matrix.os, 'ubuntu')
@@ -177,6 +178,7 @@ jobs:
           LANG: en_US
         run: |
           ulimit -c unlimited    # Enable unlimited crash dumps
+          cat /proc/sys/kernel/core_pattern
           cd build
           sudo ctest --verbose
       
@@ -184,8 +186,8 @@ jobs:
         shell: bash
         if: always() && startsWith(matrix.os, 'ubuntu')
         run: |
-          sudo chmod -R +rwx /cores/* || : 
-          ls -l /cores/
+          sudo chmod -R +rwx /tmp/cores/* || : 
+          ls -l /tmp/cores/
 
       - name: Run tests (windows & macos)
         if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')
@@ -200,4 +202,4 @@ jobs:
         if: always() && startsWith(matrix.os, 'ubuntu')
         with:
           name: crashes
-          path: /cores/*
+          path: /tmp/cores/*
