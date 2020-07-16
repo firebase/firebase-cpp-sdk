@@ -193,9 +193,7 @@ jobs:
           sudo cp -f ./build/app/rest/tests/firebase* /tmp/bins
           sudo cp -f ./build/auth/tests/firebase* /tmp/bins
           sudo cp -f ./build/database/tests/firebase* /tmp/bins
-          sudo cp -f ./build/database/tests/firebase* /tmp/bins
           sudo cp -f ./build/instance_id/tests/firebase* /tmp/bins
-          sudo cp -f ./build/messaging/tests/firebase* /tmp/bins
           sudo cp -f ./build/remote_config/tests/firebase* /tmp/bins
           sudo cp -f ./build/storage/tests/firebase* /tmp/bins
           sudo chmod -R +rwx /tmp/bins/* || :
