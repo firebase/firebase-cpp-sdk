@@ -164,7 +164,7 @@ jobs:
           find build -name "*.so"
 
       - name: Enable crash support (linux)
-        if: startsWith(matrix.os, 'ubuntu')
+        if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
           echo '/tmp/cores/core.%e.%p.%h.%t' | sudo tee /proc/sys/kernel/core_pattern
@@ -182,7 +182,7 @@ jobs:
           sudo ctest --verbose
       
       - name: Copy test bins (linux)
-        if: failure() && startsWith(matrix.os, 'ubuntu')
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
           sudo mkdir -p /tmp/bins
@@ -192,7 +192,7 @@ jobs:
           sudo cp -f ./build/app/tests/firebase* /tmp/bins
           sudo cp -f ./build/app/rest/tests/firebase* /tmp/bins
           sudo cp -f ./build/auth/tests/firebase* /tmp/bins
-          sudo cp -f ./build/database/tests/*firebase /tmp/bins
+          sudo cp -f ./build/database/tests/firebase* /tmp/bins
           sudo cp -f ./build/database/tests/firebase* /tmp/bins
           sudo cp -f ./build/instance_id/tests/firebase* /tmp/bins
           sudo cp -f ./build/messaging/tests/firebase* /tmp/bins
@@ -202,16 +202,16 @@ jobs:
       
       - name: Apply Read Permissions to crash data (linux)
         shell: bash
-        if: failure() && startsWith(matrix.os, 'ubuntu')
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         run: |
           sudo chmod -R +rwx /tmp/cores/* || : 
           ls -l /tmp/cores/
           sudo chmod -R +rwx /tmp/bins/* || :
           ls -l /tmp/bins/
 
-      - name: Archive crashes (linux)
+      - name: Archive crashes and binaries (linux)
         uses: actions/upload-artifact@v2
-        if: failure() && startsWith(matrix.os, 'ubuntu')
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         with:
           name: crashes
           path: |
@@ -233,7 +233,7 @@ jobs:
 
       - name: Apply Read Permissions to crash data (macos)
         shell: bash
-        if: failure() && startsWith(matrix.os, 'macos')
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         run: |
           sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || : 
           ls -l ~/Library/Logs/DiagnosticReports/
