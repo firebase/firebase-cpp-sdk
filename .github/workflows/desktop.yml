@@ -171,6 +171,7 @@ jobs:
           sudo mkdir -p /tmp/cores
           sudo rm -rf /tmp/cores/*
           sudo mkdir /tmp/bins
+          sudo chmod -R +rwx /tmp/bins/
           sudo rm -rf /tmp/bins/*
           
       - name: Run tests (linux)
@@ -187,15 +188,15 @@ jobs:
         if: failure() && startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
-          cp -f ./build/analytics/tests/* /tmp/bins
-          cp -f ./build/app/tests/* /tmp/bins
-          cp -f ./build/app/rest/tests/* /tmp/bins
-          cp -f ./build/auth/tests/* /tmp/bins
-          cp -f ./build/database/tests/* /tmp/bins
-          cp -f ./build/instance_id/tests/* /tmp/bins
-          cp -f ./build/messaging/tests/* /tmp/bins
-          cp -f ./build/remote_config/tests/* /tmp/bins
-          cp -f ./build/storage/tests/* /tmp/bins
+          sudo cp -f ./build/analytics/tests/* /tmp/bins
+          sudo cp -f ./build/app/tests/* /tmp/bins
+          sudo cp -f ./build/app/rest/tests/* /tmp/bins
+          sudo cp -f ./build/auth/tests/* /tmp/bins
+          sudo cp -f ./build/database/tests/* /tmp/bins
+          sudo cp -f ./build/instance_id/tests/* /tmp/bins
+          sudo cp -f ./build/messaging/tests/* /tmp/bins
+          sudo cp -f ./build/remote_config/tests/* /tmp/bins
+          sudo cp -f ./build/storage/tests/* /tmp/bins
       
       - name: Apply Read Permissions to crash data (linux)
         shell: bash
@@ -215,7 +216,11 @@ jobs:
             /tmp/cores/
             /tmp/bins/
       
-
+      - name: Enable crash support (mac)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          rm -rf ~/Library/Logs/DiagnosticReports/*
+          
       - name: Run tests (windows & macos)
         if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')
         env:
@@ -223,5 +228,20 @@ jobs:
         run: |
           cd build
           ctest --verbose
+
+      - name: Apply Read Permissions to crash data (macos)
+        shell: bash
+        if: failure() && startsWith(matrix.os, 'macos')
+        run: |
+          sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || : 
+          ls -l ~/Library/Logs/DiagnosticReports/
+      
+      - name: Archive crashes (mac)
+        uses: actions/upload-artifact@v2
+        if: failure() && startsWith(matrix.os, 'macos')
+        with:
+          name: crashes
+          path: ~/Library/Logs/DiagnosticReports/*
+
             
 #path: /tmp/cores/*
