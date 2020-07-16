@@ -9,6 +9,8 @@ namespace firebase {
 namespace firestore {
 namespace jni {
 
+class Env;
+
 /**
  * A wrapper for a JNI `jobject` that adds additional behavior.
  *
@@ -31,6 +33,7 @@ class Object {
    * on it.
    */
   std::string ToString(JNIEnv* env) const;
+  std::string ToString(Env& env) const;
 
  protected:
   jobject object_ = nullptr;

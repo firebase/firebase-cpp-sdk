@@ -48,8 +48,10 @@ template <> struct JniTypeMap<double> { using type = jdouble; };
 template <> struct JniTypeMap<size_t> { using type = jsize; };
 
 template <> struct JniTypeMap<jobject> { using type = jobject; };
+template <> struct JniTypeMap<jstring> { using type = jstring; };
 
 template <> struct JniTypeMap<Object> { using type = jobject; };
+template <> struct JniTypeMap<String> { using type = jstring; };
 
 template <typename T>
 using JniType = typename JniTypeMap<decay_t<T>>::type;

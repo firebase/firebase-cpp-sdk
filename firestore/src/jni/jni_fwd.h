@@ -10,6 +10,8 @@ namespace jni {
  */
 JNIEnv* GetEnv();
 
+class Env;
+
 // Reference types
 template <typename T>
 class Local;
@@ -19,6 +21,7 @@ template <typename T>
 class NonOwning;
 
 class Object;
+class String;
 
 }  // namespace jni
 }  // namespace firestore
