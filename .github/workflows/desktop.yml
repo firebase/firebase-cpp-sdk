@@ -167,11 +167,15 @@ jobs:
         shell: bash
         if: startsWith(matrix.os, 'ubuntu')
         run: |
-          cat /proc/sys/kernel/core_pattern
-          echo '/tmp/cores/core.%e.%p.%h.%t' | sudo tee /proc/sys/kernel/core_pattern
-          cat /proc/sys/kernel/core_pattern
-          sudo mkdir -p /tmp/cores
-          sudo rm -rf /tmp/cores/*
+          sudo systemctl enable apport.service
+          sudo mkdir -p /var/crashes
+          sudo rm -rf /var/crashes/*
+
+# cat /proc/sys/kernel/core_pattern
+#          echo '/tmp/cores/core.%e.%p.%h.%t' | sudo tee /proc/sys/kernel/core_pattern
+#          cat /proc/sys/kernel/core_pattern
+#          sudo mkdir -p /tmp/cores
+#          sudo rm -rf /tmp/cores/*
           
       - name: Run tests (linux)
         if: startsWith(matrix.os, 'ubuntu')
@@ -189,6 +193,8 @@ jobs:
         run: |
           sudo chmod -R +rwx /tmp/cores/* || : 
           ls -l /tmp/cores/
+          sudo chmod -R +rwx /var/crashes/* || : 
+          ls -l /var/crashes
 
       - name: Run tests (windows & macos)
         if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')
@@ -203,4 +209,6 @@ jobs:
         if: always() && startsWith(matrix.os, 'ubuntu')
         with:
           name: crashes
-          path: /tmp/cores/*
+          path: /var/crashes/*
+          
+#path: /tmp/cores/*
