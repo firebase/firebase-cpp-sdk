@@ -169,6 +169,7 @@ jobs:
         run: |
           echo '/cores/core.%e.%p' | sudo tee /proc/sys/kernel/core_pattern
           sudo mkdir -p /cores
+          rm -rf /cores/*
           
       - name: Run tests (linux)
         if: startsWith(matrix.os, 'ubuntu')
@@ -178,8 +179,13 @@ jobs:
           ulimit -c unlimited    # Enable unlimited crash dumps
           cd build
           sudo ctest --verbose
-          # || : silently fails if there are no crashes.
+      
+      - name: Apply Read Permissions to crash reports (linux)
+        shell: bash
+        if: always() && startsWith(matrix.os, 'ubuntu')
+        run: |
           sudo chmod -R +rwx /cores/* || : 
+          ls -l /cores/
 
       - name: Run tests (windows & macos)
         if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')
@@ -194,4 +200,4 @@ jobs:
         if: always() && startsWith(matrix.os, 'ubuntu')
         with:
           name: crashes
-          path: /cores/
+          path: /cores/*
