@@ -187,6 +187,7 @@ jobs:
         run: |
           sudo mkdir -p /tmp/bins
           sudo rm -rf /tmp/bins/*
+          sudo rm -rf ./build/app/tests/firebase_test
           sudo cp -f ./build/analytics/tests/firebase* /tmp/bins
           sudo cp -f ./build/app/tests/firebase* /tmp/bins
           sudo cp -f ./build/app/rest/tests/firebase* /tmp/bins
