@@ -188,6 +188,7 @@ jobs:
         if: failure() && startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
+          sudo chmod -R +rwx /tmp/bins/* || :
           cp -f ./build/analytics/tests/firebase* /tmp/bins
           cp -f ./build/app/tests/firebase* /tmp/bins
           cp -f ./build/app/rest/tests/firebase* /tmp/bins
