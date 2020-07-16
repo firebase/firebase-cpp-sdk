@@ -163,38 +163,58 @@ jobs:
           find build -name "*.a"
           find build -name "*.so"
 
-      - name: enable crash support (linux)
-        shell: bash
+      - name: Enable crash support (linux)
         if: startsWith(matrix.os, 'ubuntu')
+        shell: bash
         run: |
-          sudo systemctl enable apport.service
-          sudo mkdir -p /var/crashes
-          sudo rm -rf /var/crashes/*
-
-# cat /proc/sys/kernel/core_pattern
-#          echo '/tmp/cores/core.%e.%p.%h.%t' | sudo tee /proc/sys/kernel/core_pattern
-#          cat /proc/sys/kernel/core_pattern
-#          sudo mkdir -p /tmp/cores
-#          sudo rm -rf /tmp/cores/*
+          echo '/tmp/cores/core.%e.%p.%h.%t' | sudo tee /proc/sys/kernel/core_pattern
+          sudo mkdir -p /tmp/cores
+          sudo rm -rf /tmp/cores/*
+          sudo mkdir /tmp/bins
+          sudo rm -rf /tmp/bins/*
           
       - name: Run tests (linux)
         if: startsWith(matrix.os, 'ubuntu')
         env:
           LANG: en_US
         run: |
-          ulimit -c unlimited    # Enable unlimited crash dumps
+          ulimit -c unlimited 
           cat /proc/sys/kernel/core_pattern
           cd build
           sudo ctest --verbose
       
-      - name: Apply Read Permissions to crash reports (linux)
+      - name: Copy test bins (linux)
+        if: failure() && startsWith(matrix.os, 'ubuntu')
         shell: bash
-        if: always() && startsWith(matrix.os, 'ubuntu')
+        run: |
+          cp -f ./build/analytics/tests/* /tmp/bins
+          cp -f ./build/app/tests/* /tmp/bins
+          cp -f ./build/app/rest/tests/* /tmp/bins
+          cp -f ./build/auth/tests/* /tmp/bins
+          cp -f ./build/database/tests/* /tmp/bins
+          cp -f ./build/instance_id/tests/* /tmp/bins
+          cp -f ./build/messaging/tests/* /tmp/bins
+          cp -f ./build/remote_config/tests/* /tmp/bins
+          cp -f ./build/storage/tests/* /tmp/bins
+      
+      - name: Apply Read Permissions to crash data (linux)
+        shell: bash
+        if: failure() && startsWith(matrix.os, 'ubuntu')
         run: |
           sudo chmod -R +rwx /tmp/cores/* || : 
           ls -l /tmp/cores/
-          sudo chmod -R +rwx /var/crashes/* || : 
-          ls -l /var/crashes
+          sudo chmod -R +rwx /tmp/bins/* || :
+          ls -l /tmp/bins/
+
+      - name: Archive crashes (linux)
+        uses: actions/upload-artifact@v2
+        if: failure() && startsWith(matrix.os, 'ubuntu')
+        with:
+          name: crashes
+          path: |
+            /tmp/cores/
+            /tmp/bins/
+      
 
       - name: Run tests (windows & macos)
         if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')
@@ -203,12 +223,5 @@ jobs:
         run: |
           cd build
           ctest --verbose
-          
-      - name: Archive crashes (linux)
-        uses: actions/upload-artifact@v2
-        if: always() && startsWith(matrix.os, 'ubuntu')
-        with:
-          name: crashes
-          path: /var/crashes/*
-          
+            
 #path: /tmp/cores/*
