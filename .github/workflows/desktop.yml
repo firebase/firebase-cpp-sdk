@@ -184,7 +184,7 @@ jobs:
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
-          sudo mkdir -p /tmp/bins
+          sudo mkdir -p /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
           sudo rm -rf /tmp/bins/*
           sudo rm -rf ./build/app/tests/firebase_test
           sudo cp -f ./build/analytics/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
