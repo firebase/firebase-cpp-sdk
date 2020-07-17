@@ -18,14 +18,14 @@ jobs:
         build_type: ["Release", "Debug"]
         architecture: ["x64",]
         python_version: [2.7]
-        generator: ["Visual Studio 16 2019", "Unix-Makefiles", "Ninja"]
+        generator: ["Visual Studio 16 2019", "Unix Makefiles", "Ninja"]
         exclude:
         - os: ubuntu-latest
           generator: "Visual Studio 16 2019"
         - os: macos-latest
           generator: "Visual Studio 16 2019"
         - os: windows-latest
-          generator: "Unix-Makefiles"
+          generator: "Unix Makefiles"
         - os: windows-latest
           generator: "Ninja"
 
@@ -213,7 +213,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         with:
-          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
           path: |
             /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
             /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
@@ -240,9 +240,9 @@ jobs:
       
       - name: Archive crashes (mac)
         uses: actions/upload-artifact@v2
-        if: failure() && startsWith(matrix.os, 'macos')
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         with:
-          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
           path: ~/Library/Logs/DiagnosticReports/*
 
             
