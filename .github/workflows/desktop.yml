@@ -218,8 +218,8 @@ jobs:
           sudo rm -rf /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}/*   || :
           sudo mkdir -p /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
           sudo cp -r * /tmp/cores/ /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo chmod -R +rwx /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}/* || : 
-          ls -l /tmp/archiive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo chmod -R +rwx /tmp/archive/cores/* || :
+          ls -l /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
 
       - name: Prep crash data for archive (macos)
         shell: bash
