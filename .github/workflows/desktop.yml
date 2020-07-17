@@ -167,47 +167,10 @@ jobs:
         if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
-          echo '/tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}/core.%E.%p.%t' | sudo tee xd
-          sudo mkdir -p /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo rm -rf /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}/*
+          echo '/tmp/cores/core.%E.%p.%t' | sudo tee xd
+          sudo mkdir -p /tmp/cores/
+          sudo rm -rf /tmp/cores/*
           
-      - name: Run tests (linux)
-        if: startsWith(matrix.os, 'ubuntu')
-        env:
-          LANG: en_US
-        run: |
-          ulimit -c unlimited 
-          cd build
-          sudo ctest --verbose
-      
-      - name: Copy test bins and cores (linux)
-        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
-        shell: bash
-        run: |
-          sudo rm -rf /tmp/bins/* || :
-          sudo mkdir -p /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo rm -rf ./build/app/tests/firebase_test
-          sudo cp -f ./build/analytics/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f ./build/app/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f ./build/app/rest/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f ./build/auth/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f ./build/database/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f ./build/instance_id/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f ./build/remote_config/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f ./build/storage/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo chmod -R +rwx /tmp/bins/* || :
-          sudo mkdir -p /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f /tmp/cores/* /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-      
-      - name: Apply Read Permissions to crash data (linux)
-        shell: bash
-        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
-        run: |
-          sudo chmod -R +rwx /tmp/cores/* || : 
-          ls -l /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo chmod -R +rwx /tmp/bins/* || :
-          ls -l /tmp/bins/
-
       - name: Enable crash support (mac)
         if: startsWith(matrix.os, 'macos')
         run: |
@@ -221,7 +184,43 @@ jobs:
           cd build
           ctest --verbose
 
-      - name: Apply Read Permissions to crash data (macos)
+      - name: Run tests (linux)
+        if: startsWith(matrix.os, 'ubuntu')
+        env:
+          LANG: en_US
+        run: |
+          ulimit -c unlimited 
+          cd build
+          sudo ctest --verbose
+      
+      - name: Copy test bins (linux)
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
+        shell: bash
+        run: |
+          sudo rm -rf /tmp/archive/bins/* || :
+          sudo mkdir -p /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo rm -rf ./build/app/tests/firebase_test
+          sudo cp -f ./build/analytics/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -f ./build/app/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -f ./build/app/rest/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -f ./build/auth/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -f ./build/database/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -f ./build/instance_id/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -f ./build/remote_config/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -f ./build/storage/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo chmod -R +rwx /tmp/archive/bins/* || :
+  
+
+      - name: Prep crash data for archive (macos)
+        shell: bash
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo mkdir -p /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          cp -r * /tmp/cores/ /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo chmod -R +rwx /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}/* || : 
+          ls -l /tmp/archiive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+
+      - name: Prep crash data for archive (macos)
         shell: bash
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         run: |
@@ -234,8 +233,8 @@ jobs:
         with:
           name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-makefiles
           path: |
-            /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-            /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+            /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+            /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
       
       - name: Archive crashes and binaries (linux - ninja )
         uses: actions/upload-artifact@v2
@@ -243,8 +242,8 @@ jobs:
         with:
           name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-ninja
           path: |
-            /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-            /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+            /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+            /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
 
       - name: Archive crashes (mac - makefiles)
         uses: actions/upload-artifact@v2
