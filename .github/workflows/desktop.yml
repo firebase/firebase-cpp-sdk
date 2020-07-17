@@ -188,14 +188,14 @@ jobs:
           sudo mkdir -p /tmp/bins
           sudo rm -rf /tmp/bins/*
           sudo rm -rf ./build/app/tests/firebase_test
-          sudo cp -f ./build/analytics/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
-          sudo cp -f ./build/app/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
-          sudo cp -f ./build/app/rest/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
-          sudo cp -f ./build/auth/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
-          sudo cp -f ./build/database/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
-          sudo cp -f ./build/instance_id/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
-          sudo cp -f ./build/remote_config/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
-          sudo cp -f ./build/storage/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+          sudo cp -f ./build/analytics/tests/firebase* /tmp/bins
+          sudo cp -f ./build/app/tests/firebase* /tmp/bins
+          sudo cp -f ./build/app/rest/tests/firebase* /tmp/bins
+          sudo cp -f ./build/auth/tests/firebase* /tmp/bins
+          sudo cp -f ./build/database/tests/firebase* /tmp/bins
+          sudo cp -f ./build/instance_id/tests/firebase* /tmp/bins
+          sudo cp -f ./build/remote_config/tests/firebase* /tmp/bins
+          sudo cp -f ./build/storage/tests/firebase* /tmp/bins
           sudo chmod -R +rwx /tmp/bins/* || :
       
       - name: Apply Read Permissions to crash data (linux)
@@ -211,7 +211,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         with:
-          name: crashes
+          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
           path: |
             /tmp/cores/
             /tmp/bins/
@@ -240,7 +240,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: failure() && startsWith(matrix.os, 'macos')
         with:
-          name: crashes
+          name: crashes/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
           path: ~/Library/Logs/DiagnosticReports/*
 
             
