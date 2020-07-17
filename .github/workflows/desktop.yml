@@ -167,9 +167,9 @@ jobs:
         if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
-          echo '/tmp/cores/core.%E.%p.%t' | sudo tee xd
-          sudo mkdir -p /tmp/cores
-          sudo rm -rf /tmp/cores/*
+          echo '/tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}/core.%E.%p.%t' | sudo tee xd
+          sudo mkdir -p /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo rm -rf /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}/*
           
       - name: Run tests (linux)
         if: startsWith(matrix.os, 'ubuntu')
@@ -204,7 +204,7 @@ jobs:
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         run: |
           sudo chmod -R +rwx /tmp/cores/* || : 
-          ls -l /tmp/cores/
+          ls -l /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
           sudo chmod -R +rwx /tmp/bins/* || :
           ls -l /tmp/bins/
 
@@ -259,6 +259,3 @@ jobs:
         with:
           name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-ninja
           path: ~/Library/Logs/DiagnosticReports/*
-
-            
-#path: /tmp/cores/*
