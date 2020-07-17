@@ -193,7 +193,7 @@ jobs:
           cd build
           sudo ctest --verbose
       
-      - name: Copy test bins (linux)
+      - name: Prep bins for achive (linux)
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
@@ -211,12 +211,13 @@ jobs:
           sudo chmod -R +rwx /tmp/archive/bins/* || :
   
 
-      - name: Prep crash data for archive (macos)
+      - name: Prep crash data for archive (linux)
         shell: bash
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         run: |
+          sudo rm -rf /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}/*   || :
           sudo mkdir -p /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          cp -r * /tmp/cores/ /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -r * /tmp/cores/ /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
           sudo chmod -R +rwx /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}/* || : 
           ls -l /tmp/archiive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
 
