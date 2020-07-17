@@ -3,6 +3,8 @@
 
 #include <jni.h>
 
+#include <cstddef>
+
 #include "app/src/include/firebase/internal/type_traits.h"
 #include "firestore/src/jni/jni_fwd.h"
 
@@ -36,7 +38,8 @@ template <> struct IsReference<jobjectArray> : public true_type {};
 // MARK: Type mapping
 
 // A compile-time map from C++ types to their JNI equivalents.
-template <typename T> struct JniTypeMap {};
+template <typename T> struct JniTypeMap { using type = jobject; };
+
 template <> struct JniTypeMap<bool> { using type = jboolean; };
 template <> struct JniTypeMap<uint8_t> { using type = jbyte; };
 template <> struct JniTypeMap<uint16_t> { using type = jchar; };
@@ -47,11 +50,15 @@ template <> struct JniTypeMap<float> { using type = jfloat; };
 template <> struct JniTypeMap<double> { using type = jdouble; };
 template <> struct JniTypeMap<size_t> { using type = jsize; };
 
-template <> struct JniTypeMap<jobject> { using type = jobject; };
-template <> struct JniTypeMap<jstring> { using type = jstring; };
-
 template <> struct JniTypeMap<Object> { using type = jobject; };
 template <> struct JniTypeMap<String> { using type = jstring; };
+
+template <typename T> struct JniTypeMap<Local<T>> {
+  using type = typename JniTypeMap<T>::type;
+};
+template <typename T> struct JniTypeMap<Global<T>> {
+  using type = typename JniTypeMap<T>::type;
+};
 
 template <typename T>
 using JniType = typename JniTypeMap<decay_t<T>>::type;
@@ -70,26 +77,83 @@ using EnableForReference =
 
 // MARK: Type converters
 
-// Converts C++ primitives to their equivalent JNI primitive types by casting.
-template <typename T>
-EnableForPrimitive<T, JniType<T>> ToJni(const T& value) {
+namespace internal {
+
+/**
+ * An explicit ordering for overload resolution of JNI conversions. This allows
+ * SFINAE without needing to make all the enable_if cases mutually exclusive.
+ *
+ * When finding a JNI converter, we try the following, in order:
+ *   * pass through, for JNI primitive types;
+ *   * static casts, for C++ primitive types;
+ *   * pass through, for JNI reference types like jobject;
+ *   * unwrapping, for JNI reference wrapper types like `Object` or
+ *     `Local<String>`.
+ *
+ * `ConverterChoice` is a recursive type, defined such that `ConverterChoice<0>`
+ * is the most derived type, `ConverterChoice<1>` and beyond are progressively
+ * less derived. This causes the compiler to prioritize the overloads with
+ * lower-numbered `ConverterChoice`s first, allowing compilation to succeed even
+ * if multiple unqualified overloads would match, and would otherwise fail due
+ * to an ambiguity.
+ */
+template <int I>
+struct ConverterChoice : public ConverterChoice<I + 1> {};
+
+template <>
+struct ConverterChoice<3> {};
+
+/**
+ * Converts JNI primitive types to themselves.
+ */
+template <typename T,
+          typename = typename enable_if<IsPrimitive<T>::value>::type>
+T RankedToJni(T value, ConverterChoice<0>) {
+  return value;
+}
+
+/**
+ * Converts C++ primitive types to their equivalent JNI primitive types by
+ * casting.
+ */
+template <typename T,
+          typename = typename enable_if<IsPrimitive<JniType<T>>::value>::type>
+JniType<T> RankedToJni(T value, ConverterChoice<1>) {
   return static_cast<JniType<T>>(value);
 }
 
-// Converts JNI wrapper reference types (like `const Object&`) and any ownership
-// wrappers of those types to their underlying `jobject`-derived reference.
-template <typename T>
-EnableForReference<T, JniType<T>> ToJni(const T& value) {
-  return value.get();
+/**
+ * Converts direct use of a JNI reference types to themselves.
+ */
+template <typename T,
+          typename = typename enable_if<IsReference<T>::value>::type>
+T RankedToJni(T value, ConverterChoice<2>) {
+  return value;
 }
-template <typename T, typename J = typename T::jni_type>
-J ToJni(const T& value) {
+
+#if defined(_STLPORT_VERSION)
+using nullptr_t = decltype(nullptr);
+#else
+using nullptr_t = std::nullptr_t;
+#endif
+
+inline jobject RankedToJni(nullptr_t, ConverterChoice<2>) { return nullptr; }
+
+/**
+ * Converts wrapper types to JNI references by unwrapping them.
+ */
+template <typename T, typename J = JniType<T>>
+J RankedToJni(const T& value, ConverterChoice<3>) {
   return value.get();
 }
 
-// Preexisting JNI types can be passed directly. This makes incremental
-// migration possible. Ideally this could eventually be removed.
-inline jobject ToJni(jobject value) { return value; }
+}  // namespace internal
+
+template <typename T>
+auto ToJni(const T& value)
+    -> decltype(internal::RankedToJni(value, internal::ConverterChoice<0>{})) {
+  return internal::RankedToJni(value, internal::ConverterChoice<0>{});
+}
 
 }  // namespace jni
 }  // namespace firestore

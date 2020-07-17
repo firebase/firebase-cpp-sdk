@@ -4,13 +4,17 @@
 
 #include <limits>
 
+#include "firestore/src/jni/env.h"
 #include "firestore/src/jni/object.h"
+#include "firestore/src/jni/ownership.h"
+#include "firestore/src/jni/string.h"
 #include "firestore/src/tests/firestore_integration_test.h"
 #include "gtest/gtest.h"
 
 namespace firebase {
 namespace firestore {
 namespace jni {
+namespace {
 
 using testing::StaticAssertTypeEq;
 
@@ -28,6 +32,11 @@ void ExpectConvertsPrimitive() {
   EXPECT_EQ(jni_value, static_cast<J>(cpp_value));
 }
 
+class TestObject : public Object {
+ public:
+  using Object::Object;
+};
+
 TEST_F(TraitsTest, ConvertsPrimitives) {
   ExpectConvertsPrimitive<bool, jboolean>();
   ExpectConvertsPrimitive<uint8_t, jbyte>();
@@ -40,6 +49,18 @@ TEST_F(TraitsTest, ConvertsPrimitives) {
   ExpectConvertsPrimitive<size_t, jsize>();
 }
 
+TEST_F(TraitsTest, PassesThroughJniPrimitives) {
+  ExpectConvertsPrimitive<jboolean, jboolean>();
+  ExpectConvertsPrimitive<jbyte, jbyte>();
+  ExpectConvertsPrimitive<jchar, jchar>();
+  ExpectConvertsPrimitive<jshort, jshort>();
+  ExpectConvertsPrimitive<jint, jint>();
+  ExpectConvertsPrimitive<jlong, jlong>();
+  ExpectConvertsPrimitive<jfloat, jfloat>();
+  ExpectConvertsPrimitive<jdouble, jdouble>();
+  ExpectConvertsPrimitive<jsize, jsize>();
+}
+
 TEST_F(TraitsTest, ConvertsObjects) {
   Object cpp_value;
   jobject jni_value = ToJni(cpp_value);
@@ -50,6 +71,46 @@ TEST_F(TraitsTest, ConvertsObjects) {
   EXPECT_EQ(jni_value, nullptr);
 
   jni_value = ToJni(nullptr);
+  EXPECT_EQ(jni_value, nullptr);
+}
+
+TEST_F(TraitsTest, ConvertsStrings) {
+  Env env;
+
+  String empty_value;
+  jstring jni_value = ToJni(empty_value);
+  EXPECT_EQ(jni_value, nullptr);
+
+  Local<String> cpp_value = env.NewStringUtf("testing");
+  jni_value = ToJni(cpp_value);
+  EXPECT_EQ(jni_value, cpp_value.get());
+
+  jstring jstring_value = nullptr;
+  jni_value = ToJni(jstring_value);
+  EXPECT_EQ(jni_value, nullptr);
+}
+
+TEST_F(TraitsTest, ConvertsArbitrarySubclassesOfObject) {
+  TestObject cpp_value;
+  jobject jni_value = ToJni(cpp_value);
+  EXPECT_EQ(jni_value, nullptr);
+}
+
+TEST_F(TraitsTest, ConvertsOwnershipWrappers) {
+  StaticAssertTypeEq<JniType<Local<Object>>, jobject>();
+  StaticAssertTypeEq<JniType<Global<String>>, jstring>();
+  StaticAssertTypeEq<JniType<const Local<String>&>, jstring>();
+
+  Local<Object> local_value;
+  jobject jni_value = ToJni(local_value);
+  EXPECT_EQ(jni_value, nullptr);
+
+  Local<TestObject> test_value;
+  jni_value = ToJni(test_value);
+  EXPECT_EQ(jni_value, nullptr);
+
+  Global<Object> global_value;
+  jni_value = ToJni(global_value);
   EXPECT_EQ(jni_value, nullptr);
 }
 
@@ -68,6 +129,7 @@ TEST_F(TraitsTest, DecaysBeforeMappingTypes) {
   StaticAssertTypeEq<JniType<Object&&>, jobject>();
 }
 
+}  // namespace
 }  // namespace jni
 }  // namespace firestore
 }  // namespace firebase
