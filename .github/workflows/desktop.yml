@@ -177,7 +177,6 @@ jobs:
           LANG: en_US
         run: |
           ulimit -c unlimited 
-          cat /proc/sys/kernel/core_pattern
           cd build
           sudo ctest --verbose
       
@@ -198,7 +197,7 @@ jobs:
           sudo cp -f ./build/storage/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
           sudo chmod -R +rwx /tmp/bins/* || :
           sudo mkdir -p /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -f /tmp/cores/* /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
       
       - name: Apply Read Permissions to crash data (linux)
         shell: bash
@@ -235,8 +234,8 @@ jobs:
         with:
           name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-makefiles
           path: |
-            /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
-            /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+            /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+            /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
       
       - name: Archive crashes and binaries (linux - ninja )
         uses: actions/upload-artifact@v2
@@ -244,8 +243,8 @@ jobs:
         with:
           name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-ninja
           path: |
-            /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
-            /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+            /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+            /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
 
       - name: Archive crashes (mac - makefiles)
         uses: actions/upload-artifact@v2
