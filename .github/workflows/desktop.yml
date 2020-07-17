@@ -217,7 +217,7 @@ jobs:
         run: |
           sudo rm -rf /tmp/upload/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}/*   || :
           sudo mkdir -p /tmp/upload/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -r * /tmp/cores/ /tmp/upload/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -r /tmp/cores/* /tmp/upload/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
           sudo chmod -R +rwx /tmp/upload/cores/* || :
           ls -l /tmp/upload/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
 
