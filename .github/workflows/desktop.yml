@@ -167,7 +167,7 @@ jobs:
         if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
-          echo '/tmp/cores/core.%E.%p' | sudo tee /proc/sys/kernel/core_pattern
+          echo '/tmp/cores/core.%E' | sudo tee /proc/sys/kernel/core_pattern
           sudo mkdir -p /tmp/cores/
           sudo rm -rf /tmp/cores/*
           
