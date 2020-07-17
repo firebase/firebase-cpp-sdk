@@ -167,7 +167,7 @@ jobs:
         if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
-          echo '/tmp/cores/core.%e.%p.%h.%t' | sudo tee /proc/sys/kernel/core_pattern
+          echo '/tmp/cores/core.%E.%p.%t' | sudo tee xd
           sudo mkdir -p /tmp/cores
           sudo rm -rf /tmp/cores/*
           
@@ -181,22 +181,24 @@ jobs:
           cd build
           sudo ctest --verbose
       
-      - name: Copy test bins (linux)
+      - name: Copy test bins and cores (linux)
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
           sudo mkdir -p /tmp/bins
           sudo rm -rf /tmp/bins/*
           sudo rm -rf ./build/app/tests/firebase_test
-          sudo cp -f ./build/analytics/tests/firebase* /tmp/bins
-          sudo cp -f ./build/app/tests/firebase* /tmp/bins
-          sudo cp -f ./build/app/rest/tests/firebase* /tmp/bins
-          sudo cp -f ./build/auth/tests/firebase* /tmp/bins
-          sudo cp -f ./build/database/tests/firebase* /tmp/bins
-          sudo cp -f ./build/instance_id/tests/firebase* /tmp/bins
-          sudo cp -f ./build/remote_config/tests/firebase* /tmp/bins
-          sudo cp -f ./build/storage/tests/firebase* /tmp/bins
+          sudo cp -f ./build/analytics/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+          sudo cp -f ./build/app/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+          sudo cp -f ./build/app/rest/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+          sudo cp -f ./build/auth/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+          sudo cp -f ./build/database/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+          sudo cp -f ./build/instance_id/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+          sudo cp -f ./build/remote_config/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+          sudo cp -f ./build/storage/tests/firebase* /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
           sudo chmod -R +rwx /tmp/bins/* || :
+          sudo mkdir -p /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+          sudo cp -f /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
       
       - name: Apply Read Permissions to crash data (linux)
         shell: bash
@@ -213,8 +215,8 @@ jobs:
         with:
           name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
           path: |
-            /tmp/cores/
-            /tmp/bins/
+            /tmp/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+            /tmp/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
       
       - name: Enable crash support (mac)
         if: startsWith(matrix.os, 'macos')
@@ -240,7 +242,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: failure() && startsWith(matrix.os, 'macos')
         with:
-          name: crashes/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
           path: ~/Library/Logs/DiagnosticReports/*
 
             
