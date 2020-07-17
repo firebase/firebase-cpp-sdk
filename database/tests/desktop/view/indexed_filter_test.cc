@@ -193,7 +193,13 @@ TEST(IndexedFilter, UpdateChild_RemovedValue) {
   EXPECT_THAT(change_accumulator, Pointwise(Eq(), expected_changes));
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST(IndexedFilterDeathTest, DISABLED_UpdateChild_OrderByMismatch) {
+#else
 TEST(IndexedFilterDeathTest, UpdateChild_OrderByMismatch) {
+#endif
   QueryParams params;
   params.order_by = QueryParams::kOrderByChild;
   IndexedFilter filter(params);
@@ -311,7 +317,13 @@ TEST(IndexedFilter, UpdateFullVariant) {
   }
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST(IndexedFilterDeathTest, DISABLED_UpdateFullVariant_OrderByMismatch) {
+#else
 TEST(IndexedFilterDeathTest, UpdateFullVariant_OrderByMismatch) {
+#endif
   QueryParams params;
   params.order_by = QueryParams::kOrderByChild;
   IndexedFilter filter(params);

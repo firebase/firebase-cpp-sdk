@@ -318,7 +318,13 @@ TEST_F(EventGeneratorTest, GenerateEventsForChangesWithDifferentQuerySpec) {
   EXPECT_THAT(result, Pointwise(Eq(), expected));
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(EventGeneratorDeathTest, DISABLED_MissingChildName) {
+#else
 TEST_F(EventGeneratorDeathTest, MissingChildName) {
+#endif
   std::vector<Change> changes{
       ChildAddedChange("", CombineValueAndPriority(100, 1)),
   };
@@ -329,7 +335,13 @@ TEST_F(EventGeneratorDeathTest, MissingChildName) {
                DEATHTEST_SIGABRT);
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(EventGeneratorDeathTest, DISABLED_MultipleValueChanges) {
+#else
 TEST_F(EventGeneratorDeathTest, MultipleValueChanges) {
+#endif
   std::vector<Change> changes{
       ValueChange(IndexedVariant(Variant("aaa"))),
       ValueChange(IndexedVariant(Variant("bbb"))),

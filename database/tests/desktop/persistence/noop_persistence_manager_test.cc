@@ -64,7 +64,13 @@ TEST(NoopPersistenceManager, InsideTransaction) {
   }));
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST(NoopPersistenceManagerDeathTest, DISABLED_NestedTransaction) {
+#else
 TEST(NoopPersistenceManagerDeathTest, NestedTransaction) {
+#endif
   // Make sure none of these functions result in a crash. There is no state we
   // can query or other side effects that we can test.
   NoopPersistenceManager manager;

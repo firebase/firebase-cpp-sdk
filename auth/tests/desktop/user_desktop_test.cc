@@ -288,13 +288,20 @@ class UserDesktopTest : public ::testing::Test {
   }
 
   void TearDown() override {
-    {
-      SleepUponDestruction sleep_for_listeners;
-    }
     // Reset listeners before signing out.
     id_token_listener.VerifyAndReset();
     auth_state_listener.VerifyAndReset();
     firebase_auth_->SignOut();
+
+    // Wait for the app to finish any remaining tasks in queue,
+    // specifically delete app data from persistent cache after SignOut.
+    // This is to avoid race conditions where the next test's SignIn 
+    // doesn't cause a change in auth state or id tokens because persistent
+    // cache has valid user logged in, preventing listeners from firing.
+    {
+      SleepUponDestruction sleep_for_listeners;
+    }
+
     firebase_auth_.reset(nullptr);
     firebase_app_.reset(nullptr);
     // cppsdk needs to be the last thing torn down, because the mocks are still
