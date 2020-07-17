@@ -18,14 +18,14 @@ jobs:
         build_type: ["Release", "Debug"]
         architecture: ["x64",]
         python_version: [2.7]
-        generator: ["Visual Studio 16 2019", "Unix Makefiles", "Ninja"]
+        generator: ["Visual Studio 16 2019", "Unix-Makefiles", "Ninja"]
         exclude:
         - os: ubuntu-latest
           generator: "Visual Studio 16 2019"
         - os: macos-latest
           generator: "Visual Studio 16 2019"
         - os: windows-latest
-          generator: "Unix Makefiles"
+          generator: "Unix-Makefiles"
         - os: windows-latest
           generator: "Ninja"
 
