@@ -733,7 +733,13 @@ TEST_F(SyncTreeTest, RemoveEventRegistration) {
   EXPECT_EQ(results, std::vector<Event>{expected_event});
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(SyncTreeDeathTest, DISABLED_RemoveEventRegistration) {
+#else
 TEST_F(SyncTreeDeathTest, RemoveEventRegistration) {
+#endif
   QuerySpec query_spec(Path("i/am/become/death"));
   MockChildListener listener;
   ChildEventRegistration* event_registration =
