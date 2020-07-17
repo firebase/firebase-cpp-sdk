@@ -197,29 +197,29 @@ jobs:
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
-          sudo rm -rf /tmp/archive/bins/* || :
-          sudo mkdir -p /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo rm -rf /tmp/upload/bins/* || :
+          sudo mkdir -p /tmp/upload/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
           sudo rm -rf ./build/app/tests/firebase_test
-          sudo cp -f ./build/analytics/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f ./build/app/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f ./build/app/rest/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f ./build/auth/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f ./build/database/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f ./build/instance_id/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f ./build/remote_config/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -f ./build/storage/tests/firebase* /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo chmod -R +rwx /tmp/archive/bins/* || :
+          sudo cp -f ./build/analytics/tests/firebase* /tmp/upload/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -f ./build/app/tests/firebase* /tmp/upload/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -f ./build/app/rest/tests/firebase* /tmp/upload/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -f ./build/auth/tests/firebase* /tmp/upload/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -f ./build/database/tests/firebase* /tmp/upload/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -f ./build/instance_id/tests/firebase* /tmp/upload/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -f ./build/remote_config/tests/firebase* /tmp/upload/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -f ./build/storage/tests/firebase* /tmp/upload/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo chmod -R +rwx /tmp/upload/bins/* || :
   
 
       - name: Prep crash data for archive (linux)
         shell: bash
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         run: |
-          sudo rm -rf /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}/*   || :
-          sudo mkdir -p /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo cp -r * /tmp/cores/ /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-          sudo chmod -R +rwx /tmp/archive/cores/* || :
-          ls -l /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo rm -rf /tmp/upload/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}/*   || :
+          sudo mkdir -p /tmp/upload/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo cp -r * /tmp/cores/ /tmp/upload/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          sudo chmod -R +rwx /tmp/upload/cores/* || :
+          ls -l /tmp/upload/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
 
       - name: Prep crash data for archive (macos)
         shell: bash
@@ -234,8 +234,8 @@ jobs:
         with:
           name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-makefiles
           path: |
-            /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-            /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+            /tmp/upload/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+            /tmp/upload/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
       
       - name: Archive crashes and binaries (linux - ninja )
         uses: actions/upload-artifact@v2
@@ -243,8 +243,8 @@ jobs:
         with:
           name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-ninja
           path: |
-            /tmp/archive/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-            /tmp/archive/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+            /tmp/upload/cores/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+            /tmp/upload/bins/${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
 
       - name: Archive crashes (mac - makefiles)
         uses: actions/upload-artifact@v2
