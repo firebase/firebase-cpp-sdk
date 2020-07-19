@@ -240,7 +240,7 @@ jobs:
       # archive uploads.
       - name: Archive crashes and binaries (linux - makefiles)
         uses: actions/upload-artifact@v2
-        if: failure() && startsWith(matrix.generator, 'Unix Makefiles') && startsWith(matrix.build_type, 'Debug') && (startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos'))
+        if: failure() && startsWith(matrix.generator, 'Unix Makefiles') && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu'
         with:
           name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-makefiles
           path: |
@@ -249,7 +249,7 @@ jobs:
       
       - name: Archive crashes and binaries (linux - ninja )
         uses: actions/upload-artifact@v2
-        if: failure() && startsWith(matrix.generator, 'Ninja') && startsWith(matrix.build_type, 'Debug') && (startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos'))
+        if: failure() && startsWith(matrix.generator, 'Ninja') && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         with:
           name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-ninja
           path: |
