@@ -163,7 +163,7 @@ jobs:
           find build -name "*.a"
           find build -name "*.so"
 
-      - name: Enable crash support (linux)
+      - name: Prep crash support (linux)
         # Ensures directory structure is in place to capture core files on Linux. 
         if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         shell: bash
@@ -172,8 +172,8 @@ jobs:
           sudo mkdir -p /tmp/cores/
           sudo rm -rf /tmp/cores/*
           
-      - name: Enable crash support (mac)
-        # Ensures no lingering crashes from a previous run.
+      - name: Prep crash support (mac)
+        # Ensures no lingering crashes from the previous run.
         if: startsWith(matrix.os, 'macos')
         run: |
           rm -rf ~/Library/Logs/DiagnosticReports/*
@@ -188,8 +188,9 @@ jobs:
 
       - name: Run tests (linux)
         # Linux exists as its own standalone execution step in order to invoke
-        # platform-specific ulimit to enable crash collection.  The ulimit command
-        # must be made in same instance of the shell that runs the tests.
+        # platform-specific `ulimit` to enable crash collection.  The ulimit
+        # command must be invoked in same shell instance of that runs the
+        # tests.
         if: startsWith(matrix.os, 'ubuntu')
         env:
           LANG: en_US
@@ -220,7 +221,7 @@ jobs:
 
       - name: Prep crash data for archive (linux)
         # Marks the contents of the core dump directory to be readable for the
-        # archiving step.
+        # archiving step on linux.
         shell: bash
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         run: |
@@ -228,20 +229,17 @@ jobs:
 
       - name: Prep crash data for archive (macos)
         # Freshly made diagnostic reports are marked as readable for
-        # the archive step.
+        # the archive step. Note: for some reason /tmp/cores doesn't survive
+        # long enough for archiving on mac, so prep the DiagnosticReports
+        # directory instead.
         shell: bash
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         run: |
-          sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || : 
-          sudo rm -rf /tmp/cores/* || :
-          sudo mkdir -p /tmp/cores
-          cp ~/Library/Logs/DiagnosticReports/* /tmp/cores || :
-          sudo chmod -R +rwx /tmp/cores/* || : 
-          
+          sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || :           
 
-      # Crash Archives - Unfortunately matrix.generator includes spaces for
-      # the "Unix Makefiles" configuration so it cannot be used to name-mangle
-      # archive files. Instead there are different steps for Ninja & Makfiles
+      # Crash Archives -  matrix.generator includes spaces for the
+      # "Unix Makefiles" configuration so it cannot be used to name-mangle
+      # archive files. Instead there are different steps for Ninja & Makefile
       # archive uploads.
       - name: Archive crashes and binaries (linux - makefiles)
         uses: actions/upload-artifact@v2
@@ -269,7 +267,6 @@ jobs:
           path: |
             ~/Library/Logs/DiagnosticReports/*
             /tmp/bins/*
-            /tmp/cores/*
 
       - name: Archive crashes (mac - ninja)
         uses: actions/upload-artifact@v2
@@ -279,4 +276,3 @@ jobs:
           path: |
             ~/Library/Logs/DiagnosticReports/*
             /tmp/bins/*
-            /tmp/cores/*
