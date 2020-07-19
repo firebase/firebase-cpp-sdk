@@ -233,6 +233,11 @@ jobs:
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         run: |
           sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || : 
+          sudo rm -rf /tmp/cores/* || :
+          sudo mkdir -p /tmp/cores
+          cp ~/Library/Logs/DiagnosticReports/* /tmp/cores || :
+          sudo chmod -R +rwx /tmp/cores/* || : 
+          
 
       # Crash Archives - Unfortunately matrix.generator includes spaces for
       # the "Unix Makefiles" configuration so it cannot be used to name-mangle
@@ -264,6 +269,7 @@ jobs:
           path: |
             ~/Library/Logs/DiagnosticReports/*
             /tmp/bins/*
+            /tmp/cores/*
 
       - name: Archive crashes (mac - ninja)
         uses: actions/upload-artifact@v2
@@ -273,3 +279,4 @@ jobs:
           path: |
             ~/Library/Logs/DiagnosticReports/*
             /tmp/bins/*
+            /tmp/cores/*
