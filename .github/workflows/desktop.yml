@@ -242,13 +242,15 @@ jobs:
           # sudo chmod -R +rwx /tmp/upload/cores/* || :
         shell: bash
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
-        run: sudo chmod -R +rwx /tmp/cores/* || :
+        run: |
+          sudo chmod -R +rwx /tmp/cores/* || :
 
       - name: Prep crash data for archive (macos)
         # Freshly made diagnostic reports are marked as readable for archive.
         shell: bash
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
-        run: sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || : 
+        run: |
+          sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || : 
       
       - name: Archive crashes and binaries (linux - makefiles)
         # Unfortunately matrix.generator includes spaces for Unix Makefiles, so 
