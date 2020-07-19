@@ -234,7 +234,7 @@ jobs:
           sudo rm -rf /tmp/cores/* || :
           sudo mkdir -p /tmp/cores/
           sudo cp  ~/Library/Logs/DiagnosticReports/* /tmp/cores
-          sudo chmod -R +rwx /tmp/cores || : 
+          sudo chmod -R +rwx /tmp/cores/* || : 
 
       # Crash Archives - Unfortunately matrix.generator includes spaces for
       # the "Unix Makefiles" configuration so it cannot be used to name-mangle
