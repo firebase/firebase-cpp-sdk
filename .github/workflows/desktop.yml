@@ -227,21 +227,18 @@ jobs:
           sudo chmod -R +rwx /tmp/cores/* || :
 
       - name: Prep crash data for archive (macos)
-        # Freshly made diagnostic reports are marked as readable for archive.
+        # Freshly made diagnostic reports are marked as readable for
+        # the archive step.
         shell: bash
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         run: |
-          sudo rm -rf /tmp/cores/* || :
-          sudo mkdir -p /tmp/
-          sudo mkdir -p /tmp/cores/
-          sudo cp  ~/Library/Logs/DiagnosticReports/* /tmp/cores
-          sudo chmod -R +rwx /tmp/cores/* || : 
+          sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || : 
 
       # Crash Archives - Unfortunately matrix.generator includes spaces for
       # the "Unix Makefiles" configuration so it cannot be used to name-mangle
       # archive files. Instead there are different steps for Ninja & Makfiles
       # archive uploads.
-      - name: Archive crashes and binaries (Unix makefiles)
+      - name: Archive crashes and binaries (linux - makefiles)
         uses: actions/upload-artifact@v2
         if: failure() && startsWith(matrix.generator, 'Unix Makefiles') && startsWith(matrix.build_type, 'Debug') && (startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos'))
         with:
@@ -250,7 +247,7 @@ jobs:
             /tmp/cores/*
             /tmp/bins/*
       
-      - name: Archive crashes and binaries (ninja)
+      - name: Archive crashes and binaries (linux - ninja )
         uses: actions/upload-artifact@v2
         if: failure() && startsWith(matrix.generator, 'Ninja') && startsWith(matrix.build_type, 'Debug') && (startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos'))
         with:
@@ -259,20 +256,20 @@ jobs:
             /tmp/cores/*
             /tmp/bins/*
 
-      #- name: Archive crashes (mac - makefiles)
-      #  uses: actions/upload-artifact@v2
-      #  if: failure() && startsWith(matrix.generator, 'Unix Makefiles') && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
-      #  with:
-      #    name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-makefiles
-      #    path: |
-      #      ~/Library/Logs/DiagnosticReports/*
-      #      /tmp/bins/*
+      - name: Archive crashes (mac - makefiles)
+        uses: actions/upload-artifact@v2
+        if: failure() && startsWith(matrix.generator, 'Unix Makefiles') && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
+        with:
+          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-makefiles
+          path: |
+            ~/Library/Logs/DiagnosticReports/*
+            /tmp/bins/*
 
-      #- name: Archive crashes (mac - ninja)
-      #  uses: actions/upload-artifact@v2
-      #  if: failure() && startsWith(matrix.generator, 'Ninja') && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
-      #  with:
-      #    name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-ninja
-      #    path: |
-      #      ~/Library/Logs/DiagnosticReports/*
-      #      /tmp/bins/*
+      - name: Archive crashes (mac - ninja)
+        uses: actions/upload-artifact@v2
+        if: failure() && startsWith(matrix.generator, 'Ninja') && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
+        with:
+          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-ninja
+          path: |
+            ~/Library/Logs/DiagnosticReports/*
+            /tmp/bins/*
