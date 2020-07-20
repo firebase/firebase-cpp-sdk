@@ -48,7 +48,7 @@ jobs:
         with:
           repository: nico/demumble
           path: demumble-src
-          ref: ${{ env.demumbleVer }}
+          ref: v${{ env.demumbleVer }}
       - name: configure demumble
         run: cmake .
         working-directory: ./demumble-src
