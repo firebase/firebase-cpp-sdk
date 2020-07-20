@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: fetch binutils source
-        run: curl -L https://ftpmirror.gnu.org/binutils/binutils-2.34.tar.xz binutils-2.34
+        run: curl -L https://ftpmirror.gnu.org/binutils/binutils-2.34.tar.xz --output binutils-2.34.tar.xz
       - name: untar binutils source
         run: tar -xvzf binutils-2.34.tar.xz
       - name: configure binutils
