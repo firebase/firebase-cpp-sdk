@@ -199,10 +199,10 @@ jobs:
           cd build
           sudo ctest --verbose
       
-      - name: Prep bins for achive (linux)
+      - name: Prep bins for archive (linux & macos)
         # Copies all of the binary files into one directory for ease in
         # archiving. Directory contents are then marked readable for the
-        # archive step.
+        # archive step (below).
         if: failure() && startsWith(matrix.build_type, 'Debug') && ( startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos') )
         shell: bash
         run: |
