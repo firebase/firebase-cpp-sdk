@@ -25,18 +25,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: fetch binutils source
-        run: curl -L https://ftpmirror.gnu.org/binutils/${{ env.binutilsVer }}.tar.xz --output ${{ env.binutilsVer }}.tar.xz
+        run: curl -L https://ftpmirror.gnu.org/binutils/binutils-${{ env.binutilsVer }}.tar.xz --output binutils.tar.xz
       - name: untar binutils source
-        run: tar -xf ${{ env.binutilsVer }}.tar.xz
+        run: |
+          tar -xf binutils.tar.xz
+          mv ./binutils-${{ env.binutilsVer }} ./binutils-src
       - name: configure binutils
         run: ./configure --enable-targets=all --prefix=/tmp/binutils
-        working-directory: ./${{ env.binutilsVer }}
+        working-directory: ./binutils-src
       - name: make binutils
         run: make
-        working-directory: ./${{ env.binutilsVer }}
+        working-directory: ./binutils-src
       - name: install binutils in /tmp/binutils/...
         run: make install
-        working-directory: ./${{ env.binutilsVer }}
+        working-directory: ./binutils-src
 
   buildDemumble:
     runs-on: ubuntu-latest
@@ -44,18 +46,18 @@ jobs:
       - name: fetch demumble source
         uses: actions/checkout@v2.3.1
         with:
-          repository: https://github.com/nico/demumble
-          path: demumble
+          repository: nico/demumble
+          path: demumble-src
           ref: ${{ env.demumbleVer }}
       - name: configure demumble
         run: cmake .
-        working-directory: ./demumble
+        working-directory: ./demumble-src
       - name: build demumble
         run: cmake --build .
-        working-directory: ./demumble
+        working-directory: ./demumble-src
       - name: test demumble
         run: python demumble_test.py
-        working-directory: ./demumble
+        working-directory: ./demumble-src
       - name: install demumble in /tmp/demumble
         run: cp -af ./demumble /tmp/demumble
-        working-directory: ./demumble
+        working-directory: ./demumble-src
