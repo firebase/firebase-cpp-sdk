@@ -1,11 +1,9 @@
 name: CPP binary SDK packaging
-
 on:
   workflow_dispatch:
     inputs:
       commitId:
         description: 'commit ID to package'
-
 jobs:
   printInputs:
     runs-on: ubuntu-latest
