@@ -17,7 +17,7 @@ jobs:
       - name: fetch binutils source
         run: curl -L https://ftpmirror.gnu.org/binutils/binutils-2.34.tar.xz --output binutils-2.34.tar.xz
       - name: untar binutils source
-        run: tar -xvzf binutils-2.34.tar.xz
+        run: tar -xf binutils-2.34.tar.xz
       - name: configure binutils
         run: ./configure --enable-targets=all --prefix=/tmp/binutils
         working-directory: ./binutils-2.34
