@@ -1,0 +1,35 @@
+name: C++ binary SDK packaging
+
+on:
+  workflow_dispatch:
+    inputs:
+      commitId:
+        description: 'commit ID to package'
+	required: true
+	default: 'dev'
+
+jobs:
+  printInputs:
+    runs-on: ubuntu-latest
+    steps:
+    - run: |
+        echo "Commit ID: ${{ github.event.inputs.commitId }}"
+
+  buildBinutils:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Fetch binutils source
+        uses: boyeborg/fetch-url-action@v1.1
+        with:
+          url: https://ftpmirror.gnu.org/binutils/binutils-2.34.tar.xz
+      - name: untar binutils source
+        run: tar -xvzf binutils-2.34.tar.xz
+      - name: configure binutils
+        run: ./configure --enable-targets=all --prefix=/tmp/bin
+        working-directory: ./binutils-2.34
+      - name: make binutils
+        run: make
+        working-directory: ./binutils-2.34
+      - name: install binutils in /tmp/bin
+        run: make install
+        working-directory: ./binutils-2.34
