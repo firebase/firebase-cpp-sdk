@@ -1,0 +1,14 @@
+name: C++ binary SDK packaging
+
+on:
+  workflow_dispatch:
+    inputs:
+      commitId:
+        description: 'commit ID to package'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: noop
+        run: true
