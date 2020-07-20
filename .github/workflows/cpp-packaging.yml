@@ -43,19 +43,19 @@ jobs:
     steps:
       - name: fetch demumble source
         uses: actions/checkout@v2.3.1
-	with:
-	  repository: https://github.com/nico/demumble
-	  path: demumble
-	  ref: ${{ env.demumbleVer }}
+        with:
+          repository: https://github.com/nico/demumble
+          path: demumble
+          ref: ${{ env.demumbleVer }}
       - name: configure demumble
         run: cmake .
-	working-directory: ./demumble
+        working-directory: ./demumble
       - name: build demumble
         run: cmake --build .
-	working-directory: ./demumble
+        working-directory: ./demumble
       - name: test demumble
         run: python demumble_test.py
-	working-directory: ./demumble
+        working-directory: ./demumble
       - name: install demumble in /tmp/demumble
         run: cp -af ./demumble /tmp/demumble
-	working-directory: ./demumble
+        working-directory: ./demumble
