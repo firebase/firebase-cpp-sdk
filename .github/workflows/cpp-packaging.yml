@@ -1,4 +1,4 @@
-name: C++ binary SDK packaging
+name: CPP binary SDK packaging
 
 on:
   workflow_dispatch:
