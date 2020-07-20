@@ -14,18 +14,16 @@ jobs:
   buildBinutils:
     runs-on: ubuntu-latest
     steps:
-      - name: Fetch binutils source
-        uses: boyeborg/fetch-url-action@v1.1
-        with:
-          url: https://ftpmirror.gnu.org/binutils/binutils-2.34.tar.xz
+      - name: fetch binutils source
+        run: curl -L https://ftpmirror.gnu.org/binutils/binutils-2.34.tar.xz binutils-2.34
       - name: untar binutils source
         run: tar -xvzf binutils-2.34.tar.xz
       - name: configure binutils
-        run: ./configure --enable-targets=all --prefix=/tmp/bin
+        run: ./configure --enable-targets=all --prefix=/tmp/binutils
         working-directory: ./binutils-2.34
       - name: make binutils
         run: make
         working-directory: ./binutils-2.34
-      - name: install binutils in /tmp/bin
+      - name: install binutils in /tmp/binutils
         run: make install
         working-directory: ./binutils-2.34
