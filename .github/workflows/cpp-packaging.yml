@@ -19,7 +19,7 @@ jobs:
         echo "Commit ID: ${{ github.event.inputs.commitId }}"
         echo "Binutils version: ${{ env.binutilsVer }}"
         echo "Demumble version: ${{ env.demumbleVer }}"
-	echo _ZN10StringViewC2Ev | c++filt
+        echo _ZN10StringViewC2Ev | c++filt
 
   buildBinutils:
     runs-on: ubuntu-latest
