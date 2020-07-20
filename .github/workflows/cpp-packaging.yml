@@ -5,8 +5,6 @@ on:
     inputs:
       commitId:
         description: 'commit ID to package'
-	required: true
-	default: 'dev'
 
 jobs:
   printInputs:
