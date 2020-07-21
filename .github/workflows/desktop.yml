@@ -1,7 +1,6 @@
 name: Desktop Builds
 
 on: 
-  push:
   pull_request:
     types: [opened, reopened, synchronize]
 
