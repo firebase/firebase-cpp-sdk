@@ -20,6 +20,7 @@ class Global;
 template <typename T>
 class NonOwning;
 
+class Class;
 class Object;
 class String;
 

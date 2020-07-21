@@ -4,6 +4,39 @@ namespace firebase {
 namespace firestore {
 namespace jni {
 
+Local<Class> Env::FindClass(const char* name) {
+  jclass result = env_->FindClass(name);
+  RecordException();
+  return Local<Class>(env_, result);
+}
+
+jmethodID Env::GetMethodId(const Class& clazz, const char* name,
+                           const char* sig) {
+  if (!ok()) return nullptr;
+
+  jmethodID result = env_->GetMethodID(clazz.get(), name, sig);
+  RecordException();
+  return result;
+}
+
+jfieldID Env::GetStaticFieldId(const Class& clazz, const char* name,
+                               const char* sig) {
+  if (!ok()) return nullptr;
+
+  jfieldID result = env_->GetStaticFieldID(ToJni(clazz), name, sig);
+  RecordException();
+  return result;
+}
+
+jmethodID Env::GetStaticMethodId(const Class& clazz, const char* name,
+                                 const char* sig) {
+  if (!ok()) return nullptr;
+
+  jmethodID result = env_->GetStaticMethodID(ToJni(clazz), name, sig);
+  RecordException();
+  return result;
+}
+
 Local<String> Env::NewStringUtf(const char* bytes) {
   if (!ok()) return {};
 

@@ -48,8 +48,11 @@ template <> struct JniTypeMap<int32_t> { using type = jint; };
 template <> struct JniTypeMap<int64_t> { using type = jlong; };
 template <> struct JniTypeMap<float> { using type = jfloat; };
 template <> struct JniTypeMap<double> { using type = jdouble; };
-template <> struct JniTypeMap<size_t> { using type = jsize; };
 
+template <> struct JniTypeMap<size_t> { using type = jsize; };
+template <> struct JniTypeMap<void> { using type = void; };
+
+template <> struct JniTypeMap<Class> { using type = jclass; };
 template <> struct JniTypeMap<Object> { using type = jobject; };
 template <> struct JniTypeMap<String> { using type = jstring; };
 
