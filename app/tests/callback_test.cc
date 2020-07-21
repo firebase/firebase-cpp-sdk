@@ -338,21 +338,19 @@ TEST_F(CallbackTest, ThreadedCallbackValue1Ordered) {
       &running);
   Thread addCallbacksThread(
       [](void* arg) -> void {
-        void** callback_entry_to_remove_ptr = static_cast<void**>(arg);
         callback::AddCallback(
             new callback::CallbackValue1<int>(1, OrderedCallbackValue1));
         callback::AddCallback(
             new callback::CallbackValue1<int>(2, OrderedCallbackValue1));
-        // Adds a callback which removes the entry referenced by
-        // callback_entry_to_remove.
-        callback::AddCallback(new callback::CallbackValue1<void**>(
-            callback_entry_to_remove_ptr, [](void** callback_entry) -> void {
-              callback::RemoveCallback(*callback_entry);
+        // Adds a callback which removes a newly added callback.
+        callback::AddCallback(new callback::CallbackVoid(
+            []() -> void {
+              void* callback_entry = callback::AddCallback(
+                  new callback::CallbackValue1<int>(4, OrderedCallbackValue1));
+              callback::AddCallback(
+                  new callback::CallbackValue1<int>(5, OrderedCallbackValue1));
+              callback::RemoveCallback(callback_entry);
             }));
-        *callback_entry_to_remove_ptr = callback::AddCallback(
-            new callback::CallbackValue1<int>(4, OrderedCallbackValue1));
-        callback::AddCallback(
-            new callback::CallbackValue1<int>(5, OrderedCallbackValue1));
       },
       &callback_entry_to_remove);
   addCallbacksThread.Join();
