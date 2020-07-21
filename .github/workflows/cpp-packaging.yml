@@ -9,7 +9,7 @@ env:
   # Packaging prerequisites
   # Binutils 2.34 released Feb 1, 2020
   binutilsVer: 2.34
-  # Demumble v1.1.0 released Nov 13, 2018
+  # Demumble 1.1.0 released Nov 13, 2018
   demumbleVer: 1.1.0
 
 jobs:
@@ -21,7 +21,7 @@ jobs:
         echo "Binutils version: ${{ env.binutilsVer }}"
         echo "Demumble version: ${{ env.demumbleVer }}"
 
-  buildBinutils:
+  buildPackagingTools:
     runs-on: ubuntu-latest
     steps:
       - name: fetch binutils source
@@ -39,10 +39,6 @@ jobs:
       - name: install binutils in /tmp/binutils/...
         run: make install
         working-directory: ./binutils-src
-
-  buildDemumble:
-    runs-on: ubuntu-latest
-    steps:
       - name: fetch demumble source
         uses: actions/checkout@v2.3.1
         with:
@@ -61,3 +57,10 @@ jobs:
       - name: install demumble in /tmp/demumble
         run: cp -af ./demumble /tmp/demumble
         working-directory: ./demumble-src
+      - name: archive packaging tools
+        run: tar cvzf ~/packaging_tools.tgz demumble binutils/ar binutils/nm-new binutils/objcopy
+      - name: upload packaging tools artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: packaging-tools
+          path: packaging_tools.tgz
