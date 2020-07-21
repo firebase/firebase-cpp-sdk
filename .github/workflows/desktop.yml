@@ -175,7 +175,7 @@ jobs:
           
       - name: Prep crash support (mac)
         # Ensures no lingering crashes from the previous run.
-        if: startsWith(matrix.os, 'macos')
+        if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         run: |
           rm -rf ~/Library/Logs/DiagnosticReports/*
           
