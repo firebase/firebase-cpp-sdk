@@ -51,6 +51,7 @@ jobs:
           echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt"
           echo "::set-env name=PIP_REQUIREMENTS_FILE::external/pip_requirements.txt"
           echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}"
+          echo "::set-env name=BUILD_TYPE_NO_SPACES::$(echo -e "${{matrix.generator}}" | tr -d '[:space:]')"
 
       - name: Install Ninja (windows)
         if: startsWith(matrix.generator, 'Ninja') && startsWith(matrix.os, 'windows')
@@ -199,24 +200,17 @@ jobs:
           cd build
           sudo ctest --verbose
       
-      - name: Prep bins for archive (linux & macos)
+      - name: Prep bins for achive (linux)
         # Copies all of the binary files into one directory for ease in
         # archiving. Directory contents are then marked readable for the
-        # archive step (below).
+        # archive step.
         if: failure() && startsWith(matrix.build_type, 'Debug') && ( startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos') )
         shell: bash
         run: |
           sudo rm -rf /tmp/bins/* || :
           sudo mkdir -p /tmp/bins/
           sudo rm -rf ./build/app/tests/firebase_test
-          sudo cp -f ./build/analytics/tests/firebase* /tmp/bins/
-          sudo cp -f ./build/app/tests/firebase* /tmp/bins/
-          sudo cp -f ./build/app/rest/tests/firebase* /tmp/bins/
-          sudo cp -f ./build/auth/tests/firebase* /tmp/bins/
-          sudo cp -f ./build/database/tests/firebase* /tmp/bins/
-          sudo cp -f ./build/instance_id/tests/firebase* /tmp/bins/
-          sudo cp -f ./build/remote_config/tests/firebase* /tmp/bins/
-          sudo cp -f ./build/storage/tests/firebase* /tmp/bins/
+          sudo cp -f ./build/*/tests/firebase* /tmp/bins
           sudo chmod -R +rwx /tmp/bins/* || :
 
       - name: Prep crash data for archive (linux)
@@ -237,42 +231,20 @@ jobs:
         run: |
           sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || :           
 
-      # Crash Archives -  matrix.generator includes spaces for the
-      # "Unix Makefiles" configuration so it cannot be used to name-mangle
-      # archive files. Instead there are different steps for Ninja & Makefile
-      # archive uploads.
-      - name: Archive crashes and binaries (linux - makefiles)
+      - name: Archive crashes and binaries (linux)
         uses: actions/upload-artifact@v2
-        if: failure() && startsWith(matrix.generator, 'Unix Makefiles') && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         with:
-          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-makefiles
-          path: |
-            /tmp/cores/*
-            /tmp/bins/*
-      
-      - name: Archive crashes and binaries (linux - ninja )
-        uses: actions/upload-artifact@v2
-        if: failure() && startsWith(matrix.generator, 'Ninja') && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
-        with:
-          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-ninja
+          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ env.BUILD_TYPE_NO_SPACES }}
           path: |
             /tmp/cores/*
             /tmp/bins/*
 
-      - name: Archive crashes (mac - makefiles)
+      - name: Archive crashes (mac)
         uses: actions/upload-artifact@v2
-        if: failure() && startsWith(matrix.generator, 'Unix Makefiles') && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         with:
-          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-makefiles
-          path: |
-            ~/Library/Logs/DiagnosticReports/*
-            /tmp/bins/*
-
-      - name: Archive crashes (mac - ninja)
-        uses: actions/upload-artifact@v2
-        if: failure() && startsWith(matrix.generator, 'Ninja') && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
-        with:
-          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-ninja
+          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ env.BUILD_TYPE_NO_SPACES }}
           path: |
             ~/Library/Logs/DiagnosticReports/*
             /tmp/bins/*
