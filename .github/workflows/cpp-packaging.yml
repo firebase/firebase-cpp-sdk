@@ -6,6 +6,7 @@ on:
         description: 'commit ID to package'
 
 env:
+  # Packaging prerequisites
   # Binutils 2.34 released Feb 1, 2020
   binutilsVer: 2.34
   # Demumble v1.1.0 released Nov 13, 2018
@@ -19,7 +20,6 @@ jobs:
         echo "Commit ID: ${{ github.event.inputs.commitId }}"
         echo "Binutils version: ${{ env.binutilsVer }}"
         echo "Demumble version: ${{ env.demumbleVer }}"
-        echo _ZN10StringViewC2Ev | c++filt
 
   buildBinutils:
     runs-on: ubuntu-latest
