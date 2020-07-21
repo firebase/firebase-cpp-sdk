@@ -1,8 +1,8 @@
 name: Desktop Builds
 
 on: 
-  push:
   pull_request:
+    types: [opened, reopened, synchronize]
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
