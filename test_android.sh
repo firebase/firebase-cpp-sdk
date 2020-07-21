@@ -21,17 +21,5 @@ set -e
 # Display commands being run.
 set -x
 
-./gradlew \
-  app:assembleRelease \
-  admob::assembleRelease \
-  analytics:assembleRelease \
-  auth:assembleRelease \
-  database:assembleRelease \
-  dynamic_links:assembleRelease \
-  firestore:assembleRelease \
-  functions:assembleRelease \
-  instance_id:assembleRelease \
-  messaging:assembleRelease \
-  remote_config:assembleRelease \
-  storage:assembleRelease
+./gradlew build
 
