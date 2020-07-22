@@ -63,7 +63,7 @@ jobs:
     - name: install prerequisites
       run: sdk-src/build_scripts/ios/install_prereqs.sh
     - name: build sdk
-      run |
+      run: |
         build_scripts/ios/build.sh firebase-cpp-sdk-ios-${{ matrix.architecture }} sdk-src ${{ matrix.architecture }}
         tar -cvzf firebase-cpp-sdk-ios-${{ matrix.architecture }}.tgz firebase-cpp-sdk-ios-${{ matrix.architecture }}
     - name: upload artifacts
@@ -83,6 +83,6 @@ jobs:
     - name: install prerequisites
       run: sdk-src/build_scripts/android/install_prereqs.sh
     - name: build sdk
-      run |
+      run: |
         build_scripts/android/build.sh firebase-cpp-sdk-android sdk-src
         tar -cvzf firebase-cpp-sdk-android.tgz firebase-cpp-sdk-android
