@@ -13,7 +13,8 @@ env:
   demumbleVer: 1.1.0
 
 jobs:
-  build_packaging_tools:
+  build:
+    name: build-packaging-tools
     runs-on: ubuntu-latest
     steps:
       - name: fetch and build binutils
@@ -48,7 +49,7 @@ jobs:
           name: packaging-tools
           path: packaging_tools.tgz
 
-  build_sdk_ios:
+  build:
     name: build-sdk-ios-${{ matrix.architecture }}
     runs-on: macos-latest
     strategy:
@@ -72,7 +73,7 @@ jobs:
         name: firebase-cpp-sdk-ios-${{ matrix.architecture }}
         path: firebase-cpp-sdk-ios-${{ matrix.architecture }}.tgz
 
-  build_sdk_android:
+  build:
     name: build-sdk-android
     runs-on: ubuntu-latest
     steps:
