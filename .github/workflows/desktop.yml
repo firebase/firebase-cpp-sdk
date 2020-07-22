@@ -56,7 +56,7 @@ jobs:
         # Used to name mangle archive files in debug builds based on the
         # build generator type. Required becasue the space in the 
         # "Unix Makefiles" generator type breaks the archive process.
-        if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'windows')!='true'
+        if: startsWith(matrix.build_type, 'Debug') && ( startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos') )
         run: |
           echo "::set-env name=BUILD_GENERATOR_NO_SPACES::$(echo -e "${{matrix.generator}}" | tr -d '[:space:]')"
 
