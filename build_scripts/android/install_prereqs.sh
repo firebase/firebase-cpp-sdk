@@ -13,6 +13,16 @@ if [[ -z $(which cmake) ]]; then
     exit 1
 fi
 
+if [[ -z $(which python) ]]; then
+    echo "Error, python is not installed or is not in the PATH."
+    exit 1
+else
+    set -x
+    python -m pip install --upgrade pip
+    pip install -r absl-py protobuf
+    set +x
+fi
+
 if [[ -z "${ANDROID_HOME}" ]]; then
     echo "Error, ANDROID_HOME environment variable is not set."
     exit 1
@@ -29,10 +39,12 @@ if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.p
 	    echo "Error, could not run 'curl' to download NDK. Is it in your PATH?"
 	    exit 1
 	fi
+	set -x
 	curl -LSs \
 	     "https://dl.google.com/android/repository/android-ndk-r16b-${platform}-x86_64.zip" \
 	     --output /tmp/android-ndk-r16b.zip
 	(cd /tmp && unzip -q android-ndk-r16b.zip && rm -f android-ndk-r16b.zip)
+	set +x
 	echo "NDK r16b has been downloaded into /tmp/android-ndk-r16b"
     fi
 fi

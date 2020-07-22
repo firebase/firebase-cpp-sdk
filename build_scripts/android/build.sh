@@ -32,7 +32,7 @@ if [[ -z "${NDK_ROOT}" || ! $(grep -q "Pkg\.Revision = 16\." "${NDK_ROOT}/source
 fi
 set -ex
 cd "${sourcepath}"
-./gradlew build
+./gradlew assembleRelease
 set +x
 
 # Gradle puts the build output inside the source tree, in various
