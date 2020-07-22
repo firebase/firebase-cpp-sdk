@@ -27,7 +27,7 @@ jobs:
           make
           make install
           mkdir -p ~/packaging-tools
-          cp -af /tmp/binutils/bin/ar /tmp/binutils/bin/nm-new /tmp/binutils/bin/objcopy ~/packaging-tools
+          cp -af /tmp/binutils/bin/ar /tmp/binutils/bin/nm /tmp/binutils/bin/objcopy ~/packaging-tools
           cd ~
       - name: fetch demumble
         uses: actions/checkout@v2.3.1
