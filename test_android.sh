@@ -21,6 +21,5 @@ set -e
 # Display commands being run.
 set -x
 
-./gradlew :app:assembleRelease
-
+./gradlew build
 
