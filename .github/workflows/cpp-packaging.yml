@@ -26,9 +26,9 @@ jobs:
           ./configure --enable-targets=all --prefix=/tmp/binutils
           make
           make install
+	  mkdir -p ~/packaging-tools
+	  cp -af /tmp/binutils/bin/ar /tmp/binutils/bin/nm-new /tmp/binutils/bin/objcopy ~/packaging-tools
           cd ~
-	  mkdir -p packaging-tools
-	  cp /tmp/binutils/bin/ar /tmp/binutils/bin/nm-new /tmp/binutils/bin/objcopy ~/packaging_tools
       - name: fetch demumble
         uses: actions/checkout@v2.3.1
         with:
@@ -41,11 +41,10 @@ jobs:
           cmake .
           cmake --build .
           python demumble_test.py
-          cp -af ./demumble /tmp/demumble
+	  mkdir -p ~/packaging-tools
+          cp -af ./demumble ~/packaging-tools
           cd ~
-	  mkdir -p packaging-tools
-	  cp /tmp/demumble packaging-tools
-      - name: upload packaging tools artifact
+      - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
           name: packaging-tools
