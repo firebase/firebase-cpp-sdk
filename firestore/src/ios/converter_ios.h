@@ -4,6 +4,7 @@
 #include <memory>
 #include <utility>
 
+#include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/ios/collection_reference_ios.h"
 #include "firestore/src/ios/document_change_ios.h"
@@ -29,23 +30,29 @@
 namespace firebase {
 namespace firestore {
 
+// Additional specializations of InternalTypeMap for iOS.
+template <>
+struct InternalTypeMap<FieldPath> {
+  using type = model::FieldPath;
+};
+
 // The struct is just to make declaring `MakePublic` a friend easier (and
 // future-proof in case more parameters are added to it).
 struct ConverterImpl {
-  template <typename PublicT, typename InternalT>
+  template <typename PublicT, typename InternalT = InternalType<PublicT>>
   static PublicT MakePublicFromInternal(InternalT&& from) {
     auto* internal = new InternalT(std::move(from));
     return PublicT{internal};
   }
 
-  template <typename PublicT, typename InternalT, typename CoreT,
-            typename... Args>
+  template <typename PublicT, typename CoreT,
+            typename InternalT = InternalType<PublicT>, typename... Args>
   static PublicT MakePublicFromCore(CoreT&& from, Args... args) {
     auto* internal = new InternalT(std::move(from), std::move(args)...);
     return PublicT{internal};
   }
 
-  template <typename InternalT, typename PublicT>
+  template <typename PublicT, typename InternalT = InternalType<PublicT>>
   static InternalT* GetInternal(PublicT* from) {
     return from->internal_;
   }
@@ -54,27 +61,20 @@ struct ConverterImpl {
 // MakePublic
 
 inline CollectionReference MakePublic(api::CollectionReference&& from) {
-  return ConverterImpl::MakePublicFromCore<CollectionReference,
-                                           CollectionReferenceInternal>(
+  return ConverterImpl::MakePublicFromCore<CollectionReference>(
       std::move(from));
 }
 
 inline DocumentChange MakePublic(api::DocumentChange&& from) {
-  return ConverterImpl::MakePublicFromCore<DocumentChange,
-                                           DocumentChangeInternal>(
-      std::move(from));
+  return ConverterImpl::MakePublicFromCore<DocumentChange>(std::move(from));
 }
 
 inline DocumentReference MakePublic(api::DocumentReference&& from) {
-  return ConverterImpl::MakePublicFromCore<DocumentReference,
-                                           DocumentReferenceInternal>(
-      std::move(from));
+  return ConverterImpl::MakePublicFromCore<DocumentReference>(std::move(from));
 }
 
 inline DocumentSnapshot MakePublic(api::DocumentSnapshot&& from) {
-  return ConverterImpl::MakePublicFromCore<DocumentSnapshot,
-                                           DocumentSnapshotInternal>(
-      std::move(from));
+  return ConverterImpl::MakePublicFromCore<DocumentSnapshot>(std::move(from));
 }
 
 inline FieldValue MakePublic(FieldValueInternal&& from) {
@@ -84,18 +84,16 @@ inline FieldValue MakePublic(FieldValueInternal&& from) {
 inline ListenerRegistration MakePublic(
     std::unique_ptr<api::ListenerRegistration> from,
     FirestoreInternal* firestore) {
-  return ConverterImpl::MakePublicFromCore<ListenerRegistration,
-                                           ListenerRegistrationInternal>(
+  return ConverterImpl::MakePublicFromCore<ListenerRegistration>(
       std::move(from), firestore);
 }
 
 inline Query MakePublic(api::Query&& from) {
-  return ConverterImpl::MakePublicFromCore<Query, QueryInternal>(from);
+  return ConverterImpl::MakePublicFromCore<Query>(from);
 }
 
 inline QuerySnapshot MakePublic(api::QuerySnapshot&& from) {
-  return ConverterImpl::MakePublicFromCore<QuerySnapshot,
-                                           QuerySnapshotInternal>(from);
+  return ConverterImpl::MakePublicFromCore<QuerySnapshot>(from);
 }
 
 // TODO(c++17): Add a `MakePublic` overload for `Transaction`, which is not
@@ -103,40 +101,18 @@ inline QuerySnapshot MakePublic(api::QuerySnapshot&& from) {
 // in C++17, but not in prior versions).
 
 inline WriteBatch MakePublic(api::WriteBatch&& from) {
-  return ConverterImpl::MakePublicFromCore<WriteBatch, WriteBatchInternal>(
-      std::move(from));
+  return ConverterImpl::MakePublicFromCore<WriteBatch>(std::move(from));
 }
 
 // GetInternal
 
-inline FirestoreInternal* GetInternal(Firestore* from) {
-  return ConverterImpl::GetInternal<FirestoreInternal>(from);
-}
-
-inline FieldValueInternal* GetInternal(FieldValue* from) {
-  return ConverterImpl::GetInternal<FieldValueInternal>(from);
-}
-
-inline const FieldValueInternal* GetInternal(const FieldValue* from) {
-  return ConverterImpl::GetInternal<FieldValueInternal>(from);
-}
-
-inline DocumentReferenceInternal* GetInternal(DocumentReference* from) {
-  return ConverterImpl::GetInternal<DocumentReferenceInternal>(from);
-}
-
-inline const DocumentSnapshotInternal* GetInternal(
-    const DocumentSnapshot* from) {
-  return ConverterImpl::GetInternal<DocumentSnapshotInternal>(from);
-}
-
-inline const DocumentReferenceInternal* GetInternal(
-    const DocumentReference* from) {
-  return ConverterImpl::GetInternal<DocumentReferenceInternal>(from);
+template <typename PublicT, typename InternalT = InternalType<PublicT>>
+InternalT* GetInternal(PublicT* from) {
+  return ConverterImpl::GetInternal(from);
 }
 
 inline const model::FieldPath& GetInternal(const FieldPath& from) {
-  return *ConverterImpl::GetInternal<model::FieldPath>(&from);
+  return *ConverterImpl::GetInternal(&from);
 }
 
 // GetCoreApi

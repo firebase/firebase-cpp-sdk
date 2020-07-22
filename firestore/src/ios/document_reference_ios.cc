@@ -48,10 +48,6 @@ Future<DocumentSnapshot> DocumentReferenceInternal::Get(Source source) {
   return promise.future();
 }
 
-Future<DocumentSnapshot> DocumentReferenceInternal::GetLastResult() {
-  return promise_factory_.LastResult<DocumentSnapshot>(AsyncApis::kGet);
-}
-
 Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
                                             const SetOptions& options) {
   auto promise = promise_factory_.CreatePromise<void>(AsyncApis::kSet);
@@ -59,10 +55,6 @@ Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
   ParsedSetData parsed = user_data_converter_.ParseSetData(data, options);
   reference_.SetData(std::move(parsed), std::move(callback));
   return promise.future();
-}
-
-Future<void> DocumentReferenceInternal::SetLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApis::kSet);
 }
 
 Future<void> DocumentReferenceInternal::Update(const MapFieldValue& data) {
@@ -80,19 +72,11 @@ Future<void> DocumentReferenceInternal::UpdateImpl(ParsedUpdateData&& parsed) {
   return promise.future();
 }
 
-Future<void> DocumentReferenceInternal::UpdateLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApis::kUpdate);
-}
-
 Future<void> DocumentReferenceInternal::Delete() {
   auto promise = promise_factory_.CreatePromise<void>(AsyncApis::kDelete);
   auto callback = StatusCallbackWithPromise(promise);
   reference_.DeleteDocument(std::move(callback));
   return promise.future();
-}
-
-Future<void> DocumentReferenceInternal::DeleteLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApis::kDelete);
 }
 
 ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(

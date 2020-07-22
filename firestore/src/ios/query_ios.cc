@@ -64,10 +64,6 @@ Future<QuerySnapshot> QueryInternal::Get(Source source) {
   return promise.future();
 }
 
-Future<QuerySnapshot> QueryInternal::GetLastResult() {
-  return promise_factory_.LastResult<QuerySnapshot>(AsyncApis::kGet);
-}
-
 Query QueryInternal::Where(const FieldPath& field_path, Operator op,
                            const FieldValue& value) const {
   const model::FieldPath& path = GetInternal(field_path);

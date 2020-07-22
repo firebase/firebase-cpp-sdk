@@ -12,6 +12,7 @@
 #include "firestore/src/android/util_android.h"
 #endif  // defined(__ANDROID__)
 
+#include "auth/src/include/firebase/auth.h"
 #include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 
@@ -25,6 +26,8 @@
 namespace firebase {
 namespace firestore {
 
+using ::firebase::auth::Auth;
+
 TEST_F(FirestoreIntegrationTest, GetInstance) {
   // Create App.
   App* app = this->app();
@@ -36,6 +39,20 @@ TEST_F(FirestoreIntegrationTest, GetInstance) {
   EXPECT_EQ(kInitResultSuccess, result);
   EXPECT_NE(nullptr, instance);
   EXPECT_EQ(app, instance->app());
+
+  Auth* auth = Auth::GetAuth(app);
+
+  // Tests normally create instances outside of those managed by
+  // Firestore::GetInstance. This means that in this case `instance` is a new
+  // one unmanaged by the test framework. If both the implicit instance and this
+  // instance were started they would try to use the same underlying database
+  // and would fail.
+  delete instance;
+
+  // Firestore calls Auth::GetAuth, which implicitly creates an auth instance.
+  // Even though app is cleaned up automatically, the Auth instance is not.
+  // TODO(mcg): Figure out why App's CleanupNotifier doesn't handle Auth.
+  delete auth;
 }
 
 // Sanity test for stubs.

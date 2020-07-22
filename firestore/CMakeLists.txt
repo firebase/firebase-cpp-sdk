@@ -38,6 +38,7 @@ set(common_SRCS
     src/common/snapshot_metadata.cc
     src/common/to_string.cc
     src/common/to_string.h
+    src/common/type_mapping.h
     src/common/transaction.cc
     src/common/util.cc
     src/common/util.h
@@ -112,7 +113,6 @@ set(android_SRCS
     src/android/util_android.h
     src/android/wrapper.cc
     src/android/wrapper.h
-    src/android/wrapper_future.h
     src/android/write_batch_android.cc
     src/android/write_batch_android.h)
 

@@ -104,15 +104,11 @@ Future<void> WriteBatchInternal::Commit() {
       obj_, write_batch::GetMethodId(write_batch::kCommit));
   CheckAndClearJniExceptions(env);
 
-  auto promise = MakePromise<void, void>();
+  auto promise = promises_.MakePromise<void>();
   promise.RegisterForTask(WriteBatchFn::kCommit, task);
   env->DeleteLocalRef(task);
   CheckAndClearJniExceptions(env);
   return promise.GetFuture();
-}
-
-Future<void> WriteBatchInternal::CommitLastResult() {
-  return LastResult<void>(WriteBatchFn::kCommit);
 }
 
 /* static */

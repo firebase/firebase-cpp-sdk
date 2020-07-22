@@ -6,10 +6,7 @@ namespace firebase {
 namespace firestore {
 namespace csharp {
 
-void SnapshotsInSyncListener::OnEvent(Error error) {
-  firebase::callback::AddCallback(
-      firebase::callback::NewCallback(callback_, callback_id_));
-}
+void SnapshotsInSyncListener::OnEvent(Error error) { callback_(callback_id_); }
 
 /* static */
 ListenerRegistration SnapshotsInSyncListener::AddListenerTo(

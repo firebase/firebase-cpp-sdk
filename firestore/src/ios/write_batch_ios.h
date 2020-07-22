@@ -28,7 +28,6 @@ class WriteBatchInternal {
   void Delete(const DocumentReference& document);
 
   Future<void> Commit();
-  Future<void> CommitLastResult();
 
  private:
   enum class AsyncApis {

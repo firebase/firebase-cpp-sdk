@@ -79,7 +79,7 @@ const PruneForestRef PruneForestRef::GetChild(const Path& path) const {
 void PruneForestRef::Prune(const Path& path) {
   FIREBASE_DEV_ASSERT_MESSAGE(
       prune_forest_->RootMostValueMatching(path, KeepPredicate) == nullptr,
-      "Can't prune path that was kept previously!")
+      "Can't prune path that was kept previously!");
   if (prune_forest_->RootMostValueMatching(path, PrunePredicate) != nullptr) {
     // This path will already be pruned
   } else {

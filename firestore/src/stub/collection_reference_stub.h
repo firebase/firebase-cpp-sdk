@@ -28,9 +28,6 @@ class CollectionReferenceInternal : public QueryInternal {
   Future<DocumentReference> Add(const MapFieldValue& data) {
     return FailedFuture<DocumentReference>();
   }
-  Future<DocumentReference> AddLastResult() {
-    return FailedFuture<DocumentReference>();
-  }
 
  private:
   std::string id_;

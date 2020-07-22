@@ -39,17 +39,13 @@ class DocumentReferenceInternal {
   CollectionReference Collection(const std::string& collection_path);
 
   Future<DocumentSnapshot> Get(Source source);
-  Future<DocumentSnapshot> GetLastResult();
 
   Future<void> Set(const MapFieldValue& data, const SetOptions& options);
-  Future<void> SetLastResult();
 
   Future<void> Update(const MapFieldValue& data);
   Future<void> Update(const MapFieldPathValue& data);
-  Future<void> UpdateLastResult();
 
   Future<void> Delete();
-  Future<void> DeleteLastResult();
 
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,

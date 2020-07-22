@@ -18,6 +18,7 @@
 #include "app/src/log.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "absl/strings/string_view.h"
 #include "openssl/base64.h"
 
 namespace firebase {
@@ -31,7 +32,7 @@ size_t OpenSSHEncodedLength(size_t input_size) {
   return length;
 }
 
-bool OpenSSHEncode(const std::string& input, std::string* output) {
+bool OpenSSHEncode(absl::string_view input, std::string* output) {
   size_t base64_length = OpenSSHEncodedLength(input.size());
   output->resize(base64_length);
   if (EVP_EncodeBlock(reinterpret_cast<uint8_t*>(&(*output)[0]),
@@ -52,7 +53,7 @@ size_t OpenSSHDecodedLength(size_t input_size) {
   return length;
 }
 
-bool OpenSSHDecode(const std::string& input, std::string* output) {
+bool OpenSSHDecode(absl::string_view input, std::string* output) {
   size_t decoded_length = OpenSSHDecodedLength(input.size());
   output->resize(decoded_length);
   if (EVP_DecodeBase64(reinterpret_cast<uint8_t*>(&(*output)[0]),

@@ -438,7 +438,7 @@ TEST_F(FirestoreIntegrationTest, TestCanQueryByDocumentIdUsingRefs) {
 
 TEST_F(FirestoreIntegrationTest, TestCanQueryWithAndWithoutDocumentKey) {
   CollectionReference collection = Collection();
-  collection.Add({});
+  Await(collection.Add({}));
   QuerySnapshot snapshot1 = ReadDocuments(collection.OrderBy(
       FieldPath::DocumentId(), Query::Direction::kAscending));
   QuerySnapshot snapshot2 = ReadDocuments(collection);
@@ -685,11 +685,11 @@ TEST_F(FirestoreIntegrationTest,
 
 #if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
 TEST_F(QueryTest, Construction) {
-  testutil::AssertWrapperConstructionContract<Query, QueryInternal>();
+  testutil::AssertWrapperConstructionContract<Query>();
 }
 
 TEST_F(QueryTest, Assignment) {
-  testutil::AssertWrapperAssignmentContract<Query, QueryInternal>();
+  testutil::AssertWrapperAssignmentContract<Query>();
 }
 #endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
 

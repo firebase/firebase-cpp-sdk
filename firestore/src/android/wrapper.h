@@ -8,6 +8,7 @@
 #include "app/src/util_android.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/util_android.h"
+#include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
@@ -67,9 +68,9 @@ class Wrapper {
 
   // Converts a java list of java type e.g. java.util.List<FirestoreJavaType> to
   // a C++ vector of equivalent type e.g. std::vector<FirestoreType>.
-  template <typename FirestoreType, typename FirestoreTypeInternal>
+  template <typename PublicT, typename InternalT = InternalType<PublicT>>
   static void JavaListToStdVector(FirestoreInternal* firestore, jobject from,
-                                  std::vector<FirestoreType>* to) {
+                                  std::vector<PublicT>* to) {
     JNIEnv* env = firestore->app()->GetJNIEnv();
     int size =
         env->CallIntMethod(from, util::list::GetMethodId(util::list::kSize));
@@ -81,8 +82,7 @@ class Wrapper {
           from, util::list::GetMethodId(util::list::kGet), i);
       CheckAndClearJniExceptions(env);
       // Cannot call with emplace_back since the constructor is protected.
-      to->push_back(
-          FirestoreType{new FirestoreTypeInternal{firestore, element}});
+      to->push_back(PublicT{new InternalT{firestore, element}});
       env->DeleteLocalRef(element);
     }
   }

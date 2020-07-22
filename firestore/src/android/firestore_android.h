@@ -33,9 +33,9 @@ class WriteBatch;
 extern const char kApiIdentifier[];
 
 // Each API of Firestore that returns a Future needs to define an enum
-// value here. For example, Foo() and FooLastResult() implementation relies on
-// the enum value kFoo. The enum values are used to identify and manage Future
-// in the Firestore Future manager.
+// value here. For example, a Future-returning method Foo() relies on the enum
+// value kFoo. The enum values are used to identify and manage Future in the
+// Firestore Future manager.
 enum class FirestoreFn {
   kEnableNetwork = 0,
   kDisableNetwork,
@@ -93,24 +93,18 @@ class FirestoreInternal {
   Future<void> RunTransaction(
       std::function<Error(Transaction&, std::string&)> update);
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
-  Future<void> RunTransactionLastResult();
 
   // Disables network and gets anything from cache instead of server.
   Future<void> DisableNetwork();
-  Future<void> DisableNetworkLastResult();
 
   // Re-enables network after a prior call to DisableNetwork().
   Future<void> EnableNetwork();
-  Future<void> EnableNetworkLastResult();
 
   Future<void> Terminate();
-  Future<void> TerminateLastResult();
 
   Future<void> WaitForPendingWrites();
-  Future<void> WaitForPendingWritesLastResult();
 
   Future<void> ClearPersistence();
-  Future<void> ClearPersistenceLastResult();
 
   ListenerRegistration AddSnapshotsInSyncListener(
       EventListener<void>* listener, bool passing_listener_ownership = false);
@@ -151,6 +145,8 @@ class FirestoreInternal {
   Firestore* firestore_public() { return firestore_public_; }
   const Firestore* firestore_public() const { return firestore_public_; }
 
+  jobject user_callback_executor() const { return user_callback_executor_; }
+
  private:
   // Gets the reference-counted Future implementation of this instance, which
   // can be used to create a Future.
@@ -158,10 +154,7 @@ class FirestoreInternal {
     return future_manager_.GetFutureApi(this);
   }
 
-  Future<void> LastResult(FirestoreFn id) {
-    const auto& result = ref_future()->LastResult(static_cast<int>(id));
-    return static_cast<const Future<void>&>(result);
-  }
+  void ShutdownUserCallbackExecutor();
 
   static bool Initialize(App* app);
   static void ReleaseClasses(App* app);
@@ -172,6 +165,8 @@ class FirestoreInternal {
 
   static Mutex init_mutex_;
   static int initialize_count_;
+
+  jobject user_callback_executor_;
 
   App* app_ = nullptr;
   Firestore* firestore_public_ = nullptr;
