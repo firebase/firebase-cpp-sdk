@@ -2,11 +2,13 @@
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_QUERY_ANDROID_H_
 
 #include <jni.h>
+
 #include <cstdint>
 
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
-#include "firestore/src/android/wrapper_future.h"
+#include "firestore/src/android/promise_factory_android.h"
+#include "firestore/src/android/wrapper.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/query.h"
 
@@ -16,9 +18,9 @@ namespace firestore {
 class Firestore;
 
 // Each API of Query that returns a Future needs to define an enum value here.
-// For example, Foo() and FooLastResult() implementation relies on the enum
-// value kFoo. The enum values are used to identify and manage Future in the
-// Firestore Future manager.
+// For example, a Future-returning method Foo() relies on the enum value kFoo.
+// The enum values are used to identify and manage Future in the Firestore
+// Future manager.
 enum class QueryFn {
   // Enum values for the baseclass Query.
   kGet = 0,
@@ -87,17 +89,20 @@ enum class QueryFn {
     "(Lcom/google/firebase/firestore/Source;)"                      \
     "Lcom/google/android/gms/tasks/Task;"),                         \
   X(AddSnapshotListener, "addSnapshotListener",                     \
-    "(Lcom/google/firebase/firestore/MetadataChanges;"              \
+    "(Ljava/util/concurrent/Executor;"                              \
+    "Lcom/google/firebase/firestore/MetadataChanges;"               \
     "Lcom/google/firebase/firestore/EventListener;)"                \
     "Lcom/google/firebase/firestore/ListenerRegistration;")
 // clang-format on
 
 METHOD_LOOKUP_DECLARATION(query, QUERY_METHODS)
 
-class QueryInternal : public WrapperFuture<QueryFn, QueryFn::kCount> {
+class QueryInternal : public Wrapper {
  public:
   using ApiType = Query;
-  using WrapperFuture::WrapperFuture;
+
+  QueryInternal(FirestoreInternal* firestore, jobject object)
+      : Wrapper(firestore, object), promises_(firestore) {}
 
   /** Gets the Firestore instance associated with this query. */
   Firestore* firestore();
@@ -384,15 +389,6 @@ class QueryInternal : public WrapperFuture<QueryFn, QueryFn::kCount> {
    */
   virtual Future<QuerySnapshot> Get(Source source);
 
-  /**
-   * @brief Gets the result of the most recent call to either of the Get()
-   * methods.
-   *
-   * @return The result of last call to Get() or an invalid Future, if there is
-   * no such call.
-   */
-  virtual Future<QuerySnapshot> GetLastResult();
-
 #if defined(FIREBASE_USE_STD_FUNCTION)
   /**
    * @brief Starts listening to the QuerySnapshot events referenced by this
@@ -431,6 +427,9 @@ class QueryInternal : public WrapperFuture<QueryFn, QueryFn::kCount> {
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes, EventListener<QuerySnapshot>* listener,
       bool passing_listener_ownership = false);
+
+ protected:
+  PromiseFactory<QueryFn> promises_;
 
  private:
   friend class FirestoreInternal;

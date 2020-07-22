@@ -14,6 +14,7 @@
 
 #include "database/src/desktop/database_desktop.h"
 
+#include <memory>
 #include <queue>
 #include <stack>
 
@@ -75,9 +76,10 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
     : app_(app),
       future_manager_(),
       cleanup_(),
+      database_url_(url),
       constructor_url_(url),
       logger_(app_common::FindAppLoggerByName(app->name())),
-      repo_(app, this, url, &logger_) {
+      repo_(nullptr) {
   assert(app);
   assert(url);
 
@@ -108,17 +110,20 @@ DatabaseInternal::~DatabaseInternal() {
 
 App* DatabaseInternal::GetApp() { return app_; }
 
-DatabaseReference DatabaseInternal::GetReference() const {
+DatabaseReference DatabaseInternal::GetReference() {
+  EnsureRepo();
   return DatabaseReference(new DatabaseReferenceInternal(
       const_cast<DatabaseInternal*>(this), Path()));
 }
 
-DatabaseReference DatabaseInternal::GetReference(const char* path) const {
+DatabaseReference DatabaseInternal::GetReference(const char* path) {
+  EnsureRepo();
   return DatabaseReference(new DatabaseReferenceInternal(
       const_cast<DatabaseInternal*>(this), Path(path)));
 }
 
-DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) const {
+DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) {
+  EnsureRepo();
   ParseUrl parser;
   auto result = parser.Parse(url);
   if (parser.Parse(url) != ParseUrl::kParseOk) {
@@ -145,6 +150,7 @@ DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) const {
 }
 
 void DatabaseInternal::GoOffline() {
+  EnsureRepo();
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref) {
         Repo::ThisRefLock lock(&ref);
@@ -152,10 +158,11 @@ void DatabaseInternal::GoOffline() {
           lock.GetReference()->connection()->Interrupt();
         }
       },
-      repo_.this_ref()));
+      repo_->this_ref()));
 }
 
 void DatabaseInternal::GoOnline() {
+  EnsureRepo();
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref) {
         Repo::ThisRefLock lock(&ref);
@@ -163,10 +170,11 @@ void DatabaseInternal::GoOnline() {
           lock.GetReference()->connection()->Resume();
         }
       },
-      repo_.this_ref()));
+      repo_->this_ref()));
 }
 
 void DatabaseInternal::PurgeOutstandingWrites() {
+  EnsureRepo();
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref) {
         Repo::ThisRefLock lock(&ref);
@@ -174,7 +182,7 @@ void DatabaseInternal::PurgeOutstandingWrites() {
           lock.GetReference()->PurgeOutstandingWrites();
         }
       },
-      repo_.this_ref()));
+      repo_->this_ref()));
 }
 
 static std::string* g_sdk_version = nullptr;
@@ -185,9 +193,12 @@ const char* DatabaseInternal::GetSdkVersion() {
   return g_sdk_version->c_str();
 }
 
-void DatabaseInternal::SetPersistenceEnabled(bool /*enabled*/) {
-  // TODO(b/67910033): Support persistence.
-  logger_.LogWarning("Persistence is not currently supported.");
+void DatabaseInternal::SetPersistenceEnabled(bool enabled) {
+  MutexLock lock(repo_mutex_);
+  // Only set persistence if the repo has not yet been initialized.
+  if (!repo_) {
+    persistence_enabled_ = enabled;
+  }
 }
 
 void DatabaseInternal::set_log_level(LogLevel log_level) {
@@ -270,6 +281,14 @@ void DatabaseInternal::UnregisterAllChildListeners(
     for (ChildListener* listener : listeners) {
       UnregisterChildListener(spec, listener);
     }
+  }
+}
+
+void DatabaseInternal::EnsureRepo() {
+  MutexLock lock(repo_mutex_);
+  if (!repo_) {
+    repo_ = MakeUnique<Repo>(app_, this, database_url_.c_str(), &logger_,
+                             persistence_enabled_);
   }
 }
 

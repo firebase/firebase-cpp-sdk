@@ -90,10 +90,5 @@ Future<DocumentReference> CollectionReferenceInternal::Add(
   return promise.future();
 }
 
-Future<DocumentReference> CollectionReferenceInternal::AddLastResult() {
-  return promise_factory().LastResult<DocumentReference>(
-      AsyncApis::kCollectionReferenceAdd);
-}
-
 }  // namespace firestore
 }  // namespace firebase

@@ -27,22 +27,16 @@ class DocumentReferenceInternal {
   Future<DocumentSnapshot> Get(Source source) const {
     return FailedFuture<DocumentSnapshot>();
   }
-  Future<DocumentSnapshot> GetLastResult() const {
-    return FailedFuture<DocumentSnapshot>();
-  }
   Future<void> Set(const MapFieldValue& data, const SetOptions& options) {
     return FailedFuture<void>();
   }
-  Future<void> SetLastResult() const { return FailedFuture<void>(); }
   Future<void> Update(const MapFieldValue& data) {
     return FailedFuture<void>();
   }
   Future<void> Update(const MapFieldPathValue& data) {
     return FailedFuture<void>();
   }
-  Future<void> UpdateLastResult() const { return FailedFuture<void>(); }
   Future<void> Delete() { return FailedFuture<void>(); }
-  Future<void> DeleteLastResult() const { return FailedFuture<void>(); }
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
       EventListener<DocumentSnapshot>* listener) {

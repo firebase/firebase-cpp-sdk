@@ -22,8 +22,7 @@
 namespace firebase {
 namespace firestore {
 
-using CleanupFnDocumentSnapshot =
-    CleanupFn<DocumentSnapshot, DocumentSnapshotInternal>;
+using CleanupFnDocumentSnapshot = CleanupFn<DocumentSnapshot>;
 
 DocumentSnapshot::DocumentSnapshot() {}
 
