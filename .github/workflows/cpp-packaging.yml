@@ -43,7 +43,7 @@ jobs:
           cd ~
       - name: archive packaging tools
         run: tar cvzf ~/packaging_tools.tgz demumble binutils/ar binutils/nm-new binutils/objcopy
-        working_directory: /tmp
+        working-directory: /tmp
       - name: upload packaging tools artifact
         uses: actions/upload-artifact@v2
         with:
