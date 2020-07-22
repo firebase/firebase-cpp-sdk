@@ -42,7 +42,7 @@ jobs:
           cp -af ./demumble /tmp/demumble
           cd ~
       - name: archive packaging tools
-        run: tar cvzf ~/packaging_tools.tgz demumble binutils/ar binutils/nm-new binutils/objcopy
+        run: tar cvzf ~/packaging_tools.tgz demumble binutils/bin/ar binutils/bin/nm-new binutils/bin/objcopy
         working-directory: /tmp
       - name: upload packaging tools artifact
         uses: actions/upload-artifact@v2
