@@ -26,9 +26,9 @@ jobs:
           ./configure --enable-targets=all --prefix=/tmp/binutils
           make
           make install
-          mkdir -p ~/packaging-tools
-          cp -af /tmp/binutils/bin/ar /tmp/binutils/bin/nm /tmp/binutils/bin/objcopy ~/packaging-tools
-          cd ~
+          cd -
+          mkdir -p packaging-tools
+          cp -af /tmp/binutils/bin/ar /tmp/binutils/bin/nm /tmp/binutils/bin/objcopy packaging-tools
       - name: fetch demumble
         uses: actions/checkout@v2.3.1
         with:
@@ -41,9 +41,9 @@ jobs:
           cmake .
           cmake --build .
           python demumble_test.py
-          mkdir -p ~/packaging-tools
-          cp -af ./demumble ~/packaging-tools
-          cd ~
+          cd -
+          mkdir -p packaging-tools
+          cp -af demumble-src/demumble packaging-tools
       - name: archive tools
         run: tar -czf packaging-tools.tgz packaging-tools
       - name: upload artifacts
@@ -69,7 +69,7 @@ jobs:
     - name: build sdk
       run: |
         sdk-src/build_scripts/ios/build.sh firebase-cpp-sdk-ios-${{ matrix.architecture }} sdk-src ${{ matrix.architecture }}
-        run: tar -czf firebase-cpp-sdk-ios-${{ matrix.architecture }}.tgz firebase-cpp-sdk-ios-${{ matrix.architecture }}
+        tar -czf firebase-cpp-sdk-ios-${{ matrix.architecture }}.tgz firebase-cpp-sdk-ios-${{ matrix.architecture }}
     - name: upload artifacts
       uses: actions/upload-artifact@v2
       with:
