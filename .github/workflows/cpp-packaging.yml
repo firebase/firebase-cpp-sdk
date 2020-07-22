@@ -90,7 +90,7 @@ jobs:
     - name: build sdk
       run: |
         sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android sdk-src
-	tar -czf firebase-cpp-sdk-android.tgz firebase-cpp-sdk-android
+        tar -czf firebase-cpp-sdk-android.tgz firebase-cpp-sdk-android
     - name: upload artifacts
       uses: actions/upload-artifact@v2
       with:
