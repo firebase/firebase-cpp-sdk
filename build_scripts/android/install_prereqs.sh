@@ -17,10 +17,14 @@ if [[ -z $(which python) ]]; then
     echo "Error, python is not installed or is not in the PATH."
     exit 1
 else
-    set -x
-    python -m pip install --upgrade pip
-    pip install -r absl-py protobuf
-    set +x
+    updated_pip=0
+    if ! $(echo "import absl"$'\n'"import google.protobuf" | python - 2> /dev/null); then
+	echo "Installing python packages."
+	set -x
+	sudo python -m pip install --upgrade pip
+	pip install absl-py protobuf
+	set +x
+    fi
 fi
 
 if [[ -z "${ANDROID_HOME}" ]]; then
