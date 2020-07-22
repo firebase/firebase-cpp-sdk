@@ -1,8 +1,8 @@
 #!/bin/bash -e
 
-if [[ $(uname -a) == "Darwin*" ]]; then
+if [[ $(uname) =~ "Darwin" ]]; then
     platform=darwin
-elif [[ $(uname -a) == "Linux*" ]]; then
+elif [[ $(uname) =~ "Linux" ]]; then
     platform=linux
 else
     platform=windows
