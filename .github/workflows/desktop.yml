@@ -1,8 +1,8 @@
 name: Desktop Builds
 
 on: 
-  push:
   pull_request:
+    types: [opened, reopened, synchronize]
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
@@ -51,6 +51,14 @@ jobs:
           echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt"
           echo "::set-env name=PIP_REQUIREMENTS_FILE::external/pip_requirements.txt"
           echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}"
+
+      # Used to name mangle archive files in debug builds based on the
+      # build generator type. Required becasue the space in the 
+      # "Unix Makefiles" generator type breaks the archive process.    
+      - name: Set additional env variables for subsequent steps (mac and linux)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        run: |
+          echo "::set-env name=BUILD_GENERATOR_NO_SPACES::$(echo -e "${{matrix.generator}}" | tr -d '[:space:]')"
 
       - name: Install Ninja (windows)
         if: startsWith(matrix.generator, 'Ninja') && startsWith(matrix.os, 'windows')
@@ -163,9 +171,87 @@ jobs:
           find build -name "*.a"
           find build -name "*.so"
 
-      - name: Run tests
+      - name: Prep crash support (linux)
+        # Ensures directory structure is in place to capture core files on Linux. 
+        if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
+        shell: bash
+        run: |
+          echo '/tmp/cores/core.%E' | sudo tee /proc/sys/kernel/core_pattern
+          sudo mkdir -p /tmp/cores/
+          sudo rm -rf /tmp/cores/*
+          
+      - name: Prep crash support (mac)
+        # Ensures no lingering crashes from the previous run.
+        if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
+        run: |
+          rm -rf ~/Library/Logs/DiagnosticReports/*
+          
+      - name: Run tests (windows & macos)
+        if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')
         env:
           LANG: en_US
         run: |
           cd build
           ctest --verbose
+
+      - name: Run tests (linux)
+        # Linux exists as its own standalone execution step in order to invoke
+        # platform-specific `ulimit` to enable crash collection.  The ulimit
+        # command must be invoked in same shell instance of that runs the
+        # tests.
+        if: startsWith(matrix.os, 'ubuntu')
+        env:
+          LANG: en_US
+        run: |
+          ulimit -c unlimited 
+          cd build
+          sudo ctest --verbose
+      
+      - name: Prep bins for achive (linux)
+        # Copies all of the binary files into one directory for ease in
+        # archiving. Directory contents are then marked readable for the
+        # archive step.
+        if: failure() && startsWith(matrix.build_type, 'Debug') && ( startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos') )
+        shell: bash
+        run: |
+          sudo rm -rf /tmp/bins/* || :
+          sudo mkdir -p /tmp/bins/
+          sudo rm -rf ./build/app/tests/firebase_test
+          sudo cp -f ./build/*/tests/firebase* /tmp/bins
+          sudo chmod -R +rwx /tmp/bins/* || :
+
+      - name: Prep crash data for archive (linux)
+        # Marks the contents of the core dump directory to be readable for the
+        # archiving step on linux.
+        shell: bash
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo chmod -R +rwx /tmp/cores/* || :
+
+      - name: Prep crash data for archive (macos)
+        # Freshly made diagnostic reports are marked as readable for
+        # the archive step. Note: for some reason /tmp/cores doesn't survive
+        # long enough for archiving on mac, so prep the DiagnosticReports
+        # directory instead.
+        shell: bash
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
+        run: |
+          sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || :           
+
+      - name: Archive crashes and binaries (linux)
+        uses: actions/upload-artifact@v2
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
+        with:
+          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ env.BUILD_GENERATOR_NO_SPACES }}
+          path: |
+            /tmp/cores/*
+            /tmp/bins/*
+
+      - name: Archive crashes (mac)
+        uses: actions/upload-artifact@v2
+        if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
+        with:
+          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ env.BUILD_GENERATOR_NO_SPACES }}
+          path: |
+            ~/Library/Logs/DiagnosticReports/*
+            /tmp/bins/*
