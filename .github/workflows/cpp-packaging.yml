@@ -43,6 +43,7 @@ jobs:
           cd ~
       - name: archive packaging tools
         run: tar cvzf ~/packaging_tools.tgz demumble binutils/ar binutils/nm-new binutils/objcopy
+	working_directory: /tmp
       - name: upload packaging tools artifact
         uses: actions/upload-artifact@v2
         with:
@@ -65,7 +66,7 @@ jobs:
       run: sdk-src/build_scripts/ios/install_prereqs.sh
     - name: build sdk
       run: |
-        build_scripts/ios/build.sh firebase-cpp-sdk-ios-${{ matrix.architecture }} sdk-src ${{ matrix.architecture }}
+        sdk-src/build_scripts/ios/build.sh firebase-cpp-sdk-ios-${{ matrix.architecture }} sdk-src ${{ matrix.architecture }}
         tar -cvzf firebase-cpp-sdk-ios-${{ matrix.architecture }}.tgz firebase-cpp-sdk-ios-${{ matrix.architecture }}
     - name: upload artifacts
       uses: actions/upload-artifact@v2
@@ -86,5 +87,5 @@ jobs:
       run: sdk-src/build_scripts/android/install_prereqs.sh
     - name: build sdk
       run: |
-        build_scripts/android/build.sh firebase-cpp-sdk-android sdk-src
+        sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android sdk-src
         tar -cvzf firebase-cpp-sdk-android.tgz firebase-cpp-sdk-android
