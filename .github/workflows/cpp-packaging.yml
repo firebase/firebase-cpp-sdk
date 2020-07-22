@@ -75,6 +75,7 @@ jobs:
   build_sdk_android:
     name: build-sdk-android
     runs-on: ubuntu-latest
+    steps:
     - name: fetch SDK
       uses: actions/checkout@v2.3.1
       with:
