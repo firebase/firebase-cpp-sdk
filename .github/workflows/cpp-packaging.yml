@@ -44,11 +44,13 @@ jobs:
           mkdir -p ~/packaging-tools
           cp -af ./demumble ~/packaging-tools
           cd ~
+      - name: archive tools
+        run: tar -czf packaging-tools.tgz packaging-tools
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
           name: packaging-tools
-          path: packaging-tools
+          path: packaging-tools.tgz
 
   build_ios:
     name: build-sdk-ios-${{ matrix.architecture }}
@@ -67,11 +69,12 @@ jobs:
     - name: build sdk
       run: |
         sdk-src/build_scripts/ios/build.sh firebase-cpp-sdk-ios-${{ matrix.architecture }} sdk-src ${{ matrix.architecture }}
+        run: tar -czf firebase-cpp-sdk-ios-${{ matrix.architecture }}.tgz firebase-cpp-sdk-ios-${{ matrix.architecture }}
     - name: upload artifacts
       uses: actions/upload-artifact@v2
       with:
         name: firebase-cpp-sdk-ios-${{ matrix.architecture }}
-        path: firebase-cpp-sdk-ios-${{ matrix.architecture }}
+        path: firebase-cpp-sdk-ios-${{ matrix.architecture }}.tgz
 
   build_android:
     name: build-sdk-android
@@ -87,8 +90,9 @@ jobs:
     - name: build sdk
       run: |
         sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android sdk-src
+	tar -czf firebase-cpp-sdk-android.tgz firebase-cpp-sdk-android
     - name: upload artifacts
       uses: actions/upload-artifact@v2
       with:
         name: firebase-cpp-sdk-android
-        path: firebase-cpp-sdk-android
+        path: firebase-cpp-sdk-android.tgz
