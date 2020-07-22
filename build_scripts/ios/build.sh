@@ -10,9 +10,9 @@ if [[ -z "${buildpath}" || -z "${sourcepath}" || -z "${arch}" ]]; then
 fi
 
 if [[ "${arch}" == "x86_64" ]]; then
-    toolchain="${sourcepath}/cmake/toolchains/ios_simulator.cmake"
+    toolchain="cmake/toolchains/ios_simulator.cmake"
 elif [[ "${arch}" == "arm64" ]]; then
-    toolchain="${sourcepath}/cmake/toolchains/ios.cmake"
+    toolchain="cmake/toolchains/ios.cmake"
 else
     echo "Invalid architecture: '${arch}'"
     exit 2
