@@ -57,7 +57,7 @@ jobs:
         # build generator type. Required becasue the space in the 
         # "Unix Makefiles" generator type breaks the archive process.
         if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'windows')!='true'
-        run |
+        run: |
           echo "::set-env name=BUILD_GENERATOR_NO_SPACES::$(echo -e "${{matrix.generator}}" | tr -d '[:space:]')"
 
       - name: Install Ninja (windows)
