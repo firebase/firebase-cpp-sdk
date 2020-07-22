@@ -1,11 +1,16 @@
 #!/bin/bash -e
 
-if [[ $(uname) =~ "Darwin" ]]; then
+if [[ $(uname) == "Darwin" ]]; then
     platform=darwin
-elif [[ $(uname) =~ "Linux" ]]; then
+elif [[ $(uname) == "Linux" ]]; then
     platform=linux
 else
     platform=windows
+fi
+
+if [[ -z $(which cmake) ]]; then
+    echo "Error, cmake is not installed or is not in the PATH."
+    exit 1
 fi
 
 if [[ -z "${ANDROID_HOME}" ]]; then

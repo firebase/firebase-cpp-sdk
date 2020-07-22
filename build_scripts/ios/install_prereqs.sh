@@ -1,4 +1,9 @@
-#!/bin/bash -ex
+#!/bin/bash -e
+
+if [[ $(uname) != "Darwin" ]]; then
+    echo "Error, iOS target can only be build on a MacOS machine."
+    exit 1
+fi
 
 if [[ -z $(which cmake) ]]; then
     echo "Error, cmake is not installed or is not in the PATH."
@@ -19,5 +24,6 @@ if [[ -z $(which pod) ]]; then
     sudo gem install cocoapods
 fi
 
+echo "Updating Cocoapods repo..."
 pod repo update
 
