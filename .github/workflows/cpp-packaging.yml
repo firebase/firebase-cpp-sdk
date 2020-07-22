@@ -27,6 +27,8 @@ jobs:
           make
           make install
           cd ~
+	  mkdir -p packaging-tools
+	  cp /tmp/binutils/bin/ar /tmp/binutils/bin/nm-new /tmp/binutils/bin/objcopy ~/packaging_tools
       - name: fetch demumble
         uses: actions/checkout@v2.3.1
         with:
@@ -41,14 +43,13 @@ jobs:
           python demumble_test.py
           cp -af ./demumble /tmp/demumble
           cd ~
-      - name: archive packaging tools
-        run: tar cvzf ~/packaging_tools.tgz demumble binutils/bin/ar binutils/bin/nm-new binutils/bin/objcopy
-        working-directory: /tmp
+	  mkdir -p packaging-tools
+	  cp /tmp/demumble packaging-tools
       - name: upload packaging tools artifact
         uses: actions/upload-artifact@v2
         with:
           name: packaging-tools
-          path: packaging_tools.tgz
+          path: packaging-tools
 
   build_ios:
     name: build-sdk-ios-${{ matrix.architecture }}
@@ -67,12 +68,11 @@ jobs:
     - name: build sdk
       run: |
         sdk-src/build_scripts/ios/build.sh firebase-cpp-sdk-ios-${{ matrix.architecture }} sdk-src ${{ matrix.architecture }}
-        tar -cvzf firebase-cpp-sdk-ios-${{ matrix.architecture }}.tgz firebase-cpp-sdk-ios-${{ matrix.architecture }}
     - name: upload artifacts
       uses: actions/upload-artifact@v2
       with:
         name: firebase-cpp-sdk-ios-${{ matrix.architecture }}
-        path: firebase-cpp-sdk-ios-${{ matrix.architecture }}.tgz
+        path: firebase-cpp-sdk-ios-${{ matrix.architecture }}
 
   build_android:
     name: build-sdk-android
@@ -88,9 +88,8 @@ jobs:
     - name: build sdk
       run: |
         sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android sdk-src
-        tar -cvzf firebase-cpp-sdk-android.tgz firebase-cpp-sdk-android
     - name: upload artifacts
       uses: actions/upload-artifact@v2
       with:
         name: firebase-cpp-sdk-android
-        path: firebase-cpp-sdk-android.tgz
+        path: firebase-cpp-sdk-android
