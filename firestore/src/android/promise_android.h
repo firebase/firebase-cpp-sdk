@@ -14,10 +14,13 @@ namespace firebase {
 namespace firestore {
 
 // This class simplifies the implementation of Future APIs for Android wrappers.
-// PublicType is the public type, say Foo, and InternalType is FooInternal,
-// which is required to be a subclass of WrapperFuture. FnEnumType is an enum
-// class that defines a set of APIs returning a Future. For example, to
-// implement Future<DocumentReference> CollectionReferenceInternal::Add(),
+// PublicType is the public type, say Foo, and InternalType is FooInternal.
+// FnEnumType is an enum class that defines a set of APIs returning a Future.
+//
+// For example, to implement:
+//
+//     Future<DocumentReference> CollectionReferenceInternal::Add()
+//
 // PublicType is DocumentReference, InternalType is DocumentReferenceInternal,
 // and FnEnumType is CollectionReferenceFn.
 template <typename PublicType, typename InternalType, typename FnEnumType>
@@ -30,7 +33,7 @@ class Promise {
   template <typename PublicT>
   class Completion {
    public:
-    virtual ~Completion() {}
+    virtual ~Completion() = default;
     virtual void CompleteWith(Error error_code, const char* error_message,
                               PublicT* result) = 0;
   };
@@ -65,7 +68,7 @@ class Promise {
                   FirestoreInternal* firestore, Completion<PublicT>* completion)
         : impl_{impl}, firestore_{firestore}, completion_(completion) {}
 
-    virtual ~CompleterBase() {}
+    virtual ~CompleterBase() = default;
 
     FirestoreInternal* firestore() { return firestore_; }
 
@@ -97,7 +100,6 @@ class Promise {
           error_code = Error::kErrorCancelled;
           break;
         default:
-          error_code = Error::kErrorUnknown;
           FIREBASE_ASSERT_MESSAGE(false, "unknown FutureResult %d",
                                   result_code);
           break;

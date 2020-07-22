@@ -65,8 +65,7 @@ std::vector<DocumentChange> QuerySnapshotInternal::DocumentChanges(
   CheckAndClearJniExceptions(env);
 
   std::vector<DocumentChange> result;
-  JavaListToStdVector<DocumentChange, DocumentChangeInternal>(
-      firestore_, change_list, &result);
+  JavaListToStdVector<DocumentChange>(firestore_, change_list, &result);
   return result;
 }
 
@@ -77,8 +76,7 @@ std::vector<DocumentSnapshot> QuerySnapshotInternal::documents() const {
   CheckAndClearJniExceptions(env);
 
   std::vector<DocumentSnapshot> result;
-  JavaListToStdVector<DocumentSnapshot, DocumentSnapshotInternal>(
-      firestore_, document_list, &result);
+  JavaListToStdVector<DocumentSnapshot>(firestore_, document_list, &result);
   env->DeleteLocalRef(document_list);
   return result;
 }

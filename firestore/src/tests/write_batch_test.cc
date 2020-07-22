@@ -301,11 +301,11 @@ TEST_F(WriteBatchTest, TestUpdateNestedFields) {
 #if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
 
 TEST_F(WriteBatchCommonTest, Construction) {
-  testutil::AssertWrapperConstructionContract<WriteBatch, WriteBatchInternal>();
+  testutil::AssertWrapperConstructionContract<WriteBatch>();
 }
 
 TEST_F(WriteBatchCommonTest, Assignment) {
-  testutil::AssertWrapperAssignmentContract<WriteBatch, WriteBatchInternal>();
+  testutil::AssertWrapperAssignmentContract<WriteBatch>();
 }
 
 #endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)

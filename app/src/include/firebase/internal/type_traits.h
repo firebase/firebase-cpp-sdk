@@ -82,6 +82,12 @@ struct is_lvalue_reference<T&> {
 #define FIREBASE_TYPE_TRAITS_NS std
 #endif
 
+template <typename T>
+using decay = FIREBASE_TYPE_TRAITS_NS::decay<T>;
+
+template <typename T>
+using decay_t = typename decay<T>::type;
+
 template <bool value, typename T = void>
 using enable_if = FIREBASE_TYPE_TRAITS_NS::enable_if<value, T>;
 
@@ -96,6 +102,9 @@ using is_same = FIREBASE_TYPE_TRAITS_NS::is_same<T, U>;
 
 template <typename T, T value>
 using integral_constant = FIREBASE_TYPE_TRAITS_NS::integral_constant<T, value>;
+
+using true_type = FIREBASE_TYPE_TRAITS_NS::true_type;
+using false_type = FIREBASE_TYPE_TRAITS_NS::false_type;
 
 #undef FIREBASE_TYPE_TRAITS_NS
 

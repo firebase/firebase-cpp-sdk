@@ -66,26 +66,17 @@ class FirestoreInternal {
   }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
-  Future<void> RunTransactionLastResult() { return FailedFuture<void>(); }
-
   // Disables network and gets anything from cache instead of server.
   Future<void> DisableNetwork() { return FailedFuture<void>(); }
-
-  Future<void> DisableNetworkLastResult() { return FailedFuture<void>(); }
 
   // Re-enables network after a prior call to DisableNetwork().
   Future<void> EnableNetwork() { return FailedFuture<void>(); }
 
-  Future<void> EnableNetworkLastResult() { return FailedFuture<void>(); }
-
   Future<void> Terminate() { return FailedFuture<void>(); }
-  Future<void> TerminateLastResult() { return FailedFuture<void>(); }
 
   Future<void> WaitForPendingWrites() { return FailedFuture<void>(); }
-  Future<void> WaitForPendingWritesLastResult() { return FailedFuture<void>(); }
 
   Future<void> ClearPersistence() { return FailedFuture<void>(); }
-  Future<void> ClearPersistenceLastResult() { return FailedFuture<void>(); }
 
   ListenerRegistration AddSnapshotsInSyncListener(
       EventListener<void>* listener) {

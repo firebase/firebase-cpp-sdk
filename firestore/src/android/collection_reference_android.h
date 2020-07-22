@@ -5,17 +5,16 @@
 
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/query_android.h"
-#include "firestore/src/android/wrapper_future.h"
 
 namespace firebase {
 namespace firestore {
 
 // To make things simple, CollectionReferenceInternal uses the Future management
 // from its base class, QueryInternal. Each API of CollectionReference that
-// returns a Future needs to define an enum value to QueryFn. For example, Foo()
-// and FooLastResult() implementation relies on the enum value QueryFn::kFoo.
-// The enum values are used to identify and manage Future in the Firestore
-// Future manager.
+// returns a Future needs to define an enum value to QueryFn. For example, a
+// Future-returning method Foo() relies on the enum value QueryFn::kFoo. The
+// enum values are used to identify and manage Future in the Firestore Future
+// manager.
 using CollectionReferenceFn = QueryFn;
 
 // This is the Android implementation of CollectionReference.
@@ -30,7 +29,6 @@ class CollectionReferenceInternal : public QueryInternal {
   DocumentReference Document() const;
   DocumentReference Document(const std::string& document_path) const;
   Future<DocumentReference> Add(const MapFieldValue& data);
-  Future<DocumentReference> AddLastResult();
 
  private:
   friend class FirestoreInternal;

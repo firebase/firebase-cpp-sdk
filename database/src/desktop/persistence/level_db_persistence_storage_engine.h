@@ -40,7 +40,7 @@ class LevelDbPersistenceStorageEngine : public PersistenceStorageEngine {
 
   // Opening up the database may fail, so we have to initialize the database in
   // a separate step.
-  bool Initialize(const std::string& database_path);
+  bool Initialize(const std::string& level_db_path);
 
   // Write data to the local cache, overwriting the data at the given path.
   // Additionally, log that this write occurred so that when the database is

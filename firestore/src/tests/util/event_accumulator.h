@@ -15,21 +15,35 @@ class EventAccumulator {
   TestEventListener<T>* listener() { return &listener_; }
 
   std::vector<T> Await(int num_events) {
-    max_events_ += num_events;
-    FirestoreIntegrationTest::Await(listener_, max_events_);
-    EXPECT_EQ(Error::kErrorOk, listener_.first_error());
+    int old_num_events = num_events_consumed_;
+    int desired_events = num_events_consumed_ + num_events;
+    FirestoreIntegrationTest::Await(listener_, desired_events);
 
-    std::vector<T> result;
-    // We cannot use listener.last_result() as it goes backward and can
-    // contains more than max_events_ events. So we look up manually.
-    for (int i = max_events_ - num_events; i < max_events_; ++i) {
-      result.push_back(listener_.last_result_[i]);
+    if (listener_.first_error() != Error::kErrorOk ||
+        listener_.event_count() < desired_events) {
+      int received = listener_.event_count() - num_events_consumed_;
+      ADD_FAILURE() << "Failed to await " << num_events
+                    << " events: error=" << listener_.first_error()
+                    << ", received " << received << " events";
+
+      // If there are fewer events than requested, discard them.
+      num_events_consumed_ += received;
+      return {};
     }
-    return result;
+
+    num_events_consumed_ = desired_events;
+    return listener_.GetEventsInRange(old_num_events, num_events_consumed_);
   }
 
-  /** Await 1 event. */
-  T Await() { return Await(1)[0]; }
+  /** Awaits 1 event. */
+  T Await() {
+    auto events = Await(1);
+    if (events.empty()) {
+      return {};
+    } else {
+      return events[0];
+    }
+  }
 
   /** Waits for a snapshot with pending writes. */
   T AwaitLocalEvent() {
@@ -81,7 +95,12 @@ class EventAccumulator {
   bool IsFromCache(T event) { return event.metadata().is_from_cache(); }
 
   TestEventListener<T> listener_;
-  int max_events_ = 0;
+
+  // Total events consumed by callers of EventAccumulator. This differs from
+  // listener_.event_count() because that represents the number of events
+  // available, whereas this represents the number actually consumed. These can
+  // diverge if events arrive more rapidly than the tests consume them.
+  int num_events_consumed_ = 0;
 };
 
 }  // namespace firestore

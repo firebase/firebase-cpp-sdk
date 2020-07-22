@@ -27,6 +27,7 @@
 #include "gmock/gmock.h"
 #include "absl/base/macros.h"
 #include "absl/strings/escaping.h"
+#include "absl/strings/string_view.h"
 #include "util/random/acmrandom.h"
 
 // 1048576 == 2^20 == 1 MB
@@ -105,7 +106,7 @@ REGISTER_MODULE_INITIALIZER(zlibwrapper_unittest, {
       << "  Reason: " << limiter.reason();
 });
 
-bool ReadFileToString(const std::string& filename, std::string* output,
+bool ReadFileToString(absl::string_view filename, std::string* output,
                       int64 max_size) {
   std::ifstream f;
   f.open(filename);
@@ -696,7 +697,7 @@ class ZLibWrapperTest : public ::testing::TestWithParam<std::string> {
     return dict;
   }
 
-  std::string ReadFileToTest(const std::string& filename) {
+  std::string ReadFileToTest(absl::string_view filename) {
     std::string uncompbuf;
     LOG(INFO) << "Testing file: " << filename;
     CHECK(ReadFileToString(filename, &uncompbuf, MAX_BUF_SIZE));
@@ -891,7 +892,7 @@ TEST_P(ZLibWrapperTest, ChunkedCompression) {
   TestGzip(&zlib, uncompbuf);
 }
 
-// Simple helper to force specialization of strings::Split.
+// Simple helper to force specialization of absl::StrSplit.
 std::vector<std::string> GetFilesToProcess() {
   std::string files_to_process =
       FLAGS_files_to_process.empty()

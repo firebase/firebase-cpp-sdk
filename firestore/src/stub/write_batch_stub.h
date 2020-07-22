@@ -28,8 +28,6 @@ class WriteBatchInternal {
   void Delete(const DocumentReference& document) {}
 
   Future<void> Commit() { return FailedFuture<void>(); }
-
-  Future<void> CommitLastResult() const { return FailedFuture<void>(); }
 };
 
 }  // namespace firestore

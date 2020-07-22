@@ -485,7 +485,6 @@ TEST_F(AuthDesktopTest, TestGetAccountInfo) {
   EXPECT_EQ("519", user.phone_number);
   EXPECT_FALSE(user.is_email_verified);
   EXPECT_TRUE(user.has_email_password_credential);
-
 }
 
 // Test the helper function CompleteSignIn. Since we do not have the access to

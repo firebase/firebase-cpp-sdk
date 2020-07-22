@@ -30,7 +30,9 @@
 #include "database/src/desktop/database_desktop.h"
 #include "database/src/desktop/database_reference_desktop.h"
 #include "database/src/desktop/mutable_data_desktop.h"
-#include "database/src/desktop/persistence/in_memory_persistence_storage_engine.h"
+#include "database/src/desktop/persistence/level_db_persistence_storage_engine.h"
+#include "database/src/desktop/persistence/noop_persistence_manager.h"
+#include "database/src/desktop/persistence/persistence_manager_interface.h"
 #include "database/src/desktop/query_desktop.h"
 #include "database/src/desktop/transaction_data.h"
 #include "database/src/desktop/util_desktop.h"
@@ -77,9 +79,10 @@ class TransactionResponse : public connection::Response {
 };
 
 Repo::Repo(App* app, DatabaseInternal* database, const char* url,
-           Logger* logger)
+           Logger* logger, bool persistence_enabled)
     : database_(database),
       host_info_(),
+      persistence_enabled_(persistence_enabled),
       connection_(),
       server_time_offset_(0),
       next_write_id_(0),
@@ -416,49 +419,103 @@ void Repo::AckWriteAndRerunTransactions(WriteId write_id, const Path& path,
   AckStatus ack_status = success ? kAckConfirm : kAckRevert;
   std::vector<Event> events = server_sync_tree_->AckUserWrite(
       write_id, ack_status, kPersist, server_time_offset_);
-  if (events.size() > 0) {
+  if (!events.empty()) {
     RerunTransactions(path);
   }
   PostEvents(events);
 }
 
-static UniquePtr<SyncTree> InitializeSyncTree(
-    UniquePtr<ListenProvider> listen_provider, Logger* logger) {
+static UniquePtr<PersistenceManagerInterface> CreatePersistenceManager(
+    const char* app_data_path, LoggerBase* logger) {
   static const uint64_t kDefaultCacheSize = 10 * 1024 * 1024;
 
-  UniquePtr<WriteTree> pending_write_tree = MakeUnique<WriteTree>();
-  UniquePtr<PersistenceStorageEngine> persistence_storage_engine =
-      MakeUnique<InMemoryPersistenceStorageEngine>(logger);
-  UniquePtr<TrackedQueryManager> tracked_query_manager =
+  auto persistence_storage_engine =
+      MakeUnique<LevelDbPersistenceStorageEngine>(logger);
+
+  if (!persistence_storage_engine->Initialize(app_data_path)) {
+    logger->LogError("Could not initialize persistence");
+    return UniquePtr<PersistenceManager>();
+  }
+  auto tracked_query_manager =
       MakeUnique<TrackedQueryManager>(persistence_storage_engine.get(), logger);
-  UniquePtr<CachePolicy> cache_policy =
-      MakeUnique<LRUCachePolicy>(kDefaultCacheSize);
-  UniquePtr<PersistenceManager> persistence_manager =
-      MakeUnique<PersistenceManager>(std::move(persistence_storage_engine),
-                                     std::move(tracked_query_manager),
-                                     std::move(cache_policy), logger);
-  return MakeUnique<SyncTree>(std::move(pending_write_tree),
-                              std::move(persistence_manager),
-                              std::move(listen_provider));
+
+  auto cache_policy = MakeUnique<LRUCachePolicy>(kDefaultCacheSize);
+
+  return MakeUnique<PersistenceManager>(std::move(persistence_storage_engine),
+                                        std::move(tracked_query_manager),
+                                        std::move(cache_policy), logger);
 }
 
 // Defers any initialization that is potentially expensive (e.g. disk access).
 void Repo::DeferredInitialization() {
   // Set up server sync tree.
   {
-    UniquePtr<WebSocketListenProvider> listen_provider =
+    // The path path to the on-disk persistence cache, relative to the
+    // per-application data directory.
+    std::string database_path;
+
+    const char* package_name = database_->GetApp()->options().package_name();
+    if (!package_name) {
+      logger_->LogError("Could not initialize persistence: No package_name.");
+      return;
+    }
+
+    if (url_.empty()) {
+      logger_->LogError("Could not initialize persistence: No database url.");
+      return;
+    }
+
+    // Skip past the https:// or http://
+    auto start = url_.find("//") + strlen("//");
+    std::string url_domain = url_.substr(start);
+
+    database_path += package_name;
+    database_path += "/";
+    database_path += url_domain;
+
+    std::string app_data_path = GetAppDataPath(database_path.c_str());
+    if (app_data_path.empty()) {
+      logger_->LogError(
+          "Could not initialize persistence: Unable to find app data "
+          "directory.");
+      return;
+    }
+
+    logger_->LogDebug("app_data_path: %s", app_data_path.c_str());
+
+    // Set up write tree.
+    auto pending_write_tree = MakeUnique<WriteTree>();
+
+    // Set up persistence manager
+    UniquePtr<PersistenceManagerInterface> persistence_manager;
+    if (persistence_enabled_) {
+      persistence_manager =
+          CreatePersistenceManager(app_data_path.c_str(), logger_);
+    } else {
+      persistence_manager = MakeUnique<NoopPersistenceManager>();
+    }
+
+    // Set up listen provider.
+    auto listen_provider =
         MakeUnique<WebSocketListenProvider>(this, connection_.get(), logger_);
     WebSocketListenProvider* listen_provider_ptr = listen_provider.get();
-    server_sync_tree_ = InitializeSyncTree(std::move(listen_provider), logger_);
+
+    // Set up sync Tree.
+    server_sync_tree_ = MakeUnique<SyncTree>(std::move(pending_write_tree),
+                                             std::move(persistence_manager),
+                                             std::move(listen_provider));
     listen_provider_ptr->set_sync_tree(server_sync_tree_.get());
   }
 
   // Set up info sync tree.
   {
-    UniquePtr<InfoListenProvider> listen_provider =
-        MakeUnique<InfoListenProvider>(this, &info_data_);
+    auto pending_write_tree = MakeUnique<WriteTree>();
+    auto persistence_manager = MakeUnique<NoopPersistenceManager>();
+    auto listen_provider = MakeUnique<InfoListenProvider>(this, &info_data_);
     InfoListenProvider* listen_provider_ptr = listen_provider.get();
-    info_sync_tree_ = InitializeSyncTree(std::move(listen_provider), logger_);
+    info_sync_tree_ = MakeUnique<SyncTree>(std::move(pending_write_tree),
+                                           std::move(persistence_manager),
+                                           std::move(listen_provider));
     listen_provider_ptr->set_sync_tree(info_sync_tree_.get());
   }
 

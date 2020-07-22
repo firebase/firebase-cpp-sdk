@@ -91,6 +91,7 @@ DOC_STRING_GLOBAL_REPLACEMENTS = [
     (r'(?s)(@code)([^{].*using namespace firebase::analytics;'
      r'.*Parameter [^{]+[^}]+}.*@endcode)',
      '\n'
+     '///\n'
      '/// @if cpp_examples\n'
      '/// \\1{.cpp}'
      '\\2\n\n'

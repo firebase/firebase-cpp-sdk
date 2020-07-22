@@ -54,12 +54,6 @@ class PromiseFactory {
     return Promise<T>{cleanup_, future_api(), static_cast<int>(index)};
   }
 
-  template <typename T>
-  const Future<T>& LastResult(ApiEnum index) {
-    const auto& result = future_api()->LastResult(static_cast<int>(index));
-    return static_cast<const Future<T>&>(result);
-  }
-
  private:
   ReferenceCountedFutureImpl* future_api() {
     return future_manager_->GetFutureApi(this);
