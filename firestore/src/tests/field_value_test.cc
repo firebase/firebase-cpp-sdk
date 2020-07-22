@@ -53,7 +53,7 @@ TEST_F(FieldValueTest, Assignment) {
 
 #endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
 
-#if !defined(FIRESTORE_STUB_BUILD)
+#if !defined(FIRESTORE_STUB_BUILD)  
 
 TEST_F(FirestoreIntegrationTest, TestNullType) {
   FieldValue value = FieldValue::Null();

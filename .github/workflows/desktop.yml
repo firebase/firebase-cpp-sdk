@@ -1,0 +1,171 @@
+name: Desktop Builds
+
+on: 
+  push:
+  pull_request:
+
+env:
+  CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+
+jobs:
+  build:
+    name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        build_type: ["Release", "Debug"]
+        architecture: ["x64",]
+        python_version: [2.7]
+        generator: ["Visual Studio 16 2019", "Unix Makefiles", "Ninja"]
+        exclude:
+        - os: ubuntu-latest
+          generator: "Visual Studio 16 2019"
+        - os: macos-latest
+          generator: "Visual Studio 16 2019"
+        - os: windows-latest
+          generator: "Unix Makefiles"
+        - os: windows-latest
+          generator: "Ninja"
+
+        include:
+        - os: windows-latest
+          architecture: "x64"
+          vcpkg_triplet: "x64-windows-static"
+          msbuild_platform: "x64"
+        - os: ubuntu-latest
+          architecture: "x64"
+          vcpkg_triplet: "x64-linux"
+        - os: macos-latest
+          architecture: "x64"
+          vcpkg_triplet: "x64-osx"
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Set env variables for subsequent steps (all)
+        run: |
+          echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt"
+          echo "::set-env name=PIP_REQUIREMENTS_FILE::external/pip_requirements.txt"
+          echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}"
+
+      - name: Install Ninja (windows)
+        if: startsWith(matrix.generator, 'Ninja') && startsWith(matrix.os, 'windows')
+        run: |
+          choco install ninja
+
+      - name: Install Ninja (mac)
+        if: startsWith(matrix.generator, 'Ninja') && startsWith(matrix.os, 'macos')
+        run: |
+          brew install ninja
+
+      - name: Install Ninja (linux)
+        if: startsWith(matrix.generator, 'Ninja') && startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt install ninja-build
+
+      - name: Install system level applications (mac)
+        if: startsWith(matrix.os, 'macos')
+        id: macos-brew-install
+        run: |
+          brew install ccache
+          echo "::set-env name=CCACHE_INSTALLED::1"
+
+      - name: Install system level applications (linux)
+        if: startsWith(matrix.os, 'ubuntu')
+        id: ubuntu-apt-install
+        run: |
+          sudo apt install ccache
+          echo "::set-env name=CCACHE_INSTALLED::1"
+
+      - name: Cache vcpkg C++ dependencies
+        id: cache_vcpkg
+        uses: actions/cache@v2
+        with:
+          path: external/vcpkg/installed
+          key: dev-vcpkg-${{ matrix.vcpkg_triplet }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+
+      - name: Install vcpkg packages (windows)
+        if: steps.cache_vcpkg.outputs.cache-hit!='true' && startsWith(matrix.os, 'windows')
+        run: |
+          ${{ github.workspace }}/external/vcpkg/bootstrap-vcpkg.bat -disableMetrics
+          ${{ github.workspace }}/external/vcpkg/vcpkg install @${{env.VCPKG_RESPONSE_FILE}}
+
+      - name: Install vcpkg packages (mac and linux)
+        if: steps.cache_vcpkg.outputs.cache-hit!='true' && startsWith(matrix.os, 'windows')!='true'
+        run: |
+          ${{ github.workspace }}/external/vcpkg/bootstrap-vcpkg.sh -disableMetrics
+          ${{ github.workspace }}/external/vcpkg/vcpkg install @${{env.VCPKG_RESPONSE_FILE}}
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+          architecture: ${{ matrix.architecture }}
+
+      - name: Get pip cache dir
+        id: get_pip_cache_dir
+        run: |
+          echo "::set-output name=cachedir::$(pip cache dir)"
+
+      - name: pip cache
+        id: cache_pip
+        uses: actions/cache@v2
+        with:
+          path: ${{ steps.get_pip_cache_dir.outputs.cachedir }}
+          key: dev-pip-${{ runner.os }}-${{ matrix.python_version }}-${{ matrix.architecture }}-${{ hashFiles(format('{0}', env.PIP_REQUIREMENTS_FILE)) }}
+
+      - name: Install pip packages
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ${{ env.PIP_REQUIREMENTS_FILE }}
+
+      - name: Cache ccache files
+        if: env.CCACHE_INSTALLED
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+
+      - name: Configure 
+        shell: bash
+        run: |
+          mkdir build
+          cmake \
+            -S . \
+            -B build \
+            -G "${{ matrix.generator }}" \
+            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+            -DCMAKE_TOOLCHAIN_FILE=external/vcpkg/scripts/buildsystems/vcpkg.cmake \
+            -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }} \
+            -DFIREBASE_CPP_BUILD_TESTS=ON \
+            -DFIREBASE_INCLUDE_FIRESTORE=OFF \
+            -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON
+
+      - name: Build
+        shell: bash
+        run: cmake --build build --config ${{ matrix.build_type }} -j 8
+
+      - name: Stats for ccache (mac and linux)
+        if: env.CCACHE_INSTALLED
+        run: ccache -s
+
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find build -name "*.lib"
+          find build -name "*.dll"
+          find build -name "*.dylib"
+          find build -name "*.a"
+          find build -name "*.so"
+
+      - name: Run tests
+        env:
+          LANG: en_US
+        run: |
+          cd build
+          ctest --verbose

@@ -397,7 +397,13 @@ TEST_F(OptionalTest, HasValue) {
   EXPECT_FALSE(optional_int.has_value());
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(OptionalTest, DISABLED_ValueDeathTest) {
+#else
 TEST_F(OptionalTest, ValueDeathTest) {
+#endif
   Optional<int> empty;
   EXPECT_DEATH(empty.value(), "");
 }

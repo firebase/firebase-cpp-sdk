@@ -1,14 +1,63 @@
-name: C++ binary SDK packaging
-
+name: CPP binary SDK packaging
 on:
   workflow_dispatch:
     inputs:
       commitId:
         description: 'commit ID to package'
 
+env:
+  # Packaging prerequisites
+  # Binutils 2.34 released Feb 1, 2020
+  binutilsVer: 2.34
+  # Demumble v1.1.0 released Nov 13, 2018
+  demumbleVer: 1.1.0
+
 jobs:
-  build:
+  printInputs:
     runs-on: ubuntu-latest
     steps:
-      - name: noop
-        run: true
+    - run: |
+        echo "Commit ID: ${{ github.event.inputs.commitId }}"
+        echo "Binutils version: ${{ env.binutilsVer }}"
+        echo "Demumble version: ${{ env.demumbleVer }}"
+
+  buildBinutils:
+    runs-on: ubuntu-latest
+    steps:
+      - name: fetch binutils source
+        run: curl -L https://ftpmirror.gnu.org/binutils/binutils-${{ env.binutilsVer }}.tar.xz --output binutils.tar.xz
+      - name: untar binutils source
+        run: |
+          tar -xf binutils.tar.xz
+          mv ./binutils-${{ env.binutilsVer }} ./binutils-src
+      - name: configure binutils
+        run: ./configure --enable-targets=all --prefix=/tmp/binutils
+        working-directory: ./binutils-src
+      - name: make binutils
+        run: make
+        working-directory: ./binutils-src
+      - name: install binutils in /tmp/binutils/...
+        run: make install
+        working-directory: ./binutils-src
+
+  buildDemumble:
+    runs-on: ubuntu-latest
+    steps:
+      - name: fetch demumble source
+        uses: actions/checkout@v2.3.1
+        with:
+          repository: nico/demumble
+          path: demumble-src
+          ref: v${{ env.demumbleVer }}
+      - name: configure demumble
+        run: cmake .
+        working-directory: ./demumble-src
+      - name: build demumble
+        run: cmake --build .
+        working-directory: ./demumble-src
+      - name: test demumble
+        run: python demumble_test.py
+        working-directory: ./demumble-src
+      - name: install demumble in /tmp/demumble
+        run: cp -af ./demumble /tmp/demumble
+        working-directory: ./demumble-src

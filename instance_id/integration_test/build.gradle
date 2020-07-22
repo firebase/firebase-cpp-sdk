@@ -1,0 +1,90 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+buildscript {
+  repositories {
+    mavenLocal()
+    maven { url 'https://maven.google.com'  }
+    jcenter()
+  }
+  dependencies {
+    classpath 'com.android.tools.build:gradle:3.2.1'
+    classpath 'com.google.gms:google-services:4.0.1'
+  }
+}
+
+allprojects {
+  repositories {
+    mavenLocal()
+    maven { url 'https://maven.google.com'  }
+    jcenter()
+  }
+}
+
+apply plugin: 'com.android.application'
+
+android {
+  compileSdkVersion 28
+  buildToolsVersion '28.0.3'
+
+  sourceSets {
+    main {
+      jniLibs.srcDirs = ['libs']
+      manifest.srcFile 'AndroidManifest.xml'
+      java.srcDirs = ['src/android/java']
+      res.srcDirs = ['res']
+    }
+  }
+
+  defaultConfig {
+    applicationId 'com.google.firebase.instanceid.testapp'
+    minSdkVersion 16
+    targetSdkVersion 28
+    versionCode 1
+    versionName '1.0'
+    externalNativeBuild.cmake {
+      arguments "-DFIREBASE_CPP_SDK_DIR=$gradle.firebase_cpp_sdk_dir"
+    }
+  }
+  externalNativeBuild.cmake {
+    path 'CMakeLists.txt'
+  }
+  buildTypes {
+    release {
+      minifyEnabled true
+      proguardFile getDefaultProguardFile('proguard-android.txt')
+      proguardFile file('proguard.pro')
+    }
+  }
+}
+
+apply from: "$gradle.firebase_cpp_sdk_dir/Android/firebase_dependencies.gradle"
+firebaseCpp.dependencies {
+  instanceId
+}
+
+apply plugin: 'com.google.gms.google-services'
+
+task copyIntegrationTestFiles(type:Exec) {
+  // If this is running form inside the SDK directory, run the setup script.
+  if (project.file('../../setup_integration_tests.py').exists()) {
+    commandLine 'python', '../../setup_integration_tests.py', project.projectDir.toString()
+  }
+  else {
+    commandLine 'echo', ''
+  }
+}
+
+build.dependsOn(copyIntegrationTestFiles)

@@ -52,7 +52,13 @@ TEST_F(InMemoryPersistenceStorageEngineTest, LoadServerCache) {
   EXPECT_EQ(engine_.LoadServerCache(), Variant::Null());
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveUserOverwrite) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveUserOverwrite) {
+#endif
   EXPECT_DEATH(engine_.SaveUserOverwrite(Path(), Variant::Null(), 100),
                DEATHTEST_SIGABRT);
 }
@@ -66,7 +72,13 @@ TEST_F(InMemoryPersistenceStorageEngineTest, SaveUserOverwrite) {
   engine_.EndTransaction();
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveUserMerge) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveUserMerge) {
+#endif
   EXPECT_DEATH(engine_.SaveUserMerge(Path(), CompoundWrite(), 100),
                DEATHTEST_SIGABRT);
 }
@@ -80,7 +92,13 @@ TEST_F(InMemoryPersistenceStorageEngineTest, SaveUserMerge) {
   engine_.EndTransaction();
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_RemoveUserWrite) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, RemoveUserWrite) {
+#endif
   EXPECT_DEATH(engine_.RemoveUserWrite(100), DEATHTEST_SIGABRT);
 }
 
@@ -96,7 +114,13 @@ TEST_F(InMemoryPersistenceStorageEngineTest, LoadUserWrites) {
   EXPECT_TRUE(engine_.LoadUserWrites().empty());
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_RemoveAllUserWrites) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, RemoveAllUserWrites) {
+#endif
   // Must be in a transaction.
   EXPECT_DEATH(engine_.RemoveAllUserWrites(), DEATHTEST_SIGABRT);
 }
@@ -110,7 +134,13 @@ TEST_F(InMemoryPersistenceStorageEngineTest, RemoveAllUserWrites) {
   engine_.EndTransaction();
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_OverwriteServerCache) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, OverwriteServerCache) {
+#endif
   EXPECT_DEATH(engine_.OverwriteServerCache(Path(), Variant::Null()),
                DEATHTEST_SIGABRT);
 }
@@ -145,8 +175,15 @@ TEST_F(InMemoryPersistenceStorageEngineTest, OverwriteServerCache) {
   // clang-format on
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest,
+       DISABLED_MergeIntoServerCache_Variant) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest,
        MergeIntoServerCache_Variant) {
+#endif
   EXPECT_DEATH(engine_.MergeIntoServerCache(Path(), Variant::Null()),
                DEATHTEST_SIGABRT);
 }
@@ -188,8 +225,15 @@ TEST_F(InMemoryPersistenceStorageEngineTest, MergeIntoServerCache_Variant) {
   // clang-format on
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest,
+       DISABLED_MergeIntoServerCache_CompoundWrite) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest,
        MergeIntoServerCache_CompoundWrite) {
+#endif
   EXPECT_DEATH(engine_.MergeIntoServerCache(Path(), CompoundWrite()),
                DEATHTEST_SIGABRT);
 }
@@ -251,7 +295,13 @@ TEST_F(InMemoryPersistenceStorageEngineTest, ServerCacheEstimatedSizeInBytes) {
             9 * sizeof(Variant) + 4 * kKeyLengths + 2 * kValueLengths);
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveTrackedQuery) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveTrackedQuery) {
+#endif
   // Must be in a transaction.
   EXPECT_DEATH(engine_.SaveTrackedQuery(TrackedQuery()), DEATHTEST_SIGABRT);
 }
@@ -265,7 +315,13 @@ TEST_F(InMemoryPersistenceStorageEngineTest, SaveTrackedQuery) {
   engine_.EndTransaction();
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_DeleteTrackedQuery) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DeleteTrackedQuery) {
+#endif
   // Must be in a transaction.
   EXPECT_DEATH(engine_.DeleteTrackedQuery(100), DEATHTEST_SIGABRT);
 }
@@ -327,8 +383,15 @@ TEST_F(InMemoryPersistenceStorageEngineTest, PruneCache) {
   // clang-format on
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest,
+       DISABLED_ResetPreviouslyActiveTrackedQueries) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest,
        ResetPreviouslyActiveTrackedQueries) {
+#endif
   // Must be in a transaction.
   EXPECT_DEATH(engine_.ResetPreviouslyActiveTrackedQueries(100),
                DEATHTEST_SIGABRT);
@@ -344,13 +407,25 @@ TEST_F(InMemoryPersistenceStorageEngineTest,
   engine_.EndTransaction();
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveTrackedQueryKeys) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveTrackedQueryKeys) {
+#endif
   // Must be in a transaction.
   EXPECT_DEATH(engine_.SaveTrackedQueryKeys(100, std::set<std::string>()),
                DEATHTEST_SIGABRT);
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_UpdateTrackedQueryKeys) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, UpdateTrackedQueryKeys) {
+#endif
   EXPECT_DEATH(engine_.UpdateTrackedQueryKeys(100, std::set<std::string>(),
                                               std::set<std::string>()),
                DEATHTEST_SIGABRT);
@@ -388,7 +463,13 @@ TEST_F(InMemoryPersistenceStorageEngineTest, TrackedQueryKeys) {
   engine_.EndTransaction();
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_BeginTransaction) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, BeginTransaction) {
+#endif
   EXPECT_TRUE(engine_.BeginTransaction());
   // Cannot begin a transaction while in a transaction.
   EXPECT_DEATH(engine_.BeginTransaction(), DEATHTEST_SIGABRT);
@@ -399,7 +480,13 @@ TEST_F(InMemoryPersistenceStorageEngineTest, BeginTransaction) {
   EXPECT_TRUE(engine_.BeginTransaction());
 }
 
+// Disable DeathTest in Release mode because it depends on a crash 
+// caused by `assert` which has no effect when NDEBUG is defined
+#ifdef NDEBUG
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_EndTransaction) {
+#else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, EndTransaction) {
+#endif
   // Cannot end a transaction unless in a transaction.
   EXPECT_DEATH(engine_.EndTransaction(), DEATHTEST_SIGABRT);
 }

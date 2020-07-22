@@ -25,6 +25,7 @@
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/include/firebase/auth.h"
 #include "auth/src/include/firebase/auth/user.h"
+#include "app/src/time.h"
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
 #undef __ANDROID__
@@ -172,6 +173,15 @@ class UserTest : public ::testing::Test {
   }
 
   void TearDown() override {
+    firebase_auth_->SignOut();
+
+    // Wait for the app to finish any remaining tasks in queue,
+    // specifically delete app data from persistent cache after SignOut.
+    // This is to avoid race conditions where the next test's SignIn 
+    // doesn't cause a change in auth state or id tokens because persistent
+    // cache has valid user logged in, preventing listeners from firing.
+    firebase::internal::Sleep(200);
+
     // We do not own firebase_user_ object. So just assign it to nullptr here.
     firebase_user_ = nullptr;
     delete firebase_auth_;
@@ -325,9 +335,12 @@ TEST_F(UserTest, TestReauthenticate) {
       "}";
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
-  Future<void> result = firebase_user_->Reauthenticate(
-      EmailAuthProvider::GetCredential("i@email.com", "pw"));
-  Verify(result);
+  Credential credential = EmailAuthProvider::GetCredential("i@email.com", "pw");
+  Future<User*> sign_in_result = firebase_auth_->SignInWithCredential(credential);
+  Verify(sign_in_result);
+
+  Future<void> reauthenticate_result = firebase_user_->Reauthenticate(credential);
+  Verify(reauthenticate_result);
 }
 
 #if !defined(__APPLE__) && !defined(FIREBASE_WAIT_ASYNC_IN_TEST)

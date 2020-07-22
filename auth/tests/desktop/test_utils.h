@@ -261,6 +261,16 @@ class AuthStateChangesCounter : public detail::ListenerChangeCounter,
   void OnAuthStateChanged(Auth* /*unused*/) override;
 };
 
+// Class that when destroyed will momentarly sleep.  Used to ensure that
+// listener callbacks have time to be invoked before they're verified.
+class SleepUponDestruction {
+  public:
+  ~SleepUponDestruction() {
+    firebase::internal::Sleep(200);
+  }
+};
+
+
 // Waits until the given future is complete and asserts that it completed with
 // the given error (no error by default). Returns the future's result.
 template <typename T>

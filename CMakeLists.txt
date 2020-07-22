@@ -75,6 +75,15 @@ project (firebase NONE)
 enable_language(C)
 enable_language(CXX)
 
+set(compiler_cache_program ccache)
+
+find_program(compilercache_program ${compiler_cache_program})
+if(compilercache_program)
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${compiler_cache_program}")
+  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${compiler_cache_program}")
+  message( STATUS "Found compiler cache program : ${compiler_cache_program}" )
+endif()
+
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(external_rules)
 include(cpp_pack)
@@ -170,6 +179,9 @@ endif()
 set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "")
 set(FLATBUFFERS_INSTALL OFF CACHE BOOL "")
 set(FLATBUFFERS_FLATHASH OFF CACHE BOOL "")
+
+# Disable LevelDB build tests
+set(LEVELDB_BUILD_TESTS OFF CACHE BOOL "")
 
 # Disable building flatc if cross compiling
 if(IOS OR ANDROID)
