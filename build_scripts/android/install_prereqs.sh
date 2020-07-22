@@ -5,7 +5,8 @@ if [[ $(uname) == "Darwin" ]]; then
 elif [[ $(uname) == "Linux" ]]; then
     platform=linux
 else
-    platform=windows
+    echo "Unsupported platform, this script must run on a MacOS or Linux machine."
+    exit 1
 fi
 
 if [[ -z $(which cmake) ]]; then
