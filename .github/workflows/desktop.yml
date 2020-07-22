@@ -1,6 +1,8 @@
 name: Desktop Builds
 
-on: [push, pull_request]
+on: 
+  pull_request:
+    types: [opened, reopened, synchronize]
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
@@ -51,11 +53,11 @@ jobs:
           echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.generator }}"
           
       - name: Set additional env variables for subsequent steps (mac and linux)
+        # Used to name mangle archive files in debug builds based on the
+        # build generator type. Required becasue the space in the 
+        # "Unix Makefiles" generator type breaks the archive process.
         if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'windows')!='true'
         run |
-          # Used to name mangle archive files in debug builds based on the
-          # build generator type. Required becasue the space in the 
-          # "Unix Makefiles" generator type breaks the archive process.
           echo "::set-env name=BUILD_GENERATOR_NO_SPACES::$(echo -e "${{matrix.generator}}" | tr -d '[:space:]')"
 
       - name: Install Ninja (windows)
