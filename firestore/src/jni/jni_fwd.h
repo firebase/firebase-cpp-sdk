@@ -23,6 +23,7 @@ class NonOwning;
 class Class;
 class Object;
 class String;
+class Throwable;
 
 }  // namespace jni
 }  // namespace firestore

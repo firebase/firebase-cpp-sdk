@@ -55,6 +55,7 @@ template <> struct JniTypeMap<void> { using type = void; };
 template <> struct JniTypeMap<Class> { using type = jclass; };
 template <> struct JniTypeMap<Object> { using type = jobject; };
 template <> struct JniTypeMap<String> { using type = jstring; };
+template <> struct JniTypeMap<Throwable> { using type = jthrowable; };
 
 template <typename T> struct JniTypeMap<Local<T>> {
   using type = typename JniTypeMap<T>::type;

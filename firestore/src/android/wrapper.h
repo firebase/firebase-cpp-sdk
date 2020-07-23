@@ -12,6 +12,7 @@
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
+#include "firestore/src/jni/jni_fwd.h"
 
 namespace firebase {
 namespace firestore {
@@ -65,6 +66,8 @@ class Wrapper {
 
   // Similar to a copy constructor, but can handle the case where `rhs` is null.
   explicit Wrapper(Wrapper* rhs);
+
+  jni::Env GetEnv() const;
 
   // Converts a java list of java type e.g. java.util.List<FirestoreJavaType> to
   // a C++ vector of equivalent type e.g. std::vector<FirestoreType>.

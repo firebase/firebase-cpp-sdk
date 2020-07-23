@@ -7,6 +7,7 @@
 #include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/util_android.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/env.h"
 
 namespace firebase {
 namespace firestore {
@@ -79,6 +80,16 @@ Wrapper::~Wrapper() {
     firestore_->app()->GetJNIEnv()->DeleteGlobalRef(obj_);
     obj_ = nullptr;
   }
+}
+
+jni::Env Wrapper::GetEnv() const {
+  // TODO(mcg): Investigate whether or not this method can be made static.
+  // Whether or not this is possible depends on whether or not we need to flag
+  // the current Firestore instance as somehow broken in response to an
+  // exception.
+  jni::Env env;
+  env.SetUnhandledExceptionHandler(GlobalUnhandledExceptionHandler, nullptr);
+  return env;
 }
 
 bool Wrapper::EqualsJavaObject(const Wrapper& other) const {

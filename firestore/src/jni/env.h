@@ -11,6 +11,7 @@
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
 #include "firestore/src/jni/string.h"
+#include "firestore/src/jni/throwable.h"
 #include "firestore/src/jni/traits.h"
 
 namespace firebase {
@@ -38,12 +39,40 @@ namespace jni {
  */
 class Env {
  public:
-  Env() : env_(GetEnv()) {}
+  /**
+   * An unhandled exception handler for Java exceptions that can be registered
+   * by calling `SetUnhandledExceptionHandler`. The unhandled exception handler
+   * is not invoked immediately after a Java exception is observed via JNI.
+   * Instead it is invoked if `Env` starts destruction with a Java exception
+   * pending.
+   *
+   * When calling the `UncaughtExceptionHandler`, `Env` does not automatically
+   * clear any pending exceptions. The handler should call `Env::ExceptionClear`
+   * if it wishes to clear the pending exception or use `ExceptionClearGuard` to
+   * temporarily clear the pending exception.
+   */
+  using UnhandledExceptionHandler = void (*)(
+      jni::Env& env, jni::Local<jni::Throwable>&& exception, void* context);
 
-  explicit Env(JNIEnv* env) : env_(env) {}
+  Env();
+
+  explicit Env(JNIEnv* env);
+
+  /**
+   * Destroys the Env instance. This can throw if an `UnhandledExceptionHandler`
+   * has been registered and that function itself throws and there is no
+   * exception currently being handled.
+   */
+  ~Env() noexcept(false);
+
+  Env(const Env&) = delete;
+  Env& operator=(const Env&) = delete;
+
+  Env(Env&&) noexcept = default;
+  Env& operator=(Env&&) noexcept = default;
 
   /** Returns true if the Env has not encountered an exception. */
-  bool ok() const { return last_exception_ == nullptr; }
+  bool ok() const { return !env_->ExceptionCheck(); }
 
   /** Returns the underlying JNIEnv pointer. */
   JNIEnv* get() const { return env_; }
@@ -55,6 +84,39 @@ class Env {
    * formatted like "java/lang/Object".
    */
   Local<Class> FindClass(const char* name);
+
+  // MARK: Exceptions
+
+  void Throw(const Throwable& throwable);
+
+  void ThrowNew(const Class& clazz, const char* message);
+  void ThrowNew(const Class& clazz, const std::string& message) {
+    ThrowNew(clazz, message.c_str());
+  }
+
+  /**
+   * Returns the last Java exception to occur or an invalid reference. The
+   * exception is cleared with a call to `ExceptionClear`.
+   */
+  Local<Throwable> ExceptionOccurred();
+
+  /** Clears the last exception. */
+  void ExceptionClear();
+
+  /**
+   * Returns the last Java exception to occur and clears the pending exception.
+   */
+  Local<Throwable> ClearExceptionOccurred();
+
+  /**
+   * Sets the exception handler to automatically invoke if there's a pending
+   * exception when `Env` is being destroyed.
+   */
+  void SetUnhandledExceptionHandler(UnhandledExceptionHandler handler,
+                                    void* context) {
+    exception_handler_ = handler;
+    context_ = context;
+  }
 
   // MARK: Object Operations
 
@@ -79,6 +141,12 @@ class Env {
     RecordException();
     return MakeResult<T>(result);
   }
+
+  Local<Class> GetObjectClass(const Object& object);
+
+  bool IsInstanceOf(const Object& object, const Class& clazz);
+
+  bool IsSameObject(const Object& object1, const Object& object2);
 
   // MARK: Calling Instance Methods
 
@@ -228,6 +296,8 @@ class Env {
   }
 
   void RecordException();
+  std::string ErrorDescription(const Object& object);
+  const char* ErrorName(jint error);
 
   template <typename T>
   EnableForPrimitive<T, T> MakeResult(JniType<T> value) {
@@ -244,10 +314,43 @@ class Env {
   }
 
   JNIEnv* env_ = nullptr;
-  jthrowable last_exception_ = nullptr;
+
+  UnhandledExceptionHandler exception_handler_ = nullptr;
+  void* context_ = nullptr;
+  int initial_pending_exceptions_ = 0;
 };
 
 #undef INVOKE
+
+/**
+ * Temporarily clears any pending exception state in the environment by calling
+ * `JNIEnv::ExceptionClear`. If there was an exception pending when
+ * `ExceptionClearGuard` is constructed, the guard restores that exception when
+ * it is destructed. This is useful for executing cleanup code that needs to run
+ * even if an exception is pending, similar to the way a `finally` block works
+ * in Java.
+ *
+ * Like a Java `finally` block, if an exception is thrown before the
+ * `ExceptionClearGuard` is destructed, that exception takes precedence and any
+ * original exception is lost. Exceptions thrown during the lifetime of an
+ * `ExceptionClearGuard` are not suppressed, so if a multi-step cleanup action
+ * can throw, multiple `ExceptionClearGuard`s may be required.
+ */
+class ExceptionClearGuard {
+ public:
+  explicit ExceptionClearGuard(Env& env)
+      : env_(env), exception_(env.ClearExceptionOccurred()) {}
+
+  ~ExceptionClearGuard() {
+    if (exception_) {
+      env_.Throw(exception_);
+    }
+  }
+
+ private:
+  Env& env_;
+  Local<Throwable> exception_;
+};
 
 }  // namespace jni
 }  // namespace firestore
