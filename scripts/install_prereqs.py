@@ -340,8 +340,6 @@ def install_packages_with_vcpkg(arch, build_vcpkg=True):
     run_command(['git', 'submodule', 'init'])
     run_command(['git', 'submodule', 'update'])
 
-    repo_root_dir = get_repo_root_dir()
-    vcpkg_root_dir = os.path.join(repo_root_dir, 'external', 'vcpkg')
     if build_vcpkg:
         # build and install vcpkg
         script_absolute_path = get_vcpkg_installation_script_path()
@@ -395,7 +393,6 @@ def step_install_python_packages(args):
     installed_packages = {pkg.key for pkg in pkg_resources.working_set}
 
     # Get the list of packages we intend to install
-    repo_root_dir = get_repo_root_dir()
     requirements_file_path = get_pip_requirements_file_path()
     packages_to_install = None
     with open(requirements_file_path, 'r') as requirements_file:
@@ -403,7 +400,8 @@ def step_install_python_packages(args):
 
     # Check if there is any work to do by comparing these lists
     if packages_to_install and not (packages_to_install-installed_packages):
-        print("Skipping because following python packages are already installed: \n {0}".format(' '.join(packages_to_install)))
+        print('Skipping python packages installation because following '\
+               'python packages are already installed: \n {0}'.format(' '.join(packages_to_install)))
         return
 
     install_python_packages()
@@ -420,7 +418,6 @@ def step_install_cpp_packages(args):
     """
     if not args.no_vcpkg:
         # Check if vcpkg is already installed
-        repo_root_dir = get_repo_root_dir()
         found_vcpkg_executable = os.path.exists(get_vcpkg_executable_file_path())
 
         # Install packages and only install vcpkg if its not built already
