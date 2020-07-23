@@ -59,12 +59,13 @@ class PackageManager(object):
     MAC = 'brew'
 
 
-def run_command(cmd, as_root_user=False, collect_output=False):
+def run_command(cmd, cwd=None, as_root_user=False, collect_output=False):
     """Run a command
 
     Args:
         cmd (:obj:`list` of :obj:`str`): Command to run as a list object
                                          Eg: ['ls', '-l']
+        cwd (str): Directory to execute the command from
         as_root_user (bool): Run command as root user with admin priveleges (supported on mac and linux)
         collect_output (bool): Get output from the command. The string returned from this function
                                call will have the output from command execution.
@@ -81,10 +82,10 @@ def run_command(cmd, as_root_user=False, collect_output=False):
     print('Running cmd: {0}\n'.format(cmd_string))
     try:
         if collect_output:
-            output = subprocess.check_output(cmd)
+            output = subprocess.check_output(cmd, cwd=cwd)
             return output.decode('utf-8').strip()
         else:
-            subprocess.call(cmd)
+            subprocess.call(cmd, cwd=cwd)
     except subprocess.CalledProcessError:
         raise IOError('Error executing {0}'.format(cmd_string))
 
