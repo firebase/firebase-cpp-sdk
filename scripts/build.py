@@ -13,6 +13,24 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Use this script to configure and build the firebase cpp sdk
+If you see any issues in configure when run multiple times, 
+try deleting your build directory and use this script after that.
+
+Usage:
+# Build all targets with default options
+python build.py
+
+# Build all targets with default options and also build unit tests
+python build.py --build_tests
+
+# Build all targets without using vcpkg
+# Assuming cpp dependencies are installed and accessible to the build system
+python build.py --no_vcpkg
+
+"""
+
 import subprocess
 import os
 import sys
