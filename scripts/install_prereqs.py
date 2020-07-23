@@ -16,19 +16,31 @@
 
 """
 This script will take care of installing Python and C++ dependencies required for the build
+It detects if an installation step is necessary and runs it only when required.
 
 The goal is to avoid any major changes in system configurations of users. 
-With vcpkg, we pretty much download almost all of the dependencies within the repo directory
-itself. But we can't install ninja or ccache with vcpkg. Hence, if you plan to use these
-in your builds, you have to install them via a system package manager
+Almost all dependencies (except ninja/ccache) can be installed with vcpkg and are local to
+the repo.
 
 Requirements before running this script,
 
 - Python and pip
-- System package manager (if you plan to use ninja or ccache)
+- System package manager (if you plan to install ninja or ccache)
     Windows: choco (Chocolatey)
     Mac: brew (homebrew)
     Linux: apt (ubuntu's default package manager)
+
+Usage examples:
+# Standard usage
+python scripts/install_prereqs.py
+
+# If you want to install ccache via system package manager (cacche works only on mac and linux)
+python scripts/install_prereqs.py --ccache
+
+# If you want to install ninja via system package manager
+# Could have used a boolean flag but this makes it easier to call from github workflow
+python scripts/install_prereqs.py --generator "Ninja"
+
 """
 import os
 import sys
@@ -44,18 +56,6 @@ class PackageManager(object):
     MAC = 'brew'
 
 
-def is_tool_installed(tool):
-    """Check if a tool is installed on the system
-
-    Args:
-        tool (str): Name of the tool
-
-    Returns:
-        (bool) : True if installed on the system, False otherwise
-    """
-    return distutils.spawn.find_executable(tool)
-
-
 def run_command(cmd, as_root_user=False, collect_output=False):
     """Run a command
 
@@ -63,7 +63,8 @@ def run_command(cmd, as_root_user=False, collect_output=False):
         cmd (:obj:`list` of :obj:`str`): Command to run as a list object
                                          Eg: ['ls', '-l']
         as_root_user (bool): Run command as root user with admin priveleges (supported on mac and linux)
-        collect_output (bool): Get output from the command
+        collect_output (bool): Get output from the command. The string returned from this function
+                               call will have the output from command execution.
     Raises:
         (IOError): If command errored out
     Returns:
@@ -98,6 +99,96 @@ def get_repo_root_dir():
         (str): Root directory of git repo
     """
     return run_command(['git', 'rev-parse', '--show-toplevel'], collect_output=True)
+
+
+# Global constant (would have preferred lru_cache on functions but that breaks Python2 scripts and custom decorator
+# breaks the simplicity of this script)
+# Resorted to using these in order to cache root dir evaluation which is needed multiple times in script
+ROOT_REPO_DIR = get_repo_root_dir()
+
+
+def get_pip_requirements_file_path():
+    """ Get absolute path to pip requirements file containing list of python packages to install
+
+    Returns:
+        (str): Absolute path to pip requirements file
+    """
+    return os.path.join(ROOT_REPO_DIR, 'external', 'pip_requirements.txt')
+
+
+def get_vcpkg_root_dir():
+    """ Get absolute path to vcpkg submodule in the repository
+
+    Returns:
+        (str): Absolute path to vcpkg submodule root directory
+    """
+    return os.path.join(ROOT_REPO_DIR, 'external', 'vcpkg')
+
+
+def get_vcpkg_executable_file_path():
+    """ Get absolute path to vcpkg executable
+    
+    Note: On Windows, exectuable file has a '.exe' extension
+    Raises:
+        ValueError: Unsupported operating system
+
+    Returns:
+        (str): Absolute path to vcpkg executable
+    """
+    if is_windows_os():
+        vcpkg_executable_file_path = os.path.join(get_vcpkg_root_dir(), 'vcpkg.exe')
+    elif is_linux_os() or is_mac_os():
+        vcpkg_executable_file_path = os.path.join(get_vcpkg_root_dir(), 'vcpkg')
+    else:
+        raise ValueError('Unsupported operating system (supported os: windows, mac, linux')
+
+    return vcpkg_executable_file_path
+
+
+def get_vcpkg_response_file_path(vcpkg_triplet):
+    """ Get absolute path to vcpkg response file
+    Response file stores the list of packages to install with vcpkg
+
+    Args:
+        vcpkg_triplet (str): Name of the vcpkg triplet (eg: 'x64-windows-static', 'x64-osx')
+
+    Returns:
+        (str): Absoulte path to vcpkg response file
+    """
+    vcpkg_response_file_path = os.path.join(ROOT_REPO_DIR, 'external', 
+                                            'vcpkg_' + vcpkg_triplet + '_response_file.txt')
+    return vcpkg_response_file_path
+
+
+def get_vcpkg_installation_script_path():
+    """ Get absolute path to the script used to build and install vcpkg
+
+    Raises:
+        ValueError: Unsupported operating system
+
+    Returns:
+        (str): Absolute path to vcpkg installation script
+    """
+    if is_windows_os():
+        script_absolute_path = os.path.join(get_vcpkg_root_dir(), 'bootstrap-vcpkg.bat')
+    elif is_linux_os() or is_mac_os():
+        script_absolute_path = os.path.join(get_vcpkg_root_dir(), 'bootstrap-vcpkg.sh')
+    else:
+        raise ValueError('Unsupported operating system (supported os: windows, mac, linux')
+
+    return script_absolute_path
+
+
+def is_tool_installed(tool):
+    """Check if a tool is installed on the system
+
+    Args:
+        tool (str): Name of the tool
+
+    Returns:
+        (bool) : True if installed on the system, False otherwise
+    """
+    return distutils.spawn.find_executable(tool)
 
 
 def is_windows_os():
@@ -195,9 +286,8 @@ def install_system_packages(package_names):
 def install_python_packages():
     """ Install python packages needed as dependencies for cpp sdk build
     """
-    repo_root_dir = get_repo_root_dir()
-    requirements_file = os.path.join(repo_root_dir, 'external', 'pip_requirements.txt')
-    cmd = ['python', '-m', 'pip', 'install', '-r', requirements_file, '--user']
+    requirements_file_path = get_pip_requirements_file_path()
+    cmd = ['python', '-m', 'pip', 'install', '-r', requirements_file_path, '--user']
     run_command(cmd)
 
 
@@ -251,29 +341,25 @@ def install_packages_with_vcpkg(arch, build_vcpkg=True):
     vcpkg_root_dir = os.path.join(repo_root_dir, 'external', 'vcpkg')
     if build_vcpkg:
         # build and install vcpkg
-        if is_windows_os():
-            script_absolute_path = os.path.join(vcpkg_root_dir, 'bootstrap-vcpkg.bat')
-            run_command([script_absolute_path])
-        else:
-            script_absolute_path = os.path.join(vcpkg_root_dir, 'bootstrap-vcpkg.sh')
-            run_command([script_absolute_path, '--disableMetrics'])
+        script_absolute_path = get_vcpkg_installation_script_path()
+        run_command([script_absolute_path])
     else:
         print("Skipping building/installing vcpkg executable")
 
     # for each desktop platform, there is an existing vcpkg response file 
     # in the repo (external/vcpkg_<triplet>_response_file.txt) defined for each target triplet
-    vcpkg_response_file = os.path.join(repo_root_dir, 'external', 
-                                       'vcpkg_' + get_vcpkg_triplet(arch) + '_response_file.txt')
-    if is_windows_os():
-        # Windows has issues executing a relative path bat file
-        script_absolute_path = os.path.join(vcpkg_root_dir, 'vcpkg.exe')
-    else:
-        script_absolute_path = os.path.join(vcpkg_root_dir, 'vcpkg')
- 
-    run_command([script_absolute_path, 'install', '@' + vcpkg_response_file])
+    vcpkg_response_file_path = get_vcpkg_response_file_path(get_vcpkg_triplet(arch))
+    vcpkg_executable_file_path = get_vcpkg_executable_file_path()
+
+    run_command([vcpkg_executable_file_path, 'install', '@' + vcpkg_response_file_path, '--disable-metrics'])
 
 
 def step_install_system_packages(args):
+    """ Install packages (dependencies) with system package manager 
+
+    Args:
+        args (`argparse.Namespace`): Parsed command line arguments
+    """
     system_packages_to_install = []
     # Install ninja and/or ccache if needed
     # check if ninja is already installed before attempting to install it
@@ -297,15 +383,20 @@ def step_install_system_packages(args):
 
 
 def step_install_python_packages(args):
+    """ Install python packages (dependencies)
+
+    Args:
+        args (`argparse.Namespace`): Parsed command line arguments
+    """
     # Check for packages installed in this python environment
     installed_packages = {pkg.key for pkg in pkg_resources.working_set}
 
     # Get the list of packages we intend to install
     repo_root_dir = get_repo_root_dir()
-    requirements_file = os.path.join(repo_root_dir, 'external', 'pip_requirements.txt')
+    requirements_file_path = get_pip_requirements_file_path()
     packages_to_install = None
-    with open(requirements_file, 'r') as f:
-        packages_to_install = {line.strip('\n') for line in f.readlines()}
+    with open(requirements_file_path, 'r') as requirements_file:
+        packages_to_install = {line.strip('\n') for line in requirements_file.readlines()}
 
     # Check if there is any work to do by comparing these lists
     if packages_to_install and not (packages_to_install-installed_packages):
@@ -316,33 +407,32 @@ def step_install_python_packages(args):
 
 
 def step_install_cpp_packages(args):
+    """ Install C++ packages (dependencies)
+
+    Installation supported only via vcpkg as system package manager can affect
+    system wide packages. User should handle those themselves
+
+    Args:
+        args (`argparse.Namespace`): Parsed command line arguments
+    """
     if not args.no_vcpkg:
         # Check if vcpkg is already installed
         repo_root_dir = get_repo_root_dir()
-        found_vcpkg_executable = False
-        if is_windows_os():
-            vcpkg_executable = os.path.join(repo_root_dir, 'external', 'vcpkg', 'vcpkg.exe')
-            found_vcpkg_executable = os.path.exists(vcpkg_executable)
-        elif is_linux_os() or is_mac_os():
-            vcpkg_executable = os.path.join(repo_root_dir, 'external', 'vcpkg', 'vcpkg')
-            found_vcpkg_executable = os.path.exists(vcpkg_executable)
-        else:
-            raise ValueError('Unsupported operating system (not windows, linux, mac)')
-        
+        found_vcpkg_executable = os.path.exists(get_vcpkg_executable_file_path())
+
         # Install packages and only install vcpkg if its not built already
         install_packages_with_vcpkg(args.arch, build_vcpkg=not found_vcpkg_executable)
 
     else:
         # Do not install dependencies automatically as we want users to have control
         # on their system level package installations
-        repo_root_dir = get_repo_root_dir()
-        vcpkg_response_file = os.path.join(repo_root_dir, 'external', 
-                                       'vcpkg_' + get_vcpkg_triplet(arch) + '_response_file.txt')
-        print('Please install packages listed in {0} with your system package manager'.format(vcpkg_response_file))
+        print('Please install packages listed in {0}'\
+              'with your system package manager'.format(get_vcpkg_response_file_path(get_vcpkg_triplet(args.arch))))
 
 
 def main():
     args = parse_cmdline_args()
+    print type(args)
 
     step_install_system_packages(args)
     step_install_python_packages(args)
