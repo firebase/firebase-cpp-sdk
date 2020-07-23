@@ -432,7 +432,6 @@ def step_install_cpp_packages(args):
 
 def main():
     args = parse_cmdline_args()
-    print type(args)
 
     step_install_system_packages(args)
     step_install_python_packages(args)
