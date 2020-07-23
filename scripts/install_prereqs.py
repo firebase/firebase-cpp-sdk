@@ -15,8 +15,7 @@
 # limitations under the License.
 
 """
-This script will take care of installing Python and C++ dependencies before 
-starting the build. 
+This script will take care of installing Python and C++ dependencies required for the build
 
 The goal is to avoid any major changes in system configurations of users. 
 With vcpkg, we pretty much download almost all of the dependencies within the repo directory
@@ -36,6 +35,7 @@ import sys
 import argparse
 import subprocess
 import distutils.spawn
+import pkg_resources
 
 
 class PackageManager(object):
@@ -192,7 +192,7 @@ def install_system_packages(package_names):
         run_command(cmd)
 
 
-def install_python_dependencies():
+def install_python_packages():
     """ Install python packages needed as dependencies for cpp sdk build
     """
     repo_root_dir = get_repo_root_dir()
@@ -231,7 +231,7 @@ def get_vcpkg_triplet(arch):
     return '-'.join(triplet_name)
 
 
-def install_packages_with_vcpkg(arch):
+def install_packages_with_vcpkg(arch, build_vcpkg=True):
     """Install packages with vcpkg
 
     This does the following,
@@ -240,21 +240,25 @@ def install_packages_with_vcpkg(arch):
         - install packages via vcpkg
     Args:
         arch (str): Architecture (eg: 'x86', 'x64')
+        install_vcpkg (bool): Build/Install vcpkg before building packages?
     """
     # vcpkg is a submodule of the main cpp repo
     # Ensure that the submodule is initialized and updated
     run_command(['git', 'submodule', 'init'])
     run_command(['git', 'submodule', 'update'])
 
-    # install vcpkg
     repo_root_dir = get_repo_root_dir()
     vcpkg_root_dir = os.path.join(repo_root_dir, 'external', 'vcpkg')
-    if is_windows_os():
-        script_absolute_path = os.path.join(vcpkg_root_dir, 'bootstrap-vcpkg.bat')
-        run_command([script_absolute_path])
+    if build_vcpkg:
+        # install vcpkg
+        if is_windows_os():
+            script_absolute_path = os.path.join(vcpkg_root_dir, 'bootstrap-vcpkg.bat')
+            run_command([script_absolute_path])
+        else:
+            script_absolute_path = os.path.join(vcpkg_root_dir, 'bootstrap-vcpkg.sh')
+            run_command([script_absolute_path, '--disableMetrics'])
     else:
-        script_absolute_path = os.path.join(vcpkg_root_dir, 'bootstrap-vcpkg.sh')
-        run_command([script_absolute_path, '--disableMetrics'])
+        print("Skipping building/installing vcpkg executable")
 
     # for each desktop platform, there is an existing vcpkg response file 
     # in the repo (external/vcpkg_<triplet>_response_file.txt) defined for each target triplet
@@ -269,28 +273,65 @@ def install_packages_with_vcpkg(arch):
     run_command([script_absolute_path, 'install', '@' + vcpkg_response_file])
 
 
-def main():
-    args = parseArgs()
-
+def step_install_system_packages(args):
     system_packages_to_install = []
     # Install ninja and/or ccache if needed
     # check if ninja is already installed before attempting to install it
-    if args.generator == 'Ninja' and not is_tool_installed('ninja'):
-        if is_linux_os():
+    if args.generator == 'Ninja':
+        if is_tool_installed('ninja'):
+            print('Ninja requested but is already installed. Skipping installation...')
+        elif is_linux_os():
             system_packages_to_install.append('ninja-build')
         elif is_mac_os:
-            system_packages_to_install.append('ninja')
+            system_packages_to_install.append('ninja')   
 
     # ccache is supported only on mac and linux and check if it is already installed
     if args.ccache and (is_linux_os() | is_mac_os()) and not is_tool_installed('ccache'):
-        system_packages_to_install.append('ccache')
+        if is_tool_installed('ccache'):
+            print('ccache requested but is already installed. Skipping installation...')
+        elif is_linux_os() or is_mac_os():
+            system_packages_to_install.append('ccache')
+
     if system_packages_to_install:
         install_system_packages(system_packages_to_install)
 
-    install_python_dependencies()
 
+def step_install_python_packages(args):
+    # Check for packages installed in this python environment
+    installed_packages = {pkg.key for pkg in pkg_resources.working_set}
+
+    # Get the list of packages we intend to install
+    repo_root_dir = get_repo_root_dir()
+    requirements_file = os.path.join(repo_root_dir, 'external', 'pip_requirements.txt')
+    packages_to_install = None
+    with open(requirements_file, 'r') as f:
+        packages_to_install = {line.strip('\n') for line in f.readlines()}
+
+    # Check if there is any work to do by comparing these lists
+    if packages_to_install and not (packages_to_install-installed_packages):
+        print("Skipping because following python packages are already installed: \n {0}".format(' '.join(packages_to_install)))
+        return
+
+    install_python_packages()
+
+
+def step_install_cpp_packages(args):
     if not args.no_vcpkg:
-        install_packages_with_vcpkg(args.arch)
+        # Check if vcpkg is already installed
+        repo_root_dir = get_repo_root_dir()
+        found_vcpkg_executable = False
+        if is_windows_os():
+            vcpkg_executable = os.path.join(repo_root_dir, 'external', 'vcpkg.exe')
+            found_vcpkg_executable = os.path.exists(vcpkg_executable)
+        elif is_linux_os() or is_mac_os():
+            vcpkg_executable = os.path.join(repo_root_dir, 'external', 'vcpkg')
+            found_vcpkg_executable = os.path.exists(vcpkg_executable)
+        else:
+            raise ValueError('Unsupported operating system (not windows, linux, mac)')
+        
+        # Install packages and only install vcpkg if its not built already
+        install_packages_with_vcpkg(args.arch, build_vcpkg=not found_vcpkg_executable)
+
     else:
         # Do not install dependencies automatically as we want users to have control
         # on their system level package installations
@@ -300,7 +341,15 @@ def main():
         print('Please install packages listed in {0} with your system package manager'.format(vcpkg_response_file))
 
 
-def parseArgs():
+def main():
+    args = parse_cmdline_args()
+
+    step_install_system_packages(args)
+    step_install_python_packages(args)
+    step_install_cpp_packages(args)
+
+
+def parse_cmdline_args():
     parser = argparse.ArgumentParser(description='Install Prerequisites for building cpp sdk')
     parser.add_argument('-A', '--arch', default='x64', help='Platform architecture (x64, x86)')
     parser.add_argument('-G', '--generator', help='Build generator to use (install ninja if needed)')
