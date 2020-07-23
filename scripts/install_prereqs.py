@@ -250,7 +250,7 @@ def install_packages_with_vcpkg(arch, build_vcpkg=True):
     repo_root_dir = get_repo_root_dir()
     vcpkg_root_dir = os.path.join(repo_root_dir, 'external', 'vcpkg')
     if build_vcpkg:
-        # install vcpkg
+        # build and install vcpkg
         if is_windows_os():
             script_absolute_path = os.path.join(vcpkg_root_dir, 'bootstrap-vcpkg.bat')
             run_command([script_absolute_path])
@@ -321,10 +321,10 @@ def step_install_cpp_packages(args):
         repo_root_dir = get_repo_root_dir()
         found_vcpkg_executable = False
         if is_windows_os():
-            vcpkg_executable = os.path.join(repo_root_dir, 'external', 'vcpkg.exe')
+            vcpkg_executable = os.path.join(repo_root_dir, 'external', 'vcpkg', 'vcpkg.exe')
             found_vcpkg_executable = os.path.exists(vcpkg_executable)
         elif is_linux_os() or is_mac_os():
-            vcpkg_executable = os.path.join(repo_root_dir, 'external', 'vcpkg')
+            vcpkg_executable = os.path.join(repo_root_dir, 'external', 'vcpkg', 'vcpkg')
             found_vcpkg_executable = os.path.exists(vcpkg_executable)
         else:
             raise ValueError('Unsupported operating system (not windows, linux, mac)')
