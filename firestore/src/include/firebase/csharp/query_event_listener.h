@@ -33,27 +33,23 @@ typedef void(SWIGSTDCALL* QueryEventListenerCallback)(int callback_id,
 // can forward the calls back to the C# delegates.
 class QueryEventListener : public EventListener<QuerySnapshot> {
  public:
-  QueryEventListener(int32_t callback_id) : callback_id_(callback_id) {}
-
-  ~QueryEventListener() override {}
+  explicit QueryEventListener(int32_t callback_id,
+                              QueryEventListenerCallback callback)
+      : callback_id_(callback_id), callback_(callback) {}
 
   void OnEvent(const QuerySnapshot& value, Error error) override;
 
-  static void SetCallback(QueryEventListenerCallback callback);
-
-  static ListenerRegistration AddListenerTo(int32_t callback_id, Query query,
-                                            MetadataChanges metadataChanges);
+  // This method is a proxy to Query::AddSnapshotsListener()
+  // that can be easily called from C#. It allows our C# wrapper to
+  // track user callbacks in a dictionary keyed off of a unique int
+  // for each user callback and then raise the correct one later.
+  static ListenerRegistration AddListenerTo(
+      Query* query, MetadataChanges metadata_changes, int32_t callback_id,
+      QueryEventListenerCallback callback);
 
  private:
-  static void QuerySnapshotEvent(int callback_id, QuerySnapshot value,
-                                 Error error);
-
   int32_t callback_id_;
-
-  // These static variables are named as global variable instead of private
-  // class member.
-  static Mutex g_mutex;
-  static QueryEventListenerCallback g_query_snapshot_event_listener_callback;
+  QueryEventListenerCallback callback_;
 };
 
 }  // namespace csharp

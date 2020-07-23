@@ -21,8 +21,7 @@ namespace firestore {
 //   ListenerRegistrationInternal objects instead. So FirestoreInternal can
 //   remove all listeners upon destruction.
 
-using CleanupFnListenerRegistration =
-    CleanupFn<ListenerRegistration, ListenerRegistrationInternal>;
+using CleanupFnListenerRegistration = CleanupFn<ListenerRegistration>;
 
 ListenerRegistration::ListenerRegistration() : ListenerRegistration(nullptr) {}
 

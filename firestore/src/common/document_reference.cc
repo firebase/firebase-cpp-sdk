@@ -24,8 +24,7 @@
 namespace firebase {
 namespace firestore {
 
-using CleanupFnDocumentReference =
-    CleanupFn<DocumentReference, DocumentReferenceInternal>;
+using CleanupFnDocumentReference = CleanupFn<DocumentReference>;
 
 DocumentReference::DocumentReference() {}
 

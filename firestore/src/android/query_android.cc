@@ -79,15 +79,11 @@ Future<QuerySnapshot> QueryInternal::Get(Source source) {
                             SourceInternal::ToJavaObject(env, source));
   CheckAndClearJniExceptions(env);
 
-  auto promise = MakePromise<QuerySnapshot, QuerySnapshotInternal>();
+  auto promise = promises_.MakePromise<QuerySnapshot>();
   promise.RegisterForTask(QueryFn::kGet, task);
   env->DeleteLocalRef(task);
   CheckAndClearJniExceptions(env);
   return promise.GetFuture();
-}
-
-Future<QuerySnapshot> QueryInternal::GetLastResult() {
-  return LastResult<QuerySnapshot>(QueryFn::kGet);
 }
 
 /* static */
@@ -205,8 +201,8 @@ ListenerRegistration QueryInternal::AddSnapshotListener(
 
   // Register listener.
   jobject java_registration = env->CallObjectMethod(
-      obj_, query::GetMethodId(query::kAddSnapshotListener), java_metadata,
-      java_listener);
+      obj_, query::GetMethodId(query::kAddSnapshotListener),
+      firestore_->user_callback_executor(), java_metadata, java_listener);
   env->DeleteLocalRef(java_listener);
   CheckAndClearJniExceptions(env);
 

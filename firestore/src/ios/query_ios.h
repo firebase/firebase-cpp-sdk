@@ -33,7 +33,6 @@ class QueryInternal {
   Query LimitToLast(int32_t limit);
 
   virtual Future<QuerySnapshot> Get(Source source);
-  virtual Future<QuerySnapshot> GetLastResult();
 
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes, EventListener<QuerySnapshot>* listener);

@@ -59,14 +59,22 @@ std::string GetAppDataPath(const char* app_name, bool should_create) {
   // these directories.
   if (should_create) {
     int retval;
-    retval = mkdir((home_directory + "/.local").c_str(), 0700);
-    if (retval != 0 && errno != EEXIST) return "";
-    retval = mkdir((home_directory + "/.local/share").c_str(), 0700);
-    if (retval != 0 && errno != EEXIST) return "";
-    retval = mkdir((home_directory + "/.local/share" + app_name).c_str(), 0700);
-    if (retval != 0 && errno != EEXIST) return "";
+    std::string new_dirs = std::string("/.local/share/") + app_name;
+
+    // Start is the location of the next "/" in the new_dirs string.
+    size_t start = 0;
+    while (start != std::string::npos) {
+      // Get the next directory.
+      size_t finish = new_dirs.find("/", start + 1);
+      home_directory.append(new_dirs, start, finish - start);
+      start = finish;
+
+      // Ensure the new directory exists.
+      retval = mkdir(home_directory.c_str(), 0700);
+      if (retval != 0 && errno != EEXIST) return "";
+    }
   }
-  return (home_directory + "/.local/share" + app_name);
+  return home_directory;
 }
 
 }  // namespace internal

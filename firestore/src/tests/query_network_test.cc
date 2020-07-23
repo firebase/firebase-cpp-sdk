@@ -57,8 +57,10 @@ class QueryNetworkTest : public FirestoreIntegrationTest {
     EXPECT_TRUE(accumulator.AwaitRemoteEvent().empty());
 
     Await(firestore()->DisableNetwork());
-    collection.Add(MapFieldValue{{"foo", FieldValue::ServerTimestamp()}});
+    auto added =
+        collection.Add(MapFieldValue{{"foo", FieldValue::ServerTimestamp()}});
     Await(firestore()->EnableNetwork());
+    Await(added);
 
     QuerySnapshot snapshot = accumulator.AwaitServerEvent();
     EXPECT_FALSE(snapshot.empty());

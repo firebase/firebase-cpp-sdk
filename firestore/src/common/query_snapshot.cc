@@ -19,7 +19,7 @@
 namespace firebase {
 namespace firestore {
 
-using CleanupFnQuerySnapshot = CleanupFn<QuerySnapshot, QuerySnapshotInternal>;
+using CleanupFnQuerySnapshot = CleanupFn<QuerySnapshot>;
 
 QuerySnapshot::QuerySnapshot() {}
 

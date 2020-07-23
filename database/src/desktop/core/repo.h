@@ -45,7 +45,8 @@ class Repo : public connection::PersistentConnectionEventHandler {
   typedef firebase::internal::SafeReference<Repo> ThisRef;
   typedef firebase::internal::SafeReferenceLock<Repo> ThisRefLock;
 
-  Repo(App* app, DatabaseInternal* database, const char* url, Logger* logger);
+  Repo(App* app, DatabaseInternal* database, const char* url, Logger* logger,
+       bool persistence_enabled);
 
   ~Repo() override;
 
@@ -171,6 +172,8 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   // The database URL. A cached version of host_info_.ToString().
   std::string url_;
+
+  bool persistence_enabled_;
 
   // Firebase websocket connection with wire protocol support
   UniquePtr<connection::PersistentConnection> connection_;

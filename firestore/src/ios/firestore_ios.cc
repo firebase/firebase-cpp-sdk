@@ -60,12 +60,7 @@ FirestoreInternal::FirestoreInternal(
 }
 
 FirestoreInternal::~FirestoreInternal() {
-  {
-    std::lock_guard<std::mutex> lock(listeners_mutex_);
-    HARD_ASSERT_IOS(listeners_.empty(),
-                    "Expected all listeners to be unregistered by the time "
-                    "FirestoreInternal is destroyed.");
-  }
+  ClearListeners();
   firestore_core_->Dispose();
 }
 
@@ -186,10 +181,6 @@ Future<void> FirestoreInternal::RunTransaction(
   return promise.future();
 }
 
-Future<void> FirestoreInternal::RunTransactionLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApi::kRunTransaction);
-}
-
 Future<void> FirestoreInternal::DisableNetwork() {
   auto promise =
       promise_factory_.CreatePromise<void>(AsyncApi::kDisableNetwork);
@@ -197,18 +188,10 @@ Future<void> FirestoreInternal::DisableNetwork() {
   return promise.future();
 }
 
-Future<void> FirestoreInternal::DisableNetworkLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApi::kDisableNetwork);
-}
-
 Future<void> FirestoreInternal::EnableNetwork() {
   auto promise = promise_factory_.CreatePromise<void>(AsyncApi::kEnableNetwork);
   firestore_core_->EnableNetwork(StatusCallbackWithPromise(promise));
   return promise.future();
-}
-
-Future<void> FirestoreInternal::EnableNetworkLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApi::kEnableNetwork);
 }
 
 Future<void> FirestoreInternal::Terminate() {
@@ -218,19 +201,11 @@ Future<void> FirestoreInternal::Terminate() {
   return promise.future();
 }
 
-Future<void> FirestoreInternal::TerminateLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApi::kTerminate);
-}
-
 Future<void> FirestoreInternal::WaitForPendingWrites() {
   auto promise =
       promise_factory_.CreatePromise<void>(AsyncApi::kWaitForPendingWrites);
   firestore_core_->WaitForPendingWrites(StatusCallbackWithPromise(promise));
   return promise.future();
-}
-
-Future<void> FirestoreInternal::WaitForPendingWritesLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApi::kWaitForPendingWrites);
 }
 
 Future<void> FirestoreInternal::ClearPersistence() {
@@ -240,14 +215,11 @@ Future<void> FirestoreInternal::ClearPersistence() {
   return promise.future();
 }
 
-Future<void> FirestoreInternal::ClearPersistenceLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApi::kClearPersistence);
-}
-
 void FirestoreInternal::ClearListeners() {
   std::lock_guard<std::mutex> lock(listeners_mutex_);
   for (auto* listener : listeners_) {
     listener->Remove();
+    delete listener;
   }
   listeners_.clear();
 }
@@ -298,21 +270,28 @@ void Firestore::set_log_level(LogLevel log_level) {
     case kLogLevelDebug:
       // Firestore doesn't have the distinction between "verbose" and "debug".
       LogSetLevel(util::kLogLevelDebug);
-      return;
+      break;
     case kLogLevelInfo:
       LogSetLevel(util::kLogLevelNotice);
-      return;
+      break;
     case kLogLevelWarning:
       LogSetLevel(util::kLogLevelWarning);
-      return;
+      break;
     case kLogLevelError:
     case kLogLevelAssert:
       // Firestore doesn't have a separate "assert" log level.
       LogSetLevel(util::kLogLevelError);
-      return;
+      break;
+    default:
+      UNREACHABLE();
+      break;
   }
 
-  UNREACHABLE();
+  // Call SetLogLevel() to keep the C++ log level in sync with FIRLogger's.
+  // Convert kLogLevelDebug to kLogLevelVerbose to force debug logs to be
+  // emitted. See b/159048318 for details.
+  firebase::SetLogLevel(log_level == kLogLevelDebug ? kLogLevelVerbose
+                                                    : log_level);
 }
 
 }  // namespace firestore

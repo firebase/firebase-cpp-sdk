@@ -44,16 +44,16 @@ TEST_F(FirestoreIntegrationTest, TestFieldValueTypes) {
 #if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
 
 TEST_F(FieldValueTest, Construction) {
-  testutil::AssertWrapperConstructionContract<FieldValue, FieldValueInternal>();
+  testutil::AssertWrapperConstructionContract<FieldValue>();
 }
 
 TEST_F(FieldValueTest, Assignment) {
-  testutil::AssertWrapperAssignmentContract<FieldValue, FieldValueInternal>();
+  testutil::AssertWrapperAssignmentContract<FieldValue>();
 }
 
 #endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
 
-#if !defined(FIRESTORE_STUB_BUILD)
+#if !defined(FIRESTORE_STUB_BUILD)  
 
 TEST_F(FirestoreIntegrationTest, TestNullType) {
   FieldValue value = FieldValue::Null();

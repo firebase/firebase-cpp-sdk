@@ -16,7 +16,7 @@
 namespace firebase {
 namespace firestore {
 
-using CleanupFnTransaction = CleanupFn<Transaction, TransactionInternal>;
+using CleanupFnTransaction = CleanupFn<Transaction>;
 
 Transaction::Transaction(TransactionInternal* internal) : internal_(internal) {
   FIREBASE_ASSERT(internal != nullptr);

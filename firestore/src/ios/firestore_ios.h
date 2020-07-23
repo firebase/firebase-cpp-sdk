@@ -66,22 +66,16 @@ class FirestoreInternal {
   Future<void> RunTransaction(
       std::function<Error(Transaction&, std::string&)> update);
   Future<void> RunTransaction(TransactionFunction* update);
-  Future<void> RunTransactionLastResult();
 
   Future<void> DisableNetwork();
-  Future<void> DisableNetworkLastResult();
 
   Future<void> EnableNetwork();
-  Future<void> EnableNetworkLastResult();
 
   Future<void> Terminate();
-  Future<void> TerminateLastResult();
 
   Future<void> WaitForPendingWrites();
-  Future<void> WaitForPendingWritesLastResult();
 
   Future<void> ClearPersistence();
-  Future<void> ClearPersistenceLastResult();
 
   ListenerRegistration AddSnapshotsInSyncListener(
       EventListener<void>* listener);

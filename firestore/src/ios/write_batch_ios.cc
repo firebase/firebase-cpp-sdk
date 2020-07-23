@@ -58,9 +58,5 @@ Future<void> WriteBatchInternal::Commit() {
   return promise.future();
 }
 
-Future<void> WriteBatchInternal::CommitLastResult() {
-  return promise_factory_.LastResult<void>(AsyncApis::kCommit);
-}
-
 }  // namespace firestore
 }  // namespace firebase

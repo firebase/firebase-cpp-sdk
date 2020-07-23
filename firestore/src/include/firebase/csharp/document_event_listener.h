@@ -34,28 +34,23 @@ typedef void(SWIGSTDCALL* DocumentEventListenerCallback)(int callback_id,
 // can forward the calls back to the C# delegates.
 class DocumentEventListener : public EventListener<DocumentSnapshot> {
  public:
-  explicit DocumentEventListener(int32_t callback_id)
-      : callback_id_(callback_id) {}
+  explicit DocumentEventListener(int32_t callback_id,
+                                 DocumentEventListenerCallback callback)
+      : callback_id_(callback_id), callback_(callback) {}
 
   void OnEvent(const DocumentSnapshot& value, Error error) override;
 
-  static void SetCallback(DocumentEventListenerCallback callback);
-
-  static ListenerRegistration AddListenerTo(int32_t callback_id,
-                                            DocumentReference reference,
-                                            MetadataChanges metadataChanges);
+  // This method is a proxy to DocumentReference::AddSnapshotListener()
+  // that can be easily called from C#. It allows our C# wrapper to
+  // track user callbacks in a dictionary keyed off of a unique int
+  // for each user callback and then raise the correct one later.
+  static ListenerRegistration AddListenerTo(
+      DocumentReference* reference, MetadataChanges metadata_changes,
+      int32_t callback_id, DocumentEventListenerCallback callback);
 
  private:
-  static void DocumentSnapshotEvent(int callback_id, DocumentSnapshot value,
-                                    Error error);
-
   int32_t callback_id_;
-
-  // These static variables are named as global variable instead of private
-  // class member.
-  static Mutex g_mutex;
-  static DocumentEventListenerCallback
-      g_document_snapshot_event_listener_callback;
+  DocumentEventListenerCallback callback_;
 };
 
 }  // namespace csharp
