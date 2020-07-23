@@ -68,6 +68,14 @@ jobs:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ matrix.vcpkg_triplet }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
 
+      - name: Cache ccache files
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -78,35 +86,12 @@ jobs:
         run: |
           python scripts/install_prereqs.py --ccache --generator "${{ matrix.generator}}"
 
-      - name: Cache ccache files
-        if: env.CCACHE_INSTALLED
-        id: cache_ccache
-        uses: actions/cache@v2
-        with:
-          path: ccache_dir
-          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
-
-      - name: Configure 
-        shell: bash
+      - name: CMake configure and build
         run: |
-          mkdir build
-          cmake \
-            -S . \
-            -B build \
-            -G "${{ matrix.generator }}" \
-            -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
-            -DCMAKE_TOOLCHAIN_FILE=external/vcpkg/scripts/buildsystems/vcpkg.cmake \
-            -DVCPKG_TARGET_TRIPLET=${{ matrix.vcpkg_triplet }} \
-            -DFIREBASE_CPP_BUILD_TESTS=ON \
-            -DFIREBASE_INCLUDE_FIRESTORE=OFF \
-            -DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON
-
-      - name: Build
-        shell: bash
-        run: cmake --build build --config ${{ matrix.build_type }} -j 8
+          python scripts/build.py --build_tests
 
       - name: Stats for ccache (mac and linux)
-        if: env.CCACHE_INSTALLED
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         run: ccache -s
 
       - name: Print built libraries
