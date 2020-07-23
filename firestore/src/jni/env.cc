@@ -45,7 +45,8 @@ Local<String> Env::NewStringUtf(const char* bytes) {
   return Local<String>(env_, result);
 }
 
-std::string Env::GetStringUtfRegion(jstring string, size_t start, size_t len) {
+std::string Env::GetStringUtfRegion(const String& string, size_t start,
+                                    size_t len) {
   if (!ok()) return "";
 
   // Copy directly into the std::string buffer. This is guaranteed to work as
@@ -53,7 +54,7 @@ std::string Env::GetStringUtfRegion(jstring string, size_t start, size_t len) {
   std::string result;
   result.resize(len);
 
-  env_->GetStringUTFRegion(string, ToJni(start), ToJni(len), &result[0]);
+  env_->GetStringUTFRegion(string.get(), ToJni(start), ToJni(len), &result[0]);
   RecordException();
 
   // Ensure that if there was an exception, the contents of the buffer are

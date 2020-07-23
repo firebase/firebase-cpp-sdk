@@ -7,9 +7,8 @@ namespace firestore {
 namespace jni {
 
 std::string String::ToString(Env& env) const {
-  jstring str = get();
-  size_t len = env.GetStringUtfLength(str);
-  return env.GetStringUtfRegion(str, 0, len);
+  size_t len = env.GetStringUtfLength(*this);
+  return env.GetStringUtfRegion(*this, 0, len);
 }
 
 }  // namespace jni

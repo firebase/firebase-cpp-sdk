@@ -173,24 +173,20 @@ class Env {
   }
 
   /** Returns the length of the string in modified UTF-8 bytes. */
-  size_t GetStringUtfLength(jstring string) {
-    jsize result = env_->GetStringUTFLength(string);
+  size_t GetStringUtfLength(const String& string) {
+    if (!ok()) return 0;
+
+    jsize result = env_->GetStringUTFLength(string.get());
     RecordException();
     return static_cast<size_t>(result);
-  }
-  size_t GetStringUtfLength(const String& string) {
-    return GetStringUtfLength(string.get());
   }
 
   /**
    * Copies the contents of a region of a Java string to a C++ string. The
    * resulting string has a modified UTF-8 encoding.
    */
-  std::string GetStringUtfRegion(jstring string, size_t start, size_t len);
   std::string GetStringUtfRegion(const String& string, size_t start,
-                                 size_t len) {
-    return GetStringUtfRegion(string.get(), start, len);
-  }
+                                 size_t len);
 
  private:
   /**
