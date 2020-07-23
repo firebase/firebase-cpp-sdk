@@ -1216,6 +1216,9 @@ TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewInstance) {
 
   // Make sure the new instance functions.
   Await(db_2->Document("abc/doc").Set({{"foo", FieldValue::String("bar")}}));
+
+  Release(db_2);
+  Release(db);
 }
 
 TEST_F(FirestoreIntegrationTest, CanStopListeningAfterTerminate) {
@@ -1286,8 +1289,7 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceAfterRestarting) {
   // the Firestore instance to emulate the way an end user would do this.
   Await(db->Terminate());
   Await(db->ClearPersistence());
-  delete db;
-  delete app;
+  Release(db);
 
   // We restart the app with the same name and options to check that the
   // previous instance's persistent storage is actually cleared after the
@@ -1299,6 +1301,7 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceAfterRestarting) {
   Await(await_get);
   EXPECT_EQ(await_get.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(await_get.error(), Error::kErrorUnavailable);
+  Release(db_2);
 }
 
 TEST_F(FirestoreIntegrationTest, CanClearPersistenceOnANewFirestoreInstance) {
@@ -1325,6 +1328,7 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceOnANewFirestoreInstance) {
   Await(await_get);
   EXPECT_EQ(await_get.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(await_get.error(), Error::kErrorUnavailable);
+  Release(db_2);
 }
 
 TEST_F(FirestoreIntegrationTest, ClearPersistenceWhileRunningFails) {

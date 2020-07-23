@@ -261,14 +261,20 @@ class FirestoreIntegrationTest : public testing::Test {
 
   // Creates a new Firestore instance, without any caching, using a uniquely-
   // generated app_name.
+  // Use Release() to correctly delete the returned pointer.
   Firestore* CreateFirestore() const;
   // Creates a new Firestore instance, without any caching, using the given
   // app_name.
+  // Use Release() to correctly delete the returned pointer.
   Firestore* CreateFirestore(const std::string& app_name) const;
 
   void DisableNetwork() { Await(firestore()->DisableNetwork()); }
 
   void EnableNetwork() { Await(firestore()->EnableNetwork()); }
+
+  // Deletes the given Firestore instance and deletes the app by which it is
+  // owned.
+  static void Release(Firestore* firestore);
 
  private:
   template <typename T>

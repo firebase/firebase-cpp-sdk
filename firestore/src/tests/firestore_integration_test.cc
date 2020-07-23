@@ -15,16 +15,6 @@ namespace {
 // non-default app to avoid data ending up in the cache before tests run.
 static const char* kBootstrapAppName = "bootstrap";
 
-void Release(Firestore* firestore) {
-  if (firestore == nullptr) {
-    return;
-  }
-
-  App* app = firestore->app();
-  delete firestore;
-  delete app;
-}
-
 // Set Firestore up to use Firestore Emulator if it can be found.
 void LocateEmulator(Firestore* db) {
   // iOS and Android pass emulator address differently, iOS writes it to a
@@ -230,6 +220,17 @@ std::string FirestoreIntegrationTest::DescribeFailedFuture(
     const FutureBase& future) {
   return "WARNING: Future failed. Error code " +
          std::to_string(future.error()) + ", message " + future.error_message();
+}
+
+/* static */
+void FirestoreIntegrationTest::Release(Firestore* firestore) {
+  if (firestore == nullptr) {
+    return;
+  }
+
+  App* app = firestore->app();
+  delete firestore;
+  delete app;
 }
 
 }  // namespace firestore
