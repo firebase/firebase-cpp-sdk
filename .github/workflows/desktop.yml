@@ -3,7 +3,6 @@ name: Desktop Builds
 on: 
   pull_request:
     types: [opened, reopened, synchronize]
-  push:
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
@@ -118,7 +117,7 @@ jobs:
         run: |
           rm -rf ~/Library/Logs/DiagnosticReports/*
           
-      - name: Run tests (windows & macos)
+      - name: Run unit tests (windows & macos)
         if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')
         env:
           LANG: en_US
@@ -126,7 +125,7 @@ jobs:
           cd build
           ctest --verbose
 
-      - name: Run tests (linux)
+      - name: Run unit tests (linux)
         # Linux exists as its own standalone execution step in order to invoke
         # platform-specific `ulimit` to enable crash collection.  The ulimit
         # command must be invoked in same shell instance of that runs the
