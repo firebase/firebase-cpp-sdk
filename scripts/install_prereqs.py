@@ -276,7 +276,11 @@ def main():
     # Install ninja and/or ccache if needed
     # check if ninja is already installed before attempting to install it
     if args.generator == 'Ninja' and not is_tool_installed('ninja'):
-        system_packages_to_install.append('ninja')
+        if is_linux_os():
+            system_packages_to_install.append('ninja-build')
+        elif is_mac_os:
+            system_packages_to_install.append('ninja')
+
     # ccache is supported only on mac and linux and check if it is already installed
     if args.ccache and (is_linux_os() | is_mac_os()) and not is_tool_installed('ccache'):
         system_packages_to_install.append('ccache')
