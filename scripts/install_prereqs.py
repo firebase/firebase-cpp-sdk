@@ -37,11 +37,14 @@ python scripts/install_prereqs.py
 # If you want to install ccache via system package manager (cacche works only on mac and linux)
 python scripts/install_prereqs.py --ccache
 
-# If you want to install ninja via system package manager
+# If you want to install ninja via system package manager and an x86 build
 # Could have used a boolean flag but this makes it easier to call from github workflow
-python scripts/install_prereqs.py --generator "Ninja"
+python scripts/install_prereqs.py --generator "Ninja" --arch x86
 
+# If you do not wish to use vcpkg (this will prompt you to take care of cpp dependencies yourself)
+python scripts/install_prereqs.py --no_vcpkg
 """
+
 import os
 import sys
 import argparse
