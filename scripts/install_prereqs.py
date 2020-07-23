@@ -25,14 +25,32 @@ class PackageManager(object):
     MAC = 'brew'
 
 
-def run_command(cmd, as_root_user=False, cwd=None):
+def get_repo_root_dir():
+    """ Get root directory of current git repo
+
+    This function takes the guesswork out when executing commands
+    or locating files relative to root of the repo
+
+    Raises:
+        IOError: Current directory is not in a git repo
+
+    Returns:
+        (str): Root directory of git repo
+    """
+    try:
+        root_dir = subprocess.check_output('git rev-parse --show-toplevel', shell=True)
+    except subprocess.CalledProcessError:
+        raise IOError('Current working directory is not a git repository')
+    return root_dir.decode('utf-8').strip()
+
+
+def run_command(cmd, as_root_user=False):
     """Run a command
 
     Args:
         cmd (:obj:`list` of :obj:`str`): Command to run as a list object
                                          Eg: ['ls', '-l']
         as_root_user (bool): Run command as root user with admin priveleges (supported on mac and linux)
-        cwd (str): Change working directory before executing the command
     Returns:
         (`subprocess.Popen.returncode`): Return code from command execution
     """
@@ -40,7 +58,7 @@ def run_command(cmd, as_root_user=False, cwd=None):
         cmd.insert(0, 'sudo')
 
     print ('Running cmd: {0}\n'.format(' '.join(cmd)))
-    return subprocess.call(cmd, cwd)
+    return subprocess.call(cmd)
 
 
 def is_windows_os():
@@ -138,7 +156,8 @@ def install_system_packages(package_names):
 def install_python_dependencies():
     """ Install python packages needed as dependencies for cpp sdk build
     """
-    requirements_file = 'external/pip_requirements.txt'
+    repo_root_dir = get_repo_root_dir()
+    requirements_file = os.path.join(repo_root_dir, 'external', 'pip_requirements.txt')
     cmd = ['python', '-m', 'pip', 'install', '-r', requirements_file, '--user']
     run_command(cmd)
 
@@ -176,6 +195,10 @@ def get_vcpkg_triplet(arch):
 def install_packages_with_vcpkg(arch):
     """Install packages with vcpkg
 
+    This does the following,
+        - initialize/update the vcpkg git submodule
+        - build vcpkg executable
+        - install packages via vcpkg
     Args:
         arch (str): Architecture (eg: 'x86', 'x64')
     """
@@ -185,17 +208,26 @@ def install_packages_with_vcpkg(arch):
     run_command(['git', 'submodule', 'update'])
 
     # install vcpkg
+    repo_root_dir = get_repo_root_dir()
+    vcpkg_root_dir = os.path.join(repo_root_dir, 'external', 'vcpkg')
     if is_windows_os():
-        # Windows has issues executing a relative path bat file
-        script_dir = os.path.join(os.getcwd(), 'external', 'vcpkg')
-        run_command(['bootstrap-vcpkg.bat', '--disableMetrics'], cwd=script_dir)
+        script_absolute_path = os.path.join(vcpkg_root_dir, 'bootstrap-vcpkg.bat')
+        run_command([script_absolute_path])
     else:
-        run_command(['external/vcpkg/bootstrap-vcpkg.sh', '--disableMetrics'])
+        script_absolute_path = os.path.join(vcpkg_root_dir, 'bootstrap-vcpkg.sh')
+        run_command([script_absolute_path, '--disableMetrics'])
 
     # for each desktop platform, there is an existing vcpkg response file 
-    # in the repo (external/vcpkg_*) defined for each target triplet
-    vcpkg_response_file = 'external/vcpkg_' + get_vcpkg_triplet(arch) + '_response_file.txt'
-    run_command(['external/vcpkg/vcpkg', 'install', '@' + vcpkg_response_file])
+    # in the repo (external/vcpkg_<triplet>_response_file.txt) defined for each target triplet
+    vcpkg_response_file = os.path.join(repo_root_dir, 'external', 
+                                       'vcpkg_' + get_vcpkg_triplet(arch) + '_response_file.txt')
+    if is_windows_os():
+        # Windows has issues executing a relative path bat file
+        script_absolute_path = os.path.join(vcpkg_root_dir, 'vcpkg.exe')
+    else:
+        script_absolute_path = os.path.join(vcpkg_root_dir, 'vcpkg')
+ 
+    run_command([script_absolute_path, 'install', '@' + vcpkg_response_file])
 
 
 def main():
