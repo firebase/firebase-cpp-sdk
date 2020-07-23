@@ -57,7 +57,7 @@ def run_command(cmd, as_root_user=False):
     if as_root_user and (is_mac_os() or is_linux_os()):
         cmd.insert(0, 'sudo')
 
-    print ('Running cmd: {0}\n'.format(' '.join(cmd)))
+    print('Running cmd: {0}\n'.format(' '.join(cmd)))
     return subprocess.call(cmd)
 
 
@@ -138,7 +138,7 @@ def install_system_packages(package_names):
         (ValueError): When either package manager is not found or packages list is empty
     """
     if not package_names:
-        print 'No packages specified to install via system pacakge manager'
+        print('No packages specified to install via system pacakge manager')
         return
 
     # Get current platform's system package manager
@@ -247,7 +247,7 @@ def main():
     if not args.no_vcpkg:
         install_packages_with_vcpkg(args.arch)
     else:
-        print "installing with system package manager not yet implemented"       
+        print('installing with system package manager not yet implemented')
 
 
 def parseArgs():
