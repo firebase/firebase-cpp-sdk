@@ -187,7 +187,7 @@ def install_system_packages(package_names):
                          Could not install packages {0}'.format(" ".join(package_names)))
     cmd = [package_manager, 'install'] + package_names
     if is_linux_os():
-        run_command(cmd, as_root=True)
+        run_command(cmd, as_root_user=True)
     else:
         run_command(cmd)
 
