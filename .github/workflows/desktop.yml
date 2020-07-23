@@ -18,7 +18,7 @@ jobs:
         os: [windows-latest, ubuntu-latest, macos-latest]
         build_type: ["Release", "Debug"]
         architecture: ["x64",]
-        python_version: [2.7]
+        python_version: [3.6]
         generator: ["Visual Studio 16 2019", "Unix Makefiles", "Ninja"]
         exclude:
         - os: ubuntu-latest
@@ -67,6 +67,12 @@ jobs:
         with:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ matrix.vcpkg_triplet }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+          architecture: ${{ matrix.architecture }}
 
       - name: Install prerequisites(cpp and python dependencies)
         run: |
