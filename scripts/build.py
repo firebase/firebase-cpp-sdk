@@ -153,6 +153,7 @@ def step_cmake_configure(args):
         cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(vcpkg_toolchain_file_path))
         cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(get_vcpkg_triplet(args.arch)))
     
+    cmd.append('-DFIREBASE_INCLUDE_FIRESTORE=OFF')
     run_command(cmd, cwd=REPO_ROOT_DIR)
 
 
@@ -162,7 +163,7 @@ def step_cmake_build(args):
     Args:
         args (`argparse.Namespace`): Parsed command line arguments
     """   
-    cmd = ['cmake', '--build', args.build_dir, '-j', str(multiprocessing.cpu_count())]
+    cmd = ['cmake', '--build', args.build_dir, '-j', str(args.j)]
     if args.target:
         targets = ['--target']
         targets.extend(args.target)
@@ -186,6 +187,7 @@ def parse_cmdline_args():
     parser.add_argument('--no_vcpkg', action='store_true', help='Do not use vcpkg toolchain')
     parser.add_argument('--config', help='Release/Debug config')
     parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
+    parser.add_argument('-j', default=multiprocessing.cpu_count(), help='Number of CPU cores to use for build (default=max)')
     args = parser.parse_args()
     return args
 
