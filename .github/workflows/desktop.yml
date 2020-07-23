@@ -3,6 +3,7 @@ name: Desktop Builds
 on: 
   pull_request:
     types: [opened, reopened, synchronize]
+  push:
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
@@ -60,35 +61,6 @@ jobs:
         run: |
           echo "::set-env name=BUILD_GENERATOR_NO_SPACES::$(echo -e "${{matrix.generator}}" | tr -d '[:space:]')"
 
-      - name: Install Ninja (windows)
-        if: startsWith(matrix.generator, 'Ninja') && startsWith(matrix.os, 'windows')
-        run: |
-          choco install ninja
-
-      - name: Install Ninja (mac)
-        if: startsWith(matrix.generator, 'Ninja') && startsWith(matrix.os, 'macos')
-        run: |
-          brew install ninja
-
-      - name: Install Ninja (linux)
-        if: startsWith(matrix.generator, 'Ninja') && startsWith(matrix.os, 'ubuntu')
-        run: |
-          sudo apt install ninja-build
-
-      - name: Install system level applications (mac)
-        if: startsWith(matrix.os, 'macos')
-        id: macos-brew-install
-        run: |
-          brew install ccache
-          echo "::set-env name=CCACHE_INSTALLED::1"
-
-      - name: Install system level applications (linux)
-        if: startsWith(matrix.os, 'ubuntu')
-        id: ubuntu-apt-install
-        run: |
-          sudo apt install ccache
-          echo "::set-env name=CCACHE_INSTALLED::1"
-
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
         uses: actions/cache@v2
@@ -96,40 +68,9 @@ jobs:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ matrix.vcpkg_triplet }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
 
-      - name: Install vcpkg packages (windows)
-        if: steps.cache_vcpkg.outputs.cache-hit!='true' && startsWith(matrix.os, 'windows')
+      - name: Install prerequisites(cpp and python dependencies)
         run: |
-          ${{ github.workspace }}/external/vcpkg/bootstrap-vcpkg.bat -disableMetrics
-          ${{ github.workspace }}/external/vcpkg/vcpkg install @${{env.VCPKG_RESPONSE_FILE}}
-
-      - name: Install vcpkg packages (mac and linux)
-        if: steps.cache_vcpkg.outputs.cache-hit!='true' && startsWith(matrix.os, 'windows')!='true'
-        run: |
-          ${{ github.workspace }}/external/vcpkg/bootstrap-vcpkg.sh -disableMetrics
-          ${{ github.workspace }}/external/vcpkg/vcpkg install @${{env.VCPKG_RESPONSE_FILE}}
-
-      - name: Setup python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python_version }}
-          architecture: ${{ matrix.architecture }}
-
-      - name: Get pip cache dir
-        id: get_pip_cache_dir
-        run: |
-          echo "::set-output name=cachedir::$(pip cache dir)"
-
-      - name: pip cache
-        id: cache_pip
-        uses: actions/cache@v2
-        with:
-          path: ${{ steps.get_pip_cache_dir.outputs.cachedir }}
-          key: dev-pip-${{ runner.os }}-${{ matrix.python_version }}-${{ matrix.architecture }}-${{ hashFiles(format('{0}', env.PIP_REQUIREMENTS_FILE)) }}
-
-      - name: Install pip packages
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r ${{ env.PIP_REQUIREMENTS_FILE }}
+          python scripts/install_prereqs.py
 
       - name: Cache ccache files
         if: env.CCACHE_INSTALLED
