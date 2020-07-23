@@ -12,7 +12,7 @@ Hence we require the following set of prerequisites for prerequisites:
     Mac: brew (homebrew)
     Linux: apt (ubuntu's default package manager)
 """
-
+import os
 import sys
 import argparse
 import subprocess
@@ -25,13 +25,14 @@ class PackageManager(object):
     MAC = 'brew'
 
 
-def run_command(cmd, as_root_user=False):
+def run_command(cmd, as_root_user=False, cwd=None):
     """Run a command
 
     Args:
         cmd (:obj:`list` of :obj:`str`): Command to run as a list object
                                          Eg: ['ls', '-l']
         as_root_user (bool): Run command as root user with admin priveleges (supported on mac and linux)
+        cwd (str): Change working directory before executing the command
     Returns:
         (`subprocess.Popen.returncode`): Return code from command execution
     """
@@ -39,7 +40,7 @@ def run_command(cmd, as_root_user=False):
         cmd.insert(0, 'sudo')
 
     print ('Running cmd: {0}\n'.format(' '.join(cmd)))
-    return subprocess.call(cmd)
+    return subprocess.call(cmd, cwd)
 
 
 def is_windows_os():
@@ -185,7 +186,9 @@ def install_packages_with_vcpkg(arch):
 
     # install vcpkg
     if is_windows_os():
-        run_command(['external/vcpkg/bootstrap-vcpkg.bat', '--disableMetrics'])
+        # Windows has issues executing a relative path bat file
+        script_dir = os.path.join(os.getcwd(), 'external', 'vcpkg')
+        run_command(['bootstrap-vcpkg.bat', '--disableMetrics'], cwd=script_dir)
     else:
         run_command(['external/vcpkg/bootstrap-vcpkg.sh', '--disableMetrics'])
 
