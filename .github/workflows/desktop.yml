@@ -85,7 +85,7 @@ jobs:
         run: |
           python scripts/install_prereqs.py --ccache --generator "${{ matrix.generator}}"
 
-      - name: CMake configure and build
+      - name: Build SDK
         run: |
           python scripts/build.py --build_tests
 

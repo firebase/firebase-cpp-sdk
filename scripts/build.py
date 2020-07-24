@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2019 Google
+# Copyright 2020 Google
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,17 +39,17 @@ import argparse
 
 
 def run_command(cmd, cwd=None, as_root_user=False, collect_output=False):
-    """Run a command
+    """Run a command.
 
     Args:
-        cmd (:obj:`list` of :obj:`str`): Command to run as a list object
-                                         Eg: ['ls', '-l']
-        cwd (str): Directory to execute the command from
-        as_root_user (bool): Run command as root user with admin priveleges (supported on mac and linux)
+        cmd (:obj:`list` of :obj:`str`): Command to run as a list object.
+                                         Eg: ['ls', '-l'].
+        cwd (str): Directory to execute the command from.
+        as_root_user (bool): Run command as root user with admin priveleges (supported on mac and linux).
         collect_output (bool): Get output from the command. The string returned from this function
                                call will have the output from command execution.
     Raises:
-        (IOError): If command errored out
+        (IOError): If command errored out.
     Returns:
         (str|None): If collect_output is provided, a string is returned
                     None if output is not requested
@@ -70,16 +70,16 @@ def run_command(cmd, cwd=None, as_root_user=False, collect_output=False):
 
 
 def get_repo_root_dir():
-    """ Get root directory of current git repo
+    """ Get root directory of current git repo.
 
     This function takes the guesswork out when executing commands
-    or locating files relative to root of the repo
+    or locating files relative to root of the repo.
 
     Raises:
-        IOError: Current directory is not in a git repo
+        IOError: Current directory is not in a git repo.
 
     Returns:
-        (str): Root directory of git repo
+        (str): Root directory of git repo.
     """
     return run_command(['git', 'rev-parse', '--show-toplevel'], collect_output=True)
 
@@ -87,44 +87,44 @@ def get_repo_root_dir():
 REPO_ROOT_DIR = get_repo_root_dir()
 
 def is_windows_os():
-    """Check if the current OS is Windows
+    """Check if the current OS is Windows.
 
     Returns:
-        (bool): True if windows, False otherwise
+        (bool): True if windows, False otherwise.
     """
     return sys.platform.startswith('win')
 
 
 def is_linux_os():
-    """Check if the current OS is Linux
+    """Check if the current OS is Linux.
 
     Returns:
-        (bool): True if windows, False otherwise
+        (bool): True if windows, False otherwise.
     """
     return sys.platform.startswith('linux')
 
 
 def is_mac_os():
-    """Check if the current OS is mac
+    """Check if the current OS is mac.
 
     Returns:
-        (bool): True if windows, False otherwise
+        (bool): True if windows, False otherwise.
     """
     return sys.platform.startswith('darwin')
 
 
 def get_vcpkg_triplet(arch):
-    """ Get vcpkg target triplet (platform definition)
+    """ Get vcpkg target triplet (platform definition).
 
     Args:
-        arch (str): Architecture (eg: 'x86', 'x64')
+        arch (str): Architecture (eg: 'x86', 'x64').
 
     Raises:
-        ValueError: If current OS is not win,mac or linux
+        ValueError: If current OS is not win,mac or linux.
     
     Returns:
-        (str): Triplet name
-               Eg: "x64-windows-static"
+        (str): Triplet name.
+               Eg: "x64-windows-static".
     """
     triplet_name = [arch]
     if is_windows_os():
@@ -144,13 +144,13 @@ def get_vcpkg_triplet(arch):
 
 
 def step_cmake_configure(args):
-    """ CMake configure
+    """ CMake configure.
 
     If you are seeing problems when running this multiple times,
-    make sure to clean/delete previous build directory
+    make sure to clean/delete previous build directory.
 
     Args:
-        args (`argparse.Namespace`): Parsed command line arguments
+        args (`argparse.Namespace`): Parsed command line arguments.
     """   
     cmd = ['cmake', '-S', '.', '-B', args.build_dir]
     
@@ -169,17 +169,20 @@ def step_cmake_configure(args):
                                                 'scripts', 'buildsystems', 'vcpkg.cmake')
         
         cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(vcpkg_toolchain_file_path))
-        cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(get_vcpkg_triplet(args.arch)))
+        vcpkg_triplet = get_vcpkg_triplet(args.arch)
+        print('vcpkg triplet auto determined for this build: {0}'.format(vcpkg_triplet))
+        cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
     
+    # TODO: Remove this once firestore is included in the build and everything works
     cmd.append('-DFIREBASE_INCLUDE_FIRESTORE=OFF')
     run_command(cmd, cwd=REPO_ROOT_DIR)
 
 
 def step_cmake_build(args):
-    """ CMake build
+    """ CMake build.
 
     Args:
-        args (`argparse.Namespace`): Parsed command line arguments
+        args (`argparse.Namespace`): Parsed command line arguments.
     """   
     cmd = ['cmake', '--build', args.build_dir, '-j', str(args.j)]
     if args.target:
@@ -211,3 +214,4 @@ def parse_cmdline_args():
 
 if __name__ == '__main__':
     main()
+

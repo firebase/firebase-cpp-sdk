@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2019 Google
+# Copyright 2020 Google
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,20 +60,20 @@ class PackageManager(object):
 
 
 def run_command(cmd, cwd=None, as_root_user=False, collect_output=False):
-    """Run a command
+    """Run a command.
 
     Args:
-        cmd (:obj:`list` of :obj:`str`): Command to run as a list object
-                                         Eg: ['ls', '-l']
-        cwd (str): Directory to execute the command from
-        as_root_user (bool): Run command as root user with admin priveleges (supported on mac and linux)
+        cmd (:obj:`list` of :obj:`str`): Command to run as a list object.
+                                         Eg: ['ls', '-l'].
+        cwd (str): Directory to execute the command from.
+        as_root_user (bool): Run command as root user with admin priveleges (supported on mac and linux).
         collect_output (bool): Get output from the command. The string returned from this function
                                call will have the output from command execution.
     Raises:
-        (IOError): If command errored out
+        (IOError): If command errored out.
     Returns:
         (str|None): If collect_output is provided, a string is returned
-                    None if output is not requested
+                    None if output is not requested.
     """
     if as_root_user and (is_mac_os() or is_linux_os()):
         cmd.insert(0, 'sudo')
@@ -91,16 +91,16 @@ def run_command(cmd, cwd=None, as_root_user=False, collect_output=False):
 
 
 def get_repo_root_dir():
-    """ Get root directory of current git repo
+    """ Get root directory of current git repo.
 
     This function takes the guesswork out when executing commands
-    or locating files relative to root of the repo
+    or locating files relative to root of the repo.
 
     Raises:
-        IOError: Current directory is not in a git repo
+        IOError: Current directory is not in a git repo.
 
     Returns:
-        (str): Root directory of git repo
+        (str): Root directory of git repo.
     """
     return run_command(['git', 'rev-parse', '--show-toplevel'], collect_output=True)
 
@@ -112,32 +112,32 @@ ROOT_REPO_DIR = get_repo_root_dir()
 
 
 def get_pip_requirements_file_path():
-    """ Get absolute path to pip requirements file containing list of python packages to install
+    """ Get absolute path to pip requirements file containing list of python packages to install.
 
     Returns:
-        (str): Absolute path to pip requirements file
+        (str): Absolute path to pip requirements file.
     """
     return os.path.join(ROOT_REPO_DIR, 'external', 'pip_requirements.txt')
 
 
 def get_vcpkg_root_dir():
-    """ Get absolute path to vcpkg submodule in the repository
+    """ Get absolute path to vcpkg submodule in the repository.
 
     Returns:
-        (str): Absolute path to vcpkg submodule root directory
+        (str): Absolute path to vcpkg submodule root directory.
     """
     return os.path.join(ROOT_REPO_DIR, 'external', 'vcpkg')
 
 
 def get_vcpkg_executable_file_path():
-    """ Get absolute path to vcpkg executable
+    """ Get absolute path to vcpkg executable.
     
-    Note: On Windows, exectuable file has a '.exe' extension
+    Note: On Windows, exectuable file has a '.exe' extension.
     Raises:
-        ValueError: Unsupported operating system
+        ValueError: Unsupported operating system.
 
     Returns:
-        (str): Absolute path to vcpkg executable
+        (str): Absolute path to vcpkg executable.
     """
     if is_windows_os():
         vcpkg_executable_file_path = os.path.join(get_vcpkg_root_dir(), 'vcpkg.exe')
@@ -150,14 +150,14 @@ def get_vcpkg_executable_file_path():
 
 
 def get_vcpkg_response_file_path(vcpkg_triplet):
-    """ Get absolute path to vcpkg response file
-    Response file stores the list of packages to install with vcpkg
+    """ Get absolute path to vcpkg response file.
+    Response file stores the list of packages to install with vcpkg.
 
     Args:
-        vcpkg_triplet (str): Name of the vcpkg triplet (eg: 'x64-windows-static', 'x64-osx')
+        vcpkg_triplet (str): Name of the vcpkg triplet (eg: 'x64-windows-static', 'x64-osx').
 
     Returns:
-        (str): Absoulte path to vcpkg response file
+        (str): Absoulte path to vcpkg response file.
     """
     vcpkg_response_file_path = os.path.join(ROOT_REPO_DIR, 'external', 
                                             'vcpkg_' + vcpkg_triplet + '_response_file.txt')
@@ -165,13 +165,13 @@ def get_vcpkg_response_file_path(vcpkg_triplet):
 
 
 def get_vcpkg_installation_script_path():
-    """ Get absolute path to the script used to build and install vcpkg
+    """ Get absolute path to the script used to build and install vcpkg.
 
     Raises:
-        ValueError: Unsupported operating system
+        ValueError: Unsupported operating system.
 
     Returns:
-        (str): Absolute path to vcpkg installation script
+        (str): Absolute path to vcpkg installation script.
     """
     if is_windows_os():
         script_absolute_path = os.path.join(get_vcpkg_root_dir(), 'bootstrap-vcpkg.bat')
@@ -184,55 +184,53 @@ def get_vcpkg_installation_script_path():
 
 
 def is_tool_installed(tool):
-    """Check if a tool is installed on the system
+    """Check if a tool is installed on the system.
 
     Args:
-        tool (str): Name of the tool
+        tool (str): Name of the tool.
 
     Returns:
-        (bool) : True if installed on the system, False otherwise
+        (bool) : True if installed on the system, False otherwise.
     """
     return distutils.spawn.find_executable(tool)
 
 
 def is_windows_os():
-    """Check if the current OS is Windows
+    """Check if the current OS is Windows.
 
     Returns:
-        (bool): True if windows, False otherwise
+        (bool): True if windows, False otherwise.
     """
     return sys.platform.startswith('win')
 
 
 def is_linux_os():
-    """Check if the current OS is Linux
+    """Check if the current OS is Linux.
 
     Returns:
-        (bool): True if windows, False otherwise
+        (bool): True if windows, False otherwise.
     """
     return sys.platform.startswith('linux')
 
 
 def is_mac_os():
-    """Check if the current OS is mac
+    """Check if the current OS is mac.
 
     Returns:
-        (bool): True if windows, False otherwise
+        (bool): True if windows, False otherwise.
     """
     return sys.platform.startswith('darwin')
 
 
 def get_system_package_manager():
-    """ Get package manger based on the platform
-    brew for mac
-    apt for linux
-    choco for windows
+    """ Get package manger based on the platform.
+    brew for mac, apt for linux, choco for windows.
 
     Raises:
-        ValueError: If the current OS could not be identified
+        ValueError: If the current OS could not be identified.
 
     Returns:
-        (str): Package manager for current platform
+        (str): Package manager for current platform.
     """
     if is_windows_os():
         if not is_tool_installed(PackageManager.WINDOWS):
@@ -260,16 +258,14 @@ def get_system_package_manager():
 
 
 def install_system_packages(package_names):
-    """ Install packages using system package manager
-    brew for mac
-    apt for linux
-    choco for windows
+    """ Install packages using system package manager.
+    brew for mac, apt for linux, choco for windows
 
     Args:
-        package_names (:obj:`list` of :obj:`str`): List of packages to install
-                                                    Eg: ['ninja', 'ccache']
+        package_names (:obj:`list` of :obj:`str`): List of packages to install.
+                                                    Eg: ['ninja', 'ccache'].
     Raises:
-        (ValueError): When either package manager is not found or packages list is empty
+        (ValueError): When either package manager is not found or packages list is empty.
     """
     if not package_names:
         print('No packages specified to install via system pacakge manager')
@@ -288,7 +284,7 @@ def install_system_packages(package_names):
 
 
 def install_python_packages():
-    """ Install python packages needed as dependencies for cpp sdk build
+    """ Install python packages needed as dependencies for cpp sdk build.
     """
     requirements_file_path = get_pip_requirements_file_path()
     cmd = ['python', '-m', 'pip', 'install', '-r', requirements_file_path, '--user']
@@ -296,17 +292,17 @@ def install_python_packages():
 
 
 def get_vcpkg_triplet(arch):
-    """ Get vcpkg target triplet (platform definition)
+    """ Get vcpkg target triplet (platform definition).
 
     Args:
-        arch (str): Architecture (eg: 'x86', 'x64')
+        arch (str): Architecture (eg: 'x86', 'x64').
 
     Raises:
-        ValueError: If current OS is not win,mac or linux
+        ValueError: If current OS is not win,mac or linux.
     
     Returns:
-        (str): Triplet name
-               Eg: "x64-windows-static"
+        (str): Triplet name.
+               Eg: "x64-windows-static".:
     """
     triplet_name = [arch]
     if is_windows_os():
@@ -326,14 +322,14 @@ def get_vcpkg_triplet(arch):
 
 
 def install_packages_with_vcpkg(arch, build_vcpkg=True):
-    """Install packages with vcpkg
+    """Install packages with vcpkg.
 
     This does the following,
         - initialize/update the vcpkg git submodule
         - build vcpkg executable
-        - install packages via vcpkg
+        - install packages via vcpkg.
     Args:
-        arch (str): Architecture (eg: 'x86', 'x64')
+        arch (str): Architecture (eg: 'x86', 'x64').
         install_vcpkg (bool): Build/Install vcpkg before building packages?
     """
     # vcpkg is a submodule of the main cpp repo
@@ -350,17 +346,19 @@ def install_packages_with_vcpkg(arch, build_vcpkg=True):
 
     # for each desktop platform, there is an existing vcpkg response file 
     # in the repo (external/vcpkg_<triplet>_response_file.txt) defined for each target triplet
-    vcpkg_response_file_path = get_vcpkg_response_file_path(get_vcpkg_triplet(arch))
+    vcpkg_triplet = get_vcpkg_triplet(arch)
+    print('vcpkg triplet auto determined: {0}'.format(vcpkg_triplet))
+    vcpkg_response_file_path = get_vcpkg_response_file_path(vcpkg_triplet)
     vcpkg_executable_file_path = get_vcpkg_executable_file_path()
 
     run_command([vcpkg_executable_file_path, 'install', '@' + vcpkg_response_file_path, '--disable-metrics'])
 
 
 def step_install_system_packages(args):
-    """ Install packages (dependencies) with system package manager 
+    """ Install packages (dependencies) with system package manager.
 
     Args:
-        args (`argparse.Namespace`): Parsed command line arguments
+        args (`argparse.Namespace`): Parsed command line arguments.
     """
     system_packages_to_install = []
     # Install ninja and/or ccache if needed
@@ -385,10 +383,10 @@ def step_install_system_packages(args):
 
 
 def step_install_python_packages(args):
-    """ Install python packages (dependencies)
+    """ Install python packages (dependencies).
 
     Args:
-        args (`argparse.Namespace`): Parsed command line arguments
+        args (`argparse.Namespace`): Parsed command line arguments.
     """
     # Check for packages installed in this python environment
     installed_packages = {pkg.key for pkg in pkg_resources.working_set}
@@ -409,13 +407,13 @@ def step_install_python_packages(args):
 
 
 def step_install_cpp_packages(args):
-    """ Install C++ packages (dependencies)
+    """ Install C++ packages (dependencies).
 
     Installation supported only via vcpkg as system package manager can affect
-    system wide packages. User should handle those themselves
+    system wide packages. User should handle those themselves.
 
     Args:
-        args (`argparse.Namespace`): Parsed command line arguments
+        args (`argparse.Namespace`): Parsed command line arguments.
     """
     if not args.no_vcpkg:
         # Check if vcpkg is already installed
@@ -427,8 +425,10 @@ def step_install_cpp_packages(args):
     else:
         # Do not install dependencies automatically as we want users to have control
         # on their system level package installations
+        vcpkg_triplet = get_vcpkg_triplet(args.arch)
+        print('vcpkg triplet auto determined: {0}'.format(vcpkg_triplet))
         print('Please install packages listed in {0}'\
-              'with your system package manager'.format(get_vcpkg_response_file_path(get_vcpkg_triplet(args.arch))))
+              'with your system package manager'.format(get_vcpkg_response_file_path(vcpkg_triplet)))
 
 
 def main():
