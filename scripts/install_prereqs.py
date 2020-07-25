@@ -73,6 +73,7 @@ def download_file(url, file_path):
 
 
 def unpack_files(archive_file_path, output_dir=None):
+  """Unpack/extract an archive to specified output_directory"""
   shutil.unpack_archive(archive_file_path, output_dir)
 
 
