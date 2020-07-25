@@ -49,7 +49,7 @@ def run_command(cmd, cwd=None, as_root_user=False, collect_output=False):
     (str|None): If collect_output is provided, a string is returned
           None if output is not requested.
   """
-  if as_root_user and (is_mac_os() or is_linux_os()):
+  if as_root_user and platform.system() in ('Linux', 'Darwin'):
     cmd.insert(0, 'sudo')
 
   cmd_string = ' '.join(cmd)
