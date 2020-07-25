@@ -29,6 +29,8 @@ python scripts/install_prereqs.py
 import subprocess
 import distutils.spawn
 import platform
+import urllib.request
+import shutil
 
 
 def run_command(cmd, cwd=None, as_root_user=False, collect_output=False):
@@ -59,36 +61,35 @@ def run_command(cmd, cwd=None, as_root_user=False, collect_output=False):
     subprocess.call(cmd, cwd=cwd)
 
 
-def is_tool_installed(tool):
-  """Check if a tool is installed on the system.
-
-  Args:
-    tool (str): Name of the tool.
-
-  Returns:
-    (bool) : True if installed on the system, False otherwise.
-  """
+def is_command_installed(tool):
+  """Check if a command is installed on the system."""
   return distutils.spawn.find_executable(tool)
+
+
+def download_file(url, file_path):
+  """Download from url and save to specified file path."""
+  with urllib.request.urlopen(url) as response, open(file_path, 'wb') as out_file:
+    shutil.copyfileobj(response, out_file)
+
+
+def unpack_files(archive_file_path, output_dir=None):
+  shutil.unpack_archive(archive_file_path, output_dir)
 
 
 def main():
   # Install ccache on linux/mac
-  if platform.system() == 'Linux':
-   if not is_tool_installed('apt'):
-    print('Skipping ccache install because apt is not found')
-   else:
-    cmd = ['apt', 'install', 'ccache']
-    run_cmd(cmd, as_root_user=True)
+  if not is_command_installed('ccache'):
+    if platform.system() == 'Linux':
+        cmd = ['apt', 'install', 'ccache']
+        run_command(cmd, as_root_user=True)
 
-  elif platform.system() == 'Darwin':
-   if not is_tool_installed('brew'):
-    print('Skipping ccache install because brew is not found')
-   else:
-    cmd = ['brew', 'install', 'ccache']
-    run_cmd(cmd, as_root_user=True)
+    elif platform.system() == 'Darwin':
+        cmd = ['brew', 'install', 'ccache']
+        run_command(cmd)
 
   # Install required python dependencies
-  cmd = ['python', '-m', 'pip', 'install', '-r', 'external/pip_requirements.txt', '--user']
+  python3_cmd = 'python3' if is_command_installed('python3') else 'python'
+  cmd = [python3_cmd, '-m', 'pip', 'install', '-r', 'external/pip_requirements.txt', '--user']
   run_command(cmd)
 
 
