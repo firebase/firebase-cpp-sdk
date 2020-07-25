@@ -3,7 +3,6 @@ name: Desktop Builds
 on: 
   pull_request:
     types: [opened, reopened, synchronize]
-  push:
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
@@ -63,7 +62,7 @@ jobs:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.architecture }}
 
-      - name: Install prerequisites(cpp and python dependencies)
+      - name: Install prerequisites
         run: |
           python scripts/install_prereqs.py
 
