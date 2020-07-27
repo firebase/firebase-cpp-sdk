@@ -19,79 +19,34 @@ This script needs to be run once to prepare the machine for building SDK.
 It will download required python dependencies and also install ccache on mac/linux.
 ccache considerably improves the build times.
 
+Please note that this script is aganostic of various desktop configurations.
+For example, you can run it once regardless if you are following up with a build of x86 or x64.
+
 Run this script from the root of the repository
 
 Usage:
-python scripts/install_prereqs.py
+python scripts/install_prereqs_desktop.py
 
 """
 
-import subprocess
-import distutils.spawn
-import platform
-import urllib.request
-import shutil
-
-
-def run_command(cmd, cwd=None, as_root_user=False, collect_output=False):
-  """Run a command.
-
-  Args:
-    cmd (list(str)): Command to run as a list object.
-                    Eg: ['ls', '-l'].
-    cwd (str): Directory to execute the command from.
-    as_root_user (bool): Run command as root user with admin priveleges (supported on mac and linux).
-    collect_output (bool): Get output from the command. The string returned from this function
-               call will have the output from command execution.
-  Raises:
-    (subprocess.CalledProcessError): If command errored out.
-  Returns:
-    (str|None): If collect_output is provided, a string is returned
-          None if output is not requested.
-  """
-  if as_root_user and platform.system() in ('Linux', 'Darwin'):
-    cmd.insert(0, 'sudo')
-
-  cmd_string = ' '.join(cmd)
-  print('Running cmd: {0}\n'.format(cmd_string))
-  if collect_output:
-    output = subprocess.check_output(cmd, cwd=cwd)
-    return output.decode('utf-8').strip()
-  else:
-    subprocess.call(cmd, cwd=cwd)
-
-
-def is_command_installed(tool):
-  """Check if a command is installed on the system."""
-  return distutils.spawn.find_executable(tool)
-
-
-def download_file(url, file_path):
-  """Download from url and save to specified file path."""
-  with urllib.request.urlopen(url) as response, open(file_path, 'wb') as out_file:
-    shutil.copyfileobj(response, out_file)
-
-
-def unpack_files(archive_file_path, output_dir=None):
-  """Unpack/extract an archive to specified output_directory"""
-  shutil.unpack_archive(archive_file_path, output_dir)
-
+import utils
 
 def main():
-  # Install ccache on linux/mac
-  if not is_command_installed('ccache'):
-    if platform.system() == 'Linux':
-        cmd = ['apt', 'install', 'ccache']
-        run_command(cmd, as_root_user=True)
+  # Install ccache on linux/mac if its not installed already
+  if not utils.is_command_installed('ccache'):
+    if utils.is_linux_os():
+        utils.run_command(['apt', 'install', 'ccache'], as_root=True)
 
-    elif platform.system() == 'Darwin':
-        cmd = ['brew', 'install', 'ccache']
-        run_command(cmd)
+    elif utils.is_mac_os():
+        utils.run_command(['brew', 'install', 'ccache'])
 
-  # Install required python dependencies
-  python3_cmd = 'python3' if is_command_installed('python3') else 'python'
-  cmd = [python3_cmd, '-m', 'pip', 'install', '-r', 'external/pip_requirements.txt', '--user']
-  run_command(cmd)
+  # Install required python dependencies. 
+  # On Catalina, python2 in installed as default python.
+  # Mac command example:
+  # python3 -m pip install -r external/pip_requirements.txt --user
+  utils.run_command( 
+     ['python3' if utils.is_command_installed('python3') else 'python', '-m', 
+          'pip', 'install', '-r', 'external/pip_requirements.txt', '--user'] )
 
 
 if __name__ == '__main__':
