@@ -64,11 +64,11 @@ jobs:
 
       - name: Install prerequisites
         run: |
-          python scripts/install_prereqs.py
+          python scripts/gha/install_prereqs_desktop.py
 
       - name: Build SDK
         run: |
-          python scripts/build.py --build_tests --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}"
+          python scripts/gha/build_desktop.py --build_tests --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}"
 
       - name: Stats for ccache (mac and linux)
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
