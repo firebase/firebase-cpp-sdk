@@ -9,7 +9,7 @@ env:
 
 jobs:
   build:
-    name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+    name: android-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -23,7 +23,6 @@ jobs:
         include:
         - os: windows-latest
           architecture: "x64"
-          msbuild_platform: "x64"
         - os: ubuntu-latest
           architecture: "x64"
         - os: macos-latest
@@ -53,11 +52,13 @@ jobs:
           python-version: ${{ matrix.python_version }}
           architecture: ${{ matrix.architecture }}
 
+      - name: Install prerequisites
+        run: |
+          python scripts/gha/install_prereqs_desktop.py
+
         # Todo: replace this with a python script..?
       - name: Build SDK
         run: |
-          set -e
-          set -x
           ./gradlew build
 
       - name: Stats for ccache (mac and linux)
@@ -69,5 +70,7 @@ jobs:
         run: |
           find build -name "*.aar"
           find build -name "*.jar"
+
+      # Todo: Archive build for integration tests.
 
       
