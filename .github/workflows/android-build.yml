@@ -33,24 +33,24 @@ jobs:
         with:
           submodules: true
 
-      - name: Set env variables for subsequent steps (all)
-        run: |
-          echo "::set-env name=PIP_REQUIREMENTS_FILE::external/pip_requirements.txt"
-          echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.architecture }}-${{ matrix.python_version }}"
+      #- name: Set env variables for subsequent steps (all)
+      #  run: |
+      #    echo "::set-env name=PIP_REQUIREMENTS_FILE::external/pip_requirements.txt"
+      #    echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.architecture }}-${{ matrix.python_version }}"
 
-      - name: Cache ccache files
-        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
-        id: cache_ccache
-        uses: actions/cache@v2
-        with:
-          path: ccache_dir
-          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+      #- name: Cache ccache files
+      #  if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+      #  id: cache_ccache
+      #  uses: actions/cache@v2
+      #  with:
+      #    path: ccache_dir
+      #    key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
 
-      - name: Setup python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python_version }}
-          architecture: ${{ matrix.architecture }}
+      #- name: Setup python
+      #  uses: actions/setup-python@v2
+      #  with:
+      #    python-version: ${{ matrix.python_version }}
+      #    architecture: ${{ matrix.architecture }}
 
       - name: Install prerequisites
         run: |
@@ -61,9 +61,9 @@ jobs:
         run: |
           ./gradlew build
 
-      - name: Stats for ccache (mac and linux)
-        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
-        run: ccache -s
+      #- name: Stats for ccache (mac and linux)
+      #  if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+      #  run: ccache -s
 
       - name: Print built libraries
         shell: bash
