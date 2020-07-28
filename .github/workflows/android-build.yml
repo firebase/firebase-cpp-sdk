@@ -5,7 +5,7 @@ on:
     types: [opened, reopened, synchronize]
 
 env:
-  CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+  # CCACHE_DIR: ${{ github.workspace }}/ccache_dir
 
 jobs:
   build:
@@ -17,16 +17,17 @@ jobs:
         # TODO: extend with:
         #  - target architecture.
         #  - Android SDK version.
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        # os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         architecture: ["x64",]
         # python_version: [3.7]
         include:
-        - os: windows-latest
-          architecture: "x64"
+        #- os: windows-latest
+        #  architecture: "x64"
         - os: ubuntu-latest
           architecture: "x64"
-        - os: macos-latest
-          architecture: "x64"
+        #- os: macos-latest
+        #  architecture: "x64"
 
     steps:
       - uses: actions/checkout@v2
@@ -60,11 +61,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install absl-py
-      
-      #   sudo apt-get install python-protobuf
+          sudo apt-get install python-protobuf
 
-      #- name: Install protobuf native compiler
-      #  run: sudo apt-get install protobuf-compiler
+      - name: Install protobuf native compiler
+        run: sudo apt-get install protobuf-compiler
 
         # Todo: replace this with a python script..?
       - name: Build SDK
