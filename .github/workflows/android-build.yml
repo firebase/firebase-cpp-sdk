@@ -7,7 +7,7 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-latest
-    name: build-linux-no-test
+    name: android-linux
     steps:
       - uses: actions/checkout@v2
       - name: Install abysl and protobuf-compiler for python
