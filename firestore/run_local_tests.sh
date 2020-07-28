@@ -6,6 +6,6 @@
 # LINT.IfChange
 blaze test --config=android_arm //firebase/firestore/client/cpp:kokoro_build_test && \
 blaze test --config=darwin_x86_64 //firebase/firestore/client/cpp:kokoro_build_test && \
-blaze test //firebase/firestore/client/cpp:kokoro_build_test && \
+blaze test --define=force_regular_grpc=1 //firebase/firestore/client/cpp:kokoro_build_test && \
 blaze test --config=msvc //firebase/firestore/client/cpp:kokoro_build_test
 # LINT.ThenChange(//depot_firebase_cpp/firestore/client/cpp/METADATA)
