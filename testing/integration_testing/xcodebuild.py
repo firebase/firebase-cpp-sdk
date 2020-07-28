@@ -41,18 +41,18 @@ def get_args_for_archive(
   """Subprocess args for an iOS archive. Necessary step for creating an .ipa.
 
   Args:
-    path: Full path to the project or workspace to build. Must end in
+    path (str): Full path to the project or workspace to build. Must end in
         either .xcodeproj or .xcworkspace.
-    scheme: Name of the scheme to build.
-    uuid: The mobileprovision's uuid.
-    output_dir: Directory for the resulting build artifacts. Will be created
-        if it doesn't already exist.
-    archive_path: Archive will be created at this path.
-    ios_sdk: Where this build will be run: device or simulator.
-    dev_team: Apple development team id.
-    configuration: Value for the -configuration flag. If building for Unity,
-        Unity will by default generate Debug, Release, ReleaseForRunning, and
-        ReleaseForProfiling configurations.
+    scheme (str): Name of the scheme to build.
+    uuid (str): The mobileprovision's uuid.
+    output_dir (str): Directory for the resulting build artifacts. Will be
+        created if it doesn't already exist.
+    archive_path (str): Archive will be created at this path.
+    ios_sdk (str): Where this build will be run: device or simulator.
+    dev_team (str): Apple development team id.
+    configuration (str): Value for the -configuration flag. If building for
+        Unity, Unity will by default generate Debug, Release, ReleaseForRunning,
+        and ReleaseForProfiling configurations.
 
   Returns:
     Sequence of strings, corresponding to valid args for a subprocess call.
@@ -73,14 +73,14 @@ def get_args_for_build(
   """Constructs subprocess args for an xcode build.
 
   Args:
-    path: Full path to the project or workspace to build. Must end in
+    path (str): Full path to the project or workspace to build. Must end in
         either .xcodeproj or .xcworkspace.
-    scheme: Name of the scheme to build.
-    output_dir: Directory for the resulting build artifacts. Will be created
-        if it doesn't already exist.
-    ios_sdk: Where this build will be run: device or simulator.
-    dev_team: Apple development team id.
-    configuration: Value for the -configuration flag.
+    scheme (str): Name of the scheme to build.
+    output_dir (str): Directory for the resulting build artifacts. Will be
+        created if it doesn't already exist.
+    ios_sdk (str): Where this build will be run: device or simulator.
+    dev_team (str): Apple development team id.
+    configuration (str): Value for the -configuration flag.
 
   Returns:
     Sequence of strings, corresponding to valid args for a subprocess call.
@@ -114,9 +114,9 @@ def get_args_for_export(output_dir, archive_path, plist_path):
   the command given by the returned args.
 
   Args:
-    output_dir: Directory to contain the exported artifact.
-    archive_path: Path to the xcode archive (.xcarchive) to be exported.
-    plist_path: Path for the export plist. The export plist
+    output_dir (str): Directory to contain the exported artifact.
+    archive_path (str): Path to the xcode archive (.xcarchive) to be exported.
+    plist_path (str): Path for the export plist. The export plist
         contains configuration for the export process, and must be present
         even if the file is vacuous (contains no configuration).
 

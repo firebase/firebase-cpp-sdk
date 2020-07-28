@@ -43,10 +43,10 @@ def patch_provisioning_profile(plist_path, bundle_id, uuid):
   overwritten.
 
   Args:
-    plist_path: Path to a valid plist with a provisioningProfiles dictionary
-        in its root.
-    bundle_id: String representing a bundle id.
-    uuid: String representing the uuid of a provisioning profile.
+    plist_path (str): Path to a valid plist with a provisioningProfiles
+        dictionary in its root.
+    bundle_id (str): Bundle id identifying this project.
+    uuid (str): UUID from a mobile provisioning profile.
 
   Raises:
     ValueError: plist not in correct format.
@@ -76,7 +76,7 @@ def get_provision_id(provision_path):
   Can only be run on macOS.
 
   Args:
-    provision_path: Path to a .mobileprovision file.
+    provision_path (str): Path to a .mobileprovision file.
 
   Returns:
     A string corresponding to a UUID.
@@ -106,7 +106,7 @@ def _extract_plist(provision_path):
   will attempt to decode the file and return the plist as a string.
 
   Args:
-    provision_path: Path to a mobileprovisioning profile (.mobileprovision).
+    provision_path (str): Path to a mobileprovision profile.
 
   Returns:
     Bytes corresponding to a valid plist.
@@ -126,7 +126,7 @@ def _extract_uuid(plist):
   Will extract the value of the UUID key from the mobile provisioning plist.
 
   Args:
-    plist: Plist bytes read from a mobileprovisioning file.
+    plist (bytes): Plist bytes read from a mobileprovisioning file.
 
   Returns:
     A string corresponding to a provisioning UUID.

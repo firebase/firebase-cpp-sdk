@@ -29,11 +29,14 @@ This will perform the following:
   integration_test directories.
 - The server key will be patched into the Messaging project.
 - The uri prefix will be patched into the Dynamic Links project.
+- The reverse id will be patched into all Info.plist files, using the value from
+  the decrypted Google Service plist files as the source of truth.
 
 """
 
 import argparse
 import os
+import plistlib
 import subprocess
 
 parser = argparse.ArgumentParser(
@@ -73,6 +76,10 @@ def main():
       with open(dest_path, "w") as f:
         f.write(decrypted_text)
       print("Copied decrypted google service file to %s" % dest_path)
+      # We use a Google Service file as the source of truth for the reverse id
+      # that needs to be patched into the Info.plist files.
+      if dest_path.endswith(".plist"):
+        _patch_reverse_id(dest_path)
 
   print("Attempting to patch Dynamic Links uri prefix.")
   uri_path = os.path.join(secrets_dir, "dynamic_links", "uri_prefix.txt.gpg")
@@ -120,9 +127,26 @@ def _decrypt(encrypted_file, passphrase):
   return result.stdout
 
 
+def _patch_reverse_id(service_plist_path):
+  """Patches the Info.plist file with the reverse id from the Service plist."""
+  print("Attempting to patch reverse id in Info.plist")
+  with open(service_plist_path, "rb") as f:
+    service_plist = plistlib.load(f)
+  _patch_file(
+      path=os.path.join(os.path.dirname(service_plist_path), "Info.plist"),
+      placeholder="REPLACE_WITH_REVERSED_CLIENT_ID",
+      value=service_plist["REVERSED_CLIENT_ID"])
+
+
 def _patch_main_src(project_dir, placeholder, value):
   """Patches the integration_test.cc file in the integration test project."""
   path = os.path.join(project_dir, "src", "integration_test.cc")
+  _patch_file(path, placeholder, value)
+
+
+def _patch_file(path, placeholder, value):
+  """Patches instances of the placeholder with the given value."""
+  # Note: value may be sensitive, so do not log.
   with open(path, "r") as f_read:
     text = f_read.read()
   # Count number of times placeholder appears for debugging purposes.

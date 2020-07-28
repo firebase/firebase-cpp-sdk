@@ -188,13 +188,15 @@ def main(argv):
   if update_pod_repo and _IOS in platforms:
     _run(["pod", "repo", "update"])
 
+  config = config_reader.read_config()
+  compiler_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
   failures = []
   for testapp in testapps:
     logging.info("BEGIN building for %s", testapp)
     failures += _build(
         testapp=testapp,
         platforms=platforms,
-        config=config_reader.read_config(),
+        api_config=config.get_api(testapp),
         output_dir=os.path.expanduser(FLAGS.output_directory),
         sdk_dir=os.path.expanduser(FLAGS.sdk_dir),
         timestamp=timestamp,
@@ -202,7 +204,8 @@ def main(argv):
         root_dir=os.path.expanduser(FLAGS.root_dir),
         provisions_dir=os.path.expanduser(FLAGS.provisions_dir),
         ios_sdk=FLAGS.ios_sdk,
-        desktop_compiler=FLAGS.compiler,
+        dev_team=config.apple_team_id,
+        compiler_flags=compiler_flags,
         execute_desktop_testapp=FLAGS.execute_desktop_testapp)
     logging.info("END building for %s", testapp)
 
@@ -211,12 +214,11 @@ def main(argv):
 
 
 def _build(
-    testapp, platforms, config, output_dir, sdk_dir, timestamp, builder_dir,
-    root_dir, provisions_dir, ios_sdk, desktop_compiler,
+    testapp, platforms, api_config, output_dir, sdk_dir, timestamp, builder_dir,
+    root_dir, provisions_dir, ios_sdk, dev_team, compiler_flags,
     execute_desktop_testapp):
   """Builds one testapp on each of the specified platforms."""
-  api_config = APIConfig.from_config(config, testapp)
-  testapp_dir = os.path.join(root_dir, api_config.api_dir)
+  testapp_dir = os.path.join(root_dir, api_config.testapp_path)
   project_dir = os.path.join(
       output_dir, "testapps" + timestamp, api_config.full_name,
       os.path.basename(testapp_dir))
@@ -235,7 +237,6 @@ def _build(
   if _DESKTOP in platforms:
     logging.info("BEGIN %s, %s", testapp, _DESKTOP)
     try:
-      compiler_flags = _get_desktop_compiler_flags(desktop_compiler, config)
       _build_desktop(sdk_dir, compiler_flags)
       if execute_desktop_testapp:
         _execute_desktop_testapp(project_dir)
@@ -264,7 +265,7 @@ def _build(
           provisions_dir=provisions_dir,
           api_config=api_config,
           ios_sdk=ios_sdk,
-          dev_team=config_reader.read_general_config(config, "apple_team_id"))
+          dev_team=dev_team)
     except subprocess.CalledProcessError as e:
       failures.append(
           Failure(testapp=testapp, platform=_IOS, error_message=str(e)))
@@ -304,15 +305,14 @@ def _execute_desktop_testapp(project_dir):
   _run([testapp_path])
 
 
-def _get_desktop_compiler_flags(compiler, config):
+def _get_desktop_compiler_flags(compiler, compiler_table):
   """Returns the command line flags for this compiler."""
   if not compiler:  # None is an acceptable default value
     return []
-  compilers = config_reader.read_general_config(config, "compiler_dict")
   try:
-    return compilers[compiler]
+    return compiler_table[compiler]
   except KeyError:
-    valid_keys = ", ".join(compilers.keys())
+    valid_keys = ", ".join(compiler_table.keys())
     raise ValueError(
         "Given compiler: %s. Valid compilers: %s" % (compiler, valid_keys))
 
@@ -399,7 +399,7 @@ def _build_ios(
     _run(
         xcodebuild.get_args_for_archive(
             path=xcode_path,
-            scheme=api_config.ios_target,
+            scheme=api_config.scheme,
             uuid=provision_id,
             output_dir=build_dir,
             archive_path=archive_path,
@@ -439,43 +439,6 @@ class Failure(object):
 
   def describe(self):
     return "%s, %s: %s" % (self.testapp, self.platform, self.error_message)
-
-
-@attr.s(frozen=True, eq=False)
-class APIConfig(object):
-  """Holds all the configuration for a single testapp project."""
-  name = attr.ib()
-  full_name = attr.ib()
-  bundle_id = attr.ib()
-  ios_target = attr.ib()
-  api_dir = attr.ib()  # Integration test dir relative to sdk root
-  frameworks = attr.ib()  # Required custom xcode frameworks
-  provision = attr.ib()  # Path to the local mobile provision
-
-  @classmethod
-  def from_config(cls, config, testapp):
-    """Builds the APIConfig for this testapp.
-
-    Args:
-      config: The full configuration dictionary for the testapp builder.
-      testapp: Short name for the testapp, e.g. 'analytics'.
-
-    Returns:
-      API-specific configuration for this testapp.
-
-    """
-
-    if testapp not in config_reader.get_api_names(config):
-      raise ValueError("Invalid api name (not found in config): " + testapp)
-
-    return cls(
-        name=testapp,
-        full_name=config_reader.read_api_config(config, testapp, "full_name"),
-        bundle_id=config_reader.read_api_config(config, testapp, "bundle_id"),
-        ios_target=config_reader.read_api_config(config, testapp, "ios_target"),
-        api_dir=config_reader.read_api_config(config, testapp, "testapp_path"),
-        frameworks=config_reader.read_api_config(config, testapp, "frameworks"),
-        provision=config_reader.read_api_config(config, testapp, "provision"))
 
 
 if __name__ == "__main__":
