@@ -19,13 +19,13 @@ jobs:
         #  - Android SDK version.
         # os: [windows-latest, ubuntu-latest, macos-latest]
         os: [ubuntu-latest]
-        architecture: ["x64",]
+        # architecture: ["x64",]
         # python_version: [3.7]
-        include:
+        # include:
         #- os: windows-latest
         #  architecture: "x64"
-        - os: ubuntu-latest
-          architecture: "x64"
+        #- os: ubuntu-latest
+        #  architecture: "x64"
         #- os: macos-latest
         #  architecture: "x64"
 
@@ -69,6 +69,8 @@ jobs:
         # Todo: replace this with a python script..?
       - name: Build SDK
         run: |
+          set -e 
+          set -x
           ./gradlew build
 
       #- name: Stats for ccache (mac and linux)
