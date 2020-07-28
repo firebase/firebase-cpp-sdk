@@ -25,7 +25,7 @@ For example, you can run it once regardless if you are following up with a build
 Run this script from the root of the repository
 
 Usage:
-python scripts/install_prereqs_desktop.py
+python scripts/gha/install_prereqs_desktop.py
 
 """
 
@@ -35,14 +35,16 @@ def main():
   # Install ccache on linux/mac if its not installed already
   if not utils.is_command_installed('ccache'):
     if utils.is_linux_os():
+        # sudo apt install ccache
         utils.run_command(['apt', 'install', 'ccache'], as_root=True)
 
     elif utils.is_mac_os():
+        # brew install ccache
         utils.run_command(['brew', 'install', 'ccache'])
 
   # Install required python dependencies. 
   # On Catalina, python2 in installed as default python.
-  # Mac command example:
+  # Example command:
   # python3 -m pip install -r external/pip_requirements.txt --user
   utils.run_command( 
      ['python3' if utils.is_command_installed('python3') else 'python', '-m', 

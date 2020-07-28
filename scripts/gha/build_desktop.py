@@ -14,29 +14,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Assuming pre-requisites are in place (from running `scripts/install_prereqs.py`)
-this script will build the firebase cpp sdk
+Assuming pre-requisites are in place (from running 
+`scripts/gha/install_prereqs_desktop.py`), this builds the firebase cpp sdk.
 
 It does the following,
-- install platform specific cpp dependencies via vcpkg
+- install desktop platform specific cpp dependencies via vcpkg
 - cmake configure
 - cmake build
 
 Usage examples:
-# Build all targets with x64 architecture, Release config and 8 cpu cores fo
-python build.py --arch x64 --config Release -j 8
+# Build all targets with x64 architecture, Release config and 8 cpu cores
+python scripts/gha/build_desktop.py --arch x64 --config Release -j 8
 
 # Build all targets with default options and also build unit tests
-python build.py --build_tests --arch x64
+python scripts/gha/build_desktop.py --build_tests --arch x64
 
-# Build only firebase_app and firebase_auth and also build unit tests
-python build.py --build_tests --arch x64 --targets firebase_app firebase_auth
+# Build only firebase_app and firebase_auth 
+python scripts/gha/build_desktop.py --target firebase_app firebase_auth
 
 """
 
 import argparse
 import os
 import utils
+
 
 def install_cpp_dependencies_with_vcpkg(arch):
   """Install packages with vcpkg.
@@ -54,8 +55,7 @@ def install_cpp_dependencies_with_vcpkg(arch):
   found_vcpkg_executable = os.path.exists(vcpkg_executable_file_path)
   if not found_vcpkg_executable:
     script_absolute_path = utils.get_vcpkg_installation_script_path()
-    # Mac example command:
-    # ./external/vcpkg/bootstrap-sh
+    # Example: ./external/vcpkg/bootstrap-sh
     utils.run_command([script_absolute_path])
 
   # for each desktop platform, there exists a vcpkg response file in the repo
@@ -64,8 +64,7 @@ def install_cpp_dependencies_with_vcpkg(arch):
   vcpkg_response_file_path = os.path.join(os.getcwd(), 'external', 
                       'vcpkg_' + vcpkg_triplet + '_response_file.txt')
 
-  # Mac example command: 
-  # ./external/vcpkg/vcpkg install @external/vcpkg_x64-osx_response_file.txt 
+  # Eg: ./external/vcpkg/vcpkg install @external/vcpkg_x64-osx_response_file.txt 
   # --disable-metrics
   utils.run_command([vcpkg_executable_file_path, 'install',
                      '@' + vcpkg_response_file_path, '--disable-metrics'])
@@ -121,11 +120,15 @@ def main():
   # CMake configure
   cmake_configure(args.build_dir, args.arch, args.build_tests, args.config)
 
-  # CMake build mac example command:
-  # cmake --build build -j 8 --target firebase_app firebase_auth
-  utils.run_command( ['cmake', '--build', args.build_dir,
-                      '-j', str(os.cpu_count())]  + \
-                     ['--target', args.target] if args.target else [])
+  # CMake build 
+  # cmake --build build -j 8 
+  cmd = ['cmake', '--build', args.build_dir, '-j', str(os.cpu_count())] 
+  if args.target:
+    # Example:  cmake --build build -j 8 --target firebase_app firebase_auth
+    cmd.append('--target')
+    cmd.extend(args.target)
+  utils.run_command(cmd)
+
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Install Prerequisites for building cpp sdk')
