@@ -46,11 +46,11 @@ jobs:
       #    path: ccache_dir
       #    key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
 
-      #- name: Setup python
-      #  uses: actions/setup-python@v2
-      #  with:
-      #    python-version: ${{ matrix.python_version }}
-      #    architecture: ${{ matrix.architecture }}
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+          architecture: ${{ matrix.architecture }}
 
       - name: Install prerequisites
         run: |
