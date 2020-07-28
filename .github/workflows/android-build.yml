@@ -1,88 +1,24 @@
 name: Android Builds
 
-on: 
+on:
+  push:    
   pull_request:
-    types: [opened, reopened, synchronize]
-
-# env:
-  # CCACHE_DIR: ${{ github.workspace }}/ccache_dir
 
 jobs:
-  build:
-    name: android-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        # TODO: extend with:
-        #  - target architecture.
-        #  - Android SDK version.
-        # os: [windows-latest, ubuntu-latest, macos-latest]
-        os: [ubuntu-latest]
-        # architecture: ["x64",]
-        # python_version: [3.7]
-        # include:
-        #- os: windows-latest
-        #  architecture: "x64"
-        #- os: ubuntu-latest
-        #  architecture: "x64"
-        #- os: macos-latest
-        #  architecture: "x64"
-
+  build-android:
+    runs-on: ubuntu-latest
+    name: build-linux-no-test
     steps:
       - uses: actions/checkout@v2
-        with:
-          submodules: true
-
-      #- name: Set env variables for subsequent steps (all)
-      #  run: |
-      #    echo "::set-env name=PIP_REQUIREMENTS_FILE::external/pip_requirements.txt"
-      #    echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.architecture }}-${{ matrix.python_version }}"
-
-      #- name: Cache ccache files
-      #  if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
-      #  id: cache_ccache
-      #  uses: actions/cache@v2
-      #  with:
-      #    path: ccache_dir
-      #    key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
-
-      #- name: Setup python
-      #  uses: actions/setup-python@v2
-      #  with:
-      #    python-version: ${{ matrix.python_version }}
-      #    architecture: ${{ matrix.architecture }}
-
-      #- name: Install prerequisites
-      #  run: |
-      #    python scripts/gha/install_prereqs_desktop.py
-
-      - name: Install abysl and protobuf for python
+      - name: Install abysl and protobuf-compiler for python
         run: |
           python -m pip install --upgrade pip
           pip install absl-py
           sudo apt-get install python-protobuf
-
       - name: Install protobuf native compiler
         run: sudo apt-get install protobuf-compiler
-
-        # Todo: replace this with a python script..?
-      - name: Build SDK
+      - name: Build Android
         run: |
-          set -e 
-          set -x
-          ./gradlew build
-
-      #- name: Stats for ccache (mac and linux)
-      #  if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
-      #  run: ccache -s
-
-      - name: Print built libraries
-        shell: bash
-        run: |
-          find build -name "*.aar"
-          find build -name "*.jar"
-
-      # Todo: Archive build for integration tests.
-
-      
+           set -e
+           set -x
+           ./gradlew build
