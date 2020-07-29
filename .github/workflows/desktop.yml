@@ -166,3 +166,4 @@ jobs:
           path: |
             ~/Library/Logs/DiagnosticReports/*
             /tmp/bins/*
+
