@@ -75,6 +75,6 @@ jobs:
       - name: Print built libraries
         shell: bash
         run: |
-          find build -name "*.aar"
-          find build -name "*.jar"
+          find android_build -name "*.aar"
+          find android_build -name "*.jar"
       # Todo: Archive build for integration tests.
