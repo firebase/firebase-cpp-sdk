@@ -48,7 +48,7 @@ android {
 dependencies {
   // DO NOT CHECK IN
   // This circumvents the current android build failure on dev.
-  implementation 'com.google.firebase:firebase-analytics:17.4.3'
+  implementation 'com.google.firebase:firebase-analytics:17.4.4'
 }
 
 afterEvaluate {
