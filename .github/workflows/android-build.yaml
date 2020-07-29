@@ -1,24 +1,69 @@
 name: Android Builds
 
-on:
-  push:    
+on: 
   pull_request:
+    types: [opened, reopened, synchronize]
+
+env:
+  CCACHE_DIR: ${{ github.workspace }}/ccache_dir
 
 jobs:
-  build-android:
-    runs-on: ubuntu-latest
-    name: android-linux
+  build:
+    name: android-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # TODO: extend with:
+        #  - target architecture.
+        #  - Android SDK version.
+        os: [ubuntu-latest, macos-latest]
+        architecture: ["x64",]
+        python_version: [3.7]
+        include:
+        - os: ubuntu-latest
+          architecture: "x64"
+        - os: macos-latest
+          architecture: "x64"
+
     steps:
       - uses: actions/checkout@v2
-      - name: Install abysl and protobuf-compiler for python
+        with:
+          submodules: true
+
+      - name: Set env variables for subsequent steps (all)
         run: |
-          python -m pip install --upgrade pip
-          pip install absl-py
-          sudo apt-get install python-protobuf
-      - name: Install protobuf native compiler
-        run: sudo apt-get install protobuf-compiler
-      - name: Build Android
+          echo "::set-env name=PIP_REQUIREMENTS_FILE::external/pip_requirements.txt"
+          echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.architecture }}-${{ matrix.python_version }}"
+
+      - name: Cache ccache files
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+          architecture: ${{ matrix.architecture }}
+
+      - name: Install prerequisites
         run: |
-           set -e
-           set -x
-           ./gradlew build
+          build_scripts/android/install_prereqs.sh
+
+      - name: Build SDK
+        run: |
+          build_scripts/android/build.sh
+      
+      - name: Stats for ccache (mac and linux)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        run: ccache -s
+
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find build -name "*.aar"
+          find build -name "*.jar"
+      # Todo: Archive build for integration tests.
