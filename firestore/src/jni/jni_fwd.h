@@ -11,6 +11,7 @@ namespace jni {
 JNIEnv* GetEnv();
 
 class Env;
+class Loader;
 
 // Reference types
 template <typename T>
@@ -24,6 +25,21 @@ class Class;
 class Object;
 class String;
 class Throwable;
+
+// Declaration types
+class ConstructorBase;
+class MethodBase;
+class StaticFieldBase;
+class StaticMethodBase;
+
+template <typename T>
+class Constructor;
+template <typename T>
+class Method;
+template <typename T>
+class StaticField;
+template <typename T>
+class StaticMethod;
 
 }  // namespace jni
 }  // namespace firestore

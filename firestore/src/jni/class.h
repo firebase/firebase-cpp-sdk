@@ -21,6 +21,9 @@ class Class : public Object {
   explicit Class(jclass clazz) : Object(clazz) {}
 
   jclass get() const override { return static_cast<jclass>(object_); }
+
+ private:
+  friend class Loader;
 };
 
 }  // namespace jni

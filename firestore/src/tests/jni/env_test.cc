@@ -14,7 +14,7 @@ class EnvTest : public FirestoreIntegrationTest {
  public:
   EnvTest() : env_(MakeUnique<Env>(GetEnv())) {}
 
-  ~EnvTest() {
+  ~EnvTest() override {
     // Ensure that after the test is done that any pending exception is cleared
     // to prevent spurious errors in the teardown of FirestoreIntegrationTest.
     env_->ExceptionClear();

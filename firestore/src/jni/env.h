@@ -4,10 +4,12 @@
 #include <jni.h>
 
 #include <string>
+#include <utility>
 
 #include "app/meta/move.h"
 #include "firestore/src/jni/call_traits.h"
 #include "firestore/src/jni/class.h"
+#include "firestore/src/jni/declaration.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
 #include "firestore/src/jni/string.h"
@@ -142,6 +144,16 @@ class Env {
     return MakeResult<T>(result);
   }
 
+  template <typename T, typename... Args>
+  Local<T> New(const Constructor<T>& ctor, Args&&... args) {
+    if (!ok()) return {};
+
+    auto result =
+        env_->NewObject(ctor.clazz(), ctor.id(), ToJni(Forward<Args>(args))...);
+    RecordException();
+    return MakeResult<T>(result);
+  }
+
   Local<Class> GetObjectClass(const Object& object);
 
   bool IsInstanceOf(const Object& object, const Class& clazz);
@@ -175,6 +187,14 @@ class Env {
                          ToJni(Forward<Args>(args))...);
   }
 
+  template <typename T, typename... Args>
+  ResultType<T> Call(const Object& object, const Method<T>& method,
+                     Args&&... args) {
+    auto env_method = CallTraits<JniType<T>>::kCall;
+    return CallHelper<T>(env_method, object.get(), method.id(),
+                         ToJni(Forward<Args>(args))...);
+  }
+
   // MARK: Accessing Static Fields
 
   jfieldID GetStaticFieldId(const Class& clazz, const char* name,
@@ -195,6 +215,16 @@ class Env {
 
     auto env_method = CallTraits<JniType<T>>::kGetStaticField;
     auto result = INVOKE(env_, env_method, clazz.get(), field);
+    RecordException();
+    return MakeResult<T>(result);
+  }
+
+  template <typename T>
+  ResultType<T> Get(const StaticField<T>& field) {
+    if (!ok()) return {};
+
+    auto env_method = CallTraits<JniType<T>>::kGetStaticField;
+    auto result = INVOKE(env_, env_method, field.clazz(), field.id());
     RecordException();
     return MakeResult<T>(result);
   }
@@ -226,6 +256,13 @@ class Env {
                            Args&&... args) {
     auto env_method = CallTraits<JniType<T>>::kCallStatic;
     return CallHelper<T>(env_method, clazz.get(), method,
+                         ToJni(Forward<Args>(args))...);
+  }
+
+  template <typename T, typename... Args>
+  ResultType<T> Call(const StaticMethod<T>& method, Args&&... args) {
+    auto env_method = CallTraits<JniType<T>>::kCallStatic;
+    return CallHelper<T>(env_method, method.clazz(), method.id(),
                          ToJni(Forward<Args>(args))...);
   }
 

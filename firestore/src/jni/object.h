@@ -21,7 +21,7 @@ class Env;
 class Object {
  public:
   Object() = default;
-  explicit Object(jobject object) : object_(object) {}
+  constexpr explicit Object(jobject object) : object_(object) {}
   virtual ~Object() = default;
 
   explicit operator bool() const { return object_ != nullptr; }
