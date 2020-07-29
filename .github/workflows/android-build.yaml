@@ -55,7 +55,7 @@ jobs:
 
       - name: Build SDK
         run: |
-          build_scripts/android/build.sh
+          build_scripts/android/build.sh android_build .
       
       - name: Stats for ccache (mac and linux)
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
