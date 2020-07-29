@@ -49,7 +49,7 @@ android {
 }
 
 dependencies {
-  implementation 'com.google.firebase:firebase-analytics:17.4.333'
+  implementation 'com.google.firebase:firebase-analytics:17.4.3'
   implementation project(':app:app_resources')
 }
 
