@@ -1,0 +1,79 @@
+name: Android Builds
+
+on: 
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+env:
+  CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+
+jobs:
+  build:
+    name: android-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        architecture: ["x64",]
+        python_version: [3.7]
+        include:
+        - os: ubuntu-latest
+          architecture: "x64"
+        - os: macos-latest
+          architecture: "x64"
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Set env variables for subsequent steps (all)
+        run: |
+          echo "::set-env name=PIP_REQUIREMENTS_FILE::external/pip_requirements.txt"
+          echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.architecture }}-${{ matrix.python_version }}"
+      
+      - name: Install system level applications (mac)
+        if: startsWith(matrix.os, 'macos')
+        id: macos-brew-install
+        run: |
+          brew install ccache
+          echo "::set-env name=CCACHE_INSTALLED::1"
+      
+      - name: Install system level applications (linux)
+        if: startsWith(matrix.os, 'ubuntu')
+        id: ubuntu-apt-install
+        run: |
+          sudo apt install ccache
+          echo "::set-env name=CCACHE_INSTALLED::1"
+
+      - name: Cache ccache files
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+          architecture: ${{ matrix.architecture }}
+
+      - name: Install prerequisites
+        run: |
+          build_scripts/android/install_prereqs.sh
+
+      - name: Build SDK
+        run: |
+          build_scripts/android/build.sh android_build .
+      
+      - name: Stats for ccache (mac and linux)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        run: ccache -s
+
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find android_build -name "*.aar"
+          find android_build -name "*.jar"
