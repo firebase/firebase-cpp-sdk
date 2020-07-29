@@ -187,11 +187,29 @@ class Env {
                          ToJni(Forward<Args>(args))...);
   }
 
+  // Temporarily allow passing the object parameter with type jobject.
+  // TODO(mcg): Remove once migration is complete
+  template <typename T, typename... Args>
+  ResultType<T> Call(jobject object, jmethodID method, Args&&... args) {
+    auto env_method = CallTraits<JniType<T>>::kCall;
+    return CallHelper<T>(env_method, object, method,
+                         ToJni(Forward<Args>(args))...);
+  }
+
   template <typename T, typename... Args>
   ResultType<T> Call(const Object& object, const Method<T>& method,
                      Args&&... args) {
     auto env_method = CallTraits<JniType<T>>::kCall;
     return CallHelper<T>(env_method, object.get(), method.id(),
+                         ToJni(Forward<Args>(args))...);
+  }
+
+  // Temporarily allow passing the object parameter with type jobject.
+  // TODO(mcg): Remove once migration is complete
+  template <typename T, typename... Args>
+  ResultType<T> Call(jobject object, const Method<T>& method, Args&&... args) {
+    auto env_method = CallTraits<JniType<T>>::kCall;
+    return CallHelper<T>(env_method, object, method.id(),
                          ToJni(Forward<Args>(args))...);
   }
 

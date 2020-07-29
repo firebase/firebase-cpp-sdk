@@ -5,6 +5,7 @@
 #include "app/src/util_android.h"
 #include "firestore/src/jni/declaration.h"
 #include "firestore/src/jni/env.h"
+#include "firestore/src/jni/jni.h"
 
 namespace firebase {
 namespace firestore {
@@ -140,7 +141,9 @@ bool Loader::RegisterNatives(const JNINativeMethod methods[],
 }
 
 void Loader::Unload() {
-  JNIEnv* env = app_->GetJNIEnv();
+  if (loaded_classes_.empty()) return;
+
+  JNIEnv* env = GetEnv();
   for (jclass clazz : loaded_classes_) {
     env->DeleteGlobalRef(clazz);
   }

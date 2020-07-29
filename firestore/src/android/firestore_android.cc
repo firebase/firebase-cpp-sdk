@@ -38,7 +38,9 @@
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/android/write_batch_android.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/env.h"
 #include "firestore/src/jni/jni.h"
+#include "firestore/src/jni/loader.h"
 
 namespace firebase {
 namespace firestore {
@@ -104,6 +106,7 @@ METHOD_LOOKUP_DEFINITION(silent_rejection_executor,
 
 Mutex FirestoreInternal::init_mutex_;  // NOLINT
 int FirestoreInternal::initialize_count_ = 0;
+jni::Loader* FirestoreInternal::loader_ = nullptr;
 
 FirestoreInternal::FirestoreInternal(App* app) {
   FIREBASE_ASSERT(app != nullptr);
@@ -152,7 +155,6 @@ bool FirestoreInternal::Initialize(App* app) {
     if (!(firebase_firestore::CacheMethodIds(env, activity) &&
           // Call Initialize on each Firestore internal class.
           BlobInternal::Initialize(app) &&
-          CollectionReferenceInternal::Initialize(app) &&
           DirectionInternal::Initialize(app) &&
           DocumentChangeInternal::Initialize(app) &&
           DocumentChangeTypeInternal::Initialize(app) &&
@@ -181,6 +183,16 @@ bool FirestoreInternal::Initialize(App* app) {
     }
 
     util::CheckAndClearJniExceptions(env);
+
+    jni::Loader loader(app);
+    CollectionReferenceInternal::Initialize(loader);
+    if (!loader.ok()) {
+      ReleaseClasses(app);
+      return false;
+    }
+
+    FIREBASE_DEV_ASSERT(loader_ == nullptr);
+    loader_ = new jni::Loader(Move(loader));
   }
   initialize_count_++;
   return true;
@@ -209,6 +221,9 @@ bool FirestoreInternal::InitializeEmbeddedClasses(App* app) {
 
 /* static */
 void FirestoreInternal::ReleaseClasses(App* app) {
+  delete loader_;
+  loader_ = nullptr;
+
   JNIEnv* env = app->GetJNIEnv();
   firebase_firestore::ReleaseClass(env);
   silent_rejection_executor::ReleaseClass(env);
@@ -216,7 +231,6 @@ void FirestoreInternal::ReleaseClasses(App* app) {
 
   // Call Terminate on each Firestore internal class.
   BlobInternal::Terminate(app);
-  CollectionReferenceInternal::Terminate(app);
   DirectionInternal::Terminate(app);
   DocumentChangeInternal::Terminate(app);
   DocumentChangeTypeInternal::Terminate(app);
@@ -534,6 +548,14 @@ void FirestoreInternal::UnregisterListenerRegistration(
     delete *iter;
     listener_registrations_.erase(iter);
   }
+}
+
+DocumentReference FirestoreInternal::NewDocumentReference(
+    jni::Env& env, const jni::Object& reference) {
+  if (!env.ok() || !reference) return {};
+
+  return DocumentReference(
+      new DocumentReferenceInternal(this, reference.get()));
 }
 
 /* static */

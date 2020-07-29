@@ -18,6 +18,7 @@
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/settings.h"
+#include "firestore/src/jni/jni_fwd.h"
 
 namespace firebase {
 namespace firestore {
@@ -119,6 +120,8 @@ class FirestoreInternal {
   void UnregisterListenerRegistration(
       ListenerRegistrationInternal* registration);
 
+  DocumentReference NewDocumentReference(jni::Env& env, const jni::Object& doc);
+
   // The constructor explicit Foo(FooInternal*) is protected in public API. But
   // we want it to be public-usable in internal implementation code mainly for
   // those general utility functions. So we provide this helper to allow any
@@ -165,6 +168,7 @@ class FirestoreInternal {
 
   static Mutex init_mutex_;
   static int initialize_count_;
+  static jni::Loader* loader_;
 
   jobject user_callback_executor_;
 

@@ -5,6 +5,7 @@
 
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/query_android.h"
+#include "firestore/src/jni/jni_fwd.h"
 
 namespace firebase {
 namespace firestore {
@@ -23,6 +24,8 @@ class CollectionReferenceInternal : public QueryInternal {
   using ApiType = CollectionReference;
   using QueryInternal::QueryInternal;
 
+  static void Initialize(jni::Loader& loader);
+
   const std::string& id() const;
   const std::string& path() const;
   DocumentReference Parent() const;
@@ -32,9 +35,6 @@ class CollectionReferenceInternal : public QueryInternal {
 
  private:
   friend class FirestoreInternal;
-
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
 
   // Below are cached call results.
   mutable std::string cached_id_;

@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 
+#include "app/meta/move.h"
 #include "app/src/embedded_file.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/jni_fwd.h"
@@ -68,6 +69,15 @@ class Loader {
   void LoadClass(const char* name);
 
   /**
+   * Loads a Java class and all its members in a single invocation.
+   */
+  template <typename... Members>
+  void LoadClass(const char* name, Members&&... members) {
+    LoadClass(name);
+    LoadAll(Forward<Members>(members)...);
+  }
+
+  /**
    * Loads a Java constructor from the last loaded class.
    */
   void Load(ConstructorBase& method);
@@ -86,6 +96,16 @@ class Loader {
    * Loads a Java static method from the last loaded class.
    */
   void Load(StaticMethodBase& method);
+
+  /**
+   * Loads all the given members by calling the appropriate `Load` overload.
+   */
+  template <typename Member, typename... Members>
+  void LoadAll(Member&& first, Members&&... rest) {
+    Load(Forward<Member>(first));
+    LoadAll(Forward<Members>(rest)...);
+  }
+  void LoadAll() {}
 
   /**
    * Registers the given native methods with the JVM.
