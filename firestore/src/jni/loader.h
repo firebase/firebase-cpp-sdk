@@ -3,8 +3,10 @@
 
 #include <jni.h>
 
+#include <string>
 #include <vector>
 
+#include "app/src/embedded_file.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/jni_fwd.h"
 
@@ -42,6 +44,24 @@ class Loader {
   bool ok() const { return ok_; }
 
   /**
+   * Adds metadata about embedded class files in the binary distribution.
+   */
+  void AddEmbeddedFile(const char* name, const unsigned char* data,
+                       size_t size);
+  /**
+   * Unpacks any embedded files added above and writes them out to a temporary
+   * location. `Load(Class&)` will search these files for classes (in addition
+   * to the standard classpath).
+   */
+  void CacheEmbeddedFiles();
+
+  /**
+   * Uses the given class reference as the basis for subsequent loads. The
+   * caller still owns the reference and the Loader will not clean it up.
+   */
+  void UsingClass(jclass existing_ref);
+
+  /**
    * Loads a Java class described by the given class name. The class name as
    * would be passed to `JNIEnv::FindClass`, e.g. `"java/util/String"`.
    */
@@ -67,13 +87,20 @@ class Loader {
    */
   void Load(StaticMethodBase& method);
 
+  /**
+   * Registers the given native methods with the JVM.
+   */
+  bool RegisterNatives(const JNINativeMethod methods[], size_t num_methods);
+
   void Unload();
 
  private:
+  using EmbeddedFile = firebase::internal::EmbeddedFile;
+
   App* app_ = nullptr;
   JNIEnv* env_ = nullptr;
 
-  const char* last_class_name_ = nullptr;
+  std::string last_class_name_;
   jclass last_class_ = nullptr;
 
   bool ok_ = true;
@@ -81,6 +108,9 @@ class Loader {
   // A list of classes that were successfully loaded. This is held as a
   // UniquePtr to allow Loader to be move-only when built with STLPort.
   std::vector<jclass> loaded_classes_;
+
+  // A list of embedded files from which to load classes
+  std::vector<EmbeddedFile> embedded_files_;
 };
 
 }  // namespace jni
