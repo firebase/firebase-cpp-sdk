@@ -2,8 +2,16 @@
 
 if [[ $(uname) == "Darwin" ]]; then
     platform=darwin
+    if [[ ! -z "${GHA_INSTALL_CCACHE}" ]]; then
+        brew install ccache
+        echo "::set-env name=CCACHE_INSTALLED::1"
+    fi
 elif [[ $(uname) == "Linux" ]]; then
     platform=linux
+    if [[ ! -z "${GHA_INSTALL_CCACHE}" ]]; then
+        sudo apt install ccache
+        echo "::set-env name=CCACHE_INSTALLED::1"
+    fi
 else
     echo "Unsupported platform, this script must run on a MacOS or Linux machine."
     exit 1
@@ -53,3 +61,13 @@ if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.p
 	echo "NDK r16b has been downloaded into /tmp/android-ndk-r16b"
     fi
 fi
+
+if [[ ! -z "${INSTALL_CCACHE}" ]]; then
+    if ; then
+        echo "mac!"
+    else
+        echo "linux!"
+    fi
+fi
+    
+

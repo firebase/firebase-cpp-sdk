@@ -30,27 +30,7 @@ jobs:
       - name: Set env variables for subsequent steps (all)
         run: |
           echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.architecture }}
-      
-      - name: Install system level applications (mac)
-        if: startsWith(matrix.os, 'macos')
-        id: macos-brew-install
-        run: |
-          brew install ccache
-          echo "::set-env name=CCACHE_INSTALLED::1"
-      
-      - name: Install system level applications (linux)
-        if: startsWith(matrix.os, 'ubuntu')
-        id: ubuntu-apt-install
-        run: |
-          sudo apt install ccache
-          echo "::set-env name=CCACHE_INSTALLED::1"
-
-      - name: Cache ccache files
-        id: cache_ccache
-        uses: actions/cache@v2
-        with:
-          path: ccache_dir
-          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+          echo "::set-env name=GHA_INSTALL_CCACHE::1"
 
       - name: Setup python
         uses: actions/setup-python@v2
@@ -61,11 +41,18 @@ jobs:
       - name: Install prerequisites
         run: |
           build_scripts/android/install_prereqs.sh
+      
+      - name: Cache ccache files
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
 
       - name: Build SDK
         run: |
           build_scripts/android/build.sh android_build .
-      
+
       - name: Stats for ccache (mac and linux)
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         run: ccache -s
