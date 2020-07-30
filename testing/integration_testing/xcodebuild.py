@@ -96,7 +96,7 @@ def get_args_for_build(
       "BUILD_DIR=" + output_dir
   ]
 
-  if path is None:
+  if not path:
     raise ValueError("Must supply a path.")
   if path.endswith(".xcworkspace"):
     args.extend(("-workspace", path))

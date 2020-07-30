@@ -72,7 +72,7 @@ def read_config(path=None):
         look for 'build_testapps.json' in the same directory as this file.
 
   Returns:
-    A 'Config' containing all the testapp builder's configuration.
+    Config: All of the testapp builder's configuration.
 
   """
   if not path:
@@ -100,7 +100,7 @@ def read_config(path=None):
         compilers=config["compiler_dict"])
   except (KeyError, TypeError, IndexError):
     # The error will be cryptic on its own, so we dump the JSON to
-    # offer context, then reraise it the error.
+    # offer context, then reraise the error.
     print(
         "Error occurred while parsing config. Full config dump:\n"
         + json.dumps(config, sort_keys=True, indent=4, separators=(",", ":")))

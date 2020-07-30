@@ -16,14 +16,16 @@
 
 Usage:
 
-python restore_secrets.py --passphrase <passphrase> --repo_dir <path_to_repo>
+python restore_secrets.py --passphrase [--repo_dir <path_to_repo>]
+python restore_secrets.py --passphrase_file [--repo_dir <path_to_repo>]
 
-repo_dir refers to the C++ SDK github repository. Defaults to current directory.
+--passphrase: Passphrase to decrypt the files. This option is insecure on a
+    multi-user machine; use the --passphrase_file option instead.
+--passphrase_file: Specify a file to read the passphrase from (only reads the
+    first line).
+--repo_dir: Path to C++ SDK Github repository. Defaults to current directory.
 
-As an alternative to passing the passphrase as a flag, the password can be
-stored in a file and passed via the --passphrase_file flag.
-
-This will perform the following:
+This script will perform the following:
 
 - Google Service files (plist and json) will be restored into the
   integration_test directories.
@@ -34,28 +36,32 @@ This will perform the following:
 
 """
 
-import argparse
 import os
 import plistlib
 import subprocess
 
-parser = argparse.ArgumentParser(
-    description="Decrypt and restore the secrets. Must specify one of"
-    " passphrase or passphrase_file.")
-parser.add_argument("--passphrase", help="The passphrase itself.")
-parser.add_argument("--passphrase_file", help="Path to file with passphrase.")
-parser.add_argument("--repo_dir", default=os.getcwd(), help="Path to SDK Repo")
-args = parser.parse_args()
+from absl import app
+from absl import flags
 
 
-def main():
-  repo_dir = args.repo_dir
+FLAGS = flags.FLAGS
+
+flags.DEFINE_string("repo_dir", os.getcwd(), "Path to C++ SDK Github repo.")
+flags.DEFINE_string("passphrase", None, "The passphrase itself.")
+flags.DEFINE_string("passphrase_file", None, "Path to file with passphrase.")
+
+
+def main(argv):
+  if len(argv) > 1:
+    raise app.UsageError("Too many command-line arguments.")
+
+  repo_dir = FLAGS.repo_dir
   # The passphrase is sensitive, do not log.
-  if args.passphrase:
-    passphrase = args.passphrase
-  elif args.passphrase_file:
-    with open(args.passphrase_file, "r") as f:
-      passphrase = f.read()
+  if FLAGS.passphrase:
+    passphrase = FLAGS.passphrase
+  elif FLAGS.passphrase_file:
+    with open(FLAGS.passphrase_file, "r") as f:
+      passphrase = f.readline().strip()
   else:
     raise ValueError("Must supply passphrase or passphrase_file arg.")
 
@@ -105,7 +111,7 @@ def _find_encrypted_files(directory_to_search):
 
 
 def _decrypt(encrypted_file, passphrase):
-  """Generates a decrypted file with same path minus the '.gpg' extension."""
+  """Returns the decrypted contents of the given .gpg file."""
   print("Decrypting %s" % encrypted_file)
   # Note: if setting check=True, be sure to catch the error and not rethrow it
   # or print a traceback, as the message will include the passphrase.
@@ -154,8 +160,8 @@ def _patch_file(path, placeholder, value):
   patched_text = text.replace(placeholder, value)
   with open(path, "w") as f_write:
     f_write.write(patched_text)
-  print("Patched %d instances of %s in %s " % (replacements, placeholder, path))
+  print("Patched %d instances of %s in %s" % (replacements, placeholder, path))
 
 
 if __name__ == "__main__":
-  main()
+  app.run(main)

@@ -13,7 +13,7 @@
 # limitations under the License.
 #
 #
-# Configures C++ testapp XCode projects.
+# Configures C++ integration test XCode projects.
 #
 # This automates the configuration of XCode projects as outlined in the
 # associated testapp readme files. This includes adding frameworks, enabling
@@ -65,6 +65,9 @@ def main
   @target = @project.targets.first
 
   # Examine components rather than substrings to minimize false positives.
+  # Note: this is not ideal. This tool should not be responsible for figuring
+  # out which project it's modifying. That responsibility should belong to
+  # the Python tool invoking this.
   path_components = project_path.split('/')
   if path_components.include?('FirebaseAuth')
     make_changes_for_auth
@@ -91,7 +94,6 @@ end
 def make_changes_for_auth
   puts 'Auth testapp detected.'
   add_entitlements
-  set_reverse_id
   add_system_framework('UserNotifications')
   puts 'Finished making auth-specific changes.'
 end
@@ -99,9 +101,8 @@ end
 def make_changes_for_messaging
   puts 'Messaging testapp detected.'
   add_entitlements
-  set_reverse_id
   add_system_framework('UserNotifications')
-  enable_romote_notification
+  enable_remote_notification
   puts 'Finished making messaging-specific changes.'
 end
 
@@ -122,24 +123,9 @@ def add_entitlements
   puts 'Added entitlement to xcode project.'
 end
 
-# Configures the reverse client id in the xcode project.
-# Needed for Google sign-in.
-# Some testapps may have the REVERSED_CLIENT_ID already set, in which case
-# this won't do anything. e.g. Auth
-def set_reverse_id
-  puts 'Setting the Reverse Id...'
-  google_service_path = "#@xcode_project_dir/GoogleService-Info.plist"
-  google_plist = Xcodeproj::Plist.read_from_path(google_service_path)
-  reverse_id = google_plist['REVERSED_CLIENT_ID']
-  puts "Found reverse id: #{reverse_id}"
-  info_plist_path = "#@xcode_project_dir/Info.plist"
-  info_plist_text = File.read(info_plist_path)
-  info_plist_text = info_plist_text.gsub('YOUR_REVERSED_CLIENT_ID', reverse_id)
-  File.open(info_plist_path, "w") {|file| file.puts info_plist_text}
-  puts "Finished setting the Reverse Id."
-end
-
-def enable_romote_notification
+# This only involves patching a plist file, which should be moved to the
+# Python tool.
+def enable_remote_notification
   puts 'Adding remote-notification to UIBackgroundModes...'
   info_plist_path = "#@xcode_project_dir/Info.plist"
   info_plist =  Xcodeproj::Plist.read_from_path(info_plist_path)

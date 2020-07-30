@@ -79,7 +79,7 @@ def get_provision_id(provision_path):
     provision_path (str): Path to a .mobileprovision file.
 
   Returns:
-    A string corresponding to a UUID.
+    str: UUID.
 
   Raises:
     ValueError: If provision_path is empty or None, or isn't a mobileprovision.
@@ -109,7 +109,7 @@ def _extract_plist(provision_path):
     provision_path (str): Path to a mobileprovision profile.
 
   Returns:
-    Bytes corresponding to a valid plist.
+    bytes: Contents of the plist file.
 
   Raises:
     subprocess.CalledProcessError: Failed to decode the given file.
@@ -129,7 +129,7 @@ def _extract_uuid(plist):
     plist (bytes): Plist bytes read from a mobileprovisioning file.
 
   Returns:
-    A string corresponding to a provisioning UUID.
+    str: UUID.
 
   """
   # In Python 3, readPlistFromString is removed in favor of loads, which is not
