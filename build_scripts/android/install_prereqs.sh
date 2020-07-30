@@ -2,8 +2,16 @@
 
 if [[ $(uname) == "Darwin" ]]; then
     platform=darwin
+    if [[ ! -z "${GHA_INSTALL_CCACHE}" ]]; then
+        brew install ccache
+        echo "::set-env name=CCACHE_INSTALLED::1"
+    fi
 elif [[ $(uname) == "Linux" ]]; then
     platform=linux
+    if [[ ! -z "${GHA_INSTALL_CCACHE}" ]]; then
+        sudo apt install ccache
+        echo "::set-env name=CCACHE_INSTALLED::1"
+    fi
 else
     echo "Unsupported platform, this script must run on a MacOS or Linux machine."
     exit 1
