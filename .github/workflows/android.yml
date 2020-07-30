@@ -29,7 +29,7 @@ jobs:
 
       - name: Set env variables for subsequent steps (all)
         run: |
-          echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.architecture }}
+          echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.architecture }}"
           echo "::set-env name=GHA_INSTALL_CCACHE::1"
 
       - name: Setup python
