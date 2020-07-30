@@ -61,13 +61,3 @@ if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.p
 	echo "NDK r16b has been downloaded into /tmp/android-ndk-r16b"
     fi
 fi
-
-if [[ ! -z "${INSTALL_CCACHE}" ]]; then
-    if ; then
-        echo "mac!"
-    else
-        echo "linux!"
-    fi
-fi
-    
-
