@@ -12,21 +12,34 @@ on:
         default: 'admob,analytics,auth,database,dynamic_links,firestore,functions,instance_id,messaging,remote_config,storage'
         required: true
       operating_systems:
-        description: 'JSON list of VMs to run on'
-        default: '["ubuntu-latest","windows-latest","macos-latest"]'
+        description: 'CSV of VMs to run on'
+        default: 'ubuntu-latest,windows-latest,macos-latest'
         required: true
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
 
 jobs:
-  build:
+  # To feed the operating systems into the job matrix, we first need to convert to a JSON
+  # list. Then we can use fromJson to define the field in the matrix for the tests job.
+  prepare_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix_os: ${{ steps.set-matrix-os.outputs.matrix_os }}
+    steps:
+    - id: set-matrix-os
+      # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
+      run: |
+        OS_JSON=[\"$(echo ${{ github.event.inputs.operating_systems }} | sed 's/,/","/g')\"]
+        echo "::set-output name=matrix_os::${OS_JSON}"
+  tests:
     name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+    needs: prepare_matrix
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJson(github.event.inputs.operating_systems) }}
+        os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
         build_type: ["Debug"]
         architecture: ["x64",]
         python_version: [3.7]
