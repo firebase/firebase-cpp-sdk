@@ -1,0 +1,104 @@
+name: Integration tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      platforms:
+        description: 'CSV of Desktop, Android and/or iOS'
+        default: 'Desktop'
+        required: true
+      apis:
+        description: 'CSV of apis to build and test'
+        default: 'admob,analytics,auth,database,dynamic_links,firestore,functions,instance_id,messaging,remote_config,storage'
+        required: true
+      operating_systems:
+        description: 'CSV of VMs to run on'
+        default: 'ubuntu-latest,windows-latest,macos-latest'
+        required: true
+
+env:
+  CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+
+jobs:
+  # To feed the operating systems into the job matrix, we first need to convert to a JSON
+  # list. Then we can use fromJson to define the field in the matrix for the tests job.
+  prepare_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix_os: ${{ steps.set-matrix-os.outputs.matrix_os }}
+    steps:
+    - id: set-matrix-os
+      # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
+      run: |
+        OS_JSON=[\"$(echo ${{ github.event.inputs.operating_systems }} | sed 's/,/","/g')\"]
+        echo "::set-output name=matrix_os::${OS_JSON}"
+  tests:
+    name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+    needs: prepare_matrix
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
+        build_type: ["Debug"]
+        architecture: ["x64",]
+        python_version: [3.7]
+        include:
+        - os: windows-latest
+          architecture: "x64"
+          vcpkg_triplet: "x64-windows-static"
+          msbuild_platform: "x64"
+        - os: ubuntu-latest
+          architecture: "x64"
+          vcpkg_triplet: "x64-linux"
+        - os: macos-latest
+          architecture: "x64"
+          vcpkg_triplet: "x64-osx"
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Set env variables for subsequent steps (all)
+        run: |
+          echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt"
+          echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}"
+      - name: Cache vcpkg C++ dependencies
+        id: cache_vcpkg
+        uses: actions/cache@v2
+        with:
+          path: external/vcpkg/installed
+          key: dev-vcpkg-${{ matrix.vcpkg_triplet }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+
+      - name: Cache ccache files
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+          architecture: ${{ matrix.architecture }}
+
+      - name: Install SDK prerequisites
+        run: |
+          python scripts/gha/install_prereqs_desktop.py
+          
+      - name: Prepare for integration tests
+        run: |
+          pip install -r testing/integration_testing/requirements.txt
+          python testing/integration_testing/restore_secrets.py --passphrase ${{ secrets.TEST_SECRET }}
+          
+      - name: Build and run integration tests
+        run: |
+          python testing/integration_testing/build_testapps.py \
+            --testapps ${{ github.event.inputs.apis }} \
+            --platforms ${{ github.event.inputs.platforms }} \
+            --output_directory ${{ github.workspace }} \
+            --execute_desktop_testapp \
+            --noadd_timestamp
