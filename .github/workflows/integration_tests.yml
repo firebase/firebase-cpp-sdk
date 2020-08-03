@@ -1,0 +1,16 @@
+# Dummy workflow file so that the corresponding workflow
+# can be manually triggered in branches other than master.
+name: Integration tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      commitId:
+        description: 'description'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dummy step
+        run: echo "Hello, World!"
