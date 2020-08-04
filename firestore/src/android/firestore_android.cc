@@ -38,9 +38,16 @@
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/android/write_batch_android.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/array_list.h"
+#include "firestore/src/jni/collection.h"
 #include "firestore/src/jni/env.h"
+#include "firestore/src/jni/hash_map.h"
+#include "firestore/src/jni/iterator.h"
 #include "firestore/src/jni/jni.h"
+#include "firestore/src/jni/list.h"
 #include "firestore/src/jni/loader.h"
+#include "firestore/src/jni/map.h"
+#include "firestore/src/jni/set.h"
 
 namespace firebase {
 namespace firestore {
@@ -185,6 +192,14 @@ bool FirestoreInternal::Initialize(App* app) {
     util::CheckAndClearJniExceptions(env);
 
     jni::Loader loader(app);
+
+    jni::ArrayList::Initialize(loader);
+    jni::Collection::Initialize(loader);
+    jni::Iterator::Initialize(loader);
+    jni::HashMap::Initialize(loader);
+    jni::List::Initialize(loader);
+    jni::Map::Initialize(loader);
+
     CollectionReferenceInternal::Initialize(loader);
     if (!loader.ok()) {
       ReleaseClasses(app);

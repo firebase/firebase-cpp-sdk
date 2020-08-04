@@ -1,8 +1,10 @@
 #include "firestore/src/jni/loader.h"
 
+#include "app/meta/move.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_android.h"
+#include "firestore/src/jni/class.h"
 #include "firestore/src/jni/declaration.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/jni.h"
@@ -18,7 +20,9 @@ constexpr const char* StripProguardPrefix(const char* class_name) {
 
 }  // namespace
 
-Loader::Loader(App* app) : app_(app), env_(app->GetJNIEnv()) {}
+Loader::Loader(App* app) : app_(app), env_(app->GetJNIEnv()) {
+  Class::Initialize(*this);
+}
 
 Loader::~Loader() { Unload(); }
 
@@ -38,23 +42,20 @@ void Loader::CacheEmbeddedFiles() {
   embedded_files_.clear();
 }
 
-void Loader::UsingClass(jclass existing_ref) {
+void Loader::UsingExistingClass(const char* class_name, jclass existing_ref) {
   if (!ok_) return;
 
+  last_class_name_ = class_name;
   last_class_ = existing_ref;
-
-  Env env(env_);
-  Class clazz(existing_ref);
-  last_class_name_ = clazz.GetName(env);
 }
 
-void Loader::LoadClass(const char* name) {
+void Loader::LoadClass(const char* class_name) {
   if (!ok_) return;
 
-  name = StripProguardPrefix(name);
-  last_class_name_ = name;
+  class_name = StripProguardPrefix(class_name);
+  last_class_name_ = class_name;
   last_class_ = util::FindClassGlobal(env_, app_->activity(), &embedded_files_,
-                                      name, util::kClassRequired);
+                                      class_name, util::kClassRequired);
   if (!last_class_) {
     ok_ = false;
     return;

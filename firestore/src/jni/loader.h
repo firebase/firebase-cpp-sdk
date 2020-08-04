@@ -58,15 +58,34 @@ class Loader {
 
   /**
    * Uses the given class reference as the basis for subsequent loads. The
-   * caller still owns the reference and the Loader will not clean it up.
+   * caller still owns the class reference and the Loader will not clean it up.
+   *
+   * @param class_name The class name the reference represents, in the form
+   *     "java/lang/String".
+   * param existing_ref An existing local or global reference to a Java class.
    */
-  void UsingClass(jclass existing_ref);
+  void UsingExistingClass(const char* class_name, jclass existing_ref);
+
+  /**
+   * Uses the given class reference for loading the given members. The caller
+   * still owns the class reference and the Loader will not clean it up.
+   *
+   * @param class_name The class name the reference represents, in the form
+   *     "java/lang/String".
+   * param existing_ref An existing local or global reference to a Java class.
+   */
+  template <typename... Members>
+  void LoadFromExistingClass(const char* class_name, jclass existing_ref,
+                             Members&&... members) {
+    UsingExistingClass(class_name, existing_ref);
+    LoadAll(Forward<Members>(members)...);
+  }
 
   /**
    * Loads a Java class described by the given class name. The class name as
    * would be passed to `JNIEnv::FindClass`, e.g. `"java/util/String"`.
    */
-  void LoadClass(const char* name);
+  void LoadClass(const char* class_name);
 
   /**
    * Loads a Java class and all its members in a single invocation.

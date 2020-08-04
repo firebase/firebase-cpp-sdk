@@ -3,6 +3,7 @@
 
 #include <string>
 
+#include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
 
 namespace firebase {
@@ -29,8 +30,12 @@ class Class : public Object {
    */
   std::string GetName(Env& env) const;
 
+  bool IsArray(Env& env) const;
+
  private:
   friend class Loader;
+
+  static void Initialize(Loader& loader);
 };
 
 }  // namespace jni

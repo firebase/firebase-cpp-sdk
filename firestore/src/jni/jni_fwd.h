@@ -1,6 +1,8 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_JNI_FWD_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_JNI_FWD_H_
 
+#include <jni.h>
+
 namespace firebase {
 namespace firestore {
 namespace jni {
