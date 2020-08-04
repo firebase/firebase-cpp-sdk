@@ -20,7 +20,7 @@ class LambdaEventListener : public EventListener<T> {
  public:
   LambdaEventListener(std::function<void(const T&, Error)> callback)
       : callback_(firebase::Move(callback)) {
-    FIREBASE_ASSERT(callback);
+    FIREBASE_ASSERT(callback_);
   }
 
   void OnEvent(const T& value, Error error) override {
@@ -36,7 +36,7 @@ class LambdaEventListener<void> : public EventListener<void> {
  public:
   LambdaEventListener(std::function<void()> callback)
       : callback_(firebase::Move(callback)) {
-    FIREBASE_ASSERT(callback);
+    FIREBASE_ASSERT(callback_);
   }
 
   void OnEvent(Error) override { callback_(); }
