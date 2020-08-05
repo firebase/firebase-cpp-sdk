@@ -101,9 +101,4 @@ jobs:
         env:
           NDK_ROOT: '/tmp/android-ndk-r16b'
         run: |
-          python testing/integration_testing/build_testapps.py \
-            --testapps ${{ github.event.inputs.apis }} \
-            --platforms ${{ matrix.target_platform }} \
-            --output_directory ${{ github.workspace }} \
-            --execute_desktop_testapp \
-            --noadd_timestamp
+          python testing/integration_testing/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --execute_desktop_testapp --noadd_timestamp
