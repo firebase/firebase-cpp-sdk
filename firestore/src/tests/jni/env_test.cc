@@ -3,6 +3,7 @@
 #include "app/memory/unique_ptr.h"
 #include "app/meta/move.h"
 #include "firestore/src/android/util_android.h"
+#include "firestore/src/jni/array.h"
 #include "firestore/src/tests/firestore_integration_test.h"
 #include "gtest/gtest.h"
 
@@ -303,6 +304,50 @@ TEST_F(EnvTest, DestructorCanThrow) {
   EXPECT_TRUE(caught_exception);
 }
 #endif  // __cpp_exceptions
+
+TEST_F(EnvTest, ObjectArrayOperations) {
+  Env env;
+  Local<Array<String>> array = env.NewArray<String>(2, String::GetClass());
+
+  array.Set(env, 0, env.NewStringUtf("str"));
+  Local<String> value = array.Get(env, 0);
+  ASSERT_EQ(value.ToString(env), "str");
+
+  value = array.Get(env, 1);
+  ASSERT_EQ(value.get(), nullptr);
+}
+
+TEST_F(EnvTest, PrimitiveArrayOperations) {
+  Env env;
+
+  Class string_class = String::GetClass();
+  jmethodID ctor =
+      env.GetMethodId(string_class, "<init>", "([BLjava/lang/String;)V");
+  jmethodID get_bytes =
+      env.GetMethodId(string_class, "getBytes", "(Ljava/lang/String;)[B");
+
+  Local<String> encoding = env.NewStringUtf("UTF-8");
+
+  std::vector<uint8_t> blob = {'f', 'o', 'o'};
+  Local<Array<uint8_t>> array = env.NewArray<uint8_t>(blob.size());
+  env.SetArrayRegion(array, 0, blob.size(), &blob[0]);
+
+  Local<String> str = env.New<String>(string_class, ctor, array, encoding);
+  ASSERT_EQ(str.ToString(env), "foo");
+
+  Local<Array<uint8_t>> str_bytes =
+      env.Call<Array<uint8_t>>(str, get_bytes, encoding);
+
+  std::vector<uint8_t> result(2);
+  env.GetArrayRegion(str_bytes, 1, 2, &result[0]);
+
+  std::vector<uint8_t> expected = {'o', 'o'};
+  ASSERT_EQ(expected, result);
+
+  result = env.GetArrayRegion<uint8_t>(str_bytes, 2, 1);
+  expected = {'o'};
+  ASSERT_EQ(expected, result);
+}
 
 }  // namespace jni
 }  // namespace firestore

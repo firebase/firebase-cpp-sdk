@@ -5,6 +5,7 @@
 
 #include <string>
 #include <utility>
+#include <vector>
 
 #include "app/meta/move.h"
 #include "firestore/src/jni/call_traits.h"
@@ -310,6 +311,136 @@ class Env {
    */
   std::string GetStringUtfRegion(const String& string, size_t start,
                                  size_t len);
+
+  // MARK: Array Operations
+
+  /**
+   * Returns the length of the given Java Array.
+   */
+  template <typename T>
+  size_t GetArrayLength(const Array<T>& array) {
+    if (!ok()) return 0;
+
+    jsize result = env_->GetArrayLength(array.get());
+    RecordException();
+    return static_cast<size_t>(result);
+  }
+
+  /**
+   * Creates a new object array where `element_class` is the required type for
+   * each element.
+   *
+   * @tparam T The type of the C++ proxy for elements of the array.
+   * @param size The fixed size of the array.
+   * @param element_class The required class of each element, equivalent to the
+   *     literal Java type before the square brackets. That is, to create a Java
+   *     `String[]`, pass `String::GetClass()` for `element_class`.
+   */
+  template <typename T = Object>
+  EnableForReference<T, Local<Array<T>>> NewArray(size_t size,
+                                                  jclass element_class) {
+    if (!ok()) return {};
+
+    jobjectArray result =
+        env_->NewObjectArray(ToJni(size), element_class, nullptr);
+    RecordException();
+    return MakeResult<Array<T>>(result);
+  }
+
+  template <typename T = Object>
+  EnableForReference<Local<Array<T>>> NewArray(size_t size,
+                                               const Class& element_class) {
+    return NewArray<T>(size, element_class.get());
+  }
+
+  /**
+   * Creates a new primitive array where the element type is derived from the
+   * JNI type of `T`.
+   *
+   * @tparam T A C++ primitive type (like `uint8_t`) that maps onto a Java
+   *     primitive type (like `byte`).
+   * @param size The fixed size of the array.
+   */
+  template <typename T>
+  EnableForPrimitive<T, Local<Array<T>>> NewArray(size_t size) {
+    if (!ok()) return {};
+
+    auto env_method = CallTraits<JniType<T>>::kNewArray;
+    auto result = INVOKE(env_, env_method, ToJni(size));
+    RecordException();
+    return MakeResult<Array<T>>(result);
+  }
+
+  /**
+   * Returns a reference to the element at the given index in the Java object
+   * array.
+   */
+  template <typename T = Object>
+  EnableForReference<T, Local<T>> GetArrayElement(const Array<T>& array,
+                                                  size_t index) {
+    if (!ok()) return {};
+
+    jobject result = env_->GetObjectArrayElement(ToJni(array), ToJni(index));
+    RecordException();
+    return MakeResult<T>(result);
+  }
+
+  /**
+   * Sets the value at the given index in the Java object array.
+   */
+  template <typename T = Object>
+  EnableForReference<T, void> SetArrayElement(Array<T>& array, size_t index,
+                                              const Object& value) {
+    if (!ok()) return;
+
+    env_->SetObjectArrayElement(ToJni(array), ToJni(index), ToJni(value));
+    RecordException();
+  }
+
+  /**
+   * Copies elements in the given range from the Java array to the C++ buffer.
+   * The caller must ensure that the buffer is large enough to copy `len`
+   * elements.
+   */
+  template <typename T>
+  EnableForPrimitive<T, void> GetArrayRegion(const Array<T>& array,
+                                             size_t start, size_t len,
+                                             T* buffer) {
+    if (!ok()) return;
+
+    auto env_method = CallTraits<JniType<T>>::kGetArrayRegion;
+    INVOKE(env_, env_method, ToJni(array), ToJni(start), ToJni(len),
+           ToJni(buffer));
+    RecordException();
+  }
+
+  /**
+   * Copies elements in the given range from the Java array to a new C++ vector.
+   */
+  template <typename T>
+  EnableForPrimitive<T, std::vector<T>> GetArrayRegion(const Array<T>& array,
+                                                       size_t start,
+                                                       size_t len) {
+    std::vector<T> result(len);
+    GetArrayRegion(array, start, len, &result[0]);
+    return result;
+  }
+
+  /**
+   * Copies elements from the C++ buffer into the given range of the Java array.
+   * The caller must ensure that the array is large enough to copy `len`
+   * elements.
+   */
+  template <typename T>
+  EnableForPrimitive<T, void> SetArrayRegion(Array<T>& array, size_t start,
+                                             size_t len, const T* buffer) {
+    if (!ok()) return;
+
+    auto env_method = CallTraits<JniType<T>>::kSetArrayRegion;
+    INVOKE(env_, env_method, ToJni(array), ToJni(start), ToJni(len),
+           ToJni(buffer));
+    RecordException();
+  }
 
  private:
   /**

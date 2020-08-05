@@ -31,6 +31,7 @@ template <> struct IsReference<jclass> : public true_type {};
 template <> struct IsReference<jobject> : public true_type {};
 template <> struct IsReference<jstring> : public true_type {};
 template <> struct IsReference<jthrowable> : public true_type {};
+template <> struct IsReference<jarray> : public true_type {};
 template <> struct IsReference<jbyteArray> : public true_type {};
 template <> struct IsReference<jobjectArray> : public true_type {};
 
@@ -56,6 +57,18 @@ template <> struct JniTypeMap<Class> { using type = jclass; };
 template <> struct JniTypeMap<Object> { using type = jobject; };
 template <> struct JniTypeMap<String> { using type = jstring; };
 template <> struct JniTypeMap<Throwable> { using type = jthrowable; };
+
+template <typename T> struct JniTypeMap<Array<T>> {
+  using type = jobjectArray;
+};
+template <> struct JniTypeMap<Array<bool>> { using type = jbooleanArray; };
+template <> struct JniTypeMap<Array<uint8_t>> { using type = jbyteArray; };
+template <> struct JniTypeMap<Array<uint16_t>> { using type = jcharArray; };
+template <> struct JniTypeMap<Array<int16_t>> { using type = jshortArray; };
+template <> struct JniTypeMap<Array<int32_t>> { using type = jintArray; };
+template <> struct JniTypeMap<Array<int64_t>> { using type = jlongArray; };
+template <> struct JniTypeMap<Array<float>> { using type = jfloatArray; };
+template <> struct JniTypeMap<Array<double>> { using type = jdoubleArray; };
 
 template <typename T> struct JniTypeMap<Local<T>> {
   using type = typename JniTypeMap<T>::type;
@@ -90,6 +103,8 @@ namespace internal {
  * When finding a JNI converter, we try the following, in order:
  *   * pass through, for JNI primitive types;
  *   * static casts, for C++ primitive types;
+ *   * reinterpret casts, for C++ pointers to primitive types (only where
+ *     pointed-to sizes match);
  *   * pass through, for JNI reference types like jobject;
  *   * unwrapping, for JNI reference wrapper types like `Object` or
  *     `Local<String>`.
@@ -105,7 +120,7 @@ template <int I>
 struct ConverterChoice : public ConverterChoice<I + 1> {};
 
 template <>
-struct ConverterChoice<3> {};
+struct ConverterChoice<4> {};
 
 /**
  * Converts JNI primitive types to themselves.
@@ -127,11 +142,46 @@ JniType<T> RankedToJni(T value, ConverterChoice<1>) {
 }
 
 /**
+ * Returns true if a reinterpret cast from a pointer to a C++ primitive type to
+ * a pointer to the equivalent JNI type is well-defined. Reinterpreting certain
+ * C++ types does not work:
+ *
+ *   * `bool` doesn't have a fully specified representation so any
+ *     reinterpret_cast of such a value is invalid in portable code.
+ *   * `size_t` does not have a fixed size, so an array of such values cannot
+ *     be portably be reinterpreted as an array of jsize.
+ */
+template <typename T>
+constexpr bool IsConvertiblePointer() {
+  return IsPrimitive<JniType<T>>::value && !is_same<T, bool>::value &&
+         !is_same<T, size_t>::value && sizeof(T) == sizeof(JniType<T>);
+}
+
+/**
+ * Converts pointers to C++ primitive types to their equivalent JNI pointers to
+ * primitive types by casting. This matches all potential primitive pointer
+ * types and will fail to compile if the type is ineligible for automatic
+ * conversion.
+ */
+template <typename T,
+          typename = typename enable_if<IsPrimitive<JniType<T>>::value>::type>
+const JniType<T>* RankedToJni(const T* value, ConverterChoice<2>) {
+  static_assert(IsConvertiblePointer<T>(), "conversion must be well defined");
+  return reinterpret_cast<const JniType<T>*>(value);
+}
+template <typename T,
+          typename = typename enable_if<IsPrimitive<JniType<T>>::value>::type>
+JniType<T>* RankedToJni(T* value, ConverterChoice<2>) {
+  static_assert(IsConvertiblePointer<T>(), "conversion must be well defined");
+  return reinterpret_cast<JniType<T>*>(value);
+}
+
+/**
  * Converts direct use of a JNI reference types to themselves.
  */
 template <typename T,
           typename = typename enable_if<IsReference<T>::value>::type>
-T RankedToJni(T value, ConverterChoice<2>) {
+T RankedToJni(T value, ConverterChoice<3>) {
   return value;
 }
 
@@ -147,7 +197,7 @@ inline jobject RankedToJni(nullptr_t, ConverterChoice<2>) { return nullptr; }
  * Converts wrapper types to JNI references by unwrapping them.
  */
 template <typename T, typename J = JniType<T>>
-J RankedToJni(const T& value, ConverterChoice<3>) {
+J RankedToJni(const T& value, ConverterChoice<4>) {
   return value.get();
 }
 

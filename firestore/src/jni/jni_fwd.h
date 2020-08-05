@@ -28,6 +28,9 @@ class Object;
 class String;
 class Throwable;
 
+template <typename T>
+class Array;
+
 // Declaration types
 class ConstructorBase;
 class MethodBase;

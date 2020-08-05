@@ -129,6 +129,39 @@ TEST_F(TraitsTest, DecaysBeforeMappingTypes) {
   StaticAssertTypeEq<JniType<Object&&>, jobject>();
 }
 
+TEST_F(TraitsTest, ToJniHandlesPointers) {
+  // Baseline sanity checks that undergird our reasoning for being able to
+  // reinterpret_cast pointers to these types. Note that in C++ we prefer
+  // uint8_t for bytes despite the fact that Java defines these as signed.
+  // Even though signedness differs, these types are still similar and therefore
+  // valid to reinterpret.
+  static_assert(is_same<int8_t, jbyte>::value, "JNI type is sane");
+  static_assert(is_same<uint16_t, jchar>::value, "JNI type is sane");
+  static_assert(is_same<int16_t, jshort>::value, "JNI type is sane");
+  static_assert(is_same<int16_t, jshort>::value, "JNI type is sane");
+  static_assert(is_same<int32_t, jint>::value, "JNI type is sane");
+  static_assert(is_same<int64_t, jlong>::value, "JNI type is sane");
+
+  // These assertions reflect our C++ preferred type.
+  static_assert(!internal::IsConvertiblePointer<bool>(), "bool not OK");
+  static_assert(internal::IsConvertiblePointer<uint8_t>(), "uint8_t OK");
+  static_assert(internal::IsConvertiblePointer<uint16_t>(), "uint16_t OK");
+  static_assert(internal::IsConvertiblePointer<int16_t>(), "int16_t OK");
+  static_assert(internal::IsConvertiblePointer<int32_t>(), "int32_t OK");
+  static_assert(internal::IsConvertiblePointer<int64_t>(), "int64_t OK");
+  static_assert(!internal::IsConvertiblePointer<size_t>(), "size_t not OK");
+
+  uint8_t bytes[2] = {1, 2};
+  const jbyte* bytes_result = ToJni(bytes);
+  EXPECT_EQ(*bytes_result, 1);
+  EXPECT_EQ(bytes_result[1], 2);
+
+  int64_t longs[2] = {1, 2};
+  jlong* longs_result = ToJni(static_cast<int64_t*>(longs));
+  EXPECT_EQ(*longs_result, 1);
+  EXPECT_EQ(longs_result[1], 2);
+}
+
 }  // namespace
 }  // namespace jni
 }  // namespace firestore
