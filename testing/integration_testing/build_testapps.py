@@ -35,7 +35,7 @@ DEPENDENCIES:
 The Firebase SDK (prebuilt) or repo must be locally present.
 Path specified by the flag:
 
-    --sdk_dir (default: current working directory),
+    --sdk_dir (default: current working directory)
 
 ----Python Dependencies----
 The requirements.txt file has the required dependencies for this Python tool.
@@ -46,9 +46,8 @@ The requirements.txt file has the required dependencies for this Python tool.
 CMake must be installed and on the system path.
 
 ----Environment Variables (Android only)----
-If building for Android, this tool requires several environment variables.
-If any are missing, the tool will terminate and report the missing environment
-variables. The following lists the required variables, and examples of what
+If building for Android, gradle requires several environment variables.
+The following lists expected variables, and examples of what
 a configured value may look like on MacOS:
 
     JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-8-latest/Contents/Home
@@ -92,6 +91,13 @@ import config_reader
 import provisioning
 import xcodebuild
 
+# Environment variables
+_JAVA_HOME = "JAVA_HOME"
+_ANDROID_HOME = "ANDROID_HOME"
+_ANDROID_SDK_HOME = "ANDROID_SDK_HOME"
+_NDK_ROOT = "NDK_ROOT"
+_ANDROID_NDK_HOME = "ANDROID_NDK_HOME"
+
 # Platforms
 _ANDROID = "Android"
 _IOS = "iOS"
@@ -103,10 +109,6 @@ _IOS_SDK_DEVICE = "device"
 _IOS_SDK_SIMULATOR = "simulator"
 _IOS_SDK_BOTH = "both"
 _SUPPORTED_IOS_SDK = (_IOS_SDK_DEVICE, _IOS_SDK_SIMULATOR, _IOS_SDK_BOTH)
-
-_REQUIRED_ANDROID_ENV_VARS = [
-    "JAVA_HOME", "ANDROID_HOME", "ANDROID_SDK_HOME", "ANDROID_NDK_HOME"
-]
 
 FLAGS = flags.FLAGS
 
@@ -330,15 +332,27 @@ def _build_android(project_dir, sdk_dir):
 
 
 def _validate_android_environment_variables():
-  """Raises an error if any environment variables for Android are missing."""
-  # These are environment variables that must be set for gradle.
-  missing_env_vars = [
-      var for var in _REQUIRED_ANDROID_ENV_VARS if not os.environ.get(var)
-  ]
-  if missing_env_vars:
-    raise ValueError(
-        "Missing required environment variable(s): "
-        + ", ".join(missing_env_vars))
+  """Checks environment variables that may be required for Android."""
+  # Ultimately we let the gradle build be the source of truth on what env vars
+  # are required, but try to repair holes and log warnings if we can't.
+  logging.info("Checking environment variables for the Android build")
+  if not os.environ.get(_ANDROID_NDK_HOME):
+    ndk_root = os.environ.get(_NDK_ROOT)
+    if ndk_root:  # Use NDK_ROOT as a backup for ANDROID_NDK_HOME
+      os.environ[_ANDROID_NDK_HOME] = ndk_root
+      logging.info("%s not found, using %s", _ANDROID_NDK_HOME, _NDK_ROOT)
+    else:
+      logging.warning("Neither %s nor %s is set.", _ANDROID_NDK_HOME, _NDK_ROOT)
+  if not os.environ.get(_JAVA_HOME):
+    logging.warning("%s not set", _JAVA_HOME)
+  if not os.environ.get(_ANDROID_SDK_HOME):
+    android_home = os.environ.get(_ANDROID_HOME)
+    if android_home:  # Use ANDROID_HOME as backup for ANDROID_SDK_HOME
+      os.environ[_ANDROID_SDK_HOME] = android_home
+      logging.info("%s not found, using %s", _ANDROID_SDK_HOME, _ANDROID_HOME)
+    else:
+      logging.warning(
+          "Neither %s nor %s is set", _ANDROID_SDK_HOME, _ANDROID_HOME)
 
 
 def _build_ios(

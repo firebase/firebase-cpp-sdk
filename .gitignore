@@ -5,6 +5,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+### Gradle ###
+.gradle
+**/build/
+
 # Unencrypted secret files
 google-services.json
 GoogleService-Info.plist

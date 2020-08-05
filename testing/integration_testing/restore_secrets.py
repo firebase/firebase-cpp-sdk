@@ -128,7 +128,8 @@ def _decrypt(encrypted_file, passphrase):
       text=True,
       capture_output=True)
   if result.returncode:
-    raise RuntimeError("ERROR: Failed to decrypt %s" % (encrypted_file))
+    # Remove any instances of the passphrase from error before logging it.
+    raise RuntimeError(result.stderr.replace(passphrase, "****"))
   print("Decryption successful")
   return result.stdout
 
