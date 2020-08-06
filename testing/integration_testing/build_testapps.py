@@ -167,6 +167,14 @@ flags.DEFINE_string(
     " Check the config file to see valid choices for this flag."
     " If none, will invoke cmake without specifying a compiler.")
 
+flags.DEFINE_bool(
+    "use_vcpkg", False,
+    "(Desktop only) Use the vcpkg repo inside the C++ repo. For"
+    " this to work, sdk_dir must be set to the repo, not the prebuilt SDK."
+    " Will install vcpkg, use it to install dependencies, and then configure"
+    " CMake to use it.")
+
+
 flags.register_validator(
     "platforms",
     lambda p: all(platform in _SUPPORTED_PLATFORMS for platform in p),
@@ -190,8 +198,16 @@ def main(argv):
   if update_pod_repo and _IOS in platforms:
     _run(["pod", "repo", "update"])
 
+  if FLAGS.use_vcpkg:
+    _run(["git", "submodule", "update", "--init"])
+
   config = config_reader.read_config()
-  compiler_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
+  cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
+  if FLAGS.use_vcpkg:
+    vcpkg = VCPKG.generate(os.path.join(FLAGS.sdk_dir, config.vcpkg_dir))
+    vcpkg.install_and_run()
+    cmake_flags.extend(vcpkg.cmake_flags)
+
   failures = []
   for testapp in testapps:
     logging.info("BEGIN building for %s", testapp)
@@ -207,7 +223,7 @@ def main(argv):
         provisions_dir=os.path.expanduser(FLAGS.provisions_dir),
         ios_sdk=FLAGS.ios_sdk,
         dev_team=config.apple_team_id,
-        compiler_flags=compiler_flags,
+        cmake_flags=cmake_flags,
         execute_desktop_testapp=FLAGS.execute_desktop_testapp)
     logging.info("END building for %s", testapp)
 
@@ -217,7 +233,7 @@ def main(argv):
 
 def _build(
     testapp, platforms, api_config, output_dir, sdk_dir, timestamp, builder_dir,
-    root_dir, provisions_dir, ios_sdk, dev_team, compiler_flags,
+    root_dir, provisions_dir, ios_sdk, dev_team, cmake_flags,
     execute_desktop_testapp):
   """Builds one testapp on each of the specified platforms."""
   testapp_dir = os.path.join(root_dir, api_config.testapp_path)
@@ -239,7 +255,7 @@ def _build(
   if _DESKTOP in platforms:
     logging.info("BEGIN %s, %s", testapp, _DESKTOP)
     try:
-      _build_desktop(sdk_dir, compiler_flags)
+      _build_desktop(sdk_dir, cmake_flags)
       if execute_desktop_testapp:
         _execute_desktop_testapp(project_dir)
     except subprocess.CalledProcessError as e:
@@ -294,8 +310,8 @@ def _summarize_results(testapps, platforms, failures):
     logging.info("\n".join(lines))
 
 
-def _build_desktop(sdk_dir, compiler_flags):
-  _run(["cmake", ".", "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir] + compiler_flags)
+def _build_desktop(sdk_dir, cmake_flags):
+  _run(["cmake", ".", "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir] + cmake_flags)
   _run(["cmake", "--build", "."])
 
 
@@ -442,6 +458,55 @@ def _run(args, timeout=1200):
   """Executes a command in a subprocess."""
   logging.info("Running in subprocess: %s", " ".join(args))
   return subprocess.run(args=args, timeout=timeout, check=True)
+
+
+@attr.s(frozen=True, eq=False)
+class VCPKG(object):
+  """Holds data related to the VCPKG tool used for managing dependent tools."""
+  installer = attr.ib()
+  binary = attr.ib()
+  triplet = attr.ib()
+  response_file = attr.ib()
+  toolchain_file = attr.ib()
+
+  @classmethod
+  def generate(cls, vcpkg_dir):
+    """Generates the VCPKG data based on the given vcpkg submodule path."""
+    installer = os.path.join(vcpkg_dir, "bootstrap-vcpkg")
+    binary = os.path.join(vcpkg_dir, "vcpkg")
+    response_file_fmt = vcpkg_dir + "_%s_response_file.txt"
+    if platform.system() == "Windows":
+      triplet = "x64-windows-static"
+      installer += ".bat"
+      binary += ".exe"
+    elif platform.system() == "Darwin":
+      triplet = "x64-osx"
+      installer += ".sh"
+    elif platform.system() == "Linux":
+      triplet = "x64-linux"
+      installer += ".sh"
+    else:
+      raise ValueError("Unrecognized system: %s" % platform.system())
+    return cls(
+        installer=installer,
+        binary=binary,
+        triplet=triplet,
+        response_file=response_file_fmt % triplet,
+        toolchain_file=os.path.join(
+            vcpkg_dir, "scripts", "buildsystems", "vcpkg.cmake"))
+
+  def install_and_run(self):
+    """Installs vcpkg (if needed) and runs it to install dependencies."""
+    if not os.path.exists(self.binary):
+      _run([self.installer])
+    _run([
+        self.binary, "install", "@" + self.response_file, "--disable-metrics"])
+
+  @property
+  def cmake_flags(self):
+    return [
+        "-DCMAKE_TOOLCHAIN_FILE=%s" % self.toolchain_file,
+        "-DVCPKG_TARGET_TRIPLET=%s" % self.triplet]
 
 
 @attr.s(frozen=True, eq=False)

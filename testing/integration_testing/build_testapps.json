@@ -174,6 +174,7 @@
       "provision": "Google_Development.mobileprovision"
     }
   ],
+  "vcpkg_dir": "external/vcpkg",
   "apple_team_id": "REPLACE_ME_TEMP_INVALID_ID",
   "compiler_dict": {
     "gcc-4.8": [
