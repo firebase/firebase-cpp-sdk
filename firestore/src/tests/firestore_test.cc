@@ -1276,59 +1276,72 @@ TEST_F(FirestoreIntegrationTest,
   EXPECT_EQ(await_pending_writes.status(), FutureStatus::kFutureStatusComplete);
 }
 
-TEST_F(FirestoreIntegrationTest, CanClearPersistenceAfterRestarting) {
-  Firestore* db = CreateFirestore();
-  App* app = db->app();
-  std::string app_name = app->name();
+TEST_F(FirestoreIntegrationTest, CanClearPersistenceTestHarnessVerification) {
+  // Verify that firestore() and DeleteFirestore() behave how we expect;
+  // otherwise, the tests for ClearPersistence() could yield false positives.
+  Firestore* db = firestore();
+  const std::string app_name = db->app()->name();
+  DocumentReference document = db->Collection("a").Document();
+  std::string path = document.path();
+  WriteDocument(document, MapFieldValue{{"foo", FieldValue::Integer(42)}});
+  DeleteFirestore();
 
+  Firestore* db_2 = CachedFirestore(app_name);
+  DocumentReference document_2 = db_2->Document(path);
+  Future<DocumentSnapshot> get_future = document_2.Get(Source::kCache);
+  DocumentSnapshot snapshot_2 = *Await(get_future);
+  EXPECT_THAT(
+      snapshot_2.GetData(),
+      testing::ContainerEq(MapFieldValue{{"foo", FieldValue::Integer(42)}}));
+}
+
+TEST_F(FirestoreIntegrationTest, CanClearPersistenceAfterRestarting) {
+  Firestore* db = firestore();
+  const std::string app_name = db->app()->name();
   DocumentReference document = db->Collection("a").Document("b");
   std::string path = document.path();
   WriteDocument(document, MapFieldValue{{"foo", FieldValue::Integer(42)}});
 
-  // ClearPersistence() requires Firestore to be terminated. Delete the app and
-  // the Firestore instance to emulate the way an end user would do this.
+  // ClearPersistence() requires Firestore to be terminated. Call
+  // DeleteFirestore() to ensure that both the App and Firestore instances
+  // are deleted, which emulates the way an end user would clear persistence.
   Await(db->Terminate());
   Await(db->ClearPersistence());
-  Release(db);
+  DeleteFirestore();
 
   // We restart the app with the same name and options to check that the
   // previous instance's persistent storage is actually cleared after the
-  // restart. Calling firestore() here would create a new instance of firestore,
-  // which defeats the purpose of this test.
-  Firestore* db_2 = CreateFirestore(app_name);
+  // restart. Although calling firestore() here would do the same thing, we
+  // use CachedFirestore() to be explicit about getting a new Firestore instance
+  // for the same Firebase app.
+  Firestore* db_2 = CachedFirestore(app_name);
   DocumentReference document_2 = db_2->Document(path);
   Future<DocumentSnapshot> await_get = document_2.Get(Source::kCache);
   Await(await_get);
   EXPECT_EQ(await_get.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(await_get.error(), Error::kErrorUnavailable);
-  Release(db_2);
 }
 
 TEST_F(FirestoreIntegrationTest, CanClearPersistenceOnANewFirestoreInstance) {
-  Firestore* db = CreateFirestore();
-  App* app = db->app();
-  std::string app_name = app->name();
-
+  Firestore* db = firestore();
+  const std::string app_name = db->app()->name();
   DocumentReference document = db->Collection("a").Document("b");
   std::string path = document.path();
   WriteDocument(document, MapFieldValue{{"foo", FieldValue::Integer(42)}});
-
-  Await(db->Terminate());
-  delete db;
-  delete app;
+  DeleteFirestore();
 
   // We restart the app with the same name and options to check that the
   // previous instance's persistent storage is actually cleared after the
-  // restart. Calling firestore() here would create a new instance of firestore,
-  // which defeats the purpose of this test.
-  Firestore* db_2 = CreateFirestore(app_name);
+  // restart. Although calling firestore() here would do the same thing, we
+  // use CachedFirestore() to be explicit about getting a new Firestore instance
+  // for the same Firebase app.
+  Firestore* db_2 = CachedFirestore(app_name);
   Await(db_2->ClearPersistence());
   DocumentReference document_2 = db_2->Document(path);
   Future<DocumentSnapshot> await_get = document_2.Get(Source::kCache);
   Await(await_get);
   EXPECT_EQ(await_get.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(await_get.error(), Error::kErrorUnavailable);
-  Release(db_2);
 }
 
 TEST_F(FirestoreIntegrationTest, ClearPersistenceWhileRunningFails) {
