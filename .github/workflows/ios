@@ -1,0 +1,30 @@
+name: iOS Testapps Build
+
+on: [push, workflow_dispatch]
+
+  
+
+jobs:
+  build:
+    env:
+      plist_secret: ${{ secrets.GHASecretsGPGPassphrase1 }}
+    name: ios_testapps-${{ matrix.ios_sdk }}-${{ matrix.testapps }}-${{ matrix.python_version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest]
+        ios_sdk: ["simulator", "device"]
+        testapps: ["all"]
+        python_version: [3.7]
+    steps:
+      - uses: actions/checkout@v1
+      - name: Test echo
+        run: |
+          echo "this is a test"
+      - shell: bash
+        env:
+          SUPER_SECRET: ${{ secrets.SuperSecret }}
+        run: |
+          scripts/decrypt_gha_secret.sh \
+           scripts/gha-encrypted/admob/GoogleService-Info.plist.gpg FirebaseAuth/admob/GoogleService-Info.plist "$plist_secret"
