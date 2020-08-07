@@ -13,6 +13,7 @@
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
 #include "firestore/src/jni/jni_fwd.h"
+#include "firestore/src/jni/object.h"
 
 namespace firebase {
 namespace firestore {
@@ -49,7 +50,8 @@ class Wrapper {
   Wrapper& operator=(Wrapper&& wrapper) = delete;
 
   FirestoreInternal* firestore_internal() { return firestore_; }
-  jobject java_object() { return obj_; }
+  jobject java_object() const { return obj_; }
+  jni::Object ToJava() const { return jni::Object(obj_); }
 
   // Tests the equality of the wrapped Java Object.
   bool EqualsJavaObject(const Wrapper& other) const;
@@ -93,8 +95,7 @@ class Wrapper {
   // Converts a MapFieldValue to a java Map object that maps String to Object.
   // The caller is responsible for freeing the returned jobject via
   // JNIEnv::DeleteLocalRef().
-  static jobject MapFieldValueToJavaMap(FirestoreInternal* firestore,
-                                        const MapFieldValue& data);
+  jobject MapFieldValueToJavaMap(const MapFieldValue& data);
 
   // Makes a variadic parameters from C++ MapFieldPathValue iterators up to the
   // given size. The caller is responsible for freeing the returned jobject via
@@ -102,8 +103,8 @@ class Wrapper {
   // MapFieldPathValue directly because the Android native client API may
   // require passing the first pair explicit and thus the variadic starting from
   // the second pair.
-  static jobjectArray MapFieldPathValueToJavaArray(
-      FirestoreInternal* firestore, MapFieldPathValue::const_iterator begin,
+  jobjectArray MapFieldPathValueToJavaArray(
+      MapFieldPathValue::const_iterator begin,
       MapFieldPathValue::const_iterator end);
 
   FirestoreInternal* firestore_ = nullptr;  // not owning

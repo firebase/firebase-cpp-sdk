@@ -14,9 +14,17 @@
 #include "firestore/src/android/source_android.h"
 #include "firestore/src/android/util_android.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/env.h"
 
 namespace firebase {
 namespace firestore {
+namespace {
+
+using jni::Env;
+using jni::Local;
+using jni::Object;
+
+}  // namespace
 
 METHOD_LOOKUP_DEFINITION(query,
                          PROGUARD_KEEP_CLASS
@@ -30,14 +38,15 @@ Firestore* QueryInternal::firestore() {
 
 Query QueryInternal::OrderBy(const FieldPath& field,
                              Query::Direction direction) {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject j_field = FieldPathConverter::ToJavaObject(env, field);
+  Env new_env = GetEnv();
+  JNIEnv* env = new_env.get();
+  Local<Object> j_field = FieldPathConverter::Create(new_env, field);
+  CheckAndClearJniExceptions(env);
   jobject j_direction = DirectionInternal::ToJavaObject(env, direction);
   jobject query = env->CallObjectMethod(
-      obj_, query::GetMethodId(query::kOrderBy), j_field, j_direction);
+      obj_, query::GetMethodId(query::kOrderBy), j_field.get(), j_direction);
   CheckAndClearJniExceptions(env);
   QueryInternal* internal = new QueryInternal{firestore_, query};
-  env->DeleteLocalRef(j_field);
   env->DeleteLocalRef(query);
 
   CheckAndClearJniExceptions(env);
@@ -73,10 +82,14 @@ Query QueryInternal::LimitToLast(int32_t limit) {
 }
 
 Future<QuerySnapshot> QueryInternal::Get(Source source) {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject task =
-      env->CallObjectMethod(obj_, query::GetMethodId(query::kGet),
-                            SourceInternal::ToJavaObject(env, source));
+  Env new_env = GetEnv();
+  Local<Object> java_source = SourceInternal::Create(new_env, source);
+
+  JNIEnv* env = new_env.get();
+  CheckAndClearJniExceptions(env);
+
+  jobject task = env->CallObjectMethod(obj_, query::GetMethodId(query::kGet),
+                                       java_source.get());
   CheckAndClearJniExceptions(env);
 
   auto promise = promises_.MakePromise<QuerySnapshot>();
@@ -104,13 +117,15 @@ void QueryInternal::Terminate(App* app) {
 
 Query QueryInternal::Where(const FieldPath& field, query::Method method,
                            const FieldValue& value) {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject path = FieldPathConverter::ToJavaObject(env, field);
-  jobject query = env->CallObjectMethod(obj_, query::GetMethodId(method), path,
-                                        value.internal_->java_object());
+  Env new_env = GetEnv();
+  JNIEnv* env = new_env.get();
+  Local<Object> path = FieldPathConverter::Create(new_env, field);
+  CheckAndClearJniExceptions(env);
+  jobject query =
+      env->CallObjectMethod(obj_, query::GetMethodId(method), path.get(),
+                            value.internal_->java_object());
   CheckAndClearJniExceptions(env);
   QueryInternal* internal = new QueryInternal{firestore_, query};
-  env->DeleteLocalRef(path);
   env->DeleteLocalRef(query);
 
   CheckAndClearJniExceptions(env);
@@ -119,7 +134,8 @@ Query QueryInternal::Where(const FieldPath& field, query::Method method,
 
 Query QueryInternal::Where(const FieldPath& field, query::Method method,
                            const std::vector<FieldValue>& values) {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
+  Env new_env = GetEnv();
+  JNIEnv* env = new_env.get();
 
   // Convert std::vector into java.util.List object.
   // TODO(chenbrian): Refactor this into a helper function.
@@ -135,12 +151,12 @@ Query QueryInternal::Where(const FieldPath& field, query::Method method,
     CheckAndClearJniExceptions(env);
   }
 
-  jobject path = FieldPathConverter::ToJavaObject(env, field);
-  jobject query = env->CallObjectMethod(obj_, query::GetMethodId(method), path,
-                                        converted_values);
+  Local<Object> path = FieldPathConverter::Create(new_env, field);
+  CheckAndClearJniExceptions(env);
+  jobject query = env->CallObjectMethod(obj_, query::GetMethodId(method),
+                                        path.get(), converted_values);
   CheckAndClearJniExceptions(env);
   QueryInternal* internal = new QueryInternal{firestore_, query};
-  env->DeleteLocalRef(path);
   env->DeleteLocalRef(query);
   env->DeleteLocalRef(converted_values);
 
@@ -190,19 +206,21 @@ ListenerRegistration QueryInternal::AddSnapshotListener(
 ListenerRegistration QueryInternal::AddSnapshotListener(
     MetadataChanges metadata_changes, EventListener<QuerySnapshot>* listener,
     bool passing_listener_ownership) {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
+  Env new_env = GetEnv();
+  JNIEnv* env = new_env.get();
 
   // Create listener.
   jobject java_listener =
       EventListenerInternal::EventListenerToJavaEventListener(env, firestore_,
                                                               listener);
-  jobject java_metadata =
-      MetadataChangesInternal::ToJavaObject(env, metadata_changes);
+  Local<Object> java_metadata =
+      MetadataChangesInternal::Create(new_env, metadata_changes);
+  CheckAndClearJniExceptions(env);
 
   // Register listener.
   jobject java_registration = env->CallObjectMethod(
       obj_, query::GetMethodId(query::kAddSnapshotListener),
-      firestore_->user_callback_executor(), java_metadata, java_listener);
+      firestore_->user_callback_executor(), java_metadata.get(), java_listener);
   env->DeleteLocalRef(java_listener);
   CheckAndClearJniExceptions(env);
 

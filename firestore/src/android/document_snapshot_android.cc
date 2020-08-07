@@ -12,11 +12,19 @@
 #include "firestore/src/android/snapshot_metadata_android.h"
 #include "firestore/src/android/util_android.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/env.h"
 
 namespace firebase {
 namespace firestore {
+namespace {
+
+using jni::Env;
+using jni::Local;
+using jni::Object;
 
 using ServerTimestampBehavior = DocumentSnapshot::ServerTimestampBehavior;
+
+}  // namespace
 
 // clang-format off
 #define DOCUMENT_SNAPSHOT_METHODS(X)                            \
@@ -112,26 +120,26 @@ MapFieldValue DocumentSnapshotInternal::GetData(
 
 FieldValue DocumentSnapshotInternal::Get(const FieldPath& field,
                                          ServerTimestampBehavior stb) const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject field_path = FieldPathConverter::ToJavaObject(env, field);
+  Env new_env = GetEnv();
+  JNIEnv* env = new_env.get();
+  Local<Object> java_field = FieldPathConverter::Create(new_env, field);
+  CheckAndClearJniExceptions(env);
 
   // Android returns null for both null fields and nonexistent fields, so first
   // use contains() to check if the field exists.
   jboolean contains_field = env->CallBooleanMethod(
       obj_, document_snapshot::GetMethodId(document_snapshot::kContains),
-      field_path);
+      java_field.get());
   CheckAndClearJniExceptions(env);
   if (!contains_field) {
-    env->DeleteLocalRef(field_path);
     return FieldValue();
   } else {
     jobject stb_enum = ServerTimestampBehaviorInternal::ToJavaObject(env, stb);
 
     jobject field_value = env->CallObjectMethod(
         obj_, document_snapshot::GetMethodId(document_snapshot::kGet),
-        field_path, stb_enum);
+        java_field.get(), stb_enum);
     CheckAndClearJniExceptions(env);
-    env->DeleteLocalRef(field_path);
 
     FieldValue result{new FieldValueInternal{firestore_, field_value}};
     env->DeleteLocalRef(field_value);

@@ -85,7 +85,7 @@ class Loader {
    * Loads a Java class described by the given class name. The class name as
    * would be passed to `JNIEnv::FindClass`, e.g. `"java/util/String"`.
    */
-  void LoadClass(const char* class_name);
+  jclass LoadClass(const char* class_name);
 
   /**
    * Loads a Java class and all its members in a single invocation.

@@ -165,21 +165,16 @@ bool FirestoreInternal::Initialize(App* app) {
           DirectionInternal::Initialize(app) &&
           DocumentChangeInternal::Initialize(app) &&
           DocumentChangeTypeInternal::Initialize(app) &&
-          DocumentReferenceInternal::Initialize(app) &&
           DocumentSnapshotInternal::Initialize(app) &&
-          FieldPathConverter::Initialize(app) &&
           FieldValueInternal::Initialize(app) &&
           FirebaseFirestoreExceptionInternal::Initialize(app) &&
           FirebaseFirestoreSettingsInternal::Initialize(app) &&
           GeoPointInternal::Initialize(app) &&
           ListenerRegistrationInternal::Initialize(app) &&
-          MetadataChangesInternal::Initialize(app) &&
           QueryInternal::Initialize(app) &&
           QuerySnapshotInternal::Initialize(app) &&
           ServerTimestampBehaviorInternal::Initialize(app) &&
-          SetOptionsInternal::Initialize(app) &&
           SnapshotMetadataInternal::Initialize(app) &&
-          SourceInternal::Initialize(app) &&
           TimestampInternal::Initialize(app) &&
           TransactionInternal::Initialize(app) && Wrapper::Initialize(app) &&
           WriteBatchInternal::Initialize(app) &&
@@ -195,12 +190,18 @@ bool FirestoreInternal::Initialize(App* app) {
 
     jni::ArrayList::Initialize(loader);
     jni::Collection::Initialize(loader);
+    FieldPathConverter::Initialize(loader);
     jni::Iterator::Initialize(loader);
     jni::HashMap::Initialize(loader);
     jni::List::Initialize(loader);
     jni::Map::Initialize(loader);
 
     CollectionReferenceInternal::Initialize(loader);
+    DocumentReferenceInternal::Initialize(loader);
+    FieldPathConverter::Initialize(loader);
+    MetadataChangesInternal::Initialize(loader);
+    SetOptionsInternal::Initialize(loader);
+    SourceInternal::Initialize(loader);
     if (!loader.ok()) {
       ReleaseClasses(app);
       return false;
@@ -252,19 +253,15 @@ void FirestoreInternal::ReleaseClasses(App* app) {
   DocumentReferenceInternal::Terminate(app);
   DocumentSnapshotInternal::Terminate(app);
   EventListenerInternal::Terminate(app);
-  FieldPathConverter::Terminate(app);
   FieldValueInternal::Terminate(app);
   FirebaseFirestoreExceptionInternal::Terminate(app);
   FirebaseFirestoreSettingsInternal::Terminate(app);
   GeoPointInternal::Terminate(app);
   ListenerRegistrationInternal::Terminate(app);
-  MetadataChangesInternal::Terminate(app);
   QueryInternal::Terminate(app);
   QuerySnapshotInternal::Terminate(app);
   ServerTimestampBehaviorInternal::Terminate(app);
-  SetOptionsInternal::Terminate(app);
   SnapshotMetadataInternal::Terminate(app);
-  SourceInternal::Terminate(app);
   TimestampInternal::Terminate(app);
   TransactionInternal::Terminate(app);
   Wrapper::Terminate(app);
@@ -565,12 +562,28 @@ void FirestoreInternal::UnregisterListenerRegistration(
   }
 }
 
+CollectionReference FirestoreInternal::NewCollectionReference(
+    jni::Env& env, const jni::Object& reference) {
+  if (!env.ok() || !reference) return {};
+
+  return CollectionReference(
+      new CollectionReferenceInternal(this, reference.get()));
+}
+
 DocumentReference FirestoreInternal::NewDocumentReference(
     jni::Env& env, const jni::Object& reference) {
   if (!env.ok() || !reference) return {};
 
   return DocumentReference(
       new DocumentReferenceInternal(this, reference.get()));
+}
+
+ListenerRegistration FirestoreInternal::NewListenerRegistration(
+    jni::Env& env, EventListener<DocumentSnapshot>* listener,
+    bool passing_listener_ownership, const jni::Object& registration) {
+  if (!env.ok() || !registration) return {};
+  return ListenerRegistration(new ListenerRegistrationInternal(
+      this, listener, passing_listener_ownership, registration.get()));
 }
 
 /* static */

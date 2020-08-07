@@ -11,10 +11,18 @@
 #include "firestore/src/android/query_snapshot_android.h"
 #include "firestore/src/android/util_android.h"
 #include "firestore/src/include/firebase/firestore/query_snapshot.h"
+#include "firestore/src/jni/env.h"
 #include "firebase/firestore/firestore_errors.h"
 
 namespace firebase {
 namespace firestore {
+namespace {
+
+using jni::Env;
+using jni::Local;
+using jni::Object;
+
+}  // namespace
 
 #define CPP_EVENT_LISTENER_METHODS(X) \
   X(DiscardPointers, "discardPointers", "()V")
@@ -101,6 +109,13 @@ void EventListenerInternal::VoidEventListenerNativeOnEvent(JNIEnv* env,
       reinterpret_cast<EventListener<void>*>(listener_ptr);
 
   listener->OnEvent(Error::kErrorOk);
+}
+
+Local<Object> EventListenerInternal::Create(
+    Env& env, FirestoreInternal* firestore,
+    EventListener<DocumentSnapshot>* listener) {
+  return Local<Object>(env.get(), EventListenerToJavaEventListener(
+                                      env.get(), firestore, listener));
 }
 
 /* static */

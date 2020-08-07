@@ -7,6 +7,7 @@
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/event_listener.h"
+#include "firestore/src/jni/jni_fwd.h"
 
 namespace firebase {
 namespace firestore {
@@ -23,6 +24,10 @@ class EventListenerInternal {
                                               jobject error);
   static void VoidEventListenerNativeOnEvent(JNIEnv* env, jclass clazz,
                                              jlong listener_ptr);
+
+  static jni::Local<jni::Object> Create(
+      jni::Env& env, FirestoreInternal* firestore,
+      EventListener<DocumentSnapshot>* listener);
 
   static jobject EventListenerToJavaEventListener(
       JNIEnv* env, FirestoreInternal* firestore,

@@ -120,13 +120,19 @@ class FirestoreInternal {
   void UnregisterListenerRegistration(
       ListenerRegistrationInternal* registration);
 
-  DocumentReference NewDocumentReference(jni::Env& env, const jni::Object& doc);
+  CollectionReference NewCollectionReference(jni::Env& env,
+                                             const jni::Object& reference);
+  DocumentReference NewDocumentReference(jni::Env& env,
+                                         const jni::Object& reference);
+  ListenerRegistration NewListenerRegistration(
+      jni::Env& env, EventListener<DocumentSnapshot>* listener,
+      bool passing_listener_ownership, const jni::Object& registration);
 
-  // The constructor explicit Foo(FooInternal*) is protected in public API. But
-  // we want it to be public-usable in internal implementation code mainly for
-  // those general utility functions. So we provide this helper to allow any
-  // internal code to use that constructor. Here we assume FirestoreInternal is
-  // a friend class of InternalType::ApiType.
+  // The constructor explicit Foo(FooInternal*) is protected in public API.
+  // But we want it to be public-usable in internal implementation code
+  // mainly for those general utility functions. So we provide this helper
+  // to allow any internal code to use that constructor. Here we assume
+  // FirestoreInternal is a friend class of InternalType::ApiType.
   template <typename InternalType>
   static typename InternalType::ApiType Wrap(InternalType* internal) {
     return typename InternalType::ApiType{internal};

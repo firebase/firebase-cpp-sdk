@@ -49,8 +49,8 @@ void Loader::UsingExistingClass(const char* class_name, jclass existing_ref) {
   last_class_ = existing_ref;
 }
 
-void Loader::LoadClass(const char* class_name) {
-  if (!ok_) return;
+jclass Loader::LoadClass(const char* class_name) {
+  if (!ok_) return nullptr;
 
   class_name = StripProguardPrefix(class_name);
   last_class_name_ = class_name;
@@ -58,10 +58,11 @@ void Loader::LoadClass(const char* class_name) {
                                       class_name, util::kClassRequired);
   if (!last_class_) {
     ok_ = false;
-    return;
+    return nullptr;
   }
 
   loaded_classes_.push_back(last_class_);
+  return last_class_;
 }
 
 void Loader::Load(ConstructorBase& ctor) {

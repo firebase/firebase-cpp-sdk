@@ -10,9 +10,15 @@
 #include "firestore/src/android/query_android.h"
 #include "firestore/src/android/snapshot_metadata_android.h"
 #include "firestore/src/android/util_android.h"
+#include "firestore/src/jni/env.h"
 
 namespace firebase {
 namespace firestore {
+namespace {
+
+using jni::Env;
+
+}  // namespace
 
 // clang-format off
 #define QUERY_SNAPSHOT_METHODS(X)                                          \
@@ -56,12 +62,15 @@ SnapshotMetadata QuerySnapshotInternal::metadata() const {
 
 std::vector<DocumentChange> QuerySnapshotInternal::DocumentChanges(
     MetadataChanges metadata_changes) const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject j_metadata_changes =
-      MetadataChangesInternal::ToJavaObject(env, metadata_changes);
+  Env new_env = GetEnv();
+  auto java_metadata =
+      MetadataChangesInternal::Create(new_env, metadata_changes);
+  new_env.ExceptionClear();
+
+  JNIEnv* env = new_env.get();
   jobject change_list = env->CallObjectMethod(
       obj_, query_snapshot::GetMethodId(query_snapshot::kDocumentChanges),
-      j_metadata_changes);
+      java_metadata.get());
   CheckAndClearJniExceptions(env);
 
   std::vector<DocumentChange> result;

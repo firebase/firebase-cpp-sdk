@@ -81,6 +81,10 @@ class FieldValueInternal : public Wrapper {
 
 bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs);
 
+inline jobject ToJni(const FieldValueInternal& value) {
+  return value.java_object();
+}
+
 }  // namespace firestore
 }  // namespace firebase
 

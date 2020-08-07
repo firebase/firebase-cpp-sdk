@@ -9,6 +9,7 @@
 #include "firestore/src/android/geo_point_android.h"
 #include "firestore/src/android/timestamp_android.h"
 #include "firestore/src/android/util_android.h"
+#include "firestore/src/jni/class.h"
 
 namespace firebase {
 namespace firestore {
@@ -198,7 +199,7 @@ Type FieldValueInternal::type() const {
     cached_type_ = Type::kBlob;
     return Type::kBlob;
   }
-  if (env->IsInstanceOf(obj_, DocumentReferenceInternal::GetClass())) {
+  if (env->IsInstanceOf(obj_, DocumentReferenceInternal::GetClass().get())) {
     cached_type_ = Type::kReference;
     return Type::kReference;
   }
@@ -348,7 +349,7 @@ DocumentReference FieldValueInternal::reference_value() const {
   // Make sure this instance is of correct type.
   if (cached_type_ == Type::kNull) {
     FIREBASE_ASSERT(
-        env->IsInstanceOf(obj_, DocumentReferenceInternal::GetClass()));
+        env->IsInstanceOf(obj_, DocumentReferenceInternal::GetClass().get()));
     cached_type_ = Type::kReference;
   } else {
     FIREBASE_ASSERT(cached_type_ == Type::kReference);

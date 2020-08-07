@@ -11,6 +11,13 @@
 
 namespace firebase {
 namespace firestore {
+namespace {
+
+using jni::Env;
+using jni::Local;
+using jni::Object;
+
+}  // namespace
 
 // clang-format off
 #define OBJECT_METHOD(X) X(Equals, "equals", "(Ljava/lang/Object;)Z")
@@ -104,10 +111,8 @@ bool Wrapper::EqualsJavaObject(const Wrapper& other) const {
   return static_cast<bool>(result);
 }
 
-/* static */
-jobject Wrapper::MapFieldValueToJavaMap(FirestoreInternal* firestore,
-                                        const MapFieldValue& data) {
-  JNIEnv* env = firestore->app()->GetJNIEnv();
+jobject Wrapper::MapFieldValueToJavaMap(const MapFieldValue& data) {
+  JNIEnv* env = firestore_->app()->GetJNIEnv();
 
   // Creates an empty Java HashMap (implementing Map) object.
   jobject result =
@@ -130,11 +135,11 @@ jobject Wrapper::MapFieldValueToJavaMap(FirestoreInternal* firestore,
   return result;
 }
 
-/* static */
 jobjectArray Wrapper::MapFieldPathValueToJavaArray(
-    FirestoreInternal* firestore, MapFieldPathValue::const_iterator begin,
+    MapFieldPathValue::const_iterator begin,
     MapFieldPathValue::const_iterator end) {
-  JNIEnv* env = firestore->app()->GetJNIEnv();
+  Env new_env = GetEnv();
+  JNIEnv* env = new_env.get();
 
   const auto size = std::distance(begin, end) * 2;
   jobjectArray result = env->NewObjectArray(size, util::object::GetClass(),
@@ -143,9 +148,8 @@ jobjectArray Wrapper::MapFieldPathValueToJavaArray(
 
   int index = 0;
   for (auto iter = begin; iter != end; ++iter) {
-    jobject field = FieldPathConverter::ToJavaObject(env, iter->first);
-    env->SetObjectArrayElement(result, index, field);
-    env->DeleteLocalRef(field);
+    Local<Object> field = FieldPathConverter::Create(new_env, iter->first);
+    env->SetObjectArrayElement(result, index, field.get());
     ++index;
 
     env->SetObjectArrayElement(result, index,
