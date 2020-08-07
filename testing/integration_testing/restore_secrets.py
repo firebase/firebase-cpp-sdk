@@ -132,7 +132,8 @@ def _decrypt(encrypted_file, passphrase):
     # Remove any instances of the passphrase from error before logging it.
     raise RuntimeError(result.stderr.replace(passphrase, "****"))
   print("Decryption successful")
-  return result.stdout
+  # rstrip to eliminate a linebreak that GPG may introduce.
+  return result.stdout.rstrip()
 
 
 def _patch_reverse_id(service_plist_path):
