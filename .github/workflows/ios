@@ -1,8 +1,6 @@
 name: iOS Testapps Build
 
-on: [push, workflow_dispatch]
-
-  
+on: [push, workflow_dispatch] 
 
 jobs:
   build:
