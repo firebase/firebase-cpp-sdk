@@ -134,18 +134,9 @@ Future<void> DocumentReferenceInternal::Update(const MapFieldPathValue& data) {
   }
 
   Env env = GetEnv();
-  auto iter = data.begin();
-  Local<Object> first_field = FieldPathConverter::Create(env, iter->first);
-  jobject first_value = iter->second.internal_->java_object();
-  ++iter;
-
-  // Make the varargs
-  jobjectArray more_fields_and_values =
-      MapFieldPathValueToJavaArray(iter, data.end());
-
-  Local<Object> task = env.Call(obj_, kUpdateVarargs, first_field, first_value,
-                                more_fields_and_values);
-  env.get()->DeleteLocalRef(more_fields_and_values);
+  UpdateFieldPathArgs args = MakeUpdateFieldPathArgs(env, data);
+  Local<Object> task = env.Call(obj_, kUpdateVarargs, args.first_field,
+                                args.first_value, args.varargs);
 
   return promises_.NewFuture<void>(env, AsyncFn::kUpdate, task);
 }

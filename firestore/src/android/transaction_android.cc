@@ -13,12 +13,14 @@
 #include "firestore/src/android/firebase_firestore_exception_android.h"
 #include "firestore/src/android/set_options_android.h"
 #include "firestore/src/jni/env.h"
+#include "firestore/src/jni/hash_map.h"
 
 namespace firebase {
 namespace firestore {
 namespace {
 
 using jni::Env;
+using jni::HashMap;
 using jni::Local;
 using jni::Object;
 
@@ -60,28 +62,19 @@ METHOD_LOOKUP_DEFINITION(
 void TransactionInternal::Set(const DocumentReference& document,
                               const MapFieldValue& data,
                               const SetOptions& options) {
-  Env new_env = GetEnv();
-  JNIEnv* env = new_env.get();
-
-  jobject data_map = MapFieldValueToJavaMap(data);
-  Local<Object> java_options = SetOptionsInternal::Create(new_env, options);
-  CheckAndClearJniExceptions();
-  env->CallObjectMethod(obj_, transaction::GetMethodId(transaction::kSet),
-                        document.internal_->java_object(), data_map,
-                        java_options.get());
-  env->DeleteLocalRef(data_map);
-  CheckAndClearJniExceptions();
+  Env env = GetEnv();
+  Local<HashMap> java_data = MakeJavaMap(env, data);
+  Local<Object> java_options = SetOptionsInternal::Create(env, options);
+  env.Call<Object>(obj_, transaction::GetMethodId(transaction::kSet),
+                   document.internal_->ToJava(), java_data, java_options);
 }
 
 void TransactionInternal::Update(const DocumentReference& document,
                                  const MapFieldValue& data) {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-
-  jobject data_map = MapFieldValueToJavaMap(data);
-  env->CallObjectMethod(obj_, transaction::GetMethodId(transaction::kUpdate),
-                        document.internal_->java_object(), data_map);
-  env->DeleteLocalRef(data_map);
-  CheckAndClearJniExceptions();
+  Env env = GetEnv();
+  Local<HashMap> java_data = MakeJavaMap(env, data);
+  env.Call<Object>(obj_, transaction::GetMethodId(transaction::kUpdate),
+                   document.internal_->ToJava(), java_data);
 }
 
 void TransactionInternal::Update(const DocumentReference& document,
@@ -91,25 +84,11 @@ void TransactionInternal::Update(const DocumentReference& document,
     return;
   }
 
-  Env new_env = GetEnv();
-  JNIEnv* env = new_env.get();
-
-  auto iter = data.begin();
-  Local<Object> first_field = FieldPathConverter::Create(new_env, iter->first);
-  CheckAndClearJniExceptions();
-  jobject first_value = iter->second.internal_->java_object();
-  ++iter;
-
-  // Make the varargs
-  jobjectArray more_fields_and_values =
-      MapFieldPathValueToJavaArray(iter, data.end());
-
-  env->CallObjectMethod(obj_,
-                        transaction::GetMethodId(transaction::kUpdateVarargs),
-                        document.internal_->java_object(), first_field.get(),
-                        first_value, more_fields_and_values);
-  env->DeleteLocalRef(more_fields_and_values);
-  CheckAndClearJniExceptions();
+  Env env = GetEnv();
+  UpdateFieldPathArgs args = MakeUpdateFieldPathArgs(env, data);
+  env.Call<Object>(obj_, transaction::GetMethodId(transaction::kUpdateVarargs),
+                   document.internal_->ToJava(), args.first_field,
+                   args.first_value, args.varargs);
 }
 
 void TransactionInternal::Delete(const DocumentReference& document) {
@@ -163,6 +142,19 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
   DocumentSnapshot result{new DocumentSnapshotInternal{firestore_, snapshot}};
   env->DeleteLocalRef(snapshot);
   return result;
+}
+
+Env TransactionInternal::GetEnv() {
+  Env env;
+  env.SetUnhandledExceptionHandler(ExceptionHandler, this);
+  return env;
+}
+
+void TransactionInternal::ExceptionHandler(
+    jni::Env& env, jni::Local<jni::Throwable>&& exception, void* context) {
+  auto* transaction = static_cast<TransactionInternal*>(context);
+  env.ExceptionClear();
+  transaction->PreserveException(exception.get());
 }
 
 void TransactionInternal::PreserveException(jthrowable exception) {

@@ -48,6 +48,12 @@ class TransactionInternal : public Wrapper {
                                                 jobject transaction);
 
  private:
+  jni::Env GetEnv();
+
+  static void ExceptionHandler(jni::Env& env,
+                               jni::Local<jni::Throwable>&& exception,
+                               void* context);
+
   // If this is the first exception, then store it. Otherwise, preserve the
   // current exception. Passing nullptr has no effect.
   void PreserveException(jthrowable exception);

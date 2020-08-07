@@ -17,6 +17,8 @@ namespace firestore {
 namespace {
 
 using jni::Env;
+using jni::List;
+using jni::Local;
 
 }  // namespace
 
@@ -62,32 +64,20 @@ SnapshotMetadata QuerySnapshotInternal::metadata() const {
 
 std::vector<DocumentChange> QuerySnapshotInternal::DocumentChanges(
     MetadataChanges metadata_changes) const {
-  Env new_env = GetEnv();
-  auto java_metadata =
-      MetadataChangesInternal::Create(new_env, metadata_changes);
-  new_env.ExceptionClear();
+  Env env = GetEnv();
+  auto java_metadata = MetadataChangesInternal::Create(env, metadata_changes);
 
-  JNIEnv* env = new_env.get();
-  jobject change_list = env->CallObjectMethod(
+  Local<List> change_list = env.Call<List>(
       obj_, query_snapshot::GetMethodId(query_snapshot::kDocumentChanges),
-      java_metadata.get());
-  CheckAndClearJniExceptions(env);
-
-  std::vector<DocumentChange> result;
-  JavaListToStdVector<DocumentChange>(firestore_, change_list, &result);
-  return result;
+      java_metadata);
+  return MakeVector<DocumentChange>(env, change_list);
 }
 
 std::vector<DocumentSnapshot> QuerySnapshotInternal::documents() const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject document_list = env->CallObjectMethod(
+  Env env = GetEnv();
+  Local<List> document_list = env.Call<List>(
       obj_, query_snapshot::GetMethodId(query_snapshot::kDocuments));
-  CheckAndClearJniExceptions(env);
-
-  std::vector<DocumentSnapshot> result;
-  JavaListToStdVector<DocumentSnapshot>(firestore_, document_list, &result);
-  env->DeleteLocalRef(document_list);
-  return result;
+  return MakeVector<DocumentSnapshot>(env, document_list);
 }
 
 std::size_t QuerySnapshotInternal::size() const {

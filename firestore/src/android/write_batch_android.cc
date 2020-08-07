@@ -11,12 +11,14 @@
 #include "firestore/src/android/set_options_android.h"
 #include "firestore/src/android/util_android.h"
 #include "firestore/src/jni/env.h"
+#include "firestore/src/jni/hash_map.h"
 
 namespace firebase {
 namespace firestore {
 namespace {
 
 using jni::Env;
+using jni::HashMap;
 using jni::Local;
 using jni::Object;
 
@@ -49,28 +51,23 @@ METHOD_LOOKUP_DEFINITION(write_batch,
 void WriteBatchInternal::Set(const DocumentReference& document,
                              const MapFieldValue& data,
                              const SetOptions& options) {
-  Env new_env = GetEnv();
-  JNIEnv* env = new_env.get();
+  Env env = GetEnv();
+  Local<HashMap> java_data = MakeJavaMap(env, data);
+  Local<Object> java_options = SetOptionsInternal::Create(env, options);
 
-  jobject data_map = MapFieldValueToJavaMap(data);
-  Local<Object> java_options = SetOptionsInternal::Create(new_env, options);
-  CheckAndClearJniExceptions(env);
-  env->CallObjectMethod(obj_, write_batch::GetMethodId(write_batch::kSet),
-                        document.internal_->java_object(), data_map,
-                        java_options.get());
-  env->DeleteLocalRef(data_map);
-  CheckAndClearJniExceptions(env);
+  // Returned value is just Java `this` and can be ignored.
+  env.Call<Object>(obj_, write_batch::GetMethodId(write_batch::kSet),
+                   document.internal_->ToJava(), java_data, java_options);
 }
 
 void WriteBatchInternal::Update(const DocumentReference& document,
                                 const MapFieldValue& data) {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
+  Env env = GetEnv();
+  Local<HashMap> java_data = MakeJavaMap(env, data);
 
-  jobject data_map = MapFieldValueToJavaMap(data);
-  env->CallObjectMethod(obj_, write_batch::GetMethodId(write_batch::kUpdate),
-                        document.internal_->java_object(), data_map);
-  env->DeleteLocalRef(data_map);
-  CheckAndClearJniExceptions(env);
+  // Returned value is just Java `this` and can be ignored.
+  env.Call<Object>(obj_, write_batch::GetMethodId(write_batch::kUpdate),
+                   document.internal_->ToJava(), java_data);
 }
 
 void WriteBatchInternal::Update(const DocumentReference& document,
@@ -80,24 +77,13 @@ void WriteBatchInternal::Update(const DocumentReference& document,
     return;
   }
 
-  Env new_env = GetEnv();
-  JNIEnv* env = new_env.get();
-  auto iter = data.begin();
-  Local<Object> first_field = FieldPathConverter::Create(new_env, iter->first);
-  CheckAndClearJniExceptions(env);
-  jobject first_value = iter->second.internal_->java_object();
-  ++iter;
+  Env env = GetEnv();
+  UpdateFieldPathArgs args = MakeUpdateFieldPathArgs(env, data);
 
-  // Make the varargs
-  jobjectArray more_fields_and_values =
-      MapFieldPathValueToJavaArray(iter, data.end());
-
-  env->CallObjectMethod(obj_,
-                        write_batch::GetMethodId(write_batch::kUpdateVarargs),
-                        document.internal_->java_object(), first_field.get(),
-                        first_value, more_fields_and_values);
-  env->DeleteLocalRef(more_fields_and_values);
-  CheckAndClearJniExceptions(env);
+  // Returned value is just Java `this` and can be ignored.
+  env.Call<Object>(obj_, write_batch::GetMethodId(write_batch::kUpdateVarargs),
+                   document.internal_->ToJava(), args.first_field,
+                   args.first_value, args.varargs);
 }
 
 void WriteBatchInternal::Delete(const DocumentReference& document) {

@@ -46,6 +46,14 @@ class StaticField;
 template <typename T>
 class StaticMethod;
 
+// Collections
+class ArrayList;
+class Collection;
+class Iterator;
+class List;
+class HashMap;
+class Map;
+
 }  // namespace jni
 }  // namespace firestore
 }  // namespace firebase

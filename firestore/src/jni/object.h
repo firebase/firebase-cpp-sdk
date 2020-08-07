@@ -9,6 +9,7 @@ namespace firebase {
 namespace firestore {
 namespace jni {
 
+class Class;
 class Env;
 
 /**
@@ -27,6 +28,8 @@ class Object {
   explicit operator bool() const { return object_ != nullptr; }
 
   virtual jobject get() const { return object_; }
+
+  static Class GetClass();
 
   /**
    * Converts this object to a C++ String by calling the Java `toString` method
