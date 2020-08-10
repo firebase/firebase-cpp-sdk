@@ -248,7 +248,7 @@ def _build(
   logging.info("Changing directory to %s", project_dir)
   os.chdir(project_dir)
 
-  _run_setup_script(sdk_dir, project_dir)
+  _run_setup_script(root_dir, project_dir)
 
   failures = []
 
@@ -448,9 +448,9 @@ def _build_ios(
 
 # This script is responsible for copying shared files into the integration
 # test projects. Should be executed before performing any builds.
-def _run_setup_script(sdk_dir, testapp_dir):
+def _run_setup_script(root_dir, testapp_dir):
   """Runs the setup_integration_tests.py script if needed."""
-  script_path = os.path.join(sdk_dir, "setup_integration_tests.py")
+  script_path = os.path.join(root_dir, "setup_integration_tests.py")
   if os.path.isfile(script_path):
     _run(["python", script_path, testapp_dir])
   else:
