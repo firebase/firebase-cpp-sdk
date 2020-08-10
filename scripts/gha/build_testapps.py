@@ -87,9 +87,9 @@ from absl import logging
 
 import attr
 
-import config_reader
-import provisioning
-import xcodebuild
+from integration_testing import config_reader
+from integration_testing import provisioning
+from integration_testing import xcodebuild
 
 # Environment variables
 _JAVA_HOME = "JAVA_HOME"
@@ -204,7 +204,7 @@ def main(argv):
   config = config_reader.read_config()
   cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
   if FLAGS.use_vcpkg:
-    vcpkg = VCPKG.generate(os.path.join(FLAGS.sdk_dir, config.vcpkg_dir))
+    vcpkg = Vcpkg.generate(os.path.join(FLAGS.sdk_dir, config.vcpkg_dir))
     vcpkg.install_and_run()
     cmake_flags.extend(vcpkg.cmake_flags)
 
@@ -391,8 +391,10 @@ def _build_ios(
 
   entitlements_path = os.path.join(
       project_dir, api_config.ios_target + ".entitlements")
+  xcode_tool_path = os.path.join(
+      testapp_builder_dir, "integration_testing", "xcode_tool.rb")
   xcode_patcher_args = [
-      "ruby", os.path.join(testapp_builder_dir, "xcode_tool.rb"),
+      "ruby", xcode_tool_path,
       "--XCodeCPP.xcodeProjectDir", project_dir,
       "--XCodeCPP.target", api_config.ios_target,
       "--XCodeCPP.frameworks", ",".join(framework_paths)
@@ -419,7 +421,8 @@ def _build_ios(
     logging.info("Creating 'export.plist' export options")
     provision_id = provisioning.get_provision_id(
         os.path.join(provisions_dir, api_config.provision))
-    export_src = os.path.join(testapp_builder_dir, "export.plist")
+    export_src = os.path.join(
+        testapp_builder_dir, "integration_testing", "export.plist")
     export_dest = os.path.join(build_dir, "export.plist")
     shutil.copy(export_src, export_dest)
     provisioning.patch_provisioning_profile(
@@ -461,8 +464,8 @@ def _run(args, timeout=1200):
 
 
 @attr.s(frozen=True, eq=False)
-class VCPKG(object):
-  """Holds data related to the VCPKG tool used for managing dependent tools."""
+class Vcpkg(object):
+  """Holds data related to the vcpkg tool used for managing dependent tools."""
   installer = attr.ib()
   binary = attr.ib()
   triplet = attr.ib()
@@ -471,7 +474,7 @@ class VCPKG(object):
 
   @classmethod
   def generate(cls, vcpkg_dir):
-    """Generates the VCPKG data based on the given vcpkg submodule path."""
+    """Generates the vcpkg data based on the given vcpkg submodule path."""
     installer = os.path.join(vcpkg_dir, "bootstrap-vcpkg")
     binary = os.path.join(vcpkg_dir, "vcpkg")
     response_file_fmt = vcpkg_dir + "_%s_response_file.txt"
