@@ -97,6 +97,7 @@ def read_config(path=None):
     return Config(
         apis=api_configs,
         apple_team_id=config["apple_team_id"],
+        vcpkg_dir=config["vcpkg_dir"],
         compilers=config["compiler_dict"])
   except (KeyError, TypeError, IndexError):
     # The error will be cryptic on its own, so we dump the JSON to
@@ -111,6 +112,7 @@ def read_config(path=None):
 class Config(object):
   apis = attr.ib()  # Mapping of str: APIConfig
   apple_team_id = attr.ib()
+  vcpkg_dir = attr.ib()  # Relative location of the vcpkg submodule in the repo.
   compilers = attr.ib()
 
   def get_api(self, api):

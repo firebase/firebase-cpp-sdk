@@ -85,7 +85,8 @@ def main(argv):
       # We use a Google Service file as the source of truth for the reverse id
       # that needs to be patched into the Info.plist files.
       if dest_path.endswith(".plist"):
-        _patch_reverse_id(dest_path)
+        print("WARNING: Reverse ID patching for iOS temporarily disabled.")
+        # _patch_reverse_id(dest_path)
 
   print("Attempting to patch Dynamic Links uri prefix.")
   uri_path = os.path.join(secrets_dir, "dynamic_links", "uri_prefix.txt.gpg")
@@ -128,9 +129,11 @@ def _decrypt(encrypted_file, passphrase):
       text=True,
       capture_output=True)
   if result.returncode:
-    raise RuntimeError("ERROR: Failed to decrypt %s" % (encrypted_file))
+    # Remove any instances of the passphrase from error before logging it.
+    raise RuntimeError(result.stderr.replace(passphrase, "****"))
   print("Decryption successful")
-  return result.stdout
+  # rstrip to eliminate a linebreak that GPG may introduce.
+  return result.stdout.rstrip()
 
 
 def _patch_reverse_id(service_plist_path):

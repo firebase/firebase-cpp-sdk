@@ -16,89 +16,80 @@ on:
         default: 'ubuntu-latest,windows-latest,macos-latest'
         required: true
 
-env:
-  CCACHE_DIR: ${{ github.workspace }}/ccache_dir
-
 jobs:
-  # To feed the operating systems into the job matrix, we first need to convert to a JSON
+  # To feed input into the job matrix, we first need to convert to a JSON
   # list. Then we can use fromJson to define the field in the matrix for the tests job.
   prepare_matrix:
     runs-on: ubuntu-latest
     outputs:
       matrix_os: ${{ steps.set-matrix-os.outputs.matrix_os }}
+      matrix_platform: ${{ steps.set-matrix-os.outputs.matrix_platform }}
     steps:
     - id: set-matrix-os
       # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
       run: |
         OS_JSON=[\"$(echo ${{ github.event.inputs.operating_systems }} | sed 's/,/","/g')\"]
         echo "::set-output name=matrix_os::${OS_JSON}"
+        PLATFORM_JSON=[\"$(echo ${{ github.event.inputs.platforms }} | sed 's/,/","/g')\"]
+        echo "::set-output name=matrix_platform::${PLATFORM_JSON}"
   tests:
-    name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+    name: ${{ matrix.os }}-${{ matrix.target_platform }}
     needs: prepare_matrix
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
-        build_type: ["Debug"]
-        architecture: ["x64",]
-        python_version: [3.7]
-        include:
-        - os: windows-latest
-          architecture: "x64"
-          vcpkg_triplet: "x64-windows-static"
-          msbuild_platform: "x64"
-        - os: ubuntu-latest
-          architecture: "x64"
-          vcpkg_triplet: "x64-linux"
-        - os: macos-latest
-          architecture: "x64"
-          vcpkg_triplet: "x64-osx"
+        target_platform: ${{ fromJson(needs.prepare_matrix.outputs.matrix_platform) }}
 
     steps:
       - uses: actions/checkout@v2
         with:
           submodules: true
 
-      - name: Set env variables for subsequent steps (all)
-        run: |
-          echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt"
-          echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}"
+      - name: Set env vars (ubuntu)
+        if: startsWith(matrix.os, 'ubuntu')
+        run: echo "::set-env name=VCPKG_TRIPLET::x64-linux"
+      - name: Set env vars (macos)
+        if: startsWith(matrix.os, 'macos')
+        run: echo "::set-env name=VCPKG_TRIPLET::x64-osx"
+      - name: Set env vars (windows)
+        if: startsWith(matrix.os, 'windows')
+        run: echo "::set-env name=VCPKG_TRIPLET::x64-windows-static"
+      - name: Set env vars(all)
+        run: echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ env.VCPKG_TRIPLET }}_response_file.txt"
+
       - name: Cache vcpkg C++ dependencies
+        if: matrix.target_platform == 'Desktop'
         id: cache_vcpkg
         uses: actions/cache@v2
         with:
           path: external/vcpkg/installed
-          key: dev-vcpkg-${{ matrix.vcpkg_triplet }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
-
-      - name: Cache ccache files
-        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
-        id: cache_ccache
-        uses: actions/cache@v2
-        with:
-          path: ccache_dir
-          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+          key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
 
       - name: Setup python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python_version }}
-          architecture: ${{ matrix.architecture }}
+          python-version: '3.x'
 
-      - name: Install SDK prerequisites
+      - name: Install SDK Desktop prerequisites
+        if: matrix.target_platform == 'Desktop'
         run: |
           python scripts/gha/install_prereqs_desktop.py
+          
+      - name: Install SDK Android prerequisites
+        if: matrix.target_platform == 'Android'
+        run: |
+          build_scripts/android/install_prereqs.sh
           
       - name: Prepare for integration tests
         run: |
           pip install -r testing/integration_testing/requirements.txt
-          python testing/integration_testing/restore_secrets.py --passphrase ${{ secrets.TEST_SECRET }}
+          python testing/integration_testing/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           
       - name: Build and run integration tests
+        # The set up script for Android will download the NDK here.
+        env:
+          NDK_ROOT: '/tmp/android-ndk-r16b'
         run: |
-          python testing/integration_testing/build_testapps.py \
-            --testapps ${{ github.event.inputs.apis }} \
-            --platforms ${{ github.event.inputs.platforms }} \
-            --output_directory ${{ github.workspace }} \
-            --execute_desktop_testapp \
-            --noadd_timestamp
+          python testing/integration_testing/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --use_vcpkg --execute_desktop_testapp --noadd_timestamp
