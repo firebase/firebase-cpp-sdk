@@ -261,6 +261,7 @@ def _build(
     except subprocess.CalledProcessError as e:
       failures.append(
           Failure(testapp=testapp, platform=_DESKTOP, error_message=str(e)))
+    _rm_dir_safe(os.path.join(project_dir, "bin"))
     logging.info("END %s, %s", testapp, _DESKTOP)
 
   if _ANDROID in platforms:
@@ -271,6 +272,8 @@ def _build(
     except subprocess.CalledProcessError as e:
       failures.append(
           Failure(testapp=testapp, platform=_ANDROID, error_message=str(e)))
+    _rm_dir_safe(os.path.join(project_dir, "build", "intermediates"))
+    _rm_dir_safe(os.path.join(project_dir, ".externalNativeBuild"))
     logging.info("END %s, %s", testapp, _ANDROID)
 
   if _IOS in platforms:
@@ -289,7 +292,6 @@ def _build(
           Failure(testapp=testapp, platform=_IOS, error_message=str(e)))
     logging.info("END %s, %s", testapp, _IOS)
 
-  logging.info("END building for API: %s", testapp)
   return failures
 
 
@@ -320,7 +322,7 @@ def _execute_desktop_testapp(project_dir):
     testapp_path = os.path.join(project_dir, "Debug", "integration_test.exe")
   else:
     testapp_path = os.path.join(project_dir, "integration_test")
-  _run([testapp_path])
+  _run([testapp_path], timeout=300)
 
 
 def _get_desktop_compiler_flags(compiler, compiler_table):
@@ -457,10 +459,19 @@ def _run_setup_script(root_dir, testapp_dir):
     logging.info("setup_integration_tests.py not found")
 
 
-def _run(args, timeout=1200):
+def _run(args, timeout=2400):
   """Executes a command in a subprocess."""
   logging.info("Running in subprocess: %s", " ".join(args))
   return subprocess.run(args=args, timeout=timeout, check=True)
+
+
+def _rm_dir_safe(directory_path):
+  """Removes directory at given path. No error if dir doesn't exist."""
+  try:
+    shutil.rmtree(directory_path)
+    logging.info("Deleted %s", directory_path)
+  except FileNotFoundError:
+    logging.warning("Tried to delete %s, but it doesn't exist.", directory_path)
 
 
 @attr.s(frozen=True, eq=False)
