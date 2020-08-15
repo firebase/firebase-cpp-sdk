@@ -50,7 +50,7 @@ FirestoreIntegrationTest::FirestoreIntegrationTest() {
 }
 
 FirestoreIntegrationTest::~FirestoreIntegrationTest() {
-  for (auto named_firestore : firestores_) {
+  for (const auto& named_firestore : firestores_) {
     Release(named_firestore.second);
     firestores_[named_firestore.first] = nullptr;
   }
