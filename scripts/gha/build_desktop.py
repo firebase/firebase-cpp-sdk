@@ -73,10 +73,7 @@ def install_cpp_dependencies_with_vcpkg(arch):
 
   # Clear temporary directories and files created by vcpkg buildtrees
   # could be several GBs and cause github runners to run out of space
-  buildtrees_dir_path = os.path.join(vcpkg_root_dir_path, 'buildtrees')
-  utils.delete_directory(buildtrees_dir_path)
-  downloads_dir_path = os.path.join(vcpkg_root_dir_path, 'downloads')
-  utils.delete_directory(downloads_dir_path)
+  utils.clean_vcpkg_temp_data()
 
 
 def cmake_configure(build_dir, arch, build_tests=True, config=None):

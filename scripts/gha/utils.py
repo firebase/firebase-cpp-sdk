@@ -142,3 +142,14 @@ def get_vcpkg_installation_script_path():
     script_absolute_path = os.path.join(vcpkg_root_dir, 'bootstrap-vcpkg.sh')
 
   return script_absolute_path
+
+
+def clean_vcpkg_temp_data():
+  """Delete files/directories that vcpkg uses during its build"""
+  # Clear temporary directories and files created by vcpkg buildtrees
+  # could be several GBs and cause github runners to run out of space
+  buildtrees_dir_path = os.path.join(vcpkg_root_dir_path, 'buildtrees')
+  delete_directory(buildtrees_dir_path)
+  downloads_dir_path = os.path.join(vcpkg_root_dir_path, 'downloads')
+  delete_directory(downloads_dir_path)
+
