@@ -70,7 +70,7 @@ def install_cpp_dependencies_with_vcpkg(arch):
   utils.run_command([vcpkg_executable_file_path, 'install',
                      '@' + vcpkg_response_file_path, '--disable-metrics'])
 
-  vcpkg_root_dir_path = utils.get_vcpkg_root_dir_path()
+  vcpkg_root_dir_path = utils.get_vcpkg_root_path()
 
   # Clear temporary directories and files created by vcpkg buildtrees
   # could be several GBs and cause github runners to run out of space
