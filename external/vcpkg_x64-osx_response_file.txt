@@ -1,6 +1,5 @@
 openssl
 protobuf
 zlib
-abseil
 --triplet
 x64-osx
