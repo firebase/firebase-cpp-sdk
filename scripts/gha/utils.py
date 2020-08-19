@@ -112,9 +112,14 @@ def get_vcpkg_triplet(arch):
   return triplet_name
 
 
+def get_vcpkg_root_path():
+  """Get absolute path to vcpkg root directory in repo."""
+  return os.path.join(os.getcwd(), 'external', 'vcpkg')
+
+
 def get_vcpkg_executable_file_path():
   """Get absolute path to vcpkg executable."""
-  vcpkg_root_dir = os.path.join(os.getcwd(), 'external', 'vcpkg')
+  vcpkg_root_dir = get_vcpkg_root_path()
   if is_windows_os():
     vcpkg_executable_file_path = os.path.join(vcpkg_root_dir, 'vcpkg.exe')
   elif is_linux_os() or is_mac_os():
@@ -124,7 +129,7 @@ def get_vcpkg_executable_file_path():
 
 def get_vcpkg_installation_script_path():
   """Get absolute path to the script used to build and install vcpkg."""
-  vcpkg_root_dir = os.path.join(os.getcwd(), 'external', 'vcpkg')
+  vcpkg_root_dir = get_vcpkg_root_path()
   if is_windows_os():
     script_absolute_path = os.path.join(vcpkg_root_dir, 'bootstrap-vcpkg.bat')
   elif is_linux_os() or is_mac_os():

@@ -36,6 +36,7 @@ python scripts/gha/build_desktop.py --target firebase_app firebase_auth
 
 import argparse
 import os
+import shutil
 import utils
 
 
@@ -68,6 +69,17 @@ def install_cpp_dependencies_with_vcpkg(arch):
   # --disable-metrics
   utils.run_command([vcpkg_executable_file_path, 'install',
                      '@' + vcpkg_response_file_path, '--disable-metrics'])
+
+  vcpkg_root_dir_path = utils.get_vcpkg_root_dir_path()
+
+  # Clear temporary directories and files created by vcpkg buildtrees
+  # could be several GBs and cause github runners to run out of space
+  buildtrees_dir_path = os.path.join(vcpkg_root_dir_path, 'buildtrees')
+  if os.path.exists(buildtrees_dir_path):
+    shutil.rmtree(buildtrees_dir_path)
+  downloads_dir_path = os.path.join(vcpkg_root_dir_path, 'downloads')
+  if os.path.exists(downloads_dir_path):
+    shutil.rmtree(downloads_dir_path)
 
 
 def cmake_configure(build_dir, arch, build_tests=True, config=None):
