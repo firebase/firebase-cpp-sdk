@@ -101,8 +101,6 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None):
   vcpkg_triplet = utils.get_vcpkg_triplet(arch)
   cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
   
-  # TODO: Remove this once firestore is included in the build and everything works
-  cmd.append('-DFIREBASE_INCLUDE_FIRESTORE=OFF')
   utils.run_command(cmd)
 
 
