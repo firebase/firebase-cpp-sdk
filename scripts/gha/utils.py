@@ -60,6 +60,12 @@ def is_command_installed(tool):
   return distutils.spawn.find_executable(tool)
 
 
+def delete_directory(dir_path):
+  """Recursively delete a valid directory"""
+  if os.path.exists(dir_path):
+    shutil.rmtree(dir_path)
+
+
 def download_file(url, file_path):
   """Download from url and save to specified file path."""
   with urllib.request.urlopen(url) as response, open(file_path, 'wb') as out_file:
