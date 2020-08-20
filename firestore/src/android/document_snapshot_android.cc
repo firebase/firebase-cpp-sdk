@@ -105,46 +105,38 @@ bool DocumentSnapshotInternal::exists() const {
 
 MapFieldValue DocumentSnapshotInternal::GetData(
     ServerTimestampBehavior stb) const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject stb_enum = ServerTimestampBehaviorInternal::ToJavaObject(env, stb);
+  Env env = GetEnv();
+  Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
 
-  jobject map_value = env->CallObjectMethod(
+  Local<Object> java_data = env.Call<Object>(
       obj_, document_snapshot::GetMethodId(document_snapshot::kGetData),
-      stb_enum);
-  CheckAndClearJniExceptions(env);
+      java_stb);
 
-  FieldValueInternal value(firestore_, map_value);
-  env->DeleteLocalRef(map_value);
+  FieldValueInternal value(firestore_, java_data.get());
   return value.map_value();
 }
 
 FieldValue DocumentSnapshotInternal::Get(const FieldPath& field,
                                          ServerTimestampBehavior stb) const {
-  Env new_env = GetEnv();
-  JNIEnv* env = new_env.get();
-  Local<Object> java_field = FieldPathConverter::Create(new_env, field);
-  CheckAndClearJniExceptions(env);
+  Env env = GetEnv();
+  Local<Object> java_field = FieldPathConverter::Create(env, field);
 
   // Android returns null for both null fields and nonexistent fields, so first
   // use contains() to check if the field exists.
-  jboolean contains_field = env->CallBooleanMethod(
+  bool contains_field = env.Call<bool>(
       obj_, document_snapshot::GetMethodId(document_snapshot::kContains),
-      java_field.get());
-  CheckAndClearJniExceptions(env);
+      java_field);
   if (!contains_field) {
     return FieldValue();
-  } else {
-    jobject stb_enum = ServerTimestampBehaviorInternal::ToJavaObject(env, stb);
-
-    jobject field_value = env->CallObjectMethod(
-        obj_, document_snapshot::GetMethodId(document_snapshot::kGet),
-        java_field.get(), stb_enum);
-    CheckAndClearJniExceptions(env);
-
-    FieldValue result{new FieldValueInternal{firestore_, field_value}};
-    env->DeleteLocalRef(field_value);
-    return result;
   }
+
+  Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
+
+  Local<Object> field_value = env.Call<Object>(
+      obj_, document_snapshot::GetMethodId(document_snapshot::kGet), java_field,
+      java_stb);
+
+  return FieldValue(new FieldValueInternal(firestore_, field_value.get()));
 }
 
 /* static */

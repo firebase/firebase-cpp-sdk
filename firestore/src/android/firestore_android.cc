@@ -171,7 +171,6 @@ bool FirestoreInternal::Initialize(App* app) {
           ListenerRegistrationInternal::Initialize(app) &&
           QueryInternal::Initialize(app) &&
           QuerySnapshotInternal::Initialize(app) &&
-          ServerTimestampBehaviorInternal::Initialize(app) &&
           SnapshotMetadataInternal::Initialize(app) &&
           TimestampInternal::Initialize(app) &&
           TransactionInternal::Initialize(app) && Wrapper::Initialize(app) &&
@@ -200,6 +199,7 @@ bool FirestoreInternal::Initialize(App* app) {
     DocumentReferenceInternal::Initialize(loader);
     FieldPathConverter::Initialize(loader);
     MetadataChangesInternal::Initialize(loader);
+    ServerTimestampBehaviorInternal::Initialize(loader);
     SetOptionsInternal::Initialize(loader);
     SourceInternal::Initialize(loader);
     if (!loader.ok()) {
@@ -258,7 +258,6 @@ void FirestoreInternal::ReleaseClasses(App* app) {
   ListenerRegistrationInternal::Terminate(app);
   QueryInternal::Terminate(app);
   QuerySnapshotInternal::Terminate(app);
-  ServerTimestampBehaviorInternal::Terminate(app);
   SnapshotMetadataInternal::Terminate(app);
   TimestampInternal::Terminate(app);
   TransactionInternal::Terminate(app);
