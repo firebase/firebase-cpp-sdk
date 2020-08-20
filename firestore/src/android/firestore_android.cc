@@ -163,8 +163,6 @@ bool FirestoreInternal::Initialize(App* app) {
           // Call Initialize on each Firestore internal class.
           BlobInternal::Initialize(app) &&
           DirectionInternal::Initialize(app) &&
-          DocumentChangeInternal::Initialize(app) &&
-          DocumentChangeTypeInternal::Initialize(app) &&
           DocumentSnapshotInternal::Initialize(app) &&
           FieldValueInternal::Initialize(app) &&
           FirebaseFirestoreExceptionInternal::Initialize(app) &&
@@ -197,6 +195,8 @@ bool FirestoreInternal::Initialize(App* app) {
     jni::Map::Initialize(loader);
 
     CollectionReferenceInternal::Initialize(loader);
+    DocumentChangeInternal::Initialize(loader);
+    DocumentChangeTypeInternal::Initialize(loader);
     DocumentReferenceInternal::Initialize(loader);
     FieldPathConverter::Initialize(loader);
     MetadataChangesInternal::Initialize(loader);
@@ -248,8 +248,6 @@ void FirestoreInternal::ReleaseClasses(App* app) {
   // Call Terminate on each Firestore internal class.
   BlobInternal::Terminate(app);
   DirectionInternal::Terminate(app);
-  DocumentChangeInternal::Terminate(app);
-  DocumentChangeTypeInternal::Terminate(app);
   DocumentReferenceInternal::Terminate(app);
   DocumentSnapshotInternal::Terminate(app);
   EventListenerInternal::Terminate(app);
@@ -576,6 +574,13 @@ DocumentReference FirestoreInternal::NewDocumentReference(
 
   return DocumentReference(
       new DocumentReferenceInternal(this, reference.get()));
+}
+
+DocumentSnapshot FirestoreInternal::NewDocumentSnapshot(
+    jni::Env& env, const jni::Object& snapshot) {
+  if (!env.ok() || !snapshot) return {};
+
+  return DocumentSnapshot(new DocumentSnapshotInternal(this, snapshot.get()));
 }
 
 ListenerRegistration FirestoreInternal::NewListenerRegistration(

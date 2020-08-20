@@ -124,6 +124,8 @@ class FirestoreInternal {
                                              const jni::Object& reference);
   DocumentReference NewDocumentReference(jni::Env& env,
                                          const jni::Object& reference);
+  DocumentSnapshot NewDocumentSnapshot(jni::Env& env,
+                                       const jni::Object& snapshot);
   ListenerRegistration NewListenerRegistration(
       jni::Env& env, EventListener<DocumentSnapshot>* listener,
       bool passing_listener_ownership, const jni::Object& registration);
