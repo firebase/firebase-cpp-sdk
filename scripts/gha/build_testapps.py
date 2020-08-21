@@ -535,4 +535,6 @@ class Failure(object):
 
 
 if __name__ == "__main__":
+  flags.mark_flag_as_required("testapps")
+  flags.mark_flag_as_required("platforms")
   app.run(main)
