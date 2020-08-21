@@ -163,7 +163,6 @@ bool FirestoreInternal::Initialize(App* app) {
           // Call Initialize on each Firestore internal class.
           BlobInternal::Initialize(app) &&
           DirectionInternal::Initialize(app) &&
-          DocumentSnapshotInternal::Initialize(app) &&
           FieldValueInternal::Initialize(app) &&
           FirebaseFirestoreExceptionInternal::Initialize(app) &&
           FirebaseFirestoreSettingsInternal::Initialize(app) &&
@@ -196,6 +195,7 @@ bool FirestoreInternal::Initialize(App* app) {
     DocumentChangeInternal::Initialize(loader);
     DocumentChangeTypeInternal::Initialize(loader);
     DocumentReferenceInternal::Initialize(loader);
+    DocumentSnapshotInternal::Initialize(loader);
     FieldPathConverter::Initialize(loader);
     MetadataChangesInternal::Initialize(loader);
     ServerTimestampBehaviorInternal::Initialize(loader);
