@@ -18,12 +18,10 @@ if(TARGET firestore)
   return()
 endif()
 
-# Pin to the first revision that includes these changes:
-# https://github.com/firebase/firebase-ios-sdk/pull/5807.
-#
-# This should be released with the next version after Firestore-1.15.0.
-set(version 05026f3df92cdee7b91fccc72a7195be2618acdf)
-
+# Using a firestore version that has been updated to use 
+# nanopb 0.3.9.6 instead of 0.3.9.5. This was necessary 
+# because nanopb 0.3.9.5 doesn't build with python3.
+set(version f33276f5305bb81b67e006f50b14f4a2adc3cb60)
 ExternalProject_Add(
   firestore
 

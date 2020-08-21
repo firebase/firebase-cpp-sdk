@@ -21,4 +21,11 @@ set(CTEST_CUSTOM_TESTS_IGNORE
     # Tests from zlib, that can't be disabled normally.
     example
     example64
+    # Disabling specific firestore tests
+    # objc_spec test doesn't fail locally but fails consistently on 
+    # github runners
+    firestore_objc_spec_test
+    # objc_integration test needs a simulator to be setup and just hangs
+    # forever without one.
+    firestore_objc_integration_test
 )
