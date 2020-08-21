@@ -83,15 +83,10 @@ DocumentReference DocumentSnapshotInternal::reference() const {
 }
 
 SnapshotMetadata DocumentSnapshotInternal::metadata() const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject metadata = env->CallObjectMethod(
+  Env env = GetEnv();
+  auto java_metadata = env.Call<SnapshotMetadataInternal>(
       obj_, document_snapshot::GetMethodId(document_snapshot::kGetMetadata));
-  SnapshotMetadata result =
-      SnapshotMetadataInternal::JavaSnapshotMetadataToSnapshotMetadata(
-          env, metadata);
-
-  CheckAndClearJniExceptions(env);
-  return result;
+  return java_metadata.ToPublic(env);
 }
 
 bool DocumentSnapshotInternal::exists() const {

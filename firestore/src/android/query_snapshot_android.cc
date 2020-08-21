@@ -19,6 +19,7 @@ namespace {
 using jni::Env;
 using jni::List;
 using jni::Local;
+using jni::Object;
 
 }  // namespace
 
@@ -51,15 +52,10 @@ Query QuerySnapshotInternal::query() const {
 }
 
 SnapshotMetadata QuerySnapshotInternal::metadata() const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject metadata = env->CallObjectMethod(
+  Env env = GetEnv();
+  auto java_metadata = env.Call<SnapshotMetadataInternal>(
       obj_, query_snapshot::GetMethodId(query_snapshot::kMetadata));
-  SnapshotMetadata result =
-      SnapshotMetadataInternal::JavaSnapshotMetadataToSnapshotMetadata(
-          env, metadata);
-
-  CheckAndClearJniExceptions(env);
-  return result;
+  return java_metadata.ToPublic(env);
 }
 
 std::vector<DocumentChange> QuerySnapshotInternal::DocumentChanges(
