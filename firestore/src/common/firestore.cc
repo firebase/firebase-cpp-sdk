@@ -279,5 +279,9 @@ ListenerRegistration Firestore::AddSnapshotsInSyncListener(
 }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
+void Firestore::SetClientLanguage(const std::string& language_token) {
+  FirestoreInternal::SetClientLanguage(language_token);
+}
+
 }  // namespace firestore
 }  // namespace firebase

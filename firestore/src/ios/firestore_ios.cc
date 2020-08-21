@@ -294,5 +294,9 @@ void Firestore::set_log_level(LogLevel log_level) {
                                                     : log_level);
 }
 
+void FirestoreInternal::SetClientLanguage(const std::string& language_token) {
+  api::Firestore::SetClientLanguage(language_token);
+}
+
 }  // namespace firestore
 }  // namespace firebase

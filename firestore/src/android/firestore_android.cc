@@ -602,5 +602,9 @@ void Firestore::set_log_level(LogLevel log_level) {
   CheckAndClearJniExceptions(env);
 }
 
+void FirestoreInternal::SetClientLanguage(const std::string& language_token) {
+  // TODO(varconst): implement
+}
+
 }  // namespace firestore
 }  // namespace firebase

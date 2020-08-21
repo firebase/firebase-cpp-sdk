@@ -62,6 +62,8 @@ namespace firestore {
 
 class FirestoreInternal;
 
+namespace csharp { class ApiHeaders; }
+
 /**
  * @brief Entry point for the Firebase Firestore C++ SDK.
  *
@@ -414,6 +416,8 @@ class Firestore {
   template <typename T, typename U, typename F>
   friend struct CleanupFn;
 
+  friend class csharp::ApiHeaders;
+
   explicit Firestore(::firebase::App* app);
   explicit Firestore(FirestoreInternal* internal);
 
@@ -422,6 +426,8 @@ class Firestore {
                                     InitResult* init_result_out);
   static Firestore* AddFirestoreToCache(Firestore* firestore,
                                         InitResult* init_result_out);
+
+  static void SetClientLanguage(const std::string& language_token);
 
   // Delete the internal_ data.
   void DeleteInternal();

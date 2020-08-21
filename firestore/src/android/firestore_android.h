@@ -158,6 +158,8 @@ class FirestoreInternal {
 
   jobject user_callback_executor() const { return user_callback_executor_; }
 
+  static void SetClientLanguage(const std::string& language_token);
+
  private:
   // Gets the reference-counted Future implementation of this instance, which
   // can be used to create a Future.

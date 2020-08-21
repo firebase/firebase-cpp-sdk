@@ -112,6 +112,8 @@ class FirestoreInternal {
 
   void set_firestore_public(Firestore*) {}
 
+  static void SetClientLanguage(const std::string& language_token) {}
+
  private:
   CleanupNotifier cleanup_;
   App* app_;
