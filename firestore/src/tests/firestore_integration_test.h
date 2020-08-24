@@ -225,8 +225,7 @@ class FirestoreIntegrationTest : public testing::Test {
     EXPECT_GT(cycles, 0) << "Waiting future timed out.";
     if (future.status() == FutureStatus::kFutureStatusComplete) {
       if (future.result() == nullptr) {
-        std::cout << "WARNING: Future failed. Error code " << future.error()
-                  << ", message " << future.error_message() << std::endl;
+        std::cout << "WARNING: " << DescribeFailedFuture(future) << std::endl;
       }
     } else {
       std::cout << "WARNING: Future is not completed." << std::endl;

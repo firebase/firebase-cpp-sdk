@@ -41,6 +41,47 @@ void LocateEmulator(Firestore* db) {
   }
 }
 
+std::string ToFirestoreErrorCodeName(int error_code) {
+  switch (error_code) {
+    case kErrorOk:
+      return "kErrorOk";
+    case kErrorCancelled:
+      return "kErrorCancelled";
+    case kErrorUnknown:
+      return "kErrorUnknown";
+    case kErrorInvalidArgument:
+      return "kErrorInvalidArgument";
+    case kErrorDeadlineExceeded:
+      return "kErrorDeadlineExceeded";
+    case kErrorNotFound:
+      return "kErrorNotFound";
+    case kErrorAlreadyExists:
+      return "kErrorAlreadyExists";
+    case kErrorPermissionDenied:
+      return "kErrorPermissionDenied";
+    case kErrorResourceExhausted:
+      return "kErrorResourceExhausted";
+    case kErrorFailedPrecondition:
+      return "kErrorFailedPrecondition";
+    case kErrorAborted:
+      return "kErrorAborted";
+    case kErrorOutOfRange:
+      return "kErrorOutOfRange";
+    case kErrorUnimplemented:
+      return "kErrorUnimplemented";
+    case kErrorInternal:
+      return "kErrorInternal";
+    case kErrorUnavailable:
+      return "kErrorUnavailable";
+    case kErrorDataLoss:
+      return "kErrorDataLoss";
+    case kErrorUnauthenticated:
+      return "kErrorUnauthenticated";
+    default:
+      return "[invalid error code]";
+  }
+}
+
 }  // anonymous namespace
 
 FirestoreIntegrationTest::FirestoreIntegrationTest() {
@@ -207,7 +248,7 @@ bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,
                   << std::endl;
     return true;
   } else if (future.error() != Error::kErrorOk) {
-    ADD_FAILURE() << operation << "failed: " << DescribeFailedFuture(future)
+    ADD_FAILURE() << operation << " failed: " << DescribeFailedFuture(future)
                   << std::endl;
     return true;
   } else {
@@ -218,8 +259,8 @@ bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,
 /* static */
 std::string FirestoreIntegrationTest::DescribeFailedFuture(
     const FutureBase& future) {
-  return "WARNING: Future failed. Error code " +
-         std::to_string(future.error()) + ", message " + future.error_message();
+  return "Future failed: " + ToFirestoreErrorCodeName(future.error()) + " (" +
+         std::to_string(future.error()) + "): " + future.error_message();
 }
 
 /* static */
