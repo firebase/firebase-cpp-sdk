@@ -69,6 +69,12 @@ def install_cpp_dependencies_with_vcpkg(arch):
   utils.run_command([vcpkg_executable_file_path, 'install',
                      '@' + vcpkg_response_file_path, '--disable-metrics'])
 
+  vcpkg_root_dir_path = utils.get_vcpkg_root_path()
+
+  # Clear temporary directories and files created by vcpkg buildtrees
+  # could be several GBs and cause github runners to run out of space
+  utils.clean_vcpkg_temp_data()
+
 
 def cmake_configure(build_dir, arch, build_tests=True, config=None):
   """ CMake configure.
@@ -101,8 +107,6 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None):
   vcpkg_triplet = utils.get_vcpkg_triplet(arch)
   cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
   
-  # TODO: Remove this once firestore is included in the build and everything works
-  cmd.append('-DFIREBASE_INCLUDE_FIRESTORE=OFF')
   utils.run_command(cmd)
 
 
