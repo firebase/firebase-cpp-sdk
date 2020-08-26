@@ -60,6 +60,12 @@ def is_command_installed(tool):
   return distutils.spawn.find_executable(tool)
 
 
+def delete_directory(dir_path):
+  """Recursively delete a valid directory"""
+  if os.path.exists(dir_path):
+    shutil.rmtree(dir_path)
+
+
 def download_file(url, file_path):
   """Download from url and save to specified file path."""
   with urllib.request.urlopen(url) as response, open(file_path, 'wb') as out_file:
@@ -112,9 +118,14 @@ def get_vcpkg_triplet(arch):
   return triplet_name
 
 
+def get_vcpkg_root_path():
+  """Get absolute path to vcpkg root directory in repo."""
+  return os.path.join(os.getcwd(), 'external', 'vcpkg')
+
+
 def get_vcpkg_executable_file_path():
   """Get absolute path to vcpkg executable."""
-  vcpkg_root_dir = os.path.join(os.getcwd(), 'external', 'vcpkg')
+  vcpkg_root_dir = get_vcpkg_root_path()
   if is_windows_os():
     vcpkg_executable_file_path = os.path.join(vcpkg_root_dir, 'vcpkg.exe')
   elif is_linux_os() or is_mac_os():
@@ -124,10 +135,22 @@ def get_vcpkg_executable_file_path():
 
 def get_vcpkg_installation_script_path():
   """Get absolute path to the script used to build and install vcpkg."""
-  vcpkg_root_dir = os.path.join(os.getcwd(), 'external', 'vcpkg')
+  vcpkg_root_dir = get_vcpkg_root_path()
   if is_windows_os():
     script_absolute_path = os.path.join(vcpkg_root_dir, 'bootstrap-vcpkg.bat')
   elif is_linux_os() or is_mac_os():
     script_absolute_path = os.path.join(vcpkg_root_dir, 'bootstrap-vcpkg.sh')
 
   return script_absolute_path
+
+
+def clean_vcpkg_temp_data():
+  """Delete files/directories that vcpkg uses during its build"""
+  # Clear temporary directories and files created by vcpkg buildtrees
+  # could be several GBs and cause github runners to run out of space
+  vcpkg_root_dir_path = get_vcpkg_root_path()
+  buildtrees_dir_path = os.path.join(vcpkg_root_dir_path, 'buildtrees')
+  delete_directory(buildtrees_dir_path)
+  downloads_dir_path = os.path.join(vcpkg_root_dir_path, 'downloads')
+  delete_directory(downloads_dir_path)
+
