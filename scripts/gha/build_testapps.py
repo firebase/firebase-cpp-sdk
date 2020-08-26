@@ -346,7 +346,20 @@ def _build_android(project_dir, sdk_dir):
   # This will log the versions of dependencies for debugging purposes.
   _run(
       ["./gradlew", "dependencies", "--configuration", "debugCompileClasspath"])
-  _run(["./gradlew", "assembleDebug", "--stacktrace"])
+  # Building for Android has a known issue that can be worked around by
+  # simply building again. Since building from source takes a while, we don't
+  # want to retry the build if a different error occurred.
+  build_args = ["./gradlew", "assembleDebug", "--stacktrace"]
+  result = _run(args=build_args, capture_output=True, text=True, check=False)
+  if result.returncode:
+    if "Execution failed for task ':generateJsonModel" in result.stderr:
+      logging.info("Task failed for ':generateJsonModel<target>'. Retrying.")
+      _run(args=build_args)
+    else:
+      logging.error(result.stderr)
+      raise subprocess.CalledProcessError(
+          returncode=result.returncode,
+          cmd=build_args)
 
 
 def _validate_android_environment_variables():
@@ -459,10 +472,15 @@ def _run_setup_script(root_dir, testapp_dir):
     logging.info("setup_integration_tests.py not found")
 
 
-def _run(args, timeout=2400):
+def _run(args, timeout=2400, capture_output=False, text=None, check=True):
   """Executes a command in a subprocess."""
   logging.info("Running in subprocess: %s", " ".join(args))
-  return subprocess.run(args=args, timeout=timeout, check=True)
+  return subprocess.run(
+      args=args,
+      timeout=timeout,
+      capture_output=capture_output,
+      text=text,
+      check=check)
 
 
 def _rm_dir_safe(directory_path):
