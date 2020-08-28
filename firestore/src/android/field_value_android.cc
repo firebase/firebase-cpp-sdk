@@ -10,11 +10,20 @@
 #include "firestore/src/android/timestamp_android.h"
 #include "firestore/src/android/util_android.h"
 #include "firestore/src/jni/class.h"
+#include "firestore/src/jni/env.h"
 
 namespace firebase {
 namespace firestore {
+namespace {
+
+using jni::Array;
+using jni::Env;
+using jni::Local;
+using jni::Object;
 
 using Type = FieldValue::Type;
+
+}  // namespace
 
 // com.google.firebase.firestore.FieldValue is the public type which contains
 // static methods to build sentinel values.
@@ -112,11 +121,9 @@ FieldValueInternal::FieldValueInternal(std::string value)
 // blob_value().
 FieldValueInternal::FieldValueInternal(const uint8_t* value, size_t size)
     : cached_type_(Type::kBlob) {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject obj = BlobInternal::BlobToJavaBlob(env, value, size);
-  obj_ = env->NewGlobalRef(obj);
-  env->DeleteLocalRef(obj);
-  CheckAndClearJniExceptions(env);
+  Env env = GetEnv();
+  Local<BlobInternal> obj = BlobInternal::Create(env, value, size);
+  obj_ = env.get()->NewGlobalRef(obj.get());
   FIREBASE_ASSERT(obj_ != nullptr);
 }
 
@@ -195,7 +202,7 @@ Type FieldValueInternal::type() const {
     cached_type_ = Type::kString;
     return Type::kString;
   }
-  if (env->IsInstanceOf(obj_, BlobInternal::GetClass())) {
+  if (env->IsInstanceOf(obj_, BlobInternal::GetClass().get())) {
     cached_type_ = Type::kBlob;
     return Type::kBlob;
   }
@@ -292,55 +299,57 @@ std::string FieldValueInternal::string_value() const {
 }
 
 const uint8_t* FieldValueInternal::blob_value() const {
-  if (blob_size() == 0) {
-    // Doesn't matter what we return. Not return &(cached_blob_.get()->front())
-    // to avoid going into undefined-behavior world. Once we drop the support of
-    // STLPort, we might just combine this case into the logic below by calling
-    // cached_blob_.get()->data().
+  static_assert(sizeof(uint8_t) == sizeof(jbyte),
+                "uint8_t and jbyte must be of same size");
+
+  Env env = GetEnv();
+  EnsureCachedBlob(env);
+  if (!env.ok() || cached_blob_.get() == nullptr) {
     return nullptr;
   }
 
-  if (cached_blob_.get()) {
-    return &(cached_blob_.get()->front());
+  if (cached_blob_->empty()) {
+    // The return value doesn't matter, but we can't return
+    // `&cached_blob->front()` because calling `front` on an empty vector is
+    // undefined behavior. When we drop support for STLPort, we can use `data`
+    // instead which is defined, even for empty vectors.
+    // TODO(b/163140650): remove this special case.
+    return nullptr;
   }
 
-  size_t size = blob_size();
-  // firebase::SharedPtr does not have set() API.
-  cached_blob_ =
-      SharedPtr<std::vector<uint8_t>>{new std::vector<uint8_t>(size)};
-
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jbyteArray bytes = BlobInternal::JavaBlobToJbyteArray(env, obj_);
-  static_assert(sizeof(uint8_t) == sizeof(jbyte),
-                "uint8_t and jbyte must be of same size");
-  env->GetByteArrayRegion(
-      bytes, 0, size, reinterpret_cast<jbyte*>(&(cached_blob_.get()->front())));
-  env->DeleteLocalRef(bytes);
-
-  CheckAndClearJniExceptions(env);
-  return &(cached_blob_.get()->front());
+  return &(cached_blob_->front());
 }
 
 size_t FieldValueInternal::blob_size() const {
-  if (cached_blob_.get()) {
-    return cached_blob_.get()->size();
+  Env env = GetEnv();
+  EnsureCachedBlob(env);
+  if (!env.ok() || cached_blob_.get() == nullptr) {
+    return 0;
   }
 
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
+  return cached_blob_->size();
+}
 
-  // Make sure this instance is of correct type.
+void FieldValueInternal::EnsureCachedBlob(Env& env) const {
   if (cached_type_ == Type::kNull) {
-    FIREBASE_ASSERT(env->IsInstanceOf(obj_, BlobInternal::GetClass()));
+    FIREBASE_ASSERT(env.IsInstanceOf(Object(obj_), BlobInternal::GetClass()));
     cached_type_ = Type::kBlob;
   } else {
     FIREBASE_ASSERT(cached_type_ == Type::kBlob);
   }
+  if (cached_blob_.get() != nullptr) {
+    return;
+  }
 
-  jbyteArray bytes = BlobInternal::JavaBlobToJbyteArray(env, obj_);
-  jsize result = env->GetArrayLength(bytes);
-  env->DeleteLocalRef(bytes);
-  CheckAndClearJniExceptions(env);
-  return static_cast<size_t>(result);
+  Local<Array<uint8_t>> bytes = BlobInternal(obj_).ToBytes(env);
+  size_t size = bytes.Size(env);
+
+  auto result = MakeShared<std::vector<uint8_t>>(size);
+  env.GetArrayRegion(bytes, 0, size, &(result->front()));
+
+  if (env.ok()) {
+    cached_blob_ = Move(result);
+  }
 }
 
 DocumentReference FieldValueInternal::reference_value() const {

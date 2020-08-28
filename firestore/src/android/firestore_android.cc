@@ -161,7 +161,6 @@ bool FirestoreInternal::Initialize(App* app) {
     jobject activity = app->activity();
     if (!(firebase_firestore::CacheMethodIds(env, activity) &&
           // Call Initialize on each Firestore internal class.
-          BlobInternal::Initialize(app) &&
           DirectionInternal::Initialize(app) &&
           FieldValueInternal::Initialize(app) &&
           FirebaseFirestoreExceptionInternal::Initialize(app) &&
@@ -191,6 +190,7 @@ bool FirestoreInternal::Initialize(App* app) {
     jni::List::Initialize(loader);
     jni::Map::Initialize(loader);
 
+    BlobInternal::Initialize(loader);
     CollectionReferenceInternal::Initialize(loader);
     DocumentChangeInternal::Initialize(loader);
     DocumentChangeTypeInternal::Initialize(loader);
@@ -246,7 +246,6 @@ void FirestoreInternal::ReleaseClasses(App* app) {
   util::CheckAndClearJniExceptions(env);
 
   // Call Terminate on each Firestore internal class.
-  BlobInternal::Terminate(app);
   DirectionInternal::Terminate(app);
   DocumentReferenceInternal::Terminate(app);
   DocumentSnapshotInternal::Terminate(app);
