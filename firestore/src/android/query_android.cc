@@ -42,9 +42,10 @@ Query QueryInternal::OrderBy(const FieldPath& field,
   JNIEnv* env = new_env.get();
   Local<Object> j_field = FieldPathConverter::Create(new_env, field);
   CheckAndClearJniExceptions(env);
-  jobject j_direction = DirectionInternal::ToJavaObject(env, direction);
-  jobject query = env->CallObjectMethod(
-      obj_, query::GetMethodId(query::kOrderBy), j_field.get(), j_direction);
+  Local<Object> j_direction = DirectionInternal::Create(new_env, direction);
+  jobject query =
+      env->CallObjectMethod(obj_, query::GetMethodId(query::kOrderBy),
+                            j_field.get(), j_direction.get());
   CheckAndClearJniExceptions(env);
   QueryInternal* internal = new QueryInternal{firestore_, query};
   env->DeleteLocalRef(query);
