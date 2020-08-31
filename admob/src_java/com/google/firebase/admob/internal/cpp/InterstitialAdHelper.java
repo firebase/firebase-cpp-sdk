@@ -21,6 +21,7 @@ import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.InterstitialAd;
 
+import java.lang.IllegalStateException;
 /**
  * Helper class to make interactions between the AdMob C++ wrapper and Java {@link InterstitialAd}
  * objects cleaner. It's designed to wrap and adapt a single instance of {@link InterstitialAd},
@@ -91,15 +92,18 @@ public class InterstitialAdHelper {
           public void run() {
             int errorCode;
             String errorMessage;
+            errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
+            errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
             if (mInterstitial == null) {
-              errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-              errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-              mInterstitial = new InterstitialAd(mActivity);
-              mInterstitial.setAdUnitId(mAdUnitId);
-              mInterstitial.setAdListener(new InterstitialAdListener());
-            } else {
-              errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
-              errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
+              try {
+                mInterstitial = new InterstitialAd(mActivity);
+                mInterstitial.setAdUnitId(mAdUnitId);
+                mInterstitial.setAdListener(new InterstitialAdListener());
+                errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+              } catch(IllegalStateException ise) {
+                mInterstitial = null;
+              }
             }
 
             completeInterstitialAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
@@ -152,7 +156,18 @@ public class InterstitialAdHelper {
                 mLoadAdCallbackDataPtr = CPP_NULLPTR;
               }
             } else {
-              mInterstitial.loadAd(request);
+              try {
+                mInterstitial.loadAd(request);
+              } catch (IllegalStateException ise) {
+                synchronized (mInterstitialLock) {
+                  completeInterstitialAdFutureCallback(
+                      mLoadAdCallbackDataPtr,
+                      ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
+                      ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
+                  mLoadAdCallbackDataPtr = CPP_NULLPTR;
+                  mInterstitial = null;
+                }
+              }
             }
           }
         });
