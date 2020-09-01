@@ -261,6 +261,7 @@ def _build(
     except subprocess.CalledProcessError as e:
       failures.append(
           Failure(testapp=testapp, platform=_DESKTOP, error_message=str(e)))
+    _rm_dir_safe(os.path.join(project_dir, "bin"))
     logging.info("END %s, %s", testapp, _DESKTOP)
 
   if _ANDROID in platforms:
@@ -271,6 +272,8 @@ def _build(
     except subprocess.CalledProcessError as e:
       failures.append(
           Failure(testapp=testapp, platform=_ANDROID, error_message=str(e)))
+    _rm_dir_safe(os.path.join(project_dir, "build", "intermediates"))
+    _rm_dir_safe(os.path.join(project_dir, ".externalNativeBuild"))
     logging.info("END %s, %s", testapp, _ANDROID)
 
   if _IOS in platforms:
@@ -289,7 +292,6 @@ def _build(
           Failure(testapp=testapp, platform=_IOS, error_message=str(e)))
     logging.info("END %s, %s", testapp, _IOS)
 
-  logging.info("END building for API: %s", testapp)
   return failures
 
 
@@ -320,7 +322,7 @@ def _execute_desktop_testapp(project_dir):
     testapp_path = os.path.join(project_dir, "Debug", "integration_test.exe")
   else:
     testapp_path = os.path.join(project_dir, "integration_test")
-  _run([testapp_path])
+  _run([testapp_path], timeout=300)
 
 
 def _get_desktop_compiler_flags(compiler, compiler_table):
@@ -344,7 +346,20 @@ def _build_android(project_dir, sdk_dir):
   # This will log the versions of dependencies for debugging purposes.
   _run(
       ["./gradlew", "dependencies", "--configuration", "debugCompileClasspath"])
-  _run(["./gradlew", "assembleDebug", "--stacktrace"])
+  # Building for Android has a known issue that can be worked around by
+  # simply building again. Since building from source takes a while, we don't
+  # want to retry the build if a different error occurred.
+  build_args = ["./gradlew", "assembleDebug", "--stacktrace"]
+  result = _run(args=build_args, capture_output=True, text=True, check=False)
+  if result.returncode:
+    if "Execution failed for task ':generateJsonModel" in result.stderr:
+      logging.info("Task failed for ':generateJsonModel<target>'. Retrying.")
+      _run(args=build_args)
+    else:
+      logging.error(result.stderr)
+      raise subprocess.CalledProcessError(
+          returncode=result.returncode,
+          cmd=build_args)
 
 
 def _validate_android_environment_variables():
@@ -457,10 +472,24 @@ def _run_setup_script(root_dir, testapp_dir):
     logging.info("setup_integration_tests.py not found")
 
 
-def _run(args, timeout=1200):
+def _run(args, timeout=2400, capture_output=False, text=None, check=True):
   """Executes a command in a subprocess."""
   logging.info("Running in subprocess: %s", " ".join(args))
-  return subprocess.run(args=args, timeout=timeout, check=True)
+  return subprocess.run(
+      args=args,
+      timeout=timeout,
+      capture_output=capture_output,
+      text=text,
+      check=check)
+
+
+def _rm_dir_safe(directory_path):
+  """Removes directory at given path. No error if dir doesn't exist."""
+  try:
+    shutil.rmtree(directory_path)
+    logging.info("Deleted %s", directory_path)
+  except FileNotFoundError:
+    logging.warning("Tried to delete %s, but it doesn't exist.", directory_path)
 
 
 @attr.s(frozen=True, eq=False)
@@ -524,4 +553,6 @@ class Failure(object):
 
 
 if __name__ == "__main__":
+  flags.mark_flag_as_required("testapps")
+  flags.mark_flag_as_required("platforms")
   app.run(main)
