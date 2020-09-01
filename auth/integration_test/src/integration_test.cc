@@ -390,10 +390,10 @@ TEST_F(FirebaseAuthTest, TestTokensAndAuthStateListeners) {
 
 static std::string GenerateEmailAddress() {
   char time_string[22];
-  snprintf(time_str, 22, "%d", app_framework::GetCurrentTimeInMicroseconds());
+  snprintf(time_string, 22, "%d", app_framework::GetCurrentTimeInMicroseconds());
   std::string email =
       "random_user_" +
-       + time_str +
+       + time_string +
       "@gmail.com";
   LogDebug("Generated email address: %s", email.c_str());
   return email;
