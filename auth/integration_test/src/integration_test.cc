@@ -770,6 +770,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
 }
 #endif  // ! defined(__linux__)
 
+
 class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
  public:
   PhoneListener()
