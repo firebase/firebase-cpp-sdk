@@ -386,7 +386,10 @@ static std::string ConstructHtmlToSendMessage(
        "document.write('<h1>Failed to send notification.</h1>');"
        "document.write('Status '+xhttp.status+': '+xhttp.response);"
        "}},";
-  h += std::to_string(delay_seconds * 1000) + ");}</script>";
+  char delay_seconds_string[22];
+  snprintf(delay_seconds_string, 22, "%d", delay_seconds);
+  h += delay_seconds_string;
+  h += ");}</script>";
   return h;
 }
 
