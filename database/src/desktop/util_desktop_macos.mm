@@ -23,48 +23,40 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-// Given a directory path, and a directory creation mode with an option delimiter,
-// recursively create directories. mkdir doesn't create directories recursively
-// This is similar to `mkdir -p` on the command line
-static int mkdir_recursive(const char* dir_path, const mode_t mode) {
-  std::string dir_path_string(dir_path);
-  const char path_delimiter = '/';
-
-  // This index will be used to track the positions of path_delimiters in the path string
+// Split a string based on specified character delimiter into constituent parts
+static std::vector<std::string> split_string(const std::string& s,
+                                             const char delimiter='/') {
   size_t pos = 0;
-  // This index is used as the starting index to search the path_delimiters from.
-  size_t path_delimiter_search_start = 0;
-  // Skip any leading path_delimiters
-  while(dir_path_string[path_delimiter_search_start] == path_delimiter) {
-    path_delimiter_search_start++;
+  // This index is used as the starting index to search the delimiters from.
+  size_t delimiter_search_start = 0;
+  // Skip any leading delimiters
+  while(s[delimiter_search_start] == delimiter) {
+    delimiter_search_start++;
   }
-  size_t len = dir_path_string.size();
-  // Invalid path if it consists of just path_delimiters
+
+  std::vector<std::string> split_parts;
+  size_t len = s.size();
+  // Cant proceed if input string consists of just delimiters
   if (pos >= len) {
-    return -1;
+    return split_parts;
   }
-  std::string sub_directory;
-  int retval;
-  while( (pos = dir_path_string.find(path_delimiter, path_delimiter_search_start))
-                                                             != std::string::npos) {
-    sub_directory = dir_path_string.substr(0, pos);
-    retval = mkdir(sub_directory.c_str(), mode);
-    if (retval != 0 && errno != EEXIST) return -1;
-    while(dir_path_string[pos] == path_delimiter && pos<len) {
+
+  while( (pos = s.find(delimiter, delimiter_search_start)) != std::string::npos) {
+    split_parts.push_back(s.substr(delimiter_search_start, pos-delimiter_search_start));
+
+    while(s[pos] == delimiter && pos<len) {
       pos++;
-      path_delimiter_search_start = pos;
+      delimiter_search_start = pos;
     }
   }
 
-  // If the path does not have trailing delimiter, we still have to create the
-  // last subdirectory
-  if (dir_path_string[len-1] != path_delimiter) {
-    retval = mkdir(dir_path_string.c_str(), mode);
-    if (retval != 0 && errno != EEXIST) return -1;
-  }
-  return 0;
-}
+  // If the input string doesn't end with a delimiter we need to push the last
+  // token into our return vector
+  if (delimiter_search_start != len)
+    split_parts.push_back(s.substr(delimiter_search_start, len-delimiter_search_start));
 
+  return split_parts;
+}
 
 std::string GetAppDataPath(const char* app_name, bool should_create) {
   NSArray<NSString*>* directories =
@@ -74,9 +66,17 @@ std::string GetAppDataPath(const char* app_name, bool should_create) {
     int retval;
     retval = mkdir(path.c_str(), 0700);
     if (retval != 0 && errno != EEXIST) return "";
-    // app_name could have a path delimiter "/" in it. Use custom recursive mkdir.
-    retval = mkdir_recursive((path + "/" + app_name).c_str(), 0700);
-    if (retval != 0 && errno != EEXIST) return "";
+    // App name might contain path separators. Split it to get list of subdirs
+    std::vector<std::string> app_name_parts = split_string(app_name, '/');
+    if(app_name_parts.empty()) return "";
+    std::string dir_path = path;
+    // Recursively create entire tree of directories
+    for (std::vector<std::string>::const_iterator it = app_name_parts.begin();
+                                            it != app_name_parts.end(); it++) {
+          dir_path = dir_path + "/" + *it;
+          retval = mkdir(dir_path.c_str(), 0700);
+          if (retval != 0 && errno != EEXIST) return "";
+    }
   }
   return path + "/" + app_name;
 }
