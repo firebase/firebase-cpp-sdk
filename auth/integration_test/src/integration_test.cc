@@ -389,9 +389,11 @@ TEST_F(FirebaseAuthTest, TestTokensAndAuthStateListeners) {
 }
 
 static std::string GenerateEmailAddress() {
+  char time_string[22];
+  snprintf(time_str, 22, "%d", app_framework::GetCurrentTimeInMicroseconds());
   std::string email =
       "random_user_" +
-      std::to_string(app_framework::GetCurrentTimeInMicroseconds()) +
+       + time_str +
       "@gmail.com";
   LogDebug("Generated email address: %s", email.c_str());
   return email;
@@ -712,8 +714,6 @@ TEST_F(FirebaseAuthTest, TestWithCustomEmailAndPassword) {
   EXPECT_NE(auth_->current_user(), nullptr);
 }
 
-#if ! defined(__linux__)
-// Test is disabled on linux due to the need to unlock the keystore.
 TEST_F(FirebaseAuthTest, TestAuthPersistenceWithAnonymousSignin) {
   WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
   ASSERT_NE(auth_->current_user(), nullptr);
@@ -726,10 +726,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithAnonymousSignin) {
   EXPECT_TRUE(auth_->current_user()->is_anonymous());
   DeleteUser();
 }
-#endif  // ! defined(__linux__)
 
-#if ! defined(__linux__)
-// Test is disabled on linux due to the need to unlock the keychain.
 TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   std::string email = GenerateEmailAddress();
   WaitForCompletion(
@@ -767,8 +764,6 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   EXPECT_NE(auth_->current_user(), nullptr);
   DeleteUser();
 }
-#endif  // ! defined(__linux__)
-
 
 class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
  public:
