@@ -20,7 +20,6 @@
 #include "firestore/src/android/field_path_android.h"
 #include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/firebase_firestore_exception_android.h"
-#include "firestore/src/android/firebase_firestore_settings_android.h"
 #include "firestore/src/android/geo_point_android.h"
 #include "firestore/src/android/lambda_event_listener.h"
 #include "firestore/src/android/lambda_transaction_function.h"
@@ -30,6 +29,7 @@
 #include "firestore/src/android/query_snapshot_android.h"
 #include "firestore/src/android/server_timestamp_behavior_android.h"
 #include "firestore/src/android/set_options_android.h"
+#include "firestore/src/android/settings_android.h"
 #include "firestore/src/android/snapshot_metadata_android.h"
 #include "firestore/src/android/source_android.h"
 #include "firestore/src/android/timestamp_android.h"
@@ -51,6 +51,9 @@
 
 namespace firebase {
 namespace firestore {
+
+using jni::Env;
+using jni::Local;
 
 const char kApiIdentifier[] = "Firestore";
 
@@ -163,7 +166,6 @@ bool FirestoreInternal::Initialize(App* app) {
           // Call Initialize on each Firestore internal class.
           FieldValueInternal::Initialize(app) &&
           FirebaseFirestoreExceptionInternal::Initialize(app) &&
-          FirebaseFirestoreSettingsInternal::Initialize(app) &&
           GeoPointInternal::Initialize(app) &&
           ListenerRegistrationInternal::Initialize(app) &&
           QueryInternal::Initialize(app) &&
@@ -200,6 +202,7 @@ bool FirestoreInternal::Initialize(App* app) {
     MetadataChangesInternal::Initialize(loader);
     ServerTimestampBehaviorInternal::Initialize(loader);
     SetOptionsInternal::Initialize(loader);
+    SettingsInternal::Initialize(loader);
     SnapshotMetadataInternal::Initialize(loader);
     SourceInternal::Initialize(loader);
     if (!loader.ok()) {
@@ -251,7 +254,6 @@ void FirestoreInternal::ReleaseClasses(App* app) {
   EventListenerInternal::Terminate(app);
   FieldValueInternal::Terminate(app);
   FirebaseFirestoreExceptionInternal::Terminate(app);
-  FirebaseFirestoreSettingsInternal::Terminate(app);
   GeoPointInternal::Terminate(app);
   ListenerRegistrationInternal::Terminate(app);
   QueryInternal::Terminate(app);
@@ -363,27 +365,20 @@ Query FirestoreInternal::CollectionGroup(const char* collection_id) const {
 }
 
 Settings FirestoreInternal::settings() const {
-  JNIEnv* env = app_->GetJNIEnv();
-  jobject settings = env->CallObjectMethod(
+  Env env = GetEnv();
+  Local<SettingsInternal> settings = env.Call<SettingsInternal>(
       obj_, firebase_firestore::GetMethodId(firebase_firestore::kGetSettings));
-  FIREBASE_ASSERT(settings != nullptr);
+  FIREBASE_ASSERT(settings);
 
-  Settings result =
-      FirebaseFirestoreSettingsInternal::JavaSettingToSetting(env, settings);
-  env->DeleteLocalRef(settings);
-  CheckAndClearJniExceptions(env);
-  return result;
+  return settings.ToPublic(env);
 }
 
 void FirestoreInternal::set_settings(Settings settings) {
-  JNIEnv* env = app_->GetJNIEnv();
-  jobject settings_jobj =
-      FirebaseFirestoreSettingsInternal::SettingToJavaSetting(env, settings);
-  env->CallVoidMethod(
+  Env env = GetEnv();
+  auto java_settings = SettingsInternal::Create(env, settings);
+  env.Call<void>(
       obj_, firebase_firestore::GetMethodId(firebase_firestore::kSetSettings),
-      settings_jobj);
-  env->DeleteLocalRef(settings_jobj);
-  CheckAndClearJniExceptions(env);
+      java_settings);
 }
 
 WriteBatch FirestoreInternal::batch() const {
@@ -554,6 +549,15 @@ void FirestoreInternal::UnregisterListenerRegistration(
     delete *iter;
     listener_registrations_.erase(iter);
   }
+}
+
+jni::Env FirestoreInternal::GetEnv() const {
+  // TODO(mcg): Investigate whether or not this method can be made static.
+  // This will depend on whether or not we need to flag the current Firestore
+  // instance as somehow broken in response to an exception.
+  jni::Env env;
+  env.SetUnhandledExceptionHandler(GlobalUnhandledExceptionHandler, nullptr);
+  return env;
 }
 
 CollectionReference FirestoreInternal::NewCollectionReference(

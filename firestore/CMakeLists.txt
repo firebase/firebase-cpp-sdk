@@ -79,8 +79,6 @@ set(android_SRCS
     src/android/field_value_android.h
     src/android/firebase_firestore_exception_android.cc
     src/android/firebase_firestore_exception_android.h
-    src/android/firebase_firestore_settings_android.cc
-    src/android/firebase_firestore_settings_android.h
     src/android/firestore_android.cc
     src/android/firestore_android.h
     src/android/geo_point_android.cc
@@ -101,6 +99,8 @@ set(android_SRCS
     src/android/server_timestamp_behavior_android.h
     src/android/set_options_android.cc
     src/android/set_options_android.h
+    src/android/settings_android.cc
+    src/android/settings_android.h
     src/android/snapshot_metadata_android.cc
     src/android/snapshot_metadata_android.h
     src/android/source_android.cc

@@ -120,6 +120,8 @@ class FirestoreInternal {
   void UnregisterListenerRegistration(
       ListenerRegistrationInternal* registration);
 
+  jni::Env GetEnv() const;
+
   CollectionReference NewCollectionReference(jni::Env& env,
                                              const jni::Object& reference);
   DocumentReference NewDocumentReference(jni::Env& env,

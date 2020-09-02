@@ -72,7 +72,7 @@ class Wrapper {
   // Similar to a copy constructor, but can handle the case where `rhs` is null.
   explicit Wrapper(Wrapper* rhs);
 
-  jni::Env GetEnv() const;
+  jni::Env GetEnv() const { return firestore_->GetEnv(); }
 
   // Converts a java list of java type e.g. java.util.List<FirestoreJavaType> to
   // a C++ vector of equivalent type e.g. std::vector<FirestoreType>.
