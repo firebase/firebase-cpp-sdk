@@ -527,6 +527,7 @@ class StorageListener : public firebase::storage::Listener {
 
   // Tracks whether OnPaused was ever called and resumes the transfer.
   void OnPaused(firebase::storage::Controller* controller) override {
+    LogDebug("Listener OnPaused callback invoked!");
     on_paused_was_called_ = true;
     controller->Resume();
   }
@@ -598,6 +599,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     // failing.
     LogDebug("Pausing upload.");
     EXPECT_TRUE(controller.Pause()) << "Upload pause";
+    ProcessEvents(1);
 
     // The StorageListener's OnPaused will call Resume().
 
