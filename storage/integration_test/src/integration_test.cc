@@ -589,7 +589,8 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     // operation.
     ASSERT_TRUE(controller.is_valid());
 
-    while(controller.bytes_transferred() == 0) {
+    // Wait for the transfer to commence.
+    while(controller.bytes_transferred() >= 0) {
       ProcessEvents(1);
     }
 
@@ -599,10 +600,11 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     // failing.
     LogDebug("Pausing upload.");
     EXPECT_TRUE(controller.Pause()) << "Upload pause";
+
+    // allow the callback to be invoked.
     ProcessEvents(1);
 
     // The StorageListener's OnPaused will call Resume().
-
     LogDebug("Waiting for future.");
     WaitForCompletion(future, "WriteLargeFile");
     LogDebug("Upload complete.");
@@ -643,7 +645,11 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
         ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
     ASSERT_TRUE(controller.is_valid());
 
-    ProcessEvents(500);
+    // Wait for the transfer to commence.
+    while(controller.bytes_transferred() >= 0) {
+      ProcessEvents(1);
+    }
+
     LogDebug("Pausing download.");
     EXPECT_TRUE(controller.Pause()) << "Download pause";
 
@@ -696,7 +702,12 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     firebase::Future<size_t> future =
         ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
     ASSERT_TRUE(controller.is_valid());
-    ProcessEvents(500);
+    
+    // Wait for the transfer to commence.
+    while(controller.bytes_transferred() >= 0) {
+      ProcessEvents(1);
+    }
+
     LogDebug("Cancelling download.");
     EXPECT_TRUE(controller.Cancel());
     WaitForCompletion(future, "GetBytes", firebase::storage::kErrorCancelled);
