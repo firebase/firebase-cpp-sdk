@@ -44,7 +44,7 @@ static std::vector<std::string> split_string(const std::string& s,
     return split_parts;
   }
 
-  while( (pos = s.find(delimiter, delimiter_search_start)) != std::string::npos) {
+  while((pos = s.find(delimiter, delimiter_search_start)) != std::string::npos) {
     split_parts.push_back(s.substr(delimiter_search_start, pos-delimiter_search_start));
 
     while(s[pos] == delimiter && pos<len) {
@@ -55,8 +55,9 @@ static std::vector<std::string> split_string(const std::string& s,
 
   // If the input string doesn't end with a delimiter we need to push the last
   // token into our return vector
-  if (delimiter_search_start != len)
+  if (delimiter_search_start != len) {
     split_parts.push_back(s.substr(delimiter_search_start, len-delimiter_search_start));
+  }
 
   return split_parts;
 }
@@ -84,14 +85,14 @@ std::string GetAppDataPath(const char* app_name, bool should_create) {
   if (should_create) {
     // App name might contain path separators. Split it to get list of subdirs
     std::vector<std::string> app_name_parts = split_string(app_name, '/');
-    if(app_name_parts.empty()) return "";
+    if (app_name_parts.empty()) return "";
     std::string dir_path = path;
     // Recursively create the entire tree of directories
     for (std::vector<std::string>::const_iterator it = app_name_parts.begin();
-                                            it != app_name_parts.end(); it++) {
-          dir_path = dir_path + "\\" + *it;
-          int retval = _mkdir(dir_path.c_str());
-          if (retval != 0 && errno != EEXIST) return "";
+                                           it != app_name_parts.end(); it++) {
+      dir_path = dir_path + "\\" + *it;
+      int retval = _mkdir(dir_path.c_str());
+      if (retval != 0 && errno != EEXIST) return "";
     }
   }
   return path + "\\" + app_name;
