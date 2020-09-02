@@ -89,7 +89,7 @@ std::string GetAppDataPath(const char* app_name, bool should_create) {
     std::string dir_path = path;
     // Recursively create the entire tree of directories
     for (std::vector<std::string>::const_iterator it = app_name_parts.begin();
-                                           it != app_name_parts.end(); it++) {
+         it != app_name_parts.end(); it++) {
       dir_path = dir_path + "\\" + *it;
       int retval = _mkdir(dir_path.c_str());
       if (retval != 0 && errno != EEXIST) return "";
