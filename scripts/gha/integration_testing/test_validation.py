@@ -24,7 +24,16 @@ CPP = "cpp"
 
 
 def validate_results(log_text, platform):
-  """Determines the results in the log output of a testapp."""
+  """Determines the results in the log output of a testapp.
+
+  Args:
+    log_text (str): Log output from a testapp.
+    platform (str): What type of testapp generated the log: 'unity' or 'cpp'.
+
+  Returns:
+    (TestResults): Structured results from the log.
+
+  """
   if platform == UNITY:
     return validate_results_unity(log_text)
   elif platform == CPP:
@@ -34,13 +43,21 @@ def validate_results(log_text, platform):
 
 
 def validate_results_unity(log_text):
-  """Determines the results in the log output of a Unity testapp."""
+  """Determines the results in the log output of a Unity testapp.
+
+  Args:
+    log_text (str): Log output from a Unity testapp.
+
+  Returns:
+    (TestResults): Structured results from the log.
+
+  """
   results_match = re.search(
       r"PASS: (?P<pass>[0-9]+), FAIL: (?P<fail>[0-9]+)", log_text)
   match_dict = results_match.groupdict()
   if results_match:
     # After the result string comes a list of failing testapps.
-    summary = log_text[results_match.start()]
+    summary = log_text[results_match.start():]
   else:
     summary = _tail(log_text, 15)
   return TestResults(
@@ -52,7 +69,15 @@ def validate_results_unity(log_text):
 
 
 def validate_results_cpp(log_text):
-  """Determines the results in the log output of a C++ testapp."""
+  """Determines the results in the log output of a C++ testapp.
+
+  Args:
+    log_text (str): Log output from a C++ testapp.
+
+  Returns:
+    (TestResults): Structured results from the log.
+
+  """
   # The gtest runner dumps a useful summary of tests after the tear down.
   end_marker = "Global test environment tear-down"
   complete = end_marker in log_text

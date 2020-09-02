@@ -7,7 +7,7 @@ This tool will use the games-auto-release-testing GCS storage bucket. To
 be authorized, it's necessary have the key file (JSON) (from valentine) and
 supply it with the --key_file flag.
 
-https://valentine.corp.google.com/#/show/1561166657633900
+Valentine ID: 1561166657633900
 
 
 Usage:
@@ -146,8 +146,8 @@ def main(argv):
 def _get_base_results_dir():
   """Defines the object used on GCS for all tests in this run."""
   # We generate a unique directory to store the results by appending 4
-  # random letters to a timestamp. Using a timestamp is useful so that the
-  # the directory for different runs get sorted base on when it was run.
+  # random letters to a timestamp. Timestamps are useful so that the
+  # directories for different runs get sorted based on when they were run.
   timestamp = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
   suffix = "".join(random.choice(string.ascii_letters) for _ in range(4))
   return "%s_%s" % (timestamp, suffix)
