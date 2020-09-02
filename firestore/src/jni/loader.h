@@ -91,9 +91,10 @@ class Loader {
    * Loads a Java class and all its members in a single invocation.
    */
   template <typename... Members>
-  void LoadClass(const char* name, Members&&... members) {
-    LoadClass(name);
+  jclass LoadClass(const char* name, Members&&... members) {
+    jclass result = LoadClass(name);
     LoadAll(Forward<Members>(members)...);
+    return result;
   }
 
   /**

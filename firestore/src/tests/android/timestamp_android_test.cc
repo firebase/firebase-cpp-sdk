@@ -1,26 +1,26 @@
 #include "firestore/src/android/timestamp_android.h"
 
-#include <jni.h>
-
+#include "firestore/src/jni/env.h"
 #include "firestore/src/tests/firestore_integration_test.h"
-#include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 #include "firebase/firestore/timestamp.h"
 
 namespace firebase {
 namespace firestore {
+namespace {
 
-TEST_F(FirestoreIntegrationTest, Converter) {
-  JNIEnv* env = app()->GetJNIEnv();
+using jni::Env;
 
-  const Timestamp timestamp{1234, 5678};
-  jobject java_timestamp =
-      TimestampInternal::TimestampToJavaTimestamp(env, timestamp);
-  EXPECT_EQ(timestamp,
-            TimestampInternal::JavaTimestampToTimestamp(env, java_timestamp));
+using TimestampTest = FirestoreIntegrationTest;
 
-  env->DeleteLocalRef(java_timestamp);
+TEST_F(TimestampTest, Converts) {
+  Env env;
+
+  Timestamp timestamp{1234, 5678};
+  auto java_timestamp = TimestampInternal::Create(env, timestamp);
+  EXPECT_EQ(timestamp, java_timestamp.ToPublic(env));
 }
 
+}  // namespace
 }  // namespace firestore
 }  // namespace firebase

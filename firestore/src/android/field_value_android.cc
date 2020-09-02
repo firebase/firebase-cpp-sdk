@@ -99,10 +99,9 @@ FieldValueInternal::FieldValueInternal(double value)
 
 FieldValueInternal::FieldValueInternal(Timestamp value)
     : cached_type_(Type::kTimestamp) {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject obj = TimestampInternal::TimestampToJavaTimestamp(env, value);
-  obj_ = env->NewGlobalRef(obj);
-  env->DeleteLocalRef(obj);
+  Env env;
+  Local<TimestampInternal> obj = TimestampInternal::Create(env, value);
+  obj_ = env.get()->NewGlobalRef(obj.get());
 }
 
 FieldValueInternal::FieldValueInternal(std::string value)
@@ -194,7 +193,7 @@ Type FieldValueInternal::type() const {
     cached_type_ = Type::kDouble;
     return Type::kDouble;
   }
-  if (env->IsInstanceOf(obj_, TimestampInternal::GetClass())) {
+  if (env->IsInstanceOf(obj_, TimestampInternal::GetClass().get())) {
     cached_type_ = Type::kTimestamp;
     return Type::kTimestamp;
   }
@@ -271,17 +270,17 @@ double FieldValueInternal::double_value() const {
 }
 
 Timestamp FieldValueInternal::timestamp_value() const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
+  Env env;
 
   // Make sure this instance is of correct type.
   if (cached_type_ == Type::kNull) {
-    FIREBASE_ASSERT(env->IsInstanceOf(obj_, TimestampInternal::GetClass()));
+    FIREBASE_ASSERT(env.IsInstanceOf(obj_, TimestampInternal::GetClass()));
     cached_type_ = Type::kTimestamp;
   } else {
     FIREBASE_ASSERT(cached_type_ == Type::kTimestamp);
   }
 
-  return TimestampInternal::JavaTimestampToTimestamp(env, obj_);
+  return TimestampInternal(obj_).ToPublic(env);
 }
 
 std::string FieldValueInternal::string_value() const {
