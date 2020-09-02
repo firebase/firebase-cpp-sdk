@@ -172,7 +172,6 @@ bool FirestoreInternal::Initialize(App* app) {
           QuerySnapshotInternal::Initialize(app) &&
           TimestampInternal::Initialize(app) &&
           TransactionInternal::Initialize(app) && Wrapper::Initialize(app) &&
-          WriteBatchInternal::Initialize(app) &&
           // Initialize those embedded Firestore internal classes.
           InitializeEmbeddedClasses(app))) {
       ReleaseClasses(app);
@@ -205,6 +204,7 @@ bool FirestoreInternal::Initialize(App* app) {
     SettingsInternal::Initialize(loader);
     SnapshotMetadataInternal::Initialize(loader);
     SourceInternal::Initialize(loader);
+    WriteBatchInternal::Initialize(loader);
     if (!loader.ok()) {
       ReleaseClasses(app);
       return false;
@@ -261,7 +261,6 @@ void FirestoreInternal::ReleaseClasses(App* app) {
   TimestampInternal::Terminate(app);
   TransactionInternal::Terminate(app);
   Wrapper::Terminate(app);
-  WriteBatchInternal::Terminate(app);
 }
 
 /* static */
