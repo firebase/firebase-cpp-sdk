@@ -588,7 +588,10 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     // operation.
     ASSERT_TRUE(controller.is_valid());
 
-    ProcessEvents(50);
+    while(controller.bytes_transferred() == 0) {
+      ProcessEvents(1);
+    }
+
     // After waiting a moment for the operation to start, pause the operation
     // and verify it was successfully paused. Note that pause might not take
     // effect immediately, so we give it a few moments to pause before
