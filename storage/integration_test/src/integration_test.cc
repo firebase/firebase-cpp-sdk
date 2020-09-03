@@ -589,10 +589,15 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     // operation.
     ASSERT_TRUE(controller.is_valid());
 
+    LogDebug("Waiting for fileto trasnfer: %d", controller.bytes_transferred());
+
     // Wait for the transfer to commence.
-    while(controller.bytes_transferred() <= 0) {
+    while(controller.bytes_transferred() == 0) {
+      LogDebug("controller.bytes_transferred(): %d", controller.bytes_transferred());
       ProcessEvents(1);
     }
+
+    LogDebug("File being transferred(): %d", controller.bytes_transferred());
 
     // After waiting a moment for the operation to start, pause the operation
     // and verify it was successfully paused. Note that pause might not take
