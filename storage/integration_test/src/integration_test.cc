@@ -698,7 +698,12 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     firebase::Future<size_t> future =
         ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
     ASSERT_TRUE(controller.is_valid());
-    ProcessEvents(500);
+    
+    while(controller.bytes_transferred() == 0) 
+    {
+      ProcessEvents(1);
+    }
+    
     LogDebug("Cancelling download.");
     EXPECT_TRUE(controller.Cancel());
     WaitForCompletion(future, "GetBytes", firebase::storage::kErrorCancelled);
