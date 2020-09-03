@@ -590,7 +590,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     ASSERT_TRUE(controller.is_valid());
 
     // Wait for the transfer to commence.
-    while(controller.bytes_transferred() >= 0) {
+    while(controller.bytes_transferred() <= 0) {
       ProcessEvents(1);
     }
 
