@@ -185,6 +185,7 @@ if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
   target_link_libraries(firebase_firestore
     PRIVATE
       firestore_core
+      absl_variant
   )
 endif()
 
