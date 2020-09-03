@@ -1195,8 +1195,7 @@ Variant GetWireProtocolParams(const QueryParams& query_params) {
 }
 
 // Split a string based on specified character delimiter into constituent parts
-static std::vector<std::string> split_string(const std::string& s,
-                                             const char delimiter) {
+std::vector<std::string> split_string(const std::string& s, const char delimiter) {
   size_t pos = 0;
   // This index is used as the starting index to search the delimiters from.
   size_t delimiter_search_start = 0;

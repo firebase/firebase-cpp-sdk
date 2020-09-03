@@ -355,8 +355,8 @@ std::string GetAppDataPath(const char* app_name, bool should_create = true);
 
 // Platform independent function to split a string based on specified character
 // delimiter. Returns of vector of constituent parts
-static std::vector<std::string> split_string(const std::string& s,
-                                             const char delimiter='/');
+std::vector<std::string> split_string(const std::string& s,
+                                      const char delimiter='/');
 }  // namespace internal
 }  // namespace database
 }  // namespace firebase
