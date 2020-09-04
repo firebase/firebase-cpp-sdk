@@ -131,6 +131,7 @@ class FirestoreInternal {
   ListenerRegistration NewListenerRegistration(
       jni::Env& env, EventListener<DocumentSnapshot>* listener,
       bool passing_listener_ownership, const jni::Object& registration);
+  Query NewQuery(jni::Env& env, const jni::Object& query);
 
   // The constructor explicit Foo(FooInternal*) is protected in public API.
   // But we want it to be public-usable in internal implementation code

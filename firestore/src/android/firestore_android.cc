@@ -169,7 +169,6 @@ bool FirestoreInternal::Initialize(App* app) {
           GeoPointInternal::Initialize(app) &&
           ListenerRegistrationInternal::Initialize(app) &&
           QueryInternal::Initialize(app) &&
-          QuerySnapshotInternal::Initialize(app) &&
           TransactionInternal::Initialize(app) && Wrapper::Initialize(app) &&
           // Initialize those embedded Firestore internal classes.
           InitializeEmbeddedClasses(app))) {
@@ -198,6 +197,7 @@ bool FirestoreInternal::Initialize(App* app) {
     DocumentSnapshotInternal::Initialize(loader);
     FieldPathConverter::Initialize(loader);
     MetadataChangesInternal::Initialize(loader);
+    QuerySnapshotInternal::Initialize(loader);
     ServerTimestampBehaviorInternal::Initialize(loader);
     SetOptionsInternal::Initialize(loader);
     SettingsInternal::Initialize(loader);
@@ -257,7 +257,6 @@ void FirestoreInternal::ReleaseClasses(App* app) {
   GeoPointInternal::Terminate(app);
   ListenerRegistrationInternal::Terminate(app);
   QueryInternal::Terminate(app);
-  QuerySnapshotInternal::Terminate(app);
   TransactionInternal::Terminate(app);
   Wrapper::Terminate(app);
 }
@@ -587,6 +586,11 @@ ListenerRegistration FirestoreInternal::NewListenerRegistration(
   if (!env.ok() || !registration) return {};
   return ListenerRegistration(new ListenerRegistrationInternal(
       this, listener, passing_listener_ownership, registration.get()));
+}
+
+Query FirestoreInternal::NewQuery(jni::Env& env, const jni::Object& query) {
+  if (!env.ok() || !query) return {};
+  return Query(new QueryInternal(this, query.get()));
 }
 
 /* static */
