@@ -220,7 +220,6 @@ void FirebaseStorageTest::SignOut() {
   EXPECT_EQ(auth_->current_user(), nullptr);
 }
 
-
 firebase::storage::StorageReference FirebaseStorageTest::CreateFolder() {
   // Generate a folder for the test data based on the time in milliseconds.
   int64_t time_in_microseconds = GetCurrentTimeInMicroseconds();
