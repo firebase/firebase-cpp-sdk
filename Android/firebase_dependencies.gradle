@@ -21,10 +21,10 @@ def firebaseDependenciesMap = [
              'com.google.android.gms:play-services-measurement-sdk-api:17.5.0'],
   'analytics' : ['com.google.firebase:firebase-analytics:17.5.0'],
   'auth' : ['com.google.firebase:firebase-auth:19.3.2'],
-  'database' : ['com.google.firebase:firebase-database:19.3.1'],
+  'database' : ['com.google.firebase:firebase-database:19.4.0'],
   'dynamic_links' : ['com.google.firebase:firebase-dynamic-links:19.1.0'],
-  'firestore' : ['com.google.firebase:firebase-firestore:21.5.0'],
-  'functions' : ['com.google.firebase:firebase-functions:19.0.2'],
+  'firestore' : ['com.google.firebase:firebase-firestore:21.6.0'],
+  'functions' : ['com.google.firebase:firebase-functions:19.1.0'],
   'instance_id' : ['com.google.firebase:firebase-iid:20.2.4'],
   'invites' : ['com.google.firebase:firebase-invites:17.0.0'],
   // Messaging has an additional local dependency to include.
@@ -33,7 +33,7 @@ def firebaseDependenciesMap = [
                  'androidx.core:core:1.0.1'],
   'performance' : ['com.google.firebase:firebase-perf:19.0.8'],
   'remote_config' : ['com.google.firebase:firebase-config:19.2.0'],
-  'storage' : ['com.google.firebase:firebase-storage:19.1.1']
+  'storage' : ['com.google.firebase:firebase-storage:19.2.0']
 ]
 
 // A map of library to the gradle resources that they depend upon.
