@@ -15,6 +15,18 @@ on:
         description: 'CSV of VMs to run on'
         default: 'ubuntu-latest,windows-latest,macos-latest'
         required: true
+      android_device:
+        description: 'Android device model'
+        default: 'flame'
+      android_api:
+        description: 'Android API level'
+        default: '29'
+      ios_device:
+        description: 'iOS device model'
+        default: 'iphone11pro'
+      ios_version:
+        description: 'iOS device version'
+        default: '13.3'
 
 jobs:
   # To feed input into the job matrix, we first need to convert to a JSON
@@ -87,9 +99,16 @@ jobs:
           pip install -r scripts/gha/requirements.txt
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           
-      - name: Build and run integration tests
+      - name: Build integration tests (and run Desktop tests)
         # The set up script for Android will download the NDK here.
         env:
           NDK_ROOT: '/tmp/android-ndk-r16b'
         run: |
           python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --use_vcpkg --execute_desktop_testapp --noadd_timestamp
+      - name: Install Cloud SDK for mobile integration tests
+        if: matrix.target_platform != 'Desktop'
+        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master 
+      - name: Run mobile integration tests
+        if: matrix.target_platform != 'Desktop'
+        run: |
+          python scripts/gha/test_lab.py --android_device ${{ github.event.inputs.android_device }} --android_api ${{ github.event.inputs.android_api }} --ios_device ${{ github.event.inputs.ios_device }} --ios_version ${{ github.event.inputs.ios_version }} --testapp_dir ${{ github.workspace }}/testapps --code_platform cpp --key_file ${{ github.workspace }}/scripts/gha-encrypted/gcs_key_file.json
