@@ -29,6 +29,17 @@ App* GetApp();
 App* GetApp(const char* name);
 bool ProcessEvents(int msec);
 
+// Converts a Firestore error code to a human-friendly name. The `error_code`
+// argument is expected to be an element from the firebase::firestore::Error
+// enum, but this function will gracefully handle the case where it is not.
+std::string ToFirestoreErrorCodeName(int error_code);
+
+// Waits for a Future to complete. If a timeout is reached then this method
+// returns as if successful; therefore, the caller should verify the status of
+// the given Future after this function returns. Returns the number of cycles
+// that were left before a timeout would have occurred.
+int WaitFor(const FutureBase& future);
+
 template <typename T>
 class EventAccumulator;
 
@@ -222,17 +233,7 @@ class FirestoreIntegrationTest : public testing::Test {
   // A helper function to block until the future completes.
   template <typename T>
   static const T* Await(const Future<T>& future) {
-    // Instead of getting a clock, we count the cycles instead.
-    int cycles = kTimeOutMillis / kCheckIntervalMillis;
-    while (future.status() == FutureStatus::kFutureStatusPending &&
-           cycles > 0) {
-      if (ProcessEvents(kCheckIntervalMillis)) {
-        std::cout << "WARNING: app receives an event requesting exit."
-                  << std::endl;
-        return nullptr;
-      }
-      --cycles;
-    }
+    int cycles = WaitFor(future);
     EXPECT_GT(cycles, 0) << "Waiting future timed out.";
     if (future.status() == FutureStatus::kFutureStatusComplete) {
       if (future.result() == nullptr) {

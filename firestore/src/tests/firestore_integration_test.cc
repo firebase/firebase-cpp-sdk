@@ -41,6 +41,8 @@ void LocateEmulator(Firestore* db) {
   }
 }
 
+}  // namespace
+
 std::string ToFirestoreErrorCodeName(int error_code) {
   switch (error_code) {
     case kErrorOk:
@@ -82,7 +84,19 @@ std::string ToFirestoreErrorCodeName(int error_code) {
   }
 }
 
-}  // anonymous namespace
+int WaitFor(const FutureBase& future) {
+  // Instead of getting a clock, we count the cycles instead.
+  int cycles = kTimeOutMillis / kCheckIntervalMillis;
+  while (future.status() == FutureStatus::kFutureStatusPending && cycles > 0) {
+    if (ProcessEvents(kCheckIntervalMillis)) {
+      std::cout << "WARNING: app receives an event requesting exit."
+                << std::endl;
+      break;
+    }
+    --cycles;
+  }
+  return cycles;
+}
 
 FirestoreIntegrationTest::FirestoreIntegrationTest() {
   // Allocate the default Firestore eagerly.

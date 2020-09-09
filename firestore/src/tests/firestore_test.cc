@@ -8,6 +8,7 @@
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/tests/firestore_integration_test.h"
 #include "firestore/src/tests/util/event_accumulator.h"
+#include "firestore/src/tests/util/future_test_util.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/util_android.h"
 #endif  // defined(__ANDROID__)
@@ -1179,7 +1180,7 @@ TEST_F(FirestoreIntegrationTest, TestToString) {
 // exceptions.
 #if defined(__ANDROID__)
 TEST_F(FirestoreIntegrationTest, ClientCallsAfterTerminateFails) {
-  Await(firestore()->Terminate());
+  EXPECT_THAT(firestore()->Terminate(), FutureSucceeds());
   EXPECT_THROW(Await(firestore()->DisableNetwork()), FirestoreException);
 }
 
@@ -1188,7 +1189,7 @@ TEST_F(FirestoreIntegrationTest, NewOperationThrowsAfterFirestoreTerminate) {
   DocumentReference reference = firestore()->Document("abc/123");
   Await(reference.Set({{"Field", FieldValue::Integer(100)}}));
 
-  Await(instance->Terminate());
+  EXPECT_THAT(instance->Terminate(), FutureSucceeds());
 
   EXPECT_THROW(Await(reference.Get()), FirestoreException);
   EXPECT_THROW(Await(reference.Update({{"Field", FieldValue::Integer(1)}})),
@@ -1214,12 +1215,12 @@ TEST_F(FirestoreIntegrationTest, TerminateCanBeCalledMultipleTimes) {
   DocumentReference reference = instance->Document("abc/123");
   Await(reference.Set({{"Field", FieldValue::Integer(100)}}));
 
-  Await(instance->Terminate());
+  EXPECT_THAT(instance->Terminate(), FutureSucceeds());
 
   EXPECT_THROW(Await(reference.Get()), FirestoreException);
 
   // Calling a second time should go through and change nothing.
-  Await(instance->Terminate());
+  EXPECT_THAT(instance->Terminate(), FutureSucceeds());
 
   EXPECT_THROW(Await(reference.Update({{"Field", FieldValue::Integer(1)}})),
                FirestoreException);
@@ -1244,7 +1245,7 @@ TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewInstance) {
 
   // Shutdown `db` and create a new instance, make sure they are different
   // instances.
-  Await(db->Terminate());
+  EXPECT_THAT(db->Terminate(), FutureSucceeds());
   auto db_2 = CreateFirestore(app->name());
   EXPECT_NE(db_2, db);
 
@@ -1263,7 +1264,7 @@ TEST_F(FirestoreIntegrationTest, CanStopListeningAfterTerminate) {
       accumulator.listener()->AttachTo(&reference);
 
   accumulator.Await();
-  Await(instance->Terminate());
+  EXPECT_THAT(instance->Terminate(), FutureSucceeds());
 
   // This should proceed without error.
   registration.Remove();
@@ -1321,8 +1322,8 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceAfterRestarting) {
 
   // ClearPersistence() requires Firestore to be terminated. Delete the app and
   // the Firestore instance to emulate the way an end user would do this.
-  Await(db->Terminate());
-  Await(db->ClearPersistence());
+  EXPECT_THAT(db->Terminate(), FutureSucceeds());
+  EXPECT_THAT(db->ClearPersistence(), FutureSucceeds());
   Release(db);
 
   // We restart the app with the same name and options to check that the
@@ -1347,7 +1348,7 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceOnANewFirestoreInstance) {
   std::string path = document.path();
   WriteDocument(document, MapFieldValue{{"foo", FieldValue::Integer(42)}});
 
-  Await(db->Terminate());
+  EXPECT_THAT(db->Terminate(), FutureSucceeds());
   delete db;
   delete app;
 
@@ -1356,7 +1357,7 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceOnANewFirestoreInstance) {
   // restart. Calling firestore() here would create a new instance of firestore,
   // which defeats the purpose of this test.
   Firestore* db_2 = CreateFirestore(app_name);
-  Await(db_2->ClearPersistence());
+  EXPECT_THAT(db_2->ClearPersistence(), FutureSucceeds());
   DocumentReference document_2 = db_2->Document(path);
   Future<DocumentSnapshot> await_get = document_2.Get(Source::kCache);
   Await(await_get);
