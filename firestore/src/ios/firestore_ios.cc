@@ -5,6 +5,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "auth/src/include/firebase/auth.h"
+#include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/credentials_provider_ios.h"
@@ -227,7 +228,7 @@ void FirestoreInternal::ClearListeners() {
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
     EventListener<void>* listener) {
   std::function<void()> listener_function = [listener] {
-    listener->OnEvent(Error::kErrorOk);
+    listener->OnEvent(Error::kErrorOk, EmptyString());
   };
   auto result = firestore_core_->AddSnapshotsInSyncListener(
       ListenerWithCallback(std::move(listener_function)));

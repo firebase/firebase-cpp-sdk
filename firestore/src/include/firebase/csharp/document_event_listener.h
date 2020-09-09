@@ -1,14 +1,10 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_CSHARP_DOCUMENT_EVENT_LISTENER_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_CSHARP_DOCUMENT_EVENT_LISTENER_H_
 
-#include <cstdint>
-
-#include "app/src/callback.h"
-#include "app/src/mutex.h"
 #include "firebase/firestore/document_snapshot.h"
-#include "firebase/firestore/event_listener.h"
 #include "firebase/firestore/listener_registration.h"
 #include "firebase/firestore/metadata_changes.h"
+#include "firebase/firestore/firestore_errors.h"
 
 namespace firebase {
 namespace firestore {
@@ -25,33 +21,19 @@ namespace csharp {
 #endif
 
 // The callbacks that are used by the listener, that need to reach back to C#
-// callbacks.
-typedef void(SWIGSTDCALL* DocumentEventListenerCallback)(int callback_id,
-                                                         void* snapshot,
-                                                         Error error);
+// callbacks. The error_message pointer is only valid for the duration of the
+// callback.
+typedef void(SWIGSTDCALL* DocumentEventListenerCallback)(
+    int callback_id, DocumentSnapshot* snapshot, Error error_code,
+    const char* error_message);
 
-// Provide a C++ implementation of the EventListener for DocumentSnapshot that
-// can forward the calls back to the C# delegates.
-class DocumentEventListener : public EventListener<DocumentSnapshot> {
- public:
-  explicit DocumentEventListener(int32_t callback_id,
-                                 DocumentEventListenerCallback callback)
-      : callback_id_(callback_id), callback_(callback) {}
-
-  void OnEvent(const DocumentSnapshot& value, Error error) override;
-
-  // This method is a proxy to DocumentReference::AddSnapshotListener()
-  // that can be easily called from C#. It allows our C# wrapper to
-  // track user callbacks in a dictionary keyed off of a unique int
-  // for each user callback and then raise the correct one later.
-  static ListenerRegistration AddListenerTo(
-      DocumentReference* reference, MetadataChanges metadata_changes,
-      int32_t callback_id, DocumentEventListenerCallback callback);
-
- private:
-  int32_t callback_id_;
-  DocumentEventListenerCallback callback_;
-};
+// This method is a proxy to DocumentReference::AddSnapshotListener()
+// that can be easily called from C#. It allows our C# wrapper to
+// track user callbacks in a dictionary keyed off of a unique int
+// for each user callback and then raise the correct one later.
+ListenerRegistration AddDocumentSnapshotListener(
+    DocumentReference* reference, MetadataChanges metadata_changes,
+    int32_t callback_id, DocumentEventListenerCallback callback);
 
 }  // namespace csharp
 }  // namespace firestore

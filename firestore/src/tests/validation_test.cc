@@ -664,7 +664,8 @@ TEST_F(ValidationTest,
 
   EXPECT_THROW(collection.OrderBy(FieldPath({"timestamp"}))
                    .EndAt(snapshot.documents().at(0))
-                   .AddSnapshotListener([](const QuerySnapshot&, Error) {}),
+                   .AddSnapshotListener(
+                       [](const QuerySnapshot&, Error, const std::string&) {}),
                FirestoreException);
 
   Await(firestore()->EnableNetwork());
@@ -673,8 +674,9 @@ TEST_F(ValidationTest,
   snapshot = accumulator.AwaitRemoteEvent();
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
   EXPECT_NO_THROW(collection.OrderBy(FieldPath({"timestamp"}))
-                   .EndAt(snapshot.documents().at(0))
-                   .AddSnapshotListener([](const QuerySnapshot&, Error) {}));
+                      .EndAt(snapshot.documents().at(0))
+                      .AddSnapshotListener([](const QuerySnapshot&, Error,
+                                              const std::string&) {}));
 }
 
 

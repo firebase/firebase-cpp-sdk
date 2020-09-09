@@ -406,7 +406,8 @@ class QueryInternal : public Wrapper {
    */
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
-      std::function<void(const QuerySnapshot&, Error)> callback);
+      std::function<void(const QuerySnapshot&, Error, const std::string&)>
+          callback);
 
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 

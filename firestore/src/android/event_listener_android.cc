@@ -10,6 +10,7 @@
 #include "firestore/src/android/firebase_firestore_exception_android.h"
 #include "firestore/src/android/query_snapshot_android.h"
 #include "firestore/src/android/util_android.h"
+#include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/query_snapshot.h"
 #include "firestore/src/jni/env.h"
 #include "firebase/firestore/firestore_errors.h"
@@ -65,15 +66,17 @@ void EventListenerInternal::DocumentEventListenerNativeOnEvent(
       reinterpret_cast<EventListener<DocumentSnapshot>*>(listener_ptr);
   Error error_code =
       FirebaseFirestoreExceptionInternal::ToErrorCode(env, error);
+  std::string error_message =
+      FirebaseFirestoreExceptionInternal::ToString(env, error);
   if (error_code != Error::kErrorOk) {
-    listener->OnEvent(DocumentSnapshot{}, error_code);
+    listener->OnEvent(DocumentSnapshot{}, error_code, error_message);
     return;
   }
 
   FirestoreInternal* firestore =
       reinterpret_cast<FirestoreInternal*>(firestore_ptr);
   DocumentSnapshot snapshot(new DocumentSnapshotInternal{firestore, value});
-  listener->OnEvent(snapshot, error_code);
+  listener->OnEvent(snapshot, error_code, error_message);
 }
 
 /* static */
@@ -87,15 +90,17 @@ void EventListenerInternal::QueryEventListenerNativeOnEvent(
       reinterpret_cast<EventListener<QuerySnapshot>*>(listener_ptr);
   Error error_code =
       FirebaseFirestoreExceptionInternal::ToErrorCode(env, error);
+  std::string error_message =
+      FirebaseFirestoreExceptionInternal::ToString(env, error);
   if (error_code != Error::kErrorOk) {
-    listener->OnEvent(QuerySnapshot{}, error_code);
+    listener->OnEvent(QuerySnapshot{}, error_code, error_message);
     return;
   }
 
   FirestoreInternal* firestore =
       reinterpret_cast<FirestoreInternal*>(firestore_ptr);
   QuerySnapshot snapshot(new QuerySnapshotInternal{firestore, value});
-  listener->OnEvent(snapshot, error_code);
+  listener->OnEvent(snapshot, error_code, error_message);
 }
 
 /* static */
@@ -108,7 +113,7 @@ void EventListenerInternal::VoidEventListenerNativeOnEvent(JNIEnv* env,
   EventListener<void>* listener =
       reinterpret_cast<EventListener<void>*>(listener_ptr);
 
-  listener->OnEvent(Error::kErrorOk);
+  listener->OnEvent(Error::kErrorOk, EmptyString());
 }
 
 Local<Object> EventListenerInternal::Create(

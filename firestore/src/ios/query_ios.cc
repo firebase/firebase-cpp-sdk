@@ -109,7 +109,8 @@ ListenerRegistration QueryInternal::AddSnapshotListener(
 
 ListenerRegistration QueryInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
-    std::function<void(const QuerySnapshot&, Error)> callback) {
+    std::function<void(const QuerySnapshot&, Error, const std::string&)>
+        callback) {
   auto options = core::ListenOptions::FromIncludeMetadataChanges(
       metadata_changes == MetadataChanges::kInclude);
   auto result = query_.AddSnapshotListener(

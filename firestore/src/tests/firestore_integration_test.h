@@ -41,27 +41,30 @@ class TestEventListener : public EventListener<T> {
 
   ~TestEventListener() override {}
 
-  void OnEvent(const T& value, Error error) override {
+  void OnEvent(const T& value, Error error_code,
+               const std::string& error_message) override {
     if (print_debug_info_) {
       std::cout << "TestEventListener got: ";
-      if (error == Error::kErrorOk) {
+      if (error_code == Error::kErrorOk) {
         std::cout << &value
                   << " from_cache=" << value.metadata().is_from_cache()
                   << " has_pending_write="
                   << value.metadata().has_pending_writes()
                   << " event_count=" << event_count() << std::endl;
       } else {
-        std::cout << "error=" << error << " event_count=" << event_count()
+        std::cout << "error_code=" << error_code << " error_message=\""
+                  << error_message << "\" event_count=" << event_count()
                   << std::endl;
       }
     }
 
     MutexLock lock(mutex_);
-    if (error != Error::kErrorOk) {
-      std::cerr << "ERROR: EventListener " << name_ << " got " << error
+    if (error_code != Error::kErrorOk) {
+      std::cerr << "ERROR: EventListener " << name_ << " got " << error_code
                 << std::endl;
-      if (first_error_ == Error::kErrorOk) {
-        first_error_ = error;
+      if (first_error_code_ == Error::kErrorOk) {
+        first_error_code_ = error_code;
+        first_error_message_ = error_message;
       }
     }
     last_results_.push_back(value);
@@ -85,16 +88,23 @@ class TestEventListener : public EventListener<T> {
       U* ref, MetadataChanges metadata_changes = MetadataChanges::kExclude) {
 #if defined(FIREBASE_USE_STD_FUNCTION)
     return ref->AddSnapshotListener(
-        metadata_changes,
-        [this](const T& result, Error error) { OnEvent(result, error); });
+        metadata_changes, [this](const T& result, Error error_code,
+                                 const std::string& error_message) {
+          OnEvent(result, error_code, error_message);
+        });
 #else
     return ref->AddSnapshotListener(metadata_changes, this);
 #endif
   }
 
-  Error first_error() {
+  std::string first_error_message() {
     MutexLock lock(mutex_);
-    return first_error_;
+    return first_error_message_;
+  }
+
+  Error first_error_code() {
+    MutexLock lock(mutex_);
+    return first_error_code_;
   }
 
   // Set this to true to print more details for each arrived event for debug.
@@ -121,7 +131,8 @@ class TestEventListener : public EventListener<T> {
 
   // We generally only check to see if there is any error. So we only store the
   // first non-OK error, if any.
-  Error first_error_ = Error::kErrorOk;
+  Error first_error_code_ = Error::kErrorOk;
+  std::string first_error_message_ = "";
 
   bool print_debug_info_ = false;
 };

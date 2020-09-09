@@ -556,7 +556,7 @@ TEST_F(FirestoreIntegrationTest, TestCanRetrieveNonexistentDocument) {
   TestEventListener<DocumentSnapshot> listener{"for document"};
   ListenerRegistration registration = listener.AttachTo(&document);
   Await(listener);
-  EXPECT_EQ(Error::kErrorOk, listener.first_error());
+  EXPECT_EQ(Error::kErrorOk, listener.first_error_code());
   EXPECT_FALSE(listener.last_result().exists());
   registration.Remove();
 }
@@ -583,8 +583,9 @@ TEST_F(FirestoreIntegrationTest,
                               std::vector<std::string>* events)
         : TestEventListener(std::move(name)), events_(events) {}
 
-    void OnEvent(const DocumentSnapshot& value, Error error) override {
-      TestEventListener::OnEvent(value, error);
+    void OnEvent(const DocumentSnapshot& value, Error error_code,
+                 const std::string& error_message) override {
+      TestEventListener::OnEvent(value, error_code, error_message);
       events_->push_back("doc");
     }
 
@@ -709,20 +710,24 @@ TEST_F(FirestoreIntegrationTest, TestListenCanBeCalledMultipleTimes) {
   Semaphore completed{0};
 #endif
   DocumentSnapshot resulting_data;
-  document.AddSnapshotListener(
-      [&](const DocumentSnapshot& snapshot, Error error) {
-        EXPECT_EQ(Error::kErrorOk, error);
-        document.AddSnapshotListener(
-            [&](const DocumentSnapshot& snapshot, Error error) {
-              EXPECT_EQ(Error::kErrorOk, error);
-              resulting_data = snapshot;
+  document.AddSnapshotListener([&](const DocumentSnapshot& snapshot,
+                                   Error error_code,
+                                   const std::string& error_message) {
+    EXPECT_EQ(Error::kErrorOk, error_code);
+    EXPECT_EQ(std::string(), error_message);
+    document.AddSnapshotListener([&](const DocumentSnapshot& snapshot,
+                                     Error error_code,
+                                     const std::string& error_message) {
+      EXPECT_EQ(Error::kErrorOk, error_code);
+      EXPECT_EQ(std::string(), error_message);
+      resulting_data = snapshot;
 #if defined(__APPLE__)
-              promise.set_value();
+      promise.set_value();
 #else
-              completed.Post();
+      completed.Post();
 #endif
-            });
-      });
+    });
+  });
 #if defined(__APPLE__)
   promise.get_future().wait();
 #else
@@ -741,7 +746,7 @@ TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotEventsNonExistent) {
       listener.AttachTo(&document, MetadataChanges::kInclude);
   Await(listener);
   EXPECT_EQ(1, listener.event_count());
-  EXPECT_EQ(Error::kErrorOk, listener.first_error());
+  EXPECT_EQ(Error::kErrorOk, listener.first_error_code());
   EXPECT_FALSE(listener.last_result().exists());
   registration.Remove();
 }
@@ -829,6 +834,20 @@ TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotEventsForDelete) {
   registration.Remove();
 }
 
+TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotErrorReporting) {
+  DocumentReference document = Collection("col").Document("__badpath__");
+  TestEventListener<DocumentSnapshot> listener("TestBadPath");
+  ListenerRegistration registration =
+      listener.AttachTo(&document, MetadataChanges::kInclude);
+  Await(listener);
+  EXPECT_EQ(1, listener.event_count());
+  EXPECT_EQ(Error::kErrorInvalidArgument, listener.first_error_code());
+  EXPECT_THAT(listener.first_error_message(),
+              testing::HasSubstr("__badpath__"));
+  EXPECT_FALSE(listener.last_result().exists());
+  registration.Remove();
+}
+
 TEST_F(FirestoreIntegrationTest, TestQuerySnapshotEventsForAdd) {
   CollectionReference collection = Collection();
   DocumentReference document = collection.Document();
@@ -911,6 +930,21 @@ TEST_F(FirestoreIntegrationTest, TestQuerySnapshotEventsForDelete) {
   snapshot = listener.last_result();
   EXPECT_EQ(0, snapshot.size());
 
+  registration.Remove();
+}
+
+TEST_F(FirestoreIntegrationTest, TestQuerySnapshotErrorReporting) {
+  CollectionReference collection =
+      Collection("a").Document("__badpath__").Collection("b");
+  TestEventListener<QuerySnapshot> listener("TestBadPath");
+  ListenerRegistration registration =
+      listener.AttachTo(&collection, MetadataChanges::kInclude);
+  Await(listener);
+  EXPECT_EQ(1, listener.event_count());
+  EXPECT_EQ(Error::kErrorInvalidArgument, listener.first_error_code());
+  EXPECT_THAT(listener.first_error_message(),
+              testing::HasSubstr("__badpath__"));
+  EXPECT_TRUE(listener.last_result().empty());
   registration.Remove();
 }
 

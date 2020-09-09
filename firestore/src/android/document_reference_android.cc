@@ -151,7 +151,8 @@ Future<void> DocumentReferenceInternal::Delete() {
 
 ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
-    std::function<void(const DocumentSnapshot&, Error)> callback) {
+    std::function<void(const DocumentSnapshot&, Error, const std::string&)>
+        callback) {
   LambdaEventListener<DocumentSnapshot>* listener =
       new LambdaEventListener<DocumentSnapshot>(firebase::Move(callback));
   return AddSnapshotListener(metadata_changes, listener,

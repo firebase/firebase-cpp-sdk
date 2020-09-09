@@ -244,14 +244,16 @@ Future<QuerySnapshot> Query::Get(Source source) const {
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 ListenerRegistration Query::AddSnapshotListener(
-    std::function<void(const QuerySnapshot&, Error)> callback) {
+    std::function<void(const QuerySnapshot&, Error, const std::string&)>
+        callback) {
   return AddSnapshotListener(MetadataChanges::kExclude,
                              firebase::Move(callback));
 }
 
 ListenerRegistration Query::AddSnapshotListener(
     MetadataChanges metadata_changes,
-    std::function<void(const QuerySnapshot&, Error)> callback) {
+    std::function<void(const QuerySnapshot&, Error, const std::string&)>
+        callback) {
   FIREBASE_ASSERT_MESSAGE(callback, "invalid callback parameter is passed in.");
   if (!internal_) return {};
   return internal_->AddSnapshotListener(metadata_changes,

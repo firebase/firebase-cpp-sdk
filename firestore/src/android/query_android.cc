@@ -196,7 +196,8 @@ Query QueryInternal::WithBound(query::Method method,
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 ListenerRegistration QueryInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
-    std::function<void(const QuerySnapshot&, Error)> callback) {
+    std::function<void(const QuerySnapshot&, Error, const std::string&)>
+        callback) {
   LambdaEventListener<QuerySnapshot>* listener =
       new LambdaEventListener<QuerySnapshot>(firebase::Move(callback));
   return AddSnapshotListener(metadata_changes, listener,

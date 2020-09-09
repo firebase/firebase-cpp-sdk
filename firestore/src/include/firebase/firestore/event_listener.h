@@ -17,6 +17,8 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_EVENT_LISTENER_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_EVENT_LISTENER_H_
 
+#include <string>
+
 #include "firebase/firestore/firestore_errors.h"
 
 namespace firebase {
@@ -45,9 +47,13 @@ class EventListener {
    * Error::kErrorOk.
    *
    * @param value The value of the event. Invalid if there was an error.
-   * @param error The error if there was error. Error::kErrorOk otherwise.
+   * @param error_code The error code if there was an error. Error::kErrorOk
+   * otherwise.
+   * @param error_message The error message if there was an error. An empty
+   * string otherwise.
    */
-  virtual void OnEvent(const T& value, Error error) = 0;
+  virtual void OnEvent(const T& value, Error error_code,
+                       const std::string& error_message) = 0;
 };
 
 /**
@@ -68,9 +74,12 @@ class EventListener<void> {
   /**
    * @brief OnEvent will be called with the error if an error occurred.
    *
-   * @param error The error if there was error. Error::kErrorOk otherwise.
+   * @param error_code The error code if there was an error. Error::kErrorOk
+   * otherwise.
+   * @param error_message The error message if there was an error. An empty
+   * string otherwise.
    */
-  virtual void OnEvent(Error error) = 0;
+  virtual void OnEvent(Error error_code, const std::string& error_message) = 0;
 };
 
 }  // namespace firestore
