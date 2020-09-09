@@ -3,6 +3,7 @@ name: 🐞 Bug report
 about: Please use this template to report bugs with the Firebase C++ SDK.
 labels: new
 ---
+
 <!-- DO NOT DELETE
 validate_template=true
 template_path=.github/ISSUE_TEMPLATE/issue.md
@@ -12,10 +13,10 @@ template_path=.github/ISSUE_TEMPLATE/issue.md
 
   * Pre-built SDK from the [website](https://firebase.google.com/download/cpp) or open-source from this repo: _____
   * Firebase C++ SDK version: _____
-  * Problematic Firebase Component (Auth, Database, etc.): _____
-  * Other Firebase Components in use (Auth, Database, etc.): _____
-  * Platform you are using the C++ SDK on (Mac, Windows, or Linux): _____
-  * Platform you are targeting (iOS, Android, and/or desktop): _____
+  * Problematic Firebase Component: _____ (Auth, Database, etc.)
+  * Other Firebase Components in use: _____ (Auth, Database, etc.)
+  * Platform you are using the C++ SDK on: _____ (Mac, Windows, or Linux)
+  * Platform you are targeting: _____ (iOS, Android, and/or desktop)
 
 ### [REQUIRED] Please describe the issue here:
 
