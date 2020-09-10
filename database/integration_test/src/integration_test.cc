@@ -127,6 +127,8 @@ class FirebaseDatabaseTest : public FirebaseTest {
   void Terminate();
   // Sign in an anonymous user.
   void SignIn();
+  // Sign out the current user, if applicable.
+  void SignOut();
 
   firebase::database::DatabaseReference CreateWorkingPath(
       bool suppress_cleanup = false);
@@ -175,8 +177,11 @@ void FirebaseDatabaseTest::TearDown() {
       }
       cleanup_paths_.clear();
     }
+    
+    SignOut();
     Terminate();
   }
+  
   FirebaseTest::TearDown();
 }
 
@@ -264,6 +269,25 @@ void FirebaseDatabaseTest::SignIn() {
               "enabled in Firebase Console.";
   }
   ProcessEvents(100);
+}
+
+void FirebaseDatabaseTest::SignOut() {
+  if (auth_ == nullptr) {
+    // Auth is not set up.
+    return;
+  }
+  if (auth_->current_user() == nullptr) {
+    // Already signed out.
+    return;
+  }
+
+  auth_->SignOut();
+
+  // Wait for the sign-out to finish.
+  while (auth_->current_user() != nullptr) {
+    if (ProcessEvents(100)) break;
+  }
+  EXPECT_EQ(auth_->current_user(), nullptr);
 }
 
 firebase::database::DatabaseReference FirebaseDatabaseTest::CreateWorkingPath(
