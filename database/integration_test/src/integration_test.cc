@@ -177,10 +177,11 @@ void FirebaseDatabaseTest::TearDown() {
       }
       cleanup_paths_.clear();
     }
+    
     SignOut();
     Terminate();
-
   }
+  
   FirebaseTest::TearDown();
 }
 
