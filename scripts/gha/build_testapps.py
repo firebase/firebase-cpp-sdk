@@ -258,7 +258,7 @@ def _build(
       _build_desktop(sdk_dir, cmake_flags)
       if execute_desktop_testapp:
         _execute_desktop_testapp(project_dir)
-    except subprocess.CalledProcessError as e:
+    except subprocess.SubprocessError as e:
       failures.append(
           Failure(testapp=testapp, platform=_DESKTOP, error_message=str(e)))
     _rm_dir_safe(os.path.join(project_dir, "bin"))
@@ -269,7 +269,7 @@ def _build(
     try:
       _validate_android_environment_variables()
       _build_android(project_dir, sdk_dir)
-    except subprocess.CalledProcessError as e:
+    except subprocess.SubprocessError as e:
       failures.append(
           Failure(testapp=testapp, platform=_ANDROID, error_message=str(e)))
     _rm_dir_safe(os.path.join(project_dir, "build", "intermediates"))
@@ -287,7 +287,7 @@ def _build(
           api_config=api_config,
           ios_sdk=ios_sdk,
           dev_team=dev_team)
-    except subprocess.CalledProcessError as e:
+    except subprocess.SubprocessError as e:
       failures.append(
           Failure(testapp=testapp, platform=_IOS, error_message=str(e)))
     logging.info("END %s, %s", testapp, _IOS)
