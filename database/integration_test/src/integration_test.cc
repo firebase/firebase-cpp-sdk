@@ -162,9 +162,8 @@ void FirebaseDatabaseTest::SetUp() {
 }
 
 void FirebaseDatabaseTest::TearDown() {
-  SignOut();
   // Delete the shared path, if there is one.
-  if (initialized_) {    
+  if (initialized_) {
     if (!cleanup_paths_.empty() && database_ && app_) {
       LogDebug("Cleaning up...");
       std::vector<firebase::Future<void>> cleanups;
@@ -178,7 +177,9 @@ void FirebaseDatabaseTest::TearDown() {
       }
       cleanup_paths_.clear();
     }
+    SignOut();
     Terminate();
+
   }
   FirebaseTest::TearDown();
 }
@@ -271,21 +272,20 @@ void FirebaseDatabaseTest::SignIn() {
 
 void FirebaseDatabaseTest::SignOut() {
   if (auth_ == nullptr) {
-    LogInfo("FirebaseDatabaseTest::SignOut auth not setup.");
     // Auth is not set up.
     return;
   }
   if (auth_->current_user() == nullptr) {
-    LogInfo("FirebaseDatabaseTest::SignOut user already signed out.");
     // Already signed out.
     return;
   }
+
   auth_->SignOut();
+
   // Wait for the sign-out to finish.
   while (auth_->current_user() != nullptr) {
     if (ProcessEvents(100)) break;
   }
-  LogInfo("FirebaseDatabaseTest::SignOut complete.");
   EXPECT_EQ(auth_->current_user(), nullptr);
 }
 
