@@ -106,9 +106,9 @@ jobs:
         run: |
           python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --use_vcpkg --execute_desktop_testapp --noadd_timestamp
       - name: Install Cloud SDK for mobile integration tests
-        if: matrix.target_platform != 'Desktop' && ( success() || failure() )
+        if: matrix.target_platform != 'Desktop' && !cancelled()
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master 
       - name: Run mobile integration tests
-        if: matrix.target_platform != 'Desktop' && ( success() || failure() )
+        if: matrix.target_platform != 'Desktop' && !cancelled()
         run: |
           python scripts/gha/test_lab.py --android_model ${{ github.event.inputs.android_device }} --android_api ${{ github.event.inputs.android_api }} --ios_model ${{ github.event.inputs.ios_device }} --ios_version ${{ github.event.inputs.ios_version }} --testapp_dir ${{ github.workspace }}/testapps --code_platform cpp --key_file ${{ github.workspace }}/scripts/gha-encrypted/gcs_key_file.json
