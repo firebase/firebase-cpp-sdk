@@ -248,6 +248,9 @@ elseif(IOS)
       FirebaseCore
       FirebaseDatabase
   )
+  set_target_properties(firebase_database PROPERTIES
+    FRAMEWORK TRUE
+  )
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)
