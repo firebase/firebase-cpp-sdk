@@ -288,6 +288,88 @@ else()
       "${app_desktop_HDRS}")
 endif()
 
+if(IOS)
+  file(GLOB admob_HDRS
+    "${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob.h"
+    "${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/*.h")
+
+  # Generate the analytics header file
+  # Copy from analytics/CMakeList.txt
+  function(generate_analytics_header OBJC_FILE CPP_FILE)
+    add_custom_command(
+      OUTPUT ${CPP_FILE}
+      COMMAND python "${FIREBASE_SOURCE_DIR}/analytics/generate_constants.py"
+        "--objc_header=${OBJC_FILE}"
+        "--cpp_header=${CPP_FILE}"
+      DEPENDS ${OBJC_FILE}
+      COMMENT "Generating ${CPP_FILE}"
+    )
+  endfunction()
+  set(analytics_generated_headers_dir
+    "${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics")
+  file(MAKE_DIRECTORY "${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics")
+  generate_analytics_header(
+    "${FIREBASE_SOURCE_DIR}/analytics/ios_headers/FIREventNames.h"
+    "${analytics_generated_headers_dir}/event_names.h"
+  )
+  generate_analytics_header(
+    "${FIREBASE_SOURCE_DIR}/analytics/ios_headers/FIRParameterNames.h"
+    "${analytics_generated_headers_dir}/parameter_names.h"
+  )
+  generate_analytics_header(
+    "${FIREBASE_SOURCE_DIR}/analytics/ios_headers/FIRUserPropertyNames.h"
+    "${analytics_generated_headers_dir}/user_property_names.h"
+  )
+  set(analytics_HDRS
+    "${FIREBASE_SOURCE_DIR}/analytics/src/include/firebase/analytics.h"
+    "${analytics_generated_headers_dir}/event_names.h"
+    "${analytics_generated_headers_dir}/parameter_names.h"
+    "${analytics_generated_headers_dir}/user_property_names.h")
+
+  file(GLOB auth_HDRS
+    "${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth.h"
+    "${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/*.h")
+  file(GLOB database_HDRS
+    "${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database.h"
+    "${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/*.h")
+  file(GLOB dynamic_links_HDRS
+    "${FIREBASE_SOURCE_DIR}/dynamic_links/src/include/firebase/dynamic_links.h"
+    "${FIREBASE_SOURCE_DIR}/dynamic_links/src/include/firebase/dynamic_links/*.h")
+  file(GLOB firestore_HDRS
+    "${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore.h"
+    "${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/*.h"
+    "${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include/firebase/firestore/*.h")
+  file(GLOB functions_HDRS
+    "${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions.h"
+    "${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/*.h")
+  file(GLOB instance_id_HDRS
+    "${FIREBASE_SOURCE_DIR}/instance_id/src/include/firebase/instance_id.h"
+    "${FIREBASE_SOURCE_DIR}/instance_id/src/include/firebase/instance_id/*.h") #??
+  file(GLOB messaging_HDRS
+    "${FIREBASE_SOURCE_DIR}/messaging/src/include/firebase/messaging.h"
+    "${FIREBASE_SOURCE_DIR}/messaging/src/include/firebase/messaging/*.h")
+  file(GLOB remote_config_HDRS
+    "${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config.h"
+    "${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config/*.h")
+  file(GLOB storage_HDRS
+    "${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage.h"
+    "${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/*.h")
+  
+  list(APPEND internal_HDRS
+      src/include/firebase/internal/platform.h
+      "${admob_HDRS}"
+      "${analytics_HDRS}"
+      "${auth_HDRS}"
+      "${database_HDRS}"
+      "${dynamic_links_HDRS}"
+      "${firestore_HDRS}"
+      "${functions_HDRS}"
+      "${instance_id_HDRS}"
+      "${messaging_HDRS}"
+      "${remote_config_HDRS}"
+      "${storage_HDRS}")
+endif()
+
 add_library(firebase_app STATIC
     ${log_SRCS}
     ${log_HDRS}
@@ -373,4 +455,27 @@ cpp_pack_library(firebase_app "")
 cpp_pack_public_headers()
 if (NOT ANDROID AND NOT IOS)
   cpp_pack_library(flatbuffers "deps/app/external")
+endif()
+
+if (IOS)
+  set_target_properties(firebase_app PROPERTIES
+    FRAMEWORK TRUE
+  )
+
+  # Generate Framewrok Headers
+  foreach(hfile ${internal_HDRS})
+    string(FIND ${hfile} "firebase/" pos_firebase)
+    string(COMPARE NOTEQUAL ${pos_firebase} -1 find)
+    if(${find})
+      string(FIND ${hfile} "/" pos_e REVERSE)
+      math(EXPR pos_s "${pos_firebase} + 8")
+      math(EXPR len "${pos_e} - ${pos_s}")
+      string(SUBSTRING ${hfile} ${pos_s} ${len} dir)
+      # file(COPY ${hfile} DESTINATION Headers/${dir})
+      set_property(SOURCE ${hfile} PROPERTY 
+                  MACOSX_PACKAGE_LOCATION Headers/${dir})
+    endif()
+  endforeach(hfile)
+  set_property(SOURCE "src/include/google_play_services/availability.h" PROPERTY 
+                  MACOSX_PACKAGE_LOCATION Headers/google_play_services)
 endif()

@@ -102,6 +102,10 @@ elseif(IOS)
       FirebaseCore
       FirebaseFunctions
   )
+
+  set_target_properties(firebase_functions PROPERTIES
+    FRAMEWORK TRUE
+  )
 endif()
 
 cpp_pack_library(firebase_functions "")
