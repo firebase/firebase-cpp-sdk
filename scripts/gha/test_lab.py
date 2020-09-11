@@ -96,8 +96,6 @@ def main(argv):
   android_device = Device(model=FLAGS.android_model, version=FLAGS.android_api)
   ios_device = Device(model=FLAGS.ios_model, version=FLAGS.ios_version)
 
-  _authorize_gcs(FLAGS.key_file)
-
   testapps = []
   for file_dir, _, file_names in os.walk(testapp_dir):
     for file_name in file_names:
@@ -106,7 +104,14 @@ def main(argv):
         testapps.append((android_device, _ANDROID, full_path))
       elif file_name.endswith(".ipa"):
         testapps.append((ios_device, _IOS, full_path))
+
+  if not testapps:
+    logging.error("No testapps found.")
+    return 1
+
   logging.info("Testapps found: %s", "\n".join(path for _, _, path in testapps))
+
+  _authorize_gcs(FLAGS.key_file)
 
   gcs_base_dir = _get_base_results_dir()
   logging.info("Storing results in %s", _relative_path_to_gs_uri(gcs_base_dir))
