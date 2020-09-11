@@ -132,6 +132,10 @@ elseif(IOS)
       FirebaseCore
       FirebaseStorage
   )
+
+  set_target_properties(firebase_storage PROPERTIES
+    FRAMEWORK TRUE
+  )
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

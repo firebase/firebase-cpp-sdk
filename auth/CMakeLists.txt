@@ -200,6 +200,9 @@ elseif(IOS)
       FirebaseCore
       FirebaseAuth
   )
+  set_target_properties(firebase_auth PROPERTIES
+    FRAMEWORK TRUE
+  )
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

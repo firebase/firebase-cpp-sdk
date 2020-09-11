@@ -122,6 +122,10 @@ elseif(IOS)
       FirebaseCore
       FirebaseMessaging
   )
+
+  set_target_properties(firebase_messaging PROPERTIES
+    FRAMEWORK TRUE
+  )
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)
