@@ -148,7 +148,7 @@ public class BannerViewHelper implements ViewTreeObserver.OnPreDrawListener {
       int height) {
 
     // There is only one ad size type right now, which is why that parameter goes unused.
-    mAdSize = new AdSize(width, height);
+    mAdSize = new AdSize(-1,-2, "smart_banner");
     mActivity = activity;
     mAdUnitId = adUnitID;
     synchronized (mPopUpLock) {
