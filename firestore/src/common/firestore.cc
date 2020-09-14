@@ -9,6 +9,7 @@
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
+#include "firestore/src/common/compiler_info.h"
 #include "firestore/src/common/futures.h"
 
 #if defined(__ANDROID__)
@@ -122,6 +123,12 @@ Firestore::Firestore(FirestoreInternal* internal)
     // TODO(wuandy): use make_unique once it is supported for our build here.
     : internal_(internal) {
   internal_->set_firestore_public(this);
+
+  // Note: because Firestore libraries are currently distributed in
+  // a precompiled form, `GetFullCompilerInfo` will reflect the compiler used to
+  // produce the binaries. Unfortunately, there is no clear way to avoid that
+  // without breaking ODR.
+  SetClientLanguage(std::string("gl-cpp/") + GetFullCompilerInfo());
 
   if (internal_->initialized()) {
     CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app());
