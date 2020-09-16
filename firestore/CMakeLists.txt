@@ -114,7 +114,20 @@ set(android_SRCS
     src/android/wrapper.cc
     src/android/wrapper.h
     src/android/write_batch_android.cc
-    src/android/write_batch_android.h)
+    src/android/write_batch_android.h
+    src/jni/call_traits.h
+    src/jni/class.h
+    src/jni/env.cc
+    src/jni/env.h
+    src/jni/jni.cc
+    src/jni/jni.h
+    src/jni/jni_fwd.h
+    src/jni/object.cc
+    src/jni/object.h
+    src/jni/ownership.h
+    src/jni/string.cc
+    src/jni/string.h
+    src/jni/traits.h)
 
 set(ios_SRCS
     src/ios/collection_reference_ios.cc
