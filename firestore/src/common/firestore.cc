@@ -20,12 +20,32 @@
 #include "firestore/src/ios/firestore_ios.h"
 #endif  // defined(__ANDROID__)
 
+#ifdef __APPLE__
+#include "TargetConditionals.h"
+#endif  // __APPLE__
+
 namespace firebase {
 namespace firestore {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseFirestore);
 
 namespace {
+
+const char* GetPlatform() {
+#if defined(__ANDROID__)
+  return "gl-android/";
+#elif TARGET_OS_IOS
+  return "gl-ios/";
+#elif TARGET_OS_OSX
+  return "gl-macos/";
+#elif defined(_WIN32)
+  return "gl-windows/";
+#elif defined(__linux__)
+  return "gl-linux/";
+#else
+  return "";
+#endif
+}
 
 Mutex g_firestores_lock;  // NOLINT
 std::map<App*, Firestore*>* g_firestores = nullptr;
@@ -287,7 +307,13 @@ ListenerRegistration Firestore::AddSnapshotsInSyncListener(
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 void Firestore::SetClientLanguage(const std::string& language_token) {
-  FirestoreInternal::SetClientLanguage(language_token);
+  // TODO(b/135633112): this is a temporary measure until the Firestore backend
+  // rolls out Firebase platform logging.
+  // Note: this implementation lumps together the language and platform tokens,
+  // relying on the fact that `SetClientLanguage` doesn't validate or parse its
+  // input in any way. This is deemed acceptable because reporting the platform
+  // this way is a temporary measure.
+  FirestoreInternal::SetClientLanguage(language_token + " " + GetPlatform());
 }
 
 }  // namespace firestore
