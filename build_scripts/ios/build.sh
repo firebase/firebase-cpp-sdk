@@ -8,7 +8,7 @@ frameworks_path="frameworks/ios"
 architectures=(arm64 armv7 x86_64 i386)
 for arch in ${architectures[@]}
 do
-{   
+# {   
     echo "build ${arch} start"
     toolchain="cmake/toolchains/ios.cmake"
     if [[ "${arch}" == "x86_64" || "${arch}" == "i386" ]]; then
@@ -22,7 +22,8 @@ do
         ../.. 
     cmake --build .
     echo "build ${arch} end"
-} &
+    cd ..
+# } &
 done
 wait
 echo "all build end"
