@@ -22,7 +22,6 @@ do
         ../.. 
     cmake --build .
     echo "build ${arch} end"
-    # cd ..
 } &
 done
 wait
