@@ -91,10 +91,10 @@ echo "CMake Build: ${cmakeBuild}"
 sourcepath=$(cd ${sourcepath} && pwd)   #full path
 buildpath=$(mkdir -p ${buildpath} && cd ${buildpath} && pwd)    #full path
 
-# build framework for each architecture and target
+# generate Makefiles for each architecture and target
 frameworkspath="frameworks/ios"
-for arch in ${architectures[@]}; do 
-    if ${generateMakefiles}; then
+if ${generateMakefiles}; then
+    for arch in ${architectures[@]}; do 
         echo "generate Makefiles start"
         mkdir -p ${buildpath}/ios_build_file/${arch} && cd ${buildpath}/ios_build_file/${arch}
         if [[ "${arch}" == "arm64" || "${arch}" == "armv7" ]]; then
@@ -107,25 +107,30 @@ for arch in ${architectures[@]}; do
             -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=${buildpath}/${frameworkspath}/${arch} \
             ${sourcepath}
         echo "generate Makefiles end"
-    fi
-    
-    if ${cmakeBuild}; then
+    done
+fi
+
+# build framework for each architecture and target
+if ${cmakeBuild}; then
+    for arch in ${architectures[@]}; do 
+    {
         cd ${buildpath}/ios_build_file/${arch}
         echo "build ${arch} ${targets[@]} framework start"
         cmake --build . --target ${targets[@]}
         echo "build ${arch} ${targets[@]} framework end"
-    fi
-done
-echo "${architectures[@]} frameworks build end"
+    
+    } &
+    done
+    wait
+    echo "${architectures[@]} frameworks build end"
 
-if ${cmakeBuild}; then
     # arrange the framework 
     IFS=$'\n' # split $(ls) on \n characters
     cd ${buildpath}/${frameworkspath}
     for arch in ${architectures[@]}; do
         # rename firebase_app to firebase
         if [[ ! -d "${arch}/firebase.framework" ]]; then
-            mv ${arch}/firebase_app.framework ${arch}/firebase.framework
+            cp -r ${arch}/firebase_app.framework ${arch}/firebase.framework
             mv ${arch}/firebase.framework/firebase_app ${arch}/firebase.framework/firebase
             rm ${arch}/firebase.framework/Info.plist
         fi
