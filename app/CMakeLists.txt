@@ -464,7 +464,6 @@ if (IOS)
 
   # Generate Framewrok Headers
   foreach(hfile ${internal_HDRS})
-    message(STATUS "hfile: ${hfile}")
     string(FIND ${hfile} "firebase/" pos_firebase)
     string(COMPARE NOTEQUAL ${pos_firebase} -1 find)
     if(${find})
@@ -472,7 +471,6 @@ if (IOS)
       math(EXPR pos_s "${pos_firebase} + 8")
       math(EXPR len "${pos_e} - ${pos_s}")
       string(SUBSTRING ${hfile} ${pos_s} ${len} dir)
-      message(STATUS "subDir: ${dir}")
       # file(COPY ${hfile} DESTINATION Headers/${dir})
       set_property(SOURCE ${hfile} PROPERTY 
                   MACOSX_PACKAGE_LOCATION Headers/${dir})
