@@ -1,0 +1,30 @@
+name: iOS Builds
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ios-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+          architecture: ${{ matrix.architecture }}
+
+      - name: Install prerequisites
+        run: |
+          build_scripts/ios/install_prereqs.sh
+
+      - name: Build SDK
+        run: |
+          build_scripts/ios/build.sh
