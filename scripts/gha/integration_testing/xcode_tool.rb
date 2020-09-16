@@ -77,6 +77,8 @@ def main
     make_changes_for_dynamiclinks
   end
 
+  set_bundle_id
+  
   framework_dir = "#@xcode_project_dir/Frameworks"
   set_build_setting('FRAMEWORK_SEARCH_PATHS', ['${inherited}', framework_dir])
 
@@ -123,7 +125,22 @@ def add_entitlements
   puts 'Added entitlement to xcode project.'
 end
 
-# This only involves patching a plist file, which should be moved to the
+# This only involves patching a plist file, which could be moved to the
+# Python tool.
+def set_bundle_id
+  puts 'Setting bundle id from GoogleService-Info.plist ...'
+  google_plist_path = "#@xcode_project_dir/GoogleService-Info.plist"
+  google_plist =  Xcodeproj::Plist.read_from_path(google_plist_path)
+  bundle_id = google_plist['BUNDLE_ID']
+
+  info_plist_path = "#@xcode_project_dir/Info.plist"
+  info_plist =  Xcodeproj::Plist.read_from_path(info_plist_path)
+  url_types = {'CFBundleIdentifier' => bundle_id}
+  Xcodeproj::Plist.write_to_path(info_plist.merge(url_types), info_plist_path)
+  puts 'Finished Setting bundle id.'
+end
+
+# This only involves patching a plist file, which could be moved to the
 # Python tool.
 def enable_remote_notification
   puts 'Adding remote-notification to UIBackgroundModes...'
