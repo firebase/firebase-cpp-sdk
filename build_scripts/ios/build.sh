@@ -1,37 +1,56 @@
 #!/bin/bash
 
-buildpath=$1
-sourcepath=$2
-arch=$3
+set -e
 
-if [[ -z "${buildpath}" || -z "${sourcepath}" || -z "${arch}" ]]; then
-    echo "Usage: $0 <build path> <source path> <arm64|x86_64>"
-    exit 1
-fi
+mkdir ios_framework_build && cd ios_framework_build
 
-if [[ "${arch}" == "x86_64" ]]; then
-    toolchain="cmake/toolchains/ios_simulator.cmake"
-elif [[ "${arch}" == "arm64" ]]; then
+frameworks_path="frameworks/ios"
+architectures=(arm64 armv7 x86_64 i386)
+for arch in ${architectures[@]}
+do
+{   
+    echo "build ${arch} start"
     toolchain="cmake/toolchains/ios.cmake"
-else
-    echo "Invalid architecture: '${arch}'"
-    exit 2
-fi
+    if [[ "${arch}" == "x86_64" || "${arch}" == "i386" ]]; then
+        toolchain="cmake/toolchains/ios_simulator.cmake"
+    fi
 
-if [[ ! -d "${sourcepath}" ]]; then
-    echo "Source path '${sourcepath}' not found."
-    exit 2
-fi
+    mkdir ${arch}_build && cd ${arch}_build
+    cmake -DCMAKE_TOOLCHAIN_FILE=../../${toolchain} \
+        -DCMAKE_OSX_ARCHITECTURES=${arch} \
+        -DCMAKE_ARCHIVE_OUTPUT_DIRECTORY=../../${frameworks_path}/${arch} \
+        ../.. 
+    cmake --build .
+    echo "build ${arch} end"
+    # cd ..
+} &
+done
+wait
+echo "all build end"
 
-mkdir -p "${buildpath}"
-cd "${buildpath}"
-if [[ -n $(ls) ]]; then
-    echo "Error: build path '${buildpath}' not empty."
-    exit 2
-fi
-cd -
+cd frameworks/ios
+for arch in ${architectures[@]}
+do
+    mv ${arch}/firebase_app.framework ${arch}/firebase.framework
+    mv ${arch}/firebase.framework/firebase_app ${arch}/firebase.framework/firebase
 
-set -ex
+    frameworks=$(ls ${arch})
+    for framework in ${frameworks}
+    do
+        rm ${arch}/${framework}/Info.plist
+    done
+done
+echo "arm64 armv7 x86_64 i386 frameworks ready"
 
-cmake -GXcode "-DCMAKE_TOOLCHAIN_FILE=$toolchain" -S "${sourcepath}" -B "${buildpath}"
-cmake --build "${buildpath}"
+mkdir universal
+frameworks=$(ls arm64)
+for framework in ${frameworks}
+do
+    mkdir universal/${framework}
+    lib_basename="$(basename "${framework}" .framework)"
+    lib_sub_path="${framework}/${lib_basename}"
+    lipo -create "arm64/${lib_sub_path}" "armv7/${lib_sub_path}" "x86_64/${lib_sub_path}" "i386/${lib_sub_path}" \
+        -output "universal/${lib_sub_path}"
+done
+cp -R arm64/firebase.framework/Headers universal/firebase.framework
+echo "universal frameworks ready"
