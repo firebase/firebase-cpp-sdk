@@ -92,6 +92,9 @@ def validate_results_cpp(log_text):
     skips = re.search(r"\[  SKIPPED \] (?P<count>[0-9]+) test", result_summary)
   else:
     result_summary = _tail(log_text, 15)
+    passes = None
+    fails = None
+    skips = None
 
   return TestResults(
       complete=complete,
