@@ -93,6 +93,11 @@ jobs:
         if: matrix.target_platform == 'Android'
         run: |
           build_scripts/android/install_prereqs.sh
+
+      - name: Install SDK iOS prerequisites
+        if: matrix.target_platform == 'iOS'
+        run: |
+          build_scripts/ios/install_prereqs.sh
           
       - name: Prepare for integration tests
         run: |
