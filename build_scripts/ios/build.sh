@@ -73,7 +73,8 @@ buildpath=$(mkdir -p ${buildpath} && cd ${buildpath} && pwd)    #full path
 
 # build framework for each architecture and target
 frameworkspath="frameworks/ios"
-for arch in ${architectures[@]}; do  
+for arch in ${architectures[@]}; do 
+{
     cd ${buildpath}
     echo "build ${arch} framework start"
     mkdir -p build_file/${arch} && cd build_file/${arch}
@@ -89,7 +90,9 @@ for arch in ${architectures[@]}; do
     cmake --build . --target ${targets[@]}
 
     echo "build ${arch} framework end"
+} &
 done
+wait
 echo "${architectures[@]} frameworks build end"
 
 # arrange the framework 
