@@ -76,7 +76,7 @@ frameworkspath="frameworks/ios"
 for arch in ${architectures[@]}; do 
     cd ${buildpath}
     echo "build ${arch} framework start"
-    mkdir -p build_file/${arch} && cd build_file/${arch}
+    mkdir -p ios_build_file/${arch} && cd ios_build_file/${arch}
     if [[ "${arch}" == "arm64" || "${arch}" == "armv7" ]]; then
         toolchain="cmake/toolchains/ios.cmake"
     elif [[ "${arch}" == "x86_64" || "${arch}" == "i386" ]]; then
