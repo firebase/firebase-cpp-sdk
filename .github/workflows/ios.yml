@@ -1,11 +1,7 @@
 name: iOS Builds
 
 on: 
-  push:
-    branches: [ feature/package-ios-frameworks ]
-  workflow_dispatch:
   pull_request:
-    branches: [ feature/package-ios-frameworks ]
     types: [opened, reopened, synchronize]
 
 jobs:
