@@ -28,7 +28,7 @@ jobs:
 
       - name: Install prerequisites
         run: |
-          build_scripts/ios/install_prereqs.sh
+          build_scripts/ios/install_prereqs.sh -b ios_build -s .
 
       - name: Build SDK
         run: |
