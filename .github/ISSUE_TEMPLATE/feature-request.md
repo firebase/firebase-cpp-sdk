@@ -1,8 +1,12 @@
 ---
-name: ➕ Feature request
+name: "➕ Feature request"
 about: If you have a feature request for the Firebase C++ SDK, file it here.
+title: ''
 labels: 'type: feature request'
+assignees: ''
+
 ---
+
 <!-- DO NOT DELETE
 validate_template=true
 template_path=.github/ISSUE_TEMPLATE/feature-request.md
