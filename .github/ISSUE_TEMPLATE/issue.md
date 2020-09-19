@@ -1,7 +1,10 @@
 ---
-name: 🐞 Bug report
+name: "\U0001F41E Bug report"
 about: Please use this template to report bugs with the Firebase C++ SDK.
+title: ''
 labels: new
+assignees: ''
+
 ---
 
 <!-- DO NOT DELETE
