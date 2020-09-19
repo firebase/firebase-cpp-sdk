@@ -1,8 +1,11 @@
 name: Android Builds
 
-on: 
+on:
   pull_request:
     types: [opened, reopened, synchronize]
+  push:
+    branches:
+      - feature/android-builds-on-windows-clean
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
