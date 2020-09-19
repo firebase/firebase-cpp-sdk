@@ -35,7 +35,7 @@ else
       echo "Installing python packages."
       set -x
       # On Windows bash shell, sudo doesn't exist
-      if [[ $(uname) == "Linux" ] || [ $(uname) == "Darwin" ]]; then
+      if [[ $(uname) == "Linux" ]] || [[ $(uname) == "Darwin" ]]; then
         sudo python -m pip install --upgrade pip
       else
         python -m pip install  --upgrade pip
