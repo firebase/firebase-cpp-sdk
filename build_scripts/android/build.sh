@@ -59,5 +59,8 @@ if [[ $(uname) == "Linux" ]] || [[ $(uname) == "Darwin" ]]; then
   # Use rsync to copy the relevent paths to the destination directory.
   rsync -aR "${paths[@]}" "${buildpath}/"
 else
-  cp -R "${paths[@]}" ${buildpath}
+  # rsync has to be specifically installed on windows bash (including github runners)
+  # Also, rsync with absolute destination path doesn't work on Windows.
+  # Using a simple copy instead of rsync on Windows.
+  cp -R --parents "${paths[@]}" "${buildpath}"
 fi
