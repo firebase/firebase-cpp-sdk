@@ -40,6 +40,8 @@ public final class ConstantsHelper {
   public static final int CALLBACK_ERROR_NO_FILL = 7;
 
   public static final int CALLBACK_ERROR_NO_WINDOW_TOKEN = 8;
+
+  public static final int CALLBACK_ERROR_UNKNOWN = 9;
   // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/types.h)
 
   /**
@@ -68,6 +70,8 @@ public final class ConstantsHelper {
 
   public static final String CALLBACK_ERROR_MESSAGE_NO_WINDOW_TOKEN =
       "Android Activity does not have a window token.";
+
+  public static final String CALLBACK_ERROR_MESSAGE_UNKNOWN = "Unknown error occurred.";
   // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src/include/firebase/admob/types.h)
 
   /** Types of notifications to send back to the C++ side for listeners updates. */
