@@ -166,7 +166,6 @@ bool FirestoreInternal::Initialize(App* app) {
           // Call Initialize on each Firestore internal class.
           FieldValueInternal::Initialize(app) &&
           FirebaseFirestoreExceptionInternal::Initialize(app) &&
-          GeoPointInternal::Initialize(app) &&
           ListenerRegistrationInternal::Initialize(app) &&
           QueryInternal::Initialize(app) &&
           TransactionInternal::Initialize(app) && Wrapper::Initialize(app) &&
@@ -196,6 +195,7 @@ bool FirestoreInternal::Initialize(App* app) {
     DocumentReferenceInternal::Initialize(loader);
     DocumentSnapshotInternal::Initialize(loader);
     FieldPathConverter::Initialize(loader);
+    GeoPointInternal::Initialize(loader);
     MetadataChangesInternal::Initialize(loader);
     QuerySnapshotInternal::Initialize(loader);
     ServerTimestampBehaviorInternal::Initialize(loader);
@@ -254,7 +254,6 @@ void FirestoreInternal::ReleaseClasses(App* app) {
   EventListenerInternal::Terminate(app);
   FieldValueInternal::Terminate(app);
   FirebaseFirestoreExceptionInternal::Terminate(app);
-  GeoPointInternal::Terminate(app);
   ListenerRegistrationInternal::Terminate(app);
   QueryInternal::Terminate(app);
   TransactionInternal::Terminate(app);

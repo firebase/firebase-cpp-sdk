@@ -131,10 +131,9 @@ FieldValueInternal::FieldValueInternal(DocumentReference value)
 
 FieldValueInternal::FieldValueInternal(GeoPoint value)
     : cached_type_(Type::kGeoPoint) {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject obj = GeoPointInternal::GeoPointToJavaGeoPoint(env, value);
-  obj_ = env->NewGlobalRef(obj);
-  env->DeleteLocalRef(obj);
+  Env env = GetEnv();
+  Local<GeoPointInternal> obj = GeoPointInternal::Create(env, value);
+  obj_ = env.get()->NewGlobalRef(obj.get());
 }
 
 FieldValueInternal::FieldValueInternal(std::vector<FieldValue> value)
@@ -209,7 +208,7 @@ Type FieldValueInternal::type() const {
     cached_type_ = Type::kReference;
     return Type::kReference;
   }
-  if (env->IsInstanceOf(obj_, GeoPointInternal::GetClass())) {
+  if (env->IsInstanceOf(obj_, GeoPointInternal::GetClass().get())) {
     cached_type_ = Type::kGeoPoint;
     return Type::kGeoPoint;
   }
@@ -371,17 +370,17 @@ DocumentReference FieldValueInternal::reference_value() const {
 }
 
 GeoPoint FieldValueInternal::geo_point_value() const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
+  Env env = GetEnv();
 
   // Make sure this instance is of correct type.
   if (cached_type_ == Type::kNull) {
-    FIREBASE_ASSERT(env->IsInstanceOf(obj_, GeoPointInternal::GetClass()));
+    FIREBASE_ASSERT(env.IsInstanceOf(obj_, GeoPointInternal::GetClass()));
     cached_type_ = Type::kGeoPoint;
   } else {
     FIREBASE_ASSERT(cached_type_ == Type::kGeoPoint);
   }
 
-  return GeoPointInternal::JavaGeoPointToGeoPoint(env, obj_);
+  return GeoPointInternal(obj_).ToPublic(env);
 }
 
 std::vector<FieldValue> FieldValueInternal::array_value() const {
