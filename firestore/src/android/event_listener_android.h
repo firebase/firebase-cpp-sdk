@@ -33,6 +33,10 @@ class EventListenerInternal {
       JNIEnv* env, FirestoreInternal* firestore,
       EventListener<DocumentSnapshot>* listener);
 
+  static jni::Local<jni::Object> Create(jni::Env& env,
+                                        FirestoreInternal* firestore,
+                                        EventListener<QuerySnapshot>* listener);
+
   static jobject EventListenerToJavaEventListener(
       JNIEnv* env, FirestoreInternal* firestore,
       EventListener<QuerySnapshot>* listener);

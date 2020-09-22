@@ -136,6 +136,13 @@ jobject EventListenerInternal::EventListenerToJavaEventListener(
   return result;
 }
 
+Local<Object> EventListenerInternal::Create(
+    Env& env, FirestoreInternal* firestore,
+    EventListener<QuerySnapshot>* listener) {
+  return Local<Object>(env.get(), EventListenerToJavaEventListener(
+                                      env.get(), firestore, listener));
+}
+
 /* static */
 jobject EventListenerInternal::EventListenerToJavaEventListener(
     JNIEnv* env, FirestoreInternal* firestore,

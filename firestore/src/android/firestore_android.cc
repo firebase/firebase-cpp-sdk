@@ -167,7 +167,6 @@ bool FirestoreInternal::Initialize(App* app) {
           FieldValueInternal::Initialize(app) &&
           FirebaseFirestoreExceptionInternal::Initialize(app) &&
           ListenerRegistrationInternal::Initialize(app) &&
-          QueryInternal::Initialize(app) &&
           TransactionInternal::Initialize(app) && Wrapper::Initialize(app) &&
           // Initialize those embedded Firestore internal classes.
           InitializeEmbeddedClasses(app))) {
@@ -197,6 +196,7 @@ bool FirestoreInternal::Initialize(App* app) {
     FieldPathConverter::Initialize(loader);
     GeoPointInternal::Initialize(loader);
     MetadataChangesInternal::Initialize(loader);
+    QueryInternal::Initialize(loader);
     QuerySnapshotInternal::Initialize(loader);
     ServerTimestampBehaviorInternal::Initialize(loader);
     SetOptionsInternal::Initialize(loader);

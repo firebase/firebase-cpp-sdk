@@ -10,19 +10,19 @@
 namespace firebase {
 namespace firestore {
 
-// To make things simple, CollectionReferenceInternal uses the Future management
-// from its base class, QueryInternal. Each API of CollectionReference that
-// returns a Future needs to define an enum value to QueryFn. For example, a
-// Future-returning method Foo() relies on the enum value QueryFn::kFoo. The
-// enum values are used to identify and manage Future in the Firestore Future
-// manager.
-using CollectionReferenceFn = QueryFn;
-
 // This is the Android implementation of CollectionReference.
 class CollectionReferenceInternal : public QueryInternal {
  public:
   using ApiType = CollectionReference;
   using QueryInternal::QueryInternal;
+
+  // To make things simple, CollectionReferenceInternal uses the Future
+  // management from its base class, QueryInternal. Each API of
+  // CollectionReference that returns a Future needs to define an enum value in
+  // QueryFn. For example, a Future-returning method Foo() relies on the enum
+  // value AsyncFn::kFoo. The enum values are used to identify and manage Future
+  // in the Firestore Future manager.
+  using AsyncFn = QueryInternal::AsyncFn;
 
   static void Initialize(jni::Loader& loader);
 

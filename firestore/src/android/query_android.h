@@ -6,7 +6,6 @@
 #include <cstdint>
 
 #include "app/src/reference_counted_future_impl.h"
-#include "app/src/util_android.h"
 #include "firestore/src/android/promise_factory_android.h"
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
@@ -17,89 +16,26 @@ namespace firestore {
 
 class Firestore;
 
-// Each API of Query that returns a Future needs to define an enum value here.
-// For example, a Future-returning method Foo() relies on the enum value kFoo.
-// The enum values are used to identify and manage Future in the Firestore
-// Future manager.
-enum class QueryFn {
-  // Enum values for the baseclass Query.
-  kGet = 0,
-
-  // Enum values below are for the subclass CollectionReference.
-  kAdd,
-
-  // Must be the last enum value.
-  kCount,
-};
-
-// clang-format off
-#define QUERY_METHODS(X)                                            \
-  X(EqualTo, "whereEqualTo",                                        \
-    "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)" \
-    "Lcom/google/firebase/firestore/Query;"),                       \
-  X(LessThan, "whereLessThan",                                      \
-    "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)" \
-    "Lcom/google/firebase/firestore/Query;"),                       \
-  X(LessThanOrEqualTo, "whereLessThanOrEqualTo",                    \
-    "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)" \
-    "Lcom/google/firebase/firestore/Query;"),                       \
-  X(GreaterThan, "whereGreaterThan",                                \
-    "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)" \
-    "Lcom/google/firebase/firestore/Query;"),                       \
-  X(GreaterThanOrEqualTo, "whereGreaterThanOrEqualTo",              \
-    "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)" \
-    "Lcom/google/firebase/firestore/Query;"),                       \
-  X(ArrayContains, "whereArrayContains",                            \
-    "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)" \
-    "Lcom/google/firebase/firestore/Query;"),                       \
-  X(ArrayContainsAny, "whereArrayContainsAny",                      \
-    "(Lcom/google/firebase/firestore/FieldPath;Ljava/util/List;)"   \
-    "Lcom/google/firebase/firestore/Query;"),                       \
-  X(In, "whereIn",                                                  \
-    "(Lcom/google/firebase/firestore/FieldPath;Ljava/util/List;)"   \
-    "Lcom/google/firebase/firestore/Query;"),                       \
-  X(OrderBy, "orderBy",                                             \
-    "(Lcom/google/firebase/firestore/FieldPath;"                    \
-    "Lcom/google/firebase/firestore/Query$Direction;)"              \
-    "Lcom/google/firebase/firestore/Query;"),                       \
-  X(Limit, "limit", "(J)Lcom/google/firebase/firestore/Query;"),    \
-  X(LimitToLast, "limitToLast",                                     \
-      "(J)Lcom/google/firebase/firestore/Query;"),                  \
-  X(StartAtSnapshot, "startAt",                                     \
-    "(Lcom/google/firebase/firestore/DocumentSnapshot;)"            \
-    "Lcom/google/firebase/firestore/Query;"),                       \
-  X(StartAt, "startAt",                                             \
-    "([Ljava/lang/Object;)Lcom/google/firebase/firestore/Query;"),  \
-  X(StartAfterSnapshot, "startAfter",                               \
-    "(Lcom/google/firebase/firestore/DocumentSnapshot;)"            \
-    "Lcom/google/firebase/firestore/Query;"),                       \
-  X(StartAfter, "startAfter",                                       \
-    "([Ljava/lang/Object;)Lcom/google/firebase/firestore/Query;"),  \
-  X(EndBeforeSnapshot, "endBefore",                                 \
-    "(Lcom/google/firebase/firestore/DocumentSnapshot;)"            \
-    "Lcom/google/firebase/firestore/Query;"),                       \
-  X(EndBefore, "endBefore",                                         \
-    "([Ljava/lang/Object;)Lcom/google/firebase/firestore/Query;"),  \
-  X(EndAtSnapshot, "endAt",                                         \
-    "(Lcom/google/firebase/firestore/DocumentSnapshot;)"            \
-    "Lcom/google/firebase/firestore/Query;"),                       \
-  X(EndAt, "endAt",                                                 \
-    "([Ljava/lang/Object;)Lcom/google/firebase/firestore/Query;"),  \
-  X(Get, "get",                                                     \
-    "(Lcom/google/firebase/firestore/Source;)"                      \
-    "Lcom/google/android/gms/tasks/Task;"),                         \
-  X(AddSnapshotListener, "addSnapshotListener",                     \
-    "(Ljava/util/concurrent/Executor;"                              \
-    "Lcom/google/firebase/firestore/MetadataChanges;"               \
-    "Lcom/google/firebase/firestore/EventListener;)"                \
-    "Lcom/google/firebase/firestore/ListenerRegistration;")
-// clang-format on
-
-METHOD_LOOKUP_DECLARATION(query, QUERY_METHODS)
-
 class QueryInternal : public Wrapper {
  public:
   using ApiType = Query;
+
+  // Each API of Query that returns a Future needs to define an enum value here.
+  // For example, a Future-returning method Foo() relies on the enum value kFoo.
+  // The enum values are used to identify and manage Future in the Firestore
+  // Future manager.
+  enum class AsyncFn {
+    // Enum values for the baseclass Query.
+    kGet = 0,
+
+    // Enum values below are for the subclass CollectionReference.
+    kAdd,
+
+    // Must be the last enum value.
+    kCount,
+  };
+
+  static void Initialize(jni::Loader& loader);
 
   QueryInternal(FirestoreInternal* firestore, jobject object)
       : Wrapper(firestore, object), promises_(firestore) {}
@@ -117,9 +53,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query WhereEqualTo(const FieldPath& field, const FieldValue& value) {
-    return Where(field, query::kEqualTo, value);
-  }
+  Query WhereEqualTo(const FieldPath& field, const FieldValue& value);
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -131,9 +65,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query WhereLessThan(const FieldPath& field, const FieldValue& value) {
-    return Where(field, query::kLessThan, value);
-  }
+  Query WhereLessThan(const FieldPath& field, const FieldValue& value);
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -145,10 +77,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query WhereLessThanOrEqualTo(const FieldPath& field,
-                               const FieldValue& value) {
-    return Where(field, query::kLessThanOrEqualTo, value);
-  }
+  Query WhereLessThanOrEqualTo(const FieldPath& field, const FieldValue& value);
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -160,9 +89,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query WhereGreaterThan(const FieldPath& field, const FieldValue& value) {
-    return Where(field, query::kGreaterThan, value);
-  }
+  Query WhereGreaterThan(const FieldPath& field, const FieldValue& value);
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -175,9 +102,7 @@ class QueryInternal : public Wrapper {
    * @return The created Query.
    */
   Query WhereGreaterThanOrEqualTo(const FieldPath& field,
-                                  const FieldValue& value) {
-    return Where(field, query::kGreaterThanOrEqualTo, value);
-  }
+                                  const FieldValue& value);
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -191,9 +116,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query WhereArrayContains(const FieldPath& field, const FieldValue& value) {
-    return Where(field, query::kArrayContains, value);
-  }
+  Query WhereArrayContains(const FieldPath& field, const FieldValue& value);
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -209,9 +132,7 @@ class QueryInternal : public Wrapper {
    * @return The created Query.
    */
   Query WhereArrayContainsAny(const FieldPath& field,
-                              const std::vector<FieldValue>& values) {
-    return Where(field, query::kArrayContainsAny, values);
-  }
+                              const std::vector<FieldValue>& values);
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -226,9 +147,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query WhereIn(const FieldPath& field, const std::vector<FieldValue>& values) {
-    return Where(field, query::kIn, values);
-  }
+  Query WhereIn(const FieldPath& field, const std::vector<FieldValue>& values);
 
   /**
    * @brief Creates and returns a new Query that's additionally sorted by the
@@ -273,9 +192,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query StartAt(const DocumentSnapshot& snapshot) {
-    return WithBound(query::kStartAtSnapshot, snapshot);
-  }
+  Query StartAt(const DocumentSnapshot& snapshot);
 
   /**
    * @brief Creates and returns a new Query that starts at the provided fields
@@ -287,9 +204,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query StartAt(const std::vector<FieldValue>& values) {
-    return WithBound(query::kStartAt, values);
-  }
+  Query StartAt(const std::vector<FieldValue>& values);
 
   /**
    * @brief Creates and returns a new Query that starts after the provided
@@ -301,9 +216,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query StartAfter(const DocumentSnapshot& snapshot) {
-    return WithBound(query::kStartAfterSnapshot, snapshot);
-  }
+  Query StartAfter(const DocumentSnapshot& snapshot);
 
   /**
    * @brief Creates and returns a new Query that starts after the provided
@@ -315,9 +228,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query StartAfter(const std::vector<FieldValue>& values) {
-    return WithBound(query::kStartAfter, values);
-  }
+  Query StartAfter(const std::vector<FieldValue>& values);
 
   /**
    * @brief Creates and returns a new Query that ends before the provided
@@ -329,9 +240,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query EndBefore(const DocumentSnapshot& snapshot) {
-    return WithBound(query::kEndBeforeSnapshot, snapshot);
-  }
+  Query EndBefore(const DocumentSnapshot& snapshot);
 
   /**
    * @brief Creates and returns a new Query that ends before the provided fields
@@ -343,9 +252,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query EndBefore(const std::vector<FieldValue>& values) {
-    return WithBound(query::kEndBefore, values);
-  }
+  Query EndBefore(const std::vector<FieldValue>& values);
 
   /**
    * @brief Creates and returns a new Query that ends at the provided document
@@ -357,9 +264,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query EndAt(const DocumentSnapshot& snapshot) {
-    return WithBound(query::kEndAtSnapshot, snapshot);
-  }
+  Query EndAt(const DocumentSnapshot& snapshot);
 
   /**
    * @brief Creates and returns a new Query that ends at the provided fields
@@ -371,9 +276,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query EndAt(const std::vector<FieldValue>& values) {
-    return WithBound(query::kEndAt, values);
-  }
+  Query EndAt(const std::vector<FieldValue>& values);
 
   /**
    * @brief Executes the query and returns the results as a QuerySnapshot.
@@ -430,27 +333,26 @@ class QueryInternal : public Wrapper {
       bool passing_listener_ownership = false);
 
  protected:
-  PromiseFactory<QueryFn> promises_;
+  PromiseFactory<AsyncFn> promises_;
 
  private:
   friend class FirestoreInternal;
 
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
-
   // A generalized function for all WhereFoo calls.
-  Query Where(const FieldPath& field, query::Method method,
+  Query Where(const FieldPath& field, const jni::Method<jni::Object>& method,
               const FieldValue& value);
-  Query Where(const FieldPath& field, query::Method method,
+  Query Where(const FieldPath& field, const jni::Method<jni::Object>& method,
               const std::vector<FieldValue>& values);
 
   // A generalized function for all {Start|End}{Before|After|At} calls.
-  Query WithBound(query::Method method, const DocumentSnapshot& snapshot);
-  Query WithBound(query::Method method, const std::vector<FieldValue>& values);
+  Query WithBound(const jni::Method<jni::Object>& method,
+                  const DocumentSnapshot& snapshot);
+  Query WithBound(const jni::Method<jni::Object>& method,
+                  const std::vector<FieldValue>& values);
 
   // A helper function to convert std::vector<FieldValue> to Java FieldValue[].
-  jobjectArray ConvertFieldValues(JNIEnv* env,
-                                  const std::vector<FieldValue>& field_values);
+  jni::Local<jni::Array<jni::Object>> ConvertFieldValues(
+      jni::Env& env, const std::vector<FieldValue>& field_values);
 };
 
 bool operator==(const QueryInternal& lhs, const QueryInternal& rhs);

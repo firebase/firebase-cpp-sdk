@@ -88,7 +88,7 @@ Future<DocumentReference> CollectionReferenceInternal::Add(
   Local<Object> task = env.Call(obj_, kAdd, map_value.java_object());
 
   auto promise = promises_.MakePromise<DocumentReference>();
-  promise.RegisterForTask(CollectionReferenceFn::kAdd, task.get());
+  promise.RegisterForTask(AsyncFn::kAdd, task.get());
   return promise.GetFuture();
 }
 
