@@ -21,6 +21,8 @@ jobs:
           architecture: "x64"
         - os: macos-latest
           architecture: "x64"
+        - os: windows-latest
+          architecture: "x64"
 
     steps:
       - uses: actions/checkout@v2
