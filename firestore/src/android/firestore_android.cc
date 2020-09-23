@@ -76,6 +76,8 @@ const char kApiIdentifier[] = "Firestore";
     util::kMethodTypeStatic),                                           \
   X(SetLoggingEnabled, "setLoggingEnabled",                             \
     "(Z)V", util::kMethodTypeStatic),                                   \
+  X(SetClientLanguage, "setClientLanguage",                             \
+    "(Ljava/lang/String;)V", util::kMethodTypeStatic),                  \
   X(SetSettings, "setFirestoreSettings",                                \
     "(Lcom/google/firebase/firestore/FirebaseFirestoreSettings;)V"),    \
   X(Batch, "batch",                                                     \
@@ -406,7 +408,7 @@ Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update,
   auto* completion =
       static_cast<LambdaTransactionFunction*>(is_lambda ? update : nullptr);
   Promise<void, void, FirestoreFn> promise{ref_future(), this, completion};
-#else   // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+#else  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   Promise<void, void, FirestoreFn> promise{ref_future(), this};
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
@@ -606,7 +608,14 @@ void Firestore::set_log_level(LogLevel log_level) {
 }
 
 void FirestoreInternal::SetClientLanguage(const std::string& language_token) {
-  // TODO(varconst): implement
+  JNIEnv* env = firebase::util::GetJNIEnvFromApp();
+  jstring java_language_token = env->NewStringUTF(language_token.c_str());
+  env->CallStaticVoidMethod(
+      firebase_firestore::GetClass(),
+      firebase_firestore::GetMethodId(firebase_firestore::kSetClientLanguage),
+      java_language_token);
+
+  CheckAndClearJniExceptions(env);
 }
 
 }  // namespace firestore
