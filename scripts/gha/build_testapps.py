@@ -344,12 +344,14 @@ def _build_android(project_dir, sdk_dir):
   with open(gradle_properties, "a+") as f:
     f.write("systemProp.firebase_cpp_sdk.dir=" + sdk_dir + "\n")
   # This will log the versions of dependencies for debugging purposes.
-  _run(
-      ["./gradlew", "dependencies", "--configuration", "debugCompileClasspath"])
+  gradlew = "./gradlew"
+  if platform.system() == "Windows":
+    gradlew += ".bat"
+  _run([gradlew, "dependencies", "--configuration", "debugCompileClasspath"])
   # Building for Android has a known issue that can be worked around by
   # simply building again. Since building from source takes a while, we don't
   # want to retry the build if a different error occurred.
-  build_args = ["./gradlew", "assembleDebug", "--stacktrace"]
+  build_args = [gradlew, "assembleDebug", "--stacktrace"]
   result = _run(args=build_args, capture_output=True, text=True, check=False)
   if result.returncode:
     if "Execution failed for task ':generateJsonModel" in result.stderr:
