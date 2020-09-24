@@ -343,10 +343,11 @@ def _build_android(project_dir, sdk_dir):
   gradle_properties = os.path.join(project_dir, "gradle.properties")
   with open(gradle_properties, "a+") as f:
     f.write("systemProp.firebase_cpp_sdk.dir=" + sdk_dir + "\n")
-  # This will log the versions of dependencies for debugging purposes.
-  gradlew = "./gradlew"
   if platform.system() == "Windows":
-    gradlew += ".bat"
+    gradlew = "gradlew.bat"
+  else:
+    gradlew = "./gradlew"
+  # This will log the versions of dependencies for debugging purposes.
   _run([gradlew, "dependencies", "--configuration", "debugCompileClasspath"])
   # Building for Android has a known issue that can be worked around by
   # simply building again. Since building from source takes a while, we don't
