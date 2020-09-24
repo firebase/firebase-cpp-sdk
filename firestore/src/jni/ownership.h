@@ -104,6 +104,13 @@ class Local : public T {
     return static_cast<jni_type>(result);
   }
 
+  void clear() {
+    if (env_ && T::object_) {
+      env_->DeleteLocalRef(T::object_);
+      T::object_ = nullptr;
+    }
+  }
+
   JNIEnv* env() const { return env_; }
 
  private:
@@ -224,6 +231,14 @@ class Global : public T {
     jobject result = T::object_;
     T::object_ = nullptr;
     return static_cast<jni_type>(result);
+  }
+
+  void clear() {
+    if (T::object_) {
+      JNIEnv* env = GetEnv();
+      env->DeleteGlobalRef(T::object_);
+      T::object_ = nullptr;
+    }
   }
 
  private:

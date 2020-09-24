@@ -176,8 +176,7 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
 
   if (!env.ok() || !java_registration) return {};
   return ListenerRegistration(new ListenerRegistrationInternal(
-      firestore_, listener, passing_listener_ownership,
-      java_registration.get()));
+      firestore_, listener, passing_listener_ownership, java_registration));
 }
 
 Class DocumentReferenceInternal::GetClass() { return Class(clazz); }

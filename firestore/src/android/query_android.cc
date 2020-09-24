@@ -294,10 +294,8 @@ ListenerRegistration QueryInternal::AddSnapshotListener(
                java_metadata, java_listener);
 
   if (!env.ok()) return {};
-
   return ListenerRegistration(new ListenerRegistrationInternal(
-      firestore_, listener, passing_listener_ownership,
-      java_registration.get()));
+      firestore_, listener, passing_listener_ownership, java_registration));
 }
 
 Local<Array<Object>> QueryInternal::ConvertFieldValues(

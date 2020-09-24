@@ -176,7 +176,6 @@ bool FirestoreInternal::Initialize(App* app) {
     if (!(  // Call Initialize on each Firestore internal class.
             FieldValueInternal::Initialize(app) &&
             FirebaseFirestoreExceptionInternal::Initialize(app) &&
-            ListenerRegistrationInternal::Initialize(app) &&
             TransactionInternal::Initialize(app) && Wrapper::Initialize(app) &&
             // Initialize those embedded Firestore internal classes.
             InitializeEmbeddedClasses(app, loader))) {
@@ -204,6 +203,7 @@ bool FirestoreInternal::Initialize(App* app) {
     DocumentSnapshotInternal::Initialize(loader);
     FieldPathConverter::Initialize(loader);
     GeoPointInternal::Initialize(loader);
+    ListenerRegistrationInternal::Initialize(loader);
     MetadataChangesInternal::Initialize(loader);
     QueryInternal::Initialize(loader);
     QuerySnapshotInternal::Initialize(loader);
@@ -245,7 +245,6 @@ void FirestoreInternal::ReleaseClasses(App* app) {
   EventListenerInternal::Terminate(app);
   FieldValueInternal::Terminate(app);
   FirebaseFirestoreExceptionInternal::Terminate(app);
-  ListenerRegistrationInternal::Terminate(app);
   TransactionInternal::Terminate(app);
   Wrapper::Terminate(app);
 }
@@ -402,7 +401,7 @@ ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
 
   if (!env.ok() || !java_registration) return {};
   return ListenerRegistration(new ListenerRegistrationInternal(
-      this, listener, passing_listener_ownership, java_registration.get()));
+      this, listener, passing_listener_ownership, java_registration));
 }
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
