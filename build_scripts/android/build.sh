@@ -20,8 +20,6 @@ if [[ -n $(ls) ]]; then
     exit 2
 fi
 cd -
-# Turn buildpath into an absolute path for use later with rsync.
-buildpath=$( cd "${buildpath}" ; pwd -P )
 
 # If NDK_ROOT is not set or is the wrong version, use to the version in /tmp.
 if [[ -z "${NDK_ROOT}" || ! $(grep -q "Pkg\.Revision = 16\." "${NDK_ROOT}/source.properties") ]]; then
@@ -54,6 +52,15 @@ for lib in *; do
     fi
 done
 set -x
-# Use rsync to copy the relevent paths to the destination directory.
-rsync -aR "${paths[@]}" "${buildpath}/"
 
+if [[ $(uname) == "Linux" ]] || [[ $(uname) == "Darwin" ]]; then
+  # Turn buildpath into an absolute path for use later with rsync.
+  buildpath=$( cd "${buildpath}" ; pwd -P )
+  # Use rsync to copy the relevent paths to the destination directory.
+  rsync -aR "${paths[@]}" "${buildpath}/"
+else
+  # rsync has to be specifically installed on windows bash (including github runners)
+  # Also, rsync with absolute destination path doesn't work on Windows.
+  # Using a simple copy instead of rsync on Windows.
+  cp -R --parents "${paths[@]}" "${buildpath}"
+fi

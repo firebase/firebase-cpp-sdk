@@ -13,8 +13,12 @@ elif [[ $(uname) == "Linux" ]]; then
         echo "::set-env name=CCACHE_INSTALLED::1"
     fi
 else
-    echo "Unsupported platform, this script must run on a MacOS or Linux machine."
-    exit 1
+    platform=windows
+    # On Windows, we have an additional dependency for Strings
+    curl -LSs \	    curl -LSs \
+        "https://download.sysinternals.com/files/Strings.zip" \
+         --output Strings.zip
+    unzip -q Strings.zip && rm -f Strings.zip
 fi
 
 if [[ -z $(which cmake) ]]; then
@@ -28,11 +32,16 @@ if [[ -z $(which python) ]]; then
 else
     updated_pip=0
     if ! $(echo "import absl"$'\n'"import google.protobuf" | python - 2> /dev/null); then
-	echo "Installing python packages."
-	set -x
-	sudo python -m pip install --upgrade pip
-	pip install absl-py protobuf
-	set +x
+      echo "Installing python packages."
+      set -x
+      # On Windows bash shell, sudo doesn't exist
+      if [[ $(uname) == "Linux" ]] || [[ $(uname) == "Darwin" ]]; then
+        sudo python -m pip install --upgrade pip
+      else
+        python -m pip install  --upgrade pip
+      fi
+      pip install absl-py protobuf
+      set +x
     fi
 fi
 

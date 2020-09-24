@@ -1,6 +1,6 @@
 name: Android Builds
 
-on: 
+on:
   pull_request:
     types: [opened, reopened, synchronize]
 
@@ -14,12 +14,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         architecture: ["x64",]
         include:
         - os: ubuntu-latest
           architecture: "x64"
         - os: macos-latest
+          architecture: "x64"
+        - os: windows-latest
           architecture: "x64"
 
     steps:
@@ -38,10 +40,15 @@ jobs:
           python-version: 3.7
           architecture: ${{ matrix.architecture }}
 
+      - name: Add msbuild to PATH
+        if: startsWith(matrix.os, 'windows')
+        uses: microsoft/setup-msbuild@v1.0.1
+
       - name: Install prerequisites
+        shell: bash
         run: |
           build_scripts/android/install_prereqs.sh
-      
+
       - name: Cache ccache files
         id: cache_ccache
         uses: actions/cache@v2
@@ -50,6 +57,7 @@ jobs:
           key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
 
       - name: Build SDK
+        shell: bash
         run: |
           build_scripts/android/build.sh android_build .
 
