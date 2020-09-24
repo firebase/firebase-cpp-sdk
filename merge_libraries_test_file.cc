@@ -81,3 +81,9 @@ extern void ExternFunctionWithParameter(test_namespace::TestClass&&, int);
 extern void ExternFunctionWithMultipleParameters(
     const test_namespace::TestClass&,
     std::unique_ptr<test_namespace::TestClass>, std::string);
+
+namespace another_namespace {
+
+extern void ExternFunctionNotUsingNamespace(std::string);
+
+}  // namespace another_namespace
