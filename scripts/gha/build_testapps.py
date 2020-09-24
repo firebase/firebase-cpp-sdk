@@ -189,6 +189,11 @@ def main(argv):
   platforms = FLAGS.platforms
   testapps = FLAGS.testapps
 
+  sdk_dir = _fix_path(FLAGS.sdk_dir)
+  output_dir = _fix_path(FLAGS.output_directory)
+  root_dir = _fix_path(FLAGS.root_dir)
+  provisions_dir = _fix_path(FLAGS.provisions_dir)
+
   update_pod_repo = FLAGS.update_pod_repo
   if FLAGS.add_timestamp:
     timestamp = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
@@ -204,7 +209,7 @@ def main(argv):
   config = config_reader.read_config()
   cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
   if FLAGS.use_vcpkg:
-    vcpkg = Vcpkg.generate(os.path.join(FLAGS.sdk_dir, config.vcpkg_dir))
+    vcpkg = Vcpkg.generate(os.path.join(sdk_dir, config.vcpkg_dir))
     vcpkg.install_and_run()
     cmake_flags.extend(vcpkg.cmake_flags)
 
@@ -215,12 +220,12 @@ def main(argv):
         testapp=testapp,
         platforms=platforms,
         api_config=config.get_api(testapp),
-        output_dir=os.path.expanduser(FLAGS.output_directory),
-        sdk_dir=os.path.expanduser(FLAGS.sdk_dir),
+        output_dir=output_dir,
+        sdk_dir=sdk_dir,
         timestamp=timestamp,
         builder_dir=pathlib.Path(__file__).parent.absolute(),
-        root_dir=os.path.expanduser(FLAGS.root_dir),
-        provisions_dir=os.path.expanduser(FLAGS.provisions_dir),
+        root_dir=root_dir,
+        provisions_dir=provisions_dir,
         ios_sdk=FLAGS.ios_sdk,
         dev_team=config.apple_team_id,
         cmake_flags=cmake_flags,
@@ -342,6 +347,7 @@ def _build_android(project_dir, sdk_dir):
   logging.info("Patching gradle properties with path to SDK")
   gradle_properties = os.path.join(project_dir, "gradle.properties")
   with open(gradle_properties, "a+") as f:
+
     f.write("systemProp.firebase_cpp_sdk.dir=" + sdk_dir + "\n")
   if platform.system() == "Windows":
     gradlew = "gradlew.bat"
@@ -493,6 +499,11 @@ def _rm_dir_safe(directory_path):
     logging.info("Deleted %s", directory_path)
   except FileNotFoundError:
     logging.warning("Tried to delete %s, but it doesn't exist.", directory_path)
+
+
+def _fix_path(path):
+  """Expands ~, normalizes slashes, and converts relative paths to absolute."""
+  return os.path.abspath(os.path.expanduser(path))
 
 
 @attr.s(frozen=True, eq=False)
