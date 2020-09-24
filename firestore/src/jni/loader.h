@@ -28,6 +28,8 @@ namespace jni {
  */
 class Loader {
  public:
+  using EmbeddedFile = firebase::internal::EmbeddedFile;
+
   explicit Loader(App* app);
   ~Loader();
 
@@ -55,6 +57,11 @@ class Loader {
    * to the standard classpath).
    */
   void CacheEmbeddedFiles();
+
+  // TODO(mcg): remove once InitializeEmbeddedClasses instances are gone.
+  const std::vector<EmbeddedFile>* embedded_files() const {
+    return &embedded_files_;
+  }
 
   /**
    * Uses the given class reference as the basis for subsequent loads. The
@@ -135,8 +142,6 @@ class Loader {
   void Unload();
 
  private:
-  using EmbeddedFile = firebase::internal::EmbeddedFile;
-
   App* app_ = nullptr;
   JNIEnv* env_ = nullptr;
 

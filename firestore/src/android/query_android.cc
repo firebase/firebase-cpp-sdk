@@ -9,6 +9,7 @@
 #include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/lambda_event_listener.h"
+#include "firestore/src/android/listener_registration_android.h"
 #include "firestore/src/android/metadata_changes_android.h"
 #include "firestore/src/android/promise_android.h"
 #include "firestore/src/android/source_android.h"

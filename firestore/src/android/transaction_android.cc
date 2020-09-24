@@ -192,6 +192,12 @@ bool TransactionInternal::CheckAndClearJniExceptions() {
   return result;
 }
 
+Local<Object> TransactionInternal::Create(Env& env,
+                                          FirestoreInternal* firestore,
+                                          TransactionFunction* function) {
+  return Local<Object>(env.get(), ToJavaObject(env.get(), firestore, function));
+}
+
 /* static */
 jobject TransactionInternal::ToJavaObject(JNIEnv* env,
                                           FirestoreInternal* firestore,

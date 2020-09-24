@@ -39,6 +39,10 @@ class TransactionInternal : public Wrapper {
   DocumentSnapshot Get(const DocumentReference& document, Error* error_code,
                        std::string* error_message);
 
+  static jni::Local<jni::Object> Create(jni::Env& env,
+                                        FirestoreInternal* firestore,
+                                        TransactionFunction* function);
+
   static jobject ToJavaObject(JNIEnv* env, FirestoreInternal* firestore,
                               TransactionFunction* function);
 

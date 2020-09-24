@@ -39,7 +39,6 @@ void Loader::CacheEmbeddedFiles() {
   if (!ok_) return;
 
   util::CacheEmbeddedFiles(env_, app_->activity(), embedded_files_);
-  embedded_files_.clear();
 }
 
 void Loader::UsingExistingClass(const char* class_name, jclass existing_ref) {

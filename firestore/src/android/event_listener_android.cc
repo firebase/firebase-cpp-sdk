@@ -155,6 +155,12 @@ jobject EventListenerInternal::EventListenerToJavaEventListener(
   return result;
 }
 
+Local<Object> EventListenerInternal::Create(Env& env,
+                                            EventListener<void>* listener) {
+  return Local<Object>(env.get(),
+                       EventListenerToJavaRunnable(env.get(), listener));
+}
+
 /* static */
 jobject EventListenerInternal::EventListenerToJavaRunnable(
     JNIEnv* env, EventListener<void>* listener) {
