@@ -514,7 +514,7 @@ if (IOS)
     endif()
   endforeach(hfile)
   # Copy header from source dir "src/include/google_play_services/*" 
-  # to destination dir "Headers/google_play_services?*"
+  # to destination dir "Headers/google_play_services/*"
   set_property(SOURCE "src/include/google_play_services/availability.h" PROPERTY 
                   MACOSX_PACKAGE_LOCATION Headers/google_play_services)
 endif()
