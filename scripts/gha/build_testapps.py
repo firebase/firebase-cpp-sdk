@@ -344,15 +344,15 @@ def _get_desktop_compiler_flags(compiler, compiler_table):
 
 def _build_android(project_dir, sdk_dir):
   """Builds an Android binary (apk)."""
+  if platform.system() == "Windows":
+    gradlew = "gradlew.bat"
+    sdk_dir.replace("\\", "/")  # Gradle will misinterpret backslashes in path.
+  else:
+    gradlew = "./gradlew"
   logging.info("Patching gradle properties with path to SDK")
   gradle_properties = os.path.join(project_dir, "gradle.properties")
   with open(gradle_properties, "a+") as f:
-
     f.write("systemProp.firebase_cpp_sdk.dir=" + sdk_dir + "\n")
-  if platform.system() == "Windows":
-    gradlew = "gradlew.bat"
-  else:
-    gradlew = "./gradlew"
   # This will log the versions of dependencies for debugging purposes.
   _run([gradlew, "dependencies", "--configuration", "debugCompileClasspath"])
   # Building for Android has a known issue that can be worked around by
