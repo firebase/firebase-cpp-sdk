@@ -346,7 +346,7 @@ def _build_android(project_dir, sdk_dir):
   """Builds an Android binary (apk)."""
   if platform.system() == "Windows":
     gradlew = "gradlew.bat"
-    sdk_dir.replace("\\", "/")  # Gradle will misinterpret backslashes in path.
+    sdk_dir = sdk_dir.replace("\\", "/")  # Gradle misinterprets backslashes.
   else:
     gradlew = "./gradlew"
   logging.info("Patching gradle properties with path to SDK")
