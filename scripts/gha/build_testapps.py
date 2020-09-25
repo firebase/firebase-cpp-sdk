@@ -494,11 +494,14 @@ def _run(args, timeout=2400, capture_output=False, text=None, check=True):
 
 def _rm_dir_safe(directory_path):
   """Removes directory at given path. No error if dir doesn't exist."""
+  logging.info("Deleting %s...", directory_path)
   try:
     shutil.rmtree(directory_path)
-    logging.info("Deleted %s", directory_path)
-  except FileNotFoundError:
-    logging.warning("Tried to delete %s, but it doesn't exist.", directory_path)
+  except OSError as e:
+    # There are two known cases where this can happen:
+    # The directory doesn't exist (FileNotFoundError)
+    # A file in the directory is open in another process (PermissionError)
+    logging.warning("Failed to remove directory:\n%s", e)
 
 
 def _fix_path(path):
