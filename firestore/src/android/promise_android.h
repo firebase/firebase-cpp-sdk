@@ -7,7 +7,7 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
 #include "firestore/src/android/document_snapshot_android.h"
-#include "firestore/src/android/firebase_firestore_exception_android.h"
+#include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/query_snapshot_android.h"
 #include "firestore/src/jni/env.h"
@@ -115,7 +115,7 @@ class Promise {
       switch (result_code) {
         case util::kFutureResultFailure:
           // When failed, result is the exception raised.
-          error_code = FirebaseFirestoreExceptionInternal::ToErrorCode(
+          error_code = ExceptionInternal::GetErrorCode(
               this->firestore_->app()->GetJNIEnv(), result);
           break;
         case util::kFutureResultCancelled:

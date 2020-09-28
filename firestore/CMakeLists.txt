@@ -71,14 +71,14 @@ set(android_SRCS
     src/android/document_snapshot_android.h
     src/android/event_listener_android.cc
     src/android/event_listener_android.h
+    src/android/exception_android.cc
+    src/android/exception_android.h
     src/android/field_path_android.cc
     src/android/field_path_android.h
     src/android/field_path_portable.cc
     src/android/field_path_portable.h
     src/android/field_value_android.cc
     src/android/field_value_android.h
-    src/android/firebase_firestore_exception_android.cc
-    src/android/firebase_firestore_exception_android.h
     src/android/firestore_android.cc
     src/android/firestore_android.h
     src/android/geo_point_android.cc

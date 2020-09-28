@@ -1,4 +1,4 @@
-#include "firestore/src/android/firebase_firestore_exception_android.h"
+#include "firestore/src/android/exception_android.h"
 
 #include <cstring>
 
@@ -48,8 +48,7 @@ METHOD_LOOKUP_DEFINITION(illegal_state_exception,
                          ILLEGAL_STATE_EXCEPTION_METHODS)
 
 /* static */
-Error FirebaseFirestoreExceptionInternal::ToErrorCode(JNIEnv* env,
-                                                      jobject exception) {
+Error ExceptionInternal::GetErrorCode(JNIEnv* env, jobject exception) {
   if (exception == nullptr) {
     return Error::kErrorOk;
   }
@@ -59,7 +58,7 @@ Error FirebaseFirestoreExceptionInternal::ToErrorCode(JNIEnv* env,
   // code.
   if (env->IsInstanceOf(exception, illegal_state_exception::GetClass())) {
     return Error::kErrorFailedPrecondition;
-  } else if (!IsInstance(env, exception)) {
+  } else if (!IsFirestoreException(env, exception)) {
     return Error::kErrorUnknown;
   }
 
@@ -80,14 +79,13 @@ Error FirebaseFirestoreExceptionInternal::ToErrorCode(JNIEnv* env,
 }
 
 /* static */
-std::string FirebaseFirestoreExceptionInternal::ToString(JNIEnv* env,
-                                                         jobject exception) {
+std::string ExceptionInternal::ToString(JNIEnv* env, jobject exception) {
   return util::GetMessageFromException(env, exception);
 }
 
 /* static */
-jthrowable FirebaseFirestoreExceptionInternal::ToException(
-    JNIEnv* env, Error code, const char* message) {
+jthrowable ExceptionInternal::Create(JNIEnv* env, Error code,
+                                     const char* message) {
   if (code == Error::kErrorOk) {
     return nullptr;
   }
@@ -114,31 +112,29 @@ jthrowable FirebaseFirestoreExceptionInternal::ToException(
 }
 
 /* static */
-jthrowable FirebaseFirestoreExceptionInternal::ToException(
-    JNIEnv* env, jthrowable exception) {
-  if (IsInstance(env, exception)) {
+jthrowable ExceptionInternal::Wrap(JNIEnv* env, jthrowable exception) {
+  if (IsFirestoreException(env, exception)) {
     return static_cast<jthrowable>(env->NewLocalRef(exception));
   } else {
-    return ToException(env, ToErrorCode(env, exception),
-                       ToString(env, exception).c_str());
+    return Create(env, GetErrorCode(env, exception),
+                  ToString(env, exception).c_str());
   }
 }
 
 /* static */
-bool FirebaseFirestoreExceptionInternal::IsInstance(JNIEnv* env,
-                                                    jobject exception) {
+bool ExceptionInternal::IsFirestoreException(JNIEnv* env, jobject exception) {
   return env->IsInstanceOf(exception, firestore_exception::GetClass());
 }
 
 /* static */
-bool FirebaseFirestoreExceptionInternal::IsFirestoreException(
-    JNIEnv* env, jobject exception) {
-  return IsInstance(env, exception) ||
+bool ExceptionInternal::IsAnyExceptionThrownByFirestore(JNIEnv* env,
+                                                        jobject exception) {
+  return IsFirestoreException(env, exception) ||
          env->IsInstanceOf(exception, illegal_state_exception::GetClass());
 }
 
 /* static */
-bool FirebaseFirestoreExceptionInternal::Initialize(App* app) {
+bool ExceptionInternal::Initialize(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   jobject activity = app->activity();
   bool result = firestore_exception::CacheMethodIds(env, activity) &&
@@ -149,7 +145,7 @@ bool FirebaseFirestoreExceptionInternal::Initialize(App* app) {
 }
 
 /* static */
-void FirebaseFirestoreExceptionInternal::Terminate(App* app) {
+void ExceptionInternal::Terminate(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   firestore_exception::ReleaseClass(env);
   firestore_exception_code::ReleaseClass(env);

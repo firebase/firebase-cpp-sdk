@@ -8,9 +8,9 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/util_android.h"
 #include "firestore/src/android/document_reference_android.h"
+#include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/field_path_android.h"
 #include "firestore/src/android/field_value_android.h"
-#include "firestore/src/android/firebase_firestore_exception_android.h"
 #include "firestore/src/android/set_options_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/hash_map.h"
@@ -114,15 +114,13 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
   util::CheckAndClearJniExceptions(env);
   if (exception != nullptr) {
     if (error_code != nullptr) {
-      *error_code =
-          FirebaseFirestoreExceptionInternal::ToErrorCode(env, exception);
+      *error_code = ExceptionInternal::GetErrorCode(env, exception);
     }
     if (error_message != nullptr) {
-      *error_message =
-          FirebaseFirestoreExceptionInternal::ToString(env, exception);
+      *error_message = ExceptionInternal::ToString(env, exception);
     }
 
-    if (!FirebaseFirestoreExceptionInternal::IsInstance(env, exception)) {
+    if (!ExceptionInternal::IsFirestoreException(env, exception)) {
       // We would only preserve exception if it is not
       // FirebaseFirestoreException. The user should decide whether to raise the
       // error or let the transaction succeed.
@@ -163,10 +161,8 @@ void TransactionInternal::PreserveException(jthrowable exception) {
   }
 
   JNIEnv* env = firestore_->app()->GetJNIEnv();
-  if (FirebaseFirestoreExceptionInternal::IsFirestoreException(env,
-                                                               exception)) {
-    jobject firestore_exception =
-        FirebaseFirestoreExceptionInternal::ToException(env, exception);
+  if (ExceptionInternal::IsAnyExceptionThrownByFirestore(env, exception)) {
+    jobject firestore_exception = ExceptionInternal::Wrap(env, exception);
     *first_exception_ =
         static_cast<jthrowable>(env->NewGlobalRef(firestore_exception));
     env->DeleteLocalRef(firestore_exception);
@@ -234,8 +230,7 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
     cpp_transaction.internal_->ClearException();
     return first_exception;
   } else {
-    return FirebaseFirestoreExceptionInternal::ToException(env, code,
-                                                           message.c_str());
+    return ExceptionInternal::Create(env, code, message.c_str());
   }
 }
 

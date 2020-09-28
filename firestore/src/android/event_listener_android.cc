@@ -7,7 +7,7 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/util_android.h"
 #include "firestore/src/android/document_snapshot_android.h"
-#include "firestore/src/android/firebase_firestore_exception_android.h"
+#include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/query_snapshot_android.h"
 #include "firestore/src/android/util_android.h"
 #include "firestore/src/common/util.h"
@@ -87,10 +87,8 @@ void EventListenerInternal::DocumentEventListenerNativeOnEvent(
       reinterpret_cast<EventListener<DocumentSnapshot>*>(listener_ptr);
   auto* firestore = reinterpret_cast<FirestoreInternal*>(firestore_ptr);
 
-  Error error_code =
-      FirebaseFirestoreExceptionInternal::ToErrorCode(env, error);
-  std::string error_message =
-      FirebaseFirestoreExceptionInternal::ToString(env, error);
+  Error error_code = ExceptionInternal::GetErrorCode(env, error);
+  std::string error_message = ExceptionInternal::ToString(env, error);
   if (error_code != Error::kErrorOk) {
     listener->OnEvent({}, error_code, error_message);
     return;
@@ -113,10 +111,8 @@ void EventListenerInternal::QueryEventListenerNativeOnEvent(JNIEnv* env, jclass,
       reinterpret_cast<EventListener<QuerySnapshot>*>(listener_ptr);
   auto* firestore = reinterpret_cast<FirestoreInternal*>(firestore_ptr);
 
-  Error error_code =
-      FirebaseFirestoreExceptionInternal::ToErrorCode(env, error);
-  std::string error_message =
-      FirebaseFirestoreExceptionInternal::ToString(env, error);
+  Error error_code = ExceptionInternal::GetErrorCode(env, error);
+  std::string error_message = ExceptionInternal::ToString(env, error);
   if (error_code != Error::kErrorOk) {
     listener->OnEvent({}, error_code, error_message);
     return;

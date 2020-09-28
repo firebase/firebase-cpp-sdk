@@ -17,9 +17,9 @@
 #include "firestore/src/android/document_reference_android.h"
 #include "firestore/src/android/document_snapshot_android.h"
 #include "firestore/src/android/event_listener_android.h"
+#include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/field_path_android.h"
 #include "firestore/src/android/field_value_android.h"
-#include "firestore/src/android/firebase_firestore_exception_android.h"
 #include "firestore/src/android/geo_point_android.h"
 #include "firestore/src/android/lambda_event_listener.h"
 #include "firestore/src/android/lambda_transaction_function.h"
@@ -175,7 +175,7 @@ bool FirestoreInternal::Initialize(App* app) {
 
     if (!(  // Call Initialize on each Firestore internal class.
             FieldValueInternal::Initialize(app) &&
-            FirebaseFirestoreExceptionInternal::Initialize(app) &&
+            ExceptionInternal::Initialize(app) &&
             TransactionInternal::Initialize(app) && Wrapper::Initialize(app) &&
             // Initialize those embedded Firestore internal classes.
             InitializeEmbeddedClasses(app, loader))) {
@@ -242,7 +242,7 @@ void FirestoreInternal::ReleaseClasses(App* app) {
 
   // Call Terminate on each Firestore internal class.
   FieldValueInternal::Terminate(app);
-  FirebaseFirestoreExceptionInternal::Terminate(app);
+  ExceptionInternal::Terminate(app);
   TransactionInternal::Terminate(app);
   Wrapper::Terminate(app);
 }
