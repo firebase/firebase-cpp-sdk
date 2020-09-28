@@ -201,6 +201,7 @@ bool FirestoreInternal::Initialize(App* app) {
     DocumentChangeTypeInternal::Initialize(loader);
     DocumentReferenceInternal::Initialize(loader);
     DocumentSnapshotInternal::Initialize(loader);
+    EventListenerInternal::Initialize(loader);
     FieldPathConverter::Initialize(loader);
     GeoPointInternal::Initialize(loader);
     ListenerRegistrationInternal::Initialize(loader);
@@ -230,10 +231,8 @@ bool FirestoreInternal::Initialize(App* app) {
 bool FirestoreInternal::InitializeEmbeddedClasses(App* app, Loader& loader) {
   // Terminate() handles tearing this down.
   // Load embedded classes.
-  return EventListenerInternal::InitializeEmbeddedClasses(
-             app, loader.embedded_files()) &&
-         TransactionInternal::InitializeEmbeddedClasses(
-             app, loader.embedded_files());
+  return TransactionInternal::InitializeEmbeddedClasses(
+      app, loader.embedded_files());
 }
 
 /* static */
@@ -242,7 +241,6 @@ void FirestoreInternal::ReleaseClasses(App* app) {
   loader_ = nullptr;
 
   // Call Terminate on each Firestore internal class.
-  EventListenerInternal::Terminate(app);
   FieldValueInternal::Terminate(app);
   FirebaseFirestoreExceptionInternal::Terminate(app);
   TransactionInternal::Terminate(app);
