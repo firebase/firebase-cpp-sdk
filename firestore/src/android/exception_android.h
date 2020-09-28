@@ -4,7 +4,7 @@
 #include <string>
 
 #include "app/src/include/firebase/app.h"
-#include "app/src/util_android.h"
+#include "firestore/src/jni/jni_fwd.h"
 #include "firebase/firestore/firestore_errors.h"
 
 namespace firebase {
@@ -12,26 +12,29 @@ namespace firestore {
 
 class ExceptionInternal {
  public:
-  static Error GetErrorCode(JNIEnv* env, jobject exception);
-  static std::string ToString(JNIEnv* env, jobject exception);
+  static void Initialize(jni::Loader& loader);
 
-  static jthrowable Create(JNIEnv* env, Error code, const char* message);
-  static jthrowable Wrap(JNIEnv* env, jthrowable exception);
+  static Error GetErrorCode(jni::Env& env, const jni::Object& exception);
+  static std::string ToString(jni::Env& env, const jni::Object& exception);
+
+  static jni::Local<jni::Throwable> Create(jni::Env& env, Error code,
+                                           const std::string& message);
+  static jni::Local<jni::Throwable> Wrap(
+      jni::Env& env, jni::Local<jni::Throwable>&& exception);
 
   /** Returns true if the given object is a FirestoreException. */
-  static bool IsFirestoreException(JNIEnv* env, jobject exception);
+  static bool IsFirestoreException(jni::Env& env, const jni::Object& exception);
+
+  /** Returns true if the given object is an IllegalStateException. */
+  static bool IsIllegalStateException(jni::Env& env,
+                                      const jni::Object& exception);
 
   /**
    * Returns true if the given object is a FirestoreException or any other type
    * of exception thrown by a Firestore API.
    */
-  static bool IsAnyExceptionThrownByFirestore(JNIEnv* env, jobject exception);
-
- private:
-  friend class FirestoreInternal;
-
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  static bool IsAnyExceptionThrownByFirestore(jni::Env& env,
+                                              const jni::Object& exception);
 };
 
 }  // namespace firestore

@@ -99,15 +99,17 @@ class Promise {
       return handle_;
     }
 
-    virtual void CompleteWithResult(jobject result,
+    virtual void CompleteWithResult(jobject raw_result,
                                     util::FutureResult result_code,
                                     const char* status_message) {
       // result can be either the resolved object or exception, depending on
       // result_code.
+      jni::Env env;
+      jni::Object result(raw_result);
 
       if (result_code == util::kFutureResultSuccess) {
         // When succeeded, result is the resolved object of the Future.
-        SucceedWithResult(result);
+        SucceedWithResult(env, result);
         return;
       }
 
@@ -115,8 +117,7 @@ class Promise {
       switch (result_code) {
         case util::kFutureResultFailure:
           // When failed, result is the exception raised.
-          error_code = ExceptionInternal::GetErrorCode(
-              this->firestore_->app()->GetJNIEnv(), result);
+          error_code = ExceptionInternal::GetErrorCode(env, result);
           break;
         case util::kFutureResultCancelled:
           error_code = Error::kErrorCancelled;
@@ -133,7 +134,8 @@ class Promise {
       delete this;
     }
 
-    virtual void SucceedWithResult(jobject result) = 0;
+    virtual void SucceedWithResult(jni::Env& env,
+                                   const jni::Object& result) = 0;
 
    protected:
     SafeFutureHandle<PublicT> handle_;
@@ -150,9 +152,9 @@ class Promise {
    public:
     using CompleterBase<PublicT>::CompleterBase;
 
-    void SucceedWithResult(jobject result) override {
+    void SucceedWithResult(jni::Env& env, const jni::Object& result) override {
       PublicT future_result = FirestoreInternal::Wrap<InternalT>(
-          new InternalT(this->firestore_, result));
+          new InternalT(this->firestore_, result.get()));
 
       this->impl_->CompleteWithResult(this->handle_, Error::kErrorOk,
                                       /*error_msg=*/"", future_result);
@@ -169,7 +171,7 @@ class Promise {
    public:
     using CompleterBase<void>::CompleterBase;
 
-    void SucceedWithResult(jobject result) override {
+    void SucceedWithResult(jni::Env& env, const jni::Object& result) override {
       this->impl_->Complete(this->handle_, Error::kErrorOk, /*error_msg=*/"");
       if (this->completion_ != nullptr) {
         this->completion_->CompleteWith(Error::kErrorOk, /*error_message*/ "",

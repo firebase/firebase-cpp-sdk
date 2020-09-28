@@ -158,8 +158,14 @@ class Env {
   Local<Class> GetObjectClass(const Object& object);
 
   bool IsInstanceOf(const Object& object, const Class& clazz);
+  bool IsInstanceOf(const Object& object, jclass clazz) {
+    return IsInstanceOf(object, Class(clazz));
+  }
   bool IsInstanceOf(jobject object, const Class& clazz) {
     return IsInstanceOf(Object(object), clazz);
+  }
+  bool IsInstanceOf(jobject object, jclass clazz) {
+    return IsInstanceOf(Object(object), Class(clazz));
   }
 
   bool IsSameObject(const Object& object1, const Object& object2);

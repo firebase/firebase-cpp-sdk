@@ -78,8 +78,8 @@ void EventListenerInternal::Initialize(jni::Loader& loader) {
 }
 
 void EventListenerInternal::DocumentEventListenerNativeOnEvent(
-    JNIEnv* env, jclass, jlong firestore_ptr, jlong listener_ptr, jobject value,
-    jobject error) {
+    JNIEnv* raw_env, jclass, jlong firestore_ptr, jlong listener_ptr,
+    jobject value, jobject raw_error) {
   if (firestore_ptr == 0 || listener_ptr == 0) {
     return;
   }
@@ -87,6 +87,8 @@ void EventListenerInternal::DocumentEventListenerNativeOnEvent(
       reinterpret_cast<EventListener<DocumentSnapshot>*>(listener_ptr);
   auto* firestore = reinterpret_cast<FirestoreInternal*>(firestore_ptr);
 
+  Env env(raw_env);
+  Object error(raw_error);
   Error error_code = ExceptionInternal::GetErrorCode(env, error);
   std::string error_message = ExceptionInternal::ToString(env, error);
   if (error_code != Error::kErrorOk) {
@@ -94,16 +96,14 @@ void EventListenerInternal::DocumentEventListenerNativeOnEvent(
     return;
   }
 
-  DocumentSnapshot snapshot(new DocumentSnapshotInternal(firestore, value));
+  auto snapshot = firestore->NewDocumentSnapshot(env, Object(value));
   listener->OnEvent(snapshot, error_code, error_message);
 }
 
 /* static */
-void EventListenerInternal::QueryEventListenerNativeOnEvent(JNIEnv* env, jclass,
-                                                            jlong firestore_ptr,
-                                                            jlong listener_ptr,
-                                                            jobject value,
-                                                            jobject error) {
+void EventListenerInternal::QueryEventListenerNativeOnEvent(
+    JNIEnv* raw_env, jclass, jlong firestore_ptr, jlong listener_ptr,
+    jobject value, jobject raw_error) {
   if (firestore_ptr == 0 || listener_ptr == 0) {
     return;
   }
@@ -111,6 +111,8 @@ void EventListenerInternal::QueryEventListenerNativeOnEvent(JNIEnv* env, jclass,
       reinterpret_cast<EventListener<QuerySnapshot>*>(listener_ptr);
   auto* firestore = reinterpret_cast<FirestoreInternal*>(firestore_ptr);
 
+  Env env(raw_env);
+  Object error(raw_error);
   Error error_code = ExceptionInternal::GetErrorCode(env, error);
   std::string error_message = ExceptionInternal::ToString(env, error);
   if (error_code != Error::kErrorOk) {
@@ -118,7 +120,7 @@ void EventListenerInternal::QueryEventListenerNativeOnEvent(JNIEnv* env, jclass,
     return;
   }
 
-  QuerySnapshot snapshot(new QuerySnapshotInternal(firestore, value));
+  auto snapshot = firestore->NewQuerySnapshot(env, Object(value));
   listener->OnEvent(snapshot, error_code, error_message);
 }
 

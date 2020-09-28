@@ -10,6 +10,9 @@
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
 #include "firestore/src/include/firebase/firestore/transaction.h"
+#include "firestore/src/jni/jni_fwd.h"
+#include "firestore/src/jni/ownership.h"
+#include "firestore/src/jni/throwable.h"
 
 namespace firebase {
 namespace firestore {
@@ -19,13 +22,15 @@ class TransactionInternal : public Wrapper {
   using ApiType = Transaction;
 
   TransactionInternal(FirestoreInternal* firestore, jobject obj)
-      : Wrapper(firestore, obj), first_exception_{new jthrowable{nullptr}} {}
+      : Wrapper(firestore, obj),
+        first_exception_(MakeShared<jni::Local<jni::Throwable>>()) {}
 
   TransactionInternal(const TransactionInternal& rhs)
       : Wrapper(rhs), first_exception_(rhs.first_exception_) {}
 
   TransactionInternal(TransactionInternal&& rhs)
-      : Wrapper(firebase::Move(rhs)), first_exception_(rhs.first_exception_) {}
+      : Wrapper(firebase::Move(rhs)),
+        first_exception_(Move(rhs.first_exception_)) {}
 
   void Set(const DocumentReference& document, const MapFieldValue& data,
            const SetOptions& options);
@@ -60,19 +65,10 @@ class TransactionInternal : public Wrapper {
 
   // If this is the first exception, then store it. Otherwise, preserve the
   // current exception. Passing nullptr has no effect.
-  void PreserveException(jthrowable exception);
+  void PreserveException(jni::Env& env, jni::Local<jni::Throwable>&& exception);
 
-  // Clear the global reference of the first exception, if any. The SharedPtr
-  // does not support custom deleters and thus we must call this explicitly.
-  // The workflow of RunTransaction allows us to do so.
-  void ClearException();
-
-  // A helper function to replace util::CheckAndClearJniExceptions(env). It will
-  // check and clear all exceptions just as what the one under util is doing. In
-  // addition, it also preserves the first ever exception during a Transaction.
-  // We do not preserve each and every exception. Only the first one matters and
-  // more than likely the subsequent exception is caused by the first one.
-  bool CheckAndClearJniExceptions();
+  // Returns and clears the global reference of the first exception, if any.
+  jni::Local<jni::Throwable> ClearExceptionOccurred();
 
   friend class FirestoreInternal;
 
@@ -86,7 +82,7 @@ class TransactionInternal : public Wrapper {
   // mechanism to properly handle native calls via JNI. The first exception is
   // shared by a transaction and its copies. User is allowed to make copy and
   // call transaction operation on the copy.
-  SharedPtr<jthrowable> first_exception_;
+  SharedPtr<jni::Local<jni::Throwable>> first_exception_;
 };
 
 }  // namespace firestore

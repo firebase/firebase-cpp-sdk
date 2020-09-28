@@ -175,7 +175,6 @@ bool FirestoreInternal::Initialize(App* app) {
 
     if (!(  // Call Initialize on each Firestore internal class.
             FieldValueInternal::Initialize(app) &&
-            ExceptionInternal::Initialize(app) &&
             TransactionInternal::Initialize(app) && Wrapper::Initialize(app) &&
             // Initialize those embedded Firestore internal classes.
             InitializeEmbeddedClasses(app, loader))) {
@@ -202,6 +201,7 @@ bool FirestoreInternal::Initialize(App* app) {
     DocumentReferenceInternal::Initialize(loader);
     DocumentSnapshotInternal::Initialize(loader);
     EventListenerInternal::Initialize(loader);
+    ExceptionInternal::Initialize(loader);
     FieldPathConverter::Initialize(loader);
     GeoPointInternal::Initialize(loader);
     ListenerRegistrationInternal::Initialize(loader);
@@ -242,7 +242,6 @@ void FirestoreInternal::ReleaseClasses(App* app) {
 
   // Call Terminate on each Firestore internal class.
   FieldValueInternal::Terminate(app);
-  ExceptionInternal::Terminate(app);
   TransactionInternal::Terminate(app);
   Wrapper::Terminate(app);
 }
@@ -463,6 +462,13 @@ Query FirestoreInternal::NewQuery(jni::Env& env,
                                   const jni::Object& query) const {
   if (!env.ok() || !query) return {};
   return Query(new QueryInternal(mutable_this(), query.get()));
+}
+
+QuerySnapshot FirestoreInternal::NewQuerySnapshot(
+    jni::Env& env, const jni::Object& snapshot) const {
+  if (!env.ok() || !snapshot) return {};
+  return QuerySnapshot(
+      new QuerySnapshotInternal(mutable_this(), snapshot.get()));
 }
 
 /* static */

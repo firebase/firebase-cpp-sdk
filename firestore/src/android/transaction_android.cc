@@ -4,6 +4,7 @@
 
 #include <utility>
 
+#include "app/meta/move.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/util_android.h"
@@ -23,6 +24,7 @@ using jni::Env;
 using jni::HashMap;
 using jni::Local;
 using jni::Object;
+using jni::Throwable;
 
 }  // namespace
 
@@ -92,27 +94,22 @@ void TransactionInternal::Update(const DocumentReference& document,
 }
 
 void TransactionInternal::Delete(const DocumentReference& document) {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-
-  env->CallObjectMethod(obj_, transaction::GetMethodId(transaction::kDelete),
-                        document.internal_->java_object());
-  CheckAndClearJniExceptions();
+  Env env = GetEnv();
+  env.Call<Object>(obj_, transaction::GetMethodId(transaction::kDelete),
+                   document.internal_->ToJava());
 }
 
 DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
                                           Error* error_code,
                                           std::string* error_message) {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
+  Env env = GetEnv();
 
-  jobject snapshot =
-      env->CallObjectMethod(obj_, transaction::GetMethodId(transaction::kGet),
-                            document.internal_->java_object());
-  jthrowable exception = env->ExceptionOccurred();
+  Local<Object> snapshot =
+      env.Call<Object>(obj_, transaction::GetMethodId(transaction::kGet),
+                       document.internal_->ToJava());
+  Local<Throwable> exception = env.ClearExceptionOccurred();
 
-  // Now deal with exceptions, if any. Do not preserve yet. Do not call
-  // this->CheckAndClearJniExceptions().
-  util::CheckAndClearJniExceptions(env);
-  if (exception != nullptr) {
+  if (exception) {
     if (error_code != nullptr) {
       *error_code = ExceptionInternal::GetErrorCode(env, exception);
     }
@@ -124,11 +121,10 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
       // We would only preserve exception if it is not
       // FirebaseFirestoreException. The user should decide whether to raise the
       // error or let the transaction succeed.
-      PreserveException(exception);
+      PreserveException(env, Move(exception));
     }
-
-    env->DeleteLocalRef(exception);
     return DocumentSnapshot{};
+
   } else {
     if (error_code != nullptr) {
       *error_code = Error::kErrorOk;
@@ -137,9 +133,8 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
       *error_message = "";
     }
   }
-  DocumentSnapshot result{new DocumentSnapshotInternal{firestore_, snapshot}};
-  env->DeleteLocalRef(snapshot);
-  return result;
+
+  return firestore_->NewDocumentSnapshot(env, snapshot);
 }
 
 Env TransactionInternal::GetEnv() {
@@ -148,44 +143,30 @@ Env TransactionInternal::GetEnv() {
   return env;
 }
 
-void TransactionInternal::ExceptionHandler(
-    jni::Env& env, jni::Local<jni::Throwable>&& exception, void* context) {
+void TransactionInternal::ExceptionHandler(Env& env,
+                                           Local<Throwable>&& exception,
+                                           void* context) {
   auto* transaction = static_cast<TransactionInternal*>(context);
   env.ExceptionClear();
-  transaction->PreserveException(exception.get());
+  transaction->PreserveException(env, Move(exception));
 }
 
-void TransactionInternal::PreserveException(jthrowable exception) {
-  if (*first_exception_ != nullptr || exception == nullptr) {
+void TransactionInternal::PreserveException(jni::Env& env,
+                                            Local<Throwable>&& exception) {
+  // Only preserve the first real exception.
+  if (*first_exception_ || !exception) {
     return;
   }
 
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
   if (ExceptionInternal::IsAnyExceptionThrownByFirestore(env, exception)) {
-    jobject firestore_exception = ExceptionInternal::Wrap(env, exception);
-    *first_exception_ =
-        static_cast<jthrowable>(env->NewGlobalRef(firestore_exception));
-    env->DeleteLocalRef(firestore_exception);
-  } else {
-    *first_exception_ = static_cast<jthrowable>(env->NewGlobalRef(exception));
+    exception = ExceptionInternal::Wrap(env, Move(exception));
   }
+  *first_exception_ = Move(exception);
 }
 
-void TransactionInternal::ClearException() {
-  if (*first_exception_) {
-    firestore_->app()->GetJNIEnv()->DeleteGlobalRef(*first_exception_);
-    *first_exception_ = nullptr;
-  }
-}
-
-bool TransactionInternal::CheckAndClearJniExceptions() {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jthrowable exception = env->ExceptionOccurred();
-  // We need to clear the exception before we can do anything useful. Only limit
-  // JNI APIs have defined behavior when there is an active exception.
-  bool result = util::CheckAndClearJniExceptions(env);
-  PreserveException(exception);
-  return result;
+Local<Throwable> TransactionInternal::ClearExceptionOccurred() {
+  if (!*first_exception_) return {};
+  return Move(*first_exception_);
 }
 
 Local<Object> TransactionInternal::Create(Env& env,
@@ -208,8 +189,8 @@ jobject TransactionInternal::ToJavaObject(JNIEnv* env,
 
 /* static */
 jobject TransactionInternal::TransactionFunctionNativeApply(
-    JNIEnv* env, jclass clazz, jlong firestore_ptr,
-    jlong transaction_function_ptr, jobject transaction) {
+    JNIEnv* raw_env, jclass clazz, jlong firestore_ptr,
+    jlong transaction_function_ptr, jobject java_transaction) {
   if (firestore_ptr == 0 || transaction_function_ptr == 0) {
     return nullptr;
   }
@@ -218,19 +199,20 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
       reinterpret_cast<FirestoreInternal*>(firestore_ptr);
   TransactionFunction* transaction_function =
       reinterpret_cast<TransactionFunction*>(transaction_function_ptr);
-  Transaction cpp_transaction(new TransactionInternal{firestore, transaction});
-  cpp_transaction.internal_->ClearException();
-  std::string message;
-  Error code = transaction_function->Apply(cpp_transaction, message);
 
-  jobject first_exception =
-      env->NewLocalRef(*(cpp_transaction.internal_->first_exception_));
+  Transaction transaction(new TransactionInternal{firestore, java_transaction});
+
+  std::string message;
+  Error code = transaction_function->Apply(transaction, message);
+
+  Local<Throwable> first_exception =
+      transaction.internal_->ClearExceptionOccurred();
 
   if (first_exception) {
-    cpp_transaction.internal_->ClearException();
-    return first_exception;
+    return first_exception.release();
   } else {
-    return ExceptionInternal::Create(env, code, message.c_str());
+    Env env(raw_env);
+    return ExceptionInternal::Create(env, code, message).release();
   }
 }
 
