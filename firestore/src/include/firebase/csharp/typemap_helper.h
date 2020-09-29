@@ -2,6 +2,7 @@
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_CSHARP_TYPEMAP_HELPER_H_
 
 #include <string>
+#include <utility>
 
 #include "firebase/firestore/document_reference.h"
 #include "firebase/firestore/document_snapshot.h"
@@ -16,18 +17,34 @@ namespace firebase {
 namespace firestore {
 namespace csharp {
 
-struct TransactionGetResult {
-  DocumentSnapshot snapshot;
-  Error error_code = Error::kErrorUnknown;
-  std::string error_message;
+class TransactionGetResult {
+ public:
+  TransactionGetResult(DocumentSnapshot snapshot, Error error_code,
+                       std::string error_message)
+      : snapshot_(std::move(snapshot)),
+        error_code_(error_code),
+        error_message_(std::move(error_message)) {}
+
+  DocumentSnapshot TakeSnapshot() { return std::move(snapshot_); }
+
+  Error error_code() const { return error_code_; }
+
+  const std::string& error_message() const { return error_message_; }
+
+ private:
+  DocumentSnapshot snapshot_;
+  Error error_code_ = Error::kErrorUnknown;
+  std::string error_message_;
 };
 
 TransactionGetResult TransactionGet(Transaction* transaction,
                                     const DocumentReference& document) {
-  TransactionGetResult result;
-  result.snapshot =
-      transaction->Get(document, &result.error_code, &result.error_message);
-  return result;
+  Error error_code = Error::kErrorUnknown;
+  std::string error_message;
+  DocumentSnapshot snapshot =
+      transaction->Get(document, &error_code, &error_message);
+  return TransactionGetResult(std::move(snapshot), error_code,
+                              std::move(error_message));
 }
 
 }  // namespace csharp
