@@ -80,7 +80,7 @@ static NSString *const kFIRParameterAdPlatform NS_SWIFT_NAME(AnalyticsParameterA
 static NSString *const kFIRParameterAdSource NS_SWIFT_NAME(AnalyticsParameterAdSource) =
     @"ad_source";
 
-/// The ad unit name (NSString).
+/// The ad unit name (e.g. Banner_03) (NSString).
 /// <pre>
 ///     NSDictionary *params = @{
 ///       kFIRParameterAdUnitName : @"Banner_03",
