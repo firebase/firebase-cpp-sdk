@@ -174,10 +174,7 @@ bool FirestoreInternal::Initialize(App* app) {
     loader.CacheEmbeddedFiles();
 
     if (!(  // Call Initialize on each Firestore internal class.
-            FieldValueInternal::Initialize(app) &&
-            TransactionInternal::Initialize(app) && Wrapper::Initialize(app) &&
-            // Initialize those embedded Firestore internal classes.
-            InitializeEmbeddedClasses(app, loader))) {
+            FieldValueInternal::Initialize(app) && Wrapper::Initialize(app))) {
       ReleaseClasses(app);
       return false;
     }
@@ -214,6 +211,7 @@ bool FirestoreInternal::Initialize(App* app) {
     SnapshotMetadataInternal::Initialize(loader);
     SourceInternal::Initialize(loader);
     TimestampInternal::Initialize(loader);
+    TransactionInternal::Initialize(loader);
     WriteBatchInternal::Initialize(loader);
     if (!loader.ok()) {
       ReleaseClasses(app);
@@ -228,21 +226,12 @@ bool FirestoreInternal::Initialize(App* app) {
 }
 
 /* static */
-bool FirestoreInternal::InitializeEmbeddedClasses(App* app, Loader& loader) {
-  // Terminate() handles tearing this down.
-  // Load embedded classes.
-  return TransactionInternal::InitializeEmbeddedClasses(
-      app, loader.embedded_files());
-}
-
-/* static */
 void FirestoreInternal::ReleaseClasses(App* app) {
   delete loader_;
   loader_ = nullptr;
 
   // Call Terminate on each Firestore internal class.
   FieldValueInternal::Terminate(app);
-  TransactionInternal::Terminate(app);
   Wrapper::Terminate(app);
 }
 

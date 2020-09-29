@@ -21,6 +21,8 @@ class TransactionInternal : public Wrapper {
  public:
   using ApiType = Transaction;
 
+  static void Initialize(jni::Loader& loader);
+
   TransactionInternal(FirestoreInternal* firestore, jobject obj)
       : Wrapper(firestore, obj),
         first_exception_(MakeShared<jni::Local<jni::Throwable>>()) {}
@@ -48,9 +50,6 @@ class TransactionInternal : public Wrapper {
                                         FirestoreInternal* firestore,
                                         TransactionFunction* function);
 
-  static jobject ToJavaObject(JNIEnv* env, FirestoreInternal* firestore,
-                              TransactionFunction* function);
-
   static jobject TransactionFunctionNativeApply(JNIEnv* env, jclass clazz,
                                                 jlong firestore_ptr,
                                                 jlong transaction_function_ptr,
@@ -69,13 +68,6 @@ class TransactionInternal : public Wrapper {
 
   // Returns and clears the global reference of the first exception, if any.
   jni::Local<jni::Throwable> ClearExceptionOccurred();
-
-  friend class FirestoreInternal;
-
-  static bool Initialize(App* app);
-  static bool InitializeEmbeddedClasses(
-      App* app, const std::vector<internal::EmbeddedFile>* embedded_files);
-  static void Terminate(App* app);
 
   // The first exception that occurred. Because exceptions must be cleared
   // before calling other JNI methods, we cannot rely on the Java exception

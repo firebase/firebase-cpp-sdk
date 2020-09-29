@@ -5,9 +5,7 @@
 #include <utility>
 
 #include "app/meta/move.h"
-#include "app/src/embedded_file.h"
 #include "app/src/include/firebase/internal/common.h"
-#include "app/src/util_android.h"
 #include "firestore/src/android/document_reference_android.h"
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/field_path_android.h"
@@ -15,51 +13,63 @@
 #include "firestore/src/android/set_options_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/hash_map.h"
+#include "firestore/src/jni/loader.h"
 
 namespace firebase {
 namespace firestore {
 namespace {
 
+using jni::Constructor;
 using jni::Env;
 using jni::HashMap;
 using jni::Local;
+using jni::Method;
 using jni::Object;
 using jni::Throwable;
 
+constexpr char kTransactionClassName[] =
+    PROGUARD_KEEP_CLASS "com/google/firebase/firestore/Transaction";
+Method<Object> kSet(
+    "set",
+    "(Lcom/google/firebase/firestore/DocumentReference;Ljava/lang/Object;"
+    "Lcom/google/firebase/firestore/SetOptions;)"
+    "Lcom/google/firebase/firestore/Transaction;");
+Method<Object> kUpdate(
+    "update",
+    "(Lcom/google/firebase/firestore/DocumentReference;Ljava/util/Map;)"
+    "Lcom/google/firebase/firestore/Transaction;");
+Method<Object> kUpdateVarargs(
+    "update",
+    "(Lcom/google/firebase/firestore/DocumentReference;"
+    "Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;"
+    "[Ljava/lang/Object;)Lcom/google/firebase/firestore/Transaction;");
+Method<Object> kDelete("delete",
+                       "(Lcom/google/firebase/firestore/DocumentReference;)"
+                       "Lcom/google/firebase/firestore/Transaction;");
+Method<Object> kGet("get",
+                    "(Lcom/google/firebase/firestore/DocumentReference;)"
+                    "Lcom/google/firebase/firestore/DocumentSnapshot;");
+
+constexpr char kTransactionFunctionClassName[] = PROGUARD_KEEP_CLASS
+    "com/google/firebase/firestore/internal/cpp/TransactionFunction";
+
+Constructor<Object> kNewTransactionFunction("(JJ)V");
+
 }  // namespace
 
-// clang-format off
-#define TRANSACTION_METHODS(X)                                                 \
-  X(Set, "set",                                                                \
-    "(Lcom/google/firebase/firestore/DocumentReference;Ljava/lang/Object;"     \
-    "Lcom/google/firebase/firestore/SetOptions;)"                              \
-    "Lcom/google/firebase/firestore/Transaction;"),                            \
-  X(Update, "update",                                                          \
-    "(Lcom/google/firebase/firestore/DocumentReference;Ljava/util/Map;)"       \
-    "Lcom/google/firebase/firestore/Transaction;"),                            \
-  X(UpdateVarargs, "update",                                                   \
-    "(Lcom/google/firebase/firestore/DocumentReference;"                       \
-    "Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;"              \
-    "[Ljava/lang/Object;)Lcom/google/firebase/firestore/Transaction;"),        \
-  X(Delete, "delete", "(Lcom/google/firebase/firestore/DocumentReference;)"    \
-    "Lcom/google/firebase/firestore/Transaction;"),                            \
-  X(Get, "get", "(Lcom/google/firebase/firestore/DocumentReference;)"          \
-    "Lcom/google/firebase/firestore/DocumentSnapshot;")
-// clang-format on
+void TransactionInternal::Initialize(jni::Loader& loader) {
+  loader.LoadClass(kTransactionClassName, kSet, kUpdate, kUpdateVarargs,
+                   kDelete, kGet);
 
-METHOD_LOOKUP_DECLARATION(transaction, TRANSACTION_METHODS)
-METHOD_LOOKUP_DEFINITION(transaction,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/firestore/Transaction",
-                         TRANSACTION_METHODS)
-
-#define TRANSACTION_FUNCTION_METHODS(X) X(Constructor, "<init>", "(JJ)V")
-METHOD_LOOKUP_DECLARATION(transaction_function, TRANSACTION_FUNCTION_METHODS)
-METHOD_LOOKUP_DEFINITION(
-    transaction_function,
-    PROGUARD_KEEP_CLASS
-    "com/google/firebase/firestore/internal/cpp/TransactionFunction",
-    TRANSACTION_FUNCTION_METHODS)
+  static const JNINativeMethod kTransactionFunctionNatives[] = {
+      {"nativeApply",
+       "(JJLcom/google/firebase/firestore/Transaction;)Ljava/lang/Exception;",
+       reinterpret_cast<void*>(
+           &TransactionInternal::TransactionFunctionNativeApply)}};
+  loader.LoadClass(kTransactionFunctionClassName, kNewTransactionFunction);
+  loader.RegisterNatives(kTransactionFunctionNatives,
+                         FIREBASE_ARRAYSIZE(kTransactionFunctionNatives));
+}
 
 void TransactionInternal::Set(const DocumentReference& document,
                               const MapFieldValue& data,
@@ -67,16 +77,14 @@ void TransactionInternal::Set(const DocumentReference& document,
   Env env = GetEnv();
   Local<HashMap> java_data = MakeJavaMap(env, data);
   Local<Object> java_options = SetOptionsInternal::Create(env, options);
-  env.Call<Object>(obj_, transaction::GetMethodId(transaction::kSet),
-                   document.internal_->ToJava(), java_data, java_options);
+  env.Call(obj_, kSet, document.internal_->ToJava(), java_data, java_options);
 }
 
 void TransactionInternal::Update(const DocumentReference& document,
                                  const MapFieldValue& data) {
   Env env = GetEnv();
   Local<HashMap> java_data = MakeJavaMap(env, data);
-  env.Call<Object>(obj_, transaction::GetMethodId(transaction::kUpdate),
-                   document.internal_->ToJava(), java_data);
+  env.Call(obj_, kUpdate, document.internal_->ToJava(), java_data);
 }
 
 void TransactionInternal::Update(const DocumentReference& document,
@@ -88,15 +96,13 @@ void TransactionInternal::Update(const DocumentReference& document,
 
   Env env = GetEnv();
   UpdateFieldPathArgs args = MakeUpdateFieldPathArgs(env, data);
-  env.Call<Object>(obj_, transaction::GetMethodId(transaction::kUpdateVarargs),
-                   document.internal_->ToJava(), args.first_field,
-                   args.first_value, args.varargs);
+  env.Call(obj_, kUpdateVarargs, document.internal_->ToJava(), args.first_field,
+           args.first_value, args.varargs);
 }
 
 void TransactionInternal::Delete(const DocumentReference& document) {
   Env env = GetEnv();
-  env.Call<Object>(obj_, transaction::GetMethodId(transaction::kDelete),
-                   document.internal_->ToJava());
+  env.Call(obj_, kDelete, document.internal_->ToJava());
 }
 
 DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
@@ -104,9 +110,7 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
                                           std::string* error_message) {
   Env env = GetEnv();
 
-  Local<Object> snapshot =
-      env.Call<Object>(obj_, transaction::GetMethodId(transaction::kGet),
-                       document.internal_->ToJava());
+  Local<Object> snapshot = env.Call(obj_, kGet, document.internal_->ToJava());
   Local<Throwable> exception = env.ClearExceptionOccurred();
 
   if (exception) {
@@ -172,22 +176,10 @@ Local<Throwable> TransactionInternal::ClearExceptionOccurred() {
 Local<Object> TransactionInternal::Create(Env& env,
                                           FirestoreInternal* firestore,
                                           TransactionFunction* function) {
-  return Local<Object>(env.get(), ToJavaObject(env.get(), firestore, function));
+  return env.New(kNewTransactionFunction, reinterpret_cast<jlong>(firestore),
+                 reinterpret_cast<jlong>(function));
 }
 
-/* static */
-jobject TransactionInternal::ToJavaObject(JNIEnv* env,
-                                          FirestoreInternal* firestore,
-                                          TransactionFunction* function) {
-  jobject result = env->NewObject(
-      transaction_function::GetClass(),
-      transaction_function::GetMethodId(transaction_function::kConstructor),
-      reinterpret_cast<jlong>(firestore), reinterpret_cast<jlong>(function));
-  util::CheckAndClearJniExceptions(env);
-  return result;
-}
-
-/* static */
 jobject TransactionInternal::TransactionFunctionNativeApply(
     JNIEnv* raw_env, jclass clazz, jlong firestore_ptr,
     jlong transaction_function_ptr, jobject java_transaction) {
@@ -200,7 +192,7 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
   TransactionFunction* transaction_function =
       reinterpret_cast<TransactionFunction*>(transaction_function_ptr);
 
-  Transaction transaction(new TransactionInternal{firestore, java_transaction});
+  Transaction transaction(new TransactionInternal(firestore, java_transaction));
 
   std::string message;
   Error code = transaction_function->Apply(transaction, message);
@@ -214,43 +206,6 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
     Env env(raw_env);
     return ExceptionInternal::Create(env, code, message).release();
   }
-}
-
-/* static */
-bool TransactionInternal::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
-  bool result = transaction::CacheMethodIds(env, activity);
-  util::CheckAndClearJniExceptions(env);
-  return result;
-}
-
-/* static */
-bool TransactionInternal::InitializeEmbeddedClasses(
-    App* app, const std::vector<internal::EmbeddedFile>* embedded_files) {
-  static const JNINativeMethod kTransactionFunctionNatives[] = {
-      {"nativeApply",
-       "(JJLcom/google/firebase/firestore/Transaction;)Ljava/lang/Exception;",
-       reinterpret_cast<void*>(
-           &TransactionInternal::TransactionFunctionNativeApply)}};
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
-  bool result = transaction_function::CacheClassFromFiles(env, activity,
-                                                          embedded_files) &&
-                transaction_function::CacheMethodIds(env, activity) &&
-                transaction_function::RegisterNatives(
-                    env, kTransactionFunctionNatives,
-                    FIREBASE_ARRAYSIZE(kTransactionFunctionNatives));
-  util::CheckAndClearJniExceptions(env);
-  return result;
-}
-
-/* static */
-void TransactionInternal::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  transaction::ReleaseClass(env);
-  transaction_function::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
 }
 
 }  // namespace firestore

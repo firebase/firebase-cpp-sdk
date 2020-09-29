@@ -197,9 +197,6 @@ class FirestoreInternal {
   static void ReleaseClasses(App* app);
   static void Terminate(App* app);
 
-  // Initialize classes loaded from embedded files.
-  static bool InitializeEmbeddedClasses(App* app, jni::Loader& loader);
-
   static Mutex init_mutex_;
   static int initialize_count_;
   static jni::Loader* loader_;
