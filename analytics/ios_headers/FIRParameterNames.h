@@ -39,6 +39,17 @@
 static NSString *const kFIRParameterAchievementID NS_SWIFT_NAME(AnalyticsParameterAchievementID) =
     @"achievement_id";
 
+/// The ad format (e.g. Banner, Interstitial, Rewarded, Native, Rewarded Interstitial, Instream).
+/// (NSString).
+/// <pre>
+///     NSDictionary *params = @{
+///       kFIRParameterAdFormat : @"Banner",
+///       // ...
+///     };
+/// </pre>
+static NSString *const kFIRParameterAdFormat NS_SWIFT_NAME(AnalyticsParameterAdFormat) =
+    @"ad_format";
+
 /// Ad Network Click ID (NSString). Used for network-specific click IDs which vary in format.
 /// <pre>
 ///     NSDictionary *params = @{
@@ -48,6 +59,36 @@ static NSString *const kFIRParameterAchievementID NS_SWIFT_NAME(AnalyticsParamet
 /// </pre>
 static NSString *const kFIRParameterAdNetworkClickID
     NS_SWIFT_NAME(AnalyticsParameterAdNetworkClickID) = @"aclid";
+
+/// The ad platform (e.g. MoPub, IronSource) (NSString).
+/// <pre>
+///     NSDictionary *params = @{
+///       kFIRParameterAdPlatform : @"MoPub",
+///       // ...
+///     };
+/// </pre>
+static NSString *const kFIRParameterAdPlatform NS_SWIFT_NAME(AnalyticsParameterAdPlatform) =
+    @"ad_platform";
+
+/// The ad source (e.g. AdColony) (NSString).
+/// <pre>
+///     NSDictionary *params = @{
+///       kFIRParameterAdSource : @"AdColony",
+///       // ...
+///     };
+/// </pre>
+static NSString *const kFIRParameterAdSource NS_SWIFT_NAME(AnalyticsParameterAdSource) =
+    @"ad_source";
+
+/// The ad unit name (NSString).
+/// <pre>
+///     NSDictionary *params = @{
+///       kFIRParameterAdUnitName : @"Banner_03",
+///       // ...
+///     };
+/// </pre>
+static NSString *const kFIRParameterAdUnitName NS_SWIFT_NAME(AnalyticsParameterAdUnitName) =
+    @"ad_unit_name";
 
 /// A product affiliation to designate a supplying company or brick and mortar store location
 /// (NSString). <pre>

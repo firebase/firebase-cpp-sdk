@@ -69,6 +69,19 @@ static NSString *const kFIREventAddToCart NS_SWIFT_NAME(AnalyticsEventAddToCart)
 static NSString *const kFIREventAddToWishlist NS_SWIFT_NAME(AnalyticsEventAddToWishlist) =
     @"add_to_wishlist";
 
+/// Ad Impression event. This event signifies when a user sees an ad impression. Params:
+///
+/// <ul>
+///     <li>@c kFIRParameterAdPlatform (NSString) (optional)</li>
+///     <li>@c kFIRParameterAdFormat (NSString) (optional)</li>
+///     <li>@c kFIRParameterAdSource (NSString) (optional)</li>
+///     <li>@c kFIRParameterAdUnitName (NSString) (optional)</li>
+///     <li>@c kFIRParameterCurrency (NSString) (optional)</li>
+///     <li>@c kFIRParameterValue (double as NSNumber) (optional)</li>
+/// </ul>
+static NSString *const kFIREventAdImpression NS_SWIFT_NAME(AnalyticsEventAdImpression) =
+    @"ad_impression";
+
 /// App Open event. By logging this event when an App becomes active, developers can understand how
 /// often users leave and return during the course of a Session. Although Sessions are automatically
 /// reported, this event can provide further clarification around the continuous engagement of
