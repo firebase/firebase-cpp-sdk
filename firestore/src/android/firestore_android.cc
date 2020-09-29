@@ -40,13 +40,17 @@
 #include "firestore/src/android/write_batch_android.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/array_list.h"
+#include "firestore/src/jni/boolean.h"
 #include "firestore/src/jni/collection.h"
+#include "firestore/src/jni/double.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/hash_map.h"
+#include "firestore/src/jni/integer.h"
 #include "firestore/src/jni/iterator.h"
 #include "firestore/src/jni/jni.h"
 #include "firestore/src/jni/list.h"
 #include "firestore/src/jni/loader.h"
+#include "firestore/src/jni/long.h"
 #include "firestore/src/jni/map.h"
 #include "firestore/src/jni/set.h"
 
@@ -180,11 +184,14 @@ bool FirestoreInternal::Initialize(App* app) {
     }
 
     jni::ArrayList::Initialize(loader);
+    jni::Boolean::Initialize(loader);
     jni::Collection::Initialize(loader);
-    FieldPathConverter::Initialize(loader);
+    jni::Double::Initialize(loader);
+    jni::Integer::Initialize(loader);
     jni::Iterator::Initialize(loader);
     jni::HashMap::Initialize(loader);
     jni::List::Initialize(loader);
+    jni::Long::Initialize(loader);
     jni::Map::Initialize(loader);
 
     InitializeFirestore(loader);

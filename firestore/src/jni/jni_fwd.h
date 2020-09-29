@@ -46,7 +46,13 @@ class StaticField;
 template <typename T>
 class StaticMethod;
 
-// Collections
+// Other elements of java.lang
+class Boolean;
+class Double;
+class Integer;
+class Long;
+
+// Collections from java.util
 class ArrayList;
 class Collection;
 class Iterator;
