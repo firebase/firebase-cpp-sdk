@@ -34,6 +34,11 @@ class DocumentReferenceInternal : public Wrapper {
     kCount,  // Must be the last enum value.
   };
 
+  /**
+   * Creates a C++ `DocumentReference` from a Java `DocumentReference` object.
+   */
+  static DocumentReference Create(jni::Env& env, const jni::Object& reference);
+
   DocumentReferenceInternal(FirestoreInternal* firestore, jobject object)
       : Wrapper(firestore, object), promises_(firestore) {}
 

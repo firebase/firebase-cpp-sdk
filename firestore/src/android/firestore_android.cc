@@ -62,6 +62,7 @@ using jni::Constructor;
 using jni::Env;
 using jni::Loader;
 using jni::Local;
+using jni::Long;
 using jni::Method;
 using jni::Object;
 using jni::StaticMethod;
@@ -132,6 +133,55 @@ void InitializeUserCallbackExecutor(Loader& loader) {
                    kExecutorShutdown);
 }
 
+/**
+ * A map of Java Firestore instance to C++ Firestore instance.
+ */
+class JavaFirestoreMap {
+ public:
+  FirestoreInternal* Get(Env& env, const Object& java_firestore) {
+    MutexLock lock(mutex_);
+    auto& map = GetMapLocked(env);
+    Local<Long> boxed_ptr = map.Get(env, java_firestore).CastTo<Long>();
+    if (!boxed_ptr) {
+      return nullptr;
+    }
+    return reinterpret_cast<FirestoreInternal*>(boxed_ptr.LongValue(env));
+  }
+
+  void Put(Env& env, const Object& java_firestore,
+           FirestoreInternal* internal) {
+    static_assert(sizeof(uintptr_t) <= sizeof(int64_t),
+                  "pointers must fit in Java long");
+
+    MutexLock lock(mutex_);
+    auto& map = GetMapLocked(env);
+    auto boxed_ptr = Long::Create(env, reinterpret_cast<int64_t>(internal));
+    map.Put(env, java_firestore, boxed_ptr);
+  }
+
+  void Remove(Env& env, const Object& java_firestore) {
+    MutexLock lock(mutex_);
+    auto& map = GetMapLocked(env);
+    map.Remove(env, java_firestore);
+  }
+
+ private:
+  // Ensures that the backing map is initialized.
+  // Prerequisite: `mutex_` must be locked before calling this method.
+  jni::HashMap& GetMapLocked(Env& env) {
+    if (!firestores_) {
+      firestores_ = jni::HashMap::Create(env);
+    }
+    return firestores_;
+  }
+
+  Mutex mutex_;
+  jni::Global<jni::HashMap> firestores_;
+};
+
+// Governed by init_mutex_below as well.
+JavaFirestoreMap* java_firestores_ = nullptr;
+
 }  // namespace
 
 const char kApiIdentifier[] = "Firestore";
@@ -150,6 +200,8 @@ FirestoreInternal::FirestoreInternal(App* app) {
   Local<Object> java_firestore = env.Call(kGetInstance, platform_app);
   FIREBASE_ASSERT(java_firestore.get() != nullptr);
   obj_ = java_firestore;
+
+  java_firestores_->Put(env, java_firestore, this);
 
   // Mainly for enabling TimestampsInSnapshotsEnabled. The rest comes from the
   // default in native SDK. The C++ implementation relies on that for reading
@@ -170,6 +222,9 @@ bool FirestoreInternal::Initialize(App* app) {
   MutexLock init_lock(init_mutex_);
   if (initialize_count_ == 0) {
     jni::Initialize(app->java_vm());
+
+    FIREBASE_DEV_ASSERT(java_firestores_ == nullptr);
+    java_firestores_ = new JavaFirestoreMap();
 
     Loader loader(app);
     loader.AddEmbeddedFile(::firebase_firestore::firestore_resources_filename,
@@ -249,6 +304,8 @@ void FirestoreInternal::Terminate(App* app) {
   initialize_count_--;
   if (initialize_count_ == 0) {
     ReleaseClasses(app);
+    delete java_firestores_;
+    java_firestores_ = nullptr;
   }
 }
 
@@ -275,6 +332,8 @@ FirestoreInternal::~FirestoreInternal() {
   ShutdownUserCallbackExecutor(env);
 
   future_manager_.ReleaseFutureApi(this);
+
+  java_firestores_->Remove(env, obj_);
 
   Terminate(app_);
   app_ = nullptr;
@@ -475,6 +534,11 @@ void Firestore::set_log_level(LogLevel log_level) {
 
   Env env = FirestoreInternal::GetEnv();
   env.Call(kSetLoggingEnabled, logging_enabled);
+}
+
+FirestoreInternal* FirestoreInternal::RecoverFirestore(
+    Env& env, const Object& java_firestore) {
+  return java_firestores_->Get(env, java_firestore);
 }
 
 void FirestoreInternal::SetClientLanguage(const std::string& language_token) {

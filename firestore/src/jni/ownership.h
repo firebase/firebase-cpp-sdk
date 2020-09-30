@@ -96,6 +96,22 @@ class Local : public T {
     }
   }
 
+  /** Returns a non-owning proxy of type `U` that points to this object. */
+  template <typename U>
+  U CastTo() const& {
+    return U(get());
+  }
+
+  /**
+   * Converts this instance to a new local proxy of `U` that points to this
+   * object. Equivalent to passing the result of `release()` to a new `Local<U>`
+   * instance.
+   */
+  template <typename U>
+  Local<U> CastTo() && {
+    return Local<U>(env_, release());
+  }
+
   jni_type get() const override { return static_cast<jni_type>(T::object_); }
 
   jni_type release() {

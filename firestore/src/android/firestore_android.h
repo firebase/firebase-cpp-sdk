@@ -150,7 +150,7 @@ class FirestoreInternal {
   // The reverse of Wrap(), access internal_, defined mainly for test purpose.
   template <typename InternalType>
   static InternalType* Internal(typename InternalType::ApiType& value) {
-    // Cast is required for the case when the InternalType has hierachy e.g.
+    // Cast is required for the case when the InternalType has hierarchy e.g.
     // CollectionReferenceInternal vs QueryInternal (check their implementation
     // for more details).
     return static_cast<InternalType*>(value.internal_);
@@ -162,6 +162,12 @@ class FirestoreInternal {
 
   Firestore* firestore_public() { return firestore_public_; }
   const Firestore* firestore_public() const { return firestore_public_; }
+
+  /**
+   * Finds the FirestoreInternal instance for the given Java Firestore instance.
+   */
+  static FirestoreInternal* RecoverFirestore(jni::Env& env,
+                                             const jni::Object& java_firestore);
 
   const jni::Global<jni::Object>& user_callback_executor() const {
     return user_callback_executor_;
