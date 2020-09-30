@@ -69,7 +69,9 @@ static NSString *const kFIREventAddToCart NS_SWIFT_NAME(AnalyticsEventAddToCart)
 static NSString *const kFIREventAddToWishlist NS_SWIFT_NAME(AnalyticsEventAddToWishlist) =
     @"add_to_wishlist";
 
-/// Ad Impression event. This event signifies when a user sees an ad impression. Params:
+/// Ad Impression event. This event signifies when a user sees an ad impression. Note: If you supply
+/// the @c kFIRParameterValue parameter, you must also supply the @c kFIRParameterCurrency parameter
+/// so that revenue metrics can be computed accurately. Params:
 ///
 /// <ul>
 ///     <li>@c kFIRParameterAdPlatform (NSString) (optional)</li>
