@@ -1,85 +1,41 @@
 #include "firestore/src/android/document_change_type_android.h"
 
-#include "app/src/util_android.h"
+#include "../include/firebase/firestore/document_change.h"
+#include "app/src/assert.h"
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/loader.h"
 
 namespace firebase {
 namespace firestore {
+namespace {
+
+using jni::Env;
+using jni::Method;
+using jni::Object;
 
 using Type = DocumentChange::Type;
 
-// clang-format off
-#define DOCUMENT_CHANGE_TYPE_METHODS(X) X(Name, "name", "()Ljava/lang/String;")
-#define DOCUMENT_CHANGE_TYPE_FIELDS(X)                                         \
-  X(Added, "ADDED", "Lcom/google/firebase/firestore/DocumentChange$Type;",     \
-    util::kFieldTypeStatic),                                                   \
-  X(Modified, "MODIFIED",                                                      \
-    "Lcom/google/firebase/firestore/DocumentChange$Type;",                     \
-    util::kFieldTypeStatic),                                                   \
-  X(Removed, "REMOVED", "Lcom/google/firebase/firestore/DocumentChange$Type;", \
-    util::kFieldTypeStatic)
-// clang-format on
+constexpr char kClass[] =
+    PROGUARD_KEEP_CLASS "com/google/firebase/firestore/DocumentChange$Type";
+Method<int32_t> kOrdinal("ordinal", "()I");
 
-METHOD_LOOKUP_DECLARATION(document_change_type, DOCUMENT_CHANGE_TYPE_METHODS,
-                          DOCUMENT_CHANGE_TYPE_FIELDS)
-METHOD_LOOKUP_DEFINITION(document_change_type,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/firestore/DocumentChange$Type",
-                         DOCUMENT_CHANGE_TYPE_METHODS,
-                         DOCUMENT_CHANGE_TYPE_FIELDS)
+}  // namespace
 
-std::map<Type, jobject>* DocumentChangeTypeInternal::cpp_enum_to_java_ =
-    nullptr;
-
-/* static */
-Type DocumentChangeTypeInternal::JavaDocumentChangeTypeToDocumentChangeType(
-    JNIEnv* env, jobject type) {
-  for (const auto& kv : *cpp_enum_to_java_) {
-    if (env->IsSameObject(type, kv.second)) {
-      return kv.first;
-    }
-  }
-  FIREBASE_ASSERT_MESSAGE(false, "Unknown DocumentChange type.");
-  return Type::kAdded;
+void DocumentChangeTypeInternal::Initialize(jni::Loader& loader) {
+  loader.LoadClass(kClass, kOrdinal);
 }
 
-/* static */
-bool DocumentChangeTypeInternal::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
-  bool result = document_change_type::CacheMethodIds(env, activity) &&
-                document_change_type::CacheFieldIds(env, activity);
-  util::CheckAndClearJniExceptions(env);
+Type DocumentChangeTypeInternal::GetType(Env& env) const {
+  static constexpr int32_t kMinType = static_cast<int32_t>(Type::kAdded);
+  static constexpr int32_t kMaxType = static_cast<int32_t>(Type::kRemoved);
 
-  // Cache Java enum values.
-  cpp_enum_to_java_ = new std::map<Type, jobject>();
-  const auto add_enum = [env](Type type, document_change_type::Field field) {
-    jobject value =
-        env->GetStaticObjectField(document_change_type::GetClass(),
-                                  document_change_type::GetFieldId(field));
-    (*cpp_enum_to_java_)[type] = env->NewGlobalRef(value);
-    env->DeleteLocalRef(value);
-    util::CheckAndClearJniExceptions(env);
-  };
-  add_enum(Type::kAdded, document_change_type::kAdded);
-  add_enum(Type::kModified, document_change_type::kModified);
-  add_enum(Type::kRemoved, document_change_type::kRemoved);
-
-  return result;
-}
-
-/* static */
-void DocumentChangeTypeInternal::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  document_change_type::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
-
-  // Uncache Java enum values.
-  for (auto& kv : *cpp_enum_to_java_) {
-    env->DeleteGlobalRef(kv.second);
+  int32_t ordinal = env.Call(*this, kOrdinal);
+  if (ordinal >= kMinType && ordinal <= kMaxType) {
+    return static_cast<DocumentChange::Type>(ordinal);
+  } else {
+    FIREBASE_ASSERT_MESSAGE(false, "Unknown DocumentChange type.");
+    return Type::kAdded;
   }
-  util::CheckAndClearJniExceptions(env);
-  delete cpp_enum_to_java_;
-  cpp_enum_to_java_ = nullptr;
 }
 
 }  // namespace firestore

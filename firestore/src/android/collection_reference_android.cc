@@ -1,6 +1,5 @@
 #include "firestore/src/android/collection_reference_android.h"
 
-
 #include <string>
 #include <utility>
 
@@ -9,132 +8,88 @@
 #include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/promise_android.h"
 #include "firestore/src/android/util_android.h"
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/loader.h"
 
 namespace firebase {
 namespace firestore {
+namespace {
 
-// clang-format off
-#define COLLECTION_REFERENCE_METHODS(X)                               \
-  X(GetId, "getId", "()Ljava/lang/String;"),                          \
-  X(GetPath, "getPath", "()Ljava/lang/String;"),                      \
-  X(GetParent, "getParent",                                           \
-    "()Lcom/google/firebase/firestore/DocumentReference;"),           \
-  X(DocumentAutoId, "document",                                       \
-    "()Lcom/google/firebase/firestore/DocumentReference;"),           \
-  X(Document, "document", "(Ljava/lang/String;)"                      \
-    "Lcom/google/firebase/firestore/DocumentReference;"),             \
-  X(Add, "add",                                                       \
-    "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;")
-// clang-format on
+using jni::Class;
+using jni::Env;
+using jni::Local;
+using jni::Method;
+using jni::Object;
+using jni::String;
 
-METHOD_LOOKUP_DECLARATION(collection_reference, COLLECTION_REFERENCE_METHODS)
-METHOD_LOOKUP_DEFINITION(collection_reference,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/firestore/CollectionReference",
-                         COLLECTION_REFERENCE_METHODS)
+constexpr char kClass[] =
+    PROGUARD_KEEP_CLASS "com/google/firebase/firestore/CollectionReference";
+
+Method<String> kGetId("getId", "()Ljava/lang/String;");
+Method<String> kGetPath("getPath", "()Ljava/lang/String;");
+Method<Object> kGetParent(
+    "getParent", "()Lcom/google/firebase/firestore/DocumentReference;");
+Method<Object> kDocumentAutoId(
+    "document", "()Lcom/google/firebase/firestore/DocumentReference;");
+Method<Object> kDocument("document",
+                         "(Ljava/lang/String;)"
+                         "Lcom/google/firebase/firestore/DocumentReference;");
+Method<Object> kAdd("add",
+                    "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;");
+
+}  // namespace
+
+void CollectionReferenceInternal::Initialize(jni::Loader& loader) {
+  loader.LoadClass(kClass, kGetId, kGetPath, kGetParent, kDocumentAutoId,
+                   kDocument, kAdd);
+}
 
 const std::string& CollectionReferenceInternal::id() const {
-  if (!cached_id_.empty()) {
-    return cached_id_;
+  if (cached_id_.empty()) {
+    Env env = GetEnv();
+    cached_id_ = env.Call(obj_, kGetId).ToString(env);
   }
-
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jstring id = static_cast<jstring>(env->CallObjectMethod(
-      obj_, collection_reference::GetMethodId(collection_reference::kGetId)));
-  cached_id_ = util::JniStringToString(env, id);
-  CheckAndClearJniExceptions(env);
-
   return cached_id_;
 }
 
 const std::string& CollectionReferenceInternal::path() const {
-  if (!cached_path_.empty()) {
-    return cached_path_;
+  if (cached_path_.empty()) {
+    Env env = GetEnv();
+    cached_path_ = env.Call(obj_, kGetPath).ToString(env);
   }
-
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jstring path = static_cast<jstring>(env->CallObjectMethod(
-      obj_, collection_reference::GetMethodId(collection_reference::kGetPath)));
-  cached_path_ = util::JniStringToString(env, path);
-  CheckAndClearJniExceptions(env);
-
   return cached_path_;
 }
 
 DocumentReference CollectionReferenceInternal::Parent() const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject parent = env->CallObjectMethod(
-      obj_,
-      collection_reference::GetMethodId(collection_reference::kGetParent));
-  CheckAndClearJniExceptions(env);
-  if (parent == nullptr) {
-    return DocumentReference();
-  } else {
-    DocumentReferenceInternal* internal =
-        new DocumentReferenceInternal{firestore_, parent};
-    env->DeleteLocalRef(parent);
-    return DocumentReference(internal);
-  }
+  Env env = GetEnv();
+  Local<Object> parent = env.Call(obj_, kGetParent);
+  return firestore_->NewDocumentReference(env, parent);
 }
 
 DocumentReference CollectionReferenceInternal::Document() const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject document = env->CallObjectMethod(
-      obj_,
-      collection_reference::GetMethodId(collection_reference::kDocumentAutoId));
-  DocumentReferenceInternal* internal =
-      new DocumentReferenceInternal{firestore_, document};
-  env->DeleteLocalRef(document);
-  CheckAndClearJniExceptions(env);
-  return DocumentReference(internal);
+  Env env = GetEnv();
+  Local<Object> document = env.Call(obj_, kDocumentAutoId);
+  return firestore_->NewDocumentReference(env, document);
 }
 
 DocumentReference CollectionReferenceInternal::Document(
     const std::string& document_path) const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jstring path_string = env->NewStringUTF(document_path.c_str());
-  jobject document = env->CallObjectMethod(
-      obj_, collection_reference::GetMethodId(collection_reference::kDocument),
-      path_string);
-  env->DeleteLocalRef(path_string);
-  CheckAndClearJniExceptions(env);
-  DocumentReferenceInternal* internal =
-      new DocumentReferenceInternal{firestore_, document};
-  env->DeleteLocalRef(document);
-  CheckAndClearJniExceptions(env);
-  return DocumentReference(internal);
+  Env env = GetEnv();
+  Local<String> java_path = env.NewStringUtf(document_path);
+  Local<Object> document = env.Call(obj_, kDocument, java_path);
+  return firestore_->NewDocumentReference(env, document);
 }
 
 Future<DocumentReference> CollectionReferenceInternal::Add(
     const MapFieldValue& data) {
   FieldValueInternal map_value(data);
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject task = env->CallObjectMethod(
-      obj_, collection_reference::GetMethodId(collection_reference::kAdd),
-      map_value.java_object());
-  CheckAndClearJniExceptions(env);
+
+  Env env = GetEnv();
+  Local<Object> task = env.Call(obj_, kAdd, map_value.java_object());
 
   auto promise = promises_.MakePromise<DocumentReference>();
-  promise.RegisterForTask(CollectionReferenceFn::kAdd, task);
-  env->DeleteLocalRef(task);
-  CheckAndClearJniExceptions(env);
+  promise.RegisterForTask(AsyncFn::kAdd, task.get());
   return promise.GetFuture();
-}
-
-/* static */
-bool CollectionReferenceInternal::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
-  bool result = collection_reference::CacheMethodIds(env, activity);
-  util::CheckAndClearJniExceptions(env);
-  return result;
-}
-
-/* static */
-void CollectionReferenceInternal::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  collection_reference::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
 }
 
 }  // namespace firestore

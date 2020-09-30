@@ -257,6 +257,8 @@ class DocumentReference {
    *
    * @param[in] callback The std::function to call. When this function is
    * called, snapshot value is valid if and only if error is Error::kErrorOk.
+   * The std::string is an error message; the value may be empty if an error
+   * message is not available.
    *
    * @return A registration object that can be used to remove the listener.
    *
@@ -264,7 +266,8 @@ class DocumentReference {
    * library.
    */
   virtual ListenerRegistration AddSnapshotListener(
-      std::function<void(const DocumentSnapshot&, Error)> callback);
+      std::function<void(const DocumentSnapshot&, Error, const std::string&)>
+          callback);
 
   /**
    * @brief Starts listening to the document referenced by this
@@ -275,6 +278,8 @@ class DocumentReference {
    * events.
    * @param[in] callback The std::function to call. When this function is
    * called, snapshot value is valid if and only if error is Error::kErrorOk.
+   * The std::string is an error message; the value may be empty if an error
+   * message is not available.
    *
    * @return A registration object that can be used to remove the listener.
    *
@@ -283,7 +288,8 @@ class DocumentReference {
    */
   virtual ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
-      std::function<void(const DocumentSnapshot&, Error)> callback);
+      std::function<void(const DocumentSnapshot&, Error, const std::string&)>
+          callback);
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 #if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)

@@ -15,42 +15,60 @@
 #include "firestore/src/android/source_android.h"
 #include "firestore/src/android/util_android.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/loader.h"
 
 namespace firebase {
 namespace firestore {
+namespace {
 
-// clang-format off
-#define DOCUMENT_REFERENCE_METHODS(X)                                 \
-  X(GetId, "getId", "()Ljava/lang/String;"),                          \
-  X(GetPath, "getPath", "()Ljava/lang/String;"),                      \
-  X(GetParent, "getParent",                                           \
-    "()Lcom/google/firebase/firestore/CollectionReference;"),         \
-  X(Collection, "collection", "(Ljava/lang/String;)"                  \
-    "Lcom/google/firebase/firestore/CollectionReference;"),           \
-  X(Get, "get",                                                       \
-    "(Lcom/google/firebase/firestore/Source;)"                        \
-    "Lcom/google/android/gms/tasks/Task;"),                           \
-  X(Set, "set",                                                       \
-   "(Ljava/lang/Object;Lcom/google/firebase/firestore/SetOptions;)"   \
-   "Lcom/google/android/gms/tasks/Task;"),                            \
-  X(Update, "update",                                                 \
-   "(Ljava/util/Map;)Lcom/google/android/gms/tasks/Task;"),           \
-  X(UpdateVarargs, "update",                                          \
-   "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;"     \
-   "[Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;"),        \
-  X(Delete, "delete", "()Lcom/google/android/gms/tasks/Task;"),       \
-  X(AddSnapshotListener, "addSnapshotListener",                       \
-    "(Ljava/util/concurrent/Executor;"                                \
-    "Lcom/google/firebase/firestore/MetadataChanges;"                 \
-    "Lcom/google/firebase/firestore/EventListener;)"                  \
-    "Lcom/google/firebase/firestore/ListenerRegistration;")
-// clang-format on
+using jni::Class;
+using jni::Env;
+using jni::Local;
+using jni::Method;
+using jni::Object;
+using jni::String;
 
-METHOD_LOOKUP_DECLARATION(document_reference, DOCUMENT_REFERENCE_METHODS)
-METHOD_LOOKUP_DEFINITION(document_reference,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/firestore/DocumentReference",
-                         DOCUMENT_REFERENCE_METHODS)
+constexpr char kClassName[] =
+    PROGUARD_KEEP_CLASS "com/google/firebase/firestore/DocumentReference";
+jclass clazz = nullptr;
+
+Method<String> kGetId("getId", "()Ljava/lang/String;");
+Method<String> kGetPath("getPath", "()Ljava/lang/String;");
+Method<Object> kGetParent(
+    "getParent", "()Lcom/google/firebase/firestore/CollectionReference;");
+Method<Object> kCollection(
+    "collection",
+    "(Ljava/lang/String;)"
+    "Lcom/google/firebase/firestore/CollectionReference;");
+Method<Object> kGet("get",
+                    "(Lcom/google/firebase/firestore/Source;)"
+                    "Lcom/google/android/gms/tasks/Task;");
+Method<Object> kSet(
+    "set",
+    "(Ljava/lang/Object;Lcom/google/firebase/firestore/SetOptions;)"
+    "Lcom/google/android/gms/tasks/Task;");
+Method<Object> kUpdate("update",
+                       "(Ljava/util/Map;)Lcom/google/android/gms/tasks/Task;");
+Method<Object> kUpdateVarargs(
+    "update",
+    "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;"
+    "[Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;");
+Method<Object> kDelete("delete", "()Lcom/google/android/gms/tasks/Task;");
+Method<Object> kAddSnapshotListener(
+    "addSnapshotListener",
+    "(Ljava/util/concurrent/Executor;"
+    "Lcom/google/firebase/firestore/MetadataChanges;"
+    "Lcom/google/firebase/firestore/EventListener;)"
+    "Lcom/google/firebase/firestore/ListenerRegistration;");
+
+}  // namespace
+
+void DocumentReferenceInternal::Initialize(jni::Loader& loader) {
+  clazz = loader.LoadClass(kClassName);
+  loader.LoadAll(kGetId, kGetPath, kGetParent, kCollection, kGet, kSet, kUpdate,
+                 kUpdateVarargs, kDelete, kAddSnapshotListener);
+}
 
 Firestore* DocumentReferenceInternal::firestore() {
   FIREBASE_ASSERT(firestore_->firestore_public() != nullptr);
@@ -58,106 +76,56 @@ Firestore* DocumentReferenceInternal::firestore() {
 }
 
 const std::string& DocumentReferenceInternal::id() const {
-  if (!cached_id_.empty()) {
-    return cached_id_;
+  if (cached_id_.empty()) {
+    Env env = GetEnv();
+    cached_id_ = env.Call(obj_, kGetId).ToString(env);
   }
-
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jstring id = static_cast<jstring>(env->CallObjectMethod(
-      obj_, document_reference::GetMethodId(document_reference::kGetId)));
-  cached_id_ = util::JniStringToString(env, id);
-  CheckAndClearJniExceptions(env);
-
   return cached_id_;
 }
 
 const std::string& DocumentReferenceInternal::path() const {
-  if (!cached_path_.empty()) {
-    return cached_path_;
+  if (cached_path_.empty()) {
+    Env env = GetEnv();
+    cached_path_ = env.Call(obj_, kGetPath).ToString(env);
   }
-
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jstring path = static_cast<jstring>(env->CallObjectMethod(
-      obj_, document_reference::GetMethodId(document_reference::kGetPath)));
-  cached_path_ = util::JniStringToString(env, path);
-  CheckAndClearJniExceptions(env);
-
   return cached_path_;
 }
 
 CollectionReference DocumentReferenceInternal::Parent() const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject parent = env->CallObjectMethod(
-      obj_, document_reference::GetMethodId(document_reference::kGetParent));
-  CollectionReferenceInternal* internal =
-      new CollectionReferenceInternal{firestore_, parent};
-  env->DeleteLocalRef(parent);
-  CheckAndClearJniExceptions(env);
-  return CollectionReference(internal);
+  Env env = GetEnv();
+  Local<Object> parent = env.Call(obj_, kGetParent);
+  return firestore_->NewCollectionReference(env, parent);
 }
 
 CollectionReference DocumentReferenceInternal::Collection(
     const std::string& collection_path) {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jstring path_string = env->NewStringUTF(collection_path.c_str());
-  jobject collection = env->CallObjectMethod(
-      obj_, document_reference::GetMethodId(document_reference::kCollection),
-      path_string);
-  env->DeleteLocalRef(path_string);
-  CheckAndClearJniExceptions(env);
-  CollectionReferenceInternal* internal =
-      new CollectionReferenceInternal{firestore_, collection};
-  env->DeleteLocalRef(collection);
-  CheckAndClearJniExceptions(env);
-  return CollectionReference(internal);
+  Env env = GetEnv();
+  Local<String> java_path = env.NewStringUtf(collection_path);
+  Local<Object> collection = env.Call(obj_, kCollection, java_path);
+  return firestore_->NewCollectionReference(env, collection);
 }
 
 Future<DocumentSnapshot> DocumentReferenceInternal::Get(Source source) {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject task = env->CallObjectMethod(
-      obj_, document_reference::GetMethodId(document_reference::kGet),
-      SourceInternal::ToJavaObject(env, source));
-  CheckAndClearJniExceptions(env);
-
-  auto promise = promises_.MakePromise<DocumentSnapshot>();
-  promise.RegisterForTask(DocumentReferenceFn::kGet, task);
-  env->DeleteLocalRef(task);
-  CheckAndClearJniExceptions(env);
-  return promise.GetFuture();
+  Env env = GetEnv();
+  Local<Object> java_source = SourceInternal::Create(env, source);
+  Local<Object> task = env.Call(obj_, kGet, java_source);
+  return promises_.NewFuture<DocumentSnapshot>(env, AsyncFn::kGet, task);
 }
 
 Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
                                             const SetOptions& options) {
+  Env env = GetEnv();
   FieldValueInternal map_value(data);
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject java_options = SetOptionsInternal::ToJavaObject(env, options);
-  CheckAndClearJniExceptions(env);
-  jobject task = env->CallObjectMethod(
-      obj_, document_reference::GetMethodId(document_reference::kSet),
-      map_value.java_object(), java_options);
-  env->DeleteLocalRef(java_options);
-  CheckAndClearJniExceptions(env);
-
-  auto promise = promises_.MakePromise<void>();
-  promise.RegisterForTask(DocumentReferenceFn::kSet, task);
-  env->DeleteLocalRef(task);
-  CheckAndClearJniExceptions(env);
-  return promise.GetFuture();
+  Local<Object> java_options = SetOptionsInternal::Create(env, options);
+  Local<Object> task = env.Call(obj_, kSet, map_value, java_options);
+  return promises_.NewFuture<void>(env, AsyncFn::kSet, task);
 }
 
 Future<void> DocumentReferenceInternal::Update(const MapFieldValue& data) {
+  Env env = GetEnv();
   FieldValueInternal map_value(data);
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject task = env->CallObjectMethod(
-      obj_, document_reference::GetMethodId(document_reference::kUpdate),
-      map_value.java_object());
-  CheckAndClearJniExceptions(env);
-
-  auto promise = promises_.MakePromise<void>();
-  promise.RegisterForTask(DocumentReferenceFn::kUpdate, task);
-  env->DeleteLocalRef(task);
-  CheckAndClearJniExceptions(env);
-  return promise.GetFuture();
+  Local<Object> task = env.Call(obj_, kUpdate, map_value);
+  return promises_.NewFuture<void>(env, AsyncFn::kUpdate, task);
 }
 
 Future<void> DocumentReferenceInternal::Update(const MapFieldPathValue& data) {
@@ -165,48 +133,26 @@ Future<void> DocumentReferenceInternal::Update(const MapFieldPathValue& data) {
     return Update(MapFieldValue{});
   }
 
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  auto iter = data.begin();
-  jobject first_field = FieldPathConverter::ToJavaObject(env, iter->first);
-  jobject first_value = iter->second.internal_->java_object();
-  ++iter;
+  Env env = GetEnv();
+  UpdateFieldPathArgs args = MakeUpdateFieldPathArgs(env, data);
+  Local<Object> task = env.Call(obj_, kUpdateVarargs, args.first_field,
+                                args.first_value, args.varargs);
 
-  // Make the varargs
-  jobjectArray more_fields_and_values =
-      MapFieldPathValueToJavaArray(firestore_, iter, data.end());
-
-  jobject task = env->CallObjectMethod(
-      obj_, document_reference::GetMethodId(document_reference::kUpdateVarargs),
-      first_field, first_value, more_fields_and_values);
-  env->DeleteLocalRef(first_field);
-  env->DeleteLocalRef(more_fields_and_values);
-  CheckAndClearJniExceptions(env);
-
-  auto promise = promises_.MakePromise<void>();
-  promise.RegisterForTask(DocumentReferenceFn::kUpdate, task);
-  env->DeleteLocalRef(task);
-  CheckAndClearJniExceptions(env);
-  return promise.GetFuture();
+  return promises_.NewFuture<void>(env, AsyncFn::kUpdate, task);
 }
 
 Future<void> DocumentReferenceInternal::Delete() {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject task = env->CallObjectMethod(
-      obj_, document_reference::GetMethodId(document_reference::kDelete));
-  CheckAndClearJniExceptions(env);
-
-  auto promise = promises_.MakePromise<void>();
-  promise.RegisterForTask(DocumentReferenceFn::kDelete, task);
-  env->DeleteLocalRef(task);
-  CheckAndClearJniExceptions(env);
-  return promise.GetFuture();
+  Env env = GetEnv();
+  Local<Object> task = env.Call(obj_, kDelete);
+  return promises_.NewFuture<void>(env, AsyncFn::kDelete, task);
 }
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
 
 ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
-    std::function<void(const DocumentSnapshot&, Error)> callback) {
+    std::function<void(const DocumentSnapshot&, Error, const std::string&)>
+        callback) {
   LambdaEventListener<DocumentSnapshot>* listener =
       new LambdaEventListener<DocumentSnapshot>(firebase::Move(callback));
   return AddSnapshotListener(metadata_changes, listener,
@@ -218,51 +164,22 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
 ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
     MetadataChanges metadata_changes, EventListener<DocumentSnapshot>* listener,
     bool passing_listener_ownership) {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
+  Env env = GetEnv();
+  Local<Object> java_metadata =
+      MetadataChangesInternal::Create(env, metadata_changes);
+  Local<Object> java_listener =
+      EventListenerInternal::Create(env, firestore_, listener);
 
-  // Create listener.
-  jobject java_listener =
-      EventListenerInternal::EventListenerToJavaEventListener(env, firestore_,
-                                                              listener);
-  jobject java_metadata =
-      MetadataChangesInternal::ToJavaObject(env, metadata_changes);
+  Local<Object> java_registration =
+      env.Call(obj_, kAddSnapshotListener, firestore_->user_callback_executor(),
+               java_metadata, java_listener);
 
-  // Register listener.
-  jobject java_registration = env->CallObjectMethod(
-      obj_,
-      document_reference::GetMethodId(document_reference::kAddSnapshotListener),
-      firestore_->user_callback_executor(), java_metadata, java_listener);
-  env->DeleteLocalRef(java_listener);
-  CheckAndClearJniExceptions(env);
-
-  // Wrapping
-  ListenerRegistrationInternal* registration = new ListenerRegistrationInternal{
-      firestore_, listener, passing_listener_ownership, java_registration};
-  env->DeleteLocalRef(java_registration);
-
-  return ListenerRegistration{registration};
+  if (!env.ok() || !java_registration) return {};
+  return ListenerRegistration(new ListenerRegistrationInternal(
+      firestore_, listener, passing_listener_ownership, java_registration));
 }
 
-/* static */
-jclass DocumentReferenceInternal::GetClass() {
-  return document_reference::GetClass();
-}
-
-/* static */
-bool DocumentReferenceInternal::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
-  bool result = document_reference::CacheMethodIds(env, activity);
-  util::CheckAndClearJniExceptions(env);
-  return result;
-}
-
-/* static */
-void DocumentReferenceInternal::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  document_reference::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
-}
+Class DocumentReferenceInternal::GetClass() { return Class(clazz); }
 
 }  // namespace firestore
 }  // namespace firebase

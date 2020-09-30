@@ -4,44 +4,53 @@
 
 #include <utility>
 
-#include "app/src/util_android.h"
 #include "firestore/src/android/document_reference_android.h"
 #include "firestore/src/android/field_path_android.h"
 #include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/server_timestamp_behavior_android.h"
 #include "firestore/src/android/snapshot_metadata_android.h"
-#include "firestore/src/android/util_android.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/loader.h"
 
 namespace firebase {
 namespace firestore {
+namespace {
+
+using jni::Env;
+using jni::Local;
+using jni::Map;
+using jni::Method;
+using jni::Object;
+using jni::String;
 
 using ServerTimestampBehavior = DocumentSnapshot::ServerTimestampBehavior;
 
-// clang-format off
-#define DOCUMENT_SNAPSHOT_METHODS(X)                            \
-  X(GetId, "getId", "()Ljava/lang/String;"),                    \
-  X(GetReference, "getReference",                               \
-    "()Lcom/google/firebase/firestore/DocumentReference;"),     \
-  X(GetMetadata, "getMetadata",                                 \
-    "()Lcom/google/firebase/firestore/SnapshotMetadata;"),      \
-  X(Exists, "exists", "()Z"),                                   \
-  X(GetData, "getData",                                         \
-    "(Lcom/google/firebase/firestore/DocumentSnapshot$"         \
-    "ServerTimestampBehavior;)Ljava/util/Map;"),                \
-  X(Contains, "contains",                                       \
-    "(Lcom/google/firebase/firestore/FieldPath;)Z"),            \
-  X(Get, "get",                                                 \
-    "(Lcom/google/firebase/firestore/FieldPath;"                \
-    "Lcom/google/firebase/firestore/DocumentSnapshot$"          \
-    "ServerTimestampBehavior;)Ljava/lang/Object;")
-// clang-format on
+constexpr char kClass[] =
+    PROGUARD_KEEP_CLASS "com/google/firebase/firestore/DocumentSnapshot";
 
-METHOD_LOOKUP_DECLARATION(document_snapshot, DOCUMENT_SNAPSHOT_METHODS)
-METHOD_LOOKUP_DEFINITION(document_snapshot,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/firestore/DocumentSnapshot",
-                         DOCUMENT_SNAPSHOT_METHODS)
+Method<String> kGetId("getId", "()Ljava/lang/String;");
+Method<Object> kGetReference(
+    "getReference", "()Lcom/google/firebase/firestore/DocumentReference;");
+Method<SnapshotMetadataInternal> kGetMetadata(
+    "getMetadata", "()Lcom/google/firebase/firestore/SnapshotMetadata;");
+Method<bool> kExists("exists", "()Z");
+Method<Object> kGetData("getData",
+                        "(Lcom/google/firebase/firestore/DocumentSnapshot$"
+                        "ServerTimestampBehavior;)Ljava/util/Map;");
+Method<bool> kContains("contains",
+                       "(Lcom/google/firebase/firestore/FieldPath;)Z");
+Method<Object> kGet("get",
+                    "(Lcom/google/firebase/firestore/FieldPath;"
+                    "Lcom/google/firebase/firestore/DocumentSnapshot$"
+                    "ServerTimestampBehavior;)Ljava/lang/Object;");
+
+}  // namespace
+
+void DocumentSnapshotInternal::Initialize(jni::Loader& loader) {
+  loader.LoadClass(kClass, kGetId, kGetReference, kGetMetadata, kExists,
+                   kGetData, kContains, kGet);
+}
 
 Firestore* DocumentSnapshotInternal::firestore() const {
   FIREBASE_ASSERT(firestore_->firestore_public() != nullptr);
@@ -49,110 +58,56 @@ Firestore* DocumentSnapshotInternal::firestore() const {
 }
 
 const std::string& DocumentSnapshotInternal::id() const {
-  if (!cached_id_.empty()) {
-    return cached_id_;
+  if (cached_id_.empty()) {
+    Env env = GetEnv();
+    cached_id_ = env.Call(obj_, kGetId).ToString(env);
   }
-
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jstring id = static_cast<jstring>(env->CallObjectMethod(
-      obj_, document_snapshot::GetMethodId(document_snapshot::kGetId)));
-  cached_id_ = util::JniStringToString(env, id);
-
-  CheckAndClearJniExceptions(env);
   return cached_id_;
 }
 
 DocumentReference DocumentSnapshotInternal::reference() const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject reference = env->CallObjectMethod(
-      obj_, document_snapshot::GetMethodId(document_snapshot::kGetReference));
-  DocumentReferenceInternal* internal =
-      new DocumentReferenceInternal{firestore_, reference};
-  env->DeleteLocalRef(reference);
-
-  CheckAndClearJniExceptions(env);
-  return DocumentReference{internal};
+  Env env = GetEnv();
+  Local<Object> reference = env.Call(obj_, kGetReference);
+  return firestore_->NewDocumentReference(env, reference);
 }
 
 SnapshotMetadata DocumentSnapshotInternal::metadata() const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject metadata = env->CallObjectMethod(
-      obj_, document_snapshot::GetMethodId(document_snapshot::kGetMetadata));
-  SnapshotMetadata result =
-      SnapshotMetadataInternal::JavaSnapshotMetadataToSnapshotMetadata(
-          env, metadata);
-
-  CheckAndClearJniExceptions(env);
-  return result;
+  Env env = GetEnv();
+  auto java_metadata = env.Call(obj_, kGetMetadata);
+  return java_metadata.ToPublic(env);
 }
 
 bool DocumentSnapshotInternal::exists() const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jboolean exists = env->CallBooleanMethod(
-      obj_, document_snapshot::GetMethodId(document_snapshot::kExists));
-
-  CheckAndClearJniExceptions(env);
-  return static_cast<bool>(exists);
+  Env env = GetEnv();
+  return env.Call(obj_, kExists);
 }
 
 MapFieldValue DocumentSnapshotInternal::GetData(
     ServerTimestampBehavior stb) const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject stb_enum = ServerTimestampBehaviorInternal::ToJavaObject(env, stb);
+  Env env = GetEnv();
+  Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
+  Local<Object> java_data = env.Call(obj_, kGetData, java_stb);
 
-  jobject map_value = env->CallObjectMethod(
-      obj_, document_snapshot::GetMethodId(document_snapshot::kGetData),
-      stb_enum);
-  CheckAndClearJniExceptions(env);
-
-  FieldValueInternal value(firestore_, map_value);
-  env->DeleteLocalRef(map_value);
+  FieldValueInternal value(firestore_, java_data.get());
   return value.map_value();
 }
 
 FieldValue DocumentSnapshotInternal::Get(const FieldPath& field,
                                          ServerTimestampBehavior stb) const {
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jobject field_path = FieldPathConverter::ToJavaObject(env, field);
+  Env env = GetEnv();
+  Local<Object> java_field = FieldPathConverter::Create(env, field);
 
   // Android returns null for both null fields and nonexistent fields, so first
   // use contains() to check if the field exists.
-  jboolean contains_field = env->CallBooleanMethod(
-      obj_, document_snapshot::GetMethodId(document_snapshot::kContains),
-      field_path);
-  CheckAndClearJniExceptions(env);
+  bool contains_field = env.Call(obj_, kContains, java_field);
   if (!contains_field) {
-    env->DeleteLocalRef(field_path);
     return FieldValue();
-  } else {
-    jobject stb_enum = ServerTimestampBehaviorInternal::ToJavaObject(env, stb);
-
-    jobject field_value = env->CallObjectMethod(
-        obj_, document_snapshot::GetMethodId(document_snapshot::kGet),
-        field_path, stb_enum);
-    CheckAndClearJniExceptions(env);
-    env->DeleteLocalRef(field_path);
-
-    FieldValue result{new FieldValueInternal{firestore_, field_value}};
-    env->DeleteLocalRef(field_value);
-    return result;
   }
-}
 
-/* static */
-bool DocumentSnapshotInternal::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
-  bool result = document_snapshot::CacheMethodIds(env, activity);
-  util::CheckAndClearJniExceptions(env);
-  return result;
-}
+  Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
+  Local<Object> field_value = env.Call(obj_, kGet, java_field, java_stb);
 
-/* static */
-void DocumentSnapshotInternal::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  document_snapshot::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
+  return FieldValue(new FieldValueInternal(firestore_, field_value.get()));
 }
 
 }  // namespace firestore

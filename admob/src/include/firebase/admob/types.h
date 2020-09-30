@@ -72,6 +72,8 @@ enum AdMobError {
   /// An attempt has been made to show an ad on an Android Activity that has
   /// no window token (such as one that's not done initializing).
   kAdMobErrorNoWindowToken,
+  /// Fallback error for any unidentified cases.
+  kAdMobErrorUnknown,
 };
 #ifdef INTERNAL_EXPERIMENTAL
 // LINT.ThenChange(//depot_firebase_cpp/admob/client/cpp/src_java/com/google/firebase/admob/internal/cpp/ConstantsHelper.java)

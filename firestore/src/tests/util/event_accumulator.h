@@ -19,12 +19,13 @@ class EventAccumulator {
     int desired_events = num_events_consumed_ + num_events;
     FirestoreIntegrationTest::Await(listener_, desired_events);
 
-    if (listener_.first_error() != Error::kErrorOk ||
+    if (listener_.first_error_code() != Error::kErrorOk ||
         listener_.event_count() < desired_events) {
       int received = listener_.event_count() - num_events_consumed_;
       ADD_FAILURE() << "Failed to await " << num_events
-                    << " events: error=" << listener_.first_error()
-                    << ", received " << received << " events";
+                    << " events: error_code=" << listener_.first_error_code()
+                    << " error_message=\"" << listener_.first_error_message()
+                    << "\", received " << received << " events";
 
       // If there are fewer events than requested, discard them.
       num_events_consumed_ += received;

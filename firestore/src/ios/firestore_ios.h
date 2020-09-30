@@ -102,6 +102,8 @@ class FirestoreInternal {
     return firestore_core_;
   }
 
+  static void SetClientLanguage(const std::string& language_token);
+
  private:
   friend class TestFriend;
 

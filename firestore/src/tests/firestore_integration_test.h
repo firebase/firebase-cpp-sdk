@@ -29,6 +29,17 @@ App* GetApp();
 App* GetApp(const char* name);
 bool ProcessEvents(int msec);
 
+// Converts a Firestore error code to a human-friendly name. The `error_code`
+// argument is expected to be an element from the firebase::firestore::Error
+// enum, but this function will gracefully handle the case where it is not.
+std::string ToFirestoreErrorCodeName(int error_code);
+
+// Waits for a Future to complete. If a timeout is reached then this method
+// returns as if successful; therefore, the caller should verify the status of
+// the given Future after this function returns. Returns the number of cycles
+// that were left before a timeout would have occurred.
+int WaitFor(const FutureBase& future);
+
 template <typename T>
 class EventAccumulator;
 
@@ -41,27 +52,30 @@ class TestEventListener : public EventListener<T> {
 
   ~TestEventListener() override {}
 
-  void OnEvent(const T& value, Error error) override {
+  void OnEvent(const T& value, Error error_code,
+               const std::string& error_message) override {
     if (print_debug_info_) {
       std::cout << "TestEventListener got: ";
-      if (error == Error::kErrorOk) {
+      if (error_code == Error::kErrorOk) {
         std::cout << &value
                   << " from_cache=" << value.metadata().is_from_cache()
                   << " has_pending_write="
                   << value.metadata().has_pending_writes()
                   << " event_count=" << event_count() << std::endl;
       } else {
-        std::cout << "error=" << error << " event_count=" << event_count()
+        std::cout << "error_code=" << error_code << " error_message=\""
+                  << error_message << "\" event_count=" << event_count()
                   << std::endl;
       }
     }
 
     MutexLock lock(mutex_);
-    if (error != Error::kErrorOk) {
-      std::cerr << "ERROR: EventListener " << name_ << " got " << error
+    if (error_code != Error::kErrorOk) {
+      std::cerr << "ERROR: EventListener " << name_ << " got " << error_code
                 << std::endl;
-      if (first_error_ == Error::kErrorOk) {
-        first_error_ = error;
+      if (first_error_code_ == Error::kErrorOk) {
+        first_error_code_ = error_code;
+        first_error_message_ = error_message;
       }
     }
     last_results_.push_back(value);
@@ -85,16 +99,23 @@ class TestEventListener : public EventListener<T> {
       U* ref, MetadataChanges metadata_changes = MetadataChanges::kExclude) {
 #if defined(FIREBASE_USE_STD_FUNCTION)
     return ref->AddSnapshotListener(
-        metadata_changes,
-        [this](const T& result, Error error) { OnEvent(result, error); });
+        metadata_changes, [this](const T& result, Error error_code,
+                                 const std::string& error_message) {
+          OnEvent(result, error_code, error_message);
+        });
 #else
     return ref->AddSnapshotListener(metadata_changes, this);
 #endif
   }
 
-  Error first_error() {
+  std::string first_error_message() {
     MutexLock lock(mutex_);
-    return first_error_;
+    return first_error_message_;
+  }
+
+  Error first_error_code() {
+    MutexLock lock(mutex_);
+    return first_error_code_;
   }
 
   // Set this to true to print more details for each arrived event for debug.
@@ -121,7 +142,8 @@ class TestEventListener : public EventListener<T> {
 
   // We generally only check to see if there is any error. So we only store the
   // first non-OK error, if any.
-  Error first_error_ = Error::kErrorOk;
+  Error first_error_code_ = Error::kErrorOk;
+  std::string first_error_message_ = "";
 
   bool print_debug_info_ = false;
 };
@@ -211,22 +233,11 @@ class FirestoreIntegrationTest : public testing::Test {
   // A helper function to block until the future completes.
   template <typename T>
   static const T* Await(const Future<T>& future) {
-    // Instead of getting a clock, we count the cycles instead.
-    int cycles = kTimeOutMillis / kCheckIntervalMillis;
-    while (future.status() == FutureStatus::kFutureStatusPending &&
-           cycles > 0) {
-      if (ProcessEvents(kCheckIntervalMillis)) {
-        std::cout << "WARNING: app receives an event requesting exit."
-                  << std::endl;
-        return nullptr;
-      }
-      --cycles;
-    }
+    int cycles = WaitFor(future);
     EXPECT_GT(cycles, 0) << "Waiting future timed out.";
     if (future.status() == FutureStatus::kFutureStatusComplete) {
       if (future.result() == nullptr) {
-        std::cout << "WARNING: Future failed. Error code " << future.error()
-                  << ", message " << future.error_message() << std::endl;
+        std::cout << "WARNING: " << DescribeFailedFuture(future) << std::endl;
       }
     } else {
       std::cout << "WARNING: Future is not completed." << std::endl;
@@ -261,14 +272,20 @@ class FirestoreIntegrationTest : public testing::Test {
 
   // Creates a new Firestore instance, without any caching, using a uniquely-
   // generated app_name.
+  // Use Release() to correctly delete the returned pointer.
   Firestore* CreateFirestore() const;
   // Creates a new Firestore instance, without any caching, using the given
   // app_name.
+  // Use Release() to correctly delete the returned pointer.
   Firestore* CreateFirestore(const std::string& app_name) const;
 
   void DisableNetwork() { Await(firestore()->DisableNetwork()); }
 
   void EnableNetwork() { Await(firestore()->EnableNetwork()); }
+
+  // Deletes the given Firestore instance and deletes the app by which it is
+  // owned.
+  static void Release(Firestore* firestore);
 
  private:
   template <typename T>

@@ -9,7 +9,9 @@ namespace firebase {
 namespace firestore {
 namespace jni {
 
+class Class;
 class Env;
+class Loader;
 
 /**
  * A wrapper for a JNI `jobject` that adds additional behavior.
@@ -21,12 +23,16 @@ class Env;
 class Object {
  public:
   Object() = default;
-  explicit Object(jobject object) : object_(object) {}
+  constexpr explicit Object(jobject object) : object_(object) {}
   virtual ~Object() = default;
 
   explicit operator bool() const { return object_ != nullptr; }
 
   virtual jobject get() const { return object_; }
+
+  static void Initialize(Loader& loader);
+
+  static Class GetClass();
 
   /**
    * Converts this object to a C++ String by calling the Java `toString` method
@@ -34,6 +40,9 @@ class Object {
    */
   std::string ToString(JNIEnv* env) const;
   std::string ToString(Env& env) const;
+
+  bool Equals(Env& env, const Object& other) const;
+  static bool Equals(Env& env, const Object& lhs, const Object& rhs);
 
  protected:
   jobject object_ = nullptr;

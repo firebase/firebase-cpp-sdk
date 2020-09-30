@@ -5,6 +5,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "auth/src/include/firebase/auth.h"
+#include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/credentials_provider_ios.h"
@@ -227,7 +228,7 @@ void FirestoreInternal::ClearListeners() {
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
     EventListener<void>* listener) {
   std::function<void()> listener_function = [listener] {
-    listener->OnEvent(Error::kErrorOk);
+    listener->OnEvent(Error::kErrorOk, EmptyString());
   };
   auto result = firestore_core_->AddSnapshotsInSyncListener(
       ListenerWithCallback(std::move(listener_function)));
@@ -292,6 +293,10 @@ void Firestore::set_log_level(LogLevel log_level) {
   // emitted. See b/159048318 for details.
   firebase::SetLogLevel(log_level == kLogLevelDebug ? kLogLevelVerbose
                                                     : log_level);
+}
+
+void FirestoreInternal::SetClientLanguage(const std::string& language_token) {
+  api::Firestore::SetClientLanguage(language_token);
 }
 
 }  // namespace firestore
