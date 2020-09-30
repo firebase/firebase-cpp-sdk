@@ -3,7 +3,7 @@
     package="com.google.android.gms.messaging.cpp" >
     <uses-sdk android:minSdkVersion='26'/>
     <application />
-    <service
+    <service>
         android:name="MessageForwardingService"
         android:permission="android.permission.BIND_JOB_SERVICE"
         android:exported="true"
