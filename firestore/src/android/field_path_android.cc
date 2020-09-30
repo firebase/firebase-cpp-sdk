@@ -2,6 +2,9 @@
 
 #include "app/src/util_android.h"
 #include "firestore/src/android/util_android.h"
+#include "firestore/src/jni/array.h"
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/loader.h"
 
 #if defined(__ANDROID__)
 #include "firestore/src/android/field_path_portable.h"
@@ -11,70 +14,44 @@
 
 namespace firebase {
 namespace firestore {
+namespace {
 
-// clang-format off
-#define FIELD_PATH_METHODS(X)                                                  \
-  X(Of, "of",                                                                  \
-    "([Ljava/lang/String;)Lcom/google/firebase/firestore/FieldPath;",          \
-    firebase::util::kMethodTypeStatic),                                        \
-  X(DocumentId, "documentId",                                                  \
-    "()Lcom/google/firebase/firestore/FieldPath;",                             \
-    firebase::util::kMethodTypeStatic)
-// clang-format on
+using jni::Array;
+using jni::Env;
+using jni::Local;
+using jni::Object;
+using jni::StaticMethod;
+using jni::String;
 
-METHOD_LOOKUP_DECLARATION(field_path, FIELD_PATH_METHODS)
-METHOD_LOOKUP_DEFINITION(field_path,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/firestore/FieldPath",
-                         FIELD_PATH_METHODS)
+constexpr char kClass[] =
+    PROGUARD_KEEP_CLASS "com/google/firebase/firestore/FieldPath";
+StaticMethod<Object> kOf(
+    "of", "([Ljava/lang/String;)Lcom/google/firebase/firestore/FieldPath;");
+StaticMethod<Object> kDocumentId("documentId",
+                                 "()Lcom/google/firebase/firestore/FieldPath;");
 
-/* static */
-jobject FieldPathConverter::ToJavaObject(JNIEnv* env, const FieldPath& path) {
-  FieldPath::FieldPathInternal* internal = path.internal_;
+}  // namespace
+
+void FieldPathConverter::Initialize(jni::Loader& loader) {
+  loader.LoadClass(kClass, kOf, kDocumentId);
+}
+
+Local<Object> FieldPathConverter::Create(Env& env, const FieldPath& path) {
+  FieldPath::FieldPathInternal& internal = *path.internal_;
+
   // If the path is key (i.e. __name__).
-  if (internal->IsKeyFieldPath()) {
-    jobject result = env->CallStaticObjectMethod(
-        field_path::GetClass(),
-        field_path::GetMethodId(field_path::kDocumentId));
-    CheckAndClearJniExceptions(env);
-    return result;
+  if (internal.IsKeyFieldPath()) {
+    return env.Call(kDocumentId);
   }
 
   // Prepare call arguments.
-  jsize size = static_cast<jsize>(internal->size());
-  jobjectArray args =
-      env->NewObjectArray(size, firebase::util::string::GetClass(),
-                          /*initialElement=*/nullptr);
-  for (jsize i = 0; i < size; ++i) {
-    jobject segment = env->NewStringUTF((*internal)[i].c_str());
-    env->SetObjectArrayElement(args, i, segment);
-    env->DeleteLocalRef(segment);
-    CheckAndClearJniExceptions(env);
+  size_t size = internal.size();
+  Local<Array<String>> args = env.NewArray<String>(size, String::GetClass());
+  for (size_t i = 0; i < size; ++i) {
+    args.Set(env, i, env.NewStringUtf(internal[i]));
   }
 
-  // Make JNI call and check for error.
-  jobject result = env->CallStaticObjectMethod(
-      field_path::GetClass(), field_path::GetMethodId(field_path::kOf), args);
-  CheckAndClearJniExceptions(env);
-  env->DeleteLocalRef(args);
-
-  return result;
-}
-
-/* static */
-bool FieldPathConverter::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
-  bool result = field_path::CacheMethodIds(env, activity);
-  firebase::util::CheckAndClearJniExceptions(env);
-  return result;
-}
-
-/* static */
-void FieldPathConverter::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  field_path::ReleaseClass(env);
-  firebase::util::CheckAndClearJniExceptions(env);
+  return env.Call(kOf, args);
 }
 
 }  // namespace firestore

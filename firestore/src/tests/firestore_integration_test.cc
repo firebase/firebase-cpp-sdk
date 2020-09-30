@@ -15,16 +15,6 @@ namespace {
 // non-default app to avoid data ending up in the cache before tests run.
 static const char* kBootstrapAppName = "bootstrap";
 
-void Release(Firestore* firestore) {
-  if (firestore == nullptr) {
-    return;
-  }
-
-  App* app = firestore->app();
-  delete firestore;
-  delete app;
-}
-
 // Set Firestore up to use Firestore Emulator if it can be found.
 void LocateEmulator(Firestore* db) {
   // iOS and Android pass emulator address differently, iOS writes it to a
@@ -51,7 +41,62 @@ void LocateEmulator(Firestore* db) {
   }
 }
 
-}  // anonymous namespace
+}  // namespace
+
+std::string ToFirestoreErrorCodeName(int error_code) {
+  switch (error_code) {
+    case kErrorOk:
+      return "kErrorOk";
+    case kErrorCancelled:
+      return "kErrorCancelled";
+    case kErrorUnknown:
+      return "kErrorUnknown";
+    case kErrorInvalidArgument:
+      return "kErrorInvalidArgument";
+    case kErrorDeadlineExceeded:
+      return "kErrorDeadlineExceeded";
+    case kErrorNotFound:
+      return "kErrorNotFound";
+    case kErrorAlreadyExists:
+      return "kErrorAlreadyExists";
+    case kErrorPermissionDenied:
+      return "kErrorPermissionDenied";
+    case kErrorResourceExhausted:
+      return "kErrorResourceExhausted";
+    case kErrorFailedPrecondition:
+      return "kErrorFailedPrecondition";
+    case kErrorAborted:
+      return "kErrorAborted";
+    case kErrorOutOfRange:
+      return "kErrorOutOfRange";
+    case kErrorUnimplemented:
+      return "kErrorUnimplemented";
+    case kErrorInternal:
+      return "kErrorInternal";
+    case kErrorUnavailable:
+      return "kErrorUnavailable";
+    case kErrorDataLoss:
+      return "kErrorDataLoss";
+    case kErrorUnauthenticated:
+      return "kErrorUnauthenticated";
+    default:
+      return "[invalid error code]";
+  }
+}
+
+int WaitFor(const FutureBase& future) {
+  // Instead of getting a clock, we count the cycles instead.
+  int cycles = kTimeOutMillis / kCheckIntervalMillis;
+  while (future.status() == FutureStatus::kFutureStatusPending && cycles > 0) {
+    if (ProcessEvents(kCheckIntervalMillis)) {
+      std::cout << "WARNING: app receives an event requesting exit."
+                << std::endl;
+      break;
+    }
+    --cycles;
+  }
+  return cycles;
+}
 
 FirestoreIntegrationTest::FirestoreIntegrationTest() {
   // Allocate the default Firestore eagerly.
@@ -60,7 +105,7 @@ FirestoreIntegrationTest::FirestoreIntegrationTest() {
 }
 
 FirestoreIntegrationTest::~FirestoreIntegrationTest() {
-  for (auto named_firestore : firestores_) {
+  for (const auto& named_firestore : firestores_) {
     Release(named_firestore.second);
     firestores_[named_firestore.first] = nullptr;
   }
@@ -217,7 +262,7 @@ bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,
                   << std::endl;
     return true;
   } else if (future.error() != Error::kErrorOk) {
-    ADD_FAILURE() << operation << "failed: " << DescribeFailedFuture(future)
+    ADD_FAILURE() << operation << " failed: " << DescribeFailedFuture(future)
                   << std::endl;
     return true;
   } else {
@@ -228,8 +273,19 @@ bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,
 /* static */
 std::string FirestoreIntegrationTest::DescribeFailedFuture(
     const FutureBase& future) {
-  return "WARNING: Future failed. Error code " +
-         std::to_string(future.error()) + ", message " + future.error_message();
+  return "Future failed: " + ToFirestoreErrorCodeName(future.error()) + " (" +
+         std::to_string(future.error()) + "): " + future.error_message();
+}
+
+/* static */
+void FirestoreIntegrationTest::Release(Firestore* firestore) {
+  if (firestore == nullptr) {
+    return;
+  }
+
+  App* app = firestore->app();
+  delete firestore;
+  delete app;
 }
 
 }  // namespace firestore

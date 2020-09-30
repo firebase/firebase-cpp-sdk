@@ -1,28 +1,20 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_DOCUMENT_CHANGE_TYPE_ANDROID_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_DOCUMENT_CHANGE_TYPE_ANDROID_H_
 
-#include <jni.h>
-
-#include <map>
-
-#include "app/src/include/firebase/app.h"
 #include "firestore/src/include/firebase/firestore/document_change.h"
+#include "firestore/src/jni/jni_fwd.h"
+#include "firestore/src/jni/object.h"
 
 namespace firebase {
 namespace firestore {
 
-class DocumentChangeTypeInternal {
+class DocumentChangeTypeInternal : public jni::Object {
  public:
-  static DocumentChange::Type JavaDocumentChangeTypeToDocumentChangeType(
-      JNIEnv* env, jobject type);
+  using jni::Object::Object;
 
- private:
-  friend class FirestoreInternal;
+  static void Initialize(jni::Loader& loader);
 
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
-
-  static std::map<DocumentChange::Type, jobject>* cpp_enum_to_java_;
+  DocumentChange::Type GetType(jni::Env& env) const;
 };
 
 }  // namespace firestore

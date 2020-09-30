@@ -18,17 +18,19 @@ namespace firestore {
 template <typename T>
 class LambdaEventListener : public EventListener<T> {
  public:
-  LambdaEventListener(std::function<void(const T&, Error)> callback)
+  LambdaEventListener(
+      std::function<void(const T&, Error, const std::string&)> callback)
       : callback_(firebase::Move(callback)) {
-    FIREBASE_ASSERT(callback);
+    FIREBASE_ASSERT(callback_);
   }
 
-  void OnEvent(const T& value, Error error) override {
-    callback_(value, error);
+  void OnEvent(const T& value, Error error_code,
+               const std::string& error_message) override {
+    callback_(value, error_code, error_message);
   }
 
  private:
-  std::function<void(const T&, Error)> callback_;
+  std::function<void(const T&, Error, const std::string&)> callback_;
 };
 
 template <>
@@ -36,10 +38,10 @@ class LambdaEventListener<void> : public EventListener<void> {
  public:
   LambdaEventListener(std::function<void()> callback)
       : callback_(firebase::Move(callback)) {
-    FIREBASE_ASSERT(callback);
+    FIREBASE_ASSERT(callback_);
   }
 
-  void OnEvent(Error) override { callback_(); }
+  void OnEvent(Error, const std::string&) override { callback_(); }
 
  private:
   std::function<void()> callback_;

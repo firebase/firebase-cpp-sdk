@@ -10,18 +10,20 @@
 namespace firebase {
 namespace firestore {
 
-// Each API of WriteBatch that returns a Future needs to define an enum value
-// here. For example, a Future-returning method Foo() relies on the enum value
-// kFoo. The enum values are used to identify and manage Future in the Firestore
-// Future manager.
-enum class WriteBatchFn {
-  kCommit = 0,
-  kCount,  // Must be the last enum value.
-};
-
 class WriteBatchInternal : public Wrapper {
  public:
   using ApiType = WriteBatch;
+
+  // Each API of WriteBatch that returns a Future needs to define an enum value
+  // here. For example, a Future-returning method Foo() relies on the enum value
+  // kFoo. The enum values are used to identify and manage Future in the
+  // Firestore Future manager.
+  enum class AsyncFn {
+    kCommit = 0,
+    kCount,  // Must be the last enum value.
+  };
+
+  static void Initialize(jni::Loader& loader);
 
   WriteBatchInternal(FirestoreInternal* firestore, jobject object)
       : Wrapper(firestore, object), promises_(firestore) {}
@@ -38,12 +40,18 @@ class WriteBatchInternal : public Wrapper {
   Future<void> Commit();
 
  private:
-  friend class FirestoreInternal;
+  /**
+   * Converts a public DocumentReference to a non-owning proxy for its backing
+   * Java object. The Java object is owned by the DocumentReference.
+   *
+   * Note: this method is not visible to `Env`, so this must still be invoked
+   * manually for arguments passed to `Env` methods.
+   */
+  // TODO(mcg): Move this out of WriteBatchInternal
+  // This needs to be here now because of existing friend relationships.
+  static jni::Object ToJni(const DocumentReference& reference);
 
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
-
-  PromiseFactory<WriteBatchFn> promises_;
+  PromiseFactory<AsyncFn> promises_;
 };
 
 }  // namespace firestore

@@ -40,6 +40,15 @@ class PromiseFactory {
     return Promise<PublicT, InternalT, EnumT>{future_api(), firestore_};
   }
 
+  template <typename PublicT, typename InternalT = InternalType<PublicT>>
+  Future<PublicT> NewFuture(jni::Env& env, EnumT op, const jni::Object& task) {
+    if (!env.ok()) return {};
+
+    auto promise = MakePromise<PublicT, InternalT>();
+    promise.RegisterForTask(env, op, task);
+    return promise.GetFuture();
+  }
+
  private:
   // Gets the reference-counted Future implementation of this instance, which
   // can be used to create a Future.

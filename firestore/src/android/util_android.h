@@ -2,8 +2,11 @@
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_UTIL_ANDROID_H_
 
 #include <jni.h>
+
 #include <string>
+
 #include "app/src/util_android.h"
+#include "firestore/src/jni/jni_fwd.h"
 
 #if __cpp_exceptions
 #include <exception>
@@ -28,7 +31,7 @@ class FirestoreException : public std::exception {
 };
 
 inline bool CheckAndClearJniExceptions(JNIEnv* env) {
-  jobject java_exception = env->ExceptionOccurred();
+  jthrowable java_exception = env->ExceptionOccurred();
   if (java_exception == nullptr) {
     return false;
   }
@@ -48,6 +51,10 @@ inline bool CheckAndClearJniExceptions(JNIEnv* env) {
 }
 
 #endif  // __cpp_exceptions
+
+void GlobalUnhandledExceptionHandler(jni::Env& env,
+                                     jni::Local<jni::Throwable>&& exception,
+                                     void* context);
 
 }  // namespace firestore
 }  // namespace firebase

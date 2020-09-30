@@ -31,8 +31,27 @@ class Local : public T {
    */
   Local(JNIEnv* env, jni_type value) : T(value), env_(env) {}
 
-  Local(const Local& other) = delete;
-  Local& operator=(const Local&) = delete;
+  /**
+   * An explicit copy constructor, which prevents accidental copies at function
+   * call sites. Copies of a local reference should rarely be needed. For
+   * example, when keeping a reference as a member of a C++ object or lambda,
+   * you're almost exclusively better off promoting the local reference to a
+   * global one to avoid problems that arise from the thread-local restrictions
+   * of a local reference.
+   */
+  explicit Local(const Local& other) {  // NOLINT(google-explicit-constructor)
+    EnsureEnv(other.env());
+    T::object_ = env_->NewLocalRef(other.get());
+  }
+
+  Local& operator=(const Local& other) {
+    if (T::object_ != other.get()) {
+      EnsureEnv(other.env());
+      env_->DeleteLocalRef(T::object_);
+      T::object_ = env_->NewLocalRef(other.get());
+    }
+    return *this;
+  }
 
   Local(Local&& other) noexcept : T(other.release()), env_(other.env_) {}
 
@@ -83,6 +102,13 @@ class Local : public T {
     jobject result = T::object_;
     T::object_ = nullptr;
     return static_cast<jni_type>(result);
+  }
+
+  void clear() {
+    if (env_ && T::object_) {
+      env_->DeleteLocalRef(T::object_);
+      T::object_ = nullptr;
+    }
   }
 
   JNIEnv* env() const { return env_; }
@@ -205,6 +231,14 @@ class Global : public T {
     jobject result = T::object_;
     T::object_ = nullptr;
     return static_cast<jni_type>(result);
+  }
+
+  void clear() {
+    if (T::object_) {
+      JNIEnv* env = GetEnv();
+      env->DeleteGlobalRef(T::object_);
+      T::object_ = nullptr;
+    }
   }
 
  private:

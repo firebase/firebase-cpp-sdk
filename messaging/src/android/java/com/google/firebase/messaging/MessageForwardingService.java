@@ -14,9 +14,9 @@
 
 package com.google.firebase.messaging;
 
-import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
+import androidx.core.app.JobIntentService;
 import com.google.firebase.messaging.cpp.DebugLogging;
 import com.google.firebase.messaging.cpp.MessageWriter;
 
@@ -24,19 +24,13 @@ import com.google.firebase.messaging.cpp.MessageWriter;
  * Listens for Message intents from the application and sends them to the C++ app via the
  * ListenerService.
  */
-public class MessageForwardingService extends IntentService {
+public class MessageForwardingService extends JobIntentService {
   private static final String TAG = "FIREBASE_MSG_FWDR";
   public static final String ACTION_REMOTE_INTENT = "com.google.android.c2dm.intent.RECEIVE";
 
-  public MessageForwardingService() {
-    // The tag here is used only to name the worker thread; it's important only for debugging.
-    // http://developer.android.com/reference/android/app/IntentService.html#IntentService(java.lang.String)
-    super(TAG);
-  }
-
   // Handle message intents sent from the ListenerService.
   @Override
-  protected void onHandleIntent(Intent intent) {
+  protected void onHandleWork(Intent intent) {
     handleIntent(this, intent, MessageWriter.defaultInstance());
   }
 

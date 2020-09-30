@@ -571,8 +571,8 @@ TEST_F(ValidationTest, QueriesWithNullOrNaNFiltersOtherThanEqualityFail) {
     FAIL() << "should throw exception";
   } catch (const FirestoreException& exception) {
     EXPECT_STREQ(
-        "Invalid Query. Null supports only equality comparisons (via "
-        "whereEqualTo()).",
+        "Invalid Query. Null only supports comparisons via whereEqualTo() and "
+        "whereNotEqualTo().",
         exception.what());
   }
   try {
@@ -580,8 +580,8 @@ TEST_F(ValidationTest, QueriesWithNullOrNaNFiltersOtherThanEqualityFail) {
     FAIL() << "should throw exception";
   } catch (const FirestoreException& exception) {
     EXPECT_STREQ(
-        "Invalid Query. Null supports only equality comparisons (via "
-        "whereEqualTo()).",
+        "Invalid Query. Null only supports comparisons via whereEqualTo() and "
+        "whereNotEqualTo().",
         exception.what());
   }
   try {
@@ -589,8 +589,8 @@ TEST_F(ValidationTest, QueriesWithNullOrNaNFiltersOtherThanEqualityFail) {
     FAIL() << "should throw exception";
   } catch (const FirestoreException& exception) {
     EXPECT_STREQ(
-        "Invalid Query. NaN supports only equality comparisons (via "
-        "whereEqualTo()).",
+        "Invalid Query. NaN only supports comparisons via whereEqualTo() and "
+        "whereNotEqualTo().",
         exception.what());
   }
   try {
@@ -598,8 +598,8 @@ TEST_F(ValidationTest, QueriesWithNullOrNaNFiltersOtherThanEqualityFail) {
     FAIL() << "should throw exception";
   } catch (const FirestoreException& exception) {
     EXPECT_STREQ(
-        "Invalid Query. NaN supports only equality comparisons (via "
-        "whereEqualTo()).",
+        "Invalid Query. NaN only supports comparisons via whereEqualTo() and "
+        "whereNotEqualTo().",
         exception.what());
   }
 }
@@ -664,7 +664,8 @@ TEST_F(ValidationTest,
 
   EXPECT_THROW(collection.OrderBy(FieldPath({"timestamp"}))
                    .EndAt(snapshot.documents().at(0))
-                   .AddSnapshotListener([](const QuerySnapshot&, Error) {}),
+                   .AddSnapshotListener(
+                       [](const QuerySnapshot&, Error, const std::string&) {}),
                FirestoreException);
 
   Await(firestore()->EnableNetwork());
@@ -673,8 +674,9 @@ TEST_F(ValidationTest,
   snapshot = accumulator.AwaitRemoteEvent();
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
   EXPECT_NO_THROW(collection.OrderBy(FieldPath({"timestamp"}))
-                   .EndAt(snapshot.documents().at(0))
-                   .AddSnapshotListener([](const QuerySnapshot&, Error) {}));
+                      .EndAt(snapshot.documents().at(0))
+                      .AddSnapshotListener([](const QuerySnapshot&, Error,
+                                              const std::string&) {}));
 }
 
 
@@ -733,8 +735,9 @@ TEST_F(ValidationTest, QueriesWithDifferentInequalityFieldsFail) {
     FAIL() << "should throw exception";
   } catch (const FirestoreException& exception) {
     EXPECT_STREQ(
-        "All where filters other than whereEqualTo() must be on the same "
-        "field. But you have filters on 'x' and 'y'",
+        "All where filters with an inequality (notEqualTo, notIn, lessThan, "
+        "lessThanOrEqualTo, greaterThan, or greaterThanOrEqualTo) must be on "
+        "the same field. But you have filters on 'x' and 'y'",
         exception.what());
   }
 }

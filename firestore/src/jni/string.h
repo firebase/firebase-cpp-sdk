@@ -7,6 +7,8 @@ namespace firebase {
 namespace firestore {
 namespace jni {
 
+class Class;
+
 /**
  * A wrapper for a JNI `jstring` that adds additional behavior. This is a proxy
  * for a Java String in the JVM.
@@ -21,6 +23,8 @@ class String : public Object {
   explicit String(jstring string) : Object(string) {}
 
   jstring get() const override { return static_cast<jstring>(object_); }
+
+  static Class GetClass();
 
   /** Converts this Java String to a C++ string. */
   std::string ToString(Env& env) const;

@@ -53,7 +53,8 @@ class DocumentReferenceInternal {
 
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
-      std::function<void(const DocumentSnapshot&, Error)> callback);
+      std::function<void(const DocumentSnapshot&, Error, const std::string&)>
+          callback);
 
   const api::DocumentReference& document_reference_core() const {
     return reference_;

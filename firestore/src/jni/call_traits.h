@@ -21,6 +21,7 @@ struct CallTraits {
   static constexpr auto kCall = &JNIEnv::CallObjectMethod;
   static constexpr auto kGetStaticField = &JNIEnv::GetStaticObjectField;
   static constexpr auto kCallStatic = &JNIEnv::CallStaticObjectMethod;
+  static constexpr auto kNewArray = &JNIEnv::NewObjectArray;
 };
 
 template <>
@@ -28,6 +29,9 @@ struct CallTraits<jboolean> {
   static constexpr auto kCall = &JNIEnv::CallBooleanMethod;
   static constexpr auto kGetStaticField = &JNIEnv::GetStaticBooleanField;
   static constexpr auto kCallStatic = &JNIEnv::CallStaticBooleanMethod;
+  static constexpr auto kNewArray = &JNIEnv::NewBooleanArray;
+  static constexpr auto kGetArrayRegion = &JNIEnv::GetBooleanArrayRegion;
+  static constexpr auto kSetArrayRegion = &JNIEnv::SetBooleanArrayRegion;
 };
 
 template <>
@@ -35,6 +39,9 @@ struct CallTraits<jbyte> {
   static constexpr auto kCall = &JNIEnv::CallByteMethod;
   static constexpr auto kGetStaticField = &JNIEnv::GetStaticByteField;
   static constexpr auto kCallStatic = &JNIEnv::CallStaticByteMethod;
+  static constexpr auto kNewArray = &JNIEnv::NewByteArray;
+  static constexpr auto kGetArrayRegion = &JNIEnv::GetByteArrayRegion;
+  static constexpr auto kSetArrayRegion = &JNIEnv::SetByteArrayRegion;
 };
 
 template <>
@@ -42,6 +49,9 @@ struct CallTraits<jchar> {
   static constexpr auto kCall = &JNIEnv::CallCharMethod;
   static constexpr auto kGetStaticField = &JNIEnv::GetStaticCharField;
   static constexpr auto kCallStatic = &JNIEnv::CallStaticCharMethod;
+  static constexpr auto kNewArray = &JNIEnv::NewCharArray;
+  static constexpr auto kGetArrayRegion = &JNIEnv::GetCharArrayRegion;
+  static constexpr auto kSetArrayRegion = &JNIEnv::SetCharArrayRegion;
 };
 
 template <>
@@ -49,6 +59,9 @@ struct CallTraits<jshort> {
   static constexpr auto kCall = &JNIEnv::CallShortMethod;
   static constexpr auto kGetStaticField = &JNIEnv::GetStaticShortField;
   static constexpr auto kCallStatic = &JNIEnv::CallStaticShortMethod;
+  static constexpr auto kNewArray = &JNIEnv::NewShortArray;
+  static constexpr auto kGetArrayRegion = &JNIEnv::GetShortArrayRegion;
+  static constexpr auto kSetArrayRegion = &JNIEnv::SetShortArrayRegion;
 };
 
 template <>
@@ -56,6 +69,9 @@ struct CallTraits<jint> {
   static constexpr auto kCall = &JNIEnv::CallIntMethod;
   static constexpr auto kGetStaticField = &JNIEnv::GetStaticIntField;
   static constexpr auto kCallStatic = &JNIEnv::CallStaticIntMethod;
+  static constexpr auto kNewArray = &JNIEnv::NewIntArray;
+  static constexpr auto kGetArrayRegion = &JNIEnv::GetIntArrayRegion;
+  static constexpr auto kSetArrayRegion = &JNIEnv::SetIntArrayRegion;
 };
 
 template <>
@@ -63,6 +79,9 @@ struct CallTraits<jlong> {
   static constexpr auto kCall = &JNIEnv::CallLongMethod;
   static constexpr auto kGetStaticField = &JNIEnv::GetStaticLongField;
   static constexpr auto kCallStatic = &JNIEnv::CallStaticLongMethod;
+  static constexpr auto kNewArray = &JNIEnv::NewLongArray;
+  static constexpr auto kGetArrayRegion = &JNIEnv::GetLongArrayRegion;
+  static constexpr auto kSetArrayRegion = &JNIEnv::SetLongArrayRegion;
 };
 
 template <>
@@ -70,6 +89,9 @@ struct CallTraits<jfloat> {
   static constexpr auto kCall = &JNIEnv::CallFloatMethod;
   static constexpr auto kGetStaticField = &JNIEnv::GetStaticFloatField;
   static constexpr auto kCallStatic = &JNIEnv::CallStaticFloatMethod;
+  static constexpr auto kNewArray = &JNIEnv::NewFloatArray;
+  static constexpr auto kGetArrayRegion = &JNIEnv::GetFloatArrayRegion;
+  static constexpr auto kSetArrayRegion = &JNIEnv::SetFloatArrayRegion;
 };
 
 template <>
@@ -77,6 +99,9 @@ struct CallTraits<jdouble> {
   static constexpr auto kCall = &JNIEnv::CallDoubleMethod;
   static constexpr auto kGetStaticField = &JNIEnv::GetStaticDoubleField;
   static constexpr auto kCallStatic = &JNIEnv::CallStaticDoubleMethod;
+  static constexpr auto kNewArray = &JNIEnv::NewDoubleArray;
+  static constexpr auto kGetArrayRegion = &JNIEnv::GetDoubleArrayRegion;
+  static constexpr auto kSetArrayRegion = &JNIEnv::SetDoubleArrayRegion;
 };
 
 template <>
