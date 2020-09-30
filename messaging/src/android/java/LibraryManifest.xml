@@ -6,5 +6,6 @@
     <service
         android:name="MessageForwardingService"
         android:permission="android.permission.BIND_JOB_SERVICE"
-        android:exported="true"/>
+        android:exported="true"
+    </service>
 </manifest>
