@@ -177,11 +177,12 @@ bool FirestoreInternal::Initialize(App* app) {
                            ::firebase_firestore::firestore_resources_size);
     loader.CacheEmbeddedFiles();
 
-    if (!(  // Call Initialize on each Firestore internal class.
-            FieldValueInternal::Initialize(app) && Wrapper::Initialize(app))) {
+    if (!FieldValueInternal::Initialize(app)) {
       ReleaseClasses(app);
       return false;
     }
+
+    jni::Object::Initialize(loader);
 
     jni::ArrayList::Initialize(loader);
     jni::Boolean::Initialize(loader);
@@ -239,7 +240,6 @@ void FirestoreInternal::ReleaseClasses(App* app) {
 
   // Call Terminate on each Firestore internal class.
   FieldValueInternal::Terminate(app);
-  Wrapper::Terminate(app);
 }
 
 /* static */

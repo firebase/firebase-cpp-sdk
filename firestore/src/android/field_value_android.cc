@@ -613,17 +613,8 @@ void FieldValueInternal::Terminate(App* app) {
 }
 
 bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
-  // Most likely only happens when comparing one with itself or both are Null.
-  if (lhs.obj_ == rhs.obj_) {
-    return true;
-  }
-
-  // If only one of them is Null, then they cannot equal.
-  if (lhs.obj_ == nullptr || rhs.obj_ == nullptr) {
-    return false;
-  }
-
-  return lhs.EqualsJavaObject(rhs);
+  Env env = FirestoreInternal::GetEnv();
+  return Object::Equals(env, lhs.ToJava(), rhs.ToJava());
 }
 
 jobject FieldValueInternal::TryGetJobject(const FieldValue& value) {

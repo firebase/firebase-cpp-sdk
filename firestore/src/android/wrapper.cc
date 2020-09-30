@@ -23,13 +23,6 @@ using jni::String;
 
 }  // namespace
 
-// clang-format off
-#define OBJECT_METHOD(X) X(Equals, "equals", "(Ljava/lang/Object;)Z")
-// clang-format on
-
-METHOD_LOOKUP_DECLARATION(object, OBJECT_METHOD)
-METHOD_LOOKUP_DEFINITION(object, "java/lang/Object", OBJECT_METHOD)
-
 Wrapper::Wrapper(FirestoreInternal* firestore, jobject obj)
     : Wrapper(firestore, obj, AllowNullObject::Yes) {
   FIREBASE_ASSERT(obj != nullptr);
@@ -93,18 +86,6 @@ Wrapper::~Wrapper() {
   }
 }
 
-bool Wrapper::EqualsJavaObject(const Wrapper& other) const {
-  if (obj_ == other.obj_) {
-    return true;
-  }
-
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jboolean result = env->CallBooleanMethod(
-      obj_, object::GetMethodId(object::kEquals), other.obj_);
-  CheckAndClearJniExceptions(env);
-  return static_cast<bool>(result);
-}
-
 Local<HashMap> Wrapper::MakeJavaMap(Env& env, const MapFieldValue& data) const {
   Local<HashMap> result = HashMap::Create(env);
   for (const auto& kv : data) {
@@ -140,20 +121,5 @@ Wrapper::UpdateFieldPathArgs Wrapper::MakeUpdateFieldPathArgs(
   return UpdateFieldPathArgs{Move(first_field), first_value, Move(varargs)};
 }
 
-/* static */
-bool Wrapper::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
-  bool result = object::CacheMethodIds(env, activity);
-  util::CheckAndClearJniExceptions(env);
-  return result;
-}
-
-/* static */
-void Wrapper::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  object::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
-}
 }  // namespace firestore
 }  // namespace firebase

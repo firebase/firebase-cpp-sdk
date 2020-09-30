@@ -56,9 +56,6 @@ class Wrapper {
   jobject java_object() const { return obj_; }
   jni::Object ToJava() const { return jni::Object(obj_); }
 
-  // Tests the equality of the wrapped Java Object.
-  bool EqualsJavaObject(const Wrapper& other) const;
-
  protected:
   enum class AllowNullObject { Yes };
   // Default constructor. Subclass is expected to set the obj_ a meaningful
@@ -129,9 +126,6 @@ class Wrapper {
 
  private:
   friend class FirestoreInternal;
-
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
 };
 
 }  // namespace firestore

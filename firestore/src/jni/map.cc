@@ -15,13 +15,17 @@ Method<Object> kGet("get", "(Ljava/lang/Object;)Ljava/lang/Object;");
 Method<Object> kPut("put",
                     "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
 Method<Set> kKeySet("keySet", "()Ljava/util/Set;");
+jclass g_clazz = nullptr;
 
 }  // namespace
 
 void Map::Initialize(Loader& loader) {
-  loader.LoadFromExistingClass("java/util/Map", util::map::GetClass(), kSize,
-                               kGet, kPut, kKeySet);
+  g_clazz = util::map::GetClass();
+  loader.LoadFromExistingClass("java/util/Map", g_clazz, kSize, kGet, kPut,
+                               kKeySet);
 }
+
+Class Map::GetClass() { return Class(g_clazz); }
 
 size_t Map::Size(Env& env) const { return env.Call(*this, kSize); }
 

@@ -309,7 +309,8 @@ Local<Array<Object>> QueryInternal::ConvertFieldValues(
 }
 
 bool operator==(const QueryInternal& lhs, const QueryInternal& rhs) {
-  return lhs.EqualsJavaObject(rhs);
+  Env env = FirestoreInternal::GetEnv();
+  return Object::Equals(env, lhs.ToJava(), rhs.ToJava());
 }
 
 }  // namespace firestore

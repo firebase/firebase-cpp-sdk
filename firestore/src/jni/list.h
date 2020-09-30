@@ -15,6 +15,8 @@ class List : public Collection {
 
   static void Initialize(Loader& loader);
 
+  static Class GetClass();
+
   Local<Object> Get(Env& env, size_t i) const;
   Local<Object> Set(Env& env, size_t i, const Object& object);
 };

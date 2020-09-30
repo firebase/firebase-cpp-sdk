@@ -30,6 +30,8 @@ class Class : public Object {
    */
   std::string GetName(Env& env) const;
 
+  static std::string GetClassName(Env& env, const Object& object);
+
   bool IsArray(Env& env) const;
 
  private:

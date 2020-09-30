@@ -17,6 +17,8 @@ class Map : public Object {
 
   static void Initialize(Loader& loader);
 
+  static Class GetClass();
+
   size_t Size(Env& env) const;
   Local<Object> Get(Env& env, const Object& key);
   Local<Object> Put(Env& env, const Object& key, const Object& value);
