@@ -1,28 +1,18 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_SERVER_TIMESTAMP_BEHAVIOR_ANDROID_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_SERVER_TIMESTAMP_BEHAVIOR_ANDROID_H_
 
-#include <map>
-
-#include "app/src/include/firebase/app.h"
-#include "app/src/util_android.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
+#include "firestore/src/jni/jni_fwd.h"
 
 namespace firebase {
 namespace firestore {
 
 class ServerTimestampBehaviorInternal {
  public:
-  static jobject ToJavaObject(JNIEnv* env,
-                              DocumentSnapshot::ServerTimestampBehavior stb);
+  static void Initialize(jni::Loader& loader);
 
- private:
-  friend class FirestoreInternal;
-
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
-
-  static std::map<DocumentSnapshot::ServerTimestampBehavior, jobject>*
-      cpp_enum_to_java_;
+  static jni::Local<jni::Object> Create(
+      jni::Env& env, DocumentSnapshot::ServerTimestampBehavior stb);
 };
 
 }  // namespace firestore

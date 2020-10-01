@@ -9,6 +9,7 @@
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
+#include "firestore/src/common/compiler_info.h"
 #include "firestore/src/common/futures.h"
 
 #if defined(__ANDROID__)
@@ -19,12 +20,32 @@
 #include "firestore/src/ios/firestore_ios.h"
 #endif  // defined(__ANDROID__)
 
+#ifdef __APPLE__
+#include "TargetConditionals.h"
+#endif  // __APPLE__
+
 namespace firebase {
 namespace firestore {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseFirestore);
 
 namespace {
+
+const char* GetPlatform() {
+#if defined(__ANDROID__)
+  return "gl-android/";
+#elif TARGET_OS_IOS
+  return "gl-ios/";
+#elif TARGET_OS_OSX
+  return "gl-macos/";
+#elif defined(_WIN32)
+  return "gl-windows/";
+#elif defined(__linux__)
+  return "gl-linux/";
+#else
+  return "";
+#endif
+}
 
 Mutex g_firestores_lock;  // NOLINT
 std::map<App*, Firestore*>* g_firestores = nullptr;
@@ -122,6 +143,12 @@ Firestore::Firestore(FirestoreInternal* internal)
     // TODO(wuandy): use make_unique once it is supported for our build here.
     : internal_(internal) {
   internal_->set_firestore_public(this);
+
+  // Note: because Firestore libraries are currently distributed in
+  // a precompiled form, `GetFullCompilerInfo` will reflect the compiler used to
+  // produce the binaries. Unfortunately, there is no clear way to avoid that
+  // without breaking ODR.
+  SetClientLanguage(std::string("gl-cpp/") + GetFullCompilerInfo());
 
   if (internal_->initialized()) {
     CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app());
@@ -278,6 +305,16 @@ ListenerRegistration Firestore::AddSnapshotsInSyncListener(
   return internal_->AddSnapshotsInSyncListener(std::move(callback));
 }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
+void Firestore::SetClientLanguage(const std::string& language_token) {
+  // TODO(b/135633112): this is a temporary measure until the Firestore backend
+  // rolls out Firebase platform logging.
+  // Note: this implementation lumps together the language and platform tokens,
+  // relying on the fact that `SetClientLanguage` doesn't validate or parse its
+  // input in any way. This is deemed acceptable because reporting the platform
+  // this way is a temporary measure.
+  FirestoreInternal::SetClientLanguage(language_token + " " + GetPlatform());
+}
 
 }  // namespace firestore
 }  // namespace firebase

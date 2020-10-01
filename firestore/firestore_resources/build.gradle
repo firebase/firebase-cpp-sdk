@@ -43,16 +43,11 @@ android {
       }
     }
   }
-
-  lintOptions {
-    abortOnError false
-  }
 }
 
-
 dependencies {
-  implementation 'com.google.firebase:firebase-analytics:17.4.4'
-  implementation 'com.google.firebase:firebase-firestore:21.5.0'
+  implementation 'com.google.firebase:firebase-analytics:17.5.0'
+  implementation 'com.google.firebase:firebase-firestore:21.6.0'
 }
 
 afterEvaluate {

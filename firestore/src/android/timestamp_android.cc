@@ -1,65 +1,44 @@
 #include "firestore/src/android/timestamp_android.h"
 
-#include <stdint.h>
-
-#include "app/src/util_android.h"
-#include "firestore/src/android/util_android.h"
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/loader.h"
 
 namespace firebase {
 namespace firestore {
+namespace {
 
-// clang-format off
-#define TIMESTAMP_METHODS(X)                                     \
-  X(Constructor, "<init>", "(JI)V", util::kMethodTypeInstance),  \
-  X(GetSeconds, "getSeconds", "()J"),                            \
-  X(GetNanoseconds, "getNanoseconds", "()I")
-// clang-format on
+using jni::Class;
+using jni::Constructor;
+using jni::Env;
+using jni::Local;
+using jni::Method;
 
-METHOD_LOOKUP_DECLARATION(timestamp, TIMESTAMP_METHODS)
-METHOD_LOOKUP_DEFINITION(timestamp,
-                         PROGUARD_KEEP_CLASS "com/google/firebase/Timestamp",
-                         TIMESTAMP_METHODS)
+constexpr char kClassName[] =
+    PROGUARD_KEEP_CLASS "com/google/firebase/Timestamp";
+Constructor<TimestampInternal> kConstructor("(JI)V");
+Method<int64_t> kGetSeconds("getSeconds", "()J");
+Method<int32_t> kGetNanoseconds("getNanoseconds", "()I");
 
-/* static */
-jobject TimestampInternal::TimestampToJavaTimestamp(
-    JNIEnv* env, const Timestamp& timestamp) {
-  jobject result = env->NewObject(
-      timestamp::GetClass(), timestamp::GetMethodId(timestamp::kConstructor),
-      static_cast<jlong>(timestamp.seconds()),
-      static_cast<jint>(timestamp.nanoseconds()));
-  CheckAndClearJniExceptions(env);
-  return result;
+jclass g_clazz = nullptr;
+
+}  // namespace
+
+void TimestampInternal::Initialize(jni::Loader& loader) {
+  g_clazz =
+      loader.LoadClass(kClassName, kConstructor, kGetSeconds, kGetNanoseconds);
 }
 
-/* static */
-Timestamp TimestampInternal::JavaTimestampToTimestamp(JNIEnv* env,
-                                                      jobject obj) {
-  jlong seconds =
-      env->CallLongMethod(obj, timestamp::GetMethodId(timestamp::kGetSeconds));
-  jint nanoseconds = env->CallIntMethod(
-      obj, timestamp::GetMethodId(timestamp::kGetNanoseconds));
-  CheckAndClearJniExceptions(env);
-  return Timestamp{static_cast<int64_t>(seconds),
-                   static_cast<int32_t>(nanoseconds)};
+Class TimestampInternal::GetClass() { return Class(g_clazz); }
+
+Local<TimestampInternal> TimestampInternal::Create(Env& env,
+                                                   const Timestamp& timestamp) {
+  return env.New(kConstructor, timestamp.seconds(), timestamp.nanoseconds());
 }
 
-/* static */
-jclass TimestampInternal::GetClass() { return timestamp::GetClass(); }
-
-/* static */
-bool TimestampInternal::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
-  bool result = timestamp::CacheMethodIds(env, activity);
-  util::CheckAndClearJniExceptions(env);
-  return result;
-}
-
-/* static */
-void TimestampInternal::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  timestamp::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
+Timestamp TimestampInternal::ToPublic(Env& env) const {
+  int64_t seconds = env.Call(*this, kGetSeconds);
+  int32_t nanoseconds = env.Call(*this, kGetNanoseconds);
+  return Timestamp(seconds, nanoseconds);
 }
 
 }  // namespace firestore

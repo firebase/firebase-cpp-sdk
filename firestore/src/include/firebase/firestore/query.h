@@ -531,6 +531,8 @@ class Query {
    *
    * @param[in] callback The std::function to call. When this function is
    * called, snapshot value is valid if and only if error is Error::kErrorOk.
+   * The std::string is an error message; the value may be empty if an error
+   * message is not available.
    *
    * @return A registration object that can be used to remove the listener.
    *
@@ -538,7 +540,8 @@ class Query {
    * library.
    */
   virtual ListenerRegistration AddSnapshotListener(
-      std::function<void(const QuerySnapshot&, Error)> callback);
+      std::function<void(const QuerySnapshot&, Error, const std::string&)>
+          callback);
 
   /**
    * @brief Starts listening to the QuerySnapshot events referenced by this
@@ -549,6 +552,8 @@ class Query {
    * events.
    * @param[in] callback The std::function to call. When this function is
    * called, snapshot value is valid if and only if error is Error::kErrorOk.
+   * The std::string is an error message; the value may be empty if an error
+   * message is not available.
    *
    * @return A registration object that can be used to remove the listener.
    *
@@ -557,7 +562,8 @@ class Query {
    */
   virtual ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
-      std::function<void(const QuerySnapshot&, Error)> callback);
+      std::function<void(const QuerySnapshot&, Error, const std::string&)>
+          callback);
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 #if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)

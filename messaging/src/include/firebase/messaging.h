@@ -562,7 +562,9 @@ Future<void> RequestPermissionLastResult();
 /// [FCM Developers Guide]: https://firebase.google.com/docs/cloud-messaging/
 ///
 /// @param[in] message The message to send upstream.
-void Send(const Message& message);
+///
+/// @deprecated Send() is deprecated and will be removed in a future release.
+FIREBASE_DEPRECATED void Send(const Message& message);
 
 /// @brief Subscribe to receive all messages to the specified topic.
 ///

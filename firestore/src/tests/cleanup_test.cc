@@ -102,8 +102,8 @@ void ExpectAllMethodsAreNoOps(DocumentReference* ptr) {
   EXPECT_EQ(ptr->Delete(), FailedFuture<void>());
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
-  EXPECT_NO_THROW(
-      ptr->AddSnapshotListener([](const DocumentSnapshot&, Error) {}));
+  EXPECT_NO_THROW(ptr->AddSnapshotListener(
+      [](const DocumentSnapshot&, Error, const std::string&) {}));
 #else
   EXPECT_NO_THROW(ptr->AddSnapshotListener(nullptr));
 #endif
@@ -217,7 +217,8 @@ void ExpectAllMethodsAreNoOps(Query* ptr) {
   EXPECT_EQ(ptr->Get(), FailedFuture<QuerySnapshot>());
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
-  EXPECT_NO_THROW(ptr->AddSnapshotListener([](const QuerySnapshot&, Error) {}));
+  EXPECT_NO_THROW(ptr->AddSnapshotListener(
+      [](const QuerySnapshot&, Error, const std::string&) {}));
 #else
   EXPECT_NO_THROW(ptr->AddSnapshotListener(nullptr));
 #endif
@@ -367,8 +368,8 @@ TEST_F(CleanupTest, ListenerRegistrationIsBlankAfterCleanup) {
   }
 
   DocumentReference doc = Document();
-  ListenerRegistration reg =
-      doc.AddSnapshotListener([](const DocumentSnapshot&, Error) {});
+  ListenerRegistration reg = doc.AddSnapshotListener(
+      [](const DocumentSnapshot&, Error, const std::string&) {});
   DeleteFirestore();
   SCOPED_TRACE("ListenerRegistration.AfterCleanup");
   ExpectAllMethodsAreNoOps(&reg);
