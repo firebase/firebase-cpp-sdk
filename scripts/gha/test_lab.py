@@ -90,8 +90,14 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
 
-  testapp_dir = FLAGS.testapp_dir
+  _verify_gcloud_sdk_command_line_tools()
+
+  testapp_dir = _fix_path(FLAGS.testapp_dir)
+  key_file_path = _fix_path(FLAGS.key_file)
   code_platform = FLAGS.code_platform
+
+  if not os.path.exists(key_file_path):
+    raise ValueError("Key file path does not exist: %s" % key_file_path)
 
   android_device = Device(model=FLAGS.android_model, version=FLAGS.android_api)
   ios_device = Device(model=FLAGS.ios_model, version=FLAGS.ios_version)
@@ -111,7 +117,7 @@ def main(argv):
 
   logging.info("Testapps found: %s", "\n".join(path for _, _, path in testapps))
 
-  _authorize_gcs(FLAGS.key_file)
+  _authorize_gcs(key_file_path)
 
   gcs_base_dir = _get_base_results_dir()
   logging.info("Storing results in %s", _relative_path_to_gs_uri(gcs_base_dir))
@@ -146,6 +152,14 @@ def main(argv):
 
   all_success = _report_results(tests, code_platform)
   return 0 if all_success else 1
+
+
+def _verify_gcloud_sdk_command_line_tools():
+  """Verifies the presence of the gCloud SDK's command line tools."""
+  logging.info("Looking for gcloud and gsutil tools...")
+  subprocess.run(["gcloud", "version"], check=True)
+  subprocess.run(["gsutil", "version"], check=True)
+  logging.info("gcloud and gsutil found")
 
 
 def _get_base_results_dir():
@@ -262,6 +276,11 @@ def _gcs_read_file(gcs_path):
   logging.info("Reading GCS file: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=True)
   return result.stdout
+
+
+def _fix_path(path):
+  """Expands ~, normalizes slashes, and converts relative paths to absolute."""
+  return os.path.abspath(os.path.expanduser(path))
 
 
 @attr.s(frozen=False, eq=False)
