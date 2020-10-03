@@ -137,7 +137,7 @@ def create_vcpkg_triplet(arch, crt_linkage):
       Eg: 'x86-windows-dynamic'
   """
   contents = [ 'VCPKG_TARGET_ARCHITECTURE {0}'.format(arch),
-               'VCPLG_CRT_LINKAGE {0}'.format(crt_linkage),
+               'VCPKG_CRT_LINKAGE {0}'.format(crt_linkage),
                'VCPKG_LIBRARY_LINKAGE static']
 
   contents = ['set({0})\n'.format(content) for content in contents]
