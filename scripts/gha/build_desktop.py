@@ -88,6 +88,8 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None):
           If its not specified, cmake's default is used (most likely Debug).
   """
   cmd = ['cmake', '-S', '.', '-B', build_dir]
+  if utils.is_windows_os() and arch == 'x86':
+    cmd.extend(['-A', 'Win32'])
 
   # If generator is not specifed, default for platform is used by cmake, else
   # use the specified value
@@ -145,9 +147,9 @@ def parse_cmdline_args():
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
   parser.add_argument('--vcpkg_step_only', action='store_true', help='Run vcpkg only and avoid subsequent cmake commands')
   args = parser.parse_args()
-  if utils.is_linux_os() or utils.is_mac_os():
+  # if utils.is_linux_os() or utils.is_mac_os():
     # Linux and mac vcpkg configurations error when we set runtime linkage to static
-    args.crt_linkage = 'dynamic'
+    # args.crt_linkage = 'dynamic'
   return args
 
 if __name__ == '__main__':
