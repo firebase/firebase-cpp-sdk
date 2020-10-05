@@ -113,7 +113,7 @@ jobs:
       # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
       # Must be run after the Python setup action
       - name: Set CLOUDSDK_PYTHON (Windows)
-        if: startsWith(matrix.os, 'windows')
+        if: startsWith(matrix.os, 'windows') && !cancelled()
         run: echo "::set-env name=CLOUDSDK_PYTHON::${{env.pythonLocation}}\python.exe"
       - name: Install Cloud SDK for mobile integration tests
         if: matrix.target_platform != 'Desktop' && !cancelled()
