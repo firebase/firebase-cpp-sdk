@@ -94,7 +94,6 @@ buildpath=$(mkdir -p ${buildpath} && cd ${buildpath} && pwd)    #full path
 # build framework for each architecture and target
 frameworkspath="frameworks/ios"
 for arch in ${architectures[@]}; do 
-{
     if ${generateMakefiles}; then
         echo "generate Makefiles start"
         mkdir -p ${buildpath}/ios_build_file/${arch} && cd ${buildpath}/ios_build_file/${arch}
@@ -116,9 +115,7 @@ for arch in ${architectures[@]}; do
         cmake --build . --target ${targets[@]}
         echo "build ${arch} ${targets[@]} framework end"
     fi
-} &
 done
-wait
 echo "${architectures[@]} frameworks build end"
 
 if ${cmakeBuild}; then
