@@ -9,6 +9,7 @@
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
+#include "firestore/src/jni/jni_fwd.h"
 #include "firebase/firestore/geo_point.h"
 #include "firebase/firestore/timestamp.h"
 
@@ -68,6 +69,8 @@ class FieldValueInternal : public Wrapper {
   static bool Initialize(App* app);
   static void Terminate(App* app);
 
+  void EnsureCachedBlob(jni::Env& env) const;
+
   static jobject TryGetJobject(const FieldValue& value);
 
   static jobject delete_;
@@ -80,6 +83,14 @@ class FieldValueInternal : public Wrapper {
 };
 
 bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs);
+
+inline jobject ToJni(const FieldValueInternal* value) {
+  return value->java_object();
+}
+
+inline jobject ToJni(const FieldValueInternal& value) {
+  return value.java_object();
+}
 
 }  // namespace firestore
 }  // namespace firebase

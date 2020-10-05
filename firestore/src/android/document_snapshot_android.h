@@ -1,10 +1,8 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_DOCUMENT_SNAPSHOT_ANDROID_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_DOCUMENT_SNAPSHOT_ANDROID_H_
 
-#include <map>
 #include <string>
 
-#include "app/src/include/firebase/app.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
@@ -20,6 +18,8 @@ class DocumentSnapshotInternal : public Wrapper {
  public:
   using ApiType = DocumentSnapshot;
   using Wrapper::Wrapper;
+
+  static void Initialize(jni::Loader& loader);
 
   ~DocumentSnapshotInternal() override {}
 
@@ -46,12 +46,6 @@ class DocumentSnapshotInternal : public Wrapper {
                  DocumentSnapshot::ServerTimestampBehavior stb) const;
 
  private:
-  friend class FirestoreInternal;
-
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
-
-  // Below are cached call results.
   mutable std::string cached_id_;
 };
 

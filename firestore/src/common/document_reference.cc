@@ -152,14 +152,16 @@ Future<void> DocumentReference::Delete() {
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 ListenerRegistration DocumentReference::AddSnapshotListener(
-    std::function<void(const DocumentSnapshot&, Error)> callback) {
+    std::function<void(const DocumentSnapshot&, Error, const std::string&)>
+        callback) {
   return AddSnapshotListener(MetadataChanges::kExclude,
                              firebase::Move(callback));
 }
 
 ListenerRegistration DocumentReference::AddSnapshotListener(
     MetadataChanges metadata_changes,
-    std::function<void(const DocumentSnapshot&, Error)> callback) {
+    std::function<void(const DocumentSnapshot&, Error, const std::string&)>
+        callback) {
   FIREBASE_ASSERT_MESSAGE(callback, "invalid callback parameter is passed in.");
   if (!internal_) return {};
   return internal_->AddSnapshotListener(metadata_changes,

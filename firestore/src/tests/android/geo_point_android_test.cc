@@ -1,24 +1,26 @@
 #include "firestore/src/android/geo_point_android.h"
 
-#include <jni.h>
-
+#include "firestore/src/jni/env.h"
 #include "firestore/src/tests/firestore_integration_test.h"
-#include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 #include "firebase/firestore/geo_point.h"
 
 namespace firebase {
 namespace firestore {
+namespace {
 
-TEST_F(FirestoreIntegrationTest, Converter) {
-  JNIEnv* env = app()->GetJNIEnv();
+using jni::Env;
 
-  const GeoPoint point{12.0, 34.0};
-  jobject java_point = GeoPointInternal::GeoPointToJavaGeoPoint(env, point);
-  EXPECT_EQ(point, GeoPointInternal::JavaGeoPointToGeoPoint(env, java_point));
+using GeoPointTest = FirestoreIntegrationTest;
 
-  env->DeleteLocalRef(java_point);
+TEST_F(GeoPointTest, Converts) {
+  Env env;
+
+  GeoPoint point{12.0, 34.0};
+  auto java_point = GeoPointInternal::Create(env, point);
+  EXPECT_EQ(point, java_point.ToPublic(env));
 }
 
+}  // namespace
 }  // namespace firestore
 }  // namespace firebase

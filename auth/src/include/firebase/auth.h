@@ -47,7 +47,7 @@ class PhoneAuthProvider;
 struct AuthCompletionHandle;
 class FederatedAuthProvider;
 class FederatedOAuthProvider;
-class SignInResult;
+struct SignInResult;
 
 /// @brief Firebase authentication object.
 ///

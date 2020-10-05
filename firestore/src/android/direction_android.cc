@@ -1,74 +1,36 @@
 #include "firestore/src/android/direction_android.h"
 
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/loader.h"
 
 namespace firebase {
 namespace firestore {
+namespace {
 
-// clang-format off
-#define DIRECTION_METHODS(X)                               \
-  X(Name, "name", "()Ljava/lang/String;")
-#define DIRECTION_FIELDS(X)                                \
-  X(Ascending, "ASCENDING",                                \
-    "Lcom/google/firebase/firestore/Query$Direction;",     \
-    util::kFieldTypeStatic),                               \
-  X(Descending, "DESCENDING",                              \
-    "Lcom/google/firebase/firestore/Query$Direction;",     \
-    util::kFieldTypeStatic)
-// clang-format on
+using jni::Env;
+using jni::Local;
+using jni::Object;
+using jni::StaticField;
 
-METHOD_LOOKUP_DECLARATION(direction, DIRECTION_METHODS, DIRECTION_FIELDS)
-METHOD_LOOKUP_DEFINITION(direction,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/firestore/Query$Direction",
-                         DIRECTION_METHODS, DIRECTION_FIELDS)
+constexpr char kClass[] =
+    PROGUARD_KEEP_CLASS "com/google/firebase/firestore/Query$Direction";
+StaticField<Object> kAscending(
+    "ASCENDING", "Lcom/google/firebase/firestore/Query$Direction;");
+StaticField<Object> kDescending(
+    "DESCENDING", "Lcom/google/firebase/firestore/Query$Direction;");
 
-jobject DirectionInternal::ascending_ = nullptr;
-jobject DirectionInternal::descending_ = nullptr;
+}  // namespace
 
-/* static */
-jobject DirectionInternal::ToJavaObject(JNIEnv* env,
-                                        Query::Direction direction) {
+void DirectionInternal::Initialize(jni::Loader& loader) {
+  loader.LoadClass(kClass, kAscending, kDescending);
+}
+
+Local<Object> DirectionInternal::Create(Env& env, Query::Direction direction) {
   if (direction == Query::Direction::kAscending) {
-    return ascending_;
+    return env.Get(kAscending);
   } else {
-    return descending_;
+    return env.Get(kDescending);
   }
-}
-
-/* static */
-bool DirectionInternal::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
-  bool result = direction::CacheMethodIds(env, activity) &&
-                direction::CacheFieldIds(env, activity);
-  util::CheckAndClearJniExceptions(env);
-
-  // Cache Java enum values.
-  jobject value = env->GetStaticObjectField(
-      direction::GetClass(), direction::GetFieldId(direction::kAscending));
-  ascending_ = env->NewGlobalRef(value);
-  env->DeleteLocalRef(value);
-
-  value = env->GetStaticObjectField(
-      direction::GetClass(), direction::GetFieldId(direction::kDescending));
-  descending_ = env->NewGlobalRef(value);
-  env->DeleteLocalRef(value);
-  util::CheckAndClearJniExceptions(env);
-
-  return result;
-}
-
-/* static */
-void DirectionInternal::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  direction::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
-
-  // Uncache Java enum values.
-  env->DeleteGlobalRef(ascending_);
-  ascending_ = nullptr;
-  env->DeleteGlobalRef(descending_);
-  descending_ = nullptr;
 }
 
 }  // namespace firestore

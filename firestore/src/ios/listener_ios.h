@@ -5,6 +5,7 @@
 #include <memory>
 #include <utility>
 
+#include "firestore/src/common/util.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/promise_ios.h"
 #include "firebase/firestore/firestore_errors.h"
@@ -42,16 +43,16 @@ std::unique_ptr<core::EventListener<From>> ListenerWithPromise(
 //   a public API type (`To`).
 template <typename From, typename To>
 std::unique_ptr<core::EventListener<From>> ListenerWithCallback(
-    std::function<void(To, Error)> callback) {
+    std::function<void(To, Error, const std::string&)> callback) {
   return core::EventListener<From>::Create(
       [callback](util::StatusOr<From> maybe_value) mutable {
         if (maybe_value.ok()) {
           From from = std::move(maybe_value).ValueOrDie();
           To to = MakePublic(std::move(from));
-          callback(std::move(to), Error::kErrorOk);
-
+          callback(std::move(to), Error::kErrorOk, EmptyString());
         } else {
-          callback(To{}, maybe_value.status().code());
+          callback(To{}, maybe_value.status().code(),
+                   maybe_value.status().error_message());
         }
       });
 }
@@ -74,7 +75,10 @@ template <typename From, typename To>
 std::unique_ptr<core::EventListener<From>> ListenerWithEventListener(
     EventListener<To>* listener) {
   return ListenerWithCallback<From, To>(
-      [listener](To result, Error error) { listener->OnEvent(result, error); });
+      [listener](To result, Error error_code,
+                 const std::string& error_message) {
+        listener->OnEvent(result, error_code, error_message);
+      });
 }
 
 inline util::StatusCallback StatusCallbackWithPromise(Promise<void> promise) {

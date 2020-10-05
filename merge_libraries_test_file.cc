@@ -17,6 +17,11 @@
 /* This is a test file for merge_libraries.py tests. It contains some C and C++
  * symbols that merge_libraries can rename. */
 
+#include <memory>
+#include <string>
+#include <utility>
+#include <vector>
+
 extern "C" {
 int test_symbol(void) { return 1; }  // NOLINT
 
@@ -34,11 +39,15 @@ namespace test_namespace {
 class TestClass {
  public:
   TestClass();
+  TestClass(const TestClass&);   // not in this file
+  TestClass(const TestClass&&);  // not in this file
+  ~TestClass();                  // not in this file
   int TestMethod();
   int TestMethodNotInThisfile();
-  int TestStaticMethod();
-  int TestStaticMethodNotInThisFile();
-  static int test_static_field;  // NOLINT
+  static int TestStaticMethod();
+  static int TestStaticMethodNotInThisFile();
+  static int test_static_field;                   // NOLINT
+  static int test_static_field_not_in_this_file;  // NOLINT
 };
 
 int global_cpp_symbol = 12345;  // NOLINT
@@ -47,8 +56,34 @@ int TestClass::test_static_field;
 
 TestClass::TestClass() {}
 
-int TestClass::TestMethod() { return not_in_this_file(); }
+int TestClass::TestMethod() {
+  return TestMethodNotInThisfile() + not_in_this_file();
+}
 
 int TestClass::TestStaticMethod() { return TestStaticMethodNotInThisFile(); }
 
 }  // namespace test_namespace
+
+void GlobalFunctionWithParameter(test_namespace::TestClass const&, int) {}
+
+void GlobalFunctionWithMultipleParameters(
+    test_namespace::TestClass* p1, std::vector<test_namespace::TestClass> p2,
+    std::unique_ptr<test_namespace::TestClass> p3,
+    std::vector<std::unique_ptr<test_namespace::TestClass>> p4, std::string) {
+  p2.push_back(*p1);
+  p2.pop_back();
+  p4.push_back(std::move(p3));
+  p4.pop_back();
+}
+
+extern void ExternFunctionWithParameter(test_namespace::TestClass&&, int);
+
+extern void ExternFunctionWithMultipleParameters(
+    const test_namespace::TestClass&,
+    std::unique_ptr<test_namespace::TestClass>, std::string);
+
+namespace another_namespace {
+
+extern void ExternFunctionNotUsingNamespace(std::string);
+
+}  // namespace another_namespace

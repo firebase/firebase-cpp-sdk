@@ -91,7 +91,8 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
 
 ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
-    std::function<void(const DocumentSnapshot&, Error)> callback) {
+    std::function<void(const DocumentSnapshot&, Error, const std::string&)>
+        callback) {
   auto options = core::ListenOptions::FromIncludeMetadataChanges(
       metadata_changes == MetadataChanges::kInclude);
   auto result = reference_.AddSnapshotListener(

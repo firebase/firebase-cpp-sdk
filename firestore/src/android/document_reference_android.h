@@ -10,28 +10,29 @@
 #include "firestore/src/android/promise_factory_android.h"
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
+#include "firestore/src/jni/jni_fwd.h"
 
 namespace firebase {
 namespace firestore {
 
 class Firestore;
 
-// Each API of DocumentReference that returns a Future needs to define an enum
-// value here. For example, a Future-returning method Foo() relies on the enum
-// value kFoo. The enum values are used to identify and manage Future in the
-// Firestore Future manager.
-enum class DocumentReferenceFn {
-  kGet = 0,
-  kSet,
-  kUpdate,
-  kDelete,
-  kCount,  // Must be the last enum value.
-};
-
 // This is the Android implementation of DocumentReference.
 class DocumentReferenceInternal : public Wrapper {
  public:
   using ApiType = DocumentReference;
+
+  // Each API of DocumentReference that returns a Future needs to define an enum
+  // value here. For example, a Future-returning method Foo() relies on the enum
+  // value kFoo. The enum values are used to identify and manage Future in the
+  // Firestore Future manager.
+  enum class AsyncFn {
+    kGet = 0,
+    kSet,
+    kUpdate,
+    kDelete,
+    kCount,  // Must be the last enum value.
+  };
 
   DocumentReferenceInternal(FirestoreInternal* firestore, jobject object)
       : Wrapper(firestore, object), promises_(firestore) {}
@@ -145,7 +146,8 @@ class DocumentReferenceInternal : public Wrapper {
    */
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
-      std::function<void(const DocumentSnapshot&, Error)> callback);
+      std::function<void(const DocumentSnapshot&, Error, const std::string&)>
+          callback);
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
   /**
@@ -170,15 +172,14 @@ class DocumentReferenceInternal : public Wrapper {
       bool passing_listener_ownership = false);
 
   /** @brief Gets the class object of Java DocumentReference class. */
-  static jclass GetClass();
+  static jni::Class GetClass();
 
  private:
   friend class FirestoreInternal;
 
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  static void Initialize(jni::Loader& loader);
 
-  PromiseFactory<DocumentReferenceFn> promises_;
+  PromiseFactory<AsyncFn> promises_;
 
   // Below are cached call results.
   mutable std::string cached_id_;

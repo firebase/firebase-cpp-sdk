@@ -7,16 +7,21 @@
 #include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/util_android.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/hash_map.h"
 
 namespace firebase {
 namespace firestore {
+namespace {
 
-// clang-format off
-#define OBJECT_METHOD(X) X(Equals, "equals", "(Ljava/lang/Object;)Z")
-// clang-format on
+using jni::Array;
+using jni::Env;
+using jni::HashMap;
+using jni::Local;
+using jni::Object;
+using jni::String;
 
-METHOD_LOOKUP_DECLARATION(object, OBJECT_METHOD)
-METHOD_LOOKUP_DEFINITION(object, "java/lang/Object", OBJECT_METHOD)
+}  // namespace
 
 Wrapper::Wrapper(FirestoreInternal* firestore, jobject obj)
     : Wrapper(firestore, obj, AllowNullObject::Yes) {
@@ -81,85 +86,40 @@ Wrapper::~Wrapper() {
   }
 }
 
-bool Wrapper::EqualsJavaObject(const Wrapper& other) const {
-  if (obj_ == other.obj_) {
-    return true;
-  }
-
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  jboolean result = env->CallBooleanMethod(
-      obj_, object::GetMethodId(object::kEquals), other.obj_);
-  CheckAndClearJniExceptions(env);
-  return static_cast<bool>(result);
-}
-
-/* static */
-jobject Wrapper::MapFieldValueToJavaMap(FirestoreInternal* firestore,
-                                        const MapFieldValue& data) {
-  JNIEnv* env = firestore->app()->GetJNIEnv();
-
-  // Creates an empty Java HashMap (implementing Map) object.
-  jobject result =
-      env->NewObject(util::hash_map::GetClass(),
-                     util::hash_map::GetMethodId(util::hash_map::kConstructor));
-  CheckAndClearJniExceptions(env);
-
-  // Adds each mapping.
-  jmethodID put_method = util::map::GetMethodId(util::map::kPut);
+Local<HashMap> Wrapper::MakeJavaMap(Env& env, const MapFieldValue& data) const {
+  Local<HashMap> result = HashMap::Create(env);
   for (const auto& kv : data) {
-    jobject key = env->NewStringUTF(kv.first.c_str());
-    // Map::Put() returns previously associated value or null, which we have
-    // no use of.
-    env->CallObjectMethod(result, put_method, key,
-                          kv.second.internal_->java_object());
-    env->DeleteLocalRef(key);
-    CheckAndClearJniExceptions(env);
+    Local<String> key = env.NewStringUtf(kv.first);
+    const Object& value = kv.second.internal_->ToJava();
+    result.Put(env, key, value);
   }
-
   return result;
 }
 
-/* static */
-jobjectArray Wrapper::MapFieldPathValueToJavaArray(
-    FirestoreInternal* firestore, MapFieldPathValue::const_iterator begin,
-    MapFieldPathValue::const_iterator end) {
-  JNIEnv* env = firestore->app()->GetJNIEnv();
+Wrapper::UpdateFieldPathArgs Wrapper::MakeUpdateFieldPathArgs(
+    Env& env, const MapFieldPathValue& data) const {
+  auto iter = data.begin();
+  auto end = data.end();
+  FIREBASE_DEV_ASSERT_MESSAGE(iter != end, "data must be non-empty");
 
-  const auto size = std::distance(begin, end) * 2;
-  jobjectArray result = env->NewObjectArray(size, util::object::GetClass(),
-                                            /*initialElement=*/nullptr);
-  CheckAndClearJniExceptions(env);
+  Local<Object> first_field = FieldPathConverter::Create(env, iter->first);
+  const Object& first_value = iter->second.internal_->ToJava();
+  ++iter;
+
+  const auto size = std::distance(iter, data.end()) * 2;
+  Local<Array<Object>> varargs = env.NewArray(size, Object::GetClass());
 
   int index = 0;
-  for (auto iter = begin; iter != end; ++iter) {
-    jobject field = FieldPathConverter::ToJavaObject(env, iter->first);
-    env->SetObjectArrayElement(result, index, field);
-    env->DeleteLocalRef(field);
-    ++index;
+  for (; iter != end; ++iter) {
+    Local<Object> field = FieldPathConverter::Create(env, iter->first);
+    const Object& value = iter->second.internal_->ToJava();
 
-    env->SetObjectArrayElement(result, index,
-                               iter->second.internal_->java_object());
-    ++index;
-    CheckAndClearJniExceptions(env);
+    varargs.Set(env, index++, field);
+    varargs.Set(env, index++, value);
   }
 
-  return result;
+  return UpdateFieldPathArgs{Move(first_field), first_value, Move(varargs)};
 }
 
-/* static */
-bool Wrapper::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
-  bool result = object::CacheMethodIds(env, activity);
-  util::CheckAndClearJniExceptions(env);
-  return result;
-}
-
-/* static */
-void Wrapper::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  object::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
-}
 }  // namespace firestore
 }  // namespace firebase

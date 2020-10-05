@@ -12,6 +12,11 @@
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
+#include "firestore/src/jni/array.h"
+#include "firestore/src/jni/jni_fwd.h"
+#include "firestore/src/jni/list.h"
+#include "firestore/src/jni/object.h"
+#include "firestore/src/jni/ownership.h"
 
 namespace firebase {
 namespace firestore {
@@ -48,10 +53,8 @@ class Wrapper {
   Wrapper& operator=(Wrapper&& wrapper) = delete;
 
   FirestoreInternal* firestore_internal() { return firestore_; }
-  jobject java_object() { return obj_; }
-
-  // Tests the equality of the wrapped Java Object.
-  bool EqualsJavaObject(const Wrapper& other) const;
+  jobject java_object() const { return obj_; }
+  jni::Object ToJava() const { return jni::Object(obj_); }
 
  protected:
   enum class AllowNullObject { Yes };
@@ -66,51 +69,63 @@ class Wrapper {
   // Similar to a copy constructor, but can handle the case where `rhs` is null.
   explicit Wrapper(Wrapper* rhs);
 
+  jni::Env GetEnv() const { return firestore_->GetEnv(); }
+
   // Converts a java list of java type e.g. java.util.List<FirestoreJavaType> to
   // a C++ vector of equivalent type e.g. std::vector<FirestoreType>.
   template <typename PublicT, typename InternalT = InternalType<PublicT>>
-  static void JavaListToStdVector(FirestoreInternal* firestore, jobject from,
-                                  std::vector<PublicT>* to) {
-    JNIEnv* env = firestore->app()->GetJNIEnv();
-    int size =
-        env->CallIntMethod(from, util::list::GetMethodId(util::list::kSize));
-    CheckAndClearJniExceptions(env);
-    to->clear();
-    to->reserve(size);
+  std::vector<PublicT> MakeVector(jni::Env& env, const jni::List& from) const {
+    size_t size = from.Size(env);
+    std::vector<PublicT> result;
+    result.reserve(size);
+
     for (int i = 0; i < size; ++i) {
-      jobject element = env->CallObjectMethod(
-          from, util::list::GetMethodId(util::list::kGet), i);
-      CheckAndClearJniExceptions(env);
-      // Cannot call with emplace_back since the constructor is protected.
-      to->push_back(PublicT{new InternalT{firestore, element}});
-      env->DeleteLocalRef(element);
+      jni::Local<jni::Object> element = from.Get(env, i);
+
+      // Avoid creating a partially valid public object on failure.
+      // TODO(b/163140650): Use `return {}`
+      // Clang 5 with STLPort gives a "chosen constructor is explicit in
+      // copy-initialization" error because the default constructor is explicit.
+      if (!env.ok()) return std::vector<PublicT>();
+
+      // Use push_back because emplace_back requires a public constructor.
+      result.push_back(PublicT{new InternalT{firestore_, element.get()}});
     }
+    return result;
   }
 
-  // Converts a MapFieldValue to a java Map object that maps String to Object.
-  // The caller is responsible for freeing the returned jobject via
-  // JNIEnv::DeleteLocalRef().
-  static jobject MapFieldValueToJavaMap(FirestoreInternal* firestore,
-                                        const MapFieldValue& data);
+  // Converts a MapFieldValue to a Java Map object that maps String to Object.
+  jni::Local<jni::HashMap> MakeJavaMap(jni::Env& env,
+                                       const MapFieldValue& data) const;
 
-  // Makes a variadic parameters from C++ MapFieldPathValue iterators up to the
-  // given size. The caller is responsible for freeing the returned jobject via
-  // JNIENV::DeleteLocalRef(). This helper takes iterators instead of
-  // MapFieldPathValue directly because the Android native client API may
-  // require passing the first pair explicit and thus the variadic starting from
-  // the second pair.
-  static jobjectArray MapFieldPathValueToJavaArray(
-      FirestoreInternal* firestore, MapFieldPathValue::const_iterator begin,
-      MapFieldPathValue::const_iterator end);
+  /**
+   * The result of parsing a `MapFieldPathValue` object into its equivalent
+   * arguments, prepared for calling a Firestore Java `update` method. `update`
+   * takes its first two arguments separate from a varargs array.
+   *
+   * An `UpdateFieldPathArgs` object is only valid as long as the
+   * `MapFieldPathValue` object from which it is created is valid because these
+   * are not new references. This is reflected in the fact that `first_value`
+   * is not an owning reference to its `jni::Object`.
+   */
+  struct UpdateFieldPathArgs {
+    jni::Local<jni::Object> first_field;
+    jni::Object first_value;
+    jni::Local<jni::Array<jni::Object>> varargs;
+  };
+
+  // Creates the variadic parameters for a call to Java `update` from a C++
+  // MapFieldPathValue. The result separates the first field and value because
+  // Android Java API requires passing the first pair separately. The caller
+  // is responsible for verifying that `data` has at least one element.
+  UpdateFieldPathArgs MakeUpdateFieldPathArgs(
+      jni::Env& env, const MapFieldPathValue& data) const;
 
   FirestoreInternal* firestore_ = nullptr;  // not owning
   jobject obj_ = nullptr;
 
  private:
   friend class FirestoreInternal;
-
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
 };
 
 }  // namespace firestore
