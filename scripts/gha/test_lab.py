@@ -303,7 +303,8 @@ class Test(object):
         "--app", self.testapp_path,
         "--results-bucket", _PROJECT_ID,
         "--results-dir", self.results_dir,
-        "--timeout", "300s"
+        "--timeout", "300s",
+        "--quiet"
     ]
 
 
