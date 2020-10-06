@@ -237,6 +237,12 @@ def get_vcpkg_installation_script_path():
   return script_absolute_path
 
 
+def get_vcpkg_cmake_toolchain_file_path():
+  """Get absolute path to toolchain file used for cmake builds"""
+  vcpkg_root_dir = get_vcpkg_root_path()
+  return os.path.join(vcpkg_root_dir, 'scripts', 'buildsystems', 'vcpkg.cmake')
+
+
 def clean_vcpkg_temp_data():
   """Delete files/directories that vcpkg uses during its build"""
   # Clear temporary directories and files created by vcpkg buildtrees
