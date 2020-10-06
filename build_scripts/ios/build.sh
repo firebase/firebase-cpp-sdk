@@ -91,7 +91,7 @@ echo "CMake Build: ${cmakeBuild}"
 sourcepath=$(cd ${sourcepath} && pwd)   #full path
 buildpath=$(mkdir -p ${buildpath} && cd ${buildpath} && pwd)    #full path
 
-# build framework for each architecture and target
+# generate Makefiles for each architecture and target
 frameworkspath="frameworks/ios"
 if ${generateMakefiles}; then
     for arch in ${architectures[@]}; do 
@@ -110,6 +110,7 @@ if ${generateMakefiles}; then
     done
 fi
 
+# build framework for each architecture and target
 if ${cmakeBuild}; then
     for arch in ${architectures[@]}; do 
     {
