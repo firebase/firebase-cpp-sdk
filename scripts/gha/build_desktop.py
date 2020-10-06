@@ -32,8 +32,11 @@ python scripts/gha/build_desktop.py --build_tests --arch x64
 # Build only firebase_app and firebase_auth
 python scripts/gha/build_desktop.py --target firebase_app firebase_auth
 
-# Build with /MD on Windows and MSVC and x86
+# /MT Build with static runtime libraries in MSVC (Windows) and x86.
 python scripts/gha/build_desktop.py --crt_linkage static --arch x86
+
+# /MD Build with dynamic runtime libraries in MSVC (Windows) and x86.
+python scripts/gha/build_desktop.py --crt_linkage dynamic --arch x86
 
 """
 
@@ -146,7 +149,7 @@ def main():
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Install Prerequisites for building cpp sdk')
   parser.add_argument('-a', '--arch', default='x64', help='Platform architecture (x64, x86)')
-  parser.add_argument('--crt_linkage', default='dynamic', help='Runtime linkage (works only for MSVC)')
+  parser.add_argument('--crt_linkage', default='static', help='Runtime linkage (works only for MSVC)')
   parser.add_argument('--build_dir', default='build', help='Output build directory')
   parser.add_argument('--build_tests', action='store_true', help='Build unit tests too')
   parser.add_argument('--config', help='Release/Debug config')
