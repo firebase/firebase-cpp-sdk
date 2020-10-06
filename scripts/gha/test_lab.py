@@ -295,7 +295,7 @@ class Test(object):
     if self.platform == _ANDROID:
       cmd = ["gcloud", "firebase", "test", "android", "run"]
     elif self.platform == _IOS:
-      cmd = ["gcloud", "beta", "firebase", "test", "ios", "run"]
+      cmd = ["gcloud", "--quiet", "beta", "firebase", "test", "ios", "run"]
     else:
       raise ValueError("Invalid platform, must be 'Android' or 'iOS'")
     return cmd + self.device.get_gcloud_flags() + [
@@ -303,8 +303,7 @@ class Test(object):
         "--app", self.testapp_path,
         "--results-bucket", _PROJECT_ID,
         "--results-dir", self.results_dir,
-        "--timeout", "300s",
-        "--quiet"
+        "--timeout", "300s"
     ]
 
 
