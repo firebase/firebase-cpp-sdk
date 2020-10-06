@@ -108,10 +108,10 @@ def check_vcpkg_triplet(triplet_name, arch, crt_linkage):
   _crt_linkage = None
 
   with open(triplet_file_path, 'r') as triplet_file:
-    for line in triplet_file.readlines():
-      # Eg: set(VCPKG_TARGET_ARCHITECTURE x86)\n
-      line = line.rstrip('\n').rstrip(')')
-      # Eg: set(VCPKG_TARGET_ARCHITECTURE x86
+    for line in triplet_file:
+      # Eg: set(VCPKG_TARGET_ARCHITECTURE x86) ->
+      #     set(VCPKG_TARGET_ARCHITECTURE x86
+      line = line.rstrip(')')
       if not line.startswith('set('):
         continue
       # Eg: 'set(', 'VCPKG_TARGET_ARCHITECTURE x86'
@@ -189,9 +189,8 @@ def get_vcpkg_triplet(arch='x64', crt_linkage='dynamic'):
 
 def get_vcpkg_triplet_file_path(triplet_name):
   """Get absolute path to vcpkg triplet configuration file."""
-  triplet_file_path = os.path.join(get_vcpkg_root_path(), 'triplets',
-                                   triplet_name+'.cmake')
-  return triplet_file_path
+  return os.path.join(get_vcpkg_root_path(), 'triplets',
+                                   triplet_name + '.cmake')
 
 
 def get_vcpkg_response_file_path(triplet_name):
@@ -199,11 +198,27 @@ def get_vcpkg_response_file_path(triplet_name):
   response_file_dir_path = os.path.join(os.getcwd(), 'external')
   response_file_path = os.path.join(response_file_dir_path,
                        'vcpkg_' + triplet_name + '_response_file.txt')
+  # The firebase-cpp-sdk repo ships with pre-created response files
+  # (list of packages to install + a triplet name at the end)
+  # for common triplets supported by a fresh vcpkg install.
+  # These response files are located at <repo_root>/external/vcpkg_*
+  # If we do not find a matching response file to specified triplet,
+  # we have to create a new file. In order to do this, we copy any of
+  # the existing files (vcpkg_x64-linux_response_file.txt in this case)
+  # and modify the triplet name contained in it. Copying makes sure that the
+  # list of packages to install is the same as other response files.
   if not os.path.exists(response_file_path):
     existing_response_file_path = os.path.join(response_file_dir_path,
-                         'vcpkg_x64-linux' + '_response_file.txt')
+                         'vcpkg_x64-linux_response_file.txt')
     with open(existing_response_file_path, 'r') as existing_file:
+      # Structure of a vcpkg response file
+      # <package1>
+      # <package2>
+      # ...
+      # --triplet
+      # <triplet_name>
       lines = existing_file.readlines()
+      # Modify the line containing triplet name
       lines[-1] = triplet_name + '\n'
       with open(response_file_path, 'w') as response_file:
         response_file.writelines(lines)
@@ -252,6 +267,3 @@ def clean_vcpkg_temp_data():
   delete_directory(buildtrees_dir_path)
   downloads_dir_path = os.path.join(vcpkg_root_dir_path, 'downloads')
   delete_directory(downloads_dir_path)
-
-
-
