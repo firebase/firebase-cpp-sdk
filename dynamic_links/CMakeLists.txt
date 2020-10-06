@@ -85,6 +85,10 @@ elseif(IOS)
     POD_NAMES
       FirebaseDynamicLinks
   )
+
+  set_target_properties(firebase_dynamic_links PROPERTIES
+    FRAMEWORK TRUE
+  )
 endif()
 
 cpp_pack_library(firebase_dynamic_links "")
