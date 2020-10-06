@@ -32,6 +32,9 @@ python scripts/gha/build_desktop.py --build_tests --arch x64
 # Build only firebase_app and firebase_auth
 python scripts/gha/build_desktop.py --target firebase_app firebase_auth
 
+# Build with /MD on Windows and MSVC and x86
+python scripts/gha/build_desktop.py --crt_linkage static --arch x86
+
 """
 
 import argparse
@@ -72,6 +75,11 @@ def install_cpp_dependencies_with_vcpkg(arch, crt_linkage):
   # Clear temporary directories and files created by vcpkg buildtrees
   # could be several GBs and cause github runners to run out of space
   utils.clean_vcpkg_temp_data()
+  print("Successfully built C++ dependencies via vcpkg!\n"
+        "Please set the following cmake options to use these libraries.\n"
+        "VCPKG_TARGET_TRIPLET: {0}\n"
+        "CMAKE_TOOLCHAIN_FILE: {1}\n".format(vcpkg_triplet,
+                                      utils.get_vcpkg_cmake_toolchain_file_path()))
 
 
 def cmake_configure(build_dir, arch, build_tests=True, config=None):
@@ -99,9 +107,7 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None):
     cmd.append('-DFIREBASE_CPP_BUILD_TESTS=ON')
     cmd.append('-DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON')
 
-  vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external',
-                                           'vcpkg', 'scripts',
-                                           'buildsystems', 'vcpkg.cmake')
+  vcpkg_toolchain_file_path = utils.get_vcpkg_cmake_toolchain_file_path()
   cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(vcpkg_toolchain_file_path))
 
   vcpkg_triplet = utils.get_vcpkg_triplet(arch)
@@ -140,16 +146,18 @@ def main():
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Install Prerequisites for building cpp sdk')
   parser.add_argument('-a', '--arch', default='x64', help='Platform architecture (x64, x86)')
-  parser.add_argument('--crt_linkage', default='dynamic', help='Runtime linkage (work only for MSVC)')
+  parser.add_argument('--crt_linkage', default='dynamic', help='Runtime linkage (works only for MSVC)')
   parser.add_argument('--build_dir', default='build', help='Output build directory')
   parser.add_argument('--build_tests', action='store_true', help='Build unit tests too')
   parser.add_argument('--config', help='Release/Debug config')
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
   parser.add_argument('--vcpkg_step_only', action='store_true', help='Run vcpkg only and avoid subsequent cmake commands')
   args = parser.parse_args()
-  # if utils.is_linux_os() or utils.is_mac_os():
-    # Linux and mac vcpkg configurations error when we set runtime linkage to static
-    # args.crt_linkage = 'dynamic'
+  if utils.is_linux_os() or utils.is_mac_os():
+    # This flag makes sense only for Windows and MSVC.
+    # For Linux and Mac, we can use the default value (dynamic) as it allows us to just use
+    # the prebuilt vcpkg configuration files instead of creating new ones.
+    args.crt_linkage = 'dynamic'
   return args
 
 if __name__ == '__main__':
