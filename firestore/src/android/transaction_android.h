@@ -19,8 +19,6 @@ namespace firestore {
 
 class TransactionInternal : public Wrapper {
  public:
-  using ApiType = Transaction;
-
   static void Initialize(jni::Loader& loader);
 
   TransactionInternal(FirestoreInternal* firestore, jobject obj)

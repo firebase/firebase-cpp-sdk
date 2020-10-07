@@ -7,8 +7,8 @@
 #include "gtest/gtest.h"
 
 #if defined(__ANDROID__)
+#include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/document_reference_android.h"
-#include "firestore/src/android/firestore_android.h"
 #elif defined(FIRESTORE_STUB_BUILD)
 #include "firestore/src/stub/document_reference_stub.h"
 #endif  // defined(__ANDROID__)
@@ -45,8 +45,7 @@ TEST_F(DocumentReferenceTest, RecoverFirestore) {
   DocumentReference doc = Document();
   ASSERT_EQ(db, doc.firestore());  // Sanity check
 
-  jni::Object doc_java =
-      FirestoreInternal::Internal<DocumentReferenceInternal>(doc)->ToJava();
+  jni::Object doc_java = GetInternal(doc)->ToJava();
   result = DocumentReferenceInternal::Create(env, doc_java);
   ASSERT_EQ(db, result.firestore());
 }

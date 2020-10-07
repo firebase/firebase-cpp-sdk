@@ -18,13 +18,12 @@ namespace firestore {
 
 class FieldValueInternal : public Wrapper {
  public:
-  using ApiType = FieldValue;
-
   // Wrapper does not allow passing in Java Null object. So we need to deal that
   // case separately. Generally Java Null is not a valid instance of any
   // Firestore types except here Null may represent a valid FieldValue of Null
   // type.
   FieldValueInternal(FirestoreInternal* firestore, jobject obj);
+  FieldValueInternal(FirestoreInternal* firestore, const jni::Object& obj);
   FieldValueInternal(const FieldValueInternal& wrapper);
   FieldValueInternal(FieldValueInternal&& wrapper);
 

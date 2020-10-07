@@ -20,8 +20,6 @@ class Firestore;
 // This is the Android implementation of DocumentReference.
 class DocumentReferenceInternal : public Wrapper {
  public:
-  using ApiType = DocumentReference;
-
   // Each API of DocumentReference that returns a Future needs to define an enum
   // value here. For example, a Future-returning method Foo() relies on the enum
   // value kFoo. The enum values are used to identify and manage Future in the
@@ -41,6 +39,10 @@ class DocumentReferenceInternal : public Wrapper {
 
   DocumentReferenceInternal(FirestoreInternal* firestore, jobject object)
       : Wrapper(firestore, object), promises_(firestore) {}
+
+  DocumentReferenceInternal(FirestoreInternal* firestore,
+                            const jni::Object& object)
+      : DocumentReferenceInternal(firestore, object.get()) {}
 
   /** Gets the Firestore instance associated with this document reference. */
   Firestore* firestore();

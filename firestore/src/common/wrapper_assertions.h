@@ -8,6 +8,7 @@
 #include <jni.h>
 
 #include "app/src/util_android.h"
+#include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/firestore_android.h"
 #elif defined(FIRESTORE_STUB_BUILD)
 #include "firestore/src/stub/firestore_stub.h"
@@ -33,20 +34,17 @@ FirestoreTypeInternal* NewInternal() {
   InitResult init_result;
   Firestore* firestore = Firestore::GetInstance(GetApp(), &init_result);
   EXPECT_EQ(kInitResultSuccess, init_result);
-  JNIEnv* env = firestore->app()->GetJNIEnv();
+  jni::Env env;
+
+  FirestoreInternal* internal = GetInternal(firestore);
 
   // We use a Java String object as a dummy to create the internal type. There
   // is no generic way to create an actual Java object of internal type. But
   // since we are not actually do any JNI call to the Java object, any Java
   // object is just as good. We cannot pass in nullptr since most of the wrapper
   // does not allow to wrap nullptr object.
-  jobject dummy = env->NewStringUTF("dummy");
-  FirestoreTypeInternal* result = new FirestoreTypeInternal{
-      FirestoreInternal::Internal<FirestoreInternal>(*firestore), dummy};
-  env->DeleteLocalRef(dummy);
-  util::CheckAndClearJniExceptions(env);
-
-  return result;
+  auto dummy = env.NewStringUtf("dummy");
+  return new FirestoreTypeInternal(internal, dummy);
 }
 
 // It is technically complicated to create a true ListenerRegistrationInternal.
@@ -84,23 +82,18 @@ template <typename FirestoreType,
           typename FirestoreTypeInternal = InternalType<FirestoreType>>
 void AssertWrapperConstructionContract() {
   FirestoreType default_instance;
-  EXPECT_EQ(nullptr, FirestoreInternal::Internal<FirestoreTypeInternal>(
-                         default_instance));
+  EXPECT_EQ(nullptr, GetInternal(default_instance));
 
-  FirestoreTypeInternal* internal = NewInternal<FirestoreTypeInternal>();
-  FirestoreType instance = FirestoreInternal::Wrap(internal);
-  EXPECT_EQ(internal,
-            FirestoreInternal::Internal<FirestoreTypeInternal>(instance));
+  auto* internal = NewInternal<FirestoreTypeInternal>();
+  auto instance = MakePublic<FirestoreType>(internal);
+  EXPECT_EQ(internal, GetInternal(instance));
 
   FirestoreType instance_copy(instance);
-  EXPECT_NE(nullptr,
-            FirestoreInternal::Internal<FirestoreTypeInternal>(instance_copy));
-  EXPECT_NE(internal,
-            FirestoreInternal::Internal<FirestoreTypeInternal>(instance_copy));
+  EXPECT_NE(nullptr, GetInternal(instance_copy));
+  EXPECT_NE(internal, GetInternal(instance_copy));
 
   FirestoreType instance_move(std::move(instance));
-  EXPECT_EQ(internal,
-            FirestoreInternal::Internal<FirestoreTypeInternal>(instance_move));
+  EXPECT_EQ(internal, GetInternal(instance_move));
 }
 
 // A helper that tests the common contract of the assignment logic of Firestore
@@ -117,19 +110,16 @@ void AssertWrapperConstructionContract() {
 template <typename FirestoreType,
           typename FirestoreTypeInternal = InternalType<FirestoreType>>
 void AssertWrapperAssignmentContract() {
-  FirestoreTypeInternal* internal = NewInternal<FirestoreTypeInternal>();
-  FirestoreType instance = FirestoreInternal::Wrap(internal);
+  auto* internal = NewInternal<FirestoreTypeInternal>();
+  auto instance = MakePublic<FirestoreType>(internal);
   FirestoreType instance_copy;
   instance_copy = instance;
-  EXPECT_NE(nullptr,
-            FirestoreInternal::Internal<FirestoreTypeInternal>(instance_copy));
-  EXPECT_NE(internal,
-            FirestoreInternal::Internal<FirestoreTypeInternal>(instance_copy));
+  EXPECT_NE(nullptr, GetInternal(instance_copy));
+  EXPECT_NE(internal, GetInternal(instance_copy));
 
   FirestoreType instance_move;
   instance_move = std::move(instance);
-  EXPECT_EQ(internal,
-            FirestoreInternal::Internal<FirestoreTypeInternal>(instance_move));
+  EXPECT_EQ(internal, GetInternal(instance_move));
 }
 
 #endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)

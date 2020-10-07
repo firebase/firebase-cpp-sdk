@@ -18,8 +18,6 @@ class Firestore;
 
 class QueryInternal : public Wrapper {
  public:
-  using ApiType = Query;
-
   // Each API of Query that returns a Future needs to define an enum value here.
   // For example, a Future-returning method Foo() relies on the enum value kFoo.
   // The enum values are used to identify and manage Future in the Firestore
@@ -39,6 +37,9 @@ class QueryInternal : public Wrapper {
 
   QueryInternal(FirestoreInternal* firestore, jobject object)
       : Wrapper(firestore, object), promises_(firestore) {}
+
+  QueryInternal(FirestoreInternal* firestore, const jni::Object& object)
+      : QueryInternal(firestore, object.get()) {}
 
   /** Gets the Firestore instance associated with this query. */
   Firestore* firestore();

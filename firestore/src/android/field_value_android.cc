@@ -63,6 +63,10 @@ FieldValueInternal::FieldValueInternal(FirestoreInternal* firestore,
     : Wrapper(firestore, obj, AllowNullObject::Yes),
       cached_type_(Type::kNull) {}
 
+FieldValueInternal::FieldValueInternal(FirestoreInternal* firestore,
+                                       const Object& obj)
+    : FieldValueInternal(firestore, obj.get()) {}
+
 FieldValueInternal::FieldValueInternal(const FieldValueInternal& wrapper)
     : Wrapper(wrapper),
       cached_type_(wrapper.cached_type_),

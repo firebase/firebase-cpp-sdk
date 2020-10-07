@@ -13,7 +13,6 @@ namespace firestore {
 // This is the Android implementation of CollectionReference.
 class CollectionReferenceInternal : public QueryInternal {
  public:
-  using ApiType = CollectionReference;
   using QueryInternal::QueryInternal;
 
   // To make things simple, CollectionReferenceInternal uses the Future

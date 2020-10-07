@@ -43,8 +43,6 @@ extern const char kApiIdentifier[];
 // will implement the Future APIs on the fly.
 class FirestoreInternal {
  public:
-  using ApiType = Firestore;
-
   // Each API of Firestore that returns a Future needs to define an enum
   // value here. For example, a Future-returning method Foo() relies on the enum
   // value kFoo. The enum values are used to identify and manage Future in the
@@ -136,25 +134,6 @@ class FirestoreInternal {
   Query NewQuery(jni::Env& env, const jni::Object& query) const;
   QuerySnapshot NewQuerySnapshot(jni::Env& env,
                                  const jni::Object& snapshot) const;
-
-  // The constructor explicit Foo(FooInternal*) is protected in public API.
-  // But we want it to be public-usable in internal implementation code
-  // mainly for those general utility functions. So we provide this helper
-  // to allow any internal code to use that constructor. Here we assume
-  // FirestoreInternal is a friend class of InternalType::ApiType.
-  template <typename InternalType>
-  static typename InternalType::ApiType Wrap(InternalType* internal) {
-    return typename InternalType::ApiType{internal};
-  }
-
-  // The reverse of Wrap(), access internal_, defined mainly for test purpose.
-  template <typename InternalType>
-  static InternalType* Internal(typename InternalType::ApiType& value) {
-    // Cast is required for the case when the InternalType has hierarchy e.g.
-    // CollectionReferenceInternal vs QueryInternal (check their implementation
-    // for more details).
-    return static_cast<InternalType*>(value.internal_);
-  }
 
   void set_firestore_public(Firestore* firestore_public) {
     firestore_public_ = firestore_public;

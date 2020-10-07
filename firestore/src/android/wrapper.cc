@@ -28,6 +28,9 @@ Wrapper::Wrapper(FirestoreInternal* firestore, jobject obj)
   FIREBASE_ASSERT(obj != nullptr);
 }
 
+Wrapper::Wrapper(FirestoreInternal* firestore, const Object& obj)
+    : Wrapper(firestore, obj.get()) {}
+
 Wrapper::Wrapper(jclass clazz, jmethodID method_id, ...) {
   // Set firestore_.
   Firestore* firestore = Firestore::GetInstance();

@@ -12,8 +12,6 @@ namespace firestore {
 
 class WriteBatchInternal : public Wrapper {
  public:
-  using ApiType = WriteBatch;
-
   // Each API of WriteBatch that returns a Future needs to define an enum value
   // here. For example, a Future-returning method Foo() relies on the enum value
   // kFoo. The enum values are used to identify and manage Future in the
@@ -27,6 +25,9 @@ class WriteBatchInternal : public Wrapper {
 
   WriteBatchInternal(FirestoreInternal* firestore, jobject object)
       : Wrapper(firestore, object), promises_(firestore) {}
+
+  WriteBatchInternal(FirestoreInternal* firestore, const jni::Object& object)
+      : WriteBatchInternal(firestore, object.get()) {}
 
   void Set(const DocumentReference& document, const MapFieldValue& data,
            const SetOptions& options);

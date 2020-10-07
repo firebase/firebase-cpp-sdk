@@ -11,6 +11,7 @@
 #include "firestore/firestore_resources.h"
 #include "firestore/src/android/blob_android.h"
 #include "firestore/src/android/collection_reference_android.h"
+#include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/direction_android.h"
 #include "firestore/src/android/document_change_android.h"
 #include "firestore/src/android/document_change_type_android.h"
@@ -489,39 +490,27 @@ jni::Env FirestoreInternal::GetEnv() {
 
 CollectionReference FirestoreInternal::NewCollectionReference(
     jni::Env& env, const jni::Object& reference) const {
-  if (!env.ok() || !reference) return {};
-
-  return CollectionReference(
-      new CollectionReferenceInternal(mutable_this(), reference.get()));
+  return MakePublic<CollectionReference>(env, mutable_this(), reference);
 }
 
 DocumentReference FirestoreInternal::NewDocumentReference(
     jni::Env& env, const jni::Object& reference) const {
-  if (!env.ok() || !reference) return {};
-
-  return DocumentReference(
-      new DocumentReferenceInternal(mutable_this(), reference.get()));
+  return MakePublic<DocumentReference>(env, mutable_this(), reference);
 }
 
 DocumentSnapshot FirestoreInternal::NewDocumentSnapshot(
     jni::Env& env, const jni::Object& snapshot) const {
-  if (!env.ok() || !snapshot) return {};
-
-  return DocumentSnapshot(
-      new DocumentSnapshotInternal(mutable_this(), snapshot.get()));
+  return MakePublic<DocumentSnapshot>(env, mutable_this(), snapshot);
 }
 
 Query FirestoreInternal::NewQuery(jni::Env& env,
                                   const jni::Object& query) const {
-  if (!env.ok() || !query) return {};
-  return Query(new QueryInternal(mutable_this(), query.get()));
+  return MakePublic<Query>(env, mutable_this(), query);
 }
 
 QuerySnapshot FirestoreInternal::NewQuerySnapshot(
     jni::Env& env, const jni::Object& snapshot) const {
-  if (!env.ok() || !snapshot) return {};
-  return QuerySnapshot(
-      new QuerySnapshotInternal(mutable_this(), snapshot.get()));
+  return MakePublic<QuerySnapshot>(env, mutable_this(), snapshot.get());
 }
 
 /* static */

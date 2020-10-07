@@ -32,6 +32,8 @@ class Wrapper {
   // cleaning up any local references to obj after the constructor returns.
   Wrapper(FirestoreInternal* firestore, jobject obj);
 
+  Wrapper(FirestoreInternal* firestore, const jni::Object& obj);
+
   // Construct a new Java object and wrap around it. clazz is supposed to be the
   // java class of the type of the new Java object and method_id is supposed to
   // be the method id of one of the constructor of the new Java object. The
