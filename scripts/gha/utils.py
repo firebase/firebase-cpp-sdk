@@ -109,13 +109,16 @@ def check_vcpkg_triplet(triplet_name, arch, crt_linkage):
 
   with open(triplet_file_path, 'r') as triplet_file:
     for line in triplet_file:
+      print("Orginal: {0}".format(line))
       # Eg: set(VCPKG_TARGET_ARCHITECTURE x86) ->
       #     set(VCPKG_TARGET_ARCHITECTURE x86
-      line = line.rstrip(')')
+      line = line.rstrip('\n').rstrip(')')
       if not line.startswith('set('):
         continue
+      print(line)
       # Eg: 'set(', 'VCPKG_TARGET_ARCHITECTURE x86'
       variable = line.split('set(')[-1]
+      print(variable)
       variable_name, variable_value = variable.split(' ')
       if variable_name == 'VCPKG_TARGET_ARCHITECTURE':
         _arch = variable_value
@@ -158,7 +161,7 @@ def get_vcpkg_triplet(arch='x64', crt_linkage='dynamic'):
 
   Args:
     arch (str): Architecture (eg: 'x86', 'x64').
-    crt_linkage (str): Runtime linkage for MSVC (eg: 'dynamic', 'static')
+    crt_linkage (str): C runtime library linkage for MSVC (eg: 'dynamic', 'static')
 
   Raises:
     ValueError: If current OS is not win,mac or linux.
@@ -181,6 +184,7 @@ def get_vcpkg_triplet(arch='x64', crt_linkage='dynamic'):
   triplet_name = '-'.join(triplet_name)
   ok = check_vcpkg_triplet(triplet_name, arch, crt_linkage)
   if not ok:
+    print("noooooooooo")
     triplet_name = create_vcpkg_triplet(arch, crt_linkage)
 
   print("Using vcpkg triplet: {0}".format(triplet_name))
@@ -218,11 +222,14 @@ def get_vcpkg_response_file_path(triplet_name):
       # --triplet
       # <triplet_name>
       lines = existing_file.readlines()
+      print("Using x64-linux response file as template.\n")
+      print(lines)
       # Modify the line containing triplet name
       lines[-1] = triplet_name + '\n'
       with open(response_file_path, 'w') as response_file:
         response_file.writelines(lines)
-        print("Created new response file: {0}".format(response_file_path))
+        print("Created new response file: {0}\n".format(response_file_path))
+        print(lines)
   return response_file_path
 
 
