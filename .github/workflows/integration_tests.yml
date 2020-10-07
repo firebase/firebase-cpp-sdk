@@ -110,6 +110,7 @@ jobs:
           NDK_ROOT: '/tmp/android-ndk-r16b'
         run: |
           python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --use_vcpkg --execute_desktop_testapp --noadd_timestamp
+      
       # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
       # Must be run after the Python setup action
       - name: Set CLOUDSDK_PYTHON (Windows)
