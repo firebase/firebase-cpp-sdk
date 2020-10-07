@@ -261,6 +261,10 @@ elseif(IOS)
       abseil
       nanopb
   )
+
+  set_target_properties(firebase_firestore PROPERTIES
+    FRAMEWORK TRUE
+  )
 endif()
 
 cpp_pack_library(firebase_firestore "")

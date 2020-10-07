@@ -99,6 +99,10 @@ elseif(IOS)
       FirebaseCore
       FirebaseInstanceID
   )
+  
+  set_target_properties(firebase_instance_id PROPERTIES
+    FRAMEWORK TRUE
+  )
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

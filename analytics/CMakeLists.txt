@@ -127,6 +127,10 @@ elseif(IOS)
       FirebaseCore
       FirebaseAnalytics
   )
+
+  set_target_properties(firebase_analytics PROPERTIES
+    FRAMEWORK TRUE
+  )
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)
