@@ -22,6 +22,8 @@ endif()
 set(common_SRCS
     src/common/cleanup.h
     src/common/collection_reference.cc
+    src/common/compiler_info.cc
+    src/common/compiler_info.h
     src/common/document_change.cc
     src/common/document_reference.cc
     src/common/document_snapshot.cc
