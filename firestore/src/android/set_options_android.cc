@@ -4,7 +4,6 @@
 
 #include "app/src/assert.h"
 #include "firestore/src/android/field_path_android.h"
-#include "firestore/src/android/util_android.h"
 #include "firestore/src/jni/array_list.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"

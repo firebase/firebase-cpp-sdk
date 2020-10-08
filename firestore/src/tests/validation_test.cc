@@ -4,8 +4,9 @@
 #include <vector>
 
 #if defined(__ANDROID__)
-#include "firestore/src/android/util_android.h"
+#include "firestore/src/android/exception_android.h"
 #endif  // defined(__ANDROID__)
+
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/tests/firestore_integration_test.h"
 #include "firestore/src/tests/util/event_accumulator.h"

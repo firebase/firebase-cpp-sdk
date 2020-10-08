@@ -35,7 +35,6 @@
 #include "firestore/src/android/source_android.h"
 #include "firestore/src/android/timestamp_android.h"
 #include "firestore/src/android/transaction_android.h"
-#include "firestore/src/android/util_android.h"
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/android/write_batch_android.h"
 #include "firestore/src/include/firebase/firestore.h"

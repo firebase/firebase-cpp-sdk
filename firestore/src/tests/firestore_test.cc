@@ -1,3 +1,5 @@
+#include "firestore/src/include/firebase/firestore.h"
+
 #if !defined(__ANDROID__)
 #include <future>  // NOLINT(build/c++11)
 #endif
@@ -5,15 +7,15 @@
 #if !defined(FIRESTORE_STUB_BUILD)
 #include "app/src/semaphore.h"
 #endif
-#include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/tests/firestore_integration_test.h"
-#include "firestore/src/tests/util/event_accumulator.h"
-#include "firestore/src/tests/util/future_test_util.h"
+
 #if defined(__ANDROID__)
-#include "firestore/src/android/util_android.h"
+#include "firestore/src/android/exception_android.h"
 #endif  // defined(__ANDROID__)
 
 #include "auth/src/include/firebase/auth.h"
+#include "firestore/src/tests/firestore_integration_test.h"
+#include "firestore/src/tests/util/event_accumulator.h"
+#include "firestore/src/tests/util/future_test_util.h"
 #include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 

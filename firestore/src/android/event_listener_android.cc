@@ -8,7 +8,6 @@
 #include "firestore/src/android/document_snapshot_android.h"
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/query_snapshot_android.h"
-#include "firestore/src/android/util_android.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/query_snapshot.h"
 #include "firestore/src/jni/env.h"

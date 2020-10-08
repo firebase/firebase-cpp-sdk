@@ -14,6 +14,7 @@
 #include "firestore/src/android/promise_android.h"
 #include "firestore/src/android/source_android.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/array.h"
 #include "firestore/src/jni/array_list.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"

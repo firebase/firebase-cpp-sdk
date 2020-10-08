@@ -6,7 +6,9 @@
 #include "firestore/src/android/metadata_changes_android.h"
 #include "firestore/src/android/query_android.h"
 #include "firestore/src/android/snapshot_metadata_android.h"
+#include "firestore/src/android/util_android.h"
 #include "firestore/src/jni/env.h"
+#include "firestore/src/jni/list.h"
 #include "firestore/src/jni/loader.h"
 
 namespace firebase {
@@ -54,13 +56,13 @@ std::vector<DocumentChange> QuerySnapshotInternal::DocumentChanges(
   auto java_metadata = MetadataChangesInternal::Create(env, metadata_changes);
 
   Local<List> change_list = env.Call(obj_, kGetDocumentChanges, java_metadata);
-  return MakeVector<DocumentChange>(env, change_list);
+  return MakePublicVector<DocumentChange>(env, firestore_, change_list);
 }
 
 std::vector<DocumentSnapshot> QuerySnapshotInternal::documents() const {
   Env env = GetEnv();
   Local<List> document_list = env.Call(obj_, kGetDocuments);
-  return MakeVector<DocumentSnapshot>(env, document_list);
+  return MakePublicVector<DocumentSnapshot>(env, firestore_, document_list);
 }
 
 std::size_t QuerySnapshotInternal::size() const {

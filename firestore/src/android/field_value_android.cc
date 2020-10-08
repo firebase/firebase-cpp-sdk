@@ -5,7 +5,7 @@
 #include "firestore/src/android/document_reference_android.h"
 #include "firestore/src/android/geo_point_android.h"
 #include "firestore/src/android/timestamp_android.h"
-#include "firestore/src/android/util_android.h"
+#include "firestore/src/jni/array.h"
 #include "firestore/src/jni/array_list.h"
 #include "firestore/src/jni/boolean.h"
 #include "firestore/src/jni/class.h"
