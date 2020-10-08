@@ -1,8 +1,6 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_COLLECTION_REFERENCE_ANDROID_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_COLLECTION_REFERENCE_ANDROID_H_
 
-#include <jni.h>
-
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/query_android.h"
 #include "firestore/src/jni/jni_fwd.h"

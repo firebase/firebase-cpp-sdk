@@ -47,7 +47,7 @@ class WriteBatchInternal : public Wrapper {
    */
   // TODO(mcg): Move this out of WriteBatchInternal
   // This needs to be here now because of existing friend relationships.
-  static jni::Object ToJni(const DocumentReference& reference);
+  static jni::Object ToJava(const DocumentReference& reference);
 
   PromiseFactory<AsyncFn> promises_;
 };

@@ -65,7 +65,7 @@ class FieldValueInternal {
   std::vector<FieldValue> array_value() const;
   MapFieldValue map_value() const;
 
-  const jni::Global<jni::Object>& java_object() const { return object_; }
+  const jni::Global<jni::Object>& ToJava() const { return object_; }
 
   static FieldValue Delete();
   static FieldValue ServerTimestamp();
@@ -108,11 +108,11 @@ inline jni::Object ToJava(const FieldValue& value) {
 }
 
 inline jobject ToJni(const FieldValueInternal* value) {
-  return value->java_object().get();
+  return value->ToJava().get();
 }
 
 inline jobject ToJni(const FieldValueInternal& value) {
-  return value.java_object().get();
+  return value.ToJava().get();
 }
 
 }  // namespace firestore

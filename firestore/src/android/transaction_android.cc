@@ -1,7 +1,5 @@
 #include "firestore/src/android/transaction_android.h"
 
-#include <jni.h>
-
 #include <utility>
 
 #include "app/meta/move.h"

@@ -60,17 +60,6 @@ class Promise {
     return RegisterForTask(op, task.get());
   }
 
-  void RegisterForTask(FnEnumType op, jobject task) {
-    JNIEnv* env = completer_->firestore()->app()->GetJNIEnv();
-    handle_ = completer_->Alloc(static_cast<int>(op));
-
-    // Ownership of the completer will pass to to RegisterCallbackOnTask
-    auto* completer = completer_.release();
-
-    util::RegisterCallbackOnTask(env, task, ResultCallback, completer,
-                                 kApiIdentifier);
-  }
-
   void RegisterForTask(jni::Env& env, FnEnumType op, const jni::Object& task) {
     handle_ = completer_->Alloc(static_cast<int>(op));
 

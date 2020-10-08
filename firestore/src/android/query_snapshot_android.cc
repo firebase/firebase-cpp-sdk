@@ -1,7 +1,5 @@
 #include "firestore/src/android/query_snapshot_android.h"
 
-#include <jni.h>
-
 #include "app/src/assert.h"
 #include "firestore/src/android/document_change_android.h"
 #include "firestore/src/android/document_snapshot_android.h"

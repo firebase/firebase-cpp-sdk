@@ -1,7 +1,5 @@
 #include "firestore/src/android/set_options_android.h"
 
-#include <jni.h>
-
 #include <utility>
 
 #include "app/src/assert.h"

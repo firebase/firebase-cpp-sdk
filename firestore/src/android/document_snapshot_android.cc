@@ -1,7 +1,5 @@
 #include "firestore/src/android/document_snapshot_android.h"
 
-#include <jni.h>
-
 #include <utility>
 
 #include "firestore/src/android/document_reference_android.h"

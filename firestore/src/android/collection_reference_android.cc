@@ -84,11 +84,8 @@ Future<DocumentReference> CollectionReferenceInternal::Add(
   FieldValueInternal map_value(data);
 
   Env env = GetEnv();
-  Local<Object> task = env.Call(obj_, kAdd, map_value.java_object());
-
-  auto promise = promises_.MakePromise<DocumentReference>();
-  promise.RegisterForTask(AsyncFn::kAdd, task.get());
-  return promise.GetFuture();
+  Local<Object> task = env.Call(obj_, kAdd, map_value.ToJava());
+  return promises_.NewFuture<DocumentReference>(env, AsyncFn::kAdd, task);
 }
 
 }  // namespace firestore

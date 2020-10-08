@@ -1,8 +1,6 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_DOCUMENT_REFERENCE_ANDROID_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_DOCUMENT_REFERENCE_ANDROID_H_
 
-#include <jni.h>
-
 #include <string>
 
 #include "app/src/reference_counted_future_impl.h"
