@@ -189,6 +189,11 @@ def main(argv):
   platforms = FLAGS.platforms
   testapps = FLAGS.testapps
 
+  sdk_dir = _fix_path(FLAGS.sdk_dir)
+  output_dir = _fix_path(FLAGS.output_directory)
+  root_dir = _fix_path(FLAGS.root_dir)
+  provisions_dir = _fix_path(FLAGS.provisions_dir)
+
   update_pod_repo = FLAGS.update_pod_repo
   if FLAGS.add_timestamp:
     timestamp = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
@@ -204,7 +209,7 @@ def main(argv):
   config = config_reader.read_config()
   cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
   if FLAGS.use_vcpkg:
-    vcpkg = Vcpkg.generate(os.path.join(FLAGS.sdk_dir, config.vcpkg_dir))
+    vcpkg = Vcpkg.generate(os.path.join(sdk_dir, config.vcpkg_dir))
     vcpkg.install_and_run()
     cmake_flags.extend(vcpkg.cmake_flags)
 
@@ -215,12 +220,12 @@ def main(argv):
         testapp=testapp,
         platforms=platforms,
         api_config=config.get_api(testapp),
-        output_dir=os.path.expanduser(FLAGS.output_directory),
-        sdk_dir=os.path.expanduser(FLAGS.sdk_dir),
+        output_dir=output_dir,
+        sdk_dir=sdk_dir,
         timestamp=timestamp,
         builder_dir=pathlib.Path(__file__).parent.absolute(),
-        root_dir=os.path.expanduser(FLAGS.root_dir),
-        provisions_dir=os.path.expanduser(FLAGS.provisions_dir),
+        root_dir=root_dir,
+        provisions_dir=provisions_dir,
         ios_sdk=FLAGS.ios_sdk,
         dev_team=config.apple_team_id,
         cmake_flags=cmake_flags,
@@ -339,17 +344,21 @@ def _get_desktop_compiler_flags(compiler, compiler_table):
 
 def _build_android(project_dir, sdk_dir):
   """Builds an Android binary (apk)."""
+  if platform.system() == "Windows":
+    gradlew = "gradlew.bat"
+    sdk_dir = sdk_dir.replace("\\", "/")  # Gradle misinterprets backslashes.
+  else:
+    gradlew = "./gradlew"
   logging.info("Patching gradle properties with path to SDK")
   gradle_properties = os.path.join(project_dir, "gradle.properties")
   with open(gradle_properties, "a+") as f:
     f.write("systemProp.firebase_cpp_sdk.dir=" + sdk_dir + "\n")
   # This will log the versions of dependencies for debugging purposes.
-  _run(
-      ["./gradlew", "dependencies", "--configuration", "debugCompileClasspath"])
+  _run([gradlew, "dependencies", "--configuration", "debugCompileClasspath"])
   # Building for Android has a known issue that can be worked around by
   # simply building again. Since building from source takes a while, we don't
   # want to retry the build if a different error occurred.
-  build_args = ["./gradlew", "assembleDebug", "--stacktrace"]
+  build_args = [gradlew, "assembleDebug", "--stacktrace"]
   result = _run(args=build_args, capture_output=True, text=True, check=False)
   if result.returncode:
     if "Execution failed for task ':generateJsonModel" in result.stderr:
@@ -485,11 +494,19 @@ def _run(args, timeout=2400, capture_output=False, text=None, check=True):
 
 def _rm_dir_safe(directory_path):
   """Removes directory at given path. No error if dir doesn't exist."""
+  logging.info("Deleting %s...", directory_path)
   try:
     shutil.rmtree(directory_path)
-    logging.info("Deleted %s", directory_path)
-  except FileNotFoundError:
-    logging.warning("Tried to delete %s, but it doesn't exist.", directory_path)
+  except OSError as e:
+    # There are two known cases where this can happen:
+    # The directory doesn't exist (FileNotFoundError)
+    # A file in the directory is open in another process (PermissionError)
+    logging.warning("Failed to remove directory:\n%s", e)
+
+
+def _fix_path(path):
+  """Expands ~, normalizes slashes, and converts relative paths to absolute."""
+  return os.path.abspath(os.path.expanduser(path))
 
 
 @attr.s(frozen=True, eq=False)

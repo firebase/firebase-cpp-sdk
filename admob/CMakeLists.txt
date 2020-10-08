@@ -119,6 +119,10 @@ elseif(IOS)
   # AdMob expects the header files to be in a subfolder, so set up a symlink to
   # accomplish that.
   symlink_pod_headers(firebase_admob Google-Mobile-Ads-SDK GoogleMobileAds)
+
+  set_target_properties(firebase_admob PROPERTIES
+    FRAMEWORK TRUE
+  )
 endif()
 
 cpp_pack_library(firebase_admob "")
