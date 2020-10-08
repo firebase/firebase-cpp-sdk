@@ -96,3 +96,79 @@ jobs:
       with:
         name: firebase-cpp-sdk-android
         path: firebase-cpp-sdk-android.tgz
+
+  build_desktop:
+    name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        build_type: ["Release", "Debug"]
+        architecture: ["x64",]
+        python_version: [3.7]
+        include:
+        - os: windows-latest
+          architecture: "x64"
+          vcpkg_triplet: "x64-windows-static"
+          msbuild_platform: "x64"
+        - os: ubuntu-latest
+          architecture: "x64"
+          vcpkg_triplet: "x64-linux"
+        - os: macos-latest
+          architecture: "x64"
+          vcpkg_triplet: "x64-osx"
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+          ref: ${{ github.event.inputs.commitId }}
+
+      - name: Set env variables for subsequent steps (all)
+        run: |
+          echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt"
+          echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}"
+
+      - name: Cache vcpkg C++ dependencies
+        id: cache_vcpkg
+        uses: actions/cache@v2
+        with:
+          path: external/vcpkg/installed
+          key: dev-vcpkg-${{ matrix.vcpkg_triplet }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+
+      - name: Cache ccache files
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+          architecture: ${{ matrix.architecture }}
+
+      - name: Install prerequisites
+        run: |
+          python scripts/gha/install_prereqs_desktop.py
+
+      - name: Build SDK
+        run: |
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}
+	  tar -czf ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}.tgz firebase-cpp-sdk-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase-cpp-sdk-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}
+          path: firebase-cpp-sdk-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}.tgz
+      
+
+      - name: Stats for ccache (mac and linux)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        run: ccache -s
+
+
