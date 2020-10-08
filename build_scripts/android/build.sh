@@ -19,6 +19,7 @@ if [[ -n $(ls) ]]; then
     echo "Error: build path '${buildpath}' not empty."
     exit 2
 fi
+absbuildpath=$( pwd -P )
 cd -
 
 # If NDK_ROOT is not set or is the wrong version, use to the version in /tmp.
@@ -55,13 +56,11 @@ set -x
 
 if [[ $(uname) == "Linux" ]] || [[ $(uname) == "Darwin" ]]; then
   # Turn buildpath into an absolute path for use later with rsync.
-  absbuildpath=$( mkdir -p "${buildpath}"; cd "${buildpath}" ; pwd -P )
   # Use rsync to copy the relevent paths to the destination directory.
   rsync -aR "${paths[@]}" "${absbuildpath}/"
 else
   # rsync has to be specifically installed on windows bash (including github runners)
   # Also, rsync with absolute destination path doesn't work on Windows.
   # Using a simple copy instead of rsync on Windows.
-  mkdir -p "${buildpath}"
-  cp -R --parents "${paths[@]}" "${buildpath}"
+  cp -R --parents "${paths[@]}" "${absbuildpath}"
 fi
