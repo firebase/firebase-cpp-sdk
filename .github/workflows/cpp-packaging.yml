@@ -98,7 +98,7 @@ jobs:
         path: firebase-cpp-sdk-android.tgz
 
   build_desktop:
-    name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}
+    name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -157,14 +157,14 @@ jobs:
 
       - name: Build SDK
         run: |
-          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir "firebase-cpp-sdk-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}"
-	  tar -czf "firebase-cpp-sdk-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}.tgz" "firebase-cpp-sdk-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}"
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.MATRIX_UNIQUE_NAME }}
+	  tar -czf firebase-cpp-sdk-${{ env.MATRIX_UNIQUE_NAME }}.tgz firebase-cpp-sdk-${{ env.MATRIX_UNIQUE_NAME }} 
 
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: "firebase-cpp-sdk-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}"
-          path: "firebase-cpp-sdk-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}.tgz"
+          name: firebase-cpp-sdk-${{ env.MATRIX_UNIQUE_NAME }}
+          path: firebase-cpp-sdk-${{ env.MATRIX_UNIQUE_NAME }}.tgz
       
 
       - name: Stats for ccache (mac and linux)
