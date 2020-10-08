@@ -31,27 +31,6 @@ Wrapper::Wrapper(FirestoreInternal* firestore, jobject obj)
 Wrapper::Wrapper(FirestoreInternal* firestore, const Object& obj)
     : Wrapper(firestore, obj.get()) {}
 
-Wrapper::Wrapper(jclass clazz, jmethodID method_id, ...) {
-  // Set firestore_.
-  Firestore* firestore = Firestore::GetInstance();
-  FIREBASE_ASSERT(firestore != nullptr);
-  firestore_ = firestore->internal_;
-  FIREBASE_ASSERT(firestore_ != nullptr);
-
-  // Create a jobject.
-  JNIEnv* env = firestore_->app()->GetJNIEnv();
-  va_list args;
-  va_start(args, method_id);
-  jobject obj = env->NewObjectV(clazz, method_id, args);
-  va_end(args);
-  CheckAndClearJniExceptions(env);
-
-  // Set obj_,
-  FIREBASE_ASSERT(obj != nullptr);
-  obj_ = env->NewGlobalRef(obj);
-  env->DeleteLocalRef(obj);
-}
-
 Wrapper::Wrapper(const Wrapper& wrapper)
     : Wrapper(wrapper.firestore_, wrapper.obj_, AllowNullObject::Yes) {}
 
@@ -93,7 +72,7 @@ Local<HashMap> Wrapper::MakeJavaMap(Env& env, const MapFieldValue& data) const {
   Local<HashMap> result = HashMap::Create(env);
   for (const auto& kv : data) {
     Local<String> key = env.NewStringUtf(kv.first);
-    const Object& value = kv.second.internal_->ToJava();
+    const Object& value = ToJava(kv.second);
     result.Put(env, key, value);
   }
   return result;
@@ -106,7 +85,7 @@ Wrapper::UpdateFieldPathArgs Wrapper::MakeUpdateFieldPathArgs(
   FIREBASE_DEV_ASSERT_MESSAGE(iter != end, "data must be non-empty");
 
   Local<Object> first_field = FieldPathConverter::Create(env, iter->first);
-  const Object& first_value = iter->second.internal_->ToJava();
+  const Object& first_value = ToJava(iter->second);
   ++iter;
 
   const auto size = std::distance(iter, data.end()) * 2;
@@ -115,13 +94,17 @@ Wrapper::UpdateFieldPathArgs Wrapper::MakeUpdateFieldPathArgs(
   int index = 0;
   for (; iter != end; ++iter) {
     Local<Object> field = FieldPathConverter::Create(env, iter->first);
-    const Object& value = iter->second.internal_->ToJava();
+    const Object& value = ToJava(iter->second);
 
     varargs.Set(env, index++, field);
     varargs.Set(env, index++, value);
   }
 
   return UpdateFieldPathArgs{Move(first_field), first_value, Move(varargs)};
+}
+
+Object Wrapper::ToJava(const FieldValue& value) {
+  return FieldValueInternal::ToJava(value);
 }
 
 }  // namespace firestore

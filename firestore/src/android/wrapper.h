@@ -21,7 +21,6 @@
 namespace firebase {
 namespace firestore {
 
-class FieldValueInternal;
 class FirestoreInternal;
 
 // This is the generalized wrapper base class which contains a FirestoreInternal
@@ -33,15 +32,6 @@ class Wrapper {
   Wrapper(FirestoreInternal* firestore, jobject obj);
 
   Wrapper(FirestoreInternal* firestore, const jni::Object& obj);
-
-  // Construct a new Java object and wrap around it. clazz is supposed to be the
-  // java class of the type of the new Java object and method_id is supposed to
-  // be the method id of one of the constructor of the new Java object. The
-  // parameters to be used in constructing the new Java object have to be passed
-  // through the variadic arguments in JNI-typed format such as jobject or jint.
-  // If the constructor accepts no parameter, then leave the variadic arguments
-  // empty.
-  Wrapper(jclass clazz, jmethodID method_id, ...);
 
   Wrapper(const Wrapper& wrapper);
 
@@ -57,6 +47,8 @@ class Wrapper {
   FirestoreInternal* firestore_internal() { return firestore_; }
   jobject java_object() const { return obj_; }
   jni::Object ToJava() const { return jni::Object(obj_); }
+
+  static jni::Object ToJava(const FieldValue& value);
 
  protected:
   enum class AllowNullObject { Yes };

@@ -47,6 +47,9 @@ FirestoreTypeInternal* NewInternal() {
   return new FirestoreTypeInternal(internal, dummy);
 }
 
+template <>
+FieldValueInternal* NewInternal<FieldValueInternal>();
+
 // It is technically complicated to create a true ListenerRegistrationInternal.
 // All ListenerRegistrationInternal are owned by FirestoreInternal and require
 // registered with the native SDK (i.e. using dummy Java object is infeasible).

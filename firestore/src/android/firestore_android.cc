@@ -231,11 +231,6 @@ bool FirestoreInternal::Initialize(App* app) {
                            ::firebase_firestore::firestore_resources_size);
     loader.CacheEmbeddedFiles();
 
-    if (!FieldValueInternal::Initialize(app)) {
-      ReleaseClasses(app);
-      return false;
-    }
-
     jni::Object::Initialize(loader);
 
     jni::ArrayList::Initialize(loader);
@@ -262,6 +257,7 @@ bool FirestoreInternal::Initialize(App* app) {
     EventListenerInternal::Initialize(loader);
     ExceptionInternal::Initialize(loader);
     FieldPathConverter::Initialize(loader);
+    FieldValueInternal::Initialize(loader);
     GeoPointInternal::Initialize(loader);
     ListenerRegistrationInternal::Initialize(loader);
     MetadataChangesInternal::Initialize(loader);
@@ -291,9 +287,6 @@ bool FirestoreInternal::Initialize(App* app) {
 void FirestoreInternal::ReleaseClasses(App* app) {
   delete loader_;
   loader_ = nullptr;
-
-  // Call Terminate on each Firestore internal class.
-  FieldValueInternal::Terminate(app);
 }
 
 /* static */

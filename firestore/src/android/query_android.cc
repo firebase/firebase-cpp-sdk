@@ -232,8 +232,7 @@ Query QueryInternal::Where(const FieldPath& field, const Method<Object>& method,
                            const FieldValue& value) {
   Env env = GetEnv();
   Local<Object> java_field = FieldPathConverter::Create(env, field);
-  Local<Object> query =
-      env.Call(obj_, method, java_field, value.internal_->ToJava());
+  Local<Object> query = env.Call(obj_, method, java_field, ToJava(value));
   return firestore_->NewQuery(env, query);
 }
 
@@ -244,7 +243,7 @@ Query QueryInternal::Where(const FieldPath& field, const Method<Object>& method,
   size_t size = values.size();
   Local<ArrayList> java_values = ArrayList::Create(env, size);
   for (size_t i = 0; i < size; ++i) {
-    java_values.Add(env, values[i].internal_->ToJava());
+    java_values.Add(env, ToJava(values[i]));
   }
 
   Local<Object> java_field = FieldPathConverter::Create(env, field);
@@ -303,7 +302,7 @@ Local<Array<Object>> QueryInternal::ConvertFieldValues(
   size_t size = field_values.size();
   Local<Array<Object>> result = env.NewArray(size, Object::GetClass());
   for (size_t i = 0; i < size; ++i) {
-    result.Set(env, i, field_values[i].internal_->ToJava());
+    result.Set(env, i, ToJava(field_values[i]));
   }
   return result;
 }

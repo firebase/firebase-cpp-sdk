@@ -5,29 +5,41 @@
 #include <string>
 
 #include "app/memory/shared_ptr.h"
-#include "app/src/assert.h"
-#include "firestore/src/android/wrapper.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/jni/jni_fwd.h"
+#include "firestore/src/jni/object.h"
+#include "firestore/src/jni/ownership.h"
 #include "firebase/firestore/geo_point.h"
 #include "firebase/firestore/timestamp.h"
 
 namespace firebase {
 namespace firestore {
 
-class FieldValueInternal : public Wrapper {
+class FirestoreInternal;
+
+class FieldValueInternal {
  public:
-  // Wrapper does not allow passing in Java Null object. So we need to deal that
-  // case separately. Generally Java Null is not a valid instance of any
-  // Firestore types except here Null may represent a valid FieldValue of Null
-  // type.
-  FieldValueInternal(FirestoreInternal* firestore, jobject obj);
-  FieldValueInternal(FirestoreInternal* firestore, const jni::Object& obj);
-  FieldValueInternal(const FieldValueInternal& wrapper);
-  FieldValueInternal(FieldValueInternal&& wrapper);
+  using Type = FieldValue::Type;
+
+  static void Initialize(jni::Loader& loader);
+
+  static FieldValue Create(jni::Env& env, const jni::Object& object);
+  static FieldValue Create(jni::Env& env, Type type, const jni::Object& object);
 
   FieldValueInternal();
+
+  explicit FieldValueInternal(const jni::Object& object);
+  FieldValueInternal(Type type, const jni::Object& object);
+
+  // Constructs a FieldValueInternal from a value of a specific type. Note that
+  // these constructors must match the equivalents in field_value_ios.h.
+  //
+  // Of particular note is that these pass by value even though the Android
+  // implementation does not retain the values. This is done to make the
+  // interface consistent with the iOS version, which does move. Making these
+  // value types instead of const references saves a copy in that
+  // implementation.
   explicit FieldValueInternal(bool value);
   explicit FieldValueInternal(int64_t value);
   explicit FieldValueInternal(double value);
@@ -39,7 +51,7 @@ class FieldValueInternal : public Wrapper {
   explicit FieldValueInternal(std::vector<FieldValue> value);
   explicit FieldValueInternal(MapFieldValue value);
 
-  FieldValue::Type type() const;
+  Type type() const;
 
   bool boolean_value() const;
   int64_t integer_value() const;
@@ -53,6 +65,8 @@ class FieldValueInternal : public Wrapper {
   std::vector<FieldValue> array_value() const;
   MapFieldValue map_value() const;
 
+  const jni::Global<jni::Object>& java_object() const { return object_; }
+
   static FieldValue Delete();
   static FieldValue ServerTimestamp();
   static FieldValue ArrayUnion(std::vector<FieldValue> elements);
@@ -60,35 +74,45 @@ class FieldValueInternal : public Wrapper {
   static FieldValue IntegerIncrement(int64_t by_value);
   static FieldValue DoubleIncrement(double by_value);
 
+  static jni::Object ToJava(const FieldValue& value);
+
  private:
   friend class FirestoreInternal;
   friend bool operator==(const FieldValueInternal& lhs,
                          const FieldValueInternal& rhs);
 
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  // Casts the internal Java Object reference to the given Java proxy type.
+  // This performs a run-time `instanceof` check to verify that the object
+  // has the type `T::GetClass()`.
+  template <typename T>
+  T Cast(jni::Env& env, Type type) const;
+
+  static jni::Local<jni::Array<jni::Object>> MakeArray(
+      jni::Env& env, const std::vector<FieldValue>& elements);
 
   void EnsureCachedBlob(jni::Env& env) const;
 
-  static jobject TryGetJobject(const FieldValue& value);
+  static jni::Env GetEnv();
 
-  static jobject delete_;
-  static jobject server_timestamp_;
+  jni::Global<jni::Object> object_;
 
   // Below are cached type information. It is costly to get type info from
   // jobject of Object type. So we cache it if we have already known.
-  mutable FieldValue::Type cached_type_ = FieldValue::Type::kNull;
+  mutable Type cached_type_ = Type::kNull;
   mutable SharedPtr<std::vector<uint8_t>> cached_blob_;
 };
 
-bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs);
+inline jni::Object ToJava(const FieldValue& value) {
+  // This indirection is required to make use of the `friend` in FieldValue.
+  return FieldValueInternal::ToJava(value);
+}
 
 inline jobject ToJni(const FieldValueInternal* value) {
-  return value->java_object();
+  return value->java_object().get();
 }
 
 inline jobject ToJni(const FieldValueInternal& value) {
-  return value.java_object();
+  return value.java_object().get();
 }
 
 }  // namespace firestore
