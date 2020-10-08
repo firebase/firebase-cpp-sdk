@@ -158,7 +158,7 @@ jobs:
 
       - name: Build SDK
         run: |
-          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir ${{ env.SDK_NAME }}
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}
           tar -czf firebase-cpp-sdk-${{ env.SDK_NAME }}.tgz firebase-cpp-sdk-${{ env.SDK_NAME }}
 
       - name: upload artifacts
