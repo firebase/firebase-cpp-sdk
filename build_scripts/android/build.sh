@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 
 buildpath=$1
 sourcepath=$2
@@ -55,12 +55,13 @@ set -x
 
 if [[ $(uname) == "Linux" ]] || [[ $(uname) == "Darwin" ]]; then
   # Turn buildpath into an absolute path for use later with rsync.
-  buildpath=$( cd "${buildpath}" ; pwd -P )
+  absbuildpath=$( mkdir -p "${buildpath}"; cd "${buildpath}" ; pwd -P )
   # Use rsync to copy the relevent paths to the destination directory.
-  rsync -aR "${paths[@]}" "${buildpath}/"
+  rsync -aR "${paths[@]}" "${absbuildpath}/"
 else
   # rsync has to be specifically installed on windows bash (including github runners)
   # Also, rsync with absolute destination path doesn't work on Windows.
   # Using a simple copy instead of rsync on Windows.
+  mkdir -p "${buildpath}"
   cp -R --parents "${paths[@]}" "${buildpath}"
 fi

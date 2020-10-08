@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -ex
 
 buildpath=$1
 sourcepath=$2
