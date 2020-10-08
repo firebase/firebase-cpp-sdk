@@ -23,24 +23,12 @@ using jni::String;
 
 }  // namespace
 
-Wrapper::Wrapper(FirestoreInternal* firestore, jobject obj)
-    : Wrapper(firestore, obj, AllowNullObject::Yes) {
-  FIREBASE_ASSERT(obj != nullptr);
-}
-
 Wrapper::Wrapper(FirestoreInternal* firestore, const Object& obj)
-    : Wrapper(firestore, obj.get()) {}
-
-Wrapper::Wrapper(const Wrapper& wrapper)
-    : Wrapper(wrapper.firestore_, wrapper.obj_, AllowNullObject::Yes) {}
-
-Wrapper::Wrapper(Wrapper&& wrapper) noexcept
-    : firestore_(wrapper.firestore_), obj_(wrapper.obj_) {
-  FIREBASE_ASSERT(firestore_ != nullptr);
-  wrapper.obj_ = nullptr;
+    : firestore_(firestore), obj_(obj) {
+  FIREBASE_ASSERT(obj);
 }
 
-Wrapper::Wrapper() : obj_(nullptr) {
+Wrapper::Wrapper() {
   Firestore* firestore = Firestore::GetInstance();
   FIREBASE_ASSERT(firestore != nullptr);
   firestore_ = firestore->internal_;
@@ -51,22 +39,11 @@ Wrapper::Wrapper(Wrapper* rhs) : Wrapper() {
   if (rhs) {
     firestore_ = rhs->firestore_;
     FIREBASE_ASSERT(firestore_ != nullptr);
-    obj_ = firestore_->app()->GetJNIEnv()->NewGlobalRef(rhs->obj_);
+    obj_ = rhs->obj_;
   }
 }
 
-Wrapper::Wrapper(FirestoreInternal* firestore, jobject obj, AllowNullObject)
-    : firestore_(firestore),
-      // NewGlobalRef() is supposed to accept Null Java object and return Null,
-      // which happens to be nullptr in C++.
-      obj_(firestore->app()->GetJNIEnv()->NewGlobalRef(obj)) {}
-
-Wrapper::~Wrapper() {
-  if (obj_ != nullptr) {
-    firestore_->app()->GetJNIEnv()->DeleteGlobalRef(obj_);
-    obj_ = nullptr;
-  }
-}
+Wrapper::~Wrapper() = default;
 
 Local<HashMap> Wrapper::MakeJavaMap(Env& env, const MapFieldValue& data) const {
   Local<HashMap> result = HashMap::Create(env);

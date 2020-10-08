@@ -21,7 +21,7 @@ class TransactionInternal : public Wrapper {
  public:
   static void Initialize(jni::Loader& loader);
 
-  TransactionInternal(FirestoreInternal* firestore, jobject obj)
+  TransactionInternal(FirestoreInternal* firestore, const jni::Object& obj)
       : Wrapper(firestore, obj),
         first_exception_(MakeShared<jni::Local<jni::Throwable>>()) {}
 

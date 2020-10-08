@@ -35,11 +35,8 @@ class QueryInternal : public Wrapper {
 
   static void Initialize(jni::Loader& loader);
 
-  QueryInternal(FirestoreInternal* firestore, jobject object)
-      : Wrapper(firestore, object), promises_(firestore) {}
-
   QueryInternal(FirestoreInternal* firestore, const jni::Object& object)
-      : QueryInternal(firestore, object.get()) {}
+      : Wrapper(firestore, object), promises_(firestore) {}
 
   /** Gets the Firestore instance associated with this query. */
   Firestore* firestore();

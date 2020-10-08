@@ -192,7 +192,8 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
   TransactionFunction* transaction_function =
       reinterpret_cast<TransactionFunction*>(transaction_function_ptr);
 
-  Transaction transaction(new TransactionInternal(firestore, java_transaction));
+  Transaction transaction(
+      new TransactionInternal(firestore, Object(java_transaction)));
 
   std::string message;
   Error code = transaction_function->Apply(transaction, message);

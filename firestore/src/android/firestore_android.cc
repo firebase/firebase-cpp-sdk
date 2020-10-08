@@ -372,7 +372,7 @@ WriteBatch FirestoreInternal::batch() const {
   Local<Object> result = env.Call(obj_, kBatch);
 
   if (!env.ok()) return {};
-  return WriteBatch(new WriteBatchInternal(mutable_this(), result.get()));
+  return WriteBatch(new WriteBatchInternal(mutable_this(), result));
 }
 
 Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update,
@@ -503,7 +503,7 @@ Query FirestoreInternal::NewQuery(jni::Env& env,
 
 QuerySnapshot FirestoreInternal::NewQuerySnapshot(
     jni::Env& env, const jni::Object& snapshot) const {
-  return MakePublic<QuerySnapshot>(env, mutable_this(), snapshot.get());
+  return MakePublic<QuerySnapshot>(env, mutable_this(), snapshot);
 }
 
 /* static */

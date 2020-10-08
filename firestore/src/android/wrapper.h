@@ -1,8 +1,6 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_WRAPPER_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_WRAPPER_H_
 
-#include <jni.h>
-
 #include <vector>
 
 #include "app/src/util_android.h"
@@ -24,18 +22,13 @@ namespace firestore {
 class FirestoreInternal;
 
 // This is the generalized wrapper base class which contains a FirestoreInternal
-// client instance as well as a jobject, around which this wrapper is.
+// client instance as well as a jobject, around which this is a wrapper.
 class Wrapper {
  public:
-  // A global reference will be created from obj. The caller is responsible for
-  // cleaning up any local references to obj after the constructor returns.
-  Wrapper(FirestoreInternal* firestore, jobject obj);
-
   Wrapper(FirestoreInternal* firestore, const jni::Object& obj);
 
-  Wrapper(const Wrapper& wrapper);
-
-  Wrapper(Wrapper&& wrapper) noexcept;
+  Wrapper(const Wrapper& wrapper) = default;
+  Wrapper(Wrapper&& wrapper) noexcept = default;
 
   virtual ~Wrapper();
 
@@ -45,20 +38,15 @@ class Wrapper {
   Wrapper& operator=(Wrapper&& wrapper) = delete;
 
   FirestoreInternal* firestore_internal() { return firestore_; }
-  jobject java_object() const { return obj_; }
-  jni::Object ToJava() const { return jni::Object(obj_); }
+  jobject java_object() const { return obj_.get(); }
+  const jni::Object& ToJava() const { return obj_; }
 
   static jni::Object ToJava(const FieldValue& value);
 
  protected:
-  enum class AllowNullObject { Yes };
   // Default constructor. Subclass is expected to set the obj_ a meaningful
   // value.
   Wrapper();
-
-  // Similar to Wrapper(FirestoreInternal*, jobject) but allowing obj be Null
-  // Java object a.k.a. nullptr.
-  Wrapper(FirestoreInternal* firestore, jobject obj, AllowNullObject);
 
   // Similar to a copy constructor, but can handle the case where `rhs` is null.
   explicit Wrapper(Wrapper* rhs);
@@ -83,7 +71,7 @@ class Wrapper {
       if (!env.ok()) return std::vector<PublicT>();
 
       // Use push_back because emplace_back requires a public constructor.
-      result.push_back(PublicT{new InternalT{firestore_, element.get()}});
+      result.push_back(PublicT{new InternalT{firestore_, element}});
     }
     return result;
   }
@@ -116,7 +104,7 @@ class Wrapper {
       jni::Env& env, const MapFieldPathValue& data) const;
 
   FirestoreInternal* firestore_ = nullptr;  // not owning
-  jobject obj_ = nullptr;
+  jni::Global<jni::Object> obj_;
 
  private:
   friend class FirestoreInternal;

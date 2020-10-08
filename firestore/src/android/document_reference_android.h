@@ -37,12 +37,9 @@ class DocumentReferenceInternal : public Wrapper {
    */
   static DocumentReference Create(jni::Env& env, const jni::Object& reference);
 
-  DocumentReferenceInternal(FirestoreInternal* firestore, jobject object)
-      : Wrapper(firestore, object), promises_(firestore) {}
-
   DocumentReferenceInternal(FirestoreInternal* firestore,
                             const jni::Object& object)
-      : DocumentReferenceInternal(firestore, object.get()) {}
+      : Wrapper(firestore, object), promises_(firestore) {}
 
   /** Gets the Firestore instance associated with this document reference. */
   Firestore* firestore();

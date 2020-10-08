@@ -40,14 +40,6 @@ struct ConverterImpl {
   }
 
   template <typename PublicT, typename InternalT = InternalType<PublicT>>
-  static PublicT MakePublicFromJava(jni::Env& env, FirestoreInternal* firestore,
-                                    jobject object) {
-    if (!env.ok() || !object) return {};
-
-    return PublicT(new InternalT(firestore, object));
-  }
-
-  template <typename PublicT, typename InternalT = InternalType<PublicT>>
   static InternalT* GetInternal(PublicT& from) {
     // static_cast is required for CollectionReferenceInternal because its
     // internal_ is actually of type QueryInternal* (inherited from its base
@@ -72,13 +64,6 @@ PublicT MakePublic(jni::Env& env, const jni::Object& object) {
 template <typename PublicT, typename InternalT = InternalType<PublicT>>
 PublicT MakePublic(jni::Env& env, FirestoreInternal* firestore,
                    const jni::Object& object) {
-  return ConverterImpl::MakePublicFromJava<PublicT, InternalT>(env, firestore,
-                                                               object);
-}
-
-template <typename PublicT, typename InternalT = InternalType<PublicT>>
-PublicT MakePublic(jni::Env& env, FirestoreInternal* firestore,
-                   jobject object) {
   return ConverterImpl::MakePublicFromJava<PublicT, InternalT>(env, firestore,
                                                                object);
 }
