@@ -3,7 +3,6 @@
 #include <string>
 #include <utility>
 
-#include "app/src/util_android.h"
 #include "firestore/src/android/document_reference_android.h"
 #include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/promise_android.h"

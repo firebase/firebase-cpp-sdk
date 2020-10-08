@@ -3,7 +3,6 @@
 #include <jni.h>
 
 #include "app/meta/move.h"
-#include "app/src/util_android.h"
 #include "firestore/src/android/blob_android.h"
 #include "firestore/src/android/document_reference_android.h"
 #include "firestore/src/android/geo_point_android.h"

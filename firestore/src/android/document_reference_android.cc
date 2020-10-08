@@ -2,7 +2,6 @@
 
 #include "app/meta/move.h"
 #include "app/src/assert.h"
-#include "app/src/util_android.h"
 #include "firestore/src/android/collection_reference_android.h"
 #include "firestore/src/android/event_listener_android.h"
 #include "firestore/src/android/field_path_android.h"

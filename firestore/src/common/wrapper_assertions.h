@@ -7,7 +7,6 @@
 #if defined(__ANDROID__)
 #include <jni.h>
 
-#include "app/src/util_android.h"
 #include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/firestore_android.h"
 #elif defined(FIRESTORE_STUB_BUILD)

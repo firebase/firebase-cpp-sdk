@@ -3,7 +3,6 @@
 
 #include <vector>
 
-#include "app/src/util_android.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/util_android.h"
 #include "firestore/src/common/type_mapping.h"
