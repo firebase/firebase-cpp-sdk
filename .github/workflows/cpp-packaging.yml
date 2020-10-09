@@ -45,7 +45,7 @@ jobs:
           mkdir -p packaging-tools
           cp -af demumble-src/demumble packaging-tools
       - name: archive tools
-        run: tar -czf packaging-tools.tgz packaging-tools
+        run: tar -czhf packaging-tools.tgz packaging-tools
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -69,7 +69,7 @@ jobs:
       - name: build sdk
         run: |
           sdk-src/build_scripts/ios/build.sh firebase-cpp-sdk-ios-${{ matrix.architecture }} sdk-src ${{ matrix.architecture }}
-          tar -czf firebase-cpp-sdk-ios-${{ matrix.architecture }}.tgz firebase-cpp-sdk-ios-${{ matrix.architecture }}
+          tar -czhf firebase-cpp-sdk-ios-${{ matrix.architecture }}.tgz firebase-cpp-sdk-ios-${{ matrix.architecture }}
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -90,7 +90,7 @@ jobs:
       - name: build sdk
         run: |
           sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android sdk-src
-          tar -czf firebase-cpp-sdk-android.tgz firebase-cpp-sdk-android
+          tar -czhf firebase-cpp-sdk-android.tgz firebase-cpp-sdk-android
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -162,7 +162,7 @@ jobs:
       - name: Build SDK
         run: |
           python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}
-          tar -czf firebase-cpp-sdk-${{ env.SDK_NAME }}.tgz firebase-cpp-sdk-${{ env.SDK_NAME }}
+          tar -czhf firebase-cpp-sdk-${{ env.SDK_NAME }}.tgz firebase-cpp-sdk-${{ env.SDK_NAME }}
 
       - name: upload artifacts
         uses: actions/upload-artifact@v2
