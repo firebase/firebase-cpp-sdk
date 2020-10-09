@@ -56,7 +56,7 @@ jobs:
         exclude:
           - os: iOS
             target_platform: ubuntu-*
-           - os: iOS
+          - os: iOS
             target_platform: windows-*
 
     steps:
