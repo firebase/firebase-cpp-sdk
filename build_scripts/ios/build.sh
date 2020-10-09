@@ -33,5 +33,5 @@ cd -
 
 set -ex
 
-cmake -GXcode "-DCMAKE_TOOLCHAIN_FILE=$toolchain" -S "${sourcepath}" -B "${buildpath}"
+cmake -GXcode "-DCMAKE_TOOLCHAIN_FILE=${toolchain}" -S "${sourcepath}" -B "${buildpath}"
 cmake --build "${buildpath}"

@@ -200,4 +200,7 @@ jobs:
       - name: list files
         run: |
           ls -R sdk-build/packaging-tools
-          ls -R sdk-build/firebase-cpp-sdk-${{ matrix.sdk_platform }}-*
+          ls -R sdk-build/firebase-cpp-sdk-${{ matrix.sdk_platform }}*
+          cd sdk-build
+          for f in firebase-cpp-sdk-${{ matrix.sdk_platform }}*.tgz; do tar -xzf $f; done
+          find . -name '*.a' -or -name '*.lib' -print
