@@ -98,7 +98,7 @@ jobs:
           path: firebase-cpp-sdk-android.tgz
 
   build_desktop:
-    name: build-sdk-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}
+    name: build-sdk-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
