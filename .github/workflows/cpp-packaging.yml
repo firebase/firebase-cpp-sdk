@@ -98,7 +98,7 @@ jobs:
           path: firebase-cpp-sdk-android.tgz
 
   build_desktop:
-    name: build-sdk-desktop-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}
+    name: build-sdk-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -112,12 +112,15 @@ jobs:
           architecture: "x64"
           vcpkg_triplet: "x64-windows-static"
           msbuild_platform: "x64"
+          sdk_platform: windows
         - os: ubuntu-latest
           architecture: "x64"
           vcpkg_triplet: "x64-linux"
+          sdk_platform: linux
         - os: macos-latest
           architecture: "x64"
           vcpkg_triplet: "x64-osx"
+          sdk_platform: darwin
 
     steps:
       - uses: actions/checkout@v2
@@ -129,7 +132,7 @@ jobs:
         run: |
           echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt"
           echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}"
-          echo "::set-env name=SDK_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}"
+          echo "::set-env name=SDK_NAME::${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}"
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
@@ -171,4 +174,29 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         run: ccache -s
 
+  package_merge:
+    name: package-merge-${{ matrix.sdk_platform }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk_platform: [android, ios, windows, linux, darwin]
 
+    steps:
+      - name: fetch SDK
+        uses: actions/checkout@v2.3.1
+        with:
+          path: sdk-src
+          ref: ${{ github.event.inputs.commitId }}
+
+      - name: download artifact
+        uses: actions/download-artifact@v2
+        with:
+          # download-artifact doesn't support wildcards, but by default
+          # will download all artifacts. Sadly this is what we must do.
+          path: sdk-build
+
+      - name: list files
+        run: |
+	  ls -R sdk-build/packaging-tools
+	  ls -R sdk-build/firebase-cpp-sdk-${{ matrix.sdk_platform }}-*
