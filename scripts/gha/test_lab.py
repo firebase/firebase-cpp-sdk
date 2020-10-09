@@ -116,8 +116,6 @@ def main(argv):
   gcs_base_dir = _get_base_results_dir()
   logging.info("Storing results in %s", _relative_path_to_gs_uri(gcs_base_dir))
 
-  _gcloud_beta_install()
-
   tests = []
   for device, platform, path in testapps:
     # e.g. /testapps/unity/firebase_auth/app.apk -> unity_firebase_auth_app_apk
@@ -264,12 +262,6 @@ def _gcs_read_file(gcs_path):
   logging.info("Reading GCS file: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=True)
   return result.stdout
-
-def _gcloud_beta_install():
-  """Install gcloud Beta Commands components for iOS Test"""
-  subprocess.run(
-    args=["gcloud", "--quiet", "components", "install", "beta"]
-    ,check=True)
 
 
 @attr.s(frozen=False, eq=False)
