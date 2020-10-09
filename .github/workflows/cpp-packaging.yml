@@ -198,5 +198,5 @@ jobs:
 
       - name: list files
         run: |
-	  ls -R sdk-build/packaging-tools
-	  ls -R sdk-build/firebase-cpp-sdk-${{ matrix.sdk_platform }}-*
+          ls -R sdk-build/packaging-tools
+          ls -R sdk-build/firebase-cpp-sdk-${{ matrix.sdk_platform }}-*
