@@ -85,17 +85,19 @@ def _get_ios_env_from_target(ios_sdk):
     raise ValueError("Unrecognized ios_sdk: %s" % ios_sdk)
 
 
-def generate_unsigned_ipa(build_dir):
+def generate_unsigned_ipa(output_dir, configuration):
   """create unsigned .ipa from .app
 
   Args:
-    build_dir (str): Full path to the build dir.
+    output_dir (str): Same value as get_args_for_build. generated unsigned .ipa 
+      will be placed within the subdirectory "Debug-iphoneos" or "Release-iphoneos".
+    configuration (str): Same value as get_args_for_build.
   """
-  build_path = os.path.join(build_dir, "Debug-iphoneos")
-  payload_path = os.path.join(build_path, "Payload")
-  app_path = os.path.join(build_path, "integration_test.app")
-  ipa_path = os.path.join(build_path, "integration_test.ipa")
+  iphone_build_dir = os.path.join(output_dir, configuration + "-iphoneos")
+  payload_path = os.path.join(iphone_build_dir, "Payload")
+  app_path = os.path.join(iphone_build_dir, "integration_test.app")
+  ipa_path = os.path.join(iphone_build_dir, "integration_test.ipa")
   os.mkdir(payload_path)
   shutil.move(app_path, payload_path)
-  shutil.make_archive(payload_path, 'zip', root_dir=build_path, base_dir='Payload')
+  shutil.make_archive(payload_path, 'zip', root_dir=iphone_build_dir, base_dir='Payload')
   shutil.move('%s.%s'%(payload_path, 'zip'), ipa_path)

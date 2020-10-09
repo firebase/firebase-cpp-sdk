@@ -186,9 +186,10 @@ def main(argv):
 
   config = config_reader.read_config()
 
-  github_repo = False
-  if _IOS in platforms:
-    github_repo = _generate_makefiles_from_repo(FLAGS.sdk_dir)
+  ios_framework_dir = os.path.join(os.path.expanduser(FLAGS.sdk_dir), "frameworks")
+  ios_framework_exist = os.path.isdir(ios_framework_dir)
+  if not ios_framework_exist and _IOS in platforms:
+    _generate_makefiles_from_repo(FLAGS.sdk_dir)
 
   if update_pod_repo and _IOS in platforms:
     _run(["pod", "repo", "update"])
@@ -209,7 +210,7 @@ def main(argv):
         api_config=config.get_api(testapp),
         output_dir=os.path.expanduser(FLAGS.output_directory),
         sdk_dir=os.path.expanduser(FLAGS.sdk_dir),
-        github_repo=github_repo,
+        ios_framework_exist=ios_framework_exist,
         timestamp=timestamp,
         root_dir=os.path.expanduser(FLAGS.root_dir),
         ios_sdk=FLAGS.ios_sdk,
@@ -222,8 +223,8 @@ def main(argv):
 
 
 def _build(
-    testapp, platforms, api_config, output_dir, sdk_dir, github_repo, timestamp, 
-    root_dir, ios_sdk, cmake_flags, execute_desktop_testapp):
+    testapp, platforms, api_config, output_dir, sdk_dir, ios_framework_exist, 
+    timestamp, root_dir, ios_sdk, cmake_flags, execute_desktop_testapp):
   """Builds one testapp on each of the specified platforms."""
   testapp_dir = os.path.join(root_dir, api_config.testapp_path)
   project_dir = os.path.join(
@@ -270,7 +271,7 @@ def _build(
     try:
       _build_ios(
           sdk_dir=sdk_dir,
-          github_repo=github_repo,
+          ios_framework_exist=ios_framework_exist,
           project_dir=project_dir,
           root_dir=root_dir,
           api_config=api_config,
@@ -374,29 +375,22 @@ def _validate_android_environment_variables():
           "Neither %s nor %s is set", _ANDROID_SDK_HOME, _ANDROID_HOME)
 
 
-# If sdk_dir is Github repo, then build ios frameworks first
+# If sdk_dir contains no framework, consider it is Github repo, then 
+# generate makefiles for ios frameworks
 def _generate_makefiles_from_repo(sdk_dir):
-  sdk_dir = os.path.expanduser(sdk_dir)
-  framework_src_dir = os.path.join(sdk_dir, "frameworks", "ios", "universal")
+  ios_framework_builder = os.path.join(
+    sdk_dir, "build_scripts", "ios", "build.sh")
 
-  # If framework doesn't exist
-  if not os.path.isdir(framework_src_dir):
-    ios_framework_builder = os.path.join(
-      sdk_dir, "build_scripts", "ios", "build.sh")
-
-    framework_builder_args = [
-        ios_framework_builder,
-        "-b", sdk_dir,
-        "-s", sdk_dir,
-        "-c", "false"
-    ]
-    _run(framework_builder_args)
-    return True
-  
-  return False
+  framework_builder_args = [
+      ios_framework_builder,
+      "-b", sdk_dir,
+      "-s", sdk_dir,
+      "-c", "false"
+  ]
+  _run(framework_builder_args)
 
 
-# If sdk_dir is Github repo, then build ios frameworks first
+# build required ios frameworks based on makefiles
 def _build_ios_framework_from_repo(sdk_dir, api_config):
   sdk_dir = os.path.expanduser(sdk_dir)
   ios_framework_builder = os.path.join(
@@ -420,8 +414,8 @@ def _build_ios_framework_from_repo(sdk_dir, api_config):
 
 
 def _build_ios(
-    sdk_dir, github_repo, project_dir, root_dir, api_config, ios_sdk):
-  if github_repo:
+    sdk_dir, ios_framework_exist, project_dir, root_dir, api_config, ios_sdk):
+  if not ios_framework_exist:
     _build_ios_framework_from_repo(sdk_dir, api_config)
 
   """Builds an iOS application (.app, .ipa or both)."""
@@ -475,7 +469,7 @@ def _build_ios(
             ios_sdk=_IOS_SDK_DEVICE,
             configuration="Debug"))
 
-    xcodebuild.generate_unsigned_ipa(build_dir)
+    xcodebuild.generate_unsigned_ipa(output_dir=build_dir, configuration="Debug")
 
 
 # This script is responsible for copying shared files into the integration
