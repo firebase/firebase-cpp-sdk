@@ -76,7 +76,7 @@ def main
   elsif path_components.include?('FirebaseDynamicLinks')
     make_changes_for_dynamiclinks
   end
-  
+
   framework_dir = "#@xcode_project_dir/Frameworks"
   set_build_setting('FRAMEWORK_SEARCH_PATHS', ['${inherited}', framework_dir])
 
@@ -123,7 +123,7 @@ def add_entitlements
   puts 'Added entitlement to xcode project.'
 end
 
-# This only involves patching a plist file, which could be moved to the
+# This only involves patching a plist file, which should be moved to the
 # Python tool.
 def enable_remote_notification
   puts 'Adding remote-notification to UIBackgroundModes...'
