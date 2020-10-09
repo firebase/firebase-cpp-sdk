@@ -156,8 +156,8 @@ def _patch_reverse_id(service_plist_path):
 
 
 def _patch_bundle_id(service_plist_path):
-  """Patches the Info.plist file with the reverse id from the Service plist."""
-  print("Attempting to patch reverse id in Info.plist")
+  """Patches the Info.plist file with the bundle id from the Service plist."""
+  print("Attempting to patch bundle id in Info.plist")
   with open(service_plist_path, "rb") as f:
     service_plist = plistlib.load(f)
   _patch_file(
