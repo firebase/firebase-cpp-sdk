@@ -203,4 +203,5 @@ jobs:
           ls -R sdk-build/firebase-cpp-sdk-${{ matrix.sdk_platform }}*
           cd sdk-build
           for f in firebase-cpp-sdk-${{ matrix.sdk_platform }}*; do tar -xzf $f/$f.tgz; done
-          find . -name '*.a' -or -name '*.lib' -print
+          find . -name '*.a' -print
+	  find . -name '*.obj' -print
