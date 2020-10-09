@@ -52,7 +52,8 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False)
  print('Running cmd: {0}\n'.format(cmd_string))
  # If capture_output is requested, we also set text=True to store the returned value of the
  # command as a string instead of bytes object
- return subprocess.run(cmd, capture_output=capture_output, cwd=cwd, check=check, text=capture_output)
+ return subprocess.run(cmd, capture_output=capture_output, cwd=cwd, check=check,
+                       text=capture_output)
 
 
 def is_command_installed(tool):
@@ -89,15 +90,82 @@ def is_linux_os():
  return platform.system() == 'Linux'
 
 
-def get_vcpkg_triplet(arch):
-  """ Get vcpkg target triplet (platform definition).
+def check_vcpkg_triplet(triplet_name, arch, crt_linkage):
+  """Check if a vcpkg triplet exists that match our specification.
 
   Args:
     arch (str): Architecture (eg: 'x86', 'x64').
+    crt_linkage (str): Runtime linkage for MSVC (eg: 'dynamic', 'static')
+
+  Returns:
+    (bool): If the triplet is valid.
+  """
+  triplet_file_path = get_vcpkg_triplet_file_path(triplet_name)
+  if not os.path.exists(triplet_file_path):
+    return False
+
+  _arch = None
+  _crt_linkage = None
+
+  with open(triplet_file_path, 'r') as triplet_file:
+    for line in triplet_file:
+      print("Orginal: {0}".format(line))
+      # Eg: set(VCPKG_TARGET_ARCHITECTURE x86) ->
+      #     set(VCPKG_TARGET_ARCHITECTURE x86
+      line = line.rstrip('\n').rstrip(')')
+      if not line.startswith('set('):
+        continue
+      print(line)
+      # Eg: 'set(', 'VCPKG_TARGET_ARCHITECTURE x86'
+      variable = line.split('set(')[-1]
+      print(variable)
+      variable_name, variable_value = variable.split(' ')
+      if variable_name == 'VCPKG_TARGET_ARCHITECTURE':
+        _arch = variable_value
+      elif variable_name == 'VCPKG_CRT_LINKAGE':
+        _crt_linkage = variable_value
+
+  return (_arch == arch) and (_crt_linkage == crt_linkage)
+
+
+def create_vcpkg_triplet(arch, crt_linkage):
+  """Create a new triplet configuration.
+
+  Args:
+    arch (str): Architecture (eg: 'x86', 'x64').
+    crt_linkage (str): Runtime linkage for MSVC (eg: 'dynamic', 'static')
+
+  Returns:
+    (str): Triplet name
+      Eg: 'x86-windows-dynamic'
+  """
+  contents = [ 'VCPKG_TARGET_ARCHITECTURE {0}'.format(arch),
+               'VCPKG_CRT_LINKAGE {0}'.format(crt_linkage),
+               'VCPKG_LIBRARY_LINKAGE static']
+
+  contents = ['set({0})\n'.format(content) for content in contents]
+  if is_linux_os() or is_mac_os():
+    contents.append('\n')
+    contents.append('set(VCPKG_CMAKE_SYSTEM_NAME {0})\n'.format(platform.system()))
+
+  triplet_name = '{0}-{1}-{2}'.format(arch.lower(), platform.system().lower(), crt_linkage)
+  with open(get_vcpkg_triplet_file_path(triplet_name), 'w') as triplet_file:
+    triplet_file.writelines(contents)
+    print('Created new triplet: {0}'.format(triplet_name))
+
+  return triplet_name
+
+
+def get_vcpkg_triplet(arch='x64', crt_linkage='dynamic'):
+  """Get vcpkg target triplet (platform definition).
+
+  Args:
+    arch (str): Architecture (eg: 'x86', 'x64').
+    crt_linkage (str): C runtime library linkage for MSVC (eg: 'dynamic', 'static')
 
   Raises:
     ValueError: If current OS is not win,mac or linux.
-  
+
   Returns:
     (str): Triplet name.
        Eg: "x64-windows-static".
@@ -114,8 +182,55 @@ def get_vcpkg_triplet(arch):
     triplet_name.append('linux')
 
   triplet_name = '-'.join(triplet_name)
+  ok = check_vcpkg_triplet(triplet_name, arch, crt_linkage)
+  if not ok:
+    print("noooooooooo")
+    triplet_name = create_vcpkg_triplet(arch, crt_linkage)
+
   print("Using vcpkg triplet: {0}".format(triplet_name))
   return triplet_name
+
+
+def get_vcpkg_triplet_file_path(triplet_name):
+  """Get absolute path to vcpkg triplet configuration file."""
+  return os.path.join(get_vcpkg_root_path(), 'triplets',
+                                   triplet_name + '.cmake')
+
+
+def get_vcpkg_response_file_path(triplet_name):
+  """Get absolute path to vcpkg response file containing packages to install"""
+  response_file_dir_path = os.path.join(os.getcwd(), 'external')
+  response_file_path = os.path.join(response_file_dir_path,
+                       'vcpkg_' + triplet_name + '_response_file.txt')
+  # The firebase-cpp-sdk repo ships with pre-created response files
+  # (list of packages to install + a triplet name at the end)
+  # for common triplets supported by a fresh vcpkg install.
+  # These response files are located at <repo_root>/external/vcpkg_*
+  # If we do not find a matching response file to specified triplet,
+  # we have to create a new file. In order to do this, we copy any of
+  # the existing files (vcpkg_x64-linux_response_file.txt in this case)
+  # and modify the triplet name contained in it. Copying makes sure that the
+  # list of packages to install is the same as other response files.
+  if not os.path.exists(response_file_path):
+    existing_response_file_path = os.path.join(response_file_dir_path,
+                         'vcpkg_x64-linux_response_file.txt')
+    with open(existing_response_file_path, 'r') as existing_file:
+      # Structure of a vcpkg response file
+      # <package1>
+      # <package2>
+      # ...
+      # --triplet
+      # <triplet_name>
+      lines = existing_file.readlines()
+      print("Using x64-linux response file as template.\n")
+      print(lines)
+      # Modify the line containing triplet name
+      lines[-1] = triplet_name + '\n'
+      with open(response_file_path, 'w') as response_file:
+        response_file.writelines(lines)
+        print("Created new response file: {0}\n".format(response_file_path))
+        print(lines)
+  return response_file_path
 
 
 def get_vcpkg_root_path():
@@ -144,6 +259,12 @@ def get_vcpkg_installation_script_path():
   return script_absolute_path
 
 
+def get_vcpkg_cmake_toolchain_file_path():
+  """Get absolute path to toolchain file used for cmake builds"""
+  vcpkg_root_dir = get_vcpkg_root_path()
+  return os.path.join(vcpkg_root_dir, 'scripts', 'buildsystems', 'vcpkg.cmake')
+
+
 def clean_vcpkg_temp_data():
   """Delete files/directories that vcpkg uses during its build"""
   # Clear temporary directories and files created by vcpkg buildtrees
@@ -153,4 +274,3 @@ def clean_vcpkg_temp_data():
   delete_directory(buildtrees_dir_path)
   downloads_dir_path = os.path.join(vcpkg_root_dir_path, 'downloads')
   delete_directory(downloads_dir_path)
-
