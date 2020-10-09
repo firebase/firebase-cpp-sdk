@@ -54,10 +54,10 @@ jobs:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
         target_platform: ${{ fromJson(needs.prepare_matrix.outputs.matrix_platform) }}
         exclude:
-          - os: iOS
-            target_platform: ubuntu-*
-          - os: iOS
-            target_platform: windows-*
+          - os: ubuntu-latest
+            target_platform: iOS
+          - os: windows-latest
+            target_platform: iOS
 
     steps:
       - uses: actions/checkout@v2
