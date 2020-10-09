@@ -116,6 +116,8 @@ def main(argv):
   gcs_base_dir = _get_base_results_dir()
   logging.info("Storing results in %s", _relative_path_to_gs_uri(gcs_base_dir))
 
+  _gcloud_beta_install()
+
   tests = []
   for device, platform, path in testapps:
     # e.g. /testapps/unity/firebase_auth/app.apk -> unity_firebase_auth_app_apk
@@ -263,6 +265,12 @@ def _gcs_read_file(gcs_path):
   result = subprocess.run(args=args, capture_output=True, text=True, check=True)
   return result.stdout
 
+def _gcloud_beta_install():
+  """Install gcloud Beta Commands components for iOS Test"""
+  subprocess.run(
+    args=["gcloud", "--quiet", "components", "install", "beta"]
+    ,check=True)
+
 
 @attr.s(frozen=False, eq=False)
 class Test(object):
@@ -295,7 +303,7 @@ class Test(object):
     if self.platform == _ANDROID:
       cmd = ["gcloud", "firebase", "test", "android", "run"]
     elif self.platform == _IOS:
-      cmd = ["gcloud", "--quiet", "beta", "firebase", "test", "ios", "run"]
+      cmd = ["gcloud", "beta", "firebase", "test", "ios", "run"]
     else:
       raise ValueError("Invalid platform, must be 'Android' or 'iOS'")
     return cmd + self.device.get_gcloud_flags() + [
