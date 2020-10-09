@@ -177,6 +177,7 @@ jobs:
   package_merge:
     name: package-merge-${{ matrix.sdk_platform }}
     runs-on: ubuntu-latest
+    needs: [build_tools, build_ios, build_android, build_desktop]
     strategy:
       fail-fast: false
       matrix:
