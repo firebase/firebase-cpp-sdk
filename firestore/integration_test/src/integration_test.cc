@@ -360,8 +360,10 @@ TEST_F(FirebaseFirestoreBasicTest, TestDocumentListener) {
   firebase::firestore::ListenerRegistration registration =
       document.AddSnapshotListener(
           [&](const firebase::firestore::DocumentSnapshot& result,
-              firebase::firestore::Error error) {
-            EXPECT_EQ(error, firebase::firestore::kErrorOk);
+              firebase::firestore::Error error_code,
+              const std::string& error_message) {
+            EXPECT_EQ(error_code, firebase::firestore::kErrorOk);
+            EXPECT_EQ(error_message, "");
             document_snapshots.push_back(result.GetData());
           });
 
