@@ -117,7 +117,7 @@ set(FIREBASE_SCRIPT_DIR ${CMAKE_CURRENT_LIST_DIR})
 if (MSVC AND MSVC_RUNTIME_LIBRARY_STATIC)
   # Use Multithreaded static runtime libraries for MSVC 
   # if MSVC_RUNTIME_LIBRARY_STATIC is set.
-  # Default value if nothign is specified is /MD (dll dynamic runtime).
+  # Default value if nothing is specified is /MD (dll dynamic runtime).
   set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
