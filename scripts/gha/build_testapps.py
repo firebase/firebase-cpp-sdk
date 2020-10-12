@@ -188,8 +188,6 @@ def main(argv):
   else:
     timestamp = ""
 
-  config = config_reader.read_config()
-
   ios_framework_dir = os.path.join(sdk_dir, "frameworks")
   ios_framework_exist = os.path.isdir(ios_framework_dir)
   if not ios_framework_exist and _IOS in platforms:
@@ -197,7 +195,8 @@ def main(argv):
 
   if update_pod_repo and _IOS in platforms:
     _run(["pod", "repo", "update"])
-
+    
+  config = config_reader.read_config()
   cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
   if _DESKTOP in platforms and FLAGS.use_vcpkg:
     _run(["git", "submodule", "update", "--init"])
