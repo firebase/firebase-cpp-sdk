@@ -85,8 +85,8 @@ def main(argv):
       # We use a Google Service file as the source of truth for the reverse id
       # that needs to be patched into the Info.plist files.
       if dest_path.endswith(".plist"):
-        print("WARNING: Reverse ID patching for iOS temporarily disabled.")
-        # _patch_reverse_id(dest_path)
+        _patch_reverse_id(dest_path)
+        _patch_bundle_id(dest_path)
 
   print("Attempting to patch Dynamic Links uri prefix.")
   uri_path = os.path.join(secrets_dir, "dynamic_links", "uri_prefix.txt.gpg")
@@ -153,6 +153,17 @@ def _patch_reverse_id(service_plist_path):
       path=os.path.join(os.path.dirname(service_plist_path), "Info.plist"),
       placeholder="REPLACE_WITH_REVERSED_CLIENT_ID",
       value=service_plist["REVERSED_CLIENT_ID"])
+
+
+def _patch_bundle_id(service_plist_path):
+  """Patches the Info.plist file with the bundle id from the Service plist."""
+  print("Attempting to patch bundle id in Info.plist")
+  with open(service_plist_path, "rb") as f:
+    service_plist = plistlib.load(f)
+  _patch_file(
+      path=os.path.join(os.path.dirname(service_plist_path), "Info.plist"),
+      placeholder="$(PRODUCT_BUNDLE_IDENTIFIER)",
+      value=service_plist["BUNDLE_ID"])
 
 
 def _patch_main_src(project_dir, placeholder, value):
