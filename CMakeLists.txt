@@ -122,6 +122,7 @@ if (MSVC AND MSVC_RUNTIME_LIBRARY_STATIC)
   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
   set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
   set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+endif()
   
 if (FIREBASE_CPP_BUILD_TESTS AND MSVC)
   # GoogleTest requires MSVC to compile with the static version of the runtime
