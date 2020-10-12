@@ -120,6 +120,7 @@ class FirestoreInternal {
   void RegisterListenerRegistration(ListenerRegistrationInternal* registration);
   void UnregisterListenerRegistration(
       ListenerRegistrationInternal* registration);
+  void ClearListeners();
 
   static jni::Env GetEnv();
 

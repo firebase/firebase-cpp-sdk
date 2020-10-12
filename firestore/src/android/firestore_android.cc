@@ -307,16 +307,7 @@ FirestoreInternal::~FirestoreInternal() {
   // If initialization failed, there is nothing to clean up.
   if (app_ == nullptr) return;
 
-  {
-    MutexLock lock(listener_registration_mutex_);
-    // TODO(varconst): investigate why not all listener registrations are
-    // cleared.
-    // FIREBASE_ASSERT(listener_registrations_.empty());
-    for (auto* reg : listener_registrations_) {
-      delete reg;
-    }
-    listener_registrations_.clear();
-  }
+  ClearListeners();
 
   Env env = GetEnv();
   ShutdownUserCallbackExecutor(env);
@@ -471,6 +462,15 @@ void FirestoreInternal::UnregisterListenerRegistration(
     delete *iter;
     listener_registrations_.erase(iter);
   }
+}
+
+void FirestoreInternal::ClearListeners() {
+  MutexLock lock(listener_registration_mutex_);
+
+  for (auto* reg : listener_registrations_) {
+    delete reg;
+  }
+  listener_registrations_.clear();
 }
 
 jni::Env FirestoreInternal::GetEnv() {
