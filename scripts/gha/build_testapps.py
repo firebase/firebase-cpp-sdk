@@ -178,6 +178,10 @@ def main(argv):
   platforms = FLAGS.platforms
   testapps = FLAGS.testapps
 
+  sdk_dir = _fix_path(FLAGS.sdk_dir)
+  output_dir = _fix_path(FLAGS.output_directory)
+  root_dir = _fix_path(FLAGS.root_dir)
+
   update_pod_repo = FLAGS.update_pod_repo
   if FLAGS.add_timestamp:
     timestamp = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
@@ -186,10 +190,10 @@ def main(argv):
 
   config = config_reader.read_config()
 
-  ios_framework_dir = os.path.join(os.path.expanduser(FLAGS.sdk_dir), "frameworks")
+  ios_framework_dir = os.path.join(sdk_dir, "frameworks")
   ios_framework_exist = os.path.isdir(ios_framework_dir)
   if not ios_framework_exist and _IOS in platforms:
-    _generate_makefiles_from_repo(FLAGS.sdk_dir)
+    _generate_makefiles_from_repo(sdk_dir)
 
   if update_pod_repo and _IOS in platforms:
     _run(["pod", "repo", "update"])
@@ -197,7 +201,7 @@ def main(argv):
   cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
   if _DESKTOP in platforms and FLAGS.use_vcpkg:
     _run(["git", "submodule", "update", "--init"])
-    vcpkg = Vcpkg.generate(os.path.join(FLAGS.sdk_dir, config.vcpkg_dir))
+    vcpkg = Vcpkg.generate(os.path.join(sdk_dir, config.vcpkg_dir))
     vcpkg.install_and_run()
     cmake_flags.extend(vcpkg.cmake_flags)
 
@@ -208,11 +212,11 @@ def main(argv):
         testapp=testapp,
         platforms=platforms,
         api_config=config.get_api(testapp),
-        output_dir=os.path.expanduser(FLAGS.output_directory),
-        sdk_dir=os.path.expanduser(FLAGS.sdk_dir),
+        output_dir=output_dir,
+        sdk_dir=sdk_dir,
         ios_framework_exist=ios_framework_exist,
         timestamp=timestamp,
-        root_dir=os.path.expanduser(FLAGS.root_dir),
+        root_dir=root_dir,
         ios_sdk=FLAGS.ios_sdk,
         cmake_flags=cmake_flags,
         execute_desktop_testapp=FLAGS.execute_desktop_testapp)
@@ -328,17 +332,21 @@ def _get_desktop_compiler_flags(compiler, compiler_table):
 
 def _build_android(project_dir, sdk_dir):
   """Builds an Android binary (apk)."""
+  if platform.system() == "Windows":
+    gradlew = "gradlew.bat"
+    sdk_dir = sdk_dir.replace("\\", "/")  # Gradle misinterprets backslashes.
+  else:
+    gradlew = "./gradlew"
   logging.info("Patching gradle properties with path to SDK")
   gradle_properties = os.path.join(project_dir, "gradle.properties")
   with open(gradle_properties, "a+") as f:
     f.write("systemProp.firebase_cpp_sdk.dir=" + sdk_dir + "\n")
   # This will log the versions of dependencies for debugging purposes.
-  _run(
-      ["./gradlew", "dependencies", "--configuration", "debugCompileClasspath"])
+  _run([gradlew, "dependencies", "--configuration", "debugCompileClasspath"])
   # Building for Android has a known issue that can be worked around by
   # simply building again. Since building from source takes a while, we don't
   # want to retry the build if a different error occurred.
-  build_args = ["./gradlew", "assembleDebug", "--stacktrace"]
+  build_args = [gradlew, "assembleDebug", "--stacktrace"]
   result = _run(args=build_args, capture_output=True, text=True, check=False)
   if result.returncode:
     if "Execution failed for task ':generateJsonModel" in result.stderr:
@@ -392,7 +400,6 @@ def _generate_makefiles_from_repo(sdk_dir):
 
 # build required ios frameworks based on makefiles
 def _build_ios_framework_from_repo(sdk_dir, api_config):
-  sdk_dir = os.path.expanduser(sdk_dir)
   ios_framework_builder = os.path.join(
     sdk_dir, "build_scripts", "ios", "build.sh")
   
@@ -496,11 +503,19 @@ def _run(args, timeout=2400, capture_output=False, text=None, check=True):
 
 def _rm_dir_safe(directory_path):
   """Removes directory at given path. No error if dir doesn't exist."""
+  logging.info("Deleting %s...", directory_path)
   try:
     shutil.rmtree(directory_path)
-    logging.info("Deleted %s", directory_path)
-  except FileNotFoundError:
-    logging.warning("Tried to delete %s, but it doesn't exist.", directory_path)
+  except OSError as e:
+    # There are two known cases where this can happen:
+    # The directory doesn't exist (FileNotFoundError)
+    # A file in the directory is open in another process (PermissionError)
+    logging.warning("Failed to remove directory:\n%s", e)
+
+
+def _fix_path(path):
+  """Expands ~, normalizes slashes, and converts relative paths to absolute."""
+  return os.path.abspath(os.path.expanduser(path))
 
 
 @attr.s(frozen=True, eq=False)
