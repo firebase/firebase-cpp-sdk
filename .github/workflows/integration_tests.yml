@@ -129,10 +129,6 @@ jobs:
       - name: Install Cloud SDK for mobile integration tests
         if: matrix.target_platform != 'Desktop' && !cancelled()
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master 
-      - name: Install Google Cloud beta components for iOS integration tests
-        if: matrix.target_platform == 'iOS'
-        run: |
-          gcloud --quiet components install beta
       - name: Run mobile integration tests
         if: matrix.target_platform != 'Desktop' && !cancelled()
         run: |
