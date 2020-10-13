@@ -38,11 +38,7 @@ iPhone 8 Plus, OS 11.4:
 
 """
 
-import datetime
 import os
-import random
-import string
-import shutil
 import subprocess
 import threading
 
@@ -51,12 +47,11 @@ from absl import flags
 from absl import logging
 import attr
 
+from integration_testing import gcs
 from integration_testing import test_validation
 
 _ANDROID = "android"
 _IOS = "ios"
-
-_PROJECT_ID = "games-auto-release-testing"
 
 FLAGS = flags.FLAGS
 
@@ -87,18 +82,9 @@ flags.DEFINE_string(
     " to find available values. If none, will use FTL's default.")
 
 
-# Full paths to the gCloud SDK tools. On Windows, subprocess.run does not check
-# the PATH, so we need to find and supply the full paths.
-# shutil.which returns None if it doesn't find a tool.
-_GCLOUD = shutil.which("gcloud")
-_GSUTIL = shutil.which("gsutil")
-
-
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
-
-  _verify_gcloud_sdk_command_line_tools()
 
   testapp_dir = _fix_path(FLAGS.testapp_dir)
   key_file_path = _fix_path(FLAGS.key_file)
@@ -109,7 +95,7 @@ def main(argv):
 
   android_device = Device(model=FLAGS.android_model, version=FLAGS.android_api)
   ios_device = Device(model=FLAGS.ios_model, version=FLAGS.ios_version)
-  
+
   has_ios = False
   testapps = []
   for file_dir, _, file_names in os.walk(testapp_dir):
@@ -127,9 +113,9 @@ def main(argv):
 
   logging.info("Testapps found: %s", "\n".join(path for _, _, path in testapps))
 
-  _authorize_gcs(key_file_path)
+  gcs.authorize_gcs(key_file_path)
 
-  gcs_base_dir = _get_base_results_dir()
+  gcs_base_dir = gcs.get_unique_gcs_id()
   logging.info("Storing results in %s", _relative_path_to_gs_uri(gcs_base_dir))
 
   if has_ios:
@@ -167,46 +153,10 @@ def main(argv):
   return 0 if all_success else 1
 
 
-def _verify_gcloud_sdk_command_line_tools():
-  """Verifies the presence of the gCloud SDK's command line tools."""
-  logging.info("Looking for gcloud and gsutil tools...")
-  if not _GCLOUD:
-    logging.error("gcloud not on path")
-  if not _GSUTIL:
-    logging.error("gsutil not on path")
-  if not _GCLOUD or not _GSUTIL:
-    raise RuntimeError("Could not find required gCloud SDK tool(s)")
-  subprocess.run([_GCLOUD, "version"], check=True)
-  subprocess.run([_GSUTIL, "version"], check=True)
-
-
-def _get_base_results_dir():
-  """Defines the object used on GCS for all tests in this run."""
-  # We generate a unique directory to store the results by appending 4
-  # random letters to a timestamp. Timestamps are useful so that the
-  # directories for different runs get sorted based on when they were run.
-  timestamp = datetime.datetime.now().strftime("%y%m%d-%H%M%S")
-  suffix = "".join(random.choice(string.ascii_letters) for _ in range(4))
-  return "%s_%s" % (timestamp, suffix)
-
-
-def _authorize_gcs(key_file):
-  """Activates the service account on GCS and specifies the project."""
-  subprocess.run(
-      args=[
-          _GCLOUD, "auth", "activate-service-account", "--key-file", key_file
-      ],
-      check=True)
-  # Keep using this project for subsequent gcloud commands.
-  subprocess.run(
-      args=[_GCLOUD, "config", "set", "project", _PROJECT_ID],
-      check=True)
-
-
 def _install_gcloud_beta():
   """Install Google Cloud beta components for iOS integration tests."""
   subprocess.run(
-      args=[_GCLOUD, "--quiet", "components", "install", "beta"],
+      args=[gcs.GCLOUD, "--quiet", "components", "install", "beta"],
       check=True)
 
 
@@ -284,12 +234,12 @@ def _get_testapp_log_text_from_gcs(results_dir):
 def _relative_path_to_gs_uri(path):
   """Converts a relative GCS path to a GS URI understood by gsutil."""
   # e.g. <results_dir> -> gs://<project_id>/<results_dir>
-  return "gs://%s/%s" % (_PROJECT_ID, path)
+  return "gs://%s/%s" % (gcs.PROJECT_ID, path)
 
 
 def _gcs_list_dir(gcs_path):
   """Recursively returns a list of contents for a directory on GCS."""
-  args = [_GSUTIL, "ls", "-r", gcs_path]
+  args = [gcs.GSUTIL, "ls", "-r", gcs_path]
   logging.info("Listing GCS contents: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=True)
   return result.stdout.splitlines()
@@ -297,7 +247,7 @@ def _gcs_list_dir(gcs_path):
 
 def _gcs_read_file(gcs_path):
   """Extracts the contents of a file on GCS."""
-  args = [_GSUTIL, "cat", gcs_path]
+  args = [gcs.GSUTIL, "cat", gcs_path]
   logging.info("Reading GCS file: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=True)
   return result.stdout
@@ -337,15 +287,15 @@ class Test(object):
   def _gcloud_command(self):
     """Returns the args to send this testapp to FTL on the command line."""
     if self.platform == _ANDROID:
-      cmd = [_GCLOUD, "firebase", "test", "android", "run"]
+      cmd = [gcs.GCLOUD, "firebase", "test", "android", "run"]
     elif self.platform == _IOS:
-      cmd = [_GCLOUD, "beta", "firebase", "test", "ios", "run"]
+      cmd = [gcs.GCLOUD, "beta", "firebase", "test", "ios", "run"]
     else:
       raise ValueError("Invalid platform, must be 'Android' or 'iOS'")
     return cmd + self.device.get_gcloud_flags() + [
         "--type", "game-loop",
         "--app", self.testapp_path,
-        "--results-bucket", _PROJECT_ID,
+        "--results-bucket", gcs.PROJECT_ID,
         "--results-dir", self.results_dir,
         "--timeout", "300s"
     ]

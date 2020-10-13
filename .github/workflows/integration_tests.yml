@@ -126,9 +126,13 @@ jobs:
       - name: Set CLOUDSDK_PYTHON (Windows)
         if: startsWith(matrix.os, 'windows') && !cancelled()
         run: echo "::set-env name=CLOUDSDK_PYTHON::${{env.pythonLocation}}\python.exe"
-      - name: Install Cloud SDK for mobile integration tests
-        if: matrix.target_platform != 'Desktop' && !cancelled()
+      - name: Install Cloud SDK
+        if: !cancelled()
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master 
+      - name: Upload Desktop Artifacts to GCS
+        if: matrix.target_platform == 'Desktop' && !cancelled()
+        run: |
+          python scripts/gha/gcs_uploader.py --testapp_dir ${{ github.workspace }}/testapps --key_file ${{ github.workspace }}/scripts/gha-encrypted/gcs_key_file.json
       - name: Run mobile integration tests
         if: matrix.target_platform != 'Desktop' && !cancelled()
         run: |
