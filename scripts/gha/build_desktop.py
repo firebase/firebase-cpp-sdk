@@ -39,7 +39,7 @@ import os
 import utils
 
 
-def install_cpp_dependencies_with_vcpkg(arch):
+def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
   """Install packages with vcpkg.
 
   This does the following,
@@ -48,6 +48,7 @@ def install_cpp_dependencies_with_vcpkg(arch):
     - install packages via vcpkg.
   Args:
     arch (str): Architecture (eg: 'x86', 'x64').
+    msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
   """
 
   # Install vcpkg executable if its not installed already
@@ -60,7 +61,7 @@ def install_cpp_dependencies_with_vcpkg(arch):
 
   # for each desktop platform, there exists a vcpkg response file in the repo
   # (external/vcpkg_<triplet>_response_file.txt) defined for each target triplet
-  vcpkg_triplet = utils.get_vcpkg_triplet(arch)
+  vcpkg_triplet = utils.get_vcpkg_triplet(arch, msvc_runtime_library)
   vcpkg_response_file_path = os.path.join(os.getcwd(), 'external',
                       'vcpkg_' + vcpkg_triplet + '_response_file.txt')
 
@@ -69,14 +70,13 @@ def install_cpp_dependencies_with_vcpkg(arch):
   utils.run_command([vcpkg_executable_file_path, 'install',
                      '@' + vcpkg_response_file_path, '--disable-metrics'])
 
-  vcpkg_root_dir_path = utils.get_vcpkg_root_path()
-
   # Clear temporary directories and files created by vcpkg buildtrees
   # could be several GBs and cause github runners to run out of space
   utils.clean_vcpkg_temp_data()
 
 
-def cmake_configure(build_dir, arch, build_tests=True, config=None):
+def cmake_configure(build_dir, arch, msvc_runtime_library='static',
+                    build_tests=True, config=None):
   """ CMake configure.
 
   If you are seeing problems when running this multiple times,
@@ -85,6 +85,7 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None):
   Args:
    build_dir (str): Output build directory.
    arch (str): Platform Architecture (example: 'x64').
+   msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
    build_tests (bool): Build cpp unit tests.
    config (str): Release/Debug config.
           If its not specified, cmake's default is used (most likely Debug).
@@ -104,8 +105,20 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None):
                                            'buildsystems', 'vcpkg.cmake')
   cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(vcpkg_toolchain_file_path))
 
-  vcpkg_triplet = utils.get_vcpkg_triplet(arch)
+  vcpkg_triplet = utils.get_vcpkg_triplet(arch, msvc_runtime_library)
   cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
+
+  if utils.is_windows_os():
+    # If building for x86, we should supply -A Win32 to cmake configure
+    # Its a good habit to specify for x64 too as the default might be different
+    # on different windows machines.
+    cmd.append('-A')
+    cmd.append('Win32') if arch == 'x86' else cmd.append('x64')
+
+    # Use our special cmake option for /MD (dynamic).
+    # If this option is not specified, the default value is /MT (static).
+    if msvc_runtime_library == "dynamic":
+      cmd.append('-DMSVC_RUNTIME_LIBRARY_STATIC=ON')
 
   utils.run_command(cmd)
 
@@ -119,10 +132,11 @@ def main():
   utils.run_command(['git', 'submodule', 'update'])
 
   # Install platform dependent cpp dependencies with vcpkg
-  install_cpp_dependencies_with_vcpkg(args.arch)
+  install_cpp_dependencies_with_vcpkg(args.arch, args.msvc_runtime_library)
 
   # CMake configure
-  cmake_configure(args.build_dir, args.arch, args.build_tests, args.config)
+  cmake_configure(args.build_dir, args.arch, args.msvc_runtime_library,
+                  args.build_tests, args.config)
 
   # CMake build
   # cmake --build build -j 8
@@ -137,6 +151,8 @@ def main():
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Install Prerequisites for building cpp sdk')
   parser.add_argument('-a', '--arch', default='x64', help='Platform architecture (x64, x86)')
+  parser.add_argument('--msvc_runtime_library', default='static',
+                      help='Runtime library for MSVC (static(/MT) or dynamic(/MD)')
   parser.add_argument('--build_dir', default='build', help='Output build directory')
   parser.add_argument('--build_tests', action='store_true', help='Build unit tests too')
   parser.add_argument('--config', help='Release/Debug config')

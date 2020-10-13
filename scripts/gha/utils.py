@@ -42,7 +42,8 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False)
   (subprocess.CalledProcessError): If command errored out and `text=True`
 
  Returns:
-  (`subprocess.CompletedProcess`): object containing information from command execution
+  (`subprocess.CompletedProcess`): object containing information from
+                                   command execution
  """
 
  if as_root and (is_mac_os() or is_linux_os()):
@@ -52,7 +53,8 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False)
  print('Running cmd: {0}\n'.format(cmd_string))
  # If capture_output is requested, we also set text=True to store the returned value of the
  # command as a string instead of bytes object
- return subprocess.run(cmd, capture_output=capture_output, cwd=cwd, check=check, text=capture_output)
+ return subprocess.run(cmd, capture_output=capture_output, cwd=cwd,
+                       check=check, text=capture_output)
 
 
 def is_command_installed(tool):
@@ -89,11 +91,12 @@ def is_linux_os():
  return platform.system() == 'Linux'
 
 
-def get_vcpkg_triplet(arch):
+def get_vcpkg_triplet(arch, msvc_runtime_library='static'):
   """ Get vcpkg target triplet (platform definition).
 
   Args:
     arch (str): Architecture (eg: 'x86', 'x64').
+    msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
 
   Raises:
     ValueError: If current OS is not win,mac or linux.
@@ -108,6 +111,8 @@ def get_vcpkg_triplet(arch):
     # For windows, default is to build dynamic. Hence we specify static.
     # For mac/linux, default is to build static libraries
     triplet_name.append('static')
+    if msvc_runtime_library == 'dynamic':
+      triplet_name.append('md')
   elif is_mac_os():
     triplet_name.append('osx')
   elif is_linux_os():
