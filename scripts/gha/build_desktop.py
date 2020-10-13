@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Assuming pre-requisites are in place (from running 
+Assuming pre-requisites are in place (from running
 `scripts/gha/install_prereqs_desktop.py`), this builds the firebase cpp sdk.
 
 It does the following,
@@ -29,7 +29,7 @@ python scripts/gha/build_desktop.py --arch x64 --config Release -j 8
 # Build all targets with default options and also build unit tests
 python scripts/gha/build_desktop.py --build_tests --arch x64
 
-# Build only firebase_app and firebase_auth 
+# Build only firebase_app and firebase_auth
 python scripts/gha/build_desktop.py --target firebase_app firebase_auth
 
 """
@@ -61,10 +61,10 @@ def install_cpp_dependencies_with_vcpkg(arch):
   # for each desktop platform, there exists a vcpkg response file in the repo
   # (external/vcpkg_<triplet>_response_file.txt) defined for each target triplet
   vcpkg_triplet = utils.get_vcpkg_triplet(arch)
-  vcpkg_response_file_path = os.path.join(os.getcwd(), 'external', 
+  vcpkg_response_file_path = os.path.join(os.getcwd(), 'external',
                       'vcpkg_' + vcpkg_triplet + '_response_file.txt')
 
-  # Eg: ./external/vcpkg/vcpkg install @external/vcpkg_x64-osx_response_file.txt 
+  # Eg: ./external/vcpkg/vcpkg install @external/vcpkg_x64-osx_response_file.txt
   # --disable-metrics
   utils.run_command([vcpkg_executable_file_path, 'install',
                      '@' + vcpkg_response_file_path, '--disable-metrics'])
@@ -88,10 +88,10 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None):
    build_tests (bool): Build cpp unit tests.
    config (str): Release/Debug config.
           If its not specified, cmake's default is used (most likely Debug).
-  """   
+  """
   cmd = ['cmake', '-S', '.', '-B', build_dir]
-  
-  # If generator is not specifed, default for platform is used by cmake, else 
+
+  # If generator is not specifed, default for platform is used by cmake, else
   # use the specified value
   if config:
     cmd.append('-DCMAKE_BUILD_TYPE={0}'.format(config))
@@ -100,33 +100,33 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None):
     cmd.append('-DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON')
 
   vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external',
-                                           'vcpkg', 'scripts', 
+                                           'vcpkg', 'scripts',
                                            'buildsystems', 'vcpkg.cmake')
   cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(vcpkg_toolchain_file_path))
 
   vcpkg_triplet = utils.get_vcpkg_triplet(arch)
   cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
-  
+
   utils.run_command(cmd)
 
 
 def main():
   args = parse_cmdline_args()
-  
+
   # Ensure that the submodules are initialized and updated
   # Example: vcpkg is a submodule (external/vcpkg)
   utils.run_command(['git', 'submodule', 'init'])
   utils.run_command(['git', 'submodule', 'update'])
 
-  # Install platform dependent cpp dependencies with vcpkg 
+  # Install platform dependent cpp dependencies with vcpkg
   install_cpp_dependencies_with_vcpkg(args.arch)
 
   # CMake configure
   cmake_configure(args.build_dir, args.arch, args.build_tests, args.config)
 
-  # CMake build 
-  # cmake --build build -j 8 
-  cmd = ['cmake', '--build', args.build_dir, '-j', str(os.cpu_count())] 
+  # CMake build
+  # cmake --build build -j 8
+  cmd = ['cmake', '--build', args.build_dir, '-j', str(os.cpu_count())]
   if args.target:
     # Example:  cmake --build build -j 8 --target firebase_app firebase_auth
     cmd.append('--target')
@@ -146,4 +146,3 @@ def parse_cmdline_args():
 
 if __name__ == '__main__':
   main()
-

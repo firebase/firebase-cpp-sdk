@@ -97,7 +97,7 @@ def get_vcpkg_triplet(arch):
 
   Raises:
     ValueError: If current OS is not win,mac or linux.
-  
+
   Returns:
     (str): Triplet name.
        Eg: "x64-windows-static".
@@ -153,4 +153,3 @@ def clean_vcpkg_temp_data():
   delete_directory(buildtrees_dir_path)
   downloads_dir_path = os.path.join(vcpkg_root_dir_path, 'downloads')
   delete_directory(downloads_dir_path)
-
