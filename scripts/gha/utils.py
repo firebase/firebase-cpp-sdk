@@ -91,6 +91,21 @@ def is_linux_os():
  return platform.system() == 'Linux'
 
 
+def vcpkg_copy_custom_triplets():
+  """Copy custom triplets defined by us to vcpkg directory."""
+  # vcpkg is a submodule in the cpp sdk repo and all triplets used for vcpkg
+  # should be in the 'triplets' directory inside the submodule. Since we can only
+  # do that after submodule is initialized, we copy over custom triplets from
+  # another location.
+  external_dir_path = os.path.join(os.getcwd(), 'external')
+  for f in os.listdir(external_dir_path):
+    if f.startswith('vcpkg_') and f.endswith('_triplet.cmake'):
+      # Eg: vcpkg_x86-linux_triplet.cmake -> x86-linux.cmake
+      triplet_file_name = f.replace('vcpkg_', '').replace('_triplet', '')
+      shutil.copy(os.path.join(external_dir_path, f),
+                  os.path.join(get_vcpkg_root_path(), 'triplets', triplet_file_name))
+
+
 def get_vcpkg_triplet(arch, msvc_runtime_library='static'):
   """ Get vcpkg target triplet (platform definition).
 

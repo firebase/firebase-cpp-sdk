@@ -59,6 +59,9 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
     # Example: ./external/vcpkg/bootstrap-sh
     utils.run_command([script_absolute_path])
 
+  # Copy any of our custom defined triplets to vcpkg directory
+  utils.vcpkg_copy_custom_triplets()
+
   # for each desktop platform, there exists a vcpkg response file in the repo
   # (external/vcpkg_<triplet>_response_file.txt) defined for each target triplet
   vcpkg_triplet = utils.get_vcpkg_triplet(arch, msvc_runtime_library)
