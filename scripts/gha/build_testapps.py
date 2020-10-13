@@ -19,7 +19,7 @@ USAGE:
 This tool has a number of dependencies (listed below). Once those are taken
 care of, here is an example of an execution of the tool (on MacOS):
 
-python build_testapps.py --t auth,invites --p iOS
+python build_testapps.py --t auth,messaging --p iOS
 
 Critical flags:
 --t (full name: testapps, default: None)
@@ -63,13 +63,6 @@ Or on Linux:
 
 If using this tool frequently, you will likely find it convenient to
 modify your bashrc file to automatically set these variables.
-
-----Mobile Provisions (iOS only)----
-If building for iOS, the required mobile provisions must be installed and
-locally present.
-Path specified by the flag:
-
-    --provision_dir (default: ~/Downloads/export)
 
 """
 
@@ -152,10 +145,6 @@ flags.DEFINE_bool(
     " the local spec repos available on this machine. Must also include iOS"
     " in platforms flag.")
 
-flags.DEFINE_string(
-    "provisions_dir", "~/Downloads/export",
-    "(iOS only) Directory containing the mobileprovision.")
-
 flags.DEFINE_bool(
     "execute_desktop_testapp", True,
     "(Desktop only) Run the testapp after building it. Will return non-zero"
@@ -192,7 +181,6 @@ def main(argv):
   sdk_dir = _fix_path(FLAGS.sdk_dir)
   output_dir = _fix_path(FLAGS.output_directory)
   root_dir = _fix_path(FLAGS.root_dir)
-  provisions_dir = _fix_path(FLAGS.provisions_dir)
 
   update_pod_repo = FLAGS.update_pod_repo
   if FLAGS.add_timestamp:
@@ -200,15 +188,18 @@ def main(argv):
   else:
     timestamp = ""
 
+  ios_framework_dir = os.path.join(sdk_dir, "frameworks")
+  ios_framework_exist = os.path.isdir(ios_framework_dir)
+  if not ios_framework_exist and _IOS in platforms:
+    _generate_makefiles_from_repo(sdk_dir)
+
   if update_pod_repo and _IOS in platforms:
     _run(["pod", "repo", "update"])
-
-  if FLAGS.use_vcpkg:
-    _run(["git", "submodule", "update", "--init"])
-
+    
   config = config_reader.read_config()
   cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
-  if FLAGS.use_vcpkg:
+  if _DESKTOP in platforms and FLAGS.use_vcpkg:
+    _run(["git", "submodule", "update", "--init"])
     vcpkg = Vcpkg.generate(os.path.join(sdk_dir, config.vcpkg_dir))
     vcpkg.install_and_run()
     cmake_flags.extend(vcpkg.cmake_flags)
@@ -222,12 +213,10 @@ def main(argv):
         api_config=config.get_api(testapp),
         output_dir=output_dir,
         sdk_dir=sdk_dir,
+        ios_framework_exist=ios_framework_exist,
         timestamp=timestamp,
-        builder_dir=pathlib.Path(__file__).parent.absolute(),
         root_dir=root_dir,
-        provisions_dir=provisions_dir,
         ios_sdk=FLAGS.ios_sdk,
-        dev_team=config.apple_team_id,
         cmake_flags=cmake_flags,
         execute_desktop_testapp=FLAGS.execute_desktop_testapp)
     logging.info("END building for %s", testapp)
@@ -237,9 +226,8 @@ def main(argv):
 
 
 def _build(
-    testapp, platforms, api_config, output_dir, sdk_dir, timestamp, builder_dir,
-    root_dir, provisions_dir, ios_sdk, dev_team, cmake_flags,
-    execute_desktop_testapp):
+    testapp, platforms, api_config, output_dir, sdk_dir, ios_framework_exist, 
+    timestamp, root_dir, ios_sdk, cmake_flags, execute_desktop_testapp):
   """Builds one testapp on each of the specified platforms."""
   testapp_dir = os.path.join(root_dir, api_config.testapp_path)
   project_dir = os.path.join(
@@ -286,12 +274,11 @@ def _build(
     try:
       _build_ios(
           sdk_dir=sdk_dir,
+          ios_framework_exist=ios_framework_exist,
           project_dir=project_dir,
-          testapp_builder_dir=builder_dir,
-          provisions_dir=provisions_dir,
+          root_dir=root_dir,
           api_config=api_config,
-          ios_sdk=ios_sdk,
-          dev_team=dev_team)
+          ios_sdk=ios_sdk)
     except subprocess.SubprocessError as e:
       failures.append(
           Failure(testapp=testapp, platform=_IOS, error_message=str(e)))
@@ -395,9 +382,48 @@ def _validate_android_environment_variables():
           "Neither %s nor %s is set", _ANDROID_SDK_HOME, _ANDROID_HOME)
 
 
+# If sdk_dir contains no framework, consider it is Github repo, then 
+# generate makefiles for ios frameworks
+def _generate_makefiles_from_repo(sdk_dir):
+  ios_framework_builder = os.path.join(
+    sdk_dir, "build_scripts", "ios", "build.sh")
+
+  framework_builder_args = [
+      ios_framework_builder,
+      "-b", sdk_dir,
+      "-s", sdk_dir,
+      "-c", "false"
+  ]
+  _run(framework_builder_args)
+
+
+# build required ios frameworks based on makefiles
+def _build_ios_framework_from_repo(sdk_dir, api_config):
+  ios_framework_builder = os.path.join(
+    sdk_dir, "build_scripts", "ios", "build.sh")
+  
+  # build only required targets to save time
+  target = set()
+  for framework in api_config.frameworks:
+    target.add(os.path.splitext(framework)[0])
+  # firebase is not a target in CMake, firebase_app is the target
+  # firebase_app will be built by other target as well 
+  target.remove("firebase") 
+
+  framework_builder_args = [
+      ios_framework_builder,
+      "-b", sdk_dir,
+      "-t", ",".join(target),
+      "-g", "false"
+  ]
+  _run(framework_builder_args)
+
+
 def _build_ios(
-    sdk_dir, project_dir, testapp_builder_dir, provisions_dir, api_config,
-    ios_sdk, dev_team):
+    sdk_dir, ios_framework_exist, project_dir, root_dir, api_config, ios_sdk):
+  if not ios_framework_exist:
+    _build_ios_framework_from_repo(sdk_dir, api_config)
+
   """Builds an iOS application (.app, .ipa or both)."""
   build_dir = os.path.join(project_dir, "ios_build")
   os.makedirs(build_dir)
@@ -416,7 +442,7 @@ def _build_ios(
   entitlements_path = os.path.join(
       project_dir, api_config.ios_target + ".entitlements")
   xcode_tool_path = os.path.join(
-      testapp_builder_dir, "integration_testing", "xcode_tool.rb")
+      root_dir, "scripts", "gha", "integration_testing", "xcode_tool.rb")
   xcode_patcher_args = [
       "ruby", xcode_tool_path,
       "--XCodeCPP.xcodeProjectDir", project_dir,
@@ -438,36 +464,18 @@ def _build_ios(
             scheme=api_config.scheme,
             output_dir=build_dir,
             ios_sdk=_IOS_SDK_SIMULATOR,
-            dev_team=dev_team,
             configuration="Debug"))
 
   if ios_sdk in [_IOS_SDK_DEVICE, _IOS_SDK_BOTH]:
-    logging.info("Creating 'export.plist' export options")
-    provision_id = provisioning.get_provision_id(
-        os.path.join(provisions_dir, api_config.provision))
-    export_src = os.path.join(
-        testapp_builder_dir, "integration_testing", "export.plist")
-    export_dest = os.path.join(build_dir, "export.plist")
-    shutil.copy(export_src, export_dest)
-    provisioning.patch_provisioning_profile(
-        export_dest, api_config.bundle_id, provision_id)
-
-    archive_path = os.path.join(build_dir, "app.xcarchive")
     _run(
-        xcodebuild.get_args_for_archive(
+        xcodebuild.get_args_for_build(
             path=xcode_path,
             scheme=api_config.scheme,
-            uuid=provision_id,
             output_dir=build_dir,
-            archive_path=archive_path,
             ios_sdk=_IOS_SDK_DEVICE,
-            dev_team=dev_team,
             configuration="Debug"))
-    _run(
-        xcodebuild.get_args_for_export(
-            output_dir=build_dir,
-            archive_path=archive_path,
-            plist_path=export_dest))
+
+    xcodebuild.generate_unsigned_ipa(output_dir=build_dir, configuration="Debug")
 
 
 # This script is responsible for copying shared files into the integration

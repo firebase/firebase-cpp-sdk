@@ -53,6 +53,11 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
         target_platform: ${{ fromJson(needs.prepare_matrix.outputs.matrix_platform) }}
+        exclude:
+          - os: ubuntu-latest
+            target_platform: iOS
+          - os: windows-latest
+            target_platform: iOS
 
     steps:
       - uses: actions/checkout@v2
@@ -98,6 +103,11 @@ jobs:
         shell: bash
         run: |
           build_scripts/android/install_prereqs.sh
+
+      - name: Install SDK iOS prerequisites
+        if: matrix.target_platform == 'iOS'
+        run: |
+          build_scripts/ios/install_prereqs.sh
           
       - name: Prepare for integration tests
         run: |
