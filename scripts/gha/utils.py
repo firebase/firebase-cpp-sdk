@@ -169,15 +169,16 @@ def verify_vcpkg_build(vcpkg_triplet):
   installed_triplets_dir_path = os.path.join(vcpkg_root_dir_path, 'installed', vcpkg_triplet)
   if not os.path.exists(installed_triplets_dir_path):
     raise ValueError("Could not find directory containing installed packages by vcpkg: {0}\n"
-                     "Please check if there were errors during vcpkg installation".format(installed_triplets_dir_path))
+                     "Please check if there were errors during "
+                     "vcpkg installation.".format(installed_triplets_dir_path))
 
 
 def clean_vcpkg_temp_data():
   """Delete files/directories that vcpkg uses during its build"""
   # Clear temporary directories and files created by vcpkg buildtrees
   # could be several GBs and cause github runners to run out of space
+  directories_to_remove = ['buildtrees', 'downloads', 'packages']
   vcpkg_root_dir_path = get_vcpkg_root_path()
-  buildtrees_dir_path = os.path.join(vcpkg_root_dir_path, 'buildtrees')
-  delete_directory(buildtrees_dir_path)
-  downloads_dir_path = os.path.join(vcpkg_root_dir_path, 'downloads')
-  delete_directory(downloads_dir_path)
+  for directory_to_remove in directories_to_remove:
+    abspath = os.path.join(vcpkg_root_dir_path, directory_to_remove)
+    delete_directory(abspath)
