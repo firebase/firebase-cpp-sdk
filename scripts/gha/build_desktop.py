@@ -75,7 +75,7 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
 
   # Some errors in vcpkg installation are not bubbled up. Verify existence
   # of certain important directories before proceeding.
-  utils.verify_vcpkg_build()
+  utils.verify_vcpkg_build(vcpkg_triplet)
 
   # Clear temporary directories and files created by vcpkg buildtrees
   # could be several GBs and cause github runners to run out of space
