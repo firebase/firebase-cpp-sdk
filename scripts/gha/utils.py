@@ -164,6 +164,14 @@ def get_vcpkg_installation_script_path():
   return script_absolute_path
 
 
+def verify_vcpkg_build(vcpkg_triplet):
+  vcpkg_root_dir_path = get_vcpkg_root_path()
+  installed_triplets_dir_path = os.path.join(vcpkg_root_dir_path, 'installed', vcpkg_triplet)
+  if not os.path.exists(installed_triplets_dir_path):
+    raise ValueError("Could not find directory containing installed packages by vcpkg: {0}\n"
+                     "Please check if there were errors during vcpkg installation".format(installed_triplets_dir_path))
+
+
 def clean_vcpkg_temp_data():
   """Delete files/directories that vcpkg uses during its build"""
   # Clear temporary directories and files created by vcpkg buildtrees

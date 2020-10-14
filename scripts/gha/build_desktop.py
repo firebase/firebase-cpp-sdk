@@ -73,6 +73,10 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
   utils.run_command([vcpkg_executable_file_path, 'install',
                      '@' + vcpkg_response_file_path, '--disable-metrics'])
 
+  # Some errors in vcpkg installation are not bubbled up. Verify existence
+  # of certain important directories before proceeding.
+  utils.verify_vcpkg_build()
+
   # Clear temporary directories and files created by vcpkg buildtrees
   # could be several GBs and cause github runners to run out of space
   utils.clean_vcpkg_temp_data()
