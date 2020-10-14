@@ -2738,36 +2738,101 @@ TEST(UtilDesktopTest, TestGetAppDataPath) {
   EXPECT_EQ(GetAppDataPath("testapp3"), GetAppDataPath("testapp3"));
 
   // Make sure the path string refers to a directory that is available.
-  std::string path = GetAppDataPath("testapp4", true);
-  struct stat s;
-  ASSERT_EQ(stat(path.c_str(), &s), 0)
-      << "stat failed on '" << path << "': " << strerror(errno);
-  EXPECT_TRUE(s.st_mode & S_IFDIR) << path << " is not a directory!";
+  // Testing app paths with and without subdirectory.
+  const char* test_app_paths[2] = {"testapp4", "testproject/testapp4"};
+  size_t num_of_app_paths = sizeof(test_app_paths)/sizeof(test_app_paths[0]);
+  // Make sure the path string refers to a directory that is available.
+  // app_name can also have path separators in them.
+  for (int i = 0; i < num_of_app_paths; i++) {
+    std::string path = GetAppDataPath(test_app_paths[i], true);
+    struct stat s;
+    ASSERT_EQ(stat(path.c_str(), &s), 0)
+        << "stat failed on '" << path << "': " << strerror(errno);
+    EXPECT_TRUE(s.st_mode & S_IFDIR) << path << " is not a directory!";
 
-  // Write random data to a randomly generated filename.
-  std::string test_data =
-      std::string("Hello, world! ") + std::to_string(rand());  // NOLINT
-  std::string test_path = path + kPathSep + "test_file_" +
-                          std::to_string(rand()) + ".txt";  // NOLINT
+    // Write random data to a randomly generated filename.
+    std::string test_data =
+        std::string("Hello, world! ") + std::to_string(rand());  // NOLINT
+    std::string test_path = path + kPathSep + "test_file_" +
+                            std::to_string(rand()) + ".txt";  // NOLINT
 
-  // Ensure that we can save files in this directory.
-  FILE* out = fopen(test_path.c_str(), "w");
-  EXPECT_NE(out, nullptr) << "Couldn't open test file for writing: "
-                          << strerror(errno);
-  EXPECT_GE(fputs(test_data.c_str(), out), 0) << strerror(errno);
-  EXPECT_EQ(fclose(out), 0) << strerror(errno);
+    // Ensure that we can save files in this directory.
+    FILE* out = fopen(test_path.c_str(), "w");
+    EXPECT_NE(out, nullptr) << "Couldn't open test file for writing: "
+                            << strerror(errno);
+    EXPECT_GE(fputs(test_data.c_str(), out), 0) << strerror(errno);
+    EXPECT_EQ(fclose(out), 0) << strerror(errno);
 
-  FILE* in = fopen(test_path.c_str(), "r");
-  EXPECT_NE(in, nullptr) << "Couldn't open test file for reading: "
-                         << strerror(errno);
-  char buf[256];
-  EXPECT_NE(fgets(buf, sizeof(buf), in), nullptr) << strerror(errno);
-  EXPECT_STREQ(buf, test_data.c_str());
-  EXPECT_EQ(fclose(in), 0) << strerror(errno);
+    FILE* in = fopen(test_path.c_str(), "r");
+    EXPECT_NE(in, nullptr) << "Couldn't open test file for reading: "
+                           << strerror(errno);
+    char buf[256];
+    EXPECT_NE(fgets(buf, sizeof(buf), in), nullptr) << strerror(errno);
+    EXPECT_STREQ(buf, test_data.c_str());
+    EXPECT_EQ(fclose(in), 0) << strerror(errno);
 
-  // Delete the file.
-  EXPECT_EQ(unlink(test_path.c_str()), 0) << strerror(errno);
+    // Delete the file.
+    EXPECT_EQ(unlink(test_path.c_str()), 0) << strerror(errno);
+  }
 }
+
+
+TEST(UtilDesktopTest, TestSplitString) {
+  // Standard simple case
+  std::string test_data = "foo/bar";
+  std::vector<std::string> parts = SplitString(test_data, '/');
+  EXPECT_EQ(parts.size(), 2);
+  EXPECT_EQ(parts[0], "foo");
+  EXPECT_EQ(parts[1], "bar");
+
+  // String that ends with delimiter
+  test_data = "foo/bar/";
+  parts = SplitString(test_data, '/');
+  EXPECT_EQ(parts.size(), 2);
+  EXPECT_EQ(parts[0], "foo");
+  EXPECT_EQ(parts[1], "bar");
+
+  // String with multiple leading delimiters
+  test_data = "///foo/bar";
+  parts = SplitString(test_data, '/');
+  EXPECT_EQ(parts.size(), 2);
+  EXPECT_EQ(parts[0], "foo");
+  EXPECT_EQ(parts[1], "bar");
+
+  // String with multiple leading and multiple trailing delimiters
+  test_data = "///foo/bar///";
+  parts = SplitString(test_data, '/');
+  EXPECT_EQ(parts.size(), 2);
+  EXPECT_EQ(parts[0], "foo");
+  EXPECT_EQ(parts[1], "bar");
+
+  // String with just delimiters
+  test_data = "///";
+  parts = SplitString(test_data, '/');
+  EXPECT_EQ(parts.size(), 0);
+
+  // Empty string
+  test_data = "";
+  parts = SplitString(test_data, '/');
+  EXPECT_EQ(parts.size(), 0);
+
+  // Split with semi colon as delimiter
+  test_data = "foo;bar;baz";
+  parts = SplitString(test_data, ';');
+  EXPECT_EQ(parts.size(), 3);
+  EXPECT_EQ(parts[0], "foo");
+  EXPECT_EQ(parts[1], "bar");
+  EXPECT_EQ(parts[2], "baz");
+
+  // Longer string and space as delimiter
+  test_data = "The quick brown fox jumped over the lazy dog";
+  parts = SplitString(test_data, ' ');
+  EXPECT_EQ(parts.size(), 9);
+  EXPECT_EQ(parts[0], "The");
+  EXPECT_EQ(parts[3], "fox");
+  EXPECT_EQ(parts[8], "dog");
+}
+
 
 }  // namespace
 }  // namespace internal

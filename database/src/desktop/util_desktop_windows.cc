@@ -44,13 +44,22 @@ std::string GetAppDataPath(const char* app_name, bool should_create) {
   }
   std::wstring wstr(pwstr);
   CoTaskMemFree(static_cast<void*>(pwstr));
-  std::string dir = utf8_encode(wstr);
-  if (dir == "") return "";
+  std::string path = utf8_encode(wstr);
+  if (path == "") return "";
   if (should_create) {
-    int retval = _mkdir((dir + "\\" + app_name).c_str());
-    if (retval != 0 && errno != EEXIST) return "";
+    // App name might contain path separators. Split it to get list of subdirs
+    std::vector<std::string> app_name_parts = SplitString(app_name, '/');
+    if (app_name_parts.empty()) return "";
+    std::string dir_path = path;
+    // Recursively create the entire tree of directories
+    for (std::vector<std::string>::const_iterator it = app_name_parts.begin();
+         it != app_name_parts.end(); it++) {
+      dir_path = dir_path + "\\" + *it;
+      int retval = _mkdir(dir_path.c_str());
+      if (retval != 0 && errno != EEXIST) return "";
+    }
   }
-  return dir + "\\" + app_name;
+  return path + "\\" + app_name;
 }
 
 }  // namespace internal

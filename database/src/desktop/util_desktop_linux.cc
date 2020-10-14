@@ -61,15 +61,13 @@ std::string GetAppDataPath(const char* app_name, bool should_create) {
     int retval;
     std::string new_dirs = std::string("/.local/share/") + app_name;
 
-    // Start is the location of the next "/" in the new_dirs string.
-    size_t start = 0;
-    while (start != std::string::npos) {
-      // Get the next directory.
-      size_t finish = new_dirs.find("/", start + 1);
-      home_directory.append(new_dirs, start, finish - start);
-      start = finish;
+    std::vector<std::string> new_dirs_parts = SplitString(new_dirs, '/');
+    if (new_dirs_parts.empty()) return "";
 
-      // Ensure the new directory exists.
+    // Recursively create entire tree of directories
+    for (std::vector<std::string>::const_iterator it = new_dirs_parts.begin();
+         it != new_dirs_parts.end(); it++) {
+      home_directory = home_directory + "/" + *it;
       retval = mkdir(home_directory.c_str(), 0700);
       if (retval != 0 && errno != EEXIST) return "";
     }
