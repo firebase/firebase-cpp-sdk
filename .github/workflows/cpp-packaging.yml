@@ -77,8 +77,10 @@ jobs:
           path: firebase-cpp-sdk-ios-${{ matrix.architecture }}.tgz
 
   build_android:
-    name: build-sdk-android
+    name: build-sdk-android-${{matrix.stl}}
     runs-on: ubuntu-latest
+      matrix:
+        stl: ["c++", "gnustl", "stlport"]
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
@@ -89,13 +91,13 @@ jobs:
         run: sdk-src/build_scripts/android/install_prereqs.sh
       - name: build sdk
         run: |
-          sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android sdk-src
-          tar -czhf firebase-cpp-sdk-android.tgz firebase-cpp-sdk-android
+          sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android-${{ matrix.stl }} sdk-src ${{ matrix.stl }}
+          tar -czhf firebase-cpp-sdk-android-${{ matrix.stl}}.tgz firebase-cpp-sdk-android-${{ matrix.stl }}
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: firebase-cpp-sdk-android
-          path: firebase-cpp-sdk-android.tgz
+          name: firebase-cpp-sdk-android-${{ matrix.stl }}
+          path: firebase-cpp-sdk-android-${{ matrix.stl }}.tgz
 
   build_desktop:
     name: build-sdk-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}
