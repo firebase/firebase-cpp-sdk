@@ -85,7 +85,7 @@ def install_cpp_dependencies_with_vcpkg(arch, crt_linkage):
                                       utils.get_vcpkg_cmake_toolchain_file_path()))
 
 
-def cmake_configure(build_dir, arch, build_tests=True, config=None):
+def cmake_configure(build_dir, arch, build_tests=True, config=None, target_format=None):
   """ CMake configure.
 
   If you are seeing problems when running this multiple times,
@@ -97,6 +97,7 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None):
    build_tests (bool): Build cpp unit tests.
    config (str): Release/Debug config.
           If its not specified, cmake's default is used (most likely Debug).
+   target_format (str): If specified, build for this targetformat ('frameworks' or 'libraries').
   """
   cmd = ['cmake', '-S', '.', '-B', build_dir]
   if utils.is_windows_os() and arch == 'x86':
@@ -115,7 +116,8 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None):
 
   vcpkg_triplet = utils.get_vcpkg_triplet(arch)
   cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
-
+  if (target_format):
+    cmd.append('-DTARGET_FORMAT={0})'.format(target_format))
   utils.run_command(cmd)
 
 
@@ -134,7 +136,7 @@ def main():
     return
 
   # CMake configure
-  cmake_configure(args.build_dir, args.arch, args.build_tests, args.config)
+  cmake_configure(args.build_dir, args.arch, args.build_tests, args.config, args.target_format)
 
   # CMake build
   # cmake --build build -j 8
@@ -155,6 +157,7 @@ def parse_cmdline_args():
   parser.add_argument('--config', help='Release/Debug config')
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
   parser.add_argument('--vcpkg_step_only', action='store_true', help='Run vcpkg only and avoid subsequent cmake commands')
+  parser.add_argument('--target_format', default=None, help='(Mac only) whether to output frameworks (default) or libraries.')
   args = parser.parse_args()
   if utils.is_linux_os() or utils.is_mac_os():
     # This flag makes sense only for Windows and MSVC.

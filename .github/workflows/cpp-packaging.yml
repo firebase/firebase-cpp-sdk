@@ -68,7 +68,7 @@ jobs:
         run: sdk-src/build_scripts/ios/install_prereqs.sh
       - name: build sdk
         run: |
-          sdk-src/build_scripts/ios/build.sh firebase-cpp-sdk-ios-${{ matrix.architecture }} sdk-src ${{ matrix.architecture }}
+          sdk-src/build_scripts/ios/build.sh firebase-cpp-sdk-ios-${{ matrix.architecture }} sdk-src ${{ matrix.architecture }} libraries
           tar -czhf firebase-cpp-sdk-ios-${{ matrix.architecture }}.tgz firebase-cpp-sdk-ios-${{ matrix.architecture }}
       - name: upload artifacts
         uses: actions/upload-artifact@v2
@@ -115,14 +115,17 @@ jobs:
           vcpkg_triplet: "x64-windows-static"
           msbuild_platform: "x64"
           sdk_platform: windows
+          cmake_flags: ""
         - os: ubuntu-latest
           architecture: "x64"
           vcpkg_triplet: "x64-linux"
           sdk_platform: linux
+          cmake_flags: ""
         - os: macos-latest
           architecture: "x64"
           vcpkg_triplet: "x64-osx"
           sdk_platform: darwin
+          cmake_flags: "--target_format libraries"
 
     steps:
       - uses: actions/checkout@v2
@@ -163,7 +166,7 @@ jobs:
 
       - name: Build SDK
         run: |
-          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }} ${{ matrix.cmake_flags }}
           tar -czhf firebase-cpp-sdk-${{ env.SDK_NAME }}.tgz firebase-cpp-sdk-${{ env.SDK_NAME }}
 
       - name: upload artifacts
