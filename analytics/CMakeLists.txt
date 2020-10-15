@@ -128,9 +128,13 @@ elseif(IOS)
       FirebaseAnalytics
   )
 
-  set_target_properties(firebase_analytics PROPERTIES
-    FRAMEWORK TRUE
-  )
+  set(TARGET_FORMAT "frameworks" CACHE STRING
+                    "Format to output, 'frameworks' or 'libraries'")
+  if (TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_analytics PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

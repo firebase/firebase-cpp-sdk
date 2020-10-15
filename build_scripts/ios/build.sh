@@ -3,9 +3,10 @@
 buildpath=$1
 sourcepath=$2
 arch=$3
+format=$4
 
 if [[ -z "${buildpath}" || -z "${sourcepath}" || -z "${arch}" ]]; then
-    echo "Usage: $0 <build path> <source path> <arm64|x86_64>"
+    echo "Usage: $0 <build path> <source path> <arm64|x86_64> [frameworks|libraries]"
     exit 1
 fi
 
@@ -17,6 +18,17 @@ else
     echo "Invalid architecture: '${arch}'"
     exit 2
 fi
+
+if [[ "${format}" == "" ]]; then
+    format="frameworks"
+fi
+
+if [[ "${format}" != "libraries" && "${format}" != "frameworks" ]]; then
+    echo "Invalid target format specified."
+    echo "Valid formats are: 'frameworks' (default) or 'libraries'"
+    exit 2
+fi
+
 
 if [[ ! -d "${sourcepath}" ]]; then
     echo "Source path '${sourcepath}' not found."
@@ -33,5 +45,5 @@ cd -
 
 set -ex
 
-cmake -GXcode "-DCMAKE_TOOLCHAIN_FILE=${toolchain}" -S "${sourcepath}" -B "${buildpath}"
+cmake -GXcode "-DCMAKE_TOOLCHAIN_FILE=${toolchain}" "-DTARGET_FORMAT=${format}" -S "${sourcepath}" -B "${buildpath}"
 cmake --build "${buildpath}"

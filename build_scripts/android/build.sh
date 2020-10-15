@@ -2,9 +2,10 @@
 
 buildpath=$1
 sourcepath=$2
+stl=$3
 
 if [[ -z "${buildpath}" || -z "${sourcepath}" ]]; then
-    echo "Usage: $0 <build path> <source path>"
+    echo "Usage: $0 <build path> <source path> [libc++|stdc++|stlport]"
     exit 1
 fi
 
@@ -12,6 +13,18 @@ if [[ ! -d "${sourcepath}" ]]; then
     echo "Source path '${sourcepath}' not found."
     exit 2
 fi
+
+if [[ ! -z "${stl}" ]]; then
+    stl="libc++"
+fi
+
+if [[ "${stl}" != "libc++" && "${stl}" != "stdc++" && "${stl}" != "stlport" ]]; then
+    echo "Invalid STL specified."
+    echo "Valid STLs are: 'libc++' (default), 'stdc++', or 'stlport'"
+    exit 2
+fi
+
+
 
 mkdir -p "${buildpath}"
 cd "${buildpath}"

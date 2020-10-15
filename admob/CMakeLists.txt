@@ -120,9 +120,13 @@ elseif(IOS)
   # accomplish that.
   symlink_pod_headers(firebase_admob Google-Mobile-Ads-SDK GoogleMobileAds)
 
-  set_target_properties(firebase_admob PROPERTIES
-    FRAMEWORK TRUE
-  )
+  set(TARGET_FORMAT "frameworks" CACHE STRING
+  		    "Format to output, 'frameworks' or 'libraries'")
+  if (TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_admob PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 cpp_pack_library(firebase_admob "")
