@@ -109,7 +109,8 @@ def main(argv):
 
   android_device = Device(model=FLAGS.android_model, version=FLAGS.android_api)
   ios_device = Device(model=FLAGS.ios_model, version=FLAGS.ios_version)
-
+  
+  has_ios = False
   testapps = []
   for file_dir, _, file_names in os.walk(testapp_dir):
     for file_name in file_names:
@@ -117,6 +118,7 @@ def main(argv):
       if file_name.endswith(".apk"):
         testapps.append((android_device, _ANDROID, full_path))
       elif file_name.endswith(".ipa"):
+        has_ios = True
         testapps.append((ios_device, _IOS, full_path))
 
   if not testapps:
@@ -129,6 +131,9 @@ def main(argv):
 
   gcs_base_dir = _get_base_results_dir()
   logging.info("Storing results in %s", _relative_path_to_gs_uri(gcs_base_dir))
+
+  if has_ios:
+    _install_gcloud_beta()
 
   tests = []
   for device, platform, path in testapps:
@@ -195,6 +200,13 @@ def _authorize_gcs(key_file):
   # Keep using this project for subsequent gcloud commands.
   subprocess.run(
       args=[_GCLOUD, "config", "set", "project", _PROJECT_ID],
+      check=True)
+
+
+def _install_gcloud_beta():
+  """Install Google Cloud beta components for iOS integration tests."""
+  subprocess.run(
+      args=[_GCLOUD, "--quiet", "components", "install", "beta"],
       check=True)
 
 
