@@ -39,7 +39,7 @@ import os
 import utils
 
 
-def install_x86_compiler_libraries():
+def install_x86_support_libraries():
   """Install support libraries needed to build x86 on x86_64 hosts."""
   if utils.is_linux_os():
     import apt
