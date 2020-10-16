@@ -39,6 +39,17 @@ import os
 import utils
 
 
+def install_x86_compiler_libraries():
+  """Install support libraries needed to build x86 on x86_64 hosts."""
+  if utils.is_linux_os():
+    import apt
+    package_cache = apt.Cache()
+    x86_support_packages = ('gcc-multilib', 'g++-multilib')
+    for support_package in x86_support_packages:
+      if support_package not in package_cache:
+        utils.run_command(['apt', 'install', support_package], as_root=True)
+
+
 def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
   """Install packages with vcpkg.
 
@@ -137,6 +148,10 @@ def main():
   # Example: vcpkg is a submodule (external/vcpkg)
   utils.run_command(['git', 'submodule', 'init'])
   utils.run_command(['git', 'submodule', 'update'])
+
+  # To build x86 on x86_64 linux hosts, we also need x86 support libraries
+  if args.arch == 'x86' and utils.is_linux_os():
+    install_x86_support_libraries()
 
   # Install platform dependent cpp dependencies with vcpkg
   install_cpp_dependencies_with_vcpkg(args.arch, args.msvc_runtime_library)
