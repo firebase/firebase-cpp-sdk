@@ -42,12 +42,7 @@ import utils
 def install_x86_support_libraries():
   """Install support libraries needed to build x86 on x86_64 hosts."""
   if utils.is_linux_os():
-    import apt
-    package_cache = apt.Cache()
-    x86_support_packages = ('gcc-multilib', 'g++-multilib')
-    for support_package in x86_support_packages:
-      if support_package not in package_cache:
-        utils.run_command(['apt', 'install', support_package], as_root=True)
+    utils.run_command(['apt', 'install', 'gcc-multilib', 'g++-multilib'], as_root=True)
 
 
 def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
