@@ -4,7 +4,7 @@ builtpath=$1
 packagepath=$2
 
 if [[ -z "${builtpath}" || -z "${packagepath}" ]]; then
-    echo "Usage: $0 <built SDK path> <path to package into>"
+    echo "Usage: $0 <SDK source path> <path to put packaged files into>"
     exit 1
 fi
 
@@ -17,10 +17,6 @@ origpath=$( pwd -P )
 
 mkdir -p "${packagepath}"
 cd "${packagepath}"
-if [[ -n $(ls) ]]; then
-    echo "Error: destination package path '${packagepath}' not empty."
-    exit 2
-fi
 destpath=$( pwd -P )
 cd "${origpath}"
 
