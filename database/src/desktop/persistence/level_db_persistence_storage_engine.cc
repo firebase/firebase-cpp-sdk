@@ -43,7 +43,6 @@ using firebase::database::internal::persistence::GetPersistedTrackedQuery;
 using firebase::database::internal::persistence::GetPersistedUserWriteRecord;
 using firebase::database::internal::persistence::PersistedTrackedQuery;
 using firebase::database::internal::persistence::PersistedUserWriteRecord;
-using firebase::util::FlexbufferToVariant;
 using firebase::util::VariantToFlexbuffer;
 using leveldb::DB;
 using leveldb::Iterator;
