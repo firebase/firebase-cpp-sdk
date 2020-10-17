@@ -52,7 +52,7 @@ jobs:
           name: packaging-tools
           path: packaging-tools.tgz
 
-  build_ios:
+  build_package_ios:
     name: build-sdk-ios
     runs-on: macos-latest
     steps:
@@ -65,15 +65,17 @@ jobs:
         run: sdk-src/build_scripts/ios/install_prereqs.sh
       - name: build sdk
         run: |
-          sdk-src/build_scripts/ios/build.sh -b firebase-cpp-sdk-ios -s sdk-src
-          tar -czhf firebase-cpp-sdk-ios.tgz firebase-cpp-sdk-ios
+          sdk-src/build_scripts/ios/build.sh -b firebase-cpp-sdk-ios-build -s sdk-src
+          sdk-src/build_scripts/ios/package.sh firebase-cpp-sdk-ios-build firebase-cpp-sdk-ios-package
+          cd firebase-cpp-sdk-ios-package
+          tar -czhf firebase-cpp-sdk-ios-package.tgz .
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: firebase-cpp-sdk-ios
-          path: firebase-cpp-sdk-ios.tgz
+          name: firebase-cpp-sdk-ios-package
+          path: firebase-cpp-sdk-ios-package.tgz
 
-  build_android:
+  build_package_android:
     name: build-sdk-android-${{matrix.stl}}
     runs-on: ubuntu-latest
     strategy:
@@ -89,13 +91,15 @@ jobs:
         run: sdk-src/build_scripts/android/install_prereqs.sh
       - name: build sdk
         run: |
-          sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android-${{ matrix.stl }} sdk-src ${{ matrix.stl }}
-          tar -czhf firebase-cpp-sdk-android-${{ matrix.stl}}.tgz firebase-cpp-sdk-android-${{ matrix.stl }}
+          sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build sdk-src ${{ matrix.stl }}
+          sdk-src/build_scripts/android/package.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build firebase-cpp-sdk-android-${{ matrix.stl }}-package ${{ matrix.sdl }}
+          cd firebase-cpp-sdk-android-${{ matrix.stl }}-package
+          tar -czhf firebase-cpp-sdk-android-${{ matrix.stl}}-package.tgz .
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: firebase-cpp-sdk-android-${{ matrix.stl }}
-          path: firebase-cpp-sdk-android-${{ matrix.stl }}.tgz
+          name: firebase-cpp-sdk-android-${{ matrix.stl }}-package
+          path: firebase-cpp-sdk-android-${{ matrix.stl }}-package.tgz
 
   build_desktop:
     name: build-sdk-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}
@@ -164,27 +168,31 @@ jobs:
 
       - name: Build SDK
         run: |
-          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }} ${{ matrix.cmake_flags }}
-          tar -czhf firebase-cpp-sdk-${{ env.SDK_NAME }}.tgz firebase-cpp-sdk-${{ env.SDK_NAME }}
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}-build ${{ matrix.cmake_flags }}
+          cd firebase-cpp-sdk-${{ env.SDK_NAME }}-build
+          tar -czhf firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
 
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: firebase-cpp-sdk-${{ env.SDK_NAME }}
-          path: firebase-cpp-sdk-${{ env.SDK_NAME }}.tgz
+          name: firebase-cpp-sdk-${{ env.SDK_NAME }}-build
+          path: firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz
       
       - name: Stats for ccache (mac and linux)
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         run: ccache -s
 
+  package_desktop:
+    name: package-merge-${{ matrix.sdk_platform }}
+    runs-on: ubuntu-latest
+    needs: [build_tools, build_desktop]
+    
   package_merge:
     name: package-merge-${{ matrix.sdk_platform }}
     runs-on: ubuntu-latest
-    needs: [build_tools, build_ios, build_android, build_desktop]
+    needs: [build_package_ios, build_package_android]
     strategy:
       fail-fast: false
-      matrix:
-        sdk_platform: [android, ios, windows, linux, darwin]
 
     steps:
       - name: fetch SDK
@@ -198,13 +206,20 @@ jobs:
         with:
           # download-artifact doesn't support wildcards, but by default
           # will download all artifacts. Sadly this is what we must do.
-          path: sdk-build
+          path: artifacts
 
-      - name: list files
+      - name: merge SDK packages
         run: |
-          ls -R sdk-build/packaging-tools
-          ls -R sdk-build/firebase-cpp-sdk-${{ matrix.sdk_platform }}*
-          cd sdk-build
-          for f in firebase-cpp-sdk-${{ matrix.sdk_platform }}*; do tar -xzf $f/$f.tgz; done
-          find . -name '*.a' -print
-          find . -name '*.lib' -print
+          mkdir firebase_cpp_sdk
+          for pkg in artifacts/firebase-cpp-sdk-*-package/*.tgz; do
+            tar -xzf "${pkg}" -C package
+          done
+          # Add the final files.
+          build_scripts/other/package.sh sdk-src firebase_cpp_sdk
+          tar -czhf firebase_cpp_sdk.tgz firebase_cpp_sdk
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase_cpp_sdk
+          path: firebase_cpp_sdk.tgz
