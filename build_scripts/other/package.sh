@@ -32,6 +32,9 @@ for incdir in */src/include/; do
 done
 cd "${origpath}"
 
+# Remove unneeded Unity include files.
+rm -rf "${destpath}/include/firebase/csharp/"
+
 # Copy release files into packaged SDK.
 cp -af "${sourcepath}/release_build_files/" "${destpath}/"
 

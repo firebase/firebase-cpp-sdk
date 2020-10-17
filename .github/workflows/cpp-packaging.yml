@@ -209,10 +209,9 @@ jobs:
           done
           # Add the final files.
           sdk-src/build_scripts/other/package.sh sdk-src firebase_cpp_sdk
-          tar -czhf firebase_cpp_sdk.tgz firebase_cpp_sdk
 
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
           name: firebase_cpp_sdk
-          path: firebase_cpp_sdk.tgz
+          path: firebase_cpp_sdk
