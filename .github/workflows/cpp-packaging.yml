@@ -68,7 +68,7 @@ jobs:
           sdk-src/build_scripts/ios/build.sh -b firebase-cpp-sdk-ios-build -s sdk-src
           sdk-src/build_scripts/ios/package.sh firebase-cpp-sdk-ios-build firebase-cpp-sdk-ios-package
           cd firebase-cpp-sdk-ios-package
-          tar -czhf firebase-cpp-sdk-ios-package.tgz .
+          tar -czhf ../firebase-cpp-sdk-ios-package.tgz .
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -94,7 +94,7 @@ jobs:
           sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build sdk-src ${{ matrix.stl }}
           sdk-src/build_scripts/android/package.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build firebase-cpp-sdk-android-${{ matrix.stl }}-package ${{ matrix.stl }}
           cd firebase-cpp-sdk-android-${{ matrix.stl }}-package
-          tar -czhf firebase-cpp-sdk-android-${{ matrix.stl}}-package.tgz .
+          tar -czhf ../firebase-cpp-sdk-android-${{ matrix.stl}}-package.tgz .
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -170,7 +170,7 @@ jobs:
         run: |
           python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}-build ${{ matrix.cmake_flags }}
           cd firebase-cpp-sdk-${{ env.SDK_NAME }}-build
-          tar -czhf firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
+          tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
 
       - name: upload artifacts
         uses: actions/upload-artifact@v2
