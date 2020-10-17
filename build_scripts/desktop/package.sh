@@ -7,6 +7,8 @@ platform=$3
 bindirrel=$4
 bindir=$(cd $bindirrel && pwd -P)
 
+MERGE_LIBRARIES_SCRIPT=$(cd $(dirname $0)/../..; pwd -P)/scripts/merge_libraries.py
+
 # Desktop packaging settings.
 if [[ "${platform}" == "windows" ]]; then
     prefix=''
@@ -165,6 +167,6 @@ for product in *; do
     mkdir -p $(dirname "${destpath}/libs/${platform}/${variant}/${libfile}")
     outfile="${destpath}/libs/${platform}/${variant}/${libfile}"
     rm -f "${outfile}"
-    ${PYTHON} "${origpath}"/scripts/merge_libraries.py ${merge_libraries_params[*]} --output="${outfile}" --scan_libs="${allfiles}" --hide_c_symbols="${deps_hidden}" ${libfile} ${deps[*]}
+    "${PYTHON}" "${MERGE_LIBRARIES_SCRIPT}" ${merge_libraries_params[*]} --output="${outfile}" --scan_libs="${allfiles}" --hide_c_symbols="${deps_hidden}" ${libfile} ${deps[*]}
 done
 cd "${origpath}"
