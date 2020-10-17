@@ -4,12 +4,12 @@ builtpath=$1
 packagepath=$2
 
 if [[ -z "${builtpath}" || -z "${packagepath}" ]]; then
-    echo "Usage: $0 <SDK source path> <path to put packaged files into>"
+    echo "Usage: $0 <built iOS SDK path> <path to put packaged files into>"
     exit 1
 fi
 
-if [[ ! -d "${builtpath}" ]]; then
-    echo "Source path '${builtpath}' not found."
+if [[ ! -d "${builtpath}/frameworks" ]]; then
+    echo "Built iOS SDK not found at path '${builtpath}'."
     exit 2
 fi
 

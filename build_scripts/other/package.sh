@@ -8,8 +8,8 @@ if [[ -z "${sdkpath}" || -z "${packagepath}" ]]; then
     exit 1
 fi
 
-if [[ ! -d "${sdkpath}" ]]; then
-    echo "SDK source path '${sdkpath}' not found."
+if [[ ! -d "${sdkpath}/release_build_files" ]]; then
+    echo "SDK source not found at '${sdkpath}'."
     exit 2
 fi
 
