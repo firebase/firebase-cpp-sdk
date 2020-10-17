@@ -202,12 +202,13 @@ jobs:
 
       - name: merge SDK packages
         run: |
+          set -ex
           mkdir -p firebase_cpp_sdk
           for pkg in artifacts/firebase-cpp-sdk-*-package/*.tgz; do
             tar -xzf "${pkg}" -C firebase_cpp_sdk
           done
           # Add the final files.
-          build_scripts/other/package.sh sdk-src firebase_cpp_sdk
+          sdk-src/build_scripts/other/package.sh sdk-src firebase_cpp_sdk
           tar -czhf firebase_cpp_sdk.tgz firebase_cpp_sdk
 
       - name: upload artifacts
