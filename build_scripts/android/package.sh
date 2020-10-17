@@ -31,13 +31,13 @@ mkdir -p "${destpath}/libs/android"
 # Copy each platform's libraries to the destination directory for this STL variant.
 cd "${sourcepath}"
 for product in *; do
-    if [[ ! -d "${product}/.externalNativeBuild" ]]; then
+    if [[ ! -d "${product}/build/intermediates/cmake/release/obj" ]]; then
 	continue
     fi
-    dir="${product}/.externalNativeBuild/cmake/release"
+    dir="${product}/build/intermediates/cmake/release/obj"
     for cpudir in "${dir}"/*; do
 	cpu=$(basename ${cpudir})
-	libsrc="${sourcepath}/${cpudir}/${product}/libfirebase_${product}.a"
+	libsrc="${sourcepath}/${cpudir}/libfirebase_${product}.a"
 	libdest="${destpath}/libs/android/${cpu}/${stl}"
 	mkdir -p "${libdest}"
 	cp -f "${libsrc}" "${libdest}/"
