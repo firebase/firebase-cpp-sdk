@@ -182,31 +182,8 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         run: ccache -s
 
-  package_desktop:
-    name: package-merge-${{ matrix.sdk_platform }}
-    runs-on: ubuntu-latest
-    needs: [build_tools, build_desktop]
-    strategy:
-      fail-fast: false
-      matrix:
-        sdk_platform: [windows, linux, darwin]
-
-    steps:
-      - name: fetch SDK
-        uses: actions/checkout@v2.3.1
-        with:
-          path: sdk-src
-          ref: ${{ github.event.inputs.commitId }}
-
-      - name: download artifact
-        uses: actions/download-artifact@v2
-        with:
-          # download-artifact doesn't support wildcards, but by default
-          # will download all artifacts. Sadly this is what we must do.
-          path: artifacts
-
-  package_merge:
-    name: package-merge-${{ matrix.sdk_platform }}
+  merge_packages:
+    name: merge-packages
     runs-on: ubuntu-latest
     needs: [build_package_ios, build_package_android]
     steps:
@@ -225,9 +202,9 @@ jobs:
 
       - name: merge SDK packages
         run: |
-          mkdir firebase_cpp_sdk
+          mkdir -p firebase_cpp_sdk
           for pkg in artifacts/firebase-cpp-sdk-*-package/*.tgz; do
-            tar -xzf "${pkg}" -C package
+            tar -xzf "${pkg}" -C firebase_cpp_sdk
           done
           # Add the final files.
           build_scripts/other/package.sh sdk-src firebase_cpp_sdk
