@@ -26,3 +26,23 @@ cd "${builtpath}"
 sourcepath=$( pwd -P )
 cd "${origpath}"
 
+mkdir -p "${destpath}/libs/android"
+
+# Copy each platform's libraries to the destination directory for this STL variant.
+cd "${sourcepath}"
+for product in *; do
+    if [[ ! -d "${product}/.externalNativeBuild" ]]; then
+	continue
+    fi
+    dir="${product}/.externalNativeBuild/cmake/release"
+    for cpudir in "${dir}"/*; do
+	cpu=$(basename ${cpudir})
+	libsrc="${sourcepath}/${cpudir}/${product}/libfirebase_${product}.a"
+	libdest="${destpath}/libs/android/${cpu}/${stl}"
+	mkdir -p "${libdest}"
+	cp -f "${libsrc}" "${libdest}/"
+    done
+    # Copy the top-level Proguard files in as well.
+    cp -f "${sourcepath}/${product}/build/Release/${product}.pro" "${destpath}/libs/android/"
+done
+cd "${origpath}"

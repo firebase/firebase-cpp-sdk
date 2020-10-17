@@ -26,7 +26,7 @@ cd "${origpath}"
 
 # Copy frameworks into packaged SDK.
 mkdir -p "${destpath}/frameworks/ios/"
-cp -av "${sourcepath}/frameworks/ios/" "${destpath}/frameworks/ios"
+cp -af "${sourcepath}/frameworks/ios/" "${destpath}/frameworks/ios"
 
 # Convert frameworks into libraries so we can provide both in the SDK.
 cd "${sourcepath}"
@@ -38,6 +38,6 @@ for frameworkpath in frameworks/ios/*/*.framework; do
 	
     frameworkpath=$(echo "${frameworkpath}" | sed 's|\([^/]*\)\.framework$|\1.framework/\1|')
     mkdir -p $(dirname "${destpath}/${libpath}")
-    cp -av "${destpath}/${frameworkpath}" "${destpath}/${libpath}"
+    cp -af "${destpath}/${frameworkpath}" "${destpath}/${libpath}"
 done
 cd "${origpath}"

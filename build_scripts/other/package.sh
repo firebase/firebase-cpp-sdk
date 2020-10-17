@@ -28,14 +28,14 @@ cd "${origpath}"
 echo mkdir -p "${destpath}/include"
 cd "${sdkpath}"
 for incdir in */src/include/; do
-    cp -av "${incdir}" "${destpath}/include/"
+    cp -af "${incdir}" "${destpath}/include/"
 done
 cd "${origpath}"
 
 # Copy release files into packaged SDK.
-cp -av "${sourcepath}/release_build_files/" "${destpath}/"
+cp -af "${sourcepath}/release_build_files/" "${destpath}/"
 
 # Copy generate_xml tool into packaged SDK.
-cp -v "${sourcepath}/generate_xml_from_google_services_json.py" "${destpath}/"
-cp -v "${sourcepath}/generate_xml_from_google_services_json.exe" "${destpath}/"
+cp -f "${sourcepath}/generate_xml_from_google_services_json.py" "${destpath}/"
+cp -f "${sourcepath}/generate_xml_from_google_services_json.exe" "${destpath}/"
 
