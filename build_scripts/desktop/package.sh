@@ -8,17 +8,35 @@ bindirrel=$4
 bindir=$(cd $bindirrel && pwd -P)
 
 # Desktop packaging settings.
+if [[ "${platform}" == "windows" ]]; then
+    prefix=''
+    ext='lib'
+else
+    prefix='lib'
+    ext='a'
+fi
 
-# Library dependencies to merge. Each should be a space-separated list of path globs.
-deps_firebase_app='*libfirebase_instance_id_desktop_impl.a *libfirebase_rest_lib.a'
-deps_hidden_firebase_app='*libcurl.a *libz.a *libflatbuffers.a'
-deps_hidden_firebase_database='*libuv_a.a *liblibuWS.a'
-deps_hidden_firebase_firestore='
-*/firestore-build/Firestore/*/lib*.a
-*/firestore-build/*/grpc-build*/lib*.a
-*/firestore-build/*/leveldb-build*/lib*.a
-*/firestore-build/*/nanopb-build*/lib*.a
-'
+
+# Library dependencies to merge. Each should be a whitespace-delimited list of path globs.
+deps_firebase_app="
+*${prefix}firebase_instance_id_desktop_impl.${ext}
+*${prefix}firebase_rest_lib.${ext}
+"
+deps_hidden_firebase_app="
+*${prefix}curl.${ext}
+*${prefix}z.${ext}
+*${prefix}flatbuffers.${ext}
+"
+deps_hidden_firebase_database="
+*${prefix}uv_a.${ext}
+*${prefix}libuWS.${ext}
+"
+deps_hidden_firebase_firestore="
+*/firestore-build/Firestore/*/${prefix}*.${ext}
+*/firestore-build/*/grpc-build*/${prefix}*.${ext}
+*/firestore-build/*/leveldb-build*/${prefix}*.${ext}
+*/firestore-build/*/nanopb-build*/${prefix}*.${ext}
+"
 
 declare -a hide_namespaces
 hide_namespaces=(flatbuffers flexbuffers reflection ZLib bssl uWS absl
