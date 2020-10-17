@@ -28,7 +28,7 @@ jobs:
           make install
           cd -
           mkdir -p packaging-tools
-          cp -af /tmp/binutils/bin/ar /tmp/binutils/bin/nm /tmp/binutils/bin/objcopy packaging-tools
+          cp -af /tmp/binutils/bin/* packaging-tools
       - name: fetch demumble
         uses: actions/checkout@v2.3.1
         with:
@@ -45,7 +45,9 @@ jobs:
           mkdir -p packaging-tools
           cp -af demumble-src/demumble packaging-tools
       - name: archive tools
-        run: tar -czhf packaging-tools.tgz packaging-tools
+        run: |
+          cd packaging-tools
+          tar -czhf packaging-tools.tgz .
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -182,6 +184,45 @@ jobs:
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         run: ccache -s
 
+  package_desktop:
+    name: package-merge-${{ matrix.sdk_platform }}
+    runs-on: ubuntu-latest
+    needs: [build_tools, build_desktop]
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk_platform: [linux] #, windows darwin]
+
+    steps:
+      - name: fetch SDK
+        uses: actions/checkout@v2.3.1
+        with:
+          path: sdk-src
+          ref: ${{ github.event.inputs.commitId }}
+      - name: download artifact
+        uses: actions/download-artifact@v2
+        with:
+          # download-artifact doesn't support wildcards, but by default
+          # will download all artifacts. Sadly this is what we must do.
+          path: artifacts
+      - name: postprocess SDK
+        run: |
+          mkdir -p bin
+          tar -xvzf artifacts/packaging-tools/packaging-tools.tgz -C bin
+          chmod -R u+x bin
+          for pkg in artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}*-build/*.tgz; do
+            pkgdir=$(dirname ${pkg})
+            tar -xzf "${pkg}" -C "${pkgdir}" && rm -f "${pkg}"
+            sdk-src/build_scripts/desktop/package.sh ${pkgdir} firebase-cpp-sdk-${{ matrix.sdk_platform }}-package ${{ matrix.sdk_platform }} bin
+          done
+          cd firebase-cpp-sdk-${{ matrix.sdk_platform }}-package
+          tar -czhf ../firebase-cpp-sdk-${{ matrix.sdk_platform }}-package.tgz .
+      - name: upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase-cpp-sdk-${{ matrix.sdk_platform }}-package
+          path: firebase-cpp-sdk-${{ matrix.sdk_platform }}-package.tgz
+       
   merge_packages:
     name: merge-packages
     runs-on: ubuntu-latest

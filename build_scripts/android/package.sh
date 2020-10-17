@@ -10,8 +10,8 @@ if [[ -z "${builtpath}" || -z "${packagepath}" || -z "${stl}" ]]; then
     exit 1
 fi
 
-if [[ ! -d "${builtpath}/" ]]; then
-    echo "Built iOS SDK not found at path '${builtpath}'."
+if [[ ! -d "${builtpath}/app/build" ]]; then
+    echo "Built Android SDK not found at path '${builtpath}'."
     exit 2
 fi
 
