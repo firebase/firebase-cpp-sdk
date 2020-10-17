@@ -53,7 +53,7 @@ jobs:
           path: packaging-tools.tgz
 
   build_package_ios:
-    name: build-sdk-ios
+    name: build-package-ios
     runs-on: macos-latest
     steps:
       - name: fetch SDK
@@ -76,7 +76,7 @@ jobs:
           path: firebase-cpp-sdk-ios-package.tgz
 
   build_package_android:
-    name: build-sdk-android-${{matrix.stl}}
+    name: build-package-android-${{matrix.stl}}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -92,7 +92,7 @@ jobs:
       - name: build sdk
         run: |
           sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build sdk-src ${{ matrix.stl }}
-          sdk-src/build_scripts/android/package.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build firebase-cpp-sdk-android-${{ matrix.stl }}-package ${{ matrix.sdl }}
+          sdk-src/build_scripts/android/package.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build firebase-cpp-sdk-android-${{ matrix.stl }}-package ${{ matrix.stl }}
           cd firebase-cpp-sdk-android-${{ matrix.stl }}-package
           tar -czhf firebase-cpp-sdk-android-${{ matrix.stl}}-package.tgz .
       - name: upload artifacts
@@ -102,7 +102,7 @@ jobs:
           path: firebase-cpp-sdk-android-${{ matrix.stl }}-package.tgz
 
   build_desktop:
-    name: build-sdk-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}
+    name: build-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
