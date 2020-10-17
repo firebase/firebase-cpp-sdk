@@ -124,10 +124,12 @@ jobs:
           architecture: "x64"
           vcpkg_triplet: "x64-linux"
           sdk_platform: linux
+          build_type: "Release"
           cmake_flags: ""
         - os: macos-latest
           architecture: "x64"
           vcpkg_triplet: "x64-osx"
+          build_type: "Release"
           sdk_platform: darwin
           cmake_flags: "--target_format libraries"
 
