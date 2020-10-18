@@ -199,6 +199,10 @@ merge_libraries_params=(
     --platform=${platform}
     --hide_cpp_namespaces=$(echo "${hide_namespaces[*]}" | sed 's| |,|g')
 )
+if [[ ${platform} == "windows" ]]; then
+    # Windows has a hard time with strict C++ demangling.
+    merge_libraries_params+=(--nostrict-cpp)
+fi
 if [[ ${verbose} -eq 1 ]]; then
     merge_libraries_params+=(--verbosity=3)
 fi
