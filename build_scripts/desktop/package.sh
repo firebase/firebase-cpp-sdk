@@ -4,11 +4,11 @@
 set -e
 
 usage(){
-    echo "Usage: $0 -b <built sdk path> -o <output package path> [options]
+    echo "Usage: $0 -b <built sdk path> -o <output package path> -p <platform> [options]
 options:
   -b, built sdk path		            required
   -o, output path                           required
-  -p, platform to package	            default: linux, options are: [linux | windows | darwin]
+  -p, platform to package	            required, one of: linux windows darwin
   -d, build variant directory to create     default: .
   -m, merge_libraries.py path               default: <script dir>/../../scripts/merge_libraries.py
   -P, python command                        default: python
@@ -20,7 +20,7 @@ example:
 
 built_sdk_path=
 output_package_path=
-platform=linux
+platform=
 python_cmd=python
 variant=.
 verbose=0
@@ -52,7 +52,7 @@ while getopts ":b:o:p:d:m:P:t:hv" opt; do
         p)
             platform=$OPTARG
             if [[ ! " ${SUPPORTED_PLATFORMS[@]} " =~ " ${platform} " || -z "${platform}" ]]; then
-                echo "invalid platform: ${platform}"
+                echo "Invalid platform: ${platform}"
                 echo "Supported platforms are: ${SUPPORTED_PLATFORMS[@]}"
                 exit 2
             fi
@@ -93,6 +93,11 @@ if [[ -z "${built_sdk_path}" ]]; then
 fi
 if [[ -z "${output_package_path}" ]]; then
     echo "Missing required option: -o <output package path>"
+    exit 2
+fi
+if [[ -z "${platform}" ]]; then
+    echo "Missing required option: -p <platform>"
+    echo "Supported platforms are: ${SUPPORTED_PLATFORMS[@]}"
     exit 2
 fi
 mkdir -p "${output_package_path}"
