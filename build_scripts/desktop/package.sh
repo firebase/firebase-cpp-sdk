@@ -120,7 +120,7 @@ built_sdk_path=$(abspath "${built_sdk_path}")
 merge_libraries_script=$(abspath "${merge_libraries_script}")
 output_package_path=$(abspath "${output_package_path}")
 tools_path=$(abspath "${tools_path}")
-if [[ ${python_cmd} == '*/*' ]]; then
+if [[ ${python_cmd} == *'/'* ]]; then
     # If a full path to python was given, get the absolute path.
     python_cmd=$(abspath "${python_cmd}")
 fi

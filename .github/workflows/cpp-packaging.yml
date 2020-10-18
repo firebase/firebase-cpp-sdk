@@ -221,7 +221,9 @@ jobs:
           tar -xvzf artifacts/packaging-tools/packaging-tools.tgz -C bin
           chmod -R u+x bin
           for pkg in artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}*-build/*.tgz; do
-            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}-package -p ${{ matrix.sdk_platform }} -t bin -d x86_64
+            # determine the build variant based on the artifact filename
+            variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
+            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant}
           done
           cd firebase-cpp-sdk-${{ matrix.sdk_platform }}-package
           tar -czhf ../firebase-cpp-sdk-${{ matrix.sdk_platform }}-package.tgz .
