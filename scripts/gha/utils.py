@@ -53,7 +53,7 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False)
  # If capture_output is requested, we also set text=True to store the returned value of the
  # command as a string instead of bytes object
  return subprocess.run(cmd, capture_output=capture_output, cwd=cwd, check=check,
-                       text=capture_output)
+                       text=capture_output, stderr=subprocess.STDOUT)
 
 
 def is_command_installed(tool):
