@@ -230,7 +230,7 @@ jobs:
           for pkg in artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}*-build/*.tgz; do
             # determine the build variant based on the artifact filename
             variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
-            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant}
+            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3
           done
           cd firebase-cpp-sdk-${{ matrix.sdk_platform }}-package
           tar -czhf ../firebase-cpp-sdk-${{ matrix.sdk_platform }}-package.tgz .
