@@ -2,6 +2,14 @@
 set -e
 
 # Given a filename on the command-line, figure out what variant it should be packaged into.
+# For example, firebase-cpp-sdk-windows-x64-Release-static-build.tgz would be:
+#   OS: Windows
+#   Compiler: VS2015 (default for Windows)
+#   CPU: x64
+#   Debug mode: Release
+#   CRT linkage: MT ("static")
+# So the build variant would be: VS2015/MT/x64/Release
+
 path=$1
 
 if [[ -z "${path}" ]]; then
@@ -45,7 +53,15 @@ for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
 	    arch=i386
 	    arch_win=x86
 	;;
+	i386)
+	    arch=i386
+	    arch_win=x86
+	;;
 	x64)
+	    arch=x86_64
+	    arch_win=x64
+	;;
+	x86_64)
 	    arch=x86_64
 	    arch_win=x64
 	;;
