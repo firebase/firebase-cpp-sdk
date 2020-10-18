@@ -43,6 +43,7 @@ python scripts/gha/build_desktop.py --crt_linkage dynamic --arch x86
 import argparse
 import os
 import utils
+import subprocess
 
 def append_line_to_file(path, line):
   """Append the given line to the end of the file if it's not already in the file.
@@ -135,7 +136,7 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None, target_forma
     cmd.append('-DTARGET_FORMAT={0})'.format(target_format))
   try:
     cmd_output=utils.run_command(cmd, check=True, capture_output=True)
-  except CalledProcessError as e:
+  except subprocess.CalledProcessError as e:
     print(cmd_output)
     raise
 
@@ -171,7 +172,7 @@ def main():
     cmd.extend(args.target)
   try:
     cmd_output=utils.run_command(cmd, check=True, capture_output=True)
-  except CalledProcessError as e:
+  except subprocess.CalledProcessError as e:
     print(cmd_output)
     raise
 
