@@ -134,11 +134,8 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None, target_forma
   cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
   if (target_format):
     cmd.append('-DTARGET_FORMAT={0})'.format(target_format))
-  try:
-    cmd_output=utils.run_command(cmd, check=True, capture_output=True)
-  except subprocess.CalledProcessError as e:
-    print(cmd_output)
-    raise
+  cmd_output=utils.run_command(cmd, capture_output=True)
+  print(cmd_output)
 
 
 def main():
@@ -170,11 +167,8 @@ def main():
     # Example:  cmake --build build -j 8 --target firebase_app firebase_auth
     cmd.append('--target')
     cmd.extend(args.target)
-  try:
-    cmd_output=utils.run_command(cmd, check=True, capture_output=True)
-  except subprocess.CalledProcessError as e:
-    print(cmd_output)
-    raise
+  cmd_output=utils.run_command(cmd, capture_output=True)
+  print(cmd_output)
 
 
 def parse_cmdline_args():
