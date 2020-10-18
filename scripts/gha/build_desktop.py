@@ -44,6 +44,20 @@ import argparse
 import os
 import utils
 
+def append_line_to_file(path, line):
+  """Append the given line to the end of the file if it's not already in the file.
+
+  Used to disable specific errors in CMakeLists files if needed.
+
+  Args:
+    path: File to edit.
+    line: String to add to the end of the file.
+  """
+  with open(path, "r") as file:
+    lines = file.readlines()
+  if line not in lines:
+    with open(path, "a") as file:
+      file.write("\n" + line + "\n")
 
 def install_cpp_dependencies_with_vcpkg(arch, crt_linkage):
   """Install packages with vcpkg.
@@ -138,6 +152,11 @@ def main():
 
   # CMake configure
   cmake_configure(args.build_dir, args.arch, args.build_tests, args.config, args.target_format)
+
+  # Small workaround before build, turn off -Werror=sign-compare for a specific Firestore core lib.
+  append_line_to_file(os.path.join(args.build_dir,
+                                   'external/src/firestore/Firestore/core/CMakeLists.txt'),
+                      'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=sign-compare")')
 
   # CMake build
   # cmake --build build -j 8
