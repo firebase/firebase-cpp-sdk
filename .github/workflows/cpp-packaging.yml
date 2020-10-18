@@ -116,15 +116,14 @@ jobs:
         python_version: [3.7]
         include:
         - os: windows-latest
-          architecture: "x86"
-          build_type: "Debug"
+          architecture: ["x86","x64"]
+          build_type: ["Release", "Debug"]
           vcpkg_triplet: "x64-windows-static"
-          msbuild_platform: "x64"
           sdk_platform: windows
-          linkage: "dynamic"
+          linkage: ["static", "dynamic"]
           cmake_flags: ""
         - os: ubuntu-latest
-          architecture: "x86"
+          architecture: ["x86","x64"]
           vcpkg_triplet: "x64-linux"
           sdk_platform: linux
           cmake_flags: ""
