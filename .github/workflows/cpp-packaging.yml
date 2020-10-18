@@ -81,6 +81,7 @@ jobs:
     name: build-package-android-${{matrix.stl}}
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         stl: ["c++", "gnustl", "stlport"]
     steps:
