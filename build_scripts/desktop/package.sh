@@ -142,8 +142,12 @@ readonly deps_firebase_app="
 "
 readonly deps_hidden_firebase_app="
 */${prefix}curl.${ext}
-*/${prefix}z.${ext}
+*/zlib-build/${prefix}z.${ext}
+*/vcpkg-installed/lib/${prefix}crypto.${ext}
+*/vcpkg-installed/lib/${prefix}ssl.${ext}
 */${prefix}flatbuffers.${ext}
+*/firestore-build/*/leveldb-build*/${prefix}*.${ext}
+*/firestore-build/*/nanopb-build*/${prefix}*.${ext}
 "
 readonly deps_hidden_firebase_database="
 */${prefix}uv_a.${ext}
@@ -152,8 +156,6 @@ readonly deps_hidden_firebase_database="
 readonly deps_hidden_firebase_firestore="
 */firestore-build/Firestore/*/${prefix}*.${ext}
 */firestore-build/*/grpc-build*/${prefix}*.${ext}
-*/firestore-build/*/leveldb-build*/${prefix}*.${ext}
-*/firestore-build/*/nanopb-build*/${prefix}*.${ext}
 "
 
 readonly -a hide_namespaces=(flatbuffers flexbuffers reflection ZLib bssl uWS absl

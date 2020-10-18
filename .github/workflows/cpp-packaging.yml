@@ -117,8 +117,31 @@ jobs:
         python_version: [3.7]
         include:
         - os: windows-latest
+          linkage: "static"
           vcpkg_triplet: "x64-windows-static"
           sdk_platform: windows
+          cmake_flags: ""
+        - os: windows-latest
+          linkage: "dynamic"
+          vcpkg_triplet: "x64-windows-dynamic"
+          sdk_platform: windows
+          cmake_flags: ""
+        - os: windows-latest
+          linkage: "static"
+          architecture: "x86",
+          vcpkg_triplet: "x86-windows-static"
+          sdk_platform: windows
+          cmake_flags: ""
+        - os: windows-latest
+          linkage: "dynamic"
+          architecture: "x86",
+          vcpkg_triplet: "x86-windows-dynamic"
+          sdk_platform: windows
+          cmake_flags: ""
+        - os: ubuntu-latest
+          architecture: "x86",
+          vcpkg_triplet: "x86-linux"
+          sdk_platform: linux
           cmake_flags: ""
         - os: ubuntu-latest
           vcpkg_triplet: "x64-linux"
@@ -184,6 +207,9 @@ jobs:
         run: |
           python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}-build --crt_linkage ${{ matrix.linkage }} ${{ matrix.cmake_flags }}
           cd firebase-cpp-sdk-${{ env.SDK_NAME }}-build
+          # Preserve the 'external' directory in the source code, we may need the libs built there.
+          mkdir -p vcpkg-installed
+          cp -af ../external/vcpkg/installed/${{ matrix.vcpkg_triplet }}/ vcpkg-installed/
           tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
 
       - name: upload artifacts
