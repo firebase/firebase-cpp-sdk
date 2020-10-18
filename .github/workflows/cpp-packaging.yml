@@ -111,7 +111,8 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
         build_type: ["Release", "Debug"]
-        architecture: ["x64",]
+        architecture: ["x86", "x64",]
+        linkage: ["static", "dynamic"]
         python_version: [3.7]
         include:
         - os: windows-latest
@@ -119,7 +120,7 @@ jobs:
           vcpkg_triplet: "x64-windows-static"
           msbuild_platform: "x64"
           sdk_platform: windows
-          cmake_flags: ""
+          cmake_flags: "--crt_linkage ${{ matrix.linkage }}"
         - os: ubuntu-latest
           architecture: "x64"
           vcpkg_triplet: "x64-linux"
@@ -132,9 +133,15 @@ jobs:
           cmake_flags: "--target_format libraries"
         exclude:
         - os: macos-latest
+          build_type: "x86"
+        - os: macos-latest
+          build_type: "Debug"
+        - os: macos-latest
+          linkage: "dynamic"
+        - os: ubuntu-latest
           build_type: "Debug"
         - os: ubuntu-latest
-          build_type: "Debug"          
+          linkage: "dynamic"
     steps:
       - uses: actions/checkout@v2
         with:
@@ -145,7 +152,7 @@ jobs:
         run: |
           echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt"
           echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}"
-          echo "::set-env name=SDK_NAME::${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}"
+          echo "::set-env name=SDK_NAME::${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.linkage }}-${{ matrix.build_type }}"
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
@@ -232,7 +239,7 @@ jobs:
         with:
           name: firebase-cpp-sdk-${{ matrix.sdk_platform }}-package
           path: firebase-cpp-sdk-${{ matrix.sdk_platform }}-package.tgz
-       
+
   merge_packages:
     name: merge-packages
     runs-on: ubuntu-latest
