@@ -31,9 +31,11 @@ arch_win=
 debugmode=Release
 linkage=MD
 vs=VS2015
+stl=c++
 
 for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
     case $c in
+	# Operating systems
 	ios)
 	    os=ios
 	;;
@@ -49,6 +51,7 @@ for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
 	darwin)
 	    os=darwin
 	;;
+	# Desktop and mobile CPU types
 	x86)
 	    arch=i386
 	    arch_win=x86
@@ -65,14 +68,36 @@ for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
 	    arch=x86_64
 	    arch_win=x64
 	;;
+	# Additional iOS and Android CPU types
 	arm64)
 	    arch=arm64
-	    arch_win=arm64
 	;;
 	armv7)
 	    arch=armv7
-	    arch_win=arm32
 	;;
+	universal)
+	    arch=universal
+        ;;
+	# Additional Android CPU types
+	arm64-v8a)
+	    arch=arm64-v8a
+	;;
+	armeabi)
+	    arch=armeabi
+	;;
+	armeabi-v7a)
+	    arch=armeabi-v7a
+	;;
+	armeabi-v7a-hard)
+	    arch=armeabi-v7a-hard
+	;;
+	mips)
+	    arch=mips
+	;;
+	mips64)
+	    arch=mips64
+	;;
+	# Windows OS framework linkages
 	md)
 	    linkage=MD
 	;;
@@ -84,7 +109,8 @@ for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
 	;;
 	static)
 	    linkage=MT
-	;;
+	    ;;
+	# Debug/Release compilation mode
 	release)
 	    debugmode=Release
 	;;
@@ -97,6 +123,16 @@ for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
 	Debug)
 	    debugmode=Debug
 	;;
+	# Android STL variant
+	c++)
+	    stl=c++
+        ;;
+	gnustl)
+	    stl=gnustl
+        ;;
+	stlport)
+	    stl=stlport
+        ;;
     esac
 done
 
@@ -117,7 +153,17 @@ case ${os} in
 	echo -n "${arch}"
     ;;
     windows)
+	if [[ -z "${arch_win}" ]]; then
+	    echo "Invalid architecture for Windows: ${arch}" 1>&2
+	    exit 1
+	fi
 	echo -n "${vs}/${linkage}/${arch_win}/${debugmode}"
+    ;;
+    ios)
+	echo -n "${arch}"
+    ;;
+    android)
+	echo -n "${arch}/${stl}"
     ;;
     *)
 	echo "Invalid OS target ${os}" 1>&2
