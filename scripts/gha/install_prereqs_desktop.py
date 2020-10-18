@@ -32,6 +32,15 @@ python scripts/gha/install_prereqs_desktop.py
 import utils
 
 def main():
+  # Install protobuf on linux/mac if its not installed already
+  if not utils.is_command_installed('protoc'):
+    if utils.is_linux_os():
+        # sudo apt install protobuf-compiler
+        utils.run_command(['apt', 'install', 'protobuf-compiler'], as_root=True)
+    elif utils.is_mac_os():
+        # brew install protobuf
+        utils.run_command(['brew', 'install', 'protobuf'])
+    
   # Install ccache on linux/mac if its not installed already
   if not utils.is_command_installed('ccache'):
     if utils.is_linux_os():
