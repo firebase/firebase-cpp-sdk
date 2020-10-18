@@ -211,7 +211,7 @@ jobs:
           cd firebase-cpp-sdk-${{ env.SDK_NAME }}-build
           # Preserve the 'external' directory in the source code, we may need the libs built there.
           mkdir -p vcpkg-installed
-          cp -af ../external/vcpkg/installed/${{ matrix.vcpkg_triplet }}/ vcpkg-installed/
+          cp -R ../external/vcpkg/installed/${{ matrix.vcpkg_triplet }}/ vcpkg-installed/
           tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
 
       - name: upload artifacts
