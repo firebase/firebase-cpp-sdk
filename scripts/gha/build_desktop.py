@@ -135,7 +135,8 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None, target_forma
   if (target_format):
     cmd.append('-DTARGET_FORMAT={0})'.format(target_format))
   cmd_output=utils.run_command(cmd, capture_output=True)
-  print(cmd_output)
+  print(cmd_output.stdout)
+  print(cmd_output.stderr)
 
 
 def main():
@@ -168,7 +169,8 @@ def main():
     cmd.append('--target')
     cmd.extend(args.target)
   cmd_output=utils.run_command(cmd, capture_output=True)
-  print(cmd_output)
+  print(cmd_output.stdout)
+  print(cmd_output.stderr)
 
 
 def parse_cmdline_args():
