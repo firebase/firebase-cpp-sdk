@@ -137,17 +137,17 @@ fi
 
 # Library dependencies to merge. Each should be a whitespace-delimited list of path globs.
 readonly deps_firebase_app="
-*${prefix}firebase_instance_id_desktop_impl.${ext}
-*${prefix}firebase_rest_lib.${ext}
+*/${prefix}firebase_instance_id_desktop_impl.${ext}
+*/${prefix}firebase_rest_lib.${ext}
 "
 readonly deps_hidden_firebase_app="
-*${prefix}curl.${ext}
-*${prefix}z.${ext}
-*${prefix}flatbuffers.${ext}
+*/${prefix}curl.${ext}
+*/${prefix}z.${ext}
+*/${prefix}flatbuffers.${ext}
 "
 readonly deps_hidden_firebase_database="
-*${prefix}uv_a.${ext}
-*${prefix}libuWS.${ext}
+*/${prefix}uv_a.${ext}
+*/${prefix}libuWS.${ext}
 "
 readonly deps_hidden_firebase_firestore="
 */firestore-build/Firestore/*/${prefix}*.${ext}
@@ -261,7 +261,7 @@ for product in *; do
     echo
     outfile="${full_output_path}/${libfile_out}"
     rm -f "${outfile}"
-    "${python_cmd}" "${merge_libraries_script}" \
+     "${python_cmd}" "${merge_libraries_script}" \
 		    ${merge_libraries_params[*]} \
 		    --output="${outfile}" \
 		    --scan_libs="${allfiles}" \
