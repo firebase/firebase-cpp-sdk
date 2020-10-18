@@ -214,16 +214,14 @@ jobs:
         with:
           python-version: 3.7
       - name: Install prerequisites
-        run: sdk-src/build_scripts/ios/install_prereqs.sh
+        run: python sdk-src/scripts/gha/install_prereqs_desktop.py
       - name: postprocess SDK
         run: |
           mkdir -p bin
           tar -xvzf artifacts/packaging-tools/packaging-tools.tgz -C bin
           chmod -R u+x bin
           for pkg in artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}*-build/*.tgz; do
-            pkgdir=$(dirname ${pkg})
-            tar -xzf "${pkg}" -C "${pkgdir}" && rm -f "${pkg}"
-            sdk-src/build_scripts/desktop/package.sh -b ${pkgdir} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}-package -p ${{ matrix.sdk_platform }} -t bin
+            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}-package -p ${{ matrix.sdk_platform }} -t bin -d x86_64
           done
           cd firebase-cpp-sdk-${{ matrix.sdk_platform }}-package
           tar -czhf ../firebase-cpp-sdk-${{ matrix.sdk_platform }}-package.tgz .

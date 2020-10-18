@@ -6,7 +6,7 @@ set -e
 usage(){
     echo "Usage: $0 -b <built sdk path> -o <output package path> -p <platform> [options]
 options:
-  -b, built sdk path		            required
+  -b, built sdk path or tar file            required
   -o, output path                           required
   -p, platform to package	            required, one of: linux windows darwin
   -d, build variant directory to create     default: .
@@ -26,6 +26,8 @@ variant=.
 verbose=0
 merge_libraries_script=$(cd $(dirname $0)/../..; pwd -P)/scripts/merge_libraries.py
 tools_path=~/bin
+built_sdk_tarfile=
+temp_dir=
 
 readonly SUPPORTED_PLATFORMS=(linux windows darwin)
 
@@ -41,10 +43,6 @@ while getopts ":b:o:p:d:m:P:t:hv" opt; do
     case $opt in
         b)
             built_sdk_path=$OPTARG
-            if [[ ! -r "${built_sdk_path}/CMakeCache.txt" ]]; then
-                echo "Built SDK not found in ${built_sdk_path}."
-                exit 2
-            fi
             ;;
         o)
             output_package_path=$OPTARG
@@ -100,6 +98,21 @@ if [[ -z "${platform}" ]]; then
     echo "Supported platforms are: ${SUPPORTED_PLATFORMS[@]}"
     exit 2
 fi
+# Check the built sdk path to see if we need to untar it.
+if [[ ! -d "${built_sdk_path}" && -f "${built_sdk_path}" ]]; then
+    # tarball was specified, uncompress it
+    temp_dir=$(mktemp -d)
+    trap "rm -rf \"\${temp_dir}\"" SIGKILL SIGTERM SIGQUIT EXIT
+    echo "Uncompressing tarfile into temporary directory..."
+    tar -xf "${built_sdk_path}" -C "${temp_dir}"
+    built_sdk_path="${temp_dir}"
+fi
+
+if [[ ! -r "${built_sdk_path}/CMakeCache.txt" ]]; then
+    echo "Built SDK not found in ${built_sdk_path}."
+    exit 2
+fi
+
 mkdir -p "${output_package_path}"
 
 # Get absolute paths where needed.
