@@ -15,7 +15,7 @@ env:
 jobs:
   build_tools:
     name: build-packaging-tools
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - name: fetch and build binutils
         run: |
@@ -197,7 +197,7 @@ jobs:
 
   package_desktop:
     name: package-merge-${{ matrix.sdk_platform }}
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     needs: [build_tools, build_desktop]
     strategy:
       fail-fast: false
