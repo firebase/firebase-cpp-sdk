@@ -209,6 +209,13 @@ jobs:
           # download-artifact doesn't support wildcards, but by default
           # will download all artifacts. Sadly this is what we must do.
           path: artifacts
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: Install prerequisites
+        run: |
+          python scripts/gha/install_prereqs_desktop.py
       - name: postprocess SDK
         run: |
           mkdir -p bin
