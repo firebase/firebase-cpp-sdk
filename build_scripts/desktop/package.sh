@@ -143,8 +143,8 @@ readonly deps_firebase_app="
 readonly deps_hidden_firebase_app="
 */${prefix}curl.${ext}
 */zlib-build/${prefix}z.${ext}
-*/vcpkg-installed/lib/${prefix}crypto.${ext}
-*/vcpkg-installed/lib/${prefix}ssl.${ext}
+*/vcpkg-libs/${prefix}crypto.${ext}
+*/vcpkg-libs/${prefix}ssl.${ext}
 */${prefix}flatbuffers.${ext}
 */firestore-build/*/leveldb-build*/${prefix}*.${ext}
 */firestore-build/*/nanopb-build*/${prefix}*.${ext}

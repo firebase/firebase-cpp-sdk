@@ -209,9 +209,15 @@ jobs:
         run: |
           python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}-build --crt_linkage ${{ matrix.linkage }} ${{ matrix.cmake_flags }}
           cd firebase-cpp-sdk-${{ env.SDK_NAME }}-build
-          # Preserve the 'external' directory in the source code, we may need the libs built there.
-          mkdir -p vcpkg-installed
-          cp -R ../external/vcpkg/installed/${{ matrix.vcpkg_triplet }}/ vcpkg-installed/
+          # Make sure to include the vcpkg libraries in the source directory's
+          # external/vcpkg/installed subdirectory, as we may need some of the
+          # libs there (e.g. libssl, libcrypto) for packaging.
+          mkdir vcpkg-lib
+          prebuilt_libs=../external/vcpkg/installed/${{ matrix.vcpkg_triplet }}/lib
+          if [[ "${{ matrix.build_type }}" == "Debug" ]]; then
+            prebuilt_libs=../external/vcpkg/installed/${{ matrix.vcpkg_triplet }}/debug/lib
+          fi
+          cp -R ${prebuilt_libs}/ vcpkg-libs/
           tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
 
       - name: upload artifacts
