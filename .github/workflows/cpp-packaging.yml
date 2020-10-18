@@ -154,6 +154,10 @@ jobs:
           echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}"
           echo "::set-env name=SDK_NAME::${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.linkage }}-${{ matrix.build_type }}"
 
+      - name: Add msbuild to PATH (windows)
+        if: startsWith(matrix.os, 'windows')
+        uses: microsoft/setup-msbuild@v1.0.1
+
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
         uses: actions/cache@v2
