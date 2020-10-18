@@ -110,7 +110,8 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None, target_forma
   if build_tests:
     cmd.append('-DFIREBASE_CPP_BUILD_TESTS=ON')
     cmd.append('-DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON')
-
+  # temporary workaround for absl issue
+  cmd.append('-DBUILD_TESTING=off')
   vcpkg_toolchain_file_path = utils.get_vcpkg_cmake_toolchain_file_path()
   cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(vcpkg_toolchain_file_path))
 
