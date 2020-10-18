@@ -43,6 +43,7 @@ python scripts/gha/build_desktop.py --crt_linkage dynamic --arch x86
 import argparse
 import os
 import utils
+import shutil
 import subprocess
 
 def append_line_to_file(path, line):
@@ -100,7 +101,8 @@ def install_cpp_dependencies_with_vcpkg(arch, crt_linkage):
                                       utils.get_vcpkg_cmake_toolchain_file_path()))
 
 
-def cmake_configure(build_dir, arch, build_tests=True, config=None, target_format=None):
+def cmake_configure(build_dir, arch, crt_linkage='dynamic',
+                    build_tests=True, config=None, target_format=None):
   """ CMake configure.
 
   If you are seeing problems when running this multiple times,
@@ -109,6 +111,7 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None, target_forma
   Args:
    build_dir (str): Output build directory.
    arch (str): Platform Architecture (example: 'x64').
+   crt_linkage (str): CRT linkage (dynamic or static)
    build_tests (bool): Build cpp unit tests.
    config (str): Release/Debug config.
           If its not specified, cmake's default is used (most likely Debug).
@@ -130,7 +133,7 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None, target_forma
   vcpkg_toolchain_file_path = utils.get_vcpkg_cmake_toolchain_file_path()
   cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(vcpkg_toolchain_file_path))
 
-  vcpkg_triplet = utils.get_vcpkg_triplet(arch)
+  vcpkg_triplet = utils.get_vcpkg_triplet(arch, crt_linkage)
   cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
   if (target_format):
     cmd.append('-DTARGET_FORMAT={0})'.format(target_format))
@@ -153,7 +156,8 @@ def main():
     return
 
   # CMake configure
-  cmake_configure(args.build_dir, args.arch, args.build_tests, args.config, args.target_format)
+  cmake_configure(args.build_dir, args.arch, args.crt_linkage,
+                  args.build_tests, args.config, args.target_format)
 
   # Small workaround before build, turn off -Werror=sign-compare for a specific Firestore core lib.
   append_line_to_file(os.path.join(args.build_dir,
@@ -170,6 +174,12 @@ def main():
   cmd_output=utils.run_command(cmd, capture_output=True)
   print(cmd_output.stdout)
   print(cmd_output.stderr)
+  # Copy libraries from appropriate vcpkg directory to build output
+  # directory for later inclusion.
+  vcpkg_path = ('external/vcpkg/installed/%s/%slib/' %
+                (utils.get_vcpkg_triplet(args.arch, args.crt_linkage),
+                 'debug/' if args.config == 'Debug' else ''))
+  shutil.copytree(vcpkg_path, os.path.join(args.build_dir, 'vcpkg-libs'))
 
 
 def parse_cmdline_args():

@@ -125,7 +125,7 @@ jobs:
         - os: windows-latest
           linkage: "dynamic"
           architecture: "x64"
-          vcpkg_triplet: "x64-windows-dynamic"
+          vcpkg_triplet: "x64-windows"
           sdk_platform: windows
           cmake_flags: ""
         - os: windows-latest
@@ -137,7 +137,7 @@ jobs:
         - os: windows-latest
           linkage: "dynamic"
           architecture: "x86"
-          vcpkg_triplet: "x86-windows-dynamic"
+          vcpkg_triplet: "x86-windows"
           sdk_platform: windows
           cmake_flags: ""
         - os: ubuntu-latest
@@ -209,12 +209,6 @@ jobs:
         run: |
           python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}-build --crt_linkage ${{ matrix.linkage }} ${{ matrix.cmake_flags }}
           cd firebase-cpp-sdk-${{ env.SDK_NAME }}-build
-          # Make sure to include the vcpkg libraries in the source directory's
-          # external/vcpkg/installed subdirectory, as we may need some of the
-          # libs there (e.g. libssl, libcrypto) for packaging.
-          mkdir vcpkg-libs
-          prebuilt_libs=../external/vcpkg/installed/${{ matrix.vcpkg_triplet }}/lib
-          cp -R ${prebuilt_libs}/ vcpkg-libs/
           tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
 
       - name: upload artifacts
