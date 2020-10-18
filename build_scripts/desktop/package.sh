@@ -261,7 +261,7 @@ for product in *; do
     echo
     outfile="${full_output_path}/${libfile_out}"
     rm -f "${outfile}"
-     "${python_cmd}" "${merge_libraries_script}" \
+    "${python_cmd}" "${merge_libraries_script}" \
 		    ${merge_libraries_params[*]} \
 		    --output="${outfile}" \
 		    --scan_libs="${allfiles}" \
