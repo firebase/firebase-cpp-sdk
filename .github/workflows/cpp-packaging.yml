@@ -130,10 +130,13 @@ jobs:
         exclude:
         - os: macos-latest
           architecture: "x86"
+        - os: macos-latest
           build_type: "Debug"
+        - os: macos-latest
           linkage: "dynamic"
         - os: ubuntu-latest
           build_type: "Debug"
+        - os: ubuntu-latest
           linkage: "dynamic"
           
     steps:
