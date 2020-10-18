@@ -203,7 +203,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        sdk_platform: [linux] #, windows darwin]
+        sdk_platform: [linux, darwin, windows]
 
     steps:
       - name: fetch SDK
