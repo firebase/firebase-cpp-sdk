@@ -214,9 +214,6 @@ jobs:
           # libs there (e.g. libssl, libcrypto) for packaging.
           mkdir vcpkg-libs
           prebuilt_libs=../external/vcpkg/installed/${{ matrix.vcpkg_triplet }}/lib
-          if [[ "${{ matrix.build_type }}" == "Debug" ]]; then
-            prebuilt_libs=../external/vcpkg/installed/${{ matrix.vcpkg_triplet }}/debug/lib
-          fi
           cp -R ${prebuilt_libs}/ vcpkg-libs/
           tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
 
