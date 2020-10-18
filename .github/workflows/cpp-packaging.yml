@@ -212,7 +212,7 @@ jobs:
           # Make sure to include the vcpkg libraries in the source directory's
           # external/vcpkg/installed subdirectory, as we may need some of the
           # libs there (e.g. libssl, libcrypto) for packaging.
-          mkdir vcpkg-lib
+          mkdir vcpkg-libs
           prebuilt_libs=../external/vcpkg/installed/${{ matrix.vcpkg_triplet }}/lib
           if [[ "${{ matrix.build_type }}" == "Debug" ]]; then
             prebuilt_libs=../external/vcpkg/installed/${{ matrix.vcpkg_triplet }}/debug/lib
