@@ -118,30 +118,30 @@ jobs:
         include:
         - os: windows-latest
           linkage: "static"
-          architecture: "x64",
+          architecture: "x64"
           vcpkg_triplet: "x64-windows-static"
           sdk_platform: windows
           cmake_flags: ""
         - os: windows-latest
           linkage: "dynamic"
-          architecture: "x64",
+          architecture: "x64"
           vcpkg_triplet: "x64-windows-dynamic"
           sdk_platform: windows
           cmake_flags: ""
         - os: windows-latest
           linkage: "static"
-          architecture: "x86",
+          architecture: "x86"
           vcpkg_triplet: "x86-windows-static"
           sdk_platform: windows
           cmake_flags: ""
         - os: windows-latest
           linkage: "dynamic"
-          architecture: "x86",
+          architecture: "x86"
           vcpkg_triplet: "x86-windows-dynamic"
           sdk_platform: windows
           cmake_flags: ""
         - os: ubuntu-latest
-          architecture: "x86",
+          architecture: "x86"
           vcpkg_triplet: "x86-linux"
           sdk_platform: linux
           cmake_flags: ""
