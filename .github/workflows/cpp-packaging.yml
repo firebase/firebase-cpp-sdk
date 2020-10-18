@@ -226,7 +226,7 @@ jobs:
           cd sdk-src
           python scripts/gha/install_prereqs_desktop.py
           cd ..
-      - name: postprocess SDK
+      - name: postprocess and package built SDK
         run: |
           mkdir -p bin
           tar -xvzf artifacts/packaging-tools/packaging-tools.tgz -C bin

@@ -495,6 +495,9 @@ def read_symbols_from_archive(archive_file):
     m = RE_NM_SYMBOLS_PLATFORM[FLAGS.platform].match(line)
     if m:
       symbol = m.group("symbol")
+      # Ignore any Objective-C or Objective-C++ methods.
+      if FLAGS.platform == "darwin" and ('[' in symbol or ']' in symbol):
+        continue
 
       all_symbols.add(symbol)
 
