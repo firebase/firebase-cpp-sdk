@@ -25,7 +25,7 @@ sourcepath=$( pwd -P )
 cd "${origpath}"
 
 # Copy headers to packaged SDK.
-echo mkdir -p "${destpath}/include"
+mkdir -p "${destpath}/include"
 cd "${sdkpath}"
 for incdir in */src/include/; do
     cp -af "${incdir}" "${destpath}/include/"
