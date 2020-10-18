@@ -120,7 +120,7 @@ jobs:
           vcpkg_triplet: "x64-windows-static"
           msbuild_platform: "x64"
           sdk_platform: windows
-          cmake_flags: "--crt_linkage ${{ matrix.linkage }}"
+          cmake_flags: ""
         - os: ubuntu-latest
           architecture: "x64"
           vcpkg_triplet: "x64-linux"
@@ -185,7 +185,7 @@ jobs:
 
       - name: Build SDK
         run: |
-          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}-build ${{ matrix.cmake_flags }}
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}-build --crt_linkage {{ matrix.linkage }} ${{ matrix.cmake_flags }}
           cd firebase-cpp-sdk-${{ env.SDK_NAME }}-build
           tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
 
