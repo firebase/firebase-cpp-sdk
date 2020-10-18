@@ -140,16 +140,20 @@ if [[ -z "${os}" ]]; then
     echo "Couldn't determine OS" 1>&2
     exit 1
 fi
-if [[ -z "${arch}" ]]; then
-    echo "Couldn't determine architecture" 1>&2
-    exit 1
-fi
 
 case ${os} in
     darwin)
+	if [[ -z "${arch}" ]]; then
+	    echo "Couldn't determine architecture" 1>&2
+	    exit 1
+	fi
 	echo -n "${arch}"
     ;;
     linux)
+	if [[ -z "${arch}" ]]; then
+	    echo "Couldn't determine architecture" 1>&2
+	    exit 1
+	fi
 	echo -n "${arch}"
     ;;
     windows)
@@ -160,10 +164,18 @@ case ${os} in
 	echo -n "${vs}/${linkage}/${arch_win}/${debugmode}"
     ;;
     ios)
-	echo -n "${arch}"
+	if [[ -z "${arch}" ]]; then
+	    echo -n "."
+	else
+	    echo -n "${arch}"
+	fi
     ;;
     android)
-	echo -n "${arch}/${stl}"
+	if [[ -z "${arch}" ]]; then
+	    echo -n "${stl}"
+	else
+	    echo -n "${arch}/${stl}"
+	fi
     ;;
     *)
 	echo "Invalid OS target ${os}" 1>&2
