@@ -221,7 +221,10 @@ jobs:
         with:
           python-version: 3.7
       - name: Install prerequisites
-        run: python sdk-src/scripts/gha/install_prereqs_desktop.py
+        run: |
+          cd sdk-src
+          python scripts/gha/install_prereqs_desktop.py
+          cd ..
       - name: postprocess SDK
         run: |
           mkdir -p bin
