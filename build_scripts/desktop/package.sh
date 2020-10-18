@@ -1,13 +1,111 @@
-#!/bin/bash -e
-PYTHON=python
+#!/bin/bash
+#
+# Script to package desktop SDK
+set -e
 
-builtpath=$1
-packagepath=$2
-platform=$3
-bindirrel=$4
-bindir=$(cd $bindirrel && pwd -P)
+usage(){
+    echo "Usage: $0 -b <built sdk path> -o <output package path> [options]
+options:
+  -b, built sdk path		            required
+  -o, output path                           required
+  -p, platform to package	            default: linux, options are: [linux | windows | darwin]
+  -d, build variant directory to create     default: .
+  -m, merge_libraries.py path               default: <script dir>/../../scripts/merge_libraries.py
+  -P, python command                        default: python
+  -t, packaging tools directory             default: ~/bin
+  -v, enable verbose mode
+example:
+  build_scripts/desktop/package.sh -b firebase-cpp-sdk-linux -p linux -o package_out -v x86"
+}
 
-MERGE_LIBRARIES_SCRIPT=$(cd $(dirname $0)/../..; pwd -P)/scripts/merge_libraries.py
+built_sdk_path=
+output_package_path=
+platform=linux
+python_cmd=python
+variant=.
+verbose=0
+merge_libraries_script=$(cd $(dirname $0)/../..; pwd -P)/scripts/merge_libraries.py
+tools_path=~/bin
+
+readonly SUPPORTED_PLATFORMS=(linux windows darwin)
+
+abspath(){
+    if [[ -d $1 ]]; then
+	echo "$(cd "$1"; pwd -P)"
+    else
+	echo "$(cd "$(dirname "$1")"; pwd -P)/$(basename "$1")"
+    fi
+}
+
+while getopts ":b:o:p:d:m:P:t:hv" opt; do
+    case $opt in
+        b)
+            built_sdk_path=$OPTARG
+            if [[ ! -r "${built_sdk_path}/CMakeCache.txt" ]]; then
+                echo "Built SDK not found in ${built_sdk_path}."
+                exit 2
+            fi
+            ;;
+        o)
+            output_package_path=$OPTARG
+            ;;
+        p)
+            platform=$OPTARG
+            if [[ ! " ${SUPPORTED_PLATFORMS[@]} " =~ " ${platform} " || -z "${platform}" ]]; then
+                echo "invalid platform: ${platform}"
+                echo "Supported platforms are: ${SUPPORTED_PLATFORMS[@]}"
+                exit 2
+            fi
+            ;;
+	v)
+	    verbose=1
+	    ;;
+        d)
+            variant=$OPTARG
+            ;;
+        m)
+            merge_libraries_script=$OPTARG
+	    if [[ ! -r "${merge_libraries_script}" ]]; then
+                echo "Script not found: ${merge_libraries_script}"
+                exit 2
+	    fi
+            ;;
+        P)
+	    python_cmd=$OPTARG
+            ;;
+	t)
+	    tools_path=$OPTARG
+	    ;;
+	h)
+	    usage
+	    exit 0
+	    ;;
+        *)
+	    usage
+            exit 2
+            ;;
+    esac
+done
+
+if [[ -z "${built_sdk_path}" ]]; then
+    echo "Missing required option: -b <built sdk path>"
+    exit 2
+fi
+if [[ -z "${output_package_path}" ]]; then
+    echo "Missing required option: -o <output package path>"
+    exit 2
+fi
+mkdir -p "${output_package_path}"
+
+# Get absolute paths where needed.
+built_sdk_path=$(abspath "${built_sdk_path}")
+merge_libraries_script=$(abspath "${merge_libraries_script}")
+output_package_path=$(abspath "${output_package_path}")
+tools_path=$(abspath "${tools_path}")
+if [[ ${python_cmd} == '*/*' ]]; then
+    # If a full path to python was given, get the absolute path.
+    python_cmd=$(abspath "${python_cmd}")
+fi
 
 # Desktop packaging settings.
 if [[ "${platform}" == "windows" ]]; then
@@ -20,28 +118,27 @@ fi
 
 
 # Library dependencies to merge. Each should be a whitespace-delimited list of path globs.
-deps_firebase_app="
+readonly deps_firebase_app="
 *${prefix}firebase_instance_id_desktop_impl.${ext}
 *${prefix}firebase_rest_lib.${ext}
 "
-deps_hidden_firebase_app="
+readonly deps_hidden_firebase_app="
 *${prefix}curl.${ext}
 *${prefix}z.${ext}
 *${prefix}flatbuffers.${ext}
 "
-deps_hidden_firebase_database="
+readonly deps_hidden_firebase_database="
 *${prefix}uv_a.${ext}
 *${prefix}libuWS.${ext}
 "
-deps_hidden_firebase_firestore="
+readonly deps_hidden_firebase_firestore="
 */firestore-build/Firestore/*/${prefix}*.${ext}
 */firestore-build/*/grpc-build*/${prefix}*.${ext}
 */firestore-build/*/leveldb-build*/${prefix}*.${ext}
 */firestore-build/*/nanopb-build*/${prefix}*.${ext}
 "
 
-declare -a hide_namespaces
-hide_namespaces=(flatbuffers flexbuffers reflection ZLib bssl uWS absl
+readonly -a hide_namespaces=(flatbuffers flexbuffers reflection ZLib bssl uWS absl
 base_raw_logging ConnectivityWatcher grpc
 grpc_access_token_credentials grpc_alts_credentials
 grpc_alts_server_credentials grpc_auth_context
@@ -63,16 +160,18 @@ leveldb_filterpolicy_create_bloom leveldb_writebatch_iterate strings
 TlsCredentials TlsServerCredentials tsi)
 
 # String to prepend to all hidden symbols.
-rename_string=f_b_
+readonly rename_string=f_b_
 
-declare -a demangle_cmds=${bindir}/c++filt
-#,${bindir}/demumble
-binutils_objcopy=${bindir}/objcopy
-binutils_nm=${bindir}/nm
-binutils_ar=${bindir}/ar
+readonly demangle_cmds=${tools_path}/c++filt,${tools_path}/demumble
+readonly binutils_objcopy=${tools_path}/objcopy
+readonly binutils_nm=${tools_path}/nm
+readonly binutils_ar=${tools_path}/ar
 
 cache_file=/tmp/merge_libraries_cache.$$
-declare -a additional_merge_libraries_params
+# Clean up cache file after script is finished.
+trap "rm -f \"\${cache_file}\"" SIGKILL SIGTERM SIGQUIT EXIT
+
+declare -a merge_libraries_params
 merge_libraries_params=(
     --cache=${cache_file}
     --binutils_nm_cmd=${binutils_nm}
@@ -81,70 +180,44 @@ merge_libraries_params=(
     --demangle_cmds=${demangle_cmds}
     --platform=${platform}
     --hide_cpp_namespaces=$(echo "${hide_namespaces[*]}" | sed 's| |,|g')
-#    --verbosity=3
 )
-
-if [[ -z "${builtpath}" || -z "${packagepath}" || -z "${platform}" || -z "${bindir}" ]]; then
-    echo "Usage: $0 <built desktop SDK path> <path to put packaged files into> <platform> <packaging tools directory>"
-    echo "Platform is one of: linux darwin windows"
-    echo "Packaging tools directory must contain: nm ar objcopy c++filt demumble"
-    exit 1
-fi
-
-if [[ "${platform}" != "linux" && "${platform}" != "darwin" && "${platform}" != "windows" ]]; then
-    echo "Invalid platform specified: ${platform}"
-    exit 2
-fi
-
-if [[ ! -r "${builtpath}/CMakeCache.txt" ]]; then
-    echo "Built desktop SDK not found at path '${builtpath}'."
-    exit 2
+if [[ ${verbose} -eq 1 ]]; then
+    merge_libraries_params+=(--verbosity=3)
 fi
 
 if [[ ! -x "${binutils_objcopy}" || ! -x "${binutils_ar}" || ! -x "${binutils_nm}" ]]; then
-    echo "Packaging tools not found at path '${bindir}'."
+    echo "Packaging tools not found at path '${tools_path}'."
     exit 2
 fi
 
 
-origpath=$( pwd -P )
+run_path=$( pwd -P )
+full_output_path="${output_package_path}/libs/${platform}/${variant}"
+mkdir -p "${full_output_path}"
+echo "Output directory: ${full_output_path}"
 
-mkdir -p "${packagepath}"
-cd "${packagepath}"
-destpath=$( pwd -P )
-cd "${origpath}"
+cd "${built_sdk_path}"
 
-cd "${builtpath}"
-sourcepath=$( pwd -P )
-cd "${origpath}"
-
-variant="x64"
-mkdir -p "${destpath}/libs/${platform}/${variant}"
-
-cd "${sourcepath}"
-
-# Gather a comma-separated list of all files.
+# Gather a comma-separated list of all library files. This will be
+# passed to merge_libraries in the --scan_libs parameter.
 declare allfiles
-for lib in $(find . -path '*.a'); do
+for lib in $(find . -name "${prefix}*.${ext}"); do
     if [[ ! -z ${allfiles} ]]; then allfiles+=","; fi
     allfiles+="${lib}"
 done
 
 for product in *; do
-    if [[ "${platform}" == "windows" ]]; then
-	libfile="${product}/firebase_${product}.lib"
-    else
-	libfile="${product}/libfirebase_${product}.a"
-    fi
-    
-    if [[ ! -r "${libfile}" ]]; then
+    libfile_src="${product}/${prefix}firebase_${product}.${ext}"
+    if [[ ! -r "${libfile_src}" ]]; then
 	continue
     fi
+
+    # Look up the previously-set deps_firebase_* and deps_hidden_firebase_* vars.
     deps_var="deps_firebase_${product}"  # variable name
     deps_hidden_var="deps_hidden_firebase_${product}"  # variable name
     declare -a deps deps_basenames
-    deps=() # regular list of all deps, hidden and visible
-    deps_basenames=()  # Only used for script logging
+    deps=() # List of all dependencies, both hidden and visible.
+    deps_basenames=()  # Same as above but only filenames, for more readable logging to console.
     for dep in ${!deps_var} ${!deps_hidden_var}; do
 	for found in $(find . -path ${dep}); do
 	    deps[${#deps[@]}]="${found}"
@@ -158,15 +231,19 @@ for product in *; do
 	    deps_hidden+="${found}"
 	done
     done
-
-    echo -n $(basename "${libfile}")
+    libfile_out=$(basename "${libfile_src}")
+    echo -n "${libfile_out}"
     if [[ ! -z ${deps_basenames[*]} ]]; then
-	echo -n " <= ${deps_basenames[*]}"
+	echo -n " <- ${deps_basenames[*]}"
     fi
     echo
-    mkdir -p $(dirname "${destpath}/libs/${platform}/${variant}/${libfile}")
-    outfile="${destpath}/libs/${platform}/${variant}/${libfile}"
+    outfile="${full_output_path}/${libfile_out}"
     rm -f "${outfile}"
-    "${PYTHON}" "${MERGE_LIBRARIES_SCRIPT}" ${merge_libraries_params[*]} --output="${outfile}" --scan_libs="${allfiles}" --hide_c_symbols="${deps_hidden}" ${libfile} ${deps[*]}
+    "${python_cmd}" "${merge_libraries_script}" \
+		    ${merge_libraries_params[*]} \
+		    --output="${outfile}" \
+		    --scan_libs="${allfiles}" \
+		    --hide_c_symbols="${deps_hidden}" \
+		    ${libfile_src} ${deps[*]}
 done
-cd "${origpath}"
+cd "${run_path}"
