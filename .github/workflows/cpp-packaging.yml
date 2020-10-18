@@ -110,35 +110,28 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
-        build_type: ["Release", "Debug"]
-        architecture: ["x86", "x64",]
-        linkage: ["static", "dynamic"]
+        build_type: ["Release"]
+        architecture: ["x64"]
+        linkage: ["static"]
         python_version: [3.7]
         include:
         - os: windows-latest
-          architecture: "x64"
+          architecture: "x86"
+          build_type: "Debug"
           vcpkg_triplet: "x64-windows-static"
           msbuild_platform: "x64"
           sdk_platform: windows
+          linkage: "dynamic"
           cmake_flags: ""
         - os: ubuntu-latest
-          architecture: "x64"
+          architecture: "x86"
           vcpkg_triplet: "x64-linux"
           sdk_platform: linux
           cmake_flags: ""
         - os: macos-latest
-          architecture: "x64"
           vcpkg_triplet: "x64-osx"
           sdk_platform: darwin
           cmake_flags: "--target_format libraries"
-        exclude:
-        - os: macos-latest
-          architecture: "x86"
-          build_type: "Debug"
-          linkage: "dynamic"
-        - os: ubuntu-latest
-          build_type: "Debug"
-          linkage: "dynamic"
     steps:
       - uses: actions/checkout@v2
         with:
