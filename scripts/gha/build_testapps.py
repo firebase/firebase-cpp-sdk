@@ -444,7 +444,7 @@ def _build_ios(
   app_podfile_path = os.path.join(
       project_dir, "Podfile")
   podfile_patcher_args = [
-      podfile_tool_path,
+      "swift", podfile_tool_path,
       sdk_podfile_path,
       app_podfile_path
   ]

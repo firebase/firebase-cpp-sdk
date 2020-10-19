@@ -25,8 +25,6 @@ import Foundation
 let sdkPodfile = CommandLine.arguments[1]
 let appPodfile = CommandLine.arguments[2]
 
-print(appPodfile)
-print(sdkPodfile)
 // read contents from sdk's podfile
 var sdkPodfileContents = ""
 do {
@@ -39,8 +37,7 @@ do {
 let sdkPodfilelines = sdkPodfileContents.components(separatedBy: .newlines)
 var dict = [String: String]()
 for line in sdkPodfilelines {
-  var newLine = line.trimmingCharacters(in: .whitespacesAndNewlines)
-  let tokens = newLine.components(separatedBy: [" ", ","] as CharacterSet).filter({ $0 != ""})
+  let tokens = line.components(separatedBy: [" ", ","] as CharacterSet).filter({ $0 != ""})
   if tokens.first == "pod" {
     let podName = tokens[1]
     let podVersion = tokens[2]
