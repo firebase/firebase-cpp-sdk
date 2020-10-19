@@ -146,6 +146,7 @@ jobs:
           sdk_platform: linux
           cmake_flags: ""
         - os: ubuntu-latest
+          architecture: "x64"
           vcpkg_triplet: "x64-linux"
           sdk_platform: linux
           cmake_flags: ""
