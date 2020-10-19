@@ -36,7 +36,7 @@ cd "${origpath}"
 rm -rf "${destpath}/include/firebase/csharp/"
 
 # Copy release files into packaged SDK.
-cp -af "${sourcepath}/release_build_files/*" "${destpath}"
+cp -af "${sourcepath}"/release_build_files/* "${destpath}"
 
 # Copy generate_xml tool into packaged SDK.
 cp -f "${sourcepath}/generate_xml_from_google_services_json.py" "${destpath}/"

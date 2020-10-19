@@ -127,9 +127,7 @@ def cmake_configure(build_dir, arch,
   cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
   if (target_format):
     cmd.append('-DTARGET_FORMAT={0})'.format(target_format))
-  cmd_output=utils.run_command(cmd, capture_output=True)
-  print(cmd_output.stdout)
-  print(cmd_output.stderr)
+  utils.run_command(cmd)
 
 def main():
   args = parse_cmdline_args()
@@ -158,9 +156,7 @@ def main():
     # Example:  cmake --build build -j 8 --target firebase_app firebase_auth
     cmd.append('--target')
     cmd.extend(args.target)
-  cmd_output=utils.run_command(cmd, capture_output=True)
-  print(cmd_output.stdout)
-  print(cmd_output.stderr)
+  utils.run_command(cmd)
   # Copy libraries from appropriate vcpkg directory to build output
   # directory for later inclusion.
   vcpkg_path = ('external/vcpkg/installed/%s/%slib/' %
