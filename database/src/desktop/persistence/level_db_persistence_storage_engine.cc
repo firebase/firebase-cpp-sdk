@@ -43,7 +43,6 @@ using firebase::database::internal::persistence::GetPersistedTrackedQuery;
 using firebase::database::internal::persistence::GetPersistedUserWriteRecord;
 using firebase::database::internal::persistence::PersistedTrackedQuery;
 using firebase::database::internal::persistence::PersistedUserWriteRecord;
-using firebase::util::VariantToFlexbuffer;
 using leveldb::DB;
 using leveldb::Iterator;
 using leveldb::Options;
@@ -460,6 +459,98 @@ Variant LevelDbPersistenceStorageEngine::ServerCache(const Path& path) {
     VariantAddCachedValue(&result, *relative_path, variant);
   }
   return result;
+}
+
+// Note: these are copied from variant_util, until the problem with packaging
+// can be solved.
+static bool VariantMapToFlexbuffer(const std::map<Variant, Variant>& map,
+                                   flexbuffers::Builder* fbb);
+static bool VariantVectorToFlexbuffer(const std::vector<Variant>& vector,
+                                      flexbuffers::Builder* fbb);
+
+static bool VariantToFlexbuffer(const Variant& variant,
+                                flexbuffers::Builder* fbb) {
+  switch (variant.type()) {
+    case Variant::kTypeNull: {
+      fbb->Null();
+      break;
+    }
+    case Variant::kTypeInt64: {
+      fbb->Int(variant.int64_value());
+      break;
+    }
+    case Variant::kTypeDouble: {
+      fbb->Double(variant.double_value());
+      break;
+    }
+    case Variant::kTypeBool: {
+      fbb->Bool(variant.bool_value());
+      break;
+    }
+    case Variant::kTypeStaticString:
+    case Variant::kTypeMutableString: {
+      const char* str = variant.string_value();
+      size_t len = variant.is_mutable_string() ? variant.mutable_string().size()
+                                               : strlen(str);
+      fbb->String(str, len);
+      break;
+    }
+    case Variant::kTypeVector: {
+      if (!VariantVectorToFlexbuffer(variant.vector(), fbb)) {
+        return false;
+      }
+      break;
+    }
+    case Variant::kTypeMap: {
+      if (!VariantMapToFlexbuffer(variant.map(), fbb)) {
+        return false;
+      }
+      break;
+    }
+    case Variant::kTypeStaticBlob:
+    case Variant::kTypeMutableBlob: {
+      LogError("Variants containing blobs are not supported.");
+      return false;
+    }
+  }
+  return true;
+}
+
+static bool VariantMapToFlexbuffer(const std::map<Variant, Variant>& map,
+                                   flexbuffers::Builder* fbb) {
+  auto start = fbb->StartMap();
+  for (auto iter = map.begin(); iter != map.end(); ++iter) {
+    // Flexbuffers only supports string keys, return false if the key is not a
+    // type that can be coerced to a string.
+    if (iter->first.is_null() || !iter->first.is_fundamental_type()) {
+      LogError(
+          "Variants of non-fundamental types may not be used as map keys.");
+      fbb->EndMap(start);
+      return false;
+    }
+    // Add key.
+    fbb->Key(iter->first.AsString().string_value());
+    // Add value.
+    if (!VariantToFlexbuffer(iter->second, fbb)) {
+      fbb->EndMap(start);
+      return false;
+    }
+  }
+  fbb->EndMap(start);
+  return true;
+}
+
+static bool VariantVectorToFlexbuffer(const std::vector<Variant>& vector,
+                                      flexbuffers::Builder* fbb) {
+  auto start = fbb->StartVector();
+  for (auto iter = vector.begin(); iter != vector.end(); ++iter) {
+    if (!VariantToFlexbuffer(*iter, fbb)) {
+      fbb->EndVector(start, false, false);
+      return false;
+    }
+  }
+  fbb->EndVector(start, false, false);
+  return true;
 }
 
 static bool PrepareBatchOverwrite(const Path& path, const Variant& data,
