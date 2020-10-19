@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  *
- * Modify integration testapps' Podfile to macth the SDK's Podfile.
+ * Update integration testapps' Podfiles to match the SDK's Podfile.
  * usage:
  *   ./update_podfile.swift sdkPodfile appPodfile
  */
