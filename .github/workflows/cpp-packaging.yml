@@ -226,14 +226,26 @@ jobs:
         run: ccache -s
 
   package_desktop:
-    name: package-merge-${{ matrix.sdk_platform }}
+    name: package-merge-${{ matrix.sdk_platform }}${{ matrix.suffix }}
     runs-on: macos-latest
     needs: [build_tools, build_desktop]
     strategy:
       fail-fast: false
       matrix:
         sdk_platform: [linux, darwin, windows]
-
+      # Split windows packaging into 4 runners.
+      include:
+        sdk_platform: windows
+        suffix: '-x86-static'
+      include:
+        sdk_platform: windows
+        suffix: '-x86-dynamic'
+      include:
+        sdk_platform: windows
+        suffix: '-x64-static'
+      include:
+        sdk_platform: windows
+        suffix: '-x64-dynamic'
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
@@ -260,18 +272,18 @@ jobs:
           mkdir -p bin
           tar -xvzf artifacts/packaging-tools/packaging-tools.tgz -C bin
           chmod -R u+x bin
-          for pkg in artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}*-build/*.tgz; do
+          for pkg in artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build/*.tgz; do
             # determine the build variant based on the artifact filename
             variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
-            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3
+            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3
           done
-          cd firebase-cpp-sdk-${{ matrix.sdk_platform }}-package
-          tar -czhf ../firebase-cpp-sdk-${{ matrix.sdk_platform }}-package.tgz .
+          cd firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package
+          tar -czhf ../firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package.tgz .
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: firebase-cpp-sdk-${{ matrix.sdk_platform }}-package
-          path: firebase-cpp-sdk-${{ matrix.sdk_platform }}-package.tgz
+          name: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package
+          path: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package.tgz
 
   merge_packages:
     name: merge-packages
