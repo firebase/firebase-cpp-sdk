@@ -179,8 +179,9 @@ def main():
   vcpkg_path = ('external/vcpkg/installed/%s/%slib/' %
                 (utils.get_vcpkg_triplet(args.arch, args.crt_linkage),
                  'debug/' if args.config == 'Debug' else ''))
-  # shutil.rmtree('vcpkg-libs', ignore_errors=True)
-  # shutil.copytree(vcpkg_path, os.path.join(args.build_dir, 'vcpkg-libs'), )
+  if (os.path.exists(vcpkg_path)):
+    shutil.rmtree('vcpkg-libs', ignore_errors=True)
+    shutil.copytree(vcpkg_path, os.path.join(args.build_dir, 'vcpkg-libs'), )
 
 
 def parse_cmdline_args():
