@@ -154,7 +154,7 @@ readonly deps_hidden_firebase_app="
 */${subdir}${prefix}curl${suffix}.${ext}
 */${subdir}${prefix}flatbuffers${suffix}.${ext}
 */zlib-build/${subdir}${prefix}z.${ext}
-*/zlib-build/${subdir}${prefix}zlib*.${ext}
+*/zlib-build/${subdir}zlibstatic*.${ext}
 */vcpkg-libs/libcrypto.${ext}
 */vcpkg-libs/libssl.${ext}
 */firestore-build/*/leveldb-build*/${prefix}*.${ext}
@@ -162,7 +162,7 @@ readonly deps_hidden_firebase_app="
 "
 readonly deps_hidden_firebase_database="
 */${subdir}${prefix}uv_a${suffix}.${ext}
-*/${subdir}${prefix}libuWS.${ext}
+*/${subdir}${prefix}libuWS${suffix}.${ext}
 "
 readonly deps_hidden_firebase_firestore="
 */firestore-build/Firestore/*/${prefix}*.${ext}
