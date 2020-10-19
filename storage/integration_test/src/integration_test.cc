@@ -78,8 +78,6 @@ class FirebaseStorageTest : public FirebaseTest {
   void Terminate();
   // Sign in an anonymous user.
   void SignIn();
-  // Sign out the current user, if applicable.
-  void SignOut();
   // Create a unique working folder and return a reference to it.
   firebase::storage::StorageReference CreateFolder();
 
@@ -109,8 +107,9 @@ void FirebaseStorageTest::SetUp() {
 }
 
 void FirebaseStorageTest::TearDown() {
-  SignOut();
-  Terminate();
+  if (initialized_) {
+    Terminate();
+  }
   FirebaseTest::TearDown();
 }
 
@@ -200,24 +199,6 @@ void FirebaseStorageTest::SignIn() {
               "enabled in Firebase Console.";
   }
   ProcessEvents(100);
-}
-
-void FirebaseStorageTest::SignOut() {
-  if (auth_ == nullptr) {
-    // Auth is not set up.
-    return;
-  }
-  if (auth_->current_user() == nullptr) {
-    // Already signed out.
-    return;
-  }
-  auth_->SignOut();
-  // Wait for the sign-out to finish.
-  while (auth_->current_user() != nullptr) {
-    if (ProcessEvents(100)) break;
-  }
-  ProcessEvents(100);
-  EXPECT_EQ(auth_->current_user(), nullptr);
 }
 
 firebase::storage::StorageReference FirebaseStorageTest::CreateFolder() {
@@ -607,14 +588,11 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     // operation.
     ASSERT_TRUE(controller.is_valid());
 
-    while(controller.bytes_transferred() == 0) 
-    {
-      ProcessEvents(1);
-    }
-    
-    // After waiting a moment for the operation to start (above), pause the
-    // operation and verify it was successfully paused when the future
-    // completes.
+    ProcessEvents(500);
+    // After waiting a moment for the operation to start, pause the operation
+    // and verify it was successfully paused. Note that pause might not take
+    // effect immediately, so we give it a few moments to pause before
+    // failing.
     LogDebug("Pausing upload.");
     EXPECT_TRUE(controller.Pause()) << "Upload pause";
 
@@ -660,11 +638,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
         ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
     ASSERT_TRUE(controller.is_valid());
 
-    while(controller.bytes_transferred() == 0) 
-    {
-      ProcessEvents(1);
-    }
-
+    ProcessEvents(500);
     LogDebug("Pausing download.");
     EXPECT_TRUE(controller.Pause()) << "Download pause";
 
@@ -717,12 +691,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     firebase::Future<size_t> future =
         ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
     ASSERT_TRUE(controller.is_valid());
-    
-    while(controller.bytes_transferred() == 0) 
-    {
-      ProcessEvents(1);
-    }
-    
+    ProcessEvents(500);
     LogDebug("Cancelling download.");
     EXPECT_TRUE(controller.Cancel());
     WaitForCompletion(future, "GetBytes", firebase::storage::kErrorCancelled);
@@ -748,11 +717,8 @@ TEST_F(FirebaseStorageTest, TestLargeFileCancelUpload) {
     // operation.
     ASSERT_TRUE(controller.is_valid());
 
-    while(controller.bytes_transferred() == 0) 
-    {
-      ProcessEvents(1);
-    }
-    
+    ProcessEvents(500);
+
     LogDebug("Cancelling upload.");
     // Cancel the operation and verify it was successfully canceled.
     EXPECT_TRUE(controller.Cancel());
