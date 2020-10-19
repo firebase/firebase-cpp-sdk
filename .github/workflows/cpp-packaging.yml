@@ -142,7 +142,7 @@ jobs:
           cmake_flags: ""
         - os: ubuntu-latest
           architecture: "x86"
-          vcpkg_triplet: "x86-linux-dynamic"
+          vcpkg_triplet: "x86-linux"
           sdk_platform: linux
           cmake_flags: ""
         - os: ubuntu-latest
