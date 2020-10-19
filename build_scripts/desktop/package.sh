@@ -232,8 +232,14 @@ done
 
 for product in *; do
     libfile_src="${product}/${prefix}firebase_${product}.${ext}"
+    libfile_out=$(basename "${libfile_src}")
     if [[ ! -r "${libfile_src}" ]]; then
-	continue
+	# Windows names some debug libraries with a "-d.lib" suffix.
+	libfile_src="${product}/${prefix}firebase_${product}-d.${ext}"
+	# Don't change libfile_out though.
+	if [[ ! -r "${libfile_src}" ]]; then
+	    continue
+	fi
     fi
 
     # Look up the previously-set deps_firebase_* and deps_hidden_firebase_* vars.
@@ -255,7 +261,6 @@ for product in *; do
 	    deps_hidden+="${found}"
 	done
     done
-    libfile_out=$(basename "${libfile_src}")
     echo -n "${libfile_out}"
     if [[ ! -z ${deps_basenames[*]} ]]; then
 	echo -n " <- ${deps_basenames[*]}"
