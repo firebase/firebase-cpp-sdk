@@ -181,8 +181,6 @@ def get_vcpkg_triplet(arch='x64', crt_linkage='dynamic'):
     triplet_name.append('osx')
   elif is_linux_os():
     triplet_name.append('linux')
-    if arch == 'x86':  # special case for x86-linux-dynamic
-     triplet_name.append('dynamic')
 
   triplet_name = '-'.join(triplet_name)
   ok = check_vcpkg_triplet(triplet_name, arch, crt_linkage)
