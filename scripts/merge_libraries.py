@@ -699,7 +699,9 @@ def move_object_file(src_obj_file, dest_obj_file, redefinition_file=None):
         write_new_file.write(binary_data)
     # Now we can delete the input file.
     os.unlink(src_obj_file)
-
+  else:
+    logging.error("Failed to create '%s':", dest_obj_file)
+    logging.error("\n".join(errors))
   return output
 
 
@@ -751,14 +753,16 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
     # format, which also includes a list of matching formats:
     #
     # Line 0: filename.o: File format is ambiguous
-    # Line 1: Matching formats: format1 format2 format3
+    # Line 1: Matching formats: format1 format2 [...]
     #
     # If this occurs, we will run the command again, passing in --target=format1
+    # (except on Windows where we know we want fmt2.)
     elif (len(error_output) >= 2 and
-          "File format is ambiguous" in error_output[0]):
-      m = re.search("Matching formats: (?P<fmt>[^ ]+)", error_output[1])
+          "ile format is ambiguous" in error_output[0]):
+      m = re.search("Matching formats: (?P<fmt>[^ ]+) (?P<fmt2>[^ ]+)",
+                    error_output[1])
       if m:
-        fmt = m.group("fmt")
+        fmt = m.group("fmt" if FLAGS.platform != "windows" else "fmt2")
         error_output = []
         logging.debug("Ambiguous file format when running %s %s",
                       os.path.basename(cmdline[0]), " ".join(cmdline[1:]))
