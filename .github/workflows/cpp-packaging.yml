@@ -208,7 +208,7 @@ jobs:
 
       - name: Build SDK
         run: |
-          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}-build --crt_linkage ${{ matrix.linkage }} ${{ matrix.cmake_flags }}
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}-build ${{ matrix.cmake_flags }}
           # Make a list of all the source files, for debugging purposes.
           cd firebase-cpp-sdk-${{ env.SDK_NAME }}-build
           find .. -type f -print > src_file_list.txt
