@@ -92,7 +92,7 @@ def install_cpp_dependencies_with_vcpkg(arch):
   utils.clean_vcpkg_temp_data()
 
 
-def cmake_configure(build_dir, arch, crt_linkage='dynamic',
+def cmake_configure(build_dir, arch,
                     build_tests=True, config=None, target_format=None):
   """ CMake configure.
 
@@ -102,7 +102,6 @@ def cmake_configure(build_dir, arch, crt_linkage='dynamic',
   Args:
    build_dir (str): Output build directory.
    arch (str): Platform Architecture (example: 'x64').
-   crt_linkage (str): CRT linkage (dynamic or static)
    build_tests (bool): Build cpp unit tests.
    config (str): Release/Debug config.
           If its not specified, cmake's default is used (most likely Debug).
@@ -124,7 +123,7 @@ def cmake_configure(build_dir, arch, crt_linkage='dynamic',
                                            'buildsystems', 'vcpkg.cmake')
   cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(vcpkg_toolchain_file_path))
 
-  vcpkg_triplet = utils.get_vcpkg_triplet(arch, crt_linkage)
+  vcpkg_triplet = utils.get_vcpkg_triplet(arch)
   cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
   if (target_format):
     cmd.append('-DTARGET_FORMAT={0})'.format(target_format))
@@ -144,7 +143,7 @@ def main():
   install_cpp_dependencies_with_vcpkg(args.arch)
 
   # CMake configure
-  cmake_configure(args.build_dir, args.arch, args.crt_linkage,
+  cmake_configure(args.build_dir, args.arch,
                   args.build_tests, args.config, args.target_format)
 
   # Small workaround before build, turn off -Werror=sign-compare for a specific Firestore core lib.
@@ -165,7 +164,7 @@ def main():
   # Copy libraries from appropriate vcpkg directory to build output
   # directory for later inclusion.
   vcpkg_path = ('external/vcpkg/installed/%s/%slib/' %
-                (utils.get_vcpkg_triplet(args.arch, args.crt_linkage),
+                (utils.get_vcpkg_triplet(args.arch),
                  'debug/' if args.config == 'Debug' else ''))
   if (os.path.exists(vcpkg_path)):
     shutil.rmtree('vcpkg-libs', ignore_errors=True)

@@ -105,10 +105,7 @@ def get_vcpkg_triplet(arch):
   triplet_name = [arch]
   if is_windows_os():
     triplet_name.append('windows')
-    # For windows, default is to build dynamic. Hence we specify static.
-    # For mac/linux, default is to build static libraries
-    if (crt_linkage == 'static'):
-     triplet_name.append(crt_linkage)
+    triplet_name.append('static')
   elif is_mac_os():
     triplet_name.append('osx')
   elif is_linux_os():
