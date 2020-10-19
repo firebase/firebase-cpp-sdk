@@ -127,9 +127,19 @@ fi
 
 # Desktop packaging settings.
 if [[ "${platform}" == "windows" ]]; then
+    if [[ "${variant}" == *'Debug'* ]]; then
+	subdir='Debug/'
+	suffix='-d'
+    else
+	subdir='Release/'
+	suffix=''
+    fi
     prefix=''
     ext='lib'
 else
+    # No 'Release' or 'Debug' subdirectory in the built files on these platforms.
+    suffix=''
+    subdir=''
     prefix='lib'
     ext='a'
 fi
@@ -141,17 +151,18 @@ readonly deps_firebase_app="
 */${prefix}firebase_rest_lib.${ext}
 "
 readonly deps_hidden_firebase_app="
-*/${prefix}curl.${ext}
-*/zlib-build/${prefix}z.${ext}
-*/vcpkg-libs/${prefix}crypto.${ext}
-*/vcpkg-libs/${prefix}ssl.${ext}
-*/${prefix}flatbuffers.${ext}
+*/${subdir}${prefix}curl${suffix}.${ext}
+*/${subdir}${prefix}flatbuffers${suffix}.${ext}
+*/zlib-build/${subdir}${prefix}z.${ext}
+*/zlib-build/${subdir}${prefix}zlib*.${ext}
+*/vcpkg-libs/libcrypto.${ext}
+*/vcpkg-libs/libssl.${ext}
 */firestore-build/*/leveldb-build*/${prefix}*.${ext}
 */firestore-build/*/nanopb-build*/${prefix}*.${ext}
 "
 readonly deps_hidden_firebase_database="
-*/${prefix}uv_a.${ext}
-*/${prefix}libuWS.${ext}
+*/${subdir}${prefix}uv_a${suffix}.${ext}
+*/${subdir}${prefix}libuWS.${ext}
 "
 readonly deps_hidden_firebase_firestore="
 */firestore-build/Firestore/*/${prefix}*.${ext}
@@ -231,11 +242,11 @@ for lib in $(find . -name "${prefix}*.${ext}"); do
 done
 
 for product in *; do
-    libfile_src="${product}/${prefix}firebase_${product}.${ext}"
+    libfile_src="${product}/${subdir}${prefix}firebase_${product}.${ext}"
     libfile_out=$(basename "${libfile_src}")
     if [[ ! -r "${libfile_src}" ]]; then
 	# Windows names some debug libraries with a "-d.lib" suffix.
-	libfile_src="${product}/${prefix}firebase_${product}-d.${ext}"
+	libfile_src="${product}/${subdir}${prefix}firebase_${product}${suffix}.${ext}"
 	# Don't change libfile_out though.
 	if [[ ! -r "${libfile_src}" ]]; then
 	    continue
