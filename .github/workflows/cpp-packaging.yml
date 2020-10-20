@@ -54,6 +54,7 @@ jobs:
       - name: archive tools
         run: |
           cd packaging-tools
+          ls
           tar -czhf ../packaging-tools.tgz .
       - name: upload artifacts
         uses: actions/upload-artifact@v2
@@ -78,6 +79,19 @@ jobs:
           sdk-src/build_scripts/ios/package.sh firebase-cpp-sdk-ios-build firebase-cpp-sdk-ios-package
           cd firebase-cpp-sdk-ios-package
           tar -czhf ../firebase-cpp-sdk-ios-package.tgz .
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-build -name "*.lib"
+          find firebase-cpp-sdk-*-build -name "*.dll"
+          find firebase-cpp-sdk-*-build -name "*.dylib"
+          find firebase-cpp-sdk-*-build -name "*.a"
+          find firebase-cpp-sdk-*-build -name "*.so"
+          find firebase-cpp-sdk-*-build -name "*.framework"
+      - name: Print package contents
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-package -type f
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -105,6 +119,19 @@ jobs:
           sdk-src/build_scripts/android/package.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build firebase-cpp-sdk-android-${{ matrix.stl }}-package ${{ matrix.stl }}
           cd firebase-cpp-sdk-android-${{ matrix.stl }}-package
           tar -czhf ../firebase-cpp-sdk-android-${{ matrix.stl}}-package.tgz .
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-build -name "*.lib"
+          find firebase-cpp-sdk-*-build -name "*.dll"
+          find firebase-cpp-sdk-*-build -name "*.dylib"
+          find firebase-cpp-sdk-*-build -name "*.a"
+          find firebase-cpp-sdk-*-build -name "*.so"
+          find firebase-cpp-sdk-*-build -name "*.framework"
+      - name: Print package contents
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-package -type f
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -213,14 +240,23 @@ jobs:
         run: |
           python scripts/gha/install_prereqs_desktop.py
 
-      - name: Build SDK
+      - name: Build desktop SDK
+        shell: bash
         run: |
           python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}-build ${{ matrix.cmake_flags }}
           # Make a list of all the source files, for debugging purposes.
           cd firebase-cpp-sdk-${{ env.SDK_NAME }}-build
           find .. -type f -print > src_file_list.txt
           tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
-
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-build -name "*.lib"
+          find firebase-cpp-sdk-*-build -name "*.dll"
+          find firebase-cpp-sdk-*-build -name "*.dylib"
+          find firebase-cpp-sdk-*-build -name "*.a"
+          find firebase-cpp-sdk-*-build -name "*.so"
+          find firebase-cpp-sdk-*-build -name "*.framework"
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -300,6 +336,10 @@ jobs:
           fi
           cd firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package
           tar -czhf ../firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package.tgz .
+      - name: Print package contents
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-package -type f
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -333,7 +373,11 @@ jobs:
           done
           # Add the final files.
           sdk-src/build_scripts/other/package.sh sdk-src firebase-cpp-sdk-final/firebase_cpp_sdk
-
+      - name: Print final package contents
+        shell: bash
+        run: |
+          cd firebase-cpp-sdk-final
+          find * -type f
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
