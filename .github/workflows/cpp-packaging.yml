@@ -326,7 +326,6 @@ jobs:
             tar -xzf "${pkg}" -C firebase-cpp-sdk-final/firebase_cpp_sdk
           done
           # Add the final files.
-          mkdir firebase-cpp-sdk-final
           sdk-src/build_scripts/other/package.sh sdk-src firebase-cpp-sdk-final/firebase_cpp_sdk
 
       - name: upload artifacts
