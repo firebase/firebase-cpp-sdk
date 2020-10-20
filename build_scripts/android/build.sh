@@ -55,6 +55,7 @@ set +e
 for retry in 1 2 3 4 5 error; do
     if [[ $retry == "error" ]]; then exit 5; fi
     ./gradlew assembleRelease && break
+    sleep 60
 done
 set -e
 

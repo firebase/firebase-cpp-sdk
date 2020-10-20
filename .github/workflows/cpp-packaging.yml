@@ -23,7 +23,7 @@ jobs:
           for retry in 1 2 3 4 5 error; do
           if [[ $retry == "error" ]]; then exit 5; fi
             curl -L https://ftpmirror.gnu.org/binutils/binutils-${{ env.binutilsVer }}.tar.xz --output binutils.tar.xz && break
-            sleep 10
+            sleep 60
           done
           set -e
 
