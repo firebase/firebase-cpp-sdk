@@ -233,6 +233,7 @@ jobs:
       fail-fast: false
       matrix:
         sdk_platform: [linux, darwin, windows]
+        suffix: ['']
         # Split windows packaging into 4 runners.
         include:
         - sdk_platform: windows
@@ -243,6 +244,9 @@ jobs:
           suffix: '-x64-static'
         - sdk_platform: windows
           suffix: '-x64-dynamic'
+        exclude:
+        - sdk_platform: windows
+          suffix: ''
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
