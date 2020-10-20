@@ -147,8 +147,8 @@ fi
 
 # Library dependencies to merge. Each should be a whitespace-delimited list of path globs.
 readonly deps_firebase_app="
-*/${prefix}firebase_instance_id_desktop_impl.${ext}
-*/${prefix}firebase_rest_lib.${ext}
+*/${prefix}firebase_instance_id*${suffix}.${ext}
+*/${prefix}firebase_rest_lib${suffix}.${ext}
 "
 readonly deps_hidden_firebase_app="
 */${subdir}${prefix}curl${suffix}.${ext}
