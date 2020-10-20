@@ -74,6 +74,7 @@ if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.p
 		 "https://dl.google.com/android/repository/android-ndk-r16b-${platform}-x86_64.zip" \
 		 --output /tmp/android-ndk-r16b.zip && break
 	    sleep 10
+	done
 	set -e
 	(cd /tmp && unzip -q android-ndk-r16b.zip && rm -f android-ndk-r16b.zip)
 	echo "NDK r16b has been downloaded into /tmp/android-ndk-r16b"
