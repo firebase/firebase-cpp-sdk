@@ -13,6 +13,71 @@ env:
   demumbleVer: 1.1.0
 
 jobs:
+  test_matrix:
+    name: test-matrix-${{ matrix.sdk_platform }}${{ matrix.suffix }}
+    runs-on: ${{ matrix.runs_on_platform }}
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk_platform: [linux, darwin, windows]
+        suffix: ['']
+        tools_platform: darwin
+        runs_on_platform: macos-latest
+        # Split windows packaging into multiple runners.
+        include:
+        - sdk_platform: windows
+          suffix: '-x86-Release-static'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x86-Release-dynamic'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x64-Release-static'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x64-Release-dynamic'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x86-Debug-static'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x86-Debug-dynamic'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x64-Debug-static'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x64-Debug-dynamic'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: darwin
+          tools_platform: darwin
+          runs_on_platform: macos-latest
+        - sdk_platform: linux
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
+        exclude:
+        - sdk_platform: windows
+          suffix: ''
+        - sdk_platform: darwin
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
+    steps:
+      - name: test run
+        run: |
+          set -x
+          uname -a
+          echo SDK ${{ matrix.sdk_platform }}
+          echo Tools ${{ matrix.tools_platform }}
+          echo Running on ${{ matrix.runs_on_platform }}
+
   build_tools:
     name: build-tools-${{ matrix.tools_platform }}
     runs-on: ${{ matrix.os }}
@@ -284,29 +349,48 @@ jobs:
       matrix:
         sdk_platform: [linux, darwin, windows]
         suffix: ['']
-        tools_platform: [linux]
-        runs_on_platform: [ubuntu-latest]
+        tools_platform: darwin
+        runs_on_platform: macos-latest
         # Split windows packaging into multiple runners.
         include:
         - sdk_platform: windows
           suffix: '-x86-Release-static'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
         - sdk_platform: windows
           suffix: '-x86-Release-dynamic'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
         - sdk_platform: windows
           suffix: '-x64-Release-static'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
         - sdk_platform: windows
           suffix: '-x64-Release-dynamic'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
         - sdk_platform: windows
           suffix: '-x86-Debug-static'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
         - sdk_platform: windows
           suffix: '-x86-Debug-dynamic'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
         - sdk_platform: windows
           suffix: '-x64-Debug-static'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
         - sdk_platform: windows
           suffix: '-x64-Debug-dynamic'
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
         - sdk_platform: darwin
           tools_platform: darwin
           runs_on_platform: macos-latest
+        - sdk_platform: linux
+          tools_platform: linux
+          runs_on_platform: ubuntu-latest
         exclude:
         - sdk_platform: windows
           suffix: ''
