@@ -234,16 +234,24 @@ jobs:
       matrix:
         sdk_platform: [linux, darwin, windows]
         suffix: ['']
-        # Split windows packaging into 4 runners.
+        # Split windows packaging into multiple runners.
         include:
         - sdk_platform: windows
-          suffix: '-x86-static'
+          suffix: '-x86-static-Release'
         - sdk_platform: windows
-          suffix: '-x86-dynamic'
+          suffix: '-x86-dynamic-Release'
         - sdk_platform: windows
-          suffix: '-x64-static'
+          suffix: '-x64-static-Release'
         - sdk_platform: windows
-          suffix: '-x64-dynamic'
+          suffix: '-x64-dynamic-Release'
+        - sdk_platform: windows
+          suffix: '-x86-static-Debug'
+        - sdk_platform: windows
+          suffix: '-x86-dynamic-Debug'
+        - sdk_platform: windows
+          suffix: '-x64-static-Debug'
+        - sdk_platform: windows
+          suffix: '-x64-dynamic-Debug'
         exclude:
         - sdk_platform: windows
           suffix: ''
