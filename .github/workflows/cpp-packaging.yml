@@ -15,7 +15,7 @@ env:
 jobs:
   test_matrix:
     name: test-matrix-${{ matrix.sdk_platform }}${{ matrix.suffix }}
-    runs-on: ${{ matrix.runs_on_platform }}
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -39,8 +39,6 @@ jobs:
           suffix: '-x64-Debug-static'
         - sdk_platform: windows
           suffix: '-x64-Debug-dynamic'
-        - sdk_platform: linux
-          runs_on_platform: ubuntu-latest
         - sdk_platform: darwin
           runs_on_platform: macos-latest
         exclude:
