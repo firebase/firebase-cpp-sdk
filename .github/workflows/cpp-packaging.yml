@@ -408,13 +408,16 @@ jobs:
     steps:
       - name: Cleanup build artifacts
         uses: jimschubert/delete-artifacts-action@v1
-        pattern: 'firebase-cpp-sdk-.*-build'
-        run_id: ${{ github.run_id }}
+        with:
+          pattern: 'firebase-cpp-sdk-.*-build'
+          run_id: ${{ github.run_id }}
       - name: Cleanup package artifacts
         uses: jimschubert/delete-artifacts-action@v1
-        pattern: 'firebase-cpp-sdk-.*-package'
-        run_id: ${{ github.run_id }}
+        with:
+          pattern: 'firebase-cpp-sdk-.*-package'
+          run_id: ${{ github.run_id }}
       - name: Cleanup tools artifacts
         uses: jimschubert/delete-artifacts-action@v1
-        pattern: 'packaging-tools.*'
-        run_id: ${{ github.run_id }}
+        with:
+          pattern: 'packaging-tools.*'
+          run_id: ${{ github.run_id }}
