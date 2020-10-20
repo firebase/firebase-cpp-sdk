@@ -177,7 +177,7 @@ jobs:
         run: |
           echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt"
           echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}"
-          echo "::set-env name=SDK_NAME::${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.linkage }}"
+          echo "::set-env name=SDK_NAME::${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.linkage }}-${{ matrix.build_type }}"
 
       - name: Add msbuild to PATH (windows)
         if: startsWith(matrix.os, 'windows')
@@ -228,44 +228,33 @@ jobs:
   package_desktop:
     name: package-merge-${{ matrix.sdk_platform }}${{ matrix.suffix }}
     runs-on: macos-latest
-    needs: [build_tools, ${{ matrix.build_dep }}]
+    needs: [build_tools, build_desktop]
     strategy:
       fail-fast: false
       matrix:
         sdk_platform: [linux, darwin, windows]
         suffix: ['']
-        build_dep: [build_desktop]
         # Split windows packaging into multiple runners.
         include:
         - sdk_platform: windows
-          suffix: '-x86-Release-static'
-          build_dep: 'build-windows-x86-Release-static'
+          suffix: '-x86-static-Release'
         - sdk_platform: windows
-          suffix: '-x86-Release-dynamic'
-          build_dep: 'build-windows-x86-Release-dynamic'
+          suffix: '-x86-dynamic-Release'
         - sdk_platform: windows
-          suffix: '-x64-Release-static'
-          build_dep: 'build-windows-x64-Release-static'
+          suffix: '-x64-static-Release'
         - sdk_platform: windows
-          suffix: '-x64-Release-dynamic'
-          build_dep: 'build-windows-x64-Release-dynamic'
+          suffix: '-x64-dynamic-Release'
         - sdk_platform: windows
-          suffix: '-x86-Debug-static'
-          build_dep: 'build-windows-x86-Debug-static'
+          suffix: '-x86-static-Debug'
         - sdk_platform: windows
-          suffix: '-x86-Debug-dynamic'
-          build_dep: 'build-windows-x86-Debug-dynamic'
+          suffix: '-x86-dynamic-Debug'
         - sdk_platform: windows
-          suffix: '-x64-Debug-static'
-          build_dep: 'build-windows-x64-Debug-static'
+          suffix: '-x64-static-Debug'
         - sdk_platform: windows
-          suffix: '-x64-Debug-dynamic'
-          build_dep: 'build-windows-x64-Debug-dynamic'
+          suffix: '-x64-dynamic-Debug'
         exclude:
         - sdk_platform: windows
           suffix: ''
-        - sdk_platform: windows
-          build-dep: build_desktop
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
