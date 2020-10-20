@@ -177,7 +177,7 @@ jobs:
         run: |
           echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt"
           echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}"
-          echo "::set-env name=SDK_NAME::${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.linkage }}-${{ matrix.build_type }}"
+          echo "::set-env name=SDK_NAME::${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.linkage }}"
 
       - name: Add msbuild to PATH (windows)
         if: startsWith(matrix.os, 'windows')
@@ -237,21 +237,21 @@ jobs:
         # Split windows packaging into multiple runners.
         include:
         - sdk_platform: windows
-          suffix: '-x86-static-Release'
+          suffix: '-x86-Release-static'
         - sdk_platform: windows
-          suffix: '-x86-dynamic-Release'
+          suffix: '-x86-Release-dynamic'
         - sdk_platform: windows
-          suffix: '-x64-static-Release'
+          suffix: '-x64-Release-static'
         - sdk_platform: windows
-          suffix: '-x64-dynamic-Release'
+          suffix: '-x64-Release-dynamic'
         - sdk_platform: windows
-          suffix: '-x86-static-Debug'
+          suffix: '-x86-Debug-static'
         - sdk_platform: windows
-          suffix: '-x86-dynamic-Debug'
+          suffix: '-x86-Debug-dynamic'
         - sdk_platform: windows
-          suffix: '-x64-static-Debug'
+          suffix: '-x64-Debug-static'
         - sdk_platform: windows
-          suffix: '-x64-dynamic-Debug'
+          suffix: '-x64-Debug-dynamic'
         exclude:
         - sdk_platform: windows
           suffix: ''
