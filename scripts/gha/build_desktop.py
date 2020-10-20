@@ -116,8 +116,9 @@ def cmake_configure(build_dir, arch,
   if build_tests:
     cmd.append('-DFIREBASE_CPP_BUILD_TESTS=ON')
     cmd.append('-DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON')
-  # temporary workaround for absl issue
-  cmd.append('-DBUILD_TESTING=off')
+  else:
+    # workaround, absl doesn't build without tests enabled
+    cmd.append('-DBUILD_TESTING=off')
   vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external',
                                            'vcpkg', 'scripts', 
                                            'buildsystems', 'vcpkg.cmake')

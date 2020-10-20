@@ -284,13 +284,13 @@ jobs:
           for pkg in artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build/*.tgz; do
             # determine the build variant based on the artifact filename
             variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
-            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3
+            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3 --build_tests
           done
           if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
             # Darwin has a final step after all the variants are done,
             # create universal libraries and frameworks.
             sdk-src/build_scripts/other/package.sh sdk-src tmpdir_for_headers
-            sdk-src/build_scripts/ios/finish_darwin.sh firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package tmpdir_for_headers/include bin
+            sdk-src/build_scripts/desktop/finish_darwin.sh firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package tmpdir_for_headers/include bin
           fi
           cd firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package
           tar -czhf ../firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package.tgz .
