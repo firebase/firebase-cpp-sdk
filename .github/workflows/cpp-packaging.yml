@@ -21,8 +21,8 @@ jobs:
       matrix:
         sdk_platform: [linux, darwin, windows]
         suffix: ['']
-        tools_platform: darwin
-        runs_on_platform: macos-latest
+        tools_platform: [darwin]
+        runs_on_platform: [macos-latest]
         # Split windows packaging into multiple runners.
         include:
         - sdk_platform: windows
