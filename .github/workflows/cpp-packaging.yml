@@ -237,13 +237,10 @@ jobs:
         include:
         - sdk_platform: windows
           suffix: '-x86-static'
-        include:
         - sdk_platform: windows
           suffix: '-x86-dynamic'
-        include:
         - sdk_platform: windows
           suffix: '-x64-static'
-        include:
         - sdk_platform: windows
           suffix: '-x64-dynamic'
     steps:
