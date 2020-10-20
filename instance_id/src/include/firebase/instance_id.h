@@ -111,6 +111,9 @@ class InstanceIdInternal;
 /// @if INTERNAL_EXPERIMENTAL
 /// If an Instance ID is reset, the app will be notified via InstanceIdListener.
 /// @endif
+///
+/// @deprecated InstanceId is deprecated and will be removed in future release.
+/// Use Installations instead.
 class InstanceId {
  public:
   ~InstanceId();
@@ -134,17 +137,29 @@ class InstanceId {
   /// instance.
   ///
   /// @returns Unique identifier for the app instance.
-  Future<std::string> GetId() const;
+  ///
+  /// @deprecated InstanceId is deprecated and will be removed in future
+  /// release. Use Installations GetId() instead.
+  FIREBASE_DEPRECATED Future<std::string> GetId() const;
 
   /// @brief Get the results of the most recent call to @ref GetId.
-  Future<std::string> GetIdLastResult() const;
+  ///
+  /// @deprecated InstanceId is deprecated and will be removed in future
+  /// release. Use Installations GetIdLastResult() instead.
+  FIREBASE_DEPRECATED Future<std::string> GetIdLastResult() const;
 
   /// @brief Delete the ID associated with the app, revoke all tokens and
   /// allocate a new ID.
-  Future<void> DeleteId();
+  ///
+  /// @deprecated InstanceId is deprecated and will be removed in future
+  /// release. Use Installations Delete() instead.
+  FIREBASE_DEPRECATED Future<void> DeleteId();
 
   /// @brief Get the results of the most recent call to @ref DeleteId.
-  Future<void> DeleteIdLastResult() const;
+  ///
+  /// @deprecated InstanceId is deprecated and will be removed in future
+  /// release. Use Installations DeleteLastResult() instead.
+  FIREBASE_DEPRECATED Future<void> DeleteIdLastResult() const;
 
   /// @brief Returns a token that authorizes an Entity to perform an action on
   /// behalf of the application identified by Instance ID.
@@ -158,16 +173,32 @@ class InstanceId {
   ///
   /// @returns A token that can identify and authorize the instance of the
   /// application on the device.
-  Future<std::string> GetToken();
+  ///
+  /// @deprecated InstanceId is deprecated and will be removed in future
+  /// release. For Firebase Messaging, use Messaging GetToken(), otherwise
+  /// use Installations GetToken() instead.
+  FIREBASE_DEPRECATED Future<std::string> GetToken();
 
   /// @brief Get the results of the most recent call to @ref GetToken.
-  Future<std::string> GetTokenLastResult() const;
+  ///
+  /// @deprecated InstanceId is deprecated and will be removed in future
+  /// release. For Firebase Messaging, use Messaging GetTokenLastResult(),
+  /// otherwise use Installations GetTokenLastResult() instead.
+  FIREBASE_DEPRECATED Future<std::string> GetTokenLastResult() const;
 
   /// @brief Revokes access to a scope (action)
-  Future<void> DeleteToken();
+  ///
+  /// @deprecated InstanceId is deprecated and will be removed in future
+  /// release. For Firebase Messaging, use Messaging DeleteToken(), otherwise
+  /// use Installations Delete() instead.
+  FIREBASE_DEPRECATED Future<void> DeleteToken();
 
   /// @brief Get the results of the most recent call to @ref DeleteToken.
-  Future<void> DeleteTokenLastResult() const;
+  ///
+  /// @deprecated InstanceId is deprecated and will be removed in future
+  /// release. For Firebase Messaging, use Messaging DeleteTokenLastResult(),
+  /// otherwise use Installations DeleteLastResult() instead.
+  FIREBASE_DEPRECATED Future<void> DeleteTokenLastResult() const;
 
   /// @brief Returns the InstanceId object for an App creating the InstanceId
   /// if required.
@@ -180,8 +211,11 @@ class InstanceId {
   /// not available on the current device.
   ///
   /// @returns InstanceId object if successful, nullptr otherwise.
-  static InstanceId* GetInstanceId(App* app,
-                                   InitResult* init_result_out = nullptr);
+  ///
+  /// @deprecated InstanceId is deprecated and will be removed in future
+  /// release. Use Installations GetInstance() instead.
+  FIREBASE_DEPRECATED static InstanceId* GetInstanceId(
+      App* app, InitResult* init_result_out = nullptr);
 
 #if defined(INTERNAL_EXPERIMENTAL)
   // TODO(b/69930393): Needs to be implemented on Android.
