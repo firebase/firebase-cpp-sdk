@@ -80,7 +80,7 @@ def main(argv):
 
   gcs.authorize_gcs(key_file_path)
 
-  gcs_prefix = "gs://%s/%s" % (gcs.PROJECT_ID, gcs.get_unique_gcs_id())
+  gcs_prefix = gcs.relative_path_to_gs_uri(gcs.get_unique_gcs_id())
   logging.info("Uploading to %s", gcs_prefix)
   for artifact in artifacts:
     dest = _local_path_to_gcs_uri(gcs_prefix, artifact, testapp_dir)
@@ -113,7 +113,8 @@ def _local_path_to_gcs_uri(gcs_prefix, path, testapp_dir):
     (str): GCS URI for this artifact.
 
   """
-  return gcs_prefix + "/" + path[len(testapp_dir) + 1:].replace("\\", "/")
+  subdirectory = os.path.relpath(path, testapp_dir).replace("\\", "/")
+  return gcs_prefix + "/" + subdirectory
 
 
 def _fix_path(path):

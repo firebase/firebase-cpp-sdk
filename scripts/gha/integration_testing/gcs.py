@@ -55,6 +55,26 @@ def get_unique_gcs_id():
   return "%s_%s" % (timestamp, suffix)
 
 
+def relative_path_to_gs_uri(path):
+  """Converts a relative GCS path to a GS URI understood by gsutil.
+
+  This will prepend the gs prefix and project id to the path, i.e.
+  path -> gs://<project_id>/results_dir
+
+  Returns path unmodified if it already starts with the gs prefix.
+
+  Args:
+    path (str): A relative path.
+
+  Returns:
+    (str): The full GS URI for the given relative path.
+  """
+  if path.startswith("gs://"):
+    return path
+  else:
+    return "gs://%s/%s" % (PROJECT_ID, path)
+
+
 def authorize_gcs(key_file):
   """Activates the service account on GCS and specifies the project to use."""
   _verify_gcloud_sdk_command_line_tools()
