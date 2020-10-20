@@ -272,7 +272,7 @@ for product in *; do
 	    deps_hidden+="${found}"
 	done
     done
-    echo -n "${libfile_out}"
+    echo -n "Postprocessing ${libfile_out}"
     if [[ ! -z ${deps_basenames[*]} ]]; then
 	echo -n " <- ${deps_basenames[*]}"
     fi
