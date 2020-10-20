@@ -16,12 +16,12 @@ else
     platform=windows
     # On Windows, we have an additional dependency for Strings
     set +e
-    for retry in 1 2 3 4 5 error; do
+    for retry in 1 2 3 4 5 6 7 8 9 10 error; do
 	if [[ $retry == "error" ]]; then exit 5; fi
 	curl -LSs \
              "https://download.sysinternals.com/files/Strings.zip" \
              --output Strings.zip && break
-	sleep 60
+	sleep 300
     done
     set -e
     unzip -q Strings.zip && rm -f Strings.zip
