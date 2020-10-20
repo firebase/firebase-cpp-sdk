@@ -55,8 +55,8 @@ jobs:
           name: packaging-tools
           path: packaging-tools.tgz
 
-  build_package_ios:
-    name: build-package-ios
+  build_and_package_ios:
+    name: build-and-package-ios
     runs-on: macos-latest
     steps:
       - name: fetch SDK
@@ -78,8 +78,8 @@ jobs:
           name: firebase-cpp-sdk-ios-package
           path: firebase-cpp-sdk-ios-package.tgz
 
-  build_package_android:
-    name: build-package-android-${{matrix.stl}}
+  build_and_package_android:
+    name: build-and-package-android-${{matrix.stl}}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -226,7 +226,7 @@ jobs:
         run: ccache -s
 
   package_desktop:
-    name: package-merge-${{ matrix.sdk_platform }}${{ matrix.suffix }}
+    name: package-${{ matrix.sdk_platform }}${{ matrix.suffix }}
     runs-on: macos-latest
     needs: [build_tools, build_desktop]
     strategy:
@@ -295,9 +295,9 @@ jobs:
           path: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package.tgz
 
   merge_packages:
-    name: merge-packages
+    name: final-merge-packages
     runs-on: ubuntu-latest
-    needs: [build_package_ios, build_package_android, package_desktop]
+    needs: [build_and_package_ios, build_and_package_android, package_desktop]
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
