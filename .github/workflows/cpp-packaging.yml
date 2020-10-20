@@ -19,7 +19,13 @@ jobs:
     steps:
       - name: fetch and build binutils
         run: |
-          curl -L --connect-timeout 30 --retry 5 --retry-delay 10 https://ftpmirror.gnu.org/binutils/binutils-${{ env.binutilsVer }}.tar.xz --output binutils.tar.xz
+          set +e
+          for retry in 1 2 3 4 5 error; do
+          if [[ $retry == "error" ]]; then exit 5; fi
+            curl -L https://ftpmirror.gnu.org/binutils/binutils-${{ env.binutilsVer }}.tar.xz --output binutils.tar.xz && break
+            sleep 10
+          done
+          set -e
 
           tar -xf binutils.tar.xz
           mv ./binutils-${{ env.binutilsVer }} ./binutils-src

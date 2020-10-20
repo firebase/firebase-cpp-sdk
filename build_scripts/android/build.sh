@@ -50,10 +50,13 @@ if [[ -z "${NDK_ROOT}" || ! $(grep -q "Pkg\.Revision = 16\." "${NDK_ROOT}/source
     export NDK_ROOT=/tmp/android-ndk-r16b
     export ANDROID_NDK_HOME=/tmp/android-ndk-r16b
 fi
-set -ex
 cd "${sourcepath}"
-./gradlew assembleRelease
-set +x
+set +e
+for retry in 1 2 3 4 5 error; do
+    if [[ $retry == "error" ]]; then exit 5; fi
+    ./gradlew assembleRelease && break
+done
+set -e
 
 # Gradle puts the build output inside the source tree, in various
 # "build" and ".externalNativeBuild" directories. Grab them and place
