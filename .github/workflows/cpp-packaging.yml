@@ -235,16 +235,16 @@ jobs:
         sdk_platform: [linux, darwin, windows]
         # Split windows packaging into 4 runners.
         include:
-          sdk_platform: windows
+        - sdk_platform: windows
           suffix: '-x86-static'
         include:
-          sdk_platform: windows
+        - sdk_platform: windows
           suffix: '-x86-dynamic'
         include:
-          sdk_platform: windows
+        - sdk_platform: windows
           suffix: '-x64-static'
         include:
-          sdk_platform: windows
+        - sdk_platform: windows
           suffix: '-x64-dynamic'
     steps:
       - name: fetch SDK
