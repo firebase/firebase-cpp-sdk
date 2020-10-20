@@ -52,10 +52,10 @@ if [[ -z "${NDK_ROOT}" || ! $(grep -q "Pkg\.Revision = 16\." "${NDK_ROOT}/source
 fi
 cd "${sourcepath}"
 set +e
-for retry in 1 2 3 4 5 error; do
+for retry in {1..10} error; do
     if [[ $retry == "error" ]]; then exit 5; fi
     ./gradlew assembleRelease && break
-    sleep 60
+    sleep 300
 done
 set -e
 

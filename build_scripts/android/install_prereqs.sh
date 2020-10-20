@@ -16,7 +16,7 @@ else
     platform=windows
     # On Windows, we have an additional dependency for Strings
     set +e
-    for retry in 1 2 3 4 5 6 7 8 9 10 error; do
+    for retry in {1..10} error; do
 	if [[ $retry == "error" ]]; then exit 5; fi
 	curl -LSs \
              "https://download.sysinternals.com/files/Strings.zip" \
@@ -68,12 +68,12 @@ if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.p
 	    exit 1
 	fi
 	set +e
-	for retry in 1 2 3 4 5 error; do
+	for retry in {1..10} error; do
 	    if [[ $retry == "error" ]]; then exit 5; fi
 	    curl -LSs \
 		 "https://dl.google.com/android/repository/android-ndk-r16b-${platform}-x86_64.zip" \
 		 --output /tmp/android-ndk-r16b.zip && break
-	    sleep 60
+	    sleep 300
 	done
 	set -e
 	(cd /tmp && unzip -q android-ndk-r16b.zip && rm -f android-ndk-r16b.zip)
