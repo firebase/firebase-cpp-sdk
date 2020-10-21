@@ -98,13 +98,16 @@ def copy_vcpkg_custom_data():
   # vcpkg submodule. Instead we keep the data in a separate directory and copy it
   # over after vcpkg submodule is initialized.
   custom_data_root_path = os.path.join(os.getcwd(), 'external', 'vcpkg_custom_data')
-  destination_dirs = {
+  destination_dirs_map = {
     'triplets': os.path.join(get_vcpkg_root_path(), 'triplets'),
     'toolchains': os.path.join(get_vcpkg_root_path(), 'scripts', 'buildsystems')
   }
-  for custom_data_subdir in destination_dirs:
-    abspath = os.path.join(custom_data_root_path, custom_data_subdir)
-    shutil.copy(abspath, destination_dirs[custom_data_subdir])
+  for custom_data_subdir in destination_dirs_map:
+    custom_data_subdir_abspath = os.path.join(custom_data_root_path, custom_data_subdir)
+    destination_dir = destination_dirs_map[custom_data_subdir]
+    for custom_file in os.listdir(custom_data_subdir_abspath):
+      abspath = os.path.join(custom_data_subdir_abspath, custom_file)
+      shutil.copy(abspath, destination_dir)
 
 
 def get_vcpkg_triplet(arch, msvc_runtime_library='static'):
