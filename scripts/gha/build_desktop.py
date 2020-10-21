@@ -65,14 +65,14 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
     # Example: ./external/vcpkg/bootstrap-sh
     utils.run_command([script_absolute_path])
 
-  # Copy any of our custom defined triplets to vcpkg directory
-  utils.vcpkg_copy_custom_triplets()
+  # Copy any of our custom defined vcpkg data to vcpkg submodule directory
+  utils.copy_vcpkg_custom_data()
 
   # for each desktop platform, there exists a vcpkg response file in the repo
   # (external/vcpkg_<triplet>_response_file.txt) defined for each target triplet
   vcpkg_triplet = utils.get_vcpkg_triplet(arch, msvc_runtime_library)
-  vcpkg_response_file_path = os.path.join(os.getcwd(), 'external',
-                      'vcpkg_' + vcpkg_triplet + '_response_file.txt')
+  vcpkg_response_file_path = os.path.join(os.getcwd(), 'external', 'vcpkg_custom_data',
+                      'response_files', '{0}.txt'.format(vcpkg_triplet))
 
   # Eg: ./external/vcpkg/vcpkg install @external/vcpkg_x64-osx_response_file.txt
   # --disable-metrics

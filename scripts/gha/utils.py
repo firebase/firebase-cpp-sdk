@@ -91,19 +91,20 @@ def is_linux_os():
  return platform.system() == 'Linux'
 
 
-def vcpkg_copy_custom_triplets():
-  """Copy custom triplets defined by us to vcpkg directory."""
-  # vcpkg is a submodule in the cpp sdk repo and all triplets used for vcpkg
-  # should be in the 'triplets' directory inside the submodule. Since we can only
-  # do that after submodule is initialized, we copy over custom triplets from
-  # another location.
-  external_dir_path = os.path.join(os.getcwd(), 'external')
-  for f in os.listdir(external_dir_path):
-    if f.startswith('vcpkg_') and f.endswith('_triplet.cmake'):
-      # Eg: vcpkg_x86-linux_triplet.cmake -> x86-linux.cmake
-      triplet_file_name = f.replace('vcpkg_', '').replace('_triplet', '')
-      shutil.copy(os.path.join(external_dir_path, f),
-                  os.path.join(get_vcpkg_root_path(), 'triplets', triplet_file_name))
+def copy_vcpkg_custom_data():
+  """Copy custom files for vcpkg to vcpkg directory."""
+  # Since vcpkg is a submodule in the cpp sdk repo, we cannot just keep our custom
+  # files in the external/vcpkg directory. That would require committing to the
+  # vcpkg submodule. Instead we keep the data in a separate directory and copy it
+  # over after vcpkg submodule is initialized.
+  custom_data_root_path = os.path.join(os.getcwd(), 'external', 'vcpkg_custom_data')
+  destination_dirs = {
+    'triplets': os.path.join(get_vcpkg_root_path(), 'triplets'),
+    'toolchains': os.path.join(get_vcpkg_root_path(), 'scripts', 'buildsystems')
+  }
+  for custom_data_subdir in destination_dirs:
+    abspath = os.path.join(custom_data_root_path, custom_data_subdir)
+    shutil.copy(abspath, destination_dirs[custom_data_subdir])
 
 
 def get_vcpkg_triplet(arch, msvc_runtime_library='static'):
@@ -165,6 +166,8 @@ def get_vcpkg_installation_script_path():
 
 
 def verify_vcpkg_build(vcpkg_triplet):
+  """Check if vcpkg installation finished successfully."""
+  # At the very least, we should have an "installed" directory under vcpkg triplet.
   vcpkg_root_dir_path = get_vcpkg_root_path()
   installed_triplets_dir_path = os.path.join(vcpkg_root_dir_path, 'installed', vcpkg_triplet)
   if not os.path.exists(installed_triplets_dir_path):
