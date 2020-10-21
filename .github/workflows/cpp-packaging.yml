@@ -446,4 +446,4 @@ jobs:
         firebase-cpp-sdk-android-stlport-package
         firebase-cpp-sdk-android-gnustl-package
         firebase-cpp-sdk-android-c++-package
-      failOnError: false
+
