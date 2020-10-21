@@ -578,6 +578,10 @@ TEST_F(FirebaseDatabaseTest, TestUpdateChildren) {
           Pair("timestamp", TimestampIsNear(current_time_milliseconds))));
 }
 
+// DDB.10.21.202: Disabled test due to an assertion in Firebase Android SDK.
+// The issue should should be fixed in the next Android SDK release after
+// 19.15.0.
+#if !defined(ANDROID)
 TEST_F(FirebaseDatabaseTest, TestQueryFiltering) {
   const char* test_name = test_info_->name();
 
@@ -698,6 +702,7 @@ TEST_F(FirebaseDatabaseTest, TestQueryFiltering) {
                 UnorderedElementsAre(Key("fig")));
   }
 }
+#endif   // !defined(ANDROID)
 
 // A simple ValueListener that logs the values it sees.
 class LoggingValueListener : public firebase::database::ValueListener {
