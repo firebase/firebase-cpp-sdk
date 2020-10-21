@@ -578,7 +578,7 @@ TEST_F(FirebaseDatabaseTest, TestUpdateChildren) {
           Pair("timestamp", TimestampIsNear(current_time_milliseconds))));
 }
 
-// DDB.10.21.202: Disabled test due to an assertion in Firebase Android SDK.
+// TODO(drsanta): Disabled test due to an assertion in Firebase Android SDK.
 // The issue should should be fixed in the next Android SDK release after
 // 19.15.0.
 #if !defined(ANDROID)
