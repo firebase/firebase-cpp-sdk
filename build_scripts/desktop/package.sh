@@ -169,7 +169,7 @@ readonly deps_hidden_firebase_firestore="
 */firestore-build/*/grpc-build*/${prefix}*.${ext}
 "
 
-readonly -a hide_namespaces=(flatbuffers flexbuffers reflection ZLib bssl uWS absl
+readonly -a hide_namespaces=(flatbuffers flexbuffers reflection ZLib bssl uWS absl google
 base_raw_logging ConnectivityWatcher grpc
 grpc_access_token_credentials grpc_alts_credentials
 grpc_alts_server_credentials grpc_auth_context
