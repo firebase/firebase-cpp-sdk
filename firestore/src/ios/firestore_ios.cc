@@ -19,6 +19,7 @@
 #include "Firestore/core/src/api/query_core.h"
 #include "Firestore/core/src/model/database_id.h"
 #include "Firestore/core/src/model/resource_path.h"
+#include "Firestore/core/src/remote/firebase_metadata_provider_noop.h"
 #include "Firestore/core/src/util/async_queue.h"
 #include "Firestore/core/src/util/executor.h"
 #include "Firestore/core/src/util/log.h"
@@ -33,6 +34,7 @@ using auth::CredentialsProvider;
 using ::firebase::auth::Auth;
 using model::DatabaseId;
 using model::ResourcePath;
+using remote::CreateFirebaseMetadataProviderNoOp;
 using util::AsyncQueue;
 using util::Executor;
 using util::Status;
@@ -68,9 +70,11 @@ FirestoreInternal::~FirestoreInternal() {
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
     App* app, std::unique_ptr<CredentialsProvider> credentials) {
   const AppOptions& opt = app->options();
-  return std::make_shared<api::Firestore>(DatabaseId{opt.project_id()},
-                                          app->name(), std::move(credentials),
-                                          CreateWorkerQueue(), this);
+  return std::make_shared<api::Firestore>(
+      DatabaseId{opt.project_id()}, app->name(), std::move(credentials),
+      CreateWorkerQueue(),
+      // TODO(varconst): use a real metadata provider.
+      CreateFirebaseMetadataProviderNoOp(), this);
 }
 
 CollectionReference FirestoreInternal::Collection(
