@@ -460,7 +460,7 @@ RE_NM_SYMBOLS_PLATFORM = {
 # Regex that matches the name of an object file in an archive, when
 # output via "ar t" on the file.
 RE_OBJECT_FILE_PLATFORM = {
-    "windows": re.compile(r"^.*\.o(bj)?$"),
+    "windows": re.compile(r"^.*\.(o(bj)?|res)$"),
     "linux": re.compile(r"^.*\.o$"),
     "android": re.compile(r"^.*\.o$"),
     "darwin": re.compile(r"^.*\.o$"),
