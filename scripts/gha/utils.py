@@ -71,7 +71,7 @@ def delete_directory(dir_path):
 def download_file(url, file_path):
   """Download from url and save to specified file path."""
   with urllib.request.urlopen(url) as response, open(file_path, 'wb') as out_file:
-    shutil.copyfileobj(response, out_file)
+    shutil.copy(response, out_file)
 
 
 def unpack_files(archive_file_path, output_dir=None):
