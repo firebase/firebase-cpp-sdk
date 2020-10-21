@@ -130,7 +130,7 @@ if ${cmakeBuild}; then
     for arch in ${architectures[@]}; do
         # rename firebase_app to firebase
         if [[ ! -d "${arch}/firebase.framework" ]]; then
-            cp -r ${arch}/firebase_app.framework ${arch}/firebase.framework
+            mv ${arch}/firebase_app.framework ${arch}/firebase.framework
             mv ${arch}/firebase.framework/firebase_app ${arch}/firebase.framework/firebase
             rm ${arch}/firebase.framework/Info.plist
         fi
