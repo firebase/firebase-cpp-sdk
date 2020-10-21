@@ -418,32 +418,32 @@ jobs:
     steps:
     - uses: geekyeggo/delete-artifact@v1
       with:
-      name: |
-        packaging-tools-darwin
-        packaging-tools-linux
-        firebase-cpp-sdk-windows-x86-Release-dynamic-build
-        firebase-cpp-sdk-windows-x64-Release-dynamic-build
-        firebase-cpp-sdk-windows-x86-Debug-dynamic-build
-        firebase-cpp-sdk-windows-x64-Debug-dynamic-build
-        firebase-cpp-sdk-windows-x86-Release-static-build
-        firebase-cpp-sdk-windows-x64-Release-static-build
-        firebase-cpp-sdk-windows-x86-Debug-static-build
-        firebase-cpp-sdk-windows-x64-Debug-static-build
-        firebase-cpp-sdk-linux-x86-Release-static-build
-        firebase-cpp-sdk-linux-x64-Release-static-build
-        firebase-cpp-sdk-darwin-x64-Release-static-build
-        firebase-cpp-sdk-windows-x86-Release-dynamic-package
-        firebase-cpp-sdk-windows-x64-Release-dynamic-package
-        firebase-cpp-sdk-windows-x86-Debug-dynamic-package
-        firebase-cpp-sdk-windows-x64-Debug-dynamic-package
-        firebase-cpp-sdk-windows-x86-Release-static-package
-        firebase-cpp-sdk-windows-x64-Release-static-package
-        firebase-cpp-sdk-windows-x86-Debug-static-package
-        firebase-cpp-sdk-windows-x64-Debug-static-package
-        firebase-cpp-sdk-linux-package
-        firebase-cpp-sdk-ios-package
-        firebase-cpp-sdk-darwin-package
-        firebase-cpp-sdk-android-stlport-package
-        firebase-cpp-sdk-android-gnustl-package
-        firebase-cpp-sdk-android-c++-package
-
+        name: |
+          packaging-tools-darwin
+          packaging-tools-linux
+          firebase-cpp-sdk-windows-x86-Release-dynamic-build
+          firebase-cpp-sdk-windows-x64-Release-dynamic-build
+          firebase-cpp-sdk-windows-x86-Debug-dynamic-build
+          firebase-cpp-sdk-windows-x64-Debug-dynamic-build
+          firebase-cpp-sdk-windows-x86-Release-static-build
+          firebase-cpp-sdk-windows-x64-Release-static-build
+          firebase-cpp-sdk-windows-x86-Debug-static-build
+          firebase-cpp-sdk-windows-x64-Debug-static-build
+          firebase-cpp-sdk-linux-x86-Release-static-build
+          firebase-cpp-sdk-linux-x64-Release-static-build
+          firebase-cpp-sdk-darwin-x64-Release-static-build
+          firebase-cpp-sdk-windows-x86-Release-dynamic-package
+          firebase-cpp-sdk-windows-x64-Release-dynamic-package
+          firebase-cpp-sdk-windows-x86-Debug-dynamic-package
+          firebase-cpp-sdk-windows-x64-Debug-dynamic-package
+          firebase-cpp-sdk-windows-x86-Release-static-package
+          firebase-cpp-sdk-windows-x64-Release-static-package
+          firebase-cpp-sdk-windows-x86-Debug-static-package
+          firebase-cpp-sdk-windows-x64-Debug-static-package
+          firebase-cpp-sdk-linux-package
+          firebase-cpp-sdk-ios-package
+          firebase-cpp-sdk-darwin-package
+          firebase-cpp-sdk-android-stlport-package
+          firebase-cpp-sdk-android-gnustl-package
+          firebase-cpp-sdk-android-c++-package
+        failOnError: false
