@@ -163,39 +163,39 @@ jobs:
           architecture: "x64"
           vcpkg_triplet: "x64-windows-static"
           sdk_platform: windows
-          cmake_flags: ""
+          additional_build_flags: "--build_tests"
         - os: windows-latest
           linkage: "dynamic"
           architecture: "x64"
           vcpkg_triplet: "x64-windows"
           sdk_platform: windows
-          cmake_flags: ""
+          additional_build_flags: "--build_tests"
         - os: windows-latest
           linkage: "static"
           architecture: "x86"
           vcpkg_triplet: "x86-windows-static"
           sdk_platform: windows
-          cmake_flags: ""
+          additional_build_flags: "--build_tests"
         - os: windows-latest
           linkage: "dynamic"
           architecture: "x86"
           vcpkg_triplet: "x86-windows"
           sdk_platform: windows
-          cmake_flags: ""
+          additional_build_flags: "--build_tests"
         - os: ubuntu-latest
           architecture: "x86"
           vcpkg_triplet: "x86-linux-dynamic"  # special case
           sdk_platform: linux
-          cmake_flags: ""
+          additional_build_flags: ""
         - os: ubuntu-latest
           architecture: "x64"
           vcpkg_triplet: "x64-linux"
           sdk_platform: linux
-          cmake_flags: ""
+          additional_build_flags: ""
         - os: macos-latest
           vcpkg_triplet: "x64-osx"
           sdk_platform: darwin
-          cmake_flags: "--target_format libraries"
+          additional_build_flags: "--target_format libraries"
         exclude:
         - os: macos-latest
           architecture: "x86"
@@ -251,7 +251,7 @@ jobs:
       - name: Build desktop SDK
         shell: bash
         run: |
-          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}-build ${{ matrix.cmake_flags }}
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}-build ${{ matrix.additional_build_flags }}
           # Make a list of all the source files, for debugging purposes.
           cd firebase-cpp-sdk-${{ env.SDK_NAME }}-build
           find .. -type f -print > src_file_list.txt
@@ -352,7 +352,7 @@ jobs:
           for pkg in artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build/*.tgz; do
             # determine the build variant based on the artifact filename
             variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
-            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3 --build_tests
+            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3
           done
           if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
             # Darwin has a final step after all the variants are done,
