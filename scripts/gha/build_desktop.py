@@ -43,6 +43,10 @@ def install_x86_support_libraries():
   """Install support libraries needed to build x86 on x86_64 hosts."""
   if utils.is_linux_os():
     utils.run_command(['apt', 'install', 'gcc-multilib', 'g++-multilib'], as_root=True)
+    utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True)
+    utils.run_command(['apt', 'update'], as_root=True)
+    utils.run_command(['apt', 'install', 'libglib2.0-dev:i386'], as_root=True)
+    utils.run_command(['apt', 'install', 'libsecret-1-dev:i386'], as_root=True)
 
 
 def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
@@ -113,9 +117,15 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static',
     cmd.append('-DFIREBASE_CPP_BUILD_TESTS=ON')
     cmd.append('-DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON')
 
-  vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external',
+  if utils.is_linux_os() and arch == 'x86':
+    # Use a separate cmake toolchain for cross compiling linux x86 builds
+    vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external', 'vcpkg',
+                                             'scripts', 'buildsystems', 'linux_m32.cmake')
+  else:
+    vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external',
                                            'vcpkg', 'scripts',
                                            'buildsystems', 'vcpkg.cmake')
+
   cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(vcpkg_toolchain_file_path))
 
   vcpkg_triplet = utils.get_vcpkg_triplet(arch, msvc_runtime_library)
