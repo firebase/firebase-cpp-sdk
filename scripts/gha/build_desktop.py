@@ -167,7 +167,8 @@ def main():
 
   # CMake build
   # cmake --build build -j 8
-  cmd = ['cmake', '--build', args.build_dir, '-j', str(os.cpu_count())]
+  cmd = ['cmake', '--build', args.build_dir, '-j', str(os.cpu_count()),
+         '--config', args.config]
   if args.target:
     # Example:  cmake --build build -j 8 --target firebase_app firebase_auth
     cmd.append('--target')
