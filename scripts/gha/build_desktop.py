@@ -120,7 +120,7 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static',
   if utils.is_linux_os() and arch == 'x86':
     # Use a separate cmake toolchain for cross compiling linux x86 builds
     vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external', 'vcpkg',
-                                             'scripts', 'buildsystems', 'linux_m32.cmake')
+                                             'scripts', 'buildsystems', 'linux_32.cmake')
   else:
     vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external',
                                            'vcpkg', 'scripts',
