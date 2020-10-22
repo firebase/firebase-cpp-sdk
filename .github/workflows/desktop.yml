@@ -3,9 +3,6 @@ name: Desktop Builds
 on:
   pull_request:
     types: [opened, reopened, synchronize]
-  push:
-    branches:
-      - feature/support-x86-md-python-build-scripts
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
