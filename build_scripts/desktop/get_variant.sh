@@ -7,7 +7,7 @@ set -e
 #   Compiler: VS2015 (default for Windows)
 #   CPU: x64
 #   Debug mode: Release
-#   CRT linkage: MT ("static")
+#   MSVC CRT linkage: MT ("static")
 # So the build variant would be: VS2015/MT/x64/Release
 
 path=$1
@@ -29,7 +29,7 @@ os=
 arch=
 arch_win=
 debugmode=Release
-linkage=MD
+msvc_crt_linkage=MD
 vs=VS2015
 stl=c++
 
@@ -99,16 +99,16 @@ for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
 	;;
 	# Windows OS framework linkages
 	md)
-	    linkage=MD
+	    msvc_crt_linkage=MD
 	;;
 	dynamic)
-	    linkage=MD
+	    msvc_crt_linkage=MD
 	;;
 	mt)
-	    linkage=MT
+	    msvc_crt_linkage=MT
 	;;
 	static)
-	    linkage=MT
+	    msvc_crt_linkage=MT
 	    ;;
 	# Debug/Release compilation mode
 	release)
@@ -161,7 +161,7 @@ case ${os} in
 	    echo "Invalid architecture for Windows: ${arch}" 1>&2
 	    exit 1
 	fi
-	echo -n "${vs}/${linkage}/${arch_win}/${debugmode}"
+	echo -n "${vs}/${msvc_crt_linkage}/${arch_win}/${debugmode}"
     ;;
     ios)
 	if [[ -z "${arch}" ]]; then
