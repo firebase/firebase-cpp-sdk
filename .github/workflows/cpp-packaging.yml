@@ -3,12 +3,12 @@ on:
   workflow_dispatch:
     inputs:
       commitIdToPackage:
-        description: 'if specified: commit ID to package (otherwise HEAD)'
+        description: 'commit ID to package (otherwise HEAD)'
       preserveIntermediateArtifacts:
-        description: 'set to 1 to preserve intermediate artifacts, otherwise they are deleted'
+        description: 'preserve intermediate artifacts?'
         default: 0
       downloadLiveVersion:
-        description: 'if specified: live version to download for tests, instead of packaging (e.g 6.16.0)'
+        description: 'public version to download instead of packaging'
 
 env:
   # Packaging prerequisites
