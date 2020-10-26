@@ -15,6 +15,8 @@ if [[ ! -d "${builtpath}/app/build" ]]; then
     exit 2
 fi
 
+root_dir=$(cd $(dirname $0)/../..; pwd -P)
+. "${root_dir}/build_scripts/packaging.conf"
 origpath=$( pwd -P )
 
 mkdir -p "${packagepath}"
@@ -30,7 +32,8 @@ mkdir -p "${destpath}/libs/android"
 
 # Copy each platform's libraries to the destination directory for this STL variant.
 cd "${sourcepath}"
-for product in *; do
+# Make sure we only copy the libraries in product_list (specified in packaging.conf)
+for product in ${product_list[*]}; do
     if [[ ! -d "${product}/build/intermediates/cmake/release/obj" ]]; then
 	continue
     fi

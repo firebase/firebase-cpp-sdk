@@ -24,10 +24,13 @@ platform=
 python_cmd=python
 variant=.
 verbose=0
-merge_libraries_script=$(cd $(dirname $0)/../..; pwd -P)/scripts/merge_libraries.py
+root_dir=$(cd $(dirname $0)/../..; pwd -P)
+merge_libraries_script=${root_dir}/scripts/merge_libraries.py
 tools_path=~/bin
 built_sdk_tarfile=
 temp_dir=
+
+. "${root_dir}/build_scripts/packaging.conf"
 
 readonly SUPPORTED_PLATFORMS=(linux windows darwin)
 
@@ -144,7 +147,6 @@ else
     ext='a'
 fi
 
-
 # Library dependencies to merge. Each should be a whitespace-delimited list of path globs.
 readonly deps_firebase_app="
 */${prefix}firebase_instance_id*${suffix}.${ext}
@@ -169,7 +171,9 @@ readonly deps_hidden_firebase_firestore="
 */firestore-build/*/grpc-build*/${prefix}*.${ext}
 "
 
-readonly -a hide_namespaces=(flatbuffers flexbuffers reflection ZLib bssl uWS absl google
+# List of C++ namespaces to be renamed, so as to not conflict with the
+# developer's own dependencies.
+readonly -a rename_namespaces=(flatbuffers flexbuffers reflection ZLib bssl uWS absl google
 base_raw_logging ConnectivityWatcher grpc
 grpc_access_token_credentials grpc_alts_credentials
 grpc_alts_server_credentials grpc_auth_context
@@ -210,7 +214,7 @@ merge_libraries_params=(
     --binutils_objcopy_cmd=${binutils_objcopy}
     --demangle_cmds=${demangle_cmds}
     --platform=${platform}
-    --hide_cpp_namespaces=$(echo "${hide_namespaces[*]}" | sed 's| |,|g')
+    --hide_cpp_namespaces=$(echo "${rename_namespaces[*]}" | sed 's| |,|g')
 )
 if [[ ${platform} == "windows" ]]; then
     # Windows has a hard time with strict C++ demangling.
@@ -236,12 +240,13 @@ cd "${built_sdk_path}"
 # Gather a comma-separated list of all library files. This will be
 # passed to merge_libraries in the --scan_libs parameter.
 declare allfiles
-for lib in $(find . -name "${prefix}*.${ext}"); do
+for lib in $(find . -name "*.${ext}"); do
     if [[ ! -z ${allfiles} ]]; then allfiles+=","; fi
     allfiles+="${lib}"
 done
 
-for product in *; do
+# Make sure we only copy the libraries in product_list (specified in packaging.conf)
+for product in ${product_list[*]}; do
     libfile_src="${product}/${subdir}${prefix}firebase_${product}.${ext}"
     libfile_out=$(basename "${libfile_src}")
     if [[ ! -r "${libfile_src}" ]]; then
