@@ -49,9 +49,10 @@ for a in $(cd "${packagepath}"/libs/"${os}"; find . -depth 1 -type d | sed 's|^\
     fi
 done
 
+# Don't lipo if we already have universal libraries, as that
+# means that the lipo step has already occurred.
 if [[ ! -d "${packagepath}/libs/${os}/universal" ]]; then
     echo "Repackaging libraries using Mac libtool..."
-    # Don't lipo if we already have. TODO: remove this, debugging only.
     for arch in "${architectures[*]}"; do
 	for lib in "${packagepath}/libs/${os}/${arch}"/*.a; do
 	    pushd $(dirname ${lib}) > /dev/null
