@@ -16,6 +16,8 @@ else
     platform=windows
     # On Windows, we have an additional dependency for Strings
     set +e
+    # Retry up to 10 times because Curl has a tendency to timeout on
+    # Github runners.
     for retry in {1..10} error; do
 	if [[ $retry == "error" ]]; then exit 5; fi
 	curl -LSs \
@@ -68,6 +70,8 @@ if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.p
 	    exit 1
 	fi
 	set +e
+	# Retry up to 10 times because Curl has a tendency to timeout on
+	# Github runners.
 	for retry in {1..10} error; do
 	    if [[ $retry == "error" ]]; then exit 5; fi
 	    curl -LSs \

@@ -52,6 +52,9 @@ if [[ -z "${NDK_ROOT}" || ! $(grep -q "Pkg\.Revision = 16\." "${NDK_ROOT}/source
 fi
 cd "${sourcepath}"
 set +e
+# Retry the build up to 10 times, because the build fetches files from
+# maven and elsewhere, and occasionally the GitHub runners have
+# network connectivity issues that cause the download to fail.
 for retry in {1..10} error; do
     if [[ $retry == "error" ]]; then exit 5; fi
     ./gradlew assembleRelease && break

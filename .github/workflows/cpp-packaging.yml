@@ -34,6 +34,8 @@ jobs:
       - name: fetch and build binutils
         run: |
           set +e
+          # Retry up to 10 times because Curl has a tendency to timeout on
+          # Github runners.
           for retry in {1..10} error; do
           if [[ $retry == "error" ]]; then exit 5; fi
             curl -L https://ftpmirror.gnu.org/binutils/binutils-${{ env.binutilsVer }}.tar.xz --output binutils.tar.xz && break
@@ -395,6 +397,8 @@ jobs:
           fi
           mkdir firebase-cpp-sdk-final
           set +e
+          # Retry up to 10 times because Curl has a tendency to timeout on
+          # Github runners.
           for retry in {1..10} error; do
           if [[ $retry == "error" ]]; then exit 5; fi
             curl -L https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadLiveVersion }}.zip --output firebase_cpp_sdk.zip && break
