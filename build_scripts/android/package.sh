@@ -1,13 +1,19 @@
 #!/bin/bash -e
 
+readonly -a allowed_stl_variants=("c++" "gnustl" "stlport")
 builtpath=$1
 packagepath=$2
 stl=$3
 
 if [[ -z "${builtpath}" || -z "${packagepath}" || -z "${stl}" ]]; then
     echo "Usage: $0 <built Android SDK path> <path to put packaged files into> <STL variant>"
-    echo "STL variant is one of: c++ gnustl stlport"
+    echo "STL variant is one of: ${allowed_stl_variants[*]}"
     exit 1
+fi
+
+if [[ ! " ${allowed_stl_variants[@]} " =~ " ${stl} " ]]; then
+    echo "Invalid STL variant '${stl}'. Allowed STL variants: ${allowed_stl_variants[*]}"
+    exit 2
 fi
 
 if [[ ! -d "${builtpath}/app/build" ]]; then
