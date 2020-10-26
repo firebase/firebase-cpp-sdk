@@ -24,7 +24,7 @@ if [[ -z "${packagepath}" || -z "${includepath}" || -z "${binutils}" ]]; then
 fi
 
 if [[ ! -d "${packagepath}/libs/${os}" ]]; then
-    echo "Can't find packaged iOS/Mac SDK in ${packagedpath}/libs/darwin"
+    echo "Can't find packaged iOS/Mac SDK in ${packagedpath}/libs/${os}"
 fi
 
 if [[ ! -r "${includepath}/firebase/app.h" ]]; then
