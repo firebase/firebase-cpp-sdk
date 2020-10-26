@@ -175,7 +175,7 @@ def parse_cmdline_args():
   parser.add_argument('-a', '--arch', default='x64', help='Platform architecture (x64, x86)')
   parser.add_argument('--build_dir', default='build', help='Output build directory')
   parser.add_argument('--build_tests', action='store_true', help='Build unit tests too')
-  parser.add_argument('--config', help='Release/Debug config')
+  parser.add_argument('--config', default='Release', help='Release/Debug config')
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
   parser.add_argument('--target_format', default=None, help='(Mac only) whether to output frameworks (default) or libraries.')
   args = parser.parse_args()
