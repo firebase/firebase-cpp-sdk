@@ -3,12 +3,12 @@ on:
   workflow_dispatch:
     inputs:
       commitIdToPackage:
-        description: 'commit ID to package (blank=HEAD)'
+        description: 'commit ID to package'
       preserveIntermediateArtifacts:
         description: 'preserve intermediate artifacts?'
         default: 0
       downloadLiveVersion:
-        description: 'public version to test, instead of building & packaging'
+        description: 'public version to test against'
 
 env:
   # Packaging prerequisites
