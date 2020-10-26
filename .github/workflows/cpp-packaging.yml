@@ -490,7 +490,7 @@ jobs:
   run_integration_tests:
     name: run-integration-tests
     needs: [merge_packages, download_sdk_package]
-    if: (${{ jobs.merge_packages.status == 'success' }}) || (${{ jobs.download_sdk_package == 'success' }})
+    if: always()
     runs-on: ubuntu-latest
     steps:
       - name: download artifact
