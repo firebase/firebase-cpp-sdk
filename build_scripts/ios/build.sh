@@ -4,16 +4,19 @@
 # If built for all architectures (arm64 armv7 x86_64 i386),
 # it will build universal framework as well
 #
-# Usage: ./build.sh [options]
-# options:
-#   -b, build path              default: ios_build
-#   -s, source path             default: .
-#   -a, framework architecture  default: SUPPORTED_ARCHITECTURES
-#   -t, CMake target            default: SUPPORTED_TARGETS
-#   -g, generate Makefiles      default: true
-#   -c, CMake build             default: true
-# example: 
-#   build_scripts/ios/build.sh -b ios_build -s . -a arm64,x86_64 -t firebase_admob,firebase_auth -c false
+
+usage(){
+    echo "Usage: $0 [options]
+ options:
+   -b, build path              default: ios_build
+   -s, source path             default: .
+   -a, framework architecture  default: SUPPORTED_ARCHITECTURES
+   -t, CMake target            default: SUPPORTED_TARGETS
+   -g, generate Makefiles      default: true
+   -c, CMake build             default: true
+ example: 
+   build_scripts/ios/build.sh -b ios_build -s . -a arm64,x86_64 -t firebase_admob,firebase_auth -c false"
+}
 
 set -e
 
@@ -30,8 +33,12 @@ cmakeBuild=true
 
 # check options
 IFS=',' # split options on ',' characters
-while getopts ":b:s:a:t:g:c" opt; do
+while getopts ":b:s:a:t:g:ch" opt; do
     case $opt in
+	h)
+	    usage
+	    exit 0
+	    ;;
         b)
             buildpath=$OPTARG
             ;;
@@ -77,7 +84,7 @@ while getopts ":b:s:a:t:g:c" opt; do
             fi
             ;;
         *)
-            echo "unknow parameter"
+            echo "unknown parameter"
             exit 2
             ;;
     esac

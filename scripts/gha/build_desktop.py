@@ -127,7 +127,7 @@ def cmake_configure(build_dir, arch,
   vcpkg_triplet = utils.get_vcpkg_triplet(arch)
   cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
   if (target_format):
-    cmd.append('-DTARGET_FORMAT={0})'.format(target_format))
+    cmd.append('-DFIREBASE_XCODE_TARGET_FORMAT={0}'.format(target_format))
   utils.run_command(cmd)
 
 def main():

@@ -86,9 +86,7 @@ elseif(IOS)
       FirebaseDynamicLinks
   )
 
-  set(TARGET_FORMAT "frameworks" CACHE STRING
-                    "Format to output, 'frameworks' or 'libraries'")
-  if (TARGET_FORMAT STREQUAL "frameworks")
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
     set_target_properties(firebase_dynamic_links PROPERTIES
       FRAMEWORK TRUE
     )
