@@ -27,9 +27,13 @@ android {
   }
 }
 
-if (System.getenv('NDK_ROOT') && System.getenv('NDK_ROOT').contains('r16b')) {
-    // Additional ABIs are added to the list when building using NDK r16b only.
+if (android.ndkVersion.startsWith("16.") || android.ndkVersion.startsWith("11.")) {
+    // Deprecated ABIs are added to the list when building using older NDKs only.
+    // Rather than an exhaustive list of older NDK versions, we only support r16b and r11c.
     android.defaultConfig.ndk.abiFilters.add("armeabi")
     android.defaultConfig.ndk.abiFilters.add("mips")
     android.defaultConfig.ndk.abiFilters.add("mips64")
+    if (android.ndkVersion.startsWith("11.")) {
+      android.defaultConfig.ndk.abiFilters.add("armeaby-v7a-hard")  // Removed after NDK r11c.
+    }
 }
