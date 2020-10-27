@@ -23,19 +23,19 @@ android {
     ndk {
       // Default list of ABIs available in up-to-date NDK.
       abiFilters "x86", "armeabi-v7a", "arm64-v8a", "x86_64"
+      
+      if (System.getenv('NDK_ROOT').contains('r16b') ||
+          System.getenv('NDK_ROOT').contains('r11c')) {
+        // Deprecated ABIs are added to the list when building using older NDKs only.
+        // Rather than an exhaustive list, we only support r11c and r16b.
+        abiFilters.add("armeabi")
+        abiFilters.add("mips")
+        abiFilters.add("mips64")
+        if (System.getenv('NDK_ROOT').contains('r11c')) {
+          abiFilters.add("armeabi-v7a-hard")  // Removed after r11c.
+        }
+      }
     }
   }
 }
 
-if (System.getenv('NDK_ROOT')) {
-  if (System.getenv('NDK_ROOT').contains('r16b') || System.getenv('NDK_ROOT').contains('r11c')) {
-    // Deprecated ABIs are added to the list when building using older NDKs only.
-    // Rather than an exhaustive list, we only support r11c and r16b.
-    android.defaultConfig.ndk.abiFilters.add("armeabi")
-    android.defaultConfig.ndk.abiFilters.add("mips")
-    android.defaultConfig.ndk.abiFilters.add("mips64")
-    if (System.getenv('NDK_ROOT').contains('r11c')) {
-      android.defaultConfig.ndk.abiFilters.add("armeabi-v7a-hard")  // Removed after r11c.
-    }
-  }
-}
