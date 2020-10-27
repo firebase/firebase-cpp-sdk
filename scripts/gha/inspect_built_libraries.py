@@ -7,6 +7,12 @@ import subprocess
 import utils
 
 LIBRARY_EXTENSIONS = set(('.lib', '.a'))
+MSVC_RUNTIME_LIBRARIES_MAP = {
+        'MSVCRT': '/MD',
+        'MSVCRTD': '/MDd',
+        'LIBCMT': '/MT',
+        'LIBCMTD': '/MTd'
+        }
 
 def get_libraries_to_inspect(paths):
   libraries = []
@@ -38,6 +44,31 @@ def get_dumpbin_exe_path():
   msvc_dir = os.path.join(output.stdout.replace('\n', ''), 'VC', 'Tools', 'MSVC')
   version_dir = os.listdir(msvc_dir)[0]
   return  os.path.join(msvc_dir, version_dir, 'bin', 'Hostx64' ,'x64', 'dumpbin.exe')
+
+def get_msvc_runtime_linkage_re_pattern():
+  return re.compile('.*/DEFAULTLIB:(\w*)')
+
+def get_msvc_runtime_linkage(lib, dumpbin_exe_path, re_pattern=None):
+  dumpbin = subprocess.Popen([dumpbin_exe_path, '/directives', lib], stdout=subprocess.PIPE)
+  grep = subprocess.Popen(['findstr', '\/DEFAULTLIB'], stdin=dumpbin.stdout, stdout=subprocess.PIPE)
+  output = grep.communicate()[0]
+  if not output:
+      return
+  output = output.decode('utf-8')
+  if re_pattern is None:
+    re_pattern = get_msvc_runtime_linkage_re_pattern()
+  runtime_libs = set()
+  for line in output.splitlines():
+    match = re_pattern.match(line)
+    if match:
+        runtime_lib = match.groups()[0]
+        runtime_libs.add(runtime_lib)
+
+  msvc_runtime_libs = set( MSVC_RUNTIME_LIBRARIES_MAP.keys()).intersection(runtime_libs)
+  if len(msvc_runtime_libs) != 1:
+      return 'N.A'
+
+  return MSVC_RUNTIME_LIBRARIES_MAP.get(msvc_runtime_libs.pop(), 'N.A')
 
 def get_arch_re_pattern_windows():
   return re.compile('.* machine \((\w*)\)')
@@ -112,7 +143,9 @@ def main():
     print(lib)
     dumpbin = get_dumpbin_exe_path()
     arch = get_arch_windows(lib, dumpbin)
+    rl = get_msvc_runtime_linkage(lib, dumpbin)
     print(arch)
+    print(rl)
 
 
 if __name__ == '__main__':
