@@ -141,32 +141,10 @@ static pthread_t g_poll_thread;
 // Whether the intent message has been fired.
 static bool g_intent_message_fired = false;
 
-// clang-format off
-#define REMOTE_MESSAGE_BUILDER_METHODS(X)                                      \
-    X(Constructor, "<init>", "(Ljava/lang/String;)V"),                         \
-    X(SetData, "setData",                                                      \
-      "(Ljava/util/Map;)"                                                      \
-      "Lcom/google/firebase/messaging/RemoteMessage$Builder;"),                \
-    X(SetTtl, "setTtl",                                                        \
-      "(I)Lcom/google/firebase/messaging/RemoteMessage$Builder;"),             \
-    X(SetMessageId, "setMessageId",                                            \
-      "(Ljava/lang/String;)"                                                   \
-      "Lcom/google/firebase/messaging/RemoteMessage$Builder;"),                \
-    X(Build, "build", "()Lcom/google/firebase/messaging/RemoteMessage;")
-// clang-format on
-METHOD_LOOKUP_DECLARATION(remote_message_builder,
-                          REMOTE_MESSAGE_BUILDER_METHODS);
-METHOD_LOOKUP_DEFINITION(remote_message_builder,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/messaging/RemoteMessage$Builder",
-                         REMOTE_MESSAGE_BUILDER_METHODS);
-
 // Used to setup the cache of FirebaseMessaging class method IDs to reduce time
 // spent looking up methods by string.
 // clang-format off
 #define FIREBASE_MESSAGING_METHODS(X)                                          \
-    X(Send, "send",                                                            \
-      "(Lcom/google/firebase/messaging/RemoteMessage;)V"),                     \
     X(IsAutoInitEnabled, "isAutoInitEnabled", "()Z"),                          \
     X(SetAutoInitEnabled, "setAutoInitEnabled", "(Z)V"),                       \
     X(SubscribeToTopic, "subscribeToTopic",                                    \
@@ -572,7 +550,6 @@ static void FireIntentMessage(JNIEnv* env) {
 
 static void ReleaseClasses(JNIEnv* env) {
   firebase_messaging::ReleaseClass(env);
-  remote_message_builder::ReleaseClass(env);
   registration_intent_service::ReleaseClass(env);
 }
 
@@ -595,7 +572,6 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
 
   // Cache method pointers.
   if (!(firebase_messaging::CacheMethodIds(env, app.activity()) &&
-        remote_message_builder::CacheMethodIds(env, app.activity()) &&
         registration_intent_service::CacheMethodIds(env, app.activity()))) {
     ReleaseClasses(env);
     util::Terminate(env);
@@ -750,71 +726,6 @@ static void InstanceIdGetToken() {
   assert(env->ExceptionCheck() == false);
   env->DeleteLocalRef(component_name);
   env->DeleteLocalRef(new_intent);
-}
-
-// Send an upstream ("device to cloud") message. You can only use the upstream
-// feature if your FCM implementation uses the XMPP-based Cloud Connection
-// Server. The current limits for max storage time and number of outstanding
-// messages per application are documented in the FCM Developers Guide.
-void Send(const Message& message) {
-  FIREBASE_ASSERT_MESSAGE_RETURN_VOID(internal::IsInitialized(),
-                                      kMessagingNotInitializedError);
-  JNIEnv* env = g_app->GetJNIEnv();
-  jstring to = env->NewStringUTF(message.to.c_str());
-  jstring message_id = env->NewStringUTF(message.message_id.c_str());
-
-  // Map<String, String> data = ...;
-  jobject data =
-      env->NewObject(util::hash_map::GetClass(),
-                     util::hash_map::GetMethodId(util::hash_map::kConstructor));
-  assert(env->ExceptionCheck() == false);
-  util::StdMapToJavaMap(env, &data, message.data);
-
-  // RemoteMessage.Builder builder = new RemoteMessage.Builder(to);
-  jobject builder = env->NewObject(
-      remote_message_builder::GetClass(),
-      remote_message_builder::GetMethodId(remote_message_builder::kConstructor),
-      to);
-  assert(env->ExceptionCheck() == false);
-
-  // builder.setMessageId(message_id);
-  env->CallObjectMethod(builder,
-                        remote_message_builder::GetMethodId(
-                            remote_message_builder::kSetMessageId),
-                        message_id);
-  assert(env->ExceptionCheck() == false);
-
-  // builder.setTtl(message.time_to_live);
-  env->CallObjectMethod(
-      builder,
-      remote_message_builder::GetMethodId(remote_message_builder::kSetTtl),
-      message.time_to_live);
-  assert(env->ExceptionCheck() == false);
-
-  // builder.setData(data);
-  env->CallObjectMethod(
-      builder,
-      remote_message_builder::GetMethodId(remote_message_builder::kSetData),
-      data);
-  assert(env->ExceptionCheck() == false);
-
-  // RemoteMessage message = builder.build();
-  jobject outgoing_message = env->CallObjectMethod(
-      builder,
-      remote_message_builder::GetMethodId(remote_message_builder::kBuild));
-  assert(env->ExceptionCheck() == false);
-
-  // firebaseMessaging.send(message);
-  env->CallVoidMethod(
-      g_firebase_messaging,
-      firebase_messaging::GetMethodId(firebase_messaging::kSend),
-      outgoing_message);
-  assert(env->ExceptionCheck() == false);
-
-  env->DeleteLocalRef(outgoing_message);
-  env->DeleteLocalRef(to);
-  env->DeleteLocalRef(message_id);
-  env->DeleteLocalRef(data);
 }
 
 static void SubscriptionUpdateComplete(JNIEnv* env, jobject result,

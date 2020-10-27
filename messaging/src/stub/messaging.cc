@@ -139,10 +139,6 @@ void Terminate() {
 
 void NotifyListenerSet(Listener* /*listener*/) {}
 
-void Send(const Message& /*message*/) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-}
-
 namespace {
 // Functions to handle returning completed stub futures.
 

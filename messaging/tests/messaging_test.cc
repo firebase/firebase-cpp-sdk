@@ -345,17 +345,6 @@ TEST_F(MessagingTest, TestOnDeletedMessages) {
   EXPECT_THAT(listener_.GetMessage().error, StrEq(""));
 }
 
-TEST_F(MessagingTest, TestSendMessage) {
-  Message message;
-  message.to = "my_to";
-  message.message_id = "my_message_id";
-  message.data["my_key"] = "my_value";
-  message.time_to_live = 1000;
-  Send(message);
-  AddExpectationAndroid("FirebaseMessaging.send",
-      {"my_to", "{my_key=my_value}", "my_message_id", "my_from", "1000"});
-}
-
 TEST_F(MessagingTest, TestOnMessageSent) {
   OnMessageSent("my_message_id");
   SleepMessagingTest(1);

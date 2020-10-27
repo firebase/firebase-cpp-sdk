@@ -48,18 +48,13 @@ NS_ASSUME_NONNULL_BEGIN
 
 // If a listener is set, this will notify Messaging of the token as normal.
 // If no listener is set yet, the data will be cached until one is.
-- (void)messaging:(FIRMessaging *)messaging didReceiveRegistrationToken:(NSString *)FCMToken;
+// NOLINTNEXTLINE
+- (void)messaging:(FIRMessaging *)messaging didReceiveRegistrationToken:(nullable NSString *)FCMToken;
 
 // Once the listener is registered, process cached token (if there is one).
 // This will call messaging:didReceiveRegistrationToken:, passing in the cached values:
 // cachedMessaging and cachedFCMToken.
 - (void)processCachedRegistrationToken;
-
-// This method is called on iOS 10 devices to handle data messages received via FCM through its
-// direct channel (not via APNS). For iOS 9 and below, the FCM data message is delivered via the
-// UIApplicationDelegate’s -application:didReceiveRemoteNotification: method.
-- (void)messaging:(nonnull FIRMessaging *)messaging
-    didReceiveMessage:(nonnull FIRMessagingRemoteMessage *)remoteMessage;
 @end
 NS_ASSUME_NONNULL_END
 
@@ -133,14 +128,6 @@ static ::firebase::util::ClassMethodImplementationCache& SwizzledMethodCache() {
   static ::firebase::util::ClassMethodImplementationCache *g_swizzled_method_cache;
   return *::firebase::util::ClassMethodImplementationCache::GetCreateCache(
        &g_swizzled_method_cache);
-}
-
-// Connect to the FCM server to receive non-APNS notifications
-static void ConnectToFCMServer() {
-  if (MessagingIsInitialized()) {
-    [FIRMessaging messaging].shouldEstablishDirectChannel = YES;
-    LogInfo("FCM: Connected to FCM");
-  }
 }
 
 InitResult Initialize(const ::firebase::App &app, Listener *listener) {
@@ -282,7 +269,6 @@ void Terminate() {
 // Reconnect to FCM when an app returns to the foreground.
 static void AppDelegateApplicationDidBecomeActive(id self, SEL selector_value,
                                                   UIApplication *application) {
-  ConnectToFCMServer();
   IMP app_delegate_application_did_become_active =
       SwizzledMethodCache().GetMethodForObject(self, @selector(applicationDidBecomeActive:));
   if (app_delegate_application_did_become_active) {
@@ -315,10 +301,6 @@ static void AppDelegateApplicationDidEnterBackground(id self, SEL selector_value
     [invocation setTarget:self];
     [invocation setArgument:&application atIndex:2];
     [self forwardInvocation:invocation];
-  }
-  if (MessagingIsInitialized()) {
-    LogInfo("FCM: Disconnect FCM service");
-    [FIRMessaging messaging].shouldEstablishDirectChannel = NO;
   }
 }
 
@@ -678,15 +660,6 @@ static void HookAppDelegateMethods(Class clazz) {
       method_encoding_class);
 }
 
-// Send a message upstream.
-void Send(const Message &message) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  [[FIRMessaging messaging] sendMessage:firebase::util::StringMapToNSDictionary(message.data)
-                                     to:@(message.to.c_str())
-                          withMessageID:@(message.message_id.c_str())
-                             timeToLive:message.time_to_live];
-}
-
 static const char kErrorMessageNoRegistrationToken[] =
     "Cannot update subscritption when SetTokenRegistrationOnInitEnabled is set to false";
 
@@ -850,18 +823,6 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
   }
 }
 
-- (void)applicationReceivedRemoteMessage:(FIRMessagingRemoteMessage *)remoteMessage {
-  NSDictionary *userInfo = remoteMessage.appData;
-#if !defined(NDEBUG)
-  ::firebase::LogInfo("FCM: Received message: %s", userInfo.description.UTF8String);
-#else
-  ::firebase::LogInfo("FCM: Received message");
-#endif
-  if (::firebase::messaging::MessagingIsInitialized()) {
-    ::firebase::messaging::NotifyApplicationAndServiceOfMessage(userInfo);
-  }
-}
-
 @end
 
 @implementation FIRCppDelegate
@@ -896,18 +857,5 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
     _cachedMessaging = nil;
   }
   [self messaging:msg didReceiveRegistrationToken:token];
-}
-
-- (void)messaging:(nonnull FIRMessaging *)messaging
-    didReceiveMessage:(nonnull FIRMessagingRemoteMessage *)remoteMessage {
-  NSDictionary *userInfo = remoteMessage.appData;
-#if !defined(NDEBUG)
-  ::firebase::LogInfo("FCM: Received message: %s", userInfo.description.UTF8String);
-#else
-  ::firebase::LogInfo("FCM: Received message");
-#endif
-  if (::firebase::messaging::MessagingIsInitialized()) {
-    ::firebase::messaging::NotifyApplicationAndServiceOfMessage(userInfo);
-  }
 }
 @end

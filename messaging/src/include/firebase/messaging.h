@@ -251,11 +251,6 @@ struct Message {
   /// For example it can be a registration token, a topic name, an Instance ID
   /// or project ID.
   ///
-  /// For upstream messages use the format  PROJECT_ID@gcm.googleapis.com.
-  ///
-  /// This field is used for both upstream messages sent with
-  /// firebase::messaging::Send() and downstream messages received through
-  /// Listener::OnMessage(). For upstream messages,
   /// PROJECT_ID@gcm.googleapis.com or Instance ID are accepted.
   std::string to;
 
@@ -279,10 +274,6 @@ struct Message {
   /// The metadata, including all original key/value pairs. Includes some of the
   /// HTTP headers used when sending the message. `gcm`, `google` and `goog`
   /// prefixes are reserved for internal use.
-  ///
-  /// This field is used for both upstream messages sent with
-  /// firebase::messaging::Send() and downstream messages received through
-  /// Listener::OnMessage().
   std::map<std::string, std::string> data;
 
   /// Binary payload. This field is currently unused.
@@ -292,10 +283,6 @@ struct Message {
   /// message ID and other elements will be used for storage. The ID must be
   /// unique for each topic subscription - using the same ID may result in
   /// overriding the original message or duplicate delivery.
-  ///
-  /// This field is used for both upstream messages sent with
-  /// firebase::messaging::Send() and downstream messages received through
-  /// Listener::OnMessage().
   std::string message_id;
 
   /// Equivalent with a content-type.
@@ -553,18 +540,6 @@ Future<void> RequestPermission();
 ///
 /// @returns Result of the most recent call to RequestPermission().
 Future<void> RequestPermissionLastResult();
-
-/// Send an upstream ("device to cloud") message. You can only use the upstream
-/// feature if your FCM implementation uses the XMPP-based Cloud Connection
-/// Server. The current limits for max storage time and number of outstanding
-/// messages per application are documented in the [FCM Developers Guide].
-///
-/// [FCM Developers Guide]: https://firebase.google.com/docs/cloud-messaging/
-///
-/// @param[in] message The message to send upstream.
-///
-/// @deprecated Send() is deprecated and will be removed in a future release.
-FIREBASE_DEPRECATED void Send(const Message& message);
 
 /// @brief Subscribe to receive all messages to the specified topic.
 ///
