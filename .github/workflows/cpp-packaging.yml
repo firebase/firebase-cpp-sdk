@@ -1,16 +1,18 @@
 name: CPP binary SDK packaging
 on:
+  schedule:
+    - cron: "9 0 * * *"  # 9am UTC = 1am PST / 2am PDT
   workflow_dispatch:
     inputs:
       commitIdToPackage:
-        description: 'commit ID to package'
+        description: 'Commit ID to build and package'
       preserveIntermediateArtifacts:
-        description: 'preserve intermediate artifacts?'
+        description: 'Preserve intermediate artifacts?'
         default: 0
       downloadPublicVersion:
-        description: 'public version # to test against'
+        description: 'Public version # to run tests on'
       downloadPreviousRun:
-        description: 'previous run # to test against'
+        description: 'Previous GHA Run ID to run tests on'
 
 env:
   # Packaging prerequisites
