@@ -27,7 +27,7 @@ android {
   }
 }
 
-if (System.getenv(NDK_ROOT) && System.getenv(NDK_ROOT).contains('r16b')) {
+if (System.getenv('NDK_ROOT') && System.getenv('NDK_ROOT').contains('r16b')) {
     // Additional ABIs are added to the list when building using NDK r16b only.
     ndk.abiFilters.add("armeabi")
     ndk.abiFilters.add("armeabi-v7a-hard")
