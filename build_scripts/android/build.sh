@@ -22,7 +22,7 @@ elif [[ ! -z "${stl}" ]]; then
     exit 2
 fi
 
-
+origpath=$( pwd -P )
 
 mkdir -p "${buildpath}"
 cd "${buildpath}"
@@ -31,7 +31,7 @@ if [[ -n $(ls) ]]; then
     exit 2
 fi
 absbuildpath=$( pwd -P )
-cd -
+cd "${origpath}"
 
 # If NDK_ROOT is not set or is the wrong version, use to the version in /tmp.
 if [[ -z "${NDK_ROOT}" || ! $(grep -q "Pkg\.Revision = 16\." "${NDK_ROOT}/source.properties") ]]; then
