@@ -138,7 +138,7 @@ void GlobalUnhandledExceptionHandler(jni::Env& env,
 #if __cpp_exceptions
   // TODO(b/149105903): Handle different underlying Java exceptions differently.
   env.ExceptionClear();
-  throw FirestoreException(exception.GetMessage(env));
+  throw FirestoreException(exception.GetMessage(env), Error::kErrorInternal);
 
 #else
   // Just clear the pending exception. The exception was already logged when

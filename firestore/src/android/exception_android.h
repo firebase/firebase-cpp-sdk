@@ -20,12 +20,16 @@ namespace firestore {
 
 class FirestoreException : public std::exception {
  public:
-  explicit FirestoreException(const std::string& message) : message_(message) {}
+  explicit FirestoreException(const std::string& message, Error code)
+      : message_(message), code_(code) {}
 
   const char* what() const noexcept override { return message_.c_str(); }
 
+  Error code() const { return code_; }
+
  private:
   std::string message_;
+  Error code_;
 };
 
 #endif  // __cpp_exceptions
