@@ -1,6 +1,7 @@
 import os
 import sys
 import re
+import tempfile
 
 import utils
 
@@ -23,6 +24,25 @@ def get_libraries_to_inspect(paths):
           libraries.append(abspath)
     return libraries
 
+def get_dumpbin_exe_path(vsroot):
+  tempdir = tempfile.gettempdir()
+  tempfile_path = os.path.join(tempdir, 'vswhere.exe')
+
+  # Download vswhere tool to determine the install location of Visual Studio on machine.
+  utils.download_file('https://github.com/microsoft/vswhere/releases/download/2.8.4/vswhere.exe', tempfile_path)
+
+  output = utils.run_command([tempfile_path, '-latest', '-property', 'installationPath'],
+                             capture_output=True)
+
+  msvc_dir = os.path.join(output.stdout, 'VC', 'Tools', 'MSVC')
+  version_dir = os.listdir(msvc_dir)
+  return  os.path.join(msvc_dir, version_dir, 'Hostx64' ,'x64', 'dumpbin.exe')
+
+
+def get_arch_windows(lib, dumpbin_exe_path, re_pattern=None):
+  output = utils.run_command([dumpbin_exe_path, '/headers', lib], capture_output=True)
+  print output
+
 def get_arch_re_pattern_linux():
     return re.compile('architecture: (.*), .*')
 
@@ -35,7 +55,7 @@ def get_arch_linux(lib, re_pattern=None):
     re_pattern = get_arch_re_pattern_linux()
 
   output = utils.run_command(['objdump', '-f', lib], capture_output=True)
-  lines = output.stdout.decode('utf-8').splitlines()
+  lines = output.stdout.splitlines()
   object_files = {}
   for idx,line in enumerate(lines):
     if '.o:' in line:
