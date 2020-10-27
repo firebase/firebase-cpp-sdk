@@ -2,6 +2,7 @@ import os
 import sys
 import re
 import tempfile
+import subprocess
 
 import utils
 
@@ -24,7 +25,7 @@ def get_libraries_to_inspect(paths):
           libraries.append(abspath)
     return libraries
 
-def get_dumpbin_exe_path(vsroot):
+def get_dumpbin_exe_path():
   tempdir = tempfile.gettempdir()
   tempfile_path = os.path.join(tempdir, 'vswhere.exe')
 
@@ -34,17 +35,35 @@ def get_dumpbin_exe_path(vsroot):
   output = utils.run_command([tempfile_path, '-latest', '-property', 'installationPath'],
                              capture_output=True)
 
-  msvc_dir = os.path.join(output.stdout, 'VC', 'Tools', 'MSVC')
-  version_dir = os.listdir(msvc_dir)
-  return  os.path.join(msvc_dir, version_dir, 'Hostx64' ,'x64', 'dumpbin.exe')
+  msvc_dir = os.path.join(output.stdout.replace('\n', ''), 'VC', 'Tools', 'MSVC')
+  version_dir = os.listdir(msvc_dir)[0]
+  return  os.path.join(msvc_dir, version_dir, 'bin', 'Hostx64' ,'x64', 'dumpbin.exe')
 
+def get_arch_re_pattern_windows():
+  return re.compile('.* machine \((\w*)\)')
 
 def get_arch_windows(lib, dumpbin_exe_path, re_pattern=None):
-  output = utils.run_command([dumpbin_exe_path, '/headers', lib], capture_output=True)
-  print output
+  dumpbin = subprocess.Popen([dumpbin_exe_path, '/headers', lib], stdout=subprocess.PIPE)
+  grep = subprocess.Popen(['findstr', 'machine'], stdin=dumpbin.stdout, stdout=subprocess.PIPE)
+  output = grep.communicate()[0]
+  if not output:
+      return
+  output = output.decode('utf-8')
+  if re_pattern is None:
+    re_pattern = get_arch_re_pattern_windows()
+  archs = set()
+  for line in output.splitlines():
+    match = re_pattern.match(line)
+    if match:
+        arch = match.groups()[0]
+        archs.add(arch)
+
+  if len(archs)!=1:
+      return 'N.A'
+  return archs.pop()
 
 def get_arch_re_pattern_linux():
-    return re.compile('architecture: (.*), .*')
+    return re.compile('architecture: (\w*), \w*')
 
 def get_arch_linux(lib, re_pattern=None):
   if not utils.is_linux_os():
@@ -70,7 +89,7 @@ def get_arch_linux(lib, re_pattern=None):
   return object_files
 
 def get_arch_re_pattern_mac():
-    return re.compile('.* is architecture: (.*)')
+    return re.compile('.* is architecture: (\w*)')
 
 def get_arch_mac(lib, re_pattern=None):
   if not utils.is_mac_os():
@@ -91,7 +110,8 @@ def main():
   libs = get_libraries_to_inspect([sys.argv[1]])
   for lib in libs:
     print(lib)
-    arch = get_arch_mac(lib)
+    dumpbin = get_dumpbin_exe_path()
+    arch = get_arch_windows(lib, dumpbin)
     print(arch)
 
 
