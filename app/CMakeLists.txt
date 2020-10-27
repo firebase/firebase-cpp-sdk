@@ -377,9 +377,11 @@ endif()
 
 if (IOS)
   # IOS build framework
-  set_target_properties(firebase_app PROPERTIES
-    FRAMEWORK TRUE
-  )
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_app PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 
   # framework header files
   set(admob_HDRS

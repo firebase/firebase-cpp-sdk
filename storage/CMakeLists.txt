@@ -133,9 +133,11 @@ elseif(IOS)
       FirebaseStorage
   )
 
-  set_target_properties(firebase_storage PROPERTIES
-    FRAMEWORK TRUE
-  )
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_storage PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

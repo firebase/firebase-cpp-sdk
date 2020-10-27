@@ -67,6 +67,14 @@ option(FIREBASE_CPP_BUILD_PACKAGE
 option(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD
         "When building with Gradle, use the previously built libraries." OFF)
 
+set(FIREBASE_ANDROID_STL "" CACHE STRING "STL implementation to use.")
+if (NOT FIREBASE_ANDROID_STL STREQUAL "")
+  set(ANDROID_STL ${FIREBASE_ANDROID_STL})
+endif()
+
+set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
+                                 "Format to output, 'frameworks' or 'libraries'")
+
 # Define this directory to be the root of the C++ SDK, which the libraries can
 # then refer to.
 set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
