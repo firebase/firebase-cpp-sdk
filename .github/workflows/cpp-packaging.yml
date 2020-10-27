@@ -23,7 +23,7 @@ jobs:
   build_tools:
     name: build-tools-${{ matrix.tools_platform }}
     runs-on: ${{ matrix.os }}
-    if: (${{ github.event.inputs.downloadPublicVersion == '' }}) && (${{ github.event.inputs.downloadPreviousRun == '' }})
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -83,7 +83,7 @@ jobs:
   build_and_package_ios:
     name: build-and-package-ios
     runs-on: macos-latest
-    if: (${{ github.event.inputs.downloadPublicVersion == '' }}) && (${{ github.event.inputs.downloadPreviousRun == '' }})
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
@@ -120,7 +120,7 @@ jobs:
   build_and_package_android:
     name: build-and-package-android-${{matrix.stl}}
     runs-on: ubuntu-latest
-    if: (${{ github.event.inputs.downloadPublicVersion == '' }}) && (${{ github.event.inputs.downloadPreviousRun == '' }})
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -161,7 +161,7 @@ jobs:
   build_desktop:
     name: build-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.linkage }}
     runs-on: ${{ matrix.os }}
-    if: (${{ github.event.inputs.downloadPublicVersion == '' }}) && (${{ github.event.inputs.downloadPreviousRun == '' }})
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -292,7 +292,7 @@ jobs:
     name: package-${{ matrix.sdk_platform }}${{ matrix.suffix }}
     runs-on: ${{ matrix.runs_on_platform }}
     needs: [build_tools, build_desktop]
-    if: (${{ github.event.inputs.downloadPublicVersion == '' }}) && (${{ github.event.inputs.downloadPreviousRun == '' }})
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -389,11 +389,11 @@ jobs:
   download_sdk_package:
     name: download-sdk-package
     runs-on: ubuntu-latest
-    if: (${{ github.event.inputs.downloadPublicVersion != '' }}) || (${{ github.event.inputs.downloadPreviousRun != '' }})
+    if: ${{ github.event.inputs.downloadPublicVersion != '' || github.event.inputs.downloadPreviousRun != '' }}
     steps:
       - name: fetch artifact from previous run
         uses: dawidd6/action-download-artifact@v2
-        if: (${{ github.event.inputs.downloadPreviousRun != '' }})
+        if: ${{ github.event.inputs.downloadPreviousRun != '' }}
         with:
           name: 'firebase_cpp_sdk'
           path: 'firebase-cpp-sdk-final'
@@ -401,7 +401,7 @@ jobs:
           run_id: ${{ github.event.inputs.downloadPreviousRun }}
 
       - name: fetch public SDK package from web
-        if: (${{ github.event.inputs.downloadPublicVersion != '' }}) && (${{ github.event.inputs.downloadPreviousRun == '' }})
+        if: ${{ github.event.inputs.downloadPublicVersion != '' && github.event.inputs.downloadPreviousRun == '' }}
         run: |
           if [[ ! "${{ github.event.inputs.downloadPublicVersion }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo Invalid version number: "${{ github.event.inputs.downloadPublicVersion }}"
@@ -428,7 +428,7 @@ jobs:
   merge_packages:
     name: final-merge-packages
     runs-on: ubuntu-latest
-    if: ${{ github.event.inputs.downloadPublicVersion == '' }}
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     needs: [build_and_package_ios, build_and_package_android, package_desktop]
     steps:
       - name: fetch SDK
@@ -469,7 +469,7 @@ jobs:
     name: cleanup-artifacts
     runs-on: ubuntu-latest
     needs: [merge_packages]
-    if: (${{ github.event.inputs.preserveIntermediateArtifacts == 0 }}) && (${{ github.event.inputs.downloadPublicVersion == '' }}) && (${{ github.event.inputs.downloadPreviousRun == '' }})
+    if: ${{ github.event.inputs.preserveIntermediateArtifacts == 0 && github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     steps:
     - uses: geekyeggo/delete-artifact@v1
       with:
