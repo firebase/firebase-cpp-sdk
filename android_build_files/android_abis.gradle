@@ -24,13 +24,13 @@ android {
       // Default list of ABIs available in up-to-date NDK.
       abiFilters "x86", "armeabi-v7a", "arm64-v8a", "x86_64"
     }
+    if (System.getenv('NDK_ROOT') && System.getenv('NDK_ROOT').contains('r16b')) {
+        // Additional ABIs are added to the list when building using NDK r16b only.
+        ndk.abiFilters.add("armeabi")
+        ndk.abiFilters.add("armeabi-v7a-hard")
+        ndk.abiFilters.add("mips")
+        ndk.abiFilters.add("mips64")
+    }
   }
 }
 
-if (System.getenv('NDK_ROOT') && System.getenv('NDK_ROOT').contains('r16b')) {
-    // Additional ABIs are added to the list when building using NDK r16b only.
-    ndk.abiFilters.add("armeabi")
-    ndk.abiFilters.add("armeabi-v7a-hard")
-    ndk.abiFilters.add("mips")
-    ndk.abiFilters.add("mips64")
-}
