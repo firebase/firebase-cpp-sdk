@@ -1,11 +1,13 @@
 name: CPP binary SDK packaging
 on:
   schedule:
-    - cron: "9 0 * * *"  # 9am UTC = 1am PST / 2am PDT
+#    - cron: "0 9 * * *"  # 9am UTC = 1am PST / 2am PDT
+    - cron: "5 5 * * *"  # 5:05am UTC for testing.
+
   workflow_dispatch:
     inputs:
       commitIdToPackage:
-        description: 'Commit ID to build and package'
+        description: 'Git commit ID to build and package'
       preserveIntermediateArtifacts:
         description: 'Preserve intermediate artifacts?'
         default: 0
