@@ -263,6 +263,11 @@ def main():
   all_libs_info.sort(key=lambda x:x[0])
   print_summary_table(summary_headers, all_libs_info)
 
+  if args.cleanup:
+    if utils.is_windows_os():
+      os.remove(dumpbin)
+
+
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Inspect prebuilt libraries/archives '
                                                'for architecture (x64, x86) '\
@@ -276,7 +281,9 @@ def parse_cmdline_args():
   parser.add_argument('--print_full_paths', action='store_true',
                       help='Print full library paths in summary.')
   parser.add_argument('--verbose', action='store_true',
-                      help='Print all relevant output as it is (without summarizing).')
+                      help='Print all relevant output as it is (before summarizing).')
+  parser.add_argument('--cleanup', action='store_true',
+                      help='Cleanup any temporary data created/downloaded')
   args = parser.parse_args()
   return args
 
