@@ -49,6 +49,18 @@ build/external/src/firestore-build/external/src/grpc-build/libgrpc.a   x86_64
 $ python scripts/gha/inspect_built_libraries.py build/ --library_filter ""
 
 # On Windows, there is an additional column of information for msvc runtime.
+$ python scripts/gha/inspect_built_libraries.py build/
+******************************************************************
+Library                                 Architecture MSVC_Runtime
+******************************************************************
+firebase_admob-d.lib                    x64          /MTd
+firebase_analytics-d.lib                x64          /MTd
+firebase_app-d.lib                      x64          /MTd
+firebase_auth-d.lib                     x64          /MTd
+firebase_database-d.lib                 x64          /MTd
+...
+
+
 """
 
 import argparse
