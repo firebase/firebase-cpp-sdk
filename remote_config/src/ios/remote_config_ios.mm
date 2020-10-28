@@ -455,7 +455,7 @@ Future<bool> RemoteConfigInternal::Activate() {
       throttled_end_time_in_sec_ = FutureCompleteWithError<SafeFutureHandle<bool>, bool>(
           error, &future_impl_, handle, false);
     } else {
-      future_impl_.CompleteWithResult(handle, kFutureStatusSuccess, "", changed);
+      future_impl_.CompleteWithResult(handle, kFutureStatusSuccess, "", changed ? true : false);
     }
   }];
   return MakeFuture<bool>(&future_impl_, handle);
