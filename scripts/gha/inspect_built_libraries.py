@@ -37,6 +37,23 @@ def get_libraries_to_inspect(paths, library_filter=None):
           libraries.append(abspath)
   return libraries
 
+def print_summary_table(headers, rows):
+  colwidths = []
+  for idx, _ in enumerate(headers):
+    colwidths.append(max( [len(headers[idx])] + [ len(row[idx]) for row in rows])+1)
+
+  print('*'*sum(colwidths))
+  header_string = ''
+  for idx, header in enumerate(headers):
+    header_string = header_string + header.ljust(colwidths[idx])
+  print(header_string)
+  print('*'*sum(colwidths))
+
+  for row in rows:
+    row_string = ''
+    for idx, col_item in enumerate(row):
+      row_string = row_string + col_item.ljust(colwidths[idx])
+    print(row_string)
 
 @functools.lru_cache
 def get_or_create_dumpbin_exe_path():
@@ -242,10 +259,8 @@ def main():
         libinfo.append('N.A')
     all_libs_info.append(libinfo)
 
-  print(summary_headers)
   all_libs_info.sort(key=lambda x:x[0])
-  for libinfo in all_libs_info:
-    print(libinfo)
+  print_summary_table(summary_headers, all_libs_info)
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Inspect prebuilt libraries/archives '
