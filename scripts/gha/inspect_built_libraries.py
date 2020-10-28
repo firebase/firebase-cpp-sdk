@@ -219,6 +219,7 @@ def main():
                                               dumpbin_exe_path=dumpbin)
     summarize_arch_function = functools.partial(summarize_arch_windows,
                                                 re_pattern=arch_pattern)
+    summary_headers.append('MSVC_Runtime')
     msvc_runtime_linkage_pattern = get_msvc_runtime_linkage_re_pattern()
 
   else:
