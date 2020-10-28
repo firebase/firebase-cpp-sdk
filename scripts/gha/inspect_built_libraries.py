@@ -1,3 +1,56 @@
+#!/usr/bin/env python
+
+# Copyright 2020 Google
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+"""Script to inspect architecture and msvc runtime libraries(on windows) in prebuilt libraries.
+
+This is a cross platform script that can verify the built libraries for expected
+cpu architecture and msvc runtime (only on windows).
+
+CPU architecture is either x64 or x86
+MSVC runtime library is either static (/MT or /MTd) or dynamic (/MD or /MDd)
+
+Usage:
+Ideally the script could be run from anywhere and only depends upon the `utils.py`
+module but it is a good practice to run it from the root of the repo.
+
+# Inspect firebase libraries as the default value for --library_filter is "firebase_"
+$ python scripts/gha/inspect_built_libraries.py build/
+Library                                Architecture
+****************************************************
+libfirebase_admob.a                    x86_64
+libfirebase_analytics.a                x86_64
+libfirebase_app.a                      x86_64
+libfirebase_auth.a                     x86_64
+libfirebase_database.a                 x86_64
+libfirebase_dynamic_links.a            x86_64
+...
+
+# To print full paths to libraries and specify a different library filter.
+$ python scripts/gha/inspect_built_libraries.py build/ --library_filter "grpc" --print_full_paths
+************************************************************************************
+Library                                                                Architecture
+************************************************************************************
+build/external/src/firestore-build/external/src/grpc-build/libgrpc++.a x86_64
+build/external/src/firestore-build/external/src/grpc-build/libgrpc.a   x86_64
+
+# To print information for all libraries, set library_filter to an empty string.
+$ python scripts/gha/inspect_built_libraries.py build/ --library_filter ""
+
+# On Windows, there is an additional column of information for msvc runtime.
+"""
+
 import argparse
 import functools
 import os
