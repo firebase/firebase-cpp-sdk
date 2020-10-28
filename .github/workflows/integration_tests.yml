@@ -118,6 +118,7 @@ jobs:
         # The set up script for Android will download the NDK here.
         env:
           NDK_ROOT: '/tmp/android-ndk-r16b'
+          ANDROID_NDK_HOME: '/tmp/android-ndk-r16b'
         run: |
           python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --use_vcpkg --execute_desktop_testapp --noadd_timestamp
       
