@@ -31,7 +31,7 @@ android {
         abiFilters.add("armeabi")
         abiFilters.add("mips")
         abiFilters.add("mips64")
-        if (System.getenv('NDK_ROOT').contains('r11c')) {
+        if (System.getenv('ANDROID_NDK_HOME').contains('r11c')) {
           abiFilters.add("armeabi-v7a-hard")  // Removed after r11c.
         }
       }
