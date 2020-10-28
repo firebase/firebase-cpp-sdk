@@ -3,6 +3,7 @@ name: Desktop Builds
 on: 
   pull_request:
     types: [opened, reopened, synchronize]
+  push:
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
@@ -81,6 +82,11 @@ jobs:
           find build -name "*.dylib"
           find build -name "*.a"
           find build -name "*.so"
+
+      - name: Introspect firebase libraries for cpu arch and msvc runtime.
+        shell: bash
+        run: |
+          python scripts/gha/inspect_build_libraries.py build/
 
       - name: Prep crash support (linux)
         # Ensures directory structure is in place to capture core files on Linux. 
