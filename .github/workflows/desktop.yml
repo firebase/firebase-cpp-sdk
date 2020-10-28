@@ -86,7 +86,7 @@ jobs:
       - name: Introspect firebase libraries for cpu arch and msvc runtime.
         shell: bash
         run: |
-          python scripts/gha/inspect_build_libraries.py build/
+          python scripts/gha/inspect_built_libraries.py build/
 
       - name: Prep crash support (linux)
         # Ensures directory structure is in place to capture core files on Linux. 
