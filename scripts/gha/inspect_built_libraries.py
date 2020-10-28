@@ -154,7 +154,7 @@ def print_summary_table(headers, rows):
     print(row_string)
 
 
-@functools.lru_cache
+@functools.lru_cache()
 def get_or_create_dumpbin_exe_path():
   """Find or create dumpbin MS Developer Tool on machine.
 
