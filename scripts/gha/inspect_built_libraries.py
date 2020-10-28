@@ -321,7 +321,7 @@ def get_arch_re_pattern_linux():
   """Regex pattern for identifying cpu architecture on linux(objdump output).
   For efficiency, call this function once and use the compiled regex in any subsequent calls.
   """
-  return re.compile('architecture: (\w*), \w*')
+  return re.compile('architecture: (.*), \w*')
 
 
 def inspect_arch_linux(lib):
