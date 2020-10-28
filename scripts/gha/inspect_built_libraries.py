@@ -18,8 +18,8 @@
 This is a cross platform script that can inspect prebuilt libraries for
 cpu architecture (on all desktop platforms) and msvc runtime (only on windows).
 
-CPU architecture is either x64 or x86
-MSVC runtime library is either static (/MT or /MTd) or dynamic (/MD or /MDd)
+CPU architecture could be x64 or x86.
+MSVC runtime library could be static (/MT or /MTd) or dynamic (/MD or /MDd).
 
 Usage:
 Ideally the script could be run from anywhere and only depends upon the `utils.py`
@@ -197,14 +197,14 @@ def get_or_create_dumpbin_exe_path():
                    "It is required to do any inspections or queries on windows libraries/archives.")
 
 
-def get_msvc_runtime_linkage_re_pattern():
+def get_msvc_runtime_library_re_pattern():
   """Regex pattern for identifying linked msvc runtime libraries
   For efficiency, call this function once and use the compiled regex in any subsequent calls.
   """
   return re.compile('.*/DEFAULTLIB:(\w*)')
 
 
-def inspect_msvc_runtime_linkage(lib, dumpbin_exe_path=None):
+def inspect_msvc_runtime_library(lib, dumpbin_exe_path=None):
   """Find the MSVC runtime libraries used when building the specified library.
   Figure out if libraries are using static(/MT or /MTd) or dynamic(/MD or /MDd).
 
@@ -228,11 +228,11 @@ def inspect_msvc_runtime_linkage(lib, dumpbin_exe_path=None):
   return output.decode('utf-8')
 
 
-def summarize_msvc_runtime_linkage(verbose_data, re_pattern=None):
-  """Collate output from msvc runtime linkage inspection.
+def summarize_msvc_runtime_library(verbose_data, re_pattern=None):
+  """Collate output from msvc runtime library inspection.
 
   Args:
-      verbose_data (str): Output from msvc runtime linkage inspection.
+      verbose_data (str): Output from msvc runtime library inspection.
       re_pattern (re.Pattern, optional): Pre-compiled regex pattern to use in identifying
                                          msvc runtime library. If you are providing your own,
                                          make sure that you are matching with exactly one group
@@ -243,7 +243,7 @@ def summarize_msvc_runtime_linkage(verbose_data, re_pattern=None):
              'N.A' if the function failed to identify uniquely.
   """
   if re_pattern is None:
-    re_pattern = get_msvc_runtime_linkage_re_pattern()
+    re_pattern = get_msvc_runtime_library_re_pattern()
   runtime_libs = set()
   for line in verbose_data.splitlines():
     match = re_pattern.match(line)
@@ -448,7 +448,7 @@ def main():
     summarize_arch_function = functools.partial(summarize_arch_windows,
                                                 re_pattern=arch_pattern)
     summary_headers.append('MSVC_Runtime')
-    msvc_runtime_linkage_pattern = get_msvc_runtime_linkage_re_pattern()
+    msvc_runtime_library_pattern = get_msvc_runtime_library_re_pattern()
 
   else:
     raise ValueError("Unsupported desktop OS. Can be either Mac, Linux or Windows.")
@@ -476,14 +476,14 @@ def main():
 
     if utils.is_windows_os():
       try:
-        verbose_data = inspect_msvc_runtime_linkage(lib, dumpbin_exe_path=dumpbin)
+        verbose_data = inspect_msvc_runtime_library(lib, dumpbin_exe_path=dumpbin)
         if args.verbose:
           print("Inspecting msvc runtime library: {0}".format(lib))
           print(verbose_data)
           print()
-        runtime_linkage = summarize_msvc_runtime_linkage(verbose_data,
-                                      re_pattern=msvc_runtime_linkage_pattern)
-        libinfo.append(runtime_linkage)
+        runtime_library = summarize_msvc_runtime_library(verbose_data,
+                                      re_pattern=msvc_runtime_library_pattern)
+        libinfo.append(runtime_library)
       except:
         libinfo.append('N.A')
     all_libs_info.append(libinfo)
@@ -496,7 +496,7 @@ def main():
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Inspect prebuilt libraries/archives '
                                                'for architecture (x64, x86) '\
-                                               'and msvc runtime linkage (/MD vs /MT).')
+                                               'and msvc runtime library (/MD vs /MT).')
   parser.add_argument('libraries', metavar='L', nargs='+',
                     help='List of files (libraries) and/or directories (containing libraries).')
   parser.add_argument('--library_filter', default='firebase_',
