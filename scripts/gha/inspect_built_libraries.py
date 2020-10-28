@@ -1,10 +1,10 @@
-import os
-import sys
-import re
-import tempfile
-import subprocess
 import argparse
 import functools
+import os
+import re
+import subprocess
+import sys
+import tempfile
 
 import utils
 
