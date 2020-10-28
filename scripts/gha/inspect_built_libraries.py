@@ -15,8 +15,8 @@
 # limitations under the License.
 """Script to inspect architecture and msvc runtime libraries(on windows) in prebuilt libraries.
 
-This is a cross platform script that can verify the built libraries for expected
-cpu architecture and msvc runtime (only on windows).
+This is a cross platform script that can inspect prebuilt libraries for
+cpu architecture (on all desktop platforms) and msvc runtime (only on windows).
 
 CPU architecture is either x64 or x86
 MSVC runtime library is either static (/MT or /MTd) or dynamic (/MD or /MDd)
@@ -25,8 +25,13 @@ Usage:
 Ideally the script could be run from anywhere and only depends upon the `utils.py`
 module but it is a good practice to run it from the root of the repo.
 
-# Inspect firebase libraries as the default value for --library_filter is "firebase_"
+# Inspect specific libraries by providing them explicitly.
+$ python scripts/gha/inspect_built_libraries.py build/app/libfirebase_app.a build/auth/libfirebase_auth.a
+
+# Inspect all firebase libraries (default value for --library_filter is "firebase_")
+# by searching specified directory recursively.
 $ python scripts/gha/inspect_built_libraries.py build/
+****************************************************
 Library                                Architecture
 ****************************************************
 libfirebase_admob.a                    x86_64
@@ -60,7 +65,9 @@ firebase_auth-d.lib                     x64          /MTd
 firebase_database-d.lib                 x64          /MTd
 ...
 
-
+On Windows, the tool downloads vcwhere.exe tool to a temporary directory.
+vcwhere.exe is used to locate Visual Studio on the user's machine and more specifically,
+dumpbin.exe which is required for inspecting windows libraries.
 """
 
 import argparse
@@ -73,7 +80,9 @@ import tempfile
 
 import utils
 
+# Valid extensions for libraries we look for. .lib for Windows and .a for mac/linux.
 LIBRARY_EXTENSIONS = set(('.lib', '.a'))
+# Runtime libraries printed by dumpbin.exe (VS Developer Tool) mapped to compiler option.
 MSVC_RUNTIME_LIBRARIES_MAP = {
         'MSVCRT': '/MD',
         'MSVCRTD': '/MDd',
@@ -82,6 +91,19 @@ MSVC_RUNTIME_LIBRARIES_MAP = {
         }
 
 def get_libraries_to_inspect(paths, library_filter=None):
+  """Returns list of libraries to inspect
+
+  Args:
+      paths list(str): Files and/or directories.
+                       Directories are searched recursively for matching libraries.
+      library_filter (str, optional): String to filter library names. Defaults to None.
+                                      For no filtering, pass an object that has a bool
+                                      value of False or None. Eg: None or ""
+
+  Returns:
+      list(str): List of all valid paths (found recursively in directories and
+                 user specified files).
+  """
   libraries = []
   for path in paths:
     if os.path.isdir(path):
@@ -102,37 +124,65 @@ def get_libraries_to_inspect(paths, library_filter=None):
           libraries.append(abspath)
   return libraries
 
+
 def print_summary_table(headers, rows):
+  """Print column aligned table summary.
+
+  Args:
+      headers (list(str)): Names of table headers.
+                           Eg: ['Libraries', 'Architecture']
+      rows (list(list(str))): List of list of table row entries.
+                              Eg: [["liba", "x86"], ["libb", "x64"]]
+  """
   colwidths = []
-  for idx, _ in enumerate(headers):
-    colwidths.append(max( [len(headers[idx])] + [ len(row[idx]) for row in rows])+1)
+  for col_idx, _ in enumerate(headers):
+    # Find the widest word in each column.
+    # Add "1" for an additonal space between columns.
+    colwidths.append(max( [len(headers[col_idx])] + [ len(row[col_idx]) for row in rows])+1)
 
   print('*'*sum(colwidths))
   header_string = ''
-  for idx, header in enumerate(headers):
-    header_string = header_string + header.ljust(colwidths[idx])
+  for col_idx, header in enumerate(headers):
+    header_string = header_string + header.ljust(colwidths[col_idx])
   print(header_string)
   print('*'*sum(colwidths))
 
   for row in rows:
     row_string = ''
-    for idx, col_item in enumerate(row):
-      row_string = row_string + col_item.ljust(colwidths[idx])
+    for col_idx, col_item in enumerate(row):
+      row_string = row_string + col_item.ljust(colwidths[col_idx])
     print(row_string)
+
 
 @functools.lru_cache
 def get_or_create_dumpbin_exe_path():
+  """Find or create dumpbin MS Developer Tool on machine.
+
+  This function is wrapped in a memoize decorator for efficiency.
+  To find dumpbin.exe, we need another tool vshwere.exe to locate MS Visual Studio
+  on user's machine. If vswhere.exe isn't found in an expected path, we download
+  it on the fly. Memoization ensures that this happens just once no matter how many
+  times this function is invoked.
+  Raises:
+      ValueError: If we failed to locate dumpbin.exe on user's machine.
+
+  Returns:
+      (str): Path to dumpbin.exe VS Developer tool.
+  """
   tempdir = tempfile.gettempdir()
   vswhere_tempfile_path = os.path.join(tempdir, 'vswhere.exe')
+  # Only download if the tool isn't already in temp directory.
   if not os.path.exists(vswhere_tempfile_path):
     # Download vswhere tool to determine the install location of Visual Studio on machine.
     utils.download_file('https://github.com/microsoft/vswhere/releases/download/2.8.4/vswhere.exe',
                         vswhere_tempfile_path)
 
+  # If user has multiple versions of Visual Studio, use the latest version.
   output = utils.run_command([vswhere_tempfile_path, '-latest', '-property', 'installationPath'],
                              capture_output=True, print_cmd=False)
 
   msvc_dir = os.path.join(output.stdout.replace('\n', ''), 'VC', 'Tools', 'MSVC')
+  # At this level, there is a single version directory which can have any name.
   version_dir = os.listdir(msvc_dir)[0]
 
   # Try to locate dumpbin exe in all possible directories. x64 is preferred.
@@ -148,10 +198,25 @@ def get_or_create_dumpbin_exe_path():
 
 
 def get_msvc_runtime_linkage_re_pattern():
+  """Regex pattern for identifying linked msvc runtime libraries
+  For efficiency, call this function once and use the compiled regex in any subsequent calls.
+  """
   return re.compile('.*/DEFAULTLIB:(\w*)')
 
 
 def inspect_msvc_runtime_linkage(lib, dumpbin_exe_path=None):
+  """Find the MSVC runtime libraries used when building the specified library.
+  Figure out if libraries are using static(/MT or /MTd) or dynamic(/MD or /MDd).
+
+  Args:
+      lib (str): Path to a library file on disk.
+      dumpbin_exe_path (str, optional): Path to MS Developer tool dumpbin.exe.
+                                        If its not specified, we make our best effort
+                                        in automatically finding one. Defaults to None.
+
+  Returns:
+      (str): Output from dumpbin tool.
+  """
   if dumpbin_exe_path is None:
     dumpbin_exe_path = get_or_create_dumpbin_exe_path()
 
@@ -164,6 +229,19 @@ def inspect_msvc_runtime_linkage(lib, dumpbin_exe_path=None):
 
 
 def summarize_msvc_runtime_linkage(verbose_data, re_pattern=None):
+  """Collate output from msvc runtime linkage inspection.
+
+  Args:
+      verbose_data (str): Output from msvc runtime linkage inspection.
+      re_pattern (re.Pattern, optional): Pre-compiled regex pattern to use in identifying
+                                         msvc runtime library. If you are providing your own,
+                                         make sure that you are matching with exactly one group
+                                         in your regex which is the library. Defaults to None.
+
+  Returns:
+      (str): MSVC Runtime library used in building specified library.
+             'N.A' if the function failed to identify uniquely.
+  """
   if re_pattern is None:
     re_pattern = get_msvc_runtime_linkage_re_pattern()
   runtime_libs = set()
@@ -179,10 +257,24 @@ def summarize_msvc_runtime_linkage(verbose_data, re_pattern=None):
 
 
 def get_arch_re_pattern_windows():
+  """Regex pattern for identifying cpu architecture on windows(dumpbin output).
+  For efficiency, call this function once and use the compiled regex in any subsequent calls.
+  """
   return re.compile('.* machine \((\w*)\)')
 
 
 def inspect_arch_windows(lib, dumpbin_exe_path=None):
+  """Find the CPU architecture for the specified library.
+
+  Args:
+      lib (str): Path to a library file on disk.
+      dumpbin_exe_path (str, optional): Path to MS Developer tool dumpbin.exe.
+                                        If its not specified, we make our best effort
+                                        in automatically finding one. Defaults to None.
+
+  Returns:
+      (str): Output from dumpbin tool.
+  """
   if not utils.is_windows_os():
     print("ERROR: inspect_arch_windows function can only be called on windows. Exiting ")
     sys.exit(1)
@@ -198,6 +290,19 @@ def inspect_arch_windows(lib, dumpbin_exe_path=None):
 
 
 def summarize_arch_windows(verbose_data, re_pattern=None):
+  """Collate/summarize output from cpu architecture inspection.
+
+  Args:
+      verbose_data (str): Output from cpu architecture inspection.
+      re_pattern (re.Pattern, optional): Pre-compiled regex pattern to use in identifying
+                                         msvc runtime library. If you are providing your own,
+                                         make sure that you are matching with exactly one group
+                                         in your regex which is the library. Defaults to None.
+
+  Returns:
+      (str): CPU architecture. (Eg: 'x64', 'x86',..)
+             'N.A' if the function failed to identify uniquely.
+  """
   if re_pattern is None:
     re_pattern = get_arch_re_pattern_windows()
   archs = set()
@@ -206,14 +311,28 @@ def summarize_arch_windows(verbose_data, re_pattern=None):
     if match:
         arch = match.groups()[0]
         archs.add(arch)
+  # If there is a mix of cpu architectures in output, we just return 'N.A'
   if len(archs)!=1:
       return 'N.A'
   return archs.pop()
 
+
 def get_arch_re_pattern_linux():
-    return re.compile('architecture: (\w*), \w*')
+  """Regex pattern for identifying cpu architecture on linux(objdump output).
+  For efficiency, call this function once and use the compiled regex in any subsequent calls.
+  """
+  return re.compile('architecture: (\w*), \w*')
+
 
 def inspect_arch_linux(lib):
+  """Find the CPU architecture for the specified library.
+
+  Args:
+      lib (str): Path to a library file on disk.
+
+  Returns:
+      (str): Filtered output from objdump tool.
+  """
   if not utils.is_linux_os():
     print("ERROR: inspect_arch_linux function can only be called on linux. Exiting ")
     sys.exit(1)
@@ -224,7 +343,21 @@ def inspect_arch_linux(lib):
       return
   return output.decode('utf-8')
 
+
 def summarize_arch_linux(verbose_data, re_pattern=None):
+  """Collate/summarize output from cpu architecture inspection on linux.
+
+  Args:
+      verbose_data (str): Output from cpu architecture inspection.
+      re_pattern (re.Pattern, optional): Pre-compiled regex pattern to use in identifying
+                                         msvc runtime library. If you are providing your own,
+                                         make sure that you are matching with exactly one group
+                                         in your regex which is the library. Defaults to None.
+
+  Returns:
+      (str): CPU architecture. (Eg: 'x64', 'x86',..)
+             'N.A' if the function failed to identify uniquely.
+  """
   if re_pattern is None:
     re_pattern = get_arch_re_pattern_linux()
   lines = verbose_data.splitlines()
@@ -243,10 +376,23 @@ def summarize_arch_linux(verbose_data, re_pattern=None):
     return 'N.A'
   return archs.pop()
 
+
 def get_arch_re_pattern_mac():
-    return re.compile('.* is architecture: (\w*)')
+  """Regex pattern for identifying cpu architecture on mac(lipo output).
+  For efficiency, call this function once and use the compiled regex in any subsequent calls.
+  """
+  return re.compile('.* is architecture: (\w*)')
+
 
 def inspect_arch_mac(lib):
+  """Find the CPU architecture for the specified library.
+
+  Args:
+      lib (str): Path to a library file on disk.
+
+  Returns:
+      (str): Output from lipo tool.
+  """
   if not utils.is_mac_os():
     print("ERROR: inspect_arch_mac function can only be called on macs. Exiting ")
     sys.exit(1)
@@ -254,7 +400,22 @@ def inspect_arch_mac(lib):
   output = utils.run_command(['lipo', '-info', lib], capture_output=True, print_cmd=False)
   return output.stdout
 
+
 def summarize_arch_mac(verbose_data, re_pattern=None):
+  """Collate/summarize output from cpu architecture inspection on mac.
+
+  Args:
+      verbose_data (str): Output from cpu architecture inspection.
+      re_pattern (re.Pattern, optional): Pre-compiled regex pattern to use in identifying
+                                         msvc runtime library. If you are providing your own,
+                                         make sure that you are matching with exactly one group
+                                         in your regex which is the library. Defaults to None.
+
+  Returns:
+      (str): CPU architecture. (Eg: 'x64', 'x86',..)
+             'N.A' if the function failed to identify uniquely.
+  """
+
   if re_pattern is None:
     re_pattern = get_arch_re_pattern_mac()
 
@@ -263,10 +424,12 @@ def summarize_arch_mac(verbose_data, re_pattern=None):
     return 'N.A'
   return match.groups()[0]
 
+
 def main():
   args = parse_cmdline_args()
 
   summary_headers = ['Library', 'Architecture']
+  # Setup platform specific functions
   if utils.is_linux_os():
     arch_pattern = get_arch_re_pattern_linux()
     inspect_arch_function = inspect_arch_linux
@@ -290,10 +453,10 @@ def main():
   else:
     raise ValueError("Unsupported desktop OS. Can be either Mac, Linux or Windows.")
 
-  # We technically dont use regex or glob filters but we still cover the simplest
-  # and most frequently used symbol * just incase. Avoiding regex for speed and
-  # convenience (users can easily forget quotes around * and that expands to
-  # all files in current directory)
+  # We technically dont support full blown regex or glob filters but still cover
+  # the simplest and most frequently used symbol *, just incase. Avoiding
+  # regex for speed and convenience (users can easily forget quotes around
+  # and that expands to # all files in current directory).
   libs = get_libraries_to_inspect(args.libraries,
                                   args.library_filter.replace('*', ''))
   all_libs_info = []
@@ -325,12 +488,9 @@ def main():
         libinfo.append('N.A')
     all_libs_info.append(libinfo)
 
+  # Sort libraries info based on library names.
   all_libs_info.sort(key=lambda x:x[0])
   print_summary_table(summary_headers, all_libs_info)
-
-  if args.cleanup:
-    if utils.is_windows_os():
-      os.remove(dumpbin)
 
 
 def parse_cmdline_args():
@@ -347,8 +507,6 @@ def parse_cmdline_args():
                       help='Print full library paths in summary.')
   parser.add_argument('--verbose', action='store_true',
                       help='Print all relevant output as it is (before summarizing).')
-  parser.add_argument('--cleanup', action='store_true',
-                      help='Cleanup any temporary data created/downloaded')
   args = parser.parse_args()
   return args
 
