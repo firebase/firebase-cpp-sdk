@@ -12,8 +12,8 @@ on:
       downloadPreviousRun:
         description: 'previous run # to test against'
       runIntegrationTests:
-        description: 'run integration tests against SDK? (0 to disable)'
-        default: 1
+        description: 'run integration tests against SDK?'
+        default: 0
 
 env:
   # Packaging prerequisites
