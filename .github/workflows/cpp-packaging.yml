@@ -11,6 +11,9 @@ on:
         description: 'public version # to test against'
       downloadPreviousRun:
         description: 'previous run # to test against'
+      runIntegrationTests:
+        description: 'run integration tests against SDK? (0 to disable)'
+        default: 1
 
 env:
   # Packaging prerequisites
@@ -220,7 +223,7 @@ jobs:
           build_type: "Debug"
         - os: ubuntu-latest
           linkage: "dynamic"
-          
+
     steps:
       - uses: actions/checkout@v2
         with:
@@ -424,7 +427,7 @@ jobs:
         with:
           name: firebase_cpp_sdk
           path: firebase-cpp-sdk-final
-          
+
   merge_packages:
     name: final-merge-packages
     runs-on: ubuntu-latest
@@ -503,22 +506,60 @@ jobs:
           firebase-cpp-sdk-android-c++-package
         failOnError: false
 
-  run_integration_tests:
-    name: run-integration-tests
+  tests:
     needs: [merge_packages, download_sdk_package]
-    if: always()
-    runs-on: ubuntu-latest
+    if: github.event.inputs.runIntegrationTests != 0 && !cancelled()
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        target_platform: [Desktop, Android, iOS]
+        exclude:
+          - os: ubuntu-latest
+            target_platform: iOS
+          - os: windows-latest
+            target_platform: iOS
+      fail-fast: false
+    env:
+      apis: admob,analytics,auth,database,dynamic_links,firestore,functions,instance_id,messaging,remote_config,storage
+      android_device: flame
+      android_api: 29
+      ios_device: iphone11pro
+      ios_version: 13.3
     steps:
-      - name: download artifact
-        uses: actions/download-artifact@v2
-        with:
-          name: firebase_cpp_sdk
-          path: .
-      - name: List binary SDK files.
-        run: |
-          find . -print
-      - name: fetch integration test source
-        uses: actions/checkout@v2.3.1
-        with:
-          path: src
-          ref: ${{ github.event.inputs.commitIdToPackage }}
+    - name: Checkout repo
+      uses: actions/checkout@v2.3.1
+      with:
+        ref: ${{ github.event.inputs.commitIdToPackage }}
+    - name: Download Firebase C++ SDK
+      uses: actions/download-artifact@v2
+      with:
+        name: firebase_cpp_sdk
+    - name: Setup python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.7'
+    - name: Prepare for integration tests
+      run: |
+        pip install -r scripts/gha/requirements.txt
+        python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+    - name: Build integration tests (and run Desktop tests)
+      run: |
+        python scripts/gha/build_testapps.py --t ${{ env.apis }} --p ${{ matrix.target_platform }} --sdk_dir firebase_cpp_sdk --output_directory ${{ github.workspace }} --execute_desktop_testapp --noadd_timestamp
+
+    # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
+    # Must be run after the Python setup action
+    - name: Set CLOUDSDK_PYTHON (Windows)
+      if: startsWith(matrix.os, 'windows') && !cancelled()
+      run: echo "::set-env name=CLOUDSDK_PYTHON::${{env.pythonLocation}}\python.exe"
+    - name: Install Cloud SDK
+      if: ${{ !cancelled() }}
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+    - name: Upload Desktop Artifacts to GCS
+      if: ${{ !cancelled() }}
+      run: |
+        python scripts/gha/gcs_uploader.py --testapp_dir testapps --key_file scripts/gha-encrypted/gcs_key_file.json
+    - name: Run mobile integration tests
+      if: matrix.target_platform != 'Desktop' && !cancelled()
+      run: |
+        python scripts/gha/test_lab.py --android_model ${{ env.android_device }} --android_api ${{ env.android_api }} --ios_model ${{ env.ios_device }} --ios_version ${{ env.ios_version }} --testapp_dir testapps --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
