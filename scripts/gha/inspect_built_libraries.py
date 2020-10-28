@@ -207,7 +207,12 @@ def main():
   else:
     raise ValueError("Unsupported desktop OS. Can be either Mac, Linux or Windows.")
 
-  libs = get_libraries_to_inspect(args.libraries, args.library_filter)
+  # We technically dont use regex or glob filters but we still cover the simplest
+  # and most frequently used symbol * just incase. Avoiding regex for speed and
+  # convenience (users can easily forget quotes around * and that expands to
+  # all files in current directory)
+  libs = get_libraries_to_inspect(args.libraries,
+                                  args.library_filter.replace('*', ''))
   all_libs_info = []
   for lib in libs:
     libname = os.path.basename(lib) if not args.print_full_paths else lib
