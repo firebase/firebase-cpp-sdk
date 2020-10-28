@@ -38,6 +38,8 @@ enum MessagingFn {
   kMessagingFnRequestPermission,
   kMessagingFnSubscribe,
   kMessagingFnUnsubscribe,
+  kMessagingFnGetToken,
+  kMessagingFnDeleteToken,
   kMessagingFnCount
 };
 

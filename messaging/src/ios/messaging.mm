@@ -767,6 +767,56 @@ void SetTokenRegistrationOnInitEnabled(bool enable) {
   }
 }
 
+Future<std::string> GetToken() {
+  FIREBASE_ASSERT_RETURN(GetTokenLastResult(), internal::IsInitialized());
+
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  SafeFutureHandle<std::string> handle =
+      api->SafeAlloc<std::string>(kMessagingFnGetToken);
+
+  [[FIRMessaging messaging] tokenWithCompletion:^(NSString *_Nullable token,
+                                           NSError *_Nullable error) {
+    if (error) {
+      api->Complete(handle, kErrorUnknown,
+                    util::NSStringToString(error.localizedDescription).c_str());
+    } else {
+      api->CompleteWithResult(handle, kErrorNone,
+                              "", util::NSStringToString(token));
+    }
+  }];
+
+  return MakeFuture(api, handle);
+}
+
+Future<std::string> GetTokenLastResult() {
+  FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  return static_cast<const Future<std::string>&>(
+      api->LastResult(kMessagingFnGetToken));
+}
+
+Future<void> DeleteToken() {
+  FIREBASE_ASSERT_RETURN(DeleteTokenLastResult(), internal::IsInitialized());
+
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnDeleteToken);
+
+  [[FIRMessaging messaging] deleteTokenWithCompletion:^(NSError *_Nullable error) {
+    api->Complete(handle,
+                  error == nullptr ? kErrorNone : kErrorUnknown,
+                  util::NSStringToString(error.localizedDescription).c_str());
+  }];
+
+  return MakeFuture(api, handle);
+}
+
+Future<void> DeleteTokenLastResult() {
+  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  return static_cast<const Future<void>&>(
+      api->LastResult(kMessagingFnDeleteToken));
+}
+
 }  // namespace messaging
 }  // namespace firebase
 

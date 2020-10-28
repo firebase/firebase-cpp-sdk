@@ -538,7 +538,7 @@ Future<void> RequestPermission();
 
 /// @brief Gets the result of the most recent call to RequestPermission();
 ///
-/// @returns Result of the most recent call to RequestPermission().
+/// @return Result of the most recent call to RequestPermission().
 Future<void> RequestPermissionLastResult();
 
 /// @brief Subscribe to receive all messages to the specified topic.
@@ -554,7 +554,7 @@ Future<void> Subscribe(const char* topic);
 
 /// @brief Gets the result of the most recent call to Unsubscribe();
 ///
-/// @returns Result of the most recent call to Unsubscribe().
+/// @return Result of the most recent call to Unsubscribe().
 Future<void> SubscribeLastResult();
 
 /// @brief Unsubscribe from a topic.
@@ -570,7 +570,7 @@ Future<void> Unsubscribe(const char* topic);
 
 /// @brief Gets the result of the most recent call to Unsubscribe();
 ///
-/// @returns Result of the most recent call to Unsubscribe().
+/// @return Result of the most recent call to Unsubscribe().
 Future<void> UnsubscribeLastResult();
 
 /// Determines whether Firebase Cloud Messaging exports message delivery metrics
@@ -600,6 +600,32 @@ bool DeliveryMetricsExportToBigQueryEnabled();
 /// @param[in] enable Whether Firebase Cloud Messaging should export message
 ///            delivery metrics to BigQuery.
 void SetDeliveryMetricsExportToBigQuery(bool enable);
+
+/// @brief This creates a Firebase Installations ID, if one does not exist, and
+/// sends information about the application and the device where it's running to
+/// the Firebase backend.
+///
+/// @return A future with the token.
+Future<std::string> GetToken();
+
+/// @brief Gets the result of the most recent call to GetToken();
+///
+/// @return Result of the most recent call to GetToken().
+Future<std::string> GetTokenLastResult();
+
+/// @brief Deletes the default token for this Firebase project.
+///
+/// Note that this does not delete the Firebase Installations ID that may have
+/// been created when generating the token. See Installations.Delete() for
+/// deleting that.
+///
+/// @return A future that completes when the token is deleted.
+Future<void> DeleteToken();
+
+/// @brief Gets the result of the most recent call to DeleteToken();
+///
+/// @return Result of the most recent call to DeleteToken().
+Future<void> DeleteTokenLastResult();
 
 class PollableListenerImpl;
 

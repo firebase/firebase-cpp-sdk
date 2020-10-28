@@ -128,7 +128,7 @@ static const char* kMessagingNotInitializedError = "Messaging not initialized.";
 
 static void HandlePendingSubscriptions();
 
-static void InstanceIdGetToken();
+static void InstallationsGetToken();
 
 // Condition variable / mutex pair used to control MessageProcessingThread()
 // polling.  This allows another thread to interrupt MessageProcessingThread()
@@ -157,7 +157,9 @@ static bool g_intent_message_fired = false;
     X(DeliveryMetricsExportToBigQueryEnabled,                                  \
       "deliveryMetricsExportToBigQueryEnabled", "()Z"),                        \
     X(SetDeliveryMetricsExportToBigQuery,                                      \
-      "setDeliveryMetricsExportToBigQuery", "(Z)V")
+      "setDeliveryMetricsExportToBigQuery", "(Z)V"),                           \
+    X(GetToken, "getToken", "()Lcom/google/android/gms/tasks/Task;"),          \
+    X(DeleteToken, "deleteToken", "()Lcom/google/android/gms/tasks/Task;")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(firebase_messaging, FIREBASE_MESSAGING_METHODS);
 METHOD_LOOKUP_DEFINITION(firebase_messaging,
@@ -653,7 +655,7 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
   // so it should be GDPR compliant.
   if (IsTokenRegistrationOnInitEnabled()) {
     // Request a registration token.
-    InstanceIdGetToken();
+    InstallationsGetToken();
   }
 
   LogInfo("Firebase Cloud Messaging API Initialized");
@@ -708,7 +710,7 @@ void Terminate() {
 
 // Start a service which will communicate with the Firebase Cloud Messaging
 // server to generate a registration token for the app.
-static void InstanceIdGetToken() {
+static void InstallationsGetToken() {
   FIREBASE_ASSERT_MESSAGE_RETURN_VOID(internal::IsInitialized(),
                                       kMessagingNotInitializedError);
   JNIEnv* env = g_app->GetJNIEnv();
@@ -823,6 +825,37 @@ static void HandlePendingSubscriptions() {
   }
 }
 
+static void CompleteVoidCallback(JNIEnv* env, jobject result,
+                                 util::FutureResult result_code,
+                                 const char* status_message,
+                                 void* callback_data) {
+  FutureHandleId future_id =
+                reinterpret_cast<FutureHandleId>(callback_data);
+  FutureHandle handle(future_id);
+  Error error =
+      (result_code == util::kFutureResultSuccess) ? kErrorNone : kErrorUnknown;
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  api->Complete(handle, error, status_message);
+  if (result) env->DeleteLocalRef(result);
+}
+
+static void CompleteStringCallback(JNIEnv* env, jobject result,
+                                   util::FutureResult result_code,
+                                   const char* status_message,
+                                   void* callback_data) {
+  bool success = (result_code == util::kFutureResultSuccess);
+  std::string result_value = "";
+  if (success && result) {
+    result_value = util::JniStringToString(env, result);
+  }
+  SafeFutureHandle<std::string>* handle =
+      reinterpret_cast<SafeFutureHandle<std::string>*>(callback_data);
+  Error error = success ? kErrorNone : kErrorUnknown;
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  api->CompleteWithResult(*handle, error, status_message, result_value);
+  delete handle;
+}
+
 static const char kErrorMessageNoRegistrationToken[] =
     "Cannot update subscription when SetTokenRegistrationOnInitEnabled is set "
     "to false.";
@@ -935,7 +968,7 @@ void SetTokenRegistrationOnInitEnabled(bool enabled) {
     // doesn't raise the event when flipping the bit to true, so we watch for
     // that here.
     if (!was_enabled && IsTokenRegistrationOnInitEnabled()) {
-      InstanceIdGetToken();
+      InstallationsGetToken();
     }
 
   } else {
@@ -956,6 +989,75 @@ bool IsTokenRegistrationOnInitEnabled() {
       firebase_messaging::GetMethodId(firebase_messaging::kIsAutoInitEnabled));
   assert(env->ExceptionCheck() == false);
   return static_cast<bool>(result);
+}
+
+Future<std::string> GetToken() {
+  FIREBASE_ASSERT_MESSAGE_RETURN(Future<std::string>(),
+                                 internal::IsInitialized(),
+                                 kMessagingNotInitializedError);
+  MutexLock lock(*g_registration_token_mutex);
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  SafeFutureHandle<std::string> handle =
+      api->SafeAlloc<std::string>(kMessagingFnGetToken);
+
+  JNIEnv* env = g_app->GetJNIEnv();
+  jobject task = env->CallObjectMethod(
+      g_firebase_messaging,
+      firebase_messaging::GetMethodId(firebase_messaging::kGetToken));
+
+  std::string error = util::GetAndClearExceptionMessage(env);
+  if (error.empty()) {
+    util::RegisterCallbackOnTask(
+        env, task, CompleteStringCallback,
+        reinterpret_cast<void*>(new SafeFutureHandle<std::string>(handle)),
+        kApiIdentifier);
+  } else {
+    api->CompleteWithResult(handle, -1, error.c_str(), std::string());
+  }
+  env->DeleteLocalRef(task);
+  util::CheckAndClearJniExceptions(env);
+
+  return MakeFuture(api, handle);
+}
+
+Future<std::string> GetTokenLastResult() {
+  FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  return static_cast<const Future<std::string>&>(
+      api->LastResult(kMessagingFnGetToken));
+}
+
+Future<void> DeleteToken() {
+  FIREBASE_ASSERT_MESSAGE_RETURN(Future<void>(), internal::IsInitialized(),
+                                 kMessagingNotInitializedError);
+  MutexLock lock(*g_registration_token_mutex);
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnDeleteToken);
+
+  JNIEnv* env = g_app->GetJNIEnv();
+  jobject task = env->CallObjectMethod(
+      g_firebase_messaging,
+      firebase_messaging::GetMethodId(firebase_messaging::kDeleteToken));
+  std::string error = util::GetAndClearExceptionMessage(env);
+  if (error.empty()) {
+    util::RegisterCallbackOnTask(
+        env, task, CompleteVoidCallback,
+        reinterpret_cast<void*>(handle.get().id()),
+        kApiIdentifier);
+  } else {
+    api->Complete(handle, -1, error.c_str());
+  }
+  env->DeleteLocalRef(task);
+  util::CheckAndClearJniExceptions(env);
+
+  return MakeFuture(api, handle);
+}
+
+Future<void> DeleteTokenLastResult() {
+  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  return static_cast<const Future<void>&>(
+      api->LastResult(kMessagingFnDeleteToken));
 }
 
 }  // namespace messaging

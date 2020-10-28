@@ -48,21 +48,13 @@ class MessagingTestListener : public Listener {
   void OnMessage(const Message& message) override;
   void OnTokenReceived(const char* token) override;
 
-  const Message& GetMessage() const {
-    return message_;
-  }
+  const Message& GetMessage() const { return message_; }
 
-  const std::string& GetToken() const {
-    return token_;
-  }
+  const std::string& GetToken() const { return token_; }
 
-  int GetOnTokenReceivedCount() const {
-    return on_token_received_count_;
-  }
+  int GetOnTokenReceivedCount() const { return on_token_received_count_; }
 
-  int GetOnMessageReceivedCount() const {
-    return on_message_received_count_;
-  }
+  int GetOnMessageReceivedCount() const { return on_message_received_count_; }
 
  private:
   Message message_;
@@ -94,14 +86,14 @@ class MessagingTest : public ::testing::Test {
                 ::testing::Eq(reporter_.getExpectations()));
   }
 
-  void AddExpectationAndroid(
-      const char* fake, std::initializer_list<std::string> args) {
-    reporter_.addExpectation(
-        fake, "", firebase::testing::cppsdk::kAndroid, args);
+  void AddExpectationAndroid(const char* fake,
+                             std::initializer_list<std::string> args) {
+    reporter_.addExpectation(fake, "", firebase::testing::cppsdk::kAndroid,
+                             args);
   }
 
-  void AddExpectationApple(
-      const char* fake, std::initializer_list<std::string> args) {
+  void AddExpectationApple(const char* fake,
+                           std::initializer_list<std::string> args) {
     reporter_.addExpectation(fake, "", firebase::testing::cppsdk::kIos, args);
   }
 
@@ -156,10 +148,11 @@ TEST_F(MessagingTest, TestSubscribeBeforeRegistration) {
   OnTokenReceived("my_token");
   SleepMessagingTest(1);
   AddExpectationAndroid("FirebaseMessaging.subscribeToTopic",
-                {"$invalid", "subscribe_topic1", "subscribe_topic2"});
+                        {"$invalid", "subscribe_topic1", "subscribe_topic2"});
 
-  AddExpectationAndroid("FirebaseMessaging.unsubscribeFromTopic",
-                {"$invalid", "unsubscribe_topic1", "unsubscribe_topic2"});
+  AddExpectationAndroid(
+      "FirebaseMessaging.unsubscribeFromTopic",
+      {"$invalid", "unsubscribe_topic1", "unsubscribe_topic2"});
 }
 
 TEST_F(MessagingTest, TestSubscribeAfterRegistration) {
@@ -362,6 +355,18 @@ TEST_F(MessagingTest, TestOnSendError) {
   EXPECT_THAT(listener_.GetMessage().error, StrEq("my_exception"));
 }
 
+TEST_F(MessagingTest, TestGetToken) {
+  Future<std::string> result = GetToken();
+  SleepMessagingTest(1);
+  EXPECT_THAT(*result.result(), StrEq("StubToken"));
+  AddExpectationAndroid("FirebaseMessaging.getToken", {});
+}
+
+TEST_F(MessagingTest, TestDeleteToken) {
+  Future<void> result = DeleteToken();
+  SleepMessagingTest(1);
+  AddExpectationAndroid("FirebaseMessaging.deleteToken", {});
+}
 
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
