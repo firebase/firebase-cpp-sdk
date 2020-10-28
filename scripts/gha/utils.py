@@ -26,7 +26,8 @@ import subprocess
 import os
 import urllib.request
 
-def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False):
+def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False,
+                print_cmd=True):
  """Run a command.
 
  Args:
@@ -37,6 +38,7 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False)
   cwd (str): Directory to execute the command from.
   check (bool): Raises a CalledProcessError if True and the command errored out
   as_root (bool): Run command as root user with admin priveleges (supported on mac and linux).
+  print_cmd (bool): Print the command we are running to stdout.
 
  Raises:
   (subprocess.CalledProcessError): If command errored out and `text=True`
@@ -49,7 +51,8 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False)
   cmd.insert(0, 'sudo')
 
  cmd_string = ' '.join(cmd)
- print('Running cmd: {0}\n'.format(cmd_string))
+ if print_cmd:
+  print('Running cmd: {0}\n'.format(cmd_string))
  # If capture_output is requested, we also set text=True to store the returned value of the
  # command as a string instead of bytes object
  return subprocess.run(cmd, capture_output=capture_output, cwd=cwd, check=check, text=capture_output)
