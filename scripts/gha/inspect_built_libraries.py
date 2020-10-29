@@ -170,7 +170,8 @@ def get_or_create_dumpbin_exe_path():
       (str): Path to dumpbin.exe VS Developer tool.
   """
   tempdir = tempfile.gettempdir()
-  vswhere_tempfile_path = os.path.join(tempdir, 'vswhere.exe')
+  # vswhere_tempfile_path = os.path.join(tempdir, 'vswhere.exe')
+  vswhere_tempfile_path = os.path.join(os.getcwd(), 'vswhere.exe')
   # Only download if the tool isn't already in temp directory.
   if not os.path.exists(vswhere_tempfile_path):
     # Download vswhere tool to determine the install location of Visual Studio on machine.
