@@ -137,10 +137,6 @@ def get_vcpkg_triplet(arch, msvc_runtime_library='static'):
     triplet_name.append('osx')
   elif is_linux_os():
     triplet_name.append('linux')
-    # Special case for x86-linux-dynamic
-    if arch == 'x86':
-     triplet_name.append('dynamic')
-     
 
   triplet_name = '-'.join(triplet_name)
   print("Using vcpkg triplet: {0}".format(triplet_name))
