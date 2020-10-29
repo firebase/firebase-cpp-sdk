@@ -276,8 +276,8 @@ struct Message {
   /// prefixes are reserved for internal use.
   std::map<std::string, std::string> data;
 
-  /// Binary payload. This field is currently unused.
-  std::string raw_data;
+  /// Binary payload.
+  std::vector<unsigned char> raw_data;
 
   /// Message ID. This can be specified by sender. Internally a hash of the
   /// message ID and other elements will be used for storage. The ID must be

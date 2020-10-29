@@ -89,6 +89,7 @@ static NSString *const kGcmPrefix = @"gcm.";
 static NSString *const kFrom = @"from";
 static NSString *const kTo = @"to";
 static NSString *const kCollapseKey = @"collapse_key";
+static NSString *const kRawData = @"rawData";
 static NSString *const kMessageID = @"gcm.message_id";
 static NSString *const kMessageType = @"message_type";
 static NSString *const kPriority = @"priority";
@@ -391,6 +392,22 @@ static std::string NSDictionaryGetString(const NSDictionary *dictionary, NSStrin
   return string_value;
 }
 
+
+static std::vector<uint8_t> NSDictionaryGetByteVector(
+    const NSDictionary *dictionary, NSString *key) {
+  std::vector<uint8_t> result;
+  if (dictionary != nil) {
+    id value = [dictionary objectForKey:key];
+    if (value != nil && [value isKindOfClass:[NSData class]]) {
+      NSData *data = (NSData *)value;
+      NSUInteger length = data.length;
+      result.resize(static_cast<size_t>(length));
+      [data getBytes:result.data() length:length];
+    }
+  }
+  return result;
+}
+
 // Query the specified dictionary for a dictionary matching a key, if the key isn't found or
 // the dictionary is nil this returns nil.
 static NSDictionary *NSDictionaryGetDictionary(const NSDictionary *dictionary, NSString *key) {
@@ -418,7 +435,7 @@ static bool IsUnreservedKey(NSString *key) {
   if ([key hasPrefix:kReservedPrefix] || [key hasPrefix:kGcmPrefix]) {
     return false;
   }
-  static NSString *const reserved_keys[] = {kFrom, kTo, kCollapseKey, kMessageID,
+  static NSString *const reserved_keys[] = {kFrom, kTo, kCollapseKey, kRawData, kMessageID,
                                             kMessageType, kPriority, kTimeToLive, kError,
                                             kErrorDescription};
   for (int i = 0; i < FIREBASE_ARRAYSIZE(reserved_keys); ++i) {
@@ -476,6 +493,7 @@ static void NotifyApplicationAndServiceOfMessage(NSDictionary *user_info) {
   message.error = NSDictionaryGetString(user_info, kError);
   message.error_description = NSDictionaryGetString(user_info, kErrorDescription);
   NSDictionaryToStringMap(user_info, &message.data);
+  message.raw_data = NSDictionaryGetByteVector(user_info, kRawData);
   message.notification_opened = g_message_notification_opened;
   message.link = NSDictionaryGetString(user_info, kLink);
   g_message_notification_opened = false;
