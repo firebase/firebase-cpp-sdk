@@ -555,7 +555,6 @@ jobs:
       shell: bash
       run: |
         export NDK_ROOT=/tmp/android-ndk-r16b
-        export ANDROID_NDK_HOME=/tmp/android-ndk-r16b
         python scripts/gha/build_testapps.py --t ${{ env.apis }} --p ${{ matrix.target_platform }} --sdk_dir firebase_cpp_sdk --output_directory ${{ github.workspace }} --execute_desktop_testapp --noadd_timestamp
 
     # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
