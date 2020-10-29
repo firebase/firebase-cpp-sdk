@@ -264,9 +264,11 @@ elseif(IOS)
       nanopb
   )
 
-  set_target_properties(firebase_firestore PROPERTIES
-    FRAMEWORK TRUE
-  )
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_firestore PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 cpp_pack_library(firebase_firestore "")

@@ -103,9 +103,11 @@ elseif(IOS)
       FirebaseFunctions
   )
 
-  set_target_properties(firebase_functions PROPERTIES
-    FRAMEWORK TRUE
-  )
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_functions PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 cpp_pack_library(firebase_functions "")

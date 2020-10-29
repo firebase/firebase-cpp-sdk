@@ -90,6 +90,12 @@ jobs:
           find build -name "*.a"
           find build -name "*.so"
 
+      - name: Introspect firebase libraries for cpu arch and msvc runtime.
+        shell: bash
+        run: |
+          python scripts/gha/inspect_built_libraries.py build/
+        continue-on-error: true
+
       - name: Prep crash support (linux)
         # Ensures directory structure is in place to capture core files on Linux.
         if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')

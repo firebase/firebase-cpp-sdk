@@ -67,6 +67,14 @@ option(FIREBASE_CPP_BUILD_PACKAGE
 option(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD
         "When building with Gradle, use the previously built libraries." OFF)
 
+set(FIREBASE_ANDROID_STL "" CACHE STRING "STL implementation to use.")
+if (NOT FIREBASE_ANDROID_STL STREQUAL "")
+  set(ANDROID_STL ${FIREBASE_ANDROID_STL})
+endif()
+
+set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
+                                 "Format to output, 'frameworks' or 'libraries'")
+
 # Define this directory to be the root of the C++ SDK, which the libraries can
 # then refer to.
 set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
@@ -75,13 +83,12 @@ project (firebase NONE)
 enable_language(C)
 enable_language(CXX)
 
-set(compiler_cache_program ccache)
-
-find_program(compilercache_program ${compiler_cache_program})
-if(compilercache_program)
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${compiler_cache_program}")
-  set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK "${compiler_cache_program}")
-  message( STATUS "Found compiler cache program : ${compiler_cache_program}" )
+if(NOT DEFINED CMAKE_CXX_COMPILER_LAUNCHER)
+  find_program(CCACHE_PROGRAM ccache)
+  if (CCACHE_PROGRAM)
+    set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}" CACHE STRING "Compiler launcher for C")
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}" CACHE STRING "Compiler launcher for CXX")
+  endif()
 endif()
 
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/cmake)

@@ -123,9 +123,11 @@ elseif(IOS)
       FirebaseMessaging
   )
 
-  set_target_properties(firebase_messaging PROPERTIES
-    FRAMEWORK TRUE
-  )
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_messaging PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

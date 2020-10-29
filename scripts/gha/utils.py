@@ -26,7 +26,8 @@ import subprocess
 import os
 import urllib.request
 
-def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False):
+def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False,
+                print_cmd=True):
  """Run a command.
 
  Args:
@@ -37,6 +38,7 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False)
   cwd (str): Directory to execute the command from.
   check (bool): Raises a CalledProcessError if True and the command errored out
   as_root (bool): Run command as root user with admin priveleges (supported on mac and linux).
+  print_cmd (bool): Print the command we are running to stdout.
 
  Raises:
   (subprocess.CalledProcessError): If command errored out and `text=True`
@@ -47,10 +49,11 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False)
  """
 
  if as_root and (is_mac_os() or is_linux_os()):
-  cmd.insert(0, 'sudo')
+   cmd.insert(0, 'sudo')
 
  cmd_string = ' '.join(cmd)
- print('Running cmd: {0}\n'.format(cmd_string))
+ if print_cmd:
+  print('Running cmd: {0}\n'.format(cmd_string))
  # If capture_output is requested, we also set text=True to store the returned value of the
  # command as a string instead of bytes object
  return subprocess.run(cmd, capture_output=capture_output, cwd=cwd,
@@ -127,8 +130,6 @@ def get_vcpkg_triplet(arch, msvc_runtime_library='static'):
   triplet_name = [arch]
   if is_windows_os():
     triplet_name.append('windows')
-    # For windows, default is to build dynamic. Hence we specify static.
-    # For mac/linux, default is to build static libraries
     triplet_name.append('static')
     if msvc_runtime_library == 'dynamic':
       triplet_name.append('md')
@@ -136,6 +137,10 @@ def get_vcpkg_triplet(arch, msvc_runtime_library='static'):
     triplet_name.append('osx')
   elif is_linux_os():
     triplet_name.append('linux')
+    # Special case for x86-linux-dynamic
+    if arch == 'x86':
+     triplet_name.append('dynamic')
+     
 
   triplet_name = '-'.join(triplet_name)
   print("Using vcpkg triplet: {0}".format(triplet_name))
