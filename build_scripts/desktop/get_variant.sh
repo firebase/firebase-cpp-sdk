@@ -29,7 +29,7 @@ os=
 arch=
 arch_win=
 debugmode=Release
-msvc_crt_linkage=MD
+msvc_runtime_library=MD
 vs=VS2015
 stl=c++
 
@@ -99,16 +99,16 @@ for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
 	;;
 	# Windows OS framework linkages
 	md)
-	    msvc_crt_linkage=MD
+	    msvc_runtime_library=MD
 	;;
 	dynamic)
-	    msvc_crt_linkage=MD
+	    msvc_runtime_library=MD
 	;;
 	mt)
-	    msvc_crt_linkage=MT
+	    msvc_runtime_library=MT
 	;;
 	static)
-	    msvc_crt_linkage=MT
+	    msvc_runtime_library=MT
 	    ;;
 	# Debug/Release compilation mode
 	release)
@@ -161,7 +161,7 @@ case ${os} in
 	    echo "Invalid architecture for Windows: ${arch}" 1>&2
 	    exit 1
 	fi
-	echo -n "${vs}/${msvc_crt_linkage}/${arch_win}/${debugmode}"
+	echo -n "${vs}/${msvc_runtime_library}/${arch_win}/${debugmode}"
     ;;
     ios)
 	if [[ -z "${arch}" ]]; then
