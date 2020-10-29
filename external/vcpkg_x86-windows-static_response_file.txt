@@ -1,5 +1,0 @@
-openssl
-protobuf
-zlib
---triplet
-x86-windows-static
