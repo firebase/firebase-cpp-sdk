@@ -37,7 +37,23 @@ python scripts/gha/build_desktop.py --target firebase_app firebase_auth
 import argparse
 import os
 import utils
+import shutil
+import subprocess
 
+def append_line_to_file(path, line):
+  """Append the given line to the end of the file if it's not already in the file.
+
+  Used to disable specific errors in CMakeLists files if needed.
+
+  Args:
+    path: File to edit.
+    line: String to add to the end of the file.
+  """
+  with open(path, "r") as file:
+    lines = file.readlines()
+  if line not in lines:
+    with open(path, "a") as file:
+      file.write("\n" + line + "\n")
 
 def install_cpp_dependencies_with_vcpkg(arch):
   """Install packages with vcpkg.
@@ -76,7 +92,8 @@ def install_cpp_dependencies_with_vcpkg(arch):
   utils.clean_vcpkg_temp_data()
 
 
-def cmake_configure(build_dir, arch, build_tests=True, config=None):
+def cmake_configure(build_dir, arch,
+                    build_tests=True, config=None, target_format=None):
   """ CMake configure.
 
   If you are seeing problems when running this multiple times,
@@ -88,6 +105,7 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None):
    build_tests (bool): Build cpp unit tests.
    config (str): Release/Debug config.
           If its not specified, cmake's default is used (most likely Debug).
+   target_format (str): If specified, build for this targetformat ('frameworks' or 'libraries').
   """   
   cmd = ['cmake', '-S', '.', '-B', build_dir]
   
@@ -98,7 +116,9 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None):
   if build_tests:
     cmd.append('-DFIREBASE_CPP_BUILD_TESTS=ON')
     cmd.append('-DFIREBASE_FORCE_FAKE_SECURE_STORAGE=ON')
-
+  else:
+    # workaround, absl doesn't build without tests enabled
+    cmd.append('-DBUILD_TESTING=off')
   vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external',
                                            'vcpkg', 'scripts', 
                                            'buildsystems', 'vcpkg.cmake')
@@ -106,9 +126,9 @@ def cmake_configure(build_dir, arch, build_tests=True, config=None):
 
   vcpkg_triplet = utils.get_vcpkg_triplet(arch)
   cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
-  
+  if (target_format):
+    cmd.append('-DFIREBASE_XCODE_TARGET_FORMAT={0}'.format(target_format))
   utils.run_command(cmd)
-
 
 def main():
   args = parse_cmdline_args()
@@ -122,16 +142,32 @@ def main():
   install_cpp_dependencies_with_vcpkg(args.arch)
 
   # CMake configure
-  cmake_configure(args.build_dir, args.arch, args.build_tests, args.config)
+  cmake_configure(args.build_dir, args.arch,
+                  args.build_tests, args.config, args.target_format)
+
+  # Small workaround before build, turn off -Werror=sign-compare for a specific Firestore core lib.
+  if not utils.is_windows_os():
+    append_line_to_file(os.path.join(args.build_dir,
+                                     'external/src/firestore/Firestore/core/CMakeLists.txt'),
+                        'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=sign-compare")')
 
   # CMake build 
   # cmake --build build -j 8 
-  cmd = ['cmake', '--build', args.build_dir, '-j', str(os.cpu_count())] 
+  cmd = ['cmake', '--build', args.build_dir, '-j', str(os.cpu_count()),
+         '--config', args.config] 
   if args.target:
     # Example:  cmake --build build -j 8 --target firebase_app firebase_auth
     cmd.append('--target')
     cmd.extend(args.target)
   utils.run_command(cmd)
+  # Copy libraries from appropriate vcpkg directory to build output
+  # directory for later inclusion.
+  vcpkg_path = ('external/vcpkg/installed/%s/%slib/' %
+                (utils.get_vcpkg_triplet(args.arch),
+                 'debug/' if args.config == 'Debug' else ''))
+  if (os.path.exists(vcpkg_path)):
+    shutil.rmtree('vcpkg-libs', ignore_errors=True)
+    shutil.copytree(vcpkg_path, os.path.join(args.build_dir, 'vcpkg-libs'), )
 
 
 def parse_cmdline_args():
@@ -139,8 +175,9 @@ def parse_cmdline_args():
   parser.add_argument('-a', '--arch', default='x64', help='Platform architecture (x64, x86)')
   parser.add_argument('--build_dir', default='build', help='Output build directory')
   parser.add_argument('--build_tests', action='store_true', help='Build unit tests too')
-  parser.add_argument('--config', help='Release/Debug config')
+  parser.add_argument('--config', default='Release', help='Release/Debug config')
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
+  parser.add_argument('--target_format', default=None, help='(Mac only) whether to output frameworks (default) or libraries.')
   args = parser.parse_args()
   return args
 

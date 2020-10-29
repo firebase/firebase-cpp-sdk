@@ -609,7 +609,11 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
 
     while(controller.bytes_transferred() == 0) 
     {
+#if FIREBASE_PLATFORM_DESKTOP
       ProcessEvents(1);
+#else // FIREBASE_PLATFORM_MOBILE
+      ProcessEvents(500);    
+#endif
     }
     
     // After waiting a moment for the operation to start (above), pause the

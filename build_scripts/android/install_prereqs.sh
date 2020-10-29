@@ -15,9 +15,17 @@ elif [[ $(uname) == "Linux" ]]; then
 else
     platform=windows
     # On Windows, we have an additional dependency for Strings
-    curl -LSs \	    curl -LSs \
-        "https://download.sysinternals.com/files/Strings.zip" \
-         --output Strings.zip
+    set +e
+    # Retry up to 10 times because Curl has a tendency to timeout on
+    # Github runners.
+    for retry in {1..10} error; do
+	if [[ $retry == "error" ]]; then exit 5; fi
+	curl -LSs \
+             "https://download.sysinternals.com/files/Strings.zip" \
+             --output Strings.zip && break
+	sleep 300
+    done
+    set -e
     unzip -q Strings.zip && rm -f Strings.zip
 fi
 
@@ -61,12 +69,18 @@ if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.p
 	    echo "Error, could not run 'curl' to download NDK. Is it in your PATH?"
 	    exit 1
 	fi
-	set -x
-	curl -LSs \
-	     "https://dl.google.com/android/repository/android-ndk-r16b-${platform}-x86_64.zip" \
-	     --output /tmp/android-ndk-r16b.zip
+	set +e
+	# Retry up to 10 times because Curl has a tendency to timeout on
+	# Github runners.
+	for retry in {1..10} error; do
+	    if [[ $retry == "error" ]]; then exit 5; fi
+	    curl -LSs \
+		 "https://dl.google.com/android/repository/android-ndk-r16b-${platform}-x86_64.zip" \
+		 --output /tmp/android-ndk-r16b.zip && break
+	    sleep 300
+	done
+	set -e
 	(cd /tmp && unzip -q android-ndk-r16b.zip && rm -f android-ndk-r16b.zip)
-	set +x
 	echo "NDK r16b has been downloaded into /tmp/android-ndk-r16b"
     fi
 fi

@@ -127,9 +127,11 @@ elseif(IOS)
       FirebaseRemoteConfig
   )
 
-  set_target_properties(firebase_remote_config PROPERTIES
-    FRAMEWORK TRUE
-  )
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_remote_config PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

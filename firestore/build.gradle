@@ -30,6 +30,11 @@ allprojects {
 
 apply plugin: 'com.android.library'
 
+ext {
+  firebaseAndroidStl = System.getenv('FIREBASE_ANDROID_STL')
+  firebaseAndroidStl = firebaseAndroidStl != null ? firebaseAndroidStl : ''
+}
+
 android {
   compileSdkVersion 28
   buildToolsVersion '28.0.3'
@@ -67,7 +72,8 @@ android {
         //           Only include needed project.
         arguments '-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON',
                 '-DFIREBASE_INCLUDE_LIBRARY_DEFAULT=OFF',
-                '-DFIREBASE_INCLUDE_FIRESTORE=ON'
+                '-DFIREBASE_INCLUDE_FIRESTORE=ON',
+		"-DFIREBASE_ANDROID_STL=${firebaseAndroidStl}"
       }
     }
   }
@@ -80,6 +86,7 @@ android {
 dependencies {
   implementation project(':app')
 }
+apply from: "$rootDir/android_build_files/android_abis.gradle"
 apply from: "$rootDir/android_build_files/extract_and_dex.gradle"
 apply from: "$rootDir/android_build_files/generate_proguard.gradle"
 project.afterEvaluate {
