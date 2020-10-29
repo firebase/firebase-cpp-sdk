@@ -182,14 +182,15 @@ def main():
   # Install platform dependent cpp dependencies with vcpkg
   install_cpp_dependencies_with_vcpkg(args.arch, args.msvc_runtime_library)
 
+  # CMake configure
+  cmake_configure(args.build_dir, args.arch, args.msvc_runtime_library,
+                  args.build_tests, args.config, args.target_format)
+
   # Small workaround before build, turn off -Werror=sign-compare for a specific Firestore core lib.
   if not utils.is_windows_os():
     append_line_to_file(os.path.join(args.build_dir,
                                      'external/src/firestore/Firestore/core/CMakeLists.txt'),
-                        'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=sign-compare")')
-  # CMake configure
-  cmake_configure(args.build_dir, args.arch, args.msvc_runtime_library,
-                  args.build_tests, args.config, args.target_format)
+                            'set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=sign-compare")')
 
   # CMake build
   # cmake --build build -j 8
