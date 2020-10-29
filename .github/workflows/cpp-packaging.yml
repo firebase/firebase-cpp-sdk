@@ -550,10 +550,12 @@ jobs:
         pip install -r scripts/gha/requirements.txt
         python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
     - name: Build integration tests (and run Desktop tests)
-      env:
-        NDK_ROOT: '/tmp/android-ndk-r16b'
-        ANDROID_NDK_HOME: '/tmp/android-ndk-r16b'
+      # The set up script for Android will download the NDK here.
+        # Need to export from bash, so that /tmp gets converted on Windows.
+      shell: bash
       run: |
+        export NDK_ROOT=/tmp/android-ndk-r16b
+        export ANDROID_NDK_HOME=/tmp/android-ndk-r16b
         python scripts/gha/build_testapps.py --t ${{ env.apis }} --p ${{ matrix.target_platform }} --sdk_dir firebase_cpp_sdk --output_directory ${{ github.workspace }} --execute_desktop_testapp --noadd_timestamp
 
     # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
