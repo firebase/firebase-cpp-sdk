@@ -127,12 +127,14 @@ if (MSVC)
       $<$<CONFIG:>:/MT>
       $<$<CONFIG:Debug>:/MTd>
       $<$<CONFIG:Release>:/MT>
-    )
+  )
   else()
     add_compile_options(
       $<$<CONFIG:>:/MD>
       $<$<CONFIG:Debug>:/MDd>
       $<$<CONFIG:Release>:/MD>
+  )
+  endif()
 endif()
   
 #if (FIREBASE_CPP_BUILD_TESTS AND MSVC)
