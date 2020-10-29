@@ -121,24 +121,28 @@ set(FIREBASE_GEN_FILE_DIR ${CMAKE_BINARY_DIR}/generated)
 # Directory for any shared scripts.
 set(FIREBASE_SCRIPT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
-if (MSVC AND MSVC_RUNTIME_LIBRARY_STATIC)
-  # Use Multithreaded static runtime libraries for MSVC 
-  # if MSVC_RUNTIME_LIBRARY_STATIC is set.
-  # Default value if nothing is specified is /MD (dll dynamic runtime).
-  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
-  set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+if (MSVC)
+  if (MSVC_RUNTIME_LIBRARY_STATIC)
+    add_compile_options(
+      $<$<CONFIG:>:/MT>
+      $<$<CONFIG:Debug>:/MTd>
+      $<$<CONFIG:Release>:/MT>
+    )
+  else()
+    add_compile_options(
+      $<$<CONFIG:>:/MD>
+      $<$<CONFIG:Debug>:/MDd>
+      $<$<CONFIG:Release>:/MD>
 endif()
   
-if (FIREBASE_CPP_BUILD_TESTS AND MSVC)
+#if (FIREBASE_CPP_BUILD_TESTS AND MSVC)
   # GoogleTest requires MSVC to compile with the static version of the runtime
   # library, so define the appropriate runtime flag, before adding libraries.
-  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
-  set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
-endif()
+  #set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
+  #set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
+  #set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
+  #set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+#endif()
 
 # Set variables that are used by download_external_sources.
 set(FIREBASE_SOURCE_DIR ${PROJECT_SOURCE_DIR})
