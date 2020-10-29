@@ -501,8 +501,6 @@ def parse_cmdline_args():
                     help='List of files (libraries) and/or directories (containing libraries).')
   parser.add_argument('--library_filter', default='firebase_',
                       help='Filter for library names. Pass an empty string for no filtering.')
-  parser.add_argument('--all', action='store_true',
-                      help='Inspect all libraries found under specified directory.')
   parser.add_argument('--print_full_paths', action='store_true',
                       help='Print full library paths in summary.')
   parser.add_argument('--verbose', action='store_true',
