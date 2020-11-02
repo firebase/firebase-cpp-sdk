@@ -32,11 +32,11 @@ jobs:
 
         exclude:
         - os: macos-latest
-          architecture: x86
+          architecture: "x86"
         - os: macos-latest
-          msvc_runtime: dynamic
+          msvc_runtime: "dynamic"
         - os: ubuntu-latest
-          msvc_runtime: dynamic
+          msvc_runtime: "dynamic"
 
     steps:
       - uses: actions/checkout@v2
@@ -90,7 +90,7 @@ jobs:
           find build -name "*.a"
           find build -name "*.so"
 
-      - name: Introspect firebase libraries for cpu arch and msvc runtime.
+      - name: Inspect firebase libraries for cpu arch and msvc runtime.
         shell: bash
         run: |
           python scripts/gha/inspect_built_libraries.py build/
