@@ -1,8 +1,26 @@
-# Toolchain file for building 32-bit Linux libraries
+# Copyright 2020 Google
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
+# Toolchain settings for building 32-bit Linux libraries
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
 set(CMAKE_LIBRARY_PATH "/usr/lib/i386-linux-gnu")
+
+# From this line onwards, everything is a copy of the standard toolchain file
+# shipped with vcpkg (vcpkg/scripts/buildsystems/vcpkg.cmake). This way, we can
+# chain our toolchain with the vcpkg toolchain which is important to locate
+# packages built with vcpkg.
 
 # Mark variables as used so cmake doesn't complain about them
 mark_as_advanced(CMAKE_TOOLCHAIN_FILE)
