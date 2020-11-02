@@ -40,24 +40,31 @@ def main(argv):
   sdk_podfile = FLAGS.sdk_podfile
   app_podfile = FLAGS.app_podfile
 
+  # split lines in Podfile by ' ' and ','
+  split_pattern = ' |,'
+
   # dict to store podName & podVersion from sdk's podfile
   pod_dict = {}
   with open(sdk_podfile) as f:
     for line in f:
-      tokens = re.split(' |,', line)
+      tokens = re.split(split_pattern, line)
       tokens = list(filter(None, tokens))
       if tokens[0] == 'pod':
         pod_dict[tokens[1]] = tokens[2]
 
   # update podVersion in app's podfile
-  with fileinput.input(app_podfile, inplace=True) as f:
+  new_lines = []
+  with open(app_podfile) as f:
     for line in f:
-      tokens = re.split(' |,', line)
+      tokens = re.split(split_pattern, line)
       tokens = list(filter(None, tokens))
       if tokens[0] == 'pod' and tokens[1] in pod_dict:
-        print(line.replace(tokens[2], pod_dict[tokens[1]]).rstrip())
+        new_lines.append(line.replace(tokens[2], pod_dict[tokens[1]]))
       else:
-        print(line.rstrip())
+        new_lines.append(line)
+  
+  with open(app_podfile, "w") as out_file:
+        out_file.writelines(new_lines)
 
 
 if __name__ == "__main__":
