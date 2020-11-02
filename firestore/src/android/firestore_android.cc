@@ -88,6 +88,8 @@ StaticMethod<Object> kGetInstance(
     "(Lcom/google/firebase/FirebaseApp;)"
     "Lcom/google/firebase/firestore/FirebaseFirestore;");
 StaticMethod<void> kSetLoggingEnabled("setLoggingEnabled", "(Z)V");
+StaticMethod<void> kSetClientLanguage("setClientLanguage",
+                                      "(Ljava/lang/String;)V");
 Method<void> kSetSettings(
     "setFirestoreSettings",
     "(Lcom/google/firebase/firestore/FirebaseFirestoreSettings;)V");
@@ -113,8 +115,8 @@ Method<Object> kAddSnapshotsInSyncListener(
 void InitializeFirestore(Loader& loader) {
   loader.LoadClass(kFirestoreClassName, kCollection, kDocument,
                    kCollectionGroup, kGetSettings, kGetInstance,
-                   kSetLoggingEnabled, kSetSettings, kBatch, kRunTransaction,
-                   kEnableNetwork, kDisableNetwork, kTerminate,
+                   kSetLoggingEnabled, kSetClientLanguage, kSetSettings, kBatch,
+                   kRunTransaction, kEnableNetwork, kDisableNetwork, kTerminate,
                    kWaitForPendingWrites, kClearPersistence,
                    kAddSnapshotsInSyncListener);
 }
@@ -520,7 +522,9 @@ FirestoreInternal* FirestoreInternal::RecoverFirestore(
 }
 
 void FirestoreInternal::SetClientLanguage(const std::string& language_token) {
-  // TODO(varconst): implement
+  Env env = FirestoreInternal::GetEnv();
+  Local<String> java_language_token = env.NewStringUtf(language_token);
+  env.Call(kSetClientLanguage, java_language_token);
 }
 
 }  // namespace firestore
