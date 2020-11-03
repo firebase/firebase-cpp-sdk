@@ -115,15 +115,7 @@ jobs:
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
 
       - name: Build integration tests (and run Desktop tests)
-        # The set up script for Android will download the NDK here.
-        # Need to use bash, so that /tmp gets converted on Windows.
-        env:
-          NDK_ROOT: /tmp/android-ndk-r16b
-          ANDROID_NDK_HOME: /tmp/android-ndk-r16b
-          ANDROID_NDK_PATH: /tmp/android-ndk-r16b
-        shell: bash
         run: |
-          export NDK_ROOT=/tmp/android-ndk-r16b
           python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --use_vcpkg --execute_desktop_testapp --noadd_timestamp
 
       # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
