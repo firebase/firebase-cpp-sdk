@@ -116,7 +116,11 @@ jobs:
 
       - name: Build integration tests (and run Desktop tests)
         # The set up script for Android will download the NDK here.
-        # Need to export from bash, so that /tmp gets converted on Windows.
+        # Need to use bash, so that /tmp gets converted on Windows.
+        env:
+          NDK_ROOT: /tmp/android-ndk-r16b
+          ANDROID_NDK_HOME: /tmp/android-ndk-r16b
+          ANDROID_NDK_PATH: /tmp/android-ndk-r16b
         shell: bash
         run: |
           export NDK_ROOT=/tmp/android-ndk-r16b
