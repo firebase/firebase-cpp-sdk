@@ -101,6 +101,16 @@ Query Query::WhereEqualTo(const FieldPath& field, const FieldValue& value) {
   return internal_->WhereEqualTo(field, value);
 }
 
+Query Query::WhereNotEqualTo(const std::string& field,
+                             const FieldValue& value) {
+  return WhereNotEqualTo(FieldPath::FromDotSeparatedString(field), value);
+}
+
+Query Query::WhereNotEqualTo(const FieldPath& field, const FieldValue& value) {
+  if (!internal_) return {};
+  return internal_->WhereNotEqualTo(field, value);
+}
+
 Query Query::WhereLessThan(const std::string& field, const FieldValue& value) {
   return WhereLessThan(FieldPath::FromDotSeparatedString(field), value);
 }
@@ -176,6 +186,17 @@ Query Query::WhereIn(const FieldPath& field,
                      const std::vector<FieldValue>& values) {
   if (!internal_) return {};
   return internal_->WhereIn(field, values);
+}
+
+Query Query::WhereNotIn(const std::string& field,
+                        const std::vector<FieldValue>& values) {
+  return WhereNotIn(FieldPath::FromDotSeparatedString(field), values);
+}
+
+Query Query::WhereNotIn(const FieldPath& field,
+                        const std::vector<FieldValue>& values) {
+  if (!internal_) return {};
+  return internal_->WhereNotIn(field, values);
 }
 
 Query Query::OrderBy(const std::string& field, Direction direction) {

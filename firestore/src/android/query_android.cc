@@ -36,6 +36,10 @@ Method<Object> kEqualTo(
     "whereEqualTo",
     "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)"
     "Lcom/google/firebase/firestore/Query;");
+Method<Object> kNotEqualTo(
+    "whereNotEqualTo",
+    "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)"
+    "Lcom/google/firebase/firestore/Query;");
 Method<Object> kLessThan(
     "whereLessThan",
     "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)"
@@ -63,6 +67,10 @@ Method<Object> kArrayContainsAny(
 Method<Object> kIn("whereIn",
                    "(Lcom/google/firebase/firestore/FieldPath;Ljava/util/List;)"
                    "Lcom/google/firebase/firestore/Query;");
+Method<Object> kNotIn(
+    "whereNotIn",
+    "(Lcom/google/firebase/firestore/FieldPath;Ljava/util/List;)"
+    "Lcom/google/firebase/firestore/Query;");
 Method<Object> kOrderBy("orderBy",
                         "(Lcom/google/firebase/firestore/FieldPath;"
                         "Lcom/google/firebase/firestore/Query$Direction;)"
@@ -107,12 +115,12 @@ Method<Object> kAddSnapshotListener(
 }  // namespace
 
 void QueryInternal::Initialize(jni::Loader& loader) {
-  loader.LoadClass(kClassName, kEqualTo, kLessThan, kLessThanOrEqualTo,
-                   kGreaterThan, kGreaterThanOrEqualTo, kArrayContains,
-                   kArrayContainsAny, kIn, kOrderBy, kLimit, kLimitToLast,
-                   kStartAtSnapshot, kStartAt, kStartAfterSnapshot, kStartAfter,
-                   kEndBeforeSnapshot, kEndBefore, kEndAtSnapshot, kEndAt, kGet,
-                   kAddSnapshotListener);
+  loader.LoadClass(
+      kClassName, kEqualTo, kNotEqualTo, kLessThan, kLessThanOrEqualTo,
+      kGreaterThan, kGreaterThanOrEqualTo, kArrayContains, kArrayContainsAny,
+      kIn, kNotIn, kOrderBy, kLimit, kLimitToLast, kStartAtSnapshot, kStartAt,
+      kStartAfterSnapshot, kStartAfter, kEndBeforeSnapshot, kEndBefore,
+      kEndAtSnapshot, kEndAt, kGet, kAddSnapshotListener);
 }
 
 Firestore* QueryInternal::firestore() {
@@ -123,6 +131,11 @@ Firestore* QueryInternal::firestore() {
 Query QueryInternal::WhereEqualTo(const FieldPath& field,
                                   const FieldValue& value) {
   return Where(field, kEqualTo, value);
+}
+
+Query QueryInternal::WhereNotEqualTo(const FieldPath& field,
+                                     const FieldValue& value) {
+  return Where(field, kNotEqualTo, value);
 }
 
 Query QueryInternal::WhereLessThan(const FieldPath& field,
@@ -158,6 +171,11 @@ Query QueryInternal::WhereArrayContainsAny(
 Query QueryInternal::WhereIn(const FieldPath& field,
                              const std::vector<FieldValue>& values) {
   return Where(field, kIn, values);
+}
+
+Query QueryInternal::WhereNotIn(const FieldPath& field,
+                                const std::vector<FieldValue>& values) {
+  return Where(field, kNotIn, values);
 }
 
 Query QueryInternal::OrderBy(const FieldPath& field,

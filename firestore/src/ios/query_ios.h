@@ -48,6 +48,10 @@ class QueryInternal {
     return Where(field, Operator::Equal, value);
   }
 
+  Query WhereNotEqualTo(const FieldPath& field, const FieldValue& value) {
+    return Where(field, Operator::NotEqual, value);
+  }
+
   Query WhereLessThan(const FieldPath& field, const FieldValue& value) {
     return Where(field, Operator::LessThan, value);
   }
@@ -77,6 +81,11 @@ class QueryInternal {
 
   Query WhereIn(const FieldPath& field, const std::vector<FieldValue>& values) {
     return Where(field, Operator::In, values);
+  }
+
+  Query WhereNotIn(const FieldPath& field,
+                   const std::vector<FieldValue>& values) {
+    return Where(field, Operator::NotIn, values);
   }
 
   Query StartAt(const DocumentSnapshot& snapshot) {

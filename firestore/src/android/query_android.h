@@ -53,6 +53,21 @@ class QueryInternal : public Wrapper {
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
+   * documents must contain the specified field and the value does not equal the
+   * specified value.
+   *
+   * A Query can have only one `WhereNotEqualTo()` filter, and it cannot be
+   * combined with `WhereNotIn()`.
+   *
+   * @param[in] field The name of the field to compare.
+   * @param[in] value The value for comparison.
+   *
+   * @return The created Query.
+   */
+  Query WhereNotEqualTo(const FieldPath& field, const FieldValue& value);
+
+  /**
+   * @brief Creates and returns a new Query with the additional filter that
    * documents must contain the specified field and the value should be less
    * than the specified value.
    *
@@ -144,6 +159,28 @@ class QueryInternal : public Wrapper {
    * @return The created Query.
    */
   Query WhereIn(const FieldPath& field, const std::vector<FieldValue>& values);
+
+  /**
+   * @brief Creates and returns a new Query with the additional filter that
+   * documents must contain the specified field and the value must not equal any
+   * of the values from the provided list.
+   *
+   * One special case is that `WhereNotIn` cannot match `FieldValue::Null()`
+   * values. To query for documents where a field exists and is
+   * `FieldValue::Null()`, use `WhereNotEqualTo`, which can handle this special
+   * case.
+   *
+   * A `Query` can have only one `WhereNotIn()` filter, and it cannot be
+   * combined with `WhereArrayContains()`, `WhereArrayContainsAny()`,
+   * `WhereIn()`, or `WhereNotEqualTo()`.
+   *
+   * @param[in] field The name of the field containing an array to search.
+   * @param[in] values The list that contains the values to match.
+   *
+   * @return The created Query.
+   */
+  Query WhereNotIn(const FieldPath& field,
+                   const std::vector<FieldValue>& values);
 
   /**
    * @brief Creates and returns a new Query that's additionally sorted by the
