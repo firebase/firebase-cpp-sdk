@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
+#include "app/rest/request_file.h"
+
 #include <stdio.h>
 
 #include <cstddef>
 #include <string>
 
-#include "app/rest/request_file.h"
 #include "app/rest/tests/request_test.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "absl/flags/flag.h"
 
 namespace firebase {
 namespace rest {
@@ -31,7 +33,7 @@ namespace test {
 class RequestFileTest : public ::testing::Test {
  public:
   RequestFileTest()
-      : filename_(FLAGS_test_tmpdir + "/a_file.txt"),
+      : filename_(absl::GetFlag(FLAGS_test_tmpdir) + "/a_file.txt"),
         file_(nullptr),
         file_size_(0) {}
 
