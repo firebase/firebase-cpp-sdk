@@ -5,7 +5,7 @@ on:
     inputs:
       platforms:
         description: 'CSV of Desktop, Android and/or iOS'
-        default: 'Desktop'
+        default: 'Desktop,Android,iOS'
         required: true
       apis:
         description: 'CSV of apis to build and test'

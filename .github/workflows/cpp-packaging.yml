@@ -12,7 +12,7 @@ on:
       downloadPreviousRun:
         description: 'previous run # to test against'
       runIntegrationTests:
-        description: 'run integration tests against SDK?'
+        description: 'run integration tests?'
         default: 0
 
 env:
