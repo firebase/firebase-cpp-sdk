@@ -539,6 +539,9 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: '3.7'
+    - name: Add msbuild to PATH (windows)
+      if: startsWith(matrix.os, 'windows')
+      uses: microsoft/setup-msbuild@v1.0.1
     - name: Prepare for integration tests
       run: |
         pip install -r scripts/gha/requirements.txt
