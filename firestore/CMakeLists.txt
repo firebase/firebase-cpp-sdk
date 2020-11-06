@@ -93,6 +93,7 @@ set(android_SRCS
     src/android/metadata_changes_android.cc
     src/android/metadata_changes_android.h
     src/android/promise_android.h
+    src/android/promise_factory_android.h
     src/android/query_android.cc
     src/android/query_android.h
     src/android/query_snapshot_android.cc
@@ -112,23 +113,52 @@ set(android_SRCS
     src/android/timestamp_portable.cc
     src/android/transaction_android.cc
     src/android/transaction_android.h
+    src/android/util_android.cc
     src/android/util_android.h
     src/android/wrapper.cc
     src/android/wrapper.h
     src/android/write_batch_android.cc
     src/android/write_batch_android.h
+    src/jni/array.h
+    src/jni/array_list.cc
+    src/jni/array_list.h
+    src/jni/boolean.cc
+    src/jni/boolean.h
     src/jni/call_traits.h
+    src/jni/class.cc
     src/jni/class.h
+    src/jni/collection.cc
+    src/jni/collection.h
+    src/jni/declaration.h
+    src/jni/double.cc
+    src/jni/double.h
     src/jni/env.cc
     src/jni/env.h
+    src/jni/hash_map.cc
+    src/jni/hash_map.h
+    src/jni/integer.cc
+    src/jni/integer.h
+    src/jni/iterator.cc
+    src/jni/iterator.h
     src/jni/jni.cc
     src/jni/jni.h
     src/jni/jni_fwd.h
+    src/jni/list.cc
+    src/jni/list.h
+    src/jni/loader.cc
+    src/jni/loader.h
+    src/jni/long.cc
+    src/jni/long.h
+    src/jni/map.cc
+    src/jni/map.h
     src/jni/object.cc
     src/jni/object.h
     src/jni/ownership.h
+    src/jni/set.h
     src/jni/string.cc
     src/jni/string.h
+    src/jni/throwable.cc
+    src/jni/throwable.h
     src/jni/traits.h)
 
 set(ios_SRCS
