@@ -203,6 +203,16 @@ inline Query QueryWhereIn(Query& query, const FieldPath& field,
   return query.WhereIn(field, values.array_value());
 }
 
+inline Query QueryWhereNotIn(Query& query, const std::string& field,
+                             const FieldValue& values) {
+  return query.WhereNotIn(field, values.array_value());
+}
+
+inline Query QueryWhereNotIn(Query& query, const FieldPath& field,
+                             const FieldValue& values) {
+  return query.WhereNotIn(field, values.array_value());
+}
+
 inline Query QueryStartAt(Query& query, const FieldValue& values) {
   return query.StartAt(values.array_value());
 }
