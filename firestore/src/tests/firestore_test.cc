@@ -1157,7 +1157,7 @@ TEST_F(FirestoreIntegrationTest, TestToString) {
   settings.set_ssl_enabled(false);
   EXPECT_EQ(
       "Settings(host='foo.bar', is_ssl_enabled=false, "
-      "is_persistence_enabled=true)",
+      "is_persistence_enabled=true, cache_size_bytes=104857600)",
       settings.ToString());
 
   CollectionReference collection = Collection("rooms");

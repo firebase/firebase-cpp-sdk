@@ -95,15 +95,22 @@ Query FirestoreInternal::CollectionGroup(const char* collection_id) const {
 }
 
 Settings FirestoreInternal::settings() const {
+  static_assert(
+      Settings::kDefaultCacheSizeBytes == api::Settings::DefaultCacheSizeBytes,
+      "kDefaultCacheSizeBytes must be in sync between the public API and the "
+      "core API");
+  static_assert(
+      Settings::kCacheSizeUnlimited == api::Settings::CacheSizeUnlimited,
+      "kCacheSizeUnlimited must be in sync between the public API and the core "
+      "API");
+
   Settings result;
 
   const api::Settings& from = firestore_core_->settings();
   result.set_host(from.host());
   result.set_ssl_enabled(from.ssl_enabled());
   result.set_persistence_enabled(from.persistence_enabled());
-  // TODO(varconst): implement `cache_size_bytes` in public `Settings` and
-  // uncomment.
-  // result.set_cache_size_bytes(from.cache_size_bytes());
+  result.set_cache_size_bytes(from.cache_size_bytes());
 
   return result;
 }
@@ -113,9 +120,7 @@ void FirestoreInternal::set_settings(Settings from) {
   settings.set_host(std::move(from.host()));
   settings.set_ssl_enabled(from.is_ssl_enabled());
   settings.set_persistence_enabled(from.is_persistence_enabled());
-  // TODO(varconst): implement `cache_size_bytes` in public `Settings` and
-  // uncomment.
-  // settings.set_cache_size_bytes(from.cache_size_bytes());
+  settings.set_cache_size_bytes(from.cache_size_bytes());
   firestore_core_->set_settings(settings);
 
   std::unique_ptr<Executor> user_executor = from.CreateExecutor();
