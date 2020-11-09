@@ -195,11 +195,11 @@ jobs:
         - os: macos-latest
           msvc_runtime: "dynamic"
         - os: macos-latest
-          msvc_runtime: "Debug"
+          build_type: "Debug"
         - os: ubuntu-latest
           msvc_runtime: "dynamic"
         - os: ubuntu-latest
-          msvc_runtime: "Debug"
+          build_type: "Debug"
 
     steps:
       - uses: actions/checkout@v2
