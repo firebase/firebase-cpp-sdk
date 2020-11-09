@@ -1,6 +1,6 @@
 name: Desktop Builds
 
-on: 
+on:
   pull_request:
     types: [opened, reopened, synchronize]
 
@@ -9,26 +9,34 @@ env:
 
 jobs:
   build:
-    name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+    name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
         build_type: ["Release", "Debug"]
-        architecture: ["x64",]
+        architecture: ["x64", "x86"]
+        msvc_runtime: ["static", "dynamic"]
         python_version: [3.7]
         include:
         - os: windows-latest
-          architecture: "x64"
-          vcpkg_triplet: "x64-windows-static"
-          msbuild_platform: "x64"
+          vcpkg_triplet_suffix: "windows-static"
+        - os: windows-latest
+          msvc_runtime: "dynamic"
+          vcpkg_triplet_suffix: "windows-static-md"
         - os: ubuntu-latest
-          architecture: "x64"
-          vcpkg_triplet: "x64-linux"
+          vcpkg_triplet_suffix: "linux"
         - os: macos-latest
-          architecture: "x64"
-          vcpkg_triplet: "x64-osx"
+          vcpkg_triplet_suffix: "osx"
+
+        exclude:
+        - os: macos-latest
+          architecture: "x86"
+        - os: macos-latest
+          msvc_runtime: "dynamic"
+        - os: ubuntu-latest
+          msvc_runtime: "dynamic"
 
     steps:
       - uses: actions/checkout@v2
@@ -37,15 +45,15 @@ jobs:
 
       - name: Set env variables for subsequent steps (all)
         run: |
-          echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt"
-          echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}"
+          echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_custom_data/response_files/${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}.txt"
+          echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}"
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
         uses: actions/cache@v2
         with:
           path: external/vcpkg/installed
-          key: dev-vcpkg-${{ matrix.vcpkg_triplet }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+          key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
 
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
@@ -59,7 +67,7 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python_version }}
-          architecture: ${{ matrix.architecture }}
+          architecture: 'x64'
 
       - name: Install prerequisites
         run: |
@@ -67,7 +75,7 @@ jobs:
 
       - name: Build SDK
         run: |
-          python scripts/gha/build_desktop.py --build_tests --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}"
+          python scripts/gha/build_desktop.py --build_tests --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}"
 
       - name: Stats for ccache (mac and linux)
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
@@ -82,23 +90,30 @@ jobs:
           find build -name "*.a"
           find build -name "*.so"
 
+      - name: Inspect firebase libraries for cpu arch and msvc runtime.
+        shell: bash
+        run: |
+          python scripts/gha/inspect_built_libraries.py build/
+        continue-on-error: true
+
       - name: Prep crash support (linux)
-        # Ensures directory structure is in place to capture core files on Linux. 
+        # Ensures directory structure is in place to capture core files on Linux.
         if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         shell: bash
         run: |
           echo '/tmp/cores/core.%E' | sudo tee /proc/sys/kernel/core_pattern
           sudo mkdir -p /tmp/cores/
           sudo rm -rf /tmp/cores/*
-          
+
       - name: Prep crash support (mac)
         # Ensures no lingering crashes from the previous run.
         if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         run: |
           rm -rf ~/Library/Logs/DiagnosticReports/*
-          
+
       - name: Run unit tests (windows & macos)
-        if: startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')
+        # TODO: Enable tests for x86 once they are all working
+        if: (startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')) && matrix.architecture != 'x86'
         env:
           LANG: en_US
         run: |
@@ -110,14 +125,15 @@ jobs:
         # platform-specific `ulimit` to enable crash collection.  The ulimit
         # command must be invoked in same shell instance of that runs the
         # tests.
-        if: startsWith(matrix.os, 'ubuntu')
+        # TODO: Enable tests for x86 once they are all working
+        if: startsWith(matrix.os, 'ubuntu') && matrix.architecture != 'x86'
         env:
           LANG: en_US
         run: |
-          ulimit -c unlimited 
+          ulimit -c unlimited
           cd build
           sudo ctest --verbose
-      
+
       - name: Prep bins for achive (linux)
         # Copies all of the binary files into one directory for ease in
         # archiving. Directory contents are then marked readable for the
@@ -147,7 +163,7 @@ jobs:
         shell: bash
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         run: |
-          sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || :           
+          sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || :
 
       - name: Archive crashes and binaries (linux)
         uses: actions/upload-artifact@v2
@@ -166,4 +182,3 @@ jobs:
           path: |
             ~/Library/Logs/DiagnosticReports/*
             /tmp/bins/*
-
