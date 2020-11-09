@@ -2,4 +2,4 @@ openssl
 protobuf
 zlib
 --triplet
-x86-windows
+x64-windows-static-md
