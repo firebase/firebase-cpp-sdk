@@ -43,17 +43,17 @@ const FirestoreInternal* QueryInternal::firestore_internal() const {
 }
 
 Query QueryInternal::OrderBy(const FieldPath& field_path,
-                             Query::Direction direction) {
+                             Query::Direction direction) const {
   api::Query decorated = query_.OrderBy(
       GetInternal(field_path), direction == Query::Direction::kDescending);
   return MakePublic(std::move(decorated));
 }
 
-Query QueryInternal::Limit(int32_t limit) {
+Query QueryInternal::Limit(int32_t limit) const {
   return MakePublic(query_.LimitToFirst(limit));
 }
 
-Query QueryInternal::LimitToLast(int32_t limit) {
+Query QueryInternal::LimitToLast(int32_t limit) const {
   return MakePublic(query_.LimitToLast(limit));
 }
 
