@@ -174,12 +174,12 @@ jobs:
         - os: windows-latest
           vcpkg_triplet_suffix: "windows-static"
           additional_build_flags: "--build_tests"
-          sdk_platform: windows
+          sdk_platform: "windows"
         - os: windows-latest
-          msvc_runtime: dynamic
+          msvc_runtime: "dynamic"
           vcpkg_triplet_suffix: "windows-static-md"
           additional_build_flags: "--build_tests"
-          sdk_platform: windows
+          sdk_platform: "windows"
         - os: ubuntu-latest
           vcpkg_triplet_suffix: "linux"
           additional_build_flags: ""
@@ -187,7 +187,7 @@ jobs:
         - os: macos-latest
           vcpkg_triplet_suffix: "osx"
           additional_build_flags: "--target_format libraries"
-          sdk_platform: darwin
+          sdk_platform: "darwin"
 
         exclude:
         - os: macos-latest
