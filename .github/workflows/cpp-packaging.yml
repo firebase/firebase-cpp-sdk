@@ -194,8 +194,12 @@ jobs:
           architecture: "x86"
         - os: macos-latest
           msvc_runtime: "dynamic"
+        - os: macos-latest
+          msvc_runtime: "Debug"
         - os: ubuntu-latest
           msvc_runtime: "dynamic"
+        - os: ubuntu-latest
+          msvc_runtime: "Debug"
 
     steps:
       - uses: actions/checkout@v2
@@ -408,7 +412,7 @@ jobs:
         with:
           name: firebase_cpp_sdk
           path: firebase-cpp-sdk-final
-          
+
   merge_packages:
     name: final-merge-packages
     runs-on: ubuntu-latest
