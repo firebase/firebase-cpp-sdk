@@ -23,7 +23,7 @@ jobs:
         - os: windows-latest
           vcpkg_triplet_suffix: "windows-static"
         - os: windows-latest
-          msvc_runtime: dynamic
+          msvc_runtime: "dynamic"
           vcpkg_triplet_suffix: "windows-static-md"
         - os: ubuntu-latest
           vcpkg_triplet_suffix: "linux"
