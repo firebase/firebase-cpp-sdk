@@ -244,26 +244,26 @@ jobs:
       - name: Build desktop SDK
         shell: bash
         run: |
-          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}-build ${{ matrix.additional_build_flags }}
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --build_dir out-${{ env.SDK_NAME }} ${{ matrix.additional_build_flags }}
           # Make a list of all the source files, for debugging purposes.
-          cd firebase-cpp-sdk-${{ env.SDK_NAME }}-build
+          cd out-${{ env.SDK_NAME }}
           find .. -type f -print > src_file_list.txt
           tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
 
       - name: Print built libraries
         shell: bash
         run: |
-          find firebase-cpp-sdk-*-build -name "*.lib"
-          find firebase-cpp-sdk-*-build -name "*.dll"
-          find firebase-cpp-sdk-*-build -name "*.dylib"
-          find firebase-cpp-sdk-*-build -name "*.a"
-          find firebase-cpp-sdk-*-build -name "*.so"
-          find firebase-cpp-sdk-*-build -name "*.framework"
+          find out-* -name "*.lib"
+          find out-* -name "*.dll"
+          find out-* -name "*.dylib"
+          find out-* -name "*.a"
+          find out-* -name "*.so"
+          find out-* -name "*.framework"
 
       - name: Inspect firebase libraries for cpu arch and msvc runtime.
         shell: bash
         run: |
-          python scripts/gha/inspect_built_libraries.py firebase-cpp-sdk-${{ env.SDK_NAME }}-build/
+          python scripts/gha/inspect_built_libraries.py out-${{ env.SDK_NAME }}/
         continue-on-error: true
 
       - name: upload artifacts
