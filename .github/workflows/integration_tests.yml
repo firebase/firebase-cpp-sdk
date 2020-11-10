@@ -66,20 +66,20 @@ jobs:
 
       - name: Set env vars (ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
-        run: echo "::set-env name=VCPKG_TRIPLET::x64-linux"
+        run: echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
       - name: Set env vars (macos)
         if: startsWith(matrix.os, 'macos')
-        run: echo "::set-env name=VCPKG_TRIPLET::x64-osx"
+        run: echo "VCPKG_TRIPLET=x64-osx" >> $GITHUB_ENV
       - name: Set env vars (windows)
         if: startsWith(matrix.os, 'windows')
-        run: echo "::set-env name=VCPKG_TRIPLET::x64-windows-static"
+        run: echo "VCPKG_TRIPLET=x64-windows-static" >> $GITHUB_ENV
       - name: Set env vars(all)
-        run: echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ env.VCPKG_TRIPLET }}_response_file.txt"
+        run: echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ env.VCPKG_TRIPLET }}_response_file.txt" >> $GITHUB_ENV
 
       - name: Add msbuild to PATH (windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.1
-  
+
       - name: Cache vcpkg C++ dependencies
         if: matrix.target_platform == 'Desktop'
         id: cache_vcpkg
@@ -97,7 +97,7 @@ jobs:
         if: matrix.target_platform == 'Desktop'
         run: |
           python scripts/gha/install_prereqs_desktop.py
-          
+
       - name: Install SDK Android prerequisites
         if: matrix.target_platform == 'Android'
         shell: bash
@@ -108,27 +108,27 @@ jobs:
         if: matrix.target_platform == 'iOS'
         run: |
           build_scripts/ios/install_prereqs.sh
-          
+
       - name: Prepare for integration tests
         run: |
           pip install -r scripts/gha/requirements.txt
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
-          
+
       - name: Build integration tests (and run Desktop tests)
         # The set up script for Android will download the NDK here.
         env:
           NDK_ROOT: '/tmp/android-ndk-r16b'
         run: |
           python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --use_vcpkg --execute_desktop_testapp --noadd_timestamp
-      
+
       # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
       # Must be run after the Python setup action
       - name: Set CLOUDSDK_PYTHON (Windows)
         if: startsWith(matrix.os, 'windows') && !cancelled()
-        run: echo "::set-env name=CLOUDSDK_PYTHON::${{env.pythonLocation}}\python.exe"
+        run: echo "CLOUDSDK_PYTHON=${{env.pythonLocation}}\python.exe" >> $GITHUB_ENV
       - name: Install Cloud SDK
         if: ${{ !cancelled() }}
-        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master 
+        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
       - name: Upload Desktop Artifacts to GCS
         if: matrix.target_platform == 'Desktop' && !cancelled()
         run: |
