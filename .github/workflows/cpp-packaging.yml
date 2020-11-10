@@ -14,8 +14,8 @@ on:
 
 env:
   # Packaging prerequisites
-  # Binutils 2.34 released Feb 1, 2020
-  binutilsVer: 2.34
+  # Binutils 2.35.1 released Sep 19, 2020
+  binutilsVer: 2.35.1
   # Demumble 1.1.0 released Nov 13, 2018
   demumbleVer: 1.1.0
 
