@@ -45,8 +45,8 @@ jobs:
 
       - name: Set env variables for subsequent steps (all)
         run: |
-          echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_custom_data/response_files/${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}.txt"
-          echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}"
+          echo "VCPKG_RESPONSE_FILE=external/vcpkg_custom_data/response_files/${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}.txt" >> $GITHUB_ENV
+          echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}" >> $GITHUB_ENV
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg

@@ -31,8 +31,8 @@ jobs:
 
       - name: Set env variables for subsequent steps (all)
         run: |
-          echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.architecture }}"
-          echo "::set-env name=GHA_INSTALL_CCACHE::1"
+          echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.architecture }}" >> $GITHUB_ENV
+          echo "GHA_INSTALL_CCACHE=1" >> $GITHUB_ENV
 
       - name: Setup python
         uses: actions/setup-python@v2
