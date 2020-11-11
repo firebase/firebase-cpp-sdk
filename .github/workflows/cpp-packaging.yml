@@ -2,7 +2,9 @@ name: CPP binary SDK packaging
 on:
   push:
     branches:
-      - "dev"
+      # Run a full packaging step any time a new branch is merged into dev.
+      - dev
+      # Temporary, for testing only.
       - "feature/run_packaging_on_push_to_dev"
   workflow_dispatch:
     inputs:
@@ -44,7 +46,7 @@ jobs:
               echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building and packaging SDK and tests."
             fi
           fi
-          if [[ "${{ github.event.inputs.preserveIntermediateArtifacts }}" != "0" ]]; then
+          if [[ "${{ github.event.inputs.preserveIntermediateArtifacts }}" != "0" && -n "${{ github.event.inputs.preserveIntermediateArtifacts }}" ]]; then
             echo "::warning ::Intermediate artifacts will be preserved."
           fi
 
@@ -540,7 +542,1083 @@ jobs:
     name: cleanup-artifacts
     runs-on: ubuntu-latest
     needs: [merge_packages]
-    if: ${{ github.event.inputs.preserveIntermediateArtifacts == 0 && github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
+    if: ${{ (github.event.inputs.preserveIntermediateArtifacts == 0 ||       # Temporary, for testing only.
+      - "feature/run_packaging_on_push_to_dev"
+  workflow_dispatch:
+    inputs:
+      commitIdToPackage:
+        description: 'commit ID to package'
+      preserveIntermediateArtifacts:
+        description: 'preserve intermediate artifacts?'
+        default: 0
+      downloadPublicVersion:
+        description: 'public version # to test against'
+      downloadPreviousRun:
+        description: 'previous run # to test against'
+
+env:
+  # Packaging prerequisites
+  # Binutils 2.35.1 released Sep 19, 2020
+  binutilsVer: 2.35.1
+  # Demumble 1.1.0 released Nov 13, 2018
+  demumbleVer: 1.1.0
+  # Use SHA256 for hashing files.
+  hashCommand: sha256sum
+
+jobs:
+  log_inputs:
+    name: log-inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: log run inputs
+        run: |
+          if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" ]]; then
+            echo "::warning ::Downloading public SDK package from https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip"
+          elif [[ -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
+            echo "::warning ::Downloading SDK package from previous run at https://github.com/firebase/firebase-cpp-sdk/actions/runs/${{ github.event.inputs.downloadPreviousRun }}"
+          fi
+          if [[ -n "${{ github.event.inputs.commitIdToPackage }}" ]]; then
+            if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" || -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
+              echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building tests."
+            else
+              echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building and packaging SDK and tests."
+            fi
+          fi
+          if [[ "${{ github.event.inputs.preserveIntermediateArtifacts }}" != "0" && -n "${{ github.event.inputs.preserveIntermediateArtifacts }}" ]]; then
+            echo "::warning ::Intermediate artifacts will be preserved."
+          fi
+
+  build_tools:
+    name: build-tools-${{ matrix.tools_platform }}
+    runs-on: ${{ matrix.os }}
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        include:
+        - os: ubuntu-latest
+          tools_platform: linux
+        - os: macos-latest
+          tools_platform: darwin
+    steps:
+      - name: fetch and build binutils
+        run: |
+          set +e
+          # Retry up to 10 times because Curl has a tendency to timeout on
+          # Github runners.
+          for retry in {1..10} error; do
+          if [[ $retry == "error" ]]; then exit 5; fi
+            curl -L https://ftpmirror.gnu.org/binutils/binutils-${{ env.binutilsVer }}.tar.xz --output binutils.tar.xz && break
+            sleep 300
+          done
+          set -e
+
+          tar -xf binutils.tar.xz
+          mv ./binutils-${{ env.binutilsVer }} ./binutils-src
+          cd binutils-src
+          ./configure --enable-targets=all --prefix=/tmp/binutils
+          make
+          make install
+          cd -
+          mkdir -p packaging-tools
+          cp -af /tmp/binutils/bin/* packaging-tools
+
+      - name: fetch demumble
+        uses: actions/checkout@v2.3.1
+        with:
+          repository: nico/demumble
+          path: demumble-src
+          ref: v${{ env.demumbleVer }}
+
+      - name: build demumble
+        run: |
+          cd demumble-src
+          cmake .
+          cmake --build .
+          python demumble_test.py
+          cd -
+          mkdir -p packaging-tools-
+          cp -af demumble-src/demumble packaging-tools
+
+      - name: archive tools
+        run: |
+          cd packaging-tools
+          ls
+          tar -czhf ../packaging-tools.tgz .
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: packaging-tools-${{ matrix.tools_platform }}
+          path: packaging-tools.tgz
+
+  build_and_package_ios:
+    name: build-and-package-ios
+    runs-on: macos-latest
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
+    steps:
+      - name: fetch SDK
+        uses: actions/checkout@v2.3.1
+        with:
+          path: sdk-src
+          ref: ${{ github.event.inputs.commitIdToPackage }}
+
+      - name: install prerequisites
+        run: sdk-src/build_scripts/ios/install_prereqs.sh
+
+      - name: build sdk
+        run: |
+          sdk-src/build_scripts/ios/build.sh -b firebase-cpp-sdk-ios-build -s sdk-src
+          sdk-src/build_scripts/ios/package.sh firebase-cpp-sdk-ios-build firebase-cpp-sdk-ios-package
+          cd firebase-cpp-sdk-ios-package
+          tar -czhf ../firebase-cpp-sdk-ios-package.tgz .
+
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-build -name "*.lib"
+          find firebase-cpp-sdk-*-build -name "*.dll"
+          find firebase-cpp-sdk-*-build -name "*.dylib"
+          find firebase-cpp-sdk-*-build -name "*.a"
+          find firebase-cpp-sdk-*-build -name "*.so"
+          find firebase-cpp-sdk-*-build -name "*.framework"
+
+      - name: Print package contents
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-package -type f
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase-cpp-sdk-ios-package
+          path: firebase-cpp-sdk-ios-package.tgz
+
+  build_and_package_android:
+    name: build-and-package-android-${{matrix.stl}}
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        stl: ["c++", "gnustl", "stlport"]
+    steps:
+      - name: fetch SDK
+        uses: actions/checkout@v2.3.1
+        with:
+          path: sdk-src
+          ref: ${{ github.event.inputs.commitIdToPackage }}
+
+      - name: install prerequisites
+        run: sdk-src/build_scripts/android/install_prereqs.sh
+
+      - name: build sdk
+        run: |
+          sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build sdk-src ${{ matrix.stl }}
+          sdk-src/build_scripts/android/package.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build firebase-cpp-sdk-android-${{ matrix.stl }}-package ${{ matrix.stl }}
+          cd firebase-cpp-sdk-android-${{ matrix.stl }}-package
+          tar -czhf ../firebase-cpp-sdk-android-${{ matrix.stl}}-package.tgz .
+
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-build -name "*.lib"
+          find firebase-cpp-sdk-*-build -name "*.dll"
+          find firebase-cpp-sdk-*-build -name "*.dylib"
+          find firebase-cpp-sdk-*-build -name "*.a"
+          find firebase-cpp-sdk-*-build -name "*.so"
+          find firebase-cpp-sdk-*-build -name "*.framework"
+
+      - name: Print package contents
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-package -type f
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase-cpp-sdk-android-${{ matrix.stl }}-package
+          path: firebase-cpp-sdk-android-${{ matrix.stl }}-package.tgz
+
+  build_desktop:
+    name: build-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}
+    runs-on: ${{ matrix.os }}
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        build_type: ["Release", "Debug"]
+        architecture: ["x64", "x86"]
+        msvc_runtime: ["static", "dynamic"]
+        python_version: [3.7]
+        include:
+        - os: windows-latest
+          vcpkg_triplet_suffix: "windows-static"
+          additional_build_flags: "--build_tests"
+          sdk_platform: "windows"
+        - os: windows-latest
+          msvc_runtime: "dynamic"
+          vcpkg_triplet_suffix: "windows-static-md"
+          additional_build_flags: "--build_tests"
+          sdk_platform: "windows"
+        - os: ubuntu-latest
+          vcpkg_triplet_suffix: "linux"
+          additional_build_flags: ""
+          sdk_platform: "linux"
+        - os: macos-latest
+          vcpkg_triplet_suffix: "osx"
+          additional_build_flags: "--target_format libraries"
+          sdk_platform: "darwin"
+
+        exclude:
+        - os: macos-latest
+          architecture: "x86"
+        - os: macos-latest
+          msvc_runtime: "dynamic"
+        - os: macos-latest
+          build_type: "Debug"
+        - os: ubuntu-latest
+          msvc_runtime: "dynamic"
+        - os: ubuntu-latest
+          build_type: "Debug"
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+          ref: ${{ github.event.inputs.commitIdToPackage }}
+
+      - name: Set env variables for subsequent steps (all)
+        shell: bash
+        run: |
+          echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt" >> $GITHUB_ENV
+          echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}" >> $GITHUB_ENV
+          echo "SDK_NAME=${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}" >> $GITHUB_ENV
+
+      - name: Add msbuild to PATH (windows)
+        if: startsWith(matrix.os, 'windows')
+        uses: microsoft/setup-msbuild@v1.0.2
+
+      - name: Cache vcpkg C++ dependencies
+        id: cache_vcpkg
+        uses: actions/cache@v2
+        with:
+          path: external/vcpkg/installed
+          key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+
+      - name: Cache ccache files
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Install prerequisites
+        run: |
+          python scripts/gha/install_prereqs_desktop.py
+
+      - name: Build desktop SDK
+        shell: bash
+        run: |
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --build_dir out-${{ env.SDK_NAME }} ${{ matrix.additional_build_flags }}
+          # Make a list of all the source files, for debugging purposes.
+          cd out-${{ env.SDK_NAME }}
+          find .. -type f -print > src_file_list.txt
+          tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
+
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find out-* -name "*.lib"
+          find out-* -name "*.dll"
+          find out-* -name "*.dylib"
+          find out-* -name "*.a"
+          find out-* -name "*.so"
+          find out-* -name "*.framework"
+
+      - name: Inspect firebase libraries for cpu arch and msvc runtime.
+        shell: bash
+        run: |
+          python scripts/gha/inspect_built_libraries.py out-${{ env.SDK_NAME }}/
+        continue-on-error: true
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase-cpp-sdk-${{ env.SDK_NAME }}-build
+          path: firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz
+
+      - name: Stats for ccache (mac and linux)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        run: ccache -s
+
+  package_desktop:
+    name: package-${{ matrix.sdk_platform }}${{ matrix.suffix }}
+    runs-on: ${{ matrix.runs_on_platform }}
+    needs: [build_tools, build_desktop]
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk_platform: [linux, darwin, windows]
+        suffix: ['']
+        runs_on_platform: [ubuntu-latest]
+        include:
+        # Split windows packaging into multiple runners.
+        - sdk_platform: windows
+          suffix: '-x86-Release-static'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x86-Release-dynamic'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x64-Release-static'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x64-Release-dynamic'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x86-Debug-static'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x86-Debug-dynamic'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x64-Debug-static'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x64-Debug-dynamic'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: darwin
+          runs_on_platform: macos-latest
+        exclude:
+        - sdk_platform: windows
+          suffix: ''
+        - sdk_platform: darwin
+          runs_on_platform: ubuntu-latest
+    steps:
+      - name: fetch SDK
+        uses: actions/checkout@v2.3.1
+        with:
+          path: sdk-src
+          ref: ${{ github.event.inputs.commitIdToPackage }}
+
+      - name: download artifact
+        uses: actions/download-artifact@v2
+        with:
+          # download-artifact doesn't support wildcards, but by default
+          # will download all artifacts. Sadly this is what we must do.
+          path: artifacts
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Install prerequisites
+        run: |
+          cd sdk-src
+          python scripts/gha/install_prereqs_desktop.py
+          cd ..
+
+      - name: postprocess and package built SDK
+        run: |
+          mkdir -p bin
+          if [[ $(uname) == "Linux"* ]]; then
+            tools_platform=linux
+          else
+            tools_platform=darwin
+          fi
+          tar -xvzf artifacts/packaging-tools-${tools_platform}/packaging-tools.tgz -C bin
+          chmod -R u+x bin
+          for pkg in artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build/*.tgz; do
+            # determine the build variant based on the artifact filename
+            variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
+            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3
+          done
+          if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
+            # Darwin has a final step after all the variants are done,
+            # create universal libraries and frameworks.
+            sdk-src/build_scripts/other/package.sh sdk-src tmpdir_for_headers
+            sdk-src/build_scripts/desktop/finish_darwin.sh firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package tmpdir_for_headers/include bin
+          fi
+          cd firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package
+          tar -czhf ../firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package.tgz .
+
+      - name: Print package contents
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-package -type f
+
+      - name: upload SDK zip
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package
+          path: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package.tgz
+
+  download_sdk_package:
+    name: download-sdk-package
+    runs-on: ubuntu-latest
+    needs: [log_inputs]
+    if: ${{ github.event.inputs.downloadPublicVersion != '' || github.event.inputs.downloadPreviousRun != '' }}
+    steps:
+      - name: fetch artifact from previous run
+        uses: dawidd6/action-download-artifact@v2
+        if: ${{ github.event.inputs.downloadPreviousRun != '' }}
+        with:
+          name: 'firebase_cpp_sdk.zip'
+          workflow: 'cpp-packaging.yml'
+          run_id: ${{ github.event.inputs.downloadPreviousRun }}
+
+      - name: fetch public SDK package from web
+        if: ${{ github.event.inputs.downloadPublicVersion != '' && github.event.inputs.downloadPreviousRun == '' }}
+        run: |
+          if [[ ! "${{ github.event.inputs.downloadPublicVersion }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo Invalid version number: "${{ github.event.inputs.downloadPublicVersion }}"
+            exit 1
+          fi
+          set +e
+          # Retry up to 10 times because Curl has a tendency to timeout on
+          # Github runners.
+          for retry in {1..10} error; do
+          if [[ $retry == "error" ]]; then exit 5; fi
+            curl -L https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip --output firebase_cpp_sdk.zip && break
+            sleep 300
+          done
+          set -e
+
+      - name: compute SDK hash
+        shell: bash
+        run: |
+          ${{ env.hashCommand }} --tag firebase_cpp_sdk.zip > firebase_cpp_sdk_hash.txt
+          echo "::warning ::$(cat firebase_cpp_sdk_hash.txt)"
+
+      - name: upload hash
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase_cpp_sdk_hash.txt
+          path: firebase_cpp_sdk_hash.txt
+
+      - name: upload SDK zip
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase_cpp_sdk.zip
+          path: firebase_cpp_sdk.zip
+
+  merge_packages:
+    name: final-merge-packages
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
+    needs: [build_and_package_ios, build_and_package_android, package_desktop, log_inputs]
+    steps:
+      - name: fetch SDK
+        uses: actions/checkout@v2.3.1
+        with:
+          path: sdk-src
+          ref: ${{ github.event.inputs.commitIdToPackage }}
+
+      - name: download artifact
+        uses: actions/download-artifact@v2
+        with:
+          # download-artifact doesn't support wildcards, but by default
+          # will download all artifacts. Sadly this is what we must do.
+          path: artifacts
+
+      - name: merge SDK packages
+        shell: bash
+        run: |
+          set -ex
+          mkdir -p firebase-cpp-sdk-final/firebase_cpp_sdk
+          for pkg in artifacts/firebase-cpp-sdk-*-package/*.tgz; do
+            tar -xzf "${pkg}" -C firebase-cpp-sdk-final/firebase_cpp_sdk
+          done
+          # Add the final files.
+          sdk-src/build_scripts/other/package.sh sdk-src firebase-cpp-sdk-final/firebase_cpp_sdk
+
+          # Zip up the package and grab a hash of the result.
+          cd firebase-cpp-sdk-final
+          # Save the hash of every file into the SDK package.
+          find firebase_cpp_sdk -type f -print0 | xargs -0 ${{ env.hashCommand }} --tag > file_hashes.txt
+          mv file_hashes.txt firebase_cpp_sdk/
+          # Zip up the SDK package recursively, preserving symlinks.
+          zip -9 -r -y ../firebase_cpp_sdk.zip firebase_cpp_sdk
+          cd ..
+
+      - name: compute SDK hash
+        shell: bash
+        run: |
+          ${{ env.hashCommand }} --tag firebase_cpp_sdk.zip > firebase_cpp_sdk_hash.txt
+          echo "::warning ::$(cat firebase_cpp_sdk_hash.txt)"
+
+      - name: Print final package contents
+        shell: bash
+        run: |
+          cd firebase-cpp-sdk-final
+          find firebase_cpp_sdk -type f
+
+      - name: upload hash
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase_cpp_sdk_hash.txt
+          path: firebase_cpp_sdk_hash.txt
+
+      - name: upload SDK zip
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase_cpp_sdk.zip
+          path: firebase_cpp_sdk.zip
+
+  cleanup_artifacts:
+    # Clean up intermediate artifacts.
+    name: cleanup-artifacts
+    runs-on: ubuntu-latest
+    needs: [merge_packages]
+    if: ${{ (github.event.inputs.preserveIntermediateArtifacts == 0 ||       # Temporary, for testing only.
+      - "feature/run_packaging_on_push_to_dev"
+  workflow_dispatch:
+    inputs:
+      commitIdToPackage:
+        description: 'commit ID to package'
+      preserveIntermediateArtifacts:
+        description: 'preserve intermediate artifacts?'
+        default: 0
+      downloadPublicVersion:
+        description: 'public version # to test against'
+      downloadPreviousRun:
+        description: 'previous run # to test against'
+
+env:
+  # Packaging prerequisites
+  # Binutils 2.35.1 released Sep 19, 2020
+  binutilsVer: 2.35.1
+  # Demumble 1.1.0 released Nov 13, 2018
+  demumbleVer: 1.1.0
+  # Use SHA256 for hashing files.
+  hashCommand: sha256sum
+
+jobs:
+  log_inputs:
+    name: log-inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: log run inputs
+        run: |
+          if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" ]]; then
+            echo "::warning ::Downloading public SDK package from https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip"
+          elif [[ -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
+            echo "::warning ::Downloading SDK package from previous run at https://github.com/firebase/firebase-cpp-sdk/actions/runs/${{ github.event.inputs.downloadPreviousRun }}"
+          fi
+          if [[ -n "${{ github.event.inputs.commitIdToPackage }}" ]]; then
+            if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" || -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
+              echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building tests."
+            else
+              echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building and packaging SDK and tests."
+            fi
+          fi
+          if [[ "${{ github.event.inputs.preserveIntermediateArtifacts }}" != "0" && -n "${{ github.event.inputs.preserveIntermediateArtifacts }}" ]]; then
+            echo "::warning ::Intermediate artifacts will be preserved."
+          fi
+
+  build_tools:
+    name: build-tools-${{ matrix.tools_platform }}
+    runs-on: ${{ matrix.os }}
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        include:
+        - os: ubuntu-latest
+          tools_platform: linux
+        - os: macos-latest
+          tools_platform: darwin
+    steps:
+      - name: fetch and build binutils
+        run: |
+          set +e
+          # Retry up to 10 times because Curl has a tendency to timeout on
+          # Github runners.
+          for retry in {1..10} error; do
+          if [[ $retry == "error" ]]; then exit 5; fi
+            curl -L https://ftpmirror.gnu.org/binutils/binutils-${{ env.binutilsVer }}.tar.xz --output binutils.tar.xz && break
+            sleep 300
+          done
+          set -e
+
+          tar -xf binutils.tar.xz
+          mv ./binutils-${{ env.binutilsVer }} ./binutils-src
+          cd binutils-src
+          ./configure --enable-targets=all --prefix=/tmp/binutils
+          make
+          make install
+          cd -
+          mkdir -p packaging-tools
+          cp -af /tmp/binutils/bin/* packaging-tools
+
+      - name: fetch demumble
+        uses: actions/checkout@v2.3.1
+        with:
+          repository: nico/demumble
+          path: demumble-src
+          ref: v${{ env.demumbleVer }}
+
+      - name: build demumble
+        run: |
+          cd demumble-src
+          cmake .
+          cmake --build .
+          python demumble_test.py
+          cd -
+          mkdir -p packaging-tools-
+          cp -af demumble-src/demumble packaging-tools
+
+      - name: archive tools
+        run: |
+          cd packaging-tools
+          ls
+          tar -czhf ../packaging-tools.tgz .
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: packaging-tools-${{ matrix.tools_platform }}
+          path: packaging-tools.tgz
+
+  build_and_package_ios:
+    name: build-and-package-ios
+    runs-on: macos-latest
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
+    steps:
+      - name: fetch SDK
+        uses: actions/checkout@v2.3.1
+        with:
+          path: sdk-src
+          ref: ${{ github.event.inputs.commitIdToPackage }}
+
+      - name: install prerequisites
+        run: sdk-src/build_scripts/ios/install_prereqs.sh
+
+      - name: build sdk
+        run: |
+          sdk-src/build_scripts/ios/build.sh -b firebase-cpp-sdk-ios-build -s sdk-src
+          sdk-src/build_scripts/ios/package.sh firebase-cpp-sdk-ios-build firebase-cpp-sdk-ios-package
+          cd firebase-cpp-sdk-ios-package
+          tar -czhf ../firebase-cpp-sdk-ios-package.tgz .
+
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-build -name "*.lib"
+          find firebase-cpp-sdk-*-build -name "*.dll"
+          find firebase-cpp-sdk-*-build -name "*.dylib"
+          find firebase-cpp-sdk-*-build -name "*.a"
+          find firebase-cpp-sdk-*-build -name "*.so"
+          find firebase-cpp-sdk-*-build -name "*.framework"
+
+      - name: Print package contents
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-package -type f
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase-cpp-sdk-ios-package
+          path: firebase-cpp-sdk-ios-package.tgz
+
+  build_and_package_android:
+    name: build-and-package-android-${{matrix.stl}}
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        stl: ["c++", "gnustl", "stlport"]
+    steps:
+      - name: fetch SDK
+        uses: actions/checkout@v2.3.1
+        with:
+          path: sdk-src
+          ref: ${{ github.event.inputs.commitIdToPackage }}
+
+      - name: install prerequisites
+        run: sdk-src/build_scripts/android/install_prereqs.sh
+
+      - name: build sdk
+        run: |
+          sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build sdk-src ${{ matrix.stl }}
+          sdk-src/build_scripts/android/package.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build firebase-cpp-sdk-android-${{ matrix.stl }}-package ${{ matrix.stl }}
+          cd firebase-cpp-sdk-android-${{ matrix.stl }}-package
+          tar -czhf ../firebase-cpp-sdk-android-${{ matrix.stl}}-package.tgz .
+
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-build -name "*.lib"
+          find firebase-cpp-sdk-*-build -name "*.dll"
+          find firebase-cpp-sdk-*-build -name "*.dylib"
+          find firebase-cpp-sdk-*-build -name "*.a"
+          find firebase-cpp-sdk-*-build -name "*.so"
+          find firebase-cpp-sdk-*-build -name "*.framework"
+
+      - name: Print package contents
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-package -type f
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase-cpp-sdk-android-${{ matrix.stl }}-package
+          path: firebase-cpp-sdk-android-${{ matrix.stl }}-package.tgz
+
+  build_desktop:
+    name: build-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}
+    runs-on: ${{ matrix.os }}
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+        build_type: ["Release", "Debug"]
+        architecture: ["x64", "x86"]
+        msvc_runtime: ["static", "dynamic"]
+        python_version: [3.7]
+        include:
+        - os: windows-latest
+          vcpkg_triplet_suffix: "windows-static"
+          additional_build_flags: "--build_tests"
+          sdk_platform: "windows"
+        - os: windows-latest
+          msvc_runtime: "dynamic"
+          vcpkg_triplet_suffix: "windows-static-md"
+          additional_build_flags: "--build_tests"
+          sdk_platform: "windows"
+        - os: ubuntu-latest
+          vcpkg_triplet_suffix: "linux"
+          additional_build_flags: ""
+          sdk_platform: "linux"
+        - os: macos-latest
+          vcpkg_triplet_suffix: "osx"
+          additional_build_flags: "--target_format libraries"
+          sdk_platform: "darwin"
+
+        exclude:
+        - os: macos-latest
+          architecture: "x86"
+        - os: macos-latest
+          msvc_runtime: "dynamic"
+        - os: macos-latest
+          build_type: "Debug"
+        - os: ubuntu-latest
+          msvc_runtime: "dynamic"
+        - os: ubuntu-latest
+          build_type: "Debug"
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+          ref: ${{ github.event.inputs.commitIdToPackage }}
+
+      - name: Set env variables for subsequent steps (all)
+        shell: bash
+        run: |
+          echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt" >> $GITHUB_ENV
+          echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}" >> $GITHUB_ENV
+          echo "SDK_NAME=${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}" >> $GITHUB_ENV
+
+      - name: Add msbuild to PATH (windows)
+        if: startsWith(matrix.os, 'windows')
+        uses: microsoft/setup-msbuild@v1.0.2
+
+      - name: Cache vcpkg C++ dependencies
+        id: cache_vcpkg
+        uses: actions/cache@v2
+        with:
+          path: external/vcpkg/installed
+          key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+
+      - name: Cache ccache files
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python_version }}
+
+      - name: Install prerequisites
+        run: |
+          python scripts/gha/install_prereqs_desktop.py
+
+      - name: Build desktop SDK
+        shell: bash
+        run: |
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --build_dir out-${{ env.SDK_NAME }} ${{ matrix.additional_build_flags }}
+          # Make a list of all the source files, for debugging purposes.
+          cd out-${{ env.SDK_NAME }}
+          find .. -type f -print > src_file_list.txt
+          tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
+
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find out-* -name "*.lib"
+          find out-* -name "*.dll"
+          find out-* -name "*.dylib"
+          find out-* -name "*.a"
+          find out-* -name "*.so"
+          find out-* -name "*.framework"
+
+      - name: Inspect firebase libraries for cpu arch and msvc runtime.
+        shell: bash
+        run: |
+          python scripts/gha/inspect_built_libraries.py out-${{ env.SDK_NAME }}/
+        continue-on-error: true
+
+      - name: upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase-cpp-sdk-${{ env.SDK_NAME }}-build
+          path: firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz
+
+      - name: Stats for ccache (mac and linux)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        run: ccache -s
+
+  package_desktop:
+    name: package-${{ matrix.sdk_platform }}${{ matrix.suffix }}
+    runs-on: ${{ matrix.runs_on_platform }}
+    needs: [build_tools, build_desktop]
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk_platform: [linux, darwin, windows]
+        suffix: ['']
+        runs_on_platform: [ubuntu-latest]
+        include:
+        # Split windows packaging into multiple runners.
+        - sdk_platform: windows
+          suffix: '-x86-Release-static'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x86-Release-dynamic'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x64-Release-static'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x64-Release-dynamic'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x86-Debug-static'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x86-Debug-dynamic'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x64-Debug-static'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: windows
+          suffix: '-x64-Debug-dynamic'
+          runs_on_platform: ubuntu-latest
+        - sdk_platform: darwin
+          runs_on_platform: macos-latest
+        exclude:
+        - sdk_platform: windows
+          suffix: ''
+        - sdk_platform: darwin
+          runs_on_platform: ubuntu-latest
+    steps:
+      - name: fetch SDK
+        uses: actions/checkout@v2.3.1
+        with:
+          path: sdk-src
+          ref: ${{ github.event.inputs.commitIdToPackage }}
+
+      - name: download artifact
+        uses: actions/download-artifact@v2
+        with:
+          # download-artifact doesn't support wildcards, but by default
+          # will download all artifacts. Sadly this is what we must do.
+          path: artifacts
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
+      - name: Install prerequisites
+        run: |
+          cd sdk-src
+          python scripts/gha/install_prereqs_desktop.py
+          cd ..
+
+      - name: postprocess and package built SDK
+        run: |
+          mkdir -p bin
+          if [[ $(uname) == "Linux"* ]]; then
+            tools_platform=linux
+          else
+            tools_platform=darwin
+          fi
+          tar -xvzf artifacts/packaging-tools-${tools_platform}/packaging-tools.tgz -C bin
+          chmod -R u+x bin
+          for pkg in artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build/*.tgz; do
+            # determine the build variant based on the artifact filename
+            variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
+            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3
+          done
+          if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
+            # Darwin has a final step after all the variants are done,
+            # create universal libraries and frameworks.
+            sdk-src/build_scripts/other/package.sh sdk-src tmpdir_for_headers
+            sdk-src/build_scripts/desktop/finish_darwin.sh firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package tmpdir_for_headers/include bin
+          fi
+          cd firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package
+          tar -czhf ../firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package.tgz .
+
+      - name: Print package contents
+        shell: bash
+        run: |
+          find firebase-cpp-sdk-*-package -type f
+
+      - name: upload SDK zip
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package
+          path: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package.tgz
+
+  download_sdk_package:
+    name: download-sdk-package
+    runs-on: ubuntu-latest
+    needs: [log_inputs]
+    if: ${{ github.event.inputs.downloadPublicVersion != '' || github.event.inputs.downloadPreviousRun != '' }}
+    steps:
+      - name: fetch artifact from previous run
+        uses: dawidd6/action-download-artifact@v2
+        if: ${{ github.event.inputs.downloadPreviousRun != '' }}
+        with:
+          name: 'firebase_cpp_sdk.zip'
+          workflow: 'cpp-packaging.yml'
+          run_id: ${{ github.event.inputs.downloadPreviousRun }}
+
+      - name: fetch public SDK package from web
+        if: ${{ github.event.inputs.downloadPublicVersion != '' && github.event.inputs.downloadPreviousRun == '' }}
+        run: |
+          if [[ ! "${{ github.event.inputs.downloadPublicVersion }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo Invalid version number: "${{ github.event.inputs.downloadPublicVersion }}"
+            exit 1
+          fi
+          set +e
+          # Retry up to 10 times because Curl has a tendency to timeout on
+          # Github runners.
+          for retry in {1..10} error; do
+          if [[ $retry == "error" ]]; then exit 5; fi
+            curl -L https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip --output firebase_cpp_sdk.zip && break
+            sleep 300
+          done
+          set -e
+
+      - name: compute SDK hash
+        shell: bash
+        run: |
+          ${{ env.hashCommand }} --tag firebase_cpp_sdk.zip > firebase_cpp_sdk_hash.txt
+          echo "::warning ::$(cat firebase_cpp_sdk_hash.txt)"
+
+      - name: upload hash
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase_cpp_sdk_hash.txt
+          path: firebase_cpp_sdk_hash.txt
+
+      - name: upload SDK zip
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase_cpp_sdk.zip
+          path: firebase_cpp_sdk.zip
+
+  merge_packages:
+    name: final-merge-packages
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
+    needs: [build_and_package_ios, build_and_package_android, package_desktop, log_inputs]
+    steps:
+      - name: fetch SDK
+        uses: actions/checkout@v2.3.1
+        with:
+          path: sdk-src
+          ref: ${{ github.event.inputs.commitIdToPackage }}
+
+      - name: download artifact
+        uses: actions/download-artifact@v2
+        with:
+          # download-artifact doesn't support wildcards, but by default
+          # will download all artifacts. Sadly this is what we must do.
+          path: artifacts
+
+      - name: merge SDK packages
+        shell: bash
+        run: |
+          set -ex
+          mkdir -p firebase-cpp-sdk-final/firebase_cpp_sdk
+          for pkg in artifacts/firebase-cpp-sdk-*-package/*.tgz; do
+            tar -xzf "${pkg}" -C firebase-cpp-sdk-final/firebase_cpp_sdk
+          done
+          # Add the final files.
+          sdk-src/build_scripts/other/package.sh sdk-src firebase-cpp-sdk-final/firebase_cpp_sdk
+
+          # Zip up the package and grab a hash of the result.
+          cd firebase-cpp-sdk-final
+          # Save the hash of every file into the SDK package.
+          find firebase_cpp_sdk -type f -print0 | xargs -0 ${{ env.hashCommand }} --tag > file_hashes.txt
+          mv file_hashes.txt firebase_cpp_sdk/
+          # Zip up the SDK package recursively, preserving symlinks.
+          zip -9 -r -y ../firebase_cpp_sdk.zip firebase_cpp_sdk
+          cd ..
+
+      - name: compute SDK hash
+        shell: bash
+        run: |
+          ${{ env.hashCommand }} --tag firebase_cpp_sdk.zip > firebase_cpp_sdk_hash.txt
+          echo "::warning ::$(cat firebase_cpp_sdk_hash.txt)"
+
+      - name: Print final package contents
+        shell: bash
+        run: |
+          cd firebase-cpp-sdk-final
+          find firebase_cpp_sdk -type f
+
+      - name: upload hash
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase_cpp_sdk_hash.txt
+          path: firebase_cpp_sdk_hash.txt
+
+      - name: upload SDK zip
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase_cpp_sdk.zip
+          path: firebase_cpp_sdk.zip
+
+  cleanup_artifacts:
+    # Clean up intermediate artifacts.
+    name: cleanup-artifacts
+    runs-on: ubuntu-latest
+    needs: [merge_packages]
+    if: ${{ (github.event.inputs.preserveIntermediateArtifacts == 0 || github.event.inputs.preserveIntermediateArtifacts == '') && github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     steps:
     - uses: geekyeggo/delete-artifact@v1
       with:
