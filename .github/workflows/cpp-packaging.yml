@@ -29,9 +29,9 @@ jobs:
       - name: log run inputs
         run: |
           if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" ]]; then
-            echo "::warning ::Using public SDK package at https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip"
+            echo "::warning ::Downloading public SDK package from https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip"
           elif [[ -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
-            echo "::warning ::Using SDK package from previous run at https://github.com/firebase/firebase-cpp-sdk/actions/runs/${{ github.event.inputs.downloadPreviousRun }}"
+            echo "::warning ::Downloading SDK package from previous run at https://github.com/firebase/firebase-cpp-sdk/actions/runs/${{ github.event.inputs.downloadPreviousRun }}"
           fi
           if [[ -n "${{ github.event.inputs.commitIdToPackage }}" ]]; then
             if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" || -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
