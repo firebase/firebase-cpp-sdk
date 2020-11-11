@@ -1,5 +1,9 @@
 name: CPP binary SDK packaging
 on:
+  push:
+    branches:
+      - "dev"
+      - "feature/run_packaging_on_push_to_dev"
   workflow_dispatch:
     inputs:
       commitIdToPackage:
