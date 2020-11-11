@@ -71,9 +71,11 @@ jobs:
         if: startsWith(matrix.os, 'macos')
         run: echo "VCPKG_TRIPLET=x64-osx" >> $GITHUB_ENV
       - name: Set env vars (windows)
+        shell: bash
         if: startsWith(matrix.os, 'windows')
         run: echo "VCPKG_TRIPLET=x64-windows-static" >> $GITHUB_ENV
       - name: Set env vars(all)
+        shell: bash
         run: echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ env.VCPKG_TRIPLET }}_response_file.txt" >> $GITHUB_ENV
 
       - name: Add msbuild to PATH (windows)

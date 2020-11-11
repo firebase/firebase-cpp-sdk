@@ -30,6 +30,7 @@ jobs:
           submodules: true
 
       - name: Set env variables for subsequent steps (all)
+        shell: bash
         run: |
           echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.architecture }}" >> $GITHUB_ENV
           echo "GHA_INSTALL_CCACHE=1" >> $GITHUB_ENV
