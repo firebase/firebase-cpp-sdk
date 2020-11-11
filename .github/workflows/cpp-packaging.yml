@@ -11,6 +11,9 @@ on:
         description: 'public version # to test against'
       downloadPreviousRun:
         description: 'previous run # to test against'
+    outputs:
+      sha256: # SHA256 of the resulting SDK package.
+        description: "SHA256 of the SDK zip file."
 
 env:
   # Packaging prerequisites
@@ -390,9 +393,6 @@ jobs:
     name: download-sdk-package
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.downloadPublicVersion != '' || github.event.inputs.downloadPreviousRun != '' }}
-    outputs:
-      sha256: # SHA256 of the resulting SDK package.
-        description: "SHA256 of the SDK zip file."
     steps:
       - name: fetch artifact from previous run
         uses: dawidd6/action-download-artifact@v2
@@ -442,9 +442,6 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     needs: [build_and_package_ios, build_and_package_android, package_desktop]
-    outputs:
-      sha256: # SHA256 of the resulting SDK package.
-        description: "SHA256 of the SDK zip file."
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
