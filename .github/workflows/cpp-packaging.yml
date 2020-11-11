@@ -423,8 +423,8 @@ jobs:
         run: |
           sha256sum firebase_cpp_sdk.zip > firebase_cpp_sdk.sha256
           # Set it as an output parameter too.
-          echo "sha256=$(cut -f1 -d' ' firebase_cpp_sdk.sha256)" >> $GITHUB_ENV
-
+          echo "::set-output name=sha256:$(cut -f1 -d' ' firebase_cpp_sdk.sha256)"
+          # echo "sha256=$(cut -f1 -d' ' firebase_cpp_sdk.sha256)" >> $GITHUB_ENV
       - name: upload SHA256 hash
         uses: actions/upload-artifact@v2
         with:
@@ -476,7 +476,8 @@ jobs:
           cd ..
           sha256sum firebase_cpp_sdk.zip > firebase_cpp_sdk.sha256
           # Set it as an output parameter too.
-          echo "sha256=$(cut -f1 -d' ' firebase_cpp_sdk.sha256)" >> $GITHUB_ENV
+          echo "::set-output name=sha256:$(cut -f1 -d' ' firebase_cpp_sdk.sha256)"
+          # echo "sha256=$(cut -f1 -d' ' firebase_cpp_sdk.sha256)" >> $GITHUB_ENV
       - name: Print final package contents
         shell: bash
         run: |
