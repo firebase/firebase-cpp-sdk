@@ -418,6 +418,7 @@ jobs:
     steps:
       - name: fetch artifact from previous run
         uses: dawidd6/action-download-artifact@v2
+        if: ${{ github.event.inputs.downloadPreviousRun != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
           workflow: 'cpp-packaging.yml'
