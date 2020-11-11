@@ -260,7 +260,7 @@ jobs:
 
       - name: Add msbuild to PATH (windows)
         if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v1.0.2
+        uses: microsoft/setup-msbuild@v1.0.1
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
