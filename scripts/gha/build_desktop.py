@@ -205,7 +205,7 @@ def main():
   # Copy libraries from appropriate vcpkg directory to build output
   # directory for later inclusion.
   vcpkg_path = ('external/vcpkg/installed/%s/%slib/' %
-                (utils.get_vcpkg_triplet(args.arch),
+                (utils.get_vcpkg_triplet(args.arch, args.msvc_runtime_library),
                  'debug/' if args.config == 'Debug' else ''))
   if (os.path.exists(vcpkg_path)):
     shutil.rmtree('vcpkg-libs', ignore_errors=True)

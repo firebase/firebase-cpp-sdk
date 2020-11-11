@@ -14,8 +14,8 @@ on:
 
 env:
   # Packaging prerequisites
-  # Binutils 2.34 released Feb 1, 2020
-  binutilsVer: 2.34
+  # Binutils 2.35.1 released Sep 19, 2020
+  binutilsVer: 2.35.1
   # Demumble 1.1.0 released Nov 13, 2018
   demumbleVer: 1.1.0
 
@@ -159,68 +159,48 @@ jobs:
           path: firebase-cpp-sdk-android-${{ matrix.stl }}-package.tgz
 
   build_desktop:
-    name: build-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.linkage }}
+    name: build-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}
     runs-on: ${{ matrix.os }}
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
-        architecture: ["x86", "x64"]
-        build_type: ["Debug", "Release"]
-        linkage: ["dynamic", "static"]
+        build_type: ["Release", "Debug"]
+        architecture: ["x64", "x86"]
+        msvc_runtime: ["static", "dynamic"]
         python_version: [3.7]
         include:
         - os: windows-latest
-          linkage: "static"
-          architecture: "x64"
-          vcpkg_triplet: "x64-windows-static"
-          sdk_platform: windows
+          vcpkg_triplet_suffix: "windows-static"
           additional_build_flags: "--build_tests"
+          sdk_platform: "windows"
         - os: windows-latest
-          linkage: "dynamic"
-          architecture: "x64"
-          vcpkg_triplet: "x64-windows"
-          sdk_platform: windows
+          msvc_runtime: "dynamic"
+          vcpkg_triplet_suffix: "windows-static-md"
           additional_build_flags: "--build_tests"
-        - os: windows-latest
-          linkage: "static"
-          architecture: "x86"
-          vcpkg_triplet: "x86-windows-static"
-          sdk_platform: windows
-          additional_build_flags: "--build_tests"
-        - os: windows-latest
-          linkage: "dynamic"
-          architecture: "x86"
-          vcpkg_triplet: "x86-windows"
-          sdk_platform: windows
-          additional_build_flags: "--build_tests"
+          sdk_platform: "windows"
         - os: ubuntu-latest
-          architecture: "x86"
-          vcpkg_triplet: "x86-linux-dynamic"  # special case
-          sdk_platform: linux
+          vcpkg_triplet_suffix: "linux"
           additional_build_flags: ""
-        - os: ubuntu-latest
-          architecture: "x64"
-          vcpkg_triplet: "x64-linux"
-          sdk_platform: linux
-          additional_build_flags: ""
+          sdk_platform: "linux"
         - os: macos-latest
-          vcpkg_triplet: "x64-osx"
-          sdk_platform: darwin
+          vcpkg_triplet_suffix: "osx"
           additional_build_flags: "--target_format libraries"
+          sdk_platform: "darwin"
+
         exclude:
         - os: macos-latest
           architecture: "x86"
         - os: macos-latest
-          build_type: "Debug"
+          msvc_runtime: "dynamic"
         - os: macos-latest
-          linkage: "dynamic"
-        - os: ubuntu-latest
           build_type: "Debug"
         - os: ubuntu-latest
-          linkage: "dynamic"
-          
+          msvc_runtime: "dynamic"
+        - os: ubuntu-latest
+          build_type: "Debug"
+
     steps:
       - uses: actions/checkout@v2
         with:
@@ -228,21 +208,22 @@ jobs:
           ref: ${{ github.event.inputs.commitIdToPackage }}
 
       - name: Set env variables for subsequent steps (all)
+        shell: bash
         run: |
           echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt" >> $GITHUB_ENV
           echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}" >> $GITHUB_ENV
-          echo "SDK_NAME=${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.linkage }}" >> $GITHUB_ENV
+          echo "SDK_NAME=${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}" >> $GITHUB_ENV
 
       - name: Add msbuild to PATH (windows)
         if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v1.0.1
+        uses: microsoft/setup-msbuild@v1.0.2
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
         uses: actions/cache@v2
         with:
           path: external/vcpkg/installed
-          key: dev-vcpkg-${{ matrix.vcpkg_triplet }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+          key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
 
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
@@ -264,20 +245,28 @@ jobs:
       - name: Build desktop SDK
         shell: bash
         run: |
-          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --build_dir firebase-cpp-sdk-${{ env.SDK_NAME }}-build ${{ matrix.additional_build_flags }}
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --build_dir out-${{ env.SDK_NAME }} ${{ matrix.additional_build_flags }}
           # Make a list of all the source files, for debugging purposes.
-          cd firebase-cpp-sdk-${{ env.SDK_NAME }}-build
+          cd out-${{ env.SDK_NAME }}
           find .. -type f -print > src_file_list.txt
           tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
+
       - name: Print built libraries
         shell: bash
         run: |
-          find firebase-cpp-sdk-*-build -name "*.lib"
-          find firebase-cpp-sdk-*-build -name "*.dll"
-          find firebase-cpp-sdk-*-build -name "*.dylib"
-          find firebase-cpp-sdk-*-build -name "*.a"
-          find firebase-cpp-sdk-*-build -name "*.so"
-          find firebase-cpp-sdk-*-build -name "*.framework"
+          find out-* -name "*.lib"
+          find out-* -name "*.dll"
+          find out-* -name "*.dylib"
+          find out-* -name "*.a"
+          find out-* -name "*.so"
+          find out-* -name "*.framework"
+
+      - name: Inspect firebase libraries for cpu arch and msvc runtime.
+        shell: bash
+        run: |
+          python scripts/gha/inspect_built_libraries.py out-${{ env.SDK_NAME }}/
+        continue-on-error: true
+
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -424,7 +413,7 @@ jobs:
         with:
           name: firebase_cpp_sdk
           path: firebase-cpp-sdk-final
-          
+
   merge_packages:
     name: final-merge-packages
     runs-on: ubuntu-latest

@@ -475,6 +475,18 @@ _additional_symbol_prefixes = {
     # "windows": ["__imp_"]
 }
 
+# If a binutils tool returns a "file format is ambiguous" error,
+# prefer matching formats that begin with the given prefix (depending
+# on the platform). It will select the first format that starts with the
+# given prefix. (A blank prefix just means use the first format no
+# matter what.)
+BINUTILS_PREFERRED_FORMAT_PREFIX_IF_AMBIGUOUS = {
+    "windows": "pe-",
+    "linux": "",
+    "android": "",
+    "darwin": "",
+    "ios": "",
+}
 
 def read_symbols_from_archive(archive_file):
   """Read the symbols defined in a library archive.
@@ -755,19 +767,29 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
     # Line 0: filename.o: File format is ambiguous
     # Line 1: Matching formats: format1 format2 [...]
     #
-    # If this occurs, we will run the command again, passing in --target=format1
-    # (except on Windows where we know we want fmt2.)
+    # If this occurs, we will run the command again, passing in the
+    # target format that we believe we should use instead.
     elif (len(error_output) >= 2 and
           "ile format is ambiguous" in error_output[0]):
-      m = re.search("Matching formats: (?P<fmt>[^ ]+) (?P<fmt2>[^ ]+)",
-                    error_output[1])
+      m = re.search("Matching formats: (.+)", error_output[1])
       if m:
-        fmt = m.group("fmt" if FLAGS.platform != "windows" else "fmt2")
+        all_formats = m.group(1).split(" ")
+        preferred_formats = [
+          fmt
+          for fmt
+          in all_formats
+          if fmt.startswith(
+              BINUTILS_PREFERRED_FORMAT_PREFIX_IF_AMBIGUOUS[FLAGS.platform])
+        ]
+        # Or if for some reason none was found, just take the default (first).
+        retry_format = (preferred_formats[0]
+                        if len(preferred_formats) > 0
+                        else all_formats[0])
         error_output = []
         logging.debug("Ambiguous file format when running %s %s",
                       os.path.basename(cmdline[0]), " ".join(cmdline[1:]))
-        logging.debug("Retrying with --target=%s", fmt)
-        output = run_command([cmdline[0]] + ["--target=%s" % fmt] + cmdline[1:],
+        logging.debug("Retrying with --target=%s", retry_format)
+        output = run_command([cmdline[0]] + ["--target=%s" % retry_format] + cmdline[1:],
                              error_output, ignore_errors)
     if error_output and not ignore_errors:
       # If we failed any other way, or if the second run failed, bail.
