@@ -506,6 +506,7 @@ jobs:
           # Zip up the SDK package recursively, preserving symlinks.
           zip -9 -r -y ../firebase_cpp_sdk.zip firebase_cpp_sdk
           cd ..
+
       - name: compute SDK hash
         shell: bash
         run: |
