@@ -35,13 +35,13 @@ jobs:
           fi
           if [[ -n "${{ github.event.inputs.commitIdToPackage }}" ]]; then
             if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" || -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
-              echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building tests.
+              echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building tests."
             else
-              echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building and packaging SDK and tests.
+              echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building and packaging SDK and tests."
             fi
           fi
           if [[ "${{ github.event.inputs.preserveIntermediateArtifacts }}" != "0" ]]; then
-              echo "::warning ::Intermediate artifacts will be preserved.
+            echo "::warning ::Intermediate artifacts will be preserved."
           fi
 
   build_tools:
