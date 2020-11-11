@@ -390,13 +390,15 @@ jobs:
     name: download-sdk-package
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.downloadPublicVersion != '' || github.event.inputs.downloadPreviousRun != '' }}
+    outputs:
+      sha256: # SHA256 of the resulting SDK package.
+        description: SHA256 of the SDK zip file.
     steps:
       - name: fetch artifact from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.downloadPreviousRun != '' }}
         with:
-          name: 'firebase_cpp_sdk'
-          path: 'firebase-cpp-sdk-final'
+          name: 'firebase_cpp_sdk.zip'
           workflow: 'cpp-packaging.yml'
           run_id: ${{ github.event.inputs.downloadPreviousRun }}
 
@@ -407,7 +409,6 @@ jobs:
             echo Invalid version number: "${{ github.event.inputs.downloadPublicVersion }}"
             exit 1
           fi
-          mkdir firebase-cpp-sdk-final
           set +e
           # Retry up to 10 times because Curl has a tendency to timeout on
           # Github runners.
@@ -417,13 +418,24 @@ jobs:
             sleep 300
           done
           set -e
-          cd firebase-cpp-sdk-final
-          unzip ../firebase_cpp_sdk.zip
+
+      - name: log SHA256 hash
+        run: |
+          sha256sum firebase_cpp_sdk.zip > firebase_cpp_sdk.sha256
+          # Set it as an output parameter too.
+          echo "sha256=$(cut -f1 -d' ' firebase_cpp_sdk.sha256)" >> $GITHUB_ENV
+
+      - name: upload SHA256 hash
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase_cpp_sdk.sha256
+          path: firebase_cpp_sdk.sha256
+          
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: firebase_cpp_sdk
-          path: firebase-cpp-sdk-final
+          name: firebase_cpp_sdk.zip
+          path: firebase_cpp_sdk.zip
           
   merge_packages:
     name: final-merge-packages
@@ -473,16 +485,17 @@ jobs:
         run: |
           cd firebase-cpp-sdk-final
           find firebase_cpp_sdk -type f
-      - name: upload SDK zip
-        uses: actions/upload-artifact@v2
-        with:
-          name: firebase_cpp_sdk.zip
-          path: firebase_cpp_sdk.zip
+
       - name: upload SHA256 hash
         uses: actions/upload-artifact@v2
         with:
           name: firebase_cpp_sdk.sha256
           path: firebase_cpp_sdk.sha256
+      - name: upload SDK zip
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase_cpp_sdk.zip
+          path: firebase_cpp_sdk.zip
 
   cleanup_artifacts:
     # Clean up intermediate artifacts.
