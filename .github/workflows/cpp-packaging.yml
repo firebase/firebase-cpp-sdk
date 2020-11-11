@@ -208,6 +208,7 @@ jobs:
           ref: ${{ github.event.inputs.commitIdToPackage }}
 
       - name: Set env variables for subsequent steps (all)
+        shell: bash
         run: |
           echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt" >> $GITHUB_ENV
           echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}" >> $GITHUB_ENV
