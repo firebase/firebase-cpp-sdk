@@ -2,7 +2,9 @@ name: CPP binary SDK packaging
 on:
   push:
     branches:
+      # Run a full packaging step any time a new branch is merged into dev.
       - "dev"
+      # For testing only.
       - "feature/run_packaging_on_push_to_dev"
   workflow_dispatch:
     inputs:
