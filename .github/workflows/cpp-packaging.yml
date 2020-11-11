@@ -546,7 +546,7 @@ jobs:
           path: .
       - name: List binary SDK files.
         run: |
-          unzip firebase_cpp_sdk.zip
+          unzip -q firebase_cpp_sdk.zip
           find . -print
       - name: fetch integration test source
         uses: actions/checkout@v2.3.1
