@@ -4,13 +4,13 @@ if [[ $(uname) == "Darwin" ]]; then
     platform=darwin
     if [[ ! -z "${GHA_INSTALL_CCACHE}" ]]; then
         brew install ccache
-        echo "::set-env name=CCACHE_INSTALLED::1"
+        echo "CCACHE_INSTALLED=1" >> $GITHUB_ENV
     fi
 elif [[ $(uname) == "Linux" ]]; then
     platform=linux
     if [[ ! -z "${GHA_INSTALL_CCACHE}" ]]; then
         sudo apt install ccache
-        echo "::set-env name=CCACHE_INSTALLED::1"
+        echo "CCACHE_INSTALLED=1" >> $GITHUB_ENV
     fi
 else
     platform=windows

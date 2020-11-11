@@ -1,6 +1,6 @@
 name: iOS Builds
 
-on: 
+on:
   pull_request:
     types: [opened, reopened, synchronize]
 
