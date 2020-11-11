@@ -430,6 +430,9 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     needs: [build_and_package_ios, build_and_package_android, package_desktop]
+    outputs:
+      sha256: # SHA256 of the resulting SDK package.
+        description: SHA256 of the SDK zip file.
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
@@ -453,16 +456,33 @@ jobs:
           done
           # Add the final files.
           sdk-src/build_scripts/other/package.sh sdk-src firebase-cpp-sdk-final/firebase_cpp_sdk
+
+          # Zip up the package and grab a SHA256 hash of the result.
+          cd firebase-cpp-sdk-final
+          # Save the SHA256 checksum of every file into the SDK package.
+          find firebase_cpp_sdk -type f -print0 | xargs -0 sha256sum > firebase_cpp_sdk/firebase_cpp_sdk.sha256
+          # Zip up the SDK package recursively, preserving symlinks.
+          zip -9 -r -y ../firebase_cpp_sdk.zip firebase_cpp_sdk
+          # Save the SHA256 hash of the entire SDK package.
+          cd ..
+          sha256sum firebase_cpp_sdk.zip > firebase_cpp_sdk.sha256
+          # Set it as an output parameter too.
+          echo "sha256=$(cut -f1 -d' ' firebase_cpp_sdk.sha256)" >> $GITHUB_ENV
       - name: Print final package contents
         shell: bash
         run: |
           cd firebase-cpp-sdk-final
-          find * -type f
-      - name: upload artifacts
+          find firebase_cpp_sdk -type f
+      - name: upload SDK zip
         uses: actions/upload-artifact@v2
         with:
-          name: firebase_cpp_sdk
-          path: firebase-cpp-sdk-final
+          name: firebase_cpp_sdk.zip
+          path: firebase_cpp_sdk.zip
+      - name: upload SHA256 hash
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase_cpp_sdk.sha256
+          path: firebase_cpp_sdk.sha256
 
   cleanup_artifacts:
     # Clean up intermediate artifacts.
@@ -512,10 +532,11 @@ jobs:
       - name: download artifact
         uses: actions/download-artifact@v2
         with:
-          name: firebase_cpp_sdk
+          name: firebase_cpp_sdk.zip
           path: .
       - name: List binary SDK files.
         run: |
+          unzip firebase_cpp_sdk.zip
           find . -print
       - name: fetch integration test source
         uses: actions/checkout@v2.3.1
