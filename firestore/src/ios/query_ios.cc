@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "app/src/assert.h"
+#include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/document_snapshot_ios.h"
@@ -280,7 +281,7 @@ api::Query QueryInternal::CreateQueryWithBound(BoundPosition bound_pos,
       return query_.EndAt(std::move(bound));
   }
 
-  UNREACHABLE();
+  FIRESTORE_UNREACHABLE();
 }
 
 bool QueryInternal::IsBefore(BoundPosition bound_pos) {
@@ -294,7 +295,7 @@ bool QueryInternal::IsBefore(BoundPosition bound_pos) {
       return false;
   }
 
-  UNREACHABLE();
+  FIRESTORE_UNREACHABLE();
 }
 
 }  // namespace firestore

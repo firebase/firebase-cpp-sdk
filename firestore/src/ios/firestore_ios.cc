@@ -5,6 +5,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "auth/src/include/firebase/auth.h"
+#include "firestore/src/common/macros.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/ios/converter_ios.h"
@@ -293,7 +294,7 @@ void Firestore::set_log_level(LogLevel log_level) {
       LogSetLevel(util::kLogLevelError);
       break;
     default:
-      UNREACHABLE();
+      FIRESTORE_UNREACHABLE();
       break;
   }
 

@@ -3,6 +3,7 @@
 #include <set>
 #include <string>
 
+#include "firestore/src/common/macros.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/field_value_ios.h"
 #include "firestore/src/ios/hard_assert_ios.h"
@@ -169,7 +170,7 @@ ParsedSetData UserDataConverter::ParseSetData(const MapFieldValue& data,
       return ParseMergeData(data, internal_options.field_mask());
   }
 
-  UNREACHABLE();
+  FIRESTORE_UNREACHABLE();
 }
 
 ParsedUpdateData UserDataConverter::ParseUpdateData(
