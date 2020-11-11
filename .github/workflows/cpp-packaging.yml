@@ -22,6 +22,28 @@ env:
   hashCommand: sha256sum
 
 jobs:
+  log_inputs:
+    name: log-inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: log run inputs
+        run: |
+          if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" ]]; then
+            echo "::warning ::Using public SDK package at https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip"
+          elif [[ -n "${{ github.event.inputs.downloadPreviousRun }}" ]]
+            echo "::warning ::Using SDK package from previous run at https://github.com/firebase/firebase-cpp-sdk/actions/runs/${{ github.event.inputs.downloadPreviousRun }}"
+          fi
+          if [[ -n "${{ github.event.inputs.commitIdToPackage }}" ]]; then
+            if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" || -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
+              echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building tests.
+            else
+              echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building and packaging SDK and tests.
+            fi
+          fi
+          if [[ "${{ github.event.inputs.preserveIntermediateArtifacts }}" != "0" ]]; then
+              echo "::warning ::Intermediate artifacts will be preserved.
+          fi
+
   build_tools:
     name: build-tools-${{ matrix.tools_platform }}
     runs-on: ${{ matrix.os }}
@@ -222,7 +244,7 @@ jobs:
           build_type: "Debug"
         - os: ubuntu-latest
           linkage: "dynamic"
-          
+
     steps:
       - uses: actions/checkout@v2
         with:
@@ -230,6 +252,7 @@ jobs:
           ref: ${{ github.event.inputs.commitIdToPackage }}
 
       - name: Set env variables for subsequent steps (all)
+        shell: bash
         run: |
           echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt" >> $GITHUB_ENV
           echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}" >> $GITHUB_ENV
@@ -395,7 +418,6 @@ jobs:
     steps:
       - name: fetch artifact from previous run
         uses: dawidd6/action-download-artifact@v2
-        if: ${{ github.event.inputs.downloadPreviousRun != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
           workflow: 'cpp-packaging.yml'
@@ -427,13 +449,13 @@ jobs:
         with:
           name: firebase_cpp_sdk_hash.txt
           path: firebase_cpp_sdk_hash.txt
-          
+
       - name: upload SDK zip
         uses: actions/upload-artifact@v2
         with:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
-          
+
   merge_packages:
     name: final-merge-packages
     runs-on: ubuntu-latest
