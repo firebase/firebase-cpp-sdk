@@ -30,7 +30,7 @@ jobs:
         run: |
           if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" ]]; then
             echo "::warning ::Using public SDK package at https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip"
-          elif [[ -n "${{ github.event.inputs.downloadPreviousRun }}" ]]
+          elif [[ -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
             echo "::warning ::Using SDK package from previous run at https://github.com/firebase/firebase-cpp-sdk/actions/runs/${{ github.event.inputs.downloadPreviousRun }}"
           fi
           if [[ -n "${{ github.event.inputs.commitIdToPackage }}" ]]; then
