@@ -1,5 +1,9 @@
 name: CPP binary SDK packaging
 on:
+  push:
+    branches:
+      # Run a full packaging step any time a new branch is merged into dev.
+      - dev
   workflow_dispatch:
     inputs:
       commitIdToPackage:
@@ -40,9 +44,16 @@ jobs:
               echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building and packaging SDK and tests."
             fi
           fi
-          if [[ "${{ github.event.inputs.preserveIntermediateArtifacts }}" != "0" ]]; then
-            echo "::warning ::Intermediate artifacts will be preserved."
-          fi
+
+      - name: log if preserving intermediate artifacts
+        # Inverse of the conditional on the cleanup_artifacts step.
+        if: |
+          !(
+            (github.event.inputs.preserveIntermediateArtifacts == 0 || github.event.inputs.preserveIntermediateArtifacts == '')
+            && github.event.inputs.downloadPublicVersion == ''
+            && github.event.inputs.downloadPreviousRun == ''
+          )
+        run: echo "::warning ::Intermediate artifacts will be preserved."
 
   build_tools:
     name: build-tools-${{ matrix.tools_platform }}
@@ -536,7 +547,12 @@ jobs:
     name: cleanup-artifacts
     runs-on: ubuntu-latest
     needs: [merge_packages]
-    if: ${{ github.event.inputs.preserveIntermediateArtifacts == 0 && github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
+    if: |
+      (
+        (github.event.inputs.preserveIntermediateArtifacts == 0 || github.event.inputs.preserveIntermediateArtifacts == '')
+        && github.event.inputs.downloadPublicVersion == ''
+        && github.event.inputs.downloadPreviousRun == ''
+      )
     steps:
     - uses: geekyeggo/delete-artifact@v1
       with:
