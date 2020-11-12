@@ -169,15 +169,41 @@ def get_vcpkg_installation_script_path():
   return script_absolute_path
 
 
-def verify_vcpkg_build(vcpkg_triplet):
-  """Check if vcpkg installation finished successfully."""
+def verify_vcpkg_build(vcpkg_triplet, attempt_auto_fix=False):
+  """Check if vcpkg installation finished successfully.
+
+  Args:
+    vcpkg_triplet (str): Triplet name for vcpkg. Eg: 'x64-linux'
+    attempt_auto_fix (bool): If installation failed, try fixing some errors.
+
+  Returns:
+    (bool) True if everything looks good
+           False if installation failed but auto fix was attempted.
+                 Caller should retry installation in this case.
+  Raises:
+    (ValueError) Installation failed and auto fix was not attempted
+  """
   # At the very least, we should have an "installed" directory under vcpkg triplet.
   vcpkg_root_dir_path = get_vcpkg_root_path()
   installed_triplets_dir_path = os.path.join(vcpkg_root_dir_path, 'installed', vcpkg_triplet)
   if not os.path.exists(installed_triplets_dir_path):
+    if is_windows_os() and attempt_auto_fix:
+      # On some Windows machines with NFS drives, we have seen errors
+      # installing vcpkg due to permission issues while renaming temp directories.
+      # Manually renaming and re-running script makes it go through.
+      tools_dir_path = os.path.join(vcpkg_root_dir_path, 'downloads', 'tools')
+      for name in os.listdir(tools_dir_path):
+        if '.partial.' in name and os.path.isdir(os.path.join(tools_dir_path, name)):
+          # Since we can't rename, lets copy the directory to one without partial in the name
+          expected_name = name.split('.partial.')[0]
+          shutil.copytree(os.path.join(tools_dir_path, name),
+                          os.path.join(tools_dir_path, expected_name))
+      return False
+
     raise ValueError("Could not find directory containing installed packages by vcpkg: {0}\n"
                      "Please check if there were errors during "
                      "vcpkg installation.".format(installed_triplets_dir_path))
+  return True
 
 
 def clean_vcpkg_temp_data():

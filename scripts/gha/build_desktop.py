@@ -65,7 +65,8 @@ def install_x86_support_libraries():
     utils.run_command(['apt', 'install', 'libsecret-1-dev:i386'], as_root=True)
 
 
-def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
+def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library,
+                                        attempt_auto_fix=False):
   """Install packages with vcpkg.
 
   This does the following,
@@ -75,6 +76,13 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
   Args:
     arch (str): Architecture (eg: 'x86', 'x64').
     msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
+    attempt_auto_fix (bool): In case of errors, try to auto fix.
+  Returns:
+    (bool): True if installation was successful.
+            False if installation wasn't successful but auto fix was attempted
+                  and we should retry the installation.
+  Raises:
+    (ValueError): If installation wasn't successful and auto fix wasn't attempted.
   """
 
   # Install vcpkg executable if its not installed already
@@ -101,11 +109,14 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
 
   # Some errors in vcpkg installation are not bubbled up. Verify existence
   # of certain important directories before proceeding.
-  utils.verify_vcpkg_build(vcpkg_triplet)
+  success = utils.verify_vcpkg_build(vcpkg_triplet, attempt_auto_fix)
+  if not success:
+    return False
 
   # Clear temporary directories and files created by vcpkg buildtrees
   # could be several GBs and cause github runners to run out of space
   utils.clean_vcpkg_temp_data()
+  return True
 
 
 def cmake_configure(build_dir, arch, msvc_runtime_library='static',
@@ -180,7 +191,16 @@ def main():
     install_x86_support_libraries()
 
   # Install platform dependent cpp dependencies with vcpkg
-  install_cpp_dependencies_with_vcpkg(args.arch, args.msvc_runtime_library)
+  # Try once with auto-fixing any errors (if any)
+  success = install_cpp_dependencies_with_vcpkg(args.arch,
+                                                args.msvc_runtime_library,
+                                                attempt_auto_fix=True)
+  if not success:
+    # If auto-fix was attempted, give it one more try.
+    # If it fails again, a ValueError will be raised and script will exit.
+    install_cpp_dependencies_with_vcpkg(args.arch,
+                                        args.msvc_runtime_library,
+                                        attempt_auto_fix=False)
 
   # CMake configure
   cmake_configure(args.build_dir, args.arch, args.msvc_runtime_library,
