@@ -197,15 +197,19 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
   std::string message;
   Error code = transaction_function->Apply(transaction, message);
 
-  Local<Throwable> first_exception =
-      transaction.internal_->ClearExceptionOccurred();
-
-  if (first_exception) {
-    return first_exception.release();
-  } else {
-    Env env(raw_env);
-    return ExceptionInternal::Create(env, code, message).release();
+  // Verify that `internal_` is not null before using it. It could be set to
+  // `nullptr` if the `FirestoreInternal` is destroyed during the invocation of
+  // transaction_function->Apply() (b/171804663).
+  if (transaction.internal_) {
+    Local<Throwable> first_exception =
+        transaction.internal_->ClearExceptionOccurred();
+    if (first_exception) {
+      return first_exception.release();
+    }
   }
+
+  Env env(raw_env);
+  return ExceptionInternal::Create(env, code, message).release();
 }
 
 }  // namespace firestore
