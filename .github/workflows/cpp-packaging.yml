@@ -46,7 +46,9 @@ jobs:
           fi
 
       - name: log if preserving intermediate artifacts
-        if: ${{ github.event.inputs.preserveIntermediateArtifacts != 0 && github.event.inputs.preserveIntermediateArtifacts != '' }}
+        if: |
+          github.event.inputs.preserveIntermediateArtifacts != 0 && github.event.inputs.preserveIntermediateArtifacts != '' &&
+          github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == ''
         run: echo "::warning ::Intermediate artifacts will be preserved."
 
   build_tools:
