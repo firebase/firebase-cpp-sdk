@@ -10,7 +10,6 @@ on:
         description: 'commit ID to package'
       preserveIntermediateArtifacts:
         description: 'preserve intermediate artifacts?'
-        default: 0
       downloadPublicVersion:
         description: 'public version # to test against'
       downloadPreviousRun:
