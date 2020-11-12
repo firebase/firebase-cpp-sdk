@@ -44,9 +44,9 @@ jobs:
               echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building and packaging SDK and tests."
             fi
           fi
-          if [[ "${{ github.event.inputs.preserveIntermediateArtifacts }}" != "0" && -n "${{ github.event.inputs.preserveIntermediateArtifacts }}" ]]; then
-            echo "::warning ::Intermediate artifacts will be preserved."
-          fi
+      - name: log if preserving intermediate artifacts
+        if: ${{ !(github.event.inputs.preserveIntermediateArtifacts == 0) }}
+        run: echo "::warning ::Intermediate artifacts will be preserved."
 
   build_tools:
     name: build-tools-${{ matrix.tools_platform }}
