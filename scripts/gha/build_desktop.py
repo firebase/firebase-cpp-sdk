@@ -198,6 +198,8 @@ def main():
   if not success:
     # If auto-fix was attempted, give it one more try.
     # If it fails again, a ValueError will be raised and script will exit.
+    print("Installation was not successful but auto fix was attempted. "
+          "Retrying installation...")
     install_cpp_dependencies_with_vcpkg(args.arch,
                                         args.msvc_runtime_library,
                                         attempt_auto_fix=False)
