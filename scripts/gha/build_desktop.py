@@ -202,6 +202,10 @@ def main():
                                         args.msvc_runtime_library,
                                         attempt_auto_fix=False)
 
+  if args.vcpkg_step_only:
+    print("Exiting without building the SDK as just vcpkg step was requested.")
+    return
+
   # CMake configure
   cmake_configure(args.build_dir, args.arch, args.msvc_runtime_library,
                   args.build_tests, args.config, args.target_format)
@@ -239,6 +243,7 @@ def parse_cmdline_args():
                       help='Runtime library for MSVC (static(/MT) or dynamic(/MD)')
   parser.add_argument('--build_dir', default='build', help='Output build directory')
   parser.add_argument('--build_tests', action='store_true', help='Build unit tests too')
+  parser.add_argument('--vcpkg_step_only', action='store_true', help='Just install cpp packages using vcpkg and exit.')
   parser.add_argument('--config', default='Release', help='Release/Debug config')
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
   parser.add_argument('--target_format', default=None, help='(Mac only) whether to output frameworks (default) or libraries.')
