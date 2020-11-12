@@ -18,8 +18,32 @@ env:
   binutilsVer: 2.35.1
   # Demumble 1.1.0 released Nov 13, 2018
   demumbleVer: 1.1.0
+  # Use SHA256 for hashing files.
+  hashCommand: sha256sum
 
 jobs:
+  log_inputs:
+    name: log-inputs
+    runs-on: ubuntu-latest
+    steps:
+      - name: log run inputs
+        run: |
+          if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" ]]; then
+            echo "::warning ::Downloading public SDK package from https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip"
+          elif [[ -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
+            echo "::warning ::Downloading SDK package from previous run at https://github.com/firebase/firebase-cpp-sdk/actions/runs/${{ github.event.inputs.downloadPreviousRun }}"
+          fi
+          if [[ -n "${{ github.event.inputs.commitIdToPackage }}" ]]; then
+            if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" || -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
+              echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building tests."
+            else
+              echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building and packaging SDK and tests."
+            fi
+          fi
+          if [[ "${{ github.event.inputs.preserveIntermediateArtifacts }}" != "0" ]]; then
+            echo "::warning ::Intermediate artifacts will be preserved."
+          fi
+
   build_tools:
     name: build-tools-${{ matrix.tools_platform }}
     runs-on: ${{ matrix.os }}
@@ -54,12 +78,14 @@ jobs:
           cd -
           mkdir -p packaging-tools
           cp -af /tmp/binutils/bin/* packaging-tools
+
       - name: fetch demumble
         uses: actions/checkout@v2.3.1
         with:
           repository: nico/demumble
           path: demumble-src
           ref: v${{ env.demumbleVer }}
+
       - name: build demumble
         run: |
           cd demumble-src
@@ -69,11 +95,13 @@ jobs:
           cd -
           mkdir -p packaging-tools-
           cp -af demumble-src/demumble packaging-tools
+
       - name: archive tools
         run: |
           cd packaging-tools
           ls
           tar -czhf ../packaging-tools.tgz .
+
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -90,14 +118,17 @@ jobs:
         with:
           path: sdk-src
           ref: ${{ github.event.inputs.commitIdToPackage }}
+
       - name: install prerequisites
         run: sdk-src/build_scripts/ios/install_prereqs.sh
+
       - name: build sdk
         run: |
           sdk-src/build_scripts/ios/build.sh -b firebase-cpp-sdk-ios-build -s sdk-src
           sdk-src/build_scripts/ios/package.sh firebase-cpp-sdk-ios-build firebase-cpp-sdk-ios-package
           cd firebase-cpp-sdk-ios-package
           tar -czhf ../firebase-cpp-sdk-ios-package.tgz .
+
       - name: Print built libraries
         shell: bash
         run: |
@@ -107,10 +138,12 @@ jobs:
           find firebase-cpp-sdk-*-build -name "*.a"
           find firebase-cpp-sdk-*-build -name "*.so"
           find firebase-cpp-sdk-*-build -name "*.framework"
+
       - name: Print package contents
         shell: bash
         run: |
           find firebase-cpp-sdk-*-package -type f
+
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -131,14 +164,17 @@ jobs:
         with:
           path: sdk-src
           ref: ${{ github.event.inputs.commitIdToPackage }}
+
       - name: install prerequisites
         run: sdk-src/build_scripts/android/install_prereqs.sh
+
       - name: build sdk
         run: |
           sdk-src/build_scripts/android/build.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build sdk-src ${{ matrix.stl }}
           sdk-src/build_scripts/android/package.sh firebase-cpp-sdk-android-${{ matrix.stl }}-build firebase-cpp-sdk-android-${{ matrix.stl }}-package ${{ matrix.stl }}
           cd firebase-cpp-sdk-android-${{ matrix.stl }}-package
           tar -czhf ../firebase-cpp-sdk-android-${{ matrix.stl}}-package.tgz .
+
       - name: Print built libraries
         shell: bash
         run: |
@@ -148,10 +184,12 @@ jobs:
           find firebase-cpp-sdk-*-build -name "*.a"
           find firebase-cpp-sdk-*-build -name "*.so"
           find firebase-cpp-sdk-*-build -name "*.framework"
+
       - name: Print package contents
         shell: bash
         run: |
           find firebase-cpp-sdk-*-package -type f
+
       - name: upload artifacts
         uses: actions/upload-artifact@v2
         with:
@@ -327,21 +365,25 @@ jobs:
         with:
           path: sdk-src
           ref: ${{ github.event.inputs.commitIdToPackage }}
+
       - name: download artifact
         uses: actions/download-artifact@v2
         with:
           # download-artifact doesn't support wildcards, but by default
           # will download all artifacts. Sadly this is what we must do.
           path: artifacts
+
       - name: Setup python
         uses: actions/setup-python@v2
         with:
           python-version: 3.7
+
       - name: Install prerequisites
         run: |
           cd sdk-src
           python scripts/gha/install_prereqs_desktop.py
           cd ..
+
       - name: postprocess and package built SDK
         run: |
           mkdir -p bin
@@ -365,11 +407,13 @@ jobs:
           fi
           cd firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package
           tar -czhf ../firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package.tgz .
+
       - name: Print package contents
         shell: bash
         run: |
           find firebase-cpp-sdk-*-package -type f
-      - name: upload artifacts
+
+      - name: upload SDK zip
         uses: actions/upload-artifact@v2
         with:
           name: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package
@@ -378,14 +422,14 @@ jobs:
   download_sdk_package:
     name: download-sdk-package
     runs-on: ubuntu-latest
+    needs: [log_inputs]
     if: ${{ github.event.inputs.downloadPublicVersion != '' || github.event.inputs.downloadPreviousRun != '' }}
     steps:
       - name: fetch artifact from previous run
         uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.downloadPreviousRun != '' }}
         with:
-          name: 'firebase_cpp_sdk'
-          path: 'firebase-cpp-sdk-final'
+          name: 'firebase_cpp_sdk.zip'
           workflow: 'cpp-packaging.yml'
           run_id: ${{ github.event.inputs.downloadPreviousRun }}
 
@@ -396,7 +440,6 @@ jobs:
             echo Invalid version number: "${{ github.event.inputs.downloadPublicVersion }}"
             exit 1
           fi
-          mkdir firebase-cpp-sdk-final
           set +e
           # Retry up to 10 times because Curl has a tendency to timeout on
           # Github runners.
@@ -406,19 +449,30 @@ jobs:
             sleep 300
           done
           set -e
-          cd firebase-cpp-sdk-final
-          unzip ../firebase_cpp_sdk.zip
-      - name: upload artifacts
+
+      - name: compute SDK hash
+        shell: bash
+        run: |
+          ${{ env.hashCommand }} --tag firebase_cpp_sdk.zip > firebase_cpp_sdk_hash.txt
+          echo "::warning ::$(cat firebase_cpp_sdk_hash.txt)"
+
+      - name: upload hash
         uses: actions/upload-artifact@v2
         with:
-          name: firebase_cpp_sdk
-          path: firebase-cpp-sdk-final
+          name: firebase_cpp_sdk_hash.txt
+          path: firebase_cpp_sdk_hash.txt
+
+      - name: upload SDK zip
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase_cpp_sdk.zip
+          path: firebase_cpp_sdk.zip
 
   merge_packages:
     name: final-merge-packages
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
-    needs: [build_and_package_ios, build_and_package_android, package_desktop]
+    needs: [build_and_package_ios, build_and_package_android, package_desktop, log_inputs]
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
@@ -434,6 +488,7 @@ jobs:
           path: artifacts
 
       - name: merge SDK packages
+        shell: bash
         run: |
           set -ex
           mkdir -p firebase-cpp-sdk-final/firebase_cpp_sdk
@@ -442,16 +497,39 @@ jobs:
           done
           # Add the final files.
           sdk-src/build_scripts/other/package.sh sdk-src firebase-cpp-sdk-final/firebase_cpp_sdk
+
+          # Zip up the package and grab a hash of the result.
+          cd firebase-cpp-sdk-final
+          # Save the hash of every file into the SDK package.
+          find firebase_cpp_sdk -type f -print0 | xargs -0 ${{ env.hashCommand }} --tag > file_hashes.txt
+          mv file_hashes.txt firebase_cpp_sdk/
+          # Zip up the SDK package recursively, preserving symlinks.
+          zip -9 -r -y ../firebase_cpp_sdk.zip firebase_cpp_sdk
+          cd ..
+
+      - name: compute SDK hash
+        shell: bash
+        run: |
+          ${{ env.hashCommand }} --tag firebase_cpp_sdk.zip > firebase_cpp_sdk_hash.txt
+          echo "::warning ::$(cat firebase_cpp_sdk_hash.txt)"
+
       - name: Print final package contents
         shell: bash
         run: |
           cd firebase-cpp-sdk-final
-          find * -type f
-      - name: upload artifacts
+          find firebase_cpp_sdk -type f
+
+      - name: upload hash
         uses: actions/upload-artifact@v2
         with:
-          name: firebase_cpp_sdk
-          path: firebase-cpp-sdk-final
+          name: firebase_cpp_sdk_hash.txt
+          path: firebase_cpp_sdk_hash.txt
+
+      - name: upload SDK zip
+        uses: actions/upload-artifact@v2
+        with:
+          name: firebase_cpp_sdk.zip
+          path: firebase_cpp_sdk.zip
 
   cleanup_artifacts:
     # Clean up intermediate artifacts.
@@ -498,14 +576,33 @@ jobs:
     if: always()
     runs-on: ubuntu-latest
     steps:
-      - name: download artifact
+      - name: download SDK zip
         uses: actions/download-artifact@v2
         with:
-          name: firebase_cpp_sdk
+          name: firebase_cpp_sdk.zip
           path: .
+
+      - name: download hash
+        uses: actions/download-artifact@v2
+        with:
+          name: firebase_cpp_sdk_hash.txt
+          path: .
+
       - name: List binary SDK files.
         run: |
+          # Verify zipfile hash first.
+          ${{ env.hashCommand }} -c --quiet firebase_cpp_sdk_hash.txt
+          unzip -q firebase_cpp_sdk.zip
           find . -print
+
+      - name: Verify SDK package files.
+        run: |
+          if [[ -r firebase_cpp_sdk/file_hashes.txt ]]; then
+            ${{ env.hashCommand }} -c --quiet firebase_cpp_sdk/file_hashes.txt
+          else
+            echo "::warning ::SDK package does not contain file_hashes.txt, cannot verify files in package."
+          fi
+
       - name: fetch integration test source
         uses: actions/checkout@v2.3.1
         with:
