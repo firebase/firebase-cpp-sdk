@@ -143,7 +143,14 @@ const char* kCppRuntimeOrStl = "libcpp";
 
 #elif FIREBASE_PLATFORM_LINUX
 const char* kOperatingSystem = "linux";
+
+#if defined(_GLIBCXX_UTILITY)
 const char* kCppRuntimeOrStl = "gnustl";
+#elif defined(_LIBCPP_STD_VER)
+const char* kCppRuntimeOrStl = "libcpp";
+#else
+#error Unknown Linux STL.
+#endif  // STL
 
 #if __amd64__
 const char* kCpuArchitecture = "x86_64";

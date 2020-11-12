@@ -15,6 +15,7 @@
 #include "database/src/desktop/core/repo.h"
 
 #include "app/src/callback.h"
+#include "app/src/filesystem.h"
 #include "app/src/log.h"
 #include "app/src/mutex.h"
 #include "app/src/scheduler.h"
@@ -473,7 +474,7 @@ void Repo::DeferredInitialization() {
     database_path += "/";
     database_path += url_domain;
 
-    std::string app_data_path = GetAppDataPath(database_path.c_str());
+    std::string app_data_path = AppDataDir(database_path.c_str());
     if (app_data_path.empty()) {
       logger_->LogError(
           "Could not initialize persistence: Unable to find app data "

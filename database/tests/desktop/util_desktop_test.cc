@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <map>
+#include <string>
 #include <vector>
 #if defined(_WIN32)
 #include <direct.h>
@@ -28,6 +29,7 @@ static const char* kPathSep = "\\";
 static const char* kPathSep = "//";
 #endif
 
+#include "app/src/filesystem.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "app/src/variant_util.h"
@@ -2729,22 +2731,22 @@ TEST(UtilDesktopTest, GetWireProtocolParams) {
 
 TEST(UtilDesktopTest, TestGetAppDataPath) {
   // Make sure we get a path string.
-  EXPECT_NE(GetAppDataPath("testapp0"), "");
+  EXPECT_NE(AppDataDir("testapp0"), "");
 
   // Make sure we get 2 different paths for 2 different apps.
-  EXPECT_NE(GetAppDataPath("testapp1"), GetAppDataPath("testapp2"));
+  EXPECT_NE(AppDataDir("testapp1"), AppDataDir("testapp2"));
 
   // Make sure we get the same path if we are calling twice with the same app.
-  EXPECT_EQ(GetAppDataPath("testapp3"), GetAppDataPath("testapp3"));
+  EXPECT_EQ(AppDataDir("testapp3"), AppDataDir("testapp3"));
 
   // Make sure the path string refers to a directory that is available.
   // Testing app paths with and without subdirectory.
-  const char* test_app_paths[2] = {"testapp4", "testproject/testapp4"};
-  size_t num_of_app_paths = sizeof(test_app_paths)/sizeof(test_app_paths[0]);
+  std::vector<std::string> test_app_paths = {"testapp4",
+                                             "testproject/testapp4"};
   // Make sure the path string refers to a directory that is available.
   // app_name can also have path separators in them.
-  for (int i = 0; i < num_of_app_paths; i++) {
-    std::string path = GetAppDataPath(test_app_paths[i], true);
+  for (const std::string& test_app_path : test_app_paths) {
+    std::string path = AppDataDir(test_app_path.c_str(), true);
     struct stat s;
     ASSERT_EQ(stat(path.c_str(), &s), 0)
         << "stat failed on '" << path << "': " << strerror(errno);
@@ -2758,8 +2760,8 @@ TEST(UtilDesktopTest, TestGetAppDataPath) {
 
     // Ensure that we can save files in this directory.
     FILE* out = fopen(test_path.c_str(), "w");
-    EXPECT_NE(out, nullptr) << "Couldn't open test file for writing: "
-                            << strerror(errno);
+    EXPECT_NE(out, nullptr)
+        << "Couldn't open test file for writing: " << strerror(errno);
     EXPECT_GE(fputs(test_data.c_str(), out), 0) << strerror(errno);
     EXPECT_EQ(fclose(out), 0) << strerror(errno);
 
@@ -2775,64 +2777,6 @@ TEST(UtilDesktopTest, TestGetAppDataPath) {
     EXPECT_EQ(unlink(test_path.c_str()), 0) << strerror(errno);
   }
 }
-
-
-TEST(UtilDesktopTest, TestSplitString) {
-  // Standard simple case
-  std::string test_data = "foo/bar";
-  std::vector<std::string> parts = SplitString(test_data, '/');
-  EXPECT_EQ(parts.size(), 2);
-  EXPECT_EQ(parts[0], "foo");
-  EXPECT_EQ(parts[1], "bar");
-
-  // String that ends with delimiter
-  test_data = "foo/bar/";
-  parts = SplitString(test_data, '/');
-  EXPECT_EQ(parts.size(), 2);
-  EXPECT_EQ(parts[0], "foo");
-  EXPECT_EQ(parts[1], "bar");
-
-  // String with multiple leading delimiters
-  test_data = "///foo/bar";
-  parts = SplitString(test_data, '/');
-  EXPECT_EQ(parts.size(), 2);
-  EXPECT_EQ(parts[0], "foo");
-  EXPECT_EQ(parts[1], "bar");
-
-  // String with multiple leading and multiple trailing delimiters
-  test_data = "///foo/bar///";
-  parts = SplitString(test_data, '/');
-  EXPECT_EQ(parts.size(), 2);
-  EXPECT_EQ(parts[0], "foo");
-  EXPECT_EQ(parts[1], "bar");
-
-  // String with just delimiters
-  test_data = "///";
-  parts = SplitString(test_data, '/');
-  EXPECT_EQ(parts.size(), 0);
-
-  // Empty string
-  test_data = "";
-  parts = SplitString(test_data, '/');
-  EXPECT_EQ(parts.size(), 0);
-
-  // Split with semi colon as delimiter
-  test_data = "foo;bar;baz";
-  parts = SplitString(test_data, ';');
-  EXPECT_EQ(parts.size(), 3);
-  EXPECT_EQ(parts[0], "foo");
-  EXPECT_EQ(parts[1], "bar");
-  EXPECT_EQ(parts[2], "baz");
-
-  // Longer string and space as delimiter
-  test_data = "The quick brown fox jumped over the lazy dog";
-  parts = SplitString(test_data, ' ');
-  EXPECT_EQ(parts.size(), 9);
-  EXPECT_EQ(parts[0], "The");
-  EXPECT_EQ(parts[3], "fox");
-  EXPECT_EQ(parts[8], "dog");
-}
-
 
 }  // namespace
 }  // namespace internal

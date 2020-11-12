@@ -9,6 +9,7 @@
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/ios/converter_ios.h"
+#include "firestore/src/ios/create_firebase_metadata_provider.h"
 #include "firestore/src/ios/credentials_provider_ios.h"
 #include "firestore/src/ios/document_reference_ios.h"
 #include "firestore/src/ios/document_snapshot_ios.h"
@@ -16,11 +17,11 @@
 #include "firestore/src/ios/listener_ios.h"
 #include "absl/memory/memory.h"
 #include "absl/types/any.h"
+#include "firebase/firestore/firestore_version.h"
 #include "Firestore/core/src/api/document_reference.h"
 #include "Firestore/core/src/api/query_core.h"
 #include "Firestore/core/src/model/database_id.h"
 #include "Firestore/core/src/model/resource_path.h"
-#include "Firestore/core/src/remote/firebase_metadata_provider_noop.h"
 #include "Firestore/core/src/util/async_queue.h"
 #include "Firestore/core/src/util/executor.h"
 #include "Firestore/core/src/util/log.h"
@@ -35,7 +36,6 @@ using auth::CredentialsProvider;
 using ::firebase::auth::Auth;
 using model::DatabaseId;
 using model::ResourcePath;
-using remote::CreateFirebaseMetadataProviderNoOp;
 using util::AsyncQueue;
 using util::Executor;
 using util::Status;
@@ -61,6 +61,8 @@ FirestoreInternal::FirestoreInternal(
       transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
           "com.google.firebase.firestore.transaction", /*threads=*/5))) {
   ApplyDefaultSettings();
+
+  App::RegisterLibrary("fire-fst", kFirestoreVersionString);
 }
 
 FirestoreInternal::~FirestoreInternal() {
@@ -74,8 +76,7 @@ std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
   return std::make_shared<api::Firestore>(
       DatabaseId{opt.project_id()}, app->name(), std::move(credentials),
       CreateWorkerQueue(),
-      // TODO(varconst): use a real metadata provider.
-      CreateFirebaseMetadataProviderNoOp(), this);
+      CreateFirebaseMetadataProvider(*app), this);
 }
 
 CollectionReference FirestoreInternal::Collection(

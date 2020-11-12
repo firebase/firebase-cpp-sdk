@@ -135,6 +135,8 @@ set(common_SRCS
     src/function_registry.cc
     src/future.cc
     src/future_manager.cc
+    src/heartbeat_date_storage_desktop.cc
+    src/heartbeat_info_desktop.cc
     src/path.cc
     src/reference_counted_future_impl.cc
     src/scheduler.cc
@@ -179,11 +181,13 @@ else()
   if(MSVC)
     set(app_desktop_extra_SRCS
         src/secure/user_secure_windows_internal.cc
+        src/filesystem_desktop_windows.cc
         src/locale.cc
         src/uuid.cc)
   elseif(APPLE)
     set(app_desktop_extra_SRCS
         src/secure/user_secure_darwin_internal.mm
+        src/filesystem_apple.mm
         src/locale_apple.mm
         src/uuid_ios_darwin.mm)
   else()
@@ -202,6 +206,7 @@ else()
     endif()
     set(app_desktop_extra_SRCS
         src/secure/user_secure_linux_internal.cc
+        src/filesystem_desktop_linux.cc
         src/locale.cc
         src/uuid.cc)
   endif()
@@ -230,10 +235,13 @@ set(utility_common_HDRS
     src/callback.h
     src/cleanup_notifier.h
     src/embedded_file.h
+    src/filesystem.h
     src/function_registry.h
     src/future_manager.h
     src/intrusive_list.h
     src/log.h
+    src/heartbeat_date_storage_desktop.h
+    src/heartbeat_info_desktop.h
     src/mutex.h
     src/optional.h
     src/path.h
