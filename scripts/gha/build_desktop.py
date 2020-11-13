@@ -182,7 +182,7 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static',
 
     # Use our special cmake option for /MD (dynamic).
     # If this option is not specified, the default value is /MT (static).
-    if msvc_runtime_library == "dynamic":
+    if msvc_runtime_library == "static":
       cmd.append('-DMSVC_RUNTIME_LIBRARY_STATIC=ON')
 
   if (target_format):
