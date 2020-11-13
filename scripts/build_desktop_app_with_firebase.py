@@ -13,21 +13,56 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+"""
+Standalone self-sufficient (no external dependencies) python script that can ease
+building desktop apps depending on firebase, by either using the firebase cpp
+source (firebase-cpp-sdk github repo) or the prebuilt release firebase libraries.
 
+Note that this script works with only Python3 (3.6+).
+Known side effects:
+If building against firebase cpp source, this script might checkout a specific
+branch on github containing vcpkg. This will not be required once vcpkg is in the
+main branch.
+
+Example usage:
+Let's say we want to build the quickstart cpp example for firebase database.
+As specified above, there are 2 options - build against the firebase source or
+prebuilt firebase libraries.
+
+# Build against the firebase cpp sdk source
+python3 scripts/build_desktop_app_with_firebase.py --app_dir ~/quickstart-cpp/database/testapp
+                                                   --sdk_dir . --build_dir build_source
+
+(or)
+
+# Build against the prebuilt released firebase libraries
+python3 scripts/build_desktop_app_with_firebase.py --app_dir ~/quickstart-cpp/database/testapp
+                                                   --sdk_dir ~/prebuilt/firebase_cpp_sdk_6.15.1/
+                                                   --build_dir build_prebuilt
+
+# If the script ran successfully, it will print the path to the build directory.
+Build successful!
+Please find your executables in build directory: /Users/<user>/quickstart-cpp/database/testapp/build_source
+
+# Running the built example
+$ ./Users/<user>/quickstart-cpp/database/testapp/build_source/desktop_testapp
+"""
 import argparse
-import sys
+import distutils.spawn
 import os
 import platform
 import subprocess
-import distutils.spawn
+import sys
 
-def is_path_valid(path):
+def is_path_valid_for_cmake(path):
+  """Check if specified path is setup for cmake"""
   return os.path.exists(os.path.join(path, 'CMakeLists.txt'))
 
-def is_sdk_path_source(path):
+def is_sdk_path_source(sdk_dir):
+  """Validate if firebase sdk dir is firebase cpp source dir"""
   # Not the most reliable way to detect if the sdk path is source or prebuilt but
   # should work for our purpose.
-  return os.path.exists(os.path.join(path, 'build_tools'))
+  return os.path.exists(os.path.join(sdk_dir, 'build_tools'))
 
 def get_vcpkg_triplet(arch, msvc_runtime_library='static'):
   """ Get vcpkg target triplet (platform definition).
@@ -62,37 +97,47 @@ def get_vcpkg_triplet(arch, msvc_runtime_library='static'):
   return triplet_name
 
 def build_source_vcpkg_dependencies(sdk_source_dir, arch, msvc_runtime_library):
-  # TODO: Remove this once dev has been merged onto master
-  # This is required because vcpkg lives only in dev branch right now.
-  subprocess.run(['git', 'checkout', 'feature/python-tool-build-apps-with-firebase'], cwd=sdk_source_dir)
-  subprocess.run(['git', 'pull'], cwd=sdk_source_dir)
-
-  python_exe = 'python3' if distutils.spawn.find_executable('python3') else 'python'
-  subprocess.run([python_exe, "scripts/gha/install_prereqs_desktop.py"], cwd=sdk_source_dir)
-  subprocess.run([python_exe, "scripts/gha/build_desktop.py", "--arch", arch,
-                              "--msvc_runtime_library", msvc_runtime_library,
-                              "--vcpkg_step_only"], cwd=sdk_source_dir)
-
-def build_app_with_source(app_dir, sdk_dir, build_dir, arch,
-                          msvc_runtime_library='static', config=None,
-                          target_format=None):
-  """ CMake configure.
-
-  If you are seeing problems when running this multiple times,
-  make sure to clean/delete previous build directory.
+  """Build C++ dependencies for firebase source SDK using vcpkg.
 
   Args:
+   sdk_source_dir (str): Path to Firebase C++ source directory.
+   arch (str): Platform Architecture (example: 'x64').
+   msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
+  """
+  # TODO: Remove this once dev branch of firebase-cpp-sdk repo has been merged
+  # onto main branch. This is required because vcpkg lives only in dev branch currently.
+  subprocess.run(['git', 'checkout', 'feature/python-tool-build-apps-with-firebase'],
+                 cwd=sdk_source_dir, check=True)
+  subprocess.run(['git', 'pull'], cwd=sdk_source_dir, check=True)
+
+  python_exe = 'python3' if distutils.spawn.find_executable('python3') else 'python'
+  subprocess.run([python_exe, "scripts/gha/install_prereqs_desktop.py"],
+                 cwd=sdk_source_dir, check=True)
+  subprocess.run([python_exe, "scripts/gha/build_desktop.py", "--arch", arch,
+                              "--msvc_runtime_library", msvc_runtime_library,
+                              "--vcpkg_step_only"], cwd=sdk_source_dir, check=True)
+
+def build_app_with_source(app_dir, sdk_source_dir, build_dir, arch,
+                          msvc_runtime_library='static', config=None,
+                          target_format=None):
+  """Build desktop app directly against the firebase C++ SDK source.
+
+  Since this invovles a cmake configure, it is advised to run this on a clean
+  build directory.
+
+  Args:
+   app_dir (str): Path to directory containing application's CMakeLists.txt.
+   sdk_source_dir (str): Path to firebase C++ SDK source directory (root of github repo).
    build_dir (str): Output build directory.
    arch (str): Platform Architecture (example: 'x64').
    msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
-   build_tests (bool): Build cpp unit tests.
    config (str): Release/Debug config.
           If its not specified, cmake's default is used (most likely Debug).
    target_format (str): If specified, build for this targetformat ('frameworks' or 'libraries').
   """
   # Cmake configure
   cmd = ['cmake', '-S', '.', '-B', build_dir]
-  cmd.append('-DFIREBASE_CPP_SDK_DIR={0}'.format(sdk_dir))
+  cmd.append('-DFIREBASE_CPP_SDK_DIR={0}'.format(sdk_source_dir))
 
   # If generator is not specifed, default for platform is used by cmake, else
   # use the specified value
@@ -103,10 +148,10 @@ def build_app_with_source(app_dir, sdk_dir, build_dir, arch,
 
   if platform.system() == 'Linux' and arch == 'x86':
     # Use a separate cmake toolchain for cross compiling linux x86 builds
-    vcpkg_toolchain_file_path = os.path.join(sdk_dir, 'external', 'vcpkg',
+    vcpkg_toolchain_file_path = os.path.join(sdk_source_dir, 'external', 'vcpkg',
                                              'scripts', 'buildsystems', 'linux_32.cmake')
   else:
-    vcpkg_toolchain_file_path = os.path.join(sdk_dir, 'external',
+    vcpkg_toolchain_file_path = os.path.join(sdk_source_dir, 'external',
                                            'vcpkg', 'scripts',
                                            'buildsystems', 'vcpkg.cmake')
 
@@ -124,7 +169,7 @@ def build_app_with_source(app_dir, sdk_dir, build_dir, arch,
 
     # Use our special cmake option for /MD (dynamic).
     # If this option is not specified, the default value is /MT (static).
-    if msvc_runtime_library == "dynamic":
+    if msvc_runtime_library == "static":
       cmd.append('-DMSVC_RUNTIME_LIBRARY_STATIC=ON')
 
   if (target_format):
@@ -137,10 +182,25 @@ def build_app_with_source(app_dir, sdk_dir, build_dir, arch,
   print("Running {0}".format(' '.join(cmd)))
   subprocess.run(cmd, cwd=app_dir, check=True)
 
-def build_app_with_prebuilt(app_dir, sdk_dir, build_dir, arch,
+def build_app_with_prebuilt(app_dir, sdk_prebuilt_dir, build_dir, arch,
                             msvc_runtime_library='static', config=None):
+  """Build desktop app directly against the prebuilt firebase C++ libraries.
+
+  Since this invovles a cmake configure, it is advised to run this on a clean
+  build directory.
+
+  Args:
+   app_dir (str): Path to directory containing application's CMakeLists.txt.
+   sdk_prebuilt_dir (str): Path to prebuilt firebase C++ libraries.
+   build_dir (str): Output build directory.
+   arch (str): Platform Architecture (example: 'x64').
+   msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
+   config (str): Release/Debug config.
+          If its not specified, cmake's default is used (most likely Debug).
+  """
+
   cmd = ['cmake', '-S', '.', '-B', build_dir]
-  cmd.append('-DFIREBASE_CPP_SDK_DIR={0}'.format(sdk_dir))
+  cmd.append('-DFIREBASE_CPP_SDK_DIR={0}'.format(sdk_prebuilt_dir))
 
   if platform.system() == 'Windows':
     if arch == 'x64':
@@ -164,12 +224,12 @@ def build_app_with_prebuilt(app_dir, sdk_dir, build_dir, arch,
 def main():
   args = parse_cmdline_args()
 
-  if not is_path_valid(args.sdk_dir):
+  if not is_path_valid_for_cmake(args.sdk_dir):
     print ("SDK path provided is not valid. Could not find a CMakeLists.txt at the root level.\n"
            "Please check the argument to '--sdk_dir'")
     sys.exit(1)
 
-  if not is_path_valid(args.app_dir):
+  if not is_path_valid_for_cmake(args.app_dir):
     print ("App path provided is not valid. Could not find a CMakeLists.txt at the root level.\n"
            "Please check the argument to '--app_dir'")
     sys.exit(1)
