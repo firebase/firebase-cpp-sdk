@@ -68,7 +68,7 @@ jobs:
           tools_platform: darwin
     steps:
       - name: setup Xcode version (macos)
-        if: runner.os == "macOS"
+        if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
       - name: fetch and build binutils
         run: |
@@ -254,7 +254,7 @@ jobs:
 
     steps:
       - name: setup Xcode version (macos)
-        if: runner.os == "macOS"
+        if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
       - uses: actions/checkout@v2
@@ -378,7 +378,7 @@ jobs:
           runs_on_platform: ubuntu-latest
     steps:
       - name: setup Xcode version (macos)
-        if: runner.os == "macOS"
+        if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
       - name: fetch SDK
@@ -603,7 +603,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: setup Xcode version (macos)
-        if: runner.os == "macOS"
+        if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
       - name: download SDK zip
