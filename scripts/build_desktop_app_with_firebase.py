@@ -244,7 +244,7 @@ def main():
     build_app_with_prebuilt(args.app_dir, args.sdk_dir, args.build_dir, args.arch,
                             args.msvc_runtime_library, args.config)
 
-  print ("Build successful! "
+  print ("Build successful!\n"
          "Please find your executables in build directory: {0}".format
                                     (os.path.join(args.app_dir, args.build_dir)))
 
