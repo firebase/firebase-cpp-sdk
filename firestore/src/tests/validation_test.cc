@@ -565,46 +565,6 @@ TEST_F(ValidationTest, QueriesWithNonPositiveLimitFail) {
   }
 }
 
-TEST_F(ValidationTest, QueriesWithNullOrNaNFiltersOtherThanEqualityFail) {
-  CollectionReference collection = Collection();
-  try {
-    collection.WhereGreaterThan("a", FieldValue::Null());
-    FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
-    EXPECT_STREQ(
-        "Invalid Query. Null only supports comparisons via whereEqualTo() and "
-        "whereNotEqualTo().",
-        exception.what());
-  }
-  try {
-    collection.WhereArrayContains("a", FieldValue::Null());
-    FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
-    EXPECT_STREQ(
-        "Invalid Query. Null only supports comparisons via whereEqualTo() and "
-        "whereNotEqualTo().",
-        exception.what());
-  }
-  try {
-    collection.WhereGreaterThan("a", FieldValue::Double(NAN));
-    FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
-    EXPECT_STREQ(
-        "Invalid Query. NaN only supports comparisons via whereEqualTo() and "
-        "whereNotEqualTo().",
-        exception.what());
-  }
-  try {
-    collection.WhereArrayContains("a", FieldValue::Double(NAN));
-    FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
-    EXPECT_STREQ(
-        "Invalid Query. NaN only supports comparisons via whereEqualTo() and "
-        "whereNotEqualTo().",
-        exception.what());
-  }
-}
-
 TEST_F(ValidationTest, QueriesCannotBeCreatedFromDocumentsMissingSortValues) {
   CollectionReference collection =
       Collection(std::map<std::string, MapFieldValue>{
