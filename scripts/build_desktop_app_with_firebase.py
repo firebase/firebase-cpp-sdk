@@ -64,6 +64,19 @@ def is_sdk_path_source(sdk_dir):
   # should work for our purpose.
   return os.path.exists(os.path.join(sdk_dir, 'build_tools'))
 
+def validate_prebuilt_args(arch, config):
+  """Validate cmd line args for build with prebuilt libraries"""
+  # Some options are not available when using prebuilt libraries"""
+  if platform.system() == 'Darwin':
+    if arch == 'x86' or config == 'Debug':
+      raise ValueError("Prebuilt mac firebase libraries are built for x64 and Release mode only. "
+                       "Please fix the command line arguments and try again")
+
+  if platform.system() == 'Linux':
+    if config == 'Debug':
+      raise ValueError("Prebuilt linux firebase libraries are built with Release mode only. "
+                       "Please fix the --config command line argument and try again.")
+
 def get_vcpkg_triplet(arch, msvc_runtime_library='static'):
   """ Get vcpkg target triplet (platform definition).
 
@@ -240,6 +253,7 @@ def main():
     build_app_with_source(args.app_dir, args.sdk_dir, args.build_dir, args.arch,
                           args.msvc_runtime_library, args.config, args.target_format)
   else:
+    validate_prebuilt_args(args.arch, args.config)
     print("SDK path provided is Firebase C++ prebuilt libraries. Building...")
     build_app_with_prebuilt(args.app_dir, args.sdk_dir, args.build_dir, args.arch,
                             args.msvc_runtime_library, args.config)
