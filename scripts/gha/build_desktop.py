@@ -65,7 +65,7 @@ def install_x86_support_libraries():
     utils.run_command(['apt', 'install', 'libsecret-1-dev:i386'], as_root=True)
 
 
-def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
+def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
   """Install packages with vcpkg.
 
   This does the following,
@@ -99,14 +99,36 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
   utils.run_command([vcpkg_executable_file_path, 'install',
                      '@' + vcpkg_response_file_path, '--disable-metrics'])
 
-  # Some errors in vcpkg installation are not bubbled up. Verify existence
-  # of certain important directories before proceeding.
-  utils.verify_vcpkg_build(vcpkg_triplet)
+def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, cleanup=True):
+  """Install packages with vcpkg and optionally cleanup any intermediates.
 
-  # Clear temporary directories and files created by vcpkg buildtrees
-  # could be several GBs and cause github runners to run out of space
-  utils.clean_vcpkg_temp_data()
+  This is a wrapper over a low level installation function and attempts the
+  installation twice, a second time after attempting to auto fix known issues.
 
+  Args:
+    arch (str): Architecture (eg: 'x86', 'x64').
+    msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
+    cleanup (bool): Clean up intermediate files used during installation.
+
+  Raises:
+    (ValueError) If installation wasn't successful.
+  """
+  _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library)
+  vcpkg_triplet = utils.get_vcpkg_triplet(arch, msvc_runtime_library)
+  # Verify the installation with an attempt to auto fix any issues.
+  success = utils.verify_vcpkg_build(vcpkg_triplet, attempt_auto_fix=True)
+  if not success:
+    print("Installation was not successful but auto fix was attempted. "
+          "Retrying installation...")
+    # Retry once more after attempted auto fix.
+    _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library)
+    # Check for success again. If installation failed, this call will raise a ValueError.
+    success = utils.verify_vcpkg_build(vcpkg_triplet, attempt_auto_fix=False)
+
+  if cleanup:
+    # Clear temporary directories and files created by vcpkg buildtrees
+    # could be several GBs and cause github runners to run out of space
+    utils.clean_vcpkg_temp_data()
 
 def cmake_configure(build_dir, arch, msvc_runtime_library='static',
                     build_tests=True, config=None, target_format=None):
@@ -179,8 +201,13 @@ def main():
   if args.arch == 'x86' and utils.is_linux_os():
     install_x86_support_libraries()
 
-  # Install platform dependent cpp dependencies with vcpkg
-  install_cpp_dependencies_with_vcpkg(args.arch, args.msvc_runtime_library)
+  # Install C++ dependencies using vcpkg
+  install_cpp_dependencies_with_vcpkg(args.arch, args.msvc_runtime_library,
+                                      cleanup=True)
+
+  if args.vcpkg_step_only:
+    print("Exiting without building the Firebase C++ SDK as just vcpkg step was requested.")
+    return
 
   # CMake configure
   cmake_configure(args.build_dir, args.arch, args.msvc_runtime_library,
@@ -219,6 +246,7 @@ def parse_cmdline_args():
                       help='Runtime library for MSVC (static(/MT) or dynamic(/MD)')
   parser.add_argument('--build_dir', default='build', help='Output build directory')
   parser.add_argument('--build_tests', action='store_true', help='Build unit tests too')
+  parser.add_argument('--vcpkg_step_only', action='store_true', help='Just install cpp packages using vcpkg and exit.')
   parser.add_argument('--config', default='Release', help='Release/Debug config')
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
   parser.add_argument('--target_format', default=None, help='(Mac only) whether to output frameworks (default) or libraries.')
