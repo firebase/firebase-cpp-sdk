@@ -193,8 +193,11 @@ def verify_vcpkg_build(vcpkg_triplet, attempt_auto_fix=False):
       # Manually renaming and re-running script makes it go through.
       tools_dir_path = os.path.join(vcpkg_root_dir_path, 'downloads', 'tools')
       for name in os.listdir(tools_dir_path):
+        # In the specific windows error that we noticed, the error occurs while
+        # trying to rename intermediate directories for donwloaded tools
+        # like "powershell.partial.<pid>" to "powershell". Renaming via python
+        # also runs into the same error. Workaround is to copy instead of rename.
         if '.partial.' in name and os.path.isdir(os.path.join(tools_dir_path, name)):
-          # Since we can't rename, lets copy the directory to one without partial in the name
           expected_name = name.split('.partial.')[0]
           shutil.copytree(os.path.join(tools_dir_path, name),
                           os.path.join(tools_dir_path, expected_name))
