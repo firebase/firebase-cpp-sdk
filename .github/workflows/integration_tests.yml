@@ -66,19 +66,21 @@ jobs:
 
       - name: Set env vars (ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
-        run: echo "::set-env name=VCPKG_TRIPLET::x64-linux"
+        run: echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
       - name: Set env vars (macos)
         if: startsWith(matrix.os, 'macos')
-        run: echo "::set-env name=VCPKG_TRIPLET::x64-osx"
+        run: echo "VCPKG_TRIPLET=x64-osx" >> $GITHUB_ENV
       - name: Set env vars (windows)
+        shell: bash
         if: startsWith(matrix.os, 'windows')
-        run: echo "::set-env name=VCPKG_TRIPLET::x64-windows-static"
+        run: echo "VCPKG_TRIPLET=x64-windows-static" >> $GITHUB_ENV
       - name: Set env vars(all)
-        run: echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_${{ env.VCPKG_TRIPLET }}_response_file.txt"
+        shell: bash
+        run: echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ env.VCPKG_TRIPLET }}_response_file.txt" >> $GITHUB_ENV
 
       - name: Add msbuild to PATH (windows)
         if: startsWith(matrix.os, 'windows')
-        uses: microsoft/setup-msbuild@v1.0.1
+        uses: microsoft/setup-msbuild@v1.0.2
 
       - name: Cache vcpkg C++ dependencies
         if: matrix.target_platform == 'Desktop'
@@ -122,7 +124,7 @@ jobs:
       # Must be run after the Python setup action
       - name: Set CLOUDSDK_PYTHON (Windows)
         if: startsWith(matrix.os, 'windows') && !cancelled()
-        run: echo "::set-env name=CLOUDSDK_PYTHON::${{env.pythonLocation}}\python.exe"
+        run: echo "CLOUDSDK_PYTHON=${{env.pythonLocation}}\python.exe" >> $GITHUB_ENV
       - name: Install Cloud SDK
         if: ${{ !cancelled() }}
         uses: GoogleCloudPlatform/github-actions/setup-gcloud@master

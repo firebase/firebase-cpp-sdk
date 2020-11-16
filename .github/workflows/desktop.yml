@@ -6,6 +6,9 @@ on:
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+  # Xcode version 11.7 is the version we build the SDK with.
+  # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
+  xcodeVersion: "11.7"
 
 jobs:
   build:
@@ -24,6 +27,7 @@ jobs:
           vcpkg_triplet_suffix: "windows-static"
         - os: windows-latest
           msvc_runtime: "dynamic"
+
           vcpkg_triplet_suffix: "windows-static-md"
         - os: ubuntu-latest
           vcpkg_triplet_suffix: "linux"
@@ -39,14 +43,19 @@ jobs:
           msvc_runtime: "dynamic"
 
     steps:
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+
       - uses: actions/checkout@v2
         with:
           submodules: true
 
       - name: Set env variables for subsequent steps (all)
+        shell: bash
         run: |
-          echo "::set-env name=VCPKG_RESPONSE_FILE::external/vcpkg_custom_data/response_files/${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}.txt"
-          echo "::set-env name=MATRIX_UNIQUE_NAME::${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}"
+          echo "VCPKG_RESPONSE_FILE=external/vcpkg_custom_data/response_files/${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}.txt" >> $GITHUB_ENV
+          echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}" >> $GITHUB_ENV
 
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
