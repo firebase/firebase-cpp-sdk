@@ -12,7 +12,6 @@
 #include "firebase/firestore/field_value.h"
 #include "firebase/firestore/query.h"
 #include "firebase/firestore/set_options.h"
-#include "firebase/firestore/transaction.h"
 #include "firebase/firestore/write_batch.h"
 
 namespace firebase {
@@ -127,24 +126,6 @@ inline FieldValue ConvertSnapshotToFieldValue(
   return FieldValue::Map(snapshot.GetData(stb));
 }
 
-inline void TransactionUpdate(Transaction* transaction,
-                                   const DocumentReference& doc,
-                                   const FieldValue& field_value) {
-  transaction->Update(doc, field_value.map_value());
-}
-
-inline void TransactionUpdate(
-    Transaction* transaction, const DocumentReference& doc,
-    const Map<std::string, FieldValue>& wrapper) {
-  transaction->Update(doc, wrapper.Unwrap());
-}
-
-inline void TransactionUpdate(
-    Transaction* transaction, const DocumentReference& doc,
-    const Map<FieldPath, FieldValue>& wrapper) {
-  transaction->Update(doc, wrapper.Unwrap());
-}
-
 inline void WriteBatchUpdate(WriteBatch* batch,
                                   const DocumentReference& doc,
                                   const FieldValue& field_value) {
@@ -227,13 +208,6 @@ inline Query QueryEndBefore(Query& query, const FieldValue& values) {
 
 inline Query QueryEndAt(Query& query, const FieldValue& values) {
   return query.EndAt(values.array_value());
-}
-
-inline void TransactionSet(Transaction& transaction,
-                                const DocumentReference& document,
-                                const FieldValue& data,
-                                const SetOptions& options) {
-  transaction.Set(document, data.map_value(), options);
 }
 
 inline void WriteBatchSet(WriteBatch& write_batch,

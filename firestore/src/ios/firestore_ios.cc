@@ -67,6 +67,7 @@ FirestoreInternal::FirestoreInternal(
 
 FirestoreInternal::~FirestoreInternal() {
   ClearListeners();
+  transaction_executor_->Dispose();
   firestore_core_->Dispose();
 }
 
