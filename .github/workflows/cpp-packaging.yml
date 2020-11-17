@@ -630,8 +630,8 @@ jobs:
       with:
         ref: ${{ github.event.inputs.commitIdToPackage }}
     - name: Setup Xcode version (macos)
-        if: runner.os == 'macOS'
-        run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+      if: runner.os == 'macOS'
+      run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
     - name: Download Firebase C++ SDK
       uses: actions/download-artifact@v2
       with:
