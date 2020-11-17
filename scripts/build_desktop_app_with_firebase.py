@@ -119,7 +119,7 @@ def build_source_vcpkg_dependencies(sdk_source_dir, arch, msvc_runtime_library):
   """
   # TODO: Remove this once dev branch of firebase-cpp-sdk repo has been merged
   # onto main branch. This is required because vcpkg lives only in dev branch currently.
-  subprocess.run(['git', 'checkout', 'feature/python-tool-build-apps-with-firebase'],
+  subprocess.run(['git', 'checkout', 'dev'],
                  cwd=sdk_source_dir, check=True)
   subprocess.run(['git', 'pull'], cwd=sdk_source_dir, check=True)
 
