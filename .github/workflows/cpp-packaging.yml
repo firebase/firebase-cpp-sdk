@@ -636,6 +636,15 @@ jobs:
       uses: actions/download-artifact@v2
       with:
         name: firebase_cpp_sdk.zip
+    - name: Unzip Firebase C++ SDK
+      shell: bash
+      run: |
+        ls
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          7z x firebase_cpp_sdk.zip
+        else
+          unzip -q firebase_cpp_sdk.zip
+        fi
     - name: Setup python
       uses: actions/setup-python@v2
       with:
