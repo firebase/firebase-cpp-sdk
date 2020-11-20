@@ -887,7 +887,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseArrayContainsAnyFilters) {
 }
 
 TEST_F(FirestoreIntegrationTest, TestCollectionGroupQueries) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   // Use .Document() to get a random collection group name to use but ensure it
   // starts with 'b' for predictable ordering.
   std::string collection_group = "b" + db->Collection("foo").Document().id();
@@ -921,7 +921,7 @@ TEST_F(FirestoreIntegrationTest, TestCollectionGroupQueries) {
 
 TEST_F(FirestoreIntegrationTest,
        TestCollectionGroupQueriesWithStartAtEndAtWithArbitraryDocumentIds) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   // Use .Document() to get a random collection group name to use but ensure it
   // starts with 'b' for predictable ordering.
   std::string collection_group = "b" + db->Collection("foo").Document().id();
@@ -953,7 +953,7 @@ TEST_F(FirestoreIntegrationTest,
 
 TEST_F(FirestoreIntegrationTest,
        TestCollectionGroupQueriesWithWhereFiltersOnArbitraryDocumentIds) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   // Use .Document() to get a random collection group name to use but ensure it
   // starts with 'b' for predictable ordering.
   std::string collection_group = "b" + db->Collection("foo").Document().id();

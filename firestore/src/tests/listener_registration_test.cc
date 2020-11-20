@@ -25,7 +25,7 @@ using ListenerRegistrationCommonTest = testing::Test;
 class ListenerRegistrationTest : public FirestoreIntegrationTest {
  public:
   ListenerRegistrationTest() {
-    firestore()->set_log_level(LogLevel::kLogLevelDebug);
+    TestFirestore()->set_log_level(LogLevel::kLogLevelDebug);
   }
 };
 

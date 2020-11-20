@@ -77,7 +77,7 @@ class ValidationTest : public FirestoreIntegrationTest {
         EXPECT_EQ(reason, exception.what());
       }
       try {
-        firestore()->batch().Set(document, data);
+        TestFirestore()->batch().Set(document, data);
         FAIL() << "should throw exception";
       } catch (const FirestoreException& exception) {
         EXPECT_EQ(reason, exception.what());
@@ -92,7 +92,7 @@ class ValidationTest : public FirestoreIntegrationTest {
         EXPECT_EQ(reason, exception.what());
       }
       try {
-        firestore()->batch().Update(document, data);
+        TestFirestore()->batch().Update(document, data);
         FAIL() << "should throw exception";
       } catch (const FirestoreException& exception) {
         EXPECT_EQ(reason, exception.what());
@@ -100,7 +100,7 @@ class ValidationTest : public FirestoreIntegrationTest {
     }
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
-    Await(firestore()->RunTransaction(
+    Await(TestFirestore()->RunTransaction(
         [data, reason, include_sets, include_updates, document](
             Transaction& transaction, std::string& error_message) -> Error {
           if (include_sets) {
@@ -174,7 +174,7 @@ TEST_F(ValidationTest, ChangingSettingsAfterUseFails) {
   Settings setting;
   setting.set_host("foo");
   try {
-    firestore()->set_settings(setting);
+    TestFirestore()->set_settings(setting);
     FAIL() << "should throw exception";
   } catch (const FirestoreException& exception) {
     EXPECT_STREQ(
@@ -189,7 +189,7 @@ TEST_F(ValidationTest, DisableSslWithoutSettingHostFails) {
   Settings setting;
   setting.set_ssl_enabled(false);
   try {
-    firestore()->set_settings(setting);
+    TestFirestore()->set_settings(setting);
     FAIL() << "should throw exception";
   } catch (const FirestoreException& exception) {
     EXPECT_STREQ(
@@ -214,7 +214,7 @@ TEST_F(ValidationTest,
 }
 
 TEST_F(ValidationTest, CollectionPathsMustBeOddLength) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   DocumentReference base_document = db->Document("foo/bar");
   std::vector<std::string> bad_absolute_paths = {"foo/bar", "foo/bar/baz/quu"};
   std::vector<std::string> bad_relative_paths = {"/", "baz/quu"};
@@ -241,7 +241,7 @@ TEST_F(ValidationTest, CollectionPathsMustBeOddLength) {
 }
 
 TEST_F(ValidationTest, PathsMustNotHaveEmptySegments) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   // NOTE: leading / trailing slashes are okay.
   db->Collection("/foo/");
   db->Collection("/foo");
@@ -281,7 +281,7 @@ TEST_F(ValidationTest, PathsMustNotHaveEmptySegments) {
 }
 
 TEST_F(ValidationTest, DocumentPathsMustBeEvenLength) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   CollectionReference base_collection = db->Collection("foo");
   std::vector<std::string> bad_absolute_paths = {"foo", "foo/bar/baz"};
   std::vector<std::string> bad_relative_paths = {"/", "bar/baz"};
@@ -333,13 +333,13 @@ TEST_F(ValidationTest, WritesMayContainIndirectlyNestedLists) {
   DocumentReference another_document = collection.Document();
 
   Await(document.Set(data));
-  Await(firestore()->batch().Set(document, data).Commit());
+  Await(TestFirestore()->batch().Set(document, data).Commit());
 
   Await(document.Update(data));
-  Await(firestore()->batch().Update(document, data).Commit());
+  Await(TestFirestore()->batch().Update(document, data).Commit());
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
-  Await(firestore()->RunTransaction(
+  Await(TestFirestore()->RunTransaction(
       [data, document, another_document](Transaction& transaction,
                                          std::string& error_message) -> Error {
         // Note another_document does not exist at this point so set that and
@@ -401,9 +401,9 @@ TEST_F(ValidationTest, UpdatesMustNotContainNestedFieldValueDeletes) {
 
 TEST_F(ValidationTest, BatchWritesRequireCorrectDocumentReferences) {
   DocumentReference bad_document =
-      CachedFirestore("another")->Document("foo/bar");
+      TestFirestore("another")->Document("foo/bar");
 
-  WriteBatch batch = firestore()->batch();
+  WriteBatch batch = TestFirestore()->batch();
   try {
     batch.Set(bad_document, MapFieldValue{{"foo", FieldValue::Integer(1)}});
     FAIL() << "should throw exception";
@@ -612,7 +612,7 @@ TEST_F(ValidationTest,
   EventAccumulator<QuerySnapshot> accumulator;
   accumulator.listener()->AttachTo(&collection);
 
-  Await(firestore()->DisableNetwork());
+  Await(TestFirestore()->DisableNetwork());
 
   Future<void> future = collection.Document("doc").Set(
       {{"timestamp", FieldValue::ServerTimestamp()}});
@@ -629,7 +629,7 @@ TEST_F(ValidationTest,
                        [](const QuerySnapshot&, Error, const std::string&) {}),
                FirestoreException);
 
-  Await(firestore()->EnableNetwork());
+  Await(TestFirestore()->EnableNetwork());
   Await(future);
 
   snapshot = accumulator.AwaitRemoteEvent();

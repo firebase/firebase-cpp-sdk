@@ -61,7 +61,7 @@ TEST_F(FirestoreIntegrationTest, GetInstance) {
 // Sanity test for stubs.
 TEST_F(FirestoreIntegrationTest, TestCanCreateCollectionAndDocumentReferences) {
   ASSERT_NO_THROW({
-    Firestore* db = firestore();
+    Firestore* db = TestFirestore();
     CollectionReference c = db->Collection("a/b/c").Document("d").Parent();
     DocumentReference d = db->Document("a/b").Collection("c/d/e").Parent();
 
@@ -76,7 +76,7 @@ TEST_F(FirestoreIntegrationTest, TestCanCreateCollectionAndDocumentReferences) {
 #if defined(FIRESTORE_STUB_BUILD)
 
 TEST_F(FirestoreIntegrationTest, TestStubsReturnFailedFutures) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   Future<void> future = db->EnableNetwork();
   Await(future);
   EXPECT_EQ(FutureStatus::kFutureStatusComplete, future.status());
@@ -113,8 +113,8 @@ TEST_F(FirestoreIntegrationTest, TestCanUpdateAnExistingDocument) {
 
 TEST_F(FirestoreIntegrationTest, TestCanUpdateAnUnknownDocument) {
   DocumentReference writer_reference =
-      CachedFirestore("writer")->Collection("collection").Document();
-  DocumentReference reader_reference = CachedFirestore("reader")
+      TestFirestore("writer")->Collection("collection").Document();
+  DocumentReference reader_reference = TestFirestore("reader")
                                            ->Collection("collection")
                                            .Document(writer_reference.id());
   Await(writer_reference.Set(MapFieldValue{{"a", FieldValue::String("a")}}));
@@ -615,7 +615,7 @@ TEST_F(FirestoreIntegrationTest,
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
   ListenerRegistration sync_registration =
-      firestore()->AddSnapshotsInSyncListener([&] {
+      TestFirestore()->AddSnapshotsInSyncListener([&] {
         events.push_back("snapshots-in-sync");
         if (events.size() == 3) {
 #if defined(__APPLE__)
@@ -646,7 +646,7 @@ TEST_F(FirestoreIntegrationTest,
   };
   SyncEventListener sync_listener{&events, &completed};
   ListenerRegistration sync_registration =
-      firestore()->AddSnapshotsInSyncListener(sync_listener);
+      TestFirestore()->AddSnapshotsInSyncListener(sync_listener);
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
   Await(document.Set(MapFieldValue{{"foo", FieldValue::Double(3.0)}}));
@@ -970,7 +970,7 @@ TEST_F(FirestoreIntegrationTest,
 }
 
 TEST_F(FirestoreIntegrationTest, TestDocumentReferenceExposesFirestore) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   // EXPECT_EQ(db, db->Document("foo/bar").firestore());
   // TODO(varconst): use the commented out check above.
   // Currently, integration tests create their own Firestore instances that
@@ -978,37 +978,37 @@ TEST_F(FirestoreIntegrationTest, TestDocumentReferenceExposesFirestore) {
   // will lazily create a new Firestore instance upon the first access. This
   // doesn't affect production code, only tests.
   // Also, the logic in `util_ios.h` can be modified to make sure that
-  // `CachedFirestore` doesn't create a new Firestore instance if there isn't
+  // `TestFirestore()` doesn't create a new Firestore instance if there isn't
   // one already.
   EXPECT_NE(nullptr, db->Document("foo/bar").firestore());
 }
 
 TEST_F(FirestoreIntegrationTest, TestCollectionReferenceExposesFirestore) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   // EXPECT_EQ(db, db->Collection("foo").firestore());
   EXPECT_NE(nullptr, db->Collection("foo").firestore());
 }
 
 TEST_F(FirestoreIntegrationTest, TestQueryExposesFirestore) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   // EXPECT_EQ(db, db->Collection("foo").Limit(5).firestore());
   EXPECT_NE(nullptr, db->Collection("foo").Limit(5).firestore());
 }
 
 TEST_F(FirestoreIntegrationTest, TestDocumentReferenceEquality) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   DocumentReference document = db->Document("foo/bar");
   EXPECT_EQ(document, db->Document("foo/bar"));
   EXPECT_EQ(document, document.Collection("blah").Parent());
 
   EXPECT_NE(document, db->Document("foo/BAR"));
 
-  Firestore* another_db = CachedFirestore("another");
+  Firestore* another_db = TestFirestore("another");
   EXPECT_NE(document, another_db->Document("foo/bar"));
 }
 
 TEST_F(FirestoreIntegrationTest, TestQueryReferenceEquality) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   Query query = db->Collection("foo").OrderBy("bar").WhereEqualTo(
       "baz", FieldValue::Integer(42));
   Query query2 = db->Collection("foo").OrderBy("bar").WhereEqualTo(
@@ -1024,7 +1024,7 @@ TEST_F(FirestoreIntegrationTest, TestQueryReferenceEquality) {
 }
 
 TEST_F(FirestoreIntegrationTest, TestCanTraverseCollectionsAndDocuments) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
 
   // doc path from root Firestore.
   EXPECT_EQ("a/b/c/d", db->Document("a/b/c/d").path());
@@ -1040,7 +1040,7 @@ TEST_F(FirestoreIntegrationTest, TestCanTraverseCollectionsAndDocuments) {
 }
 
 TEST_F(FirestoreIntegrationTest, TestCanTraverseCollectionAndDocumentParents) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   CollectionReference collection = db->Collection("a/b/c");
   EXPECT_EQ("a/b/c", collection.path());
 
@@ -1055,13 +1055,13 @@ TEST_F(FirestoreIntegrationTest, TestCanTraverseCollectionAndDocumentParents) {
 }
 
 TEST_F(FirestoreIntegrationTest, TestCollectionId) {
-  EXPECT_EQ("foo", firestore()->Collection("foo").id());
-  EXPECT_EQ("baz", firestore()->Collection("foo/bar/baz").id());
+  EXPECT_EQ("foo", TestFirestore()->Collection("foo").id());
+  EXPECT_EQ("baz", TestFirestore()->Collection("foo/bar/baz").id());
 }
 
 TEST_F(FirestoreIntegrationTest, TestDocumentId) {
-  EXPECT_EQ(firestore()->Document("foo/bar").id(), "bar");
-  EXPECT_EQ(firestore()->Document("foo/bar/baz/qux").id(), "qux");
+  EXPECT_EQ(TestFirestore()->Document("foo/bar").id(), "bar");
+  EXPECT_EQ(TestFirestore()->Document("foo/bar/baz/qux").id(), "qux");
 }
 
 TEST_F(FirestoreIntegrationTest, TestCanQueueWritesWhileOffline) {
@@ -1069,14 +1069,14 @@ TEST_F(FirestoreIntegrationTest, TestCanQueueWritesWhileOffline) {
   DocumentReference document = Collection("rooms").Document("eros");
 
   // Act
-  Await(firestore()->DisableNetwork());
+  Await(TestFirestore()->DisableNetwork());
   Future<void> future = document.Set(MapFieldValue{
       {"desc", FieldValue::String("Description")},
       {"owner",
        FieldValue::Map({{"name", FieldValue::String("Sebastian")},
                         {"email", FieldValue::String("abc@xyz.com")}})}});
   EXPECT_EQ(FutureStatus::kFutureStatusPending, future.status());
-  Await(firestore()->EnableNetwork());
+  Await(TestFirestore()->EnableNetwork());
   Await(future);
 
   // Assert
@@ -1093,7 +1093,7 @@ TEST_F(FirestoreIntegrationTest, TestCanQueueWritesWhileOffline) {
 
 TEST_F(FirestoreIntegrationTest, TestCanGetDocumentsWhileOffline) {
   DocumentReference document = Collection("rooms").Document();
-  Await(firestore()->DisableNetwork());
+  Await(TestFirestore()->DisableNetwork());
   Future<DocumentSnapshot> future = document.Get();
   Await(future);
   EXPECT_EQ(Error::kErrorUnavailable, future.error());
@@ -1117,7 +1117,7 @@ TEST_F(FirestoreIntegrationTest, TestCanGetDocumentsWhileOffline) {
   EXPECT_TRUE(snapshot.metadata().is_from_cache());
 
   // Enable the network and fetch the document again.
-  Await(firestore()->EnableNetwork());
+  Await(TestFirestore()->EnableNetwork());
   Await(pending_write);
   snapshot = ReadDocument(document);
   EXPECT_THAT(
@@ -1142,7 +1142,7 @@ TEST_F(FirestoreIntegrationTest, TestCanGetDocumentsWhileOffline) {
 TEST_F(FirestoreIntegrationTest, TestCanDisableAndEnableNetworking) {
   // There's not currently a way to check if networking is in fact disabled,
   // so for now just test that the method is well-behaved and doesn't throw.
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   Await(db->EnableNetwork());
   Await(db->EnableNetwork());
   Await(db->DisableNetwork());
@@ -1182,13 +1182,13 @@ TEST_F(FirestoreIntegrationTest, TestToString) {
 // exceptions.
 #if defined(__ANDROID__)
 TEST_F(FirestoreIntegrationTest, ClientCallsAfterTerminateFails) {
-  EXPECT_THAT(firestore()->Terminate(), FutureSucceeds());
-  EXPECT_THROW(Await(firestore()->DisableNetwork()), FirestoreException);
+  EXPECT_THAT(TestFirestore()->Terminate(), FutureSucceeds());
+  EXPECT_THROW(Await(TestFirestore()->DisableNetwork()), FirestoreException);
 }
 
 TEST_F(FirestoreIntegrationTest, NewOperationThrowsAfterFirestoreTerminate) {
-  auto instance = firestore();
-  DocumentReference reference = firestore()->Document("abc/123");
+  auto instance = TestFirestore();
+  DocumentReference reference = TestFirestore()->Document("abc/123");
   Await(reference.Set({{"Field", FieldValue::Integer(100)}}));
 
   EXPECT_THAT(instance->Terminate(), FutureSucceeds());
@@ -1213,7 +1213,7 @@ TEST_F(FirestoreIntegrationTest, NewOperationThrowsAfterFirestoreTerminate) {
 }
 
 TEST_F(FirestoreIntegrationTest, TerminateCanBeCalledMultipleTimes) {
-  auto instance = firestore();
+  auto instance = TestFirestore();
   DocumentReference reference = instance->Document("abc/123");
   Await(reference.Set({{"Field", FieldValue::Integer(100)}}));
 
@@ -1230,36 +1230,75 @@ TEST_F(FirestoreIntegrationTest, TerminateCanBeCalledMultipleTimes) {
 #endif  // defined(__ANDROID__)
 
 TEST_F(FirestoreIntegrationTest, MaintainsPersistenceAfterRestarting) {
-  DocumentReference doc = firestore()->Collection("col1").Document("doc1");
+  Firestore* db = TestFirestore();
+  App* app = db->app();
+  DocumentReference doc = db->Collection("col1").Document("doc1");
   auto path = doc.path();
   Await(doc.Set({{"foo", FieldValue::String("bar")}}));
-  DeleteFirestore();
+  DeleteFirestore(db);
+  DeleteApp(app);
 
-  DocumentReference doc_2 = firestore()->Document(path);
+  DocumentReference doc_2 = TestFirestore()->Document(path);
   auto snap = Await(doc_2.Get());
   EXPECT_TRUE(snap->exists());
 }
 
+// TODO(b/173730469) Enable this test on Android once the Auth issue is fixed.
+#if !defined(__ANDROID__)
 TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewInstance) {
-  auto app_name = "non-default-app";
-  App* app = GetApp(app_name);
-  Firestore* db = CreateFirestore(app->name());
+  // Get App and Settings objects to use in the test.
+  Firestore* db_template = TestFirestore("restart_firestore_new_instance_test");
+  App* app = db_template->app();
+  Settings settings = db_template->settings();
+  DeleteFirestore(db_template);
 
-  // Shutdown `db` and create a new instance, make sure they are different
-  // instances.
-  EXPECT_THAT(db->Terminate(), FutureSucceeds());
-  auto db_2 = CreateFirestore(app->name());
-  EXPECT_NE(db_2, db);
+  // Get the Auth object so that it can be explicitly deleted to avoid a leak.
+  // This memory leak avoidance hack can be removed once Auth becomes a soft
+  // dependency (b/147772264).
+  InitResult init_result;
+  Auth* auth = Auth::GetAuth(app, &init_result);
+  ASSERT_EQ(kInitResultSuccess, init_result);
 
-  // Make sure the new instance functions.
-  Await(db_2->Document("abc/doc").Set({{"foo", FieldValue::String("bar")}}));
+  // Verify that GetInstance() returns the same instance when specified the same
+  // App.
+  Firestore* db1 = Firestore::GetInstance(app, &init_result);
+  ASSERT_EQ(kInitResultSuccess, init_result);
+  Firestore* db1_copy = Firestore::GetInstance(app, &init_result);
+  ASSERT_EQ(kInitResultSuccess, init_result);
+  EXPECT_EQ(db1, db1_copy);
 
-  Release(db_2);
-  Release(db);
+  // Create a document that we can use for verification later.
+  db1->set_settings(settings);
+  DocumentReference doc1 = db1->Collection("abc").Document();
+  const std::string doc_path = doc1.path();
+  EXPECT_THAT(doc1.Set({{"foo", FieldValue::String("bar")}}), FutureSucceeds());
+
+  // Terminate `db1` so that it will be removed from the instance cache.
+  EXPECT_THAT(db1->Terminate(), FutureSucceeds());
+
+  // Verify that GetInstance() returns a new instance since the old instance has
+  // been terminated.
+  Firestore* db2 = Firestore::GetInstance(app, &init_result);
+  ASSERT_EQ(kInitResultSuccess, init_result);
+  EXPECT_NE(db1, db2);
+
+  // Verify that the new instance points to the same database by verifying that
+  // the document created with the old instance exists in the new instance.
+  DocumentReference doc2 = db2->Document(doc_path);
+  const DocumentSnapshot* snapshot2 = Await(doc2.Get(Source::kCache));
+  ASSERT_NE(snapshot2, nullptr);
+  EXPECT_THAT(
+      snapshot2->GetData(),
+      testing::ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
+
+  delete db2;
+  delete db1;
+  delete auth;
 }
+#endif  // if !defined(__ANDROID__)
 
 TEST_F(FirestoreIntegrationTest, CanStopListeningAfterTerminate) {
-  auto instance = firestore();
+  auto instance = TestFirestore();
   DocumentReference reference = instance->Document("abc/123");
   EventAccumulator<DocumentSnapshot> accumulator;
   ListenerRegistration registration =
@@ -1277,11 +1316,11 @@ TEST_F(FirestoreIntegrationTest, CanStopListeningAfterTerminate) {
 TEST_F(FirestoreIntegrationTest, WaitForPendingWritesResolves) {
   DocumentReference document = Collection("abc").Document("123");
 
-  Await(firestore()->DisableNetwork());
-  Future<void> await_pending_writes_1 = firestore()->WaitForPendingWrites();
+  Await(TestFirestore()->DisableNetwork());
+  Future<void> await_pending_writes_1 = TestFirestore()->WaitForPendingWrites();
   Future<void> pending_writes =
       document.Set(MapFieldValue{{"desc", FieldValue::String("Description")}});
-  Future<void> await_pending_writes_2 = firestore()->WaitForPendingWrites();
+  Future<void> await_pending_writes_2 = TestFirestore()->WaitForPendingWrites();
 
   // `await_pending_writes_1` resolves immediately because there are no pending
   // writes at the time it is created.
@@ -1292,7 +1331,7 @@ TEST_F(FirestoreIntegrationTest, WaitForPendingWritesResolves) {
   EXPECT_EQ(await_pending_writes_2.status(),
             FutureStatus::kFutureStatusPending);
 
-  firestore()->EnableNetwork();
+  TestFirestore()->EnableNetwork();
   Await(await_pending_writes_2);
   EXPECT_EQ(await_pending_writes_2.status(),
             FutureStatus::kFutureStatusComplete);
@@ -1304,8 +1343,8 @@ TEST_F(FirestoreIntegrationTest, WaitForPendingWritesResolves) {
 
 TEST_F(FirestoreIntegrationTest,
        WaitForPendingWritesResolvesWhenOfflineIfThereIsNoPending) {
-  Await(firestore()->DisableNetwork());
-  Future<void> await_pending_writes = firestore()->WaitForPendingWrites();
+  Await(TestFirestore()->DisableNetwork());
+  Future<void> await_pending_writes = TestFirestore()->WaitForPendingWrites();
 
   // `await_pending_writes` resolves immediately because there are no pending
   // writes at the time it is created.
@@ -1314,16 +1353,20 @@ TEST_F(FirestoreIntegrationTest,
 }
 
 TEST_F(FirestoreIntegrationTest, CanClearPersistenceTestHarnessVerification) {
-  // Verify that firestore() and DeleteFirestore() behave how we expect;
-  // otherwise, the tests for ClearPersistence() could yield false positives.
-  Firestore* db = firestore();
-  const std::string app_name = db->app()->name();
+  // Verify that TestFirestore(), DeleteFirestore(), and DeleteApp() behave how
+  // we expect; otherwise, the tests for ClearPersistence() could yield false
+  // positives.
+  Firestore* db = TestFirestore();
+  App* app = db->app();
+  const std::string app_name = app->name();
+
   DocumentReference document = db->Collection("a").Document();
   const std::string path = document.path();
   WriteDocument(document, MapFieldValue{{"foo", FieldValue::Integer(42)}});
-  DeleteFirestore();
+  DeleteFirestore(db);
+  DeleteApp(app);
 
-  Firestore* db_2 = CachedFirestore(app_name);
+  Firestore* db_2 = TestFirestore(app_name);
   DocumentReference document_2 = db_2->Document(path);
   Future<DocumentSnapshot> get_future = document_2.Get(Source::kCache);
   DocumentSnapshot snapshot_2 = *Await(get_future);
@@ -1333,8 +1376,10 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceTestHarnessVerification) {
 }
 
 TEST_F(FirestoreIntegrationTest, CanClearPersistenceAfterRestarting) {
-  Firestore* db = firestore();
-  const std::string app_name = db->app()->name();
+  Firestore* db = TestFirestore();
+  App* app = db->app();
+  const std::string app_name = app->name();
+
   DocumentReference document = db->Collection("a").Document("b");
   const std::string path = document.path();
   WriteDocument(document, MapFieldValue{{"foo", FieldValue::Integer(42)}});
@@ -1346,14 +1391,15 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceAfterRestarting) {
   // Call DeleteFirestore() to ensure that both the App and Firestore instances
   // are deleted, which emulates the way an end user would experience their
   // application being killed and later re-launched by the user.
-  DeleteFirestore();
+  DeleteFirestore(db);
+  DeleteApp(app);
 
   // We restart the app with the same name and options to check that the
   // previous instance's persistent storage is actually cleared after the
-  // restart. Although calling firestore() here would do the same thing, we
-  // use CachedFirestore() to be explicit about getting a new Firestore instance
-  // for the same Firebase app.
-  Firestore* db_2 = CachedFirestore(app_name);
+  // restart. Although calling TestFirestore() with no arguments here would do
+  // the same thing, we explicitly specify an app_name to be clear that we want
+  // a new Firestore instance for the same Firebase app.
+  Firestore* db_2 = TestFirestore(app_name);
   DocumentReference document_2 = db_2->Document(path);
   Future<DocumentSnapshot> await_get = document_2.Get(Source::kCache);
   Await(await_get);
@@ -1362,8 +1408,10 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceAfterRestarting) {
 }
 
 TEST_F(FirestoreIntegrationTest, CanClearPersistenceOnANewFirestoreInstance) {
-  Firestore* db = firestore();
-  const std::string app_name = db->app()->name();
+  Firestore* db = TestFirestore();
+  App* app = db->app();
+  const std::string app_name = app->name();
+
   DocumentReference document = db->Collection("a").Document("b");
   const std::string path = document.path();
   WriteDocument(document, MapFieldValue{{"foo", FieldValue::Integer(42)}});
@@ -1378,14 +1426,15 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceOnANewFirestoreInstance) {
   // Call DeleteFirestore() to ensure that both the App and Firestore instances
   // are deleted, which emulates the way an end user would experience their
   // application being killed and later re-launched by the user.
-  DeleteFirestore();
+  DeleteFirestore(db);
+  DeleteApp(app);
 
   // We restart the app with the same name and options to check that the
   // previous instance's persistent storage is actually cleared after the
-  // restart. Although calling firestore() here would do the same thing, we
-  // use CachedFirestore() to be explicit about getting a new Firestore instance
-  // for the same Firebase app.
-  Firestore* db_2 = CachedFirestore(app_name);
+  // restart. Although calling TestFirestore() with no arguments here would do
+  // the same thing, we explicitly specify an app_name to be clear that we want
+  // a new Firestore instance for the same Firebase app.
+  Firestore* db_2 = TestFirestore(app_name);
   EXPECT_THAT(db_2->ClearPersistence(), FutureSucceeds());
   DocumentReference document_2 = db_2->Document(path);
   Future<DocumentSnapshot> await_get = document_2.Get(Source::kCache);
@@ -1398,8 +1447,8 @@ TEST_F(FirestoreIntegrationTest, ClearPersistenceWhileRunningFails) {
   // Call EnableNetwork() in order to ensure that Firestore is fully
   // initialized before clearing persistence. EnableNetwork() is chosen because
   // it is easy to call.
-  Await(firestore()->EnableNetwork());
-  Future<void> await_clear_persistence = firestore()->ClearPersistence();
+  Await(TestFirestore()->EnableNetwork());
+  Future<void> await_clear_persistence = TestFirestore()->ClearPersistence();
   Await(await_clear_persistence);
   EXPECT_EQ(await_clear_persistence.status(),
             FutureStatus::kFutureStatusComplete);
@@ -1408,8 +1457,8 @@ TEST_F(FirestoreIntegrationTest, ClearPersistenceWhileRunningFails) {
 
 // Note: this test only exists in C++.
 TEST_F(FirestoreIntegrationTest, DomainObjectsReferToSameFirestoreInstance) {
-  EXPECT_EQ(firestore(), firestore()->Document("foo/bar").firestore());
-  EXPECT_EQ(firestore(), firestore()->Collection("foo").firestore());
+  EXPECT_EQ(TestFirestore(), TestFirestore()->Document("foo/bar").firestore());
+  EXPECT_EQ(TestFirestore(), TestFirestore()->Collection("foo").firestore());
 }
 
 #endif  // defined(FIRESTORE_STUB_BUILD)

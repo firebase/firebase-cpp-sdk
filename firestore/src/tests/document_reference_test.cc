@@ -41,7 +41,7 @@ TEST_F(DocumentReferenceTest, RecoverFirestore) {
       DocumentReferenceInternal::Create(env, jni::Object());
   EXPECT_FALSE(result.is_valid());
 
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   DocumentReference doc = Document();
   ASSERT_EQ(db, doc.firestore());  // Sanity check
 
