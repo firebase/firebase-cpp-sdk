@@ -1,3 +1,17 @@
+# Copyright 2020 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Provides logic for determining results in a C++/Unity testapp.
 
 The initial motivation for this was when sending testapps to Firebase Test Lab.
@@ -15,7 +29,11 @@ log is obtained instead, to help identify where the crash or timeout occurred.
 
 """
 
+import datetime
+import os
 import re
+
+from absl import logging
 
 import attr
 
@@ -27,13 +45,15 @@ def validate_results(log_text, platform):
   """Determines the results in the log output of a testapp.
 
   Args:
-    log_text (str): Log output from a testapp.
+    log_text (str): Log output from a testapp. Can be None.
     platform (str): What type of testapp generated the log: 'unity' or 'cpp'.
 
   Returns:
     (TestResults): Structured results from the log.
 
   """
+  if not log_text:
+    return TestResults(complete=False)
   if platform == UNITY:
     return validate_results_unity(log_text)
   elif platform == CPP:
@@ -104,6 +124,106 @@ def validate_results_cpp(log_text):
       summary=result_summary)
 
 
+def summarize_test_results(tests, platform, summary_dir):
+  """Summarizes and logs test results for multiple tests.
+
+  Each 'test' should be an object with properties "testapp_path", which
+  is a path to the binary, and "logs", which is a string containing the logs
+  from that test.
+
+  This will compute the results from each log's internal test summary. If
+  the logs do not contain a test summary, that test's result will be "error".
+
+  In addition to logging results, this will append a short summary to a file
+  in summary_dir.
+
+  Args:
+    tests (Test): Objects containing str properties "testapp_path" and "logs".
+    platform (str): What type of testapp generated the log: 'unity' or 'cpp'.
+    summary_dir (str): Directory in which to append the summary file.
+
+  Returns:
+    (int): Return code. 0 for all success, 1 for any failures or errors.
+
+  """
+  successes = []
+  failures = []
+  errors = []
+
+  for test in tests:
+    results = validate_results(test.logs, platform)
+    test_result_pair = (test, results)
+    if not results.complete:
+      errors.append(test_result_pair)
+    elif results.fails > 0:
+      failures.append(test_result_pair)
+    else:
+      successes.append(test_result_pair)
+
+  # First log the successes, then the failures and errors, then the summary.
+  # This way, debugging will involve checking the summary at the bottom,
+  # then scrolling up for more information and seeing the failures first.
+  #
+  # For successes, just report the internal test summary, to reduce noise.
+  # For failures, log the entire output for full diagnostic context.
+  for test, results in successes:
+    logging.info("%s:\n%s", test.testapp_path, results.summary)
+  for test, _ in failures:
+    logging.info("%s failed:\n%s", test.testapp_path, test.logs)
+  for test, _ in errors:
+    logging.info("%s didn't finish normally.\n%s", test.testapp_path, test.logs)
+
+  # The summary is much more terse, to minimize the time it takes to understand
+  # what went wrong, without necessarily providing full debugging context.
+  summary = []
+  summary.append("TEST SUMMARY:")
+  if successes:
+    summary.append("%d TESTAPPS SUCCEEDED:" % len(successes))
+    summary.extend((test.testapp_path for (test, _) in successes))
+  if errors:
+    summary.append("\n%d TESTAPPS EXPERIENCED ERRORS:" % len(errors))
+    for test, results in errors:
+      if results.summary:
+        summary.append("%s log tail:" % test.testapp_path)
+        summary.append(results.summary)
+      else:
+        summary.append("%s has no log output (crashed, not found on FTL, etc)")
+  if failures:
+    summary.append("\n%d TESTAPPS FAILED:" % len(failures))
+    for test, results in failures:
+      summary.append(test.testapp_path)
+      summary.append(results.summary)
+  summary.append(
+      "%d TESTAPPS TOTAL: %d PASSES, %d FAILURES, %d ERRORS"
+      % (len(tests), len(successes), len(failures), len(errors)))
+  summary = "\n".join(summary)
+  logging.info(summary)
+  write_summary(summary_dir, summary)
+
+  return len(tests) == len(successes)
+
+
+def write_summary(testapp_dir, summary):
+  """Writes a summary of tests/builds to a file in the testapp directory.
+
+  This will append the given summary to a file in the testapp directory,
+  along with a timestamp. This summary's primary purpose is to aggregate
+  results from separate steps on CI to be logged in a single summary step.
+
+  Args:
+    testapp_dir (str): Path to the directory of testapps being built or tested.
+    summary (str): Short, readable multi-line summary of results.
+
+  """
+  # This method serves as the source of truth on where to put the summary.
+  with open(os.path.join(testapp_dir, "summary.log"), "a") as f:
+    # The timestamp mainly helps when running locally: if running multiple
+    # tests on the same directory, the results will accumulate, with a timestamp
+    # to help keep track of when a given test was run.
+    timestamp = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
+    f.write("\n%s\n%s\n" % (timestamp, summary))
+
+
 def _tail(text, n):
   """Returns the last n lines in text, or all of text if too few lines."""
   return "\n".join(text.splitlines()[-n:])
@@ -112,7 +232,7 @@ def _tail(text, n):
 @attr.s(frozen=True, eq=False)
 class TestResults(object):
   complete = attr.ib()  # Did the testapp reach the end, or did it crash/timeout
-  passes = attr.ib()
-  fails = attr.ib()
-  skips = attr.ib()
-  summary = attr.ib()  # Test summary from internal runner OR tail of the log
+  passes = attr.ib(default=0)
+  fails = attr.ib(default=0)
+  skips = attr.ib(default=0)
+  summary = attr.ib(default="")  # Summary from internal runner OR tail of log

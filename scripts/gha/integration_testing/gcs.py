@@ -89,6 +89,17 @@ def authorize_gcs(key_file):
       check=True)
 
 
+# This is intended to be logged when a tool stores artifacts on GCS.
+def get_gsutil_tips():
+  """Returns a human readable string with tips on accessing a GCS bucket."""
+  return "\n".join((
+      "GCS Advice: Install the Google Cloud SDK to access the gsutil tool.",
+      "Use 'gsutil ls <gs_uri>' to list contents of a directory on GCS.",
+      "Use 'gsutil cp <gs_uri> <local_path>' to copy an artifact.",
+      "Use 'gsutil -m cp -r <gs_uri> <local_path>' to copy a directory."
+  ))
+
+
 def _verify_gcloud_sdk_command_line_tools():
   """Verifies the presence of the gCloud SDK's command line tools."""
   logging.info("Looking for gcloud and gsutil tools...")
