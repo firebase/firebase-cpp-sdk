@@ -664,7 +664,7 @@ jobs:
     # Must be run after the Python setup action
     - name: Set CLOUDSDK_PYTHON (Windows)
       if: startsWith(matrix.os, 'windows') && !cancelled()
-      run: echo "::set-env name=CLOUDSDK_PYTHON::${{env.pythonLocation}}\python.exe"
+      run: echo "CLOUDSDK_PYTHON=${{env.pythonLocation}}\python.exe" >> $GITHUB_ENV
     - name: Install Cloud SDK
       if: ${{ !cancelled() }}
       uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
