@@ -69,7 +69,7 @@ def is_sdk_path_source(sdk_dir):
 
 def validate_prebuilt_args(arch, config):
   """Validate cmd line args for build with prebuilt libraries"""
-  # Some options are not available when using prebuilt libraries"""
+  # Some options are not available when using prebuilt libraries.
   if platform.system() == 'Darwin':
     if arch == 'x86' or config == 'Debug':
       raise ValueError("Prebuilt mac Firebase libraries are built for x64 and Release mode only. "
@@ -122,7 +122,7 @@ def build_source_vcpkg_dependencies(sdk_source_dir, arch, msvc_runtime_library):
   """
   # TODO: Remove this once dev branch of firebase-cpp-sdk repo has been merged
   # onto main branch. This is required because vcpkg lives only in dev branch currently.
-  # b/174141707
+  # b/174141707.
   subprocess.run(['git', 'checkout', 'dev'],
                  cwd=sdk_source_dir, check=True)
   subprocess.run(['git', 'pull'], cwd=sdk_source_dir, check=True)
@@ -152,19 +152,19 @@ def build_app_with_source(app_dir, sdk_source_dir, build_dir, arch,
           If its not specified, cmake's default is used (most likely Debug).
    target_format (str): If specified, build for this targetformat ('frameworks' or 'libraries').
   """
-  # Cmake configure
+  # Cmake configure.
   cmd = ['cmake', '-S', '.', '-B', build_dir]
   cmd.append('-DFIREBASE_CPP_SDK_DIR={0}'.format(sdk_source_dir))
 
   # If generator is not specifed, default for platform is used by cmake, else
-  # use the specified value
+  # use the specified value.
   if config:
     cmd.append('-DCMAKE_BUILD_TYPE={0}'.format(config))
-    # workaround, absl doesn't build without tests enabled
+    # workaround, absl doesn't build without tests enabled.
     cmd.append('-DBUILD_TESTING=off')
 
   if platform.system() == 'Linux' and arch == 'x86':
-    # Use a separate cmake toolchain for cross compiling linux x86 builds
+    # Use a separate cmake toolchain for cross compiling linux x86 builds.
     vcpkg_toolchain_file_path = os.path.join(sdk_source_dir, 'external', 'vcpkg',
                                              'scripts', 'buildsystems', 'linux_32.cmake')
   else:
@@ -178,9 +178,9 @@ def build_app_with_source(app_dir, sdk_source_dir, build_dir, arch,
   cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
 
   if platform.system() == 'Windows':
-    # If building for x86, we should supply -A Win32 to cmake configure
-    # Its a good habit to specify for x64 too as the default might be different
-    # on different windows machines.
+    # If building for x86, we should supply -A Win32 to cmake configure.
+    # Since the default architecture for cmake varies from machine to machine,
+    # it is a good practice to specify it all the time (even for x64).
     cmd.append('-A')
     cmd.append('Win32') if arch == 'x86' else cmd.append('x64')
 
@@ -194,7 +194,7 @@ def build_app_with_source(app_dir, sdk_source_dir, build_dir, arch,
   print("Running {0}".format(' '.join(cmd)))
   subprocess.run(cmd, cwd=app_dir, check=True)
 
-  #CMake build
+  #CMake build.
   cmd = ['cmake', '--build', build_dir, '-j', str(os.cpu_count()), '--config', config]
   print("Running {0}".format(' '.join(cmd)))
   subprocess.run(cmd, cwd=app_dir, check=True)
@@ -203,7 +203,7 @@ def build_app_with_prebuilt(app_dir, sdk_prebuilt_dir, build_dir, arch,
                             msvc_runtime_library='static', config=None):
   """Build desktop app directly against the prebuilt Firebase C++ libraries.
 
-  Since this invovles a cmake configure, it is advised to run this on a clean
+  Since this involves a cmake configure, it is advised to run this on a clean
   build directory.
 
   Args:
@@ -233,7 +233,7 @@ def build_app_with_prebuilt(app_dir, sdk_prebuilt_dir, build_dir, arch,
   print("Running {0}".format(' '.join(cmd)))
   subprocess.run(cmd, cwd=app_dir, check=True)
 
-  #CMake build
+  #CMake build.
   cmd = ['cmake', '--build', build_dir, '-j', str(os.cpu_count()), '--config', config]
   print("Running {0}".format(' '.join(cmd)))
   subprocess.run(cmd, cwd=app_dir, check=True)
