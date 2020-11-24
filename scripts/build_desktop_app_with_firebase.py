@@ -15,27 +15,30 @@
 # limitations under the License.
 """
 Standalone self-sufficient (no external dependencies) python script that can ease
-building desktop apps depending on firebase, by either using the firebase cpp
-source (firebase-cpp-sdk github repo) or the prebuilt release firebase libraries.
+building desktop apps depending on Firebase, by either using the Firebase cpp
+source (firebase-cpp-sdk github repo) or the prebuilt release Firebase libraries.
 
 Note that this script works with only Python3 (3.6+).
+Also note, that since this script runs a cmake configure step, it is advised to
+run it with a fresh clean build directory.
+
 Known side effects:
-If building against firebase cpp source, this script might checkout a specific
+If building against Firebase cpp source, this script might checkout a specific
 branch on github containing vcpkg. This will not be required once vcpkg is in the
 main branch.
 
 Example usage:
-Let's say we want to build the quickstart cpp example for firebase database.
-As specified above, there are 2 options - build against the firebase source or
-prebuilt firebase libraries.
+Let's say we want to build the quickstart cpp example for Firebase database.
+As specified above, there are 2 options - build against the Firebase source or
+prebuilt Firebase libraries.
 
-# Build against the firebase cpp sdk source
+# Build against the Firebase cpp sdk source
 python3 scripts/build_desktop_app_with_firebase.py --app_dir ~/quickstart-cpp/database/testapp
                                                    --sdk_dir . --build_dir build_source
 
 (or)
 
-# Build against the prebuilt released firebase libraries
+# Build against the prebuilt released Firebase libraries
 python3 scripts/build_desktop_app_with_firebase.py --app_dir ~/quickstart-cpp/database/testapp
                                                    --sdk_dir ~/prebuilt/firebase_cpp_sdk_6.15.1/
                                                    --build_dir build_prebuilt
@@ -59,7 +62,7 @@ def is_path_valid_for_cmake(path):
   return os.path.exists(os.path.join(path, 'CMakeLists.txt'))
 
 def is_sdk_path_source(sdk_dir):
-  """Validate if firebase sdk dir is firebase cpp source dir"""
+  """Validate if Firebase sdk dir is Firebase cpp source dir"""
   # Not the most reliable way to detect if the sdk path is source or prebuilt but
   # should work for our purpose.
   return os.path.exists(os.path.join(sdk_dir, 'build_tools'))
@@ -69,12 +72,12 @@ def validate_prebuilt_args(arch, config):
   # Some options are not available when using prebuilt libraries"""
   if platform.system() == 'Darwin':
     if arch == 'x86' or config == 'Debug':
-      raise ValueError("Prebuilt mac firebase libraries are built for x64 and Release mode only. "
+      raise ValueError("Prebuilt mac Firebase libraries are built for x64 and Release mode only. "
                        "Please fix the command line arguments and try again")
 
   if platform.system() == 'Linux':
     if config == 'Debug':
-      raise ValueError("Prebuilt linux firebase libraries are built with Release mode only. "
+      raise ValueError("Prebuilt linux Firebase libraries are built with Release mode only. "
                        "Please fix the --config command line argument and try again.")
 
 def get_vcpkg_triplet(arch, msvc_runtime_library='static'):
@@ -85,7 +88,7 @@ def get_vcpkg_triplet(arch, msvc_runtime_library='static'):
     msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
 
   Raises:
-    ValueError: If current OS is not win,mac or linux.
+    ValueError: If current OS is not win, mac or linux.
 
   Returns:
     (str): Triplet name.
@@ -110,7 +113,7 @@ def get_vcpkg_triplet(arch, msvc_runtime_library='static'):
   return triplet_name
 
 def build_source_vcpkg_dependencies(sdk_source_dir, arch, msvc_runtime_library):
-  """Build C++ dependencies for firebase source SDK using vcpkg.
+  """Build C++ dependencies for Firebase source SDK using vcpkg.
 
   Args:
    sdk_source_dir (str): Path to Firebase C++ source directory.
@@ -119,6 +122,7 @@ def build_source_vcpkg_dependencies(sdk_source_dir, arch, msvc_runtime_library):
   """
   # TODO: Remove this once dev branch of firebase-cpp-sdk repo has been merged
   # onto main branch. This is required because vcpkg lives only in dev branch currently.
+  # b/174141707
   subprocess.run(['git', 'checkout', 'dev'],
                  cwd=sdk_source_dir, check=True)
   subprocess.run(['git', 'pull'], cwd=sdk_source_dir, check=True)
@@ -133,14 +137,14 @@ def build_source_vcpkg_dependencies(sdk_source_dir, arch, msvc_runtime_library):
 def build_app_with_source(app_dir, sdk_source_dir, build_dir, arch,
                           msvc_runtime_library='static', config=None,
                           target_format=None):
-  """Build desktop app directly against the firebase C++ SDK source.
+  """Build desktop app directly against the Firebase C++ SDK source.
 
-  Since this invovles a cmake configure, it is advised to run this on a clean
+  Since this involves a cmake configure, it is advised to run this on a clean
   build directory.
 
   Args:
    app_dir (str): Path to directory containing application's CMakeLists.txt.
-   sdk_source_dir (str): Path to firebase C++ SDK source directory (root of github repo).
+   sdk_source_dir (str): Path to Firebase C++ SDK source directory (root of github repo).
    build_dir (str): Output build directory.
    arch (str): Platform Architecture (example: 'x64').
    msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
@@ -197,18 +201,18 @@ def build_app_with_source(app_dir, sdk_source_dir, build_dir, arch,
 
 def build_app_with_prebuilt(app_dir, sdk_prebuilt_dir, build_dir, arch,
                             msvc_runtime_library='static', config=None):
-  """Build desktop app directly against the prebuilt firebase C++ libraries.
+  """Build desktop app directly against the prebuilt Firebase C++ libraries.
 
   Since this invovles a cmake configure, it is advised to run this on a clean
   build directory.
 
   Args:
    app_dir (str): Path to directory containing application's CMakeLists.txt.
-   sdk_prebuilt_dir (str): Path to prebuilt firebase C++ libraries.
+   sdk_prebuilt_dir (str): Path to prebuilt Firebase C++ libraries.
    build_dir (str): Output build directory.
-   arch (str): Platform Architecture (example: 'x64').
+   arch (str): Platform Architecture (eg: 'x64').
    msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
-   config (str): Release/Debug config.
+   config (str): Release/Debug config (eg: 'Release', 'Debug')
           If its not specified, cmake's default is used (most likely Debug).
   """
 
@@ -248,7 +252,7 @@ def main():
     sys.exit(1)
 
   if is_sdk_path_source(args.sdk_dir):
-    print("SDK path provided is Firebase C++ source directory. Building...")
+    print("SDK path provided is a Firebase C++ source directory. Building...")
     build_source_vcpkg_dependencies(args.sdk_dir, args.arch, args.msvc_runtime_library)
     build_app_with_source(args.app_dir, args.sdk_dir, args.build_dir, args.arch,
                           args.msvc_runtime_library, args.config, args.target_format)
@@ -259,7 +263,7 @@ def main():
                             args.msvc_runtime_library, args.config)
 
   print ("Build successful!\n"
-         "Please find your executables in build directory: {0}".format
+         "Please find your executables in the build directory: {0}".format
                                     (os.path.join(args.app_dir, args.build_dir)))
 
 def parse_cmdline_args():
