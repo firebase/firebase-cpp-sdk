@@ -366,31 +366,46 @@ def _validate_android_environment_variables():
   """Checks environment variables that may be required for Android."""
   # Ultimately we let the gradle build be the source of truth on what env vars
   # are required, but try to repair holes and log warnings if we can't.
-  logging.info("Checking environment variables for the Android build")
-  if not os.environ.get(_ANDROID_NDK_HOME):
-    ndk_root = os.environ.get(_NDK_ROOT)
-    if ndk_root:  # Use NDK_ROOT as a backup for ANDROID_NDK_HOME
-      os.environ[_ANDROID_NDK_HOME] = ndk_root
-      logging.info("%s not found, using %s", _ANDROID_NDK_HOME, _NDK_ROOT)
-    else:
-      logging.warning("Neither %s nor %s is set.", _ANDROID_NDK_HOME, _NDK_ROOT)
+  android_home = os.environ.get(_ANDROID_HOME)
   if not os.environ.get(_JAVA_HOME):
     logging.warning("%s not set", _JAVA_HOME)
   if not os.environ.get(_ANDROID_SDK_HOME):
-    android_home = os.environ.get(_ANDROID_HOME)
     if android_home:  # Use ANDROID_HOME as backup for ANDROID_SDK_HOME
       os.environ[_ANDROID_SDK_HOME] = android_home
       logging.info("%s not found, using %s", _ANDROID_SDK_HOME, _ANDROID_HOME)
     else:
-      logging.warning(
-          "Neither %s nor %s is set", _ANDROID_SDK_HOME, _ANDROID_HOME)
+      logging.warning("Missing: %s and %s", _ANDROID_SDK_HOME, _ANDROID_HOME)
+  # Different environments may have different NDK env vars specified. We look
+  # for these, in this order, and set the others to the first found.
+  # If none are set, we check the default location for the ndk.
+  ndk_path = None
+  ndk_vars = [_NDK_ROOT, _ANDROID_NDK_HOME]
+  for env_var in ndk_vars:
+    val = os.environ.get(env_var)
+    if val:
+      ndk_path = val
+      break
+  if not ndk_path:
+    if android_home:
+      default_ndk_path = os.path.join(android_home, "ndk-bundle")
+      if os.path.isdir(default_ndk_path):
+        ndk_path = default_ndk_path
+  if ndk_path:
+    logging.info("Found ndk: %s", ndk_path)
+    for env_var in ndk_vars:
+      if os.environ.get(env_var) != ndk_path:
+        logging.info("Setting %s to %s", env_var, ndk_path)
+        os.environ[env_var] = ndk_path
+  else:
+    logging.warning("No NDK env var set. Set one of %s", ", ".join(ndk_vars))
 
 
 # If sdk_dir contains no framework, consider it is Github repo, then
 # generate makefiles for ios frameworks
 def _generate_makefiles_from_repo(sdk_dir):
+  """Generates cmake makefiles for building iOS frameworks from SDK source."""
   ios_framework_builder = os.path.join(
-    sdk_dir, "build_scripts", "ios", "build.sh")
+      sdk_dir, "build_scripts", "ios", "build.sh")
 
   framework_builder_args = [
       ios_framework_builder,
@@ -403,12 +418,15 @@ def _generate_makefiles_from_repo(sdk_dir):
 
 # build required ios frameworks based on makefiles
 def _build_ios_framework_from_repo(sdk_dir, api_config):
+  """Builds iOS framework from SDK source."""
   ios_framework_builder = os.path.join(
-    sdk_dir, "build_scripts", "ios", "build.sh")
+      sdk_dir, "build_scripts", "ios", "build.sh")
 
   # build only required targets to save time
   target = set()
+
   for framework in api_config.frameworks:
+    # firebase_analytics.framework -> firebase_analytics
     target.add(os.path.splitext(framework)[0])
   # firebase is not a target in CMake, firebase_app is the target
   # firebase_app will be built by other target as well
@@ -425,10 +443,10 @@ def _build_ios_framework_from_repo(sdk_dir, api_config):
 
 def _build_ios(
     sdk_dir, ios_framework_exist, project_dir, root_dir, api_config, ios_sdk):
+  """Builds an iOS application (.app, .ipa or both)."""
   if not ios_framework_exist:
     _build_ios_framework_from_repo(sdk_dir, api_config)
 
-  """Builds an iOS application (.app, .ipa or both)."""
   build_dir = os.path.join(project_dir, "ios_build")
   os.makedirs(build_dir)
 
@@ -491,7 +509,8 @@ def _build_ios(
             ios_sdk=_IOS_SDK_DEVICE,
             configuration="Debug"))
 
-    xcodebuild.generate_unsigned_ipa(output_dir=build_dir, configuration="Debug")
+    xcodebuild.generate_unsigned_ipa(
+        output_dir=build_dir, configuration="Debug")
 
 
 # This script is responsible for copying shared files into the integration
