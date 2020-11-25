@@ -399,6 +399,7 @@ def _validate_android_environment_variables():
 # If sdk_dir contains no framework, consider it is Github repo, then
 # generate makefiles for ios frameworks
 def _generate_makefiles_from_repo(sdk_dir):
+  """Generates cmake makefiles for building iOS frameworks from SDK source."""
   ios_framework_builder = os.path.join(
       sdk_dir, "build_scripts", "ios", "build.sh")
 
@@ -413,12 +414,15 @@ def _generate_makefiles_from_repo(sdk_dir):
 
 # build required ios frameworks based on makefiles
 def _build_ios_framework_from_repo(sdk_dir, api_config):
+  """Builds iOS framework from SDK source."""
   ios_framework_builder = os.path.join(
       sdk_dir, "build_scripts", "ios", "build.sh")
 
   # build only required targets to save time
   target = set()
+
   for framework in api_config.frameworks:
+    # firebase_analytics.framework -> firebase_analytics
     target.add(os.path.splitext(framework)[0])
   # firebase is not a target in CMake, firebase_app is the target
   # firebase_app will be built by other target as well
