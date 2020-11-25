@@ -200,7 +200,7 @@ def summarize_test_results(tests, platform, summary_dir):
   logging.info(summary)
   write_summary(summary_dir, summary)
 
-  return len(tests) == len(successes)
+  return 0 if len(tests) == len(successes) else 1
 
 
 def write_summary(testapp_dir, summary):
