@@ -5,7 +5,7 @@ on:
     inputs:
       platforms:
         description: 'CSV of Desktop, Android and/or iOS'
-        default: 'Desktop'
+        default: 'Desktop,Android,iOS'
         required: true
       apis:
         description: 'CSV of apis to build and test'
@@ -117,9 +117,6 @@ jobs:
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
 
       - name: Build integration tests (and run Desktop tests)
-        # The set up script for Android will download the NDK here.
-        env:
-          NDK_ROOT: '/tmp/android-ndk-r16b'
         run: |
           python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --use_vcpkg --execute_desktop_testapp --noadd_timestamp
 
