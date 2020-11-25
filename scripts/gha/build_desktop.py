@@ -180,9 +180,8 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static',
     cmd.append('-A')
     cmd.append('Win32') if arch == 'x86' else cmd.append('x64')
 
-    # Use our special cmake option for /MD (dynamic).
-    # If this option is not specified, the default value is /MT (static).
-    if msvc_runtime_library == "dynamic":
+    # Use our special cmake flag to specify /MD vs /MT
+    if msvc_runtime_library == "static":
       cmd.append('-DMSVC_RUNTIME_LIBRARY_STATIC=ON')
 
   if (target_format):
