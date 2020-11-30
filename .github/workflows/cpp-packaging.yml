@@ -620,8 +620,8 @@ jobs:
       fail-fast: false
     env:
       apis: admob,analytics,auth,database,dynamic_links,firestore,functions,instance_id,messaging,remote_config,storage
-      android_device: flame
-      android_api: 29
+      android_device: blueline
+      android_api: 28
       ios_device: iphone11pro
       ios_version: 13.3
     steps:
