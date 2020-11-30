@@ -117,9 +117,6 @@ jobs:
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
 
       - name: Build integration tests
-        # The set up script for Android will download the NDK here.
-        env:
-          NDK_ROOT: '/tmp/android-ndk-r16b'
         run: |
           python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --use_vcpkg --noadd_timestamp
 
