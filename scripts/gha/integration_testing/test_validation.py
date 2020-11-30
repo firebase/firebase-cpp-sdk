@@ -187,7 +187,8 @@ def summarize_test_results(tests, platform, summary_dir):
         summary.append("%s log tail:" % test.testapp_path)
         summary.append(results.summary)
       else:
-        summary.append("%s has no log output (crashed, not found on FTL, etc)")
+        summary.append(
+            "%s lacks logs (crashed, not found, etc)" % test.testapp_path)
   if failures:
     summary.append("\n%d TESTAPPS FAILED:" % len(failures))
     for test, results in failures:
