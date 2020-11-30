@@ -69,10 +69,10 @@ modify your bashrc file to automatically set these variables.
 import datetime
 from distutils import dir_util
 import os
-import pathlib
 import platform
 import shutil
 import subprocess
+import sys
 
 from absl import app
 from absl import flags
@@ -81,8 +81,8 @@ from absl import logging
 import attr
 
 from integration_testing import config_reader
-from integration_testing import provisioning
 from integration_testing import xcodebuild
+import utils
 
 # Environment variables
 _JAVA_HOME = "JAVA_HOME"
@@ -199,10 +199,14 @@ def main(argv):
   config = config_reader.read_config()
   cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
   if _DESKTOP in platforms and FLAGS.use_vcpkg:
-    _run(["git", "submodule", "update", "--init"])
-    vcpkg = Vcpkg.generate(os.path.join(sdk_dir, config.vcpkg_dir))
-    vcpkg.install_and_run()
-    cmake_flags.extend(vcpkg.cmake_flags)
+    installer = os.path.join(sdk_dir, "scripts", "gha", "build_desktop.py")
+    _run([sys.executable, installer, "--vcpkg_step_only"])
+    toolchain_file = os.path.join(
+        sdk_dir, "external", "vcpkg", "scripts", "buildsystems", "vcpkg.cmake")
+    cmake_flags.extend((
+        "-DCMAKE_TOOLCHAIN_FILE=%s" % toolchain_file,
+        "-DVCPKG_TARGET_TRIPLET=%s" % utils.get_vcpkg_triplet(arch="x64")
+    ))
 
   failures = []
   for testapp in testapps:
@@ -462,7 +466,7 @@ def _build_ios(
   app_podfile_path = os.path.join(
       project_dir, "Podfile")
   podfile_patcher_args = [
-      "python", podfile_tool_path,
+      sys.executable, podfile_tool_path,
       "--sdk_podfile", sdk_podfile_path,
       "--app_podfile", app_podfile_path
   ]
@@ -515,7 +519,7 @@ def _run_setup_script(root_dir, testapp_dir):
   """Runs the setup_integration_tests.py script if needed."""
   script_path = os.path.join(root_dir, "setup_integration_tests.py")
   if os.path.isfile(script_path):
-    _run(["python", script_path, testapp_dir])
+    _run([sys.executable, script_path, testapp_dir])
   else:
     logging.info("setup_integration_tests.py not found")
 
@@ -546,55 +550,6 @@ def _rm_dir_safe(directory_path):
 def _fix_path(path):
   """Expands ~, normalizes slashes, and converts relative paths to absolute."""
   return os.path.abspath(os.path.expanduser(path))
-
-
-@attr.s(frozen=True, eq=False)
-class Vcpkg(object):
-  """Holds data related to the vcpkg tool used for managing dependent tools."""
-  installer = attr.ib()
-  binary = attr.ib()
-  triplet = attr.ib()
-  response_file = attr.ib()
-  toolchain_file = attr.ib()
-
-  @classmethod
-  def generate(cls, vcpkg_dir):
-    """Generates the vcpkg data based on the given vcpkg submodule path."""
-    installer = os.path.join(vcpkg_dir, "bootstrap-vcpkg")
-    binary = os.path.join(vcpkg_dir, "vcpkg")
-    response_file_fmt = vcpkg_dir + "_%s_response_file.txt"
-    if platform.system() == "Windows":
-      triplet = "x64-windows-static"
-      installer += ".bat"
-      binary += ".exe"
-    elif platform.system() == "Darwin":
-      triplet = "x64-osx"
-      installer += ".sh"
-    elif platform.system() == "Linux":
-      triplet = "x64-linux"
-      installer += ".sh"
-    else:
-      raise ValueError("Unrecognized system: %s" % platform.system())
-    return cls(
-        installer=installer,
-        binary=binary,
-        triplet=triplet,
-        response_file=response_file_fmt % triplet,
-        toolchain_file=os.path.join(
-            vcpkg_dir, "scripts", "buildsystems", "vcpkg.cmake"))
-
-  def install_and_run(self):
-    """Installs vcpkg (if needed) and runs it to install dependencies."""
-    if not os.path.exists(self.binary):
-      _run([self.installer])
-    _run([
-        self.binary, "install", "@" + self.response_file, "--disable-metrics"])
-
-  @property
-  def cmake_flags(self):
-    return [
-        "-DCMAKE_TOOLCHAIN_FILE=%s" % self.toolchain_file,
-        "-DVCPKG_TARGET_TRIPLET=%s" % self.triplet]
 
 
 @attr.s(frozen=True, eq=False)
