@@ -56,11 +56,13 @@ static const int kPhoneAuthCompletionWaitMs = 8000;  // NOLINT
 static const int kPhoneAuthTimeoutMs = 0;            // NOLINT
 
 // Set these in Firebase Console for your app.
-static const char* kPhoneAuthTestPhoneNumber[] = {
+static const char* kPhoneAuthTestPhoneNumbers[] = {
     "+12345556780", "+12345556781", "+12345556782", "+12345556783",
     "+12345556784", "+12345556785", "+12345556786", "+12345556787",
-    "+12345556788", "+12345556789"};                             // NOLINT
-static const char kPhoneAuthTestVerificationCode[] = "123456";   // NOLINT
+    "+12345556788", "+12345556789"};                            // NOLINT
+static const char kPhoneAuthTestVerificationCode[] = "123456";  // NOLINT
+static const int kPhoneAuthTestNumPhoneNumbers =
+    sizeof(kPhoneAuthTestPhoneNumbers) / sizeof(kPhoneAuthTestPhoneNumbers[0]);
 
 static const char kTestPassword[] = "testEmailPassword123";
 static const char kTestEmailBad[] = "bad.test.email@example.com";
@@ -862,10 +864,12 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
         firebase::auth::PhoneAuthProvider::GetInstance(auth_);
     LogDebug("Creating listener.");
     PhoneListener listener;
-    LogDebug("Calling VerifyPhoneNumber.");
-    const int random_index = app_framework::GetCurrentTimeInMicroseconds() % 10;
-    phone_provider.VerifyPhoneNumber(kPhoneAuthTestPhoneNumber[random_index],
-                                     kPhoneAuthTimeoutMs, nullptr, &listener);
+    // Randomly choose one of the phone numbers to avoid collisions.
+    const int random_phone_number =
+        app_framework::GetCurrentTimeInMicroseconds() % kPhoneAuthTestNumPhoneNumbers;
+    phone_provider.VerifyPhoneNumber(
+        kPhoneAuthTestPhoneNumbers[random_phone_number], kPhoneAuthTimeoutMs,
+        nullptr, &listener);
     // Wait for OnCodeSent() callback.
     int wait_ms = 0;
     LogDebug("Waiting for code send.");
