@@ -15,6 +15,9 @@ on:
         description: 'public version # to test against'
       downloadPreviousRun:
         description: 'previous run # to test against'
+      runIntegrationTests:
+        description: 'run integration tests?'
+        default: 0
 
 env:
   # Packaging prerequisites
@@ -601,45 +604,76 @@ jobs:
           firebase-cpp-sdk-android-c++-package
         failOnError: false
 
-  run_integration_tests:
-    name: run-integration-tests
+  tests:
     needs: [merge_packages, download_sdk_package]
-    if: always()
-    runs-on: ubuntu-latest
+    if: github.event.inputs.runIntegrationTests != 0 && !cancelled()
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        target_platform: [Desktop, Android, iOS]
+        exclude:
+          - os: ubuntu-latest
+            target_platform: iOS
+          - os: windows-latest
+            target_platform: iOS
+      fail-fast: false
+    env:
+      apis: admob,analytics,auth,database,dynamic_links,firestore,functions,instance_id,messaging,remote_config,storage
+      android_device: flame
+      android_api: 29
+      ios_device: iphone11pro
+      ios_version: 13.3
     steps:
-      - name: setup Xcode version (macos)
-        if: runner.os == 'macOS'
-        run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
-
-      - name: download SDK zip
-        uses: actions/download-artifact@v2
-        with:
-          name: firebase_cpp_sdk.zip
-          path: .
-
-      - name: download hash
-        uses: actions/download-artifact@v2
-        with:
-          name: firebase_cpp_sdk_hash.txt
-          path: .
-
-      - name: List binary SDK files.
-        run: |
-          # Verify zipfile hash first.
-          ${{ env.hashCommand }} -c --quiet firebase_cpp_sdk_hash.txt
+    - name: Checkout repo
+      uses: actions/checkout@v2.3.1
+      with:
+        ref: ${{ github.event.inputs.commitIdToPackage }}
+    - name: Setup Xcode version (macos)
+      if: runner.os == 'macOS'
+      run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+    - name: Download Firebase C++ SDK
+      uses: actions/download-artifact@v2
+      with:
+        name: firebase_cpp_sdk.zip
+    - name: Unzip Firebase C++ SDK
+      shell: bash
+      run: |
+        ls
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          7z x firebase_cpp_sdk.zip
+        else
           unzip -q firebase_cpp_sdk.zip
-          find . -print
+        fi
+    - name: Setup python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.7'
+    - name: Add msbuild to PATH (windows)
+      if: runner.os == 'Windows'
+      uses: microsoft/setup-msbuild@v1.0.1
+    - name: Prepare for integration tests
+      run: |
+        pip install -r scripts/gha/requirements.txt
+        python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+    - name: Build integration tests (and run Desktop tests)
+      run: |
+        python scripts/gha/build_testapps.py --t ${{ env.apis }} --p ${{ matrix.target_platform }} --sdk_dir firebase_cpp_sdk --output_directory ${{ github.workspace }} --execute_desktop_testapp --noadd_timestamp
 
-      - name: Verify SDK package files.
-        run: |
-          if [[ -r firebase_cpp_sdk/file_hashes.txt ]]; then
-            ${{ env.hashCommand }} -c --quiet firebase_cpp_sdk/file_hashes.txt
-          else
-            echo "::warning ::SDK package does not contain file_hashes.txt, cannot verify files in package."
-          fi
-
-      - name: fetch integration test source
-        uses: actions/checkout@v2.3.1
-        with:
-          path: src
-          ref: ${{ github.event.inputs.commitIdToPackage }}
+    # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
+    # Must be run after the Python setup action
+    - name: Set CLOUDSDK_PYTHON (Windows)
+      shell: bash
+      if: runner.os == 'Windows' && !cancelled()
+      run: echo "CLOUDSDK_PYTHON=${{env.pythonLocation}}\python.exe" >> $GITHUB_ENV
+    - name: Install Cloud SDK
+      if: ${{ !cancelled() }}
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+    - name: Upload Desktop Artifacts to GCS
+      if: ${{ !cancelled() }}
+      run: |
+        python scripts/gha/gcs_uploader.py --testapp_dir testapps --key_file scripts/gha-encrypted/gcs_key_file.json
+    - name: Run mobile integration tests
+      if: matrix.target_platform != 'Desktop' && !cancelled()
+      run: |
+        python scripts/gha/test_lab.py --android_model ${{ env.android_device }} --android_api ${{ env.android_api }} --ios_model ${{ env.ios_device }} --ios_version ${{ env.ios_version }} --testapp_dir testapps --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
