@@ -864,6 +864,7 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
         firebase::auth::PhoneAuthProvider::GetInstance(auth_);
     LogDebug("Creating listener.");
     PhoneListener listener;
+    LogDebug("Calling VerifyPhoneNumber.");
     // Randomly choose one of the phone numbers to avoid collisions.
     const int random_phone_number =
         app_framework::GetCurrentTimeInMicroseconds() % kPhoneAuthTestNumPhoneNumbers;
