@@ -17,10 +17,10 @@ on:
         required: true
       android_device:
         description: 'Android device model'
-        default: 'blueline'
+        default: 'walleye'
       android_api:
         description: 'Android API level'
-        default: '28'
+        default: '27'
       ios_device:
         description: 'iOS device model'
         default: 'iphone11pro'
