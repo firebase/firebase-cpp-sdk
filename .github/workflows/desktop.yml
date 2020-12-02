@@ -17,32 +17,30 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         build_type: ["Release", "Debug"]
         architecture: ["x64", "x86"]
-        msvc_runtime: ["static"]
         python_version: [3.7]
         include:
         - os: windows-latest
-          vcpkg_triplet_suffix: "windows-static"
+          build_type: "Release"
+          architecture: "x64"
+          msvc_runtime: "static"
+          vcpkg_triplet: "windows-static"
+        - os: windows-latest
+          build_type: "Debug"
+          architecture: "x86"
+          msvc_runtime: "dynamic"
+          vcpkg_triplet: "windows-static-md"
         - os: ubuntu-latest
+          msvc_runtime: "static"
           vcpkg_triplet_suffix: "linux"
         - os: macos-latest
+          msvc_runtime: "static"
           vcpkg_triplet_suffix: "osx"
 
         exclude:
         - os: macos-latest
-          architecture: "x86"
-        - os: macos-latest
-          msvc_runtime: "dynamic"
-        - os: ubuntu-latest
-          msvc_runtime: "dynamic"
-        # Windows currently takes too long. These are (possibly temporary)
-        # exclusions to mitigate queuing issues caused by excessive
-        # work done on GHA on every PR.
-        - os: windows-latest
-          build_type: "Release"
-        - os: windows-latest
           architecture: "x86"
 
     steps:
