@@ -223,10 +223,8 @@ endif()
 
 # Some of the external libraries are not used for mobile.
 if(DESKTOP)
-  set(D_GLIBCXX_USE_CXX11_ABI,"0")
-  if(D_GLIBCXX_USE_CXX11_ABI)
-    add_definitions(-D_GLIBCXX_USE_CXX11_ABI=${D_GLIBCXX_USE_CXX11_ABI})
-  endif()
+  set(_GLIBCXX_USE_CXX11_ABI "0" CACHE STRING "")
+  add_definitions(-D_GLIBCXX_USE_CXX11_ABI=${_GLIBCXX_USE_CXX11_ABI})
   # Use the static versions of the OpenSSL libraries.
   set(OPENSSL_USE_STATIC_LIBS TRUE)
   if (MSVC)
