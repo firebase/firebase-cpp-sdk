@@ -17,30 +17,35 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [ubuntu-latest, macos-latest]
         build_type: ["Release", "Debug"]
         architecture: ["x64", "x86"]
-        msvc_runtime: ["static", "dynamic"]
         python_version: [3.7]
         include:
+        # Add these Windows jobs.
         - os: windows-latest
+          build_type: "Release"
+          architecture: "x64"
+          msvc_runtime: "static"
           vcpkg_triplet_suffix: "windows-static"
         - os: windows-latest
+          build_type: "Debug"
+          architecture: "x86"
           msvc_runtime: "dynamic"
-
           vcpkg_triplet_suffix: "windows-static-md"
+
+        # Specify additional parameters for these jobs.
         - os: ubuntu-latest
+          msvc_runtime: "static"
           vcpkg_triplet_suffix: "linux"
         - os: macos-latest
+          msvc_runtime: "static"
           vcpkg_triplet_suffix: "osx"
 
+        # Don't build for x86 on MacOS.
         exclude:
         - os: macos-latest
           architecture: "x86"
-        - os: macos-latest
-          msvc_runtime: "dynamic"
-        - os: ubuntu-latest
-          msvc_runtime: "dynamic"
 
     steps:
       - name: setup Xcode version (macos)
