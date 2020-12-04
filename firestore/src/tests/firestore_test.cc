@@ -528,6 +528,24 @@ TEST_F(FirestoreIntegrationTest, TestCanUpdateNestedFields) {
                   {"e", FieldValue::Map({{"f", FieldValue::String("old")}})}}));
 }
 
+// Verify that multiple deletes in a single update call work.
+// https://github.com/firebase/quickstart-unity/issues/882
+TEST_F(FirestoreIntegrationTest, TestCanUpdateFieldsWithMultipleDeletes) {
+  DocumentReference document = Collection("rooms").Document();
+  Await(document.Set(MapFieldValue{{"key1", FieldValue::String("value1")},
+                                   {"key2", FieldValue::String("value2")},
+                                   {"key3", FieldValue::String("value3")},
+                                   {"key4", FieldValue::String("value4")},
+                                   {"key5", FieldValue::String("value5")}}));
+  Await(document.Update({{FieldPath{"key1"}, FieldValue::Delete()},
+                         {FieldPath{"key3"}, FieldValue::Delete()},
+                         {FieldPath{"key5"}, FieldValue::Delete()}}));
+  DocumentSnapshot snapshot = ReadDocument(document);
+  EXPECT_THAT(snapshot.GetData(), testing::ContainerEq(MapFieldValue{
+                                      {"key2", FieldValue::String("value2")},
+                                      {"key4", FieldValue::String("value4")}}));
+}
+
 TEST_F(FirestoreIntegrationTest, TestDeleteDocument) {
   DocumentReference document = Collection("rooms").Document("eros");
   WriteDocument(document, MapFieldValue{{"value", FieldValue::String("bar")}});
