@@ -22,16 +22,19 @@ jobs:
         architecture: ["x64", "x86"]
         python_version: [3.7]
         include:
+        # Add these Windows jobs.
         - os: windows-latest
           build_type: "Release"
           architecture: "x64"
           msvc_runtime: "static"
-          vcpkg_triplet: "windows-static"
+          vcpkg_triplet_suffix: "windows-static"
         - os: windows-latest
           build_type: "Debug"
           architecture: "x86"
           msvc_runtime: "dynamic"
-          vcpkg_triplet: "windows-static-md"
+          vcpkg_triplet_suffix: "windows-static-md"
+
+        # Specify additional parameters for these jobs.
         - os: ubuntu-latest
           msvc_runtime: "static"
           vcpkg_triplet_suffix: "linux"
@@ -39,6 +42,7 @@ jobs:
           msvc_runtime: "static"
           vcpkg_triplet_suffix: "osx"
 
+        # Don't build for x86 on MacOS.
         exclude:
         - os: macos-latest
           architecture: "x86"
