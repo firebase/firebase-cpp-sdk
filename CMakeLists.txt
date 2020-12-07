@@ -223,7 +223,7 @@ endif()
 
 # Some of the external libraries are not used for mobile.
 if(DESKTOP)
-  # Use the static versions of the OpenSSL libraries.
+# Use the static versions of the OpenSSL libraries.
   set(OPENSSL_USE_STATIC_LIBS TRUE)
   if (MSVC)
     # Get the correct version of the OpenSSL libraries based on building for MT.
@@ -238,6 +238,7 @@ if(DESKTOP)
   # Use BoringSSL instead of OpenSSL.
   add_external_library(boringssl)
   set(OPENSSL_FOUND TRUE)
+  set(OPENSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl-build)
   set(OPENSSL_INCLUDE_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl/src/include)
   set(OPENSSL_CRYPTO_LIBRARY ${CMAKE_BINARY_DIR}/external/src/boringssl-build/crypto/libcrypto.a)
   set(OPENSSL_CRYPTO_LIBRARIES ${OPENSSL_CRYPTO_LIBRARY})
@@ -246,9 +247,6 @@ if(DESKTOP)
   set(OPENSSL_LIBRARIES ${OPENSSL_CRYPTO_LIBRARIES} ${OPENSSL_SSL_LIBRARIES})
   # BoringSSL is compatible with OpenSSL 1.1.0.
   set(OPENSSL_VERSION '1.1.0')
-  
-  find_package(OpenSSL)
-
 
   # Build curl as a static library
   set(CURL_STATICLIB ON CACHE BOOL "")

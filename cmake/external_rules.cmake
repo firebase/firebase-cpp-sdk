@@ -92,6 +92,14 @@ function(download_external_sources)
     OUTPUT_FILE ${PROJECT_BINARY_DIR}/external/output_cmake_build.txt
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external
   )
+  
+  # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL unless the header file contains OPENSSL_VERSION_NUMBER.
+  file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
+  if (NOT TMP_HEADER_CONTENTS MATCHES OPENSSL_VERSION_NUMBER)
+    file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h
+    "#ifndef OPENSSL_VERSION_NUMBER\n# define OPENSSL_VERSION_NUMBER  0x10100000L\n#endif\n")
+  endif()
+
 endfunction()
 
 # Populates directory variables for the given name to the location that name
