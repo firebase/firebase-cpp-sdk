@@ -81,6 +81,7 @@ from absl import logging
 import attr
 
 from integration_testing import config_reader
+from integration_testing import test_validation
 from integration_testing import xcodebuild
 import utils
 
@@ -145,11 +146,6 @@ flags.DEFINE_bool(
     " the local spec repos available on this machine. Must also include iOS"
     " in platforms flag.")
 
-flags.DEFINE_bool(
-    "execute_desktop_testapp", True,
-    "(Desktop only) Run the testapp after building it. Will return non-zero"
-    " code if any tests fail inside the testapp.")
-
 flags.DEFINE_string(
     "compiler", None,
     "(Desktop only) Specify the compiler with CMake during the testapps build."
@@ -187,6 +183,7 @@ def main(argv):
     timestamp = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
   else:
     timestamp = ""
+  output_dir = os.path.join(output_dir, "testapps" + timestamp)
 
   ios_framework_dir = os.path.join(sdk_dir, "frameworks")
   ios_framework_exist = os.path.isdir(ios_framework_dir)
@@ -218,25 +215,22 @@ def main(argv):
         output_dir=output_dir,
         sdk_dir=sdk_dir,
         ios_framework_exist=ios_framework_exist,
-        timestamp=timestamp,
         root_dir=root_dir,
         ios_sdk=FLAGS.ios_sdk,
-        cmake_flags=cmake_flags,
-        execute_desktop_testapp=FLAGS.execute_desktop_testapp)
+        cmake_flags=cmake_flags)
     logging.info("END building for %s", testapp)
 
-  _summarize_results(testapps, platforms, failures)
+  _summarize_results(testapps, platforms, failures, output_dir)
   return 1 if failures else 0
 
 
 def _build(
     testapp, platforms, api_config, output_dir, sdk_dir, ios_framework_exist,
-    timestamp, root_dir, ios_sdk, cmake_flags, execute_desktop_testapp):
+    root_dir, ios_sdk, cmake_flags):
   """Builds one testapp on each of the specified platforms."""
   testapp_dir = os.path.join(root_dir, api_config.testapp_path)
   project_dir = os.path.join(
-      output_dir, "testapps" + timestamp, api_config.full_name,
-      os.path.basename(testapp_dir))
+      output_dir, api_config.full_name, os.path.basename(testapp_dir))
 
   logging.info("Copying testapp project to %s", project_dir)
   os.makedirs(project_dir)
@@ -253,8 +247,6 @@ def _build(
     logging.info("BEGIN %s, %s", testapp, _DESKTOP)
     try:
       _build_desktop(sdk_dir, cmake_flags)
-      if execute_desktop_testapp:
-        _execute_desktop_testapp(project_dir)
     except subprocess.SubprocessError as e:
       failures.append(
           Failure(testapp=testapp, platform=_DESKTOP, error_message=str(e)))
@@ -291,34 +283,28 @@ def _build(
   return failures
 
 
-def _summarize_results(testapps, platforms, failures):
+def _summarize_results(testapps, platforms, failures, output_dir):
   """Logs a readable summary of the results of the build."""
-  logging.info(
-      "FINISHED BUILDING TESTAPPS.\n\n\n"
-      "Tried to build these testapps: %s\n"
-      "On these platforms: %s",
-      ", ".join(testapps), ", ".join(platforms))
+  summary = []
+  summary.append("BUILD SUMMARY:")
+  summary.append("TRIED TO BUILD: " + ",".join(testapps))
+  summary.append("ON PLATFORMS: " + ",".join(platforms))
+
   if not failures:
-    logging.info("No failures occurred")
+    summary.append("ALL BUILDS SUCCEEDED")
   else:
-    # Collect lines, then log once, to reduce logging noise from timestamps etc.
-    lines = ["Some failures occurred:"]
+    summary.append("SOME FAILURES OCCURRED:")
     for i, failure in enumerate(failures, start=1):
-      lines.append("%d: %s" % (i, failure.describe()))
-    logging.info("\n".join(lines))
+      summary.append("%d: %s" % (i, failure.describe()))
+  summary = "\n".join(summary)
+
+  logging.info(summary)
+  test_validation.write_summary(output_dir, summary)
 
 
 def _build_desktop(sdk_dir, cmake_flags):
   _run(["cmake", ".", "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir] + cmake_flags)
   _run(["cmake", "--build", "."])
-
-
-def _execute_desktop_testapp(project_dir):
-  if platform.system() == "Windows":
-    testapp_path = os.path.join(project_dir, "Debug", "integration_test.exe")
-  else:
-    testapp_path = os.path.join(project_dir, "integration_test")
-  _run([testapp_path], timeout=300)
 
 
 def _get_desktop_compiler_flags(compiler, compiler_table):
@@ -461,14 +447,10 @@ def _build_ios(
 
   podfile_tool_path = os.path.join(
       root_dir, "scripts", "gha", "integration_testing", "update_podfile.py")
-  sdk_podfile_path = os.path.join(
-      root_dir, "ios_pod", "Podfile")
-  app_podfile_path = os.path.join(
-      project_dir, "Podfile")
   podfile_patcher_args = [
       sys.executable, podfile_tool_path,
-      "--sdk_podfile", sdk_podfile_path,
-      "--app_podfile", app_podfile_path
+      "--sdk_podfile", os.path.join(root_dir, "ios_pod", "Podfile"),
+      "--app_podfile", os.path.join(project_dir, "Podfile")
   ]
   _run(podfile_patcher_args)
   _run(["pod", "install"])

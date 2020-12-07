@@ -116,10 +116,14 @@ jobs:
           pip install -r scripts/gha/requirements.txt
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
 
-      - name: Build integration tests (and run Desktop tests)
+      - name: Build integration tests
         run: |
-          python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --use_vcpkg --execute_desktop_testapp --noadd_timestamp
+          python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --use_vcpkg --noadd_timestamp
 
+      - name: Run desktop integration tests
+        if: matrix.target_platform == 'Desktop' && !cancelled()
+        run: |
+          python scripts/gha/desktop_tester.py --testapp_dir testapps
       # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
       # Must be run after the Python setup action
       - name: Set CLOUDSDK_PYTHON (Windows)
@@ -137,3 +141,7 @@ jobs:
         if: matrix.target_platform != 'Desktop' && !cancelled()
         run: |
           python scripts/gha/test_lab.py --android_model ${{ github.event.inputs.android_device }} --android_api ${{ github.event.inputs.android_api }} --ios_model ${{ github.event.inputs.ios_device }} --ios_version ${{ github.event.inputs.ios_version }} --testapp_dir ${{ github.workspace }}/testapps --code_platform cpp --key_file ${{ github.workspace }}/scripts/gha-encrypted/gcs_key_file.json
+      - name: Summarize build and test results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: cat testapps/summary.log
