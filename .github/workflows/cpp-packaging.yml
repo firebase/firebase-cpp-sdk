@@ -21,10 +21,6 @@ on:
 
 env:
   # Packaging prerequisites
-  # Binutils 2.35.1 released Sep 19, 2020
-  binutilsVerLinux: "2.35.1"
-  # On Mac, use an older Binutils to avoid corrupted libraries.
-  binutilsVerDarwin: "2.28.1"
   # Demumble 1.1.0 released Nov 13, 2018
   demumbleVer: "1.1.0"
   # Use SHA256 for hashing files.
@@ -69,10 +65,12 @@ jobs:
         include:
         - os: ubuntu-latest
           tools_platform: linux
-          binutils_version: ${{ env.binutilsVerLinux }}
+          # Binutils 2.35.1 released Sep 19, 2020
+          binutils_version: "2.35.1"
         - os: macos-latest
           tools_platform: darwin
-          binutils_version: ${{ env.binutilsVerDarwin }}
+          # On Mac, use an older Binutils to avoid corrupted libraries.
+          binutils_version: "2.28.1"
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
