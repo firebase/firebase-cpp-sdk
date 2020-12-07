@@ -52,6 +52,7 @@ function(download_external_sources)
       set(DOWNLOAD_${NAME} ON PARENT_SCOPE)
     endif()
   endfunction()
+  check_use_local_directory(BORINGSSL)
   check_use_local_directory(CURL)
   check_use_local_directory(FLATBUFFERS)
   check_use_local_directory(LIBUV)
@@ -66,6 +67,7 @@ function(download_external_sources)
       -DCMAKE_INSTALL_PREFIX=${FIREBASE_INSTALL_DIR}
       -DFIREBASE_DOWNLOAD_DIR=${FIREBASE_DOWNLOAD_DIR}
       -DFIREBASE_EXTERNAL_PLATFORM=${external_platform}
+      -DDOWNLOAD_BORINGSSL=${DOWNLOAD_BORINGSSL}
       -DDOWNLOAD_CURL=${DOWNLOAD_CURL}
       -DDOWNLOAD_FLATBUFFERS=${DOWNLOAD_FLATBUFFERS}
       -DDOWNLOAD_GOOGLETEST=${FIREBASE_CPP_BUILD_TESTS}
@@ -121,6 +123,9 @@ function(add_external_library NAME)
 
   if (EXISTS "${${UPPER_NAME}_SOURCE_DIR}/CMakeLists.txt")
     add_subdirectory(${${UPPER_NAME}_SOURCE_DIR} ${${UPPER_NAME}_BINARY_DIR}
+            EXCLUDE_FROM_ALL)
+  elseif (EXISTS "${${UPPER_NAME}_SOURCE_DIR}/src/CMakeLists.txt")
+    add_subdirectory(${${UPPER_NAME}_SOURCE_DIR}/src ${${UPPER_NAME}_BINARY_DIR}
             EXCLUDE_FROM_ALL)
   endif()
 endfunction()

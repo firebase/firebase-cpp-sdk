@@ -235,6 +235,21 @@ if(DESKTOP)
     endif()
   endif()
 
+  # Use BoringSSL instead of OpenSSL.
+  add_external_library(boringssl)
+  set(OPENSSL_FOUND TRUE)
+  set(OPENSSL_INCLUDE_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl/src/include)
+  set(OPENSSL_CRYPTO_LIBRARY ${CMAKE_BINARY_DIR}/external/src/boringssl-build/crypto/libcrypto.a)
+  set(OPENSSL_CRYPTO_LIBRARIES ${OPENSSL_CRYPTO_LIBRARY})
+  set(OPENSSL_SSL_LIBRARY ${CMAKE_BINARY_DIR}/external/src/boringssl-build/ssl/libssl.a)
+  set(OPENSSL_SSL_LIBRARIES ${OPENSSL_SSL_LIBRARY})
+  set(OPENSSL_LIBRARIES ${OPENSSL_CRYPTO_LIBRARIES} ${OPENSSL_SSL_LIBRARIES})
+  # BoringSSL is compatible with OpenSSL 1.1.0.
+  set(OPENSSL_VERSION '1.1.0')
+  
+  find_package(OpenSSL)
+
+
   # Build curl as a static library
   set(CURL_STATICLIB ON CACHE BOOL "")
   if (WIN32)
@@ -243,8 +258,6 @@ if(DESKTOP)
   add_external_library(curl)
 
   add_external_library(libuv)
-
-  find_package(OpenSSL)
 
   add_external_library(zlib)
 
