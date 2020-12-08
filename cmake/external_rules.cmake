@@ -94,12 +94,43 @@ function(download_external_sources)
   )
   
   # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL unless the header file contains OPENSSL_VERSION_NUMBER.
-  file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
+  file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
   if (NOT TMP_HEADER_CONTENTS MATCHES OPENSSL_VERSION_NUMBER)
-    file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h
+    file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/include/openssl/opensslv.h
     "#ifndef OPENSSL_VERSION_NUMBER\n# define OPENSSL_VERSION_NUMBER  0x10100000L\n#endif\n")
   endif()
 
+endfunction()
+
+# Builds a subset of external dependencies that need to be built before everything else.
+function(build_external_dependencies)
+  # Setup cmake environment.
+  # These commands are executed from within the currect context, which has set
+  # variables for the target platform. We use "env -i" to clear these
+  # variables, and manually keep the PATH to regular bash path.
+  if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+    # Windows doesn't have an 'env' command
+    set(ENV_COMMAND "")
+  else()
+    set(firebase_command_line_path "$ENV{PATH}")
+    set(firebase_command_line_home "$ENV{HOME}")
+    set(ENV_COMMAND env -i PATH=${firebase_command_line_path} HOME=${firebase_command_line_home} )
+  endif()
+
+  execute_process(
+    COMMAND ${ENV_COMMAND} cmake ../boringssl
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
+  )
+
+  # Run downloads in parallel if we know how
+  if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
+    set(cmake_build_args -j)
+  endif()
+
+  execute_process(
+    COMMAND ${ENV_COMMAND} cmake --build . -- ${cmake_build_args}
+    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
+  )
 endfunction()
 
 # Populates directory variables for the given name to the location that name

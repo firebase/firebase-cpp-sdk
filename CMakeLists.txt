@@ -171,7 +171,11 @@ else()
   download_external_sources()
   message(STATUS "Download complete.")
 
-  set(FIRESTORE_SOURCE_DIR ${FIREBASE_BINARY_DIR}/external/src/firestore)
+  message(STATUS "Building external project dependencies...")
+  build_external_dependencies()
+  message(STATUS "Build of external project dependencies complete.")
+
+set(FIRESTORE_SOURCE_DIR ${FIREBASE_BINARY_DIR}/external/src/firestore)
 endif()
 
 # Include Firestore's external build early to resolve conflicts on packages.
@@ -239,7 +243,7 @@ if(DESKTOP)
   add_external_library(boringssl)
   set(OPENSSL_FOUND TRUE)
   set(OPENSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl-build)
-  set(OPENSSL_INCLUDE_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl/src/include)
+  set(OPENSSL_INCLUDE_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl/include)
   set(OPENSSL_CRYPTO_LIBRARY ${CMAKE_BINARY_DIR}/external/src/boringssl-build/crypto/libcrypto.a)
   set(OPENSSL_CRYPTO_LIBRARIES ${OPENSSL_CRYPTO_LIBRARY})
   set(OPENSSL_SSL_LIBRARY ${CMAKE_BINARY_DIR}/external/src/boringssl-build/ssl/libssl.a)
@@ -248,11 +252,32 @@ if(DESKTOP)
   # BoringSSL is compatible with OpenSSL 1.1.0.
   set(OPENSSL_VERSION '1.1.0')
 
+  add_library(OpenSSL::Crypto STATIC IMPORTED)
+  set_target_properties(OpenSSL::Crypto PROPERTIES
+    IMPORTED_LOCATION "${OPENSSL_CRYPTO_LIBRARIES}"
+    INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
+  )
+  add_library(OpenSSL::SSL STATIC IMPORTED)
+  set_target_properties(OpenSSL::SSL PROPERTIES
+    IMPORTED_LOCATION "${OPENSSL_SSL_LIBRARIES}"
+    INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
+  )
+
+  # Now if we do find_package(OpenSSL) it should give us BoringSSL.
+  find_package(OpenSSL)
+
+  if(NOT ${OPENSSL_INCLUDE_DIR} MATCHES boringssl)
+    message(FATAL_ERROR "BoringSSL was not configured correctly.")
+  endif()
+
   # Build curl as a static library
   set(CURL_STATICLIB ON CACHE BOOL "")
   if (WIN32)
     set(CMAKE_USE_WINSSL ON CACHE BOOL "")
   endif()
+  add_library(OpenSSL::Crypto ALIAS crypto)
+  add_library(OpenSSL::SSL ALIAS ssl)
+
   add_external_library(curl)
 
   add_external_library(libuv)
@@ -326,7 +351,7 @@ if(DESKTOP)
   if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
     # The Firestore build includes protobuf and nanopb already
     list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
-    find_package(Nanopb REQUIRED)
+    find_package(NANOPB REQUIRED)
 
     set(PROTOBUF_FOUND ON)
   else()
@@ -338,7 +363,7 @@ if(DESKTOP)
       # NanoPB has a FindNanopb which defines the function to generate files,
       # so add it to the module path, and use that.
       list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
-      find_package(Nanopb)
+      find_package(NANOPB)
 
       target_compile_definitions(
         protobuf-nanopb-static
