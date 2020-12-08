@@ -241,16 +241,17 @@ if(DESKTOP)
 
   # Use BoringSSL instead of OpenSSL.
   add_external_library(boringssl)
-  set(OPENSSL_FOUND TRUE)
-  set(OPENSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl-build)
-  set(OPENSSL_INCLUDE_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl/include)
-  set(OPENSSL_CRYPTO_LIBRARY ${CMAKE_BINARY_DIR}/external/src/boringssl-build/crypto/libcrypto.a)
+  set(BORINGSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl/src CACHE STRING "" FORCE)
+  set(BORINGSSL_BINARY_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl-build CACHE STRING "" FORCE)
+  set(OPENSSL_FOUND TRUE CACHE BOOL "" FORCE)
+  set(OPENSSL_ROOT_DIR ${BORINGSSL_ROOT_DIR} CACHE STRING "" FORCE)
+  set(OPENSSL_INCLUDE_DIR ${BORINGSSL_ROOT_DIR}/include CACHE PATH "" FORCE)
+  set(OPENSSL_CRYPTO_LIBRARY ${BORINGSSL_BINARY_DIR}/crypto/libcrypto.a CACHE FILEPATH "" FORCE)
   set(OPENSSL_CRYPTO_LIBRARIES ${OPENSSL_CRYPTO_LIBRARY})
-  set(OPENSSL_SSL_LIBRARY ${CMAKE_BINARY_DIR}/external/src/boringssl-build/ssl/libssl.a)
+  set(OPENSSL_SSL_LIBRARY ${BORINGSSL_BINARY_DIR}/ssl/libssl.a CACHE FILEPATH "" FORCE)
   set(OPENSSL_SSL_LIBRARIES ${OPENSSL_SSL_LIBRARY})
   set(OPENSSL_LIBRARIES ${OPENSSL_CRYPTO_LIBRARIES} ${OPENSSL_SSL_LIBRARIES})
-  # BoringSSL is compatible with OpenSSL 1.1.0.
-  set(OPENSSL_VERSION '1.1.0')
+  set(OPENSSL_VERSION '1.1.0' CACHE STRING "" FORCE)
 
   add_library(OpenSSL::Crypto STATIC IMPORTED)
   set_target_properties(OpenSSL::Crypto PROPERTIES
@@ -276,6 +277,8 @@ if(DESKTOP)
     set(CMAKE_USE_WINSSL ON CACHE BOOL "")
   endif()
 
+  # Current Curl library defaults to requiring libssh2, disable this.
+  set(CMAKE_USE_LIBSSH2 OFF)
   add_external_library(curl)
 
   add_external_library(libuv)
@@ -285,9 +288,8 @@ if(DESKTOP)
   add_external_library(uWebSockets)
 
   # Binutils on Mac doesn't support thread-local storage (required by
-  # websockets), but because we only use websockets via the scheduler,
-  # we don't need it.
-  
+  # websockets), but because we only use websockets via the scheduler, we don't
+  # need it. Deactivate this by blanking out the __thread keyword.
   set(websockets_additional_defines "-D__thread=")
 
   # uWebSockets does not come with a CMakeLists file, so define the target.

@@ -94,10 +94,10 @@ function(download_external_sources)
   )
   
   # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL unless the header file contains OPENSSL_VERSION_NUMBER.
-  file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
+  file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
   if (NOT TMP_HEADER_CONTENTS MATCHES OPENSSL_VERSION_NUMBER)
-    file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/include/openssl/opensslv.h
-    "#ifndef OPENSSL_VERSION_NUMBER\n# define OPENSSL_VERSION_NUMBER  0x10100000L\n#endif\n")
+    file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h
+    "#ifndef OPENSSL_VERSION_NUMBER\n# define OPENSSL_VERSION_NUMBER  0x10010107L\n#endif\n")
   endif()
 
 endfunction()
@@ -118,9 +118,13 @@ function(build_external_dependencies)
   endif()
 
   execute_process(
-    COMMAND ${ENV_COMMAND} cmake ../boringssl
+    COMMAND ${ENV_COMMAND} cmake ../boringssl/src
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
+    RESULT_VARIABLE boringssl_configure_status
   )
+  if (boringssl_configure_status AND NOT boringssl_configure_status EQUAL 0)
+    message(FATAL_ERROR "BoringSSL configure failed: ${boringssl_configure_status}")
+  endif()
 
   # Run downloads in parallel if we know how
   if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
@@ -130,7 +134,11 @@ function(build_external_dependencies)
   execute_process(
     COMMAND ${ENV_COMMAND} cmake --build . -- ${cmake_build_args}
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
+    RESULT_VARIABLE boringssl_build_status
   )
+  if (boringssl_build_status AND NOT boringssl_build_status EQUAL 0)
+    message(FATAL_ERROR "BoringSSL build failed: ${boringssl_build_status}")
+  endif()
 endfunction()
 
 # Populates directory variables for the given name to the location that name
