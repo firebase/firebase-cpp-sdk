@@ -175,7 +175,53 @@ else()
   build_external_dependencies()
   message(STATUS "Build of external project dependencies complete.")
 
-set(FIRESTORE_SOURCE_DIR ${FIREBASE_BINARY_DIR}/external/src/firestore)
+  set(FIRESTORE_SOURCE_DIR ${FIREBASE_BINARY_DIR}/external/src/firestore)
+endif()
+
+if(DESKTOP)
+  # Use the static versions of the OpenSSL libraries.
+  set(OPENSSL_USE_STATIC_LIBS TRUE)
+  if (MSVC)
+    # Get the correct version of the OpenSSL libraries based on building for MT.
+    if ("${CMAKE_CXX_FLAGS_DEBUG}" MATCHES "/MT" OR
+        "${CMAKE_CXX_FLAGS_RELEASE}" MATCHES "/MT")
+      set(OPENSSL_MSVC_STATIC_RT TRUE)
+    else()
+      set(OPENSSL_MSVC_STATIC_RT FALSE)
+    endif()
+  endif()
+
+  # Use BoringSSL instead of OpenSSL.
+  add_external_library(boringssl)
+  set(BORINGSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl/src CACHE STRING "" FORCE)
+  set(BORINGSSL_BINARY_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl-build CACHE STRING "" FORCE)
+  set(OPENSSL_FOUND TRUE CACHE BOOL "" FORCE)
+  set(OPENSSL_ROOT_DIR ${BORINGSSL_ROOT_DIR} CACHE STRING "" FORCE)
+  set(OPENSSL_INCLUDE_DIR ${BORINGSSL_ROOT_DIR}/include CACHE PATH "" FORCE)
+  set(OPENSSL_CRYPTO_LIBRARY ${BORINGSSL_BINARY_DIR}/crypto/libcrypto.a CACHE FILEPATH "" FORCE)
+  set(OPENSSL_CRYPTO_LIBRARIES ${OPENSSL_CRYPTO_LIBRARY})
+  set(OPENSSL_SSL_LIBRARY ${BORINGSSL_BINARY_DIR}/ssl/libssl.a CACHE FILEPATH "" FORCE)
+  set(OPENSSL_SSL_LIBRARIES ${OPENSSL_SSL_LIBRARY})
+  set(OPENSSL_LIBRARIES ${OPENSSL_CRYPTO_LIBRARIES} ${OPENSSL_SSL_LIBRARIES})
+  set(OPENSSL_VERSION '1.1.0' CACHE STRING "" FORCE)
+
+  add_library(OpenSSL::Crypto STATIC IMPORTED)
+  set_target_properties(OpenSSL::Crypto PROPERTIES
+    IMPORTED_LOCATION "${OPENSSL_CRYPTO_LIBRARIES}"
+    INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
+  )
+  add_library(OpenSSL::SSL STATIC IMPORTED)
+  set_target_properties(OpenSSL::SSL PROPERTIES
+    IMPORTED_LOCATION "${OPENSSL_SSL_LIBRARIES}"
+    INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
+  )
+
+  # Now if we do find_package(OpenSSL) it should give us BoringSSL.
+  find_package(OpenSSL)
+
+  if(NOT ${OPENSSL_INCLUDE_DIR} MATCHES boringssl)
+    message(FATAL_ERROR "BoringSSL was not configured correctly.")
+  endif()
 endif()
 
 # Include Firestore's external build early to resolve conflicts on packages.
@@ -227,50 +273,6 @@ endif()
 
 # Some of the external libraries are not used for mobile.
 if(DESKTOP)
-# Use the static versions of the OpenSSL libraries.
-  set(OPENSSL_USE_STATIC_LIBS TRUE)
-  if (MSVC)
-    # Get the correct version of the OpenSSL libraries based on building for MT.
-    if ("${CMAKE_CXX_FLAGS_DEBUG}" MATCHES "/MT" OR
-        "${CMAKE_CXX_FLAGS_RELEASE}" MATCHES "/MT")
-      set(OPENSSL_MSVC_STATIC_RT TRUE)
-    else()
-      set(OPENSSL_MSVC_STATIC_RT FALSE)
-    endif()
-  endif()
-
-  # Use BoringSSL instead of OpenSSL.
-  add_external_library(boringssl)
-  set(BORINGSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl/src CACHE STRING "" FORCE)
-  set(BORINGSSL_BINARY_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl-build CACHE STRING "" FORCE)
-  set(OPENSSL_FOUND TRUE CACHE BOOL "" FORCE)
-  set(OPENSSL_ROOT_DIR ${BORINGSSL_ROOT_DIR} CACHE STRING "" FORCE)
-  set(OPENSSL_INCLUDE_DIR ${BORINGSSL_ROOT_DIR}/include CACHE PATH "" FORCE)
-  set(OPENSSL_CRYPTO_LIBRARY ${BORINGSSL_BINARY_DIR}/crypto/libcrypto.a CACHE FILEPATH "" FORCE)
-  set(OPENSSL_CRYPTO_LIBRARIES ${OPENSSL_CRYPTO_LIBRARY})
-  set(OPENSSL_SSL_LIBRARY ${BORINGSSL_BINARY_DIR}/ssl/libssl.a CACHE FILEPATH "" FORCE)
-  set(OPENSSL_SSL_LIBRARIES ${OPENSSL_SSL_LIBRARY})
-  set(OPENSSL_LIBRARIES ${OPENSSL_CRYPTO_LIBRARIES} ${OPENSSL_SSL_LIBRARIES})
-  set(OPENSSL_VERSION '1.1.0' CACHE STRING "" FORCE)
-
-  add_library(OpenSSL::Crypto STATIC IMPORTED)
-  set_target_properties(OpenSSL::Crypto PROPERTIES
-    IMPORTED_LOCATION "${OPENSSL_CRYPTO_LIBRARIES}"
-    INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
-  )
-  add_library(OpenSSL::SSL STATIC IMPORTED)
-  set_target_properties(OpenSSL::SSL PROPERTIES
-    IMPORTED_LOCATION "${OPENSSL_SSL_LIBRARIES}"
-    INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
-  )
-
-  # Now if we do find_package(OpenSSL) it should give us BoringSSL.
-  find_package(OpenSSL)
-
-  if(NOT ${OPENSSL_INCLUDE_DIR} MATCHES boringssl)
-    message(FATAL_ERROR "BoringSSL was not configured correctly.")
-  endif()
-
   # Build curl as a static library
   set(CURL_STATICLIB ON CACHE BOOL "")
   if (WIN32)
