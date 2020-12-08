@@ -157,8 +157,8 @@ readonly deps_hidden_firebase_app="
 */${subdir}${prefix}flatbuffers${suffix}.${ext}
 */zlib-build/${subdir}${prefix}z.${ext}
 */zlib-build/${subdir}zlibstatic*.${ext}
-*/vcpkg-libs/libcrypto.${ext}
-*/vcpkg-libs/libssl.${ext}
+*/boringssl-build/crypto/libcrypto.${ext}
+*/boringssl-build/ssl/libssl.${ext}
 */firestore-build/*/leveldb-build*/${prefix}*.${ext}
 */firestore-build/*/nanopb-build*/${prefix}*.${ext}
 "
@@ -296,3 +296,9 @@ for product in ${product_list[*]}; do
 		    ${libfile_src} ${deps[*]}
 done
 cd "${run_path}"
+
+# Copy Firestore core headers into the package's include directory.
+mkdir -p "${output_package_path}/include/firebase/firestore"
+cp -av \
+   "${built_sdk_path}/external/src/firestore/Firestore/core/include/firebase/firestore/"* \
+   "${output_package_path}/include/firebase/firestore"

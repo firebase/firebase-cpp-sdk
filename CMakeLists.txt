@@ -275,8 +275,6 @@ if(DESKTOP)
   if (WIN32)
     set(CMAKE_USE_WINSSL ON CACHE BOOL "")
   endif()
-  add_library(OpenSSL::Crypto ALIAS crypto)
-  add_library(OpenSSL::SSL ALIAS ssl)
 
   add_external_library(curl)
 
