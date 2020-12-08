@@ -199,7 +199,7 @@ readonly rename_string=f_b_
 
 readonly demangle_cmds=${tools_path}/c++filt,${tools_path}/demumble
 readonly binutils_objcopy=${tools_path}/objcopy
-if [[ -x ${tools_path}/nm-new ]] ;; then
+if [[ -x ${tools_path}/nm-new ]] ; then
     readonly binutils_nm=${tools_path}/nm-new
 else
     readonly binutils_nm=${tools_path}/nm
