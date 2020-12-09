@@ -120,11 +120,11 @@ function(build_external_dependencies)
     set(ENV_COMMAND env -i PATH=${firebase_command_line_path} HOME=${firebase_command_line_home} )
   endif()
 
-  set(CMAKE_SUBBUILD_OPTIONS)
   message("CMake generator: ${CMAKE_GENERATOR}")
   message("CMake generator platform: ${CMAKE_GENERATOR_PLATFORM}")
   message("CMake toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
 
+  set(CMAKE_SUBBUILD_OPTIONS)
   if (CMAKE_BUILD_TYPE)
     # If Release or Debug were specified, pass it along.
     set(CMAKE_SUBBUILD_OPTIONS
