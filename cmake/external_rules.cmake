@@ -120,10 +120,34 @@ function(build_external_dependencies)
     set(ENV_COMMAND env -i PATH=${firebase_command_line_path} HOME=${firebase_command_line_home} )
   endif()
 
-  set(CMAKE_SUBBUILD_OPTIONS
-      -DCMAKE_C_FLAGS="${CMAKE_C_FLAGS}"
-      -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS}"
-      -G "${CMAKE_GENERATOR}")
+  set(CMAKE_SUBBUILD_OPTIONS -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" -DOPENSSL_NO_ASM=1)
+  if(APPLE)
+    # Propagate MacOS build flags.
+    set(CMAKE_SUBBUILD_OPTIONS
+        ${CMAKE_SUBBUILD_OPTIONS}
+        -DCMAKE_OSX_ARCHITECTURES="${CMAKE_OSX_ARCHITECTURES}")
+  elseif(MSVC)
+    # Propagate MSVC build flags.
+    set(CMAKE_SUBBUILD_OPTIONS
+        ${CMAKE_SUBBUILD_OPTIONS}
+        -A "${CMAKE_GENERATOR_PLATFORM}")
+    if(MSVC_RUNTIME_LIBRARY_STATIC)
+      set(CMAKE_SUBBUILD_OPTIONS
+          ${CMAKE_SUBBUILD_OPTIONS}
+          -DMSVC_RUNTIME_LIBRARY_STATIC=1)
+    endif()
+  else()
+    # Propagate Linux build flags.
+    if(CMAKE_LIBRARY_PATH MATCHES "/usr/lib/i386-linux-gnu")
+      set(CMAKE_SUBBUILD_OPTIONS
+          ${CMAKE_SUBBUILD_OPTIONS}
+          -DCMAKE_SYSTEM_PROCESSOR=i386
+          -DCMAKE_C_FLAGS=-m32
+          -DCMAKE_CXX_FLAGS=-m32
+          -DCMAKE_LIBRARY_PATH=/usr/lib/i386-linux-gnu)
+    endif()
+  endif()
+  message("Sub-build options: ${CMAKE_SUBBUILD_OPTIONS}")
 
   if(NOT ANDROID AND NOT IOS)
     execute_process(
