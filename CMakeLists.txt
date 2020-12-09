@@ -283,6 +283,7 @@ if(DESKTOP)
   # Current Curl library defaults to requiring some dependencies we don't need, disable them.
   set(CMAKE_USE_LIBSSH2 OFF)
   set(HTTP_ONLY ON)
+  set(BUILD_TESTING OFF)
   add_external_library(curl)
 
   add_external_library(libuv)
