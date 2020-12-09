@@ -94,15 +94,22 @@ function(download_external_sources)
   )
 
   if(NOT ANDROID AND NOT IOS)
-    # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL unless the header
-    # file contains OPENSSL_VERSION_NUMBER.
+    # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL
+    # unless the header file contains OPENSSL_VERSION_NUMBER.
     file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
     if (NOT TMP_HEADER_CONTENTS MATCHES OPENSSL_VERSION_NUMBER)
       file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h
-      "#ifndef OPENSSL_VERSION_NUMBER\n# define OPENSSL_VERSION_NUMBER  0x10010107L\n#endif\n")
+      "\n#ifndef OPENSSL_VERSION_NUMBER\n# define OPENSSL_VERSION_NUMBER  0x10010107L\n#endif\n")
+    endif()
+    # Also add an #include <stdlib.h> since openssl has it and boringssl
+    # doesn't, and some of our code depends on the transitive dependency (this
+    # is a bug).
+    file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/rand.h TMP_HEADER2_CONTENTS)
+    if (NOT TMP_HEADER2_CONTENTS MATCHES "<stdlib.h>")
+      file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/rand.h
+      "\n#include <stdlib.h>\n")
     endif()
   endif()
-
 endfunction()
 
 # Builds a subset of external dependencies that need to be built before everything else.

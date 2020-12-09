@@ -115,6 +115,13 @@ else()
   set(DESKTOP OFF)
 endif()
 
+if(DESKTOP AND NOT MSVC AND NOT APPLE)
+  # Linux-specific option.
+  add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
+  set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0)
+  set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0)
+endif()
+
 # Set directories needed by the Firebase subprojects
 # Directory to store generated files.
 set(FIREBASE_GEN_FILE_DIR ${CMAKE_BINARY_DIR}/generated)
