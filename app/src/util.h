@@ -19,6 +19,7 @@
 
 #include <map>
 #include <string>
+#include <vector>
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -233,6 +234,10 @@ class StaticFutureData {
   static StaticFutureData* CreateNewData(const void* module_identifier,
                                          int num_functions);
 };
+
+// Platform independent function to split a string based on specified character
+// delimiter. Returns a vector of constituent parts.
+std::vector<std::string> SplitString(const std::string& s, char delimiter);
 
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace FIREBASE_NAMESPACE

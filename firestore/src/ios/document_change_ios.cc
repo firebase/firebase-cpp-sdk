@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "firestore/src/common/macros.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/document_snapshot_ios.h"
 #include "firestore/src/ios/hard_assert_ios.h"
@@ -28,7 +29,7 @@ Type DocumentChangeInternal::type() const {
     case api::DocumentChange::Type::Removed:
       return Type::kRemoved;
   }
-  UNREACHABLE();
+  FIRESTORE_UNREACHABLE();
 }
 
 DocumentSnapshot DocumentChangeInternal::document() const {

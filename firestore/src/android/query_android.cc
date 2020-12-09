@@ -14,6 +14,7 @@
 #include "firestore/src/android/promise_android.h"
 #include "firestore/src/android/source_android.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/array.h"
 #include "firestore/src/jni/array_list.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
@@ -33,6 +34,10 @@ constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/Query";
 Method<Object> kEqualTo(
     "whereEqualTo",
+    "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)"
+    "Lcom/google/firebase/firestore/Query;");
+Method<Object> kNotEqualTo(
+    "whereNotEqualTo",
     "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;)"
     "Lcom/google/firebase/firestore/Query;");
 Method<Object> kLessThan(
@@ -62,6 +67,10 @@ Method<Object> kArrayContainsAny(
 Method<Object> kIn("whereIn",
                    "(Lcom/google/firebase/firestore/FieldPath;Ljava/util/List;)"
                    "Lcom/google/firebase/firestore/Query;");
+Method<Object> kNotIn(
+    "whereNotIn",
+    "(Lcom/google/firebase/firestore/FieldPath;Ljava/util/List;)"
+    "Lcom/google/firebase/firestore/Query;");
 Method<Object> kOrderBy("orderBy",
                         "(Lcom/google/firebase/firestore/FieldPath;"
                         "Lcom/google/firebase/firestore/Query$Direction;)"
@@ -106,12 +115,12 @@ Method<Object> kAddSnapshotListener(
 }  // namespace
 
 void QueryInternal::Initialize(jni::Loader& loader) {
-  loader.LoadClass(kClassName, kEqualTo, kLessThan, kLessThanOrEqualTo,
-                   kGreaterThan, kGreaterThanOrEqualTo, kArrayContains,
-                   kArrayContainsAny, kIn, kOrderBy, kLimit, kLimitToLast,
-                   kStartAtSnapshot, kStartAt, kStartAfterSnapshot, kStartAfter,
-                   kEndBeforeSnapshot, kEndBefore, kEndAtSnapshot, kEndAt, kGet,
-                   kAddSnapshotListener);
+  loader.LoadClass(
+      kClassName, kEqualTo, kNotEqualTo, kLessThan, kLessThanOrEqualTo,
+      kGreaterThan, kGreaterThanOrEqualTo, kArrayContains, kArrayContainsAny,
+      kIn, kNotIn, kOrderBy, kLimit, kLimitToLast, kStartAtSnapshot, kStartAt,
+      kStartAfterSnapshot, kStartAfter, kEndBeforeSnapshot, kEndBefore,
+      kEndAtSnapshot, kEndAt, kGet, kAddSnapshotListener);
 }
 
 Firestore* QueryInternal::firestore() {
@@ -120,47 +129,57 @@ Firestore* QueryInternal::firestore() {
 }
 
 Query QueryInternal::WhereEqualTo(const FieldPath& field,
-                                  const FieldValue& value) {
+                                  const FieldValue& value) const {
   return Where(field, kEqualTo, value);
 }
 
+Query QueryInternal::WhereNotEqualTo(const FieldPath& field,
+                                     const FieldValue& value) const {
+  return Where(field, kNotEqualTo, value);
+}
+
 Query QueryInternal::WhereLessThan(const FieldPath& field,
-                                   const FieldValue& value) {
+                                   const FieldValue& value) const {
   return Where(field, kLessThan, value);
 }
 
 Query QueryInternal::WhereLessThanOrEqualTo(const FieldPath& field,
-                                            const FieldValue& value) {
+                                            const FieldValue& value) const {
   return Where(field, kLessThanOrEqualTo, value);
 }
 
 Query QueryInternal::WhereGreaterThan(const FieldPath& field,
-                                      const FieldValue& value) {
+                                      const FieldValue& value) const {
   return Where(field, kGreaterThan, value);
 }
 
 Query QueryInternal::WhereGreaterThanOrEqualTo(const FieldPath& field,
-                                               const FieldValue& value) {
+                                               const FieldValue& value) const {
   return Where(field, kGreaterThanOrEqualTo, value);
 }
 
 Query QueryInternal::WhereArrayContains(const FieldPath& field,
-                                        const FieldValue& value) {
+                                        const FieldValue& value) const {
   return Where(field, kArrayContains, value);
 }
 
 Query QueryInternal::WhereArrayContainsAny(
-    const FieldPath& field, const std::vector<FieldValue>& values) {
+    const FieldPath& field, const std::vector<FieldValue>& values) const {
   return Where(field, kArrayContainsAny, values);
 }
 
 Query QueryInternal::WhereIn(const FieldPath& field,
-                             const std::vector<FieldValue>& values) {
+                             const std::vector<FieldValue>& values) const {
   return Where(field, kIn, values);
 }
 
+Query QueryInternal::WhereNotIn(const FieldPath& field,
+                                const std::vector<FieldValue>& values) const {
+  return Where(field, kNotIn, values);
+}
+
 Query QueryInternal::OrderBy(const FieldPath& field,
-                             Query::Direction direction) {
+                             Query::Direction direction) const {
   Env env = GetEnv();
   Local<Object> java_field = FieldPathConverter::Create(env, field);
   Local<Object> java_direction = DirectionInternal::Create(env, direction);
@@ -169,7 +188,7 @@ Query QueryInternal::OrderBy(const FieldPath& field,
   return firestore_->NewQuery(env, query);
 }
 
-Query QueryInternal::Limit(int32_t limit) {
+Query QueryInternal::Limit(int32_t limit) const {
   Env env = GetEnv();
 
   // Although the backend only supports int32, the Android client SDK uses long
@@ -179,7 +198,7 @@ Query QueryInternal::Limit(int32_t limit) {
   return firestore_->NewQuery(env, query);
 }
 
-Query QueryInternal::LimitToLast(int32_t limit) {
+Query QueryInternal::LimitToLast(int32_t limit) const {
   Env env = GetEnv();
 
   // Although the backend only supports int32, the Android client SDK uses long
@@ -189,35 +208,35 @@ Query QueryInternal::LimitToLast(int32_t limit) {
   return firestore_->NewQuery(env, query);
 }
 
-Query QueryInternal::StartAt(const DocumentSnapshot& snapshot) {
+Query QueryInternal::StartAt(const DocumentSnapshot& snapshot) const {
   return WithBound(kStartAtSnapshot, snapshot);
 }
 
-Query QueryInternal::StartAt(const std::vector<FieldValue>& values) {
+Query QueryInternal::StartAt(const std::vector<FieldValue>& values) const {
   return WithBound(kStartAt, values);
 }
 
-Query QueryInternal::StartAfter(const DocumentSnapshot& snapshot) {
+Query QueryInternal::StartAfter(const DocumentSnapshot& snapshot) const {
   return WithBound(kStartAfterSnapshot, snapshot);
 }
 
-Query QueryInternal::StartAfter(const std::vector<FieldValue>& values) {
+Query QueryInternal::StartAfter(const std::vector<FieldValue>& values) const {
   return WithBound(kStartAfter, values);
 }
 
-Query QueryInternal::EndBefore(const DocumentSnapshot& snapshot) {
+Query QueryInternal::EndBefore(const DocumentSnapshot& snapshot) const {
   return WithBound(kEndBeforeSnapshot, snapshot);
 }
 
-Query QueryInternal::EndBefore(const std::vector<FieldValue>& values) {
+Query QueryInternal::EndBefore(const std::vector<FieldValue>& values) const {
   return WithBound(kEndBefore, values);
 }
 
-Query QueryInternal::EndAt(const DocumentSnapshot& snapshot) {
+Query QueryInternal::EndAt(const DocumentSnapshot& snapshot) const {
   return WithBound(kEndAtSnapshot, snapshot);
 }
 
-Query QueryInternal::EndAt(const std::vector<FieldValue>& values) {
+Query QueryInternal::EndAt(const std::vector<FieldValue>& values) const {
   return WithBound(kEndAt, values);
 }
 
@@ -229,22 +248,21 @@ Future<QuerySnapshot> QueryInternal::Get(Source source) {
 }
 
 Query QueryInternal::Where(const FieldPath& field, const Method<Object>& method,
-                           const FieldValue& value) {
+                           const FieldValue& value) const {
   Env env = GetEnv();
   Local<Object> java_field = FieldPathConverter::Create(env, field);
-  Local<Object> query =
-      env.Call(obj_, method, java_field, value.internal_->ToJava());
+  Local<Object> query = env.Call(obj_, method, java_field, ToJava(value));
   return firestore_->NewQuery(env, query);
 }
 
 Query QueryInternal::Where(const FieldPath& field, const Method<Object>& method,
-                           const std::vector<FieldValue>& values) {
+                           const std::vector<FieldValue>& values) const {
   Env env = GetEnv();
 
   size_t size = values.size();
   Local<ArrayList> java_values = ArrayList::Create(env, size);
   for (size_t i = 0; i < size; ++i) {
-    java_values.Add(env, values[i].internal_->ToJava());
+    java_values.Add(env, ToJava(values[i]));
   }
 
   Local<Object> java_field = FieldPathConverter::Create(env, field);
@@ -253,14 +271,14 @@ Query QueryInternal::Where(const FieldPath& field, const Method<Object>& method,
 }
 
 Query QueryInternal::WithBound(const Method<Object>& method,
-                               const DocumentSnapshot& snapshot) {
+                               const DocumentSnapshot& snapshot) const {
   Env env = GetEnv();
   Local<Object> query = env.Call(obj_, method, snapshot.internal_->ToJava());
   return firestore_->NewQuery(env, query);
 }
 
 Query QueryInternal::WithBound(const Method<Object>& method,
-                               const std::vector<FieldValue>& values) {
+                               const std::vector<FieldValue>& values) const {
   Env env = GetEnv();
   Local<Array<Object>> java_values = ConvertFieldValues(env, values);
   Local<Object> query = env.Call(obj_, method, java_values);
@@ -299,11 +317,11 @@ ListenerRegistration QueryInternal::AddSnapshotListener(
 }
 
 Local<Array<Object>> QueryInternal::ConvertFieldValues(
-    Env& env, const std::vector<FieldValue>& field_values) {
+    Env& env, const std::vector<FieldValue>& field_values) const {
   size_t size = field_values.size();
   Local<Array<Object>> result = env.NewArray(size, Object::GetClass());
   for (size_t i = 0; i < size; ++i) {
-    result.Set(env, i, field_values[i].internal_->ToJava());
+    result.Set(env, i, ToJava(field_values[i]));
   }
   return result;
 }

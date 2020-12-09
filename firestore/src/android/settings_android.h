@@ -10,8 +10,6 @@ namespace firestore {
 
 class SettingsInternal : public jni::Object {
  public:
-  using ApiType = Settings;
-
   using jni::Object::Object;
 
   static void Initialize(jni::Loader& loader);

@@ -1,8 +1,6 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_COLLECTION_REFERENCE_ANDROID_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_COLLECTION_REFERENCE_ANDROID_H_
 
-#include <jni.h>
-
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/query_android.h"
 #include "firestore/src/jni/jni_fwd.h"
@@ -13,7 +11,6 @@ namespace firestore {
 // This is the Android implementation of CollectionReference.
 class CollectionReferenceInternal : public QueryInternal {
  public:
-  using ApiType = CollectionReference;
   using QueryInternal::QueryInternal;
 
   // To make things simple, CollectionReferenceInternal uses the Future

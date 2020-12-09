@@ -7,10 +7,10 @@
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "app/src/util_android.h"
 #include "firestore/firestore_resources.h"
 #include "firestore/src/android/blob_android.h"
 #include "firestore/src/android/collection_reference_android.h"
+#include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/direction_android.h"
 #include "firestore/src/android/document_change_android.h"
 #include "firestore/src/android/document_change_type_android.h"
@@ -35,7 +35,6 @@
 #include "firestore/src/android/source_android.h"
 #include "firestore/src/android/timestamp_android.h"
 #include "firestore/src/android/transaction_android.h"
-#include "firestore/src/android/util_android.h"
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/android/write_batch_android.h"
 #include "firestore/src/include/firebase/firestore.h"
@@ -62,6 +61,7 @@ using jni::Constructor;
 using jni::Env;
 using jni::Loader;
 using jni::Local;
+using jni::Long;
 using jni::Method;
 using jni::Object;
 using jni::StaticMethod;
@@ -132,6 +132,55 @@ void InitializeUserCallbackExecutor(Loader& loader) {
                    kExecutorShutdown);
 }
 
+/**
+ * A map of Java Firestore instance to C++ Firestore instance.
+ */
+class JavaFirestoreMap {
+ public:
+  FirestoreInternal* Get(Env& env, const Object& java_firestore) {
+    MutexLock lock(mutex_);
+    auto& map = GetMapLocked(env);
+    Local<Long> boxed_ptr = map.Get(env, java_firestore).CastTo<Long>();
+    if (!boxed_ptr) {
+      return nullptr;
+    }
+    return reinterpret_cast<FirestoreInternal*>(boxed_ptr.LongValue(env));
+  }
+
+  void Put(Env& env, const Object& java_firestore,
+           FirestoreInternal* internal) {
+    static_assert(sizeof(uintptr_t) <= sizeof(int64_t),
+                  "pointers must fit in Java long");
+
+    MutexLock lock(mutex_);
+    auto& map = GetMapLocked(env);
+    auto boxed_ptr = Long::Create(env, reinterpret_cast<int64_t>(internal));
+    map.Put(env, java_firestore, boxed_ptr);
+  }
+
+  void Remove(Env& env, const Object& java_firestore) {
+    MutexLock lock(mutex_);
+    auto& map = GetMapLocked(env);
+    map.Remove(env, java_firestore);
+  }
+
+ private:
+  // Ensures that the backing map is initialized.
+  // Prerequisite: `mutex_` must be locked before calling this method.
+  jni::HashMap& GetMapLocked(Env& env) {
+    if (!firestores_) {
+      firestores_ = jni::HashMap::Create(env);
+    }
+    return firestores_;
+  }
+
+  Mutex mutex_;
+  jni::Global<jni::HashMap> firestores_;
+};
+
+// Governed by init_mutex_below as well.
+JavaFirestoreMap* java_firestores_ = nullptr;
+
 }  // namespace
 
 const char kApiIdentifier[] = "Firestore";
@@ -150,6 +199,8 @@ FirestoreInternal::FirestoreInternal(App* app) {
   Local<Object> java_firestore = env.Call(kGetInstance, platform_app);
   FIREBASE_ASSERT(java_firestore.get() != nullptr);
   obj_ = java_firestore;
+
+  java_firestores_->Put(env, java_firestore, this);
 
   // Mainly for enabling TimestampsInSnapshotsEnabled. The rest comes from the
   // default in native SDK. The C++ implementation relies on that for reading
@@ -171,16 +222,14 @@ bool FirestoreInternal::Initialize(App* app) {
   if (initialize_count_ == 0) {
     jni::Initialize(app->java_vm());
 
+    FIREBASE_DEV_ASSERT(java_firestores_ == nullptr);
+    java_firestores_ = new JavaFirestoreMap();
+
     Loader loader(app);
     loader.AddEmbeddedFile(::firebase_firestore::firestore_resources_filename,
                            ::firebase_firestore::firestore_resources_data,
                            ::firebase_firestore::firestore_resources_size);
     loader.CacheEmbeddedFiles();
-
-    if (!FieldValueInternal::Initialize(app)) {
-      ReleaseClasses(app);
-      return false;
-    }
 
     jni::Object::Initialize(loader);
 
@@ -208,6 +257,7 @@ bool FirestoreInternal::Initialize(App* app) {
     EventListenerInternal::Initialize(loader);
     ExceptionInternal::Initialize(loader);
     FieldPathConverter::Initialize(loader);
+    FieldValueInternal::Initialize(loader);
     GeoPointInternal::Initialize(loader);
     ListenerRegistrationInternal::Initialize(loader);
     MetadataChangesInternal::Initialize(loader);
@@ -237,9 +287,6 @@ bool FirestoreInternal::Initialize(App* app) {
 void FirestoreInternal::ReleaseClasses(App* app) {
   delete loader_;
   loader_ = nullptr;
-
-  // Call Terminate on each Firestore internal class.
-  FieldValueInternal::Terminate(app);
 }
 
 /* static */
@@ -249,6 +296,8 @@ void FirestoreInternal::Terminate(App* app) {
   initialize_count_--;
   if (initialize_count_ == 0) {
     ReleaseClasses(app);
+    delete java_firestores_;
+    java_firestores_ = nullptr;
   }
 }
 
@@ -260,21 +309,14 @@ FirestoreInternal::~FirestoreInternal() {
   // If initialization failed, there is nothing to clean up.
   if (app_ == nullptr) return;
 
-  {
-    MutexLock lock(listener_registration_mutex_);
-    // TODO(varconst): investigate why not all listener registrations are
-    // cleared.
-    // FIREBASE_ASSERT(listener_registrations_.empty());
-    for (auto* reg : listener_registrations_) {
-      delete reg;
-    }
-    listener_registrations_.clear();
-  }
+  ClearListeners();
 
   Env env = GetEnv();
   ShutdownUserCallbackExecutor(env);
 
   future_manager_.ReleaseFutureApi(this);
+
+  java_firestores_->Remove(env, obj_);
 
   Terminate(app_);
   app_ = nullptr;
@@ -321,7 +363,7 @@ WriteBatch FirestoreInternal::batch() const {
   Local<Object> result = env.Call(obj_, kBatch);
 
   if (!env.ok()) return {};
-  return WriteBatch(new WriteBatchInternal(mutable_this(), result.get()));
+  return WriteBatch(new WriteBatchInternal(mutable_this(), result));
 }
 
 Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update,
@@ -424,6 +466,15 @@ void FirestoreInternal::UnregisterListenerRegistration(
   }
 }
 
+void FirestoreInternal::ClearListeners() {
+  MutexLock lock(listener_registration_mutex_);
+
+  for (auto* reg : listener_registrations_) {
+    delete reg;
+  }
+  listener_registrations_.clear();
+}
+
 jni::Env FirestoreInternal::GetEnv() {
   jni::Env env;
   env.SetUnhandledExceptionHandler(GlobalUnhandledExceptionHandler, nullptr);
@@ -432,39 +483,27 @@ jni::Env FirestoreInternal::GetEnv() {
 
 CollectionReference FirestoreInternal::NewCollectionReference(
     jni::Env& env, const jni::Object& reference) const {
-  if (!env.ok() || !reference) return {};
-
-  return CollectionReference(
-      new CollectionReferenceInternal(mutable_this(), reference.get()));
+  return MakePublic<CollectionReference>(env, mutable_this(), reference);
 }
 
 DocumentReference FirestoreInternal::NewDocumentReference(
     jni::Env& env, const jni::Object& reference) const {
-  if (!env.ok() || !reference) return {};
-
-  return DocumentReference(
-      new DocumentReferenceInternal(mutable_this(), reference.get()));
+  return MakePublic<DocumentReference>(env, mutable_this(), reference);
 }
 
 DocumentSnapshot FirestoreInternal::NewDocumentSnapshot(
     jni::Env& env, const jni::Object& snapshot) const {
-  if (!env.ok() || !snapshot) return {};
-
-  return DocumentSnapshot(
-      new DocumentSnapshotInternal(mutable_this(), snapshot.get()));
+  return MakePublic<DocumentSnapshot>(env, mutable_this(), snapshot);
 }
 
 Query FirestoreInternal::NewQuery(jni::Env& env,
                                   const jni::Object& query) const {
-  if (!env.ok() || !query) return {};
-  return Query(new QueryInternal(mutable_this(), query.get()));
+  return MakePublic<Query>(env, mutable_this(), query);
 }
 
 QuerySnapshot FirestoreInternal::NewQuerySnapshot(
     jni::Env& env, const jni::Object& snapshot) const {
-  if (!env.ok() || !snapshot) return {};
-  return QuerySnapshot(
-      new QuerySnapshotInternal(mutable_this(), snapshot.get()));
+  return MakePublic<QuerySnapshot>(env, mutable_this(), snapshot);
 }
 
 /* static */
@@ -475,6 +514,11 @@ void Firestore::set_log_level(LogLevel log_level) {
 
   Env env = FirestoreInternal::GetEnv();
   env.Call(kSetLoggingEnabled, logging_enabled);
+}
+
+FirestoreInternal* FirestoreInternal::RecoverFirestore(
+    Env& env, const Object& java_firestore) {
+  return java_firestores_->Get(env, java_firestore);
 }
 
 void FirestoreInternal::SetClientLanguage(const std::string& language_token) {

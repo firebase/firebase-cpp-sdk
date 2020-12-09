@@ -12,8 +12,6 @@ namespace firestore {
 // cache/uncache.
 class FieldPathConverter {
  public:
-  using ApiType = FieldPath;
-
   static void Initialize(jni::Loader& loader);
 
   /** Creates a Java FieldPath from  a C++ FieldPath. */

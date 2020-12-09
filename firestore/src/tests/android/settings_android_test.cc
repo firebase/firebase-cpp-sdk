@@ -21,12 +21,15 @@ TEST_F(SettingsTest, ConverterBoolsAllTrue) {
   settings.set_host("foo");
   settings.set_ssl_enabled(true);
   settings.set_persistence_enabled(true);
+  int64_t five_mb = 5 * 1024 * 1024;
+  settings.set_cache_size_bytes(five_mb);
 
   Settings result = SettingsInternal::Create(env, settings).ToPublic(env);
 
-  EXPECT_EQ("foo", result.host());
+  EXPECT_EQ(result.host(), "foo");
   EXPECT_TRUE(result.is_ssl_enabled());
   EXPECT_TRUE(result.is_persistence_enabled());
+  EXPECT_EQ(result.cache_size_bytes(), five_mb);
 }
 
 TEST_F(SettingsTest, ConverterBoolsAllFalse) {

@@ -22,6 +22,7 @@ class Map : public Object {
   size_t Size(Env& env) const;
   Local<Object> Get(Env& env, const Object& key);
   Local<Object> Put(Env& env, const Object& key, const Object& value);
+  Local<Object> Remove(Env& env, const Object& key);
 
   Local<Set> KeySet(Env& env);
 };

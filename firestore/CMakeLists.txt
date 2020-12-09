@@ -30,6 +30,7 @@ set(common_SRCS
     src/common/firestore.cc
     src/common/futures.h
     src/common/listener_registration.cc
+    src/common/macros.h
     src/common/main_for_testing_build.cc
     src/common/query.cc
     src/common/query_snapshot.cc

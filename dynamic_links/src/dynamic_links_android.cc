@@ -677,12 +677,10 @@ static jobject PopulateLinkBuilder(JNIEnv* jni_env,
     *error_out = "Link is missing.";
     return nullptr;
   }
-  if ((!components.dynamic_link_domain || !*components.dynamic_link_domain) &&
-      (!components.domain_uri_prefix || !*components.domain_uri_prefix)) {
+  if (!components.domain_uri_prefix || !*components.domain_uri_prefix) {
     *error_out =
         "DynamicLinkComponents.domain_uri_prefix is required and cannot be "
-        "empty (unless you set DynamicLinkComponents.dynamic_link_domain, "
-        "which is deprecated).";
+        "empty.";
     return nullptr;
   }
 
@@ -700,13 +698,8 @@ static jobject PopulateLinkBuilder(JNIEnv* jni_env,
     return nullptr;
   }
 
-  static const char kHttpsPrefix[] = "https://";
-  std::string domain =
-      components.domain_uri_prefix != nullptr
-          ? components.domain_uri_prefix
-          : std::string(kHttpsPrefix) + components.dynamic_link_domain;
   link_builder = SetBuilderString(
-      jni_env, link_builder, domain.c_str(),
+      jni_env, link_builder, components.domain_uri_prefix,
       dlink_builder::GetMethodId(dlink_builder::kSetDomainUriPrefix));
   *error_out = util::GetAndClearExceptionMessage(jni_env);
   if (error_out->size()) {

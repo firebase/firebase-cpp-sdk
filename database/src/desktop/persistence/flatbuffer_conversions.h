@@ -64,6 +64,14 @@ flatbuffers::Offset<persistence::PersistedUserWriteRecord>
 FlatbufferFromUserWriteRecord(flatbuffers::FlatBufferBuilder* builder,
                               const UserWriteRecord& user_write_record);
 
+// Copied from App's variant_util, because of problems with Blastdoor.
+// Convert from a Flexbuffer reference to a Variant.
+Variant FlexbufferToVariant(const flexbuffers::Reference& ref);
+// Convert from a Flexbuffer map to a Variant.
+Variant FlexbufferMapToVariant(const flexbuffers::Map& map);
+// Convert from a Flexbuffer vector to a Variant.
+Variant FlexbufferVectorToVariant(const flexbuffers::Vector& vector);
+
 }  // namespace internal
 }  // namespace database
 }  // namespace firebase

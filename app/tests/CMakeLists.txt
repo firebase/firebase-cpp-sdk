@@ -161,6 +161,13 @@ firebase_cpp_cc_test(firebase_app_cpp11_thread_test
     gtest
 )
 
+firebase_cpp_cc_test(firebase_app_heartbeat_info_desktop_test
+  SOURCES
+    heartbeat_info_desktop_test.cc
+  DEPENDS
+    firebase_app
+)
+
 firebase_cpp_cc_test(firebase_app_pthread_thread_test
   SOURCES
     thread_test.cc
@@ -210,12 +217,18 @@ firebase_cpp_cc_test(firebase_app_reference_count_test
     firebase_app
 )
 
+firebase_cpp_cc_test(firebase_app_util_test
+  SOURCES
+    util_test.cc
+  DEPENDS
+    firebase_app
+)
+
 firebase_cpp_cc_test(firebase_app_uuid_test
   SOURCES
     uuid_test.cc
   DEPENDS
     firebase_app
-
 )
 
 firebase_cpp_cc_test(firebase_app_variant_test

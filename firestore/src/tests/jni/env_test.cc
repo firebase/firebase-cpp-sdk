@@ -2,7 +2,7 @@
 
 #include "app/memory/unique_ptr.h"
 #include "app/meta/move.h"
-#include "firestore/src/android/util_android.h"
+#include "firestore/src/android/exception_android.h"
 #include "firestore/src/jni/array.h"
 #include "firestore/src/tests/firestore_integration_test.h"
 #include "gtest/gtest.h"
