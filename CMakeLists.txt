@@ -475,6 +475,11 @@ add_subdirectory(ios_pod)
 # of the tests actually get built.
 if(FIREBASE_CPP_BUILD_TESTS)
   add_subdirectory(testing)
+  cmake_policy(SET CMP0079 NEW)
+  if (FIREBASE_CPP_BUILD_TESTS)
+    # Ensure that unit tests link the SSL libraries in the correct order.
+    target_link_libraries(firebase_testing ${OPENSSL_LIBRARIES})
+  endif()
 endif()
 
 if(NOT FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
