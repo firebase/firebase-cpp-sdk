@@ -21,8 +21,6 @@ on:
 
 env:
   # Packaging prerequisites
-  # Binutils 2.35.1 released Sep 19, 2020
-  binutilsVer: "2.35.1"
   # Demumble 1.1.0 released Nov 13, 2018
   demumbleVer: "1.1.0"
   # Use SHA256 for hashing files.
@@ -67,8 +65,12 @@ jobs:
         include:
         - os: ubuntu-latest
           tools_platform: linux
+          # Binutils 2.35.1 released Sep 19, 2020
+          binutils_version: "2.35.1"
         - os: macos-latest
           tools_platform: darwin
+          # On Mac, use an older Binutils to avoid corrupted libraries.
+          binutils_version: "2.28.1"
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
@@ -81,13 +83,13 @@ jobs:
           # Github runners.
           for retry in {1..10} error; do
           if [[ $retry == "error" ]]; then exit 5; fi
-            curl -L https://ftpmirror.gnu.org/binutils/binutils-${{ env.binutilsVer }}.tar.xz --output binutils.tar.xz && break
+            curl -L https://ftpmirror.gnu.org/binutils/binutils-${{ matrix.binutils_version }}.tar.xz --output binutils.tar.xz && break
             sleep 300
           done
           set -e
 
           tar -xf binutils.tar.xz
-          mv ./binutils-${{ env.binutilsVer }} ./binutils-src
+          mv ./binutils-${{ matrix.binutils_version }} ./binutils-src
           cd binutils-src
           ./configure --enable-targets=all --prefix=/tmp/binutils
           make

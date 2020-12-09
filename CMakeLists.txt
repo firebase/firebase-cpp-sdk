@@ -250,7 +250,11 @@ if(DESKTOP)
 
   add_external_library(uWebSockets)
 
-  set(websockets_additional_defines "")
+  # Binutils on Mac doesn't support thread-local storage (required by
+  # websockets), but because we only use websockets via the scheduler,
+  # we don't need it.
+  
+  set(websockets_additional_defines "-D__thread=")
 
   # uWebSockets does not come with a CMakeLists file, so define the target.
   # Note that since it depends on OpenSSL, only do so if that was found.

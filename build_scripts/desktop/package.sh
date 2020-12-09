@@ -199,7 +199,11 @@ readonly rename_string=f_b_
 
 readonly demangle_cmds=${tools_path}/c++filt,${tools_path}/demumble
 readonly binutils_objcopy=${tools_path}/objcopy
-readonly binutils_nm=${tools_path}/nm
+if [[ -x ${tools_path}/nm-new ]] ; then
+    readonly binutils_nm=${tools_path}/nm-new
+else
+    readonly binutils_nm=${tools_path}/nm
+fi
 readonly binutils_ar=${tools_path}/ar
 
 cache_file=/tmp/merge_libraries_cache.$$
