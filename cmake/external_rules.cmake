@@ -120,7 +120,7 @@ function(build_external_dependencies)
     set(ENV_COMMAND env -i PATH=${firebase_command_line_path} HOME=${firebase_command_line_home} )
   endif()
 
-  set(CMAKE_SUBBUILD_OPTIONS -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" -DOPENSSL_NO_ASM=TRUE)
+  set(CMAKE_SUBBUILD_OPTIONS -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
   message("CMake generator: ${CMAKE_GENERATOR}")
   message("CMake generator platform: ${CMAKE_GENERATOR_PLATFORM}")
 
@@ -176,7 +176,7 @@ function(build_external_dependencies)
 
   if(NOT ANDROID AND NOT IOS)
     execute_process(
-      COMMAND ${ENV_COMMAND} cmake ${CMAKE_SUBBUILD_OPTIONS} ../boringssl/src
+      COMMAND ${ENV_COMMAND} cmake -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUBBUILD_OPTIONS} ../boringssl/src
       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
       RESULT_VARIABLE boringssl_configure_status
     )
