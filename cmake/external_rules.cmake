@@ -130,7 +130,9 @@ function(build_external_dependencies)
     # Propagate MSVC build flags.
     set(CMAKE_SUBBUILD_OPTIONS
         ${CMAKE_SUBBUILD_OPTIONS}
-        -A "${CMAKE_GENERATOR_PLATFORM}")
+        -A "${CMAKE_GENERATOR_PLATFORM}"
+        -DCMAKE_C_FLAGS="-wd4065"
+        -DCMAKE_CXX_FLAGS="-wd4065")
     if(MSVC_RUNTIME_LIBRARY_STATIC)
       set(CMAKE_SUBBUILD_OPTIONS
           ${CMAKE_SUBBUILD_OPTIONS}
