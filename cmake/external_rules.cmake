@@ -92,12 +92,15 @@ function(download_external_sources)
     OUTPUT_FILE ${PROJECT_BINARY_DIR}/external/output_cmake_build.txt
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external
   )
-  
-  # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL unless the header file contains OPENSSL_VERSION_NUMBER.
-  file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
-  if (NOT TMP_HEADER_CONTENTS MATCHES OPENSSL_VERSION_NUMBER)
-    file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h
-    "#ifndef OPENSSL_VERSION_NUMBER\n# define OPENSSL_VERSION_NUMBER  0x10010107L\n#endif\n")
+
+  if(DESKTOP)
+    # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL unless the header
+    # file contains OPENSSL_VERSION_NUMBER.
+    file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
+    if (NOT TMP_HEADER_CONTENTS MATCHES OPENSSL_VERSION_NUMBER)
+      file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h
+      "#ifndef OPENSSL_VERSION_NUMBER\n# define OPENSSL_VERSION_NUMBER  0x10010107L\n#endif\n")
+    endif()
   endif()
 
 endfunction()
@@ -122,28 +125,30 @@ function(build_external_dependencies)
       -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS}"
       -G "${CMAKE_GENERATOR}")
 
-  execute_process(
-    COMMAND ${ENV_COMMAND} cmake ${CMAKE_SUBBUILD_OPTIONS} ../boringssl/src
-    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
-    RESULT_VARIABLE boringssl_configure_status
-  )
-  if (boringssl_configure_status AND NOT boringssl_configure_status EQUAL 0)
-    message(FATAL_ERROR "BoringSSL configure failed: ${boringssl_configure_status}")
-  endif()
-
-  # Run downloads in parallel if we know how
-  if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
-    set(cmake_build_args -j)
-  endif()
-
-  execute_process(
-    COMMAND ${ENV_COMMAND} cmake --build . -- ${cmake_build_args}
-    WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
-    RESULT_VARIABLE boringssl_build_status
-  )
-  if (boringssl_build_status AND NOT boringssl_build_status EQUAL 0)
-    message(FATAL_ERROR "BoringSSL build failed: ${boringssl_build_status}")
-  endif()
+  if(DESKTOP)
+    execute_process(
+      COMMAND ${ENV_COMMAND} cmake ${CMAKE_SUBBUILD_OPTIONS} ../boringssl/src
+      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
+      RESULT_VARIABLE boringssl_configure_status
+    )
+    if (boringssl_configure_status AND NOT boringssl_configure_status EQUAL 0)
+      message(FATAL_ERROR "BoringSSL configure failed: ${boringssl_configure_status}")
+    endif()
+  
+    # Run builds in parallel if we know how
+    if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
+      set(cmake_build_args -j)
+    endif()
+  
+    execute_process(
+      COMMAND ${ENV_COMMAND} cmake --build . -- ${cmake_build_args}
+      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
+      RESULT_VARIABLE boringssl_build_status
+    )
+    if (boringssl_build_status AND NOT boringssl_build_status EQUAL 0)
+      message(FATAL_ERROR "BoringSSL build failed: ${boringssl_build_status}")
+    endif()
+   endif()
 endfunction()
 
 # Populates directory variables for the given name to the location that name
