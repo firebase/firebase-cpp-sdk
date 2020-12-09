@@ -123,9 +123,11 @@ function(build_external_dependencies)
   set(CMAKE_SUBBUILD_OPTIONS -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" -DOPENSSL_NO_ASM=1)
   if(APPLE)
     # Propagate MacOS build flags.
-    set(CMAKE_SUBBUILD_OPTIONS
-        ${CMAKE_SUBBUILD_OPTIONS}
-        -DCMAKE_OSX_ARCHITECTURES="${CMAKE_OSX_ARCHITECTURES}")
+    if(CMAKE_OSX_ARCHITECTURES)
+      set(CMAKE_SUBBUILD_OPTIONS
+          ${CMAKE_SUBBUILD_OPTIONS}
+          -DCMAKE_OSX_ARCHITECTURES="${CMAKE_OSX_ARCHITECTURES}")
+    endif()
   elseif(MSVC)
     # Propagate MSVC build flags.
     set(CMAKE_SUBBUILD_OPTIONS
