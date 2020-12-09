@@ -277,7 +277,7 @@ if(DESKTOP)
   # Build curl as a static library
   set(CURL_STATICLIB ON CACHE BOOL "")
   if (WIN32)
-    set(CMAKE_USE_WINSSL ON CACHE BOOL "")
+    set(CMAKE_USE_SCHANNEL ON CACHE BOOL "")
   endif()
 
   # Current Curl library defaults to requiring some dependencies we don't need, disable them.
