@@ -125,6 +125,7 @@ function(build_external_dependencies)
   message("CMake toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
 
   set(CMAKE_SUBBUILD_OPTIONS)
+
   if (CMAKE_BUILD_TYPE)
     # If Release or Debug were specified, pass it along.
     set(CMAKE_SUBBUILD_OPTIONS
@@ -144,15 +145,16 @@ function(build_external_dependencies)
     if(MSVC_RUNTIME_LIBRARY_STATIC)
       if (CMAKE_BUILD_TYPE STREQUALS "Debug")
         set(SUBBUILD_MSVC_RUNTIME_FLAG "/MTd")
-      else()  // build type
+      else()
         set(SUBBUILD_MSVC_RUNTIME_FLAG "/MT")
-      endif()  // build type
-    else()  // runtime library
+      endif()
+    else()
       if (CMAKE_BUILD_TYPE STREQUALS "Debug")
         set(SUBBUILD_MSVC_RUNTIME_FLAG "/MDd")
-      else()  // build type
+      else()  # build type
         set(SUBBUILD_MSVC_RUNTIME_FLAG "/MD")
-      endif()  // build type
+      endif()
+    endif()
     set(CMAKE_SUBBUILD_OPTIONS
         ${CMAKE_SUBBUILD_OPTIONS}
         -DCMAKE_C_FLAGS=${SUBBUILD_MSVC_RUNTIME_FLAG}
