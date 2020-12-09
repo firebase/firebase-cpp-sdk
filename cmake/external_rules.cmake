@@ -124,7 +124,7 @@ function(build_external_dependencies)
   message("CMake generator platform: ${CMAKE_GENERATOR_PLATFORM}")
   message("CMake toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
 
-  set(CMAKE_SUBBUILD_OPTIONS)
+  set(CMAKE_SUBBUILD_OPTIONS -G "${CMAKE_GENERATOR}")
 
   if (CMAKE_BUILD_TYPE)
     # If Release or Debug were specified, pass it along.
@@ -167,19 +167,14 @@ function(build_external_dependencies)
     else()
       set(SUBBUILD_USE_CXX11_ABI 1)
     endif()
-    # TODO: Set the above variable
-    if(CMAKE_LIBRARY_PATH MATCHES "/usr/lib/i386-linux-gnu")
-      set(CMAKE_SUBBUILD_OPTIONS
-          ${CMAKE_SUBBUILD_OPTIONS}
-          -DCMAKE_SYSTEM_PROCESSOR=i386
-          -DCMAKE_C_FLAGS="-m32 -D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}"
-          -DCMAKE_CXX_FLAGS="-m32 -D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}"
-          -DCMAKE_LIBRARY_PATH=/usr/lib/i386-linux-gnu)
-    else()    
-      set(CMAKE_SUBBUILD_OPTIONS
-          ${CMAKE_SUBBUILD_OPTIONS}
+    set(CMAKE_SUBBUILD_OPTIONS
+        ${CMAKE_SUBBUILD_OPTIONS}
           -DCMAKE_C_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}"
           -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}")
+    if(CMAKE_TOOLCHAIN_FILE)
+      set(CMAKE_SUBBUILD_OPTIONS
+          ${CMAKE_SUBBUILD_OPTIONS}
+          -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
     endif()
   endif()
   message("Sub-build options: ${CMAKE_SUBBUILD_OPTIONS}")
