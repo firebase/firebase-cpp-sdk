@@ -213,7 +213,7 @@ def main():
     return
 
   # CMake configure
-  cmake_configure(args.build_dir, args.arch, args.msvc_runtime_library, args.legacy_abi,
+  cmake_configure(args.build_dir, args.arch, args.msvc_runtime_library, args.linux_abi,
                   args.build_tests, args.config, args.target_format)
 
   # Small workaround before build, turn off -Werror=sign-compare for a specific Firestore core lib.
