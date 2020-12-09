@@ -164,7 +164,7 @@ function(build_external_dependencies)
     # Propagate Linux build flags.
     if("${CMAKE_CXX_FLAGS}" MATCHES "-D_GLIBCXX_USE_CXX11_ABI=0")
       set(SUBBUILD_USE_CXX11_ABI 0)
-    else
+    else()
       set(SUBBUILD_USE_CXX11_ABI 1)
     endif()
     # TODO: Set the above variable
