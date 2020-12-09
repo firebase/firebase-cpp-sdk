@@ -192,6 +192,7 @@ if(DESKTOP)
   endif()
 
   # Use BoringSSL instead of OpenSSL.
+  set(OPENSSL_NO_ASM TRUE)  # Force cross-platform.
   add_external_library(boringssl)
   set(BORINGSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl/src CACHE STRING "" FORCE)
   set(BORINGSSL_BINARY_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl-build CACHE STRING "" FORCE)

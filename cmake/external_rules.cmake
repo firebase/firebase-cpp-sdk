@@ -120,7 +120,7 @@ function(build_external_dependencies)
     set(ENV_COMMAND env -i PATH=${firebase_command_line_path} HOME=${firebase_command_line_home} )
   endif()
 
-  set(CMAKE_SUBBUILD_OPTIONS -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" -DOPENSSL_NO_ASM=1)
+  set(CMAKE_SUBBUILD_OPTIONS -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" -DOPENSSL_NO_ASM=TRUE)
   if(APPLE)
     # Propagate MacOS build flags.
     if(CMAKE_OSX_ARCHITECTURES)
