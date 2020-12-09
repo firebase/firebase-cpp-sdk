@@ -120,10 +120,18 @@ function(build_external_dependencies)
     set(ENV_COMMAND env -i PATH=${firebase_command_line_path} HOME=${firebase_command_line_home} )
   endif()
 
-  set(CMAKE_SUBBUILD_OPTIONS -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
+  set(CMAKE_SUBBUILD_OPTIONS)
   message("CMake generator: ${CMAKE_GENERATOR}")
   message("CMake generator platform: ${CMAKE_GENERATOR_PLATFORM}")
+  message("CMake toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
 
+  if (CMAKE_BUILD_TYPE)
+    # If Release or Debug were specified, pass it along.
+    set(CMAKE_SUBBUILD_OPTIONS
+        ${CMAKE_SUBBUILD_OPTIONS}
+        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
+  endif()
+  
   if(APPLE)
     # Propagate MacOS build flags.
     if(CMAKE_OSX_ARCHITECTURES)
@@ -133,43 +141,43 @@ function(build_external_dependencies)
     endif()
   elseif(MSVC)
     # Propagate MSVC build flags.
-    set(CMAKE_SUBBUILD_OPTIONS
-        ${CMAKE_SUBBUILD_OPTIONS}
-        -A "${CMAKE_GENERATOR_PLATFORM}")
     if(MSVC_RUNTIME_LIBRARY_STATIC)
       if (CMAKE_BUILD_TYPE STREQUALS "Debug")
-        set(CMAKE_SUBBUILD_OPTIONS
-            ${CMAKE_SUBBUILD_OPTIONS}
-            -DCMAKE_C_FLAGS=/MTd
-            -DCMAKE_CXX_FLAGS=/MTd)
+        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MTd")
       else()  // build type
-        set(CMAKE_SUBBUILD_OPTIONS
-          ${CMAKE_SUBBUILD_OPTIONS}
-          -DCMAKE_C_FLAGS=/MT
-          -DCMAKE_CXX_FLAGS=/MT)
+        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MT")
       endif()  // build type
     else()  // runtime library
       if (CMAKE_BUILD_TYPE STREQUALS "Debug")
-        set(CMAKE_SUBBUILD_OPTIONS
-            ${CMAKE_SUBBUILD_OPTIONS}
-            -DCMAKE_C_FLAGS=/MDd
-            -DCMAKE_CXX_FLAGS=/MDd)
+        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MDd")
       else()  // build type
-        set(CMAKE_SUBBUILD_OPTIONS
-            ${CMAKE_SUBBUILD_OPTIONS}
-            -DCMAKE_C_FLAGS=/MD
-            -DCMAKE_CXX_FLAGS=/MD)
+        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MD")
       endif()  // build type
-    endif()  // runtime library
+    set(CMAKE_SUBBUILD_OPTIONS
+        ${CMAKE_SUBBUILD_OPTIONS}
+        -DCMAKE_C_FLAGS=${SUBBUILD_MSVC_RUNTIME_FLAG}
+        -DCMAKE_CXX_FLAGS=${SUBBUILD_MSVC_RUNTIME_FLAG}
+        -A "${CMAKE_GENERATOR_PLATFORM}")
   else()
     # Propagate Linux build flags.
+    if("${CMAKE_CXX_FLAGS}" MATCHES "-D_GLIBCXX_USE_CXX11_ABI=0")
+      set(SUBBUILD_USE_CXX11_ABI 0)
+    else
+      set(SUBBUILD_USE_CXX11_ABI 1)
+    endif()
+    # TODO: Set the above variable
     if(CMAKE_LIBRARY_PATH MATCHES "/usr/lib/i386-linux-gnu")
       set(CMAKE_SUBBUILD_OPTIONS
           ${CMAKE_SUBBUILD_OPTIONS}
           -DCMAKE_SYSTEM_PROCESSOR=i386
-          -DCMAKE_C_FLAGS=-m32
-          -DCMAKE_CXX_FLAGS=-m32
+          -DCMAKE_C_FLAGS="-m32 -D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}"
+          -DCMAKE_CXX_FLAGS="-m32 -D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}"
           -DCMAKE_LIBRARY_PATH=/usr/lib/i386-linux-gnu)
+    else()    
+      set(CMAKE_SUBBUILD_OPTIONS
+          ${CMAKE_SUBBUILD_OPTIONS}
+          -DCMAKE_C_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}"
+          -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}")
     endif()
   endif()
   message("Sub-build options: ${CMAKE_SUBBUILD_OPTIONS}")
