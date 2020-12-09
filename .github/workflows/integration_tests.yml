@@ -136,11 +136,11 @@ jobs:
       - name: Upload Desktop Artifacts to GCS
         if: matrix.target_platform == 'Desktop' && !cancelled()
         run: |
-          python scripts/gha/gcs_uploader.py --testapp_dir ${{ github.workspace }}/testapps --key_file ${{ github.workspace }}/scripts/gha-encrypted/gcs_key_file.json
+          python scripts/gha/gcs_uploader.py --testapp_dir testapps --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Run mobile integration tests
         if: matrix.target_platform != 'Desktop' && !cancelled()
         run: |
-          python scripts/gha/test_lab.py --android_model ${{ github.event.inputs.android_device }} --android_api ${{ github.event.inputs.android_api }} --ios_model ${{ github.event.inputs.ios_device }} --ios_version ${{ github.event.inputs.ios_version }} --testapp_dir ${{ github.workspace }}/testapps --code_platform cpp --key_file ${{ github.workspace }}/scripts/gha-encrypted/gcs_key_file.json
+          python scripts/gha/test_lab.py --android_model ${{ github.event.inputs.android_device }} --android_api ${{ github.event.inputs.android_api }} --ios_model ${{ github.event.inputs.ios_device }} --ios_version ${{ github.event.inputs.ios_version }} --testapp_dir testapps --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Summarize build and test results
         if: ${{ !cancelled() }}
         shell: bash
