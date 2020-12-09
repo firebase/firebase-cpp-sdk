@@ -137,6 +137,9 @@ for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
 	cxx11)
 	    linux_abi=cxx11
         ;;
+	c++11)
+	    linux_abi=cxx11
+        ;;
 	legacy)
 	    linux_abi=legacy
         ;;
