@@ -130,7 +130,7 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, cleanup=True
     # could be several GBs and cause github runners to run out of space
     utils.clean_vcpkg_temp_data()
 
-def cmake_configure(build_dir, arch, msvc_runtime_library='static',
+def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='legacy',
                     build_tests=True, config=None, target_format=None):
   """ CMake configure.
 
@@ -141,6 +141,7 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static',
    build_dir (str): Output build directory.
    arch (str): Platform Architecture (example: 'x64').
    msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
+   linux_abi (str): Linux ABI (eg: 'legacy', 'c++11').
    build_tests (bool): Build cpp unit tests.
    config (str): Release/Debug config.
           If its not specified, cmake's default is used (most likely Debug).
@@ -184,6 +185,9 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static',
     if msvc_runtime_library == "static":
       cmd.append('-DMSVC_RUNTIME_LIBRARY_STATIC=ON')
 
+  if utils.is_linux_os() and linux_abi == 'c++11':
+      cmd.append('-DFIREBASE_LINUX_USE_CXX11_ABI=TRUE')
+
   if (target_format):
     cmd.append('-DFIREBASE_XCODE_TARGET_FORMAT={0}'.format(target_format))
   utils.run_command(cmd)
@@ -209,7 +213,7 @@ def main():
     return
 
   # CMake configure
-  cmake_configure(args.build_dir, args.arch, args.msvc_runtime_library,
+  cmake_configure(args.build_dir, args.arch, args.msvc_runtime_library, args.legacy_abi,
                   args.build_tests, args.config, args.target_format)
 
   # Small workaround before build, turn off -Werror=sign-compare for a specific Firestore core lib.
@@ -243,6 +247,8 @@ def parse_cmdline_args():
   parser.add_argument('-a', '--arch', default='x64', help='Platform architecture (x64, x86)')
   parser.add_argument('--msvc_runtime_library', default='static',
                       help='Runtime library for MSVC (static(/MT) or dynamic(/MD)')
+  parser.add_argument('--linux_abi', default='legacy',
+                      help='C++ ABI for Linux (legacy or c++11)')
   parser.add_argument('--build_dir', default='build', help='Output build directory')
   parser.add_argument('--build_tests', action='store_true', help='Build unit tests too')
   parser.add_argument('--vcpkg_step_only', action='store_true', help='Just install cpp packages using vcpkg and exit.')

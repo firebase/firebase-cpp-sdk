@@ -49,10 +49,17 @@ elseif(MSVC)
   set(FIREBASE_SDK_LIBDIR
       ${FIREBASE_CPP_SDK_DIR}/libs/windows/${MSVC_VS_VERSION}/${MSVC_RUNTIME_MODE}/${MSVC_CPU}/${MSVC_CONFIG})
 else()
-  # The Firebase libraries are not built with glibcxx11, so disable the ABI.
-  set(DISABLE_CXX11 TRUE)
+  # Check whether we are building with CXX11 ABI.
+  get_directory_property(CURR_DIRECTORY_DEFS, COMPILE_DEFINITIONS)
+  if ("${CURR_DIRECTORY_DEFS}" MATCHES "_GLIBCXX_USE_CXX11_ABI=0")
+    set(DISABLE_CXX11 TRUE)
+    set(LINUX_ABI legacy)
+  else()
+    set(DISABLE_CXX11 FALSE)
+    set(LINUX_ABI c++11)
+  endif()  
   set(LINUX_CPU x86_64)
-  set(FIREBASE_SDK_LIBDIR ${FIREBASE_CPP_SDK_DIR}/libs/linux/${LINUX_CPU})
+  set(FIREBASE_SDK_LIBDIR ${FIREBASE_CPP_SDK_DIR}/libs/linux/${LINUX_CPU}/${LINUX_ABI})
 endif()
 
 # Defines a Firebase target, linking it with the correct prebuilt library.
