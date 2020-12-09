@@ -249,11 +249,7 @@ if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
   )
 
   add_subdirectory(${FIRESTORE_SOURCE_DIR} ${FIRESTORE_BINARY_DIR})
-  cmake_policy(SET CMP0079 NEW)
-  if (FIREBASE_CPP_BUILD_TESTS)
-    # Ensure that Firestore's tests link the SSL libraries in the correct order.
-    target_link_libraries(firestore_testutil ${OPENSSL_LIBRARIES})
-  endif()
+
   copy_subdirectory_definition(${FIRESTORE_SOURCE_DIR} NANOPB_SOURCE_DIR)
 endif()
 
@@ -475,11 +471,6 @@ add_subdirectory(ios_pod)
 # of the tests actually get built.
 if(FIREBASE_CPP_BUILD_TESTS)
   add_subdirectory(testing)
-  cmake_policy(SET CMP0079 NEW)
-  if (FIREBASE_CPP_BUILD_TESTS)
-    # Ensure that unit tests link the SSL libraries in the correct order.
-    target_link_libraries(firebase_testing PRIVATE ${OPENSSL_LIBRARIES})
-  endif()
 endif()
 
 if(NOT FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
