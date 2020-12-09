@@ -214,7 +214,7 @@ if(DESKTOP)
     set(OPENSSL_CRYPTO_LIBRARY ${BORINGSSL_BINARY_DIR}/crypto/libcrypto.a CACHE FILEPATH "" FORCE)
   endif()
   set(OPENSSL_CRYPTO_LIBRARIES ${OPENSSL_CRYPTO_LIBRARY})
-  set(OPENSSL_SSL_LIBRARIES ${OPENSSL_SSL_LIBRARY})
+  set(OPENSSL_SSL_LIBRARIES ${OPENSSL_SSL_LIBRARY} ${OPENSSL_CRYPTO_LIBRARY})
   set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARIES})
   set(OPENSSL_VERSION '1.1.0' CACHE STRING "" FORCE)
 
@@ -249,7 +249,11 @@ if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
   )
 
   add_subdirectory(${FIRESTORE_SOURCE_DIR} ${FIRESTORE_BINARY_DIR})
-
+  cmake_policy(SET CMP0079 NEW)
+  if (FIREBASE_CPP_BUILD_TESTS)
+    # Ensure that Firestore's tests link the SSL libraries in the correct order.
+    target_link_libraries(firestore_testutil ${OPENSSL_LIBRARIES})
+  endif()
   copy_subdirectory_definition(${FIRESTORE_SOURCE_DIR} NANOPB_SOURCE_DIR)
 endif()
 
