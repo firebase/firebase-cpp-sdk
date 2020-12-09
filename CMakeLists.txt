@@ -219,13 +219,13 @@ if(DESKTOP)
   set(OPENSSL_VERSION '1.1.0' CACHE STRING "" FORCE)
 
   add_library(OpenSSL::SSL STATIC IMPORTED)
+  add_library(OpenSSL::Crypto STATIC IMPORTED)
   set_target_properties(OpenSSL::SSL PROPERTIES
     IMPORTED_LOCATION "${OPENSSL_SSL_LIBRARY}"
     INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
-    IMPORTED_LINK_INTERFACE_LIBRARIES OpenSSL::Crypto
+    INTERFACE_LINK_LIBRARIES OpenSSL::Crypto
   )
 
-  add_library(OpenSSL::Crypto STATIC IMPORTED)
   set_target_properties(OpenSSL::Crypto PROPERTIES
     IMPORTED_LOCATION "${OPENSSL_CRYPTO_LIBRARY}"
     INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
@@ -478,7 +478,7 @@ if(FIREBASE_CPP_BUILD_TESTS)
   cmake_policy(SET CMP0079 NEW)
   if (FIREBASE_CPP_BUILD_TESTS)
     # Ensure that unit tests link the SSL libraries in the correct order.
-    target_link_libraries(firebase_testing ${OPENSSL_LIBRARIES})
+    target_link_libraries(firebase_testing PRIVATE ${OPENSSL_LIBRARIES})
   endif()
 endif()
 
