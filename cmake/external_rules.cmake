@@ -169,7 +169,7 @@ function(build_external_dependencies)
         -A "${CMAKE_GENERATOR_PLATFORM}")
   else()
     # Propagate Linux build flags.
-    get_directory_property(CURR_DIRECTORY_DEFS, COMPILE_DEFINITIONS)
+    get_directory_property(CURR_DIRECTORY_DEFS COMPILE_DEFINITIONS)
     if("${CURR_DIRECTORY_DEFS}" MATCHES "_GLIBCXX_USE_CXX11_ABI=0" OR
        "${CMAKE_CXX_FLAGS}" MATCHES "-D_GLIBCXX_USE_CXX11_ABI=0")
       set(SUBBUILD_USE_CXX11_ABI 0)
