@@ -93,7 +93,7 @@ function(download_external_sources)
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external
   )
 
-  if(DESKTOP)
+  if(NOT ANDROID AND NOT IOS)
     # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL unless the header
     # file contains OPENSSL_VERSION_NUMBER.
     file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
@@ -125,7 +125,7 @@ function(build_external_dependencies)
       -DCMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS}"
       -G "${CMAKE_GENERATOR}")
 
-  if(DESKTOP)
+  if(NOT ANDROID AND NOT IOS)
     execute_process(
       COMMAND ${ENV_COMMAND} cmake ${CMAKE_SUBBUILD_OPTIONS} ../boringssl/src
       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
@@ -148,7 +148,7 @@ function(build_external_dependencies)
     if (boringssl_build_status AND NOT boringssl_build_status EQUAL 0)
       message(FATAL_ERROR "BoringSSL build failed: ${boringssl_build_status}")
     endif()
-   endif()
+  endif()
 endfunction()
 
 # Populates directory variables for the given name to the location that name
