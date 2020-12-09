@@ -121,6 +121,9 @@ function(build_external_dependencies)
   endif()
 
   set(CMAKE_SUBBUILD_OPTIONS -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}" -DOPENSSL_NO_ASM=TRUE)
+  message("CMake generator: ${CMAKE_GENERATOR}")
+  message("CMake generator platform: ${CMAKE_GENERATOR_PLATFORM}")
+
   if(APPLE)
     # Propagate MacOS build flags.
     if(CMAKE_OSX_ARCHITECTURES)
@@ -134,10 +137,30 @@ function(build_external_dependencies)
         ${CMAKE_SUBBUILD_OPTIONS}
         -A "${CMAKE_GENERATOR_PLATFORM}")
     if(MSVC_RUNTIME_LIBRARY_STATIC)
-      set(CMAKE_SUBBUILD_OPTIONS
+      if (CMAKE_BUILD_TYPE STREQUALS "Debug")
+        set(CMAKE_SUBBUILD_OPTIONS
+            ${CMAKE_SUBBUILD_OPTIONS}
+            -DCMAKE_C_FLAGS=/MTd
+            -DCMAKE_CXX_FLAGS=/MTd)
+      else()  // build type
+        set(CMAKE_SUBBUILD_OPTIONS
           ${CMAKE_SUBBUILD_OPTIONS}
-          -DMSVC_RUNTIME_LIBRARY_STATIC=1)
-    endif()
+          -DCMAKE_C_FLAGS=/MT
+          -DCMAKE_CXX_FLAGS=/MT)
+      endif()  // build type
+    else()  // runtime library
+      if (CMAKE_BUILD_TYPE STREQUALS "Debug")
+        set(CMAKE_SUBBUILD_OPTIONS
+            ${CMAKE_SUBBUILD_OPTIONS}
+            -DCMAKE_C_FLAGS=/MDd
+            -DCMAKE_CXX_FLAGS=/MDd)
+      else()  // build type
+        set(CMAKE_SUBBUILD_OPTIONS
+            ${CMAKE_SUBBUILD_OPTIONS}
+            -DCMAKE_C_FLAGS=/MD
+            -DCMAKE_CXX_FLAGS=/MD)
+      endif()  // build type
+    endif()  // runtime library
   else()
     # Propagate Linux build flags.
     if(CMAKE_LIBRARY_PATH MATCHES "/usr/lib/i386-linux-gnu")
