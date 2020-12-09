@@ -334,7 +334,7 @@ firebase_cpp_cc_test(
     ${OPENSSL_INCLUDE_DIR}
     ${UWEBSOCKETS_SOURCE_DIR}/..
   DEPENDS
-    ${OPENSSL_CRYPTO_DIR}
+    ${OPENSSL_LIBRARIES}
     libuWS
     firebase_app_for_testing
     firebase_database
