@@ -169,7 +169,7 @@ function(build_external_dependencies)
     endif()
   
     execute_process(
-      COMMAND ${ENV_COMMAND} cmake --build . -- ${cmake_build_args}
+      COMMAND ${ENV_COMMAND} cmake --build . --target ssl crypto -- ${cmake_build_args}
       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
       RESULT_VARIABLE boringssl_build_status
     )
