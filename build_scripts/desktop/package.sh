@@ -281,13 +281,31 @@ for product in ${product_list[*]}; do
 	    deps_hidden+="${found}"
 	done
     done
+    if [[ "${product}" != "app" ]]; then
+      # For any library other than app, also rename some symbols that were already renamed in app
+      # that are used by other libraries (e.g. zlib is used in Firestore).
+      for dep in ${deps_hidden_firebase_app}; do
+        for found in $(find . -path ${dep}); do
+          if [[ ! -z ${deps_hidden} ]]; then deps_hidden+=","; fi
+          deps_hidden+="${found}"
+        done
+      done
+    fi
     echo -n "${libfile_out}"
     if [[ ! -z ${deps_basenames[*]} ]]; then
-	echo -n " <- ${deps_basenames[*]}"
+	echo -n " <- ${deps[*]}"
     fi
     echo
     outfile="${full_output_path}/${libfile_out}"
     rm -f "${outfile}"
+    if [[ ${verbose} -eq 1 ]]; then
+      echo "${python_cmd}" "${merge_libraries_script}" \
+		    ${merge_libraries_params[*]} \
+		    --output="${outfile}" \
+		    --scan_libs="${allfiles}" \
+		    --hide_c_symbols="${deps_hidden}" \
+		    ${libfile_src} ${deps[*]}
+    fi
     "${python_cmd}" "${merge_libraries_script}" \
 		    ${merge_libraries_params[*]} \
 		    --output="${outfile}" \

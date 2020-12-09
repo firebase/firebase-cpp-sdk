@@ -279,8 +279,9 @@ if(DESKTOP)
     set(CMAKE_USE_WINSSL ON CACHE BOOL "")
   endif()
 
-  # Current Curl library defaults to requiring libssh2, disable this.
+  # Current Curl library defaults to requiring some dependencies we don't need, disable them.
   set(CMAKE_USE_LIBSSH2 OFF)
+  set(HTTP_ONLY ON)
   add_external_library(curl)
 
   add_external_library(libuv)
