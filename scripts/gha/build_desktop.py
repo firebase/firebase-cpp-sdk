@@ -62,21 +62,24 @@ def install_x86_support_libraries():
     packages = ('libglib2.0-dev:i386', 'libsecret-1-dev:i386')
 
     # First check if these packages exist on the machine already
-    import apt
-    cache = apt.Cache()
-    package_installed = []
     for package in packages:
-      if package in cache.keys():
-        package_installed.append(cache[package].is_installed)
-      else:
-        package_installed.append(False)
+      devnull = open(os.devnull, "w")
+      retval = subprocess.call(["dpkg", "-s", package], stdout=devnull, stderr=subprocess.STDOUT)
+      devnull.close()
+      # if package is not installed, dpkg returns a value other than 0 and in this case,
+      # we get out of this loop and install those packages.
+      if retval != 0:
+        break
+    else:
+      # If the for loop iterated without breaking, all required packages are already installed.
+      # Nothing to do. Return from the function.
+      return
 
-    if not all(package_installed):
-      utils.run_command(['apt', 'install', 'gcc-multilib', 'g++-multilib'], as_root=True)
-      utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True)
-      utils.run_command(['apt', 'update'], as_root=True)
-      for package in packages:
-        utils.run_command(['apt', 'install', package], as_root=True)
+    utils.run_command(['apt', 'install', 'gcc-multilib', 'g++-multilib'], as_root=True)
+    utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True)
+    utils.run_command(['apt', 'update'], as_root=True)
+    for package in packages:
+      utils.run_command(['apt', 'install', package], as_root=True)
 
 
 def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
