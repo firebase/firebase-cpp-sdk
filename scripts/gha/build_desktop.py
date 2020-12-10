@@ -59,27 +59,18 @@ def append_line_to_file(path, line):
 def install_x86_support_libraries():
   """Install support libraries needed to build x86 on x86_64 hosts."""
   if utils.is_linux_os():
-    packages = ('libglib2.0-dev:i386', 'libsecret-1-dev:i386')
+    packages = ('gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386', 'libsecret-1-dev:i386')
 
     # First check if these packages exist on the machine already
-    for package in packages:
-      devnull = open(os.devnull, "w")
-      retval = subprocess.call(["dpkg", "-s", package], stdout=devnull, stderr=subprocess.STDOUT)
-      devnull.close()
-      # if package is not installed, dpkg returns a value other than 0 and in this case,
-      # we get out of this loop and install those packages.
-      if retval != 0:
-        break
-    else:
-      # If the for loop iterated without breaking, all required packages are already installed.
-      # Nothing to do. Return from the function.
-      return
-
-    utils.run_command(['apt', 'install', 'gcc-multilib', 'g++-multilib'], as_root=True)
-    utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True)
-    utils.run_command(['apt', 'update'], as_root=True)
-    for package in packages:
-      utils.run_command(['apt', 'install', package], as_root=True)
+    devnull = open(os.devnull, "w")
+    process = subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT)
+    devnull.close()
+    if process.returncode != 0:
+      # This implies not all of the required packages are already installed on user's machine
+      # Install them.
+      utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True)
+      utils.run_command(['apt', 'update'], as_root=True)
+      utils.run_command(['apt', 'install'] + packages, as_root=True)
 
 
 def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
