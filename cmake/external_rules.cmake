@@ -167,7 +167,7 @@ function(build_external_dependencies)
         set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded)
       endif()
-    else()  // dynamic (DLL) runtime
+    else()  # dynamic (DLL) runtime
       set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
           -DCMAKE_C_FLAGS_RELEASE="/MD"
           -DCMAKE_CXX_FLAGS_RELEASE="/MD"
