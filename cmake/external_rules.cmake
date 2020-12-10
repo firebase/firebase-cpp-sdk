@@ -153,7 +153,7 @@ function(build_external_dependencies)
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
       set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS}
           --config Debug)
-    else
+    else()
       set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS}
           --config Release)
     endif()
