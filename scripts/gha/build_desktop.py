@@ -73,7 +73,7 @@ def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
     - build vcpkg executable
     - install packages via vcpkg.
   Args:
-    arch (str): Architecture (eg: 'x86', 'x64').
+    arch (str): Architecture (eg: 'x86', 'x64', 'arm64').
     msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
   """
 
@@ -106,7 +106,7 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, cleanup=True
   installation twice, a second time after attempting to auto fix known issues.
 
   Args:
-    arch (str): Architecture (eg: 'x86', 'x64').
+    arch (str): Architecture (eg: 'x86', 'x64', 'arm64').
     msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
     cleanup (bool): Clean up intermediate files used during installation.
 
@@ -184,6 +184,12 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static',
     if msvc_runtime_library == "static":
       cmd.append('-DMSVC_RUNTIME_LIBRARY_STATIC=ON')
 
+  if utils.is_mac_os():
+    if (arch == 'arm64'):
+      cmd.append('-DCMAKE_OSX_ARCHITECTURES=arm64')
+    else:
+      cmd.append('-DCMAKE_OSX_ARCHITECTURES=x86_64')
+
   if (target_format):
     cmd.append('-DFIREBASE_XCODE_TARGET_FORMAT={0}'.format(target_format))
   utils.run_command(cmd)
@@ -220,8 +226,9 @@ def main():
 
   # CMake build
   # cmake --build build -j 8
-  cmd = ['cmake', '--build', args.build_dir, '-j', str(os.cpu_count()),
-         '--config', args.config]
+  cmd = (['cmake', '--build', args.build_dir] +
+         (['-j', str(os.cpu_count())] if not args.disable_parallel else []) +
+         [ '--config', args.config])
 
   if args.target:
     # Example:  cmake --build build -j 8 --target firebase_app firebase_auth
@@ -240,11 +247,12 @@ def main():
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Install Prerequisites for building cpp sdk')
-  parser.add_argument('-a', '--arch', default='x64', help='Platform architecture (x64, x86)')
+  parser.add_argument('-a', '--arch', default='x64', help='Platform architecture (x64, x86, arm64)')
   parser.add_argument('--msvc_runtime_library', default='static',
                       help='Runtime library for MSVC (static(/MT) or dynamic(/MD)')
   parser.add_argument('--build_dir', default='build', help='Output build directory')
   parser.add_argument('--build_tests', action='store_true', help='Build unit tests too')
+  parser.add_argument('--disable_parallel', action='store_true', help='Disable parallel builds')
   parser.add_argument('--vcpkg_step_only', action='store_true', help='Just install cpp packages using vcpkg and exit.')
   parser.add_argument('--config', default='Release', help='Release/Debug config')
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')

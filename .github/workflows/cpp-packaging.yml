@@ -25,9 +25,9 @@ env:
   demumbleVer: "1.1.0"
   # Use SHA256 for hashing files.
   hashCommand: "sha256sum"
-  # Xcode version 11.7 is the version we build the SDK with.
+  # Xcode version 12.2 is the version we build the SDK with.
   # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
-  xcodeVersion: "11.7"
+  xcodeVersion: "12.2"
 
 jobs:
   log_inputs:
@@ -228,7 +228,7 @@ jobs:
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
         build_type: ["Release", "Debug"]
-        architecture: ["x64", "x86"]
+        architecture: ["x64", "x86", "arm64"]
         msvc_runtime: ["static", "dynamic"]
         python_version: [3.7]
         include:
@@ -261,6 +261,10 @@ jobs:
           msvc_runtime: "dynamic"
         - os: ubuntu-latest
           build_type: "Debug"
+        - os: ubuntu-latest
+          architecture: "arm64"
+        - os: windows-latest
+          architecture: "arm64"
 
     steps:
       - name: setup Xcode version (macos)

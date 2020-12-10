@@ -115,6 +115,10 @@ else()
   set(DESKTOP OFF)
 endif()
 
+if(NOT "${CMAKE_OSX_ARCHITECTURES}" MATCHES "${CMAKE_HOST_SYSTEM_PROCESSOR}")
+  set(CMAKE_CROSSCOMPILING ON)
+endif()
+
 if(DESKTOP AND NOT MSVC AND NOT APPLE)
   # Linux-specific option.
   add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
@@ -262,7 +266,7 @@ set(FLATBUFFERS_FLATHASH OFF CACHE BOOL "")
 set(LEVELDB_BUILD_TESTS OFF CACHE BOOL "")
 
 # Disable building flatc if cross compiling
-if(IOS OR ANDROID)
+if(ANDROID OR IOS OR CMAKE_CROSSCOMPILING)
   set(FLATBUFFERS_BUILD_FLATC OFF CACHE BOOL "")
 endif()
 
@@ -391,7 +395,7 @@ if(DESKTOP)
   endif()
 endif()
 
-if(DESKTOP)
+if(DESKTOP AND NOT CMAKE_CROSSCOMPILING)
   # Desktop platforms do not need to declare this dependency, as they will build
   # flatc correctly when needed.
   set(FIREBASE_FLATBUFFERS_DEPENDENCIES "")

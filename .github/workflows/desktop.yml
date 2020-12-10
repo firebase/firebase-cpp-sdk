@@ -6,9 +6,9 @@ on:
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
-  # Xcode version 11.7 is the version we build the SDK with.
+  # Xcode version 12.2 is the version we build the SDK with.
   # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
-  xcodeVersion: "11.7"
+  xcodeVersion: "12.2"
 
 jobs:
   build:
@@ -19,7 +19,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest]
         build_type: ["Release", "Debug"]
-        architecture: ["x64", "x86"]
+        architecture: ["x64", "x86", "arm64"]
         python_version: [3.7]
         include:
         # Add these Windows jobs.
@@ -46,6 +46,10 @@ jobs:
         exclude:
         - os: macos-latest
           architecture: "x86"
+        - os: ubuntu-latest
+          architecture: "arm64"
+        - os: windows-latest
+          architecture: "arm64"
 
     steps:
       - name: setup Xcode version (macos)
