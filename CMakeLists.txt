@@ -358,7 +358,8 @@ if(DESKTOP)
     )
     target_link_libraries(libuWS
       PRIVATE
-        ${OPENSSL_LIBRARIES}
+        OpenSSL::SSL
+        OpenSSL::Crypto
         uv_a
         zlibstatic
     )

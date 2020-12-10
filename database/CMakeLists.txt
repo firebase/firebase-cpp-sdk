@@ -184,6 +184,7 @@ else()
       firebase_rest_lib
       leveldb
       libuWS
+      OpenSSL::SSL
       OpenSSL::Crypto)
 
   set(additional_DEFINES
