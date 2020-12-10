@@ -149,22 +149,22 @@ fi
 
 # Library dependencies to merge. Each should be a whitespace-delimited list of path globs.
 readonly deps_firebase_app="
-*/${prefix}firebase_instance_id*${suffix}.${ext}
-*/${prefix}firebase_rest_lib${suffix}.${ext}
+*/${prefix}firebase_instance_id*.${ext}
+*/${prefix}firebase_rest_lib.${ext}
 "
 readonly deps_hidden_firebase_app="
-*/${subdir}${prefix}curl${suffix}.${ext}
-*/${subdir}${prefix}flatbuffers${suffix}.${ext}
+*/curl-build/lib/${subdir}libcurl${suffix}.${ext}
+*/${subdir}${prefix}flatbuffers.${ext}
 */zlib-build/${subdir}${prefix}z.${ext}
 */zlib-build/${subdir}zlibstatic*.${ext}
-*/boringssl-build/crypto/libcrypto.${ext}
-*/boringssl-build/ssl/libssl.${ext}
+*/boringssl-build/crypto/${subdir}${prefix}crypto.${ext}
+*/boringssl-build/ssl/${subdir}${prefix}libssl.${ext}
 */firestore-build/*/leveldb-build*/${prefix}*.${ext}
 */firestore-build/*/nanopb-build*/${prefix}*.${ext}
 "
 readonly deps_hidden_firebase_database="
-*/${subdir}${prefix}uv_a${suffix}.${ext}
-*/${subdir}${prefix}libuWS${suffix}.${ext}
+*/${subdir}${prefix}uv_a.${ext}
+*/${subdir}${prefix}libuWS.${ext}
 "
 readonly deps_hidden_firebase_firestore="
 */firestore-build/Firestore/*/${prefix}*.${ext}
