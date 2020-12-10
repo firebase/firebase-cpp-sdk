@@ -262,12 +262,6 @@ if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
   copy_subdirectory_definition(${FIRESTORE_SOURCE_DIR} NANOPB_SOURCE_DIR)
 endif()
 
-  if(NOT "${OPENSSL_INCLUDE_DIR}" MATCHES boringssl OR
-     NOT "${OPENSSL_SSL_LIBRARY}" MATCHES boringssl OR
-     NOT "${OPENSSL_CRYPTO_LIBRARY}" MATCHES boringssl)
-    message(FATAL_ERROR "BoringSSL config changed post-Firestore.\nINCLUDE_DIR=${OPENSSL_INCLUDE_DIR}\nSSL_LIBRARY=${OPENSSL_SSL_LIBRARY}\nCRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}")
-  endif()
-
 # Disable the Flatbuffer build tests, install and flathash
 set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "")
 set(FLATBUFFERS_INSTALL OFF CACHE BOOL "")
@@ -308,33 +302,17 @@ if(DESKTOP)
     set(CMAKE_USE_SCHANNEL ON CACHE BOOL "")
   endif()
 
-  if(NOT "${OPENSSL_INCLUDE_DIR}" MATCHES boringssl OR
-     NOT "${OPENSSL_SSL_LIBRARY}" MATCHES boringssl OR
-     NOT "${OPENSSL_CRYPTO_LIBRARY}" MATCHES boringssl)
-    message(FATAL_ERROR "BoringSSL config changed pre-curl.\nINCLUDE_DIR=${OPENSSL_INCLUDE_DIR}\nSSL_LIBRARY=${OPENSSL_SSL_LIBRARY}\nCRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}")
-  endif()
   # Current Curl library defaults to requiring some dependencies we don't need, disable them.
   set(CMAKE_USE_LIBSSH2 OFF)
   set(HTTP_ONLY ON)
   set(BUILD_TESTING OFF)
   add_external_library(curl)
 
-  if(NOT "${OPENSSL_INCLUDE_DIR}" MATCHES boringssl OR
-     NOT "${OPENSSL_SSL_LIBRARY}" MATCHES boringssl OR
-     NOT "${OPENSSL_CRYPTO_LIBRARY}" MATCHES boringssl)
-    message(FATAL_ERROR "BoringSSL config changed post-curl.\nINCLUDE_DIR=${OPENSSL_INCLUDE_DIR}\nSSL_LIBRARY=${OPENSSL_SSL_LIBRARY}\nCRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}")
-  endif()
   add_external_library(libuv)
 
   add_external_library(zlib)
 
   add_external_library(uWebSockets)
-
-  if(NOT "${OPENSSL_INCLUDE_DIR}" MATCHES boringssl OR
-     NOT "${OPENSSL_SSL_LIBRARY}" MATCHES boringssl OR
-     NOT "${OPENSSL_CRYPTO_LIBRARY}" MATCHES boringssl)
-    message(FATAL_ERROR "BoringSSL config changed post-uWS.\nINCLUDE_DIR=${OPENSSL_INCLUDE_DIR}\nSSL_LIBRARY=${OPENSSL_SSL_LIBRARY}\nCRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}")
-  endif()
 
   # Binutils on Mac doesn't support thread-local storage (required by
   # websockets), but because we only use websockets via the scheduler, we don't
