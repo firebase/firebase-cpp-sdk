@@ -160,6 +160,7 @@ function(build_external_dependencies)
             -DCMAKE_C_FLAGS_DEBUG="/MTd"
             -DCMAKE_CXX_FLAGS_RELEASE="/MT"
             -DCMAKE_CXX_FLAGS_DEBUG="/MTd"
+            -MSVC_RUNTIME_LIBRARY=MultiThreadedDebug
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebug)
       else()
         set(SUBBUILD_MSVC_RUNTIME_FLAG "/MDd")
@@ -169,6 +170,7 @@ function(build_external_dependencies)
             -DCMAKE_C_FLAGS_DEBUG="/MDd"
             -DCMAKE_CXX_FLAGS_RELEASE="/MD"
             -DCMAKE_CXX_FLAGS_DEBUG="/MDd"
+            -DMSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL)
       endif()
     else()
@@ -181,6 +183,7 @@ function(build_external_dependencies)
             -DCMAKE_C_FLAGS_DEBUG="/MTd"
             -DCMAKE_CXX_FLAGS_RELEASE="/MT"
             -DCMAKE_CXX_FLAGS_DEBUG="/MTd"
+            -DMSVC_RUNTIME_LIBRARY=MultiThreaded
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded)
       else()
         set(SUBBUILD_MSVC_RUNTIME_FLAG "/MD")
@@ -190,6 +193,7 @@ function(build_external_dependencies)
             -DCMAKE_C_FLAGS_DEBUG="/MDd"
             -DCMAKE_CXX_FLAGS_RELEASE="/MD"
             -DCMAKE_CXX_FLAGS_DEBUG="/MDd"
+            -DMSVC_RUNTIME_LIBRARY=MultiThreaded
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL)
       endif()
     endif()
