@@ -310,6 +310,7 @@ jobs:
       - name: Build desktop SDK
         shell: bash
         run: |
+          export VERBOSE=1
           python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --build_dir out-${{ env.SDK_NAME }} ${{ matrix.additional_build_flags }}
           # Make a list of all the source files, for debugging purposes.
           cd out-${{ env.SDK_NAME }}
