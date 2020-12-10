@@ -195,13 +195,9 @@ if(DESKTOP)
   endif()
 
   # Use BoringSSL instead of OpenSSL.
-  set(OPENSSL_NO_ASM TRUE)  # Force cross-platform.
-  #add_external_library(boringssl) This build is performed by build_external_dependencies below.
   set(BORINGSSL_ROOT_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl/src CACHE STRING "" FORCE)
   set(BORINGSSL_BINARY_DIR ${CMAKE_BINARY_DIR}/external/src/boringssl-build CACHE STRING "" FORCE)
-  set(OPENSSL_FOUND TRUE CACHE BOOL "" FORCE)
   set(OPENSSL_ROOT_DIR ${BORINGSSL_ROOT_DIR} CACHE STRING "" FORCE)
-  set(OPENSSL_INCLUDE_DIR ${BORINGSSL_ROOT_DIR}/include CACHE PATH "" FORCE)
 
   # The call below to build_external_dependencies will make sure that these
   # libraries exist before the libraries are imported via add_library.
@@ -212,10 +208,6 @@ if(DESKTOP)
     set(OPENSSL_SSL_LIBRARY ${BORINGSSL_BINARY_DIR}/ssl/libssl.a CACHE FILEPATH "" FORCE)
     set(OPENSSL_CRYPTO_LIBRARY ${BORINGSSL_BINARY_DIR}/crypto/libcrypto.a CACHE FILEPATH "" FORCE)
   endif()
-  set(OPENSSL_CRYPTO_LIBRARIES ${OPENSSL_CRYPTO_LIBRARY})
-  set(OPENSSL_SSL_LIBRARIES ${OPENSSL_SSL_LIBRARY})
-  set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARIES})
-  set(OPENSSL_VERSION '1.1.0' CACHE STRING "" FORCE)
 endif()
 
 if(NOT FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
@@ -225,6 +217,14 @@ if(NOT FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
 endif()
 
 if(DESKTOP)
+  set(OPENSSL_FOUND TRUE CACHE BOOL "" FORCE)
+  set(OPENSSL_NO_ASM TRUE)  # Force cross-platform BoringSSL, no ASM.
+  set(OPENSSL_INCLUDE_DIR ${BORINGSSL_ROOT_DIR}/include CACHE PATH "" FORCE)
+  set(OPENSSL_CRYPTO_LIBRARIES ${OPENSSL_CRYPTO_LIBRARY})
+  set(OPENSSL_SSL_LIBRARIES ${OPENSSL_SSL_LIBRARY})
+  set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARIES})
+  set(OPENSSL_VERSION '1.1.0' CACHE STRING "" FORCE)
+
   add_library(OpenSSL::SSL STATIC IMPORTED)
   add_library(OpenSSL::Crypto STATIC IMPORTED)
   set_target_properties(OpenSSL::SSL PROPERTIES
