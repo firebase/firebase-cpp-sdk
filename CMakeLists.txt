@@ -178,10 +178,6 @@ else()
   download_external_sources()
   message(STATUS "Download complete.")
 
-  message(STATUS "Building external project dependencies...")
-  build_external_dependencies()
-  message(STATUS "Build of external project dependencies complete.")
-
   set(FIRESTORE_SOURCE_DIR ${FIREBASE_BINARY_DIR}/external/src/firestore)
 endif()
 
@@ -218,6 +214,10 @@ if(DESKTOP)
   set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARIES})
   set(OPENSSL_VERSION '1.1.0' CACHE STRING "" FORCE)
 
+  message(STATUS "Building external project dependencies...")
+  build_external_dependencies()
+  message(STATUS "Build of external project dependencies complete.")
+
   add_library(OpenSSL::SSL STATIC IMPORTED)
   add_library(OpenSSL::Crypto STATIC IMPORTED)
   set_target_properties(OpenSSL::SSL PROPERTIES
@@ -233,8 +233,10 @@ if(DESKTOP)
   # Now if we do find_package(OpenSSL) it should give us BoringSSL.
   find_package(OpenSSL)
 
-  if(NOT ${OPENSSL_INCLUDE_DIR} MATCHES boringssl)
-    message(FATAL_ERROR "BoringSSL was not configured correctly.")
+  if(NOT "${OPENSSL_INCLUDE_DIR}" MATCHES boringssl OR
+     NOT "${OPENSSL_SSL_LIBRARY}" MATCHES boringssl OR
+     NOT "${OPENSSL_CRYPTO_LIBRARY}" MATCHES boringssl)
+    message(FATAL_ERROR "BoringSSL was not configured correctly.\nINCLUDE_DIR=${OPENSSL_INCLUDE_DIR}\nSSL_LIBRARY=${OPENSSL_SSL_LIBRARY}\nCRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}")
   endif()
 endif()
 
@@ -252,6 +254,12 @@ if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
 
   copy_subdirectory_definition(${FIRESTORE_SOURCE_DIR} NANOPB_SOURCE_DIR)
 endif()
+
+  if(NOT "${OPENSSL_INCLUDE_DIR}" MATCHES boringssl OR
+     NOT "${OPENSSL_SSL_LIBRARY}" MATCHES boringssl OR
+     NOT "${OPENSSL_CRYPTO_LIBRARY}" MATCHES boringssl)
+    message(FATAL_ERROR "BoringSSL config changed post-Firestore.\nINCLUDE_DIR=${OPENSSL_INCLUDE_DIR}\nSSL_LIBRARY=${OPENSSL_SSL_LIBRARY}\nCRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}")
+  endif()
 
 # Disable the Flatbuffer build tests, install and flathash
 set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "")
@@ -293,17 +301,33 @@ if(DESKTOP)
     set(CMAKE_USE_SCHANNEL ON CACHE BOOL "")
   endif()
 
+  if(NOT "${OPENSSL_INCLUDE_DIR}" MATCHES boringssl OR
+     NOT "${OPENSSL_SSL_LIBRARY}" MATCHES boringssl OR
+     NOT "${OPENSSL_CRYPTO_LIBRARY}" MATCHES boringssl)
+    message(FATAL_ERROR "BoringSSL config changed pre-curl.\nINCLUDE_DIR=${OPENSSL_INCLUDE_DIR}\nSSL_LIBRARY=${OPENSSL_SSL_LIBRARY}\nCRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}")
+  endif()
   # Current Curl library defaults to requiring some dependencies we don't need, disable them.
   set(CMAKE_USE_LIBSSH2 OFF)
   set(HTTP_ONLY ON)
   set(BUILD_TESTING OFF)
   add_external_library(curl)
 
+  if(NOT "${OPENSSL_INCLUDE_DIR}" MATCHES boringssl OR
+     NOT "${OPENSSL_SSL_LIBRARY}" MATCHES boringssl OR
+     NOT "${OPENSSL_CRYPTO_LIBRARY}" MATCHES boringssl)
+    message(FATAL_ERROR "BoringSSL config changed post-curl.\nINCLUDE_DIR=${OPENSSL_INCLUDE_DIR}\nSSL_LIBRARY=${OPENSSL_SSL_LIBRARY}\nCRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}")
+  endif()
   add_external_library(libuv)
 
   add_external_library(zlib)
 
   add_external_library(uWebSockets)
+
+  if(NOT "${OPENSSL_INCLUDE_DIR}" MATCHES boringssl OR
+     NOT "${OPENSSL_SSL_LIBRARY}" MATCHES boringssl OR
+     NOT "${OPENSSL_CRYPTO_LIBRARY}" MATCHES boringssl)
+    message(FATAL_ERROR "BoringSSL config changed post-uWS.\nINCLUDE_DIR=${OPENSSL_INCLUDE_DIR}\nSSL_LIBRARY=${OPENSSL_SSL_LIBRARY}\nCRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}")
+  endif()
 
   # Binutils on Mac doesn't support thread-local storage (required by
   # websockets), but because we only use websockets via the scheduler, we don't

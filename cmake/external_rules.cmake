@@ -190,27 +190,32 @@ function(build_external_dependencies)
   message("Sub-build options: ${CMAKE_SUB_CONFIGURE_OPTIONS}")
 
   if(NOT ANDROID AND NOT IOS)
-    execute_process(
-      COMMAND ${ENV_COMMAND} cmake -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUB_CONFIGURE_OPTIONS} ../boringssl/src
-      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
-      RESULT_VARIABLE boringssl_configure_status
-    )
-    if (boringssl_configure_status AND NOT boringssl_configure_status EQUAL 0)
-      message(FATAL_ERROR "BoringSSL configure failed: ${boringssl_configure_status}")
-    endif()
-  
-    # Run builds in parallel if we know how
-    if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
-      set(cmake_build_args -j)
-    endif()
-  
-    execute_process(
-      COMMAND ${ENV_COMMAND} cmake --build . ${CMAKE_SUB_BUILD_OPTIONS} --target ssl crypto -- ${cmake_build_args}
-      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
-      RESULT_VARIABLE boringssl_build_status
-    )
-    if (boringssl_build_status AND NOT boringssl_build_status EQUAL 0)
-      message(FATAL_ERROR "BoringSSL build failed: ${boringssl_build_status}")
+    # Only build boringssl if libssl and libcrypto don't exist yet; otherwise CMake is perfectly capable of rebuilding them.
+    if (NOT EXISTS ${OPENSSL_SSL_LIBRARY} OR NOT EXISTS ${OPENSSL_CRYPTO_LIBRARY})
+      execute_process(
+        COMMAND ${ENV_COMMAND} cmake -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUB_CONFIGURE_OPTIONS} ../boringssl/src
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
+        RESULT_VARIABLE boringssl_configure_status
+      )
+      if (boringssl_configure_status AND NOT boringssl_configure_status EQUAL 0)
+        message(FATAL_ERROR "BoringSSL configure failed: ${boringssl_configure_status}")
+      endif()
+    
+      # Run builds in parallel if we know how
+      if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
+        set(cmake_build_args -j)
+      endif()
+    
+      execute_process(
+        COMMAND ${ENV_COMMAND} cmake --build . ${CMAKE_SUB_BUILD_OPTIONS} --target ssl crypto -- ${cmake_build_args}
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
+        RESULT_VARIABLE boringssl_build_status
+      )
+      if (boringssl_build_status AND NOT boringssl_build_status EQUAL 0)
+        message(FATAL_ERROR "BoringSSL build failed: ${boringssl_build_status}")
+      endif()
+    else()
+      message("Skipping BoringSSL build during configure step, libraries already exist.")
     endif()
   endif()
 endfunction()
