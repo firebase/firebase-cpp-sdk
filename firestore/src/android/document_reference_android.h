@@ -1,8 +1,6 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_DOCUMENT_REFERENCE_ANDROID_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_DOCUMENT_REFERENCE_ANDROID_H_
 
-#include <jni.h>
-
 #include <string>
 
 #include "app/src/reference_counted_future_impl.h"
@@ -20,8 +18,6 @@ class Firestore;
 // This is the Android implementation of DocumentReference.
 class DocumentReferenceInternal : public Wrapper {
  public:
-  using ApiType = DocumentReference;
-
   // Each API of DocumentReference that returns a Future needs to define an enum
   // value here. For example, a Future-returning method Foo() relies on the enum
   // value kFoo. The enum values are used to identify and manage Future in the
@@ -34,7 +30,13 @@ class DocumentReferenceInternal : public Wrapper {
     kCount,  // Must be the last enum value.
   };
 
-  DocumentReferenceInternal(FirestoreInternal* firestore, jobject object)
+  /**
+   * Creates a C++ `DocumentReference` from a Java `DocumentReference` object.
+   */
+  static DocumentReference Create(jni::Env& env, const jni::Object& reference);
+
+  DocumentReferenceInternal(FirestoreInternal* firestore,
+                            const jni::Object& object)
       : Wrapper(firestore, object), promises_(firestore) {}
 
   /** Gets the Firestore instance associated with this document reference. */

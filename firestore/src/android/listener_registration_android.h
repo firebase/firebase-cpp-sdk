@@ -22,7 +22,7 @@ class ListenerRegistration;
 // We make this non-generic in order to hide the type logic inside.
 class ListenerRegistrationInternal {
  public:
-  using ApiType = ListenerRegistration;
+  static void Initialize(jni::Loader& loader);
 
   static void Initialize(jni::Loader& loader);
 

@@ -17,12 +17,16 @@ package com.google.firebase.messaging;
 import android.text.TextUtils;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.testing.cppsdk.FakeReporter;
+import com.google.firebase.testing.cppsdk.TickerAndroid;
 import java.util.ArrayList;
 
 /**
  * Fake FirebaseMessaging class.
  */
 public class FirebaseMessaging {
+
+  private static final String FN_GET_TOKEN = "FirebaseMessaging.getToken";
+  private static final String FN_DELETE_TOKEN = "FirebaseMessaging.deleteToken";
 
   public static synchronized FirebaseMessaging getInstance() {
     return new FirebaseMessaging();
@@ -73,6 +77,20 @@ public class FirebaseMessaging {
 
   public boolean deliveryMetricsExportToBigQueryEnabled() {
     return deliveryMetricsExportToBigQueryEnabled;
+  }
+
+  public Task<String> getToken() {
+    FakeReporter.addReport(FN_GET_TOKEN);
+    Task<String> result = Task.forResult(FN_GET_TOKEN, "StubToken");
+    TickerAndroid.register(result);
+    return result;
+  }
+
+  public Task<Void> deleteToken() {
+    FakeReporter.addReport(FN_DELETE_TOKEN);
+    Task<Void> result = Task.forResult(FN_DELETE_TOKEN, null);
+    TickerAndroid.register(result);
+    return result;
   }
 
   private boolean deliveryMetricsExportToBigQueryEnabled = false;

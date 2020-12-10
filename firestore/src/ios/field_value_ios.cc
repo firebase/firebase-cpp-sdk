@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/hard_assert_ios.h"
@@ -197,7 +198,7 @@ bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
       return absl::get<MapT>(lhs.value_) == absl::get<MapT>(rhs.value_);
   }
 
-  UNREACHABLE();
+  FIRESTORE_UNREACHABLE();
 }
 
 std::string Describe(Type type) {

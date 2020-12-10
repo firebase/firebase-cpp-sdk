@@ -236,12 +236,6 @@ void SetUserId(const char* user_id) {
   [FIRAnalytics setUserID:(user_id ? @(user_id) : nil)];
 }
 
-// Sets the minimum engagement time required before starting a session.
-// (No longer functional.)
-void SetMinimumSessionDuration(int64_t milliseconds) {
-  LogWarning("SetMinimumSessionDuration is deprecated and no longer functional.");
-}
-
 // Sets the duration of inactivity that terminates the current session.
 void SetSessionTimeoutDuration(int64_t milliseconds) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());

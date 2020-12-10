@@ -5,9 +5,11 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "auth/src/include/firebase/auth.h"
+#include "firestore/src/common/macros.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/ios/converter_ios.h"
+#include "firestore/src/ios/create_firebase_metadata_provider.h"
 #include "firestore/src/ios/credentials_provider_ios.h"
 #include "firestore/src/ios/document_reference_ios.h"
 #include "firestore/src/ios/document_snapshot_ios.h"
@@ -15,6 +17,7 @@
 #include "firestore/src/ios/listener_ios.h"
 #include "absl/memory/memory.h"
 #include "absl/types/any.h"
+#include "firebase/firestore/firestore_version.h"
 #include "Firestore/core/src/api/document_reference.h"
 #include "Firestore/core/src/api/query_core.h"
 #include "Firestore/core/src/model/database_id.h"
@@ -58,19 +61,23 @@ FirestoreInternal::FirestoreInternal(
       transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
           "com.google.firebase.firestore.transaction", /*threads=*/5))) {
   ApplyDefaultSettings();
+
+  App::RegisterLibrary("fire-fst", kFirestoreVersionString);
 }
 
 FirestoreInternal::~FirestoreInternal() {
   ClearListeners();
+  transaction_executor_->Dispose();
   firestore_core_->Dispose();
 }
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
     App* app, std::unique_ptr<CredentialsProvider> credentials) {
   const AppOptions& opt = app->options();
-  return std::make_shared<api::Firestore>(DatabaseId{opt.project_id()},
-                                          app->name(), std::move(credentials),
-                                          CreateWorkerQueue(), this);
+  return std::make_shared<api::Firestore>(
+      DatabaseId{opt.project_id()}, app->name(), std::move(credentials),
+      CreateWorkerQueue(),
+      CreateFirebaseMetadataProvider(*app), this);
 }
 
 CollectionReference FirestoreInternal::Collection(
@@ -91,15 +98,22 @@ Query FirestoreInternal::CollectionGroup(const char* collection_id) const {
 }
 
 Settings FirestoreInternal::settings() const {
+  static_assert(
+      Settings::kDefaultCacheSizeBytes == api::Settings::DefaultCacheSizeBytes,
+      "kDefaultCacheSizeBytes must be in sync between the public API and the "
+      "core API");
+  static_assert(
+      Settings::kCacheSizeUnlimited == api::Settings::CacheSizeUnlimited,
+      "kCacheSizeUnlimited must be in sync between the public API and the core "
+      "API");
+
   Settings result;
 
   const api::Settings& from = firestore_core_->settings();
   result.set_host(from.host());
   result.set_ssl_enabled(from.ssl_enabled());
   result.set_persistence_enabled(from.persistence_enabled());
-  // TODO(varconst): implement `cache_size_bytes` in public `Settings` and
-  // uncomment.
-  // result.set_cache_size_bytes(from.cache_size_bytes());
+  result.set_cache_size_bytes(from.cache_size_bytes());
 
   return result;
 }
@@ -109,9 +123,7 @@ void FirestoreInternal::set_settings(Settings from) {
   settings.set_host(std::move(from.host()));
   settings.set_ssl_enabled(from.is_ssl_enabled());
   settings.set_persistence_enabled(from.is_persistence_enabled());
-  // TODO(varconst): implement `cache_size_bytes` in public `Settings` and
-  // uncomment.
-  // settings.set_cache_size_bytes(from.cache_size_bytes());
+  settings.set_cache_size_bytes(from.cache_size_bytes());
   firestore_core_->set_settings(settings);
 
   std::unique_ptr<Executor> user_executor = from.CreateExecutor();
@@ -284,7 +296,7 @@ void Firestore::set_log_level(LogLevel log_level) {
       LogSetLevel(util::kLogLevelError);
       break;
     default:
-      UNREACHABLE();
+      FIRESTORE_UNREACHABLE();
       break;
   }
 

@@ -21,6 +21,7 @@
 #include <dispatch/dispatch.h>
 #endif
 
+#include <cstdint>
 #include <iosfwd>
 #include <memory>
 #include <string>
@@ -50,6 +51,11 @@ class FirestoreInternal;
 /** Settings used to configure a Firestore instance. */
 class Settings final {
  public:
+  /**
+   * Constant to use with `set_cache_size_bytes` to disable garbage collection.
+   */
+  static constexpr int64_t kCacheSizeUnlimited = -1;
+
   /**
    * @brief Creates the default settings.
    */
@@ -112,6 +118,9 @@ class Settings final {
    */
   bool is_persistence_enabled() const { return persistence_enabled_; }
 
+  /** Returns cache size for on-disk data. */
+  int64_t cache_size_bytes() const { return cache_size_bytes_; }
+
   /**
    * Sets the host of the Firestore backend. The default is
    * "firestore.googleapis.com".
@@ -133,6 +142,18 @@ class Settings final {
    * @param enabled Set true to enable local persistent storage.
    */
   void set_persistence_enabled(bool enabled);
+
+  /**
+   * Sets an approximate cache size threshold for the on-disk data. If the cache
+   * grows beyond this size, Cloud Firestore will start removing data that
+   * hasn't been recently used. The size is not a guarantee that the cache will
+   * stay below that size, only that if the cache exceeds the given size,
+   * cleanup will be attempted.
+   *
+   * By default, collection is enabled with a cache size of 100 MB. The minimum
+   * value is 1 MB.
+   */
+  void set_cache_size_bytes(int64_t value);
 
 #if defined(__OBJC__)
   /**
@@ -162,9 +183,12 @@ class Settings final {
   friend std::ostream& operator<<(std::ostream& out, const Settings& settings);
 
  private:
+  static constexpr int64_t kDefaultCacheSizeBytes = 100 * 1024 * 1024;
+
   std::string host_;
   bool ssl_enabled_ = true;
   bool persistence_enabled_ = true;
+  int64_t cache_size_bytes_ = kDefaultCacheSizeBytes;
 
   // <SWIG>
   // TODO(varconst): fix Android problems and make these declarations

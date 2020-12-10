@@ -264,7 +264,7 @@ TEST_F(CleanupTest, CollectionReferenceIsBlankAfterCleanup) {
   }
 
   CollectionReference col = Collection();
-  DeleteFirestore();
+  DeleteFirestore(col.firestore());
   SCOPED_TRACE("CollectionReference.AfterCleanup");
   ExpectAllMethodsAreNoOps(&col);
 }
@@ -285,7 +285,7 @@ TEST_F(CleanupTest, DocumentChangeIsBlankAfterCleanup) {
   ASSERT_EQ(changes.size(), 1);
   DocumentChange& change = changes.front();
 
-  DeleteFirestore();
+  DeleteFirestore(col.firestore());
   SCOPED_TRACE("DocumentChange.AfterCleanup");
   ExpectAllMethodsAreNoOps(&change);
 }
@@ -298,7 +298,7 @@ TEST_F(CleanupTest, DocumentReferenceIsBlankAfterCleanup) {
   }
 
   DocumentReference doc = Document();
-  DeleteFirestore();
+  DeleteFirestore(doc.firestore());
   SCOPED_TRACE("DocumentReference.AfterCleanup");
   ExpectAllMethodsAreNoOps(&doc);
 }
@@ -314,7 +314,7 @@ TEST_F(CleanupTest, DocumentSnapshotIsBlankAfterCleanup) {
   WriteDocument(doc, MapFieldValue{{"foo", FieldValue::String("bar")}});
   DocumentSnapshot snap = ReadDocument(doc);
 
-  DeleteFirestore();
+  DeleteFirestore(doc.firestore());
   SCOPED_TRACE("DocumentSnapshot.AfterCleanup");
   ExpectAllMethodsAreNoOps(&snap);
 }
@@ -339,7 +339,7 @@ TEST_F(CleanupTest, FieldValueIsBlankAfterCleanup) {
   EXPECT_TRUE(ref_value.is_valid());
   EXPECT_TRUE(ref_value.is_reference());
 
-  DeleteFirestore();
+  DeleteFirestore(doc.firestore());
   // `FieldValue`s are not cleaned up, because they are owned by the user and
   // stay valid after Firestore has shut down.
   EXPECT_TRUE(str_value.is_valid());
@@ -370,7 +370,7 @@ TEST_F(CleanupTest, ListenerRegistrationIsBlankAfterCleanup) {
   DocumentReference doc = Document();
   ListenerRegistration reg = doc.AddSnapshotListener(
       [](const DocumentSnapshot&, Error, const std::string&) {});
-  DeleteFirestore();
+  DeleteFirestore(doc.firestore());
   SCOPED_TRACE("ListenerRegistration.AfterCleanup");
   ExpectAllMethodsAreNoOps(&reg);
 }
@@ -393,7 +393,7 @@ TEST_F(CleanupTest, QuerySnapshotIsBlankAfterCleanup) {
   QuerySnapshot snap = ReadDocuments(col);
   EXPECT_EQ(snap.size(), 1);
 
-  DeleteFirestore();
+  DeleteFirestore(col.firestore());
   SCOPED_TRACE("QuerySnapshot.AfterCleanup");
   ExpectAllMethodsAreNoOps(&snap);
 }
@@ -410,8 +410,9 @@ TEST_F(CleanupTest, WriteBatchIsBlankAfterCleanup) {
     ExpectAllMethodsAreNoOps(&default_constructed);
   }
 
-  WriteBatch batch = firestore()->batch();
-  DeleteFirestore();
+  Firestore* db = TestFirestore();
+  WriteBatch batch = db->batch();
+  DeleteFirestore(db);
   SCOPED_TRACE("WriteBatch.AfterCleanup");
   ExpectAllMethodsAreNoOps(&batch);
 }

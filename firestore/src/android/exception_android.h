@@ -3,12 +3,36 @@
 
 #include <string>
 
+#if __cpp_exceptions
+#include <exception>
+#endif  // __cpp_exceptions
+
 #include "app/src/include/firebase/app.h"
 #include "firestore/src/jni/jni_fwd.h"
 #include "firebase/firestore/firestore_errors.h"
 
 namespace firebase {
 namespace firestore {
+
+// By default, google3 disables exceptions and so does the C++ SDK. Exceptions
+// are enabled when building for Unity.
+#if __cpp_exceptions
+
+class FirestoreException : public std::exception {
+ public:
+  explicit FirestoreException(const std::string& message, Error code)
+      : message_(message), code_(code) {}
+
+  const char* what() const noexcept override { return message_.c_str(); }
+
+  Error code() const { return code_; }
+
+ private:
+  std::string message_;
+  Error code_;
+};
+
+#endif  // __cpp_exceptions
 
 class ExceptionInternal {
  public:
@@ -37,6 +61,9 @@ class ExceptionInternal {
                                               const jni::Object& exception);
 };
 
+void GlobalUnhandledExceptionHandler(jni::Env& env,
+                                     jni::Local<jni::Throwable>&& exception,
+                                     void* context);
 }  // namespace firestore
 }  // namespace firebase
 

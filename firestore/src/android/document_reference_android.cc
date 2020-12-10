@@ -2,7 +2,6 @@
 
 #include "app/meta/move.h"
 #include "app/src/assert.h"
-#include "app/src/util_android.h"
 #include "firestore/src/android/collection_reference_android.h"
 #include "firestore/src/android/event_listener_android.h"
 #include "firestore/src/android/field_path_android.h"
@@ -33,6 +32,8 @@ constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/DocumentReference";
 jclass clazz = nullptr;
 
+Method<Object> kGetFirestore(
+    "getFirestore", "()Lcom/google/firebase/firestore/FirebaseFirestore;");
 Method<String> kGetId("getId", "()Ljava/lang/String;");
 Method<String> kGetPath("getPath", "()Ljava/lang/String;");
 Method<Object> kGetParent(
@@ -66,8 +67,19 @@ Method<Object> kAddSnapshotListener(
 
 void DocumentReferenceInternal::Initialize(jni::Loader& loader) {
   clazz = loader.LoadClass(kClassName);
-  loader.LoadAll(kGetId, kGetPath, kGetParent, kCollection, kGet, kSet, kUpdate,
-                 kUpdateVarargs, kDelete, kAddSnapshotListener);
+  loader.LoadAll(kGetFirestore, kGetId, kGetPath, kGetParent, kCollection, kGet,
+                 kSet, kUpdate, kUpdateVarargs, kDelete, kAddSnapshotListener);
+}
+
+DocumentReference DocumentReferenceInternal::Create(Env& env,
+                                                    const Object& reference) {
+  if (!reference) return {};
+
+  Local<Object> java_firestore = env.Call(reference, kGetFirestore);
+  auto* firestore = FirestoreInternal::RecoverFirestore(env, java_firestore);
+  if (firestore == nullptr) return {};
+
+  return firestore->NewDocumentReference(env, reference);
 }
 
 Firestore* DocumentReferenceInternal::firestore() {
