@@ -214,6 +214,11 @@ function(build_external_dependencies)
       if (boringssl_build_status AND NOT boringssl_build_status EQUAL 0)
         message(FATAL_ERROR "BoringSSL build failed: ${boringssl_build_status}")
       endif()
+
+      # Also copy the built files into OPENSSL_ROOT_DIR to handle misconfigured
+      # subprojects (which expect the lib*.a file pattern).
+      file(INSTALL "${OPENSSL_CRYPTO_LIBRARY}" DESTINATION "${OPENSSL_ROOT_DIR}/libcrypto.a")
+      file(INSTALL "${OPENSSL_SSL_LIBRARY}" DESTINATION "${OPENSSL_ROOT_DIR}/libssl.a")
     else()
       message("Skipping BoringSSL build during configure step, libraries already exist.")
     endif()
