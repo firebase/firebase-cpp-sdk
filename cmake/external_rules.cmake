@@ -216,9 +216,9 @@ function(build_external_dependencies)
       endif()
 
       # Also copy the built files into OPENSSL_ROOT_DIR to handle misconfigured
-      # subprojects (which expect the lib*.a file pattern).
-      file(INSTALL "${OPENSSL_CRYPTO_LIBRARY}" DESTINATION "${OPENSSL_ROOT_DIR}/libcrypto.a")
-      file(INSTALL "${OPENSSL_SSL_LIBRARY}" DESTINATION "${OPENSSL_ROOT_DIR}/libssl.a")
+      # subprojects.
+      file(INSTALL "${OPENSSL_CRYPTO_LIBRARY}" DESTINATION "${OPENSSL_ROOT_DIR}")
+      file(INSTALL "${OPENSSL_SSL_LIBRARY}" DESTINATION "${OPENSSL_ROOT_DIR}")
     else()
       message("Skipping BoringSSL build during configure step, libraries already exist.")
     endif()
