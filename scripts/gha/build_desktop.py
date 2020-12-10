@@ -59,7 +59,7 @@ def append_line_to_file(path, line):
 def install_x86_support_libraries():
   """Install support libraries needed to build x86 on x86_64 hosts."""
   if utils.is_linux_os():
-    packages = ('gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386', 'libsecret-1-dev:i386')
+    packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386', 'libsecret-1-dev:i386']
 
     # First check if these packages exist on the machine already
     devnull = open(os.devnull, "w")
