@@ -136,72 +136,51 @@ function(build_external_dependencies)
 
   if (CMAKE_BUILD_TYPE)
     # If Release or Debug were specified, pass it along.
-    set(CMAKE_SUB_CONFIGURE_OPTIONS
-        ${CMAKE_SUB_CONFIGURE_OPTIONS}
+    set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
   endif()
   
   if(APPLE)
     # Propagate MacOS build flags.
     if(CMAKE_OSX_ARCHITECTURES)
-      set(CMAKE_SUB_CONFIGURE_OPTIONS
-          ${CMAKE_SUB_CONFIGURE_OPTIONS}
+      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
           -DCMAKE_OSX_ARCHITECTURES="${CMAKE_OSX_ARCHITECTURES}")
     endif()
   elseif(MSVC)
     # Propagate MSVC build flags.
+    set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+        -A "${CMAKE_GENERATOR_PLATFORM}")
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-      set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS} --config Debug)
-      if(MSVC_RUNTIME_LIBRARY_STATIC)
-        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MTd")
-        set(CMAKE_SUB_CONFIGURE_OPTIONS
-            ${CMAKE_SUB_CONFIGURE_OPTIONS}
-            -DCMAKE_C_FLAGS_RELEASE="/MT"
-            -DCMAKE_C_FLAGS_DEBUG="/MTd"
-            -DCMAKE_CXX_FLAGS_RELEASE="/MT"
-            -DCMAKE_CXX_FLAGS_DEBUG="/MTd"
-            -MSVC_RUNTIME_LIBRARY=MultiThreadedDebug
+      set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS}
+          --config Debug)
+    endif()
+    if(MSVC_RUNTIME_LIBRARY_STATIC)
+      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+          -DCMAKE_C_FLAGS_RELEASE="/MT"
+          -DCMAKE_CXX_FLAGS_RELEASE="/MT"
+          -DCMAKE_C_FLAGS_DEBUG="/MTd"
+          -DCMAKE_CXX_FLAGS_DEBUG="/MTd")
+      if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebug)
       else()
-        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MDd")
-        set(CMAKE_SUB_CONFIGURE_OPTIONS
-            ${CMAKE_SUB_CONFIGURE_OPTIONS}
-            -DCMAKE_C_FLAGS_RELEASE="/MD"
-            -DCMAKE_C_FLAGS_DEBUG="/MDd"
-            -DCMAKE_CXX_FLAGS_RELEASE="/MD"
-            -DCMAKE_CXX_FLAGS_DEBUG="/MDd"
-            -DMSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL
-            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL)
-      endif()
-    else()
-      set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS} --config Release)
-      if(MSVC_RUNTIME_LIBRARY_STATIC)
-        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MT")
-        set(CMAKE_SUB_CONFIGURE_OPTIONS
-            ${CMAKE_SUB_CONFIGURE_OPTIONS}
-            -DCMAKE_C_FLAGS_RELEASE="/MT"
-            -DCMAKE_C_FLAGS_DEBUG="/MTd"
-            -DCMAKE_CXX_FLAGS_RELEASE="/MT"
-            -DCMAKE_CXX_FLAGS_DEBUG="/MTd"
-            -DMSVC_RUNTIME_LIBRARY=MultiThreaded
+        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded)
+      endif()
+    else()  // dynamic (DLL) runtime
+      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+          -DCMAKE_C_FLAGS_RELEASE="/MD"
+          -DCMAKE_CXX_FLAGS_RELEASE="/MD"
+          -DCMAKE_C_FLAGS_DEBUG="/MDd"
+          -DCMAKE_CXX_FLAGS_DEBUG="/MDd")
+      if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL)
       else()
-        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MD")
-        set(CMAKE_SUB_CONFIGURE_OPTIONS
-            ${CMAKE_SUB_CONFIGURE_OPTIONS} 
-            -DCMAKE_C_FLAGS_RELEASE="/MD"
-            -DCMAKE_C_FLAGS_DEBUG="/MDd"
-            -DCMAKE_CXX_FLAGS_RELEASE="/MD"
-            -DCMAKE_CXX_FLAGS_DEBUG="/MDd"
-            -DMSVC_RUNTIME_LIBRARY=MultiThreaded
+        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL)
       endif()
     endif()
-    set(CMAKE_SUB_CONFIGURE_OPTIONS
-        ${CMAKE_SUB_CONFIGURE_OPTIONS}
-        -DCMAKE_C_FLAGS=${SUBBUILD_MSVC_RUNTIME_FLAG}
-        -DCMAKE_CXX_FLAGS=${SUBBUILD_MSVC_RUNTIME_FLAG}
-        -A "${CMAKE_GENERATOR_PLATFORM}")
   else()
     # Propagate Linux build flags.
     if("${CMAKE_CXX_FLAGS}" MATCHES "-D_GLIBCXX_USE_CXX11_ABI=0")
@@ -209,17 +188,16 @@ function(build_external_dependencies)
     else()
       set(SUBBUILD_USE_CXX11_ABI 1)
     endif()
-    set(CMAKE_SUB_CONFIGURE_OPTIONS
-        ${CMAKE_SUB_CONFIGURE_OPTIONS}
+    set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
           -DCMAKE_C_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}"
           -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}")
     if(CMAKE_TOOLCHAIN_FILE)
-      set(CMAKE_SUB_CONFIGURE_OPTIONS
-          ${CMAKE_SUB_CONFIGURE_OPTIONS}
+      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
           -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
     endif()
   endif()
-  message("Sub-build options: ${CMAKE_SUB_CONFIGURE_OPTIONS}")
+  message("Sub-configure options: ${CMAKE_SUB_CONFIGURE_OPTIONS}")
+  message("Sub-build options: ${CMAKE_SUB_BUILD_OPTIONS}")
 
   if(NOT ANDROID AND NOT IOS)
     execute_process(
