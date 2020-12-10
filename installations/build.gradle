@@ -1,0 +1,86 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+buildscript {
+  repositories {
+    google()
+    jcenter()
+  }
+  dependencies {
+    classpath 'com.android.tools.build:gradle:3.2.1'
+  }
+}
+allprojects {
+  repositories {
+    google()
+    jcenter()
+  }
+}
+
+apply plugin: 'com.android.library'
+
+android {
+  compileSdkVersion 28
+  buildToolsVersion '28.0.3'
+
+  sourceSets {
+    main {
+      manifest.srcFile '../android_build_files/AndroidManifest.xml'
+    }
+  }
+
+  externalNativeBuild {
+    cmake {
+      path '../CMakeLists.txt'
+    }
+  }
+
+  defaultConfig {
+    // This is the platform API where NativeActivity was introduced.
+    minSdkVersion 9
+    targetSdkVersion 28
+    versionCode 1
+    versionName "1.0"
+
+    buildTypes {
+      release {
+        minifyEnabled false
+      }
+    }
+
+    externalNativeBuild {
+      cmake {
+        targets 'firebase_installations'
+        // Args are: Re-use app library prebuilt by app gradle project.
+        //           Don't configure all the cmake subprojects.
+        //           Only include needed project.
+        arguments '-DFIREBASE_CPP_USE_PRIOR_GRADLE_BUILD=ON',
+                '-DFIREBASE_INCLUDE_LIBRARY_DEFAULT=OFF',
+                '-DFIREBASE_INCLUDE_INSTALLATIONS=ON'
+      }
+    }
+  }
+
+  lintOptions {
+    abortOnError false
+  }
+}
+
+dependencies {
+  implementation project(':app')
+}
+apply from: "$rootDir/android_build_files/generate_proguard.gradle"
+project.afterEvaluate {
+  generateProguardFile('installations')
+}
