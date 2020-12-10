@@ -325,11 +325,31 @@ target_compile_definitions(firebase_app
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
 )
+
+if(DESKTOP)
+  if(APPLE)
+    set(FIREBASE_ADDITIONAL_LIBS
+      gssapi_krb5
+      pthread
+      "-framework CoreFoundation"
+      "-framework Foundation"
+      "-framework GSS"
+      "-framework Security"
+    )
+  elseif(MSVC)
+    set(FIREBASE_ADDITIONAL_LIBS advapi32 ws2_32 crypt32 iphlpapi psapi userenv shell32)
+  else()
+    # Linux
+    set(FIREBASE_ADDITIONAL_LIBS pthread)
+  endif()
+endif()
+
 # firebase_app has a dependency on flatbuffers, which needs to be included.
 target_link_libraries(firebase_app
   PRIVATE
     flatbuffers
     ${LIBSECRET_LIBRARIES}
+    ${ADDITIONAL_LIBS}
 )
 # Automatically include headers that might not be declared.
 if(MSVC)
