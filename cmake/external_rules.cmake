@@ -131,42 +131,67 @@ function(build_external_dependencies)
   message("CMake generator platform: ${CMAKE_GENERATOR_PLATFORM}")
   message("CMake toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
 
-  set(CMAKE_SUBBUILD_OPTIONS -G "${CMAKE_GENERATOR}")
+  set(CMAKE_SUB_CONFIGURE_OPTIONS -G "${CMAKE_GENERATOR}")
+  set(CMAKE_SUB_BUILD_OPTIONS)
 
   if (CMAKE_BUILD_TYPE)
     # If Release or Debug were specified, pass it along.
-    set(CMAKE_SUBBUILD_OPTIONS
-        ${CMAKE_SUBBUILD_OPTIONS}
+    set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
   endif()
   
   if(APPLE)
     # Propagate MacOS build flags.
     if(CMAKE_OSX_ARCHITECTURES)
-      set(CMAKE_SUBBUILD_OPTIONS
-          ${CMAKE_SUBBUILD_OPTIONS}
+      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
           -DCMAKE_OSX_ARCHITECTURES="${CMAKE_OSX_ARCHITECTURES}")
     endif()
   elseif(MSVC)
     # Propagate MSVC build flags.
-    if(MSVC_RUNTIME_LIBRARY_STATIC)
-      if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MTd")
-      else()
-        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MT")
-      endif()
+    set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+        -A "${CMAKE_GENERATOR_PLATFORM}")
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+      set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS}
+          --config Debug)
     else()
+      set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS}
+          --config Release)
+    endif()
+    if(MSVC_RUNTIME_LIBRARY_STATIC)
+      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+          -DCMAKE_C_FLAGS_RELEASE="/MT"
+          -DCMAKE_CXX_FLAGS_RELEASE="/MT"
+          -DCMAKE_C_FLAGS_DEBUG="/MTd"
+          -DCMAKE_CXX_FLAGS_DEBUG="/MTd")
       if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MDd")
-      else()  # build type
-        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MD")
+        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_C_FLAGS="/MTd"
+            -DCMAKE_CXX_FLAGS="/MTd"
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebug)
+      else()
+        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_C_FLAGS="/MT"
+            -DCMAKE_CXX_FLAGS="/MT"
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded)
+      endif()
+    else()  # dynamic (DLL) runtime
+      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+          -DCMAKE_C_FLAGS_RELEASE="/MD"
+          -DCMAKE_CXX_FLAGS_RELEASE="/MD"
+          -DCMAKE_C_FLAGS_DEBUG="/MDd"
+          -DCMAKE_CXX_FLAGS_DEBUG="/MDd")
+      if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_C_FLAGS="/MDd"
+            -DCMAKE_CXX_FLAGS="/MDd"
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL)
+      else()
+        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_C_FLAGS="/MD"
+            -DCMAKE_CXX_FLAGS="/MD"
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL)
       endif()
     endif()
-    set(CMAKE_SUBBUILD_OPTIONS
-        ${CMAKE_SUBBUILD_OPTIONS}
-        -DCMAKE_C_FLAGS=${SUBBUILD_MSVC_RUNTIME_FLAG}
-        -DCMAKE_CXX_FLAGS=${SUBBUILD_MSVC_RUNTIME_FLAG}
-        -A "${CMAKE_GENERATOR_PLATFORM}")
   else()
     # Propagate Linux build flags.
     get_directory_property(CURR_DIRECTORY_DEFS COMPILE_DEFINITIONS)
@@ -176,21 +201,20 @@ function(build_external_dependencies)
     else()
       set(SUBBUILD_USE_CXX11_ABI 1)
     endif()
-    set(CMAKE_SUBBUILD_OPTIONS
-        ${CMAKE_SUBBUILD_OPTIONS}
+    set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
           -DCMAKE_C_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}"
           -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}")
     if(CMAKE_TOOLCHAIN_FILE)
-      set(CMAKE_SUBBUILD_OPTIONS
-          ${CMAKE_SUBBUILD_OPTIONS}
+      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
           -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
     endif()
   endif()
-  message("Sub-build options: ${CMAKE_SUBBUILD_OPTIONS}")
+  message("Sub-configure options: ${CMAKE_SUB_CONFIGURE_OPTIONS}")
+  message("Sub-build options: ${CMAKE_SUB_BUILD_OPTIONS}")
 
   if(NOT ANDROID AND NOT IOS)
     execute_process(
-      COMMAND ${ENV_COMMAND} cmake -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUBBUILD_OPTIONS} ../boringssl/src
+      COMMAND ${ENV_COMMAND} cmake -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUB_CONFIGURE_OPTIONS} ../boringssl/src
       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
       RESULT_VARIABLE boringssl_configure_status
     )
@@ -204,13 +228,18 @@ function(build_external_dependencies)
     endif()
   
     execute_process(
-      COMMAND ${ENV_COMMAND} cmake --build . --target ssl crypto -- ${cmake_build_args}
+      COMMAND ${ENV_COMMAND} cmake --build . ${CMAKE_SUB_BUILD_OPTIONS} --target ssl crypto -- ${cmake_build_args}
       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
       RESULT_VARIABLE boringssl_build_status
     )
     if (boringssl_build_status AND NOT boringssl_build_status EQUAL 0)
       message(FATAL_ERROR "BoringSSL build failed: ${boringssl_build_status}")
     endif()
+
+    # Also copy the built files into OPENSSL_ROOT_DIR to handle misconfigured
+    # subprojects.
+    file(INSTALL "${OPENSSL_CRYPTO_LIBRARY}" DESTINATION "${OPENSSL_ROOT_DIR}")
+    file(INSTALL "${OPENSSL_SSL_LIBRARY}" DESTINATION "${OPENSSL_ROOT_DIR}")
   endif()
 endfunction()
 
