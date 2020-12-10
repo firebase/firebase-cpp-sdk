@@ -153,6 +153,9 @@ function(build_external_dependencies)
     if (CMAKE_BUILD_TYPE STREQUAL "Debug")
       set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS}
           --config Debug)
+    else
+      set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS}
+          --config Release)
     endif()
     if(MSVC_RUNTIME_LIBRARY_STATIC)
       set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
@@ -162,9 +165,13 @@ function(build_external_dependencies)
           -DCMAKE_CXX_FLAGS_DEBUG="/MTd")
       if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_C_FLAGS="/MTd"
+            -DCMAKE_CXX_FLAGS="/MTd"
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebug)
       else()
         set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_C_FLAGS="/MT"
+            -DCMAKE_CXX_FLAGS="/MT"
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded)
       endif()
     else()  # dynamic (DLL) runtime
@@ -175,9 +182,13 @@ function(build_external_dependencies)
           -DCMAKE_CXX_FLAGS_DEBUG="/MDd")
       if (CMAKE_BUILD_TYPE STREQUAL "Debug")
         set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_C_FLAGS="/MDd"
+            -DCMAKE_CXX_FLAGS="/MDd"
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL)
       else()
         set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_C_FLAGS="/MD"
+            -DCMAKE_CXX_FLAGS="/MD"
             -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL)
       endif()
     endif()
