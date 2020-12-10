@@ -154,15 +154,27 @@ function(build_external_dependencies)
       set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS} --config Debug)
       if(MSVC_RUNTIME_LIBRARY_STATIC)
         set(SUBBUILD_MSVC_RUNTIME_FLAG "/MTd")
+        set(CMAKE_SUB_CONFIGURE_OPTIONS
+            ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebug)
       else()
         set(SUBBUILD_MSVC_RUNTIME_FLAG "/MDd")
+        set(CMAKE_SUB_CONFIGURE_OPTIONS
+            ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL)
       endif()
     else()
       set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS} --config Release)
       if(MSVC_RUNTIME_LIBRARY_STATIC)
         set(SUBBUILD_MSVC_RUNTIME_FLAG "/MT")
+        set(CMAKE_SUB_CONFIGURE_OPTIONS
+            ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded)
       else()
         set(SUBBUILD_MSVC_RUNTIME_FLAG "/MD")
+        set(CMAKE_SUB_CONFIGURE_OPTIONS
+            ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL)
       endif()
     endif()
     set(CMAKE_SUB_CONFIGURE_OPTIONS
