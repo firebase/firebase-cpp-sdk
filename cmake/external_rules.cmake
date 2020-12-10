@@ -131,39 +131,42 @@ function(build_external_dependencies)
   message("CMake generator platform: ${CMAKE_GENERATOR_PLATFORM}")
   message("CMake toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
 
-  set(CMAKE_SUBBUILD_OPTIONS -G "${CMAKE_GENERATOR}")
+  set(CMAKE_SUB_CONFIGURE_OPTIONS -G "${CMAKE_GENERATOR}")
+  set(CMAKE_SUB_BUILD_OPTIONS)
 
   if (CMAKE_BUILD_TYPE)
     # If Release or Debug were specified, pass it along.
-    set(CMAKE_SUBBUILD_OPTIONS
-        ${CMAKE_SUBBUILD_OPTIONS}
+    set(CMAKE_SUB_CONFIGURE_OPTIONS
+        ${CMAKE_SUB_CONFIGURE_OPTIONS}
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
   endif()
   
   if(APPLE)
     # Propagate MacOS build flags.
     if(CMAKE_OSX_ARCHITECTURES)
-      set(CMAKE_SUBBUILD_OPTIONS
-          ${CMAKE_SUBBUILD_OPTIONS}
+      set(CMAKE_SUB_CONFIGURE_OPTIONS
+          ${CMAKE_SUB_CONFIGURE_OPTIONS}
           -DCMAKE_OSX_ARCHITECTURES="${CMAKE_OSX_ARCHITECTURES}")
     endif()
   elseif(MSVC)
     # Propagate MSVC build flags.
-    if(MSVC_RUNTIME_LIBRARY_STATIC)
-      if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+      set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS} --config Debug)
+      if(MSVC_RUNTIME_LIBRARY_STATIC)
         set(SUBBUILD_MSVC_RUNTIME_FLAG "/MTd")
       else()
-        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MT")
+        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MDd")
       endif()
     else()
-      if (CMAKE_BUILD_TYPE STREQUAL "Debug")
-        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MDd")
-      else()  # build type
+      set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS} --config Release)
+      if(MSVC_RUNTIME_LIBRARY_STATIC)
+        set(SUBBUILD_MSVC_RUNTIME_FLAG "/MT")
+      else()
         set(SUBBUILD_MSVC_RUNTIME_FLAG "/MD")
       endif()
     endif()
-    set(CMAKE_SUBBUILD_OPTIONS
-        ${CMAKE_SUBBUILD_OPTIONS}
+    set(CMAKE_SUB_CONFIGURE_OPTIONS
+        ${CMAKE_SUB_CONFIGURE_OPTIONS}
         -DCMAKE_C_FLAGS=${SUBBUILD_MSVC_RUNTIME_FLAG}
         -DCMAKE_CXX_FLAGS=${SUBBUILD_MSVC_RUNTIME_FLAG}
         -A "${CMAKE_GENERATOR_PLATFORM}")
@@ -174,21 +177,21 @@ function(build_external_dependencies)
     else()
       set(SUBBUILD_USE_CXX11_ABI 1)
     endif()
-    set(CMAKE_SUBBUILD_OPTIONS
-        ${CMAKE_SUBBUILD_OPTIONS}
+    set(CMAKE_SUB_CONFIGURE_OPTIONS
+        ${CMAKE_SUB_CONFIGURE_OPTIONS}
           -DCMAKE_C_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}"
           -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}")
     if(CMAKE_TOOLCHAIN_FILE)
-      set(CMAKE_SUBBUILD_OPTIONS
-          ${CMAKE_SUBBUILD_OPTIONS}
+      set(CMAKE_SUB_CONFIGURE_OPTIONS
+          ${CMAKE_SUB_CONFIGURE_OPTIONS}
           -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
     endif()
   endif()
-  message("Sub-build options: ${CMAKE_SUBBUILD_OPTIONS}")
+  message("Sub-build options: ${CMAKE_SUB_CONFIGURE_OPTIONS}")
 
   if(NOT ANDROID AND NOT IOS)
     execute_process(
-      COMMAND ${ENV_COMMAND} cmake -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUBBUILD_OPTIONS} ../boringssl/src
+      COMMAND ${ENV_COMMAND} cmake -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUB_CONFIGURE_OPTIONS} ../boringssl/src
       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
       RESULT_VARIABLE boringssl_configure_status
     )
@@ -202,7 +205,7 @@ function(build_external_dependencies)
     endif()
   
     execute_process(
-      COMMAND ${ENV_COMMAND} cmake --build . --target ssl crypto -- ${cmake_build_args}
+      COMMAND ${ENV_COMMAND} cmake --build . ${CMAKE_SUB_BUILD_OPTIONS} --target ssl crypto -- ${cmake_build_args}
       WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
       RESULT_VARIABLE boringssl_build_status
     )
