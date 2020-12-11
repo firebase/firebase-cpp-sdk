@@ -95,20 +95,22 @@ function(download_external_sources)
 
   # On desktop, make a few tweaks to the downloaded files.
   if(NOT ANDROID AND NOT IOS)
-    # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL
-    # unless the header file contains OPENSSL_VERSION_NUMBER.
-    file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
-    if (NOT TMP_HEADER_CONTENTS MATCHES OPENSSL_VERSION_NUMBER)
-      file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h
-      "\n#ifndef OPENSSL_VERSION_NUMBER\n# define OPENSSL_VERSION_NUMBER  0x10010107L\n#endif\n")
-    endif()
-    # Also add an #include <stdlib.h> since openssl has it and boringssl
-    # doesn't, and some of our code depends on the transitive dependency (this
-    # is a bug).
-    file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/rand.h TMP_HEADER2_CONTENTS)
-    if (NOT TMP_HEADER2_CONTENTS MATCHES "<stdlib.h>")
-      file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/rand.h
-      "\n#include <stdlib.h>\n")
+    if (FIREBASE_USE_BORINGSSL)
+      # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL
+      # unless the header file contains OPENSSL_VERSION_NUMBER.
+      file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
+      if (NOT TMP_HEADER_CONTENTS MATCHES OPENSSL_VERSION_NUMBER)
+        file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h
+        "\n#ifndef OPENSSL_VERSION_NUMBER\n# define OPENSSL_VERSION_NUMBER  0x10010107L\n#endif\n")
+      endif()
+      # Also add an #include <stdlib.h> since openssl has it and boringssl
+      # doesn't, and some of our code depends on the transitive dependency (this
+      # is a bug).
+      file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/rand.h TMP_HEADER2_CONTENTS)
+      if (NOT TMP_HEADER2_CONTENTS MATCHES "<stdlib.h>")
+        file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/rand.h
+        "\n#include <stdlib.h>\n")
+      endif()
     endif()
   endif()
 endfunction()
@@ -212,33 +214,35 @@ function(build_external_dependencies)
   message(STATUS "Sub-build options: ${CMAKE_SUB_BUILD_OPTIONS}")
 
   if(NOT ANDROID AND NOT IOS)
-    execute_process(
-      COMMAND ${ENV_COMMAND} cmake -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUB_CONFIGURE_OPTIONS} ../boringssl/src
-      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
-      RESULT_VARIABLE boringssl_configure_status
-    )
-    if (boringssl_configure_status AND NOT boringssl_configure_status EQUAL 0)
-      message(FATAL_ERROR "BoringSSL configure failed: ${boringssl_configure_status}")
-    endif()
+    if (FIREBASE_USE_BORINGSSL)
+      execute_process(
+        COMMAND ${ENV_COMMAND} cmake -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUB_CONFIGURE_OPTIONS} ../boringssl/src
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
+        RESULT_VARIABLE boringssl_configure_status
+      )
+      if (boringssl_configure_status AND NOT boringssl_configure_status EQUAL 0)
+        message(FATAL_ERROR "BoringSSL configure failed: ${boringssl_configure_status}")
+      endif()
+    
+      # Run builds in parallel if we know how
+      if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
+        set(cmake_build_args -j)
+      endif()
+    
+      execute_process(
+        COMMAND ${ENV_COMMAND} cmake --build . ${CMAKE_SUB_BUILD_OPTIONS} --target ssl crypto -- ${cmake_build_args}
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
+        RESULT_VARIABLE boringssl_build_status
+      )
+      if (boringssl_build_status AND NOT boringssl_build_status EQUAL 0)
+        message(FATAL_ERROR "BoringSSL build failed: ${boringssl_build_status}")
+      endif()
   
-    # Run builds in parallel if we know how
-    if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
-      set(cmake_build_args -j)
+      # Also copy the built files into OPENSSL_ROOT_DIR to handle misconfigured
+      # subprojects.
+      file(INSTALL "${OPENSSL_CRYPTO_LIBRARY}" DESTINATION "${OPENSSL_ROOT_DIR}")
+      file(INSTALL "${OPENSSL_SSL_LIBRARY}" DESTINATION "${OPENSSL_ROOT_DIR}")
     endif()
-  
-    execute_process(
-      COMMAND ${ENV_COMMAND} cmake --build . ${CMAKE_SUB_BUILD_OPTIONS} --target ssl crypto -- ${cmake_build_args}
-      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
-      RESULT_VARIABLE boringssl_build_status
-    )
-    if (boringssl_build_status AND NOT boringssl_build_status EQUAL 0)
-      message(FATAL_ERROR "BoringSSL build failed: ${boringssl_build_status}")
-    endif()
-
-    # Also copy the built files into OPENSSL_ROOT_DIR to handle misconfigured
-    # subprojects.
-    file(INSTALL "${OPENSSL_CRYPTO_LIBRARY}" DESTINATION "${OPENSSL_ROOT_DIR}")
-    file(INSTALL "${OPENSSL_SSL_LIBRARY}" DESTINATION "${OPENSSL_ROOT_DIR}")
   endif()
 endfunction()
 

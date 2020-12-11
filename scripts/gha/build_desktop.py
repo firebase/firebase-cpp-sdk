@@ -194,6 +194,8 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static',
 
   if (target_format):
     cmd.append('-DFIREBASE_XCODE_TARGET_FORMAT={0}'.format(target_format))
+
+  cmd.append('-DFIREBASE_USE_BORINGSSL=ON')
   utils.run_command(cmd)
 
 def main():
