@@ -24,8 +24,6 @@ class ListenerRegistrationInternal {
  public:
   static void Initialize(jni::Loader& loader);
 
-  static void Initialize(jni::Loader& loader);
-
   // Global references will be created from the jobjects. The caller is
   // responsible for cleaning up any local references to jobjects after the
   // constructor returns.
