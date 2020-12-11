@@ -127,8 +127,8 @@ if ${cmakeBuild}; then
         echo "build ${arch} ${targets[@]} framework end"
     
     } &
+    wait $! || echo "frameworks ${arch} build error"; exit 2
     done
-    wait
     echo "${architectures[@]} frameworks build end"
 
     # arrange the framework 
