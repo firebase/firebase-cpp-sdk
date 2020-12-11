@@ -93,7 +93,7 @@ function(download_external_sources)
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external
   )
 
-  if(NOT ANDROID AND NOT IOS)
+  if(external_platform EQUALS "DESKTOP")
     # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL
     # unless the header file contains OPENSSL_VERSION_NUMBER.
     file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
@@ -127,9 +127,9 @@ function(build_external_dependencies)
     set(ENV_COMMAND env -i PATH=${firebase_command_line_path} HOME=${firebase_command_line_home} )
   endif()
 
-  message("CMake generator: ${CMAKE_GENERATOR}")
-  message("CMake generator platform: ${CMAKE_GENERATOR_PLATFORM}")
-  message("CMake toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
+  message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
+  message(STATUS "CMake generator platform: ${CMAKE_GENERATOR_PLATFORM}")
+  message(STATUS "CMake toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
 
   set(CMAKE_SUB_CONFIGURE_OPTIONS -G "${CMAKE_GENERATOR}")
   set(CMAKE_SUB_BUILD_OPTIONS)
@@ -207,8 +207,8 @@ function(build_external_dependencies)
           -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
     endif()
   endif()
-  message("Sub-configure options: ${CMAKE_SUB_CONFIGURE_OPTIONS}")
-  message("Sub-build options: ${CMAKE_SUB_BUILD_OPTIONS}")
+  message(STATUS "Sub-configure options: ${CMAKE_SUB_CONFIGURE_OPTIONS}")
+  message(STATUS "Sub-build options: ${CMAKE_SUB_BUILD_OPTIONS}")
 
   if(NOT ANDROID AND NOT IOS)
     execute_process(

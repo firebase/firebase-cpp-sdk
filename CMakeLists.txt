@@ -186,7 +186,7 @@ if(DESKTOP)
   set(OPENSSL_USE_STATIC_LIBS TRUE)
   if (MSVC)
     # Get the correct version of the OpenSSL libraries based on building for MT.
-    if ("${CMAKE_CXX_FLAGS_DEBUG}" MATCHES "/MT" OR
+    if ("${CMAKE_CXX_FLAGS_DEBUG}" MATCHES "/MTd" OR
         "${CMAKE_CXX_FLAGS_RELEASE}" MATCHES "/MT")
       set(OPENSSL_MSVC_STATIC_RT TRUE)
     else()
@@ -202,21 +202,25 @@ if(DESKTOP)
   # The call below to build_external_dependencies will make sure that these
   # libraries exist before the libraries are imported via add_library.
   if (MSVC)
-    set(OPENSSL_SSL_LIBRARY ${BORINGSSL_BINARY_DIR}/ssl/${CMAKE_BUILD_TYPE}/ssl.lib CACHE FILEPATH "" FORCE)
-    set(OPENSSL_CRYPTO_LIBRARY ${BORINGSSL_BINARY_DIR}/crypto/${CMAKE_BUILD_TYPE}/crypto.lib CACHE FILEPATH "" FORCE)
+    if (CMAKE_BUILD_TYPE)
+      set(BORINGSSL_LIB_SUBDIR "${CMAKE_BUILD_TYPE}")
+    else()
+      set(BORINGSSL_LIB_SUBDIR "Debug")
+    endif()
+    set(OPENSSL_SSL_LIBRARY ${BORINGSSL_BINARY_DIR}/ssl/${BORINGSSL_LIB_SUBDIR}/ssl.lib CACHE FILEPATH "" FORCE)
+    set(OPENSSL_CRYPTO_LIBRARY ${BORINGSSL_BINARY_DIR}/crypto/${BORINGSSL_LIB_SUBDIR}/crypto.lib CACHE FILEPATH "" FORCE)
   else()
     set(OPENSSL_SSL_LIBRARY ${BORINGSSL_BINARY_DIR}/ssl/libssl.a CACHE FILEPATH "" FORCE)
     set(OPENSSL_CRYPTO_LIBRARY ${BORINGSSL_BINARY_DIR}/crypto/libcrypto.a CACHE FILEPATH "" FORCE)
   endif()
 endif()
 
-if(NOT FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
+
+if(DESKTOP)
   message(STATUS "Building external project dependencies...")
   build_external_dependencies()
   message(STATUS "Build of external project dependencies complete.")
-endif()
-
-if(DESKTOP)
+  
   set(OPENSSL_FOUND TRUE CACHE BOOL "" FORCE)
   set(OPENSSL_NO_ASM TRUE)  # Force cross-platform BoringSSL, no ASM.
   set(OPENSSL_INCLUDE_DIR ${BORINGSSL_ROOT_DIR}/include CACHE PATH "" FORCE)
@@ -299,6 +303,7 @@ if(DESKTOP)
   # Build curl as a static library
   set(CURL_STATICLIB ON CACHE BOOL "")
   if (WIN32)
+    # Enable Windows native SSL/TLS in libcurl.
     set(CMAKE_USE_SCHANNEL ON CACHE BOOL "")
   endif()
 
