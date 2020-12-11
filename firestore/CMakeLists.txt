@@ -291,6 +291,8 @@ elseif(IOS)
       FirebaseFirestore
       abseil
       nanopb
+      gRPC-C++
+      gRPC-Core
   )
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
