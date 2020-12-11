@@ -93,6 +93,7 @@ function(download_external_sources)
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external
   )
 
+  # On desktop, make a few tweaks to the downloaded files.
   if(NOT ANDROID AND NOT IOS)
     # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL
     # unless the header file contains OPENSSL_VERSION_NUMBER.
