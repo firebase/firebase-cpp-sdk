@@ -155,18 +155,8 @@ elseif(IOS)
   set(database_platform_SRCS
       "${ios_SRCS}")
 else()
-  # Add platform-specific util files.
-  if(MSVC)
-    set(desktop_extra_SRCS src/desktop/util_desktop_windows.cc)
-  elseif(APPLE)
-    set(desktop_extra_SRCS src/desktop/util_desktop_macos.mm)
-  else()
-    # Linux
-    set(desktop_extra_SRCS src/desktop/util_desktop_linux.cc)
-  endif()
   set(database_platform_SRCS
         "${desktop_SRCS}"
-        "${desktop_extra_SRCS}")
 endif()
 
 if(ANDROID OR IOS)
