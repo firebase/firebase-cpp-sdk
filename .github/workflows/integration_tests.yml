@@ -16,7 +16,7 @@ on:
         default: 'ubuntu-latest,windows-latest,macos-latest'
         required: true
       desktop_ssl_variants:
-        description: 'SSL variants to use on desktop'
+        description: 'CSV of desktop SSL variants to use'
         default: 'openssl,boringssl'
         required: true
       android_device:
@@ -130,6 +130,7 @@ jobs:
 
       - name: Build integration tests
         run: |
+          # Default SSL is openssl.
           ssl_option=
           if [[ "${{ matrix.ssl_variant }}" == "boringssl" ]]; then
             ssl_option=--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON
