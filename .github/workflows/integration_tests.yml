@@ -129,6 +129,7 @@ jobs:
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
 
       - name: Build integration tests
+        shell: bash
         run: |
           # Default SSL is openssl.
           ssl_option=
