@@ -331,7 +331,6 @@ target_link_libraries(firebase_app
   PRIVATE
     flatbuffers
     ${LIBSECRET_LIBRARIES}
-    ${ADDITIONAL_LIBS}
 )
 # Automatically include headers that might not be declared.
 if(MSVC)
