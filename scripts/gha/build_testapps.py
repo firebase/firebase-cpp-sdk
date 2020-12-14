@@ -159,6 +159,10 @@ flags.DEFINE_bool(
     " Will install vcpkg, use it to install dependencies, and then configure"
     " CMake to use it.")
 
+flags.DEFINE_multi_string(
+    "cmake_flag", None,
+    "Pass an additional flag to the CMake configure step."
+    " This option can be specified multiple times.")
 
 flags.register_validator(
     "platforms",
@@ -204,6 +208,9 @@ def main(argv):
         "-DCMAKE_TOOLCHAIN_FILE=%s" % toolchain_file,
         "-DVCPKG_TARGET_TRIPLET=%s" % utils.get_vcpkg_triplet(arch="x64")
     ))
+
+  if FLAGS.cmake_flag:
+    cmake_flags.extend(FLAGS.cmake_flag)
 
   failures = []
   for testapp in testapps:
