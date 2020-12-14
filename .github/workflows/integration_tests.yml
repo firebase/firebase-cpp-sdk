@@ -15,6 +15,10 @@ on:
         description: 'CSV of VMs to run on'
         default: 'ubuntu-latest,windows-latest,macos-latest'
         required: true
+      desktop_ssl_variants:
+        description: 'SSL variants to use on desktop'
+        default: 'openssl,boringssl'
+        required: true
       android_device:
         description: 'Android device model'
         default: 'flame'
@@ -27,10 +31,6 @@ on:
       ios_version:
         description: 'iOS device version'
         default: '13.3'
-      desktop_ssl_variants:
-        description: 'SSL variants to use on desktop'
-        default: 'openssl,boringssl'
-        required: true
 
 jobs:
   # To feed input into the job matrix, we first need to convert to a JSON
