@@ -52,7 +52,7 @@ jobs:
         SSL_JSON=[\"$(echo ${{ github.event.inputs.desktop_ssl_variants }} | sed 's/,/","/g')\"]
         echo "::set-output name=matrix_ssl::${SSL_JSON}"
   tests:
-    name: ${{ matrix.os }}-${{ matrix.target_platform }}
+    name: ${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
     needs: prepare_matrix
     runs-on: ${{ matrix.os }}
     strategy:
