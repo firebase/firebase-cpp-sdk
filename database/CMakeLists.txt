@@ -156,7 +156,7 @@ elseif(IOS)
       "${ios_SRCS}")
 else()
   set(database_platform_SRCS
-        "${desktop_SRCS}"
+        "${desktop_SRCS}")
 endif()
 
 if(ANDROID OR IOS)
