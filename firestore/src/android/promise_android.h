@@ -54,10 +54,6 @@ class Promise {
   Promise(Promise&& other) = default;
   Promise& operator=(Promise&& other) = default;
 
-  void RegisterForTask(FnEnumType op, const jni::Object& task) {
-    return RegisterForTask(op, task.get());
-  }
-
   void RegisterForTask(jni::Env& env, FnEnumType op, const jni::Object& task) {
     handle_ = completer_->Alloc(static_cast<int>(op));
 
