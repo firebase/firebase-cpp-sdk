@@ -30,6 +30,8 @@ namespace firebase {
 namespace firestore {
 
 using ::firebase::auth::Auth;
+using ::testing::ContainerEq;
+using ::testing::HasSubstr;
 
 TEST_F(FirestoreIntegrationTest, GetInstance) {
   // Create App.
@@ -91,6 +93,14 @@ TEST_F(FirestoreIntegrationTest, TestStubsReturnFailedFutures) {
 
 #else  // defined(FIRESTORE_STUB_BUILD)
 
+TEST_F(FirestoreIntegrationTest, TestCanReadNonExistentDocuments) {
+  DocumentReference doc = Collection("rooms").Document();
+
+  DocumentSnapshot snap = ReadDocument(doc);
+  ASSERT_FALSE(snap.exists());
+  EXPECT_THAT(snap.GetData(), ContainerEq(MapFieldValue()));
+}
+
 TEST_F(FirestoreIntegrationTest, TestCanUpdateAnExistingDocument) {
   DocumentReference document = Collection("rooms").Document("eros");
   Await(document.Set(MapFieldValue{
@@ -104,7 +114,7 @@ TEST_F(FirestoreIntegrationTest, TestCanUpdateAnExistingDocument) {
   DocumentSnapshot doc = ReadDocument(document);
   EXPECT_THAT(
       doc.GetData(),
-      testing::ContainerEq(MapFieldValue{
+      ContainerEq(MapFieldValue{
           {"desc", FieldValue::String("NewDescription")},
           {"owner",
            FieldValue::Map({{"name", FieldValue::String("Jonny")},
@@ -123,9 +133,8 @@ TEST_F(FirestoreIntegrationTest, TestCanUpdateAnUnknownDocument) {
   DocumentSnapshot writer_snapshot =
       *Await(writer_reference.Get(Source::kCache));
   EXPECT_TRUE(writer_snapshot.exists());
-  EXPECT_THAT(
-      writer_snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{{"a", FieldValue::String("a")}}));
+  EXPECT_THAT(writer_snapshot.GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::String("a")}}));
   EXPECT_TRUE(writer_snapshot.metadata().is_from_cache());
 
   Future<DocumentSnapshot> future = reader_reference.Get(Source::kCache);
@@ -133,14 +142,14 @@ TEST_F(FirestoreIntegrationTest, TestCanUpdateAnUnknownDocument) {
   EXPECT_EQ(Error::kErrorUnavailable, future.error());
 
   writer_snapshot = ReadDocument(writer_reference);
-  EXPECT_THAT(writer_snapshot.GetData(), testing::ContainerEq(MapFieldValue{
-                                             {"a", FieldValue::String("a")},
-                                             {"b", FieldValue::String("b")}}));
+  EXPECT_THAT(writer_snapshot.GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::String("a")},
+                                        {"b", FieldValue::String("b")}}));
   EXPECT_FALSE(writer_snapshot.metadata().is_from_cache());
   DocumentSnapshot reader_snapshot = ReadDocument(reader_reference);
-  EXPECT_THAT(reader_snapshot.GetData(), testing::ContainerEq(MapFieldValue{
-                                             {"a", FieldValue::String("a")},
-                                             {"b", FieldValue::String("b")}}));
+  EXPECT_THAT(reader_snapshot.GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::String("a")},
+                                        {"b", FieldValue::String("b")}}));
   EXPECT_FALSE(reader_snapshot.metadata().is_from_cache());
 }
 
@@ -158,7 +167,7 @@ TEST_F(FirestoreIntegrationTest, TestCanOverwriteAnExistingDocumentUsingSet) {
   DocumentSnapshot snapshot = ReadDocument(document);
   EXPECT_THAT(
       snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{
+      ContainerEq(MapFieldValue{
           {"updated", FieldValue::Boolean(true)},
           {"owner.data",
            FieldValue::Map({{"name", FieldValue::String("Sebastian")}})}}));
@@ -181,7 +190,7 @@ TEST_F(FirestoreIntegrationTest,
   DocumentSnapshot snapshot = ReadDocument(document);
   EXPECT_THAT(
       snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{
+      ContainerEq(MapFieldValue{
           {"desc", FieldValue::String("Description")},
           {"updated", FieldValue::Boolean(true)},
           {"owner.data",
@@ -212,25 +221,25 @@ TEST_F(FirestoreIntegrationTest, TestCanMergeEmptyObject) {
 
   document.Set(MapFieldValue{});
   DocumentSnapshot snapshot = accumulator.Await();
-  EXPECT_THAT(snapshot.GetData(), testing::ContainerEq(MapFieldValue{}));
+  EXPECT_THAT(snapshot.GetData(), ContainerEq(MapFieldValue{}));
 
   Await(document.Set(MapFieldValue{{"a", FieldValue::Map({})}},
                      SetOptions::MergeFields({"a"})));
   snapshot = accumulator.Await();
   EXPECT_THAT(snapshot.GetData(),
-              testing::ContainerEq(MapFieldValue{{"a", FieldValue::Map({})}}));
+              ContainerEq(MapFieldValue{{"a", FieldValue::Map({})}}));
 
   Await(document.Set(MapFieldValue{{"b", FieldValue::Map({})}},
                      SetOptions::Merge()));
   snapshot = accumulator.Await();
   EXPECT_THAT(snapshot.GetData(),
-              testing::ContainerEq(MapFieldValue{{"a", FieldValue::Map({})},
-                                                 {"b", FieldValue::Map({})}}));
+              ContainerEq(MapFieldValue{{"a", FieldValue::Map({})},
+                                        {"b", FieldValue::Map({})}}));
 
   snapshot = *Await(document.Get(Source::kServer));
   EXPECT_THAT(snapshot.GetData(),
-              testing::ContainerEq(MapFieldValue{{"a", FieldValue::Map({})},
-                                                 {"b", FieldValue::Map({})}}));
+              ContainerEq(MapFieldValue{{"a", FieldValue::Map({})},
+                                        {"b", FieldValue::Map({})}}));
   registration.Remove();
 }
 
@@ -278,7 +287,7 @@ TEST_F(FirestoreIntegrationTest, TestCanDeleteFieldUsingMergeFields) {
   DocumentSnapshot snapshot = ReadDocument(document);
   EXPECT_THAT(
       snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{
+      ContainerEq(MapFieldValue{
           {"untouched", FieldValue::Boolean(true)},
           {"inner", FieldValue::Map({})},
           {"nested",
@@ -325,7 +334,7 @@ TEST_F(FirestoreIntegrationTest, TestMergeReplacesArrays) {
   DocumentSnapshot snapshot = ReadDocument(document);
   EXPECT_THAT(
       snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{
+      ContainerEq(MapFieldValue{
           {"untouched", FieldValue::Boolean(true)},
           {"data", FieldValue::String("new")},
           {"topLevel", FieldValue::Array({FieldValue::String("new")})},
@@ -350,7 +359,7 @@ TEST_F(FirestoreIntegrationTest,
   DocumentSnapshot snapshot = ReadDocument(document);
   EXPECT_THAT(
       snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{
+      ContainerEq(MapFieldValue{
           {"desc", FieldValue::String("NewDescription")},
           {"owner.data",
            FieldValue::Map({{"name", FieldValue::String("Sebastian")},
@@ -389,7 +398,7 @@ TEST_F(FirestoreIntegrationTest, TestFieldsNotInFieldMaskAreIgnored) {
   DocumentSnapshot snapshot = ReadDocument(document);
   EXPECT_THAT(
       snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{
+      ContainerEq(MapFieldValue{
           {"desc", FieldValue::String("NewDescription")},
           {"owner",
            FieldValue::Map({{"name", FieldValue::String("Jonny")},
@@ -410,7 +419,7 @@ TEST_F(FirestoreIntegrationTest, TestFieldDeletesNotInFieldMaskAreIgnored) {
   DocumentSnapshot snapshot = ReadDocument(document);
   EXPECT_THAT(
       snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{
+      ContainerEq(MapFieldValue{
           {"desc", FieldValue::String("NewDescription")},
           {"owner",
            FieldValue::Map({{"name", FieldValue::String("Jonny")},
@@ -431,7 +440,7 @@ TEST_F(FirestoreIntegrationTest, TestFieldTransformsNotInFieldMaskAreIgnored) {
   DocumentSnapshot snapshot = ReadDocument(document);
   EXPECT_THAT(
       snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{
+      ContainerEq(MapFieldValue{
           {"desc", FieldValue::String("NewDescription")},
           {"owner",
            FieldValue::Map({{"name", FieldValue::String("Jonny")},
@@ -451,7 +460,7 @@ TEST_F(FirestoreIntegrationTest, TestCanSetEmptyFieldMask) {
   DocumentSnapshot snapshot = ReadDocument(document);
   EXPECT_THAT(
       snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{
+      ContainerEq(MapFieldValue{
           {"desc", FieldValue::String("Description")},
           {"owner",
            FieldValue::Map({{"name", FieldValue::String("Jonny")},
@@ -475,7 +484,7 @@ TEST_F(FirestoreIntegrationTest, TestCanSpecifyFieldsMultipleTimesInFieldMask) {
   DocumentSnapshot snapshot = ReadDocument(document);
   EXPECT_THAT(
       snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{
+      ContainerEq(MapFieldValue{
           {"desc", FieldValue::String("Description")},
           {"owner",
            FieldValue::Map({{"name", FieldValue::String("Sebastian")},
@@ -492,7 +501,7 @@ TEST_F(FirestoreIntegrationTest, TestCanDeleteAFieldWithAnUpdate) {
   Await(document.Update(MapFieldValue{{"owner.email", FieldValue::Delete()}}));
   DocumentSnapshot snapshot = ReadDocument(document);
   EXPECT_THAT(snapshot.GetData(),
-              testing::ContainerEq(MapFieldValue{
+              ContainerEq(MapFieldValue{
                   {"desc", FieldValue::String("Description")},
                   {"owner",
                    FieldValue::Map({{"name", FieldValue::String("Jonny")}})}}));
@@ -506,10 +515,10 @@ TEST_F(FirestoreIntegrationTest, TestCanUpdateFieldsWithDots) {
   Await(document.Update({{FieldPath{"a.b"}, FieldValue::String("new")}}));
   Await(document.Update({{FieldPath{"c.d"}, FieldValue::String("new")}}));
   DocumentSnapshot snapshot = ReadDocument(document);
-  EXPECT_THAT(snapshot.GetData(), testing::ContainerEq(MapFieldValue{
-                                      {"a.b", FieldValue::String("new")},
-                                      {"c.d", FieldValue::String("new")},
-                                      {"e.f", FieldValue::String("old")}}));
+  EXPECT_THAT(snapshot.GetData(),
+              ContainerEq(MapFieldValue{{"a.b", FieldValue::String("new")},
+                                        {"c.d", FieldValue::String("new")},
+                                        {"e.f", FieldValue::String("old")}}));
 }
 
 TEST_F(FirestoreIntegrationTest, TestCanUpdateNestedFields) {
@@ -522,7 +531,7 @@ TEST_F(FirestoreIntegrationTest, TestCanUpdateNestedFields) {
   Await(document.Update({{"c.d", FieldValue::String("new")}}));
   DocumentSnapshot snapshot = ReadDocument(document);
   EXPECT_THAT(snapshot.GetData(),
-              testing::ContainerEq(MapFieldValue{
+              ContainerEq(MapFieldValue{
                   {"a", FieldValue::Map({{"b", FieldValue::String("new")}})},
                   {"c", FieldValue::Map({{"d", FieldValue::String("new")}})},
                   {"e", FieldValue::Map({{"f", FieldValue::String("old")}})}}));
@@ -541,7 +550,7 @@ TEST_F(FirestoreIntegrationTest, TestCanUpdateFieldsWithMultipleDeletes) {
                          {FieldPath{"key3"}, FieldValue::Delete()},
                          {FieldPath{"key5"}, FieldValue::Delete()}}));
   DocumentSnapshot snapshot = ReadDocument(document);
-  EXPECT_THAT(snapshot.GetData(), testing::ContainerEq(MapFieldValue{
+  EXPECT_THAT(snapshot.GetData(), ContainerEq(MapFieldValue{
                                       {"key2", FieldValue::String("value2")},
                                       {"key4", FieldValue::String("value4")}}));
 }
@@ -550,8 +559,8 @@ TEST_F(FirestoreIntegrationTest, TestDeleteDocument) {
   DocumentReference document = Collection("rooms").Document("eros");
   WriteDocument(document, MapFieldValue{{"value", FieldValue::String("bar")}});
   DocumentSnapshot snapshot = ReadDocument(document);
-  EXPECT_THAT(snapshot.GetData(), testing::ContainerEq(MapFieldValue{
-                                      {"value", FieldValue::String("bar")}}));
+  EXPECT_THAT(snapshot.GetData(),
+              ContainerEq(MapFieldValue{{"value", FieldValue::String("bar")}}));
 
   Await(document.Delete());
   snapshot = ReadDocument(document);
@@ -587,9 +596,8 @@ TEST_F(FirestoreIntegrationTest,
   DocumentReference document = Collection("rooms").Document();
   Await(document.Set(MapFieldValue{{"foo", FieldValue::Double(1.0)}}));
   DocumentSnapshot snapshot = ReadDocument(document);
-  EXPECT_THAT(
-      snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{{"foo", FieldValue::Double(1.0)}}));
+  EXPECT_THAT(snapshot.GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::Double(1.0)}}));
 }
 
 TEST_F(FirestoreIntegrationTest,
@@ -754,9 +762,8 @@ TEST_F(FirestoreIntegrationTest, TestListenCanBeCalledMultipleTimes) {
 #else
   completed.Wait();
 #endif
-  EXPECT_THAT(
-      resulting_data.GetData(),
-      testing::ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
+  EXPECT_THAT(resulting_data.GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 }
 
@@ -783,14 +790,12 @@ TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotEventsForAdd) {
   WriteDocument(document, MapFieldValue{{"a", FieldValue::Double(1.0)}});
   Await(listener, 3);
   DocumentSnapshot snapshot = listener.last_result(1);
-  EXPECT_THAT(
-      snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
+  EXPECT_THAT(snapshot.GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
   EXPECT_TRUE(snapshot.metadata().has_pending_writes());
   snapshot = listener.last_result();
-  EXPECT_THAT(
-      snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
+  EXPECT_THAT(snapshot.GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 
   registration.Remove();
@@ -806,24 +811,21 @@ TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotEventsForChange) {
       listener.AttachTo(&document, MetadataChanges::kInclude);
   Await(listener);
   DocumentSnapshot snapshot = listener.last_result();
-  EXPECT_THAT(
-      snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
+  EXPECT_THAT(snapshot.GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
   EXPECT_FALSE(snapshot.metadata().is_from_cache());
 
   UpdateDocument(document, MapFieldValue{{"a", FieldValue::Double(2.0)}});
   Await(listener, 3);
   snapshot = listener.last_result(1);
-  EXPECT_THAT(
-      snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{{"a", FieldValue::Double(2.0)}}));
+  EXPECT_THAT(snapshot.GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::Double(2.0)}}));
   EXPECT_TRUE(snapshot.metadata().has_pending_writes());
   EXPECT_FALSE(snapshot.metadata().is_from_cache());
   snapshot = listener.last_result();
-  EXPECT_THAT(
-      snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{{"a", FieldValue::Double(2.0)}}));
+  EXPECT_THAT(snapshot.GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::Double(2.0)}}));
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
   EXPECT_FALSE(snapshot.metadata().is_from_cache());
 
@@ -841,9 +843,8 @@ TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotEventsForDelete) {
   Await(listener, 1);
   DocumentSnapshot snapshot = listener.last_result();
   EXPECT_TRUE(snapshot.exists());
-  EXPECT_THAT(
-      snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
+  EXPECT_THAT(snapshot.GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
   EXPECT_FALSE(snapshot.metadata().is_from_cache());
 
@@ -863,8 +864,7 @@ TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotErrorReporting) {
   Await(listener);
   EXPECT_EQ(1, listener.event_count());
   EXPECT_EQ(Error::kErrorInvalidArgument, listener.first_error_code());
-  EXPECT_THAT(listener.first_error_message(),
-              testing::HasSubstr("__badpath__"));
+  EXPECT_THAT(listener.first_error_message(), HasSubstr("__badpath__"));
   EXPECT_FALSE(listener.last_result().exists());
   registration.Remove();
 }
@@ -882,15 +882,13 @@ TEST_F(FirestoreIntegrationTest, TestQuerySnapshotEventsForAdd) {
   Await(listener, 3);
   QuerySnapshot snapshot = listener.last_result(1);
   EXPECT_EQ(1, snapshot.size());
-  EXPECT_THAT(
-      snapshot.documents()[0].GetData(),
-      testing::ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
+  EXPECT_THAT(snapshot.documents()[0].GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
   EXPECT_TRUE(snapshot.metadata().has_pending_writes());
   snapshot = listener.last_result();
   EXPECT_EQ(1, snapshot.size());
-  EXPECT_THAT(
-      snapshot.documents()[0].GetData(),
-      testing::ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
+  EXPECT_THAT(snapshot.documents()[0].GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 
   registration.Remove();
@@ -907,24 +905,21 @@ TEST_F(FirestoreIntegrationTest, TestQuerySnapshotEventsForChange) {
   Await(listener);
   QuerySnapshot snapshot = listener.last_result();
   EXPECT_EQ(1, snapshot.size());
-  EXPECT_THAT(
-      snapshot.documents()[0].GetData(),
-      testing::ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
+  EXPECT_THAT(snapshot.documents()[0].GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 
   WriteDocument(document, MapFieldValue{{"a", FieldValue::Double(2.0)}});
   Await(listener, 3);
   snapshot = listener.last_result(1);
   EXPECT_EQ(1, snapshot.size());
-  EXPECT_THAT(
-      snapshot.documents()[0].GetData(),
-      testing::ContainerEq(MapFieldValue{{"a", FieldValue::Double(2.0)}}));
+  EXPECT_THAT(snapshot.documents()[0].GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::Double(2.0)}}));
   EXPECT_TRUE(snapshot.metadata().has_pending_writes());
   snapshot = listener.last_result();
   EXPECT_EQ(1, snapshot.size());
-  EXPECT_THAT(
-      snapshot.documents()[0].GetData(),
-      testing::ContainerEq(MapFieldValue{{"a", FieldValue::Double(2.0)}}));
+  EXPECT_THAT(snapshot.documents()[0].GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::Double(2.0)}}));
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 
   registration.Remove();
@@ -941,9 +936,8 @@ TEST_F(FirestoreIntegrationTest, TestQuerySnapshotEventsForDelete) {
   Await(listener);
   QuerySnapshot snapshot = listener.last_result();
   EXPECT_EQ(1, snapshot.size());
-  EXPECT_THAT(
-      snapshot.documents()[0].GetData(),
-      testing::ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
+  EXPECT_THAT(snapshot.documents()[0].GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 
   DeleteDocument(document);
@@ -963,8 +957,7 @@ TEST_F(FirestoreIntegrationTest, TestQuerySnapshotErrorReporting) {
   Await(listener);
   EXPECT_EQ(1, listener.event_count());
   EXPECT_EQ(Error::kErrorInvalidArgument, listener.first_error_code());
-  EXPECT_THAT(listener.first_error_message(),
-              testing::HasSubstr("__badpath__"));
+  EXPECT_THAT(listener.first_error_message(), HasSubstr("__badpath__"));
   EXPECT_TRUE(listener.last_result().empty());
   registration.Remove();
 }
@@ -976,14 +969,12 @@ TEST_F(FirestoreIntegrationTest,
   ListenerRegistration registration = listener.AttachTo(&document);
   WriteDocument(document, MapFieldValue{{"a", FieldValue::Double(1.0)}});
   Await(listener);
-  EXPECT_THAT(
-      listener.last_result().GetData(),
-      testing::ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
+  EXPECT_THAT(listener.last_result().GetData(),
+              ContainerEq(MapFieldValue{{"a", FieldValue::Double(1.0)}}));
   WriteDocument(document, MapFieldValue{{"b", FieldValue::Double(1.0)}});
   Await(listener);
-  EXPECT_THAT(
-      listener.last_result().GetData(),
-      testing::ContainerEq(MapFieldValue{{"b", FieldValue::Double(1.0)}}));
+  EXPECT_THAT(listener.last_result().GetData(),
+              ContainerEq(MapFieldValue{{"b", FieldValue::Double(1.0)}}));
   registration.Remove();
 }
 
@@ -1101,7 +1092,7 @@ TEST_F(FirestoreIntegrationTest, TestCanQueueWritesWhileOffline) {
   DocumentSnapshot snapshot = ReadDocument(document);
   EXPECT_THAT(
       snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{
+      ContainerEq(MapFieldValue{
           {"desc", FieldValue::String("Description")},
           {"owner",
            FieldValue::Map({{"name", FieldValue::String("Sebastian")},
@@ -1127,7 +1118,7 @@ TEST_F(FirestoreIntegrationTest, TestCanGetDocumentsWhileOffline) {
   DocumentSnapshot snapshot = ReadDocument(document);
   EXPECT_THAT(
       snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{
+      ContainerEq(MapFieldValue{
           {"desc", FieldValue::String("Description")},
           {"owner",
            FieldValue::Map({{"name", FieldValue::String("Sebastian")},
@@ -1140,7 +1131,7 @@ TEST_F(FirestoreIntegrationTest, TestCanGetDocumentsWhileOffline) {
   snapshot = ReadDocument(document);
   EXPECT_THAT(
       snapshot.GetData(),
-      testing::ContainerEq(MapFieldValue{
+      ContainerEq(MapFieldValue{
           {"desc", FieldValue::String("Description")},
           {"owner",
            FieldValue::Map({{"name", FieldValue::String("Sebastian")},
@@ -1305,9 +1296,8 @@ TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewInstance) {
   DocumentReference doc2 = db2->Document(doc_path);
   const DocumentSnapshot* snapshot2 = Await(doc2.Get(Source::kCache));
   ASSERT_NE(snapshot2, nullptr);
-  EXPECT_THAT(
-      snapshot2->GetData(),
-      testing::ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
+  EXPECT_THAT(snapshot2->GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
 
   delete db2;
   delete db1;
@@ -1388,9 +1378,8 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceTestHarnessVerification) {
   DocumentReference document_2 = db_2->Document(path);
   Future<DocumentSnapshot> get_future = document_2.Get(Source::kCache);
   DocumentSnapshot snapshot_2 = *Await(get_future);
-  EXPECT_THAT(
-      snapshot_2.GetData(),
-      testing::ContainerEq(MapFieldValue{{"foo", FieldValue::Integer(42)}}));
+  EXPECT_THAT(snapshot_2.GetData(),
+              ContainerEq(MapFieldValue{{"foo", FieldValue::Integer(42)}}));
 }
 
 TEST_F(FirestoreIntegrationTest, CanClearPersistenceAfterRestarting) {

@@ -85,6 +85,13 @@ MapFieldValue DocumentSnapshotInternal::GetData(
   Env env = GetEnv();
   Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
   Local<Object> java_data = env.Call(obj_, kGetData, java_stb);
+
+  if (!java_data) {
+    // If the document doesn't exist, Android returns a null Map. In C++, the
+    // map is returned by value, so translate this case to an empty map.
+    return MapFieldValue();
+  }
+
   return FieldValueInternal(java_data).map_value();
 }
 
