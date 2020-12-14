@@ -653,7 +653,7 @@ jobs:
         python-version: '3.7'
     - name: Add msbuild to PATH (windows)
       if: runner.os == 'Windows'
-      uses: microsoft/setup-msbuild@v1.0.1
+      uses: microsoft/setup-msbuild@v1.0.2
     - name: Prepare for integration tests
       run: |
         pip install -r scripts/gha/requirements.txt
