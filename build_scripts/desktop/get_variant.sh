@@ -32,7 +32,7 @@ debugmode=Release
 msvc_runtime_library=MD
 vs=VS2015
 stl=c++
-abi_linux=legacy
+linux_abi=legacy
 
 for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
     case $c in
