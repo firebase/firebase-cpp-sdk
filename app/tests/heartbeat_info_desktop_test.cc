@@ -22,7 +22,7 @@
 #include <vector>
 
 #include "app/src/heartbeat_date_storage_desktop.h"
-#include "testing/base/public/gmock.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace firebase {
