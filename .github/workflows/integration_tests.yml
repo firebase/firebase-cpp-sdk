@@ -28,7 +28,7 @@ on:
         description: 'iOS device version'
         default: '13.3'
       desktop_ssl_variants:
-        description: 'Which SSL variants to build desktop SDK with'
+        description: 'SSL variants to use on desktop'
         default: 'openssl,boringssl'
         required: true
 
