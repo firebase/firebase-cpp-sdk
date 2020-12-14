@@ -15,6 +15,10 @@ on:
         description: 'CSV of VMs to run on'
         default: 'ubuntu-latest,windows-latest,macos-latest'
         required: true
+      desktop_ssl_variants:
+        description: 'CSV of desktop SSL variants to use'
+        default: 'openssl,boringssl'
+        required: true
       android_device:
         description: 'Android device model'
         default: 'flame'
@@ -36,6 +40,7 @@ jobs:
     outputs:
       matrix_os: ${{ steps.set-matrix-os.outputs.matrix_os }}
       matrix_platform: ${{ steps.set-matrix-os.outputs.matrix_platform }}
+      matrix_ssl: ${{ steps.set-matrix-os.outputs.matrix_ssl }}
     steps:
     - id: set-matrix-os
       # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
@@ -44,8 +49,10 @@ jobs:
         echo "::set-output name=matrix_os::${OS_JSON}"
         PLATFORM_JSON=[\"$(echo ${{ github.event.inputs.platforms }} | sed 's/,/","/g')\"]
         echo "::set-output name=matrix_platform::${PLATFORM_JSON}"
+        SSL_JSON=[\"$(echo ${{ github.event.inputs.desktop_ssl_variants }} | sed 's/,/","/g')\"]
+        echo "::set-output name=matrix_ssl::${SSL_JSON}"
   tests:
-    name: ${{ matrix.os }}-${{ matrix.target_platform }}
+    name: ${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
     needs: prepare_matrix
     runs-on: ${{ matrix.os }}
     strategy:
@@ -53,11 +60,16 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
         target_platform: ${{ fromJson(needs.prepare_matrix.outputs.matrix_platform) }}
+        ssl_variant: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ssl) }}
         exclude:
           - os: ubuntu-latest
             target_platform: iOS
           - os: windows-latest
             target_platform: iOS
+          - target_platform: iOS
+            ssl_variant: boringssl
+          - target_platform: Android
+            ssl_variant: boringssl
 
     steps:
       - uses: actions/checkout@v2
@@ -118,7 +130,12 @@ jobs:
 
       - name: Build integration tests
         run: |
-          python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --use_vcpkg --noadd_timestamp
+          # Default SSL is openssl.
+          ssl_option=
+          if [[ "${{ matrix.ssl_variant }}" == "boringssl" ]]; then
+            ssl_option=--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON
+          fi
+          python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --use_vcpkg --noadd_timestamp ${ssl_option}
 
       - name: Run desktop integration tests
         if: matrix.target_platform == 'Desktop' && !cancelled()

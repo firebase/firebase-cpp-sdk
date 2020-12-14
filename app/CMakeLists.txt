@@ -325,11 +325,13 @@ target_compile_definitions(firebase_app
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
 )
+
 # firebase_app has a dependency on flatbuffers, which needs to be included.
 target_link_libraries(firebase_app
   PRIVATE
     flatbuffers
     ${LIBSECRET_LIBRARIES}
+    ${ADDITIONAL_LIBS}
 )
 # Automatically include headers that might not be declared.
 if(MSVC)
