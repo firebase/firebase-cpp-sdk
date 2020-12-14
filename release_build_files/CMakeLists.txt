@@ -51,7 +51,8 @@ elseif(MSVC)
 else()
   # Check whether we are building with CXX11 ABI.
   get_directory_property(CURR_DIRECTORY_DEFS COMPILE_DEFINITIONS)
-  if ("${CURR_DIRECTORY_DEFS}" MATCHES "_GLIBCXX_USE_CXX11_ABI=0")
+  if ("${CURR_DIRECTORY_DEFS}" MATCHES "_GLIBCXX_USE_CXX11_ABI=0" OR
+      "${CMAKE_CXX_FLAGS}" MATCHES "-D_GLIBCXX_USE_CXX11_ABI=0")
     set(DISABLE_CXX11 TRUE)
     set(LINUX_ABI legacy)
   else()
