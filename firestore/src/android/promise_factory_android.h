@@ -36,15 +36,21 @@ class PromiseFactory {
   // This can be used to implement APIs that return Futures of some public type.
   // Use MakePromise<void, void>() to create a Future<void>.
   template <typename PublicT, typename InternalT = InternalType<PublicT>>
-  Promise<PublicT, InternalT, EnumT> MakePromise() {
-    return Promise<PublicT, InternalT, EnumT>{future_api(), firestore_};
+  Promise<PublicT, InternalT, EnumT> MakePromise(
+      typename Promise<PublicT, InternalT, EnumT>::Completion* completion =
+          nullptr) {
+    return Promise<PublicT, InternalT, EnumT>{future_api(), firestore_,
+                                              completion};
   }
 
   template <typename PublicT, typename InternalT = InternalType<PublicT>>
-  Future<PublicT> NewFuture(jni::Env& env, EnumT op, const jni::Object& task) {
+  Future<PublicT> NewFuture(
+      jni::Env& env, EnumT op, const jni::Object& task,
+      typename Promise<PublicT, InternalT, EnumT>::Completion* completion =
+          nullptr) {
     if (!env.ok()) return {};
 
-    auto promise = MakePromise<PublicT, InternalT>();
+    auto promise = MakePromise<PublicT, InternalT>(completion);
     promise.RegisterForTask(env, op, task);
     return promise.GetFuture();
   }

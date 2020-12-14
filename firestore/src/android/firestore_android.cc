@@ -25,7 +25,7 @@
 #include "firestore/src/android/lambda_transaction_function.h"
 #include "firestore/src/android/listener_registration_android.h"
 #include "firestore/src/android/metadata_changes_android.h"
-#include "firestore/src/android/promise_android.h"
+#include "firestore/src/android/promise_factory_android.h"
 #include "firestore/src/android/query_android.h"
 #include "firestore/src/android/query_snapshot_android.h"
 #include "firestore/src/android/server_timestamp_behavior_android.h"
@@ -213,7 +213,7 @@ FirestoreInternal::FirestoreInternal(App* app) {
   FIREBASE_ASSERT(java_user_callback_executor.get() != nullptr);
   user_callback_executor_ = java_user_callback_executor;
 
-  future_manager_.AllocFutureApi(this, static_cast<int>(AsyncFn::kCount));
+  promises_ = MakeUnique<PromiseFactory<AsyncFn>>(this);
 }
 
 /* static */
@@ -314,7 +314,7 @@ FirestoreInternal::~FirestoreInternal() {
   Env env = GetEnv();
   ShutdownUserCallbackExecutor(env);
 
-  future_manager_.ReleaseFutureApi(this);
+  promises_.reset(nullptr);
 
   java_firestores_->Remove(env, obj_);
 
@@ -378,13 +378,11 @@ Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update,
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   auto* completion =
       static_cast<LambdaTransactionFunction*>(is_lambda ? update : nullptr);
-  Promise<void, void, AsyncFn> promise(ref_future(), this, completion);
+  return promises_->NewFuture<void>(env, AsyncFn::kRunTransaction, task,
+                                    completion);
 #else  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
-  Promise<void, void, AsyncFn> promise(ref_future(), this);
+  return promises_->NewFuture<void>(env, AsyncFn::kRunTransaction, task);
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
-
-  promise.RegisterForTask(env, AsyncFn::kRunTransaction, task);
-  return promise.GetFuture();
 }
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
@@ -398,31 +396,31 @@ Future<void> FirestoreInternal::RunTransaction(
 Future<void> FirestoreInternal::DisableNetwork() {
   Env env = GetEnv();
   Local<Object> task = env.Call(obj_, kDisableNetwork);
-  return NewFuture(env, AsyncFn::kDisableNetwork, task);
+  return promises_->NewFuture<void>(env, AsyncFn::kDisableNetwork, task);
 }
 
 Future<void> FirestoreInternal::EnableNetwork() {
   Env env = GetEnv();
   Local<Object> task = env.Call(obj_, kEnableNetwork);
-  return NewFuture(env, AsyncFn::kEnableNetwork, task);
+  return promises_->NewFuture<void>(env, AsyncFn::kEnableNetwork, task);
 }
 
 Future<void> FirestoreInternal::Terminate() {
   Env env = GetEnv();
   Local<Object> task = env.Call(obj_, kTerminate);
-  return NewFuture(env, AsyncFn::kTerminate, task);
+  return promises_->NewFuture<void>(env, AsyncFn::kTerminate, task);
 }
 
 Future<void> FirestoreInternal::WaitForPendingWrites() {
   Env env = GetEnv();
   Local<Object> task = env.Call(obj_, kWaitForPendingWrites);
-  return NewFuture(env, AsyncFn::kWaitForPendingWrites, task);
+  return promises_->NewFuture<void>(env, AsyncFn::kWaitForPendingWrites, task);
 }
 
 Future<void> FirestoreInternal::ClearPersistence() {
   Env env = GetEnv();
   Local<Object> task = env.Call(obj_, kClearPersistence);
-  return NewFuture(env, AsyncFn::kClearPersistence, task);
+  return promises_->NewFuture<void>(env, AsyncFn::kClearPersistence, task);
 }
 
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
