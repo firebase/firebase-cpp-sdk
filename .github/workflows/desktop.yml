@@ -88,6 +88,7 @@ jobs:
           python scripts/gha/install_prereqs_desktop.py
 
       - name: Build SDK
+        shell: bash
         run: |
           python scripts/gha/build_desktop.py --build_tests --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}"
 
