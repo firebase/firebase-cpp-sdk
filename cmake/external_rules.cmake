@@ -52,6 +52,7 @@ function(download_external_sources)
       set(DOWNLOAD_${NAME} ON PARENT_SCOPE)
     endif()
   endfunction()
+  check_use_local_directory(BORINGSSL)
   check_use_local_directory(CURL)
   check_use_local_directory(FLATBUFFERS)
   check_use_local_directory(LIBUV)
@@ -66,6 +67,7 @@ function(download_external_sources)
       -DCMAKE_INSTALL_PREFIX=${FIREBASE_INSTALL_DIR}
       -DFIREBASE_DOWNLOAD_DIR=${FIREBASE_DOWNLOAD_DIR}
       -DFIREBASE_EXTERNAL_PLATFORM=${external_platform}
+      -DDOWNLOAD_BORINGSSL=${DOWNLOAD_BORINGSSL}
       -DDOWNLOAD_CURL=${DOWNLOAD_CURL}
       -DDOWNLOAD_FLATBUFFERS=${DOWNLOAD_FLATBUFFERS}
       -DDOWNLOAD_GOOGLETEST=${FIREBASE_CPP_BUILD_TESTS}
@@ -90,6 +92,158 @@ function(download_external_sources)
     OUTPUT_FILE ${PROJECT_BINARY_DIR}/external/output_cmake_build.txt
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external
   )
+
+  # On desktop, make a few tweaks to the downloaded files.
+  if(NOT ANDROID AND NOT IOS)
+    if (FIREBASE_USE_BORINGSSL)
+      # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL
+      # unless the header file contains OPENSSL_VERSION_NUMBER.
+      file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
+      if (NOT TMP_HEADER_CONTENTS MATCHES OPENSSL_VERSION_NUMBER)
+        file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h
+        "\n#ifndef OPENSSL_VERSION_NUMBER\n# define OPENSSL_VERSION_NUMBER  0x10010107L\n#endif\n")
+      endif()
+      # Also add an #include <stdlib.h> since openssl has it and boringssl
+      # doesn't, and some of our code depends on the transitive dependency (this
+      # is a bug).
+      file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/rand.h TMP_HEADER2_CONTENTS)
+      if (NOT TMP_HEADER2_CONTENTS MATCHES "<stdlib.h>")
+        file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/rand.h
+        "\n#include <stdlib.h>\n")
+      endif()
+    endif()
+  endif()
+endfunction()
+
+# Builds a subset of external dependencies that need to be built before everything else.
+function(build_external_dependencies)
+  # Setup cmake environment.
+  # These commands are executed from within the currect context, which has set
+  # variables for the target platform. We use "env -i" to clear these
+  # variables, and manually keep the PATH to regular bash path.
+  if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+    # Windows doesn't have an 'env' command
+    set(ENV_COMMAND "")
+  else()
+    set(firebase_command_line_path "$ENV{PATH}")
+    set(firebase_command_line_home "$ENV{HOME}")
+    set(ENV_COMMAND env -i PATH=${firebase_command_line_path} HOME=${firebase_command_line_home} )
+  endif()
+
+  message(STATUS "CMake generator: ${CMAKE_GENERATOR}")
+  message(STATUS "CMake generator platform: ${CMAKE_GENERATOR_PLATFORM}")
+  message(STATUS "CMake toolchain file: ${CMAKE_TOOLCHAIN_FILE}")
+
+  set(CMAKE_SUB_CONFIGURE_OPTIONS -G "${CMAKE_GENERATOR}")
+  set(CMAKE_SUB_BUILD_OPTIONS)
+
+  if (CMAKE_BUILD_TYPE)
+    # If Release or Debug were specified, pass it along.
+    set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+        -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
+  endif()
+  
+  if(APPLE)
+    # Propagate MacOS build flags.
+    if(CMAKE_OSX_ARCHITECTURES)
+      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+          -DCMAKE_OSX_ARCHITECTURES="${CMAKE_OSX_ARCHITECTURES}")
+    endif()
+  elseif(MSVC)
+    # Propagate MSVC build flags.
+    set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+        -A "${CMAKE_GENERATOR_PLATFORM}")
+    if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+      set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS}
+          --config Debug)
+    else()
+      set(CMAKE_SUB_BUILD_OPTIONS ${CMAKE_SUB_BUILD_OPTIONS}
+          --config Release)
+    endif()
+    if(MSVC_RUNTIME_LIBRARY_STATIC)
+      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+          -DCMAKE_C_FLAGS_RELEASE="/MT"
+          -DCMAKE_CXX_FLAGS_RELEASE="/MT"
+          -DCMAKE_C_FLAGS_DEBUG="/MTd"
+          -DCMAKE_CXX_FLAGS_DEBUG="/MTd")
+      if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_C_FLAGS="/MTd"
+            -DCMAKE_CXX_FLAGS="/MTd"
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebug)
+      else()
+        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_C_FLAGS="/MT"
+            -DCMAKE_CXX_FLAGS="/MT"
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded)
+      endif()
+    else()  # dynamic (DLL) runtime
+      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+          -DCMAKE_C_FLAGS_RELEASE="/MD"
+          -DCMAKE_CXX_FLAGS_RELEASE="/MD"
+          -DCMAKE_C_FLAGS_DEBUG="/MDd"
+          -DCMAKE_CXX_FLAGS_DEBUG="/MDd")
+      if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_C_FLAGS="/MDd"
+            -DCMAKE_CXX_FLAGS="/MDd"
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDebugDLL)
+      else()
+        set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+            -DCMAKE_C_FLAGS="/MD"
+            -DCMAKE_CXX_FLAGS="/MD"
+            -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreadedDLL)
+      endif()
+    endif()
+  else()
+    # Propagate Linux build flags.
+    if("${CMAKE_CXX_FLAGS}" MATCHES "-D_GLIBCXX_USE_CXX11_ABI=0")
+      set(SUBBUILD_USE_CXX11_ABI 0)
+    else()
+      set(SUBBUILD_USE_CXX11_ABI 1)
+    endif()
+    set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+          -DCMAKE_C_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}"
+          -DCMAKE_CXX_FLAGS="-D_GLIBCXX_USE_CXX11_ABI=${SUBBUILD_USE_CXX11_ABI}")
+    if(CMAKE_TOOLCHAIN_FILE)
+      set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+          -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE})
+    endif()
+  endif()
+  message(STATUS "Sub-configure options: ${CMAKE_SUB_CONFIGURE_OPTIONS}")
+  message(STATUS "Sub-build options: ${CMAKE_SUB_BUILD_OPTIONS}")
+
+  if(NOT ANDROID AND NOT IOS)
+    if (FIREBASE_USE_BORINGSSL)
+      execute_process(
+        COMMAND ${ENV_COMMAND} cmake -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUB_CONFIGURE_OPTIONS} ../boringssl/src
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
+        RESULT_VARIABLE boringssl_configure_status
+      )
+      if (boringssl_configure_status AND NOT boringssl_configure_status EQUAL 0)
+        message(FATAL_ERROR "BoringSSL configure failed: ${boringssl_configure_status}")
+      endif()
+    
+      # Run builds in parallel if we know how
+      if(CMAKE_GENERATOR STREQUAL "Unix Makefiles")
+        set(cmake_build_args -j)
+      endif()
+    
+      execute_process(
+        COMMAND ${ENV_COMMAND} cmake --build . ${CMAKE_SUB_BUILD_OPTIONS} --target ssl crypto -- ${cmake_build_args}
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
+        RESULT_VARIABLE boringssl_build_status
+      )
+      if (boringssl_build_status AND NOT boringssl_build_status EQUAL 0)
+        message(FATAL_ERROR "BoringSSL build failed: ${boringssl_build_status}")
+      endif()
+  
+      # Also copy the built files into OPENSSL_ROOT_DIR to handle misconfigured
+      # subprojects.
+      file(INSTALL "${OPENSSL_CRYPTO_LIBRARY}" DESTINATION "${OPENSSL_ROOT_DIR}")
+      file(INSTALL "${OPENSSL_SSL_LIBRARY}" DESTINATION "${OPENSSL_ROOT_DIR}")
+    endif()
+  endif()
 endfunction()
 
 # Populates directory variables for the given name to the location that name
@@ -121,6 +275,9 @@ function(add_external_library NAME)
 
   if (EXISTS "${${UPPER_NAME}_SOURCE_DIR}/CMakeLists.txt")
     add_subdirectory(${${UPPER_NAME}_SOURCE_DIR} ${${UPPER_NAME}_BINARY_DIR}
+            EXCLUDE_FROM_ALL)
+  elseif (EXISTS "${${UPPER_NAME}_SOURCE_DIR}/src/CMakeLists.txt")
+    add_subdirectory(${${UPPER_NAME}_SOURCE_DIR}/src ${${UPPER_NAME}_BINARY_DIR}
             EXCLUDE_FROM_ALL)
   endif()
 endfunction()

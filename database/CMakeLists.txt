@@ -172,9 +172,10 @@ else()
   set(additional_link_LIB
       flatbuffers
       firebase_rest_lib
-      ${OPENSSL_CRYPTO_LIBRARY}
       leveldb
-      libuWS)
+      libuWS
+      OpenSSL::SSL
+      OpenSSL::Crypto)
 
   set(additional_DEFINES
       -DFIREBASE_TARGET_DESKTOP=1)

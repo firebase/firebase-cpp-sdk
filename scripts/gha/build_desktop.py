@@ -55,14 +55,22 @@ def append_line_to_file(path, line):
     with open(path, "a") as file:
       file.write("\n" + line + "\n")
 
+
 def install_x86_support_libraries():
   """Install support libraries needed to build x86 on x86_64 hosts."""
   if utils.is_linux_os():
-    utils.run_command(['apt', 'install', 'gcc-multilib', 'g++-multilib'], as_root=True)
-    utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True)
-    utils.run_command(['apt', 'update'], as_root=True)
-    utils.run_command(['apt', 'install', 'libglib2.0-dev:i386'], as_root=True)
-    utils.run_command(['apt', 'install', 'libsecret-1-dev:i386'], as_root=True)
+    packages = ['gcc-multilib', 'g++-multilib', 'libglib2.0-dev:i386', 'libsecret-1-dev:i386']
+
+    # First check if these packages exist on the machine already
+    devnull = open(os.devnull, "w")
+    process = subprocess.run(["dpkg", "-s"] + packages, stdout=devnull, stderr=subprocess.STDOUT)
+    devnull.close()
+    if process.returncode != 0:
+      # This implies not all of the required packages are already installed on user's machine
+      # Install them.
+      utils.run_command(['dpkg', '--add-architecture', 'i386'], as_root=True)
+      utils.run_command(['apt', 'update'], as_root=True)
+      utils.run_command(['apt', 'install'] + packages, as_root=True)
 
 
 def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
@@ -186,6 +194,8 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static',
 
   if (target_format):
     cmd.append('-DFIREBASE_XCODE_TARGET_FORMAT={0}'.format(target_format))
+
+  cmd.append('-DFIREBASE_USE_BORINGSSL=ON')
   utils.run_command(cmd)
 
 def main():
