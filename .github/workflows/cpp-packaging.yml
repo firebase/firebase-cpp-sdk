@@ -584,17 +584,19 @@ jobs:
         name: |
           packaging-tools-darwin
           packaging-tools-linux
-          firebase-cpp-sdk-windows-x86-Release-dynamic-build
-          firebase-cpp-sdk-windows-x64-Release-dynamic-build
-          firebase-cpp-sdk-windows-x86-Debug-dynamic-build
-          firebase-cpp-sdk-windows-x64-Debug-dynamic-build
-          firebase-cpp-sdk-windows-x86-Release-static-build
-          firebase-cpp-sdk-windows-x64-Release-static-build
-          firebase-cpp-sdk-windows-x86-Debug-static-build
-          firebase-cpp-sdk-windows-x64-Debug-static-build
-          firebase-cpp-sdk-linux-x86-Release-static-build
-          firebase-cpp-sdk-linux-x64-Release-static-build
-          firebase-cpp-sdk-darwin-x64-Release-static-build
+          firebase-cpp-sdk-windows-x86-Release-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x64-Release-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x86-Debug-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x64-Debug-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x86-Release-static-legacy-build
+          firebase-cpp-sdk-windows-x64-Release-static-legacy-build
+          firebase-cpp-sdk-windows-x86-Debug-static-legacy-build
+          firebase-cpp-sdk-windows-x64-Debug-static-legacy-build
+          firebase-cpp-sdk-linux-x86-Release-static-legacy-build
+          firebase-cpp-sdk-linux-x64-Release-static-legacy-build
+          firebase-cpp-sdk-linux-x86-Release-static-c++11-build
+          firebase-cpp-sdk-linux-x64-Release-static-c++11-build
+          firebase-cpp-sdk-darwin-x64-Release-static-legacy-build
           firebase-cpp-sdk-windows-x86-Release-dynamic-package
           firebase-cpp-sdk-windows-x64-Release-dynamic-package
           firebase-cpp-sdk-windows-x86-Debug-dynamic-package
