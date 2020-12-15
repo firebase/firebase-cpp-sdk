@@ -28,7 +28,7 @@ set(ios_SRCS
 
 # Source files used by the desktop implementation.
 set(desktop_SRCS
-    src/desktop/installations_stub.cc)
+    src/stub/installations_stub.cc)
 
 if(ANDROID)
   set(installations_platform_SRCS
