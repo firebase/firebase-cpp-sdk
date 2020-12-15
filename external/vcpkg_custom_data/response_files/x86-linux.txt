@@ -1,4 +1,3 @@
-openssl
 protobuf
 zlib
 --triplet
