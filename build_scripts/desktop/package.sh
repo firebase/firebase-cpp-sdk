@@ -149,26 +149,28 @@ fi
 
 # Library dependencies to merge. Each should be a whitespace-delimited list of path globs.
 readonly deps_firebase_app="
-*/${prefix}firebase_instance_id*${suffix}.${ext}
-*/${prefix}firebase_rest_lib${suffix}.${ext}
+*/${prefix}firebase_instance_id*.${ext}
+*/${prefix}firebase_rest_lib.${ext}
 "
 readonly deps_hidden_firebase_app="
-*/${subdir}${prefix}curl${suffix}.${ext}
-*/${subdir}${prefix}flatbuffers${suffix}.${ext}
+*/curl-build/lib/${subdir}libcurl${suffix}.${ext}
+*/${subdir}${prefix}flatbuffers.${ext}
 */zlib-build/${subdir}${prefix}z.${ext}
 */zlib-build/${subdir}zlibstatic*.${ext}
-*/vcpkg-libs/libcrypto.${ext}
-*/vcpkg-libs/libssl.${ext}
+*/boringssl-build/crypto/${subdir}${prefix}crypto.${ext}
+*/boringssl-build/ssl/${subdir}${prefix}ssl.${ext}
 */firestore-build/*/leveldb-build*/${prefix}*.${ext}
 */firestore-build/*/nanopb-build*/${prefix}*.${ext}
 "
 readonly deps_hidden_firebase_database="
-*/${subdir}${prefix}uv_a${suffix}.${ext}
-*/${subdir}${prefix}libuWS${suffix}.${ext}
+*/${subdir}${prefix}uv_a.${ext}
+*/${subdir}${prefix}libuWS.${ext}
 "
 readonly deps_hidden_firebase_firestore="
 */firestore-build/Firestore/*/${prefix}*.${ext}
-*/firestore-build/*/grpc-build*/${prefix}*.${ext}
+*/firestore-build/*/grpc-build/${subdir}${prefix}*.${ext}
+*/firestore-build/*/grpc-build/third_party/cares/*${subdir}${prefix}*.${ext}
+*/firestore-build/*/grpc-build/third_party/abseil-cpp/*${subdir}${prefix}*.${ext}
 "
 
 # List of C++ namespaces to be renamed, so as to not conflict with the
@@ -281,13 +283,31 @@ for product in ${product_list[*]}; do
 	    deps_hidden+="${found}"
 	done
     done
+    if [[ "${product}" != "app" ]]; then
+      # For any library other than app, also rename some symbols that were already renamed in app
+      # that are used by other libraries (e.g. zlib is used in Firestore).
+      for dep in ${deps_hidden_firebase_app}; do
+        for found in $(find . -path ${dep}); do
+          if [[ ! -z ${deps_hidden} ]]; then deps_hidden+=","; fi
+          deps_hidden+="${found}"
+        done
+      done
+    fi
     echo -n "${libfile_out}"
     if [[ ! -z ${deps_basenames[*]} ]]; then
-	echo -n " <- ${deps_basenames[*]}"
+	echo -n " <- ${deps[*]}"
     fi
     echo
     outfile="${full_output_path}/${libfile_out}"
     rm -f "${outfile}"
+    if [[ ${verbose} -eq 1 ]]; then
+      echo "${python_cmd}" "${merge_libraries_script}" \
+		    ${merge_libraries_params[*]} \
+		    --output="${outfile}" \
+		    --scan_libs="${allfiles}" \
+		    --hide_c_symbols="${deps_hidden}" \
+		    ${libfile_src} ${deps[*]}
+    fi
     "${python_cmd}" "${merge_libraries_script}" \
 		    ${merge_libraries_params[*]} \
 		    --output="${outfile}" \
@@ -296,3 +316,9 @@ for product in ${product_list[*]}; do
 		    ${libfile_src} ${deps[*]}
 done
 cd "${run_path}"
+
+# Copy Firestore core headers into the package's include directory.
+mkdir -p "${output_package_path}/include/firebase/firestore"
+cp -av \
+   "${built_sdk_path}/external/src/firestore/Firestore/core/include/firebase/firestore/"* \
+   "${output_package_path}/include/firebase/firestore"

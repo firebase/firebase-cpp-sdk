@@ -69,8 +69,8 @@ jobs:
           binutils_version: "2.35.1"
         - os: macos-latest
           tools_platform: darwin
-          # On Mac, use an older Binutils to avoid corrupted libraries.
-          binutils_version: "2.28.1"
+          # Binutils 2.35.1 released Sep 19, 2020
+          binutils_version: "2.35.1"
     steps:
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'

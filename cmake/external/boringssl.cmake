@@ -1,4 +1,4 @@
-# Copyright 2019 Google LLC
+# Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,22 +14,26 @@
 
 include(ExternalProject)
 
-if(TARGET curl OR NOT DOWNLOAD_CURL)
+if(TARGET boringssl OR NOT DOWNLOAD_BORINGSSL)
   return()
 endif()
 
-set(version 7_73_0)
+# Based on https://github.com/grpc/grpc/blob/v1.27.0/bazel/grpc_deps.bzl
+# master-with-bazel@{2019-10-18}
+set(commit 83da28a68f32023fd3b95a8ae94991a07b1f6c62)
+# set(commit master)
 
 ExternalProject_Add(
-  curl
+  boringssl
 
   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-  URL https://github.com/curl/curl/archive/curl-${version}.tar.gz
+  DOWNLOAD_NAME boringssl-${commit}.tar.gz
+  URL https://github.com/google/boringssl/archive/${commit}.tar.gz
 
   PREFIX ${PROJECT_BINARY_DIR}
 
   CONFIGURE_COMMAND ""
-  BUILD_COMMAND ""
-  INSTALL_COMMAND ""
-  TEST_COMMAND ""
+  BUILD_COMMAND     ""
+  INSTALL_COMMAND   ""
+  TEST_COMMAND      ""
 )
