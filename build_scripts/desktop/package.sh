@@ -176,25 +176,25 @@ readonly deps_hidden_firebase_firestore="
 # List of C++ namespaces to be renamed, so as to not conflict with the
 # developer's own dependencies.
 readonly -a rename_namespaces=(flatbuffers flexbuffers reflection ZLib bssl uWS absl google
-base_raw_logging ConnectivityWatcher grpc
-grpc_access_token_credentials grpc_alts_credentials
-grpc_alts_server_credentials grpc_auth_context
-grpc_channel_credentials grpc_channel_security_connector
-grpc_chttp2_hpack_compressor grpc_chttp2_stream grpc_chttp2_transport
-grpc_client_security_context grpc_composite_call_credentials
-grpc_composite_channel_credentials grpc_core grpc_deadline_state
-grpc_google_default_channel_credentials grpc_google_iam_credentials
-grpc_google_refresh_token_credentials grpc_impl grpc_local_credentials
-grpc_local_server_credentials grpc_md_only_test_credentials
-grpc_message_compression_algorithm_for_level
-grpc_oauth2_token_fetcher_credentials grpc_plugin_credentials
-grpc_server_credentials grpc_server_security_connector
-grpc_server_security_context
-grpc_service_account_jwt_access_credentials grpc_ssl_credentials
-grpc_ssl_server_credentials grpc_tls_credential_reload_config
-grpc_tls_server_authorization_check_config GrpcUdpListener leveldb
-leveldb_filterpolicy_create_bloom leveldb_writebatch_iterate strings
-TlsCredentials TlsServerCredentials tsi)
+                               base_raw_logging ConnectivityWatcher grpc
+                               grpc_access_token_credentials grpc_alts_credentials
+                               grpc_alts_server_credentials grpc_auth_context
+                               grpc_channel_credentials grpc_channel_security_connector
+                               grpc_chttp2_hpack_compressor grpc_chttp2_stream grpc_chttp2_transport
+                               grpc_client_security_context grpc_composite_call_credentials
+                               grpc_composite_channel_credentials grpc_core grpc_deadline_state
+                               grpc_google_default_channel_credentials grpc_google_iam_credentials
+                               grpc_google_refresh_token_credentials grpc_impl grpc_local_credentials
+                               grpc_local_server_credentials grpc_md_only_test_credentials
+                               grpc_message_compression_algorithm_for_level
+                               grpc_oauth2_token_fetcher_credentials grpc_plugin_credentials
+                               grpc_server_credentials grpc_server_security_connector
+                               grpc_server_security_context
+                               grpc_service_account_jwt_access_credentials grpc_ssl_credentials
+                               grpc_ssl_server_credentials grpc_tls_credential_reload_config
+                               grpc_tls_server_authorization_check_config GrpcUdpListener leveldb
+                               leveldb_filterpolicy_create_bloom leveldb_writebatch_iterate strings
+                               TlsCredentials TlsServerCredentials tsi)
 
 # String to prepend to all hidden symbols.
 readonly rename_string=f_b_
@@ -284,14 +284,14 @@ for product in ${product_list[*]}; do
         done
     done
     if [[ "${product}" != "app" ]]; then
-      # For any library other than app, also rename some symbols that were already renamed in app
-      # that are used by other libraries (e.g. zlib is used in Firestore).
-      for dep in ${deps_hidden_firebase_app}; do
-        for found in $(find . -path ${dep}); do
-          if [[ ! -z ${deps_hidden} ]]; then deps_hidden+=","; fi
-          deps_hidden+="${found}"
+        # For any library other than app, also rename some symbols that were already renamed in app
+        # that are used by other libraries (e.g. zlib is used in Firestore).
+        for dep in ${deps_hidden_firebase_app}; do
+            for found in $(find . -path ${dep}); do
+                if [[ ! -z ${deps_hidden} ]]; then deps_hidden+=","; fi
+                deps_hidden+="${found}"
+            done
         done
-      done
     fi
     echo -n "${libfile_out}"
     if [[ ! -z ${deps_basenames[*]} ]]; then
@@ -301,12 +301,12 @@ for product in ${product_list[*]}; do
     outfile="${full_output_path}/${libfile_out}"
     rm -f "${outfile}"
     if [[ ${verbose} -eq 1 ]]; then
-      echo "${python_cmd}" "${merge_libraries_script}" \
-                    ${merge_libraries_params[*]} \
-                    --output="${outfile}" \
-                    --scan_libs="${allfiles}" \
-                    --hide_c_symbols="${deps_hidden}" \
-                    ${libfile_src} ${deps[*]}
+        echo "${python_cmd}" "${merge_libraries_script}" \
+             ${merge_libraries_params[*]} \
+             --output="${outfile}" \
+             --scan_libs="${allfiles}" \
+             --hide_c_symbols="${deps_hidden}" \
+             ${libfile_src} ${deps[*]}
     fi
     "${python_cmd}" "${merge_libraries_script}" \
                     ${merge_libraries_params[*]} \
