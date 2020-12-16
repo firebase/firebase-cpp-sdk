@@ -660,15 +660,19 @@ jobs:
         python-version: '3.7'
     - name: Add msbuild to PATH (windows)
       if: runner.os == 'Windows'
-      uses: microsoft/setup-msbuild@v1.0.1
+      uses: microsoft/setup-msbuild@v1.0.2
     - name: Prepare for integration tests
       run: |
         pip install -r scripts/gha/requirements.txt
         python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
-    - name: Build integration tests (and run Desktop tests)
+    - name: Build integration tests
       run: |
-        python scripts/gha/build_testapps.py --t ${{ env.apis }} --p ${{ matrix.target_platform }} --sdk_dir firebase_cpp_sdk --output_directory ${{ github.workspace }} --execute_desktop_testapp --noadd_timestamp
-
+        python scripts/gha/build_testapps.py --t ${{ env.apis }} --p ${{ matrix.target_platform }} --sdk_dir firebase_cpp_sdk --output_directory ${{ github.workspace }} --noadd_timestamp
+    
+    - name: Run desktop integration tests
+      if: matrix.target_platform == 'Desktop' && !cancelled()
+      run: |
+        python scripts/gha/desktop_tester.py --testapp_dir testapps
     # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
     # Must be run after the Python setup action
     - name: Set CLOUDSDK_PYTHON (Windows)

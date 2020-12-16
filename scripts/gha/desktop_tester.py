@@ -94,18 +94,26 @@ class Test(object):
   # them as fields so they can be accessed from the main thread.
   def run(self):
     """Executes this testapp."""
-    result = subprocess.run(
-        args=[self.testapp_path],
-        cwd=os.path.dirname(self.testapp_path),  # Testapp checks CWD for config
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        text=True,
-        check=False,
-        timeout=300)
+    result = None  # Ensures this var is defined if timeout occurs.
+    try:
+      result = subprocess.run(
+          args=[self.testapp_path],
+          cwd=os.path.dirname(self.testapp_path),  # Testapp uses CWD for config
+          stdout=subprocess.PIPE,
+          stderr=subprocess.STDOUT,
+          text=True,
+          check=False,
+          timeout=300)
+    except subprocess.TimeoutExpired as e:
+      logging.error("Testapp timed out!")
+      # e.output will sometimes be bytes, sometimes string. Decode if needed.
+      try:
+        self.logs = e.output.decode()
+      except AttributeError:  # This will happen if it's already a string.
+        self.logs = e.output
+    if result:
+      self.logs = result.stdout
     logging.info("Finished running %s", self.testapp_path)
-
-    self.logs = result.stdout
-    self.return_code = result.returncode
 
 
 if __name__ == "__main__":
