@@ -32,6 +32,7 @@ debugmode=Release
 msvc_runtime_library=MD
 vs=VS2015
 stl=c++
+linux_abi=legacy
 
 for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
     case $c in
@@ -133,6 +134,15 @@ for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
 	stlport)
 	    stl=stlport
         ;;
+	cxx11)
+	    linux_abi=cxx11
+        ;;
+	c++11)
+	    linux_abi=cxx11
+        ;;
+	legacy)
+	    linux_abi=legacy
+        ;;
     esac
 done
 
@@ -154,7 +164,7 @@ case ${os} in
 	    echo "Couldn't determine architecture" 1>&2
 	    exit 1
 	fi
-	echo -n "${arch}"
+	echo -n "${arch}/${linux_abi}"
     ;;
     windows)
 	if [[ -z "${arch_win}" ]]; then
