@@ -94,8 +94,7 @@ while getopts "b:o:p:d:m:P:t:hjv" opt; do
 done
 
 if [[ ${run_in_parallel} -ne 0 && ! $(which parallel) ]]; then
-  echo "WARNING: Using -j requires the 'parallel' command to be in your PATH."
-  echo "         Ignoring -j option since 'parallel' cannot be found."
+  echo "Warning: Ignoring -j option since 'parallel' command cannot be found in PATH."
   run_in_parallel=0
 fi
 
