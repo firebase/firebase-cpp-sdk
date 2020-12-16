@@ -93,7 +93,7 @@ while getopts "b:o:p:d:m:P:t:hjv" opt; do
     esac
 done
 
-if [[ ${run_in_parallel} -ne 1 && ! $(which parallel) ]]; then
+if [[ ${run_in_parallel} -ne 0 && ! $(which parallel) ]]; then
   echo "WARNING: Using -j requires the 'parallel' command to be in your PATH."
   echo "         Ignoring -j option since 'parallel' cannot be found."
   run_in_parallel=0
