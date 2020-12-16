@@ -208,7 +208,7 @@ std::ostream& operator<<(std::ostream& os, const Variant& v) {
 extern "C" int common_main(int argc, char* argv[]) {
   ::testing::InitGoogleTest(&argc, argv);
   firebase_test_framework::FirebaseTest::SetArgs(argc, argv);
-  app_framework::SetLogLevel(app_framework::kInfo);
+  app_framework::SetLogLevel(app_framework::kDebug);
   // Anything below the given log level will be preserved, and printed out in
   // the event of test failure.
   app_framework::SetPreserveFullLog(true);

@@ -220,7 +220,7 @@ jobs:
           path: firebase-cpp-sdk-android-${{ matrix.stl }}-package.tgz
 
   build_desktop:
-    name: build-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}
+    name: build-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}
     runs-on: ${{ matrix.os }}
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
@@ -230,6 +230,7 @@ jobs:
         build_type: ["Release", "Debug"]
         architecture: ["x64", "x86", "arm64"]
         msvc_runtime: ["static", "dynamic"]
+        linux_abi: ["legacy", "c++11"]
         python_version: [3.7]
         include:
         - os: windows-latest
@@ -251,10 +252,14 @@ jobs:
           sdk_platform: "darwin"
 
         exclude:
+        - os: windows-latest
+          linux_abi: "c++11"
         - os: macos-latest
           architecture: "x86"
         - os: macos-latest
           msvc_runtime: "dynamic"
+        - os: macos-latest
+          linux_abi: "c++11"
         - os: macos-latest
           build_type: "Debug"
         - os: ubuntu-latest
@@ -280,8 +285,8 @@ jobs:
         shell: bash
         run: |
           echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt" >> $GITHUB_ENV
-          echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}" >> $GITHUB_ENV
-          echo "SDK_NAME=${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}" >> $GITHUB_ENV
+          echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}" >> $GITHUB_ENV
+          echo "SDK_NAME=${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}" >> $GITHUB_ENV
 
       - name: Add msbuild to PATH (windows)
         if: startsWith(matrix.os, 'windows')
@@ -292,7 +297,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: external/vcpkg/installed
-          key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+          key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
 
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
@@ -314,7 +319,7 @@ jobs:
       - name: Build desktop SDK
         shell: bash
         run: |
-          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --build_dir out-${{ env.SDK_NAME }} ${{ matrix.additional_build_flags }}
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --linux_abi "${{ matrix.linux_abi }}" --build_dir out-${{ env.SDK_NAME }} ${{ matrix.additional_build_flags }}
           # Make a list of all the source files, for debugging purposes.
           cd out-${{ env.SDK_NAME }}
           find .. -type f -print > src_file_list.txt
@@ -583,17 +588,19 @@ jobs:
         name: |
           packaging-tools-darwin
           packaging-tools-linux
-          firebase-cpp-sdk-windows-x86-Release-dynamic-build
-          firebase-cpp-sdk-windows-x64-Release-dynamic-build
-          firebase-cpp-sdk-windows-x86-Debug-dynamic-build
-          firebase-cpp-sdk-windows-x64-Debug-dynamic-build
-          firebase-cpp-sdk-windows-x86-Release-static-build
-          firebase-cpp-sdk-windows-x64-Release-static-build
-          firebase-cpp-sdk-windows-x86-Debug-static-build
-          firebase-cpp-sdk-windows-x64-Debug-static-build
-          firebase-cpp-sdk-linux-x86-Release-static-build
-          firebase-cpp-sdk-linux-x64-Release-static-build
-          firebase-cpp-sdk-darwin-x64-Release-static-build
+          firebase-cpp-sdk-windows-x86-Release-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x64-Release-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x86-Debug-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x64-Debug-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x86-Release-static-legacy-build
+          firebase-cpp-sdk-windows-x64-Release-static-legacy-build
+          firebase-cpp-sdk-windows-x86-Debug-static-legacy-build
+          firebase-cpp-sdk-windows-x64-Debug-static-legacy-build
+          firebase-cpp-sdk-linux-x86-Release-static-legacy-build
+          firebase-cpp-sdk-linux-x64-Release-static-legacy-build
+          firebase-cpp-sdk-linux-x86-Release-static-c++11-build
+          firebase-cpp-sdk-linux-x64-Release-static-c++11-build
+          firebase-cpp-sdk-darwin-x64-Release-static-legacy-build
           firebase-cpp-sdk-windows-x86-Release-dynamic-package
           firebase-cpp-sdk-windows-x64-Release-dynamic-package
           firebase-cpp-sdk-windows-x86-Debug-dynamic-package
@@ -657,15 +664,19 @@ jobs:
         python-version: '3.7'
     - name: Add msbuild to PATH (windows)
       if: runner.os == 'Windows'
-      uses: microsoft/setup-msbuild@v1.0.1
+      uses: microsoft/setup-msbuild@v1.0.2
     - name: Prepare for integration tests
       run: |
         pip install -r scripts/gha/requirements.txt
         python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
-    - name: Build integration tests (and run Desktop tests)
+    - name: Build integration tests
       run: |
-        python scripts/gha/build_testapps.py --t ${{ env.apis }} --p ${{ matrix.target_platform }} --sdk_dir firebase_cpp_sdk --output_directory ${{ github.workspace }} --execute_desktop_testapp --noadd_timestamp
-
+        python scripts/gha/build_testapps.py --t ${{ env.apis }} --p ${{ matrix.target_platform }} --sdk_dir firebase_cpp_sdk --output_directory ${{ github.workspace }} --noadd_timestamp
+    
+    - name: Run desktop integration tests
+      if: matrix.target_platform == 'Desktop' && !cancelled()
+      run: |
+        python scripts/gha/desktop_tester.py --testapp_dir testapps
     # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
     # Must be run after the Python setup action
     - name: Set CLOUDSDK_PYTHON (Windows)

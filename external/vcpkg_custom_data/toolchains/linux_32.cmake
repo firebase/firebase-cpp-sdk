@@ -16,6 +16,7 @@
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -m32")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -m32")
 set(CMAKE_LIBRARY_PATH "/usr/lib/i386-linux-gnu")
+set(INCLUDE_DIRECTORIES ${INCLUDE_DIRECTORIES} "/usr/include/i386-linux-gnu")
 
 # From this line onwards, everything is a copy of the standard toolchain file
 # shipped with vcpkg (vcpkg/scripts/buildsystems/vcpkg.cmake). This way, we can
