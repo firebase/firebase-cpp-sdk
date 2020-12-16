@@ -19,6 +19,8 @@
 #include <fstream>
 #include <utility>
 
+#include <app/src/mutex.h>
+
 #include "app/src/filesystem.h"
 
 namespace FIREBASE_NAMESPACE {
@@ -29,8 +31,8 @@ const char kHeartbeatDir[] = "firebase-heartbeat";
 const char kHeartbeatFilename[] = "HEARTBEAT_INFO_STORAGE";
 
 // Returns the mutex that protects accesses to the storage file.
-std::mutex& FileMutex() {
-  static std::mutex* mutex_ = new std::mutex();
+Mutex& FileMutex() {
+  static Mutex* mutex_ =  new Mutex(Mutex::kModeNonRecursive);
   return *mutex_;
 }
 
@@ -47,7 +49,7 @@ std::string GetFilename(std::string& error) {
 }  // namespace
 
 HeartbeatDateStorage::HeartbeatDateStorage() : filename_(GetFilename(error_)) {
-  std::lock_guard<std::mutex> lock(FileMutex());
+  MutexLock lock(FileMutex());
 
   // Ensure the file exists, otherwise the first attempt to read it would
   // fail.
@@ -69,7 +71,7 @@ bool HeartbeatDateStorage::ReadPersisted() {
 
   HeartbeatMap result;
 
-  std::lock_guard<std::mutex> lock(FileMutex());
+  MutexLock lock(FileMutex());
 
   std::ifstream f(filename_);
   if (!f) {
@@ -102,7 +104,7 @@ bool HeartbeatDateStorage::ReadPersisted() {
 bool HeartbeatDateStorage::WritePersisted() const {
   if (!IsValid()) return false;
 
-  std::lock_guard<std::mutex> lock(FileMutex());
+  MutexLock lock(FileMutex());
 
   std::ofstream f(filename_, std::ios_base::trunc);
   if (!f) {
