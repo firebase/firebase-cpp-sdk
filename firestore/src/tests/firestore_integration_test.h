@@ -288,6 +288,10 @@ class FirestoreIntegrationTest : public testing::Test {
 
   void EnableNetwork() { Await(TestFirestore()->EnableNetwork()); }
 
+  static FirestoreInternal* GetFirestoreInternal(Firestore* firestore) {
+    return firestore->internal_;
+  }
+
  private:
   template <typename T>
   friend class EventAccumulator;

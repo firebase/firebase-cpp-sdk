@@ -45,6 +45,9 @@ option(FIREBASE_INCLUDE_FIRESTORE
 option(FIREBASE_INCLUDE_FUNCTIONS
        "Include the Cloud Functions for Firebase library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
+option(FIREBASE_INCLUDE_INSTALLATIONS
+       "Include the Firebase Installations library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_INSTANCE_ID
        "Include the Firebase Instance ID library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
@@ -427,6 +430,9 @@ if (FIREBASE_INCLUDE_FIRESTORE)
 endif()
 if (FIREBASE_INCLUDE_FUNCTIONS)
   add_subdirectory(functions)
+endif()
+if (FIREBASE_INCLUDE_INSTALLATIONS)
+  add_subdirectory(installations)
 endif()
 if (FIREBASE_INCLUDE_INSTANCE_ID)
   add_subdirectory(instance_id)
