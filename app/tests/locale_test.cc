@@ -49,7 +49,7 @@ TEST_F(LocaleTest, TestGetLocale) {
   // Make sure this looks like a locale, e.g. has at least 5 characters and
   // contains an underscore.
   EXPECT_GE(loc.size(), 5);
-  EXPECT_NE(loc.find("_"), std::string::npos);
+  EXPECT_NE(loc.find('_'), std::string::npos);
 }
 
 }  // namespace internal
