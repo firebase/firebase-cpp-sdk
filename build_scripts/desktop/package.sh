@@ -8,7 +8,7 @@ usage(){
 options:
   -b, built sdk path or tar file            required
   -o, output path                           required
-  -p, platform to package	            required, one of: linux windows darwin
+  -p, platform to package                   required, one of: linux windows darwin
   -d, build variant directory to create     default: .
   -m, merge_libraries.py path               default: <script dir>/../../scripts/merge_libraries.py
   -P, python command                        default: python
@@ -36,9 +36,9 @@ readonly SUPPORTED_PLATFORMS=(linux windows darwin)
 
 abspath(){
     if [[ -d $1 ]]; then
-	echo "$(cd "$1"; pwd -P)"
+        echo "$(cd "$1"; pwd -P)"
     else
-	echo "$(cd "$(dirname "$1")"; pwd -P)/$(basename "$1")"
+        echo "$(cd "$(dirname "$1")"; pwd -P)/$(basename "$1")"
     fi
 }
 
@@ -58,31 +58,31 @@ while getopts ":b:o:p:d:m:P:t:hv" opt; do
                 exit 2
             fi
             ;;
-	v)
-	    verbose=1
-	    ;;
+        v)
+            verbose=1
+            ;;
         d)
             variant=$OPTARG
             ;;
         m)
             merge_libraries_script=$OPTARG
-	    if [[ ! -r "${merge_libraries_script}" ]]; then
+            if [[ ! -r "${merge_libraries_script}" ]]; then
                 echo "Script not found: ${merge_libraries_script}"
                 exit 2
-	    fi
+            fi
             ;;
         P)
-	    python_cmd=$OPTARG
+            python_cmd=$OPTARG
             ;;
-	t)
-	    tools_path=$OPTARG
-	    ;;
-	h)
-	    usage
-	    exit 0
-	    ;;
+        t)
+            tools_path=$OPTARG
+            ;;
+        h)
+            usage
+            exit 0
+            ;;
         *)
-	    usage
+            usage
             exit 2
             ;;
     esac
@@ -131,11 +131,11 @@ fi
 # Desktop packaging settings.
 if [[ "${platform}" == "windows" ]]; then
     if [[ "${variant}" == *'Debug'* ]]; then
-	subdir='Debug/'
-	suffix='-d'
+        subdir='Debug/'
+        suffix='-d'
     else
-	subdir='Release/'
-	suffix=''
+        subdir='Release/'
+        suffix=''
     fi
     prefix=''
     ext='lib'
@@ -149,7 +149,7 @@ fi
 
 # Library dependencies to merge. Each should be a whitespace-delimited list of path globs.
 readonly deps_firebase_app="
-*/${prefix}firebase_instance_id*.${ext}
+*/${prefix}firebase_instance_id_desktop_impl*.${ext}
 */${prefix}firebase_rest_lib.${ext}
 "
 readonly deps_hidden_firebase_app="
@@ -176,25 +176,25 @@ readonly deps_hidden_firebase_firestore="
 # List of C++ namespaces to be renamed, so as to not conflict with the
 # developer's own dependencies.
 readonly -a rename_namespaces=(flatbuffers flexbuffers reflection ZLib bssl uWS absl google
-base_raw_logging ConnectivityWatcher grpc
-grpc_access_token_credentials grpc_alts_credentials
-grpc_alts_server_credentials grpc_auth_context
-grpc_channel_credentials grpc_channel_security_connector
-grpc_chttp2_hpack_compressor grpc_chttp2_stream grpc_chttp2_transport
-grpc_client_security_context grpc_composite_call_credentials
-grpc_composite_channel_credentials grpc_core grpc_deadline_state
-grpc_google_default_channel_credentials grpc_google_iam_credentials
-grpc_google_refresh_token_credentials grpc_impl grpc_local_credentials
-grpc_local_server_credentials grpc_md_only_test_credentials
-grpc_message_compression_algorithm_for_level
-grpc_oauth2_token_fetcher_credentials grpc_plugin_credentials
-grpc_server_credentials grpc_server_security_connector
-grpc_server_security_context
-grpc_service_account_jwt_access_credentials grpc_ssl_credentials
-grpc_ssl_server_credentials grpc_tls_credential_reload_config
-grpc_tls_server_authorization_check_config GrpcUdpListener leveldb
-leveldb_filterpolicy_create_bloom leveldb_writebatch_iterate strings
-TlsCredentials TlsServerCredentials tsi)
+                               base_raw_logging ConnectivityWatcher grpc
+                               grpc_access_token_credentials grpc_alts_credentials
+                               grpc_alts_server_credentials grpc_auth_context
+                               grpc_channel_credentials grpc_channel_security_connector
+                               grpc_chttp2_hpack_compressor grpc_chttp2_stream grpc_chttp2_transport
+                               grpc_client_security_context grpc_composite_call_credentials
+                               grpc_composite_channel_credentials grpc_core grpc_deadline_state
+                               grpc_google_default_channel_credentials grpc_google_iam_credentials
+                               grpc_google_refresh_token_credentials grpc_impl grpc_local_credentials
+                               grpc_local_server_credentials grpc_md_only_test_credentials
+                               grpc_message_compression_algorithm_for_level
+                               grpc_oauth2_token_fetcher_credentials grpc_plugin_credentials
+                               grpc_server_credentials grpc_server_security_connector
+                               grpc_server_security_context
+                               grpc_service_account_jwt_access_credentials grpc_ssl_credentials
+                               grpc_ssl_server_credentials grpc_tls_credential_reload_config
+                               grpc_tls_server_authorization_check_config GrpcUdpListener leveldb
+                               leveldb_filterpolicy_create_bloom leveldb_writebatch_iterate strings
+                               TlsCredentials TlsServerCredentials tsi)
 
 # String to prepend to all hidden symbols.
 readonly rename_string=f_b_
@@ -256,12 +256,12 @@ for product in ${product_list[*]}; do
     libfile_src="${product}/${subdir}${prefix}firebase_${product}.${ext}"
     libfile_out=$(basename "${libfile_src}")
     if [[ ! -r "${libfile_src}" ]]; then
-	# Windows names some debug libraries with a "-d.lib" suffix.
-	libfile_src="${product}/${subdir}${prefix}firebase_${product}${suffix}.${ext}"
-	# Don't change libfile_out though.
-	if [[ ! -r "${libfile_src}" ]]; then
-	    continue
-	fi
+        # Windows names some debug libraries with a "-d.lib" suffix.
+        libfile_src="${product}/${subdir}${prefix}firebase_${product}${suffix}.${ext}"
+        # Don't change libfile_out though.
+        if [[ ! -r "${libfile_src}" ]]; then
+            continue
+        fi
     fi
 
     # Look up the previously-set deps_firebase_* and deps_hidden_firebase_* vars.
@@ -271,51 +271,61 @@ for product in ${product_list[*]}; do
     deps=() # List of all dependencies, both hidden and visible.
     deps_basenames=()  # Same as above but only filenames, for more readable logging to console.
     for dep in ${!deps_var} ${!deps_hidden_var}; do
-	for found in $(find . -path ${dep}); do
-	    deps[${#deps[@]}]="${found}"
-	    deps_basenames[${#deps_basenames[@]}]=$(basename "${found}")
-	done
+        for found in $(find . -path "${dep}"); do
+            deps[${#deps[@]}]="${found}"
+            deps_basenames[${#deps_basenames[@]}]=$(basename "${found}")
+        done
     done
     deps_hidden='' # comma-separated list of hidden deps only
     for dep in ${!deps_hidden_var}; do
-	for found in $(find . -path ${dep}); do
-	    if [[ ! -z ${deps_hidden} ]]; then deps_hidden+=","; fi
-	    deps_hidden+="${found}"
-	done
+        for found in $(find . -path "${dep}"); do
+            if [[ ! -z ${deps_hidden} ]]; then deps_hidden+=","; fi
+            deps_hidden+="${found}"
+        done
     done
     if [[ "${product}" != "app" ]]; then
-      # For any library other than app, also rename some symbols that were already renamed in app
-      # that are used by other libraries (e.g. zlib is used in Firestore).
-      for dep in ${deps_hidden_firebase_app}; do
-        for found in $(find . -path ${dep}); do
-          if [[ ! -z ${deps_hidden} ]]; then deps_hidden+=","; fi
-          deps_hidden+="${found}"
+        # For any library other than app, also rename some symbols that were already renamed in app
+        # that are used by other libraries (e.g. zlib is used in Firestore).
+        for dep in ${deps_hidden_firebase_app}; do
+            for found in $(find . -path ${dep}); do
+                if [[ ! -z ${deps_hidden} ]]; then deps_hidden+=","; fi
+                deps_hidden+="${found}"
+            done
         done
-      done
     fi
     echo -n "${libfile_out}"
     if [[ ! -z ${deps_basenames[*]} ]]; then
-	echo -n " <- ${deps[*]}"
+        echo -n " <- ${deps[*]}"
     fi
     echo
     outfile="${full_output_path}/${libfile_out}"
     rm -f "${outfile}"
     if [[ ${verbose} -eq 1 ]]; then
-      echo "${python_cmd}" "${merge_libraries_script}" \
-		    ${merge_libraries_params[*]} \
-		    --output="${outfile}" \
-		    --scan_libs="${allfiles}" \
-		    --hide_c_symbols="${deps_hidden}" \
-		    ${libfile_src} ${deps[*]}
+        echo "${python_cmd}" "${merge_libraries_script}" \
+             ${merge_libraries_params[*]} \
+             --output="${outfile}" \
+             --scan_libs="${allfiles}" \
+             --hide_c_symbols="${deps_hidden}" \
+             ${libfile_src} ${deps[*]}
     fi
     "${python_cmd}" "${merge_libraries_script}" \
-		    ${merge_libraries_params[*]} \
-		    --output="${outfile}" \
-		    --scan_libs="${allfiles}" \
-		    --hide_c_symbols="${deps_hidden}" \
-		    ${libfile_src} ${deps[*]}
+                    ${merge_libraries_params[*]} \
+                    --output="${outfile}" \
+                    --scan_libs="${allfiles}" \
+                    --hide_c_symbols="${deps_hidden}" \
+                    ${libfile_src} ${deps[*]}
 done
 cd "${run_path}"
+
+# Copy generated headers for app and analytics into the package's include directory.
+mkdir -p "${output_package_path}/include/firebase"
+cp -av \
+   "${built_sdk_path}/generated/app/src/include/firebase/version.h" \
+   "${output_package_path}/include/firebase"
+mkdir -p "${output_package_path}/include/firebase/analytics"
+cp -av \
+   "${built_sdk_path}/generated/analytics/src/include/firebase/analytics/"* \
+   "${output_package_path}/include/firebase/analytics"
 
 # Copy Firestore core headers into the package's include directory.
 mkdir -p "${output_package_path}/include/firebase/firestore"
