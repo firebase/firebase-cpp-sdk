@@ -11,8 +11,6 @@ namespace firestore {
 /** A C++ proxy for a Java `GeoPoint`. */
 class GeoPointInternal : public jni::Object {
  public:
-  using ApiType = GeoPoint;
-
   using jni::Object::Object;
 
   static void Initialize(jni::Loader& loader);

@@ -123,6 +123,11 @@ void MessageReader::ConsumeMessage(
       }
     }
   }
+  if (serialized_message->raw_data()) {
+    message.raw_data.reserve(serialized_message->raw_data()->size());
+    message.raw_data.assign(serialized_message->raw_data()->begin(),
+                            serialized_message->raw_data()->end());
+  }
   message.message_id = SafeFlatbufferString(serialized_message->message_id());
   message.message_type =
       SafeFlatbufferString(serialized_message->message_type());

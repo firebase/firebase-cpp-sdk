@@ -18,10 +18,11 @@
 
 #include "app/google_services_resource.h"
 #include "app/src/log.h"
-#include "flatbuffers/idl.h"
-#include "flatbuffers/util.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "flatbuffers/idl.h"
+#include "flatbuffers/util.h"
+#include "absl/flags/flag.h"
 
 namespace firebase {
 namespace fbs {
@@ -53,7 +54,7 @@ bool Parse(const char* config) {
 TEST(GoogleServicesTest, TestConformity) {
   // This is an actual .json, copied from Firebase auth sample app.
   std::string json_file =
-      FLAGS_test_srcdir +
+      absl::GetFlag(FLAGS_test_srcdir) +
       "/google3/firebase/app/client/cpp/testdata/google-services.json";
   std::string json_str;
   EXPECT_TRUE(flatbuffers::LoadFile(json_file.c_str(), false, &json_str));

@@ -44,6 +44,7 @@ def main(argv):
   split_pattern = ' |,'
 
   # dict to store podName & podVersion from sdk's podfile
+  ios_version = '10.0'
   pod_dict = {}
   with open(sdk_podfile) as f:
     for line in f:
@@ -51,6 +52,8 @@ def main(argv):
       tokens = list(filter(None, tokens))
       if tokens[0] == 'pod':
         pod_dict[tokens[1]] = tokens[2]
+      elif tokens[0] == 'platform':
+        ios_version = tokens[2]
 
   # update podVersion in app's podfile
   new_lines = []
@@ -60,6 +63,8 @@ def main(argv):
       tokens = list(filter(None, tokens))
       if tokens[0] == 'pod' and tokens[1] in pod_dict:
         new_lines.append(line.replace(tokens[2], pod_dict[tokens[1]]))
+      elif tokens[0] == 'platform':
+        new_lines.append(line.replace(tokens[2], ios_version))
       else:
         new_lines.append(line)
   

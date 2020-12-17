@@ -19,7 +19,7 @@
 
 #include "testing/run_all_tests.h"
 #include "testing/util_android.h"
-#include "testing/base/public/gmock.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace firebase {

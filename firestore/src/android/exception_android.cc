@@ -1,6 +1,5 @@
 #include "firestore/src/android/exception_android.h"
 
-#include "app/src/util_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/throwable.h"
@@ -84,7 +83,7 @@ Error ExceptionInternal::GetErrorCode(Env& env, const Object& exception) {
 }
 
 std::string ExceptionInternal::ToString(Env& env, const Object& exception) {
-  return util::GetMessageFromException(env.get(), exception.get());
+  return exception.CastTo<Throwable>().GetMessage(env);
 }
 
 Local<Throwable> ExceptionInternal::Create(Env& env, Error code,
@@ -131,6 +130,21 @@ bool ExceptionInternal::IsAnyExceptionThrownByFirestore(
     Env& env, const Object& exception) {
   return IsFirestoreException(env, exception) ||
          IsIllegalStateException(env, exception);
+}
+
+void GlobalUnhandledExceptionHandler(jni::Env& env,
+                                     jni::Local<jni::Throwable>&& exception,
+                                     void* context) {
+#if __cpp_exceptions
+  // TODO(b/149105903): Handle different underlying Java exceptions differently.
+  env.ExceptionClear();
+  throw FirestoreException(exception.GetMessage(env), Error::kErrorInternal);
+
+#else
+  // Just clear the pending exception. The exception was already logged when
+  // first caught.
+  env.ExceptionClear();
+#endif
 }
 
 }  // namespace firestore

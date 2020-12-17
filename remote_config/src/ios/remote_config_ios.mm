@@ -347,7 +347,7 @@ bool ActivateFetched() {
   FIREBASE_ASSERT_RETURN(false, internal::IsInitialized());
   __block bool succeeded = true;
   __block dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
-  [g_remote_config_instance activateWithCompletionHandler:^(NSError *_Nullable error) {
+  [g_remote_config_instance activateWithCompletion:^(BOOL changed, NSError *_Nullable error) {
       if (error) succeeded = false;
       dispatch_semaphore_signal(semaphore);
     }];
@@ -450,12 +450,12 @@ Future<ConfigInfo> RemoteConfigInternal::EnsureInitializedLastResult() {
 
 Future<bool> RemoteConfigInternal::Activate() {
   const auto handle = future_impl_.SafeAlloc<bool>(kRemoteConfigFnActivate);
-  [impl() activateWithCompletionHandler:^(NSError *error) {
+  [impl() activateWithCompletion:^(BOOL changed, NSError *error) {
     if (error) {
       throttled_end_time_in_sec_ = FutureCompleteWithError<SafeFutureHandle<bool>, bool>(
           error, &future_impl_, handle, false);
     } else {
-      future_impl_.CompleteWithResult(handle, kFutureStatusSuccess, "", true);
+      future_impl_.CompleteWithResult(handle, kFutureStatusSuccess, "", changed ? true : false);
     }
   }];
   return MakeFuture<bool>(&future_impl_, handle);

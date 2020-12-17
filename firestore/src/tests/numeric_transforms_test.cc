@@ -199,7 +199,7 @@ TEST_F(NumericTransformsTest, MultipleDoubleIncrements) {
 TEST_F(NumericTransformsTest, IncrementTwiceInABatch) {
   WriteInitialData({{"sum", FieldValue::String("overwrite")}});
 
-  WriteBatch batch = firestore()->batch();
+  WriteBatch batch = TestFirestore()->batch();
 
   batch.Update(doc_ref_, {{"sum", FieldValue::Increment(1)}});
   batch.Update(doc_ref_, {{"sum", FieldValue::Increment(1)}});
@@ -212,7 +212,7 @@ TEST_F(NumericTransformsTest, IncrementTwiceInABatch) {
 TEST_F(NumericTransformsTest, IncrementDeleteIncrementInABatch) {
   WriteInitialData({{"sum", FieldValue::String("overwrite")}});
 
-  WriteBatch batch = firestore()->batch();
+  WriteBatch batch = TestFirestore()->batch();
 
   batch.Update(doc_ref_, {{"sum", FieldValue::Increment(1)}});
   batch.Update(doc_ref_, {{"sum", FieldValue::Delete()}});

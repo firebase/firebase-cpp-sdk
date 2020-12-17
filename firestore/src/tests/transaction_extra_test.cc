@@ -30,39 +30,37 @@ using TransactionExtraTest = FirestoreIntegrationTest;
 
 TEST_F(TransactionExtraTest,
        TestRetriesWhenDocumentThatWasReadWithoutBeingWrittenChanges) {
-  DocumentReference doc1 = firestore()->Collection("counter").Document();
-  DocumentReference doc2 = firestore()->Collection("counter").Document();
+  DocumentReference doc1 = TestFirestore()->Collection("counter").Document();
+  DocumentReference doc2 = TestFirestore()->Collection("counter").Document();
   WriteDocument(doc1, MapFieldValue{{"count", FieldValue::Integer(15)}});
   // Use these two as a portable way to mimic atomic integer.
   Mutex mutex;
   int transaction_runs_count = 0;
 
-  Future<void> future = firestore()->RunTransaction([&doc1, &doc2, &mutex,
-                                                     &transaction_runs_count](
-                                                        Transaction&
-                                                            transaction,
-                                                        std::string&
-                                                            error_message)
-                                                        -> Error {
-    {
-      MutexLock lock(mutex);
-      ++transaction_runs_count;
-    }
-    // Get the first doc.
-    Error error = Error::kErrorOk;
-    DocumentSnapshot snapshot1 = transaction.Get(doc1, &error, &error_message);
-    EXPECT_EQ(Error::kErrorOk, error);
-    // Do a write outside of the transaction. The first time the
-    // transaction is tried, this will bump the version, which
-    // will cause the write to doc2 to fail. The second time, it
-    // will be a no-op and not bump the version.
-    // Now try to update the other doc from within the transaction.
-    Await(doc1.Set(MapFieldValue{{"count", FieldValue::Integer(1234)}}));
-    // Now try to update the other doc from within the transaction.
-    // This should fail once, because we read 15 earlier.
-    transaction.Set(doc2, MapFieldValue{{"count", FieldValue::Integer(16)}});
-    return Error::kErrorOk;
-  });
+  Future<void> future = TestFirestore()->RunTransaction(
+      [&doc1, &doc2, &mutex, &transaction_runs_count](
+          Transaction& transaction, std::string& error_message) -> Error {
+        {
+          MutexLock lock(mutex);
+          ++transaction_runs_count;
+        }
+        // Get the first doc.
+        Error error = Error::kErrorOk;
+        DocumentSnapshot snapshot1 =
+            transaction.Get(doc1, &error, &error_message);
+        EXPECT_EQ(Error::kErrorOk, error);
+        // Do a write outside of the transaction. The first time the
+        // transaction is tried, this will bump the version, which
+        // will cause the write to doc2 to fail. The second time, it
+        // will be a no-op and not bump the version.
+        // Now try to update the other doc from within the transaction.
+        Await(doc1.Set(MapFieldValue{{"count", FieldValue::Integer(1234)}}));
+        // Now try to update the other doc from within the transaction.
+        // This should fail once, because we read 15 earlier.
+        transaction.Set(doc2,
+                        MapFieldValue{{"count", FieldValue::Integer(16)}});
+        return Error::kErrorOk;
+      });
   Await(future);
   EXPECT_EQ(Error::kErrorOk, future.error());
   EXPECT_EQ(2, transaction_runs_count);
@@ -72,10 +70,10 @@ TEST_F(TransactionExtraTest,
 
 TEST_F(TransactionExtraTest, TestReadingADocTwiceWithDifferentVersions) {
   int counter = 0;
-  DocumentReference doc = firestore()->Collection("counters").Document();
+  DocumentReference doc = TestFirestore()->Collection("counters").Document();
   WriteDocument(doc, MapFieldValue{{"count", FieldValue::Double(15.0)}});
 
-  Future<void> future = firestore()->RunTransaction(
+  Future<void> future = TestFirestore()->RunTransaction(
       [&doc, &counter](Transaction& transaction,
                        std::string& error_message) -> Error {
         Error error = Error::kErrorOk;

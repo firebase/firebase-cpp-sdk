@@ -153,7 +153,8 @@ class Query {
    *
    * @return The created Query.
    */
-  virtual Query WhereEqualTo(const std::string& field, const FieldValue& value);
+  virtual Query WhereEqualTo(const std::string& field,
+                             const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -165,7 +166,40 @@ class Query {
    *
    * @return The created Query.
    */
-  virtual Query WhereEqualTo(const FieldPath& field, const FieldValue& value);
+  virtual Query WhereEqualTo(const FieldPath& field,
+                             const FieldValue& value) const;
+
+  /**
+   * @brief Creates and returns a new Query with the additional filter that
+   * documents must contain the specified field and the value does not equal the
+   * specified value.
+   *
+   * A Query can have only one `WhereNotEqualTo()` filter, and it cannot be
+   * combined with `WhereNotIn()`.
+   *
+   * @param[in] field The name of the field to compare.
+   * @param[in] value The value for comparison.
+   *
+   * @return The created Query.
+   */
+  virtual Query WhereNotEqualTo(const std::string& field,
+                                const FieldValue& value) const;
+
+  /**
+   * @brief Creates and returns a new Query with the additional filter that
+   * documents must contain the specified field and the value does not equal the
+   * specified value.
+   *
+   * A Query can have only one `WhereNotEqualTo()` filter, and it cannot be
+   * combined with `WhereNotIn()`.
+   *
+   * @param[in] field The path of the field to compare.
+   * @param[in] value The value for comparison.
+   *
+   * @return The created Query.
+   */
+  virtual Query WhereNotEqualTo(const FieldPath& field,
+                                const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -178,7 +212,7 @@ class Query {
    * @return The created Query.
    */
   virtual Query WhereLessThan(const std::string& field,
-                              const FieldValue& value);
+                              const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -190,7 +224,8 @@ class Query {
    *
    * @return The created Query.
    */
-  virtual Query WhereLessThan(const FieldPath& field, const FieldValue& value);
+  virtual Query WhereLessThan(const FieldPath& field,
+                              const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -203,7 +238,7 @@ class Query {
    * @return The created Query.
    */
   virtual Query WhereLessThanOrEqualTo(const std::string& field,
-                                       const FieldValue& value);
+                                       const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -216,7 +251,7 @@ class Query {
    * @return The created Query.
    */
   virtual Query WhereLessThanOrEqualTo(const FieldPath& field,
-                                       const FieldValue& value);
+                                       const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -229,7 +264,7 @@ class Query {
    * @return The created Query.
    */
   virtual Query WhereGreaterThan(const std::string& field,
-                                 const FieldValue& value);
+                                 const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -242,7 +277,7 @@ class Query {
    * @return The created Query.
    */
   virtual Query WhereGreaterThan(const FieldPath& field,
-                                 const FieldValue& value);
+                                 const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -255,7 +290,7 @@ class Query {
    * @return The created Query.
    */
   virtual Query WhereGreaterThanOrEqualTo(const std::string& field,
-                                          const FieldValue& value);
+                                          const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -268,7 +303,7 @@ class Query {
    * @return The created Query.
    */
   virtual Query WhereGreaterThanOrEqualTo(const FieldPath& field,
-                                          const FieldValue& value);
+                                          const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -284,7 +319,7 @@ class Query {
    * @return The created Query.
    */
   virtual Query WhereArrayContains(const std::string& field,
-                                   const FieldValue& value);
+                                   const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -300,7 +335,7 @@ class Query {
    * @return The created Query.
    */
   virtual Query WhereArrayContains(const FieldPath& field,
-                                   const FieldValue& value);
+                                   const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -315,8 +350,8 @@ class Query {
    *
    * @return The created Query.
    */
-  virtual Query WhereArrayContainsAny(const std::string& field,
-                                      const std::vector<FieldValue>& values);
+  virtual Query WhereArrayContainsAny(
+      const std::string& field, const std::vector<FieldValue>& values) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -331,8 +366,8 @@ class Query {
    *
    * @return The created Query.
    */
-  virtual Query WhereArrayContainsAny(const FieldPath& field,
-                                      const std::vector<FieldValue>& values);
+  virtual Query WhereArrayContainsAny(
+      const FieldPath& field, const std::vector<FieldValue>& values) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -348,7 +383,7 @@ class Query {
    * @return The created Query.
    */
   virtual Query WhereIn(const std::string& field,
-                        const std::vector<FieldValue>& values);
+                        const std::vector<FieldValue>& values) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -364,7 +399,51 @@ class Query {
    * @return The created Query.
    */
   virtual Query WhereIn(const FieldPath& field,
-                        const std::vector<FieldValue>& values);
+                        const std::vector<FieldValue>& values) const;
+
+  /**
+   * @brief Creates and returns a new Query with the additional filter that
+   * documents must contain the specified field and the value must not equal any
+   * of the values from the provided list.
+   *
+   * One special case is that `WhereNotIn` cannot match `FieldValue::Null()`
+   * values. To query for documents where a field exists and is
+   * `FieldValue::Null()`, use `WhereNotEqualTo`, which can handle this special
+   * case.
+   *
+   * A `Query` can have only one `WhereNotIn()` filter, and it cannot be
+   * combined with `WhereArrayContains()`, `WhereArrayContainsAny()`,
+   * `WhereIn()`, or `WhereNotEqualTo()`.
+   *
+   * @param[in] field The name of the field containing an array to search.
+   * @param[in] values The list that contains the values to match.
+   *
+   * @return The created Query.
+   */
+  virtual Query WhereNotIn(const std::string& field,
+                           const std::vector<FieldValue>& values) const;
+
+  /**
+   * @brief Creates and returns a new Query with the additional filter that
+   * documents must contain the specified field and the value must not equal any
+   * of the values from the provided list.
+   *
+   * One special case is that `WhereNotIn` cannot match `FieldValue::Null()`
+   * values. To query for documents where a field exists and is
+   * `FieldValue::Null()`, use `WhereNotEqualTo`, which can handle this special
+   * case.
+   *
+   * A `Query` can have only one `WhereNotIn()` filter, and it cannot be
+   * combined with `WhereArrayContains()`, `WhereArrayContainsAny()`,
+   * `WhereIn()`, or `WhereNotEqualTo()`.
+   *
+   * @param[in] field The path of the field containing an array to search.
+   * @param[in] values The list that contains the values to match.
+   *
+   * @return The created Query.
+   */
+  virtual Query WhereNotIn(const FieldPath& field,
+                           const std::vector<FieldValue>& values) const;
 
   /**
    * @brief Creates and returns a new Query that's additionally sorted by the
@@ -377,7 +456,7 @@ class Query {
    * @return The created Query.
    */
   virtual Query OrderBy(const std::string& field,
-                        Direction direction = Direction::kAscending);
+                        Direction direction = Direction::kAscending) const;
 
   /**
    * @brief Creates and returns a new Query that's additionally sorted by the
@@ -390,7 +469,7 @@ class Query {
    * @return The created Query.
    */
   virtual Query OrderBy(const FieldPath& field,
-                        Direction direction = Direction::kAscending);
+                        Direction direction = Direction::kAscending) const;
 
   /**
    * @brief Creates and returns a new Query that only returns the first matching
@@ -401,7 +480,7 @@ class Query {
    *
    * @return The created Query.
    */
-  virtual Query Limit(int32_t limit);
+  virtual Query Limit(int32_t limit) const;
 
   /**
    * @brief Creates and returns a new Query that only returns the last matching
@@ -412,7 +491,7 @@ class Query {
    *
    * @return The created Query.
    */
-  virtual Query LimitToLast(int32_t limit);
+  virtual Query LimitToLast(int32_t limit) const;
 
   /**
    * @brief Creates and returns a new Query that starts at the provided document
@@ -424,7 +503,7 @@ class Query {
    *
    * @return The created Query.
    */
-  virtual Query StartAt(const DocumentSnapshot& snapshot);
+  virtual Query StartAt(const DocumentSnapshot& snapshot) const;
 
   /**
    * @brief Creates and returns a new Query that starts at the provided fields
@@ -436,7 +515,7 @@ class Query {
    *
    * @return The created Query.
    */
-  virtual Query StartAt(const std::vector<FieldValue>& values);
+  virtual Query StartAt(const std::vector<FieldValue>& values) const;
 
   /**
    * @brief Creates and returns a new Query that starts after the provided
@@ -448,7 +527,7 @@ class Query {
    *
    * @return The created Query.
    */
-  virtual Query StartAfter(const DocumentSnapshot& snapshot);
+  virtual Query StartAfter(const DocumentSnapshot& snapshot) const;
 
   /**
    * @brief Creates and returns a new Query that starts after the provided
@@ -460,7 +539,7 @@ class Query {
    *
    * @return The created Query.
    */
-  virtual Query StartAfter(const std::vector<FieldValue>& values);
+  virtual Query StartAfter(const std::vector<FieldValue>& values) const;
 
   /**
    * @brief Creates and returns a new Query that ends before the provided
@@ -472,7 +551,7 @@ class Query {
    *
    * @return The created Query.
    */
-  virtual Query EndBefore(const DocumentSnapshot& snapshot);
+  virtual Query EndBefore(const DocumentSnapshot& snapshot) const;
 
   /**
    * @brief Creates and returns a new Query that ends before the provided fields
@@ -484,7 +563,7 @@ class Query {
    *
    * @return The created Query.
    */
-  virtual Query EndBefore(const std::vector<FieldValue>& values);
+  virtual Query EndBefore(const std::vector<FieldValue>& values) const;
 
   /**
    * @brief Creates and returns a new Query that ends at the provided document
@@ -496,7 +575,7 @@ class Query {
    *
    * @return The created Query.
    */
-  virtual Query EndAt(const DocumentSnapshot& snapshot);
+  virtual Query EndAt(const DocumentSnapshot& snapshot) const;
 
   /**
    * @brief Creates and returns a new Query that ends at the provided fields
@@ -508,7 +587,7 @@ class Query {
    *
    * @return The created Query.
    */
-  virtual Query EndAt(const std::vector<FieldValue>& values);
+  virtual Query EndAt(const std::vector<FieldValue>& values) const;
 
   /**
    * @brief Executes the query and returns the results as a QuerySnapshot.

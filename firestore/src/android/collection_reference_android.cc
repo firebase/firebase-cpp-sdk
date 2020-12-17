@@ -3,11 +3,9 @@
 #include <string>
 #include <utility>
 
-#include "app/src/util_android.h"
 #include "firestore/src/android/document_reference_android.h"
 #include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/promise_android.h"
-#include "firestore/src/android/util_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 
@@ -85,11 +83,8 @@ Future<DocumentReference> CollectionReferenceInternal::Add(
   FieldValueInternal map_value(data);
 
   Env env = GetEnv();
-  Local<Object> task = env.Call(obj_, kAdd, map_value.java_object());
-
-  auto promise = promises_.MakePromise<DocumentReference>();
-  promise.RegisterForTask(AsyncFn::kAdd, task.get());
-  return promise.GetFuture();
+  Local<Object> task = env.Call(obj_, kAdd, map_value.ToJava());
+  return promises_.NewFuture<DocumentReference>(env, AsyncFn::kAdd, task);
 }
 
 }  // namespace firestore

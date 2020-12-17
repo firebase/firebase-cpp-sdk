@@ -161,7 +161,7 @@ TEST_F(ArrayTransformServerApplicationTest, SetWithNoCachedBaseDoc) {
 TEST_F(ArrayTransformServerApplicationTest, UpdateWithNoCachedBaseDoc) {
   // Write an initial document in an isolated Firestore instance so it's not
   // stored in our cache.
-  Await(CachedFirestore("isolated")
+  Await(TestFirestore("isolated")
             ->Document(document_.path())
             .Set(MapFieldValue{
                 {"array", FieldValue::Array({FieldValue::Integer(42)})}}));
@@ -179,7 +179,7 @@ TEST_F(ArrayTransformServerApplicationTest, UpdateWithNoCachedBaseDoc) {
 TEST_F(ArrayTransformServerApplicationTest, MergeSetWithNoCachedBaseDoc) {
   // Write an initial document in an isolated Firestore instance so it's not
   // stored in our cache.
-  Await(CachedFirestore("isolated")
+  Await(TestFirestore("isolated")
             ->Document(document_.path())
             .Set(MapFieldValue{
                 {"array", FieldValue::Array({FieldValue::Integer(42)})}}));

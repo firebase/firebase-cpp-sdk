@@ -6,6 +6,7 @@
 #include "app/memory/unique_ptr.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
+#include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/document_snapshot_android.h"
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/firestore_android.h"
@@ -57,17 +58,6 @@ class Promise {
 
   void RegisterForTask(FnEnumType op, const jni::Object& task) {
     return RegisterForTask(op, task.get());
-  }
-
-  void RegisterForTask(FnEnumType op, jobject task) {
-    JNIEnv* env = completer_->firestore()->app()->GetJNIEnv();
-    handle_ = completer_->Alloc(static_cast<int>(op));
-
-    // Ownership of the completer will pass to to RegisterCallbackOnTask
-    auto* completer = completer_.release();
-
-    util::RegisterCallbackOnTask(env, task, ResultCallback, completer,
-                                 kApiIdentifier);
   }
 
   void RegisterForTask(jni::Env& env, FnEnumType op, const jni::Object& task) {
@@ -153,8 +143,7 @@ class Promise {
     using CompleterBase<PublicT>::CompleterBase;
 
     void SucceedWithResult(jni::Env& env, const jni::Object& result) override {
-      PublicT future_result = FirestoreInternal::Wrap<InternalT>(
-          new InternalT(this->firestore_, result.get()));
+      auto future_result = MakePublic<PublicT>(env, this->firestore_, result);
 
       this->impl_->CompleteWithResult(this->handle_, Error::kErrorOk,
                                       /*error_msg=*/"", future_result);

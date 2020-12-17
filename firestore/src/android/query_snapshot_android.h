@@ -17,7 +17,6 @@ namespace firestore {
 
 class QuerySnapshotInternal : public Wrapper {
  public:
-  using ApiType = QuerySnapshot;
   using Wrapper::Wrapper;
 
   static void Initialize(jni::Loader& loader);
