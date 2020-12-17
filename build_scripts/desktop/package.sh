@@ -6,16 +6,17 @@ set -e
 usage(){
     echo "Usage: $0 -b <built sdk path> -o <output package path> -p <platform> [options]
 options:
-  -b, built sdk path or tar file            required
-  -o, output path                           required
-  -p, platform to package                   required, one of: linux windows darwin
-  -d, build variant directory to create     default: .
-  -m, merge_libraries.py path               default: <script dir>/../../scripts/merge_libraries.py
-  -P, python command                        default: python
-  -t, packaging tools directory             default: ~/bin
+  -b, built sdk path or tar file                  required
+  -o, output path                                 required
+  -p, platform to package                         required, one of: linux windows darwin
+  -d, build variant directory to create           default: .
+  -m, merge_libraries.py path                     default: <script dir>/../../scripts/merge_libraries.py
+  -P, python command                              default: python
+  -t, packaging tools directory                   default: ~/bin
+  -j, run merge_libraries jobs in parallel
   -v, enable verbose mode
 example:
-  build_scripts/desktop/package.sh -b firebase-cpp-sdk-linux -p linux -o package_out -v x86"
+  build_scripts/desktop/package.sh -b firebase-cpp-sdk-linux -p linux -o package_out -v x86 -j"
 }
 
 built_sdk_path=
@@ -29,6 +30,7 @@ merge_libraries_script=${root_dir}/scripts/merge_libraries.py
 tools_path=~/bin
 built_sdk_tarfile=
 temp_dir=
+run_in_parallel=0
 
 . "${root_dir}/build_scripts/packaging.conf"
 
@@ -42,10 +44,13 @@ abspath(){
     fi
 }
 
-while getopts ":b:o:p:d:m:P:t:hv" opt; do
+while getopts "b:o:p:d:m:P:t:hjv" opt; do
     case $opt in
         b)
             built_sdk_path=$OPTARG
+            ;;
+        j)
+            run_in_parallel=1
             ;;
         o)
             output_package_path=$OPTARG
@@ -87,6 +92,23 @@ while getopts ":b:o:p:d:m:P:t:hv" opt; do
             ;;
     esac
 done
+
+readonly parallel_command=parallel
+# GNU and non-GNU versions of 'parallel' command take different arguments, so we check which is installed.
+use_gnu_parallel=0
+
+if [[ ${run_in_parallel} -ne 0 ]]; then
+  if [[ ! $(which "${parallel_command}") ]]; then
+    echo "Warning: Ignoring -j option since '${parallel_command}' command cannot be found."
+    run_in_parallel=0
+  else
+    set +e
+    if ("${parallel_command}" --version 2>&1 | grep -q GNU); then
+      use_gnu_parallel=1
+    fi
+    set -e
+  fi
+fi
 
 if [[ -z "${built_sdk_path}" ]]; then
     echo "Missing required option: -b <built sdk path>"
@@ -214,7 +236,6 @@ trap "rm -f \"\${cache_file}\"" SIGKILL SIGTERM SIGQUIT EXIT
 
 declare -a merge_libraries_params
 merge_libraries_params=(
-    --cache=${cache_file}
     --binutils_nm_cmd=${binutils_nm}
     --binutils_ar_cmd=${binutils_ar}
     --binutils_objcopy_cmd=${binutils_objcopy}
@@ -222,6 +243,8 @@ merge_libraries_params=(
     --platform=${platform}
     --hide_cpp_namespaces=$(echo "${rename_namespaces[*]}" | sed 's| |,|g')
 )
+cache_param=--cache=${cache_file}
+
 if [[ ${platform} == "windows" ]]; then
     # Windows has a hard time with strict C++ demangling.
     merge_libraries_params+=(--nostrict_cpp)
@@ -250,6 +273,13 @@ for lib in $(find . -name "*.${ext}"); do
     if [[ ! -z ${allfiles} ]]; then allfiles+=","; fi
     allfiles+="${lib}"
 done
+
+merge_libraries_tmp=$(mktemp -d)
+trap "rm -rf \"\${merge_libraries_tmp}\"" SIGKILL SIGTERM SIGQUIT EXIT
+
+if [[ ${run_in_parallel} -ne 0 ]]; then
+  echo "Queueing jobs..."
+fi
 
 # Make sure we only copy the libraries in product_list (specified in packaging.conf)
 for product in ${product_list[*]}; do
@@ -293,30 +323,68 @@ for product in ${product_list[*]}; do
             done
         done
     fi
-    echo -n "${libfile_out}"
-    if [[ ! -z ${deps_basenames[*]} ]]; then
-        echo -n " <- ${deps[*]}"
-    fi
-    echo
     outfile="${full_output_path}/${libfile_out}"
     rm -f "${outfile}"
     if [[ ${verbose} -eq 1 ]]; then
-        echo "${python_cmd}" "${merge_libraries_script}" \
-             ${merge_libraries_params[*]} \
-             --output="${outfile}" \
-             --scan_libs="${allfiles}" \
-             --hide_c_symbols="${deps_hidden}" \
-             ${libfile_src} ${deps[*]}
+      echo "${python_cmd}" "${merge_libraries_script}" \
+		    ${merge_libraries_params[*]} \
+                    ${cache_param} \
+		    --output="${outfile}" \
+		    --scan_libs="${allfiles}" \
+		    --hide_c_symbols="${deps_hidden}" \
+		    ${libfile_src} ${deps[*]}
     fi
-    "${python_cmd}" "${merge_libraries_script}" \
-                    ${merge_libraries_params[*]} \
-                    --output="${outfile}" \
-                    --scan_libs="${allfiles}" \
-                    --hide_c_symbols="${deps_hidden}" \
-                    ${libfile_src} ${deps[*]}
+    # Place the merge command in a script so we can optionally run them in parallel.
+    echo "#!/bin/bash -e" > "${merge_libraries_tmp}/merge_${product}.sh"
+    if [[ ! -z ${deps_basenames[*]} ]]; then
+      echo "echo \"${libfile_out} <- ${deps[*]}\"" >> "${merge_libraries_tmp}/merge_${product}.sh"
+    else
+      echo "echo \"${libfile_out}\"" >> "${merge_libraries_tmp}/merge_${product}.sh"
+    fi
+    if [[ ! -z ${deps_basenames[*]} ]]; then
+	echo -n  >> "${merge_libraries_tmp}/merge_${product}.sh"
+    fi
+    echo >> "${merge_libraries_tmp}/merge_${product}.sh"
+    echo "\"${python_cmd}\" \\
+      \"${merge_libraries_script}\" \\
+      ${merge_libraries_params[*]} \\
+      \"${cache_param}\" \\
+      --output=\"${outfile}\" \\
+      --scan_libs=\"${allfiles}\" \\
+      --hide_c_symbols=\"${deps_hidden}\" \\
+      \"${libfile_src}\" ${deps[*]}" >> "${merge_libraries_tmp}/merge_${product}.sh"
+      chmod u+x "${merge_libraries_tmp}/merge_${product}.sh"
+      if [[ ${run_in_parallel} -eq 0 ]]; then
+        # Run immediately if not set to run in parallel.
+        "${merge_libraries_tmp}/merge_${product}.sh"
+      else
+        echo "echo \"${libfile_out}\" DONE" >> "${merge_libraries_tmp}/merge_${product}.sh"
+      fi
 done
+
+if [[ ${run_in_parallel} -ne 0 ]]; then
+  # Analytics is the smallest SDK, so it should be the shortest job.
+  shortest=analytics
+  echo "There are ${#product_list[@]} jobs to run."
+  echo "Running shortest job to populate cache, then remaining jobs in parallel..."
+  "${merge_libraries_tmp}/merge_${shortest}.sh"
+  # Zero out the job that we already did.
+  echo "#!/bin/bash" > "${merge_libraries_tmp}/merge_${shortest}.sh"
+  if [[ ${use_gnu_parallel} -eq 1 ]]; then
+    # ls -S sorts by size, largest first. Use script file size as a proxy for
+    # job length in order to queue up the longest jobs first.
+    # In GNU parallel, --lb means to not buffer the output, so we can see the
+    # jobs run and finish in realtime.
+    "${parallel_command}" --lb ::: $(ls -S "${merge_libraries_tmp}"/merge_*.sh)
+  else
+    # Default version of parallel has a slightly different syntax.
+    "${parallel_command}" -- $(ls -S "${merge_libraries_tmp}"/merge_*.sh)
+  fi
+  echo "All jobs finished!"
+fi
 cd "${run_path}"
 
+echo "Copying extra header files..."
 # Copy generated headers for app and analytics into the package's include directory.
 mkdir -p "${output_package_path}/include/firebase"
 cp -av \
