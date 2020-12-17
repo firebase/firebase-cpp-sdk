@@ -36,20 +36,26 @@ GetOobConfirmationCodeRequest::GetOobConfirmationCodeRequest(
 
 std::unique_ptr<GetOobConfirmationCodeRequest>
 GetOobConfirmationCodeRequest::CreateSendEmailVerificationRequest(
-    const char* api_key) {
+    const char* api_key, const char* language_code) {
   auto request = std::unique_ptr<GetOobConfirmationCodeRequest>(  // NOLINT
       new GetOobConfirmationCodeRequest(api_key));
   request->application_data_->requestType = "VERIFY_EMAIL";
+  if (language_code != nullptr) {
+    request->add_header(kHeaderFirebaseLocale, language_code);
+  }
   request->UpdatePostFields();
   return request;
 }
 
 std::unique_ptr<GetOobConfirmationCodeRequest>
 GetOobConfirmationCodeRequest::CreateSendPasswordResetEmailRequest(
-    const char* api_key, const char* email) {
+    const char* api_key, const char* email, const char* language_code) {
   auto request = std::unique_ptr<GetOobConfirmationCodeRequest>(  // NOLINT
       new GetOobConfirmationCodeRequest(api_key));
   request->application_data_->requestType = "PASSWORD_RESET";
+  if (language_code != nullptr) {
+    request->add_header(kHeaderFirebaseLocale, language_code);
+  }
   if (email) {
     request->application_data_->email = email;
   } else {

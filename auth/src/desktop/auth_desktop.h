@@ -141,6 +141,10 @@ struct AuthImpl {
 
   // Synchronization primative for tracking sate of FederatedAuth futures.
   Mutex provider_mutex;
+
+  // The current user language code. This can be set to the app’s current
+  // language by calling SetLanguageCode.
+  std::string language_code;
 };
 
 // Constant, describing how often we automatically fetch a new auth token.

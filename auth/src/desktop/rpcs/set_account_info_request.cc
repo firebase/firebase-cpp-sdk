@@ -49,9 +49,13 @@ SetAccountInfoRequest::CreateUpdateEmailRequest(const char* const api_key,
 }
 
 std::unique_ptr<SetAccountInfoRequest>
-SetAccountInfoRequest::CreateUpdatePasswordRequest(const char* const api_key,
-                                                   const char* const password) {
+SetAccountInfoRequest::CreateUpdatePasswordRequest(
+    const char* const api_key, const char* const password,
+    const char* const language_code) {
   auto request = CreateRequest(api_key);
+  if (language_code != nullptr) {
+    request->add_header(kHeaderFirebaseLocale, language_code);
+  }
   if (password) {
     request->application_data_->password = password;
   } else {

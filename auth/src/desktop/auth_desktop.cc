@@ -391,9 +391,16 @@ Future<void> Auth::SendPasswordResetEmail(const char* email) {
     return promise.LastResult();
   }
 
+  const char* language_code = nullptr;
+  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  if (!auth_impl->language_code.empty()) {
+    language_code = auth_impl->language_code.c_str();
+  }
+
   typedef GetOobConfirmationCodeRequest RequestT;
   auto request = RequestT::CreateSendPasswordResetEmailRequest(
-      GetApiKey(*auth_data_), email);
+      GetApiKey(*auth_data_), email, language_code);
+
   const auto callback = [](AuthDataHandle<void, RequestT>* handle) {
     const auto response =
         GetResponse<GetOobConfirmationCodeResponse>(*handle->request);
@@ -448,6 +455,30 @@ User* Auth::current_user() {
     return auth_data_->user_impl == nullptr ? nullptr
                                             : &auth_data_->current_user;
   }
+}
+
+std::string Auth::language_code() const {
+  if (!auth_data_) return "";
+  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  return auth_impl->language_code;
+}
+
+void Auth::set_language_code(const char* language_code) {
+  if (!auth_data_) return;
+
+  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  std::string code;
+  if (language_code != nullptr) {
+    code.assign(language_code);
+  }
+  auth_impl->language_code = code;
+}
+
+void Auth::UseAppLanguage() {
+  if (!auth_data_) return;
+  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  std::string empty_string;
+  auth_impl->language_code.assign(empty_string);
 }
 
 void InitializeTokenRefresher(AuthData* auth_data) {

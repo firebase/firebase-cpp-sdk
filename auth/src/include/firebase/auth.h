@@ -162,6 +162,24 @@ class Auth {
   /// </SWIG>
   User* current_user();
 
+  /// The current user language code. This can be set to the app’s current
+  /// language by calling set_language_code. The string must be a language code
+  /// that follows BCP 47.  This will return an empty string if the app default
+  /// language code is being used.
+  std::string language_code() const;
+
+  /// Sets the user-facing language code for auth operations that can be
+  /// internationalized, such as FirebaseUser.sendEmailVerification(). This
+  /// language code should follow the conventions defined by the IETF in BCP 47.
+  void set_language_code(const char* language_code);
+
+  /// Sets the user-facing language code to be the default app language. This
+  /// uses a languge associated with the phone's locale data.  On desktop
+  /// this will set the language code to the Firebase service's default. You
+  /// may subsequently customize the language code again by invoking
+  /// set_language_code().
+  void UseAppLanguage();
+
   // ----- Providers -------------------------------------------------------
   /// Asynchronously requests the IDPs (identity providers) that can be used
   /// for the given email address.
