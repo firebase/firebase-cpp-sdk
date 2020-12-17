@@ -354,10 +354,10 @@ if [[ ${run_in_parallel} -ne 0 ]]; then
   "${merge_libraries_tmp}/merge_${product_list[0]}.sh"
   set -x
   parallel -i "${merge_libraries_tmp}/merge_{}.sh" -- ${product_list[*]:1}
+  parallel -h
   set +x
   echo "All jobs finished!"
 fi
-
 cd "${run_path}"
 
 # Copy Firestore core headers into the package's include directory.
