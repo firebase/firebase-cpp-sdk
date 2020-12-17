@@ -232,6 +232,7 @@ bool FirestoreInternal::Initialize(App* app) {
     FIREBASE_DEV_ASSERT(java_firestores == nullptr);
     java_firestores = new JavaFirestoreMap();
 
+    Env env = GetEnv();
     Loader loader(app);
     loader.AddEmbeddedFile(::firebase_firestore::firestore_resources_filename,
                            ::firebase_firestore::firestore_resources_data,
@@ -239,7 +240,7 @@ bool FirestoreInternal::Initialize(App* app) {
     loader.CacheEmbeddedFiles();
 
     jni::Object::Initialize(loader);
-
+    jni::String::Initialize(env, loader);
     jni::ArrayList::Initialize(loader);
     jni::Boolean::Initialize(loader);
     jni::Collection::Initialize(loader);
@@ -279,7 +280,7 @@ bool FirestoreInternal::Initialize(App* app) {
     TransactionInternal::Initialize(loader);
     WriteBatchInternal::Initialize(loader);
     if (!loader.ok()) {
-      ReleaseClassesLocked(app);
+      ReleaseClassesLocked(env);
       return false;
     }
 
@@ -287,13 +288,8 @@ bool FirestoreInternal::Initialize(App* app) {
     global_loader = new Loader(Move(loader));
 
     if (initial_log_state != InitialLogState::kUnset) {
-      Env env;
       bool enabled = initial_log_state == InitialLogState::kSetEnabled;
       env.Call(kSetLoggingEnabled, enabled);
-
-      // If this fails it's unimportant. If there's some broad systemic failure
-      // the next real operation will trigger it too.
-      env.ExceptionClear();
     }
   }
   initialize_count++;
@@ -301,8 +297,10 @@ bool FirestoreInternal::Initialize(App* app) {
 }
 
 /* static */
-void FirestoreInternal::ReleaseClassesLocked(App* app) {
+void FirestoreInternal::ReleaseClassesLocked(Env& env) {
   // Assumes `init_mutex` is held.
+  String::Terminate(env);
+
   delete global_loader;
   global_loader = nullptr;
 }
@@ -313,7 +311,9 @@ void FirestoreInternal::Terminate(App* app) {
   FIREBASE_ASSERT(initialize_count > 0);
   initialize_count--;
   if (initialize_count == 0) {
-    ReleaseClassesLocked(app);
+    Env env(app->GetJNIEnv());
+    ReleaseClassesLocked(env);
+
     delete java_firestores;
     java_firestores = nullptr;
   }

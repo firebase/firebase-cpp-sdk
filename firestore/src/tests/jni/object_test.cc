@@ -2,6 +2,7 @@
 
 #include <jni.h>
 
+#include "firestore/src/jni/env.h"
 #include "firestore/src/tests/firestore_integration_test.h"
 #include "gtest/gtest.h"
 
@@ -21,8 +22,10 @@ TEST_F(ObjectTest, ToString) {
   jclass string_class = env_->FindClass("java/lang/String");
   Object wrapper(string_class);
 
+  Env env(env_);
+
   // java.lang.Class defines its toString output as having this form.
-  EXPECT_EQ("class java.lang.String", wrapper.ToString(env_));
+  EXPECT_EQ("class java.lang.String", wrapper.ToString(env));
   env_->DeleteLocalRef(string_class);
 }
 
