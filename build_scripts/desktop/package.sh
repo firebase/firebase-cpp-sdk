@@ -8,7 +8,7 @@ usage(){
 options:
   -b, built sdk path or tar file                  required
   -o, output path                                 required
-  -p, platform to package	                  required, one of: linux windows darwin
+  -p, platform to package                         required, one of: linux windows darwin
   -d, build variant directory to create           default: .
   -m, merge_libraries.py path                     default: <script dir>/../../scripts/merge_libraries.py
   -P, python command                              default: python
