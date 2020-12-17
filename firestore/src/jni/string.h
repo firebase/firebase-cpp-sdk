@@ -22,11 +22,34 @@ class String : public Object {
   String() = default;
   explicit String(jstring string) : Object(string) {}
 
+  /**
+   * Creates a new Java String from the given bytes, using the given encoding.
+   * This matches the behavior of the Java `String(byte[], String)` constructor.
+   *
+   * @param bytes A Java array of encoded bytes.
+   * @param encoding A Java string naming the encoding of the bytes.
+   */
+  static Local<String> Create(Env& env, const Array<uint8_t>& bytes,
+                              const String& encoding);
+
   jstring get() const override { return static_cast<jstring>(object_); }
+
+  static void Initialize(Env& env, Loader& loader);
+  static void Terminate(Env& env);
 
   static Class GetClass();
 
-  /** Converts this Java String to a C++ string. */
+  /** Returns a Java String representing "UTF-8". */
+  static String GetUtf8();
+
+  Local<Array<uint8_t>> GetBytes(Env& env, const String& encoding) const;
+
+  /**
+   * Converts this Java String to a C++ string encoded in UTF-8.
+   *
+   * Note that this string is encoded in standard UTF-8, and *not* in the
+   * modified UTF-8 customarily used in the JNI API.
+   */
   std::string ToString(Env& env) const;
 };
 
