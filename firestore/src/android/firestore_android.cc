@@ -178,16 +178,23 @@ class JavaFirestoreMap {
   jni::Global<jni::HashMap> firestores_;
 };
 
-// Governed by init_mutex_below as well.
-JavaFirestoreMap* java_firestores_ = nullptr;
+// init_mutex protects all the globals below.
+Mutex init_mutex;  // NOLINT
+int initialize_count = 0;
+Loader* global_loader = nullptr;
+
+JavaFirestoreMap* java_firestores = nullptr;
+
+// The initial value for setLoggingEnabled.
+enum class InitialLogState {
+  kUnset,
+  kSetEnabled,
+  kSetDisabled,
+} initial_log_state = InitialLogState::kUnset;
 
 }  // namespace
 
 const char kApiIdentifier[] = "Firestore";
-
-Mutex FirestoreInternal::init_mutex_;  // NOLINT
-int FirestoreInternal::initialize_count_ = 0;
-Loader* FirestoreInternal::loader_ = nullptr;
 
 FirestoreInternal::FirestoreInternal(App* app) {
   FIREBASE_ASSERT(app != nullptr);
@@ -200,7 +207,7 @@ FirestoreInternal::FirestoreInternal(App* app) {
   FIREBASE_ASSERT(java_firestore.get() != nullptr);
   obj_ = java_firestore;
 
-  java_firestores_->Put(env, java_firestore, this);
+  java_firestores->Put(env, java_firestore, this);
 
   // Mainly for enabling TimestampsInSnapshotsEnabled. The rest comes from the
   // default in native SDK. The C++ implementation relies on that for reading
@@ -218,12 +225,12 @@ FirestoreInternal::FirestoreInternal(App* app) {
 
 /* static */
 bool FirestoreInternal::Initialize(App* app) {
-  MutexLock init_lock(init_mutex_);
-  if (initialize_count_ == 0) {
+  MutexLock init_lock(init_mutex);
+  if (initialize_count == 0) {
     jni::Initialize(app->java_vm());
 
-    FIREBASE_DEV_ASSERT(java_firestores_ == nullptr);
-    java_firestores_ = new JavaFirestoreMap();
+    FIREBASE_DEV_ASSERT(java_firestores == nullptr);
+    java_firestores = new JavaFirestoreMap();
 
     Loader loader(app);
     loader.AddEmbeddedFile(::firebase_firestore::firestore_resources_filename,
@@ -272,32 +279,43 @@ bool FirestoreInternal::Initialize(App* app) {
     TransactionInternal::Initialize(loader);
     WriteBatchInternal::Initialize(loader);
     if (!loader.ok()) {
-      ReleaseClasses(app);
+      ReleaseClassesLocked(app);
       return false;
     }
 
-    FIREBASE_DEV_ASSERT(loader_ == nullptr);
-    loader_ = new Loader(Move(loader));
+    FIREBASE_DEV_ASSERT(global_loader == nullptr);
+    global_loader = new Loader(Move(loader));
+
+    if (initial_log_state != InitialLogState::kUnset) {
+      Env env;
+      bool enabled = initial_log_state == InitialLogState::kSetEnabled;
+      env.Call(kSetLoggingEnabled, enabled);
+
+      // If this fails it's unimportant. If there's some broad systemic failure
+      // the next real operation will trigger it too.
+      env.ExceptionClear();
+    }
   }
-  initialize_count_++;
+  initialize_count++;
   return true;
 }
 
 /* static */
-void FirestoreInternal::ReleaseClasses(App* app) {
-  delete loader_;
-  loader_ = nullptr;
+void FirestoreInternal::ReleaseClassesLocked(App* app) {
+  // Assumes `init_mutex` is held.
+  delete global_loader;
+  global_loader = nullptr;
 }
 
 /* static */
 void FirestoreInternal::Terminate(App* app) {
-  MutexLock init_lock(init_mutex_);
-  FIREBASE_ASSERT(initialize_count_ > 0);
-  initialize_count_--;
-  if (initialize_count_ == 0) {
-    ReleaseClasses(app);
-    delete java_firestores_;
-    java_firestores_ = nullptr;
+  MutexLock init_lock(init_mutex);
+  FIREBASE_ASSERT(initialize_count > 0);
+  initialize_count--;
+  if (initialize_count == 0) {
+    ReleaseClassesLocked(app);
+    delete java_firestores;
+    java_firestores = nullptr;
   }
 }
 
@@ -316,7 +334,7 @@ FirestoreInternal::~FirestoreInternal() {
 
   future_manager_.ReleaseFutureApi(this);
 
-  java_firestores_->Remove(env, obj_);
+  java_firestores->Remove(env, obj_);
 
   Terminate(app_);
   app_ = nullptr;
@@ -512,13 +530,28 @@ void Firestore::set_log_level(LogLevel log_level) {
   // "Info", "warning", "error", and "assert" map to logging disabled.
   bool logging_enabled = log_level < LogLevel::kLogLevelInfo;
 
+  {
+    MutexLock lock(init_mutex);
+
+    // Set the initial_log_state on every invocation, just in case Firestore
+    // is terminated for long enough to unload the Firestore classes within
+    // the JVM.
+    initial_log_state = logging_enabled ? InitialLogState::kSetEnabled
+                                        : InitialLogState::kSetDisabled;
+
+    if (initialize_count < 1) {
+      // Avoid invoking Java methods before Firestore has been initialized.
+      return;
+    }
+  }
+
   Env env = FirestoreInternal::GetEnv();
   env.Call(kSetLoggingEnabled, logging_enabled);
 }
 
 FirestoreInternal* FirestoreInternal::RecoverFirestore(
     Env& env, const Object& java_firestore) {
-  return java_firestores_->Get(env, java_firestore);
+  return java_firestores->Get(env, java_firestore);
 }
 
 void FirestoreInternal::SetClientLanguage(const std::string& language_token) {
