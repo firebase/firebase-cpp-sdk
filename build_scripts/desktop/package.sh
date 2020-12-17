@@ -93,9 +93,21 @@ while getopts "b:o:p:d:m:P:t:hjv" opt; do
     esac
 done
 
-if [[ ${run_in_parallel} -ne 0 && ! $(which parallel) ]]; then
-  echo "Warning: Ignoring -j option since 'parallel' command cannot be found in PATH."
-  run_in_parallel=0
+parallel_command=parallel
+# GNU and non-GNU versions of 'parallel' command take different arguments, so we check which is installed.
+use_gnu_parallel=0
+
+if [[ ${run_in_parallel} -ne 0 ]]; then
+  if [[ ! $(which "${parallel_command}") ]]; then
+    echo "Warning: Ignoring -j option since '${parallel_command}' command cannot be found."
+    run_in_parallel=0
+  else
+    set +e
+    if (parallel --version 2>&1 | grep -q GNU); then
+      use_gnu_parallel=1
+    fi
+    set -e
+  fi
 fi
 
 if [[ -z "${built_sdk_path}" ]]; then
@@ -352,10 +364,12 @@ if [[ ${run_in_parallel} -ne 0 ]]; then
   echo "There are ${#product_list[@]} jobs to run."
   echo "Running first job to populate cache, then remaining jobs in parallel..."
   "${merge_libraries_tmp}/merge_${product_list[0]}.sh"
-  set -x
-  parallel -i "${merge_libraries_tmp}/merge_{}.sh" -- ${product_list[*]:1}
-  parallel -h
-  set +x
+  if [[ ${use_gnu_parallel} -eq 1 ]]; then
+    "${parallel_command}" --silent "${merge_libraries_tmp}/merge_{}.sh" ::: ${product_list[*]:1}
+  else
+    # Default version of parallel.
+    "${parallel_command}" -i "${merge_libraries_tmp}/merge_{}.sh" -- ${product_list[*]:1}
+  fi
   echo "All jobs finished!"
 fi
 cd "${run_path}"
