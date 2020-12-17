@@ -352,7 +352,9 @@ if [[ ${run_in_parallel} -ne 0 ]]; then
   echo "There are ${#product_list[@]} jobs to run."
   echo "Running first job to populate cache, then remaining jobs in parallel..."
   "${merge_libraries_tmp}/merge_${product_list[0]}.sh"
+  set -x
   parallel -i "${merge_libraries_tmp}/merge_{}.sh" -- ${product_list[*]:1}
+  set +x
   echo "All jobs finished!"
 fi
 
