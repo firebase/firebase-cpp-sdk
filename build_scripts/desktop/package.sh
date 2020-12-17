@@ -365,7 +365,7 @@ if [[ ${run_in_parallel} -ne 0 ]]; then
   echo "Running first job to populate cache, then remaining jobs in parallel..."
   "${merge_libraries_tmp}/merge_${product_list[0]}.sh"
   if [[ ${use_gnu_parallel} -eq 1 ]]; then
-    "${parallel_command}" -k "${merge_libraries_tmp}/merge_{}.sh" ::: ${product_list[*]:1}
+    "${parallel_command}" "${merge_libraries_tmp}/merge_{}.sh" ::: ${product_list[*]:1}
   else
     # Default version of parallel.
     "${parallel_command}" -i "${merge_libraries_tmp}/merge_{}.sh" -- ${product_list[*]:1}
