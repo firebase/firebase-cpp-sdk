@@ -26,12 +26,12 @@ using WriteBatchCommonTest = testing::Test;
 using WriteBatchTest = FirestoreIntegrationTest;
 
 TEST_F(WriteBatchTest, TestSupportEmptyBatches) {
-  Await(firestore()->batch().Commit());
+  Await(TestFirestore()->batch().Commit());
 }
 
 TEST_F(WriteBatchTest, TestSetDocuments) {
   DocumentReference doc = Document();
-  Await(firestore()
+  Await(TestFirestore()
             ->batch()
             .Set(doc, MapFieldValue{{"a", FieldValue::String("b")}})
             .Set(doc, MapFieldValue{{"c", FieldValue::String("d")}})
@@ -46,7 +46,7 @@ TEST_F(WriteBatchTest, TestSetDocuments) {
 
 TEST_F(WriteBatchTest, TestSetDocumentWithMerge) {
   DocumentReference doc = Document();
-  Await(firestore()
+  Await(TestFirestore()
             ->batch()
             .Set(doc,
                  MapFieldValue{
@@ -55,7 +55,7 @@ TEST_F(WriteBatchTest, TestSetDocumentWithMerge) {
                       FieldValue::Map({{"a", FieldValue::String("remove")}})}},
                  SetOptions::Merge())
             .Commit());
-  Await(firestore()
+  Await(TestFirestore()
             ->batch()
             .Set(doc,
                  MapFieldValue{
@@ -65,7 +65,7 @@ TEST_F(WriteBatchTest, TestSetDocumentWithMerge) {
                       FieldValue::Map({{"c", FieldValue::String("d")}})}},
                  SetOptions::MergeFields({"c", "nested"}))
             .Commit());
-  Await(firestore()
+  Await(TestFirestore()
             ->batch()
             .Set(doc,
                  MapFieldValue{
@@ -90,7 +90,7 @@ TEST_F(WriteBatchTest, TestSetDocumentWithMerge) {
 TEST_F(WriteBatchTest, TestUpdateDocuments) {
   DocumentReference doc = Document();
   WriteDocument(doc, MapFieldValue{{"foo", FieldValue::String("bar")}});
-  Await(firestore()
+  Await(TestFirestore()
             ->batch()
             .Update(doc, MapFieldValue{{"baz", FieldValue::Integer(42)}})
             .Commit());
@@ -103,7 +103,7 @@ TEST_F(WriteBatchTest, TestUpdateDocuments) {
 
 TEST_F(WriteBatchTest, TestCannotUpdateNonexistentDocuments) {
   DocumentReference doc = Document();
-  Await(firestore()
+  Await(TestFirestore()
             ->batch()
             .Update(doc, MapFieldValue{{"baz", FieldValue::Integer(42)}})
             .Commit());
@@ -117,7 +117,7 @@ TEST_F(WriteBatchTest, TestDeleteDocuments) {
   DocumentSnapshot snapshot = ReadDocument(doc);
 
   EXPECT_TRUE(snapshot.exists());
-  Await(firestore()->batch().Delete(doc).Commit());
+  Await(TestFirestore()->batch().Delete(doc).Commit());
   snapshot = ReadDocument(doc);
   EXPECT_FALSE(snapshot.exists());
 }
@@ -132,7 +132,7 @@ TEST_F(WriteBatchTest, TestBatchesCommitAtomicallyRaisingCorrectEvents) {
   EXPECT_EQ(0, initial_snapshot.size());
 
   // Atomically write two documents.
-  Await(firestore()
+  Await(TestFirestore()
             ->batch()
             .Set(doc_a, MapFieldValue{{"a", FieldValue::Integer(1)}})
             .Set(doc_b, MapFieldValue{{"b", FieldValue::Integer(2)}})
@@ -164,7 +164,7 @@ TEST_F(WriteBatchTest, TestBatchesFailAtomicallyRaisingCorrectEvents) {
 
   // Atomically write 1 document and update a nonexistent document.
   Future<void> future =
-      firestore()
+      TestFirestore()
           ->batch()
           .Set(doc_a, MapFieldValue{{"a", FieldValue::Integer(1)}})
           .Update(doc_b, MapFieldValue{{"b", FieldValue::Integer(2)}})
@@ -196,7 +196,7 @@ TEST_F(WriteBatchTest, TestWriteTheSameServerTimestampAcrossWrites) {
   EXPECT_EQ(0, initial_snapshot.size());
 
   // Atomically write two documents with server timestamps.
-  Await(firestore()
+  Await(TestFirestore()
             ->batch()
             .Set(doc_a, MapFieldValue{{"when", FieldValue::ServerTimestamp()}})
             .Set(doc_b, MapFieldValue{{"when", FieldValue::ServerTimestamp()}})
@@ -226,7 +226,7 @@ TEST_F(WriteBatchTest, TestCanWriteTheSameDocumentMultipleTimes) {
   DocumentSnapshot initial_snapshot = accumulator.Await();
   EXPECT_FALSE(initial_snapshot.exists());
 
-  Await(firestore()
+  Await(TestFirestore()
             ->batch()
             .Delete(doc)
             .Set(doc, MapFieldValue{{"a", FieldValue::Integer(1)},
@@ -256,12 +256,12 @@ TEST_F(WriteBatchTest, TestUpdateFieldsWithDots) {
   DocumentReference doc = Document();
   WriteDocument(doc, MapFieldValue{{"a.b", FieldValue::String("old")},
                                    {"c.d", FieldValue::String("old")}});
-  Await(firestore()
+  Await(TestFirestore()
             ->batch()
             .Update(doc, MapFieldPathValue{{FieldPath{"a.b"},
                                             FieldValue::String("new")}})
             .Commit());
-  Await(firestore()
+  Await(TestFirestore()
             ->batch()
             .Update(doc, MapFieldPathValue{{FieldPath{"c.d"},
                                             FieldValue::String("new")}})
@@ -280,11 +280,11 @@ TEST_F(WriteBatchTest, TestUpdateNestedFields) {
                {"a", FieldValue::Map({{"b", FieldValue::String("old")}})},
                {"c", FieldValue::Map({{"d", FieldValue::String("old")}})},
                {"e", FieldValue::Map({{"f", FieldValue::String("old")}})}});
-  Await(firestore()
+  Await(TestFirestore()
             ->batch()
             .Update(doc, MapFieldValue({{"a.b", FieldValue::String("new")}}))
             .Commit());
-  Await(firestore()
+  Await(TestFirestore()
             ->batch()
             .Update(doc, MapFieldPathValue({{FieldPath{"c", "d"},
                                              FieldValue::String("new")}}))

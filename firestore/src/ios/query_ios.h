@@ -28,9 +28,9 @@ class QueryInternal {
   FirestoreInternal* firestore_internal();
   const FirestoreInternal* firestore_internal() const;
 
-  Query OrderBy(const FieldPath& field, Query::Direction direction);
-  Query Limit(int32_t limit);
-  Query LimitToLast(int32_t limit);
+  Query OrderBy(const FieldPath& field, Query::Direction direction) const;
+  Query Limit(int32_t limit) const;
+  Query LimitToLast(int32_t limit) const;
 
   virtual Future<QuerySnapshot> Get(Source source);
 
@@ -44,70 +44,82 @@ class QueryInternal {
 
   // Delegating methods
 
-  Query WhereEqualTo(const FieldPath& field, const FieldValue& value) {
+  Query WhereEqualTo(const FieldPath& field, const FieldValue& value) const {
     return Where(field, Operator::Equal, value);
   }
 
-  Query WhereLessThan(const FieldPath& field, const FieldValue& value) {
+  Query WhereNotEqualTo(const FieldPath& field, const FieldValue& value) const {
+    return Where(field, Operator::NotEqual, value);
+  }
+
+  Query WhereLessThan(const FieldPath& field, const FieldValue& value) const {
     return Where(field, Operator::LessThan, value);
   }
 
   Query WhereLessThanOrEqualTo(const FieldPath& field,
-                               const FieldValue& value) {
+                               const FieldValue& value) const {
     return Where(field, Operator::LessThanOrEqual, value);
   }
 
-  Query WhereGreaterThan(const FieldPath& field, const FieldValue& value) {
+  Query WhereGreaterThan(const FieldPath& field,
+                         const FieldValue& value) const {
     return Where(field, Operator::GreaterThan, value);
   }
 
   Query WhereGreaterThanOrEqualTo(const FieldPath& field,
-                                  const FieldValue& value) {
+                                  const FieldValue& value) const {
     return Where(field, Operator::GreaterThanOrEqual, value);
   }
 
-  Query WhereArrayContains(const FieldPath& field, const FieldValue& value) {
+  Query WhereArrayContains(const FieldPath& field,
+                           const FieldValue& value) const {
     return Where(field, Operator::ArrayContains, value);
   }
 
   Query WhereArrayContainsAny(const FieldPath& field,
-                              const std::vector<FieldValue>& values) {
+                              const std::vector<FieldValue>& values) const {
     return Where(field, Operator::ArrayContainsAny, values);
   }
 
-  Query WhereIn(const FieldPath& field, const std::vector<FieldValue>& values) {
+  Query WhereIn(const FieldPath& field,
+                const std::vector<FieldValue>& values) const {
     return Where(field, Operator::In, values);
   }
 
-  Query StartAt(const DocumentSnapshot& snapshot) {
+  Query WhereNotIn(const FieldPath& field,
+                   const std::vector<FieldValue>& values) const {
+    return Where(field, Operator::NotIn, values);
+  }
+
+  Query StartAt(const DocumentSnapshot& snapshot) const {
     return WithBound(BoundPosition::kStartAt, snapshot);
   }
 
-  Query StartAt(const std::vector<FieldValue>& values) {
+  Query StartAt(const std::vector<FieldValue>& values) const {
     return WithBound(BoundPosition::kStartAt, values);
   }
 
-  Query StartAfter(const DocumentSnapshot& snapshot) {
+  Query StartAfter(const DocumentSnapshot& snapshot) const {
     return WithBound(BoundPosition::kStartAfter, snapshot);
   }
 
-  Query StartAfter(const std::vector<FieldValue>& values) {
+  Query StartAfter(const std::vector<FieldValue>& values) const {
     return WithBound(BoundPosition::kStartAfter, values);
   }
 
-  Query EndBefore(const DocumentSnapshot& snapshot) {
+  Query EndBefore(const DocumentSnapshot& snapshot) const {
     return WithBound(BoundPosition::kEndBefore, snapshot);
   }
 
-  Query EndBefore(const std::vector<FieldValue>& values) {
+  Query EndBefore(const std::vector<FieldValue>& values) const {
     return WithBound(BoundPosition::kEndBefore, values);
   }
 
-  Query EndAt(const DocumentSnapshot& snapshot) {
+  Query EndAt(const DocumentSnapshot& snapshot) const {
     return WithBound(BoundPosition::kEndAt, snapshot);
   }
 
-  Query EndAt(const std::vector<FieldValue>& values) {
+  Query EndAt(const std::vector<FieldValue>& values) const {
     return WithBound(BoundPosition::kEndAt, values);
   }
 

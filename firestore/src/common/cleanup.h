@@ -3,6 +3,12 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_CLEANUP_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_CLEANUP_H_
 
+#if __ANDROID__
+#include "firestore/src/android/firestore_android.h"
+#else
+#include "firestore/src/ios/firestore_ios.h"
+#endif  // __ANDROID__
+
 #include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore/listener_registration.h"
 

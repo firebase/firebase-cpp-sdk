@@ -145,7 +145,7 @@ table SerializedMessage {
 
   // Binary payload. For webpush and non-json messages, this is the body of the
   // request entity.
-  raw_data:string;
+  raw_data:[uint8];
 
   // Message ID. This can be specified by sender. Internally a hash of the
   // message ID and other elements will be used for storage. The ID must be

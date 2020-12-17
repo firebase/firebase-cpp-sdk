@@ -1,7 +1,5 @@
 #include "firestore/src/android/document_snapshot_android.h"
 
-#include <jni.h>
-
 #include <utility>
 
 #include "firestore/src/android/document_reference_android.h"
@@ -87,9 +85,7 @@ MapFieldValue DocumentSnapshotInternal::GetData(
   Env env = GetEnv();
   Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
   Local<Object> java_data = env.Call(obj_, kGetData, java_stb);
-
-  FieldValueInternal value(firestore_, java_data.get());
-  return value.map_value();
+  return FieldValueInternal(java_data).map_value();
 }
 
 FieldValue DocumentSnapshotInternal::Get(const FieldPath& field,
@@ -106,8 +102,7 @@ FieldValue DocumentSnapshotInternal::Get(const FieldPath& field,
 
   Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
   Local<Object> field_value = env.Call(obj_, kGet, java_field, java_stb);
-
-  return FieldValue(new FieldValueInternal(firestore_, field_value.get()));
+  return FieldValueInternal::Create(env, field_value);
 }
 
 }  // namespace firestore

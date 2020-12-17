@@ -504,4 +504,29 @@ NS_SWIFT_NAME(Messaging)
  */
 - (nonnull FIRMessagingMessageInfo *)appDidReceiveMessage:(nonnull NSDictionary *)message;
 
+/**
+ * Asynchronously gets the default FCM registration token.
+ *
+ * This creates a Firebase Installations ID, if one does not exist, and sends information about the
+ * application and the device to the Firebase backend. A network connection is required for the
+ * method to succeed. To stop this, see `Messaging.isAutoInitEnabled`,
+ * `Messaging.delete(completion:)` and `Installations.delete(completion:)`.
+ *
+ * @param completion The completion handler to handle the token request.
+ */
+
+- (void)tokenWithCompletion:(void (^)(NSString *__nullable token,
+                                      NSError *__nullable error))completion;
+
+/**
+ * Asynchronously deletes the default FCM registration token.
+ *
+ * This does not delete all tokens for non-default sender IDs, See `Messaging.delete(completion:)`
+ * for deleting all of them. To prevent token auto generation, see `Messaging.isAutoInitEnabled`.
+ *
+ * @param completion The completion handler to handle the token deletion.
+ */
+
+- (void)deleteTokenWithCompletion:(void (^)(NSError *__nullable error))completion;
+
 @end

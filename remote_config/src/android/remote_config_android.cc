@@ -20,8 +20,10 @@
 #include <string>
 
 #include "app/src/assert.h"
+#include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "app/src/time.h"
 #include "app/src/util.h"
 #include "remote_config/src/common.h"
 
@@ -42,21 +44,15 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
     "()Lcom/google/android/gms/tasks/Task;"),                              \
   X(FetchAndActivate, "fetchAndActivate",                                  \
     "()Lcom/google/android/gms/tasks/Task;"),                              \
-  X(ActivateFetched, "activateFetched", "()Z"),                            \
-  X(SetDefaults, "setDefaults", "(I)V"),                                   \
-  X(SetDefaultsUsingMap, "setDefaults", "(Ljava/util/Map;)V"),             \
   X(SetDefaultsAsync, "setDefaultsAsync",                                  \
     "(I)Lcom/google/android/gms/tasks/Task;"),                             \
   X(SetDefaultsUsingMapAsync, "setDefaultsAsync",                          \
     "(Ljava/util/Map;)"                                                    \
     "Lcom/google/android/gms/tasks/Task;"),                                \
-  X(SetConfigSettings, "setConfigSettings",                                \
-    "(Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigSettings;)V"), \
   X(SetConfigSettingsAsync, "setConfigSettingsAsync",                      \
     "(Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigSettings;)"    \
     "Lcom/google/android/gms/tasks/Task;"),                                \
   X(GetLong, "getLong", "(Ljava/lang/String;)J"),                          \
-  X(GetByteArray, "getByteArray", "(Ljava/lang/String;)[B"),               \
   X(GetString, "getString", "(Ljava/lang/String;)Ljava/lang/String;"),     \
   X(GetBoolean, "getBoolean", "(Ljava/lang/String;)Z"),                    \
   X(GetDouble, "getDouble", "(Ljava/lang/String;)D"),                      \
@@ -114,7 +110,8 @@ METHOD_LOOKUP_DEFINITION(
 // Methods of FirebaseRemoteConfigSettings
 // clang-format off
 #define REMOTE_CONFIG_SETTINGS_METHODS(X) \
-  X(IsDeveloperModeEnabled, "isDeveloperModeEnabled", "()Z")
+  X(GetFetchTimeoutInSeconds, "getFetchTimeoutInSeconds", "()J"),              \
+  X(GetMinimumFetchIntervalInSeconds, "getMinimumFetchIntervalInSeconds", "()J")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(config_settings, REMOTE_CONFIG_SETTINGS_METHODS)
 METHOD_LOOKUP_DEFINITION(
@@ -129,8 +126,11 @@ METHOD_LOOKUP_DEFINITION(
   X(Constructor, "<init>", "()V"),                                        \
   X(Build, "build",                                                       \
     "()Lcom/google/firebase/remoteconfig/FirebaseRemoteConfigSettings;"), \
-  X(SetDeveloperModeEnabled, "setDeveloperModeEnabled",                   \
-    "(Z)Lcom/google/firebase/remoteconfig/"                               \
+  X(SetFetchTimeoutInSeconds, "setFetchTimeoutInSeconds",                 \
+    "(J)Lcom/google/firebase/remoteconfig/"                               \
+    "FirebaseRemoteConfigSettings$Builder;"),                             \
+  X(SetMinimumFetchIntervalInSeconds, "setMinimumFetchIntervalInSeconds", \
+    "(J)Lcom/google/firebase/remoteconfig/"                               \
     "FirebaseRemoteConfigSettings$Builder;")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(config_settings_builder,
@@ -161,6 +161,9 @@ using firebase::internal::ReferenceCountLock;
 // This is initialized in remote_config::Initialize() and never released
 // during the lifetime of the application.
 static jobject g_remote_config_class_instance = nullptr;
+
+static internal::RemoteConfigInternal* g_remote_config_android_instance =
+    nullptr;
 
 // Used to retrieve the JNI environment in order to call methods on the
 // Android Analytics class.
@@ -255,6 +258,8 @@ InitResult Initialize(const App& app) {
   FutureData::Create();
   g_default_keys = new std::vector<std::string>;
   LogInfo("%s API Initialized", kApiIdentifier);
+
+  g_remote_config_android_instance = new internal::RemoteConfigInternal(*g_app);
   return kInitResultSuccess;
 }
 
@@ -272,6 +277,13 @@ void Terminate() {
   internal::UnregisterTerminateOnDefaultAppDestroy();
   JNIEnv* env = g_app->GetJNIEnv();
   g_app = nullptr;
+
+  if (!g_remote_config_android_instance) {
+    g_remote_config_android_instance->Cleanup();
+    delete g_remote_config_android_instance;
+    g_remote_config_android_instance = nullptr;
+  }
+
   env->DeleteGlobalRef(g_remote_config_class_instance);
   g_remote_config_class_instance = nullptr;
   util::CancelCallbacks(env, kApiIdentifier);
@@ -287,13 +299,12 @@ void Terminate() {
 #if defined(__ANDROID__)
 void SetDefaults(int defaults_resource_id) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
-  env->CallVoidMethod(g_remote_config_class_instance,
-                      config::GetMethodId(config::kSetDefaults),
-                      defaults_resource_id);
-  if (env->ExceptionCheck()) {
-    env->ExceptionDescribe();
-    env->ExceptionClear();
+  Future<void> setDefaultsFuture =
+      g_remote_config_android_instance->SetDefaults(defaults_resource_id);
+  while (setDefaultsFuture.status() == kFutureStatusPending) {
+    firebase::internal::Sleep(1);
+  }
+  if (setDefaultsFuture.error() != 0) {
     LogError("Remote Config: Unable to set defaults from resource ID %d",
              defaults_resource_id);
   }
@@ -359,20 +370,17 @@ static jobject VariantToJavaObject(JNIEnv* env, const Variant& variant) {
 
 void SetDefaults(const ConfigKeyValue* defaults, size_t number_of_defaults) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
-  jobject hash_map =
-      ConfigKeyValueArrayToHashMap(env, defaults, number_of_defaults);
-  env->CallVoidMethod(g_remote_config_class_instance,
-                      config::GetMethodId(config::kSetDefaultsUsingMap),
-                      hash_map);
-  if (env->ExceptionCheck()) {
-    env->ExceptionDescribe();
-    env->ExceptionClear();
+  Future<void> setDefaultsFuture =
+      g_remote_config_android_instance->SetDefaults(defaults,
+                                                    number_of_defaults);
+  while (setDefaultsFuture.status() == kFutureStatusPending) {
+    firebase::internal::Sleep(1);
+  }
+  if (setDefaultsFuture.error() != 0) {
     LogError("Remote Config: Unable to set defaults using map");
   } else {
     SaveDefaultKeys(defaults, g_default_keys, number_of_defaults);
   }
-  env->DeleteLocalRef(hash_map);
 }
 
 // Convert a ConfigKeyValueVariant array into a Java HashMap of string to
@@ -404,72 +412,28 @@ static jobject ConfigKeyValueVariantArrayToHashMap(
 
 std::string GetConfigSetting(ConfigSetting setting) {
   FIREBASE_ASSERT_RETURN(std::string(), internal::IsInitialized());
-  std::string value;
-  JNIEnv* env = g_app->GetJNIEnv();
-  jobject info = env->CallObjectMethod(g_remote_config_class_instance,
-                                       config::GetMethodId(config::kGetInfo));
-  jobject settings_obj = env->CallObjectMethod(
-      info, config_info::GetMethodId(config_info::kGetConfigSettings));
-  env->DeleteLocalRef(info);
-  switch (setting) {
-    case kConfigSettingDeveloperMode:
-      value = env->CallBooleanMethod(
-                  settings_obj, config_settings::GetMethodId(
-                                    config_settings::kIsDeveloperModeEnabled))
-                  ? "1"
-                  : "0";
-      break;
-  }
-  env->DeleteLocalRef(settings_obj);
-  return value;
+  return "0";
 }
 
 void SetDefaults(const ConfigKeyValueVariant* defaults,
                  size_t number_of_defaults) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
-  jobject hash_map =
-      ConfigKeyValueVariantArrayToHashMap(env, defaults, number_of_defaults);
-  env->CallVoidMethod(g_remote_config_class_instance,
-                      config::GetMethodId(config::kSetDefaultsUsingMap),
-                      hash_map);
-  if (env->ExceptionCheck()) {
-    env->ExceptionDescribe();
-    env->ExceptionClear();
+  Future<void> setDefaultsFuture =
+      g_remote_config_android_instance->SetDefaults(defaults,
+                                                    number_of_defaults);
+  while (setDefaultsFuture.status() == kFutureStatusPending) {
+    firebase::internal::Sleep(1);
+  }
+  if (setDefaultsFuture.error() != 0) {
     LogError("Remote Config: Unable to set defaults using map");
   } else {
     SaveDefaultKeys(defaults, g_default_keys, number_of_defaults);
   }
-  env->DeleteLocalRef(hash_map);
 }
 
 void SetConfigSetting(ConfigSetting setting, const char* value) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
-  jobject builder = env->NewObject(config_settings_builder::GetClass(),
-                                   config_settings_builder::GetMethodId(
-                                       config_settings_builder::kConstructor));
-  switch (setting) {
-    case kConfigSettingDeveloperMode: {
-      jobject newbuilder;
-      newbuilder = env->CallObjectMethod(
-          builder,
-          config_settings_builder::GetMethodId(
-              config_settings_builder::kSetDeveloperModeEnabled),
-          strcmp(value, "1") == 0);
-      env->DeleteLocalRef(builder);
-      builder = newbuilder;
-      break;
-    }
-  }
-  jobject settings_obj = env->CallObjectMethod(
-      builder,
-      config_settings_builder::GetMethodId(config_settings_builder::kBuild));
-  env->DeleteLocalRef(builder);
-  env->CallVoidMethod(g_remote_config_class_instance,
-                      config::GetMethodId(config::kSetConfigSettings),
-                      settings_obj);
-  env->DeleteLocalRef(settings_obj);
+  // Deprecated
 }
 
 // Check pending exceptions following a key fetch and log an error if a
@@ -624,17 +588,8 @@ std::string GetString(const char* key, ValueInfo* info) {
 std::vector<unsigned char> GetData(const char* key) {
   FIREBASE_ASSERT_RETURN(std::vector<unsigned char>(),
                          internal::IsInitialized());
-  std::vector<unsigned char> value;
-  JNIEnv* env = g_app->GetJNIEnv();
-  jstring key_string = env->NewStringUTF(key);
-  jobject array = env->CallObjectMethod(
-      g_remote_config_class_instance,
-      config::GetMethodId(config::kGetByteArray), key_string);
-
-  bool failed = CheckKeyRetrievalLogError(env, key, "vector");
-  env->DeleteLocalRef(key_string);
-  if (!failed) value = util::JniByteArrayToVector(env, array);
-  return value;
+  return g_remote_config_android_instance->GetData(
+      key, static_cast<ValueInfo*>(nullptr));
 }
 
 std::vector<unsigned char> GetData(const char* key, ValueInfo* info) {
@@ -745,11 +700,14 @@ Future<void> FetchLastResult() {
 
 bool ActivateFetched() {
   FIREBASE_ASSERT_RETURN(false, internal::IsInitialized());
-  JNIEnv* env = g_app->GetJNIEnv();
-  jboolean result =
-      env->CallBooleanMethod(g_remote_config_class_instance,
-                             config::GetMethodId(config::kActivateFetched));
-  return result != 0;
+
+  Future<bool> activateFuture =
+      g_remote_config_android_instance->Activate();
+  while (activateFuture.status() == firebase::kFutureStatusPending) {
+    firebase::internal::Sleep(1);
+  }
+
+  return activateFuture.result();
 }
 
 static void JConfigInfoToConfigInfo(JNIEnv* env, jobject jinfo,
@@ -1119,12 +1077,13 @@ Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
   env->DeleteLocalRef(builder);
   return MakeFuture<void>(&future_impl_, handle);
 }
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
 
 Future<void> RemoteConfigInternal::SetConfigSettingsLastResult() {
   return static_cast<const Future<void>&>(
       future_impl_.LastResult(kRemoteConfigFnSetConfigSettings));
 }
+
+#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
 
 // Generate the logic to retrieve an certain type value and source from
 // a FirebaseRemoteConfigValue interface.

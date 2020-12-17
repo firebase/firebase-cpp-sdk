@@ -11,8 +11,6 @@ namespace firestore {
 /** A C++ proxy for a Java `Timestamp`. */
 class TimestampInternal : public jni::Object {
  public:
-  using ApiType = Timestamp;
-
   using jni::Object::Object;
 
   static void Initialize(jni::Loader& loader);

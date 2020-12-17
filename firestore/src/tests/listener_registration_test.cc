@@ -25,7 +25,7 @@ using ListenerRegistrationCommonTest = testing::Test;
 class ListenerRegistrationTest : public FirestoreIntegrationTest {
  public:
   ListenerRegistrationTest() {
-    firestore()->set_log_level(LogLevel::kLogLevelDebug);
+    TestFirestore()->set_log_level(LogLevel::kLogLevelDebug);
   }
 };
 
@@ -128,54 +128,51 @@ TEST_F(ListenerRegistrationTest, TestCanBeRemovedIndependently) {
 // used to remove the listener.
 
 TEST_F(ListenerRegistrationCommonTest, Construction) {
-  ListenerRegistrationInternal* internal =
-      testutil::NewInternal<ListenerRegistrationInternal>();
-  ListenerRegistration registration = FirestoreInternal::Wrap(internal);
-  EXPECT_EQ(internal, FirestoreInternal::Internal<ListenerRegistrationInternal>(
-                          registration));
+  auto* internal = testutil::NewInternal<ListenerRegistrationInternal>();
+  auto registration = MakePublic<ListenerRegistration>(internal);
+  EXPECT_EQ(internal, GetInternal(registration));
 
   ListenerRegistration reg_default;
-  EXPECT_EQ(nullptr, FirestoreInternal::Internal<ListenerRegistrationInternal>(
-                         reg_default));
+  EXPECT_EQ(nullptr, GetInternal(reg_default));
 
   ListenerRegistration reg_copy(registration);
-  EXPECT_EQ(internal, FirestoreInternal::Internal<ListenerRegistrationInternal>(
-                          reg_copy));
+  EXPECT_EQ(internal, GetInternal(reg_copy));
 
   ListenerRegistration reg_move(std::move(registration));
-  EXPECT_EQ(internal, FirestoreInternal::Internal<ListenerRegistrationInternal>(
-                          reg_move));
+  EXPECT_EQ(internal, GetInternal(reg_move));
 
+  // ListenerRegistrations are normally owned by FirestoreInternal so the
+  // public ListenerRegistration does not delete the internal instance.
   delete internal;
 }
 
 TEST_F(ListenerRegistrationCommonTest, Assignment) {
-  ListenerRegistrationInternal* internal =
-      testutil::NewInternal<ListenerRegistrationInternal>();
-  ListenerRegistration registration = FirestoreInternal::Wrap(internal);
+  auto* internal = testutil::NewInternal<ListenerRegistrationInternal>();
+  auto registration = MakePublic<ListenerRegistration>(internal);
   ListenerRegistration reg_copy;
   reg_copy = registration;
-  EXPECT_EQ(internal, FirestoreInternal::Internal<ListenerRegistrationInternal>(
-                          reg_copy));
+  EXPECT_EQ(internal, GetInternal(reg_copy));
 
   ListenerRegistration reg_move;
   reg_move = std::move(registration);
-  EXPECT_EQ(internal, FirestoreInternal::Internal<ListenerRegistrationInternal>(
-                          reg_move));
+  EXPECT_EQ(internal, GetInternal(reg_move));
 
+  // ListenerRegistrations are normally owned by FirestoreInternal so the
+  // public ListenerRegistration does not delete the internal instance.
   delete internal;
 }
 
 TEST_F(ListenerRegistrationCommonTest, Remove) {
-  ListenerRegistrationInternal* internal =
-      testutil::NewInternal<ListenerRegistrationInternal>();
-  ListenerRegistration registration = FirestoreInternal::Wrap(internal);
+  auto* internal = testutil::NewInternal<ListenerRegistrationInternal>();
+  auto registration = MakePublic<ListenerRegistration>(internal);
   ListenerRegistration reg_copy;
   reg_copy = registration;
 
   registration.Remove();
   reg_copy.Remove();
 
+  // ListenerRegistrations are normally owned by FirestoreInternal so the
+  // public ListenerRegistration does not delete the internal instance.
   delete internal;
 }
 

@@ -162,11 +162,15 @@ set(app_android_SRCS
 set(app_ios_SRCS
     src/app_ios.mm
     src/util_ios.mm
+    src/heartbeat_date_storage_desktop.cc
+    src/heartbeat_info_desktop.cc
     src/invites/ios/invites_receiver_internal_ios.mm
     src/invites/ios/invites_ios_startup.mm
     src/uuid_ios_darwin.mm)
 set(app_desktop_SRCS
     src/app_desktop.cc
+    src/heartbeat_date_storage_desktop.cc
+    src/heartbeat_info_desktop.cc
     src/invites/stub/invites_receiver_internal_stub.cc
     src/variant_util.cc)
 if(ANDROID)
@@ -179,11 +183,13 @@ else()
   if(MSVC)
     set(app_desktop_extra_SRCS
         src/secure/user_secure_windows_internal.cc
+        src/filesystem_desktop_windows.cc
         src/locale.cc
         src/uuid.cc)
   elseif(APPLE)
     set(app_desktop_extra_SRCS
         src/secure/user_secure_darwin_internal.mm
+        src/filesystem_apple.mm
         src/locale_apple.mm
         src/uuid_ios_darwin.mm)
   else()
@@ -202,6 +208,7 @@ else()
     endif()
     set(app_desktop_extra_SRCS
         src/secure/user_secure_linux_internal.cc
+        src/filesystem_desktop_linux.cc
         src/locale.cc
         src/uuid.cc)
   endif()
@@ -230,10 +237,13 @@ set(utility_common_HDRS
     src/callback.h
     src/cleanup_notifier.h
     src/embedded_file.h
+    src/filesystem.h
     src/function_registry.h
     src/future_manager.h
     src/intrusive_list.h
     src/log.h
+    src/heartbeat_date_storage_desktop.h
+    src/heartbeat_info_desktop.h
     src/mutex.h
     src/optional.h
     src/path.h

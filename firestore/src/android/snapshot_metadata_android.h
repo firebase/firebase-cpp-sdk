@@ -13,8 +13,6 @@ namespace firestore {
  */
 class SnapshotMetadataInternal : public jni::Object {
  public:
-  using ApiType = SnapshotMetadata;
-
   using jni::Object::Object;
 
   static void Initialize(jni::Loader& loader);
