@@ -93,7 +93,7 @@ while getopts "b:o:p:d:m:P:t:hjv" opt; do
     esac
 done
 
-parallel_command=parallel
+readonly parallel_command=parallel
 # GNU and non-GNU versions of 'parallel' command take different arguments, so we check which is installed.
 use_gnu_parallel=0
 
@@ -103,7 +103,7 @@ if [[ ${run_in_parallel} -ne 0 ]]; then
     run_in_parallel=0
   else
     set +e
-    if (parallel --version 2>&1 | grep -q GNU); then
+    if ("${parallel_command}" --version 2>&1 | grep -q GNU); then
       use_gnu_parallel=1
     fi
     set -e
@@ -335,7 +335,7 @@ for product in ${product_list[*]}; do
 		    ${libfile_src} ${deps[*]}
     fi
     # Place the merge command in a script so we can optionally run them in parallel.
-    echo "#!/bin/bash" > "${merge_libraries_tmp}/merge_${product}.sh"
+    echo "#!/bin/bash -e" > "${merge_libraries_tmp}/merge_${product}.sh"
     if [[ ! -z ${deps_basenames[*]} ]]; then
       echo "echo \"${libfile_out} <- ${deps[*]}\"" >> "${merge_libraries_tmp}/merge_${product}.sh"
     else
@@ -357,23 +357,34 @@ for product in ${product_list[*]}; do
       if [[ ${run_in_parallel} -eq 0 ]]; then
         # Run immediately if not set to run in parallel.
         "${merge_libraries_tmp}/merge_${product}.sh"
+      else
+        echo "echo \"${libfile_out}\" DONE" >> "${merge_libraries_tmp}/merge_${product}.sh"
       fi
 done
 
 if [[ ${run_in_parallel} -ne 0 ]]; then
+  # Analytics is the smallest SDK, so it should be the shortest job.
+  shortest=analytics
   echo "There are ${#product_list[@]} jobs to run."
-  echo "Running first job to populate cache, then remaining jobs in parallel..."
-  "${merge_libraries_tmp}/merge_${product_list[0]}.sh"
+  echo "Running shortest job to populate cache, then remaining jobs in parallel..."
+  "${merge_libraries_tmp}/merge_${shortest}.sh"
+  # Zero out the job that we already did.
+  echo "#!/bin/bash" > "${merge_libraries_tmp}/merge_${shortest}.sh"
   if [[ ${use_gnu_parallel} -eq 1 ]]; then
-    "${parallel_command}" "${merge_libraries_tmp}/merge_{}.sh" ::: ${product_list[*]:1}
+    # ls -S sorts by size, largest first. Use script file size as a proxy for
+    # job length in order to queue up the longest jobs first.
+    # In GNU parallel, --lb means to not buffer the output, so we can see the
+    # jobs run and finish in realtime.
+    "${parallel_command}" --lb ::: $(ls -S "${merge_libraries_tmp}"/merge_*.sh)
   else
-    # Default version of parallel.
-    "${parallel_command}" -i "${merge_libraries_tmp}/merge_{}.sh" -- ${product_list[*]:1}
+    # Default version of parallel has a slightly different syntax.
+    "${parallel_command}" -- $(ls -S "${merge_libraries_tmp}"/merge_*.sh)
   fi
   echo "All jobs finished!"
 fi
 cd "${run_path}"
 
+echo "Copying extra header files..."
 # Copy generated headers for app and analytics into the package's include directory.
 mkdir -p "${output_package_path}/include/firebase"
 cp -av \
