@@ -131,8 +131,6 @@ set(ios_SRCS
     src/ios/document_snapshot_ios.h
     src/ios/field_value_ios.cc
     src/ios/field_value_ios.h
-    src/ios/firebase_firestore_settings_ios.cc
-    src/ios/firebase_firestore_settings_ios.h
     src/ios/firestore_ios.cc
     src/ios/firestore_ios.h
     src/ios/hard_assert_ios.cc
@@ -247,6 +245,8 @@ elseif(IOS)
       FirebaseFirestore
       abseil
       nanopb
+      gRPC-C++
+      gRPC-Core
   )
 endif()
 

@@ -23,7 +23,6 @@
 
 #include <ctime>
 #include <map>
-#include <mutex>  // NOLINT(build/c++11)
 #include <string>
 
 namespace FIREBASE_NAMESPACE {

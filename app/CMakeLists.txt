@@ -135,8 +135,6 @@ set(common_SRCS
     src/function_registry.cc
     src/future.cc
     src/future_manager.cc
-    src/heartbeat_date_storage_desktop.cc
-    src/heartbeat_info_desktop.cc
     src/path.cc
     src/reference_counted_future_impl.cc
     src/scheduler.cc
@@ -164,11 +162,15 @@ set(app_android_SRCS
 set(app_ios_SRCS
     src/app_ios.mm
     src/util_ios.mm
+    src/heartbeat_date_storage_desktop.cc
+    src/heartbeat_info_desktop.cc
     src/invites/ios/invites_receiver_internal_ios.mm
     src/invites/ios/invites_ios_startup.mm
     src/uuid_ios_darwin.mm)
 set(app_desktop_SRCS
     src/app_desktop.cc
+    src/heartbeat_date_storage_desktop.cc
+    src/heartbeat_info_desktop.ccx`
     src/invites/stub/invites_receiver_internal_stub.cc
     src/variant_util.cc)
 if(ANDROID)
