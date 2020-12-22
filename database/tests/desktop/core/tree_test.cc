@@ -607,7 +607,7 @@ VisitedList GetVisitedChildStdFunction(const Tree<int>& tree,
                                        const Path& input_path) {
   VisitedList visited;
 
-  tree.CallOnEach(input_path, [&](const Path& path, const int& value) {
+  tree.CallOnEach(input_path, [&](const Path& path, const int value) {
     visited.push_back(std::make_pair(path.str(), value));
   });
   return visited;
