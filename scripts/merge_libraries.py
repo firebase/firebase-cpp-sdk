@@ -19,6 +19,7 @@ Optionally allows you to rename C and C++ symbols from certain libraries.
 
 import hashlib
 import os
+import fcntl
 import pickle
 import re
 import shutil
@@ -850,7 +851,9 @@ def init_cache():
       FLAGS.cache) and os.path.getsize(FLAGS.cache) > 0:
     # If a data cache was specified, load it now.
     with open(FLAGS.cache, "rb") as handle:
+      fcntl.lockf(handle, fcntl.LOCK_SH)  # For reading, shared lock is OK.
       _cache.update(pickle.load(handle))
+      fcntl.lockf(handle, fcntl.LOCK_UN)
   else:
     # Set up a default cache dictionary.
     # _cache["symbols"] is indexed by abspath of library file
@@ -866,7 +869,9 @@ def shutdown_cache():
     if os.path.isfile(FLAGS.cache):
       os.unlink(FLAGS.cache)
     with open(FLAGS.cache, "wb") as handle:
+      fcntl.lockf(handle, fcntl.LOCK_EX)  # For writing, need exclusive lock.
       pickle.dump(_cache, handle, protocol=pickle.HIGHEST_PROTOCOL)
+      fcntl.lockf(handle, fcntl.LOCK_UN)
 
 
 def main(argv):

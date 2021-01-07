@@ -32,7 +32,7 @@ class QueryNetworkTest : public FirestoreIntegrationTest {
                     {"doc2", {{"key2", FieldValue::String("value2")}}}});
 
     // go offline for the rest of this test
-    Await(firestore()->DisableNetwork());
+    Await(TestFirestore()->DisableNetwork());
 
     // apply *multiple* mutations while offline
     collection.Document("doc1").Set({{"key1b", FieldValue::String("value1b")}});
@@ -45,7 +45,7 @@ class QueryNetworkTest : public FirestoreIntegrationTest {
                     MapFieldValue{{"key1b", FieldValue::String("value1b")}},
                     MapFieldValue{{"key2b", FieldValue::String("value2b")}}));
 
-    Await(firestore()->EnableNetwork());
+    Await(TestFirestore()->EnableNetwork());
   }
 
   void TestWatchSurvivesNetworkDisconnectImpl() {
@@ -56,10 +56,10 @@ class QueryNetworkTest : public FirestoreIntegrationTest {
         &collection, MetadataChanges::kInclude);
     EXPECT_TRUE(accumulator.AwaitRemoteEvent().empty());
 
-    Await(firestore()->DisableNetwork());
+    Await(TestFirestore()->DisableNetwork());
     auto added =
         collection.Add(MapFieldValue{{"foo", FieldValue::ServerTimestamp()}});
-    Await(firestore()->EnableNetwork());
+    Await(TestFirestore()->EnableNetwork());
     Await(added);
 
     QuerySnapshot snapshot = accumulator.AwaitServerEvent();
@@ -85,12 +85,12 @@ class QueryNetworkTest : public FirestoreIntegrationTest {
     EXPECT_FALSE(snapshot.metadata().is_from_cache());
 
     // offline event with is_from_cache=true
-    Await(firestore()->DisableNetwork());
+    Await(TestFirestore()->DisableNetwork());
     snapshot = accumulator.Await();
     EXPECT_TRUE(snapshot.metadata().is_from_cache());
 
     // back online event with is_from_cache=false
-    Await(firestore()->EnableNetwork());
+    Await(TestFirestore()->EnableNetwork());
     snapshot = accumulator.Await();
     EXPECT_FALSE(snapshot.metadata().is_from_cache());
     registration.Remove();

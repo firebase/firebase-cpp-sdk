@@ -220,7 +220,7 @@ jobs:
           path: firebase-cpp-sdk-android-${{ matrix.stl }}-package.tgz
 
   build_desktop:
-    name: build-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}
+    name: build-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}
     runs-on: ${{ matrix.os }}
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
@@ -230,6 +230,7 @@ jobs:
         build_type: ["Release", "Debug"]
         architecture: ["x64", "x86"]
         msvc_runtime: ["static", "dynamic"]
+        linux_abi: ["legacy", "c++11"]
         python_version: [3.7]
         include:
         - os: windows-latest
@@ -251,10 +252,14 @@ jobs:
           sdk_platform: "darwin"
 
         exclude:
+        - os: windows-latest
+          linux_abi: "c++11"
         - os: macos-latest
           architecture: "x86"
         - os: macos-latest
           msvc_runtime: "dynamic"
+        - os: macos-latest
+          linux_abi: "c++11"
         - os: macos-latest
           build_type: "Debug"
         - os: ubuntu-latest
@@ -276,8 +281,8 @@ jobs:
         shell: bash
         run: |
           echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ matrix.vcpkg_triplet }}_response_file.txt" >> $GITHUB_ENV
-          echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}" >> $GITHUB_ENV
-          echo "SDK_NAME=${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}" >> $GITHUB_ENV
+          echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}" >> $GITHUB_ENV
+          echo "SDK_NAME=${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}" >> $GITHUB_ENV
 
       - name: Add msbuild to PATH (windows)
         if: startsWith(matrix.os, 'windows')
@@ -288,7 +293,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: external/vcpkg/installed
-          key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+          key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
 
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
@@ -310,7 +315,7 @@ jobs:
       - name: Build desktop SDK
         shell: bash
         run: |
-          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --build_dir out-${{ env.SDK_NAME }} ${{ matrix.additional_build_flags }}
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --linux_abi "${{ matrix.linux_abi }}" --build_dir out-${{ env.SDK_NAME }} ${{ matrix.additional_build_flags }}
           # Make a list of all the source files, for debugging purposes.
           cd out-${{ env.SDK_NAME }}
           find .. -type f -print > src_file_list.txt
@@ -428,7 +433,7 @@ jobs:
           for pkg in artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build/*.tgz; do
             # determine the build variant based on the artifact filename
             variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
-            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3
+            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3 -j
           done
           if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
             # Darwin has a final step after all the variants are done,
@@ -579,17 +584,19 @@ jobs:
         name: |
           packaging-tools-darwin
           packaging-tools-linux
-          firebase-cpp-sdk-windows-x86-Release-dynamic-build
-          firebase-cpp-sdk-windows-x64-Release-dynamic-build
-          firebase-cpp-sdk-windows-x86-Debug-dynamic-build
-          firebase-cpp-sdk-windows-x64-Debug-dynamic-build
-          firebase-cpp-sdk-windows-x86-Release-static-build
-          firebase-cpp-sdk-windows-x64-Release-static-build
-          firebase-cpp-sdk-windows-x86-Debug-static-build
-          firebase-cpp-sdk-windows-x64-Debug-static-build
-          firebase-cpp-sdk-linux-x86-Release-static-build
-          firebase-cpp-sdk-linux-x64-Release-static-build
-          firebase-cpp-sdk-darwin-x64-Release-static-build
+          firebase-cpp-sdk-windows-x86-Release-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x64-Release-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x86-Debug-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x64-Debug-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x86-Release-static-legacy-build
+          firebase-cpp-sdk-windows-x64-Release-static-legacy-build
+          firebase-cpp-sdk-windows-x86-Debug-static-legacy-build
+          firebase-cpp-sdk-windows-x64-Debug-static-legacy-build
+          firebase-cpp-sdk-linux-x86-Release-static-legacy-build
+          firebase-cpp-sdk-linux-x64-Release-static-legacy-build
+          firebase-cpp-sdk-linux-x86-Release-static-c++11-build
+          firebase-cpp-sdk-linux-x64-Release-static-c++11-build
+          firebase-cpp-sdk-darwin-x64-Release-static-legacy-build
           firebase-cpp-sdk-windows-x86-Release-dynamic-package
           firebase-cpp-sdk-windows-x64-Release-dynamic-package
           firebase-cpp-sdk-windows-x86-Debug-dynamic-package

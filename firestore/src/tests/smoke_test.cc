@@ -38,8 +38,8 @@ TEST_F(TypeTest, TestCanReadAWrittenDocument) {
 TEST_F(TypeTest, TestObservesExistingDocument) {
   const MapFieldValue test_data{{"foo", FieldValue::String("bar")}};
   DocumentReference writer_reference =
-      CachedFirestore("writer")->Collection("collection").Document();
-  DocumentReference reader_reference = CachedFirestore("reader")
+      TestFirestore("writer")->Collection("collection").Document();
+  DocumentReference reader_reference = TestFirestore("reader")
                                            ->Collection("collection")
                                            .Document(writer_reference.id());
   Await(writer_reference.Set(test_data));

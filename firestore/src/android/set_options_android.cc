@@ -1,12 +1,9 @@
 #include "firestore/src/android/set_options_android.h"
 
-#include <jni.h>
-
 #include <utility>
 
-#include "app/src/util_android.h"
+#include "app/src/assert.h"
 #include "firestore/src/android/field_path_android.h"
-#include "firestore/src/android/util_android.h"
 #include "firestore/src/jni/array_list.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"

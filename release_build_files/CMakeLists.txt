@@ -49,10 +49,18 @@ elseif(MSVC)
   set(FIREBASE_SDK_LIBDIR
       ${FIREBASE_CPP_SDK_DIR}/libs/windows/${MSVC_VS_VERSION}/${MSVC_RUNTIME_MODE}/${MSVC_CPU}/${MSVC_CONFIG})
 else()
-  # The Firebase libraries are not built with glibcxx11, so disable the ABI.
-  set(DISABLE_CXX11 TRUE)
+  # Check whether we are building with CXX11 ABI.
+  get_directory_property(CURR_DIRECTORY_DEFS COMPILE_DEFINITIONS)
+  if ("${CURR_DIRECTORY_DEFS}" MATCHES "_GLIBCXX_USE_CXX11_ABI=0" OR
+      "${CMAKE_CXX_FLAGS}" MATCHES "-D_GLIBCXX_USE_CXX11_ABI=0")
+    set(DISABLE_CXX11 TRUE)
+    set(LINUX_ABI legacy)
+  else()
+    set(DISABLE_CXX11 FALSE)
+    set(LINUX_ABI cxx11)
+  endif()  
   set(LINUX_CPU x86_64)
-  set(FIREBASE_SDK_LIBDIR ${FIREBASE_CPP_SDK_DIR}/libs/linux/${LINUX_CPU})
+  set(FIREBASE_SDK_LIBDIR ${FIREBASE_CPP_SDK_DIR}/libs/linux/${LINUX_CPU}/${LINUX_ABI})
 endif()
 
 # Defines a Firebase target, linking it with the correct prebuilt library.
@@ -85,6 +93,7 @@ add_firebase_target(firebase_database)
 add_firebase_target(firebase_dynamic_links)
 add_firebase_target(firebase_firestore)
 add_firebase_target(firebase_functions)
+add_firebase_target(firebase_installations)
 add_firebase_target(firebase_instance_id)
 add_firebase_target(firebase_messaging)
 add_firebase_target(firebase_performance)

@@ -30,6 +30,10 @@ Method<Object> kSetPersistenceEnabled(
     "setPersistenceEnabled",
     "(Z)"
     "Lcom/google/firebase/firestore/FirebaseFirestoreSettings$Builder;");
+Method<Object> kSetCacheSizeBytes(
+    "setCacheSizeBytes",
+    "(J)"
+    "Lcom/google/firebase/firestore/FirebaseFirestoreSettings$Builder;");
 Method<SettingsInternal> kBuild(
     "build", "()Lcom/google/firebase/firestore/FirebaseFirestoreSettings;");
 
@@ -39,15 +43,16 @@ constexpr char kSettingsClass[] = PROGUARD_KEEP_CLASS
 Method<String> kGetHost("getHost", "()Ljava/lang/String;");
 Method<bool> kIsSslEnabled("isSslEnabled", "()Z");
 Method<bool> kIsPersistenceEnabled("isPersistenceEnabled", "()Z");
+Method<int64_t> kGetCacheSizeBytes("getCacheSizeBytes", "()J");
 
 }  // namespace
 
 void SettingsInternal::Initialize(jni::Loader& loader) {
   loader.LoadClass(kSettingsBuilderClass, kNewBuilder, kSetHost, kSetSslEnabled,
-                   kSetPersistenceEnabled, kBuild);
+                   kSetPersistenceEnabled, kSetCacheSizeBytes, kBuild);
 
   loader.LoadClass(kSettingsClass, kGetHost, kIsSslEnabled,
-                   kIsPersistenceEnabled);
+                   kIsPersistenceEnabled, kGetCacheSizeBytes);
 }
 
 Local<SettingsInternal> SettingsInternal::Create(Env& env,
@@ -61,6 +66,9 @@ Local<SettingsInternal> SettingsInternal::Create(Env& env,
 
   builder = env.Call(builder, kSetPersistenceEnabled,
                      settings.is_persistence_enabled());
+
+  builder = env.Call(builder, kSetCacheSizeBytes,
+                     settings.cache_size_bytes());
 
   return env.Call(builder, kBuild);
 }
@@ -79,6 +87,10 @@ Settings SettingsInternal::ToPublic(Env& env) const {
   // Set Persistence enabled
   bool persistence_enabled = env.Call(*this, kIsPersistenceEnabled);
   result.set_persistence_enabled(persistence_enabled);
+
+  // Set cache size in bytes
+  int64_t cache_size_bytes = env.Call(*this, kGetCacheSizeBytes);
+  result.set_cache_size_bytes(cache_size_bytes);
 
   return result;
 }

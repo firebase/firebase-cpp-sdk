@@ -1,5 +1,6 @@
 #include "firestore/src/ios/credentials_provider_ios.h"
 
+#include <string>
 #include <utility>
 
 #include "firestore/src/ios/hard_assert_ios.h"
@@ -30,7 +31,15 @@ User GetCurrentUser(Auth* firebase_auth) {
 StatusOr<Token> ConvertToken(const Future<std::string>& future,
                              Auth* firebase_auth) {
   if (future.error() != Error::kErrorOk) {
-    return Status(static_cast<Error>(future.error()), future.error_message());
+    // `AuthError` is a different error domain from go/canonical-codes that
+    // `Status` uses, so it can't be converted directly. Instead, use
+    // `kErrorUnknown` in the `Status` because the error code from the future
+    // is "from a different error domain".
+    // TODO(b/174485290) Map `AuthError` values to Firestore `Error` values more
+    // intelligently so as to enable retries when appropriate.
+    return Status(Error::kErrorUnknown,
+                  std::string(future.error_message()) + " (AuthError " +
+                      std::to_string(future.error()) + ")");
   }
 
   return Token(*future.result(), GetCurrentUser(firebase_auth));

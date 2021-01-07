@@ -14,8 +14,6 @@ namespace firestore {
  */
 class SetOptionsInternal {
  public:
-  using ApiType = SetOptions;
-
   static void Initialize(jni::Loader& loader);
 
   /** Convert a C++ SetOptions to a Java SetOptions. */

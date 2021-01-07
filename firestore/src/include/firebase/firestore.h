@@ -62,7 +62,12 @@ namespace firestore {
 
 class FirestoreInternal;
 
-namespace csharp { class ApiHeaders; }
+namespace csharp {
+
+class ApiHeaders;
+class TransactionManager;
+
+}  // namespace csharp
 
 /**
  * @brief Entry point for the Firebase Firestore C++ SDK.
@@ -417,6 +422,7 @@ class Firestore {
   friend struct CleanupFn;
 
   friend class csharp::ApiHeaders;
+  friend class csharp::TransactionManager;
 
   explicit Firestore(::firebase::App* app);
   explicit Firestore(FirestoreInternal* internal);

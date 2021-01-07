@@ -109,7 +109,8 @@ TEST_F(FirestoreIntegrationTest, TestBlobType) {
 }
 
 TEST_F(FirestoreIntegrationTest, TestReferenceType) {
-  FieldValue value = FieldValue::Reference(firestore()->Document("foo/bar"));
+  FieldValue value =
+      FieldValue::Reference(TestFirestore()->Document("foo/bar"));
   EXPECT_EQ(Type::kReference, value.type());
   EXPECT_EQ(value.reference_value().path(), "foo/bar");
 }

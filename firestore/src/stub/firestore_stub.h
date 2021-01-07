@@ -95,6 +95,8 @@ class FirestoreInternal {
   void UnregisterListenerRegistration(
       ListenerRegistrationInternal* registration) {}
 
+  void ClearListeners() {}
+
   // The following builders are test helpers to avoid expose the details into
   // public header.
   template <typename InternalType>

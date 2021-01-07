@@ -20,7 +20,7 @@ void PrintTo(const Future<void>& future, std::ostream* os);
 // will succeed.
 //
 // Here is an example of how this function could be used:
-// EXPECT_THAT(firestore()->Terminate(), FutureSucceeds());
+// EXPECT_THAT(TestFirestore()->Terminate(), FutureSucceeds());
 testing::Matcher<const Future<void>&> FutureSucceeds();
 
 // Converts a `FutureStatus` value to its enumerator name, and returns it. For

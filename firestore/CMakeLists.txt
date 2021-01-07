@@ -32,6 +32,7 @@ set(common_SRCS
     src/common/firestore.cc
     src/common/futures.h
     src/common/listener_registration.cc
+    src/common/macros.h
     src/common/main_for_testing_build.cc
     src/common/query.cc
     src/common/query_snapshot.cc
@@ -175,8 +176,6 @@ set(ios_SRCS
     src/ios/document_snapshot_ios.h
     src/ios/field_value_ios.cc
     src/ios/field_value_ios.h
-    src/ios/firebase_firestore_settings_ios.cc
-    src/ios/firebase_firestore_settings_ios.h
     src/ios/firestore_ios.cc
     src/ios/firestore_ios.h
     src/ios/hard_assert_ios.cc
@@ -292,6 +291,8 @@ elseif(IOS)
       FirebaseFirestore
       abseil
       nanopb
+      gRPC-C++
+      gRPC-Core
   )
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")

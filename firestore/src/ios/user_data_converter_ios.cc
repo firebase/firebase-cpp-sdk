@@ -3,6 +3,7 @@
 #include <set>
 #include <string>
 
+#include "firestore/src/common/macros.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/field_value_ios.h"
 #include "firestore/src/ios/hard_assert_ios.h"
@@ -169,7 +170,7 @@ ParsedSetData UserDataConverter::ParseSetData(const MapFieldValue& data,
       return ParseMergeData(data, internal_options.field_mask());
   }
 
-  UNREACHABLE();
+  FIRESTORE_UNREACHABLE();
 }
 
 ParsedUpdateData UserDataConverter::ParseUpdateData(
@@ -478,14 +479,13 @@ ParsedUpdateData UserDataConverter::ParseUpdateData(
     if (value.type() == Type::kDelete) {
       // Add it to the field mask, but don't add anything to update_data.
       context.AddToFieldMask(path);
-      break;
-    }
-
-    absl::optional<model::FieldValue> parsed =
-        ParseData(value, context.ChildContext(path));
-    if (parsed) {
-      context.AddToFieldMask(path);
-      update_data = update_data.Set(path, std::move(parsed).value());
+    } else {
+      absl::optional<model::FieldValue> parsed =
+          ParseData(value, context.ChildContext(path));
+      if (parsed) {
+        context.AddToFieldMask(path);
+        update_data = update_data.Set(path, std::move(parsed).value());
+      }
     }
   }
 

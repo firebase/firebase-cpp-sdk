@@ -19,6 +19,7 @@
 
 #include <algorithm>
 #include <map>
+#include <string>
 #include <vector>
 #if defined(_WIN32)
 #include <direct.h>
@@ -28,6 +29,7 @@ static const char* kPathSep = "\\";
 static const char* kPathSep = "//";
 #endif
 
+#include "app/src/filesystem.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "app/src/variant_util.h"
@@ -2729,44 +2731,51 @@ TEST(UtilDesktopTest, GetWireProtocolParams) {
 
 TEST(UtilDesktopTest, TestGetAppDataPath) {
   // Make sure we get a path string.
-  EXPECT_NE(GetAppDataPath("testapp0"), "");
+  EXPECT_NE(AppDataDir("testapp0"), "");
 
   // Make sure we get 2 different paths for 2 different apps.
-  EXPECT_NE(GetAppDataPath("testapp1"), GetAppDataPath("testapp2"));
+  EXPECT_NE(AppDataDir("testapp1"), AppDataDir("testapp2"));
 
   // Make sure we get the same path if we are calling twice with the same app.
-  EXPECT_EQ(GetAppDataPath("testapp3"), GetAppDataPath("testapp3"));
+  EXPECT_EQ(AppDataDir("testapp3"), AppDataDir("testapp3"));
 
   // Make sure the path string refers to a directory that is available.
-  std::string path = GetAppDataPath("testapp4", true);
-  struct stat s;
-  ASSERT_EQ(stat(path.c_str(), &s), 0)
-      << "stat failed on '" << path << "': " << strerror(errno);
-  EXPECT_TRUE(s.st_mode & S_IFDIR) << path << " is not a directory!";
+  // Testing app paths with and without subdirectory.
+  std::vector<std::string> test_app_paths = {"testapp4",
+                                             "testproject/testapp4"};
+  // Make sure the path string refers to a directory that is available.
+  // app_name can also have path separators in them.
+  for (const std::string& test_app_path : test_app_paths) {
+    std::string path = AppDataDir(test_app_path.c_str(), true);
+    struct stat s;
+    ASSERT_EQ(stat(path.c_str(), &s), 0)
+        << "stat failed on '" << path << "': " << strerror(errno);
+    EXPECT_TRUE(s.st_mode & S_IFDIR) << path << " is not a directory!";
 
-  // Write random data to a randomly generated filename.
-  std::string test_data =
-      std::string("Hello, world! ") + std::to_string(rand());  // NOLINT
-  std::string test_path = path + kPathSep + "test_file_" +
-                          std::to_string(rand()) + ".txt";  // NOLINT
+    // Write random data to a randomly generated filename.
+    std::string test_data =
+        std::string("Hello, world! ") + std::to_string(rand());  // NOLINT
+    std::string test_path = path + kPathSep + "test_file_" +
+                            std::to_string(rand()) + ".txt";  // NOLINT
 
-  // Ensure that we can save files in this directory.
-  FILE* out = fopen(test_path.c_str(), "w");
-  EXPECT_NE(out, nullptr) << "Couldn't open test file for writing: "
-                          << strerror(errno);
-  EXPECT_GE(fputs(test_data.c_str(), out), 0) << strerror(errno);
-  EXPECT_EQ(fclose(out), 0) << strerror(errno);
+    // Ensure that we can save files in this directory.
+    FILE* out = fopen(test_path.c_str(), "w");
+    EXPECT_NE(out, nullptr)
+        << "Couldn't open test file for writing: " << strerror(errno);
+    EXPECT_GE(fputs(test_data.c_str(), out), 0) << strerror(errno);
+    EXPECT_EQ(fclose(out), 0) << strerror(errno);
 
-  FILE* in = fopen(test_path.c_str(), "r");
-  EXPECT_NE(in, nullptr) << "Couldn't open test file for reading: "
-                         << strerror(errno);
-  char buf[256];
-  EXPECT_NE(fgets(buf, sizeof(buf), in), nullptr) << strerror(errno);
-  EXPECT_STREQ(buf, test_data.c_str());
-  EXPECT_EQ(fclose(in), 0) << strerror(errno);
+    FILE* in = fopen(test_path.c_str(), "r");
+    EXPECT_NE(in, nullptr) << "Couldn't open test file for reading: "
+                           << strerror(errno);
+    char buf[256];
+    EXPECT_NE(fgets(buf, sizeof(buf), in), nullptr) << strerror(errno);
+    EXPECT_STREQ(buf, test_data.c_str());
+    EXPECT_EQ(fclose(in), 0) << strerror(errno);
 
-  // Delete the file.
-  EXPECT_EQ(unlink(test_path.c_str()), 0) << strerror(errno);
+    // Delete the file.
+    EXPECT_EQ(unlink(test_path.c_str()), 0) << strerror(errno);
+  }
 }
 
 }  // namespace

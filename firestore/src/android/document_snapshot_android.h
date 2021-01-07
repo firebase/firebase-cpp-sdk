@@ -16,7 +16,6 @@ namespace firestore {
 // This is the Android implementation of DocumentSnapshot.
 class DocumentSnapshotInternal : public Wrapper {
  public:
-  using ApiType = DocumentSnapshot;
   using Wrapper::Wrapper;
 
   static void Initialize(jni::Loader& loader);

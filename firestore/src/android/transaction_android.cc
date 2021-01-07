@@ -1,7 +1,5 @@
 #include "firestore/src/android/transaction_android.h"
 
-#include <jni.h>
-
 #include <utility>
 
 #include "app/meta/move.h"
@@ -11,6 +9,7 @@
 #include "firestore/src/android/field_path_android.h"
 #include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/set_options_android.h"
+#include "firestore/src/android/util_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/hash_map.h"
 #include "firestore/src/jni/loader.h"
@@ -192,20 +191,25 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
   TransactionFunction* transaction_function =
       reinterpret_cast<TransactionFunction*>(transaction_function_ptr);
 
-  Transaction transaction(new TransactionInternal(firestore, java_transaction));
+  Transaction transaction(
+      new TransactionInternal(firestore, Object(java_transaction)));
 
   std::string message;
   Error code = transaction_function->Apply(transaction, message);
 
-  Local<Throwable> first_exception =
-      transaction.internal_->ClearExceptionOccurred();
-
-  if (first_exception) {
-    return first_exception.release();
-  } else {
-    Env env(raw_env);
-    return ExceptionInternal::Create(env, code, message).release();
+  // Verify that `internal_` is not null before using it. It could be set to
+  // `nullptr` if the `FirestoreInternal` is destroyed during the invocation of
+  // transaction_function->Apply() (b/171804663).
+  if (transaction.internal_) {
+    Local<Throwable> first_exception =
+        transaction.internal_->ClearExceptionOccurred();
+    if (first_exception) {
+      return first_exception.release();
+    }
   }
+
+  Env env(raw_env);
+  return ExceptionInternal::Create(env, code, message).release();
 }
 
 }  // namespace firestore
