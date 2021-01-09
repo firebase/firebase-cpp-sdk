@@ -247,7 +247,7 @@ def _build(
   os.chdir(project_dir)
 
   _run_setup_script(root_dir, project_dir)
-
+  
   failures = []
 
   if _DESKTOP in platforms:
@@ -339,20 +339,7 @@ def _build_android(project_dir, sdk_dir):
     f.write("systemProp.firebase_cpp_sdk.dir=" + sdk_dir + "\n")
   # This will log the versions of dependencies for debugging purposes.
   _run([gradlew, "dependencies", "--configuration", "debugCompileClasspath"])
-  # Building for Android has a known issue that can be worked around by
-  # simply building again. Since building from source takes a while, we don't
-  # want to retry the build if a different error occurred.
-  build_args = [gradlew, "assembleDebug", "--stacktrace"]
-  result = _run(args=build_args, capture_output=True, text=True, check=False)
-  if result.returncode:
-    if "Execution failed for task ':generateJsonModel" in result.stderr:
-      logging.info("Task failed for ':generateJsonModel<target>'. Retrying.")
-      _run(args=build_args)
-    else:
-      logging.error(result.stderr)
-      raise subprocess.CalledProcessError(
-          returncode=result.returncode,
-          cmd=build_args)
+  _run([gradlew, "assembleDebug", "--stacktrace"])
 
 
 def _validate_android_environment_variables():
@@ -502,15 +489,18 @@ def _build_ios(
         output_dir=build_dir, configuration="Debug")
 
 
-# This script is responsible for copying shared files into the integration
-# test projects. Should be executed before performing any builds.
+# This should be executed before performing any builds.
 def _run_setup_script(root_dir, testapp_dir):
-  """Runs the setup_integration_tests.py script if needed."""
+  """Runs the setup_integration_tests.py script."""
+  # This script will download gtest to its own directory.
+  # The CMake projects were configured to download gtest, but this was
+  # found to be flaky and errors didn't propagate up the build system
+  # layers. The workaround is to download gtest with this script and copy it.
+  downloader_dir = os.path.join(root_dir, "testing", "test_framework")
+  _run([sys.executable, os.path.join(downloader_dir, "download_googletest.py")])
+  # Copies shared test framework files into the project, including gtest.
   script_path = os.path.join(root_dir, "setup_integration_tests.py")
-  if os.path.isfile(script_path):
-    _run([sys.executable, script_path, testapp_dir])
-  else:
-    logging.info("setup_integration_tests.py not found")
+  _run([sys.executable, script_path, testapp_dir])
 
 
 def _run(args, timeout=2400, capture_output=False, text=None, check=True):
