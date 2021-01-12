@@ -691,6 +691,8 @@ jobs:
       run: |
         python scripts/gha/test_lab.py --android_model ${{ env.android_device }} --android_api ${{ env.android_api }} --ios_model ${{ env.ios_device }} --ios_version ${{ env.ios_version }} --testapp_dir testapps --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
     - name: Summarize build and test results
-      if: ${{ !cancelled() }}
+      if: failure()
       shell: bash
-      run: cat testapps/summary.log
+      run: |
+        cat testapps/summary.log
+        exit 1
