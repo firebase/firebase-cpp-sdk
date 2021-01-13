@@ -15,8 +15,8 @@ on:
         description: 'public version # to test against'
       downloadPreviousRun:
         description: 'previous run # to test against'
-      runIntegrationTests:
-        description: 'run integration tests?'
+      skipIntegrationTests:
+        description: 'skip integration tests?'
         default: 0
 
 env:
@@ -615,7 +615,7 @@ jobs:
 
   tests:
     needs: [merge_packages, download_sdk_package]
-    if: github.event.inputs.runIntegrationTests != 0 && !cancelled()
+    if: (github.event.inputs.skipIntegrationTests == 0 || github.event.inputs.skipIntegrationTests == '') && !cancelled()
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
