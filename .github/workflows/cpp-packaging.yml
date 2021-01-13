@@ -11,13 +11,13 @@ on:
       preserveIntermediateArtifacts:
         description: 'preserve intermediate artifacts?'
         default: 0
+      skipIntegrationTests:
+        description: 'skip integration tests?'
+        default: 0
       downloadPublicVersion:
         description: 'public version # to test against'
       downloadPreviousRun:
         description: 'previous run # to test against'
-      skipIntegrationTests:
-        description: 'skip integration tests?'
-        default: 0
 
 env:
   # Packaging prerequisites
@@ -34,6 +34,11 @@ jobs:
     name: log-inputs
     runs-on: ubuntu-latest
     steps:
+      - name: log if skipping integration tests
+        if: |
+          github.event.inputs.skipIntegrationTests != 0 && github.event.inputs.skipIntegrationTests != ''
+        run: echo "::warning ::Skipping integration tests."
+
       - name: log run inputs
         run: |
           if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" ]]; then
