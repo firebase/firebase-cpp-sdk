@@ -50,7 +50,8 @@ jobs:
           fi
 
       - name: log if skipping integration tests
-        if: !(github.event.inputs.skipIntegrationTests == 0 || github.event.inputs.skipIntegrationTests == '')
+        if: |
+          github.event.inputs.skipIntegrationTests != 0 && github.event.inputs.skipIntegrationTests == ''
         run: echo "::warning ::Skipping integration tests."
 
       - name: log if preserving intermediate artifacts
