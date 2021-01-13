@@ -160,8 +160,10 @@ jobs:
         run: |
           python scripts/gha/test_lab.py --android_model ${{ github.event.inputs.android_device }} --android_api ${{ github.event.inputs.android_api }} --ios_model ${{ github.event.inputs.ios_device }} --ios_version ${{ github.event.inputs.ios_version }} --testapp_dir testapps --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Summarize build and test results
-        if: failure()
+        if: ${{ !cancelled() }}
         shell: bash
         run: |
           cat testapps/summary.log
-          exit 1
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi
