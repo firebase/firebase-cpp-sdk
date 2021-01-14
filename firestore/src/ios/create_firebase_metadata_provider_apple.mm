@@ -4,6 +4,9 @@
 #include "Firestore/core/src/remote/firebase_metadata_provider_apple.h"
 #include "absl/memory/memory.h"
 
+// TODO(b/174877213): this file should be named with an _ios suffix, since this
+// implementation is not used on macOS.
+
 namespace firebase {
 namespace firestore {
 
