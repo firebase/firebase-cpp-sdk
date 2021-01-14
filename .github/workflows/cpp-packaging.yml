@@ -11,13 +11,13 @@ on:
       preserveIntermediateArtifacts:
         description: 'preserve intermediate artifacts?'
         default: 0
+      skipIntegrationTests:
+        description: 'skip integration tests?'
+        default: 0
       downloadPublicVersion:
         description: 'public version # to test against'
       downloadPreviousRun:
         description: 'previous run # to test against'
-      runIntegrationTests:
-        description: 'run integration tests?'
-        default: 0
 
 env:
   # Packaging prerequisites
@@ -48,6 +48,11 @@ jobs:
               echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building and packaging SDK and tests."
             fi
           fi
+
+      - name: log if skipping integration tests
+        if: |
+          github.event.inputs.skipIntegrationTests != 0 && github.event.inputs.skipIntegrationTests != ''
+        run: echo "::warning ::Skipping integration tests."
 
       - name: log if preserving intermediate artifacts
         if: |
@@ -615,7 +620,7 @@ jobs:
 
   tests:
     needs: [merge_packages, download_sdk_package]
-    if: github.event.inputs.runIntegrationTests != 0 && !cancelled()
+    if: (github.event.inputs.skipIntegrationTests == 0 || github.event.inputs.skipIntegrationTests == '') && !cancelled()
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -693,4 +698,8 @@ jobs:
     - name: Summarize build and test results
       if: ${{ !cancelled() }}
       shell: bash
-      run: cat testapps/summary.log
+      run: |
+        cat testapps/summary.log
+        if [[ "${{ job.status }}" != "success" ]]; then
+          exit 1
+        fi

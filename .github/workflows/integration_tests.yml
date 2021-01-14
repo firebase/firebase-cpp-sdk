@@ -162,4 +162,8 @@ jobs:
       - name: Summarize build and test results
         if: ${{ !cancelled() }}
         shell: bash
-        run: cat testapps/summary.log
+        run: |
+          cat testapps/summary.log
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi
