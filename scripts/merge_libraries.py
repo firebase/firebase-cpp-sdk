@@ -95,11 +95,19 @@ flags.DEFINE_bool(
     "two libraries. C++ symbols in the appropriate namespaces will be renamed "
     "even if they are external. Otherwise, only symbols defined in the library "
     "are renamed.")
+flags.DEFINE_bool(
+    "skip_creating_archives", False,
+    "Skip creating archive files (.a or .lib) and instead just leave the object "
+    "files (.o or .obj) in the output directory.")
 
 # Never rename 'std::' by default when --auto_hide_cpp_namespaces is enabled.
 IMPLICIT_CPP_NAMESPACES_TO_IGNORE = {"std"}
 
 DEFAULT_ENCODING = "ascii"
+
+# Once a binutils command fails due to an ambiguous target, use this explicit target
+# when running all subsequent binutils commands.
+binutils_force_target_format = None
 
 
 class Demangler(object):
@@ -258,19 +266,20 @@ def create_archive(output_archive_file, object_files, old_archive=None):
     Empty list if there are no errors, or error text if there was an error.
   """
   errors = []
-  if old_archive:
+  if old_archive and FLAGS.platform != "windows":
     # Copy the old archive to the new archive, then clear the files from it.
     # This preserves the file format of the old archive file.
+    # On Windows, we'll always create a new archive.
     shutil.copy(old_archive, output_archive_file)
     (old_contents, errors) = list_objects_in_archive(output_archive_file)
-    run_command(
+    run_binutils_command(
         [FLAGS.binutils_ar_cmd, "d", output_archive_file] + old_contents,
         errors)
-    run_command(
+    run_binutils_command(
         [FLAGS.binutils_ar_cmd, "rs", output_archive_file] + object_files,
         errors)
   else:
-    run_command(
+    run_binutils_command(
         [FLAGS.binutils_ar_cmd, "rcs", output_archive_file] + object_files,
         errors)
 
@@ -738,7 +747,17 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
   Returns:
     A list of lines of text of the command's stdout.
   """
-  output = run_command(cmdline, error_output, True)
+  global binutils_force_target_format
+  if binutils_force_target_format:
+    # Once we've had to force the format once, assume all subsequent
+    # files use the same format. Also we will need to explicitly specify this
+    # format when creating an archive with "ar".
+    # If we've never had to force a format, let binutils autodetect.
+    output = run_command([cmdline[0]] + ["--target=%s" % binutils_force_target_format] + cmdline[1:],
+                         error_output, ignore_errors)
+  else:
+    # Otherwise, if we've never had to force a format, use the default.
+    output = run_command(cmdline, error_output, True)
   if error_output and not output:
     # There are some expected errors: "Bad value" or "File format is ambiguous".
     #
@@ -748,7 +767,7 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
     # depending on whether the file is 32-bit or 64-bit.
     #
     # Line 0: filename.o: Bad value
-    if error_output and "Bad value" in error_output[0]:
+    if not binutils_force_target_format and error_output and "Bad value" in error_output[0]:
       # Workaround for MIPS, force elf32-little and/or elf64-little.
       error_output = []
       logging.debug("Bad value when running %s %s",
@@ -756,12 +775,14 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
       logging.debug("Retrying with --target=elf32-little")
       output = run_command([cmdline[0]] + ["--target=elf32-little"] +
                            cmdline[1:], error_output, True)
+      binutils_force_target_format='elf32-little'
       if error_output:
         # Oops, it wasn't 32-bit, try 64-bit instead.
         error_output = []
         logging.debug("Retrying with --target=elf64-little")
         output = run_command([cmdline[0]] + ["--target=elf64-little"] +
                              cmdline[1:], error_output, ignore_errors)
+        binutils_force_target_format='elf64-little'
     # In other cases, we sometimes get an expected error about ambiguous file
     # format, which also includes a list of matching formats:
     #
@@ -770,7 +791,7 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
     #
     # If this occurs, we will run the command again, passing in the
     # target format that we believe we should use instead.
-    elif (len(error_output) >= 2 and
+    elif not binutils_force_target_format and (len(error_output) >= 2 and
           "ile format is ambiguous" in error_output[0]):
       m = re.search("Matching formats: (.+)", error_output[1])
       if m:
@@ -783,14 +804,14 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
               BINUTILS_PREFERRED_FORMAT_PREFIX_IF_AMBIGUOUS[FLAGS.platform])
         ]
         # Or if for some reason none was found, just take the default (first).
-        retry_format = (preferred_formats[0]
-                        if len(preferred_formats) > 0
-                        else all_formats[0])
+        binutils_force_target_format=(preferred_formats[0]
+                                      if len(preferred_formats) > 0
+                                      else all_formats[0])
         error_output = []
-        logging.debug("Ambiguous file format when running %s %s",
-                      os.path.basename(cmdline[0]), " ".join(cmdline[1:]))
-        logging.debug("Retrying with --target=%s", retry_format)
-        output = run_command([cmdline[0]] + ["--target=%s" % retry_format] + cmdline[1:],
+        logging.debug("Ambiguous file format when running %s %s (%s)",
+                      os.path.basename(cmdline[0]), " ".join(cmdline[1:]), ", ".join(all_formats))
+        logging.debug("Retrying with --target=%s", binutils_force_target_format)
+        output = run_command([cmdline[0]] + ["--target=%s" % binutils_force_target_format] + cmdline[1:],
                              error_output, ignore_errors)
     if error_output and not ignore_errors:
       # If we failed any other way, or if the second run failed, bail.
@@ -1014,8 +1035,17 @@ def main(argv):
     if os.path.isfile(output_path):
       os.remove(output_path)
 
-    logging.debug("Creating output archive %s", output_path)
-    create_archive(output_path, all_obj_files, input_path[1])
+    if (FLAGS.skip_creating_archives):
+      output_path_dir = output_path + ".dir"
+      logging.debug("Copying object files to %s", output_path_dir)
+      if not os.path.exists(output_path_dir):
+        os.makedirs(output_path_dir)
+      for obj_file in all_obj_files:
+        logging.debug("Copy %s to %s" % (obj_file, os.path.join(output_path_dir, os.path.basename(obj_file))))
+        shutil.copyfile(obj_file, os.path.join(output_path_dir, os.path.basename(obj_file)))
+    else:
+      logging.debug("Creating output archive %s", output_path)
+      create_archive(output_path, all_obj_files, input_path[1])
 
     shutdown_cache()
 
