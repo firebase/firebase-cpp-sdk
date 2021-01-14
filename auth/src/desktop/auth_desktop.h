@@ -120,6 +120,25 @@ struct AuthCompletionHandle {
   AuthData* auth_data;
 };
 
+// The callback type for pseudo-AuthStateListeners added via the function
+// registry.
+using FunctionRegistryCallback = void (*)(void*);
+
+// An AuthStateListener used for managing pseudo-AuthStateListeners added via
+// the function registry.
+class FunctionRegistryAuthStateListener : public AuthStateListener {
+ public:
+  void AddListener(FunctionRegistryCallback callback, void* context);
+
+  void RemoveListener(FunctionRegistryCallback callback, void* context);
+
+  void OnAuthStateChanged(Auth* auth) override;
+
+ private:
+  using Entry = std::pair<FunctionRegistryCallback, void*>;
+  std::vector<Entry> callbacks_;
+};
+
 // The desktop-specific Auth implementation.
 struct AuthImpl {
   AuthImpl() {}
@@ -135,6 +154,12 @@ struct AuthImpl {
   IdTokenRefreshThread token_refresh_thread;
   // Instance responsible for user data persistence.
   UniquePtr<UserDataPersist> user_data_persist;
+
+  // Firebase-internal auth state listeners added via the function registry
+  // are tracked here. This is added as the first AuthStateListener to mimic
+  // the behavior of the iOS and Android SDKs which guarantee that all internal
+  // listeners are called before any user-supplied ones.
+  UniquePtr<FunctionRegistryAuthStateListener> internal_listeners;
 
   // Serializes all REST call from this object.
   scheduler::Scheduler scheduler_;
