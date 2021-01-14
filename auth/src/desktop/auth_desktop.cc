@@ -179,6 +179,27 @@ bool Auth::GetAuthTokenAsyncForRegistry(App* app, void* force_refresh,
   return false;
 }
 
+bool Auth::GetCurrentUserUidForRegistry(App* app, void* /*unused*/, void* out) {
+  auto* out_string = static_cast<std::string*>(out);
+  if (out_string) {
+    // Reset the output regardless of outcome.
+    out_string->clear();
+  }
+
+  if (!app) return false;
+
+  Auth* auth = Auth::FindAuth(app);
+  if (!auth) return false;
+
+  User* user = auth->current_user();
+  if (!user) return false;
+
+  if (out_string) {
+    *out_string = user->uid();
+  }
+  return true;
+}
+
 bool Auth::StartTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
                                               void* /*unused*/) {
   if (!app) return false;
@@ -205,6 +226,8 @@ void Auth::InitPlatformAuth(AuthData* const auth_data) {
   firebase::rest::InitTransportCurl();
   auth_data->app->function_registry()->RegisterFunction(
       internal::FnAuthGetCurrentToken, Auth::GetAuthTokenForRegistry);
+  auth_data->app->function_registry()->RegisterFunction(
+      internal::FnAuthGetCurrentUserUid, Auth::GetCurrentUserUidForRegistry);
   auth_data->app->function_registry()->RegisterFunction(
       internal::FnAuthStartTokenListener,
       Auth::StartTokenRefreshThreadForRegistry);

@@ -549,6 +549,13 @@ class Auth {
   static bool GetAuthTokenAsyncForRegistry(App* app, void* force_refresh,
                                            void* out_future);
 
+  // Provides access to the current user's uid, equivalent to calling
+  // this->current_user()->uid(). Returns the current user's uid or an empty
+  // string, if there isn't one. The out pointer is expected to point to an
+  // instance of std::string.
+  static bool GetCurrentUserUidForRegistry(App* app, void* /*unused*/,
+                                           void* out);
+
   // Starts and stops a thread to ensure that the cached auth token is never
   // kept long enough for it to expire.  Refcounted, so multiple classes can
   // register this without causing problems.
