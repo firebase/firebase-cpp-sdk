@@ -91,6 +91,9 @@ void* CreatePlatformAuth(App* const app) {
   return auth;
 }
 
+void InitializeFunctionRegistryListener(AuthData* auth_data);
+void DestroyFunctionRegistryListener(AuthData* auth_data);
+
 IdTokenRefreshListener::IdTokenRefreshListener() : token_timestamp_(0) {}
 
 IdTokenRefreshListener::~IdTokenRefreshListener() {}
@@ -137,7 +140,6 @@ uint64_t IdTokenRefreshListener::GetTokenTimestamp() {
 // appropriate for the function registry.  It basically just calls the public
 // GetAuthToken function on the current auth object.
 bool Auth::GetAuthTokenForRegistry(App* app, void* /*unused*/, void* out) {
-  if (!app) return false;
   Auth* auth = Auth::FindAuth(app);
   if (auth) {
     // Make sure the persistent cache is loaded.
@@ -186,8 +188,6 @@ bool Auth::GetCurrentUserUidForRegistry(App* app, void* /*unused*/, void* out) {
     out_string->clear();
   }
 
-  if (!app) return false;
-
   Auth* auth = Auth::FindAuth(app);
   if (!auth) return false;
 
@@ -202,7 +202,6 @@ bool Auth::GetCurrentUserUidForRegistry(App* app, void* /*unused*/, void* out) {
 
 bool Auth::StartTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
                                               void* /*unused*/) {
-  if (!app) return false;
   Auth* auth = Auth::FindAuth(app);
   if (auth) {
     EnableTokenAutoRefresh(auth->auth_data_);
@@ -213,13 +212,59 @@ bool Auth::StartTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
 
 bool Auth::StopTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
                                              void* /*unused*/) {
-  if (!app) return false;
   Auth* auth = Auth::FindAuth(app);
   if (auth) {
     DisableTokenAutoRefresh(auth->auth_data_);
     return true;
   }
   return false;
+}
+
+using FunctionRegistryCallback = void (*)(void*);
+
+void FunctionRegistryAuthStateListener::AddListener(
+    FunctionRegistryCallback callback, void* context) {
+  callbacks_.emplace_back(callback, context);
+}
+
+void FunctionRegistryAuthStateListener::RemoveListener(
+    FunctionRegistryCallback callback, void* context) {
+  Entry entry = {callback, context};
+
+  auto iter = std::find(callbacks_.begin(), callbacks_.end(), entry);
+  if (iter != callbacks_.end()) {
+    callbacks_.erase(iter);
+  }
+}
+
+void FunctionRegistryAuthStateListener::OnAuthStateChanged(Auth* auth) {
+  for (const Entry& entry : callbacks_) {
+    entry.first(entry.second);
+  }
+}
+
+bool Auth::AddAuthStateListenerForRegistry(App* app, void* callback,
+                                           void* context) {
+  auto typed_callback = reinterpret_cast<FunctionRegistryCallback>(callback);
+
+  Auth* auth = Auth::FindAuth(app);
+  if (!auth) return false;
+
+  auto auth_impl = static_cast<AuthImpl*>(auth->auth_data_->auth_impl);
+  auth_impl->internal_listeners->AddListener(typed_callback, context);
+  return true;
+}
+
+bool Auth::RemoveAuthStateListenerForRegistry(App* app, void* callback,
+                                              void* context) {
+  auto typed_callback = reinterpret_cast<FunctionRegistryCallback>(callback);
+
+  Auth* auth = Auth::FindAuth(app);
+  if (!auth) return false;
+
+  auto auth_impl = static_cast<AuthImpl*>(auth->auth_data_->auth_impl);
+  auth_impl->internal_listeners->RemoveListener(typed_callback, context);
+  return true;
 }
 
 void Auth::InitPlatformAuth(AuthData* const auth_data) {
@@ -236,11 +281,19 @@ void Auth::InitPlatformAuth(AuthData* const auth_data) {
       Auth::StopTokenRefreshThreadForRegistry);
   auth_data->app->function_registry()->RegisterFunction(
       internal::FnAuthGetTokenAsync, Auth::GetAuthTokenAsyncForRegistry);
+  auth_data->app->function_registry()->RegisterFunction(
+      internal::FnAuthAddAuthStateListener,
+      Auth::AddAuthStateListenerForRegistry);
+  auth_data->app->function_registry()->RegisterFunction(
+      internal::FnAuthRemoveAuthStateListener,
+      Auth::RemoveAuthStateListenerForRegistry);
 
   // Load existing UserData
   InitializeUserDataPersist(auth_data);
 
   InitializeTokenRefresher(auth_data);
+
+  InitializeFunctionRegistryListener(auth_data);
 }
 
 void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
@@ -249,6 +302,10 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
   auth_impl->scheduler_.CancelAllAndShutdownWorkerThread();
   // Unregister from the function registry.
   auth_data->app->function_registry()->UnregisterFunction(
+      internal::FnAuthRemoveAuthStateListener);
+  auth_data->app->function_registry()->UnregisterFunction(
+      internal::FnAuthAddAuthStateListener);
+  auth_data->app->function_registry()->UnregisterFunction(
       internal::FnAuthGetCurrentToken);
   auth_data->app->function_registry()->UnregisterFunction(
       internal::FnAuthStartTokenListener);
@@ -256,6 +313,8 @@ void Auth::DestroyPlatformAuth(AuthData* const auth_data) {
       internal::FnAuthStopTokenListener);
   auth_data->app->function_registry()->UnregisterFunction(
       internal::FnAuthGetTokenAsync);
+
+  DestroyFunctionRegistryListener(auth_data);
 
   DestroyTokenRefresher(auth_data);
 
@@ -299,8 +358,7 @@ Future<User*> Auth::SignInWithCredential(const Credential& credential) {
                                 credential.impl_);
 }
 
-Future<SignInResult> Auth::SignInWithProvider(
-      FederatedAuthProvider* provider) {
+Future<SignInResult> Auth::SignInWithProvider(FederatedAuthProvider* provider) {
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
   // TODO(b/139363200)
   // return provider->SignIn(auth_data_);
@@ -514,6 +572,19 @@ void DestroyTokenRefresher(AuthData* auth_data) {
   auth_impl->token_refresh_thread.Destroy();
 }
 
+void InitializeFunctionRegistryListener(AuthData* auth_data) {
+  auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
+  auth_impl->internal_listeners =
+      MakeUnique<FunctionRegistryAuthStateListener>();
+  auth_data->auth->AddAuthStateListener(auth_impl->internal_listeners.get());
+}
+
+void DestroyFunctionRegistryListener(AuthData* auth_data) {
+  auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
+  auth_data->auth->RemoveAuthStateListener(auth_impl->internal_listeners.get());
+  auth_impl->internal_listeners.reset(nullptr);
+}
+
 void EnableTokenAutoRefresh(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   auth_impl->token_refresh_thread.EnableAuthRefresh();
@@ -535,10 +606,9 @@ void ResetTokenRefreshCounter(AuthData* auth_data) {
 
 void InitializeUserDataPersist(AuthData* auth_data) {
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
-  auth_impl->user_data_persist =
-      MakeUnique<UserDataPersist>(
-          internal::CreateAppIdentifierFromOptions(
-              auth_data->app->options()).c_str());
+  auth_impl->user_data_persist = MakeUnique<UserDataPersist>(
+      internal::CreateAppIdentifierFromOptions(auth_data->app->options())
+          .c_str());
 
   auth_data->auth->AddAuthStateListener(auth_impl->user_data_persist.get());
   auth_impl->user_data_persist->LoadUserData(auth_data);

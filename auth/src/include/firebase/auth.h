@@ -564,6 +564,21 @@ class Auth {
   static bool StopTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
                                                 void* /*unused*/);
 
+  // Adds an indirect auth state listener implemented as a callback and a
+  // context object.
+  //
+  // @param callback a function pointer that takes a single void* argument and
+  //     returns void (i.e. it has type void (*)(void*)).
+  // @param context a pointer to an arbitrary object that Auth will pass to
+  //     the callback when the auth state changes.
+  static bool AddAuthStateListenerForRegistry(App* app, void* callback,
+                                              void* context);
+
+  // Removes the indirect auth state listener that was added with the same
+  // arguments.
+  static bool RemoveAuthStateListenerForRegistry(App* app, void* callback,
+                                                 void* context);
+
   // Init and Destroy the platform specific auth data.
   void InitPlatformAuth(AuthData* const auth_data);
   void DestroyPlatformAuth(AuthData* const auth_data);
