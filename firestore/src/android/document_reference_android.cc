@@ -16,6 +16,7 @@
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
+#include "firestore/src/jni/task.h"
 
 namespace firebase {
 namespace firestore {
@@ -27,6 +28,7 @@ using jni::Local;
 using jni::Method;
 using jni::Object;
 using jni::String;
+using jni::Task;
 
 constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/DocumentReference";
@@ -42,20 +44,20 @@ Method<Object> kCollection(
     "collection",
     "(Ljava/lang/String;)"
     "Lcom/google/firebase/firestore/CollectionReference;");
-Method<Object> kGet("get",
-                    "(Lcom/google/firebase/firestore/Source;)"
-                    "Lcom/google/android/gms/tasks/Task;");
-Method<Object> kSet(
+Method<Task> kGet("get",
+                  "(Lcom/google/firebase/firestore/Source;)"
+                  "Lcom/google/android/gms/tasks/Task;");
+Method<Task> kSet(
     "set",
     "(Ljava/lang/Object;Lcom/google/firebase/firestore/SetOptions;)"
     "Lcom/google/android/gms/tasks/Task;");
-Method<Object> kUpdate("update",
-                       "(Ljava/util/Map;)Lcom/google/android/gms/tasks/Task;");
-Method<Object> kUpdateVarargs(
+Method<Task> kUpdate("update",
+                     "(Ljava/util/Map;)Lcom/google/android/gms/tasks/Task;");
+Method<Task> kUpdateVarargs(
     "update",
     "(Lcom/google/firebase/firestore/FieldPath;Ljava/lang/Object;"
     "[Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;");
-Method<Object> kDelete("delete", "()Lcom/google/android/gms/tasks/Task;");
+Method<Task> kDelete("delete", "()Lcom/google/android/gms/tasks/Task;");
 Method<Object> kAddSnapshotListener(
     "addSnapshotListener",
     "(Ljava/util/concurrent/Executor;"
@@ -120,7 +122,7 @@ CollectionReference DocumentReferenceInternal::Collection(
 Future<DocumentSnapshot> DocumentReferenceInternal::Get(Source source) {
   Env env = GetEnv();
   Local<Object> java_source = SourceInternal::Create(env, source);
-  Local<Object> task = env.Call(obj_, kGet, java_source);
+  Local<Task> task = env.Call(obj_, kGet, java_source);
   return promises_.NewFuture<DocumentSnapshot>(env, AsyncFn::kGet, task);
 }
 
@@ -129,14 +131,14 @@ Future<void> DocumentReferenceInternal::Set(const MapFieldValue& data,
   Env env = GetEnv();
   FieldValueInternal map_value(data);
   Local<Object> java_options = SetOptionsInternal::Create(env, options);
-  Local<Object> task = env.Call(obj_, kSet, map_value, java_options);
+  Local<Task> task = env.Call(obj_, kSet, map_value, java_options);
   return promises_.NewFuture<void>(env, AsyncFn::kSet, task);
 }
 
 Future<void> DocumentReferenceInternal::Update(const MapFieldValue& data) {
   Env env = GetEnv();
   FieldValueInternal map_value(data);
-  Local<Object> task = env.Call(obj_, kUpdate, map_value);
+  Local<Task> task = env.Call(obj_, kUpdate, map_value);
   return promises_.NewFuture<void>(env, AsyncFn::kUpdate, task);
 }
 
@@ -147,15 +149,15 @@ Future<void> DocumentReferenceInternal::Update(const MapFieldPathValue& data) {
 
   Env env = GetEnv();
   UpdateFieldPathArgs args = MakeUpdateFieldPathArgs(env, data);
-  Local<Object> task = env.Call(obj_, kUpdateVarargs, args.first_field,
-                                args.first_value, args.varargs);
+  Local<Task> task = env.Call(obj_, kUpdateVarargs, args.first_field,
+                              args.first_value, args.varargs);
 
   return promises_.NewFuture<void>(env, AsyncFn::kUpdate, task);
 }
 
 Future<void> DocumentReferenceInternal::Delete() {
   Env env = GetEnv();
-  Local<Object> task = env.Call(obj_, kDelete);
+  Local<Task> task = env.Call(obj_, kDelete);
   return promises_.NewFuture<void>(env, AsyncFn::kDelete, task);
 }
 

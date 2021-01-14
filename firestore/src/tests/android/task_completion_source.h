@@ -5,6 +5,7 @@
 
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
+#include "firestore/src/jni/task.h"
 #include "firestore/src/jni/throwable.h"
 
 namespace firebase {
@@ -18,13 +19,16 @@ class TaskCompletionSource : public jni::Object {
   static void Initialize(jni::Loader& loader);
 
   /** Creates a C++ proxy for a Java `TaskCompletionSource` object. */
+  static jni::Local<TaskCompletionSource> Create(jni::Env& env);
+
+  /** Creates a C++ proxy for a Java `TaskCompletionSource` object. */
   static jni::Local<TaskCompletionSource> Create(
       jni::Env& env, const Object& cancellation_token);
 
   /**
    * Invokes `getTask()` on the wrapped Java `TaskCompletionSource` object.
    */
-  jni::Local<Object> GetTask(jni::Env& env);
+  jni::Local<jni::Task> GetTask(jni::Env& env);
 
   /**
    * Invokes `setException()` on the wrapped Java `TaskCompletionSource` object.
