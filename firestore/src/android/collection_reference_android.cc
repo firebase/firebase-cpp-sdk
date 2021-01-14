@@ -8,6 +8,7 @@
 #include "firestore/src/android/promise_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
+#include "firestore/src/jni/task.h"
 
 namespace firebase {
 namespace firestore {
@@ -19,6 +20,7 @@ using jni::Local;
 using jni::Method;
 using jni::Object;
 using jni::String;
+using jni::Task;
 
 constexpr char kClass[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/CollectionReference";
@@ -32,8 +34,8 @@ Method<Object> kDocumentAutoId(
 Method<Object> kDocument("document",
                          "(Ljava/lang/String;)"
                          "Lcom/google/firebase/firestore/DocumentReference;");
-Method<Object> kAdd("add",
-                    "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;");
+Method<Task> kAdd("add",
+                  "(Ljava/lang/Object;)Lcom/google/android/gms/tasks/Task;");
 
 }  // namespace
 
@@ -83,7 +85,7 @@ Future<DocumentReference> CollectionReferenceInternal::Add(
   FieldValueInternal map_value(data);
 
   Env env = GetEnv();
-  Local<Object> task = env.Call(obj_, kAdd, map_value.ToJava());
+  Local<Task> task = env.Call(obj_, kAdd, map_value.ToJava());
   return promises_.NewFuture<DocumentReference>(env, AsyncFn::kAdd, task);
 }
 

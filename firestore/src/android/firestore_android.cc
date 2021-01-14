@@ -52,6 +52,7 @@
 #include "firestore/src/jni/long.h"
 #include "firestore/src/jni/map.h"
 #include "firestore/src/jni/set.h"
+#include "firestore/src/jni/task.h"
 
 namespace firebase {
 namespace firestore {
@@ -66,6 +67,7 @@ using jni::Method;
 using jni::Object;
 using jni::StaticMethod;
 using jni::String;
+using jni::Task;
 
 constexpr char kFirestoreClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/FirebaseFirestore";
@@ -94,19 +96,19 @@ Method<void> kSetSettings(
     "setFirestoreSettings",
     "(Lcom/google/firebase/firestore/FirebaseFirestoreSettings;)V");
 Method<Object> kBatch("batch", "()Lcom/google/firebase/firestore/WriteBatch;");
-Method<Object> kRunTransaction(
+Method<Task> kRunTransaction(
     "runTransaction",
     "(Lcom/google/firebase/firestore/Transaction$Function;)"
     "Lcom/google/android/gms/tasks/Task;");
-Method<Object> kEnableNetwork("enableNetwork",
-                              "()Lcom/google/android/gms/tasks/Task;");
-Method<Object> kDisableNetwork("disableNetwork",
+Method<Task> kEnableNetwork("enableNetwork",
+                            "()Lcom/google/android/gms/tasks/Task;");
+Method<Task> kDisableNetwork("disableNetwork",
+                             "()Lcom/google/android/gms/tasks/Task;");
+Method<Task> kTerminate("terminate", "()Lcom/google/android/gms/tasks/Task;");
+Method<Task> kWaitForPendingWrites("waitForPendingWrites",
+                                   "()Lcom/google/android/gms/tasks/Task;");
+Method<Task> kClearPersistence("clearPersistence",
                                "()Lcom/google/android/gms/tasks/Task;");
-Method<Object> kTerminate("terminate", "()Lcom/google/android/gms/tasks/Task;");
-Method<Object> kWaitForPendingWrites("waitForPendingWrites",
-                                     "()Lcom/google/android/gms/tasks/Task;");
-Method<Object> kClearPersistence("clearPersistence",
-                                 "()Lcom/google/android/gms/tasks/Task;");
 Method<Object> kAddSnapshotsInSyncListener(
     "addSnapshotsInSyncListener",
     "(Ljava/util/concurrent/Executor;Ljava/lang/Runnable;)"
@@ -276,6 +278,7 @@ bool FirestoreInternal::Initialize(App* app) {
     SettingsInternal::Initialize(loader);
     SnapshotMetadataInternal::Initialize(loader);
     SourceInternal::Initialize(loader);
+    Task::Initialize(loader);
     TimestampInternal::Initialize(loader);
     TransactionInternal::Initialize(loader);
     WriteBatchInternal::Initialize(loader);
@@ -389,7 +392,7 @@ Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update,
   Env env = GetEnv();
   Local<Object> transaction_function =
       TransactionInternal::Create(env, this, update);
-  Local<Object> task = env.Call(obj_, kRunTransaction, transaction_function);
+  Local<Task> task = env.Call(obj_, kRunTransaction, transaction_function);
 
   if (!env.ok()) return {};
 
@@ -413,31 +416,31 @@ Future<void> FirestoreInternal::RunTransaction(
 
 Future<void> FirestoreInternal::DisableNetwork() {
   Env env = GetEnv();
-  Local<Object> task = env.Call(obj_, kDisableNetwork);
+  Local<Task> task = env.Call(obj_, kDisableNetwork);
   return promises_->NewFuture<void>(env, AsyncFn::kDisableNetwork, task);
 }
 
 Future<void> FirestoreInternal::EnableNetwork() {
   Env env = GetEnv();
-  Local<Object> task = env.Call(obj_, kEnableNetwork);
+  Local<Task> task = env.Call(obj_, kEnableNetwork);
   return promises_->NewFuture<void>(env, AsyncFn::kEnableNetwork, task);
 }
 
 Future<void> FirestoreInternal::Terminate() {
   Env env = GetEnv();
-  Local<Object> task = env.Call(obj_, kTerminate);
+  Local<Task> task = env.Call(obj_, kTerminate);
   return promises_->NewFuture<void>(env, AsyncFn::kTerminate, task);
 }
 
 Future<void> FirestoreInternal::WaitForPendingWrites() {
   Env env = GetEnv();
-  Local<Object> task = env.Call(obj_, kWaitForPendingWrites);
+  Local<Task> task = env.Call(obj_, kWaitForPendingWrites);
   return promises_->NewFuture<void>(env, AsyncFn::kWaitForPendingWrites, task);
 }
 
 Future<void> FirestoreInternal::ClearPersistence() {
   Env env = GetEnv();
-  Local<Object> task = env.Call(obj_, kClearPersistence);
+  Local<Task> task = env.Call(obj_, kClearPersistence);
   return promises_->NewFuture<void>(env, AsyncFn::kClearPersistence, task);
 }
 

@@ -3,6 +3,7 @@
 
 #include "firestore/src/android/promise_android.h"
 #include "firestore/src/common/type_mapping.h"
+#include "firestore/src/jni/task.h"
 
 namespace firebase {
 namespace firestore {
@@ -45,7 +46,7 @@ class PromiseFactory {
 
   template <typename PublicT, typename InternalT = InternalType<PublicT>>
   Future<PublicT> NewFuture(
-      jni::Env& env, EnumT op, const jni::Object& task,
+      jni::Env& env, EnumT op, const jni::Task& task,
       typename Promise<PublicT, InternalT, EnumT>::Completion* completion =
           nullptr) {
     if (!env.ok()) return {};

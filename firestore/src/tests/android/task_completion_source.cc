@@ -12,28 +12,34 @@ using jni::Env;
 using jni::Local;
 using jni::Method;
 using jni::Object;
+using jni::Task;
 
 constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/android/gms/tasks/TaskCompletionSource";
-Constructor<TaskCompletionSource> kConstructor(
+Constructor<TaskCompletionSource> kConstructor("()V");
+Constructor<TaskCompletionSource> kConstructorWithCancellationToken(
     "(Lcom/google/android/gms/tasks/CancellationToken;)V");
-Method<Object> kGetTask("getTask", "()Lcom/google/android/gms/tasks/Task;");
+Method<Task> kGetTask("getTask", "()Lcom/google/android/gms/tasks/Task;");
 Method<void> kSetException("setException", "(Ljava/lang/Exception;)V");
 Method<void> kSetResult("setResult", "(Ljava/lang/Object;)V");
 
 }  // namespace
 
 void TaskCompletionSource::Initialize(jni::Loader& loader) {
-  loader.LoadClass(kClassName, kConstructor, kGetTask, kSetException,
-                   kSetResult);
+  loader.LoadClass(kClassName, kConstructor, kConstructorWithCancellationToken,
+                   kGetTask, kSetException, kSetResult);
+}
+
+Local<TaskCompletionSource> TaskCompletionSource::Create(Env& env) {
+  return env.New(kConstructor);
 }
 
 Local<TaskCompletionSource> TaskCompletionSource::Create(
     Env& env, const Object& cancellation_token) {
-  return env.New(kConstructor, cancellation_token);
+  return env.New(kConstructorWithCancellationToken, cancellation_token);
 }
 
-Local<Object> TaskCompletionSource::GetTask(Env& env) {
+Local<Task> TaskCompletionSource::GetTask(Env& env) {
   return env.Call(*this, kGetTask);
 }
 

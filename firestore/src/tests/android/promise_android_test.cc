@@ -12,12 +12,12 @@
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/integer.h"
-#include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
+#include "firestore/src/jni/task.h"
 #include "firestore/src/tests/android/cancellation_token_source.h"
+#include "firestore/src/tests/android/firestore_integration_test_android.h"
 #include "firestore/src/tests/android/task_completion_source.h"
-#include "firestore/src/tests/firestore_integration_test.h"
 #include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 #include "firebase/firestore/firestore_errors.h"
@@ -37,14 +37,9 @@ std::string MakePublic<std::string, int>(jni::Env& env,
 
 namespace {
 
-class PromiseTest : public FirestoreIntegrationTest {
+class PromiseTest : public FirestoreAndroidIntegrationTest {
  public:
-  PromiseTest()
-      : promises_(GetFirestoreInternal(TestFirestore())), loader_(app()) {
-    CancellationTokenSource::Initialize(loader_);
-    TaskCompletionSource::Initialize(loader_);
-    FIREBASE_ASSERT(loader_.ok());
-
+  PromiseTest() : promises_(GetFirestoreInternal(TestFirestore())) {
     jni::Env env = GetEnv();
     cancellation_token_source_ = CancellationTokenSource::Create(env);
     task_completion_source_ = TaskCompletionSource::Create(
@@ -61,7 +56,7 @@ class PromiseTest : public FirestoreIntegrationTest {
  protected:
   PromiseFactory<AsyncFn>& promises() { return promises_; }
 
-  jni::Local<jni::Object> GetTask() {
+  jni::Local<jni::Task> GetTask() {
     jni::Env env = GetEnv();
     return task_completion_source_.GetTask(env);
   }
@@ -86,7 +81,6 @@ class PromiseTest : public FirestoreIntegrationTest {
 
  private:
   PromiseFactory<AsyncFn> promises_;
-  jni::Loader loader_;
   jni::Local<CancellationTokenSource> cancellation_token_source_;
   jni::Local<TaskCompletionSource> task_completion_source_;
 };
