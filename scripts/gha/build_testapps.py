@@ -310,7 +310,8 @@ def _summarize_results(testapps, platforms, failures, output_dir):
 
 
 def _build_desktop(sdk_dir, cmake_flags):
-  cmake_configure_cmd = ["cmake", ".", "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir]
+  cmake_configure_cmd = ["cmake", ".", "-DCMAKE_BUILD_TYPE=Debug",
+                                       "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir]
   if utils.is_windows_os():
     cmake_configure_cmd += ["-A", "x64"]
   _run(cmake_configure_cmd + cmake_flags)
