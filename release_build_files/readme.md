@@ -562,6 +562,14 @@ code.
 ### 7.0.0
 -   Changes
     -   General (iOS): iOS SDKs are now built using Xcode 11.7.
+    -   General (Desktop): Windows libraries are now built using Visual
+        Studio 2019, which remains ABI-compatible with 2015 and 2017. The
+        libraries have been moved from libs/windows/VS2015 to
+	libs/windows/VS2019 to reflect this.
+    -   General (Desktop): Linux libraries are now built with both the
+        C++11 ABI and the legacy ABI. The libraries have been moved
+        from libs/linux/${arch} to libs/linux/${arch}/legacy and
+        libs/linux/${arch}/cxx11 to reflect this.
     -   AdMob (Android): Fix a JNI error when initializing without Firebase App.
     -   Analytics: Remove deprecated SetMinimumSessionDuration call.
     -   Installations: Added Installations SDK. See [Documentations](http://firebase.google.com/docs/reference/cpp/namespace/firebase/installations) for
