@@ -279,11 +279,18 @@ else()
   )
 endif()
 
-
+if (WIN32)
+target_compile_definitions(firebase_firestore
+  PRIVATE
+    -DINTERNAL_EXPERIMENTAL=1
+    -D_WIN32_WINNT=0x0600
+)
+else()
 target_compile_definitions(firebase_firestore
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
 )
+endif()
 
 if(ANDROID)
   firebase_cpp_proguard_file(firestore)
