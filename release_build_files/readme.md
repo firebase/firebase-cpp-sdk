@@ -413,7 +413,7 @@ Firebase Instance ID (stub)     | firebase_instance_id.lib
 Firebase Cloud Messaging (stub) | firebase_messaging.lib
                                 | firebase_app.lib
 
-The provided libraries have been tested using Visual Studio 2015 and 2017. When
+The provided libraries have been tested using Visual Studio 2019. When
 building C++ desktop apps on Windows, you will need to link the following
 Windows SDK libraries (consult your compiler documentation for more
 information):
