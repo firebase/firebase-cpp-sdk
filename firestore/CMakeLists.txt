@@ -286,10 +286,10 @@ target_compile_definitions(firebase_firestore
     -D_WIN32_WINNT=0x0600
 )
 else()
-target_compile_definitions(firebase_firestore
-  PRIVATE
-    -DINTERNAL_EXPERIMENTAL=1
-)
+  target_compile_definitions(firebase_firestore
+    PRIVATE
+      -DINTERNAL_EXPERIMENTAL=1
+  )
 endif()
 
 if(ANDROID)
