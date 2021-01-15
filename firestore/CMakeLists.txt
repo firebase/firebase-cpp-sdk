@@ -207,7 +207,8 @@ set(ios_only_SRCS
     src/ios/create_firebase_metadata_provider_apple.mm)
 
 set(desktop_only_SRCS
-    src/ios/create_firebase_metadata_provider_desktop.cc)
+    src/ios/create_firebase_metadata_provider_desktop.cc
+    src/ios/firebase_metadata_provider_desktop.cc)
 
 if(ANDROID)
   set(firestore_platform_SRCS "${android_SRCS}")
