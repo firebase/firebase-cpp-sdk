@@ -30,11 +30,11 @@ arch=
 arch_win=
 debugmode=Release
 msvc_runtime_library=MD
-vs=VS2015
+vs=VS2019
 stl=c++
 linux_abi=legacy
 
-for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
+for c in $(echo "${filename}" | tr "[:upper:]" "[:lower:]" | tr "_.-" "\n\n\n"); do
     case $c in
 	# Operating systems
 	ios)
@@ -115,13 +115,7 @@ for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
 	release)
 	    debugmode=Release
 	;;
-	Release)
-	    debugmode=Release
-	;;
 	debug)
-	    debugmode=Debug
-	;;
-	Debug)
 	    debugmode=Debug
 	;;
 	# Android STL variant
@@ -142,6 +136,18 @@ for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
         ;;
 	legacy)
 	    linux_abi=legacy
+        ;;
+	vs2019)
+	    vs=VS2019
+        ;;
+	vs2017)
+	    vs=VS2017
+        ;;
+	vs2015)
+	    vs=VS2015
+        ;;
+	vs2013)
+	    vs=VS2013
         ;;
     esac
 done
