@@ -279,18 +279,16 @@ else()
   )
 endif()
 
+set(FIREBASE_FIRESTORE_CPP_DEFINES -DINTERNAL_EXPERIMENTAL=1)
+
 if (WIN32)
+  set(FIREBASE_FIRESTORE_CPP_DEFINES ${FIREBASE_FIRESTORE_CPP_DEFINES} -D_WIN32_WINNT=0x0600
+endif()
+
 target_compile_definitions(firebase_firestore
   PRIVATE
-    -DINTERNAL_EXPERIMENTAL=1
-    -D_WIN32_WINNT=0x0600
+    ${FIREBASE_FIRESTORE_CPP_DEFINES}
 )
-else()
-  target_compile_definitions(firebase_firestore
-    PRIVATE
-      -DINTERNAL_EXPERIMENTAL=1
-  )
-endif()
 
 if(ANDROID)
   firebase_cpp_proguard_file(firestore)
