@@ -315,7 +315,7 @@ def _build_desktop(sdk_dir, cmake_flags):
   if utils.is_windows_os():
     cmake_configure_cmd += ["-A", "x64"]
   _run(cmake_configure_cmd + cmake_flags)
-  _run(["cmake", "--build", "."])
+  _run(["cmake", "--build", ".", "--config", "Debug"])
 
 
 def _get_desktop_compiler_flags(compiler, compiler_table):
