@@ -563,8 +563,9 @@ code.
 -   Changes
     -   General (iOS): iOS SDKs are now built using Xcode 11.7.
     -   General (Desktop): Windows libraries are now built using Visual
-        Studio 2019, which remains ABI-compatible with 2015 and 2017. The
-        libraries have been moved from libs/windows/VS2015 to
+        Studio 2019. While VS 2019 is binary-compatible with VS 2015 and
+	VS 2017, you must use VS 2019 or newer to link the desktop SDK.
+	The libraries have been moved from libs/windows/VS2015 to
 	libs/windows/VS2019 to reflect this.
     -   General (Desktop): Linux libraries are now built with both the
         C++11 ABI and the legacy ABI. The libraries have been moved
