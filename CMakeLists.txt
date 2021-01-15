@@ -283,7 +283,7 @@ if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
   )
 
   add_subdirectory(${FIRESTORE_SOURCE_DIR} ${FIRESTORE_BINARY_DIR})
-	    
+
   copy_subdirectory_definition(${FIRESTORE_SOURCE_DIR} NANOPB_SOURCE_DIR)
 endif()
 
