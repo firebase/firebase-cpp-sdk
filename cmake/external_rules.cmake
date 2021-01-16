@@ -124,6 +124,7 @@ function(download_external_sources)
                TMP_CMAKE_CONTENTS_NEW
                "${TMP_CMAKE_CONTENTS}")
         file(WRITE ${PROJECT_BINARY_DIR}/external/src/firestore/Firestore/Protos/CMakeLists.txt "${TMP_CMAKE_CONTENTS_NEW}")
+      endif()
 
       # Tweak Firestore's included version of leveldb to match our own.
       file(INSTALL "${PROJECT_SOURCE_DIR}/cmake/external/leveldb.cmake"

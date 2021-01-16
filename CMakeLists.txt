@@ -120,7 +120,8 @@ else()
 endif()
 
 if(NOT "${CMAKE_OSX_ARCHITECTURES}" MATCHES "${CMAKE_HOST_SYSTEM_PROCESSOR}")
-  set(CMAKE_CROSSCOMPILING ON)
+  message("Cross-compiling ENABLED")
+  set(CMAKE_CROSSCOMPILING ON CACHE BOOL "" FORCE)
 endif()
 
 if(DESKTOP AND NOT MSVC AND NOT APPLE)
@@ -336,6 +337,14 @@ if(DESKTOP)
   set(CMAKE_USE_LIBSSH2 OFF)
   set(HTTP_ONLY ON)
   set(BUILD_TESTING OFF)
+  if(APPLE AND CMAKE_CROSSCOMPILING AND NOT CMAKE_TOOLCHAIN_FILE)
+    # curl's CMake file checks for CMAKE_TOOLCHAIN_FILE rather than checking
+    # CMAKE_CROSSCOMPILING when determining whether we are cross-compiling.
+    # So if CMAKE_CROSSCOMPILING is set and we don't have a CMAKE_TOOLCHAIN_FILE,
+    # just add a null one now so curl is happy. This only happens on Mac when
+    # building for arm64/x86_64 on the opposite machine.
+    set(CMAKE_TOOLCHAIN_FILE /dev/null)
+  endif()
   add_external_library(curl)
 
   add_external_library(libuv)
