@@ -112,6 +112,11 @@ function(download_external_sources)
         "\n#include <stdlib.h>\n")
       endif()
     endif()
+    if (FIREBASE_INCLUDE_FIRESTORE)
+      # Tweak Firestore's included version of leveldb to match our own.
+      file(INSTALL "${PROJECT_SOURCE_DIR}/cmake/external/leveldb.cmake"
+           DESTINATION "${PROJECT_BINARY_DIR}/external/src/firestore/cmake/external")
+    endif()
   endif()
 endfunction()
 

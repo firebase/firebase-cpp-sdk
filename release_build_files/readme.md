@@ -413,7 +413,7 @@ Firebase Instance ID (stub)     | firebase_instance_id.lib
 Firebase Cloud Messaging (stub) | firebase_messaging.lib
                                 | firebase_app.lib
 
-The provided libraries have been tested using Visual Studio 2015 and 2017. When
+The provided libraries have been tested using Visual Studio 2019. When
 building C++ desktop apps on Windows, you will need to link the following
 Windows SDK libraries (consult your compiler documentation for more
 information):
@@ -562,6 +562,15 @@ code.
 ### 7.0.0
 -   Changes
     -   General (iOS): iOS SDKs are now built using Xcode 11.7.
+    -   General (Desktop): Windows libraries are now built using Visual
+        Studio 2019. While VS 2019 is binary-compatible with VS 2015 and
+        VS 2017, you must use VS 2019 or newer to link the desktop SDK.
+        The libraries have been moved from libs/windows/VS2015 to
+        libs/windows/VS2019 to reflect this.
+    -   General (Desktop): Linux libraries are now built with both the
+        C++11 ABI and the legacy ABI. The libraries have been moved
+        from libs/linux/${arch} to libs/linux/${arch}/legacy and
+        libs/linux/${arch}/cxx11 to reflect this.
     -   AdMob (Android): Fix a JNI error when initializing without Firebase App.
     -   Analytics: Remove deprecated SetMinimumSessionDuration call.
     -   Installations: Added Installations SDK. See [Documentations](http://firebase.google.com/docs/reference/cpp/namespace/firebase/installations) for

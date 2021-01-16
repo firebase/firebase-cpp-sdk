@@ -162,7 +162,7 @@ set(android_SRCS
     src/jni/throwable.h
     src/jni/traits.h)
 
-set(ios_SRCS
+set(ios_and_desktop_SRCS
     src/ios/collection_reference_ios.cc
     src/ios/collection_reference_ios.h
     src/ios/converter_ios.h
@@ -203,13 +203,24 @@ set(wrapper_assertions_SRCS
     src/common/wrapper_assertions.cc
     src/common/wrapper_assertions.h)
 
+set(ios_only_SRCS
+    src/ios/create_firebase_metadata_provider_apple.mm)
+
+set(desktop_only_SRCS
+    src/ios/create_firebase_metadata_provider_desktop.cc
+    src/ios/firebase_metadata_provider_desktop.cc)
+
 if(ANDROID)
   set(firestore_platform_SRCS "${android_SRCS}")
 
 else()
-  # The iOS implementation is actually portable to desktop environments as
-  # well.
-  set(firestore_platform_SRCS "${ios_SRCS}")
+  if (IOS)
+    set(firestore_platform_SRCS "${ios_and_desktop_SRCS}" "${ios_only_SRCS}")
+  else()
+    # The iOS implementation is actually portable to desktop environments as
+    # well.
+    set(firestore_platform_SRCS "${ios_and_desktop_SRCS}" "${desktop_only_SRCS}")
+  endif()
 endif()
 
 add_library(firebase_firestore STATIC
@@ -268,10 +279,17 @@ else()
   )
 endif()
 
+set(FIREBASE_FIRESTORE_CPP_DEFINES -DINTERNAL_EXPERIMENTAL=1)
+
+if (WIN32 AND NOT ANDROID AND NOT IOS)
+  # On Windows, gRPC gives a compiler error in firebase_metadata_provider_desktop.cc
+  # unless _WIN32_WINNT is defined to this value (0x0600, Windows Vista).
+  set(FIREBASE_FIRESTORE_CPP_DEFINES ${FIREBASE_FIRESTORE_CPP_DEFINES} -D_WIN32_WINNT=0x0600)
+endif()
 
 target_compile_definitions(firebase_firestore
   PRIVATE
-    -DINTERNAL_EXPERIMENTAL=1
+    ${FIREBASE_FIRESTORE_CPP_DEFINES}
 )
 
 if(ANDROID)
