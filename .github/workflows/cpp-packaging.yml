@@ -442,7 +442,12 @@ jobs:
           for pkg in artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build/*.tgz; do
             # determine the build variant based on the artifact filename
             variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
-            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3 -j
+            additional_flags=
+            if [[ "${{ matrix.sdk_platform }}" == "darwin" && "${variant}" == "arm64" ]]; then
+              # MacOS ARM builds require explicitly-set binutils format
+              additional_flags=-f mach-o-arm64
+            fi
+            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3 -j ${additional_flags}
           done
           if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
             # Darwin has a final step after all the variants are done,
