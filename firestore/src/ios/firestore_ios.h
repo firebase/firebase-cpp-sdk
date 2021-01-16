@@ -90,6 +90,7 @@ class FirestoreInternal {
   void RegisterListenerRegistration(ListenerRegistrationInternal* registration);
   void UnregisterListenerRegistration(
       ListenerRegistrationInternal* registration);
+  void ClearListeners();
 
   void set_firestore_public(Firestore* firestore_public) {
     firestore_public_ = firestore_public;
@@ -128,8 +129,6 @@ class FirestoreInternal {
   ReferenceCountedFutureImpl* ref_future() {
     return future_manager_.GetFutureApi(this);
   }
-
-  void ClearListeners();
 
   void ApplyDefaultSettings();
 

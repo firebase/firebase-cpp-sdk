@@ -246,7 +246,10 @@ void SetDefaults(const ConfigKeyValue* defaults, size_t number_of_defaults);
 /// @return The value of the config
 ///
 /// @see SetConfigSetting
-std::string GetConfigSetting(ConfigSetting setting);
+///
+/// @deprecated This method is always returning 0. New ways of retrieving
+/// ConfigSettings will be available in the future release.
+FIREBASE_DEPRECATED std::string GetConfigSetting(ConfigSetting setting);
 
 /// @brief Sets an internal configuration setting.
 ///
@@ -254,7 +257,11 @@ std::string GetConfigSetting(ConfigSetting setting);
 /// @param[in] value Value to apply to the setting.
 ///
 /// @see ConfigSetting
-void SetConfigSetting(ConfigSetting setting, const char* value);
+///
+/// @deprecated This method is always returning 0. New ways of modifying
+/// ConfigSettings will be available in the future release.
+FIREBASE_DEPRECATED void SetConfigSetting(ConfigSetting setting,
+                                          const char* value);
 
 /// @brief Returns the value associated with a key, converted to a bool.
 ///

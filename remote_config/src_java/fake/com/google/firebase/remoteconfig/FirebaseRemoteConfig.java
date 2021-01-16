@@ -14,8 +14,6 @@
 
 package com.google.firebase.remoteconfig;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.testing.cppsdk.ConfigAndroid;
 import com.google.firebase.testing.cppsdk.ConfigRow;
@@ -33,11 +31,7 @@ import java.util.TreeSet;
 /** Fake FirebaseRemoteConfig */
 public class FirebaseRemoteConfig {
 
-  private static final String FN_ACTIVATE_FETCHED = "FirebaseRemoteConfig.activateFetched";
-  private static final String FN_SET_DEFAULTS = "FirebaseRemoteConfig.setDefaults";
-  private static final String FN_SET_CONFIG_SETTINGS = "FirebaseRemoteConfig.setConfigSettings";
   private static final String FN_GET_LONG = "FirebaseRemoteConfig.getLong";
-  private static final String FN_GET_BYTE_ARRAY = "FirebaseRemoteConfig.getByteArray";
   private static final String FN_GET_STRING = "FirebaseRemoteConfig.getString";
   private static final String FN_GET_BOOLEAN = "FirebaseRemoteConfig.getBoolean";
   private static final String FN_GET_DOUBLE = "FirebaseRemoteConfig.getDouble";
@@ -59,35 +53,6 @@ public class FirebaseRemoteConfig {
     return new FirebaseRemoteConfig();
   }
 
-  public boolean activateFetched() {
-    ConfigRow row = ConfigAndroid.get(FN_ACTIVATE_FETCHED);
-    boolean result = row.returnvalue().tbool();
-    FakeReporter.addReportWithResult(FN_ACTIVATE_FETCHED, String.valueOf(result));
-    return result;
-  }
-
-  public void setDefaults(int resourceId) {
-    FakeReporter.addReport(FN_SET_DEFAULTS, Integer.toString(resourceId));
-  }
-
-  public void setDefaults(int resourceId, String namespace) {
-    FakeReporter.addReport(FN_SET_DEFAULTS, Integer.toString(resourceId), namespace);
-  }
-
-  public void setDefaults(Map<String, Object> defaults) {
-    Map<String, Object> sorted = new TreeMap<>(defaults);
-    FakeReporter.addReport(FN_SET_DEFAULTS, sorted.toString());
-  }
-
-  public void setDefaults(Map<String, Object> defaults, String namespace) {
-    Map<String, Object> sorted = new TreeMap<>(defaults);
-    FakeReporter.addReport(FN_SET_DEFAULTS, sorted.toString(), namespace);
-  }
-
-  public void setConfigSettings(FirebaseRemoteConfigSettings settings) {
-    FakeReporter.addReport(FN_SET_CONFIG_SETTINGS);
-  }
-
   public long getLong(String key) {
     ConfigRow row = ConfigAndroid.get(FN_GET_LONG);
     long result = row.returnvalue().tlong();
@@ -99,20 +64,6 @@ public class FirebaseRemoteConfig {
     ConfigRow row = ConfigAndroid.get(FN_GET_LONG);
     long result = row.returnvalue().tlong();
     FakeReporter.addReportWithResult(FN_GET_LONG, Long.toString(result), key, namespace);
-    return result;
-  }
-
-  public byte[] getByteArray(String key) {
-    ConfigRow row = ConfigAndroid.get(FN_GET_BYTE_ARRAY);
-    byte[] result = row.returnvalue().tstring().getBytes(UTF_8);
-    FakeReporter.addReportWithResult(FN_GET_BYTE_ARRAY, new String(result), key);
-    return result;
-  }
-
-  public byte[] getByteArray(String key, String namespace) {
-    ConfigRow row = ConfigAndroid.get(FN_GET_BYTE_ARRAY);
-    byte[] result = row.returnvalue().tstring().getBytes(UTF_8);
-    FakeReporter.addReportWithResult(FN_GET_BYTE_ARRAY, new String(result), key, namespace);
     return result;
   }
 

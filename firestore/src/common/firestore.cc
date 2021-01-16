@@ -181,6 +181,16 @@ void Firestore::DeleteInternal() {
     app_notifier->UnregisterObject(this);
   }
 
+  // Make sure to clear the listeners _before_ triggering cleanup. This avoids
+  // a potential deadlock that can happen if the Firestore instance is destroyed
+  // in parallel with or shortly after a snapshot listener's invocation:
+  // - the thread on which cleanup is being executed holds the cleanup lock and
+  // tries to mute listeners, which requires the listeners' lock;
+  // - in parallel on the user callbacks' thread which holds the listeners'
+  // lock, one of the user callbacks is being destroyed, which leads to an
+  // attempt to unregister an object from cleanup, requiring the cleanup lock.
+  internal_->ClearListeners();
+
   // Force cleanup to happen first.
   internal_->cleanup().CleanupAll();
   delete internal_;

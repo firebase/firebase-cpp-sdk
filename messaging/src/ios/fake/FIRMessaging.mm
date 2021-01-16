@@ -120,6 +120,12 @@ BOOL is_auto_init_enabled = true;
   return info;
 }
 
+- (void)tokenWithCompletion:(FIRMessagingFCMTokenFetchCompletion)completion
+  NS_SWIFT_NAME(retrieveFCMToken(completion:)) {}
+
+- (void)deleteTokenWithCompletion:(FIRMessagingDeleteFCMTokenCompletion)completion
+  NS_SWIFT_NAME(deleteFCMToken(completion:)) {}
+
 @end
 
 NS_ASSUME_NONNULL_END

@@ -9,8 +9,6 @@ namespace firestore {
 
 class MetadataChangesInternal {
  public:
-  using ApiType = MetadataChanges;
-
   static void Initialize(jni::Loader& loader);
 
   static jni::Local<jni::Object> Create(jni::Env& env,

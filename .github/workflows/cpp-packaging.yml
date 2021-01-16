@@ -11,13 +11,13 @@ on:
       preserveIntermediateArtifacts:
         description: 'preserve intermediate artifacts?'
         default: 0
+      skipIntegrationTests:
+        description: 'skip integration tests?'
+        default: 0
       downloadPublicVersion:
         description: 'public version # to test against'
       downloadPreviousRun:
         description: 'previous run # to test against'
-      runIntegrationTests:
-        description: 'run integration tests?'
-        default: 0
 
 env:
   # Packaging prerequisites
@@ -48,6 +48,11 @@ jobs:
               echo "::warning ::Using commit ID '${{ github.event.inputs.commitIdToPackage }}' for building and packaging SDK and tests."
             fi
           fi
+
+      - name: log if skipping integration tests
+        if: |
+          github.event.inputs.skipIntegrationTests != 0 && github.event.inputs.skipIntegrationTests != ''
+        run: echo "::warning ::Skipping integration tests."
 
       - name: log if preserving intermediate artifacts
         if: |
@@ -437,7 +442,7 @@ jobs:
           for pkg in artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build/*.tgz; do
             # determine the build variant based on the artifact filename
             variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
-            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3
+            sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3 -j
           done
           if [[ "${{ matrix.sdk_platform }}" == "darwin" ]]; then
             # Darwin has a final step after all the variants are done,
@@ -619,7 +624,7 @@ jobs:
 
   tests:
     needs: [merge_packages, download_sdk_package]
-    if: github.event.inputs.runIntegrationTests != 0 && !cancelled()
+    if: (github.event.inputs.skipIntegrationTests == 0 || github.event.inputs.skipIntegrationTests == '') && !cancelled()
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -671,7 +676,7 @@ jobs:
         python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
     - name: Build integration tests
       run: |
-        python scripts/gha/build_testapps.py --t ${{ env.apis }} --p ${{ matrix.target_platform }} --sdk_dir firebase_cpp_sdk --output_directory ${{ github.workspace }} --noadd_timestamp
+        python scripts/gha/build_testapps.py --t ${{ env.apis }} --p ${{ matrix.target_platform }} --sdk_dir firebase_cpp_sdk --output_directory "${{ github.workspace }}" --noadd_timestamp
     
     - name: Run desktop integration tests
       if: matrix.target_platform == 'Desktop' && !cancelled()
@@ -697,4 +702,8 @@ jobs:
     - name: Summarize build and test results
       if: ${{ !cancelled() }}
       shell: bash
-      run: cat testapps/summary.log
+      run: |
+        cat testapps/summary.log
+        if [[ "${{ job.status }}" != "success" ]]; then
+          exit 1
+        fi

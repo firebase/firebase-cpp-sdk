@@ -112,10 +112,9 @@ static FIRDynamicLinkComponents* GetFIRComponentsAndGeneratedLink(
     generated_link->error = std::string("Link ") + kMissingFieldPostfix;
     return nil;
   }
-  if ((!components.dynamic_link_domain || !*components.dynamic_link_domain) &&
-      (!components.domain_uri_prefix || !*components.domain_uri_prefix)) {
+  if (!components.domain_uri_prefix || !*components.domain_uri_prefix) {
     generated_link->error =
-        std::string("Domain URI Prefix or Dynamic Links Domain ") + kMissingFieldPostfix;
+        std::string("Domain URI Prefix ") + kMissingFieldPostfix;
     return nil;
   }
   NSURL *link_url = EncodeUrlFromString(components.link);
@@ -123,12 +122,9 @@ static FIRDynamicLinkComponents* GetFIRComponentsAndGeneratedLink(
     generated_link->error = kUrlEncodingError;
     return nil;
   }
-  static const char kHttpsPrefix[] = "https://";
-  std::string domain = components.domain_uri_prefix != nullptr ? components.domain_uri_prefix
-                       : std::string(kHttpsPrefix) + components.dynamic_link_domain;
   FIRDynamicLinkComponents* fir_components =
       [FIRDynamicLinkComponents componentsWithLink:link_url
-                                   domainURIPrefix:@(domain.c_str())];
+                                   domainURIPrefix:@(components.domain_uri_prefix)];
   {
     auto* cpp_params = components.google_analytics_parameters;
     if (cpp_params) {

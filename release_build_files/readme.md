@@ -10,6 +10,7 @@ on *iOS* and *Android*:
 *   Firebase Dynamic Links
 *   Cloud Firestore
 *   Firebase Functions
+*   Firebase Installations
 *   Firebase Instance ID
 *   Firebase Realtime Database
 *   Firebase Remote Config
@@ -126,6 +127,10 @@ Firebase Functions         | libfirebase_functions
                            | (Maven package)
                            | com.google.firebase:firebase-auth:19.3.1
                            | (Maven package)
+Firebase Installations     | libfirebase_installations.a
+                           | libfirebase_app.a
+                           | com.google.firebase:firebase-installations:16.3.3
+                           | (Maven package)
 Firebase Instance ID       | libfirebase_instance_id.a
                            | libfirebase_app.a
                            | com.google.firebase:firebase-analytics:17.4.1
@@ -180,45 +185,48 @@ Feature                    | Required Frameworks and Cocoapods
 -------------------------- | ---------------------------------------
 Firebase AdMob             | firebase_admob.framework
                            | firebase.framework
-                           | Firebase/AdMob Cocoapod (6.32.2)
+                           | Firebase/AdMob Cocoapod (7.0.0)
 Firebase Analytics         | firebase_analytics.framework
                            | firebase.framework
-                           | Firebase/Analytics Cocoapod (6.32.2)
+                           | Firebase/Analytics Cocoapod (7.0.0)
 Firebase Authentication    | firebase_auth.framework
                            | firebase.framework
-                           | Firebase/Auth Cocoapod (6.32.2)
+                           | Firebase/Auth Cocoapod (7.0.0)
 Firebase Dynamic Links     | firebase_dynamic_links.framework
                            | firebase.framework
-                           | Firebase/DynamicLinks Cocoapod (6.32.2)
+                           | Firebase/DynamicLinks Cocoapod (7.0.0)
 Cloud Firestore            | firebase_firestore.framework
                            | firebase_auth.framework
                            | firebase.framework
-                           | Firebase/Firestore Cocoapod (6.32.2)
-                           | Firebase/Auth Cocoapod (6.32.2)
+                           | Firebase/Firestore Cocoapod (7.0.0)
+                           | Firebase/Auth Cocoapod (7.0.0)
 Firebase Functions         | firebase_functions.framework
                            | firebase_auth.framework (optional)
                            | firebase.framework
-                           | Firebase/Functions Cocoapod (6.32.2)
-                           | Firebase/Auth Cocoapod (6.32.2)
+                           | Firebase/Functions Cocoapod (7.0.0)
+                           | Firebase/Auth Cocoapod (7.0.0)
+Firebase Installations     | firebase_installations.framework
+                           | firebase.framework
+                           | FirebaseInstallations Cocoapod (7.0.0)
 Firebase Instance ID       | firebase_instance_id.framework
                            | firebase.framework
-                           | FirebaseInstanceID Cocoapod (4.6.0)
+                           | FirebaseInstanceID Cocoapod (7.0.0)
 Firebase Cloud Messaging   | firebase_messaging.framework
                            | firebase.framework
-                           | Firebase/Messaging Cocoapod (6.32.2)
+                           | Firebase/Messaging Cocoapod (7.0.0)
 Firebase Realtime Database | firebase_database.framework
                            | firebase_auth.framework
                            | firebase.framework
-                           | Firebase/Database Cocoapod (6.32.2)
-                           | Firebase/Auth Cocoapod (6.32.2)
+                           | Firebase/Database Cocoapod (7.0.0)
+                           | Firebase/Auth Cocoapod (7.0.0)
 Firebase Remote Config     | firebase_remote_config.framework
                            | firebase.framework
-                           | Firebase/RemoteConfig Cocoapod (6.32.2)
+                           | Firebase/RemoteConfig Cocoapod (7.0.0)
 Firebase Storage           | firebase_storage.framework
                            | firebase_auth.framework
                            | firebase.framework
-                           | Firebase/Storage Cocoapod (6.32.2)
-                           | Firebase/Auth Cocoapod (6.32.2)
+                           | Firebase/Storage Cocoapod (7.0.0)
+                           | Firebase/Auth Cocoapod (7.0.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
@@ -234,45 +242,48 @@ Feature                    | Required Libraries and Cocoapods
 -------------------------- | -----------------------------------------
 Firebase AdMob             | libfirebase_admob.a
                            | libfirebase_app.a
-                           | Firebase/AdMob Cocoapod (6.32.2)
+                           | Firebase/AdMob Cocoapod (7.0.0)
 Firebase Analytics         | libfirebase_analytics.a
                            | libfirebase_app.a
-                           | Firebase/Analytics Cocoapod (6.32.2)
+                           | Firebase/Analytics Cocoapod (7.0.0)
 Firebase Authentication    | libfirebase_auth.a
                            | libfirebase_app.a
-                           | Firebase/Auth Cocoapod (6.32.2)
+                           | Firebase/Auth Cocoapod (7.0.0)
 Firebase Dynamic Links     | libfirebase_dynamic_links.a
                            | libfirebase_app.a
-                           | Firebase/DynamicLinks Cocoapod (6.32.2)
+                           | Firebase/DynamicLinks Cocoapod (7.0.0)
 Cloud Firestore            | libfirebase_firestore.a
                            | libfirebase_app.a
                            | libfirebase_auth.a
-                           | Firebase/Firestore Cocoapod (6.32.2)
-                           | Firebase/Auth Cocoapod (6.32.2)
+                           | Firebase/Firestore Cocoapod (7.0.0)
+                           | Firebase/Auth Cocoapod (7.0.0)
 Firebase Functions         | libfirebase_functions.a
                            | libfirebase_app.a
                            | libfirebase_auth.a (optional)
-                           | Firebase/Functions Cocoapod (6.32.2)
-                           | Firebase/Auth Cocoapod (6.32.2)
+                           | Firebase/Functions Cocoapod (7.0.0)
+                           | Firebase/Auth Cocoapod (7.0.0)
+Firebase Installations     | libfirebase_installations.a
+                           | libfirebase_app.a
+                           | FirebaseInstallations Cocoapod (7.0.0)
 Firebase Instance ID       | libfirebase_instance_id.a
                            | libfirebase_app.a
-                           | FirebaseInstanceID Cocoapod (4.6.0)
+                           | FirebaseInstanceID Cocoapod (7.0.0)
 Firebase Cloud Messaging   | libfirebase_messaging.a
                            | libfirebase_app.a
-                           | Firebase/CloudMessaging Cocoapod (6.32.2)
+                           | Firebase/CloudMessaging Cocoapod (7.0.0)
 Firebase Realtime Database | libfirebase_database.a
                            | libfirebase_app.a
                            | libfirebase_auth.a
-                           | Firebase/Database Cocoapod (6.32.2)
-                           | Firebase/Auth Cocoapod (6.32.2)
+                           | Firebase/Database Cocoapod (7.0.0)
+                           | Firebase/Auth Cocoapod (7.0.0)
 Firebase Remote Config     | libfirebase_remote_config.a
                            | libfirebase_app.a
-                           | Firebase/RemoteConfig Cocoapod (6.32.2)
+                           | Firebase/RemoteConfig Cocoapod (7.0.0)
 Firebase Storage           | libfirebase_storage.a
                            | libfirebase_app.a
                            | libfirebase_auth.a
-                           | Firebase/Storage Cocoapod (6.32.2)
-                           | Firebase/Auth Cocoapod (6.32.2)
+                           | Firebase/Storage Cocoapod (7.0.0)
+                           | Firebase/Auth Cocoapod (7.0.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
@@ -308,6 +319,8 @@ Firebase AdMob (stub)           | libfirebase_admob.a
 Firebase Analytics (stub)       | libfirebase_analytics.a
                                 | libfirebase_app.a
 Firebase Dynamic Links (stub)   | libfirebase_dynamic_links.a
+                                | libfirebase_app.a
+Firebase Installations (stub)   | libfirebase_installations.a
                                 | libfirebase_app.a
 Firebase Instance ID (stub)     | libfirebase_instance_id.a
                                 | libfirebase_app.a
@@ -348,6 +361,8 @@ Firebase AdMob (stub)           | firebase_admob.framework
 Firebase Analytics (stub)       | firebase_analytics.framework
                                 | firebase.frameworkb
 Firebase Dynamic Links (stub)   | firebase_dynamic_links.framework
+                                | firebase.framework
+Firebase Installations (stub)   | firebase_installations.framework
                                 | firebase.framework
 Firebase Instance ID (stub)     | firebase_instance_id.framework
                                 | firebase.framework
@@ -390,6 +405,8 @@ Firebase AdMob (stub)           | firebase_admob.lib
 Firebase Analytics (stub)       | firebase_analytics.lib
                                 | firebase_app.lib
 Firebase Dynamic Links (stub)   | firebase_dynamic_links.lib
+                                | firebase_app.lib
+Firebase Installations (stub)   | firebase_installations.lib
                                 | firebase_app.lib
 Firebase Instance ID (stub)     | firebase_instance_id.lib
                                 | firebase_app.lib
@@ -497,6 +514,7 @@ Auth                 | Required
 Dynamic Links        | Required
 Firestore            | Required
 Functions            | Required
+Installations        | Not Required
 Instance ID          | Required
 Realtime Database    | Required
 Remote Config        | Required
@@ -540,6 +558,35 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+
+### 7.0.0
+-   Changes
+    -   General (iOS): iOS SDKs are now built using Xcode 11.7.
+    -   AdMob (Android): Fix a JNI error when initializing without Firebase App.
+    -   Analytics: Remove deprecated SetMinimumSessionDuration call.
+    -   Installations: Added Installations SDK. See [Documentations](http://firebase.google.com/docs/reference/cpp/namespace/firebase/installations) for
+        details.
+    -   Instance Id: Marked Instance Id as deprecated.
+    -   Messaging: Added getToken, deleteToken apis.
+    -   Messaging: Removed deprecated Send() function.
+    -   Messaging: raw_data has been changed from a std::string to a
+        std::vector<uint8_t>, and can now be populated.
+    -   Firestore: Added support for `Query::WhereNotEqualTo` and
+        `Query::WhereNotIn`.
+    -   Firestore: Added support for `Settings::set_cache_size_bytes` and
+        `Settings::cache_size_bytes`.
+    -   Firestore: `Query` methods that return new `Query` objects are now
+        `const`.
+    -   Firestore: Added new internal HTTP headers to the gRPC connection.
+    -   Firestore: Fixed a crash when writing to a document after having been
+        offline for long enough that the auth token expired
+        ([#182](https://github.com/firebase/firebase-cpp-sdk/issues/182)).
+
+### 6.16.1
+-   Changes
+    -   Database (Desktop): Added a function to create directories recursively
+        for persistent storage that fixes segfaults.
+    -   Database (Desktop): Fixed a problem with missing symbols on Windows.
 
 ### 6.16.0
 -   Changes

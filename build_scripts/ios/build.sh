@@ -118,6 +118,7 @@ if ${generateMakefiles}; then
 fi
 
 # build framework for each architecture and target
+IFS=$'\n' # split $(ls) on \n characters
 if ${cmakeBuild}; then
     for arch in ${architectures[@]}; do 
     {
@@ -128,11 +129,18 @@ if ${cmakeBuild}; then
     
     } &
     done
-    wait
-    echo "${architectures[@]} frameworks build end"
+    subprocess_fail=0
+    for job in $(jobs -p); do
+        wait $job || let "subprocess_fail+=1"
+    done
+    if [ "${subprocess_fail}" == "0" ]; then
+        echo "${architectures[@]} frameworks build end"
+    else
+        echo "frameworks build error, ${subprocess_fail} architecture(s) build failed"
+        exit 2
+    fi
 
     # arrange the framework 
-    IFS=$'\n' # split $(ls) on \n characters
     cd ${buildpath}/${frameworkspath}
     for arch in ${architectures[@]}; do
         # rename firebase_app to firebase

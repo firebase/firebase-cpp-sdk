@@ -251,7 +251,7 @@ bool MetadataInternal::ImportFromJson(const char* json) {
       std::istringstream token_list(json_tokens.string_value());
       std::string token;
 
-      while (getline(token_list, token, ',')) {
+      while (std::getline(token_list, token, ',')) {
         download_tokens_.push_back(token);
       }
     }

@@ -193,7 +193,7 @@ TEST_F(ServerTimestampTest,
 TEST_F(ServerTimestampTest,
        TestServerTimestampsCanRetainPreviousValueThroughConsecutiveUpdates) {
   WriteInitialData();
-  Await(firestore()->DisableNetwork());
+  Await(TestFirestore()->DisableNetwork());
   accumulator_.AwaitRemoteEvent();
 
   doc_.Update(MapFieldValue{{"a", FieldValue::ServerTimestamp()}});
@@ -210,7 +210,7 @@ TEST_F(ServerTimestampTest,
   EXPECT_EQ(42, local_snapshot.Get("a", ServerTimestampBehavior::kPrevious)
                     .integer_value());
 
-  Await(firestore()->EnableNetwork());
+  Await(TestFirestore()->EnableNetwork());
 
   DocumentSnapshot remote_snapshot = accumulator_.AwaitRemoteEvent();
   EXPECT_TRUE(remote_snapshot.Get("a").is_timestamp());
@@ -219,7 +219,7 @@ TEST_F(ServerTimestampTest,
 TEST_F(ServerTimestampTest,
        TestServerTimestampsUsesPreviousValueFromLocalMutation) {
   WriteInitialData();
-  Await(firestore()->DisableNetwork());
+  Await(TestFirestore()->DisableNetwork());
   accumulator_.AwaitRemoteEvent();
 
   doc_.Update(MapFieldValue{{"a", FieldValue::ServerTimestamp()}});
@@ -239,7 +239,7 @@ TEST_F(ServerTimestampTest,
   EXPECT_EQ(1337, local_snapshot.Get("a", ServerTimestampBehavior::kPrevious)
                       .integer_value());
 
-  Await(firestore()->EnableNetwork());
+  Await(TestFirestore()->EnableNetwork());
 
   DocumentSnapshot remote_snapshot = accumulator_.AwaitRemoteEvent();
   EXPECT_TRUE(remote_snapshot.Get("a").is_timestamp());
@@ -247,7 +247,7 @@ TEST_F(ServerTimestampTest,
 
 TEST_F(ServerTimestampTest, TestServerTimestampsWorkViaTransactionSet) {
 #if defined(FIREBASE_USE_STD_FUNCTION)
-  Await(firestore()->RunTransaction(
+  Await(TestFirestore()->RunTransaction(
       [this](Transaction& transaction, std::string&) -> Error {
         transaction.Set(doc_, set_data_);
         return Error::kErrorOk;
@@ -259,7 +259,7 @@ TEST_F(ServerTimestampTest, TestServerTimestampsWorkViaTransactionSet) {
 TEST_F(ServerTimestampTest, TestServerTimestampsWorkViaTransactionUpdate) {
 #if defined(FIREBASE_USE_STD_FUNCTION)
   WriteInitialData();
-  Await(firestore()->RunTransaction(
+  Await(TestFirestore()->RunTransaction(
       [this](Transaction& transaction, std::string&) -> Error {
         transaction.Update(doc_, update_data_);
         return Error::kErrorOk;
@@ -271,7 +271,7 @@ TEST_F(ServerTimestampTest, TestServerTimestampsWorkViaTransactionUpdate) {
 TEST_F(ServerTimestampTest,
        TestServerTimestampsFailViaTransactionUpdateOnNonexistentDocument) {
 #if defined(FIREBASE_USE_STD_FUNCTION)
-  Future<void> future = firestore()->RunTransaction(
+  Future<void> future = TestFirestore()->RunTransaction(
       [this](Transaction& transaction, std::string&) -> Error {
         transaction.Update(doc_, update_data_);
         return Error::kErrorOk;

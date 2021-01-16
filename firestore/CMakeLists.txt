@@ -32,6 +32,7 @@ set(common_SRCS
     src/common/firestore.cc
     src/common/futures.h
     src/common/listener_registration.cc
+    src/common/macros.h
     src/common/main_for_testing_build.cc
     src/common/query.cc
     src/common/query_snapshot.cc
@@ -161,7 +162,7 @@ set(android_SRCS
     src/jni/throwable.h
     src/jni/traits.h)
 
-set(ios_SRCS
+set(ios_and_desktop_SRCS
     src/ios/collection_reference_ios.cc
     src/ios/collection_reference_ios.h
     src/ios/converter_ios.h
@@ -175,8 +176,6 @@ set(ios_SRCS
     src/ios/document_snapshot_ios.h
     src/ios/field_value_ios.cc
     src/ios/field_value_ios.h
-    src/ios/firebase_firestore_settings_ios.cc
-    src/ios/firebase_firestore_settings_ios.h
     src/ios/firestore_ios.cc
     src/ios/firestore_ios.h
     src/ios/hard_assert_ios.cc
@@ -204,13 +203,24 @@ set(wrapper_assertions_SRCS
     src/common/wrapper_assertions.cc
     src/common/wrapper_assertions.h)
 
+set(ios_only_SRCS
+    src/ios/create_firebase_metadata_provider_apple.mm)
+
+set(desktop_only_SRCS
+    src/ios/create_firebase_metadata_provider_desktop.cc
+    src/ios/firebase_metadata_provider_desktop.cc)
+
 if(ANDROID)
   set(firestore_platform_SRCS "${android_SRCS}")
 
 else()
-  # The iOS implementation is actually portable to desktop environments as
-  # well.
-  set(firestore_platform_SRCS "${ios_SRCS}")
+  if (IOS)
+    set(firestore_platform_SRCS "${ios_and_desktop_SRCS}" "${ios_only_SRCS}")
+  else()
+    # The iOS implementation is actually portable to desktop environments as
+    # well.
+    set(firestore_platform_SRCS "${ios_and_desktop_SRCS}" "${desktop_only_SRCS}")
+  endif()
 endif()
 
 add_library(firebase_firestore STATIC
@@ -292,6 +302,8 @@ elseif(IOS)
       FirebaseFirestore
       abseil
       nanopb
+      gRPC-C++
+      gRPC-Core
   )
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")

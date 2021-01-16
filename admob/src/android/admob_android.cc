@@ -143,6 +143,10 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
 }
 
 InitResult Initialize(JNIEnv* env, jobject activity, const char* admob_app_id) {
+  if (g_java_vm == nullptr) {
+    env->GetJavaVM(&g_java_vm);
+  }
+
   // AdMob requires Google Play services if the class
   // "com.google.android.gms.ads.internal.ClientApi" does not exist.
   if (!util::FindClass(env, "com/google/android/gms/ads/internal/ClientApi") &&
@@ -192,7 +196,6 @@ InitResult Initialize(JNIEnv* env, jobject activity, const char* admob_app_id) {
 
   g_initialized = true;
   g_activity = env->NewGlobalRef(activity);
-  env->GetJavaVM(&g_java_vm);
 
   InitializeGoogleMobileAds(env, admob_app_id);
   RegisterTerminateOnDefaultAppDestroy();

@@ -5,6 +5,8 @@
 
 #include <string>
 
+#include "firestore/src/jni/traits.h"
+
 namespace firebase {
 namespace firestore {
 namespace jni {
@@ -33,6 +35,12 @@ class Object {
   static void Initialize(Loader& loader);
 
   static Class GetClass();
+
+  /** Returns a non-owning proxy of type `U` that points to this object. */
+  template <typename U>
+  U CastTo() const& {
+    return U(static_cast<JniType<U>>(get()));
+  }
 
   /**
    * Converts this object to a C++ String by calling the Java `toString` method

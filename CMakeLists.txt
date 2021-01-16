@@ -409,7 +409,7 @@ if(DESKTOP)
   if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
     # The Firestore build includes protobuf and nanopb already
     list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
-    find_package(Nanopb REQUIRED)
+    find_package(NANOPB REQUIRED)
 
     set(PROTOBUF_FOUND ON)
   else()
@@ -421,7 +421,7 @@ if(DESKTOP)
       # NanoPB has a FindNanopb which defines the function to generate files,
       # so add it to the module path, and use that.
       list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
-      find_package(Nanopb)
+      find_package(NANOPB)
 
       target_compile_definitions(
         protobuf-nanopb-static

@@ -18,7 +18,7 @@ if(TARGET leveldb)
   return()
 endif()
 
-set(version 1.22)
+set(version e0d5f83a4f80060fe5b5d80025f0ad049bca430e)
 
 ExternalProject_Add(
   leveldb
@@ -26,7 +26,6 @@ ExternalProject_Add(
   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
   DOWNLOAD_NAME leveldb-${version}.tar.gz
   URL https://github.com/google/leveldb/archive/${version}.tar.gz
-  URL_HASH SHA256=55423cac9e3306f4a9502c738a001e4a339d1a38ffbee7572d4a07d5d63949b2
 
   PREFIX ${PROJECT_BINARY_DIR}
 

@@ -18,7 +18,7 @@ if(TARGET curl OR NOT DOWNLOAD_CURL)
   return()
 endif()
 
-set(version 7_73_0)
+set(version 7_74_0)
 
 ExternalProject_Add(
   curl

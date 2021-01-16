@@ -113,16 +113,21 @@ function(download_external_sources)
       endif()
     endif()
 
-    # Firestore's nanopb implementation needs to know not to run protoc if we are crosscompiling
-    # (e.g. building for arm64 on an x86 mac).
-    file(READ ${PROJECT_BINARY_DIR}/external/src/firestore/Firestore/Protos/CMakeLists.txt TMP_CMAKE_CONTENTS)
-    if (NOT TMP_CMAKE_CONTENTS MATCHES "CMAKE_CROSSCOMPILING")
-      string(REPLACE
-             "if(WIN32 OR IOS OR ANDROID)"
-             "if(WIN32 OR IOS OR ANDROID OR CMAKE_CROSSCOMPILING)"
-             TMP_CMAKE_CONTENTS_NEW
-             "${TMP_CMAKE_CONTENTS}")
-      file(WRITE ${PROJECT_BINARY_DIR}/external/src/firestore/Firestore/Protos/CMakeLists.txt "${TMP_CMAKE_CONTENTS_NEW}")
+    if (FIREBASE_INCLUDE_FIRESTORE)
+      # Firestore's nanopb implementation needs to know not to run protoc if we are crosscompiling
+      # (e.g. building for arm64 on an x86 mac).
+      file(READ ${PROJECT_BINARY_DIR}/external/src/firestore/Firestore/Protos/CMakeLists.txt TMP_CMAKE_CONTENTS)
+      if (NOT TMP_CMAKE_CONTENTS MATCHES "CMAKE_CROSSCOMPILING")
+        string(REPLACE
+               "if(WIN32 OR IOS OR ANDROID)"
+               "if(WIN32 OR IOS OR ANDROID OR CMAKE_CROSSCOMPILING)"
+               TMP_CMAKE_CONTENTS_NEW
+               "${TMP_CMAKE_CONTENTS}")
+        file(WRITE ${PROJECT_BINARY_DIR}/external/src/firestore/Firestore/Protos/CMakeLists.txt "${TMP_CMAKE_CONTENTS_NEW}")
+
+      # Tweak Firestore's included version of leveldb to match our own.
+      file(INSTALL "${PROJECT_SOURCE_DIR}/cmake/external/leveldb.cmake"
+           DESTINATION "${PROJECT_BINARY_DIR}/external/src/firestore/cmake/external")
     endif()
   endif()
 endfunction()

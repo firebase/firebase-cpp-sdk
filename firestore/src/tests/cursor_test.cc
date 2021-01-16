@@ -126,14 +126,14 @@ TEST_F(FirestoreIntegrationTest, CanBeCreatedUsingDocumentId) {
       {"d", {{"v", FieldValue::String("d")}}},
       {"e", {{"v", FieldValue::String("e")}}}};
 
-  CollectionReference writer = CachedFirestore("writer")
+  CollectionReference writer = TestFirestore("writer")
                                    ->Collection("parent-collection")
                                    .Document()
                                    .Collection("sub-collection");
   WriteDocuments(writer, docs);
 
   CollectionReference reader =
-      CachedFirestore("reader")->Collection(writer.path());
+      TestFirestore("reader")->Collection(writer.path());
   QuerySnapshot snapshot = ReadDocuments(
       reader.OrderBy(FieldPath::DocumentId())
           .StartAt(std::vector<FieldValue>({FieldValue::String("b")}))
@@ -144,7 +144,7 @@ TEST_F(FirestoreIntegrationTest, CanBeCreatedUsingDocumentId) {
 }
 
 TEST_F(FirestoreIntegrationTest, CanBeUsedWithReferenceValues) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   std::map<std::string, MapFieldValue> docs = {
       {"a",
        {{"k", FieldValue::String("1a")},

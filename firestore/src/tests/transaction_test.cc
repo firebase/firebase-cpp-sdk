@@ -55,7 +55,7 @@ class TransactionTest : public FirestoreIntegrationTest {
     Future<void> future;
     // Re-try 5 times in case server is unavailable.
     for (int i = 0; i < 5; ++i) {
-      future = firestore()->RunTransaction(update);
+      future = TestFirestore()->RunTransaction(update);
       Await(future);
       if (future.error() == Error::kErrorUnavailable) {
         std::cout << "Could not reach backend. Retrying transaction test."
@@ -121,9 +121,9 @@ class TestTransactionFunction : public TransactionFunction {
 };
 
 TEST_F(TransactionTest, TestGetNonexistentDocumentThenCreatePortableVersion) {
-  DocumentReference doc = firestore()->Collection("towns").Document();
+  DocumentReference doc = TestFirestore()->Collection("towns").Document();
   TestTransactionFunction transaction{doc};
-  Future<void> future = firestore()->RunTransaction(&transaction);
+  Future<void> future = TestFirestore()->RunTransaction(&transaction);
   Await(future);
 
   EXPECT_EQ(Error::kErrorOk, future.error());
@@ -309,7 +309,7 @@ class TransactionTester {
 TEST_F(TransactionTest, TestRunsTransactionsAfterGettingNonexistentDoc) {
   SCOPED_TRACE("TestRunsTransactionsAfterGettingNonexistentDoc");
 
-  TransactionTester tt = TransactionTester(firestore());
+  TransactionTester tt = TransactionTester(TestFirestore());
   tt.WithExistingDoc().Run(get, delete1, delete1).ExpectNoDoc();
   tt.WithExistingDoc()
       .Run(get, delete1, update2)
@@ -338,7 +338,7 @@ TEST_F(TransactionTest, TestRunsTransactionsAfterGettingNonexistentDoc) {
 TEST_F(TransactionTest, TestRunsTransactionsAfterGettingExistingDoc) {
   SCOPED_TRACE("TestRunsTransactionsAfterGettingExistingDoc");
 
-  TransactionTester tt = TransactionTester(firestore());
+  TransactionTester tt = TransactionTester(TestFirestore());
   tt.WithNonexistentDoc().Run(get, delete1, delete1).ExpectNoDoc();
   tt.WithNonexistentDoc()
       .Run(get, delete1, update2)
@@ -369,7 +369,7 @@ TEST_F(TransactionTest, TestRunsTransactionsAfterGettingExistingDoc) {
 TEST_F(TransactionTest, TestRunsTransactionsOnExistingDoc) {
   SCOPED_TRACE("TestRunTransactionsOnExistingDoc");
 
-  TransactionTester tt = TransactionTester(firestore());
+  TransactionTester tt = TransactionTester(TestFirestore());
   tt.WithExistingDoc().Run(delete1, delete1).ExpectNoDoc();
   tt.WithExistingDoc()
       .Run(delete1, update2)
@@ -398,7 +398,7 @@ TEST_F(TransactionTest, TestRunsTransactionsOnExistingDoc) {
 TEST_F(TransactionTest, TestRunsTransactionsOnNonexistentDoc) {
   SCOPED_TRACE("TestRunsTransactionsOnNonexistentDoc");
 
-  TransactionTester tt = TransactionTester(firestore());
+  TransactionTester tt = TransactionTester(TestFirestore());
   tt.WithNonexistentDoc().Run(delete1, delete1).ExpectNoDoc();
   tt.WithNonexistentDoc()
       .Run(delete1, update2)
@@ -425,7 +425,7 @@ TEST_F(TransactionTest, TestRunsTransactionsOnNonexistentDoc) {
 }
 
 TEST_F(TransactionTest, TestGetNonexistentDocumentThenFailPatch) {
-  DocumentReference doc = firestore()->Collection("towns").Document();
+  DocumentReference doc = TestFirestore()->Collection("towns").Document();
 
   SCOPED_TRACE("TestGetNonexistentDocumentThenFailPatch");
   RunTransactionAndExpect(
@@ -444,7 +444,7 @@ TEST_F(TransactionTest, TestGetNonexistentDocumentThenFailPatch) {
 }
 
 TEST_F(TransactionTest, TestSetDocumentWithMerge) {
-  DocumentReference doc = firestore()->Collection("towns").Document();
+  DocumentReference doc = TestFirestore()->Collection("towns").Document();
 
   SCOPED_TRACE("TestSetDocumentWithMerge");
   RunTransactionAndExpect(
@@ -475,7 +475,7 @@ TEST_F(TransactionTest, TestSetDocumentWithMerge) {
 }
 
 TEST_F(TransactionTest, TestCannotUpdateNonExistentDocument) {
-  DocumentReference doc = firestore()->Collection("towns").Document();
+  DocumentReference doc = TestFirestore()->Collection("towns").Document();
 
   SCOPED_TRACE("TestCannotUpdateNonExistentDocument");
   RunTransactionAndExpect(
@@ -499,7 +499,7 @@ TEST_F(TransactionTest, TestIncrementTransactionally) {
   Mutex started_locker;
   int started = 0;
 
-  DocumentReference doc = firestore()->Collection("counters").Document();
+  DocumentReference doc = TestFirestore()->Collection("counters").Document();
   WriteDocument(doc, MapFieldValue{{"count", FieldValue::Double(5.0)}});
 
   // Make 3 transactions that will all increment.
@@ -508,7 +508,7 @@ TEST_F(TransactionTest, TestIncrementTransactionally) {
   // a workaround.
   static constexpr int kTotal = 3;
   for (int i = 0; i < kTotal; ++i) {
-    transaction_tasks.push_back(firestore()->RunTransaction(
+    transaction_tasks.push_back(TestFirestore()->RunTransaction(
         [doc, &write_barrier, &started_locker, &started](
             Transaction& transaction, std::string& error_message) -> Error {
           Error error = Error::kErrorOk;
@@ -559,14 +559,14 @@ TEST_F(TransactionTest, TestUpdateTransactionally) {
   Mutex started_locker;
   int started = 0;
 
-  DocumentReference doc = firestore()->Collection("counters").Document();
+  DocumentReference doc = TestFirestore()->Collection("counters").Document();
   WriteDocument(doc, MapFieldValue{{"count", FieldValue::Double(5.0)},
                                    {"other", FieldValue::String("yes")}});
 
   // Make 3 transactions that will all increment.
   static const constexpr int kTotal = 3;
   for (int i = 0; i < kTotal; ++i) {
-    transaction_tasks.push_back(firestore()->RunTransaction(
+    transaction_tasks.push_back(TestFirestore()->RunTransaction(
         [doc, &write_barrier, &started_locker, &started](
             Transaction& transaction, std::string& error_message) -> Error {
           Error error = Error::kErrorOk;
@@ -610,7 +610,7 @@ TEST_F(TransactionTest, TestUpdateTransactionally) {
 }
 
 TEST_F(TransactionTest, TestUpdateFieldsWithDotsTransactionally) {
-  DocumentReference doc = firestore()->Collection("fieldnames").Document();
+  DocumentReference doc = TestFirestore()->Collection("fieldnames").Document();
   WriteDocument(doc, MapFieldValue{{"a.b", FieldValue::String("old")},
                                    {"c.d", FieldValue::String("old")},
                                    {"e.f", FieldValue::String("old")}});
@@ -634,7 +634,7 @@ TEST_F(TransactionTest, TestUpdateFieldsWithDotsTransactionally) {
 }
 
 TEST_F(TransactionTest, TestUpdateNestedFieldsTransactionally) {
-  DocumentReference doc = firestore()->Collection("fieldnames").Document();
+  DocumentReference doc = TestFirestore()->Collection("fieldnames").Document();
   WriteDocument(
       doc, MapFieldValue{
                {"a", FieldValue::Map({{"b", FieldValue::String("old")}})},
@@ -663,7 +663,7 @@ TEST_F(TransactionTest, TestUpdateNestedFieldsTransactionally) {
 #if defined(__ANDROID__)
 // TODO(b/136012313): on iOS, this triggers assertion failure.
 TEST_F(TransactionTest, TestCannotReadAfterWriting) {
-  DocumentReference doc = firestore()->Collection("anything").Document();
+  DocumentReference doc = TestFirestore()->Collection("anything").Document();
   DocumentSnapshot snapshot;
 
   SCOPED_TRACE("TestCannotReadAfterWriting");
@@ -685,8 +685,8 @@ TEST_F(TransactionTest, TestCannotReadAfterWriting) {
 #endif
 
 TEST_F(TransactionTest, TestCanHaveGetsWithoutMutations) {
-  DocumentReference doc1 = firestore()->Collection("foo").Document();
-  DocumentReference doc2 = firestore()->Collection("foo").Document();
+  DocumentReference doc1 = TestFirestore()->Collection("foo").Document();
+  DocumentReference doc2 = TestFirestore()->Collection("foo").Document();
   WriteDocument(doc1, MapFieldValue{{"foo", FieldValue::String("bar")}});
   DocumentSnapshot snapshot;
 
@@ -716,7 +716,7 @@ TEST_F(TransactionTest, TestSuccessWithNoTransactionOperations) {
 }
 
 TEST_F(TransactionTest, TestCancellationOnError) {
-  DocumentReference doc = firestore()->Collection("towns").Document();
+  DocumentReference doc = TestFirestore()->Collection("towns").Document();
   // Use these two as a portable way to mimic atomic integer.
   Mutex count_locker;
   int count = 0;

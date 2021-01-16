@@ -730,7 +730,7 @@ jint StorageReferenceInternal::CppByteUploaderReadBytes(
   memcpy(bytes_array + bytes_offset,
          reinterpret_cast<char*>(cpp_buffer_pointer) + cpp_buffer_offset,
          data_read);
-  env->ReleaseByteArrayElements(bytes_array_object, bytes_array, JNI_COMMIT);
+  env->ReleaseByteArrayElements(bytes_array_object, bytes_array, 0);
   return data_read;
 }
 

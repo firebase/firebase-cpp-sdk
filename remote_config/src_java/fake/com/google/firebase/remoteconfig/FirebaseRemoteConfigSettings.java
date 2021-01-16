@@ -21,19 +21,38 @@ import com.google.firebase.testing.cppsdk.FakeReporter;
 /** Fake FirebaseRemoteConfigSettings */
 public class FirebaseRemoteConfigSettings {
 
-  public boolean isDeveloperModeEnabled() {
-    ConfigRow row = ConfigAndroid.get("FirebaseRemoteConfigSettings.isDeveloperModeEnabled");
-    boolean result = row.returnvalue().tbool();
-    FakeReporter.addReportWithResult(
-        "FirebaseRemoteConfigSettings.isDeveloperModeEnabled", String.valueOf(result));
+  private static final String FN_GET_FETCH_TIMEOUT =
+      "FirebaseRemoteConfig.getFetchTimeoutInSeconds";
+  private static final String FN_GET_MIN_FETCH_INTERVAL =
+      "FirebaseRemoteConfig.getMinimumFetchIntervalInSeconds";
+  private static final String FN_SET_FETCH_TIMEOUT =
+      "FirebaseRemoteConfigSettings.Builder.setFetchTimeoutInSeconds";
+  private static final String FN_SET_MIN_FETCH_INTERVAL =
+      "FirebaseRemoteConfigSettings.Builder.setMinimumFetchIntervalInSeconds";
+
+  public long getFetchTimeoutInSeconds() {
+    ConfigRow row = ConfigAndroid.get(FN_GET_FETCH_TIMEOUT);
+    long result = row.returnvalue().tlong();
+    FakeReporter.addReportWithResult(FN_GET_FETCH_TIMEOUT, String.valueOf(result));
+    return result;
+  }
+
+  public long getMinimumFetchIntervalInSeconds() {
+    ConfigRow row = ConfigAndroid.get(FN_GET_MIN_FETCH_INTERVAL);
+    long result = row.returnvalue().tlong();
+    FakeReporter.addReportWithResult(FN_GET_MIN_FETCH_INTERVAL, String.valueOf(result));
     return result;
   }
 
   /** Fake Builder */
   public static class Builder {
-    public Builder setDeveloperModeEnabled(boolean enabled) {
-      FakeReporter.addReport(
-          "FirebaseRemoteConfigSettings.Builder.setDeveloperModeEnabled", String.valueOf(enabled));
+    public Builder setFetchTimeoutInSeconds(long fetchTimeout) {
+      FakeReporter.addReport(FN_SET_FETCH_TIMEOUT, String.valueOf(fetchTimeout));
+      return this;
+    }
+
+    public Builder setMinimumFetchIntervalInSeconds(long minFetchInterval) {
+      FakeReporter.addReport(FN_SET_MIN_FETCH_INTERVAL, String.valueOf(minFetchInterval));
       return this;
     }
 

@@ -2,6 +2,7 @@
 
 #include <utility>
 
+#include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/util_ios.h"
@@ -172,7 +173,7 @@ FieldValue DocumentSnapshotInternal::ConvertServerTimestamp(
       }
       return FieldValue::Null();
   }
-  UNREACHABLE();
+  FIRESTORE_UNREACHABLE();
 }
 
 }  // namespace firestore

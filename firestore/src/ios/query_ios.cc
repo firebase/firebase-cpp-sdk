@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "app/src/assert.h"
+#include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/document_snapshot_ios.h"
@@ -43,17 +44,17 @@ const FirestoreInternal* QueryInternal::firestore_internal() const {
 }
 
 Query QueryInternal::OrderBy(const FieldPath& field_path,
-                             Query::Direction direction) {
+                             Query::Direction direction) const {
   api::Query decorated = query_.OrderBy(
       GetInternal(field_path), direction == Query::Direction::kDescending);
   return MakePublic(std::move(decorated));
 }
 
-Query QueryInternal::Limit(int32_t limit) {
+Query QueryInternal::Limit(int32_t limit) const {
   return MakePublic(query_.LimitToFirst(limit));
 }
 
-Query QueryInternal::LimitToLast(int32_t limit) {
+Query QueryInternal::LimitToLast(int32_t limit) const {
   return MakePublic(query_.LimitToLast(limit));
 }
 
@@ -280,7 +281,7 @@ api::Query QueryInternal::CreateQueryWithBound(BoundPosition bound_pos,
       return query_.EndAt(std::move(bound));
   }
 
-  UNREACHABLE();
+  FIRESTORE_UNREACHABLE();
 }
 
 bool QueryInternal::IsBefore(BoundPosition bound_pos) {
@@ -294,7 +295,7 @@ bool QueryInternal::IsBefore(BoundPosition bound_pos) {
       return false;
   }
 
-  UNREACHABLE();
+  FIRESTORE_UNREACHABLE();
 }
 
 }  // namespace firestore
