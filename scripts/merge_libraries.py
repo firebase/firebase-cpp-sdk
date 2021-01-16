@@ -708,9 +708,10 @@ def move_object_file(src_obj_file, dest_obj_file, redefinition_file=None):
   # If we created the output file, remove the input file.
   if os.path.isfile(dest_obj_file):
     # But first...
-    if os.path.getsize(src_obj_file) >= 16 and os.path.getsize(
-        dest_obj_file) >= 16 and (FLAGS.platform == "ios" or
-                                  FLAGS.platform == "darwin"):
+    if (os.path.getsize(src_obj_file) >= 16 and
+        os.path.getsize(dest_obj_file) >= 16 and
+        (FLAGS.platform == "ios" or FLAGS.platform == "darwin") and
+        not binutils_force_target_format):
       # Ugly hack time: objcopy doesn't set the CPU subtype correctly on the
       # header for Mach-O files. So just overwrite the first 16 bytes of the
       # output file with the first 16 bytes of the input file.
