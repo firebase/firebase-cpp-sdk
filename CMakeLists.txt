@@ -380,13 +380,15 @@ if(DESKTOP)
         ${UWEBSOCKETS_SOURCE_DIR}/src/WebSocket.cpp)
     if(MSVC)
       set(websockets_additional_defines
-        -DWIN32_LEAN_AND_MEAN # Ensure that windows doesn't include winsock.h by
+          ${websockets_additional_defines}
+          -DWIN32_LEAN_AND_MEAN # Ensure that windows doesn't include winsock.h by
                               # default, as it can cause issues when libraries try
                               # to include winsock2.h later on in the process.
-        -DUSE_LIBUV=1
+          -DUSE_LIBUV=1
       )
     elseif(APPLE)
       set(websockets_additional_defines
+        ${websockets_additional_defines}
         -DUSE_LIBUV=1
       )
     endif()
