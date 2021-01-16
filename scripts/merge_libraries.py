@@ -99,6 +99,9 @@ flags.DEFINE_bool(
     "skip_creating_archives", False,
     "Skip creating archive files (.a or .lib) and instead just leave the object "
     "files (.o or .obj) in the output directory.")
+flags.DEFINE_string("force_binutils_target", None, "Force all binutils calls to "
+                    "use the given target, via the --target flag. If not set, "
+                    "will autodetect target format.")
 
 # Never rename 'std::' by default when --auto_hide_cpp_namespaces is enabled.
 IMPLICIT_CPP_NAMESPACES_TO_IGNORE = {"std"}
@@ -266,7 +269,7 @@ def create_archive(output_archive_file, object_files, old_archive=None):
     Empty list if there are no errors, or error text if there was an error.
   """
   errors = []
-  if old_archive and FLAGS.platform != "windows":
+  if old_archive and FLAGS.platform != "windows" and FLAGS.platform != "darwin":
     # Copy the old archive to the new archive, then clear the files from it.
     # This preserves the file format of the old archive file.
     # On Windows, we'll always create a new archive.
@@ -896,6 +899,8 @@ def shutdown_cache():
 
 
 def main(argv):
+  global binutils_force_target_format
+  binutils_force_target_format = FLAGS.force_binutils_target
   try:
     working_root = None
     input_paths = []
