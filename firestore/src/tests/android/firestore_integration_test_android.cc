@@ -1,12 +1,29 @@
 #include "firestore/src/tests/android/firestore_integration_test_android.h"
 
-#include "app/src/assert.h"
+#include "firestore/src/jni/env.h"
 #include "firestore/src/jni/string.h"
 #include "firestore/src/tests/android/cancellation_token_source.h"
 #include "firestore/src/tests/android/task_completion_source.h"
 
 namespace firebase {
 namespace firestore {
+
+std::string ToDebugString(const jni::Object& object) {
+  if (!object) {
+    return "null";
+  }
+  jni::Env env;
+  jni::ExceptionClearGuard block(env);
+  return object.ToString(env);
+}
+
+namespace jni {
+
+void PrintTo(const Object& object, std::ostream* os) {
+  *os << ToDebugString(object);
+}
+
+}  // namespace jni
 
 using jni::Constructor;
 using jni::Env;
@@ -24,11 +41,26 @@ Constructor<Throwable> kExceptionConstructor("(Ljava/lang/String;)V");
 }  // namespace
 
 FirestoreAndroidIntegrationTest::FirestoreAndroidIntegrationTest()
-    : loader_(app()) {
+    : loader_(app()) {}
+
+void FirestoreAndroidIntegrationTest::SetUp() {
+  FirestoreIntegrationTest::SetUp();
   CancellationTokenSource::Initialize(loader_);
   TaskCompletionSource::Initialize(loader_);
   loader_.LoadClass(kExceptionClassName, kExceptionConstructor);
-  FIREBASE_ASSERT(loader_.ok());
+  ASSERT_TRUE(loader_.ok());
+}
+
+void FirestoreAndroidIntegrationTest::TearDown() {
+  // Fail the test if there is a pending Java exception. Clear the pending
+  // exception as well so that it doesn't bleed into the next test.
+  Env env;
+  Local<Throwable> pending_exception = env.ClearExceptionOccurred();
+  EXPECT_FALSE(pending_exception)
+      << "Test completed with a pending Java exception: "
+      << pending_exception.ToString(env);
+  env.ExceptionClear();
+  FirestoreIntegrationTest::TearDown();
 }
 
 Local<Throwable> FirestoreAndroidIntegrationTest::CreateException(
