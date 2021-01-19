@@ -25,17 +25,24 @@ Critical flags:
 --t (full name: testapps, default: None)
 --p (full name: platforms, default: None)
 
+By default, this tool will build integration tests from source, which involves
+building the underlying SDK libraries. To build from a packaged/released SDK,
+supply the path to the SDK to --packaged_sdk:
+
+python build_testapps.py --t auth --p iOS --packaged_sdk ~/firebase_cpp_sdk
+
 Under most circumstances the other flags don't need to be set, but can be
 seen by running --help. Note that all path flags will forcefully expand
 the user ~.
 
+
 DEPENDENCIES:
 
-----Firebase SDK----
-The Firebase SDK (prebuilt) or repo must be locally present.
+----Firebase Repo----
+The Firebase C++ SDK repo must be locally present.
 Path specified by the flag:
 
-    --sdk_dir (default: current working directory)
+    --repo_dir (default: current working directory)
 
 ----Python Dependencies----
 The requirements.txt file has the required dependencies for this Python tool.
@@ -107,18 +114,16 @@ _SUPPORTED_IOS_SDK = (_IOS_SDK_DEVICE, _IOS_SDK_SIMULATOR, _IOS_SDK_BOTH)
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string(
-    "sdk_dir", os.getcwd(), "Unzipped Firebase C++ sdk OR Github repo.")
+    "packaged_sdk", None, "(Optional) Firebase SDK directory. If not"
+    " supplied, will build from source.")
 
 flags.DEFINE_string(
     "output_directory", "~",
     "Build output will be placed in this directory.")
 
 flags.DEFINE_string(
-    "root_dir", os.getcwd(),
-    "Directory with which to join the relative paths in the config."
-    " Used to find e.g. the integration test projects. If using the SDK repo"
-    " this will be the same as the sdk dir, but not if using prebuilts."
-    " Defaults to the current directory.")
+    "repo_dir", os.getcwd(),
+    "Firebase C++ SDK Git repository. Current directory by default.")
 
 flags.DEFINE_list(
     "testapps", None, "Which testapps (Firebase APIs) to build, e.g."
@@ -152,13 +157,6 @@ flags.DEFINE_string(
     " Check the config file to see valid choices for this flag."
     " If none, will invoke cmake without specifying a compiler.")
 
-flags.DEFINE_bool(
-    "use_vcpkg", False,
-    "(Desktop only) Use the vcpkg repo inside the C++ repo. For"
-    " this to work, sdk_dir must be set to the repo, not the prebuilt SDK."
-    " Will install vcpkg, use it to install dependencies, and then configure"
-    " CMake to use it.")
-
 flags.DEFINE_multi_string(
     "cmake_flag", None,
     "Pass an additional flag to the CMake configure step."
@@ -178,9 +176,9 @@ def main(argv):
   platforms = FLAGS.platforms
   testapps = FLAGS.testapps
 
-  sdk_dir = _fix_path(FLAGS.sdk_dir)
+  sdk_dir = _fix_path(FLAGS.packaged_sdk or FLAGS.repo_dir)
   output_dir = _fix_path(FLAGS.output_directory)
-  root_dir = _fix_path(FLAGS.root_dir)
+  repo_dir = _fix_path(FLAGS.repo_dir)
 
   update_pod_repo = FLAGS.update_pod_repo
   if FLAGS.add_timestamp:
@@ -199,11 +197,14 @@ def main(argv):
 
   config = config_reader.read_config()
   cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
-  if _DESKTOP in platforms and FLAGS.use_vcpkg:
-    installer = os.path.join(sdk_dir, "scripts", "gha", "build_desktop.py")
+  # VCPKG is used to install dependencies for the desktop SDK.
+  # Building from source requires building the underlying SDK libraries,
+  # so we need to use VCPKG as well.
+  if _DESKTOP in platforms and not FLAGS.packaged_sdk:
+    installer = os.path.join(repo_dir, "scripts", "gha", "build_desktop.py")
     _run([sys.executable, installer, "--vcpkg_step_only"])
     toolchain_file = os.path.join(
-        sdk_dir, "external", "vcpkg", "scripts", "buildsystems", "vcpkg.cmake")
+        repo_dir, "external", "vcpkg", "scripts", "buildsystems", "vcpkg.cmake")
     cmake_flags.extend((
         "-DCMAKE_TOOLCHAIN_FILE=%s" % toolchain_file,
         "-DVCPKG_TARGET_TRIPLET=%s" % utils.get_vcpkg_triplet(arch="x64")
@@ -222,7 +223,7 @@ def main(argv):
         output_dir=output_dir,
         sdk_dir=sdk_dir,
         ios_framework_exist=ios_framework_exist,
-        root_dir=root_dir,
+        repo_dir=repo_dir,
         ios_sdk=FLAGS.ios_sdk,
         cmake_flags=cmake_flags)
     logging.info("END building for %s", testapp)
@@ -233,9 +234,9 @@ def main(argv):
 
 def _build(
     testapp, platforms, api_config, output_dir, sdk_dir, ios_framework_exist,
-    root_dir, ios_sdk, cmake_flags):
+    repo_dir, ios_sdk, cmake_flags):
   """Builds one testapp on each of the specified platforms."""
-  testapp_dir = os.path.join(root_dir, api_config.testapp_path)
+  testapp_dir = os.path.join(repo_dir, api_config.testapp_path)
   project_dir = os.path.join(
       output_dir, api_config.full_name, os.path.basename(testapp_dir))
 
@@ -246,8 +247,8 @@ def _build(
   logging.info("Changing directory to %s", project_dir)
   os.chdir(project_dir)
 
-  _run_setup_script(root_dir, project_dir)
-  
+  _run_setup_script(repo_dir, project_dir)
+
   failures = []
 
   if _DESKTOP in platforms:
@@ -279,7 +280,7 @@ def _build(
           sdk_dir=sdk_dir,
           ios_framework_exist=ios_framework_exist,
           project_dir=project_dir,
-          root_dir=root_dir,
+          repo_dir=repo_dir,
           api_config=api_config,
           ios_sdk=ios_sdk)
     except subprocess.SubprocessError as e:
@@ -422,7 +423,7 @@ def _build_ios_framework_from_repo(sdk_dir, api_config):
 
 
 def _build_ios(
-    sdk_dir, ios_framework_exist, project_dir, root_dir, api_config, ios_sdk):
+    sdk_dir, ios_framework_exist, project_dir, repo_dir, api_config, ios_sdk):
   """Builds an iOS application (.app, .ipa or both)."""
   if not ios_framework_exist:
     _build_ios_framework_from_repo(sdk_dir, api_config)
@@ -440,10 +441,10 @@ def _build_ios(
     framework_paths.append(framework_dest_path)
 
   podfile_tool_path = os.path.join(
-      root_dir, "scripts", "gha", "integration_testing", "update_podfile.py")
+      repo_dir, "scripts", "gha", "integration_testing", "update_podfile.py")
   podfile_patcher_args = [
       sys.executable, podfile_tool_path,
-      "--sdk_podfile", os.path.join(root_dir, "ios_pod", "Podfile"),
+      "--sdk_podfile", os.path.join(repo_dir, "ios_pod", "Podfile"),
       "--app_podfile", os.path.join(project_dir, "Podfile")
   ]
   _run(podfile_patcher_args)
@@ -452,7 +453,7 @@ def _build_ios(
   entitlements_path = os.path.join(
       project_dir, api_config.ios_target + ".entitlements")
   xcode_tool_path = os.path.join(
-      root_dir, "scripts", "gha", "integration_testing", "xcode_tool.rb")
+      repo_dir, "scripts", "gha", "integration_testing", "xcode_tool.rb")
   xcode_patcher_args = [
       "ruby", xcode_tool_path,
       "--XCodeCPP.xcodeProjectDir", project_dir,
