@@ -30,8 +30,6 @@
 namespace firebase {
 namespace remote_config {
 
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
-
 std::map<App*, RemoteConfig*> g_rcs;
 Mutex g_rc_mutex;  // NOLINT
 
@@ -221,7 +219,6 @@ std::map<std::string, Variant> RemoteConfig::GetAll() {
 
 // TODO(b/147143718): Change to a more descriptive name.
 const ConfigInfo RemoteConfig::GetInfo() { return internal_->GetInfo(); }
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
 
 }  // namespace remote_config
 }  // namespace firebase

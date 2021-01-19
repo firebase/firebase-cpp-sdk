@@ -155,7 +155,6 @@ struct ConfigKeyValueVariant {
 };
 #endif  // SWIG
 
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
 /// @brief Configurations for Remote Config behavior.
 struct ConfigSettings {
   /// The timeout specifies how long the client should wait for a connection to
@@ -172,7 +171,6 @@ struct ConfigSettings {
   /// fetch. Default is 12 hours.
   uint64_t minimum_fetch_interval_in_milliseconds;
 };
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
 
 /// @brief Initialize the RemoteConfig API.
 ///
@@ -429,8 +427,6 @@ bool ActivateFetched();
 /// @return A ConfigInfo struct, containing fields reflecting the state
 /// of the most recent fetch request.
 const ConfigInfo& GetInfo();
-
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
 
 namespace internal {
 class RemoteConfigInternal;
@@ -767,8 +763,6 @@ class RemoteConfig {
 
   internal::RemoteConfigInternal* internal_;
 };
-
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
 
 }  // namespace remote_config
 }  // namespace firebase

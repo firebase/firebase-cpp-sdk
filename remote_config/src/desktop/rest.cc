@@ -29,14 +29,12 @@
 #include "app/rest/transport_interface.h"
 #include "app/rest/util.h"
 #include "app/src/app_common.h"
+#include "app/src/base64.h"
 #include "app/src/log.h"
+#include "app/src/uuid.h"
 #include "remote_config/src/desktop/config_data.h"
 #include "remote_config/src/desktop/rest_nanopb_decode.h"
 #include "remote_config/src/desktop/rest_nanopb_encode.h"
-
-// This macro is only used to shorten the enum names, for readability.
-#define CONFIG_NAMESPACESTATUS(VALUE) \
-  desktop_config_AppNamespaceConfigTable_NamespaceStatus_##VALUE
 
 namespace firebase {
 namespace remote_config {
@@ -52,11 +50,13 @@ const char kTokenScope[] = "*";
 
 RemoteConfigREST::RemoteConfigREST(const firebase::AppOptions& app_options,
                                    const LayeredConfigs& configs,
-                                   uint64_t cache_expiration_in_seconds)
+                                   const std::string namespaces)
     : app_package_name_(app_options.package_name()),
       app_gmp_project_id_(app_options.app_id()),
+      app_project_id_(app_options.project_id()),
+      api_key_(app_options.api_key()),
+      namespaces_(std::move(namespaces)),
       configs_(configs),
-      cache_expiration_in_seconds_(cache_expiration_in_seconds),
       fetch_future_sem_(0) {
   rest::util::Initialize();
   firebase::rest::InitTransportCurl();
@@ -67,10 +67,13 @@ RemoteConfigREST::~RemoteConfigREST() {
   rest::util::Terminate();
 }
 
-void RemoteConfigREST::Fetch(const App& app) {
-  TryGetInstanceIdAndToken(app);
-  SetupRestRequest();
-  firebase::rest::CreateTransport()->Perform(rest_request_, &rest_response_);
+void RemoteConfigREST::Fetch(const App& app,
+                             uint64_t cache_expiration_in_seconds) {
+  cache_expiration_in_seconds_ = cache_expiration_in_seconds;
+  TryGetInstallationsAndToken(app);
+
+  SetupRestRequest(app);
+  firebase::rest::CreateTransport()->Perform(rc_request_, &rc_response_);
   ParseRestResponse();
 }
 
@@ -99,7 +102,30 @@ void WaitForFuture(const Future<std::string>& future, Semaphore* future_sem,
   }
 }
 
-void RemoteConfigREST::TryGetInstanceIdAndToken(const App& app) {
+static std::string GenerateFakeId() {
+  firebase::internal::Uuid uuid;
+  uuid.Generate();
+  // Collapse into 8 bytes, forcing the top 4 bits to be 0x70.
+  uint8_t buffer[8];
+  buffer[0] = ((uuid.data[0] ^ uuid.data[8]) & 0x0f) | 0x70;
+  buffer[1] = uuid.data[1] ^ uuid.data[9];
+  buffer[2] = uuid.data[2] ^ uuid.data[10];
+  buffer[3] = uuid.data[3] ^ uuid.data[11];
+  buffer[4] = uuid.data[4] ^ uuid.data[12];
+  buffer[5] = uuid.data[5] ^ uuid.data[13];
+  buffer[6] = uuid.data[6] ^ uuid.data[14];
+  buffer[7] = uuid.data[7] ^ uuid.data[15];
+
+  std::string input(reinterpret_cast<char*>(buffer), sizeof(buffer));
+  std::string output;
+
+  if (firebase::internal::Base64EncodeUrlSafe(input, &output)) {
+    return output;
+  }
+  return "";  // Error encoding.
+}
+
+void RemoteConfigREST::TryGetInstallationsAndToken(const App& app) {
   // Convert the app reference stored in RemoteConfigInternal
   // pointer for InstanceIdDesktopImpl.
   App* non_const_app = const_cast<App*>(&app);
@@ -108,6 +134,8 @@ void RemoteConfigREST::TryGetInstanceIdAndToken(const App& app) {
           non_const_app);
   if (iid_impl == nullptr) {
     // Instance ID not supported.
+    app_instance_id_ = GenerateFakeId();
+    app_instance_id_token_ = GenerateFakeId();
     return;
   }
 
@@ -121,19 +149,34 @@ void RemoteConfigREST::TryGetInstanceIdAndToken(const App& app) {
   }
 }
 
-void RemoteConfigREST::SetupRestRequest() {
-  ConfigFetchRequest config_fetch_request = GetFetchRequestData();
+void RemoteConfigREST::SetupRestRequest(const App& app) {
+  std::string server_url(kServerURL);
+  server_url.append("/");
+  server_url.append(app_project_id_);
+  server_url.append("/");
+  server_url.append(kNameSpaceString);
+  server_url.append("/");
+  server_url.append(namespaces_);
+  server_url.append(kHTTPFetchKeyString);
+  server_url.append(api_key_);
 
-#ifdef DEBUG_SERVER
-  rest_request_.set_verbose(true);
-#endif  // DEBUG_SERVER
-  rest_request_.set_url(kServerURL);
-  rest_request_.set_method(kHTTPMethodPost);
-  rest_request_.add_header(kContentTypeHeaderName, kContentTypeValue);
-  rest_request_.add_header(app_common::kApiClientHeader, App::GetUserAgent());
+  rc_request_.set_url(server_url.c_str());
+  rc_request_.set_method(kHTTPMethodPost);
+  rc_request_.add_header(kContentTypeHeaderName, kJSONContentTypeValue);
+  rc_request_.add_header(kAcceptHeaderName, kJSONContentTypeValue);
 
-  std::string proto_str = EncodeFetchRequest(config_fetch_request);
-  rest_request_.set_post_fields(proto_str.data(), proto_str.length());
+  rc_request_.SetAppId(app_gmp_project_id_);
+  rc_request_.SetAppInstanceId(
+      app_instance_id_);  // TODO(cynthiajiang) change to installations
+  rc_request_.SetAppInstanceIdToken(
+      app_instance_id_token_);  // TODO(cynthiajiang) change to installations
+
+  rc_request_.SetPlatformVersion("2");
+  rc_request_.SetPackageName(app_package_name_);
+  rc_request_.SetSdkVersion(std::to_string(
+      SDK_MAJOR_VERSION * 10000 + SDK_MINOR_VERSION * 100 + SDK_PATCH_VERSION));
+
+  rc_request_.UpdatePost();
 }
 
 ConfigFetchRequest RemoteConfigREST::GetFetchRequestData() {
@@ -190,81 +233,36 @@ void RemoteConfigREST::GetPackageData(PackageData* package_data) {
 }
 
 void RemoteConfigREST::ParseRestResponse() {
-  if (rest_response_.status() != kHTTPStatusOk) {
+  if (rc_response_.status() != kHTTPStatusOk) {
     FetchFailure(kFetchFailureReasonError);
-    LogError("fetching failure: http code %d", rest_response_.status());
-    LogDebug("Response body:\n%s", rest_response_.rest::Response::GetBody());
+    LogError("fetching failure: http code %d", rc_response_.status());
     return;
   }
 
-  rest_response_.set_use_gunzip(true);
-  const char* data;
-  size_t size;
-  rest_response_.GetBody(&data, &size);
-  std::string body(data, size);
-  if (body == "") {
-    FetchFailure(kFetchFailureReasonError);
-    LogError("fetching failure: empty body");
-    return;
-  }
-  ParseProtoResponse(body);
-}
+  Variant entries = rc_response_.GetEntries();
 
-void RemoteConfigREST::ParseProtoResponse(const std::string& proto_str) {
-  ConfigFetchResponse response;
-  if (!DecodeResponse(&response, proto_str)) {
-    FetchFailure(kFetchFailureReasonError);
-    LogError("protobuf parsing error");
-    return;
-  }
-
-  MetaDigestMap meta_digest;
-  // Start with a copy of the fetched config state.
   NamespaceKeyValueMap config_map(configs_.fetched.config());
-
   LogDebug("Parsing config response...");
-  for (const auto& app_config : response.configs) {
-    LogDebug("Found response config checking app name %s vs %s",
-             app_package_name_.c_str(), app_config.app_name.c_str());
-    // Check the same app name.
-    if (app_package_name_.compare(app_config.app_name) != 0) continue;
-
-    LogDebug("Parsing config for app...");
-    for (const auto& config : app_config.ns_configs) {
-      switch (config.status) {
-        case CONFIG_NAMESPACESTATUS(NO_CHANGE):
-          meta_digest[config.config_namespace] = config.digest;
-          LogDebug("No change: ns=%s digest=%s",
-                   config.config_namespace.c_str(), config.digest.c_str());
-          break;
-        case CONFIG_NAMESPACESTATUS(UPDATE):
-          meta_digest[config.config_namespace] = config.digest;
-          config_map[config.config_namespace].clear();
-          for (const auto& keyvalue : config.key_values) {
-            config_map[config.config_namespace][keyvalue.key] = keyvalue.value;
-            LogDebug("Update: ns=%s kv=(%s, %s)",
-                     config.config_namespace.c_str(), keyvalue.key.c_str(),
-                     keyvalue.value.c_str());
-          }
-          break;
-        case CONFIG_NAMESPACESTATUS(NO_TEMPLATE):
-        case CONFIG_NAMESPACESTATUS(NOT_AUTHORIZED):
-          LogDebug("NotAuthorized: ns=%s", config.config_namespace.c_str());
-          meta_digest.erase(config.config_namespace);
-          config_map.erase(config.config_namespace);
-          break;
-        case CONFIG_NAMESPACESTATUS(EMPTY_CONFIG):
-          LogDebug("EmptyConfig: ns=%s", config.config_namespace.c_str());
-          meta_digest[config.config_namespace] = config.digest;
-          config_map[config.config_namespace].clear();
-          break;
-      }
+  if (rc_response_.StatusMatch("NO_CHANGE")) {
+    LogDebug("No change");
+  } else if (rc_response_.StatusMatch("UPDATE")) {
+    config_map[namespaces_].clear();
+    for (const auto& keyvalue : entries.map()) {
+      config_map[namespaces_][keyvalue.first.mutable_string()] =
+          keyvalue.second.mutable_string();
+      LogDebug("Update: ns=%s kv=(%s, %s)", namespaces_.c_str(),
+               keyvalue.first.mutable_string().c_str(),
+               keyvalue.second.mutable_string().c_str());
     }
+  } else if (rc_response_.StatusMatch("NO_TEMPLATE")) {
+    LogDebug("NotAuthorized: ns=%s", namespaces_.c_str());
+    config_map.erase(namespaces_);
+  } else if (rc_response_.StatusMatch("EMPTY_CONFIG")) {
+    LogDebug("EmptyConfig: ns=%s", namespaces_.c_str());
+    config_map[namespaces_].clear();
   }
 
-  configs_.metadata.set_digest_by_namespace(meta_digest);
   configs_.fetched = NamespacedConfigData(config_map, MillisecondsSinceEpoch());
-
   FetchSuccess(kLastFetchStatusSuccess);
 }
 
