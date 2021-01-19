@@ -18,12 +18,20 @@
 #include <cstdint>
 
 #include "firebase/app.h"
+#include "app/rest/request_json.h"
+#include "app/rest/response_json.h"
 #include "app/src/semaphore.h"
 #ifndef REST_STUB_IMPL  // These pull in unnecessary deps for the stub
 #include "app/rest/request_binary_gzip.h"
 #include "app/rest/response_binary.h"
 #endif  // REST_STUB_IMPL
+#include "remote_config/request_generated.h"
+#include "remote_config/request_resource.h"
+#include "remote_config/response_generated.h"
+#include "remote_config/response_resource.h"
 #include "remote_config/src/desktop/config_data.h"
+#include "remote_config/src/desktop/remote_config_request.h"
+#include "remote_config/src/desktop/remote_config_response.h"
 
 #ifdef FIREBASE_TESTING
 #include "gtest/gtest.h"
@@ -42,20 +50,29 @@ extern const int SDK_PATCH_VERSION;
 struct ConfigFetchRequest;
 struct PackageData;
 
-#ifdef DEBUG_SERVER
-const char* const kServerURL = "https://jmt17.google.com/config";
-#else
-const char* const kServerURL = "https://cloudconfig.googleapis.com/config";
-#endif
-
+const char* const kServerURL =
+    "https://firebaseremoteconfig.googleapis.com/v1/projects";
 const char* const kHTTPMethodPost = "POST";
 const char* const kContentTypeHeaderName = "Content-Type";
+const char* const kAcceptHeaderName = "Accept";
 const char* const kContentTypeValue = "application/x-protobuffer";
+const char* const kJSONContentTypeValue = "application/json";
 
 // Set this key with value `1` if settings[kConfigSettingDeveloperMode] == `1`
 const char* const kDeveloperModeKey = "_rcn_developer";
 
 const int kHTTPStatusOk = 200;
+
+// const char* const kApiKeyHeader = "X-Goog-Api-Key";
+const char* const kEtagHeader = "ETag";
+const char* const kIfNoneMatchHeader = "If-None-Match";
+const char* const kXAndroidPackageHeader = "X-Android-Package";
+const char* const kXAndroidCertHeader = "X-Android-Cert";
+const char* const kXGoogleGfeCanRetry = "X-Google-GFE-Can-Retry";
+const char* const kInstallationsAuthTokenHeader =
+    "X-Goog-Firebase-Installations-Auth";
+const char* const kHTTPFetchKeyString = ":fetch?key=";
+const char* const kNameSpaceString = "namespaces";
 
 class RemoteConfigREST {
  public:
@@ -69,17 +86,15 @@ class RemoteConfigREST {
 #endif  // FIREBASE_TESTING
 
   RemoteConfigREST(const firebase::AppOptions& app_options,
-                   const LayeredConfigs& configs,
-                   uint64_t cache_expiration_in_seconds);
+                   const LayeredConfigs& configs, const std::string namespaces);
 
   ~RemoteConfigREST();
 
-  // 1. Attempt to Fetch Instance Id and token.  App is required to get an
-  //    instance of InstanceIdDesktopImpl.
+  // 1. Attempt to Fetch Installation and Auth Token.
   // 2. Setup REST request;
   // 3. Make REST request;
   // 4. Parse REST response.
-  void Fetch(const App& app);
+  void Fetch(const App& app, uint64_t cache_expiration_in_seconds);
 
   // After Fetch() will return updated fetched holder. Otherwise will return not
   // updated fetched holder.
@@ -90,13 +105,13 @@ class RemoteConfigREST {
   const RemoteConfigMetadata& metadata() const { return configs_.metadata; }
 
  private:
-  // Attempt to get Instance Id and token from app synchronously.  This will
-  // block the current thread and wait until the futures are complete.
-  void TryGetInstanceIdAndToken(const App& app);
+  // Attempt to get Installations and Auth Token from app synchronously.  This
+  // will block the current thread and wait until the futures are complete.
+  void TryGetInstallationsAndToken(const App& app);
 
   // Setup all values to make REST request. Call `SetupProtoRequest` to setup
   // post fields.
-  void SetupRestRequest();
+  void SetupRestRequest(const App& app);
 
   // Setup protobuf ConfigFetchRequest object for REST request post fields. Call
   // `GetPackageData` to setup PackageData for ConfigFetchRequest.
@@ -107,10 +122,6 @@ class RemoteConfigREST {
 
   // Parse REST response. Check response status and body.
   void ParseRestResponse();
-
-  // Parse REST response body `proto_str` to ConfigFetchResponse protobuf
-  // object. Update `configs_` variable based on ConfigFetchResponse.
-  void ParseProtoResponse(const std::string& proto_str);
 
   // Return timestamp in milliseconds.
   uint64_t MillisecondsSinceEpoch();
@@ -124,6 +135,9 @@ class RemoteConfigREST {
   // app fields:
   std::string app_package_name_;
   std::string app_gmp_project_id_;
+  std::string app_project_id_;
+  std::string api_key_;
+  std::string namespaces_;
 
   LayeredConfigs configs_;
 
@@ -142,6 +156,9 @@ class RemoteConfigREST {
   firebase::rest::RequestBinaryGzip rest_request_;
   firebase::rest::ResponseBinary rest_response_;
 #endif  // REST_STUB_IMPL
+
+  RemoteConfigRequest rc_request_;
+  RemoteConfigResponse rc_response_;
 };
 
 }  // namespace internal

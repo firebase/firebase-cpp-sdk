@@ -567,7 +567,6 @@ Future<void> RemoteConfigInternal::SetDefaultsLastResult() {
   return static_cast<const Future<void> &>(future_impl_.LastResult(kRemoteConfigFnSetDefaults));
 }
 
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
 Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
   const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetConfigSettings);
   FIRRemoteConfigSettings *config_settings = impl().configSettings;
@@ -578,7 +577,7 @@ Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
       settings.fetch_timeout_in_milliseconds / ::firebase::internal::kMillisecondsPerSecond);
   return MakeFuture<void>(&future_impl_, handle);
 }
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
+
 Future<void> RemoteConfigInternal::SetConfigSettingsLastResult() {
   return static_cast<const Future<void> &>(
       future_impl_.LastResult(kRemoteConfigFnSetConfigSettings));

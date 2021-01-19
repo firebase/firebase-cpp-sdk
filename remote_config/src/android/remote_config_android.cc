@@ -1047,7 +1047,6 @@ Future<void> RemoteConfigInternal::SetDefaultsLastResult() {
       future_impl_.LastResult(kRemoteConfigFnSetDefaults));
 }
 
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
 Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
   const auto handle =
       future_impl_.SafeAlloc<void>(kRemoteConfigFnSetConfigSettings);
@@ -1082,8 +1081,6 @@ Future<void> RemoteConfigInternal::SetConfigSettingsLastResult() {
   return static_cast<const Future<void>&>(
       future_impl_.LastResult(kRemoteConfigFnSetConfigSettings));
 }
-
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
 
 // Generate the logic to retrieve an certain type value and source from
 // a FirebaseRemoteConfigValue interface.

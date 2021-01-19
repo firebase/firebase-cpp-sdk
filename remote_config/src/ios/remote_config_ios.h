@@ -63,9 +63,7 @@ class RemoteConfigInternal {
                            size_t number_of_defaults);
 
   Future<void> SetDefaultsLastResult();
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
   Future<void> SetConfigSettings(ConfigSettings settings);
-#endif  // #ifdef FIREBASE_EARLY_ACCESS_PREVIEW
   Future<void> SetConfigSettingsLastResult();
 
   bool GetBoolean(const char* key, ValueInfo* info);

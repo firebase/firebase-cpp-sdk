@@ -14,6 +14,34 @@
 
 # CMake file for the firebase_remote_config library
 
+binary_to_array("request_resource"
+    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/request.fbs"
+    "firebase::remote_config"
+    "${FIREBASE_GEN_FILE_DIR}/remote_config")
+binary_to_array("response_resource"
+    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/response.fbs"
+    "firebase::remote_config"
+    "${FIREBASE_GEN_FILE_DIR}/remote_config")
+
+# Build the generated header from the flatbuffer schema files.
+set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
+    "--no-union-value-namespacing"
+    "--gen-object-api"
+    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+set(flatbuffer_schemas
+    ${CMAKE_CURRENT_LIST_DIR}/src/desktop/request.fbs
+    ${CMAKE_CURRENT_LIST_DIR}/src/desktop/response.fbs)
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
+build_flatbuffers("${flatbuffer_schemas}"
+                  ""
+                  "generate_request_fbs"
+                  "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
+                  "${FIREBASE_GEN_FILE_DIR}/remote_config"
+                  ""
+                  "")
+
 # Common source files used by all platforms
 set(common_SRCS
     src/common.cc
@@ -41,6 +69,12 @@ else()
   set(desktop_SRCS
       ${PROTO_SRCS}
       ${PROTO_HDRS}
+      ${request_resource_source}
+      ${request_resource_header}
+      ${response_resource_source}
+      ${response_resource_header}
+      ${FIREBASE_GEN_FILE_DIR}/remote_config/request_generated.h
+      ${FIREBASE_GEN_FILE_DIR}/remote_config/response_generated.h
       src/desktop/remote_config_legacy.cc
       src/desktop/rest.cc
       src/desktop/config_data.cc
@@ -48,6 +82,8 @@ else()
       src/desktop/metadata.cc
       src/desktop/notification_channel.cc
       src/desktop/remote_config_desktop.cc
+      src/desktop/remote_config_request.cc
+      src/desktop/remote_config_response.cc
       src/desktop/rest_nanopb_decode.cc
       src/desktop/rest_nanopb_encode.cc
   )
