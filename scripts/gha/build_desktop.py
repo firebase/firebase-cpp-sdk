@@ -141,7 +141,7 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, cleanup=True
     utils.clean_vcpkg_temp_data()
 
 def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='legacy',
-                    build_tests=True, config=None, target_format=None):
+                    build_tests=True, config=None, target_format=None, verbose=None):
   """ CMake configure.
 
   If you are seeing problems when running this multiple times,
@@ -156,6 +156,7 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
    config (str): Release/Debug config.
           If its not specified, cmake's default is used (most likely Debug).
    target_format (str): If specified, build for this targetformat ('frameworks' or 'libraries').
+   verbose (bool): If true, enable verbose mode in the CMake file.
   """
   cmd = ['cmake', '-S', '.', '-B', build_dir]
 
@@ -202,6 +203,11 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
     cmd.append('-DFIREBASE_XCODE_TARGET_FORMAT={0}'.format(target_format))
 
   cmd.append('-DFIREBASE_USE_BORINGSSL=ON')
+
+  # Print out every command while building.
+  if verbose:
+    cmd.append('-DCMAKE_VERBOSE_MAKEFILE=1')
+
   utils.run_command(cmd)
 
 def main():
@@ -226,7 +232,7 @@ def main():
 
   # CMake configure
   cmake_configure(args.build_dir, args.arch, args.msvc_runtime_library, args.linux_abi,
-                  args.build_tests, args.config, args.target_format)
+                  args.build_tests, args.config, args.target_format, args.verbose)
 
   # Small workaround before build, turn off -Werror=sign-compare for a specific Firestore core lib.
   if not utils.is_windows_os():
@@ -263,6 +269,7 @@ def parse_cmdline_args():
                       help='C++ ABI for Linux (legacy or c++11)')
   parser.add_argument('--build_dir', default='build', help='Output build directory')
   parser.add_argument('--build_tests', action='store_true', help='Build unit tests too')
+  parser.add_argument('--verbose', action='store_true', help='Enable verbose CMake builds.')
   parser.add_argument('--vcpkg_step_only', action='store_true', help='Just install cpp packages using vcpkg and exit.')
   parser.add_argument('--config', default='Release', help='Release/Debug config')
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
