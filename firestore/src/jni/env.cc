@@ -1,5 +1,7 @@
 #include "firestore/src/jni/env.h"
 
+#include <cstring>
+
 #include "app/src/assert.h"
 #include "app/src/log.h"
 #include "firestore/src/jni/array.h"
