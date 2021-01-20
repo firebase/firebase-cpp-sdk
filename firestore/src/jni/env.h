@@ -297,29 +297,28 @@ class Env {
   // MARK: String Operations
 
   /**
-   * Creates a new proxy for a Java String from a sequences of modified UTF-8
-   * bytes.
+   * Creates a new proxy for a Java String from a sequence of UTF-8 bytes.
+   *
+   * Note that unlike the underlying JNI method, these bytes should be encoded
+   * in standard UTF-8, and *not* in the modified UTF-8 customarily used in the
+   * JNI API.
+   *
+   * @param bytes The UTF-8 bytes from which to create a Java String.
+   * @param size The number of bytes in the UTF-8 sequence.
    */
   Local<String> NewStringUtf(const char* bytes);
+  Local<String> NewStringUtf(const char* bytes, size_t size);
   Local<String> NewStringUtf(const std::string& bytes) {
-    return NewStringUtf(bytes.c_str());
-  }
-
-  /** Returns the length of the string in modified UTF-8 bytes. */
-  size_t GetStringUtfLength(const String& string) {
-    if (!ok()) return 0;
-
-    jsize result = env_->GetStringUTFLength(string.get());
-    RecordException();
-    return static_cast<size_t>(result);
+    return NewStringUtf(bytes.c_str(), bytes.size());
   }
 
   /**
-   * Copies the contents of a region of a Java string to a C++ string. The
-   * resulting string has a modified UTF-8 encoding.
+   * Converts the given Java String to a C++ string encoded in UTF-8.
+   *
+   * Note that this string is encoded in standard UTF-8, and *not* in the
+   * modified UTF-8 customarily used in the JNI API.
    */
-  std::string GetStringUtfRegion(const String& string, size_t start,
-                                 size_t len);
+  std::string ToStringUtf(const String& string);
 
   // MARK: Array Operations
 
