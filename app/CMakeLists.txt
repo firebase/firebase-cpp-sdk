@@ -315,10 +315,8 @@ add_library(firebase_app STATIC
 
 set_property(TARGET firebase_app PROPERTY FOLDER "Firebase Cpp")
 
-# Disable exceptions in std
-if (MSVC)
-  target_compile_options(firebase_app PUBLIC /EHs-c-)
-else()
+# Disable exceptions in std on non-Windows platforms.
+if (NOT MSVC)
   target_compile_options(firebase_app PUBLIC -fno-exceptions)
 endif()
 
