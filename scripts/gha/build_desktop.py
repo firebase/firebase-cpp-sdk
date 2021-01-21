@@ -141,7 +141,7 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, cleanup=True
     utils.clean_vcpkg_temp_data()
 
 def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='legacy',
-                    build_tests=True, config=None, target_format=None, verbose=None):
+                    build_tests=True, config=None, target_format=None, verbose=False):
   """ CMake configure.
 
   If you are seeing problems when running this multiple times,
