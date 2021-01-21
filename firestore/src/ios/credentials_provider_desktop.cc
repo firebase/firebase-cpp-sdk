@@ -1,4 +1,4 @@
-#include "firestore/src/ios/credentials_provider_ios.h"
+#include "firestore/src/ios/credentials_provider_desktop.h"
 
 #include <string>
 #include <utility>
