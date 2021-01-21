@@ -20,7 +20,7 @@ endif()
 
 # Based on https://github.com/grpc/grpc/blob/v1.27.0/bazel/grpc_deps.bzl
 # master-with-bazel@{2019-10-18}
-set(commit c47bfce062cc5a1b462176be626338224ae2a346)
+set(commit 83da28a68f32023fd3b95a8ae94991a07b1f6c62)
 # set(commit master)
 
 ExternalProject_Add(
