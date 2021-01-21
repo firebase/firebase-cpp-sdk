@@ -250,14 +250,6 @@ def main():
     cmd.append('--target')
     cmd.extend(args.target)
   utils.run_command(cmd)
-  # Copy libraries from appropriate vcpkg directory to build output
-  # directory for later inclusion.
-  vcpkg_path = ('external/vcpkg/installed/%s/%slib/' %
-                (utils.get_vcpkg_triplet(args.arch, args.msvc_runtime_library),
-                 'debug/' if args.config == 'Debug' else ''))
-  if (os.path.exists(vcpkg_path)):
-    shutil.rmtree('vcpkg-libs', ignore_errors=True)
-    shutil.copytree(vcpkg_path, os.path.join(args.build_dir, 'vcpkg-libs'), )
 
 
 def parse_cmdline_args():
