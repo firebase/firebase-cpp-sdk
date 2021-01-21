@@ -333,7 +333,7 @@ jobs:
           if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
             verbose_flag=--verbose
           fi
-          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --linux_abi "${{ matrix.linux_abi }}" --build_dir out-${{ env.SDK_NAME }} --disable_vcpkg ${verbose_flag} ${{ matrix.additional_build_flags }}
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --linux_abi "${{ matrix.linux_abi }}" --build_dir out-${{ env.SDK_NAME }} ${verbose_flag} ${{ matrix.additional_build_flags }}
           # Make a list of all the source files, for debugging purposes.
           cd out-${{ env.SDK_NAME }}
           find .. -type f -print > src_file_list.txt
