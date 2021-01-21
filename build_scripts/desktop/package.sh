@@ -13,6 +13,7 @@ options:
   -m, merge_libraries.py path                     default: <script dir>/../../scripts/merge_libraries.py
   -P, python command                              default: python
   -t, packaging tools directory                   default: ~/bin
+  -f, binutils format                             default: [auto-detect]
   -j, run merge_libraries jobs in parallel
   -v, enable verbose mode
 example:
@@ -29,6 +30,7 @@ root_dir=$(cd $(dirname $0)/../..; pwd -P)
 merge_libraries_script=${root_dir}/scripts/merge_libraries.py
 tools_path=~/bin
 built_sdk_tarfile=
+binutils_format=
 temp_dir=
 run_in_parallel=0
 
@@ -44,8 +46,11 @@ abspath(){
     fi
 }
 
-while getopts "b:o:p:d:m:P:t:hjv" opt; do
+while getopts "f:b:o:p:d:m:P:t:hjv" opt; do
     case $opt in
+        f)
+            binutils_format=$OPTARG
+            ;;
         b)
             built_sdk_path=$OPTARG
             ;;
@@ -252,6 +257,11 @@ fi
 if [[ ${verbose} -eq 1 ]]; then
     merge_libraries_params+=(--verbosity=3)
 fi
+if [[ -n "${binutils_format}" ]]; then
+    merge_libraries_params+=(--force_binutils_target="${binutils_format}")
+fi
+
+
 
 if [[ ! -x "${binutils_objcopy}" || ! -x "${binutils_ar}" || ! -x "${binutils_nm}" ]]; then
     echo "Packaging tools not found at path '${tools_path}'."
@@ -327,12 +337,12 @@ for product in ${product_list[*]}; do
     rm -f "${outfile}"
     if [[ ${verbose} -eq 1 ]]; then
       echo "${python_cmd}" "${merge_libraries_script}" \
-		    ${merge_libraries_params[*]} \
+                    ${merge_libraries_params[*]} \
                     ${cache_param} \
-		    --output="${outfile}" \
-		    --scan_libs="${allfiles}" \
-		    --hide_c_symbols="${deps_hidden}" \
-		    ${libfile_src} ${deps[*]}
+                    --output="${outfile}" \
+                    --scan_libs="${allfiles}" \
+                    --hide_c_symbols="${deps_hidden}" \
+                    ${libfile_src} ${deps[*]}
     fi
     # Place the merge command in a script so we can optionally run them in parallel.
     echo "#!/bin/bash -e" > "${merge_libraries_tmp}/merge_${product}.sh"
@@ -342,7 +352,7 @@ for product in ${product_list[*]}; do
       echo "echo \"${libfile_out}\"" >> "${merge_libraries_tmp}/merge_${product}.sh"
     fi
     if [[ ! -z ${deps_basenames[*]} ]]; then
-	echo -n  >> "${merge_libraries_tmp}/merge_${product}.sh"
+        echo -n  >> "${merge_libraries_tmp}/merge_${product}.sh"
     fi
     echo >> "${merge_libraries_tmp}/merge_${product}.sh"
     echo "\"${python_cmd}\" \\
