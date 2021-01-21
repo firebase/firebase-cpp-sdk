@@ -11,22 +11,23 @@ namespace jni {
 namespace {
 
 Method<bool> kEquals("equals", "(Ljava/lang/Object;)Z");
-jclass g_clazz = nullptr;
+Method<String> kToString("toString", "()Ljava/lang/String;");
+jclass object_class = nullptr;
 
 }  // namespace
 
 void Object::Initialize(Loader& loader) {
-  g_clazz = util::object::GetClass();
-  loader.LoadFromExistingClass("java/lang/Object", g_clazz, kEquals);
+  object_class = util::object::GetClass();
+  loader.LoadFromExistingClass("java/lang/Object", object_class, kEquals,
+                               kToString);
 }
 
-Class Object::GetClass() { return Class(util::object::GetClass()); }
+Class Object::GetClass() { return Class(object_class); }
 
-std::string Object::ToString(JNIEnv* env) const {
-  return util::JniObjectToString(env, object_);
+std::string Object::ToString(Env& env) const {
+  Local<String> java_string = env.Call(*this, kToString);
+  return java_string.ToString(env);
 }
-
-std::string Object::ToString(Env& env) const { return ToString(env.get()); }
 
 bool Object::Equals(Env& env, const Object& other) const {
   return env.Call(*this, kEquals, other);

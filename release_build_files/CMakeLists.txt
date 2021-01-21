@@ -45,7 +45,7 @@ elseif(MSVC)
   else()
     set(MSVC_CONFIG Debug)
   endif()
-  set(MSVC_VS_VERSION VS2015)
+  set(MSVC_VS_VERSION VS2019)
   set(FIREBASE_SDK_LIBDIR
       ${FIREBASE_CPP_SDK_DIR}/libs/windows/${MSVC_VS_VERSION}/${MSVC_RUNTIME_MODE}/${MSVC_CPU}/${MSVC_CONFIG})
 else()
