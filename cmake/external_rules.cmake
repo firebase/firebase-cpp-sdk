@@ -161,6 +161,12 @@ function(build_external_dependencies)
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
   endif()
   
+  if (CMAKE_VERBOSE_MAKEFILE)
+    # If verbose mode was enabled, pass it on
+    set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
+        "-DCMAKE_VERBOSE_MAKEFILE=${CMAKE_VERBOSE_MAKEFILE}")
+  endif()
+
   if(APPLE)
     # Propagate MacOS build flags.
     if(CMAKE_OSX_ARCHITECTURES)
