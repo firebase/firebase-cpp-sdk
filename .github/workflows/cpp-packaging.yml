@@ -464,10 +464,10 @@ jobs:
               additional_flags+=(-f mach-o-arm64)
             elif [[ "${{ matrix.sdk_platform }}" == "windows" && "${variant}" == *"/x64/"* ]]; then
               # Windows x64
-              additional_flags+=(-f pe-x86-64)
+              additional_flags+=(-f pe-x86-64,pe-bigobj-x86-64)
             elif [[ "${{ matrix.sdk_platform }}" == "windows" && "${variant}" == *"/x86/"* ]]; then
               # Windows x86
-              additional_flags+=(-f pe-i386)
+              additional_flags+=(-f pe-i386,pe-bigobj-i386)
             fi
             sdk-src/build_scripts/desktop/package.sh -b ${pkg} -o firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}-package -p ${{ matrix.sdk_platform }} -t bin -d ${variant} -P python3 -j ${additional_flags[*]}
           done
