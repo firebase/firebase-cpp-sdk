@@ -99,6 +99,10 @@ flags.DEFINE_bool(
     "skip_creating_archives", False,
     "Skip creating archive files (.a or .lib) and instead just leave the object "
     "files (.o or .obj) in the output directory.")
+flags.DEFINE_string("force_binutils_target", None, "Force all binutils calls to "
+                    "use the given target, via the --target flag. If not set, "
+                    "will autodetect target format. If you want to specify "
+                    "different input and output formats, separate them with a comma.")
 
 # Never rename 'std::' by default when --auto_hide_cpp_namespaces is enabled.
 IMPLICIT_CPP_NAMESPACES_TO_IGNORE = {"std"}
@@ -266,7 +270,7 @@ def create_archive(output_archive_file, object_files, old_archive=None):
     Empty list if there are no errors, or error text if there was an error.
   """
   errors = []
-  if old_archive and FLAGS.platform != "windows":
+  if old_archive and FLAGS.platform != "windows" and FLAGS.platform != "darwin":
     # Copy the old archive to the new archive, then clear the files from it.
     # This preserves the file format of the old archive file.
     # On Windows, we'll always create a new archive.
@@ -641,6 +645,9 @@ def rename_symbol(symbol):
           new_symbol = re.sub("@%s@@" % ns, "@%s@@" % new_ns, new_symbol)
       new_renames[symbol] = new_symbol
   else:
+    if FLAGS.platform == "windows" and symbol.startswith("$LN"):
+      # Don't rename $LN*, those are local symbols.
+      return new_renames
     # C symbol. Just split, rename, and re-join.
     (prefix, remainder) = split_symbol(symbol)
     new_symbol = prefix + FLAGS.rename_string + remainder
@@ -705,9 +712,10 @@ def move_object_file(src_obj_file, dest_obj_file, redefinition_file=None):
   # If we created the output file, remove the input file.
   if os.path.isfile(dest_obj_file):
     # But first...
-    if os.path.getsize(src_obj_file) >= 16 and os.path.getsize(
-        dest_obj_file) >= 16 and (FLAGS.platform == "ios" or
-                                  FLAGS.platform == "darwin"):
+    if (os.path.getsize(src_obj_file) >= 16 and
+        os.path.getsize(dest_obj_file) >= 16 and
+        (FLAGS.platform == "ios" or FLAGS.platform == "darwin") and
+        not binutils_force_target_format):
       # Ugly hack time: objcopy doesn't set the CPU subtype correctly on the
       # header for Mach-O files. So just overwrite the first 16 bytes of the
       # output file with the first 16 bytes of the input file.
@@ -753,7 +761,13 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
     # files use the same format. Also we will need to explicitly specify this
     # format when creating an archive with "ar".
     # If we've never had to force a format, let binutils autodetect.
-    output = run_command([cmdline[0]] + ["--target=%s" % binutils_force_target_format] + cmdline[1:],
+    # Also, we can force a separate input and output target for objcopy, splitting on comma.
+    target_list = binutils_force_target_format.split(",")
+    if cmdline[0] == FLAGS.binutils_objcopy_cmd and len(target_list) > 1:
+      target_params = ["--input-target=%s" % target_list[0], "--output-target=%s" % target_list[1]]
+    else:
+      target_params = ["--target=%s" % target_list[0]]
+    output = run_command([cmdline[0]] + target_params + cmdline[1:],
                          error_output, ignore_errors)
   else:
     # Otherwise, if we've never had to force a format, use the default.
@@ -896,6 +910,8 @@ def shutdown_cache():
 
 
 def main(argv):
+  global binutils_force_target_format
+  binutils_force_target_format = FLAGS.force_binutils_target
   try:
     working_root = None
     input_paths = []
