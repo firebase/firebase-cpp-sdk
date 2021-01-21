@@ -3,6 +3,7 @@ name: Desktop Builds
 on:
   pull_request:
     types: [opened, reopened, synchronize]
+  push:
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
@@ -90,7 +91,7 @@ jobs:
       - name: Build SDK
         shell: bash
         run: |
-          python scripts/gha/build_desktop.py --build_tests --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}"
+          python scripts/gha/build_desktop.py --build_tests --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --use_openssl
 
       - name: Stats for ccache (mac and linux)
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
