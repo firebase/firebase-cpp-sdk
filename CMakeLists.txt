@@ -279,6 +279,12 @@ endif()
 
 # Include Firestore's external build early to resolve conflicts on packages.
 if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
+  if(APPLE)
+    # On Apple, set GRPC_BAZEL_BUILD to fix an issue with __thread.
+    # Setting this define makes gRPC use pthread's thread-local storage
+    # instead of GCC's.
+    add_definitions(-DGRPC_BAZEL_BUILD=1)
+  endif()
   set(FIRESTORE_BINARY_DIR ${FIRESTORE_SOURCE_DIR}-build)
 
   set(
@@ -559,10 +565,6 @@ if (FIREBASE_INCLUDE_DYNAMIC_LINKS)
 endif()
 if (FIREBASE_INCLUDE_FIRESTORE)
   add_subdirectory(firestore)
-  if(APPLE)
-    # For gRPC, this flag turns off thread-local storage, which doesn't work on Mac binutils.
-    target_compile_definitions(grpc++ PRIVATE "-DGRPC_BAZEL_BUILD=1" "-D__thread=")
-  endif()
 endif()
 if (FIREBASE_INCLUDE_FUNCTIONS)
   add_subdirectory(functions)
