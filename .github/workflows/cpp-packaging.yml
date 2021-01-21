@@ -703,7 +703,7 @@ jobs:
         python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
     - name: Build integration tests
       run: |
-        python scripts/gha/build_testapps.py --t ${{ env.apis }} --p ${{ matrix.target_platform }} --sdk_dir firebase_cpp_sdk --output_directory "${{ github.workspace }}" --noadd_timestamp
+        python scripts/gha/build_testapps.py --t ${{ env.apis }} --p ${{ matrix.target_platform }} --packaged_sdk firebase_cpp_sdk --output_directory "${{ github.workspace }}" --noadd_timestamp
     
     - name: Run desktop integration tests
       if: matrix.target_platform == 'Desktop' && !cancelled()
