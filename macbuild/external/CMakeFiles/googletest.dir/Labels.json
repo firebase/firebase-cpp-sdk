@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/CMakeFiles/googletest"
+		},
+		{
+			"file" : "/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/CMakeFiles/googletest.rule"
+		},
+		{
+			"file" : "/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/CMakeFiles/googletest-complete.rule"
+		},
+		{
+			"file" : "/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-install.rule"
+		},
+		{
+			"file" : "/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-mkdir.rule"
+		},
+		{
+			"file" : "/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-download.rule"
+		},
+		{
+			"file" : "/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-update.rule"
+		},
+		{
+			"file" : "/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-patch.rule"
+		},
+		{
+			"file" : "/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-configure.rule"
+		},
+		{
+			"file" : "/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-build.rule"
+		},
+		{
+			"file" : "/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-test.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"googletest"
+		],
+		"name" : "googletest"
+	}
+}

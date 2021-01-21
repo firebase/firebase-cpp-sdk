@@ -1,0 +1,14 @@
+# Target labels
+ googletest
+# Source files and their labels
+/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/CMakeFiles/googletest
+/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/CMakeFiles/googletest.rule
+/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/CMakeFiles/googletest-complete.rule
+/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-install.rule
+/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-mkdir.rule
+/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-download.rule
+/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-update.rule
+/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-patch.rule
+/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-configure.rule
+/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-build.rule
+/Users/amaurice/Documents/GitHub/firebase-cpp-sdk/macbuild/external/src/googletest-stamp/googletest-test.rule
