@@ -101,7 +101,6 @@ int WaitFor(const FutureBase& future) {
 FirestoreIntegrationTest::FirestoreIntegrationTest() {
   // Allocate the default Firestore eagerly.
   TestFirestore();
-  Firestore::set_log_level(LogLevel::kLogLevelDebug);
 }
 
 Firestore* FirestoreIntegrationTest::TestFirestore(
@@ -117,6 +116,8 @@ Firestore* FirestoreIntegrationTest::TestFirestore(
   if (apps_.find(app) == apps_.end()) {
     apps_[app] = UniquePtr<App>(app);
   }
+
+  Firestore::set_log_level(LogLevel::kLogLevelDebug);
 
   Firestore* db = new Firestore(CreateTestFirestoreInternal(app));
   firestores_[db] = FirestoreInfo(name, UniquePtr<Firestore>(db));
