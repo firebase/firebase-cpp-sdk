@@ -98,17 +98,17 @@ function(download_external_sources)
     if (FIREBASE_USE_BORINGSSL)
       # CMake's find_package(OpenSSL) doesn't quite work right with BoringSSL
       # unless the header file contains OPENSSL_VERSION_NUMBER.
-      file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
+      file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/include/openssl/opensslv.h TMP_HEADER_CONTENTS)
       if (NOT TMP_HEADER_CONTENTS MATCHES OPENSSL_VERSION_NUMBER)
-        file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/opensslv.h
+        file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/include/openssl/opensslv.h
         "\n#ifndef OPENSSL_VERSION_NUMBER\n# define OPENSSL_VERSION_NUMBER  0x10010107L\n#endif\n")
       endif()
       # Also add an #include <stdlib.h> since openssl has it and boringssl
       # doesn't, and some of our code depends on the transitive dependency (this
       # is a bug).
-      file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/rand.h TMP_HEADER2_CONTENTS)
+      file(READ ${PROJECT_BINARY_DIR}/external/src/boringssl/include/openssl/rand.h TMP_HEADER2_CONTENTS)
       if (NOT TMP_HEADER2_CONTENTS MATCHES "<stdlib.h>")
-        file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/src/include/openssl/rand.h
+        file(APPEND ${PROJECT_BINARY_DIR}/external/src/boringssl/include/openssl/rand.h
         "\n#include <stdlib.h>\n")
       endif()
     endif()
@@ -143,7 +143,7 @@ function(build_external_dependencies)
   set(CMAKE_SUB_BUILD_OPTIONS)
 
   if (CMAKE_BUILD_TYPE)
-    # If Release or Debug were specified, pass it along.
+    # If Release or Debug were specified on Windows, pass it to the sub-build.
     set(CMAKE_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS}
         -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}")
   endif()
@@ -222,8 +222,17 @@ function(build_external_dependencies)
 
   if(NOT ANDROID AND NOT IOS)
     if (FIREBASE_USE_BORINGSSL)
+      #set(BORINGSSL_SUB_CONFIGURE_OPTIONS ${CMAKE_SUB_CONFIGURE_OPTIONS})
+      #if(APPLE)
+        # On Mac, BoringSSL specifically does not work when
+	# CMAKE_BUILD_TYPE=Release is set. Use the default build
+	# configuration instead.
+        #list(REMOVE_ITEM BORINGSSL_SUB_CONFIGURE_OPTIONS "-DCMAKE_BUILD_TYPE=\"Release\"")
+        #list(TRANSFORM BORINGSSL_SUB_CONFIGURE_OPTIONS REPLACE "-DCMAKE_BUILD_TYPE=\"Release\"" "-DCMAKE_BUILD_TYPE=\"RelWithAssert\"")
+      #endif()
+      #message(STATUS "BoringSSL sub-configure options: ${CMAKE_SUB_CONFIGURE_OPTIONS}")
       execute_process(
-        COMMAND ${ENV_COMMAND} cmake -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUB_CONFIGURE_OPTIONS} ../boringssl/src
+        COMMAND ${ENV_COMMAND} cmake -DOPENSSL_NO_ASM=TRUE ${CMAKE_SUB_CONFIGURE_OPTIONS} ../boringssl
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external/src/boringssl-build
         RESULT_VARIABLE boringssl_configure_status
       )
