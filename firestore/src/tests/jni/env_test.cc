@@ -134,18 +134,6 @@ TEST_F(EnvTest, CallsStaticVoidMethods) {
   EXPECT_TRUE(env().ok());
 }
 
-TEST_F(EnvTest, GetStringUtfLength) {
-  Local<String> str = env().NewStringUtf("Foo");
-  size_t len = env().GetStringUtfLength(str);
-  EXPECT_EQ(3, len);
-}
-
-TEST_F(EnvTest, GetStringUtfRegion) {
-  Local<String> str = env().NewStringUtf("Foo");
-  std::string result = env().GetStringUtfRegion(str, 1, 2);
-  EXPECT_EQ("oo", result);
-}
-
 TEST_F(EnvTest, ToString) {
   Local<String> str = env().NewStringUtf("Foo");
   std::string result = str.ToString(env());
