@@ -156,7 +156,8 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
    config (str): Release/Debug config.
           If its not specified, cmake's default is used (most likely Debug).
    target_format (str): If specified, build for this targetformat ('frameworks' or 'libraries').
-   verbose (bool): If true, enable verbose mode in the CMake file.
+   disable_vcpkg (bool): If True, skip vcpkg and just use CMake for deps.
+   verbose (bool): If True, enable verbose mode in the CMake file.
   """
   cmd = ['cmake', '-S', '.', '-B', build_dir]
 
@@ -171,19 +172,18 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
     # workaround, absl doesn't build without tests enabled
     cmd.append('-DBUILD_TESTING=off')
 
-  if utils.is_linux_os() and arch == 'x86':
-    # Use a separate cmake toolchain for cross compiling linux x86 builds
-    vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external', 'vcpkg',
-                                             'scripts', 'buildsystems', 'linux_32.cmake')
-  else:
-    vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external',
-                                           'vcpkg', 'scripts',
-                                           'buildsystems', 'vcpkg.cmake')
-
-  cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(vcpkg_toolchain_file_path))
-
-  vcpkg_triplet = utils.get_vcpkg_triplet(arch, msvc_runtime_library)
-  cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
+  if not disable_vcpkg:
+    if utils.is_linux_os() and arch == 'x86':
+      # Use a separate cmake toolchain for cross compiling linux x86 builds
+      vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external', 'vcpkg',
+                                               'scripts', 'buildsystems', 'linux_32.cmake')
+    else:
+      vcpkg_toolchain_file_path = os.path.join(os.getcwd(), 'external',
+                                               'vcpkg', 'scripts',
+                                               'buildsystems', 'vcpkg.cmake')
+    cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(vcpkg_toolchain_file_path))
+    vcpkg_triplet = utils.get_vcpkg_triplet(arch, msvc_runtime_library)
+    cmd.append('-DVCPKG_TARGET_TRIPLET={0}'.format(vcpkg_triplet))
 
   if utils.is_windows_os():
     # If building for x86, we should supply -A Win32 to cmake configure
@@ -215,16 +215,18 @@ def main():
 
   # Ensure that the submodules are initialized and updated
   # Example: vcpkg is a submodule (external/vcpkg)
-  utils.run_command(['git', 'submodule', 'init'])
-  utils.run_command(['git', 'submodule', 'update'])
+  if not args.disable_vcpkg:
+    utils.run_command(['git', 'submodule', 'init'])
+    utils.run_command(['git', 'submodule', 'update'])
 
   # To build x86 on x86_64 linux hosts, we also need x86 support libraries
   if args.arch == 'x86' and utils.is_linux_os():
     install_x86_support_libraries()
 
-  # Install C++ dependencies using vcpkg
-  install_cpp_dependencies_with_vcpkg(args.arch, args.msvc_runtime_library,
-                                      cleanup=True)
+  if not args.disable_vcpkg:
+    # Install C++ dependencies using vcpkg
+    install_cpp_dependencies_with_vcpkg(args.arch, args.msvc_runtime_library,
+                                        cleanup=True)
 
   if args.vcpkg_step_only:
     print("Exiting without building the Firebase C++ SDK as just vcpkg step was requested.")
@@ -232,7 +234,7 @@ def main():
 
   # CMake configure
   cmake_configure(args.build_dir, args.arch, args.msvc_runtime_library, args.linux_abi,
-                  args.build_tests, args.config, args.target_format, args.verbose)
+                  args.build_tests, args.config, args.target_format, args.disable_vcpkg, args.verbose)
 
   # Small workaround before build, turn off -Werror=sign-compare for a specific Firestore core lib.
   if not utils.is_windows_os():
@@ -262,6 +264,7 @@ def parse_cmdline_args():
   parser.add_argument('--build_dir', default='build', help='Output build directory')
   parser.add_argument('--build_tests', action='store_true', help='Build unit tests too')
   parser.add_argument('--verbose', action='store_true', help='Enable verbose CMake builds.')
+  parser.add_argument('--disable_vcpkg', action='store_true', help='Disable vcpkg and just use CMake.')
   parser.add_argument('--vcpkg_step_only', action='store_true', help='Just install cpp packages using vcpkg and exit.')
   parser.add_argument('--config', default='Release', help='Release/Debug config')
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
