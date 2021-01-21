@@ -13,7 +13,7 @@ options:
   -m, merge_libraries.py path                     default: <script dir>/../../scripts/merge_libraries.py
   -P, python command                              default: python
   -t, packaging tools directory                   default: ~/bin
-  -f, binutils format	                          default: [auto-detect]
+  -f, binutils format                             default: [auto-detect]
   -j, run merge_libraries jobs in parallel
   -v, enable verbose mode
 example:
@@ -337,12 +337,12 @@ for product in ${product_list[*]}; do
     rm -f "${outfile}"
     if [[ ${verbose} -eq 1 ]]; then
       echo "${python_cmd}" "${merge_libraries_script}" \
-		    ${merge_libraries_params[*]} \
+                    ${merge_libraries_params[*]} \
                     ${cache_param} \
-		    --output="${outfile}" \
-		    --scan_libs="${allfiles}" \
-		    --hide_c_symbols="${deps_hidden}" \
-		    ${libfile_src} ${deps[*]}
+                    --output="${outfile}" \
+                    --scan_libs="${allfiles}" \
+                    --hide_c_symbols="${deps_hidden}" \
+                    ${libfile_src} ${deps[*]}
     fi
     # Place the merge command in a script so we can optionally run them in parallel.
     echo "#!/bin/bash -e" > "${merge_libraries_tmp}/merge_${product}.sh"
@@ -352,7 +352,7 @@ for product in ${product_list[*]}; do
       echo "echo \"${libfile_out}\"" >> "${merge_libraries_tmp}/merge_${product}.sh"
     fi
     if [[ ! -z ${deps_basenames[*]} ]]; then
-	echo -n  >> "${merge_libraries_tmp}/merge_${product}.sh"
+        echo -n  >> "${merge_libraries_tmp}/merge_${product}.sh"
     fi
     echo >> "${merge_libraries_tmp}/merge_${product}.sh"
     echo "\"${python_cmd}\" \\
