@@ -101,7 +101,8 @@ flags.DEFINE_bool(
     "files (.o or .obj) in the output directory.")
 flags.DEFINE_string("force_binutils_target", None, "Force all binutils calls to "
                     "use the given target, via the --target flag. If not set, "
-                    "will autodetect target format.")
+                    "will autodetect target format. If you want to specify "
+                    "different input and output formats, separate them with a comma.")
 
 # Never rename 'std::' by default when --auto_hide_cpp_namespaces is enabled.
 IMPLICIT_CPP_NAMESPACES_TO_IGNORE = {"std"}
@@ -644,6 +645,9 @@ def rename_symbol(symbol):
           new_symbol = re.sub("@%s@@" % ns, "@%s@@" % new_ns, new_symbol)
       new_renames[symbol] = new_symbol
   else:
+    if FLAGS.platform == "windows" and symbol.startswith("$LN"):
+      # Don't rename $LN*, those are local symbols.
+      return new_renames
     # C symbol. Just split, rename, and re-join.
     (prefix, remainder) = split_symbol(symbol)
     new_symbol = prefix + FLAGS.rename_string + remainder
@@ -757,7 +761,13 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
     # files use the same format. Also we will need to explicitly specify this
     # format when creating an archive with "ar".
     # If we've never had to force a format, let binutils autodetect.
-    output = run_command([cmdline[0]] + ["--target=%s" % binutils_force_target_format] + cmdline[1:],
+    # Also, we can force a separate input and output target for objcopy, splitting on comma.
+    target_list = binutils_force_target_format.split(",")
+    if cmdline[0] == FLAGS.binutils_objcopy_cmd and len(target_list) > 1:
+      target_params = ["--input-target=%s" % target_list[0], "--output-target=%s" % target_list[1]]
+    else:
+      target_params = ["--target=%s" % target_list[0]]
+    output = run_command([cmdline[0]] + target_params + cmdline[1:],
                          error_output, ignore_errors)
   else:
     # Otherwise, if we've never had to force a format, use the default.
