@@ -97,9 +97,10 @@ class FirebaseStorageTest : public FirebaseTest {
   // Create a unique working folder and return a reference to it.
   firebase::storage::StorageReference CreateFolder();
 
-  bool initialized_;
   static firebase::App* shared_app_;
   static firebase::auth::Auth* shared_auth_;
+
+  bool initialized_;
   firebase::storage::Storage* storage_;
   // File references that we need to delete on test exit.
   std::vector<firebase::storage::StorageReference> cleanup_files_;
@@ -198,6 +199,20 @@ void FirebaseStorageTest::SetUp() {
 }
 
 void FirebaseStorageTest::TearDown() {
+  if (initialized_) {
+    if (!cleanup_files_.empty() && storage_ && shared_app_) {
+      LogDebug("Cleaning up files.");
+      std::vector<firebase::Future<void>> cleanups;
+      cleanups.reserve(cleanup_files_.size());
+      for (int i = 0; i < cleanup_files_.size(); ++i) {
+	cleanups.push_back(cleanup_files_[i].Delete());
+      }
+      for (int i = 0; i < cleanups.size(); ++i) {
+	WaitForCompletion(cleanups[i], "FirebaseStorageTest::TearDown");
+      }
+      cleanup_files_.clear();
+    }
+  }
   TerminateStorage();
   FirebaseTest::TearDown();
 }
@@ -229,17 +244,6 @@ void FirebaseStorageTest::TerminateStorage() {
   if (!initialized_) return;
 
   if (storage_) {
-    LogDebug("Cleaning up files.");
-    std::vector<firebase::Future<void>> cleanups;
-    cleanups.reserve(cleanup_files_.size());
-    for (int i = 0; i < cleanup_files_.size(); ++i) {
-      cleanups.push_back(cleanup_files_[i].Delete());
-    }
-    for (int i = 0; i < cleanups.size(); ++i) {
-      WaitForCompletion(cleanups[i], "FirebaseStorageTest::TearDown");
-    }
-    cleanup_files_.clear();
-
     LogDebug("Shutdown the Storage library.");
     delete storage_;
     storage_ = nullptr;

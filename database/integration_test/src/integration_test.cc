@@ -147,11 +147,12 @@ class FirebaseDatabaseTest : public FirebaseTest {
   firebase::database::DatabaseReference CreateWorkingPath(
       bool suppress_cleanup = false);
 
+  static firebase::App* shared_app_;
+  static firebase::auth::Auth* shared_auth_;
+  
   static bool first_time_;
 
   bool initialized_;
-  static firebase::App* shared_app_;
-  static firebase::auth::Auth* shared_auth_;
   firebase::database::Database* database_;
 
   std::vector<firebase::database::DatabaseReference> cleanup_paths_;
@@ -268,7 +269,6 @@ void FirebaseDatabaseTest::TearDown() {
     }
   }
   TerminateDatabase();
-
   FirebaseTest::TearDown();
 }
 
