@@ -136,7 +136,7 @@ jobs:
           if [[ "${{ matrix.ssl_variant }}" == "boringssl" ]]; then
             ssl_option=--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON
           fi
-          python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --use_vcpkg --noadd_timestamp ${ssl_option}
+          python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --noadd_timestamp ${ssl_option}
 
       - name: Run desktop integration tests
         if: matrix.target_platform == 'Desktop' && !cancelled()
