@@ -114,9 +114,9 @@ class FirebaseFirestoreBasicTest : public FirebaseTest {
 //  - Once, before any tests run:
 //  -   SetUpTestSuite: Initialize App and Auth. Sign in.
 //  - For each test:
-//    - SetUp: Initialize Database.
+//    - SetUp: Initialize Firestore.
 //    - Run the test.
-//    - TearDown: Shut down Database.
+//    - TearDown: Shut down Firestore.
 //  - Once, after all tests are finished:
 //  -   TearDownTestSuite: Sign out. Shut down Auth and App.
 

@@ -110,9 +110,9 @@ class FirebaseStorageTest : public FirebaseTest {
 //  - Once, before any tests run:
 //  -   SetUpTestSuite: Initialize App and Auth. Sign in.
 //  - For each test:
-//    - SetUp: Initialize Database.
+//    - SetUp: Initialize Storage.
 //    - Run the test.
-//    - TearDown: Shut down Database.
+//    - TearDown: Shut down Storage.
 //  - Once, after all tests are finished:
 //  -   TearDownTestSuite: Sign out. Shut down Auth and App.
 
