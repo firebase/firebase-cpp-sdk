@@ -216,8 +216,8 @@ void FirebaseStorageTest::SignOut() {
   while (auth_->current_user() != nullptr) {
     if (ProcessEvents(100)) break;
   }
-  ProcessEvents(100);
   EXPECT_EQ(auth_->current_user(), nullptr);
+  ProcessEvents(500);  // Wait another moment for everything to stabilize.
 }
 
 firebase::storage::StorageReference FirebaseStorageTest::CreateFolder() {

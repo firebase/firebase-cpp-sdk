@@ -288,6 +288,7 @@ void FirebaseDatabaseTest::SignOut() {
     if (ProcessEvents(100)) break;
   }
   EXPECT_EQ(auth_->current_user(), nullptr);
+  ProcessEvents(500);  // Wait another moment for everything to stabilize.
 }
 
 firebase::database::DatabaseReference FirebaseDatabaseTest::CreateWorkingPath(
