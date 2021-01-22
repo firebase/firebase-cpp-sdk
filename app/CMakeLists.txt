@@ -300,7 +300,11 @@ endif()
 
 if(ANDROID OR IOS)
   # If building for Android or iOS, include the Flatbuffers source files directly.
-  set(app_flatbuffers_srcs ${FlatBuffers_Library_SRCS})
+  set(app_flatbuffers_srcs
+      ${FLATBUFFERS_SOURCE_DIR}/src/idl_parser.cpp
+      ${FLATBUFFERS_SOURCE_DIR}/src/idl_gen_text.cpp
+      ${FLATBUFFERS_SOURCE_DIR}/src/reflection.cpp
+      ${FLATBUFFERS_SOURCE_DIR}/src/util.cpp)
   set(app_flatbuffers_lib)
 else()
   set(app_flatbuffers_srcs)
