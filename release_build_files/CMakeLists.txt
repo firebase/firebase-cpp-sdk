@@ -32,7 +32,7 @@ elseif(APPLE)
   if(IOS)
     set(FIREBASE_SDK_LIBDIR ${FIREBASE_CPP_SDK_DIR}/libs/ios/universal)
   else() #Assume MacOS
-    set(FIREBASE_SDK_LIBDIR ${FIREBASE_CPP_SDK_DIR}/libs/darwin/universal)
+    set(FIREBASE_SDK_LIBDIR ${FIREBASE_CPP_SDK_DIR}/libs/darwin/arm64)
   endif()
 elseif(MSVC)
   if(${CMAKE_CL_64})

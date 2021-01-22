@@ -49,20 +49,26 @@ for a in $(cd "${packagepath}"/libs/"${os}"; find . -depth 1 -type d | sed 's|^\
     fi
 done
 
+echo "Architectures found: ${architectures[*]}"
+
 # Don't lipo if we already have universal libraries, as that
 # means that the lipo step has already occurred.
 if [[ ! -d "${packagepath}/libs/${os}/universal" ]]; then
     echo "Repackaging libraries using Mac libtool..."
     for arch in ${architectures[*]}; do
+        binutils_fmt=mach-o-x86-64
+        if [[ "${arch}" == "arm64" ]]; then
+          binutils_fmt=mach-o-arm64
+        fi
 	for lib in "${packagepath}/libs/${os}/${arch}"/*.a; do
 	    echo "${lib}"
 	    pushd $(dirname "${lib}") > /dev/null
 	    libname=$(basename "${lib}")
 	    mkdir "${libname}.dir"
 	    cd "${libname}.dir"
-	    "${binutils}"/ar x ../"${libname}"
+	    "${binutils}"/ar --target="${binutils_fmt}" x ../"${libname}"
 	    mv -f ../"${libname}"  ../"${libname}.bak"
-	    xcrun libtool -static -o "../${libname}" -no_warning_for_no_symbols -s *.o
+	    xcrun libtool -arch_only "${arch}" -static -o "../${libname}" -s *.o
 	    cd ..
 	    rm -rf "${libname}.dir"
 	    popd > /dev/null
@@ -88,7 +94,7 @@ fi
 echo "Creating frameworks..."
 rm -rf "${packagepath}/frameworks/${os}"
 mkdir -p "${packagepath}/frameworks/${os}"
-for arch in universal "${architectures[*]}"; do
+for arch in universal ${architectures[*]}; do
     for f in "${packagepath}/libs/${os}/${arch}/"*.a; do
 	library=$f
 	framework=$(basename "${library}" | sed 's|^lib||' | sed 's|\.a$||')
