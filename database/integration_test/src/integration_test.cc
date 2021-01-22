@@ -177,8 +177,9 @@ void FirebaseDatabaseTest::TearDown() {
       }
       cleanup_paths_.clear();
     }
-    
-    SignOut();
+
+    // Temporary workaround for tests hanging on sign-in: don't sign out.
+    // SignOut();
     Terminate();
   }
   

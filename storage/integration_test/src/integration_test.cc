@@ -109,7 +109,8 @@ void FirebaseStorageTest::SetUp() {
 }
 
 void FirebaseStorageTest::TearDown() {
-  SignOut();
+  // Temporary workaround for tests hanging on sign-in: don't sign out.
+  // SignOut();
   Terminate();
   FirebaseTest::TearDown();
 }
