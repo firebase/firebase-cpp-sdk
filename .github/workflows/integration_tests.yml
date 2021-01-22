@@ -157,7 +157,7 @@ jobs:
         run: echo "CLOUDSDK_PYTHON=${{env.pythonLocation}}\python.exe" >> $GITHUB_ENV
       - name: Install Cloud SDK
         if: ${{ !cancelled() }}
-        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        uses: google-github-actions/setup-gcloud@master
       - name: Upload Desktop Artifacts to GCS
         if: matrix.target_platform == 'Desktop' && !cancelled()
         run: |
