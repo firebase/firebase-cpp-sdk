@@ -112,23 +112,37 @@ TEST(TimestampIsNear, Matcher) {
   EXPECT_THAT(firebase::Variant::EmptyString(), Not(TimestampIsNear(0)));
 }
 
+
 class FirebaseDatabaseTest : public FirebaseTest {
  public:
   FirebaseDatabaseTest();
   ~FirebaseDatabaseTest() override;
 
+  // Called once before all tests.
+  static void SetUpTestSuite();
+  // Called once after all tests.
+  static void TearDownTestSuite();
+
+  // Initialize Firebase App and Firebase Auth.
+  static void InitializeAppAndAuth();
+  // Shut down Firebase App and Firebase Auth.
+  static void TerminateAppAndAuth();
+
+  // Called at the start of each test.
   void SetUp() override;
+  // Called after each test.
   void TearDown() override;
 
  protected:
-  // Initialize Firebase App, Firebase Auth, and Firebase Database.
-  void Initialize();
-  // Shut down Firebase Database, Firebase Auth, and Firebase App.
-  void Terminate();
+  // Initialize Firebase Database.
+  void InitializeDatabase();
+  // Shut down Firebase Database.
+  void TerminateDatabase();
+
   // Sign in an anonymous user.
-  void SignIn();
+  static void SignIn();
   // Sign out the current user, if applicable.
-  void SignOut();
+  static void SignOut();
 
   firebase::database::DatabaseReference CreateWorkingPath(
       bool suppress_cleanup = false);
@@ -136,35 +150,114 @@ class FirebaseDatabaseTest : public FirebaseTest {
   static bool first_time_;
 
   bool initialized_;
-  firebase::auth::Auth* auth_;
+  static firebase::App* shared_app_;
+  static firebase::auth::Auth* shared_auth_;
   firebase::database::Database* database_;
 
   std::vector<firebase::database::DatabaseReference> cleanup_paths_;
 };
 
+// Initialization flow looks like this:
+//  - Once, before any tests run:
+//  -   SetUpTestSuite: Initialize App and Auth. Sign in.
+//  - For each test:
+//    - SetUp: Initialize Database.
+//    - Run the test.
+//    - TearDown: Shut down Database.
+//  - Once, after all tests are finished:
+//  -   TearDownTestSuite: Sign out. Shut down Auth and App.
+  
+firebase::App* FirebaseDatabaseTest::shared_app_;
+firebase::auth::Auth* FirebaseDatabaseTest::shared_auth_;
+
 bool FirebaseDatabaseTest::first_time_ = true;
 
+void FirebaseDatabaseTest::SetUpTestSuite() {
+  InitializeAppAndAuth();
+}
+
+void FirebaseDatabaseTest::InitializeAppAndAuth() {
+  LogDebug("Initialize Firebase App.");
+
+  FindFirebaseConfig(FIREBASE_CONFIG_STRING);
+
+#if defined(__ANDROID__)
+  shared_app_ = ::firebase::App::Create(app_framework::GetJniEnv(),
+                                        app_framework::GetActivity());
+#else
+  shared_app_ = ::firebase::App::Create();
+#endif  // defined(__ANDROID__)
+
+  ASSERT_NE(shared_app_, nullptr);
+
+  LogDebug("Initializing Auth.");
+
+  // Initialize Firebase Auth.
+  ::firebase::ModuleInitializer initializer;
+  initializer.Initialize(
+      shared_app_, &shared_auth_, [](::firebase::App* app, void* target) {
+        LogDebug("Attempting to initialize Firebase Auth.");
+        ::firebase::InitResult result;
+        *reinterpret_cast<firebase::auth::Auth**>(target) =
+          ::firebase::auth::Auth::GetAuth(app, &result);
+        return result;
+      });
+
+  WaitForCompletion(initializer.InitializeLastResult(), "InitializeAuth");
+
+  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
+      << initializer.InitializeLastResult().error_message();
+
+  LogDebug("Successfully initialized Auth.");
+
+  ASSERT_NE(shared_auth_, nullptr);
+
+  // Sign in anonymously.
+  SignIn();
+}
+
+void FirebaseDatabaseTest::TearDownTestSuite() {
+  TerminateAppAndAuth();
+}
+
+void FirebaseDatabaseTest::TerminateAppAndAuth() {
+  if (shared_auth_) {
+    LogDebug("Signing out.");
+    SignOut();
+    LogDebug("Shutdown Auth.");
+    delete shared_auth_;
+    shared_auth_ = nullptr;
+  }
+  if (shared_app_) {
+    LogDebug("Shutdown App.");
+    delete shared_app_;
+    shared_app_ = nullptr;
+  }
+}
+
 FirebaseDatabaseTest::FirebaseDatabaseTest()
-    : initialized_(false), auth_(nullptr), database_(nullptr) {
+    : initialized_(false), database_(nullptr) {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
 
 FirebaseDatabaseTest::~FirebaseDatabaseTest() {
   // Must be cleaned up on exit.
-  assert(app_ == nullptr);
-  assert(auth_ == nullptr);
   assert(database_ == nullptr);
 }
 
 void FirebaseDatabaseTest::SetUp() {
   FirebaseTest::SetUp();
-  Initialize();
+  if (shared_app_ == nullptr || shared_auth_ == nullptr) {
+    LogDebug("Reinitializing App and Auth...");
+    InitializeAppAndAuth();
+  }
+  InitializeDatabase();
 }
 
 void FirebaseDatabaseTest::TearDown() {
   // Delete the shared path, if there is one.
   if (initialized_) {
-    if (!cleanup_paths_.empty() && database_ && app_) {
+    if (!cleanup_paths_.empty() && database_ && shared_app_) {
       LogDebug("Cleaning up...");
       std::vector<firebase::Future<void>> cleanups;
       cleanups.reserve(cleanup_paths_.size());
@@ -177,56 +270,31 @@ void FirebaseDatabaseTest::TearDown() {
       }
       cleanup_paths_.clear();
     }
-
-    // Temporary workaround for tests hanging on sign-in: don't sign out.
-    // SignOut();
-    Terminate();
   }
-  
+  TerminateDatabase();
+
   FirebaseTest::TearDown();
 }
 
-void FirebaseDatabaseTest::Initialize() {
-  if (initialized_) return;
-
-  InitializeApp();
-
-  LogDebug("Initializing Firebase Auth and Firebase Database.");
-
-  // 0th element has a reference to this object, the rest have the initializer
-  // targets.
-  void* initialize_targets[] = {&auth_, &database_};
-
-  const firebase::ModuleInitializer::InitializerFn initializers[] = {
-      [](::firebase::App* app, void* data) {
-        void** targets = reinterpret_cast<void**>(data);
-        LogDebug("Attempting to initialize Firebase Auth.");
-        ::firebase::InitResult result;
-        *reinterpret_cast<::firebase::auth::Auth**>(targets[0]) =
-            ::firebase::auth::Auth::GetAuth(app, &result);
-        return result;
-      },
-      [](::firebase::App* app, void* data) {
-        void** targets = reinterpret_cast<void**>(data);
-        LogDebug("Attempting to initialize Firebase Database.");
-        ::firebase::InitResult result;
-        firebase::database::Database* database =
-            firebase::database::Database::GetInstance(app, &result);
-        *reinterpret_cast<::firebase::database::Database**>(targets[1]) =
-            database;
-        return result;
-      }};
+void FirebaseDatabaseTest::InitializeDatabase() {
+  LogDebug("Initializing Firebase Database.");
 
   ::firebase::ModuleInitializer initializer;
-  initializer.Initialize(app_, initialize_targets, initializers,
-                         sizeof(initializers) / sizeof(initializers[0]));
+  initializer.Initialize(
+      shared_app_, &database_, [](::firebase::App* app, void* target) {
+        LogDebug("Attempting to initialize Firebase Database.");
+        ::firebase::InitResult result;
+        *reinterpret_cast<firebase::database::Database**>(target) =
+          firebase::database::Database::GetInstance(app, &result);
+        return result;
+      });
 
-  WaitForCompletion(initializer.InitializeLastResult(), "Initialize");
+  WaitForCompletion(initializer.InitializeLastResult(), "InitializeDatabase");
 
   ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
       << initializer.InitializeLastResult().error_message();
 
-  LogDebug("Successfully initialized Firebase Auth and Firebase Database.");
+  LogDebug("Successfully initialized Firebase Database.");
 
   // The first time we initialize database, enable persistence on mobile.
   // We need to do this here because on iOS you can only enable persistence
@@ -239,7 +307,7 @@ void FirebaseDatabaseTest::Initialize() {
   initialized_ = true;
 }
 
-void FirebaseDatabaseTest::Terminate() {
+void FirebaseDatabaseTest::TerminateDatabase() {
   if (!initialized_) return;
 
   if (database_) {
@@ -247,23 +315,19 @@ void FirebaseDatabaseTest::Terminate() {
     delete database_;
     database_ = nullptr;
   }
-  if (auth_) {
-    LogDebug("Shutdown the Auth library.");
-    delete auth_;
-    auth_ = nullptr;
-  }
-
-  TerminateApp();
-
   initialized_ = false;
 
   ProcessEvents(100);
 }
 
 void FirebaseDatabaseTest::SignIn() {
+  if (shared_auth_->current_user() != nullptr) {
+    // Already signed in.
+    return;
+  }
   LogDebug("Signing in.");
   firebase::Future<firebase::auth::User*> sign_in_future =
-      auth_->SignInAnonymously();
+      shared_auth_->SignInAnonymously();
   WaitForCompletion(sign_in_future, "SignInAnonymously");
   if (sign_in_future.error() != 0) {
     FAIL() << "Ensure your application has the Anonymous sign-in provider "
@@ -273,23 +337,22 @@ void FirebaseDatabaseTest::SignIn() {
 }
 
 void FirebaseDatabaseTest::SignOut() {
-  if (auth_ == nullptr) {
+  if (shared_auth_ == nullptr) {
     // Auth is not set up.
     return;
   }
-  if (auth_->current_user() == nullptr) {
+  if (shared_auth_->current_user() == nullptr) {
     // Already signed out.
     return;
   }
 
-  auth_->SignOut();
+  shared_auth_->SignOut();
 
   // Wait for the sign-out to finish.
-  while (auth_->current_user() != nullptr) {
+  while (shared_auth_->current_user() != nullptr) {
     if (ProcessEvents(100)) break;
   }
-  EXPECT_EQ(auth_->current_user(), nullptr);
-  ProcessEvents(500);  // Wait another moment for everything to stabilize.
+  EXPECT_EQ(shared_auth_->current_user(), nullptr);
 }
 
 firebase::database::DatabaseReference FirebaseDatabaseTest::CreateWorkingPath(
@@ -308,8 +371,7 @@ TEST_F(FirebaseDatabaseTest, TestInitializeAndTerminate) {
 }
 
 TEST_F(FirebaseDatabaseTest, TestSignIn) {
-  SignIn();
-  EXPECT_NE(auth_->current_user(), nullptr);
+  EXPECT_NE(shared_auth_->current_user(), nullptr);
 }
 
 TEST_F(FirebaseDatabaseTest, TestCreateWorkingPath) {
@@ -458,7 +520,7 @@ TEST_F(FirebaseDatabaseTest, TestReadingFromPersistanceWhileOffline) {
   // Shut down the realtime database and restart it, to make sure that
   // persistence persists across database object instances.
   delete database_;
-  database_ = ::firebase::database::Database::GetInstance(app_);
+  database_ = ::firebase::database::Database::GetInstance(shared_app_);
 
   // Offline mode.  If persistence works, we should still be able to fetch
   // our value even though we're offline.
@@ -1092,8 +1154,8 @@ TEST_F(FirebaseDatabaseTest, TestInvalidatingReferencesWhenDeletingApp) {
 
   // Deleting App should invalidate all the objects and Futures, same as
   // deleting Database.
-  delete app_;
-  app_ = nullptr;
+  delete shared_app_;
+  shared_app_ = nullptr;
 
   EXPECT_FALSE(ref.is_valid());
   EXPECT_FALSE(query.is_valid());
@@ -1101,6 +1163,9 @@ TEST_F(FirebaseDatabaseTest, TestInvalidatingReferencesWhenDeletingApp) {
   EXPECT_EQ(set_future.status(), firebase::kFutureStatusInvalid);
   EXPECT_EQ(get_future.status(), firebase::kFutureStatusInvalid);
   EXPECT_EQ(delete_future.status(), firebase::kFutureStatusInvalid);
+
+  // Fully shut down App and Auth so they will be reinitialized.
+  TerminateAppAndAuth();
 }
 
 TEST_F(FirebaseDatabaseTest, TestInfoConnected) {
