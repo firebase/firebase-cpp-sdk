@@ -298,6 +298,15 @@ else()
       "${app_desktop_HDRS}")
 endif()
 
+if(ANDROID OR IOS)
+  # If building for Android or iOS, include the Flatbuffers source files directly.
+  set(app_flatbuffers_srcs ${FlatBuffers_Library_SRCS})
+  set(app_flatbuffers_lib)
+else()
+  set(app_flatbuffers_srcs)
+  set(app_flatbuffers_lib flatbuffers)
+endif()
+
 add_library(firebase_app STATIC
     ${log_SRCS}
     ${log_HDRS}
@@ -311,7 +320,8 @@ add_library(firebase_app STATIC
     memory/atomic.h
     meta/move.h
     memory/unique_ptr.h
-    memory/shared_ptr.h)
+    memory/shared_ptr.h
+    ${app_flatbuffers_srcs})
 
 set_property(TARGET firebase_app PROPERTY FOLDER "Firebase Cpp")
 
@@ -339,7 +349,7 @@ target_compile_definitions(firebase_app
 # firebase_app has a dependency on flatbuffers, which needs to be included.
 target_link_libraries(firebase_app
   PRIVATE
-    flatbuffers
+    ${app_flatbuffers_lib}
     ${LIBSECRET_LIBRARIES}
 )
 # Automatically include headers that might not be declared.
