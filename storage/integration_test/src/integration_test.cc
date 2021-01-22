@@ -68,98 +68,164 @@ class FirebaseStorageTest : public FirebaseTest {
   FirebaseStorageTest();
   ~FirebaseStorageTest() override;
 
+  // Called once before all tests.
+  static void SetUpTestSuite();
+  // Called once after all tests.
+  static void TearDownTestSuite();
+
+  // Called at the start of each test.
   void SetUp() override;
+  // Called after each test.
   void TearDown() override;
 
  protected:
-  // Initialize Firebase App, Firebase Auth, and Firebase Storage.
-  void Initialize();
-  // Shut down Firebase Storage, Firebase Auth, and Firebase App.
-  void Terminate();
+  // Initialize Firebase App and Firebase Auth.
+  static void InitializeAppAndAuth();
+  // Shut down Firebase App and Firebase Auth.
+  static void TerminateAppAndAuth();
+
   // Sign in an anonymous user.
-  void SignIn();
+  static void SignIn();
   // Sign out the current user, if applicable.
-  void SignOut();
+  static void SignOut();
+
+  // Initialize Firebase Storage.
+  void InitializeStorage();
+  // Shut down Firebase Storage.
+  void TerminateStorage();
+
   // Create a unique working folder and return a reference to it.
   firebase::storage::StorageReference CreateFolder();
 
   bool initialized_;
-  firebase::auth::Auth* auth_;
+  static firebase::App* shared_app_;
+  static firebase::auth::Auth* shared_auth_;
   firebase::storage::Storage* storage_;
   // File references that we need to delete on test exit.
   std::vector<firebase::storage::StorageReference> cleanup_files_;
   std::string saved_url_;
 };
+// Initialization flow looks like this:
+//  - Once, before any tests run:
+//  -   SetUpTestSuite: Initialize App and Auth. Sign in.
+//  - For each test:
+//    - SetUp: Initialize Database.
+//    - Run the test.
+//    - TearDown: Shut down Database.
+//  - Once, after all tests are finished:
+//  -   TearDownTestSuite: Sign out. Shut down Auth and App.
+
+firebase::App* FirebaseStorageTest::shared_app_;
+firebase::auth::Auth* FirebaseStorageTest::shared_auth_;
+
 
 FirebaseStorageTest::FirebaseStorageTest()
-    : initialized_(false), auth_(nullptr), storage_(nullptr) {
+    : initialized_(false), storage_(nullptr) {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
 
 FirebaseStorageTest::~FirebaseStorageTest() {
   // Must be cleaned up on exit.
-  assert(app_ == nullptr);
-  assert(auth_ == nullptr);
   assert(storage_ == nullptr);
 }
 
-void FirebaseStorageTest::SetUp() {
-  FirebaseTest::SetUp();
-  Initialize();
+void FirebaseStorageTest::SetUpTestSuite() {
+  InitializeAppAndAuth();
 }
 
-void FirebaseStorageTest::TearDown() {
-  // Temporary workaround for tests hanging on sign-in: don't sign out.
-  // SignOut();
-  Terminate();
-  FirebaseTest::TearDown();
-}
+void FirebaseStorageTest::InitializeAppAndAuth() {
+  LogDebug("Initialize Firebase App.");
 
-void FirebaseStorageTest::Initialize() {
-  if (initialized_) return;
+  FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 
-  InitializeApp();
+#if defined(__ANDROID__)
+  shared_app_ = ::firebase::App::Create(app_framework::GetJniEnv(),
+                                        app_framework::GetActivity());
+#else
+  shared_app_ = ::firebase::App::Create();
+#endif  // defined(__ANDROID__)
 
-  LogDebug("Initializing Firebase Auth and Cloud Storage.");
+  ASSERT_NE(shared_app_, nullptr);
 
-  // 0th element has a reference to this object, the rest have the initializer
-  // targets.
-  void* initialize_targets[] = {&auth_, &storage_};
+  LogDebug("Initializing Auth.");
 
-  const firebase::ModuleInitializer::InitializerFn initializers[] = {
-      [](::firebase::App* app, void* data) {
-        void** targets = reinterpret_cast<void**>(data);
+  // Initialize Firebase Auth.
+  ::firebase::ModuleInitializer initializer;
+  initializer.Initialize(
+      shared_app_, &shared_auth_, [](::firebase::App* app, void* target) {
         LogDebug("Attempting to initialize Firebase Auth.");
         ::firebase::InitResult result;
-        *reinterpret_cast<::firebase::auth::Auth**>(targets[0]) =
-            ::firebase::auth::Auth::GetAuth(app, &result);
+        *reinterpret_cast<firebase::auth::Auth**>(target) =
+          ::firebase::auth::Auth::GetAuth(app, &result);
         return result;
-      },
-      [](::firebase::App* app, void* data) {
-        void** targets = reinterpret_cast<void**>(data);
-        LogDebug("Attempting to initialize Cloud Storage.");
-        ::firebase::InitResult result;
-        firebase::storage::Storage* storage =
-            firebase::storage::Storage::GetInstance(app, kStorageUrl, &result);
-        *reinterpret_cast<::firebase::storage::Storage**>(targets[1]) = storage;
-        return result;
-      }};
+      });
 
-  ::firebase::ModuleInitializer initializer;
-  initializer.Initialize(app_, initialize_targets, initializers,
-                         sizeof(initializers) / sizeof(initializers[0]));
-
-  WaitForCompletion(initializer.InitializeLastResult(), "Initialize");
+  WaitForCompletion(initializer.InitializeLastResult(), "InitializeAuth");
 
   ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
       << initializer.InitializeLastResult().error_message();
 
-  LogDebug("Successfully initialized Firebase Auth and Cloud Storage.");
+  LogDebug("Successfully initialized Auth.");
+
+  ASSERT_NE(shared_auth_, nullptr);
+
+  // Sign in anonymously.
+  SignIn();
+}
+
+void FirebaseStorageTest::TearDownTestSuite() {
+  TerminateAppAndAuth();
+}
+
+void FirebaseStorageTest::TerminateAppAndAuth() {
+  if (shared_auth_) {
+    LogDebug("Signing out.");
+    SignOut();
+    LogDebug("Shutdown Auth.");
+    delete shared_auth_;
+    shared_auth_ = nullptr;
+  }
+  if (shared_app_) {
+    LogDebug("Shutdown App.");
+    delete shared_app_;
+    shared_app_ = nullptr;
+  }
+}
+
+void FirebaseStorageTest::SetUp() {
+  FirebaseTest::SetUp();
+  InitializeStorage();
+}
+
+void FirebaseStorageTest::TearDown() {
+  TerminateStorage();
+  FirebaseTest::TearDown();
+}
+
+void FirebaseStorageTest::InitializeStorage() {
+  LogDebug("Initializing Firebase Storage.");
+
+  ::firebase::ModuleInitializer initializer;
+  initializer.Initialize(
+      shared_app_, &storage_, [](::firebase::App* app, void* target) {
+        LogDebug("Attempting to initialize Firebase Storage.");
+        ::firebase::InitResult result;
+        *reinterpret_cast<firebase::storage::Storage**>(target) =
+          firebase::storage::Storage::GetInstance(app, kStorageUrl, &result);
+        return result;
+      });
+
+  WaitForCompletion(initializer.InitializeLastResult(), "InitializeStorage");
+
+  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
+      << initializer.InitializeLastResult().error_message();
+
+  LogDebug("Successfully initialized Firebase Storage.");
 
   initialized_ = true;
 }
 
-void FirebaseStorageTest::Terminate() {
+void FirebaseStorageTest::TerminateStorage() {
   if (!initialized_) return;
 
   if (storage_) {
@@ -178,13 +244,6 @@ void FirebaseStorageTest::Terminate() {
     delete storage_;
     storage_ = nullptr;
   }
-  if (auth_) {
-    LogDebug("Shutdown the Auth library.");
-    delete auth_;
-    auth_ = nullptr;
-  }
-
-  TerminateApp();
 
   initialized_ = false;
 
@@ -192,9 +251,13 @@ void FirebaseStorageTest::Terminate() {
 }
 
 void FirebaseStorageTest::SignIn() {
+  if (shared_auth_->current_user() != nullptr) {
+    // Already signed in.
+    return;
+  }
   LogDebug("Signing in.");
   firebase::Future<firebase::auth::User*> sign_in_future =
-      auth_->SignInAnonymously();
+      shared_auth_->SignInAnonymously();
   WaitForCompletion(sign_in_future, "SignInAnonymously");
   if (sign_in_future.error() != 0) {
     FAIL() << "Ensure your application has the Anonymous sign-in provider "
@@ -204,20 +267,20 @@ void FirebaseStorageTest::SignIn() {
 }
 
 void FirebaseStorageTest::SignOut() {
-  if (auth_ == nullptr) {
+  if (shared_auth_ == nullptr) {
     // Auth is not set up.
     return;
   }
-  if (auth_->current_user() == nullptr) {
+  if (shared_auth_->current_user() == nullptr) {
     // Already signed out.
     return;
   }
-  auth_->SignOut();
+  shared_auth_->SignOut();
   // Wait for the sign-out to finish.
-  while (auth_->current_user() != nullptr) {
+  while (shared_auth_->current_user() != nullptr) {
     if (ProcessEvents(100)) break;
   }
-  EXPECT_EQ(auth_->current_user(), nullptr);
+  EXPECT_EQ(shared_auth_->current_user(), nullptr);
   ProcessEvents(500);  // Wait another moment for everything to stabilize.
 }
 
@@ -239,8 +302,7 @@ TEST_F(FirebaseStorageTest, TestInitializeAndTerminate) {
 }
 
 TEST_F(FirebaseStorageTest, TestSignIn) {
-  SignIn();
-  EXPECT_NE(auth_->current_user(), nullptr);
+  EXPECT_NE(shared_auth_->current_user(), nullptr);
 }
 
 TEST_F(FirebaseStorageTest, TestCreateWorkingFolder) {
@@ -287,7 +349,7 @@ TEST_F(FirebaseStorageTest, TestStorageUrl) {
   storage_ = nullptr;
   {
     firebase::storage::Storage* storage_explicit =
-        firebase::storage::Storage::GetInstance(app_, default_url.c_str(),
+        firebase::storage::Storage::GetInstance(shared_app_, default_url.c_str(),
                                                 nullptr);
     ASSERT_NE(storage_explicit, nullptr);
     EXPECT_EQ(storage_explicit->url(), default_url);
@@ -295,7 +357,7 @@ TEST_F(FirebaseStorageTest, TestStorageUrl) {
   }
   {
     firebase::storage::Storage* storage_implicit =
-        firebase::storage::Storage::GetInstance(app_, nullptr, nullptr);
+        firebase::storage::Storage::GetInstance(shared_app_, nullptr, nullptr);
     ASSERT_NE(storage_implicit, nullptr);
     EXPECT_EQ(storage_implicit->url(), "");
     delete storage_implicit;
@@ -608,15 +670,15 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     // operation.
     ASSERT_TRUE(controller.is_valid());
 
-    while(controller.bytes_transferred() == 0) 
+    while(controller.bytes_transferred() == 0)
     {
 #if FIREBASE_PLATFORM_DESKTOP
       ProcessEvents(1);
 #else // FIREBASE_PLATFORM_MOBILE
-      ProcessEvents(500);    
+      ProcessEvents(500);
 #endif
     }
-    
+
     // After waiting a moment for the operation to start (above), pause the
     // operation and verify it was successfully paused when the future
     // completes.
@@ -665,7 +727,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
         ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
     ASSERT_TRUE(controller.is_valid());
 
-    while(controller.bytes_transferred() == 0) 
+    while(controller.bytes_transferred() == 0)
     {
       ProcessEvents(1);
     }
@@ -722,12 +784,12 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     firebase::Future<size_t> future =
         ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
     ASSERT_TRUE(controller.is_valid());
-    
-    while(controller.bytes_transferred() == 0) 
+
+    while(controller.bytes_transferred() == 0)
     {
       ProcessEvents(1);
     }
-    
+
     LogDebug("Cancelling download.");
     EXPECT_TRUE(controller.Cancel());
     WaitForCompletion(future, "GetBytes", firebase::storage::kErrorCancelled);
@@ -753,11 +815,11 @@ TEST_F(FirebaseStorageTest, TestLargeFileCancelUpload) {
     // operation.
     ASSERT_TRUE(controller.is_valid());
 
-    while(controller.bytes_transferred() == 0) 
+    while(controller.bytes_transferred() == 0)
     {
       ProcessEvents(1);
     }
-    
+
     LogDebug("Cancelling upload.");
     // Cancel the operation and verify it was successfully canceled.
     EXPECT_TRUE(controller.Cancel());
@@ -806,10 +868,17 @@ TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingApp) {
 
   ASSERT_TRUE(ref.is_valid());
   ASSERT_TRUE(metadata.is_valid());
-  delete app_;
-  app_ = nullptr;
+
+  delete shared_app_;
+  shared_app_ = nullptr;
+
   EXPECT_FALSE(ref.is_valid());
   EXPECT_FALSE(metadata.is_valid());
+
+  // Fully shut down App and Auth so they can be reinitialized.
+  TerminateAppAndAuth();
+  // Reinitialize App and Auth.
+  InitializeAppAndAuth();
 }
 
 }  // namespace firebase_testapp_automated

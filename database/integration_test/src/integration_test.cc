@@ -123,26 +123,26 @@ class FirebaseDatabaseTest : public FirebaseTest {
   // Called once after all tests.
   static void TearDownTestSuite();
 
-  // Initialize Firebase App and Firebase Auth.
-  static void InitializeAppAndAuth();
-  // Shut down Firebase App and Firebase Auth.
-  static void TerminateAppAndAuth();
-
   // Called at the start of each test.
   void SetUp() override;
   // Called after each test.
   void TearDown() override;
 
  protected:
-  // Initialize Firebase Database.
-  void InitializeDatabase();
-  // Shut down Firebase Database.
-  void TerminateDatabase();
+  // Initialize Firebase App and Firebase Auth.
+  static void InitializeAppAndAuth();
+  // Shut down Firebase App and Firebase Auth.
+  static void TerminateAppAndAuth();
 
   // Sign in an anonymous user.
   static void SignIn();
   // Sign out the current user, if applicable.
   static void SignOut();
+
+  // Initialize Firebase Database.
+  void InitializeDatabase();
+  // Shut down Firebase Database.
+  void TerminateDatabase();
 
   firebase::database::DatabaseReference CreateWorkingPath(
       bool suppress_cleanup = false);
@@ -247,10 +247,6 @@ FirebaseDatabaseTest::~FirebaseDatabaseTest() {
 
 void FirebaseDatabaseTest::SetUp() {
   FirebaseTest::SetUp();
-  if (shared_app_ == nullptr || shared_auth_ == nullptr) {
-    LogDebug("Reinitializing App and Auth...");
-    InitializeAppAndAuth();
-  }
   InitializeDatabase();
 }
 
@@ -1164,8 +1160,10 @@ TEST_F(FirebaseDatabaseTest, TestInvalidatingReferencesWhenDeletingApp) {
   EXPECT_EQ(get_future.status(), firebase::kFutureStatusInvalid);
   EXPECT_EQ(delete_future.status(), firebase::kFutureStatusInvalid);
 
-  // Fully shut down App and Auth so they will be reinitialized.
+  // Fully shut down App and Auth so they can be reinitialized.
   TerminateAppAndAuth();
+  // Reinitialize App and Auth.
+  InitializeAppAndAuth();
 }
 
 TEST_F(FirebaseDatabaseTest, TestInfoConnected) {
