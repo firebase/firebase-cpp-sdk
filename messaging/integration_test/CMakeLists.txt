@@ -203,11 +203,11 @@ else()
   # possible to create the default Firebase app.
   set(FOUND_JSON_FILE FALSE)
   foreach(config "google-services-desktop.json" "google-services.json")
-    if (EXISTS ${config})
+    if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/${config}")
       add_custom_command(
         TARGET ${integration_test_target_name} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy
-          ${config} $<TARGET_FILE_DIR:${integration_test_target_name}>)
+          "${CMAKE_CURRENT_LIST_DIR}/${config}" $<TARGET_FILE_DIR:${integration_test_target_name}>)
       set(FOUND_JSON_FILE TRUE)
       break()
     endif()
