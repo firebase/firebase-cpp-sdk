@@ -135,6 +135,21 @@ jobs:
         run: |
           choco install openssl -r
 
+      - name: Install OpenSSL (MacOS)
+        if: matrix.target_platform == 'Desktop' &&
+            matrix.ssl_variant == 'openssl' &&
+            startsWith(matrix.os, 'macos')
+        run: |
+          brew install openssl
+
+      - name: Install OpenSSL (MacOS)
+        if: matrix.target_platform == 'Desktop' &&
+            matrix.ssl_variant == 'openssl' &&
+            startsWith(matrix.os, 'ubuntu')
+        run: |
+          sudo apt install openssl
+
+
       - name: Build integration tests
         shell: bash
         run: |
