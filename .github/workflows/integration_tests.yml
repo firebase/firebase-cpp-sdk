@@ -128,6 +128,13 @@ jobs:
           pip install -r scripts/gha/requirements.txt
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
 
+      - name: Install OpenSSL (windows)
+        if: matrix.target_platform == 'Desktop' &&
+            matrix.ssl_variant == 'openssl' &&
+            startsWith(matrix.os, 'windows')
+        run: |
+          choco install openssl -r
+
       - name: Build integration tests
         shell: bash
         run: |
@@ -150,7 +157,7 @@ jobs:
         run: echo "CLOUDSDK_PYTHON=${{env.pythonLocation}}\python.exe" >> $GITHUB_ENV
       - name: Install Cloud SDK
         if: ${{ !cancelled() }}
-        uses: GoogleCloudPlatform/github-actions/setup-gcloud@master
+        uses: google-github-actions/setup-gcloud@master
       - name: Upload Desktop Artifacts to GCS
         if: matrix.target_platform == 'Desktop' && !cancelled()
         run: |
