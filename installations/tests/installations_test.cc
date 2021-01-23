@@ -104,21 +104,21 @@ class InstallationsTest : public ::testing::Test {
 
 // Check SetUp and TearDown working well.
 TEST_F(InstallationsTest, InitializeAndTerminate) {
-  auto installations =
-      absl::WrapUnique(Installations::GetInstance(firebase_app_));
+  auto* installations = Installations::GetInstance(firebase_app_);
   EXPECT_THAT(installations, NotNull());
+  delete installations;
 }
 
 TEST_F(InstallationsTest, InitializeTwice) {
-  auto installations1 =
-      absl::WrapUnique(Installations::GetInstance(firebase_app_));
+  auto* installations1 = Installations::GetInstance(firebase_app_);
   EXPECT_THAT(installations1, NotNull());
 
-  auto installations2 =
-      absl::WrapUnique(Installations::GetInstance(firebase_app_));
+  auto* installations2 = Installations::GetInstance(firebase_app_);
   EXPECT_THAT(installations2, NotNull());
 
   EXPECT_EQ(installations1, installations2);
+  delete installations1;
+  delete installations2;
 }
 
 TEST_F(InstallationsTest, GetId) {

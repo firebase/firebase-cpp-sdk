@@ -41,13 +41,6 @@ else()
       "${desktop_SRCS}")
 endif()
 
-if(ANDROID OR IOS OR use_stub)
-  set(additional_link_LIB)
-else()
-  set(additional_link_LIB
-      firebase_installations_desktop_impl)
-endif()
-
 add_library(firebase_installations STATIC
     ${common_SRCS}
     ${installations_platform_SRCS})
@@ -58,8 +51,6 @@ set_property(TARGET firebase_installations PROPERTY FOLDER "Firebase Cpp")
 target_link_libraries(firebase_installations
   PUBLIC
     firebase_app
-  PRIVATE
-    ${additional_link_LIB}
 )
 # Public headers all refer to each other relative to the src/include directory,
 # while private headers are relative to the entire C++ SDK directory.
