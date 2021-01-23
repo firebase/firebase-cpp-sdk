@@ -118,7 +118,6 @@ TEST_F(InstallationsTest, InitializeTwice) {
 
   EXPECT_EQ(installations1, installations2);
   delete installations1;
-  delete installations2;
 }
 
 TEST_F(InstallationsTest, GetId) {
@@ -140,7 +139,7 @@ TEST_F(InstallationsTest, GetToken) {
 TEST_F(InstallationsTest, GetTokenForceRefresh) {
   auto* installations = Installations::GetInstance(firebase_app_);
   const std::string expected_value("FakeTokenForceRefresh");
-  CheckSuccessWithValue(installations->GetToken(false), expected_value);
+  CheckSuccessWithValue(installations->GetToken(true), expected_value);
   CheckSuccessWithValue(installations->GetTokenLastResult(), expected_value);
   delete installations;
 }

@@ -50,7 +50,7 @@ Future<std::string> InstallationsInternal::GetToken(bool forceRefresh) {
 
   future_impl_.CompleteWithResult(
       handle, kInstallationsErrorNone, "",
-      forceRefresh  ? std::string("FakeToken2")  : std::string("FakeToken"));
+      forceRefresh ? std::string("FakeTokenForceRefresh") : std::string("FakeToken"));
 
   return MakeFuture<std::string>(&future_impl_, handle);
 }
