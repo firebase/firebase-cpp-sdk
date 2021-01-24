@@ -16,5 +16,5 @@
 */
 -->
 <resources>
-  <string name="app_name" description="Integration Test app name" translatable="false">Firebase Instance ID Integration Test</string>
+  <string name="app_name" description="Integration Test app name" translatable="false">Firebase Installations Integration Test</string>
 </resources>

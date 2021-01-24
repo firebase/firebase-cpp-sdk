@@ -498,6 +498,8 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/common.h)
   set(instance_id_HDRS
     ${FIREBASE_SOURCE_DIR}/instance_id/src/include/firebase/instance_id.h)
+  set(installations_HDRS
+    ${FIREBASE_SOURCE_DIR}/installations/src/include/firebase/installations.h)
   set(messaging_HDRS
     ${FIREBASE_SOURCE_DIR}/messaging/src/include/firebase/messaging.h)
   set(remote_config_HDRS

@@ -49,7 +49,7 @@ android {
   }
 
   defaultConfig {
-    applicationId 'com.google.firebase.instanceid.testapp'
+    applicationId 'com.google.firebase.fis.testapp'
     minSdkVersion 16
     targetSdkVersion 28
     versionCode 1
