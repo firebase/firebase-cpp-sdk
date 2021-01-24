@@ -1,4 +1,4 @@
-// Copyright 2019 Google Inc. All rights reserved.
+// Copyright 2020 Google Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,7 +22,7 @@
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
-#include "firebase/instance_id.h"
+#include "firebase/installations.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
 
@@ -45,41 +45,41 @@ using app_framework::LogDebug;
 using app_framework::ProcessEvents;
 using firebase_test_framework::FirebaseTest;
 
-class FirebaseInstanceIdTest : public FirebaseTest {
+class FirebaseInstallationsTest : public FirebaseTest {
  public:
-  FirebaseInstanceIdTest();
-  ~FirebaseInstanceIdTest() override;
+  FirebaseInstallationsTest();
+  ~FirebaseInstallationsTest() override;
 
   void SetUp() override;
   void TearDown() override;
 
  protected:
-  // Initialize Firebase App and Firebase IID.
+  // Initialize Firebase App and Firebase FIS.
   void Initialize();
-  // Shut down Firebase IID and Firebase App.
+  // Shut down Firebase FIS and Firebase App.
   void Terminate();
 
   bool initialized_;
-  firebase::instance_id::InstanceId* instance_id_;
+  firebase::installations::Installations* installations_;
 };
 
-FirebaseInstanceIdTest::FirebaseInstanceIdTest()
-    : initialized_(false), instance_id_(nullptr) {
+FirebaseInstallationsTest::FirebaseInstallationsTest()
+    : initialized_(false), installations_(nullptr) {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
 
-FirebaseInstanceIdTest::~FirebaseInstanceIdTest() {
+FirebaseInstallationsTest::~FirebaseInstallationsTest() {
   // Must be cleaned up on exit.
   assert(app_ == nullptr);
-  assert(instance_id_ == nullptr);
+  assert(installations_ == nullptr);
 }
 
-void FirebaseInstanceIdTest::SetUp() {
+void FirebaseInstallationsTest::SetUp() {
   FirebaseTest::SetUp();
   Initialize();
 }
 
-void FirebaseInstanceIdTest::TearDown() {
+void FirebaseInstallationsTest::TearDown() {
   // Delete the shared path, if there is one.
   if (initialized_) {
     Terminate();
@@ -87,23 +87,22 @@ void FirebaseInstanceIdTest::TearDown() {
   FirebaseTest::TearDown();
 }
 
-void FirebaseInstanceIdTest::Initialize() {
+void FirebaseInstallationsTest::Initialize() {
   if (initialized_) return;
 
   InitializeApp();
 
-  LogDebug("Initializing Firebase Instance ID.");
+  LogDebug("Initializing Firebase Installations.");
 
   ::firebase::ModuleInitializer initializer;
   initializer.Initialize(
-      app_, &instance_id_, [](::firebase::App* app, void* target) {
-        LogDebug("Try to initialize Firebase Instance ID");
-        firebase::InitResult result;
-        firebase::instance_id::InstanceId** iid_ptr =
-            reinterpret_cast<firebase::instance_id::InstanceId**>(target);
-        *iid_ptr =
-            firebase::instance_id::InstanceId::GetInstanceId(app, &result);
-        return result;
+      app_, &installations_, [](::firebase::App* app, void* target) {
+        LogDebug("Try to initialize Firebase Installations");
+        firebase::installations::Installations** installations_ptr =
+            reinterpret_cast<firebase::installations::Installations**>(target);
+        *installations_ptr =
+            firebase::installations::Installations::GetInstance(app);
+        return firebase::kInitResultSuccess;
       });
 
   FirebaseTest::WaitForCompletion(initializer.InitializeLastResult(),
@@ -112,18 +111,18 @@ void FirebaseInstanceIdTest::Initialize() {
   ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
       << initializer.InitializeLastResult().error_message();
 
-  LogDebug("Successfully initialized Firebase Instance ID.");
+  LogDebug("Successfully initialized Firebase Installations.");
 
   initialized_ = true;
 }
 
-void FirebaseInstanceIdTest::Terminate() {
+void FirebaseInstallationsTest::Terminate() {
   if (!initialized_) return;
 
-  if (instance_id_) {
-    LogDebug("Shutdown the Instance ID library.");
-    delete instance_id_;
-    instance_id_ = nullptr;
+  if (installations_) {
+    LogDebug("Shutdown the Installations library.");
+    delete installations_;
+    installations_ = nullptr;
   }
 
   TerminateApp();
@@ -133,37 +132,37 @@ void FirebaseInstanceIdTest::Terminate() {
   ProcessEvents(100);
 }
 
-TEST_F(FirebaseInstanceIdTest, TestInitializeAndTerminate) {
+TEST_F(FirebaseInstallationsTest, TestInitializeAndTerminate) {
   // Already tested via SetUp() and TearDown().
 }
 
-TEST_F(FirebaseInstanceIdTest, TestCanGetId) {
-  firebase::Future<std::string> id = instance_id_->GetId();
+TEST_F(FirebaseInstallationsTest, TestCanGetId) {
+  firebase::Future<std::string> id = installations_->GetId();
   WaitForCompletion(id, "GetId");
   EXPECT_NE(*id.result(), "");
 }
 
-TEST_F(FirebaseInstanceIdTest, TestGettingIdTwiceMatches) {
-  firebase::Future<std::string> id = instance_id_->GetId();
+TEST_F(FirebaseInstallationsTest, TestGettingIdTwiceMatches) {
+  firebase::Future<std::string> id = installations_->GetId();
   WaitForCompletion(id, "GetId");
   EXPECT_NE(*id.result(), "");
   std::string first_id = *id.result();
-  id = instance_id_->GetId();
+  id = installations_->GetId();
   WaitForCompletion(id, "GetId 2");
   EXPECT_EQ(*id.result(), first_id);
 }
 
-TEST_F(FirebaseInstanceIdTest, TestDeleteIdGivesNewIdNextTime) {
-  firebase::Future<std::string> id = instance_id_->GetId();
+TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewIdNextTime) {
+  firebase::Future<std::string> id = installations_->GetId();
   WaitForCompletion(id, "GetId");
   EXPECT_NE(*id.result(), "");
   std::string first_id = *id.result();
 
-  firebase::Future<void> del = instance_id_->DeleteId();
-  WaitForCompletion(del, "DeleteId");
+  firebase::Future<void> del = installations_->Delete();
+  WaitForCompletion(del, "Delete");
 
-  // Ensure that we now get a different IID.
-  id = instance_id_->GetId();
+  // Ensure that we now get a different installations id.
+  id = installations_->GetId();
   WaitForCompletion(id, "GetId 2");
   EXPECT_NE(*id.result(), "");
 #if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
@@ -174,34 +173,33 @@ TEST_F(FirebaseInstanceIdTest, TestDeleteIdGivesNewIdNextTime) {
         // TARGET_OS_IPHONE)
 }
 
-TEST_F(FirebaseInstanceIdTest, TestCanGetToken) {
-  firebase::Future<std::string> token = instance_id_->GetToken();
+TEST_F(FirebaseInstallationsTest, TestCanGetToken) {
+  firebase::Future<std::string> token = installations_->GetToken(true);
   WaitForCompletion(token, "GetToken");
   EXPECT_NE(*token.result(), "");
 }
 
-TEST_F(FirebaseInstanceIdTest, TestGettingTokenTwiceMatches) {
-  firebase::Future<std::string> token = instance_id_->GetToken();
+TEST_F(FirebaseInstallationsTest, TestGettingTokenTwiceMatches) {
+  firebase::Future<std::string> token = installations_->GetToken(false);
   WaitForCompletion(token, "GetToken");
   EXPECT_NE(*token.result(), "");
   std::string first_token = *token.result();
-  token = instance_id_->GetToken();
+  token = installations_->GetToken(false);
   WaitForCompletion(token, "GetToken 2");
   EXPECT_EQ(*token.result(), first_token);
 }
 
-// Test disabled due to flakiness (b/143697451).
-TEST_F(FirebaseInstanceIdTest, DISABLED_TestDeleteTokenGivesNewTokenNextTime) {
-  firebase::Future<std::string> token = instance_id_->GetToken();
+TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewTokenNextTime) {
+  firebase::Future<std::string> token = installations_->GetToken(false);
   WaitForCompletion(token, "GetToken");
   EXPECT_NE(*token.result(), "");
   std::string first_token = *token.result();
 
-  firebase::Future<void> del = instance_id_->DeleteToken();
-  WaitForCompletion(del, "DeleteToken");
+  firebase::Future<void> del = installations_->Delete();
+  WaitForCompletion(del, "Delete");
 
-  // Ensure that we now get a different IID.
-  token = instance_id_->GetToken();
+  // Ensure that we now get a different installations token.
+  token = installations_->GetToken(false);
   WaitForCompletion(token, "GetToken 2");
   EXPECT_NE(*token.result(), "");
 #if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
@@ -212,13 +210,23 @@ TEST_F(FirebaseInstanceIdTest, DISABLED_TestDeleteTokenGivesNewTokenNextTime) {
         // TARGET_OS_IPHONE)
 }
 
-TEST_F(FirebaseInstanceIdTest, TestCanGetIdAndTokenTogether) {
-  firebase::Future<std::string> id = instance_id_->GetId();
-  firebase::Future<std::string> token = instance_id_->GetToken();
+TEST_F(FirebaseInstallationsTest, TestCanGetIdAndTokenTogether) {
+  firebase::Future<std::string> id = installations_->GetId();
+  firebase::Future<std::string> token = installations_->GetToken(false);
   WaitForCompletion(token, "GetToken");
   WaitForCompletion(id, "GetId");
   EXPECT_NE(*id.result(), "");
   EXPECT_NE(*token.result(), "");
+}
+
+TEST_F(FirebaseInstallationsTest, TestGetTokenForceRefresh) {
+  firebase::Future<std::string> token = installations_->GetToken(false);
+  WaitForCompletion(token, "GetToken");
+  EXPECT_NE(*token.result(), "");
+  std::string first_token = *token.result();
+  token = installations_->GetToken(true);
+  WaitForCompletion(token, "GetToken 2");
+  EXPECT_NE(*token.result(), first_token);
 }
 
 }  // namespace firebase_testapp_automated
