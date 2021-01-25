@@ -522,6 +522,7 @@ if (IOS)
     ${firestore_HDRS}
     ${functions_HDRS}
     ${instance_id_HDRS}
+    ${installations_HDRS}
     ${messaging_HDRS}
     ${remote_config_HDRS}
     ${storage_HDRS})
