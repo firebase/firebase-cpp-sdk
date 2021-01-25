@@ -68,6 +68,9 @@ class Dependencies {
   def getFunctions() {
     libSet.add('functions')
   }
+  def getInstallations() {
+    libSet.add('installations')
+  }
   def getInstanceId() {
     libSet.add('instance_id')
   }
