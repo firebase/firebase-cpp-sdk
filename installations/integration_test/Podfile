@@ -4,8 +4,8 @@ platform :ios, '8.0'
 # Firebase Instance ID test application.
 
 target 'integration_test' do
-  pod 'Firebase/Analytics', '6.24.0'
-  pod 'FirebaseInstallations', '6.24.0'
+  pod 'Firebase/Analytics', '7.0.0'
+  pod 'FirebaseInstallations', '7.0.0'
 end
 
 post_install do |installer|
