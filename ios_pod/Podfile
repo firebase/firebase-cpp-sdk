@@ -11,6 +11,7 @@ target 'GetPods' do
   pod 'Firebase/DynamicLinks', '7.0.0'
   pod 'Firebase/Firestore', '7.0.0'
   pod 'Firebase/Functions', '7.0.0'
+  pod 'Firebase/Installtions', '7.0.0'
   pod 'FirebaseInstanceID', '7.0.0'
   pod 'Firebase/Messaging', '7.0.0'
   pod 'Firebase/RemoteConfig', '7.0.0'
