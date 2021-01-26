@@ -12,12 +12,15 @@
 #include "firestore/src/android/exception_android.h"
 #endif  // defined(__ANDROID__)
 
+#include "app/memory/unique_ptr.h"
+#include "app/src/log.h"
 #include "auth/src/include/firebase/auth.h"
 #include "firestore/src/tests/firestore_integration_test.h"
 #include "firestore/src/tests/util/event_accumulator.h"
 #include "firestore/src/tests/util/future_test_util.h"
 #include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
+#include "Firestore/core/src/util/autoid.h"
 
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRDatabaseTests.mm
@@ -1466,6 +1469,51 @@ TEST_F(FirestoreIntegrationTest, ClearPersistenceWhileRunningFails) {
 TEST_F(FirestoreIntegrationTest, DomainObjectsReferToSameFirestoreInstance) {
   EXPECT_EQ(TestFirestore(), TestFirestore()->Document("foo/bar").firestore());
   EXPECT_EQ(TestFirestore(), TestFirestore()->Collection("foo").firestore());
+}
+
+TEST_F(FirestoreIntegrationTest, AuthWorks) {
+  // This test only works locally or on guitar because it depends on a live
+  // Auth backend.
+  if (getenv("UNITTEST_ON_FORGE") != nullptr) {
+    LogWarning("Skipped AuthWorks test: incompatible with Forge");
+    return;
+  }
+
+  // This app instance is managed by the text fixture.
+  App* app = GetApp();
+  EXPECT_NE(app, nullptr);
+
+  InitResult init_result;
+  auto auth = UniquePtr<Auth>(Auth::GetAuth(app, &init_result));
+#if defined(__ANDROID__)
+  if (init_result != kInitResultSuccess) {
+    // On Android, it's possible for the Auth library built at head to be too
+    // new for the version of Play Services available in the Android emulator.
+    // In this case, Auth will fail to initialize. Meanwhile, there's no simple
+    // way to detect if the Android app is running in an emulator running on
+    // Forge. Consequently, just punt if Auth fails to initialize.
+    LogWarning("Skipped AuthWorks test: Auth missing or failed to initialize");
+    return;
+  }
+#else
+  ASSERT_EQ(init_result, kInitResultSuccess);
+#endif
+
+  auto db = UniquePtr<Firestore>(Firestore::GetInstance(app, &init_result));
+  EXPECT_EQ(init_result, kInitResultSuccess);
+
+  // Performing a write will initialize Firestore's worker and get the current
+  // user and token from Auth.
+  DocumentReference doc = db->Collection(util::CreateAutoId()).Document();
+  WriteDocument(doc, MapFieldValue{{"foo", FieldValue::Integer(42)}});
+
+  // Signing in should trigger an AuthStateListener event.
+  auto signin = auth->SignInAnonymously();
+  Await(signin);
+  FailIfUnsuccessful("SignInAnonymously", signin);
+
+  // Writing again will trigger another pull of the token.
+  WriteDocument(doc, MapFieldValue{{"foo", FieldValue::Integer(43)}});
 }
 
 #endif  // defined(FIRESTORE_STUB_BUILD)

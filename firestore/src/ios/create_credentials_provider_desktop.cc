@@ -10,8 +10,7 @@ using auth::CredentialsProvider;
 using firebase::auth::Auth;
 
 std::unique_ptr<CredentialsProvider> CreateCredentialsProvider(App& app) {
-  Auth* auth = Auth::GetAuth(&app);
-  return absl::make_unique<FirebaseCppCredentialsProvider>(auth);
+  return absl::make_unique<FirebaseCppCredentialsProvider>(app);
 }
 
 }  // namespace firestore
