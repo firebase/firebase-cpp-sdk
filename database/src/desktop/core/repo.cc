@@ -870,6 +870,7 @@ void Repo::SendTransactionQueue(const std::vector<TransactionDataPtr>& queue,
                     path.c_str(), static_cast<int>(queue.size()));
 
   std::vector<WriteId> sets_to_ignore;
+  sets_to_ignore.reserve(queue.size());
   for (const TransactionDataPtr& transaction : queue) {
     sets_to_ignore.push_back(transaction->current_write_id);
   }
@@ -1012,6 +1013,7 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
   std::vector<FutureToComplete> futures_to_complete;
 
   std::vector<WriteId> sets_to_ignore;
+  sets_to_ignore.reserve(queue.size());
   for (const TransactionDataPtr& transaction : queue) {
     sets_to_ignore.push_back(transaction->current_write_id);
   }
