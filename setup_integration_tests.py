@@ -39,6 +39,7 @@ DEFAULT_DESTINATIONS = [
     'dynamic_links/integration_test',
     'firestore/integration_test',
     'functions/integration_test',
+    'installations/integration_test',
     'instance_id/integration_test',
     'messaging/integration_test',
     'remote_config/integration_test',

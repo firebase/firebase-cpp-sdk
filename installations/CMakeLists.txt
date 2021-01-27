@@ -86,6 +86,12 @@ elseif(IOS)
       FirebaseCore
       FirebaseInstallations
   )
+
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_installations PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)
