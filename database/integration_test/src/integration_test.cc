@@ -1189,6 +1189,8 @@ TEST_F(FirebaseDatabaseTest, TestInfoConnected) {
   }
   LogDebug("Disconnecting...");
   database_->GoOffline();
+  // Pause a moment to give the SDK time to realize we are disconnected.
+  ProcessEvents(1000);
   {
     auto disconnected = info.GetValue();
     WaitForCompletion(disconnected, "GetValue 3");
@@ -1196,9 +1198,13 @@ TEST_F(FirebaseDatabaseTest, TestInfoConnected) {
   }
   LogDebug("Reconnecting...");
   database_->GoOnline();
+  // Pause a moment to give the SDK time to realize we are reconnected.
   ProcessEvents(1000);
   // Force getting a value so that we reconnect to the database.
   WaitForCompletion(ref.GetValue(), "GetValue 4 [ignored]");
+  // Pause another moment to REALLY give the SDK time to realize we are
+  // reconnected.
+  ProcessEvents(1000);
   {
     auto reconnected = info.GetValue();
     WaitForCompletion(reconnected, "GetValue 5");
