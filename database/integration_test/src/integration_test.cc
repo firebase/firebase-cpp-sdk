@@ -137,6 +137,8 @@ class FirebaseDatabaseTest : public FirebaseTest {
   // Sign in an anonymous user.
   static void SignIn();
   // Sign out the current user, if applicable.
+  // If this is an anonymous user, deletes the user instead,
+  // to avoid polluting the user list.
   static void SignOut();
 
   // Initialize Firebase Database.
@@ -341,12 +343,19 @@ void FirebaseDatabaseTest::SignOut() {
     // Already signed out.
     return;
   }
+  if (shared_auth_->current_user()->is_anonymous()) {
+    // If signed in anonymously, delete the anonymous user.
+    WaitForCompletion(shared_auth_->current_user()->Delete(), "DeleteAnonymousUser");
+  }
+  else {
+    // If not signed in anonymously (e.g. if the tests were modified to sign in
+    // as an actual user), just sign out normally.
+    shared_auth_->SignOut();
 
-  shared_auth_->SignOut();
-
-  // Wait for the sign-out to finish.
-  while (shared_auth_->current_user() != nullptr) {
-    if (ProcessEvents(100)) break;
+    // Wait for the sign-out to finish.
+    while (shared_auth_->current_user() != nullptr) {
+      if (ProcessEvents(100)) break;
+    }
   }
   EXPECT_EQ(shared_auth_->current_user(), nullptr);
 }
@@ -1180,6 +1189,8 @@ TEST_F(FirebaseDatabaseTest, TestInfoConnected) {
   }
   LogDebug("Disconnecting...");
   database_->GoOffline();
+  // Pause a moment to give the SDK time to realize we are disconnected.
+  ProcessEvents(1000);
   {
     auto disconnected = info.GetValue();
     WaitForCompletion(disconnected, "GetValue 3");
@@ -1187,9 +1198,13 @@ TEST_F(FirebaseDatabaseTest, TestInfoConnected) {
   }
   LogDebug("Reconnecting...");
   database_->GoOnline();
+  // Pause a moment to give the SDK time to realize we are reconnected.
   ProcessEvents(1000);
   // Force getting a value so that we reconnect to the database.
   WaitForCompletion(ref.GetValue(), "GetValue 4 [ignored]");
+  // Pause another moment to REALLY give the SDK time to realize we are
+  // reconnected.
+  ProcessEvents(1000);
   {
     auto reconnected = info.GetValue();
     WaitForCompletion(reconnected, "GetValue 5");
