@@ -87,6 +87,18 @@
       "provision": "Firebase_Dev_Wildcard.mobileprovision"
     },
     {
+      "name": "installations",
+      "full_name": "FirebaseInstallations",
+      "bundle_id": "com.google.firebase.fis.testapp",
+      "ios_target": "integration_test",
+      "testapp_path": "installations/integration_test",
+      "frameworks": [
+        "firebase_installations.framework",
+        "firebase.framework"
+      ],
+      "provision": "Firebase_Dev_Wildcard.mobileprovision"
+    },
+    {
       "name": "instance_id",
       "full_name": "FirebaseInstanceId",
       "bundle_id": "com.google.firebase.instanceid.testapp",
