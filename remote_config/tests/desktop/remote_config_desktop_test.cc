@@ -26,6 +26,7 @@
 #include "remote_config/src/desktop/config_data.h"
 #include "remote_config/src/desktop/file_manager.h"
 #include "remote_config/src/desktop/metadata.h"
+#include "absl/flags/flag.h"
 
 namespace firebase {
 namespace remote_config {
@@ -38,7 +39,7 @@ class RemoteConfigDesktopTest : public ::testing::Test {
 
     FutureData::Create();
     file_manager_ = new RemoteConfigFileManager(
-        file::JoinPath(FLAGS_test_tmpdir, "remote_config_data"));
+        file::JoinPath(absl::GetFlag(FLAGS_test_tmpdir), "remote_config_data"));
     SetUpInstance();
   }
 
@@ -108,8 +109,8 @@ class RemoteConfigDesktopTest : public ::testing::Test {
 // Can't load `configs_` from file without permissions.
 TEST_F(RemoteConfigDesktopTest, FailedLoadFromFile) {
   RemoteConfigInternal instance(
-      *app_, RemoteConfigFileManager(
-                 file::JoinPath(FLAGS_test_tmpdir, "not_found_file")));
+      *app_, RemoteConfigFileManager(file::JoinPath(
+                 absl::GetFlag(FLAGS_test_tmpdir), "not_found_file")));
   EXPECT_EQ(LayeredConfigs(), instance.configs_);
 }
 

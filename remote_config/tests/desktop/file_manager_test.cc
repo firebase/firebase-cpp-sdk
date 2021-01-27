@@ -12,16 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "remote_config/src/desktop/file_manager.h"
+
 #include <map>
 #include <string>
 
-#include "testing/base/public/googletest.h"
-#include "gtest/gtest.h"
-
 #include "file/base/path.h"
 #include "remote_config/src/desktop/config_data.h"
-#include "remote_config/src/desktop/file_manager.h"
 #include "remote_config/src/desktop/metadata.h"
+#include "testing/base/public/googletest.h"
+#include "gtest/gtest.h"
+#include "absl/flags/flag.h"
 
 namespace firebase {
 namespace remote_config {
@@ -29,7 +30,7 @@ namespace internal {
 
 TEST(RemoteConfigFileManagerTest, SaveAndLoadSuccess) {
   std::string file_path =
-      file::JoinPath(FLAGS_test_tmpdir, "remote_config_data");
+      file::JoinPath(absl::GetFlag(FLAGS_test_tmpdir), "remote_config_data");
 
   RemoteConfigFileManager file_manager(file_path);
   NamespacedConfigData fetched(
