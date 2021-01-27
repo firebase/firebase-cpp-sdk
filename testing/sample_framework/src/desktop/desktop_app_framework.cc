@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cstring>
 #include <iostream>
+#include <mutex>
 #include <string>
 #include <thread>  // NOLINT
 #include <vector>
@@ -95,7 +96,7 @@ std::string PathForResource() {
   return std::string();
 }
 void LogMessageV(bool suppress, const char* format, va_list list) {
-  // Save the log to the g_full_logs list regardless of whether it should be
+  // Save the log to the Full Logs list regardless of whether it should be
   // suppressed.
   static const int kLineBufferSize = 1024;
   char buffer[kLineBufferSize + 2];
@@ -122,20 +123,27 @@ void LogMessage(const char* format, ...) {
 
 static bool g_save_full_log = false;
 static std::vector<std::string> g_full_logs;  // NOLINT
+static std::mutex g_full_log_mutex;
 
-void AddToFullLog(const char* str) { g_full_logs.push_back(std::string(str)); }
+void AddToFullLog(const char* str) {
+  std::lock_guard<std::mutex> guard(g_full_log_mutex);
+  g_full_logs.push_back(std::string(str)); }
 
 bool GetPreserveFullLog() { return g_save_full_log; }
 void SetPreserveFullLog(bool b) { g_save_full_log = b; }
 
-void ClearFullLog() { g_full_logs.clear(); }
+void ClearFullLog() {
+  std::lock_guard<std::mutex> guard(g_full_log_mutex);
+  g_full_logs.clear();
+}
 
 void OutputFullLog() {
+  std::lock_guard<std::mutex> guard(g_full_log_mutex);
   for (int i = 0; i < g_full_logs.size(); ++i) {
     fputs(g_full_logs[i].c_str(), stdout);
   }
   fflush(stdout);
-  ClearFullLog();
+  g_full_logs.clear();
 }
 
 WindowContext GetWindowContext() { return nullptr; }
