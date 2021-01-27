@@ -76,6 +76,8 @@ class FirebaseFirestoreBasicTest : public FirebaseTest {
   // Sign in an anonymous user.
   static void SignIn();
   // Sign out the current user, if applicable.
+  // If this is an anonymous user, deletes the user instead,
+  // to avoid polluting the user list.
   static void SignOut();
 
   // Initialize Firestore.
@@ -282,11 +284,19 @@ void FirebaseFirestoreBasicTest::SignOut() {
     return;
   }
 
-  shared_auth_->SignOut();
+  if (shared_auth_->current_user()->is_anonymous()) {
+    // If signed in anonymously, delete the anonymous user.
+    WaitForCompletion(shared_auth_->current_user()->Delete(), "DeleteAnonymousUser");
+  }
+  else {
+    // If not signed in anonymously (e.g. if the tests were modified to sign in
+    // as an actual user), just sign out normally.
+    shared_auth_->SignOut();
 
-  // Wait for the sign-out to finish.
-  while (shared_auth_->current_user() != nullptr) {
-    if (ProcessEvents(100)) break;
+    // Wait for the sign-out to finish.
+    while (shared_auth_->current_user() != nullptr) {
+      if (ProcessEvents(100)) break;
+    }
   }
   EXPECT_EQ(shared_auth_->current_user(), nullptr);
 }
