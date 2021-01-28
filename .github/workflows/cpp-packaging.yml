@@ -664,7 +664,7 @@ jobs:
             target_platform: iOS
       fail-fast: false
     env:
-      apis: admob,analytics,auth,database,dynamic_links,firestore,functions,instance_id,messaging,remote_config,storage
+      apis: admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage
       android_device: flame
       android_api: 29
       ios_device: iphone8
