@@ -14,6 +14,8 @@
 
 #include "remote_config/src/include/firebase/remote_config.h"
 
+#include <cstdint>
+
 #include "app/src/cleanup_notifier.h"
 #include "app/src/mutex.h"
 #include "include/firebase/remote_config.h"
@@ -126,7 +128,7 @@ Future<bool> RemoteConfig::FetchAndActivateLastResult() {
   return internal_->FetchAndActivateLastResult();
 }
 
-Future<void> RemoteConfig::Fetch() { return Fetch(kDefaultCacheExpiration); }
+Future<void> RemoteConfig::Fetch() { return Fetch(GetConfigFetchInterval()); }
 
 Future<void> RemoteConfig::Fetch(uint64_t cache_expiration_in_seconds) {
   return internal_->Fetch(cache_expiration_in_seconds);
@@ -158,6 +160,10 @@ Future<void> RemoteConfig::SetDefaultsLastResult() {
 
 Future<void> RemoteConfig::SetConfigSettings(ConfigSettings settings) {
   return internal_->SetConfigSettings(settings);
+}
+
+ConfigSettings RemoteConfig::GetConfigSettings() {
+  return internal_->GetConfigSettings();
 }
 
 Future<void> RemoteConfig::SetConfigSettingsLastResult() {
@@ -219,6 +225,15 @@ std::map<std::string, Variant> RemoteConfig::GetAll() {
 
 // TODO(b/147143718): Change to a more descriptive name.
 const ConfigInfo RemoteConfig::GetInfo() { return internal_->GetInfo(); }
+
+uint64_t RemoteConfig::GetConfigFetchInterval() {
+  uint64_t cache_time =
+      GetConfigSettings().minimum_fetch_interval_in_milliseconds;
+  if (cache_time == 0) {
+    cache_time = kDefaultCacheExpiration;
+  }
+  return cache_time;
+}
 
 }  // namespace remote_config
 }  // namespace firebase

@@ -43,6 +43,8 @@ namespace firebase {
 namespace remote_config {
 namespace internal {
 
+const char* const kFutureNoErrorMessage = "No Error Message";
+
 // Remote Config Client implementation for Desktop support.
 //
 // This class implements functions from `firebase/remote_config.h` header.
@@ -88,6 +90,7 @@ class RemoteConfigInternal {
 
   Future<void> SetConfigSettings(ConfigSettings settings);
   Future<void> SetConfigSettingsLastResult();
+  ConfigSettings GetConfigSettings();
 
 #ifndef SWIG
   Future<void> SetDefaults(const ConfigKeyValueVariant* defaults,
@@ -221,6 +224,7 @@ class RemoteConfigInternal {
 
   RemoteConfigREST rest_;
   bool initialized_;
+  ConfigSettings config_settings_;
 };
 
 }  // namespace internal
