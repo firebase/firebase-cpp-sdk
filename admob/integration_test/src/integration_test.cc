@@ -510,6 +510,7 @@ static void* DeleteBannerViewOnSignal(void* args) {
 
 TEST_F(FirebaseAdMobTest, TestBannerViewMultithreadDeletion) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_MOBILE;  // TODO(b/172832275): This test is temporarily                                                                                                                                                                       // disabled on all platforms due to flakiness                                                                                                                                                                        // on Android. Once it's fixed, this test should                                                                                                                                                                     // be re-enabled on mobile.
 
   static const int kBannerWidth = 320;
   static const int kBannerHeight = 50;
