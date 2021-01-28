@@ -667,8 +667,8 @@ jobs:
       apis: admob,analytics,auth,database,dynamic_links,firestore,functions,instance_id,messaging,remote_config,storage
       android_device: flame
       android_api: 29
-      ios_device: iphone11pro
-      ios_version: 13.3
+      ios_device: iphone8
+      ios_version: 11.4
     steps:
     - name: Checkout repo
       uses: actions/checkout@v2.3.1
