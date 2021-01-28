@@ -75,7 +75,7 @@ def install_x86_support_libraries():
       utils.run_command(['apt', 'install', '-y'] + packages, as_root=True)
 
 
-def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
+def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl=False):
   """Install packages with vcpkg.
 
   This does the following,
@@ -85,6 +85,7 @@ def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
   Args:
     arch (str): Architecture (eg: 'x86', 'x64').
     msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
+    use_openssl (bool): Use OpenSSL based vcpkg response files.
   """
 
   # Install vcpkg executable if its not installed already
@@ -101,15 +102,21 @@ def _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library):
   # for each desktop platform, there exists a vcpkg response file in the repo
   # (external/vcpkg_<triplet>_response_file.txt) defined for each target triplet
   vcpkg_triplet = utils.get_vcpkg_triplet(arch, msvc_runtime_library)
-  vcpkg_response_file_path = os.path.join(os.getcwd(), 'external', 'vcpkg_custom_data',
-                      'response_files', '{0}.txt'.format(vcpkg_triplet))
+  vcpkg_response_files_dir_path = os.path.join(os.getcwd(), 'external', 'vcpkg_custom_data',
+                      'response_files')
+  if use_openssl:
+    vcpkg_response_files_dir_path = os.path.join(vcpkg_response_files_dir_path, 'openssl')
+
+  vcpkg_response_file_path = os.path.join(vcpkg_response_files_dir_path,
+                                          '{0}.txt'.format(vcpkg_triplet))
 
   # Eg: ./external/vcpkg/vcpkg install @external/vcpkg_x64-osx_response_file.txt
   # --disable-metrics
   utils.run_command([vcpkg_executable_file_path, 'install',
                      '@' + vcpkg_response_file_path, '--disable-metrics'])
 
-def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, cleanup=True):
+def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, cleanup=True,
+                                        use_openssl=False):
   """Install packages with vcpkg and optionally cleanup any intermediates.
 
   This is a wrapper over a low level installation function and attempts the
@@ -119,11 +126,12 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, cleanup=True
     arch (str): Architecture (eg: 'x86', 'x64').
     msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
     cleanup (bool): Clean up intermediate files used during installation.
+    use_openssl (bool): Use OpenSSL based vcpkg response files.
 
   Raises:
     (ValueError) If installation wasn't successful.
   """
-  _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library)
+  _install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, use_openssl)
   vcpkg_triplet = utils.get_vcpkg_triplet(arch, msvc_runtime_library)
   # Verify the installation with an attempt to auto fix any issues.
   success = utils.verify_vcpkg_build(vcpkg_triplet, attempt_auto_fix=True)
@@ -142,7 +150,7 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, cleanup=True
 
 def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='legacy',
                     build_tests=True, config=None, target_format=None,
-                    disable_vcpkg=False, verbose=False):
+                    use_openssl=False, disable_vcpkg=False, verbose=False):
   """ CMake configure.
 
   If you are seeing problems when running this multiple times,
@@ -157,6 +165,8 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
    config (str): Release/Debug config.
           If its not specified, cmake's default is used (most likely Debug).
    target_format (str): If specified, build for this targetformat ('frameworks' or 'libraries').
+   use_openssl (bool) : Use prebuilt OpenSSL library instead of using boringssl
+                        downloaded and built during the cmake configure step.
    disable_vcpkg (bool): If True, skip vcpkg and just use CMake for deps.
    verbose (bool): If True, enable verbose mode in the CMake file.
   """
@@ -203,7 +213,8 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
   if (target_format):
     cmd.append('-DFIREBASE_XCODE_TARGET_FORMAT={0}'.format(target_format))
 
-  cmd.append('-DFIREBASE_USE_BORINGSSL=ON')
+  if not use_openssl:
+    cmd.append('-DFIREBASE_USE_BORINGSSL=ON')
 
   # Print out every command while building.
   if verbose:
@@ -224,10 +235,11 @@ def main():
   if args.arch == 'x86' and utils.is_linux_os():
     install_x86_support_libraries()
 
+  # Install C++ dependencies using vcpkg
   if not args.disable_vcpkg:
     # Install C++ dependencies using vcpkg
     install_cpp_dependencies_with_vcpkg(args.arch, args.msvc_runtime_library,
-                                        cleanup=True)
+                                        cleanup=True, use_openssl=args.use_openssl)
 
   if args.vcpkg_step_only:
     print("Exiting without building the Firebase C++ SDK as just vcpkg step was requested.")
@@ -235,7 +247,8 @@ def main():
 
   # CMake configure
   cmake_configure(args.build_dir, args.arch, args.msvc_runtime_library, args.linux_abi,
-                  args.build_tests, args.config, args.target_format, args.disable_vcpkg, args.verbose)
+                  args.build_tests, args.config, args.target_format,
+                  args.use_openssl, args.disable_vcpkg, args.verbose)
 
   # CMake build
   # cmake --build build -j 8
@@ -264,6 +277,7 @@ def parse_cmdline_args():
   parser.add_argument('--config', default='Release', help='Release/Debug config')
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
   parser.add_argument('--target_format', default=None, help='(Mac only) whether to output frameworks (default) or libraries.')
+  parser.add_argument('--use_openssl', action='store_true', default=None, help='Use openssl for build instead of boringssl')
   args = parser.parse_args()
   return args
 
