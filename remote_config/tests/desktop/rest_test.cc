@@ -215,8 +215,7 @@ class RemoteConfigRESTTest : public ::testing::Test {
     // package_data->set_app_instance_id("fake instance id");
     // package_data->set_app_instance_id_token("fake instance id token");
 
-    package_data->set_requested_cache_expiration_seconds(
-        static_cast<int32_t>(rest.cache_expiration_in_seconds_));
+    package_data->set_requested_cache_expiration_seconds(0);
 
     if (rest.configs_.fetched.timestamp() == 0) {
       package_data->set_fetched_config_age_seconds(-1);

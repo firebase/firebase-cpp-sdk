@@ -51,9 +51,10 @@ RemoteConfigREST::RemoteConfigREST(const firebase::AppOptions& app_options,
 RemoteConfigREST::~RemoteConfigREST() {}
 
 void RemoteConfigREST::Fetch(const App& app,
-                             uint64_t cache_expiration_in_seconds) {}
+                             uint64_t fetch_timeout_in_milliseconds) {}
 
-void RemoteConfigREST::SetupRestRequest(const App& app) {}
+void RemoteConfigREST::SetupRestRequest(
+    const App& app, uint64_t fetch_timeout_in_milliseconds) {}
 ConfigFetchRequest RemoteConfigREST::GetFetchRequestData() {
   return ConfigFetchRequest();
 }

@@ -65,6 +65,7 @@ class RemoteConfigInternal {
   Future<void> SetDefaultsLastResult();
   Future<void> SetConfigSettings(ConfigSettings settings);
   Future<void> SetConfigSettingsLastResult();
+  ConfigSettings GetConfigSettings() const;
 
   bool GetBoolean(const char* key, ValueInfo* info);
 

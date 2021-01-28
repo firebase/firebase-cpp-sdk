@@ -94,7 +94,7 @@ class RemoteConfigREST {
   // 2. Setup REST request;
   // 3. Make REST request;
   // 4. Parse REST response.
-  void Fetch(const App& app, uint64_t cache_expiration_in_seconds);
+  void Fetch(const App& app, uint64_t fetch_timeout_in_milliseconds);
 
   // After Fetch() will return updated fetched holder. Otherwise will return not
   // updated fetched holder.
@@ -111,7 +111,7 @@ class RemoteConfigREST {
 
   // Setup all values to make REST request. Call `SetupProtoRequest` to setup
   // post fields.
-  void SetupRestRequest(const App& app);
+  void SetupRestRequest(const App& app, uint64_t fetch_timeout_in_milliseconds);
 
   // Setup protobuf ConfigFetchRequest object for REST request post fields. Call
   // `GetPackageData` to setup PackageData for ConfigFetchRequest.
@@ -140,9 +140,6 @@ class RemoteConfigREST {
   std::string namespaces_;
 
   LayeredConfigs configs_;
-
-  // cache expiration
-  uint64_t cache_expiration_in_seconds_;
 
   // Instance Id data
   std::string app_instance_id_;

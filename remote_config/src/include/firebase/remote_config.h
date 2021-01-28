@@ -23,6 +23,7 @@
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 #include "firebase/internal/platform.h"
+#include "app/src/time.h"
 #ifndef SWIG
 #include "firebase/variant.h"
 #endif  // SWIG
@@ -118,6 +119,11 @@ enum ConfigSetting {
 /// in seconds.
 static const uint64_t kDefaultCacheExpiration = 60 * 60 * 12;
 
+/// @brief The default timeout used by Fetch(), equal to 30 seconds,
+/// in milliseconds.
+static const uint64_t kDefaultTimeoutInMilliseconds =
+    30 * ::firebase::internal::kMillisecondsPerSecond;
+
 /// @brief Describes a mapping of a key to a string value. Used to set default
 /// values.
 struct ConfigKeyValue {
@@ -162,14 +168,14 @@ struct ConfigSettings {
   ///
   /// @note A fetch call will fail if it takes longer than the specified timeout
   /// to connect to the Remote Config servers. Default is 60 seconds.
-  uint64_t fetch_timeout_in_milliseconds;
+  uint64_t fetch_timeout_in_milliseconds = kDefaultTimeoutInMilliseconds;
 
   /// The minimum interval between successive fetch calls.
   ///
   /// @note Fetches less than duration seconds after the last fetch from the
   /// Firebase Remote Config server would use values returned during the last
   /// fetch. Default is 12 hours.
-  uint64_t minimum_fetch_interval_in_milliseconds;
+  uint64_t minimum_fetch_interval_in_milliseconds = kDefaultCacheExpiration;
 };
 
 /// @brief Initialize the RemoteConfig API.
@@ -598,6 +604,11 @@ class RemoteConfig {
   /// complete.
   Future<void> SetConfigSettings(ConfigSettings settings);
 
+  /// @brief Gets the current settings of the RemoteConfig object.
+  ///
+  /// @return A ConfigSettings struct.
+  ConfigSettings GetConfigSettings();
+
   /// @brief Get the (possibly still pending) results of the most recent
   /// SetConfigSettings() call.
   ///
@@ -747,7 +758,7 @@ class RemoteConfig {
   static RemoteConfig* GetInstance(App* app);
 
  private:
-  RemoteConfig(App* app);
+  explicit RemoteConfig(App* app);
 
   // Find RemoteConfig instance using App.  Return null if the instance does not
   // exist.
@@ -755,6 +766,8 @@ class RemoteConfig {
 
   // Clean up RemoteConfig instance.
   void DeleteInternal();
+
+  uint64_t GetConfigFetchInterval();
 
   /// The Firebase App this remote config is connected to.
   App* app_;

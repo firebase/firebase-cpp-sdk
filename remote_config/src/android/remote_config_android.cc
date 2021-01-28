@@ -1055,15 +1055,38 @@ Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
   jobject builder = env->NewObject(config_settings_builder::GetClass(),
                                    config_settings_builder::GetMethodId(
                                        config_settings_builder::kConstructor));
-  // TODO fill in settings
+  uint64_t fetch_timeout_in_sec = settings.fetch_timeout_in_milliseconds /
+                                  ::firebase::internal::kMillisecondsPerSecond;
+  uint64_t minimum_fetch_interval_in_sec =
+      settings.minimum_fetch_interval_in_milliseconds /
+      ::firebase::internal::kMillisecondsPerSecond;
 
+  // FirebaseRemoteConfigSettings.Builder.setFetchTimeoutInSeconds(long)
+  env->CallObjectMethod(builder,
+                        config_settings_builder::GetMethodId(
+                            config_settings_builder::kSetFetchTimeoutInSeconds),
+                        fetch_timeout_in_sec);
+  util::CheckAndClearJniExceptions(env);
+
+  // FirebaseRemoteConfigSettings.Builder.setMinimumFetchIntervalInSeconds(long)
+  env->CallObjectMethod(
+      builder,
+      config_settings_builder::GetMethodId(
+          config_settings_builder::kSetMinimumFetchIntervalInSeconds),
+      minimum_fetch_interval_in_sec);
+  util::CheckAndClearJniExceptions(env);
+
+  // FirebaseRemoteConfigSettings.Builder.build()
   jobject settings_obj = env->CallObjectMethod(
       builder,
       config_settings_builder::GetMethodId(config_settings_builder::kBuild));
+  util::CheckAndClearJniExceptions(env);
 
+  // FirebaseRemoteConfig.setConfigSettingsAsync()
   jobject task = env->CallObjectMethod(
       internal_obj_, config::GetMethodId(config::kSetConfigSettingsAsync),
       settings_obj);
+  util::CheckAndClearJniExceptions(env);
 
   auto data_handle = new RCDataHandle<void>(&future_impl_, handle, this);
 
@@ -1080,6 +1103,42 @@ Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
 Future<void> RemoteConfigInternal::SetConfigSettingsLastResult() {
   return static_cast<const Future<void>&>(
       future_impl_.LastResult(kRemoteConfigFnSetConfigSettings));
+}
+
+ConfigSettings RemoteConfigInternal::GetConfigSettings() {
+  ConfigSettings settings;
+  JNIEnv* env = app_.GetJNIEnv();
+
+  // FirebaseRemoteConfig.getInfo()
+  jobject jinfo = env->CallObjectMethod(internal_obj_,
+                                        config::GetMethodId(config::kGetInfo));
+  util::CheckAndClearJniExceptions(env);
+
+  // FirebaseRemoteConfigInfo.getConfigSettings()
+  jobject config_settings_obj = env->CallObjectMethod(
+      jinfo, config_info::GetMethodId(config_info::kGetConfigSettings));
+  util::CheckAndClearJniExceptions(env);
+
+  // FirebaseRemoteConfigSettings.getFetchTimeoutInSeconds()
+  settings.fetch_timeout_in_milliseconds =
+      env->CallLongMethod(config_settings_obj,
+                          config_settings::GetMethodId(
+                              config_settings::kGetFetchTimeoutInSeconds)) *
+      ::firebase::internal::kMillisecondsPerSecond;
+  util::CheckAndClearJniExceptions(env);
+
+  // FirebaseRemoteConfigSettings.getMinimumFetchIntervalInSeconds()
+  settings.minimum_fetch_interval_in_milliseconds =
+      env->CallLongMethod(
+          config_settings_obj,
+          config_settings::GetMethodId(
+              config_settings::kGetMinimumFetchIntervalInSeconds)) *
+      ::firebase::internal::kMillisecondsPerSecond;
+  util::CheckAndClearJniExceptions(env);
+
+  env->DeleteLocalRef(jinfo);
+  env->DeleteLocalRef(config_settings_obj);
+  return settings;
 }
 
 // Generate the logic to retrieve an certain type value and source from

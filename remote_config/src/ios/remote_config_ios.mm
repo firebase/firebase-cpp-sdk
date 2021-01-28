@@ -575,12 +575,23 @@ Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
                                   ::firebase::internal::kMillisecondsPerSecond);
   config_settings.fetchTimeout = static_cast<NSTimeInterval>(
       settings.fetch_timeout_in_milliseconds / ::firebase::internal::kMillisecondsPerSecond);
+  future_impl_.Complete(handle, kFutureStatusSuccess);
   return MakeFuture<void>(&future_impl_, handle);
 }
 
 Future<void> RemoteConfigInternal::SetConfigSettingsLastResult() {
   return static_cast<const Future<void> &>(
       future_impl_.LastResult(kRemoteConfigFnSetConfigSettings));
+}
+
+ConfigSettings RemoteConfigInternal::GetConfigSettings() const {
+  ConfigSettings settings;
+  FIRRemoteConfigSettings *config_settings = impl().configSettings;
+  settings.minimum_fetch_interval_in_milliseconds =
+      config_settings.minimumFetchInterval * ::firebase::internal::kMillisecondsPerSecond;
+  settings.fetch_timeout_in_milliseconds =
+      config_settings.fetchTimeout * ::firebase::internal::kMillisecondsPerSecond;
+  return settings;
 }
 
 bool RemoteConfigInternal::GetBoolean(const char *key, ValueInfo *info) {

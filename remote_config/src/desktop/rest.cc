@@ -68,11 +68,10 @@ RemoteConfigREST::~RemoteConfigREST() {
 }
 
 void RemoteConfigREST::Fetch(const App& app,
-                             uint64_t cache_expiration_in_seconds) {
-  cache_expiration_in_seconds_ = cache_expiration_in_seconds;
+                             uint64_t fetch_timeout_in_milliseconds) {
   TryGetInstallationsAndToken(app);
 
-  SetupRestRequest(app);
+  SetupRestRequest(app, fetch_timeout_in_milliseconds);
   firebase::rest::CreateTransport()->Perform(rc_request_, &rc_response_);
   ParseRestResponse();
 }
@@ -149,7 +148,8 @@ void RemoteConfigREST::TryGetInstallationsAndToken(const App& app) {
   }
 }
 
-void RemoteConfigREST::SetupRestRequest(const App& app) {
+void RemoteConfigREST::SetupRestRequest(
+    const App& app, uint64_t fetch_timeout_in_milliseconds) {
   std::string server_url(kServerURL);
   server_url.append("/");
   server_url.append(app_project_id_);
@@ -164,6 +164,7 @@ void RemoteConfigREST::SetupRestRequest(const App& app) {
   rc_request_.set_method(kHTTPMethodPost);
   rc_request_.add_header(kContentTypeHeaderName, kJSONContentTypeValue);
   rc_request_.add_header(kAcceptHeaderName, kJSONContentTypeValue);
+  rc_request_.options().timeout_ms = fetch_timeout_in_milliseconds;
 
   rc_request_.SetAppId(app_gmp_project_id_);
   rc_request_.SetAppInstanceId(
@@ -211,8 +212,7 @@ void RemoteConfigREST::GetPackageData(PackageData* package_data) {
   package_data->app_instance_id = app_instance_id_;
   package_data->app_instance_id_token = app_instance_id_token_;
 
-  package_data->requested_cache_expiration_seconds =
-      static_cast<int32_t>(cache_expiration_in_seconds_);
+  package_data->requested_cache_expiration_seconds = 0;
 
   if (configs_.fetched.timestamp() == 0) {
     package_data->fetched_config_age_seconds = -1;

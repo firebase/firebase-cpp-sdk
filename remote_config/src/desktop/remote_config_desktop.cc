@@ -111,7 +111,9 @@ void RemoteConfigInternal::Cleanup() {
 Future<ConfigInfo> RemoteConfigInternal::EnsureInitialized() {
   const auto handle =
       future_impl_.SafeAlloc<ConfigInfo>(kRemoteConfigFnEnsureInitialized);
-  future_impl_.CompleteWithResult(handle, 0, "", rest_.metadata().info());
+  future_impl_.CompleteWithResult(handle, kFutureStatusSuccess,
+                                  kFutureNoErrorMessage,
+                                  rest_.metadata().info());
   return MakeFuture<ConfigInfo>(&future_impl_, handle);
 }
 
@@ -123,7 +125,8 @@ Future<ConfigInfo> RemoteConfigInternal::EnsureInitializedLastResult() {
 Future<bool> RemoteConfigInternal::Activate() {
   const auto handle = future_impl_.SafeAlloc<bool>(kRemoteConfigFnActivate);
   bool activeResult = ActivateFetched();
-  future_impl_.CompleteWithResult(handle, 0, "", activeResult);
+  future_impl_.CompleteWithResult(handle, kFutureStatusSuccess,
+                                  kFutureNoErrorMessage, activeResult);
   return MakeFuture<bool>(&future_impl_, handle);
 }
 
@@ -175,8 +178,9 @@ Future<bool> RemoteConfigInternal::FetchAndActivate() {
                     : kFutureStatusFailure;
 
             bool activated = handle->rc_internal->ActivateFetched();
-            handle->future_api->CompleteWithResult(handle->future_handle,
-                                                   futureResult, "", activated);
+            handle->future_api->CompleteWithResult(
+                handle->future_handle, futureResult, kFutureNoErrorMessage,
+                activated);
           }
         },
         safe_this_, data_handle);
@@ -185,8 +189,8 @@ Future<bool> RemoteConfigInternal::FetchAndActivate() {
     is_fetch_process_have_task_ = true;
   } else {
     // Do not fetch, complete future immediately.
-    future_impl_.CompleteWithResult(future_handle, kFutureStatusSuccess, "",
-                                    false);
+    future_impl_.CompleteWithResult(future_handle, kFutureStatusSuccess,
+                                    kFutureNoErrorMessage, false);
   }
   return MakeFuture<bool>(&future_impl_, future_handle);
 }
@@ -204,13 +208,18 @@ Future<void> RemoteConfigInternal::SetDefaultsLastResult() {
 Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
   const auto handle =
       future_impl_.SafeAlloc<void>(kRemoteConfigFnSetConfigSettings);
-  // TODO(b/177863452) implement
+  config_settings_ = settings;
+  future_impl_.Complete(handle, kFutureStatusSuccess);
   return MakeFuture<void>(&future_impl_, handle);
 }
 
 Future<void> RemoteConfigInternal::SetConfigSettingsLastResult() {
   return static_cast<const Future<void>&>(
       future_impl_.LastResult(kRemoteConfigFnSetConfigSettings));
+}
+
+ConfigSettings RemoteConfigInternal::GetConfigSettings() {
+  return config_settings_;
 }
 
 void RemoteConfigInternal::AsyncSaveToFile() {
@@ -253,7 +262,7 @@ Future<void> RemoteConfigInternal::SetDefaults(
     const ConfigKeyValueVariant* defaults, size_t number_of_defaults) {
   const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetDefaults);
   if (defaults == nullptr) {
-    future_impl_.Complete(handle, 0);
+    future_impl_.Complete(handle, kFutureStatusSuccess);
     return MakeFuture<void>(&future_impl_, handle);
   }
   std::map<std::string, std::string> defaults_map;
@@ -266,7 +275,7 @@ Future<void> RemoteConfigInternal::SetDefaults(
     }
   }
   SetDefaults(defaults_map);
-  future_impl_.Complete(handle, 0);
+  future_impl_.Complete(handle, kFutureStatusSuccess);
   return MakeFuture<void>(&future_impl_, handle);
 }
 #endif  // SWIG
@@ -275,7 +284,7 @@ Future<void> RemoteConfigInternal::SetDefaults(const ConfigKeyValue* defaults,
                                                size_t number_of_defaults) {
   const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetDefaults);
   if (defaults == nullptr) {
-    future_impl_.Complete(handle, 0);
+    future_impl_.Complete(handle, kFutureStatusSuccess);
     return MakeFuture<void>(&future_impl_, handle);
   }
 
@@ -289,7 +298,7 @@ Future<void> RemoteConfigInternal::SetDefaults(const ConfigKeyValue* defaults,
   }
   SetDefaults(defaults_map);
 
-  future_impl_.Complete(handle, 0);
+  future_impl_.Complete(handle, kFutureStatusSuccess);
 
   return MakeFuture<void>(&future_impl_, handle);
 }
@@ -574,7 +583,7 @@ const ConfigInfo RemoteConfigInternal::GetInfo() const {
 
 void RemoteConfigInternal::FetchInternal() {
   // Fetch fresh config from server.
-  rest_.Fetch(app_, cache_expiration_in_seconds_);
+  rest_.Fetch(app_, config_settings_.fetch_timeout_in_milliseconds);
   // Need to copy everything to `configs_.fetched`.
   configs_.fetched = rest_.fetched();
 
