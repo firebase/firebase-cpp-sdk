@@ -68,7 +68,6 @@ class FieldPathPortable {
   // Creates and returns a new path from a dot-separated field-path string,
   // where path segments are separated by a dot ".".
   static FieldPathPortable FromDotSeparatedString(const std::string& path);
-  static FieldPathPortable FromServerFormat(const std::string& path);
 
   static FieldPathPortable KeyFieldPath();
 
