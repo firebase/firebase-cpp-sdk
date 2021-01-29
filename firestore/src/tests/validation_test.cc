@@ -3,10 +3,6 @@
 #include <string>
 #include <vector>
 
-#if defined(__ANDROID__)
-#include "firestore/src/android/exception_android.h"
-#endif  // defined(__ANDROID__)
-
 #include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/tests/firestore_integration_test.h"
@@ -32,7 +28,10 @@ namespace firestore {
 // This eventually works for iOS as well and becomes the cross-platform test for
 // C++ client SDK. For now, only enabled for Android platform.
 
-#if defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
+#if FIRESTORE_HAVE_EXCEPTIONS
+
+using testing::AnyOf;
+using testing::StrEq;
 
 class ValidationTest : public FirestoreIntegrationTest {
  protected:
@@ -130,10 +129,9 @@ class ValidationTest : public FirestoreIntegrationTest {
 
     // snapshot paths
     try {
-      // TODO(varconst): The logic is in the C++ core and is a hard assertion.
-      // snapshot.Get(path);
-      // FAIL() << "should throw exception";
-    } catch (const FirestoreException& exception) {
+      snapshot.Get(path);
+      FAIL() << "should throw exception";
+    } catch (const std::invalid_argument& exception) {
       EXPECT_EQ(reason, exception.what());
     }
 
@@ -142,17 +140,15 @@ class ValidationTest : public FirestoreIntegrationTest {
     // WhereLessThan(), etc. omitted for brevity since the code path is
     // trivially shared.
     try {
-      // TODO(zxu): The logic is in the C++ core and is a hard assertion.
-      // collection.WhereEqualTo(path, FieldValue::Integer(1));
-      // FAIL() << "should throw exception" << path;
-    } catch (const FirestoreException& exception) {
+      collection.WhereEqualTo(path, FieldValue::Integer(1));
+      FAIL() << "should throw exception" << path;
+    } catch (const std::invalid_argument& exception) {
       EXPECT_EQ(reason, exception.what());
     }
     try {
-      // TODO(zxu): The logic is in the C++ core and is a hard assertion.
-      // collection.OrderBy(path);
-      // FAIL() << "should throw exception";
-    } catch (const FirestoreException& exception) {
+      collection.OrderBy(path);
+      FAIL() << "should throw exception";
+    } catch (const std::invalid_argument& exception) {
       EXPECT_EQ(reason, exception.what());
     }
 
@@ -161,10 +157,22 @@ class ValidationTest : public FirestoreIntegrationTest {
       document.Update(MapFieldValue{{path, FieldValue::Integer(1)}});
       FAIL() << "should throw exception";
     } catch (const FirestoreException& exception) {
+      // TODO(b/149105903): Handle different Java exceptions differently.
+      // TODO(b/171990785): Unify Android and C++ validation error messages.
+      EXPECT_THAT(
+          exception.what(),
+          AnyOf(
+              // When validated by iOS or common C++ code
+              StrEq(reason),
+              // When validated by Android Java code
+              StrEq("Use FieldPath.of() for field names containing '~*/[]'.")));
+    } catch (const std::invalid_argument& exception) {
       EXPECT_EQ(reason, exception.what());
     }
   }
 };
+
+#if defined(__ANDROID__)
 
 // PORT_NOTE: Does not apply to C++ as host parameter is passed by value.
 TEST_F(ValidationTest, FirestoreSettingsNullHostFails) {}
@@ -419,42 +427,36 @@ TEST_F(ValidationTest, BatchWritesRequireCorrectDocumentReferences) {
 
 TEST_F(ValidationTest, TransactionsRequireCorrectDocumentReferences) {}
 
+#endif  // defined(__ANDROID__)
+
 TEST_F(ValidationTest, FieldPathsMustNotHaveEmptySegments) {
   SCOPED_TRACE("FieldPathsMustNotHaveEmptySegments");
 
-  std::map<std::string, std::string> bad_field_paths_and_errors = {
-      {"",
-       "Invalid field path (). Paths must not be empty, begin with '.', end "
-       "with '.', or contain '..'"},
-      {"foo..baz",
-       "Invalid field path (foo..baz). Paths must not be empty, begin with "
-       "'.', end with '.', or contain '..'"},
-      {".foo",
-       "Invalid field path (.foo). Paths must not be empty, begin with '.', "
-       "end with '.', or contain '..'"},
-      {"foo.",
-       "Invalid field path (foo.). Paths must not be empty, begin with '.', "
-       "end with '.', or contain '..'"}};
-  for (const auto path_and_error : bad_field_paths_and_errors) {
-    VerifyFieldPathThrows(path_and_error.first, path_and_error.second);
+  std::vector<std::string> bad_field_paths = {"", "foo..baz", ".foo", "foo."};
+
+  for (const auto field_path : bad_field_paths) {
+    std::string reason = "Invalid field path (" + field_path +
+                         "). Paths must not be empty, begin with '.', end with "
+                         "'.', or contain '..'";
+    VerifyFieldPathThrows(field_path, reason);
   }
 }
 
 TEST_F(ValidationTest, FieldPathsMustNotHaveInvalidSegments) {
   SCOPED_TRACE("FieldPathsMustNotHaveInvalidSegments");
 
-  std::map<std::string, std::string> bad_field_paths_and_errors = {
-      {"foo~bar", "Use FieldPath.of() for field names containing '~*/[]'."},
-      {"foo*bar", "Use FieldPath.of() for field names containing '~*/[]'."},
-      {"foo/bar", "Use FieldPath.of() for field names containing '~*/[]'."},
-      {"foo[1", "Use FieldPath.of() for field names containing '~*/[]'."},
-      {"foo]1", "Use FieldPath.of() for field names containing '~*/[]'."},
-      {"foo[1]", "Use FieldPath.of() for field names containing '~*/[]'."},
+  std::vector<std::string> bad_field_paths = {
+      "foo~bar", "foo*bar", "foo/bar", "foo[1", "foo]1", "foo[1]",
   };
-  for (const auto path_and_error : bad_field_paths_and_errors) {
-    VerifyFieldPathThrows(path_and_error.first, path_and_error.second);
+
+  for (const auto field_path : bad_field_paths) {
+    std::string reason = "Invalid field path (" + field_path +
+                         "). Paths must not contain '~', '*', '/', '[', or ']'";
+    VerifyFieldPathThrows(field_path, reason);
   }
 }
+
+#if defined(__ANDROID__)
 
 TEST_F(ValidationTest, FieldNamesMustNotBeEmpty) {
   DocumentSnapshot snapshot = ReadDocument(Document());
@@ -845,7 +847,8 @@ TEST_F(ValidationTest,
   }
 }
 
-#endif  // defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
+#endif  // defined(__ANDROID__)
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 
 }  // namespace firestore
 }  // namespace firebase

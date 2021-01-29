@@ -4,9 +4,10 @@
 #include <cstring>
 #include <sstream>
 
+#include "firestore/src/common/exception_common.h"
+
 namespace firebase {
 namespace firestore {
-
 namespace {
 
 /**
@@ -60,11 +61,10 @@ std::string Escape(const std::string& segment) {
 // valid.
 std::vector<std::string> SplitOnDots(const std::string& input) {
   auto fail_validation = [&input] {
-    FIREBASE_ASSERT_MESSAGE(
-        false,
-        "Invalid field path (%s). Paths must not be empty, begin with "
-        "'.', end with '.', or contain '..'",
-        input.c_str());
+    std::string message = "Invalid field path (" + input +
+                          "). Paths must not be empty, begin with '.', end "
+                          "with '.', or contain '..'";
+    SimpleThrowInvalidArgument(message);
   };
 
   // `std::getline()` considers empty input to contain zero segments, and if
@@ -120,11 +120,12 @@ bool FieldPathPortable::IsKeyFieldPath() const {
 
 FieldPathPortable FieldPathPortable::FromDotSeparatedString(
     const std::string& path) {
-  FIREBASE_ASSERT_MESSAGE(
-      path.find_first_of("~*/[]") == std::string::npos,
-      "Invalid field path (%s). Paths must not contain '~', '*', '/', '[', "
-      "or ']'",
-      path.c_str());
+  if (path.find_first_of("~*/[]") != std::string::npos) {
+    std::string message =
+        "Invalid field path (" + path +
+        "). Paths must not contain '~', '*', '/', '[', or ']'";
+    SimpleThrowInvalidArgument(message);
+  }
 
   return FieldPathPortable(SplitOnDots(path));
 }
@@ -184,11 +185,10 @@ FieldPathPortable FieldPathPortable::FromServerFormat(const std::string& path) {
         break;
     }
   }
-  FIREBASE_ASSERT_MESSAGE(
-      !segment.empty(),
-      "Invalid field path (%s). Paths must not be empty, begin with "
-      "'.', end with '.', or contain '..'",
-      path.c_str());
+  FIREBASE_ASSERT_MESSAGE(!segment.empty(),
+                          "Invalid field path (%s). Paths must not be empty, "
+                          "begin with '.', end with '.', or contain '..'",
+                          path.c_str());
   segments.push_back(firebase::Move(segment));
 
   FIREBASE_ASSERT_MESSAGE(!inside_backticks, "Unterminated ` in path %s",
