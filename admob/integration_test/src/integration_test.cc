@@ -123,6 +123,11 @@ void FirebaseAdMobTest::SetUpTestSuite() {
 }
 
 void FirebaseAdMobTest::TearDownTestSuite() {
+  // Workaround: AdMob does some of its initialization in the main
+  // thread, so if you terminate it too quickly after initialization
+  // it can cause issues.  Add a small delay here in case most of the
+  // tests are skipped.
+  ProcessEvents(1000);
   LogDebug("Shutdown AdMob.");
   firebase::admob::Terminate();
   LogDebug("Shutdown Firebase App.");
