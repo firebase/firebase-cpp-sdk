@@ -32,6 +32,7 @@
 #include "app/src/base64.h"
 #include "app/src/log.h"
 #include "app/src/uuid.h"
+#include "remote_config/src/common.h"
 #include "remote_config/src/desktop/config_data.h"
 #include "remote_config/src/desktop/rest_nanopb_decode.h"
 #include "remote_config/src/desktop/rest_nanopb_encode.h"
@@ -76,31 +77,6 @@ void RemoteConfigREST::Fetch(const App& app,
   ParseRestResponse();
 }
 
-void WaitForFuture(const Future<std::string>& future, Semaphore* future_sem,
-                   std::string* result, const char* action_name) {
-  // Block and wait until Future is complete.
-  future.OnCompletion(
-      [](const firebase::Future<std::string>& result, void* data) {
-        Semaphore* sem = static_cast<Semaphore*>(data);
-        sem->Post();
-      },
-      future_sem);
-  future_sem->Wait();
-
-  if (future.status() == firebase::kFutureStatusComplete &&
-      future.error() ==
-          firebase::instance_id::internal::InstanceIdDesktopImpl::kErrorNone) {
-    *result = *future.result();
-  } else if (future.status() != firebase::kFutureStatusComplete) {
-    // It is fine if timeout
-    LogWarning("Remote Config Fetch: %s timeout", action_name);
-  } else {
-    // It is fine if failed
-    LogWarning("Remote Config Fetch: Failed to %s. Error %d: %s", action_name,
-               future.error(), future.error_message());
-  }
-}
-
 static std::string GenerateFakeId() {
   firebase::internal::Uuid uuid;
   uuid.Generate();
@@ -138,13 +114,16 @@ void RemoteConfigREST::TryGetInstallationsAndToken(const App& app) {
     return;
   }
 
-  WaitForFuture(iid_impl->GetId(), &fetch_future_sem_, &app_instance_id_,
-                "Get Instance Id");
+  Future<std::string> id_future = iid_impl->GetId();
+  WaitForFuture<std::string>(id_future, &fetch_future_sem_, "Get Instance Id");
+  app_instance_id_ = *id_future.result();
 
   // Only get token if instance id is retrieved.
   if (!app_instance_id_.empty()) {
-    WaitForFuture(iid_impl->GetToken(kTokenScope), &fetch_future_sem_,
-                  &app_instance_id_token_, "Get Instance Id Token");
+    Future<std::string> token_future = iid_impl->GetToken(kTokenScope);
+    WaitForFuture<std::string>(token_future, &fetch_future_sem_,
+                               "Get Instance Id Token");
+    app_instance_id_token_ = *token_future.result();
   }
 }
 

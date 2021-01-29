@@ -75,7 +75,6 @@ else()
       ${response_resource_header}
       ${FIREBASE_GEN_FILE_DIR}/remote_config/request_generated.h
       ${FIREBASE_GEN_FILE_DIR}/remote_config/response_generated.h
-      src/desktop/remote_config_legacy.cc
       src/desktop/rest.cc
       src/desktop/config_data.cc
       src/desktop/file_manager.cc
