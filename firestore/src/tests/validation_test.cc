@@ -7,12 +7,14 @@
 #include "firestore/src/android/exception_android.h"
 #endif  // defined(__ANDROID__)
 
+#include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/tests/firestore_integration_test.h"
 #include "firestore/src/tests/util/event_accumulator.h"
 #include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 #include "firebase/firestore/firestore_errors.h"
+#include "Firestore/core/src/util/firestore_exceptions.h"
 
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRValidationTests.mm
@@ -30,7 +32,7 @@ namespace firestore {
 // This eventually works for iOS as well and becomes the cross-platform test for
 // C++ client SDK. For now, only enabled for Android platform.
 
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 
 class ValidationTest : public FirestoreIntegrationTest {
  protected:
@@ -843,7 +845,7 @@ TEST_F(ValidationTest,
   }
 }
 
-#endif  // defined(__ANDROID__)
+#endif  // defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 
 }  // namespace firestore
 }  // namespace firebase

@@ -3,9 +3,11 @@
 #include "app/memory/unique_ptr.h"
 #include "app/meta/move.h"
 #include "firestore/src/android/exception_android.h"
+#include "firestore/src/common/macros.h"
 #include "firestore/src/jni/array.h"
 #include "firestore/src/tests/firestore_integration_test.h"
 #include "gtest/gtest.h"
+#include "Firestore/core/src/util/firestore_exceptions.h"
 
 namespace firebase {
 namespace firestore {
@@ -31,7 +33,7 @@ class EnvTest : public FirestoreIntegrationTest {
   UniquePtr<Env> env_;
 };
 
-#if __cpp_exceptions
+#if FIRESTORE_HAVE_EXCEPTIONS
 TEST_F(EnvTest, ToolchainSupportsThrowingFromDestructors) {
   class ThrowsInDestructor {
    public:
@@ -45,7 +47,7 @@ TEST_F(EnvTest, ToolchainSupportsThrowingFromDestructors) {
     SUCCEED() << "Caught exception";
   }
 }
-#endif  // __cpp_exceptions
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 
 TEST_F(EnvTest, ConstructsObjects) {
   Local<Class> clazz = env().FindClass("java/lang/Integer");
@@ -275,7 +277,7 @@ TEST_F(EnvTest, DestructorCallsExceptionHandler) {
   EXPECT_EQ(result.calls, 1);
 }
 
-#if __cpp_exceptions
+#if FIRESTORE_HAVE_EXCEPTIONS
 TEST_F(EnvTest, DestructorCanThrow) {
   bool caught_exception = false;
   try {
@@ -291,7 +293,7 @@ TEST_F(EnvTest, DestructorCanThrow) {
   }
   EXPECT_TRUE(caught_exception);
 }
-#endif  // __cpp_exceptions
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 
 TEST_F(EnvTest, ObjectArrayOperations) {
   Env env;
