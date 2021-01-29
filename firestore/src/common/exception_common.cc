@@ -53,14 +53,16 @@ FIRESTORE_ATTRIBUTE_NORETURN void DefaultThrowHandler(
     case ExceptionType::AssertionFailure:
       throw FirestoreInternalError(what_str);
     case ExceptionType::IllegalState:
-      throw std::logic_error(what_str);
+      // Omit descriptive text since the type already encodes the kind of error.
+      throw std::logic_error(message);
     case ExceptionType::InvalidArgument:
-      throw std::invalid_argument(what_str);
+      // Omit descriptive text since the type already encodes the kind of error.
+      throw std::invalid_argument(message);
   }
 #else
   LogError("%s", what.str().c_str());
   std::terminate();
-#endif
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 
   FIRESTORE_UNREACHABLE();
 }
