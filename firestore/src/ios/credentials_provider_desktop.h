@@ -24,7 +24,7 @@ class FirebaseCppCredentialsProvider
     : public firestore::auth::CredentialsProvider {
  public:
   explicit FirebaseCppCredentialsProvider(App& app);
-  ~FirebaseCppCredentialsProvider();
+  ~FirebaseCppCredentialsProvider() override;
 
   FirebaseCppCredentialsProvider(const FirebaseCppCredentialsProvider&) =
       delete;
