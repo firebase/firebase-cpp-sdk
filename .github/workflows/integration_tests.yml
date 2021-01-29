@@ -27,10 +27,10 @@ on:
         default: '29'
       ios_device:
         description: 'iOS device model'
-        default: 'iphone11pro'
+        default: 'iphone8'
       ios_version:
         description: 'iOS device version'
-        default: '13.3'
+        default: '11.4'
 
 jobs:
   # To feed input into the job matrix, we first need to convert to a JSON
