@@ -15,12 +15,14 @@
 #include "app/memory/unique_ptr.h"
 #include "app/src/log.h"
 #include "auth/src/include/firebase/auth.h"
+#include "firestore/src/common/macros.h"
 #include "firestore/src/tests/firestore_integration_test.h"
 #include "firestore/src/tests/util/event_accumulator.h"
 #include "firestore/src/tests/util/future_test_util.h"
 #include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 #include "Firestore/core/src/util/autoid.h"
+#include "Firestore/core/src/util/firestore_exceptions.h"
 
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRDatabaseTests.mm
@@ -369,7 +371,7 @@ TEST_F(FirestoreIntegrationTest,
                             {"email", FieldValue::String("old@xyz.com")}})}}));
 }
 
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 // TODO(b/136012313): iOS currently doesn't rethrow native exceptions as C++
 // exceptions.
 TEST_F(FirestoreIntegrationTest, TestFieldMaskCannotContainMissingFields) {
@@ -385,7 +387,7 @@ TEST_F(FirestoreIntegrationTest, TestFieldMaskCannotContainMissingFields) {
         exception.what());
   }
 }
-#endif
+#endif  // defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 
 TEST_F(FirestoreIntegrationTest, TestFieldsNotInFieldMaskAreIgnored) {
   DocumentReference document = Collection("rooms").Document("eros");
@@ -1192,7 +1194,7 @@ TEST_F(FirestoreIntegrationTest, TestToString) {
 
 // TODO(wuandy): Enable this for other platforms when they can handle
 // exceptions.
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 TEST_F(FirestoreIntegrationTest, ClientCallsAfterTerminateFails) {
   EXPECT_THAT(TestFirestore()->Terminate(), FutureSucceeds());
   EXPECT_THROW(Await(TestFirestore()->DisableNetwork()), FirestoreException);
@@ -1239,7 +1241,7 @@ TEST_F(FirestoreIntegrationTest, TerminateCanBeCalledMultipleTimes) {
   EXPECT_THROW(Await(reference.Update({{"Field", FieldValue::Integer(1)}})),
                FirestoreException);
 }
-#endif  // defined(__ANDROID__)
+#endif  // defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 
 TEST_F(FirestoreIntegrationTest, MaintainsPersistenceAfterRestarting) {
   Firestore* db = TestFirestore();
@@ -1426,12 +1428,12 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceOnANewFirestoreInstance) {
   const std::string path = document.path();
   WriteDocument(document, MapFieldValue{{"foo", FieldValue::Integer(42)}});
 
-  #if defined(__ANDROID__)
+#if defined(__ANDROID__)
   // TODO(b/168628900) Remove this call to Terminate() once deleting the
   // Firestore* instance removes the underlying Java object from the instance
   // cache in Android.
   EXPECT_THAT(db->Terminate(), FutureSucceeds());
-  #endif
+#endif
 
   // Call DeleteFirestore() to ensure that both the App and Firestore instances
   // are deleted, which emulates the way an end user would experience their

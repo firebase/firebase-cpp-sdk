@@ -4,11 +4,13 @@
 #include <utility>
 #include <vector>
 
+#include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
 #include "firestore/src/tests/firestore_integration_test.h"
 #include "firestore/src/tests/util/event_accumulator.h"
+
 #if defined(__ANDROID__)
 #include "firestore/src/android/query_android.h"
 #include "firestore/src/common/wrapper_assertions.h"
@@ -20,6 +22,7 @@
 #include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 #include "firebase/firestore/firestore_errors.h"
+#include "Firestore/core/src/util/firestore_exceptions.h"
 
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRQueryTests.mm
@@ -83,13 +86,13 @@ TEST_F(FirestoreIntegrationTest, TestLimitQueriesUsingDescendingSortOrder) {
       QuerySnapshotToValues(snapshot));
 }
 
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 TEST_F(FirestoreIntegrationTest, TestLimitToLastMustAlsoHaveExplicitOrderBy) {
   CollectionReference collection = Collection();
 
   EXPECT_THROW(Await(collection.LimitToLast(2).Get()), FirestoreException);
 }
-#endif  // defined(__ANDROID__)
+#endif  // defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 
 // Two queries that mapped to the same target ID are referred to as "mirror
 // queries". An example for a mirror query is a LimitToLast() query and a
