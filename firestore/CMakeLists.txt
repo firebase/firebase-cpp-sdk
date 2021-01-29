@@ -25,6 +25,8 @@ set(common_SRCS
     src/common/document_change.cc
     src/common/document_reference.cc
     src/common/document_snapshot.cc
+    src/common/exception_common.cc
+    src/common/exception_common.h
     src/common/field_path.cc
     src/common/field_value.cc
     src/common/firestore.cc
