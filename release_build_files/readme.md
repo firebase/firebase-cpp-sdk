@@ -559,6 +559,11 @@ code.
 
 ## Release Notes
 
+### 7.0.1
+-   Changes
+    -   Installations (Android): Fix incorrect STL variants, which fixes
+        a linker error on Android.
+
 ### 7.0.0
 -   Changes
     -   General (iOS): iOS SDKs are now built using Xcode 11.7.
