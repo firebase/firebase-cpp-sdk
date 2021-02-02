@@ -189,12 +189,18 @@ struct ConfigSettings {
 /// @return kInitResultSuccess if initialization succeeded, or
 /// kInitResultFailedMissingDependency on Android if Google Play services is
 /// not available on the current device.
-InitResult Initialize(const App& app);
+///
+/// @deprecated Initialize is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call EnsureInitialized on that instance.
+FIREBASE_DEPRECATED InitResult Initialize(const App& app);
 
 /// @brief Terminate the RemoteConfig API.
 ///
 /// Call this method to free resources associated with the Remote Config API.
-void Terminate();
+///
+/// @deprecated Terminate is deprecated and will be removed in future release.
+FIREBASE_DEPRECATED void Terminate();
 
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 /// @brief Sets the default values, using an XML resource.
@@ -205,7 +211,11 @@ void Terminate();
 ///
 /// @param[in] defaults_resource_id Id for the XML resource, which should be in
 /// your applications res/xml folder.
-void SetDefaults(int defaults_resource_id);
+///
+/// @deprecated SetDefaults is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call SetDefaults on that instance.
+FIREBASE_DEPRECATED void SetDefaults(int defaults_resource_id);
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 
 #ifndef SWIG
@@ -228,7 +238,11 @@ void SetDefaults(int defaults_resource_id);
 /// defaults to apply. If the same key is specified multiple times, the
 /// value associated with the last duplicate key is applied.
 /// @param number_of_defaults Number of elements in the defaults array.
-void SetDefaults(const ConfigKeyValueVariant* defaults,
+///
+/// @deprecated SetDefaults is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call SetDefaults on that instance.
+FIREBASE_DEPRECATED void SetDefaults(const ConfigKeyValueVariant* defaults,
                  size_t number_of_defaults);
 
 #endif  // SWIG
@@ -241,7 +255,12 @@ void SetDefaults(const ConfigKeyValueVariant* defaults,
 /// defaults to apply. If the same key is specified multiple times, the
 /// value associated with the last duplicate key is applied.
 /// @param number_of_defaults Number of elements in the defaults array.
-void SetDefaults(const ConfigKeyValue* defaults, size_t number_of_defaults);
+///
+/// @deprecated SetDefaults is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call SetDefaults on that instance.
+FIREBASE_DEPRECATED void SetDefaults(const ConfigKeyValue* defaults,
+                                     size_t number_of_defaults);
 
 /// @brief Retrieve an internal configuration setting.
 ///
@@ -251,8 +270,9 @@ void SetDefaults(const ConfigKeyValue* defaults, size_t number_of_defaults);
 ///
 /// @see SetConfigSetting
 ///
-/// @deprecated This method is always returning 0. New ways of retrieving
-/// ConfigSettings will be available in the future release.
+/// @deprecated GetConfigSetting is deprecated and will be removed in future
+/// release. Use firebase::remote_config::RemoteConfig::GetInstance() to obtain
+/// an instance and call GetConfigSettings on that instance.
 FIREBASE_DEPRECATED std::string GetConfigSetting(ConfigSetting setting);
 
 /// @brief Sets an internal configuration setting.
@@ -262,8 +282,9 @@ FIREBASE_DEPRECATED std::string GetConfigSetting(ConfigSetting setting);
 ///
 /// @see ConfigSetting
 ///
-/// @deprecated This method is always returning 0. New ways of modifying
-/// ConfigSettings will be available in the future release.
+/// @deprecated SetConfigSetting is deprecated and will be removed in future
+/// release.Use firebase::remote_config::RemoteConfig::GetInstance() to obtain
+/// an instance and call SetConfigSettings on that instance.
 FIREBASE_DEPRECATED void SetConfigSetting(ConfigSetting setting,
                                           const char* value);
 
@@ -277,7 +298,11 @@ FIREBASE_DEPRECATED void SetConfigSetting(ConfigSetting setting,
 ///
 /// @return Value associated with the specified key converted to a boolean
 /// value.
-bool GetBoolean(const char* key);
+///
+/// @deprecated GetBoolean is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call GetBoolean on that instance.
+FIREBASE_DEPRECATED bool GetBoolean(const char* key);
 
 /// @brief Returns the value associated with a key, converted to a bool.
 ///
@@ -291,7 +316,11 @@ bool GetBoolean(const char* key);
 ///
 /// @return Value associated with the specified key converted to a boolean
 /// value.
-bool GetBoolean(const char* key, ValueInfo* info);
+///
+/// @deprecated GetBoolean is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call GetBoolean on that instance.
+FIREBASE_DEPRECATED bool GetBoolean(const char* key, ValueInfo* info);
 
 /// @brief Returns the value associated with a key, converted to a 64-bit
 /// integer.
@@ -300,7 +329,11 @@ bool GetBoolean(const char* key, ValueInfo* info);
 ///
 /// @return Value associated with the specified key converted to a 64-bit
 /// integer.
-int64_t GetLong(const char* key);
+///
+/// @deprecated GetLong is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call GetLong on that instance.
+FIREBASE_DEPRECATED int64_t GetLong(const char* key);
 
 /// @brief Returns the value associated with a key, converted to a 64-bit
 /// integer.
@@ -311,14 +344,22 @@ int64_t GetLong(const char* key);
 ///
 /// @return Value associated with the specified key converted to a 64-bit
 /// integer.
-int64_t GetLong(const char* key, ValueInfo* info);
+///
+/// @deprecated GetLong is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call GetLong on that instance.
+FIREBASE_DEPRECATED int64_t GetLong(const char* key, ValueInfo* info);
 
 /// @brief Returns the value associated with a key, converted to a double.
 ///
 /// @param[in] key Key of the value to be retrieved.
 ///
 /// @return Value associated with the specified key converted to a double.
-double GetDouble(const char* key);
+///
+/// @deprecated GetDouble is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call GetDouble on that instance.
+FIREBASE_DEPRECATED double GetDouble(const char* key);
 
 /// @brief Returns the value associated with a key, converted to a double.
 ///
@@ -327,14 +368,22 @@ double GetDouble(const char* key);
 /// value.
 ///
 /// @return Value associated with the specified key converted to a double.
-double GetDouble(const char* key, ValueInfo* info);
+///
+/// @deprecated GetDouble is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call GetDouble on that instance.
+FIREBASE_DEPRECATED double GetDouble(const char* key, ValueInfo* info);
 
 /// @brief Returns the value associated with a key, converted to a string.
 ///
 /// @param[in] key Key of the value to be retrieved.
 ///
 /// @return Value as a string associated with the specified key.
-std::string GetString(const char* key);
+///
+/// @deprecated GetString is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call GetString on that instance.
+FIREBASE_DEPRECATED std::string GetString(const char* key);
 
 /// @brief Returns the value associated with a key, converted to a string.
 ///
@@ -343,7 +392,11 @@ std::string GetString(const char* key);
 /// value.
 ///
 /// @return Value as a string associated with the specified key.
-std::string GetString(const char* key, ValueInfo* info);
+///
+/// @deprecated GetString is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call GetString on that instance.
+FIREBASE_DEPRECATED std::string GetString(const char* key, ValueInfo* info);
 
 /// @brief Returns the value associated with a key, as a vector of raw
 /// byte-data.
@@ -351,7 +404,11 @@ std::string GetString(const char* key, ValueInfo* info);
 /// @param[in] key Key of the value to be retrieved.
 ///
 /// @return Vector of bytes.
-std::vector<unsigned char> GetData(const char* key);
+///
+/// @deprecated GetData is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call GetData on that instance.
+FIREBASE_DEPRECATED std::vector<unsigned char> GetData(const char* key);
 
 /// @brief Returns the value associated with a key, as a vector of raw
 /// byte-data.
@@ -361,7 +418,12 @@ std::vector<unsigned char> GetData(const char* key);
 /// value.
 ///
 /// @return Vector of bytes.
-std::vector<unsigned char> GetData(const char* key, ValueInfo* info);
+///
+/// @deprecated GetData is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call GetData on that instance.
+FIREBASE_DEPRECATED std::vector<unsigned char> GetData(const char* key,
+                                                       ValueInfo* info);
 
 /// @brief Gets the set of keys that start with the given prefix.
 ///
@@ -371,12 +433,21 @@ std::vector<unsigned char> GetData(const char* key, ValueInfo* info);
 /// @return Set of Remote Config parameter keys that start with the specified
 /// prefix. Will return an empty set if there are no keys with the given
 /// prefix.
-std::vector<std::string> GetKeysByPrefix(const char* prefix);
+///
+/// @deprecated GetKeysByPrefix is deprecated and will be removed in future
+/// release. Use firebase::remote_config::RemoteConfig::GetInstance() to obtain
+/// an instance and call GetKeysByPrefix on that instance.
+FIREBASE_DEPRECATED std::vector<std::string> GetKeysByPrefix(const char*
+                                                             prefix);
 
 /// @brief Gets the set of all keys.
 ///
 /// @return Set of all Remote Config parameter keys.
-std::vector<std::string> GetKeys();
+///
+/// @deprecated GetKeys is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call GetKeys on that instance.
+FIREBASE_DEPRECATED std::vector<std::string> GetKeys();
 
 /// @brief Fetches config data from the server.
 ///
@@ -388,7 +459,11 @@ std::vector<std::string> GetKeys();
 ///
 /// @return A Future which can be used to determine when the fetch is
 /// complete.
-Future<void> Fetch();
+///
+/// @deprecated Fetch is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call Fetch on that instance.
+FIREBASE_DEPRECATED Future<void> Fetch();
 
 /// @brief Fetches config data from the server.
 ///
@@ -406,13 +481,21 @@ Future<void> Fetch();
 ///
 /// @return A Future which can be used to determine when the fetch is
 /// complete.
-Future<void> Fetch(uint64_t cache_expiration_in_seconds);
+///
+/// @deprecated Fetch is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call Fetch on that instance.
+FIREBASE_DEPRECATED Future<void> Fetch(uint64_t cache_expiration_in_seconds);
 
 /// @brief Get the (possibly still pending) results of the most recent Fetch()
 /// call.
 ///
 /// @return The future result from the last call to Fetch().
-Future<void> FetchLastResult();
+///
+/// @deprecated FetchLastResult is deprecated and will be removed in future
+/// release. Use firebase::remote_config::RemoteConfig::GetInstance() to obtain
+/// an instance and call FetchLastResult on that instance.
+FIREBASE_DEPRECATED Future<void> FetchLastResult();
 
 /// @brief Applies the most recently fetched data, so that its values can be
 /// accessed.
@@ -425,14 +508,22 @@ Future<void> FetchLastResult();
 /// @return true if a previously fetch configuration was activated, false
 /// if a fetched configuration wasn't found or the configuration was previously
 /// activated.
-bool ActivateFetched();
+///
+/// @deprecated ActivateFetched is deprecated and will be removed in future
+/// release. Use firebase::remote_config::RemoteConfig::GetInstance() to obtain
+/// an instance and call Activate on that instance.
+FIREBASE_DEPRECATED bool ActivateFetched();
 
 /// @brief Returns information about the last fetch request, in the form
 /// of a ConfigInfo struct.
 ///
 /// @return A ConfigInfo struct, containing fields reflecting the state
 /// of the most recent fetch request.
-const ConfigInfo& GetInfo();
+///
+/// @deprecated GetInfo is deprecated and will be removed in future release.
+/// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
+/// instance and call GetInfo on that instance.
+FIREBASE_DEPRECATED const ConfigInfo& GetInfo();
 
 namespace internal {
 class RemoteConfigInternal;
