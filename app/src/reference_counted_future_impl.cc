@@ -466,6 +466,11 @@ void ReferenceCountedFutureImpl::RunCallback(
   is_running_callback_ = false;
 }
 
+bool ReferenceCountedFutureImpl::is_orphaned() const {
+  MutexLock lock(mutex_);
+  return is_orphaned_;
+}
+
 static void CleanupFuture(FutureBase* future) { future->Release(); }
 
 void ReferenceCountedFutureImpl::RegisterFutureForCleanup(FutureBase* future) {
@@ -715,6 +720,11 @@ bool ReferenceCountedFutureImpl::IsSafeToDelete() const {
   return true;
 }
 
+bool ReferenceCountedFutureImpl::IsRunningCallback() const {
+  MutexLock lock(mutex_);
+  return is_running_callback_;
+}
+
 bool ReferenceCountedFutureImpl::IsReferencedExternally() const {
   MutexLock lock(mutex_);
 
@@ -801,6 +811,11 @@ void ReferenceCountedFutureImpl::ForceReleaseFuture(
     ReleaseFuture(handle);
   }
   FIREBASE_FUTURE_TRACE("API: ForceReleaseFuture handle %d", handle.id());
+}
+
+void ReferenceCountedFutureImpl::MarkOrphaned() {
+  MutexLock lock(mutex_);
+  is_orphaned_ = true;
 }
 
 // Implementation of FutureHandle from future.h
