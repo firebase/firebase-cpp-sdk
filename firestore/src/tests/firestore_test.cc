@@ -1518,6 +1518,30 @@ TEST_F(FirestoreIntegrationTest, AuthWorks) {
   WriteDocument(doc, MapFieldValue{{"foo", FieldValue::Integer(43)}});
 }
 
+#if !defined(__ANDROID__)
+// This test is to ensure b/172986326 doesn't regress.
+// Note: this test only exists in C++.
+TEST_F(FirestoreIntegrationTest, FirestoreCanBeDeletedFromTransaction) {
+  auto* app = App::Create(this->app()->options(), "foo");
+  auto* db = Firestore::GetInstance(app);
+
+  auto future = db->RunTransaction(
+      [](Transaction&, std::string&) { return Error::kErrorOk; });
+
+  std::future<void> deletion;
+  std::promise<void> callback_done_promise;
+  auto callback_done = callback_done_promise.get_future();
+  future.AddOnCompletion([&](const Future<void>&) mutable {
+    deletion = std::async([db] { delete db; });
+    callback_done_promise.set_value();
+  });
+
+  Await(future);
+  callback_done.wait();
+  deletion.wait();
+}
+#endif  // #if !defined(__ANDROID__)
+
 #endif  // defined(FIRESTORE_STUB_BUILD)
 
 }  // namespace firestore
