@@ -36,7 +36,7 @@ set(flatbuffer_schemas
 set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
 build_flatbuffers("${flatbuffer_schemas}"
                   ""
-                  "generate_request_fbs"
+                  "remote_config_generate_request_fbs"
                   "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
                   "${FIREBASE_GEN_FILE_DIR}/remote_config"
                   ""
