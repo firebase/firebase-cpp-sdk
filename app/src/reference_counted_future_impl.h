@@ -402,6 +402,9 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// no futures are Pending.
   bool IsSafeToDelete() const;
 
+  /// Returns whether this API is currently running a callback.
+  bool IsRunningCallback() const;
+
   /// Check if the Future is being referenced by something other than
   /// last_results_.
   bool IsReferencedExternally() const;
@@ -421,6 +424,11 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   /// Force reset the ref count and release the handle.
   void ForceReleaseFuture(const FutureHandle& handle);
+
+  /// Marks this API as orphaned, meaning that its owner `FutureManager` has
+  /// been destroyed. An orphaned API should delete itself at the first
+  /// opportunity.
+  void MarkOrphaned();
 
  private:
   template <typename T>
@@ -519,6 +527,13 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
     // Call callbacks, if any were registered, releasing the mutex that
     // was previously acquired in any case.
     ReleaseMutexAndRunCallbacks(handle);
+
+    bool orphaned = is_orphaned();
+    // If the owner was destroyed as a result of running callbacks, this API
+    // is orphaned and should delete itself.
+    if (orphaned) {
+      delete this;
+    }
   }
 
   // See CompleteWithResult.
@@ -544,6 +559,8 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   void RunCallback(FutureBase* future_base,
                    FutureBase::CompletionCallback callback, void* user_data);
+
+  bool is_orphaned() const;
 
   /// Mutex protecting all asynchronous data operations.
   /// Marked as `mutable` so that const functions can still be protected.
@@ -574,6 +591,8 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// before the callback is finished, which would be unsafe because it would
   /// clean up the future that is passed to the callback.
   bool is_running_callback_ = false;
+
+  bool is_orphaned_ = false;
 };
 
 /// Specialize the case where the data is void since we don't need to

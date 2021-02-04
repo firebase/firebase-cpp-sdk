@@ -2,6 +2,7 @@
 
 #include "app/src/assert.h"
 #include "app/src/log.h"
+#include "firestore/src/jni/array.h"
 
 // Add constant declarations missing from the NDK's jni.h
 #ifndef JNI_ENOMEM
@@ -144,28 +145,36 @@ jmethodID Env::GetStaticMethodId(const Class& clazz, const char* name,
 }
 
 Local<String> Env::NewStringUtf(const char* bytes) {
-  if (!ok()) return {};
+  if (!bytes) return {};
 
-  jstring result = env_->NewStringUTF(bytes);
-  RecordException();
-  return Local<String>(env_, result);
+  return NewStringUtf(bytes, strlen(bytes));
 }
 
-std::string Env::GetStringUtfRegion(const String& string, size_t start,
-                                    size_t len) {
+Local<String> Env::NewStringUtf(const char* bytes, size_t size) {
+  if (!ok()) return {};
+
+  Local<Array<uint8_t>> java_bytes = NewArray<uint8_t>(size);
+  SetArrayRegion(java_bytes, 0, size, reinterpret_cast<const uint8_t*>(bytes));
+  if (!ok()) return {};
+
+  return String::Create(*this, java_bytes, String::GetUtf8());
+}
+
+std::string Env::ToStringUtf(const String& string) {
   if (!ok()) return "";
+
+  Local<Array<uint8_t>> bytes = string.GetBytes(*this, String::GetUtf8());
+  size_t len = GetArrayLength(bytes);
 
   // Copy directly into the std::string buffer. This is guaranteed to work as
   // of C++11, and also happens to work with STLPort.
   std::string result;
   result.resize(len);
 
-  env_->GetStringUTFRegion(string.get(), ToJni(start), ToJni(len), &result[0]);
-  RecordException();
-
-  // Ensure that if there was an exception, the contents of the buffer are
-  // disregarded.
+  auto* buffer = reinterpret_cast<uint8_t*>(&result[0]);
+  GetArrayRegion(bytes, 0, len, buffer);
   if (!ok()) return "";
+
   return result;
 }
 

@@ -39,6 +39,11 @@ using util::JniStringToString;
     "Lcom/google/firebase/auth/FirebaseAuth;", util::kMethodTypeStatic),       \
   X(GetCurrentUser, "getCurrentUser",                                          \
     "()Lcom/google/firebase/auth/FirebaseUser;"),                              \
+  X(GetLanguageCode, "getLanguageCode",                                        \
+    "()Ljava/lang/String;"),                                                   \
+  X(SetLanguageCode, "setLanguageCode",                                        \
+    "(Ljava/lang/String;)V"),                                                  \
+  X(UseAppLanguage, "useAppLanguage", "()V"),                                  \
   X(AddAuthStateListener, "addAuthStateListener",                              \
     "(Lcom/google/firebase/auth/FirebaseAuth$AuthStateListener;)V"),           \
   X(RemoveAuthStateListener, "removeAuthStateListener",                        \
@@ -546,6 +551,42 @@ User* Auth::current_user() {
   User* user =
       auth_data_->user_impl == nullptr ? nullptr : &auth_data_->current_user;
   return user;
+}
+
+std::string Auth::language_code() const {
+  if (!auth_data_) return std::string();
+  JNIEnv* env = Env(auth_data_);
+  jobject j_pending_result = env->CallObjectMethod(AuthImpl(auth_data_),
+                              auth::GetMethodId(auth::kGetLanguageCode));
+  if (firebase::util::CheckAndClearJniExceptions(env) ||
+      j_pending_result == nullptr) {
+    return std::string();
+  }
+  return util::JniStringToString(env, j_pending_result);
+}
+
+void Auth::set_language_code(const char* language_code) {
+  if (!auth_data_) return;
+  JNIEnv* env = Env(auth_data_);
+  jstring j_language_code = nullptr;
+  if (language_code != nullptr) {
+    j_language_code = env->NewStringUTF(language_code);
+  }
+  env->CallVoidMethod(AuthImpl(auth_data_),
+                      auth::GetMethodId(auth::kSetLanguageCode),
+                      j_language_code);
+  firebase::util::CheckAndClearJniExceptions(env);
+  if (j_language_code != nullptr) {
+    env->DeleteLocalRef(j_language_code);
+  }
+}
+
+void Auth::UseAppLanguage() {
+  if (!auth_data_) return;
+  JNIEnv* env = Env(auth_data_);
+  env->CallVoidMethod(AuthImpl(auth_data_),
+                      auth::GetMethodId(auth::kUseAppLanguage));
+  firebase::util::CheckAndClearJniExceptions(env);
 }
 
 void Auth::SignOut() {

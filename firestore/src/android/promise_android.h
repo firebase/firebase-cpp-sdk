@@ -13,6 +13,7 @@
 #include "firestore/src/android/query_snapshot_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/object.h"
+#include "firestore/src/jni/task.h"
 
 namespace firebase {
 namespace firestore {
@@ -54,7 +55,7 @@ class Promise {
   Promise(Promise&& other) = default;
   Promise& operator=(Promise&& other) = default;
 
-  void RegisterForTask(jni::Env& env, FnEnumType op, const jni::Object& task) {
+  void RegisterForTask(jni::Env& env, FnEnumType op, const jni::Task& task) {
     handle_ = completer_->Alloc(static_cast<int>(op));
 
     // Ownership of the completer will pass to to RegisterCallbackOnTask

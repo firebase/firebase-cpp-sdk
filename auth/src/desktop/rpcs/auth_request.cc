@@ -23,6 +23,9 @@
 namespace firebase {
 namespace auth {
 
+// Key name for header when sending language code data.
+const char* kHeaderFirebaseLocale = "X-Firebase-Locale";
+
 AuthRequest::AuthRequest(const char* schema) : RequestJson(schema) {
   // The user agent strings are cached in static variables here to avoid
   // dependencies upon other parts of this library.  This complication is due to

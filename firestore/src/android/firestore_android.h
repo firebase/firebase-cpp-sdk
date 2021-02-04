@@ -164,12 +164,8 @@ class FirestoreInternal {
   void ShutdownUserCallbackExecutor(jni::Env& env);
 
   static bool Initialize(App* app);
-  static void ReleaseClasses(App* app);
+  static void ReleaseClassesLocked(jni::Env& env);
   static void Terminate(App* app);
-
-  static Mutex init_mutex_;
-  static int initialize_count_;
-  static jni::Loader* loader_;
 
   jni::Global<jni::Object> user_callback_executor_;
 

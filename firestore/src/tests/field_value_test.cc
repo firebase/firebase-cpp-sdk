@@ -18,10 +18,10 @@ namespace firebase {
 namespace firestore {
 
 using Type = FieldValue::Type;
-using FieldValueTest = testing::Test;
+using FieldValueTest = FirestoreIntegrationTest;
 
 // Sanity test for stubs
-TEST_F(FirestoreIntegrationTest, TestFieldValueTypes) {
+TEST_F(FieldValueTest, TestFieldValueTypes) {
   ASSERT_NO_THROW({
     FieldValue::Null();
     FieldValue::Boolean(true);
@@ -55,42 +55,69 @@ TEST_F(FieldValueTest, Assignment) {
 
 #if !defined(FIRESTORE_STUB_BUILD)
 
-TEST_F(FirestoreIntegrationTest, TestNullType) {
+TEST_F(FieldValueTest, TestNullType) {
   FieldValue value = FieldValue::Null();
   EXPECT_EQ(Type::kNull, value.type());
 }
 
-TEST_F(FirestoreIntegrationTest, TestBooleanType) {
+TEST_F(FieldValueTest, TestBooleanType) {
   FieldValue value = FieldValue::Boolean(true);
   EXPECT_EQ(Type::kBoolean, value.type());
   EXPECT_EQ(true, value.boolean_value());
 }
 
-TEST_F(FirestoreIntegrationTest, TestIntegerType) {
+TEST_F(FieldValueTest, TestIntegerType) {
   FieldValue value = FieldValue::Integer(123);
   EXPECT_EQ(Type::kInteger, value.type());
   EXPECT_EQ(123, value.integer_value());
 }
 
-TEST_F(FirestoreIntegrationTest, TestDoubleType) {
+TEST_F(FieldValueTest, TestDoubleType) {
   FieldValue value = FieldValue::Double(3.1415926);
   EXPECT_EQ(Type::kDouble, value.type());
   EXPECT_EQ(3.1415926, value.double_value());
 }
 
-TEST_F(FirestoreIntegrationTest, TestTimestampType) {
+TEST_F(FieldValueTest, TestTimestampType) {
   FieldValue value = FieldValue::Timestamp({12345, 54321});
   EXPECT_EQ(Type::kTimestamp, value.type());
   EXPECT_EQ(Timestamp(12345, 54321), value.timestamp_value());
 }
 
-TEST_F(FirestoreIntegrationTest, TestStringType) {
+TEST_F(FieldValueTest, TestStringType) {
   FieldValue value = FieldValue::String("hello");
   EXPECT_EQ(Type::kString, value.type());
   EXPECT_STREQ("hello", value.string_value().c_str());
 }
 
-TEST_F(FirestoreIntegrationTest, TestBlobType) {
+TEST_F(FieldValueTest, TestStringTypeSpecialCases) {
+  // Latin small letter e with acute accent. Codepoints above 7F are encoded
+  // in multiple bytes.
+  std::string str = u8"\u00E9clair";
+  EXPECT_EQ(FieldValue::String(str).string_value(), str);
+
+  // Latin small letter e + combining acute accent. Similar to above but using
+  // a combining character, which is not normalized.
+  str = u8"e\u0301clair";
+  EXPECT_EQ(FieldValue::String(str).string_value(), str);
+
+  // Face with tears of joy. This is an emoji outside the BMP and encodes as
+  // four bytes in UTF-8 and as a surrogate pair in UTF-16. JNI's modified UTF-8
+  // encodes each surrogate as a separate three byte value for a total of six
+  // bytes.
+  str = u8"\U0001F602!!";
+  EXPECT_EQ(FieldValue::String(str).string_value(), str);
+
+  // Embedded null character. JNI's modified UTF-8 encoding encodes this in a
+  // two byte sequence that doesn't contain a zero byte.
+  str = u8"aaa";
+  str[1] = '\0';
+  FieldValue value = FieldValue::String(str);
+  EXPECT_EQ(value.string_value(), str);
+  EXPECT_STREQ(value.string_value().c_str(), "a");
+}
+
+TEST_F(FieldValueTest, TestBlobType) {
   uint8_t blob[] = "( ͡° ͜ʖ ͡°)";
   FieldValue value = FieldValue::Blob(blob, sizeof(blob));
   EXPECT_EQ(Type::kBlob, value.type());
@@ -108,20 +135,20 @@ TEST_F(FirestoreIntegrationTest, TestBlobType) {
   }
 }
 
-TEST_F(FirestoreIntegrationTest, TestReferenceType) {
+TEST_F(FieldValueTest, TestReferenceType) {
   FieldValue value =
       FieldValue::Reference(TestFirestore()->Document("foo/bar"));
   EXPECT_EQ(Type::kReference, value.type());
   EXPECT_EQ(value.reference_value().path(), "foo/bar");
 }
 
-TEST_F(FirestoreIntegrationTest, TestGeoPointType) {
+TEST_F(FieldValueTest, TestGeoPointType) {
   FieldValue value = FieldValue::GeoPoint({43, 80});
   EXPECT_EQ(Type::kGeoPoint, value.type());
   EXPECT_EQ(GeoPoint(43, 80), value.geo_point_value());
 }
 
-TEST_F(FirestoreIntegrationTest, TestArrayType) {
+TEST_F(FieldValueTest, TestArrayType) {
   FieldValue value = FieldValue::Array(
       {FieldValue::Boolean(true), FieldValue::Integer(123)});
   EXPECT_EQ(Type::kArray, value.type());
@@ -131,7 +158,7 @@ TEST_F(FirestoreIntegrationTest, TestArrayType) {
   EXPECT_EQ(123, array[1].integer_value());
 }
 
-TEST_F(FirestoreIntegrationTest, TestMapType) {
+TEST_F(FieldValueTest, TestMapType) {
   FieldValue value =
       FieldValue::Map(MapFieldValue{{"Bool", FieldValue::Boolean(true)},
                                     {"Int", FieldValue::Integer(123)}});
@@ -142,7 +169,7 @@ TEST_F(FirestoreIntegrationTest, TestMapType) {
   EXPECT_EQ(123, map["Int"].integer_value());
 }
 
-TEST_F(FirestoreIntegrationTest, TestSentinelType) {
+TEST_F(FieldValueTest, TestSentinelType) {
   FieldValue delete_value = FieldValue::Delete();
   EXPECT_EQ(Type::kDelete, delete_value.type());
 
@@ -163,7 +190,7 @@ TEST_F(FirestoreIntegrationTest, TestSentinelType) {
   EXPECT_EQ(Type::kIncrementDouble, increment_double.type());
 }
 
-TEST_F(FirestoreIntegrationTest, TestEquality) {
+TEST_F(FieldValueTest, TestEquality) {
   EXPECT_EQ(FieldValue::Null(), FieldValue::Null());
   EXPECT_EQ(FieldValue::Boolean(true), FieldValue::Boolean(true));
   EXPECT_EQ(FieldValue::Integer(123), FieldValue::Integer(123));
@@ -195,7 +222,7 @@ TEST_F(FirestoreIntegrationTest, TestEquality) {
   //           FieldValue::ArrayRemove({FieldValue::Null()}));
 }
 
-TEST_F(FirestoreIntegrationTest, TestInequality) {
+TEST_F(FieldValueTest, TestInequality) {
   EXPECT_NE(FieldValue::Boolean(false), FieldValue::Boolean(true));
   EXPECT_NE(FieldValue::Integer(123), FieldValue::Integer(456));
   EXPECT_NE(FieldValue::Double(123.0), FieldValue::Double(456.0));
@@ -225,7 +252,7 @@ TEST_F(FirestoreIntegrationTest, TestInequality) {
             FieldValue::ArrayRemove({FieldValue::Boolean(false)}));
 }
 
-TEST_F(FirestoreIntegrationTest, TestInequalityDueToDifferentTypes) {
+TEST_F(FieldValueTest, TestInequalityDueToDifferentTypes) {
   EXPECT_NE(FieldValue::Null(), FieldValue::Delete());
   EXPECT_NE(FieldValue::Integer(1), FieldValue::Boolean(true));
   EXPECT_NE(FieldValue::Integer(123), FieldValue::Double(123));
@@ -237,7 +264,7 @@ TEST_F(FirestoreIntegrationTest, TestInequalityDueToDifferentTypes) {
   // to have the same (or very similar) representation.
 }
 
-TEST_F(FirestoreIntegrationTest, TestToString) {
+TEST_F(FieldValueTest, TestToString) {
   EXPECT_EQ("<invalid>", FieldValue().ToString());
 
   EXPECT_EQ("null", FieldValue::Null().ToString());
@@ -290,7 +317,7 @@ TEST_F(FirestoreIntegrationTest, TestToString) {
   EXPECT_EQ("FieldValue::Increment()", FieldValue::Increment(1.0).ToString());
 }
 
-TEST_F(FirestoreIntegrationTest, TestIncrementChoosesTheCorrectType) {
+TEST_F(FieldValueTest, TestIncrementChoosesTheCorrectType) {
   // Signed integers
   // NOLINTNEXTLINE -- exact integer width doesn't matter.
   short foo = 1;

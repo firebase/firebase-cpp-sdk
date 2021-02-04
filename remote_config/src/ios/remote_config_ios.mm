@@ -57,59 +57,6 @@ static NSNumber *g_throttled_end_time = @0;
 // Saved default keys.
 static std::vector<std::string> *g_default_keys = nullptr;
 
-InitResult Initialize(const App &app) {
-  if (g_app) {
-    LogWarning("Remote Config API already initialized");
-    return kInitResultSuccess;
-  }
-  internal::RegisterTerminateOnDefaultAppDestroy();
-  LogInfo("Remote Config API Initializing");
-  FIREBASE_ASSERT(!g_remote_config_instance);
-  g_app = &app;
-
-  // Create the Remote Config instance.
-  g_remote_config_instance = [FIRRemoteConfig remoteConfig];
-
-  FutureData::Create();
-  g_default_keys = new std::vector<std::string>;
-
-  LogInfo("Remote Config API Initialized");
-  return kInitResultSuccess;
-}
-
-namespace internal {
-
-bool IsInitialized() { return g_app != nullptr; }
-
-}  // namespace internal
-
-
-void Terminate() {
-  if (g_app) {
-    LogWarning("Remove Config API already shut down.");
-    return;
-  }
-  internal::UnregisterTerminateOnDefaultAppDestroy();
-  g_app = nullptr;
-  g_remote_config_instance = nil;
-  FutureData::Destroy();
-  delete g_default_keys;
-  g_default_keys = nullptr;
-}
-
-void SetDefaults(const ConfigKeyValue *defaults, size_t number_of_defaults) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
-  g_default_keys->clear();
-  g_default_keys->reserve(number_of_defaults);
-  for (size_t i = 0; i < number_of_defaults; ++i) {
-    const char* key = defaults[i].key;
-    dict[@(key)] = @(defaults[i].value);
-    g_default_keys->push_back(key);
-  }
-  [g_remote_config_instance setDefaults:dict];
-}
-
 static id VariantToNSObject(const Variant &variant) {
   if (variant.is_int64()) {
     return [NSNumber numberWithLongLong:variant.int64_value()];
@@ -123,48 +70,6 @@ static id VariantToNSObject(const Variant &variant) {
     return [NSData dataWithBytes:variant.blob_data() length:variant.blob_size()];
   } else {
     return nil;
-  }
-}
-
-void SetDefaults(const ConfigKeyValueVariant *defaults, size_t number_of_defaults) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  NSMutableDictionary *dict = [[NSMutableDictionary alloc] init];
-  g_default_keys->clear();
-  g_default_keys->reserve(number_of_defaults);
-  for (size_t i = 0; i < number_of_defaults; ++i) {
-    const char* key = defaults[i].key;
-    id value = VariantToNSObject(defaults[i].value);
-    if (value) {
-      dict[@(key)] = value;
-      g_default_keys->push_back(key);
-    } else {
-      LogError("Remote Config: Invalid Variant type for SetDefaults() key %s", key);
-    }
-  }
-  [g_remote_config_instance setDefaults:dict];
-}
-
-std::string GetConfigSetting(ConfigSetting setting) {
-  FIREBASE_ASSERT_RETURN(std::string(), internal::IsInitialized());
-  switch (setting) {
-  case kConfigSettingDeveloperMode:
-    // This setting is deprecated.
-    LogWarning("Remote Config: Developer mode setting is deprecated.");
-    return "1";
-  default:
-    LogError("Remote Config: GetConfigSetting called with unknown setting: %d", setting);
-    return std::string();
-  }
-}
-
-void SetConfigSetting(ConfigSetting setting, const char *value) {
-  switch (setting) {
-  case kConfigSettingDeveloperMode:
-    LogWarning("Remote Config: Developer mode setting is deprecated.");
-    break;
-  default:
-    LogError("Remote Config: SetConfigSetting called with unknown setting: %d", setting);
-    break;
   }
 }
 
@@ -204,14 +109,6 @@ static void CheckBoolConversion(FIRRemoteConfigValue *value, ValueInfo *info) {
   }
 }
 
-bool GetBoolean(const char *key) { return GetBoolean(key, nullptr); }
-bool GetBoolean(const char *key, ValueInfo *info) {
-  FIREBASE_ASSERT_RETURN(false, internal::IsInitialized());
-  FIRRemoteConfigValue *value = GetValue(key, info);
-  CheckBoolConversion(value, info);
-  return static_cast<bool>(value.boolValue);
-}
-
 static void CheckLongConversion(FIRRemoteConfigValue *value, ValueInfo *info) {
   if (info && info->conversion_successful) {
     NSError *error = nullptr;
@@ -226,14 +123,6 @@ static void CheckLongConversion(FIRRemoteConfigValue *value, ValueInfo *info) {
   }
 }
 
-int64_t GetLong(const char *key) { return GetLong(key, nullptr); }
-int64_t GetLong(const char *key, ValueInfo *info) {
-  FIREBASE_ASSERT_RETURN(0, internal::IsInitialized());
-  FIRRemoteConfigValue *value = GetValue(key, info);
-  CheckLongConversion(value, info);
-  return value.numberValue.longLongValue;
-}
-
 static void CheckDoubleConversion(FIRRemoteConfigValue *value, ValueInfo *info) {
   if (info && info->conversion_successful) {
     NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
@@ -245,114 +134,11 @@ static void CheckDoubleConversion(FIRRemoteConfigValue *value, ValueInfo *info) 
   }
 }
 
-double GetDouble(const char *key) { return GetDouble(key, nullptr); }
-double GetDouble(const char *key, ValueInfo *info) {
-  FIREBASE_ASSERT_RETURN(0.0, internal::IsInitialized());
-  FIRRemoteConfigValue *value = GetValue(key, info);
-  CheckDoubleConversion(value, info);
-  return value.numberValue.doubleValue;
-}
-
-std::string GetString(const char *key) { return GetString(key, nullptr); }
-std::string GetString(const char *key, ValueInfo *info) {
-  FIREBASE_ASSERT_RETURN(std::string(), internal::IsInitialized());
-  return util::NSStringToString(GetValue(key, info).stringValue);
-}
-
 std::vector<unsigned char> ConvertData(FIRRemoteConfigValue *value) {
   NSData *data = value.dataValue;
   int size = [data length] / sizeof(unsigned char);
   const unsigned char *bytes = static_cast<const unsigned char *>([data bytes]);
   return std::vector<unsigned char>(bytes, bytes + size);
-}
-
-std::vector<unsigned char> GetData(const char *key) { return GetData(key, nullptr); }
-
-std::vector<unsigned char> GetData(const char *key, ValueInfo *info) {
-  FIREBASE_ASSERT_RETURN(std::vector<unsigned char>(), internal::IsInitialized());
-  return ConvertData(GetValue(key, info));
-}
-
-std::vector<std::string> GetKeysByPrefix(const char *prefix) {
-  FIREBASE_ASSERT_RETURN(std::vector<std::string>(), internal::IsInitialized());
-  std::vector<std::string> keys;
-  std::set<std::string> key_set;
-  NSSet<NSString *> *ios_keys;
-  NSString *prefix_string = prefix ? @(prefix) : nil;
-  ios_keys = [g_remote_config_instance keysWithPrefix:prefix_string];
-  for (NSString *key in ios_keys) {
-    keys.push_back(key.UTF8String);
-    key_set.insert(key.UTF8String);
-  }
-
-  // Add any extra keys that were previously included in defaults but not returned by
-  // keysWithPrefix.
-  size_t prefix_length = prefix ? strlen(prefix) : 0;
-  for (auto i = g_default_keys->begin(); i != g_default_keys->end(); ++i) {
-    if (key_set.find(*i) != key_set.end()) {
-      // Already in the list of keys, no need to add it.
-      continue;
-    }
-    // If the prefix matches (or we have no prefix to compare), add it to the
-    // defaults list.
-    if (prefix_length == 0 || strncmp(prefix, i->c_str(), prefix_length) == 0) {
-      keys.push_back(*i);
-      key_set.insert(*i);  // In case the defaults vector has duplicate keys.
-    }
-  }
-
-  return keys;
-}
-
-std::vector<std::string> GetKeys() { return GetKeysByPrefix(nullptr); }
-
-Future<void> Fetch() { return Fetch(kDefaultCacheExpiration); }
-
-Future<void> Fetch(uint64_t cache_expiration_in_seconds) {
-  FIREBASE_ASSERT_RETURN(FetchLastResult(), internal::IsInitialized());
-  ReferenceCountedFutureImpl *api = FutureData::Get()->api();
-  const auto handle = api->SafeAlloc<void>(kRemoteConfigFnFetch);
-
-  FIRRemoteConfigFetchCompletion completion = ^(FIRRemoteConfigFetchStatus status, NSError *error) {
-    if (error) {
-      LogError("Remote Config: Fetch encountered an error: %s",
-               util::NSStringToString(error.localizedDescription).c_str());
-      if (error.userInfo) {
-        g_throttled_end_time =
-            ((NSNumber *)error.userInfo[FIRRemoteConfigThrottledEndTimeInSecondsKey]);
-      }
-      // If we got an error code back, return that, with the associated string.
-      api->Complete(handle, kFutureStatusFailure,
-                    util::NSStringToString(error.localizedDescription).c_str());
-    } else if (status != FIRRemoteConfigFetchStatusSuccess) {
-      api->Complete(handle, kFutureStatusFailure, "Fetch encountered an error.");
-    } else {
-      // Everything worked!
-      api->Complete(handle, kFutureStatusSuccess);
-    }
-  };
-  [g_remote_config_instance fetchWithExpirationDuration:cache_expiration_in_seconds
-                                      completionHandler:completion];
-
-  return MakeFuture<void>(api, handle);
-}
-
-Future<void> FetchLastResult() {
-  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
-  ReferenceCountedFutureImpl *api = FutureData::Get()->api();
-  return static_cast<const Future<void> &>(api->LastResult(kRemoteConfigFnFetch));
-}
-
-bool ActivateFetched() {
-  FIREBASE_ASSERT_RETURN(false, internal::IsInitialized());
-  __block bool succeeded = true;
-  __block dispatch_semaphore_t semaphore = dispatch_semaphore_create(0);
-  [g_remote_config_instance activateWithCompletion:^(BOOL changed, NSError *_Nullable error) {
-      if (error) succeeded = false;
-      dispatch_semaphore_signal(semaphore);
-    }];
-  dispatch_semaphore_wait(semaphore, DISPATCH_TIME_FOREVER);
-  return succeeded;
 }
 
 static void GetInfoFromFIRRemoteConfig(FIRRemoteConfig *rc_instance, ConfigInfo *out_info,
@@ -385,14 +171,6 @@ static void GetInfoFromFIRRemoteConfig(FIRRemoteConfig *rc_instance, ConfigInfo 
       out_info->last_fetch_failure_reason = kFetchFailureReasonError;
       break;
   }
-}
-
-const ConfigInfo &GetInfo() {
-  static ConfigInfo kConfigInfo;
-  FIREBASE_ASSERT_RETURN(kConfigInfo, internal::IsInitialized());
-  GetInfoFromFIRRemoteConfig(g_remote_config_instance, &kConfigInfo,
-                             g_throttled_end_time.longLongValue);
-  return kConfigInfo;
 }
 
 namespace internal {
@@ -567,7 +345,6 @@ Future<void> RemoteConfigInternal::SetDefaultsLastResult() {
   return static_cast<const Future<void> &>(future_impl_.LastResult(kRemoteConfigFnSetDefaults));
 }
 
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
 Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
   const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetConfigSettings);
   FIRRemoteConfigSettings *config_settings = impl().configSettings;
@@ -576,12 +353,23 @@ Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
                                   ::firebase::internal::kMillisecondsPerSecond);
   config_settings.fetchTimeout = static_cast<NSTimeInterval>(
       settings.fetch_timeout_in_milliseconds / ::firebase::internal::kMillisecondsPerSecond);
+  future_impl_.Complete(handle, kFutureStatusSuccess);
   return MakeFuture<void>(&future_impl_, handle);
 }
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
+
 Future<void> RemoteConfigInternal::SetConfigSettingsLastResult() {
   return static_cast<const Future<void> &>(
       future_impl_.LastResult(kRemoteConfigFnSetConfigSettings));
+}
+
+ConfigSettings RemoteConfigInternal::GetConfigSettings() const {
+  ConfigSettings settings;
+  FIRRemoteConfigSettings *config_settings = impl().configSettings;
+  settings.minimum_fetch_interval_in_milliseconds =
+      config_settings.minimumFetchInterval * ::firebase::internal::kMillisecondsPerSecond;
+  settings.fetch_timeout_in_milliseconds =
+      config_settings.fetchTimeout * ::firebase::internal::kMillisecondsPerSecond;
+  return settings;
 }
 
 bool RemoteConfigInternal::GetBoolean(const char *key, ValueInfo *info) {

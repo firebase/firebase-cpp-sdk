@@ -28,7 +28,7 @@ Method<size_t> kNewIndex("getNewIndex", "()I");
 }  // namespace
 
 void DocumentChangeInternal::Initialize(jni::Loader& loader) {
-  loader.LoadClass(kClass, kDocument, kOldIndex, kNewIndex);
+  loader.LoadClass(kClass, kType, kDocument, kOldIndex, kNewIndex);
 }
 
 Type DocumentChangeInternal::type() const {

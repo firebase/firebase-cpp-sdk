@@ -69,12 +69,12 @@ std::string GetLocale() {
   // Some of the environment variables have a "." after the name to specify the
   // terminal encoding, e.g.  "en_US.UTF-8", so we want to cut the string on the
   // ".".
-  size_t cut = output.find(".");
+  size_t cut = output.find('.');
   if (cut != std::string::npos) {
     output = output.substr(0, cut);
   }
   // Do the same with a "@" which some locales also have.
-  cut = output.find("@");
+  cut = output.find('@');
   if (cut != std::string::npos) {
     output = output.substr(0, cut);
   }
