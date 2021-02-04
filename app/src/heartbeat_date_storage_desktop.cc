@@ -19,9 +19,8 @@
 #include <fstream>
 #include <utility>
 
-#include <app/src/mutex.h>
-
 #include "app/src/filesystem.h"
+#include "app/src/mutex.h"
 
 namespace FIREBASE_NAMESPACE {
 
@@ -32,7 +31,7 @@ const char kHeartbeatFilename[] = "HEARTBEAT_INFO_STORAGE";
 
 // Returns the mutex that protects accesses to the storage file.
 Mutex& FileMutex() {
-  static Mutex* mutex_ =  new Mutex(Mutex::kModeNonRecursive);
+  static Mutex* mutex_ = new Mutex(Mutex::kModeNonRecursive);
   return *mutex_;
 }
 

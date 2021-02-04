@@ -18,6 +18,7 @@
 #include "firestore/src/jni/array_list.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
+#include "firestore/src/jni/task.h"
 
 namespace firebase {
 namespace firestore {
@@ -29,6 +30,7 @@ using jni::Env;
 using jni::Local;
 using jni::Method;
 using jni::Object;
+using jni::Task;
 
 constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/Query";
@@ -102,9 +104,9 @@ Method<Object> kEndAtSnapshot(
     "Lcom/google/firebase/firestore/Query;");
 Method<Object> kEndAt(
     "endAt", "([Ljava/lang/Object;)Lcom/google/firebase/firestore/Query;");
-Method<Object> kGet("get",
-                    "(Lcom/google/firebase/firestore/Source;)"
-                    "Lcom/google/android/gms/tasks/Task;");
+Method<Task> kGet("get",
+                  "(Lcom/google/firebase/firestore/Source;)"
+                  "Lcom/google/android/gms/tasks/Task;");
 Method<Object> kAddSnapshotListener(
     "addSnapshotListener",
     "(Ljava/util/concurrent/Executor;"
@@ -243,7 +245,7 @@ Query QueryInternal::EndAt(const std::vector<FieldValue>& values) const {
 Future<QuerySnapshot> QueryInternal::Get(Source source) {
   Env env = GetEnv();
   Local<Object> java_source = SourceInternal::Create(env, source);
-  Local<Object> task = env.Call(obj_, kGet, java_source);
+  Local<Task> task = env.Call(obj_, kGet, java_source);
   return promises_.NewFuture<QuerySnapshot>(env, AsyncFn::kGet, task);
 }
 

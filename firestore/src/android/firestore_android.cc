@@ -52,6 +52,7 @@
 #include "firestore/src/jni/long.h"
 #include "firestore/src/jni/map.h"
 #include "firestore/src/jni/set.h"
+#include "firestore/src/jni/task.h"
 
 namespace firebase {
 namespace firestore {
@@ -66,6 +67,7 @@ using jni::Method;
 using jni::Object;
 using jni::StaticMethod;
 using jni::String;
+using jni::Task;
 
 constexpr char kFirestoreClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/FirebaseFirestore";
@@ -94,19 +96,19 @@ Method<void> kSetSettings(
     "setFirestoreSettings",
     "(Lcom/google/firebase/firestore/FirebaseFirestoreSettings;)V");
 Method<Object> kBatch("batch", "()Lcom/google/firebase/firestore/WriteBatch;");
-Method<Object> kRunTransaction(
+Method<Task> kRunTransaction(
     "runTransaction",
     "(Lcom/google/firebase/firestore/Transaction$Function;)"
     "Lcom/google/android/gms/tasks/Task;");
-Method<Object> kEnableNetwork("enableNetwork",
-                              "()Lcom/google/android/gms/tasks/Task;");
-Method<Object> kDisableNetwork("disableNetwork",
+Method<Task> kEnableNetwork("enableNetwork",
+                            "()Lcom/google/android/gms/tasks/Task;");
+Method<Task> kDisableNetwork("disableNetwork",
+                             "()Lcom/google/android/gms/tasks/Task;");
+Method<Task> kTerminate("terminate", "()Lcom/google/android/gms/tasks/Task;");
+Method<Task> kWaitForPendingWrites("waitForPendingWrites",
+                                   "()Lcom/google/android/gms/tasks/Task;");
+Method<Task> kClearPersistence("clearPersistence",
                                "()Lcom/google/android/gms/tasks/Task;");
-Method<Object> kTerminate("terminate", "()Lcom/google/android/gms/tasks/Task;");
-Method<Object> kWaitForPendingWrites("waitForPendingWrites",
-                                     "()Lcom/google/android/gms/tasks/Task;");
-Method<Object> kClearPersistence("clearPersistence",
-                                 "()Lcom/google/android/gms/tasks/Task;");
 Method<Object> kAddSnapshotsInSyncListener(
     "addSnapshotsInSyncListener",
     "(Ljava/util/concurrent/Executor;Ljava/lang/Runnable;)"
@@ -220,7 +222,7 @@ FirestoreInternal::FirestoreInternal(App* app) {
   FIREBASE_ASSERT(java_user_callback_executor.get() != nullptr);
   user_callback_executor_ = java_user_callback_executor;
 
-  future_manager_.AllocFutureApi(this, static_cast<int>(AsyncFn::kCount));
+  promises_ = MakeUnique<PromiseFactory<AsyncFn>>(this);
 }
 
 /* static */
@@ -276,6 +278,7 @@ bool FirestoreInternal::Initialize(App* app) {
     SettingsInternal::Initialize(loader);
     SnapshotMetadataInternal::Initialize(loader);
     SourceInternal::Initialize(loader);
+    Task::Initialize(loader);
     TimestampInternal::Initialize(loader);
     TransactionInternal::Initialize(loader);
     WriteBatchInternal::Initialize(loader);
@@ -332,7 +335,7 @@ FirestoreInternal::~FirestoreInternal() {
   Env env = GetEnv();
   ShutdownUserCallbackExecutor(env);
 
-  future_manager_.ReleaseFutureApi(this);
+  promises_.reset(nullptr);
 
   java_firestores->Remove(env, obj_);
 
@@ -389,20 +392,18 @@ Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update,
   Env env = GetEnv();
   Local<Object> transaction_function =
       TransactionInternal::Create(env, this, update);
-  Local<Object> task = env.Call(obj_, kRunTransaction, transaction_function);
+  Local<Task> task = env.Call(obj_, kRunTransaction, transaction_function);
 
   if (!env.ok()) return {};
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   auto* completion =
       static_cast<LambdaTransactionFunction*>(is_lambda ? update : nullptr);
-  Promise<void, void, AsyncFn> promise(ref_future(), this, completion);
+  return promises_->NewFuture<void>(env, AsyncFn::kRunTransaction, task,
+                                    completion);
 #else  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
-  Promise<void, void, AsyncFn> promise(ref_future(), this);
+  return promises_->NewFuture<void>(env, AsyncFn::kRunTransaction, task);
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
-
-  promise.RegisterForTask(env, AsyncFn::kRunTransaction, task);
-  return promise.GetFuture();
 }
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
@@ -415,32 +416,32 @@ Future<void> FirestoreInternal::RunTransaction(
 
 Future<void> FirestoreInternal::DisableNetwork() {
   Env env = GetEnv();
-  Local<Object> task = env.Call(obj_, kDisableNetwork);
-  return NewFuture(env, AsyncFn::kDisableNetwork, task);
+  Local<Task> task = env.Call(obj_, kDisableNetwork);
+  return promises_->NewFuture<void>(env, AsyncFn::kDisableNetwork, task);
 }
 
 Future<void> FirestoreInternal::EnableNetwork() {
   Env env = GetEnv();
-  Local<Object> task = env.Call(obj_, kEnableNetwork);
-  return NewFuture(env, AsyncFn::kEnableNetwork, task);
+  Local<Task> task = env.Call(obj_, kEnableNetwork);
+  return promises_->NewFuture<void>(env, AsyncFn::kEnableNetwork, task);
 }
 
 Future<void> FirestoreInternal::Terminate() {
   Env env = GetEnv();
-  Local<Object> task = env.Call(obj_, kTerminate);
-  return NewFuture(env, AsyncFn::kTerminate, task);
+  Local<Task> task = env.Call(obj_, kTerminate);
+  return promises_->NewFuture<void>(env, AsyncFn::kTerminate, task);
 }
 
 Future<void> FirestoreInternal::WaitForPendingWrites() {
   Env env = GetEnv();
-  Local<Object> task = env.Call(obj_, kWaitForPendingWrites);
-  return NewFuture(env, AsyncFn::kWaitForPendingWrites, task);
+  Local<Task> task = env.Call(obj_, kWaitForPendingWrites);
+  return promises_->NewFuture<void>(env, AsyncFn::kWaitForPendingWrites, task);
 }
 
 Future<void> FirestoreInternal::ClearPersistence() {
   Env env = GetEnv();
-  Local<Object> task = env.Call(obj_, kClearPersistence);
-  return NewFuture(env, AsyncFn::kClearPersistence, task);
+  Local<Task> task = env.Call(obj_, kClearPersistence);
+  return promises_->NewFuture<void>(env, AsyncFn::kClearPersistence, task);
 }
 
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(

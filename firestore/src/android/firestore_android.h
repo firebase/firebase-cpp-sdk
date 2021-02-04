@@ -8,6 +8,7 @@
 #include <functional>
 #endif
 
+#include "app/memory/unique_ptr.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -29,8 +30,13 @@ class Transaction;
 class TransactionFunction;
 class WriteBatch;
 
+<<<<<<< HEAD
 template <typename PublicType, typename InternalType, typename FnEnumType>
 class Promise;
+=======
+template <typename EnumT>
+class PromiseFactory;
+>>>>>>> master
 
 // Used for registering global callbacks. See
 // firebase::util::RegisterCallbackOnTask for context.
@@ -149,6 +155,7 @@ class FirestoreInternal {
 
   const jni::Global<jni::Object>& user_callback_executor() const {
     return user_callback_executor_;
+<<<<<<< HEAD
   }
 
   static void SetClientLanguage(const std::string& language_token);
@@ -173,6 +180,17 @@ class FirestoreInternal {
     Promise<PublicT, InternalT, AsyncFn> promise(self->ref_future(), self);
     promise.RegisterForTask(env, op, task);
     return promise.GetFuture();
+=======
+  }
+
+  static void SetClientLanguage(const std::string& language_token);
+
+ private:
+  friend class FirestoreIntegrationTest;
+
+  FirestoreInternal* mutable_this() const {
+    return const_cast<FirestoreInternal*>(this);
+>>>>>>> master
   }
 
   void ShutdownUserCallbackExecutor(jni::Env& env);
@@ -207,6 +225,7 @@ class FirestoreInternal {
 #endif  //  defined(_STLPORT_VERSION)
 
   FutureManager future_manager_;
+  UniquePtr<PromiseFactory<AsyncFn>> promises_;
 
   CleanupNotifier cleanup_;
 };

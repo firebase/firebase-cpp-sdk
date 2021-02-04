@@ -44,6 +44,7 @@ App* GetApp(const char* name) {
 
 App* GetApp() { return GetApp(nullptr); }
 
+#ifndef __APPLE__
 // TODO(varconst): it's brittle and potentially flaky, look into using some
 // notification mechanism instead.
 bool ProcessEvents(int millis) {
@@ -51,6 +52,7 @@ bool ProcessEvents(int millis) {
   // `false` means "don't shut down the application".
   return false;
 }
+#endif  // #ifndef __APPLE__
 
 FirestoreInternal* CreateTestFirestoreInternal(App* app) {
   return TestFriend::CreateTestFirestoreInternal(app);

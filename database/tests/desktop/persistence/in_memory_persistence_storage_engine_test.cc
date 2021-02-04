@@ -79,6 +79,9 @@ TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveUserMerge) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveUserMerge) {
 #endif
+=======
+TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveUserMerge) {
+>>>>>>> master
   EXPECT_DEATH(engine_.SaveUserMerge(Path(), CompoundWrite(), 100),
                DEATHTEST_SIGABRT);
 }

@@ -1,6 +1,7 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_PROMISE_IOS_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_PROMISE_IOS_H_
 
+#include <mutex>  // NOLINT(build/c++11)
 #include <utility>
 
 #include "app/src/cleanup_notifier.h"
@@ -24,6 +25,7 @@ namespace firestore {
 //
 // `Promise` guarantees that it refers to a valid future backed by `LastResults`
 // array.
+// TODO(b/173819915): fix data races with cleanup.
 template <typename ResultT>
 class Promise {
  public:
@@ -37,7 +39,10 @@ class Promise {
     RegisterForCleanup();
   }
 
-  ~Promise() { UnregisterForCleanup(); }
+  ~Promise() {
+    std::lock_guard<std::mutex> lock(destruction_mutex_);
+    UnregisterForCleanup();
+  }
 
   Promise(const Promise& rhs)
       : cleanup_{rhs.cleanup_},
@@ -53,10 +58,7 @@ class Promise {
         identifier_{rhs.identifier_},
         handle_{rhs.handle_} {
     rhs.UnregisterForCleanup();
-    rhs.cleanup_ = nullptr;
-    rhs.future_api_ = nullptr;
-    rhs.identifier_ = 0;
-    rhs.handle_ = {};
+    rhs.Reset();
 
     RegisterForCleanup();
   }
@@ -85,10 +87,7 @@ class Promise {
 
     RegisterForCleanup();
 
-    rhs.cleanup_ = nullptr;
-    rhs.future_api_ = nullptr;
-    rhs.identifier_ = 0;
-    rhs.handle_ = {};
+    rhs.Reset();
 
     return *this;
   }
@@ -149,6 +148,13 @@ class Promise {
 
   int NoError() const { return static_cast<int>(Error::kErrorOk); }
 
+  void Reset() {
+    cleanup_ = nullptr;
+    future_api_ = nullptr;
+    identifier_ = 0;
+    handle_ = {};
+  }
+
   // Note: `CleanupFn` is not used because `Promise` is a header-only class, to
   // avoid a circular dependency between headers.
   void RegisterForCleanup() {
@@ -158,7 +164,18 @@ class Promise {
 
     cleanup_->RegisterObject(this, [](void* raw_this) {
       auto* this_ptr = static_cast<Promise*>(raw_this);
-      *this_ptr = {};
+      std::unique_lock<std::mutex> lock(this_ptr->destruction_mutex_,
+                                     std::try_to_lock_t());
+      // If the destruction mutex is locked, it means the destructor is
+      // currently running. In that case, leave the cleanup to destructor;
+      // otherwise, trying to acquire the mutex will result in a deadlock
+      // (because cleanup is currently holding the cleanup mutex which the
+      // destructor will try to acquire to unregister itself from cleanup).
+      if (!lock) {
+        return;
+      }
+
+      this_ptr->Reset();
     });
   }
 
@@ -175,6 +192,7 @@ class Promise {
   ReferenceCountedFutureImpl* future_api_ = nullptr;
   int identifier_ = 0;
   SafeFutureHandle<ResultT> handle_;
+  std::mutex destruction_mutex_;
 };
 
 }  // namespace firestore

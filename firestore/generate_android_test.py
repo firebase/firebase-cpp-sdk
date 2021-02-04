@@ -13,7 +13,7 @@ finds all test methods of the pattern TEST_F(..., ...) and converts each into a
 import argparse
 import re
 
-GTEST_METHOD_RE = (r'TEST_F[(]\s*(?P<test_class>[A-Za-z]+)\s*,\s*'
+GTEST_METHOD_RE = (r'TEST(?:_F)?[(]\s*(?P<test_class>[A-Za-z]+)\s*,\s*'
                    r'(?P<test_method>[A-Za-z]+)\s*[)]')
 
 JAVA_TEST_METHOD = r"""

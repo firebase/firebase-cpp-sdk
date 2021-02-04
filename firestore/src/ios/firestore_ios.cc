@@ -4,13 +4,12 @@
 
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "auth/src/include/firebase/auth.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/ios/converter_ios.h"
+#include "firestore/src/ios/create_credentials_provider.h"
 #include "firestore/src/ios/create_firebase_metadata_provider.h"
-#include "firestore/src/ios/credentials_provider_ios.h"
 #include "firestore/src/ios/document_reference_ios.h"
 #include "firestore/src/ios/document_snapshot_ios.h"
 #include "firestore/src/ios/hard_assert_ios.h"
@@ -29,11 +28,9 @@
 
 namespace firebase {
 namespace firestore {
-
 namespace {
 
 using auth::CredentialsProvider;
-using ::firebase::auth::Auth;
 using model::DatabaseId;
 using model::ResourcePath;
 using util::AsyncQueue;
@@ -45,14 +42,10 @@ std::shared_ptr<AsyncQueue> CreateWorkerQueue() {
   return AsyncQueue::Create(std::move(executor));
 }
 
-std::unique_ptr<CredentialsProvider> CreateCredentialsProvider(App* app) {
-  return absl::make_unique<FirebaseCppCredentialsProvider>(Auth::GetAuth(app));
-}
-
 }  // namespace
 
 FirestoreInternal::FirestoreInternal(App* app)
-    : FirestoreInternal{app, CreateCredentialsProvider(app)} {}
+    : FirestoreInternal{app, CreateCredentialsProvider(*app)} {}
 
 FirestoreInternal::FirestoreInternal(
     App* app, std::unique_ptr<CredentialsProvider> credentials)

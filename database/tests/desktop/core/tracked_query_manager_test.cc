@@ -239,6 +239,7 @@ TEST_F(TrackedQueryManagerTest, SetQueryActiveFlag_ExistingQueryWasFalse) {
   EXPECT_TRUE(result->active);
 }
 
+<<<<<<< HEAD
 // Disable DeathTest in Release mode because it depends on a crash 
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
@@ -246,6 +247,9 @@ TEST_F(TrackedQueryManagerDeathTest, DISABLED_SetQueryInactive_NewQuery) {
 #else
 TEST_F(TrackedQueryManagerDeathTest, SetQueryInactive_NewQuery) {
 #endif
+=======
+TEST_F(TrackedQueryManagerDeathTest, SetQueryInactive_NewQuery) {
+>>>>>>> master
   QuerySpec new_spec(Path("new/active/query"));
   // Can't set a query inactive unless you are already tracking it.
   EXPECT_DEATH(manager_->SetQueryActiveFlag(new_spec, TrackedQuery::kInactive),

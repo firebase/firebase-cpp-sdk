@@ -160,6 +160,7 @@ TEST(Operation, ListenComplete) {
   EXPECT_EQ(op.path.str(), "A/B/C");
 }
 
+<<<<<<< HEAD
 // Disable DeathTest in Release mode because it depends on a crash 
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
@@ -167,6 +168,9 @@ TEST(OperationDeathTest, DISABLED_ListenCompleteWithWrongSource) {
 #else
 TEST(OperationDeathTest, ListenCompleteWithWrongSource) {
 #endif
+=======
+TEST(OperationDeathTest, ListenCompleteWithWrongSource) {
+>>>>>>> master
   // ListenCompletes must come from the server, not the user.
   EXPECT_DEATH(Operation::ListenComplete(OperationSource::kUser, Path("A/B/C")),
                DEATHTEST_SIGABRT);
@@ -319,6 +323,7 @@ TEST(Operation, OperationForChildAckUserWriteNonEmptyPath) {
   EXPECT_TRUE(result->revert);
 }
 
+<<<<<<< HEAD
 // Disable DeathTest in Release mode because it depends on a crash 
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
@@ -328,6 +333,10 @@ TEST(OperationDeathTest,
 TEST(OperationDeathTest,
      OperationForChildAckUserWriteNonEmptyPathWithUnrelatedChild) {
 #endif
+=======
+TEST(OperationDeathTest,
+     OperationForChildAckUserWriteNonEmptyPathWithUnrelatedChild) {
+>>>>>>> master
   Tree<bool> affected_tree;
   affected_tree.SetValueAt(Path("aaa"), true);
   affected_tree.SetValueAt(Path("bbb"), false);
@@ -356,6 +365,7 @@ TEST(Operation, OperationForChildAckUserWriteEmptyPathHasValue) {
   EXPECT_TRUE(result->revert);
 }
 
+<<<<<<< HEAD
 // Disable DeathTest in Release mode because it depends on a crash 
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
@@ -365,6 +375,10 @@ TEST(OperationDeathTest,
 TEST(OperationDeathTest,
      OperationForChildAckUserWriteEmptyPathOverlappingChildren) {
 #endif
+=======
+TEST(OperationDeathTest,
+     OperationForChildAckUserWriteEmptyPathOverlappingChildren) {
+>>>>>>> master
   Tree<bool> affected_tree;
   affected_tree.SetValueAt(Path(), false);
   affected_tree.SetValueAt(Path("aaa"), true);

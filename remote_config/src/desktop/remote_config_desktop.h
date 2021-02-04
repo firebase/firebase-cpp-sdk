@@ -28,6 +28,7 @@
 #include "remote_config/src/desktop/config_data.h"
 #include "remote_config/src/desktop/file_manager.h"
 #include "remote_config/src/desktop/notification_channel.h"
+#include "remote_config/src/desktop/rest.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
 #ifdef FIREBASE_TESTING
@@ -41,6 +42,8 @@
 namespace firebase {
 namespace remote_config {
 namespace internal {
+
+const char* const kFutureNoErrorMessage = "No Error Message";
 
 // Remote Config Client implementation for Desktop support.
 //
@@ -85,10 +88,9 @@ class RemoteConfigInternal {
   Future<void> Fetch(uint64_t cache_expiration_in_seconds);
   Future<void> FetchLastResult();
 
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
   Future<void> SetConfigSettings(ConfigSettings settings);
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
   Future<void> SetConfigSettingsLastResult();
+  ConfigSettings GetConfigSettings();
 
 #ifndef SWIG
   Future<void> SetDefaults(const ConfigKeyValueVariant* defaults,
@@ -123,8 +125,12 @@ class RemoteConfigInternal {
 
   static bool IsBoolTrue(const std::string& str);
   static bool IsBoolFalse(const std::string& str);
+  static bool ConvertToBool(const std::string& from, bool* out);
   static bool IsLong(const std::string& str);
+  static bool ConvertToLong(const std::string& from, int64_t* out);
   static bool IsDouble(const std::string& str);
+  static bool ConvertToDouble(const std::string& from, double* out);
+  static Variant StringToVariant(const std::string& from);
 
   bool Initialized() const;
   void Cleanup();
@@ -159,6 +165,8 @@ class RemoteConfigInternal {
   bool CheckValueInConfig(const NamespacedConfigData& config,
                           ValueSource source, const char* key, ValueInfo* info,
                           std::string* value);
+
+  void FetchInternal();
 
   static const char* const kDefaultNamespace;
   static const char* const kDefaultValueForString;
@@ -213,6 +221,10 @@ class RemoteConfigInternal {
   typedef firebase::internal::SafeReferenceLock<RemoteConfigInternal>
       ThisRefLock;
   ThisRef safe_this_;
+
+  RemoteConfigREST rest_;
+  bool initialized_;
+  ConfigSettings config_settings_;
 };
 
 }  // namespace internal

@@ -93,7 +93,11 @@ TEST(TimeTests, GetTimestampEpochTest) {
   printf("%llu -> %llu (%lld)\n", start, end, error);
 #endif  // __linux__
 
+<<<<<<< HEAD
   EXPECT_GE(end, start+500);
+=======
+  EXPECT_TRUE(error < 0.10 * firebase::internal::kMillisecondsPerSecond);
+>>>>>>> master
 }
 
 }  // namespace

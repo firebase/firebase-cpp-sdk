@@ -1,7 +1,10 @@
 #include "firestore/src/jni/env.h"
 
+<<<<<<< HEAD
 #include <cstring>
 
+=======
+>>>>>>> master
 #include "app/src/assert.h"
 #include "app/src/log.h"
 #include "firestore/src/jni/array.h"
