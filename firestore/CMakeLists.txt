@@ -336,6 +336,7 @@ elseif(IOS)
 
   setup_pod_headers(
     firebase_firestore
+    INCLUDE_PRIVATE_HEADERS
     POD_NAMES
       FirebaseCore
       FirebaseFirestore

@@ -1,7 +1,7 @@
 #include "firestore/src/ios/create_credentials_provider.h"
 
-#import "third_party/firebase/ios/Releases/FirebaseCore/Library/Private/FirebaseCoreInternal.h"
-#import "third_party/firebase/ios/Releases/FirebaseInterop/Auth/Public/FIRAuthInterop.h"
+#import "FirebaseCoreInternal.h"
+#import "FIRAuthInterop.h"
 
 #include "app/src/include/firebase/app.h"
 #include "absl/memory/memory.h"
