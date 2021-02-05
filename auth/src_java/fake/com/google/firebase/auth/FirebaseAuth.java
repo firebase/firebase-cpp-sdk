@@ -43,11 +43,8 @@ public final class FirebaseAuth {
   private final ArrayList<AuthStateListener> authStateListeners = new ArrayList<>();
   private final ArrayList<IdTokenListener> idTokenListeners = new ArrayList<>();
 
-<<<<<<< HEAD
-=======
   private String languageCode;
 
->>>>>>> master
   public static FirebaseAuth getInstance(FirebaseApp firebaseApp) {
     return new FirebaseAuth();
   }
@@ -145,8 +142,6 @@ public final class FirebaseAuth {
     signedIn = false;
   }
 
-<<<<<<< HEAD
-=======
   public void setLanguageCode(String languageCode) {
     this.languageCode = languageCode;
   }
@@ -160,7 +155,6 @@ public final class FirebaseAuth {
      languageCode = "en-US";
   }
 
->>>>>>> master
   public Task<SignInMethodQueryResult> fetchSignInMethodsForEmail(String email) {
     return null;
   }

@@ -13,10 +13,7 @@
 #include "firestore/src/android/query_snapshot_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/object.h"
-<<<<<<< HEAD
-=======
 #include "firestore/src/jni/task.h"
->>>>>>> master
 
 namespace firebase {
 namespace firestore {
@@ -50,27 +47,6 @@ class Promise {
                               PublicType* result) = 0;
   };
 
-<<<<<<< HEAD
-  Promise(ReferenceCountedFutureImpl* impl, FirestoreInternal* firestore,
-          Completion<PublicType>* completion = nullptr)
-      : completer_(MakeUnique<Completer<PublicType, InternalType>>(
-            impl, firestore, completion)),
-        impl_(impl) {}
-
-  ~Promise() {}
-
-  Promise(const Promise&) = delete;
-  Promise& operator=(const Promise&) = delete;
-
-  Promise(Promise&& other) = default;
-  Promise& operator=(Promise&& other) = default;
-
-  void RegisterForTask(FnEnumType op, const jni::Object& task) {
-    return RegisterForTask(op, task.get());
-  }
-
-  void RegisterForTask(jni::Env& env, FnEnumType op, const jni::Object& task) {
-=======
   ~Promise() {}
 
   Promise(const Promise&) = delete;
@@ -80,7 +56,6 @@ class Promise {
   Promise& operator=(Promise&& other) = default;
 
   void RegisterForTask(jni::Env& env, FnEnumType op, const jni::Task& task) {
->>>>>>> master
     handle_ = completer_->Alloc(static_cast<int>(op));
 
     // Ownership of the completer will pass to to RegisterCallbackOnTask
@@ -171,12 +146,8 @@ class Promise {
     using CompleterBase<PublicT>::CompleterBase;
 
     void SucceedWithResult(jni::Env& env, const jni::Object& result) override {
-<<<<<<< HEAD
-      auto future_result = MakePublic<PublicT>(env, this->firestore_, result);
-=======
       auto future_result =
           MakePublic<PublicT, InternalT>(env, this->firestore_, result);
->>>>>>> master
 
       this->impl_->CompleteWithResult(this->handle_, Error::kErrorOk,
                                       /*error_msg=*/"", future_result);

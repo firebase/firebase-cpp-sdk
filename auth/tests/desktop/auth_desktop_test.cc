@@ -250,7 +250,6 @@ class AuthDesktopTest : public ::testing::Test {
     id_token_listener.VerifyAndReset();
     auth_state_listener.VerifyAndReset();
     firebase_auth_->SignOut();
-<<<<<<< HEAD
 
     // Wait for the app to finish any remaining tasks in queue,
     // specifically delete app data from persistent cache after SignOut.
@@ -261,8 +260,6 @@ class AuthDesktopTest : public ::testing::Test {
       SleepUponDestruction sleep_for_listeners;
     }
 
-=======
->>>>>>> master
     firebase_auth_.reset(nullptr);
     firebase_app_.reset(nullptr);
     // cppsdk needs to be the last thing torn down, because the mocks are still

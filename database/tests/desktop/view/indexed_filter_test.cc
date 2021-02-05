@@ -317,7 +317,6 @@ TEST(IndexedFilter, UpdateFullVariant) {
   }
 }
 
-<<<<<<< HEAD
 // Disable DeathTest in Release mode because it depends on a crash 
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
@@ -325,9 +324,6 @@ TEST(IndexedFilterDeathTest, DISABLED_UpdateFullVariant_OrderByMismatch) {
 #else
 TEST(IndexedFilterDeathTest, UpdateFullVariant_OrderByMismatch) {
 #endif
-=======
-TEST(IndexedFilterDeathTest, UpdateFullVariant_OrderByMismatch) {
->>>>>>> master
   QueryParams params;
   params.order_by = QueryParams::kOrderByChild;
   IndexedFilter filter(params);

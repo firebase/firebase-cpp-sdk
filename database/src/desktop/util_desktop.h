@@ -347,7 +347,6 @@ std::string WireProtocolPathToString(const Path& path);
 // NOTE: Don't change this unless you're changing the wire protocol!
 Variant GetWireProtocolParams(const QueryParams& query_params);
 
-<<<<<<< HEAD
 // Get a local path that you can use for storing app-specific files.
 // This is platform-specific. If it returns an empty string, it was
 // unable to find a proper path and you can just use the current directory
@@ -358,8 +357,6 @@ std::string GetAppDataPath(const char* app_name, bool should_create = true);
 // delimiter. Returns of vector of constituent parts
 std::vector<std::string> split_string(const std::string& s,
                                       const char delimiter='/');
-=======
->>>>>>> master
 }  // namespace internal
 }  // namespace database
 }  // namespace firebase

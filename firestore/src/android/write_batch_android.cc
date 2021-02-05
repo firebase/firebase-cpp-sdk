@@ -8,10 +8,7 @@
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/hash_map.h"
 #include "firestore/src/jni/loader.h"
-<<<<<<< HEAD
-=======
 #include "firestore/src/jni/task.h"
->>>>>>> master
 
 namespace firebase {
 namespace firestore {
@@ -22,10 +19,7 @@ using jni::HashMap;
 using jni::Local;
 using jni::Method;
 using jni::Object;
-<<<<<<< HEAD
-=======
 using jni::Task;
->>>>>>> master
 
 constexpr char kClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/WriteBatch";
@@ -46,11 +40,7 @@ Method<Object> kUpdateVarargs(
 Method<Object> kDelete("delete",
                        "(Lcom/google/firebase/firestore/DocumentReference;)"
                        "Lcom/google/firebase/firestore/WriteBatch;");
-<<<<<<< HEAD
-Method<Object> kCommit("commit", "()Lcom/google/android/gms/tasks/Task;");
-=======
 Method<Task> kCommit("commit", "()Lcom/google/android/gms/tasks/Task;");
->>>>>>> master
 
 }  // namespace
 
@@ -97,11 +87,7 @@ void WriteBatchInternal::Delete(const DocumentReference& document) {
 
 Future<void> WriteBatchInternal::Commit() {
   Env env = GetEnv();
-<<<<<<< HEAD
-  Local<Object> task = env.Call(obj_, kCommit);
-=======
   Local<Task> task = env.Call(obj_, kCommit);
->>>>>>> master
   return promises_.NewFuture<void>(env, AsyncFn::kCommit, task);
 }
 

@@ -136,7 +136,6 @@ TEST(WriteTree, RemoveWrite) {
   EXPECT_NE(write_tree.GetWrite(102), nullptr);
 }
 
-<<<<<<< HEAD
 // Disable DeathTest in Release mode because it depends on a crash 
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
@@ -144,9 +143,6 @@ TEST(WriteTreeDeathTest, DISABLED_RemoveWrite) {
 #else
 TEST(WriteTreeDeathTest, RemoveWrite) {
 #endif
-=======
-TEST(WriteTreeDeathTest, RemoveWrite) {
->>>>>>> master
   WriteTree write_tree;
   Variant snap("test_data");
   write_tree.AddOverwrite(Path("test/path/one/visible"), snap, 100,

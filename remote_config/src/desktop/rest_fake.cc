@@ -31,13 +31,6 @@ namespace internal {
 // with it when the normal API calls happen.
 RemoteConfigREST::RemoteConfigREST(const firebase::AppOptions& app_options,
                                    const LayeredConfigs& configs,
-<<<<<<< HEAD
-                                   uint64_t cache_expiration_in_seconds)
-    : app_package_name_(app_options.app_id()),
-      app_gmp_project_id_(app_options.project_id()),
-      configs_(configs),
-      cache_expiration_in_seconds_(cache_expiration_in_seconds),
-=======
                                    const std::string namespaces)
     : app_package_name_(app_options.app_id()),
       app_gmp_project_id_(app_options.project_id()),
@@ -45,7 +38,6 @@ RemoteConfigREST::RemoteConfigREST(const firebase::AppOptions& app_options,
       api_key_(app_options.api_key()),
       namespaces_(std::move(namespaces)),
       configs_(configs),
->>>>>>> master
       fetch_future_sem_(0) {
   configs_.fetched = NamespacedConfigData(
       NamespaceKeyValueMap({{"namespace", {{"key", "value"}}}}), 1000000);
@@ -58,16 +50,6 @@ RemoteConfigREST::RemoteConfigREST(const firebase::AppOptions& app_options,
 
 RemoteConfigREST::~RemoteConfigREST() {}
 
-<<<<<<< HEAD
-void RemoteConfigREST::Fetch(const App& app) {}
-
-void RemoteConfigREST::SetupRestRequest() {}
-
-ConfigFetchRequest RemoteConfigREST::GetFetchRequestData() {
-  return ConfigFetchRequest();
-}
-
-=======
 void RemoteConfigREST::Fetch(const App& app,
                              uint64_t fetch_timeout_in_milliseconds) {}
 
@@ -76,16 +58,10 @@ void RemoteConfigREST::SetupRestRequest(
 ConfigFetchRequest RemoteConfigREST::GetFetchRequestData() {
   return ConfigFetchRequest();
 }
->>>>>>> master
 void RemoteConfigREST::GetPackageData(PackageData* package_data) {}
 
 void RemoteConfigREST::ParseRestResponse() {}
 
-<<<<<<< HEAD
-void RemoteConfigREST::ParseProtoResponse(const std::string& proto_str) {}
-
-=======
->>>>>>> master
 void RemoteConfigREST::FetchSuccess(LastFetchStatus status) {}
 
 void RemoteConfigREST::FetchFailure(FetchFailureReason reason) {}

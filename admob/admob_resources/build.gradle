@@ -45,13 +45,8 @@ android {
 }
 
 dependencies {
-<<<<<<< HEAD
-  implementation 'com.google.firebase:firebase-analytics:18.0.0'
-  implementation 'com.google.firebase:firebase-ads:19.5.0'
-=======
   implementation 'com.google.firebase:firebase-analytics:18.0.1'
   implementation 'com.google.firebase:firebase-ads:19.7.0'
->>>>>>> master
 }
 
 afterEvaluate {

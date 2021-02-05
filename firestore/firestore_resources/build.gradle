@@ -46,13 +46,8 @@ android {
 }
 
 dependencies {
-<<<<<<< HEAD
-  implementation 'com.google.firebase:firebase-analytics:18.0.0'
-  implementation 'com.google.firebase:firebase-firestore:22.0.0'
-=======
   implementation 'com.google.firebase:firebase-analytics:18.0.1'
   implementation 'com.google.firebase:firebase-firestore:22.0.1'
->>>>>>> master
 }
 
 afterEvaluate {

@@ -425,14 +425,11 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// Force reset the ref count and release the handle.
   void ForceReleaseFuture(const FutureHandle& handle);
 
-<<<<<<< HEAD
-=======
   /// Marks this API as orphaned, meaning that its owner `FutureManager` has
   /// been destroyed. An orphaned API should delete itself at the first
   /// opportunity.
   void MarkOrphaned();
 
->>>>>>> master
  private:
   template <typename T>
   static void DeleteT(void* ptr_to_delete) {
