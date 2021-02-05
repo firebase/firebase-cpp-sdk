@@ -18,10 +18,9 @@ if(TARGET firestore)
   return()
 endif()
 
-# Using a firestore version that has been updated to use 
-# nanopb 0.3.9.6 instead of 0.3.9.5. This was necessary 
-# because nanopb 0.3.9.5 doesn't build with python3.
-set(version c887ea1a8de22bbd980e2aca0ac51bb074201b96)
+# Use a Firestore version slightly after 7.5.1, as it
+# contains a minor crash fix we'd like to include.
+set(version 5e76aa968bfce5e9c8fb0f28f523793f0e9ed5f3)
 ExternalProject_Add(
   firestore
 
