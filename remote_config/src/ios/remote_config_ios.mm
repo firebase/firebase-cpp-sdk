@@ -1,3 +1,146 @@
+// Copyright 2016 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "remote_config/src/ios/remote_config_ios.h"
+
+#include <map>
+#include <set>
+#include <string>
+
+#include "app/src/include/firebase/version.h"
+#include "app/src/assert.h"
+#include "app/src/log.h"
+#include "app/src/time.h"
+#include "remote_config/src/common.h"
+
+namespace firebase {
+namespace remote_config {
+
+DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
+
+// Global reference to the Firebase App.
+static const ::firebase::App *g_app = nullptr;
+
+// Global reference to the Remote Config instance.
+static FIRRemoteConfig *g_remote_config_instance;
+
+// Maps FIRRemoteConfigSource values to the ValueSource enumeration.
+static const ValueSource kFirebaseRemoteConfigSourceToValueSourceMap[] = {
+    kValueSourceRemoteValue,   // FIRRemoteConfigSourceRemote
+    kValueSourceDefaultValue,  // FIRRemoteConfigSourceDefault
+    kValueSourceStaticValue,   // FIRRemoteConfigSourceStatic
+};
+static_assert(FIRRemoteConfigSourceRemote == 0, "FIRRemoteConfigSourceRemote is not 0");
+static_assert(FIRRemoteConfigSourceDefault == 1, "FIRRemoteConfigSourceDefault is not 1");
+static_assert(FIRRemoteConfigSourceStatic == 2, "FIRRemoteConfigSourceStatic is not 2");
+
+// Regular expressions used to determine if the config value is a "valid" bool.
+// Written to match what is used internally by the Java implementation.
+static NSString *true_pattern = @"^(1|true|t|yes|y|on)$";
+static NSString *false_pattern = @"^(0|false|f|no|n|off|)$";
+
+// If a fetch was throttled, this is set to the time when the throttling is
+// finished, in milliseconds since epoch.
+static NSNumber *g_throttled_end_time = @0;
+
+// Saved default keys.
+static std::vector<std::string> *g_default_keys = nullptr;
+
+static id VariantToNSObject(const Variant &variant) {
+  if (variant.is_int64()) {
+    return [NSNumber numberWithLongLong:variant.int64_value()];
+  } else if (variant.is_bool()) {
+    return [NSNumber numberWithBool:variant.bool_value() ? YES : NO];
+  } else if (variant.is_double()) {
+    return [NSNumber numberWithDouble:variant.double_value()];
+  } else if (variant.is_string()) {
+    return @(variant.string_value());
+  } else if (variant.is_blob()) {
+    return [NSData dataWithBytes:variant.blob_data() length:variant.blob_size()];
+  } else {
+    return nil;
+  }
+}
+
+// Shared helper function for retrieving the FIRRemoteConfigValue.
+static FIRRemoteConfigValue *GetValue(const char *key, ValueInfo *info, FIRRemoteConfig *rc_ptr) {
+  FIRRemoteConfigValue *value;
+  value = [rc_ptr configValueForKey:@(key)];
+  if (info) {
+    int source_index = static_cast<int>(value.source);
+    if (source_index >= 0 && source_index < sizeof(kFirebaseRemoteConfigSourceToValueSourceMap)) {
+      info->source = kFirebaseRemoteConfigSourceToValueSourceMap[value.source];
+      info->conversion_successful = true;
+    } else {
+      info->conversion_successful = false;
+      LogWarning("Remote Config: Failed to find a valid source for the requested key %s", key);
+    }
+  }
+  return value;
+}
+
+static FIRRemoteConfigValue *GetValue(const char *key, ValueInfo *info) {
+  return GetValue(key, info, g_remote_config_instance);
+}
+
+static void CheckBoolConversion(FIRRemoteConfigValue *value, ValueInfo *info) {
+  if (info && info->conversion_successful) {
+    NSError *error = nullptr;
+    NSString *pattern = value.boolValue ? true_pattern : false_pattern;
+    NSRegularExpression *regex =
+        [NSRegularExpression regularExpressionWithPattern:pattern
+                                                  options:NSRegularExpressionCaseInsensitive
+                                                    error:&error];
+    int matches = [regex numberOfMatchesInString:value.stringValue
+                                         options:0
+                                           range:NSMakeRange(0, [value.stringValue length])];
+    info->conversion_successful = (matches == 1);
+  }
+}
+
+static void CheckLongConversion(FIRRemoteConfigValue *value, ValueInfo *info) {
+  if (info && info->conversion_successful) {
+    NSError *error = nullptr;
+    NSRegularExpression *regex =
+        [NSRegularExpression regularExpressionWithPattern:@"^[0-9]+$"
+                                                  options:NSRegularExpressionCaseInsensitive
+                                                    error:&error];
+    int matches = [regex numberOfMatchesInString:value.stringValue
+                                         options:0
+                                           range:NSMakeRange(0, [value.stringValue length])];
+    info->conversion_successful = (matches == 1);
+  }
+}
+
+static void CheckDoubleConversion(FIRRemoteConfigValue *value, ValueInfo *info) {
+  if (info && info->conversion_successful) {
+    NSNumberFormatter *formatter = [[NSNumberFormatter alloc] init];
+    [formatter setNumberStyle:NSNumberFormatterDecimalStyle];
+    NSNumber *number = [formatter numberFromString:value.stringValue];
+    if (!number) {
+      info->conversion_successful = false;
+    }
+  }
+}
+
+std::vector<unsigned char> ConvertData(FIRRemoteConfigValue *value) {
+  NSData *data = value.dataValue;
+  int size = [data length] / sizeof(unsigned char);
+  const unsigned char *bytes = static_cast<const unsigned char *>([data bytes]);
+  return std::vector<unsigned char>(bytes, bytes + size);
+}
+
 static void GetInfoFromFIRRemoteConfig(FIRRemoteConfig *rc_instance, ConfigInfo *out_info,
                                        int64_t throttled_end_time) {
   FIREBASE_DEV_ASSERT(out_info != nullptr);
