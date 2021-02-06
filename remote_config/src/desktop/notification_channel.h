@@ -15,8 +15,6 @@
 #ifndef FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_DESKTOP_NOTIFICATION_CHANNEL_H_
 #define FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_DESKTOP_NOTIFICATION_CHANNEL_H_
 
-#include <condition_variable>  // NOLINT
-
 namespace firebase {
 namespace remote_config {
 namespace internal {
@@ -47,7 +45,7 @@ class NotificationChannel {
   bool have_item_;
   bool closed_;
 
-  std::mutex mutex_;
+  Mutex mutex_;
   std::condition_variable condition_variable_;
 };
 
