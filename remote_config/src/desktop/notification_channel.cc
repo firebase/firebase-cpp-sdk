@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <condition_variable>  // NOLINT
+
 #include "remote_config/src/desktop/notification_channel.h"
 
 namespace firebase {
@@ -22,14 +24,14 @@ NotificationChannel::NotificationChannel()
     : have_item_(false), closed_(false) {}
 
 bool NotificationChannel::Get() {
-  MutexLock lock(mutex_);
+  std::unique_lock<std::mutex> lock(mutex_);
   condition_variable_.wait(lock, [this]() { return closed_ || have_item_; });
   have_item_ = false;
   return !closed_;
 }
 
 void NotificationChannel::Put() {
-  MutexLock lock(mutex_);
+  std::unique_lock<std::mutex> lock(mutex_);
   if (!closed_) {
     have_item_ = true;
     condition_variable_.notify_one();
@@ -37,7 +39,7 @@ void NotificationChannel::Put() {
 }
 
 void NotificationChannel::Close() {
-  MutexLock lock(mutex_);
+  std::unique_lock<std::mutex> lock(mutex_);
   if (!closed_) {
     closed_ = true;
     condition_variable_.notify_all();
