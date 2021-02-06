@@ -38,16 +38,19 @@
 #define FIREBASE_CONFIG_STRING ""
 #endif  // FIREBASE_CONFIG
 
+// If 1, will test the deprecating module functions. 0 will test RemoteConfig
+// instance functions.
+// TODO(b/178658613) clean up when remove deprecated V1 code
+#define TEST_DEPRECATED 0
+
 namespace firebase_testapp_automated {
 
 using app_framework::LogDebug;
 using app_framework::LogWarning;
 using app_framework::ProcessEvents;
 using firebase_test_framework::FirebaseTest;
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
 using firebase::Future;
 using firebase::remote_config::RemoteConfig;
-#endif  //  FIREBASE_EARLY_ACCESS_PREVIEW
 
 using testing::UnorderedElementsAre;
 
@@ -62,13 +65,15 @@ class FirebaseRemoteConfigTest : public FirebaseTest {
  protected:
   // Initialize Firebase App and Firebase Remote Config.
   void Initialize();
+  void InitializeDeprecated();
   // Shut down Firebase Remote Config and Firebase App.
   void Terminate();
+  void TerminateDeprecated();
 
-  bool initialized_;
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
-  RemoteConfig* rc_;
-#endif  //  FIREBASE_EARLY_ACCESS_PREVIEW
+  bool initialized_ = false;
+  RemoteConfig* rc_ = nullptr;
+
+  bool initialized_deprecated_ = false;
 };
 
 FirebaseRemoteConfigTest::FirebaseRemoteConfigTest() : initialized_(false) {
@@ -78,21 +83,25 @@ FirebaseRemoteConfigTest::FirebaseRemoteConfigTest() : initialized_(false) {
 FirebaseRemoteConfigTest::~FirebaseRemoteConfigTest() {
   // Must be cleaned up on exit.
   assert(app_ == nullptr);
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
   assert(rc_ == nullptr);
-#endif  //  FIREBASE_EARLY_ACCESS_PREVIEW
 }
 
 void FirebaseRemoteConfigTest::SetUp() {
   FirebaseTest::SetUp();
+#if TEST_DEPRECATED
+  InitializeDeprecated();
+#else
   Initialize();
+#endif  // TEST_DEPRECATED
 }
 
 void FirebaseRemoteConfigTest::TearDown() {
   // Delete the shared path, if there is one.
-  if (initialized_) {
-    Terminate();
-  }
+#if TEST_DEPRECATED
+  TerminateDeprecated();
+#else
+  Terminate();
+#endif  // TEST_DEPRECATED
   FirebaseTest::TearDown();
 }
 
@@ -107,16 +116,12 @@ void FirebaseRemoteConfigTest::Initialize() {
   ::firebase::ModuleInitializer initializer;
 
   void* ptr = nullptr;
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
   ptr = &rc_;
-#endif
   initializer.Initialize(app_, ptr, [](::firebase::App* app, void* target) {
     LogDebug("Try to initialize Firebase RemoteConfig");
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
     RemoteConfig** rc_ptr = reinterpret_cast<RemoteConfig**>(target);
     *rc_ptr = RemoteConfig::GetInstance(app);
-#endif
-    return firebase::remote_config::Initialize(*app);
+    return firebase::kInitResultSuccess;
   });
 
   WaitForCompletion(initializer.InitializeLastResult(), "Initialize");
@@ -129,21 +134,57 @@ void FirebaseRemoteConfigTest::Initialize() {
   initialized_ = true;
 }
 
+void FirebaseRemoteConfigTest::InitializeDeprecated() {
+  if (initialized_deprecated_) return;
+  SetLogLevel(app_framework::kDebug);
+
+  InitializeApp();
+
+  LogDebug("Initializing Firebase Remote Config - DEPRECATED.");
+
+  ::firebase::ModuleInitializer initializer;
+
+  initializer.Initialize(app_, nullptr, [](::firebase::App* app, void* target) {
+    LogDebug("Try to initialize Firebase RemoteConfig - DEPRECATED.");
+    return firebase::remote_config::Initialize(*app);
+  });
+
+  WaitForCompletion(initializer.InitializeLastResult(), "Initialize");
+
+  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
+      << initializer.InitializeLastResult().error_message();
+
+  LogDebug("Successfully initialized Firebase RemoteConfig - DEPRECATED.");
+
+  initialized_deprecated_ = true;
+}
+
 void FirebaseRemoteConfigTest::Terminate() {
   if (!initialized_) return;
 
   LogDebug("Shutdown the Remote Config library.");
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
   if (rc_) {
     delete rc_;
     rc_ = nullptr;
   }
-#endif  //  FIREBASE_EARLY_ACCESS_PREVIEW
-  LogDebug("DTerminating.");
-  firebase::remote_config::Terminate();
+  LogDebug("Terminating.");
   TerminateApp();
 
   initialized_ = false;
+
+  ProcessEvents(100);
+}
+
+void FirebaseRemoteConfigTest::TerminateDeprecated() {
+  if (!initialized_deprecated_) return;
+
+  LogDebug("Shutdown the Remote Config library - DEPRECATED.");
+
+  LogDebug("Terminating - DEPRECATED.");
+  firebase::remote_config::Terminate();
+  TerminateApp();
+
+  initialized_deprecated_ = false;
 
   ProcessEvents(100);
 }
@@ -189,12 +230,10 @@ static void SetDefaults() {
   firebase::remote_config::SetDefaults(defaults, default_count);
 }
 
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
 static Future<void> SetDefaultsV2(RemoteConfig* rc) {
   size_t default_count = FIREBASE_ARRAYSIZE(defaults);
   return rc->SetDefaults(defaults, default_count);
 }
-#endif  //  FIREBASE_EARLY_ACCESS_PREVIEW
 
 // Test cases below.
 
@@ -202,6 +241,7 @@ TEST_F(FirebaseRemoteConfigTest, TestInitializeAndTerminate) {
   // Already tested via SetUp() and TearDown().
 }
 
+#if TEST_DEPRECATED
 TEST_F(FirebaseRemoteConfigTest, TestSetDefaults) {
   SetDefaults();
 
@@ -278,7 +318,13 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchAndActivate) {
   SetDefaults();
 
   WaitForCompletion(firebase::remote_config::Fetch(0), "Fetch");
+
+#if defined(__ANDROID__)
+// TODO(b/178386092) not activate for android, need to verify android native
+// behavior
+#else
   EXPECT_TRUE(firebase::remote_config::ActivateFetched());
+#endif  // defined(__ANDROID__)
   const firebase::remote_config::ConfigInfo& info =
       firebase::remote_config::GetInfo();
   LogDebug("Fetch time: %lld", info.fetch_time);
@@ -335,9 +381,8 @@ TEST_F(FirebaseRemoteConfigTest, TestGetKeys) {
   EXPECT_THAT(keys_subset, UnorderedElementsAre("TestDouble", "TestData",
                                                 "TestDefaultOnly"));
 }
+#else
 
-#if defined(FIREBASE_EARLY_ACCESS_PREVIEW) && \
-    (defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE))
 TEST_F(FirebaseRemoteConfigTest, TestSetDefaultsV2) {
   EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
 
@@ -405,15 +450,20 @@ TEST_F(FirebaseRemoteConfigTest, TestGetKeysV2) {
   EXPECT_THAT(
       keys, UnorderedElementsAre("TestBoolean", "TestLong", "TestDouble",
                                  "TestString", "TestData", "TestDefaultOnly"));
-  std::vector<std::string> keys_subset =
-      firebase::remote_config::GetKeysByPrefix("TestD");
+  std::vector<std::string> keys_subset = rc_->GetKeysByPrefix("TestD");
   EXPECT_THAT(keys_subset, UnorderedElementsAre("TestDouble", "TestData",
                                                 "TestDefaultOnly"));
 }
 
+//   TestData     4321
+//   TestDouble   625.63
+//   TestLong     119
+//   TestBoolean  true
+//   TestString   This is a string
 TEST_F(FirebaseRemoteConfigTest, TestGetAll) {
   EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
-
+  EXPECT_TRUE(WaitForCompletion(rc_->Fetch(), "Fetch"));
+  EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
   std::map<std::string, firebase::Variant> key_values = rc_->GetAll();
   EXPECT_EQ(key_values.size(), 6);
 
@@ -425,6 +475,55 @@ TEST_F(FirebaseRemoteConfigTest, TestGetAll) {
   }
 }
 
-#endif  //  FIREBASE_EARLY_ACCESS_PREVIEW
+/* The following test expects that you have your server values set to:
+   TestData     4321
+   TestDouble   625.63
+   TestLong     119
+   TestBoolean  true
+   TestString   This is a string
+ */
+TEST_F(FirebaseRemoteConfigTest, TestFetchV2) {
+  EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
+
+  EXPECT_TRUE(WaitForCompletion(rc_->Fetch(), "Fetch"));
+  EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
+  LogDebug("Fetch time: %lld", rc_->GetInfo().fetch_time);
+  firebase::remote_config::ValueInfo value_info;
+  bool bool_value = rc_->GetBoolean("TestBoolean", &value_info);
+  EXPECT_EQ(value_info.source, firebase::remote_config::kValueSourceRemoteValue)
+      << "TestBoolean source is " << ValueSourceToString(value_info.source)
+      << ", expected Remote";
+  EXPECT_TRUE(bool_value);
+
+  int64_t int64_value = rc_->GetLong("TestLong", &value_info);
+  EXPECT_EQ(value_info.source, firebase::remote_config::kValueSourceRemoteValue)
+      << "TestLong source is " << ValueSourceToString(value_info.source)
+      << ", expected Remote";
+  EXPECT_EQ(int64_value, 119);
+
+  double double_value = rc_->GetDouble("TestDouble", &value_info);
+  EXPECT_EQ(value_info.source, firebase::remote_config::kValueSourceRemoteValue)
+      << "TestDouble source is " << ValueSourceToString(value_info.source)
+      << ", expected Remote";
+  EXPECT_NEAR(double_value, 625.63, 0.0001);
+
+  std::string string_value = rc_->GetString("TestString", &value_info);
+  EXPECT_EQ(value_info.source, firebase::remote_config::kValueSourceRemoteValue)
+      << "TestString source is " << ValueSourceToString(value_info.source)
+      << ", expected Remote";
+  EXPECT_EQ(string_value, "This is a string");
+
+  std::vector<unsigned char> blob_value =
+      rc_->GetData("TestData");  //, &value_info);
+  EXPECT_EQ(value_info.source, firebase::remote_config::kValueSourceRemoteValue)
+      << "TestData source is " << ValueSourceToString(value_info.source)
+      << ", expected Remote";
+
+  const unsigned char kExpectedBlobServerValue[] = {'4', '3', '2', '1'};
+  EXPECT_THAT(blob_value,
+              testing::ElementsAreArray(kExpectedBlobServerValue,
+                                        sizeof(kExpectedBlobServerValue)));
+}
+#endif  // TEST_DEPRECATED
 
 }  // namespace firebase_testapp_automated
