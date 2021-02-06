@@ -71,8 +71,13 @@ RemoteConfigInternal::RemoteConfigInternal(
       is_fetch_process_have_task_(false),
       future_impl_(kRemoteConfigFnCount),
       safe_this_(this),
-      rest_(app.options(), configs_, kDefaultNamespace) {
+      rest_(app.options(), configs_, kDefaultNamespace),
+      initialized_(false) {
   InternalInit();
+  {
+    MutexLock lock(internal_mutex_);
+    initialized_ = true;
+  }
 }
 
 RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
@@ -81,8 +86,13 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
       is_fetch_process_have_task_(false),
       future_impl_(kRemoteConfigFnCount),
       safe_this_(this),
-      rest_(app.options(), configs_, kDefaultNamespace) {
+      rest_(app.options(), configs_, kDefaultNamespace),
+      initialized_(false) {
   InternalInit();
+  {
+    MutexLock lock(internal_mutex_);
+    initialized_ = true;
+  }
 }
 
 RemoteConfigInternal::~RemoteConfigInternal() {
@@ -229,7 +239,9 @@ void RemoteConfigInternal::AsyncSaveToFile() {
       {
         MutexLock lock(internal_mutex_);
         copy = configs_;
-        initialized_ = true;
+        // TODO(cynthiajiang): If the following line is required, reinstate it
+        // and ensure that RC still initializes properly.
+        // initialized_ = true;
       }
       file_manager_.Save(copy);
     }
