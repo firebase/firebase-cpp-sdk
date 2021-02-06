@@ -86,7 +86,6 @@ function(setup_pod_headers target_name)
           ${FIREBASE_POD_HEADER_DIR}/${pod}/${pod}
       )
       if("${SETUP_POD_HEADERS_INCLUDE_PRIVATE_HEADERS}")
-        message("DEBUG DEBUG INCLUDING PRIVATE HEADERS FOR ${pod} in ${target_name}, setting to ${FIREBASE_POD_PRIVATE_HEADER_DIR}/${pod}")
 	# Workaround: Private/FirebaseCore/*.h headers include other FirebaseCore headers via the subdirectory, so
 	# we need to include the top-level Private directory as a header path. This only affects Firestore at the moment, as
 	# no other C++ library includes a private Pod header.
