@@ -86,6 +86,7 @@ set(android_SRCS
     src/android/field_value_android.h
     src/android/firestore_android.cc
     src/android/firestore_android.h
+    src/android/firestore_exceptions_android.h
     src/android/geo_point_android.cc
     src/android/geo_point_android.h
     src/android/geo_point_portable.cc
