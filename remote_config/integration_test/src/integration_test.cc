@@ -22,6 +22,7 @@
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
+#include "firebase/log.h"
 #include "firebase/remote_config.h"
 #include "firebase/util.h"
 #include "firebase_test_framework.h"  // NOLINT
@@ -63,17 +64,23 @@ class FirebaseRemoteConfigTest : public FirebaseTest {
   void TearDown() override;
 
  protected:
+#if TEST_DEPRECATED
   // Initialize Firebase App and Firebase Remote Config.
-  void Initialize();
   void InitializeDeprecated();
   // Shut down Firebase Remote Config and Firebase App.
-  void Terminate();
   void TerminateDeprecated();
+
+  bool initialized_deprecated_ = false;
+
+#else
+  // Initialize Firebase App and Firebase Remote Config.
+  void Initialize();
+  // Shut down Firebase Remote Config and Firebase App.
+  void Terminate();
 
   bool initialized_ = false;
   RemoteConfig* rc_ = nullptr;
-
-  bool initialized_deprecated_ = false;
+#endif
 };
 
 FirebaseRemoteConfigTest::FirebaseRemoteConfigTest() : initialized_(false) {
@@ -105,6 +112,49 @@ void FirebaseRemoteConfigTest::TearDown() {
   FirebaseTest::TearDown();
 }
 
+#if TEST_DEPRECATED
+
+void FirebaseRemoteConfigTest::InitializeDeprecated() {
+  if (initialized_deprecated_) return;
+  SetLogLevel(app_framework::kDebug);
+
+  InitializeApp();
+
+  LogDebug("Initializing Firebase Remote Config - DEPRECATED.");
+
+  ::firebase::ModuleInitializer initializer;
+
+  initializer.Initialize(app_, nullptr, [](::firebase::App* app, void* target) {
+    LogDebug("Try to initialize Firebase RemoteConfig - DEPRECATED.");
+    return firebase::remote_config::Initialize(*app);
+  });
+
+  WaitForCompletion(initializer.InitializeLastResult(), "InitializeDeprecated");
+
+  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
+      << initializer.InitializeLastResult().error_message();
+
+  LogDebug("Successfully initialized Firebase RemoteConfig - DEPRECATED.");
+
+  initialized_deprecated_ = true;
+}
+
+void FirebaseRemoteConfigTest::TerminateDeprecated() {
+  if (!initialized_deprecated_) return;
+
+  LogDebug("Shutdown the Remote Config library - DEPRECATED.");
+
+  LogDebug("Terminating - DEPRECATED.");
+  firebase::remote_config::Terminate();
+  TerminateApp();
+
+  initialized_deprecated_ = false;
+
+  ProcessEvents(100);
+}
+
+#else  // !TEST_DEPRECATED
+
 void FirebaseRemoteConfigTest::Initialize() {
   if (initialized_) return;
   SetLogLevel(app_framework::kDebug);
@@ -134,30 +184,6 @@ void FirebaseRemoteConfigTest::Initialize() {
   initialized_ = true;
 }
 
-void FirebaseRemoteConfigTest::InitializeDeprecated() {
-  if (initialized_deprecated_) return;
-  SetLogLevel(app_framework::kDebug);
-
-  InitializeApp();
-
-  LogDebug("Initializing Firebase Remote Config - DEPRECATED.");
-
-  ::firebase::ModuleInitializer initializer;
-
-  initializer.Initialize(app_, nullptr, [](::firebase::App* app, void* target) {
-    LogDebug("Try to initialize Firebase RemoteConfig - DEPRECATED.");
-    return firebase::remote_config::Initialize(*app);
-  });
-
-  WaitForCompletion(initializer.InitializeLastResult(), "Initialize");
-
-  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
-      << initializer.InitializeLastResult().error_message();
-
-  LogDebug("Successfully initialized Firebase RemoteConfig - DEPRECATED.");
-
-  initialized_deprecated_ = true;
-}
 
 void FirebaseRemoteConfigTest::Terminate() {
   if (!initialized_) return;
@@ -174,20 +200,7 @@ void FirebaseRemoteConfigTest::Terminate() {
 
   ProcessEvents(100);
 }
-
-void FirebaseRemoteConfigTest::TerminateDeprecated() {
-  if (!initialized_deprecated_) return;
-
-  LogDebug("Shutdown the Remote Config library - DEPRECATED.");
-
-  LogDebug("Terminating - DEPRECATED.");
-  firebase::remote_config::Terminate();
-  TerminateApp();
-
-  initialized_deprecated_ = false;
-
-  ProcessEvents(100);
-}
+#endif  // TEST_DEPRECATED
 
 static const char* ValueSourceToString(
     firebase::remote_config::ValueSource source) {
@@ -225,15 +238,17 @@ static const firebase::remote_config::ConfigKeyValueVariant kServerValue[] = {
     {"TestDefaultOnly", firebase::Variant::FromMutableString(
                             "Default value that won't be overridden")}};
 
+#if TEST_DEPRECATED
 static void SetDefaults() {
   size_t default_count = FIREBASE_ARRAYSIZE(defaults);
   firebase::remote_config::SetDefaults(defaults, default_count);
 }
-
+#else   // !TEST_DEPRECATED
 static Future<void> SetDefaultsV2(RemoteConfig* rc) {
   size_t default_count = FIREBASE_ARRAYSIZE(defaults);
   return rc->SetDefaults(defaults, default_count);
 }
+#endif
 
 // Test cases below.
 
@@ -381,9 +396,12 @@ TEST_F(FirebaseRemoteConfigTest, TestGetKeys) {
   EXPECT_THAT(keys_subset, UnorderedElementsAre("TestDouble", "TestData",
                                                 "TestDefaultOnly"));
 }
-#else
+
+#else  // !TEST_DEPRECATED
 
 TEST_F(FirebaseRemoteConfigTest, TestSetDefaultsV2) {
+  ASSERT_NE(rc_, nullptr);
+
   EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
 
   bool validated_defaults = true;
@@ -444,6 +462,8 @@ TEST_F(FirebaseRemoteConfigTest, TestSetDefaultsV2) {
 }
 
 TEST_F(FirebaseRemoteConfigTest, TestGetKeysV2) {
+  ASSERT_NE(rc_, nullptr);
+
   EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
 
   std::vector<std::string> keys = rc_->GetKeys();
@@ -461,6 +481,8 @@ TEST_F(FirebaseRemoteConfigTest, TestGetKeysV2) {
 //   TestBoolean  true
 //   TestString   This is a string
 TEST_F(FirebaseRemoteConfigTest, TestGetAll) {
+  ASSERT_NE(rc_, nullptr);
+
   EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
   EXPECT_TRUE(WaitForCompletion(rc_->Fetch(), "Fetch"));
   EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
@@ -483,6 +505,8 @@ TEST_F(FirebaseRemoteConfigTest, TestGetAll) {
    TestString   This is a string
  */
 TEST_F(FirebaseRemoteConfigTest, TestFetchV2) {
+  ASSERT_NE(rc_, nullptr);
+
   EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
 
   EXPECT_TRUE(WaitForCompletion(rc_->Fetch(), "Fetch"));
