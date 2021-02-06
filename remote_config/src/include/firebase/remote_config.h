@@ -23,7 +23,6 @@
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 #include "firebase/internal/platform.h"
-#include "app/src/time.h"
 #ifndef SWIG
 #include "firebase/variant.h"
 #endif  // SWIG
@@ -121,8 +120,7 @@ static const uint64_t kDefaultCacheExpiration = 60 * 60 * 12;
 
 /// @brief The default timeout used by Fetch(), equal to 30 seconds,
 /// in milliseconds.
-static const uint64_t kDefaultTimeoutInMilliseconds =
-    30 * ::firebase::internal::kMillisecondsPerSecond;
+static const uint64_t kDefaultTimeoutInMilliseconds = 30 * 1000;
 
 /// @brief Describes a mapping of a key to a string value. Used to set default
 /// values.
