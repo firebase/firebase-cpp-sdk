@@ -32,6 +32,7 @@ set(common_SRCS
     src/common/field_path.cc
     src/common/field_value.cc
     src/common/firestore.cc
+    src/common/futures.cc
     src/common/futures.h
     src/common/listener_registration.cc
     src/common/macros.h
