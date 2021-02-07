@@ -140,7 +140,8 @@ jobs:
             matrix.ssl_variant == 'openssl' &&
             startsWith(matrix.os, 'macos')
         run: |
-          brew install --verbose --force openssl
+          brew install openssl
+          brew link openssl@1.1
           which openssl
 
       - name: Install OpenSSL (Linux)
