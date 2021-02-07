@@ -34,7 +34,8 @@ def firebaseDependenciesMap = [
   // Messaging has an additional local dependency to include.
   'messaging' : ['com.google.firebase:firebase-messaging:21.0.1',
                  'firebase_cpp_sdk.messaging:messaging_java',
-                 'androidx.core:core:1.0.1'],
+                 'androidx.core:core:1.0.1',
+                 'com.google.flatbuffers:flatbuffers-java:1.9.0'],
   'performance' : ['com.google.firebase:firebase-perf:19.1.0'],
   'remote_config' : ['com.google.firebase:firebase-config:20.0.2',
                      'com.google.android.gms:play-services-base:17.5.0'],
