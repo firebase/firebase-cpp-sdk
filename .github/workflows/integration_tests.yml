@@ -140,9 +140,8 @@ jobs:
             matrix.ssl_variant == 'openssl' &&
             startsWith(matrix.os, 'macos')
         run: |
-          brew install openssl
+          brew reinstall openssl
           brew link openssl@1.1
-          which openssl
 
       - name: Install OpenSSL (Linux)
         if: matrix.target_platform == 'Desktop' &&
@@ -159,8 +158,9 @@ jobs:
           if [[ "${{ matrix.ssl_variant }}" == "boringssl" ]]; then
             ssl_option=--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON
           elif [[ "${{ matrix.os }}" == "macos"* ]]; then
-            # MacOS can't find the OpenSSL root directory installed by Brew, by default.
-            ssl_option=--cmake_flag=-DOPENSSL_ROOT_DIR=/usr/local/lib
+            # MacOS can't find the OpenSSL root directory installed by Brew, by default, as
+            # Brew won't link.
+            ssl_option=--cmake_flag=-DOPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1
           fi
           python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --noadd_timestamp ${ssl_option}
 
