@@ -162,6 +162,8 @@ set(android_SRCS
     src/jni/set.h
     src/jni/string.cc
     src/jni/string.h
+    src/jni/task.cc
+    src/jni/task.h
     src/jni/throwable.cc
     src/jni/throwable.h
     src/jni/traits.h)
