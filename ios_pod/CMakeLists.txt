@@ -62,7 +62,7 @@ message("${pods_output}")
 #
 # Usage: setup_pod_headers(<target_name>
 #                          POD_NAMES [<pod_names>...]
-#			   INCLUDE_PRIVATE_HEADERS
+#                          INCLUDE_PRIVATE_HEADERS
 #                         )
 #
 # Args:
@@ -86,15 +86,15 @@ function(setup_pod_headers target_name)
           ${FIREBASE_POD_HEADER_DIR}/${pod}/${pod}
       )
       if("${SETUP_POD_HEADERS_INCLUDE_PRIVATE_HEADERS}")
-	# Workaround: Private/FirebaseCore/*.h headers include other FirebaseCore headers via the subdirectory, so
-	# we need to include the top-level Private directory as a header path. This only affects Firestore at the moment, as
-	# no other C++ library includes a private Pod header.
+        # Workaround: Private/FirebaseCore/*.h headers include other FirebaseCore headers via the subdirectory, so
+        # we need to include the top-level Private directory as a header path. This only affects Firestore at the moment, as
+        # no other C++ library includes a private Pod header.
         target_include_directories(${target_name}
           PRIVATE
             ${FIREBASE_POD_PRIVATE_HEADER_DIR}/
             ${FIREBASE_POD_PRIVATE_HEADER_DIR}/${pod}
             ${FIREBASE_POD_PRIVATE_HEADER_DIR}/${pod}/${pod}
-	)
+        )
       endif()
 
       symlink_pod_headers(${target_name} ${pod} ${pod})
