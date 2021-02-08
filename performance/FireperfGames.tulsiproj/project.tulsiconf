@@ -1,0 +1,12 @@
+{
+  "configDefaults" : {
+    "optionSet" : {
+
+    }
+  },
+  "projectName" : "FireperfGames",
+  "packages" : [
+    "firebase/performance/client/cpp",
+  ],
+  "workspaceRoot" : "../../../../.."
+}
