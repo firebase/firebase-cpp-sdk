@@ -43,6 +43,8 @@ public final class FirebaseAuth {
   private final ArrayList<AuthStateListener> authStateListeners = new ArrayList<>();
   private final ArrayList<IdTokenListener> idTokenListeners = new ArrayList<>();
 
+  private String languageCode;
+
   public static FirebaseAuth getInstance(FirebaseApp firebaseApp) {
     return new FirebaseAuth();
   }
@@ -138,6 +140,19 @@ public final class FirebaseAuth {
 
   public void signOut() {
     signedIn = false;
+  }
+
+  public void setLanguageCode(String languageCode) {
+    this.languageCode = languageCode;
+  }
+
+  public String getLanguageCode() {
+    return languageCode;
+  }
+
+  /** Sets the user-facing language code to be the default app language. */
+  public void useAppLanguage() {
+     languageCode = "en-US";
   }
 
   public Task<SignInMethodQueryResult> fetchSignInMethodsForEmail(String email) {

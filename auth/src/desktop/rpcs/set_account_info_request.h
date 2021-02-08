@@ -33,7 +33,8 @@ class SetAccountInfoRequest : public AuthRequest {
   static std::unique_ptr<SetAccountInfoRequest> CreateUpdateEmailRequest(
       const char* api_key, const char* email);
   static std::unique_ptr<SetAccountInfoRequest> CreateUpdatePasswordRequest(
-      const char* api_key, const char* password);
+      const char* api_key, const char* password,
+      const char* language_code = nullptr);
   static std::unique_ptr<SetAccountInfoRequest>
   CreateLinkWithEmailAndPasswordRequest(const char* api_key, const char* email,
                                         const char* password);

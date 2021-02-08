@@ -3,6 +3,7 @@
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/throwable.h"
+#include "firestore/src/android/firestore_exceptions_android.h"
 
 namespace firebase {
 namespace firestore {

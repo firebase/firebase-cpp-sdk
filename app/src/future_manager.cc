@@ -31,7 +31,7 @@ FutureManager::~FutureManager() {
     orphaned_future_apis_.insert(i->second);
   }
   future_apis_.clear();
-  CleanupOrphanedFutureApis(true);  // force delete all
+  CleanupOrphanedFutureApis(/*force_delete_all=*/true);
 }
 
 void FutureManager::AllocFutureApi(void* owner, int num_fns) {
@@ -95,8 +95,18 @@ void FutureManager::CleanupOrphanedFutureApis(bool force_delete_all) {
   std::vector<ReferenceCountedFutureImpl*> to_delete;
   for (auto api = orphaned_future_apis_.begin();
        api != orphaned_future_apis_.end(); ++api) {
-    if (force_delete_all || IsSafeToDeleteFutureApi(*api)) {
+    if (IsSafeToDeleteFutureApi(*api)) {
       to_delete.push_back(*api);
+    } else if (force_delete_all) {
+      // Deleting an API while it's running a callback (which could have
+      // triggered the current call to `CleanupOrphanedFutureApis`) will lead to
+      // a use-after-free. Instead, mark the API to be deleted once the callback
+      // finishes.
+      if ((*api)->IsRunningCallback()) {
+        (*api)->MarkOrphaned();
+      } else {
+        to_delete.push_back(*api);
+      }
     }
   }
 

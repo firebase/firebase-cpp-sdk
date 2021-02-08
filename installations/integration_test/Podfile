@@ -4,8 +4,8 @@ platform :ios, '10.0'
 # Firebase Installations test application.
 
 target 'integration_test' do
-  pod 'Firebase/Analytics', '7.0.0'
-  pod 'Firebase/Installations', '7.0.0'
+  pod 'Firebase/Analytics', '7.5.0'
+  pod 'Firebase/Installations', '7.5.0'
 end
 
 post_install do |installer|

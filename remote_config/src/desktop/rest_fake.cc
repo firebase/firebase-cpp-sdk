@@ -31,11 +31,13 @@ namespace internal {
 // with it when the normal API calls happen.
 RemoteConfigREST::RemoteConfigREST(const firebase::AppOptions& app_options,
                                    const LayeredConfigs& configs,
-                                   uint64_t cache_expiration_in_seconds)
+                                   const std::string namespaces)
     : app_package_name_(app_options.app_id()),
       app_gmp_project_id_(app_options.project_id()),
+      app_project_id_(app_options.project_id()),
+      api_key_(app_options.api_key()),
+      namespaces_(std::move(namespaces)),
       configs_(configs),
-      cache_expiration_in_seconds_(cache_expiration_in_seconds),
       fetch_future_sem_(0) {
   configs_.fetched = NamespacedConfigData(
       NamespaceKeyValueMap({{"namespace", {{"key", "value"}}}}), 1000000);
@@ -48,19 +50,17 @@ RemoteConfigREST::RemoteConfigREST(const firebase::AppOptions& app_options,
 
 RemoteConfigREST::~RemoteConfigREST() {}
 
-void RemoteConfigREST::Fetch(const App& app) {}
+void RemoteConfigREST::Fetch(const App& app,
+                             uint64_t fetch_timeout_in_milliseconds) {}
 
-void RemoteConfigREST::SetupRestRequest() {}
-
+void RemoteConfigREST::SetupRestRequest(
+    const App& app, uint64_t fetch_timeout_in_milliseconds) {}
 ConfigFetchRequest RemoteConfigREST::GetFetchRequestData() {
   return ConfigFetchRequest();
 }
-
 void RemoteConfigREST::GetPackageData(PackageData* package_data) {}
 
 void RemoteConfigREST::ParseRestResponse() {}
-
-void RemoteConfigREST::ParseProtoResponse(const std::string& proto_str) {}
 
 void RemoteConfigREST::FetchSuccess(LastFetchStatus status) {}
 

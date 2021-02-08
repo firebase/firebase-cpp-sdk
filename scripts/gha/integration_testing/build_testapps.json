@@ -211,6 +211,10 @@
     "VisualStudio2017": [
       "-G",
       "Visual Studio 15 2017 Win64"
+    ],
+    "VisualStudio2019": [
+      "-G",
+      "Visual Studio 16 2019"
     ]
   },
   "android_dep_key_mapping": {

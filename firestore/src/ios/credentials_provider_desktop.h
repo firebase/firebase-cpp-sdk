@@ -1,12 +1,12 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_CREDENTIALS_PROVIDER_IOS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_CREDENTIALS_PROVIDER_IOS_H_
+#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_CREDENTIALS_PROVIDER_DESKTOP_H_
+#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_CREDENTIALS_PROVIDER_DESKTOP_H_
 
 #include <memory>
 #include <mutex>  // NOLINT(build/c++11)
 #include <string>
 
+#include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
-#include "auth/src/include/firebase/auth.h"
 #include "Firestore/core/src/auth/credentials_provider.h"
 #include "Firestore/core/src/auth/token.h"
 #include "Firestore/core/src/auth/user.h"
@@ -21,11 +21,10 @@ namespace firestore {
 // This is a language-specific implementation of `CredentialsProvider` that
 // works with the public C++ Auth.
 class FirebaseCppCredentialsProvider
-    : public firestore::auth::CredentialsProvider,
-      public ::firebase::auth::AuthStateListener {
+    : public firestore::auth::CredentialsProvider {
  public:
-  explicit FirebaseCppCredentialsProvider(
-      ::firebase::auth::Auth* firebase_auth);
+  explicit FirebaseCppCredentialsProvider(App& app);
+  ~FirebaseCppCredentialsProvider() override;
 
   FirebaseCppCredentialsProvider(const FirebaseCppCredentialsProvider&) =
       delete;
@@ -38,10 +37,14 @@ class FirebaseCppCredentialsProvider
   void GetToken(firestore::auth::TokenListener listener) override;
   void InvalidateToken() override;
 
-  // `AuthStateListener` interface.
-  void OnAuthStateChanged(::firebase::auth::Auth* auth) override;
-
  private:
+  void AddAuthStateListener();
+  void RemoveAuthStateListener();
+
+  // Callback for the function registry-based pseudo-AuthStateListener
+  // interface.
+  static void OnAuthStateChanged(void* context);
+
   // Requests an auth token for the currently signed-in user asynchronously; the
   // given `listener` will eventually be invoked with the token (or an error).
   // If there is no signed-in user, immediately invokes the `listener` with
@@ -56,8 +59,7 @@ class FirebaseCppCredentialsProvider
   // the `GetToken` callback might be invoked after this credentials provider
   // has already been destroyed (Auth may outlive Firestore).
   struct Contents {
-    explicit Contents(::firebase::auth::Auth* firebase_auth)
-        : firebase_auth(firebase_auth) {}
+    explicit Contents(App& app) : app(app) {}
 
     // FirebaseCppCredentialsProvider may be used by more than one thread. The
     // mutex is locked in all public member functions and none of the private
@@ -69,10 +71,10 @@ class FirebaseCppCredentialsProvider
     // may be invoked immediately or asynchronously).
     //
     // TODO(b/148688333): make sure not to hold the mutex while calling methods
-    // on `firebase_auth`.
+    // on `app`.
     std::recursive_mutex mutex;
 
-    ::firebase::auth::Auth* firebase_auth = nullptr;
+    App& app;
 
     // Each time credentials change, the token "generation" is incremented.
     // Credentials commonly change when a different user signs in; comparing
@@ -93,4 +95,4 @@ class FirebaseCppCredentialsProvider
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_CREDENTIALS_PROVIDER_IOS_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_CREDENTIALS_PROVIDER_DESKTOP_H_

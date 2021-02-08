@@ -283,6 +283,30 @@ static User* AssignUser(FIRUser *_Nullable user, AuthData *auth_data) {
   return auth_data->user_impl == nullptr ? nullptr : &auth_data->current_user;
 }
 
+std::string Auth::language_code() const {
+  if (!auth_data_) return "";
+  NSString *language_code = [AuthImpl(auth_data_) languageCode];
+  if (language_code == nil) {
+    return std::string();
+  } else {
+    return util::NSStringToString(language_code);
+  }
+}
+
+void Auth::set_language_code(const char *language_code) {
+  if (!auth_data_) return;
+  NSString *code;
+  if (language_code != nullptr) {
+    code = [NSString stringWithUTF8String:language_code];
+  }
+  AuthImpl(auth_data_).languageCode = code;
+}
+
+void Auth::UseAppLanguage() {
+  if (!auth_data_) return;
+  [AuthImpl(auth_data_) useAppLanguage];
+}
+
 AuthError AuthErrorFromNSError(NSError *_Nullable error) {
   if (!error || error.code == 0) {
     return kAuthErrorNone;

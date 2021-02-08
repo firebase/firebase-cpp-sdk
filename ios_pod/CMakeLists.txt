@@ -22,6 +22,12 @@ set(FIREBASE_POD_HEADER_DIR
   "${FIREBASE_POD_DIR}/Pods/Headers/Public"
   CACHE STRING ""
 )
+# Rarely, but occasionally, libraries require access to private Firebase
+# headers.
+set(FIREBASE_POD_PRIVATE_HEADER_DIR
+  "${FIREBASE_POD_DIR}/Pods/Headers/Private"
+  CACHE STRING ""
+)
 
 # Copy build files to trigger pod install as it requires a valid Xcode project
 file(
@@ -56,6 +62,7 @@ message("${pods_output}")
 #
 # Usage: setup_pod_headers(<target_name>
 #                          POD_NAMES [<pod_names>...]
+#                          INCLUDE_PRIVATE_HEADERS
 #                         )
 #
 # Args:
@@ -64,9 +71,10 @@ message("${pods_output}")
 #
 function(setup_pod_headers target_name)
   set(multi OUTPUT_NAME POD_NAMES)
+  set(options INCLUDE_PRIVATE_HEADERS)
 
   # Parse the arguments into SETUP_POD_HEADERS_POD_NAMES.
-  cmake_parse_arguments(SETUP_POD_HEADERS "" "" "${multi}" ${ARGN})
+  cmake_parse_arguments(SETUP_POD_HEADERS "${options}" "" "${multi}" ${ARGN})
 
   if(NOT "${SETUP_POD_HEADERS_POD_NAMES}" STREQUAL "")
     foreach (pod ${SETUP_POD_HEADERS_POD_NAMES})
@@ -77,6 +85,17 @@ function(setup_pod_headers target_name)
           ${FIREBASE_POD_HEADER_DIR}/${pod}
           ${FIREBASE_POD_HEADER_DIR}/${pod}/${pod}
       )
+      if("${SETUP_POD_HEADERS_INCLUDE_PRIVATE_HEADERS}")
+        # Workaround: Private/FirebaseCore/*.h headers include other FirebaseCore headers via the subdirectory, so
+        # we need to include the top-level Private directory as a header path. This only affects Firestore at the moment, as
+        # no other C++ library includes a private Pod header.
+        target_include_directories(${target_name}
+          PRIVATE
+            ${FIREBASE_POD_PRIVATE_HEADER_DIR}/
+            ${FIREBASE_POD_PRIVATE_HEADER_DIR}/${pod}
+            ${FIREBASE_POD_PRIVATE_HEADER_DIR}/${pod}/${pod}
+        )
+      endif()
 
       symlink_pod_headers(${target_name} ${pod} ${pod})
     endforeach()
@@ -121,10 +140,33 @@ function(symlink_pod_headers target_name pod_name dir_name)
     set(glob_dir "${FIREBASE_POD_DIR}/Pods/${pod_name}/${FRAMEWORK_DIR}/*.framework/Headers")
     file(GLOB framework_dir ${glob_dir})
   endif()
-  
   # If failed to find headers, try xcframework path.
   if(NOT EXISTS ${framework_dir})
     set(glob_dir "${FIREBASE_POD_DIR}/Pods/${pod_name}/${FRAMEWORK_DIR}/*/*.xcframework/*/*.framework/Headers")
+    file(GLOB framework_dirs ${glob_dir})
+    # xcframework contains several frameworks. Their Headers are the same. So it's okay use first framework's Headers
+    list(LENGTH framework_dirs dir_len)
+    if(dir_len GREATER 0)
+      list(GET framework_dirs 0 first_dir)
+      file(GLOB framework_dir ${first_dir})
+    endif()
+  endif()
+
+  # If failed to find headers, try xcframework path.
+  if(NOT EXISTS ${framework_dir})
+    set(glob_dir "${FIREBASE_POD_DIR}/Pods/${pod_name}/${FRAMEWORK_DIR}/*/*.xcframework/*/*.framework/Headers")
+    file(GLOB framework_dirs ${glob_dir})
+    # xcframework contains several frameworks. Their Headers are the same. So it's okay use first framework's Headers
+    list(LENGTH framework_dirs dir_len)
+    if(dir_len GREATER 0)
+      list(GET framework_dirs 0 first_dir)
+      file(GLOB framework_dir ${first_dir})
+    endif()
+  endif()
+
+  # If failed to find headers, try alternate xcframework path.
+  if(NOT EXISTS ${framework_dir})
+    set(glob_dir "${FIREBASE_POD_DIR}/Pods/${pod_name}/${FRAMEWORK_DIR}/*.xcframework/*/*.framework/Headers")
     file(GLOB framework_dirs ${glob_dir})
     # xcframework contains several frameworks. Their Headers are the same. So it's okay use first framework's Headers
     list(LENGTH framework_dirs dir_len)

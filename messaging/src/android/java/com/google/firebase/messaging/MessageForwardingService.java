@@ -16,6 +16,7 @@ package com.google.firebase.messaging;
 
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import androidx.core.app.JobIntentService;
 import com.google.firebase.messaging.cpp.DebugLogging;
 import com.google.firebase.messaging.cpp.MessageWriter;
@@ -27,6 +28,14 @@ import com.google.firebase.messaging.cpp.MessageWriter;
 public class MessageForwardingService extends JobIntentService {
   private static final String TAG = "FIREBASE_MSG_FWDR";
   public static final String ACTION_REMOTE_INTENT = "com.google.android.c2dm.intent.RECEIVE";
+
+  /**
+  * Convenience wrapper over enqueueWork to either directly start the service (when running on
+  * pre-O platforms) or enqueue work for it as a job (when running on Android O and later).
+  */
+  public static void enqueueWork(Context context, Intent intent) {
+    enqueueWork(context, MessageForwardingService.class, JobIds.MESSAGE_FORWARDING_SERVICE, intent);
+  }
 
   // Handle message intents sent from the ListenerService.
   @Override
@@ -46,7 +55,7 @@ public class MessageForwardingService extends JobIntentService {
     if (intent != null
         && intent.getAction() != null
         && intent.getAction().equals(ACTION_REMOTE_INTENT)) {
-      android.os.Bundle extras = intent.getExtras();
+      Bundle extras = intent.getExtras();
       DebugLogging.log(TAG, "extras: " + (extras == null ? "(null)" : extras.toString()));
       if (extras != null) {
         RemoteMessage message = new RemoteMessage(extras);

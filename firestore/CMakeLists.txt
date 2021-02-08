@@ -27,9 +27,12 @@ set(common_SRCS
     src/common/document_change.cc
     src/common/document_reference.cc
     src/common/document_snapshot.cc
+    src/common/exception_common.cc
+    src/common/exception_common.h
     src/common/field_path.cc
     src/common/field_value.cc
     src/common/firestore.cc
+    src/common/futures.cc
     src/common/futures.h
     src/common/listener_registration.cc
     src/common/macros.h
@@ -84,6 +87,7 @@ set(android_SRCS
     src/android/field_value_android.h
     src/android/firestore_android.cc
     src/android/firestore_android.h
+    src/android/firestore_exceptions_android.h
     src/android/geo_point_android.cc
     src/android/geo_point_android.h
     src/android/geo_point_portable.cc
@@ -158,16 +162,17 @@ set(android_SRCS
     src/jni/set.h
     src/jni/string.cc
     src/jni/string.h
+    src/jni/task.cc
+    src/jni/task.h
     src/jni/throwable.cc
     src/jni/throwable.h
     src/jni/traits.h)
 
-set(ios_and_desktop_SRCS
+# Sources that apply to all non-Android platforms.
+set(main_SRCS
     src/ios/collection_reference_ios.cc
     src/ios/collection_reference_ios.h
     src/ios/converter_ios.h
-    src/ios/credentials_provider_ios.cc
-    src/ios/credentials_provider_ios.h
     src/ios/document_change_ios.cc
     src/ios/document_change_ios.h
     src/ios/document_reference_ios.cc
@@ -199,6 +204,34 @@ set(ios_and_desktop_SRCS
     src/ios/write_batch_ios.cc
     src/ios/write_batch_ios.h)
 
+# CredentialsProvider has no implementatation on Android and distinct
+# implementations for iOS and desktop platforms. On iOS, the implementation of
+# the interface actually comes from the FirebaseFirestore CocoaPod, so there's
+# no implementation listed here.
+set(credentials_provider_desktop_SRCS
+    src/ios/create_credentials_provider.h
+    src/ios/create_credentials_provider_desktop.cc
+    src/ios/credentials_provider_desktop.cc
+    src/ios/credentials_provider_desktop.h)
+
+set(credentials_provider_ios_SRCS
+    src/ios/create_credentials_provider.h
+    src/ios/create_credentials_provider_ios.mm)
+
+# FirebaseMetadataProvider has no implementation on Android and distinct
+# implementations for iOS and desktop platforms. On iOS, the implementation of
+# the interface actually comes from the FirebaseFirestore CocoaPod, so there's
+# no implementation listed here.
+set(firebase_metadata_provider_desktop_SRCS
+    src/ios/create_firebase_metadata_provider.h
+    src/ios/create_firebase_metadata_provider_desktop.cc
+    src/ios/firebase_metadata_provider_desktop.cc
+    src/ios/firebase_metadata_provider_desktop.h)
+
+set(firebase_metadata_provider_ios_SRCS
+    src/ios/create_firebase_metadata_provider.h
+    src/ios/create_firebase_metadata_provider_apple.mm)
+
 set(wrapper_assertions_SRCS
     src/common/wrapper_assertions.cc
     src/common/wrapper_assertions.h)
@@ -213,14 +246,17 @@ set(desktop_only_SRCS
 if(ANDROID)
   set(firestore_platform_SRCS "${android_SRCS}")
 
+elseif(IOS)
+  set(firestore_platform_SRCS
+      "${main_SRCS}"
+      "${credentials_provider_ios_SRCS}"
+      "${firebase_metadata_provider_ios_SRCS}")
+
 else()
-  if (IOS)
-    set(firestore_platform_SRCS "${ios_and_desktop_SRCS}" "${ios_only_SRCS}")
-  else()
-    # The iOS implementation is actually portable to desktop environments as
-    # well.
-    set(firestore_platform_SRCS "${ios_and_desktop_SRCS}" "${desktop_only_SRCS}")
-  endif()
+  set(firestore_platform_SRCS
+      "${main_SRCS}"
+      "${credentials_provider_desktop_SRCS}"
+      "${firebase_metadata_provider_desktop_SRCS}")
 endif()
 
 add_library(firebase_firestore STATIC
@@ -304,6 +340,7 @@ elseif(IOS)
 
   setup_pod_headers(
     firebase_firestore
+    INCLUDE_PRIVATE_HEADERS
     POD_NAMES
       FirebaseCore
       FirebaseFirestore
