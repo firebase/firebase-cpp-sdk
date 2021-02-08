@@ -74,10 +74,6 @@ RemoteConfigInternal::RemoteConfigInternal(
       rest_(app.options(), configs_, kDefaultNamespace),
       initialized_(false) {
   InternalInit();
-  {
-    MutexLock lock(internal_mutex_);
-    initialized_ = true;
-  }
 }
 
 RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
@@ -89,10 +85,6 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
       rest_(app.options(), configs_, kDefaultNamespace),
       initialized_(false) {
   InternalInit();
-  {
-    MutexLock lock(internal_mutex_);
-    initialized_ = true;
-  }
 }
 
 RemoteConfigInternal::~RemoteConfigInternal() {
@@ -107,10 +99,10 @@ RemoteConfigInternal::~RemoteConfigInternal() {
 void RemoteConfigInternal::InternalInit() {
   file_manager_.Load(&configs_);
   AsyncSaveToFile();
+  initialized_ = true;
 }
 
-bool RemoteConfigInternal::Initialized() const{
-  MutexLock lock(internal_mutex_);
+bool RemoteConfigInternal::Initialized() const {
   return initialized_;
 }
 
@@ -239,9 +231,6 @@ void RemoteConfigInternal::AsyncSaveToFile() {
       {
         MutexLock lock(internal_mutex_);
         copy = configs_;
-        // TODO(cynthiajiang): If the following line is required, reinstate it
-        // and ensure that RC still initializes properly.
-        // initialized_ = true;
       }
       file_manager_.Save(copy);
     }
