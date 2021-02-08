@@ -80,7 +80,7 @@ class FirebaseRemoteConfigTest : public FirebaseTest {
 
   bool initialized_ = false;
   RemoteConfig* rc_ = nullptr;
-#endif
+#endif  // TEST_DEPRECATED
 };
 
 FirebaseRemoteConfigTest::FirebaseRemoteConfigTest() : initialized_(false) {
@@ -248,7 +248,7 @@ static Future<void> SetDefaultsV2(RemoteConfig* rc) {
   size_t default_count = FIREBASE_ARRAYSIZE(defaults);
   return rc->SetDefaults(defaults, default_count);
 }
-#endif
+#endif  // TEST_DEPRECATED
 
 // Test cases below.
 
