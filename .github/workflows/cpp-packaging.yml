@@ -540,11 +540,12 @@ jobs:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
 
+
   merge_packages:
     name: final-merge-packages
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
-    needs: [build_and_package_ios, build_and_package_android, package_desktop, log_inputs]
+    needs: [build_and_package_ios, build_and_package_android, package_desktop, cleanup_build_artifacts, log_inputs]
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
@@ -603,9 +604,41 @@ jobs:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
 
-  cleanup_artifacts:
-    # Clean up intermediate artifacts.
-    name: cleanup-artifacts
+  cleanup_build_artifacts:
+    # Clean up intermediate artifacts from build steps.
+    # This can happen after the individual packaging steps are finished.
+    name: cleanup-build-artifacts
+    runs-on: ubuntu-latest
+    needs: [build_and_package_ios, build_and_package_android, package_desktop]
+    if: |
+      (
+        (github.event.inputs.preserveIntermediateArtifacts == 0 || github.event.inputs.preserveIntermediateArtifacts == '')
+        && github.event.inputs.downloadPublicVersion == ''
+        && github.event.inputs.downloadPreviousRun == ''
+      )
+    steps:
+    - uses: geekyeggo/delete-artifact@v1
+      with:
+        name: |
+          firebase-cpp-sdk-windows-x86-Release-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x64-Release-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x86-Debug-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x64-Debug-dynamic-legacy-build
+          firebase-cpp-sdk-windows-x86-Release-static-legacy-build
+          firebase-cpp-sdk-windows-x64-Release-static-legacy-build
+          firebase-cpp-sdk-windows-x86-Debug-static-legacy-build
+          firebase-cpp-sdk-windows-x64-Debug-static-legacy-build
+          firebase-cpp-sdk-linux-x86-Release-static-legacy-build
+          firebase-cpp-sdk-linux-x64-Release-static-legacy-build
+          firebase-cpp-sdk-linux-x86-Release-static-c++11-build
+          firebase-cpp-sdk-linux-x64-Release-static-c++11-build
+          firebase-cpp-sdk-darwin-x64-Release-static-legacy-build
+        failOnError: false
+
+  cleanup_packaging_artifacts:
+    # Clean up intermediate artifacts from packaging step.
+    # This can happen after the final package merge is finished.
+    name: cleanup-packaging-artifacts
     runs-on: ubuntu-latest
     needs: [merge_packages]
     if: |
@@ -620,19 +653,6 @@ jobs:
         name: |
           packaging-tools-darwin
           packaging-tools-linux
-          firebase-cpp-sdk-windows-x86-Release-dynamic-legacy-build
-          firebase-cpp-sdk-windows-x64-Release-dynamic-legacy-build
-          firebase-cpp-sdk-windows-x86-Debug-dynamic-legacy-build
-          firebase-cpp-sdk-windows-x64-Debug-dynamic-legacy-build
-          firebase-cpp-sdk-windows-x86-Release-static-legacy-build
-          firebase-cpp-sdk-windows-x64-Release-static-legacy-build
-          firebase-cpp-sdk-windows-x86-Debug-static-legacy-build
-          firebase-cpp-sdk-windows-x64-Debug-static-legacy-build
-          firebase-cpp-sdk-linux-x86-Release-static-legacy-build
-          firebase-cpp-sdk-linux-x64-Release-static-legacy-build
-          firebase-cpp-sdk-linux-x86-Release-static-c++11-build
-          firebase-cpp-sdk-linux-x64-Release-static-c++11-build
-          firebase-cpp-sdk-darwin-x64-Release-static-legacy-build
           firebase-cpp-sdk-windows-x86-Release-dynamic-package
           firebase-cpp-sdk-windows-x64-Release-dynamic-package
           firebase-cpp-sdk-windows-x86-Debug-dynamic-package
@@ -704,7 +724,7 @@ jobs:
     - name: Build integration tests
       run: |
         python scripts/gha/build_testapps.py --t ${{ env.apis }} --p ${{ matrix.target_platform }} --packaged_sdk firebase_cpp_sdk --output_directory "${{ github.workspace }}" --noadd_timestamp
-    
+
     - name: Run desktop integration tests
       if: matrix.target_platform == 'Desktop' && !cancelled()
       run: |
