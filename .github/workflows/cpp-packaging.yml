@@ -499,7 +499,7 @@ jobs:
             && github.event.inputs.downloadPreviousRun == ''
           )
         # Remove the build artifacts that were consumed during this step of packaging.
-        uses: geekyeggo/delete-artifact@v1-glob-support
+        uses: geekyeggo/delete-artifact@1-glob-support
         with:
           name: |
             firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build
@@ -633,7 +633,7 @@ jobs:
         && github.event.inputs.downloadPreviousRun == ''
       )
     steps:
-    - uses: geekyeggo/delete-artifact@v1-glob-support
+    - uses: geekyeggo/delete-artifact@1-glob-support
       with:
         name: |
           packaging-tools-*
