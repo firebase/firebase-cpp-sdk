@@ -136,7 +136,7 @@ jobs:
           tar -czhf ../packaging-tools.tgz .
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: packaging-tools-${{ matrix.tools_platform }}
           path: packaging-tools.tgz
@@ -182,7 +182,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase-cpp-sdk-ios-package
           path: firebase-cpp-sdk-ios-package.tgz
@@ -228,7 +228,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase-cpp-sdk-android-${{ matrix.stl }}-package
           path: firebase-cpp-sdk-android-${{ matrix.stl }}-package.tgz
@@ -356,7 +356,7 @@ jobs:
         continue-on-error: true
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase-cpp-sdk-${{ env.SDK_NAME }}-build
           path: firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz
@@ -421,7 +421,7 @@ jobs:
           ref: ${{ github.event.inputs.commitIdToPackage }}
 
       - name: download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v2.0.8
         with:
           # download-artifact doesn't support wildcards, but by default
           # will download all artifacts. Sadly this is what we must do.
@@ -486,7 +486,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package
           path: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package.tgz
@@ -498,7 +498,7 @@ jobs:
     if: ${{ github.event.inputs.downloadPublicVersion != '' || github.event.inputs.downloadPreviousRun != '' }}
     steps:
       - name: fetch artifact from previous run
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v2.0.8
         if: ${{ github.event.inputs.downloadPreviousRun != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
@@ -529,13 +529,13 @@ jobs:
           echo "::warning ::$(cat firebase_cpp_sdk_hash.txt)"
 
       - name: upload hash
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase_cpp_sdk_hash.txt
           path: firebase_cpp_sdk_hash.txt
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
@@ -554,7 +554,7 @@ jobs:
           ref: ${{ github.event.inputs.commitIdToPackage }}
 
       - name: download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v2.0.8
         with:
           # download-artifact doesn't support wildcards, but by default
           # will download all artifacts. Sadly this is what we must do.
@@ -593,13 +593,13 @@ jobs:
           find firebase_cpp_sdk -type f
 
       - name: upload hash
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase_cpp_sdk_hash.txt
           path: firebase_cpp_sdk_hash.txt
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
@@ -698,7 +698,7 @@ jobs:
       if: runner.os == 'macOS'
       run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
     - name: Download Firebase C++ SDK
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v2.0.8
       with:
         name: firebase_cpp_sdk.zip
     - name: Unzip Firebase C++ SDK
