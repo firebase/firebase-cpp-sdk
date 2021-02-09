@@ -97,10 +97,10 @@ RemoteConfigInternal::~RemoteConfigInternal() {
 void RemoteConfigInternal::InternalInit() {
   file_manager_.Load(&configs_);
   AsyncSaveToFile();
+  initialized_ = true;
 }
 
-bool RemoteConfigInternal::Initialized() const{
-  MutexLock lock(internal_mutex_);
+bool RemoteConfigInternal::Initialized() const {
   return initialized_;
 }
 
@@ -229,7 +229,6 @@ void RemoteConfigInternal::AsyncSaveToFile() {
       {
         MutexLock lock(internal_mutex_);
         copy = configs_;
-        initialized_ = true;
       }
       file_manager_.Save(copy);
     }

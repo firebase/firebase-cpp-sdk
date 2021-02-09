@@ -23,56 +23,15 @@
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(remote_config,
                                 {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    return firebase::remote_config::Initialize(
-                                        *app);
-                                  }
+                                  // Nothing to do.
                                   return kInitResultSuccess;
                                 },
                                 {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    firebase::remote_config::Terminate();
-                                  }
+                                  // Nothing to do.
                                 });
 
 namespace firebase {
 namespace remote_config {
-
-namespace internal {
-
-const char kRemoteConfigModuleName[] = "remote_config";
-
-// Registers a cleanup task for this module if auto-initialization is disabled.
-void RegisterTerminateOnDefaultAppDestroy() {
-  if (!AppCallback::GetEnabledByName(kRemoteConfigModuleName)) {
-    CleanupNotifier* cleanup_notifier =
-        CleanupNotifier::FindByOwner(App::GetInstance());
-    assert(cleanup_notifier);
-    cleanup_notifier->RegisterObject(
-        const_cast<char*>(kRemoteConfigModuleName), [](void*) {
-          LogError(
-              "remote_config::Terminate() should be called before default app "
-              "is destroyed.");
-          if (firebase::remote_config::internal::IsInitialized()) {
-            firebase::remote_config::Terminate();
-          }
-        });
-  }
-}
-
-// Remove the cleanup task for this module if auto-initialization is disabled.
-void UnregisterTerminateOnDefaultAppDestroy() {
-  if (!AppCallback::GetEnabledByName(kRemoteConfigModuleName) &&
-      firebase::remote_config::internal::IsInitialized()) {
-    CleanupNotifier* cleanup_notifier =
-        CleanupNotifier::FindByOwner(App::GetInstance());
-    assert(cleanup_notifier);
-    cleanup_notifier->UnregisterObject(
-        const_cast<char*>(kRemoteConfigModuleName));
-  }
-}
-
-}  // namespace internal
 
 FutureData* FutureData::s_future_data_;
 
