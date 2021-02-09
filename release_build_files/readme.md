@@ -574,16 +574,18 @@ code.
 ### 7.1.0
 -   Changes
     -   Auth: You can now specify a language for emails and text messages sent
-        from your apps using UseAppLanguage() or set_language_code().
+        from your apps using `UseAppLanguage()` or `set_language_code()`.
     -   Firestore: Fixed partial updates in `Update()` with
         `FieldValue::Delete()`
         ([#882](https://github.com/firebase/quickstart-unity/issues/882)).
     -   Messaging (Android): Now uses `enqueueWork` instead of `startService`.
-        This fixes lost messages with data payloads received when app
-        is in background.
+        This fixes lost messages with data payloads received when the app
+        is in the background.
         ([#877](https://github.com/firebase/quickstart-unity/issues/877)
-    -   Remote Config: Added RemoteConfig instance and new APIs to better manage
-        fetching config datas. Deprecating module functions.
+    -   Remote Config: Added `firebase::remote_config::RemoteConfig` class with
+        new instance-based APIs to better manage fetching config data.
+    -   Remote Config: Deprecated old module-based API in favor of the new
+        instance-based API instead.
 
 ### 7.0.1
 -   Changes
