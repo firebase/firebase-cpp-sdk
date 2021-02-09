@@ -66,6 +66,11 @@ if (NOT PROTOBUF_FOUND)
 else()
   # Generates config.pb.c and config.pb.h
   NANOPB_GENERATE_CPP(PROTO_SRCS PROTO_HDRS src_protos/config.proto)
+  # Remove pb_common.c and pb_decode.c from PROTO_SRCS, as they are
+  # provided by Firebase App. Including them here causes symbols to
+  # have multiple definitions.
+  list(FILTER PROTO_SRCS EXCLUDE REGEX "/pb_.*\\.c")
+
   set(desktop_SRCS
       ${PROTO_SRCS}
       ${PROTO_HDRS}
