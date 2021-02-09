@@ -491,6 +491,22 @@ jobs:
           name: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package
           path: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package.tgz
 
+      - name: cleanup build artifacts
+        if: |
+          (
+            (github.event.inputs.preserveIntermediateArtifacts == 0 || github.event.inputs.preserveIntermediateArtifacts == '')
+            && github.event.inputs.downloadPublicVersion == ''
+            && github.event.inputs.downloadPreviousRun == ''
+          )
+        # Remove the build artifacts that were consumed during this step of packaging.
+        uses: geekyeggo/delete-artifact@v1-glob-support
+        with:
+          name: |
+            firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build
+          failOnError: false
+          useGlob: true
+
+
   download_sdk_package:
     name: download-sdk-package
     runs-on: ubuntu-latest
@@ -545,7 +561,7 @@ jobs:
     name: final-merge-packages
     runs-on: ubuntu-latest
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
-    needs: [build_and_package_ios, build_and_package_android, package_desktop, cleanup_build_artifacts, log_inputs]
+    needs: [build_and_package_ios, build_and_package_android, package_desktop, log_inputs]
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
@@ -603,26 +619,6 @@ jobs:
         with:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
-
-  cleanup_build_artifacts:
-    # Clean up intermediate artifacts from build steps.
-    # This can happen after the individual packaging steps are finished.
-    name: cleanup-build-artifacts
-    runs-on: ubuntu-latest
-    needs: [build_and_package_ios, build_and_package_android, package_desktop]
-    if: |
-      (
-        (github.event.inputs.preserveIntermediateArtifacts == 0 || github.event.inputs.preserveIntermediateArtifacts == '')
-        && github.event.inputs.downloadPublicVersion == ''
-        && github.event.inputs.downloadPreviousRun == ''
-      )
-    steps:
-    - uses: geekyeggo/delete-artifact@v1-glob-support
-      with:
-        name: |
-          firebase-cpp-sdk-*-build
-        failOnError: false
-        useGlob: true
 
   cleanup_packaging_artifacts:
     # Clean up intermediate artifacts from packaging step.
