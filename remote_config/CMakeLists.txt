@@ -116,6 +116,7 @@ else()
   set(additional_link_LIB
       firebase_rest_lib
       firebase_instance_id_desktop_impl
+      protobuf-nanopb-static
       flatbuffers)
 endif()
 
