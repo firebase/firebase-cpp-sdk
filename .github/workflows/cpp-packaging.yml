@@ -136,7 +136,7 @@ jobs:
           tar -czhf ../packaging-tools.tgz .
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: packaging-tools-${{ matrix.tools_platform }}
           path: packaging-tools.tgz
@@ -182,7 +182,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase-cpp-sdk-ios-package
           path: firebase-cpp-sdk-ios-package.tgz
@@ -228,7 +228,7 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase-cpp-sdk-android-${{ matrix.stl }}-package
           path: firebase-cpp-sdk-android-${{ matrix.stl }}-package.tgz
@@ -356,7 +356,7 @@ jobs:
         continue-on-error: true
 
       - name: upload artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase-cpp-sdk-${{ env.SDK_NAME }}-build
           path: firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz
@@ -421,7 +421,7 @@ jobs:
           ref: ${{ github.event.inputs.commitIdToPackage }}
 
       - name: download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v2.0.8
         with:
           # download-artifact doesn't support wildcards, but by default
           # will download all artifacts. Sadly this is what we must do.
@@ -486,10 +486,26 @@ jobs:
           find firebase-cpp-sdk-*-package -type f
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package
           path: firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix}}-package.tgz
+
+      - name: cleanup build artifacts
+        if: |
+          (
+            (github.event.inputs.preserveIntermediateArtifacts == 0 || github.event.inputs.preserveIntermediateArtifacts == '')
+            && github.event.inputs.downloadPublicVersion == ''
+            && github.event.inputs.downloadPreviousRun == ''
+          )
+        # Remove the build artifacts that were consumed during this step of packaging.
+        uses: geekyeggo/delete-artifact@1-glob-support
+        with:
+          name: |
+            firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build
+          failOnError: false
+          useGlob: true
+
 
   download_sdk_package:
     name: download-sdk-package
@@ -498,7 +514,7 @@ jobs:
     if: ${{ github.event.inputs.downloadPublicVersion != '' || github.event.inputs.downloadPreviousRun != '' }}
     steps:
       - name: fetch artifact from previous run
-        uses: dawidd6/action-download-artifact@v2
+        uses: dawidd6/action-download-artifact@v2.0.8
         if: ${{ github.event.inputs.downloadPreviousRun != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
@@ -529,16 +545,17 @@ jobs:
           echo "::warning ::$(cat firebase_cpp_sdk_hash.txt)"
 
       - name: upload hash
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase_cpp_sdk_hash.txt
           path: firebase_cpp_sdk_hash.txt
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
+
 
   merge_packages:
     name: final-merge-packages
@@ -553,7 +570,7 @@ jobs:
           ref: ${{ github.event.inputs.commitIdToPackage }}
 
       - name: download artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v2.0.8
         with:
           # download-artifact doesn't support wildcards, but by default
           # will download all artifacts. Sadly this is what we must do.
@@ -592,20 +609,21 @@ jobs:
           find firebase_cpp_sdk -type f
 
       - name: upload hash
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase_cpp_sdk_hash.txt
           path: firebase_cpp_sdk_hash.txt
 
       - name: upload SDK zip
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v2.2.2
         with:
           name: firebase_cpp_sdk.zip
           path: firebase_cpp_sdk.zip
 
-  cleanup_artifacts:
-    # Clean up intermediate artifacts.
-    name: cleanup-artifacts
+  cleanup_packaging_artifacts:
+    # Clean up intermediate artifacts from packaging step.
+    # This can happen after the final package merge is finished.
+    name: cleanup-packaging-artifacts
     runs-on: ubuntu-latest
     needs: [merge_packages]
     if: |
@@ -615,39 +633,13 @@ jobs:
         && github.event.inputs.downloadPreviousRun == ''
       )
     steps:
-    - uses: geekyeggo/delete-artifact@v1
+    - uses: geekyeggo/delete-artifact@1-glob-support
       with:
         name: |
-          packaging-tools-darwin
-          packaging-tools-linux
-          firebase-cpp-sdk-windows-x86-Release-dynamic-legacy-build
-          firebase-cpp-sdk-windows-x64-Release-dynamic-legacy-build
-          firebase-cpp-sdk-windows-x86-Debug-dynamic-legacy-build
-          firebase-cpp-sdk-windows-x64-Debug-dynamic-legacy-build
-          firebase-cpp-sdk-windows-x86-Release-static-legacy-build
-          firebase-cpp-sdk-windows-x64-Release-static-legacy-build
-          firebase-cpp-sdk-windows-x86-Debug-static-legacy-build
-          firebase-cpp-sdk-windows-x64-Debug-static-legacy-build
-          firebase-cpp-sdk-linux-x86-Release-static-legacy-build
-          firebase-cpp-sdk-linux-x64-Release-static-legacy-build
-          firebase-cpp-sdk-linux-x86-Release-static-c++11-build
-          firebase-cpp-sdk-linux-x64-Release-static-c++11-build
-          firebase-cpp-sdk-darwin-x64-Release-static-legacy-build
-          firebase-cpp-sdk-windows-x86-Release-dynamic-package
-          firebase-cpp-sdk-windows-x64-Release-dynamic-package
-          firebase-cpp-sdk-windows-x86-Debug-dynamic-package
-          firebase-cpp-sdk-windows-x64-Debug-dynamic-package
-          firebase-cpp-sdk-windows-x86-Release-static-package
-          firebase-cpp-sdk-windows-x64-Release-static-package
-          firebase-cpp-sdk-windows-x86-Debug-static-package
-          firebase-cpp-sdk-windows-x64-Debug-static-package
-          firebase-cpp-sdk-linux-package
-          firebase-cpp-sdk-ios-package
-          firebase-cpp-sdk-darwin-package
-          firebase-cpp-sdk-android-stlport-package
-          firebase-cpp-sdk-android-gnustl-package
-          firebase-cpp-sdk-android-c++-package
+          packaging-tools-*
+          firebase-cpp-sdk-*-package
         failOnError: false
+        useGlob: true
 
   tests:
     needs: [merge_packages, download_sdk_package]
@@ -678,7 +670,7 @@ jobs:
       if: runner.os == 'macOS'
       run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
     - name: Download Firebase C++ SDK
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v2.0.8
       with:
         name: firebase_cpp_sdk.zip
     - name: Unzip Firebase C++ SDK
@@ -704,7 +696,7 @@ jobs:
     - name: Build integration tests
       run: |
         python scripts/gha/build_testapps.py --t ${{ env.apis }} --p ${{ matrix.target_platform }} --packaged_sdk firebase_cpp_sdk --output_directory "${{ github.workspace }}" --noadd_timestamp
-    
+
     - name: Run desktop integration tests
       if: matrix.target_platform == 'Desktop' && !cancelled()
       run: |
