@@ -332,11 +332,11 @@ if(ANDROID)
   firebase_cpp_proguard_file(firestore)
 
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_firestore
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_firestore
+	                 PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_firestore
+                        PUBLIC "-fembed-bitcode")
 
   setup_pod_headers(
     firebase_firestore

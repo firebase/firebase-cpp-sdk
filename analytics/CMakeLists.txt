@@ -90,7 +90,7 @@ set_property(TARGET firebase_analytics PROPERTY FOLDER "Firebase Cpp")
 
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_analytics
-    firebase_app)
+    PUBLIC firebase_app)
 # Public headers all refer to each other relative to the src/include directory,
 # while private headers are relative to the entire C++ SDK directory.
 target_include_directories(firebase_analytics
@@ -115,11 +115,11 @@ endif()
 if(ANDROID)
   firebase_cpp_proguard_file(analytics)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_analytics
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_analytics
+	                 PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_analytics
+                        PUBLIC "-fembed-bitcode")
 
   setup_pod_headers(
     firebase_analytics
