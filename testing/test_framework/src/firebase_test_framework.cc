@@ -137,7 +137,7 @@ firebase::FutureBase FirebaseTest::RunWithRetry(
     }
     int delay_ms = kRetryDelaysMs[attempt-1];
     app_framework::LogDebug(
-        "RunWithRetry %s: Pause %d millseconds before retrying.",
+        "RunWithRetry %s: Pause %d milliseconds before retrying.",
         name, delay_ms);
     app_framework::ProcessEvents(delay_ms);
   }
