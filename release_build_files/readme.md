@@ -69,7 +69,7 @@ frameworks/darwin         | OS X frameworks (desktop or stub
                           | implementations, compiled against libc++)
 libs/linux/ARCH/ABI       | Linux static libraries (desktop or stub
                           | implementations, GCC 4.8+, libc++).
-			  | Built against C++11 or legacy ABI.
+                          | Built against C++11 or legacy ABI.
 libs/windows              | Windows static libraries (desktop or stub
                           | implementations, MSVC 2019+)
 
@@ -574,7 +574,7 @@ code.
 ### 7.1.0
 -   Changes
     -   General (iOS): Re-enabled Bitcode in iOS builds
-	([#266][https://github.com/firebase/firebase-cpp-sdk/issues/266]).
+        ([#266][https://github.com/firebase/firebase-cpp-sdk/issues/266]).
     -   Auth: You can now specify a language for emails and text messages sent
         from your apps using `UseAppLanguage()` or `set_language_code()`.
     -   Firestore: Fixed partial updates in `Update()` with
@@ -590,7 +590,7 @@ code.
         instance-based API instead.
     -   Remote Config (Desktop): Fixed multiple definition of Nanopb symbols
         in binary SDK
-	([#271][https://github.com/firebase/firebase-cpp-sdk/issues/271]).
+        ([#271][https://github.com/firebase/firebase-cpp-sdk/issues/271]).
 
 ### 7.0.1
 -   Changes
