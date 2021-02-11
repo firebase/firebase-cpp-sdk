@@ -573,6 +573,8 @@ code.
 
 ### 7.1.0
 -   Changes
+    -   General (iOS): Re-enabled Bitcode in iOS builds
+	([#266][https://github.com/firebase/firebase-cpp-sdk/issues/266]).
     -   Auth: You can now specify a language for emails and text messages sent
         from your apps using `UseAppLanguage()` or `set_language_code()`.
     -   Firestore: Fixed partial updates in `Update()` with
@@ -586,6 +588,9 @@ code.
         new instance-based APIs to better manage fetching config data.
     -   Remote Config: Deprecated old module-based API in favor of the new
         instance-based API instead.
+    -   Remote Config (Desktop): Fixed multiple definition of Nanopb symbols
+        in binary SDK
+	([#271][https://github.com/firebase/firebase-cpp-sdk/issues/271]).
 
 ### 7.0.1
 -   Changes
