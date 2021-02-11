@@ -106,7 +106,7 @@ elseif(IOS)
   # AdMob for iOS uses weak references, which requires enabling Automatic
   # Reference Counting (ARC). Also enable BitCode.
   target_compile_options(firebase_admob
-	                 PUBLIC "-fobjc-arc" "-fembed-bitcode")
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
   target_link_libraries(firebase_admob
                         PUBLIC "-fembed-bitcode")
 

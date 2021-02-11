@@ -89,7 +89,7 @@ if(ANDROID)
 elseif(IOS)
   # Enable Automatic Reference Counting (ARC) and Bitcode.
   target_compile_options(firebase_instance_id
-	                 PUBLIC "-fobjc-arc" "-fembed-bitcode")
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
   target_link_libraries(firebase_instance_id
                         PUBLIC "-fembed-bitcode")
 
