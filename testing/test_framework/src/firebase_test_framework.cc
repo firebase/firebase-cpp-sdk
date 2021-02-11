@@ -96,6 +96,54 @@ void FirebaseTest::TerminateApp() {
   app_ = nullptr;
 }
 
+const int kRetryDelaysMs[] = {
+  // Roughly exponential backoff for the retries.
+  100, 1000, 5000, 10000, 30000
+};
+const int kMaxRetries = sizeof(kRetryDelaysMs) / sizeof(kRetryDelaysMs[0]);
+
+firebase::FutureBase FirebaseTest::RunWithRetry(
+    firebase::FutureBase (*run_future)(void* context),
+    void* context, const char* name, int expected_error) {
+
+  int attempt = 0;
+  firebase::FutureBase future;
+
+  while (attempt < kMaxRetries) {
+    attempt++;
+    future = run_future(context);
+    if (attempt >= kMaxRetries) {
+      // This is the last attempt, return immediately.
+      break;
+    }
+    // Wait for completion, then check status and error.
+    while (future.status() == firebase::kFutureStatusPending) {
+      app_framework::ProcessEvents(100);
+    }
+    if (future.status() != firebase::kFutureStatusComplete) {
+      app_framework::LogDebug(
+          "RunWithRetry %s: Attempt %d returned invalid status",
+          name, attempt);
+    }
+    else if (future.error() != expected_error) {
+      app_framework::LogDebug(
+          "RunWithRetry %s: Attempt %d returned error %d, expected %d",
+          name, attempt, future.error(), expected_error);
+    }
+    else {
+      // Future is completed and the error matches what's expected, no need to
+      // retry further.
+      break;
+    }
+    int delay_ms = kRetryDelaysMs[attempt-1];
+    app_framework::LogDebug(
+        "RunWithRetry %s: Pause %d millseconds before retrying.",
+        name, delay_ms);
+    app_framework::ProcessEvents(delay_ms);
+  }
+  return future;
+}
+
 bool FirebaseTest::WaitForCompletion(const firebase::FutureBase& future,
                                      const char* name, int expected_error) {
   app_framework::LogDebug("WaitForCompletion %s", name);

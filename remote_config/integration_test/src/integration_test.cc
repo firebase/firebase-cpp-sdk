@@ -83,6 +83,9 @@ class FirebaseRemoteConfigTest : public FirebaseTest {
 #endif  // TEST_DEPRECATED
 };
 
+const firebase::remote_config::LastFetchStatus kFetchSuccess =
+    firebase::remote_config::kLastFetchStatusSuccess;
+
 FirebaseRemoteConfigTest::FirebaseRemoteConfigTest() : initialized_(false) {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
@@ -484,7 +487,11 @@ TEST_F(FirebaseRemoteConfigTest, TestGetAll) {
   ASSERT_NE(rc_, nullptr);
 
   EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
-  EXPECT_TRUE(WaitForCompletion(rc_->Fetch(), "Fetch"));
+  //EXPECT_TRUE(WaitForCompletion(rc_->Fetch(), "Fetch"));
+  EXPECT_TRUE(WaitForCompletion(RunWithRetry([](void* rc) {
+    return static_cast<firebase::FutureBase>(
+        static_cast<RemoteConfig*>(rc)->Fetch());
+  }, rc_, "Fetch"), "FetchWithRetry"));
   EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
   std::map<std::string, firebase::Variant> key_values = rc_->GetAll();
   EXPECT_EQ(key_values.size(), 6);
@@ -509,7 +516,11 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchV2) {
 
   EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
 
-  EXPECT_TRUE(WaitForCompletion(rc_->Fetch(), "Fetch"));
+  //EXPECT_TRUE(WaitForCompletion(rc_->Fetch(), "Fetch"));
+  EXPECT_TRUE(WaitForCompletion(RunWithRetry([](void* rc) {
+    return static_cast<firebase::FutureBase>(
+        static_cast<RemoteConfig*>(rc)->Fetch());
+  }, rc_, "Fetch"), "FetchWithRetry"));
   EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
   LogDebug("Fetch time: %lld", rc_->GetInfo().fetch_time);
   firebase::remote_config::ValueInfo value_info;

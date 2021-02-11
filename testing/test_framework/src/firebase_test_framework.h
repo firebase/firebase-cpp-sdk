@@ -138,6 +138,14 @@ class FirebaseTest : public testing::Test {
   static bool WaitForCompletion(const firebase::FutureBase& future,
                                 const char* name, int expected_error = 0);
 
+  // Run the future (via a callback), retrying with exponential backoff if it
+  // fails.
+  static firebase::FutureBase RunWithRetry(
+      firebase::FutureBase (*run_future)(void* context),
+      void* context,
+      const char* name,
+      int expected_error = 0);
+
   // Blocking HTTP request helper function, for testing only.
   static bool SendHttpGetRequest(
       const char* url, const std::map<std::string, std::string>& headers,
