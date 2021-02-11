@@ -5,8 +5,11 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
+#include "app/memory/unique_ptr.h"
+#include "app/meta/move.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/mutex.h"
@@ -157,25 +160,36 @@ class FirestoreIntegrationTest : public testing::Test {
   FirestoreIntegrationTest();
   FirestoreIntegrationTest(const FirestoreIntegrationTest&) = delete;
   FirestoreIntegrationTest(FirestoreIntegrationTest&&) = delete;
-  ~FirestoreIntegrationTest() override;
 
   FirestoreIntegrationTest& operator=(const FirestoreIntegrationTest&) = delete;
   FirestoreIntegrationTest& operator=(FirestoreIntegrationTest&&) = delete;
 
  protected:
-  App* app() { return firestore()->app(); }
+  App* app() { return TestFirestore()->app(); }
 
-  Firestore* firestore() const { return CachedFirestore(kDefaultAppName); }
+  // Returns a Firestore instance for an app with the given name.
+  // If this method is invoked again with the same `name`, then the same pointer
+  // will be returned. The only exception is if the `Firestore` was removed
+  // from the cache by a call to `DeleteFirestore()` or `DeleteApp()` with the
+  // `App` of the returned `Firestore`.
+  Firestore* TestFirestore(const std::string& name = kDefaultAppName) const;
 
-  // If no Firestore instance is registered under the name, creates a new
-  // instance in order to have multiple Firestore clients for testing.
-  // Otherwise, returns the registered Firestore instance.
-  Firestore* CachedFirestore(const std::string& name) const;
+  // Deletes the given `Firestore` instance, which must have been returned by a
+  // previous invocation of `TestFirestore()`. If the given instance was in the
+  // cache, then it will be removed from the cache. Note that all `Firestore`
+  // instances returned from `TestFirestore()` will be automatically deleted at
+  // the end of the test case; therefore, this method is only needed if the test
+  // requires that the instance be deleted earlier than that.
+  void DeleteFirestore(Firestore* firestore);
 
-  // Blocks until the Firestore instance corresponding to the given app name
-  // shuts down, deletes the instance and removes the pointer to it from the
-  // cache. Asserts that a Firestore instance with the given name does exist.
-  void DeleteFirestore(const std::string& name = kDefaultAppName);
+  // Deletes the given `App` instance. The given `App` must have been the `App`
+  // associated with a `Firestore` instance returned by a previous invocation of
+  // `TestFirestore()`. Normally the `App` is deleted at the end of the test, so
+  // this method is only needed if the test requires the App to be deleted
+  // earlier than that. Any `Firestore` instances that were returned from
+  // `TestFirestore()` and were associated with the given `App` will be deleted
+  // as if with `DeleteFirestore()`.
+  void DeleteApp(App* app);
 
   // Return a reference to the collection with auto-generated id.
   CollectionReference Collection() const;
@@ -270,29 +284,41 @@ class FirestoreIntegrationTest : public testing::Test {
 
   static std::string DescribeFailedFuture(const FutureBase& future);
 
-  // Creates a new Firestore instance, without any caching, using a uniquely-
-  // generated app_name.
-  // Use Release() to correctly delete the returned pointer.
-  Firestore* CreateFirestore() const;
-  // Creates a new Firestore instance, without any caching, using the given
-  // app_name.
-  // Use Release() to correctly delete the returned pointer.
-  Firestore* CreateFirestore(const std::string& app_name) const;
+  void DisableNetwork() { Await(TestFirestore()->DisableNetwork()); }
 
-  void DisableNetwork() { Await(firestore()->DisableNetwork()); }
+  void EnableNetwork() { Await(TestFirestore()->EnableNetwork()); }
 
-  void EnableNetwork() { Await(firestore()->EnableNetwork()); }
-
-  // Deletes the given Firestore instance and deletes the app by which it is
-  // owned.
-  static void Release(Firestore* firestore);
+  static FirestoreInternal* GetFirestoreInternal(Firestore* firestore) {
+    return firestore->internal_;
+  }
 
  private:
   template <typename T>
   friend class EventAccumulator;
 
-  // The Firestore instance cache.
-  mutable std::map<std::string, Firestore*> firestores_;
+  class FirestoreInfo {
+   public:
+    FirestoreInfo() = default;
+    FirestoreInfo(const std::string& name, UniquePtr<Firestore>&& firestore)
+        : name_(name), firestore_(Move(firestore)) {}
+
+    const std::string& name() const { return name_; }
+    Firestore* firestore() const { return firestore_.get(); }
+    bool cached() const { return cached_; }
+    void ClearCached() { cached_ = false; }
+
+   private:
+    std::string name_;
+    UniquePtr<Firestore> firestore_;
+    bool cached_ = true;
+  };
+
+  // The Firestore and App instance caches.
+  // Note that `firestores_` is intentionally ordered *after* `apps_` so that
+  // the Firestore pointers will be deleted before the App pointers when this
+  // object is destructed.
+  mutable std::unordered_map<App*, UniquePtr<App>> apps_;
+  mutable std::unordered_map<Firestore*, FirestoreInfo> firestores_;
 };
 
 }  // namespace firestore

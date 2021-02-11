@@ -14,6 +14,7 @@ Method<size_t> kSize("size", "()I");
 Method<Object> kGet("get", "(Ljava/lang/Object;)Ljava/lang/Object;");
 Method<Object> kPut("put",
                     "(Ljava/lang/Object;Ljava/lang/Object;)Ljava/lang/Object;");
+Method<Object> kRemove("remove", "(Ljava/lang/Object;)Ljava/lang/Object;");
 Method<Set> kKeySet("keySet", "()Ljava/util/Set;");
 jclass g_clazz = nullptr;
 
@@ -22,7 +23,7 @@ jclass g_clazz = nullptr;
 void Map::Initialize(Loader& loader) {
   g_clazz = util::map::GetClass();
   loader.LoadFromExistingClass("java/util/Map", g_clazz, kSize, kGet, kPut,
-                               kKeySet);
+                               kRemove, kKeySet);
 }
 
 Class Map::GetClass() { return Class(g_clazz); }
@@ -35,6 +36,10 @@ Local<Object> Map::Get(Env& env, const Object& key) {
 
 Local<Object> Map::Put(Env& env, const Object& key, const Object& value) {
   return env.Call(*this, kPut, key, value);
+}
+
+Local<Object> Map::Remove(Env& env, const Object& key) {
+  return env.Call(*this, kRemove, key);
 }
 
 Local<Set> Map::KeySet(Env& env) { return env.Call(*this, kKeySet); }

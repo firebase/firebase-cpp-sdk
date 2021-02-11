@@ -1,10 +1,10 @@
 
 source 'https://github.com/CocoaPods/Specs.git'
-platform :ios, '8.0'
+platform :ios, '10.0'
 # Firebase App test application.
 
 target 'integration_test' do
-  pod 'Firebase/Analytics', '6.24.0'
+  pod 'Firebase/Analytics', '7.5.0'
 end
 
 post_install do |installer|

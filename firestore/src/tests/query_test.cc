@@ -1,9 +1,16 @@
+#include <algorithm>
 #include <cmath>
+#include <string>
 #include <utility>
+#include <vector>
 
+#include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/include/firebase/firestore/field_value.h"
+#include "firestore/src/include/firebase/firestore/map_field_value.h"
 #include "firestore/src/tests/firestore_integration_test.h"
 #include "firestore/src/tests/util/event_accumulator.h"
+
 #if defined(__ANDROID__)
 #include "firestore/src/android/query_android.h"
 #include "firestore/src/common/wrapper_assertions.h"
@@ -15,6 +22,7 @@
 #include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 #include "firebase/firestore/firestore_errors.h"
+#include "Firestore/core/src/util/firestore_exceptions.h"
 
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRQueryTests.mm
@@ -26,8 +34,25 @@
 
 namespace firebase {
 namespace firestore {
+namespace {
 
-using QueryTest = testing::Test;
+using ::testing::ElementsAreArray;
+using ::testing::IsEmpty;
+
+std::vector<MapFieldValue> AllDocsExcept(
+    const std::map<std::string, MapFieldValue>& docs,
+    const std::vector<std::string>& excluded) {
+  std::vector<MapFieldValue> expected_docs;
+  for (const auto& e : docs) {
+    if (std::find(excluded.begin(), excluded.end(), e.first) ==
+        excluded.end()) {
+      expected_docs.push_back(e.second);
+    }
+  }
+  return expected_docs;
+}
+
+}  // namespace
 
 #if !defined(FIRESTORE_STUB_BUILD)
 
@@ -61,13 +86,13 @@ TEST_F(FirestoreIntegrationTest, TestLimitQueriesUsingDescendingSortOrder) {
       QuerySnapshotToValues(snapshot));
 }
 
-#if defined(__ANDROID__)
+#if defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 TEST_F(FirestoreIntegrationTest, TestLimitToLastMustAlsoHaveExplicitOrderBy) {
   CollectionReference collection = Collection();
 
   EXPECT_THROW(Await(collection.LimitToLast(2).Get()), FirestoreException);
 }
-#endif  // defined(__ANDROID__)
+#endif  // defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 
 // Two queries that mapped to the same target ID are referred to as "mirror
 // queries". An example for a mirror query is a LimitToLast() query and a
@@ -446,6 +471,135 @@ TEST_F(FirestoreIntegrationTest, TestCanQueryWithAndWithoutDocumentKey) {
   EXPECT_EQ(QuerySnapshotToValues(snapshot1), QuerySnapshotToValues(snapshot2));
 }
 
+TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotEqualFilters) {
+  // These documents are ordered by value in "zip" since the NotEqual filter is
+  // an inequality, which results in documents being sorted by value.
+  std::map<std::string, MapFieldValue> docs = {
+      {"a", {{"zip", FieldValue::Double(NAN)}}},
+      {"b", {{"zip", FieldValue::Integer(91102)}}},
+      {"c", {{"zip", FieldValue::Integer(98101)}}},
+      {"d", {{"zip", FieldValue::String("98101")}}},
+      {"e", {{"zip", FieldValue::Array({FieldValue::Integer(98101)})}}},
+      {"f",
+       {{"zip", FieldValue::Array({FieldValue::Integer(98101),
+                                   FieldValue::Integer(98102)})}}},
+      {"g",
+       {{"zip", FieldValue::Array({FieldValue::String("98101"),
+                                   FieldValue::Map({{"zip", FieldValue::Integer(
+                                                                98101)}})})}}},
+      {"h", {{"zip", FieldValue::Map({{"code", FieldValue::Integer(500)}})}}},
+      {"i", {{"code", FieldValue::Integer(500)}}},
+      {"j", MapFieldValue{{"zip", FieldValue::Null()}}},
+  };
+  CollectionReference collection = Collection(docs);
+
+  // Search for zips not matching 98101.
+  QuerySnapshot snapshot = ReadDocuments(
+      collection.WhereNotEqualTo("zip", FieldValue::Integer(98101)));
+  EXPECT_THAT(QuerySnapshotToValues(snapshot),
+              ElementsAreArray(AllDocsExcept(docs, {"c", "i", "j"})));
+}
+
+TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotEqualFiltersWithObject) {
+  // These documents are ordered by value in "zip" since the NotEqual filter is
+  // an inequality, which results in documents being sorted by value.
+  std::map<std::string, MapFieldValue> docs = {
+      {"a", {{"zip", FieldValue::Double(NAN)}}},
+      {"b", {{"zip", FieldValue::Integer(91102)}}},
+      {"c", {{"zip", FieldValue::Integer(98101)}}},
+      {"d", {{"zip", FieldValue::String("98101")}}},
+      {"e", {{"zip", FieldValue::Array({FieldValue::Integer(98101)})}}},
+      {"f",
+       {{"zip", FieldValue::Array({FieldValue::Integer(98101),
+                                   FieldValue::Integer(98102)})}}},
+      {"g",
+       {{"zip", FieldValue::Array({FieldValue::String("98101"),
+                                   FieldValue::Map({{"zip", FieldValue::Integer(
+                                                                98101)}})})}}},
+      {"h", {{"zip", FieldValue::Map({{"code", FieldValue::Integer(500)}})}}},
+      {"i", {{"code", FieldValue::Integer(500)}}},
+      {"j", MapFieldValue{{"zip", FieldValue::Null()}}},
+  };
+  CollectionReference collection = Collection(docs);
+
+  QuerySnapshot snapshot = ReadDocuments(collection.WhereNotEqualTo(
+      "zip", FieldValue::Map({{"code", FieldValue::Integer(500)}})));
+  EXPECT_THAT(QuerySnapshotToValues(snapshot),
+              ElementsAreArray(AllDocsExcept(docs, {"h", "i", "j"})));
+}
+
+TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotEqualFiltersWithNull) {
+  // These documents are ordered by value in "zip" since the NotEqual filter is
+  // an inequality, which results in documents being sorted by value.
+  std::map<std::string, MapFieldValue> docs = {
+      {"a", {{"zip", FieldValue::Double(NAN)}}},
+      {"b", {{"zip", FieldValue::Integer(91102)}}},
+      {"c", {{"zip", FieldValue::Integer(98101)}}},
+      {"d", {{"zip", FieldValue::String("98101")}}},
+      {"e", {{"zip", FieldValue::Array({FieldValue::Integer(98101)})}}},
+      {"f",
+       {{"zip", FieldValue::Array({FieldValue::Integer(98101),
+                                   FieldValue::Integer(98102)})}}},
+      {"g",
+       {{"zip", FieldValue::Array({FieldValue::String("98101"),
+                                   FieldValue::Map({{"zip", FieldValue::Integer(
+                                                                98101)}})})}}},
+      {"h", {{"zip", FieldValue::Map({{"code", FieldValue::Integer(500)}})}}},
+      {"i", {{"code", FieldValue::Integer(500)}}},
+      {"j", MapFieldValue{{"zip", FieldValue::Null()}}},
+  };
+  CollectionReference collection = Collection(docs);
+
+  // With Null.
+  QuerySnapshot snapshot = ReadDocuments(collection.WhereNotEqualTo(
+      "zip", FieldValue::Map({{"code", FieldValue::Null()}})));
+  EXPECT_THAT(QuerySnapshotToValues(snapshot),
+              ElementsAreArray(AllDocsExcept(docs, {"i", "j"})));
+}
+
+TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotEqualFiltersWithNan) {
+  // These documents are ordered by value in "zip" since the NotEqual filter is
+  // an inequality, which results in documents being sorted by value.
+  std::map<std::string, MapFieldValue> docs = {
+      {"a", {{"zip", FieldValue::Double(NAN)}}},
+      {"b", {{"zip", FieldValue::Integer(91102)}}},
+      {"c", {{"zip", FieldValue::Integer(98101)}}},
+      {"d", {{"zip", FieldValue::String("98101")}}},
+      {"e", {{"zip", FieldValue::Array({FieldValue::Integer(98101)})}}},
+      {"f",
+       {{"zip", FieldValue::Array({FieldValue::Integer(98101),
+                                   FieldValue::Integer(98102)})}}},
+      {"g",
+       {{"zip", FieldValue::Array({FieldValue::String("98101"),
+                                   FieldValue::Map({{"zip", FieldValue::Integer(
+                                                                98101)}})})}}},
+      {"h", {{"zip", FieldValue::Map({{"code", FieldValue::Integer(500)}})}}},
+      {"i", {{"code", FieldValue::Integer(500)}}},
+      {"j", MapFieldValue{{"zip", FieldValue::Null()}}},
+  };
+  CollectionReference collection = Collection(docs);
+
+  QuerySnapshot snapshot =
+      ReadDocuments(collection.WhereNotEqualTo("zip", FieldValue::Double(NAN)));
+  EXPECT_THAT(QuerySnapshotToValues(snapshot),
+              ElementsAreArray(AllDocsExcept(docs, {"a", "i", "j"})));
+}
+
+TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotEqualFiltersWithDocIds) {
+  MapFieldValue doc_a = {{"key", FieldValue::String("aa")}};
+  MapFieldValue doc_b = {{"key", FieldValue::String("ab")}};
+  MapFieldValue doc_c = {{"key", FieldValue::String("ba")}};
+  MapFieldValue doc_d = {{"key", FieldValue::String("bb")}};
+
+  CollectionReference collection =
+      Collection({{"aa", doc_a}, {"ab", doc_b}, {"ba", doc_c}, {"bb", doc_d}});
+
+  QuerySnapshot snapshot = ReadDocuments(collection.WhereNotEqualTo(
+      FieldPath::DocumentId(), FieldValue::String("aa")));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc_b, doc_c, doc_d}),
+            QuerySnapshotToValues(snapshot));
+}
+
 TEST_F(FirestoreIntegrationTest, TestQueriesCanUseArrayContainsFilters) {
   CollectionReference collection = Collection(
       {{"a", {{"array", FieldValue::Array({FieldValue::Integer(42)})}}},
@@ -530,6 +684,167 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseInFiltersWithDocIds) {
             QuerySnapshotToValues(snapshot));
 }
 
+TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotInFilters) {
+  // These documents are ordered by value in "zip" since the NotEqual filter is
+  // an inequality, which results in documents being sorted by value.
+  std::map<std::string, MapFieldValue> docs = {
+      {"a", {{"zip", FieldValue::Double(NAN)}}},
+      {"b", {{"zip", FieldValue::Integer(91102)}}},
+      {"c", {{"zip", FieldValue::Integer(98101)}}},
+      {"d", {{"zip", FieldValue::Integer(98103)}}},
+      {"e", {{"zip", FieldValue::Array({FieldValue::Integer(98101)})}}},
+      {"f",
+       {{"zip", FieldValue::Array({FieldValue::Integer(98101),
+                                   FieldValue::Integer(98102)})}}},
+      {"g",
+       {{"zip", FieldValue::Array({FieldValue::String("98101"),
+                                   FieldValue::Map({{"zip", FieldValue::Integer(
+                                                                98101)}})})}}},
+      {"h", {{"zip", FieldValue::Map({{"code", FieldValue::Integer(500)}})}}},
+      {"i", {{"code", FieldValue::Integer(500)}}},
+      {"j", MapFieldValue{{"zip", FieldValue::Null()}}},
+  };
+  CollectionReference collection = Collection(docs);
+
+  // Search for zips not matching 98101, 98103 or [98101, 98102].
+  QuerySnapshot snapshot = ReadDocuments(collection.WhereNotIn(
+      "zip", {{FieldValue::Integer(98101), FieldValue::Integer(98103),
+               FieldValue::Array({{FieldValue::Integer(98101),
+                                   FieldValue::Integer(98102)}})}}));
+  EXPECT_THAT(QuerySnapshotToValues(snapshot),
+              ElementsAreArray(AllDocsExcept(docs, {"c", "d", "f", "i", "j"})));
+}
+
+TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotInFiltersWithObject) {
+  // These documents are ordered by value in "zip" since the NotEqual filter is
+  // an inequality, which results in documents being sorted by value.
+  std::map<std::string, MapFieldValue> docs = {
+      {"a", {{"zip", FieldValue::Double(NAN)}}},
+      {"b", {{"zip", FieldValue::Integer(91102)}}},
+      {"c", {{"zip", FieldValue::Integer(98101)}}},
+      {"d", {{"zip", FieldValue::Integer(98103)}}},
+      {"e", {{"zip", FieldValue::Array({FieldValue::Integer(98101)})}}},
+      {"f",
+       {{"zip", FieldValue::Array({FieldValue::Integer(98101),
+                                   FieldValue::Integer(98102)})}}},
+      {"g",
+       {{"zip", FieldValue::Array({FieldValue::String("98101"),
+                                   FieldValue::Map({{"zip", FieldValue::Integer(
+                                                                98101)}})})}}},
+      {"h", {{"zip", FieldValue::Map({{"code", FieldValue::Integer(500)}})}}},
+      {"i", {{"code", FieldValue::Integer(500)}}},
+      {"j", MapFieldValue{{"zip", FieldValue::Null()}}},
+  };
+  CollectionReference collection = Collection(docs);
+
+  QuerySnapshot snapshot = ReadDocuments(collection.WhereNotIn(
+      "zip", {{FieldValue::Map({{"code", FieldValue::Integer(500)}})}}));
+  EXPECT_THAT(QuerySnapshotToValues(snapshot),
+              ElementsAreArray(AllDocsExcept(docs, {"h", "i", "j"})));
+}
+
+TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotInFiltersWithNull) {
+  // These documents are ordered by value in "zip" since the NotEqual filter is
+  // an inequality, which results in documents being sorted by value.
+  std::map<std::string, MapFieldValue> docs = {
+      {"a", {{"zip", FieldValue::Double(NAN)}}},
+      {"b", {{"zip", FieldValue::Integer(91102)}}},
+      {"c", {{"zip", FieldValue::Integer(98101)}}},
+      {"d", {{"zip", FieldValue::Integer(98103)}}},
+      {"e", {{"zip", FieldValue::Array({FieldValue::Integer(98101)})}}},
+      {"f",
+       {{"zip", FieldValue::Array({FieldValue::Integer(98101),
+                                   FieldValue::Integer(98102)})}}},
+      {"g",
+       {{"zip", FieldValue::Array({FieldValue::String("98101"),
+                                   FieldValue::Map({{"zip", FieldValue::Integer(
+                                                                98101)}})})}}},
+      {"h", {{"zip", FieldValue::Map({{"code", FieldValue::Integer(500)}})}}},
+      {"i", {{"code", FieldValue::Integer(500)}}},
+      {"j", MapFieldValue{{"zip", FieldValue::Null()}}},
+  };
+  CollectionReference collection = Collection(docs);
+
+  // With Null, this leads to no result.
+  QuerySnapshot snapshot =
+      ReadDocuments(collection.WhereNotIn("zip", {{FieldValue::Null()}}));
+  EXPECT_THAT(QuerySnapshotToValues(snapshot), IsEmpty());
+}
+
+TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotInFiltersWithNan) {
+  // These documents are ordered by value in "zip" since the NotEqual filter is
+  // an inequality, which results in documents being sorted by value.
+  std::map<std::string, MapFieldValue> docs = {
+      {"a", {{"zip", FieldValue::Double(NAN)}}},
+      {"b", {{"zip", FieldValue::Integer(91102)}}},
+      {"c", {{"zip", FieldValue::Integer(98101)}}},
+      {"d", {{"zip", FieldValue::Integer(98103)}}},
+      {"e", {{"zip", FieldValue::Array({FieldValue::Integer(98101)})}}},
+      {"f",
+       {{"zip", FieldValue::Array({FieldValue::Integer(98101),
+                                   FieldValue::Integer(98102)})}}},
+      {"g",
+       {{"zip", FieldValue::Array({FieldValue::String("98101"),
+                                   FieldValue::Map({{"zip", FieldValue::Integer(
+                                                                98101)}})})}}},
+      {"h", {{"zip", FieldValue::Map({{"code", FieldValue::Integer(500)}})}}},
+      {"i", {{"code", FieldValue::Integer(500)}}},
+      {"j", MapFieldValue{{"zip", FieldValue::Null()}}},
+  };
+  CollectionReference collection = Collection(docs);
+
+  // With NAN.
+  QuerySnapshot snapshot =
+      ReadDocuments(collection.WhereNotIn("zip", {{FieldValue::Double(NAN)}}));
+  EXPECT_THAT(QuerySnapshotToValues(snapshot),
+              ElementsAreArray(AllDocsExcept(docs, {"a", "i", "j"})));
+}
+
+TEST_F(FirestoreIntegrationTest,
+       TestQueriesCanUseNotInFiltersWithNanAndNumber) {
+  // These documents are ordered by value in "zip" since the NotEqual filter is
+  // an inequality, which results in documents being sorted by value.
+  std::map<std::string, MapFieldValue> docs = {
+      {"a", {{"zip", FieldValue::Double(NAN)}}},
+      {"b", {{"zip", FieldValue::Integer(91102)}}},
+      {"c", {{"zip", FieldValue::Integer(98101)}}},
+      {"d", {{"zip", FieldValue::Integer(98103)}}},
+      {"e", {{"zip", FieldValue::Array({FieldValue::Integer(98101)})}}},
+      {"f",
+       {{"zip", FieldValue::Array({FieldValue::Integer(98101),
+                                   FieldValue::Integer(98102)})}}},
+      {"g",
+       {{"zip", FieldValue::Array({FieldValue::String("98101"),
+                                   FieldValue::Map({{"zip", FieldValue::Integer(
+                                                                98101)}})})}}},
+      {"h", {{"zip", FieldValue::Map({{"code", FieldValue::Integer(500)}})}}},
+      {"i", {{"code", FieldValue::Integer(500)}}},
+      {"j", MapFieldValue{{"zip", FieldValue::Null()}}},
+  };
+  CollectionReference collection = Collection(docs);
+
+  QuerySnapshot snapshot = ReadDocuments(collection.WhereNotIn(
+      "zip", {{FieldValue::Double(NAN), FieldValue::Integer(98101)}}));
+  EXPECT_THAT(QuerySnapshotToValues(snapshot),
+              ElementsAreArray(AllDocsExcept(docs, {"a", "c", "i", "j"})));
+}
+
+TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotInFiltersWithDocIds) {
+  MapFieldValue doc_a = {{"key", FieldValue::String("aa")}};
+  MapFieldValue doc_b = {{"key", FieldValue::String("ab")}};
+  MapFieldValue doc_c = {{"key", FieldValue::String("ba")}};
+  MapFieldValue doc_d = {{"key", FieldValue::String("bb")}};
+
+  CollectionReference collection =
+      Collection({{"aa", doc_a}, {"ab", doc_b}, {"ba", doc_c}, {"bb", doc_d}});
+
+  QuerySnapshot snapshot = ReadDocuments(collection.WhereNotIn(
+      FieldPath::DocumentId(),
+      {{FieldValue::String("aa"), FieldValue::String("ab")}}));
+  EXPECT_EQ(std::vector<MapFieldValue>({doc_c, doc_d}),
+            QuerySnapshotToValues(snapshot));
+}
+
 TEST_F(FirestoreIntegrationTest, TestQueriesCanUseArrayContainsAnyFilters) {
   CollectionReference collection = Collection(
       {{"a", {{"array", FieldValue::Array({FieldValue::Integer(42)})}}},
@@ -575,7 +890,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseArrayContainsAnyFilters) {
 }
 
 TEST_F(FirestoreIntegrationTest, TestCollectionGroupQueries) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   // Use .Document() to get a random collection group name to use but ensure it
   // starts with 'b' for predictable ordering.
   std::string collection_group = "b" + db->Collection("foo").Document().id();
@@ -609,7 +924,7 @@ TEST_F(FirestoreIntegrationTest, TestCollectionGroupQueries) {
 
 TEST_F(FirestoreIntegrationTest,
        TestCollectionGroupQueriesWithStartAtEndAtWithArbitraryDocumentIds) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   // Use .Document() to get a random collection group name to use but ensure it
   // starts with 'b' for predictable ordering.
   std::string collection_group = "b" + db->Collection("foo").Document().id();
@@ -641,7 +956,7 @@ TEST_F(FirestoreIntegrationTest,
 
 TEST_F(FirestoreIntegrationTest,
        TestCollectionGroupQueriesWithWhereFiltersOnArbitraryDocumentIds) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   // Use .Document() to get a random collection group name to use but ensure it
   // starts with 'b' for predictable ordering.
   std::string collection_group = "b" + db->Collection("foo").Document().id();
@@ -684,11 +999,11 @@ TEST_F(FirestoreIntegrationTest,
 #endif  // !defined(FIRESTORE_STUB_BUILD)
 
 #if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
-TEST_F(QueryTest, Construction) {
+TEST(QueryTest, Construction) {
   testutil::AssertWrapperConstructionContract<Query>();
 }
 
-TEST_F(QueryTest, Assignment) {
+TEST(QueryTest, Assignment) {
   testutil::AssertWrapperAssignmentContract<Query>();
 }
 #endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)

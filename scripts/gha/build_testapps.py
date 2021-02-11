@@ -25,17 +25,24 @@ Critical flags:
 --t (full name: testapps, default: None)
 --p (full name: platforms, default: None)
 
+By default, this tool will build integration tests from source, which involves
+building the underlying SDK libraries. To build from a packaged/released SDK,
+supply the path to the SDK to --packaged_sdk:
+
+python build_testapps.py --t auth --p iOS --packaged_sdk ~/firebase_cpp_sdk
+
 Under most circumstances the other flags don't need to be set, but can be
 seen by running --help. Note that all path flags will forcefully expand
 the user ~.
 
+
 DEPENDENCIES:
 
-----Firebase SDK----
-The Firebase SDK (prebuilt) or repo must be locally present.
+----Firebase Repo----
+The Firebase C++ SDK repo must be locally present.
 Path specified by the flag:
 
-    --sdk_dir (default: current working directory)
+    --repo_dir (default: current working directory)
 
 ----Python Dependencies----
 The requirements.txt file has the required dependencies for this Python tool.
@@ -69,10 +76,10 @@ modify your bashrc file to automatically set these variables.
 import datetime
 from distutils import dir_util
 import os
-import pathlib
 import platform
 import shutil
 import subprocess
+import sys
 
 from absl import app
 from absl import flags
@@ -81,8 +88,9 @@ from absl import logging
 import attr
 
 from integration_testing import config_reader
-from integration_testing import provisioning
+from integration_testing import test_validation
 from integration_testing import xcodebuild
+import utils
 
 # Environment variables
 _JAVA_HOME = "JAVA_HOME"
@@ -106,18 +114,16 @@ _SUPPORTED_IOS_SDK = (_IOS_SDK_DEVICE, _IOS_SDK_SIMULATOR, _IOS_SDK_BOTH)
 FLAGS = flags.FLAGS
 
 flags.DEFINE_string(
-    "sdk_dir", os.getcwd(), "Unzipped Firebase C++ sdk OR Github repo.")
+    "packaged_sdk", None, "(Optional) Firebase SDK directory. If not"
+    " supplied, will build from source.")
 
 flags.DEFINE_string(
     "output_directory", "~",
     "Build output will be placed in this directory.")
 
 flags.DEFINE_string(
-    "root_dir", os.getcwd(),
-    "Directory with which to join the relative paths in the config."
-    " Used to find e.g. the integration test projects. If using the SDK repo"
-    " this will be the same as the sdk dir, but not if using prebuilts."
-    " Defaults to the current directory.")
+    "repo_dir", os.getcwd(),
+    "Firebase C++ SDK Git repository. Current directory by default.")
 
 flags.DEFINE_list(
     "testapps", None, "Which testapps (Firebase APIs) to build, e.g."
@@ -145,24 +151,16 @@ flags.DEFINE_bool(
     " the local spec repos available on this machine. Must also include iOS"
     " in platforms flag.")
 
-flags.DEFINE_bool(
-    "execute_desktop_testapp", True,
-    "(Desktop only) Run the testapp after building it. Will return non-zero"
-    " code if any tests fail inside the testapp.")
-
 flags.DEFINE_string(
     "compiler", None,
     "(Desktop only) Specify the compiler with CMake during the testapps build."
     " Check the config file to see valid choices for this flag."
     " If none, will invoke cmake without specifying a compiler.")
 
-flags.DEFINE_bool(
-    "use_vcpkg", False,
-    "(Desktop only) Use the vcpkg repo inside the C++ repo. For"
-    " this to work, sdk_dir must be set to the repo, not the prebuilt SDK."
-    " Will install vcpkg, use it to install dependencies, and then configure"
-    " CMake to use it.")
-
+flags.DEFINE_multi_string(
+    "cmake_flag", None,
+    "Pass an additional flag to the CMake configure step."
+    " This option can be specified multiple times.")
 
 flags.register_validator(
     "platforms",
@@ -178,15 +176,16 @@ def main(argv):
   platforms = FLAGS.platforms
   testapps = FLAGS.testapps
 
-  sdk_dir = _fix_path(FLAGS.sdk_dir)
+  sdk_dir = _fix_path(FLAGS.packaged_sdk or FLAGS.repo_dir)
   output_dir = _fix_path(FLAGS.output_directory)
-  root_dir = _fix_path(FLAGS.root_dir)
+  repo_dir = _fix_path(FLAGS.repo_dir)
 
   update_pod_repo = FLAGS.update_pod_repo
   if FLAGS.add_timestamp:
     timestamp = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
   else:
     timestamp = ""
+  output_dir = os.path.join(output_dir, "testapps" + timestamp)
 
   ios_framework_dir = os.path.join(sdk_dir, "frameworks")
   ios_framework_exist = os.path.isdir(ios_framework_dir)
@@ -195,14 +194,24 @@ def main(argv):
 
   if update_pod_repo and _IOS in platforms:
     _run(["pod", "repo", "update"])
-    
+
   config = config_reader.read_config()
   cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
-  if _DESKTOP in platforms and FLAGS.use_vcpkg:
-    _run(["git", "submodule", "update", "--init"])
-    vcpkg = Vcpkg.generate(os.path.join(sdk_dir, config.vcpkg_dir))
-    vcpkg.install_and_run()
-    cmake_flags.extend(vcpkg.cmake_flags)
+  # VCPKG is used to install dependencies for the desktop SDK.
+  # Building from source requires building the underlying SDK libraries,
+  # so we need to use VCPKG as well.
+  if _DESKTOP in platforms and not FLAGS.packaged_sdk:
+    installer = os.path.join(repo_dir, "scripts", "gha", "build_desktop.py")
+    _run([sys.executable, installer, "--vcpkg_step_only"])
+    toolchain_file = os.path.join(
+        repo_dir, "external", "vcpkg", "scripts", "buildsystems", "vcpkg.cmake")
+    cmake_flags.extend((
+        "-DCMAKE_TOOLCHAIN_FILE=%s" % toolchain_file,
+        "-DVCPKG_TARGET_TRIPLET=%s" % utils.get_vcpkg_triplet(arch="x64")
+    ))
+
+  if FLAGS.cmake_flag:
+    cmake_flags.extend(FLAGS.cmake_flag)
 
   failures = []
   for testapp in testapps:
@@ -214,25 +223,22 @@ def main(argv):
         output_dir=output_dir,
         sdk_dir=sdk_dir,
         ios_framework_exist=ios_framework_exist,
-        timestamp=timestamp,
-        root_dir=root_dir,
+        repo_dir=repo_dir,
         ios_sdk=FLAGS.ios_sdk,
-        cmake_flags=cmake_flags,
-        execute_desktop_testapp=FLAGS.execute_desktop_testapp)
+        cmake_flags=cmake_flags)
     logging.info("END building for %s", testapp)
 
-  _summarize_results(testapps, platforms, failures)
+  _summarize_results(testapps, platforms, failures, output_dir)
   return 1 if failures else 0
 
 
 def _build(
-    testapp, platforms, api_config, output_dir, sdk_dir, ios_framework_exist, 
-    timestamp, root_dir, ios_sdk, cmake_flags, execute_desktop_testapp):
+    testapp, platforms, api_config, output_dir, sdk_dir, ios_framework_exist,
+    repo_dir, ios_sdk, cmake_flags):
   """Builds one testapp on each of the specified platforms."""
-  testapp_dir = os.path.join(root_dir, api_config.testapp_path)
+  testapp_dir = os.path.join(repo_dir, api_config.testapp_path)
   project_dir = os.path.join(
-      output_dir, "testapps" + timestamp, api_config.full_name,
-      os.path.basename(testapp_dir))
+      output_dir, api_config.full_name, os.path.basename(testapp_dir))
 
   logging.info("Copying testapp project to %s", project_dir)
   os.makedirs(project_dir)
@@ -241,7 +247,7 @@ def _build(
   logging.info("Changing directory to %s", project_dir)
   os.chdir(project_dir)
 
-  _run_setup_script(root_dir, project_dir)
+  _run_setup_script(repo_dir, project_dir)
 
   failures = []
 
@@ -249,8 +255,6 @@ def _build(
     logging.info("BEGIN %s, %s", testapp, _DESKTOP)
     try:
       _build_desktop(sdk_dir, cmake_flags)
-      if execute_desktop_testapp:
-        _execute_desktop_testapp(project_dir)
     except subprocess.SubprocessError as e:
       failures.append(
           Failure(testapp=testapp, platform=_DESKTOP, error_message=str(e)))
@@ -276,7 +280,7 @@ def _build(
           sdk_dir=sdk_dir,
           ios_framework_exist=ios_framework_exist,
           project_dir=project_dir,
-          root_dir=root_dir,
+          repo_dir=repo_dir,
           api_config=api_config,
           ios_sdk=ios_sdk)
     except subprocess.SubprocessError as e:
@@ -287,34 +291,32 @@ def _build(
   return failures
 
 
-def _summarize_results(testapps, platforms, failures):
+def _summarize_results(testapps, platforms, failures, output_dir):
   """Logs a readable summary of the results of the build."""
-  logging.info(
-      "FINISHED BUILDING TESTAPPS.\n\n\n"
-      "Tried to build these testapps: %s\n"
-      "On these platforms: %s",
-      ", ".join(testapps), ", ".join(platforms))
+  summary = []
+  summary.append("BUILD SUMMARY:")
+  summary.append("TRIED TO BUILD: " + ",".join(testapps))
+  summary.append("ON PLATFORMS: " + ",".join(platforms))
+
   if not failures:
-    logging.info("No failures occurred")
+    summary.append("ALL BUILDS SUCCEEDED")
   else:
-    # Collect lines, then log once, to reduce logging noise from timestamps etc.
-    lines = ["Some failures occurred:"]
+    summary.append("SOME FAILURES OCCURRED:")
     for i, failure in enumerate(failures, start=1):
-      lines.append("%d: %s" % (i, failure.describe()))
-    logging.info("\n".join(lines))
+      summary.append("%d: %s" % (i, failure.describe()))
+  summary = "\n".join(summary)
+
+  logging.info(summary)
+  test_validation.write_summary(output_dir, summary)
 
 
 def _build_desktop(sdk_dir, cmake_flags):
-  _run(["cmake", ".", "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir] + cmake_flags)
-  _run(["cmake", "--build", "."])
-
-
-def _execute_desktop_testapp(project_dir):
-  if platform.system() == "Windows":
-    testapp_path = os.path.join(project_dir, "Debug", "integration_test.exe")
-  else:
-    testapp_path = os.path.join(project_dir, "integration_test")
-  _run([testapp_path], timeout=300)
+  cmake_configure_cmd = ["cmake", ".", "-DCMAKE_BUILD_TYPE=Debug",
+                                       "-DFIREBASE_CPP_SDK_DIR=" + sdk_dir]
+  if utils.is_windows_os():
+    cmake_configure_cmd += ["-A", "x64"]
+  _run(cmake_configure_cmd + cmake_flags)
+  _run(["cmake", "--build", ".", "--config", "Debug"])
 
 
 def _get_desktop_compiler_flags(compiler, compiler_table):
@@ -342,51 +344,53 @@ def _build_android(project_dir, sdk_dir):
     f.write("systemProp.firebase_cpp_sdk.dir=" + sdk_dir + "\n")
   # This will log the versions of dependencies for debugging purposes.
   _run([gradlew, "dependencies", "--configuration", "debugCompileClasspath"])
-  # Building for Android has a known issue that can be worked around by
-  # simply building again. Since building from source takes a while, we don't
-  # want to retry the build if a different error occurred.
-  build_args = [gradlew, "assembleDebug", "--stacktrace"]
-  result = _run(args=build_args, capture_output=True, text=True, check=False)
-  if result.returncode:
-    if "Execution failed for task ':generateJsonModel" in result.stderr:
-      logging.info("Task failed for ':generateJsonModel<target>'. Retrying.")
-      _run(args=build_args)
-    else:
-      logging.error(result.stderr)
-      raise subprocess.CalledProcessError(
-          returncode=result.returncode,
-          cmd=build_args)
+  _run([gradlew, "assembleDebug", "--stacktrace"])
 
 
 def _validate_android_environment_variables():
   """Checks environment variables that may be required for Android."""
   # Ultimately we let the gradle build be the source of truth on what env vars
   # are required, but try to repair holes and log warnings if we can't.
-  logging.info("Checking environment variables for the Android build")
-  if not os.environ.get(_ANDROID_NDK_HOME):
-    ndk_root = os.environ.get(_NDK_ROOT)
-    if ndk_root:  # Use NDK_ROOT as a backup for ANDROID_NDK_HOME
-      os.environ[_ANDROID_NDK_HOME] = ndk_root
-      logging.info("%s not found, using %s", _ANDROID_NDK_HOME, _NDK_ROOT)
-    else:
-      logging.warning("Neither %s nor %s is set.", _ANDROID_NDK_HOME, _NDK_ROOT)
+  android_home = os.environ.get(_ANDROID_HOME)
   if not os.environ.get(_JAVA_HOME):
     logging.warning("%s not set", _JAVA_HOME)
   if not os.environ.get(_ANDROID_SDK_HOME):
-    android_home = os.environ.get(_ANDROID_HOME)
     if android_home:  # Use ANDROID_HOME as backup for ANDROID_SDK_HOME
       os.environ[_ANDROID_SDK_HOME] = android_home
       logging.info("%s not found, using %s", _ANDROID_SDK_HOME, _ANDROID_HOME)
     else:
-      logging.warning(
-          "Neither %s nor %s is set", _ANDROID_SDK_HOME, _ANDROID_HOME)
+      logging.warning("Missing: %s and %s", _ANDROID_SDK_HOME, _ANDROID_HOME)
+  # Different environments may have different NDK env vars specified. We look
+  # for these, in this order, and set the others to the first found.
+  # If none are set, we check the default location for the ndk.
+  ndk_path = None
+  ndk_vars = [_NDK_ROOT, _ANDROID_NDK_HOME]
+  for env_var in ndk_vars:
+    val = os.environ.get(env_var)
+    if val:
+      ndk_path = val
+      break
+  if not ndk_path:
+    if android_home:
+      default_ndk_path = os.path.join(android_home, "ndk-bundle")
+      if os.path.isdir(default_ndk_path):
+        ndk_path = default_ndk_path
+  if ndk_path:
+    logging.info("Found ndk: %s", ndk_path)
+    for env_var in ndk_vars:
+      if os.environ.get(env_var) != ndk_path:
+        logging.info("Setting %s to %s", env_var, ndk_path)
+        os.environ[env_var] = ndk_path
+  else:
+    logging.warning("No NDK env var set. Set one of %s", ", ".join(ndk_vars))
 
 
-# If sdk_dir contains no framework, consider it is Github repo, then 
+# If sdk_dir contains no framework, consider it is Github repo, then
 # generate makefiles for ios frameworks
 def _generate_makefiles_from_repo(sdk_dir):
+  """Generates cmake makefiles for building iOS frameworks from SDK source."""
   ios_framework_builder = os.path.join(
-    sdk_dir, "build_scripts", "ios", "build.sh")
+      sdk_dir, "build_scripts", "ios", "build.sh")
 
   framework_builder_args = [
       ios_framework_builder,
@@ -399,16 +403,19 @@ def _generate_makefiles_from_repo(sdk_dir):
 
 # build required ios frameworks based on makefiles
 def _build_ios_framework_from_repo(sdk_dir, api_config):
+  """Builds iOS framework from SDK source."""
   ios_framework_builder = os.path.join(
-    sdk_dir, "build_scripts", "ios", "build.sh")
-  
+      sdk_dir, "build_scripts", "ios", "build.sh")
+
   # build only required targets to save time
   target = set()
+
   for framework in api_config.frameworks:
+    # firebase_analytics.framework -> firebase_analytics
     target.add(os.path.splitext(framework)[0])
   # firebase is not a target in CMake, firebase_app is the target
-  # firebase_app will be built by other target as well 
-  target.remove("firebase") 
+  # firebase_app will be built by other target as well
+  target.remove("firebase")
 
   framework_builder_args = [
       ios_framework_builder,
@@ -420,11 +427,11 @@ def _build_ios_framework_from_repo(sdk_dir, api_config):
 
 
 def _build_ios(
-    sdk_dir, ios_framework_exist, project_dir, root_dir, api_config, ios_sdk):
+    sdk_dir, ios_framework_exist, project_dir, repo_dir, api_config, ios_sdk):
+  """Builds an iOS application (.app, .ipa or both)."""
   if not ios_framework_exist:
     _build_ios_framework_from_repo(sdk_dir, api_config)
 
-  """Builds an iOS application (.app, .ipa or both)."""
   build_dir = os.path.join(project_dir, "ios_build")
   os.makedirs(build_dir)
 
@@ -437,12 +444,20 @@ def _build_ios(
     dir_util.copy_tree(framework_src_path, framework_dest_path)
     framework_paths.append(framework_dest_path)
 
+  podfile_tool_path = os.path.join(
+      repo_dir, "scripts", "gha", "integration_testing", "update_podfile.py")
+  podfile_patcher_args = [
+      sys.executable, podfile_tool_path,
+      "--sdk_podfile", os.path.join(repo_dir, "ios_pod", "Podfile"),
+      "--app_podfile", os.path.join(project_dir, "Podfile")
+  ]
+  _run(podfile_patcher_args)
   _run(["pod", "install"])
 
   entitlements_path = os.path.join(
       project_dir, api_config.ios_target + ".entitlements")
   xcode_tool_path = os.path.join(
-      root_dir, "scripts", "gha", "integration_testing", "xcode_tool.rb")
+      repo_dir, "scripts", "gha", "integration_testing", "xcode_tool.rb")
   xcode_patcher_args = [
       "ruby", xcode_tool_path,
       "--XCodeCPP.xcodeProjectDir", project_dir,
@@ -475,18 +490,22 @@ def _build_ios(
             ios_sdk=_IOS_SDK_DEVICE,
             configuration="Debug"))
 
-    xcodebuild.generate_unsigned_ipa(output_dir=build_dir, configuration="Debug")
+    xcodebuild.generate_unsigned_ipa(
+        output_dir=build_dir, configuration="Debug")
 
 
-# This script is responsible for copying shared files into the integration
-# test projects. Should be executed before performing any builds.
+# This should be executed before performing any builds.
 def _run_setup_script(root_dir, testapp_dir):
-  """Runs the setup_integration_tests.py script if needed."""
+  """Runs the setup_integration_tests.py script."""
+  # This script will download gtest to its own directory.
+  # The CMake projects were configured to download gtest, but this was
+  # found to be flaky and errors didn't propagate up the build system
+  # layers. The workaround is to download gtest with this script and copy it.
+  downloader_dir = os.path.join(root_dir, "testing", "test_framework")
+  _run([sys.executable, os.path.join(downloader_dir, "download_googletest.py")])
+  # Copies shared test framework files into the project, including gtest.
   script_path = os.path.join(root_dir, "setup_integration_tests.py")
-  if os.path.isfile(script_path):
-    _run(["python", script_path, testapp_dir])
-  else:
-    logging.info("setup_integration_tests.py not found")
+  _run([sys.executable, script_path, testapp_dir])
 
 
 def _run(args, timeout=2400, capture_output=False, text=None, check=True):
@@ -515,55 +534,6 @@ def _rm_dir_safe(directory_path):
 def _fix_path(path):
   """Expands ~, normalizes slashes, and converts relative paths to absolute."""
   return os.path.abspath(os.path.expanduser(path))
-
-
-@attr.s(frozen=True, eq=False)
-class Vcpkg(object):
-  """Holds data related to the vcpkg tool used for managing dependent tools."""
-  installer = attr.ib()
-  binary = attr.ib()
-  triplet = attr.ib()
-  response_file = attr.ib()
-  toolchain_file = attr.ib()
-
-  @classmethod
-  def generate(cls, vcpkg_dir):
-    """Generates the vcpkg data based on the given vcpkg submodule path."""
-    installer = os.path.join(vcpkg_dir, "bootstrap-vcpkg")
-    binary = os.path.join(vcpkg_dir, "vcpkg")
-    response_file_fmt = vcpkg_dir + "_%s_response_file.txt"
-    if platform.system() == "Windows":
-      triplet = "x64-windows-static"
-      installer += ".bat"
-      binary += ".exe"
-    elif platform.system() == "Darwin":
-      triplet = "x64-osx"
-      installer += ".sh"
-    elif platform.system() == "Linux":
-      triplet = "x64-linux"
-      installer += ".sh"
-    else:
-      raise ValueError("Unrecognized system: %s" % platform.system())
-    return cls(
-        installer=installer,
-        binary=binary,
-        triplet=triplet,
-        response_file=response_file_fmt % triplet,
-        toolchain_file=os.path.join(
-            vcpkg_dir, "scripts", "buildsystems", "vcpkg.cmake"))
-
-  def install_and_run(self):
-    """Installs vcpkg (if needed) and runs it to install dependencies."""
-    if not os.path.exists(self.binary):
-      _run([self.installer])
-    _run([
-        self.binary, "install", "@" + self.response_file, "--disable-metrics"])
-
-  @property
-  def cmake_flags(self):
-    return [
-        "-DCMAKE_TOOLCHAIN_FILE=%s" % self.toolchain_file,
-        "-DVCPKG_TARGET_TRIPLET=%s" % self.triplet]
 
 
 @attr.s(frozen=True, eq=False)

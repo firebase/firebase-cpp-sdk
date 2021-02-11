@@ -123,6 +123,11 @@ void FirebaseAdMobTest::SetUpTestSuite() {
 }
 
 void FirebaseAdMobTest::TearDownTestSuite() {
+  // Workaround: AdMob does some of its initialization in the main
+  // thread, so if you terminate it too quickly after initialization
+  // it can cause issues.  Add a small delay here in case most of the
+  // tests are skipped.
+  ProcessEvents(1000);
   LogDebug("Shutdown AdMob.");
   firebase::admob::Terminate();
   LogDebug("Shutdown Firebase App.");
@@ -510,6 +515,10 @@ static void* DeleteBannerViewOnSignal(void* args) {
 
 TEST_F(FirebaseAdMobTest, TestBannerViewMultithreadDeletion) {
   SKIP_TEST_ON_DESKTOP;
+  SKIP_TEST_ON_MOBILE;  // TODO(b/172832275): This test is temporarily
+                        // disabled on all platforms due to flakiness
+                        // on Android. Once it's fixed, this test should
+                        // be re-enabled on mobile.
 
   static const int kBannerWidth = 320;
   static const int kBannerHeight = 50;

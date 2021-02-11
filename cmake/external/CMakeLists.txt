@@ -28,6 +28,7 @@ include(firestore)
 
 # Some of the external dependencies are not needed for mobile.
 if (${FIREBASE_EXTERNAL_PLATFORM} STREQUAL "DESKTOP")
+  include(boringssl)
   include(curl)
   include(libuv)
   include(leveldb)

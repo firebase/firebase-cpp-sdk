@@ -100,75 +100,75 @@ int WaitFor(const FutureBase& future) {
 
 FirestoreIntegrationTest::FirestoreIntegrationTest() {
   // Allocate the default Firestore eagerly.
-  CachedFirestore(kDefaultAppName);
-  Firestore::set_log_level(LogLevel::kLogLevelDebug);
+  TestFirestore();
 }
 
-FirestoreIntegrationTest::~FirestoreIntegrationTest() {
-  for (const auto& named_firestore : firestores_) {
-    Release(named_firestore.second);
-    firestores_[named_firestore.first] = nullptr;
-  }
-}
-
-Firestore* FirestoreIntegrationTest::CachedFirestore(
+Firestore* FirestoreIntegrationTest::TestFirestore(
     const std::string& name) const {
-  if (firestores_.count(name) > 0) {
-    return firestores_[name];
+  for (const auto& entry : firestores_) {
+    const FirestoreInfo& firestore_info = entry.second;
+    if (firestore_info.cached() && firestore_info.name() == name) {
+      return firestore_info.firestore();
+    }
   }
 
-  // Make sure different unit tests don't try to create an app with the same
-  // name, because it's not supported by `firebase::App` (the default app is an
-  // exception and will be recreated).
-  static int counter = 0;
-  std::string app_name =
-      name == kDefaultAppName ? name : name + std::to_string(counter++);
-  Firestore* db = CreateFirestore(app_name);
+  App* app = GetApp(name.c_str());
+  if (apps_.find(app) == apps_.end()) {
+    apps_[app] = UniquePtr<App>(app);
+  }
 
-  firestores_[name] = db;
-  return db;
-}
+  Firestore::set_log_level(LogLevel::kLogLevelDebug);
 
-Firestore* FirestoreIntegrationTest::CreateFirestore() const {
-  static int app_number = 0;
-  std::string app_name = "app_for_testing_";
-  app_name += std::to_string(app_number++);
-  return CreateFirestore(app_name);
-}
-
-Firestore* FirestoreIntegrationTest::CreateFirestore(
-    const std::string& app_name) const {
-  App* app = GetApp(app_name.c_str());
   Firestore* db = new Firestore(CreateTestFirestoreInternal(app));
+  firestores_[db] = FirestoreInfo(name, UniquePtr<Firestore>(db));
 
   LocateEmulator(db);
   InitializeFirestore(db);
+
   return db;
 }
 
-void FirestoreIntegrationTest::DeleteFirestore(const std::string& name) {
-  auto found = firestores_.find(name);
-  FIREBASE_ASSERT_MESSAGE(
-      found != firestores_.end(),
-      "Couldn't find Firestore corresponding to app name '%s'", name.c_str());
-
-  Release(found->second);
+void FirestoreIntegrationTest::DeleteFirestore(Firestore* firestore) {
+  auto found = firestores_.find(firestore);
+  FIREBASE_ASSERT_MESSAGE(found != firestores_.end(),
+                          "The given Firestore was not found.");
   firestores_.erase(found);
 }
 
+void FirestoreIntegrationTest::DeleteApp(App* app) {
+  auto found = apps_.find(app);
+  FIREBASE_ASSERT_MESSAGE(found != apps_.end(), "The given App was not found.");
+
+  // Remove the Firestore instances from our internal list that are owned by the
+  // given App. Deleting the App also deletes the Firestore instances created
+  // via that App; therefore, removing our references to those Firestore
+  // instances avoids double-deletion and also avoids returning deleted
+  // Firestore instances from TestFirestore().
+  auto firestores_iterator = firestores_.begin();
+  while (firestores_iterator != firestores_.end()) {
+    if (firestores_iterator->first->app() == app) {
+      firestores_iterator = firestores_.erase(firestores_iterator);
+    } else {
+      ++firestores_iterator;
+    }
+  }
+
+  apps_.erase(found);
+}
+
 CollectionReference FirestoreIntegrationTest::Collection() const {
-  return firestore()->Collection(util::CreateAutoId());
+  return TestFirestore()->Collection(util::CreateAutoId());
 }
 
 CollectionReference FirestoreIntegrationTest::Collection(
     const std::string& name_prefix) const {
-  return firestore()->Collection(name_prefix + "_" + util::CreateAutoId());
+  return TestFirestore()->Collection(name_prefix + "_" + util::CreateAutoId());
 }
 
 CollectionReference FirestoreIntegrationTest::Collection(
     const std::map<std::string, MapFieldValue>& docs) const {
   CollectionReference result = Collection();
-  WriteDocuments(CachedFirestore(kBootstrapAppName)->Collection(result.path()),
+  WriteDocuments(TestFirestore(kBootstrapAppName)->Collection(result.path()),
                  docs);
   return result;
 }
@@ -178,7 +178,7 @@ std::string FirestoreIntegrationTest::DocumentPath() const {
 }
 
 DocumentReference FirestoreIntegrationTest::Document() const {
-  return firestore()->Document(DocumentPath());
+  return TestFirestore()->Document(DocumentPath());
 }
 
 void FirestoreIntegrationTest::WriteDocument(DocumentReference reference,
@@ -275,17 +275,6 @@ std::string FirestoreIntegrationTest::DescribeFailedFuture(
     const FutureBase& future) {
   return "Future failed: " + ToFirestoreErrorCodeName(future.error()) + " (" +
          std::to_string(future.error()) + "): " + future.error_message();
-}
-
-/* static */
-void FirestoreIntegrationTest::Release(Firestore* firestore) {
-  if (firestore == nullptr) {
-    return;
-  }
-
-  App* app = firestore->app();
-  delete firestore;
-  delete app;
 }
 
 }  // namespace firestore

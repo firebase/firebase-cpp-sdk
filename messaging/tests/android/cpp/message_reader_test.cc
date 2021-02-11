@@ -176,6 +176,8 @@ TEST_F(MessageReaderTest, ReadFromBufferMessageReceived) {
   std::vector<flatbuffers::Offset<DataPair>> data;
   data.push_back(CreateDataPairDirect(fbb, "foo", "bar"));
   data.push_back(CreateDataPairDirect(fbb, "bosh", "bash"));
+  std::vector<uint8_t> rawdata;
+  rawdata.push_back(1);
   std::vector<flatbuffers::Offset<flatbuffers::String>> body_loc_args;
   body_loc_args.push_back(fbb.CreateString("1"));
   body_loc_args.push_back(fbb.CreateString("2"));
@@ -186,7 +188,7 @@ TEST_F(MessageReaderTest, ReadFromBufferMessageReceived) {
       fbb, CreateSerializedEvent(
                fbb, SerializedEventUnion_SerializedMessage,
                CreateSerializedMessageDirect(
-                   fbb, "from:bob", "to:jane", "collapsekey", &data, "rawdata",
+                   fbb, "from:bob", "to:jane", "collapsekey", &data, &rawdata,
                    "message_id", "message_type",
                    "high",  // priority
                    10,      // TTL

@@ -68,13 +68,19 @@ target_compile_definitions(firebase_rest_lib
     "${rest_additional_defines}"
 )
 
+set(FIREBASE_CURL_DEPENDENCY libcurl)
+if (MSVC)
+  # libcurl on Windows depends on internal Windows SSL via its crypt32 library.
+  set(FIREBASE_CURL_DEPENDENCY ${FIREBASE_CURL_DEPENDENCY} crypt32)
+endif()
+
 # firebase_rest_lib has a dependency on flatbuffers, which needs to be included.
 target_link_libraries(firebase_rest_lib
   PUBLIC
     firebase_app
   PRIVATE
     flatbuffers
-    libcurl
+    ${FIREBASE_CURL_DEPENDENCY}
     zlibstatic
     ${CMAKE_DL_LIBS}
 )

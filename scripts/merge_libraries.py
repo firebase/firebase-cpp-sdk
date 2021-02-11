@@ -19,6 +19,7 @@ Optionally allows you to rename C and C++ symbols from certain libraries.
 
 import hashlib
 import os
+import fcntl
 import pickle
 import re
 import shutil
@@ -94,11 +95,23 @@ flags.DEFINE_bool(
     "two libraries. C++ symbols in the appropriate namespaces will be renamed "
     "even if they are external. Otherwise, only symbols defined in the library "
     "are renamed.")
+flags.DEFINE_bool(
+    "skip_creating_archives", False,
+    "Skip creating archive files (.a or .lib) and instead just leave the object "
+    "files (.o or .obj) in the output directory.")
+flags.DEFINE_string("force_binutils_target", None, "Force all binutils calls to "
+                    "use the given target, via the --target flag. If not set, "
+                    "will autodetect target format. If you want to specify "
+                    "different input and output formats, separate them with a comma.")
 
 # Never rename 'std::' by default when --auto_hide_cpp_namespaces is enabled.
 IMPLICIT_CPP_NAMESPACES_TO_IGNORE = {"std"}
 
 DEFAULT_ENCODING = "ascii"
+
+# Once a binutils command fails due to an ambiguous target, use this explicit target
+# when running all subsequent binutils commands.
+binutils_force_target_format = None
 
 
 class Demangler(object):
@@ -257,19 +270,20 @@ def create_archive(output_archive_file, object_files, old_archive=None):
     Empty list if there are no errors, or error text if there was an error.
   """
   errors = []
-  if old_archive:
+  if old_archive and FLAGS.platform != "windows" and FLAGS.platform != "darwin":
     # Copy the old archive to the new archive, then clear the files from it.
     # This preserves the file format of the old archive file.
+    # On Windows, we'll always create a new archive.
     shutil.copy(old_archive, output_archive_file)
     (old_contents, errors) = list_objects_in_archive(output_archive_file)
-    run_command(
+    run_binutils_command(
         [FLAGS.binutils_ar_cmd, "d", output_archive_file] + old_contents,
         errors)
-    run_command(
+    run_binutils_command(
         [FLAGS.binutils_ar_cmd, "rs", output_archive_file] + object_files,
         errors)
   else:
-    run_command(
+    run_binutils_command(
         [FLAGS.binutils_ar_cmd, "rcs", output_archive_file] + object_files,
         errors)
 
@@ -475,6 +489,18 @@ _additional_symbol_prefixes = {
     # "windows": ["__imp_"]
 }
 
+# If a binutils tool returns a "file format is ambiguous" error,
+# prefer matching formats that begin with the given prefix (depending
+# on the platform). It will select the first format that starts with the
+# given prefix. (A blank prefix just means use the first format no
+# matter what.)
+BINUTILS_PREFERRED_FORMAT_PREFIX_IF_AMBIGUOUS = {
+    "windows": "pe-",
+    "linux": "",
+    "android": "",
+    "darwin": "",
+    "ios": "",
+}
 
 def read_symbols_from_archive(archive_file):
   """Read the symbols defined in a library archive.
@@ -619,6 +645,9 @@ def rename_symbol(symbol):
           new_symbol = re.sub("@%s@@" % ns, "@%s@@" % new_ns, new_symbol)
       new_renames[symbol] = new_symbol
   else:
+    if FLAGS.platform == "windows" and symbol.startswith("$LN"):
+      # Don't rename $LN*, those are local symbols.
+      return new_renames
     # C symbol. Just split, rename, and re-join.
     (prefix, remainder) = split_symbol(symbol)
     new_symbol = prefix + FLAGS.rename_string + remainder
@@ -683,9 +712,10 @@ def move_object_file(src_obj_file, dest_obj_file, redefinition_file=None):
   # If we created the output file, remove the input file.
   if os.path.isfile(dest_obj_file):
     # But first...
-    if os.path.getsize(src_obj_file) >= 16 and os.path.getsize(
-        dest_obj_file) >= 16 and (FLAGS.platform == "ios" or
-                                  FLAGS.platform == "darwin"):
+    if (os.path.getsize(src_obj_file) >= 16 and
+        os.path.getsize(dest_obj_file) >= 16 and
+        (FLAGS.platform == "ios" or FLAGS.platform == "darwin") and
+        not binutils_force_target_format):
       # Ugly hack time: objcopy doesn't set the CPU subtype correctly on the
       # header for Mach-O files. So just overwrite the first 16 bytes of the
       # output file with the first 16 bytes of the input file.
@@ -725,7 +755,23 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
   Returns:
     A list of lines of text of the command's stdout.
   """
-  output = run_command(cmdline, error_output, True)
+  global binutils_force_target_format
+  if binutils_force_target_format:
+    # Once we've had to force the format once, assume all subsequent
+    # files use the same format. Also we will need to explicitly specify this
+    # format when creating an archive with "ar".
+    # If we've never had to force a format, let binutils autodetect.
+    # Also, we can force a separate input and output target for objcopy, splitting on comma.
+    target_list = binutils_force_target_format.split(",")
+    if cmdline[0] == FLAGS.binutils_objcopy_cmd and len(target_list) > 1:
+      target_params = ["--input-target=%s" % target_list[0], "--output-target=%s" % target_list[1]]
+    else:
+      target_params = ["--target=%s" % target_list[0]]
+    output = run_command([cmdline[0]] + target_params + cmdline[1:],
+                         error_output, ignore_errors)
+  else:
+    # Otherwise, if we've never had to force a format, use the default.
+    output = run_command(cmdline, error_output, True)
   if error_output and not output:
     # There are some expected errors: "Bad value" or "File format is ambiguous".
     #
@@ -735,7 +781,7 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
     # depending on whether the file is 32-bit or 64-bit.
     #
     # Line 0: filename.o: Bad value
-    if error_output and "Bad value" in error_output[0]:
+    if not binutils_force_target_format and error_output and "Bad value" in error_output[0]:
       # Workaround for MIPS, force elf32-little and/or elf64-little.
       error_output = []
       logging.debug("Bad value when running %s %s",
@@ -743,31 +789,43 @@ def run_binutils_command(cmdline, error_output=None, ignore_errors=False):
       logging.debug("Retrying with --target=elf32-little")
       output = run_command([cmdline[0]] + ["--target=elf32-little"] +
                            cmdline[1:], error_output, True)
+      binutils_force_target_format='elf32-little'
       if error_output:
         # Oops, it wasn't 32-bit, try 64-bit instead.
         error_output = []
         logging.debug("Retrying with --target=elf64-little")
         output = run_command([cmdline[0]] + ["--target=elf64-little"] +
                              cmdline[1:], error_output, ignore_errors)
+        binutils_force_target_format='elf64-little'
     # In other cases, we sometimes get an expected error about ambiguous file
     # format, which also includes a list of matching formats:
     #
     # Line 0: filename.o: File format is ambiguous
     # Line 1: Matching formats: format1 format2 [...]
     #
-    # If this occurs, we will run the command again, passing in --target=format1
-    # (except on Windows where we know we want fmt2.)
-    elif (len(error_output) >= 2 and
+    # If this occurs, we will run the command again, passing in the
+    # target format that we believe we should use instead.
+    elif not binutils_force_target_format and (len(error_output) >= 2 and
           "ile format is ambiguous" in error_output[0]):
-      m = re.search("Matching formats: (?P<fmt>[^ ]+) (?P<fmt2>[^ ]+)",
-                    error_output[1])
+      m = re.search("Matching formats: (.+)", error_output[1])
       if m:
-        fmt = m.group("fmt" if FLAGS.platform != "windows" else "fmt2")
+        all_formats = m.group(1).split(" ")
+        preferred_formats = [
+          fmt
+          for fmt
+          in all_formats
+          if fmt.startswith(
+              BINUTILS_PREFERRED_FORMAT_PREFIX_IF_AMBIGUOUS[FLAGS.platform])
+        ]
+        # Or if for some reason none was found, just take the default (first).
+        binutils_force_target_format=(preferred_formats[0]
+                                      if len(preferred_formats) > 0
+                                      else all_formats[0])
         error_output = []
-        logging.debug("Ambiguous file format when running %s %s",
-                      os.path.basename(cmdline[0]), " ".join(cmdline[1:]))
-        logging.debug("Retrying with --target=%s", fmt)
-        output = run_command([cmdline[0]] + ["--target=%s" % fmt] + cmdline[1:],
+        logging.debug("Ambiguous file format when running %s %s (%s)",
+                      os.path.basename(cmdline[0]), " ".join(cmdline[1:]), ", ".join(all_formats))
+        logging.debug("Retrying with --target=%s", binutils_force_target_format)
+        output = run_command([cmdline[0]] + ["--target=%s" % binutils_force_target_format] + cmdline[1:],
                              error_output, ignore_errors)
     if error_output and not ignore_errors:
       # If we failed any other way, or if the second run failed, bail.
@@ -828,7 +886,9 @@ def init_cache():
       FLAGS.cache) and os.path.getsize(FLAGS.cache) > 0:
     # If a data cache was specified, load it now.
     with open(FLAGS.cache, "rb") as handle:
+      fcntl.lockf(handle, fcntl.LOCK_SH)  # For reading, shared lock is OK.
       _cache.update(pickle.load(handle))
+      fcntl.lockf(handle, fcntl.LOCK_UN)
   else:
     # Set up a default cache dictionary.
     # _cache["symbols"] is indexed by abspath of library file
@@ -844,10 +904,14 @@ def shutdown_cache():
     if os.path.isfile(FLAGS.cache):
       os.unlink(FLAGS.cache)
     with open(FLAGS.cache, "wb") as handle:
+      fcntl.lockf(handle, fcntl.LOCK_EX)  # For writing, need exclusive lock.
       pickle.dump(_cache, handle, protocol=pickle.HIGHEST_PROTOCOL)
+      fcntl.lockf(handle, fcntl.LOCK_UN)
 
 
 def main(argv):
+  global binutils_force_target_format
+  binutils_force_target_format = FLAGS.force_binutils_target
   try:
     working_root = None
     input_paths = []
@@ -987,8 +1051,17 @@ def main(argv):
     if os.path.isfile(output_path):
       os.remove(output_path)
 
-    logging.debug("Creating output archive %s", output_path)
-    create_archive(output_path, all_obj_files, input_path[1])
+    if (FLAGS.skip_creating_archives):
+      output_path_dir = output_path + ".dir"
+      logging.debug("Copying object files to %s", output_path_dir)
+      if not os.path.exists(output_path_dir):
+        os.makedirs(output_path_dir)
+      for obj_file in all_obj_files:
+        logging.debug("Copy %s to %s" % (obj_file, os.path.join(output_path_dir, os.path.basename(obj_file))))
+        shutil.copyfile(obj_file, os.path.join(output_path_dir, os.path.basename(obj_file)))
+    else:
+      logging.debug("Creating output archive %s", output_path)
+      create_archive(output_path, all_obj_files, input_path[1])
 
     shutdown_cache()
 

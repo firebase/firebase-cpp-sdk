@@ -1,8 +1,13 @@
 name: iOS Builds
 
-on: 
+on:
   pull_request:
     types: [opened, reopened, synchronize]
+
+env:
+  # Xcode version 11.7 is the version we build the SDK with.
+  # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
+  xcodeVersion: "11.7"
 
 jobs:
   build:
@@ -12,6 +17,10 @@ jobs:
       fail-fast: false
 
     steps:
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+
       - uses: actions/checkout@v2
         with:
           submodules: true

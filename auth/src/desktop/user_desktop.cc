@@ -691,9 +691,15 @@ Future<void> User::SendEmailVerification() {
     return promise.LastResult();
   }
 
+  const char* language_code = nullptr;
+  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  if (!auth_impl->language_code.empty()) {
+    language_code = auth_impl->language_code.c_str();
+  }
+
   typedef GetOobConfirmationCodeRequest RequestT;
-  auto request =
-      RequestT::CreateSendEmailVerificationRequest(GetApiKey(*auth_data_));
+  auto request = RequestT::CreateSendEmailVerificationRequest(
+      GetApiKey(*auth_data_), language_code);
 
   const auto callback = [](AuthDataHandle<void, RequestT>* const handle) {
     const auto response =
@@ -752,6 +758,12 @@ Future<void> User::UpdateEmail(const char* const email) {
     return promise.LastResult();
   }
 
+  const char* language_code = nullptr;
+  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  if (!auth_impl->language_code.empty()) {
+    language_code = auth_impl->language_code.c_str();
+  }
+
   typedef SetAccountInfoRequest RequestT;
   auto request =
       RequestT::CreateUpdateEmailRequest(GetApiKey(*auth_data_), email);
@@ -768,9 +780,15 @@ Future<void> User::UpdatePassword(const char* const password) {
     return promise.LastResult();
   }
 
+  const char* language_code = nullptr;
+  auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
+  if (!auth_impl->language_code.empty()) {
+    language_code = auth_impl->language_code.c_str();
+  }
+
   typedef SetAccountInfoRequest RequestT;
-  auto request =
-      RequestT::CreateUpdatePasswordRequest(GetApiKey(*auth_data_), password);
+  auto request = RequestT::CreateUpdatePasswordRequest(GetApiKey(*auth_data_),
+                                                       password, language_code);
 
   return CallAsyncWithFreshToken(auth_data_, promise, std::move(request),
                                  PerformSetAccountInfoFlow<void>);

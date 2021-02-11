@@ -31,7 +31,6 @@ using firebase::database::internal::persistence::CreatePersistedQueryParams;
 using firebase::database::internal::persistence::CreatePersistedQuerySpec;
 using firebase::database::internal::persistence::CreatePersistedTrackedQuery;
 using firebase::database::internal::persistence::CreateTreeKeyValuePair;
-using firebase::util::FlexbufferToVariant;
 using firebase::util::VariantToFlexbuffer;
 using flatbuffers::FlatBufferBuilder;
 using flatbuffers::Offset;
@@ -40,6 +39,71 @@ using flatbuffers::Vector;
 namespace firebase {
 namespace database {
 namespace internal {
+
+Variant FlexbufferVectorToVariant(const flexbuffers::Vector& vector) {
+  Variant result = Variant::EmptyVector();
+  result.vector().reserve(vector.size());
+  for (size_t i = 0; i < vector.size(); i++) {
+    result.vector().push_back(FlexbufferToVariant(vector[i]));
+  }
+  return result;
+}
+
+Variant FlexbufferMapToVariant(const flexbuffers::Map& map) {
+  Variant result = Variant::EmptyMap();
+  flexbuffers::TypedVector keys = map.Keys();
+  for (size_t i = 0; i < keys.size(); i++) {
+    flexbuffers::Reference key = keys[i];
+    flexbuffers::Reference value = map[key.AsKey()];
+    result.map()[FlexbufferToVariant(key)] = FlexbufferToVariant(value);
+  }
+  return result;
+}
+
+Variant FlexbufferToVariant(const flexbuffers::Reference& ref) {
+  switch (ref.GetType()) {
+    case flexbuffers::FBT_NULL:
+      return Variant::Null();
+    case flexbuffers::FBT_BOOL:
+      return Variant(ref.AsBool());
+    case flexbuffers::FBT_INT:
+    case flexbuffers::FBT_INDIRECT_INT:
+    case flexbuffers::FBT_UINT:
+    case flexbuffers::FBT_INDIRECT_UINT:
+      return Variant(ref.AsInt64());
+    case flexbuffers::FBT_FLOAT:
+    case flexbuffers::FBT_INDIRECT_FLOAT:
+      return Variant(ref.AsDouble());
+    case flexbuffers::FBT_STRING:
+      return Variant::MutableStringFromStaticString(ref.AsString().c_str());
+    case flexbuffers::FBT_KEY:
+      return Variant::MutableStringFromStaticString(ref.AsKey());
+    case flexbuffers::FBT_MAP:
+      return FlexbufferMapToVariant(ref.AsMap());
+    case flexbuffers::FBT_VECTOR_BOOL:
+    case flexbuffers::FBT_VECTOR_FLOAT2:
+    case flexbuffers::FBT_VECTOR_FLOAT3:
+    case flexbuffers::FBT_VECTOR_FLOAT4:
+    case flexbuffers::FBT_VECTOR_FLOAT:
+    case flexbuffers::FBT_VECTOR_INT2:
+    case flexbuffers::FBT_VECTOR_INT3:
+    case flexbuffers::FBT_VECTOR_INT4:
+    case flexbuffers::FBT_VECTOR_INT:
+    case flexbuffers::FBT_VECTOR_KEY:
+    case flexbuffers::FBT_VECTOR_STRING_DEPRECATED:
+    case flexbuffers::FBT_VECTOR_UINT2:
+    case flexbuffers::FBT_VECTOR_UINT3:
+    case flexbuffers::FBT_VECTOR_UINT4:
+    case flexbuffers::FBT_VECTOR_UINT:
+    case flexbuffers::FBT_VECTOR:
+      return FlexbufferVectorToVariant(ref.AsVector());
+
+    case flexbuffers::FBT_BLOB:
+      LogError("Flexbuffers containing blobs are not supported.");
+      break;
+  }
+  return Variant::Null();
+}
 
 static void VariantTreeFromFlatbuffer(const persistence::VariantTreeNode* node,
                                       Tree<Variant>* out_tree) {

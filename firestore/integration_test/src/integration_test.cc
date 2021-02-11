@@ -57,16 +57,33 @@ class FirebaseFirestoreBasicTest : public FirebaseTest {
   FirebaseFirestoreBasicTest();
   ~FirebaseFirestoreBasicTest() override;
 
+  // Called once before all tests.
+  static void SetUpTestSuite();
+  // Called once after all tests.
+  static void TearDownTestSuite();
+
+  // Called at the start of each test.
   void SetUp() override;
+  // Called after each test.
   void TearDown() override;
 
  protected:
-  // Initialize Firebase App, Firebase Auth, and Firebase Firestore.
-  void Initialize();
-  // Shut down Firebase Firestore, Firebase Auth, and Firebase App.
-  void Terminate();
+  // Initialize Firebase App and Firebase Auth.
+  static void InitializeAppAndAuth();
+  // Shut down Firebase App and Firebase Auth.
+  static void TerminateAppAndAuth();
+
   // Sign in an anonymous user.
-  void SignIn();
+  static void SignIn();
+  // Sign out the current user, if applicable.
+  // If this is an anonymous user, deletes the user instead,
+  // to avoid polluting the user list.
+  static void SignOut();
+
+  // Initialize Firestore.
+  void InitializeFirestore();
+  // Shut down Firestore.
+  void TerminateFirestore();
 
   // Create a custom-named collection to work with for this test.
   firebase::firestore::CollectionReference GetTestCollection();
@@ -85,13 +102,91 @@ class FirebaseFirestoreBasicTest : public FirebaseTest {
 
   firebase::firestore::DocumentReference Doc(const char* suffix = "");
 
+  static firebase::App* shared_app_;
+  static firebase::auth::Auth* shared_auth_;
+
   bool initialized_ = false;
-  firebase::auth::Auth* auth_ = nullptr;
   firebase::firestore::Firestore* firestore_ = nullptr;
 
   std::string collection_name_;
   std::vector<firebase::firestore::DocumentReference> cleanup_documents_;
 };
+
+// Initialization flow looks like this:
+//  - Once, before any tests run:
+//  -   SetUpTestSuite: Initialize App and Auth. Sign in.
+//  - For each test:
+//    - SetUp: Initialize Firestore.
+//    - Run the test.
+//    - TearDown: Shut down Firestore.
+//  - Once, after all tests are finished:
+//  -   TearDownTestSuite: Sign out. Shut down Auth and App.
+
+firebase::App* FirebaseFirestoreBasicTest::shared_app_;
+firebase::auth::Auth* FirebaseFirestoreBasicTest::shared_auth_;
+
+void FirebaseFirestoreBasicTest::SetUpTestSuite() {
+  InitializeAppAndAuth();
+}
+
+void FirebaseFirestoreBasicTest::InitializeAppAndAuth() {
+  LogDebug("Initialize Firebase App.");
+
+  FindFirebaseConfig(FIREBASE_CONFIG_STRING);
+
+#if defined(__ANDROID__)
+  shared_app_ = ::firebase::App::Create(app_framework::GetJniEnv(),
+                                        app_framework::GetActivity());
+#else
+  shared_app_ = ::firebase::App::Create();
+#endif  // defined(__ANDROID__)
+
+  ASSERT_NE(shared_app_, nullptr);
+
+  LogDebug("Initializing Auth.");
+
+  // Initialize Firebase Auth.
+  ::firebase::ModuleInitializer initializer;
+  initializer.Initialize(
+      shared_app_, &shared_auth_, [](::firebase::App* app, void* target) {
+        LogDebug("Attempting to initialize Firebase Auth.");
+        ::firebase::InitResult result;
+        *reinterpret_cast<firebase::auth::Auth**>(target) =
+          ::firebase::auth::Auth::GetAuth(app, &result);
+        return result;
+      });
+
+  WaitForCompletion(initializer.InitializeLastResult(), "InitializeAuth");
+
+  ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
+      << initializer.InitializeLastResult().error_message();
+
+  LogDebug("Successfully initialized Auth.");
+
+  ASSERT_NE(shared_auth_, nullptr);
+
+  // Sign in anonymously.
+  SignIn();
+}
+
+void FirebaseFirestoreBasicTest::TearDownTestSuite() {
+  TerminateAppAndAuth();
+}
+
+void FirebaseFirestoreBasicTest::TerminateAppAndAuth() {
+  if (shared_auth_) {
+    LogDebug("Signing out.");
+    SignOut();
+    LogDebug("Shutdown Auth.");
+    delete shared_auth_;
+    shared_auth_ = nullptr;
+  }
+  if (shared_app_) {
+    LogDebug("Shutdown App.");
+    delete shared_app_;
+    shared_app_ = nullptr;
+  }
+}
 
 FirebaseFirestoreBasicTest::FirebaseFirestoreBasicTest() {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
@@ -99,20 +194,18 @@ FirebaseFirestoreBasicTest::FirebaseFirestoreBasicTest() {
 
 FirebaseFirestoreBasicTest::~FirebaseFirestoreBasicTest() {
   // Must be cleaned up on exit.
-  assert(app_ == nullptr);
-  assert(auth_ == nullptr);
   assert(firestore_ == nullptr);
 }
 
 void FirebaseFirestoreBasicTest::SetUp() {
   FirebaseTest::SetUp();
-  Initialize();
+  InitializeFirestore();
 }
 
 void FirebaseFirestoreBasicTest::TearDown() {
   // Delete the shared path, if there is one.
   if (initialized_) {
-    if (!cleanup_documents_.empty()) {
+    if (!cleanup_documents_.empty() && firestore_ && shared_app_) {
       LogDebug("Cleaning up documents.");
       std::vector<firebase::Future<void>> cleanups;
       cleanups.reserve(cleanup_documents_.size());
@@ -120,61 +213,39 @@ void FirebaseFirestoreBasicTest::TearDown() {
         cleanups.push_back(cleanup_documents_[i].Delete());
       }
       for (int i = 0; i < cleanups.size(); ++i) {
-        WaitForCompletion(cleanups[i], "FirebaseDatabaseTest::TearDown");
+        WaitForCompletion(cleanups[i], "FirebaseFirestoreBasicTest::TearDown");
       }
       cleanup_documents_.clear();
     }
-    Terminate();
   }
+  TerminateFirestore();
   FirebaseTest::TearDown();
 }
 
-void FirebaseFirestoreBasicTest::Initialize() {
-  if (initialized_) return;
-
-  InitializeApp();
-
-  LogDebug("Initializing Firebase Auth and Firebase Firestore.");
-
-  // 0th element has a reference to this object, the rest have the initializer
-  // targets.
-  void* initialize_targets[] = {&auth_, &firestore_};
-
-  const firebase::ModuleInitializer::InitializerFn initializers[] = {
-      [](::firebase::App* app, void* data) {
-        void** targets = reinterpret_cast<void**>(data);
-        LogDebug("Attempting to initialize Firebase Auth.");
-        ::firebase::InitResult result;
-        *reinterpret_cast<::firebase::auth::Auth**>(targets[0]) =
-            ::firebase::auth::Auth::GetAuth(app, &result);
-        return result;
-      },
-      [](::firebase::App* app, void* data) {
-        void** targets = reinterpret_cast<void**>(data);
-        LogDebug("Attempting to initialize Firebase Firestore.");
-        ::firebase::InitResult result;
-        firebase::firestore::Firestore* firestore =
-            firebase::firestore::Firestore::GetInstance(app, &result);
-        *reinterpret_cast<::firebase::firestore::Firestore**>(targets[1]) =
-            firestore;
-        return result;
-      }};
+void FirebaseFirestoreBasicTest::InitializeFirestore() {
+  LogDebug("Initializing Firebase Firestore.");
 
   ::firebase::ModuleInitializer initializer;
-  initializer.Initialize(app_, initialize_targets, initializers,
-                         sizeof(initializers) / sizeof(initializers[0]));
+  initializer.Initialize(
+      shared_app_, &firestore_, [](::firebase::App* app, void* target) {
+        LogDebug("Attempting to initialize Firebase Firestore.");
+        ::firebase::InitResult result;
+        *reinterpret_cast<firebase::firestore::Firestore**>(target) =
+          firebase::firestore::Firestore::GetInstance(app, &result);
+        return result;
+      });
 
-  WaitForCompletion(initializer.InitializeLastResult(), "Initialize");
+  WaitForCompletion(initializer.InitializeLastResult(), "InitializeFirestore");
 
   ASSERT_EQ(initializer.InitializeLastResult().error(), 0)
       << initializer.InitializeLastResult().error_message();
 
-  LogDebug("Successfully initialized Firebase Auth and Firebase Firestore.");
+  LogDebug("Successfully initialized Firebase Firestore.");
 
   initialized_ = true;
 }
 
-void FirebaseFirestoreBasicTest::Terminate() {
+void FirebaseFirestoreBasicTest::TerminateFirestore() {
   if (!initialized_) return;
 
   if (firestore_) {
@@ -182,23 +253,19 @@ void FirebaseFirestoreBasicTest::Terminate() {
     delete firestore_;
     firestore_ = nullptr;
   }
-  if (auth_) {
-    LogDebug("Shutdown the Auth library.");
-    delete auth_;
-    auth_ = nullptr;
-  }
-
-  TerminateApp();
-
   initialized_ = false;
 
   ProcessEvents(100);
 }
 
 void FirebaseFirestoreBasicTest::SignIn() {
+  if (shared_auth_->current_user() != nullptr) {
+    // Already signed in.
+    return;
+  }
   LogDebug("Signing in.");
   firebase::Future<firebase::auth::User*> sign_in_future =
-      auth_->SignInAnonymously();
+      shared_auth_->SignInAnonymously();
   WaitForCompletion(sign_in_future, "SignInAnonymously");
   if (sign_in_future.error() != 0) {
     FAIL() << "Ensure your application has the Anonymous sign-in provider "
@@ -206,6 +273,34 @@ void FirebaseFirestoreBasicTest::SignIn() {
   }
   ProcessEvents(100);
 }
+
+void FirebaseFirestoreBasicTest::SignOut() {
+  if (shared_auth_ == nullptr) {
+    // Auth is not set up.
+    return;
+  }
+  if (shared_auth_->current_user() == nullptr) {
+    // Already signed out.
+    return;
+  }
+
+  if (shared_auth_->current_user()->is_anonymous()) {
+    // If signed in anonymously, delete the anonymous user.
+    WaitForCompletion(shared_auth_->current_user()->Delete(), "DeleteAnonymousUser");
+  }
+  else {
+    // If not signed in anonymously (e.g. if the tests were modified to sign in
+    // as an actual user), just sign out normally.
+    shared_auth_->SignOut();
+
+    // Wait for the sign-out to finish.
+    while (shared_auth_->current_user() != nullptr) {
+      if (ProcessEvents(100)) break;
+    }
+  }
+  EXPECT_EQ(shared_auth_->current_user(), nullptr);
+}
+
 
 firebase::firestore::CollectionReference
 FirebaseFirestoreBasicTest::GetTestCollection() {
@@ -238,12 +333,11 @@ TEST_F(FirebaseFirestoreBasicTest, TestInitializeAndTerminate) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestSignIn) {
-  SignIn();
-  EXPECT_NE(auth_->current_user(), nullptr);
+  EXPECT_NE(shared_auth_->current_user(), nullptr);
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestAppAndSettings) {
-  EXPECT_EQ(firestore_->app(), app_);
+  EXPECT_EQ(firestore_->app(), shared_app_);
   firebase::firestore::Settings settings = firestore_->settings();
   firestore_->set_settings(settings);
   // No comparison operator in settings, so just assume it worked if we didn't
@@ -555,9 +649,14 @@ TEST_F(FirebaseFirestoreBasicTest,
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestInvalidatingReferencesWhenDeletingApp) {
-  delete app_;
-  app_ = nullptr;
+  delete shared_app_;
+  shared_app_ = nullptr;
   // TODO: Ensure existing Firestore objects are invalidated.
+
+  // Fully shut down App and Auth so they can be reinitialized.
+  TerminateAppAndAuth();
+  // Reinitialize App and Auth.
+  InitializeAppAndAuth();
 }
 
 // TODO: Add test for Auth signout while connected.

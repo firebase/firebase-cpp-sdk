@@ -27,11 +27,15 @@ set(common_SRCS
     src/common/document_change.cc
     src/common/document_reference.cc
     src/common/document_snapshot.cc
+    src/common/exception_common.cc
+    src/common/exception_common.h
     src/common/field_path.cc
     src/common/field_value.cc
     src/common/firestore.cc
+    src/common/futures.cc
     src/common/futures.h
     src/common/listener_registration.cc
+    src/common/macros.h
     src/common/main_for_testing_build.cc
     src/common/query.cc
     src/common/query_snapshot.cc
@@ -83,6 +87,7 @@ set(android_SRCS
     src/android/field_value_android.h
     src/android/firestore_android.cc
     src/android/firestore_android.h
+    src/android/firestore_exceptions_android.h
     src/android/geo_point_android.cc
     src/android/geo_point_android.h
     src/android/geo_point_portable.cc
@@ -93,6 +98,7 @@ set(android_SRCS
     src/android/metadata_changes_android.cc
     src/android/metadata_changes_android.h
     src/android/promise_android.h
+    src/android/promise_factory_android.h
     src/android/query_android.cc
     src/android/query_android.h
     src/android/query_snapshot_android.cc
@@ -112,31 +118,61 @@ set(android_SRCS
     src/android/timestamp_portable.cc
     src/android/transaction_android.cc
     src/android/transaction_android.h
+    src/android/util_android.cc
     src/android/util_android.h
     src/android/wrapper.cc
     src/android/wrapper.h
     src/android/write_batch_android.cc
     src/android/write_batch_android.h
+    src/jni/array.h
+    src/jni/array_list.cc
+    src/jni/array_list.h
+    src/jni/boolean.cc
+    src/jni/boolean.h
     src/jni/call_traits.h
+    src/jni/class.cc
     src/jni/class.h
+    src/jni/collection.cc
+    src/jni/collection.h
+    src/jni/declaration.h
+    src/jni/double.cc
+    src/jni/double.h
     src/jni/env.cc
     src/jni/env.h
+    src/jni/hash_map.cc
+    src/jni/hash_map.h
+    src/jni/integer.cc
+    src/jni/integer.h
+    src/jni/iterator.cc
+    src/jni/iterator.h
     src/jni/jni.cc
     src/jni/jni.h
     src/jni/jni_fwd.h
+    src/jni/list.cc
+    src/jni/list.h
+    src/jni/loader.cc
+    src/jni/loader.h
+    src/jni/long.cc
+    src/jni/long.h
+    src/jni/map.cc
+    src/jni/map.h
     src/jni/object.cc
     src/jni/object.h
     src/jni/ownership.h
+    src/jni/set.h
     src/jni/string.cc
     src/jni/string.h
+    src/jni/task.cc
+    src/jni/task.h
+    src/jni/throwable.cc
+    src/jni/throwable.h
     src/jni/traits.h)
 
-set(ios_SRCS
+# Sources that apply to all non-Android platforms.
+set(main_SRCS
     src/ios/collection_reference_ios.cc
     src/ios/collection_reference_ios.h
     src/ios/converter_ios.h
-    src/ios/credentials_provider_ios.cc
-    src/ios/credentials_provider_ios.h
     src/ios/document_change_ios.cc
     src/ios/document_change_ios.h
     src/ios/document_reference_ios.cc
@@ -145,8 +181,6 @@ set(ios_SRCS
     src/ios/document_snapshot_ios.h
     src/ios/field_value_ios.cc
     src/ios/field_value_ios.h
-    src/ios/firebase_firestore_settings_ios.cc
-    src/ios/firebase_firestore_settings_ios.h
     src/ios/firestore_ios.cc
     src/ios/firestore_ios.h
     src/ios/hard_assert_ios.cc
@@ -170,17 +204,59 @@ set(ios_SRCS
     src/ios/write_batch_ios.cc
     src/ios/write_batch_ios.h)
 
+# CredentialsProvider has no implementatation on Android and distinct
+# implementations for iOS and desktop platforms. On iOS, the implementation of
+# the interface actually comes from the FirebaseFirestore CocoaPod, so there's
+# no implementation listed here.
+set(credentials_provider_desktop_SRCS
+    src/ios/create_credentials_provider.h
+    src/ios/create_credentials_provider_desktop.cc
+    src/ios/credentials_provider_desktop.cc
+    src/ios/credentials_provider_desktop.h)
+
+set(credentials_provider_ios_SRCS
+    src/ios/create_credentials_provider.h
+    src/ios/create_credentials_provider_ios.mm)
+
+# FirebaseMetadataProvider has no implementation on Android and distinct
+# implementations for iOS and desktop platforms. On iOS, the implementation of
+# the interface actually comes from the FirebaseFirestore CocoaPod, so there's
+# no implementation listed here.
+set(firebase_metadata_provider_desktop_SRCS
+    src/ios/create_firebase_metadata_provider.h
+    src/ios/create_firebase_metadata_provider_desktop.cc
+    src/ios/firebase_metadata_provider_desktop.cc
+    src/ios/firebase_metadata_provider_desktop.h)
+
+set(firebase_metadata_provider_ios_SRCS
+    src/ios/create_firebase_metadata_provider.h
+    src/ios/create_firebase_metadata_provider_apple.mm)
+
 set(wrapper_assertions_SRCS
     src/common/wrapper_assertions.cc
     src/common/wrapper_assertions.h)
 
+set(ios_only_SRCS
+    src/ios/create_firebase_metadata_provider_apple.mm)
+
+set(desktop_only_SRCS
+    src/ios/create_firebase_metadata_provider_desktop.cc
+    src/ios/firebase_metadata_provider_desktop.cc)
+
 if(ANDROID)
   set(firestore_platform_SRCS "${android_SRCS}")
 
+elseif(IOS)
+  set(firestore_platform_SRCS
+      "${main_SRCS}"
+      "${credentials_provider_ios_SRCS}"
+      "${firebase_metadata_provider_ios_SRCS}")
+
 else()
-  # The iOS implementation is actually portable to desktop environments as
-  # well.
-  set(firestore_platform_SRCS "${ios_SRCS}")
+  set(firestore_platform_SRCS
+      "${main_SRCS}"
+      "${credentials_provider_desktop_SRCS}"
+      "${firebase_metadata_provider_desktop_SRCS}")
 endif()
 
 add_library(firebase_firestore STATIC
@@ -239,10 +315,17 @@ else()
   )
 endif()
 
+set(FIREBASE_FIRESTORE_CPP_DEFINES -DINTERNAL_EXPERIMENTAL=1)
+
+if (WIN32 AND NOT ANDROID AND NOT IOS)
+  # On Windows, gRPC gives a compiler error in firebase_metadata_provider_desktop.cc
+  # unless _WIN32_WINNT is defined to this value (0x0600, Windows Vista).
+  set(FIREBASE_FIRESTORE_CPP_DEFINES ${FIREBASE_FIRESTORE_CPP_DEFINES} -D_WIN32_WINNT=0x0600)
+endif()
 
 target_compile_definitions(firebase_firestore
   PRIVATE
-    -DINTERNAL_EXPERIMENTAL=1
+    ${FIREBASE_FIRESTORE_CPP_DEFINES}
 )
 
 if(ANDROID)
@@ -257,11 +340,14 @@ elseif(IOS)
 
   setup_pod_headers(
     firebase_firestore
+    INCLUDE_PRIVATE_HEADERS
     POD_NAMES
       FirebaseCore
       FirebaseFirestore
       abseil
       nanopb
+      gRPC-C++
+      gRPC-Core
   )
 
   if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")

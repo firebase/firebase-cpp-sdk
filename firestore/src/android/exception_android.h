@@ -3,6 +3,10 @@
 
 #include <string>
 
+#if __cpp_exceptions
+#include <exception>
+#endif  // __cpp_exceptions
+
 #include "app/src/include/firebase/app.h"
 #include "firestore/src/jni/jni_fwd.h"
 #include "firebase/firestore/firestore_errors.h"
@@ -37,6 +41,9 @@ class ExceptionInternal {
                                               const jni::Object& exception);
 };
 
+void GlobalUnhandledExceptionHandler(jni::Env& env,
+                                     jni::Local<jni::Throwable>&& exception,
+                                     void* context);
 }  // namespace firestore
 }  // namespace firebase
 

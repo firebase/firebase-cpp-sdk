@@ -1,8 +1,6 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_QUERY_ANDROID_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_QUERY_ANDROID_H_
 
-#include <jni.h>
-
 #include <cstdint>
 
 #include "app/src/reference_counted_future_impl.h"
@@ -18,8 +16,6 @@ class Firestore;
 
 class QueryInternal : public Wrapper {
  public:
-  using ApiType = Query;
-
   // Each API of Query that returns a Future needs to define an enum value here.
   // For example, a Future-returning method Foo() relies on the enum value kFoo.
   // The enum values are used to identify and manage Future in the Firestore
@@ -37,7 +33,7 @@ class QueryInternal : public Wrapper {
 
   static void Initialize(jni::Loader& loader);
 
-  QueryInternal(FirestoreInternal* firestore, jobject object)
+  QueryInternal(FirestoreInternal* firestore, const jni::Object& object)
       : Wrapper(firestore, object), promises_(firestore) {}
 
   /** Gets the Firestore instance associated with this query. */
@@ -53,7 +49,22 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query WhereEqualTo(const FieldPath& field, const FieldValue& value);
+  Query WhereEqualTo(const FieldPath& field, const FieldValue& value) const;
+
+  /**
+   * @brief Creates and returns a new Query with the additional filter that
+   * documents must contain the specified field and the value does not equal the
+   * specified value.
+   *
+   * A Query can have only one `WhereNotEqualTo()` filter, and it cannot be
+   * combined with `WhereNotIn()`.
+   *
+   * @param[in] field The name of the field to compare.
+   * @param[in] value The value for comparison.
+   *
+   * @return The created Query.
+   */
+  Query WhereNotEqualTo(const FieldPath& field, const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -65,7 +76,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query WhereLessThan(const FieldPath& field, const FieldValue& value);
+  Query WhereLessThan(const FieldPath& field, const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -77,7 +88,8 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query WhereLessThanOrEqualTo(const FieldPath& field, const FieldValue& value);
+  Query WhereLessThanOrEqualTo(const FieldPath& field,
+                               const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -89,7 +101,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query WhereGreaterThan(const FieldPath& field, const FieldValue& value);
+  Query WhereGreaterThan(const FieldPath& field, const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -102,7 +114,7 @@ class QueryInternal : public Wrapper {
    * @return The created Query.
    */
   Query WhereGreaterThanOrEqualTo(const FieldPath& field,
-                                  const FieldValue& value);
+                                  const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -116,7 +128,8 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query WhereArrayContains(const FieldPath& field, const FieldValue& value);
+  Query WhereArrayContains(const FieldPath& field,
+                           const FieldValue& value) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -132,7 +145,7 @@ class QueryInternal : public Wrapper {
    * @return The created Query.
    */
   Query WhereArrayContainsAny(const FieldPath& field,
-                              const std::vector<FieldValue>& values);
+                              const std::vector<FieldValue>& values) const;
 
   /**
    * @brief Creates and returns a new Query with the additional filter that
@@ -147,7 +160,30 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query WhereIn(const FieldPath& field, const std::vector<FieldValue>& values);
+  Query WhereIn(const FieldPath& field,
+                const std::vector<FieldValue>& values) const;
+
+  /**
+   * @brief Creates and returns a new Query with the additional filter that
+   * documents must contain the specified field and the value must not equal any
+   * of the values from the provided list.
+   *
+   * One special case is that `WhereNotIn` cannot match `FieldValue::Null()`
+   * values. To query for documents where a field exists and is
+   * `FieldValue::Null()`, use `WhereNotEqualTo`, which can handle this special
+   * case.
+   *
+   * A `Query` can have only one `WhereNotIn()` filter, and it cannot be
+   * combined with `WhereArrayContains()`, `WhereArrayContainsAny()`,
+   * `WhereIn()`, or `WhereNotEqualTo()`.
+   *
+   * @param[in] field The name of the field containing an array to search.
+   * @param[in] values The list that contains the values to match.
+   *
+   * @return The created Query.
+   */
+  Query WhereNotIn(const FieldPath& field,
+                   const std::vector<FieldValue>& values) const;
 
   /**
    * @brief Creates and returns a new Query that's additionally sorted by the
@@ -158,7 +194,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query OrderBy(const FieldPath& field, Query::Direction direction);
+  Query OrderBy(const FieldPath& field, Query::Direction direction) const;
 
   /**
    * @brief Creates and returns a new Query that only returns the first matching
@@ -169,7 +205,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  virtual Query Limit(int32_t limit);
+  virtual Query Limit(int32_t limit) const;
 
   /**
    * @brief Creates and returns a new Query that only returns the last matching
@@ -180,7 +216,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  virtual Query LimitToLast(int32_t limit);
+  virtual Query LimitToLast(int32_t limit) const;
 
   /**
    * @brief Creates and returns a new Query that starts at the provided document
@@ -192,7 +228,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query StartAt(const DocumentSnapshot& snapshot);
+  Query StartAt(const DocumentSnapshot& snapshot) const;
 
   /**
    * @brief Creates and returns a new Query that starts at the provided fields
@@ -204,7 +240,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query StartAt(const std::vector<FieldValue>& values);
+  Query StartAt(const std::vector<FieldValue>& values) const;
 
   /**
    * @brief Creates and returns a new Query that starts after the provided
@@ -216,7 +252,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query StartAfter(const DocumentSnapshot& snapshot);
+  Query StartAfter(const DocumentSnapshot& snapshot) const;
 
   /**
    * @brief Creates and returns a new Query that starts after the provided
@@ -228,7 +264,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query StartAfter(const std::vector<FieldValue>& values);
+  Query StartAfter(const std::vector<FieldValue>& values) const;
 
   /**
    * @brief Creates and returns a new Query that ends before the provided
@@ -240,7 +276,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query EndBefore(const DocumentSnapshot& snapshot);
+  Query EndBefore(const DocumentSnapshot& snapshot) const;
 
   /**
    * @brief Creates and returns a new Query that ends before the provided fields
@@ -252,7 +288,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query EndBefore(const std::vector<FieldValue>& values);
+  Query EndBefore(const std::vector<FieldValue>& values) const;
 
   /**
    * @brief Creates and returns a new Query that ends at the provided document
@@ -264,7 +300,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query EndAt(const DocumentSnapshot& snapshot);
+  Query EndAt(const DocumentSnapshot& snapshot) const;
 
   /**
    * @brief Creates and returns a new Query that ends at the provided fields
@@ -276,7 +312,7 @@ class QueryInternal : public Wrapper {
    *
    * @return The created Query.
    */
-  Query EndAt(const std::vector<FieldValue>& values);
+  Query EndAt(const std::vector<FieldValue>& values) const;
 
   /**
    * @brief Executes the query and returns the results as a QuerySnapshot.
@@ -340,19 +376,19 @@ class QueryInternal : public Wrapper {
 
   // A generalized function for all WhereFoo calls.
   Query Where(const FieldPath& field, const jni::Method<jni::Object>& method,
-              const FieldValue& value);
+              const FieldValue& value) const;
   Query Where(const FieldPath& field, const jni::Method<jni::Object>& method,
-              const std::vector<FieldValue>& values);
+              const std::vector<FieldValue>& values) const;
 
   // A generalized function for all {Start|End}{Before|After|At} calls.
   Query WithBound(const jni::Method<jni::Object>& method,
-                  const DocumentSnapshot& snapshot);
+                  const DocumentSnapshot& snapshot) const;
   Query WithBound(const jni::Method<jni::Object>& method,
-                  const std::vector<FieldValue>& values);
+                  const std::vector<FieldValue>& values) const;
 
   // A helper function to convert std::vector<FieldValue> to Java FieldValue[].
   jni::Local<jni::Array<jni::Object>> ConvertFieldValues(
-      jni::Env& env, const std::vector<FieldValue>& field_values);
+      jni::Env& env, const std::vector<FieldValue>& field_values) const;
 };
 
 bool operator==(const QueryInternal& lhs, const QueryInternal& rhs);

@@ -59,12 +59,9 @@ class RemoteConfigInternal {
   Future<void> SetDefaults(int defaults_resource_id);
 
   Future<void> SetDefaultsLastResult();
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
   Future<void> SetConfigSettings(ConfigSettings settings);
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
-
   Future<void> SetConfigSettingsLastResult();
-
+  ConfigSettings GetConfigSettings();
   bool GetBoolean(const char* key, ValueInfo* info);
 
   std::string GetString(const char* key, ValueInfo* info);

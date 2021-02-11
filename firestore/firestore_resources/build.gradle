@@ -18,7 +18,7 @@ buildscript {
     jcenter()
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:3.2.1'
+    classpath 'com.android.tools.build:gradle:3.3.3'
     classpath 'com.google.gms:google-services:4.2.0'
   }
 }
@@ -46,8 +46,8 @@ android {
 }
 
 dependencies {
-  implementation 'com.google.firebase:firebase-analytics:17.5.0'
-  implementation 'com.google.firebase:firebase-firestore:21.6.0'
+  implementation 'com.google.firebase:firebase-analytics:18.0.2'
+  implementation 'com.google.firebase:firebase-firestore:22.0.2'
 }
 
 afterEvaluate {

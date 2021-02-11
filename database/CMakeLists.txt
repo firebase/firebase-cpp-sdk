@@ -155,18 +155,8 @@ elseif(IOS)
   set(database_platform_SRCS
       "${ios_SRCS}")
 else()
-  # Add platform-specific util files.
-  if(MSVC)
-    set(desktop_extra_SRCS src/desktop/util_desktop_windows.cc)
-  elseif(APPLE)
-    set(desktop_extra_SRCS src/desktop/util_desktop_macos.mm)
-  else()
-    # Linux
-    set(desktop_extra_SRCS src/desktop/util_desktop_linux.cc)
-  endif()
   set(database_platform_SRCS
-        "${desktop_SRCS}"
-        "${desktop_extra_SRCS}")
+        "${desktop_SRCS}")
 endif()
 
 if(ANDROID OR IOS)
@@ -182,9 +172,10 @@ else()
   set(additional_link_LIB
       flatbuffers
       firebase_rest_lib
-      ${OPENSSL_CRYPTO_LIBRARY}
       leveldb
-      libuWS)
+      libuWS
+      OpenSSL::SSL
+      OpenSSL::Crypto)
 
   set(additional_DEFINES
       -DFIREBASE_TARGET_DESKTOP=1)

@@ -66,7 +66,10 @@ public class SampleNativeActivity extends NativeActivity {
       message.setAction(MessageForwardingService.ACTION_REMOTE_INTENT);
       message.putExtras(intent);
       message.setData(intent.getData());
-      startService(message);
+      // When running on Android O or later, the work will be dispatched as a job via
+      // JobScheduler.enqueue. When running on older versions of the platform,
+      // it will use Context.startService.
+      MessageForwardingService.enqueueWork(this, message);
     }
     setIntent(intent);
   }

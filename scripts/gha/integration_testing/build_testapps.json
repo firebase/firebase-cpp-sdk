@@ -87,6 +87,18 @@
       "provision": "Firebase_Dev_Wildcard.mobileprovision"
     },
     {
+      "name": "installations",
+      "full_name": "FirebaseInstallations",
+      "bundle_id": "com.google.firebase.fis.testapp",
+      "ios_target": "integration_test",
+      "testapp_path": "installations/integration_test",
+      "frameworks": [
+        "firebase_installations.framework",
+        "firebase.framework"
+      ],
+      "provision": "Firebase_Dev_Wildcard.mobileprovision"
+    },
+    {
       "name": "instance_id",
       "full_name": "FirebaseInstanceId",
       "bundle_id": "com.google.firebase.instanceid.testapp",
@@ -174,7 +186,6 @@
       "provision": "Google_Development.mobileprovision"
     }
   ],
-  "vcpkg_dir": "external/vcpkg",
   "apple_team_id": "REPLACE_ME_TEMP_INVALID_ID",
   "compiler_dict": {
     "gcc-4.8": [
@@ -200,6 +211,10 @@
     "VisualStudio2017": [
       "-G",
       "Visual Studio 15 2017 Win64"
+    ],
+    "VisualStudio2019": [
+      "-G",
+      "Visual Studio 16 2019"
     ]
   },
   "android_dep_key_mapping": {

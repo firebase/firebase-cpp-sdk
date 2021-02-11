@@ -3,15 +3,14 @@
 #include <string>
 #include <vector>
 
-#if defined(__ANDROID__)
-#include "firestore/src/android/util_android.h"
-#endif  // defined(__ANDROID__)
+#include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/tests/firestore_integration_test.h"
 #include "firestore/src/tests/util/event_accumulator.h"
 #include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
 #include "firebase/firestore/firestore_errors.h"
+#include "Firestore/core/src/util/firestore_exceptions.h"
 
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRValidationTests.mm
@@ -29,7 +28,10 @@ namespace firestore {
 // This eventually works for iOS as well and becomes the cross-platform test for
 // C++ client SDK. For now, only enabled for Android platform.
 
-#if defined(__ANDROID__)
+#if FIRESTORE_HAVE_EXCEPTIONS
+
+using testing::AnyOf;
+using testing::StrEq;
 
 class ValidationTest : public FirestoreIntegrationTest {
  protected:
@@ -76,7 +78,7 @@ class ValidationTest : public FirestoreIntegrationTest {
         EXPECT_EQ(reason, exception.what());
       }
       try {
-        firestore()->batch().Set(document, data);
+        TestFirestore()->batch().Set(document, data);
         FAIL() << "should throw exception";
       } catch (const FirestoreException& exception) {
         EXPECT_EQ(reason, exception.what());
@@ -91,7 +93,7 @@ class ValidationTest : public FirestoreIntegrationTest {
         EXPECT_EQ(reason, exception.what());
       }
       try {
-        firestore()->batch().Update(document, data);
+        TestFirestore()->batch().Update(document, data);
         FAIL() << "should throw exception";
       } catch (const FirestoreException& exception) {
         EXPECT_EQ(reason, exception.what());
@@ -99,7 +101,7 @@ class ValidationTest : public FirestoreIntegrationTest {
     }
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
-    Await(firestore()->RunTransaction(
+    Await(TestFirestore()->RunTransaction(
         [data, reason, include_sets, include_updates, document](
             Transaction& transaction, std::string& error_message) -> Error {
           if (include_sets) {
@@ -127,10 +129,9 @@ class ValidationTest : public FirestoreIntegrationTest {
 
     // snapshot paths
     try {
-      // TODO(varconst): The logic is in the C++ core and is a hard assertion.
-      // snapshot.Get(path);
-      // FAIL() << "should throw exception";
-    } catch (const FirestoreException& exception) {
+      snapshot.Get(path);
+      FAIL() << "should throw exception";
+    } catch (const std::invalid_argument& exception) {
       EXPECT_EQ(reason, exception.what());
     }
 
@@ -139,17 +140,15 @@ class ValidationTest : public FirestoreIntegrationTest {
     // WhereLessThan(), etc. omitted for brevity since the code path is
     // trivially shared.
     try {
-      // TODO(zxu): The logic is in the C++ core and is a hard assertion.
-      // collection.WhereEqualTo(path, FieldValue::Integer(1));
-      // FAIL() << "should throw exception" << path;
-    } catch (const FirestoreException& exception) {
+      collection.WhereEqualTo(path, FieldValue::Integer(1));
+      FAIL() << "should throw exception" << path;
+    } catch (const std::invalid_argument& exception) {
       EXPECT_EQ(reason, exception.what());
     }
     try {
-      // TODO(zxu): The logic is in the C++ core and is a hard assertion.
-      // collection.OrderBy(path);
-      // FAIL() << "should throw exception";
-    } catch (const FirestoreException& exception) {
+      collection.OrderBy(path);
+      FAIL() << "should throw exception";
+    } catch (const std::invalid_argument& exception) {
       EXPECT_EQ(reason, exception.what());
     }
 
@@ -158,10 +157,22 @@ class ValidationTest : public FirestoreIntegrationTest {
       document.Update(MapFieldValue{{path, FieldValue::Integer(1)}});
       FAIL() << "should throw exception";
     } catch (const FirestoreException& exception) {
+      // TODO(b/149105903): Handle different Java exceptions differently.
+      // TODO(b/171990785): Unify Android and C++ validation error messages.
+      EXPECT_THAT(
+          exception.what(),
+          AnyOf(
+              // When validated by iOS or common C++ code
+              StrEq(reason),
+              // When validated by Android Java code
+              StrEq("Use FieldPath.of() for field names containing '~*/[]'.")));
+    } catch (const std::invalid_argument& exception) {
       EXPECT_EQ(reason, exception.what());
     }
   }
 };
+
+#if defined(__ANDROID__)
 
 // PORT_NOTE: Does not apply to C++ as host parameter is passed by value.
 TEST_F(ValidationTest, FirestoreSettingsNullHostFails) {}
@@ -173,7 +184,7 @@ TEST_F(ValidationTest, ChangingSettingsAfterUseFails) {
   Settings setting;
   setting.set_host("foo");
   try {
-    firestore()->set_settings(setting);
+    TestFirestore()->set_settings(setting);
     FAIL() << "should throw exception";
   } catch (const FirestoreException& exception) {
     EXPECT_STREQ(
@@ -188,7 +199,7 @@ TEST_F(ValidationTest, DisableSslWithoutSettingHostFails) {
   Settings setting;
   setting.set_ssl_enabled(false);
   try {
-    firestore()->set_settings(setting);
+    TestFirestore()->set_settings(setting);
     FAIL() << "should throw exception";
   } catch (const FirestoreException& exception) {
     EXPECT_STREQ(
@@ -213,7 +224,7 @@ TEST_F(ValidationTest,
 }
 
 TEST_F(ValidationTest, CollectionPathsMustBeOddLength) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   DocumentReference base_document = db->Document("foo/bar");
   std::vector<std::string> bad_absolute_paths = {"foo/bar", "foo/bar/baz/quu"};
   std::vector<std::string> bad_relative_paths = {"/", "baz/quu"};
@@ -240,7 +251,7 @@ TEST_F(ValidationTest, CollectionPathsMustBeOddLength) {
 }
 
 TEST_F(ValidationTest, PathsMustNotHaveEmptySegments) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   // NOTE: leading / trailing slashes are okay.
   db->Collection("/foo/");
   db->Collection("/foo");
@@ -280,7 +291,7 @@ TEST_F(ValidationTest, PathsMustNotHaveEmptySegments) {
 }
 
 TEST_F(ValidationTest, DocumentPathsMustBeEvenLength) {
-  Firestore* db = firestore();
+  Firestore* db = TestFirestore();
   CollectionReference base_collection = db->Collection("foo");
   std::vector<std::string> bad_absolute_paths = {"foo", "foo/bar/baz"};
   std::vector<std::string> bad_relative_paths = {"/", "bar/baz"};
@@ -332,13 +343,13 @@ TEST_F(ValidationTest, WritesMayContainIndirectlyNestedLists) {
   DocumentReference another_document = collection.Document();
 
   Await(document.Set(data));
-  Await(firestore()->batch().Set(document, data).Commit());
+  Await(TestFirestore()->batch().Set(document, data).Commit());
 
   Await(document.Update(data));
-  Await(firestore()->batch().Update(document, data).Commit());
+  Await(TestFirestore()->batch().Update(document, data).Commit());
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
-  Await(firestore()->RunTransaction(
+  Await(TestFirestore()->RunTransaction(
       [data, document, another_document](Transaction& transaction,
                                          std::string& error_message) -> Error {
         // Note another_document does not exist at this point so set that and
@@ -400,9 +411,9 @@ TEST_F(ValidationTest, UpdatesMustNotContainNestedFieldValueDeletes) {
 
 TEST_F(ValidationTest, BatchWritesRequireCorrectDocumentReferences) {
   DocumentReference bad_document =
-      CachedFirestore("another")->Document("foo/bar");
+      TestFirestore("another")->Document("foo/bar");
 
-  WriteBatch batch = firestore()->batch();
+  WriteBatch batch = TestFirestore()->batch();
   try {
     batch.Set(bad_document, MapFieldValue{{"foo", FieldValue::Integer(1)}});
     FAIL() << "should throw exception";
@@ -416,42 +427,36 @@ TEST_F(ValidationTest, BatchWritesRequireCorrectDocumentReferences) {
 
 TEST_F(ValidationTest, TransactionsRequireCorrectDocumentReferences) {}
 
+#endif  // defined(__ANDROID__)
+
 TEST_F(ValidationTest, FieldPathsMustNotHaveEmptySegments) {
   SCOPED_TRACE("FieldPathsMustNotHaveEmptySegments");
 
-  std::map<std::string, std::string> bad_field_paths_and_errors = {
-      {"",
-       "Invalid field path (). Paths must not be empty, begin with '.', end "
-       "with '.', or contain '..'"},
-      {"foo..baz",
-       "Invalid field path (foo..baz). Paths must not be empty, begin with "
-       "'.', end with '.', or contain '..'"},
-      {".foo",
-       "Invalid field path (.foo). Paths must not be empty, begin with '.', "
-       "end with '.', or contain '..'"},
-      {"foo.",
-       "Invalid field path (foo.). Paths must not be empty, begin with '.', "
-       "end with '.', or contain '..'"}};
-  for (const auto path_and_error : bad_field_paths_and_errors) {
-    VerifyFieldPathThrows(path_and_error.first, path_and_error.second);
+  std::vector<std::string> bad_field_paths = {"", "foo..baz", ".foo", "foo."};
+
+  for (const auto field_path : bad_field_paths) {
+    std::string reason = "Invalid field path (" + field_path +
+                         "). Paths must not be empty, begin with '.', end with "
+                         "'.', or contain '..'";
+    VerifyFieldPathThrows(field_path, reason);
   }
 }
 
 TEST_F(ValidationTest, FieldPathsMustNotHaveInvalidSegments) {
   SCOPED_TRACE("FieldPathsMustNotHaveInvalidSegments");
 
-  std::map<std::string, std::string> bad_field_paths_and_errors = {
-      {"foo~bar", "Use FieldPath.of() for field names containing '~*/[]'."},
-      {"foo*bar", "Use FieldPath.of() for field names containing '~*/[]'."},
-      {"foo/bar", "Use FieldPath.of() for field names containing '~*/[]'."},
-      {"foo[1", "Use FieldPath.of() for field names containing '~*/[]'."},
-      {"foo]1", "Use FieldPath.of() for field names containing '~*/[]'."},
-      {"foo[1]", "Use FieldPath.of() for field names containing '~*/[]'."},
+  std::vector<std::string> bad_field_paths = {
+      "foo~bar", "foo*bar", "foo/bar", "foo[1", "foo]1", "foo[1]",
   };
-  for (const auto path_and_error : bad_field_paths_and_errors) {
-    VerifyFieldPathThrows(path_and_error.first, path_and_error.second);
+
+  for (const auto field_path : bad_field_paths) {
+    std::string reason = "Invalid field path (" + field_path +
+                         "). Paths must not contain '~', '*', '/', '[', or ']'";
+    VerifyFieldPathThrows(field_path, reason);
   }
 }
+
+#if defined(__ANDROID__)
 
 TEST_F(ValidationTest, FieldNamesMustNotBeEmpty) {
   DocumentSnapshot snapshot = ReadDocument(Document());
@@ -564,46 +569,6 @@ TEST_F(ValidationTest, QueriesWithNonPositiveLimitFail) {
   }
 }
 
-TEST_F(ValidationTest, QueriesWithNullOrNaNFiltersOtherThanEqualityFail) {
-  CollectionReference collection = Collection();
-  try {
-    collection.WhereGreaterThan("a", FieldValue::Null());
-    FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
-    EXPECT_STREQ(
-        "Invalid Query. Null only supports comparisons via whereEqualTo() and "
-        "whereNotEqualTo().",
-        exception.what());
-  }
-  try {
-    collection.WhereArrayContains("a", FieldValue::Null());
-    FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
-    EXPECT_STREQ(
-        "Invalid Query. Null only supports comparisons via whereEqualTo() and "
-        "whereNotEqualTo().",
-        exception.what());
-  }
-  try {
-    collection.WhereGreaterThan("a", FieldValue::Double(NAN));
-    FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
-    EXPECT_STREQ(
-        "Invalid Query. NaN only supports comparisons via whereEqualTo() and "
-        "whereNotEqualTo().",
-        exception.what());
-  }
-  try {
-    collection.WhereArrayContains("a", FieldValue::Double(NAN));
-    FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
-    EXPECT_STREQ(
-        "Invalid Query. NaN only supports comparisons via whereEqualTo() and "
-        "whereNotEqualTo().",
-        exception.what());
-  }
-}
-
 TEST_F(ValidationTest, QueriesCannotBeCreatedFromDocumentsMissingSortValues) {
   CollectionReference collection =
       Collection(std::map<std::string, MapFieldValue>{
@@ -651,7 +616,7 @@ TEST_F(ValidationTest,
   EventAccumulator<QuerySnapshot> accumulator;
   accumulator.listener()->AttachTo(&collection);
 
-  Await(firestore()->DisableNetwork());
+  Await(TestFirestore()->DisableNetwork());
 
   Future<void> future = collection.Document("doc").Set(
       {{"timestamp", FieldValue::ServerTimestamp()}});
@@ -668,7 +633,7 @@ TEST_F(ValidationTest,
                        [](const QuerySnapshot&, Error, const std::string&) {}),
                FirestoreException);
 
-  Await(firestore()->EnableNetwork());
+  Await(TestFirestore()->EnableNetwork());
   Await(future);
 
   snapshot = accumulator.AwaitRemoteEvent();
@@ -883,6 +848,7 @@ TEST_F(ValidationTest,
 }
 
 #endif  // defined(__ANDROID__)
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 
 }  // namespace firestore
 }  // namespace firebase

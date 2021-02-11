@@ -26,7 +26,8 @@ import subprocess
 import os
 import urllib.request
 
-def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False):
+def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False,
+                print_cmd=True):
  """Run a command.
 
  Args:
@@ -37,22 +38,26 @@ def run_command(cmd, capture_output=False, cwd=None, check=False, as_root=False)
   cwd (str): Directory to execute the command from.
   check (bool): Raises a CalledProcessError if True and the command errored out
   as_root (bool): Run command as root user with admin priveleges (supported on mac and linux).
+  print_cmd (bool): Print the command we are running to stdout.
 
  Raises:
   (subprocess.CalledProcessError): If command errored out and `text=True`
 
  Returns:
-  (`subprocess.CompletedProcess`): object containing information from command execution
+  (`subprocess.CompletedProcess`): object containing information from
+                                   command execution
  """
 
  if as_root and (is_mac_os() or is_linux_os()):
    cmd.insert(0, 'sudo')
 
  cmd_string = ' '.join(cmd)
- print('Running cmd: {0}\n'.format(cmd_string))
+ if print_cmd:
+  print('Running cmd: {0}\n'.format(cmd_string))
  # If capture_output is requested, we also set text=True to store the returned value of the
  # command as a string instead of bytes object
- return subprocess.run(cmd, capture_output=capture_output, cwd=cwd, check=check, text=capture_output)
+ return subprocess.run(cmd, capture_output=capture_output, cwd=cwd,
+                       check=check, text=capture_output)
 
 
 def is_command_installed(tool):
@@ -89,15 +94,35 @@ def is_linux_os():
  return platform.system() == 'Linux'
 
 
-def get_vcpkg_triplet(arch):
+def copy_vcpkg_custom_data():
+  """Copy custom files for vcpkg to vcpkg directory."""
+  # Since vcpkg is a submodule in the cpp sdk repo, we cannot just keep our custom
+  # files in the external/vcpkg directory. That would require committing to the
+  # vcpkg submodule. Instead we keep the data in a separate directory and copy it
+  # over after vcpkg submodule is initialized.
+  custom_data_root_path = os.path.join(os.getcwd(), 'external', 'vcpkg_custom_data')
+  destination_dirs_map = {
+    'triplets': os.path.join(get_vcpkg_root_path(), 'triplets'),
+    'toolchains': os.path.join(get_vcpkg_root_path(), 'scripts', 'buildsystems')
+  }
+  for custom_data_subdir in destination_dirs_map:
+    custom_data_subdir_abspath = os.path.join(custom_data_root_path, custom_data_subdir)
+    destination_dir = destination_dirs_map[custom_data_subdir]
+    for custom_file in os.listdir(custom_data_subdir_abspath):
+      abspath = os.path.join(custom_data_subdir_abspath, custom_file)
+      shutil.copy(abspath, destination_dir)
+
+
+def get_vcpkg_triplet(arch, msvc_runtime_library='static'):
   """ Get vcpkg target triplet (platform definition).
 
   Args:
     arch (str): Architecture (eg: 'x86', 'x64').
+    msvc_runtime_library (str): Runtime library for MSVC (eg: 'static', 'dynamic').
 
   Raises:
     ValueError: If current OS is not win,mac or linux.
-  
+
   Returns:
     (str): Triplet name.
        Eg: "x64-windows-static".
@@ -106,14 +131,12 @@ def get_vcpkg_triplet(arch):
   if is_windows_os():
     triplet_name.append('windows')
     triplet_name.append('static')
+    if msvc_runtime_library == 'dynamic':
+      triplet_name.append('md')
   elif is_mac_os():
     triplet_name.append('osx')
   elif is_linux_os():
     triplet_name.append('linux')
-    # Special case for x86-linux-dynamic
-    if arch == 'x86':
-     triplet_name.append('dynamic')
-     
 
   triplet_name = '-'.join(triplet_name)
   print("Using vcpkg triplet: {0}".format(triplet_name))
@@ -146,13 +169,52 @@ def get_vcpkg_installation_script_path():
   return script_absolute_path
 
 
+def verify_vcpkg_build(vcpkg_triplet, attempt_auto_fix=False):
+  """Check if vcpkg installation finished successfully.
+
+  Args:
+    vcpkg_triplet (str): Triplet name for vcpkg. Eg: 'x64-linux'
+    attempt_auto_fix (bool): If installation failed, try fixing some errors.
+
+  Returns:
+    (bool) True if everything looks good
+           False if installation failed but auto fix was attempted.
+                 Caller should retry installation in this case.
+  Raises:
+    (ValueError) Installation failed and auto fix was not attempted
+  """
+  # At the very least, we should have an "installed" directory under vcpkg triplet.
+  vcpkg_root_dir_path = get_vcpkg_root_path()
+  installed_triplets_dir_path = os.path.join(vcpkg_root_dir_path, 'installed', vcpkg_triplet)
+  if not os.path.exists(installed_triplets_dir_path):
+    if is_windows_os() and attempt_auto_fix:
+      # On some Windows machines with NFS drives, we have seen errors
+      # installing vcpkg due to permission issues while renaming temp directories.
+      # Manually renaming and re-running script makes it go through.
+      tools_dir_path = os.path.join(vcpkg_root_dir_path, 'downloads', 'tools')
+      for name in os.listdir(tools_dir_path):
+        # In the specific windows error that we noticed, the error occurs while
+        # trying to rename intermediate directories for donwloaded tools
+        # like "powershell.partial.<pid>" to "powershell". Renaming via python
+        # also runs into the same error. Workaround is to copy instead of rename.
+        if '.partial.' in name and os.path.isdir(os.path.join(tools_dir_path, name)):
+          expected_name = name.split('.partial.')[0]
+          shutil.copytree(os.path.join(tools_dir_path, name),
+                          os.path.join(tools_dir_path, expected_name))
+      return False
+
+    raise ValueError("Could not find directory containing installed packages by vcpkg: {0}\n"
+                     "Please check if there were errors during "
+                     "vcpkg installation.".format(installed_triplets_dir_path))
+  return True
+
+
 def clean_vcpkg_temp_data():
   """Delete files/directories that vcpkg uses during its build"""
   # Clear temporary directories and files created by vcpkg buildtrees
   # could be several GBs and cause github runners to run out of space
+  directories_to_remove = ['buildtrees', 'downloads', 'packages']
   vcpkg_root_dir_path = get_vcpkg_root_path()
-  buildtrees_dir_path = os.path.join(vcpkg_root_dir_path, 'buildtrees')
-  delete_directory(buildtrees_dir_path)
-  downloads_dir_path = os.path.join(vcpkg_root_dir_path, 'downloads')
-  delete_directory(downloads_dir_path)
-
+  for directory_to_remove in directories_to_remove:
+    abspath = os.path.join(vcpkg_root_dir_path, directory_to_remove)
+    delete_directory(abspath)

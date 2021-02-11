@@ -29,11 +29,12 @@ os=
 arch=
 arch_win=
 debugmode=Release
-msvc_crt_linkage=MD
-vs=VS2015
+msvc_runtime_library=MD
+vs=VS2019
 stl=c++
+linux_abi=legacy
 
-for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
+for c in $(echo "${filename}" | tr "[:upper:]" "[:lower:]" | tr "_.-" "\n\n\n"); do
     case $c in
 	# Operating systems
 	ios)
@@ -99,28 +100,22 @@ for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
 	;;
 	# Windows OS framework linkages
 	md)
-	    msvc_crt_linkage=MD
+	    msvc_runtime_library=MD
 	;;
 	dynamic)
-	    msvc_crt_linkage=MD
+	    msvc_runtime_library=MD
 	;;
 	mt)
-	    msvc_crt_linkage=MT
+	    msvc_runtime_library=MT
 	;;
 	static)
-	    msvc_crt_linkage=MT
+	    msvc_runtime_library=MT
 	    ;;
 	# Debug/Release compilation mode
 	release)
 	    debugmode=Release
 	;;
-	Release)
-	    debugmode=Release
-	;;
 	debug)
-	    debugmode=Debug
-	;;
-	Debug)
 	    debugmode=Debug
 	;;
 	# Android STL variant
@@ -132,6 +127,27 @@ for c in $(echo "${filename}" | tr "_.-" "\n\n\n"); do
         ;;
 	stlport)
 	    stl=stlport
+        ;;
+	cxx11)
+	    linux_abi=cxx11
+        ;;
+	c++11)
+	    linux_abi=cxx11
+        ;;
+	legacy)
+	    linux_abi=legacy
+        ;;
+	vs2019)
+	    vs=VS2019
+        ;;
+	vs2017)
+	    vs=VS2017
+        ;;
+	vs2015)
+	    vs=VS2015
+        ;;
+	vs2013)
+	    vs=VS2013
         ;;
     esac
 done
@@ -154,14 +170,14 @@ case ${os} in
 	    echo "Couldn't determine architecture" 1>&2
 	    exit 1
 	fi
-	echo -n "${arch}"
+	echo -n "${arch}/${linux_abi}"
     ;;
     windows)
 	if [[ -z "${arch_win}" ]]; then
 	    echo "Invalid architecture for Windows: ${arch}" 1>&2
 	    exit 1
 	fi
-	echo -n "${vs}/${msvc_crt_linkage}/${arch_win}/${debugmode}"
+	echo -n "${vs}/${msvc_runtime_library}/${arch_win}/${debugmode}"
     ;;
     ios)
 	if [[ -z "${arch}" ]]; then

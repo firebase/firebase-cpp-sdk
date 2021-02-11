@@ -25,7 +25,7 @@ namespace firestore {
  */
 class LambdaTransactionFunction
     : public TransactionFunction,
-      public Promise<void, void, FirestoreInternal::AsyncFn>::Completion<void> {
+      public Promise<void, void, FirestoreInternal::AsyncFn>::Completion {
  public:
   LambdaTransactionFunction(
       std::function<Error(Transaction&, std::string&)> update)

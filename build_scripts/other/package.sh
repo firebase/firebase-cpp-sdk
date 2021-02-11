@@ -27,8 +27,8 @@ cd "${origpath}"
 # Copy headers to packaged SDK.
 mkdir -p "${destpath}/include"
 cd "${sdkpath}"
-for incdir in */src/include/; do
-    cp -af "${incdir}" "${destpath}/include/"
+for incdir in */src/include; do
+    cp -af "${incdir}" "${destpath}/"
 done
 cd "${origpath}"
 

@@ -6,15 +6,20 @@
 #include "app/memory/unique_ptr.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
+#include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/document_snapshot_android.h"
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/query_snapshot_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/object.h"
+#include "firestore/src/jni/task.h"
 
 namespace firebase {
 namespace firestore {
+
+template <typename EnumT>
+class PromiseFactory;
 
 // This class simplifies the implementation of Future APIs for Android wrappers.
 // PublicType is the public type, say Foo, and InternalType is FooInternal.
@@ -28,24 +33,19 @@ namespace firestore {
 // and FnEnumType is CollectionReferenceFn.
 template <typename PublicType, typename InternalType, typename FnEnumType>
 class Promise {
+  friend class PromiseFactory<FnEnumType>;
+
  public:
   // One can add a completion to execute right after the Future is resolved.
   // The Games's Future library does not support chaining-up of completions yet.
   // So we add the interface here to allow executing code after Future is
   // resolved.
-  template <typename PublicT>
   class Completion {
    public:
     virtual ~Completion() = default;
     virtual void CompleteWith(Error error_code, const char* error_message,
-                              PublicT* result) = 0;
+                              PublicType* result) = 0;
   };
-
-  Promise(ReferenceCountedFutureImpl* impl, FirestoreInternal* firestore,
-          Completion<PublicType>* completion = nullptr)
-      : completer_(MakeUnique<Completer<PublicType, InternalType>>(
-            impl, firestore, completion)),
-        impl_(impl) {}
 
   ~Promise() {}
 
@@ -55,22 +55,7 @@ class Promise {
   Promise(Promise&& other) = default;
   Promise& operator=(Promise&& other) = default;
 
-  void RegisterForTask(FnEnumType op, const jni::Object& task) {
-    return RegisterForTask(op, task.get());
-  }
-
-  void RegisterForTask(FnEnumType op, jobject task) {
-    JNIEnv* env = completer_->firestore()->app()->GetJNIEnv();
-    handle_ = completer_->Alloc(static_cast<int>(op));
-
-    // Ownership of the completer will pass to to RegisterCallbackOnTask
-    auto* completer = completer_.release();
-
-    util::RegisterCallbackOnTask(env, task, ResultCallback, completer,
-                                 kApiIdentifier);
-  }
-
-  void RegisterForTask(jni::Env& env, FnEnumType op, const jni::Object& task) {
+  void RegisterForTask(jni::Env& env, FnEnumType op, const jni::Task& task) {
     handle_ = completer_->Alloc(static_cast<int>(op));
 
     // Ownership of the completer will pass to to RegisterCallbackOnTask
@@ -83,11 +68,19 @@ class Promise {
   Future<PublicType> GetFuture() { return MakeFuture(impl_, handle_); }
 
  private:
+  // The constructor is intentionally private.
+  // Create instances with `PromiseFactory`.
+  Promise(ReferenceCountedFutureImpl* impl, FirestoreInternal* firestore,
+          Completion* completion)
+      : completer_(MakeUnique<Completer<PublicType, InternalType>>(
+            impl, firestore, completion)),
+        impl_(impl) {}
+
   template <typename PublicT>
   class CompleterBase {
    public:
     CompleterBase(ReferenceCountedFutureImpl* impl,
-                  FirestoreInternal* firestore, Completion<PublicT>* completion)
+                  FirestoreInternal* firestore, Completion* completion)
         : impl_{impl}, firestore_{firestore}, completion_(completion) {}
 
     virtual ~CompleterBase() = default;
@@ -141,7 +134,7 @@ class Promise {
     SafeFutureHandle<PublicT> handle_;
     ReferenceCountedFutureImpl* impl_;    // not owning
     FirestoreInternal* firestore_;        // not owning
-    Completion<PublicType>* completion_;  // not owning
+    Completion* completion_;              // not owning
   };
 
   // Partial specialization of a nested class is allowed. So adding the no-op
@@ -153,8 +146,8 @@ class Promise {
     using CompleterBase<PublicT>::CompleterBase;
 
     void SucceedWithResult(jni::Env& env, const jni::Object& result) override {
-      PublicT future_result = FirestoreInternal::Wrap<InternalT>(
-          new InternalT(this->firestore_, result.get()));
+      auto future_result =
+          MakePublic<PublicT, InternalT>(env, this->firestore_, result);
 
       this->impl_->CompleteWithResult(this->handle_, Error::kErrorOk,
                                       /*error_msg=*/"", future_result);

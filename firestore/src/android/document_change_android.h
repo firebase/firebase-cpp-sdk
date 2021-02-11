@@ -12,7 +12,6 @@ namespace firestore {
 
 class DocumentChangeInternal : public Wrapper {
  public:
-  using ApiType = DocumentChange;
   using Wrapper::Wrapper;
 
   static void Initialize(jni::Loader& loader);

@@ -162,11 +162,15 @@ set(app_android_SRCS
 set(app_ios_SRCS
     src/app_ios.mm
     src/util_ios.mm
+    src/heartbeat_date_storage_desktop.cc
+    src/heartbeat_info_desktop.cc
     src/invites/ios/invites_receiver_internal_ios.mm
     src/invites/ios/invites_ios_startup.mm
     src/uuid_ios_darwin.mm)
 set(app_desktop_SRCS
     src/app_desktop.cc
+    src/heartbeat_date_storage_desktop.cc
+    src/heartbeat_info_desktop.cc
     src/invites/stub/invites_receiver_internal_stub.cc
     src/variant_util.cc)
 if(ANDROID)
@@ -179,11 +183,13 @@ else()
   if(MSVC)
     set(app_desktop_extra_SRCS
         src/secure/user_secure_windows_internal.cc
+        src/filesystem_desktop_windows.cc
         src/locale.cc
         src/uuid.cc)
   elseif(APPLE)
     set(app_desktop_extra_SRCS
         src/secure/user_secure_darwin_internal.mm
+        src/filesystem_apple.mm
         src/locale_apple.mm
         src/uuid_ios_darwin.mm)
   else()
@@ -202,6 +208,7 @@ else()
     endif()
     set(app_desktop_extra_SRCS
         src/secure/user_secure_linux_internal.cc
+        src/filesystem_desktop_linux.cc
         src/locale.cc
         src/uuid.cc)
   endif()
@@ -230,10 +237,13 @@ set(utility_common_HDRS
     src/callback.h
     src/cleanup_notifier.h
     src/embedded_file.h
+    src/filesystem.h
     src/function_registry.h
     src/future_manager.h
     src/intrusive_list.h
     src/log.h
+    src/heartbeat_date_storage_desktop.h
+    src/heartbeat_info_desktop.h
     src/mutex.h
     src/optional.h
     src/path.h
@@ -288,6 +298,19 @@ else()
       "${app_desktop_HDRS}")
 endif()
 
+if(ANDROID OR IOS)
+  # If building for Android or iOS, include the Flatbuffers source files directly.
+  set(app_flatbuffers_srcs
+      ${FLATBUFFERS_SOURCE_DIR}/src/idl_parser.cpp
+      ${FLATBUFFERS_SOURCE_DIR}/src/idl_gen_text.cpp
+      ${FLATBUFFERS_SOURCE_DIR}/src/reflection.cpp
+      ${FLATBUFFERS_SOURCE_DIR}/src/util.cpp)
+  set(app_flatbuffers_lib)
+else()
+  set(app_flatbuffers_srcs)
+  set(app_flatbuffers_lib flatbuffers)
+endif()
+
 add_library(firebase_app STATIC
     ${log_SRCS}
     ${log_HDRS}
@@ -301,7 +324,8 @@ add_library(firebase_app STATIC
     memory/atomic.h
     meta/move.h
     memory/unique_ptr.h
-    memory/shared_ptr.h)
+    memory/shared_ptr.h
+    ${app_flatbuffers_srcs})
 
 set_property(TARGET firebase_app PROPERTY FOLDER "Firebase Cpp")
 
@@ -325,10 +349,11 @@ target_compile_definitions(firebase_app
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
 )
+
 # firebase_app has a dependency on flatbuffers, which needs to be included.
 target_link_libraries(firebase_app
   PRIVATE
-    flatbuffers
+    ${app_flatbuffers_lib}
     ${LIBSECRET_LIBRARIES}
 )
 # Automatically include headers that might not be declared.
@@ -473,6 +498,8 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/common.h)
   set(instance_id_HDRS
     ${FIREBASE_SOURCE_DIR}/instance_id/src/include/firebase/instance_id.h)
+  set(installations_HDRS
+    ${FIREBASE_SOURCE_DIR}/installations/src/include/firebase/installations.h)
   set(messaging_HDRS
     ${FIREBASE_SOURCE_DIR}/messaging/src/include/firebase/messaging.h)
   set(remote_config_HDRS
@@ -495,6 +522,7 @@ if (IOS)
     ${firestore_HDRS}
     ${functions_HDRS}
     ${instance_id_HDRS}
+    ${installations_HDRS}
     ${messaging_HDRS}
     ${remote_config_HDRS}
     ${storage_HDRS})

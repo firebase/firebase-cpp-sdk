@@ -92,10 +92,11 @@ fi
 declare -A BLAZE_PROCESS_MAP
 
 # LINT.IfChange
-run_blaze "BLAZE_PROCESS_MAP" "android_arm" "--config=android_arm"
-run_blaze "BLAZE_PROCESS_MAP" "darwin_x86_64" "--config=darwin_x86_64"
-run_blaze "BLAZE_PROCESS_MAP" "linux" "--define=force_regular_grpc=1"
-run_blaze "BLAZE_PROCESS_MAP" "msvc" "--config=msvc"
+run_blaze BLAZE_PROCESS_MAP android_arm --config=android_arm \
+    --define=firestore_exceptions=1
+run_blaze BLAZE_PROCESS_MAP darwin_x86_64 --config=darwin_x86_64
+run_blaze BLAZE_PROCESS_MAP linux --define=force_regular_grpc=1
+run_blaze BLAZE_PROCESS_MAP msvc --config=msvc
 # LINT.ThenChange(//depot_firebase_cpp/firestore/client/cpp/METADATA)
 
-wait_for_blazes_to_complete "BLAZE_PROCESS_MAP"
+wait_for_blazes_to_complete BLAZE_PROCESS_MAP

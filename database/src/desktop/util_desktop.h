@@ -99,7 +99,7 @@ const Variant& VariantGetChild(const Variant* variant, const std::string& key);
 //
 // This function is designed to perfectly mimic the behavior of Node.updateChild
 // in the Java API. This should be used in place of SetVariantAtPath, which is
-// more naive in how it updates the child variant, and is not guarenteed to
+// more naive in how it updates the child variant, and is not guaranteed to
 // update the .priority or .value keys correctly.
 void VariantUpdateChild(Variant* variant, const Path& path,
                         const Variant& value);
@@ -176,7 +176,7 @@ struct ParseUrl {
 // data representation.  (Because fundamental types with priorities are
 // represented as maps with '.value' and '.priority' fields.)
 // This function handles that logic, and returns the number of children a
-// varient has, as far as the user is concerned.
+// variant has, as far as the user is concerned.
 size_t CountEffectiveChildren(const Variant& variant);
 
 // Similar to CountEffectiveChildren() but fill in all children to the output

@@ -15,6 +15,7 @@
 #include "database/src/desktop/core/repo.h"
 
 #include "app/src/callback.h"
+#include "app/src/filesystem.h"
 #include "app/src/log.h"
 #include "app/src/mutex.h"
 #include "app/src/scheduler.h"
@@ -473,7 +474,7 @@ void Repo::DeferredInitialization() {
     database_path += "/";
     database_path += url_domain;
 
-    std::string app_data_path = GetAppDataPath(database_path.c_str());
+    std::string app_data_path = AppDataDir(database_path.c_str());
     if (app_data_path.empty()) {
       logger_->LogError(
           "Could not initialize persistence: Unable to find app data "
@@ -869,6 +870,7 @@ void Repo::SendTransactionQueue(const std::vector<TransactionDataPtr>& queue,
                     path.c_str(), static_cast<int>(queue.size()));
 
   std::vector<WriteId> sets_to_ignore;
+  sets_to_ignore.reserve(queue.size());
   for (const TransactionDataPtr& transaction : queue) {
     sets_to_ignore.push_back(transaction->current_write_id);
   }
@@ -1011,6 +1013,7 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
   std::vector<FutureToComplete> futures_to_complete;
 
   std::vector<WriteId> sets_to_ignore;
+  sets_to_ignore.reserve(queue.size());
   for (const TransactionDataPtr& transaction : queue) {
     sets_to_ignore.push_back(transaction->current_write_id);
   }

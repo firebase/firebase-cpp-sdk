@@ -2,10 +2,12 @@
 
 #include "app/memory/unique_ptr.h"
 #include "app/meta/move.h"
-#include "firestore/src/android/util_android.h"
+#include "firestore/src/android/exception_android.h"
+#include "firestore/src/common/macros.h"
 #include "firestore/src/jni/array.h"
 #include "firestore/src/tests/firestore_integration_test.h"
 #include "gtest/gtest.h"
+#include "Firestore/core/src/util/firestore_exceptions.h"
 
 namespace firebase {
 namespace firestore {
@@ -31,7 +33,7 @@ class EnvTest : public FirestoreIntegrationTest {
   UniquePtr<Env> env_;
 };
 
-#if __cpp_exceptions
+#if FIRESTORE_HAVE_EXCEPTIONS
 TEST_F(EnvTest, ToolchainSupportsThrowingFromDestructors) {
   class ThrowsInDestructor {
    public:
@@ -45,7 +47,7 @@ TEST_F(EnvTest, ToolchainSupportsThrowingFromDestructors) {
     SUCCEED() << "Caught exception";
   }
 }
-#endif  // __cpp_exceptions
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 
 TEST_F(EnvTest, ConstructsObjects) {
   Local<Class> clazz = env().FindClass("java/lang/Integer");
@@ -132,18 +134,6 @@ TEST_F(EnvTest, CallsStaticVoidMethods) {
 
   env().CallStatic<void>(clazz, gc);
   EXPECT_TRUE(env().ok());
-}
-
-TEST_F(EnvTest, GetStringUtfLength) {
-  Local<String> str = env().NewStringUtf("Foo");
-  size_t len = env().GetStringUtfLength(str);
-  EXPECT_EQ(3, len);
-}
-
-TEST_F(EnvTest, GetStringUtfRegion) {
-  Local<String> str = env().NewStringUtf("Foo");
-  std::string result = env().GetStringUtfRegion(str, 1, 2);
-  EXPECT_EQ("oo", result);
 }
 
 TEST_F(EnvTest, ToString) {
@@ -287,7 +277,7 @@ TEST_F(EnvTest, DestructorCallsExceptionHandler) {
   EXPECT_EQ(result.calls, 1);
 }
 
-#if __cpp_exceptions
+#if FIRESTORE_HAVE_EXCEPTIONS
 TEST_F(EnvTest, DestructorCanThrow) {
   bool caught_exception = false;
   try {
@@ -303,7 +293,7 @@ TEST_F(EnvTest, DestructorCanThrow) {
   }
   EXPECT_TRUE(caught_exception);
 }
-#endif  // __cpp_exceptions
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 
 TEST_F(EnvTest, ObjectArrayOperations) {
   Env env;

@@ -100,10 +100,8 @@ static GeneratedDynamicLink LongLinkFromComponents(
     generated_link.error = "No target link specified.";
     return generated_link;
   }
-  if ((components.dynamic_link_domain == nullptr ||
-       strlen(components.dynamic_link_domain) == 0) &&
-      (components.domain_uri_prefix == nullptr ||
-       strlen(components.domain_uri_prefix) == 0)) {
+  if (components.domain_uri_prefix == nullptr ||
+       strlen(components.domain_uri_prefix) == 0) {
     generated_link.error = "No domain specified.";
     return generated_link;
   }
@@ -175,11 +173,8 @@ static GeneratedDynamicLink LongLinkFromComponents(
                                      params->image_url);
     }
   }
-  std::string domain =
-      components.domain_uri_prefix != nullptr
-          ? components.domain_uri_prefix
-          : std::string("https://") + components.dynamic_link_domain;
-  generated_link.url = domain + "/" + QueryStringFromMap(query_parameters);
+  generated_link.url = std::string(components.domain_uri_prefix) + "/" +
+      QueryStringFromMap(query_parameters);
   return generated_link;
 }
 

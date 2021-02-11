@@ -21,8 +21,10 @@
 #include <ctime>
 #include <vector>
 
+#include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/semaphore.h"
+#include "app/src/thread.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
 #include "thread/fiber/fiber.h"
@@ -107,6 +109,72 @@ TEST_F(FutureManagerTest, TestOrphaningFutures) {
 
   future_impl->Complete(handle, 0, "");
   EXPECT_THAT(future.status(), Eq(kFutureStatusComplete));
+}
+
+TEST_F(FutureManagerTest, TestFutureManagerCanBeDeletedByFutureCallback) {
+  auto future_manager = MakeUnique<FutureManager>();
+
+  future_manager->AllocFutureApi(&value1_, kTestFnCount);
+  ReferenceCountedFutureImpl* future_impl =
+      future_manager->GetFutureApi(&value1_);
+  auto handle = future_impl->SafeAlloc<int>(kTestFnOne);
+  Future<int> future(future_impl, handle.get());
+
+  Semaphore semaphore(0);
+  future.OnCompletion([&](const Future<int>&) {
+    future_manager = nullptr;
+    semaphore.Post();
+  });
+  future_impl->CompleteWithResult(handle, 0, "", 42);
+
+  semaphore.Wait();
+}
+
+TEST_F(FutureManagerTest, TestFutureManagerCanBeDeletedByFutureInParallel) {
+  auto future_manager = MakeUnique<FutureManager>();
+  future_manager->AllocFutureApi(&value1_, 2);
+  ReferenceCountedFutureImpl* future_impl =
+      future_manager->GetFutureApi(&value1_);
+
+  Semaphore running_callback_sem(2);
+
+  // Prepare two futures.
+  auto handle_a = future_impl->SafeAlloc<void>(0);
+  Future<void> future_a(future_impl, handle_a.get());
+  future_a.OnCompletion([&](const Future<void>&) {
+    running_callback_sem.Post();
+    running_callback_sem.Wait();
+  });
+
+  auto handle_b = future_impl->SafeAlloc<void>(1);
+  Future<void> future_b(future_impl, handle_b.get());
+  Semaphore destroyed_future_manager_sem(0);
+  future_b.OnCompletion([&](const Future<void>&) {
+    running_callback_sem.Post();
+    running_callback_sem.Wait();
+    // Only destroy the future manager once both callbacks are running, to make
+    // their execution as close to each other as possible.
+    future_manager = nullptr;
+
+    destroyed_future_manager_sem.Post();
+  });
+
+  // Complete both futures in parallel, so that the callbacks run in parallel as
+  // well.
+  future_impl->Complete(handle_a, 0, "");
+  // Using a `std::function` allows easily capturing the two necessary locals.
+  std::function<void()> callback_b = [&] {
+    future_impl->Complete(handle_b, 0, "");
+  };
+  firebase::Thread thread(
+      [](void* raw_callback_b) {
+        auto* callback_b = static_cast<std::function<void()>*>(raw_callback_b);
+        (*callback_b)();
+      },
+      &callback_b);
+
+  destroyed_future_manager_sem.Wait();
+  thread.Join();
 }
 
 TEST_F(FutureManagerDeathTest, TestCleanupOrphanedFuturesApis) {

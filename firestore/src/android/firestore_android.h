@@ -1,8 +1,6 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_FIRESTORE_ANDROID_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_FIRESTORE_ANDROID_H_
 
-#include <jni.h>
-
 #include <cstdint>
 #include <unordered_set>
 
@@ -10,6 +8,7 @@
 #include <functional>
 #endif
 
+#include "app/memory/unique_ptr.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -31,8 +30,8 @@ class Transaction;
 class TransactionFunction;
 class WriteBatch;
 
-template <typename PublicType, typename InternalType, typename FnEnumType>
-class Promise;
+template <typename EnumT>
+class PromiseFactory;
 
 // Used for registering global callbacks. See
 // firebase::util::RegisterCallbackOnTask for context.
@@ -43,8 +42,6 @@ extern const char kApiIdentifier[];
 // will implement the Future APIs on the fly.
 class FirestoreInternal {
  public:
-  using ApiType = Firestore;
-
   // Each API of Firestore that returns a Future needs to define an enum
   // value here. For example, a Future-returning method Foo() relies on the enum
   // value kFoo. The enum values are used to identify and manage Future in the
@@ -124,6 +121,7 @@ class FirestoreInternal {
   void RegisterListenerRegistration(ListenerRegistrationInternal* registration);
   void UnregisterListenerRegistration(
       ListenerRegistrationInternal* registration);
+  void ClearListeners();
 
   static jni::Env GetEnv();
 
@@ -137,31 +135,18 @@ class FirestoreInternal {
   QuerySnapshot NewQuerySnapshot(jni::Env& env,
                                  const jni::Object& snapshot) const;
 
-  // The constructor explicit Foo(FooInternal*) is protected in public API.
-  // But we want it to be public-usable in internal implementation code
-  // mainly for those general utility functions. So we provide this helper
-  // to allow any internal code to use that constructor. Here we assume
-  // FirestoreInternal is a friend class of InternalType::ApiType.
-  template <typename InternalType>
-  static typename InternalType::ApiType Wrap(InternalType* internal) {
-    return typename InternalType::ApiType{internal};
-  }
-
-  // The reverse of Wrap(), access internal_, defined mainly for test purpose.
-  template <typename InternalType>
-  static InternalType* Internal(typename InternalType::ApiType& value) {
-    // Cast is required for the case when the InternalType has hierachy e.g.
-    // CollectionReferenceInternal vs QueryInternal (check their implementation
-    // for more details).
-    return static_cast<InternalType*>(value.internal_);
-  }
-
   void set_firestore_public(Firestore* firestore_public) {
     firestore_public_ = firestore_public;
   }
 
   Firestore* firestore_public() { return firestore_public_; }
   const Firestore* firestore_public() const { return firestore_public_; }
+
+  /**
+   * Finds the FirestoreInternal instance for the given Java Firestore instance.
+   */
+  static FirestoreInternal* RecoverFirestore(jni::Env& env,
+                                             const jni::Object& java_firestore);
 
   const jni::Global<jni::Object>& user_callback_executor() const {
     return user_callback_executor_;
@@ -170,36 +155,17 @@ class FirestoreInternal {
   static void SetClientLanguage(const std::string& language_token);
 
  private:
-  // Gets the reference-counted Future implementation of this instance, which
-  // can be used to create a Future.
-  ReferenceCountedFutureImpl* ref_future() {
-    return future_manager_.GetFutureApi(this);
-  }
+  friend class FirestoreIntegrationTest;
 
   FirestoreInternal* mutable_this() const {
     return const_cast<FirestoreInternal*>(this);
   }
 
-  template <typename PublicT = void, typename InternalT = InternalType<PublicT>>
-  Future<PublicT> NewFuture(jni::Env& env, AsyncFn op,
-                            const jni::Object& task) const {
-    if (!env.ok()) return {};
-
-    FirestoreInternal* self = mutable_this();
-    Promise<PublicT, InternalT, AsyncFn> promise(self->ref_future(), self);
-    promise.RegisterForTask(env, op, task);
-    return promise.GetFuture();
-  }
-
   void ShutdownUserCallbackExecutor(jni::Env& env);
 
   static bool Initialize(App* app);
-  static void ReleaseClasses(App* app);
+  static void ReleaseClassesLocked(jni::Env& env);
   static void Terminate(App* app);
-
-  static Mutex init_mutex_;
-  static int initialize_count_;
-  static jni::Loader* loader_;
 
   jni::Global<jni::Object> user_callback_executor_;
 
@@ -227,6 +193,7 @@ class FirestoreInternal {
 #endif  //  defined(_STLPORT_VERSION)
 
   FutureManager future_manager_;
+  UniquePtr<PromiseFactory<AsyncFn>> promises_;
 
   CleanupNotifier cleanup_;
 };

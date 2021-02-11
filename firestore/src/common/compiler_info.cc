@@ -18,6 +18,7 @@
 #include <sstream>
 
 #include "app/meta/move.h"
+#include "firestore/src/common/macros.h"
 
 namespace firebase {
 namespace firestore {
@@ -92,30 +93,6 @@ std::ostream& operator<<(std::ostream& os, CompilerVersion) {
 
   return os;
 }
-
-// Discover if exceptions are enabled and define them as needed.
-#if defined(__clang__)
-#if defined(__EXCEPTIONS) && __has_feature(cxx_exceptions)
-#define FIRESTORE_HAVE_EXCEPTIONS 1
-#endif  // defined(__EXCEPTIONS) && __has_feature(cxx_exceptions)
-
-#elif defined(_MSC_VER)
-#if defined(_CPPUNWIND)
-#define FIRESTORE_HAVE_EXCEPTIONS 1
-#endif  // defined(_CPPUNWIND)
-
-#elif defined(__GNUC__)
-#if (__GNUC__ < 5) && defined(__EXCEPTIONS)
-#define FIRESTORE_HAVE_EXCEPTIONS 1
-#elif (__GNUC__ >= 5) && defined(__cpp_exceptions)
-#define FIRESTORE_HAVE_EXCEPTIONS 1
-#endif  // (__GNUC__ >= 5) && defined(__cpp_exceptions)
-
-#elif defined(__cpp_exceptions)
-// This should work in increasingly more and more compilers.
-// https://isocpp.org/std/standing-documents/sd-6-sg10-feature-test-recommendations
-#define FIRESTORE_HAVE_EXCEPTIONS 1
-#endif  // FIRESTORE_HAVE_EXCEPTIONS
 
 /**
  * Returns certain interesting compiler features.
