@@ -155,11 +155,11 @@ endif()
 if(ANDROID)
   firebase_cpp_proguard_file(remote_config)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_remote_config
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_remote_config
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_remote_config
+                        PUBLIC "-fembed-bitcode")
 
   setup_pod_headers(
     firebase_remote_config
