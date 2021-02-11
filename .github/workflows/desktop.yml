@@ -133,7 +133,7 @@ jobs:
           LANG: en_US
         run: |
           cd build
-          ctest --verbose --repeat until-pass:3
+          ctest --repeat until-pass:3
 
       - name: Run unit tests (linux)
         # Linux exists as its own standalone execution step in order to invoke
@@ -147,7 +147,7 @@ jobs:
         run: |
           ulimit -c unlimited
           cd build
-          sudo ctest --verbose until-pass:3
+          sudo ctest --repeat until-pass:3
 
       - name: Prep bins for achive (linux)
         # Copies all of the binary files into one directory for ease in
