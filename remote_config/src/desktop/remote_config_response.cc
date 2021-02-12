@@ -94,7 +94,7 @@ void RemoteConfigResponse::MarkCompleted() {
   const fbs::Response* body_fbs =
       flatbuffers::GetRoot<fbs::Response>(builder.GetBufferPointer());
 
-  if (body_fbs->entries()->size() > 0) {
+  if (body_fbs && body_fbs->entries() && body_fbs->entries()->size() > 0) {
     entries_ = FlexbufferToVariant(body_fbs->entries_flexbuffer_root());
   }
 }
