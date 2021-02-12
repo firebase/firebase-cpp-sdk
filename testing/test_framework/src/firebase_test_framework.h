@@ -148,13 +148,15 @@ class FirebaseTest : public testing::Test {
   //
   // For example, to add retry, you would change:
   //
-  // bool success = WaitForCompletion(auth_->DeleteUser(auth->current_user()),
-  //                                  "DeleteUser");
+  // bool success = WaitForCompletion(
+  //                      auth_->DeleteUser(auth->current_user()),
+  //                      "DeleteUser");
   // To this:
   //
-  // bool success = WaitForCompletion(RunWithRetry([](Auth* auth) {
-  //   return auth->DeleteUser(auth->current_user());
-  // }, auth_), "DeleteUser"));
+  // bool success = WaitForCompletion(RunWithRetry(
+  //                        [](Auth* auth) {
+  //                            return auth->DeleteUser(auth->current_user());
+  //                        }, auth_), "DeleteUser"));
   template<class CallbackType, class ContextType>
   static firebase::FutureBase RunWithRetry(
       CallbackType run_future_typed,
@@ -188,7 +190,9 @@ class FirebaseTest : public testing::Test {
        [](void*ctx) -> firebase::FutureBase {
          CallbackType callback = static_cast<RunData*>(ctx)->callback;
          ContextType* context = static_cast<RunData*>(ctx)->context;
-         // The following line checks that the return type is correct.
+         // The following line checks that CallbackType actually returns a
+         // Future<ResultType>. If it returns any other type, the compiler will
+         // complain about implicit conversion to Future<ResultType> here.
          firebase::Future<ResultType> future_result = callback(context);
          return static_cast<firebase::FutureBase>(future_result);
        },
