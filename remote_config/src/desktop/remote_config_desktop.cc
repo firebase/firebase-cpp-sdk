@@ -39,7 +39,7 @@ namespace internal {
 
 using callback::NewCallback;
 
-const char* const RemoteConfigInternal::kDefaultNamespace = "configns:firebase";
+const char* const RemoteConfigInternal::kDefaultNamespace = "firebase";
 const char* const RemoteConfigInternal::kDefaultValueForString = "";
 const int64_t RemoteConfigInternal::kDefaultValueForLong = 0L;
 const double RemoteConfigInternal::kDefaultValueForDouble = 0.0;
