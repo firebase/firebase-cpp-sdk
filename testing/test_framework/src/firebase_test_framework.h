@@ -166,7 +166,7 @@ class FirebaseTest : public testing::Test {
     struct RunData { CallbackType callback; ContextType* context; };
     RunData run_data = { run_future_typed, context_typed };
     return RunWithRetryBase(
-       [](void*ctx) -> firebase::FutureBase {
+       [](void*ctx) {
          CallbackType callback = static_cast<RunData*>(ctx)->callback;
          ContextType* context = static_cast<RunData*>(ctx)->context;
          return static_cast<firebase::FutureBase>(callback(context));
@@ -187,7 +187,7 @@ class FirebaseTest : public testing::Test {
     struct RunData { CallbackType callback; ContextType* context; };
     RunData run_data = { run_future_typed, context_typed };
     firebase::FutureBase result_base = RunWithRetryBase(
-       [](void*ctx) -> firebase::FutureBase {
+       [](void*ctx) {
          CallbackType callback = static_cast<RunData*>(ctx)->callback;
          ContextType* context = static_cast<RunData*>(ctx)->context;
          // The following line checks that CallbackType actually returns a
