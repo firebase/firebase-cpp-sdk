@@ -83,9 +83,6 @@ class FirebaseRemoteConfigTest : public FirebaseTest {
 #endif  // TEST_DEPRECATED
 };
 
-const firebase::remote_config::LastFetchStatus kFetchSuccess =
-    firebase::remote_config::kLastFetchStatusSuccess;
-
 FirebaseRemoteConfigTest::FirebaseRemoteConfigTest() : initialized_(false) {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
