@@ -188,8 +188,8 @@ class FirebaseTest : public testing::Test {
        [](void*ctx) -> firebase::FutureBase {
          CallbackType callback = static_cast<RunData*>(ctx)->callback;
          ContextType* context = static_cast<RunData*>(ctx)->context;
-	 // The following line checks that the return type is correct.
-	 firebase::Future<ResultType> future_result = callback(context);
+         // The following line checks that the return type is correct.
+         firebase::Future<ResultType> future_result = callback(context);
          return static_cast<firebase::FutureBase>(future_result);
        },
        static_cast<void*>(&run_data),name, expected_error);

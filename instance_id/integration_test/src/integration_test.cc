@@ -161,11 +161,10 @@ TEST_F(FirebaseInstanceIdTest, TestDeleteIdGivesNewIdNextTime) {
 
   // Try deleting the IID, but it can sometimes fail due to
   // sporadic network issues, so allow retrying.
-
   firebase::Future<void> del =
     RunWithRetry<void>([](firebase::instance_id::InstanceId* iid) {
-		   return iid->DeleteId();
-		 }, instance_id_);
+                   return iid->DeleteId();
+                 }, instance_id_);
   WaitForCompletion(del, "DeleteId");
 
   // Ensure that we now get a different IID.
