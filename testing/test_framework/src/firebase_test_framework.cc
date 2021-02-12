@@ -102,7 +102,7 @@ const int kRetryDelaysMs[] = {
 };
 const int kMaxRetries = sizeof(kRetryDelaysMs) / sizeof(kRetryDelaysMs[0]);
 
-firebase::FutureBase FirebaseTest::RunWithRetry(
+firebase::FutureBase FirebaseTest::RunWithRetryBase(
     firebase::FutureBase (*run_future)(void* context),
     void* context, const char* name, int expected_error) {
 
@@ -122,12 +122,14 @@ firebase::FutureBase FirebaseTest::RunWithRetry(
     }
     if (future.status() != firebase::kFutureStatusComplete) {
       app_framework::LogDebug(
-          "RunWithRetry %s: Attempt %d returned invalid status",
+          "RunWithRetry%s%s: Attempt %d returned invalid status",
+	  *name?" ":"",
           name, attempt);
     }
     else if (future.error() != expected_error) {
       app_framework::LogDebug(
-          "RunWithRetry %s: Attempt %d returned error %d, expected %d",
+          "RunWithRetry%s%s: Attempt %d returned error %d, expected %d",
+	  *name?" ":"",
           name, attempt, future.error(), expected_error);
     }
     else {
@@ -137,7 +139,8 @@ firebase::FutureBase FirebaseTest::RunWithRetry(
     }
     int delay_ms = kRetryDelaysMs[attempt-1];
     app_framework::LogDebug(
-        "RunWithRetry %s: Pause %d milliseconds before retrying.",
+        "RunWithRetry%s%s: Pause %d milliseconds before retrying.",
+	*name?" ":"",
         name, delay_ms);
     app_framework::ProcessEvents(delay_ms);
   }

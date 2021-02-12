@@ -138,13 +138,35 @@ class FirebaseTest : public testing::Test {
   static bool WaitForCompletion(const firebase::FutureBase& future,
                                 const char* name, int expected_error = 0);
 
-  // Run the future (via a callback), retrying with exponential backoff if it
-  // fails.
+  typedef firebase::FutureBase(*RetryCallbackBase)(void*);
+  
+  // Run an operation that returns a Future (via a callback), retrying with
+  // exponential backoff if the operation fails.
+  //
+  // Blocks until the operation succeeds (the Future completes, with error
+  // matching expected_error) or if the final attempt is started (in which case
+  // the Future returned may still be in progress). You should use
+  // WaitForCompletion to await the results of this function in any case.
+  //
+  // Example usage:
+  // bool deletion_successful = WaitForCompletion(RunWithRetry([](Auth* auth) {
+  //   return auth->DeleteUser(auth->current_user());
+  // }, auth_), "DeleteUser"));
+  template<class CallbackType, class ContextType>
   static firebase::FutureBase RunWithRetry(
-      firebase::FutureBase (*run_future)(void* context),
-      void* context,
-      const char* name,
-      int expected_error = 0);
+      CallbackType run_future_typed,
+      ContextType* context_typed,
+      const char* name = "",
+      int expected_error = 0) {
+    struct RunData { CallbackType callback; ContextType* context; };
+    RunData run_data = { run_future_typed, context_typed };
+    return RunWithRetryBase(
+       [](void*ctx) {
+	 CallbackType callback = static_cast<RunData*>(ctx)->callback;
+	 ContextType* context = static_cast<RunData*>(ctx)->context;
+	 return static_cast<firebase::FutureBase>(callback(context));
+       }, &run_data, name, expected_error);
+  }
 
   // Blocking HTTP request helper function, for testing only.
   static bool SendHttpGetRequest(
@@ -173,6 +195,13 @@ class FirebaseTest : public testing::Test {
   static int argc_;
   static char** argv_;
   static bool found_config_;
+
+private:
+  // Untyped version of RunWithRetry. The templated version should be used
+  // instead, for type safety.
+  static firebase::FutureBase RunWithRetryBase(
+      RetryCallbackBase run_future, void* context,
+      const char* name, int expected_error);
 };
 
 }  // namespace firebase_test_framework
