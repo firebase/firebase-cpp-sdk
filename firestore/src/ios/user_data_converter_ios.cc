@@ -3,6 +3,7 @@
 #include <set>
 #include <string>
 
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/field_value_ios.h"
@@ -32,7 +33,6 @@ using model::NumericIncrementTransform;
 using model::ServerTimestampTransform;
 using model::TransformOperation;
 using nanopb::ByteString;
-using util::ThrowInvalidArgumentIos;
 
 using Type = FieldValue::Type;
 
@@ -59,7 +59,7 @@ void ParseDelete(ParseContext&& context) {
             "FieldValue::Delete() can only appear at the top level of your "
             "update data") +
         context.FieldDescription();
-    ThrowInvalidArgumentIos(message.c_str());
+    SimpleThrowInvalidArgument(message);
   }
 
   // We shouldn't encounter delete sentinels for queries or non-merge `Set`
@@ -74,7 +74,7 @@ void ParseDelete(ParseContext&& context) {
           "FieldValue::Delete() can only be used with Update() and Set() with "
           "merge == true") +
       context.FieldDescription();
-  ThrowInvalidArgumentIos(message.c_str());
+  SimpleThrowInvalidArgument(message);
 }
 
 void ParseServerTimestamp(ParseContext&& context) {
@@ -144,7 +144,7 @@ FieldMask CreateFieldMask(const ParseAccumulator& accumulator,
       auto message =
           std::string("Field '") + path.CanonicalString() +
           "' is specified in your field mask but missing from your input data.";
-      ThrowInvalidArgumentIos(message.c_str());
+      SimpleThrowInvalidArgument(message);
     }
 
     validated.insert(path);
@@ -276,7 +276,7 @@ model::FieldValue::Array UserDataConverter::ParseArray(
   // disable this validation.
   if (context.array_element() &&
       context.data_source() != core::UserDataSource::ArrayArgument) {
-    ThrowInvalidArgumentIos("Nested arrays are not supported");
+    SimpleThrowInvalidArgument("Nested arrays are not supported");
   }
 
   model::FieldValue::Array result;
@@ -328,7 +328,7 @@ void UserDataConverter::ParseSentinel(const FieldValue& value,
     auto message = Describe(value.type()) +
                    " can only be used with Update() and Set()" +
                    context.FieldDescription();
-    ThrowInvalidArgumentIos(message.c_str());
+    SimpleThrowInvalidArgument(message);
   }
 
   if (!context.path()) {
@@ -337,7 +337,7 @@ void UserDataConverter::ParseSentinel(const FieldValue& value,
     //                      Describe(value.type()));
     auto message =
         Describe(value.type()) + " is not currently supported inside arrays";
-    ThrowInvalidArgumentIos(message.c_str());
+    SimpleThrowInvalidArgument(message);
   }
 
   switch (value.type()) {
@@ -418,7 +418,7 @@ model::FieldValue UserDataConverter::ParseScalar(const FieldValue& value,
         auto message = std::string("DocumentReference is for database ") +
                        actual_db + " but should be for database " +
                        expected_db + context.FieldDescription();
-        ThrowInvalidArgumentIos(message.c_str());
+        SimpleThrowInvalidArgument(message);
       }
 
       const model::DocumentKey& key = GetInternal(&reference)->key();

@@ -183,7 +183,6 @@ set(main_SRCS
     src/ios/field_value_ios.h
     src/ios/firestore_ios.cc
     src/ios/firestore_ios.h
-    src/ios/hard_assert_ios.cc
     src/ios/hard_assert_ios.h
     src/ios/listener_ios.h
     src/ios/listener_registration_ios.cc
