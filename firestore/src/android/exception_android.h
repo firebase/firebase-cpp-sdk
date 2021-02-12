@@ -29,10 +29,6 @@ class ExceptionInternal {
   /** Returns true if the given object is a FirestoreException. */
   static bool IsFirestoreException(jni::Env& env, const jni::Object& exception);
 
-  /** Returns true if the given object is an IllegalStateException. */
-  static bool IsIllegalStateException(jni::Env& env,
-                                      const jni::Object& exception);
-
   /**
    * Returns true if the given object is a FirestoreException or any other type
    * of exception thrown by a Firestore API.
