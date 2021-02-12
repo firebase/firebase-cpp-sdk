@@ -123,13 +123,13 @@ firebase::FutureBase FirebaseTest::RunWithRetryBase(
     if (future.status() != firebase::kFutureStatusComplete) {
       app_framework::LogDebug(
           "RunWithRetry%s%s: Attempt %d returned invalid status",
-	  *name?" ":"",
+          *name?" ":"",
           name, attempt);
     }
     else if (future.error() != expected_error) {
       app_framework::LogDebug(
           "RunWithRetry%s%s: Attempt %d returned error %d, expected %d",
-	  *name?" ":"",
+          *name?" ":"",
           name, attempt, future.error(), expected_error);
     }
     else {
@@ -140,7 +140,7 @@ firebase::FutureBase FirebaseTest::RunWithRetryBase(
     int delay_ms = kRetryDelaysMs[attempt-1];
     app_framework::LogDebug(
         "RunWithRetry%s%s: Pause %d milliseconds before retrying.",
-	*name?" ":"",
+        *name?" ":"",
         name, delay_ms);
     app_framework::ProcessEvents(delay_ms);
   }

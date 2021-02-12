@@ -162,9 +162,9 @@ class FirebaseTest : public testing::Test {
     RunData run_data = { run_future_typed, context_typed };
     return RunWithRetryBase(
        [](void*ctx) {
-	 CallbackType callback = static_cast<RunData*>(ctx)->callback;
-	 ContextType* context = static_cast<RunData*>(ctx)->context;
-	 return static_cast<firebase::FutureBase>(callback(context));
+         CallbackType callback = static_cast<RunData*>(ctx)->callback;
+         ContextType* context = static_cast<RunData*>(ctx)->context;
+         return static_cast<firebase::FutureBase>(callback(context));
        }, &run_data, name, expected_error);
   }
 
