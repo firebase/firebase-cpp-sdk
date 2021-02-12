@@ -546,7 +546,9 @@ TEST_F(FirebaseMessagingTest, TestChangingListener) {
   // WaitForMessage() uses whatever shared_listener_ is set to.
   shared_listener_ = new firebase::messaging::PollableListener();
   firebase::messaging::SetListener(shared_listener_);
-
+  // Pause a moment to make sure old listeners are deleted.
+  ProcessEvents(1000);
+  
   std::string unique_id = GetUniqueMessageId();
   const char kNotificationTitle[] = "New Listener Test";
   const char kNotificationBody[] = "New Listener Test notification body";
