@@ -3,6 +3,7 @@
 #if !defined(__ANDROID__)
 #include <future>  // NOLINT(build/c++11)
 #endif
+#include <stdexcept>
 
 #if !defined(FIRESTORE_STUB_BUILD)
 #include "app/src/semaphore.h"
@@ -380,7 +381,7 @@ TEST_F(FirestoreIntegrationTest, TestFieldMaskCannotContainMissingFields) {
     document.Set(MapFieldValue{{"desc", FieldValue::String("NewDescription")}},
                  SetOptions::MergeFields({"desc", "owner"}));
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::invalid_argument& exception) {
     EXPECT_STREQ(
         "Field 'owner' is specified in your field mask but not in your input "
         "data.",
@@ -1197,7 +1198,7 @@ TEST_F(FirestoreIntegrationTest, TestToString) {
 #if defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 TEST_F(FirestoreIntegrationTest, ClientCallsAfterTerminateFails) {
   EXPECT_THAT(TestFirestore()->Terminate(), FutureSucceeds());
-  EXPECT_THROW(Await(TestFirestore()->DisableNetwork()), FirestoreException);
+  EXPECT_THROW(Await(TestFirestore()->DisableNetwork()), std::logic_error);
 }
 
 TEST_F(FirestoreIntegrationTest, NewOperationThrowsAfterFirestoreTerminate) {
@@ -1207,15 +1208,15 @@ TEST_F(FirestoreIntegrationTest, NewOperationThrowsAfterFirestoreTerminate) {
 
   EXPECT_THAT(instance->Terminate(), FutureSucceeds());
 
-  EXPECT_THROW(Await(reference.Get()), FirestoreException);
+  EXPECT_THROW(Await(reference.Get()), std::logic_error);
   EXPECT_THROW(Await(reference.Update({{"Field", FieldValue::Integer(1)}})),
-               FirestoreException);
+               std::logic_error);
   EXPECT_THROW(Await(reference.Set({{"Field", FieldValue::Integer(1)}})),
-               FirestoreException);
+               std::logic_error);
   EXPECT_THROW(Await(instance->batch()
                          .Set(reference, {{"Field", FieldValue::Integer(1)}})
                          .Commit()),
-               FirestoreException);
+               std::logic_error);
   EXPECT_THROW(Await(instance->RunTransaction(
                    [reference](Transaction& transaction,
                                std::string& error_message) -> Error {
@@ -1223,7 +1224,7 @@ TEST_F(FirestoreIntegrationTest, NewOperationThrowsAfterFirestoreTerminate) {
                      transaction.Get(reference, &error, &error_message);
                      return error;
                    })),
-               FirestoreException);
+               std::logic_error);
 }
 
 TEST_F(FirestoreIntegrationTest, TerminateCanBeCalledMultipleTimes) {
@@ -1233,13 +1234,13 @@ TEST_F(FirestoreIntegrationTest, TerminateCanBeCalledMultipleTimes) {
 
   EXPECT_THAT(instance->Terminate(), FutureSucceeds());
 
-  EXPECT_THROW(Await(reference.Get()), FirestoreException);
+  EXPECT_THROW(Await(reference.Get()), std::logic_error);
 
   // Calling a second time should go through and change nothing.
   EXPECT_THAT(instance->Terminate(), FutureSucceeds());
 
   EXPECT_THROW(Await(reference.Update({{"Field", FieldValue::Integer(1)}})),
-               FirestoreException);
+               std::logic_error);
 }
 #endif  // defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 

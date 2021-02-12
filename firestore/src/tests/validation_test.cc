@@ -1,5 +1,7 @@
 #include <cmath>
+#include <exception>
 #include <map>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -31,7 +33,13 @@ namespace firestore {
 #if FIRESTORE_HAVE_EXCEPTIONS
 
 using testing::AnyOf;
+using testing::Property;
 using testing::StrEq;
+using testing::Throws;
+
+#define EXPECT_ERROR(stmt, message)                           \
+  EXPECT_THAT([&] { stmt; }, Throws<std::exception>(Property( \
+                                 &std::exception::what, StrEq(message))));
 
 class ValidationTest : public FirestoreIntegrationTest {
  protected:
@@ -71,33 +79,13 @@ class ValidationTest : public FirestoreIntegrationTest {
     DocumentReference document = Document();
 
     if (include_sets) {
-      try {
-        document.Set(data);
-        FAIL() << "should throw exception";
-      } catch (const FirestoreException& exception) {
-        EXPECT_EQ(reason, exception.what());
-      }
-      try {
-        TestFirestore()->batch().Set(document, data);
-        FAIL() << "should throw exception";
-      } catch (const FirestoreException& exception) {
-        EXPECT_EQ(reason, exception.what());
-      }
+      EXPECT_ERROR(document.Set(data), reason);
+      EXPECT_ERROR(TestFirestore()->batch().Set(document, data), reason);
     }
 
     if (include_updates) {
-      try {
-        document.Update(data);
-        FAIL() << "should throw exception";
-      } catch (const FirestoreException& exception) {
-        EXPECT_EQ(reason, exception.what());
-      }
-      try {
-        TestFirestore()->batch().Update(document, data);
-        FAIL() << "should throw exception";
-      } catch (const FirestoreException& exception) {
-        EXPECT_EQ(reason, exception.what());
-      }
+      EXPECT_ERROR(document.Update(data), reason);
+      EXPECT_ERROR(TestFirestore()->batch().Update(document, data), reason);
     }
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
@@ -105,9 +93,11 @@ class ValidationTest : public FirestoreIntegrationTest {
         [data, reason, include_sets, include_updates, document](
             Transaction& transaction, std::string& error_message) -> Error {
           if (include_sets) {
+            // TODO(b/149105903): Android does expectError here.
             transaction.Set(document, data);
           }
           if (include_updates) {
+            // TODO(b/149105903): Android does expectError here.
             transaction.Update(document, data);
           }
           return Error::kErrorOk;
@@ -156,8 +146,7 @@ class ValidationTest : public FirestoreIntegrationTest {
     try {
       document.Update(MapFieldValue{{path, FieldValue::Integer(1)}});
       FAIL() << "should throw exception";
-    } catch (const FirestoreException& exception) {
-      // TODO(b/149105903): Handle different Java exceptions differently.
+    } catch (const std::invalid_argument& exception) {
       // TODO(b/171990785): Unify Android and C++ validation error messages.
       EXPECT_THAT(
           exception.what(),
@@ -166,8 +155,6 @@ class ValidationTest : public FirestoreIntegrationTest {
               StrEq(reason),
               // When validated by Android Java code
               StrEq("Use FieldPath.of() for field names containing '~*/[]'.")));
-    } catch (const std::invalid_argument& exception) {
-      EXPECT_EQ(reason, exception.what());
     }
   }
 };
@@ -186,7 +173,7 @@ TEST_F(ValidationTest, ChangingSettingsAfterUseFails) {
   try {
     TestFirestore()->set_settings(setting);
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "FirebaseFirestore has already been started and its settings can no "
         "longer be changed. You can only call setFirestoreSettings() before "
@@ -201,7 +188,7 @@ TEST_F(ValidationTest, DisableSslWithoutSettingHostFails) {
   try {
     TestFirestore()->set_settings(setting);
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "You can't set the 'sslEnabled' setting unless you also set a "
         "non-default 'host'.",
@@ -218,7 +205,7 @@ TEST_F(ValidationTest,
     InitResult result;
     Firestore::GetInstance(app(), &result);
     EXPECT_EQ(kInitResultSuccess, result);
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     FAIL() << "shouldn't throw exception";
   }
 }
@@ -238,13 +225,13 @@ TEST_F(ValidationTest, CollectionPathsMustBeOddLength) {
     try {
       db->Collection(bad_absolute_paths[i]);
       FAIL() << "should throw exception";
-    } catch (const FirestoreException& exception) {
+    } catch (const std::exception& exception) {
       EXPECT_EQ(expect_errors[i], exception.what());
     }
     try {
       base_document.Collection(bad_relative_paths[i]);
       FAIL() << "should throw exception";
-    } catch (const FirestoreException& exception) {
+    } catch (const std::exception& exception) {
       EXPECT_EQ(expect_errors[i], exception.what());
     }
   }
@@ -266,25 +253,25 @@ TEST_F(ValidationTest, PathsMustNotHaveEmptySegments) {
     try {
       db->Collection(path);
       FAIL() << "should throw exception";
-    } catch (const FirestoreException& exception) {
+    } catch (const std::exception& exception) {
       EXPECT_EQ(reason, exception.what());
     }
     try {
       db->Document(path);
       FAIL() << "should throw exception";
-    } catch (const FirestoreException& exception) {
+    } catch (const std::exception& exception) {
       EXPECT_EQ(reason, exception.what());
     }
     try {
       collection.Document(path);
       FAIL() << "should throw exception";
-    } catch (const FirestoreException& exception) {
+    } catch (const std::exception& exception) {
       EXPECT_EQ(reason, exception.what());
     }
     try {
       document.Collection(path);
       FAIL() << "should throw exception";
-    } catch (const FirestoreException& exception) {
+    } catch (const std::exception& exception) {
       EXPECT_EQ(reason, exception.what());
     }
   }
@@ -305,13 +292,13 @@ TEST_F(ValidationTest, DocumentPathsMustBeEvenLength) {
     try {
       db->Document(bad_absolute_paths[i]);
       FAIL() << "should throw exception";
-    } catch (const FirestoreException& exception) {
+    } catch (const std::exception& exception) {
       EXPECT_EQ(expect_errors[i], exception.what());
     }
     try {
       base_collection.Document(bad_relative_paths[i]);
       FAIL() << "should throw exception";
-    } catch (const FirestoreException& exception) {
+    } catch (const std::exception& exception) {
       EXPECT_EQ(expect_errors[i], exception.what());
     }
   }
@@ -417,7 +404,7 @@ TEST_F(ValidationTest, BatchWritesRequireCorrectDocumentReferences) {
   try {
     batch.Set(bad_document, MapFieldValue{{"foo", FieldValue::Integer(1)}});
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Provided document reference is from a different Cloud Firestore "
         "instance.",
@@ -467,7 +454,7 @@ TEST_F(ValidationTest, FieldNamesMustNotBeEmpty) {
   // try {
   //   snapshot.Get(FieldPath{});
   //   FAIL() << "should throw exception";
-  // } catch (const FirestoreException& exception) {
+  // } catch (const std::exception& exception) {
   //  EXPECT_STREQ("Invalid field path. Provided path must not be empty.",
   //               exception.what());
   // }
@@ -475,7 +462,7 @@ TEST_F(ValidationTest, FieldNamesMustNotBeEmpty) {
   try {
     snapshot.Get(FieldPath{""});
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Invalid field name at argument 1. Field names must not be null or "
         "empty.",
@@ -484,7 +471,7 @@ TEST_F(ValidationTest, FieldNamesMustNotBeEmpty) {
   try {
     snapshot.Get(FieldPath{"foo", ""});
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Invalid field name at argument 2. Field names must not be null or "
         "empty.",
@@ -500,7 +487,7 @@ TEST_F(ValidationTest, ArrayTransformsFailInQueries) {
         FieldValue::Map(
             {{"test", FieldValue::ArrayUnion({FieldValue::Integer(1)})}}));
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::invalid_argument& exception) {
     EXPECT_STREQ(
         "Invalid data. FieldValue.arrayUnion() can only be used with set() and "
         "update() (found in field test)",
@@ -513,7 +500,7 @@ TEST_F(ValidationTest, ArrayTransformsFailInQueries) {
         FieldValue::Map(
             {{"test", FieldValue::ArrayRemove({FieldValue::Integer(1)})}}));
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::invalid_argument& exception) {
     EXPECT_STREQ(
         "Invalid data. FieldValue.arrayRemove() can only be used with set() "
         "and update() (found in field test)",
@@ -533,7 +520,7 @@ TEST_F(ValidationTest, ArrayTransformsRejectArrays) {
                   {FieldValue::Integer(1),
                    FieldValue::Array({FieldValue::String("nested")})})}});
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ("Invalid data. Nested arrays are not supported",
                  exception.what());
   }
@@ -543,7 +530,7 @@ TEST_F(ValidationTest, ArrayTransformsRejectArrays) {
                   {FieldValue::Integer(1),
                    FieldValue::Array({FieldValue::String("nested")})})}});
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ("Invalid data. Nested arrays are not supported",
                  exception.what());
   }
@@ -554,7 +541,7 @@ TEST_F(ValidationTest, QueriesWithNonPositiveLimitFail) {
   try {
     collection.Limit(0);
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Invalid Query. Query limit (0) is invalid. Limit must be positive.",
         exception.what());
@@ -562,7 +549,7 @@ TEST_F(ValidationTest, QueriesWithNonPositiveLimitFail) {
   try {
     collection.Limit(-1);
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Invalid Query. Query limit (-1) is invalid. Limit must be positive.",
         exception.what());
@@ -587,25 +574,25 @@ TEST_F(ValidationTest, QueriesCannotBeCreatedFromDocumentsMissingSortValues) {
   try {
     query.StartAt(snapshot);
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(reason, exception.what());
   }
   try {
     query.StartAfter(snapshot);
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(reason, exception.what());
   }
   try {
     query.EndBefore(snapshot);
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(reason, exception.what());
   }
   try {
     query.EndAt(snapshot);
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(reason, exception.what());
   }
 }
@@ -631,7 +618,7 @@ TEST_F(ValidationTest,
                    .EndAt(snapshot.documents().at(0))
                    .AddSnapshotListener(
                        [](const QuerySnapshot&, Error, const std::string&) {}),
-               FirestoreException);
+               std::exception);
 
   Await(TestFirestore()->EnableNetwork());
   Await(future);
@@ -655,7 +642,7 @@ TEST_F(ValidationTest, QueriesMustNotHaveMoreComponentsThanOrderBy) {
   try {
     query.StartAt({FieldValue::Integer(1), FieldValue::Integer(2)});
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(reason, exception.what());
   }
   try {
@@ -663,7 +650,7 @@ TEST_F(ValidationTest, QueriesMustNotHaveMoreComponentsThanOrderBy) {
                                   FieldValue::Integer(2),
                                   FieldValue::Integer(3)});
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(reason, exception.what());
   }
 }
@@ -674,7 +661,7 @@ TEST_F(ValidationTest, QueryOrderByKeyBoundsMustBeStringsWithoutSlashes) {
   try {
     query.StartAt({FieldValue::Integer(1)});
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Invalid query. Expected a string for document ID in startAt(), but "
         "got 1.",
@@ -683,7 +670,7 @@ TEST_F(ValidationTest, QueryOrderByKeyBoundsMustBeStringsWithoutSlashes) {
   try {
     query.StartAt({FieldValue::String("foo/bar")});
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Invalid query. When querying a collection and ordering by "
         "FieldPath.documentId(), the value passed to startAt() must be a plain "
@@ -698,7 +685,7 @@ TEST_F(ValidationTest, QueriesWithDifferentInequalityFieldsFail) {
         .WhereGreaterThan("x", FieldValue::Integer(32))
         .WhereLessThan("y", FieldValue::String("cat"));
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "All where filters with an inequality (notEqualTo, notIn, lessThan, "
         "lessThanOrEqualTo, greaterThan, or greaterThanOrEqualTo) must be on "
@@ -717,13 +704,13 @@ TEST_F(ValidationTest, QueriesWithInequalityDifferentThanFirstOrderByFail) {
   try {
     collection.WhereGreaterThan("x", FieldValue::Integer(32)).OrderBy("y");
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(reason, exception.what());
   }
   try {
     collection.OrderBy("y").WhereGreaterThan("x", FieldValue::Integer(32));
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(reason, exception.what());
   }
   try {
@@ -731,14 +718,14 @@ TEST_F(ValidationTest, QueriesWithInequalityDifferentThanFirstOrderByFail) {
         .OrderBy("y")
         .OrderBy("x");
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(reason, exception.what());
   }
   try {
     collection.OrderBy("y").OrderBy("x").WhereGreaterThan(
         "x", FieldValue::Integer(32));
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(reason, exception.what());
   }
 }
@@ -749,7 +736,7 @@ TEST_F(ValidationTest, QueriesWithMultipleArrayContainsFiltersFail) {
         .WhereArrayContains("foo", FieldValue::Integer(1))
         .WhereArrayContains("foo", FieldValue::Integer(2));
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Invalid Query. You cannot use more than one 'array_contains' filter.",
         exception.what());
@@ -762,7 +749,7 @@ TEST_F(ValidationTest, QueriesMustNotSpecifyStartingOrEndingPointAfterOrderBy) {
   try {
     query.StartAt({FieldValue::Integer(1)}).OrderBy("bar");
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Invalid query. You must not call Query.startAt() or "
         "Query.startAfter() before calling Query.orderBy().",
@@ -771,7 +758,7 @@ TEST_F(ValidationTest, QueriesMustNotSpecifyStartingOrEndingPointAfterOrderBy) {
   try {
     query.StartAfter({FieldValue::Integer(1)}).OrderBy("bar");
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Invalid query. You must not call Query.startAt() or "
         "Query.startAfter() before calling Query.orderBy().",
@@ -780,7 +767,7 @@ TEST_F(ValidationTest, QueriesMustNotSpecifyStartingOrEndingPointAfterOrderBy) {
   try {
     query.EndAt({FieldValue::Integer(1)}).OrderBy("bar");
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Invalid query. You must not call Query.endAt() or "
         "Query.endBefore() before calling Query.orderBy().",
@@ -789,7 +776,7 @@ TEST_F(ValidationTest, QueriesMustNotSpecifyStartingOrEndingPointAfterOrderBy) {
   try {
     query.EndBefore({FieldValue::Integer(1)}).OrderBy("bar");
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Invalid query. You must not call Query.endAt() or "
         "Query.endBefore() before calling Query.orderBy().",
@@ -804,7 +791,7 @@ TEST_F(ValidationTest,
     collection.WhereGreaterThanOrEqualTo(FieldPath::DocumentId(),
                                          FieldValue::String(""));
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Invalid query. When querying with FieldPath.documentId() you must "
         "provide a valid document ID, but it was an empty string.",
@@ -815,7 +802,7 @@ TEST_F(ValidationTest,
     collection.WhereGreaterThanOrEqualTo(FieldPath::DocumentId(),
                                          FieldValue::String("foo/bar/baz"));
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Invalid query. When querying a collection by FieldPath.documentId() "
         "you must provide a plain document ID, but 'foo/bar/baz' contains a "
@@ -827,7 +814,7 @@ TEST_F(ValidationTest,
     collection.WhereGreaterThanOrEqualTo(FieldPath::DocumentId(),
                                          FieldValue::Integer(1));
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Invalid query. When querying with FieldPath.documentId() you must "
         "provide a valid String or DocumentReference, but it was of type: "
@@ -839,7 +826,7 @@ TEST_F(ValidationTest,
     collection.WhereArrayContains(FieldPath::DocumentId(),
                                   FieldValue::Integer(1));
     FAIL() << "should throw exception";
-  } catch (const FirestoreException& exception) {
+  } catch (const std::exception& exception) {
     EXPECT_STREQ(
         "Invalid query. You can't perform 'array_contains' queries on "
         "FieldPath.documentId().",
