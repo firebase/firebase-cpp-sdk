@@ -111,17 +111,18 @@ firebase::FutureBase FirebaseTest::RunWithRetryBase(
     // Roughly exponential backoff for the retries.
     100, 1000, 5000, 10000, 30000
   };
-  const int kMaxRetries = sizeof(kRetryDelaysMs) / sizeof(kRetryDelaysMs[0]);
+  const int kNumAttempts = 1+(sizeof(kRetryDelaysMs) / sizeof(kRetryDelaysMs[0]));
 
   int attempt = 0;
   firebase::FutureBase future;
 
-  while (attempt < kMaxRetries) {
+  while (attempt < kNumAttempts) {
     future = run_future(context);
-    if (attempt >= kMaxRetries) {
+    if (attempt == kNumAttempts-1) {
       // This is the last attempt, return immediately.
       break;
     }
+
     // Wait for completion, then check status and error.
     while (future.status() == firebase::kFutureStatusPending) {
       app_framework::ProcessEvents(100);
@@ -130,13 +131,13 @@ firebase::FutureBase FirebaseTest::RunWithRetryBase(
       app_framework::LogDebug(
           "RunWithRetry%s%s: Attempt %d returned invalid status",
           *name?" ":"",
-          name, attempt);
+          name, attempt+1);
     }
     else if (future.error() != expected_error) {
       app_framework::LogDebug(
           "RunWithRetry%s%s: Attempt %d returned error %d, expected %d",
           *name?" ":"",
-          name, attempt, future.error(), expected_error);
+          name, attempt+1, future.error(), expected_error);
     }
     else {
       // Future is completed and the error matches what's expected, no need to
