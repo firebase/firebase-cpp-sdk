@@ -116,13 +116,6 @@ ABSL_ATTRIBUTE_NORETURN void FailAssertion(const char* file, const char* func,
                                            const char* condition);
 
 }  // namespace internal
-
-// This is a workaround for the fact that `util::ThrowInvalidArgument` calls
-// `StringFormat` in its implementation, which leads to linkage problems due to
-// the use of `absl::string_view` in its signature.
-ABSL_ATTRIBUTE_NORETURN void ThrowInvalidArgumentIos(
-    const std::string& message);
-
 }  // namespace util
 }  // namespace firestore
 }  // namespace firebase
