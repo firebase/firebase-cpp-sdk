@@ -514,7 +514,7 @@ jobs:
     if: ${{ github.event.inputs.downloadPublicVersion != '' || github.event.inputs.downloadPreviousRun != '' }}
     steps:
       - name: fetch artifact from previous run
-        uses: dawidd6/action-download-artifact@v2.0.8
+        uses: dawidd6/action-download-artifact@v2
         if: ${{ github.event.inputs.downloadPreviousRun != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
