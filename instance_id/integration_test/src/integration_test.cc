@@ -152,7 +152,6 @@ TEST_F(FirebaseInstanceIdTest, TestGettingIdTwiceMatches) {
   WaitForCompletion(id, "GetId 2");
   EXPECT_EQ(*id.result(), first_id);
 }
-
 TEST_F(FirebaseInstanceIdTest, TestDeleteIdGivesNewIdNextTime) {
   firebase::Future<std::string> id = instance_id_->GetId();
   WaitForCompletion(id, "GetId");
@@ -163,7 +162,7 @@ TEST_F(FirebaseInstanceIdTest, TestDeleteIdGivesNewIdNextTime) {
   // sporadic network issues, so allow retrying.
   firebase::Future<void> del =
     RunWithRetry<void>([](firebase::instance_id::InstanceId* iid) {
-                   return iid->DeleteId();
+			 return iid->DeleteId();
                  }, instance_id_);
   WaitForCompletion(del, "DeleteId");
 
