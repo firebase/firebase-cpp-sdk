@@ -9,9 +9,9 @@ on:
   workflow_dispatch:
     inputs:
       commitIdToPackage:
-        description: 'Git commit ID to build and package'
+        description: 'commit ID to package'
       preserveIntermediateArtifacts:
-        description: 'Preserve intermediate artifacts?'
+        description: 'preserve intermediate artifacts?'
         default: 0
       verboseBuild:
         description: 'verbose build?'
@@ -20,9 +20,9 @@ on:
         description: 'skip integration tests?'
         default: 0
       downloadPublicVersion:
-        description: 'Public version # to run tests on'
+        description: 'public version # to test against'
       downloadPreviousRun:
-        description: 'Previous GHA Run ID to run tests on'
+        description: 'previous run # to test against'
 
 env:
   # Packaging prerequisites
