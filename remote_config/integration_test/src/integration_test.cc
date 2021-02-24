@@ -484,7 +484,9 @@ TEST_F(FirebaseRemoteConfigTest, TestGetAll) {
   ASSERT_NE(rc_, nullptr);
 
   EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
-  EXPECT_TRUE(WaitForCompletion(rc_->Fetch(), "Fetch"));
+  EXPECT_TRUE(WaitForCompletion(RunWithRetry([](RemoteConfig* rc) {
+    return rc->Fetch();
+  }, rc_), "Fetch"));
   EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
   std::map<std::string, firebase::Variant> key_values = rc_->GetAll();
   EXPECT_EQ(key_values.size(), 6);
@@ -508,8 +510,9 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchV2) {
   ASSERT_NE(rc_, nullptr);
 
   EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
-
-  EXPECT_TRUE(WaitForCompletion(rc_->Fetch(), "Fetch"));
+  EXPECT_TRUE(WaitForCompletion(RunWithRetry([](RemoteConfig* rc) {
+    return rc->Fetch();
+  }, rc_), "Fetch"));
   EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
   LogDebug("Fetch time: %lld", rc_->GetInfo().fetch_time);
   firebase::remote_config::ValueInfo value_info;

@@ -138,6 +138,69 @@ class FirebaseTest : public testing::Test {
   static bool WaitForCompletion(const firebase::FutureBase& future,
                                 const char* name, int expected_error = 0);
 
+  // Run an operation that returns a Future (via a callback), retrying with
+  // exponential backoff if the operation fails.
+  //
+  // Blocks until the operation succeeds (the Future completes, with error
+  // matching expected_error) or if the final attempt is started (in which case
+  // the Future returned may still be in progress). You should use
+  // WaitForCompletion to await the results of this function in any case.
+  //
+  // For example, to add retry, you would change:
+  //
+  // bool success = WaitForCompletion(
+  //                      auth_->DeleteUser(auth->current_user()),
+  //                      "DeleteUser");
+  // To this:
+  //
+  // bool success = WaitForCompletion(RunWithRetry(
+  //                        [](Auth* auth) {
+  //                            return auth->DeleteUser(auth->current_user());
+  //                        }, auth_), "DeleteUser"));
+  template<class CallbackType, class ContextType>
+  static firebase::FutureBase RunWithRetry(
+      CallbackType run_future_typed,
+      ContextType* context_typed,
+      const char* name = "",
+      int expected_error = 0) {
+    struct RunData { CallbackType callback; ContextType* context; };
+    RunData run_data = { run_future_typed, context_typed };
+    return RunWithRetryBase(
+       [](void*ctx) {
+         CallbackType callback = static_cast<RunData*>(ctx)->callback;
+         ContextType* context = static_cast<RunData*>(ctx)->context;
+         return static_cast<firebase::FutureBase>(callback(context));
+       },
+       static_cast<void*>(&run_data),name, expected_error);
+  }
+
+  // Same as RunWithRetry, but templated to return a Future<ResultType>
+  // rather than a FutureBase, in case you want to use the result data
+  // of the Future. You need to explicitly provide the template parameter,
+  // e.g. RunWithRetry<int>(..) to return a Future<int>.
+  template<class ResultType, class CallbackType, class ContextType>
+  static firebase::Future<ResultType> RunWithRetry(
+      CallbackType run_future_typed,
+      ContextType* context_typed,
+      const char* name = "",
+      int expected_error = 0) {
+    struct RunData { CallbackType callback; ContextType* context; };
+    RunData run_data = { run_future_typed, context_typed };
+    firebase::FutureBase result_base = RunWithRetryBase(
+       [](void*ctx) {
+         CallbackType callback = static_cast<RunData*>(ctx)->callback;
+         ContextType* context = static_cast<RunData*>(ctx)->context;
+         // The following line checks that CallbackType actually returns a
+         // Future<ResultType>. If it returns any other type, the compiler will
+         // complain about implicit conversion to Future<ResultType> here.
+         firebase::Future<ResultType> future_result = callback(context);
+         return static_cast<firebase::FutureBase>(future_result);
+       },
+       static_cast<void*>(&run_data),name, expected_error);
+    // Future<T> and FutureBase are reinterpret_cast-compatible, by design.
+    return *reinterpret_cast<firebase::Future<ResultType>*>(&result_base);
+  }
+
   // Blocking HTTP request helper function, for testing only.
   static bool SendHttpGetRequest(
       const char* url, const std::map<std::string, std::string>& headers,
@@ -161,10 +224,20 @@ class FirebaseTest : public testing::Test {
   // false if it failed.
   static bool Base64Decode(const std::string& input, std::string* output);
 
+
   firebase::App* app_;
   static int argc_;
   static char** argv_;
   static bool found_config_;
+
+private:
+  // Untyped version of RunWithRetry, with implementation.
+  // This is kept private because the templated version should be used instead,
+  // for type safety.
+  static firebase::FutureBase RunWithRetryBase(
+      firebase::FutureBase (*run_future)(void* context),
+      void* context,
+      const char* name, int expected_error);
 };
 
 }  // namespace firebase_test_framework

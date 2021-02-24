@@ -152,14 +152,18 @@ TEST_F(FirebaseInstanceIdTest, TestGettingIdTwiceMatches) {
   WaitForCompletion(id, "GetId 2");
   EXPECT_EQ(*id.result(), first_id);
 }
-
 TEST_F(FirebaseInstanceIdTest, TestDeleteIdGivesNewIdNextTime) {
   firebase::Future<std::string> id = instance_id_->GetId();
   WaitForCompletion(id, "GetId");
   EXPECT_NE(*id.result(), "");
   std::string first_id = *id.result();
 
-  firebase::Future<void> del = instance_id_->DeleteId();
+  // Try deleting the IID, but it can sometimes fail due to
+  // sporadic network issues, so allow retrying.
+  firebase::Future<void> del =
+    RunWithRetry<void>([](firebase::instance_id::InstanceId* iid) {
+                         return iid->DeleteId();
+                       }, instance_id_);
   WaitForCompletion(del, "DeleteId");
 
   // Ensure that we now get a different IID.
