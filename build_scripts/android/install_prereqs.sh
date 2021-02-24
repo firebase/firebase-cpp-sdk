@@ -20,7 +20,7 @@ else
     # Github runners.
     for retry in {1..10} error; do
 	if [[ $retry == "error" ]]; then exit 5; fi
-	curl -LSs \
+	curl --http1.1 -LSs \
              "https://download.sysinternals.com/files/Strings.zip" \
              --output Strings.zip && break
 	sleep 300
