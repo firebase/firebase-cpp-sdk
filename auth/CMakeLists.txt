@@ -188,11 +188,11 @@ endif()
 if(ANDROID)
   firebase_cpp_proguard_file(auth)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_auth
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_auth
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_auth
+                        PUBLIC "-fembed-bitcode")
 
   setup_pod_headers(
     firebase_auth

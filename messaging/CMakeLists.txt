@@ -110,11 +110,11 @@ endif()
 if(ANDROID)
   firebase_cpp_proguard_file(messaging)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_messaging
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_messaging
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_messaging
+                        PUBLIC "-fembed-bitcode")
 
   setup_pod_headers(
     firebase_messaging

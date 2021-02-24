@@ -66,6 +66,11 @@ if (NOT PROTOBUF_FOUND)
 else()
   # Generates config.pb.c and config.pb.h
   NANOPB_GENERATE_CPP(PROTO_SRCS PROTO_HDRS src_protos/config.proto)
+  # Remove pb_common.c and pb_decode.c from PROTO_SRCS, as they are
+  # provided by Firebase App. Including them here causes symbols to
+  # have multiple definitions.
+  list(FILTER PROTO_SRCS EXCLUDE REGEX "/pb_.*\\.c")
+
   set(desktop_SRCS
       ${PROTO_SRCS}
       ${PROTO_HDRS}
@@ -111,6 +116,7 @@ else()
   set(additional_link_LIB
       firebase_rest_lib
       firebase_instance_id_desktop_impl
+      protobuf-nanopb-static
       flatbuffers)
 endif()
 
@@ -149,11 +155,11 @@ endif()
 if(ANDROID)
   firebase_cpp_proguard_file(remote_config)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_remote_config
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_remote_config
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_remote_config
+                        PUBLIC "-fembed-bitcode")
 
   setup_pod_headers(
     firebase_remote_config

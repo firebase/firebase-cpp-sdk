@@ -366,11 +366,11 @@ endif()
 if(ANDROID)
   firebase_cpp_proguard_file(app)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_app
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_app
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_app
+                        PUBLIC "-fembed-bitcode")
 
   # Add empty include path to get root include folder '.'
   setup_pod_headers(
