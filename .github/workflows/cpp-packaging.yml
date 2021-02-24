@@ -3,7 +3,7 @@ on:
   push:
     branches:
       # Run a full packaging step any time a new branch is merged into dev.
-      - dev
+      - main
   schedule:
     - cron: "0 9 * * *"  # 9am UTC = 1am PST / 2am PDT
   workflow_dispatch:
