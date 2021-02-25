@@ -20,7 +20,7 @@ else
     # Github runners.
     for retry in {1..10} error; do
 	if [[ $retry == "error" ]]; then exit 5; fi
-	curl --http1.1 -LSs \
+	curl -LSs \
              "https://download.sysinternals.com/files/Strings.zip" \
              --output Strings.zip && break
 	sleep 300
@@ -74,7 +74,7 @@ if [[ -z "${NDK_ROOT}" || -z $(grep "Pkg\.Revision = 16\." "${NDK_ROOT}/source.p
 	# Github runners.
 	for retry in {1..10} error; do
 	    if [[ $retry == "error" ]]; then exit 5; fi
-	    curl -LSs \
+	    curl --http1.1 -LSs \
 		 "https://dl.google.com/android/repository/android-ndk-r16b-${platform}-x86_64.zip" \
 		 --output /tmp/android-ndk-r16b.zip && break
 	    sleep 300
