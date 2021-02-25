@@ -25,6 +25,7 @@ table Request {
 
   appId:string;
   countryCode:string;
+  languageCode:string;
   platformVersion:string;
   timeZone:string;
   appVersion:string;

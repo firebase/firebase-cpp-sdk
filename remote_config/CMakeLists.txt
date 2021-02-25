@@ -64,8 +64,6 @@ if (NOT PROTOBUF_FOUND)
             to OFF to disable the firebase_remote_config build target.")
   endif()
 else()
-  # Generates config.pb.c and config.pb.h
-  NANOPB_GENERATE_CPP(PROTO_SRCS PROTO_HDRS src_protos/config.proto)
   set(desktop_SRCS
       ${PROTO_SRCS}
       ${PROTO_HDRS}
@@ -83,8 +81,6 @@ else()
       src/desktop/remote_config_desktop.cc
       src/desktop/remote_config_request.cc
       src/desktop/remote_config_response.cc
-      src/desktop/rest_nanopb_decode.cc
-      src/desktop/rest_nanopb_encode.cc
   )
 endif()
 
@@ -105,7 +101,6 @@ if(ANDROID OR IOS OR use_stub)
 else()
   set(additional_include_DIR
       ${FLATBUFFERS_SOURCE_DIR}/include
-      ${NANOPB_INCLUDE_DIRS}
       ${PROJECT_BINARY_DIR}
       ${PROJECT_BINARY_DIR}/..)
   set(additional_link_LIB

@@ -30,12 +30,11 @@
 #include "app/rest/util.h"
 #include "app/src/app_common.h"
 #include "app/src/base64.h"
+#include "app/src/locale.h"
 #include "app/src/log.h"
 #include "app/src/uuid.h"
 #include "remote_config/src/common.h"
 #include "remote_config/src/desktop/config_data.h"
-#include "remote_config/src/desktop/rest_nanopb_decode.h"
-#include "remote_config/src/desktop/rest_nanopb_encode.h"
 
 namespace firebase {
 namespace remote_config {
@@ -152,6 +151,13 @@ void RemoteConfigREST::SetupRestRequest(
       app_instance_id_token_);  // TODO(cynthiajiang) change to installations
 
   rc_request_.SetPlatformVersion("2");
+  std::string locale = firebase::internal::GetLocale();
+  if (locale.length() != 0) {
+    rc_request_.SetLanguageCode(locale);
+    rc_request_.SetCountryCode(
+        locale.substr(0, 2));  // get country code from locale
+  }
+  rc_request_.SetTimeZone(firebase::internal::GetTimezone());
   rc_request_.SetPackageName(app_package_name_);
   rc_request_.SetSdkVersion(std::to_string(
       SDK_MAJOR_VERSION * 10000 + SDK_MINOR_VERSION * 100 + SDK_PATCH_VERSION));
@@ -159,60 +165,14 @@ void RemoteConfigREST::SetupRestRequest(
   rc_request_.UpdatePost();
 }
 
-ConfigFetchRequest RemoteConfigREST::GetFetchRequestData() {
-  ConfigFetchRequest request = ConfigFetchRequest();
-  GetPackageData(&request.package_data);
-
-  request.client_version = 2;
-  request.device_type = 5;  // DESKTOP
-#if FIREBASE_PLATFORM_WINDOWS
-  request.device_subtype = 8;  // WINDOWS
-#elif FIREBASE_PLATFORM_OSX
-  request.device_subtype = 9;  // OS X
-#elif FIREBASE_PLATFORM_LINUX
-  request.device_subtype = 10;  // LINUX
-#else
-#error Unknown operating system.
-#endif
-  return Move(request);
-}
-
-void RemoteConfigREST::GetPackageData(PackageData* package_data) {
-  package_data->package_name = app_package_name_;
-  package_data->gmp_project_id = app_gmp_project_id_;
-
-  package_data->namespace_digest = configs_.metadata.digest_by_namespace();
-
-  // Check if developer mode enable
-  if (configs_.metadata.GetSetting(kConfigSettingDeveloperMode) == "1") {
-    package_data->custom_variable[kDeveloperModeKey] = "1";
-  }
-
-  package_data->app_instance_id = app_instance_id_;
-  package_data->app_instance_id_token = app_instance_id_token_;
-
-  package_data->requested_cache_expiration_seconds = 0;
-
-  if (configs_.fetched.timestamp() == 0) {
-    package_data->fetched_config_age_seconds = -1;
-  } else {
-    package_data->fetched_config_age_seconds = static_cast<int32_t>(
-        (MillisecondsSinceEpoch() - configs_.fetched.timestamp()) / 1000);
-  }
-
-  package_data->sdk_version =
-      SDK_MAJOR_VERSION * 10000 + SDK_MINOR_VERSION * 100 + SDK_PATCH_VERSION;
-
-  if (configs_.active.timestamp() == 0) {
-    package_data->active_config_age_seconds = -1;
-  } else {
-    package_data->active_config_age_seconds = static_cast<int32_t>(
-        (MillisecondsSinceEpoch() - configs_.active.timestamp()) / 1000);
-  }
-}
-
 void RemoteConfigREST::ParseRestResponse() {
   if (rc_response_.status() != kHTTPStatusOk) {
+    FetchFailure(kFetchFailureReasonError);
+    LogError("fetching failure: http code %d", rc_response_.status());
+    return;
+  }
+
+  if (strlen(rc_response_.GetBody()) == 0) {
     FetchFailure(kFetchFailureReasonError);
     LogError("fetching failure: http code %d", rc_response_.status());
     return;
