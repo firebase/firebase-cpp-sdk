@@ -19,12 +19,16 @@
 #include <string>
 #include <thread>  // NOLINT
 
-#include "app/src/reference_counted_future_impl.h"
 #include "firebase/app.h"
+#include "app/src/mutex.h"
+#include "app/src/reference_counted_future_impl.h"
+#include "app/src/safe_reference.h"
+#include "app/src/scheduler.h"
 #include "firebase/future.h"
 #include "remote_config/src/desktop/config_data.h"
 #include "remote_config/src/desktop/file_manager.h"
 #include "remote_config/src/desktop/notification_channel.h"
+#include "remote_config/src/desktop/rest.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
 #ifdef FIREBASE_TESTING
@@ -38,6 +42,8 @@
 namespace firebase {
 namespace remote_config {
 namespace internal {
+
+const char* const kFutureNoErrorMessage = "No Error Message";
 
 // Remote Config Client implementation for Desktop support.
 //
@@ -82,10 +88,9 @@ class RemoteConfigInternal {
   Future<void> Fetch(uint64_t cache_expiration_in_seconds);
   Future<void> FetchLastResult();
 
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
   Future<void> SetConfigSettings(ConfigSettings settings);
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
   Future<void> SetConfigSettingsLastResult();
+  ConfigSettings GetConfigSettings();
 
 #ifndef SWIG
   Future<void> SetDefaults(const ConfigKeyValueVariant* defaults,
@@ -120,8 +125,12 @@ class RemoteConfigInternal {
 
   static bool IsBoolTrue(const std::string& str);
   static bool IsBoolFalse(const std::string& str);
+  static bool ConvertToBool(const std::string& from, bool* out);
   static bool IsLong(const std::string& str);
+  static bool ConvertToLong(const std::string& from, int64_t* out);
   static bool IsDouble(const std::string& str);
+  static bool ConvertToDouble(const std::string& from, double* out);
+  static Variant StringToVariant(const std::string& from);
 
   bool Initialized() const;
   void Cleanup();
@@ -130,10 +139,6 @@ class RemoteConfigInternal {
   // Open a new thread for saving state in the file. Thread will wait
   // notifications in loop from the `save_channel_` until it will be closed.
   void AsyncSaveToFile();
-
-  // Open a new thread for fetching fresh config. Thread will wait nofitications
-  // in loop from the `fetch_channel_` until it will be closed.
-  void AsyncFetch();
 
   void InternalInit();
 
@@ -149,17 +154,19 @@ class RemoteConfigInternal {
   // Returns true and assigns the found record to the `value` if the `active` or
   // `defaults` holders contains a record for the key.
   //
-  // Assing `info->source` If info is not nullptr.
+  // Assign `info->source` If info is not nullptr.
   bool CheckValueInActiveAndDefault(const char* key,
                                     ValueInfo* info, std::string* value);
 
   // Returns true and assigns the found record to the `value` if the `holder`
   // contains a record for the key.
   //
-  // Assing `info->source` If info is not nullptr.
+  // Assign `info->source` If info is not nullptr.
   bool CheckValueInConfig(const NamespacedConfigData& config,
                           ValueSource source, const char* key, ValueInfo* info,
                           std::string* value);
+
+  void FetchInternal();
 
   static const char* const kDefaultNamespace;
   static const char* const kDefaultValueForString;
@@ -190,36 +197,34 @@ class RemoteConfigInternal {
   // `configs_` variable. Call `save_channel_.Close()` to close the channel.
   NotificationChannel save_channel_;
 
-  // Used for fetching the fresh config in background. Will be created in the
-  // constructor and removed in the destructor.
-  //
-  // Wait notifications in loop from `fetch_channel_` until it will be closed.
-  std::thread fetch_thread_;
-
-  // Thread safety notification channel.
-  //
-  // Call non blocking `fetch_channel_.Put()` function to fetch config. Call
-  // `fetch_channel_.Close()` to close the channel.
-  NotificationChannel fetch_channel_;
-
-  // Create new FutureHandle when it's possible to start fetching and complete
-  // future with `fetch_handle_` after fetching.
-  firebase::SafeFutureHandle<void> fetch_handle_;
-
   // Last value of `Fetch` function argument. Update only if we will fetch.
   uint64_t cache_expiration_in_seconds_;
 
   // Avoid using more than one fetching process per time.
   //
-  // Call `fetch_channel_.Put()` and assing `true` only if value is
+  // Call `fetch_channel_.Put()` and assign `true` only if value is
   // `false`. Fetching thread will notify and fetch config. When fetching
   // will finish it will be assigned to `false`.
   bool is_fetch_process_have_task_;
 
-  mutable std::mutex mutex_;
+  mutable Mutex internal_mutex_;
 
-  /// Handle calls from Futures that the API returns.
+  // Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl_;
+
+  scheduler::Scheduler scheduler_;
+
+  // Safe reference to this.  Set in constructor and cleared in destructor
+  // Should be safe to be copied in any thread because the SharedPtr never
+  // changes, until safe_this_ is completely destroyed.
+  typedef firebase::internal::SafeReference<RemoteConfigInternal> ThisRef;
+  typedef firebase::internal::SafeReferenceLock<RemoteConfigInternal>
+      ThisRefLock;
+  ThisRef safe_this_;
+
+  RemoteConfigREST rest_;
+  bool initialized_;
+  ConfigSettings config_settings_;
 };
 
 }  // namespace internal

@@ -1,0 +1,67 @@
+name: Android Builds
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+env:
+  CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+
+jobs:
+  build:
+    name: android-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows temporarily removed while broken
+        os: [ubuntu-latest, macos-latest]
+        architecture: ["x64"]
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Set env variables for subsequent steps (all)
+        shell: bash
+        run: |
+          echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.architecture }}" >> $GITHUB_ENV
+          echo "GHA_INSTALL_CCACHE=1" >> $GITHUB_ENV
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+          architecture: ${{ matrix.architecture }}
+
+      - name: Add msbuild to PATH
+        if: startsWith(matrix.os, 'windows')
+        uses: microsoft/setup-msbuild@v1.0.2
+
+      - name: Install prerequisites
+        shell: bash
+        run: |
+          build_scripts/android/install_prereqs.sh
+
+      - name: Cache ccache files
+        id: cache_ccache
+        uses: actions/cache@v2
+        with:
+          path: ccache_dir
+          key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+
+      - name: Build SDK
+        shell: bash
+        run: |
+          build_scripts/android/build.sh android_build .
+
+      - name: Stats for ccache (mac and linux)
+        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
+        run: ccache -s
+
+      - name: Print built libraries
+        shell: bash
+        run: |
+          find android_build -name "*.aar"
+          find android_build -name "*.jar"

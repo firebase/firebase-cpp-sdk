@@ -143,7 +143,14 @@ const char* kCppRuntimeOrStl = "libcpp";
 
 #elif FIREBASE_PLATFORM_LINUX
 const char* kOperatingSystem = "linux";
+
+#if defined(_GLIBCXX_UTILITY)
 const char* kCppRuntimeOrStl = "gnustl";
+#elif defined(_LIBCPP_STD_VER)
+const char* kCppRuntimeOrStl = "libcpp";
+#else
+#error Unknown Linux STL.
+#endif  // STL
 
 #if __amd64__
 const char* kCpuArchitecture = "x86_64";
@@ -262,12 +269,14 @@ App* AddApp(App* app, std::map<std::string, InitResult>* results) {
   if (IsDefaultAppName(app->name())) {
     assert(!g_default_app);
     g_default_app = app;
-    created_first_app = true;
   }
   UniquePtr<AppData> app_data = MakeUnique<AppData>();
   app_data->app = app;
   app_data->cleanup_notifier.RegisterOwner(app);
-  if (!g_apps) g_apps = new std::map<std::string, UniquePtr<AppData>>();
+  if (!g_apps) {
+    g_apps = new std::map<std::string, UniquePtr<AppData>>();
+    created_first_app = true;
+  }
   (*g_apps)[std::string(app->name())] = app_data;
   // Create a cleanup notifier for the app.
   {

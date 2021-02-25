@@ -11,7 +11,7 @@
 #include "firestore/src/ios/firestore_ios.h"
 #include "firestore/src/ios/promise_factory_ios.h"
 #include "firestore/src/ios/user_data_converter_ios.h"
-#include "Firestore/core/src/firebase/firestore/api/document_reference.h"
+#include "Firestore/core/src/api/document_reference.h"
 
 namespace firebase {
 namespace firestore {
@@ -39,17 +39,13 @@ class DocumentReferenceInternal {
   CollectionReference Collection(const std::string& collection_path);
 
   Future<DocumentSnapshot> Get(Source source);
-  Future<DocumentSnapshot> GetLastResult();
 
   Future<void> Set(const MapFieldValue& data, const SetOptions& options);
-  Future<void> SetLastResult();
 
   Future<void> Update(const MapFieldValue& data);
   Future<void> Update(const MapFieldPathValue& data);
-  Future<void> UpdateLastResult();
 
   Future<void> Delete();
-  Future<void> DeleteLastResult();
 
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
@@ -57,7 +53,8 @@ class DocumentReferenceInternal {
 
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
-      std::function<void(const DocumentSnapshot&, Error)> callback);
+      std::function<void(const DocumentSnapshot&, Error, const std::string&)>
+          callback);
 
   const api::DocumentReference& document_reference_core() const {
     return reference_;

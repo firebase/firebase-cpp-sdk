@@ -1,94 +1,52 @@
 #include "firestore/src/android/server_timestamp_behavior_android.h"
 
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/loader.h"
+
 namespace firebase {
 namespace firestore {
+namespace {
+
+using jni::Env;
+using jni::Local;
+using jni::Object;
+using jni::StaticField;
 
 using ServerTimestampBehavior = DocumentSnapshot::ServerTimestampBehavior;
 
-// clang-format off
-#define SERVER_TIMESTAMP_BEHAVIOR_METHODS(X)                \
-  X(Name, "name", "()Ljava/lang/String;")
-#define SERVER_TIMESTAMP_BEHAVIOR_FIELDS(X)                 \
-  X(None, "NONE",                                           \
-    "Lcom/google/firebase/firestore/DocumentSnapshot$"      \
-    "ServerTimestampBehavior;",                             \
-    util::kFieldTypeStatic),                                \
-  X(Estimate, "ESTIMATE",                                   \
-    "Lcom/google/firebase/firestore/DocumentSnapshot$"      \
-    "ServerTimestampBehavior;",                             \
-    util::kFieldTypeStatic),                                \
-  X(Previous, "PREVIOUS",                                   \
-    "Lcom/google/firebase/firestore/DocumentSnapshot$"      \
-    "ServerTimestampBehavior;",                             \
-    util::kFieldTypeStatic),                                \
-  X(Default, "DEFAULT",                                     \
-    "Lcom/google/firebase/firestore/DocumentSnapshot$"      \
-    "ServerTimestampBehavior;",                             \
-    util::kFieldTypeStatic)
-// clang-format on
+constexpr char kClass[] = PROGUARD_KEEP_CLASS
+    "com/google/firebase/firestore/DocumentSnapshot$ServerTimestampBehavior";
 
-METHOD_LOOKUP_DECLARATION(server_timestamp_behavior,
-                          SERVER_TIMESTAMP_BEHAVIOR_METHODS,
-                          SERVER_TIMESTAMP_BEHAVIOR_FIELDS)
-METHOD_LOOKUP_DEFINITION(server_timestamp_behavior,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/firestore/DocumentSnapshot$"
-                         "ServerTimestampBehavior",
-                         SERVER_TIMESTAMP_BEHAVIOR_METHODS,
-                         SERVER_TIMESTAMP_BEHAVIOR_FIELDS)
+StaticField<Object> kNone(
+    "NONE",
+    "Lcom/google/firebase/firestore/DocumentSnapshot$ServerTimestampBehavior;");
+StaticField<Object> kEstimate(
+    "ESTIMATE",
+    "Lcom/google/firebase/firestore/DocumentSnapshot$ServerTimestampBehavior;");
+StaticField<Object> kPrevious(
+    "PREVIOUS",
+    "Lcom/google/firebase/firestore/DocumentSnapshot$ServerTimestampBehavior;");
 
-std::map<ServerTimestampBehavior, jobject>*
-    ServerTimestampBehaviorInternal::cpp_enum_to_java_ = nullptr;
+}  // namespace
 
-/* static */
-jobject ServerTimestampBehaviorInternal::ToJavaObject(
-    JNIEnv* env, ServerTimestampBehavior stb) {
-  return (*cpp_enum_to_java_)[stb];
-}
+Local<Object> ServerTimestampBehaviorInternal::Create(
+    Env& env, ServerTimestampBehavior stb) {
+  static_assert(
+      ServerTimestampBehavior::kDefault == ServerTimestampBehavior::kNone,
+      "default should be the same as none");
 
-/* static */
-bool ServerTimestampBehaviorInternal::Initialize(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  jobject activity = app->activity();
-  bool result = server_timestamp_behavior::CacheMethodIds(env, activity) &&
-                server_timestamp_behavior::CacheFieldIds(env, activity);
-  util::CheckAndClearJniExceptions(env);
-
-  // Cache Java enum values.
-  cpp_enum_to_java_ = new std::map<ServerTimestampBehavior, jobject>();
-  const auto add_enum = [env](ServerTimestampBehavior stb,
-                              server_timestamp_behavior::Field field) {
-    jobject value =
-        env->GetStaticObjectField(server_timestamp_behavior::GetClass(),
-                                  server_timestamp_behavior::GetFieldId(field));
-    (*cpp_enum_to_java_)[stb] = env->NewGlobalRef(value);
-    env->DeleteLocalRef(value);
-    util::CheckAndClearJniExceptions(env);
-  };
-  add_enum(ServerTimestampBehavior::kDefault,
-           server_timestamp_behavior::kDefault);
-  add_enum(ServerTimestampBehavior::kNone, server_timestamp_behavior::kNone);
-  add_enum(ServerTimestampBehavior::kEstimate,
-           server_timestamp_behavior::kEstimate);
-  add_enum(ServerTimestampBehavior::kPrevious,
-           server_timestamp_behavior::kPrevious);
-
-  return result;
-}
-
-/* static */
-void ServerTimestampBehaviorInternal::Terminate(App* app) {
-  JNIEnv* env = app->GetJNIEnv();
-  server_timestamp_behavior::ReleaseClass(env);
-  util::CheckAndClearJniExceptions(env);
-
-  // Uncache Java enum values.
-  for (auto& kv : *cpp_enum_to_java_) {
-    env->DeleteGlobalRef(kv.second);
+  switch (stb) {
+    case ServerTimestampBehavior::kNone:
+      return env.Get(kNone);
+    case ServerTimestampBehavior::kEstimate:
+      return env.Get(kEstimate);
+    case ServerTimestampBehavior::kPrevious:
+      return env.Get(kPrevious);
   }
-  util::CheckAndClearJniExceptions(env);
-  delete cpp_enum_to_java_;
-  cpp_enum_to_java_ = nullptr;
+}
+
+void ServerTimestampBehaviorInternal::Initialize(jni::Loader& loader) {
+  loader.LoadClass(kClass, kNone, kEstimate, kPrevious);
 }
 
 }  // namespace firestore

@@ -18,6 +18,7 @@
 #import "FIRAuthDataResult.h"
 #import "FIRAuthErrors.h"
 #import "FIROptions.h"
+#import "FIROAuthCredential.h"
 
 #include "app/src/app_ios.h"
 #include "app/src/assert.h"
@@ -116,6 +117,18 @@ static const struct {
     // kAuthErrorMaximumSecondFactorCountExceeded}, {FIRAuthErrorCodeUnsupportedFirstFactor,
     // kAuthErrorUnsupportedFirstFactor}, {FIRAuthErrorCodeEmailChangeNeedsVerification,
     // kAuthErrorEmailChangeNeedsVerification},
+};
+
+// A provider that wraps a Credential returned from the Firebase iOS SDK which may occur when a
+// nonce based link failure occurs due to a pre-existing account already linked with a Provider.
+// This credential may be used to attempt to sign into Firebase using that account.
+class ServiceUpdatedCredentialProvider {
+ public:
+  // Construct a Credential given a preexisting FIRAuthCredential wrapped by a
+  // FIRAuthCredentialPointer.
+  static Credential GetCredential(FIRAuthCredentialPointer* impl) {
+    return Credential(impl);
+  }
 };
 
 template<typename T>
@@ -270,6 +283,30 @@ static User* AssignUser(FIRUser *_Nullable user, AuthData *auth_data) {
   return auth_data->user_impl == nullptr ? nullptr : &auth_data->current_user;
 }
 
+std::string Auth::language_code() const {
+  if (!auth_data_) return "";
+  NSString *language_code = [AuthImpl(auth_data_) languageCode];
+  if (language_code == nil) {
+    return std::string();
+  } else {
+    return util::NSStringToString(language_code);
+  }
+}
+
+void Auth::set_language_code(const char *language_code) {
+  if (!auth_data_) return;
+  NSString *code;
+  if (language_code != nullptr) {
+    code = [NSString stringWithUTF8String:language_code];
+  }
+  AuthImpl(auth_data_).languageCode = code;
+}
+
+void Auth::UseAppLanguage() {
+  if (!auth_data_) return;
+  [AuthImpl(auth_data_) useAppLanguage];
+}
+
 AuthError AuthErrorFromNSError(NSError *_Nullable error) {
   if (!error || error.code == 0) {
     return kAuthErrorNone;
@@ -313,6 +350,13 @@ void SignInResultCallback(FIRAuthDataResult *_Nullable auth_result, NSError *_Nu
   result.info.user_name = util::StringFromNSString(auth_result.additionalUserInfo.username);
   if (auth_result.additionalUserInfo.profile) {
     util::NSDictionaryToStdMap(auth_result.additionalUserInfo.profile, &result.info.profile);
+  }
+
+  if (error.userInfo != nullptr) {
+    if (error.userInfo[FIRAuthErrorUserInfoUpdatedCredentialKey] != nullptr) {
+      result.info.updated_credential = ServiceUpdatedCredentialProvider::GetCredential(
+          new FIRAuthCredentialPointer(error.userInfo[FIRAuthErrorUserInfoUpdatedCredentialKey]));
+     }
   }
 
   ReferenceCountedFutureImpl &futures = auth_data->future_impl;

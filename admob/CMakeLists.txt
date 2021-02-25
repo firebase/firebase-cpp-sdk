@@ -80,7 +80,7 @@ set_property(TARGET firebase_admob PROPERTY FOLDER "Firebase Cpp")
 
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_admob
-    firebase_app)
+    PUBLIC firebase_app)
 # Public headers all refer to each other relative to the src/include directory,
 # while private headers are relative to the entire C++ SDK directory.
 target_include_directories(firebase_admob
@@ -104,11 +104,11 @@ if(ANDROID)
   firebase_cpp_proguard_file(admob)
 elseif(IOS)
   # AdMob for iOS uses weak references, which requires enabling Automatic
-  # Reference Counting (ARC).
-  set_property(
-    TARGET firebase_admob
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+  # Reference Counting (ARC). Also enable BitCode.
+  target_compile_options(firebase_admob
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_admob
+                        PUBLIC "-fembed-bitcode")
 
   setup_pod_headers(
     firebase_admob
@@ -119,6 +119,12 @@ elseif(IOS)
   # AdMob expects the header files to be in a subfolder, so set up a symlink to
   # accomplish that.
   symlink_pod_headers(firebase_admob Google-Mobile-Ads-SDK GoogleMobileAds)
+
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_admob PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 cpp_pack_library(firebase_admob "")

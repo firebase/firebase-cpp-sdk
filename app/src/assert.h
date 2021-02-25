@@ -45,13 +45,13 @@
 // Assert condition is true, if it's false log an assert with the specified
 // expression as a string.
 #define FIREBASE_ASSERT_WITH_EXPRESSION(condition, expression)      \
-  {                                                                 \
+  do {                                                              \
     if (!(condition)) {                                             \
-      FIREBASE_NAMESPACE::LogAssert(                                  \
+      FIREBASE_NAMESPACE::LogAssert(                                \
           FIREBASE_ASSERT_MESSAGE_PREFIX FIREBASE_EXPAND_STRINGIFY( \
               expression));                                         \
     }                                                               \
-  }
+  } while (false)
 
 // Assert condition is true, if it's false log an assert with the specified
 // expression as a string. Compiled out of release builds.
@@ -60,7 +60,7 @@
   FIREBASE_ASSERT_WITH_EXPRESSION(condition, expression)
 #else
 #define FIREBASE_DEV_ASSERT_WITH_EXPRESSION(condition, expression) \
-  { (void)(condition); }
+  (void)(condition)
 #endif  // !defined(NDEBUG)
 
 // Custom assert() implementation that is not compiled out in release builds.
@@ -111,14 +111,14 @@
 // Assert condition is true otherwise display the specified expression,
 // message and abort.
 #define FIREBASE_ASSERT_MESSAGE_WITH_EXPRESSION(condition, expression, ...) \
-  {                                                                         \
+  do {                                                                      \
     if (!(condition)) {                                                     \
-      FIREBASE_NAMESPACE::LogError(                                           \
+      FIREBASE_NAMESPACE::LogError(                                         \
           FIREBASE_ASSERT_MESSAGE_PREFIX FIREBASE_EXPAND_STRINGIFY(         \
               expression));                                                 \
-      FIREBASE_NAMESPACE::LogAssert(__VA_ARGS__);                             \
+      FIREBASE_NAMESPACE::LogAssert(__VA_ARGS__);                           \
     }                                                                       \
-  }
+  } while (false)
 
 // Assert condition is true otherwise display the specified expression,
 // message and abort. Compiled out of release builds.

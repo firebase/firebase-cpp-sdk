@@ -24,8 +24,7 @@
 namespace firebase {
 namespace firestore {
 
-using CleanupFnDocumentReference =
-    CleanupFn<DocumentReference, DocumentReferenceInternal>;
+using CleanupFnDocumentReference = CleanupFn<DocumentReference>;
 
 DocumentReference::DocumentReference() {}
 
@@ -130,20 +129,10 @@ Future<DocumentSnapshot> DocumentReference::Get(Source source) const {
   return internal_->Get(source);
 }
 
-Future<DocumentSnapshot> DocumentReference::GetLastResult() const {
-  if (!internal_) return FailedFuture<DocumentSnapshot>();
-  return internal_->GetLastResult();
-}
-
 Future<void> DocumentReference::Set(const MapFieldValue& data,
                                     const SetOptions& options) {
   if (!internal_) return FailedFuture<void>();
   return internal_->Set(data, options);
-}
-
-Future<void> DocumentReference::SetLastResult() const {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->SetLastResult();
 }
 
 Future<void> DocumentReference::Update(const MapFieldValue& data) {
@@ -156,31 +145,23 @@ Future<void> DocumentReference::Update(const MapFieldPathValue& data) {
   return internal_->Update(data);
 }
 
-Future<void> DocumentReference::UpdateLastResult() const {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->UpdateLastResult();
-}
-
 Future<void> DocumentReference::Delete() {
   if (!internal_) return FailedFuture<void>();
   return internal_->Delete();
 }
 
-Future<void> DocumentReference::DeleteLastResult() const {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->DeleteLastResult();
-}
-
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 ListenerRegistration DocumentReference::AddSnapshotListener(
-    std::function<void(const DocumentSnapshot&, Error)> callback) {
+    std::function<void(const DocumentSnapshot&, Error, const std::string&)>
+        callback) {
   return AddSnapshotListener(MetadataChanges::kExclude,
                              firebase::Move(callback));
 }
 
 ListenerRegistration DocumentReference::AddSnapshotListener(
     MetadataChanges metadata_changes,
-    std::function<void(const DocumentSnapshot&, Error)> callback) {
+    std::function<void(const DocumentSnapshot&, Error, const std::string&)>
+        callback) {
   FIREBASE_ASSERT_MESSAGE(callback, "invalid callback parameter is passed in.");
   if (!internal_) return {};
   return internal_->AddSnapshotListener(metadata_changes,

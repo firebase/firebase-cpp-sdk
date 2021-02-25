@@ -489,17 +489,6 @@ void SetUserProperty(const char* name, const char* property);
 /// Setting user_id to NULL or nullptr removes the user ID.
 void SetUserId(const char* user_id);
 
-/// @brief Sets the minimum engagement time required before starting a session.
-///
-/// @note The default value is 10000 (10 seconds).
-///
-/// @param milliseconds The minimum engagement time required to start a new
-/// session.
-///
-/// @deprecated SetMinimumSessionDuration is deprecated and no longer
-/// functional.
-FIREBASE_DEPRECATED void SetMinimumSessionDuration(int64_t milliseconds);
-
 /// @brief Sets the duration of inactivity that terminates the current session.
 ///
 /// @note The default value is 1800000 (30 minutes).

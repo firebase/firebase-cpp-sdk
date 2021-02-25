@@ -4,9 +4,10 @@
 #include <cstring>
 #include <sstream>
 
+#include "firestore/src/common/exception_common.h"
+
 namespace firebase {
 namespace firestore {
-
 namespace {
 
 /**
@@ -60,11 +61,10 @@ std::string Escape(const std::string& segment) {
 // valid.
 std::vector<std::string> SplitOnDots(const std::string& input) {
   auto fail_validation = [&input] {
-    FIREBASE_ASSERT_MESSAGE(
-        false,
-        "Invalid field path (%s). Paths must not be empty, begin with "
-        "'.', end with '.', or contain '..'",
-        input.c_str());
+    std::string message = "Invalid field path (" + input +
+                          "). Paths must not be empty, begin with '.', end "
+                          "with '.', or contain '..'";
+    SimpleThrowInvalidArgument(message);
   };
 
   // `std::getline()` considers empty input to contain zero segments, and if
@@ -120,81 +120,14 @@ bool FieldPathPortable::IsKeyFieldPath() const {
 
 FieldPathPortable FieldPathPortable::FromDotSeparatedString(
     const std::string& path) {
-  FIREBASE_ASSERT_MESSAGE(
-      path.find_first_of("~*/[]") == std::string::npos,
-      "Invalid field path (%s). Paths must not contain '~', '*', '/', '[', "
-      "or ']'",
-      path.c_str());
+  if (path.find_first_of("~*/[]") != std::string::npos) {
+    std::string message =
+        "Invalid field path (" + path +
+        "). Paths must not contain '~', '*', '/', '[', or ']'";
+    SimpleThrowInvalidArgument(message);
+  }
 
   return FieldPathPortable(SplitOnDots(path));
-}
-
-/* static */
-FieldPathPortable FieldPathPortable::FromServerFormat(const std::string& path) {
-  // The following implementation is a STLPort-compatible version of code in
-  //     Firestore/core/src/firebase/firestore/model/field_path.cc
-
-  std::vector<std::string> segments;
-  std::string segment;
-  segment.reserve(path.size());
-
-  // Inside backticks, dots are treated literally.
-  bool inside_backticks = false;
-  for (std::size_t i = 0; i < path.size(); ++i) {
-    const char c = path[i];
-    // std::string (and string_view) may contain embedded nulls. For full
-    // compatibility with Objective C behavior, finish upon encountering the
-    // first terminating null.
-    if (c == '\0') {
-      break;
-    }
-
-    switch (c) {
-      case '.':
-        if (!inside_backticks) {
-          FIREBASE_ASSERT_MESSAGE(
-              !segment.empty(),
-              "Invalid field path (%s). Paths must not be empty, begin with "
-              "'.', end with '.', or contain '..'",
-              path.c_str());
-          // Move operation will clear segment, but capacity will remain the
-          // same (not, strictly speaking, required by the standard, but true in
-          // practice).
-          segments.push_back(firebase::Move(segment));
-          segment.clear();
-        } else {
-          segment += c;
-        }
-        break;
-
-      case '`':
-        inside_backticks = !inside_backticks;
-        break;
-
-      case '\\':
-        FIREBASE_ASSERT_MESSAGE(i + 1 != path.size(),
-                                "Trailing escape characters not allowed in %s",
-                                path.c_str());
-        ++i;
-        segment += path[i];
-        break;
-
-      default:
-        segment += c;
-        break;
-    }
-  }
-  FIREBASE_ASSERT_MESSAGE(
-      !segment.empty(),
-      "Invalid field path (%s). Paths must not be empty, begin with "
-      "'.', end with '.', or contain '..'",
-      path.c_str());
-  segments.push_back(firebase::Move(segment));
-
-  FIREBASE_ASSERT_MESSAGE(!inside_backticks, "Unterminated ` in path %s",
-                          path.c_str());
-
-  return FieldPathPortable{firebase::Move(segments)};
 }
 
 /* static */

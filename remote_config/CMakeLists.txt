@@ -14,6 +14,34 @@
 
 # CMake file for the firebase_remote_config library
 
+binary_to_array("request_resource"
+    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/request.fbs"
+    "firebase::remote_config"
+    "${FIREBASE_GEN_FILE_DIR}/remote_config")
+binary_to_array("response_resource"
+    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/response.fbs"
+    "firebase::remote_config"
+    "${FIREBASE_GEN_FILE_DIR}/remote_config")
+
+# Build the generated header from the flatbuffer schema files.
+set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
+    "--no-union-value-namespacing"
+    "--gen-object-api"
+    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+set(flatbuffer_schemas
+    ${CMAKE_CURRENT_LIST_DIR}/src/desktop/request.fbs
+    ${CMAKE_CURRENT_LIST_DIR}/src/desktop/response.fbs)
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
+build_flatbuffers("${flatbuffer_schemas}"
+                  ""
+                  "remote_config_generate_request_fbs"
+                  "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
+                  "${FIREBASE_GEN_FILE_DIR}/remote_config"
+                  ""
+                  "")
+
 # Common source files used by all platforms
 set(common_SRCS
     src/common.cc
@@ -38,16 +66,28 @@ if (NOT PROTOBUF_FOUND)
 else()
   # Generates config.pb.c and config.pb.h
   NANOPB_GENERATE_CPP(PROTO_SRCS PROTO_HDRS src_protos/config.proto)
+  # Remove pb_common.c and pb_decode.c from PROTO_SRCS, as they are
+  # provided by Firebase App. Including them here causes symbols to
+  # have multiple definitions.
+  list(FILTER PROTO_SRCS EXCLUDE REGEX "/pb_.*\\.c")
+
   set(desktop_SRCS
       ${PROTO_SRCS}
       ${PROTO_HDRS}
-      src/desktop/remote_config_legacy.cc
+      ${request_resource_source}
+      ${request_resource_header}
+      ${response_resource_source}
+      ${response_resource_header}
+      ${FIREBASE_GEN_FILE_DIR}/remote_config/request_generated.h
+      ${FIREBASE_GEN_FILE_DIR}/remote_config/response_generated.h
       src/desktop/rest.cc
       src/desktop/config_data.cc
       src/desktop/file_manager.cc
       src/desktop/metadata.cc
       src/desktop/notification_channel.cc
       src/desktop/remote_config_desktop.cc
+      src/desktop/remote_config_request.cc
+      src/desktop/remote_config_response.cc
       src/desktop/rest_nanopb_decode.cc
       src/desktop/rest_nanopb_encode.cc
   )
@@ -76,6 +116,7 @@ else()
   set(additional_link_LIB
       firebase_rest_lib
       firebase_instance_id_desktop_impl
+      protobuf-nanopb-static
       flatbuffers)
 endif()
 
@@ -114,11 +155,11 @@ endif()
 if(ANDROID)
   firebase_cpp_proguard_file(remote_config)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_remote_config
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_remote_config
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_remote_config
+                        PUBLIC "-fembed-bitcode")
 
   setup_pod_headers(
     firebase_remote_config
@@ -126,6 +167,12 @@ elseif(IOS)
       FirebaseCore
       FirebaseRemoteConfig
   )
+
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_remote_config PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

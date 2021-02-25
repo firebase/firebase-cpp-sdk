@@ -1,32 +1,50 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_FUTURES_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_FUTURES_H_
 
+#include "app/meta/move.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firebase/firestore/firestore_errors.h"
 
 namespace firebase {
 namespace firestore {
-
 namespace internal {
+
 /**
- * Do not use this directly. Originally, this was inlined as a lambda. But that
- * breaks on older compilers, i.e. at least gcc-4.8.5.
+ * Returns a `ReferenceCountedFutureImpl` that can be used to create transient
+ * futures not associated with any particular API.
+ *
+ * Use with caution: futures returned publicly should be created using the
+ * `ReferenceCountedFutureImpl` associated with the actual API object.
  */
-template <typename T>
-Future<T> CreateFailedFuture(
-    ReferenceCountedFutureImpl* ref_counted_future_impl) {
-  SafeFutureHandle<T> handle = ref_counted_future_impl->SafeAlloc<T>();
-  ref_counted_future_impl->Complete(
-      handle, Error::FailedPrecondition,
-      "This instance is in an invalid state. This could either because the "
-      "underlying Firestore instance has been destructed or because you're "
-      "running on an unsupported platform. Currently the Firestore C++/Unity "
-      "SDK only supports iOS / Android devices.");
-  return Future<T>(ref_counted_future_impl, handle.get());
-}
+ReferenceCountedFutureImpl* GetSharedReferenceCountedFutureImpl();
 
 }  // namespace internal
+
+template <typename T>
+Future<T> SuccessfulFuture(T&& result) {
+  ReferenceCountedFutureImpl* api =
+      internal::GetSharedReferenceCountedFutureImpl();
+  SafeFutureHandle<T> handle = api->SafeAlloc<T>();
+
+  // The Future API doesn't directly support completing a future with a moved
+  // value. Use the callback form to work around this.
+  api->Complete(handle, Error::kErrorOk, "",
+                [&](T* future_value) { *future_value = Forward<T>(result); });
+  return Future<T>(api, handle.get());
+}
+
+/**
+ * Creates a failed future with the given error code and message.
+ */
+template <typename T>
+Future<T> FailedFuture(Error error, const char* message) {
+  ReferenceCountedFutureImpl* api =
+      internal::GetSharedReferenceCountedFutureImpl();
+  SafeFutureHandle<T> handle = api->SafeAlloc<T>();
+  api->Complete(handle, error, message);
+  return Future<T>(api, handle.get());
+}
 
 /**
  * Returns a failed future suitable for returning from a stub or "invalid"
@@ -41,11 +59,12 @@ Future<T> CreateFailedFuture(
  */
 template <typename T>
 Future<T> FailedFuture() {
-  static ReferenceCountedFutureImpl ref_counted_future_impl(
-      /*last_result_count=*/0);
-  static Future<T> future =
-      internal::CreateFailedFuture<T>(&ref_counted_future_impl);
-  return future;
+  static auto* future = new Future<T>(FailedFuture<T>(
+      Error::kErrorFailedPrecondition,
+      "This instance is in an invalid state. This could either because the "
+      "underlying Firestore instance has been destructed or because you're "
+      "running on an unsupported platform."));
+  return *future;
 }
 
 }  // namespace firestore

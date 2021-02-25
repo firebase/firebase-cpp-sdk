@@ -10,14 +10,16 @@
 #include "firestore/src/include/firebase/firestore/query.h"
 #include "firestore/src/include/firebase/firestore/query_snapshot.h"
 #include "firestore/src/include/firebase/firestore/snapshot_metadata.h"
+#include "firestore/src/jni/jni_fwd.h"
 
 namespace firebase {
 namespace firestore {
 
 class QuerySnapshotInternal : public Wrapper {
  public:
-  using ApiType = QuerySnapshot;
   using Wrapper::Wrapper;
+
+  static void Initialize(jni::Loader& loader);
 
   /**
    * @brief The query from which you get this QuerySnapshot.
@@ -59,12 +61,6 @@ class QuerySnapshotInternal : public Wrapper {
    * @return The number of documents in the QuerySnapshot.
    */
   std::size_t size() const;
-
- private:
-  friend class FirestoreInternal;
-
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
 };
 
 }  // namespace firestore

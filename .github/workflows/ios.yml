@@ -1,0 +1,40 @@
+name: iOS Builds
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+env:
+  # Xcode version 11.7 is the version we build the SDK with.
+  # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
+  xcodeVersion: "11.7"
+
+jobs:
+  build:
+    name: ios-macos-latest
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+
+    steps:
+      - name: setup Xcode version (macos)
+        if: runner.os == 'macOS'
+        run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+
+      - uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+          architecture: "x64"
+
+      - name: Install prerequisites
+        run: |
+          build_scripts/ios/install_prereqs.sh
+
+      - name: Build SDK
+        run: |
+          build_scripts/ios/build.sh -b ios_build -s .

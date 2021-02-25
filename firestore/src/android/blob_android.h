@@ -1,26 +1,24 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_BLOB_ANDROID_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_BLOB_ANDROID_H_
 
-#include <jni.h>
-
-#include "app/src/include/firebase/app.h"
+#include "firestore/src/jni/jni_fwd.h"
+#include "firestore/src/jni/object.h"
 
 namespace firebase {
 namespace firestore {
 
-class BlobInternal {
+class BlobInternal : public jni::Object {
  public:
-  static jobject BlobToJavaBlob(JNIEnv* env, const uint8_t* value, size_t size);
+  using Object::Object;
 
-  static jbyteArray JavaBlobToJbyteArray(JNIEnv* env, jobject obj);
+  static void Initialize(jni::Loader& loader);
 
-  static jclass GetClass();
+  static jni::Class GetClass();
 
- private:
-  friend class FirestoreInternal;
+  static jni::Local<BlobInternal> Create(jni::Env& env, const uint8_t* value,
+                                         size_t size);
 
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  jni::Local<jni::Array<uint8_t>> ToBytes(jni::Env& env) const;
 };
 
 }  // namespace firestore

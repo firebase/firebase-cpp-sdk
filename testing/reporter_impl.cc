@@ -30,7 +30,7 @@ void FakeReporterClass::AddReport(const char* fake,
 
 std::vector<std::string> FakeReporterClass::GetAllFakes() {
   std::vector<std::string> fakes;
-  for (auto keyvalue : reports_) {
+  for (const auto& keyvalue : reports_) {
     fakes.push_back(keyvalue.first);
   }
   return fakes;

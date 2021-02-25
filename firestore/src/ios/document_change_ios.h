@@ -5,7 +5,7 @@
 
 #include "firestore/src/include/firebase/firestore/document_change.h"
 #include "firestore/src/ios/firestore_ios.h"
-#include "Firestore/core/src/firebase/firestore/api/document_change.h"
+#include "Firestore/core/src/api/document_change.h"
 
 namespace firebase {
 namespace firestore {

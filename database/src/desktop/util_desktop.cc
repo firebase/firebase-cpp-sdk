@@ -1017,6 +1017,8 @@ std::pair<Variant, Variant> MakePost(const QueryParams& params,
       return std::make_pair(name, value);
     }
   }
+  FIREBASE_DEV_ASSERT_MESSAGE(false, "Invalid QueryParams::OrderBy");
+  return std::pair<Variant, Variant>();
 }
 
 bool HasStart(const QueryParams& params) {
@@ -1190,6 +1192,41 @@ Variant GetWireProtocolParams(const QueryParams& query_params) {
   }
 
   return result;
+}
+
+// Split a string based on specified character delimiter into constituent parts
+std::vector<std::string> split_string(const std::string& s, const char delimiter) {
+  size_t pos = 0;
+  // This index is used as the starting index to search the delimiters from.
+  size_t delimiter_search_start = 0;
+  // Skip any leading delimiters
+  while(s[delimiter_search_start] == delimiter) {
+    delimiter_search_start++;
+  }
+
+  std::vector<std::string> split_parts;
+  size_t len = s.size();
+  // Cant proceed if input string consists of just delimiters
+  if (pos >= len) {
+    return split_parts;
+  }
+
+  while((pos = s.find(delimiter, delimiter_search_start)) != std::string::npos) {
+    split_parts.push_back(s.substr(delimiter_search_start, pos-delimiter_search_start));
+
+    while(s[pos] == delimiter && pos<len) {
+      pos++;
+      delimiter_search_start = pos;
+    }
+  }
+
+  // If the input string doesn't end with a delimiter we need to push the last
+  // token into our return vector
+  if (delimiter_search_start != len) {
+    split_parts.push_back(s.substr(delimiter_search_start, len-delimiter_search_start));
+  }
+
+  return split_parts;
 }
 
 }  // namespace internal

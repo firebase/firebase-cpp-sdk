@@ -14,9 +14,9 @@
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/settings.h"
 #include "firestore/src/ios/promise_factory_ios.h"
-#include "Firestore/core/src/firebase/firestore/api/firestore.h"
-#include "Firestore/core/src/firebase/firestore/auth/credentials_provider.h"
-#include "Firestore/core/src/firebase/firestore/model/database_id.h"
+#include "Firestore/core/src/api/firestore.h"
+#include "Firestore/core/src/auth/credentials_provider.h"
+#include "Firestore/core/src/model/database_id.h"
 
 namespace firebase {
 namespace firestore {
@@ -26,6 +26,10 @@ class ListenerRegistrationInternal;
 class Transaction;
 class TransactionFunction;
 class WriteBatch;
+
+namespace util {
+class Executor;
+}
 
 class FirestoreInternal {
  public:
@@ -55,29 +59,23 @@ class FirestoreInternal {
   Query CollectionGroup(const char* collection_id) const;
 
   Settings settings() const;
-  void set_settings(const Settings& settings);
+  void set_settings(Settings settings);
 
   WriteBatch batch() const;
 
   Future<void> RunTransaction(
-      std::function<Error(Transaction*, std::string*)> update);
+      std::function<Error(Transaction&, std::string&)> update);
   Future<void> RunTransaction(TransactionFunction* update);
-  Future<void> RunTransactionLastResult();
 
   Future<void> DisableNetwork();
-  Future<void> DisableNetworkLastResult();
 
   Future<void> EnableNetwork();
-  Future<void> EnableNetworkLastResult();
 
   Future<void> Terminate();
-  Future<void> TerminateLastResult();
 
   Future<void> WaitForPendingWrites();
-  Future<void> WaitForPendingWritesLastResult();
 
   Future<void> ClearPersistence();
-  Future<void> ClearPersistenceLastResult();
 
   ListenerRegistration AddSnapshotsInSyncListener(
       EventListener<void>* listener);
@@ -92,6 +90,7 @@ class FirestoreInternal {
   void RegisterListenerRegistration(ListenerRegistrationInternal* registration);
   void UnregisterListenerRegistration(
       ListenerRegistrationInternal* registration);
+  void ClearListeners();
 
   void set_firestore_public(Firestore* firestore_public) {
     firestore_public_ = firestore_public;
@@ -103,6 +102,8 @@ class FirestoreInternal {
   const std::shared_ptr<api::Firestore>& firestore_core() const {
     return firestore_core_;
   }
+
+  static void SetClientLanguage(const std::string& language_token);
 
  private:
   friend class TestFriend;
@@ -129,8 +130,6 @@ class FirestoreInternal {
     return future_manager_.GetFutureApi(this);
   }
 
-  void ClearListeners();
-
   void ApplyDefaultSettings();
 
   App* app_ = nullptr;
@@ -145,6 +144,8 @@ class FirestoreInternal {
   // TODO(b/136119216): revamp this mechanism on both iOS and Android.
   std::mutex listeners_mutex_;
   std::unordered_set<ListenerRegistrationInternal*> listeners_;
+
+  std::shared_ptr<util::Executor> transaction_executor_;
 };
 
 }  // namespace firestore

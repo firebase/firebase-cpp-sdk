@@ -51,7 +51,7 @@ set_property(TARGET firebase_dynamic_links PROPERTY FOLDER "Firebase Cpp")
 
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_dynamic_links
-    firebase_app)
+    PUBLIC firebase_app)
 # Public headers all refer to each other relative to the src/include directory,
 # while private headers are relative to the entire C++ SDK directory.
 target_include_directories(firebase_dynamic_links
@@ -74,17 +74,23 @@ endif()
 if(ANDROID)
   firebase_cpp_proguard_file(dynamic_links)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_dynamic_links
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_dynamic_links
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_dynamic_links
+                        PUBLIC "-fembed-bitcode")
 
   setup_pod_headers(
     firebase_dynamic_links
     POD_NAMES
       FirebaseDynamicLinks
   )
+
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_dynamic_links PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 cpp_pack_library(firebase_dynamic_links "")

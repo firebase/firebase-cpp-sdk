@@ -33,9 +33,6 @@ class FirestoreInternal {
   // Default CleanupNotifier as required by the shared code; nothing more.
   CleanupNotifier& cleanup() { return cleanup_; }
 
-  // Do nothing yet for the stub.
-  void set_logging_enabled(bool logging_enabled) {}
-
   // Returns a null Collection.
   CollectionReference Collection(const char* collection_path) const {
     return CollectionReference{};
@@ -53,7 +50,7 @@ class FirestoreInternal {
   Settings settings() const { return settings_; }
 
   // Sets the settings class member. Has no effect to the stub yet.
-  void set_settings(const Settings& settings) { settings_ = settings; }
+  void set_settings(Settings settings) { settings_ = settings; }
 
   WriteBatch batch() const { return WriteBatch{}; }
 
@@ -64,31 +61,22 @@ class FirestoreInternal {
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   Future<void> RunTransaction(
-      std::function<Error(Transaction*, std::string*)> update) {
+      std::function<Error(Transaction&, std::string&)> update) {
     return FailedFuture<void>();
   }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
-  Future<void> RunTransactionLastResult() { return FailedFuture<void>(); }
-
   // Disables network and gets anything from cache instead of server.
   Future<void> DisableNetwork() { return FailedFuture<void>(); }
-
-  Future<void> DisableNetworkLastResult() { return FailedFuture<void>(); }
 
   // Re-enables network after a prior call to DisableNetwork().
   Future<void> EnableNetwork() { return FailedFuture<void>(); }
 
-  Future<void> EnableNetworkLastResult() { return FailedFuture<void>(); }
-
   Future<void> Terminate() { return FailedFuture<void>(); }
-  Future<void> TerminateLastResult() { return FailedFuture<void>(); }
 
   Future<void> WaitForPendingWrites() { return FailedFuture<void>(); }
-  Future<void> WaitForPendingWritesLastResult() { return FailedFuture<void>(); }
 
   Future<void> ClearPersistence() { return FailedFuture<void>(); }
-  Future<void> ClearPersistenceLastResult() { return FailedFuture<void>(); }
 
   ListenerRegistration AddSnapshotsInSyncListener(
       EventListener<void>* listener) {
@@ -102,8 +90,12 @@ class FirestoreInternal {
   }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
+  static void set_log_level(LogLevel level);
+
   void UnregisterListenerRegistration(
       ListenerRegistrationInternal* registration) {}
+
+  void ClearListeners() {}
 
   // The following builders are test helpers to avoid expose the details into
   // public header.
@@ -121,6 +113,8 @@ class FirestoreInternal {
   }
 
   void set_firestore_public(Firestore*) {}
+
+  static void SetClientLanguage(const std::string& language_token) {}
 
  private:
   CleanupNotifier cleanup_;

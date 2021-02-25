@@ -9,6 +9,7 @@
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/util.h"
+#include "firestore/src/common/compiler_info.h"
 #include "firestore/src/common/futures.h"
 
 #if defined(__ANDROID__)
@@ -19,12 +20,32 @@
 #include "firestore/src/ios/firestore_ios.h"
 #endif  // defined(__ANDROID__)
 
+#ifdef __APPLE__
+#include "TargetConditionals.h"
+#endif  // __APPLE__
+
 namespace firebase {
 namespace firestore {
 
 DEFINE_FIREBASE_VERSION_STRING(FirebaseFirestore);
 
 namespace {
+
+const char* GetPlatform() {
+#if defined(__ANDROID__)
+  return "gl-android/";
+#elif TARGET_OS_IOS
+  return "gl-ios/";
+#elif TARGET_OS_OSX
+  return "gl-macos/";
+#elif defined(_WIN32)
+  return "gl-windows/";
+#elif defined(__linux__)
+  return "gl-linux/";
+#else
+  return "";
+#endif
+}
 
 Mutex g_firestores_lock;  // NOLINT
 std::map<App*, Firestore*>* g_firestores = nullptr;
@@ -123,6 +144,12 @@ Firestore::Firestore(FirestoreInternal* internal)
     : internal_(internal) {
   internal_->set_firestore_public(this);
 
+  // Note: because Firestore libraries are currently distributed in
+  // a precompiled form, `GetFullCompilerInfo` will reflect the compiler used to
+  // produce the binaries. Unfortunately, there is no clear way to avoid that
+  // without breaking ODR.
+  SetClientLanguage(std::string("gl-cpp/") + GetFullCompilerInfo());
+
   if (internal_->initialized()) {
     CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app());
     assert(app_notifier);
@@ -153,6 +180,16 @@ void Firestore::DeleteInternal() {
     assert(app_notifier);
     app_notifier->UnregisterObject(this);
   }
+
+  // Make sure to clear the listeners _before_ triggering cleanup. This avoids
+  // a potential deadlock that can happen if the Firestore instance is destroyed
+  // in parallel with or shortly after a snapshot listener's invocation:
+  // - the thread on which cleanup is being executed holds the cleanup lock and
+  // tries to mute listeners, which requires the listeners' lock;
+  // - in parallel on the user callbacks' thread which holds the listeners'
+  // lock, one of the user callbacks is being destroyed, which leads to an
+  // attempt to unregister an object from cleanup, requiring the cleanup lock.
+  internal_->ClearListeners();
 
   // Force cleanup to happen first.
   internal_->cleanup().CleanupAll();
@@ -198,6 +235,11 @@ DocumentReference Firestore::Document(const std::string& document_path) const {
   return Document(document_path.c_str());
 }
 
+Query Firestore::CollectionGroup(const char* collection_id) const {
+  if (!internal_) return {};
+  return internal_->CollectionGroup(collection_id);
+}
+
 Query Firestore::CollectionGroup(const std::string& collection_id) const {
   if (!internal_) return {};
   return internal_->CollectionGroup(collection_id.c_str());
@@ -208,9 +250,9 @@ Settings Firestore::settings() const {
   return internal_->settings();
 }
 
-void Firestore::set_settings(const Settings& settings) {
+void Firestore::set_settings(Settings settings) {
   if (!internal_) return;
-  internal_->set_settings(settings);
+  internal_->set_settings(firebase::Move(settings));
 }
 
 WriteBatch Firestore::batch() const {
@@ -225,36 +267,21 @@ Future<void> Firestore::RunTransaction(TransactionFunction* update) {
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 Future<void> Firestore::RunTransaction(
-    std::function<Error(Transaction*, std::string*)> update) {
+    std::function<Error(Transaction&, std::string&)> update) {
   FIREBASE_ASSERT_MESSAGE(update, "invalid update parameter is passed in.");
   if (!internal_) return FailedFuture<void>();
   return internal_->RunTransaction(firebase::Move(update));
 }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
-Future<void> Firestore::RunTransactionLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->RunTransactionLastResult();
-}
-
 Future<void> Firestore::DisableNetwork() {
   if (!internal_) return FailedFuture<void>();
   return internal_->DisableNetwork();
 }
 
-Future<void> Firestore::DisableNetworkLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->DisableNetworkLastResult();
-}
-
 Future<void> Firestore::EnableNetwork() {
   if (!internal_) return FailedFuture<void>();
   return internal_->EnableNetwork();
-}
-
-Future<void> Firestore::EnableNetworkLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->EnableNetworkLastResult();
 }
 
 Future<void> Firestore::Terminate() {
@@ -263,29 +290,14 @@ Future<void> Firestore::Terminate() {
   return internal_->Terminate();
 }
 
-Future<void> Firestore::TerminateLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->TerminateLastResult();
-}
-
 Future<void> Firestore::WaitForPendingWrites() {
   if (!internal_) return FailedFuture<void>();
   return internal_->WaitForPendingWrites();
 }
 
-Future<void> Firestore::WaitForPendingWritesLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->WaitForPendingWritesLastResult();
-}
-
 Future<void> Firestore::ClearPersistence() {
   if (!internal_) return FailedFuture<void>();
   return internal_->ClearPersistence();
-}
-
-Future<void> Firestore::ClearPersistenceLastResult() {
-  if (!internal_) return FailedFuture<void>();
-  return internal_->ClearPersistenceLastResult();
 }
 
 #if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
@@ -303,6 +315,16 @@ ListenerRegistration Firestore::AddSnapshotsInSyncListener(
   return internal_->AddSnapshotsInSyncListener(std::move(callback));
 }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
+void Firestore::SetClientLanguage(const std::string& language_token) {
+  // TODO(b/135633112): this is a temporary measure until the Firestore backend
+  // rolls out Firebase platform logging.
+  // Note: this implementation lumps together the language and platform tokens,
+  // relying on the fact that `SetClientLanguage` doesn't validate or parse its
+  // input in any way. This is deemed acceptable because reporting the platform
+  // this way is a temporary measure.
+  FirestoreInternal::SetClientLanguage(language_token + " " + GetPlatform());
+}
 
 }  // namespace firestore
 }  // namespace firebase

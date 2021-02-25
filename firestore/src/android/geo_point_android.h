@@ -1,37 +1,28 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_GEO_POINT_ANDROID_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_GEO_POINT_ANDROID_H_
 
-#include <jni.h>
-
-#include "app/src/include/firebase/app.h"
+#include "firestore/src/jni/jni_fwd.h"
+#include "firestore/src/jni/object.h"
 #include "firebase/firestore/geo_point.h"
 
 namespace firebase {
 namespace firestore {
 
-// This is the non-wrapper Android implementation of GeoPoint. Since GeoPoint
-// has most methods inlined, we use it directly instead of wrapping around a
-// Java GeoPoint object. We still need the helper functions to convert between
-// the two types. In addition, we also need proper initializer and terminator
-// for the Java class cache/uncache.
-class GeoPointInternal {
+/** A C++ proxy for a Java `GeoPoint`. */
+class GeoPointInternal : public jni::Object {
  public:
-  using ApiType = GeoPoint;
+  using jni::Object::Object;
 
-  // Convert a C++ GeoPoint into a Java GeoPoint.
-  static jobject GeoPointToJavaGeoPoint(JNIEnv* env, const GeoPoint& point);
+  static void Initialize(jni::Loader& loader);
 
-  // Convert a Java GeoPoint into a C++ GeoPoint.
-  static GeoPoint JavaGeoPointToGeoPoint(JNIEnv* env, jobject obj);
+  static jni::Class GetClass();
 
-  // Gets the class object of Java GeoPoint class.
-  static jclass GetClass();
+  /** Creates a C++ proxy for a Java `GeoPoint` object. */
+  static jni::Local<GeoPointInternal> Create(jni::Env& env,
+                                             const GeoPoint& point);
 
- private:
-  friend class FirestoreInternal;
-
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  /** Converts a Java GeoPoint to a public C++ GeoPoint. */
+  GeoPoint ToPublic(jni::Env& env) const;
 };
 
 }  // namespace firestore

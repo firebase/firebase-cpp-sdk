@@ -17,10 +17,14 @@
 # Build the generated header from the flatbuffer schema files.
 set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
+    "--gen-generated"
     "--gen-object-api"
     "--cpp-ptr-type" "flatbuffers::unique_ptr")
 set(flatbuffer_schemas
     ${CMAKE_CURRENT_LIST_DIR}/src/android/schemas/messaging.fbs)
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
 build_flatbuffers("${flatbuffer_schemas}"
                   ""
                   "generate_messaging_fbs"
@@ -106,11 +110,11 @@ endif()
 if(ANDROID)
   firebase_cpp_proguard_file(messaging)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_messaging
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_messaging
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_messaging
+                        PUBLIC "-fembed-bitcode")
 
   setup_pod_headers(
     firebase_messaging
@@ -118,6 +122,12 @@ elseif(IOS)
       FirebaseCore
       FirebaseMessaging
   )
+
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_messaging PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

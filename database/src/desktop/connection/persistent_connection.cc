@@ -238,7 +238,7 @@ void PersistentConnection::HandleConnectStatsResponse(
   if (status != kRequestStatusOk) {
     auto error = GetStringValue(message, kServerDataUpdateBody, true);
 
-    if (LogGetLevel() > kLogLevelInfo) {
+    if (GetLogLevel() > kLogLevelInfo) {
       logger_->LogDebug("%s Failed to send stats: %s  (message: %s)",
                         log_id_.c_str(), status.c_str(), error.c_str());
     }

@@ -16,8 +16,12 @@ include(binary_to_array)
 
 set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
+    "--gen-generated"
     "--gen-object-api"
     "--cpp-ptr-type" "flatbuffers::unique_ptr")
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
 build_flatbuffers("${CMAKE_CURRENT_LIST_DIR}/testdata/sample.fbs"
                   ""
                   "app_rest_generated_includes"

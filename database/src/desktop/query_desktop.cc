@@ -136,7 +136,7 @@ class SingleValueEventRegistration : public ValueEventRegistration {
     }
   }
 
-  void FireCancelEvent(Error error) {
+  void FireCancelEvent(Error error) override {
     MutexLock lock(*listener_mutex_);
     if (single_listener_holder_ && *single_listener_holder_) {
       single_listener_holder_ = nullptr;

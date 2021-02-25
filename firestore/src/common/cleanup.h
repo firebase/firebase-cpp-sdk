@@ -3,6 +3,13 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_CLEANUP_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_CLEANUP_H_
 
+#if __ANDROID__
+#include "firestore/src/android/firestore_android.h"
+#else
+#include "firestore/src/ios/firestore_ios.h"
+#endif  // __ANDROID__
+
+#include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore/listener_registration.h"
 
 namespace firebase {
@@ -16,7 +23,8 @@ class FirestoreInternal;
 // F is almost always FirestoreInternal unless one wants something else to
 // manage the cleanup process. We define type F to make this CleanupFn
 // implementation platform-independent.
-template <typename T, typename U, typename F = FirestoreInternal>
+template <typename T, typename U = InternalType<T>,
+          typename F = FirestoreInternal>
 struct CleanupFn {
   static void Cleanup(void* obj_void) { DoCleanup(static_cast<T*>(obj_void)); }
 
@@ -47,8 +55,19 @@ struct CleanupFn {
  private:
   template <typename Object>
   static void DoCleanup(Object* obj) {
-    delete obj->internal_;
+    // Order is crucially important here: under rare conditions, during cleanup,
+    // the destructor of the `internal_` object can trigger the deletion of the
+    // containing object. For example, this can happen when the `internal_`
+    // object destroys its Future API, which deletes a Future referring to the
+    // public object containing this `internal_` object. See
+    // http://go/paste/4669581387890688 for an example of what this looks like.
+    //
+    // By setting `internal_` to null before deleting it, the destructor of the
+    // outer object is prevented from deleting `internal_` twice.
+    auto internal = obj->internal_;
     obj->internal_ = nullptr;
+
+    delete internal;
   }
 
   // `ListenerRegistration` objects differ from the common pattern.

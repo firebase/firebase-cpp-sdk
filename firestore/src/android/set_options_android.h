@@ -1,10 +1,8 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_SET_OPTIONS_ANDROID_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_SET_OPTIONS_ANDROID_H_
 
-#include <jni.h>
-
-#include "app/src/include/firebase/app.h"
 #include "firestore/src/include/firebase/firestore/set_options.h"
+#include "firestore/src/jni/jni_fwd.h"
 
 namespace firebase {
 namespace firestore {
@@ -16,25 +14,14 @@ namespace firestore {
  */
 class SetOptionsInternal {
  public:
-  using ApiType = SetOptions;
-
-  /** Get a jobject for overwrite option. */
-  static jobject Overwrite(JNIEnv* env);
-
-  /** Get a jobject for merge all option. */
-  static jobject Merge(JNIEnv* env);
+  static void Initialize(jni::Loader& loader);
 
   /** Convert a C++ SetOptions to a Java SetOptions. */
-  static jobject ToJavaObject(JNIEnv* env, const SetOptions& set_options);
+  static jni::Local<jni::Object> Create(jni::Env& env,
+                                        const SetOptions& set_options);
 
   // We do not need to convert Java SetOptions back to C++ SetOptions since
   // there is no public API that returns a SetOptions yet.
-
- private:
-  friend class FirestoreInternal;
-
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
 };
 
 }  // namespace firestore

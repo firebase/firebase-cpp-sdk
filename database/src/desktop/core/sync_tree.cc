@@ -638,7 +638,7 @@ std::vector<Event> SyncTree::RemoveEventRegistration(
       Tree<SyncPoint>* current_tree = &sync_point_tree_;
       bool covered = current_tree->value().has_value() &&
                      current_tree->value()->HasCompleteView();
-      for (std::string directory : query_spec.path.GetDirectories()) {
+      for (const std::string& directory : query_spec.path.GetDirectories()) {
         current_tree = current_tree->GetChild(directory);
         covered = covered || (current_tree->value().has_value() &&
                               current_tree->value()->HasCompleteView());
@@ -680,7 +680,7 @@ std::vector<Event> SyncTree::RemoveEventRegistration(
           listen_provider_->StopListening(QuerySpecForListening(query_spec),
                                           Tag());
         } else {
-          for (QuerySpec query_to_remove : removed) {
+          for (const QuerySpec& query_to_remove : removed) {
             Tag tag = TagForQuerySpec(query_to_remove);
             FIREBASE_DEV_ASSERT(tag.has_value());
             listen_provider_->StopListening(

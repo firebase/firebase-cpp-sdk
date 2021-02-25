@@ -131,7 +131,7 @@ class Variant {
   template <typename T>
   Variant(T value)  // NOLINT
     : type_(kInternalTypeNull) {
-    set_value_t<T>(value);
+    set_value_t(value);
   }
 
   /// @brief Construct a Variant containing the given string value (makes a
@@ -1104,14 +1104,11 @@ class Variant {
     value_.blob_value.size = size;
   }
 
-  // Templated helper function to ensure the value 0 is constructed as int
-  // instead of nullptr char*
-  //
   // If you hit a compiler error here it means you are trying to construct a
   // variant with unsupported type. Ether cast to correct type or add support
   // below.
   template <typename T>
-  void set_value_t(T value);
+  void set_value_t(T value) = delete;
 
   // Get whether this Variant contains a small string.
   bool is_small_string() const { return type_ == kInternalTypeSmallString; }
@@ -1139,7 +1136,7 @@ class Variant {
     char small_string[sizeof(BlobValue)];
   } value_;
 
-  static const size_t kMaxSmallStringSize = sizeof(Value::small_string);
+  static constexpr size_t kMaxSmallStringSize = sizeof(Value::small_string);
 
   friend class firebase::internal::VariantInternal;
 };

@@ -1,0 +1,7 @@
+# Run the following command to git5 track the required directories for the
+# Firebase-AdMob iOS test app:
+#
+#   $ git5-track-p4-depot-paths //depot_firebase_cpp/admob/client/cpp/tools/ios/testapp/p4_depot_paths
+
+//depot_firebase_cpp/app/...
+//depot_firebase_cpp/admob/...

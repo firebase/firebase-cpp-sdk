@@ -51,6 +51,7 @@ public class MessageWriter {
     String messageId = message.getMessageId();
     String messageType = message.getMessageType();
     Map<String, String> data = message.getData();
+    byte[] rawData = message.getRawData();
     Notification notification = message.getNotification();
     String collapseKey = message.getCollapseKey();
     int priority = message.getPriority();
@@ -79,6 +80,7 @@ public class MessageWriter {
         messageType,
         null,
         data,
+        rawData,
         notification,
         notificationOpened,
         link,
@@ -98,6 +100,7 @@ public class MessageWriter {
         null,
         messageId,
         messageType,
+        null,
         null,
         null,
         null,
@@ -127,6 +130,7 @@ public class MessageWriter {
       String messageType,
       String error,
       Map<String, String> data,
+      byte[] rawData,
       Notification notification,
       boolean notificationOpened,
       String link,
@@ -143,6 +147,7 @@ public class MessageWriter {
             messageType,
             error,
             data,
+            rawData,
             notification,
             notificationOpened,
             link,
@@ -204,6 +209,7 @@ public class MessageWriter {
       String messageType,
       String error,
       Map<String, String> data,
+      byte[] rawData,
       Notification notification,
       boolean notificationOpened,
       String link,
@@ -232,6 +238,10 @@ public class MessageWriter {
         dataPairOffsets[index++] = DataPair.createDataPair(builder, key, value);
       }
       dataOffset = SerializedMessage.createDataVector(builder, dataPairOffsets);
+    }
+    int rawDataOffset = 0;
+    if (rawData != null) {
+      rawDataOffset = builder.createByteVector(rawData);
     }
     int notificationOffset = 0;
     if (notification != null) {
@@ -299,6 +309,9 @@ public class MessageWriter {
     SerializedMessage.addCollapseKey(builder, collapseKeyOffset);
     if (data != null) {
       SerializedMessage.addData(builder, dataOffset);
+    }
+    if (rawData != null) {
+      SerializedMessage.addRawData(builder, rawDataOffset);
     }
     if (notification != null) {
       SerializedMessage.addNotification(builder, notificationOffset);

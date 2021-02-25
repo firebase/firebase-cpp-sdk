@@ -118,11 +118,11 @@ endif()
 if(ANDROID)
   firebase_cpp_proguard_file(storage)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC)
-  set_property(
-    TARGET firebase_storage
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_storage
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_storage
+                        PUBLIC "-fembed-bitcode")
 
   # Empty entry to point to the GTMSessionFetcher folder '.'
   setup_pod_headers(
@@ -132,6 +132,12 @@ elseif(IOS)
       FirebaseCore
       FirebaseStorage
   )
+
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_storage PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

@@ -155,14 +155,6 @@ class WriteBatch {
    */
   virtual Future<void> Commit();
 
-  /**
-   * Gets the result of the most recent call to Commit() methods.
-   *
-   * @return The result of last call to Commit() or an invalid Future, if there
-   * is no such call.
-   */
-  virtual Future<void> CommitLastResult() const;
-
  private:
   friend class FirestoreInternal;
   friend class WriteBatchInternal;

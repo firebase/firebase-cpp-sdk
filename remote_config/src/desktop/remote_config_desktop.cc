@@ -24,12 +24,9 @@
 #include <thread>  // NOLINT
 #include <vector>
 
-#include "firebase/app.h"
-#include "firebase/future.h"
+#include "app/src/callback.h"
+#include "app/src/time.h"
 #include "remote_config/src/common.h"
-#include "remote_config/src/desktop/config_data.h"
-#include "remote_config/src/desktop/file_manager.h"
-#include "remote_config/src/desktop/rest.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
 #ifndef SWIG
@@ -40,7 +37,9 @@ namespace firebase {
 namespace remote_config {
 namespace internal {
 
-const char* const RemoteConfigInternal::kDefaultNamespace = "configns:firebase";
+using callback::NewCallback;
+
+const char* const RemoteConfigInternal::kDefaultNamespace = "firebase";
 const char* const RemoteConfigInternal::kDefaultValueForString = "";
 const int64_t RemoteConfigInternal::kDefaultValueForLong = 0L;
 const double RemoteConfigInternal::kDefaultValueForDouble = 0.0;
@@ -48,12 +47,32 @@ const bool RemoteConfigInternal::kDefaultValueForBool = false;
 
 static const char* kFilePathSuffix = "remote_config_data";
 
+template <typename T>
+struct RCDataHandle {
+  RCDataHandle(
+      ReferenceCountedFutureImpl* _future_api,
+      const SafeFutureHandle<T>& _future_handle,
+      RemoteConfigInternal* _rc_internal,
+      std::vector<std::string> _default_keys = std::vector<std::string>())
+      : future_api(_future_api),
+        future_handle(_future_handle),
+        rc_internal(_rc_internal),
+        default_keys(_default_keys) {}
+  ReferenceCountedFutureImpl* future_api;
+  SafeFutureHandle<T> future_handle;
+  RemoteConfigInternal* rc_internal;
+  std::vector<std::string> default_keys;
+};
+
 RemoteConfigInternal::RemoteConfigInternal(
     const firebase::App& app, const RemoteConfigFileManager& file_manager)
     : app_(app),
       file_manager_(file_manager),
       is_fetch_process_have_task_(false),
-      future_impl_(kRemoteConfigFnCount) {
+      future_impl_(kRemoteConfigFnCount),
+      safe_this_(this),
+      rest_(app.options(), configs_, kDefaultNamespace),
+      initialized_(false) {
   InternalInit();
 }
 
@@ -61,41 +80,42 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
     : app_(app),
       file_manager_(kFilePathSuffix),
       is_fetch_process_have_task_(false),
-      future_impl_(kRemoteConfigFnCount) {
+      future_impl_(kRemoteConfigFnCount),
+      safe_this_(this),
+      rest_(app.options(), configs_, kDefaultNamespace),
+      initialized_(false) {
   InternalInit();
 }
 
 RemoteConfigInternal::~RemoteConfigInternal() {
-  fetch_channel_.Close();
-  if (fetch_thread_.joinable()) {
-    fetch_thread_.join();
-  }
-
   save_channel_.Close();
   if (save_thread_.joinable()) {
     save_thread_.join();
   }
+
+  safe_this_.ClearReference();
 }
 
 void RemoteConfigInternal::InternalInit() {
   file_manager_.Load(&configs_);
   AsyncSaveToFile();
-  AsyncFetch();
+  initialized_ = true;
 }
 
-bool RemoteConfigInternal::Initialized() const{
-  // TODO(cynthiajiang) implement
-  return true;
+bool RemoteConfigInternal::Initialized() const {
+  return initialized_;
 }
 
 void RemoteConfigInternal::Cleanup() {
-  // TODO(cynthiajiang) implement
+  // Do nothing.
 }
 
 Future<ConfigInfo> RemoteConfigInternal::EnsureInitialized() {
   const auto handle =
       future_impl_.SafeAlloc<ConfigInfo>(kRemoteConfigFnEnsureInitialized);
-  // TODO(cynthiajiang) implement
+  future_impl_.CompleteWithResult(handle, kFutureStatusSuccess,
+                                  kFutureNoErrorMessage,
+                                  rest_.metadata().info());
   return MakeFuture<ConfigInfo>(&future_impl_, handle);
 }
 
@@ -106,7 +126,9 @@ Future<ConfigInfo> RemoteConfigInternal::EnsureInitializedLastResult() {
 
 Future<bool> RemoteConfigInternal::Activate() {
   const auto handle = future_impl_.SafeAlloc<bool>(kRemoteConfigFnActivate);
-  // TODO(cynthiajiang) implement
+  bool activeResult = ActivateFetched();
+  future_impl_.CompleteWithResult(handle, kFutureStatusSuccess,
+                                  kFutureNoErrorMessage, activeResult);
   return MakeFuture<bool>(&future_impl_, handle);
 }
 
@@ -116,10 +138,63 @@ Future<bool> RemoteConfigInternal::ActivateLastResult() {
 }
 
 Future<bool> RemoteConfigInternal::FetchAndActivate() {
-  const auto handle =
+  const auto future_handle =
       future_impl_.SafeAlloc<bool>(kRemoteConfigFnFetchAndActivate);
-  // TODO(cynthiajiang) implement
-  return MakeFuture<bool>(&future_impl_, handle);
+
+  cache_expiration_in_seconds_ = kDefaultCacheExpiration;
+
+  uint64_t milliseconds_since_epoch =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::system_clock::now().time_since_epoch())
+          .count();
+
+  uint64_t cache_expiration_timestamp =
+      configs_.fetched.timestamp() +
+      ::firebase::internal::kMillisecondsPerSecond *
+          cache_expiration_in_seconds_;
+
+  // Need to fetch in two cases:
+  // - we are not fetching at this moment
+  // - cache_expiration_in_seconds is zero
+  // or
+  // - we are not fetching at this moment
+  // - cache (fetched) data is older than cache_expiration_in_seconds
+  if (!is_fetch_process_have_task_ &&
+      ((cache_expiration_in_seconds_ == 0) ||
+       (cache_expiration_timestamp < milliseconds_since_epoch))) {
+    auto data_handle =
+        MakeShared<RCDataHandle<bool>>(&future_impl_, future_handle, this);
+
+    auto callback = NewCallback(
+        [](ThisRef ref, SharedPtr<RCDataHandle<bool>> handle) {
+          ThisRefLock lock(&ref);
+          if (lock.GetReference() != nullptr) {
+            MutexLock lock(handle->rc_internal->internal_mutex_);
+
+            handle->rc_internal->FetchInternal();
+
+            FutureStatus futureResult =
+                (handle->rc_internal->GetInfo().last_fetch_status ==
+                 kLastFetchStatusSuccess)
+                    ? kFutureStatusSuccess
+                    : kFutureStatusFailure;
+
+            bool activated = handle->rc_internal->ActivateFetched();
+            handle->future_api->CompleteWithResult(
+                handle->future_handle, futureResult, kFutureNoErrorMessage,
+                activated);
+          }
+        },
+        safe_this_, data_handle);
+
+    scheduler_.Schedule(callback);
+    is_fetch_process_have_task_ = true;
+  } else {
+    // Do not fetch, complete future immediately.
+    future_impl_.CompleteWithResult(future_handle, kFutureStatusSuccess,
+                                    kFutureNoErrorMessage, false);
+  }
+  return MakeFuture<bool>(&future_impl_, future_handle);
 }
 
 Future<bool> RemoteConfigInternal::FetchAndActivateLastResult() {
@@ -132,18 +207,21 @@ Future<void> RemoteConfigInternal::SetDefaultsLastResult() {
       future_impl_.LastResult(kRemoteConfigFnSetDefaults));
 }
 
-#ifdef FIREBASE_EARLY_ACCESS_PREVIEW
 Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
   const auto handle =
       future_impl_.SafeAlloc<void>(kRemoteConfigFnSetConfigSettings);
-  // TODO(cynthiajiang) implement
+  config_settings_ = settings;
+  future_impl_.Complete(handle, kFutureStatusSuccess);
   return MakeFuture<void>(&future_impl_, handle);
 }
-#endif  // FIREBASE_EARLY_ACCESS_PREVIEW
 
 Future<void> RemoteConfigInternal::SetConfigSettingsLastResult() {
   return static_cast<const Future<void>&>(
       future_impl_.LastResult(kRemoteConfigFnSetConfigSettings));
+}
+
+ConfigSettings RemoteConfigInternal::GetConfigSettings() {
+  return config_settings_;
 }
 
 void RemoteConfigInternal::AsyncSaveToFile() {
@@ -151,7 +229,7 @@ void RemoteConfigInternal::AsyncSaveToFile() {
     while (save_channel_.Get()) {
       LayeredConfigs copy;
       {
-        std::unique_lock<std::mutex> lock(mutex_);
+        MutexLock lock(internal_mutex_);
         copy = configs_;
       }
       file_manager_.Save(copy);
@@ -184,8 +262,8 @@ std::string RemoteConfigInternal::VariantToString(const Variant& variant,
 Future<void> RemoteConfigInternal::SetDefaults(
     const ConfigKeyValueVariant* defaults, size_t number_of_defaults) {
   const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetDefaults);
-  // TODO(cynthiajiang) : wrap following blocking call into thread.
   if (defaults == nullptr) {
+    future_impl_.Complete(handle, kFutureStatusSuccess);
     return MakeFuture<void>(&future_impl_, handle);
   }
   std::map<std::string, std::string> defaults_map;
@@ -198,6 +276,7 @@ Future<void> RemoteConfigInternal::SetDefaults(
     }
   }
   SetDefaults(defaults_map);
+  future_impl_.Complete(handle, kFutureStatusSuccess);
   return MakeFuture<void>(&future_impl_, handle);
 }
 #endif  // SWIG
@@ -205,11 +284,11 @@ Future<void> RemoteConfigInternal::SetDefaults(
 Future<void> RemoteConfigInternal::SetDefaults(const ConfigKeyValue* defaults,
                                                size_t number_of_defaults) {
   const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetDefaults);
-  // TODO(cynthiajiang) : wrap following blocking call into thread.
-
   if (defaults == nullptr) {
+    future_impl_.Complete(handle, kFutureStatusSuccess);
     return MakeFuture<void>(&future_impl_, handle);
   }
+
   std::map<std::string, std::string> defaults_map;
   for (size_t i = 0; i < number_of_defaults; i++) {
     const char* key = defaults[i].key;
@@ -219,20 +298,23 @@ Future<void> RemoteConfigInternal::SetDefaults(const ConfigKeyValue* defaults,
     }
   }
   SetDefaults(defaults_map);
+
+  future_impl_.Complete(handle, kFutureStatusSuccess);
+
   return MakeFuture<void>(&future_impl_, handle);
 }
 
 void RemoteConfigInternal::SetDefaults(
     const std::map<std::string, std::string>& defaults_map) {
   {
-    std::unique_lock<std::mutex> lock(mutex_);
+    MutexLock lock(internal_mutex_);
     configs_.defaults.SetNamespace(defaults_map, kDefaultNamespace);
   }
   save_channel_.Put();
 }
 
 std::string RemoteConfigInternal::GetConfigSetting(ConfigSetting setting) {
-  std::unique_lock<std::mutex> lock(mutex_);
+  MutexLock lock(internal_mutex_);
   return configs_.metadata.GetSetting(setting);
 }
 
@@ -242,7 +324,7 @@ void RemoteConfigInternal::SetConfigSetting(ConfigSetting setting,
     return;
   }
   {
-    std::unique_lock<std::mutex> lock(mutex_);
+    MutexLock lock(internal_mutex_);
     configs_.metadata.AddSetting(setting, value);
   }
   save_channel_.Put();
@@ -263,8 +345,7 @@ bool RemoteConfigInternal::CheckValueInConfig(
   if (!key) return false;
 
   {
-    // TODO(b/74461360): Replace the thread locks with firebase ones.
-    std::unique_lock<std::mutex> lock(mutex_);
+    MutexLock lock(internal_mutex_);
     if (!config.HasValue(key, kDefaultNamespace)) {
       return false;
     }
@@ -309,6 +390,19 @@ bool RemoteConfigInternal::IsDouble(const std::string& str) {
   return (*endptr == '\0');  // Ensure we consumed the whole string.
 }
 
+bool RemoteConfigInternal::ConvertToBool(const std::string& from, bool* out) {
+  bool conversion_successful = false;
+  if (IsBoolTrue(from)) {
+    conversion_successful = true;
+    *out = true;
+  }
+  if (IsBoolFalse(from)) {
+    conversion_successful = true;
+    *out = false;
+  }
+  return conversion_successful;
+}
+
 bool RemoteConfigInternal::GetBoolean(const char* key, ValueInfo* info) {
   std::string value;
   if (!CheckValueInActiveAndDefault(key, info, &value)) {
@@ -319,16 +413,11 @@ bool RemoteConfigInternal::GetBoolean(const char* key, ValueInfo* info) {
     return kDefaultValueForBool;
   }
 
-  if (IsBoolTrue(value)) {
-    if (info) info->conversion_successful = true;
-    return true;
-  }
-  if (IsBoolFalse(value)) {
-    if (info) info->conversion_successful = true;
-    return false;
-  }
-  if (info) info->conversion_successful = false;
-  return kDefaultValueForBool;
+  bool bool_value;
+  bool conversion_successful = ConvertToBool(value, &bool_value);
+
+  if (info) info->conversion_successful = conversion_successful;
+  return bool_value;
 }
 
 std::string RemoteConfigInternal::GetString(const char* key, ValueInfo* info) {
@@ -345,6 +434,20 @@ std::string RemoteConfigInternal::GetString(const char* key, ValueInfo* info) {
   return value;
 }
 
+bool RemoteConfigInternal::ConvertToLong(const std::string& from,
+                                         int64_t* out) {
+  int64_t long_value = kDefaultValueForLong;
+  bool conversion_successful = IsLong(from);
+
+  std::stringstream converter;
+  converter << from;
+  converter >> long_value;
+  conversion_successful = conversion_successful && !converter.fail();
+
+  *out = conversion_successful ? long_value : kDefaultValueForLong;
+  return conversion_successful;
+}
+
 int64_t RemoteConfigInternal::GetLong(const char* key, ValueInfo* info) {
   std::string value;
   if (!CheckValueInActiveAndDefault(key, info, &value)) {
@@ -356,15 +459,23 @@ int64_t RemoteConfigInternal::GetLong(const char* key, ValueInfo* info) {
   }
 
   int64_t long_value = kDefaultValueForLong;
-  bool convertation_failure = !IsLong(value);
+  bool conversion_successful = ConvertToLong(value, &long_value);
+  if (info) info->conversion_successful = conversion_successful;
+  return long_value;
+}
 
-  std::stringstream convertor;
-  convertor << value;
-  convertor >> long_value;
-  convertation_failure = convertation_failure || convertor.fail();
+bool RemoteConfigInternal::ConvertToDouble(const std::string& from,
+                                           double* out) {
+  double double_value = kDefaultValueForDouble;
+  bool conversion_successful = IsDouble(from);
 
-  if (info) info->conversion_successful = !convertation_failure;
-  return convertation_failure ? kDefaultValueForLong : long_value;
+  std::stringstream converter;
+  converter << from;
+  converter >> double_value;
+  conversion_successful = conversion_successful && !converter.fail();
+
+  *out = conversion_successful ? double_value : kDefaultValueForDouble;
+  return conversion_successful;
 }
 
 double RemoteConfigInternal::GetDouble(const char* key, ValueInfo* info) {
@@ -378,15 +489,10 @@ double RemoteConfigInternal::GetDouble(const char* key, ValueInfo* info) {
   }
 
   double double_value = kDefaultValueForDouble;
-  bool convertation_failure = !IsDouble(value);
+  bool conversion_successful = ConvertToDouble(value, &double_value);
 
-  std::stringstream convertor;
-  convertor << value;
-  convertor >> double_value;
-  convertation_failure = convertation_failure || convertor.fail();
-
-  if (info) info->conversion_successful = !convertation_failure;
-  return convertation_failure ? kDefaultValueForDouble : double_value;
+  if (info) info->conversion_successful = conversion_successful;
+  return double_value;
 }
 
 std::vector<unsigned char> RemoteConfigInternal::GetData(const char* key,
@@ -418,22 +524,50 @@ std::vector<std::string> RemoteConfigInternal::GetKeysByPrefix(
   if (prefix == nullptr) return std::vector<std::string>();
   std::set<std::string> unique_keys;
   {
-    std::unique_lock<std::mutex> lock(mutex_);
+    MutexLock lock(internal_mutex_);
     configs_.active.GetKeysByPrefix(prefix, kDefaultNamespace, &unique_keys);
     configs_.defaults.GetKeysByPrefix(prefix, kDefaultNamespace, &unique_keys);
   }
   return std::vector<std::string>(unique_keys.begin(), unique_keys.end());
 }
 
+// String -> Variant
+Variant RemoteConfigInternal::StringToVariant(const std::string& from) {
+  // Try int
+  int64_t long_value;
+  bool conversion_successful = ConvertToLong(from, &long_value);
+  if (conversion_successful) {
+    return Variant(long_value);
+  }
+  // Not int, try double
+  double double_value;
+  conversion_successful = ConvertToDouble(from, &double_value);
+  if (conversion_successful) {
+    return Variant(double_value);
+  }
+  // Not double, try bool
+  bool bool_value;
+  conversion_successful = ConvertToBool(from, &bool_value);
+  if (conversion_successful) {
+    return Variant(bool_value);
+  }
+  return Variant::FromMutableString(from);
+}
+
 std::map<std::string, Variant> RemoteConfigInternal::GetAll() {
-  std::map<std::string, Variant> value;
-  // TODO(cynthiajiang) implement
-  return value;
+  std::map<std::string, Variant> result;
+  for (const std::string& key : GetKeys()) {
+    std::string value =
+        GetString(key.c_str(), static_cast<ValueInfo*>(nullptr));
+
+    result[key] = StringToVariant(value);
+  }
+  return result;
 }
 
 bool RemoteConfigInternal::ActivateFetched() {
   {
-    std::unique_lock<std::mutex> lock(mutex_);
+    MutexLock lock(internal_mutex_);
     // Fetched config not found or already activated.
     if (configs_.fetched.timestamp() <= configs_.active.timestamp())
       return false;
@@ -444,55 +578,29 @@ bool RemoteConfigInternal::ActivateFetched() {
 }
 
 const ConfigInfo RemoteConfigInternal::GetInfo() const {
-  std::unique_lock<std::mutex> lock(mutex_);
+  MutexLock lock(internal_mutex_);
   return configs_.metadata.info();
 }
 
-void RemoteConfigInternal::AsyncFetch() {
-  fetch_thread_ = std::thread([this]() {
-    SafeFutureHandle<void> handle;
-    while (fetch_channel_.Get()) {
-      RemoteConfigREST* rest = nullptr;
+void RemoteConfigInternal::FetchInternal() {
+  // Fetch fresh config from server.
+  rest_.Fetch(app_, config_settings_.fetch_timeout_in_milliseconds);
+  // Need to copy everything to `configs_.fetched`.
+  configs_.fetched = rest_.fetched();
 
-      {
-        std::unique_lock<std::mutex> lock(mutex_);
-        handle = fetch_handle_;
-        rest = new RemoteConfigREST(app_.options(), configs_,
-                                    cache_expiration_in_seconds_);
-      }
+  // Need to copy only info and digests to `configs_.metadata`.
+  const RemoteConfigMetadata& metadata = rest_.metadata();
+  configs_.metadata.set_info(metadata.info());
+  configs_.metadata.set_digest_by_namespace(metadata.digest_by_namespace());
 
-      // Fetch fresh config from server.
-      rest->Fetch(app_);
-
-      {
-        std::unique_lock<std::mutex> lock(mutex_);
-
-        // Need to copy everything to `configs_.fetched`.
-        configs_.fetched = rest->fetched();
-
-        // Need to copy only info and digests to `configs_.metadata`.
-        const RemoteConfigMetadata& metadata = rest->metadata();
-        configs_.metadata.set_info(metadata.info());
-        configs_.metadata.set_digest_by_namespace(
-            metadata.digest_by_namespace());
-
-        delete rest;
-
-        is_fetch_process_have_task_ = false;
-      }
-      FutureStatus futureResult =
-          (GetInfo().last_fetch_status == kLastFetchStatusSuccess)
-              ? kFutureStatusSuccess
-              : kFutureStatusFailure;
-
-      FutureData* future_data = FutureData::Get();
-      future_data->api()->Complete(handle, futureResult);
-    }
-  });
+  is_fetch_process_have_task_ = false;
 }
 
 Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
-  std::unique_lock<std::mutex> lock(mutex_);
+  MutexLock lock(internal_mutex_);
+  const auto future_handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnFetch);
+
+  cache_expiration_in_seconds_ = cache_expiration_in_seconds;
 
   uint64_t milliseconds_since_epoch =
       std::chrono::duration_cast<std::chrono::milliseconds>(
@@ -500,7 +608,9 @@ Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
           .count();
 
   uint64_t cache_expiration_timestamp =
-      configs_.fetched.timestamp() + 1000 * cache_expiration_in_seconds;
+      configs_.fetched.timestamp() +
+      ::firebase::internal::kMillisecondsPerSecond *
+          cache_expiration_in_seconds_;
 
   // Need to fetch in two cases:
   // - we are not fetching at this moment
@@ -509,21 +619,41 @@ Future<void> RemoteConfigInternal::Fetch(uint64_t cache_expiration_in_seconds) {
   // - we are not fetching at this moment
   // - cache (fetched) data is older than cache_expiration_in_seconds
   if (!is_fetch_process_have_task_ &&
-      ((cache_expiration_in_seconds == 0) ||
+      ((cache_expiration_in_seconds_ == 0) ||
        (cache_expiration_timestamp < milliseconds_since_epoch))) {
-    ReferenceCountedFutureImpl* api = FutureData::Get()->api();
-    fetch_handle_ = api->SafeAlloc<void>(kRemoteConfigFnFetch);
+    auto data_handle =
+        MakeShared<RCDataHandle<void>>(&future_impl_, future_handle, this);
+
+    auto callback = NewCallback(
+        [](ThisRef ref, SharedPtr<RCDataHandle<void>> handle) {
+          ThisRefLock lock(&ref);
+          if (lock.GetReference() != nullptr) {
+            MutexLock lock(handle->rc_internal->internal_mutex_);
+
+            handle->rc_internal->FetchInternal();
+
+            FutureStatus futureResult =
+                (handle->rc_internal->GetInfo().last_fetch_status ==
+                 kLastFetchStatusSuccess)
+                    ? kFutureStatusSuccess
+                    : kFutureStatusFailure;
+            handle->future_api->Complete(handle->future_handle, futureResult);
+          }
+        },
+        safe_this_, data_handle);
+
+    scheduler_.Schedule(callback);
     is_fetch_process_have_task_ = true;
-    fetch_channel_.Put();
-    cache_expiration_in_seconds_ = cache_expiration_in_seconds;
+  } else {
+    // Do not fetch, complete future immediately.
+    future_impl_.Complete(future_handle, kFutureStatusSuccess);
   }
-  return FetchLastResult();
+  return MakeFuture<void>(&future_impl_, future_handle);
 }
 
 Future<void> RemoteConfigInternal::FetchLastResult() {
-  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   return static_cast<const Future<void>&>(
-      api->LastResult(kRemoteConfigFnFetch));
+      future_impl_.LastResult(kRemoteConfigFnFetch));
 }
 
 }  // namespace internal

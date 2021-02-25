@@ -1,38 +1,43 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_DOCUMENT_REFERENCE_ANDROID_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_DOCUMENT_REFERENCE_ANDROID_H_
 
-#include <jni.h>
-
 #include <string>
 
 #include "app/src/reference_counted_future_impl.h"
 #include "firestore/src/android/firestore_android.h"
-#include "firestore/src/android/wrapper_future.h"
+#include "firestore/src/android/promise_factory_android.h"
+#include "firestore/src/android/wrapper.h"
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
+#include "firestore/src/jni/jni_fwd.h"
 
 namespace firebase {
 namespace firestore {
 
 class Firestore;
 
-// Each API of DocumentReference that returns a Future needs to define an enum
-// value here. For example, Foo() and FooLastResult() implementation relies on
-// the enum value kFoo. The enum values are used to identify and manage Future
-// in the Firestore Future manager.
-enum class DocumentReferenceFn {
-  kGet = 0,
-  kSet,
-  kUpdate,
-  kDelete,
-  kCount,  // Must be the last enum value.
-};
-
 // This is the Android implementation of DocumentReference.
-class DocumentReferenceInternal
-    : public WrapperFuture<DocumentReferenceFn, DocumentReferenceFn::kCount> {
+class DocumentReferenceInternal : public Wrapper {
  public:
-  using ApiType = DocumentReference;
-  using WrapperFuture::WrapperFuture;
+  // Each API of DocumentReference that returns a Future needs to define an enum
+  // value here. For example, a Future-returning method Foo() relies on the enum
+  // value kFoo. The enum values are used to identify and manage Future in the
+  // Firestore Future manager.
+  enum class AsyncFn {
+    kGet = 0,
+    kSet,
+    kUpdate,
+    kDelete,
+    kCount,  // Must be the last enum value.
+  };
+
+  /**
+   * Creates a C++ `DocumentReference` from a Java `DocumentReference` object.
+   */
+  static DocumentReference Create(jni::Env& env, const jni::Object& reference);
+
+  DocumentReferenceInternal(FirestoreInternal* firestore,
+                            const jni::Object& object)
+      : Wrapper(firestore, object), promises_(firestore) {}
 
   /** Gets the Firestore instance associated with this document reference. */
   Firestore* firestore();
@@ -83,14 +88,6 @@ class DocumentReferenceInternal
   Future<DocumentSnapshot> Get(Source source);
 
   /**
-   * Gets the result of the most recent call to either of the Get() methods.
-   *
-   * @return The result of last call to Get() or an invalid Future, if there is
-   * no such call.
-   */
-  Future<DocumentSnapshot> GetLastResult();
-
-  /**
    * Writes to this document.
    *
    * If the document does not yet exist, it will be created. If you pass
@@ -102,15 +99,6 @@ class DocumentReferenceInternal
    * @return A Future that will be resolved when the write finishes.
    */
   Future<void> Set(const MapFieldValue& data, const SetOptions& options);
-
-  /**
-   * Gets the result of the most recent call to either of the Set()
-   * methods.
-   *
-   * @return The result of last call to Set() or an invalid Future, if there is
-   * no such call.
-   */
-  Future<void> SetLastResult();
 
   /**
    * Updates fields in this document.
@@ -136,27 +124,11 @@ class DocumentReferenceInternal
   Future<void> Update(const MapFieldPathValue& data);
 
   /**
-   * Gets the result of the most recent call to Update().
-   *
-   * @return The result of last call to Update() or an invalid Future, if there
-   * is no such call.
-   */
-  Future<void> UpdateLastResult();
-
-  /**
    * Removes this document.
    *
    * @return A Future that will be resolved when the delete completes.
    */
   Future<void> Delete();
-
-  /**
-   * Gets the result of the most recent call to Delete().
-   *
-   * @return The result of last call to Delete() or an invalid Future, if there
-   * is no such call.
-   */
-  Future<void> DeleteLastResult();
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
   /**
@@ -167,7 +139,7 @@ class DocumentReferenceInternal
    * only DocumentSnapshot.getMetadata() changed) should trigger snapshot
    * events.
    * @param[in] callback function or lambda to call. When this function is
-   * called, snapshot value is valid if and only if error is Error::Ok.
+   * called, snapshot value is valid if and only if error is Error::kErrorOk.
    *
    * @return A registration object that can be used to remove the listener.
    *
@@ -176,7 +148,8 @@ class DocumentReferenceInternal
    */
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
-      std::function<void(const DocumentSnapshot&, Error)> callback);
+      std::function<void(const DocumentSnapshot&, Error, const std::string&)>
+          callback);
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
   /**
@@ -201,13 +174,14 @@ class DocumentReferenceInternal
       bool passing_listener_ownership = false);
 
   /** @brief Gets the class object of Java DocumentReference class. */
-  static jclass GetClass();
+  static jni::Class GetClass();
 
  private:
   friend class FirestoreInternal;
 
-  static bool Initialize(App* app);
-  static void Terminate(App* app);
+  static void Initialize(jni::Loader& loader);
+
+  PromiseFactory<AsyncFn> promises_;
 
   // Below are cached call results.
   mutable std::string cached_id_;

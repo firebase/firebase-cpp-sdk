@@ -1,11 +1,12 @@
 #include "firestore/src/include/firebase/firestore/settings.h"
 
 #include <ostream>
+#include <sstream>
 
 #include "app/meta/move.h"
 
 #if !defined(__ANDROID__) && !defined(FIRESTORE_STUB_BUILD)
-#include "Firestore/core/src/firebase/firestore/util/executor.h"
+#include "Firestore/core/src/util/executor.h"
 #endif
 
 namespace firebase {
@@ -15,9 +16,21 @@ namespace {
 
 const char kDefaultHost[] = "firestore.googleapis.com";
 
+std::string ToStr(bool v) { return v ? "true" : "false"; }
+
+std::string ToStr(int64_t v) {
+  // TODO(b/163140650): use `std::to_string` (which will make this function
+  // unnecessary).
+  std::ostringstream s;
+  s << v;
+  return s.str();
 }
 
+}  // namespace
+
+#if !defined(__APPLE__)
 Settings::Settings() : host_(kDefaultHost) {}
+#endif
 
 void Settings::set_host(std::string host) { host_ = firebase::Move(host); }
 
@@ -27,11 +40,15 @@ void Settings::set_persistence_enabled(bool enabled) {
   persistence_enabled_ = enabled;
 }
 
+void Settings::set_cache_size_bytes(int64_t value) {
+  cache_size_bytes_ = value;
+}
+
 std::string Settings::ToString() const {
-  auto to_str = [](bool v) { return v ? "true" : "false"; };
   return std::string("Settings(host='") + host() +
-         "', is_ssl_enabled=" + to_str(is_ssl_enabled()) +
-         ", is_persistence_enabled=" + to_str(is_persistence_enabled()) + ")";
+         "', is_ssl_enabled=" + ToStr(is_ssl_enabled()) +
+         ", is_persistence_enabled=" + ToStr(is_persistence_enabled()) +
+         ", cache_size_bytes=" + ToStr(cache_size_bytes()) + ")";
 }
 
 std::ostream& operator<<(std::ostream& out, const Settings& settings) {

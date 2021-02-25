@@ -3,13 +3,23 @@
 #include <dispatch/dispatch.h>
 
 #include "absl/memory/memory.h"
-#include "Firestore/core/src/firebase/firestore/util/executor_libdispatch.h"
+#include "Firestore/core/src/util/executor_libdispatch.h"
 
 namespace firebase {
 namespace firestore {
 
+namespace {
+
+const char kDefaultHost[] = "firestore.googleapis.com";
+
+}
+
 using util::Executor;
 using util::ExecutorLibdispatch;
+
+Settings::Settings()
+    : host_(kDefaultHost),
+      executor_(Executor::CreateSerial("com.google.firebase.firestore.callback")) {}
 
 std::unique_ptr<Executor> Settings::CreateExecutor() const {
   return absl::make_unique<ExecutorLibdispatch>(dispatch_queue());

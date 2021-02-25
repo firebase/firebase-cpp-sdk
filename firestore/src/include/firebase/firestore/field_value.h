@@ -19,9 +19,11 @@
 
 #include <cstdint>
 #include <iosfwd>
+#include <limits>
 #include <string>
 #include <vector>
 
+#include "firebase/internal/type_traits.h"
 #include "firebase/firestore/map_field_value.h"
 
 namespace firebase {
@@ -50,6 +52,17 @@ class GeoPoint;
  * foo_value() will fail (and cause a crash).
  */
 class FieldValue final {
+  // Helper aliases for `Increment` member functions.
+  // Qualifying `is_integer` is to prevent ambiguity with the
+  // `FieldValue::is_integer` member function.
+  // Note: normally, `enable_if::type` would be included in the alias, but such
+  // a declaration breaks SWIG (presumably, SWIG cannot handle `typename` within
+  // an alias template).
+  template <typename T>
+  using EnableIfIntegral = enable_if<::firebase::is_integer<T>::value, int>;
+  template <typename T>
+  using EnableIfFloatingPoint = enable_if<is_floating_point<T>::value, int>;
+
  public:
   /**
    * The enumeration of all valid runtime types of FieldValue.
@@ -72,8 +85,8 @@ class FieldValue final {
     kServerTimestamp,
     kArrayUnion,
     kArrayRemove,
-    kIncrementDouble,
     kIncrementInteger,
+    kIncrementDouble,
   };
 
   /**
@@ -135,55 +148,55 @@ class FieldValue final {
   /**
    * @brief Constructs a FieldValue containing the given boolean value.
    */
-  static FieldValue FromBoolean(bool value);
+  static FieldValue Boolean(bool value);
 
   /**
    * @brief Constructs a FieldValue containing the given 64-bit integer value.
    */
-  static FieldValue FromInteger(int64_t value);
+  static FieldValue Integer(int64_t value);
 
   /**
    * @brief Constructs a FieldValue containing the given double-precision
    * floating point value.
    */
-  static FieldValue FromDouble(double value);
+  static FieldValue Double(double value);
 
   /**
    * @brief Constructs a FieldValue containing the given Timestamp value.
    */
-  static FieldValue FromTimestamp(Timestamp value);
+  static FieldValue Timestamp(Timestamp value);
 
   /**
    * @brief Constructs a FieldValue containing the given std::string value.
    */
-  static FieldValue FromString(std::string value);
+  static FieldValue String(std::string value);
 
   /**
    * @brief Constructs a FieldValue containing the given blob value of given
    * size. `value` is copied into the returned FieldValue.
    */
-  static FieldValue FromBlob(const uint8_t* value, size_t size);
+  static FieldValue Blob(const uint8_t* value, size_t size);
 
   /**
    * @brief Constructs a FieldValue containing the given reference value.
    */
-  static FieldValue FromReference(DocumentReference value);
+  static FieldValue Reference(DocumentReference value);
 
   /**
    * @brief Constructs a FieldValue containing the given GeoPoint value.
    */
-  static FieldValue FromGeoPoint(GeoPoint value);
+  static FieldValue GeoPoint(GeoPoint value);
 
   /**
    * @brief Constructs a FieldValue containing the given FieldValue vector
    * value.
    */
-  static FieldValue FromArray(std::vector<FieldValue> value);
+  static FieldValue Array(std::vector<FieldValue> value);
 
   /**
    * @brief Constructs a FieldValue containing the given FieldValue map value.
    */
-  static FieldValue FromMap(MapFieldValue value);
+  static FieldValue Map(MapFieldValue value);
 
   /** @brief Gets the current type contained in this FieldValue. */
   Type type() const;
@@ -235,7 +248,7 @@ class FieldValue final {
   double double_value() const;
 
   /** @brief Gets the timestamp value contained in this FieldValue. */
-  Timestamp timestamp_value() const;
+  class Timestamp timestamp_value() const;
 
   /** @brief Gets the string value contained in this FieldValue. */
   std::string string_value() const;
@@ -250,7 +263,7 @@ class FieldValue final {
   DocumentReference reference_value() const;
 
   /** @brief Gets the GeoPoint value contained in this FieldValue. */
-  GeoPoint geo_point_value() const;
+  class GeoPoint geo_point_value() const;
 
   /** @brief Gets the vector of FieldValues contained in this FieldValue. */
   std::vector<FieldValue> array_value() const;
@@ -259,18 +272,6 @@ class FieldValue final {
    * @brief Gets the map of string to FieldValue contained in this FieldValue.
    */
   MapFieldValue map_value() const;
-
-  /**
-   * @brief Gets the value to increment by, if this `FieldValue` was
-   *        created using `FieldValue::Increment(double)`.
-   */
-  double double_increment_value() const;
-
-  /**
-   * @brief Gets the value to increment by, if this `FieldValue` was
-   *        created using `FieldValue::Increment(int64_t)`.
-   */
-  int64_t integer_increment_value() const;
 
   /**
    * @brief Returns `true` if this `FieldValue` is valid, `false` if it is not
@@ -324,9 +325,11 @@ class FieldValue final {
    */
   static FieldValue ArrayRemove(std::vector<FieldValue> elements);
 
+#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
   /**
    * Returns a special value that can be used with `Set()` or `Update()` that
-   * tells the server to increment the field's current value by the given value.
+   * tells the server to increment the field's current value by the given
+   * integer value.
    *
    * If the current field value is an integer, possible integer overflows are
    * resolved to `LONG_MAX` or `LONG_MIN`. If the current field value is a
@@ -336,14 +339,29 @@ class FieldValue final {
    * If field is not an integer or a double, or if the field does not yet exist,
    * the transformation will set the field to the given value.
    *
-   * @param d The double value to increment by.
+   * @param by_value The integer value to increment by. Should be an integer
+   * type not larger than `int64_t`.
    * @return The FieldValue sentinel for use in a call to `Set()` or `Update().`
    */
-  static FieldValue Increment(double d);
+  template <typename T, typename EnableIfIntegral<T>::type = 0>
+  static FieldValue Increment(T by_value) {
+    // Note: Doxygen will run into trouble if this function's definition is
+    // moved outside the class body.
+    static_assert(
+        std::numeric_limits<T>::max() <= std::numeric_limits<int64_t>::max(),
+        "The integer type you provided is larger than can fit in an int64_t. "
+        "If you are sure the value will not be truncated, please explicitly "
+        "cast to int64_t before passing it to FieldValue::Increment().");
+    return IntegerIncrement(static_cast<int64_t>(by_value));
+  }
 
+#endif  // if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
+
+#if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
   /**
    * Returns a special value that can be used with `Set()` or `Update()` that
-   * tells the server to increment the field's current value by the given value.
+   * tells the server to increment the field's current value by the given
+   * floating point value.
    *
    * If the current field value is an integer, possible integer overflows are
    * resolved to `LONG_MAX` or `LONG_MIN`. If the current field value is a
@@ -353,10 +371,24 @@ class FieldValue final {
    * If field is not an integer or a double, or if the field does not yet exist,
    * the transformation will set the field to the given value.
    *
-   * @param l The integer value to increment by.
+   * @param by_value The double value to increment by. Should be a floating
+   * point type no larger than `double`.
    * @return The FieldValue sentinel for use in a call to `Set()` or `Update().`
    */
-  static FieldValue Increment(int64_t l);
+  template <typename T, typename EnableIfFloatingPoint<T>::type = 0>
+  static FieldValue Increment(T by_value) {
+    // Note: Doxygen will run into trouble if this function's definition is
+    // moved outside the class body.
+    static_assert(
+        std::numeric_limits<T>::max() <= std::numeric_limits<double>::max(),
+        "The floating point type you provided is larger than can fit in a "
+        "double. If you are sure the value will not be truncated, please "
+        "explicitly cast to double before passing it to "
+        "FieldValue::Increment().");
+    return DoubleIncrement(static_cast<double>(by_value));
+  }
+
+#endif  // if defined(INTERNAL_EXPERIMENTAL) || defined(SWIG)
 
   /**
    * Returns a string representation of this `FieldValue` for logging/debugging
@@ -387,6 +419,9 @@ class FieldValue final {
   friend bool operator==(const FieldValue& lhs, const FieldValue& rhs);
 
   explicit FieldValue(FieldValueInternal* internal);
+
+  static FieldValue IntegerIncrement(int64_t by_value);
+  static FieldValue DoubleIncrement(double by_value);
 
   FieldValueInternal* internal_ = nullptr;
 };

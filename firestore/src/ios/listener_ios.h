@@ -5,11 +5,12 @@
 #include <memory>
 #include <utility>
 
+#include "firestore/src/common/util.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/promise_ios.h"
 #include "firebase/firestore/firestore_errors.h"
-#include "Firestore/core/src/firebase/firestore/core/event_listener.h"
-#include "Firestore/core/src/firebase/firestore/util/statusor.h"
+#include "Firestore/core/src/core/event_listener.h"
+#include "Firestore/core/src/util/statusor.h"
 
 namespace firebase {
 namespace firestore {
@@ -35,22 +36,23 @@ std::unique_ptr<core::EventListener<From>> ListenerWithPromise(
 }
 
 // Creates an `EventListener` that will:
-// - invoke the given `callback` with either a valid value and `Error::Ok`, or
-//   a default-constructed value and an error indicating the failure;
+// - invoke the given `callback` with either a valid value and
+//   `Error::kErrorOk`, or a default-constructed value and an error indicating
+//   the failure;
 // - convert the Core API value given to it upon invocation (`From`) into
 //   a public API type (`To`).
 template <typename From, typename To>
 std::unique_ptr<core::EventListener<From>> ListenerWithCallback(
-    std::function<void(To, Error)> callback) {
+    std::function<void(To, Error, const std::string&)> callback) {
   return core::EventListener<From>::Create(
       [callback](util::StatusOr<From> maybe_value) mutable {
         if (maybe_value.ok()) {
           From from = std::move(maybe_value).ValueOrDie();
           To to = MakePublic(std::move(from));
-          callback(std::move(to), Error::Ok);
-
+          callback(std::move(to), Error::kErrorOk, EmptyString());
         } else {
-          callback(To{}, maybe_value.status().code());
+          callback(To{}, maybe_value.status().code(),
+                   maybe_value.status().error_message());
         }
       });
 }
@@ -73,7 +75,10 @@ template <typename From, typename To>
 std::unique_ptr<core::EventListener<From>> ListenerWithEventListener(
     EventListener<To>* listener) {
   return ListenerWithCallback<From, To>(
-      [listener](To result, Error error) { listener->OnEvent(result, error); });
+      [listener](To result, Error error_code,
+                 const std::string& error_message) {
+        listener->OnEvent(result, error_code, error_message);
+      });
 }
 
 inline util::StatusCallback StatusCallbackWithPromise(Promise<void> promise) {

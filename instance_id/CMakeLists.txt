@@ -87,11 +87,11 @@ endif()
 if(ANDROID)
   firebase_cpp_proguard_file(instance_id)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_instance_id
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_instance_id
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_instance_id
+                        PUBLIC "-fembed-bitcode")
 
   setup_pod_headers(
     firebase_instance_id
@@ -99,6 +99,12 @@ elseif(IOS)
       FirebaseCore
       FirebaseInstanceID
   )
+  
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_instance_id PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)

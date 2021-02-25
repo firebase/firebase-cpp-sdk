@@ -90,11 +90,11 @@ endif()
 if(ANDROID)
   firebase_cpp_proguard_file(functions)
 elseif(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_functions
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_functions
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_functions
+                        PUBLIC "-fembed-bitcode")
 
   setup_pod_headers(
     firebase_functions
@@ -102,6 +102,12 @@ elseif(IOS)
       FirebaseCore
       FirebaseFunctions
   )
+
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_functions PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 cpp_pack_library(firebase_functions "")

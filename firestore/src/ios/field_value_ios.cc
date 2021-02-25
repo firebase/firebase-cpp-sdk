@@ -2,10 +2,11 @@
 
 #include <utility>
 
+#include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/hard_assert_ios.h"
-#include "Firestore/core/src/firebase/firestore/nanopb/byte_string.h"
+#include "Firestore/core/src/nanopb/byte_string.h"
 
 namespace firebase {
 namespace firestore {
@@ -115,14 +116,14 @@ std::vector<FieldValue> FieldValueInternal::array_transform_value() const {
   return absl::get<ArrayT>(value_);
 }
 
-double FieldValueInternal::double_increment_value() const {
-  HARD_ASSERT_IOS(type_ == Type::kIncrementDouble);
-  return absl::get<model::FieldValue>(value_).double_value();
-}
-
 std::int64_t FieldValueInternal::integer_increment_value() const {
   HARD_ASSERT_IOS(type_ == Type::kIncrementInteger);
   return absl::get<model::FieldValue>(value_).integer_value();
+}
+
+double FieldValueInternal::double_increment_value() const {
+  HARD_ASSERT_IOS(type_ == Type::kIncrementDouble);
+  return absl::get<model::FieldValue>(value_).double_value();
 }
 
 // Creating sentinels
@@ -146,14 +147,14 @@ FieldValue FieldValueInternal::ArrayRemove(std::vector<FieldValue> elements) {
       FieldValueInternal{Type::kArrayRemove, std::move(elements)});
 }
 
-FieldValue FieldValueInternal::Increment(double d) {
-  return MakePublic(FieldValueInternal{Type::kIncrementDouble,
-                                       model::FieldValue::FromDouble(d)});
+FieldValue FieldValueInternal::IntegerIncrement(std::int64_t by_value) {
+  return MakePublic(FieldValueInternal{
+      Type::kIncrementInteger, model::FieldValue::FromInteger(by_value)});
 }
 
-FieldValue FieldValueInternal::Increment(std::int64_t l) {
-  return MakePublic(FieldValueInternal{Type::kIncrementInteger,
-                                       model::FieldValue::FromInteger(l)});
+FieldValue FieldValueInternal::DoubleIncrement(double by_value) {
+  return MakePublic(FieldValueInternal{
+      Type::kIncrementDouble, model::FieldValue::FromDouble(by_value)});
 }
 
 // Equality operator
@@ -197,7 +198,7 @@ bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
       return absl::get<MapT>(lhs.value_) == absl::get<MapT>(rhs.value_);
   }
 
-  UNREACHABLE();
+  FIRESTORE_UNREACHABLE();
 }
 
 std::string Describe(Type type) {
@@ -206,26 +207,26 @@ std::string Describe(Type type) {
     case Type::kNull:
       return "FieldValue::Null()";
     case Type::kBoolean:
-      return "FieldValue::FromBoolean()";
+      return "FieldValue::Boolean()";
     case Type::kInteger:
-      return "FieldValue::FromInteger()";
+      return "FieldValue::Integer()";
     case Type::kDouble:
-      return "FieldValue::FromDouble()";
+      return "FieldValue::Double()";
     case Type::kTimestamp:
-      return "FieldValue::FromTimestamp()";
+      return "FieldValue::Timestamp()";
     case Type::kString:
-      return "FieldValue::FromString()";
+      return "FieldValue::String()";
     case Type::kBlob:
-      return "FieldValue::FromBlob()";
+      return "FieldValue::Blob()";
     case Type::kReference:
-      return "FieldValue::FromReference()";
+      return "FieldValue::Reference()";
     case Type::kGeoPoint:
-      return "FieldValue::FromGeoPoint()";
+      return "FieldValue::GeoPoint()";
     // Containers
     case Type::kArray:
-      return "FieldValue::FromArray()";
+      return "FieldValue::Array()";
     case Type::kMap:
-      return "FieldValue::FromMap()";
+      return "FieldValue::Map()";
     // Sentinels
     case Type::kDelete:
       return "FieldValue::Delete()";
@@ -235,8 +236,8 @@ std::string Describe(Type type) {
       return "FieldValue::ArrayUnion()";
     case Type::kArrayRemove:
       return "FieldValue::ArrayRemove()";
-    case Type::kIncrementDouble:
     case Type::kIncrementInteger:
+    case Type::kIncrementDouble:
       return "FieldValue::Increment()";
     default: {
       // TODO(b/147444199): use string formatting.

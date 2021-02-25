@@ -1,4 +1,4 @@
-# Copyright 2018 Google
+# Copyright 2018 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,6 +45,9 @@ option(FIREBASE_INCLUDE_FIRESTORE
 option(FIREBASE_INCLUDE_FUNCTIONS
        "Include the Cloud Functions for Firebase library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
+option(FIREBASE_INCLUDE_INSTALLATIONS
+       "Include the Firebase Installations library."
+       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_INSTANCE_ID
        "Include the Firebase Instance ID library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
@@ -66,6 +69,18 @@ option(FIREBASE_CPP_BUILD_PACKAGE
        "Bundle the Firebase C++ libraries into a zip file." OFF)
 option(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD
         "When building with Gradle, use the previously built libraries." OFF)
+option(FIREBASE_USE_BORINGSSL
+        "Build against BoringSSL instead of using your system's OpenSSL." OFF)
+option(FIREBASE_USE_LINUX_CXX11_ABI
+        "Build Linux SDK using the C++11 ABI instead of the legacy ABI." OFF)
+
+set(FIREBASE_ANDROID_STL "" CACHE STRING "STL implementation to use.")
+if (NOT FIREBASE_ANDROID_STL STREQUAL "")
+  set(ANDROID_STL ${FIREBASE_ANDROID_STL})
+endif()
+
+set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
+                                 "Format to output, 'frameworks' or 'libraries'")
 
 # Define this directory to be the root of the C++ SDK, which the libraries can
 # then refer to.
@@ -74,6 +89,14 @@ set(FIREBASE_CPP_SDK_ROOT_DIR ${CMAKE_CURRENT_LIST_DIR})
 project (firebase NONE)
 enable_language(C)
 enable_language(CXX)
+
+if(NOT DEFINED CMAKE_CXX_COMPILER_LAUNCHER)
+  find_program(CCACHE_PROGRAM ccache)
+  if (CCACHE_PROGRAM)
+    set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}" CACHE STRING "Compiler launcher for C")
+    set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}" CACHE STRING "Compiler launcher for CXX")
+  endif()
+endif()
 
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(external_rules)
@@ -90,7 +113,26 @@ endif()
 # Occasionally ANDROID is not being set correctly when invoked by gradle, so
 # set it manually if ANDROID_NDK has been defined.
 if(DEFINED ANDROID_NDK)
-  set(ANDROID 1)
+  set(ANDROID ON)
+endif()
+
+if(NOT ANDROID AND NOT IOS)
+  set(DESKTOP ON)
+else()
+  set(DESKTOP OFF)
+endif()
+
+if(DESKTOP AND NOT MSVC AND NOT APPLE)
+  # Linux-specific option.
+  if (FIREBASE_LINUX_USE_CXX11_ABI)
+    add_definitions(-D_GLIBCXX_USE_CXX11_ABI=1)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=1")
+  else()
+    add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
+  endif()
 endif()
 
 # Set directories needed by the Firebase subprojects
@@ -99,13 +141,20 @@ set(FIREBASE_GEN_FILE_DIR ${CMAKE_BINARY_DIR}/generated)
 # Directory for any shared scripts.
 set(FIREBASE_SCRIPT_DIR ${CMAKE_CURRENT_LIST_DIR})
 
-if (FIREBASE_CPP_BUILD_TESTS AND MSVC)
-  # Googletest requires MSVC to compile with the static version of the runtime
-  # library, so define the appropriate runtime flag, before adding libraries.
-  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
-  set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MTd")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT")
+if (MSVC)
+  if (MSVC_RUNTIME_LIBRARY_STATIC)
+    add_compile_options(
+      $<$<CONFIG:>:/MT>
+      $<$<CONFIG:Debug>:/MTd>
+      $<$<CONFIG:Release>:/MT>
+  )
+  else()
+    add_compile_options(
+      $<$<CONFIG:>:/MD>
+      $<$<CONFIG:Debug>:/MDd>
+      $<$<CONFIG:Release>:/MD>
+  )
+  endif()
 endif()
 
 # Set variables that are used by download_external_sources.
@@ -113,6 +162,20 @@ set(FIREBASE_SOURCE_DIR ${PROJECT_SOURCE_DIR})
 set(FIREBASE_BINARY_DIR ${PROJECT_BINARY_DIR})
 set(FIREBASE_INSTALL_DIR ${PROJECT_BINARY_DIR}/opt)
 set(FIREBASE_DOWNLOAD_DIR ${PROJECT_BINARY_DIR}/downloads)
+
+# Firestore is split into a public C++ component and the Firestore core, a
+# non-public C++ API used for building other language bindings. Desktop
+# platforms get the Firestore core from the CMake build in firebase-ios-sdk.
+#
+# Mobile platforms do not:
+#
+#   * Android uses the Android SDK via JNI and does not use the Firestore
+#     core.
+#   * iOS gets the Firestore core from the FirebaseFirestore CocoaPod and
+#     does not build the core via CMake.
+if(FIREBASE_INCLUDE_FIRESTORE AND DESKTOP)
+  set(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD ON)
+endif()
 
 if(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD)
   # Figure out where app's binary_dir was.
@@ -131,8 +194,89 @@ else()
   set(FIRESTORE_SOURCE_DIR ${FIREBASE_BINARY_DIR}/external/src/firestore)
 endif()
 
+if(DESKTOP)
+  # Use the static versions of the OpenSSL libraries.
+  set(OPENSSL_USE_STATIC_LIBS TRUE)
+  if (MSVC)
+    # Get the correct version of the OpenSSL libraries based on building for MT.
+    if ("${CMAKE_CXX_FLAGS_DEBUG}" MATCHES "/MTd" OR
+        "${CMAKE_CXX_FLAGS_RELEASE}" MATCHES "/MT")
+      set(OPENSSL_MSVC_STATIC_RT TRUE)
+    else()
+      set(OPENSSL_MSVC_STATIC_RT FALSE)
+    endif()
+  endif()
+
+  if(FIREBASE_USE_BORINGSSL)
+    # Use BoringSSL instead of OpenSSL.
+    set(BORINGSSL_ROOT_DIR ${PROJECT_BINARY_DIR}/external/src/boringssl/src CACHE STRING "" FORCE)
+    set(BORINGSSL_BINARY_DIR ${PROJECT_BINARY_DIR}/external/src/boringssl-build CACHE STRING "" FORCE)
+    set(OPENSSL_ROOT_DIR ${BORINGSSL_ROOT_DIR} CACHE STRING "" FORCE)
+
+    # The call below to build_external_dependencies will make sure that these
+    # libraries exist before the libraries are imported via add_library.
+    if (MSVC)
+      if (CMAKE_BUILD_TYPE)
+        set(BORINGSSL_LIB_SUBDIR "${CMAKE_BUILD_TYPE}")
+      else()
+        set(BORINGSSL_LIB_SUBDIR "Debug")
+      endif()
+      set(OPENSSL_SSL_LIBRARY ${BORINGSSL_BINARY_DIR}/ssl/${BORINGSSL_LIB_SUBDIR}/ssl.lib CACHE FILEPATH "" FORCE)
+      set(OPENSSL_CRYPTO_LIBRARY ${BORINGSSL_BINARY_DIR}/crypto/${BORINGSSL_LIB_SUBDIR}/crypto.lib CACHE FILEPATH "" FORCE)
+    else()
+      set(OPENSSL_SSL_LIBRARY ${BORINGSSL_BINARY_DIR}/ssl/libssl.a CACHE FILEPATH "" FORCE)
+      set(OPENSSL_CRYPTO_LIBRARY ${BORINGSSL_BINARY_DIR}/crypto/libcrypto.a CACHE FILEPATH "" FORCE)
+    endif()
+  endif()
+endif()
+
+
+if(DESKTOP)
+  message(STATUS "Building external project dependencies...")
+  build_external_dependencies()
+  message(STATUS "Build of external project dependencies complete.")
+  
+  if(FIREBASE_USE_BORINGSSL)
+    set(OPENSSL_FOUND TRUE CACHE BOOL "" FORCE)
+    set(OPENSSL_NO_ASM TRUE)  # Force cross-platform BoringSSL, no ASM.
+    set(OPENSSL_INCLUDE_DIR ${BORINGSSL_ROOT_DIR}/include CACHE PATH "" FORCE)
+    set(OPENSSL_CRYPTO_LIBRARIES ${OPENSSL_CRYPTO_LIBRARY})
+    set(OPENSSL_SSL_LIBRARIES ${OPENSSL_SSL_LIBRARY})
+    set(OPENSSL_LIBRARIES ${OPENSSL_SSL_LIBRARIES} ${OPENSSL_CRYPTO_LIBRARIES})
+    set(OPENSSL_VERSION '1.1.0' CACHE STRING "" FORCE)
+  
+    add_library(OpenSSL::SSL STATIC IMPORTED)
+    add_library(OpenSSL::Crypto STATIC IMPORTED)
+    set_target_properties(OpenSSL::SSL PROPERTIES
+      IMPORTED_LOCATION "${OPENSSL_SSL_LIBRARY}"
+      INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
+      INTERFACE_LINK_LIBRARIES OpenSSL::Crypto
+    )
+  
+    set_target_properties(OpenSSL::Crypto PROPERTIES
+      IMPORTED_LOCATION "${OPENSSL_CRYPTO_LIBRARY}"
+      INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}"
+    )
+    # Now if we do find_package(OpenSSL) it should give us BoringSSL.
+    find_package(OpenSSL)
+  
+    if(NOT "${OPENSSL_INCLUDE_DIR}" MATCHES boringssl OR
+       NOT "${OPENSSL_SSL_LIBRARY}" MATCHES boringssl OR
+       NOT "${OPENSSL_CRYPTO_LIBRARY}" MATCHES boringssl)
+      message(FATAL_ERROR "BoringSSL was not configured correctly.\nINCLUDE_DIR=${OPENSSL_INCLUDE_DIR}\nSSL_LIBRARY=${OPENSSL_SSL_LIBRARY}\nCRYPTO_LIBRARY=${OPENSSL_CRYPTO_LIBRARY}")
+    endif()
+  else()
+    # Don't use BoringSSL, use OpenSSL. If you are linking against the libraries directly
+    # from source, you probably want this instead.
+    #
+    # If the find_package fails to find OpenSSL, set OPENSSL_ROOT_DIR to OpenSSL'S install
+    # location on your system.
+    find_package(OpenSSL REQUIRED)
+  endif()
+endif()
+
 # Include Firestore's external build early to resolve conflicts on packages.
-if(NOT ANDROID AND FIREBASE_INCLUDE_FIRESTORE)
+if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
   set(FIRESTORE_BINARY_DIR ${FIRESTORE_SOURCE_DIR}-build)
 
   set(
@@ -151,7 +295,10 @@ set(FLATBUFFERS_BUILD_TESTS OFF CACHE BOOL "")
 set(FLATBUFFERS_INSTALL OFF CACHE BOOL "")
 set(FLATBUFFERS_FLATHASH OFF CACHE BOOL "")
 
-# Disable buliding flatc if cross compiling
+# Disable LevelDB build tests
+set(LEVELDB_BUILD_TESTS OFF CACHE BOOL "")
+
+# Disable building flatc if cross compiling
 if(IOS OR ANDROID)
   set(FLATBUFFERS_BUILD_FLATC OFF CACHE BOOL "")
 endif()
@@ -164,41 +311,42 @@ else()
   add_external_library(flatbuffers)
 endif()
 
-if(FIREBASE_CPP_BUILD_TESTS AND NOT FIREBASE_INCLUDE_FIRESTORE)
-  # Firestore's external build pulls in googletest
+if(FIREBASE_CPP_BUILD_TESTS AND NOT FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
+  # Firestore's external build pulls in GoogleTest
   add_external_library(googletest)
 endif()
 
-# Some of the external libraries are not used for mobile.
-if (NOT ANDROID AND NOT IOS)
-  # Use the static versions of the OpenSSL libraries.
-  set(OPENSSL_USE_STATIC_LIBS TRUE)
-  if (MSVC)
-    # Get the correct version of the OpenSSL libraries based on building for MT.
-    if ("${CMAKE_CXX_FLAGS_DEBUG}" MATCHES "/MT" OR
-        "${CMAKE_CXX_FLAGS_RELEASE}" MATCHES "/MT")
-      set(OPENSSL_MSVC_STATIC_RT TRUE)
-    else()
-      set(OPENSSL_MSVC_STATIC_RT FALSE)
-    endif()
-  endif()
+if((FIREBASE_INCLUDE_DATABASE AND DESKTOP) AND NOT FIREBASE_INCLUDE_FIRESTORE)
+  # LevelDB is needed for Desktop and Firestore, but if firestore is being built
+  # LevelDB will already be included.
+  add_external_library(leveldb)
+endif()
 
+# Some of the external libraries are not used for mobile.
+if(DESKTOP)
   # Build curl as a static library
   set(CURL_STATICLIB ON CACHE BOOL "")
   if (WIN32)
-    set(CMAKE_USE_WINSSL ON CACHE BOOL "")
+    # Enable Windows native SSL/TLS in libcurl.
+    set(CMAKE_USE_SCHANNEL ON CACHE BOOL "")
   endif()
+
+  # Current Curl library defaults to requiring some dependencies we don't need, disable them.
+  set(CMAKE_USE_LIBSSH2 OFF)
+  set(HTTP_ONLY ON)
+  set(BUILD_TESTING OFF)
   add_external_library(curl)
 
   add_external_library(libuv)
-
-  find_package(OpenSSL)
 
   add_external_library(zlib)
 
   add_external_library(uWebSockets)
 
-  set(websockets_additional_defines "")
+  # Binutils on Mac doesn't support thread-local storage (required by
+  # websockets), but because we only use websockets via the scheduler, we don't
+  # need it. Deactivate this by blanking out the __thread keyword.
+  set(websockets_additional_defines "-D__thread=")
 
   # uWebSockets does not come with a CMakeLists file, so define the target.
   # Note that since it depends on OpenSSL, only do so if that was found.
@@ -248,15 +396,16 @@ if (NOT ANDROID AND NOT IOS)
     )
     target_link_libraries(libuWS
       PRIVATE
-        ${OPENSSL_LIBRARIES}
+        OpenSSL::SSL
+        OpenSSL::Crypto
         uv_a
         zlibstatic
     )
   endif()
 endif()
 
-if(NOT ANDROID)
-  if(FIREBASE_INCLUDE_FIRESTORE)
+if(DESKTOP)
+  if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
     # The Firestore build includes protobuf and nanopb already
     list(APPEND CMAKE_MODULE_PATH ${NANOPB_SOURCE_DIR}/extra)
     find_package(Nanopb REQUIRED)
@@ -281,7 +430,11 @@ if(NOT ANDROID)
   endif()
 endif()
 
-if(ANDROID OR IOS)
+if(DESKTOP)
+  # Desktop platforms do not need to declare this dependency, as they will build
+  # flatc correctly when needed.
+  set(FIREBASE_FLATBUFFERS_DEPENDENCIES "")
+else()
   # Mobile platforms build flatc externally so that it works on the platform
   # performing the build.
   set(firebase_external_flatc_build_dir "${FLATBUFFERS_BINARY_DIR}-flatc")
@@ -304,7 +457,7 @@ if(ANDROID OR IOS)
   set(FLATBUFFERS_FLATC_EXECUTABLE ${firebase_external_flatc} CACHE STRING "")
 
   # Setup the flatc custom build target.
-  # These commands are executed from within the currect context, which has set
+  # These commands are executed from within the current context, which has set
   # variables for the target platform. We use "env -i" to clear these
   # variables, and manually keep the PATH to regular bash path.
   # If we didn't do this, we'd end up building flatc for the target platform
@@ -340,14 +493,16 @@ if(ANDROID OR IOS)
   # Set a variable that the dependencies can use, to trigger the build before
   # using flatbuffers.
   set(FIREBASE_FLATBUFFERS_DEPENDENCIES "firebase_flatc_prebuild")
-else()
-  # Other platforms do not need to declare this dependency, as they will build
-  # flatc correctly when needed.
-  set(FIREBASE_FLATBUFFERS_DEPENDENCIES "")
 endif()
 
 include(binary_to_array)
 include(firebase_cpp_gradle)
+
+# Ensure min/max macros don't get declared on Windows
+# (so we can use std::min/max), before including the Firebase subdirectories.
+if(MSVC)
+  add_definitions(-DNOMINMAX)
+endif()
 
 add_subdirectory(ios_pod)
 
@@ -395,6 +550,9 @@ if (FIREBASE_INCLUDE_FIRESTORE)
 endif()
 if (FIREBASE_INCLUDE_FUNCTIONS)
   add_subdirectory(functions)
+endif()
+if (FIREBASE_INCLUDE_INSTALLATIONS)
+  add_subdirectory(installations)
 endif()
 if (FIREBASE_INCLUDE_INSTANCE_ID)
   add_subdirectory(instance_id)

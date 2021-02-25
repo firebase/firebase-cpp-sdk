@@ -24,8 +24,12 @@ enable_language(CXX)
 # Build the iid_data_generated.h header from the flatbuffer schema file.
 set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
+    "--gen-generated"
     "--gen-object-api"
     "--cpp-ptr-type" "firebase::UniquePtr")
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
 build_flatbuffers("${CMAKE_CURRENT_LIST_DIR}/iid_data.fbs"
                   ""
                   "iid_data_generated_includes"

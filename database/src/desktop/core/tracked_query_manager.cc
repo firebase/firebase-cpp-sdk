@@ -30,6 +30,16 @@ namespace firebase {
 namespace database {
 namespace internal {
 
+bool operator==(const TrackedQuery& lhs, const TrackedQuery& rhs) {
+  return lhs.query_id == rhs.query_id && lhs.query_spec == rhs.query_spec &&
+         lhs.last_use == rhs.last_use && lhs.complete == rhs.complete &&
+         lhs.active == rhs.active;
+}
+
+bool operator!=(const TrackedQuery& lhs, const TrackedQuery& rhs) {
+  return !(lhs == rhs);
+}
+
 TrackedQueryManagerInterface::~TrackedQueryManagerInterface() {}
 
 // Returns true if the given TrackedQueryMap has a complete default query.
@@ -81,7 +91,7 @@ TrackedQueryManager::TrackedQueryManager(
   // Populate our cache from the storage layer.
   std::vector<TrackedQuery> tracked_queries =
       storage_engine_->LoadTrackedQueries();
-  for (TrackedQuery query : tracked_queries) {
+  for (const TrackedQuery& query : tracked_queries) {
     next_query_id_ = std::max(query.query_id + 1, next_query_id_);
     CacheTrackedQuery(query);
   }
@@ -151,8 +161,8 @@ void TrackedQueryManager::SetQueryCompleteIfExists(
 void TrackedQueryManager::SetQueriesComplete(const Path& path) {
   tracked_query_tree_.CallOnEach(
       path, [this](const Path& path, TrackedQueryMap& tracked_queries) {
-        for (auto key_value : tracked_queries) {
-          TrackedQuery& tracked_query = key_value.second;
+        for (const auto& key_value : tracked_queries) {
+          const TrackedQuery& tracked_query = key_value.second;
           if (!tracked_query.complete) {
             TrackedQuery updated_tracked_query = tracked_query;
             updated_tracked_query.complete = TrackedQuery::kComplete;

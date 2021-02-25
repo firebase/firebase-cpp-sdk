@@ -26,7 +26,7 @@
 // Stub functions to allow sample functions to compile.
 void DisplayError(firebase::functions::Error code, const char *message) {}
 void DisplayResult(int result) {}
-void DisplayResult(const string& result) {}
+void DisplayResult(const std::string& result) {}
 
 // [START define_functions_instance]
 firebase::functions::Functions* functions;
@@ -56,7 +56,7 @@ firebase::Future<firebase::functions::HttpsCallableResult> AddNumbers(int a,
 
 // [START function_add_message]
 firebase::Future<firebase::functions::HttpsCallableResult> AddMessage(
-    const string& text) {
+    const std::string& text) {
   // Create the arguments to the callable function.
   firebase::Variant data = firebase::Variant::EmptyMap();
   data.map()["text"] = firebase::Variant(text);
@@ -119,7 +119,7 @@ void OnAddMessageCallback(
   const firebase::functions::HttpsCallableResult *result = future.result();
   firebase::Variant data = result->data();
   // This will assert if the result returned from the function wasn't a string.
-  string message = data.string_value();
+  std::string message = data.string_value();
   // Display the result in the UI.
   DisplayResult(message);
 }
@@ -127,7 +127,7 @@ void OnAddMessageCallback(
 // ...
 
 // [START_EXCLUDE]
-void AddMessageAndDisplay(const string& message) {
+void AddMessageAndDisplay(const std::string& message) {
 // [END_EXCLUDE]
   auto future = AddMessage(message);
   future.OnCompletion(OnAddMessageCallback);

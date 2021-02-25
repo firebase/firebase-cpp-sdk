@@ -3,6 +3,7 @@
 #include <utility>
 
 #include "app/src/assert.h"
+#include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/document_snapshot_ios.h"
@@ -12,13 +13,13 @@
 #include "firestore/src/ios/set_options_ios.h"
 #include "firestore/src/ios/source_ios.h"
 #include "firestore/src/ios/util_ios.h"
-#include "Firestore/core/src/firebase/firestore/api/listener_registration.h"
-#include "Firestore/core/src/firebase/firestore/core/filter.h"
-#include "Firestore/core/src/firebase/firestore/core/listen_options.h"
-#include "Firestore/core/src/firebase/firestore/model/document_key.h"
-#include "Firestore/core/src/firebase/firestore/model/field_path.h"
-#include "Firestore/core/src/firebase/firestore/model/resource_path.h"
-#include "Firestore/core/src/firebase/firestore/util/exception.h"
+#include "Firestore/core/src/api/listener_registration.h"
+#include "Firestore/core/src/core/filter.h"
+#include "Firestore/core/src/core/listen_options.h"
+#include "Firestore/core/src/model/document_key.h"
+#include "Firestore/core/src/model/field_path.h"
+#include "Firestore/core/src/model/resource_path.h"
+#include "Firestore/core/src/util/exception.h"
 
 namespace firebase {
 namespace firestore {
@@ -43,17 +44,17 @@ const FirestoreInternal* QueryInternal::firestore_internal() const {
 }
 
 Query QueryInternal::OrderBy(const FieldPath& field_path,
-                             Query::Direction direction) {
+                             Query::Direction direction) const {
   api::Query decorated = query_.OrderBy(
       GetInternal(field_path), direction == Query::Direction::kDescending);
   return MakePublic(std::move(decorated));
 }
 
-Query QueryInternal::Limit(int32_t limit) {
+Query QueryInternal::Limit(int32_t limit) const {
   return MakePublic(query_.LimitToFirst(limit));
 }
 
-Query QueryInternal::LimitToLast(int32_t limit) {
+Query QueryInternal::LimitToLast(int32_t limit) const {
   return MakePublic(query_.LimitToLast(limit));
 }
 
@@ -62,10 +63,6 @@ Future<QuerySnapshot> QueryInternal::Get(Source source) {
   auto listener = ListenerWithPromise<api::QuerySnapshot>(promise);
   query_.GetDocuments(ToCoreApi(source), std::move(listener));
   return promise.future();
-}
-
-Future<QuerySnapshot> QueryInternal::GetLastResult() {
-  return promise_factory_.LastResult<QuerySnapshot>(AsyncApis::kGet);
 }
 
 Query QueryInternal::Where(const FieldPath& field_path, Operator op,
@@ -81,7 +78,7 @@ Query QueryInternal::Where(const FieldPath& field_path, Operator op,
 Query QueryInternal::Where(const FieldPath& field_path, Operator op,
                            const std::vector<FieldValue>& values) const {
   const model::FieldPath& path = GetInternal(field_path);
-  auto array_value = FieldValue::FromArray(values);
+  auto array_value = FieldValue::Array(values);
   model::FieldValue parsed =
       user_data_converter_.ParseQueryValue(array_value, true);
   auto describer = [&array_value] { return Describe(array_value.type()); };
@@ -113,7 +110,8 @@ ListenerRegistration QueryInternal::AddSnapshotListener(
 
 ListenerRegistration QueryInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
-    std::function<void(const QuerySnapshot&, Error)> callback) {
+    std::function<void(const QuerySnapshot&, Error, const std::string&)>
+        callback) {
   auto options = core::ListenOptions::FromIncludeMetadataChanges(
       metadata_changes == MetadataChanges::kInclude);
   auto result = query_.AddSnapshotListener(
@@ -283,7 +281,7 @@ api::Query QueryInternal::CreateQueryWithBound(BoundPosition bound_pos,
       return query_.EndAt(std::move(bound));
   }
 
-  UNREACHABLE();
+  FIRESTORE_UNREACHABLE();
 }
 
 bool QueryInternal::IsBefore(BoundPosition bound_pos) {
@@ -297,7 +295,7 @@ bool QueryInternal::IsBefore(BoundPosition bound_pos) {
       return false;
   }
 
-  UNREACHABLE();
+  FIRESTORE_UNREACHABLE();
 }
 
 }  // namespace firestore

@@ -191,7 +191,9 @@ class DocumentSnapshot {
    * @param stb Configures how server timestamps that have not yet been set to
    * their final value are returned from the snapshot (optional).
    *
-   * @return The value contained in the field.
+   * @return The value contained in the field. If the field does not exist in
+   * the document, then a `FieldValue` instance with `is_valid() == false` will
+   * be returned.
    */
   virtual FieldValue Get(
       const char* field,
