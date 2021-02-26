@@ -8,7 +8,7 @@ if [[ -z "${builtpath}" || -z "${packagepath}" ]]; then
     exit 1
 fi
 
-if [[ ! -d "${builtpath}/frameworks" ]]; then
+if [[ ! -d "${builtpath}/xcframeworks" ]]; then
     echo "Built iOS SDK not found at path '${builtpath}'."
     exit 2
 fi
@@ -27,24 +27,22 @@ cd "${builtpath}"
 sourcepath=$( pwd -P )
 cd "${origpath}"
 
-# Copy frameworks into packaged SDK.
+# Copy xcframeworks into packaged SDK.
 cd "${sourcepath}"
-for arch_dir in frameworks/ios/*; do
-    mkdir -p "${destpath}/${arch_dir}"
-    # Make sure we only copy the frameworks in product_list (specified in packaging.conf)
-    for product in ${product_list[*]}; do
+mkdir -p "${destpath}/xcframeworks"
+# Make sure we only copy the xcframeworks in product_list (specified in packaging.conf)
+for product in ${product_list[*]}; do
 	if [[ "${product}" == "app" ]]; then
-	    framework_dir="firebase.framework"
+	    framework_dir="firebase.xcframework"
 	else
-	    framework_dir="firebase_${product}.framework"
+	    framework_dir="firebase_${product}.xcframework"
 	fi
-	cp -af "${arch_dir}/${framework_dir}" "${destpath}/${arch_dir}/${framework_dir}"
-    done
+	cp -R ${sourcepath}/xcframeworks/${framework_dir} ${destpath}/xcframeworks/
 done
 cd "${origpath}"
 
 # Convert frameworks into libraries so we can provide both in the SDK.
-cd "${destpath}"
+cd "${sourcepath}"
 for frameworkpath in frameworks/ios/*/*.framework; do
     libpath=$(echo "${frameworkpath}" | sed 's|^frameworks|libs|' | sed 's|\([^/]*\)\.framework$|lib\1.a|')
     if [[ $(basename "${libpath}") == 'libfirebase.a' ]]; then
@@ -53,6 +51,6 @@ for frameworkpath in frameworks/ios/*/*.framework; do
 
     frameworkpath=$(echo "${frameworkpath}" | sed 's|\([^/]*\)\.framework$|\1.framework/\1|')
     mkdir -p $(dirname "${destpath}/${libpath}")
-    cp -af "${destpath}/${frameworkpath}" "${destpath}/${libpath}"
+    cp -af "${sourcepath}/${frameworkpath}" "${destpath}/${libpath}"
 done
 cd "${origpath}"
