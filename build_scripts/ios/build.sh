@@ -10,9 +10,9 @@ usage(){
  options:
    -b, build path              default: ios_build
    -s, source path             default: .
-   -p, framework platform      default: SUPPORTED_PLATFORMS
-   -a, framework architecture  default: SUPPORTED_ARCHITECTURES
-   -t, CMake target            default: SUPPORTED_TARGETS
+   -p, framework platform      default: ${SUPPORTED_PLATFORMS[@]}
+   -a, framework architecture  default: ${SUPPORTED_ARCHITECTURES[@]}
+   -t, CMake target            default: ${SUPPORTED_TARGETS[@]}
    -g, generate Makefiles      default: true
    -c, CMake build             default: true
  example: 
