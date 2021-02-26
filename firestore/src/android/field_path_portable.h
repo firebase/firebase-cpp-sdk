@@ -65,8 +65,16 @@ class FieldPathPortable {
     return segments_ >= rhs.segments_;
   }
 
-  // Creates and returns a new path from a dot-separated field-path string,
-  // where path segments are separated by a dot ".".
+  /**
+   * Creates and returns a new path from an explicitly pre-split list of
+   * segments.
+   */
+  static FieldPathPortable FromSegments(std::vector<std::string> segments);
+
+  /**
+   * Creates and returns a new path from a dot-separated field-path string,
+   * where path segments are separated by a dot ".".
+   */
   static FieldPathPortable FromDotSeparatedString(const std::string& path);
 
   static FieldPathPortable KeyFieldPath();

@@ -36,6 +36,13 @@ using nanopb::ByteString;
 
 using Type = FieldValue::Type;
 
+FIRESTORE_ATTRIBUTE_NORETURN
+void ThrowInvalidData(const ParseContext& context, const std::string& message) {
+  std::string full_message =
+      "Invalid data. " + message + context.FieldDescription();
+  SimpleThrowInvalidArgument(full_message);
+}
+
 void ParseDelete(ParseContext&& context) {
   if (context.data_source() == UserDataSource::MergeSet) {
     // No transform to add for a delete, but we need to add it to our field mask
@@ -49,32 +56,16 @@ void ParseDelete(ParseContext&& context) {
         !context.path()->empty(),
         "FieldValue.Delete() at the top level should have already been "
         "handled.");
-    // TODO(b/147444199): use string formatting.
-    // ThrowInvalidArgument(
-    //     "FieldValue::Delete() can only appear at the top level of your "
-    //     "update data%s",
-    //     context.FieldDescription());
-    auto message =
-        std::string(
-            "FieldValue::Delete() can only appear at the top level of your "
-            "update data") +
-        context.FieldDescription();
-    SimpleThrowInvalidArgument(message);
+    ThrowInvalidData(context,
+                     "FieldValue::Delete() can only appear at the top level of "
+                     "your update data");
   }
 
   // We shouldn't encounter delete sentinels for queries or non-merge `Set`
   // calls.
-  // TODO(b/147444199): use string formatting.
-  // ThrowInvalidArgument(
-  //     "FieldValue::Delete() can only be used with Update() and Set() with "
-  //     "merge == true%s",
-  //     context.FieldDescription());
-  auto message =
-      std::string(
-          "FieldValue::Delete() can only be used with Update() and Set() with "
-          "merge == true") +
-      context.FieldDescription();
-  SimpleThrowInvalidArgument(message);
+  ThrowInvalidData(context,
+                   "FieldValue::Delete() can only be used with Update() and "
+                   "Set() with merge == true");
 }
 
 void ParseServerTimestamp(ParseContext&& context) {
@@ -143,7 +134,7 @@ FieldMask CreateFieldMask(const ParseAccumulator& accumulator,
       //     path.CanonicalString());
       auto message =
           std::string("Field '") + path.CanonicalString() +
-          "' is specified in your field mask but missing from your input data.";
+          "' is specified in your field mask but not in your input data.";
       SimpleThrowInvalidArgument(message);
     }
 
@@ -276,7 +267,7 @@ model::FieldValue::Array UserDataConverter::ParseArray(
   // disable this validation.
   if (context.array_element() &&
       context.data_source() != core::UserDataSource::ArrayArgument) {
-    SimpleThrowInvalidArgument("Nested arrays are not supported");
+    ThrowInvalidData(context, "Nested arrays are not supported");
   }
 
   model::FieldValue::Array result;
@@ -323,21 +314,21 @@ void UserDataConverter::ParseSentinel(const FieldValue& value,
   // Sentinels are only supported with writes, and not within arrays.
   if (!context.write()) {
     // TODO(b/147444199): use string formatting.
-    // ThrowInvalidArgument("%s can only be used with Update() and Set()%s",
-    //                      Describe(value.type()), context.FieldDescription());
-    auto message = Describe(value.type()) +
-                   " can only be used with Update() and Set()" +
-                   context.FieldDescription();
-    SimpleThrowInvalidArgument(message);
+    // ThrowInvalidData(
+    //     context, "%s can only be used with Update() and Set()%s",
+    //     Describe(value.type()), context.FieldDescription());
+    auto message =
+        Describe(value.type()) + " can only be used with Update() and Set()";
+    ThrowInvalidData(context, message);
   }
 
   if (!context.path()) {
     // TODO(b/147444199): use string formatting.
-    // ThrowInvalidArgument("%s is not currently supported inside arrays",
-    //                      Describe(value.type()));
+    // ThrowInvalidData(context, "%s is not currently supported inside arrays",
+    //                  Describe(value.type()));
     auto message =
         Describe(value.type()) + " is not currently supported inside arrays";
-    SimpleThrowInvalidArgument(message);
+    ThrowInvalidData(context, message);
   }
 
   switch (value.type()) {
@@ -406,7 +397,8 @@ model::FieldValue UserDataConverter::ParseScalar(const FieldValue& value,
           GetInternal(reference.firestore())->database_id();
       if (other != *database_id_) {
         // TODO(b/147444199): use string formatting.
-        // ThrowInvalidArgument(
+        // ThrowInvalidData(
+        //     context,
         //     "DocumentReference is for database %s/%s but should be for "
         //     "database %s/%s%s",
         //     other.project_id(), other.database_id(),
@@ -415,10 +407,9 @@ model::FieldValue UserDataConverter::ParseScalar(const FieldValue& value,
         auto actual_db = other.project_id() + "/" + other.database_id();
         auto expected_db =
             database_id_->project_id() + "/" + database_id_->database_id();
-        auto message = std::string("DocumentReference is for database ") +
-                       actual_db + " but should be for database " +
-                       expected_db + context.FieldDescription();
-        SimpleThrowInvalidArgument(message);
+        auto message = std::string("Document reference is for database ") +
+                       actual_db + " but should be for database " + expected_db;
+        ThrowInvalidData(context, message);
       }
 
       const model::DocumentKey& key = GetInternal(&reference)->key();
