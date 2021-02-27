@@ -22,21 +22,21 @@ binary_to_array("google_services_resource"
 
 # Define the resource builds needed for Android
 firebase_cpp_gradle(":app:app_resources:generateDexJarRelease"
-    "${CMAKE_CURRENT_LIST_DIR}/app_resources/build/dexed.jar")
+    "${CMAKE_CURRENT_LIST_DIR}/app_resources/build/app_resources_lib.jar")
 binary_to_array("app_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/app_resources/build/dexed.jar"
+    "${CMAKE_CURRENT_LIST_DIR}/app_resources/build/app_resources_lib.jar"
     "firebase_app"
     "${FIREBASE_GEN_FILE_DIR}/app")
 firebase_cpp_gradle(":app:google_api_resources:generateDexJarRelease"
-    "${CMAKE_CURRENT_LIST_DIR}/google_api_resources/build/dexed.jar")
+    "${CMAKE_CURRENT_LIST_DIR}/google_api_resources/build/google_api_resources_lib.jar")
 binary_to_array("google_api_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/google_api_resources/build/dexed.jar"
+    "${CMAKE_CURRENT_LIST_DIR}/google_api_resources/build/google_api_resources_lib.jar"
     "google_api"
     "${FIREBASE_GEN_FILE_DIR}/app")
 firebase_cpp_gradle(":app:invites_resources:generateDexJarRelease"
-    "${CMAKE_CURRENT_LIST_DIR}/invites_resources/build/dexed.jar")
+    "${CMAKE_CURRENT_LIST_DIR}/invites_resources/build/invites_resources_lib.jar")
 binary_to_array("invites_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/invites_resources/build/dexed.jar"
+    "${CMAKE_CURRENT_LIST_DIR}/invites_resources/build/invites_resources_lib.jar"
     "firebase_invites"
     "${FIREBASE_GEN_FILE_DIR}/app")
 

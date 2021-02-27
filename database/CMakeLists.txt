@@ -27,9 +27,9 @@ set(common_SRCS
 
 # Define the resource build needed for Android
 firebase_cpp_gradle(":database:database_resources:generateDexJarRelease"
-    "${CMAKE_CURRENT_LIST_DIR}/database_resources/build/dexed.jar")
+    "${CMAKE_CURRENT_LIST_DIR}/database_resources/build/database_resources_lib.jar")
 binary_to_array("database_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/database_resources/build/dexed.jar"
+    "${CMAKE_CURRENT_LIST_DIR}/database_resources/build/database_resources_lib.jar"
     "firebase_database_resources"
     "${FIREBASE_GEN_FILE_DIR}/database")
 
