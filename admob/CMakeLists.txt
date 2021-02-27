@@ -28,7 +28,7 @@ set(common_SRCS
 
 # Define the resource build needed for Android
 firebase_cpp_gradle(":admob:admob_resources:generateDexJarRelease"
-    "${CMAKE_CURRENT_LIST_DIR}/admob_resources/build/admob_resourcs_lib.jar")
+    "${CMAKE_CURRENT_LIST_DIR}/admob_resources/build/admob_resources_lib.jar")
 binary_to_array("admob_resources"
     "${CMAKE_CURRENT_LIST_DIR}/admob_resources/build/admob_resources_lib.jar"
     "firebase_admob"
