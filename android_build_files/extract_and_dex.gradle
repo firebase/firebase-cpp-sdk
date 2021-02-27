@@ -43,7 +43,7 @@ def defineExtractionTasks(String resourceName, String buildType) {
       include "classes.jar"
     }
 
-    String dexedJar = "$buildDir/dexed.jar"
+    String dexedJar = "$buildDir/${resourceName}_lib.jar"
     String outPro = "$buildDir/${resourceName}.pro"
     Task dexJar = tasks.create(
         name: "generateDexJar$buildType",
