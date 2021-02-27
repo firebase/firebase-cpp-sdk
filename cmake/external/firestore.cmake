@@ -18,9 +18,7 @@ if(TARGET firestore)
   return()
 endif()
 
-# Use a Firestore version slightly after 7.5.1, as it
-# contains a minor crash fix we'd like to include.
-set(version 5e76aa968bfce5e9c8fb0f28f523793f0e9ed5f3)
+set(version CocoaPods-7.7.0)
 ExternalProject_Add(
   firestore
 
