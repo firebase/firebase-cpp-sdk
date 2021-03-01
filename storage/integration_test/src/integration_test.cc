@@ -623,8 +623,11 @@ class StorageListener : public firebase::storage::Listener {
 
   // Tracks whether OnPaused was ever called and resumes the transfer.
   void OnPaused(firebase::storage::Controller* controller) override {
-    // Let things be paused for a moment.
+#if FIREBASE_PLATFORM_DESKTOP
+    // Let things be paused for a moment on desktop, since it typically has a
+    // very fast connection.
     ProcessEvents(1000);
+#endif
     on_paused_was_called_ = true;
     controller->Resume();
   }
