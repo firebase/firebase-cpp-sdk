@@ -20,7 +20,6 @@
 
 #include "firebase/app.h"
 #include "remote_config/src/desktop/config_data.h"
-#include "remote_config/src/desktop/rest_nanopb_encode.h"
 
 namespace firebase {
 namespace remote_config {
@@ -55,10 +54,6 @@ void RemoteConfigREST::Fetch(const App& app,
 
 void RemoteConfigREST::SetupRestRequest(
     const App& app, uint64_t fetch_timeout_in_milliseconds) {}
-ConfigFetchRequest RemoteConfigREST::GetFetchRequestData() {
-  return ConfigFetchRequest();
-}
-void RemoteConfigREST::GetPackageData(PackageData* package_data) {}
 
 void RemoteConfigREST::ParseRestResponse() {}
 

@@ -21,10 +21,6 @@
 #include "app/rest/request_json.h"
 #include "app/rest/response_json.h"
 #include "app/src/semaphore.h"
-#ifndef REST_STUB_IMPL  // These pull in unnecessary deps for the stub
-#include "app/rest/request_binary_gzip.h"
-#include "app/rest/response_binary.h"
-#endif  // REST_STUB_IMPL
 #include "remote_config/request_generated.h"
 #include "remote_config/request_resource.h"
 #include "remote_config/response_generated.h"
@@ -66,8 +62,6 @@ const int kHTTPStatusOk = 200;
 // const char* const kApiKeyHeader = "X-Goog-Api-Key";
 const char* const kEtagHeader = "ETag";
 const char* const kIfNoneMatchHeader = "If-None-Match";
-const char* const kXAndroidPackageHeader = "X-Android-Package";
-const char* const kXAndroidCertHeader = "X-Android-Cert";
 const char* const kXGoogleGfeCanRetry = "X-Google-GFE-Can-Retry";
 const char* const kInstallationsAuthTokenHeader =
     "X-Goog-Firebase-Installations-Auth";
@@ -78,7 +72,7 @@ class RemoteConfigREST {
  public:
 #ifdef FIREBASE_TESTING
   friend class RemoteConfigRESTTest;
-  FRIEND_TEST(RemoteConfigRESTTest, SetupProto);
+  FRIEND_TEST(RemoteConfigRESTTest, Setup);
   FRIEND_TEST(RemoteConfigRESTTest, SetupRESTRequest);
   FRIEND_TEST(RemoteConfigRESTTest, Fetch);
   FRIEND_TEST(RemoteConfigRESTTest, ParseRestResponseProtoFailure);
@@ -113,13 +107,6 @@ class RemoteConfigREST {
   // post fields.
   void SetupRestRequest(const App& app, uint64_t fetch_timeout_in_milliseconds);
 
-  // Setup protobuf ConfigFetchRequest object for REST request post fields. Call
-  // `GetPackageData` to setup PackageData for ConfigFetchRequest.
-  ConfigFetchRequest GetFetchRequestData();
-
-  // Setup PackageData for ConfigFetchRequest.
-  void GetPackageData(PackageData* package_data);
-
   // Parse REST response. Check response status and body.
   void ParseRestResponse();
 
@@ -147,12 +134,6 @@ class RemoteConfigREST {
 
   // The semaphore to block the thread and wait for.
   Semaphore fetch_future_sem_;
-
-#ifndef REST_STUB_IMPL
-  // HTTP request/response
-  firebase::rest::RequestBinaryGzip rest_request_;
-  firebase::rest::ResponseBinary rest_response_;
-#endif  // REST_STUB_IMPL
 
   RemoteConfigRequest rc_request_;
   RemoteConfigResponse rc_response_;

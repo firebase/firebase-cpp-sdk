@@ -21,12 +21,20 @@
 #include "remote_config/request_generated.h"
 #include "remote_config/request_resource.h"
 
+#ifdef FIREBASE_TESTING
+#include "testing/base/public/gunit.h"
+#endif  // FIREBASE_TESTING
+
 namespace firebase {
 namespace remote_config {
 namespace internal {
 
 class RemoteConfigRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {
+#ifdef FIREBASE_TESTING
+  friend class RemoteConfigRESTTest;
+  FRIEND_TEST(RemoteConfigRESTTest, SetupRESTRequest);
+#endif  // FIREBASE_TESTING
  public:
   RemoteConfigRequest() : RemoteConfigRequest(request_resource_data) {}
   explicit RemoteConfigRequest(const char* schema);
@@ -48,6 +56,10 @@ class RemoteConfigRequest
 
   void SetCountryCode(std::string country_code) {
     application_data_->countryCode = std::move(country_code);
+  }
+
+  void SetLanguageCode(std::string language_code) {
+    application_data_->languageCode = std::move(language_code);
   }
 
   void SetPlatformVersion(std::string platform_version) {
