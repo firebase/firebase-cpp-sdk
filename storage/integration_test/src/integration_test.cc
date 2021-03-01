@@ -627,7 +627,7 @@ class StorageListener : public firebase::storage::Listener {
     // Let things be paused for a moment on desktop, since it typically has a
     // very fast connection.
     ProcessEvents(1000);
-#endif
+#endif  // FIREBASE_PLATFORM_DESKTOP
     on_paused_was_called_ = true;
     controller->Resume();
   }
