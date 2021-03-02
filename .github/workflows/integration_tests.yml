@@ -62,7 +62,7 @@ jobs:
       steps:
         # If the workflow dispatch was triggered without expanded matrix mode.
         - name: Configure Workflow Dispatch Parameters
-          if github.event.inputs.use_expanded_matrix == '0'
+          if: github.event.inputs.use_expanded_matrix == '0'
           run: |
             echo "DDB_CONFIG=NORMAL}" >> $GITHUB_ENV    
             echo "PLATFORMS=${{github.event.inputs.platforms}}" >> $GITHUB_ENV
@@ -77,7 +77,7 @@ jobs:
         # If a cron job or if workflow dispatch was triggered with expanded
         # matrix mode.
         - name: Configure Expanded Matrix Parameters
-          if github.event.inputs.expanded_matrix == ''
+          if: github.event.inputs.expanded_matrix == ''
           run: |
             echo "DDB_CONFIG=XPAND}" >> $GITHUB_ENV    
             echo "PLATFORMS=${{env.EXPANDED_MATRIX_PLATFORMS}}" >> $GITHUB_ENV
