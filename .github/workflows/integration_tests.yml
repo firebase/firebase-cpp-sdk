@@ -3,8 +3,8 @@ name: Integration tests
 on:
   workflow_dispatch:
     inputs:
-      use_custom_matrix:
-        description: 'Set to 0 to test across all platforms, apis and operating system configurations.'
+      use_modified_matrix:
+        description: 'Flag - test config subset.'
         default: '1'
         required: true
       platforms:
@@ -64,7 +64,7 @@ jobs:
       
       # If the workflow dispatch was triggered without expanded matrix mode.
       - name: Configure Workflow Dispatch Parameters
-        if: github.event.inputs.use_expanded_matrix == '1'
+        if: github.event.inputs.use_modified_matrix == '1'
         run: |
           echo "::set-env name=DDB_CONFIG::NORMAL"
           echo "::set-env name=MATRIX_PLATFORMS::${{github.event.inputs.platforms}}"
