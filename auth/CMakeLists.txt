@@ -58,9 +58,9 @@ set(common_SRCS
 
 # Define the resource build needed for Android
 firebase_cpp_gradle(":auth:auth_resources:generateDexJarRelease"
-    "${CMAKE_CURRENT_LIST_DIR}/auth_resources/build/dexed.jar")
+    "${CMAKE_CURRENT_LIST_DIR}/auth_resources/build/auth_resources_lib.jar")
 binary_to_array("auth_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/auth_resources/build/dexed.jar"
+    "${CMAKE_CURRENT_LIST_DIR}/auth_resources/build/auth_resources_lib.jar"
     "firebase_auth"
     "${FIREBASE_GEN_FILE_DIR}/auth")
 

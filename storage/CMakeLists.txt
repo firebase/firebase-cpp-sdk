@@ -26,9 +26,9 @@ set(common_SRCS
 
 # Define the resource build needed for Android
 firebase_cpp_gradle(":storage:storage_resources:generateDexJarRelease"
-    "${CMAKE_CURRENT_LIST_DIR}/storage_resources/build/dexed.jar")
+    "${CMAKE_CURRENT_LIST_DIR}/storage_resources/build/storage_resources_lib.jar")
 binary_to_array("storage_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/storage_resources/build/dexed.jar"
+    "${CMAKE_CURRENT_LIST_DIR}/storage_resources/build/storage_resources_lib.jar"
     "firebase_storage_resources"
     "${FIREBASE_GEN_FILE_DIR}/storage")
 
