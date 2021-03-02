@@ -4,6 +4,7 @@
 
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore.h"
@@ -12,7 +13,6 @@
 #include "firestore/src/ios/create_firebase_metadata_provider.h"
 #include "firestore/src/ios/document_reference_ios.h"
 #include "firestore/src/ios/document_snapshot_ios.h"
-#include "firestore/src/ios/hard_assert_ios.h"
 #include "firestore/src/ios/listener_ios.h"
 #include "absl/memory/memory.h"
 #include "absl/types/any.h"
