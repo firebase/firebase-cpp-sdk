@@ -78,7 +78,7 @@ jobs:
       
       - name: Log Matrix
         run: |
-          echo ${{ GITHUB_ENV }}
+          echo ${{ DDB_CONFIG }}
           echo ${{ MATRIX_PLATFORMS }}
           echo ${{ MATRIX_APIS }}
           echo ${{ MATRIX_OPERATING_SYSTEMS }}
