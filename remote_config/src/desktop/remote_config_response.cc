@@ -90,7 +90,8 @@ Variant RemoteConfigResponse::GetEntries() { return entries_; }
 // Mark the response completed for both header and body.
 void RemoteConfigResponse::MarkCompleted() {
   ResponseJson::MarkCompleted();
-  if (strlen(GetBody()) == 0) {
+  if (GetBody()[0] == '\0') {
+    // If the body of response flatbuffer is empty, early out.
     return;
   }
   const flatbuffers::FlatBufferBuilder& builder = parser_->builder_;
