@@ -152,8 +152,7 @@ void RemoteConfigREST::SetupRestRequest(
   std::string locale = firebase::internal::GetLocale();
   if (locale.length() != 0) {
     rc_request_.SetLanguageCode(locale);
-    rc_request_.SetCountryCode(
-        locale.substr(0, 2));  // get country code from locale
+    // TODO(cynthiajiang) Set Country code.
   }
   rc_request_.SetTimeZone(firebase::internal::GetTimezone());
   rc_request_.SetPackageName(app_package_name_);
