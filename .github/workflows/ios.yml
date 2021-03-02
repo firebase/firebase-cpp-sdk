@@ -2,7 +2,7 @@ name: iOS Builds
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, reopened]
 
 env:
   # Xcode version 11.7 is the version we build the SDK with.
