@@ -3,10 +3,6 @@ name: Integration tests
 on:
   workflow_dispatch:
     inputs:
-      use_expanded_matrix:
-        description: 'Set to 1 to test across all platforms, apis and operating system configurations.'
-        default: '0'
-        required: true
       platforms:
         description: 'CSV of Desktop, Android and/or iOS'
         default: 'Desktop,Android,iOS'
@@ -46,72 +42,16 @@ jobs:
       matrix_platform: ${{ steps.set-matrix-os.outputs.matrix_platform }}
       matrix_ssl: ${{ steps.set-matrix-os.outputs.matrix_ssl }}
     steps:
-      # Normalize disparity of cron worfklow defaults and workflow_dispatch
-      # variable configurations.
-      - name: "Configure workflow matrix"
-        env:
-          EXPANDED_MATRIX_PLATFORMS: 'Desktop,Android,iOS'
-          EXPANDED_MATRIX_APIS: 'admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage'
-          EXPANDED_MATRIX_OPERATING_SYSTEMS: 'ubuntu-latest,windows-latest,macos-latest'
-          EXPANDED_MATRIX_DESKTOP_SSL_VARIANTS: 'openssl,boringssl'
-          EXPANDED_MATRIX_ANDROID_DEVICE: 'flame'
-          EXPANDED_MATRIX_ANDROID_API: '29'
-          EXPANDED_MATRIX_IOS_DEVICE: 'iphone8'
-          EXPANDED_MATRIX_IOS_VERSION: '11.4'
-        run: |
-          set
-      
-      # If the workflow dispatch was triggered without expanded matrix mode.
-      - name: Configure Workflow Dispatch Parameters
-        if: github.event.inputs.use_expanded_matrix == '0'
-        run: |
-          echo "DDB_CONFIG=NORMAL}" >> $GITHUB_ENV    
-          echo "PLATFORMS=${{github.event.inputs.platforms}}" >> $GITHUB_ENV
-          echo "APIS=${{github.event.inputs.apis}}" >> $GITHUB_ENV
-          echo "OPERATING_SYSTEMS=${{github.event.inputs.operating_systems}}" >> $GITHUB_ENV
-          echo "DESKTOP_SSL_VARIANTS=${{github.event.inputs.desktop_ssl_variants}}" >> $GITHUB_ENV
-          echo "ANDROID_DEVICE=${{github.event.inputs.android_device}}" >> $GITHUB_ENV
-          echo "ANDROID_API=${{github.event.inputs.android_api}}" >> $GITHUB_ENV
-          echo "IOS_DEVICE=${{github.event.inputs.ios_device}}" >> $GITHUB_ENV
-          echo "IOS_VERSION=${{github.event.inputs.ios_version}}" >> $GITHUB_ENV
-        
-      # If a cron job or if workflow dispatch was triggered with expanded
-      # matrix mode.
-      - name: Configure Expanded Matrix Parameters
-        if: github.event.inputs.expanded_matrix == ''
-        run: |
-          echo "DDB_CONFIG=XPAND}" >> $GITHUB_ENV    
-          echo "PLATFORMS=${{env.EXPANDED_MATRIX_PLATFORMS}}" >> $GITHUB_ENV
-          echo "APIS=${{env.EXPANDED_MATRIX_APIS}}" >> $GITHUB_ENV
-          echo "OPERATING_SYSTEMS=${{env.EXPANDED_MATRIX_OPERATING_SYSTEMS}}" >> $GITHUB_ENV
-          echo "DESKTOP_SSL_VARIANTS=${{env.EXPANDED_MATRIX_DESKTOP_SSL_VARIANTS}}" >> $GITHUB_ENV
-          echo "ANDROID_DEVICE=${{env.EXPANDED_MATRIX_ANDROID_DEVICE}}" >> $GITHUB_ENV
-          echo "ANDROID_API=${{env.EXPANDED_MATRIX_ANDROID_API}}" >> $GITHUB_ENV
-          echo "IOS_DEVICE=${{env.EXPANDED_MATRIX_IOS_DEVICE}}" >> $GITHUB_ENV
-          echo "IOS_VERSION=${{env.EXPANDED_MATRIX_IOS_VERSION}}" >> $GITHUB_ENV    
-      
-      - name: Log Matrix
-        run: |
-          echo ${{env.PLATFORMS}}
-          echo ${{env.APIS}}
-          echo ${{env.OPERATING_SYSTEMS}}
-          echo ${{env.DESKTOP_SSL_VARIANTS}}
-          echo ${{env.ANDROID_DEVICE}}
-          echo ${{env.ANDROID_API}}
-          echo ${{env.IOS_DEVICE}}
-          echo ${{env.IOS_VERSION}}
-
-      - id: set-matrix-os
-        # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
-        run: |
-          OS_JSON=[\"$(echo ${{ github.event.inputs.operating_systems }} | sed 's/,/","/g')\"]
-          echo "::set-output name=matrix_os::${OS_JSON}"
-          PLATFORM_JSON=[\"$(echo ${{ github.event.inputs.platforms }} | sed 's/,/","/g')\"]
-          echo "::set-output name=matrix_platform::${PLATFORM_JSON}"
-          SSL_JSON=[\"$(echo ${{ github.event.inputs.desktop_ssl_variants }} | sed 's/,/","/g')\"]
-          echo "::set-output name=matrix_ssl::${SSL_JSON}"
-
-   tests:
+    - id: set-matrix-os
+      # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
+      run: |
+        OS_JSON=[\"$(echo ${{ github.event.inputs.operating_systems }} | sed 's/,/","/g')\"]
+        echo "::set-output name=matrix_os::${OS_JSON}"
+        PLATFORM_JSON=[\"$(echo ${{ github.event.inputs.platforms }} | sed 's/,/","/g')\"]
+        echo "::set-output name=matrix_platform::${PLATFORM_JSON}"
+        SSL_JSON=[\"$(echo ${{ github.event.inputs.desktop_ssl_variants }} | sed 's/,/","/g')\"]
+        echo "::set-output name=matrix_ssl::${SSL_JSON}"
+  tests:
     name: ${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
     needs: prepare_matrix
     runs-on: ${{ matrix.os }}
@@ -171,25 +111,30 @@ jobs:
         if: matrix.target_platform == 'Desktop'
         run: |
           python scripts/gha/install_prereqs_desktop.py
+
       - name: Install SDK Android prerequisites
         if: matrix.target_platform == 'Android'
         shell: bash
         run: |
           build_scripts/android/install_prereqs.sh
+
       - name: Install SDK iOS prerequisites
         if: matrix.target_platform == 'iOS'
         run: |
           build_scripts/ios/install_prereqs.sh
+
       - name: Prepare for integration tests
         run: |
           pip install -r scripts/gha/requirements.txt
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+
       - name: Install OpenSSL (windows)
         if: matrix.target_platform == 'Desktop' &&
             matrix.ssl_variant == 'openssl' &&
             startsWith(matrix.os, 'windows')
         run: |
           choco install openssl -r
+
       - name: Install OpenSSL (MacOS)
         if: matrix.target_platform == 'Desktop' &&
             matrix.ssl_variant == 'openssl' &&
@@ -198,12 +143,14 @@ jobs:
           brew install openssl
           # brew won't overwrite MacOS system default OpenSSL, so force it here.
           echo "OPENSSL_ROOT_DIR=/usr/local/opt/openssl@1.1" >> $GITHUB_ENV
+
       - name: Install OpenSSL (Linux)
         if: matrix.target_platform == 'Desktop' &&
             matrix.ssl_variant == 'openssl' &&
             startsWith(matrix.os, 'ubuntu')
         run: |
           sudo apt install openssl
+
       - name: Build integration tests
         shell: bash
         run: |
@@ -213,6 +160,7 @@ jobs:
             ssl_option=--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON
           fi
           python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --noadd_timestamp ${ssl_option}
+
       - name: Run desktop integration tests
         if: matrix.target_platform == 'Desktop' && !cancelled()
         run: |
@@ -242,4 +190,3 @@ jobs:
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
-
