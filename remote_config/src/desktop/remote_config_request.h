@@ -22,7 +22,7 @@
 #include "remote_config/request_resource.h"
 
 #ifdef FIREBASE_TESTING
-#include "testing/base/public/gunit.h"
+#include "gtest/gtest.h"
 #endif  // FIREBASE_TESTING
 
 namespace firebase {
