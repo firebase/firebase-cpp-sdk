@@ -527,9 +527,9 @@ void Repo::DeferredInitialization() {
 void Repo::PostEvents(const std::vector<Event>& events) {
   for (const Event& event : events) {
     if (event.type != kEventTypeError) {
-      event.event_registration->FireEvent(event);
+      event.event_registration->SafelyFireEvent(event);
     } else {
-      event.event_registration->FireCancelEvent(event.error);
+      event.event_registration->SafelyFireCancelEvent(event.error);
     }
   }
 }

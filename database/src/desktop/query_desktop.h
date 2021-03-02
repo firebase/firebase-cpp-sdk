@@ -17,6 +17,7 @@
 
 #include <limits>
 #include <memory>
+
 #include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -102,7 +103,8 @@ class QueryInternal {
   // Get the Future for the QueryInternal.
   ReferenceCountedFutureImpl* query_future();
 
-  void AddEventRegistration(UniquePtr<EventRegistration> registration);
+  void AddEventRegistration(UniquePtr<EventRegistration> registration,
+                            void* listener_ptr);
 
   void RemoveEventRegistration(void* listener_ptr, const QuerySpec& query_spec);
   void RemoveEventRegistration(ValueListener* listener,

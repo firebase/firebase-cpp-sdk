@@ -20,6 +20,34 @@ namespace internal {
 
 EventRegistration::~EventRegistration() {}
 
+void EventRegistration::SafelyFireEvent(const Event& event) {
+  // Ensure that the listener has not already been removed.
+  //
+  // The main thread may remove listeners at any time, so we should not call any
+  // callbacks on a listener that has been removed. This does not protect
+  // callbacks that are currently running when the listener is removed: those
+  // must handled by a mutex from within the callback.
+  if (status_ == kRemoved) {
+    return;
+  }
+
+  FireEvent(event);
+}
+
+void EventRegistration::SafelyFireCancelEvent(Error error) {
+  // Ensure that the listener has not already been removed.
+  //
+  // The main thread may remove listeners at any time, so we should not call any
+  // callbacks on a listener that has been removed. This does not protect
+  // callbacks that are currently running when the listener is removed: those
+  // must handled by a mutex from within the callback.
+  if (status_ == kRemoved) {
+    return;
+  }
+
+  FireCancelEvent(error);
+}
+
 }  // namespace internal
 }  // namespace database
 }  // namespace firebase
