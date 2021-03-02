@@ -59,6 +59,8 @@ jobs:
           MATRIX_ANDROID_API: '29'
           MATRIX_IOS_DEVICE: 'iphone8'
           MATRIX_IOS_VERSION: '11.4'
+        run: |
+          set
       
       # If the workflow dispatch was triggered without expanded matrix mode.
       - name: Configure Workflow Dispatch Parameters
