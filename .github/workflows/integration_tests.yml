@@ -99,14 +99,3 @@ jobs:
           echo ${{env.ANDROID_API}}
           echo ${{env.IOS_DEVICE}}
           echo ${{env.IOS_VERSION}}
-
-    - id: set-matrix-os
-      # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
-      run: |
-        OS_JSON=[\"$(echo ${{ github.event.inputs.operating_systems }} | sed 's/,/","/g')\"]
-        echo "::set-output name=matrix_os::${OS_JSON}"
-        PLATFORM_JSON=[\"$(echo ${{ github.event.inputs.platforms }} | sed 's/,/","/g')\"]
-        echo "::set-output name=matrix_platform::${PLATFORM_JSON}"
-        SSL_JSON=[\"$(echo ${{ github.event.inputs.desktop_ssl_variants }} | sed 's/,/","/g')\"]
-        echo "::set-output name=matrix_ssl::${SSL_JSON}"
-  
