@@ -80,8 +80,8 @@ jobs:
         run: |
           echo $GITHUB_ENV
           echo $MATRIX_PLATFORMS
-          echo ${{MATRIX_APIS}}
-          echo ${{MATRIX_OPERATING_SYSTEMS}}
+          echo MATRIX_APIS
+          echo MATRIX_OPERATING_SYSTEMS
           echo $MATRIX_DESKTOP_SSL_VARIANTS
           echo $MATRIX_ANDROID_DEVICE
           echo $MATRIX_ANDROID_API
