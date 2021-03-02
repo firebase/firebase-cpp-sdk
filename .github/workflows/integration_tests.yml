@@ -1,5 +1,17 @@
 name: Integration tests
 
+env:
+  DDB_CONFIG: 'XPANDED'
+  MATRIX_PLATFORMS: 'Desktop,Android,iOS'
+  MATRIX_APIS: 'admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage'
+  MATRIX_OPERATING_SYSTEMS: 'ubuntu-latest,windows-latest,macos-latest'
+  MATRIX_DESKTOP_SSL_VARIANTS: 'openssl,boringssl'
+  MATRIX_ANDROID_DEVICE: 'flame'
+  MATRIX_ANDROID_API: '29'
+  MATRIX_IOS_DEVICE: 'iphone8'
+  MATRIX_IOS_VERSION: '11.4'
+        
+
 on:
   workflow_dispatch:
     inputs:
@@ -45,23 +57,7 @@ jobs:
       matrix_os: ${{ steps.set-matrix-os.outputs.matrix_os }}
       matrix_platform: ${{ steps.set-matrix-os.outputs.matrix_platform }}
       matrix_ssl: ${{ steps.set-matrix-os.outputs.matrix_ssl }}
-    steps:
-      # Normalize disparity of cron worfklow defaults and workflow_dispatch
-      # variable configurations.
-      - name: "Configure workflow matrix"
-        env:
-          env.DDB_CONFIG: 'XPANDED'
-          env.MATRIX_PLATFORMS: 'Desktop,Android,iOS'
-          env.MATRIX_APIS: 'admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage'
-          env.MATRIX_OPERATING_SYSTEMS: 'ubuntu-latest,windows-latest,macos-latest'
-          env.MATRIX_DESKTOP_SSL_VARIANTS: 'openssl,boringssl'
-          env.MATRIX_ANDROID_DEVICE: 'flame'
-          env.MATRIX_ANDROID_API: '29'
-          env.MATRIX_IOS_DEVICE: 'iphone8'
-          env.MATRIX_IOS_VERSION: '11.4'
-        run: |
-          set
-      
+    steps:      
       # If the workflow dispatch was triggered without expanded matrix mode.
       - name: Configure Workflow Dispatch Parameters
         if: github.event.inputs.use_modified_matrix == '1'
