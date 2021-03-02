@@ -576,6 +576,9 @@ code.
     -   General (iOS): iOS SDKs are now built using Xcode 12.
     -   General (iOS): iOS SDKs are now providing XCFrameworks instead of 
         Frameworks.
+    -   Database: Fixed a potential crash that can occur as a result of a race
+        condidtion when adding, removing and deleting `ValueListener`s or
+        `ChildListener`s rapidly.
 
 ### 7.1.1
 -   Changes
