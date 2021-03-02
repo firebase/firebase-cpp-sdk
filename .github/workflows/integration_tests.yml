@@ -59,8 +59,6 @@ jobs:
           MATRIX_ANDROID_API: '29'
           MATRIX_IOS_DEVICE: 'iphone8'
           MATRIX_IOS_VERSION: '11.4'
-        run: |
-          set
       
       # If the workflow dispatch was triggered without expanded matrix mode.
       - name: Configure Workflow Dispatch Parameters
@@ -78,9 +76,9 @@ jobs:
       
       - name: Log Matrix
         run: |
-          echo {$GITHUB_ENV}
-          echo $APIS
-          echo $OPERATING_SYSTEMS
+          echo $GITHUB_ENV
+          echo ${{APIS}}
+          echo ${{OPERATING_SYSTEMS}}
           echo $DESKTOP_SSL_VARIANTS
           echo $ANDROID_DEVICE
           echo $ANDROID_API
