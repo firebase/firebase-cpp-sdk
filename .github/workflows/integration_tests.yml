@@ -49,7 +49,7 @@ on:
         description: 'iOS device version'
         default: '11.4'
       use_custom_matrix:
-        description: 'Disabling (0) will run an extended test matrix'
+        description: 'Disabling (0) will run an extended test matrix instead of the config above'
         default: '1'
         required: true
 
