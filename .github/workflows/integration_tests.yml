@@ -77,8 +77,8 @@ jobs:
       # If a cron job or if workflow dispatch was triggered with expanded
       # matrix mode.
       - name: Configure Expanded Matrix Parameters
-         if: github.event.inputs.expanded_matrix == ''
-         run: |
+        if: github.event.inputs.expanded_matrix == ''
+        run: |
           echo "DDB_CONFIG=XPAND}" >> $GITHUB_ENV    
           echo "PLATFORMS=${{env.EXPANDED_MATRIX_PLATFORMS}}" >> $GITHUB_ENV
           echo "APIS=${{env.EXPANDED_MATRIX_APIS}}" >> $GITHUB_ENV
@@ -90,15 +90,15 @@ jobs:
           echo "IOS_VERSION=${{env.EXPANDED_MATRIX_IOS_VERSION}}" >> $GITHUB_ENV    
       
       - name: Log Matrix
-          run: |
-            echo ${{env.PLATFORMS}}
-            echo ${{env.APIS}}
-            echo ${{env.OPERATING_SYSTEMS}}
-            echo ${{env.DESKTOP_SSL_VARIANTS}}
-            echo ${{env.ANDROID_DEVICE}}
-            echo ${{env.ANDROID_API}}
-            echo ${{env.IOS_DEVICE}}
-            echo ${{env.IOS_VERSION}}
+        run: |
+          echo ${{env.PLATFORMS}}
+          echo ${{env.APIS}}
+          echo ${{env.OPERATING_SYSTEMS}}
+          echo ${{env.DESKTOP_SSL_VARIANTS}}
+          echo ${{env.ANDROID_DEVICE}}
+          echo ${{env.ANDROID_API}}
+          echo ${{env.IOS_DEVICE}}
+          echo ${{env.IOS_VERSION}}
 
     - id: set-matrix-os
       # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
