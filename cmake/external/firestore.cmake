@@ -18,7 +18,7 @@ if(TARGET firestore)
   return()
 endif()
 
-set(version CocoaPods-7.7.0)
+set(version 5f6febab5e133960ca8fc6d2639ea460253bc43a)
 ExternalProject_Add(
   firestore
 
