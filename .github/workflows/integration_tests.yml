@@ -8,14 +8,14 @@ env:
   # integration tests workflows as defined in workflow_dispatch below.
   # However, a manual dispatched GHA may also use the expanded matrix by
   # setting the use_custom_matrix flag to 0.
-  EXTENDED_MATRIX_PLATFORMS: 'Desktop,Android,iOS'
-  EXTENDED_MATRIX_APIS: 'admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage'
-  EXTENDED_MATRIX_OPERATING_SYSTEMS: 'ubuntu-latest,windows-latest,macos-latest'
-  EXTENDED_MATRIX_DESKTOP_SSL_VARIANTS: 'openssl,boringssl'
-  EXTENDED_MATRIX_ANDROID_DEVICE: 'flame'
-  EXTENDED_MATRIX_ANDROID_API: '29'
-  EXTENDED_MATRIX_IOS_DEVICE: 'iphone8'
-  EXTENDED_MATRIX_IOS_VERSION: '11.4' 
+  MATRIX_PLATFORMS: 'Desktop,Android,iOS'
+  MATRIX_APIS: 'admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage'
+  MATRIX_OPERATING_SYSTEMS: 'ubuntu-latest,windows-latest,macos-latest'
+  MATRIX_DESKTOP_SSL_VARIANTS: 'openssl,boringssl'
+  MATRIX_ANDROID_DEVICE: 'flame'
+  MATRIX_ANDROID_API: '29'
+  MATRIX_IOS_DEVICE: 'iphone8'
+  MATRIX_IOS_VERSION: '11.4' 
 
 on:
   workflow_dispatch:
@@ -67,34 +67,34 @@ jobs:
       - name: Configure Workflow Dispatch Parameters
         if: github.event.inputs.use_custom_matrix == '1'
         run: |
-          echo "EXTENDED_MATRIX_PLATFORMS=${{github.event.inputs.platforms}}" >> $GITHUB_ENV
-          echo "EXTENDED_MATRIX_APIS=${{github.event.inputs.apis}}" >> $GITHUB_ENV
-          echo "EXTENDED_MATRIX_OPERATING_SYSTEMS=${{github.event.inputs.operating_systems}}" >> $GITHUB_ENV
-          echo "EXTENDED_MATRIX_DESKTOP_SSL_VARIANTS=${{github.event.inputs.desktop_ssl_variants}}" >> $GITHUB_ENV
-          echo "EXTENDED_MATRIX_ANDROID_DEVICE=${{github.event.inputs.android_device}}" >> $GITHUB_ENV
-          echo "EXTENDED_MATRIX_ANDROID_API=${{github.event.inputs.android_api}}" >> $GITHUB_ENV
-          echo "EXTENDED_MATRIX_IOS_DEVICE=${{github.event.inputs.ios_device}}" >> $GITHUB_ENV
-          echo "EXTENDED_MATRIX_IOS_VERSION=${{github.event.inputs.ios_version}}" >> $GITHUB_ENV
+          echo "MATRIX_PLATFORMS=${{github.event.inputs.platforms}}" >> $GITHUB_ENV
+          echo "MATRIX_APIS=${{github.event.inputs.apis}}" >> $GITHUB_ENV
+          echo "MATRIX_OPERATING_SYSTEMS=${{github.event.inputs.operating_systems}}" >> $GITHUB_ENV
+          echo "MATRIX_DESKTOP_SSL_VARIANTS=${{github.event.inputs.desktop_ssl_variants}}" >> $GITHUB_ENV
+          echo "MATRIX_ANDROID_DEVICE=${{github.event.inputs.android_device}}" >> $GITHUB_ENV
+          echo "MATRIX_ANDROID_API=${{github.event.inputs.android_api}}" >> $GITHUB_ENV
+          echo "MATRIX_IOS_DEVICE=${{github.event.inputs.ios_device}}" >> $GITHUB_ENV
+          echo "MATRIX_IOS_VERSION=${{github.event.inputs.ios_version}}" >> $GITHUB_ENV
       
       - name: Log Matrix
         run: |
-          echo "${{ env.EXTENDED_MATRIX_PLATFORMS }}"
-          echo "${{ env.EXTENDED_MATRIX_APIS }}"
-          echo "${{ env.EXTENDED_MATRIX_OPERATING_SYSTEMS }}"
-          echo "${{ env.EXTENDED_MATRIX_DESKTOP_SSL_VARIANTS }}"
-          echo "${{ env.EXTENDED_MATRIX_ANDROID_DEVICE }}"
-          echo "${{ env.EXTENDED_MATRIX_ANDROID_API }}"
-          echo "${{ env.EXTENDED_MATRIX_IOS_DEVICE }}"
-          echo "${{ env.EXTENDED_MATRIX_IOS_VERSION }}"
+          echo "${{ env.MATRIX_PLATFORMS }}"
+          echo "${{ env.MATRIX_APIS }}"
+          echo "${{ env.MATRIX_OPERATING_SYSTEMS }}"
+          echo "${{ env.MATRIX_DESKTOP_SSL_VARIANTS }}"
+          echo "${{ env.MATRIX_ANDROID_DEVICE }}"
+          echo "${{ env.MATRIX_ANDROID_API }}"
+          echo "${{ env.MATRIX_IOS_DEVICE }}"
+          echo "${{ env.MATRIX_IOS_VERSION }}"
 
       - id: set-matrix-os
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
         run: |
-          OS_JSON=[\"$(echo ${{ github.event.inputs.operating_systems }} | sed 's/,/","/g')\"]
+          OS_JSON=[\"$(echo ${{ env.MATRIX_OPERATING_SYSTEMS }} | sed 's/,/","/g')\"]
           echo "::set-output name=matrix_os::${OS_JSON}"
-          PLATFORM_JSON=[\"$(echo ${{ github.event.inputs.platforms }} | sed 's/,/","/g')\"]
+          PLATFORM_JSON=[\"$(echo ${{ env.MATRIX_PLATFORMS }} | sed 's/,/","/g')\"]
           echo "::set-output name=matrix_platform::${PLATFORM_JSON}"
-          SSL_JSON=[\"$(echo ${{ github.event.inputs.desktop_ssl_variants }} | sed 's/,/","/g')\"]
+          SSL_JSON=[\"$(echo ${{ env.MATRIX_DESKTOP_SSL_VARIANTS }} | sed 's/,/","/g')\"]
           echo "::set-output name=matrix_ssl::${SSL_JSON}"
 
   tests:
@@ -205,7 +205,7 @@ jobs:
           if [[ "${{ matrix.ssl_variant }}" == "boringssl" ]]; then
             ssl_option=--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON
           fi
-          python scripts/gha/build_testapps.py --t ${{ github.event.inputs.apis }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --noadd_timestamp ${ssl_option}
+          python scripts/gha/build_testapps.py --t ${{ env.MATRIX_APIS }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --noadd_timestamp ${ssl_option}
 
       - name: Run desktop integration tests
         if: matrix.target_platform == 'Desktop' && !cancelled()
@@ -227,7 +227,7 @@ jobs:
       - name: Run mobile integration tests
         if: matrix.target_platform != 'Desktop' && !cancelled()
         run: |
-          python scripts/gha/test_lab.py --android_model ${{ github.event.inputs.android_device }} --android_api ${{ github.event.inputs.android_api }} --ios_model ${{ github.event.inputs.ios_device }} --ios_version ${{ github.event.inputs.ios_version }} --testapp_dir testapps --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
+          python scripts/gha/test_lab.py --android_model ${{ env.ANDROID_DEVICE }} --android_api ${{ env.MATRIX_ANDROID_API }} --ios_model ${{ env.MATRIX_IOS_DEVICE }} --ios_version ${{ env.MATRIX_IOS_VERSION }} --testapp_dir testapps --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Summarize build and test results
         if: ${{ !cancelled() }}
         shell: bash
