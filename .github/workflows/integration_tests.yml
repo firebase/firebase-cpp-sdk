@@ -79,13 +79,14 @@ jobs:
       - name: Log Matrix
         run: |
           echo $GITHUB_ENV
-          echo ${{APIS}}
-          echo ${{OPERATING_SYSTEMS}}
-          echo $DESKTOP_SSL_VARIANTS
-          echo $ANDROID_DEVICE
-          echo $ANDROID_API
-          echo $IOS_DEVICE
-          echo $IOS_VERSION
+          echo $MATRIX_PLATFORMS
+          echo ${{MATRIX_APIS}}
+          echo ${{MATRIX_OPERATING_SYSTEMS}}
+          echo $MATRIX_DESKTOP_SSL_VARIANTS
+          echo $MATRIX_ANDROID_DEVICE
+          echo $MATRIX_ANDROID_API
+          echo $MATRIX_IOS_DEVICE
+          echo $MATRIX_IOS_VERSION
 
       - id: set-matrix-os
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
