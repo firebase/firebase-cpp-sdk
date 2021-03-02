@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       use_modified_matrix:
-        description: 'Flag - test config subset.'
+        description: 'Flag - override test matrix with confg below'
         default: '1'
         required: true
       platforms:
