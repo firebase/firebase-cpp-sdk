@@ -2,10 +2,10 @@
 
 #include <utility>
 
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/document_snapshot_ios.h"
-#include "firestore/src/ios/hard_assert_ios.h"
 #include "firestore/src/ios/util_ios.h"
 
 namespace firebase {

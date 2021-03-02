@@ -4,10 +4,10 @@
 #include <string>
 
 #include "firestore/src/common/exception_common.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/field_value_ios.h"
-#include "firestore/src/ios/hard_assert_ios.h"
 #include "firestore/src/ios/set_options_ios.h"
 #include "absl/memory/memory.h"
 #include "Firestore/core/src/core/user_data.h"
@@ -45,7 +45,7 @@ void ParseDelete(ParseContext&& context) {
   }
 
   if (context.data_source() == UserDataSource::Update) {
-    HARD_ASSERT_IOS(
+    SIMPLE_HARD_ASSERT(
         !context.path()->empty(),
         "FieldValue.Delete() at the top level should have already been "
         "handled.");
@@ -95,7 +95,7 @@ void ParseArrayTransform(Type type, const model::FieldValue::Array& elements,
         auto message = std::string("Unexpected type '") +
                        std::to_string(static_cast<int>(type)) +
                        "' given to ParseArrayTransform";
-        HARD_FAIL_IOS(message.c_str());
+        SIMPLE_HARD_FAIL(message);
       }
     }
   }();
@@ -119,7 +119,7 @@ void ParseNumericIncrement(const FieldValue& value, ParseContext&& context) {
       break;
 
     default:
-      HARD_FAIL_IOS("A non-increment value given to ParseNumericIncrement");
+      SIMPLE_HARD_FAIL("A non-increment value given to ParseNumericIncrement");
   }
 
   context.AddToFieldTransforms(*context.path(),
@@ -230,9 +230,9 @@ model::FieldValue UserDataConverter::ParseQueryValue(const FieldValue& input,
 
   absl::optional<model::FieldValue> parsed =
       ParseData(input, accumulator.RootContext());
-  HARD_ASSERT_IOS(parsed, "Parsed data should not be nullopt.");
-  HARD_ASSERT_IOS(accumulator.field_transforms().empty(),
-                  "Field transforms should have been disallowed.");
+  SIMPLE_HARD_ASSERT(parsed, "Parsed data should not be nullopt.");
+  SIMPLE_HARD_ASSERT(accumulator.field_transforms().empty(),
+                     "Field transforms should have been disallowed.");
   return parsed.value();
 }
 
@@ -365,7 +365,7 @@ void UserDataConverter::ParseSentinel(const FieldValue& value,
       // HARD_FAIL("Unknown FieldValue type: '%s'", Describe(value.type()));
       auto message = std::string("Unknown FieldValue type: '") +
                      Describe(value.type()) + "'";
-      HARD_FAIL_IOS(message.c_str());
+      SIMPLE_HARD_FAIL(message);
   }
 }
 
@@ -429,7 +429,7 @@ model::FieldValue UserDataConverter::ParseScalar(const FieldValue& value,
       return model::FieldValue::FromGeoPoint(value.geo_point_value());
 
     default:
-      HARD_FAIL_IOS("A non-scalar field value given to ParseScalar");
+      SIMPLE_HARD_FAIL("A non-scalar field value given to ParseScalar");
   }
 }
 
@@ -457,7 +457,7 @@ model::FieldValue::Array UserDataConverter::ParseArrayTransformElements(
       auto message =
           std::string("Failed to properly parse array transform element: ") +
           Describe(element.type());
-      HARD_FAIL_IOS(message.c_str());
+      SIMPLE_HARD_FAIL(message);
     }
 
     result.push_back(std::move(parsed_element).value());
