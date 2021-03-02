@@ -67,14 +67,14 @@ jobs:
         if: github.event.inputs.use_expanded_matrix == '1'
         run: |
           echo "::set-env name=DDB_CONFIG::NORMAL"
-          echo "::set-env name=$MATRIX_PLATFORMS::${{github.event.inputs.platforms}}"
-          echo "::set-env name=$MATRIX_APIS::${{github.event.inputs.apis}}" >> $GITHUB_ENV
-          echo "::set-env name=$MATRIX_OPERATING_SYSTEMS::${{github.event.inputs.operating_systems}}" >> $GITHUB_ENV
-          echo "::set-env name=$MATRIX_DESKTOP_SSL_VARIANTS::${{github.event.inputs.desktop_ssl_variants}}" >> $GITHUB_ENV
-          echo "::set-env name=$MATRIX_ANDROID_DEVICE::${{github.event.inputs.android_device}}" >> $GITHUB_ENV
-          echo "::set-env name=$MATRIX_ANDROID_API::${{github.event.inputs.android_api}}" >> $GITHUB_ENV
-          echo "::set-env name=$MATRIX_IOS_DEVICE::${{github.event.inputs.ios_device}}" >> $GITHUB_ENV
-          echo "::set-env name=$MATRIX_IOS_VERSION::${{github.event.inputs.ios_version}}" >> $GITHUB_ENV
+          echo "::set-env name=MATRIX_PLATFORMS::${{github.event.inputs.platforms}}"
+          echo "::set-env name=MATRIX_APIS::${{github.event.inputs.apis}}" >> $GITHUB_ENV
+          echo "::set-env name=MATRIX_OPERATING_SYSTEMS::${{github.event.inputs.operating_systems}}" >> $GITHUB_ENV
+          echo "::set-env name=MATRIX_DESKTOP_SSL_VARIANTS::${{github.event.inputs.desktop_ssl_variants}}" >> $GITHUB_ENV
+          echo "::set-env name=MATRIX_ANDROID_DEVICE::${{github.event.inputs.android_device}}" >> $GITHUB_ENV
+          echo "::set-env name=MATRIX_ANDROID_API::${{github.event.inputs.android_api}}" >> $GITHUB_ENV
+          echo "::set-env name=MATRIX_IOS_DEVICE::${{github.event.inputs.ios_device}}" >> $GITHUB_ENV
+          echo "::set-env name=MATRIX_IOS_VERSION::${{github.event.inputs.ios_version}}" >> $GITHUB_ENV
       
       - name: Log Matrix
         run: |
