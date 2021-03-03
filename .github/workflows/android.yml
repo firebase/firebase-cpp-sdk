@@ -3,9 +3,18 @@ name: Android Builds
 on:
   pull_request:
     types: [opened, reopened]
+ workflow_dispatch:
+    inputs:
+      extended_matrix:
+        description: 'Use an extended test matrix?'
+        default: '0'
+        required: true
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
+  # Enable to use of an extended matrix of build configurations.
+  # Disabled by default.  May be enabled via workflow_distpach parameters.
+  USE_EXTENDED_BUILD_MATRIX: 0
 
 jobs:
   build:
@@ -19,6 +28,12 @@ jobs:
         architecture: ["x64"]
 
     steps:
+      - name: check for extended matrix config
+        if: github.event.inputs.extended_matrix == '1'
+        run: |
+          echo "Enabling extended build matrix."
+          echo "USE_EXTENDED_BUILD_MATRIX=1" >> $GITHUB_ENV
+
       - uses: actions/checkout@v2
         with:
           submodules: true
