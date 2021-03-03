@@ -37,21 +37,26 @@ env:
   # Xcode version 11.7 is the version we build the SDK with.
   # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
   xcodeVersion: "11.7"
-  # Enable to use of an extended matrix of build configurations.
-  # Enabled by default for chron jobs.  May be toggled via workflow_distpach
-  # parameters.
-  USE_EXTENDED_BUILD_MATRIX: 1
 
 jobs:
-  prepare_matrix:
+  prepare_extended_matrix:
     runs-on: ubuntu-latest
+    # Signals use of an extended build configurations and test target matrix.
+    # Configured through workflow_distpach params, enabled in  cron jobs,
+    env:
+      EXTENDED_MATRIX: 1
+    outputs:
+      extended_matrix: ${{ steps.export-result.outputs.extended_matrix }}
     steps:      
       # Alter the extended_matrix based on the workflow_dispatch parameters.
-      - name: Configure Workflow Dispatch Parameters
+      - name: Import Workflow Dispatch Parameters
         if: github.event.inputs.extended_matrix == '0'
         run: |
           echo "Disabling extended build matrix."
-          echo "USE_EXTENDED_BUILD_MATRIX=0" >> $GITHUB_ENV
+          echo "EXTENDED_MATRIX=0" >> $GITHUB_ENV
+      - id: export-result
+        run: |
+          echo "::set-output name=extended_matrix::${EXTENDED_MATRIX}"
 
   log_inputs:
     name: log-inputs
