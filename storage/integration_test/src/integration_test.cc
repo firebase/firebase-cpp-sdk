@@ -619,7 +619,7 @@ TEST_F(FirebaseStorageTest, TestDeleteFile) {
 class StorageListener : public firebase::storage::Listener {
  public:
   StorageListener()
-      : on_paused_was_called_(false), on_progress_was_called_(false) {}
+    : on_paused_was_called_(false), on_progress_was_called_(false), resume_succeeded_(false) {}
 
   // Tracks whether OnPaused was ever called and resumes the transfer.
   void OnPaused(firebase::storage::Controller* controller) override {
@@ -629,7 +629,7 @@ class StorageListener : public firebase::storage::Listener {
     ProcessEvents(1000);
 #endif  // FIREBASE_PLATFORM_DESKTOP
     on_paused_was_called_ = true;
-    controller->Resume();
+    resume_succeeded_ = controller->Resume();
   }
 
   void OnProgress(firebase::storage::Controller* controller) override {
@@ -640,10 +640,12 @@ class StorageListener : public firebase::storage::Listener {
 
   bool on_paused_was_called() const { return on_paused_was_called_; }
   bool on_progress_was_called() const { return on_progress_was_called_; }
+  bool resume_succeeded() const { return resume_succeeded_; }
 
  public:
   bool on_paused_was_called_;
   bool on_progress_was_called_;
+  bool resume_succeeded_;
 };
 
 // Contents of a large file, "X" will be replaced with a different character
@@ -713,6 +715,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     // Ensure the various callbacks were called.
     EXPECT_TRUE(listener.on_paused_was_called());
     EXPECT_TRUE(listener.on_progress_was_called());
+    EXPECT_TRUE(listener.resume_succeeded());
 
     ASSERT_EQ(future.error(), firebase::storage::kErrorNone);
     auto metadata = future.result();
