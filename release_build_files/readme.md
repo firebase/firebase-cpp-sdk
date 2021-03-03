@@ -339,40 +339,40 @@ information).
 
 For OS X (Darwin), library versions are only provided for the 64-bit (x86_64)
 platform. See the table above (in the "Linux libraries" section) for the list of
-library dependencies. Frameworks are also provided for convenience.
+library dependencies. XCFrameworks are also provided for convenience.
 
-Feature                         | Required Frameworks
+Feature                         | Required XCFrameworks
 ------------------------------- | ----------------------------------
-Firebase Authentication         | firebase_auth.framework
-                                | firebase.framework
-Cloud Firestore                 | firebase_firestore.framework
-                                | firebase_auth.framework
-                                | firebase.framework
-Firebase Functions              | firebase_functions.framework
-                                | firebase_auth.framework (optional)
-                                | firebase.framework
-Firebase Realtime Database      | firebase_database.framework
-                                | firebase_auth.framework
-                                | firebase.framework
-Firebase Remote Config          | firebase_remote_config.framework
-                                | firebase.framework
-Firebase Storage                | firebase_storage.framework
-                                | firebase_auth.framework
-                                | firebase.framework
-Firebase AdMob (stub)           | firebase_admob.framework
-                                | firebase.framework
-Firebase Analytics (stub)       | firebase_analytics.framework
-                                | firebase.frameworkb
-Firebase Dynamic Links (stub)   | firebase_dynamic_links.framework
-                                | firebase.framework
-Firebase Installations (stub)   | firebase_installations.framework
-                                | firebase.framework
-Firebase Instance ID (stub)     | firebase_instance_id.framework
-                                | firebase.framework
-Firebase Cloud Messaging (stub) | firebase_messaging.framework
-                                | firebase.framework
+Firebase Authentication         | firebase_auth.xcframework
+                                | firebase.xcframework
+Cloud Firestore                 | firebase_firestore.xcframework
+                                | firebase_auth.xcframework
+                                | firebase.xcframework
+Firebase Functions              | firebase_functions.xcframework
+                                | firebase_auth.xcframework (optional)
+                                | firebase.xcframework
+Firebase Realtime Database      | firebase_database.xcframework
+                                | firebase_auth.xcframework
+                                | firebase.xcframework
+Firebase Remote Config          | firebase_remote_config.xcframework
+                                | firebase.xcframework
+Firebase Storage                | firebase_storage.xcframework
+                                | firebase_auth.xcframework
+                                | firebase.xcframework
+Firebase AdMob (stub)           | firebase_admob.xcframework
+                                | firebase.xcframework
+Firebase Analytics (stub)       | firebase_analytics.xcframework
+                                | firebase.xcframework
+Firebase Dynamic Links (stub)   | firebase_dynamic_links.xcframework
+                                | firebase.xcframework
+Firebase Installations (stub)   | firebase_installations.xcframework
+                                | firebase.xcframework
+Firebase Instance ID (stub)     | firebase_instance_id.xcframework
+                                | firebase.xcframework
+Firebase Cloud Messaging (stub) | firebase_messaging.xcframework
+                                | firebase.xcframework
 
-The provided libraries have been tested using Xcode 11.7. When building C++
+The provided libraries have been tested using Xcode 12.0. When building C++
 desktop apps on OS X, you will need to link the `gssapi_krb5` and `pthread`
 system libraries, as well as the `CoreFoundation`, `Foundation`, `GSS`, and
 `Security` OS X system frameworks (consult your compiler documentation for more
@@ -570,6 +570,12 @@ workflow use only during the development of your app, not for publicly shipping
 code.
 
 ## Release Notes
+
+### 7.2.0
+-   Changes
+    -   General (iOS): iOS SDKs are now built using Xcode 12.
+    -   General (iOS): iOS SDKs are now providing XCFrameworks instead of 
+        Frameworks.
 
 ### 7.1.0
 -   Changes
