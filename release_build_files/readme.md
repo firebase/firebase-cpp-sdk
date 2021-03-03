@@ -577,6 +577,12 @@ code.
     -   General (iOS): iOS SDKs are now providing XCFrameworks instead of 
         Frameworks.
 
+### 7.1.1
+-   Changes
+    -   General (Android): Use non-conflicting file names for embedded resources
+        in Android builds. This fixes segfault crashes on old Android devices
+        (Android 5 and below).
+
 ### 7.1.0
 -   Changes
     -   General (iOS): Re-enabled Bitcode in iOS builds
