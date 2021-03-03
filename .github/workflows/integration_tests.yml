@@ -17,8 +17,6 @@ env:
   MATRIX_IOS_VERSION: '11.4' 
 
 on:
-  scehdule:
-    - cron:  '0 0 * * *'
   workflow_dispatch:
     inputs:
       platforms:
@@ -53,6 +51,9 @@ on:
         description: 'Disabling (0) will run an extended test matrix instead of your config defined above'
         default: '1'
         required: true
+  scehdule:
+    - cron:  '0 0 * * *'
+  
 
 jobs:
   # To feed input into the job matrix, we first need to convert to a JSON
