@@ -3,12 +3,22 @@ name: Desktop Builds
 on:
   pull_request:
     types: [opened, reopened]
+  workflow_dispatch:
+    inputs:
+      extended_matrix:
+        description: 'Use an extended test matrix?'
+        default: '0'
+        required: true
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
   # Xcode version 11.7 is the version we build the SDK with.
   # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
   xcodeVersion: "11.7"
+  # Enable to use of an extended matrix of build configurations.
+  # Disabled by default.  May be enabled via workflow_distpach parameters.
+  USE_EXTENDED_BUILD_MATRIX: 0
+  
 
 jobs:
   build:
@@ -48,6 +58,16 @@ jobs:
           architecture: "x86"
 
     steps:
+      - name: check for extended matrix config
+        if: github.event.inputs.extended_matrix == '1'
+        run: echo "Enabling extended build matrix."
+        env:
+          USE_EXTENDED_BUILD_MATRIX: 1
+      
+      - name: log matrix
+        run: |
+          echo "USE_EXTENDED_BUIL_MATRIX: ${{ env.MATRIX_OPERATING_SYSTEMS }}"
+        
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
