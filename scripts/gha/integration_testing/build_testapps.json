@@ -7,8 +7,8 @@
       "ios_target": "integration_test",
       "testapp_path": "analytics/integration_test",
       "frameworks": [
-        "firebase_analytics.framework",
-        "firebase.framework"
+        "firebase_analytics.xcframework",
+        "firebase.xcframework"
       ],
       "provision": "Google_Development.mobileprovision"
     },
@@ -19,8 +19,8 @@
       "ios_target": "integration_test",
       "testapp_path": "admob/integration_test",
       "frameworks": [
-        "firebase_admob.framework",
-        "firebase.framework"
+        "firebase_admob.xcframework",
+        "firebase.xcframework"
       ],
       "provision": "Google_Development.mobileprovision"
     },
@@ -31,8 +31,8 @@
       "ios_target": "integration_test",
       "testapp_path": "analytics/integration_test",
       "frameworks": [
-        "firebase_analytics.framework",
-        "firebase.framework"
+        "firebase_analytics.xcframework",
+        "firebase.xcframework"
       ],
       "provision": "Google_Development.mobileprovision"
     },
@@ -43,8 +43,8 @@
       "ios_target": "integration_test",
       "testapp_path": "auth/integration_test",
       "frameworks": [
-        "firebase_auth.framework",
-        "firebase.framework"
+        "firebase_auth.xcframework",
+        "firebase.xcframework"
       ],
       "provision": "Firebase_Cpp_Auth_Test_App_Dev.mobileprovision"
     },
@@ -55,9 +55,9 @@
       "ios_target": "integration_test",
       "testapp_path": "database/integration_test",
       "frameworks": [
-        "firebase_auth.framework",
-        "firebase_database.framework",
-        "firebase.framework"
+        "firebase_auth.xcframework",
+        "firebase_database.xcframework",
+        "firebase.xcframework"
       ],
       "provision": "Firebase_Dev_Wildcard.mobileprovision"
     },
@@ -68,8 +68,8 @@
       "ios_target": "integration_test",
       "testapp_path": "dynamic_links/integration_test",
       "frameworks": [
-        "firebase_dynamic_links.framework",
-        "firebase.framework"
+        "firebase_dynamic_links.xcframework",
+        "firebase.xcframework"
       ],
       "provision": "Firebase_Cpp_Dynamic_Links_Test_App_Dev.mobileprovision"
     },
@@ -80,9 +80,9 @@
       "ios_target": "integration_test",
       "testapp_path": "functions/integration_test",
       "frameworks": [
-        "firebase_auth.framework",
-        "firebase_functions.framework",
-        "firebase.framework"
+        "firebase_auth.xcframework",
+        "firebase_functions.xcframework",
+        "firebase.xcframework"
       ],
       "provision": "Firebase_Dev_Wildcard.mobileprovision"
     },
@@ -93,8 +93,8 @@
       "ios_target": "integration_test",
       "testapp_path": "installations/integration_test",
       "frameworks": [
-        "firebase_installations.framework",
-        "firebase.framework"
+        "firebase_installations.xcframework",
+        "firebase.xcframework"
       ],
       "provision": "Firebase_Dev_Wildcard.mobileprovision"
     },
@@ -105,8 +105,8 @@
       "ios_target": "integration_test",
       "testapp_path": "instance_id/integration_test",
       "frameworks": [
-        "firebase_instance_id.framework",
-        "firebase.framework"
+        "firebase_instance_id.xcframework",
+        "firebase.xcframework"
       ],
       "provision": "Firebase_Dev_Wildcard.mobileprovision"
     },
@@ -117,8 +117,8 @@
       "ios_target": "integration_test",
       "testapp_path": "messaging/integration_test",
       "frameworks": [
-        "firebase_messaging.framework",
-        "firebase.framework"
+        "firebase_messaging.xcframework",
+        "firebase.xcframework"
       ],
       "provision": "Firebase_Cpp_Messaging_Test_App_Dev.mobileprovision"
     },
@@ -129,8 +129,8 @@
       "ios_target": "integration_test",
       "testapp_path": "remote_config/integration_test",
       "frameworks": [
-        "firebase_remote_config.framework",
-        "firebase.framework"
+        "firebase_remote_config.xcframework",
+        "firebase.xcframework"
       ],
       "provision": "Google_Development.mobileprovision"
     },
@@ -141,9 +141,9 @@
       "ios_target": "integration_test",
       "testapp_path": "storage/integration_test",
       "frameworks": [
-        "firebase_storage.framework",
-        "firebase_auth.framework",
-        "firebase.framework"
+        "firebase_storage.xcframework",
+        "firebase_auth.xcframework",
+        "firebase.xcframework"
       ],
       "provision": "Firebase_Dev_Wildcard.mobileprovision"
     },
@@ -154,9 +154,9 @@
       "ios_target": "integration_test",
       "testapp_path": "firestore/integration_test",
       "frameworks": [
-        "firebase_firestore.framework",
-        "firebase_auth.framework",
-        "firebase.framework"
+        "firebase_firestore.xcframework",
+        "firebase_auth.xcframework",
+        "firebase.xcframework"
       ],
       "provision": "Firebase_Dev_Wildcard.mobileprovision",
       "minify": "proguard"
@@ -168,8 +168,8 @@
       "ios_target": "testapp",
       "testapp_path": "firebase/performance/client/cpp/testapp",
       "frameworks": [
-        "firebase_performance.framework",
-        "firebase.framework"
+        "firebase_performance.xcframework",
+        "firebase.xcframework"
       ],
       "provision": "Google_Development.mobileprovision"
     },
@@ -180,8 +180,8 @@
       "ios_target": "integration_test",
       "testapp_path": "testlab/integration_test",
       "frameworks": [
-        "firebase_testlab.framework",
-        "firebase.framework"
+        "firebase_testlab.xcframework",
+        "firebase.xcframework"
       ],
       "provision": "Google_Development.mobileprovision"
     }
