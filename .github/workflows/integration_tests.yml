@@ -80,7 +80,7 @@ jobs:
       
       - name: log platforks
         run: |
-          echo "Platforms: ${{MATRIX_PLATFORMS}}"    
+          echo "Platforms: ${{env.MATRIX_PLATFORMS}}"    
       
       - id: set-matrix-os
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
