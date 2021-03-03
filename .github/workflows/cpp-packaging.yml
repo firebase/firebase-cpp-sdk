@@ -48,9 +48,9 @@ jobs:
     steps:      
       # Alter the extended_matrix based on the workflow_dispatch parameters.
       - name: Configure Workflow Dispatch Parameters
-        if: github.event.inputs.use_custom_matrix == '0'
+        if: github.event.inputs.extended_matrix == '0'
         run: |
-          echo "Using a custom matrix".
+          echo "Disabling extended build matrix."
           echo "USE_EXTENDED_BUILD_MATRIX=0" >> $GITHUB_ENV
 
   log_inputs:

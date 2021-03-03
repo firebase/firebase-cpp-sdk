@@ -28,7 +28,7 @@ jobs:
         architecture: ["x64"]
 
     steps:
-      - name: check for extended matrix config
+      - name: Check for extended matrix config
         if: github.event.inputs.extended_matrix == '1'
         run: |
           echo "Enabling extended build matrix."

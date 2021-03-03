@@ -69,7 +69,7 @@ jobs:
       - name: Configure Workflow Dispatch Parameters
         if: github.event.inputs.use_custom_matrix == '1'
         run: |
-          echo "Using a custom matrix".
+          echo "Enabling a custom matrix."
           echo "MATRIX_PLATFORMS=${{github.event.inputs.platforms}}" >> $GITHUB_ENV
           echo "MATRIX_APIS=${{github.event.inputs.apis}}" >> $GITHUB_ENV
           echo "MATRIX_OPERATING_SYSTEMS=${{github.event.inputs.operating_systems}}" >> $GITHUB_ENV

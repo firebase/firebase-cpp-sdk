@@ -58,13 +58,13 @@ jobs:
           architecture: "x86"
 
     steps:
-      - name: check for extended matrix config
+      - name: Check for extended matrix config
         if: github.event.inputs.extended_matrix == '1'
         run: |
           echo "Enabling extended build matrix."
           echo "USE_EXTENDED_BUILD_MATRIX=1" >> $GITHUB_ENV
                 
-      - name: setup Xcode version (macos)
+      - name: Setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
