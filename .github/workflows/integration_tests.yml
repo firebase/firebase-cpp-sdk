@@ -1,13 +1,12 @@
 name: Integration tests
 
 env:
-  # Our default expanded matrix will be used by nightly CI builds to extensively
-  # vet the development of this repo across a majority of our supported
-  # platforms.
-  # A smaller subset of this matrix is used in our manually dipsatched GHA
-  # integration tests workflows as defined in workflow_dispatch below.
-  # However, a manual dispatched GHA may also use the expanded matrix by
-  # setting the use_custom_matrix flag to 0.
+  # This expanded test matrix is used by nightly CI builds to extensively vet
+  # firebase-cpp-sdk development 
+  #
+  # A smaller subset of this matrix for quick PR checks is defined in
+  # workflow_dispatch (below) but the workflow_dispatch action may also use
+  # this expanded matrix by disabling the  use_custom_matrix flag parameter.
   MATRIX_PLATFORMS: 'Desktop,Android,iOS'
   MATRIX_APIS: 'admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage'
   MATRIX_OPERATING_SYSTEMS: 'ubuntu-latest,windows-latest,macos-latest'
@@ -18,6 +17,8 @@ env:
   MATRIX_IOS_VERSION: '11.4' 
 
 on:
+  scehdule:
+    - cron:  '0 0 * * *'
   workflow_dispatch:
     inputs:
       platforms:
@@ -49,7 +50,7 @@ on:
         description: 'iOS device version'
         default: '11.4'
       use_custom_matrix:
-        description: 'Disabling (0) will run an extended test matrix instead of the config above'
+        description: 'Disabling (0) will run an extended test matrix instead of your config defined above'
         default: '1'
         required: true
 
@@ -63,7 +64,8 @@ jobs:
       matrix_platform: ${{ steps.set-matrix-os.outputs.matrix_platform }}
       matrix_ssl: ${{ steps.set-matrix-os.outputs.matrix_ssl }}
     steps:      
-      # If the workflow dispatch was triggered without expanded matrix mode.
+      # Use the workflow_dispatch parameterized build configuration if use_custom_matrix
+      # was enabled.
       - name: Configure Workflow Dispatch Parameters
         if: github.event.inputs.use_custom_matrix == '1'
         run: |
@@ -76,17 +78,6 @@ jobs:
           echo "MATRIX_IOS_DEVICE=${{github.event.inputs.ios_device}}" >> $GITHUB_ENV
           echo "MATRIX_IOS_VERSION=${{github.event.inputs.ios_version}}" >> $GITHUB_ENV
       
-      - name: Log Matrix
-        run: |
-          echo "${{ env.MATRIX_PLATFORMS }}"
-          echo "${{ env.MATRIX_APIS }}"
-          echo "${{ env.MATRIX_OPERATING_SYSTEMS }}"
-          echo "${{ env.MATRIX_DESKTOP_SSL_VARIANTS }}"
-          echo "${{ env.MATRIX_ANDROID_DEVICE }}"
-          echo "${{ env.MATRIX_ANDROID_API }}"
-          echo "${{ env.MATRIX_IOS_DEVICE }}"
-          echo "${{ env.MATRIX_IOS_VERSION }}"
-
       - id: set-matrix-os
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
         run: |
