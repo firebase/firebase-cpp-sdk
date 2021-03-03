@@ -1,21 +1,5 @@
 name: Integration tests
 
-env:
-  # This expanded test matrix is used by nightly CI builds to extensively vet
-  # firebase-cpp-sdk development 
-  #
-  # A smaller subset of this matrix for quick PR checks is defined in
-  # workflow_dispatch (below) but the workflow_dispatch action may also use
-  # this expanded matrix by disabling the  use_custom_matrix flag parameter.
-  MATRIX_PLATFORMS: 'Desktop,Android,iOS'
-  MATRIX_APIS: 'admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage'
-  MATRIX_OPERATING_SYSTEMS: 'ubuntu-latest,windows-latest,macos-latest'
-  MATRIX_DESKTOP_SSL_VARIANTS: 'openssl,boringssl'
-  MATRIX_ANDROID_DEVICE: 'flame'
-  MATRIX_ANDROID_API: '29'
-  MATRIX_IOS_DEVICE: 'iphone8'
-  MATRIX_IOS_VERSION: '11.4' 
-
 on:
   schedule:
     - cron: "0 9 * * *"  # 9am UTC = 1am PST / 2am PDT
@@ -59,17 +43,38 @@ jobs:
   # list. Then we can use fromJson to define the field in the matrix for the tests job.
   prepare_matrix:
     runs-on: ubuntu-latest
+    env:
+      # Defaults for the expanded test matrix. Used by nightly CI builds to
+      # extensively vet firebase-cpp-sdk development with an extended array
+      # of both build configuration and test targets.
+      #
+      # A smaller subset of this matrix for quick PR checks is defined in
+      # workflow_dispatch (above).  The workflow_dispatch action may use
+      # the expanded matrix by disabling the `use_custom_matrix` flag.
+      MATRIX_PLATFORMS: 'Desktop,Android,iOS'
+      MATRIX_APIS: 'admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage'
+      MATRIX_OPERATING_SYSTEMS: 'ubuntu-latest,windows-latest,macos-latest'
+      MATRIX_DESKTOP_SSL_VARIANTS: 'openssl,boringssl'
+      MATRIX_ANDROID_DEVICE: 'flame'
+      MATRIX_ANDROID_API: '29'
+      MATRIX_IOS_DEVICE: 'iphone8'
+      MATRIX_IOS_VERSION: '11.4' 
     outputs:
-      matrix_os: ${{ steps.set-matrix-os.outputs.matrix_os }}
-      matrix_platform: ${{ steps.set-matrix-os.outputs.matrix_platform }}
-      matrix_ssl: ${{ steps.set-matrix-os.outputs.matrix_ssl }}
+      matrix_platform: ${{ steps.set-matrix.outputs.matrix_platform }}
+      matrix_apis: ${{ steps.set-matrix.outputs.matrix_apis }}
+      matrix_os: ${{ steps.set-matrix.outputs.matrix_os }}
+      matrix_ssl: ${{ steps.set-matrix.outputs.matrix_ssl }}
+      matrix_android_device: ${{ steps.set-matrix.outputs.matrix_android_device }}
+      matrix_android_api: ${{ steps.set-matrix.outputs.matrix_android_api }}
+      matrix_ios_device: ${{ steps.set-matrix.outputs.matrix_android_ios_device }}
+      matrix_ios_version: ${{ steps.set-matrix.outputs.matrix_android_ios_version }}
     steps:      
       # Use the workflow_dispatch parameterized build configuration if use_custom_matrix
       # was enabled.
-      - name: Configure Workflow Dispatch Parameters
+      - name: Use the workflow dispatch matrix.
         if: github.event.inputs.use_custom_matrix == '1'
         run: |
-          echo "Enabling a custom matrix."
+          echo "Enabling a custom matrix from the workflow_dispatch."
           echo "MATRIX_PLATFORMS=${{github.event.inputs.platforms}}" >> $GITHUB_ENV
           echo "MATRIX_APIS=${{github.event.inputs.apis}}" >> $GITHUB_ENV
           echo "MATRIX_OPERATING_SYSTEMS=${{github.event.inputs.operating_systems}}" >> $GITHUB_ENV
@@ -79,15 +84,21 @@ jobs:
           echo "MATRIX_IOS_DEVICE=${{github.event.inputs.ios_device}}" >> $GITHUB_ENV
           echo "MATRIX_IOS_VERSION=${{github.event.inputs.ios_version}}" >> $GITHUB_ENV
       
-      - id: set-matrix-os
+      - id: set-matrix
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
         run: |
           OS_JSON=[\"$(echo ${{ env.MATRIX_OPERATING_SYSTEMS }} | sed 's/,/","/g')\"]
           echo "::set-output name=matrix_os::${OS_JSON}"
+          APIS_JSON=[\"$(echo ${{ env.MATRIX_APIS }} | sed 's/,/","/g')\"]
+          echo "::set-output name=matrix_apis::${APIS_JSON}"
           PLATFORM_JSON=[\"$(echo ${{ env.MATRIX_PLATFORMS }} | sed 's/,/","/g')\"]
           echo "::set-output name=matrix_platform::${PLATFORM_JSON}"
           SSL_JSON=[\"$(echo ${{ env.MATRIX_DESKTOP_SSL_VARIANTS }} | sed 's/,/","/g')\"]
           echo "::set-output name=matrix_ssl::${SSL_JSON}"
+          echo "::set-output name=matrix_android_device::${MATRIX_ANDROID_DEVICE}"
+          echo "::set-output name=matrix_android_api::${MATRIX_ANDROID_API}"
+          echo "::set-output name=matrix_ios_device::${MATRIX_IOS_DEVICE}"
+          echo "::set-output name=matrix_ios_version:${MATRIX_IOS_VERSION}"
 
   tests:
     name: ${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
@@ -97,8 +108,13 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
+        apis: ${{ fromJson(needs.prepare_matrix.outputs.matrix_apis) }}
         target_platform: ${{ fromJson(needs.prepare_matrix.outputs.matrix_platform) }}
         ssl_variant: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ssl) }}
+        android_device: ${{ needs.prepare_matrix.outputs.matrix_android_device }}
+        android_api: ${{ needs.prepare_matrix.outputs.matrix_android_api }}
+        ios_device: ${{ needs.prepare_matrix.outputs.matrix_ios_device }}
+        ios_version: ${{ needs.prepare_matrix.outputs.matrix_ios_version }}
         exclude:
           - os: ubuntu-latest
             target_platform: iOS
@@ -197,7 +213,7 @@ jobs:
           if [[ "${{ matrix.ssl_variant }}" == "boringssl" ]]; then
             ssl_option=--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON
           fi
-          python scripts/gha/build_testapps.py --t ${{ env.MATRIX_APIS }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --noadd_timestamp ${ssl_option}
+          python scripts/gha/build_testapps.py --t ${{ matrix_apis }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --noadd_timestamp ${ssl_option}
 
       - name: Run desktop integration tests
         if: matrix.target_platform == 'Desktop' && !cancelled()
@@ -219,7 +235,7 @@ jobs:
       - name: Run mobile integration tests
         if: matrix.target_platform != 'Desktop' && !cancelled()
         run: |
-          python scripts/gha/test_lab.py --android_model ${{ env.ANDROID_DEVICE }} --android_api ${{ env.MATRIX_ANDROID_API }} --ios_model ${{ env.MATRIX_IOS_DEVICE }} --ios_version ${{ env.MATRIX_IOS_VERSION }} --testapp_dir testapps --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
+          python scripts/gha/test_lab.py --android_model ${{ matrix.android_device }} --android_api ${{ matrix.android_api }} --ios_model ${{ matrix.ios_device }} --ios_version ${{ matrix.ios_version }} --testapp_dir testapps --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Summarize build and test results
         if: ${{ !cancelled() }}
         shell: bash
