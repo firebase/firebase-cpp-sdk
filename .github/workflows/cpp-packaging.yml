@@ -56,9 +56,11 @@ jobs:
   log_inputs:
     name: log-inputs
     runs-on: ubuntu-latest
+    needs: prepare_matrix
     steps:
       - name: log run inputs
         run: |
+          echo "USE_EXTENDED_BUILD_MATRIX: ${{ env.USE_EXTENDED_BUILD_MATRIX }}"
           if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" ]]; then
             echo "::warning ::Downloading public SDK package from https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip"
           elif [[ -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
@@ -92,6 +94,7 @@ jobs:
   build_tools:
     name: build-tools-${{ matrix.tools_platform }}
     runs-on: ${{ matrix.os }}
+    needs: prepare_matrix
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       matrix:
@@ -164,6 +167,7 @@ jobs:
   build_and_package_ios:
     name: build-and-package-ios
     runs-on: macos-latest
+    needs: prepare_matrix
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     steps:
       - name: setup Xcode version (macos)
@@ -210,6 +214,7 @@ jobs:
   build_and_package_android:
     name: build-and-package-android-${{matrix.stl}}
     runs-on: ubuntu-latest
+    needs: prepare_matrix
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       fail-fast: false
@@ -256,6 +261,7 @@ jobs:
   build_desktop:
     name: build-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}
     runs-on: ${{ matrix.os }}
+    needs: prepare_matrix
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       fail-fast: false
