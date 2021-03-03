@@ -1,7 +1,7 @@
 ---
 name: "➕ Feature request"
 about: If you have a feature request for the Firebase C++ SDK, file it here.
-title: ''
+title: '[FR] '
 labels: 'new, type: question'
 assignees: ''
 
