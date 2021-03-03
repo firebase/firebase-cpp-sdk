@@ -2,7 +2,7 @@ name: Desktop Builds
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, reopened]
   workflow_dispatch:
     inputs:
       extended_matrix:
@@ -14,16 +14,16 @@ env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
   # Xcode version 11.7 is the version we build the SDK with.
   # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
-  xcodeVersion: "11.7"
-  # Enable to use of an extended matrix of build configurations.
-  # Disabled by default.  May be enabled via workflow_distpach parameters.
-  USE_EXTENDED_BUILD_MATRIX: 0
-  
+  xcodeVersion: "11.7"  
 
 jobs:
   build:
     name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
     runs-on: ${{ matrix.os }}
+    env:
+      # Enable to use of an extended matrix of build configurations.
+      # Disabled by default.  May be enabled via workflow_distpach parameters.
+      USE_EXTENDED_BUILD_MATRIX: 0
     strategy:
       fail-fast: false
       matrix:
@@ -58,13 +58,13 @@ jobs:
           architecture: "x86"
 
     steps:
-      - name: check for extended matrix config
+      - name: Check for extended matrix config
         if: github.event.inputs.extended_matrix == '1'
         run: |
           echo "Enabling extended build matrix."
           echo "USE_EXTENDED_BUILD_MATRIX=1" >> $GITHUB_ENV
                 
-      - name: setup Xcode version (macos)
+      - name: Setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
 
@@ -77,6 +77,7 @@ jobs:
         run: |
           echo "VCPKG_RESPONSE_FILE=external/vcpkg_custom_data/response_files/${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}.txt" >> $GITHUB_ENV
           echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}" >> $GITHUB_ENV
+
       - name: Cache vcpkg C++ dependencies
         id: cache_vcpkg
         uses: actions/cache@v2
@@ -101,10 +102,12 @@ jobs:
       - name: Install prerequisites
         run: |
           python scripts/gha/install_prereqs_desktop.py
+
       - name: Build SDK
         shell: bash
         run: |
           python scripts/gha/build_desktop.py --build_tests --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}"
+
       - name: Stats for ccache (mac and linux)
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         run: ccache -s
@@ -117,6 +120,7 @@ jobs:
           find build -name "*.dylib"
           find build -name "*.a"
           find build -name "*.so"
+
       - name: Inspect firebase libraries for cpu arch and msvc runtime.
         shell: bash
         run: |
@@ -131,11 +135,13 @@ jobs:
           echo '/tmp/cores/core.%E' | sudo tee /proc/sys/kernel/core_pattern
           sudo mkdir -p /tmp/cores/
           sudo rm -rf /tmp/cores/*
+
       - name: Prep crash support (mac)
         # Ensures no lingering crashes from the previous run.
         if: startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         run: |
           rm -rf ~/Library/Logs/DiagnosticReports/*
+
       - name: Run unit tests (windows & macos)
         # TODO: Enable tests for x86 once they are all working
         if: (startsWith(matrix.os, 'windows') || startsWith(matrix.os, 'macos')) && matrix.architecture != 'x86'
@@ -144,6 +150,7 @@ jobs:
         run: |
           cd build
           ctest --repeat until-pass:3
+
       - name: Run unit tests (linux)
         # Linux exists as its own standalone execution step in order to invoke
         # platform-specific `ulimit` to enable crash collection.  The ulimit
@@ -157,6 +164,7 @@ jobs:
           ulimit -c unlimited
           cd build
           sudo ctest --repeat until-pass:3
+
       - name: Prep bins for achive (linux)
         # Copies all of the binary files into one directory for ease in
         # archiving. Directory contents are then marked readable for the
@@ -169,6 +177,7 @@ jobs:
           sudo rm -rf ./build/app/tests/firebase_test
           sudo cp -f ./build/*/tests/firebase* /tmp/bins
           sudo chmod -R +rwx /tmp/bins/* || :
+
       - name: Prep crash data for archive (linux)
         # Marks the contents of the core dump directory to be readable for the
         # archiving step on linux.
@@ -176,6 +185,7 @@ jobs:
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         run: |
           sudo chmod -R +rwx /tmp/cores/* || :
+
       - name: Prep crash data for archive (macos)
         # Freshly made diagnostic reports are marked as readable for
         # the archive step. Note: for some reason /tmp/cores doesn't survive
@@ -185,6 +195,7 @@ jobs:
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         run: |
           sudo chmod -R +rwx ~/Library/Logs/DiagnosticReports/* || :
+
       - name: Archive crashes and binaries (linux)
         uses: actions/upload-artifact@v2
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
@@ -193,6 +204,7 @@ jobs:
           path: |
             /tmp/cores/*
             /tmp/bins/*
+
       - name: Archive crashes (mac)
         uses: actions/upload-artifact@v2
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')

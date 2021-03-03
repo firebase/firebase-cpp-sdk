@@ -2,7 +2,7 @@ name: iOS Builds
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, reopened]
   workflow_dispatch:
     inputs:
       extended_matrix:
@@ -14,14 +14,15 @@ env:
   # Xcode version 11.7 is the version we build the SDK with.
   # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
   xcodeVersion: "11.7"
-  # Enable to use of an extended matrix of build configurations.
-  # Disabled by default.  May be enabled via workflow_distpach parameters.
-  USE_EXTENDED_BUILD_MATRIX: 0
 
 jobs:
   build:
     name: ios-macos-latest
     runs-on: macos-latest
+    env:
+      # Enable to use of an extended matrix of build configurations.
+      # Disabled by default.  May be enabled via workflow_distpach parameters.
+      USE_EXTENDED_BUILD_MATRIX: 0
     strategy:
       fail-fast: false
 
@@ -31,6 +32,7 @@ jobs:
         run: |
           echo "Enabling extended build matrix."
           echo "USE_EXTENDED_BUILD_MATRIX=1" >> $GITHUB_ENV
+
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
@@ -48,6 +50,7 @@ jobs:
       - name: Install prerequisites
         run: |
           build_scripts/ios/install_prereqs.sh
+
       - name: Build SDK
         run: |
           build_scripts/ios/build.sh -b ios_build -s .

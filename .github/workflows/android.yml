@@ -2,7 +2,7 @@ name: Android Builds
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, reopened]
   workflow_dispatch:
     inputs:
       extended_matrix:
@@ -12,9 +12,6 @@ on:
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
-  # Enable to use of an extended matrix of build configurations.
-  # Disabled by default.  May be enabled via workflow_distpach parameters.
-  USE_EXTENDED_BUILD_MATRIX: 0
 
 jobs:
   build:
@@ -26,13 +23,19 @@ jobs:
         # Windows temporarily removed while broken
         os: [ubuntu-latest, macos-latest]
         architecture: ["x64"]
+    # Enable to use of an extended matrix of build configurations.
+    # Disabled by default.  May be enabled via workflow_distpach parameters.
+    env:
+      USE_EXTENDED_BUILD_MATRIX: 0
+
 
     steps:
-      - name: check for extended matrix config
+      - name: Check for extended matrix config
         if: github.event.inputs.extended_matrix == '1'
         run: |
           echo "Enabling extended build matrix."
           echo "USE_EXTENDED_BUILD_MATRIX=1" >> $GITHUB_ENV
+
       - uses: actions/checkout@v2
         with:
           submodules: true
@@ -42,6 +45,7 @@ jobs:
         run: |
           echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.architecture }}" >> $GITHUB_ENV
           echo "GHA_INSTALL_CCACHE=1" >> $GITHUB_ENV
+
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -56,6 +60,7 @@ jobs:
         shell: bash
         run: |
           build_scripts/android/install_prereqs.sh
+
       - name: Cache ccache files
         id: cache_ccache
         uses: actions/cache@v2
@@ -67,6 +72,7 @@ jobs:
         shell: bash
         run: |
           build_scripts/android/build.sh android_build .
+
       - name: Stats for ccache (mac and linux)
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
         run: ccache -s
