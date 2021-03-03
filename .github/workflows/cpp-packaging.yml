@@ -41,10 +41,10 @@ env:
 jobs:
   prepare_extended_matrix:
     runs-on: ubuntu-latest
-    # Signals use of an extended build configurations and test target matrix.
-    # Configured through workflow_distpach params, enabled in  cron jobs,
     env:
-      EXTENDED_MATRIX: 1
+      # Signals use of an extended build configuration and test targets.
+      # Configured through workflow_distpach params, enabled in cron jobs.
+      USE_EXTENDED_MATRIX: 1
     outputs:
       extended_matrix: ${{ steps.export-result.outputs.extended_matrix }}
     steps:      
@@ -53,10 +53,10 @@ jobs:
         if: github.event.inputs.extended_matrix == '0'
         run: |
           echo "Disabling extended build matrix."
-          echo "EXTENDED_MATRIX=0" >> $GITHUB_ENV
+          echo "USE_EXTENDED_MATRIX=0" >> $GITHUB_ENV
       - id: export-result
         run: |
-          echo "::set-output name=extended_matrix::${EXTENDED_MATRIX}"
+          echo "::set-output name=extended_matrix::${USE_EXTENDED_MATRIX}"
 
   log_inputs:
     name: log-inputs
