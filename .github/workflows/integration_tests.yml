@@ -66,10 +66,11 @@ jobs:
       # was enabled.
       - name: Configure Workflow Dispatch Parameters
         if: github.event.inputs.use_custom_matrix == '1'
-        env:
-          MATRIX_PLATFORMS: ${{github.event.inputs.platforms}}          
+        #env:
+        #  MATRIX_PLATFORMS: ${{github.event.inputs.platforms}}          
         run: |
           echo "Using a custom matrix".
+          echo "MATRIX_PLATFORMS=${{github.event.inputs.apis}}" >> $GITHUB_ENV
           echo "MATRIX_APIS=${{github.event.inputs.apis}}" >> $GITHUB_ENV
           echo "MATRIX_OPERATING_SYSTEMS=${{github.event.inputs.operating_systems}}" >> $GITHUB_ENV
           echo "MATRIX_DESKTOP_SSL_VARIANTS=${{github.event.inputs.desktop_ssl_variants}}" >> $GITHUB_ENV
@@ -78,7 +79,7 @@ jobs:
           echo "MATRIX_IOS_DEVICE=${{github.event.inputs.ios_device}}" >> $GITHUB_ENV
           echo "MATRIX_IOS_VERSION=${{github.event.inputs.ios_version}}" >> $GITHUB_ENV
       
-      - name: log platforks
+      - name: log platforms
         run: |
           echo "Platforms: ${{env.MATRIX_PLATFORMS}}"    
       
