@@ -42,8 +42,9 @@ jobs:
   prepare_extended_matrix:
     runs-on: ubuntu-latest
     env:
-      # Signals use of an extended build configuration and test targets.
-      # Configured through workflow_distpach params, enabled in cron jobs.
+      # Signals use of an extended array of both build configuration and 
+      # test targets. Configured through workflow_distpach params,
+      # and enabled in cron jobs by default.
       USE_EXTENDED_MATRIX: 1
     outputs:
       extended_matrix: ${{ steps.export-result.outputs.extended_matrix }}
