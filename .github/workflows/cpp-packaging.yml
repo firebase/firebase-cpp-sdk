@@ -23,6 +23,10 @@ on:
         description: 'public version # to test against'
       downloadPreviousRun:
         description: 'previous run # to test against'
+      extended_matrix:
+        description: 'Use an extended test matrix?'
+        default: '0'
+        required: true
 
 env:
   # Packaging prerequisites
@@ -33,8 +37,22 @@ env:
   # Xcode version 11.7 is the version we build the SDK with.
   # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
   xcodeVersion: "11.7"
+  # Enable to use of an extended matrix of build configurations.
+  # Enabled by default for chron jobs.  May be toggled via workflow_distpach
+  # parameters.
+  USE_EXTENDED_BUILD_MATRIX: 1
 
 jobs:
+  prepare_matrix:
+    runs-on: ubuntu-latest
+    steps:      
+      # Alter the extended_matrix based on the workflow_dispatch parameters.
+      - name: Configure Workflow Dispatch Parameters
+        if: github.event.inputs.use_custom_matrix == '0'
+        run: |
+          echo "Using a custom matrix".
+          echo "USE_EXTENDED_BUILD_MATRIX=0" >> $GITHUB_ENV
+
   log_inputs:
     name: log-inputs
     runs-on: ubuntu-latest

@@ -79,10 +79,6 @@ jobs:
           echo "MATRIX_IOS_DEVICE=${{github.event.inputs.ios_device}}" >> $GITHUB_ENV
           echo "MATRIX_IOS_VERSION=${{github.event.inputs.ios_version}}" >> $GITHUB_ENV
       
-      - name: log platforms
-        run: |
-          echo "Platforms: ${{env.MATRIX_PLATFORMS}}"    
-      
       - id: set-matrix-os
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
         run: |
