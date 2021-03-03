@@ -60,14 +60,10 @@ jobs:
     steps:
       - name: check for extended matrix config
         if: github.event.inputs.extended_matrix == '1'
-        run: echo "Enabling extended build matrix."
-        env:
-          USE_EXTENDED_BUILD_MATRIX: 1
-      
-      - name: log matrix
         run: |
-          echo "USE_EXTENDED_BUIL_MATRIX: ${{ env.MATRIX_OPERATING_SYSTEMS }}"
-        
+          echo "Enabling extended build matrix."
+          echo "USE_EXTENDED_BUIL_MATRIX=1" >> $GITHUB_ENV
+                
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
