@@ -3,7 +3,7 @@ name: Android Builds
 on:
   pull_request:
     types: [opened, reopened]
- workflow_dispatch:
+  workflow_dispatch:
     inputs:
       extended_matrix:
         description: 'Use an extended test matrix?'
