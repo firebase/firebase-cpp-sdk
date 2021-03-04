@@ -52,7 +52,7 @@ jobs:
   build:
     name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
     runs-on: ${{ matrix.os }}
-    needs: prepare-matrix
+    needs: prepare_matrix
     strategy:
       fail-fast: false
       matrix:
