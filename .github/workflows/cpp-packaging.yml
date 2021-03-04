@@ -23,7 +23,7 @@ on:
         description: 'public version # to test against'
       downloadPreviousRun:
         description: 'previous run # to test against'
-      expanded_matrix:s
+      expanded_matrix:
         description: 'Use an expanded test matrix?'
         default: '0'
         required: true
