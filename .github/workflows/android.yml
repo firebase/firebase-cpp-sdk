@@ -2,7 +2,7 @@ name: Android Builds
 
 on:
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, reopened]
   workflow_dispatch:
     inputs:
       expanded_matrix:
