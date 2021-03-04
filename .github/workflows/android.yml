@@ -45,7 +45,7 @@ jobs:
       fail-fast: false
       matrix:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
-        architecture: os: ${{ fromJson(needs.prepare_matrix.outputs.architecture) }}
+        architecture: ${{ fromJson(needs.prepare_matrix.outputs.architecture) }}
     steps:
       - name: Check expanded matrix config
         if: github.event.inputs.expanded_matrix == '1'
