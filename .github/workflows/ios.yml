@@ -25,7 +25,7 @@ jobs:
         if: github.event.inputs.expanded_matrix == '1'
         run: |
           echo "MATRIX_XCODE_VERSION=${EXPANDED_MATRIX_XCODE_VERSION}" >> $GITHUB_ENV
-    - id: export-result
+      - id: export-result
         run: |
           XCODE_VERSION_JSON=[\"$(echo ${{ env.MATRIX_XCODE_VERSION }} | sed 's/,/","/g')\"]
           echo "::set-output name=matrix_xcode_version::${XCODE_VERSION_JSON}"
