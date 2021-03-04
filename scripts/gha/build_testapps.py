@@ -187,7 +187,7 @@ def main(argv):
     timestamp = ""
   output_dir = os.path.join(output_dir, "testapps" + timestamp)
 
-  ios_framework_dir = os.path.join(sdk_dir, "frameworks")
+  ios_framework_dir = os.path.join(sdk_dir, "xcframeworks")
   ios_framework_exist = os.path.isdir(ios_framework_dir)
   if not ios_framework_exist and _IOS in platforms:
     _generate_makefiles_from_repo(sdk_dir)
@@ -420,6 +420,7 @@ def _build_ios_framework_from_repo(sdk_dir, api_config):
   framework_builder_args = [
       ios_framework_builder,
       "-b", sdk_dir,
+      "-s", sdk_dir,
       "-t", ",".join(target),
       "-g", "false"
   ]
@@ -436,7 +437,7 @@ def _build_ios(
   os.makedirs(build_dir)
 
   logging.info("Copying XCode frameworks")
-  framework_src_dir = os.path.join(sdk_dir, "frameworks", "ios", "universal")
+  framework_src_dir = os.path.join(sdk_dir, "xcframeworks")
   framework_paths = []  # Paths to the copied frameworks.
   for framework in api_config.frameworks:
     framework_src_path = os.path.join(framework_src_dir, framework)

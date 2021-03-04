@@ -53,9 +53,9 @@ set(common_SRCS
 
 # Define the resource build needed for Android
 firebase_cpp_gradle(":firestore:firestore_resources:generateDexJarRelease"
-    "${CMAKE_CURRENT_LIST_DIR}/firestore_resources/build/dexed.jar")
+    "${CMAKE_CURRENT_LIST_DIR}/firestore_resources/build/firestore_resources_lib.jar")
 binary_to_array("firestore_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/firestore_resources/build/dexed.jar"
+    "${CMAKE_CURRENT_LIST_DIR}/firestore_resources/build/firestore_resources_lib.jar"
     "firebase_firestore"
     "${FIREBASE_GEN_FILE_DIR}/firestore")
 

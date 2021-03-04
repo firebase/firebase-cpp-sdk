@@ -17,7 +17,12 @@
 #
 # Args:
 #   NAME: The name to use for the generated files.
-#   INPUT: The input binary to embed into the source file.
+#   INPUT: The input binary to embed into the source file. Please ensure that
+#          the input binary is uniquely named across all embedded resources used
+#          in the project. This is because the generated C++ source files strip
+#          out the directories which can cause conflicts when caching these
+#          embedded resources in the C++ layer (observed on Android API <= 21).
+#          See https://github.com/firebase/firebase-cpp-sdk/pull/289.
 #   CPP_NAMESPACE: The namespace to use in the generated files.
 #   OUTPUT_DIRECTORY: Where the generated files should be written to.
 function(binary_to_array NAME INPUT CPP_NAMESPACE OUTPUT_DIRECTORY)
