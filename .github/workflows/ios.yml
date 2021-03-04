@@ -9,15 +9,14 @@ on:
         description: 'Use an expanded test matrix?'
         default: '0'
         required: true
-
 jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
     env:
-      # Xcode version 11.7 is the version we build the SDK with.
-      # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
-      MATRIX_XCODE_VERSION: '11.7'
-      EXPANDED_MATRIX_XCODE_VERSION: '11.7'
+      # Xcode version 12 is the version we build the SDK with.
+      # Our MacOS runners will use the version in /Applications/Xcode_${matrix.xcode_version}.app
+      MATRIX_XCODE_VERSION: '12'
+      EXPANDED_MATRIX_XCODE_VERSION: '12'
     outputs:
       matrix_xcode_version: ${{ steps.export-result.outputs.matrix_xcode_version }}
     steps:

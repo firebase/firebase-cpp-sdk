@@ -15,3 +15,6 @@ GoogleService-Info.plist
 uri_prefix.txt
 server_key.txt
 gcs_key_file.json
+
+# Folders for cmake/test output
+*_build/
