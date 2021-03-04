@@ -80,12 +80,13 @@ static void ReleaseClasses(JNIEnv* env) {
 void CompleteVoidCallback(JNIEnv* env, jobject result,
                           util::FutureResult result_code,
                           const char* status_message, void* callback_data) {
-  auto data_handle = reinterpret_cast<FISDataHandle<void>*>(callback_data);
+  auto* data_handle = reinterpret_cast<FISDataHandle<void>*>(callback_data);
   data_handle->future_api->Complete(data_handle->future_handle,
                                     result_code == util::kFutureResultSuccess
                                         ? kInstallationsErrorNone
                                         : kInstallationsErrorFailure);
   if (result) env->DeleteLocalRef(result);
+  delete data_handle;
 }
 
 void StringResultCallback(JNIEnv* env, jobject result,
@@ -96,12 +97,13 @@ void StringResultCallback(JNIEnv* env, jobject result,
   if (success && result) {
     result_value = util::JniStringToString(env, result);
   }
-  auto data_handle =
+  auto* data_handle =
       reinterpret_cast<FISDataHandle<std::string>*>(callback_data);
   data_handle->future_api->CompleteWithResult(
       data_handle->future_handle,
       success ? kInstallationsErrorNone : kInstallationsErrorFailure,
       status_message, result_value);
+  delete data_handle;
 }
 
 static std::string JTokenResultToString(JNIEnv* env, jobject jtoken) {
@@ -123,12 +125,13 @@ void TokenResultCallback(JNIEnv* env, jobject result,
   if (success && result) {
     result_value = JTokenResultToString(env, result);
   }
-  auto data_handle =
+  auto* data_handle =
       reinterpret_cast<FISDataHandle<std::string>*>(callback_data);
   data_handle->future_api->CompleteWithResult(
       data_handle->future_handle,
       success ? kInstallationsErrorNone : kInstallationsErrorFailure,
       status_message, result_value);
+  delete data_handle;
 }
 
 InstallationsInternal::InstallationsInternal(const firebase::App& app)
