@@ -35,8 +35,8 @@ jobs:
     needs: prepare_matrix
     strategy:
       fail-fast: false
-    matrix:
-      xcode_verison: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
+      matrix:
+        xcode_verison: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
     steps:
       - name: Check expanded matrix config
         if: github.event.inputs.expanded_matrix == '1'
