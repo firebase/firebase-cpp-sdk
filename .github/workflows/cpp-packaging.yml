@@ -23,8 +23,8 @@ on:
         description: 'public version # to test against'
       downloadPreviousRun:
         description: 'previous run # to test against'
-      extended_matrix:
-        description: 'Use an extended test matrix?'
+      expanded_matrix:
+        description: 'Use an expanded test matrix?'
         default: '0'
         required: true
 
@@ -39,36 +39,36 @@ env:
   xcodeVersion: "11.7"
 
 jobs:
-  prepare_extended_matrix:
+  prepare_expanded_matrix:
     runs-on: ubuntu-latest
     env:
-      # Signals use of an extended array of both build configuration and 
-      # test targets. Configured through workflow_distpach params,
-      # and enabled in cron jobs by default.
-      USE_EXTENDED_MATRIX: 1
+      # Signals use of an expanded array of both build configuration and 
+      # test targets. May be configured through workflow_distpach params,
+      # and is enabled by default in cron jobs.
+      USE_EXPANDED_MATRIX: 1
     outputs:
-      use_extended_matrix: ${{ steps.export-result.outputs.extended_matrix }}
+      use_expanded_matrix: ${{ steps.export-result.outputs.expanded_matrix }}
     steps:      
-      # Alter the extended_matrix based on the workflow_dispatch parameters.
+      # Alter the expanded_matrix based on the workflow_dispatch parameters.
       - name: Import Workflow Dispatch Parameters
-        if: github.event.inputs.extended_matrix == '0'
+        if: github.event.inputs.expanded_matrix == '0'
         run: |
-          echo "Disabling extended build matrix."
-          echo "USE_EXTENDED_MATRIX=0" >> $GITHUB_ENV
+          echo "Disabling expanded build matrix."
+          echo "USE_EXPANDED_MATRIX=0" >> $GITHUB_ENV
       - id: export-result
         run: |
-          echo "::set-output name=use_extended_matrix::${USE_EXTENDED_MATRIX}"
+          echo "::set-output name=use_expanded_matrix::${USE_EXPANDED_MATRIX}"
 
   log_inputs:
     name: log-inputs
     runs-on: ubuntu-latest
     needs: prepare_matrix
     matrix:
-      use_extended_matrix: ${{ fneeds.prepare_matrix.outputs.use_extended_matrix }}
+      use_expanded_matrix: ${{ fneeds.prepare_matrix.outputs.use_expanded_matrix }}
     steps:
       - name: log run inputs
         run: |
-          echo "use extended build matrix?: ${{ matrix.use_extended_matrix }}"
+          echo "use expanded matrix?: ${{ matrix.use_expanded_matrix }}"
           if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" ]]; then
             echo "::warning ::Downloading public SDK package from https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip"
           elif [[ -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then

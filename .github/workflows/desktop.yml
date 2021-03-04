@@ -5,8 +5,8 @@ on:
     types: [opened, reopened]
   workflow_dispatch:
     inputs:
-      extended_matrix:
-        description: 'Use an extended test matrix?'
+      expanded_matrix:
+        description: 'Use an expanded test matrix?'
         default: '0'
         required: true
 
@@ -21,9 +21,10 @@ jobs:
     name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
     runs-on: ${{ matrix.os }}
     env:
-      # Enable to use of an extended matrix of build configurations.
-      # Disabled by default.  May be enabled via workflow_distpach parameters.
-      USE_EXTENDED_BUILD_MATRIX: 0
+      # Signals use of an expanded array of both build configuration and
+      # test targets. May be configured through workflow_distpach params,
+      # and is disabled by default for PRs.
+      USE_EXPANDED_MATRIX: 0
     strategy:
       fail-fast: false
       matrix:
@@ -58,11 +59,11 @@ jobs:
           architecture: "x86"
 
     steps:
-      - name: Check for extended matrix config
-        if: github.event.inputs.extended_matrix == '1'
+      - name: Check expanded matrix config
+        if: github.event.inputs.expanded_matrix == '1'
         run: |
-          echo "Enabling extended build matrix."
-          echo "USE_EXTENDED_BUILD_MATRIX=1" >> $GITHUB_ENV
+          echo "Enabling expanded build and test matrix."
+          echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
                 
       - name: Setup Xcode version (macos)
         if: runner.os == 'macOS'
