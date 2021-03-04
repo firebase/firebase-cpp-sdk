@@ -17,21 +17,51 @@ env:
   xcodeVersion: "11.7"  
 
 jobs:
+  prepare_matrix:
+    runs-on: ubuntu-latest
+    env:
+      MATRIX_OS: 'ubuntu-latest,macos-latest'
+      MATRIX_BUILD_TYPE: 'Release,Debug'
+      MATRIX_ARCHITECTURE:  'x64,x86'
+      MATRIX_PYTHON_VERSION: '3.7'
+      EXPANDED_MATRIX_OS: 'ubuntu-latest,macos-latest'
+      EXPANDED_MATRIX_BUILD_TYPE: 'Release,Debug'
+      EXPANDED_MATRIX_ARCHITECTURE:  'x64,x86'
+      EXPANDED_MATRIX_PYTHON_VERSION: '3.7'
+    outputs:
+      matrix_os: ${{ steps.export-result.outputs.matrix_os }}
+      matrix_build_type: ${{ steps.export-result.outputs.matrix_build_type }}
+      matrix_architecture: ${{ steps.export-result.outputs.matrix_architecture }}
+      matrix_python_version: ${{ steps.export-result.outputs.matrix_python_version }}
+    steps:
+      - name: Use expanded matrix
+        if: github.event.inputs.expanded_matrix == '1'
+        run: |
+          echo "MATRIX_OS=${EXPANDED_MATRIX_OS}" >> $GITHUB_ENV
+          echo "MATRIX_BUILD_TYPE=${MATRIX_BUILD_TYPE}" >> $GITHUB_ENV
+          echo "MATRIX_ARCHITECTURE=${EXPANDED_MATRIX_ARCHITECTURE}" >> $GITHUB_ENV
+          echo "MATRIX_PYTHON_VERSION=${EXPANDED_MATRIX_PYTHON_VERSION}" >> $GITHUB_ENV
+      - id: export-result
+        run: |
+          OS_JSON=[\"$(echo ${{ env.MATRIX_OS }} | sed 's/,/","/g')\"]
+          echo "::set-output name=matrix_os::${OS_JSON}"
+          BUILD_TYPE_JSON=[\"$(echo ${{ env.MATRIX_BUILD_TYPE }} | sed 's/,/","/g')\"]
+          echo "::set-output name=matrix_build_type::${BUILD_TYPE_JSON}"
+          ARCHITECTURE_JSON=[\"$(echo ${{ env.MATRIX_ARCHITECTURE }} | sed 's/,/","/g')\"]
+          echo "::set-output name=matrix_architecture::${ARCHITECTURE_JSON}"
+          PYTHON_VERSION_JSON=[\"$(echo ${{ env.MATRIX_PYTHON_VERSION }} | sed 's/,/","/g')\"]
+          echo "::set-output name=matrix_python_version::${PYTHON_VERSION_JSON}"
   build:
     name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
     runs-on: ${{ matrix.os }}
-    env:
-      # Signals use of an expanded array of both build configuration and
-      # test targets. May be configured through workflow_distpach params,
-      # and is disabled by default for PRs.
-      USE_EXPANDED_MATRIX: 0
+    needs: prepare_matrix
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        build_type: ["Release", "Debug"]
-        architecture: ["x64", "x86"]
-        python_version: [3.7]
+        os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
+        build_type: ${{ fromJson(needs.prepare_matrix.outputs.matrix_build_type) }}
+        architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
+        python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
         include:
         # Add these Windows jobs.
         - os: windows-latest
