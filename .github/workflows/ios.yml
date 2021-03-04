@@ -10,23 +10,33 @@ on:
         default: '0'
         required: true
 
-env:
-  # Xcode version 11.7 is the version we build the SDK with.
-  # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
-  xcodeVersion: "11.7"
-
 jobs:
+  prepare_matrix:
+    runs-on: ubuntu-latest
+    env:
+      # Xcode version 11.7 is the version we build the SDK with.
+      # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
+      MATRIX_XCODE_VERSION: '11.7'
+      EXPANDED_MATRIX_XCODE_VERSION: '11.7'
+    outputs:
+      matrix_xcode_version: ${{ steps.export-result.outputs.matrix_xcode_version }}
+    steps:
+      - name: Use expanded matrix
+        if: github.event.inputs.expanded_matrix == '1'
+        run: |
+          echo "MATRIX_XCODE_VERSION=${EXPANDED_MATRIX_XCODE_VERSION}" >> $GITHUB_ENV
+    - id: export-result
+        run: |
+          XCODE_VERSION_JSON=[\"$(echo ${{ env.MATRIX_XCODE_VERSION }} | sed 's/,/","/g')\"]
+          echo "::set-output name=matrix_xcode_version::${XCODE_VERSION_JSON}"
   build:
     name: ios-macos-latest
     runs-on: macos-latest
-    env:
-      # Signals the use of an expanded array of build configurations and
-      # test targets.  Defaults to off for pull request workflow executions.
-      # May be toggled on for manually dispatched workflows.
-      USE_EXPANDED_MATRIX: 0
+    needs: prepare_matrix
     strategy:
       fail-fast: false
-
+    matrix:
+      xcode_verison: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
     steps:
       - name: Check expanded matrix config
         if: github.event.inputs.expanded_matrix == '1'
