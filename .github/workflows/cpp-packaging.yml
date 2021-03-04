@@ -23,7 +23,7 @@ on:
         description: 'public version # to test against'
       downloadPreviousRun:
         description: 'previous run # to test against'
-      expanded_matrix:
+      expanded_matrix:s
         description: 'Use an expanded test matrix?'
         default: '0'
         required: true
@@ -42,22 +42,19 @@ jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
     env:
-      # Signals use of an expanded array of both build configuration and 
-      # test targets. May be configured through workflow_distpach params,
-      # and is enabled by default in cron jobs.
-      USE_EXPANDED_MATRIX: 1
+      MATRIX_BUILD_TOOLS_OS: 'ubuntu-latest,macos-latest'
+      EXPANDED_MATRIX_BUILD_TOOLS_OS: 'ubuntu-latest,macos-latest'
     outputs:
-      use_expanded_matrix: ${{ steps.export-result.outputs.expanded_matrix }}
-    steps:      
-      # Alter the expanded_matrix based on the workflow_dispatch parameters.
-      - name: Import Workflow Dispatch Parameters
-        if: github.event.inputs.expanded_matrix == '0'
+      matrix_build_tools_os: ${{ steps.export-result.outputs.matrix_build_tools_os }}
+    steps:
+      - name: Use expanded matrix
+        if: github.event.inputs.expanded_matrix == '1'
         run: |
-          echo "Disabling expanded build matrix."
-          echo "USE_EXPANDED_MATRIX=0" >> $GITHUB_ENV
+          echo "MARTIX_BUILD_TOOLS_OS=${EXPANDED_MATRIX_BUILD_TOOLS_OS}" >> $GITHUB_ENV
       - id: export-result
         run: |
-          echo "::set-output name=use_expanded_matrix::${USE_EXPANDED_MATRIX}"
+          BUILD_TOOLS_OS_JSON=[\"$(echo ${{ env.MATRIX_BUILD_TOOLS_OS }} | sed 's/,/","/g')\"]
+          echo "::set-output name=matrix_build_tools_os::${BUILD_TOOLS_OS_JSON}"
 
   log_inputs:
     name: log-inputs
@@ -66,7 +63,7 @@ jobs:
     steps:
       - name: log run inputs
         run: |
-          echo "use expanded matrix?: ${{ needs.prepare_matrix.outputs.use_expanded_matrix }}"
+          echo "build_tools_os: ${{ needs.prepare_matrix.outputs.matrix_build_tools_os }}"
           if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" ]]; then
             echo "::warning ::Downloading public SDK package from https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip"
           elif [[ -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
@@ -104,7 +101,7 @@ jobs:
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_build_tools_os) }}
         include:
         - os: ubuntu-latest
           tools_platform: linux
