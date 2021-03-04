@@ -53,12 +53,11 @@ jobs:
     name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
     runs-on: ${{ matrix.os }}
     needs: prepare-matrix
-    env:
     strategy:
       fail-fast: false
       matrix:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
-        build_type: ${{ fromJson(needs.prepare_matrix.outputs.build_type) }}
+        build_type: ${{ fromJson(needs.prepare_matrix.outputs.matrix_build_type) }}
         architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
         python_version: ${{ fromJson(needs.prepare_matrix.outputs.python_version) }}
         include:
