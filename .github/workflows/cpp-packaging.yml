@@ -39,7 +39,7 @@ env:
   xcodeVersion: "11.7"
 
 jobs:
-  prepare_expanded_matrix:
+  prepare_matrix:
     runs-on: ubuntu-latest
     env:
       # Signals use of an expanded array of both build configuration and 
