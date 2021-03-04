@@ -42,18 +42,18 @@ jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
     env:
-      BUILD_TOOLS_OS: 'ubuntu-latest,macos-latest'      
-      EXPANDED_BUILD_TOOLS_OS: 'ubuntu-latest,macos-latest'
+      MATRIX_BUILD_TOOLS_OS: 'ubuntu-latest,macos-latest'
+      EXPANDED_MATRIX_BUILD_TOOLS_OS: 'ubuntu-latest,macos-latest'
     outputs:
-      matrix_os: ${{ steps.export-result.outputs.matrix_build_tools_os }}
+      matrix_build_tools_os: ${{ steps.export-result.outputs.matrix_build_tools_os }}
     steps:
       - name: Use expanded matrix
         if: github.event.inputs.expanded_matrix == '1'
         run: |
-          echo "BUILD_TOOLS_OS=${EXPANDED_BUILD_TOOLS_OS}" >> $GITHUB_ENV
+          echo "MARTIX_BUILD_TOOLS_OS=${EXPANDED_MATRIX_BUILD_TOOLS_OS}" >> $GITHUB_ENV
       - id: export-result
         run: |
-          BUILD_TOOLS_OS_JSON=[\"$(echo ${{ env.BUILD_TOOLS_OS }} | sed 's/,/","/g')\"]
+          BUILD_TOOLS_OS_JSON=[\"$(echo ${{ env.MATRIX_BUILD_TOOLS_OS }} | sed 's/,/","/g')\"]
           echo "::set-output name=matrix_build_tools_os::${BUILD_TOOLS_OS_JSON}"
 
   log_inputs:
@@ -63,7 +63,7 @@ jobs:
     steps:
       - name: log run inputs
         run: |
-          echo "build_tools_os: ${{ needs.prepare_matrix.outputs.build_tools_os }}"
+          echo "build_tools_os: ${{ needs.prepare_matrix.outputs.matrix_build_tools_os }}"
           if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" ]]; then
             echo "::warning ::Downloading public SDK package from https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip"
           elif [[ -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
