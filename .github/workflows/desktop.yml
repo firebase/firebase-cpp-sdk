@@ -61,7 +61,7 @@ jobs:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
         build_type: ${{ fromJson(needs.prepare_matrix.outputs.matrix_build_type) }}
         architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
-        python_version: ${{ fromJson(needs.prepare_matrix.outputs.python_version) }}
+        python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
         include:
         # Add these Windows jobs.
         - os: windows-latest
