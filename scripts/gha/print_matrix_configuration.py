@@ -143,6 +143,11 @@ def process_overrides(overrides):
   for idx in range(0, len(overrides), 2):
     key = overrides[idx]
     value = overrides[idx+1]
+    if not value:
+      # We could receive empty strings as arguments. Ignoring them.
+      # For example, the default values for workflow dispatch parameters could
+      # be empty.
+      continue
     # Comma separated values indicate a list
     if "," in value:
       value = value.split(",")
@@ -151,7 +156,17 @@ def process_overrides(overrides):
 
 
 def print_value(value):
-  """ Print Json format string."""
+  """ Print Json formatted string that can be consumed in Github workflow."""
+  # Eg: for lists,
+  # print(json.dumps) ->
+  # ["ubuntu-latest", "macos-latest", "windows-latest"]
+  # print(repr(json.dumps)) ->
+  # '["ubuntu-latest", "macos-latest", "windows-latest"]'
+
+  # Eg: for strings
+  # print(json.dumps) -> "flame"
+  # print(repr(json.dumps)) -> '"flame"'
+
   print(repr(json.dumps(value)))
 
 
