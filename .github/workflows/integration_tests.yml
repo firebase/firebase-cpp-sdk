@@ -44,16 +44,13 @@ jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
     env:
-      # Defaults for the expanded test matrix. Used by nightly CI builds to
-      # extensively vet firebase-cpp-sdk development with an extended array
+      # Default configs for the expanded test matrix. Used by nightly CI builds
+      # to extensively vet firebase-cpp-sdk development with an extended array
       # of both build configuration and test targets.
       #
       # A smaller subset of this matrix for quick PR checks is defined in
       # workflow_dispatch (above).  The workflow_dispatch action may use
       # the expanded matrix by disabling the `use_custom_matrix` flag.
-      MATRIX_PLATFORMS: 'Desktop,Android,iOS'
-      MATRIX_OPERATING_SYSTEMS: 'ubuntu-latest,windows-latest,macos-latest'
-      MATRIX_DESKTOP_SSL_VARIANTS: 'openssl,boringssl'
       APIS: 'admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage'
       ANDROID_DEVICE: 'flame'
       ANDROID_API: '29'
@@ -68,16 +65,18 @@ jobs:
       android_api: ${{ steps.set-matrix.outputs.android_api }}
       ios_device: ${{ steps.set-matrix.outputs.ios_device }}
       ios_version: ${{ steps.set-matrix.outputs.ios_version }}
-    steps:      
-      # Use the workflow_dispatch parameterized build configuration if use_custom_matrix
-      # was enabled.
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: false
+      # Use the workflow_dispatch parameterized build configuration if
+      # use_custom_matrix was enabled.
       - name: Use the workflow dispatch matrix.
         if: github.event.inputs.use_custom_matrix == '1'
+        # TODO: These values should be driven by the print_matrix_configuration
+        # once it supports config varibles in addition to the matrix ones.
         run: |
           echo "Enabling a custom matrix from the workflow_dispatch."
-          echo "MATRIX_PLATFORMS=${{github.event.inputs.platforms}}" >> $GITHUB_ENV
-          echo "MATRIX_OPERATING_SYSTEMS=${{github.event.inputs.operating_systems}}" >> $GITHUB_ENV
-          echo "MATRIX_DESKTOP_SSL_VARIANTS=${{github.event.inputs.desktop_ssl_variants}}" >> $GITHUB_ENV
           echo "APIS=${{github.event.inputs.apis}}" >> $GITHUB_ENV
           echo "ANDROID_DEVICE=${{github.event.inputs.android_device}}" >> $GITHUB_ENV
           echo "ANDROID_API=${{github.event.inputs.android_api}}" >> $GITHUB_ENV
@@ -87,12 +86,15 @@ jobs:
       - id: set-matrix
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
         run: |
-          OS_JSON=[\"$(echo ${{ env.MATRIX_OPERATING_SYSTEMS }} | sed 's/,/","/g')\"]
+          PLATFORMS_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k platform --o platform ${{github.event.inputs.platforms}} )
+          echo "::set-output name=matrix_platform::${PLATFORMS_JSON}"
+
+          OS_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k os --o os ${{github.event.inputs.operating_systems}} )
           echo "::set-output name=matrix_os::${OS_JSON}"
-          PLATFORM_JSON=[\"$(echo ${{ env.MATRIX_PLATFORMS }} | sed 's/,/","/g')\"]
-          echo "::set-output name=matrix_platform::${PLATFORM_JSON}"
-          SSL_JSON=[\"$(echo ${{ env.MATRIX_DESKTOP_SSL_VARIANTS }} | sed 's/,/","/g')\"]
+          
+          SSL_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k ssl_lib --o ssl_lib ${{github.event.inputs.desktop_ssl_variants}} )
           echo "::set-output name=matrix_ssl::${SSL_JSON}"
+
           echo "::set-output name=apis::${APIS}"
           echo "::set-output name=android_device::${ANDROID_DEVICE}"
           echo "::set-output name=android_api::${ANDROID_API}"
