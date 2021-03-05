@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# Copyright 2020 Google
+# Copyright 2021 Google
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -14,36 +14,28 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """ Fetch and print Github workflow matrix values for a given configuration.
-
 This script holds the configurations (standard, expanded) for all of our
 Github worklows and prints a string in the format that can be easily parsed
 in Github workflows.
-
 Note: Desktop workflow is treated as the fallback option if there is no match.
 This also means that all workflows inherit the base set of keys and values from
 Desktop and optionally override them.
-
 Raises:
     ValueError: If the specific key is not found at all even after trying all
                 the fallbacks.
     argparse.ArgumentError: If "--overrides" flag is incorrectly specified.
                             It MUST have an even number of items specified.
                             "--overrides key1 value1 key2 value2...".
-
 Usage examples:
 # Print the value for os for default (unspecified on command line) workflow
 python scripts/gha/print_matrix_configuration.py -k os
-
 # Print the value for os for android workflow
 python scripts/gha/print_matrix_configuration.py -w android -k os
-
 # Print the value for os for expanded android workflow
 python scripts/gha/print_matrix_configuration.py -w android -e 1 -k os
-
 # Override the value for os for integration_tests
 python scripts/gha/print_matrix_configuration.py -w integration_tests
         --overrides os user_os1,user_os2 python_version 3.8 -k os
-
 """
 
 import json
@@ -77,9 +69,7 @@ configurations = {
   "integration_tests": {
       "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS"],
-      "apis": ["admob","analytics","auth","database","dynamic_links",
-               "firestore","functions","installations","instance_id",
-               "messaging","remote_config","storage"],
+      "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_configstorage",
       "ssl_lib": ["openssl", "boringssl"],
       "android_device": "flame",
       "android_api": "29",
@@ -91,15 +81,12 @@ configurations = {
 
 def get_value(workflow, use_expanded, config_key):
   """ Fetch value from configuration
-
   Args:
       workflow (str): Key corresponding to the github workflow.
       use_expanded (bool): Use expanded configuration for the workflow?
       config_key (str): Exact key name to fetch from configuration
-
   Raises:
       KeyError: Raised if given key is not found in configuration.
-
   Returns:
       (str|list): Matched value for the given key.
   """
@@ -130,12 +117,10 @@ def get_value(workflow, use_expanded, config_key):
 
 def process_overrides(overrides):
   """Build a dictionary of key,value pairs specified as overrides.
-
   Values specified as CSV are treated as lists and rest are strings.
   Args:
       overrides (list(str)): A list of overrides of keys and values.
                             Eg: ["os", "os1,os2", "platform", "platform1"]
-
   Returns:
       (dict): Map with keys and values converting CSV into lists.
   """
@@ -166,14 +151,16 @@ def print_value(value):
   # Eg: for strings
   # print(json.dumps) -> "flame"
   # print(repr(json.dumps)) -> '"flame"'
-
-  print(repr(json.dumps(value)))
+  
+  print(json.dumps(value))
 
 
 def main():
   args = parse_cmdline_args()
   overrides_map = None
-  if args.overrides:
+  # Handle an empty overrides parameter list even if key is defined.
+  # This helps us support the optional existence of work_dispatch parameters. 
+  if args.overrides and len(args.overrides)!=1:
     if len(args.overrides)%2!=0:
       raise ValueError("--overrides flag should have an even number of items." +
                        " Every key should have a corresponding value.")
