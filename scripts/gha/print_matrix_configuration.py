@@ -73,10 +73,10 @@ configurations = {
                "firestore","functions","installations","instance_id",
                "messaging","remote_config","storage"],
       "ssl_lib": ["openssl", "boringssl"],
-      "android_device": "flame",
-      "android_api": "29",
-      "ios_device": "iphone8",
-      "ios_version": "11.4"
+      "android_device": ["flame"],
+      "android_api": ["29"],
+      "ios_device": ["iphone8"],
+      "ios_version": ["11.4"]
   }
 }
 

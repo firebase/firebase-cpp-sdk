@@ -58,7 +58,6 @@ jobs:
       - id: set-matrix
         run: |
           PLATFORMS_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k platform --o platform ${{github.event.inputs.platforms}} )
-          PLATFORMS_JSON=${{ toJSON(${PLATFORMS_JSON}) }}
           echo "PLATFORMS_JSON: ${PLATFORMS_JSON}"
           echo "::set-output name=matrix_platform::${PLATFORMS_JSON}"
 
@@ -75,22 +74,18 @@ jobs:
           echo "::set-output name=matrix_ssl::${SSL_JSON}"
 
           ANDROID_DEVICE_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k android_device --o android_device ${{github.event.inputs.android_device}} )
-          ANDROID_DEVICE_JSON=${{ toJSON(${ANDROID_DEVICE_JSON}) }}
           echo "ANDROID_DEVICE_JSON: ${ANDROID_DEVICE_JSON}"
           echo "::set-output name=matrix_android_device::${ANDROID_DEVICE_JSON}"
 
           ANDROID_API_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k android_api --o android_api ${{github.event.inputs.android_api}} )
-          ANDROID_API_JSON=${{ toJSON(${ANDROID_API_JSON}) }}
           echo "ANDROID_API_JSON: ${ANDROID_API_JSON}"
           echo "::set-output name=matrix_android_api::${ANDROID_API_JSON}"
 
           IOS_DEVICE_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k ios_device --o ios_device ${{github.event.inputs.ios_device}} )
-          IOS_DEVICE_JSON=${{ toJSON(${IOS_DEVICE_JSON}) }}
           echo "IOS_DEVICE_JSON: ${IOS_DEVICE_JSON}"
           echo "::set-output name=matrix_ios_device::${IOS_DEVICE_JSON}"
 
           IOS_VERSION_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k ios_version --o ios_version ${{github.event.inputs.ios_version}} )
-          IOS_VERSION_JSON=${{ toJSON(${IOS_VERSION_JSON}) }}
           echo "IOS_VERSION_JSON: ${IOS_VERSION_JSON}"
           echo "::set-output name=matrix_ios_version::${IOS_VERSION_JSON}"
 
