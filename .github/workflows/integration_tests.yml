@@ -50,7 +50,7 @@ jobs:
       matrix_android_device: ${{ steps.set-matrix.outputs.matrix_android_device }}
       matrix_android_api: ${{ steps.set-matrix.outputs.matrix_android_api }}
       matrix_ios_device: ${{ steps.set-matrix.outputs.matrix_ios_device }}
-      matrix_ios_version: ${{ steps.set-matrix.outputs.matrix_android_ios_version }}
+      matrix_ios_version: ${{ steps.set-matrix.outputs.matrix_ios_version }}
     steps:
       - uses: actions/checkout@v2
         with:
