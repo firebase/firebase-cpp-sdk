@@ -112,7 +112,6 @@ TEST(TimestampIsNear, Matcher) {
   EXPECT_THAT(firebase::Variant::EmptyString(), Not(TimestampIsNear(0)));
 }
 
-
 class FirebaseDatabaseTest : public FirebaseTest {
  public:
   FirebaseDatabaseTest();
@@ -151,7 +150,7 @@ class FirebaseDatabaseTest : public FirebaseTest {
 
   static firebase::App* shared_app_;
   static firebase::auth::Auth* shared_auth_;
-  
+
   static bool first_time_;
 
   bool initialized_;
@@ -169,15 +168,13 @@ class FirebaseDatabaseTest : public FirebaseTest {
 //    - TearDown: Shut down Database.
 //  - Once, after all tests are finished:
 //  -   TearDownTestSuite: Sign out. Shut down Auth and App.
-  
+
 firebase::App* FirebaseDatabaseTest::shared_app_;
 firebase::auth::Auth* FirebaseDatabaseTest::shared_auth_;
 
 bool FirebaseDatabaseTest::first_time_ = true;
 
-void FirebaseDatabaseTest::SetUpTestSuite() {
-  InitializeAppAndAuth();
-}
+void FirebaseDatabaseTest::SetUpTestSuite() { InitializeAppAndAuth(); }
 
 void FirebaseDatabaseTest::InitializeAppAndAuth() {
   LogDebug("Initialize Firebase App.");
@@ -197,14 +194,14 @@ void FirebaseDatabaseTest::InitializeAppAndAuth() {
 
   // Initialize Firebase Auth.
   ::firebase::ModuleInitializer initializer;
-  initializer.Initialize(
-      shared_app_, &shared_auth_, [](::firebase::App* app, void* target) {
-        LogDebug("Attempting to initialize Firebase Auth.");
-        ::firebase::InitResult result;
-        *reinterpret_cast<firebase::auth::Auth**>(target) =
-          ::firebase::auth::Auth::GetAuth(app, &result);
-        return result;
-      });
+  initializer.Initialize(shared_app_, &shared_auth_,
+                         [](::firebase::App* app, void* target) {
+                           LogDebug("Attempting to initialize Firebase Auth.");
+                           ::firebase::InitResult result;
+                           *reinterpret_cast<firebase::auth::Auth**>(target) =
+                               ::firebase::auth::Auth::GetAuth(app, &result);
+                           return result;
+                         });
 
   WaitForCompletion(initializer.InitializeLastResult(), "InitializeAuth");
 
@@ -219,9 +216,7 @@ void FirebaseDatabaseTest::InitializeAppAndAuth() {
   SignIn();
 }
 
-void FirebaseDatabaseTest::TearDownTestSuite() {
-  TerminateAppAndAuth();
-}
+void FirebaseDatabaseTest::TearDownTestSuite() { TerminateAppAndAuth(); }
 
 void FirebaseDatabaseTest::TerminateAppAndAuth() {
   if (shared_auth_) {
@@ -283,7 +278,7 @@ void FirebaseDatabaseTest::InitializeDatabase() {
         LogDebug("Attempting to initialize Firebase Database.");
         ::firebase::InitResult result;
         *reinterpret_cast<firebase::database::Database**>(target) =
-          firebase::database::Database::GetInstance(app, &result);
+            firebase::database::Database::GetInstance(app, &result);
         return result;
       });
 
@@ -345,9 +340,9 @@ void FirebaseDatabaseTest::SignOut() {
   }
   if (shared_auth_->current_user()->is_anonymous()) {
     // If signed in anonymously, delete the anonymous user.
-    WaitForCompletion(shared_auth_->current_user()->Delete(), "DeleteAnonymousUser");
-  }
-  else {
+    WaitForCompletion(shared_auth_->current_user()->Delete(),
+                      "DeleteAnonymousUser");
+  } else {
     // If not signed in anonymously (e.g. if the tests were modified to sign in
     // as an actual user), just sign out normally.
     shared_auth_->SignOut();
@@ -771,7 +766,7 @@ TEST_F(FirebaseDatabaseTest, TestQueryFiltering) {
                 UnorderedElementsAre(Key("fig")));
   }
 }
-#endif   // !defined(ANDROID)
+#endif  // !defined(ANDROID)
 
 // A simple ValueListener that logs the values it sees.
 class LoggingValueListener : public firebase::database::ValueListener {
@@ -803,6 +798,72 @@ class LoggingValueListener : public firebase::database::ValueListener {
   std::vector<firebase::Variant> seen_values_;
   bool got_error_;
 };
+
+TEST_F(FirebaseDatabaseTest, TestAddAndRemoveListenerRace) {
+  const char* test_name = test_info_->name();
+
+  SignIn();
+
+  firebase::database::DatabaseReference ref = CreateWorkingPath();
+  WaitForCompletion(ref.Child(test_name).SetValue(0), "SetValue");
+
+  const int kTestIterations = 100;
+
+  // Ensure adding, removing and deleting a listener in rapid succession is safe
+  // from race conditions.
+  for (int i = 0; i < kTestIterations; i++) {
+    LoggingValueListener* listener = new LoggingValueListener();
+    ref.Child(test_name).AddValueListener(listener);
+    ref.Child(test_name).RemoveValueListener(listener);
+    delete listener;
+  }
+
+  // Ensure adding, removing and deleting the same listener twice in rapid
+  // succession is safe from race conditions.
+  for (int i = 0; i < kTestIterations; i++) {
+    LoggingValueListener* listener = new LoggingValueListener();
+    ref.Child(test_name).AddValueListener(listener);
+    ref.Child(test_name).RemoveValueListener(listener);
+    ref.Child(test_name).AddValueListener(listener);
+    ref.Child(test_name).RemoveValueListener(listener);
+    delete listener;
+  }
+
+  // Ensure adding, removing and deleting the same listener twice in rapid
+  // succession is safe from race conditions.
+  for (int i = 0; i < kTestIterations; i++) {
+    LoggingValueListener* listener = new LoggingValueListener();
+    ref.Child(test_name).AddValueListener(listener);
+    ref.Child(test_name).AddValueListener(listener);
+    ref.Child(test_name).RemoveValueListener(listener);
+    ref.Child(test_name).RemoveValueListener(listener);
+    delete listener;
+  }
+
+  // Ensure removing a listener too many times is benign.
+  for (int i = 0; i < kTestIterations; i++) {
+    LoggingValueListener* listener = new LoggingValueListener();
+    ref.Child(test_name).AddValueListener(listener);
+    ref.Child(test_name).AddValueListener(listener);
+    ref.Child(test_name).RemoveValueListener(listener);
+    ref.Child(test_name).RemoveValueListener(listener);
+    ref.Child(test_name).RemoveValueListener(listener);
+    delete listener;
+  }
+
+  // Ensure adding, removing and deleting difference listeners in rapid
+  // succession is safe from race conditions.
+  for (int i = 0; i < kTestIterations; i++) {
+    LoggingValueListener* listener1 = new LoggingValueListener();
+    LoggingValueListener* listener2 = new LoggingValueListener();
+    ref.Child(test_name).AddValueListener(listener1);
+    ref.Child(test_name).AddValueListener(listener2);
+    ref.Child(test_name).RemoveValueListener(listener1);
+    ref.Child(test_name).RemoveValueListener(listener2);
+    delete listener1;
+    delete listener2;
+  }
+}
 
 TEST_F(FirebaseDatabaseTest, TestValueListener) {
   const char* test_name = test_info_->name();
