@@ -76,18 +76,23 @@ jobs:
           ANDROID_DEVICE_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k android_device --o android_device ${{github.event.inputs.android_device}} )
           echo "ANDROID_DEVICE_JSON: ${ANDROID_DEVICE_JSON}"
           echo "::set-output name=matrix_android_device::${ANDROID_DEVICE_JSON}"
+          echo "::set-output name=matrix_android_device::flame"
 
           ANDROID_API_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k android_api --o android_api ${{github.event.inputs.android_api}} )
           echo "ANDROID_API_JSON: ${ANDROID_API_JSON}"
           echo "::set-output name=matrix_android_api::${ANDROID_API_JSON}"
+          echo "::set-output name=matrix_android_api::29"
+          
 
           IOS_DEVICE_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k ios_device --o ios_device ${{github.event.inputs.ios_device}} )
           echo "IOS_DEVICE_JSON: ${IOS_DEVICE_JSON}"
           echo "::set-output name=matrix_ios_device::${IOS_DEVICE_JSON}"
+          echo "::set-output name=matrix_ios_device::iphone8"
 
           IOS_VERSION_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k ios_version --o ios_version ${{github.event.inputs.ios_version}} )
           echo "IOS_VERSION_JSON: ${IOS_VERSION_JSON}"
           echo "::set-output name=matrix_ios_version::${IOS_VERSION_JSON}"
+          echo "::set-output name=matrix_ios_version::11.4"
 
   tests:
     name: ${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
@@ -100,10 +105,10 @@ jobs:
         apis: ${{ fromJson(needs.prepare_matrix.outputs.matrix_apis) }}
         target_platform: ${{ fromJson(needs.prepare_matrix.outputs.matrix_platform) }}
         ssl_variant: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ssl) }}
-        android_device: ${{ fromJson(needs.prepare_matrix.outputs.matrix_android_device) }}
-        android_api: ${{ fromJson(needs.prepare_matrix.outputs.matrix_android_api) }}
-        ios_device: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ios_device) }}
-        ios_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ios_version) }}
+        android_device: ${{ needs.prepare_matrix.outputs.matrix_android_device }}
+        android_api: ${{ needs.prepare_matrix.outputs.matrix_android_api }}
+        ios_device: ${{ needs.prepare_matrix.outputs.matrix_ios_device }}
+        ios_version: ${{ needs.prepare_matrix.outputs.matrix_ios_version }}
         exclude:
           - os: ubuntu-latest
             target_platform: iOS
