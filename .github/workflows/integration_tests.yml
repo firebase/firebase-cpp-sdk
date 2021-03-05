@@ -100,10 +100,10 @@ jobs:
         apis: ${{ fromJson(needs.prepare_matrix.outputs.matrix_apis) }}
         target_platform: ${{ fromJson(needs.prepare_matrix.outputs.matrix_platform) }}
         ssl_variant: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ssl) }}
-        android_device: ${{ needs.prepare_matrix.outputs.matrix_android_device }}
-        android_api: ${{ needs.prepare_matrix.outputs.matrix_android_api }}
-        ios_device: ${{ needs.prepare_matrix.outputs.matrix_ios_device }}
-        ios_version: ${{ needs.prepare_matrix.outputs.matrix_ios_version }}
+        android_device: ${{ fromJson(needs.prepare_matrix.outputs.matrix_android_device) }}
+        android_api: ${{ fromJson(needs.prepare_matrix.outputs.matrix_android_api) }}
+        ios_device: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ios_device) }}
+        ios_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ios_version) }}
         exclude:
           - os: ubuntu-latest
             target_platform: iOS
