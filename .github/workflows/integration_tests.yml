@@ -87,8 +87,7 @@ jobs:
 
           IOS_VERSION_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k ios_version --o ios_version ${{github.event.inputs.ios_version}} )
           echo "IOS_VERSION_JSON: ${IOS_VERSION_JSON}"
-          echo "MATRIX_IOS_VERSION=${{github.event.inputs.ios_version}}" >> $GITHUB_ENV
-          echo "::set-output name=matrix_ios_version::${MATRIX_IOS_VERSION}"
+          echo "::set-output name=matrix_ios_version::${{github.event.inputs.ios_version}}"
 
   tests:
     name: ${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
@@ -97,14 +96,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
-        apis: ${{ fromJson(needs.prepare_matrix.outputs.matrix_apis) }}
-        target_platform: ${{ fromJson(needs.prepare_matrix.outputs.matrix_platform) }}
-        ssl_variant: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ssl) }}
         android_device: ${{ needs.prepare_matrix.outputs.matrix_android_device }}
         android_api: ${{ needs.prepare_matrix.outputs.matrix_android_api }}
         ios_device: ${{ needs.prepare_matrix.outputs.matrix_ios_device }}
         ios_version: ${{ needs.prepare_matrix.outputs.matrix_ios_version }}
+        os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
+        apis: ${{ fromJson(needs.prepare_matrix.outputs.matrix_apis) }}
+        target_platform: ${{ fromJson(needs.prepare_matrix.outputs.matrix_platform) }}
+        ssl_variant: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ssl) }}
         exclude:
           - os: ubuntu-latest
             target_platform: iOS
