@@ -77,7 +77,7 @@ configurations = {
   "integration_tests": {
       "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS"],
-      "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_configstorage",
+      "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage",
       "ssl_lib": ["openssl", "boringssl"],
       "android_device": "flame",
       "android_api": "29",
