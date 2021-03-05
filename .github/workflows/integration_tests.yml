@@ -43,6 +43,22 @@ jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
     env:
+      # Defaults for the expanded test matrix. Used by nightly CI builds to
+      # extensively vet firebase-cpp-sdk development with an extended array
+      # of both build configuration and test targets.
+      #
+      # A smaller subset of this matrix for quick PR checks is defined in
+      # workflow_dispatch (above).  The workflow_dispatch action may use
+      # the expanded matrix by disabling the `use_custom_matrix` flag.
+      MATRIX_PLATFORMS: 'Desktop,Android,iOS'
+      MATRIX_APIS: 'admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage'
+      MATRIX_OPERATING_SYSTEMS: 'ubuntu-latest,windows-latest,macos-latest'
+      MATRIX_DESKTOP_SSL_VARIANTS: 'openssl,boringssl'
+      MATRIX_ANDROID_DEVICE: 'flame'
+      MATRIX_ANDROID_API: '29'
+      MATRIX_IOS_DEVICE: 'iphone8'
+      MATRIX_IOS_VERSION: '11.4' 
+    outputs:
       matrix_platform: ${{ steps.set-matrix.outputs.matrix_platform }}
       matrix_apis: ${{ steps.set-matrix.outputs.matrix_apis }}
       matrix_os: ${{ steps.set-matrix.outputs.matrix_os }}
@@ -51,7 +67,7 @@ jobs:
       matrix_android_api: ${{ steps.set-matrix.outputs.matrix_android_api }}
       matrix_ios_device: ${{ steps.set-matrix.outputs.matrix_android_ios_device }}
       matrix_ios_version: ${{ steps.set-matrix.outputs.matrix_android_ios_version }}
-    steps:      
+    steps:
       - id: set-matrix
         run: |
           PLATFORMS_JSON=$(python scripts/gha/print_matrix_configuration.py -w integration_tests -k platforms --o platforms ${{github.event.inputs.platforms}}
