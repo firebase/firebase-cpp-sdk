@@ -153,8 +153,11 @@ def print_value(value):
   # Eg: for strings
   # print(json.dumps) -> "flame"
   # print(repr(json.dumps)) -> '"flame"'
-
-  print(json.dumps(value))
+  
+  if(isinstance(value, str) ):
+    print(json.dumps([value]))
+  else:
+    print(json.dumps(value))
 
 
 def main():
