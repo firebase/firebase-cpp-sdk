@@ -20,14 +20,14 @@ jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
     env:
-      MATRIX_OS: 'ubuntu-latest,macos-latest'
+      MATRIX_OS: 'ubuntu-latest,macos-latest,windows-latest'
       MATRIX_BUILD_TYPE: 'Release,Debug'
       MATRIX_ARCHITECTURE:  'x64,x86'
       MATRIX_MSVC_RUNTIME: 'static,dynamic'
       MATRIX_VCPKG_TRIPLET_SUFFIX: 'windows-static,windows-static-md,linux,osx' 
       MATRIX_PYTHON_VERSION: '3.7'
       MATRIX_XCODE_VERSION: '11.7,12.4'
-      EXPANDED_MATRIX_OS: 'ubuntu-latest,macos-latest'
+      EXPANDED_MATRIX_OS: 'ubuntu-latest,macos-latest,windows-latest'
       EXPANDED_MATRIX_BUILD_TYPE: 'Release,Debug'
       EXPANDED_MATRIX_ARCHITECTURE:  'x64,x86'
       EXPANDED_MATRIX_MSVC_RUNTIME: 'msvc_runtime'
