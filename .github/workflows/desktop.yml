@@ -71,7 +71,7 @@ jobs:
           echo "::set-output name=vcpkg_triplet_suffix::${VCPKG_TRIPLET_SUFFIX_JSON}"
           
           PYTHON_VERSION_JSON=[\"$(echo ${{ env.MATRIX_PYTHON_VERSION }} | sed 's/,/","/g')\"]
-          echo "::set-output name=matrix_python_version::${PYTHON_VERSION_JSON}"
+          echo "::set-output name=python_version::${PYTHON_VERSION_JSON}"
           
           XCODE_VERSION_JSON=[\"$(echo ${{ env.MATRIX_XCODE_VERSION }} | sed 's/,/","/g')\"]
           echo "XCODE_VERSION_JSON: ${XCODE_VERSION_JSON}"
