@@ -106,12 +106,27 @@ jobs:
           - os: linux-latest
             vcpkg_triplet_suffix: "windows-static"
             msvc_runtime: "dynamic"
+            xcode_version: "11.7"
           - os: linux-latest
             vcpkg_triplet_suffix: "windows-static-md"
             msvc_runtime: "dynamic"
+            xcode_version: "11.7"
           - os: linux-latest
             vcpkg_triplet_suffix: "osx"
             msvc_runtime: "dynamic"
+            xcode_version: "11.7"
+          - os: linux-latest
+            vcpkg_triplet_suffix: "windows-static"
+            msvc_runtime: "dynamic"
+            xcode_version: "12.4"
+          - os: linux-latest
+            vcpkg_triplet_suffix: "windows-static-md"
+            msvc_runtime: "dynamic"
+            xcode_version: "12.4"
+          - os: linux-latest
+            vcpkg_triplet_suffix: "osx"
+            msvc_runtime: "dynamic"
+            xcode_version: "12.4"
 
           - os: macos-latest
             vcpkg_triplet_suffix: "windows-static-md"
@@ -130,10 +145,10 @@ jobs:
           - os: macos-latest
             architecture: "x86"
           # Xcode excludes
-          - os: ubuntu-latest
-            xcode_version: "11.7"
-          - os: ubuntu-latest
-            xcode_version: "12.4"
+          #- os: ubuntu-latest
+          #  xcode_version: "11.7"
+          #- os: ubuntu-latest
+          #  xcode_version: "12.4"
           - os: windows-latest
             xcode_version: "11.7"
           - os: windows-latest
