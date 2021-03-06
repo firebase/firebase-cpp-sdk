@@ -120,6 +120,18 @@ jobs:
             xcode_version: "11.7"
           - os: windows-latest
             xcode_version: "12.4"
+          #tests:
+          - os: macos-latest
+            architecture: "x64"
+            vcpkg_triplet_suffix: "windows-static-md"
+          - os: macos-latest
+            architecture: "x64"
+            vcpkg_triplet_suffix: "windows-static"
+          - os: macos-latest
+            architecture: "x64"
+            vcpkg_triplet_suffix: "linux"
+          
+
 
     steps:
       - name: Check expanded matrix config
