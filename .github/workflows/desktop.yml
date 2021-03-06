@@ -20,7 +20,7 @@ jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
     env:
-      MATRIX_OS: 'ubuntu-latest'
+      MATRIX_OS: 'ubuntu-latest,macos-latest'
       MATRIX_BUILD_TYPE: 'Release,Debug'
       MATRIX_ARCHITECTURE:  'x64,x86'
       MATRIX_MSVC_RUNTIME: 'static,dynamic'
@@ -83,7 +83,7 @@ jobs:
           echo "XCODE_VERSION_JSON: ${XCODE_VERSION_JSON}"
           echo "::set-output name=xcode_version::${XCODE_VERSION_JSON}"
   build:
-    name: ${{ matrix.os }}${{matrix.xcode_version}}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
+    name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
     runs-on: ${{ matrix.os }}
     needs: prepare_matrix
     strategy:
@@ -130,8 +130,6 @@ jobs:
           # Xcode excludes -- allow only one on osx and linux
           - os: ubuntu-latest
             xcode_version: "11.7"
-          - os: ubuntu-latest
-            xcode_version: "12.4"
           - os: windows-latest
             xcode_version: "11.7"
 
