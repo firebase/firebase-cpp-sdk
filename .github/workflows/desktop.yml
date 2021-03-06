@@ -120,25 +120,24 @@ jobs:
             xcode_version: "11.7"
           - os: windows-latest
             xcode_version: "12.4"
-          #tests:
+          #test:
           - os: macos-latest
-            architecture: "x64"
             vcpkg_triplet_suffix: "windows-static-md"
           - os: macos-latest
-            architecture: "x64"
             vcpkg_triplet_suffix: "windows-static"
           - os: macos-latest
-            architecture: "x64"
             vcpkg_triplet_suffix: "linux"
-          
-
 
     steps:
-      - name: Check expanded matrix config
-        if: github.event.inputs.expanded_matrix == '1'
+      - name: Log Matrix
         run: |
-          echo "Enabling expanded build and test matrix."
-          echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
+          echo "os: ${{matrix.os}} "
+          echo "build_type: ${{matrix.build_type}} "
+          echo "architecture: ${{matrix.architecture}} "
+          echo "msvc_runtime: ${{matrix.msvc_runtime}} "
+          echo "vcpkg_triplet_suffix: ${{matrix.vcpkg_triplet_suffix}} "
+          echo "python_version: ${{matrix.python_version}} "
+          echo "xcode_version: ${{matrix.xcode_version}} "
                 
       - name: Setup Xcode version (macos)
         if: runner.os == 'macOS'
