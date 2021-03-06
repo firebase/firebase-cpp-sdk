@@ -105,10 +105,13 @@ jobs:
 
           - os: linux-latest
             vcpkg_triplet_suffix: "windows-static"
+            msvc_runtime: "dynamic"
           - os: linux-latest
             vcpkg_triplet_suffix: "windows-static-md"
+            msvc_runtime: "dynamic"
           - os: linux-latest
             vcpkg_triplet_suffix: "osx"
+            msvc_runtime: "dynamic"
 
           - os: macos-latest
             vcpkg_triplet_suffix: "windows-static-md"
@@ -118,8 +121,8 @@ jobs:
             vcpkg_triplet_suffix: "linux"
 
           # msvc_runtime excludes
-          - os: linux-latest
-            msvc_runtime: "dynamic"
+          #- os: linux-latest
+          #  msvc_runtime: "dynamic"
           - os: macos-latest
             msvc_runtime: "dynamic"
             
