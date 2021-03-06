@@ -40,8 +40,8 @@ jobs:
       matrix_architecture: ${{ steps.export-result.outputs.matrix_architecture }}
       matrix_msvc_runtime: ${{ steps.export-result.outputs.msvc_runtime }}
       matrix_vcpkg_triplet_suffix: ${{ steps.export-result.outputs.vcpkg_triplet_suffix }}
-      matrix_python_version: ${{ steps.export-result.outputs.matrix_python_version }}
-      matrix_xcode_version: ${{ steps.export-result.outputs.matrix_xcode_version }}
+      matrix_python_version: ${{ steps.export-result.outputs.python_version }}
+      matrix_xcode_version: ${{ steps.export-result.outputs.xcode_version }}
     steps:
       - name: Use expanded matrix
         if: github.event.inputs.expanded_matrix == '1'
@@ -88,8 +88,8 @@ jobs:
         architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
         msvc_runtime: ${{ fromJson(needs.prepare_matrix.outputs.msvc_runtime) }}
         vckpkg_triplet_suffix: ${{ fromJson(needs.prepare_matrix.outputs.vckpkg_triplet_suffix) }}
-        python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
-        xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }
+        python_version: ${{ fromJson(needs.prepare_matrix.outputs.python_version) }}
+        xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.xcode_version) }}
         exclude:
           # vcpkg suffix excludes
           - os: windows-latest
