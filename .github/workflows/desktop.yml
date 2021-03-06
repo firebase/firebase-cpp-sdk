@@ -119,9 +119,9 @@ jobs:
 
           # msvc_runtime excludes
           - os: ubuntu-latest
-            vcpkg_triplet_suffix: "dynamic"
+            msvc_runtime: "dynamic"
           - os: macos-latest
-            vcpkg_triplet_suffix: "dynamic"
+            msvc_runtime: "dynamic"
             
           # architecture excluees
           - os: macos-latest
