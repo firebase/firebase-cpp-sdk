@@ -56,15 +56,19 @@ jobs:
       - id: export-result
         run: |
           OS_JSON=[\"$(echo ${{ env.MATRIX_OS }} | sed 's/,/","/g')\"]
+          echo "OS_JSON: ${OS_JSON}"
           echo "::set-output name=matrix_os::${OS_JSON}"
           
           BUILD_TYPE_JSON=[\"$(echo ${{ env.MATRIX_BUILD_TYPE }} | sed 's/,/","/g')\"]
+          echo "BUILD_TYPE_JSON: ${BUILD_TYPE_JSON}"
           echo "::set-output name=matrix_build_type::${BUILD_TYPE_JSON}"
           
           ARCHITECTURE_JSON=[\"$(echo ${{ env.MATRIX_ARCHITECTURE }} | sed 's/,/","/g')\"]
+          echo "ARCHITECTURE_JSON: ${ARCHITECTURE_JSON}"
           echo "::set-output name=matrix_architecture::${ARCHITECTURE_JSON}"
           
           MSVC_RUNTIME_JSON=[\"$(echo ${{ env.MATRIX_MSVC_RUNTIME }} | sed 's/,/","/g')\"]
+          echo "MSVC_RUNTIME_JSON: ${MSVC_RUNTIME_JSON}"
           echo "::set-output name=msvc_runtime::${MSVC_RUNTIME_JSON}"
 
           VCPKG_TRIPLET_SUFFIX_JSON=[\"$(echo ${{ env.MATRIX_VCPKG_TRIPLET_SUFFIX }} | sed 's/,/","/g')\"]
@@ -72,6 +76,7 @@ jobs:
           echo "::set-output name=vcpkg_triplet_suffix::${VCPKG_TRIPLET_SUFFIX_JSON}"
           
           PYTHON_VERSION_JSON=[\"$(echo ${{ env.MATRIX_PYTHON_VERSION }} | sed 's/,/","/g')\"]
+          echo "PYTHON_VERSION_JSON: ${PYTHON_VERSION_JSON}"
           echo "::set-output name=python_version::${PYTHON_VERSION_JSON}"
           
           XCODE_VERSION_JSON=[\"$(echo ${{ env.MATRIX_XCODE_VERSION }} | sed 's/,/","/g')\"]
