@@ -20,20 +20,26 @@ jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
     env:
-      MATRIX_OS: 'ubuntu-latest,macos-latest'
+      MATRIX_OS: 'ubuntu-latest,macos-latest,windows-latest'
       MATRIX_BUILD_TYPE: 'Release,Debug'
       MATRIX_ARCHITECTURE:  'x64,x86'
+      MATRIX_MSVC_RUNTIME: 'static,dynamic'
+      MATRIX_VCPKG_TIPPLET_SUFFIX: 'windows-static,windows-static-md,linux,osx' 
       MATRIX_PYTHON_VERSION: '3.7'
       MATRIX_XCODE_VERSION: '11.7,12.4'
       EXPANDED_MATRIX_OS: 'ubuntu-latest,macos-latest'
       EXPANDED_MATRIX_BUILD_TYPE: 'Release,Debug'
       EXPANDED_MATRIX_ARCHITECTURE:  'x64,x86'
+      EXPANDED_MATRIX_MSVC_RUNTIME: 'msvc_runtime'
+      EXPANDED_MATRIX_VCPKG_TIPPLET_SUFFIX: 'windows-static,windows-static-md,linux,osx' 
       EXPANDED_MATRIX_PYTHON_VERSION: '3.7'
       EXPANDED_MATRIX_XCODE_VERSION: '11.7,12.4'
     outputs:
       matrix_os: ${{ steps.export-result.outputs.matrix_os }}
       matrix_build_type: ${{ steps.export-result.outputs.matrix_build_type }}
       matrix_architecture: ${{ steps.export-result.outputs.matrix_architecture }}
+      matrix_msvc_runtime: ${{ steps.export-result.outputs.msvc_runtime }}
+      matrix_vcpkg_triplet_suffix: ${{ steps.export-result.outputs.vcpkg_triplet_suffix }}
       matrix_python_version: ${{ steps.export-result.outputs.matrix_python_version }}
       matrix_xcode_version: ${{ steps.export-result.outputs.matrix_xcode_version }}
     steps:
@@ -43,18 +49,30 @@ jobs:
           echo "MATRIX_OS=${EXPANDED_MATRIX_OS}" >> $GITHUB_ENV
           echo "MATRIX_BUILD_TYPE=${EXPANDED_MATRIX_BUILD_TYPE}" >> $GITHUB_ENV
           echo "MATRIX_ARCHITECTURE=${EXPANDED_MATRIX_ARCHITECTURE}" >> $GITHUB_ENV
+          echo "MATRIX_MSVC_RUNTIME=${EXPANDED_MATRIX_MSVC_RUNTIME}" >>  $GITHUB_ENV"
+          echo "MATRIX_VCPKG_TRIPLET_SUFFIX=${EXPANDED_MATRIX_VCPKG_TRIPLET_SUFFIX}" >>  $GITHUB_ENV"
           echo "MATRIX_PYTHON_VERSION=${EXPANDED_MATRIX_PYTHON_VERSION}" >> $GITHUB_ENV
           echo "MATRIX_XCODE_VERSION=${EXPANDED_MATRIX_XCODE_VERSION}" >> $GITHUB_ENV
       - id: export-result
         run: |
           OS_JSON=[\"$(echo ${{ env.MATRIX_OS }} | sed 's/,/","/g')\"]
           echo "::set-output name=matrix_os::${OS_JSON}"
+          
           BUILD_TYPE_JSON=[\"$(echo ${{ env.MATRIX_BUILD_TYPE }} | sed 's/,/","/g')\"]
           echo "::set-output name=matrix_build_type::${BUILD_TYPE_JSON}"
+          
           ARCHITECTURE_JSON=[\"$(echo ${{ env.MATRIX_ARCHITECTURE }} | sed 's/,/","/g')\"]
           echo "::set-output name=matrix_architecture::${ARCHITECTURE_JSON}"
+          
+          MSVC_RUNTIME_JSON=[\"$(echo ${{ env.MATRIX_MSVC_RUNTIME }} | sed 's/,/","/g')\"]
+          echo "::set-output name=msvc_runtime::${MSVC_RUNTIME_JSON}"
+
+          VCPKG_TRIPLET_SUFFIX_JSON=[\"$(echo ${{ env.MATRIX_VCPKG_TRIPLET_SUFFIX }} | sed 's/,/","/g')\"]
+          echo "::set-output name=vcpkg_triplet_suffix::${VCPKG_TRIPLET_SUFFIX_JSON}"
+          
           PYTHON_VERSION_JSON=[\"$(echo ${{ env.MATRIX_PYTHON_VERSION }} | sed 's/,/","/g')\"]
           echo "::set-output name=matrix_python_version::${PYTHON_VERSION_JSON}"
+          
           XCODE_VERSION_JSON=[\"$(echo ${{ env.MATRIX_XCODE_VERSION }} | sed 's/,/","/g')\"]
           echo "XCODE_VERSION_JSON: ${XCODE_VERSION_JSON}"
           echo "::set-output name=matrix_xcode_version::${XCODE_VERSION_JSON}"
@@ -68,34 +86,31 @@ jobs:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
         build_type: ${{ fromJson(needs.prepare_matrix.outputs.matrix_build_type) }}
         architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
+        msvc_runtime: ${{ fromJson(needs.prepare_matrix.outputs.msvc_runtime) }}
+        vckpkg_triplet_suffix: ${{ fromJson(needs.prepare_matrix.outputs.vckpkg_triplet_suffix) }}
         python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
-        xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
-        include:
-        # Add these Windows jobs.
-        - os: windows-latest
-          build_type: "Release"
-          architecture: "x64"
-          msvc_runtime: "static"
-          vcpkg_triplet_suffix: "windows-static"
-        - os: windows-latest
-          build_type: "Debug"
-          architecture: "x86"
-          msvc_runtime: "dynamic"
-          vcpkg_triplet_suffix: "windows-static-md"
-        # Specify additional parameters for these jobs.
-        - os: ubuntu-latest
-          msvc_runtime: "static"
-          vcpkg_triplet_suffix: "linux"
-        - os: macos-latest
-          msvc_runtime: "static"
-          vcpkg_triplet_suffix: "osx"
-        
-
-        # Don't build for x86 on MacOS.
+        xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }
         exclude:
+          # vcpkg suffix excludes
+          - os: windows-latest
+            vcpkg_triplet_suffix: "linux"
+          - os: windows-latest
+            vcpkg_triplet_suffix: "osx"
+          - os: linux-latest
+            vcpkg_triplet_suffix: "windows-static"
+          - os: linux-latest
+            vcpkg_triplet_suffix: "windows-static-md"
+          - os: linux-latest
+            vcpkg_triplet_suffix: "osx"
+          # msvc_runtime excludes
+          - os: linux-latest
+            vcpkg_triplet_suffix: "dynamic"
+          - os: macos-latest
+            vcpkg_triplet_suffix: "dynamic"
+          # architecture excluees
           - os: macos-latest
             architecture: "x86"
-          # Remove xcode from Windows and Linux
+          # Xcode excludes
           - os: ubuntu-latest
             xcode_version: "11.7"
           - os: ubuntu-latest
