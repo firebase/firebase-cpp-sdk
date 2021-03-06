@@ -20,7 +20,7 @@ jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
     env:
-      MATRIX_OS: 'ubuntu-latest,macos-latest,windows-latest'
+      MATRIX_OS: 'ubuntu-latest'
       MATRIX_BUILD_TYPE: 'Release,Debug'
       MATRIX_ARCHITECTURE:  'x64,x86'
       MATRIX_MSVC_RUNTIME: 'static,dynamic'
@@ -97,17 +97,27 @@ jobs:
             vcpkg_triplet_suffix: "linux"
           - os: windows-latest
             vcpkg_triplet_suffix: "osx"
+
           - os: linux-latest
             vcpkg_triplet_suffix: "windows-static"
           - os: linux-latest
             vcpkg_triplet_suffix: "windows-static-md"
           - os: linux-latest
             vcpkg_triplet_suffix: "osx"
+
+          - os: macos-latest
+            vcpkg_triplet_suffix: "windows-static-md"
+          - os: macos-latest
+            vcpkg_triplet_suffix: "windows-static"
+          - os: macos-latest
+            vcpkg_triplet_suffix: "linux"
+
           # msvc_runtime excludes
           - os: linux-latest
             vcpkg_triplet_suffix: "dynamic"
           - os: macos-latest
             vcpkg_triplet_suffix: "dynamic"
+            
           # architecture excluees
           - os: macos-latest
             architecture: "x86"
@@ -121,12 +131,7 @@ jobs:
           - os: windows-latest
             xcode_version: "12.4"
           #test:
-          - os: macos-latest
-            vcpkg_triplet_suffix: "windows-static-md"
-          - os: macos-latest
-            vcpkg_triplet_suffix: "windows-static"
-          - os: macos-latest
-            vcpkg_triplet_suffix: "linux"
+
 
     steps:
       - name: Log Matrix
