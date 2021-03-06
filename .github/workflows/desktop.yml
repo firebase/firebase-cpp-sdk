@@ -86,10 +86,10 @@ jobs:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
         build_type: ${{ fromJson(needs.prepare_matrix.outputs.matrix_build_type) }}
         architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
-        msvc_runtime: ${{ fromJson(needs.prepare_matrix.outputs.msvc_runtime) }}
-        vckpkg_triplet_suffix: ${{ fromJson(needs.prepare_matrix.outputs.vckpkg_triplet_suffix) }}
-        python_version: ${{ fromJson(needs.prepare_matrix.outputs.python_version) }}
-        xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.xcode_version) }}
+        msvc_runtime: ${{ fromJson(needs.prepare_matrix.outputs.matrix_msvc_runtime) }}
+        vckpkg_triplet_suffix: ${{ fromJson(needs.prepare_matrix.outputs.matrix_vckpkg_triplet_suffix) }}
+        python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
+        xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
         exclude:
           # vcpkg suffix excludes
           - os: windows-latest
