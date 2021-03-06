@@ -20,14 +20,14 @@ jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
     env:
-      MATRIX_OS: 'ubuntu-latest,macos-latest,windows-latest'
+      MATRIX_OS: 'ubuntu-latest,macos-latest'
       MATRIX_BUILD_TYPE: 'Release,Debug'
       MATRIX_ARCHITECTURE:  'x64,x86'
       MATRIX_MSVC_RUNTIME: 'static,dynamic'
       MATRIX_VCPKG_TRIPLET_SUFFIX: 'windows-static,windows-static-md,linux,osx' 
       MATRIX_PYTHON_VERSION: '3.7'
       MATRIX_XCODE_VERSION: '11.7,12.4'
-      EXPANDED_MATRIX_OS: 'ubuntu-latest,macos-latest,windows-latest'
+      EXPANDED_MATRIX_OS: 'ubuntu-latest,macos-latest'
       EXPANDED_MATRIX_BUILD_TYPE: 'Release,Debug'
       EXPANDED_MATRIX_ARCHITECTURE:  'x64,x86'
       EXPANDED_MATRIX_MSVC_RUNTIME: 'msvc_runtime'
@@ -96,6 +96,17 @@ jobs:
         vcpkg_triplet_suffix: ${{ fromJson(needs.prepare_matrix.outputs.matrix_vcpkg_triplet_suffix) }}
         python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
         xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
+        include:
+          - os: windows-latest
+            build_type: "Release"
+            architecture: "x64"
+            msvc_runtime: "static"
+            vcpkg_triplet_suffix: "windows-static"
+          - os: windows-latest
+            build_type: "Debug"
+            architecture: "x86"
+            msvc_runtime: "dynamic"
+            vcpkg_triplet_suffix: "windows-static-md"
         exclude:
           # vcpkg suffix excludes
           - os: windows-latest
@@ -133,6 +144,7 @@ jobs:
           - os: windows-latest
             xcode_version: "11.7"
 
+        
 
     steps:
       - name: Log Matrix
