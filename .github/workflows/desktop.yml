@@ -75,7 +75,7 @@ jobs:
           
           XCODE_VERSION_JSON=[\"$(echo ${{ env.MATRIX_XCODE_VERSION }} | sed 's/,/","/g')\"]
           echo "XCODE_VERSION_JSON: ${XCODE_VERSION_JSON}"
-          echo "::set-output name=matrix_xcode_version::${XCODE_VERSION_JSON}"
+          echo "::set-output name=xcode_version::${XCODE_VERSION_JSON}"
   build:
     name: ${{ matrix.os }}${{matrix.xcode_version}}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
     runs-on: ${{ matrix.os }}
