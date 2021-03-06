@@ -68,6 +68,7 @@ jobs:
           echo "::set-output name=msvc_runtime::${MSVC_RUNTIME_JSON}"
 
           VCPKG_TRIPLET_SUFFIX_JSON=[\"$(echo ${{ env.MATRIX_VCPKG_TRIPLET_SUFFIX }} | sed 's/,/","/g')\"]
+          echo "VCPKG_TRIPLET_SUFFIX_JSON: ${VCPKG_TRIPLET_SUFFIX_JSON}"
           echo "::set-output name=vcpkg_triplet_suffix::${VCPKG_TRIPLET_SUFFIX_JSON}"
           
           PYTHON_VERSION_JSON=[\"$(echo ${{ env.MATRIX_PYTHON_VERSION }} | sed 's/,/","/g')\"]
