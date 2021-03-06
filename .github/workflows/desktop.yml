@@ -71,20 +71,6 @@ jobs:
         python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
         xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
         include:
-        # Specify additional parameters for these jobs.
-        - os: ubuntu-latest
-          build_type: "Release"
-          architecture: "x64"
-          msvc_runtime: "static"
-          vcpkg_triplet_suffix: "linux"
-        - os: ubuntu-latest
-          build_type: "Debug"
-          architecture: "x86"
-          msvc_runtime: "static"
-          vcpkg_triplet_suffix: "linux"
-        - os: macos-latest
-          msvc_runtime: "static"
-          vcpkg_triplet_suffix: "osx"
         # Add these Windows jobs.
         - os: windows-latest
           build_type: "Release"
@@ -96,6 +82,14 @@ jobs:
           architecture: "x86"
           msvc_runtime: "dynamic"
           vcpkg_triplet_suffix: "windows-static-md"
+        # Specify additional parameters for these jobs.
+        - os: ubuntu-latest
+          msvc_runtime: "static"
+          vcpkg_triplet_suffix: "linux"
+        - os: macos-latest
+          msvc_runtime: "static"
+          vcpkg_triplet_suffix: "osx"
+        
 
         # Don't build for x86 on MacOS.
         exclude:
