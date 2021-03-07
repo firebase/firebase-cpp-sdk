@@ -112,17 +112,14 @@ jobs:
             vcpkg_triplet_suffix: "windows-static"
           - os: macos-latest
             vcpkg_triplet_suffix: "linux"
-
           # msvc_runtime excludes
           - os: ubuntu-latest
             msvc_runtime: "dynamic"
           - os: macos-latest
             msvc_runtime: "dynamic"
-
           # architecture excluees
           - os: macos-latest
             architecture: "x86"
-
           # Xcode excludes -- allow only one on osx and linux
           - os: ubuntu-latest
             xcode_version: "11.7"
