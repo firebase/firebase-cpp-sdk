@@ -487,12 +487,14 @@ void EnsureInitializedCallback(JNIEnv* env, jobject result,
   if (success && result) {
     JConfigInfoToConfigInfo(env, result, &info);
   }
-  auto data_handle = reinterpret_cast<RCDataHandle<ConfigInfo>*>(callback_data);
+  auto* data_handle = reinterpret_cast<RCDataHandle<ConfigInfo>*>(callback_data);
 
   data_handle->future_api->CompleteWithResult(
       data_handle->future_handle,
       success ? kFutureStatusSuccess : kFutureStatusFailure, status_message,
       info);
+
+  delete data_handle;
 }
 
 void BoolResultCallback(JNIEnv* env, jobject result,
@@ -504,21 +506,24 @@ void BoolResultCallback(JNIEnv* env, jobject result,
     result_value = util::JBooleanToBool(env, result);
   }
 
-  auto data_handle = reinterpret_cast<RCDataHandle<bool>*>(callback_data);
+  auto* data_handle = reinterpret_cast<RCDataHandle<bool>*>(callback_data);
   data_handle->future_api->CompleteWithResult(
       data_handle->future_handle,
       success ? kFutureStatusSuccess : kFutureStatusFailure, status_message,
       result_value);
+
+  delete data_handle;
 }
 
 void CompleteVoidCallback(JNIEnv* env, jobject result,
                           util::FutureResult result_code,
                           const char* status_message, void* callback_data) {
-  auto data_handle = reinterpret_cast<RCDataHandle<void>*>(callback_data);
+  auto* data_handle = reinterpret_cast<RCDataHandle<void>*>(callback_data);
   data_handle->future_api->Complete(data_handle->future_handle,
                                     result_code == util::kFutureResultSuccess
                                         ? kFutureStatusSuccess
                                         : kFutureStatusFailure);
+  delete data_handle;
 }
 
 void FetchCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
