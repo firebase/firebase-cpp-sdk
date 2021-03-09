@@ -43,19 +43,6 @@ jobs:
   # list. Then we can use fromJson to define the field in the matrix for the tests job.
   prepare_matrix:
     runs-on: ubuntu-latest
-    env:
-      # Default configs for the expanded test matrix. Used by nightly CI builds
-      # to extensively vet firebase-cpp-sdk development with an extended array
-      # of both build configuration and test targets.
-      #
-      # A smaller subset of this matrix for quick PR checks is defined in
-      # workflow_dispatch (above).  The workflow_dispatch action may use
-      # the expanded matrix by disabling the `use_custom_matrix` flag.
-      APIS: 'admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage'
-      ANDROID_DEVICE: 'flame'
-      ANDROID_API: '29'
-      IOS_DEVICE: 'iphone8'
-      IOS_VERSION: '11.4' 
     outputs:
       matrix_platform: ${{ steps.set-matrix.outputs.matrix_platform }}
       matrix_os: ${{ steps.set-matrix.outputs.matrix_os }}
@@ -69,41 +56,42 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: false
-      # Use the workflow_dispatch parameterized build configuration if
-      # use_custom_matrix was enabled.
-      - name: Use the workflow dispatch matrix.
-        if: github.event.inputs.use_custom_matrix == '1'
-        # TODO: These values should be driven by the print_matrix_configuration
-        # once it supports config varibles in addition to the matrix ones.
-        run: |
-          echo "Enabling a custom matrix from the workflow_dispatch."
-          echo "APIS=${{github.event.inputs.apis}}" >> $GITHUB_ENV
-          echo "ANDROID_DEVICE=${{github.event.inputs.android_device}}" >> $GITHUB_ENV
-          echo "ANDROID_API=${{github.event.inputs.android_api}}" >> $GITHUB_ENV
-          echo "IOS_DEVICE=${{github.event.inputs.ios_device}}" >> $GITHUB_ENV
-          echo "IOS_VERSION=${{github.event.inputs.ios_version}}" >> $GITHUB_ENV
-      
       - id: set-matrix
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
         run: |
-          PLATFORMS_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k platform --o platform ${{github.event.inputs.platforms}} )
+          PLATFORMS_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k platform -o "${{github.event.inputs.platforms}}" )
           echo "::set-output name=matrix_platform::${PLATFORMS_JSON}"
-
-          OS_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k os --o os ${{github.event.inputs.operating_systems}} )
+          OS_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k os -o "${{github.event.inputs.operating_systems}}" )
           echo "::set-output name=matrix_os::${OS_JSON}"
-          
-          SSL_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k ssl_lib --o ssl_lib ${{github.event.inputs.desktop_ssl_variants}} )
+          SSL_JSON=$( python scripts/gha/print_matrix_configuration.py -w integration_tests -k ssl_lib -o "${{github.event.inputs.desktop_ssl_variants}}" )
           echo "::set-output name=matrix_ssl::${SSL_JSON}"
-
-          echo "::set-output name=apis::${APIS}"
-          echo "::set-output name=android_device::${ANDROID_DEVICE}"
-          echo "::set-output name=android_api::${ANDROID_API}"
-          echo "::set-output name=ios_device::${IOS_DEVICE}"
-          echo "::set-output name=ios_version::${IOS_VERSION}"
+          echo "::set-output name=apis::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${{github.event.inputs.apis}}" )"
+          echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k android_device -o "${{github.event.inputs.android_device}}" )"
+          echo "::set-output name=android_api::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k android_api -o "${{github.event.inputs.android_api}}" )"
+          echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_device -o "${{github.event.inputs.ios_device}}" )"
+          echo "::set-output name=ios_version::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_version -o "${{github.event.inputs.ios_version}}" )"
+  
+  log_workflow_config:
+    name: Log Worfklow Config
+    runs-on: "ubuntu-latest"
+    needs: prepare_matrix
+    strategy:
+      fail-fast: false
+    steps:
+      - name: Log Workflow Config
+        run: |
+          echo "matrix_platforms: ${{needs.prepare_matrix.outputs.matrix_platform}}"
+          echo "matrix_os: ${{needs.prepare_matrix.outputs.matrix_os}}"
+          echo "matrix_ssl: ${{needs.prepare_matrix.outputs.matrix_ssl}}"
+          echo "apis: ${{needs.prepare_matrix.outputs.apis}}"
+          echo "android_device: ${{needs.prepare_matrix.outputs.android_device}}"
+          echo "android_api: ${{needs.prepare_matrix.outputs.android_api}}"
+          echo "ios_device: ${{needs.prepare_matrix.outputs.ios_device}}"
+          echo "ios_version: ${{needs.prepare_matrix.outputs.ios_version}}"
 
   tests:
     name: ${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
-    needs: prepare_matrix
+    needs: log_workflow_config
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
