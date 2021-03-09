@@ -19,31 +19,39 @@ This script holds the configurations (standard, expanded) for all of our
 Github worklows and prints a string in the format that can be easily parsed
 in Github workflows.
 
-Note: Desktop workflow is treated as the fallback option if there is no match.
-This also means that all workflows inherit the base set of keys and values from
-Desktop and optionally override them.
+Design Notes:
+- Desktop workflow is treated as the fallback option if there is no match.
+  This also means that all workflows inherit the base set of keys and values from
+  Desktop and optionally override them.
+- There are 2 types of parameters - matrix and config. Matrix parameters are
+  lists and generate jobs dynamically in Github workflows. Config parameters
+  represent the additonal fine tuning parameters that can be used in workflow
+  dispatch. They are always treated as strings.
 
 Raises:
     ValueError: If the specific key is not found at all even after trying all
                 the fallbacks.
-    argparse.ArgumentError: If "--overrides" flag is incorrectly specified.
-                            It MUST have an even number of items specified.
-                            "--overrides key1 value1 key2 value2...".
 
 Usage examples:
-# Print the value for os for default (unspecified on command line) workflow
+# Query value for matrix (default) parameter "os" for "desktop" (default) workflow.
 python scripts/gha/print_matrix_configuration.py -k os
 
-# Print the value for os for android workflow
+# Query value for matrix (default) parameter "os" for "android" workflow.
 python scripts/gha/print_matrix_configuration.py -w android -k os
 
-# Print the value for os for expanded android workflow
+# Query value for expanded matrix (default) parameter "os" for "android" workflow.
 python scripts/gha/print_matrix_configuration.py -w android -e 1 -k os
 
-# Override the value for os for integration_tests
+# Override the value for "os" for "integration_tests"
 python scripts/gha/print_matrix_configuration.py -w integration_tests
-        --overrides os user_os1,user_os2 python_version 3.8 -k os
+        -o my_custom_os -k os
 
+# Query value for config parameter "apis" for "integration_tests" workflow.
+python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis
+
+# Override the value for config parameters "apis" for integration_tests
+python scripts/gha/print_matrix_configuration.py -c -w integration_tests
+        -o my_custom_api -k apis
 """
 
 import json
@@ -54,46 +62,57 @@ import argparse
 DEFAULT_WORKFLOW = "desktop"
 EXPANDED_KEY = "expanded"
 
-configurations = {
+PARAMETERS = {
   "desktop": {
-    "os": ["ubuntu-latest", "macos-latest"],
-    "build_type": ["Release", "Debug"],
-    "architecture": ["x64", "x86"],
-    "python_version": ["3.7"],
+    "matrix": {
+      "os": ["ubuntu-latest", "macos-latest"],
+      "build_type": ["Release", "Debug"],
+      "architecture": ["x64", "x86"],
+      "python_version": ["3.7"],
 
-    EXPANDED_KEY: {
-      "os": ["desktop-expanded-example-os"]
+      EXPANDED_KEY: {
+        "os": ["desktop-expanded-example-os"]
+      }
     }
   },
 
   "android": {
-    "architecture": ["x64"],
+    "matrix": {
+      "architecture": ["x64"],
 
-    EXPANDED_KEY: {
-      "os": ["android-expanded-example-os"]
+      EXPANDED_KEY: {
+        "os": ["android-expanded-example-os"]
+      }
     }
   },
 
   "integration_tests": {
-      "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
-      "platform": ["Desktop", "Android", "iOS"],
-      "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage",
-      "ssl_lib": ["openssl", "boringssl"],
-      "android_device": "flame",
-      "android_api": "29",
-      "ios_device": "iphone8",
-      "ios_version": "11.4"
+    "matrix": {
+        "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
+        "platform": ["Desktop", "Android", "iOS"],
+        "ssl_lib": ["openssl", "boringssl"]
+    },
+    "config": {
+        "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage",
+        "android_device": "flame",
+        "android_api": "29",
+        "ios_device": "iphone8",
+        "ios_version": "11.4"
+    }
+
   }
 }
 
 
-def get_value(workflow, use_expanded, config_key):
+def get_value(workflow, use_expanded, parm_key, config_parms_only=False):
   """ Fetch value from configuration
 
   Args:
       workflow (str): Key corresponding to the github workflow.
       use_expanded (bool): Use expanded configuration for the workflow?
-      config_key (str): Exact key name to fetch from configuration.
+      parm_key (str): Exact key name to fetch from configuration.
+      config_parms_only (bool): Search in config blocks if True, else matrix
+                                blocks.
 
   Raises:
       KeyError: Raised if given key is not found in configuration.
@@ -106,51 +125,32 @@ def get_value(workflow, use_expanded, config_key):
   # -> Expanded default block (if_use_expanded) -> Default standard block
   search_blocks = []
 
-  default_workflow_block = configurations.get(DEFAULT_WORKFLOW)
-  search_blocks.insert(0, default_workflow_block)
-  if use_expanded and EXPANDED_KEY in default_workflow_block:
-    search_blocks.insert(0, default_workflow_block[EXPANDED_KEY])
+  parm_type_key = "config" if config_parms_only else "matrix"
+  default_workflow_block = PARAMETERS.get(DEFAULT_WORKFLOW)
+  default_workflow_parm_block = default_workflow_block.get(parm_type_key)
+  search_blocks.insert(0, default_workflow_parm_block)
+  if use_expanded and EXPANDED_KEY in default_workflow_parm_block:
+    search_blocks.insert(0, default_workflow_parm_block[EXPANDED_KEY])
 
   if workflow != DEFAULT_WORKFLOW:
-    workflow_block = configurations.get(workflow)
+    workflow_block = PARAMETERS.get(workflow)
     if workflow_block:
-      search_blocks.insert(0, workflow_block)
-      if use_expanded and EXPANDED_KEY in workflow_block:
-        search_blocks.insert(0, workflow_block[EXPANDED_KEY])
+      workflow_parm_block = workflow_block.get(parm_type_key)
+      if workflow_parm_block:
+        search_blocks.insert(0, workflow_parm_block)
+        if use_expanded and EXPANDED_KEY in workflow_parm_block:
+          search_blocks.insert(0, workflow_parm_block[EXPANDED_KEY])
 
   for search_block in search_blocks:
-    if config_key in search_block:
-      return search_block[config_key]
+    if parm_key in search_block:
+      return search_block[parm_key]
 
   else:
-    raise KeyError("Config key: {0} not found.".format(config_key))
-
-
-def process_overrides(overrides):
-  """Build a dictionary of key,value pairs specified as overrides.
-
-  Values specified as CSV are treated as lists and rest are strings.
-  Args:
-      overrides (list(str)): A list of overrides of keys and values.
-                            Eg: ["os", "os1,os2", "platform", "platform1"]
-
-  Returns:
-      (dict): Map with keys and values converting CSV into lists.
-  """
-  overrides_map = {}
-  for idx in range(0, len(overrides), 2):
-    key = overrides[idx]
-    value = overrides[idx+1]
-    if not value:
-      # We could receive empty strings as arguments. Ignoring them.
-      # For example, the default values for workflow dispatch parameters could
-      # be empty.
-      continue
-    # Comma separated values indicate a list
-    if "," in value:
-      value = value.split(",")
-    overrides_map[key] = value
-  return overrides_map
+    raise KeyError("Parameter key: '{0}' of type '{1}' not found "\
+                   "for workflow '{2}' (expanded = {3}) .".format(parm_key,
+                                                                parm_type_key,
+                                                                workflow,
+                                                                use_expanded))
 
 
 def print_value(value):
@@ -170,29 +170,24 @@ def print_value(value):
 
 def main():
   args = parse_cmdline_args()
-  overrides_map = None
-  # Handle an empty overrides parameter list even if key is defined.
-  # This helps us support the optional existence of work_dispatch parameters. 
-  if args.overrides and len(args.overrides)!=1:
-    if len(args.overrides)%2!=0:
-      raise ValueError("--overrides flag should have an even number of items." +
-                       " Every key should have a corresponding value.")
-    overrides_map = process_overrides(args.overrides)
-    # If user has provided a custom override just return that.
-    if args.config_key in overrides_map:
-      print_value(overrides_map[args.config_key])
-      return
+  if args.override:
+    # If it is matrix parm, convert CSV string into a list
+    if not args.config:
+      args.override = args.override.split(',')
+    print_value(args.override)
+    return
 
-  value = get_value(args.workflow, args.expanded, args.config_key)
+  value = get_value(args.workflow, args.expanded, args.parm_key, args.config)
   print_value(value)
 
 
 def parse_cmdline_args():
-  parser = argparse.ArgumentParser(description='Install Prerequisites for building cpp sdk')
+  parser = argparse.ArgumentParser(description='Query matrix and config parameters used in Github workflows.')
+  parser.add_argument('-c', '--config', action='store_true', help='Query parameter used for Github workflow/dispatch configurations.')
   parser.add_argument('-w', '--workflow', default=DEFAULT_WORKFLOW, help='Config key for Github workflow.')
   parser.add_argument('-e', '--expanded', type=bool, default=False, help='Use expanded matrix')
-  parser.add_argument('-k', '--config_key', required=True, help='Print the value of specified key in config.')
-  parser.add_argument('--overrides', nargs='+', help='A list of keys and overridden values (comma separated if it is a list). Example: --override os ubuntu-latest,windows-latest')
+  parser.add_argument('-k', '--parm_key', required=True, help='Print the value of specified key from matrix or config maps.')
+  parser.add_argument('-o', '--override', help='Override existing value with provided value')
   args = parser.parse_args()
   return args
 
