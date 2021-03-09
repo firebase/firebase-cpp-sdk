@@ -71,27 +71,9 @@ jobs:
           echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_device -o "${{github.event.inputs.ios_device}}" )"
           echo "::set-output name=ios_version::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_version -o "${{github.event.inputs.ios_version}}" )"
   
-  log_workflow_config:
-    name: Log Worfklow Config
-    runs-on: "ubuntu-latest"
-    needs: prepare_matrix
-    strategy:
-      fail-fast: false
-    steps:
-      - name: Log Workflow Config
-        run: |
-          echo "matrix_platforms: ${{needs.prepare_matrix.outputs.matrix_platform}}"
-          echo "matrix_os: ${{needs.prepare_matrix.outputs.matrix_os}}"
-          echo "matrix_ssl: ${{needs.prepare_matrix.outputs.matrix_ssl}}"
-          echo "apis: ${{needs.prepare_matrix.outputs.apis}}"
-          echo "android_device: ${{needs.prepare_matrix.outputs.android_device}}"
-          echo "android_api: ${{needs.prepare_matrix.outputs.android_api}}"
-          echo "ios_device: ${{needs.prepare_matrix.outputs.ios_device}}"
-          echo "ios_version: ${{needs.prepare_matrix.outputs.ios_version}}"
-
   tests:
     name: ${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
-    needs: log_workflow_config
+    needs: prepare_matrix
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
