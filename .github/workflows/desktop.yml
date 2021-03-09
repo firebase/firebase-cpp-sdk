@@ -23,19 +23,25 @@ jobs:
       MATRIX_OS: 'ubuntu-latest,macos-latest'
       MATRIX_BUILD_TYPE: 'Release,Debug'
       MATRIX_ARCHITECTURE:  'x64,x86'
+      MATRIX_MSVC_RUNTIME: 'static,dynamic'
+      MATRIX_VCPKG_TRIPLET_SUFFIX: 'windows-static,windows-static-md,linux,osx'
       MATRIX_PYTHON_VERSION: '3.7'
       MATRIX_XCODE_VERSION: '11.7,12.4'
       EXPANDED_MATRIX_OS: 'ubuntu-latest,macos-latest'
       EXPANDED_MATRIX_BUILD_TYPE: 'Release,Debug'
       EXPANDED_MATRIX_ARCHITECTURE:  'x64,x86'
+      EXPANDED_MATRIX_MSVC_RUNTIME: 'msvc_runtime'
+      EXPANDED_MATRIX_VCPKG_TRIPLET_SUFFIX: 'windows-static,windows-static-md,linux,osx'
       EXPANDED_MATRIX_PYTHON_VERSION: '3.7'
       EXPANDED_MATRIX_XCODE_VERSION: '11.7,12.4'
     outputs:
       matrix_os: ${{ steps.export-result.outputs.matrix_os }}
       matrix_build_type: ${{ steps.export-result.outputs.matrix_build_type }}
       matrix_architecture: ${{ steps.export-result.outputs.matrix_architecture }}
-      matrix_python_version: ${{ steps.export-result.outputs.matrix_python_version }}
-      matrix_xcode_version: ${{ steps.export-result.outputs.matrix_xcode_version }}
+      matrix_msvc_runtime: ${{ steps.export-result.outputs.msvc_runtime }}
+      matrix_vcpkg_triplet_suffix: ${{ steps.export-result.outputs.vcpkg_triplet_suffix }}
+      matrix_python_version: ${{ steps.export-result.outputs.python_version }}
+      matrix_xcode_version: ${{ steps.export-result.outputs.xcode_version }}
     steps:
       - name: Use expanded matrix
         if: github.event.inputs.expanded_matrix == '1'
@@ -43,6 +49,8 @@ jobs:
           echo "MATRIX_OS=${EXPANDED_MATRIX_OS}" >> $GITHUB_ENV
           echo "MATRIX_BUILD_TYPE=${EXPANDED_MATRIX_BUILD_TYPE}" >> $GITHUB_ENV
           echo "MATRIX_ARCHITECTURE=${EXPANDED_MATRIX_ARCHITECTURE}" >> $GITHUB_ENV
+          echo "MATRIX_MSVC_RUNTIME=${EXPANDED_MATRIX_MSVC_RUNTIME}" >>  $GITHUB_ENV"
+          echo "MATRIX_VCPKG_TRIPLET_SUFFIX=${EXPANDED_MATRIX_VCPKG_TRIPLET_SUFFIX}" >>  $GITHUB_ENV"
           echo "MATRIX_PYTHON_VERSION=${EXPANDED_MATRIX_PYTHON_VERSION}" >> $GITHUB_ENV
           echo "MATRIX_XCODE_VERSION=${EXPANDED_MATRIX_XCODE_VERSION}" >> $GITHUB_ENV
       - id: export-result
@@ -53,13 +61,16 @@ jobs:
           echo "::set-output name=matrix_build_type::${BUILD_TYPE_JSON}"
           ARCHITECTURE_JSON=[\"$(echo ${{ env.MATRIX_ARCHITECTURE }} | sed 's/,/","/g')\"]
           echo "::set-output name=matrix_architecture::${ARCHITECTURE_JSON}"
+          MSVC_RUNTIME_JSON=[\"$(echo ${{ env.MATRIX_MSVC_RUNTIME }} | sed 's/,/","/g')\"]
+          echo "::set-output name=msvc_runtime::${MSVC_RUNTIME_JSON}"
+          VCPKG_TRIPLET_SUFFIX_JSON=[\"$(echo ${{ env.MATRIX_VCPKG_TRIPLET_SUFFIX }} | sed 's/,/","/g')\"]
+          echo "::set-output name=vcpkg_triplet_suffix::${VCPKG_TRIPLET_SUFFIX_JSON}"
           PYTHON_VERSION_JSON=[\"$(echo ${{ env.MATRIX_PYTHON_VERSION }} | sed 's/,/","/g')\"]
-          echo "::set-output name=matrix_python_version::${PYTHON_VERSION_JSON}"
+          echo "::set-output name=python_version::${PYTHON_VERSION_JSON}"
           XCODE_VERSION_JSON=[\"$(echo ${{ env.MATRIX_XCODE_VERSION }} | sed 's/,/","/g')\"]
-          echo "XCODE_VERSION_JSON: ${XCODE_VERSION_JSON}"
-          echo "::set-output name=matrix_xcode_version::${XCODE_VERSION_JSON}"
+          echo "::set-output name=xcode_version::${XCODE_VERSION_JSON}"
   build:
-    name: ${{ matrix.os }}${{matrix.xcode_version}}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
+    name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
     runs-on: ${{ matrix.os }}
     needs: prepare_matrix
     strategy:
@@ -68,55 +79,62 @@ jobs:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
         build_type: ${{ fromJson(needs.prepare_matrix.outputs.matrix_build_type) }}
         architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
+        msvc_runtime: ${{ fromJson(needs.prepare_matrix.outputs.matrix_msvc_runtime) }}
+        vcpkg_triplet_suffix: ${{ fromJson(needs.prepare_matrix.outputs.matrix_vcpkg_triplet_suffix) }}
         python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
         xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
         include:
-        # Specify additional parameters for these jobs.
-        - os: ubuntu-latest
-          build_type: "Release"
-          architecture: "x64"
-          msvc_runtime: "static"
-          vcpkg_triplet_suffix: "linux"
-        - os: ubuntu-latest
-          build_type: "Debug"
-          architecture: "x86"
-          msvc_runtime: "static"
-          vcpkg_triplet_suffix: "linux"
-        - os: macos-latest
-          msvc_runtime: "static"
-          vcpkg_triplet_suffix: "osx"
-        # Add these Windows jobs.
-        - os: windows-latest
-          build_type: "Release"
-          architecture: "x64"
-          msvc_runtime: "static"
-          vcpkg_triplet_suffix: "windows-static"
-        - os: windows-latest
-          build_type: "Debug"
-          architecture: "x86"
-          msvc_runtime: "dynamic"
-          vcpkg_triplet_suffix: "windows-static-md"
-
-        # Don't build for x86 on MacOS.
+          - os: windows-latest
+            build_type: "Release"
+            architecture: "x64"
+            msvc_runtime: "static"
+            vcpkg_triplet_suffix: "windows-static"
+          - os: windows-latest
+            build_type: "Debug"
+            architecture: "x86"
+            msvc_runtime: "dynamic"
+            vcpkg_triplet_suffix: "windows-static-md"
         exclude:
+          # vcpkg suffix excludes
+          - os: windows-latest
+            vcpkg_triplet_suffix: "linux"
+          - os: windows-latest
+            vcpkg_triplet_suffix: "osx"
+          - os: ubuntu-latest
+            vcpkg_triplet_suffix: "windows-static"
+          - os: ubuntu-latest
+            vcpkg_triplet_suffix: "windows-static-md"
+          - os: ubuntu-latest
+            vcpkg_triplet_suffix: "osx"
+          - os: macos-latest
+            vcpkg_triplet_suffix: "windows-static-md"
+          - os: macos-latest
+            vcpkg_triplet_suffix: "windows-static"
+          - os: macos-latest
+            vcpkg_triplet_suffix: "linux"
+          # msvc_runtime excludes
+          - os: ubuntu-latest
+            msvc_runtime: "dynamic"
+          - os: macos-latest
+            msvc_runtime: "dynamic"
+          # architecture excluees
           - os: macos-latest
             architecture: "x86"
-          # Remove xcode from Windows and Linux
+          # Xcode excludes -- allow only one on osx and linux
           - os: ubuntu-latest
             xcode_version: "11.7"
-          - os: ubuntu-latest
-            xcode_version: "12.4"
           - os: windows-latest
             xcode_version: "11.7"
-          - os: windows-latest
-            xcode_version: "12.4"
-
     steps:
-      - name: Check expanded matrix config
-        if: github.event.inputs.expanded_matrix == '1'
+      - name: Log Matrix
         run: |
-          echo "Enabling expanded build and test matrix."
-          echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
+          echo "os: ${{matrix.os}} "
+          echo "build_type: ${{matrix.build_type}} "
+          echo "architecture: ${{matrix.architecture}} "
+          echo "msvc_runtime: ${{matrix.msvc_runtime}} "
+          echo "vcpkg_triplet_suffix: ${{matrix.vcpkg_triplet_suffix}} "
+          echo "python_version: ${{matrix.python_version}} "
+          echo "xcode_version: ${{matrix.xcode_version}} "
                 
       - name: Setup Xcode version (macos)
         if: runner.os == 'macOS'
