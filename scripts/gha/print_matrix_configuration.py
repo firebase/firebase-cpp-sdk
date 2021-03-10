@@ -103,7 +103,18 @@ PARAMETERS = {
         "android_api": "29",
         "ios_device": "iphone8",
         "ios_version": "11.4"
+    },
+
+    "ios": {
+    "matrix": {
+      "xcode_version": ["11.7"],
+
+      EXPANDED_KEY: {
+        "xcode_version": ["11.7", "12.4"]
+      }
     }
+  },
+
 
   }
 }

@@ -1,9 +1,6 @@
 name: Android Builds
 
 on:
-  push:
-    branches:
-      - "ddb_attach_script"
   pull_request:
     types: [opened, reopened, synchronize]
   workflow_dispatch:
