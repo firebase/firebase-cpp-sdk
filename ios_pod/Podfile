@@ -1,5 +1,4 @@
 source 'https://github.com/CocoaPods/Specs.git'
-platform :ios, '10.0'
 
 target 'GetPods' do
   pod 'Firebase/Core', '7.5.0'

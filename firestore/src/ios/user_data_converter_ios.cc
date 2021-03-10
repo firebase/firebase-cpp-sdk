@@ -3,10 +3,11 @@
 #include <set>
 #include <string>
 
+#include "firestore/src/common/exception_common.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/field_value_ios.h"
-#include "firestore/src/ios/hard_assert_ios.h"
 #include "firestore/src/ios/set_options_ios.h"
 #include "absl/memory/memory.h"
 #include "Firestore/core/src/core/user_data.h"
@@ -32,9 +33,15 @@ using model::NumericIncrementTransform;
 using model::ServerTimestampTransform;
 using model::TransformOperation;
 using nanopb::ByteString;
-using util::ThrowInvalidArgumentIos;
 
 using Type = FieldValue::Type;
+
+FIRESTORE_ATTRIBUTE_NORETURN
+void ThrowInvalidData(const ParseContext& context, const std::string& message) {
+  std::string full_message =
+      "Invalid data. " + message + context.FieldDescription();
+  SimpleThrowInvalidArgument(full_message);
+}
 
 void ParseDelete(ParseContext&& context) {
   if (context.data_source() == UserDataSource::MergeSet) {
@@ -45,36 +52,20 @@ void ParseDelete(ParseContext&& context) {
   }
 
   if (context.data_source() == UserDataSource::Update) {
-    HARD_ASSERT_IOS(
+    SIMPLE_HARD_ASSERT(
         !context.path()->empty(),
         "FieldValue.Delete() at the top level should have already been "
         "handled.");
-    // TODO(b/147444199): use string formatting.
-    // ThrowInvalidArgument(
-    //     "FieldValue::Delete() can only appear at the top level of your "
-    //     "update data%s",
-    //     context.FieldDescription());
-    auto message =
-        std::string(
-            "FieldValue::Delete() can only appear at the top level of your "
-            "update data") +
-        context.FieldDescription();
-    ThrowInvalidArgumentIos(message.c_str());
+    ThrowInvalidData(context,
+                     "FieldValue::Delete() can only appear at the top level of "
+                     "your update data");
   }
 
   // We shouldn't encounter delete sentinels for queries or non-merge `Set`
   // calls.
-  // TODO(b/147444199): use string formatting.
-  // ThrowInvalidArgument(
-  //     "FieldValue::Delete() can only be used with Update() and Set() with "
-  //     "merge == true%s",
-  //     context.FieldDescription());
-  auto message =
-      std::string(
-          "FieldValue::Delete() can only be used with Update() and Set() with "
-          "merge == true") +
-      context.FieldDescription();
-  ThrowInvalidArgumentIos(message.c_str());
+  ThrowInvalidData(context,
+                   "FieldValue::Delete() can only be used with Update() and "
+                   "Set() with merge == true");
 }
 
 void ParseServerTimestamp(ParseContext&& context) {
@@ -95,7 +86,7 @@ void ParseArrayTransform(Type type, const model::FieldValue::Array& elements,
         auto message = std::string("Unexpected type '") +
                        std::to_string(static_cast<int>(type)) +
                        "' given to ParseArrayTransform";
-        HARD_FAIL_IOS(message.c_str());
+        SIMPLE_HARD_FAIL(message);
       }
     }
   }();
@@ -119,7 +110,7 @@ void ParseNumericIncrement(const FieldValue& value, ParseContext&& context) {
       break;
 
     default:
-      HARD_FAIL_IOS("A non-increment value given to ParseNumericIncrement");
+      SIMPLE_HARD_FAIL("A non-increment value given to ParseNumericIncrement");
   }
 
   context.AddToFieldTransforms(*context.path(),
@@ -143,8 +134,8 @@ FieldMask CreateFieldMask(const ParseAccumulator& accumulator,
       //     path.CanonicalString());
       auto message =
           std::string("Field '") + path.CanonicalString() +
-          "' is specified in your field mask but missing from your input data.";
-      ThrowInvalidArgumentIos(message.c_str());
+          "' is specified in your field mask but not in your input data.";
+      SimpleThrowInvalidArgument(message);
     }
 
     validated.insert(path);
@@ -230,9 +221,9 @@ model::FieldValue UserDataConverter::ParseQueryValue(const FieldValue& input,
 
   absl::optional<model::FieldValue> parsed =
       ParseData(input, accumulator.RootContext());
-  HARD_ASSERT_IOS(parsed, "Parsed data should not be nullopt.");
-  HARD_ASSERT_IOS(accumulator.field_transforms().empty(),
-                  "Field transforms should have been disallowed.");
+  SIMPLE_HARD_ASSERT(parsed, "Parsed data should not be nullopt.");
+  SIMPLE_HARD_ASSERT(accumulator.field_transforms().empty(),
+                     "Field transforms should have been disallowed.");
   return parsed.value();
 }
 
@@ -276,7 +267,7 @@ model::FieldValue::Array UserDataConverter::ParseArray(
   // disable this validation.
   if (context.array_element() &&
       context.data_source() != core::UserDataSource::ArrayArgument) {
-    ThrowInvalidArgumentIos("Nested arrays are not supported");
+    ThrowInvalidData(context, "Nested arrays are not supported");
   }
 
   model::FieldValue::Array result;
@@ -323,21 +314,21 @@ void UserDataConverter::ParseSentinel(const FieldValue& value,
   // Sentinels are only supported with writes, and not within arrays.
   if (!context.write()) {
     // TODO(b/147444199): use string formatting.
-    // ThrowInvalidArgument("%s can only be used with Update() and Set()%s",
-    //                      Describe(value.type()), context.FieldDescription());
-    auto message = Describe(value.type()) +
-                   " can only be used with Update() and Set()" +
-                   context.FieldDescription();
-    ThrowInvalidArgumentIos(message.c_str());
+    // ThrowInvalidData(
+    //     context, "%s can only be used with Update() and Set()%s",
+    //     Describe(value.type()), context.FieldDescription());
+    auto message =
+        Describe(value.type()) + " can only be used with Update() and Set()";
+    ThrowInvalidData(context, message);
   }
 
   if (!context.path()) {
     // TODO(b/147444199): use string formatting.
-    // ThrowInvalidArgument("%s is not currently supported inside arrays",
-    //                      Describe(value.type()));
+    // ThrowInvalidData(context, "%s is not currently supported inside arrays",
+    //                  Describe(value.type()));
     auto message =
         Describe(value.type()) + " is not currently supported inside arrays";
-    ThrowInvalidArgumentIos(message.c_str());
+    ThrowInvalidData(context, message);
   }
 
   switch (value.type()) {
@@ -365,7 +356,7 @@ void UserDataConverter::ParseSentinel(const FieldValue& value,
       // HARD_FAIL("Unknown FieldValue type: '%s'", Describe(value.type()));
       auto message = std::string("Unknown FieldValue type: '") +
                      Describe(value.type()) + "'";
-      HARD_FAIL_IOS(message.c_str());
+      SIMPLE_HARD_FAIL(message);
   }
 }
 
@@ -406,7 +397,8 @@ model::FieldValue UserDataConverter::ParseScalar(const FieldValue& value,
           GetInternal(reference.firestore())->database_id();
       if (other != *database_id_) {
         // TODO(b/147444199): use string formatting.
-        // ThrowInvalidArgument(
+        // ThrowInvalidData(
+        //     context,
         //     "DocumentReference is for database %s/%s but should be for "
         //     "database %s/%s%s",
         //     other.project_id(), other.database_id(),
@@ -415,10 +407,9 @@ model::FieldValue UserDataConverter::ParseScalar(const FieldValue& value,
         auto actual_db = other.project_id() + "/" + other.database_id();
         auto expected_db =
             database_id_->project_id() + "/" + database_id_->database_id();
-        auto message = std::string("DocumentReference is for database ") +
-                       actual_db + " but should be for database " +
-                       expected_db + context.FieldDescription();
-        ThrowInvalidArgumentIos(message.c_str());
+        auto message = std::string("Document reference is for database ") +
+                       actual_db + " but should be for database " + expected_db;
+        ThrowInvalidData(context, message);
       }
 
       const model::DocumentKey& key = GetInternal(&reference)->key();
@@ -429,7 +420,7 @@ model::FieldValue UserDataConverter::ParseScalar(const FieldValue& value,
       return model::FieldValue::FromGeoPoint(value.geo_point_value());
 
     default:
-      HARD_FAIL_IOS("A non-scalar field value given to ParseScalar");
+      SIMPLE_HARD_FAIL("A non-scalar field value given to ParseScalar");
   }
 }
 
@@ -457,7 +448,7 @@ model::FieldValue::Array UserDataConverter::ParseArrayTransformElements(
       auto message =
           std::string("Failed to properly parse array transform element: ") +
           Describe(element.type());
-      HARD_FAIL_IOS(message.c_str());
+      SIMPLE_HARD_FAIL(message);
     }
 
     result.push_back(std::move(parsed_element).value());

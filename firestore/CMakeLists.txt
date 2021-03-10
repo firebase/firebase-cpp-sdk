@@ -34,6 +34,8 @@ set(common_SRCS
     src/common/firestore.cc
     src/common/futures.cc
     src/common/futures.h
+    src/common/hard_assert_common.cc
+    src/common/hard_assert_common.h
     src/common/listener_registration.cc
     src/common/macros.h
     src/common/main_for_testing_build.cc
@@ -91,6 +93,8 @@ set(android_SRCS
     src/android/geo_point_android.cc
     src/android/geo_point_android.h
     src/android/geo_point_portable.cc
+    src/android/jni_runnable_android.cc
+    src/android/jni_runnable_android.h
     src/android/lambda_event_listener.h
     src/android/lambda_transaction_function.h
     src/android/listener_registration_android.cc
@@ -183,8 +187,6 @@ set(main_SRCS
     src/ios/field_value_ios.h
     src/ios/firestore_ios.cc
     src/ios/firestore_ios.h
-    src/ios/hard_assert_ios.cc
-    src/ios/hard_assert_ios.h
     src/ios/listener_ios.h
     src/ios/listener_registration_ios.cc
     src/ios/listener_registration_ios.h

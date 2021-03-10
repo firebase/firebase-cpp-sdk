@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Google
+ * Copyright 2019 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,23 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_HARD_ASSERT_IOS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_HARD_ASSERT_IOS_H_
+#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_HARD_ASSERT_COMMON_H_
+#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_HARD_ASSERT_COMMON_H_
+
+// TODO(b/163140650): Remove this/unify with the iOS implementation.
+// On Android we still support customers building with STLPort, which precludes
+// use of Abseil here.
 
 #include <string>
 #include <utility>
 
-#include "absl/base/optimization.h"
-#include "Firestore/core/src/util/exception.h"
+#include "firestore/src/common/macros.h"
 
-// TODO(b/147444199): delete this file and use the one that comes from the
-// GitHub repo. This file provides simplified versions of `HARD_ASSERT`,
-// `HARD_FAIL`, and `ThrowInvalidArgument` that don't support string formatting.
+#if !defined(__ANDROID__)
+#include "Firestore/core/src/util/hard_assert.h"
+#endif  // !defined(__ANDROID__)
 
-#if defined(_MSC_VER)
-#define FIRESTORE_FUNCTION_NAME __FUNCSIG__
-#else
-#define FIRESTORE_FUNCTION_NAME __PRETTY_FUNCTION__
-#endif
+#if defined(__ANDROID__)
 
 /**
  * Invokes the internal Fail function below with all the required contextual
@@ -42,22 +41,24 @@
  */
 #define INVOKE_INTERNAL_FAIL(...)                     \
   firebase::firestore::util::internal::FailAssertion( \
-      __FILE__, FIRESTORE_FUNCTION_NAME, __LINE__, __VA_ARGS__)
+      __FILE__, __PRETTY_FUNCTION__, __LINE__, __VA_ARGS__)
+
+#endif  // !defined(__ANDROID__)
 
 /**
  * Fails the current function if the given condition is false.
  *
  * Unlike assert(3) or NSAssert, this macro is never compiled out.
  *
+ * Note: this version of `HARD_ASSERT` is deliberately simplified to avoid
+ * using `util::StringFormat`.
+ *
  * @param condition The condition to test.
  * @param message (optional) A message to print.
  */
-
-// Note: this version of `HARD_ASSERT` is deliberately dumbed down to avoid
-// using `util::StringFormat`.
-#define HARD_ASSERT_IOS(condition, ...)           \
+#define SIMPLE_HARD_ASSERT(condition, ...)        \
   do {                                            \
-    if (!ABSL_PREDICT_TRUE(condition)) {          \
+    if (!FIRESTORE_PREDICT_TRUE(condition)) {     \
       std::string _message{__VA_ARGS__};          \
       INVOKE_INTERNAL_FAIL(_message, #condition); \
     }                                             \
@@ -70,18 +71,13 @@
  *
  * @param message (optional) A message to print.
  */
-#define HARD_FAIL_IOS(...)             \
+#define SIMPLE_HARD_FAIL(...)          \
   do {                                 \
     std::string _failure{__VA_ARGS__}; \
     INVOKE_INTERNAL_FAIL(_failure);    \
   } while (0)
 
-/**
- * Indicates an area of the code that cannot be reached (except possibly due to
- * undefined behaviour or other similar badness). The only reasonable thing to
- * do in these cases is to immediately abort.
- */
-#define UNREACHABLE() abort()
+#if defined(__ANDROID__)
 
 /**
  * Returns the given `ptr` if it is non-null; otherwise, results in a failed
@@ -96,7 +92,7 @@
  * @param ptr The pointer to check and return. Can be a smart pointer.
  */
 #define NOT_NULL(ptr)                                                      \
-  (static_cast<void>(ABSL_PREDICT_FALSE((ptr) == nullptr)                  \
+  (static_cast<void>(FIRESTORE_PREDICT_FALSE((ptr) == nullptr)             \
                          ? INVOKE_INTERNAL_FAIL("Expected non-null " #ptr) \
                          : static_cast<void>(0)),                          \
    (ptr))  // NOLINT(whitespace/indent)
@@ -107,24 +103,22 @@ namespace util {
 namespace internal {
 
 // A no-return helper function. To raise an assertion, use Macro instead.
-ABSL_ATTRIBUTE_NORETURN void FailAssertion(const char* file, const char* func,
-                                           int line,
-                                           const std::string& message);
+// These symbols are in the util::internal namespace to match their iOS
+// equivalents.
+FIRESTORE_ATTRIBUTE_NORETURN void FailAssertion(const char* file,
+                                                const char* func, int line,
+                                                const std::string& message);
 
-ABSL_ATTRIBUTE_NORETURN void FailAssertion(const char* file, const char* func,
-                                           int line, const std::string& message,
-                                           const char* condition);
+FIRESTORE_ATTRIBUTE_NORETURN void FailAssertion(const char* file,
+                                                const char* func, int line,
+                                                const std::string& message,
+                                                const char* condition);
 
 }  // namespace internal
-
-// This is a workaround for the fact that `util::ThrowInvalidArgument` calls
-// `StringFormat` in its implementation, which leads to linkage problems due to
-// the use of `absl::string_view` in its signature.
-ABSL_ATTRIBUTE_NORETURN void ThrowInvalidArgumentIos(
-    const std::string& message);
-
 }  // namespace util
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_HARD_ASSERT_IOS_H_
+#endif  // defined(__ANDROID__)
+
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_HARD_ASSERT_COMMON_H_

@@ -21,6 +21,7 @@ import androidx.core.app.JobIntentService;
 import com.google.firebase.messaging.cpp.DebugLogging;
 import com.google.firebase.messaging.cpp.MessageWriter;
 
+
 /**
  * Listens for Message intents from the application and sends them to the C++ app via the
  * ListenerService.

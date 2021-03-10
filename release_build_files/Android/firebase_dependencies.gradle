@@ -30,7 +30,6 @@ def firebaseDependenciesMap = [
   'installations' : ['com.google.firebase:firebase-installations:16.3.5',
                      'com.google.android.gms:play-services-base:17.6.0'],
   'instance_id' : ['com.google.firebase:firebase-iid:21.0.1'],
-  'invites' : ['com.google.firebase:firebase-invites:17.0.0'],
   'messaging' : ['com.google.firebase.messaging.cpp:firebase_messaging_cpp@aar',
                  'com.google.firebase:firebase-messaging:21.0.1',
                  'androidx.core:core:1.0.1',
@@ -38,7 +37,8 @@ def firebaseDependenciesMap = [
   'performance' : ['com.google.firebase:firebase-perf:19.1.0'],
   'remote_config' : ['com.google.firebase:firebase-config:20.0.3',
                      'com.google.android.gms:play-services-base:17.6.0'],
-  'storage' : ['com.google.firebase:firebase-storage:19.2.1']
+  'storage' : ['com.google.firebase:firebase-storage:19.2.1'],
+  'testlab' : []
 ]
 
 // Handles adding the Firebase C++ dependencies as properties.

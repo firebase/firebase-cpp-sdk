@@ -6,7 +6,7 @@
 #include "app/src/function_registry.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firestore/src/common/futures.h"
-#include "firestore/src/ios/hard_assert_ios.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firebase/firestore/firestore_errors.h"
 #include "Firestore/core/src/util/status.h"
 
@@ -79,8 +79,9 @@ StatusOr<Token> ConvertToken(const Future<std::string>& future, App& app) {
 void OnToken(const Future<std::string>& future_token, App& app,
              int token_generation, const TokenListener& listener,
              int expected_generation) {
-  HARD_ASSERT_IOS(future_token.status() == FutureStatus::kFutureStatusComplete,
-                  "Expected to receive a completed future");
+  SIMPLE_HARD_ASSERT(
+      future_token.status() == FutureStatus::kFutureStatusComplete,
+      "Expected to receive a completed future");
 
   if (expected_generation != token_generation) {
     // Cancel the request since the user may have changed while the request was
@@ -109,14 +110,14 @@ void FirebaseCppCredentialsProvider::SetCredentialChangeListener(
     std::lock_guard<std::recursive_mutex> lock(contents_->mutex);
 
     if (!listener) {
-      HARD_ASSERT_IOS(change_listener_,
-                      "Change listener removed without being set!");
+      SIMPLE_HARD_ASSERT(change_listener_,
+                         "Change listener removed without being set!");
       change_listener_ = {};
       RemoveAuthStateListener();
       return;
     }
 
-    HARD_ASSERT_IOS(!change_listener_, "Set change listener twice!");
+    SIMPLE_HARD_ASSERT(!change_listener_, "Set change listener twice!");
     change_listener_ = std::move(listener);
     change_listener_(GetCurrentUser(contents_->app));
   }
@@ -177,8 +178,8 @@ void FirebaseCppCredentialsProvider::OnAuthStateChanged(void* context) {
 // Private member functions
 
 void FirebaseCppCredentialsProvider::RequestToken(TokenListener listener) {
-  HARD_ASSERT_IOS(IsSignedIn(),
-                  "Cannot get token when there is no signed-in user");
+  SIMPLE_HARD_ASSERT(IsSignedIn(),
+                     "Cannot get token when there is no signed-in user");
 
   // Take note of the current value of `token_generation` so that this request
   // can fail if there is a token change while the request is outstanding.

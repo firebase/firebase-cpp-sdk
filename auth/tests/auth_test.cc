@@ -120,9 +120,6 @@ class AuthTest : public ::testing::Test {
   void MakeAuth() {
     firebase_app_ = testing::CreateApp();
     firebase_auth_ = Auth::GetAuth(firebase_app_);
-    if(firebase_auth_->current_user()) {
-      firebase_auth_->SignOut();
-    }
   }
 
   App* firebase_app_ = nullptr;

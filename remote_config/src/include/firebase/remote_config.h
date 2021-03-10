@@ -23,6 +23,7 @@
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 #include "firebase/internal/platform.h"
+#include "app/src/time.h"
 #ifndef SWIG
 #include "firebase/variant.h"
 #endif  // SWIG
@@ -34,11 +35,13 @@ FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(remote_config)
 /// @brief Namespace that encompasses all Firebase APIs.
 namespace firebase {
 
+#ifndef SWIG
 /// @brief Firebase Remote Config API.
 ///
 /// Firebase Remote Config is a cloud service that lets you change the
 /// appearance and behavior of your app without requiring users to download an
 /// app update.
+#endif  // SWIG
 namespace remote_config {
 
 /// @brief Describes the most recent fetch request status.
@@ -120,7 +123,8 @@ static const uint64_t kDefaultCacheExpiration = 60 * 60 * 12;
 
 /// @brief The default timeout used by Fetch(), equal to 30 seconds,
 /// in milliseconds.
-static const uint64_t kDefaultTimeoutInMilliseconds = 30 * 1000;
+static const uint64_t kDefaultTimeoutInMilliseconds =
+    30 * ::firebase::internal::kMillisecondsPerSecond;
 
 /// @brief Describes a mapping of a key to a string value. Used to set default
 /// values.

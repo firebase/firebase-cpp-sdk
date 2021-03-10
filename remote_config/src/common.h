@@ -15,6 +15,8 @@
 #ifndef FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_COMMON_H_
 #define FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_COMMON_H_
 
+#include <type_traits>
+
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/semaphore.h"
 
@@ -69,11 +71,32 @@ namespace internal {
 // Implemented in each platform module.
 bool IsInitialized();
 
-// Registers a cleanup task for this module if auto-initialization is disabled.
-void RegisterTerminateOnDefaultAppDestroy();
+// Waits until the given future is complete and asserts that it completed with
+// the given error (no error by default). Returns the future's result.
+template <typename T>
+void WaitForFuture(const firebase::Future<T>& future, Semaphore* future_sem,
+                   const char* action_name) {
+  // Block and wait until Future is complete.
+  future.OnCompletion(
+      [](const firebase::Future<T>& result, void* data) {
+        Semaphore* sem = static_cast<Semaphore*>(data);
+        sem->Post();
+      },
+      future_sem);
+  future_sem->Wait();
 
-// Remove the cleanup task for this module if auto-initialization is disabled.
-void UnregisterTerminateOnDefaultAppDestroy();
+  if (future.status() == firebase::kFutureStatusComplete &&
+      future.error() == kFutureStatusSuccess) {
+    LogDebug("RemoteConfig Future: %s Success", action_name);
+  } else if (future.status() != firebase::kFutureStatusComplete) {
+    // It is fine if timeout
+    LogWarning("RemoteConfig Future: %s timeout", action_name);
+  } else {
+    // It is fine if failed
+    LogWarning("RemoteConfig Future: Failed to %s. Error %d: %s", action_name,
+               future.error(), future.error_message());
+  }
+}
 
 // Waits until the given future is complete and asserts that it completed with
 // the given error (no error by default). Returns the future's result.

@@ -7,11 +7,7 @@
 #endif  // FIRESTORE_HAVE_EXCEPTIONS
 
 #include "app/src/log.h"
-#if !defined(__ANDROID__)
 #include "Firestore/core/src/util/firestore_exceptions.h"
-#else
-#include "firestore/src/android/firestore_exceptions_android.h"
-#endif
 
 namespace firebase {
 namespace firestore {

@@ -24,6 +24,8 @@
 #include <unordered_set>
 #endif  // defined(_STLPORT_VERSION)
 
+#include "app/meta/move.h"
+
 #if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
 #include "firestore/src/android/field_path_portable.h"
 #else
@@ -38,11 +40,11 @@ FieldPath::FieldPath() {}
 
 #if !defined(_STLPORT_VERSION)
 FieldPath::FieldPath(std::initializer_list<std::string> field_names)
-    : internal_(new FieldPathInternal{field_names}) {}
+    : internal_(InternalFromSegments(std::vector<std::string>(field_names))) {}
 #endif  // !defined(_STLPORT_VERSION)
 
 FieldPath::FieldPath(const std::vector<std::string>& field_names)
-    : internal_(new FieldPathInternal{std::vector<std::string>{field_names}}) {}
+    : internal_(InternalFromSegments(field_names)) {}
 
 FieldPath::FieldPath(const FieldPath& path)
     : internal_(new FieldPathInternal{*path.internal_}) {}
@@ -76,6 +78,12 @@ FieldPath& FieldPath::operator=(FieldPath&& path) noexcept {
 /* static */
 FieldPath FieldPath::DocumentId() {
   return FieldPath{new FieldPathInternal{FieldPathInternal::KeyFieldPath()}};
+}
+
+FieldPath::FieldPathInternal* FieldPath::InternalFromSegments(
+    std::vector<std::string> field_names) {
+  return new FieldPathInternal(
+      FieldPathInternal::FromSegments(Move(field_names)));
 }
 
 /* static */

@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
@@ -90,7 +91,7 @@ TEST_F(FirestoreIntegrationTest, TestLimitQueriesUsingDescendingSortOrder) {
 TEST_F(FirestoreIntegrationTest, TestLimitToLastMustAlsoHaveExplicitOrderBy) {
   CollectionReference collection = Collection();
 
-  EXPECT_THROW(Await(collection.LimitToLast(2).Get()), FirestoreException);
+  EXPECT_THROW(Await(collection.LimitToLast(2).Get()), std::logic_error);
 }
 #endif  // defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
 

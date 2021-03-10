@@ -1,9 +1,12 @@
 #include "firestore/src/android/exception_android.h"
 
+#include <stdexcept>
+
+#include "firestore/src/common/macros.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/throwable.h"
-#include "firestore/src/android/firestore_exceptions_android.h"
+#include "Firestore/core/src/util/firestore_exceptions.h"
 
 namespace firebase {
 namespace firestore {
@@ -40,12 +43,18 @@ StaticMethod<Object> kFromValue(
     "fromValue",
     "(I)Lcom/google/firebase/firestore/FirebaseFirestoreException$Code;");
 
-// IllegalStateException
-constexpr char kIllegalStateExceptionClassName[] =
-    PROGUARD_KEEP_CLASS "java/lang/IllegalStateException";
-Constructor<Throwable> kNewIllegalStateException("()V");
-
+jclass g_illegal_argument_exception_class = nullptr;
 jclass g_illegal_state_exception_class = nullptr;
+
+/** Returns true if the given object is an IllegalArgumentException. */
+bool IsIllegalArgumentException(jni::Env& env, const jni::Object& exception) {
+  return env.IsInstanceOf(exception, g_illegal_argument_exception_class);
+}
+
+/** Returns true if the given object is an IllegalStateException. */
+bool IsIllegalStateException(jni::Env& env, const jni::Object& exception) {
+  return env.IsInstanceOf(exception, g_illegal_state_exception_class);
+}
 
 }  // namespace
 
@@ -56,8 +65,10 @@ void ExceptionInternal::Initialize(jni::Loader& loader) {
 
   loader.LoadClass(kCodeClassName, kValue, kFromValue);
 
-  g_illegal_state_exception_class = loader.LoadClass(
-      kIllegalStateExceptionClassName, kNewIllegalStateException);
+  g_illegal_argument_exception_class =
+      loader.LoadClass("java/lang/IllegalArgumentException");
+  g_illegal_state_exception_class =
+      loader.LoadClass("java/lang/IllegalStateException");
 }
 
 Error ExceptionInternal::GetErrorCode(Env& env, const Object& exception) {
@@ -122,11 +133,6 @@ bool ExceptionInternal::IsFirestoreException(Env& env,
   return env.IsInstanceOf(exception, g_firestore_exception_class);
 }
 
-bool ExceptionInternal::IsIllegalStateException(Env& env,
-                                                const Object& exception) {
-  return env.IsInstanceOf(exception, g_illegal_state_exception_class);
-}
-
 bool ExceptionInternal::IsAnyExceptionThrownByFirestore(
     Env& env, const Object& exception) {
   return IsFirestoreException(env, exception) ||
@@ -136,16 +142,32 @@ bool ExceptionInternal::IsAnyExceptionThrownByFirestore(
 void GlobalUnhandledExceptionHandler(jni::Env& env,
                                      jni::Local<jni::Throwable>&& exception,
                                      void* context) {
-#if __cpp_exceptions
-  // TODO(b/149105903): Handle different underlying Java exceptions differently.
+#if FIRESTORE_HAVE_EXCEPTIONS
+  std::string message = exception.GetMessage(env);
+
   env.ExceptionClear();
-  throw FirestoreException(exception.GetMessage(env), Error::kErrorInternal);
+  if (IsIllegalArgumentException(env, exception)) {
+    throw std::invalid_argument(message);
+  } else if (IsIllegalStateException(env, exception)) {
+    throw std::logic_error(message);
+  } else if (ExceptionInternal::IsFirestoreException(env, exception)) {
+    Error code = ExceptionInternal::GetErrorCode(env, exception);
+    throw FirestoreException(message, code);
+  } else {
+    // All other exceptions are internal errors.
+    //
+    // This includes NullPointerException which would normally indicate that a
+    // user has passed a null argument to a Java method that didn't allow it. In
+    // C++, arguments are taken by value or const reference and can't end up as
+    // a null Java reference unless there's an error in the argument conversion.
+    throw FirestoreException(exception.GetMessage(env), Error::kErrorInternal);
+  }
 
 #else
   // Just clear the pending exception. The exception was already logged when
   // first caught.
   env.ExceptionClear();
-#endif
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 }
 
 }  // namespace firestore

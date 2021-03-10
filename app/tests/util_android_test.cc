@@ -17,6 +17,8 @@
 #include "app/src/util_android.h"
 
 #include <pthread.h>
+
+#include <cstdint>
 #include <utility>
 
 #include "app/src/include/firebase/variant.h"
@@ -227,8 +229,8 @@ class JavaObjectToVariantTest : public ::testing::Test {
   }
 
   const int kTestValueInt = 0x01234567;
-  const int64 kTestValueLong = 0x1234567ABCD1234L;
-  const int16 kTestValueShort = 0x3456;
+  const int64_t kTestValueLong = 0x1234567ABCD1234L;
+  const int16_t kTestValueShort = 0x3456;
   const char kTestValueByte = 0x12;
   const bool kTestValueBool = true;
   const char *const kTestValueString = "Hello, world!";

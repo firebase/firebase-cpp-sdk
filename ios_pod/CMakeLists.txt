@@ -176,6 +176,18 @@ function(symlink_pod_headers target_name pod_name dir_name)
     endif()
   endif()
 
+  # If failed to find headers, try xcframework path.
+  if(NOT EXISTS ${framework_dir})
+    set(glob_dir "${FIREBASE_POD_DIR}/Pods/${pod_name}/${FRAMEWORK_DIR}/*/*.xcframework/*/*.framework/Headers")
+    file(GLOB framework_dirs ${glob_dir})
+    # xcframework contains several frameworks. Their Headers are the same. So it's okay use first framework's Headers
+    list(LENGTH framework_dirs dir_len)
+    if(dir_len GREATER 0)
+      list(GET framework_dirs 0 first_dir)
+      file(GLOB framework_dir ${first_dir})
+    endif()
+  endif()
+
   # Maybe this pod is not a framework, continue
   if(NOT EXISTS ${framework_dir})
     return()
