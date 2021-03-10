@@ -107,10 +107,10 @@ PARAMETERS = {
 
     "ios": {
     "matrix": {
-      "xcode_version": ["11.7"],
+      "xcode_version": ["12"],
 
       EXPANDED_KEY: {
-        "xcode_version": ["11.7", "12.4"]
+        "xcode_version": ["12", "12.4"]
       }
     }
   },
