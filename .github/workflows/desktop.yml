@@ -235,7 +235,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'ubuntu')
         with:
-          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ needs.prepare_matrix.outputs.python_version }}
+          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
           path: |
             /tmp/cores/*
             /tmp/bins/*
@@ -244,7 +244,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         with:
-          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ needs.prepare_matrix.outputs.python_version }}-${{ matrix.xcode_version }}
+          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.xcode_version }}
           path: |
             ~/Library/Logs/DiagnosticReports/*
             /tmp/bins/*
