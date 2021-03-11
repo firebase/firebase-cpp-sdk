@@ -62,7 +62,6 @@ jobs:
     steps:
       - name: log run inputs
         run: |
-          echo "build_tools_os: ${{ needs.prepare_matrix.outputs.matrix_build_tools_os }}"
           if [[ -n "${{ github.event.inputs.downloadPublicVersion }}" ]]; then
             echo "::warning ::Downloading public SDK package from https://dl.google.com/firebase/sdk/cpp/firebase_cpp_sdk_${{ github.event.inputs.downloadPublicVersion }}.zip"
           elif [[ -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
