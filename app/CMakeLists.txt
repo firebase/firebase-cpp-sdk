@@ -40,17 +40,6 @@ binary_to_array("invites_resources"
     "firebase_invites"
     "${FIREBASE_GEN_FILE_DIR}/app")
 
-# Generate build_type_generated.h
-file(MAKE_DIRECTORY ${FIREBASE_GEN_FILE_DIR}/app/src)
-set(build_type_header ${FIREBASE_GEN_FILE_DIR}/app/src/build_type_generated.h)
-add_custom_command(
-    OUTPUT ${build_type_header}
-    COMMAND python "${FIREBASE_SCRIPT_DIR}/build_type_header.py"
-        "--build_type=head"
-        "--output_file=${build_type_header}"
-    COMMENT "Generating build_type_generated header"
-)
-
 # Generate version.h
 set(version_header_dir ${FIREBASE_GEN_FILE_DIR}/app/src/include/firebase)
 set(version_header ${version_header_dir}/version.h)
@@ -233,7 +222,6 @@ set(internal_HDRS
 set(utility_common_HDRS
     src/app_common.h
     src/assert.h
-    ${build_type_header}
     src/callback.h
     src/cleanup_notifier.h
     src/embedded_file.h
