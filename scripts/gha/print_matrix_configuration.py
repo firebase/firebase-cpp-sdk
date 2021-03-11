@@ -86,26 +86,27 @@ PARAMETERS = {
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["android-expanded-example-os"]
+        "os": ["ubuntu-latest", "macos-latest"]
       }
     }
   },
 
   "integration_tests": {
     "matrix": {
-        "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
-        "platform": ["Desktop", "Android", "iOS"],
-        "ssl_lib": ["openssl", "boringssl"]
+      "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
+      "platform": ["Desktop", "Android", "iOS"],
+      "ssl_lib": ["openssl", "boringssl"]
     },
     "config": {
-        "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage",
-        "android_device": "flame",
-        "android_api": "29",
-        "ios_device": "iphone8",
-        "ios_version": "12"
-    },
+      "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage",
+      "android_device": "flame",
+      "android_api": "29",
+      "ios_device": "iphone8",
+      "ios_version": "12"
+    }
+  },
 
-    "ios": {
+  "ios": {
     "matrix": {
       "xcode_version": ["12"],
 
@@ -114,9 +115,6 @@ PARAMETERS = {
       }
     }
   },
-
-
-  }
 }
 
 

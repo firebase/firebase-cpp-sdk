@@ -55,6 +55,7 @@ jobs:
         vcpkg_triplet_suffix: ${{ fromJson(needs.prepare_matrix.outputs.matrix_vcpkg_triplet_suffix) }}
         xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
         python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
+        # Add these Windows jobs.
         include:
           - os: windows-latest
             build_type: "Release"

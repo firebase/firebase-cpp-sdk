@@ -44,14 +44,14 @@ jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
     outputs:
-      matrix_platform: ${{ steps.set-matrix.outputs.matrix_platform }}
-      matrix_os: ${{ steps.set-matrix.outputs.matrix_os }}
-      matrix_ssl: ${{ steps.set-matrix.outputs.matrix_ssl }}
-      apis: ${{ steps.set-matrix.outputs.apis }}
-      android_device: ${{ steps.set-matrix.outputs.android_device }}
-      android_api: ${{ steps.set-matrix.outputs.android_api }}
-      ios_device: ${{ steps.set-matrix.outputs.ios_device }}
-      ios_version: ${{ steps.set-matrix.outputs.ios_version }}
+      matrix_platform: ${{ steps.export-result.outputs.matrix_platform }}
+      matrix_os: ${{ steps.export-result.outputs.matrix_os }}
+      matrix_ssl: ${{ steps.export-result.outputs.matrix_ssl }}
+      apis: ${{ steps.export-result.outputs.apis }}
+      android_device: ${{ steps.export-result.outputs.android_device }}
+      android_api: ${{ steps.export-result.outputs.android_api }}
+      ios_device: ${{ steps.export-result.outputs.ios_device }}
+      ios_version: ${{ steps.export-result.outputs.ios_version }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -60,7 +60,7 @@ jobs:
         if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1'
         run: |
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
-      - id: set-matrix
+      - id: export-result
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
         run: |
           echo "::set-output name=matrix_platform::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k platform -o "${{github.event.inputs.platforms}}" )"
