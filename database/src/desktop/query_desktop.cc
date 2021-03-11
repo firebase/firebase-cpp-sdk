@@ -122,50 +122,55 @@ QueryInternal::~QueryInternal() {}
 class SingleValueEventRegistration : public ValueEventRegistration {
  public:
   SingleValueEventRegistration(DatabaseInternal* database,
-                               SingleValueListener** single_listener_holder,
+                               UniquePtr<SingleValueListener> listener,
                                const QuerySpec& query_spec)
-      : ValueEventRegistration(database, *single_listener_holder, query_spec),
-        listener_mutex_(database->listener_mutex()),
-        single_listener_holder_(single_listener_holder) {}
+      : ValueEventRegistration(database, listener.get(), query_spec),
+        active_(true),
+        database_(database),
+        listener_(Move(listener)) {}
 
   void FireEvent(const Event& event) override {
-    MutexLock lock(*listener_mutex_);
-    if (single_listener_holder_ && *single_listener_holder_) {
-      single_listener_holder_ = nullptr;
+    if (active_) {
+      active_ = false;
       ValueEventRegistration::FireEvent(event);
+      CleanUp();
     }
   }
 
   void FireCancelEvent(Error error) override {
-    MutexLock lock(*listener_mutex_);
-    if (single_listener_holder_ && *single_listener_holder_) {
-      single_listener_holder_ = nullptr;
+    if (active_) {
+      active_ = false;
       ValueEventRegistration::FireCancelEvent(error);
+      CleanUp();
     }
   }
 
  private:
-  Mutex* listener_mutex_;
-  SingleValueListener** single_listener_holder_;
+  void CleanUp() {
+    // Remove the listener associated with this event registration.
+    // This will immediately mark this registration as removed, and schedule the
+    // registration to be removed and deleted from the sync tree. Because the
+    // registration owns the Listener, the listener will be cleaned up safely as
+    // well.
+    QueryInternal query(database_, query_spec());
+    query.RemoveValueListener(listener_.get());
+  }
+
+  bool active_;
+  DatabaseInternal* database_;
+  UniquePtr<SingleValueListener> listener_;
 };
 
 Future<DataSnapshot> QueryInternal::GetValue() {
   SafeFutureHandle<DataSnapshot> handle =
       query_future()->SafeAlloc<DataSnapshot>(kQueryFnGetValue,
                                               DataSnapshot(nullptr));
-  // TODO(b/68878322): Refactor this code to be less brittle, possibly using the
-  // CleanupNotifier or something like it.
-  SingleValueListener* single_listener =
-      new SingleValueListener(database_, query_spec_, query_future(), handle);
-
-  // If the database goes away, we need to be able to reach into these blocks
-  // and clear their single_listener pointer. We can't do that directly, but we
-  // can cache a pointer to the pointer, and clear that instead.
-  SingleValueListener** single_listener_holder =
-      database_->AddSingleValueListener(single_listener);
-
+  auto listener = MakeUnique<SingleValueListener>(database_, query_spec_,
+                                                  query_future(), handle);
+  void* listener_ptr = listener.get();
   AddEventRegistration(MakeUnique<SingleValueEventRegistration>(
-      database_, single_listener_holder, query_spec_));
+                           database_, Move(listener), query_spec_),
+                       listener_ptr);
   return MakeFuture(query_future(), handle);
 }
 
@@ -177,8 +182,8 @@ Future<DataSnapshot> QueryInternal::GetValueLastResult() {
 void QueryInternal::AddValueListener(ValueListener* listener) {
   ValueListenerCleanupData cleanup_data(query_spec_);
   AddEventRegistration(
-      MakeUnique<ValueEventRegistration>(database_, listener, query_spec_));
-
+      MakeUnique<ValueEventRegistration>(database_, listener, query_spec_),
+      static_cast<void*>(listener));
   database_->RegisterValueListener(query_spec_, listener,
                                    std::move(cleanup_data));
 }
@@ -194,7 +199,9 @@ void QueryInternal::RemoveAllValueListeners() {
 }
 
 void QueryInternal::AddEventRegistration(
-    UniquePtr<EventRegistration> registration) {
+    UniquePtr<EventRegistration> registration, void* listener_ptr) {
+  database_->AddEventRegistration(query_spec_, listener_ptr,
+                                  registration.get());
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref, UniquePtr<EventRegistration> registration) {
         Repo::ThisRefLock lock(&ref);
@@ -207,6 +214,17 @@ void QueryInternal::AddEventRegistration(
 
 void QueryInternal::RemoveEventRegistration(void* listener_ptr,
                                             const QuerySpec& query_spec) {
+  // When a listener is removed, immediately invalidate its event registration
+  // before scheduling it for removal from the database. From the point of view
+  // of the main thread, it has now been removed and no more callbacks should be
+  // called on it. This prevents race conditions that would make it impossible
+  // to know when it is safe to delete a listener pointer.
+  auto* registration =
+      database_->ActiveEventRegistration(query_spec, listener_ptr);
+  if (registration) {
+    registration->set_status(EventRegistration::kRemoved);
+  }
+
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref, void* listener_ptr, QuerySpec query_spec) {
         Repo::ThisRefLock lock(&ref);
@@ -230,7 +248,8 @@ void QueryInternal::RemoveEventRegistration(ChildListener* listener,
 void QueryInternal::AddChildListener(ChildListener* listener) {
   ChildListenerCleanupData cleanup_data(query_spec_);
   AddEventRegistration(
-      MakeUnique<ChildEventRegistration>(database_, listener, query_spec_));
+      MakeUnique<ChildEventRegistration>(database_, listener, query_spec_),
+      static_cast<void*>(listener));
   database_->RegisterChildListener(query_spec_, listener,
                                    std::move(cleanup_data));
 }
