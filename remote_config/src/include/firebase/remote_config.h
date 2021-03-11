@@ -115,8 +115,8 @@ enum ConfigSetting {
 };
 
 /// @brief The default cache expiration used by Fetch(), equal to 12 hours,
-/// in seconds.
-static const uint64_t kDefaultCacheExpiration = 60 * 60 * 12;
+/// in milliseconds.
+static const uint64_t kDefaultCacheExpiration = 60 * 60 * 12 * 1000;
 
 /// @brief The default timeout used by Fetch(), equal to 30 seconds,
 /// in milliseconds.
