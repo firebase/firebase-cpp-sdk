@@ -102,7 +102,7 @@ PARAMETERS = {
         "android_device": "flame",
         "android_api": "29",
         "ios_device": "iphone8",
-        "ios_version": "11.4"
+        "ios_version": "12"
     },
 
     "ios": {
