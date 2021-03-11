@@ -23,7 +23,7 @@ on:
         description: 'public version # to test against'
       downloadPreviousRun:
         description: 'previous run # to test against'
-      expanded_matrix:
+      use_expanded_matrix:
         description: 'Use an expanded test matrix?'
         default: '0'
         required: true
@@ -42,19 +42,18 @@ jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
     env:
-      MATRIX_BUILD_TOOLS_OS: 'ubuntu-latest,macos-latest'
-      EXPANDED_MATRIX_BUILD_TOOLS_OS: 'ubuntu-latest,macos-latest'
+      USE_EXPANDED_MATRIX: 0
     outputs:
-      matrix_build_tools_os: ${{ steps.export-result.outputs.matrix_build_tools_os }}
+      use_expanded_matrix: ${{ steps.export-result.outputs.use_expanded_matrix }}
     steps:
       - name: Use expanded matrix
-        if: github.event.inputs.expanded_matrix == '1'
+        if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1'
         run: |
-          echo "MARTIX_BUILD_TOOLS_OS=${EXPANDED_MATRIX_BUILD_TOOLS_OS}" >> $GITHUB_ENV
+          echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
       - id: export-result
         run: |
-          BUILD_TOOLS_OS_JSON=[\"$(echo ${{ env.MATRIX_BUILD_TOOLS_OS }} | sed 's/,/","/g')\"]
-          echo "::set-output name=matrix_build_tools_os::${BUILD_TOOLS_OS_JSON}"
+          echo "USE_EXPANDED_MATRIX: ${USE_EXPANDED_MATRIX}"
+          echo "::set-output name=use_expanded_matrix::${USE_EXPANDED_MATRIX}"
 
   log_inputs:
     name: log-inputs
@@ -101,7 +100,7 @@ jobs:
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       matrix:
-        os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_build_tools_os) }}
+        os: [ubuntu-latest, macos-latest]
         include:
         - os: ubuntu-latest
           tools_platform: linux
