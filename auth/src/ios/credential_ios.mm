@@ -15,7 +15,6 @@
  */
 
 #include "app/src/assert.h"
-#include "app/src/build_type_generated.h"
 #include "app/src/util_ios.h"
 #include "auth/src/ios/common_ios.h"
 
