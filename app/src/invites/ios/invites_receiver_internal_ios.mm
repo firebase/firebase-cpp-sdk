@@ -22,7 +22,6 @@
 #include <string>
 
 #include "app/src/assert.h"
-#include "app/src/build_type_generated.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/invites/invites_receiver_internal.h"
 #include "app/src/invites/ios/invites_ios_startup.h"
