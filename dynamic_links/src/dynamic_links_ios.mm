@@ -17,8 +17,6 @@
 #include "dynamic_links/src/include/firebase/dynamic_links.h"
 #include "dynamic_links/src/include/firebase/dynamic_links/components.h"
 
-#include "app/src/build_type_generated.h"
-
 #include "FDLURLComponents.h"
 
 #include "app/src/assert.h"

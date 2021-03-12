@@ -23,6 +23,10 @@ on:
         description: 'public version # to test against'
       downloadPreviousRun:
         description: 'previous run # to test against'
+      use_expanded_matrix:
+        description: 'Use an expanded matrix?'
+        default: '0'
+        required: true
 
 env:
   # Packaging prerequisites
@@ -35,9 +39,26 @@ env:
   xcodeVersion: "12"
 
 jobs:
+  prepare_matrix:
+    runs-on: ubuntu-latest
+    env:
+      USE_EXPANDED_MATRIX: 0
+    outputs:
+      use_expanded_matrix: ${{ steps.export-result.outputs.use_expanded_matrix }}
+    steps:
+      - name: Use expanded matrix
+        if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1'
+        run: |
+          echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
+      - id: export-result
+        run: |
+          echo "USE_EXPANDED_MATRIX: ${USE_EXPANDED_MATRIX}"
+          echo "::set-output name=use_expanded_matrix::${USE_EXPANDED_MATRIX}"
+
   log_inputs:
     name: log-inputs
     runs-on: ubuntu-latest
+    needs: prepare_matrix
     steps:
       - name: log run inputs
         run: |
@@ -74,6 +95,7 @@ jobs:
   build_tools:
     name: build-tools-${{ matrix.tools_platform }}
     runs-on: ${{ matrix.os }}
+    needs: prepare_matrix
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       matrix:
@@ -146,6 +168,7 @@ jobs:
   build_and_package_ios:
     name: build-and-package-ios
     runs-on: macos-latest
+    needs: prepare_matrix
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     steps:
       - name: setup Xcode version (macos)
@@ -192,6 +215,7 @@ jobs:
   build_and_package_android:
     name: build-and-package-android-${{matrix.stl}}
     runs-on: ubuntu-latest
+    needs: prepare_matrix
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       fail-fast: false
@@ -238,6 +262,7 @@ jobs:
   build_desktop:
     name: build-${{ matrix.sdk_platform }}-${{ matrix.architecture }}-${{ matrix.build_type }}-${{ matrix.msvc_runtime }}-${{ matrix.linux_abi }}
     runs-on: ${{ matrix.os }}
+    needs: prepare_matrix
     if: ${{ github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == '' }}
     strategy:
       fail-fast: false
