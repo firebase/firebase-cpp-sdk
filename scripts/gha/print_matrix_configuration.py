@@ -69,11 +69,11 @@ PARAMETERS = {
       "build_type": ["Release", "Debug"],
       "architecture": ["x64", "x86"],
       "msvc_runtime": ["static","dynamic"],
-      "vcpkg_triplet_suffix": ["windows-static", "windows-static-md", "linux", "osx"],
       "xcode_version": ["11.7"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
+        "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
         "xcode_version": ["11.7", "12.4"],
       }
     }
