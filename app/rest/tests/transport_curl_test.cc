@@ -19,15 +19,16 @@
 
 #include "app/rest/transport_curl.h"
 
+#include <cstdint>
 #include <cstdio>
 #include <string>
 
 #include "app/rest/request.h"
 #include "app/rest/response.h"
-#include "net/http2/server/lib/public/httpserver2.h"
-#include "net/util/ports.h"
 #include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "net/http2/server/lib/public/httpserver2.h"
+#include "net/util/ports.h"
 #include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
@@ -113,11 +114,11 @@ class TransportCurlTest : public testing::Test {
     TransportCurlTest::server_ = nullptr;
     CleanupTransportCurl();
   }
-  static int32 port_;
+  static int32_t port_;
   static net_http2::HTTPServer2* server_;
 };
 
-int32 TransportCurlTest::port_;
+int32_t TransportCurlTest::port_;
 net_http2::HTTPServer2* TransportCurlTest::server_;
 
 TEST_F(TransportCurlTest, TestGlobalInitAndCleanup) {
