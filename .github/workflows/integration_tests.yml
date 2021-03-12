@@ -34,7 +34,7 @@ on:
         description: 'iOS device version'
         default: '11.4'
       use_expanded_matrix:
-        description: 'Enabling (1) will run an extended test matrix instead of your config defined above'
+        description: 'Use an expanded matrix? Note: above config will be ignored.'
         default: '0'
         required: true  
 

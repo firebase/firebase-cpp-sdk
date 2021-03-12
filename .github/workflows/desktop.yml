@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       expanded_matrix:
-        description: 'Use an expanded test matrix?'
+        description: 'Use an expanded matrix?'
         default: '0'
         required: true
 
