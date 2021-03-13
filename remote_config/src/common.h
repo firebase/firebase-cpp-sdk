@@ -69,12 +69,6 @@ namespace internal {
 // Implemented in each platform module.
 bool IsInitialized();
 
-// Registers a cleanup task for this module if auto-initialization is disabled.
-void RegisterTerminateOnDefaultAppDestroy();
-
-// Remove the cleanup task for this module if auto-initialization is disabled.
-void UnregisterTerminateOnDefaultAppDestroy();
-
 // Waits until the given future is complete and asserts that it completed with
 // the given error (no error by default). Returns the future's result.
 template <typename T>
