@@ -21,7 +21,6 @@
 
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
-#include "app/src/build_type_generated.h"
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"

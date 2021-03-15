@@ -38,7 +38,8 @@ def firebaseDependenciesMap = [
   'performance' : ['com.google.firebase:firebase-perf:19.1.0'],
   'remote_config' : ['com.google.firebase:firebase-config:20.0.3',
                      'com.google.android.gms:play-services-base:17.6.0'],
-  'storage' : ['com.google.firebase:firebase-storage:19.2.1']
+  'storage' : ['com.google.firebase:firebase-storage:19.2.1'],
+  'testlab' : []
 ]
 
 // Handles adding the Firebase C++ dependencies as properties.

@@ -34,11 +34,13 @@ FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(remote_config)
 /// @brief Namespace that encompasses all Firebase APIs.
 namespace firebase {
 
+#ifndef SWIG
 /// @brief Firebase Remote Config API.
 ///
 /// Firebase Remote Config is a cloud service that lets you change the
 /// appearance and behavior of your app without requiring users to download an
 /// app update.
+#endif  // SWIG
 namespace remote_config {
 
 /// @brief Describes the most recent fetch request status.

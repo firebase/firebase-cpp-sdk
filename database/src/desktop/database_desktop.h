@@ -19,6 +19,7 @@
 #include <memory>
 #include <string>
 
+#include "app/memory/unique_ptr.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -26,7 +27,6 @@
 #include "app/src/mutex.h"
 #include "app/src/safe_reference.h"
 #include "app/src/scheduler.h"
-#include "app/memory/unique_ptr.h"
 #include "database/src/common/listener.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/connection/host_info.h"
@@ -122,41 +122,13 @@ class DatabaseInternal {
 
   void UnregisterAllChildListeners(const QuerySpec& spec);
 
+  void AddEventRegistration(const QuerySpec& query_spec, void* listener_ptr,
+                            EventRegistration* event_registration);
+
+  EventRegistration* ActiveEventRegistration(const QuerySpec& query_spec,
+                                             void* listener_ptr);
+
   PushChildNameGenerator& name_generator() { return name_generator_; }
-
-  // Track a transient listener. If the database is deleted before the listener
-  // finishes, it should discard its pointers.
-  SingleValueListener** AddSingleValueListener(SingleValueListener* listener) {
-    MutexLock lock(listener_mutex_);
-    // If the listener is already being tracked, just return the existing
-    // listener holder.
-    for (SingleValueListener** listener_holder : single_value_listeners_) {
-      if (*listener_holder == listener) {
-        return listener_holder;
-      }
-    }
-    // If the listener was not found, register create a new holder and return
-    // it.
-    SingleValueListener** holder = new SingleValueListener*(listener);
-    single_value_listeners_.insert(holder);
-    return holder;
-  }
-
-  // Finish tracking a transient listener. If the database is deleted before the
-  // listener finishes, it should discard its pointers.
-  void RemoveSingleValueListener(SingleValueListener* listener) {
-    MutexLock lock(listener_mutex_);
-    auto iter = std::find_if(
-        single_value_listeners_.begin(), single_value_listeners_.end(),
-        [listener](const SingleValueListener* const* listener_holder) {
-          return *listener_holder == listener;
-        });
-    if (iter != single_value_listeners_.end()) {
-      repo_->RemoveEventCallback(listener, listener->query_spec());
-      delete *iter;
-      single_value_listeners_.erase(iter);
-    }
-  }
 
   typedef firebase::internal::SafeReference<DatabaseInternal> ThisRef;
   typedef firebase::internal::SafeReferenceLock<DatabaseInternal> ThisRefLock;
@@ -185,7 +157,9 @@ class DatabaseInternal {
       cleanup_value_listener_lookup_;
   std::map<ChildListener*, ChildListenerCleanupData>
       cleanup_child_listener_lookup_;
-  std::set<SingleValueListener**> single_value_listeners_;
+
+  std::map<QuerySpec, std::map<void*, std::vector<EventRegistration*>>>
+      event_registration_lookup_;
 
   Mutex listener_mutex_;
 

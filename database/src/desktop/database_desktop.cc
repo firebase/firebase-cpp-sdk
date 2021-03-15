@@ -52,19 +52,15 @@ SingleValueListener::SingleValueListener(DatabaseInternal* database,
       future_(future),
       handle_(handle) {}
 
-SingleValueListener::~SingleValueListener() {
-  database_->RemoveSingleValueListener(this);
-}
+SingleValueListener::~SingleValueListener() {}
 
 void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {
   future_->CompleteWithResult<DataSnapshot>(handle_, kErrorNone, "", snapshot);
-  delete this;
 }
 
 void SingleValueListener::OnCancelled(const Error& error_code,
                                       const char* error_message) {
   future_->Complete(handle_, error_code, error_message);
-  delete this;
 }
 
 DatabaseInternal::DatabaseInternal(App* app)
@@ -93,16 +89,6 @@ DatabaseInternal::~DatabaseInternal() {
 
   // If initialization failed, there is nothing to clean up.
   if (app_ == nullptr) return;
-
-  // If there are any pending listeners, delete their pointers.
-  {
-    MutexLock lock(listener_mutex_);
-    for (SingleValueListener** listener_holder : single_value_listeners_) {
-      delete *listener_holder;
-      *listener_holder = nullptr;
-    }
-    single_value_listeners_.clear();
-  }
 
   app_->function_registry()->CallFunction(
       ::firebase::internal::FnAuthStopTokenListener, app_, nullptr, nullptr);
@@ -224,6 +210,12 @@ bool DatabaseInternal::RegisterValueListener(
 
 bool DatabaseInternal::UnregisterValueListener(const internal::QuerySpec& spec,
                                                ValueListener* listener) {
+  EventRegistration* registration =
+      ActiveEventRegistration(spec, (void*)listener);
+  if (registration) {
+    registration->set_status(EventRegistration::kRemoved);
+  }
+
   MutexLock lock(listener_mutex_);
   if (value_listeners_by_query_.Unregister(spec, listener)) {
     auto found = cleanup_value_listener_lookup_.find(listener);
@@ -282,6 +274,32 @@ void DatabaseInternal::UnregisterAllChildListeners(
       UnregisterChildListener(spec, listener);
     }
   }
+}
+
+void DatabaseInternal::AddEventRegistration(
+    const QuerySpec& query_spec, void* listener_ptr,
+    EventRegistration* event_registration) {
+  event_registration_lookup_[query_spec][listener_ptr].push_back(
+      event_registration);
+}
+
+EventRegistration* DatabaseInternal::ActiveEventRegistration(
+    const QuerySpec& query_spec, void* listener_ptr) {
+  auto* listener_registration_map =
+      MapGet(&event_registration_lookup_, query_spec);
+  if (!listener_registration_map) {
+    return nullptr;
+  }
+  auto* registration_vector = MapGet(listener_registration_map, listener_ptr);
+  if (!registration_vector) {
+    return nullptr;
+  }
+  for (auto* registration : *registration_vector) {
+    if (registration->status() == EventRegistration::kActive) {
+      return registration;
+    }
+  }
+  return nullptr;
 }
 
 void DatabaseInternal::EnsureRepo() {
