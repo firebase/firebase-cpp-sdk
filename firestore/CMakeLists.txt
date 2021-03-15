@@ -91,6 +91,8 @@ set(android_SRCS
     src/android/geo_point_android.cc
     src/android/geo_point_android.h
     src/android/geo_point_portable.cc
+    src/android/jni_runnable_android.cc
+    src/android/jni_runnable_android.h
     src/android/lambda_event_listener.h
     src/android/lambda_transaction_function.h
     src/android/listener_registration_android.cc
