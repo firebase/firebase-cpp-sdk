@@ -660,4 +660,4 @@ jobs:
         if [[ -z ${USE_EXPANDED_MATRIX} ]]; then
           USE_EXPANDED_MATRIX=0
         fi
-        python scripts/gha/trigger_workflow.py -t ${{ secrets.GITHUB_TOKEN }} -w integration_tests.yml -p test_packaged_sdk ${{ github.run_id }} -p use_expanded_matrix ${USE_EXPANDED_MATRIX}
+        python scripts/gha/trigger_workflow.py -t ${{ secrets.GITHUB_TOKEN }} -w integration_tests.yml -p test_packaged_sdk ${{ github.run_id }} -p use_expanded_matrix ${USE_EXPANDED_MATRIX} -v
