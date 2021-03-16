@@ -666,4 +666,8 @@ jobs:
         if [[ -z ${USE_EXPANDED_MATRIX} ]]; then
           USE_EXPANDED_MATRIX=0
         fi
-        python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} -w integration_tests.yml -p test_packaged_sdk ${{ github.run_id }} -p use_expanded_matrix ${USE_EXPANDED_MATRIX} -v
+        verbose_flag=
+        if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
+          verbose_flag=-v
+        fi
+        python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} -w integration_tests.yml -p test_packaged_sdk ${{ github.run_id }} -p use_expanded_matrix ${USE_EXPANDED_MATRIX} ${verbose_flag}
