@@ -191,7 +191,6 @@ jobs:
       - name: Build integration tests
         shell: bash
         run: |
-          set -x
           declare -a additional_flags
           if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
             # Building integration tests against a packaged SDK.
