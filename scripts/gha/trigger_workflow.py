@@ -40,7 +40,7 @@ def main():
       args.repo=subprocess.check_output(['git', 'config', '--get', 'remote.origin.url']).decode('utf-8').rstrip("\n").lower()
       print('autodetect repo: %s' % args.repo)
   if args.commit is None:
-      args.commit=subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('utf-8').rstrip("\n").lower()
+      args.commit=subprocess.check_output(['git', 'rev-parse', '--abbrev-ref', 'HEAD']).decode('utf-8').rstrip("\n").lower()
       print('autodetect commit: %s' % args.commit)
   if not args.repo.startswith('https://github.com/'):
       print('Error, only https://github.com/ repositories are allowed.')
