@@ -75,6 +75,10 @@ jobs:
           github.event.inputs.downloadPublicVersion == '' && github.event.inputs.downloadPreviousRun == ''
         run: echo "::warning ::Verbose build enabled."
 
+      - name: log if expanded matrix enabled
+        if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1'
+        run: echo "::warning ::Expanded test matrix enabled."
+
   build_tools:
     name: build-tools-${{ matrix.tools_platform }}
     runs-on: ${{ matrix.os }}
