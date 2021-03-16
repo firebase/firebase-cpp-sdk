@@ -66,8 +66,11 @@ def main():
                                           '-H', 'Authorization: token %s' % args.token,
                                           request_url, '-d', json_text]
                                         + ([] if not args.verbose else ['-v'])).decode('utf-8').rstrip('\n')
-    if not re.search('HTTP status 2[0-9][0-9]$', run_output):
+    if args.verbose:
       print(run_output)
+    if not re.search('HTTP status 2[0-9][0-9]$', run_output):
+      if not args.verbose:
+        print(run_output)
       print('Failure.')
       return(-1)
     else:
