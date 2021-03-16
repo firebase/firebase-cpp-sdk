@@ -74,7 +74,11 @@ def main():
   if not re.search('HTTP status 2[0-9][0-9]$', run_output):
     if not args.verbose:
       print(run_output)
-    print('Failure.')
+    # Super quick and dirty way to get the message text since the appended status code means that
+    # the contents are not valid JSON.
+    error_message = re.search(r'"message": "([^"]+)"', run_output).group(1)
+    print('%sFailed to trigger workflow %s: %s' % (
+      '::error ::' if args.in_github_action else '', args.workflow, error_message))
     return(-1)
 
   print('Success!')
