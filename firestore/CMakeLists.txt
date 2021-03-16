@@ -91,6 +91,8 @@ set(android_SRCS
     src/android/geo_point_android.cc
     src/android/geo_point_android.h
     src/android/geo_point_portable.cc
+    src/android/jni_runnable_android.cc
+    src/android/jni_runnable_android.h
     src/android/lambda_event_listener.h
     src/android/lambda_transaction_function.h
     src/android/listener_registration_android.cc
@@ -183,7 +185,6 @@ set(main_SRCS
     src/ios/field_value_ios.h
     src/ios/firestore_ios.cc
     src/ios/firestore_ios.h
-    src/ios/hard_assert_ios.cc
     src/ios/hard_assert_ios.h
     src/ios/listener_ios.h
     src/ios/listener_registration_ios.cc
