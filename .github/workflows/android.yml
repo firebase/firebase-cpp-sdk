@@ -3,54 +3,22 @@ name: Android Builds
 on:
   pull_request:
     types: [opened, reopened, synchronize]
-  workflow_dispatch:
-    inputs:
-      use_expanded_matrix:
-        description: 'Use an expanded matrix?'
-        default: '0'
-        required: true
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
 
 jobs:
-  prepare_matrix:
-    runs-on: ubuntu-latest
-    outputs:
-      matrix_os: ${{ steps.export-result.outputs.matrix_os }}
-      matrix_architecture: ${{ steps.export-result.outputs.matrix_architecture }}
-      matrix_python_version: ${{ steps.export-result.outputs.matrix_python_version }}
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          submodules: false
-      - name: Use expanded matrix
-        if: github.event.inputs.use_expanded_matrix == '1'
-        run: |
-          echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
-      - id: export-result
-        run: |
-          echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w android -k os ${EXPANDED_MATRIX_PARAM} )"
-          echo "::set-output name=matrix_architecture::$( python scripts/gha/print_matrix_configuration.py -w android -k architecture ${EXPANDED_MATRIX_PARAM} )"
-          echo "::set-output name=matrix_python_version::$( python scripts/gha/print_matrix_configuration.py -w android -k python_version ${EXPANDED_MATRIX_PARAM} )"
-
   build:
-    name: android-${{ matrix.os }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+    name: android-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
     runs-on: ${{ matrix.os }}
-    needs: prepare_matrix
     strategy:
       fail-fast: false
       matrix:
-        os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
-        architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
-        python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
-    steps:
-      - name: Check expanded matrix config
-        if: github.event.inputs.expanded_matrix == '1'
-        run: |
-          echo "Enabling expanded build and test matrix."
-          echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
+        # Windows temporarily removed while broken
+        os: [ubuntu-latest, macos-latest]
+        architecture: ["x64"]
 
+    steps:
       - uses: actions/checkout@v2
         with:
           submodules: true
@@ -64,7 +32,7 @@ jobs:
       - name: Setup python
         uses: actions/setup-python@v2
         with:
-          python-version: ${{ matrix.python_version }}
+          python-version: 3.7
           architecture: ${{ matrix.architecture }}
 
       - name: Add msbuild to PATH
@@ -82,6 +50,13 @@ jobs:
         with:
           path: ccache_dir
           key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
+      
+      - name: Cache NDK
+        id: cache_ndk
+        uses: actions/cache@v2
+        with:
+          path: /tmp/android-ndk-r16b
+          key: anndroid-ndk-${{ matrix.os }}
 
       - name: Build SDK
         shell: bash
