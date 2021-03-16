@@ -115,6 +115,14 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
 
+      - name: Cache NDK
+        if: matrix.target_platform == 'Android'
+        id: cache_ndk
+        uses: actions/cache@v2
+        with:
+          path: /tmp/android-ndk-r16b
+          key: anndroid-ndk-${{ matrix.os }}
+
       - name: Cache vcpkg C++ dependencies
         if: matrix.target_platform == 'Desktop'
         id: cache_vcpkg

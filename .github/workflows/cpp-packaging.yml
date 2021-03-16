@@ -228,6 +228,13 @@ jobs:
           path: sdk-src
           ref: ${{ github.event.inputs.commitIdToPackage }}
 
+      - name: Cache NDK
+        id: cache_ndk
+        uses: actions/cache@v2
+        with:
+          path: /tmp/android-ndk-r16b
+          key: anndroid-ndk-${{ matrix.os }}
+
       - name: install prerequisites
         run: sdk-src/build_scripts/android/install_prereqs.sh
 
