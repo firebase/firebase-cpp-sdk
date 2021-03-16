@@ -70,7 +70,8 @@ jobs:
           # If building against a packaged SDK, only use boringssl.
           if [[ -n "${{ github.event.inputs.downloadPreviousRun }}" ]]; then
             echo "::warning ::Downloading SDK package from previous run at https://github.com/firebase/firebase-cpp-sdk/actions/runs/${{ github.event.inputs.downloadPreviousRun }}"
-            echo "::set-output name=matrix_ssl::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ssl_lib -o boringssl )"
+            # Because the mobile tests require this value to be set to 'openssl', set it to 'openssl' here but don't actually install openssl later.
+            echo "::set-output name=matrix_ssl::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ssl_lib -o openssl )"
           else
             echo "::set-output name=matrix_ssl::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ssl_lib -o "${{github.event.inputs.desktop_ssl_variants}}" )"
           fi
@@ -168,14 +169,16 @@ jobs:
       - name: Install OpenSSL (windows)
         if: matrix.target_platform == 'Desktop' &&
             matrix.ssl_variant == 'openssl' &&
-            startsWith(matrix.os, 'windows')
+            startsWith(matrix.os, 'windows') &&
+            ${{ github.event.inputs.downloadPreviousRun == '' }}
         run: |
           choco install openssl -r
 
       - name: Install OpenSSL (MacOS)
         if: matrix.target_platform == 'Desktop' &&
             matrix.ssl_variant == 'openssl' &&
-            startsWith(matrix.os, 'macos')
+            startsWith(matrix.os, 'macos') &&
+            ${{ github.event.inputs.downloadPreviousRun == '' }}
         run: |
           brew install openssl
           # brew won't overwrite MacOS system default OpenSSL, so force it here.
@@ -184,7 +187,8 @@ jobs:
       - name: Install OpenSSL (Linux)
         if: matrix.target_platform == 'Desktop' &&
             matrix.ssl_variant == 'openssl' &&
-            startsWith(matrix.os, 'ubuntu')
+            startsWith(matrix.os, 'ubuntu') &&
+            ${{ github.event.inputs.downloadPreviousRun == '' }}
         run: |
           sudo apt install openssl
 
@@ -200,8 +204,10 @@ jobs:
             cd ..
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
           else
-            # Building integration tests entirely from source.
-            # Default SSL is openssl.
+            # Building integration tests against the SDK source.
+            # 
+            # When building the SDK from source, the default SSL is openssl.
+            # To build using boringssl, a cmake flag must be added:
             if [[ "${{ matrix.ssl_variant }}" == "boringssl" ]]; then
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
