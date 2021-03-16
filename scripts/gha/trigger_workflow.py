@@ -20,7 +20,7 @@ token. It uses the GitHub REST API documented here:
 https://docs.github.com/en/rest/reference/actions#create-a-workflow-dispatch-event
 
 Usage:
-python trigger_workflow.py -w workflow_name -t github_token [-b branch_name]
+python trigger_workflow.py -w workflow_filename -t github_token [-b branch_name]
        [-r git_repo_url] [-p <input1> <value1> -p <input2> <value2> ...]'
        [-C curl_command]
 
@@ -33,6 +33,7 @@ import json
 import os
 import re
 import subprocess
+import urllib.parse
 
 def main():
   args = parse_cmdline_args()
@@ -71,13 +72,15 @@ def main():
       print('Failure.')
       return(-1)
     else:
-      print('Success!')
+      print('Success! Find the workflow run here:')
+      print('https://github.com/%s/%s/actions/workflows/%s?query=event:workflow_dispatch+branch:%s' %
+            (repo_owner, repo_name, args.workflow, urllib.parse.quote(args.branch)))
 
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Query matrix and config parameters used in Github workflows.')
   parser.add_argument('-d', '--dryrun', action='store_true', help='Just print the URL and JSON and exit.')
-  parser.add_argument('-w', '--workflow', required=True, help='Workflow name to run, e.g. "integration_test"')
+  parser.add_argument('-w', '--workflow', required=True, help='Workflow filename to run, e.g. "integration_tests.yml"')
   parser.add_argument('-t', '--token', required=True, help='GitHub access token')
   parser.add_argument('-b', '--branch', help='Branch name to trigger workflow on, default is current branch')
   parser.add_argument('-r', '--repo', help='GitHub repo to trigger workflow on, default is current repo')
