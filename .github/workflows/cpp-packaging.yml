@@ -670,9 +670,9 @@ jobs:
 
   trigger_integration_tests:
     # Trigger the integration_tests workflow.
-    runs-on: ubuntu-latest
-    needs: [merge_packages, download_sdk_package]
+    needs: [merge_packages, download_sdk_package, cleanup-packaging-artifacts]
     if: (github.event.inputs.skipIntegrationTests == 0 || github.event.inputs.skipIntegrationTests == '') && !cancelled()
+    runs-on: ubuntu-latest
     steps:
     - name: Checkout repo
       uses: actions/checkout@v2.3.1
