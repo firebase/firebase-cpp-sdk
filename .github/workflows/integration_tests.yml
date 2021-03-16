@@ -59,7 +59,7 @@ jobs:
         with:
           submodules: false
       - name: Use expanded matrix
-        if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix != '0'
+        if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1'
         run: |
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
       - id: export-result
@@ -67,14 +67,9 @@ jobs:
         run: |
           echo "::set-output name=matrix_platform::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k platform -o "${{github.event.inputs.platforms}}" )"
           echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k os -o "${{github.event.inputs.operating_systems}}" )"
-          
-          # If building against a packaged SDK, log it and only use boringssl.
+          # If building against a packaged SDK, only use boringssl.
           if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
-            # Take the first word of the test_packaged_sdk ID only. The rest can be discarded.
-            packaged_sdk=$(echo ${{ github.event.inputs.test_packaged_sdk }} | cut -d" " -f1)
-            echo "::set-output name=use_packaged_sdk::${packaged_sdk}
-            echo "::warning ::Downloading SDK package from previous run at https://github.com/firebase/firebase-cpp-sdk/actions/runs/${packaged_sdk}"
-            
+            echo "::warning ::Downloading SDK package from previous run at https://github.com/firebase/firebase-cpp-sdk/actions/runs/${{ github.event.inputs.test_packaged_sdk }}"
             # Because the mobile tests require this value to be set to 'openssl', set it to 'openssl' here but don't actually install openssl later.
             echo "::set-output name=matrix_ssl::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ssl_lib -o openssl )"
           else
@@ -187,17 +182,17 @@ jobs:
 
       - name: fetch artifact from previous run
         uses: dawidd6/action-download-artifact@v2
-        if: ${{ needs.prepare_matrix.output.use_packaged_sdk != '' }}
+        if: ${{ github.event.inputs.test_packaged_sdk != '' }}
         with:
           name: 'firebase_cpp_sdk.zip'
           workflow: 'cpp-packaging.yml'
-          run_id: ${{ needs.prepare_matrix.output.use_packaged_sdk }}
+          run_id: ${{ github.event.inputs.test_packaged_sdk }}
 
       - name: Build integration tests
         shell: bash
         run: |
           declare -a additional_flags
-          if [[ -n "${{ needs.prepare_matrix.output.packaged_sdk }}" ]]; then
+          if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
             # Building integration tests against a packaged SDK.
             mkdir downloaded_sdk
             cd downloaded_sdk
