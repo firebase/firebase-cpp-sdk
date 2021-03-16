@@ -35,7 +35,6 @@ import re
 import subprocess
 import time
 
-
 def main():
   args = parse_cmdline_args()
   if args.repo is None:
