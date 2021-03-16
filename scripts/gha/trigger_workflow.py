@@ -33,6 +33,7 @@ import json
 import os
 import re
 import subprocess
+import time
 
 
 def main():
@@ -77,6 +78,8 @@ def main():
     return(-1)
 
   print('Success!')
+  time.sleep(5)  # Give a few seconds for the job to become queued.
+  # Unfortunately, the GitHub REST API doesn't return the new workflow's run ID.
   # Query the list of workflows to find the one we just added.
   request_url = 'https://api.github.com/repos/%s/%s/actions/workflows/%s/runs?event=workflow_dispatch&branch=%s' % (repo_owner, repo_name, args.workflow, args.branch)
   run_output = subprocess.check_output([args.curl,
@@ -89,20 +92,22 @@ def main():
   if "workflow_runs" in workflows:
     branch_sha = subprocess.check_output(['git', 'rev-parse', args.branch]).decode('utf-8').rstrip('\n')
     for workflow in workflows['workflow_runs']:
-      # Use a heuristic to get the workflow run.
-      # Must match the branch name and commit sha, and be in progress.
-      if (workflow['status'] == 'in_progress' and
+      # Use a heuristic to get the new workflow's run ID.
+      # Must match the branch name and commit sha, and be queued/in progress.
+      if (workflow['status'] in ('queued', 'in_progress') and
           workflow['head_sha'] == branch_sha and
           workflow['head_branch'] == args.branch):
         run_id = workflow['id']
         break
   
   if run_id:
-    print('New workflow: https://github.com/firebase/firebase-cpp-sdk/actions/runs/%s' % run_id)
+    workflow_url = 'https://github.com/firebase/firebase-cpp-sdk/actions/runs/%s' % (run_id)
   else:
-    print('New workflow can be found here: https://github.com/%s/%s/actions/workflows/%s?query=event:workflow_dispatch+branch:%s' %
-          (repo_owner, repo_name, args.workflow, args.branch))
-    
+    # Couldn't get a run ID, use a generic URL.
+    workflow_url = 'https://github.com/%s/%s/actions/workflows/%s?query=event:workflow_dispatch+branch:%s' % (
+      repo_owner, repo_name, args.workflow, args.branch)
+  print('%sStarted %s: %s' % ('::warning ::' if args.in_github_action else '',
+                              args.workflow, workflow_url))
 
 
 def parse_cmdline_args():
