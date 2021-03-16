@@ -669,12 +669,13 @@ jobs:
     - name: Use GitHub API to start workflow
       shell: bash
       run: |
-        if [[ -z ${USE_EXPANDED_MATRIX} ]]; then
+        if [[ -z "${USE_EXPANDED_MATRIX}" ]]; then
           USE_EXPANDED_MATRIX=0
         fi
         verbose_flag=
         if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
           verbose_flag=-v
         fi
+        github_run_id=${{ github.run_id }} $(uuidgen)
         set -e
-        python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} -w integration_tests.yml -p test_packaged_sdk ${{ github.run_id }} -p use_expanded_matrix ${USE_EXPANDED_MATRIX} -A ${verbose_flag}
+        python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} -w integration_tests.yml -p test_packaged_sdk "${github_run_id}" -p use_expanded_matrix "${USE_EXPANDED_MATRIX}" -A ${verbose_flag}
