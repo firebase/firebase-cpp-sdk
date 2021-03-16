@@ -105,15 +105,6 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: true
-
-      - name: fetch artifact from previous run
-        uses: dawidd6/action-download-artifact@v2
-        if: ${{ github.event.inputs.test_packaged_sdk != '' }}
-        with:
-          name: 'firebase_cpp_sdk.zip'
-          workflow: 'cpp-packaging.yml'
-          run_id: ${{ github.event.inputs.test_packaged_sdk }}
-
       - name: Set env vars (ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
         run: echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
@@ -189,15 +180,24 @@ jobs:
         run: |
           sudo apt install openssl
 
+      - name: fetch artifact from previous run
+        uses: dawidd6/action-download-artifact@v2
+        if: ${{ github.event.inputs.test_packaged_sdk != '' }}
+        with:
+          name: 'firebase_cpp_sdk.zip'
+          workflow: 'cpp-packaging.yml'
+          run_id: ${{ github.event.inputs.test_packaged_sdk }}
+
       - name: Build integration tests
         shell: bash
         run: |
+          set -x
           declare -a additional_flags
           if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
             # Building integration tests against a packaged SDK.
             mkdir downloaded_sdk
             cd downloaded_sdk
-            unzip ../firebase_cpp_sdk.zip
+            unzip -q ../firebase_cpp_sdk.zip
             cd ..
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
           else
