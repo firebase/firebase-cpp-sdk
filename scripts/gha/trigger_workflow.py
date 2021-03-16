@@ -106,7 +106,7 @@ def main():
     # Couldn't get a run ID, use a generic URL.
     workflow_url = 'https://github.com/%s/%s/actions/workflows/%s?query=event:workflow_dispatch+branch:%s' % (
       repo_owner, repo_name, args.workflow, args.branch)
-  print('%sStarted %s: %s' % ('::warning ::' if args.in_github_action else '',
+  print('%sStarted workflow %s: %s' % ('::warning ::' if args.in_github_action else '',
                               args.workflow, workflow_url))
 
 
