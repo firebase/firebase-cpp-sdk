@@ -655,15 +655,16 @@ jobs:
       run: |
         echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
     - name: Generate token for GitHub API
+      uses: machine-learning-apps/actions-app-token@0.21
       uses: tibdex/github-app-token@v1
-      id: generate-token
+      id: get_token
       with:
-        app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
-        private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+        APP_PEM: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+        APP_ID: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
     - name: Use GitHub API to start workflow
       shell: bash
       run: |
         if [[ -z ${USE_EXPANDED_MATRIX} ]]; then
           USE_EXPANDED_MATRIX=0
         fi
-        python scripts/gha/trigger_workflow.py -t ${{ steps.generate-token.outputs.token }} -w integration_tests.yml -p test_packaged_sdk ${{ github.run_id }} -p use_expanded_matrix ${USE_EXPANDED_MATRIX} -v
+        python scripts/gha/trigger_workflow.py -t ${{ steps.get_token.outputs.app_token }} -w integration_tests.yml -p test_packaged_sdk ${{ github.run_id }} -p use_expanded_matrix ${USE_EXPANDED_MATRIX} -v
