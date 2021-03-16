@@ -39,10 +39,6 @@ on:
         required: true
       test_packaged_sdk:
         description: 'Optional: Packaging run # to build against?'
-      uuid:
-        # No purpose other than to identify this specific run by its inputs.
-        description: 'UUID (internal use only)'
-        default: 'n/a'
 
 jobs:
   # To feed input into the job matrix, we first need to convert to a JSON
