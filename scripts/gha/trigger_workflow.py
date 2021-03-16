@@ -33,7 +33,6 @@ import json
 import os
 import re
 import subprocess
-import urllib.parse
 
 def main():
   args = parse_cmdline_args()
@@ -74,7 +73,7 @@ def main():
     else:
       print('Success! Find the workflow run here:')
       print('https://github.com/%s/%s/actions/workflows/%s?query=event:workflow_dispatch+branch:%s' %
-            (repo_owner, repo_name, args.workflow, urllib.parse.quote(args.branch)))
+            (repo_owner, repo_name, args.workflow, args.branch))
 
 
 def parse_cmdline_args():
