@@ -34,6 +34,7 @@ import os
 import re
 import subprocess
 import time
+import urllib.parse
 
 def main():
   args = parse_cmdline_args()
@@ -107,10 +108,12 @@ def main():
     workflow_url = 'https://github.com/firebase/firebase-cpp-sdk/actions/runs/%s' % (run_id)
   else:
     # Couldn't get a run ID, use a generic URL.
-    workflow_url = 'https://github.com/%s/%s/actions/workflows/%s?query=event:workflow_dispatch+branch:%s' % (
-      repo_owner, repo_name, args.workflow, args.branch)
+    workflow_url = 'https://github.com/%s/%s/actions/workflows/%s?query=%s+%s' % (
+      repo_owner, repo_name, args.workflow,
+      urllib.parse.quote('event:workflow_dispatch', safe=''),
+      urllib.parse.quote('branch:'+args.branch, safe=''))
   print('%sStarted workflow %s: %s' % ('::warning ::' if args.in_github_action else '',
-                              args.workflow, workflow_url))
+                                       args.workflow, workflow_url))
 
 
 def parse_cmdline_args():
