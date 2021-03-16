@@ -62,7 +62,6 @@ jobs:
         if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1'
         run: |
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
-          echo "::warning ::Expanded test matrix enabled."
           
       - id: export-result
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'

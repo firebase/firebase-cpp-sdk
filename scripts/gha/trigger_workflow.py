@@ -82,7 +82,7 @@ def main():
     return(-1)
 
   print('Success!')
-  time.sleep(5)  # Give a few seconds for the job to become queued.
+  time.sleep(args.sleep)  # Give a few seconds for the job to become queued.
   # Unfortunately, the GitHub REST API doesn't return the new workflow's run ID.
   # Query the list of workflows to find the one we just added.
   request_url = 'https://api.github.com/repos/%s/%s/actions/workflows/%s/runs?event=workflow_dispatch&branch=%s' % (repo_owner, repo_name, args.workflow, args.branch)
@@ -118,16 +118,20 @@ def main():
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Query matrix and config parameters used in Github workflows.')
-  parser.add_argument('-d', '--dryrun', action='store_true', help='Just print the URL and JSON and exit.')
   parser.add_argument('-w', '--workflow', required=True, help='Workflow filename to run, e.g. "integration_tests.yml"')
   parser.add_argument('-t', '--token', required=True, help='GitHub access token')
   parser.add_argument('-b', '--branch', help='Branch name to trigger workflow on, default is current branch')
-  parser.add_argument('-r', '--repo', help='GitHub repo to trigger workflow on, default is current repo')
-  parser.add_argument('-C', '--curl', default='curl', help='Curl command to use for making request')
+  parser.add_argument('-r', '--repo', metavar='URL', help='GitHub repo to trigger workflow on, default is current repo')
+  parser.add_argument('-p', '--param', default=[], nargs=2, action='append', metavar=('NAME', 'VALUE'),
+                      help='Pass an input parameter to the workflow run. Can be used multiple times.')
+  parser.add_argument('-d', '--dryrun', action='store_true', help='Just print the URL and JSON and exit.')
   parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose mode')
+  parser.add_argument('-C', '--curl', default='curl', metavar='COMMAND', help='Curl command to use for making request')
   parser.add_argument('-A', '--in_github_action', action='store_true', help='Enable special logging for GitHub actions')
-  parser.add_argument('-p', '--param', default=[], nargs=2, action='append',
-                      help='Add a parameter to the workflow run: -p <input> <value>')
+  parser.add_argument('-s', '--sleep', type=int, default=5, metavar='SECONDS',
+                      help='How long to sleep before querying for the run ID, default 5')
+  parser.add_argument('-s', '--sleep', type=int, default=5, metavar='SECONDS',
+                      help='How long to sleep before querying for the run ID, default 5')
   args = parser.parse_args()
   return args
 
