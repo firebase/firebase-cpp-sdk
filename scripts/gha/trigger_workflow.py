@@ -34,6 +34,7 @@ import os
 import re
 import subprocess
 
+
 def main():
   args = parse_cmdline_args()
   if args.repo is None:
@@ -49,34 +50,59 @@ def main():
 
   # POST /repos/{owner}/{repo}/actions/workflows/{workflow_id}/dispatches
   request_url = 'https://api.github.com/repos/%s/%s/actions/workflows/%s/dispatches' % (repo_owner, repo_name, args.workflow)
-  if args.verbose or args.dryrun:
-    print('request_url: %s' % request_url)
   json_params = {}
   for param in args.param:
       json_params[param[0]] = param[1]
   json_text = '{"ref":%s,"inputs":%s}' % (json.dumps(args.branch), json.dumps(json_params))
   if args.verbose or args.dryrun:
+    print('request_url: %s' % request_url)
     print('request_body: %s' % json_text)
-  if not args.dryrun:
-    print('Sending request to GitHub API...')
-    run_output = subprocess.check_output([args.curl,
-                                          '-s', '-o', '-', '-w', '\nHTTP status %{http_code}\n',
-                                          '-X', 'POST',
+  if args.dryrun:
+    return(0)
+  
+  print('Sending request to GitHub API...')
+  run_output = subprocess.check_output([args.curl,
+                                        '-s', '-o', '-', '-w', '\nHTTP status %{http_code}\n',
+                                        '-X', 'POST',
+                                        '-H', 'Accept: application/vnd.github.v3+json',
+                                        '-H', 'Authorization: token %s' % args.token,
+                                        request_url, '-d', json_text]
+                                      + ([] if not args.verbose else ['-v'])).decode('utf-8').rstrip('\n')
+  if args.verbose:
+    print(run_output)
+  if not re.search('HTTP status 2[0-9][0-9]$', run_output):
+    if not args.verbose:
+      print(run_output)
+    print('Failure.')
+    return(-1)
+
+  print('Success!')
+  # Query the list of workflows to find the one we just added.
+  request_url = 'https://api.github.com/repos/%s/%s/actions/workflows/%s/runs?event=workflow_dispatch&branch=%s' % (repo_owner, repo_name, args.workflow, args.branch)
+  run_output = subprocess.check_output([args.curl,
+                                          '-s', '-X', 'GET',
                                           '-H', 'Accept: application/vnd.github.v3+json',
                                           '-H', 'Authorization: token %s' % args.token,
-                                          request_url, '-d', json_text]
-                                        + ([] if not args.verbose else ['-v'])).decode('utf-8').rstrip('\n')
-    if args.verbose:
-      print(run_output)
-    if not re.search('HTTP status 2[0-9][0-9]$', run_output):
-      if not args.verbose:
-        print(run_output)
-      print('Failure.')
-      return(-1)
-    else:
-      print('Success! Find the workflow run here:')
-      print('https://github.com/%s/%s/actions/workflows/%s?query=event:workflow_dispatch+branch:%s' %
-            (repo_owner, repo_name, args.workflow, args.branch))
+                                          request_url]).decode('utf-8').rstrip('\n')
+  run_id = 0
+  workflows = json.loads(run_output)
+  if "workflow_runs" in workflows:
+    branch_sha = subprocess.check_output(['git', 'rev-parse', args.branch]).decode('utf-8').rstrip('\n')
+    for workflow in workflows['workflow_runs']:
+      # Use a heuristic to get the workflow run.
+      # Must match the branch name and commit sha, and be in progress.
+      if (workflow['status'] == 'in_progress' and
+          workflow['head_sha'] == branch_sha and
+          workflow['head_branch'] == args.branch):
+        run_id = workflow['id']
+        break
+  
+  if run_id:
+    print('New workflow: https://github.com/firebase/firebase-cpp-sdk/actions/runs/%s' % run_id)
+  else:
+    print('New workflow can be found here: https://github.com/%s/%s/actions/workflows/%s?query=event:workflow_dispatch+branch:%s' %
+          (repo_owner, repo_name, args.workflow, args.branch))
+    
 
 
 def parse_cmdline_args():
@@ -88,6 +114,7 @@ def parse_cmdline_args():
   parser.add_argument('-r', '--repo', help='GitHub repo to trigger workflow on, default is current repo')
   parser.add_argument('-C', '--curl', default='curl', help='Curl command to use for making request')
   parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose mode')
+  parser.add_argument('-A', '--in_github_action', action='store_true', help='Enable special logging for GitHub actions')
   parser.add_argument('-p', '--param', default=[], nargs=2, action='append',
                       help='Add a parameter to the workflow run: -p <input> <value>')
   args = parser.parse_args()
