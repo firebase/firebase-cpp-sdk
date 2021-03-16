@@ -655,6 +655,12 @@ jobs:
       run: |
         echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
     - name: Generate token for GitHub API
+      # This step is necessary because the existing GITHUB_TOKEN cannot be used inside one workflow to trigger another.
+      # 
+      # Instead, generate a new token here, using our GitHub App's private key and App ID (saved as Secrets).
+      # 
+      # This method is preferred over the "personal access token" solution, as the GitHub App's scope is limited to just
+      # the firebase-cpp-sdk repository.
       uses: tibdex/github-app-token@v1
       id: generate-token
       with:
