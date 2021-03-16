@@ -800,6 +800,8 @@ class LoggingValueListener : public firebase::database::ValueListener {
 };
 
 TEST_F(FirebaseDatabaseTest, TestAddAndRemoveListenerRace) {
+  SKIP_TEST_ON_MOBILE;
+
   const char* test_name = test_info_->name();
 
   SignIn();
