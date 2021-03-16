@@ -53,9 +53,11 @@ def main():
   json_params = {}
   for param in args.param:
       json_params[param[0]] = param[1]
-  json_text = '{ "ref": %s, "inputs": "%s" }' % (json.dumps(args.commit), json.dumps(json_params))
+  json_text = '{"ref":%s,"inputs":%s}' % (json.dumps(args.commit), json.dumps(json_params))
   print(json_text)
-  subprocess.run([args.curl, '-X', 'POST', '-H', 'Accept: application/vnd.github.v3+json',
+  subprocess.run([args.curl, '-X', 'POST',
+                  '-H', 'Accept: application/vnd.github.v3+json',
+                  '-H', 'Authorization: token %s' % args.token,
                   request_url, '-d', json_text])
   
 
