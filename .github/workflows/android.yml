@@ -42,6 +42,13 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
 
+      - name: Cache NDK
+        id: cache_ndk
+        uses: actions/cache@v2
+        with:
+          path: /tmp/android-ndk-r16b
+          key: anndroid-ndk-${{ matrix.os }}
+
       - name: Install prerequisites
         shell: bash
         run: |
@@ -54,12 +61,6 @@ jobs:
           path: ccache_dir
           key: dev-test-ccache-${{ env.MATRIX_UNIQUE_NAME }}
       
-      - name: Cache NDK
-        id: cache_ndk
-        uses: actions/cache@v2
-        with:
-          path: /tmp/android-ndk-r16b
-          key: anndroid-ndk-${{ matrix.os }}
 
       - name: Build SDK
         shell: bash
