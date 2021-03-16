@@ -129,7 +129,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/android-ndk-r16b
-          key: android-ndk-${{ matrix.os }}
+          key: android-ndk-${{ matrix.os }}-r16b
       
       - name: Setup python
         uses: actions/setup-python@v2

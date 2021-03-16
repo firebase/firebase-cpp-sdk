@@ -233,7 +233,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: /tmp/android-ndk-r16b
-          key: android-ndk-${{ matrix.os }}
+          key: android-ndk-${{ matrix.os }}-r16b
 
       - name: install prerequisites
         run: sdk-src/build_scripts/android/install_prereqs.sh
