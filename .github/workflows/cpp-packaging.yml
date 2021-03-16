@@ -670,6 +670,7 @@ jobs:
 
   trigger_integration_tests:
     # Trigger the integration_tests workflow.
+    runs-on: ubuntu-latest
     needs: [merge_packages, download_sdk_package]
     steps:
     - name: Checkout repo
