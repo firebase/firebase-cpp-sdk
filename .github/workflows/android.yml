@@ -1,6 +1,9 @@
 name: Android Builds
 
 on:
+  push:
+    branches:
+      feature/ddb-ndk-cache
   pull_request:
     types: [opened, reopened, synchronize]
 
