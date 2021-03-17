@@ -137,6 +137,15 @@ void InitializeUserCallbackExecutor(Loader& loader) {
                    kExecutorShutdown);
 }
 
+constexpr char kFirestoreTasksClassName[] = PROGUARD_KEEP_CLASS
+    "com/google/firebase/firestore/internal/cpp/FirestoreTasks";
+StaticMethod<void> kAwaitCompletion("awaitCompletion",
+                                    "(Lcom/google/android/gms/tasks/Task;)V");
+
+void InitializeFirestoreTasks(Loader& loader) {
+  loader.LoadClass(kFirestoreTasksClassName, kAwaitCompletion);
+}
+
 /**
  * A map of Java Firestore instance to C++ Firestore instance.
  */
@@ -258,6 +267,7 @@ bool FirestoreInternal::Initialize(App* app) {
     jni::Map::Initialize(loader);
 
     InitializeFirestore(loader);
+    InitializeFirestoreTasks(loader);
     InitializeUserCallbackExecutor(loader);
 
     BlobInternal::Initialize(loader);
@@ -337,6 +347,13 @@ FirestoreInternal::~FirestoreInternal() {
   ClearListeners();
 
   Env env = GetEnv();
+
+  // Call `terminate()` on the Java `FirebaseFirestore` object and wait for it
+  // to complete to guarantee that the next instance of `FirestoreInternal` will
+  // be backed by a new Java `FirebaseFirestore` instance.
+  Local<Task> terminate_task = env.Call(obj_, kTerminate);
+  env.Call(kAwaitCompletion, terminate_task);
+
   ShutdownUserCallbackExecutor(env);
 
   promises_.reset(nullptr);
