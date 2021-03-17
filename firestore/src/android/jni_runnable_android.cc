@@ -1,5 +1,6 @@
 #include "firestore/src/android/jni_runnable_android.h"
 
+#include "app/src/assert.h"
 #include "app/src/util_android.h"
 #include "firestore/src/jni/declaration.h"
 #include "firestore/src/jni/env.h"
@@ -30,9 +31,7 @@ Method<Task> kRunOnNewThread("runOnNewThread",
 Constructor<Object> kConstructor("(J)V");
 
 void NativeRun(JNIEnv* env, jobject java_object, jlong data) {
-  if (data == 0) {
-    return;
-  }
+  FIREBASE_ASSERT_MESSAGE(data != 0, "NativeRun() invoked with data==0");
   reinterpret_cast<JniRunnableBase*>(data)->Run();
 }
 
