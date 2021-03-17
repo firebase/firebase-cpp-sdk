@@ -9,8 +9,6 @@ import com.google.android.gms.tasks.TaskCompletionSource;
 public final class JniRunnable implements Runnable {
 
   private final Object lock = new Object();
-  private final ThreadLocal<Integer> currentThreadActiveRunCount = new ThreadLocalRunDepth();
-  private int totalActiveRunCount;
   private long data;
 
   /**
@@ -36,24 +34,15 @@ public final class JniRunnable implements Runnable {
    */
   @Override
   public void run() {
-    long dataCopy;
+    // NOTE: Because of the `synchronized` block below, the native function will not be called
+    // concurrently. If concurrent invocations are desired, then this class can be modified with a
+    // more complicated synchronization mechanism.
+    // e.g. https://gist.github.com/dconeybe/2d95fbc75f88de58a49804df5c55157b
     synchronized (lock) {
       if (data == 0) {
         return;
       }
-      dataCopy = data;
-      totalActiveRunCount++;
-      currentThreadActiveRunCount.set(currentThreadActiveRunCount.get() + 1);
-    }
-
-    try {
-      nativeRun(dataCopy);
-    } finally {
-      synchronized (lock) {
-        currentThreadActiveRunCount.set(currentThreadActiveRunCount.get() - 1);
-        totalActiveRunCount--;
-        lock.notifyAll();
-      }
+      nativeRun(data);
     }
   }
 
@@ -69,21 +58,10 @@ public final class JniRunnable implements Runnable {
    *
    * <p>This method may be safely invoked multiple times. Subsequent invocations have no side
    * effects but will still block while there are active invocations of the native function.
-   *
-   * @throws InterruptedException if waiting for completion of the native function invocations is
-   *     interrupted.
    */
-  public void detach() throws InterruptedException {
+  public void detach() {
     synchronized (lock) {
       data = 0;
-
-      // Wait for invocations of the native function to complete before returning. Do not consider
-      // native function invocations made by the current thread, which would happen if the native
-      // function called detach(), because that would cause this method to deadlock because the
-      // total run count would never reach zero.
-      while (totalActiveRunCount - currentThreadActiveRunCount.get() > 0) {
-        lock.wait();
-      }
     }
   }
 
@@ -151,13 +129,6 @@ public final class JniRunnable implements Runnable {
 
     void setException(Exception exception) {
       taskCompletionSource.setException(exception);
-    }
-  }
-
-  private static final class ThreadLocalRunDepth extends ThreadLocal<Integer> {
-    @Override
-    protected Integer initialValue() {
-      return 0;
     }
   }
 }

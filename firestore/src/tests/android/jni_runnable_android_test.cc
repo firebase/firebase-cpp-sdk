@@ -31,7 +31,7 @@ Method<void> kRunnableRun("run", "()V");
 StaticMethod<Object> kCurrentThread("currentThread", "()Ljava/lang/Thread;");
 Method<jlong> kThreadGetId("getId", "()J");
 Method<Object> kThreadGetState("getState", "()Ljava/lang/Thread$State;");
-StaticField<Object> kThreadStateWaiting("WAITING", "Ljava/lang/Thread$State;");
+StaticField<Object> kThreadStateBlocked("BLOCKED", "Ljava/lang/Thread$State;");
 
 class JniRunnableTest : public FirestoreAndroidIntegrationTest {
  public:
@@ -41,7 +41,7 @@ class JniRunnableTest : public FirestoreAndroidIntegrationTest {
     loader().LoadClass("java/lang/Runnable", kRunnableRun);
     loader().LoadClass("java/lang/Thread", kCurrentThread, kThreadGetId,
                        kThreadGetState);
-    loader().LoadClass("java/lang/Thread$State", kThreadStateWaiting);
+    loader().LoadClass("java/lang/Thread$State", kThreadStateBlocked);
     ASSERT_TRUE(loader().ok());
   }
 };
@@ -64,12 +64,12 @@ jlong GetMainThreadId(Env& env) {
 }
 
 /**
- * Returns whether or not the given thread is in the "waiting" state.
- * See java.lang.Thread.State.WAITING.
+ * Returns whether or not the given thread is in the "blocked" state.
+ * See java.lang.Thread.State.BLOCKED.
  */
-bool IsThreadWaiting(Env& env, Object& thread) {
+bool IsThreadBlocked(Env& env, Object& thread) {
   Local<Object> actual_state = env.Call(thread, kThreadGetState);
-  Local<Object> expected_state = env.Get(kThreadStateWaiting);
+  Local<Object> expected_state = env.Get(kThreadStateBlocked);
   return Object::Equals(env, expected_state, actual_state);
 }
 
@@ -284,50 +284,55 @@ TEST_F(JniRunnableTest, RunOnNewThreadTaskFailsIfRunThrowsException) {
 
 TEST_F(JniRunnableTest, DetachReturnsAfterLastRunOnAnotherThreadCompletes) {
   Env env;
-  compat::Atomic<int32_t> run_count;
-  run_count.store(0);
+  compat::Atomic<int32_t> runnable1_run_invoke_count;
+  runnable1_run_invoke_count.store(0);
   Mutex detach_thread_mutex;
   Global<Object> detach_thread;
-  auto runnable =
-      MakeJniRunnable(env, [&run_count, &detach_thread,
-                            &detach_thread_mutex](JniRunnableBase& runnable) {
+
+  auto runnable1 = MakeJniRunnable(
+      env, [&runnable1_run_invoke_count, &detach_thread, &detach_thread_mutex] {
+        runnable1_run_invoke_count.fetch_add(1);
         Env env;
-        auto old_run_count = run_count.fetch_add(1);
-        if (old_run_count == 0) {
-          // Wait for another call of `Run()` by another thread to call
-          // `Detach()` and start waiting for this call to `Run()` to return.
-          while (env.ok()) {
-            MutexLock lock(detach_thread_mutex);
-            if (detach_thread && IsThreadWaiting(env, detach_thread)) {
-              break;
-            }
+        // Wait for `detach()` to be called and start blocking; then, return to
+        // allow `detach()` to unblock and do its job.
+        while (env.ok()) {
+          MutexLock lock(detach_thread_mutex);
+          if (detach_thread && IsThreadBlocked(env, detach_thread)) {
+            break;
           }
-          EXPECT_TRUE(env.ok()) << "IsThreadWaiting() failed with an exception";
-        } else if (old_run_count == 1) {
-          {
-            MutexLock lock(detach_thread_mutex);
-            detach_thread = env.Call(kCurrentThread);
-          }
-          runnable.Detach(env);
-          EXPECT_TRUE(env.ok()) << "Detach() failed with an exception";
-        } else {
-          EXPECT_TRUE(false) << "Lambda was invoked too many times";
         }
+        EXPECT_TRUE(env.ok()) << "IsThreadBlocked() failed with an exception";
       });
 
-  // Wait for the first invocation of `Run()` to start.
-  Local<Task> task1 = runnable.RunOnNewThread(env);
+  auto runnable2 =
+      MakeJniRunnable(env, [&runnable1, &detach_thread, &detach_thread_mutex] {
+        Env env;
+        {
+          MutexLock lock(detach_thread_mutex);
+          detach_thread = env.Call(kCurrentThread);
+        }
+        runnable1.Detach(env);
+        EXPECT_TRUE(env.ok()) << "Detach() failed with an exception";
+      });
+
+  // Wait for the `runnable1.Run()` to start to ensure that the lock is held.
+  Local<Task> task1 = runnable1.RunOnNewThread(env);
   while (true) {
-    if (run_count.load() > 0) {
+    if (runnable1_run_invoke_count.load() != 0) {
       break;
     }
   }
 
-  // Start the second invocation of `Run()`, which will call `Detach()`.
-  Local<Task> task2 = runnable.RunOnNewThread(env);
+  // Start a new thread to call `runnable1.Detach()`.
+  Local<Task> task2 = runnable2.RunOnNewThread(env);
 
   Await(env, task1);
   Await(env, task2);
+
+  // Invoke `run()` again and ensure that `Detach()` successfully did its job;
+  // that is, verify that `Run()` is not invoked.
+  env.Call(runnable1.GetJavaRunnable(), kRunnableRun);
+  EXPECT_EQ(runnable1_run_invoke_count.load(), 1);
 }
 
 }  // namespace
