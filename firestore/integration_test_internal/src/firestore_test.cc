@@ -1,4 +1,4 @@
-#include "firestore/src/include/firebase/firestore.h"
+#include "firebase/firestore.h"
 
 #if !defined(__ANDROID__)
 #include <future>  // NOLINT(build/c++11)
@@ -13,14 +13,15 @@
 #include "firestore/src/android/exception_android.h"
 #endif  // defined(__ANDROID__)
 
+#include "firestore_integration_test.h"
+#include "util/event_accumulator.h"
+#include "util/future_test_util.h"
+
 #include "app/memory/unique_ptr.h"
 #include "app/src/log.h"
 #include "auth/src/include/firebase/auth.h"
 #include "firestore/src/common/macros.h"
-#include "firestore/src/tests/firestore_integration_test.h"
-#include "firestore/src/tests/util/event_accumulator.h"
-#include "firestore/src/tests/util/future_test_util.h"
-#include "testing/base/public/gmock.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "Firestore/core/src/util/autoid.h"
 #include "Firestore/core/src/util/firestore_exceptions.h"
@@ -68,17 +69,17 @@ TEST_F(FirestoreIntegrationTest, GetInstance) {
 
 // Sanity test for stubs.
 TEST_F(FirestoreIntegrationTest, TestCanCreateCollectionAndDocumentReferences) {
-  ASSERT_NO_THROW({
-    Firestore* db = TestFirestore();
-    CollectionReference c = db->Collection("a/b/c").Document("d").Parent();
-    DocumentReference d = db->Document("a/b").Collection("c/d/e").Parent();
+  Firestore* db = TestFirestore();
+  CollectionReference c = db->Collection("a/b/c").Document("d").Parent();
+  DocumentReference d = db->Document("a/b").Collection("c/d/e").Parent();
+  
+  CollectionReference(c).Document();
+  DocumentReference(d).Parent();
+  
+  CollectionReference(std::move(c)).Document();
+  DocumentReference(std::move(d)).Parent();
 
-    CollectionReference(c).Document();
-    DocumentReference(d).Parent();
-
-    CollectionReference(std::move(c)).Document();
-    DocumentReference(std::move(d)).Parent();
-  });
+  // If any of these assert, the test will fail.
 }
 
 #if defined(FIRESTORE_STUB_BUILD)
@@ -1028,11 +1029,11 @@ TEST_F(FirestoreIntegrationTest, TestQueryReferenceEquality) {
       "baz", FieldValue::Integer(42));
   Query query2 = db->Collection("foo").OrderBy("bar").WhereEqualTo(
       "baz", FieldValue::Integer(42));
-  EXPECT_EQ(query, query2);
+  EXPECT_TRUE(query == query2);
 
   Query query3 = db->Collection("foo").OrderBy("BAR").WhereEqualTo(
       "baz", FieldValue::Integer(42));
-  EXPECT_NE(query, query3);
+  EXPECT_FALSE(query == query3);
 
   // PORT_NOTE: Right now there is no way to create another Firestore in test.
   // So we skip the testing of two queries with different Firestore instance.

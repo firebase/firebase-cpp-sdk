@@ -5,7 +5,8 @@
 #include <string>
 
 #include "app/src/include/firebase/future.h"
-#include "third_party/googletest/googletest/include/gtest/gtest-matchers.h"
+#include "gtest/gtest.h"
+#include "gmock/gmock.h"
 
 namespace firebase {
 

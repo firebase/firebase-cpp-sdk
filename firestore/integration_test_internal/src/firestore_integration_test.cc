@@ -1,4 +1,4 @@
-#include "firestore/src/tests/firestore_integration_test.h"
+#include "firestore_integration_test.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -6,6 +6,7 @@
 
 #include "absl/strings/ascii.h"
 #include "Firestore/core/src/util/autoid.h"
+#include "app_framework.h"
 
 namespace firebase {
 namespace firestore {
@@ -275,6 +276,10 @@ std::string FirestoreIntegrationTest::DescribeFailedFuture(
     const FutureBase& future) {
   return "Future failed: " + ToFirestoreErrorCodeName(future.error()) + " (" +
          std::to_string(future.error()) + "): " + future.error_message();
+}
+
+bool ProcessEvents(int msec) {
+  return app_framework::ProcessEvents(msec);
 }
 
 }  // namespace firestore

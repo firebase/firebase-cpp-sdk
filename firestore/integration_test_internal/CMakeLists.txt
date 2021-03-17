@@ -64,11 +64,20 @@ set(FIREBASE_TEST_FRAMEWORK_SRCS
 set(FIREBASE_INTEGRATION_TEST_SRCS
   src/firestore_test.cc
   src/util/future_test_util.cc
+  src/util/integration_test_util.cc
   src/firestore_integration_test.cc
 )
 
 # The include directory for the testapp.
 include_directories(src)
+# The include directory for the C++ SDK root.
+include_directories(${FIREBASE_CPP_SDK_DIR})
+# Additional public headers from Firestore core SDK.
+include_directories(${PROJECT_BINARY_DIR}/bin/external/src/firestore)
+# Additional public headers for absl.
+include_directories(${PROJECT_BINARY_DIR}/bin/external/src/firestore-build/external/src/abseil-cpp)
+# Allow testing internal Firebase APIs.
+add_definitions(-DINTERNAL_EXPERIMENTAL)
 
 # Integration test uses some features that require C++ 11, such as lambdas.
 set (CMAKE_CXX_STANDARD 11)
@@ -220,8 +229,9 @@ endif()
 
 # Add the Firebase libraries to the target using the function from the SDK.
 add_subdirectory(${FIREBASE_CPP_SDK_DIR} bin/ EXCLUDE_FROM_ALL)
+
 # Note that firebase_app needs to be last in the list.
 set(firebase_libs firebase_firestore firebase_auth firebase_app)
 set(gtest_libs gtest gmock)
-target_link_libraries(${integration_test_target_name} ${firebase_libs}
+target_link_libraries(${integration_test_target_name} ${firebase_libs} firestore_core absl_variant
   ${gtest_libs} ${ADDITIONAL_LIBS})
