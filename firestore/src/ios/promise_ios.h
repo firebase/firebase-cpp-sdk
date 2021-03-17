@@ -7,7 +7,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "firestore/src/ios/hard_assert_ios.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "absl/meta/type_traits.h"
 #include "firebase/firestore/firestore_errors.h"
 #include "Firestore/core/src/util/status.h"
@@ -124,7 +124,7 @@ class Promise {
   }
 
   void SetError(const util::Status& status) {
-    HARD_ASSERT_IOS(
+    SIMPLE_HARD_ASSERT(
         !status.ok(),
         "To fulfill a promise with 'ok' status, use Promise::SetValue.");
     if (IsCleanedUp()) {

@@ -2,10 +2,10 @@
 
 #include <utility>
 
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
 #include "firestore/src/ios/converter_ios.h"
-#include "firestore/src/ios/hard_assert_ios.h"
 #include "Firestore/core/src/nanopb/byte_string.h"
 
 namespace firebase {
@@ -57,72 +57,72 @@ FieldValueInternal::FieldValueInternal(MapFieldValue value)
 // Accessors
 
 bool FieldValueInternal::boolean_value() const {
-  HARD_ASSERT_IOS(type_ == Type::kBoolean);
+  SIMPLE_HARD_ASSERT(type_ == Type::kBoolean);
   return absl::get<model::FieldValue>(value_).boolean_value();
 }
 
 int64_t FieldValueInternal::integer_value() const {
-  HARD_ASSERT_IOS(type_ == Type::kInteger);
+  SIMPLE_HARD_ASSERT(type_ == Type::kInteger);
   return absl::get<model::FieldValue>(value_).integer_value();
 }
 
 double FieldValueInternal::double_value() const {
-  HARD_ASSERT_IOS(type_ == Type::kDouble);
+  SIMPLE_HARD_ASSERT(type_ == Type::kDouble);
   return absl::get<model::FieldValue>(value_).double_value();
 }
 
 Timestamp FieldValueInternal::timestamp_value() const {
-  HARD_ASSERT_IOS(type_ == Type::kTimestamp);
+  SIMPLE_HARD_ASSERT(type_ == Type::kTimestamp);
   return absl::get<model::FieldValue>(value_).timestamp_value();
 }
 
 std::string FieldValueInternal::string_value() const {
-  HARD_ASSERT_IOS(type_ == Type::kString);
+  SIMPLE_HARD_ASSERT(type_ == Type::kString);
   return absl::get<model::FieldValue>(value_).string_value();
 }
 
 const uint8_t* FieldValueInternal::blob_value() const {
-  HARD_ASSERT_IOS(type_ == Type::kBlob);
+  SIMPLE_HARD_ASSERT(type_ == Type::kBlob);
   return absl::get<model::FieldValue>(value_).blob_value().data();
 }
 
 size_t FieldValueInternal::blob_size() const {
-  HARD_ASSERT_IOS(type_ == Type::kBlob);
+  SIMPLE_HARD_ASSERT(type_ == Type::kBlob);
   return absl::get<model::FieldValue>(value_).blob_value().size();
 }
 
 DocumentReference FieldValueInternal::reference_value() const {
-  HARD_ASSERT_IOS(type_ == Type::kReference);
+  SIMPLE_HARD_ASSERT(type_ == Type::kReference);
   return absl::get<DocumentReference>(value_);
 }
 
 GeoPoint FieldValueInternal::geo_point_value() const {
-  HARD_ASSERT_IOS(type_ == Type::kGeoPoint);
+  SIMPLE_HARD_ASSERT(type_ == Type::kGeoPoint);
   return absl::get<model::FieldValue>(value_).geo_point_value();
 }
 
 std::vector<FieldValue> FieldValueInternal::array_value() const {
-  HARD_ASSERT_IOS(type_ == Type::kArray);
+  SIMPLE_HARD_ASSERT(type_ == Type::kArray);
   return absl::get<ArrayT>(value_);
 }
 
 MapFieldValue FieldValueInternal::map_value() const {
-  HARD_ASSERT_IOS(type_ == Type::kMap);
+  SIMPLE_HARD_ASSERT(type_ == Type::kMap);
   return absl::get<MapT>(value_);
 }
 
 std::vector<FieldValue> FieldValueInternal::array_transform_value() const {
-  HARD_ASSERT_IOS(type_ == Type::kArrayUnion || type_ == Type::kArrayRemove);
+  SIMPLE_HARD_ASSERT(type_ == Type::kArrayUnion || type_ == Type::kArrayRemove);
   return absl::get<ArrayT>(value_);
 }
 
 std::int64_t FieldValueInternal::integer_increment_value() const {
-  HARD_ASSERT_IOS(type_ == Type::kIncrementInteger);
+  SIMPLE_HARD_ASSERT(type_ == Type::kIncrementInteger);
   return absl::get<model::FieldValue>(value_).integer_value();
 }
 
 double FieldValueInternal::double_increment_value() const {
-  HARD_ASSERT_IOS(type_ == Type::kIncrementDouble);
+  SIMPLE_HARD_ASSERT(type_ == Type::kIncrementDouble);
   return absl::get<model::FieldValue>(value_).double_value();
 }
 
@@ -244,7 +244,7 @@ std::string Describe(Type type) {
       // HARD_FAIL("Unexpected type '%s'", type);
       auto message = std::string("Unexpected type '") +
                      std::to_string(static_cast<int>(type)) + "'";
-      HARD_FAIL_IOS(message.c_str());
+      SIMPLE_HARD_FAIL(message.c_str());
     }
   }
 }

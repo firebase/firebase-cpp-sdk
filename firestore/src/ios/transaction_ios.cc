@@ -3,10 +3,10 @@
 #include <future>  // NOLINT(build/c++11)
 #include <utility>
 
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/document_reference_ios.h"
 #include "firestore/src/ios/field_value_ios.h"
-#include "firestore/src/ios/hard_assert_ios.h"
 #include "firestore/src/ios/set_options_ios.h"
 #include "firestore/src/ios/util_ios.h"
 #include "absl/types/optional.h"
@@ -37,7 +37,7 @@ const model::DocumentKey& GetKey(const DocumentReference& document) {
 DocumentSnapshot ConvertToSingleSnapshot(
     const std::shared_ptr<api::Firestore>& firestore, model::DocumentKey key,
     const std::vector<MaybeDocument>& documents) {
-  HARD_ASSERT_IOS(
+  SIMPLE_HARD_ASSERT(
       documents.size() == 1,
       "Expected core::Transaction::Lookup() to return a single document");
 
@@ -66,7 +66,7 @@ DocumentSnapshot ConvertToSingleSnapshot(
                        "core::Transaction::Lookup() returned unexpected "
                        "document type: '") +
                    std::to_string(static_cast<int>(doc.type())) + "'";
-    HARD_FAIL_IOS(message.c_str());
+    SIMPLE_HARD_FAIL(message);
   }
 }
 

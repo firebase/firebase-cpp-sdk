@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include "app/src/log.h"
+#include "auth/src/include/firebase/auth.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/tests/firestore_integration_test.h"
@@ -32,6 +34,7 @@ namespace firestore {
 
 #if FIRESTORE_HAVE_EXCEPTIONS
 
+using firebase::auth::Auth;
 using testing::AnyOf;
 using testing::Property;
 using testing::StrEq;
@@ -40,6 +43,23 @@ using testing::Throws;
 #define EXPECT_ERROR(stmt, message)                           \
   EXPECT_THAT([&] { stmt; }, Throws<std::exception>(Property( \
                                  &std::exception::what, StrEq(message))));
+
+/**
+ * Creates a Matcher that matches any of a number of alternative error messages.
+ * This is useful temporarily because the different platforms produce different
+ * error messages from the same validation criteria.
+ *
+ * Every usage of this method is an indication of a disagreement between these
+ * platforms and ultimately must be eliminated.
+ *
+ * TODO(b/171990785): Unify Android and C++ validation error messages.
+ * Remove this method once that's done.
+ */
+template <typename... Messages>
+auto AnyMessageEq(Messages&&... messages)
+    -> decltype(AnyOf(StrEq(messages)...)) {
+  return AnyOf(StrEq(messages)...);
+}
 
 class ValidationTest : public FirestoreIntegrationTest {
  protected:
@@ -93,12 +113,10 @@ class ValidationTest : public FirestoreIntegrationTest {
         [data, reason, include_sets, include_updates, document](
             Transaction& transaction, std::string& error_message) -> Error {
           if (include_sets) {
-            // TODO(b/149105903): Android does expectError here.
-            transaction.Set(document, data);
+            EXPECT_ERROR(transaction.Set(document, data), reason);
           }
           if (include_updates) {
-            // TODO(b/149105903): Android does expectError here.
-            transaction.Update(document, data);
+            EXPECT_ERROR(transaction.Update(document, data), reason);
           }
           return Error::kErrorOk;
         }));
@@ -147,19 +165,14 @@ class ValidationTest : public FirestoreIntegrationTest {
       document.Update(MapFieldValue{{path, FieldValue::Integer(1)}});
       FAIL() << "should throw exception";
     } catch (const std::invalid_argument& exception) {
-      // TODO(b/171990785): Unify Android and C++ validation error messages.
       EXPECT_THAT(
           exception.what(),
-          AnyOf(
-              // When validated by iOS or common C++ code
-              StrEq(reason),
-              // When validated by Android Java code
-              StrEq("Use FieldPath.of() for field names containing '~*/[]'.")));
+          AnyMessageEq(
+              reason,
+              "Use FieldPath.of() for field names containing '~*/[]'."));
     }
   }
 };
-
-#if defined(__ANDROID__)
 
 // PORT_NOTE: Does not apply to C++ as host parameter is passed by value.
 TEST_F(ValidationTest, FirestoreSettingsNullHostFails) {}
@@ -173,12 +186,16 @@ TEST_F(ValidationTest, ChangingSettingsAfterUseFails) {
   try {
     TestFirestore()->set_settings(setting);
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
-    EXPECT_STREQ(
-        "FirebaseFirestore has already been started and its settings can no "
-        "longer be changed. You can only call setFirestoreSettings() before "
-        "calling any other methods on a FirebaseFirestore object.",
-        exception.what());
+  } catch (const std::logic_error& exception) {
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Firestore instance has already been started and its settings can "
+            "no longer be changed. You can only set settings before calling "
+            "any other methods on a Firestore instance.",
+            "FirebaseFirestore has already been started and its settings can "
+            "no longer be changed. You can only call setFirestoreSettings() "
+            "before calling any other methods on a FirebaseFirestore object."));
   }
 }
 
@@ -188,7 +205,7 @@ TEST_F(ValidationTest, DisableSslWithoutSettingHostFails) {
   try {
     TestFirestore()->set_settings(setting);
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
+  } catch (const std::logic_error& exception) {
     EXPECT_STREQ(
         "You can't set the 'sslEnabled' setting unless you also set a "
         "non-default 'host'.",
@@ -202,9 +219,29 @@ TEST_F(ValidationTest, FirestoreGetInstanceWithNullAppFails) {}
 TEST_F(ValidationTest,
        FirestoreGetInstanceWithNonNullAppReturnsNonNullInstance) {
   try {
-    InitResult result;
-    Firestore::GetInstance(app(), &result);
-    EXPECT_EQ(kInitResultSuccess, result);
+    // The app instance is deleted by FirestoreIntegrationTest.
+    auto* app = this->app();
+
+    InitResult init_result;
+    auto auth = UniquePtr<Auth>(Auth::GetAuth(app, &init_result));
+#if defined(__ANDROID__)
+    if (init_result != kInitResultSuccess) {
+      // On Android, it's possible for the Auth library built at head to be too
+      // new for the version of Play Services available in the Android emulator.
+      // In this case, Auth will fail to initialize. Meanwhile, there's no
+      // simple way to detect if the Android app is running in an emulator
+      // running on Forge. Consequently, just punt if Auth fails to initialize.
+      LogWarning(
+          "Skipped FirestoreGetInstanceWithNonNullAppReturnsNonNullInstance "
+          "test: Auth missing or failed to initialize");
+      return;
+    }
+#else
+    ASSERT_EQ(init_result, kInitResultSuccess);
+#endif
+
+    auto db = UniquePtr<Firestore>(Firestore::GetInstance(app, &init_result));
+    EXPECT_EQ(kInitResultSuccess, init_result);
   } catch (const std::exception& exception) {
     FAIL() << "shouldn't throw exception";
   }
@@ -253,25 +290,25 @@ TEST_F(ValidationTest, PathsMustNotHaveEmptySegments) {
     try {
       db->Collection(path);
       FAIL() << "should throw exception";
-    } catch (const std::exception& exception) {
+    } catch (const std::invalid_argument& exception) {
       EXPECT_EQ(reason, exception.what());
     }
     try {
       db->Document(path);
       FAIL() << "should throw exception";
-    } catch (const std::exception& exception) {
+    } catch (const std::invalid_argument& exception) {
       EXPECT_EQ(reason, exception.what());
     }
     try {
       collection.Document(path);
       FAIL() << "should throw exception";
-    } catch (const std::exception& exception) {
+    } catch (const std::invalid_argument& exception) {
       EXPECT_EQ(reason, exception.what());
     }
     try {
       document.Collection(path);
       FAIL() << "should throw exception";
-    } catch (const std::exception& exception) {
+    } catch (const std::invalid_argument& exception) {
       EXPECT_EQ(reason, exception.what());
     }
   }
@@ -292,13 +329,13 @@ TEST_F(ValidationTest, DocumentPathsMustBeEvenLength) {
     try {
       db->Document(bad_absolute_paths[i]);
       FAIL() << "should throw exception";
-    } catch (const std::exception& exception) {
+    } catch (const std::invalid_argument& exception) {
       EXPECT_EQ(expect_errors[i], exception.what());
     }
     try {
       base_collection.Document(bad_relative_paths[i]);
       FAIL() << "should throw exception";
-    } catch (const std::exception& exception) {
+    } catch (const std::invalid_argument& exception) {
       EXPECT_EQ(expect_errors[i], exception.what());
     }
   }
@@ -361,14 +398,12 @@ TEST_F(ValidationTest, WritesMustNotContainReservedFieldNames) {
       MapFieldValue{
           {"foo", FieldValue::Map({{"__baz__", FieldValue::Integer(1)}})}},
       "Invalid data. Document fields cannot begin and end with \"__\" (found "
-      "in "
-      "field foo.__baz__)");
+      "in field foo.__baz__)");
   ExpectWriteError(
       MapFieldValue{
           {"__baz__", FieldValue::Map({{"foo", FieldValue::Integer(1)}})}},
       "Invalid data. Document fields cannot begin and end with \"__\" (found "
-      "in "
-      "field __baz__)");
+      "in field __baz__)");
 
   ExpectUpdateError(MapFieldValue{{"__baz__", FieldValue::Integer(1)}},
                     "Invalid data. Document fields cannot begin and end with "
@@ -381,19 +416,37 @@ TEST_F(ValidationTest, WritesMustNotContainReservedFieldNames) {
 TEST_F(ValidationTest, SetsMustNotContainFieldValueDelete) {
   SCOPED_TRACE("SetsMustNotContainFieldValueDelete");
 
-  ExpectSetError(
-      MapFieldValue{{"foo", FieldValue::Delete()}},
+  // TODO(b/171990785): Unify Android and C++ validation error messages.
+#if defined(__ANDROID__)
+  std::string message =
       "Invalid data. FieldValue.delete() can only be used with update() and "
-      "set() with SetOptions.merge() (found in field foo)");
+      "set() with SetOptions.merge() (found in field foo)";
+#else
+  std::string message =
+      "Invalid data. FieldValue::Delete() can only be used with Update() and "
+      "Set() with merge == true (found in field foo)";
+#endif  // defined(__ANDROID__)
+
+  ExpectSetError(MapFieldValue{{"foo", FieldValue::Delete()}}, message);
 }
 
 TEST_F(ValidationTest, UpdatesMustNotContainNestedFieldValueDeletes) {
   SCOPED_TRACE("UpdatesMustNotContainNestedFieldValueDeletes");
 
+  // TODO(b/171990785): Unify Android and C++ validation error messages.
+#if defined(__ANDROID__)
+  std::string message =
+      "Invalid data. FieldValue.delete() can only appear at the top level of "
+      "your update data (found in field foo.bar)";
+#else
+  std::string message =
+      "Invalid data. FieldValue::Delete() can only appear at the top level of "
+      "your update data (found in field foo.bar)";
+#endif  // defined(__ANDROID__)
+
   ExpectUpdateError(
       MapFieldValue{{"foo", FieldValue::Map({{"bar", FieldValue::Delete()}})}},
-      "Invalid data. FieldValue.delete() can only appear at the top level of "
-      "your update data (found in field foo.bar)");
+      message);
 }
 
 TEST_F(ValidationTest, BatchWritesRequireCorrectDocumentReferences) {
@@ -413,8 +466,6 @@ TEST_F(ValidationTest, BatchWritesRequireCorrectDocumentReferences) {
 }
 
 TEST_F(ValidationTest, TransactionsRequireCorrectDocumentReferences) {}
-
-#endif  // defined(__ANDROID__)
 
 TEST_F(ValidationTest, FieldPathsMustNotHaveEmptySegments) {
   SCOPED_TRACE("FieldPathsMustNotHaveEmptySegments");
@@ -443,8 +494,6 @@ TEST_F(ValidationTest, FieldPathsMustNotHaveInvalidSegments) {
   }
 }
 
-#if defined(__ANDROID__)
-
 TEST_F(ValidationTest, FieldNamesMustNotBeEmpty) {
   DocumentSnapshot snapshot = ReadDocument(Document());
   // PORT_NOTE: We do not enforce any logic for invalid C++ object. In
@@ -458,24 +507,27 @@ TEST_F(ValidationTest, FieldNamesMustNotBeEmpty) {
   //  EXPECT_STREQ("Invalid field path. Provided path must not be empty.",
   //               exception.what());
   // }
-
   try {
     snapshot.Get(FieldPath{""});
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
-    EXPECT_STREQ(
-        "Invalid field name at argument 1. Field names must not be null or "
-        "empty.",
-        exception.what());
+  } catch (const std::invalid_argument& exception) {
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid field name at index 0. Field names must not be empty.",
+            "Invalid field name at argument 1. Field names must not be null or "
+            "empty."));
   }
   try {
     snapshot.Get(FieldPath{"foo", ""});
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
-    EXPECT_STREQ(
-        "Invalid field name at argument 2. Field names must not be null or "
-        "empty.",
-        exception.what());
+  } catch (const std::invalid_argument& exception) {
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid field name at index 1. Field names must not be empty.",
+            "Invalid field name at argument 2. Field names must not be null or "
+            "empty."));
   }
 }
 
@@ -488,10 +540,13 @@ TEST_F(ValidationTest, ArrayTransformsFailInQueries) {
             {{"test", FieldValue::ArrayUnion({FieldValue::Integer(1)})}}));
     FAIL() << "should throw exception";
   } catch (const std::invalid_argument& exception) {
-    EXPECT_STREQ(
-        "Invalid data. FieldValue.arrayUnion() can only be used with set() and "
-        "update() (found in field test)",
-        exception.what());
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid data. FieldValue::ArrayUnion() can only be used with "
+            "Update() and Set() (found in field test)",
+            "Invalid data. FieldValue.arrayUnion() can only be used with set() "
+            "and update() (found in field test)"));
   }
 
   try {
@@ -501,10 +556,13 @@ TEST_F(ValidationTest, ArrayTransformsFailInQueries) {
             {{"test", FieldValue::ArrayRemove({FieldValue::Integer(1)})}}));
     FAIL() << "should throw exception";
   } catch (const std::invalid_argument& exception) {
-    EXPECT_STREQ(
-        "Invalid data. FieldValue.arrayRemove() can only be used with set() "
-        "and update() (found in field test)",
-        exception.what());
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid data. FieldValue::ArrayRemove() can only be used with "
+            "Update() and Set() (found in field test)",
+            "Invalid data. FieldValue.arrayRemove() can only be used with "
+            "set() and update() (found in field test)"));
   }
 }
 
@@ -520,7 +578,7 @@ TEST_F(ValidationTest, ArrayTransformsRejectArrays) {
                   {FieldValue::Integer(1),
                    FieldValue::Array({FieldValue::String("nested")})})}});
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
+  } catch (const std::invalid_argument& exception) {
     EXPECT_STREQ("Invalid data. Nested arrays are not supported",
                  exception.what());
   }
@@ -530,7 +588,7 @@ TEST_F(ValidationTest, ArrayTransformsRejectArrays) {
                   {FieldValue::Integer(1),
                    FieldValue::Array({FieldValue::String("nested")})})}});
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
+  } catch (const std::invalid_argument& exception) {
     EXPECT_STREQ("Invalid data. Nested arrays are not supported",
                  exception.what());
   }
@@ -541,7 +599,7 @@ TEST_F(ValidationTest, QueriesWithNonPositiveLimitFail) {
   try {
     collection.Limit(0);
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
+  } catch (const std::invalid_argument& exception) {
     EXPECT_STREQ(
         "Invalid Query. Query limit (0) is invalid. Limit must be positive.",
         exception.what());
@@ -549,7 +607,7 @@ TEST_F(ValidationTest, QueriesWithNonPositiveLimitFail) {
   try {
     collection.Limit(-1);
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
+  } catch (const std::invalid_argument& exception) {
     EXPECT_STREQ(
         "Invalid Query. Query limit (-1) is invalid. Limit must be positive.",
         exception.what());
@@ -568,37 +626,40 @@ TEST_F(ValidationTest, QueriesCannotBeCreatedFromDocumentsMissingSortValues) {
   EXPECT_THAT(snapshot.GetData(), testing::ContainerEq(MapFieldValue{
                                       {"k", FieldValue::String("f")},
                                       {"nosort", FieldValue::Double(1.0)}}));
-  const char* reason =
+
+  auto matches = AnyMessageEq(
       "Invalid query. You are trying to start or end a query using a document "
-      "for which the field 'sort' (used as the orderBy) does not exist.";
+      "for which the field 'sort' (used as the order by) does not exist.",
+      "Invalid query. You are trying to start or end a query using a document "
+      "for which the field 'sort' (used as the orderBy) does not exist.");
+
   try {
     query.StartAt(snapshot);
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
-    EXPECT_STREQ(reason, exception.what());
+  } catch (const std::invalid_argument& exception) {
+    EXPECT_THAT(exception.what(), matches);
   }
   try {
     query.StartAfter(snapshot);
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
-    EXPECT_STREQ(reason, exception.what());
+  } catch (const std::invalid_argument& exception) {
+    EXPECT_THAT(exception.what(), matches);
   }
   try {
     query.EndBefore(snapshot);
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
-    EXPECT_STREQ(reason, exception.what());
+  } catch (const std::invalid_argument& exception) {
+    EXPECT_THAT(exception.what(), matches);
   }
   try {
     query.EndAt(snapshot);
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
-    EXPECT_STREQ(reason, exception.what());
+  } catch (const std::invalid_argument& exception) {
+    EXPECT_THAT(exception.what(), matches);
   }
 }
 
-TEST_F(ValidationTest,
-       QueriesCannotBeSortedByAnUncommittedServerTimestamp) {
+TEST_F(ValidationTest, QueriesCannotBeSortedByAnUncommittedServerTimestamp) {
   CollectionReference collection = Collection();
   EventAccumulator<QuerySnapshot> accumulator;
   accumulator.listener()->AttachTo(&collection);
@@ -631,27 +692,28 @@ TEST_F(ValidationTest,
                                               const std::string&) {}));
 }
 
-
 TEST_F(ValidationTest, QueriesMustNotHaveMoreComponentsThanOrderBy) {
   CollectionReference collection = Collection();
   Query query = collection.OrderBy("foo");
 
-  const char* reason =
+  auto matches = AnyMessageEq(
+      "Invalid query. You are trying to start or end a query using more values "
+      "than were specified in the order by.",
       "Too many arguments provided to startAt(). The number of arguments must "
-      "be less than or equal to the number of orderBy() clauses.";
+      "be less than or equal to the number of orderBy() clauses.");
   try {
     query.StartAt({FieldValue::Integer(1), FieldValue::Integer(2)});
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
-    EXPECT_STREQ(reason, exception.what());
+  } catch (const std::invalid_argument& exception) {
+    EXPECT_THAT(exception.what(), matches);
   }
   try {
     query.OrderBy("bar").StartAt({FieldValue::Integer(1),
                                   FieldValue::Integer(2),
                                   FieldValue::Integer(3)});
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
-    EXPECT_STREQ(reason, exception.what());
+  } catch (const std::invalid_argument& exception) {
+    EXPECT_THAT(exception.what(), matches);
   }
 }
 
@@ -661,21 +723,27 @@ TEST_F(ValidationTest, QueryOrderByKeyBoundsMustBeStringsWithoutSlashes) {
   try {
     query.StartAt({FieldValue::Integer(1)});
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
-    EXPECT_STREQ(
-        "Invalid query. Expected a string for document ID in startAt(), but "
-        "got 1.",
-        exception.what());
+  } catch (const std::invalid_argument& exception) {
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid query. Expected a string for the document ID.",
+            "Invalid query. Expected a string for document ID in startAt(), "
+            "but got 1."));
   }
   try {
     query.StartAt({FieldValue::String("foo/bar")});
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
-    EXPECT_STREQ(
-        "Invalid query. When querying a collection and ordering by "
-        "FieldPath.documentId(), the value passed to startAt() must be a plain "
-        "document ID, but 'foo/bar' contains a slash.",
-        exception.what());
+  } catch (const std::invalid_argument& exception) {
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid query. When querying a collection and ordering by "
+            "document ID, you must pass a plain document ID, but 'foo/bar' "
+            "contains a slash.",
+            "Invalid query. When querying a collection and ordering by "
+            "FieldPath.documentId(), the value passed to startAt() must be a "
+            "plain document ID, but 'foo/bar' contains a slash."));
   }
 }
 
@@ -685,33 +753,49 @@ TEST_F(ValidationTest, QueriesWithDifferentInequalityFieldsFail) {
         .WhereGreaterThan("x", FieldValue::Integer(32))
         .WhereLessThan("y", FieldValue::String("cat"));
     FAIL() << "should throw exception";
-  } catch (const std::exception& exception) {
-    EXPECT_STREQ(
-        "All where filters with an inequality (notEqualTo, notIn, lessThan, "
-        "lessThanOrEqualTo, greaterThan, or greaterThanOrEqualTo) must be on "
-        "the same field. But you have filters on 'x' and 'y'",
-        exception.what());
+  } catch (const std::invalid_argument& exception) {
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid Query. All where filters with an inequality (notEqual, "
+            "lessThan, lessThanOrEqual, greaterThan, or greaterThanOrEqual) "
+            "must be on the same field. But you have inequality filters on 'x' "
+            "and 'y'",
+            "All where filters with an inequality (notEqualTo, notIn, "
+            "lessThan, lessThanOrEqualTo, greaterThan, or "
+            "greaterThanOrEqualTo) must be on the same field. But you have "
+            "filters on 'x' and 'y'"));
   }
 }
 
 TEST_F(ValidationTest, QueriesWithInequalityDifferentThanFirstOrderByFail) {
-  CollectionReference collection = Collection();
+  // TODO(b/171990785): Unify Android and C++ validation error messages.
+#if defined(__ANDROID__)
   const char* reason =
       "Invalid query. You have an inequality where filter (whereLessThan(), "
       "whereGreaterThan(), etc.) on field 'x' and so you must also have 'x' as "
       "your first orderBy() field, but your first orderBy() is currently on "
       "field 'y' instead.";
+#else
+  const char* reason =
+      "Invalid query. You have a where filter with an inequality (notEqual, "
+      "lessThan, lessThanOrEqual, greaterThan, or greaterThanOrEqual) on field "
+      "'x' and so you must also use 'x' as your first queryOrderedBy field, "
+      "but your first queryOrderedBy is currently on field 'y' instead.";
+#endif  // defined(__ANDROID__)
+
+  CollectionReference collection = Collection();
   try {
     collection.WhereGreaterThan("x", FieldValue::Integer(32)).OrderBy("y");
     FAIL() << "should throw exception";
   } catch (const std::exception& exception) {
-    EXPECT_STREQ(reason, exception.what());
+    EXPECT_STREQ(exception.what(), reason);
   }
   try {
     collection.OrderBy("y").WhereGreaterThan("x", FieldValue::Integer(32));
     FAIL() << "should throw exception";
   } catch (const std::exception& exception) {
-    EXPECT_STREQ(reason, exception.what());
+    EXPECT_STREQ(exception.what(), reason);
   }
   try {
     collection.WhereGreaterThan("x", FieldValue::Integer(32))
@@ -719,14 +803,14 @@ TEST_F(ValidationTest, QueriesWithInequalityDifferentThanFirstOrderByFail) {
         .OrderBy("x");
     FAIL() << "should throw exception";
   } catch (const std::exception& exception) {
-    EXPECT_STREQ(reason, exception.what());
+    EXPECT_STREQ(exception.what(), reason);
   }
   try {
     collection.OrderBy("y").OrderBy("x").WhereGreaterThan(
         "x", FieldValue::Integer(32));
     FAIL() << "should throw exception";
   } catch (const std::exception& exception) {
-    EXPECT_STREQ(reason, exception.what());
+    EXPECT_STREQ(exception.what(), reason);
   }
 }
 
@@ -737,9 +821,13 @@ TEST_F(ValidationTest, QueriesWithMultipleArrayContainsFiltersFail) {
         .WhereArrayContains("foo", FieldValue::Integer(2));
     FAIL() << "should throw exception";
   } catch (const std::exception& exception) {
-    EXPECT_STREQ(
-        "Invalid Query. You cannot use more than one 'array_contains' filter.",
-        exception.what());
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid Query. You cannot use more than one 'arrayContains' "
+            "filter.",
+            "Invalid Query. You cannot use more than one 'array_contains' "
+            "filter."));
   }
 }
 
@@ -750,37 +838,49 @@ TEST_F(ValidationTest, QueriesMustNotSpecifyStartingOrEndingPointAfterOrderBy) {
     query.StartAt({FieldValue::Integer(1)}).OrderBy("bar");
     FAIL() << "should throw exception";
   } catch (const std::exception& exception) {
-    EXPECT_STREQ(
-        "Invalid query. You must not call Query.startAt() or "
-        "Query.startAfter() before calling Query.orderBy().",
-        exception.what());
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid query. You must not specify a starting point before "
+            "specifying the order by.",
+            "Invalid query. You must not call Query.startAt() or "
+            "Query.startAfter() before calling Query.orderBy()."));
   }
   try {
     query.StartAfter({FieldValue::Integer(1)}).OrderBy("bar");
     FAIL() << "should throw exception";
   } catch (const std::exception& exception) {
-    EXPECT_STREQ(
-        "Invalid query. You must not call Query.startAt() or "
-        "Query.startAfter() before calling Query.orderBy().",
-        exception.what());
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid query. You must not specify a starting point before "
+            "specifying the order by.",
+            "Invalid query. You must not call Query.startAt() or "
+            "Query.startAfter() before calling Query.orderBy()."));
   }
   try {
     query.EndAt({FieldValue::Integer(1)}).OrderBy("bar");
     FAIL() << "should throw exception";
   } catch (const std::exception& exception) {
-    EXPECT_STREQ(
-        "Invalid query. You must not call Query.endAt() or "
-        "Query.endBefore() before calling Query.orderBy().",
-        exception.what());
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid query. You must not specify an ending point before "
+            "specifying the order by.",
+            "Invalid query. You must not call Query.endAt() or "
+            "Query.endBefore() before calling Query.orderBy()."));
   }
   try {
     query.EndBefore({FieldValue::Integer(1)}).OrderBy("bar");
     FAIL() << "should throw exception";
   } catch (const std::exception& exception) {
-    EXPECT_STREQ(
-        "Invalid query. You must not call Query.endAt() or "
-        "Query.endBefore() before calling Query.orderBy().",
-        exception.what());
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid query. You must not specify an ending point before "
+            "specifying the order by.",
+            "Invalid query. You must not call Query.endAt() or "
+            "Query.endBefore() before calling Query.orderBy()."));
   }
 }
 
@@ -792,10 +892,13 @@ TEST_F(ValidationTest,
                                          FieldValue::String(""));
     FAIL() << "should throw exception";
   } catch (const std::exception& exception) {
-    EXPECT_STREQ(
-        "Invalid query. When querying with FieldPath.documentId() you must "
-        "provide a valid document ID, but it was an empty string.",
-        exception.what());
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid query. When querying by document ID you must provide a "
+            "valid document ID, but it was an empty string.",
+            "Invalid query. When querying with FieldPath.documentId() you must "
+            "provide a valid document ID, but it was an empty string."));
   }
 
   try {
@@ -803,11 +906,15 @@ TEST_F(ValidationTest,
                                          FieldValue::String("foo/bar/baz"));
     FAIL() << "should throw exception";
   } catch (const std::exception& exception) {
-    EXPECT_STREQ(
-        "Invalid query. When querying a collection by FieldPath.documentId() "
-        "you must provide a plain document ID, but 'foo/bar/baz' contains a "
-        "'/' character.",
-        exception.what());
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid query. When querying a collection by document ID you must "
+            "provide a plain document ID, but 'foo/bar/baz' contains a '/' "
+            "character.",
+            "Invalid query. When querying a collection by "
+            "FieldPath.documentId() you must provide a plain document ID, but "
+            "'foo/bar/baz' contains a '/' character."));
   }
 
   try {
@@ -815,11 +922,15 @@ TEST_F(ValidationTest,
                                          FieldValue::Integer(1));
     FAIL() << "should throw exception";
   } catch (const std::exception& exception) {
-    EXPECT_STREQ(
-        "Invalid query. When querying with FieldPath.documentId() you must "
-        "provide a valid String or DocumentReference, but it was of type: "
-        "java.lang.Long",
-        exception.what());
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid query. When querying by document ID you must provide a "
+            "valid string or DocumentReference, but it was of type: "
+            "FieldValue::Integer()",
+            "Invalid query. When querying with FieldPath.documentId() you must "
+            "provide a valid String or DocumentReference, but it was of type: "
+            "java.lang.Long"));
   }
 
   try {
@@ -827,14 +938,16 @@ TEST_F(ValidationTest,
                                   FieldValue::Integer(1));
     FAIL() << "should throw exception";
   } catch (const std::exception& exception) {
-    EXPECT_STREQ(
-        "Invalid query. You can't perform 'array_contains' queries on "
-        "FieldPath.documentId().",
-        exception.what());
+    EXPECT_THAT(
+        exception.what(),
+        AnyMessageEq(
+            "Invalid query. You can't perform arrayContains queries on "
+            "document ID since document IDs are not arrays.",
+            "Invalid query. You can't perform 'array_contains' queries on "
+            "FieldPath.documentId()."));
   }
 }
 
-#endif  // defined(__ANDROID__)
 #endif  // FIRESTORE_HAVE_EXCEPTIONS
 
 }  // namespace firestore

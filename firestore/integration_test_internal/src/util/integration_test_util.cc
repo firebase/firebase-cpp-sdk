@@ -3,8 +3,8 @@
 
 #include "firebase/app.h"
 #include "firebase/firestore.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/ios/firestore_ios.h"
-#include "firestore/src/ios/hard_assert_ios.h"
 #include "absl/memory/memory.h"
 #include "Firestore/core/src/auth/empty_credentials_provider.h"
 
@@ -29,8 +29,8 @@ App* GetApp(const char* name) {
     return App::Create();
   } else {
     App* default_app = App::GetInstance();
-    HARD_ASSERT_IOS(default_app,
-                    "Cannot create a named app before the default app");
+    SIMPLE_HARD_ASSERT(default_app,
+                       "Cannot create a named app before the default app");
     return App::Create(default_app->options(), name);
   }
 }

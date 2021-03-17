@@ -61,6 +61,8 @@ namespace {
 
 using jni::Constructor;
 using jni::Env;
+using jni::Global;
+using jni::HashMap;
 using jni::Loader;
 using jni::Local;
 using jni::Long;
@@ -170,15 +172,15 @@ class JavaFirestoreMap {
  private:
   // Ensures that the backing map is initialized.
   // Prerequisite: `mutex_` must be locked before calling this method.
-  jni::HashMap& GetMapLocked(Env& env) {
+  HashMap& GetMapLocked(Env& env) {
     if (!firestores_) {
-      firestores_ = jni::HashMap::Create(env);
+      firestores_ = HashMap::Create(env);
     }
     return firestores_;
   }
 
   Mutex mutex_;
-  jni::Global<jni::HashMap> firestores_;
+  Global<HashMap> firestores_;
 };
 
 // init_mutex protects all the globals below.
@@ -496,34 +498,34 @@ void FirestoreInternal::ClearListeners() {
   listener_registrations_.clear();
 }
 
-jni::Env FirestoreInternal::GetEnv() {
-  jni::Env env;
+Env FirestoreInternal::GetEnv() {
+  Env env;
   env.SetUnhandledExceptionHandler(GlobalUnhandledExceptionHandler, nullptr);
   return env;
 }
 
 CollectionReference FirestoreInternal::NewCollectionReference(
-    jni::Env& env, const jni::Object& reference) const {
+    Env& env, const jni::Object& reference) const {
   return MakePublic<CollectionReference>(env, mutable_this(), reference);
 }
 
 DocumentReference FirestoreInternal::NewDocumentReference(
-    jni::Env& env, const jni::Object& reference) const {
+    Env& env, const jni::Object& reference) const {
   return MakePublic<DocumentReference>(env, mutable_this(), reference);
 }
 
 DocumentSnapshot FirestoreInternal::NewDocumentSnapshot(
-    jni::Env& env, const jni::Object& snapshot) const {
+    Env& env, const jni::Object& snapshot) const {
   return MakePublic<DocumentSnapshot>(env, mutable_this(), snapshot);
 }
 
-Query FirestoreInternal::NewQuery(jni::Env& env,
+Query FirestoreInternal::NewQuery(Env& env,
                                   const jni::Object& query) const {
   return MakePublic<Query>(env, mutable_this(), query);
 }
 
 QuerySnapshot FirestoreInternal::NewQuerySnapshot(
-    jni::Env& env, const jni::Object& snapshot) const {
+    Env& env, const jni::Object& snapshot) const {
   return MakePublic<QuerySnapshot>(env, mutable_this(), snapshot);
 }
 

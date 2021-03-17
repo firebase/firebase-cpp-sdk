@@ -34,6 +34,8 @@ set(common_SRCS
     src/common/firestore.cc
     src/common/futures.cc
     src/common/futures.h
+    src/common/hard_assert_common.cc
+    src/common/hard_assert_common.h
     src/common/listener_registration.cc
     src/common/macros.h
     src/common/main_for_testing_build.cc
@@ -185,7 +187,6 @@ set(main_SRCS
     src/ios/field_value_ios.h
     src/ios/firestore_ios.cc
     src/ios/firestore_ios.h
-    src/ios/hard_assert_ios.h
     src/ios/listener_ios.h
     src/ios/listener_registration_ios.cc
     src/ios/listener_registration_ios.h
