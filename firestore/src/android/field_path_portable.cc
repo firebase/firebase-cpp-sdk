@@ -90,6 +90,22 @@ std::vector<std::string> SplitOnDots(const std::string& input) {
   return result;
 }
 
+void ValidateSegments(const std::vector<std::string>& segments) {
+  if (segments.empty()) {
+    SimpleThrowInvalidArgument(
+        "Invalid field path. Provided names must not be empty.");
+  }
+
+  for (size_t i = 0; i < segments.size(); ++i) {
+    if (segments[i].empty()) {
+      std::ostringstream message;
+      message << "Invalid field name at index " << i
+              << ". Field names must not be empty.";
+      SimpleThrowInvalidArgument(message.str());
+    }
+  }
+}
+
 }  // anonymous namespace
 
 std::string FieldPathPortable::CanonicalString() const {
@@ -116,6 +132,12 @@ std::string FieldPathPortable::CanonicalString() const {
 
 bool FieldPathPortable::IsKeyFieldPath() const {
   return size() == 1 && segments_[0] == FieldPathPortable::kDocumentKeyPath;
+}
+
+FieldPathPortable FieldPathPortable::FromSegments(
+    std::vector<std::string> segments) {
+  ValidateSegments(segments);
+  return FieldPathPortable(Move(segments));
 }
 
 FieldPathPortable FieldPathPortable::FromDotSeparatedString(

@@ -170,6 +170,9 @@ class FieldPath final {
 
   explicit FieldPath(FieldPathInternal* internal);
 
+  static FieldPathInternal* InternalFromSegments(
+      std::vector<std::string> field_names);
+
   static FieldPath FromDotSeparatedString(const std::string& path);
 
   FieldPathInternal* internal_ = nullptr;
