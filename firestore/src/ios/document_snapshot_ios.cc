@@ -60,8 +60,8 @@ MapFieldValue DocumentSnapshotInternal::GetData(
   const Map& map =
       maybe_object ? maybe_object.value().GetInternalValue() : Map{};
   FieldValue result = ConvertObject(map, stb);
-  HARD_ASSERT_IOS(result.type() == FieldValue::Type::kMap,
-                  "Expected snapshot data to parse to a map");
+  SIMPLE_HARD_ASSERT(result.type() == FieldValue::Type::kMap,
+                     "Expected snapshot data to parse to a map");
   return result.map_value();
 }
 
@@ -143,14 +143,14 @@ FieldValue DocumentSnapshotInternal::ConvertScalar(
       // HARD_FAIL("Unexpected kind of FieldValue: '%s'", scalar.type());
       auto message = std::string("Unexpected kind of FieldValue: '") +
                      std::to_string(static_cast<int>(scalar.type())) + "'";
-      HARD_FAIL_IOS(message.c_str());
+      SIMPLE_HARD_FAIL(message);
     }
   }
 }
 
 FieldValue DocumentSnapshotInternal::ConvertReference(
     const model::FieldValue::Reference& reference) const {
-  HARD_ASSERT_IOS(
+  SIMPLE_HARD_ASSERT(
       reference.database_id() == firestore_internal()->database_id(),
       "Converted reference is from another database");
 
