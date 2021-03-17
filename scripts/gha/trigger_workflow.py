@@ -130,8 +130,6 @@ def parse_cmdline_args():
   parser.add_argument('-A', '--in_github_action', action='store_true', help='Enable special logging for GitHub actions')
   parser.add_argument('-s', '--sleep', type=int, default=5, metavar='SECONDS',
                       help='How long to sleep before querying for the run ID, default 5')
-  parser.add_argument('-s', '--sleep', type=int, default=5, metavar='SECONDS',
-                      help='How long to sleep before querying for the run ID, default 5')
   args = parser.parse_args()
   return args
 
