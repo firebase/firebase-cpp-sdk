@@ -132,6 +132,14 @@ jobs:
           path: external/vcpkg/installed
           key: dev-vcpkg-${{ env.VCPKG_TRIPLET }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
 
+      - name: Cache NDK
+        id: cache_ndk
+        if: matrix.target_platform == 'Android'
+        uses: actions/cache@v2
+        with:
+          path: /tmp/android-ndk-r16b
+          key: android-ndk-${{ matrix.os }}-r16b
+      
       - name: Setup python
         uses: actions/setup-python@v2
         with:
