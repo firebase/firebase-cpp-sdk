@@ -39,7 +39,10 @@ namespace {
 
 class PromiseTest : public FirestoreAndroidIntegrationTest {
  public:
-  PromiseTest() : promises_(GetFirestoreInternal(TestFirestore())) {
+  PromiseTest() : promises_(GetFirestoreInternal(TestFirestore())) {}
+
+  void SetUp() override {
+    FirestoreAndroidIntegrationTest::SetUp();
     jni::Env env = GetEnv();
     cancellation_token_source_ = CancellationTokenSource::Create(env);
     task_completion_source_ = TaskCompletionSource::Create(
