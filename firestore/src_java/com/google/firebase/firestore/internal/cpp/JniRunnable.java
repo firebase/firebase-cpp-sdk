@@ -4,14 +4,11 @@ import android.os.Handler;
 import android.os.Looper;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.TaskCompletionSource;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 /** A {@link Runnable} whose {@link #run} method calls a native function. */
 public final class JniRunnable implements Runnable {
 
-  private final ReentrantReadWriteLock.ReadLock readLock;
-  private final ReentrantReadWriteLock.WriteLock writeLock;
-
+  private final Object lock = new Object();
   private long data;
 
   /**
@@ -26,29 +23,26 @@ public final class JniRunnable implements Runnable {
           "data==0 is forbidden because 0 is reserved to indicate that we are detached from the"
               + " C++ function");
     }
-    ReentrantReadWriteLock lock = new ReentrantReadWriteLock(/* fair= */ true);
-    readLock = lock.readLock();
-    writeLock = lock.writeLock();
     this.data = data;
   }
 
   /**
-   * Invokes the C++ method encapsulated by this object.
+   * Invokes the C++ function encapsulated by this object.
    *
    * <p>If {@link #detach} has been invoked then this method does nothing and returns as if
    * successful.
-   *
-   * <p>This method <em>will</em> block if there is a thread blocked in {@link #detach}; otherwise,
-   * it will call the C++ function without blocking. This may even result in concurrent/parallel
-   * calls to the C++ function if {@link #run} is invoked concurrently.
    */
   @Override
   public void run() {
-    readLock.lock();
-    try {
+    // NOTE: Because of the `synchronized` block below, the native function will not be called
+    // concurrently. If concurrent invocations are desired, then this class can be modified with a
+    // more complicated synchronization mechanism.
+    // e.g. https://gist.github.com/dconeybe/2d95fbc75f88de58a49804df5c55157b
+    synchronized (lock) {
+      if (data == 0) {
+        return;
+      }
       nativeRun(data);
-    } finally {
-      readLock.unlock();
     }
   }
 
@@ -58,18 +52,16 @@ public final class JniRunnable implements Runnable {
    * <p>After this method returns, all future invocations of {@link #run} will do nothing and return
    * as if successful.
    *
-   * <p>This method <em>will</em> block if there are active invocations of {@link #run}. Once all
-   * active invocations of {@link #run} have completed, then this method will proceed and return
-   * nearly instantly. Any invocations of {@link #run} that occur while {@link #detach} is blocked
-   * will also block, allowing the number of active invocations of {@link #run} to eventually reach
-   * zero and allow this method to proceed.
+   * <p>This method blocks until all invocations of the native function called from {@link #run}
+   * complete; therefore, when this method returns it is safe to delete any data that would be
+   * referenced by the native function.
+   *
+   * <p>This method may be safely invoked multiple times. Subsequent invocations have no side
+   * effects but will still block while there are active invocations of the native function.
    */
   public void detach() {
-    writeLock.lock();
-    try {
+    synchronized (lock) {
       data = 0;
-    } finally {
-      writeLock.unlock();
     }
   }
 

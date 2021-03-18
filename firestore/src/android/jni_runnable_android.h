@@ -52,12 +52,11 @@ class JniRunnableBase {
    * object's `run()` method will do nothing and complete as if successful.
    *
    * This method will block until all active invocations of `Run()` have
-   * completed, and will cause new invocations of the Java `Runnable` object's
-   * `run()` that occur while this method is blocked to also block until this
-   * method completes.
+   * completed.
    *
-   * Calling `Detach()` multiple times is allowed, but invocations after the
-   * first invocation have no effect.
+   * This method may be safely invoked multiple times. Subsequent invocations
+   * have no side effects but will still block while there are active
+   * invocations of `Run()`.
    */
   void Detach(jni::Env& env);
 
@@ -98,7 +97,8 @@ class JniRunnableBase {
  * A proxy for a Java `Runnable` that calls a C++ function.
  *
  * The template parameter `CallbackT` is typically a lambda or function pointer;
- * it can be anything that can be "invoked" with zero arguments.
+ * it can be anything that can be "invoked" with either zero arguments or one
+ * argument whose type is `JniRunnableBase&`.
  *
  * Example:
  *
@@ -118,9 +118,25 @@ class JniRunnable : public JniRunnableBase {
   JniRunnable(jni::Env& env, CallbackT callback)
       : JniRunnableBase(env), callback_(firebase::Move(callback)) {}
 
-  void Run() override { callback_(); }
+  void Run() override { Run(*this, callback_); }
 
  private:
+  // These two static overloads of `Run()` use SFINAE to invoke the callback
+  // with zero arguments or with one argument, depending on the signature of the
+  // callback. If the callback takes one argument then a reference to the
+  // `JniRunnable` object is specified for that argument.
+  template <typename JniRunnableType, typename ZeroArgCallback>
+  static auto Run(JniRunnableType&, ZeroArgCallback callback)
+      -> decltype(callback()) {
+    return callback();
+  }
+
+  template <typename JniRunnableType, typename OneArgCallback>
+  static auto Run(JniRunnableType& runnable, OneArgCallback callback)
+      -> decltype(callback(runnable)) {
+    return callback(runnable);
+  }
+
   CallbackT callback_;
 };
 
