@@ -62,19 +62,22 @@ set(FIREBASE_TEST_FRAMEWORK_SRCS
 )
 
 set(FIREBASE_INTEGRATION_TEST_SRCS
-  # src/array_transform_test.cc
-  # src/cleanup_test.cc
-  # src/collection_reference_test.cc
-  # src/cursor_test.cc
-  # src/document_change_test.cc
-  # src/document_reference_test.cc
-  # src/document_snapshot_test.cc
-  # src/field_value_test.cc
-  # src/fields_test.cc
-  # src/includes_test.cc
-  # src/listener_registration_test.cc
+  src/array_transform_test.cc
+  src/cleanup_test.cc
+  src/collection_reference_test.cc
+  src/cursor_test.cc
+  src/document_change_test.cc
+  src/document_reference_test.cc
+  src/document_snapshot_test.cc
+  src/field_value_test.cc
+  src/fields_test.cc
+  src/includes_test.cc
+  src/listener_registration_test.cc
   src/numeric_transforms_test.cc
-  # src/firestore_test.cc
+  src/query_network_test.cc
+  src/query_snapshot_test.cc
+  src/query_test.cc
+  src/firestore_test.cc
   src/util/future_test_util.cc
   src/util/integration_test_util.cc
   src/firestore_integration_test.cc

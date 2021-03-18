@@ -6,11 +6,11 @@
 #include <vector>
 
 #include "firestore/src/common/macros.h"
-#include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/include/firebase/firestore/field_value.h"
-#include "firestore/src/include/firebase/firestore/map_field_value.h"
-#include "firestore/src/tests/firestore_integration_test.h"
-#include "firestore/src/tests/util/event_accumulator.h"
+#include "firebase/firestore.h"
+#include "firebase/firestore/field_value.h"
+#include "firebase/firestore/map_field_value.h"
+#include "firestore_integration_test.h"
+#include "util/event_accumulator.h"
 
 #if defined(__ANDROID__)
 #include "firestore/src/android/query_android.h"
@@ -20,7 +20,7 @@
 #include "firestore/src/stub/query_stub.h"
 #endif  // defined(__ANDROID__)
 
-#include "testing/base/public/gmock.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "firebase/firestore/firestore_errors.h"
 #include "Firestore/core/src/util/firestore_exceptions.h"
