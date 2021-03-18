@@ -44,8 +44,9 @@ on:
         description: 'Optional: Packaging run # to build against?'
 env:
   triggerLabelPrefix: "tests-requested: "
-  triggerLabelFull: "tests-requested: full"
+  triggerLabelFull: "tests-requested: extensive"
   triggerLabelQuick: "tests-requested: quick"
+  # Anything else matching triggerLabelPrefix is considered "normal tests"
   statusLabelInProgress: "tests: in-progress"
   statusLabelFailed: "tests: failed"
   statusLabelSucceeded: "tests: succeeded"
@@ -90,9 +91,10 @@ jobs:
         echo "::set-output name=should_update_labels::1"
         if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelFull }}" ]]; then
           echo "::set-output name=requested_tests::full"
-        fi
-        if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
+        elif [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
           echo "::set-output name=requested_tests::quick"
+        else
+          echo "::set-output name=requested_tests::normal
         fi
     - name: add in-progress label
       if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
@@ -100,6 +102,20 @@ jobs:
       with:
         token: ${{secrets.GITHUB_TOKEN}}
         label: ${{ env.statusLabelInProgress }}
+        type: add
+    - name: remove previous success label
+      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
+      uses: buildsville/add-remove-label@v1
+      with:
+        token: ${{secrets.GITHUB_TOKEN}}
+        label: ${{ env.statusLabelSuccess }}
+        type: add
+    - name: remove previous failure label
+      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
+      uses: buildsville/add-remove-label@v1
+      with:
+        token: ${{secrets.GITHUB_TOKEN}}
+        label: ${{ env.statusLabelFailure }}
         type: add
 
 
@@ -122,7 +138,7 @@ jobs:
         with:
           submodules: false
       - name: Use expanded matrix
-        if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1'
+        if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1' || needs.check_trigger.outputs.requested_tests == 'full'
         run: |
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
 
@@ -139,7 +155,12 @@ jobs:
           else
             echo "::set-output name=matrix_ssl::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ssl_lib -o "${{github.event.inputs.desktop_ssl_variants}}" )"
           fi
-          echo "::set-output name=apis::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${{github.event.inputs.apis}}" )"
+          if [[ "${{ needs.check_trigger.outputs.requested_tests }}" == "quick" ]]; then
+            # TODO: Autodetect which APIs to test based on what's changed in this PR.
+            echo "::set-output name=apis::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${{github.event.inputs.apis}}" )"
+          else
+            echo "::set-output name=apis::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${{github.event.inputs.apis}}" )"
+          fi
           echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k android_device -o "${{github.event.inputs.android_device}}" )"
           echo "::set-output name=android_api::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k android_api -o "${{github.event.inputs.android_api}}" )"
           echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_device -o "${{github.event.inputs.ios_device}}" )"
@@ -147,7 +168,7 @@ jobs:
 
   tests:
     name: ${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
-    needs: prepare_matrix
+    needs: [prepare_matrix, check_trigger]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -305,21 +326,21 @@ jobs:
           python scripts/gha/test_lab.py --android_model ${{ needs.prepare_matrix.outputs.android_device }} --android_api ${{ needs.prepare_matrix.outputs.android_api }} --ios_model ${{ needs.prepare_matrix.outputs.ios_device }} --ios_version ${{ needs.prepare_matrix.outputs.ios_version }} --testapp_dir testapps --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
 
       - name: remove in progress label
-        if: ${{ github.jobs.check_trigger.outputs.should_update_labels && always() }}
+        if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() }}
         uses: buildsville/add-remove-label@v1
         with:
           token: ${{secrets.GITHUB_TOKEN}}
           label: "tests: in-progress"
           type: remove
       - name: add success label
-        if: ${{ github.jobs.check_trigger.outputs.should_update_labels && success() }}
+        if: ${{ needs.check_trigger.outputs.should_update_labels && success() }}
         uses: buildsville/add-remove-label@v1
         with:
           token: ${{secrets.GITHUB_TOKEN}}
           label: "tests: succeeded"
           type: add
       - name: add failure label
-        if: ${{ github.jobs.check_trigger.outputs.should_update_labels && failure() }}
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() }}
         uses: buildsville/add-remove-label@v1
         with:
           token: ${{secrets.GITHUB_TOKEN}}
