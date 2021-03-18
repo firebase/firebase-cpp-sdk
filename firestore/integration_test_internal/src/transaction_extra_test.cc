@@ -1,7 +1,7 @@
 #include "app/src/time.h"
-#include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/tests/firestore_integration_test.h"
-#include "testing/base/public/gmock.h"
+#include "firebase/firestore.h"
+#include "firestore_integration_test.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "firebase/firestore/firestore_errors.h"
 #if defined(__ANDROID__)

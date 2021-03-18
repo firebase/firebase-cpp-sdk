@@ -1,14 +1,14 @@
 #include <utility>
 
-#include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/tests/firestore_integration_test.h"
-#include "firestore/src/tests/util/event_accumulator.h"
+#include "firebase/firestore.h"
+#include "firestore_integration_test.h"
+#include "util/event_accumulator.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/write_batch_android.h"
 #include "firestore/src/common/wrapper_assertions.h"
 #endif  // defined(__ANDROID__)
 
-#include "testing/base/public/gmock.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 // These test cases are in sync with native iOS client SDK test

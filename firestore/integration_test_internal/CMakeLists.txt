@@ -77,6 +77,14 @@ set(FIREBASE_INTEGRATION_TEST_SRCS
   src/query_network_test.cc
   src/query_snapshot_test.cc
   src/query_test.cc
+  src/sanity_test.cc
+  src/server_timestamp_test.cc
+  src/smoke_test.cc
+  src/transaction_extra_test.cc
+  src/transaction_test.cc
+  src/type_test.cc
+  src/validation_test.cc
+  src/write_batch_test.cc
   src/firestore_test.cc
   src/util/future_test_util.cc
   src/util/integration_test_util.cc

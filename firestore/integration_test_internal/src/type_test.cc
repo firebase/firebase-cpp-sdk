@@ -1,6 +1,6 @@
 #include "app/src/log.h"
-#include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/tests/firestore_integration_test.h"
+#include "firebase/firestore.h"
+#include "firestore_integration_test.h"
 
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRTypeTests.mm

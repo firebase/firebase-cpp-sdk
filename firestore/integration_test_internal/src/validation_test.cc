@@ -6,10 +6,10 @@
 #include <vector>
 
 #include "firestore/src/common/macros.h"
-#include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/tests/firestore_integration_test.h"
-#include "firestore/src/tests/util/event_accumulator.h"
-#include "testing/base/public/gmock.h"
+#include "firebase/firestore.h"
+#include "firestore_integration_test.h"
+#include "util/event_accumulator.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "firebase/firestore/firestore_errors.h"
 #include "Firestore/core/src/util/firestore_exceptions.h"
