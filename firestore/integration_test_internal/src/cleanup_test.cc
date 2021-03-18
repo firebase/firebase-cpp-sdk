@@ -1,7 +1,7 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "firestore/src/common/futures.h"
-#include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/tests/firestore_integration_test.h"
+#include "firebase/firestore.h"
+#include "firestore_integration_test.h"
 
 namespace firebase {
 namespace firestore {
@@ -22,17 +22,15 @@ void ExpectNullFirestore(T* ptr) {
 // be moved.
 template <typename T>
 void ExpectCopyableAndMoveable(T* ptr) {
-  EXPECT_NO_THROW({
-    // Copy constructor
-    T copy = *ptr;
-    // Move constructor
-    T moved = std::move(copy);
+  // Copy constructor
+  T copy = *ptr;
+  // Move constructor
+  T moved = std::move(copy);
 
-    // Copy assignment operator
-    copy = *ptr;
-    // Move assignment operator
-    moved = std::move(copy);
-  });
+  // Copy assignment operator
+  copy = *ptr;
+  // Move assignment operator
+  moved = std::move(copy);
 }
 
 // Checks that `operator==` and `operator!=` work correctly by comparing to
@@ -71,7 +69,7 @@ void ExpectAllMethodsAreNoOps(DocumentChange* ptr) {
 
   EXPECT_EQ(ptr->type(), DocumentChange::Type());
   // TODO(b/137966104): implement == on `DocumentSnapshot`
-  EXPECT_NO_THROW(ptr->document());
+  ptr->document();
   EXPECT_EQ(ptr->old_index(), 0);
   EXPECT_EQ(ptr->new_index(), 0);
 }
@@ -102,10 +100,10 @@ void ExpectAllMethodsAreNoOps(DocumentReference* ptr) {
   EXPECT_EQ(ptr->Delete(), FailedFuture<void>());
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
-  EXPECT_NO_THROW(ptr->AddSnapshotListener(
-      [](const DocumentSnapshot&, Error, const std::string&) {}));
+  ptr->AddSnapshotListener(
+      [](const DocumentSnapshot&, Error, const std::string&) {});
 #else
-  EXPECT_NO_THROW(ptr->AddSnapshotListener(nullptr));
+  ptr->AddSnapshotListener(nullptr);
 #endif
 }
 
@@ -121,7 +119,7 @@ void ExpectAllMethodsAreNoOps(DocumentSnapshot* ptr) {
 
   EXPECT_EQ(ptr->reference(), DocumentReference());
   // TODO(b/137966104): implement == on `SnapshotMetadata`
-  EXPECT_NO_THROW(ptr->metadata());
+  ptr->metadata();
 
   EXPECT_EQ(ptr->GetData(), MapFieldValue());
 
@@ -167,7 +165,7 @@ void ExpectAllMethodsAreNoOps(ListenerRegistration* ptr) {
   // `ListenerRegistration` isn't equality comparable.
   ExpectCopyableAndMoveable(ptr);
 
-  EXPECT_NO_THROW(ptr->Remove());
+  ptr->Remove();
 }
 
 void ExpectAllMethodsAreNoOps(Query* ptr) {
@@ -217,10 +215,10 @@ void ExpectAllMethodsAreNoOps(Query* ptr) {
   EXPECT_EQ(ptr->Get(), FailedFuture<QuerySnapshot>());
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
-  EXPECT_NO_THROW(ptr->AddSnapshotListener(
-      [](const QuerySnapshot&, Error, const std::string&) {}));
+  ptr->AddSnapshotListener(
+      [](const QuerySnapshot&, Error, const std::string&) {});
 #else
-  EXPECT_NO_THROW(ptr->AddSnapshotListener(nullptr));
+  ptr->AddSnapshotListener(nullptr);
 #endif
 }
 
@@ -232,7 +230,7 @@ void ExpectAllMethodsAreNoOps(QuerySnapshot* ptr) {
   EXPECT_EQ(ptr->query(), Query());
 
   // TODO(b/137966104): implement == on `SnapshotMetadata`
-  EXPECT_NO_THROW(ptr->metadata());
+  ptr->metadata();
 
   EXPECT_TRUE(ptr->DocumentChanges().empty());
   EXPECT_TRUE(ptr->documents().empty());
@@ -244,12 +242,12 @@ void ExpectAllMethodsAreNoOps(WriteBatch* ptr) {
   // `WriteBatch` isn't equality comparable.
   ExpectCopyableAndMoveable(ptr);
 
-  EXPECT_NO_THROW(ptr->Set(DocumentReference(), MapFieldValue()));
+  ptr->Set(DocumentReference(), MapFieldValue());
 
-  EXPECT_NO_THROW(ptr->Update(DocumentReference(), MapFieldValue()));
-  EXPECT_NO_THROW(ptr->Update(DocumentReference(), MapFieldPathValue()));
+  ptr->Update(DocumentReference(), MapFieldValue());
+  ptr->Update(DocumentReference(), MapFieldPathValue());
 
-  EXPECT_NO_THROW(ptr->Delete(DocumentReference()));
+  ptr->Delete(DocumentReference());
 
   EXPECT_EQ(ptr->Commit(), FailedFuture<void>());
 }
