@@ -118,7 +118,7 @@ Firestore* FirestoreIntegrationTest::TestFirestore(
     apps_[app] = UniquePtr<App>(app);
   }
 
-  Firestore::set_log_level(LogLevel::kLogLevelDebug);
+  // Firestore::set_log_level(LogLevel::kLogLevelDebug);
 
   Firestore* db = new Firestore(CreateTestFirestoreInternal(app));
   firestores_[db] = FirestoreInfo(name, UniquePtr<Firestore>(db));
