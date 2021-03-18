@@ -88,14 +88,14 @@ jobs:
           echo "::set-output name=requested_tests::quick
         fi
     - name: remove triggering label
-      if: ${{ jobs.check_trigger.outputs.should_update_labels }}
+      if: ${{ github.jobs.check_trigger.outputs.should_update_labels }}
       uses: buildsville/add-remove-label@v1
       with:
         token: ${{secrets.GITHUB_TOKEN}}
         label: ${{ github.event.label.name }}
         type: remove
     - name: add in-progress label
-      if: ${{ jobs.check_trigger.outputs.should_update_labels }}
+      if: ${{ github.jobs.check_trigger.outputs.should_update_labels }}
       uses: buildsville/add-remove-label@v1
       with:
         token: ${{secrets.GITHUB_TOKEN}}
@@ -305,21 +305,21 @@ jobs:
           python scripts/gha/test_lab.py --android_model ${{ needs.prepare_matrix.outputs.android_device }} --android_api ${{ needs.prepare_matrix.outputs.android_api }} --ios_model ${{ needs.prepare_matrix.outputs.ios_device }} --ios_version ${{ needs.prepare_matrix.outputs.ios_version }} --testapp_dir testapps --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
 
       - name: remove in progress label
-        if: ${{ jobs.check_trigger.outputs.should_update_labels && always() }}
+        if: ${{ github.jobs.check_trigger.outputs.should_update_labels && always() }}
         uses: buildsville/add-remove-label@v1
         with:
           token: ${{secrets.GITHUB_TOKEN}}
           label: "tests: in-progress"
           type: remove
       - name: add success label
-        if: ${{ jobs.check_trigger.outputs.should_update_labels && success() }}
+        if: ${{ github.jobs.check_trigger.outputs.should_update_labels && success() }}
         uses: buildsville/add-remove-label@v1
         with:
           token: ${{secrets.GITHUB_TOKEN}}
           label: "tests: succeeded"
           type: add
       - name: add failure label
-        if: ${{ jobs.check_trigger.outputs.should_update_labels && failure() }}
+        if: ${{ github.jobs.check_trigger.outputs.should_update_labels && failure() }}
         uses: buildsville/add-remove-label@v1
         with:
           token: ${{secrets.GITHUB_TOKEN}}
