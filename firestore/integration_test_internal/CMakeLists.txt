@@ -67,6 +67,7 @@ set(FIREBASE_INTEGRATION_TEST_SRCS
   src/collection_reference_test.cc
   src/cursor_test.cc
   src/document_change_test.cc
+  src/document_reference_test.cc
   src/firestore_test.cc
   src/util/future_test_util.cc
   src/util/integration_test_util.cc
