@@ -53,7 +53,7 @@ env:
 jobs:
   check_trigger:
     runs-on: ubuntu-latest
-    if: github.event_name == "pull_request" && github.event.action == "labeled"
+    if: github.event_name == 'pull_request' && github.event.action == 'labeled'
     outputs:
       should_update_labels: ${{ steps.set_outputs.outputs.should_update_labels }}
       requested_test: ${{ steps.set_outputs.outputs.requested_tests }}
@@ -85,7 +85,7 @@ jobs:
           echo "::set-output name=requested_tests::full"
         fi
         if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
-          echo "::set-output name=requested_tests::quick
+          echo "::set-output name=requested_tests::quick"
         fi
     - name: remove triggering label
       if: ${{ github.jobs.check_trigger.outputs.should_update_labels }}
