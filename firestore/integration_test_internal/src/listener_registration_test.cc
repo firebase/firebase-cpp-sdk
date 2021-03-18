@@ -1,7 +1,7 @@
 #include <utility>
 
-#include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/tests/firestore_integration_test.h"
+#include "firebase/firestore.h"
+#include "firestore_integration_test.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/listener_registration_android.h"
 #include "firestore/src/common/wrapper_assertions.h"
@@ -9,7 +9,7 @@
 #include "firestore/src/stub/listener_registration_stub.h"
 #endif  // defined(__ANDROID__)
 
-#include "testing/base/public/gmock.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 // These test cases are in sync with native iOS client SDK test
@@ -75,10 +75,10 @@ TEST_F(ListenerRegistrationTest, TestCanBeRemovedTwice) {
   ListenerRegistration two = listener_two.AttachTo(&document);
 
   one.Remove();
-  EXPECT_NO_THROW(one.Remove());
+  one.Remove();
 
   two.Remove();
-  EXPECT_NO_THROW(two.Remove());
+  two.Remove();
 }
 
 TEST_F(ListenerRegistrationTest, TestCanBeRemovedIndependently) {

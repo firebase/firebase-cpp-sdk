@@ -1,8 +1,7 @@
 #include <string>
 
-#include "devtools/build/runtime/get_runfiles_dir.h"
-#include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/tests/firestore_integration_test.h"
+#include "firebase/firestore.h"
+#include "firestore_integration_test.h"
 #include "gtest/gtest.h"
 
 namespace firebase {
@@ -31,10 +30,6 @@ struct TestTransactionFunction : TransactionFunction {
 // If this test compiles, that is sufficient.
 // Not using `FirestoreIntegrationTest` to avoid any headers it includes.
 TEST_F(IncludesTest, TestIncludingFirestoreHeaderIsSufficient) {
-  std::string google_json_dir = devtools_build::testonly::GetTestSrcdir() +
-                                "/google3/firebase/firestore/client/cpp/";
-  App::SetDefaultConfigPath(google_json_dir.c_str());
-
 #if defined(__ANDROID__)
   App* app = App::Create(nullptr, nullptr);
 
