@@ -14,9 +14,9 @@
 namespace firebase {
 namespace firestore {
 
-using TypeTest = FirestoreIntegrationTest;
+using SmokeTest = FirestoreIntegrationTest;
 
-TEST_F(TypeTest, TestCanWriteASingleDocument) {
+TEST_F(SmokeTest, TestCanWriteASingleDocument) {
   const MapFieldValue test_data{
       {"name", FieldValue::String("Patryk")},
       {"message", FieldValue::String("We are actually writing data!")}};
@@ -24,7 +24,7 @@ TEST_F(TypeTest, TestCanWriteASingleDocument) {
   Await(collection.Add(test_data));
 }
 
-TEST_F(TypeTest, TestCanReadAWrittenDocument) {
+TEST_F(SmokeTest, TestCanReadAWrittenDocument) {
   const MapFieldValue test_data{{"foo", FieldValue::String("bar")}};
   CollectionReference collection = Collection();
 
@@ -35,7 +35,7 @@ TEST_F(TypeTest, TestCanReadAWrittenDocument) {
       testing::ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
 }
 
-TEST_F(TypeTest, TestObservesExistingDocument) {
+TEST_F(SmokeTest, TestObservesExistingDocument) {
   const MapFieldValue test_data{{"foo", FieldValue::String("bar")}};
   DocumentReference writer_reference =
       TestFirestore("writer")->Collection("collection").Document();
@@ -55,7 +55,7 @@ TEST_F(TypeTest, TestObservesExistingDocument) {
   registration.Remove();
 }
 
-TEST_F(TypeTest, TestObservesNewDocument) {
+TEST_F(SmokeTest, TestObservesNewDocument) {
   CollectionReference collection = Collection();
   DocumentReference writer_reference = collection.Document();
   DocumentReference reader_reference =
@@ -86,7 +86,7 @@ TEST_F(TypeTest, TestObservesNewDocument) {
   registration.Remove();
 }
 
-TEST_F(TypeTest, TestWillFireValueEventsForEmptyCollections) {
+TEST_F(SmokeTest, TestWillFireValueEventsForEmptyCollections) {
   CollectionReference collection = Collection();
   EventAccumulator<QuerySnapshot> accumulator;
   ListenerRegistration registration =
@@ -99,7 +99,7 @@ TEST_F(TypeTest, TestWillFireValueEventsForEmptyCollections) {
   registration.Remove();
 }
 
-TEST_F(TypeTest, TestGetCollectionQuery) {
+TEST_F(SmokeTest, TestGetCollectionQuery) {
   const std::map<std::string, MapFieldValue> test_data{
       {"1",
        {{"name", FieldValue::String("Patryk")},
@@ -126,7 +126,7 @@ TEST_F(TypeTest, TestGetCollectionQuery) {
 
 // TODO(klimt): This test is disabled because we can't create compound indexes
 // programmatically.
-TEST_F(TypeTest, DISABLED_TestQueryByFieldAndUseOrderBy) {
+TEST_F(SmokeTest, DISABLED_TestQueryByFieldAndUseOrderBy) {
   const std::map<std::string, MapFieldValue> test_data{
       {"1",
        {{"sort", FieldValue::Double(1.0)},

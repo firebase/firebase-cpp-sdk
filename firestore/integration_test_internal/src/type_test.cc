@@ -1,4 +1,3 @@
-#include "app/src/log.h"
 #include "firebase/firestore.h"
 #include "firestore_integration_test.h"
 

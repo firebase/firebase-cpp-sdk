@@ -18,7 +18,6 @@
 #include "util/future_test_util.h"
 
 #include "app/memory/unique_ptr.h"
-#include "app/src/log.h"
 #include "auth/src/include/firebase/auth.h"
 #include "firestore/src/common/macros.h"
 #include "gmock/gmock.h"
@@ -72,10 +71,10 @@ TEST_F(FirestoreIntegrationTest, TestCanCreateCollectionAndDocumentReferences) {
   Firestore* db = TestFirestore();
   CollectionReference c = db->Collection("a/b/c").Document("d").Parent();
   DocumentReference d = db->Document("a/b").Collection("c/d/e").Parent();
-  
+
   CollectionReference(c).Document();
   DocumentReference(d).Parent();
-  
+
   CollectionReference(std::move(c)).Document();
   DocumentReference(std::move(d)).Parent();
 
