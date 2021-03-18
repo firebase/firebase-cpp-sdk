@@ -64,6 +64,18 @@ jobs:
     - name: wait for above cancellation if label is irrelevant
       if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       run: sleep 300
+    - name: cancel previous runs on the same PR
+      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
+      uses: styfle/cancel-workflow-action@0.8.0
+      with:
+        access_token: ${{ github.token }}
+    - name: remove triggering label
+      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
+      uses: buildsville/add-remove-label@v1
+      with:
+        token: ${{secrets.GITHUB_TOKEN}}
+        label: ${{ github.event.label.name }}
+        type: remove
     - name: check if user has permission to trigger tests
       if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       # This step will cause the workflow to fail if the user does not have access.
@@ -72,11 +84,6 @@ jobs:
         permission: "admin"
       env:
         GITHUB_TOKEN: ${{ github.token }}
-    - name: cancel previous runs on the same PR
-      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
-      uses: styfle/cancel-workflow-action@0.8.0
-      with:
-        access_token: ${{ github.token }}
     - id: set_outputs
       if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       run: |
@@ -87,13 +94,6 @@ jobs:
         if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
           echo "::set-output name=requested_tests::quick"
         fi
-    - name: remove triggering label
-      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
-      uses: buildsville/add-remove-label@v1
-      with:
-        token: ${{secrets.GITHUB_TOKEN}}
-        label: ${{ github.event.label.name }}
-        type: remove
     - name: add in-progress label
       if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: buildsville/add-remove-label@v1
