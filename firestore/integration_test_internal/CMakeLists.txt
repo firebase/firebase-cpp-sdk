@@ -62,6 +62,7 @@ set(FIREBASE_TEST_FRAMEWORK_SRCS
 )
 
 set(FIREBASE_INTEGRATION_TEST_SRCS
+  src/array_transform_test.cc
   src/firestore_test.cc
   src/util/future_test_util.cc
   src/util/integration_test_util.cc
