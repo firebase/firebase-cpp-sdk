@@ -1,7 +1,7 @@
 #include <utility>
 
-#include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/tests/firestore_integration_test.h"
+#include "firebase/firestore.h"
+#include "firestore_integration_test.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/field_value_android.h"
 #include "firestore/src/common/wrapper_assertions.h"
@@ -11,7 +11,7 @@
 #include "firestore/src/ios/field_value_ios.h"
 #endif  // defined(__ANDROID__)
 
-#include "testing/base/public/gmock.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace firebase {
@@ -22,23 +22,21 @@ using FieldValueTest = FirestoreIntegrationTest;
 
 // Sanity test for stubs
 TEST_F(FieldValueTest, TestFieldValueTypes) {
-  ASSERT_NO_THROW({
-    FieldValue::Null();
-    FieldValue::Boolean(true);
-    FieldValue::Integer(123L);
-    FieldValue::Double(3.1415926);
-    FieldValue::Timestamp({12345, 54321});
-    FieldValue::String("hello");
-    uint8_t blob[] = "( ͡° ͜ʖ ͡°)";
-    FieldValue::Blob(blob, sizeof(blob));
-    FieldValue::GeoPoint({43, 80});
-    FieldValue::Array(std::vector<FieldValue>{FieldValue::Null()});
-    FieldValue::Map(MapFieldValue{{"Null", FieldValue::Null()}});
-    FieldValue::Delete();
-    FieldValue::ServerTimestamp();
-    FieldValue::ArrayUnion(std::vector<FieldValue>{FieldValue::Null()});
-    FieldValue::ArrayRemove(std::vector<FieldValue>{FieldValue::Null()});
-  });
+  FieldValue::Null();
+  FieldValue::Boolean(true);
+  FieldValue::Integer(123L);
+  FieldValue::Double(3.1415926);
+  FieldValue::Timestamp({12345, 54321});
+  FieldValue::String("hello");
+  uint8_t blob[] = "( ͡° ͜ʖ ͡°)";
+  FieldValue::Blob(blob, sizeof(blob));
+  FieldValue::GeoPoint({43, 80});
+  FieldValue::Array(std::vector<FieldValue>{FieldValue::Null()});
+  FieldValue::Map(MapFieldValue{{"Null", FieldValue::Null()}});
+  FieldValue::Delete();
+  FieldValue::ServerTimestamp();
+  FieldValue::ArrayUnion(std::vector<FieldValue>{FieldValue::Null()});
+  FieldValue::ArrayRemove(std::vector<FieldValue>{FieldValue::Null()});
 }
 
 #if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
