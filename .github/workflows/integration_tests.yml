@@ -44,9 +44,8 @@ on:
         description: 'Optional: Packaging run # to build against?'
 env:
   triggerLabelPrefix: "tests-requested: "
-  triggerLabelFull: "tests-requested: extensive"
+  triggerLabelFull: "tests-requested: full"
   triggerLabelQuick: "tests-requested: quick"
-  # Anything else matching triggerLabelPrefix is considered "normal tests"
   statusLabelInProgress: "tests: in-progress"
   statusLabelFailed: "tests: failed"
   statusLabelSucceeded: "tests: succeeded"
@@ -93,8 +92,6 @@ jobs:
           echo "::set-output name=requested_tests::full"
         elif [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
           echo "::set-output name=requested_tests::quick"
-        else
-          echo "::set-output name=requested_tests::normal
         fi
     - name: add in-progress label
       if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
@@ -138,7 +135,7 @@ jobs:
         with:
           submodules: false
       - name: Use expanded matrix
-        if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1' || needs.check_trigger.outputs.requested_tests == 'full'
+        if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1'
         run: |
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
 
@@ -157,7 +154,7 @@ jobs:
           fi
           if [[ "${{ needs.check_trigger.outputs.requested_tests }}" == "quick" ]]; then
             # TODO: Autodetect which APIs to test based on what's changed in this PR.
-            echo "::set-output name=apis::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${{github.event.inputs.apis}}" )"
+            echo "::set-output name=apis::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${{github.event.inputs.apis}}" --auto_diff ${{github.event.pull_request.base}})"
           else
             echo "::set-output name=apis::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${{github.event.inputs.apis}}" )"
           fi

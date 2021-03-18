@@ -54,8 +54,11 @@ python scripts/gha/print_matrix_configuration.py -c -w integration_tests
         -o my_custom_api -k apis
 """
 
-import json
 import argparse
+import json
+import os
+import re
+import subprocess
 
 # Note that desktop is used for fallback,
 # if there is no direct match for a key.
@@ -181,6 +184,78 @@ def print_value(value):
 
   print(json.dumps(value))
 
+def filter_values_on_diff(parm_key, value, auto_diff):
+  """Filter the given key based on a branch diff.
+
+  Remove entries from the list based on what we observe in the
+  source tree, relative to the given base branch."""
+  file_list = set(subprocess.check_output(['git', 'diff', '--name-only', 'HEAD', auto_diff]).decode('utf-8').rstrip('\n').split('\n'))
+  
+  if parm_key == 'apis':
+    custom_triggers = {
+      # Ones set to None are ignored.
+      "external": None,
+      "release_build_files": None,
+      # Ones set to a list of APIs will trigger those APIs.
+      "auth": "auth,functions,database,firestore,storage",
+    }
+    requested_api_list = set(value.split(','))
+    filtered_api_list = set()
+    
+    for path in file_list:
+      print(path)
+      topdir = path.split(os.path.sep)[0]
+      if topdir in custom_triggers:
+        if not custom_triggers[topdir]: continue  # Skip ones set to None.
+        for added_api in custom_triggers[topdir].split(','):
+          filtered_api_list.add(added_api)
+      if topdir in requested_api_list:
+        filtered_api_list.add(topdir)
+      else:
+        # Something was modified that's not a known subdirectory.
+        # Abort this whole process and just return the original api list.
+        return value
+    return ','.join(sorted(filtered_api_list))
+  elif parm_key == 'platform':
+    # Quick and dirty check:
+    # For each file:
+    #   If the filename matches "android" or ".java", add android to the list.
+    #   If the filename matches "ios" or ".mm", add ios to the list.
+    #   If the filename matches "desktop", add desktop to the list.
+    #   If the filename matches anything else, return the full list.
+    requested_platform_list = set(value)
+    filtered_platform_list = set()
+    for path in file_list:
+      matched = False
+      if (re.search(r'^external/', path) or
+          re.search(r'^release_build_files/', path) or 
+          re.search(r'readme', path, re.IGNORECASE)):
+        matched = True
+      if "Android" in requested_platform_list and (
+          re.search(r'android', path, re.IGNORECASE) or
+          re.search(r'\.java$', path) or
+          re.search(r'gradle', path)):
+        filtered_platform_list.add("Android")
+        matched = True
+      if "iOS" in requested_platform_list and (
+          re.search(r'[_./]ios[_./]', path, re.IGNORECASE) or
+          re.search(r'apple', path, re.IGNORECASE) or
+          re.search(r'\.mm$', path) or
+          re.search(r'xcode', path, re.IGNORECASE) or
+          re.search(r'Pod', path)):
+        filtered_platform_list.add("iOS")
+        matched = True
+      if "Desktop" in requested_platform_list and (
+          re.search(r'desktop', path)):
+        filtered_platform_list.add("iOS")
+        matched = True
+      if not matched:
+        # If the file didn't match any of these, trigger all requested platforms.
+        return sorted(requested_platform_list)
+    return sorted(filtered_platform_list)
+  else:
+    return value
+  
 
 def main():
   args = parse_cmdline_args()
@@ -192,6 +267,8 @@ def main():
     return
 
   value = get_value(args.workflow, args.expanded, args.parm_key, args.config)
+  if args.auto_diff:
+    value = filter_values_on_diff(args.parm_key, value, args.auto_diff)
   print_value(value)
 
 
@@ -201,6 +278,7 @@ def parse_cmdline_args():
   parser.add_argument('-w', '--workflow', default=DEFAULT_WORKFLOW, help='Config key for Github workflow.')
   parser.add_argument('-e', '--expanded', type=bool, default=False, help='Use expanded matrix')
   parser.add_argument('-k', '--parm_key', required=True, help='Print the value of specified key from matrix or config maps.')
+  parser.add_argument('-a', '--auto_diff', metavar='BRANCH', help='Compare with specified base branch to automatically set matrix options')
   parser.add_argument('-o', '--override', help='Override existing value with provided value')
   args = parser.parse_args()
   return args
