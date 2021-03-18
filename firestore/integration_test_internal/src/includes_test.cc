@@ -49,32 +49,36 @@ TEST_F(IncludesTest, TestIncludingFirestoreHeaderIsSufficient) {
 
   Firestore* firestore = CreateFirestore(app);
 
-  // Check that Firestore isn't just forward-declared.
-  DocumentReference doc = firestore->Document("foo/bar");
-  Future<DocumentSnapshot> future = doc.Get();
-  DocumentChange doc_change;
-  DocumentReference doc_ref;
-  DocumentSnapshot doc_snap;
-  FieldPath field_path;
-  FieldValue field_value;
-  ListenerRegistration listener_registration;
-  MapFieldValue map_field_value;
-  MetadataChanges metadata_changes = MetadataChanges::kExclude;
-  Query query;
-  QuerySnapshot query_snapshot;
-  SetOptions set_options;
-  Settings settings;
-  SnapshotMetadata snapshot_metadata;
-  Source source = Source::kDefault;
-  // Cannot default-construct a `Transaction`.
-  WriteBatch write_batch;
+  {
+    // Check that Firestore isn't just forward-declared.
+    DocumentReference doc = firestore->Document("foo/bar");
+    Future<DocumentSnapshot> future = doc.Get();
+    DocumentChange doc_change;
+    DocumentReference doc_ref;
+    DocumentSnapshot doc_snap;
+    FieldPath field_path;
+    FieldValue field_value;
+    ListenerRegistration listener_registration;
+    MapFieldValue map_field_value;
+    MetadataChanges metadata_changes = MetadataChanges::kExclude;
+    Query query;
+    QuerySnapshot query_snapshot;
+    SetOptions set_options;
+    Settings settings;
+    SnapshotMetadata snapshot_metadata;
+    Source source = Source::kDefault;
+    // Cannot default-construct a `Transaction`.
+    WriteBatch write_batch;
 
-  TestListener test_listener;
-  TestTransactionFunction test_transaction_function;
+    TestListener test_listener;
+    TestTransactionFunction test_transaction_function;
 
-  Timestamp timestamp;
-  GeoPoint geo_point;
-  Error error = Error::kErrorOk;
+    Timestamp timestamp;
+    GeoPoint geo_point;
+    Error error = Error::kErrorOk;
+  }
+  delete firestore;
+  delete app;
 }
 
 }  // namespace
