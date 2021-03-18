@@ -3,6 +3,9 @@ name: Integration tests
 on:
   schedule:
     - cron: "0 9 * * *"  # 9am UTC = 1am PST / 2am PDT
+  pull_request:
+    types: [ labeled ]
+
   workflow_dispatch:
     inputs:
       platforms:
@@ -39,12 +42,72 @@ on:
         required: true
       test_packaged_sdk:
         description: 'Optional: Packaging run # to build against?'
+env:
+  triggerLabelPrefix: "tests-requested: "
+  triggerLabelFull: "tests-requested: full"
+  triggerLabelQuick: "tests-requested: quick"
+  statusLabelInProgress: "tests: in-progress"
+  statusLabelFailed: "tests: failed"
+  statusLabelSucceeded: "tests: succeeded"
 
 jobs:
+  check_trigger:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == "pull_request" && github.event.action == "labeled" }}
+    outputs:
+      should_update_labels: ${{ steps.set_outputs.outputs.should_update_labels }}
+      requested_test: ${{ steps.set_outputs.outputs.requested_tests }}
+    steps:
+    - name: cancel workflow if label is irrelevant
+      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix }}
+      uses: andymckay/cancel-action@0.2
+    - name: wait for above cancellation if label is irrelevant
+      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix }}
+      run: sleep 300
+    - name: check if user has permission to trigger tests
+      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix }}
+      # This step will cause the workflow to fail if the user does not have access.
+      uses: lannonbr/repo-permission-check-action@2.0.0
+      with:
+        permission: "admin"
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+    - name: cancel previous runs on the same PR
+      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix }}
+      uses: styfle/cancel-workflow-action@0.8.0
+      with:
+        access_token: ${{ github.token }}
+    - id: set_outputs
+      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix }}
+      run: |
+        echo "::set-output name=should_update_labels::1"
+        if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelFull }}" ]]; then
+          echo "::set-output name=requested_tests::full"
+        fi
+        if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
+          echo "::set-output name=requested_tests::quick
+        fi
+    - name: remove triggering label
+      if: ${{ jobs.check_trigger.outputs.should_update_labels }}
+      uses: buildsville/add-remove-label@v1
+      with:
+        token: ${{secrets.GITHUB_TOKEN}}
+        label: ${{ github.event.label.name }}
+        type: remove
+    - name: add in-progress label
+      if: ${{ jobs.check_trigger.outputs.should_update_labels }}
+      uses: buildsville/add-remove-label@v1
+      with:
+        token: ${{secrets.GITHUB_TOKEN}}
+        label: ${{ env.statusLabelInProgress }}
+        type: add
+
+
   # To feed input into the job matrix, we first need to convert to a JSON
   # list. Then we can use fromJson to define the field in the matrix for the tests job.
   prepare_matrix:
     runs-on: ubuntu-latest
+    needs: check_trigger
     outputs:
       matrix_platform: ${{ steps.export-result.outputs.matrix_platform }}
       matrix_os: ${{ steps.export-result.outputs.matrix_os }}
@@ -62,7 +125,7 @@ jobs:
         if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1'
         run: |
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
-          
+
       - id: export-result
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
         run: |
@@ -139,7 +202,7 @@ jobs:
         with:
           path: /tmp/android-ndk-r16b
           key: android-ndk-${{ matrix.os }}-r16b
-      
+
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -240,6 +303,29 @@ jobs:
         if: matrix.target_platform != 'Desktop' && !cancelled()
         run: |
           python scripts/gha/test_lab.py --android_model ${{ needs.prepare_matrix.outputs.android_device }} --android_api ${{ needs.prepare_matrix.outputs.android_api }} --ios_model ${{ needs.prepare_matrix.outputs.ios_device }} --ios_version ${{ needs.prepare_matrix.outputs.ios_version }} --testapp_dir testapps --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
+
+      - name: remove in progress label
+        if: ${{ jobs.check_trigger.outputs.should_update_labels && always() }}
+        uses: buildsville/add-remove-label@v1
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}
+          label: "tests: in-progress"
+          type: remove
+      - name: add success label
+        if: ${{ jobs.check_trigger.outputs.should_update_labels && success() }}
+        uses: buildsville/add-remove-label@v1
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}
+          label: "tests: succeeded"
+          type: add
+      - name: add failure label
+        if: ${{ jobs.check_trigger.outputs.should_update_labels && failure() }}
+        uses: buildsville/add-remove-label@v1
+        with:
+          token: ${{secrets.GITHUB_TOKEN}}
+          label: "tests: failed"
+          type: add
+
       - name: Summarize build and test results
         if: ${{ !cancelled() }}
         shell: bash
