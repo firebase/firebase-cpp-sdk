@@ -88,14 +88,14 @@ jobs:
           echo "::set-output name=requested_tests::quick"
         fi
     - name: remove triggering label
-      if: ${{ github.jobs.check_trigger.outputs.should_update_labels }}
+      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: buildsville/add-remove-label@v1
       with:
         token: ${{secrets.GITHUB_TOKEN}}
         label: ${{ github.event.label.name }}
         type: remove
     - name: add in-progress label
-      if: ${{ github.jobs.check_trigger.outputs.should_update_labels }}
+      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: buildsville/add-remove-label@v1
       with:
         token: ${{secrets.GITHUB_TOKEN}}
