@@ -59,13 +59,13 @@ jobs:
       requested_test: ${{ steps.set_outputs.outputs.requested_tests }}
     steps:
     - name: cancel workflow if label is irrelevant
-      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix }}
+      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: andymckay/cancel-action@0.2
     - name: wait for above cancellation if label is irrelevant
-      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix }}
+      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       run: sleep 300
     - name: check if user has permission to trigger tests
-      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix }}
+      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       # This step will cause the workflow to fail if the user does not have access.
       uses: lannonbr/repo-permission-check-action@2.0.0
       with:
@@ -73,12 +73,12 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ github.token }}
     - name: cancel previous runs on the same PR
-      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix }}
+      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: styfle/cancel-workflow-action@0.8.0
       with:
         access_token: ${{ github.token }}
     - id: set_outputs
-      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix }}
+      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       run: |
         echo "::set-output name=should_update_labels::1"
         if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelFull }}" ]]; then
