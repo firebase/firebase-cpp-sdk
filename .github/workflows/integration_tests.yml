@@ -173,7 +173,7 @@ jobs:
         run: |
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
       - name: Set auto-diff option if specified.
-        if: needs.check_trigger.outputs.requested_tests == "auto"
+        if: needs.check_trigger.outputs.requested_tests == 'auto'
         run: |
           echo "Autodetecting which tests to run."
           echo "AUTO_DIFF_PARAM=--auto_diff ${{github.event.pull_request.base.sha}}" >> $GITHUB_ENV
