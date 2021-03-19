@@ -358,11 +358,19 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() }}
     steps:
+      # Use a different token to remove the "in-progress" label,
+      # to allow the removal to trigger the "Check Labels" workflow.
+      - name: Generate token for GitHub API
+        uses: tibdex/github-app-token@v1
+        id: generate-token
+        with:
+          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
+          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
       - name: remove in progress label
         if: ${{ !cancelled() }}
         uses: buildsville/add-remove-label@v1
         with:
-          token: ${{secrets.GITHUB_TOKEN}}
+          token: ${{steps.generate-token.outputs.token}}
           label: "${{ env.statusLabelInProgress }}"
           type: remove
 
@@ -375,6 +383,6 @@ jobs:
       - name: add success label
         uses: buildsville/add-remove-label@v1
         with:
-          token: ${{secrets.GITHUB_TOKEN}}
+          token: ${{github.token}}
           label: "${{ env.statusLabelSucceeded }}"
           type: add
