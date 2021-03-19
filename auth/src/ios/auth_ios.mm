@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+// Touch this file to run a subset of tests.
+
 #import "FIRAdditionalUserInfo.h"
 #import "FIRAuthDataResult.h"
 #import "FIRAuthErrors.h"
