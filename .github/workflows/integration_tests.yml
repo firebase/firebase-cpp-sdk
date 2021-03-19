@@ -360,7 +360,7 @@ jobs:
           type: remove
       - name: add failure label
         # We can do this as soon as a test fails.
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() }}
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         uses: buildsville/add-remove-label@v1
         with:
           token: ${{secrets.GITHUB_TOKEN}}
@@ -368,7 +368,7 @@ jobs:
           type: add
       - name: add success label
         # Must wait for all tests to finish before marking successful.
-        if: ${{ needs.check_trigger.outputs.should_update_labels && success() }}
+        if: ${{ needs.check_trigger.outputs.should_update_labels && success() && !cancelled() }}
         uses: buildsville/add-remove-label@v1
         with:
           token: ${{secrets.GITHUB_TOKEN}}
