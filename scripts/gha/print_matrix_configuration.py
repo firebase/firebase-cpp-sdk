@@ -214,7 +214,9 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       else:
         # Something was modified that's not a known subdirectory.
         # Abort this whole process and just return the original api list.
+        sys.stderr.write("Defaulting to all APIs: %s\n" % value)
         return value
+    sys.stderr.write("Automatically selected APIs: %s\n" % ','.join(sorted(filtered_api_list)))
     return ','.join(sorted(filtered_api_list))
   elif parm_key == 'platform':
     # Quick and dirty check:
@@ -251,7 +253,9 @@ def filter_values_on_diff(parm_key, value, auto_diff):
         matched = True
       if not matched:
         # If the file didn't match any of these, trigger all requested platforms.
+        sys.stderr.write("Defaulting to all platforms: %s\n" % ','.join(sorted(requested_platform_list)))
         return sorted(requested_platform_list)
+    sys.stderr.write("Automatically selected platforms: %s\n" % ','.join(sorted(filtered_platform_list)))
     return sorted(filtered_platform_list)
   else:
     return value
