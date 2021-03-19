@@ -106,14 +106,14 @@ jobs:
       with:
         token: ${{secrets.GITHUB_TOKEN}}
         label: ${{ env.statusLabelSuccess }}
-        type: add
+        type: remove
     - name: remove previous failure label
       if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: buildsville/add-remove-label@v1
       with:
         token: ${{secrets.GITHUB_TOKEN}}
         label: ${{ env.statusLabelFailure }}
-        type: add
+        type: remove
 
 
   # To feed input into the job matrix, we first need to convert to a JSON
