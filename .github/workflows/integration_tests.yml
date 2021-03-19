@@ -56,7 +56,7 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.action == 'labeled'
     outputs:
       should_update_labels: ${{ steps.set_outputs.outputs.should_update_labels }}
-      requested_test: ${{ steps.set_outputs.outputs.requested_tests }}
+      requested_tests: ${{ steps.set_outputs.outputs.requested_tests }}
     steps:
     - name: cancel workflow if label is irrelevant
       if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix) }}
