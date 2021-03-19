@@ -126,8 +126,8 @@ jobs:
       uses: phulsechinmay/rewritable-pr-comment@v0.2.1
       with:
         message: |
-          Integration test: [in progress](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-          Requested by @#{{github.actor}} on commit ${{github.sha}}
+          Integration test: *[in progress](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})*
+          Requested by @${{github.actor}} on commit ${{github.sha}}
         GITHUB_TOKEN: ${{ github.token }}
         COMMENT_IDENTIFIER: "integration-test-status-comment"
 
@@ -355,7 +355,7 @@ jobs:
         with:
           message: |
             Integration test: **[failed](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-            Requested by @#{{github.actor}} on commit ${{github.sha}}
+            Requested by @${{github.actor}} on commit ${{github.sha}}
           GITHUB_TOKEN: ${{ github.token }}
           COMMENT_IDENTIFIER: "integration-test-status-comment"
 
@@ -406,6 +406,6 @@ jobs:
         with:
           message: |
             Integration test: **[succeeded](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-            Requested by @#{{github.actor}} on commit ${{github.sha}}
+            Requested by @${{github.actor}} on commit ${{github.sha}}
           GITHUB_TOKEN: ${{ github.token }}
           COMMENT_IDENTIFIER: "integration-test-status-comment"
