@@ -133,6 +133,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
+          fetch-depth: 0
           submodules: false
       - name: Use expanded matrix
         if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1'
