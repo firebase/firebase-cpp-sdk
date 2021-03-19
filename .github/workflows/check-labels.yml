@@ -2,7 +2,7 @@ name: Check PR Labels
 on:
   pull_request:
     types: [opened, reopened, synchronize, labeled, unlabeled]
-    
+
 env:
   triggerLabelFull: "tests-requested: full"
   triggerLabelQuick: "tests-requested: quick"
