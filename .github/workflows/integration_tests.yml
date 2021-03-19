@@ -188,6 +188,8 @@ jobs:
     name: ${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
     needs: [prepare_matrix, check_trigger]
     runs-on: ${{ matrix.os }}
+    # Skip this if there is an empty matrix (which can happen if "auto" was set above).
+    if: needs.prepare_matrix.outputs.matrix_platform != '[]' && needs.prepare_matrix.outputs.apis != ''
     strategy:
       fail-fast: false
       matrix:
