@@ -49,6 +49,7 @@ env:
   statusLabelInProgress: "tests: in-progress"
   statusLabelFailed: "tests: failed"
   statusLabelSucceeded: "tests: succeeded"
+  statusCommentIdentifier: "integration-test-status-comment"
 
 jobs:
   check_trigger:
@@ -117,13 +118,27 @@ jobs:
         token: ${{ github.token }}
         label: "${{ env.statusLabelFailed }}"
         type: remove
+    - name: find old status comment, if any
+      uses: peter-evans/find-comment@v1
+      id: find-comment
+      with:
+        issue-number: ${{github.event.number}}
+        body-includes: ${{ env.statusCommentIdentifier }}
+        token: ${{github.token}}
+    - name: delete old status comment
+      if: ${{ steps.find-comment.outputs.comment-id != 0 }}
+      uses: jungwinter/comment@v1
+      with:
+        type: delete
+        comment_id: ${{ steps.find-comment.outputs.comment-id }}
+        token: ${{ github.token }}
     - name: get current time for status comment
       id: get-time
       shell: bash
       run: |
         echo -n "::set-output name=time::"
         TZ=America/Los_Angeles date
-    - name: add in progress comment
+    - name: add in progress status comment
       uses: phulsechinmay/rewritable-pr-comment@v0.2.1
       with:
         message: |
@@ -132,7 +147,7 @@ jobs:
           Last updated: ${{ steps.get-time.outputs.time }}
           **[View integration test run](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
         GITHUB_TOKEN: ${{ github.token }}
-        COMMENT_IDENTIFIER: "integration-test-status-comment"
+        COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
 
   # To feed input into the job matrix, we first need to convert to a JSON
   # list. Then we can use fromJson to define the field in the matrix for the tests job.
@@ -359,7 +374,7 @@ jobs:
         run: |
           echo -n "::set-output name=time::"
           TZ=America/Los_Angeles date
-      - name: add failure comment
+      - name: add failure status comment
         uses: phulsechinmay/rewritable-pr-comment@v0.2.1
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         with:
@@ -369,7 +384,7 @@ jobs:
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
           GITHUB_TOKEN: ${{ github.token }}
-          COMMENT_IDENTIFIER: "integration-test-status-comment"
+          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
 
       - name: Summarize build and test results
         if: ${{ !cancelled() }}
@@ -398,7 +413,7 @@ jobs:
         run: |
           echo -n "::set-output name=time::"
           TZ=America/Los_Angeles date
-      - name: add success comment
+      - name: add success status comment
         uses: phulsechinmay/rewritable-pr-comment@v0.2.1
         with:
           message: |
@@ -407,7 +422,7 @@ jobs:
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
           GITHUB_TOKEN: ${{ github.token }}
-          COMMENT_IDENTIFIER: "integration-test-status-comment"
+          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
 
   remove_in_progress_label:
     name: "remove-in-progress-label"
