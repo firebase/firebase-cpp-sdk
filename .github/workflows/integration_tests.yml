@@ -126,7 +126,7 @@ jobs:
       uses: phulsechinmay/rewritable-pr-comment@v0.2.1
       with:
         message: |
-          \#\#\# ⏳  Integration test in progress
+          ### ⏳  Integration test in progress
           Requested by @${{github.actor}} on commit ${{github.sha}}
           Last updated: ${{ steps.get-time.outputs.time }}
           **[View integration test run](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
@@ -362,7 +362,7 @@ jobs:
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         with:
           message: |
-            \#\#\# ❌  Integration test FAILED
+            ### ❌  Integration test FAILED
             Requested by @${{github.actor}} on commit ${{github.sha}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
@@ -420,7 +420,7 @@ jobs:
         uses: phulsechinmay/rewritable-pr-comment@v0.2.1
         with:
           message: |
-            \#\#\# ✅  Integration test succeeded! 
+            ### ✅  Integration test succeeded! 
             Requested by @${{github.actor}} on commit ${{github.sha}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
