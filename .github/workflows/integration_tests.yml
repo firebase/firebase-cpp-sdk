@@ -403,7 +403,7 @@ jobs:
 
   add_success_label:
     name: "add-success-label"
-    needs: [check_trigger, tests]
+    needs: [check_trigger, tests, remove_in_progress_label]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels }}
     steps:
