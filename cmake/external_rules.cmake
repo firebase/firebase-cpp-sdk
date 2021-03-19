@@ -117,6 +117,13 @@ function(download_external_sources)
       file(INSTALL "${PROJECT_SOURCE_DIR}/cmake/external/leveldb.cmake"
            DESTINATION "${PROJECT_BINARY_DIR}/external/src/firestore/cmake/external")
     endif()
+
+    message(WARNING "DDB   Current source dir: ${CMAKE_CURRENT_SOURCE_DIR}")
+    file(REMOVE "${PROJECT_BINARY_DIR}/external/src/uWebSockets/src/Socket.h")
+
+#file(COPY  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/external/patches/uWebSockets/Socket.h" 
+#  DESTINATION "${FIREBASE_DOWNLOAD_DIR}/uWebSockets/src/")
+
   endif()
 endfunction()
 

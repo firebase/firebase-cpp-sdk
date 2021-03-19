@@ -365,9 +365,32 @@ firebase::database::DatabaseReference FirebaseDatabaseTest::CreateWorkingPath(
 }
 
 // Test cases below.
-
 TEST_F(FirebaseDatabaseTest, TestInitializeAndTerminate) {
   // Already tested via SetUp() and TearDown().
+}
+
+TEST_F(FirebaseDatabaseTest, TestLargeWrite) {
+#define LARGE_WRITE_ARRAY_LENGTH 1024 * 1024
+  char* large_string = new char[LARGE_WRITE_ARRAY_LENGTH];
+  for(uint64_t i = 0; i < LARGE_WRITE_ARRAY_LENGTH; ++i ) {
+    large_string[i] = '1';
+  }
+  large_string[LARGE_WRITE_ARRAY_LENGTH-1] = '\0';
+
+  printf("DDB strlen: %zu bytes\n", strlen(large_string));
+const char* test_name = test_info_->name();
+  SignIn();
+  firebase::database::DatabaseReference ref = CreateWorkingPath();
+  std::string large_std_string(large_string);
+
+  {
+    LogDebug("Setting values.");
+    firebase::Future<void> f1 =
+        ref.Child(test_name).Child("LargeString").SetValue(std::string(large_string));
+    
+    WaitForCompletion(f1, "SetLargeString");
+  }
+  printf("Done!\n");
 }
 
 TEST_F(FirebaseDatabaseTest, TestSignIn) {
@@ -800,8 +823,6 @@ class LoggingValueListener : public firebase::database::ValueListener {
 };
 
 TEST_F(FirebaseDatabaseTest, TestAddAndRemoveListenerRace) {
-  SKIP_TEST_ON_MOBILE;
-
   const char* test_name = test_info_->name();
 
   SignIn();
@@ -1372,5 +1393,4 @@ TEST_F(FirebaseDatabaseTest, TestChildListenerWithNullArgument) {
       database_->GetReference("Nothing/will/be/uploaded/here");
   ref.AddChildListener(nullptr);
 }
-
 }  // namespace firebase_testapp_automated
