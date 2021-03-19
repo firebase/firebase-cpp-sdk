@@ -14,8 +14,6 @@
 
 #include "functions/src/ios/functions_ios.h"
 
-// Functions iOS only change.
-
 #import "FIRFunctions.h"
 #include "app/memory/unique_ptr.h"
 #include "app/src/app_ios.h"
