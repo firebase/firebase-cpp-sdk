@@ -191,7 +191,7 @@ def filter_values_on_diff(parm_key, value, auto_diff):
   Remove entries from the list based on what we observe in the
   source tree, relative to the given base branch."""
   file_list = set(subprocess.check_output(['git', 'diff', '--name-only', auto_diff]).decode('utf-8').rstrip('\n').split('\n'))
-
+  print(file_list)
   if parm_key == 'apis':
     custom_triggers = {
       # Ones set to None are ignored.

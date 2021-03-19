@@ -29,6 +29,8 @@
 #include "app/src/util_ios.h"
 #include "auth/src/ios/common_ios.h"
 
+// Test auth change.
+
 // Wraps AuthData with an Obj-C object so that it's possible to remove
 // the authData from any blocks that reference this handle.
 @interface FIRCPPAuthListenerHandle : NSObject
