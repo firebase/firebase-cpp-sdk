@@ -1,0 +1,18 @@
+name: Check PR Labels
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+    
+env:
+  statusLabelInProgress: "tests: in-progress"
+  statusLabelFailed: "tests: failed"
+
+jobs:
+  check_integration_test_labels:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: danielchabr/pr-labels-checker@v3.0
+      if: github.base_ref == 'main'
+      with:
+        hasNone: "${{ env.statusLabelInProgress }},${{ env.statusLabelFailed }}"
+        githubToken: ${{ github.token }}

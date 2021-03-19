@@ -344,9 +344,9 @@ jobs:
             exit 1
           fi
 
-  finish_job_remove_inprogress_label:
+  remove_inprogress_label:
     name: "finish_job_remove_inprogress_label"
-    needs: [prepare_matrix, check_trigger, tests]
+    needs: [tests]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && always() }}
     steps:
@@ -358,9 +358,9 @@ jobs:
           label: "${{ env.statusLabelInProgress }}"
           type: remove
 
-  finish_job_add_success_label:
+  add_success_label:
     name: "finish_job_add_success_label"
-    needs: [prepare_matrix, check_trigger, tests, finish_job_remove_inprogress_label]
+    needs: [tests]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels }}
     steps:
