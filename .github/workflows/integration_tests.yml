@@ -405,7 +405,7 @@ jobs:
     name: "add-success-label"
     needs: [check_trigger, tests, remove_in_progress_label]
     runs-on: ubuntu-latest
-    if: ${{ needs.check_trigger.outputs.should_update_labels }}
+    if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && !failure() }}
     steps:
       - name: add success label
         uses: buildsville/add-remove-label@v1
