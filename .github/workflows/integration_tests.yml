@@ -352,8 +352,8 @@ jobs:
             exit 1
           fi
 
-  remove_inprogress_label:
-    name: "finish_job_remove_inprogress_label"
+  remove_in_progress_label:
+    name: "remove-in-progress-label"
     needs: [tests]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && always() }}
@@ -367,7 +367,7 @@ jobs:
           type: remove
 
   add_success_label:
-    name: "finish_job_add_success_label"
+    name: "add-success-label"
     needs: [tests]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels }}
