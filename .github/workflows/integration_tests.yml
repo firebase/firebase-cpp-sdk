@@ -356,7 +356,7 @@ jobs:
     name: "remove-in-progress-label"
     needs: [tests]
     runs-on: ubuntu-latest
-    if: ${{ needs.check_trigger.outputs.should_update_labels && always() }}
+    if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() }}
     steps:
       - name: remove in progress label
         if: ${{ !cancelled() }}
