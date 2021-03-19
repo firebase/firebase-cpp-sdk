@@ -191,7 +191,6 @@ def filter_values_on_diff(parm_key, value, auto_diff):
   Remove entries from the list based on what we observe in the
   source tree, relative to the given base branch."""
   file_list = set(subprocess.check_output(['git', 'diff', '--name-only', auto_diff]).decode('utf-8').rstrip('\n').split('\n'))
-
   if parm_key == 'apis':
     custom_triggers = {
       # Ones set to None are ignored.
@@ -204,6 +203,7 @@ def filter_values_on_diff(parm_key, value, auto_diff):
     filtered_api_list = set()
 
     for path in file_list:
+      if len(path) == 0: continue
       topdir = path.split(os.path.sep)[0]
       if topdir in custom_triggers:
         if not custom_triggers[topdir]: continue  # Skip ones set to None.
@@ -228,6 +228,7 @@ def filter_values_on_diff(parm_key, value, auto_diff):
     requested_platform_list = set(value)
     filtered_platform_list = set()
     for path in file_list:
+      if len(path) == 0: continue
       matched = False
       if (re.search(r'^external/', path) or
           re.search(r'^release_build_files/', path) or
