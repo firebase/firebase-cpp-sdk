@@ -408,8 +408,8 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
           COMMENT_IDENTIFIER: "integration-test-status-comment"
 
-  remove_in_progress_label_failure:
-    name: "remove-in-progress-label-failure"
+  remove_in_progress_label:
+    name: "remove-in-progress-label"
     needs: [check_trigger, tests]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() }}
