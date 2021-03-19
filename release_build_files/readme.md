@@ -1,7 +1,5 @@
 # Firebase C++ SDK
 
-Readme change to test empty matrix
-
 The Firebase C++ SDK provides C++ interfaces for the following Firebase services
 on *iOS* and *Android*:
 
