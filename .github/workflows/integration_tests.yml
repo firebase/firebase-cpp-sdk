@@ -119,6 +119,7 @@ jobs:
         type: remove
     - name: get current time for status comment
       id: get-time
+      shell: bash
       run: |
         echo -n "::set-output name=time::"
         TZ=America/Los_Angeles date
@@ -358,6 +359,7 @@ jobs:
       - name: get current time for status comment
         id: get-time
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        shell: bash
         run: |
           echo -n "::set-output name=time::"
           TZ=America/Los_Angeles date
@@ -396,6 +398,7 @@ jobs:
           type: add
       - name: get current time for status comment
         id: get-time
+        shell: bash
         run: |
           echo -n "::set-output name=time::"
           TZ=America/Los_Angeles date
