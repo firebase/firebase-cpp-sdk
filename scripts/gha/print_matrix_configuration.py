@@ -59,6 +59,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 
 # Note that desktop is used for fallback,
 # if there is no direct match for a key.
