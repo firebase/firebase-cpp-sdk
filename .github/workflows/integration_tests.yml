@@ -112,21 +112,21 @@ jobs:
       if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: buildsville/add-remove-label@v1
       with:
-        token: ${{secrets.GITHUB_TOKEN}}
+        token: ${{ github.token }}
         label: "${{ env.statusLabelSucceeded }}"
         type: remove
     - name: remove previous failure label
       if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: buildsville/add-remove-label@v1
       with:
-        token: ${{secrets.GITHUB_TOKEN}}
+        token: ${{ github.token }}
         label: "${{ env.statusLabelFailed }}"
         type: remove
     - name: add in progress comment
       uses: phulsechinmay/rewritable-pr-comment@v0.2.1
       with:
         message: "[Integration test in progress.](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})"
-        GITHUB_TOKEN: ${{ secrets.ACTION_TOKEN }}
+        GITHUB_TOKEN: ${{ github.token }}
         COMMENT_IDENTIFIER: "integration-test-status-comment"
 
   # To feed input into the job matrix, we first need to convert to a JSON
@@ -344,7 +344,7 @@ jobs:
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         uses: buildsville/add-remove-label@v1
         with:
-          token: ${{github.token}}
+          token: ${{ github.token }}
           label: "${{ env.statusLabelFailed }}"
           type: add
       - name: add failure comment
