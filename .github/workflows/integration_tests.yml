@@ -152,27 +152,23 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0
           submodules: false
       - name: Use expanded matrix
         if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1' || needs.check_trigger.outputs.requested_tests == 'full'
         run: |
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
+      - name: Set auto-diff option if specified.
+        if: needs.check_trigger.outputs.requested_tests == "auto"
+        run: |
+          echo "Autodetecting which tests to run."
+          echo "AUTO_DIFF_PARAM=--auto_diff ${{github.event.pull_request.base.sha}}" >> $GITHUB_ENV
 
       - id: export-result
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
         run: |
-          if [[ "${{ needs.check_trigger.outputs.requested_tests }}" == "auto" ]]; then
-            echo "Autodetecting which tests to run."
-            # Autodetect which APIs, platforms, and OSes to test based on what's changed in this PR.
-            echo "::set-output name=apis::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${{github.event.inputs.apis}}" --auto_diff ${{github.event.pull_request.base.sha}})"
-            echo "::set-output name=matrix_platform::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k platform -o "${{github.event.inputs.platforms}}" --auto_diff ${{github.event.pull_request.base.sha}})"
-            echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k os -o "${{github.event.inputs.operating_systems}}" --auto_diff ${{github.event.pull_request.base.sha}})"
-          else
-            echo "::set-output name=apis::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${{github.event.inputs.apis}}" )"
-            echo "::set-output name=matrix_platform::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k platform -o "${{github.event.inputs.platforms}}" )"
-            echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k os -o "${{github.event.inputs.operating_systems}}" )"
-          fi
+          echo "::set-output name=apis::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k apis -o "${{github.event.inputs.apis}}" ${AUTO_DIFF_PARAM}
+          echo "::set-output name=matrix_platform::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k platform -o "${{github.event.inputs.platforms}}" ${AUTO_DIFF_PARAM}
+          echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k os -o "${{github.event.inputs.operating_systems}}" ${AUTO_DIFF_PARAM}
           # If building against a packaged SDK, only use boringssl.
           if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
             echo "::warning ::Downloading SDK package from previous run: https://github.com/firebase/firebase-cpp-sdk/actions/runs/${{ github.event.inputs.test_packaged_sdk }}"

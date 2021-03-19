@@ -15,8 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: docker://agilepathway/pull-request-label-checker:latest
-      # Uncomment the below line if you want this check to only be on the main branch.
-      # if: github.base_ref == 'main'
       with:
         none_of: "${{ env.statusLabelInProgress }},${{ env.statusLabelFailed }},${{ env.triggerLabelFull }},${{ env.triggerLabelQuick }}"
         repo_token: ${{ github.token }}
