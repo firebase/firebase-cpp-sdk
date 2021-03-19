@@ -122,7 +122,12 @@ jobs:
         token: ${{secrets.GITHUB_TOKEN}}
         label: "${{ env.statusLabelFailed }}"
         type: remove
-
+    - name: add in-progress comment
+      uses: phulsechinmay/rewritable-pr-comment@v0.2.1
+      with:
+        message: "[Integration test in progress.](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})")
+        GITHUB_TOKEN: ${{ secrets.ACTION_TOKEN }}
+        COMMENT_IDENTIFIER: "integration-test-status-comment"
 
   # To feed input into the job matrix, we first need to convert to a JSON
   # list. Then we can use fromJson to define the field in the matrix for the tests job.
@@ -339,9 +344,16 @@ jobs:
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         uses: buildsville/add-remove-label@v1
         with:
-          token: ${{secrets.GITHUB_TOKEN}}
+          token: ${{github.token}}
           label: "${{ env.statusLabelFailed }}"
           type: add
+      - name: add failure comment
+        uses: phulsechinmay/rewritable-pr-comment@v0.2.1
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        with:
+          message: "[Integration test failed!](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})")
+          GITHUB_TOKEN: ${{ github.token }}
+          COMMENT_IDENTIFIER: "integration-test-status-comment"
 
       - name: Summarize build and test results
         if: ${{ !cancelled() }}
@@ -385,3 +397,9 @@ jobs:
           token: ${{github.token}}
           label: "${{ env.statusLabelSucceeded }}"
           type: add
+      - name: add success comment
+        uses: phulsechinmay/rewritable-pr-comment@v0.2.1
+        with:
+          message: "[Integration test succeeded!](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})")
+          GITHUB_TOKEN: ${{ github.token }}
+          COMMENT_IDENTIFIER: "integration-test-status-comment"
