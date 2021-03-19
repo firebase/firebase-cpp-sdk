@@ -193,10 +193,13 @@ def filter_values_on_diff(parm_key, value, auto_diff):
   file_list = set(subprocess.check_output(['git', 'diff', '--name-only', auto_diff]).decode('utf-8').rstrip('\n').split('\n'))
   if parm_key == 'apis':
     custom_triggers = {
-      # Ones set to None are ignored.
+      # Special handling for several top-level directories.
+      # Any top-level directories set to None are completely ignored.
       "external": None,
       "release_build_files": None,
-      # Ones set to a list of APIs will trigger those APIs.
+      # Top-level directories listed below trigger additional APIs being tested.
+      # For example, if auth is touched by a PR, we also need to test functions,
+      # database, firestore, and storage.
       "auth": "auth,functions,database,firestore,storage",
     }
     requested_api_list = set(value.split(','))
