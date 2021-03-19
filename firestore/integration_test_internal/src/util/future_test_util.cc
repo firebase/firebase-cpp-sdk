@@ -1,8 +1,8 @@
-#include "firestore/src/tests/util/future_test_util.h"
+#include "util/future_test_util.h"
 
 #include <ostream>
 
-#include "firestore/src/tests/firestore_integration_test.h"
+#include "firestore_integration_test.h"
 #include "firebase/firestore/firestore_errors.h"
 
 namespace firebase {
