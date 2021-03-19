@@ -4,6 +4,8 @@ on:
     types: [opened, reopened, synchronize, labeled, unlabeled]
     
 env:
+  triggerLabelFull: "tests-requested: full"
+  triggerLabelQuick: "tests-requested: quick"
   statusLabelInProgress: "tests: in-progress"
   statusLabelFailed: "tests: failed"
 
@@ -15,5 +17,5 @@ jobs:
       # Uncomment the below line if you want this check to only be on the main branch.
       # if: github.base_ref == 'main'
       with:
-        hasNone: "${{ env.statusLabelInProgress }},${{ env.statusLabelFailed }}"
+        hasNone: "${{ env.statusLabelInProgress }},${{ env.statusLabelFailed }},${{ env.triggerLabelFull }},${{ env.triggerLabelQuick }}"
         githubToken: ${{ github.token }}
