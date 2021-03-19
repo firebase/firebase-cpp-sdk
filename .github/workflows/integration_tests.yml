@@ -360,6 +360,8 @@ jobs:
         run: |
           python scripts/gha/test_lab.py --android_model ${{ needs.prepare_matrix.outputs.android_device }} --android_api ${{ needs.prepare_matrix.outputs.android_api }} --ios_model ${{ needs.prepare_matrix.outputs.ios_device }} --ios_version ${{ needs.prepare_matrix.outputs.ios_version }} --testapp_dir testapps --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
 
+      ### The below allow us to set the failure label and comment early, when the first failure
+      ### in the matrix occurs. It'll be cleaned up in a subsequent job.
       - name: add failure label
         # We can do mark a failure as soon as any one test fails.
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
@@ -380,7 +382,7 @@ jobs:
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         with:
           message: |
-            ### ❌&nbsp; Integration test FAILED
+            ### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)
             Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
@@ -419,6 +421,35 @@ jobs:
         with:
           message: |
             ### ✅&nbsp; Integration test succeeded!
+            Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
+            Last updated: ${{ steps.get-time.outputs.time }}
+            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
+          GITHUB_TOKEN: ${{ github.token }}
+          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
+
+  add_failure_label:
+    name: "add-failure-label"
+    needs: [check_trigger, tests]
+    runs-on: ubuntu-latest
+    if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && failure() }}
+    steps:
+      - name: add failure label
+        uses: buildsville/add-remove-label@v1
+        with:
+          token: ${{ github.token }}
+          label: "${{ env.statusLabelFailed }}"
+          type: add
+      - name: get current time for status comment
+        id: get-time
+        shell: bash
+        run: |
+          echo -n "::set-output name=time::"
+          TZ=America/Los_Angeles date
+      - name: add failure status comment
+        uses: phulsechinmay/rewritable-pr-comment@v0.2.1
+        with:
+          message: |
+            ### ❌&nbsp; Integration test FAILED
             Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
