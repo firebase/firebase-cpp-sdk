@@ -344,30 +344,27 @@ jobs:
             exit 1
           fi
 
-
-  finish_job:
-    name: "finish_job"
+  finish_job_remove_inprogress_label:
+    name: "finish_job_remove_inprogress_label"
     needs: [prepare_matrix, check_trigger, tests]
     runs-on: ubuntu-latest
-    if: ${{ always() }}
+    if: ${{ needs.check_trigger.outputs.should_update_labels && always() }}
     steps:
       - name: remove in progress label
-        if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() }}
+        if: ${{ !cancelled() }}
         uses: buildsville/add-remove-label@v1
         with:
           token: ${{secrets.GITHUB_TOKEN}}
           label: "${{ env.statusLabelInProgress }}"
           type: remove
-      - name: add failure label
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && needs.prepare_matrix.status == 'failure' && !cancelled() }}
-        uses: buildsville/add-remove-label@v1
-        with:
-          token: ${{secrets.GITHUB_TOKEN}}
-          label: "${{ env.statusLabelFailed }}"
-          type: add
+
+  finish_job_add_success_label:
+    name: "finish_job_add_success_label"
+    needs: [prepare_matrix, check_trigger, tests, finish_job_remove_inprogress_label]
+    runs-on: ubuntu-latest
+    if: ${{ needs.check_trigger.outputs.should_update_labels }}
+    steps:
       - name: add success label
-        # Must wait for all tests to finish before marking successful.
-        if: ${{ needs.check_trigger.outputs.should_update_labels && success() && needs.tests.status == 'success' && !cancelled() }}
         uses: buildsville/add-remove-label@v1
         with:
           token: ${{secrets.GITHUB_TOKEN}}
