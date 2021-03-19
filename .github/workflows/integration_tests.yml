@@ -69,15 +69,15 @@ jobs:
       uses: andymckay/cancel-action@0.2
     - name: wait for above cancellation if label is irrelevant
       if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix) }}
-      run: sleep 300
+      run: |
+        sleep 300
+        exit 1  # fail out if the cancellation above somehow failed.
     ### Below this line, the label is one of the test-request triggers.
     - name: cancel previous runs on the same PR
-      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: styfle/cancel-workflow-action@0.8.0
       with:
         access_token: ${{ github.token }}
     - name: remove triggering label
-      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: buildsville/add-remove-label@v1
       with:
         token: ${{ github.token }}
@@ -85,14 +85,12 @@ jobs:
         type: remove
     ### Fail the workflow if the user does not have admin access to run the tests.
     - name: check if user has permission to trigger tests
-      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: lannonbr/repo-permission-check-action@2.0.0
       with:
         permission: "admin"
       env:
         GITHUB_TOKEN: ${{ github.token }}
     - id: set_outputs
-      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       run: |
         echo "::set-output name=should_update_labels::1"
         if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelFull }}" ]]; then
@@ -102,32 +100,35 @@ jobs:
         fi
     ### Add the in-progress label and remove any previous success/fail labels.
     - name: add in-progress label
-      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: buildsville/add-remove-label@v1
       with:
         token: ${{ github.token }}
         label: "${{ env.statusLabelInProgress }}"
         type: add
     - name: remove previous success label
-      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: buildsville/add-remove-label@v1
       with:
         token: ${{ github.token }}
         label: "${{ env.statusLabelSucceeded }}"
         type: remove
     - name: remove previous failure label
-      if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: buildsville/add-remove-label@v1
       with:
         token: ${{ github.token }}
         label: "${{ env.statusLabelFailed }}"
         type: remove
+    - name: get current time for status comment
+      id: get-time
+      run: |
+        echo -n "::set-output name=time::"
+        TZ=America/Los_Angeles date
     - name: add in progress comment
       uses: phulsechinmay/rewritable-pr-comment@v0.2.1
       with:
         message: |
           Integration test: *[in progress](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})*
           Requested by @${{github.actor}} on commit ${{github.sha}}
+          Last updated: ${{ steps.get-time.outputs.time }}
         GITHUB_TOKEN: ${{ github.token }}
         COMMENT_IDENTIFIER: "integration-test-status-comment"
 
@@ -342,13 +343,19 @@ jobs:
           python scripts/gha/test_lab.py --android_model ${{ needs.prepare_matrix.outputs.android_device }} --android_api ${{ needs.prepare_matrix.outputs.android_api }} --ios_model ${{ needs.prepare_matrix.outputs.ios_device }} --ios_version ${{ needs.prepare_matrix.outputs.ios_version }} --testapp_dir testapps --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
 
       - name: add failure label
-        # We can do this as soon as a test fails.
+        # We can do mark a failure as soon as any one test fails.
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         uses: buildsville/add-remove-label@v1
         with:
           token: ${{ github.token }}
           label: "${{ env.statusLabelFailed }}"
           type: add
+      - name: get current time for status comment
+        id: get-time
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        run: |
+          echo -n "::set-output name=time::"
+          TZ=America/Los_Angeles date
       - name: add failure comment
         uses: phulsechinmay/rewritable-pr-comment@v0.2.1
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
@@ -356,6 +363,7 @@ jobs:
           message: |
             Integration test: **[failed](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
             Requested by @${{github.actor}} on commit ${{github.sha}}
+            Last updated: ${{ steps.get-time.outputs.time }}
           GITHUB_TOKEN: ${{ github.token }}
           COMMENT_IDENTIFIER: "integration-test-status-comment"
 
@@ -401,11 +409,17 @@ jobs:
           token: ${{github.token}}
           label: "${{ env.statusLabelSucceeded }}"
           type: add
+      - name: get current time for status comment
+        id: get-time
+        run: |
+          echo -n "::set-output name=time::"
+          TZ=America/Los_Angeles date
       - name: add success comment
         uses: phulsechinmay/rewritable-pr-comment@v0.2.1
         with:
           message: |
             Integration test: **[succeeded](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
             Requested by @${{github.actor}} on commit ${{github.sha}}
+            Last updated: ${{ steps.get-time.outputs.time }}
           GITHUB_TOKEN: ${{ github.token }}
           COMMENT_IDENTIFIER: "integration-test-status-comment"
