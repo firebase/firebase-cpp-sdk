@@ -18,8 +18,6 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "functions/src/desktop/callable_reference_desktop.h"
 
-// Functions desktop only change.
-
 namespace firebase {
 namespace functions {
 namespace internal {
