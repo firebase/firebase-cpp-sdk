@@ -349,6 +349,7 @@ jobs:
     name: "finish_job"
     needs: [prepare_matrix, check_trigger, tests]
     runs-on: ubuntu-latest
+    if: ${{ always() }}
     steps:
       - name: remove in progress label
         if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() }}
