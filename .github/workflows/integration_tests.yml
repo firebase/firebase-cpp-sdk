@@ -126,7 +126,7 @@ jobs:
       uses: phulsechinmay/rewritable-pr-comment@v0.2.1
       with:
         message: |
-          ### ⏳  Integration test in progress
+          ### ⏳&nbsp; Integration test in progress...
           Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
           Last updated: ${{ steps.get-time.outputs.time }}
           **[View integration test run](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
@@ -364,7 +364,7 @@ jobs:
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         with:
           message: |
-            ### ❌  Integration test FAILED
+            ### ❌&nbsp; Integration test FAILED
             Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
@@ -380,8 +380,36 @@ jobs:
             exit 1
           fi
 
-  remove_in_progress_label:
-    name: "remove-in-progress-label"
+  add_success_label:
+    name: "add-success-label"
+    needs: [check_trigger, tests]
+    runs-on: ubuntu-latest
+    if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && !failure() }}
+    steps:
+      - name: add success label
+        uses: buildsville/add-remove-label@v1
+        with:
+          token: ${{github.token}}
+          label: "${{ env.statusLabelSucceeded }}"
+          type: add
+      - name: get current time for status comment
+        id: get-time
+        run: |
+          echo -n "::set-output name=time::"
+          TZ=America/Los_Angeles date
+      - name: add success comment
+        uses: phulsechinmay/rewritable-pr-comment@v0.2.1
+        with:
+          message: |
+            ### ✅&nbsp; Integration test succeeded!
+            Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
+            Last updated: ${{ steps.get-time.outputs.time }}
+            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
+          GITHUB_TOKEN: ${{ github.token }}
+          COMMENT_IDENTIFIER: "integration-test-status-comment"
+
+  remove_in_progress_label_failure:
+    name: "remove-in-progress-label-failure"
     needs: [check_trigger, tests]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() }}
@@ -401,30 +429,3 @@ jobs:
           label: "${{ env.statusLabelInProgress }}"
           type: remove
 
-  add_success_label:
-    name: "add-success-label"
-    needs: [check_trigger, tests, remove_in_progress_label]
-    runs-on: ubuntu-latest
-    if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && !failure() }}
-    steps:
-      - name: add success label
-        uses: buildsville/add-remove-label@v1
-        with:
-          token: ${{github.token}}
-          label: "${{ env.statusLabelSucceeded }}"
-          type: add
-      - name: get current time for status comment
-        id: get-time
-        run: |
-          echo -n "::set-output name=time::"
-          TZ=America/Los_Angeles date
-      - name: add success comment
-        uses: phulsechinmay/rewritable-pr-comment@v0.2.1
-        with:
-          message: |
-            ### ✅  Integration test succeeded! 
-            Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
-            Last updated: ${{ steps.get-time.outputs.time }}
-            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-          GITHUB_TOKEN: ${{ github.token }}
-          COMMENT_IDENTIFIER: "integration-test-status-comment"
