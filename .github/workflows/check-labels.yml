@@ -1,0 +1,13 @@
+name: Check PR Labels
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  check_labels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: jesusvasquez333/verify-pr-label-action@v1.4.0
+        with:
+          github-token: '${{ secrets.GITHUB_TOKEN }}'
+          invalid-labels: 'tests: failed, tests: in-progress'
