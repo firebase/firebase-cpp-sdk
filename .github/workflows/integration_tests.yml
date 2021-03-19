@@ -119,6 +119,7 @@ jobs:
         type: remove
     - name: get current time for status comment
       id: get-time
+      shell: bash
       run: |
         echo -n "::set-output name=time::"
         TZ=America/Los_Angeles date
@@ -138,6 +139,7 @@ jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
     needs: check_trigger
+    if: ${{ !cancelled() && !failure() }}  # Run even if check_trigger was skipped.
     outputs:
       matrix_platform: ${{ steps.export-result.outputs.matrix_platform }}
       matrix_os: ${{ steps.export-result.outputs.matrix_os }}
@@ -189,7 +191,8 @@ jobs:
     needs: [prepare_matrix, check_trigger]
     runs-on: ${{ matrix.os }}
     # Skip this if there is an empty matrix (which can happen if "auto" was set above).
-    if: needs.prepare_matrix.outputs.matrix_platform != '[]' && needs.prepare_matrix.outputs.apis != ''
+    # But check cancelled() && !failure() so it runs even if check_trigger was skipped.
+    if: needs.prepare_matrix.outputs.matrix_platform != '[]' && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
     strategy:
       fail-fast: false
       matrix:
@@ -356,6 +359,7 @@ jobs:
       - name: get current time for status comment
         id: get-time
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        shell: bash
         run: |
           echo -n "::set-output name=time::"
           TZ=America/Los_Angeles date
@@ -394,6 +398,7 @@ jobs:
           type: add
       - name: get current time for status comment
         id: get-time
+        shell: bash
         run: |
           echo -n "::set-output name=time::"
           TZ=America/Los_Angeles date
