@@ -135,6 +135,11 @@ flags.DEFINE_list(
     " Desktop", short_name="p")
 
 flags.DEFINE_bool(
+    "include_internal_tests", True,
+    "Build and run internal integration tests."
+    "Only works when tests are built against source.")
+
+flags.DEFINE_bool(
     "add_timestamp", True,
     "Add a timestamp to the output directory for disambiguation."
     " Recommended when running locally, so each execution gets its own "
@@ -172,6 +177,9 @@ flags.register_validator(
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
+
+  if FLAGS.include_internal_tests and not FLAGS.repo_dir:
+    raise app.UsageError("Can build internal tests only against source.")
 
   platforms = FLAGS.platforms
   testapps = FLAGS.testapps
@@ -215,28 +223,35 @@ def main(argv):
 
   failures = []
   for testapp in testapps:
-    logging.info("BEGIN building for %s", testapp)
-    failures += _build(
-        testapp=testapp,
-        platforms=platforms,
-        api_config=config.get_api(testapp),
-        output_dir=output_dir,
-        sdk_dir=sdk_dir,
-        ios_framework_exist=ios_framework_exist,
-        repo_dir=repo_dir,
-        ios_sdk=FLAGS.ios_sdk,
-        cmake_flags=cmake_flags)
-    logging.info("END building for %s", testapp)
+    api_config = config.get_api(testapp)
+    testapp_dirs = [api_config.testapp_path]
+    testapp_dirs = []
+    if FLAGS.include_internal_tests and api_config.internal_testapp_path:
+      testapp_dirs.append(api_config.internal_testapp_path)
+    for testapp_dir in testapp_dirs:
+      logging.info("BEGIN building for %s: %s", testapp, testapp_dir)
+      failures += _build(
+          testapp=testapp,
+          platforms=platforms,
+          api_config=config.get_api(testapp),
+          testapp_dir=testapp_dir,
+          output_dir=output_dir,
+          sdk_dir=sdk_dir,
+          ios_framework_exist=ios_framework_exist,
+          repo_dir=repo_dir,
+          ios_sdk=FLAGS.ios_sdk,
+          cmake_flags=cmake_flags)
+      logging.info("END building for %s", testapp)
 
   _summarize_results(testapps, platforms, failures, output_dir)
   return 1 if failures else 0
 
 
 def _build(
-    testapp, platforms, api_config, output_dir, sdk_dir, ios_framework_exist,
+    testapp, platforms, api_config, testapp_dir, output_dir, sdk_dir, ios_framework_exist,
     repo_dir, ios_sdk, cmake_flags):
   """Builds one testapp on each of the specified platforms."""
-  testapp_dir = os.path.join(repo_dir, api_config.testapp_path)
+  os.chdir(repo_dir)
   project_dir = os.path.join(
       output_dir, api_config.full_name, os.path.basename(testapp_dir))
 
