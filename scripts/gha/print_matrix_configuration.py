@@ -249,7 +249,7 @@ def filter_values_on_diff(parm_key, value, auto_diff):
         matched = True
       if "Desktop" in requested_platform_list and (
           re.search(r'desktop', path)):
-        filtered_platform_list.add("iOS")
+        filtered_platform_list.add("Desktop")
         matched = True
       if not matched:
         # If the file didn't match any of these, trigger all requested platforms.
