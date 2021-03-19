@@ -74,7 +74,7 @@ jobs:
       uses: buildsville/add-remove-label@v1
       with:
         token: ${{secrets.GITHUB_TOKEN}}
-        label: ${{ github.event.label.name }}
+        label: "${{ github.event.label.name }}"
         type: remove
     - name: check if user has permission to trigger tests
       if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
@@ -98,21 +98,21 @@ jobs:
       uses: buildsville/add-remove-label@v1
       with:
         token: ${{secrets.GITHUB_TOKEN}}
-        label: ${{ env.statusLabelInProgress }}
+        label: "${{ env.statusLabelInProgress }}"
         type: add
     - name: remove previous success label
       if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: buildsville/add-remove-label@v1
       with:
         token: ${{secrets.GITHUB_TOKEN}}
-        label: ${{ env.statusLabelSuccess }}
+        label: "${{ env.statusLabelSucceeded }}"
         type: remove
     - name: remove previous failure label
       if: ${{ startsWith(github.event.label.name, env.triggerLabelPrefix) }}
       uses: buildsville/add-remove-label@v1
       with:
         token: ${{secrets.GITHUB_TOKEN}}
-        label: ${{ env.statusLabelFailure }}
+        label: "${{ env.statusLabelFailed }}"
         type: remove
 
 
@@ -330,7 +330,7 @@ jobs:
         uses: buildsville/add-remove-label@v1
         with:
           token: ${{secrets.GITHUB_TOKEN}}
-          label: "tests: failed"
+          label: "${{ env.statusLabelFailed }}"
           type: add
 
       - name: Summarize build and test results
@@ -353,7 +353,7 @@ jobs:
         uses: buildsville/add-remove-label@v1
         with:
           token: ${{secrets.GITHUB_TOKEN}}
-          label: "tests: in-progress"
+          label: "${{ env.statusLabelInProgress }}"
           type: remove
       - name: add success label
         # Must wait for all tests to finish before marking successful.
@@ -361,5 +361,5 @@ jobs:
         uses: buildsville/add-remove-label@v1
         with:
           token: ${{secrets.GITHUB_TOKEN}}
-          label: "tests: succeeded"
+          label: "${{ env.statusLabelSucceeded }}"
           type: add
