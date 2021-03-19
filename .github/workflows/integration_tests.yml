@@ -127,7 +127,7 @@ jobs:
       with:
         message: |
           ### ⏳  Integration test in progress
-          Requested by @${{github.actor}} on commit ${{github.sha}}
+          Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
           Last updated: ${{ steps.get-time.outputs.time }}
           **[View integration test run](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
         GITHUB_TOKEN: ${{ github.token }}
@@ -363,7 +363,7 @@ jobs:
         with:
           message: |
             ### ❌  Integration test FAILED
-            Requested by @${{github.actor}} on commit ${{github.sha}}
+            Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
           GITHUB_TOKEN: ${{ github.token }}
@@ -421,7 +421,7 @@ jobs:
         with:
           message: |
             ### ✅  Integration test succeeded! 
-            Requested by @${{github.actor}} on commit ${{github.sha}}
+            Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
           GITHUB_TOKEN: ${{ github.token }}
