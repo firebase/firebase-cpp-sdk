@@ -382,7 +382,7 @@ jobs:
 
   remove_in_progress_label:
     name: "remove-in-progress-label"
-    needs: [tests]
+    needs: [check_trigger, tests]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() }}
     steps:
@@ -403,7 +403,7 @@ jobs:
 
   add_success_label:
     name: "add-success-label"
-    needs: [tests]
+    needs: [check_trigger, tests]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels }}
     steps:
