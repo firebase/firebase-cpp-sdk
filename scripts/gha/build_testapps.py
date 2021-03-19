@@ -225,7 +225,7 @@ def main(argv):
   for testapp in testapps:
     api_config = config.get_api(testapp)
     testapp_dirs = [api_config.testapp_path]
-    testapp_dirs = []
+    # testapp_dirs = []
     if FLAGS.include_internal_tests and api_config.internal_testapp_path:
       testapp_dirs.append(api_config.internal_testapp_path)
     for testapp_dir in testapp_dirs:
