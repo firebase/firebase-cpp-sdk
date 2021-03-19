@@ -138,6 +138,7 @@ jobs:
   prepare_matrix:
     runs-on: ubuntu-latest
     needs: check_trigger
+    if: !cancelled() && !failure()
     outputs:
       matrix_platform: ${{ steps.export-result.outputs.matrix_platform }}
       matrix_os: ${{ steps.export-result.outputs.matrix_os }}
