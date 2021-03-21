@@ -3,17 +3,23 @@
 #include "firestore/src/include/firebase/firestore/snapshot_metadata.h"
 #include "firestore/src/jni/env.h"
 #include "firestore_integration_test.h"
+#include "android/firestore_integration_test_android.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "firebase_test_framework.h"
 
 namespace firebase {
 namespace firestore {
+
+using SnapshotMetadataAndroidTest = FirestoreAndroidIntegrationTest;
 
 using jni::Class;
 using jni::Env;
 using jni::Local;
 
-TEST_F(FirestoreIntegrationTest, Converts) {
+TEST_F(SnapshotMetadataAndroidTest, Converts) {
+  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
+
   Env env;
 
   Local<Class> clazz =

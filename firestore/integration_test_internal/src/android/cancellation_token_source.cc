@@ -9,12 +9,12 @@ namespace {
 
 using jni::Constructor;
 using jni::Env;
-using jni::Local;
+using jni::Global;
 using jni::Method;
 using jni::Object;
 
 constexpr char kClassName[] =
-    PROGUARD_KEEP_CLASS "com/google/android/gms/tasks/CancellationTokenSource";
+  "com/google/android/gms/tasks/CancellationTokenSource";
 Constructor<CancellationTokenSource> kConstructor("()V");
 Method<Object> kGetToken("getToken",
                          "()Lcom/google/android/gms/tasks/CancellationToken;");
@@ -26,11 +26,11 @@ void CancellationTokenSource::Initialize(jni::Loader& loader) {
   loader.LoadClass(kClassName, kConstructor, kGetToken, kCancel);
 }
 
-Local<CancellationTokenSource> CancellationTokenSource::Create(Env& env) {
+Global<CancellationTokenSource> CancellationTokenSource::Create(Env& env) {
   return env.New(kConstructor);
 }
 
-Local<Object> CancellationTokenSource::GetToken(Env& env) {
+Global<Object> CancellationTokenSource::GetToken(Env& env) {
   return env.Call(*this, kGetToken);
 }
 

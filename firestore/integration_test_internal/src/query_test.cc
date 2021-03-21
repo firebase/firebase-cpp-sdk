@@ -24,6 +24,7 @@
 #include "gtest/gtest.h"
 #include "firebase/firestore/firestore_errors.h"
 #include "Firestore/core/src/util/firestore_exceptions.h"
+#include "firebase_test_framework.h"
 
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRQueryTests.mm
@@ -36,6 +37,8 @@
 namespace firebase {
 namespace firestore {
 namespace {
+
+using QueryTest = FirestoreIntegrationTest;
 
 using ::testing::ElementsAreArray;
 using ::testing::IsEmpty;
@@ -57,7 +60,7 @@ std::vector<MapFieldValue> AllDocsExcept(
 
 #if !defined(FIRESTORE_STUB_BUILD)
 
-TEST_F(FirestoreIntegrationTest, TestLimitQueries) {
+TEST_F(QueryTest, TestLimitQueries) {
   CollectionReference collection =
       Collection({{"a", {{"k", FieldValue::String("a")}}},
                   {"b", {{"k", FieldValue::String("b")}}},
@@ -68,7 +71,7 @@ TEST_F(FirestoreIntegrationTest, TestLimitQueries) {
             QuerySnapshotToValues(snapshot));
 }
 
-TEST_F(FirestoreIntegrationTest, TestLimitQueriesUsingDescendingSortOrder) {
+TEST_F(QueryTest, TestLimitQueriesUsingDescendingSortOrder) {
   CollectionReference collection = Collection(
       {{"a",
         {{"k", FieldValue::String("a")}, {"sort", FieldValue::Integer(0)}}},
@@ -88,7 +91,7 @@ TEST_F(FirestoreIntegrationTest, TestLimitQueriesUsingDescendingSortOrder) {
 }
 
 #if defined(__ANDROID__) && FIRESTORE_HAVE_EXCEPTIONS
-TEST_F(FirestoreIntegrationTest, TestLimitToLastMustAlsoHaveExplicitOrderBy) {
+TEST_F(QueryTest, TestLimitToLastMustAlsoHaveExplicitOrderBy) {
   CollectionReference collection = Collection();
 
   EXPECT_THROW(Await(collection.LimitToLast(2).Get()), std::logic_error);
@@ -101,7 +104,7 @@ TEST_F(FirestoreIntegrationTest, TestLimitToLastMustAlsoHaveExplicitOrderBy) {
 // queries are sent to the backend with a modified OrderBy() clause, they can
 // map to the same target representation as Limit() query, even if both queries
 // appear separate to the user.
-TEST_F(FirestoreIntegrationTest,
+TEST_F(QueryTest,
        TestListenUnlistenRelistenSequenceOfMirrorQueries) {
   CollectionReference collection = Collection(
       {{"a",
@@ -200,7 +203,7 @@ TEST_F(FirestoreIntegrationTest,
                                          {"sort", FieldValue::Integer(-2)}}));
 }
 
-TEST_F(FirestoreIntegrationTest,
+TEST_F(QueryTest,
        TestKeyOrderIsDescendingForDescendingInequality) {
   CollectionReference collection =
       Collection({{"a", {{"foo", FieldValue::Integer(42)}}},
@@ -217,7 +220,7 @@ TEST_F(FirestoreIntegrationTest,
             QuerySnapshotToIds(snapshot));
 }
 
-TEST_F(FirestoreIntegrationTest, TestUnaryFilterQueries) {
+TEST_F(QueryTest, TestUnaryFilterQueries) {
   CollectionReference collection = Collection(
       {{"a", {{"null", FieldValue::Null()}, {"nan", FieldValue::Double(NAN)}}},
        {"b", {{"null", FieldValue::Null()}, {"nan", FieldValue::Integer(0)}}},
@@ -232,7 +235,7 @@ TEST_F(FirestoreIntegrationTest, TestUnaryFilterQueries) {
             QuerySnapshotToValues(snapshot));
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueryWithFieldPaths) {
+TEST_F(QueryTest, TestQueryWithFieldPaths) {
   CollectionReference collection =
       Collection({{"a", {{"a", FieldValue::Integer(1)}}},
                   {"b", {{"a", FieldValue::Integer(2)}}},
@@ -243,7 +246,7 @@ TEST_F(FirestoreIntegrationTest, TestQueryWithFieldPaths) {
   EXPECT_EQ(std::vector<std::string>({"b", "a"}), QuerySnapshotToIds(snapshot));
 }
 
-TEST_F(FirestoreIntegrationTest, TestFilterOnInfinity) {
+TEST_F(QueryTest, TestFilterOnInfinity) {
   CollectionReference collection =
       Collection({{"a", {{"inf", FieldValue::Double(INFINITY)}}},
                   {"b", {{"inf", FieldValue::Double(-INFINITY)}}}});
@@ -254,7 +257,7 @@ TEST_F(FirestoreIntegrationTest, TestFilterOnInfinity) {
       QuerySnapshotToValues(snapshot));
 }
 
-TEST_F(FirestoreIntegrationTest, TestWillNotGetMetadataOnlyUpdates) {
+TEST_F(QueryTest, TestWillNotGetMetadataOnlyUpdates) {
   CollectionReference collection =
       Collection({{"a", {{"v", FieldValue::String("a")}}},
                   {"b", {{"v", FieldValue::String("b")}}}});
@@ -276,7 +279,7 @@ TEST_F(FirestoreIntegrationTest, TestWillNotGetMetadataOnlyUpdates) {
   registration.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest,
+TEST_F(QueryTest,
        TestCanListenForTheSameQueryWithDifferentOptions) {
   CollectionReference collection = Collection();
   WriteDocuments(collection, {{"a", {{"v", FieldValue::String("a")}}},
@@ -352,7 +355,7 @@ TEST_F(FirestoreIntegrationTest,
   registration_full.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanListenForQueryMetadataChanges) {
+TEST_F(QueryTest, TestCanListenForQueryMetadataChanges) {
   CollectionReference collection =
       Collection({{"1",
                    {{"sort", FieldValue::Double(1.0)},
@@ -402,7 +405,7 @@ TEST_F(FirestoreIntegrationTest, TestCanListenForQueryMetadataChanges) {
   registration2.Remove();
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanExplicitlySortByDocumentId) {
+TEST_F(QueryTest, TestCanExplicitlySortByDocumentId) {
   CollectionReference collection =
       Collection({{"a", {{"key", FieldValue::String("a")}}},
                   {"b", {{"key", FieldValue::String("b")}}},
@@ -415,7 +418,7 @@ TEST_F(FirestoreIntegrationTest, TestCanExplicitlySortByDocumentId) {
             QuerySnapshotToIds(snapshot));
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanQueryByDocumentId) {
+TEST_F(QueryTest, TestCanQueryByDocumentId) {
   CollectionReference collection =
       Collection({{"aa", {{"key", FieldValue::String("aa")}}},
                   {"ab", {{"key", FieldValue::String("ab")}}},
@@ -437,7 +440,7 @@ TEST_F(FirestoreIntegrationTest, TestCanQueryByDocumentId) {
             QuerySnapshotToIds(snapshot2));
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanQueryByDocumentIdUsingRefs) {
+TEST_F(QueryTest, TestCanQueryByDocumentIdUsingRefs) {
   CollectionReference collection =
       Collection({{"aa", {{"key", FieldValue::String("aa")}}},
                   {"ab", {{"key", FieldValue::String("ab")}}},
@@ -462,7 +465,7 @@ TEST_F(FirestoreIntegrationTest, TestCanQueryByDocumentIdUsingRefs) {
             QuerySnapshotToIds(snapshot2));
 }
 
-TEST_F(FirestoreIntegrationTest, TestCanQueryWithAndWithoutDocumentKey) {
+TEST_F(QueryTest, TestCanQueryWithAndWithoutDocumentKey) {
   CollectionReference collection = Collection();
   Await(collection.Add({}));
   QuerySnapshot snapshot1 = ReadDocuments(collection.OrderBy(
@@ -472,7 +475,7 @@ TEST_F(FirestoreIntegrationTest, TestCanQueryWithAndWithoutDocumentKey) {
   EXPECT_EQ(QuerySnapshotToValues(snapshot1), QuerySnapshotToValues(snapshot2));
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotEqualFilters) {
+TEST_F(QueryTest, TestQueriesCanUseNotEqualFilters) {
   // These documents are ordered by value in "zip" since the NotEqual filter is
   // an inequality, which results in documents being sorted by value.
   std::map<std::string, MapFieldValue> docs = {
@@ -501,7 +504,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotEqualFilters) {
               ElementsAreArray(AllDocsExcept(docs, {"c", "i", "j"})));
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotEqualFiltersWithObject) {
+TEST_F(QueryTest, TestQueriesCanUseNotEqualFiltersWithObject) {
   // These documents are ordered by value in "zip" since the NotEqual filter is
   // an inequality, which results in documents being sorted by value.
   std::map<std::string, MapFieldValue> docs = {
@@ -529,7 +532,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotEqualFiltersWithObject) {
               ElementsAreArray(AllDocsExcept(docs, {"h", "i", "j"})));
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotEqualFiltersWithNull) {
+TEST_F(QueryTest, TestQueriesCanUseNotEqualFiltersWithNull) {
   // These documents are ordered by value in "zip" since the NotEqual filter is
   // an inequality, which results in documents being sorted by value.
   std::map<std::string, MapFieldValue> docs = {
@@ -558,7 +561,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotEqualFiltersWithNull) {
               ElementsAreArray(AllDocsExcept(docs, {"i", "j"})));
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotEqualFiltersWithNan) {
+TEST_F(QueryTest, TestQueriesCanUseNotEqualFiltersWithNan) {
   // These documents are ordered by value in "zip" since the NotEqual filter is
   // an inequality, which results in documents being sorted by value.
   std::map<std::string, MapFieldValue> docs = {
@@ -586,7 +589,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotEqualFiltersWithNan) {
               ElementsAreArray(AllDocsExcept(docs, {"a", "i", "j"})));
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotEqualFiltersWithDocIds) {
+TEST_F(QueryTest, TestQueriesCanUseNotEqualFiltersWithDocIds) {
   MapFieldValue doc_a = {{"key", FieldValue::String("aa")}};
   MapFieldValue doc_b = {{"key", FieldValue::String("ab")}};
   MapFieldValue doc_c = {{"key", FieldValue::String("ba")}};
@@ -601,7 +604,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotEqualFiltersWithDocIds) {
             QuerySnapshotToValues(snapshot));
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueriesCanUseArrayContainsFilters) {
+TEST_F(QueryTest, TestQueriesCanUseArrayContainsFilters) {
   CollectionReference collection = Collection(
       {{"a", {{"array", FieldValue::Array({FieldValue::Integer(42)})}}},
        {"b",
@@ -634,7 +637,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseArrayContainsFilters) {
   // so there isn't much of anything else interesting to test.
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueriesCanUseInFilters) {
+TEST_F(QueryTest, TestQueriesCanUseInFilters) {
   CollectionReference collection = Collection(
       {{"a", {{"zip", FieldValue::Integer(98101)}}},
        {"b", {{"zip", FieldValue::Integer(98102)}}},
@@ -670,7 +673,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseInFilters) {
       QuerySnapshotToValues(snapshot));
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueriesCanUseInFiltersWithDocIds) {
+TEST_F(QueryTest, TestQueriesCanUseInFiltersWithDocIds) {
   CollectionReference collection =
       Collection({{"aa", {{"key", FieldValue::String("aa")}}},
                   {"ab", {{"key", FieldValue::String("ab")}}},
@@ -685,7 +688,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseInFiltersWithDocIds) {
             QuerySnapshotToValues(snapshot));
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotInFilters) {
+TEST_F(QueryTest, TestQueriesCanUseNotInFilters) {
   // These documents are ordered by value in "zip" since the NotEqual filter is
   // an inequality, which results in documents being sorted by value.
   std::map<std::string, MapFieldValue> docs = {
@@ -716,7 +719,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotInFilters) {
               ElementsAreArray(AllDocsExcept(docs, {"c", "d", "f", "i", "j"})));
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotInFiltersWithObject) {
+TEST_F(QueryTest, TestQueriesCanUseNotInFiltersWithObject) {
   // These documents are ordered by value in "zip" since the NotEqual filter is
   // an inequality, which results in documents being sorted by value.
   std::map<std::string, MapFieldValue> docs = {
@@ -744,7 +747,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotInFiltersWithObject) {
               ElementsAreArray(AllDocsExcept(docs, {"h", "i", "j"})));
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotInFiltersWithNull) {
+TEST_F(QueryTest, TestQueriesCanUseNotInFiltersWithNull) {
   // These documents are ordered by value in "zip" since the NotEqual filter is
   // an inequality, which results in documents being sorted by value.
   std::map<std::string, MapFieldValue> docs = {
@@ -772,7 +775,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotInFiltersWithNull) {
   EXPECT_THAT(QuerySnapshotToValues(snapshot), IsEmpty());
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotInFiltersWithNan) {
+TEST_F(QueryTest, TestQueriesCanUseNotInFiltersWithNan) {
   // These documents are ordered by value in "zip" since the NotEqual filter is
   // an inequality, which results in documents being sorted by value.
   std::map<std::string, MapFieldValue> docs = {
@@ -801,7 +804,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotInFiltersWithNan) {
               ElementsAreArray(AllDocsExcept(docs, {"a", "i", "j"})));
 }
 
-TEST_F(FirestoreIntegrationTest,
+TEST_F(QueryTest,
        TestQueriesCanUseNotInFiltersWithNanAndNumber) {
   // These documents are ordered by value in "zip" since the NotEqual filter is
   // an inequality, which results in documents being sorted by value.
@@ -830,7 +833,7 @@ TEST_F(FirestoreIntegrationTest,
               ElementsAreArray(AllDocsExcept(docs, {"a", "c", "i", "j"})));
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotInFiltersWithDocIds) {
+TEST_F(QueryTest, TestQueriesCanUseNotInFiltersWithDocIds) {
   MapFieldValue doc_a = {{"key", FieldValue::String("aa")}};
   MapFieldValue doc_b = {{"key", FieldValue::String("ab")}};
   MapFieldValue doc_c = {{"key", FieldValue::String("ba")}};
@@ -846,7 +849,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseNotInFiltersWithDocIds) {
             QuerySnapshotToValues(snapshot));
 }
 
-TEST_F(FirestoreIntegrationTest, TestQueriesCanUseArrayContainsAnyFilters) {
+TEST_F(QueryTest, TestQueriesCanUseArrayContainsAnyFilters) {
   CollectionReference collection = Collection(
       {{"a", {{"array", FieldValue::Array({FieldValue::Integer(42)})}}},
        {"b",
@@ -890,7 +893,7 @@ TEST_F(FirestoreIntegrationTest, TestQueriesCanUseArrayContainsAnyFilters) {
             QuerySnapshotToValues(snapshot));
 }
 
-TEST_F(FirestoreIntegrationTest, TestCollectionGroupQueries) {
+TEST_F(QueryTest, TestCollectionGroupQueries) {
   Firestore* db = TestFirestore();
   // Use .Document() to get a random collection group name to use but ensure it
   // starts with 'b' for predictable ordering.
@@ -923,7 +926,7 @@ TEST_F(FirestoreIntegrationTest, TestCollectionGroupQueries) {
             QuerySnapshotToIds(query_snapshot));
 }
 
-TEST_F(FirestoreIntegrationTest,
+TEST_F(QueryTest,
        TestCollectionGroupQueriesWithStartAtEndAtWithArbitraryDocumentIds) {
   Firestore* db = TestFirestore();
   // Use .Document() to get a random collection group name to use but ensure it
@@ -955,7 +958,7 @@ TEST_F(FirestoreIntegrationTest,
             QuerySnapshotToIds(query_snapshot));
 }
 
-TEST_F(FirestoreIntegrationTest,
+TEST_F(QueryTest,
        TestCollectionGroupQueriesWithWhereFiltersOnArbitraryDocumentIds) {
   Firestore* db = TestFirestore();
   // Use .Document() to get a random collection group name to use but ensure it
@@ -1001,10 +1004,14 @@ TEST_F(FirestoreIntegrationTest,
 
 #if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
 TEST(QueryTest, Construction) {
+  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
+
   testutil::AssertWrapperConstructionContract<Query>();
 }
 
 TEST(QueryTest, Assignment) {
+  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
+
   testutil::AssertWrapperAssignmentContract<Query>();
 }
 #endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)

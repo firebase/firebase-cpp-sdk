@@ -9,13 +9,13 @@ namespace {
 
 using jni::Constructor;
 using jni::Env;
-using jni::Local;
+using jni::Global;
 using jni::Method;
 using jni::Object;
 using jni::Task;
 
 constexpr char kClassName[] =
-    PROGUARD_KEEP_CLASS "com/google/android/gms/tasks/TaskCompletionSource";
+    "com/google/android/gms/tasks/TaskCompletionSource";
 Constructor<TaskCompletionSource> kConstructor("()V");
 Constructor<TaskCompletionSource> kConstructorWithCancellationToken(
     "(Lcom/google/android/gms/tasks/CancellationToken;)V");
@@ -30,16 +30,16 @@ void TaskCompletionSource::Initialize(jni::Loader& loader) {
                    kGetTask, kSetException, kSetResult);
 }
 
-Local<TaskCompletionSource> TaskCompletionSource::Create(Env& env) {
+Global<TaskCompletionSource> TaskCompletionSource::Create(Env& env) {
   return env.New(kConstructor);
 }
 
-Local<TaskCompletionSource> TaskCompletionSource::Create(
+Global<TaskCompletionSource> TaskCompletionSource::Create(
     Env& env, const Object& cancellation_token) {
   return env.New(kConstructorWithCancellationToken, cancellation_token);
 }
 
-Local<Task> TaskCompletionSource::GetTask(Env& env) {
+Global<Task> TaskCompletionSource::GetTask(Env& env) {
   return env.Call(*this, kGetTask);
 }
 

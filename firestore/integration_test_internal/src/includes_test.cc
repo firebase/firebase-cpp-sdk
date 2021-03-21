@@ -2,6 +2,7 @@
 
 #include "firebase/firestore.h"
 #include "firestore_integration_test.h"
+#include "app_framework.h"
 #include "gtest/gtest.h"
 
 namespace firebase {
@@ -31,7 +32,7 @@ struct TestTransactionFunction : TransactionFunction {
 // Not using `FirestoreIntegrationTest` to avoid any headers it includes.
 TEST_F(IncludesTest, TestIncludingFirestoreHeaderIsSufficient) {
 #if defined(__ANDROID__)
-  App* app = App::Create(nullptr, nullptr);
+  App* app = App::Create(app_framework::GetJniEnv(), app_framework::GetActivity());
 
 #elif defined(FIRESTORE_STUB_BUILD)
   // Stubs don't load values from `GoogleService-Info.plist`/etc., so the app

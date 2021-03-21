@@ -19,16 +19,16 @@ class TaskCompletionSource : public jni::Object {
   static void Initialize(jni::Loader& loader);
 
   /** Creates a C++ proxy for a Java `TaskCompletionSource` object. */
-  static jni::Local<TaskCompletionSource> Create(jni::Env& env);
+  static jni::Global<TaskCompletionSource> Create(jni::Env& env);
 
   /** Creates a C++ proxy for a Java `TaskCompletionSource` object. */
-  static jni::Local<TaskCompletionSource> Create(
+  static jni::Global<TaskCompletionSource> Create(
       jni::Env& env, const Object& cancellation_token);
 
   /**
    * Invokes `getTask()` on the wrapped Java `TaskCompletionSource` object.
    */
-  jni::Local<jni::Task> GetTask(jni::Env& env);
+  jni::Global<jni::Task> GetTask(jni::Env& env);
 
   /**
    * Invokes `setException()` on the wrapped Java `TaskCompletionSource` object.

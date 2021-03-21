@@ -61,8 +61,9 @@ set(FIREBASE_TEST_FRAMEWORK_SRCS
   src/firebase_test_framework.cc
 )
 
-# Common to both Android and non-Android tests.
-set(FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS
+# These sources contain the actual tests that run on all platforms, both Android
+# and non-Android.
+set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
     src/collection_reference_test.cc
     src/cursor_test.cc
     src/document_change_test.cc
@@ -70,7 +71,6 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS
     src/document_snapshot_test.cc
     src/field_value_test.cc
     src/fields_test.cc
-    src/firestore_integration_test.cc
     src/firestore_test.cc
     src/includes_test.cc
     src/listener_registration_test.cc
@@ -83,27 +83,12 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS
     src/smoke_test.cc
     src/transaction_test.cc
     src/type_test.cc
-    src/util/future_test_util.cc
-    src/util/integration_test_util.cc
     src/validation_test.cc
     src/write_batch_test.cc
 )
-if(NOT ANDROID)
-  # Source files that shouldn't be built on Android.
-  set(FIREBASE_INTEGRATION_TEST_SRCS
-    ${FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS}
-    src/array_transform_test.cc
-    src/cleanup_test.cc
-    src/collection_reference_test.cc
-    src/transaction_extra_test.cc
-  )
-else()
-  # Android-specific sources.
-  set(FIREBASE_INTEGRATION_TEST_SRCS
-    ${FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS}
-    src/android/cancellation_token_source.cc
-    src/android/task_completion_source.cc
-    src/android/firestore_integration_test_android.cc
+
+# These sources contain the actual tests that run on Android only.
+set(FIREBASE_INTEGRATION_TEST_ANDROID_TEST_SRCS
     src/android/field_path_portable_test.cc
     src/android/firestore_integration_test_android_test.cc
     src/android/geo_point_android_test.cc
@@ -112,15 +97,58 @@ else()
     src/android/settings_android_test.cc
     src/android/snapshot_metadata_android_test.cc
     src/android/timestamp_android_test.cc
-    src/android/util_autoid.cc
     src/jni/declaration_test.cc
     src/jni/env_test.cc
     src/jni/object_test.cc
     src/jni/ownership_test.cc
     src/jni/task_test.cc
     src/jni/traits_test.cc
+)
+
+# These sources contain the actual tests that run on non-Android only.
+set(FIREBASE_INTEGRATION_TEST_DESKTOP_AND_IOS_TEST_SRCS
+    src/array_transform_test.cc
+    src/cleanup_test.cc
+    src/collection_reference_test.cc
+    src/transaction_extra_test.cc
+)
+
+# These sources contain test plumbing and support, for all platforms.
+set(FIREBASE_INTEGRATION_TEST_PORTABLE_SUPPORT_SRCS
+    src/firestore_integration_test.cc
+    src/util/future_test_util.cc
+    src/util/integration_test_util.cc
+)
+
+# These sources contain Android-specific test plumbing and utilities.
+set(FIREBASE_INTEGRATION_TEST_ANDROID_SUPPORT_SRCS
+    src/android/cancellation_token_source.cc
+    src/android/task_completion_source.cc
+    src/android/firestore_integration_test_android.cc
+    src/android/util_autoid.cc
+    # wrapper_assertions.cc from the C++ SDK is included here because even
+    # though it's not included in the Android version of the SDK, it's still
+    # used for some tests.
     ../src/common/wrapper_assertions.cc
 )
+
+if(NOT ANDROID)
+  # Include portable source files and portable tests, plus tests that shouldn't
+  # be included on Android.
+  set(FIREBASE_INTEGRATION_TEST_SRCS
+    ${FIREBASE_INTEGRATION_TEST_PORTABLE_SUPPORT_SRCS}
+    ${FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS}
+    ${FIREBASE_INTEGRATION_TEST_DESKTOP_AND_IOS_TEST_SRCS}
+  )
+else()
+  # Include portable source files and tests, plus Android-specific source files
+  # and tests.
+  set(FIREBASE_INTEGRATION_TEST_SRCS
+    ${FIREBASE_INTEGRATION_TEST_PORTABLE_SUPPORT_SRCS}
+    ${FIREBASE_INTEGRATION_TEST_ANDROID_SUPPORT_SRCS}
+    ${FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS}
+    ${FIREBASE_INTEGRATION_TEST_ANDROID_TEST_SRCS}
+  )
 endif()
 
 if(ANDROID)
