@@ -61,35 +61,64 @@ set(FIREBASE_TEST_FRAMEWORK_SRCS
   src/firebase_test_framework.cc
 )
 
-set(FIREBASE_INTEGRATION_TEST_SRCS
-  src/array_transform_test.cc
-  src/cleanup_test.cc
-  src/collection_reference_test.cc
-  src/cursor_test.cc
-  src/document_change_test.cc
-  src/document_reference_test.cc
-  src/document_snapshot_test.cc
-  src/field_value_test.cc
-  src/fields_test.cc
-  src/includes_test.cc
-  src/listener_registration_test.cc
-  src/numeric_transforms_test.cc
-  src/query_network_test.cc
-  src/query_snapshot_test.cc
-  src/query_test.cc
-  src/sanity_test.cc
-  src/server_timestamp_test.cc
-  src/smoke_test.cc
-  src/transaction_extra_test.cc
-  src/transaction_test.cc
-  src/type_test.cc
-  src/validation_test.cc
-  src/write_batch_test.cc
-  src/firestore_test.cc
-  src/util/future_test_util.cc
-  src/util/integration_test_util.cc
-  src/firestore_integration_test.cc
+# Common to both Android and non-Android tests.
+set(FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS
+    src/collection_reference_test.cc
+    src/cursor_test.cc
+    src/document_change_test.cc
+    src/document_reference_test.cc
+    src/document_snapshot_test.cc
+    src/field_value_test.cc
+    src/fields_test.cc
+    src/firestore_integration_test.cc
+    src/firestore_test.cc
+    src/includes_test.cc
+    src/listener_registration_test.cc
+    src/numeric_transforms_test.cc
+    src/query_network_test.cc
+    src/query_snapshot_test.cc
+    src/query_test.cc
+    src/sanity_test.cc
+    src/server_timestamp_test.cc
+    src/smoke_test.cc
+    src/transaction_test.cc
+    src/type_test.cc
+    src/util/future_test_util.cc
+    src/util/integration_test_util.cc
+    src/validation_test.cc
+    src/write_batch_test.cc
 )
+if(NOT ANDROID)
+  set(FIREBASE_INTEGRATION_TEST_SRCS
+    ${FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS}
+    src/array_transform_test.cc
+    src/cleanup_test.cc
+    src/collection_reference_test.cc
+    src/transaction_extra_test.cc
+  )
+else()
+  set(FIREBASE_INTEGRATION_TEST_SRCS
+    ${FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS}
+    src/android/cancellation_token_source.cc
+    src/android/task_completion_source.cc
+    src/android/firestore_integration_test_android.cc
+    src/android/field_path_portable_test.cc
+    src/android/firebase_firestore_settings_android_test.cc
+    src/android/firestore_integration_test_android_test.cc
+    src/android/geo_point_android_test.cc
+    src/android/jni_runnable_android_test.cc
+    src/android/promise_android_test.cc
+    src/android/settings_android_test.cc
+    src/android/snapshot_metadata_android_test.cc
+    src/android/timestamp_android_test.cc
+    src/jni/declaration_test.cc
+    src/jni/env_test.cc
+    src/jni/object_test.cc
+    src/jni/ownership_test.cc
+    src/jni/task_test.cc
+    src/jni/traits_test.cc
+  )
+endif()
 
 # The include directory for the testapp.
 include_directories(src)
