@@ -55,36 +55,36 @@ TEST_F(FieldValueTest, Assignment) {
 
 TEST_F(FieldValueTest, TestNullType) {
   FieldValue value = FieldValue::Null();
-  EXPECT_EQ(Type::kNull, value.type());
+  EXPECT_TRUE(Type::kNull == value.type());
 }
 
 TEST_F(FieldValueTest, TestBooleanType) {
   FieldValue value = FieldValue::Boolean(true);
-  EXPECT_EQ(Type::kBoolean, value.type());
-  EXPECT_EQ(true, value.boolean_value());
+  EXPECT_TRUE(Type::kBoolean == value.type());
+  EXPECT_TRUE(true == value.boolean_value());
 }
 
 TEST_F(FieldValueTest, TestIntegerType) {
   FieldValue value = FieldValue::Integer(123);
-  EXPECT_EQ(Type::kInteger, value.type());
-  EXPECT_EQ(123, value.integer_value());
+  EXPECT_TRUE(Type::kInteger == value.type());
+  EXPECT_TRUE(123 == value.integer_value());
 }
 
 TEST_F(FieldValueTest, TestDoubleType) {
   FieldValue value = FieldValue::Double(3.1415926);
-  EXPECT_EQ(Type::kDouble, value.type());
-  EXPECT_EQ(3.1415926, value.double_value());
+  EXPECT_TRUE(Type::kDouble == value.type());
+  EXPECT_TRUE(3.1415926 == value.double_value());
 }
 
 TEST_F(FieldValueTest, TestTimestampType) {
   FieldValue value = FieldValue::Timestamp({12345, 54321});
-  EXPECT_EQ(Type::kTimestamp, value.type());
-  EXPECT_EQ(Timestamp(12345, 54321), value.timestamp_value());
+  EXPECT_TRUE(Type::kTimestamp == value.type());
+  EXPECT_TRUE(Timestamp(12345, 54321) == value.timestamp_value());
 }
 
 TEST_F(FieldValueTest, TestStringType) {
   FieldValue value = FieldValue::String("hello");
-  EXPECT_EQ(Type::kString, value.type());
+  EXPECT_TRUE(Type::kString == value.type());
   EXPECT_STREQ("hello", value.string_value().c_str());
 }
 
@@ -92,131 +92,131 @@ TEST_F(FieldValueTest, TestStringTypeSpecialCases) {
   // Latin small letter e with acute accent. Codepoints above 7F are encoded
   // in multiple bytes.
   std::string str = u8"\u00E9clair";
-  EXPECT_EQ(FieldValue::String(str).string_value(), str);
+  EXPECT_TRUE(FieldValue::String(str).string_value() == str);
 
   // Latin small letter e + combining acute accent. Similar to above but using
   // a combining character, which is not normalized.
   str = u8"e\u0301clair";
-  EXPECT_EQ(FieldValue::String(str).string_value(), str);
+  EXPECT_TRUE(FieldValue::String(str).string_value() == str);
 
   // Face with tears of joy. This is an emoji outside the BMP and encodes as
   // four bytes in UTF-8 and as a surrogate pair in UTF-16. JNI's modified UTF-8
   // encodes each surrogate as a separate three byte value for a total of six
   // bytes.
   str = u8"\U0001F602!!";
-  EXPECT_EQ(FieldValue::String(str).string_value(), str);
+  EXPECT_TRUE(FieldValue::String(str).string_value() == str);
 
   // Embedded null character. JNI's modified UTF-8 encoding encodes this in a
   // two byte sequence that doesn't contain a zero byte.
   str = u8"aaa";
   str[1] = '\0';
   FieldValue value = FieldValue::String(str);
-  EXPECT_EQ(value.string_value(), str);
+  EXPECT_TRUE(value.string_value() == str);
   EXPECT_STREQ(value.string_value().c_str(), "a");
 }
 
 TEST_F(FieldValueTest, TestBlobType) {
   uint8_t blob[] = "( ͡° ͜ʖ ͡°)";
   FieldValue value = FieldValue::Blob(blob, sizeof(blob));
-  EXPECT_EQ(Type::kBlob, value.type());
-  EXPECT_EQ(sizeof(blob), value.blob_size());
+  EXPECT_TRUE(Type::kBlob == value.type());
+  EXPECT_TRUE(sizeof(blob) == value.blob_size());
   const uint8_t* value_blob = value.blob_value();
 
   FieldValue copied(value);
-  EXPECT_EQ(Type::kBlob, copied.type());
-  EXPECT_EQ(sizeof(blob), copied.blob_size());
+  EXPECT_TRUE(Type::kBlob == copied.type());
+  EXPECT_TRUE(sizeof(blob) == copied.blob_size());
   const uint8_t* copied_blob = copied.blob_value();
 
   for (int i = 0; i < sizeof(blob); ++i) {
-    EXPECT_EQ(blob[i], value_blob[i]);
-    EXPECT_EQ(blob[i], copied_blob[i]);
+    EXPECT_TRUE(blob[i] == value_blob[i]);
+    EXPECT_TRUE(blob[i] == copied_blob[i]);
   }
 }
 
 TEST_F(FieldValueTest, TestReferenceType) {
   FieldValue value =
       FieldValue::Reference(TestFirestore()->Document("foo/bar"));
-  EXPECT_EQ(Type::kReference, value.type());
-  EXPECT_EQ(value.reference_value().path(), "foo/bar");
+  EXPECT_TRUE(Type::kReference == value.type());
+  EXPECT_TRUE(value.reference_value().path() == "foo/bar");
 }
 
 TEST_F(FieldValueTest, TestGeoPointType) {
   FieldValue value = FieldValue::GeoPoint({43, 80});
-  EXPECT_EQ(Type::kGeoPoint, value.type());
-  EXPECT_EQ(GeoPoint(43, 80), value.geo_point_value());
+  EXPECT_TRUE(Type::kGeoPoint == value.type());
+  EXPECT_TRUE(GeoPoint(43, 80) == value.geo_point_value());
 }
 
 TEST_F(FieldValueTest, TestArrayType) {
   FieldValue value = FieldValue::Array(
       {FieldValue::Boolean(true), FieldValue::Integer(123)});
-  EXPECT_EQ(Type::kArray, value.type());
+  EXPECT_TRUE(Type::kArray == value.type());
   const std::vector<FieldValue>& array = value.array_value();
-  EXPECT_EQ(2, array.size());
-  EXPECT_EQ(true, array[0].boolean_value());
-  EXPECT_EQ(123, array[1].integer_value());
+  EXPECT_TRUE(2 == array.size());
+  EXPECT_TRUE(true == array[0].boolean_value());
+  EXPECT_TRUE(123 == array[1].integer_value());
 }
 
 TEST_F(FieldValueTest, TestMapType) {
   FieldValue value =
       FieldValue::Map(MapFieldValue{{"Bool", FieldValue::Boolean(true)},
                                     {"Int", FieldValue::Integer(123)}});
-  EXPECT_EQ(Type::kMap, value.type());
+  EXPECT_TRUE(Type::kMap == value.type());
   MapFieldValue map = value.map_value();
-  EXPECT_EQ(2, map.size());
-  EXPECT_EQ(true, map["Bool"].boolean_value());
-  EXPECT_EQ(123, map["Int"].integer_value());
+  EXPECT_TRUE(2 == map.size());
+  EXPECT_TRUE(true == map["Bool"].boolean_value());
+  EXPECT_TRUE(123 == map["Int"].integer_value());
 }
 
 TEST_F(FieldValueTest, TestSentinelType) {
   FieldValue delete_value = FieldValue::Delete();
-  EXPECT_EQ(Type::kDelete, delete_value.type());
+  EXPECT_TRUE(Type::kDelete == delete_value.type());
 
   FieldValue server_timestamp_value = FieldValue::ServerTimestamp();
-  EXPECT_EQ(Type::kServerTimestamp, server_timestamp_value.type());
+  EXPECT_TRUE(Type::kServerTimestamp == server_timestamp_value.type());
 
   std::vector<FieldValue> array = {FieldValue::Boolean(true),
                                    FieldValue::Integer(123)};
   FieldValue array_union = FieldValue::ArrayUnion(array);
-  EXPECT_EQ(Type::kArrayUnion, array_union.type());
+  EXPECT_TRUE(Type::kArrayUnion == array_union.type());
   FieldValue array_remove = FieldValue::ArrayRemove(array);
-  EXPECT_EQ(Type::kArrayRemove, array_remove.type());
+  EXPECT_TRUE(Type::kArrayRemove == array_remove.type());
 
   FieldValue increment_integer = FieldValue::Increment(1);
-  EXPECT_EQ(Type::kIncrementInteger, increment_integer.type());
+  EXPECT_TRUE(Type::kIncrementInteger == increment_integer.type());
 
   FieldValue increment_double = FieldValue::Increment(1.0);
-  EXPECT_EQ(Type::kIncrementDouble, increment_double.type());
+  EXPECT_TRUE(Type::kIncrementDouble == increment_double.type());
 }
 
 TEST_F(FieldValueTest, TestEquality) {
-  EXPECT_EQ(FieldValue::Null(), FieldValue::Null());
-  EXPECT_EQ(FieldValue::Boolean(true), FieldValue::Boolean(true));
-  EXPECT_EQ(FieldValue::Integer(123), FieldValue::Integer(123));
-  EXPECT_EQ(FieldValue::Double(456.0), FieldValue::Double(456.0));
-  EXPECT_EQ(FieldValue::String("foo"), FieldValue::String("foo"));
+  EXPECT_TRUE(FieldValue::Null() == FieldValue::Null());
+  EXPECT_TRUE(FieldValue::Boolean(true) == FieldValue::Boolean(true));
+  EXPECT_TRUE(FieldValue::Integer(123) == FieldValue::Integer(123));
+  EXPECT_TRUE(FieldValue::Double(456.0) == FieldValue::Double(456.0));
+  EXPECT_TRUE(FieldValue::String("foo") == FieldValue::String("foo"));
 
-  EXPECT_EQ(FieldValue::Timestamp({123, 456}),
+  EXPECT_TRUE(FieldValue::Timestamp({123, 456}) ==
             FieldValue::Timestamp({123, 456}));
 
   uint8_t blob[] = "( ͡° ͜ʖ ͡°)";
-  EXPECT_EQ(FieldValue::Blob(blob, sizeof(blob)),
+  EXPECT_TRUE(FieldValue::Blob(blob, sizeof(blob)) ==
             FieldValue::Blob(blob, sizeof(blob)));
 
-  EXPECT_EQ(FieldValue::GeoPoint({43, 80}), FieldValue::GeoPoint({43, 80}));
+  EXPECT_TRUE(FieldValue::GeoPoint({43, 80}) == FieldValue::GeoPoint({43, 80}));
 
-  EXPECT_EQ(
-      FieldValue::Array({FieldValue::Integer(3), FieldValue::Double(4.0)}),
+  EXPECT_TRUE(
+      FieldValue::Array({FieldValue::Integer(3), FieldValue::Double(4.0)}) ==
       FieldValue::Array({FieldValue::Integer(3), FieldValue::Double(4.0)}));
 
-  EXPECT_EQ(FieldValue::Map(MapFieldValue{{"foo", FieldValue::Integer(3)}}),
+  EXPECT_TRUE(FieldValue::Map(MapFieldValue{{"foo", FieldValue::Integer(3)}}) ==
             FieldValue::Map(MapFieldValue{{"foo", FieldValue::Integer(3)}}));
 
-  EXPECT_EQ(FieldValue::Delete(), FieldValue::Delete());
-  EXPECT_EQ(FieldValue::ServerTimestamp(), FieldValue::ServerTimestamp());
+  EXPECT_TRUE(FieldValue::Delete() == FieldValue::Delete());
+  EXPECT_TRUE(FieldValue::ServerTimestamp() == FieldValue::ServerTimestamp());
   // TODO(varconst): make this work on Android, or remove the tests below.
-  // EXPECT_EQ(FieldValue::ArrayUnion({FieldValue::Null()}),
+  // EXPECT_TRUE(FieldValue::ArrayUnion({FieldValue::Null()}) ==
   //           FieldValue::ArrayUnion({FieldValue::Null()}));
-  // EXPECT_EQ(FieldValue::ArrayRemove({FieldValue::Null()}),
+  // EXPECT_TRUE(FieldValue::ArrayRemove({FieldValue::Null()}) ==
   //           FieldValue::ArrayRemove({FieldValue::Null()}));
 }
 
@@ -263,92 +263,92 @@ TEST_F(FieldValueTest, TestInequalityDueToDifferentTypes) {
 }
 
 TEST_F(FieldValueTest, TestToString) {
-  EXPECT_EQ("<invalid>", FieldValue().ToString());
+  EXPECT_TRUE("<invalid>" == FieldValue().ToString());
 
-  EXPECT_EQ("null", FieldValue::Null().ToString());
-  EXPECT_EQ("true", FieldValue::Boolean(true).ToString());
-  EXPECT_EQ("123", FieldValue::Integer(123L).ToString());
-  EXPECT_EQ("3.14", FieldValue::Double(3.14).ToString());
-  EXPECT_EQ("Timestamp(seconds=12345, nanoseconds=54321)",
+  EXPECT_TRUE("null" == FieldValue::Null().ToString());
+  EXPECT_TRUE("true" == FieldValue::Boolean(true).ToString());
+  EXPECT_TRUE("123" == FieldValue::Integer(123L).ToString());
+  EXPECT_TRUE("3.14" == FieldValue::Double(3.14).ToString());
+  EXPECT_TRUE("Timestamp(seconds=12345, nanoseconds=54321)" ==
             FieldValue::Timestamp({12345, 54321}).ToString());
-  EXPECT_EQ("'hello'", FieldValue::String("hello").ToString());
+  EXPECT_TRUE("'hello'" == FieldValue::String("hello").ToString());
   uint8_t blob[] = "( ͡° ͜ʖ ͡°)";
-  EXPECT_EQ("Blob(28 20 cd a1 c2 b0 20 cd 9c ca 96 20 cd a1 c2 b0 29 00)",
+  EXPECT_TRUE("Blob(28 20 cd a1 c2 b0 20 cd 9c ca 96 20 cd a1 c2 b0 29 00)" ==
             FieldValue::Blob(blob, sizeof(blob)).ToString());
-  EXPECT_EQ("GeoPoint(latitude=43, longitude=80)",
+  EXPECT_TRUE("GeoPoint(latitude=43, longitude=80)" ==
             FieldValue::GeoPoint({43, 80}).ToString());
 
-  EXPECT_EQ("DocumentReference(invalid)", FieldValue::Reference({}).ToString());
+  EXPECT_TRUE("DocumentReference(invalid)" == FieldValue::Reference({}).ToString());
 
-  EXPECT_EQ("[]", FieldValue::Array({}).ToString());
-  EXPECT_EQ("[null]", FieldValue::Array({FieldValue::Null()}).ToString());
-  EXPECT_EQ("[null, true, 1]",
+  EXPECT_TRUE("[]" == FieldValue::Array({}).ToString());
+  EXPECT_TRUE("[null]" == FieldValue::Array({FieldValue::Null()}).ToString());
+  EXPECT_TRUE("[null, true, 1]" ==
             FieldValue::Array({FieldValue::Null(), FieldValue::Boolean(true),
                                FieldValue::Integer(1)})
                 .ToString());
   // TODO(b/150016438): uncomment this case (fails on Android).
-  // EXPECT_EQ("[<invalid>]", FieldValue::Array({FieldValue()}).ToString());
+  // EXPECT_TRUE("[<invalid>]" == FieldValue::Array({FieldValue()}).ToString());
 
-  EXPECT_EQ("{}", FieldValue::Map({}).ToString());
+  EXPECT_TRUE("{}" == FieldValue::Map({}).ToString());
   // TODO(b/150016438): uncomment this case (fails on Android).
-  // EXPECT_EQ("{bad: <invalid>}", FieldValue::Map({
+  // EXPECT_TRUE("{bad: <invalid>}" == FieldValue::Map({
   //                                                       {"bad",
   //                                                       FieldValue()},
   //                                                   })
   //                                   .ToString());
-  EXPECT_EQ("{Null: null}", FieldValue::Map({
+  EXPECT_TRUE("{Null: null}" == FieldValue::Map({
                                                 {"Null", FieldValue::Null()},
                                             })
                                 .ToString());
   // Note: because the map is unordered, it's hard to check the case where a map
   // has more than one element.
 
-  EXPECT_EQ("FieldValue::Delete()", FieldValue::Delete().ToString());
-  EXPECT_EQ("FieldValue::ServerTimestamp()",
+  EXPECT_TRUE("FieldValue::Delete()" == FieldValue::Delete().ToString());
+  EXPECT_TRUE("FieldValue::ServerTimestamp()" ==
             FieldValue::ServerTimestamp().ToString());
-  EXPECT_EQ("FieldValue::ArrayUnion()",
+  EXPECT_TRUE("FieldValue::ArrayUnion()" ==
             FieldValue::ArrayUnion({FieldValue::Null()}).ToString());
-  EXPECT_EQ("FieldValue::ArrayRemove()",
+  EXPECT_TRUE("FieldValue::ArrayRemove()" ==
             FieldValue::ArrayRemove({FieldValue::Null()}).ToString());
 
-  EXPECT_EQ("FieldValue::Increment()", FieldValue::Increment(1).ToString());
-  EXPECT_EQ("FieldValue::Increment()", FieldValue::Increment(1.0).ToString());
+  EXPECT_TRUE("FieldValue::Increment()" == FieldValue::Increment(1).ToString());
+  EXPECT_TRUE("FieldValue::Increment()" == FieldValue::Increment(1.0).ToString());
 }
 
 TEST_F(FieldValueTest, TestIncrementChoosesTheCorrectType) {
   // Signed integers
   // NOLINTNEXTLINE -- exact integer width doesn't matter.
   short foo = 1;
-  EXPECT_EQ(FieldValue::Increment(foo).type(), Type::kIncrementInteger);
-  EXPECT_EQ(FieldValue::Increment(1).type(), Type::kIncrementInteger);
-  EXPECT_EQ(FieldValue::Increment(1L).type(), Type::kIncrementInteger);
+  EXPECT_TRUE(FieldValue::Increment(foo).type() == Type::kIncrementInteger);
+  EXPECT_TRUE(FieldValue::Increment(1).type() == Type::kIncrementInteger);
+  EXPECT_TRUE(FieldValue::Increment(1L).type() == Type::kIncrementInteger);
   // Note: using `long long` syntax to avoid go/lsc-long-long-literal.
   // NOLINTNEXTLINE -- exact integer width doesn't matter.
   long long llfoo = 1;
-  EXPECT_EQ(FieldValue::Increment(llfoo).type(), Type::kIncrementInteger);
+  EXPECT_TRUE(FieldValue::Increment(llfoo).type() == Type::kIncrementInteger);
 
   // Unsigned integers
   // NOLINTNEXTLINE -- exact integer width doesn't matter.
   unsigned short ufoo = 1;
-  EXPECT_EQ(FieldValue::Increment(ufoo).type(), Type::kIncrementInteger);
-  EXPECT_EQ(FieldValue::Increment(1U).type(), Type::kIncrementInteger);
+  EXPECT_TRUE(FieldValue::Increment(ufoo).type() == Type::kIncrementInteger);
+  EXPECT_TRUE(FieldValue::Increment(1U).type() == Type::kIncrementInteger);
 
   // Floating point
-  EXPECT_EQ(FieldValue::Increment(1.0f).type(), Type::kIncrementDouble);
-  EXPECT_EQ(FieldValue::Increment(1.0).type(), Type::kIncrementDouble);
+  EXPECT_TRUE(FieldValue::Increment(1.0f).type() == Type::kIncrementDouble);
+  EXPECT_TRUE(FieldValue::Increment(1.0).type() == Type::kIncrementDouble);
 
   // The statements below shouldn't compile (uncomment to check).
 
   // Types that would lead to truncation:
-  // EXPECT_EQ(FieldValue::Increment(1UL).type(), Type::kIncrementInteger);
+  // EXPECT_TRUE(FieldValue::Increment(1UL).type() == Type::kIncrementInteger);
   // unsigned long long ullfoo = 1;
-  // EXPECT_EQ(FieldValue::Increment(ullfoo).type(), Type::kIncrementInteger);
-  // EXPECT_EQ(FieldValue::Increment(1.0L).type(), Type::kIncrementDouble);
+  // EXPECT_TRUE(FieldValue::Increment(ullfoo).type() == Type::kIncrementInteger);
+  // EXPECT_TRUE(FieldValue::Increment(1.0L).type() == Type::kIncrementDouble);
 
   // Inapplicable types:
-  // EXPECT_EQ(FieldValue::Increment(true).type(), Type::kIncrementInteger);
-  // EXPECT_EQ(FieldValue::Increment('a').type(), Type::kIncrementInteger);
-  // EXPECT_EQ(FieldValue::Increment("abc").type(), Type::kIncrementInteger);
+  // EXPECT_TRUE(FieldValue::Increment(true).type() == Type::kIncrementInteger);
+  // EXPECT_TRUE(FieldValue::Increment('a').type() == Type::kIncrementInteger);
+  // EXPECT_TRUE(FieldValue::Increment("abc").type() == Type::kIncrementInteger);
 }
 
 #endif  // !defined(FIRESTORE_STUB_BUILD)

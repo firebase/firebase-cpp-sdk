@@ -11,6 +11,7 @@
 		529226D61C85F68000C89379 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D51C85F68000C89379 /* Foundation.framework */; };
 		529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D71C85F68000C89379 /* CoreGraphics.framework */; };
 		529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D91C85F68000C89379 /* UIKit.framework */; };
+		D61A465D2606EA0B007EBE9B /* transaction_extra_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61A465C2606EA0B007EBE9B /* transaction_extra_test.cc */; };
 		D61C5F8E22BABA9C00A79141 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D61C5F8C22BABA9B00A79141 /* Images.xcassets */; };
 		D62CCBC022F367140099BE9F /* gmock-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D62CCBBF22F367140099BE9F /* gmock-all.cc */; };
 		D66B16871CE46E8900E5638A /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D66B16861CE46E8900E5638A /* LaunchScreen.storyboard */; };
@@ -32,16 +33,11 @@
 		D6AAAD512606C22D0025C53B /* sanity_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6AAAD382606C22D0025C53B /* sanity_test.cc */; };
 		D6AAAD522606C22D0025C53B /* type_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6AAAD392606C22D0025C53B /* type_test.cc */; };
 		D6AAAD532606C22D0025C53B /* includes_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6AAAD3A2606C22D0025C53B /* includes_test.cc */; };
-		D6AAAD542606C22D0025C53B /* firebase_test_framework.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6AAAD3B2606C22D0025C53B /* firebase_test_framework.cc */; };
 		D6AAAD552606C22D0025C53B /* listener_registration_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6AAAD3D2606C22D0025C53B /* listener_registration_test.cc */; };
 		D6AAAD562606C22D0025C53B /* query_network_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6AAAD3E2606C22D0025C53B /* query_network_test.cc */; };
 		D6AAAD572606C22D0025C53B /* document_reference_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6AAAD3F2606C22D0025C53B /* document_reference_test.cc */; };
-		D6AAAD582606C22D0025C53B /* transaction_extra_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6AAAD402606C22D0025C53B /* transaction_extra_test.cc */; };
 		D6AAAD592606C22D0025C53B /* firestore_integration_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6AAAD412606C22D0025C53B /* firestore_integration_test.cc */; };
 		D6AAAD5A2606C22D0025C53B /* cleanup_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6AAAD422606C22D0025C53B /* cleanup_test.cc */; };
-		D6AAAD602606C8980025C53B /* firebase_auth.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = D6AAAD5D2606C8970025C53B /* firebase_auth.xcframework */; };
-		D6AAAD612606C8980025C53B /* firebase_firestore.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = D6AAAD5E2606C8980025C53B /* firebase_firestore.xcframework */; };
-		D6AAAD622606C8980025C53B /* firebase.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = D6AAAD5F2606C8980025C53B /* firebase.xcframework */; };
 		D6C179E922CB322900C2651A /* ios_app_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E722CB322900C2651A /* ios_app_framework.mm */; };
 		D6C179EA22CB322900C2651A /* ios_firebase_test_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E822CB322900C2651A /* ios_firebase_test_framework.mm */; };
 		D6C179EE22CB323300C2651A /* firebase_test_framework.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6C179EC22CB323300C2651A /* firebase_test_framework.cc */; };
@@ -57,6 +53,7 @@
 		529226D71C85F68000C89379 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		529226D91C85F68000C89379 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		529226EE1C85F68000C89379 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+		D61A465C2606EA0B007EBE9B /* transaction_extra_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = transaction_extra_test.cc; path = src/transaction_extra_test.cc; sourceTree = "<group>"; };
 		D61C5F8C22BABA9B00A79141 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		D61C5F8D22BABA9C00A79141 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D62CCBBF22F367140099BE9F /* gmock-all.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "gmock-all.cc"; path = "external/googletest/src/googlemock/src/gmock-all.cc"; sourceTree = "<group>"; };
@@ -82,17 +79,12 @@
 		D6AAAD382606C22D0025C53B /* sanity_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = sanity_test.cc; path = src/sanity_test.cc; sourceTree = "<group>"; };
 		D6AAAD392606C22D0025C53B /* type_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = type_test.cc; path = src/type_test.cc; sourceTree = "<group>"; };
 		D6AAAD3A2606C22D0025C53B /* includes_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = includes_test.cc; path = src/includes_test.cc; sourceTree = "<group>"; };
-		D6AAAD3B2606C22D0025C53B /* firebase_test_framework.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = firebase_test_framework.cc; path = src/firebase_test_framework.cc; sourceTree = "<group>"; };
 		D6AAAD3C2606C22D0025C53B /* firestore_integration_test.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = firestore_integration_test.h; path = src/firestore_integration_test.h; sourceTree = "<group>"; };
 		D6AAAD3D2606C22D0025C53B /* listener_registration_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = listener_registration_test.cc; path = src/listener_registration_test.cc; sourceTree = "<group>"; };
 		D6AAAD3E2606C22D0025C53B /* query_network_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = query_network_test.cc; path = src/query_network_test.cc; sourceTree = "<group>"; };
 		D6AAAD3F2606C22D0025C53B /* document_reference_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = document_reference_test.cc; path = src/document_reference_test.cc; sourceTree = "<group>"; };
-		D6AAAD402606C22D0025C53B /* transaction_extra_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = transaction_extra_test.cc; path = src/transaction_extra_test.cc; sourceTree = "<group>"; };
 		D6AAAD412606C22D0025C53B /* firestore_integration_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = firestore_integration_test.cc; path = src/firestore_integration_test.cc; sourceTree = "<group>"; };
 		D6AAAD422606C22D0025C53B /* cleanup_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = cleanup_test.cc; path = src/cleanup_test.cc; sourceTree = "<group>"; };
-		D6AAAD5D2606C8970025C53B /* firebase_auth.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = firebase_auth.xcframework; path = ../../ios_build/xcframeworks/firebase_auth.xcframework; sourceTree = "<group>"; };
-		D6AAAD5E2606C8980025C53B /* firebase_firestore.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = firebase_firestore.xcframework; path = ../../ios_build/xcframeworks/firebase_firestore.xcframework; sourceTree = "<group>"; };
-		D6AAAD5F2606C8980025C53B /* firebase.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = firebase.xcframework; path = ../../ios_build/xcframeworks/firebase.xcframework; sourceTree = "<group>"; };
 		D6C179E722CB322900C2651A /* ios_app_framework.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = ios_app_framework.mm; path = src/ios/ios_app_framework.mm; sourceTree = "<group>"; };
 		D6C179E822CB322900C2651A /* ios_firebase_test_framework.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = ios_firebase_test_framework.mm; path = src/ios/ios_firebase_test_framework.mm; sourceTree = "<group>"; };
 		D6C179EB22CB323300C2651A /* firebase_test_framework.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = firebase_test_framework.h; path = src/firebase_test_framework.h; sourceTree = "<group>"; };
@@ -110,11 +102,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D6AAAD602606C8980025C53B /* firebase_auth.xcframework in Frameworks */,
 				529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */,
-				D6AAAD612606C8980025C53B /* firebase_firestore.xcframework in Frameworks */,
 				529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */,
-				D6AAAD622606C8980025C53B /* firebase.xcframework in Frameworks */,
 				529226D61C85F68000C89379 /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -154,9 +143,6 @@
 		529226D41C85F68000C89379 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				D6AAAD5D2606C8970025C53B /* firebase_auth.xcframework */,
-				D6AAAD5E2606C8980025C53B /* firebase_firestore.xcframework */,
-				D6AAAD5F2606C8980025C53B /* firebase.xcframework */,
 				529226D51C85F68000C89379 /* Foundation.framework */,
 				529226D71C85F68000C89379 /* CoreGraphics.framework */,
 				529226D91C85F68000C89379 /* UIKit.framework */,
@@ -179,9 +165,8 @@
 				D6C179EF22CB32A000C2651A /* app_framework.cc */,
 				D6C179ED22CB323300C2651A /* app_framework.h */,
 				D6C179EC22CB323300C2651A /* firebase_test_framework.cc */,
-				D6AAAD312606C22D0025C53B /* fields_test.cc */,
-				D6AAAD3B2606C22D0025C53B /* firebase_test_framework.cc */,
 				D6C179EB22CB323300C2651A /* firebase_test_framework.h */,
+				D6AAAD312606C22D0025C53B /* fields_test.cc */,
 				D6AAAD322606C22D0025C53B /* array_transform_test.cc */,
 				D6AAAD422606C22D0025C53B /* cleanup_test.cc */,
 				D6AAAD302606C22D0025C53B /* collection_reference_test.cc */,
@@ -203,8 +188,8 @@
 				D6AAAD382606C22D0025C53B /* sanity_test.cc */,
 				D6AAAD332606C22D0025C53B /* server_timestamp_test.cc */,
 				D6AAAD292606C22C0025C53B /* smoke_test.cc */,
-				D6AAAD402606C22D0025C53B /* transaction_extra_test.cc */,
 				D6AAAD362606C22D0025C53B /* transaction_test.cc */,
+				D61A465C2606EA0B007EBE9B /* transaction_extra_test.cc */,
 				D6AAAD392606C22D0025C53B /* type_test.cc */,
 				5292271E1C85FB5B00C89379 /* ios */,
 			);
@@ -293,13 +278,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				D6AAAD432606C22D0025C53B /* smoke_test.cc in Sources */,
-				D6AAAD582606C22D0025C53B /* transaction_extra_test.cc in Sources */,
 				D6AAAD522606C22D0025C53B /* type_test.cc in Sources */,
 				D6AAAD492606C22D0025C53B /* collection_reference_test.cc in Sources */,
 				D6AAAD572606C22D0025C53B /* document_reference_test.cc in Sources */,
 				D67D355822BABD2200292C1D /* gtest-all.cc in Sources */,
 				D6AAAD4D2606C22D0025C53B /* query_snapshot_test.cc in Sources */,
 				D6AAAD4F2606C22D0025C53B /* transaction_test.cc in Sources */,
+				D61A465D2606EA0B007EBE9B /* transaction_extra_test.cc in Sources */,
 				D6AAAD5A2606C22D0025C53B /* cleanup_test.cc in Sources */,
 				D62CCBC022F367140099BE9F /* gmock-all.cc in Sources */,
 				D6AAAD532606C22D0025C53B /* includes_test.cc in Sources */,
@@ -318,7 +303,6 @@
 				D6AAAD4A2606C22D0025C53B /* fields_test.cc in Sources */,
 				D6AAAD462606C22D0025C53B /* query_test.cc in Sources */,
 				D6ED33BD2606CD890058CBF9 /* future_test_util.cc in Sources */,
-				D6AAAD542606C22D0025C53B /* firebase_test_framework.cc in Sources */,
 				D6AAAD592606C22D0025C53B /* firestore_integration_test.cc in Sources */,
 				D6C179EE22CB323300C2651A /* firebase_test_framework.cc in Sources */,
 				D6AAAD4B2606C22D0025C53B /* array_transform_test.cc in Sources */,

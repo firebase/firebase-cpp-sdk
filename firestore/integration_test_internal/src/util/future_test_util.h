@@ -6,7 +6,6 @@
 
 #include "app/src/include/firebase/future.h"
 #include "gtest/gtest.h"
-#include "gmock/gmock.h"
 
 namespace firebase {
 

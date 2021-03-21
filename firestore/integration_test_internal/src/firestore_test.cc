@@ -25,6 +25,8 @@
 #include "Firestore/core/src/util/autoid.h"
 #include "Firestore/core/src/util/firestore_exceptions.h"
 
+#include "firebase_test_framework.h"
+
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRDatabaseTests.mm
 // and native Android client SDK test
@@ -1475,6 +1477,8 @@ TEST_F(FirestoreIntegrationTest, DomainObjectsReferToSameFirestoreInstance) {
 }
 
 TEST_F(FirestoreIntegrationTest, AuthWorks) {
+  SKIP_TEST_ON_MACOS;  // TODO(b/183294303) Fix this test on Mac.
+
   // This test only works locally or on guitar because it depends on a live
   // Auth backend.
   if (getenv("UNITTEST_ON_FORGE") != nullptr) {
@@ -1523,6 +1527,8 @@ TEST_F(FirestoreIntegrationTest, AuthWorks) {
 // This test is to ensure b/172986326 doesn't regress.
 // Note: this test only exists in C++.
 TEST_F(FirestoreIntegrationTest, FirestoreCanBeDeletedFromTransaction) {
+  SKIP_TEST_ON_MACOS;  // TODO(b/183294303) Fix this test on Mac.
+
   auto* app = App::Create(this->app()->options(), "foo");
   auto* db = Firestore::GetInstance(app);
 
