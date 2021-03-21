@@ -1003,15 +1003,11 @@ TEST_F(QueryTest,
 #endif  // !defined(FIRESTORE_STUB_BUILD)
 
 #if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
-TEST(QueryTest, Construction) {
-  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
-
+TEST(QueryTestAndroidStub, Construction) {
   testutil::AssertWrapperConstructionContract<Query>();
 }
 
-TEST(QueryTest, Assignment) {
-  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
-
+TEST(QueryTestAndroidStub, Assignment) {
   testutil::AssertWrapperAssignmentContract<Query>();
 }
 #endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
