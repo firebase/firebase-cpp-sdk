@@ -135,11 +135,6 @@ flags.DEFINE_list(
     " Desktop", short_name="p")
 
 flags.DEFINE_bool(
-    "include_internal_tests", True,
-    "Build and run internal integration tests."
-    "Only works when tests are built against source.")
-
-flags.DEFINE_bool(
     "add_timestamp", True,
     "Add a timestamp to the output directory for disambiguation."
     " Recommended when running locally, so each execution gets its own "
@@ -177,9 +172,6 @@ flags.register_validator(
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
-
-  if FLAGS.include_internal_tests and not FLAGS.repo_dir:
-    raise app.UsageError("Can build internal tests only against source.")
 
   platforms = FLAGS.platforms
   testapps = FLAGS.testapps
@@ -225,8 +217,7 @@ def main(argv):
   for testapp in testapps:
     api_config = config.get_api(testapp)
     testapp_dirs = [api_config.testapp_path]
-    # testapp_dirs = []
-    if FLAGS.include_internal_tests and api_config.internal_testapp_path:
+    if FLAGS.repo_dir and api_config.internal_testapp_path:
       testapp_dirs.append(api_config.internal_testapp_path)
     for testapp_dir in testapp_dirs:
       logging.info("BEGIN building for %s: %s", testapp, testapp_dir)
