@@ -89,6 +89,7 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS
     src/write_batch_test.cc
 )
 if(NOT ANDROID)
+  # Source files that shouldn't be built on Android.
   set(FIREBASE_INTEGRATION_TEST_SRCS
     ${FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS}
     src/array_transform_test.cc
@@ -97,13 +98,13 @@ if(NOT ANDROID)
     src/transaction_extra_test.cc
   )
 else()
+  # Android-specific sources.
   set(FIREBASE_INTEGRATION_TEST_SRCS
     ${FIREBASE_INTEGRATION_TEST_PORTABLE_SRCS}
     src/android/cancellation_token_source.cc
     src/android/task_completion_source.cc
     src/android/firestore_integration_test_android.cc
     src/android/field_path_portable_test.cc
-    src/android/firebase_firestore_settings_android_test.cc
     src/android/firestore_integration_test_android_test.cc
     src/android/geo_point_android_test.cc
     src/android/jni_runnable_android_test.cc
@@ -111,13 +112,41 @@ else()
     src/android/settings_android_test.cc
     src/android/snapshot_metadata_android_test.cc
     src/android/timestamp_android_test.cc
+    src/android/util_autoid.cc
     src/jni/declaration_test.cc
     src/jni/env_test.cc
     src/jni/object_test.cc
     src/jni/ownership_test.cc
     src/jni/task_test.cc
     src/jni/traits_test.cc
-  )
+    ../src/common/wrapper_assertions.cc
+)
+endif()
+
+if(ANDROID)
+  # Firestore's internal integration test requires absl on Android,
+  # so download it now.
+  set(ABSEIL_CPP_ROOT ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp/src/abseil-cpp)
+  if (NOT EXISTS ${ABSEIL_CPP_ROOT}/absl/base/attributes.h)
+    configure_file(abseil-cpp.cmake
+      ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp/CMakeLists.txt COPYONLY)
+    execute_process(COMMAND ${CMAKE_COMMAND} .
+      RESULT_VARIABLE result
+      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp )
+    if(result)
+      message(FATAL_ERROR "CMake step for abseil-cpp failed: ${result}")
+    endif()
+    execute_process(COMMAND ${CMAKE_COMMAND} --build .
+      RESULT_VARIABLE result
+      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp )
+    if(result)
+      message(FATAL_ERROR "Build step for abseil-cpp failed: ${result}")
+    endif()
+  endif()
+  add_subdirectory(external/abseil-cpp)
+else()
+  set(ABSEIL_CPP_ROOT
+      ${PROJECT_BINARY_DIR}/bin/external/src/firestore-build/external/src/abseil-cpp)
 endif()
 
 # The include directory for the testapp.
@@ -127,7 +156,7 @@ include_directories(${FIREBASE_CPP_SDK_DIR})
 # Additional public headers from Firestore core SDK.
 include_directories(${PROJECT_BINARY_DIR}/bin/external/src/firestore)
 # Additional public headers for absl.
-include_directories(${PROJECT_BINARY_DIR}/bin/external/src/firestore-build/external/src/abseil-cpp)
+include_directories(${ABSEIL_CPP_ROOT})
 # Allow testing internal Firebase APIs.
 add_definitions(-DINTERNAL_EXPERIMENTAL)
 
@@ -206,6 +235,8 @@ if(ANDROID)
 
   set(ADDITIONAL_LIBS log android atomic native_app_glue)
 else()
+  set(ABSEIL_CPP_ROOT ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp/src/abseil-cpp)
+
   # Build a desktop application.
   add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
 
@@ -279,11 +310,22 @@ else()
   endif()
 endif()
 
+if(NOT ANDROID)
+ set(${ADDITIONAL_LIBS} ${ADDITIONAL_LIBS} firestore_core absl_variant)
+else()
+ set(${ADDITIONAL_LIBS} ${ADDITIONAL_LIBS}
+     absl_base
+     absl_memory
+     absl_meta
+     absl_optional
+     absl_strings)
+endif()
+
 # Add the Firebase libraries to the target using the function from the SDK.
 add_subdirectory(${FIREBASE_CPP_SDK_DIR} bin/ EXCLUDE_FROM_ALL)
 
 # Note that firebase_app needs to be last in the list.
 set(firebase_libs firebase_firestore firebase_auth firebase_app)
 set(gtest_libs gtest gmock)
-target_link_libraries(${integration_test_target_name} ${firebase_libs} firestore_core absl_variant
+target_link_libraries(${integration_test_target_name} ${firebase_libs}
   ${gtest_libs} ${ADDITIONAL_LIBS})

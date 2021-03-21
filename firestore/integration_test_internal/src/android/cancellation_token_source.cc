@@ -1,4 +1,4 @@
-#include "firestore/src/tests/android/cancellation_token_source.h"
+#include "android/cancellation_token_source.h"
 
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"

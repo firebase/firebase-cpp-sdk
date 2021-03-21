@@ -1,4 +1,4 @@
-#include "firestore/src/tests/android/task_completion_source.h"
+#include "android/task_completion_source.h"
 
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"

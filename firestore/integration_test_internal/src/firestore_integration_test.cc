@@ -4,8 +4,12 @@
 #include <fstream>
 #include <sstream>
 
+#if !defined(__ANDROID__)
 #include "absl/strings/ascii.h"
 #include "Firestore/core/src/util/autoid.h"
+#else
+#include "android/util_autoid.h"
+#endif  // !defined(__ANDROID__)
 #include "app_framework.h"
 
 namespace firebase {
@@ -32,7 +36,9 @@ void LocateEmulator(Firestore* db) {
     address = std::getenv("FIRESTORE_EMULATOR_HOST");
   }
 
+#if !defined(__ANDROID__)
   absl::StripAsciiWhitespace(&address);
+#endif  // !defined(__ANDROID__)
   if (!address.empty()) {
     auto settings = db->settings();
     settings.set_host(address);
@@ -125,7 +131,6 @@ Firestore* FirestoreIntegrationTest::TestFirestore(
 
   LocateEmulator(db);
   InitializeFirestore(db);
-
   return db;
 }
 

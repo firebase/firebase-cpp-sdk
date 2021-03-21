@@ -22,7 +22,11 @@
 #include "firestore/src/common/macros.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#if !defined(__ANDROID__)
 #include "Firestore/core/src/util/autoid.h"
+#else
+#include "android/util_autoid.h"
+#endif  // !defined(__ANDROID__)
 #include "Firestore/core/src/util/firestore_exceptions.h"
 
 #include "firebase_test_framework.h"

@@ -5,7 +5,7 @@
 #include "firestore/src/jni/ownership.h"
 #include "firestore/src/jni/task.h"
 #include "firestore/src/jni/throwable.h"
-#include "firestore/src/tests/android/firestore_integration_test_android.h"
+#include "android/firestore_integration_test_android.h"
 #include "gtest/gtest.h"
 
 namespace firebase {

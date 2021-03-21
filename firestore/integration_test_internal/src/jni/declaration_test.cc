@@ -7,8 +7,8 @@
 #include "firestore/src/jni/iterator.h"
 #include "firestore/src/jni/loader.h"
 #include "firestore/src/jni/set.h"
-#include "firestore/src/tests/firestore_integration_test.h"
-#include "testing/base/public/gmock.h"
+#include "firestore_integration_test.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace firebase {
