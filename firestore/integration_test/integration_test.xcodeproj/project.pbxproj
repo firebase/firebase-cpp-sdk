@@ -311,6 +311,7 @@
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
+				PRODUCT_BUNDLE_IDENTIFIER = com.google.firebase.cpp.firestore.testapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				WRAPPER_EXTENSION = app;
@@ -339,6 +340,7 @@
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
+				PRODUCT_BUNDLE_IDENTIFIER = com.google.firebase.cpp.firestore.testapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				WRAPPER_EXTENSION = app;
