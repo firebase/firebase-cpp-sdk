@@ -9,7 +9,7 @@ namespace {
 
 using jni::Constructor;
 using jni::Env;
-using jni::Global;
+using jni::Local;
 using jni::Method;
 using jni::Object;
 using jni::Task;
@@ -30,16 +30,16 @@ void TaskCompletionSource::Initialize(jni::Loader& loader) {
                    kGetTask, kSetException, kSetResult);
 }
 
-Global<TaskCompletionSource> TaskCompletionSource::Create(Env& env) {
+Local<TaskCompletionSource> TaskCompletionSource::Create(Env& env) {
   return env.New(kConstructor);
 }
 
-Global<TaskCompletionSource> TaskCompletionSource::Create(
+Local<TaskCompletionSource> TaskCompletionSource::Create(
     Env& env, const Object& cancellation_token) {
   return env.New(kConstructorWithCancellationToken, cancellation_token);
 }
 
-Global<Task> TaskCompletionSource::GetTask(Env& env) {
+Local<Task> TaskCompletionSource::GetTask(Env& env) {
   return env.Call(*this, kGetTask);
 }
 

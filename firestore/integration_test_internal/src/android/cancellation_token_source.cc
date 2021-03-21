@@ -9,7 +9,7 @@ namespace {
 
 using jni::Constructor;
 using jni::Env;
-using jni::Global;
+using jni::Local;
 using jni::Method;
 using jni::Object;
 
@@ -26,11 +26,11 @@ void CancellationTokenSource::Initialize(jni::Loader& loader) {
   loader.LoadClass(kClassName, kConstructor, kGetToken, kCancel);
 }
 
-Global<CancellationTokenSource> CancellationTokenSource::Create(Env& env) {
+Local<CancellationTokenSource> CancellationTokenSource::Create(Env& env) {
   return env.New(kConstructor);
 }
 
-Global<Object> CancellationTokenSource::GetToken(Env& env) {
+Local<Object> CancellationTokenSource::GetToken(Env& env) {
   return env.Call(*this, kGetToken);
 }
 

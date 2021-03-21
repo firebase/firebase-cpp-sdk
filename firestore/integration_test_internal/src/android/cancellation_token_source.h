@@ -15,12 +15,12 @@ class CancellationTokenSource : public jni::Object {
   static void Initialize(jni::Loader& loader);
 
   /** Creates a C++ proxy for a Java `CancellationTokenSource` object. */
-  static jni::Global<CancellationTokenSource> Create(jni::Env& env);
+  static jni::Local<CancellationTokenSource> Create(jni::Env& env);
 
   /**
    * Invokes `getToken()` on the wrapped Java `CancellationTokenSource` object.
    */
-  jni::Global<Object> GetToken(jni::Env& env);
+  jni::Local<Object> GetToken(jni::Env& env);
 
   /**
    * Invokes `cancel()` on the wrapped Java `CancellationTokenSource` object.
