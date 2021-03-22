@@ -22,8 +22,14 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("file", None, "Sockets.h file to patch.")
 
+# The line of Socket.h that we intend to start overwriting, and the 
+# number of lines to overwite.
 REPLACE_BLOCK_START_LINE = 308
 REPLACE_BLOCK_OVERWRITE_LENGTH = 17
+
+# The code which fixes the crash which will replace the existing
+# error handling implementation with one that retries the writes
+# when the SSL encoding buffer is full.
 REPLACE_BLOCK_CODE_LINES = [
   "              bool continue_loop = true;\n",
   "              do {\n",
@@ -49,6 +55,13 @@ REPLACE_BLOCK_CODE_LINES = [
 ]
 
 def main(argv):
+  """Patches uWebSockets' Socket.h file to fix a crash when attempting
+  large writes.
+  
+  This code simply replaces one block of code (lines 308-325) with our
+  custom code defined in REPLACE_BLOCK_CODE_LINES above.
+  """
+
   with open(FLAGS.file,'r') as sockets_file:
     lines = sockets_file.readlines()
     sockets_file.close()
