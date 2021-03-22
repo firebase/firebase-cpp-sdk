@@ -366,6 +366,7 @@ firebase::database::DatabaseReference FirebaseDatabaseTest::CreateWorkingPath(
 }
 
 // Test cases below.
+
 TEST_F(FirebaseDatabaseTest, TestInitializeAndTerminate) {
   // Already tested via SetUp() and TearDown().
 }
@@ -821,6 +822,7 @@ class LoggingValueListener : public firebase::database::ValueListener {
 };
 
 TEST_F(FirebaseDatabaseTest, TestAddAndRemoveListenerRace) {
+  SKIP_TEST_ON_MOBILE;
   const char* test_name = test_info_->name();
 
   SignIn();
@@ -1391,4 +1393,5 @@ TEST_F(FirebaseDatabaseTest, TestChildListenerWithNullArgument) {
       database_->GetReference("Nothing/will/be/uploaded/here");
   ref.AddChildListener(nullptr);
 }
+
 }  // namespace firebase_testapp_automated
