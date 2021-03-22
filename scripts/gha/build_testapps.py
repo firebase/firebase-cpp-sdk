@@ -259,11 +259,11 @@ def _build(
     # testapp paths. This is a trick to reduce file path length as we were
     # exceeding the limit on Windows.
     testapp_dir_parts = os.path.basename(testapp_dir).split('_')
-    testapp_dir = ''.join([x[0] for x in testapp_dir_parts])
+    output_testapp_dir = ''.join([x[0] for x in testapp_dir_parts])
   else:
-    testapp_dir = os.path.basename(testapp_dir)
+    output_testapp_dir = os.path.basename(testapp_dir)
 
-  project_dir = os.path.join(project_dir, testapp_dir)
+  project_dir = os.path.join(project_dir, output_testapp_dir)
 
   logging.info("Copying testapp project to %s", project_dir)
   os.makedirs(project_dir)
