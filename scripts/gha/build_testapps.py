@@ -216,9 +216,10 @@ def main(argv):
   failures = []
   for testapp in testapps:
     api_config = config.get_api(testapp)
-    testapp_dirs = [api_config.testapp_path]
     if FLAGS.repo_dir and api_config.internal_testapp_path:
-      testapp_dirs.append(api_config.internal_testapp_path)
+      testapp_dirs = [api_config.internal_testapp_path]
+    else:
+      testapp_dirs = [api_config.testapp_path]
     for testapp_dir in testapp_dirs:
       logging.info("BEGIN building for %s: %s", testapp, testapp_dir)
       failures += _build(

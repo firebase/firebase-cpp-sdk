@@ -13,6 +13,7 @@
 		529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D91C85F68000C89379 /* UIKit.framework */; };
 		D61A465D2606EA0B007EBE9B /* transaction_extra_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61A465C2606EA0B007EBE9B /* transaction_extra_test.cc */; };
 		D61C5F8E22BABA9C00A79141 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D61C5F8C22BABA9B00A79141 /* Images.xcassets */; };
+		D61CFBC126091C3B0035CB2A /* integration_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61CFBC026091C3A0035CB2A /* integration_test.cc */; };
 		D62CCBC022F367140099BE9F /* gmock-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D62CCBBF22F367140099BE9F /* gmock-all.cc */; };
 		D66B16871CE46E8900E5638A /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = D66B16861CE46E8900E5638A /* LaunchScreen.storyboard */; };
 		D67D355822BABD2200292C1D /* gtest-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D67D355622BABD2100292C1D /* gtest-all.cc */; };
@@ -56,6 +57,7 @@
 		D61A465C2606EA0B007EBE9B /* transaction_extra_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = transaction_extra_test.cc; path = src/transaction_extra_test.cc; sourceTree = "<group>"; };
 		D61C5F8C22BABA9B00A79141 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		D61C5F8D22BABA9C00A79141 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		D61CFBC026091C3A0035CB2A /* integration_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = integration_test.cc; path = ../integration_test/src/integration_test.cc; sourceTree = "<group>"; };
 		D62CCBBF22F367140099BE9F /* gmock-all.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = "gmock-all.cc"; path = "external/googletest/src/googlemock/src/gmock-all.cc"; sourceTree = "<group>"; };
 		D62CCBC122F367320099BE9F /* gmock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = gmock.h; path = external/googletest/src/googlemock/include/gmock/gmock.h; sourceTree = "<group>"; };
 		D66B16861CE46E8900E5638A /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -154,6 +156,7 @@
 		5292271D1C85FB5500C89379 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				D61CFBC026091C3A0035CB2A /* integration_test.cc */,
 				D6ED33BA2606CD890058CBF9 /* event_accumulator.h */,
 				D6ED33B92606CD890058CBF9 /* future_test_util.cc */,
 				D6ED33BC2606CD890058CBF9 /* future_test_util.h */,
@@ -287,6 +290,7 @@
 				D61A465D2606EA0B007EBE9B /* transaction_extra_test.cc in Sources */,
 				D6AAAD5A2606C22D0025C53B /* cleanup_test.cc in Sources */,
 				D62CCBC022F367140099BE9F /* gmock-all.cc in Sources */,
+				D61CFBC126091C3B0035CB2A /* integration_test.cc in Sources */,
 				D6AAAD532606C22D0025C53B /* includes_test.cc in Sources */,
 				D6AAAD502606C22D0025C53B /* numeric_transforms_test.cc in Sources */,
 				D6ED33BE2606CD890058CBF9 /* integration_test_util.cc in Sources */,

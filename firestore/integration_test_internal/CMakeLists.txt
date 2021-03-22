@@ -64,6 +64,9 @@ set(FIREBASE_TEST_FRAMEWORK_SRCS
 # These sources contain the actual tests that run on all platforms, both Android
 # and non-Android.
 set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
+    # Include the standard tests.
+    ../integration_test/src/integration_test.cc
+    # Internal tests.
     src/collection_reference_test.cc
     src/cursor_test.cc
     src/document_change_test.cc
@@ -129,7 +132,7 @@ set(FIREBASE_INTEGRATION_TEST_ANDROID_SUPPORT_SRCS
     # wrapper_assertions.cc from the C++ SDK is included here because even
     # though it's not included in the Android version of the SDK, it's still
     # used for some tests.
-    ../src/common/wrapper_assertions.cc
+    ${FIREBASE_CPP_SDK_DIR}/firestore/src/common/wrapper_assertions.cc
 )
 
 if(NOT ANDROID)
