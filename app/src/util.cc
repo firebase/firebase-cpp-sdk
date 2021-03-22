@@ -158,12 +158,12 @@ Future<void> ModuleInitializer::InitializeLastResult() {
 }
 
 std::map<std::string, AppCallback*>* AppCallback::callbacks_;
-Mutex AppCallback::callbacks_mutex_;  // NOLINT
+Mutex* AppCallback::callbacks_mutex_ = new Mutex();
 
 void AppCallback::NotifyAllAppCreated(
     firebase::App* app, std::map<std::string, InitResult>* results) {
   if (results) results->clear();
-  MutexLock lock(callbacks_mutex_);
+  MutexLock lock(*callbacks_mutex_);
   if (!callbacks_) return;
   for (std::map<std::string, AppCallback*>::const_iterator it =
            callbacks_->begin();
@@ -177,7 +177,7 @@ void AppCallback::NotifyAllAppCreated(
 }
 
 void AppCallback::NotifyAllAppDestroyed(firebase::App* app) {
-  MutexLock lock(callbacks_mutex_);
+  MutexLock lock(*callbacks_mutex_);
   if (!callbacks_) return;
   for (std::map<std::string, AppCallback*>::const_iterator it =
            callbacks_->begin();
@@ -189,7 +189,7 @@ void AppCallback::NotifyAllAppDestroyed(firebase::App* app) {
 
 // Determine whether a module callback is enabled, by name.
 bool AppCallback::GetEnabledByName(const char* name) {
-  MutexLock lock(callbacks_mutex_);
+  MutexLock lock(*callbacks_mutex_);
   if (!callbacks_) return false;
   std::map<std::string, AppCallback*>::const_iterator it =
       callbacks_->find(std::string(name));
@@ -201,7 +201,7 @@ bool AppCallback::GetEnabledByName(const char* name) {
 
 // Enable a module callback by name.
 void AppCallback::SetEnabledByName(const char* name, bool enable) {
-  MutexLock lock(callbacks_mutex_);
+  MutexLock lock(*callbacks_mutex_);
   if (!callbacks_) return;
   std::map<std::string, AppCallback*>::const_iterator it =
       callbacks_->find(std::string(name));
@@ -214,7 +214,7 @@ void AppCallback::SetEnabledByName(const char* name, bool enable) {
 }
 
 void AppCallback::SetEnabledAll(bool enable) {
-  MutexLock lock(callbacks_mutex_);
+  MutexLock lock(*callbacks_mutex_);
   if (!callbacks_) return;
   LogDebug("%s all app initializers", enable ? "Enabling" : "Disabling");
   for (std::map<std::string, AppCallback*>::const_iterator it =
@@ -242,13 +242,13 @@ void AppCallback::AddCallback(AppCallback* callback) {
   }
 }
 
-Mutex StaticFutureData::s_futures_mutex_;  // NOLINT
+Mutex* StaticFutureData::s_futures_mutex_ = new Mutex();
 std::map<const void*, StaticFutureData*>* StaticFutureData::s_future_datas_;
 
 // static
 void StaticFutureData::CleanupFutureDataForModule(
     const void* module_identifier) {
-  MutexLock lock(s_futures_mutex_);
+  MutexLock lock(*s_futures_mutex_);
 
   if (s_future_datas_ == nullptr) return;
 
@@ -264,7 +264,7 @@ void StaticFutureData::CleanupFutureDataForModule(
 // static
 StaticFutureData* StaticFutureData::GetFutureDataForModule(
     const void* module_identifier, int num_functions) {
-  MutexLock lock(s_futures_mutex_);
+  MutexLock lock(*s_futures_mutex_);
 
   if (s_future_datas_ == nullptr) {
     s_future_datas_ = new std::map<const void*, StaticFutureData*>;
