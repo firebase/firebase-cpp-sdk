@@ -38,6 +38,7 @@ DEFAULT_DESTINATIONS = [
     'database/integration_test',
     'dynamic_links/integration_test',
     'firestore/integration_test',
+    'firestore/integration_test_internal',
     'functions/integration_test',
     'installations/integration_test',
     'instance_id/integration_test',

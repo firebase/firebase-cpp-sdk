@@ -217,7 +217,7 @@ def main(argv):
   for testapp in testapps:
     api_config = config.get_api(testapp)
     if FLAGS.repo_dir and api_config.internal_testapp_path:
-      testapp_dirs = [api_config.internal_testapp_path]
+      testapp_dirs = [api_config.internal_testapp_path, api_config.testapp_path]
     else:
       testapp_dirs = [api_config.testapp_path]
     for testapp_dir in testapp_dirs:
@@ -472,6 +472,9 @@ def _build_ios(
       "--XCodeCPP.target", api_config.ios_target,
       "--XCodeCPP.frameworks", ",".join(framework_paths)
   ]
+  # Internal integration tests require the SDK root as an include path.
+  if repo_dir and api_config.internal_testapp_path:
+    xcode_patcher_args.extend(("--XCodeCPP.include", repo_dir))
   if os.path.isfile(entitlements_path):  # Not all testapps require entitlements
     logging.info("Entitlements file detected.")
     xcode_patcher_args.extend(("--XCodeCPP.entitlement", entitlements_path))
