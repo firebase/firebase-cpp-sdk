@@ -336,7 +336,7 @@ jobs:
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
           fi
-          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --noadd_timestamp ${additional_flags[*]}
+          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p ${{ matrix.target_platform }} --output_directory ${{ github.workspace }} --noadd_timestamp ${additional_flags[*]} --short_output_paths
 
       - name: Run desktop integration tests
         if: matrix.target_platform == 'Desktop' && !cancelled()

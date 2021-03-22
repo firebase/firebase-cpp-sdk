@@ -168,6 +168,10 @@ flags.register_validator(
     message="Valid platforms: " + ",".join(_SUPPORTED_PLATFORMS),
     flag_values=FLAGS)
 
+flags.DEFINE_bool(
+    "short_output_paths", False,
+    "Use short directory names for output paths. Useful to avoid hitting file "
+    "path limits on Windows.")
 
 def main(argv):
   if len(argv) > 1:
@@ -185,7 +189,11 @@ def main(argv):
     timestamp = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
   else:
     timestamp = ""
-  output_dir = os.path.join(output_dir, "testapps" + timestamp)
+
+  if FLAGS.short_output_paths:
+    output_dir = os.path.join(output_dir, "ta")
+  else:
+    output_dir = os.path.join(output_dir, "testapps" + timestamp)
 
   ios_framework_dir = os.path.join(sdk_dir, "xcframeworks")
   ios_framework_exist = os.path.isdir(ios_framework_dir)
@@ -232,7 +240,8 @@ def main(argv):
           ios_framework_exist=ios_framework_exist,
           repo_dir=repo_dir,
           ios_sdk=FLAGS.ios_sdk,
-          cmake_flags=cmake_flags)
+          cmake_flags=cmake_flags,
+          short_output_paths=FLAGS.short_output_paths)
       logging.info("END building for %s", testapp)
 
   _summarize_results(testapps, platforms, failures, output_dir)
@@ -241,11 +250,20 @@ def main(argv):
 
 def _build(
     testapp, platforms, api_config, testapp_dir, output_dir, sdk_dir, ios_framework_exist,
-    repo_dir, ios_sdk, cmake_flags):
+    repo_dir, ios_sdk, cmake_flags, short_output_paths):
   """Builds one testapp on each of the specified platforms."""
   os.chdir(repo_dir)
-  project_dir = os.path.join(
-      output_dir, api_config.full_name, os.path.basename(testapp_dir))
+  project_dir = os.path.join(output_dir, api_config.name)
+  if short_output_paths:
+    # Combining the first letter of every part separated by underscore for
+    # testapp paths. This is a trick to reduce file path length as we were
+    # exceeding the limit on Windows.
+    testapp_dir_parts = os.path.basename(testapp_dir).split('_')
+    testapp_dir = ''.join([x[0] for x in testapp_dir_parts])
+  else:
+    testapp_dir = os.path.basename(testapp_dir)
+
+  project_dir = os.path.join(project_dir, testapp_dir)
 
   logging.info("Copying testapp project to %s", project_dir)
   os.makedirs(project_dir)
