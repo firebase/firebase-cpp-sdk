@@ -118,10 +118,10 @@ function(download_external_sources)
            DESTINATION "${PROJECT_BINARY_DIR}/external/src/firestore/cmake/external")
     endif()
 
-    file(REMOVE "${PROJECT_BINARY_DIR}/external/src/uWebSockets/src/Socket.h")
-    file(COPY "${PROJECT_SOURCE_DIR}/cmake/external/patches/uWebSockets/Socket.h" 
-         DESTINATION "${PROJECT_BINARY_DIR}/external/src/uWebSockets/src")
-
+    execute_process(
+      COMMAND "python" "${PROJECT_SOURCE_DIR}/scripts/patch_websockets.py" 
+              "-file" "${PROJECT_BINARY_DIR}/external/src/uWebSockets/src/Socket.h" 
+              "-patch" "${PROJECT_SOURCE_DIR}/cmake/external/patches/uwebsockets_patch")
   endif()
 endfunction()
 
