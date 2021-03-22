@@ -579,6 +579,9 @@ code.
     -   Database: Fixed a potential crash that can occur as a result of a race
         condidtion when adding, removing and deleting `ValueListener`s or
         `ChildListener`s rapidly.
+    -   General: Fixed rare crashes at application exit when destructors were
+        being executed
+        ([#345](https://github.com/firebase/firebase-cpp-sdk/pull/345)).
 
 ### 7.1.1
 -   Changes
