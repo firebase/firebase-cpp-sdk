@@ -183,7 +183,7 @@ def main(argv):
   sdk_dir = _fix_path(FLAGS.packaged_sdk or FLAGS.repo_dir)
   logging.info("Output directory: "+ FLAGS.output_directory)
   output_dir = _fix_path(FLAGS.output_directory)
-  logging.info("Output directory after fix path: "+ FLAGS.output_directory)
+  logging.info("Output directory after fix path: "+ output_dir)
   repo_dir = _fix_path(FLAGS.repo_dir)
 
   update_pod_repo = FLAGS.update_pod_repo
@@ -194,10 +194,10 @@ def main(argv):
 
   if FLAGS.short_output_paths:
     output_dir = os.path.join(output_dir, "ta")
-    logging.info("Output directory2: "+ FLAGS.output_directory)
+    logging.info("Output directory2: "+ output_dir)
   else:
     output_dir = os.path.join(output_dir, "testapps" + timestamp)
-    logging.info("Output directory3 : "+ FLAGS.output_directory)
+    logging.info("Output directory3 : "+ output_dir)
 
   ios_framework_dir = os.path.join(sdk_dir, "xcframeworks")
   ios_framework_exist = os.path.isdir(ios_framework_dir)
@@ -569,6 +569,8 @@ def _rm_dir_safe(directory_path):
 
 def _fix_path(path):
   """Expands ~, normalizes slashes, and converts relative paths to absolute."""
+  logging.info("Exapnded path: ",os.path.expanduser(path))
+  logging.info("Absolute path: ",os.path.abspath(os.path.expanduser(path)))
   return os.path.abspath(os.path.expanduser(path))
 
 
