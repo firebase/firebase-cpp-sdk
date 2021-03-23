@@ -181,9 +181,7 @@ def main(argv):
   testapps = FLAGS.testapps
 
   sdk_dir = _fix_path(FLAGS.packaged_sdk or FLAGS.repo_dir)
-  logging.info("Output directory: "+ FLAGS.output_directory)
   output_dir = _fix_path(FLAGS.output_directory)
-  logging.info("Output directory after fix path: "+ output_dir)
   repo_dir = _fix_path(FLAGS.repo_dir)
 
   update_pod_repo = FLAGS.update_pod_repo
@@ -194,10 +192,8 @@ def main(argv):
 
   if FLAGS.short_output_paths:
     output_dir = os.path.join(output_dir, "ta")
-    logging.info("Output directory2: "+ output_dir)
   else:
     output_dir = os.path.join(output_dir, "testapps" + timestamp)
-    logging.info("Output directory3 : "+ output_dir)
 
   ios_framework_dir = os.path.join(sdk_dir, "xcframeworks")
   ios_framework_exist = os.path.isdir(ios_framework_dir)
@@ -257,9 +253,7 @@ def _build(
     repo_dir, ios_sdk, cmake_flags, short_output_paths):
   """Builds one testapp on each of the specified platforms."""
   os.chdir(repo_dir)
-  logging.info("Output dir5: " + output_dir)
   project_dir = os.path.join(output_dir, api_config.name)
-  logging.info("Prooject dir5: " + project_dir)
   if short_output_paths:
     # Combining the first letter of every part separated by underscore for
     # testapp paths. This is a trick to reduce file path length as we were
@@ -270,7 +264,6 @@ def _build(
     output_testapp_dir = os.path.basename(testapp_dir)
 
   project_dir = os.path.join(project_dir, output_testapp_dir)
-  logging.info("Prooject dir6: " + project_dir)
 
   logging.info("Copying testapp project to %s", project_dir)
   os.makedirs(project_dir)
@@ -569,8 +562,6 @@ def _rm_dir_safe(directory_path):
 
 def _fix_path(path):
   """Expands ~, normalizes slashes, and converts relative paths to absolute."""
-  logging.info("Exapnded path: " + os.path.expanduser(path))
-  logging.info("Absolute path: " + os.path.abspath(os.path.expanduser(path)))
   return os.path.abspath(os.path.expanduser(path))
 
 
