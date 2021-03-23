@@ -569,8 +569,8 @@ def _rm_dir_safe(directory_path):
 
 def _fix_path(path):
   """Expands ~, normalizes slashes, and converts relative paths to absolute."""
-  logging.info("Exapnded path: ",os.path.expanduser(path))
-  logging.info("Absolute path: ",os.path.abspath(os.path.expanduser(path)))
+  logging.info("Exapnded path: " + os.path.expanduser(path))
+  logging.info("Absolute path: " + os.path.abspath(os.path.expanduser(path)))
   return os.path.abspath(os.path.expanduser(path))
 
 
