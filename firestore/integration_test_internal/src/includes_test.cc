@@ -26,62 +26,65 @@ struct TestTransactionFunction : TransactionFunction {
   Error Apply(Transaction&, std::string&) override { return Error::kErrorOk; }
 };
 
+}  // namespace
+
 // This test makes sure that all the objects in Firestore public API are
 // available from just including "firestore.h".
 // If this test compiles, that is sufficient.
 // Not using `FirestoreIntegrationTest` to avoid any headers it includes.
 TEST_F(IncludesTest, TestIncludingFirestoreHeaderIsSufficient) {
+  // We don't actually need to run any of the below, just compile it.
+  if (0) {
 #if defined(__ANDROID__)
-  App* app = App::Create(app_framework::GetJniEnv(), app_framework::GetActivity());
+    App* app = App::Create(app_framework::GetJniEnv(), app_framework::GetActivity());
 
 #elif defined(FIRESTORE_STUB_BUILD)
-  // Stubs don't load values from `GoogleService-Info.plist`/etc., so the app
-  // has to be configured explicitly.
-  AppOptions options;
-  options.set_project_id("foo");
-  options.set_app_id("foo");
-  options.set_api_key("foo");
-  App* app = App::Create(options);
+    // Stubs don't load values from `GoogleService-Info.plist`/etc., so the app
+    // has to be configured explicitly.
+    AppOptions options;
+    options.set_project_id("foo");
+    options.set_app_id("foo");
+    options.set_api_key("foo");
+    App* app = App::Create(options);
 
 #else
-  App* app = App::Create();
-
+    App* app = App::Create();
 #endif  // defined(__ANDROID__)
 
-  Firestore* firestore = CreateFirestore(app);
+    Firestore* firestore = CreateFirestore(app);
 
-  {
-    // Check that Firestore isn't just forward-declared.
-    DocumentReference doc = firestore->Document("foo/bar");
-    Future<DocumentSnapshot> future = doc.Get();
-    DocumentChange doc_change;
-    DocumentReference doc_ref;
-    DocumentSnapshot doc_snap;
-    FieldPath field_path;
-    FieldValue field_value;
-    ListenerRegistration listener_registration;
-    MapFieldValue map_field_value;
-    MetadataChanges metadata_changes = MetadataChanges::kExclude;
-    Query query;
-    QuerySnapshot query_snapshot;
-    SetOptions set_options;
-    Settings settings;
-    SnapshotMetadata snapshot_metadata;
-    Source source = Source::kDefault;
-    // Cannot default-construct a `Transaction`.
-    WriteBatch write_batch;
+    {
+      // Check that Firestore isn't just forward-declared.
+      DocumentReference doc = firestore->Document("foo/bar");
+      Future<DocumentSnapshot> future = doc.Get();
+      DocumentChange doc_change;
+      DocumentReference doc_ref;
+      DocumentSnapshot doc_snap;
+      FieldPath field_path;
+      FieldValue field_value;
+      ListenerRegistration listener_registration;
+      MapFieldValue map_field_value;
+      MetadataChanges metadata_changes = MetadataChanges::kExclude;
+      Query query;
+      QuerySnapshot query_snapshot;
+      SetOptions set_options;
+      Settings settings;
+      SnapshotMetadata snapshot_metadata;
+      Source source = Source::kDefault;
+      // Cannot default-construct a `Transaction`.
+      WriteBatch write_batch;
 
-    TestListener test_listener;
-    TestTransactionFunction test_transaction_function;
+      TestListener test_listener;
+      TestTransactionFunction test_transaction_function;
 
-    Timestamp timestamp;
-    GeoPoint geo_point;
-    Error error = Error::kErrorOk;
+      Timestamp timestamp;
+      GeoPoint geo_point;
+      Error error = Error::kErrorOk;
+    }
+    delete firestore;
+    delete app;
   }
-  delete firestore;
-  delete app;
 }
 
-}  // namespace
 }  // namespace firestore
 }  // namespace firebase
