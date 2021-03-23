@@ -217,7 +217,7 @@ def main(argv):
   for testapp in testapps:
     api_config = config.get_api(testapp)
     if FLAGS.repo_dir and api_config.internal_testapp_path:
-      testapp_dirs = [api_config.internal_testapp_path, api_config.testapp_path]
+      testapp_dirs = [api_config.internal_testapp_path]
     else:
       testapp_dirs = [api_config.testapp_path]
     for testapp_dir in testapp_dirs:

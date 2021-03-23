@@ -64,6 +64,11 @@ set(FIREBASE_TEST_FRAMEWORK_SRCS
 # These sources contain the actual tests that run on all platforms, both Android
 # and non-Android.
 set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
+    # Copy of the standard integration test source file. This ensures that even
+    # if only the internal integration test is run, all of the tests on the
+    # public API are performed.
+    src/integration_test.cc
+    # Internal tests below.
     src/collection_reference_test.cc
     src/cursor_test.cc
     src/document_change_test.cc
