@@ -26,13 +26,13 @@ flags.DEFINE_string("cmakefile", None, "cmake file which downloaded uWebSockets"
 # The line of Socket.h that we intend to start overwriting, and the 
 # number of lines to overwite. 
 # See: https://github.com/uNetworking/uWebSockets/blob/e402f022a43d283c4fb7c809332951c3108d6906/src/Socket.h#L309
-REPLACE_BLOCK_START_LINE = 309
-REPLACE_BLOCK_OVERWRITE_LENGTH = 17
+REPLACEMENT_START_LINE = 309
 
 # The code which fixes the crash which will replace the existing
 # error handling implementation with one that retries the writes
 # when the SSL encoding buffer is full.
-REPLACE_BLOCK_CODE_LINES = [
+REPLACEMENT_CODE = [
+  "              /* BEG Patched by firebase-cpp-sdk scripts/patch_websockets.py */\n"
   "              bool continue_loop = true;\n",
   "              do {\n",
   "                sent = SSL_write(ssl, message->data, message->length);\n",
@@ -48,13 +48,35 @@ REPLACE_BLOCK_CODE_LINES = [
   "                    break;\n",
   "                  default:\n",
   "                    return false;\n",
+  "                  }\n",
   "                }\n",
-  "              }\n",
-  "            }  while (continue_loop);\n"
-]
+  "              }  while (continue_loop);\n",
+  "              /* END Patched by firebase-cpp-sdk scripts/patch_websockets.py */\n"]
+
+# Lines of the original implementation we are patching. Used as a saftey
+# check to ensure that we're patching this specific block of code.
+CODE_TO_REPLACE = [
+"                sent = SSL_write(ssl, message->data, message->length);\n",
+"                if (sent == (ssize_t) message->length) {\n",
+"                    wasTransferred = false;\n",
+"                    return true;\n",
+"                } else if (sent < 0) {\n",
+"                    switch (SSL_get_error(ssl, sent)) {\n",
+"                    case SSL_ERROR_WANT_READ:\n",
+"                        break;\n",
+"                    case SSL_ERROR_WANT_WRITE:\n",
+"                        if ((getPoll() & UV_WRITABLE) == 0) {\n",
+"                            setPoll(getPoll() | UV_WRITABLE);\n",
+"                            changePoll(this);\n",
+"                        }\n",
+"                        break;\n",
+"                    default:\n",
+"                        return false;\n",
+"                    }\n",
+"                }\n"]
 
 # Confirms that the version of uWebsockets that cmake checked-out
-# is the same that version that this patch is meant for.
+# is the same version this patch was designed to augment.
 UWEBSOCKETS_COMMIT = "4d94401b9c98346f9afd838556fdc7dce30561eb"
 VERSION_MISMATCH_ERROR = \
   "\n\n ERROR patch_websockets.py: patching wrong uWebsockets Version!\n\n"
@@ -63,7 +85,7 @@ def main(argv):
   """Patches uWebSockets' Socket.h file to fix a crash when attempting
   large writes.
   
-  This code simply replaces one block of code (lines 308-325) with our
+  This code simply replaces one block of code (lines 309-326) with our
   custom code defined in REPLACE_BLOCK_CODE_LINES above.
   """
 
@@ -75,24 +97,37 @@ def main(argv):
     lines = sockets_file.readlines()
     sockets_file.close()
 
-  ignore_lines_count = 0
   with open(FLAGS.file,'w') as sockets_file:
-    index = 0
+    overwrite_mode = False
+    line_number = 1
+    
     for line in lines:
-      if(ignore_lines_count != 0):
-        ignore_lines_count -= 1
-        index+=1
+      # Check to see if we should start overwrite mode
+      if( line_number == REPLACEMENT_START_LINE ):
+        overwrite_mode = True;        
+      
+      if not overwrite_mode:  
+        # Copy the existing line from the source to the destination.
+        sockets_file.write(line)
+        line_number+=1
+      else:
+        # Overwrite mode.  Do not copy source from original file to new file.
+        # Verify each line to ensure it's one that we're intending to skip.
+        line_to_replace = CODE_TO_REPLACE.pop(0)
+        if line != line_to_replace:
+          print("Line number: ", line_number)
+          print("Unexpeced Line: ", line)
+          print("Expected Line:  ", line_to_replace)
+          print
+          raise Exception(VERSION_MISMATCH_ERROR)
+        line_number+=1
+        # Check if we've skipped the entire block. If so then we're clear
+        # to write the patch to the new file.
+        if len(CODE_TO_REPLACE) == 0:
+          overwrite_mode = False
+          sockets_file.writelines(REPLACEMENT_CODE)
         continue
 
-      if( index+1 == REPLACE_BLOCK_START_LINE ):
-        sockets_file.writelines(REPLACE_BLOCK_CODE_LINES)
-        ignore_lines_count = REPLACE_BLOCK_OVERWRITE_LENGTH
-        index+=1
-        continue
-      
-      sockets_file.write(line)
-      index+=1
-    
     sockets_file.close()  
 
 if __name__ == "__main__":
