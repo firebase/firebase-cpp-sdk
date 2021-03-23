@@ -9,6 +9,10 @@
 #include <cstdlib>
 #include "gtest/gtest.h"
 
+#if defined(_WIN32)
+#define __PRETTY_FUNCTION__ __FUNCSIG__
+#endif  // defined(_WIN32)
+
 class SanityTest : public testing::Test {
  protected:
   void SetUp() override { printf("==== SetUp ====\n"); }
