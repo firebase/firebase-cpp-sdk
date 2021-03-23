@@ -366,30 +366,8 @@ firebase::database::DatabaseReference FirebaseDatabaseTest::CreateWorkingPath(
 }
 
 // Test cases below.
-
 TEST_F(FirebaseDatabaseTest, TestInitializeAndTerminate) {
   // Already tested via SetUp() and TearDown().
-}
-
-TEST_F(FirebaseDatabaseTest, TestLargeWriteRead) {
-  const char* test_name = test_info_->name();
-  SignIn();
-  firebase::database::DatabaseReference ref = CreateWorkingPath();
-
-  LogDebug("Setting values.");
-  std::string large_string;
-  large_string.reserve(kLargeWriteStringLength);
-  for(uint32_t i = 0; i < kLargeWriteStringLength; i++ ) {
-    large_string.push_back('1');
-  }
-  firebase::Future<void> f1 =
-      ref.Child(test_name).Child("LargeString").SetValue(std::string(large_string));
-  WaitForCompletion(f1, "SetLargeString");
-
-  LogDebug("Getting value.");
-  firebase::Future<firebase::database::DataSnapshot> f2 =
-      ref.Child(test_name).Child("LargeString").GetValue();
-  WaitForCompletion(f2, "GetLargeString");
 }
 
 TEST_F(FirebaseDatabaseTest, TestSignIn) {
@@ -524,6 +502,32 @@ class ExpectValueListener : public firebase::database::ValueListener {
   bool value_changed_;
   bool got_expected_value_;
 };
+
+TEST_F(FirebaseDatabaseTest, TestLargeWrite) {
+  const char* test_name = test_info_->name();
+  SignIn();
+  firebase::database::DatabaseReference ref = CreateWorkingPath();
+
+  LogDebug("Setting value.");
+  std::string large_string;
+  large_string.reserve(kLargeWriteStringLength);
+  for(uint32_t i = 0; i < kLargeWriteStringLength; i++ ) {
+    large_string.push_back('1');
+  }
+
+  // Setup a listener to ensure the value changes properly.
+  ExpectValueListener listener(large_string);
+  ref.Child(test_name).Child("LargeString").AddValueListener(&listener);
+
+  // Set the value.
+  firebase::Future<void> f1 =
+    ref.Child(test_name).Child("LargeString").SetValue(std::string(large_string));
+  WaitForCompletion(f1, "SetLargeString");
+
+  LogDebug("Listening for value to change as expected");
+  ASSERT_TRUE(listener.WaitForExpectedValue());
+  ref.Child(test_name).Child("LargeString").RemoveValueListener(&listener);
+}
 
 TEST_F(FirebaseDatabaseTest, TestReadingFromPersistanceWhileOffline) {
   const char* test_name = test_info_->name();
