@@ -181,7 +181,9 @@ def main(argv):
   testapps = FLAGS.testapps
 
   sdk_dir = _fix_path(FLAGS.packaged_sdk or FLAGS.repo_dir)
+  print("Output directory: "+ FLAGS.output_directory)
   output_dir = _fix_path(FLAGS.output_directory)
+  print("Output directory after fix path: "+ FLAGS.output_directory)
   repo_dir = _fix_path(FLAGS.repo_dir)
 
   update_pod_repo = FLAGS.update_pod_repo
@@ -192,8 +194,10 @@ def main(argv):
 
   if FLAGS.short_output_paths:
     output_dir = os.path.join(output_dir, "ta")
+    print("Output directory2: "+ FLAGS.output_directory)
   else:
     output_dir = os.path.join(output_dir, "testapps" + timestamp)
+    print("Output directory3 : "+ FLAGS.output_directory)
 
   ios_framework_dir = os.path.join(sdk_dir, "xcframeworks")
   ios_framework_exist = os.path.isdir(ios_framework_dir)
@@ -253,7 +257,9 @@ def _build(
     repo_dir, ios_sdk, cmake_flags, short_output_paths):
   """Builds one testapp on each of the specified platforms."""
   os.chdir(repo_dir)
+  print("Output dir5: " + output_dir)
   project_dir = os.path.join(output_dir, api_config.name)
+  print("Prooject dir5: " + project_dir)
   if short_output_paths:
     # Combining the first letter of every part separated by underscore for
     # testapp paths. This is a trick to reduce file path length as we were
@@ -264,6 +270,7 @@ def _build(
     output_testapp_dir = os.path.basename(testapp_dir)
 
   project_dir = os.path.join(project_dir, output_testapp_dir)
+  print("Prooject dir6: " + project_dir)
 
   logging.info("Copying testapp project to %s", project_dir)
   os.makedirs(project_dir)
