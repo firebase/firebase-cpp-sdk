@@ -32,7 +32,7 @@ REPLACEMENT_START_LINE = 309
 # error handling implementation with one that retries the writes
 # when the SSL encoding buffer is full.
 REPLACEMENT_CODE = [
-  "              /* BEG Patched by firebase-cpp-sdk scripts/patch_websockets.py */\n"
+  "              /* BEG Patched by firebase-cpp-sdk scripts/patch_websockets.py */\n",
   "              bool continue_loop = true;\n",
   "              do {\n",
   "                sent = SSL_write(ssl, message->data, message->length);\n",
@@ -96,6 +96,11 @@ def main(argv):
   with open(FLAGS.file,'r') as sockets_file:
     lines = sockets_file.readlines()
     sockets_file.close()
+
+  # Check if the file is already patched.
+  if set(REPLACEMENT_CODE).issubset(set(lines)):
+    print("File has already been patched. Exiting.")
+    return
 
   with open(FLAGS.file,'w') as sockets_file:
     overwrite_mode = False
