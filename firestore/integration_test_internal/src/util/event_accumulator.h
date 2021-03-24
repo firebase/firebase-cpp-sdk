@@ -1,7 +1,7 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_TESTS_UTIL_EVENT_ACCUMULATOR_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_TESTS_UTIL_EVENT_ACCUMULATOR_H_
 
-#include "firestore/src/tests/firestore_integration_test.h"
+#include "firestore_integration_test.h"
 
 namespace firebase {
 namespace firestore {

@@ -168,6 +168,10 @@ flags.register_validator(
     message="Valid platforms: " + ",".join(_SUPPORTED_PLATFORMS),
     flag_values=FLAGS)
 
+flags.DEFINE_bool(
+    "short_output_paths", False,
+    "Use short directory names for output paths. Useful to avoid hitting file "
+    "path limits on Windows.")
 
 def main(argv):
   if len(argv) > 1:
@@ -185,7 +189,11 @@ def main(argv):
     timestamp = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
   else:
     timestamp = ""
-  output_dir = os.path.join(output_dir, "testapps" + timestamp)
+
+  if FLAGS.short_output_paths:
+    output_dir = os.path.join(output_dir, "ta")
+  else:
+    output_dir = os.path.join(output_dir, "testapps" + timestamp)
 
   ios_framework_dir = os.path.join(sdk_dir, "xcframeworks")
   ios_framework_exist = os.path.isdir(ios_framework_dir)
@@ -215,30 +223,47 @@ def main(argv):
 
   failures = []
   for testapp in testapps:
-    logging.info("BEGIN building for %s", testapp)
-    failures += _build(
-        testapp=testapp,
-        platforms=platforms,
-        api_config=config.get_api(testapp),
-        output_dir=output_dir,
-        sdk_dir=sdk_dir,
-        ios_framework_exist=ios_framework_exist,
-        repo_dir=repo_dir,
-        ios_sdk=FLAGS.ios_sdk,
-        cmake_flags=cmake_flags)
-    logging.info("END building for %s", testapp)
+    api_config = config.get_api(testapp)
+    if FLAGS.repo_dir and api_config.internal_testapp_path:
+      testapp_dirs = [api_config.internal_testapp_path]
+    else:
+      testapp_dirs = [api_config.testapp_path]
+    for testapp_dir in testapp_dirs:
+      logging.info("BEGIN building for %s: %s", testapp, testapp_dir)
+      failures += _build(
+          testapp=testapp,
+          platforms=platforms,
+          api_config=config.get_api(testapp),
+          testapp_dir=testapp_dir,
+          output_dir=output_dir,
+          sdk_dir=sdk_dir,
+          ios_framework_exist=ios_framework_exist,
+          repo_dir=repo_dir,
+          ios_sdk=FLAGS.ios_sdk,
+          cmake_flags=cmake_flags,
+          short_output_paths=FLAGS.short_output_paths)
+      logging.info("END building for %s", testapp)
 
   _summarize_results(testapps, platforms, failures, output_dir)
   return 1 if failures else 0
 
 
 def _build(
-    testapp, platforms, api_config, output_dir, sdk_dir, ios_framework_exist,
-    repo_dir, ios_sdk, cmake_flags):
+    testapp, platforms, api_config, testapp_dir, output_dir, sdk_dir, ios_framework_exist,
+    repo_dir, ios_sdk, cmake_flags, short_output_paths):
   """Builds one testapp on each of the specified platforms."""
-  testapp_dir = os.path.join(repo_dir, api_config.testapp_path)
-  project_dir = os.path.join(
-      output_dir, api_config.full_name, os.path.basename(testapp_dir))
+  os.chdir(repo_dir)
+  project_dir = os.path.join(output_dir, api_config.name)
+  if short_output_paths:
+    # Combining the first letter of every part separated by underscore for
+    # testapp paths. This is a trick to reduce file path length as we were
+    # exceeding the limit on Windows.
+    testapp_dir_parts = os.path.basename(testapp_dir).split('_')
+    output_testapp_dir = ''.join([x[0] for x in testapp_dir_parts])
+  else:
+    output_testapp_dir = os.path.basename(testapp_dir)
+
+  project_dir = os.path.join(project_dir, output_testapp_dir)
 
   logging.info("Copying testapp project to %s", project_dir)
   os.makedirs(project_dir)
@@ -465,6 +490,9 @@ def _build_ios(
       "--XCodeCPP.target", api_config.ios_target,
       "--XCodeCPP.frameworks", ",".join(framework_paths)
   ]
+  # Internal integration tests require the SDK root as an include path.
+  if repo_dir and api_config.internal_testapp_path:
+    xcode_patcher_args.extend(("--XCodeCPP.include", repo_dir))
   if os.path.isfile(entitlements_path):  # Not all testapps require entitlements
     logging.info("Entitlements file detected.")
     xcode_patcher_args.extend(("--XCodeCPP.entitlement", entitlements_path))

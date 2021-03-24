@@ -336,12 +336,12 @@ jobs:
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
           fi
-          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --noadd_timestamp ${additional_flags[*]}
+          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths
 
       - name: Run desktop integration tests
         if: matrix.target_platform == 'Desktop' && !cancelled()
         run: |
-          python scripts/gha/desktop_tester.py --testapp_dir testapps
+          python scripts/gha/desktop_tester.py --testapp_dir ta
       # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
       # Must be run after the Python setup action
       - name: Set CLOUDSDK_PYTHON (Windows)
@@ -354,11 +354,11 @@ jobs:
       - name: Upload Desktop Artifacts to GCS
         if: matrix.target_platform == 'Desktop' && !cancelled()
         run: |
-          python scripts/gha/gcs_uploader.py --testapp_dir testapps --key_file scripts/gha-encrypted/gcs_key_file.json
+          python scripts/gha/gcs_uploader.py --testapp_dir ta --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Run mobile integration tests
         if: matrix.target_platform != 'Desktop' && !cancelled()
         run: |
-          python scripts/gha/test_lab.py --android_model ${{ needs.prepare_matrix.outputs.android_device }} --android_api ${{ needs.prepare_matrix.outputs.android_api }} --ios_model ${{ needs.prepare_matrix.outputs.ios_device }} --ios_version ${{ needs.prepare_matrix.outputs.ios_version }} --testapp_dir testapps --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
+          python scripts/gha/test_lab.py --android_model ${{ needs.prepare_matrix.outputs.android_device }} --android_api ${{ needs.prepare_matrix.outputs.android_api }} --ios_model ${{ needs.prepare_matrix.outputs.ios_device }} --ios_version ${{ needs.prepare_matrix.outputs.ios_version }} --testapp_dir ta --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
 
       ### The below allow us to set the failure label and comment early, when the first failure
       ### in the matrix occurs. It'll be cleaned up in a subsequent job.
@@ -393,7 +393,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat testapps/summary.log
+          cat ta/summary.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi

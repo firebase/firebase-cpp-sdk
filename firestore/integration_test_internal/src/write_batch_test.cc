@@ -129,7 +129,7 @@ TEST_F(WriteBatchTest, TestBatchesCommitAtomicallyRaisingCorrectEvents) {
   EventAccumulator<QuerySnapshot> accumulator;
   accumulator.listener()->AttachTo(&collection, MetadataChanges::kInclude);
   QuerySnapshot initial_snapshot = accumulator.Await();
-  EXPECT_EQ(0, initial_snapshot.size());
+  EXPECT_TRUE(0 == initial_snapshot.size());
 
   // Atomically write two documents.
   Await(TestFirestore()
@@ -160,7 +160,7 @@ TEST_F(WriteBatchTest, TestBatchesFailAtomicallyRaisingCorrectEvents) {
   EventAccumulator<QuerySnapshot> accumulator;
   accumulator.listener()->AttachTo(&collection, MetadataChanges::kInclude);
   QuerySnapshot initial_snapshot = accumulator.Await();
-  EXPECT_EQ(0, initial_snapshot.size());
+  EXPECT_TRUE(0 == initial_snapshot.size());
 
   // Atomically write 1 document and update a nonexistent document.
   Future<void> future =
@@ -170,8 +170,8 @@ TEST_F(WriteBatchTest, TestBatchesFailAtomicallyRaisingCorrectEvents) {
           .Update(doc_b, MapFieldValue{{"b", FieldValue::Integer(2)}})
           .Commit();
   Await(future);
-  EXPECT_EQ(FutureStatus::kFutureStatusComplete, future.status());
-  EXPECT_EQ(Error::kErrorNotFound, future.error());
+  EXPECT_TRUE(FutureStatus::kFutureStatusComplete == future.status());
+  EXPECT_TRUE(Error::kErrorNotFound == future.error());
 
   // Local event with the set document.
   QuerySnapshot local_snapshot = accumulator.Await();
@@ -183,7 +183,7 @@ TEST_F(WriteBatchTest, TestBatchesFailAtomicallyRaisingCorrectEvents) {
   // Server event with the set reverted
   QuerySnapshot server_snapshot = accumulator.Await();
   EXPECT_FALSE(server_snapshot.metadata().has_pending_writes());
-  EXPECT_EQ(0, server_snapshot.size());
+  EXPECT_TRUE(0 == server_snapshot.size());
 }
 
 TEST_F(WriteBatchTest, TestWriteTheSameServerTimestampAcrossWrites) {
@@ -193,7 +193,7 @@ TEST_F(WriteBatchTest, TestWriteTheSameServerTimestampAcrossWrites) {
   EventAccumulator<QuerySnapshot> accumulator;
   accumulator.listener()->AttachTo(&collection, MetadataChanges::kInclude);
   QuerySnapshot initial_snapshot = accumulator.Await();
-  EXPECT_EQ(0, initial_snapshot.size());
+  EXPECT_TRUE(0 == initial_snapshot.size());
 
   // Atomically write two documents with server timestamps.
   Await(TestFirestore()
@@ -211,9 +211,9 @@ TEST_F(WriteBatchTest, TestWriteTheSameServerTimestampAcrossWrites) {
 
   QuerySnapshot server_snapshot = accumulator.AwaitRemoteEvent();
   EXPECT_FALSE(server_snapshot.metadata().has_pending_writes());
-  EXPECT_EQ(2, server_snapshot.size());
+  EXPECT_TRUE(2 == server_snapshot.size());
   const FieldValue when = server_snapshot.documents()[0].Get("when");
-  EXPECT_EQ(FieldValue::Type::kTimestamp, when.type());
+  EXPECT_TRUE(FieldValue::Type::kTimestamp == when.type());
   EXPECT_THAT(QuerySnapshotToValues(server_snapshot),
               testing::ElementsAre(MapFieldValue{{"when", when}},
                                    MapFieldValue{{"when", when}}));
@@ -245,7 +245,7 @@ TEST_F(WriteBatchTest, TestCanWriteTheSameDocumentMultipleTimes) {
   DocumentSnapshot server_snapshot = accumulator.Await();
   EXPECT_FALSE(server_snapshot.metadata().has_pending_writes());
   const FieldValue when = server_snapshot.Get("when");
-  EXPECT_EQ(FieldValue::Type::kTimestamp, when.type());
+  EXPECT_TRUE(FieldValue::Type::kTimestamp == when.type());
   EXPECT_THAT(server_snapshot.GetData(),
               testing::ContainerEq(MapFieldValue{{"a", FieldValue::Integer(1)},
                                                  {"b", FieldValue::Integer(2)},

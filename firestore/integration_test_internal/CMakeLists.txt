@@ -50,6 +50,12 @@ set(MSVC_RUNTIME_MODE MD)
 
 project(firebase_testapp)
 
+# Ensure min/max macros don't get declared on Windows
+# (so we can use std::min/max), before including the Firebase subdirectories.
+if(MSVC)
+  add_definitions(-DNOMINMAX)
+endif()
+
 # Integration test source files.
 set(FIREBASE_APP_FRAMEWORK_SRCS
   src/app_framework.cc
@@ -61,35 +67,126 @@ set(FIREBASE_TEST_FRAMEWORK_SRCS
   src/firebase_test_framework.cc
 )
 
-set(FIREBASE_INTEGRATION_TEST_SRCS
-  src/array_transform_test.cc
-  src/cleanup_test.cc
-  src/collection_reference_test.cc
-  src/cursor_test.cc
-  src/document_change_test.cc
-  src/document_reference_test.cc
-  src/document_snapshot_test.cc
-  src/field_value_test.cc
-  src/fields_test.cc
-  src/includes_test.cc
-  src/listener_registration_test.cc
-  src/numeric_transforms_test.cc
-  src/query_network_test.cc
-  src/query_snapshot_test.cc
-  src/query_test.cc
-  src/sanity_test.cc
-  src/server_timestamp_test.cc
-  src/smoke_test.cc
-  src/transaction_extra_test.cc
-  src/transaction_test.cc
-  src/type_test.cc
-  src/validation_test.cc
-  src/write_batch_test.cc
-  src/firestore_test.cc
-  src/util/future_test_util.cc
-  src/util/integration_test_util.cc
-  src/firestore_integration_test.cc
+# These sources contain the actual tests that run on all platforms, both Android
+# and non-Android.
+set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
+    # Copy of the standard integration test source file. This ensures that even
+    # if only the internal integration test is run, all of the tests on the
+    # public API are performed.
+    src/integration_test.cc
+    # Internal tests below.
+    src/collection_reference_test.cc
+    src/cursor_test.cc
+    src/document_change_test.cc
+    src/document_reference_test.cc
+    src/document_snapshot_test.cc
+    src/field_value_test.cc
+    src/fields_test.cc
+    src/firestore_test.cc
+    src/includes_test.cc
+    src/listener_registration_test.cc
+    src/numeric_transforms_test.cc
+    src/query_network_test.cc
+    src/query_snapshot_test.cc
+    src/query_test.cc
+    src/sanity_test.cc
+    src/server_timestamp_test.cc
+    src/smoke_test.cc
+    src/transaction_test.cc
+    src/type_test.cc
+    src/validation_test.cc
+    src/write_batch_test.cc
 )
+
+# These sources contain the actual tests that run on Android only.
+set(FIREBASE_INTEGRATION_TEST_ANDROID_TEST_SRCS
+    src/android/field_path_portable_test.cc
+    src/android/firestore_integration_test_android_test.cc
+    src/android/geo_point_android_test.cc
+    src/android/jni_runnable_android_test.cc
+    src/android/promise_android_test.cc
+    src/android/settings_android_test.cc
+    src/android/snapshot_metadata_android_test.cc
+    src/android/timestamp_android_test.cc
+    src/jni/declaration_test.cc
+    src/jni/env_test.cc
+    src/jni/object_test.cc
+    src/jni/ownership_test.cc
+    src/jni/task_test.cc
+    src/jni/traits_test.cc
+)
+
+# These sources contain the actual tests that run on non-Android only.
+set(FIREBASE_INTEGRATION_TEST_DESKTOP_AND_IOS_TEST_SRCS
+    src/array_transform_test.cc
+    src/cleanup_test.cc
+    src/collection_reference_test.cc
+    src/transaction_extra_test.cc
+)
+
+# These sources contain test plumbing and support, for all platforms.
+set(FIREBASE_INTEGRATION_TEST_PORTABLE_SUPPORT_SRCS
+    src/firestore_integration_test.cc
+    src/util/future_test_util.cc
+    src/util/integration_test_util.cc
+)
+
+# These sources contain Android-specific test plumbing and utilities.
+set(FIREBASE_INTEGRATION_TEST_ANDROID_SUPPORT_SRCS
+    src/android/cancellation_token_source.cc
+    src/android/task_completion_source.cc
+    src/android/firestore_integration_test_android.cc
+    src/android/util_autoid.cc
+    # wrapper_assertions.cc from the C++ SDK is included here because even
+    # though it's not included in the Android version of the SDK, it's still
+    # used for some tests.
+    ${FIREBASE_CPP_SDK_DIR}/firestore/src/common/wrapper_assertions.cc
+)
+
+if(NOT ANDROID)
+  # Include portable source files and portable tests, plus tests that shouldn't
+  # be included on Android.
+  set(FIREBASE_INTEGRATION_TEST_SRCS
+    ${FIREBASE_INTEGRATION_TEST_PORTABLE_SUPPORT_SRCS}
+    ${FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS}
+    ${FIREBASE_INTEGRATION_TEST_DESKTOP_AND_IOS_TEST_SRCS}
+  )
+else()
+  # Include portable source files and tests, plus Android-specific source files
+  # and tests.
+  set(FIREBASE_INTEGRATION_TEST_SRCS
+    ${FIREBASE_INTEGRATION_TEST_PORTABLE_SUPPORT_SRCS}
+    ${FIREBASE_INTEGRATION_TEST_ANDROID_SUPPORT_SRCS}
+    ${FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS}
+    ${FIREBASE_INTEGRATION_TEST_ANDROID_TEST_SRCS}
+  )
+endif()
+
+if(ANDROID)
+  # Firestore's internal integration test requires absl on Android,
+  # so download it now.
+  set(ABSEIL_CPP_ROOT ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp/src/abseil-cpp)
+  if (NOT EXISTS ${ABSEIL_CPP_ROOT}/absl)
+    configure_file(abseil-cpp.cmake
+      ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp/CMakeLists.txt COPYONLY)
+    execute_process(COMMAND ${CMAKE_COMMAND} .
+      RESULT_VARIABLE result
+      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp )
+    if(result)
+      message(FATAL_ERROR "CMake step for abseil-cpp failed: ${result}")
+    endif()
+    execute_process(COMMAND ${CMAKE_COMMAND} --build .
+      RESULT_VARIABLE result
+      WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp )
+    if(result)
+      message(FATAL_ERROR "Build step for abseil-cpp failed: ${result}")
+    endif()
+  endif()
+  add_subdirectory(external/abseil-cpp)
+else()
+  set(ABSEIL_CPP_ROOT
+      ${PROJECT_BINARY_DIR}/bin/external/src/firestore-build/external/src/abseil-cpp)
+endif()
 
 # The include directory for the testapp.
 include_directories(src)
@@ -98,7 +195,7 @@ include_directories(${FIREBASE_CPP_SDK_DIR})
 # Additional public headers from Firestore core SDK.
 include_directories(${PROJECT_BINARY_DIR}/bin/external/src/firestore)
 # Additional public headers for absl.
-include_directories(${PROJECT_BINARY_DIR}/bin/external/src/firestore-build/external/src/abseil-cpp)
+include_directories(${ABSEIL_CPP_ROOT})
 # Allow testing internal Firebase APIs.
 add_definitions(-DINTERNAL_EXPERIMENTAL)
 
@@ -177,6 +274,8 @@ if(ANDROID)
 
   set(ADDITIONAL_LIBS log android atomic native_app_glue)
 else()
+  set(ABSEIL_CPP_ROOT ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp/src/abseil-cpp)
+
   # Build a desktop application.
   add_definitions(-D_GLIBCXX_USE_CXX11_ABI=0)
 
@@ -250,11 +349,22 @@ else()
   endif()
 endif()
 
+if(NOT ANDROID)
+ set(${ADDITIONAL_LIBS} ${ADDITIONAL_LIBS} firestore_core absl_variant)
+else()
+ set(${ADDITIONAL_LIBS} ${ADDITIONAL_LIBS}
+     absl_base
+     absl_memory
+     absl_meta
+     absl_optional
+     absl_strings)
+endif()
+
 # Add the Firebase libraries to the target using the function from the SDK.
 add_subdirectory(${FIREBASE_CPP_SDK_DIR} bin/ EXCLUDE_FROM_ALL)
 
 # Note that firebase_app needs to be last in the list.
 set(firebase_libs firebase_firestore firebase_auth firebase_app)
 set(gtest_libs gtest gmock)
-target_link_libraries(${integration_test_target_name} ${firebase_libs} firestore_core absl_variant
+target_link_libraries(${integration_test_target_name} ${firebase_libs}
   ${gtest_libs} ${ADDITIONAL_LIBS})

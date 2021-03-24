@@ -1,4 +1,4 @@
-#include "firestore/src/tests/android/task_completion_source.h"
+#include "android/task_completion_source.h"
 
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
@@ -15,7 +15,7 @@ using jni::Object;
 using jni::Task;
 
 constexpr char kClassName[] =
-    PROGUARD_KEEP_CLASS "com/google/android/gms/tasks/TaskCompletionSource";
+    "com/google/android/gms/tasks/TaskCompletionSource";
 Constructor<TaskCompletionSource> kConstructor("()V");
 Constructor<TaskCompletionSource> kConstructorWithCancellationToken(
     "(Lcom/google/android/gms/tasks/CancellationToken;)V");

@@ -4,9 +4,8 @@
 #include <iosfwd>
 #include <string>
 
-#include "app/src/include/firebase/future.h"
+#include "firebase/future.h"
 #include "gtest/gtest.h"
-#include "gmock/gmock.h"
 
 namespace firebase {
 

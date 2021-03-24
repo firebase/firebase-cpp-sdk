@@ -1,4 +1,4 @@
-#include "firestore/src/tests/android/firestore_integration_test_android.h"
+#include "android/firestore_integration_test_android.h"
 
 #include <string>
 

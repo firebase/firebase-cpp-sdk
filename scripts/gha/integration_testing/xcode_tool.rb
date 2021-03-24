@@ -29,6 +29,8 @@
 #   --XCodeCPP.frameworks
 # -e [entitlement_path],  Path to entitlements (optional)
 #   --XCodeCPP.entitlement
+# -i [include_path],      Path to additional include files (optional)
+#   --XCodeCPP.include
 
 require 'optparse'
 require 'xcodeproj'
@@ -53,6 +55,10 @@ def main
     opts.on('-e', '--XCodeCPP.entitlement [entitlement_path]',
       'Path to entitlements (optional)') do |entitlement_path|
       @entitlement_path = entitlement_path
+    end
+    opts.on('-i', '--XCodeCPP.include [include_path]',
+      'Path to additional include files (optional)') do |include_path|
+      @include_path = include_path
     end
   end.parse!
 
@@ -79,6 +85,9 @@ def main
 
   framework_dir = "#@xcode_project_dir/Frameworks"
   set_build_setting('FRAMEWORK_SEARCH_PATHS', ['${inherited}', framework_dir])
+  if !@include_path.nil?
+    append_to_build_setting('HEADER_SEARCH_PATHS', @include_path)
+  end
 
   @frameworks.each do |framework|
     add_custom_framework(framework)
@@ -166,6 +175,12 @@ end
 def set_build_setting(key, value)
   @target.build_configurations.each do |config|
     config.build_settings[key] = value
+  end
+end
+
+def append_to_build_setting(key, value)
+  @target.build_configurations.each do |config|
+    config.build_settings[key].append(value)
   end
 end
 

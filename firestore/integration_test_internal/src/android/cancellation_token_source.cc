@@ -1,4 +1,4 @@
-#include "firestore/src/tests/android/cancellation_token_source.h"
+#include "android/cancellation_token_source.h"
 
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
@@ -14,7 +14,7 @@ using jni::Method;
 using jni::Object;
 
 constexpr char kClassName[] =
-    PROGUARD_KEEP_CLASS "com/google/android/gms/tasks/CancellationTokenSource";
+  "com/google/android/gms/tasks/CancellationTokenSource";
 Constructor<CancellationTokenSource> kConstructor("()V");
 Method<Object> kGetToken("getToken",
                          "()Lcom/google/android/gms/tasks/CancellationToken;");
