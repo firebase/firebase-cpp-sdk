@@ -57,7 +57,7 @@ def main
       @entitlement_path = entitlement_path
     end
     opts.on('-i', '--XCodeCPP.include [include_path]',
-      'Path to additional header search files (optional)') do |include_path|
+      'Path to additional include files (optional)') do |include_path|
       @include_path = include_path
     end
   end.parse!
