@@ -16,7 +16,8 @@
    IMPORTANT: This file is used by both the regular and the internal Firestore
    integration tests, and needs to be present and identical in both.
 
-   Please sure that any changes to this file are reflected in both of its locations:
+   Please ensure that any changes to this file are reflected in both of its
+   locations:
 
      - firestore/integration_test/src/integration_test.cc
      - firestore/integration_test_internal/src/integration_test.cc
