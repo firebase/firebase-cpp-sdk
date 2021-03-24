@@ -1,9 +1,9 @@
-#include "firestore/src/tests/android/firestore_integration_test_android.h"
+#include "android/firestore_integration_test_android.h"
 
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/string.h"
-#include "firestore/src/tests/android/cancellation_token_source.h"
-#include "firestore/src/tests/android/task_completion_source.h"
+#include "android/cancellation_token_source.h"
+#include "android/task_completion_source.h"
 
 namespace firebase {
 namespace firestore {

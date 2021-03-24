@@ -9,7 +9,7 @@
 #elif defined(FIRESTORE_STUB_BUILD)
 #include "firestore/src/stub/transaction_stub.h"
 #endif  // defined(__ANDROID__)
-
+#include "firebase_test_framework.h"
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FSTTransactionTests.mm
 // and native Android client SDK test
@@ -30,6 +30,8 @@ using TransactionExtraTest = FirestoreIntegrationTest;
 
 TEST_F(TransactionExtraTest,
        TestRetriesWhenDocumentThatWasReadWithoutBeingWrittenChanges) {
+  SKIP_TEST_ON_IOS;  // TODO(b/183294303): Fix this test on iOS.
+
   DocumentReference doc1 = TestFirestore()->Collection("counter").Document();
   DocumentReference doc2 = TestFirestore()->Collection("counter").Document();
   WriteDocument(doc1, MapFieldValue{{"count", FieldValue::Integer(15)}});
@@ -69,6 +71,8 @@ TEST_F(TransactionExtraTest,
 }
 
 TEST_F(TransactionExtraTest, TestReadingADocTwiceWithDifferentVersions) {
+  SKIP_TEST_ON_IOS;  // TODO(b/183294303): Fix this test on iOS.
+
   int counter = 0;
   DocumentReference doc = TestFirestore()->Collection("counters").Document();
   WriteDocument(doc, MapFieldValue{{"count", FieldValue::Double(15.0)}});

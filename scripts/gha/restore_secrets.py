@@ -77,16 +77,21 @@ def main(argv):
       # /<repo_dir>/auth/integration_test/google-services.json
       api = os.path.basename(os.path.dirname(path))
       file_name = os.path.basename(path).replace(".gpg", "")
-      dest_path = os.path.join(repo_dir, api, "integration_test", file_name)
+      dest_paths = [os.path.join(repo_dir, api, "integration_test", file_name)]
+      # Some apis like Firestore also have internal integration tests.
+      if os.path.exists( os.path.join(repo_dir, api, "integration_test_internal")):
+        dest_paths.append(os.path.join(repo_dir, api,
+                                       "integration_test_internal", file_name))
       decrypted_text = _decrypt(path, passphrase)
-      with open(dest_path, "w") as f:
-        f.write(decrypted_text)
-      print("Copied decrypted google service file to %s" % dest_path)
-      # We use a Google Service file as the source of truth for the reverse id
-      # that needs to be patched into the Info.plist files.
-      if dest_path.endswith(".plist"):
-        _patch_reverse_id(dest_path)
-        _patch_bundle_id(dest_path)
+      for dest_path in dest_paths:
+        with open(dest_path, "w") as f:
+          f.write(decrypted_text)
+        print("Copied decrypted google service file to %s" % dest_path)
+        # We use a Google Service file as the source of truth for the reverse id
+        # that needs to be patched into the Info.plist files.
+        if dest_path.endswith(".plist"):
+          _patch_reverse_id(dest_path)
+          _patch_bundle_id(dest_path)
 
   print("Attempting to patch Dynamic Links uri prefix.")
   uri_path = os.path.join(secrets_dir, "dynamic_links", "uri_prefix.txt.gpg")

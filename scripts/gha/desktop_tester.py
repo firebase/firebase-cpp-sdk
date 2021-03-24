@@ -103,7 +103,7 @@ class Test(object):
           stderr=subprocess.STDOUT,
           text=True,
           check=False,
-          timeout=300)
+          timeout=900)
     except subprocess.TimeoutExpired as e:
       logging.error("Testapp timed out!")
       # e.output will sometimes be bytes, sometimes string. Decode if needed.

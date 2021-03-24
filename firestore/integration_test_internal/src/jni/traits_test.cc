@@ -8,7 +8,7 @@
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
 #include "firestore/src/jni/string.h"
-#include "firestore/src/tests/firestore_integration_test.h"
+#include "firestore_integration_test.h"
 #include "gtest/gtest.h"
 
 namespace firebase {

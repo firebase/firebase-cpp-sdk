@@ -1,7 +1,7 @@
 #include "firestore/src/android/geo_point_android.h"
 
 #include "firestore/src/jni/env.h"
-#include "firestore/src/tests/firestore_integration_test.h"
+#include "firestore_integration_test.h"
 #include "gtest/gtest.h"
 #include "firebase/firestore/geo_point.h"
 

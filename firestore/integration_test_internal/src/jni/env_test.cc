@@ -5,7 +5,7 @@
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/jni/array.h"
-#include "firestore/src/tests/firestore_integration_test.h"
+#include "firestore_integration_test.h"
 #include "gtest/gtest.h"
 #include "Firestore/core/src/util/firestore_exceptions.h"
 

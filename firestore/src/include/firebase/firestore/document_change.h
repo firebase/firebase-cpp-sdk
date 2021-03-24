@@ -63,7 +63,13 @@ class DocumentChange {
   /**
    * The sentinel index used as a return value to indicate no matches.
    */
+#if defined(ANDROID)
+  // Older NDK (r16b) fails to define this properly. Fix this when support for
+  // the older NDK is removed.
+  static const std::size_t npos;
+#else
   static constexpr std::size_t npos = static_cast<std::size_t>(-1);
+#endif  // defined(ANDROID)
 
   /**
    * @brief Creates an invalid DocumentChange that has to be reassigned before

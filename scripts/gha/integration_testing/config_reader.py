@@ -91,6 +91,7 @@ def read_config(path=None):
           ios_target=api["ios_target"],
           scheme=api["ios_target"],  # Scheme assumed to be same as target.
           testapp_path=api["testapp_path"],
+          internal_testapp_path=api.get("internal_testapp_path", None),
           frameworks=api["frameworks"],
           provision=api["provision"],
           minify=api.get("minify", None))
@@ -127,6 +128,7 @@ class APIConfig(object):
   ios_target = attr.ib()
   scheme = attr.ib()
   testapp_path = attr.ib()  # Integration test dir relative to sdk root
+  internal_testapp_path = attr.ib()  # Internal integration test dir relative to sdk root
   frameworks = attr.ib()  # Required custom xcode frameworks
   provision = attr.ib()  # Path to the local mobile provision
   minify = attr.ib()  # (Optional) Android minification.
