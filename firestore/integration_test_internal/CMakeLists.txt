@@ -166,7 +166,7 @@ if(ANDROID)
   # Firestore's internal integration test requires absl on Android,
   # so download it now.
   set(ABSEIL_CPP_ROOT ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp/src/abseil-cpp)
-  if (NOT EXISTS ${ABSEIL_CPP_ROOT}/absl/base/attributes.h)
+  if (NOT EXISTS ${ABSEIL_CPP_ROOT}/absl)
     configure_file(abseil-cpp.cmake
       ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp/CMakeLists.txt COPYONLY)
     execute_process(COMMAND ${CMAKE_COMMAND} .
