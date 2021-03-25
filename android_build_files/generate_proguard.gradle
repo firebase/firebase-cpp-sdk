@@ -20,7 +20,7 @@ def generateCppProguard(File library, String outCppPro) {
   def stringsOutStream = new ByteArrayOutputStream()
   exec {
     executable 'strings'
-    args "-accepteula", "$library"
+    args "$library"
     standardOutput = stringsOutStream
   }
 

@@ -93,6 +93,17 @@ jobs:
           # Make sure to prepend the one in our repo root to the path.
           echo "${{ github.workspace }}" >> $GITHUB_PATH
 
+      - name: Run strings.exe once to accept license(Windows only)
+        if: startsWith(matrix.os, 'windows')
+        continue-on-error: true
+        shell: bash
+        run: |
+          # This invocation is just to accept the license. Otherwise the command
+          # fails during build process. Also, running a command with just this
+          # flag makes the process exit with code 127 and stops the workflow.
+          # We ignore the error and continue with the rest of the steps.
+          strings -accepteula
+
       - name: Cache ccache files
         id: cache_ccache
         uses: actions/cache@v2
