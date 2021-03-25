@@ -58,12 +58,13 @@ flags.DEFINE_integer(
 
 CAPITALIZATIONS = {
     "macos": "MacOS",
-    "ubuntu": "Ubuntu",
+    "ubuntu": "Linux",
     "windows": "Windows",
     "openssl": "(OpenSSL)",
     "boringssl": "(BoringSSL)",
     "ios": "iOS",
     "android": "Android",
+    "desktop": "Desktop",
 }
 
 PLATFORM_HEADER = "Platform"
@@ -90,17 +91,26 @@ def main(argv):
       # Split the matrix name into components.
       log_name = re.sub(r'[-_.]+', ' ', log_name).split()
       # Remove redundant components.
+      if "latest" in log_name: log_name.remove("latest")
       if "Android" in log_name or "iOS" in log_name:
           log_name.remove('openssl')
-      log_name.remove('latest')
       # Capitalize components in a nice way.
       log_name = [
           CAPITALIZATIONS[name.lower()]
           if name.lower() in CAPITALIZATIONS
           else name
           for name in log_name]
+      if FLAGS.markdown:
+        if "Android" in log_name or "iOS" in log_name:
+          # For Android and iOS, highlight the target OS.
+            log_name[0] = "(built on %s)" % log_name[0]
+            log_name[1] = "**%s**" % log_name[1]
+        else:
+          # For desktop, highlight the entire platform string.
+          log_name[0] = "%s**" % log_name[0]
+          log_name[1] = "**%s" % log_name[1]
       # Rejoin matrix name with spaces.
-      log_name = ' '.join(log_name)
+      log_name = ' '.join([log_name[1], log_name[0]]+log_name[2:])
       with open(log_file, "r") as log_reader:
           log_data[log_name] = log_reader.read()
 
