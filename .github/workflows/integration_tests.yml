@@ -396,6 +396,7 @@ jobs:
         shell: bash
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         run: |
+          ls -lR test_results
           mv test_results/test-results-*/test-results-*.txt test_results || true
           echo -n "::set-output name=table::"
           python scripts/gha/summarize_test_results.py --dir test_results --singleline --markdown
