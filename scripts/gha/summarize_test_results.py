@@ -52,6 +52,10 @@ flags.DEFINE_bool(
     "markdown", False,
     "Display a Markdown-formatted table.")
 
+flags.DEFINE_bool(
+    "github_log", False,
+    "Display a GitHub log formatted table.")
+
 flags.DEFINE_integer(
     "list_max", 5,
     "In Markdown mode, collapse lists larger than this size. 0 to disable.")
@@ -70,6 +74,8 @@ CAPITALIZATIONS = {
 PLATFORM_HEADER = "Platform"
 BUILD_FAILURES_HEADER = "Build failures"
 TEST_FAILURES_HEADER = "Test failures"
+
+LOG_HEADER = "INTEGRATION TEST FAILURES"
 
 def main(argv):
   if len(argv) > 1:
@@ -213,7 +219,10 @@ def main(argv):
             len(log_results[platform]["test_failures"]), test_failures)
       output_lines.append("| %s | %s | %s |" % (platform_str, build_failures, test_failures))
 
-  print("\n".join(output_lines))
+  if FLAGS.github_log:
+    print("::error ::%s%%0A%s%%0A%%0A%s" % (LOG_HEADER, "-".ljust(len(LOG_HEADER), "-"), "%0A".join(output_lines)))
+  else:
+    print("\n".join(output_lines))
 
 if __name__ == "__main__":
   flags.mark_flag_as_required("dir")
