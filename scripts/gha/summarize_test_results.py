@@ -100,15 +100,15 @@ def main(argv):
           if name.lower() in CAPITALIZATIONS
           else name
           for name in log_name]
-      if FLAGS.markdown:
-        if "Android" in log_name or "iOS" in log_name:
-          # For Android and iOS, highlight the target OS.
-            log_name[0] = "(built on %s)" % log_name[0]
-            log_name[1] = "**%s**" % log_name[1]
-        else:
-          # For desktop, highlight the entire platform string.
-          log_name[0] = "%s**" % log_name[0]
-          log_name[1] = "**%s" % log_name[1]
+      if "Android" in log_name or "iOS" in log_name:
+        # For Android and iOS, highlight the target OS.
+        log_name[0] = "(built on %s)" % log_name[0]
+        if FLAGS.markdown:
+          log_name[1] = "**%s**" % log_name[1]
+      elif FLAGS.markdown:
+        # For desktop, highlight the entire platform string.
+        log_name[0] = "%s**" % log_name[0]
+        log_name[1] = "**%s" % log_name[1]
       # Rejoin matrix name with spaces.
       log_name = ' '.join([log_name[1], log_name[0]]+log_name[2:])
       with open(log_file, "r") as log_reader:
