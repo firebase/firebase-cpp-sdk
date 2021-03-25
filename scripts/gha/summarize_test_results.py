@@ -56,6 +56,10 @@ flags.DEFINE_bool(
     "markdown", False,
     "Display a Markdown-formatted table.")
 
+flags.DEFINE_integer(
+    "list_max", 5,
+    "In Markdown mode, collapse lists larger than this size. 0 to disable.")
+
 CAPITALIZATIONS = {
     "macos": "MacOS",
     "ubuntu": "Ubuntu",
@@ -137,18 +141,26 @@ def main(argv):
           
 
   
-  # For text formatting, see how wide the strings are.
-  max_platform = len(PLATFORM_HEADER)
-  max_build_failures = len(BUILD_FAILURES_HEADER)
-  max_test_failures = len(TEST_FAILURES_HEADER)
-  for (platform, results) in log_results.items():
-    build_failures = ", ".join(sorted(log_results[platform]["build_failures"]))
-    test_failures = ", ".join(sorted(log_results[platform]["test_failures"]))
-    max_platform = max(max_platform, len(platform))
-    max_build_failures = max(max_build_failures, len(build_failures))
-    max_test_failures = max(max_test_failures, len(test_failures))
+  if FLAGS.markdown:
+    # If outputting Markdown, don't bother justifying the table.
+    max_platform = 0
+    max_build_failures = 0
+    max_test_failures = 0
+    space_char = "&nbsp;"
+  else:
+    # For text formatting, see how wide the strings are so we can
+    # justify the text table.
+    max_platform = len(PLATFORM_HEADER)
+    max_build_failures = len(BUILD_FAILURES_HEADER)
+    max_test_failures = len(TEST_FAILURES_HEADER)
+    for (platform, results) in log_results.items():
+      build_failures = ", ".join(sorted(log_results[platform]["build_failures"]))
+      test_failures = ", ".join(sorted(log_results[platform]["test_failures"]))
+      max_platform = max(max_platform, len(platform))
+      max_build_failures = max(max_build_failures, len(build_failures))
+      max_test_failures = max(max_test_failures, len(test_failures))
+      space_char = " "
 
-  space_char = "&nbsp;" if FLAGS.markdown else " ";
   output_lines = list()
   output_lines.append("| %s | %s | %s |" % (
     re.sub(r'\b \b', space_char, PLATFORM_HEADER.ljust(max_platform)),
@@ -164,6 +176,17 @@ def main(argv):
       platform_str = re.sub(r'\b \b', space_char, platform.ljust(max_platform))
       build_failures = ", ".join(sorted(log_results[platform]["build_failures"])).ljust(max_build_failures)
       test_failures = ", ".join(sorted(log_results[platform]["test_failures"])).ljust(max_test_failures)
+      if FLAGS.markdown:
+        # If there are more than N failures, collapse the results.
+        if FLAGS.list_max and len(log_results[platform]["build_failures"]) > FLAGS.list_max:
+          build_failures = "<details><summary>_%s items_</summary>%s</details>" % (
+            len(log_results[platform]["build_failures"]), build_failures)
+        if FLAGS.list_max and len(log_results[platform]["test_failures"]) > FLAGS.list_max:
+          test_failures = "<details><summary>_%s items_</summary>%s</details>" % (
+            len(log_results[platform]["test_failures"]), test_failures)
+      else:
+        build_failures = ", ".join(sorted(log_results[platform]["build_failures"])).ljust(max_build_failures)
+        test_failures = ", ".join(sorted(log_results[platform]["test_failures"])).ljust(max_test_failures)
       output_lines.append("| %s | %s | %s |" % (platform_str, build_failures, test_failures))
 
   output_delim = "\\n" if FLAGS.singleline else "\n"
