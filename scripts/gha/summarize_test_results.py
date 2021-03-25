@@ -153,6 +153,7 @@ def main(argv):
     # Certain spaces are replaced with HTML non-breaking spaces, to prevent
     # aggressive word-wrapping from messing up the formatting.
     space_char = "&nbsp;"
+    list_seperator = "<br/>"
   else:
     # For text formatting, see how wide the strings are so we can
     # justify the text table.
@@ -160,8 +161,9 @@ def main(argv):
     max_build_failures = len(BUILD_FAILURES_HEADER)
     max_test_failures = len(TEST_FAILURES_HEADER)
     for (platform, results) in log_results.items():
-      build_failures = ", ".join(sorted(log_results[platform]["build_failures"]))
-      test_failures = ", ".join(sorted(log_results[platform]["test_failures"]))
+      list_seperator = ", "
+      build_failures = list_seperator.join(sorted(log_results[platform]["build_failures"]))
+      test_failures = list_seperator.join(sorted(log_results[platform]["test_failures"]))
       max_platform = max(max_platform, len(platform))
       max_build_failures = max(max_build_failures, len(build_failures))
       max_test_failures = max(max_test_failures, len(test_failures))
@@ -181,8 +183,8 @@ def main(argv):
   for platform in sorted(log_results.keys()):
     if log_results[platform]["build_failures"] or log_results[platform]["test_failures"]:
       platform_str = re.sub(r'\b \b', space_char, platform.ljust(max_platform))
-      build_failures = ", ".join(sorted(log_results[platform]["build_failures"])).ljust(max_build_failures)
-      test_failures = ", ".join(sorted(log_results[platform]["test_failures"])).ljust(max_test_failures)
+      build_failures = list_seperator.join(sorted(log_results[platform]["build_failures"])).ljust(max_build_failures)
+      test_failures = list_seperator.join(sorted(log_results[platform]["test_failures"])).ljust(max_test_failures)
       if FLAGS.markdown:
         # If there are more than N failures, collapse the results.
         if FLAGS.list_max and len(log_results[platform]["build_failures"]) > FLAGS.list_max:
@@ -191,9 +193,6 @@ def main(argv):
         if FLAGS.list_max and len(log_results[platform]["test_failures"]) > FLAGS.list_max:
           test_failures = "<details><summary>_(%s items)_</summary>%s</details>" % (
             len(log_results[platform]["test_failures"]), test_failures)
-      else:
-        build_failures = ", ".join(sorted(log_results[platform]["build_failures"])).ljust(max_build_failures)
-        test_failures = ", ".join(sorted(log_results[platform]["test_failures"])).ljust(max_test_failures)
       output_lines.append("| %s | %s | %s |" % (platform_str, build_failures, test_failures))
 
   print("\n".join(output_lines))

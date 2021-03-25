@@ -99,6 +99,7 @@ jobs:
         elif [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
           echo "::set-output name=requested_tests::auto"
         fi
+        echo ${{ toJson(github) }}          
     ### Add the in-progress label and remove any previous success/fail labels.
     - name: add in-progress label
       uses: buildsville/add-remove-label@v1
@@ -366,7 +367,7 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
-          path: test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
+          path: test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}-.txt
 
       ### The below allow us to set the failure label and comment early, when the first failure
       ### in the matrix occurs. It'll be cleaned up in a subsequent job.
