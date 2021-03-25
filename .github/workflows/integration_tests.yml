@@ -362,7 +362,7 @@ jobs:
 
       - name: upload results summary artifact
         uses: actions/upload-artifact@v2.2.2
-        if: !cancelled()
+        if: ${{ !cancelled() }}
         with:
           name: test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
           path: ta/summary.log
