@@ -117,6 +117,16 @@ function(download_external_sources)
       file(INSTALL "${PROJECT_SOURCE_DIR}/cmake/external/leveldb.cmake"
            DESTINATION "${PROJECT_BINARY_DIR}/external/src/firestore/cmake/external")
     endif()
+
+    execute_process(
+      COMMAND "python" "${PROJECT_SOURCE_DIR}/scripts/patch_websockets.py" 
+              "-file" "${PROJECT_BINARY_DIR}/external/src/uWebSockets/src/Socket.h"
+              "-cmakefile" "${PROJECT_SOURCE_DIR}/cmake/external/uWebSockets.cmake" 
+      RESULT_VARIABLE STATUS)
+      if( STATUS AND NOT STATUS EQUAL 0 )
+        message(FATAL_ERROR "FAILED to patch uWebsockets/src/Socket.h")
+        message(FATAL_ERROR "see cmake/external_rules.cmake.")
+      endif()
   endif()
 endfunction()
 
