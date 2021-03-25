@@ -220,6 +220,8 @@ jobs:
             ssl_variant: boringssl
           - target_platform: Android
             ssl_variant: boringssl
+          - os: windows-latest
+            target_platform: Android
 
     steps:
       - uses: actions/checkout@v2
