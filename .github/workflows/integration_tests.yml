@@ -397,7 +397,6 @@ jobs:
         shell: bash
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         run: |
-        run: |
           mv test_results/test-results-*/test-results-*.txt test_results || true
           echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
           python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV

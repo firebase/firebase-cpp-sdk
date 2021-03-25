@@ -49,10 +49,6 @@ flags.DEFINE_bool(
     "Print a full table, including successful tests.")
 
 flags.DEFINE_bool(
-    "singleline", False,
-    "Output a single line, with \n for newlines.")
-
-flags.DEFINE_bool(
     "markdown", False,
     "Display a Markdown-formatted table.")
 
@@ -200,8 +196,7 @@ def main(argv):
         test_failures = ", ".join(sorted(log_results[platform]["test_failures"])).ljust(max_test_failures)
       output_lines.append("| %s | %s | %s |" % (platform_str, build_failures, test_failures))
 
-  output_delim = "\\n" if FLAGS.singleline else "\n"
-  print(output_delim.join(output_lines))
+  print("\n".join(output_lines))
 
 if __name__ == "__main__":
   flags.mark_flag_as_required("dir")
