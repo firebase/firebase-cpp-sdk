@@ -362,6 +362,12 @@ jobs:
         run: |
           python scripts/gha/test_lab.py --android_model ${{ needs.prepare_matrix.outputs.android_device }} --android_api ${{ needs.prepare_matrix.outputs.android_api }} --ios_model ${{ needs.prepare_matrix.outputs.ios_device }} --ios_version ${{ needs.prepare_matrix.outputs.ios_version }} --testapp_dir ta --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
 
+      - name: upload results summary artifact
+        uses: actions/upload-artifact@v2.2.2
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
+          path: ta/summary.log
+
       ### The below allow us to set the failure label and comment early, when the first failure
       ### in the matrix occurs. It'll be cleaned up in a subsequent job.
       - name: add failure label
@@ -379,6 +385,22 @@ jobs:
         run: |
           echo -n "::set-output name=time::"
           TZ=America/Los_Angeles date
+      - name: download artifact
+        uses: actions/download-artifact@v2.0.8
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        with:
+          # download-artifact doesn't support wildcards, but by default
+          # will download all artifacts. Sadly this is what we must do.
+          path: test_results
+      - name: get summary of test results
+        id: get-summary
+        shell: bash
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        run: |
+          mv test_results/test-results-*/test-results-*.txt test_results
+          echo -n "::set-output name=table::"
+          python scripts/gha/summarize_test_results.py -d test_results --singleline
+
       - name: add failure status comment
         uses: phulsechinmay/rewritable-pr-comment@v0.2.1
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
@@ -388,6 +410,7 @@ jobs:
             Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
+            ${{ steps.get-summary.outputs.table }}
           GITHUB_TOKEN: ${{ github.token }}
           COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
 
@@ -447,6 +470,19 @@ jobs:
         run: |
           echo -n "::set-output name=time::"
           TZ=America/Los_Angeles date
+      - name: download artifact
+        uses: actions/download-artifact@v2.0.8
+        with:
+          # download-artifact doesn't support wildcards, but by default
+          # will download all artifacts. Sadly this is what we must do.
+          path: test_results
+      - name: get summary of test results
+        id: get-summary
+        shell: bash
+        run: |
+          mv test_results/test-results-*/test-results-*.txt test_results
+          echo -n "::set-output name=table::"
+          python scripts/gha/summarize_test_results.py -d test_results --singleline
       - name: add failure status comment
         uses: phulsechinmay/rewritable-pr-comment@v0.2.1
         with:
@@ -455,6 +491,7 @@ jobs:
             Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
+            ${{ steps.get-summary.outputs.table }}
           GITHUB_TOKEN: ${{ github.token }}
           COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
 
