@@ -88,9 +88,9 @@ jobs:
         shell: bash
         run: |
           echo $PATH
-          echo "{{ github.workspace }}" >> $GITHUB_PATH
+          echo "${{ github.workspace }}" >> $GITHUB_PATH
           echo $PATH
-          ls {{ github.workspace }}
+          ls "${{ github.workspace }}"
 
       - name: Install prerequisites
         shell: bash
