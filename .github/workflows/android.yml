@@ -83,18 +83,19 @@ jobs:
         run: |
           build_scripts/android/install_prereqs.sh
 
-      - name: Special handling of strings.exe on Windows
+      - name: Add strings.exe to PATH
         if: startsWith(matrix.os, 'windows')
-        run: |
-          # strings.exe was installed in repo root by install_prereqs
-          echo "$ {{github.workspace }}" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          echo "$PATH"
-          # You have to accept the license once before running it.
-          strings -accepteula
-
-      - name: Install prerequisites
         shell: bash
         run: |
+          # strings.exe was installed in repo root by install_prereqs
+          echo "${{ github.workspace }}" >> $GITHUB_PATH
+
+      - name: Accept license for strings.exe
+        if: startsWith(matrix.os, 'windows')
+        shell: bash
+        run: |
+          echo "$PATH"
+          strings -accepteula
 
       - name: Cache ccache files
         id: cache_ccache
