@@ -398,7 +398,7 @@ jobs:
         run: |
           mv test_results/test-results-*/test-results-*.txt test_results
           echo -n "::set-output name=table::"
-          python scripts/gha/summarize_test_results.py -d test_results --singleline
+          python scripts/gha/summarize_test_results.py --dir test_results --singleline --markdown
 
       - name: add failure status comment
         uses: phulsechinmay/rewritable-pr-comment@v0.2.1
@@ -481,7 +481,7 @@ jobs:
         run: |
           mv test_results/test-results-*/test-results-*.txt test_results
           echo -n "::set-output name=table::"
-          python scripts/gha/summarize_test_results.py -d test_results --singleline
+          python scripts/gha/summarize_test_results.py --dir test_results --singleline --markdown
       - name: add failure status comment
         uses: phulsechinmay/rewritable-pr-comment@v0.2.1
         with:

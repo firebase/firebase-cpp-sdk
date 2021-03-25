@@ -52,6 +52,10 @@ flags.DEFINE_bool(
     "singleline", False,
     "Output a single line, with \n for newlines.")
 
+flags.DEFINE_bool(
+    "markdown", False,
+    "Display a Markdown-formatted table.")
+
 CAPITALIZATIONS = {
     "macos": "MacOS",
     "ubuntu": "Ubuntu",
@@ -92,7 +96,7 @@ def main(argv):
       log_name = [
           CAPITALIZATIONS[name.lower()]
           if name.lower() in CAPITALIZATIONS
-          else name.capitalize()
+          else name
           for name in log_name]
       # Rejoin matrix name with spaces.
       log_name = ' '.join(log_name)
@@ -144,11 +148,12 @@ def main(argv):
     max_build_failures = max(max_build_failures, len(build_failures))
     max_test_failures = max(max_test_failures, len(test_failures))
 
+  space_char = "&nbsp;" if FLAGS.markdown else " ";
   output_lines = list()
   output_lines.append("| %s | %s | %s |" % (
-    PLATFORM_HEADER.ljust(max_platform),
-    BUILD_FAILURES_HEADER.ljust(max_build_failures),
-    TEST_FAILURES_HEADER.ljust(max_test_failures)))
+    re.sub(r'\b \b', space_char, PLATFORM_HEADER.ljust(max_platform)),
+    re.sub(r'\b \b', space_char,BUILD_FAILURES_HEADER.ljust(max_build_failures)),
+    re.sub(r'\b \b', space_char,TEST_FAILURES_HEADER.ljust(max_test_failures))))
   output_lines.append("|-%s-|-%s-|-%s-|" % (
     "".ljust(max_platform, "-"),
     "".ljust(max_build_failures, "-"),
@@ -156,7 +161,7 @@ def main(argv):
 
   for platform in sorted(log_results.keys()):
     if log_results[platform]["build_failures"] or log_results[platform]["test_failures"]:
-      platform_str = platform.ljust(max_platform)
+      platform_str = re.sub(r'\b \b', space_char, platform.ljust(max_platform))
       build_failures = ", ".join(sorted(log_results[platform]["build_failures"])).ljust(max_build_failures)
       test_failures = ", ".join(sorted(log_results[platform]["test_failures"])).ljust(max_test_failures)
       output_lines.append("| %s | %s | %s |" % (platform_str, build_failures, test_failures))
