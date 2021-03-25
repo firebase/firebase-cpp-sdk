@@ -89,6 +89,8 @@ jobs:
         run: |
           # strings.exe was installed in repo root by install_prereqs
           echo "${{ github.workspace }}" >> $GITHUB_PATH
+          echo "Modified path"
+          echo "$PATH"
           # You have to accept the license once before running it.
           strings -accepteula
 
