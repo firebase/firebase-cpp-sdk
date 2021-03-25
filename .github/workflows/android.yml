@@ -70,7 +70,7 @@ jobs:
       - name: Add msbuild to PATH
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
-      
+
       - name: Cache NDK
         id: cache_ndk
         uses: actions/cache@v2
@@ -82,6 +82,19 @@ jobs:
         shell: bash
         run: |
           build_scripts/android/install_prereqs.sh
+
+      - name: Add strings to PATH
+        if: startsWith(matrix.os, 'windows')
+        shell: bash
+        run: |
+          echo $PATH
+          echo "{{ github.workspace }}" >> $GITHUB_PATH
+          echo $PATH
+          ls {{ github.workspace }}
+
+      - name: Install prerequisites
+        shell: bash
+        run: |
 
       - name: Cache ccache files
         id: cache_ccache
