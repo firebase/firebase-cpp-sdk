@@ -64,8 +64,8 @@ CAPITALIZATIONS = {
     "macos": "MacOS",
     "ubuntu": "Ubuntu",
     "windows": "Windows",
-    "openssl": "OpenSSL",
-    "boringssl": "BoringSSL",
+    "openssl": "(OpenSSL)",
+    "boringssl": "(BoringSSL)",
     "ios": "iOS",
     "android": "Android",
 }
@@ -111,11 +111,11 @@ def main(argv):
   # Go through each log and extract out the build and test failures.
   for (platform, log_text) in log_data.items():
       log_results[platform] = { "build_failures": set(), "test_failures": set(),
-                                "all": set(), "successful": set() }
+                                "attempted": set(), "successful": set() }
       # Get a full list of the products built.
       m = re.search(r'TRIED TO BUILD: ([^\n]*)', log_text)
       if m:
-        log_results[platform]["all"].update(m.group(1).split(","))
+        log_results[platform]["attempted"].update(m.group(1).split(","))
       # Extract build failure lines, which follow "SOME FAILURES OCCURRED:"
       m = re.search(r'SOME FAILURES OCCURRED:\n(([\d+]:[^\n]*\n)+)', log_text, re.MULTILINE)
       if m:
@@ -145,7 +145,7 @@ def main(argv):
                 log_results[platform]["test_failures"].add(product_name)
 
   for platform in log_results.keys():
-    log_results[platform]["successful"] = log_results[platform]["all"].difference(
+    log_results[platform]["successful"] = log_results[platform]["attempted"].difference(
       log_results[platform]["test_failures"].union(
         log_results[platform]["build_failures"]))
   
@@ -154,6 +154,8 @@ def main(argv):
     max_platform = 0
     max_build_failures = 0
     max_test_failures = 0
+    # Certain spaces are replaced with HTML non-breaking spaces, to prevent
+    # aggressive word-wrapping from messing up the formatting.
     space_char = "&nbsp;"
   else:
     # For text formatting, see how wide the strings are so we can
@@ -169,6 +171,7 @@ def main(argv):
       max_test_failures = max(max_test_failures, len(test_failures))
       space_char = " "
 
+  # Output a table (text or markdown) of failure platforms & tests.
   output_lines = list()
   output_lines.append("| %s | %s | %s |" % (
     re.sub(r'\b \b', space_char, PLATFORM_HEADER.ljust(max_platform)),
