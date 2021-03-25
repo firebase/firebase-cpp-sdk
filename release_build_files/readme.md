@@ -579,6 +579,8 @@ code.
     -   Database: Fixed a potential crash that can occur as a result of a race
         condidtion when adding, removing and deleting `ValueListener`s or
         `ChildListener`s rapidly.
+    -   Database: Fixed a crash when setting large values on Windows and Mac
+        systems ([#517](https://github.com/firebase/quickstart-unity/issues/517)).
 
 ### 7.1.1
 -   Changes

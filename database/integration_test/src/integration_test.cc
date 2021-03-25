@@ -59,7 +59,7 @@ using testing::PrintToString;
 using testing::UnorderedElementsAre;
 
 const char kIntegrationTestRootPath[] = "integration_test_data";
-const uint32_t kLargeWriteStringLength = 1024 * 1024; // 1 Megabyte.
+const size_t kLargeWriteStringLength = 1024 * 1024; // 1 Megabyte.
 
 // Returns true if the given given timestamp is within 15 minutes of the
 // expected timestamp. The value compared against must be a Variant of type
