@@ -90,13 +90,6 @@ jobs:
           # strings.exe was installed in repo root by install_prereqs
           echo "${{ github.workspace }}" >> $GITHUB_PATH
 
-      - name: Accept license for strings.exe
-        if: startsWith(matrix.os, 'windows')
-        shell: bash
-        run: |
-          echo "$PATH"
-          strings -accepteula
-
       - name: Cache ccache files
         id: cache_ccache
         uses: actions/cache@v2
