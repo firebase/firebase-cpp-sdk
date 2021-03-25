@@ -57,7 +57,7 @@ set +e
 # network connectivity issues that cause the download to fail.
 for retry in {1..10} error; do
     if [[ $retry == "error" ]]; then exit 5; fi
-    ./gradlew assembleRelease && break
+    ./gradlew assembleRelease --stacktrace && break
     sleep 300
 done
 set -e
