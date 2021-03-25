@@ -83,14 +83,14 @@ jobs:
         run: |
           build_scripts/android/install_prereqs.sh
 
-      - name: Add strings to PATH
+      - name: Special handling of strings.exe on Windows
         if: startsWith(matrix.os, 'windows')
         shell: bash
         run: |
-          echo $PATH
+          # strings.exe was installed in repo root by install_prereqs
           echo "${{ github.workspace }}" >> $GITHUB_PATH
-          echo $PATH
-          ls "${{ github.workspace }}"
+          # You have to accept the license once before running it.
+          strings -accepteula
 
       - name: Install prerequisites
         shell: bash
