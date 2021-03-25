@@ -220,6 +220,7 @@ def main(argv):
       output_lines.append("| %s | %s | %s |" % (platform_str, build_failures, test_failures))
 
   if FLAGS.github_log:
+    # "%0A" produces a newline in GitHub workflow logs.
     print("::error ::%s%%0A%s%%0A%%0A%s" % (LOG_HEADER, "-".ljust(len(LOG_HEADER), "-"), "%0A".join(output_lines)))
   else:
     print("\n".join(output_lines))
