@@ -110,7 +110,12 @@ def main(argv):
   log_results = {}
   # Go through each log and extract out the build and test failures.
   for (platform, log_text) in log_data.items():
-      log_results[platform] = { "build_failures": set(), "test_failures": set() }
+      log_results[platform] = { "build_failures": set(), "test_failures": set(),
+                                "all": set(), "successful": set() }
+      # Get a full list of the products built.
+      m = re.search(r'TRIED TO BUILD: ([^\n]*)', log_text)
+      if m:
+        log_results[platform]["all"].update(m.group(1).split(","))
       # Extract build failure lines, which follow "SOME FAILURES OCCURRED:"
       m = re.search(r'SOME FAILURES OCCURRED:\n(([\d+]:[^\n]*\n)+)', log_text, re.MULTILINE)
       if m:
@@ -138,8 +143,11 @@ def main(argv):
               product_name = m2.group(2).lower()
               if product_name:
                 log_results[platform]["test_failures"].add(product_name)
-          
 
+  for platform in log_results.keys():
+    log_results[platform]["successful"] = log_results[platform]["all"].difference(
+      log_results[platform]["test_failures"].union(
+        log_results[platform]["build_failures"]))
   
   if FLAGS.markdown:
     # If outputting Markdown, don't bother justifying the table.
@@ -179,10 +187,10 @@ def main(argv):
       if FLAGS.markdown:
         # If there are more than N failures, collapse the results.
         if FLAGS.list_max and len(log_results[platform]["build_failures"]) > FLAGS.list_max:
-          build_failures = "<details><summary>_%s items_</summary>%s</details>" % (
+          build_failures = "<details><summary>_(%s items)_</summary>%s</details>" % (
             len(log_results[platform]["build_failures"]), build_failures)
         if FLAGS.list_max and len(log_results[platform]["test_failures"]) > FLAGS.list_max:
-          test_failures = "<details><summary>_%s items_</summary>%s</details>" % (
+          test_failures = "<details><summary>_(%s items)_</summary>%s</details>" % (
             len(log_results[platform]["test_failures"]), test_failures)
       else:
         build_failures = ", ".join(sorted(log_results[platform]["build_failures"])).ljust(max_build_failures)
