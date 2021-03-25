@@ -81,6 +81,7 @@ def main(argv):
   log_name_re = re.escape(
       os.path.join(FLAGS.dir,FLAGS.pattern)).replace("\\*", "(.*)")
 
+  any_failures = False
   log_data = {}
 
   for log_file in log_files:
@@ -121,6 +122,8 @@ def main(argv):
             product_name = m2.group(1).lower()
             if product_name:
               log_results[platform]["build_failures"].add(product_name)
+              any_failures = True
+
       # Extract test failures, which follow "TESTAPPS EXPERIENCED ERRORS:"
       m = re.search(r'TESTAPPS EXPERIENCED ERRORS:\n(([^\n]*\n)+)', log_text, re.MULTILINE)
       if m:
@@ -139,12 +142,17 @@ def main(argv):
               product_name = m2.group(2).lower()
               if product_name:
                 log_results[platform]["test_failures"].add(product_name)
+                any_failures = True
 
   for platform in log_results.keys():
     log_results[platform]["successful"] = log_results[platform]["attempted"].difference(
       log_results[platform]["test_failures"].union(
         log_results[platform]["build_failures"]))
-  
+
+  if not any_failures:
+    # No failures occurred, nothing to log.
+    return(0)
+
   if FLAGS.markdown:
     # If outputting Markdown, don't bother justifying the table.
     max_platform = 0
@@ -160,6 +168,7 @@ def main(argv):
     max_platform = len(PLATFORM_HEADER)
     max_build_failures = len(BUILD_FAILURES_HEADER)
     max_test_failures = len(TEST_FAILURES_HEADER)
+    space_char = " "
     for (platform, results) in log_results.items():
       list_seperator = ", "
       build_failures = list_seperator.join(sorted(log_results[platform]["build_failures"]))
@@ -167,7 +176,6 @@ def main(argv):
       max_platform = max(max_platform, len(platform))
       max_build_failures = max(max_build_failures, len(build_failures))
       max_test_failures = max(max_test_failures, len(test_failures))
-      space_char = " "
 
   # Output a table (text or markdown) of failure platforms & tests.
   output_lines = list()
