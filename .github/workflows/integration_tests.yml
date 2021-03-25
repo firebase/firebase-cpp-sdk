@@ -397,11 +397,11 @@ jobs:
         shell: bash
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         run: |
-          ls -lR test_results
+        run: |
           mv test_results/test-results-*/test-results-*.txt test_results || true
-          echo -n "::set-output name=table::"
-          python scripts/gha/summarize_test_results.py --dir test_results --singleline --markdown
-
+          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
+          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
       - name: add failure status comment
         uses: phulsechinmay/rewritable-pr-comment@v0.2.1
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
@@ -411,7 +411,7 @@ jobs:
             Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-            ${{ steps.get-summary.outputs.table }}
+            ${{ env.SUMMARY_TABLE }}
           GITHUB_TOKEN: ${{ github.token }}
           COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
 
@@ -478,12 +478,12 @@ jobs:
           # will download all artifacts. Sadly this is what we must do.
           path: test_results
       - name: get summary of test results
-        id: get-summary
         shell: bash
         run: |
           mv test_results/test-results-*/test-results-*.txt test_results || true
-          echo -n "::set-output name=table::"
-          python scripts/gha/summarize_test_results.py --dir test_results --singleline --markdown
+          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
+          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
       - name: add failure status comment
         uses: phulsechinmay/rewritable-pr-comment@v0.2.1
         with:
@@ -492,7 +492,7 @@ jobs:
             Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-            ${{ steps.get-summary.outputs.table }}
+            ${{ env.SUMMARY_TABLE }}
           GITHUB_TOKEN: ${{ github.token }}
           COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
 
