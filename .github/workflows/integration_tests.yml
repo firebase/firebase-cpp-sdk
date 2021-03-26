@@ -359,15 +359,16 @@ jobs:
         if: matrix.target_platform != 'Desktop' && !cancelled()
         run: |
           python scripts/gha/test_lab.py --android_model ${{ needs.prepare_matrix.outputs.android_device }} --android_api ${{ needs.prepare_matrix.outputs.android_api }} --ios_model ${{ needs.prepare_matrix.outputs.ios_device }} --ios_version ${{ needs.prepare_matrix.outputs.ios_version }} --testapp_dir ta --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
+      - name: Prepare results summary artifact
+        if: !cancelled()
+        run: |
           cp ta/summary.log test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
-
-      - name: upload results summary artifact
+      - name: Upload results summary artifact
         uses: actions/upload-artifact@v2.2.2
         if: ${{ !cancelled() }}
         with:
           name: test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
           path: test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
-
       ### The below allow us to set the failure label and comment early, when the first failure
       ### in the matrix occurs. It'll be cleaned up in a subsequent job.
       - name: add failure label
@@ -470,6 +471,7 @@ jobs:
         run: |
           echo -n "::set-output name=time::"
           TZ=America/Los_Angeles date
+      - uses: actions/checkout@v2
       - name: download artifact
         uses: actions/download-artifact@v2.0.8
         with:
@@ -518,10 +520,11 @@ jobs:
 
   summarize_results:
     name: "summarize results"
-    needs: [tests]
+    needs: [add_failure_label, tests]
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }}
     steps:
+      - uses: actions/checkout@v2
       - name: download artifact
         uses: actions/download-artifact@v2.0.8
         with:
