@@ -538,11 +538,9 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: '3.7'
-
       - name: Install python deps
         run: |
           python scripts/gha/install_prereqs_desktop.py
-
       - name: download artifact
         uses: actions/download-artifact@v2.0.8
         with:
@@ -551,3 +549,10 @@ jobs:
         run: |
           mv test_results/test-results-*/test-results-*.txt test_results || true
           python scripts/gha/summarize_test_results.py --dir test_results --github_log
+      - uses: geekyeggo/delete-artifact@1-glob-support
+        # Delete all of the test result artifacts.
+        with:
+          name: |
+            test-results-*
+          failOnError: false
+          useGlob: true
