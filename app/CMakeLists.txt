@@ -14,17 +14,6 @@
 
 # CMake file for the firebase_app library
 
-cmake_minimum_required (VERSION 3.1)
-set (CMAKE_CXX_STANDARD 11)
-
-include(FindPkgConfig)
-include(binary_to_array)
-include(download_pod_headers)
-
-project(firebase_app NONE)
-enable_language(C)
-enable_language(CXX)
-
 # Define how to generate google_services_resource_(source/header)
 binary_to_array("google_services_resource"
     "${CMAKE_CURRENT_LIST_DIR}/google_services.fbs"
@@ -32,29 +21,24 @@ binary_to_array("google_services_resource"
     "${FIREBASE_GEN_FILE_DIR}/app")
 
 # Define the resource builds needed for Android
+firebase_cpp_gradle(":app:app_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/app_resources/build/app_resources_lib.jar")
 binary_to_array("app_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/app_resources/build/dexed.jar"
+    "${CMAKE_CURRENT_LIST_DIR}/app_resources/build/app_resources_lib.jar"
     "firebase_app"
     "${FIREBASE_GEN_FILE_DIR}/app")
+firebase_cpp_gradle(":app:google_api_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/google_api_resources/build/google_api_resources_lib.jar")
 binary_to_array("google_api_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/google_api_resources/build/dexed.jar"
+    "${CMAKE_CURRENT_LIST_DIR}/google_api_resources/build/google_api_resources_lib.jar"
     "google_api"
     "${FIREBASE_GEN_FILE_DIR}/app")
+firebase_cpp_gradle(":app:invites_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/invites_resources/build/invites_resources_lib.jar")
 binary_to_array("invites_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/invites_resources/build/dexed.jar"
+    "${CMAKE_CURRENT_LIST_DIR}/invites_resources/build/invites_resources_lib.jar"
     "firebase_invites"
     "${FIREBASE_GEN_FILE_DIR}/app")
-
-# Generate build_type_generated.h
-file(MAKE_DIRECTORY ${FIREBASE_GEN_FILE_DIR}/app/src)
-set(build_type_header ${FIREBASE_GEN_FILE_DIR}/app/src/build_type_generated.h)
-add_custom_command(
-    OUTPUT ${build_type_header}
-    COMMAND python "${FIREBASE_SCRIPT_DIR}/build_type_header.py"
-        "--build_type=head"
-        "--output_file=${build_type_header}"
-    COMMENT "Generating build_type_generated header"
-)
 
 # Generate version.h
 set(version_header_dir ${FIREBASE_GEN_FILE_DIR}/app/src/include/firebase)
@@ -72,8 +56,12 @@ add_custom_command(
 # Build the google_services_generated.h header from the flatbuffer schema file.
 set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
+    "--gen-generated"
     "--gen-object-api"
     "--cpp-ptr-type" "flatbuffers::unique_ptr")
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
 build_flatbuffers("${CMAKE_CURRENT_LIST_DIR}/google_services.fbs"
                   ""
                   "app_generated_includes"
@@ -163,11 +151,15 @@ set(app_android_SRCS
 set(app_ios_SRCS
     src/app_ios.mm
     src/util_ios.mm
+    src/heartbeat_date_storage_desktop.cc
+    src/heartbeat_info_desktop.cc
     src/invites/ios/invites_receiver_internal_ios.mm
     src/invites/ios/invites_ios_startup.mm
     src/uuid_ios_darwin.mm)
 set(app_desktop_SRCS
     src/app_desktop.cc
+    src/heartbeat_date_storage_desktop.cc
+    src/heartbeat_info_desktop.cc
     src/invites/stub/invites_receiver_internal_stub.cc
     src/variant_util.cc)
 if(ANDROID)
@@ -180,11 +172,13 @@ else()
   if(MSVC)
     set(app_desktop_extra_SRCS
         src/secure/user_secure_windows_internal.cc
+        src/filesystem_desktop_windows.cc
         src/locale.cc
         src/uuid.cc)
   elseif(APPLE)
     set(app_desktop_extra_SRCS
         src/secure/user_secure_darwin_internal.mm
+        src/filesystem_apple.mm
         src/locale_apple.mm
         src/uuid_ios_darwin.mm)
   else()
@@ -196,8 +190,14 @@ else()
                            systems via: \
                            apt-get install libsecret-1-dev")
     endif()
+    # If building for 32 bit, the include directories might need to be fixed.
+    if("${CMAKE_CXX_FLAGS}" MATCHES "-m32")
+      string(REGEX REPLACE "x86_64" "i386"
+             LIBSECRET_INCLUDE_DIRS "${LIBSECRET_INCLUDE_DIRS}")
+    endif()
     set(app_desktop_extra_SRCS
         src/secure/user_secure_linux_internal.cc
+        src/filesystem_desktop_linux.cc
         src/locale.cc
         src/uuid.cc)
   endif()
@@ -212,6 +212,7 @@ set(internal_HDRS
     src/include/firebase/future.h
     src/include/firebase/internal/common.h
     src/include/firebase/internal/future_impl.h
+    src/include/firebase/internal/type_traits.h
     src/include/firebase/log.h
     src/include/firebase/util.h
     src/include/firebase/variant.h
@@ -221,14 +222,16 @@ set(internal_HDRS
 set(utility_common_HDRS
     src/app_common.h
     src/assert.h
-    ${build_type_header}
     src/callback.h
     src/cleanup_notifier.h
     src/embedded_file.h
+    src/filesystem.h
     src/function_registry.h
     src/future_manager.h
     src/intrusive_list.h
     src/log.h
+    src/heartbeat_date_storage_desktop.h
+    src/heartbeat_info_desktop.h
     src/mutex.h
     src/optional.h
     src/path.h
@@ -283,6 +286,19 @@ else()
       "${app_desktop_HDRS}")
 endif()
 
+if(ANDROID OR IOS)
+  # If building for Android or iOS, include the Flatbuffers source files directly.
+  set(app_flatbuffers_srcs
+      ${FLATBUFFERS_SOURCE_DIR}/src/idl_parser.cpp
+      ${FLATBUFFERS_SOURCE_DIR}/src/idl_gen_text.cpp
+      ${FLATBUFFERS_SOURCE_DIR}/src/reflection.cpp
+      ${FLATBUFFERS_SOURCE_DIR}/src/util.cpp)
+  set(app_flatbuffers_lib)
+else()
+  set(app_flatbuffers_srcs)
+  set(app_flatbuffers_lib flatbuffers)
+endif()
+
 add_library(firebase_app STATIC
     ${log_SRCS}
     ${log_HDRS}
@@ -294,10 +310,10 @@ add_library(firebase_app STATIC
     ${app_platform_HDRS}
     ${FIREBASE_GEN_FILE_DIR}/app/google_services_generated.h
     memory/atomic.h
-    meta/type_traits.h
     meta/move.h
     memory/unique_ptr.h
-    memory/shared_ptr.h)
+    memory/shared_ptr.h
+    ${app_flatbuffers_srcs})
 
 set_property(TARGET firebase_app PROPERTY FOLDER "Firebase Cpp")
 
@@ -321,10 +337,11 @@ target_compile_definitions(firebase_app
   PRIVATE
     -DINTERNAL_EXPERIMENTAL=1
 )
+
 # firebase_app has a dependency on flatbuffers, which needs to be included.
 target_link_libraries(firebase_app
   PRIVATE
-    flatbuffers
+    ${app_flatbuffers_lib}
     ${LIBSECRET_LIBRARIES}
 )
 # Automatically include headers that might not be declared.
@@ -334,40 +351,24 @@ else()
   add_definitions(-include assert.h -include string.h)
 endif()
 
-# Ensure min/max macros don't get declared on Windows
-# (so we can use std::min/max)
-if(MSVC)
-  add_definitions(-DNOMINMAX)
-endif()
+if(ANDROID)
+  firebase_cpp_proguard_file(app)
+elseif(IOS)
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_app
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_app
+                        PUBLIC "-fembed-bitcode")
 
-if(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_app
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
-
-  # Setup the target for getting the Firebase iOS SDK headers through Cocoapods.
-  set(pod_target_name "download_app_pod_headers")
-  set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
-  set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '6.9.0'")
-  list(APPEND pod_list "'Firebase/DynamicLinks', '6.9.0'")
-
-  setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
-
-  # Add the Cocoapod headers to the include directories
-  set(base_header_dir "${pods_dir}/Pods/Headers/Public")
-  target_include_directories(firebase_app
-    PRIVATE
-      ${base_header_dir}
-      ${base_header_dir}/FirebaseCore
-      ${base_header_dir}/FirebaseDynamicLinks
-      ${base_header_dir}/FirebaseInstanceID
+  # Add empty include path to get root include folder '.'
+  setup_pod_headers(
+    firebase_app
+    POD_NAMES
+      .
+      FirebaseCore
+      FirebaseDynamicLinks
+      FirebaseInstanceID
   )
-
-  # Add a dependency to downloading the headers onto app.
-  add_dependencies(firebase_app ${pod_target_name})
 endif()
 
 if (NOT ANDROID AND NOT IOS)
@@ -379,4 +380,162 @@ endif()
 if(FIREBASE_CPP_BUILD_TESTS)
   # Add the tests subdirectory
   add_subdirectory(tests)
+endif()
+
+cpp_pack_library(firebase_app "")
+cpp_pack_public_headers()
+if (NOT ANDROID AND NOT IOS)
+  cpp_pack_library(flatbuffers "deps/app/external")
+endif()
+
+if (IOS)
+  # IOS build framework
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_app PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
+
+  # framework header files
+  set(admob_HDRS
+    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob.h
+    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/banner_view.h
+    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/interstitial_ad.h
+    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/native_express_ad_view.h
+    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/rewarded_video.h
+    ${FIREBASE_SOURCE_DIR}/admob/src/include/firebase/admob/types.h)
+
+  # Generate the analytics header file
+  # Copy from analytics/CMakeList.txt
+  function(generate_analytics_header OBJC_FILE CPP_FILE)
+    add_custom_command(
+      OUTPUT ${CPP_FILE}
+      COMMAND python "${FIREBASE_SOURCE_DIR}/analytics/generate_constants.py"
+        "--objc_header=${OBJC_FILE}"
+        "--cpp_header=${CPP_FILE}"
+      DEPENDS ${OBJC_FILE}
+      COMMENT "Generating ${CPP_FILE}"
+    )
+  endfunction()
+  set(analytics_generated_headers_dir
+    ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics)
+  file(MAKE_DIRECTORY ${FIREBASE_GEN_FILE_DIR}/analytics/src/include/firebase/analytics)
+  generate_analytics_header(
+    "${FIREBASE_SOURCE_DIR}/analytics/ios_headers/FIREventNames.h"
+    "${analytics_generated_headers_dir}/event_names.h"
+  )
+  generate_analytics_header(
+    "${FIREBASE_SOURCE_DIR}/analytics/ios_headers/FIRParameterNames.h"
+    "${analytics_generated_headers_dir}/parameter_names.h"
+  )
+  generate_analytics_header(
+    "${FIREBASE_SOURCE_DIR}/analytics/ios_headers/FIRUserPropertyNames.h"
+    "${analytics_generated_headers_dir}/user_property_names.h"
+  )
+  set(analytics_HDRS
+    ${FIREBASE_SOURCE_DIR}/analytics/src/include/firebase/analytics.h
+    ${analytics_generated_headers_dir}/event_names.h
+    ${analytics_generated_headers_dir}/parameter_names.h
+    ${analytics_generated_headers_dir}/user_property_names.h)
+  set(auth_HDRS
+    ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth.h
+    ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/credential.h
+    ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/types.h
+    ${FIREBASE_SOURCE_DIR}/auth/src/include/firebase/auth/user.h)
+  set(database_HDRS
+    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database.h
+    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/common.h
+    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/data_snapshot.h
+    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/database_reference.h
+    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/disconnection.h
+    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/listener.h
+    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/mutable_data.h
+    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/query.h
+    ${FIREBASE_SOURCE_DIR}/database/src/include/firebase/database/transaction.h)
+  set(dynamic_links_HDRS
+    ${FIREBASE_SOURCE_DIR}/dynamic_links/src/include/firebase/dynamic_links.h
+    ${FIREBASE_SOURCE_DIR}/dynamic_links/src/include/firebase/dynamic_links/components.h)
+  set(firestore_HDRS
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/collection_reference.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_change.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_reference.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_snapshot.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/event_listener.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_path.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_value.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/listener_registration.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/map_field_value.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/metadata_changes.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/query_snapshot.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/query.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/set_options.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/settings.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/snapshot_metadata.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/source.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/transaction.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/write_batch.h
+    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include/firebase/firestore/firestore_errors.h
+    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include/firebase/firestore/firestore_version.h
+    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include/firebase/firestore/geo_point.h
+    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include/firebase/firestore/timestamp.h)
+  set(functions_HDRS
+    ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions.h
+    ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_reference.h
+    ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_result.h
+    ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/common.h)
+  set(instance_id_HDRS
+    ${FIREBASE_SOURCE_DIR}/instance_id/src/include/firebase/instance_id.h)
+  set(installations_HDRS
+    ${FIREBASE_SOURCE_DIR}/installations/src/include/firebase/installations.h)
+  set(messaging_HDRS
+    ${FIREBASE_SOURCE_DIR}/messaging/src/include/firebase/messaging.h)
+  set(remote_config_HDRS
+    ${FIREBASE_SOURCE_DIR}/remote_config/src/include/firebase/remote_config.h)
+  set(storage_HDRS
+    ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage.h
+    ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/common.h
+    ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/controller.h
+    ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/listener.h
+    ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/metadata.h
+    ${FIREBASE_SOURCE_DIR}/storage/src/include/firebase/storage/storage_reference.h)
+
+  list(APPEND framework_HDRS
+    src/include/firebase/internal/platform.h
+    ${admob_HDRS}
+    ${analytics_HDRS}
+    ${auth_HDRS}
+    ${database_HDRS}
+    ${dynamic_links_HDRS}
+    ${firestore_HDRS}
+    ${functions_HDRS}
+    ${instance_id_HDRS}
+    ${installations_HDRS}
+    ${messaging_HDRS}
+    ${remote_config_HDRS}
+    ${storage_HDRS})
+
+  # add framework header files to target
+  target_sources(firebase_app PRIVATE ${framework_HDRS})
+
+  # Generate Framework Headers from ${framework_HDRS}
+  # Copy header from source dir "src/include/firebase/*" to destination dir "Headers/*"
+  list(APPEND framework_HDRS ${internal_HDRS})
+  foreach(hfile ${framework_HDRS})
+    string(FIND ${hfile} "firebase/" pos_firebase)
+    string(COMPARE NOTEQUAL ${pos_firebase} -1 find)
+    if(${find})
+      string(FIND ${hfile} "/" pos_e REVERSE)
+      math(EXPR pos_s "${pos_firebase} + 8")
+      math(EXPR len "${pos_e} - ${pos_s}")
+      string(SUBSTRING ${hfile} ${pos_s} ${len} dir)
+      # file(COPY ${hfile} DESTINATION Headers/${dir})
+      set_property(SOURCE ${hfile} PROPERTY 
+                  MACOSX_PACKAGE_LOCATION Headers/${dir})
+    endif()
+  endforeach(hfile)
+  # Copy header from source dir "src/include/google_play_services/*" 
+  # to destination dir "Headers/google_play_services/*"
+  set_property(SOURCE "src/include/google_play_services/availability.h" PROPERTY 
+                  MACOSX_PACKAGE_LOCATION Headers/google_play_services)
 endif()

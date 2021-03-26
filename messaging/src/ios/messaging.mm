@@ -48,18 +48,13 @@ NS_ASSUME_NONNULL_BEGIN
 
 // If a listener is set, this will notify Messaging of the token as normal.
 // If no listener is set yet, the data will be cached until one is.
-- (void)messaging:(FIRMessaging *)messaging didReceiveRegistrationToken:(NSString *)FCMToken;
+// NOLINTNEXTLINE
+- (void)messaging:(FIRMessaging *)messaging didReceiveRegistrationToken:(nullable NSString *)FCMToken;
 
 // Once the listener is registered, process cached token (if there is one).
 // This will call messaging:didReceiveRegistrationToken:, passing in the cached values:
 // cachedMessaging and cachedFCMToken.
 - (void)processCachedRegistrationToken;
-
-// This method is called on iOS 10 devices to handle data messages received via FCM through its
-// direct channel (not via APNS). For iOS 9 and below, the FCM data message is delivered via the
-// UIApplicationDelegate’s -application:didReceiveRemoteNotification: method.
-- (void)messaging:(nonnull FIRMessaging *)messaging
-    didReceiveMessage:(nonnull FIRMessagingRemoteMessage *)remoteMessage;
 @end
 NS_ASSUME_NONNULL_END
 
@@ -94,6 +89,7 @@ static NSString *const kGcmPrefix = @"gcm.";
 static NSString *const kFrom = @"from";
 static NSString *const kTo = @"to";
 static NSString *const kCollapseKey = @"collapse_key";
+static NSString *const kRawData = @"rawData";
 static NSString *const kMessageID = @"gcm.message_id";
 static NSString *const kMessageType = @"message_type";
 static NSString *const kPriority = @"priority";
@@ -133,14 +129,6 @@ static ::firebase::util::ClassMethodImplementationCache& SwizzledMethodCache() {
   static ::firebase::util::ClassMethodImplementationCache *g_swizzled_method_cache;
   return *::firebase::util::ClassMethodImplementationCache::GetCreateCache(
        &g_swizzled_method_cache);
-}
-
-// Connect to the FCM server to receive non-APNS notifications
-static void ConnectToFCMServer() {
-  if (MessagingIsInitialized()) {
-    [FIRMessaging messaging].shouldEstablishDirectChannel = YES;
-    LogInfo("FCM: Connected to FCM");
-  }
 }
 
 InitResult Initialize(const ::firebase::App &app, Listener *listener) {
@@ -282,7 +270,6 @@ void Terminate() {
 // Reconnect to FCM when an app returns to the foreground.
 static void AppDelegateApplicationDidBecomeActive(id self, SEL selector_value,
                                                   UIApplication *application) {
-  ConnectToFCMServer();
   IMP app_delegate_application_did_become_active =
       SwizzledMethodCache().GetMethodForObject(self, @selector(applicationDidBecomeActive:));
   if (app_delegate_application_did_become_active) {
@@ -315,10 +302,6 @@ static void AppDelegateApplicationDidEnterBackground(id self, SEL selector_value
     [invocation setTarget:self];
     [invocation setArgument:&application atIndex:2];
     [self forwardInvocation:invocation];
-  }
-  if (MessagingIsInitialized()) {
-    LogInfo("FCM: Disconnect FCM service");
-    [FIRMessaging messaging].shouldEstablishDirectChannel = NO;
   }
 }
 
@@ -409,6 +392,22 @@ static std::string NSDictionaryGetString(const NSDictionary *dictionary, NSStrin
   return string_value;
 }
 
+
+static std::vector<uint8_t> NSDictionaryGetByteVector(
+    const NSDictionary *dictionary, NSString *key) {
+  std::vector<uint8_t> result;
+  if (dictionary != nil) {
+    id value = [dictionary objectForKey:key];
+    if (value != nil && [value isKindOfClass:[NSData class]]) {
+      NSData *data = (NSData *)value;
+      NSUInteger length = data.length;
+      result.resize(static_cast<size_t>(length));
+      [data getBytes:result.data() length:length];
+    }
+  }
+  return result;
+}
+
 // Query the specified dictionary for a dictionary matching a key, if the key isn't found or
 // the dictionary is nil this returns nil.
 static NSDictionary *NSDictionaryGetDictionary(const NSDictionary *dictionary, NSString *key) {
@@ -436,7 +435,7 @@ static bool IsUnreservedKey(NSString *key) {
   if ([key hasPrefix:kReservedPrefix] || [key hasPrefix:kGcmPrefix]) {
     return false;
   }
-  static NSString *const reserved_keys[] = {kFrom, kTo, kCollapseKey, kMessageID,
+  static NSString *const reserved_keys[] = {kFrom, kTo, kCollapseKey, kRawData, kMessageID,
                                             kMessageType, kPriority, kTimeToLive, kError,
                                             kErrorDescription};
   for (int i = 0; i < FIREBASE_ARRAYSIZE(reserved_keys); ++i) {
@@ -494,6 +493,7 @@ static void NotifyApplicationAndServiceOfMessage(NSDictionary *user_info) {
   message.error = NSDictionaryGetString(user_info, kError);
   message.error_description = NSDictionaryGetString(user_info, kErrorDescription);
   NSDictionaryToStringMap(user_info, &message.data);
+  message.raw_data = NSDictionaryGetByteVector(user_info, kRawData);
   message.notification_opened = g_message_notification_opened;
   message.link = NSDictionaryGetString(user_info, kLink);
   g_message_notification_opened = false;
@@ -678,15 +678,6 @@ static void HookAppDelegateMethods(Class clazz) {
       method_encoding_class);
 }
 
-// Send a message upstream.
-void Send(const Message &message) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  [[FIRMessaging messaging] sendMessage:firebase::util::StringMapToNSDictionary(message.data)
-                                     to:@(message.to.c_str())
-                          withMessageID:@(message.message_id.c_str())
-                             timeToLive:message.time_to_live];
-}
-
 static const char kErrorMessageNoRegistrationToken[] =
     "Cannot update subscritption when SetTokenRegistrationOnInitEnabled is set to false";
 
@@ -768,6 +759,18 @@ Future<void> UnsubscribeLastResult() {
       api->LastResult(kMessagingFnUnsubscribe));
 }
 
+bool DeliveryMetricsExportToBigQueryEnabled() {
+  // TODO(146362498): Implement this once the underlying API is ready on iOS.
+  LogWarning("DeliveryMetricsExportToBigQueryEnabled is not currently implemented on iOS");
+
+  return false;
+}
+
+void SetDeliveryMetricsExportToBigQuery(bool /*enable*/) {
+  // TODO(146362498): Implement this once the underlying API is ready on iOS.
+  LogWarning("SetDeliveryMetricsExportToBigQuery is not currently implemented on iOS");
+}
+
 bool IsTokenRegistrationOnInitEnabled() { return [FIRMessaging messaging].autoInitEnabled; }
 
 void SetTokenRegistrationOnInitEnabled(bool enable) {
@@ -780,6 +783,56 @@ void SetTokenRegistrationOnInitEnabled(bool enable) {
     [g_delegate processCachedRegistrationToken];
     RetrieveRegistrationToken();
   }
+}
+
+Future<std::string> GetToken() {
+  FIREBASE_ASSERT_RETURN(GetTokenLastResult(), internal::IsInitialized());
+
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  SafeFutureHandle<std::string> handle =
+      api->SafeAlloc<std::string>(kMessagingFnGetToken);
+
+  [[FIRMessaging messaging] tokenWithCompletion:^(NSString *_Nullable token,
+                                           NSError *_Nullable error) {
+    if (error) {
+      api->Complete(handle, kErrorUnknown,
+                    util::NSStringToString(error.localizedDescription).c_str());
+    } else {
+      api->CompleteWithResult(handle, kErrorNone,
+                              "", util::NSStringToString(token));
+    }
+  }];
+
+  return MakeFuture(api, handle);
+}
+
+Future<std::string> GetTokenLastResult() {
+  FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  return static_cast<const Future<std::string>&>(
+      api->LastResult(kMessagingFnGetToken));
+}
+
+Future<void> DeleteToken() {
+  FIREBASE_ASSERT_RETURN(DeleteTokenLastResult(), internal::IsInitialized());
+
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnDeleteToken);
+
+  [[FIRMessaging messaging] deleteTokenWithCompletion:^(NSError *_Nullable error) {
+    api->Complete(handle,
+                  error == nullptr ? kErrorNone : kErrorUnknown,
+                  util::NSStringToString(error.localizedDescription).c_str());
+  }];
+
+  return MakeFuture(api, handle);
+}
+
+Future<void> DeleteTokenLastResult() {
+  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  return static_cast<const Future<void>&>(
+      api->LastResult(kMessagingFnDeleteToken));
 }
 
 }  // namespace messaging
@@ -838,18 +891,6 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
   }
 }
 
-- (void)applicationReceivedRemoteMessage:(FIRMessagingRemoteMessage *)remoteMessage {
-  NSDictionary *userInfo = remoteMessage.appData;
-#if !defined(NDEBUG)
-  ::firebase::LogInfo("FCM: Received message: %s", userInfo.description.UTF8String);
-#else
-  ::firebase::LogInfo("FCM: Received message");
-#endif
-  if (::firebase::messaging::MessagingIsInitialized()) {
-    ::firebase::messaging::NotifyApplicationAndServiceOfMessage(userInfo);
-  }
-}
-
 @end
 
 @implementation FIRCppDelegate
@@ -884,18 +925,5 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
     _cachedMessaging = nil;
   }
   [self messaging:msg didReceiveRegistrationToken:token];
-}
-
-- (void)messaging:(nonnull FIRMessaging *)messaging
-    didReceiveMessage:(nonnull FIRMessagingRemoteMessage *)remoteMessage {
-  NSDictionary *userInfo = remoteMessage.appData;
-#if !defined(NDEBUG)
-  ::firebase::LogInfo("FCM: Received message: %s", userInfo.description.UTF8String);
-#else
-  ::firebase::LogInfo("FCM: Received message");
-#endif
-  if (::firebase::messaging::MessagingIsInitialized()) {
-    ::firebase::messaging::NotifyApplicationAndServiceOfMessage(userInfo);
-  }
 }
 @end

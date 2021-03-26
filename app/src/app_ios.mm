@@ -220,7 +220,7 @@ AppOptions* AppOptions::LoadDefault(AppOptions* app_options) {
   return app_options;
 }
 
-App::App() : internal_(nullptr) {}
+void App::Initialize() {}
 
 App::~App() {
   app_common::RemoveApp(this);

@@ -21,6 +21,7 @@
 
 #import "FIRAuth.h"
 #import "FIRAuthCredential.h"
+#import "FIROAuthProvider.h"
 #import "FIRUser.h"
 #import "FIRUserInfo.h"
 #import "FIRUserMetadata.h"
@@ -99,6 +100,20 @@ void SignInResultCallback(FIRAuthDataResult *_Nullable auth_result,
                           NSError *_Nullable error,
                           SafeFutureHandle<SignInResult> handle,
                           AuthData *_Nonnull auth_data);
+
+/// Common code for all FederatedOAuth API calls which return a SignInResult and
+/// must hold a reference to a FIROAuthProvider so that the provider is not
+/// deallocated by the Objective-C environment. Directly invokes
+/// SignInResultCallback().
+void SignInResultWithProviderCallback(
+    FIRAuthDataResult* _Nullable auth_result, NSError* _Nullable error,
+    SafeFutureHandle<SignInResult> handle, AuthData *_Nonnull auth_data,
+    const FIROAuthProvider *_Nonnull ios_auth_provider);
+
+/// Remap iOS SDK errors reported by the UIDelegate. While these errors seem
+/// like user interaction errors, they are actually caused by bad provider ids.
+NSError* RemapBadProviderIDErrors(NSError* _Nonnull error);
+
 
 }  // namespace auth
 }  // namespace firebase

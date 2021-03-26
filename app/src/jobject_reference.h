@@ -66,7 +66,7 @@ class JObjectReference {
   JObjectReference(const JObjectReference& reference);
   // Move
 #ifdef FIREBASE_USE_MOVE_OPERATORS
-  JObjectReference(JObjectReference&& reference);
+  JObjectReference(JObjectReference&& reference) noexcept;
 #endif  // FIREBASE_USE_MOVE_OPERATORS
   // Delete the reference to the java object.
   ~JObjectReference();
@@ -74,7 +74,7 @@ class JObjectReference {
   JObjectReference& operator=(const JObjectReference& reference);
   // Move this reference.
 #ifdef FIREBASE_USE_MOVE_OPERATORS
-  JObjectReference& operator=(JObjectReference&& reference);
+  JObjectReference& operator=(JObjectReference&& reference) noexcept;
 #endif  // FIREBASE_USE_MOVE_OPERATORS
 
   // Add a global reference to the specified object, removing the reference

@@ -1,0 +1,4 @@
+protobuf
+zlib
+--triplet
+x64-windows-static

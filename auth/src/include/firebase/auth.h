@@ -18,6 +18,7 @@
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_H_
 
 #include <vector>
+
 #include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
@@ -43,12 +44,10 @@ struct AuthData;
 class AuthStateListener;
 class IdTokenListener;
 class PhoneAuthProvider;
-#ifdef INTERNAL_EXPERIMENTAL
 struct AuthCompletionHandle;
 class FederatedAuthProvider;
 class FederatedOAuthProvider;
-class SignInResult;
-#endif  // INTERNAL_EXPERIMENTAL
+struct SignInResult;
 
 /// @brief Firebase authentication object.
 ///
@@ -163,6 +162,24 @@ class Auth {
   /// </SWIG>
   User* current_user();
 
+  /// The current user language code. This can be set to the app’s current
+  /// language by calling set_language_code. The string must be a language code
+  /// that follows BCP 47.  This will return an empty string if the app default
+  /// language code is being used.
+  std::string language_code() const;
+
+  /// Sets the user-facing language code for auth operations that can be
+  /// internationalized, such as FirebaseUser.sendEmailVerification(). This
+  /// language code should follow the conventions defined by the IETF in BCP 47.
+  void set_language_code(const char* language_code);
+
+  /// Sets the user-facing language code to be the default app language. This
+  /// uses a languge associated with the phone's locale data.  On desktop
+  /// this will set the language code to the Firebase service's default. You
+  /// may subsequently customize the language code again by invoking
+  /// set_language_code().
+  void UseAppLanguage();
+
   // ----- Providers -------------------------------------------------------
   /// Asynchronously requests the IDPs (identity providers) that can be used
   /// for the given email address.
@@ -238,7 +255,6 @@ class Auth {
   /// Get results of the most recent call to @ref SignInWithCredential.
   Future<User*> SignInWithCredentialLastResult() const;
 
-#ifdef INTERNAL_EXPERIMENTAL
   /// Sign-in a user authenticated via a federated auth provider.
   ///
   /// @param[in] provider Contains information on the provider to authenticate
@@ -249,14 +265,12 @@ class Auth {
   /// @note: This operation is supported only on iOS and Android platforms. On
   /// non-mobile platforms this method will return a Future with a preset error
   /// code: kAuthErrorUnimplemented.
-  Future<SignInResult> SignInWithProvider(
-      FederatedAuthProvider* provider);
-#endif  // INTERNAL_EXPERIMENTAL
+  Future<SignInResult> SignInWithProvider(FederatedAuthProvider* provider);
 
   /// Asynchronously logs into Firebase with the given credentials.
   ///
-  /// For example, the credential could wrap a Facebook login access token,
-  /// a Twitter token/token-secret pair).
+  /// For example, the credential could wrap a Facebook login access token or
+  /// a Twitter token/token-secret pair.
   ///
   /// The SignInResult contains both a reference to the User (which can be null
   /// if the sign in failed), and AdditionalUserInfo, which holds details
@@ -535,6 +549,13 @@ class Auth {
   static bool GetAuthTokenAsyncForRegistry(App* app, void* force_refresh,
                                            void* out_future);
 
+  // Provides access to the current user's uid, equivalent to calling
+  // this->current_user()->uid(). Returns the current user's uid or an empty
+  // string, if there isn't one. The out pointer is expected to point to an
+  // instance of std::string.
+  static bool GetCurrentUserUidForRegistry(App* app, void* /*unused*/,
+                                           void* out);
+
   // Starts and stops a thread to ensure that the cached auth token is never
   // kept long enough for it to expire.  Refcounted, so multiple classes can
   // register this without causing problems.
@@ -542,6 +563,21 @@ class Auth {
                                                  void* /*unused*/);
   static bool StopTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
                                                 void* /*unused*/);
+
+  // Adds an indirect auth state listener implemented as a callback and a
+  // context object.
+  //
+  // @param callback a function pointer that takes a single void* argument and
+  //     returns void (i.e. it has type void (*)(void*)).
+  // @param context a pointer to an arbitrary object that Auth will pass to
+  //     the callback when the auth state changes.
+  static bool AddAuthStateListenerForRegistry(App* app, void* callback,
+                                              void* context);
+
+  // Removes the indirect auth state listener that was added with the same
+  // arguments.
+  static bool RemoveAuthStateListenerForRegistry(App* app, void* callback,
+                                                 void* context);
 
   // Init and Destroy the platform specific auth data.
   void InitPlatformAuth(AuthData* const auth_data);
@@ -628,14 +664,14 @@ class IdTokenListener {
 
 #endif  // not SWIG
 
-#ifdef INTERNAL_EXPERIMENTAL
-#ifndef SWIG
 /// @brief Used to authenticate with Federated Auth Providers.
 ///
 /// The federated auth provider implementation may facilitate multiple provider
 /// types in the future, with support for OAuth to start.
 class FederatedAuthProvider {
  public:
+#ifdef INTERNAL_EXPERIMENTAL
+#ifndef SWIG
   /// @brief Contains resulting information of a user authenticated by a
   /// Federated Auth Provider.  This information will be used by the internal
   /// implementation to construct a corresponding User object.
@@ -792,8 +828,10 @@ class FederatedAuthProvider {
                                 AuthError auth_error,
                                 const char* error_message);
   };
+#endif  // not SWIG
+#endif  // INTERNAL_EXPERIMENTAL
 
-  FederatedAuthProvider() { }
+  FederatedAuthProvider() {}
   virtual ~FederatedAuthProvider() {}
 
  private:
@@ -803,7 +841,6 @@ class FederatedAuthProvider {
   virtual Future<SignInResult> Link(AuthData* auth_data) = 0;
   virtual Future<SignInResult> Reauthenticate(AuthData* auth_data) = 0;
 };
-
 
 /// @brief Authenticates with Federated OAuth Providers via the
 /// firebase::auth::Auth and firebase::auth::User classes.
@@ -815,6 +852,8 @@ class FederatedAuthProvider {
 /// account linking and user reauthentication, respectively.
 class FederatedOAuthProvider : public FederatedAuthProvider {
  public:
+#ifdef INTERNAL_EXPERIMENTAL
+#ifndef SWIG
   /// @brief A FederatedAuthProvider typed specifically for OAuth Authentication
   /// handling.
   ///
@@ -822,10 +861,22 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   /// UI flows.
   typedef FederatedAuthProvider::Handler<FederatedOAuthProviderData>
       AuthHandler;
+#endif  // !SWIG
+#endif  // INTERNAL_EXPERIMENTAL
 
   /// Constructs an unconfigured provider.
   FederatedOAuthProvider();
 
+  /// Constructs a FederatedOAuthProvider preconfigured with provider data.
+  ///
+  /// @param[in] provider_data Contains the federated provider id and OAuth
+  /// scopes and OAuth custom parameters required for user authentication and
+  /// user linking.
+  explicit FederatedOAuthProvider(
+      const FederatedOAuthProviderData& provider_data);
+
+#ifdef INTERNAL_EXPERIMENTAL
+#ifndef SWIG
   /// @brief Constructs a provider with the required information to authenticate
   /// using an OAuth Provider.
   ///
@@ -841,6 +892,8 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   /// to handle authentication requests.
   FederatedOAuthProvider(const FederatedOAuthProviderData& provider_data,
                          AuthHandler* handler);
+#endif  // !SWIG
+#endif  // INTERNAL_EXPERIMENTAL
 
   ~FederatedOAuthProvider() override;
 
@@ -850,6 +903,9 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   /// scopes and OAuth custom parameters required for user authentication and
   /// user linking.
   void SetProviderData(const FederatedOAuthProviderData& provider_data);
+
+#ifdef INTERNAL_EXPERIMENTAL
+#ifndef SWIG
   /// @brief Configures the use of an AuthHandler for non-mobile systems.
   ///
   /// The existence of a handler is required for non-mobile systems, and is
@@ -860,6 +916,8 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   /// to handle authentication requests. The handler must outlive the instance
   /// of this FederatedOAuthProvider.
   void SetAuthHandler(AuthHandler* handler);
+#endif  // !SWIG
+#endif  // INTERNAL_EXPERIMENTAL
 
  private:
   friend class ::firebase::auth::Auth;
@@ -869,11 +927,10 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
   Future<SignInResult> Reauthenticate(AuthData* auth_data) override;
 
   FederatedOAuthProviderData provider_data_;
+#ifdef INTERNAL_EXPERIMENTAL
   AuthHandler* handler_;
-};
-#endif  // not SWIG
 #endif  // INTERNAL_EXPERIMENTAL
-
+};
 
 }  // namespace auth
 }  // namespace firebase

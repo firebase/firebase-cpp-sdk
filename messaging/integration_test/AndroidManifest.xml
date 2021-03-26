@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+/* Copyright 2020 Google LLC
+**
+** Licensed under the Apache License, Version 2.0 (the "License"); 
+** you may not use this file except in compliance with the License. 
+** You may obtain a copy of the License at 
+**
+**     http://www.apache.org/licenses/LICENSE-2.0 
+**
+** Unless required by applicable law or agreed to in writing, software 
+** distributed under the License is distributed on an "AS IS" BASIS, 
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
+** See the License for the specific language governing permissions and 
+** limitations under the License.
+*/
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          package="com.google.firebase.cpp.messaging.testapp"
+          android:versionCode="1"
+          android:versionName="1.0">
+  <uses-sdk android:minSdkVersion="16" android:targetSdkVersion="28" />
+  <!-- Required by firebase-iid from
+       java/com/google/android/gmscore/integ/client/firebase-iid/\
+       AndroidManifest.xml -->
+  <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.WAKE_LOCK" />
+  <uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />
+
+  <permission
+      android:name="com.google.firebase.cpp.messaging.testapp.permission.C2D_MESSAGE"
+      android:protectionLevel="signature" />
+  <uses-permission
+      android:name="com.google.firebase.cpp.messaging.testapp.permission.C2D_MESSAGE" />
+
+  <application android:label="@string/app_name">
+
+    <!-- The SampleNativeActivity is a class that extends NativeActivity to
+         work around a known issue when receiving notification data payloads in
+         the background. -->
+    <activity android:name="com.google.firebase.example.SampleNativeActivity"
+              android:screenOrientation="portrait"
+              android:configChanges="orientation|screenSize"
+              android:launchMode="singleTop"
+              android:exported="true">
+      <meta-data android:name="android.app.lib_name"
+                 android:value="android_integration_test_main" />
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+      </intent-filter>
+
+      <!-- To take advantage of deep links in Firebase Messages on Android, your
+           app must be configured to listen for links to your domain. Update the
+           URLs in the following intent-filter to enable links for your app. -->
+      <intent-filter>
+        <action android:name="android.intent.action.VIEW"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+        <category android:name="android.intent.category.BROWSABLE"/>
+        <data android:host="change-this-domain.example.com" android:scheme="http"/>
+        <data android:host="change-this-domain.example.com" android:scheme="https"/>
+      </intent-filter>
+      <intent-filter>
+       <action android:name="com.google.intent.action.TEST_LOOP"/>
+         <category android:name="android.intent.category.DEFAULT"/>
+         <data android:mimeType="application/javascript"/>
+      </intent-filter>
+    </activity>
+    <meta-data android:name="com.google.test.loops" android:value="1" />
+
+    <service android:name="com.google.firebase.messaging.cpp.ListenerService"
+             android:exported="false" >
+      <intent-filter>
+        <action android:name="com.google.firebase.MESSAGING_EVENT" />
+      </intent-filter>
+    </service>
+
+    <service android:name="com.google.firebase.messaging.cpp.RegistrationIntentService"
+             android:exported="false" >
+    </service>
+    <service android:name="com.google.firebase.messaging.MessageForwardingService"
+             android:permission="android.permission.BIND_JOB_SERVICE"
+             android:exported="false" >
+    </service>
+
+  </application>
+
+</manifest>

@@ -45,7 +45,7 @@ static const char kBucketPathSeparator[] = "/o/";
 // Strip the trailing slash from the specified string, leaving the string
 // unmodified if it's not found.
 static std::string StripTrailingSlash(const std::string& value) {
-  auto it = value.rfind("/");
+  auto it = value.rfind('/');
   return it == value.length() - 1 ? value.substr(0, it) : value;
 }
 
@@ -82,7 +82,7 @@ bool UriToComponents(const std::string& url, const char* object_type,
     return false;
   }
   std::string full_path(url.substr(scheme.length()));
-  std::string::size_type it = full_path.find("/");
+  std::string::size_type it = full_path.find('/');
   std::string host(full_path);
   if (it != std::string::npos) host = full_path.substr(0, it);
   std::string remaining_path(full_path.substr(host.length()));

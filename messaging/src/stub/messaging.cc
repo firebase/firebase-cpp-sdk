@@ -139,15 +139,12 @@ void Terminate() {
 
 void NotifyListenerSet(Listener* /*listener*/) {}
 
-void Send(const Message& /*message*/) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-}
-
 namespace {
 // Functions to handle returning completed stub futures.
 
 const int kStubResultCode = 0;  // Complete with no error.
 const char kStubMessage[] = "Successfully completed as a stub.";
+const char kStubToken[] = "StubToken";
 
 Future<void> CreateAndCompleteStubFuture(MessagingFn fn) {
   // Create a future and complete it immediately.
@@ -193,6 +190,38 @@ Future<void> RequestPermissionLastResult() {
 bool IsTokenRegistrationOnInitEnabled() { return true; }
 
 void SetTokenRegistrationOnInitEnabled(bool /*enable*/) {}
+
+bool DeliveryMetricsExportToBigQueryEnabled() { return false; }
+
+void SetDeliveryMetricsExportToBigQuery(bool /*enable*/) {}
+
+Future<std::string> GetToken() {
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  SafeFutureHandle<std::string> handle =
+      api->SafeAlloc<std::string>(kMessagingFnGetToken);
+  api->CompleteWithResult(handle, kStubResultCode, kStubMessage,
+                          std::string(kStubToken));
+  return MakeFuture(api, handle);
+}
+
+Future<std::string> GetTokenLastResult() {
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  return static_cast<const Future<std::string>&>(
+      api->LastResult(kMessagingFnGetToken));
+}
+
+Future<void> DeleteToken() {
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnDeleteToken);
+  api->Complete(handle, kStubResultCode, kStubMessage);
+  return MakeFuture(api, handle);
+}
+
+Future<void> DeleteTokenLastResult() {
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  return static_cast<const Future<void>&>(
+      api->LastResult(kMessagingFnDeleteToken));
+}
 
 }  // namespace messaging
 }  // namespace firebase

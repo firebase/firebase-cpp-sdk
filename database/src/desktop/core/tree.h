@@ -11,12 +11,12 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
-
 #ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_TREE_H_
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_TREE_H_
 
 #include <map>
 #include <string>
+
 #include "app/src/optional.h"
 #include "app/src/path.h"
 #include "database/src/desktop/util_desktop.h"
@@ -149,6 +149,137 @@ class Tree {
 
   Optional<Value>& SetValueAt(const Path& path, Value&& value) {
     return SetValueAt(path, Optional<Value>(std::move(value)));
+  }
+
+  // Returns the root-most element in the tree in the given path. For example,
+  // if a Tree<int> contains the following values:
+  //
+  //  -+ <root>: None
+  //   |
+  //   +- "Foo": None
+  //   |  |
+  //   |  +- "Bar": 100
+  //   |     |
+  //   |     +- "Baz": 200
+  //   |
+  //   +- "quux": 300
+  //
+  // And the path given is "foo/bar/baz", then the return value will be a
+  // pointer to 100, because that is the root-most value in the given path. If
+  // a value cannot be found then nullptr is returned.
+  const Value* RootMostValue(const Path& path) const {
+    return RootMostValueMatching(path, [](const Value& value) { return true; });
+  }
+
+  // Returns the root-most element in the tree in the given path that matches
+  // the given predicate. For example, if a Tree<int> contains the following
+  // values:
+  //
+  //  -+ <root>: 0
+  //   |
+  //   +- "Foo": 50
+  //   |  |
+  //   |  +- "Bar": 100
+  //   |     |
+  //   |     +- "Baz": 200
+  //   |
+  //   +- "quux": 300
+  //
+  // And the path given is "foo/bar/baz", and the predicate is value > 75, then
+  // the return value will be a pointer to 100, because that is the root-most
+  // value in the given path that meets the condition given.
+  template <typename Func>
+  const Value* RootMostValueMatching(const Path& path,
+                                     const Func& predicate) const {
+    if (value_.has_value() && predicate(*value_)) {
+      return &value_.value();
+    } else {
+      const Tree<Value>* current_tree = this;
+      for (const std::string& directory : path.GetDirectories()) {
+        current_tree = current_tree->GetChild(directory);
+        if (current_tree == nullptr) {
+          return nullptr;
+        } else if (current_tree->value_.has_value() &&
+                   predicate(*current_tree->value_)) {
+          return &current_tree->value_.value();
+        }
+      }
+      return nullptr;
+    }
+  }
+
+  // Returns the leaf-most element in the tree in the given path. For example,
+  // if a Tree<int> contains the following values:
+  //
+  //  -+ <root>: None
+  //   |
+  //   +- "Foo": 200
+  //   |  |
+  //   |  +- "Bar": 100
+  //   |     |
+  //   |     +- "Baz": None
+  //   |
+  //   +- "quux": 300
+  //
+  // And the path given is "foo/bar/baz", then the return value will be a
+  // pointer to 100, because that is the leaf-most value in the given path. If
+  // a value cannot be found then nullptr is returned.
+  const Value* LeafMostValue(const Path& path) const {
+    return LeafMostValueMatching(path, [](const Value& value) { return true; });
+  }
+
+  // Returns the leaf-most element in the tree in the given path that matches
+  // the given predicate. For example, if a Tree<int> contains the following
+  // values:
+  //
+  //  -+ <root>: 200
+  //   |
+  //   +- "Foo": 100
+  //   |  |
+  //   |  +- "Bar": 50
+  //   |     |
+  //   |     +- "Baz": 0
+  //   |
+  //   +- "quux": 300
+  //
+  // And the path given is "foo/bar/baz", and the predicate is value > 75, then
+  // the return value will be a pointer to 100, because that is the leaf-most
+  // value in the given path that meets the condition given.
+  template <typename Func>
+  const Value* LeafMostValueMatching(const Path& path,
+                                     const Func& predicate) const {
+    const Value* current_value =
+        (value_.has_value() && predicate(*value_)) ? &value_.value() : nullptr;
+    const Tree<Value>* current_tree = this;
+    for (const std::string& directory : path.GetDirectories()) {
+      current_tree = current_tree->GetChild(directory);
+      if (current_tree == nullptr) {
+        return current_value;
+      } else {
+        if (current_tree->value_.has_value() &&
+            predicate(*current_tree->value_)) {
+          current_value = &current_tree->value_.value();
+        }
+      }
+    }
+    return current_value;
+  }
+
+  // Returns true if any location at or beneath this location in the tree meets
+  // the criteria given by the predicate.
+  template <typename Func>
+  bool ContainsMatchingValue(const Func& predicate) const {
+    if (value_.has_value() && predicate(*value_)) {
+      return true;
+    } else {
+      for (auto& key_subtree_pair : children_) {
+        const Tree<Value>& subtree = key_subtree_pair.second;
+        if (subtree.ContainsMatchingValue(predicate)) {
+          return true;
+        }
+      }
+      return false;
+    }
   }
 
   // Get a child node using the given key.
@@ -404,7 +535,7 @@ class Tree {
   }
 
   // The key of this element in the Tree. This will the eqivalent to the
-  // std:;string stored in the children_ map in the parent Tree node.
+  // std::string stored in the children_ map in the parent Tree node.
   std::string key_;
 
   // The value stored at this location in the tree. A location in a tree is not

@@ -18,7 +18,7 @@ buildscript {
     jcenter()
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:3.2.1'
+    classpath 'com.android.tools.build:gradle:3.3.3'
     classpath 'com.google.gms:google-services:4.2.0'
   }
 }
@@ -36,7 +36,7 @@ android {
 
   sourceSets {
     main {
-      manifest.srcFile '../../android_build_files/AndroidManifest.xml'
+      manifest.srcFile 'AndroidManifest.xml'
       java {
         srcDirs = ['../src_java/com/google/firebase/admob/internal/cpp']
       }
@@ -45,8 +45,8 @@ android {
 }
 
 dependencies {
-  implementation 'com.google.firebase:firebase-analytics:17.2.0'
-  implementation 'com.google.firebase:firebase-ads:18.2.0'
+  implementation 'com.google.firebase:firebase-analytics:18.0.2'
+  implementation 'com.google.firebase:firebase-ads:19.7.0'
 }
 
 afterEvaluate {

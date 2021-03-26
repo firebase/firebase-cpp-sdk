@@ -1,0 +1,60 @@
+// Copyright 2020 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+namespace firebase.database.internal.persistence;
+
+enum OrderBy : uint8 {
+  Priority,
+  Child,
+  Key,
+  Value
+}
+
+table PersistedQueryParams {
+  // Set by Query::OrderByPriority(), Query::OrderByChild(),
+  // Query::OrderByKey(), and Query::OrderByValue().  Default is
+  // kOrderByPriority.
+  order_by:OrderBy (id: 0);
+
+  // Set by Query::OrderByChild(). Only valid if order_by is kOrderByChild.
+  order_by_child:string (id: 1);
+
+  // Set by Query::StartAt(). Variant::Null() if unspecified.
+  start_at_value:[ubyte] (id: 2, flexbuffer);
+
+  // Set by Query::StartAt() with child specified. Blank if unspecified.
+  start_at_child_key:string (id: 3);
+
+  // Set by Query::EndAt(). Variant::Null() if unspecified.
+  end_at_value:[ubyte] (id: 4, flexbuffer);
+
+  // Set by Query::EndAt() with child specified. Blank if unspecified.
+  end_at_child_key:string (id: 5);
+
+  // Set by Query::EqualTo(). Variant::Null() if unspecified.
+  equal_to_value:[ubyte] (id: 6, flexbuffer);
+
+  // Set by Query::EqualTo() with child specified. Blank if unspecified.
+  equal_to_child_key:string (id: 7);
+
+  // Set by Query::LimitToFirst(). 0 means no limit.
+  limit_first:uint32 (id: 8);
+
+  // Set by Query::LimitToLast(). 0 means no limit.
+  limit_last:uint32 (id: 9);
+}
+
+// This only has a root type for testing purposes, so they are easier to
+// construct.
+root_type PersistedQueryParams;

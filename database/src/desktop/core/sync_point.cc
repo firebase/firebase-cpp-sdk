@@ -99,7 +99,7 @@ std::vector<Event> SyncPoint::AddEventRegistration(
       std::set<std::string> all_children;
       const Variant* value = GetVariantValue(&view->GetLocalCache());
       if (value->is_map()) {
-        for (auto key_value_pair : value->map()) {
+        for (const auto& key_value_pair : value->map()) {
           all_children.insert(key_value_pair.first.string_value());
         }
       }

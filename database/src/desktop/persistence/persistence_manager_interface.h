@@ -19,6 +19,7 @@
 #include <set>
 #include <string>
 #include <vector>
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
@@ -105,6 +106,8 @@ class PersistenceManagerInterface {
   virtual void UpdateTrackedQueryKeys(const QuerySpec& query,
                                       const std::set<std::string>& added,
                                       const std::set<std::string>& removed) = 0;
+
+  virtual bool RunInTransaction(std::function<bool()> transaction_func) = 0;
 };
 
 }  // namespace internal

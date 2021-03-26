@@ -175,11 +175,13 @@ DatabaseReference Database::GetReference() const {
 }
 
 DatabaseReference Database::GetReference(const char* path) const {
-  return internal_ ? internal_->GetReference(path) : DatabaseReference();
+  return internal_ && path ? internal_->GetReference(path)
+                           : DatabaseReference();
 }
 
 DatabaseReference Database::GetReferenceFromUrl(const char* url) const {
-  return internal_ ? internal_->GetReferenceFromUrl(url) : DatabaseReference();
+  return internal_ && url ? internal_->GetReferenceFromUrl(url)
+                          : DatabaseReference();
 }
 
 void Database::GoOffline() {

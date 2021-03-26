@@ -251,11 +251,6 @@ struct Message {
   /// For example it can be a registration token, a topic name, an Instance ID
   /// or project ID.
   ///
-  /// For upstream messages use the format  PROJECT_ID@gcm.googleapis.com.
-  ///
-  /// This field is used for both upstream messages sent with
-  /// firebase::messaging::Send() and downstream messages received through
-  /// Listener::OnMessage(). For upstream messages,
   /// PROJECT_ID@gcm.googleapis.com or Instance ID are accepted.
   std::string to;
 
@@ -279,23 +274,15 @@ struct Message {
   /// The metadata, including all original key/value pairs. Includes some of the
   /// HTTP headers used when sending the message. `gcm`, `google` and `goog`
   /// prefixes are reserved for internal use.
-  ///
-  /// This field is used for both upstream messages sent with
-  /// firebase::messaging::Send() and downstream messages received through
-  /// Listener::OnMessage().
   std::map<std::string, std::string> data;
 
-  /// Binary payload. This field is currently unused.
-  std::string raw_data;
+  /// Binary payload.
+  std::vector<unsigned char> raw_data;
 
   /// Message ID. This can be specified by sender. Internally a hash of the
   /// message ID and other elements will be used for storage. The ID must be
   /// unique for each topic subscription - using the same ID may result in
   /// overriding the original message or duplicate delivery.
-  ///
-  /// This field is used for both upstream messages sent with
-  /// firebase::messaging::Send() and downstream messages received through
-  /// Listener::OnMessage().
   std::string message_id;
 
   /// Equivalent with a content-type.
@@ -551,18 +538,8 @@ Future<void> RequestPermission();
 
 /// @brief Gets the result of the most recent call to RequestPermission();
 ///
-/// @returns Result of the most recent call to RequestPermission().
+/// @return Result of the most recent call to RequestPermission().
 Future<void> RequestPermissionLastResult();
-
-/// Send an upstream ("device to cloud") message. You can only use the upstream
-/// feature if your FCM implementation uses the XMPP-based Cloud Connection
-/// Server. The current limits for max storage time and number of outstanding
-/// messages per application are documented in the [FCM Developers Guide].
-///
-/// [FCM Developers Guide]: https://firebase.google.com/docs/cloud-messaging/
-///
-/// @param[in] message The message to send upstream.
-void Send(const Message& message);
 
 /// @brief Subscribe to receive all messages to the specified topic.
 ///
@@ -577,7 +554,7 @@ Future<void> Subscribe(const char* topic);
 
 /// @brief Gets the result of the most recent call to Unsubscribe();
 ///
-/// @returns Result of the most recent call to Unsubscribe().
+/// @return Result of the most recent call to Unsubscribe().
 Future<void> SubscribeLastResult();
 
 /// @brief Unsubscribe from a topic.
@@ -593,8 +570,62 @@ Future<void> Unsubscribe(const char* topic);
 
 /// @brief Gets the result of the most recent call to Unsubscribe();
 ///
-/// @returns Result of the most recent call to Unsubscribe().
+/// @return Result of the most recent call to Unsubscribe().
 Future<void> UnsubscribeLastResult();
+
+/// Determines whether Firebase Cloud Messaging exports message delivery metrics
+/// to BigQuery.
+///
+/// This function is currently only implemented on Android, and returns false
+/// with no other behavior on other platforms.
+///
+/// @return true if Firebase Cloud Messaging exports message delivery metrics to
+/// BigQuery.
+bool DeliveryMetricsExportToBigQueryEnabled();
+
+/// Enables or disables Firebase Cloud Messaging message delivery metrics export
+/// to BigQuery.
+///
+/// By default, message delivery metrics are not exported to BigQuery. Use this
+/// method to enable or disable the export at runtime. In addition, you can
+/// enable the export by adding to your manifest. Note that the run-time method
+/// call will override the manifest value.
+///
+/// <meta-data android:name= "delivery_metrics_exported_to_big_query_enabled"
+///            android:value="true"/>
+///
+/// This function is currently only implemented on Android, and has no behavior
+/// on other platforms.
+///
+/// @param[in] enable Whether Firebase Cloud Messaging should export message
+///            delivery metrics to BigQuery.
+void SetDeliveryMetricsExportToBigQuery(bool enable);
+
+/// @brief This creates a Firebase Installations ID, if one does not exist, and
+/// sends information about the application and the device where it's running to
+/// the Firebase backend.
+///
+/// @return A future with the token.
+Future<std::string> GetToken();
+
+/// @brief Gets the result of the most recent call to GetToken();
+///
+/// @return Result of the most recent call to GetToken().
+Future<std::string> GetTokenLastResult();
+
+/// @brief Deletes the default token for this Firebase project.
+///
+/// Note that this does not delete the Firebase Installations ID that may have
+/// been created when generating the token. See Installations.Delete() for
+/// deleting that.
+///
+/// @return A future that completes when the token is deleted.
+Future<void> DeleteToken();
+
+/// @brief Gets the result of the most recent call to DeleteToken();
+///
+/// @return Result of the most recent call to DeleteToken().
+Future<void> DeleteTokenLastResult();
 
 class PollableListenerImpl;
 

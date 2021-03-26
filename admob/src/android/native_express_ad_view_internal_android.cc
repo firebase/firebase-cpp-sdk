@@ -198,6 +198,7 @@ BoundingBox NativeExpressAdViewInternalAndroid::GetBoundingBox() const {
   // x-coordinate, and y-coordinate.
   int count = static_cast<int>(env->GetArrayLength(jni_int_array));
   assert(count == 4);
+  (void)count;
 
   jint* bounding_box_elements =
       env->GetIntArrayElements(jni_int_array, nullptr);

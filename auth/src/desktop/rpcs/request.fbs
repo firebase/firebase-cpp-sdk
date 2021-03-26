@@ -55,6 +55,8 @@ table Request {
   photoUrl:string;
   deleteAttribute:[string];
   deleteProvider:[string];
+
+  nonce:string;
 }
 
 root_type Request;

@@ -35,27 +35,27 @@ namespace compat {
 // in length.`
 template <typename T>
 struct CanBeAtomic {
-  static const bool value = false;
+  static constexpr bool value = false;
 };
 
 template <>
 struct CanBeAtomic<int32_t> {
-  static const bool value = true;
+  static constexpr bool value = true;
 };
 
 template <>
 struct CanBeAtomic<uint32_t> {
-  static const bool value = true;
+  static constexpr bool value = true;
 };
 
 template <>
 struct CanBeAtomic<int64_t> {
-  static const bool value = true;
+  static constexpr bool value = true;
 };
 
 template <>
 struct CanBeAtomic<uint64_t> {
-  static const bool value = true;
+  static constexpr bool value = true;
 };
 
 // Provides a minimal atomic counter, required to implement SharedPtr.

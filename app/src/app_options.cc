@@ -179,9 +179,9 @@ bool AppOptions::PopulateRequiredWithDefaults(
     JNIEnv* jni_env, jobject activity
 #endif  // FIREBASE_PLATFORM_ANDROID
 ) {
-  // Populate App ID and API key from the default options if they're not
-  // specified.
-  if (app_id_.empty() || api_key_.empty()) {
+  // Populate App ID, API key, and Project ID from the default options if
+  // they're not specified.
+  if (app_id_.empty() || api_key_.empty() || project_id_.empty()) {
     AppOptions default_options;
     if (AppOptions::LoadDefault(&default_options
 #if FIREBASE_PLATFORM_ANDROID
@@ -190,13 +190,15 @@ bool AppOptions::PopulateRequiredWithDefaults(
                                 )) {
       if (app_id_.empty()) app_id_ = default_options.app_id_;
       if (api_key_.empty()) api_key_ = default_options.api_key_;
+      if (project_id_.empty()) project_id_ = default_options.project_id_;
     } else {
       LogError("Failed to load default options when attempting to populate "
                "missing fields");
     }
   }
-  if (app_id_.empty() || api_key_.empty()) {
-    LogError("App ID and API key must be specified in App options.");
+  if (app_id_.empty() || api_key_.empty() || project_id_.empty()) {
+    LogError(
+        "App ID, API key, and Project ID must be specified in App options.");
     return false;
   }
   return true;

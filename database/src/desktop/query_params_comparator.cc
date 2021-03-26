@@ -15,7 +15,9 @@
 #include "database/src/desktop/query_params_comparator.h"
 
 #include <cassert>
+#include <cstdint>
 
+#include "app/src/assert.h"
 #include "app/src/util.h"
 #include "database/src/desktop/util_desktop.h"
 
@@ -30,14 +32,14 @@ const char QueryParamsComparator::kMaxKey[] = "[MAX_KEY]";
 // down values with these types. These are never compared to other variants
 // directly - they should only be used with the QueryParamsComparator, which
 // uses the Variant::type() to do comparisons.
-static const Variant kMinVariant = Variant::FromStaticBlob(
+static const Variant kMinVariant = Variant::FromStaticBlob(  // NOLINT
     QueryParamsComparator::kMinKey, sizeof(QueryParamsComparator::kMinKey));
-static const Variant kMaxVariant = Variant::FromStaticBlob(
+static const Variant kMaxVariant = Variant::FromStaticBlob(  // NOLINT
     QueryParamsComparator::kMaxKey, sizeof(QueryParamsComparator::kMaxKey));
 
-const std::pair<Variant, Variant> QueryParamsComparator::kMinNode =
+const std::pair<Variant, Variant> QueryParamsComparator::kMinNode =  // NOLINT
     std::make_pair(QueryParamsComparator::kMinKey, kMinVariant);
-const std::pair<Variant, Variant> QueryParamsComparator::kMaxNode =
+const std::pair<Variant, Variant> QueryParamsComparator::kMaxNode =  // NOLINT
     std::make_pair(QueryParamsComparator::kMaxKey, kMaxVariant);
 
 static int VariantIsSentinel(const Variant& key, const Variant& value) {
@@ -90,6 +92,8 @@ int QueryParamsComparator::Compare(const Variant& key_a, const Variant& value_a,
       return result;
     }
   }
+  FIREBASE_DEV_ASSERT_MESSAGE(false, "Invalid QueryParams::OrderBy");
+  return 0;
 }
 
 int QueryParamsComparator::ComparePriorities(const Variant& value_a,
@@ -165,6 +169,7 @@ int QueryParamsComparator::CompareValues(const Variant& variant_a,
       kPrecedenceSentinel,  // kTypeStaticBlob
       kPrecedenceError,     // kTypeMutableBlob
   };
+
   Variant::Type type_a = value_a->type();
   Variant::Type type_b = value_b->type();
   Precedence precedence_a = kPrecedenceLookupTable[type_a];
@@ -211,7 +216,12 @@ int QueryParamsComparator::CompareValues(const Variant& variant_a,
     case kPrecedenceNumber: {
       // If they're both integers.
       if (type_a == Variant::kTypeInt64 && type_b == Variant::kTypeInt64) {
-        return value_a->int64_value() - value_b->int64_value();
+        int64_t int64_a = value_a->int64_value();
+        int64_t int64_b = value_b->int64_value();
+
+        if (int64_a < int64_b) return -1;
+        if (int64_a > int64_b) return 1;
+        return 0;
       }
 
       // At least one of them is a double, so we treat them both as doubles.
@@ -226,8 +236,10 @@ int QueryParamsComparator::CompareValues(const Variant& variant_a,
       double double_b = (type_b == Variant::kTypeDouble)
                             ? value_b->double_value()
                             : static_cast<double>(value_b->int64_value());
-      double result = double_a - double_b;
-      return (result == 0.0) ? 0 : (result > 0.0 ? 1 : -1);
+
+      if (double_a < double_b) return -1;
+      if (double_a > double_b) return 1;
+      return 0;
     }
     case kPrecedenceString: {
       return strcmp(value_a->string_value(), value_b->string_value());

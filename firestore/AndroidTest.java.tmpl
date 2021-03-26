@@ -1,0 +1,83 @@
+package {package_name};
+
+import android.app.Instrumentation;
+import android.app.NativeActivity;
+import android.content.ContentResolver;
+import android.os.Looper;
+import android.system.Os;
+import android.util.Log;
+import androidx.test.InstrumentationRegistry;
+import androidx.test.filters.LargeTest;
+import androidx.test.rule.ActivityTestRule;
+import androidx.test.runner.AndroidJUnit4;
+import com.google.android.apps.common.testing.util.AndroidTestUtil;
+import com.google.common.jni.JniLoader;
+import java.io.File;
+import java.util.Map;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Assert;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+@RunWith(AndroidJUnit4.class)
+@LargeTest
+public class {java_class_name} {{
+  static {{
+    // Blaze packs shared libraries into jar files. JniLoader unpacks them and
+    // then delegates to System.loadLibrary.
+    JniLoader.loadLibrary("{so_lib_name}");
+  }}
+
+  private native boolean runAllTest(NativeActivity activity, String filter);
+
+  @Rule
+  public final ActivityTestRule<NativeActivity> rule =
+      new ActivityTestRule<NativeActivity>(NativeActivity.class);
+   
+  @Before
+  public void setupFirestoreEmulatorAddress() {{
+    // TODO(b/171886053) Refactor to not rely on this call
+    Looper.prepare();
+    ContentResolver contentResolver =
+        InstrumentationRegistry.getInstrumentation().getTargetContext().getContentResolver();
+    Map<String, String> args = AndroidTestUtil.getTestArgs(contentResolver);
+    if (args.containsKey("firestore_emulator_port")) {{
+      String address = "10.0.2.2:" + args.get("firestore_emulator_port");
+      try {{
+        Os.setenv("FIRESTORE_EMULATOR_HOST", address, true);
+        Log.i("{java_class_name}", "FIRESTORE_EMULATOR_HOST: " + address);
+      }}
+      catch (Exception e) {{
+        Log.w("{java_class_name}", "Could not set emulator address environment variable: " + e);
+        // Swallow exception to allow tests to run against actual backend.
+      }}
+    }}
+  }}
+
+  // Manually stop the test activity. If we let the test harness do this for us,
+  // somehow that will catch an expected crash and fail the test. TODO(zxu):
+  // Investigate the root cause and undo this change, see b/111298684.
+  @After
+  public void stopNativeActivity() {{
+    Instrumentation instrumentation = null;
+    try {{
+      instrumentation = InstrumentationRegistry.getInstrumentation();
+    }} catch (IllegalStateException e) {{
+      Log.e("{java_class_name}",
+            "cannot find instrumentation for the test activity");
+      return;
+    }}
+    Log.d("{java_class_name}", "try to stop test activity");
+    instrumentation.callActivityOnStop(rule.getActivity());
+  }}
+
+  private void run(String test) {{
+    // Pass the test name as a filter to run the specific test.
+    boolean result = runAllTest(rule.getActivity(), /*filter=*/test);
+    Assert.assertTrue(result);
+  }}
+
+  {tests}
+}}

@@ -17,11 +17,9 @@
 #ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_TYPES_H_
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_TYPES_H_
 
-#ifdef INTERNAL_EXPERIMENTAL
 #include <map>
 #include <string>
 #include <vector>
-#endif  // INTERNAL_EXPERIMENTAL
 
 namespace firebase {
 namespace auth {
@@ -214,8 +212,8 @@ enum AuthError {
   /// @note This error is only reported on Android.
   kAuthErrorMissingPassword,
 
-  /// Indicates that the quota of SMS messages for a given project has been
-  /// exceeded.
+  /// Indicates that the project's quota for this operation (SMS messages,
+  /// sign-ins, account creation) has been exceeded. Try again later.
   kAuthErrorQuotaExceeded,
 
   /// Thrown when one or more of the credentials passed to a method fail to
@@ -411,26 +409,55 @@ enum AuthError {
   /// Indicates that an error occurred during a Federated Auth UI Flow when the
   /// user was prompted to enter their credentials.
   kAuthErrorFederatedSignInUserInteractionFailure,
+
+  /// Indicates that a request was made with a missing or invalid nonce.
+  /// This can happen if the hash of the provided raw nonce did not match the
+  /// hashed nonce in the OIDC ID token payload.
+  kAuthErrorMissingOrInvalidNonce,
+
+  /// Indicates that the user did not authorize the application during Generic
+  /// IDP sign-in.
+  kAuthErrorUserCancelled,
+
 #endif  // INTERNAL_EXEPERIMENTAL
 };
 
-#ifdef INTERNAL_EXPERIMENTAL
-// @brief Contains information to identify a Federated Auth Provider.
+/// @brief Contains information required to authenticate with a third party
+/// provider.
 struct FederatedProviderData {
-  // @brief The name of the provider against which authentication attempts will
-  // take place.
+  /// @brief contains the id of the provider to be used during sign-in, link, or
+  /// reauthentication requests.
   std::string provider_id;
 };
 
-// @brief Contains information to identify an OAuth povider.
+/// @brief Contains information to identify an OAuth povider.
 struct FederatedOAuthProviderData : FederatedProviderData {
-  // OAuth parmeters which specify which rights of access are being requested.
+  /// Initailizes an empty provider data structure.
+  FederatedOAuthProviderData() {}
+
+  /// Initializes the provider data structure with a provider id.
+  explicit FederatedOAuthProviderData(const std::string& provider) {
+    this->provider_id = provider;
+  }
+
+#ifndef SWIG
+  /// @brief Initializes the provider data structure with the specified provider
+  /// id, scopes and custom parameters.
+  FederatedOAuthProviderData(
+      const std::string& provider, std::vector<std::string> scopes,
+      std::map<std::string, std::string> custom_parameters) {
+    this->provider_id = provider;
+    this->scopes = scopes;
+    this->custom_parameters = custom_parameters;
+  }
+#endif
+
+  /// OAuth parmeters which specify which rights of access are being requested.
   std::vector<std::string> scopes;
 
-  // OAuth parameters which are provided to the federated provider service.
+  /// OAuth parameters which are provided to the federated provider service.
   std::map<std::string, std::string> custom_parameters;
 };
-#endif  // INTERNAL_EXPERIMENTAL
 
 }  // namespace auth
 }  // namespace firebase

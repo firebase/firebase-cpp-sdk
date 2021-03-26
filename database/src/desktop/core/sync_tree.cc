@@ -53,8 +53,8 @@ std::vector<Event> SyncTree::AckUserWrite(WriteId write_id, AckStatus revert,
     if (persist) {
       this->persistence_manager_->RemoveUserWrite(write_id);
     }
-    // Need to move the write out, as it is about to be deleted.
-    UserWriteRecord write = std::move(*pending_write_tree_->GetWrite(write_id));
+    // Make a copy of the write, as it is about to be deleted.
+    UserWriteRecord write = *pending_write_tree_->GetWrite(write_id);
     bool need_to_reevaluate = pending_write_tree_->RemoveWrite(write_id);
     if (write.visible) {
       if (!revert) {
@@ -638,7 +638,7 @@ std::vector<Event> SyncTree::RemoveEventRegistration(
       Tree<SyncPoint>* current_tree = &sync_point_tree_;
       bool covered = current_tree->value().has_value() &&
                      current_tree->value()->HasCompleteView();
-      for (std::string directory : query_spec.path.GetDirectories()) {
+      for (const std::string& directory : query_spec.path.GetDirectories()) {
         current_tree = current_tree->GetChild(directory);
         covered = covered || (current_tree->value().has_value() &&
                               current_tree->value()->HasCompleteView());
@@ -680,7 +680,7 @@ std::vector<Event> SyncTree::RemoveEventRegistration(
           listen_provider_->StopListening(QuerySpecForListening(query_spec),
                                           Tag());
         } else {
-          for (QuerySpec query_to_remove : removed) {
+          for (const QuerySpec& query_to_remove : removed) {
             Tag tag = TagForQuerySpec(query_to_remove);
             FIREBASE_DEV_ASSERT(tag.has_value());
             listen_provider_->StopListening(

@@ -32,10 +32,11 @@ class PushChildNameGenerator {
 
  private:
   static const char* const kPushChars;
-  static const int kNumPushChars = 64;
-  static const int kNumTimestampChars = 8;
-  static const int kNumRandomChars = 12;
-  static const int kGeneratedNameLength = kNumTimestampChars + kNumRandomChars;
+  static constexpr int kNumPushChars = 64;
+  static constexpr int kNumTimestampChars = 8;
+  static constexpr int kNumRandomChars = 12;
+  static constexpr int kGeneratedNameLength =
+      kNumTimestampChars + kNumRandomChars;
 
   // For random number generation.
   std::random_device random_device_;

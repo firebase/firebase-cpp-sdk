@@ -33,9 +33,7 @@ namespace auth {
 class Auth;
 struct AuthData;
 
-#ifdef INTERNAL_EXPERIMENTAL
 class FederatedAuthProvider;
-#endif  // INTERNAL_EXPERIMENTAL
 
 /// @brief Interface implemented by each identity provider.
 class UserInfoInterface {
@@ -122,6 +120,13 @@ struct AdditionalUserInfo {
   /// Most likely a hierarchical key-value mapping, like a parsed JSON file.
   /// Note we use map instead of unordered_map to support older compilers.
   std::map<Variant, Variant> profile;
+
+  /// On a nonce-based credential link failure where the user has already linked
+  /// to the provider, the Firebase auth service may provide an updated
+  /// Credential. If is_valid returns true on this credential, then it may be
+  /// passed to a new firebase::auth::Auth::SignInWithCredential request to sign
+  /// the user in with the provider.
+  Credential updated_credential;
 };
 
 /// @brief Metadata corresponding to a Firebase user.
@@ -281,7 +286,6 @@ class User : public UserInfoInterface {
   /// Get results of the most recent call to @ref ReauthenticateAndRetrieveData.
   Future<SignInResult> ReauthenticateAndRetrieveDataLastResult() const;
 
-#ifdef INTERNAL_EXPERIMENTAL
   /// @brief Re-authenticates the user with a federated auth provider.
   ///
   /// @param[in] provider Contains information on the auth provider to
@@ -293,7 +297,6 @@ class User : public UserInfoInterface {
   /// code: kAuthErrorUnimplemented.
   Future<SignInResult> ReauthenticateWithProvider(
       FederatedAuthProvider* provider) const;
-#endif  // INTERNAL_EXPERIMENTAL
 
   /// Initiates email verification for the user.
   Future<void> SendEmailVerification();
@@ -332,7 +335,6 @@ class User : public UserInfoInterface {
   /// @ref LinkAndRetrieveDataWithCredential.
   Future<SignInResult> LinkAndRetrieveDataWithCredentialLastResult() const;
 
-#ifdef INTERNAL_EXPERIMENTAL
   /// Links this user with a federated auth provider.
   ///
   /// @param[in] provider Contains information on the auth provider to link
@@ -344,7 +346,6 @@ class User : public UserInfoInterface {
   /// non-mobile platforms this method will return a Future with a preset error
   /// code: kAuthErrorUnimplemented.
   Future<SignInResult> LinkWithProvider(FederatedAuthProvider* provider) const;
-#endif  // INTERNAL_EXPERIMENTAL
 
   /// Unlinks the current user from the provider specified.
   /// Status will be an error if the user is not linked to the given provider.

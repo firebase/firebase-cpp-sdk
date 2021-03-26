@@ -721,7 +721,7 @@ bool InstanceIdDesktopImpl::FetchServerToken(const char* scope, bool* retry) {
       size_t component_start = 0;
       size_t component_end;
       do {
-        component_end = error.find(":", component_start);
+        component_end = error.find(':', component_start);
         std::string error_component =
             error.substr(component_start, component_end - component_start);
         if (error_component == kPhoneRegistrationError) {

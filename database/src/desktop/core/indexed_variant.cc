@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cassert>
 
+#include "app/src/assert.h"
 #include "app/src/include/firebase/variant.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/query_params_comparator.h"
@@ -113,6 +114,8 @@ const Variant* IndexedVariant::GetOrderByVariant(const Variant& key,
       return GetVariantValue(&value);
     }
   }
+  FIREBASE_DEV_ASSERT_MESSAGE(false, "Invalid QueryParams::OrderBy");
+  return nullptr;
 }
 
 static bool IsDefinedOn(const Variant& variant, const QueryParams& params) {

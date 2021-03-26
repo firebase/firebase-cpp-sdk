@@ -88,6 +88,17 @@ enum RegistrationTokenRequestState {
 static RegistrationTokenRequestState g_registration_token_request_state =
     kRegistrationTokenRequestStateNone;
 
+// Global flag indicating if metrics export to big query was enabled or
+// disabled before app initialization.
+enum DeliveryMetricsExportToBigQueryState {
+  kDeliveryMetricsExportToBigQueryNone,
+  kDeliveryMetricsExportToBigQueryEnable,
+  kDeliveryMetricsExportToBigQueryDisable,
+};
+static DeliveryMetricsExportToBigQueryState
+    g_delivery_metrics_export_to_big_query_state =
+        kDeliveryMetricsExportToBigQueryNone;
+
 // Indicates whether a registration token has been received, which is necessary
 // to perform certain actions related to topic subscriptions.
 // NOTE: The registration token is received by RegistrationIntentService which
@@ -117,7 +128,7 @@ static const char* kMessagingNotInitializedError = "Messaging not initialized.";
 
 static void HandlePendingSubscriptions();
 
-static void InstanceIdGetToken();
+static void InstallationsGetToken();
 
 // Condition variable / mutex pair used to control MessageProcessingThread()
 // polling.  This allows another thread to interrupt MessageProcessingThread()
@@ -130,32 +141,10 @@ static pthread_t g_poll_thread;
 // Whether the intent message has been fired.
 static bool g_intent_message_fired = false;
 
-// clang-format off
-#define REMOTE_MESSAGE_BUILDER_METHODS(X)                                      \
-    X(Constructor, "<init>", "(Ljava/lang/String;)V"),                         \
-    X(SetData, "setData",                                                      \
-      "(Ljava/util/Map;)"                                                      \
-      "Lcom/google/firebase/messaging/RemoteMessage$Builder;"),                \
-    X(SetTtl, "setTtl",                                                        \
-      "(I)Lcom/google/firebase/messaging/RemoteMessage$Builder;"),             \
-    X(SetMessageId, "setMessageId",                                            \
-      "(Ljava/lang/String;)"                                                   \
-      "Lcom/google/firebase/messaging/RemoteMessage$Builder;"),                \
-    X(Build, "build", "()Lcom/google/firebase/messaging/RemoteMessage;")
-// clang-format on
-METHOD_LOOKUP_DECLARATION(remote_message_builder,
-                          REMOTE_MESSAGE_BUILDER_METHODS);
-METHOD_LOOKUP_DEFINITION(remote_message_builder,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/firebase/messaging/RemoteMessage$Builder",
-                         REMOTE_MESSAGE_BUILDER_METHODS);
-
 // Used to setup the cache of FirebaseMessaging class method IDs to reduce time
 // spent looking up methods by string.
 // clang-format off
 #define FIREBASE_MESSAGING_METHODS(X)                                          \
-    X(Send, "send",                                                            \
-      "(Lcom/google/firebase/messaging/RemoteMessage;)V"),                     \
     X(IsAutoInitEnabled, "isAutoInitEnabled", "()Z"),                          \
     X(SetAutoInitEnabled, "setAutoInitEnabled", "(Z)V"),                       \
     X(SubscribeToTopic, "subscribeToTopic",                                    \
@@ -164,7 +153,13 @@ METHOD_LOOKUP_DEFINITION(remote_message_builder,
       "(Ljava/lang/String;)Lcom/google/android/gms/tasks/Task;"),              \
     X(GetInstance, "getInstance",                                              \
       "()Lcom/google/firebase/messaging/FirebaseMessaging;",                   \
-      firebase::util::kMethodTypeStatic)
+      firebase::util::kMethodTypeStatic),                                      \
+    X(DeliveryMetricsExportToBigQueryEnabled,                                  \
+      "deliveryMetricsExportToBigQueryEnabled", "()Z"),                        \
+    X(SetDeliveryMetricsExportToBigQuery,                                      \
+      "setDeliveryMetricsExportToBigQuery", "(Z)V"),                           \
+    X(GetToken, "getToken", "()Lcom/google/android/gms/tasks/Task;"),          \
+    X(DeleteToken, "deleteToken", "()Lcom/google/android/gms/tasks/Task;")
 // clang-format on
 METHOD_LOOKUP_DECLARATION(firebase_messaging, FIREBASE_MESSAGING_METHODS);
 METHOD_LOOKUP_DEFINITION(firebase_messaging,
@@ -506,8 +501,7 @@ static void FireIntentMessage(JNIEnv* env) {
   }
   // Intent intent = app.getIntent();
   jobject intent = env->CallObjectMethod(
-      activity,
-      util::activity::GetMethodId(util::activity::kGetIntent));
+      activity, util::activity::GetMethodId(util::activity::kGetIntent));
   assert(env->ExceptionCheck() == false);
   env->DeleteLocalRef(activity);
 
@@ -558,7 +552,6 @@ static void FireIntentMessage(JNIEnv* env) {
 
 static void ReleaseClasses(JNIEnv* env) {
   firebase_messaging::ReleaseClass(env);
-  remote_message_builder::ReleaseClass(env);
   registration_intent_service::ReleaseClass(env);
 }
 
@@ -581,7 +574,6 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
 
   // Cache method pointers.
   if (!(firebase_messaging::CacheMethodIds(env, app.activity()) &&
-        remote_message_builder::CacheMethodIds(env, app.activity()) &&
         registration_intent_service::CacheMethodIds(env, app.activity()))) {
     ReleaseClasses(env);
     util::Terminate(env);
@@ -646,6 +638,15 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
                                       kRegistrationTokenRequestStateEnable);
   }
 
+  if (g_delivery_metrics_export_to_big_query_state !=
+      kDeliveryMetricsExportToBigQueryNone) {
+    // Calling this again, now that we're initialized.
+    assert(internal::IsInitialized());
+    SetTokenRegistrationOnInitEnabled(
+        g_delivery_metrics_export_to_big_query_state ==
+        kDeliveryMetricsExportToBigQueryEnable);
+  }
+
   FutureData::Create();
 
   // Supposedly App creation also creates a registration token, but this seems
@@ -654,7 +655,7 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
   // so it should be GDPR compliant.
   if (IsTokenRegistrationOnInitEnabled()) {
     // Request a registration token.
-    InstanceIdGetToken();
+    InstallationsGetToken();
   }
 
   LogInfo("Firebase Cloud Messaging API Initialized");
@@ -696,6 +697,9 @@ void Terminate() {
   delete g_lockfile_path;
   g_lockfile_path = nullptr;
 
+  g_delivery_metrics_export_to_big_query_state =
+      kDeliveryMetricsExportToBigQueryNone;
+
   env->DeleteGlobalRef(g_firebase_messaging);
   g_firebase_messaging = nullptr;
   SetListener(nullptr);
@@ -706,7 +710,7 @@ void Terminate() {
 
 // Start a service which will communicate with the Firebase Cloud Messaging
 // server to generate a registration token for the app.
-static void InstanceIdGetToken() {
+static void InstallationsGetToken() {
   FIREBASE_ASSERT_MESSAGE_RETURN_VOID(internal::IsInitialized(),
                                       kMessagingNotInitializedError);
   JNIEnv* env = g_app->GetJNIEnv();
@@ -726,74 +730,9 @@ static void InstanceIdGetToken() {
   env->DeleteLocalRef(new_intent);
 }
 
-// Send an upstream ("device to cloud") message. You can only use the upstream
-// feature if your FCM implementation uses the XMPP-based Cloud Connection
-// Server. The current limits for max storage time and number of outstanding
-// messages per application are documented in the FCM Developers Guide.
-void Send(const Message& message) {
-  FIREBASE_ASSERT_MESSAGE_RETURN_VOID(internal::IsInitialized(),
-                                      kMessagingNotInitializedError);
-  JNIEnv* env = g_app->GetJNIEnv();
-  jstring to = env->NewStringUTF(message.to.c_str());
-  jstring message_id = env->NewStringUTF(message.message_id.c_str());
-
-  // Map<String, String> data = ...;
-  jobject data =
-      env->NewObject(util::hash_map::GetClass(),
-                     util::hash_map::GetMethodId(util::hash_map::kConstructor));
-  assert(env->ExceptionCheck() == false);
-  util::StdMapToJavaMap(env, &data, message.data);
-
-  // RemoteMessage.Builder builder = new RemoteMessage.Builder(to);
-  jobject builder = env->NewObject(
-      remote_message_builder::GetClass(),
-      remote_message_builder::GetMethodId(remote_message_builder::kConstructor),
-      to);
-  assert(env->ExceptionCheck() == false);
-
-  // builder.setMessageId(message_id);
-  env->CallObjectMethod(builder,
-                        remote_message_builder::GetMethodId(
-                            remote_message_builder::kSetMessageId),
-                        message_id);
-  assert(env->ExceptionCheck() == false);
-
-  // builder.setTtl(message.time_to_live);
-  env->CallObjectMethod(
-      builder,
-      remote_message_builder::GetMethodId(remote_message_builder::kSetTtl),
-      message.time_to_live);
-  assert(env->ExceptionCheck() == false);
-
-  // builder.setData(data);
-  env->CallObjectMethod(
-      builder,
-      remote_message_builder::GetMethodId(remote_message_builder::kSetData),
-      data);
-  assert(env->ExceptionCheck() == false);
-
-  // RemoteMessage message = builder.build();
-  jobject outgoing_message = env->CallObjectMethod(
-      builder,
-      remote_message_builder::GetMethodId(remote_message_builder::kBuild));
-  assert(env->ExceptionCheck() == false);
-
-  // firebaseMessaging.send(message);
-  env->CallVoidMethod(
-      g_firebase_messaging,
-      firebase_messaging::GetMethodId(firebase_messaging::kSend),
-      outgoing_message);
-  assert(env->ExceptionCheck() == false);
-
-  env->DeleteLocalRef(outgoing_message);
-  env->DeleteLocalRef(to);
-  env->DeleteLocalRef(message_id);
-  env->DeleteLocalRef(data);
-}
-
 static void SubscriptionUpdateComplete(JNIEnv* env, jobject result,
                                        util::FutureResult result_code,
-                                       int status, const char* status_message,
+                                       const char* status_message,
                                        void* callback_data) {
   SafeFutureHandle<void>* handle =
       reinterpret_cast<SafeFutureHandle<void>*>(callback_data);
@@ -886,6 +825,37 @@ static void HandlePendingSubscriptions() {
   }
 }
 
+static void CompleteVoidCallback(JNIEnv* env, jobject result,
+                                 util::FutureResult result_code,
+                                 const char* status_message,
+                                 void* callback_data) {
+  FutureHandleId future_id =
+                reinterpret_cast<FutureHandleId>(callback_data);
+  FutureHandle handle(future_id);
+  Error error =
+      (result_code == util::kFutureResultSuccess) ? kErrorNone : kErrorUnknown;
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  api->Complete(handle, error, status_message);
+  if (result) env->DeleteLocalRef(result);
+}
+
+static void CompleteStringCallback(JNIEnv* env, jobject result,
+                                   util::FutureResult result_code,
+                                   const char* status_message,
+                                   void* callback_data) {
+  bool success = (result_code == util::kFutureResultSuccess);
+  std::string result_value = "";
+  if (success && result) {
+    result_value = util::JniStringToString(env, result);
+  }
+  SafeFutureHandle<std::string>* handle =
+      reinterpret_cast<SafeFutureHandle<std::string>*>(callback_data);
+  Error error = success ? kErrorNone : kErrorUnknown;
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  api->CompleteWithResult(*handle, error, status_message, result_value);
+  delete handle;
+}
+
 static const char kErrorMessageNoRegistrationToken[] =
     "Cannot update subscription when SetTokenRegistrationOnInitEnabled is set "
     "to false.";
@@ -940,6 +910,44 @@ Future<void> UnsubscribeLastResult() {
       api->LastResult(kMessagingFnUnsubscribe));
 }
 
+bool DeliveryMetricsExportToBigQueryEnabled() {
+  if (!internal::IsInitialized()) {
+    // If the user previously called SetDeliveryMetricsExportToBigQuery(true),
+    // then return true. If they did not set it, or set it to false, return
+    // false.
+    return g_delivery_metrics_export_to_big_query_state ==
+           kDeliveryMetricsExportToBigQueryEnable;
+  }
+
+  JNIEnv* env = g_app->GetJNIEnv();
+  jboolean result = env->CallBooleanMethod(
+      g_firebase_messaging,
+      firebase_messaging::GetMethodId(
+          firebase_messaging::kDeliveryMetricsExportToBigQueryEnabled));
+  assert(env->ExceptionCheck() == false);
+  return static_cast<bool>(result);
+}
+
+void SetDeliveryMetricsExportToBigQuery(bool enabled) {
+  // If this is called before JNI is initialized, we'll just cache the intent
+  // and handle it on actual init.
+  // Otherwise if we've already initialized, the underlying API will persist the
+  // value.
+  if (internal::IsInitialized()) {
+    JNIEnv* env = g_app->GetJNIEnv();
+    env->CallVoidMethod(
+        g_firebase_messaging,
+        firebase_messaging::GetMethodId(
+            firebase_messaging::kSetDeliveryMetricsExportToBigQuery),
+        static_cast<jboolean>(enabled));
+    assert(env->ExceptionCheck() == false);
+  } else {
+    g_delivery_metrics_export_to_big_query_state =
+        enabled ? kDeliveryMetricsExportToBigQueryEnable
+                : kDeliveryMetricsExportToBigQueryDisable;
+  }
+}
+
 void SetTokenRegistrationOnInitEnabled(bool enabled) {
   // If this is called before JNI is initialized, we'll just cache the intent
   // and handle it on actual init.
@@ -960,7 +968,7 @@ void SetTokenRegistrationOnInitEnabled(bool enabled) {
     // doesn't raise the event when flipping the bit to true, so we watch for
     // that here.
     if (!was_enabled && IsTokenRegistrationOnInitEnabled()) {
-      InstanceIdGetToken();
+      InstallationsGetToken();
     }
 
   } else {
@@ -981,6 +989,75 @@ bool IsTokenRegistrationOnInitEnabled() {
       firebase_messaging::GetMethodId(firebase_messaging::kIsAutoInitEnabled));
   assert(env->ExceptionCheck() == false);
   return static_cast<bool>(result);
+}
+
+Future<std::string> GetToken() {
+  FIREBASE_ASSERT_MESSAGE_RETURN(Future<std::string>(),
+                                 internal::IsInitialized(),
+                                 kMessagingNotInitializedError);
+  MutexLock lock(*g_registration_token_mutex);
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  SafeFutureHandle<std::string> handle =
+      api->SafeAlloc<std::string>(kMessagingFnGetToken);
+
+  JNIEnv* env = g_app->GetJNIEnv();
+  jobject task = env->CallObjectMethod(
+      g_firebase_messaging,
+      firebase_messaging::GetMethodId(firebase_messaging::kGetToken));
+
+  std::string error = util::GetAndClearExceptionMessage(env);
+  if (error.empty()) {
+    util::RegisterCallbackOnTask(
+        env, task, CompleteStringCallback,
+        reinterpret_cast<void*>(new SafeFutureHandle<std::string>(handle)),
+        kApiIdentifier);
+  } else {
+    api->CompleteWithResult(handle, -1, error.c_str(), std::string());
+  }
+  env->DeleteLocalRef(task);
+  util::CheckAndClearJniExceptions(env);
+
+  return MakeFuture(api, handle);
+}
+
+Future<std::string> GetTokenLastResult() {
+  FIREBASE_ASSERT_RETURN(Future<std::string>(), internal::IsInitialized());
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  return static_cast<const Future<std::string>&>(
+      api->LastResult(kMessagingFnGetToken));
+}
+
+Future<void> DeleteToken() {
+  FIREBASE_ASSERT_MESSAGE_RETURN(Future<void>(), internal::IsInitialized(),
+                                 kMessagingNotInitializedError);
+  MutexLock lock(*g_registration_token_mutex);
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  SafeFutureHandle<void> handle = api->SafeAlloc<void>(kMessagingFnDeleteToken);
+
+  JNIEnv* env = g_app->GetJNIEnv();
+  jobject task = env->CallObjectMethod(
+      g_firebase_messaging,
+      firebase_messaging::GetMethodId(firebase_messaging::kDeleteToken));
+  std::string error = util::GetAndClearExceptionMessage(env);
+  if (error.empty()) {
+    util::RegisterCallbackOnTask(
+        env, task, CompleteVoidCallback,
+        reinterpret_cast<void*>(handle.get().id()),
+        kApiIdentifier);
+  } else {
+    api->Complete(handle, -1, error.c_str());
+  }
+  env->DeleteLocalRef(task);
+  util::CheckAndClearJniExceptions(env);
+
+  return MakeFuture(api, handle);
+}
+
+Future<void> DeleteTokenLastResult() {
+  FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
+  ReferenceCountedFutureImpl* api = FutureData::Get()->api();
+  return static_cast<const Future<void>&>(
+      api->LastResult(kMessagingFnDeleteToken));
 }
 
 }  // namespace messaging

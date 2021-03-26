@@ -133,7 +133,7 @@ class PersistenceStorageEngine {
   //
   // @param path The path at which to load the data.
   // @return The data that was loaded.
-  virtual const Variant& ServerCache(const Path& path) = 0;
+  virtual Variant ServerCache(const Path& path) = 0;
 
   // Overwrite the server cache at the given path with the given data.
   //
@@ -155,6 +155,12 @@ class PersistenceStorageEngine {
   // @param children The children to update
   virtual void MergeIntoServerCache(const Path& path,
                                     const CompoundWrite& children) = 0;
+
+  // Estimate the size of the Server Cache. This is not an exact byte count, of
+  // the memory or disk space being used, just an estimate.
+  //
+  // @return The estimated server cache size.
+  virtual uint64_t ServerCacheEstimatedSizeInBytes() const = 0;
 
   // Write the tracked query to the cache.
   //
@@ -206,6 +212,14 @@ class PersistenceStorageEngine {
   // @param The set of tracked query keys.
   virtual std::set<std::string> LoadTrackedQueryKeys(
       const std::set<QueryId>& query_ids) = 0;
+
+  // Remove unused items from the local cache based on the given prune forest.
+  //
+  // @param root The location from which pruning should begin.
+  // @param prune_forest A tree of locations in the storage cache representing
+  // which nodes should be removed.
+  virtual void PruneCache(const Path& root,
+                          const PruneForestRef& prune_forest) = 0;
 
   // Begin a transaction. No other transactions can run until EndTransactions is
   // called.

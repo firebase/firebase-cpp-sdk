@@ -39,6 +39,11 @@
 
 namespace FIREBASE_NAMESPACE {
 
+#ifdef FIREBASE_LINUX_BUILD_CONFIG_STRING
+// Check to see if the shared object compiler string matches the input
+void CheckCompilerString(const char* input);
+#endif  // FIREBASE_LINUX_BUILD_CONFIG_STRING
+
 // Predeclarations.
 #ifdef INTERNAL_EXPERIMENTAL
 namespace internal {
@@ -49,40 +54,6 @@ class FunctionRegistry;
 namespace internal {
 class AppInternal;
 }  // namespace internal
-namespace auth {
-class Auth;
-}  // namespace auth
-namespace crashlytics {
-namespace internal {
-class CrashlyticsInternal;
-}  // namespace internal
-}  // namespace crashlytics
-namespace database {
-namespace internal {
-class DatabaseInternal;
-}  // namespace internal
-}  // namespace database
-#ifdef INTERNAL_EXPERIMENTAL
-namespace firestore {
-class FirestoreInternal;
-}  // namespace firestore
-#endif  // INTERNAL_EXPERIMENTAL
-namespace functions {
-namespace internal {
-class FunctionsInternal;
-}  // namespace internal
-}  // namespace functions
-namespace internal {
-class InstanceId;
-}  // namespace internal
-namespace instance_id {
-class InstanceId;
-}  // namespace instance_id
-namespace storage {
-namespace internal {
-class StorageInternal;
-}  // namespace internal
-}  // namespace storage
 
 /// @brief Reports whether a Firebase module initialized successfully.
 enum InitResult {
@@ -301,7 +272,7 @@ class AppOptions {
   /// </SWIG>
   const char* project_id() const { return project_id_.c_str(); }
 
-#if INTERNAL_EXPERIMENTAL
+#ifdef INTERNAL_EXPERIMENTAL
   /// @brief set the iOS client ID.
   ///
   /// This is the clientID in the GoogleService-Info.plist.
@@ -754,7 +725,21 @@ class App {
 
  private:
   /// Construct the object.
-  App();
+  App() :
+#if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
+    activity_(nullptr),
+#endif
+    internal_(nullptr) {
+    Initialize();
+
+#ifdef FIREBASE_LINUX_BUILD_CONFIG_STRING
+  CheckCompilerString(FIREBASE_LINUX_BUILD_CONFIG_STRING);
+#endif  // FIREBASE_LINUX_BUILD_CONFIG_STRING
+  }
+
+
+  /// Initialize internal implementation
+  void Initialize();
 
 #ifndef SWIG
 // <SWIG>

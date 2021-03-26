@@ -14,23 +14,17 @@
 
 # CMake file for the firebase_messaging library
 
-cmake_minimum_required (VERSION 3.1)
-set (CMAKE_CXX_STANDARD 11)
-
-include(binary_to_array)
-include(download_pod_headers)
-
-project(firebase_messaging NONE)
-enable_language(C)
-enable_language(CXX)
-
 # Build the generated header from the flatbuffer schema files.
 set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
     "--no-union-value-namespacing"
+    "--gen-generated"
     "--gen-object-api"
     "--cpp-ptr-type" "flatbuffers::unique_ptr")
 set(flatbuffer_schemas
     ${CMAKE_CURRENT_LIST_DIR}/src/android/schemas/messaging.fbs)
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
 build_flatbuffers("${flatbuffer_schemas}"
                   ""
                   "generate_messaging_fbs"
@@ -113,35 +107,33 @@ else()
   add_definitions(-include assert.h -include string.h)
 endif()
 
-if(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_messaging
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+if(ANDROID)
+  firebase_cpp_proguard_file(messaging)
+elseif(IOS)
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_messaging
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_messaging
+                        PUBLIC "-fembed-bitcode")
 
-  # Setup the target for getting the Firebase iOS SDK headers through Cocoapods.
-  set(pod_target_name "download_messaging_pod_headers")
-  set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
-  set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '6.9.0'")
-  list(APPEND pod_list "'Firebase/Messaging', '6.9.0'")
-
-  setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
-
-  # Add the Cocoapod headers to the include directories
-  set(base_header_dir "${pods_dir}/Pods/Headers/Public")
-  target_include_directories(firebase_messaging
-    PRIVATE
-      ${base_header_dir}/FirebaseCore
-      ${base_header_dir}/FirebaseMessaging
+  setup_pod_headers(
+    firebase_messaging
+    POD_NAMES
+      FirebaseCore
+      FirebaseMessaging
   )
 
-  # Add a dependency to downloading the headers onto messaging.
-  add_dependencies(firebase_messaging ${pod_target_name})
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_messaging PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)
   # Add the tests subdirectory
   add_subdirectory(tests)
 endif()
+
+cpp_pack_library(firebase_messaging "")
+cpp_pack_public_headers()

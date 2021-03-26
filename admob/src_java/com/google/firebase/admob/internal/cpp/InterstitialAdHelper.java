@@ -92,14 +92,22 @@ public class InterstitialAdHelper {
             int errorCode;
             String errorMessage;
             if (mInterstitial == null) {
-              errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
-              errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
-              mInterstitial = new InterstitialAd(mActivity);
-              mInterstitial.setAdUnitId(mAdUnitId);
-              mInterstitial.setAdListener(new InterstitialAdListener());
+              try {
+                mInterstitial = new InterstitialAd(mActivity);
+                mInterstitial.setAdUnitId(mAdUnitId);
+                mInterstitial.setAdListener(new InterstitialAdListener());
+                errorCode = ConstantsHelper.CALLBACK_ERROR_NONE;
+                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE;
+              } catch (IllegalStateException e) {
+                mInterstitial = null;
+                // This exception can be thrown if the ad unit ID was already set.
+                errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
+                errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
+              }
             } else {
               errorCode = ConstantsHelper.CALLBACK_ERROR_ALREADY_INITIALIZED;
               errorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_ALREADY_INITIALIZED;
+
             }
 
             completeInterstitialAdFutureCallback(callbackDataPtr, errorCode, errorMessage);
@@ -152,7 +160,17 @@ public class InterstitialAdHelper {
                 mLoadAdCallbackDataPtr = CPP_NULLPTR;
               }
             } else {
-              mInterstitial.loadAd(request);
+              try {
+                mInterstitial.loadAd(request);
+              } catch (IllegalStateException e) {
+                synchronized (mInterstitialLock) {
+                  completeInterstitialAdFutureCallback(
+                      mLoadAdCallbackDataPtr,
+                      ConstantsHelper.CALLBACK_ERROR_UNINITIALIZED,
+                      ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNINITIALIZED);
+                  mLoadAdCallbackDataPtr = CPP_NULLPTR;
+                }
+              }
             }
           }
         });
@@ -222,6 +240,9 @@ public class InterstitialAdHelper {
           callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_NO_FILL;
           callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_NO_FILL;
           break;
+        default:
+          callbackErrorCode = ConstantsHelper.CALLBACK_ERROR_UNKNOWN;
+          callbackErrorMessage = ConstantsHelper.CALLBACK_ERROR_MESSAGE_UNKNOWN;
       }
 
       synchronized (mInterstitialLock) {
@@ -231,11 +252,6 @@ public class InterstitialAdHelper {
       }
 
       super.onAdFailedToLoad(errorCode);
-    }
-
-    @Override
-    public void onAdLeftApplication() {
-      super.onAdLeftApplication();
     }
 
     @Override

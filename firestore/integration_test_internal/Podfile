@@ -1,0 +1,15 @@
+source 'https://github.com/CocoaPods/Specs.git'
+platform :ios, '10.0'
+# Cloud Firestore internal test application.
+
+target 'integration_test' do
+  pod 'Firebase/Firestore', '7.5.0'
+  pod 'Firebase/Auth', '7.5.0'
+end
+
+post_install do |installer|
+  # If this is running from inside the SDK directory, run the setup script.
+  system("if [[ -r ../../setup_integration_tests.py ]]; then python ../../setup_integration_tests.py .; fi")
+  system("/usr/bin/python ./download_googletest.py")
+end
+

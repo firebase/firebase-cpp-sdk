@@ -49,20 +49,61 @@ git clone https://github.com/firebase/firebase-cpp-sdk.git
 ## Prerequisites
 The following prerequisites are required for all platforms.  Be sure to add any
 directories to your PATH as needed.
+
 - [CMake](https://cmake.org/), version 3.1, or newer
-- [Python](https://www.python.com/), the latest version of 2.7, or newer
+- [Python2](https://www.python.com/), version of 2.7, or newer
 - [Abseil-py](https://github.com/abseil/abseil-py)
+
+Note: Once python is installed you can use the following commands to install
+required packages:
+
+* python -m ensurepip --default-pip
+* python -m pip install --user absl-py
+* python -m pip install --user protobuf
 
 ### Prerequisites for Desktop
 The following prerequisites are required when building the libraries for
 desktop platforms.
+
 - [OpenSSL](https://www.openssl.org/), needed for Realtime Database
 - [Protobuf](https://github.com/protocolbuffers/protobuf/blob/master/src/README.md),
   needed for Remote Config
 
+### Prerequisites for Windows
+Prebuilt packages for openssl can be found using google and if CMake fails to
+find the install path use the command line option
+**-DOPENSSL_ROOT_DIR=[Open SSL Dir]**.
+
+Since there are no prebuilt packages for protobuf, getting it working on Windows
+is a little tricky. The following steps can be used as a guide:
+
+* Download source [zip from github](https://github.com/protocolbuffers/protobuf/releases/download/v3.9.2/protobuf-all-3.9.2.zip).
+* Extract source and open command prompt to root folder
+* Make new folder **vsprojects**
+* CD to **vsprojects**
+* run cmake: **cmake ..\cmake -Dprotobuf_BUILD_TESTS=OFF -A Win32**
+* Build solution
+* Add command line define to firebase cmake command (see below)
+  **-DPROTOBUF_SRC_ROOT_FOLDER=[Source Root Folder]**
+
+Note: For x64 builds folder needs to be **vsprojects\x64** and change **Win32**
+in cmake command to **x64**
+
+### Prerequisites for Mac
+Home brew can be used to install required dependencies:
+
+```bash
+# https://github.com/protocolbuffers/protobuf/blob/master/kokoro/macos/prepare_build_macos_rc#L20
+ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+source $HOME/.rvm/scripts/rvm
+brew install cmake protobuf python2
+sudo chown -R $(whoami) /usr/local
+```
+
 ### Prerequisites for Android
 The following prerequisites are required when building the libraries for
 Android.
+
 - Android SDK, Android NDK, and CMake for Android (version 3.10.2 recommended)
   - Download sdkmanager (either independently, or as a part of Android Studio)
     [here](https://developer.android.com/studio/#downloads)
@@ -149,14 +190,14 @@ Currently, the third party libraries that can be provided this way are:
 
 #### Building with CMake for iOS
 The Firebase C++ SDK comes with a CMake config file to build the library for
-iOS platforms, [cmake/ios.cmake](/cmake/ios.cmake).  In order to build with it,
-when running the CMake configuration pass it in with the CMAKE_TOOLCHAIN_FILE
-definition.  For example, to build the Analytics library for iOS, you could run
-the following commands:
+iOS platforms, [cmake/toolchains/ios.cmake](/cmake/toolchains/ios.cmake).  In
+order to build with it, when running the CMake configuration pass it in with
+the CMAKE_TOOLCHAIN_FILE definition.  For example, to build the Analytics
+library for iOS, you could run the following commands:
 
 ``` bash
 mkdir ios_build && cd ios_build
-cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/ios.cmake ..
+cmake -DCMAKE_TOOLCHAIN_FILE=../cmake/toolchains/ios.cmake ..
 cmake --build . --target firebase_analytics
 ```
 
@@ -192,6 +233,30 @@ Note that as part of the build process, each library generates a proguard file
 that should be included in your application.  The generated file is located in
 each library’s build directory.  For example, the Analytics proguard file would
 be generated to `analytics/build/analytics.pro`.
+
+## Testing
+Each Firebase SDK in this repo includes a series of unit tests. These tests are
+built and executed by the CI system in order to validate changes and pull
+requests.
+
+The provided `test_windows_x32.bat`, `test_windows_x64.bat`,
+`test_linux.sh` and `test_mac_x64.sh` scripts build the SDKs and execute
+the unit tests via **ctest** on Windows32, Windows64, Linux and MacOS hosts,
+respectively.  These scripts reside in the base directory of the repository.
+
+### Known Issues
+- Mac 
+  - When executing tests you may be requested to unlock your Mac OS keychain.
+    Please enter your keychain password and select **Always Allow**. If you
+    still encounter repeated access request dialogs then you must unlock the
+    keychain manually otherwise some tests will fail.
+      - Open the **Keychain access** application on your Mac.
+      - Under **Keychains** (upper left) select the **login** keychain.
+      - Under **Category** select **Passwords** as a category (lower left) and
+        find the entry **not_a_real_project_id.{hashcode}**.  Right click it.
+      - Select **Get Info**, select **Access Control** and enable the 
+        **Allow all applications to access this item** radio button.
+      - Re-run the tests.
 
 ## Including in Projects
 ### Including in CMake Projects

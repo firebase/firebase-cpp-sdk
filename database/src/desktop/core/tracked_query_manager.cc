@@ -16,17 +16,29 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <ctime>
 #include <map>
 
 #include "app/src/assert.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/persistence/persistence_storage_engine.h"
+#include "database/src/desktop/persistence/prune_forest.h"
 #include "database/src/desktop/util_desktop.h"
 
 namespace firebase {
 namespace database {
 namespace internal {
+
+bool operator==(const TrackedQuery& lhs, const TrackedQuery& rhs) {
+  return lhs.query_id == rhs.query_id && lhs.query_spec == rhs.query_spec &&
+         lhs.last_use == rhs.last_use && lhs.complete == rhs.complete &&
+         lhs.active == rhs.active;
+}
+
+bool operator!=(const TrackedQuery& lhs, const TrackedQuery& rhs) {
+  return !(lhs == rhs);
+}
 
 TrackedQueryManagerInterface::~TrackedQueryManagerInterface() {}
 
@@ -51,7 +63,7 @@ static bool IsQueryPrunablePredicate(const TrackedQuery& query) {
 
 // Returns true if the given TrackedQuery is not prunable. A query is considered
 // prunable if it is not active.
-static bool IsQueryUnPrunablePredicate(const TrackedQuery& query) {
+static bool IsQueryUnprunablePredicate(const TrackedQuery& query) {
   return query.active;
 }
 
@@ -69,20 +81,23 @@ static void AssertValidTrackedQuery(const QuerySpec& query_spec) {
 }
 
 TrackedQueryManager::TrackedQueryManager(
-    PersistenceStorageEngine* storage_engine)
+    PersistenceStorageEngine* storage_engine, LoggerBase* logger)
     : storage_engine_(storage_engine),
       tracked_query_tree_(),
-      next_query_id_(0) {
+      next_query_id_(0),
+      logger_(logger) {
   ResetPreviouslyActiveTrackedQueries();
 
   // Populate our cache from the storage layer.
   std::vector<TrackedQuery> tracked_queries =
       storage_engine_->LoadTrackedQueries();
-  for (TrackedQuery query : tracked_queries) {
+  for (const TrackedQuery& query : tracked_queries) {
     next_query_id_ = std::max(query.query_id + 1, next_query_id_);
     CacheTrackedQuery(query);
   }
 }
+
+TrackedQueryManager::~TrackedQueryManager() {}
 
 const TrackedQuery* TrackedQueryManager::FindTrackedQuery(
     const QuerySpec& query_spec) const {
@@ -114,7 +129,9 @@ void TrackedQueryManager::SetQueryActiveFlag(
   QuerySpec normalized_spec = GetNormalizedQuery(query_spec);
   const TrackedQuery* tracked_query = FindTrackedQuery(normalized_spec);
 
-  uint64_t last_use = 0;
+  // TODO(amablue): Set up a more robust clock that won't get confused if, for
+  // example, the system time changes while the app is running.
+  uint64_t last_use = time(nullptr) * 1000;
   if (tracked_query != nullptr) {
     TrackedQuery updated_tracked_query = *tracked_query;
     updated_tracked_query.last_use = last_use;
@@ -144,8 +161,8 @@ void TrackedQueryManager::SetQueryCompleteIfExists(
 void TrackedQueryManager::SetQueriesComplete(const Path& path) {
   tracked_query_tree_.CallOnEach(
       path, [this](const Path& path, TrackedQueryMap& tracked_queries) {
-        for (auto key_value : tracked_queries) {
-          TrackedQuery& tracked_query = key_value.second;
+        for (const auto& key_value : tracked_queries) {
+          const TrackedQuery& tracked_query = key_value.second;
           if (!tracked_query.complete) {
             TrackedQuery updated_tracked_query = tracked_query;
             updated_tracked_query.complete = TrackedQuery::kComplete;
@@ -171,6 +188,65 @@ bool TrackedQueryManager::IsQueryComplete(const QuerySpec& query_spec) {
         MapGet(tracked_queries, query_spec.params);
     return tracked_query && tracked_query->complete;
   }
+}
+
+static uint64_t CalculateCountToPrune(const CachePolicy& cache_policy,
+                                      uint64_t prunable_count) {
+  uint64_t count_to_keep = prunable_count;
+
+  // Prune by percentage.
+  double percent_to_keep =
+      1.0 - cache_policy.GetPercentOfQueriesToPruneAtOnce();
+  count_to_keep = static_cast<uint64_t>(count_to_keep * percent_to_keep);
+
+  // Make sure we're not keeping more than the max.
+  count_to_keep =
+      std::min(count_to_keep, cache_policy.GetMaxNumberOfQueriesToKeep());
+
+  // Now we know how many to prune.
+  return prunable_count - count_to_keep;
+}
+
+PruneForest TrackedQueryManager::PruneOldQueries(
+    const CachePolicy& cache_policy) {
+  std::vector<TrackedQuery> prunable =
+      GetQueriesMatching(IsQueryPrunablePredicate);
+  uint64_t count_to_prune =
+      CalculateCountToPrune(cache_policy, prunable.size());
+
+  logger_->LogDebug("Pruning old queries. Prunable: %i Count to prune: %i",
+                    static_cast<int>(prunable.size()),
+                    static_cast<int>(count_to_prune));
+
+  std::sort(prunable.begin(), prunable.end(),
+            [](const TrackedQuery& q1, const TrackedQuery& q2) {
+              return q1.last_use < q2.last_use;
+            });
+
+  // Prune the queries that are no longer needed.
+  PruneForest forest;
+  PruneForestRef forest_ref(&forest);
+  for (uint64_t i = 0; i < count_to_prune; i++) {
+    const TrackedQuery& to_prune = prunable[i];
+    forest_ref.Prune(to_prune.query_spec.path);
+    RemoveTrackedQuery(to_prune.query_spec);
+  }
+  // Keep the rest of the prunable queries.
+  for (uint64_t i = count_to_prune; i < prunable.size(); i++) {
+    const TrackedQuery& to_keep = prunable[i];
+    forest_ref.Keep(to_keep.query_spec.path);
+  }
+  // Also keep the unprunable queries.
+  std::vector<TrackedQuery> unprunable =
+      GetQueriesMatching(IsQueryUnprunablePredicate);
+
+  logger_->LogDebug("Unprunable queries: %i",
+                    static_cast<int>(unprunable.size()));
+  for (const TrackedQuery& to_keep : unprunable) {
+    forest_ref.Keep(to_keep.query_spec.path);
+  }
+
+  return forest;
 }
 
 std::set<std::string> TrackedQueryManager::GetKnownCompleteChildren(

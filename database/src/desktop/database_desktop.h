@@ -16,8 +16,10 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_DATABASE_DESKTOP_H_
 
 #include <list>
+#include <memory>
 #include <string>
 
+#include "app/memory/unique_ptr.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -75,11 +77,11 @@ class DatabaseInternal {
 
   App* GetApp();
 
-  DatabaseReference GetReference() const;
+  DatabaseReference GetReference();
 
-  DatabaseReference GetReference(const char* path) const;
+  DatabaseReference GetReference(const char* path);
 
-  DatabaseReference GetReferenceFromUrl(const char* url) const;
+  DatabaseReference GetReferenceFromUrl(const char* url);
 
   void GoOffline();
 
@@ -102,7 +104,7 @@ class DatabaseInternal {
   // Whether this object was successfully initialized by the constructor.
   bool initialized() const { return app_ != nullptr; }
 
-  const char* database_url() const { return repo_.url().c_str(); }
+  const char* database_url() const { return database_url_.c_str(); }
 
   CleanupNotifier& cleanup() { return cleanup_; }
 
@@ -120,41 +122,13 @@ class DatabaseInternal {
 
   void UnregisterAllChildListeners(const QuerySpec& spec);
 
+  void AddEventRegistration(const QuerySpec& query_spec, void* listener_ptr,
+                            EventRegistration* event_registration);
+
+  EventRegistration* ActiveEventRegistration(const QuerySpec& query_spec,
+                                             void* listener_ptr);
+
   PushChildNameGenerator& name_generator() { return name_generator_; }
-
-  // Track a transient listener. If the database is deleted before the listener
-  // finishes, it should discard its pointers.
-  SingleValueListener** AddSingleValueListener(SingleValueListener* listener) {
-    MutexLock lock(listener_mutex_);
-    // If the listener is already being tracked, just return the existing
-    // listener holder.
-    for (SingleValueListener** listener_holder : single_value_listeners_) {
-      if (*listener_holder == listener) {
-        return listener_holder;
-      }
-    }
-    // If the listener was not found, register create a new holder and return
-    // it.
-    SingleValueListener** holder = new SingleValueListener*(listener);
-    single_value_listeners_.insert(holder);
-    return holder;
-  }
-
-  // Finish tracking a transient listener. If the database is deleted before the
-  // listener finishes, it should discard its pointers.
-  void RemoveSingleValueListener(SingleValueListener* listener) {
-    MutexLock lock(listener_mutex_);
-    auto iter = std::find_if(
-        single_value_listeners_.begin(), single_value_listeners_.end(),
-        [listener](const SingleValueListener* const* listener_holder) {
-          return *listener_holder == listener;
-        });
-    if (iter != single_value_listeners_.end()) {
-      repo_.RemoveEventCallback(listener, listener->query_spec());
-      delete *iter;
-      single_value_listeners_.erase(iter);
-    }
-  }
 
   typedef firebase::internal::SafeReference<DatabaseInternal> ThisRef;
   typedef firebase::internal::SafeReferenceLock<DatabaseInternal> ThisRefLock;
@@ -165,13 +139,15 @@ class DatabaseInternal {
   // The url that was passed to the constructor.
   const std::string& constructor_url() const { return constructor_url_; }
 
-  Repo* repo() { return &repo_; }
+  Repo* repo() { return repo_.get(); }
 
   Mutex* listener_mutex() { return &listener_mutex_; }
 
   Logger* logger() { return &logger_; }
 
  private:
+  void EnsureRepo();
+
   App* app_;
 
   ListenerCollection<ValueListener> value_listeners_by_query_;
@@ -181,7 +157,9 @@ class DatabaseInternal {
       cleanup_value_listener_lookup_;
   std::map<ChildListener*, ChildListenerCleanupData>
       cleanup_child_listener_lookup_;
-  std::set<SingleValueListener**> single_value_listeners_;
+
+  std::map<QuerySpec, std::map<void*, std::vector<EventRegistration*>>>
+      event_registration_lookup_;
 
   Mutex listener_mutex_;
 
@@ -192,15 +170,20 @@ class DatabaseInternal {
   // Needed to generate names that are guarenteed to be unique.
   PushChildNameGenerator name_generator_;
 
+  std::string database_url_;
+
   // The url passed to the constructor (or "" if none was passed).
   // We keep it so that we can find the database in our cache.
   std::string constructor_url_;
 
+  bool persistence_enabled_;
+
   // The logger for this instance of the database.
   Logger logger_;
 
+  Mutex repo_mutex_;
   // The local copy of the repository, for offline support and local caching.
-  Repo repo_;
+  UniquePtr<Repo> repo_;
 };
 
 }  // namespace internal

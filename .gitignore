@@ -1,0 +1,20 @@
+.DS_Store
+
+# Python byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+### Gradle ###
+.gradle
+**/build/
+
+# Unencrypted secret files
+google-services.json
+GoogleService-Info.plist
+uri_prefix.txt
+server_key.txt
+gcs_key_file.json
+
+# Folders for cmake/test output
+*_build/

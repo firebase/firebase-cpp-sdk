@@ -69,7 +69,7 @@ class Optional {
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
   // Move contructor. If the other Optional has a value, it is moved into this
   // Optional using its move constructor.
-  Optional(Optional&& other) : has_value_(other.has_value_) {
+  Optional(Optional&& other) noexcept : has_value_(other.has_value_) {
     if (has_value()) {
       new (aligned_buffer()) value_type(std::move(other.value()));
       other.reset();
@@ -78,7 +78,7 @@ class Optional {
 
   // Move assignment. If the other Optional has a value, it is move constructed
   // or move assigned into this Optional.
-  Optional& operator=(Optional&& other) {
+  Optional& operator=(Optional&& other) noexcept {
     if (other.has_value()) {
       *this = std::move(other.value());
     } else {

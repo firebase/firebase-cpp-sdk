@@ -14,15 +14,6 @@
 
 # CMake file for the firebase_admob library
 
-cmake_minimum_required (VERSION 3.1)
-set (CMAKE_CXX_STANDARD 11)
-
-include(download_pod_headers)
-
-project(firebase_admob NONE)
-enable_language(C)
-enable_language(CXX)
-
 # Common source files used by all platforms
 set(common_SRCS
     src/common/admob_common.cc
@@ -36,8 +27,10 @@ set(common_SRCS
     src/common/rewarded_video_internal.cc)
 
 # Define the resource build needed for Android
+firebase_cpp_gradle(":admob:admob_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/admob_resources/build/admob_resources_lib.jar")
 binary_to_array("admob_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/admob_resources/build/dexed.jar"
+    "${CMAKE_CURRENT_LIST_DIR}/admob_resources/build/admob_resources_lib.jar"
     "firebase_admob"
     "${FIREBASE_GEN_FILE_DIR}/admob")
 
@@ -87,7 +80,7 @@ set_property(TARGET firebase_admob PROPERTY FOLDER "Firebase Cpp")
 
 # Set up the dependency on Firebase App.
 target_link_libraries(firebase_admob
-    firebase_app)
+    PUBLIC firebase_app)
 # Public headers all refer to each other relative to the src/include directory,
 # while private headers are relative to the entire C++ SDK directory.
 target_include_directories(firebase_admob
@@ -107,29 +100,32 @@ else()
   add_definitions(-include assert.h -include string.h)
 endif()
 
-if(IOS)
+if(ANDROID)
+  firebase_cpp_proguard_file(admob)
+elseif(IOS)
   # AdMob for iOS uses weak references, which requires enabling Automatic
-  # Reference Counting (ARC).
-  set_property(
-    TARGET firebase_admob
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+  # Reference Counting (ARC). Also enable BitCode.
+  target_compile_options(firebase_admob
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_admob
+                        PUBLIC "-fembed-bitcode")
 
-  # Setup the target for getting the Firebase iOS SDK headers through Cocoapods.
-  set(pod_target_name "download_admob_pod_headers")
-  set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
-  set(pod_list "")
-  list(APPEND pod_list "'Firebase/AdMob', '6.9.0'")
-
-  setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
-
-  # Add the Cocoapod headers to the include directories
-  set(base_header_dir "${pods_dir}/Pods/Headers/Public")
-  target_include_directories(firebase_admob
-    PRIVATE
-      ${base_header_dir}/Google-Mobile-Ads-SDK
+  setup_pod_headers(
+    firebase_admob
+    POD_NAMES
+      Google-Mobile-Ads-SDK
   )
 
-  # Add a dependency to downloading the headers onto admob.
-  add_dependencies(firebase_admob ${pod_target_name})
+  # AdMob expects the header files to be in a subfolder, so set up a symlink to
+  # accomplish that.
+  symlink_pod_headers(firebase_admob Google-Mobile-Ads-SDK GoogleMobileAds)
+
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_admob PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
+
+cpp_pack_library(firebase_admob "")
+cpp_pack_public_headers()

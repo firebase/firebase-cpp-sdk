@@ -39,7 +39,7 @@ class StorageInternal {
   // Get the firease::App that this Storage was created with.
   ::firebase::App* app() { return app_; }
 
-  // Return the URL we were created with.
+  // Return the URL we were created with, if we were created with it explicitly.
   std::string url() { return url_; }
 
   // Get a StorageReference to the root of the database.

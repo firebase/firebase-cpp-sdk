@@ -14,26 +14,46 @@
 
 # CMake file for the firebase_remote_config library
 
-cmake_minimum_required (VERSION 3.1)
-set (CMAKE_CXX_STANDARD 11)
+binary_to_array("request_resource"
+    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/request.fbs"
+    "firebase::remote_config"
+    "${FIREBASE_GEN_FILE_DIR}/remote_config")
+binary_to_array("response_resource"
+    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/response.fbs"
+    "firebase::remote_config"
+    "${FIREBASE_GEN_FILE_DIR}/remote_config")
 
-include(download_pod_headers)
-
-project(firebase_remote_config NONE)
-enable_language(C)
-enable_language(CXX)
+# Build the generated header from the flatbuffer schema files.
+set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
+    "--no-union-value-namespacing"
+    "--gen-object-api"
+    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+set(flatbuffer_schemas
+    ${CMAKE_CURRENT_LIST_DIR}/src/desktop/request.fbs
+    ${CMAKE_CURRENT_LIST_DIR}/src/desktop/response.fbs)
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
+build_flatbuffers("${flatbuffer_schemas}"
+                  ""
+                  "remote_config_generate_request_fbs"
+                  "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
+                  "${FIREBASE_GEN_FILE_DIR}/remote_config"
+                  ""
+                  "")
 
 # Common source files used by all platforms
 set(common_SRCS
-    src/common.cc)
+    src/common.cc
+    src/remote_config.cc)
 
 # Source files used by the Android implementation.
 set(android_SRCS
-    src/remote_config_android.cc)
+    src/android/remote_config_android.cc)
 
 # Source files used by the iOS implementation.
 set(ios_SRCS
-    src/remote_config_ios.mm)
+    src/ios/remote_config_ios.mm)
 
 if (NOT PROTOBUF_FOUND)
   # Only log a message if building for Desktop, since mobile doesn't care.
@@ -44,20 +64,24 @@ if (NOT PROTOBUF_FOUND)
             to OFF to disable the firebase_remote_config build target.")
   endif()
 else()
-  # Generates config.pb.c and config.pb.h
-  NANOPB_GENERATE_CPP(PROTO_SRCS PROTO_HDRS src_protos/config.proto)
   set(desktop_SRCS
-      src/desktop/remote_config.cc
+      ${PROTO_SRCS}
+      ${PROTO_HDRS}
+      ${request_resource_source}
+      ${request_resource_header}
+      ${response_resource_source}
+      ${response_resource_header}
+      ${FIREBASE_GEN_FILE_DIR}/remote_config/request_generated.h
+      ${FIREBASE_GEN_FILE_DIR}/remote_config/response_generated.h
       src/desktop/rest.cc
       src/desktop/config_data.cc
       src/desktop/file_manager.cc
       src/desktop/metadata.cc
       src/desktop/notification_channel.cc
       src/desktop/remote_config_desktop.cc
-      src/desktop/rest_nanopb_decode.cc
-      src/desktop/rest_nanopb_encode.cc
-      "${PROJECT_BINARY_DIR}/config.pb.c"
-      "${PROJECT_BINARY_DIR}/config.pb.h")
+      src/desktop/remote_config_request.cc
+      src/desktop/remote_config_response.cc
+  )
 endif()
 
 if(ANDROID)
@@ -77,13 +101,12 @@ if(ANDROID OR IOS OR use_stub)
 else()
   set(additional_include_DIR
       ${FLATBUFFERS_SOURCE_DIR}/include
-      ${NANOPB_INCLUDE_DIRS}
+      ${PROJECT_BINARY_DIR}
       ${PROJECT_BINARY_DIR}/..)
   set(additional_link_LIB
       firebase_rest_lib
       firebase_instance_id_desktop_impl
-      flatbuffers
-      protobuf-nanopb)
+      flatbuffers)
 endif()
 
 add_library(firebase_remote_config STATIC
@@ -118,35 +141,33 @@ else()
   add_definitions(-include assert.h -include string.h)
 endif()
 
-if(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_remote_config
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+if(ANDROID)
+  firebase_cpp_proguard_file(remote_config)
+elseif(IOS)
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_remote_config
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_remote_config
+                        PUBLIC "-fembed-bitcode")
 
-  # Setup the target for getting the Firebase iOS SDK headers through Cocoapods.
-  set(pod_target_name "download_remote_config_pod_headers")
-  set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
-  set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '6.9.0'")
-  list(APPEND pod_list "'Firebase/RemoteConfig', '6.9.0'")
-
-  setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
-
-  # Add the Cocoapod headers to the include directories
-  set(base_header_dir "${pods_dir}/Pods/Headers/Public")
-  target_include_directories(firebase_remote_config
-    PRIVATE
-      ${base_header_dir}/FirebaseCore
-      ${base_header_dir}/FirebaseRemoteConfig/FirebaseRemoteConfig
+  setup_pod_headers(
+    firebase_remote_config
+    POD_NAMES
+      FirebaseCore
+      FirebaseRemoteConfig
   )
 
-  # Add a dependency to downloading the headers onto remote_config.
-  add_dependencies(firebase_remote_config ${pod_target_name})
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_remote_config PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)
   # Add the tests subdirectory
   add_subdirectory(tests)
 endif()
+
+cpp_pack_library(firebase_remote_config "")
+cpp_pack_public_headers()

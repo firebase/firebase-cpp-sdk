@@ -14,16 +14,6 @@
 
 # CMake file for the firebase_database library
 
-cmake_minimum_required (VERSION 3.1)
-set (CMAKE_CXX_STANDARD 11)
-
-include(binary_to_array)
-include(download_pod_headers)
-
-project(firebase_database NONE)
-enable_language(C)
-enable_language(CXX)
-
 # Common source files used by all platforms
 set(common_SRCS
     src/common/common.cc
@@ -36,8 +26,10 @@ set(common_SRCS
     src/common/query.cc)
 
 # Define the resource build needed for Android
+firebase_cpp_gradle(":database:database_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/database_resources/build/database_resources_lib.jar")
 binary_to_array("database_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/database_resources/build/dexed.jar"
+    "${CMAKE_CURRENT_LIST_DIR}/database_resources/build/database_resources_lib.jar"
     "firebase_database_resources"
     "${FIREBASE_GEN_FILE_DIR}/database")
 
@@ -73,6 +65,33 @@ if (NOT OPENSSL_FOUND)
   endif()
 endif()
 
+# Flatbuffer schemas used by the desktop implementation.
+set(desktop_flatbuffers_schema_dir
+    "${CMAKE_CURRENT_LIST_DIR}/src/desktop/persistence/schemas")
+set(desktop_flatbuffers_schemas
+    "${desktop_flatbuffers_schema_dir}/persisted_compound_write.fbs"
+    "${desktop_flatbuffers_schema_dir}/persisted_query_params.fbs"
+    "${desktop_flatbuffers_schema_dir}/persisted_query_spec.fbs"
+    "${desktop_flatbuffers_schema_dir}/persisted_tracked_query.fbs"
+    "${desktop_flatbuffers_schema_dir}/persisted_user_write_record.fbs")
+set(FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS
+    "--no-union-value-namespacing"
+    "--gen-generated"
+    "--gen-object-api"
+    "--cpp-ptr-type" "flatbuffers::unique_ptr")
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
+set(DATABASE_PERSISTENCE_GEN_DIR
+    "${FIREBASE_GEN_FILE_DIR}/database/src/desktop/persistence")
+build_flatbuffers("${desktop_flatbuffers_schemas}"
+                  "${CMAKE_CURRENT_LIST_DIR}"
+                  "database_persistence_generated_includes"
+                  "${FIREBASE_FLATBUFFERS_DEPENDENCIES}"
+                  "${DATABASE_PERSISTENCE_GEN_DIR}"
+                  ""
+                  "")
+
 # Source files used by the desktop implementation.
 set(desktop_SRCS
     src/desktop/connection/connection.cc
@@ -80,6 +99,7 @@ set(desktop_SRCS
     src/desktop/connection/persistent_connection.cc
     src/desktop/connection/util_connection.cc
     src/desktop/connection/web_socket_client_impl.cc
+    src/desktop/core/cache_policy.cc
     src/desktop/core/child_event_registration.cc
     src/desktop/core/compound_write.cc
     src/desktop/core/constants.cc
@@ -103,9 +123,12 @@ set(desktop_SRCS
     src/desktop/database_reference_desktop.cc
     src/desktop/disconnection_desktop.cc
     src/desktop/mutable_data_desktop.cc
+    src/desktop/persistence/flatbuffer_conversions.cc
     src/desktop/persistence/in_memory_persistence_storage_engine.cc
-    src/desktop/persistence/noop_persistence_storage_engine.cc
+    src/desktop/persistence/level_db_persistence_storage_engine.cc
+    src/desktop/persistence/noop_persistence_manager.cc
     src/desktop/persistence/persistence_manager.cc
+    src/desktop/persistence/prune_forest.cc
     src/desktop/push_child_name_generator.cc
     src/desktop/query_desktop.cc
     src/desktop/query_params_comparator.cc
@@ -118,7 +141,12 @@ set(desktop_SRCS
     src/desktop/view/limited_filter.cc
     src/desktop/view/ranged_filter.cc
     src/desktop/view/view.cc
-    src/desktop/view/view_processor.cc)
+    src/desktop/view/view_processor.cc
+    ${DATABASE_PERSISTENCE_GEN_DIR}/persisted_compound_write_generated.h
+    ${DATABASE_PERSISTENCE_GEN_DIR}/persisted_query_params_generated.h
+    ${DATABASE_PERSISTENCE_GEN_DIR}/persisted_query_spec_generated.h
+    ${DATABASE_PERSISTENCE_GEN_DIR}/persisted_tracked_query_generated.h
+    ${DATABASE_PERSISTENCE_GEN_DIR}/persisted_user_write_record_generated.h)
 
 if(ANDROID)
   set(database_platform_SRCS
@@ -128,7 +156,7 @@ elseif(IOS)
       "${ios_SRCS}")
 else()
   set(database_platform_SRCS
-      "${desktop_SRCS}")
+        "${desktop_SRCS}")
 endif()
 
 if(ANDROID OR IOS)
@@ -144,8 +172,10 @@ else()
   set(additional_link_LIB
       flatbuffers
       firebase_rest_lib
-      ${OPENSSL_CRYPTO_LIBRARY}
-      libuWS)
+      leveldb
+      libuWS
+      OpenSSL::SSL
+      OpenSSL::Crypto)
 
   set(additional_DEFINES
       -DFIREBASE_TARGET_DESKTOP=1)
@@ -194,35 +224,36 @@ else()
   add_definitions(-include assert.h -include string.h)
 endif()
 
-if(IOS)
-  # Enable Automatic Reference Counting (ARC)
-  set_property(
-    TARGET firebase_database
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
+if(ANDROID)
+  firebase_cpp_proguard_file(database)
+elseif(IOS)
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_database
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_database
+                        PUBLIC "-fembed-bitcode")
 
-  # Setup the target for getting the Firebase iOS SDK headers through Cocoapods.
-  set(pod_target_name "download_database_pod_headers")
-  set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
-  set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '6.9.0'")
-  list(APPEND pod_list "'Firebase/Database', '6.9.0'")
-
-  setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
-
-  # Add the Cocoapod headers to the include directories
-  set(base_header_dir "${pods_dir}/Pods/Headers/Public")
-  target_include_directories(firebase_database
-    PRIVATE
-      ${base_header_dir}/FirebaseCore
-      ${base_header_dir}/FirebaseDatabase
+  setup_pod_headers(
+    firebase_database
+    POD_NAMES
+      FirebaseCore
+      FirebaseDatabase
   )
-
-  # Add a dependency to downloading the headers onto database.
-  add_dependencies(firebase_database ${pod_target_name})
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_database PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)
   # Add the tests subdirectory
   add_subdirectory(tests)
+endif()
+
+cpp_pack_library(firebase_database "")
+cpp_pack_public_headers()
+if (NOT ANDROID AND NOT IOS)
+  cpp_pack_library(uv_a "deps/database/external")
+  cpp_pack_library(libuWS "deps/database/external")
 endif()

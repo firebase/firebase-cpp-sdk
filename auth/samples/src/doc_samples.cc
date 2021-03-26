@@ -44,6 +44,8 @@ struct MyProgramContext {
 JNIEnv* my_jni_env = nullptr;
 jobject my_activity = nullptr;
 #endif  // defined(__ANDROID__)
+const char* apple_id_token = nullptr;
+const char* raw_nonce = nullptr;
 const char* email = nullptr;
 const char* password = nullptr;
 const char* google_id_token = nullptr;
@@ -74,6 +76,14 @@ firebase::auth::Auth* AuthFromApp(firebase::App* app) {
 }
 
 void VariousCredentials(firebase::auth::Auth* auth) {
+  {
+    // [START auth_credential_apple]
+    firebase::auth::Credential credential =
+        firebase::auth::OAuthProvider::GetCredential(
+            "apple.com", apple_id_token, raw_nonce, nullptr);
+    // [END auth_credential_apple]
+    (void)credential;
+  }
   {
     // [START auth_credential_email]
     firebase::auth::Credential credential =
@@ -111,6 +121,16 @@ void VariousSignIns(firebase::auth::Auth* auth) {
     firebase::Future<firebase::auth::User*> result =
         auth->CreateUserWithEmailAndPassword(email, password);
     // [END auth_create_user]
+    (void)result;
+  }
+  {
+    // [START auth_sign_in_apple]
+    firebase::auth::Credential credential =
+        firebase::auth::OAuthProvider::GetCredential(
+            "apple.com", apple_id_token, raw_nonce, nullptr);
+    firebase::Future<firebase::auth::User*> result =
+        auth->SignInWithCredential(credential);
+    // [END auth_sign_in_apple]
     (void)result;
   }
   {
@@ -523,6 +543,32 @@ void UnLinkCredential(const char* providerId, firebase::auth::Auth* auth) {
   firebase::Future<firebase::auth::User*> result =
       current_user->Unlink(providerId);
   // [END user_unlink]
+}
+
+void LinkCredentialFailAppleSignIn(const firebase::auth::Credential& credential,
+                                   firebase::auth::Auth* auth) {
+  // [START link_credential_apple_signin]
+  firebase::Future<firebase::auth::SignInResult> link_result =
+      auth->current_user()->LinkAndRetrieveDataWithCredential(credential);
+
+  // To keep example simple, wait on the current thread until call completes.
+  while (link_result.status() == firebase::kFutureStatusPending) {
+    Wait(100);
+  }
+
+  // Determine the result of the link attempt
+  if (link_result.error() == firebase::auth::kAuthErrorNone) {
+    // user linked correctly.
+  } else if (link_result.error() ==
+                 firebase::auth::kAuthErrorCredentialAlreadyInUse &&
+             link_result.result()->info.updated_credential.is_valid()) {
+    // Sign In with the new credential
+    firebase::Future<firebase::auth::User*> result = auth->SignInWithCredential(
+        link_result.result()->info.updated_credential);
+  } else {
+    // Another link error occurred.
+  }
+  // [END link_credential_apple_signin]
 }
 
 void MergeCredentials(const firebase::auth::Credential& credential,

@@ -1,3 +1,17 @@
+// Copyright 2020 Google
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 #include "testing/util_ios.h"
 
 NS_ASSUME_NONNULL_BEGIN
@@ -10,8 +24,14 @@ static const int DEPRECATED_DEFAULT_ERROR_VALUE = 100;
 
 CallbackTicker::CallbackTicker(NSString* config_key, ParamCallback completion, id param,
                                int error_code)
-    : eta_(0), error_(nil), has_param_(true), param_(nil), completion_(nil),
-      param_completion_(completion), key_(config_key), error_code_(error_code) {
+    : key_(config_key),
+      eta_(0),
+      error_(nil),
+      has_param_(true),
+      param_(nil),
+      error_code_(error_code),
+      completion_(nil),
+      param_completion_(completion) {
   const ConfigRow* row = ConfigGet([config_key UTF8String]);
 
   if (row == nullptr) {
@@ -27,8 +47,13 @@ CallbackTicker::CallbackTicker(NSString* config_key, ParamCallback completion, i
 }
 
 CallbackTicker::CallbackTicker(NSString* config_key, Callback completion, int error_code)
-    : eta_(0), error_(nil), has_param_(false), param_(nil), completion_(completion),
-      param_completion_(nil), error_code_(error_code) {
+    : eta_(0),
+      error_(nil),
+      has_param_(false),
+      param_(nil),
+      error_code_(error_code),
+      completion_(completion),
+      param_completion_(nil) {
   const ConfigRow* row = ConfigGet([config_key UTF8String]);
 
   if (row == nullptr) {

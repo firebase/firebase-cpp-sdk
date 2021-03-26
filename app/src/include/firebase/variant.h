@@ -18,17 +18,25 @@
 #define FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_VARIANT_H_
 
 #include <stdint.h>
+
 #include <cstring>
 #include <map>
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "firebase/internal/common.h"
 
 /// @brief Namespace that encompasses all Firebase APIs.
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase
 #endif
+
+namespace firebase {
+namespace internal {
+class VariantInternal;
+}
+}
 
 namespace FIREBASE_NAMESPACE {
 
@@ -67,6 +75,8 @@ class Variant {
     /// Variant::FromMutableBlob() to create a Variant of this type, and copy
     /// binary data from an existing source.
     kTypeMutableBlob,
+
+    // Note: If you add new types update enum InternalType;
   };
 
 // <SWIG>
@@ -77,74 +87,52 @@ class Variant {
   /// @brief Construct a null Variant.
   ///
   /// The Variant constructed will be of type Null.
-  Variant() : type_(kTypeNull) {}
+  Variant()
+    : type_(kInternalTypeNull)
+    , value_({}) {}
 
-  /// @brief Construct a Variant containing the given 64-bit integer.
+  /// @brief Construct a Variant with the given templated type.
   ///
-  /// The Variant constructed will be of type Int64.
+  /// @param[in] value The value to construct the variant.
   ///
-  /// param[in] value The 64-bit integer value for the Variant.
-  Variant(int64_t value) : type_(kTypeNull) { set_int64_value(value); }
-
-  /// @brief Construct a Variant containing the given integer.
+  /// Valid types for this constructor are `int`, `int64_t`, `float`, `double`,
+  /// `bool`, `const char*`, and `char*` (but see below for additional Variant
+  /// types).
   ///
-  /// The Variant constructed will be of type Int64.
   ///
-  /// @param[in] value The 32-bit integer value for the Variant.
-  Variant(int value) : type_(kTypeNull) {
-    set_int64_value(static_cast<int64_t>(value));
+  /// Type `int` or `int64_t`:
+  ///   * The Variant constructed will be of type Int64.
+  ///
+  /// Type `double` or `float`:
+  ///   * The Variant constructed will be of type Double.
+  ///
+  /// Type `bool`:
+  ///   * The Variant constructed will be of type Bool.
+  ///
+  /// Type `const char*`:
+  ///   * The Variant constructed will be of type StaticString, and is_string()
+  ///     will return true. **Note:** If you use this constructor, you must
+  ///     ensure that the memory pointed to stays valid for the life of the
+  ///     Variant, otherwise call mutable_string() or set_mutable_string(),
+  ///     which will copy the string to an internal buffer.
+  ///
+  /// Type `char*`:
+  ///   * The Variant constructed will be of type MutableString, and is_string()
+  ///     will return true.
+  ///
+  /// Other types will result in compiler error unless using the following
+  /// constructor overloads:
+  ///   * `std::string`
+  ///   * `std::vector<Variant>`
+  ///   * `std::vector<T>` where T is convertible to variant type
+  ///   * `T*`, `size_t` where T is convertible to variant type
+  ///   * `std::map<Variant, Variant>`
+  ///   * `std::map<K, V>` where K and V is convertible to variant type
+  template <typename T>
+  Variant(T value)  // NOLINT
+    : type_(kInternalTypeNull) {
+    set_value_t(value);
   }
-
-  /// @brief Construct a Variant containing the given double-precision floating
-  /// point value.
-  ///
-  /// The Variant constructed will be of type Double.
-  ///
-  /// @param[in] value The double-precision floating point value for the
-  /// Variant.
-  Variant(double value) : type_(kTypeNull) { set_double_value(value); }
-
-  /// @brief Construct a Variant containing the given single-precision floating
-  /// point value.
-  ///
-  /// The Variant constructed will be of type Double.
-  ///
-  /// @param[in] value The single-precision floating point value for the
-  /// Variant.
-  Variant(float value) : type_(kTypeNull) {
-    set_double_value(static_cast<double>(value));
-  }
-
-  /// @brief Construct a Variant containing the given boolean value.
-  ///
-  /// The Variant constructed will be of type Bool.
-  ///
-  /// @param[in] value The boolean value for the Variant.
-  Variant(bool value) : type_(kTypeNull) { set_bool_value(value); }
-
-  /// @brief Construct a Variant with the given static const string (no copy).
-  ///
-  /// The Variant constructed will be of type StaticString, and is_string() will
-  /// return true.
-  ///
-  /// @param[in] value A pointer to the static null-terminated string for the
-  /// Variant.
-  ///
-  /// @note If you use this constructor, you must ensure that the memory pointed
-  /// to stays valid for the life of the Variant, otherwise call
-  /// mutable_string() or set_mutable_string(), which will copy the string to an
-  /// internal buffer.
-  Variant(const char* value) : type_(kTypeNull) { set_string_value(value); }
-
-  /// @brief Construct a Variant containing the given string value (makes a
-  /// copy).
-  ///
-  /// The Variant constructed will be of type MutableString, and is_string()
-  /// will return true.
-  ///
-  /// @param[in] value A pointer to a null-terminated string, which will be
-  /// copied into to the Variant.
-  Variant(char* value) : type_(kTypeNull) { set_mutable_string(value); }
 
   /// @brief Construct a Variant containing the given string value (makes a
   /// copy).
@@ -153,7 +141,8 @@ class Variant {
   /// will return true.
   ///
   /// @param[in] value The string to use for the Variant.
-  Variant(const std::string& value) : type_(kTypeNull) {
+  Variant(const std::string& value)  // NOLINT
+    : type_(kInternalTypeNull) {
     set_mutable_string(value);
   }
 
@@ -162,7 +151,8 @@ class Variant {
   /// The Variant constructed will be of type Vector.
   ///
   /// @param[in] value The STL vector to copy into the Variant.
-  Variant(const std::vector<Variant>& value) : type_(kTypeNull) {
+  Variant(const std::vector<Variant>& value)  // NOLINT
+    : type_(kInternalTypeNull) {
     set_vector(value);
   }
 
@@ -175,11 +165,12 @@ class Variant {
   /// to Variant (such as ints, strings, vectors). A Variant will be created for
   /// each element, and copied into the Vector Variant constructed here.
   template <typename T>
-  Variant(const std::vector<T>& value) : type_(kTypeNull) {
+  Variant(const std::vector<T>& value)  // NOLINT
+    : type_(kInternalTypeNull) {
     Clear(kTypeVector);
     vector().reserve(value.size());
     for (size_t i = 0; i < value.size(); i++) {
-      vector().push_back(Variant(value[i]));
+      vector().push_back(Variant(static_cast<T>(value[i])));
     }
   }
 
@@ -193,7 +184,8 @@ class Variant {
   /// here.
   /// @param[in] array_size Number of elements of the array.
   template <typename T>
-  Variant(const T array_of_values[], size_t array_size) : type_(kTypeNull) {
+  Variant(const T array_of_values[], size_t array_size)
+    : type_(kInternalTypeNull) {
     Clear(kTypeVector);
     vector().reserve(array_size);
     for (size_t i = 0; i < array_size; i++) {
@@ -207,7 +199,8 @@ class Variant {
   /// The Variant constructed will be of type Map.
   ///
   /// @param[in] value The STL map to copy into the Variant.
-  Variant(const std::map<Variant, Variant>& value) : type_(kTypeNull) {
+  Variant(const std::map<Variant, Variant>& value)  // NOLINT
+  : type_(kInternalTypeNull) {
     set_map(value);
   }
 
@@ -222,7 +215,8 @@ class Variant {
   /// created for each key and for each value, and copied by pairs into the Map
   /// Variant constructed here.
   template <typename K, typename V>
-  Variant(const std::map<K, V>& value) : type_(kTypeNull) {
+  Variant(const std::map<K, V>& value)  // NOLINT
+    : type_(kInternalTypeNull) {
     Clear(kTypeMap);
     for (typename std::map<K, V>::const_iterator i = value.begin();
          i != value.end(); ++i) {
@@ -233,7 +227,7 @@ class Variant {
   /// @brief Copy constructor. Performs a deep copy.
   ///
   /// @param[in] other Source Variant to copy from.
-  Variant(const Variant& other) : type_(kTypeNull) { *this = other; }
+  Variant(const Variant& other) : type_(kInternalTypeNull) { *this = other; }
 
   /// @brief Copy assignment operator. Performs a deep copy.
   ///
@@ -246,13 +240,15 @@ class Variant {
   /// simply reassigning pointer ownership.
   ///
   /// @param[in] other Source Variant to move from.
-  Variant(Variant&& other) : type_(kTypeNull) { *this = std::move(other); }
+  Variant(Variant&& other) noexcept : type_(kInternalTypeNull) {
+    *this = std::move(other);
+  }
 
   /// @brief Move assignment operator. Efficiently moves the more complex data
   /// types by simply reassigning pointer ownership.
   ///
   /// @param[in] other Source Variant to move from.
-  Variant& operator=(Variant&& other);
+  Variant& operator=(Variant&& other) noexcept;
 
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 #endif  // SWIG
@@ -433,7 +429,15 @@ class Variant {
   /// @brief Get the current type contained in this Variant.
   ///
   /// @return The Variant's type.
-  Type type() const { return type_; }
+  Type type() const {
+    // To avoid breaking user code, alias the small string type to mutable
+    // string.
+    if (type_ == kInternalTypeSmallString) {
+      return kTypeMutableString;
+    }
+
+    return static_cast<Type>(type_);
+  }
 
   /// @brief Get whether this Variant is currently null.
   ///
@@ -478,11 +482,13 @@ class Variant {
   /// @brief Get whether this Variant contains a string.
   ///
   /// @return True if the Variant's type is either StaticString or
-  /// MutableString; false otherwise.
+  /// MutableString or SmallString; false otherwise.
   ///
   /// @note No matter which type of string the Variant contains, you can read
   /// its value via string_value().
-  bool is_string() const { return is_static_string() || is_mutable_string(); }
+  bool is_string() const {
+    return is_static_string() || is_mutable_string() || is_small_string();
+  }
 
   /// @brief Get whether this Variant contains a static blob.
   ///
@@ -574,9 +580,10 @@ class Variant {
   ///
   /// @note If the Variant is not one of the two String types, this will assert.
   std::string& mutable_string() {
-    if (type_ == kTypeStaticString) {
-      // Automatically promote a static string to a mutable string.
-      set_mutable_string(string_value());
+    if (type_ == kInternalTypeStaticString ||
+        type_ == kInternalTypeSmallString) {
+      // Automatically promote a static or small string to a mutable string.
+      set_mutable_string(string_value(), false);
     }
     assert_is_type(kTypeMutableString);
     return *value_.mutable_string_value;
@@ -610,7 +617,7 @@ class Variant {
   /// @returns Pointer to a mutable buffer of binary data. The size of the
   /// buffer cannot be changed, but the contents are mutable.
   uint8_t* mutable_blob_data() {
-    if (type_ == kTypeStaticBlob) {
+    if (type_ == kInternalTypeStaticBlob) {
       // Automatically promote a static blob to a mutable blob.
       set_mutable_blob(blob_data(), blob_size());
     }
@@ -692,22 +699,24 @@ class Variant {
   /// will assert.
   const char* string_value() const {
     assert_is_string();
-    if (type_ == kTypeMutableString)
+    if (type_ == kInternalTypeMutableString)
       return value_.mutable_string_value->c_str();
-    else  // type_ == kTypeStaticString
+    else if (type_ == kInternalTypeStaticString)
       return value_.static_string_value;
+    else  // if (type_ == kInternalTypeSmallString)
+      return value_.small_string;
   }
 
-  /// @brief Const accessor for a Variant containing a mutable string only.
+  /// @brief Const accessor for a Variant containing a string.
   ///
   /// @note Unlike the non-const accessor, this accessor cannot "promote" a
-  /// static string to mutable, and thus will assert if the Variant you pass in
-  /// is not of MutableString type.
+  /// static string to mutable, and thus returns a std::string copy instead of a
+  /// const reference to a std::string
   ///
-  /// @return Reference to the string contained in this Variant.
-  const std::string& mutable_string() const {
-    assert_is_type(kTypeMutableString);
-    return *value_.mutable_string_value;
+  /// @return std::string with the string contents contained in this Variant.
+  std::string mutable_string() const {
+    assert_is_string();
+    return string_value();
   }
 
   /// @brief Const accessor for a Variant containing a vector of Variant data.
@@ -790,7 +799,15 @@ class Variant {
   ///
   /// @param[in] value A pointer to a null-terminated string, which will be
   /// copied into to the Variant.
-  void set_string_value(char* value) { set_mutable_string(value); }
+  void set_string_value(char* value) {
+    size_t len = strlen(value);
+    if (len < kMaxSmallStringSize) {
+      Clear(static_cast<Type>(kInternalTypeSmallString));
+      strncpy(value_.small_string, value, len + 1);
+    } else {
+      set_mutable_string(std::string(value, len));
+    }
+  }
 
   /// @brief Sets the Variant to a mutable string.
   ///
@@ -801,12 +818,22 @@ class Variant {
 
   /// @brief Sets the Variant to a copy of the given string.
   ///
-  /// The Variant's type will be set to MutableString.
+  /// The Variant's type will be set to SmallString if the size of the string is
+  /// less than kMaxSmallStringSize (8 bytes on x86, 16 bytes on x64) or
+  /// otherwise set to MutableString.
   ///
   /// @param[in] value The string to use for the Variant.
-  void set_mutable_string(const std::string& value) {
-    Clear(kTypeMutableString);
-    *value_.mutable_string_value = value;
+  /// @param[in] use_small_string Check to see if the input string should be
+  ///            treated as a small string or left as a mutable string
+  void set_mutable_string(const std::string& value,
+                          bool use_small_string = true) {
+    if (value.size() < kMaxSmallStringSize && use_small_string) {
+      Clear(static_cast<Type>(kInternalTypeSmallString));
+      strncpy(value_.small_string, value.data(), value.size() + 1);
+    } else {
+      Clear(kTypeMutableString);
+      *value_.mutable_string_value = value;
+    }
   }
 
   /// @brief Sets the Variant to a copy of the given binary data.
@@ -877,7 +904,7 @@ class Variant {
   /// you passed in to NULL.
   void AssignMutableString(std::string** str) {
     Clear(kTypeNull);
-    type_ = kTypeMutableString;
+    type_ = kInternalTypeMutableString;
     value_.mutable_string_value = *str;
     *str = NULL;  // NOLINT
   }
@@ -894,7 +921,7 @@ class Variant {
   /// you passed in to NULL.
   void AssignVector(std::vector<Variant>** vect) {
     Clear(kTypeNull);
-    type_ = kTypeVector;
+    type_ = kInternalTypeVector;
     value_.vector_value = *vect;
     *vect = NULL;  // NOLINT
   }
@@ -911,7 +938,7 @@ class Variant {
   /// passed in to NULL.
   void AssignMap(std::map<Variant, Variant>** map) {
     Clear(kTypeNull);
-    type_ = kTypeMap;
+    type_ = kInternalTypeMap;
     value_.map_value = *map;
     *map = NULL;  // NOLINT
   }
@@ -1017,6 +1044,40 @@ class Variant {
   static const char* TypeName(Type type);
 
  private:
+  // Internal Type of data that this variant object contains to avoid breaking
+  // API
+  enum InternalType {
+    /// Null, or no data.
+    kInternalTypeNull = kTypeNull,
+    /// A 64-bit integer.
+    kInternalTypeInt64 = kTypeInt64,
+    /// A double-precision floating point number.
+    kInternalTypeDouble = kTypeDouble,
+    /// A boolean value.
+    kInternalTypeBool = kTypeBool,
+    /// A statically-allocated string we point to.
+    kInternalTypeStaticString = kTypeStaticString,
+    /// A std::string.
+    kInternalTypeMutableString = kTypeMutableString,
+    /// A std::vector of Variant.
+    kInternalTypeVector = kTypeVector,
+    /// A std::map, mapping Variant to Variant.
+    kInternalTypeMap = kTypeMap,
+    /// An statically-allocated blob of data that we point to. Never constructed
+    /// by default. Use Variant::FromStaticBlob() to create a Variant of this
+    /// type.
+    kInternalTypeStaticBlob = kTypeStaticBlob,
+    /// A blob of data that the Variant holds. Never constructed by default. Use
+    /// Variant::FromMutableBlob() to create a Variant of this type, and copy
+    /// binary data from an existing source.
+    kInternalTypeMutableBlob = kTypeMutableBlob,
+    // A c string stored in the Variant internal data blob as opposed to be
+    // newed as a std::string. Max size is 16 bytes on x64 and 8 bytes on x86.
+    kInternalTypeSmallString = kTypeMutableBlob + 1,
+    // Not a valid type. Used to get the total number of Variant types.
+    kMaxTypeValue,
+  };
+
   /// Human-readable type names, for error logging.
   static const char* const kTypeNames[];
 
@@ -1043,8 +1104,25 @@ class Variant {
     value_.blob_value.size = size;
   }
 
+  // If you hit a compiler error here it means you are trying to construct a
+  // variant with unsupported type. Ether cast to correct type or add support
+  // below.
+  template <typename T>
+  void set_value_t(T value) = delete;
+
+  // Get whether this Variant contains a small string.
+  bool is_small_string() const { return type_ == kInternalTypeSmallString; }
+
   // Current type contained in this Variant.
-  Type type_;
+  InternalType type_;
+
+  // Older versions of visual studio cant have this inline in the union and do
+  // sizeof for small string
+  typedef struct {
+      const uint8_t* ptr;
+      size_t size;
+  } BlobValue;
+
   // Union of plain old data (scalars or pointers).
   union Value {
     int64_t int64_value;
@@ -1054,12 +1132,69 @@ class Variant {
     std::string* mutable_string_value;
     std::vector<Variant>* vector_value;
     std::map<Variant, Variant>* map_value;
-    struct {
-      const uint8_t* ptr;
-      size_t size;
-    } blob_value;
+    BlobValue blob_value;
+    char small_string[sizeof(BlobValue)];
   } value_;
+
+  static constexpr size_t kMaxSmallStringSize = sizeof(Value::small_string);
+
+  friend class firebase::internal::VariantInternal;
 };
+
+template <>
+inline void Variant::set_value_t<int64_t>(int64_t value) {
+  set_int64_value(value);
+}
+
+template <>
+inline void Variant::set_value_t<int>(int value) {
+  set_int64_value(static_cast<int64_t>(value));
+}
+
+template <>
+inline void Variant::set_value_t<int16_t>(int16_t value) {
+  set_int64_value(static_cast<int64_t>(value));
+}
+
+template <>
+inline void Variant::set_value_t<uint8_t>(uint8_t value) {
+  set_int64_value(static_cast<int64_t>(value));
+}
+
+template <>
+inline void Variant::set_value_t<int8_t>(int8_t value) {
+  set_int64_value(static_cast<int64_t>(value));
+}
+
+template <>
+inline void Variant::set_value_t<char>(char value) {
+  set_int64_value(static_cast<int64_t>(value));
+}
+
+template <>
+inline void Variant::set_value_t<double>(double value) {
+  set_double_value(value);
+}
+
+template <>
+inline void Variant::set_value_t<float>(float value) {
+  set_double_value(static_cast<double>(value));
+}
+
+template <>
+inline void Variant::set_value_t<bool>(bool value) {
+  set_bool_value(value);
+}
+
+template <>
+inline void Variant::set_value_t<const char*>(const char* value) {
+  set_string_value(value);
+}
+
+template <>
+inline void Variant::set_value_t<char*>(char* value) {
+  set_mutable_string(value);
+}
 
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace FIREBASE_NAMESPACE

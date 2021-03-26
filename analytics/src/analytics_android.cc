@@ -298,12 +298,6 @@ void SetUserId(const char* user_id) {
   if (user_id_value) env->DeleteLocalRef(user_id_value);
 }
 
-// Sets the minimum engagement time required before starting a session.
-void SetMinimumSessionDuration(int64_t milliseconds) {
-  LogWarning(
-      "SetMinimumSessionDuration is deprecated and no longer functional.");
-}
-
 // Sets the duration of inactivity that terminates the current session.
 void SetSessionTimeoutDuration(int64_t milliseconds) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
@@ -397,27 +391,28 @@ Future<std::string> GetAnalyticsInstanceId() {
     util::RegisterCallbackOnTask(
         env, task,
         [](JNIEnv* env, jobject result, util::FutureResult result_code,
-           int status, const char* status_message, void* callback_data) {
+           const char* status_message, void* callback_data) {
           auto* future_data = internal::FutureData::Get();
           if (future_data) {
             bool success =
                 result_code == util::kFutureResultSuccess && result != nullptr;
+            FutureHandleId future_id =
+                reinterpret_cast<FutureHandleId>(callback_data);
+            FutureHandle handle(future_id);
             future_data->api()->CompleteWithResult(
-                SafeFutureHandle<std::string>(
-                    *(reinterpret_cast<FutureHandle*>(&callback_data))),
-                success ? 0 : -1,
+                handle, success ? 0 : -1,
                 success ? ""
                         : status_message ? status_message
                                          : "Unknown error occurred",
-                // Both JStringToString and GetMessageFromException are able to
-                // handle a nullptr being passed in, and neither deletes the
-                // object passed in (so delete it below).
+                // Both JStringToString and GetMessageFromException are
+                // able to handle a nullptr being passed in, and neither
+                // deletes the object passed in (so delete it below).
                 success ? util::JStringToString(env, result)
                         : util::GetMessageFromException(env, result));
           }
           if (result) env->DeleteLocalRef(result);
         },
-        *(reinterpret_cast<void* const*>(&future_handle)),
+        reinterpret_cast<void*>(safe_future_handle.get().id()),
         internal::kAnalyticsModuleName);
     env->DeleteLocalRef(task);
   } else {

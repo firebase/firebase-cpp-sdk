@@ -14,10 +14,10 @@
 
 #include "database/src/desktop/connection/connection.h"
 
-#include <cassert>
 #include <cstdlib>
 #include <cstring>
 
+#include "app/src/assert.h"
 #include "app/src/log.h"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/connection/util_connection.h"
@@ -62,8 +62,8 @@ Connection::Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
       client_(nullptr),
       expected_incoming_frames_(0),
       logger_(logger) {
-  assert(scheduler);
-  assert(event_handler);
+  FIREBASE_DEV_ASSERT(scheduler);
+  FIREBASE_DEV_ASSERT(event_handler);
 
   // Create log id like "[conn_0]" for debugging
   std::stringstream log_id_stream;
@@ -71,8 +71,8 @@ Connection::Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
   log_id_ = log_id_stream.str();
 
   // Create web socket client regardless of its implementation
-  client_ =
-      CreateWebSocketClient(host_info_, this, opt_last_session_id, logger);
+  client_ = CreateWebSocketClient(host_info_, this, opt_last_session_id, logger,
+                                  scheduler);
 }
 
 Connection::~Connection() {
@@ -88,13 +88,13 @@ Connection::~Connection() {
   scheduler_->Schedule(new callback::CallbackValue1<scheduler::RequestHandle>(
       keep_alive_handler_, [](scheduler::RequestHandle handler) {
         if (handler.IsValid() && !handler.IsCancelled()) {
-          assert(handler.Cancel());
+          FIREBASE_DEV_ASSERT(handler.Cancel());
         }
       }));
 }
 
 void Connection::Open() {
-  assert(client_);
+  FIREBASE_DEV_ASSERT(client_);
   if (state_ != kStateNone) {
     logger_->LogError("%s Cannot open. Connection has be opened before",
                       log_id_.c_str());
@@ -107,7 +107,7 @@ void Connection::Open() {
 }
 
 void Connection::Close(DisconnectReason reason /* = kReasonOther */) {
-  assert(client_);
+  FIREBASE_DEV_ASSERT(client_);
 
   if (state_ == kStateDisconnected) {
     logger_->LogError("%s Cannot close. Connection has been closed.",
@@ -131,8 +131,8 @@ void Connection::Close(DisconnectReason reason /* = kReasonOther */) {
 }
 
 void Connection::Send(const Variant& message, bool is_sensitive) {
-  assert(client_);
-  assert(!message.is_null());
+  FIREBASE_DEV_ASSERT(client_);
+  FIREBASE_DEV_ASSERT(!message.is_null());
 
   if (state_ != kStateReady) {
     logger_->LogError("%s Tried to send on an unconnected connection",
@@ -174,45 +174,32 @@ void Connection::OnOpen() {
 
   logger_->LogDebug("%s websocket opened", log_id_.c_str());
 
-  scheduler_->Schedule(new callback::CallbackValue1<ConnectionRef>(
-      safe_this_, [](ConnectionRef conn_ref) {
-        ConnectionRefLock lock(&conn_ref);
-        auto connection = lock.GetReference();
-        if (connection != nullptr) {
-          assert(connection->state_ == kStateConnecting);
+  FIREBASE_DEV_ASSERT(state_ == kStateConnecting);
 
-          connection->ws_connected_ = true;
+  ws_connected_ = true;
 
-          // Start periodic callback to keep the connection alive, by sending
-          // "0" to server
-          connection->keep_alive_handler_ = connection->scheduler_->Schedule(
-              new callback::CallbackValue1<ConnectionRef>(
-                  connection->safe_this_,
-                  [](ConnectionRef conn_ref) {
-                    ConnectionRefLock lock(&conn_ref);
-                    auto connection = lock.GetReference();
-                    if (connection != nullptr && connection->client_ &&
-                        connection->state_ == kStateReady) {
-                      connection->client_->Send("0");
-                    }
-                  }),
-              kKeepAliveTimeoutMs, kKeepAliveTimeoutMs);
-        }
-      }));
+  // Start periodic callback to keep the connection alive, by sending
+  // "0" to server
+  keep_alive_handler_ = scheduler_->Schedule(
+      new callback::CallbackValue1<ConnectionRef>(
+          safe_this_,
+          [](ConnectionRef conn_ref) {
+            ConnectionRefLock lock(&conn_ref);
+            auto connection = lock.GetReference();
+            if (connection != nullptr && connection->client_ &&
+                connection->state_ == kStateReady) {
+              connection->client_->Send("0");
+            }
+          }),
+      kKeepAliveTimeoutMs, kKeepAliveTimeoutMs);
 }
 
 void Connection::OnMessage(const char* msg) {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ConnectionRefLock, lock, safe_this_);
 
   logger_->LogDebug("%s websocket message received", log_id_.c_str());
-  scheduler_->Schedule(new callback::CallbackValue1String1<ConnectionRef>(
-      safe_this_, msg, [](ConnectionRef conn_ref, const char* msg) {
-        ConnectionRefLock lock(&conn_ref);
-        auto connection = lock.GetReference();
-        if (connection != nullptr) {
-          connection->HandleIncomingFrame(msg);
-        }
-      }));
+
+  HandleIncomingFrame(msg);
 }
 
 void Connection::OnClose() {
@@ -220,21 +207,15 @@ void Connection::OnClose() {
 
   logger_->LogDebug("%s websocket closed", log_id_.c_str());
 
-  scheduler_->Schedule(new callback::CallbackValue1<ConnectionRef>(
-      safe_this_, [](ConnectionRef conn_ref) {
-        ConnectionRefLock lock(&conn_ref);
-        auto connection = lock.GetReference();
-        if (connection != nullptr && connection->state_ != kStateDisconnected) {
-          // No need to do anything if Close() has been called already.
-          // Otherwise, the cause could be either connection failure or
-          // connection lost, depending on whether the web socket has already
-          // been connected or not.
-          DisconnectReason reason = connection->ws_connected_
-                                        ? kDisconnectReasonConnectionLost
-                                        : kDisconnectReasonConnectionFailed;
-          connection->Close(reason);
-        }
-      }));
+  if (state_ != kStateDisconnected) {
+    // No need to do anything if Close() has been called already.
+    // Otherwise, the cause could be either connection failure or
+    // connection lost, depending on whether the web socket has already
+    // been connected or not.
+    DisconnectReason reason = ws_connected_ ? kDisconnectReasonConnectionLost
+                                            : kDisconnectReasonConnectionFailed;
+    Close(reason);
+  }
 }
 
 void Connection::OnError(const WebSocketClientErrorData& error_data) {
@@ -311,7 +292,7 @@ void Connection::ProcessMessage(const char* message) {
   logger_->LogDebug("%s ProcessMessage (length: %d)", log_id_.c_str(),
                     strlen(message));
 
-  assert(!message_data.is_null());
+  FIREBASE_DEV_ASSERT(!message_data.is_null());
 
   const auto& messageMap = message_data.map();
   auto itType = messageMap.find(kServerEnvelopeType);
@@ -357,7 +338,7 @@ void Connection::OnControlMessage(const Variant& data) {
   logger_->LogDebug("%s received control message: %s", log_id_.c_str(),
                     util::VariantToJson(data).c_str());
 
-  assert(!data.is_null());
+  FIREBASE_DEV_ASSERT(!data.is_null());
 
   const auto& data_map = data.map();
   auto itType = data_map.find(kServerControlMessageType);

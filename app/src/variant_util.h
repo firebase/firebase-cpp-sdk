@@ -18,6 +18,7 @@
 #define FIREBASE_APP_CLIENT_CPP_SRC_VARIANT_UTIL_H_
 
 #include <string>
+
 #include "app/src/include/firebase/variant.h"
 #include "flatbuffers/flexbuffers.h"
 
@@ -48,7 +49,7 @@ Variant FlexbufferToVariant(const flexbuffers::Reference& ref);
 Variant FlexbufferMapToVariant(const flexbuffers::Map& map);
 
 // Convert from a Flexbuffer vector to a Variant.
-Variant FlexbufferVectorToVariant(const flexbuffers::Vector& map);
+Variant FlexbufferVectorToVariant(const flexbuffers::Vector& vector);
 
 // Convert from a Variant to a Flexbuffer buffer.
 std::vector<uint8_t> VariantToFlexbuffer(const Variant& variant);
@@ -60,6 +61,20 @@ std::vector<uint8_t> VariantMapToFlexbuffer(
 // Convert from a Variant vector to a Flexbuffer buffer.
 std::vector<uint8_t> VariantVectorToFlexbuffer(
     const std::vector<Variant>& vector);
+
+// Convert from a variant to a Flexbuffer using the given flexbuffer Builder.
+// Returns true on success, false otherwise.
+bool VariantToFlexbuffer(const Variant& variant, flexbuffers::Builder* fbb);
+
+// Convert from a variant to a Flexbuffer using the given flexbuffer Builder.
+// Returns true on success, false otherwise.
+bool VariantMapToFlexbuffer(const std::map<Variant, Variant>& map,
+                            flexbuffers::Builder* fbb);
+
+// Convert from a variant to a Flexbuffer using the given flexbuffer Builder.
+// Returns true on success, false otherwise.
+bool VariantVectorToFlexbuffer(const std::vector<Variant>& vector,
+                               flexbuffers::Builder* fbb);
 
 }  // namespace util
 // NOLINTNEXTLINE - allow namespace overridden

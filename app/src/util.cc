@@ -108,7 +108,7 @@ static void PerformInitialize(ModuleInitializerData* data) {
           },
           data);
     }
-#else   // !FIREBASE_PLATFORM_ANDROID
+#else  // !FIREBASE_PLATFORM_ANDROID
     // Outside of Android, we shouldn't get kInitResultFailedMissingDependency.
     FIREBASE_ASSERT(init_result != kInitResultFailedMissingDependency);
 #endif  // FIREBASE_PLATFORM_ANDROID
@@ -288,6 +288,43 @@ StaticFutureData* StaticFutureData::CreateNewData(const void* module_identifier,
                                                   int num_functions) {
   StaticFutureData* new_data = new StaticFutureData(num_functions);
   return new_data;
+}
+
+std::vector<std::string> SplitString(const std::string& s,
+                                     const char delimiter) {
+  size_t pos = 0;
+  // This index is used as the starting index to search the delimiters from.
+  size_t delimiter_search_start = 0;
+  // Skip any leading delimiters
+  while (s[delimiter_search_start] == delimiter) {
+    delimiter_search_start++;
+  }
+
+  std::vector<std::string> split_parts;
+  size_t len = s.size();
+  // Can't proceed if input string consists of just delimiters
+  if (pos >= len) {
+    return split_parts;
+  }
+
+  while ((pos = s.find(delimiter, delimiter_search_start)) !=
+         std::string::npos) {
+    split_parts.push_back(
+        s.substr(delimiter_search_start, pos - delimiter_search_start));
+
+    while (s[pos] == delimiter && pos < len) {
+      pos++;
+      delimiter_search_start = pos;
+    }
+  }
+
+  // If the input string doesn't end with a delimiter we need to push the last
+  // token into our return vector
+  if (delimiter_search_start != len) {
+    split_parts.push_back(
+        s.substr(delimiter_search_start, len - delimiter_search_start));
+  }
+  return split_parts;
 }
 
 // NOLINTNEXTLINE - allow namespace overridden

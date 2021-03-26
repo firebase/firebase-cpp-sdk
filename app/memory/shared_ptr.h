@@ -21,7 +21,7 @@
 #include "app/memory/atomic.h"
 #include "app/memory/unique_ptr.h"
 #include "app/meta/move.h"
-#include "app/meta/type_traits.h"
+#include "app/src/include/firebase/internal/type_traits.h"
 
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase

@@ -153,7 +153,7 @@ static const struct ErrorCodeToDescription {
     {kAuthErrorMissingEmail, "An email address must be provided."},
     {kAuthErrorMissingPassword, "A password must be provided."},
     {kAuthErrorQuotaExceeded,
-     "The sms quota for this project has been exceeded."},
+     "The project's quota for this operation has been exceeded."},
     {kAuthErrorSessionExpired,
      "The sms code has expired. Please re-send the verification code to try "
      "again."},
@@ -225,7 +225,7 @@ AuthError GetAuthErrorCode(const std::string& error,
     // Couldn't find it, check again with just the first word.
     // Sometimes the backend will return the error code along with
     // some explanatory text (see kAuthErrorNoSuchProvider above).
-    size_t space = error.find(" ");
+    size_t space = error.find(' ');
     if (space != std::string::npos) {
       std::string first_word = error.substr(0, space);
       found = find_error(first_word);

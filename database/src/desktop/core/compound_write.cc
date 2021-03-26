@@ -60,8 +60,15 @@ CompoundWrite CompoundWrite::EmptyWrite() { return CompoundWrite(); }
 
 CompoundWrite CompoundWrite::AddWrite(const Path& path,
                                       const Optional<Variant>& variant) const {
+  CompoundWrite target = *this;
+  target.AddWriteInline(path, variant);
+  return target;
+}
+
+void CompoundWrite::AddWriteInline(const Path& path,
+                                   const Optional<Variant>& variant) {
   if (path.empty()) {
-    return CompoundWrite(Tree<Variant>(variant));
+    *this = CompoundWrite(Tree<Variant>(variant));
   } else {
     Optional<Path> root_most_path = write_tree_.FindRootMostPathWithValue(path);
     if (root_most_path.has_value()) {
@@ -78,18 +85,13 @@ CompoundWrite CompoundWrite::AddWrite(const Path& path,
       if (!relative_path->empty() && IsPriorityKey(back) &&
           VariantIsEmpty(VariantGetChild(value, relative_path->GetParent()))) {
         // Ignore priority updates on empty variants
-        return *this;
       } else {
-        CompoundWrite result = *this;
         Variant updated_variant = *value;
         VariantUpdateChild(&updated_variant, *relative_path, *variant);
-        result.write_tree_.SetValueAt(*root_most_path, updated_variant);
-        return result;
+        write_tree_.SetValueAt(*root_most_path, updated_variant);
       }
     } else {
-      CompoundWrite result = *this;
-      result.write_tree_.SetValueAt(path, variant);
-      return result;
+      write_tree_.SetValueAt(path, variant);
     }
   }
 }
@@ -109,12 +111,35 @@ CompoundWrite CompoundWrite::AddWrite(const std::string& key,
   return AddWrite(Path(key), Optional<Variant>(value));
 }
 
+void CompoundWrite::AddWriteInline(const Path& path, const Variant& value) {
+  AddWriteInline(path, Optional<Variant>(value));
+}
+
+void CompoundWrite::AddWriteInline(const std::string& key,
+                                   const Optional<Variant>& value) {
+  AddWriteInline(Path(key), value);
+}
+
+void CompoundWrite::AddWriteInline(const std::string& key,
+                                   const Variant& value) {
+  AddWriteInline(Path(key), Optional<Variant>(value));
+}
+
 CompoundWrite CompoundWrite::AddWrites(const Path& path,
                                        const CompoundWrite& updates) const {
   return updates.write_tree_.Fold(
       *this, [&path](Path relative_path, Variant value, CompoundWrite accum) {
         return accum.AddWrite(path.GetChild(relative_path),
                               Optional<Variant>(value));
+      });
+}
+
+void CompoundWrite::AddWritesInline(const Path& path,
+                                    const CompoundWrite& updates) {
+  updates.write_tree_.Fold(
+      0, [&path, this](Path relative_path, Variant value, int) {
+        AddWriteInline(path.GetChild(relative_path), Optional<Variant>(value));
+        return 0;
       });
 }
 
@@ -131,6 +156,18 @@ CompoundWrite CompoundWrite::RemoveWrite(const Path& path) const {
     return result;
   }
   return CompoundWrite();
+}
+
+void CompoundWrite::RemoveWriteInline(const Path& path) {
+  if (path.empty()) {
+    *this = CompoundWrite();
+  } else {
+    Tree<Variant>* subtree = write_tree_.GetChild(path);
+    if (subtree) {
+      subtree->children().clear();
+      subtree->value().reset();
+    }
+  }
 }
 
 bool CompoundWrite::HasCompleteWrite(const Path& path) const {

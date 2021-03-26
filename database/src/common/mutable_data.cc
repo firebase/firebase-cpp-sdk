@@ -14,6 +14,7 @@
 
 #include "database/src/include/firebase/database/mutable_data.h"
 
+#include "app/src/assert.h"
 #include "app/src/include/firebase/internal/platform.h"
 
 // QueryInternal is defined in these 3 files, one implementation for each OS.
@@ -88,7 +89,8 @@ MutableData::~MutableData() {
 }
 
 MutableData MutableData::Child(const char* path) {
-  return internal_ ? MutableData(internal_->Child(path)) : MutableData(nullptr);
+  return internal_ && path ? MutableData(internal_->Child(path))
+                           : GetInvalidMutableData();
 }
 
 MutableData MutableData::Child(const std::string& path) {
@@ -120,10 +122,10 @@ Variant MutableData::priority() {
 }
 
 bool MutableData::HasChild(const char* path) const {
-  return internal_ ? internal_->HasChild(path) : false;
+  return internal_ && path ? internal_->HasChild(path) : false;
 }
 
-bool MutableData::HasChild(const std::string& path) {
+bool MutableData::HasChild(const std::string& path) const {
   return internal_ ? internal_->HasChild(path.c_str()) : false;
 }
 

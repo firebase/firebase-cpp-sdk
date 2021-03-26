@@ -14,16 +14,6 @@
 
 # CMake file for the firebase_auth library
 
-cmake_minimum_required (VERSION 3.1)
-set (CMAKE_CXX_STANDARD 11)
-
-include(binary_to_array)
-include(download_pod_headers)
-
-project(firebase_auth NONE)
-enable_language(C)
-enable_language(CXX)
-
 # Generate the resource files from the flatbuffer schema files.
 binary_to_array("request_resource"
     "${CMAKE_CURRENT_LIST_DIR}/src/desktop/rpcs/request.fbs"
@@ -47,6 +37,9 @@ set(flatbuffer_schemas
     ${CMAKE_CURRENT_LIST_DIR}/src/desktop/rpcs/request.fbs
     ${CMAKE_CURRENT_LIST_DIR}/src/desktop/rpcs/response.fbs
     ${CMAKE_CURRENT_LIST_DIR}/src/desktop/user_data.fbs)
+# Because of a bug in the version of Flatbuffers we are pinned to,
+# additional flags need to be set.
+set(FLATC_ARGS "${FLATBUFFERS_FLATC_SCHEMA_EXTRA_ARGS}")
 build_flatbuffers("${flatbuffer_schemas}"
                   ""
                   "generate_request_fbs"
@@ -64,8 +57,10 @@ set(common_SRCS
     src/user.cc)
 
 # Define the resource build needed for Android
+firebase_cpp_gradle(":auth:auth_resources:generateDexJarRelease"
+    "${CMAKE_CURRENT_LIST_DIR}/auth_resources/build/auth_resources_lib.jar")
 binary_to_array("auth_resources"
-    "${CMAKE_CURRENT_LIST_DIR}/auth_resources/build/dexed.jar"
+    "${CMAKE_CURRENT_LIST_DIR}/auth_resources/build/auth_resources_lib.jar"
     "firebase_auth"
     "${FIREBASE_GEN_FILE_DIR}/auth")
 
@@ -190,41 +185,32 @@ else()
   add_definitions(-include assert.h -include string.h)
 endif()
 
-# Ensure min/max macros don't get declared on Windows
-# (so we can use std::min/max)
-if(MSVC)
-  add_definitions(-DNOMINMAX)
-endif()
+if(ANDROID)
+  firebase_cpp_proguard_file(auth)
+elseif(IOS)
+  # Enable Automatic Reference Counting (ARC) and Bitcode.
+  target_compile_options(firebase_auth
+                         PUBLIC "-fobjc-arc" "-fembed-bitcode")
+  target_link_libraries(firebase_auth
+                        PUBLIC "-fembed-bitcode")
 
-if(IOS)
-  # Enable Automatic Reference Counting (ARC).
-  set_property(
-    TARGET firebase_auth
-    APPEND_STRING PROPERTY
-    COMPILE_FLAGS "-fobjc-arc")
-
-  # Setup the target for getting the Firebase iOS SDK headers through Cocoapods.
-  set(pod_target_name "download_auth_pod_headers")
-  set(pods_dir "${PROJECT_BINARY_DIR}/Pods")
-  set(pod_list "")
-  list(APPEND pod_list "'Firebase/Core', '6.9.0'")
-  list(APPEND pod_list "'Firebase/Auth', '6.9.0'")
-
-  setup_pod_headers_target("${pod_target_name}" "${pods_dir}" "${pod_list}")
-
-  # Add the Cocoapod headers to the include directories
-  set(base_header_dir "${pods_dir}/Pods/Headers/Public")
-  target_include_directories(firebase_auth
-    PRIVATE
-      ${base_header_dir}/FirebaseCore
-      ${base_header_dir}/FirebaseAuth
+  setup_pod_headers(
+    firebase_auth
+    POD_NAMES
+      FirebaseCore
+      FirebaseAuth
   )
-
-  # Add a dependency to downloading the headers onto auth.
-  add_dependencies(firebase_auth ${pod_target_name})
+  if (FIREBASE_XCODE_TARGET_FORMAT STREQUAL "frameworks")
+    set_target_properties(firebase_auth PROPERTIES
+      FRAMEWORK TRUE
+    )
+  endif()
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)
   # Add the tests subdirectory
   add_subdirectory(tests)
 endif()
+
+cpp_pack_library(firebase_auth "")
+cpp_pack_public_headers()

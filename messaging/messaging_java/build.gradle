@@ -18,7 +18,7 @@ buildscript {
     jcenter()
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:3.2.1'
+    classpath 'com.android.tools.build:gradle:3.3.3'
     classpath 'com.google.gms:google-services:4.2.0'
     // This uses Flatbuffers at 1.9 because the 1.10 version added a feature
     // that requires using a newer version of the JDK and at least Android N.
@@ -51,8 +51,8 @@ android {
 }
 
 dependencies {
-  implementation 'com.google.firebase:firebase-analytics:17.2.0'
-  implementation 'com.google.firebase:firebase-messaging:20.0.0'
+  implementation 'com.google.firebase:firebase-analytics:18.0.2'
+  implementation 'com.google.firebase:firebase-messaging:21.0.1'
   implementation 'com.google.flatbuffers:flatbuffers-java:1.9.0'
 }
 

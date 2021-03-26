@@ -46,6 +46,17 @@
 
 namespace FIREBASE_NAMESPACE {
 
+#ifdef FIREBASE_LINUX_BUILD_CONFIG_STRING
+void CheckCompilerString(const char* input) {
+  FIREBASE_ASSERT_MESSAGE(
+      strcmp(FIREBASE_LINUX_BUILD_CONFIG_STRING, input) == 0,
+      "The compiler or stdlib library Firebase was compiled with does not "
+      "match what is being used to compile this application."
+      " [Lib: '%s' != Bin: '%s']",
+      FIREBASE_LINUX_BUILD_CONFIG_STRING, input);
+}
+#endif  // FIREBASE_LINUX_BUILD_CONFIG_STRING
+
 // Default app name.
 const char* const kDefaultAppName = "__FIRAPP_DEFAULT";
 
@@ -132,7 +143,14 @@ const char* kCppRuntimeOrStl = "libcpp";
 
 #elif FIREBASE_PLATFORM_LINUX
 const char* kOperatingSystem = "linux";
+
+#if defined(_GLIBCXX_UTILITY)
 const char* kCppRuntimeOrStl = "gnustl";
+#elif defined(_LIBCPP_STD_VER)
+const char* kCppRuntimeOrStl = "libcpp";
+#else
+#error Unknown Linux STL.
+#endif  // STL
 
 #if __amd64__
 const char* kCpuArchitecture = "x86_64";
@@ -251,12 +269,14 @@ App* AddApp(App* app, std::map<std::string, InitResult>* results) {
   if (IsDefaultAppName(app->name())) {
     assert(!g_default_app);
     g_default_app = app;
-    created_first_app = true;
   }
   UniquePtr<AppData> app_data = MakeUnique<AppData>();
   app_data->app = app;
   app_data->cleanup_notifier.RegisterOwner(app);
-  if (!g_apps) g_apps = new std::map<std::string, UniquePtr<AppData>>();
+  if (!g_apps) {
+    g_apps = new std::map<std::string, UniquePtr<AppData>>();
+    created_first_app = true;
+  }
   (*g_apps)[std::string(app->name())] = app_data;
   // Create a cleanup notifier for the app.
   {

@@ -1,0 +1,249 @@
+{
+  "apis": [
+    {
+      "name": "app",
+      "full_name": "FirebaseApp",
+      "bundle_id": "com.google.ios.analytics.testapp",
+      "ios_target": "integration_test",
+      "testapp_path": "analytics/integration_test",
+      "frameworks": [
+        "firebase_analytics.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Google_Development.mobileprovision"
+    },
+    {
+      "name": "admob",
+      "full_name": "FirebaseAdmob",
+      "bundle_id": "com.google.ios.admob.testapp",
+      "ios_target": "integration_test",
+      "testapp_path": "admob/integration_test",
+      "frameworks": [
+        "firebase_admob.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Google_Development.mobileprovision"
+    },
+    {
+      "name": "analytics",
+      "full_name": "FirebaseAnalytics",
+      "bundle_id": "com.google.ios.analytics.testapp",
+      "ios_target": "integration_test",
+      "testapp_path": "analytics/integration_test",
+      "frameworks": [
+        "firebase_analytics.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Google_Development.mobileprovision"
+    },
+    {
+      "name": "auth",
+      "full_name": "FirebaseAuth",
+      "bundle_id": "com.google.FirebaseCppAuthTestApp.dev",
+      "ios_target": "integration_test",
+      "testapp_path": "auth/integration_test",
+      "frameworks": [
+        "firebase_auth.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Firebase_Cpp_Auth_Test_App_Dev.mobileprovision"
+    },
+    {
+      "name": "database",
+      "full_name": "FirebaseDatabase",
+      "bundle_id": "com.google.firebase.cpp.database.testapp",
+      "ios_target": "integration_test",
+      "testapp_path": "database/integration_test",
+      "frameworks": [
+        "firebase_auth.xcframework",
+        "firebase_database.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Firebase_Dev_Wildcard.mobileprovision"
+    },
+    {
+      "name": "dynamic_links",
+      "full_name": "FirebaseDynamicLinks",
+      "bundle_id": "com.google.FirebaseCppDynamicLinksTestApp.dev",
+      "ios_target": "integration_test",
+      "testapp_path": "dynamic_links/integration_test",
+      "frameworks": [
+        "firebase_dynamic_links.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Firebase_Cpp_Dynamic_Links_Test_App_Dev.mobileprovision"
+    },
+    {
+      "name": "functions",
+      "full_name": "FirebaseFunctions",
+      "bundle_id": "com.google.firebase.cpp.functions.testapp",
+      "ios_target": "integration_test",
+      "testapp_path": "functions/integration_test",
+      "frameworks": [
+        "firebase_auth.xcframework",
+        "firebase_functions.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Firebase_Dev_Wildcard.mobileprovision"
+    },
+    {
+      "name": "installations",
+      "full_name": "FirebaseInstallations",
+      "bundle_id": "com.google.firebase.fis.testapp",
+      "ios_target": "integration_test",
+      "testapp_path": "installations/integration_test",
+      "frameworks": [
+        "firebase_installations.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Firebase_Dev_Wildcard.mobileprovision"
+    },
+    {
+      "name": "instance_id",
+      "full_name": "FirebaseInstanceId",
+      "bundle_id": "com.google.firebase.instanceid.testapp",
+      "ios_target": "integration_test",
+      "testapp_path": "instance_id/integration_test",
+      "frameworks": [
+        "firebase_instance_id.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Firebase_Dev_Wildcard.mobileprovision"
+    },
+    {
+      "name": "messaging",
+      "full_name": "FirebaseMessaging",
+      "bundle_id": "com.google.FirebaseCppMessagingTestApp.dev",
+      "ios_target": "integration_test",
+      "testapp_path": "messaging/integration_test",
+      "frameworks": [
+        "firebase_messaging.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Firebase_Cpp_Messaging_Test_App_Dev.mobileprovision"
+    },
+    {
+      "name": "remote_config",
+      "full_name": "FirebaseRemoteConfig",
+      "bundle_id": "com.google.ios.remoteconfig.testapp",
+      "ios_target": "integration_test",
+      "testapp_path": "remote_config/integration_test",
+      "frameworks": [
+        "firebase_remote_config.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Google_Development.mobileprovision"
+    },
+    {
+      "name": "storage",
+      "full_name": "FirebaseStorage",
+      "bundle_id": "com.google.firebase.cpp.storage.testapp",
+      "ios_target": "integration_test",
+      "testapp_path": "storage/integration_test",
+      "frameworks": [
+        "firebase_storage.xcframework",
+        "firebase_auth.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Firebase_Dev_Wildcard.mobileprovision"
+    },
+    {
+      "name": "firestore",
+      "full_name": "FirebaseFirestore",
+      "bundle_id": "com.google.firebase.cpp.firestore.testapp",
+      "ios_target": "integration_test",
+      "testapp_path": "firestore/integration_test",
+      "internal_testapp_path": "firestore/integration_test_internal",
+      "frameworks": [
+        "firebase_firestore.xcframework",
+        "firebase_auth.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Firebase_Dev_Wildcard.mobileprovision",
+      "minify": "proguard"
+    },
+    {
+      "name": "performance",
+      "full_name": "FirebasePerformance",
+      "bundle_id": "com.google.ios.performance.testapp",
+      "ios_target": "testapp",
+      "testapp_path": "firebase/performance/client/cpp/testapp",
+      "frameworks": [
+        "firebase_performance.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Google_Development.mobileprovision"
+    },
+    {
+      "name": "test_lab",
+      "full_name": "FirebaseTestLab",
+      "bundle_id": "com.google.ios.testlab.testapp",
+      "ios_target": "integration_test",
+      "testapp_path": "testlab/integration_test",
+      "frameworks": [
+        "firebase_testlab.xcframework",
+        "firebase.xcframework"
+      ],
+      "provision": "Google_Development.mobileprovision"
+    }
+  ],
+  "apple_team_id": "REPLACE_ME_TEMP_INVALID_ID",
+  "compiler_dict": {
+    "gcc-4.8": [
+      "-DCMAKE_C_COMPILER=gcc-4.8",
+      "-DCMAKE_CXX_COMPILER=g++-4.8"
+    ],
+    "gcc-7": [
+      "-DCMAKE_C_COMPILER=gcc-7",
+      "-DCMAKE_CXX_COMPILER=g++-7"
+    ],
+    "gcc-9": [
+      "-DCMAKE_C_COMPILER=gcc-9",
+      "-DCMAKE_CXX_COMPILER=g++-9"
+    ],
+    "clang-5.0": [
+      "-DCMAKE_C_COMPILER=clang-5.0",
+      "-DCMAKE_CXX_COMPILER=clang++-5.0"
+    ],
+    "VisualStudio2015": [
+      "-G",
+      "Visual Studio 14 2015 Win64"
+    ],
+    "VisualStudio2017": [
+      "-G",
+      "Visual Studio 15 2017 Win64"
+    ],
+    "VisualStudio2019": [
+      "-G",
+      "Visual Studio 16 2019"
+    ]
+  },
+  "android_dep_key_mapping": {
+    "database": ["firebase-database"],
+    "dynamic_links": ["firebase-dynamic-links"],
+    "firestore": ["firebase-firestore"],
+    "functions": ["firebase-functions"],
+    "remote_config": ["firebase-config"],
+    "storage": ["firebase-storage"]
+  },
+  "unreleased_dep_versions": [
+    "def firebaseDependenciesMap = [",
+    "'app' : ['com.google.firebase:firebase-analytics:[0,)'],",
+    "'admob' : ['com.google.firebase:firebase-ads:[0,)',",
+    "'com.google.android.gms:play-services-measurement-sdk-api:[0,)'],",
+    "'analytics' : ['com.google.firebase:firebase-analytics:[0,)'],",
+    "'auth' : ['com.google.firebase:firebase-auth:[0,)'],",
+    "'database' : ['com.google.firebase:firebase-database:[0,)'],",
+    "'dynamic_links' : ['com.google.firebase:firebase-dynamic-links:[0,)'],",
+    "'firestore' : ['com.google.firebase:firebase-firestore:[0,)'],",
+    "'functions' : ['com.google.firebase:firebase-functions:[0,)'],",
+    "'instance_id' : ['com.google.firebase:firebase-iid:[0,)'],",
+    "'messaging' : ['com.google.firebase.messaging.cpp:firebase_messaging_cpp@aar',",
+    "'com.google.firebase:firebase-messaging:[0,)'],",
+    "'performance' : ['com.google.firebase:firebase-perf:[0,)'],",
+    "'remote_config' : ['com.google.firebase:firebase-config:[0,)'],",
+    "'storage' : ['com.google.firebase:firebase-storage:[0,)'],",
+    "'testlab' : []",
+    "]"
+  ]
+}

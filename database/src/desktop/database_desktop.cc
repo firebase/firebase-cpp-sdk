@@ -14,6 +14,7 @@
 
 #include "database/src/desktop/database_desktop.h"
 
+#include <memory>
 #include <queue>
 #include <stack>
 
@@ -51,19 +52,15 @@ SingleValueListener::SingleValueListener(DatabaseInternal* database,
       future_(future),
       handle_(handle) {}
 
-SingleValueListener::~SingleValueListener() {
-  database_->RemoveSingleValueListener(this);
-}
+SingleValueListener::~SingleValueListener() {}
 
 void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {
   future_->CompleteWithResult<DataSnapshot>(handle_, kErrorNone, "", snapshot);
-  delete this;
 }
 
 void SingleValueListener::OnCancelled(const Error& error_code,
                                       const char* error_message) {
   future_->Complete(handle_, error_code, error_message);
-  delete this;
 }
 
 DatabaseInternal::DatabaseInternal(App* app)
@@ -75,9 +72,10 @@ DatabaseInternal::DatabaseInternal(App* app, const char* url)
     : app_(app),
       future_manager_(),
       cleanup_(),
+      database_url_(url),
       constructor_url_(url),
       logger_(app_common::FindAppLoggerByName(app->name())),
-      repo_(app, this, url, &logger_) {
+      repo_(nullptr) {
   assert(app);
   assert(url);
 
@@ -92,33 +90,26 @@ DatabaseInternal::~DatabaseInternal() {
   // If initialization failed, there is nothing to clean up.
   if (app_ == nullptr) return;
 
-  // If there are any pending listeners, delete their pointers.
-  {
-    MutexLock lock(listener_mutex_);
-    for (SingleValueListener** listener_holder : single_value_listeners_) {
-      delete *listener_holder;
-      *listener_holder = nullptr;
-    }
-    single_value_listeners_.clear();
-  }
-
   app_->function_registry()->CallFunction(
       ::firebase::internal::FnAuthStopTokenListener, app_, nullptr, nullptr);
 }
 
 App* DatabaseInternal::GetApp() { return app_; }
 
-DatabaseReference DatabaseInternal::GetReference() const {
+DatabaseReference DatabaseInternal::GetReference() {
+  EnsureRepo();
   return DatabaseReference(new DatabaseReferenceInternal(
       const_cast<DatabaseInternal*>(this), Path()));
 }
 
-DatabaseReference DatabaseInternal::GetReference(const char* path) const {
+DatabaseReference DatabaseInternal::GetReference(const char* path) {
+  EnsureRepo();
   return DatabaseReference(new DatabaseReferenceInternal(
       const_cast<DatabaseInternal*>(this), Path(path)));
 }
 
-DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) const {
+DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) {
+  EnsureRepo();
   ParseUrl parser;
   auto result = parser.Parse(url);
   if (parser.Parse(url) != ParseUrl::kParseOk) {
@@ -145,6 +136,7 @@ DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) const {
 }
 
 void DatabaseInternal::GoOffline() {
+  EnsureRepo();
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref) {
         Repo::ThisRefLock lock(&ref);
@@ -152,10 +144,11 @@ void DatabaseInternal::GoOffline() {
           lock.GetReference()->connection()->Interrupt();
         }
       },
-      repo_.this_ref()));
+      repo_->this_ref()));
 }
 
 void DatabaseInternal::GoOnline() {
+  EnsureRepo();
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref) {
         Repo::ThisRefLock lock(&ref);
@@ -163,10 +156,11 @@ void DatabaseInternal::GoOnline() {
           lock.GetReference()->connection()->Resume();
         }
       },
-      repo_.this_ref()));
+      repo_->this_ref()));
 }
 
 void DatabaseInternal::PurgeOutstandingWrites() {
+  EnsureRepo();
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref) {
         Repo::ThisRefLock lock(&ref);
@@ -174,7 +168,7 @@ void DatabaseInternal::PurgeOutstandingWrites() {
           lock.GetReference()->PurgeOutstandingWrites();
         }
       },
-      repo_.this_ref()));
+      repo_->this_ref()));
 }
 
 static std::string* g_sdk_version = nullptr;
@@ -185,9 +179,12 @@ const char* DatabaseInternal::GetSdkVersion() {
   return g_sdk_version->c_str();
 }
 
-void DatabaseInternal::SetPersistenceEnabled(bool /*enabled*/) {
-  // TODO(b/67910033): Support persistence.
-  logger_.LogWarning("Persistence is not currently supported.");
+void DatabaseInternal::SetPersistenceEnabled(bool enabled) {
+  MutexLock lock(repo_mutex_);
+  // Only set persistence if the repo has not yet been initialized.
+  if (!repo_) {
+    persistence_enabled_ = enabled;
+  }
 }
 
 void DatabaseInternal::set_log_level(LogLevel log_level) {
@@ -213,6 +210,12 @@ bool DatabaseInternal::RegisterValueListener(
 
 bool DatabaseInternal::UnregisterValueListener(const internal::QuerySpec& spec,
                                                ValueListener* listener) {
+  EventRegistration* registration =
+      ActiveEventRegistration(spec, (void*)listener);
+  if (registration) {
+    registration->set_status(EventRegistration::kRemoved);
+  }
+
   MutexLock lock(listener_mutex_);
   if (value_listeners_by_query_.Unregister(spec, listener)) {
     auto found = cleanup_value_listener_lookup_.find(listener);
@@ -270,6 +273,40 @@ void DatabaseInternal::UnregisterAllChildListeners(
     for (ChildListener* listener : listeners) {
       UnregisterChildListener(spec, listener);
     }
+  }
+}
+
+void DatabaseInternal::AddEventRegistration(
+    const QuerySpec& query_spec, void* listener_ptr,
+    EventRegistration* event_registration) {
+  event_registration_lookup_[query_spec][listener_ptr].push_back(
+      event_registration);
+}
+
+EventRegistration* DatabaseInternal::ActiveEventRegistration(
+    const QuerySpec& query_spec, void* listener_ptr) {
+  auto* listener_registration_map =
+      MapGet(&event_registration_lookup_, query_spec);
+  if (!listener_registration_map) {
+    return nullptr;
+  }
+  auto* registration_vector = MapGet(listener_registration_map, listener_ptr);
+  if (!registration_vector) {
+    return nullptr;
+  }
+  for (auto* registration : *registration_vector) {
+    if (registration->status() == EventRegistration::kActive) {
+      return registration;
+    }
+  }
+  return nullptr;
+}
+
+void DatabaseInternal::EnsureRepo() {
+  MutexLock lock(repo_mutex_);
+  if (!repo_) {
+    repo_ = MakeUnique<Repo>(app_, this, database_url_.c_str(), &logger_,
+                             persistence_enabled_);
   }
 }
 
