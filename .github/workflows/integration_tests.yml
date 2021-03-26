@@ -472,6 +472,15 @@ jobs:
           echo -n "::set-output name=time::"
           TZ=America/Los_Angeles date
       - uses: actions/checkout@v2
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+
+      - name: Install python deps
+        run: |
+          python scripts/gha/install_prereqs_desktop.py
+
       - name: download artifact
         uses: actions/download-artifact@v2.0.8
         with:
@@ -525,6 +534,15 @@ jobs:
     if: ${{ !cancelled() }}
     steps:
       - uses: actions/checkout@v2
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+
+      - name: Install python deps
+        run: |
+          python scripts/gha/install_prereqs_desktop.py
+
       - name: download artifact
         uses: actions/download-artifact@v2.0.8
         with:
