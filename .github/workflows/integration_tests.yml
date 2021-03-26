@@ -519,8 +519,8 @@ jobs:
           type: remove
 
   summarize_results:
-    name: "summarize results"
-    needs: [add_failure_label, tests]
+    name: "summarize-results"
+    needs: [add_failure_label, add_success_label, remove_in_progress_label, tests]
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }}
     steps:
@@ -529,7 +529,7 @@ jobs:
         uses: actions/download-artifact@v2.0.8
         with:
           path: test_results
-      - name: Summarize results into GitHub log.
+      - name: Summarize results into GitHub log
         run: |
           mv test_results/test-results-*/test-results-*.txt test_results || true
           python scripts/gha/summarize_test_results.py --dir test_results --github_log
