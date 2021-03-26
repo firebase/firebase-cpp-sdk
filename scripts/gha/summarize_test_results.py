@@ -141,9 +141,9 @@ def main(argv):
               any_failures = True
 
       # Extract test failures, which follow "TESTAPPS EXPERIENCED ERRORS:"
-      m = re.search(r'TESTAPPS EXPERIENCED ERRORS:\n(([^\n]*\n)+)', log_text, re.MULTILINE)
+      m = re.search(r'TESTAPPS (EXPERIENCED ERRORS|FAILED):\n(([^\n]*\n)+)', log_text, re.MULTILINE)
       if m:
-        for test_failure_line in m.group(1).strip("\n").split("\n"):
+        for test_failure_line in m.group(2).strip("\n").split("\n"):
           # Only get the lines showing paths.
           if "/firebase-cpp-sdk/" not in test_failure_line: continue
           test_filename = "";
@@ -151,6 +151,11 @@ def main(argv):
             test_filename = re.match(r'^(.*) log tail', test_failure_line).group(1)
           if "lacks logs" in test_failure_line:
             test_filename = re.match(r'^(.*) lacks logs', test_failure_line).group(1)
+          if "it-debug.apk" in test_failure_line:
+            test_filename = re.match(r'^(.*it-debug\.apk)', test_failure_line).group(1)
+          if "integration_test.ipa" in test_failure_line:
+            test_filename = re.match(r'^(.*integration_test\.ipa)', test_failure_line).group(1)
+
           if test_filename:
             m2 = re.search(r'/ta/(firebase)?([^/]+)/iti?/', test_filename, re.IGNORECASE)
             if not m2: m2 = re.search(r'/testapps/(firebase)?([^/]+)/integration_test', test_filename, re.IGNORECASE)
