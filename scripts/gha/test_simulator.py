@@ -35,8 +35,8 @@ available simulators (supported models and versions) with the following commands
 
 Note: you need to combine Name and Version with "-". Examples:
 
-iPhone 8 Plus, OS 11.4:
-  --ios_device "iPhone 8 Plus-11.4"
+iPhone 11, OS 14.4:
+  --ios_device "iPhone 11-14.4"
 
 """
 
@@ -63,7 +63,7 @@ flags.DEFINE_string(
     "An zipped UI Test app that helps doing game-loop test."
     " The source code can be found here: integration_testing/gameloop")
 flags.DEFINE_string(
-    "ios_device", "iPhone 11-14.4",
+    "ios_device", "iPhone 11-14.3",
     "iOS device, which is a combination of device name and os version")
 
 @attr.s(frozen=False, eq=False)
@@ -76,10 +76,20 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
 
+  current_dir = pathlib.Path(__file__).parent.absolute()
   testapp_dir = os.path.abspath(os.path.expanduser(FLAGS.testapp_dir))
-  gameloop_zip = os.path.join(
-    pathlib.Path(__file__).parent.absolute(), FLAGS.gameloop_zip)
+  gameloop_zip = os.path.join(current_dir, FLAGS.gameloop_zip)
   ios_device = FLAGS.ios_device
+
+  config_path = os.path.join(current_dir, "integration_testing/build_testapps.json")
+  with open(config_path, "r") as config:
+    config = json.load(config)
+
+  if not config:
+    logging.info("No config found")
+    return 1
+
+  logging.info("Config found: %s", config)
 
   testapps = []
   for file_dir, directories, _ in os.walk(testapp_dir):
@@ -87,7 +97,7 @@ def main(argv):
     for directory in directories:
       full_path = os.path.join(file_dir, directory)
       if "simulator" in full_path and directory.endswith(".app"):
-        testapps.append((_get_bundle_id(full_path), full_path))
+        testapps.append((_get_bundle_id(full_path, config), full_path))
 
   if not testapps:
     logging.info("No testapps found")
@@ -108,7 +118,7 @@ def main(argv):
   tests = []
   for bundle_id, app_path in testapps:
     tests.append(Test(
-                    testapp_path=bundle_id, 
+                    testapp_path=app_path, 
                     logs=_run_gameloop_test(bundle_id, app_path, gameloop_app, device_id)))
 
   return test_validation.summarize_test_results(
@@ -164,14 +174,10 @@ def _delete_simulator(device_id):
   subprocess.run(args=args, check=True)
 
 
-def _get_bundle_id(app_path):
+def _get_bundle_id(app_path, config):
   """Get app bundle id from build_testapps.json file."""
-  directory = pathlib.Path(__file__).parent.absolute()
-  path = os.path.join(directory, "integration_testing/build_testapps.json")
-  with open(path, "r") as config:
-    config = json.load(config)
   for api in config["apis"]:
-    if api["full_name"] in app_path:
+    if api["name"] != "app" and (api["name"] in app_path or api["full_name"] in app_path):
       return api["bundle_id"]
 
 
@@ -181,7 +187,7 @@ def _run_gameloop_test(bundle_id, app_path, gameloop_app, device_id):
   _install_app(app_path, device_id)
   _run_xctest(gameloop_app, device_id)
   logs = _get_test_log(bundle_id, app_path, device_id)
-  _uninstall_app(bundle_id, device_id)
+  # _uninstall_app(bundle_id, device_id)
   return logs
 
 
