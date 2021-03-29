@@ -70,7 +70,7 @@ jobs:
       - name: Add msbuild to PATH
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
-      
+
       - name: Cache NDK
         id: cache_ndk
         uses: actions/cache@v2
@@ -82,6 +82,26 @@ jobs:
         shell: bash
         run: |
           build_scripts/android/install_prereqs.sh
+
+      - name: Add strings.exe to PATH (Windows only)
+        if: startsWith(matrix.os, 'windows')
+        shell: bash
+        run: |
+          # strings.exe was installed in repo root by install_prereqs.sh.
+          # There is another conflicting strings executable on Github runners.
+          # "C:\ProgramData\Chocolatey\lib\mingw\tools\install\mingw64\bin\strings.exe"
+          # Make sure to prepend the one in our repo root to the path.
+          echo "${{ github.workspace }}" >> $GITHUB_PATH
+
+      - name: Run strings.exe once to accept license(Windows only)
+        if: startsWith(matrix.os, 'windows')
+        shell: bash
+        run: |
+          # This invocation is just to accept the license. Otherwise the command
+          # fails during build process. Also, running a command with just this
+          # flag makes the process exit with code 127 and stops the workflow.
+          # We ignore the error and continue with the rest of the steps.
+          strings -accepteula || true
 
       - name: Cache ccache files
         id: cache_ccache

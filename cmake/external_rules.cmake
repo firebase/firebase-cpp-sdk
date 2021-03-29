@@ -63,7 +63,10 @@ function(download_external_sources)
 
   execute_process(
     COMMAND
-      ${ENV_COMMAND} cmake
+      ${ENV_COMMAND} ${CMAKE_COMMAND}
+      -G ${CMAKE_GENERATOR}
+      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
+      -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
       -DCMAKE_INSTALL_PREFIX=${FIREBASE_INSTALL_DIR}
       -DFIREBASE_DOWNLOAD_DIR=${FIREBASE_DOWNLOAD_DIR}
       -DFIREBASE_EXTERNAL_PLATFORM=${external_platform}
@@ -88,7 +91,7 @@ function(download_external_sources)
   endif()
 
   execute_process(
-    COMMAND ${ENV_COMMAND} cmake --build . -- ${cmake_build_args}
+    COMMAND ${ENV_COMMAND} ${CMAKE_COMMAND} --build . -- ${cmake_build_args}
     OUTPUT_FILE ${PROJECT_BINARY_DIR}/external/output_cmake_build.txt
     WORKING_DIRECTORY ${PROJECT_BINARY_DIR}/external
   )

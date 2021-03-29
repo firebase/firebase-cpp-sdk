@@ -85,12 +85,12 @@ PARAMETERS = {
 
   "android": {
     "matrix": {
-      "os": ["ubuntu-latest", "macos-latest"],
+      "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
       "architecture": ["x64"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-latest", "macos-latest"]
+        "os": ["ubuntu-latest", "macos-latest", "windows-latest"]
       }
     }
   },
