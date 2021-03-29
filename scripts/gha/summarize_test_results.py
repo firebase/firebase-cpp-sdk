@@ -16,14 +16,28 @@
 
 USAGE:
 
-python summarize_test_results.py -d <directory>
+python summarize_test_results.py --dir <directory> [--markdown]
 
-Example output:
+Example table mode output (will be slightly different with --markdown):
 
-| Platform                | Build failures | Test failures   |
-| ----------------------- | -------------- | --------------- |
-| MacOS iOS               |                | auth, firestore |
-| Windows Desktop OpenSSL | analytics      | database        |
+| Platform                  | Build failures | Test failures   |
+|---------------------------|----------------|-----------------|
+| iOS (build on iOS)        |                | auth, firestore |
+| Desktop Windows (OpenSSL) | analytics      | database        |
+
+python summarize_test_results.py --dir <directory> <--text_log | --github_log>
+
+Example log mode output (will be slightly different with --github_log):
+
+INTEGRATION TEST FAILURES
+
+iOS (built on MacOS):
+  Test failures (2):
+  - auth
+  - firestore
+Desktop Windows (OpenSSL):
+  Build failures (1):
+  - analytics
 """
 
 from absl import app
@@ -42,7 +56,8 @@ flags.DEFINE_string(
 
 flags.DEFINE_string(
     "pattern", "test-results-*.txt",
-    "File pattern (glob) for test results.")
+    "File pattern (glob) for test results."
+    "The '*' part is used to determine the platform.")
 
 flags.DEFINE_bool(
     "include_successful", False,
@@ -92,7 +107,7 @@ def print_table(log_results,
             successful_width = 0,
             space_char = " ",
             list_separator = DEFAULT_LIST_SEPARATOR):
-  """Print out a table in the specified format."""
+  """Print out a table in the requested format (text or markdown)."""
   # Print table header
   output_lines = list()
   headers = [
@@ -106,7 +121,7 @@ def print_table(log_results,
   # Print header line.
   output_lines.append(("|" + " %s |" * len(headers)) % tuple(headers))
   # Print a |-------|-------|---------| line.
-  output_lines.append(("|" + "-%s-|" * len(headers)) % 
+  output_lines.append(("|" + "-%s-|" * len(headers)) %
                       tuple([ re.sub("[^|]","-", header) for header in headers ]))
 
   # Iterate through platforms and print out table lines.
@@ -126,7 +141,8 @@ def print_table(log_results,
 
 
 def format_result(test_set, list_separator=DEFAULT_LIST_SEPARATOR, justify=0):
-  """Format a list of tests."""
+  """Format a list of test names.
+  In Markdown mode, this can collapse a large list into a dropdown."""
   list_output = list_separator.join(sorted(test_set))
   if FLAGS.markdown and FLAGS.list_max > 0 and len(test_set) > FLAGS.list_max:
       return "<details><summary>_(%s items)_</summary>%s</details>" % (
@@ -138,7 +154,7 @@ def format_result(test_set, list_separator=DEFAULT_LIST_SEPARATOR, justify=0):
 def print_text_table(log_results):
   """Print out a nicely-formatted text table."""
   # For text formatting, see how wide the strings are so we can
-  # justify the text table.
+  # left-justify each column of the text table.
   max_platform = len(PLATFORM_HEADER)
   max_build_failures = len(BUILD_FAILURES_HEADER)
   max_test_failures = len(TEST_FAILURES_HEADER)
@@ -184,15 +200,17 @@ def print_log(log_results):
 
 
 def print_github_log(log_results):
+  """Print a text log, but replace newlines with %0A and add
+  the GitHub ::error text."""
   output_lines = [LOG_HEADER, ""] + print_log(log_results)
   # "%0A" produces a newline in GitHub workflow logs.
   return ["::error ::%s" % "%0A".join(output_lines)]
 
 
 def print_markdown_table(log_results):
-  # Print a normal table, but with a few changes:
-  # Separate test names by newlines, and replace certain spaces
-  # with HTML non-breaking spaces to prevent aggressive word-wrapping.
+  """Print a normal table, but with a few changes:
+  Separate test names by newlines, and replace certain spaces
+  with HTML non-breaking spaces to prevent aggressive word-wrapping."""
   return print_table(log_results, space_char = "&nbsp;", list_separator = "<br/>")
 
 
