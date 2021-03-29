@@ -141,7 +141,7 @@ flags.DEFINE_bool(
     " directory.")
 
 flags.DEFINE_enum(
-    "ios_sdk", _IOS_SDK_DEVICE, _SUPPORTED_IOS_SDK,
+    "ios_sdk", _IOS_SDK_BOTH, _SUPPORTED_IOS_SDK,
     "(iOS only) Build for device (ipa), simulator (app), or both."
     " Building for both will produce both an .app and an .ipa.")
 
