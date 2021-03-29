@@ -201,9 +201,16 @@ def _uninstall_app(bundle_id, device_id):
 
 def _get_test_log(bundle_id, app_path, device_id):
   """Read integration_test app testing result."""
+  args=["xcrun", "simctl", "get_app_container", device_id, bundle_id, "data"]
+  logging.info("Get test result: %s", " ".join(args))
   result = subprocess.run(
-      args=["xcrun", "simctl", "get_app_container", device_id, bundle_id, "data"],
+      args=args,
       capture_output=True, text=True, check=False)
+  
+  if not result.stdout:
+    logging.error("No test Result")
+    return None
+
   log_path = os.path.join(result.stdout.strip(), "Documents/GameLoopResults/Results1.json") 
   return _read_file(log_path) 
 
@@ -215,8 +222,14 @@ def _run_xctest(gameloop_app, device_id):
     "-destination", "id=%s" % device_id]
   logging.info("Running game-loop test: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False)
+
+  if not result.stdout:
+    logging.error("No xctest result")
+    return None
+
   result = result.stdout.splitlines()
   log_path = next((s for s in result if ".xcresult" in s), None)
+  logging.info("game-loop xctest result: %s", log_path)
   return log_path
 
 
