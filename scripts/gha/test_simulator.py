@@ -63,7 +63,7 @@ flags.DEFINE_string(
     "An zipped UI Test app that helps doing game-loop test."
     " The source code can be found here: integration_testing/gameloop")
 flags.DEFINE_string(
-    "ios_device", "iPhone 11-14.3",
+    "ios_device", "iPhone 11-14.4",
     "iOS device, which is a combination of device name and os version")
 
 @attr.s(frozen=False, eq=False)
@@ -100,7 +100,7 @@ def main(argv):
     logging.error("gameloop app not found")
     return 2
 
-  device_id = _create_and_boot_simulator(ios_device)
+  device_id = _boot_simulator(ios_device)
   if not device_id:
     logging.error("simulator created fail")
     return 3
@@ -110,8 +110,6 @@ def main(argv):
     tests.append(Test(
                     testapp_path=bundle_id, 
                     logs=_run_gameloop_test(bundle_id, app_path, gameloop_app, device_id)))
-
-  _delete_simulator(device_id)
 
   return test_validation.summarize_test_results(
     tests, test_validation.CPP, testapp_dir)
@@ -135,20 +133,20 @@ def _unzip_gameloop(gameloop_zip):
   return None
 
 
-def _create_and_boot_simulator(ios_device):
+def _boot_simulator(ios_device):
   """Create a simulator locally. Will wait until this simulator botted."""
   device_info = ios_device.split("-")
   device_name = device_info[0]
   device_os = device_info[1]
 
-  args = ["xcrun", "simctl", "create", "Test Phone", device_name, "iOS%s" % device_os]
-  logging.info("Create my simulator: %s", " ".join(args))
-  result = subprocess.run(args=args, capture_output=True, text=True, check=True)
-  device_id = result.stdout.strip()
-
   args = ["xcrun", "simctl", "shutdown", "all"]
   logging.info("Shutdown all simulators: %s", " ".join(args))
   subprocess.run(args=args, check=True)
+
+  command = "xcrun xctrace list devices 2>&1 | grep \"%s (%s)\" | awk -F'[()]' '{print $4}'" % (device_name, device_os)
+  logging.info("Get my simulator: %s", command)
+  result = subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
+  device_id = result.stdout.read().strip()
 
   args = ["xcrun", "simctl", "boot", device_id]
   logging.info("Boot my simulator: %s", " ".join(args))
