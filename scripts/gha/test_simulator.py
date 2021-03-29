@@ -90,19 +90,19 @@ def main(argv):
         testapps.append((_get_bundle_id(full_path), full_path))
 
   if not testapps:
-    logging.error("No testapps found")
+    logging.info("No testapps found")
     return 1
 
   logging.info("Testapps found: %s", "\n".join(path for _, path in testapps))
   
   gameloop_app = _unzip_gameloop(gameloop_zip)
   if not gameloop_app:
-    logging.error("gameloop app not found")
+    logging.info("gameloop app not found")
     return 2
 
   device_id = _boot_simulator(ios_device)
   if not device_id:
-    logging.error("simulator created fail")
+    logging.info("simulator created fail")
     return 3
 
   tests = []
@@ -177,7 +177,7 @@ def _get_bundle_id(app_path):
 
 def _run_gameloop_test(bundle_id, app_path, gameloop_app, device_id):
   """Run gameloop test and collect test result."""
-  logging.info("Running test: %s", app_path)
+  logging.info("Running test: %s, %s, %s, %s", bundle_id, app_path, gameloop_app, device_id)
   _install_app(app_path, device_id)
   _run_xctest(gameloop_app, device_id)
   logs = _get_test_log(bundle_id, app_path, device_id)
@@ -208,7 +208,7 @@ def _get_test_log(bundle_id, app_path, device_id):
       capture_output=True, text=True, check=False)
   
   if not result.stdout:
-    logging.error("No test Result")
+    logging.info("No test Result")
     return None
 
   log_path = os.path.join(result.stdout.strip(), "Documents/GameLoopResults/Results1.json") 
@@ -224,7 +224,7 @@ def _run_xctest(gameloop_app, device_id):
   result = subprocess.run(args=args, capture_output=True, text=True, check=False)
 
   if not result.stdout:
-    logging.error("No xctest result")
+    logging.info("No xctest result")
     return None
 
   result = result.stdout.splitlines()
