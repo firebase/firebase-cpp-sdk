@@ -63,7 +63,7 @@ flags.DEFINE_string(
     "An zipped UI Test app that helps doing game-loop test."
     " The source code can be found here: integration_testing/gameloop")
 flags.DEFINE_string(
-    "ios_device", "iPhone 11-14.3",
+    "ios_device", "iPhone 11-14.4",
     "iOS device, which is a combination of device name and os version")
 
 @attr.s(frozen=False, eq=False)
