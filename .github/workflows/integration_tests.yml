@@ -359,7 +359,16 @@ jobs:
         if: matrix.target_platform != 'Desktop' && !cancelled()
         run: |
           python scripts/gha/test_lab.py --android_model ${{ needs.prepare_matrix.outputs.android_device }} --android_api ${{ needs.prepare_matrix.outputs.android_api }} --ios_model ${{ needs.prepare_matrix.outputs.ios_device }} --ios_version ${{ needs.prepare_matrix.outputs.ios_version }} --testapp_dir ta --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
-
+      - name: Prepare results summary artifact
+        if: ${{ !cancelled() }}
+        run: |
+          cp ta/summary.log test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
+      - name: Upload results summary artifact
+        uses: actions/upload-artifact@v2.2.2
+        if: ${{ !cancelled() }}
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
+          path: test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
       ### The below allow us to set the failure label and comment early, when the first failure
       ### in the matrix occurs. It'll be cleaned up in a subsequent job.
       - name: add failure label
@@ -377,6 +386,22 @@ jobs:
         run: |
           echo -n "::set-output name=time::"
           TZ=America/Los_Angeles date
+      - name: download artifact
+        uses: actions/download-artifact@v2.0.8
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        with:
+          # download-artifact doesn't support wildcards, but by default
+          # will download all artifacts. Sadly this is what we must do.
+          path: test_results
+      - name: get summary of test results
+        id: get-summary
+        shell: bash
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        run: |
+          mv test_results/test-results-*/test-results-*.txt test_results || true
+          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
+          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
       - name: add failure status comment
         uses: phulsechinmay/rewritable-pr-comment@v0.2.1
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
@@ -386,6 +411,7 @@ jobs:
             Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
+            ${{ env.SUMMARY_TABLE }}
           GITHUB_TOKEN: ${{ github.token }}
           COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
 
@@ -445,6 +471,29 @@ jobs:
         run: |
           echo -n "::set-output name=time::"
           TZ=America/Los_Angeles date
+      - uses: actions/checkout@v2
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+
+      - name: Install python deps
+        run: |
+          python scripts/gha/install_prereqs_desktop.py
+
+      - name: download artifact
+        uses: actions/download-artifact@v2.0.8
+        with:
+          # download-artifact doesn't support wildcards, but by default
+          # will download all artifacts. Sadly this is what we must do.
+          path: test_results
+      - name: get summary of test results
+        shell: bash
+        run: |
+          mv test_results/test-results-*/test-results-*.txt test_results || true
+          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
+          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
       - name: add failure status comment
         uses: phulsechinmay/rewritable-pr-comment@v0.2.1
         with:
@@ -453,6 +502,7 @@ jobs:
             Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
+            ${{ env.SUMMARY_TABLE }}
           GITHUB_TOKEN: ${{ github.token }}
           COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
 
@@ -477,3 +527,32 @@ jobs:
           label: "${{ env.statusLabelInProgress }}"
           type: remove
 
+  summarize_results:
+    name: "summarize-results"
+    needs: [add_failure_label, add_success_label, remove_in_progress_label, tests]
+    runs-on: ubuntu-latest
+    if: ${{ !cancelled() }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Install python deps
+        run: |
+          python scripts/gha/install_prereqs_desktop.py
+      - name: download artifact
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: test_results
+      - name: Summarize results into GitHub log
+        run: |
+          mv test_results/test-results-*/test-results-*.txt test_results || true
+          python scripts/gha/summarize_test_results.py --dir test_results --github_log
+      - uses: geekyeggo/delete-artifact@1-glob-support
+        # Delete all of the test result artifacts.
+        with:
+          name: |
+            test-results-*
+          failOnError: false
+          useGlob: true
