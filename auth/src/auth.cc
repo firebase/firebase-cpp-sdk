@@ -63,11 +63,11 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseAuth);
 // reference.
 // TODO(jsanmiya): Ensure all the Auths are destroyed on shutdown.
 std::map<App*, Auth*> g_auths;
-Mutex g_auths_mutex;  // NOLINT
+Mutex* g_auths_mutex = new Mutex();
 
 // static
 Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
-  MutexLock lock(g_auths_mutex);
+  MutexLock lock(*g_auths_mutex);
   // Return the Auth if it already exists.
   Auth* existing_auth = FindAuth(app);
   if (existing_auth) {
@@ -95,7 +95,7 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
 
 // static
 Auth* Auth::FindAuth(App* app) {
-  MutexLock lock(g_auths_mutex);
+  MutexLock lock(*g_auths_mutex);
   // Return the Auth if it already exists.
   std::map<App*, Auth*>::iterator it = g_auths.find(app);
   if (it != g_auths.end()) {
@@ -137,7 +137,7 @@ Auth::Auth(App* app, void* auth_impl) : auth_data_(new AuthData) {
 }
 
 void Auth::DeleteInternal() {
-  MutexLock lock(g_auths_mutex);
+  MutexLock lock(*g_auths_mutex);
 
   if (!auth_data_) return;
 

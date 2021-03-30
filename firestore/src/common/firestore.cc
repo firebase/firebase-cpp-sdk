@@ -47,7 +47,7 @@ const char* GetPlatform() {
 #endif
 }
 
-Mutex g_firestores_lock;  // NOLINT
+Mutex* g_firestores_lock = new Mutex();
 std::map<App*, Firestore*>* g_firestores = nullptr;
 
 // Ensures that the cache is initialized.
@@ -88,7 +88,7 @@ Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
   FIREBASE_ASSERT_MESSAGE(app != nullptr,
                           "Provided firebase::App must not be null.");
 
-  MutexLock lock(g_firestores_lock);
+  MutexLock lock(*g_firestores_lock);
 
   Firestore* from_cache = FindFirestoreInCache(app, init_result_out);
   if (from_cache) {
@@ -111,7 +111,7 @@ Firestore* Firestore::CreateFirestore(App* app, FirestoreInternal* internal,
   FIREBASE_ASSERT_MESSAGE(internal != nullptr,
                           "Provided FirestoreInternal must not be null.");
 
-  MutexLock lock(g_firestores_lock);
+  MutexLock lock(*g_firestores_lock);
 
   Firestore* from_cache = FindFirestoreInCache(app, init_result_out);
   FIREBASE_ASSERT_MESSAGE(from_cache == nullptr,
@@ -168,7 +168,7 @@ Firestore::Firestore(FirestoreInternal* internal)
 Firestore::~Firestore() { DeleteInternal(); }
 
 void Firestore::DeleteInternal() {
-  MutexLock lock(g_firestores_lock);
+  MutexLock lock(*g_firestores_lock);
 
   if (!internal_) return;
 

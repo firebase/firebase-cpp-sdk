@@ -102,7 +102,7 @@ class CleanupNotifier {
   std::vector<void *> owners_;
 
   // Guards owners_ and cleanup_notifiers_by_owner_.
-  static Mutex cleanup_notifiers_by_owner_mutex_;
+  static Mutex* cleanup_notifiers_by_owner_mutex_;
   // Global map of cleanup notifiers bucketed by owner object.
   static std::map<void *, CleanupNotifier *> *cleanup_notifiers_by_owner_;
 };

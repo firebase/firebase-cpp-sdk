@@ -581,6 +581,9 @@ code.
         `ChildListener`s rapidly.
     -   Database: Fixed a crash when setting large values on Windows and Mac
         systems ([#517](https://github.com/firebase/quickstart-unity/issues/517)).
+    -   General: Fixed rare crashes at application exit when destructors were
+        being executed
+        ([#345](https://github.com/firebase/firebase-cpp-sdk/pull/345)).
 
 ### 7.1.1
 -   Changes

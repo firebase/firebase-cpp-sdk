@@ -45,23 +45,23 @@ const char kGet[] = "GET";
 const char kPost[] = "POST";
 
 // Mutex for utils initialization and distribution of CURL pointers.
-static ::firebase::Mutex g_util_curl_mutex;  // NOLINT
+static ::firebase::Mutex* g_util_curl_mutex = new Mutex();
 
 CURL* g_curl_instance = nullptr;
 int g_init_ref_count = 0;
 
 void* CreateCurlPtr() {  // NOLINT
-  MutexLock lock(g_util_curl_mutex);
+  MutexLock lock(*g_util_curl_mutex);
   return curl_easy_init();
 }
 
 void DestroyCurlPtr(void* curl_ptr) {
-  MutexLock lock(g_util_curl_mutex);
+  MutexLock lock(*g_util_curl_mutex);
   curl_easy_cleanup(static_cast<CURL*>(curl_ptr));
 }
 
 void Initialize() {
-  MutexLock curl_lock(g_util_curl_mutex);
+  MutexLock curl_lock(*g_util_curl_mutex);
   assert(g_init_ref_count >= 0);
   if (g_init_ref_count == 0) {
     g_curl_instance = reinterpret_cast<CURL*>(CreateCurlPtr());
@@ -70,7 +70,7 @@ void Initialize() {
 }
 
 void Terminate() {
-  MutexLock curl_lock(g_util_curl_mutex);
+  MutexLock curl_lock(*g_util_curl_mutex);
   --g_init_ref_count;
   assert(g_init_ref_count >= 0);
   if (g_init_ref_count == 0) {
