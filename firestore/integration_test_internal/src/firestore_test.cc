@@ -10,7 +10,12 @@
 #endif
 
 #if defined(__ANDROID__)
+#include "android/firestore_integration_test_android.h"
 #include "firestore/src/android/exception_android.h"
+#include "firestore/src/android/jni_runnable_android.h"
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/ownership.h"
+#include "firestore/src/jni/task.h"
 #endif  // defined(__ANDROID__)
 
 #include "firestore_integration_test.h"
@@ -1435,13 +1440,6 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceOnANewFirestoreInstance) {
   const std::string path = document.path();
   WriteDocument(document, MapFieldValue{{"foo", FieldValue::Integer(42)}});
 
-#if defined(__ANDROID__)
-  // TODO(b/168628900) Remove this call to Terminate() once deleting the
-  // Firestore* instance removes the underlying Java object from the instance
-  // cache in Android.
-  EXPECT_THAT(db->Terminate(), FutureSucceeds());
-#endif
-
   // Call DeleteFirestore() to ensure that both the App and Firestore instances
   // are deleted, which emulates the way an end user would experience their
   // application being killed and later re-launched by the user.
@@ -1552,6 +1550,21 @@ TEST_F(FirestoreIntegrationTest, FirestoreCanBeDeletedFromTransaction) {
   deletion.wait();
 }
 #endif  // #if !defined(__ANDROID__)
+
+#if defined(__ANDROID__)
+TEST_F(FirestoreAndroidIntegrationTest,
+       CanDeleteFirestoreInstanceOnJavaMainThread) {
+  jni::Env env;
+  Firestore* db = TestFirestore();
+  auto runnable = MakeJniRunnable(env, [db] { delete db; });
+
+  jni::Local<jni::Task> task = runnable.RunOnMainThread(env);
+
+  Await(env, task);
+  EXPECT_TRUE(task.IsSuccessful(env));
+  DisownFirestore(db);  // Avoid double-deletion of the `db`.
+}
+#endif  // defined(__ANDROID__)
 
 #endif  // defined(FIRESTORE_STUB_BUILD)
 

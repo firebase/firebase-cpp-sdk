@@ -158,7 +158,7 @@ class TestEventListener : public EventListener<T> {
 };
 
 // Base class for Firestore integration tests.
-// Note it keeps a cached of created Firestore instances, and is thread-unsafe.
+// Note it keeps a cache of created Firestore instances, and is thread-unsafe.
 class FirestoreIntegrationTest : public testing::Test {
   friend class TransactionTester;
 
@@ -176,17 +176,31 @@ class FirestoreIntegrationTest : public testing::Test {
   // Returns a Firestore instance for an app with the given name.
   // If this method is invoked again with the same `name`, then the same pointer
   // will be returned. The only exception is if the `Firestore` was removed
-  // from the cache by a call to `DeleteFirestore()` or `DeleteApp()` with the
-  // `App` of the returned `Firestore`.
+  // from the cache by a call to `DeleteFirestore()` or `DisownFirestore()`, or
+  // if `DeleteApp()` is called with the `App` of the returned `Firestore`.
   Firestore* TestFirestore(const std::string& name = kDefaultAppName) const;
 
   // Deletes the given `Firestore` instance, which must have been returned by a
-  // previous invocation of `TestFirestore()`. If the given instance was in the
-  // cache, then it will be removed from the cache. Note that all `Firestore`
+  // previous invocation of `TestFirestore()`, and removes it from the cache of
+  // instances returned from `TestFirestore()`. Note that all `Firestore`
   // instances returned from `TestFirestore()` will be automatically deleted at
   // the end of the test case; therefore, this method is only needed if the test
-  // requires that the instance be deleted earlier than that.
+  // requires that the instance be deleted earlier than that. If the given
+  // `Firestore` instance has already been removed from the cache, such as by a
+  // previous invocation of this method, then the behavior of this method is
+  // undefined.
   void DeleteFirestore(Firestore* firestore);
+
+  // Relinquishes ownership of the given `Firestore` instance, which must have
+  // been returned by a previous invocation of `TestFirestore()`, and removes it
+  // from the cache of instances returned from `TestFirestore()`. Note that all
+  // `Firestore` instances returned from `TestFirestore()` will be automatically
+  // deleted at the end of the test case; therefore, this method is only needed
+  // if the test requires that the instance be excluded from this automatic
+  // deletion. If the given `Firestore` instance has already been removed from
+  // the cache, such as by a previous invocation of this method, then the
+  // behavior of this method is undefined.
+  void DisownFirestore(Firestore* firestore);
 
   // Deletes the given `App` instance. The given `App` must have been the `App`
   // associated with a `Firestore` instance returned by a previous invocation of
@@ -310,13 +324,11 @@ class FirestoreIntegrationTest : public testing::Test {
 
     const std::string& name() const { return name_; }
     Firestore* firestore() const { return firestore_.get(); }
-    bool cached() const { return cached_; }
-    void ClearCached() { cached_ = false; }
+    void ReleaseFirestore() { firestore_.release(); }
 
    private:
     std::string name_;
     UniquePtr<Firestore> firestore_;
-    bool cached_ = true;
   };
 
   // The Firestore and App instance caches.

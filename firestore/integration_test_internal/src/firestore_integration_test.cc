@@ -114,7 +114,7 @@ Firestore* FirestoreIntegrationTest::TestFirestore(
     const std::string& name) const {
   for (const auto& entry : firestores_) {
     const FirestoreInfo& firestore_info = entry.second;
-    if (firestore_info.cached() && firestore_info.name() == name) {
+    if (firestore_info.name() == name) {
       return firestore_info.firestore();
     }
   }
@@ -138,6 +138,14 @@ void FirestoreIntegrationTest::DeleteFirestore(Firestore* firestore) {
   auto found = firestores_.find(firestore);
   FIREBASE_ASSERT_MESSAGE(found != firestores_.end(),
                           "The given Firestore was not found.");
+  firestores_.erase(found);
+}
+
+void FirestoreIntegrationTest::DisownFirestore(Firestore* firestore) {
+  auto found = firestores_.find(firestore);
+  FIREBASE_ASSERT_MESSAGE(found != firestores_.end(),
+                          "The given Firestore was not found.");
+  found->second.ReleaseFirestore();
   firestores_.erase(found);
 }
 
