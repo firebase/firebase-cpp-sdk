@@ -101,6 +101,7 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
 # These sources contain the actual tests that run on Android only.
 set(FIREBASE_INTEGRATION_TEST_ANDROID_TEST_SRCS
     src/android/field_path_portable_test.cc
+    src/android/firebase_firestore_settings_android_test.cc
     src/android/firestore_integration_test_android_test.cc
     src/android/geo_point_android_test.cc
     src/android/jni_runnable_android_test.cc
