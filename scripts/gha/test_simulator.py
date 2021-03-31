@@ -59,7 +59,7 @@ flags.DEFINE_string(
     "testapp_dir", None,
     "Testapps in this directory will be tested.")
 flags.DEFINE_string(
-    "gameloop_zip", "integration_testing/gameloop.zip",
+    "gameloop_project", "integration_testing/gameloop",
     "An zipped UI Test app that helps doing game-loop test."
     " The source code can be found here: integration_testing/gameloop")
 flags.DEFINE_string(
@@ -78,8 +78,11 @@ def main(argv):
 
   current_dir = pathlib.Path(__file__).parent.absolute()
   testapp_dir = os.path.abspath(os.path.expanduser(FLAGS.testapp_dir))
-  gameloop_zip = os.path.join(current_dir, FLAGS.gameloop_zip)
+  gameloop_project = os.path.join(current_dir, FLAGS.gameloop_project)
   ios_device = FLAGS.ios_device
+  device_info = ios_device.split("-")
+  device_name = device_info[0]
+  device_os = device_info[1]
 
   config_path = os.path.join(current_dir, "integration_testing", "build_testapps.json")
   with open(config_path, "r") as config:
@@ -105,12 +108,12 @@ def main(argv):
 
   logging.info("Testapps found: %s", "\n".join(path for _, path in testapps))
   
-  gameloop_app = _unzip_gameloop(gameloop_zip)
+  gameloop_app = _build_gameloop(gameloop_project, device_name, device_os)
   if not gameloop_app:
     logging.info("gameloop app not found")
     return 2
 
-  device_id = _boot_simulator(ios_device)
+  device_id = _boot_simulator(device_name, device_os)
   if not device_id:
     logging.info("simulator created fail")
     return 3
@@ -125,28 +128,59 @@ def main(argv):
     tests, test_validation.CPP, testapp_dir)
 
 
-def _unzip_gameloop(gameloop_zip):
-  """Unzip gameloop UI Test app. 
+def _get_bundle_id(app_path, config):
+  """Get app bundle id from build_testapps.json file."""
+  for api in config["apis"]:
+    if api["name"] != "app" and (api["name"] in app_path or api["full_name"] in app_path):
+      return api["bundle_id"]
+
+
+def _build_gameloop(gameloop_project, device_name, device_os):
+  """Build gameloop UI Test app. 
 
   This gameloop app can run integration_test app automatically.
   """
+  project_path = os.path.join(gameloop_project, "gameloop.xcodeproj")
+  output_path = os.path.join(gameloop_project, "Build")
 
-  directory = os.path.dirname(gameloop_zip)
-  with zipfile.ZipFile(gameloop_zip,"r") as zip_ref:
-    zip_ref.extractall(directory)
+  """Build the gameloop app for test."""
+  args = ["xcodebuild", "-project", project_path,
+    "-scheme", "gameloop",
+    "-sdk", "iphonesimulator",
+    "build-for-testing", 
+    "-destination", "platform=iOS Simulator,name=%s,OS=%s" % (device_name, device_os), 
+    "SYMROOT=%s" % output_path]
+  logging.info("Running game-loop test: %s", " ".join(args))
+  subprocess.run(args=args, check=True)
   
-  for file_dir, _, file_names in os.walk(directory):
+  for file_dir, _, file_names in os.walk(output_path):
     for file_name in file_names:
       if file_name.endswith(".xctestrun"): 
         return os.path.join(file_dir, file_name)
 
 
-def _boot_simulator(ios_device):
-  """Create a simulator locally. Will wait until this simulator botted."""
-  device_info = ios_device.split("-")
-  device_name = device_info[0]
-  device_os = device_info[1]
+def _run_xctest(gameloop_app, device_id):
+  """Run the gameloop UI Test app.
+    This gameloop app can run integration_test app automatically.
+  """
+  args = ["xcodebuild", "test-without-building", 
+    "-xctestrun", gameloop_app, 
+    "-destination", "id=%s" % device_id]
+  logging.info("Running game-loop test: %s", " ".join(args))
+  result = subprocess.run(args=args, capture_output=True, text=True, check=False)
 
+  if not result.stdout:
+    logging.info("No xctest result")
+    return
+
+  result = result.stdout.splitlines()
+  log_path = next((line for line in result if ".xcresult" in line), None)
+  logging.info("game-loop xctest result: %s", log_path)
+  return log_path
+
+
+def _boot_simulator(device_name, device_os):
+  """Create a simulator locally. Will wait until this simulator botted."""
   args = ["xcrun", "simctl", "shutdown", "all"]
   logging.info("Shutdown all simulators: %s", " ".join(args))
   subprocess.run(args=args, check=True)
@@ -172,20 +206,13 @@ def _delete_simulator(device_id):
   subprocess.run(args=args, check=True)
 
 
-def _get_bundle_id(app_path, config):
-  """Get app bundle id from build_testapps.json file."""
-  for api in config["apis"]:
-    if api["name"] != "app" and (api["name"] in app_path or api["full_name"] in app_path):
-      return api["bundle_id"]
-
-
 def _run_gameloop_test(bundle_id, app_path, gameloop_app, device_id):
   """Run gameloop test and collect test result."""
   logging.info("Running test: %s, %s, %s, %s", bundle_id, app_path, gameloop_app, device_id)
   _install_app(app_path, device_id)
   _run_xctest(gameloop_app, device_id)
   logs = _get_test_log(bundle_id, app_path, device_id)
-  # _uninstall_app(bundle_id, device_id)
+  _uninstall_app(bundle_id, device_id)
   return logs
 
 
@@ -217,24 +244,6 @@ def _get_test_log(bundle_id, app_path, device_id):
 
   log_path = os.path.join(result.stdout.strip(), "Documents", "GameLoopResults", "Results1.json") 
   return _read_file(log_path) 
-
-
-def _run_xctest(gameloop_app, device_id):
-  """Run the gamelop test."""
-  args = ["xcodebuild", "test-without-building", 
-    "-xctestrun", gameloop_app, 
-    "-destination", "id=%s" % device_id]
-  logging.info("Running game-loop test: %s", " ".join(args))
-  result = subprocess.run(args=args, capture_output=True, text=True, check=False)
-
-  if not result.stdout:
-    logging.info("No xctest result")
-    return
-
-  result = result.stdout.splitlines()
-  log_path = next((line for line in result if ".xcresult" in line), None)
-  logging.info("game-loop xctest result: %s", log_path)
-  return log_path
 
 
 def _read_file(path):
