@@ -170,6 +170,9 @@ if(ANDROID)
     configure_file(abseil-cpp.cmake
       ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp/CMakeLists.txt COPYONLY)
     execute_process(COMMAND ${CMAKE_COMMAND} .
+      -G ${CMAKE_GENERATOR}
+      -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
+      -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
       RESULT_VARIABLE result
       WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/external/abseil-cpp )
     if(result)
@@ -211,6 +214,9 @@ if (NOT EXISTS ${GOOGLETEST_ROOT}/src/googletest/src/gtest-all.cc)
   configure_file(googletest.cmake
     ${CMAKE_CURRENT_LIST_DIR}/external/googletest/CMakeLists.txt COPYONLY)
   execute_process(COMMAND ${CMAKE_COMMAND} .
+    -G ${CMAKE_GENERATOR}
+    -DCMAKE_MAKE_PROGRAM=${CMAKE_MAKE_PROGRAM}
+    -DCMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}
     RESULT_VARIABLE result
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/external/googletest )
   if(result)

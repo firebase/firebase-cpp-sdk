@@ -50,7 +50,7 @@ namespace secure {
 
 using callback::NewCallback;
 
-Mutex UserSecureManager::s_scheduler_mutex_;  // NOLINT
+Mutex* UserSecureManager::s_scheduler_mutex_ = new Mutex();
 scheduler::Scheduler* UserSecureManager::s_scheduler_;
 int32_t UserSecureManager::s_scheduler_ref_count_;
 
@@ -184,7 +184,7 @@ Future<void> UserSecureManager::DeleteAllData() {
 }
 
 void UserSecureManager::CreateScheduler() {
-  MutexLock lock(s_scheduler_mutex_);
+  MutexLock lock(*s_scheduler_mutex_);
   if (s_scheduler_ == nullptr) {
     s_scheduler_ = new scheduler::Scheduler();
     // reset count
@@ -194,7 +194,7 @@ void UserSecureManager::CreateScheduler() {
 }
 
 void UserSecureManager::DestroyScheduler() {
-  MutexLock lock(s_scheduler_mutex_);
+  MutexLock lock(*s_scheduler_mutex_);
   if (s_scheduler_ == nullptr) {
     // reset count
     s_scheduler_ref_count_ = 0;

@@ -312,12 +312,12 @@ CurlThread* g_curl_thread = nullptr;
 int g_initialize_count = 0;
 
 // Mutex for Curl initialization.
-Mutex g_initialize_mutex;  // NOLINT
+Mutex* g_initialize_mutex = new Mutex();
 
 }  // namespace
 
 void InitTransportCurl() {
-  MutexLock lock(g_initialize_mutex);
+  MutexLock lock(*g_initialize_mutex);
   if (g_initialize_count == 0) {
     // Initialize curl.
     CURLcode global_init_code = curl_global_init(CURL_GLOBAL_ALL);
@@ -333,7 +333,7 @@ void InitTransportCurl() {
 }
 
 void CleanupTransportCurl() {
-  MutexLock lock(g_initialize_mutex);
+  MutexLock lock(*g_initialize_mutex);
   assert(g_initialize_count > 0);
   g_initialize_count--;
   if (g_initialize_count == 0) {
