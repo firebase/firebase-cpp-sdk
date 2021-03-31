@@ -24,6 +24,9 @@ on:
         description: 'CSV of desktop SSL variants to use'
         default: 'openssl,boringssl'
         required: true
+      mobile_test_on:
+        description: 'iOS/Android test on Real Device or Simulator'
+        default: 'device'
       android_device:
         description: 'Android device model'
         default: 'flame'
@@ -160,6 +163,7 @@ jobs:
       matrix_os: ${{ steps.export-result.outputs.matrix_os }}
       matrix_ssl: ${{ steps.export-result.outputs.matrix_ssl }}
       apis: ${{ steps.export-result.outputs.apis }}
+      mobile_test_on: ${{ steps.export-result.outputs.mobile_test_on }}
       android_device: ${{ steps.export-result.outputs.android_device }}
       android_api: ${{ steps.export-result.outputs.android_api }}
       ios_device: ${{ steps.export-result.outputs.ios_device }}
@@ -193,6 +197,7 @@ jobs:
           else
             echo "::set-output name=matrix_ssl::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ssl_lib -o "${{github.event.inputs.desktop_ssl_variants}}" )"
           fi
+          echo "::set-output name=mobile_test_on::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k mobile_test_on -o "${{github.event.inputs.mobile_test_on}}" )"
           echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k android_device -o "${{github.event.inputs.android_device}}" )"
           echo "::set-output name=android_api::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k android_api -o "${{github.event.inputs.android_api}}" )"
           echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_device -o "${{github.event.inputs.ios_device}}" )"
@@ -336,7 +341,7 @@ jobs:
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
           fi
-          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths
+          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --ios_sdk "${{ needs.prepare_matrix.outputs.mobile_test_on }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths
 
       - name: Run desktop integration tests
         if: matrix.target_platform == 'Desktop' && !cancelled()
