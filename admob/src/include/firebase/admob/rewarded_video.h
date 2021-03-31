@@ -121,6 +121,8 @@ struct RewardItem {
   float amount;
   /// A string description of the type of reward (such as "coins" or "points").
   std::string reward_type;
+  /// A string containing the User ID for Server-Side Verification 
+  std::string ssv_user_id;
 };
 
 /// A listener class that developers can extend and pass to @ref SetListener

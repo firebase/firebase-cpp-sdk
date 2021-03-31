@@ -116,7 +116,7 @@ public class RewardedVideoHelper {
     completeRewardedVideoFutureCallback(
         CPP_NULLPTR, 0, ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
     notifyPresentationStateChanged(CPP_NULLPTR, mCurrentPresentationState);
-    grantReward(CPP_NULLPTR, 0, DEFAULT_REWARD_TYPE);
+    grantReward(CPP_NULLPTR, 0, DEFAULT_REWARD_TYPE, "");
   }
 
   /**
@@ -381,7 +381,11 @@ public class RewardedVideoHelper {
             rewardType = DEFAULT_REWARD_TYPE;
           }
 
-          grantReward(mRewardedVideoInternalPtr, rewardItem.getAmount(), rewardType);
+          RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
+          String ssvUserId = ad.getUserId();
+          if (ssvUserId == null) ssvUserId = "";
+
+          grantReward(mRewardedVideoInternalPtr, rewardItem.getAmount(), rewardType, ssvUserId);
         }
       }
     }
@@ -415,5 +419,5 @@ public class RewardedVideoHelper {
   public static native void notifyPresentationStateChanged(long nativeInternalPtr, int state);
 
   /** Native callback to notify the C++ wrapper that a reward should be given. */
-  public static native void grantReward(long nativeInternalPtr, int amount, String rewardType);
+  public static native void grantReward(long nativeInternalPtr, int amount, String rewardType, String ssvUserId);
 }

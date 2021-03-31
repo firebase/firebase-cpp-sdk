@@ -182,6 +182,7 @@ void RewardedVideoInternalIOS::RewardBasedVideoAdDidRewardUserWithReward
   RewardItem reward_item;
   reward_item.amount = reward.amount.floatValue;
   reward_item.reward_type = reward.type.UTF8String;
+  reward_item.ssv_user_id = reward.userIdentifier.UTF8String;
   NotifyListenerOfReward(reward_item);
 }
 
