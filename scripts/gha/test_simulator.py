@@ -81,7 +81,7 @@ def main(argv):
   gameloop_zip = os.path.join(current_dir, FLAGS.gameloop_zip)
   ios_device = FLAGS.ios_device
 
-  config_path = os.path.join(current_dir, "integration_testing/build_testapps.json")
+  config_path = os.path.join(current_dir, "integration_testing", "build_testapps.json")
   with open(config_path, "r") as config:
     config = json.load(config)
 
@@ -139,8 +139,6 @@ def _unzip_gameloop(gameloop_zip):
     for file_name in file_names:
       if file_name.endswith(".xctestrun"): 
         return os.path.join(file_dir, file_name)
-  
-  return None
 
 
 def _boot_simulator(ios_device):
@@ -217,7 +215,7 @@ def _get_test_log(bundle_id, app_path, device_id):
     logging.info("No test Result")
     return None
 
-  log_path = os.path.join(result.stdout.strip(), "Documents/GameLoopResults/Results1.json") 
+  log_path = os.path.join(result.stdout.strip(), "Documents", "GameLoopResults", "Results1.json") 
   return _read_file(log_path) 
 
 
@@ -231,21 +229,22 @@ def _run_xctest(gameloop_app, device_id):
 
   if not result.stdout:
     logging.info("No xctest result")
-    return None
+    return
 
   result = result.stdout.splitlines()
-  log_path = next((s for s in result if ".xcresult" in s), None)
+  log_path = next((line for line in result if ".xcresult" in line), None)
   logging.info("game-loop xctest result: %s", log_path)
   return log_path
 
 
 def _read_file(path):
   """Extracts the contents of a file."""
-  args = ["cat", path]
-  logging.info("Reading file: %s", " ".join(args))
-  result = subprocess.run(args=args, capture_output=True, text=True, check=False)
-  logging.info("File contant: %s", result.stdout)
-  return result.stdout
+  with open(path, "r") as f:
+    test_result = f.read()
+
+  logging.info("Reading file: %s", path)
+  logging.info("File contant: %s", test_result)
+  return test_result
 
 
 if __name__ == '__main__':
