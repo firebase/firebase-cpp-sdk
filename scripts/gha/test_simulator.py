@@ -44,7 +44,6 @@ import json
 import os
 import pathlib
 import subprocess
-import zipfile
 
 from absl import app
 from absl import flags
@@ -60,8 +59,7 @@ flags.DEFINE_string(
     "Testapps in this directory will be tested.")
 flags.DEFINE_string(
     "gameloop_project", "integration_testing/gameloop",
-    "An zipped UI Test app that helps doing game-loop test."
-    " The source code can be found here: integration_testing/gameloop")
+    "A tool that enable game-loop test. This is a XCode project")
 flags.DEFINE_string(
     "ios_device", "iPhone 11-14.4",
     "iOS device, which is a combination of device name and os version")
