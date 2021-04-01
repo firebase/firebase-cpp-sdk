@@ -784,7 +784,8 @@ int ZLib::Uncompress(Bytef* dest, uLongf* destLen, const Bytef* source,
 
 // read uncompress length from gzip footer
 uLongf ZLib::GzipUncompressedLength(const Bytef* source, uLong len) {
-  assert(len > 4);
+  if (len <= 4) return 0;  // malformed data.
+
   return (static_cast<uLongf>(source[len - 1]) << 24) +
          (static_cast<uLongf>(source[len - 2]) << 16) +
          (static_cast<uLongf>(source[len - 3]) << 8) +

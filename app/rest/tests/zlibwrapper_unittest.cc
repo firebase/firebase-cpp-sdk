@@ -1047,5 +1047,34 @@ TEST(ZLibWrapperStandalone, ReadPastEndOfWindow) {
   LOG(INFO) << "passed read-past-end-of-window test";
 }
 
+TEST(ZLibWrapperStandalone, GzipUncompressedLength) {
+  ZLib zlib;
+
+  // "Hello, World!", compressed.
+  std::string hello_world(
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\xf3\x48\xcd\xc9\xc9"
+      "\xd7\x51\x08\xcf\x2f\xca\x49\x51\x04\x00\xd0\xc3\x4a\xec\x0d"
+      "\x00\x00\x00",
+      33);
+  EXPECT_EQ(13, zlib.GzipUncompressedLength(
+                    reinterpret_cast<const Bytef*>(hello_world.c_str()),
+                    hello_world.size()));
+
+  // Empty string, "", compressed.
+  std::string empty(
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\x03\x00\x00\x00\x00"
+      "\x00\x00\x00\x00\x00",
+      20);
+  EXPECT_EQ(0,
+            zlib.GzipUncompressedLength(
+                reinterpret_cast<const Bytef*>(empty.c_str()), empty.size()));
+
+  std::string bad_data("\x01\x01\x01\x01", 4);
+  for (int len = 0; len <= bad_data.size(); len++) {
+    EXPECT_EQ(0, zlib.GzipUncompressedLength(
+                     reinterpret_cast<const Bytef*>(bad_data.c_str()), len));
+  }
+}
+
 }  // namespace
 }  // namespace firebase
