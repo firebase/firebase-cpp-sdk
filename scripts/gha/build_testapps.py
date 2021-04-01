@@ -108,8 +108,7 @@ _SUPPORTED_PLATFORMS = (_ANDROID, _IOS, _DESKTOP)
 # Values for iOS SDK flag (where the iOS app will run)
 _IOS_SDK_DEVICE = "device"
 _IOS_SDK_SIMULATOR = "simulator"
-_IOS_SDK_BOTH = "both"
-_SUPPORTED_IOS_SDK = (_IOS_SDK_DEVICE, _IOS_SDK_SIMULATOR, _IOS_SDK_BOTH)
+_SUPPORTED_IOS_SDK = (_IOS_SDK_DEVICE, _IOS_SDK_SIMULATOR)
 
 FLAGS = flags.FLAGS
 
@@ -140,8 +139,8 @@ flags.DEFINE_bool(
     " Recommended when running locally, so each execution gets its own "
     " directory.")
 
-flags.DEFINE_enum(
-    "ios_sdk", _IOS_SDK_DEVICE, _SUPPORTED_IOS_SDK,
+flags.DEFINE_list(
+    "ios_sdk", _IOS_SDK_DEVICE, 
     "(iOS only) Build for device (ipa), simulator (app), or both."
     " Building for both will produce both an .app and an .ipa.")
 
@@ -166,6 +165,12 @@ flags.register_validator(
     "platforms",
     lambda p: all(platform in _SUPPORTED_PLATFORMS for platform in p),
     message="Valid platforms: " + ",".join(_SUPPORTED_PLATFORMS),
+    flag_values=FLAGS)
+
+flags.register_validator(
+    "ios_sdk",
+    lambda s: all(ios_sdk in _SUPPORTED_IOS_SDK for ios_sdk in s),
+    message="Valid platforms: " + ",".join(_SUPPORTED_IOS_SDK),
     flag_values=FLAGS)
 
 flags.DEFINE_bool(
@@ -501,7 +506,7 @@ def _build_ios(
   _run(xcode_patcher_args)
 
   xcode_path = os.path.join(project_dir, api_config.ios_target + ".xcworkspace")
-  if ios_sdk in [_IOS_SDK_SIMULATOR, _IOS_SDK_BOTH]:
+  if _IOS_SDK_SIMULATOR in ios_sdk:
     _run(
         xcodebuild.get_args_for_build(
             path=xcode_path,
@@ -510,7 +515,7 @@ def _build_ios(
             ios_sdk=_IOS_SDK_SIMULATOR,
             configuration="Debug"))
 
-  if ios_sdk in [_IOS_SDK_DEVICE, _IOS_SDK_BOTH]:
+  if _IOS_SDK_DEVICE in ios_sdk:
     _run(
         xcodebuild.get_args_for_build(
             path=xcode_path,
