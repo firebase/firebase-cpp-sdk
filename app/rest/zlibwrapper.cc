@@ -703,7 +703,9 @@ int ZLib::UncompressChunk(Bytef* dest, uLongf* destLen, const Bytef* source,
 // mode, we also check the gzip footer to make sure we pass the gzip
 // consistency checks.  We RETURN true iff both types of checks pass.
 bool ZLib::UncompressChunkDone() {
-  assert(!first_chunk_ && uncomp_init_);
+  if (first_chunk_ || !uncomp_init_) {
+    return false;
+  }
   // Make sure we're at the end-of-compressed-data point.  This means
   // if we call inflate with Z_FINISH we won't consume any input or
   // write any output

@@ -21,6 +21,7 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "gtest/gtest.h"
@@ -1045,6 +1046,107 @@ TEST(ZLibWrapperStandalone, ReadPastEndOfWindow) {
 
   // if we haven't segfaulted by now, we pass
   LOG(INFO) << "passed read-past-end-of-window test";
+}
+
+TEST(ZLibWrapperStandalone, BytewiseRead) {
+  std::string text =
+      "v nedrah tundry vydra v getrah tyrit v vedrah yadra kedra";
+  size_t text_len = text.size();
+  size_t archive_len = ZLib::MinCompressbufSize(text_len);
+  std::string archive(archive_len, '\0');
+  size_t decompressed_len = text_len + 1;
+  std::string decompressed(decompressed_len, '\0');
+  size_t decompressed_offset = 0;
+
+  ZLib compressor;
+  compressor.SetGzipHeaderMode();
+  int rc = compressor.Compress((Bytef*)archive.data(), &archive_len,
+                               (Bytef*)text.data(), text_len);
+  ASSERT_EQ(rc, Z_OK);
+
+  ZLib zlib;
+  zlib.SetGzipHeaderMode();
+  for (size_t i = 0; i < archive_len; ++i) {
+    size_t source_len = 1;
+    size_t dest_len = decompressed_len - decompressed_offset;
+    rc = zlib.UncompressAtMost(
+        (Bytef*)decompressed.data() + decompressed_offset, &dest_len,
+        (Bytef*)archive.data() + i, &source_len);
+    ASSERT_EQ(rc, Z_OK);
+    ASSERT_EQ(source_len, 0);
+    decompressed_offset += dest_len;
+  }
+
+  ASSERT_TRUE(zlib.IsGzipFooterValid());
+  ASSERT_EQ(decompressed_offset, text_len);
+
+  std::string truncated_output(decompressed.data(), text_len);
+  ASSERT_EQ(truncated_output, text);
+
+  // if we haven't segfaulted by now, we pass
+  LOG(INFO) << "passed bytewise-read test";
+}
+
+TEST(ZLibWrapperStandaloneTest, TruncatedData) {
+  const int kBufferLen = 64;
+  std::string uncompressed = "Hello, World!";
+  std::string compressed(
+      "\x1f\x8b\x08\x00\x00\x00\x00\x00\x00\x03\xf3\x48\xcd\xc9\xc9"
+      "\xd7\x51\x08\xcf\x2f\xca\x49\x51\x04\x00\xd0\xc3\x4a\xec\x0d"
+      "\x00\x00\x00",
+      33);
+
+  // Verify that "compressed" contains valid gzip data.
+  {
+    ZLib zlib;
+    zlib.SetGzipHeaderMode();
+    char uncompbuf[kBufferLen];
+    bzero(uncompbuf, kBufferLen);
+    uLongf uncomplen = kBufferLen;
+    int err = zlib.Uncompress(
+        reinterpret_cast<Bytef*>(uncompbuf), &uncomplen,
+        reinterpret_cast<const Bytef*>(compressed.c_str()), compressed.size());
+    ASSERT_EQ(err, Z_OK);
+    ASSERT_EQ(uncompressed, std::string_view(uncompbuf, uncomplen));
+  }
+
+  // Test truncated data with ZLib::Uncompress().
+  for (int len = compressed.size() - 1; len > 0; len--) {
+    SCOPED_TRACE(absl::StrCat("Decompressing first ", len, " out of ",
+                              compressed.size(), " bytes"));
+    ZLib zlib;
+    zlib.SetGzipHeaderMode();
+    char uncompbuf[kBufferLen];
+    bzero(uncompbuf, kBufferLen);
+    uLongf uncomplen = kBufferLen;
+    int err = zlib.Uncompress(
+        reinterpret_cast<Bytef*>(uncompbuf), &uncomplen,
+        reinterpret_cast<const Bytef*>(compressed.c_str()), len);
+    ASSERT_NE(err, Z_OK);
+  }
+
+  // Test truncated data with ZLib::UncompressAtMost() and
+  // ZLib::UncompressDone().
+  for (int len = compressed.size() - 1; len > 0; len--) {
+    SCOPED_TRACE(absl::StrCat("Decompressing first ", len, " out of ",
+                              compressed.size(), " bytes"));
+    ZLib zlib;
+    zlib.SetGzipHeaderMode();
+    char uncompbuf[kBufferLen];
+    bzero(uncompbuf, kBufferLen);
+    uLongf uncomplen = kBufferLen;
+    uLongf complen = len;
+    int err = zlib.UncompressAtMost(
+        reinterpret_cast<Bytef*>(uncompbuf), &uncomplen,
+        reinterpret_cast<const Bytef*>(compressed.c_str()), &complen);
+    ASSERT_EQ(err, Z_OK);
+    ASSERT_EQ(complen, 0);
+    if (uncomplen > 0) {
+      EXPECT_THAT(uncompressed,
+                  testing::StartsWith(absl::string_view(uncompbuf, uncomplen)));
+    }
+    ASSERT_FALSE(zlib.UncompressChunkDone());
+  }
 }
 
 TEST(ZLibWrapperStandalone, GzipUncompressedLength) {
