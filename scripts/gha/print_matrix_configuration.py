@@ -103,6 +103,7 @@ PARAMETERS = {
     },
     "config": {
       "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage",
+      "mobile_test_on": "device,simulator",
       "android_device": "flame",
       "android_api": "29",
       "ios_device": "iphone8",

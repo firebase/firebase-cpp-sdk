@@ -90,6 +90,9 @@ CAPITALIZATIONS = {
     "desktop": "Desktop",
 }
 
+SIMULATOR = "simulator"
+HARDWARE = "hardware"
+
 PLATFORM_HEADER = "Platform"
 BUILD_FAILURES_HEADER = "Build failures"
 TEST_FAILURES_HEADER = "Test failures"
@@ -252,10 +255,19 @@ def main(argv):
         # For desktop, highlight the entire platform string.
         log_name[0] = "%s**" % log_name[0]
         log_name[1] = "**%s" % log_name[1]
-      # Rejoin matrix name with spaces.
-      log_name = ' '.join([log_name[1], log_name[0]]+log_name[2:])
       with open(log_file, "r") as log_reader:
-          log_data[log_name] = log_reader.read()
+        log_reader_data = log_reader.read()
+        if "Android" in log_name or "iOS" in log_name:
+          # Rejoin matrix name with spaces.
+          log_name_str = ' '.join([log_name[1], SIMULATOR, log_name[0]]+log_name[2:])
+          log_data[log_name_str] = log_reader_data
+          # iOS and Android repeat the list for simulator and device
+          log_name_str = ' '.join([log_name[1], HARDWARE, log_name[0]]+log_name[2:])
+          log_data[log_name_str] = log_reader_data
+        else:
+          # Rejoin matrix name with spaces.
+          log_name_str = ' '.join([log_name[1], log_name[0]]+log_name[2:])
+          log_data[log_name_str] = log_reader_data
 
   log_results = {}
   # Go through each log and extract out the build and test failures.
@@ -279,20 +291,25 @@ def main(argv):
             any_failures = True
 
     # Extract test failures, which follow "TESTAPPS EXPERIENCED ERRORS:"
-    m = re.search(r'TESTAPPS (EXPERIENCED ERRORS|FAILED):\n(([^\n]*\n)+)', log_text, re.MULTILINE)
+    m = re.search(r'^TEST SUMMARY(.*)TESTAPPS (EXPERIENCED ERRORS|FAILED):\n(([^\n]*\n)+)', log_text, re.MULTILINE | re.DOTALL)
+    if m and ((SIMULATOR in platform and not "(ON SIMULATOR)" in m.group(1)) or
+        (HARDWARE in platform and not "(ON HARDWARE)" in m.group(1))):
+      m = None  # don't process this if it's for the wrong hardware target
     if m:
-      for test_failure_line in m.group(2).strip("\n").split("\n"):
+      for test_failure_line in m.group(3).strip("\n").split("\n"):
         # Only get the lines showing paths.
         if "/firebase-cpp-sdk/" not in test_failure_line: continue
         test_filename = "";
         if "log tail" in test_failure_line:
           test_filename = re.match(r'^(.*) log tail', test_failure_line).group(1)
-        if "lacks logs" in test_failure_line:
+        elif "lacks logs" in test_failure_line:
           test_filename = re.match(r'^(.*) lacks logs', test_failure_line).group(1)
-        if "it-debug.apk" in test_failure_line:
+        elif "it-debug.apk" in test_failure_line:
           test_filename = re.match(r'^(.*it-debug\.apk)', test_failure_line).group(1)
-        if "integration_test.ipa" in test_failure_line:
+        elif "integration_test.ipa" in test_failure_line:
           test_filename = re.match(r'^(.*integration_test\.ipa)', test_failure_line).group(1)
+        elif "integration_test.app" in test_failure_line:
+          test_filename = re.match(r'^(.*integration_test\.app)', test_failure_line).group(1)
 
         if test_filename:
           m2 = re.search(r'/ta/(firebase)?([^/]+)/iti?/', test_filename, re.IGNORECASE)
@@ -308,6 +325,22 @@ def main(argv):
     log_results[platform]["successful"] = log_results[platform]["attempted"].difference(
       log_results[platform]["test_failures"].union(
         log_results[platform]["build_failures"]))
+
+  # Also, if any simulator and hardware targets are identical, filter them.
+  to_del = set()
+  to_add = dict()
+  for platform in log_results.keys():
+    simulator_str = (" %s " % SIMULATOR)
+    if simulator_str in platform:
+      other_platform = platform.replace(simulator_str, " %s " % HARDWARE)
+      if log_results[platform] == log_results[other_platform]:
+        targetless = platform.replace(simulator_str, " ")
+        to_add[targetless] = log_results[platform]
+        to_del.add(platform)
+        to_del.add(other_platform)
+  for platform_to_del in to_del:
+    del log_results[platform_to_del]
+  log_results.update(to_add)
 
   if not any_failures and not FLAGS.include_successful:
     # No failures occurred, nothing to log.
