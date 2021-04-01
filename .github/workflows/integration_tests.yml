@@ -50,7 +50,7 @@ env:
   statusLabelFailed: "tests: failed"
   statusLabelSucceeded: "tests: succeeded"
   statusCommentIdentifier: "integration-test-status-comment"
-  mobileTestOn: "device,simulator"
+  mobileTestOn: "device"
 
 jobs:
   check_trigger:
