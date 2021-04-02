@@ -30,10 +30,6 @@ bool ValueEventRegistration::RespondsTo(EventType event_type) {
 
 Event ValueEventRegistration::GenerateEvent(const Change& change,
                                             const QuerySpec& query_spec) {
-  // return Event(kEventTypeValue, this,
-  //              DataSnapshotInternal(database_,
-  //                                   query_spec.path.GetChild(change.child_key),
-  //                                   change.indexed_variant.variant()));
   return Event(
       kEventTypeValue, this,
       DataSnapshotInternal(database_, change.indexed_variant.variant(),
