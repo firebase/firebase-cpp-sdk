@@ -169,8 +169,8 @@ Future<Credential> GameCenterAuthProvider::GetCredential() {
   /**
    Linking GameKit.framework without using it on macOS results in App Store rejection.
    Thus we don't link GameKit.framework to our SDK directly. `optionalLocalPlayer` is used for
-   checking whether the APP that consuming our SDK has linked GameKit.framework. If not, a
-   `GameKitNotLinkedError` will be raised.
+   checking whether the APP that consuming our SDK has linked GameKit.framework. If not, will
+   complete with kAuthErrorInvalidCredential error.
    **/
   GKLocalPlayer *_Nullable optionalLocalPlayer = [[NSClassFromString(@"GKLocalPlayer") alloc] init];
 
@@ -207,8 +207,8 @@ bool GameCenterAuthProvider::IsPlayerAuthenticated() {
   /**
    Linking GameKit.framework without using it on macOS results in App Store rejection.
    Thus we don't link GameKit.framework to our SDK directly. `optionalLocalPlayer` is used for
-   checking whether the APP that consuming our SDK has linked GameKit.framework. If not, a
-   `GameKitNotLinkedError` will be raised.
+   checking whether the APP that consuming our SDK has linked GameKit.framework. If not, 
+   early out.
    **/
   GKLocalPlayer *_Nullable optionalLocalPlayer = [[NSClassFromString(@"GKLocalPlayer") alloc] init];
   // If the GameKit Framework isn't linked - early out.
