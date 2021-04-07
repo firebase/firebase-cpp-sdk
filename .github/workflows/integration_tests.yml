@@ -344,7 +344,7 @@ jobs:
         run: |
           python scripts/gha/desktop_tester.py --testapp_dir ta
       - name: Run iOS integration tests on Simulator locally
-        if: matrix.target_platform == 'iOS' && !cancelled()
+        if: contains(env.mobileTestOn, 'simulator') && matrix.target_platform == 'iOS' && !cancelled()
         run: |
           python scripts/gha/test_simulator.py --testapp_dir ta
       # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
@@ -361,7 +361,7 @@ jobs:
         run: |
           python scripts/gha/gcs_uploader.py --testapp_dir ta --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Run mobile integration tests on Real Device via FTL
-        if: matrix.target_platform != 'Desktop' && !cancelled()
+        if: contains(env.mobileTestOn, 'device') && matrix.target_platform != 'Desktop' && !cancelled()
         run: |
           python scripts/gha/test_lab.py --android_model ${{ needs.prepare_matrix.outputs.android_device }} --android_api ${{ needs.prepare_matrix.outputs.android_api }} --ios_model ${{ needs.prepare_matrix.outputs.ios_device }} --ios_version ${{ needs.prepare_matrix.outputs.ios_version }} --testapp_dir ta --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Prepare results summary artifact
