@@ -1229,6 +1229,23 @@ std::vector<std::string> split_string(const std::string& s, const char delimiter
   return split_parts;
 }
 
+std::map<Path, Variant> VariantToPathMap(const Variant& data) {
+  std::map<Path, Variant> path_map;
+  if (data.is_map()) {
+    for (const auto& key_value : data.map()) {
+      const char* key;
+      if (key_value.first.is_string()) {
+        key = key_value.first.string_value();
+      } else {
+        key = key_value.first.AsString().string_value();
+      }
+      const Variant& value = key_value.second;
+      path_map.insert(std::make_pair(Path(key), value));
+    }
+  }
+  return path_map;
+}
+
 }  // namespace internal
 }  // namespace database
 }  // namespace firebase
