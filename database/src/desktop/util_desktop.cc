@@ -990,7 +990,7 @@ const std::string& GetHash(const Variant& data, std::string* output) {
 }
 
 bool IsValidPriority(const Variant& variant) {
-  return variant.is_numeric() || variant.is_string();
+  return variant.is_null() || variant.is_numeric() || variant.is_string();
 }
 
 std::pair<Variant, Variant> MakePost(const QueryParams& params,
@@ -1022,11 +1022,13 @@ std::pair<Variant, Variant> MakePost(const QueryParams& params,
 }
 
 bool HasStart(const QueryParams& params) {
-  return !params.start_at_value.is_null() || !params.equal_to_value.is_null();
+  return !params.start_at_value.is_null() || !params.equal_to_value.is_null() ||
+         GetStartName(params) != QueryParamsComparator::kMinKey;
 }
 
 bool HasEnd(const QueryParams& params) {
-  return !params.end_at_value.is_null() || !params.equal_to_value.is_null();
+  return !params.end_at_value.is_null() || !params.equal_to_value.is_null() ||
+         GetEndName(params) != QueryParamsComparator::kMaxKey;
 }
 
 std::string GetStartName(const QueryParams& params) {
