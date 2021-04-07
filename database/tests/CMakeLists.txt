@@ -225,6 +225,38 @@ firebase_cpp_cc_test(
     firebase_testing
 )
 
+set(SYNC_POINT_SPEC_SCHEMA "${CMAKE_CURRENT_LIST_DIR}/desktop/core/sync_point_spec.fbs")
+set(SYNC_POINT_SPEC_JSON "${CMAKE_CURRENT_LIST_DIR}/desktop/core/sync_point_spec.json")
+
+flatbuffers_generate_headers(
+  TARGET firebase_sync_point_spec
+  SCHEMAS ${SYNC_POINT_SPEC_SCHEMA}
+  INCLUDE_PREFIX "database/src/desktop/core"
+)
+
+flatbuffers_generate_binary_files(
+  TARGET firebase_sync_point_spec_data
+  SCHEMA ${SYNC_POINT_SPEC_SCHEMA}
+  JSON_FILES ${SYNC_POINT_SPEC_JSON}
+  OUTPUT_DIR "${PROJECT_BINARY_DIR}/database/tests"
+)
+
+firebase_cpp_cc_test(
+  firebase_rtdb_desktop_core_sync_point_spec_test
+  SOURCES
+    desktop/core/sync_point_spec_test.cc
+    desktop/test/mock_listen_provider.h
+    desktop/test/mock_listener.h
+    desktop/test/mock_persistence_manager.h
+    desktop/test/mock_persistence_storage_engine.h
+    desktop/test/mock_tracked_query_manager.h
+    desktop/test/mock_write_tree.h
+  DEPENDS
+    firebase_database
+    firebase_sync_point_spec
+    firebase_sync_point_spec_data
+    firebase_testing
+)
 firebase_cpp_cc_test(
   firebase_rtdb_desktop_core_sync_tree_test
   SOURCES
