@@ -81,7 +81,7 @@ class DataSnapshotInternal {
   Variant GetValue() const;
 
   // Get the priority of the data contained in this snapshot.
-  Variant GetPriority();
+  Variant GetPriority() const;
 
   // Obtain a DatabaseReference to the source location for this snapshot.
   //
