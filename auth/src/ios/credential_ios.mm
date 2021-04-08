@@ -175,7 +175,7 @@ Future<Credential> GameCenterAuthProvider::GetCredential() {
   GKLocalPlayer *_Nullable optionalLocalPlayer = [[NSClassFromString(@"GKLocalPlayer") alloc] init];
 
   // Early-out if GameKit is not linked
-  if (optionalLocalPlayer == nullptr) {
+  if (!optionalLocalPlayer) {
     future_api->Complete(handle, kAuthErrorInvalidCredential,
                        "GameCenter authentication is unavailable - missing GameKit capability.");
     return MakeFuture(future_api, handle);
@@ -212,7 +212,7 @@ bool GameCenterAuthProvider::IsPlayerAuthenticated() {
    **/
   GKLocalPlayer *_Nullable optionalLocalPlayer = [[NSClassFromString(@"GKLocalPlayer") alloc] init];
   // If the GameKit Framework isn't linked - early out.
-  if (optionalLocalPlayer == nullptr) {
+  if (!optionalLocalPlayer) {
     return false;
   }
   __weak GKLocalPlayer *localPlayer = [[optionalLocalPlayer class] localPlayer];
