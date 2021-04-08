@@ -41,17 +41,14 @@ namespace {
 
 class PromiseTest : public FirestoreAndroidIntegrationTest {
  public:
-  PromiseTest() : promises_(GetFirestoreInternal(TestFirestore())) {
+  PromiseTest() : promises_(GetFirestoreInternal(TestFirestore())) {}
+
+  void SetUp() override {
+    FirestoreAndroidIntegrationTest::SetUp();
     jni::Env env = GetEnv();
-    // TODO(b/183294303): Uncomment this initialization code when
-    // these tests are fixed on Android.
-    //
-    // Note: This usage of jni::Loader may be broken because this is
-    // running in a background thread. Requires further investigation.
-    //
-    // cancellation_token_source_ = CancellationTokenSource::Create(env);
-    // task_completion_source_ = TaskCompletionSource::Create(
-    //    env, cancellation_token_source_.GetToken(env));
+    cancellation_token_source_ = CancellationTokenSource::Create(env);
+    task_completion_source_ = TaskCompletionSource::Create(
+       env, cancellation_token_source_.GetToken(env));
   }
 
   // An enum of asynchronous functions to use in tests, as required by
@@ -223,8 +220,6 @@ class TestVoidCompletion : public TestCompletionBase<void, void> {
 };
 
 TEST_F(PromiseTest, FutureVoidShouldSucceedWhenTaskSucceeds) {
-  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
-
   jni::Env env = GetEnv();
   auto future = promises().NewFuture<void>(env, AsyncFn::kFn, GetTask());
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
@@ -238,8 +233,6 @@ TEST_F(PromiseTest, FutureVoidShouldSucceedWhenTaskSucceeds) {
 }
 
 TEST_F(PromiseTest, FutureNonVoidShouldSucceedWhenTaskSucceeds) {
-  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
-
   jni::Env env = GetEnv();
   auto future =
       promises().NewFuture<std::string, int>(env, AsyncFn::kFn, GetTask());
@@ -254,8 +247,6 @@ TEST_F(PromiseTest, FutureNonVoidShouldSucceedWhenTaskSucceeds) {
 }
 
 TEST_F(PromiseTest, FutureVoidShouldFailWhenTaskFails) {
-  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
-
   jni::Env env = GetEnv();
   auto future = promises().NewFuture<void>(env, AsyncFn::kFn, GetTask());
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
@@ -270,8 +261,6 @@ TEST_F(PromiseTest, FutureVoidShouldFailWhenTaskFails) {
 }
 
 TEST_F(PromiseTest, FutureNonVoidShouldFailWhenTaskFails) {
-  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
-
   jni::Env env = GetEnv();
   auto future =
       promises().NewFuture<std::string, int>(env, AsyncFn::kFn, GetTask());
@@ -287,8 +276,6 @@ TEST_F(PromiseTest, FutureNonVoidShouldFailWhenTaskFails) {
 }
 
 TEST_F(PromiseTest, FutureVoidShouldCancelWhenTaskCancels) {
-  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
-
   jni::Env env = GetEnv();
   auto future = promises().NewFuture<void>(env, AsyncFn::kFn, GetTask());
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusPending);
@@ -303,8 +290,6 @@ TEST_F(PromiseTest, FutureVoidShouldCancelWhenTaskCancels) {
 }
 
 TEST_F(PromiseTest, FutureNonVoidShouldCancelWhenTaskCancels) {
-  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
-
   jni::Env env = GetEnv();
   auto future =
       promises().NewFuture<std::string, int>(env, AsyncFn::kFn, GetTask());
@@ -320,8 +305,6 @@ TEST_F(PromiseTest, FutureNonVoidShouldCancelWhenTaskCancels) {
 }
 
 TEST_F(PromiseTest, FutureVoidShouldCallCompletionWhenTaskSucceeds) {
-  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
-
   jni::Env env = GetEnv();
   TestVoidCompletion completion;
   auto future = promises().NewFuture<void, void>(env, AsyncFn::kFn, GetTask(),
@@ -338,8 +321,6 @@ TEST_F(PromiseTest, FutureVoidShouldCallCompletionWhenTaskSucceeds) {
 }
 
 TEST_F(PromiseTest, FutureNonVoidShouldCallCompletionWhenTaskSucceeds) {
-  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
-
   jni::Env env = GetEnv();
   TestCompletion<std::string, int> completion;
   auto future = promises().NewFuture<std::string, int>(env, AsyncFn::kFn,
@@ -356,8 +337,6 @@ TEST_F(PromiseTest, FutureNonVoidShouldCallCompletionWhenTaskSucceeds) {
 }
 
 TEST_F(PromiseTest, FutureVoidShouldCallCompletionWhenTaskFails) {
-  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
-
   jni::Env env = GetEnv();
   TestVoidCompletion completion;
   auto future = promises().NewFuture<void, void>(env, AsyncFn::kFn, GetTask(),
@@ -374,8 +353,6 @@ TEST_F(PromiseTest, FutureVoidShouldCallCompletionWhenTaskFails) {
 }
 
 TEST_F(PromiseTest, FutureNonVoidShouldCallCompletionWhenTaskFails) {
-  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
-
   jni::Env env = GetEnv();
   TestCompletion<std::string, int> completion;
   auto future = promises().NewFuture<std::string, int>(env, AsyncFn::kFn,
@@ -392,8 +369,6 @@ TEST_F(PromiseTest, FutureNonVoidShouldCallCompletionWhenTaskFails) {
 }
 
 TEST_F(PromiseTest, FutureVoidShouldCallCompletionWhenTaskCancels) {
-  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
-
   jni::Env env = GetEnv();
   TestVoidCompletion completion;
   auto future = promises().NewFuture<void, void>(env, AsyncFn::kFn, GetTask(),
@@ -410,8 +385,6 @@ TEST_F(PromiseTest, FutureVoidShouldCallCompletionWhenTaskCancels) {
 }
 
 TEST_F(PromiseTest, FutureNonVoidShouldCallCompletionWhenTaskCancels) {
-  SKIP_TEST_ON_ANDROID;  // TODO(b/183294303): Fix this test on Android.
-
   jni::Env env = GetEnv();
   TestCompletion<std::string, int> completion;
   auto future = promises().NewFuture<std::string, int>(env, AsyncFn::kFn,

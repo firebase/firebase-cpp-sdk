@@ -15,7 +15,7 @@ class TypeTest : public FirestoreIntegrationTest {
   // Check the data read from that document matches with the original data.
   void AssertSuccessfulRoundTrip(MapFieldValue data) {
     //TestFirestore()->set_log_level(LogLevel::kLogLevelDebug);
-    DocumentReference reference = TestFirestore()->Document("rooms/eros");
+    DocumentReference reference = Document();
     WriteDocument(reference, data);
     DocumentSnapshot snapshot = ReadDocument(reference);
     EXPECT_TRUE(snapshot.exists());
