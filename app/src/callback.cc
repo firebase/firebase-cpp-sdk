@@ -187,13 +187,13 @@ class CallbackDispatcher {
 
 static CallbackDispatcher* g_callback_dispatcher = nullptr;
 // Mutex that controls access to g_callback_dispatcher and g_callback_ref_count.
-static Mutex g_callback_mutex;  // NOLINT
+static Mutex* g_callback_mutex = new Mutex();
 static int g_callback_ref_count = 0;
 static Thread::Id g_callback_thread_id;
 static bool g_callback_thread_id_initialized = false;
 
 void Initialize() {
-  MutexLock lock(g_callback_mutex);
+  MutexLock lock(*g_callback_mutex);
   if (g_callback_ref_count == 0) {
     g_callback_dispatcher = new CallbackDispatcher();
   }
@@ -202,7 +202,7 @@ void Initialize() {
 
 // Add a reference to the module if it's already initialized.
 static bool InitializeIfInitialized() {
-  MutexLock lock(g_callback_mutex);
+  MutexLock lock(*g_callback_mutex);
   if (IsInitialized()) {
     Initialize();
     return true;
@@ -217,7 +217,7 @@ bool IsInitialized() { return g_callback_ref_count > 0; }
 static void Terminate(int number_of_references_to_remove) {
   CallbackDispatcher* dispatcher_to_destroy = nullptr;
   {
-    MutexLock lock(g_callback_mutex);
+    MutexLock lock(*g_callback_mutex);
     if (!g_callback_ref_count) {
       LogWarning("Callback module already shut down");
       return;
@@ -239,7 +239,7 @@ static void Terminate(int number_of_references_to_remove) {
 }
 
 void Terminate(bool flush_all) {
-  MutexLock lock(g_callback_mutex);
+  MutexLock lock(*g_callback_mutex);
   int ref_count = 1;
   // g_callback_ref_count is used to track the number of current references to
   // g_callback_dispatcher so we need to decrement the reference count by just
@@ -253,7 +253,7 @@ void Terminate(bool flush_all) {
 }
 
 void* AddCallback(Callback* callback) {
-  MutexLock lock(g_callback_mutex);
+  MutexLock lock(*g_callback_mutex);
   Initialize();
   return g_callback_dispatcher->AddCallback(callback);
 }

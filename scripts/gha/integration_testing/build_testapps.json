@@ -153,6 +153,7 @@
       "bundle_id": "com.google.firebase.cpp.firestore.testapp",
       "ios_target": "integration_test",
       "testapp_path": "firestore/integration_test",
+      "internal_testapp_path": "firestore/integration_test_internal",
       "frameworks": [
         "firebase_firestore.xcframework",
         "firebase_auth.xcframework",

@@ -168,7 +168,7 @@ class AppCallback {
   // Mutex which controls access to callbacks during notification.
   // NOTE: This violates Google's C++ style guide as we do not have access to
   // module initializers in //base so this replicates part of that behavior.
-  static Mutex callbacks_mutex_;
+  static Mutex* callbacks_mutex_;
 };
 
 // Register app callbacks for a module.
@@ -225,7 +225,7 @@ class StaticFutureData {
   ReferenceCountedFutureImpl api_;
 
   // Mutex which controls access to s_future_datas_
-  static Mutex s_futures_mutex_;
+  static Mutex* s_futures_mutex_;
 
   // Static storage of StaticFutureDatas per module.  Keyed on a void pointer
   // that should be declared in the module to serve as a unique identifier.

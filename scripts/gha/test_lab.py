@@ -95,7 +95,6 @@ flags.DEFINE_string(
     "iOS version for desired device. See module docstring for details on how"
     " to find available values. If none, will use FTL's default.")
 
-
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
@@ -239,7 +238,7 @@ class Test(object):
         "--app", self.testapp_path,
         "--results-bucket", gcs.PROJECT_ID,
         "--results-dir", self.results_dir,
-        "--timeout", "300s"
+        "--timeout", "900s"
     ]
 
   def _get_testapp_log_text_from_gcs(self):

@@ -457,6 +457,13 @@ jobs:
           declare -a additional_flags
           tar -xvzf artifacts/packaging-tools-${tools_platform}/packaging-tools.tgz -C bin
           chmod -R u+x bin
+          # To save space, delete any artifacts that we don't need for packaging.
+          for pkg in artifacts/firebase-cpp-sdk-*; do
+            if [[ "${pkg}" != "artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}"* ]]; then
+              echo "Deleting unneeded artifact: ${pkg}"
+              rm  -rf "${pkg}"
+            fi
+          done
           for pkg in artifacts/firebase-cpp-sdk-${{ matrix.sdk_platform }}${{ matrix.suffix }}*-build/*.tgz; do
             # determine the build variant based on the artifact filename
             variant=$(sdk-src/build_scripts/desktop/get_variant.sh "${pkg}")
