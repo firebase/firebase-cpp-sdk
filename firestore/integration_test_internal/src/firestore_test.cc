@@ -1269,8 +1269,6 @@ TEST_F(FirestoreIntegrationTest, MaintainsPersistenceAfterRestarting) {
   EXPECT_TRUE(snap->exists());
 }
 
-// TODO(b/173730469) Enable this test on Android once the Auth issue is fixed.
-#if !defined(__ANDROID__)
 TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewInstance) {
   // Get App and Settings objects to use in the test.
   Firestore* db_template = TestFirestore("restart_firestore_new_instance_test");
@@ -1278,15 +1276,9 @@ TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewInstance) {
   Settings settings = db_template->settings();
   DeleteFirestore(db_template);
 
-  // Get the Auth object so that it can be explicitly deleted to avoid a leak.
-  // This memory leak avoidance hack can be removed once Auth becomes a soft
-  // dependency (b/147772264).
-  InitResult init_result;
-  Auth* auth = Auth::GetAuth(app, &init_result);
-  ASSERT_EQ(kInitResultSuccess, init_result);
-
   // Verify that GetInstance() returns the same instance when specified the same
   // App.
+  InitResult init_result;
   Firestore* db1 = Firestore::GetInstance(app, &init_result);
   ASSERT_EQ(kInitResultSuccess, init_result);
   Firestore* db1_copy = Firestore::GetInstance(app, &init_result);
@@ -1318,9 +1310,7 @@ TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewInstance) {
 
   delete db2;
   delete db1;
-  delete auth;
 }
-#endif  // if !defined(__ANDROID__)
 
 TEST_F(FirestoreIntegrationTest, CanStopListeningAfterTerminate) {
   auto instance = TestFirestore();
