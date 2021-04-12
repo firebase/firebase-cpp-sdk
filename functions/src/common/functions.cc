@@ -40,7 +40,6 @@
 FIREBASE_APP_REGISTER_CALLBACKS(
     functions,
     {
-      FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(*app);
       return ::firebase::kInitResultSuccess;
     },
     {
@@ -84,7 +83,6 @@ Functions* Functions::GetInstance(::firebase::App* app, const char* region,
     if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
     return it->second;
   }
-  FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(*app, init_result_out);
 
   Functions* functions = new Functions(app, region_idx.c_str());
   if (!functions->internal_->initialized()) {
