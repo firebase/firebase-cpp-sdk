@@ -327,6 +327,14 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
+      - name: Update homebrew (avoid bintray errors)
+        if: runner.os == 'macOS'
+        run: |
+          # Temporarily here until Github runners have updated their version of
+          # homebrew. This prevents errors arising from the shut down of
+          # binutils, used by older version of homebrew for hosting packages.
+          brew update
+
       - name: Install prerequisites
         run: |
           python scripts/gha/install_prereqs_desktop.py
@@ -431,6 +439,14 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.7
+
+      - name: Update homebrew (avoid bintray errors)
+        if: runner.os == 'macOS'
+        run: |
+          # Temporarily here until Github runners have updated their version of
+          # homebrew. This prevents errors arising from the shut down of
+          # binutils, used by older version of homebrew for hosting packages.
+          brew update
 
       - name: Install prerequisites
         run: |
