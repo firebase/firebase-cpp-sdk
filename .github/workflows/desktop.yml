@@ -138,7 +138,6 @@ jobs:
 
       - name: Update homebrew (avoid bintray errors)
         if: startsWith(matrix.os, 'macos')
-        with:
         run: |
           brew update
 
