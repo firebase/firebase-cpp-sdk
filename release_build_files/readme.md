@@ -573,8 +573,11 @@ code.
 
 ### 7.2.0
 -   Changes
+    -   General (Android): Firebase support for STLPort is deprecated and will
+        be removed in the next major release. Please
+        [use libc++ instead](https://developer.android.com/ndk/guides/cpp-support#cs).
     -   General (iOS): iOS SDKs are now built using Xcode 12.
-    -   General (iOS): iOS SDKs are now providing XCFrameworks instead of 
+    -   General (iOS): iOS SDKs are now providing XCFrameworks instead of
         Frameworks.
     -   Database: Fixed a potential crash that can occur as a result of a race
         condidtion when adding, removing and deleting `ValueListener`s or
