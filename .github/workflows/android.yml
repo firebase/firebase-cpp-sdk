@@ -78,6 +78,12 @@ jobs:
           path: /tmp/android-ndk-r16b
           key: android-ndk-${{ matrix.os }}-r16b
 
+      - name: Update homebrew (avoid bintray errors)
+        if: startsWith(matrix.os, 'macos')
+        with:
+        run: |
+          brew update
+
       - name: Install prerequisites
         shell: bash
         run: |
