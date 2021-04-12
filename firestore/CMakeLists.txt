@@ -313,7 +313,7 @@ else()
   target_include_directories(firebase_firestore
     PUBLIC
       ${FIRESTORE_SOURCE_DIR}/Firestore/core/include
-      ${FIRESTORE_SOURCE_DIR}/Firestore/Protos/nanpob
+      ${FIRESTORE_SOURCE_DIR}/Firestore/Protos/nanopb
     PRIVATE
       ${FIRESTORE_SOURCE_DIR}
   )
