@@ -571,13 +571,10 @@ code.
 
 ## Release Notes
 
-### 7.3.0
+### 7.2.0
 -   Changes
     -   General (Android): the STLPort support is deprecated and will be removed
         in the next major release. Please [use libc++ instead](https://developer.android.com/ndk/guides/cpp-support#cs).
-
-### 7.2.0
--   Changes
     -   General (iOS): iOS SDKs are now built using Xcode 12.
     -   General (iOS): iOS SDKs are now providing XCFrameworks instead of
         Frameworks.
