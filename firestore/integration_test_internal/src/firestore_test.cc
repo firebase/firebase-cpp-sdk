@@ -1,5 +1,7 @@
 #include "firebase/firestore.h"
 
+#include <algorithm>
+
 #if !defined(__ANDROID__)
 #include <future>  // NOLINT(build/c++11)
 #endif
@@ -10,7 +12,12 @@
 #endif
 
 #if defined(__ANDROID__)
+#include "android/firestore_integration_test_android.h"
 #include "firestore/src/android/exception_android.h"
+#include "firestore/src/android/jni_runnable_android.h"
+#include "firestore/src/jni/env.h"
+#include "firestore/src/jni/ownership.h"
+#include "firestore/src/jni/task.h"
 #endif  // defined(__ANDROID__)
 
 #include "firestore_integration_test.h"
@@ -18,6 +25,7 @@
 #include "util/future_test_util.h"
 
 #include "app/memory/unique_ptr.h"
+#include "app/src/mutex.h"
 #include "auth/src/include/firebase/auth.h"
 #include "firestore/src/common/macros.h"
 #include "gmock/gmock.h"
@@ -614,91 +622,105 @@ TEST_F(FirestoreIntegrationTest,
 
 TEST_F(FirestoreIntegrationTest,
        TestSnapshotsInSyncListenerFiresAfterListenersInSync) {
+  class TestData {
+   public:
+    void AddEvent(const std::string& event) {
+      MutexLock lock(mutex_);
+      events_.push_back(event);
+    }
+
+    int GetEventCount() const {
+      MutexLock lock(mutex_);
+      return events_.size();
+    }
+
+    void ClearEvents() {
+      MutexLock lock(mutex_);
+      events_.clear();
+    }
+
+    void WaitForEventCount(const std::string& event, int expected_count) {
+      while (true) {
+        if (GetEventCount(event) >= expected_count) {
+          break;
+        }
+      }
+    }
+
+    int GetEventCount(const std::string& event) const {
+      MutexLock lock(mutex_);
+      return std::count_if(events_.begin(), events_.end(),
+                           [&event](const std::string& current_event) {
+                             return current_event == event;
+                           });
+    }
+
+    std::vector<std::string> GetEvents() const {
+      MutexLock lock(mutex_);
+      return events_;
+    }
+
+   private:
+    mutable Mutex mutex_;
+    std::vector<std::string> events_;
+  };
+
+  TestData test_data;
+
   DocumentReference document = Collection("rooms").Document();
   Await(document.Set(MapFieldValue{{"foo", FieldValue::Double(1.0)}}));
-  std::vector<std::string> events;
 
   class SnapshotTestEventListener : public TestEventListener<DocumentSnapshot> {
    public:
-    SnapshotTestEventListener(std::string name,
-                              std::vector<std::string>* events)
-        : TestEventListener(std::move(name)), events_(events) {}
+    SnapshotTestEventListener(std::string name, TestData& test_data)
+        : TestEventListener(std::move(name)), test_data_(test_data) {}
 
     void OnEvent(const DocumentSnapshot& value, Error error_code,
                  const std::string& error_message) override {
       TestEventListener::OnEvent(value, error_code, error_message);
-      events_->push_back("doc");
+      test_data_.AddEvent("doc");
     }
 
    private:
-    std::vector<std::string>* events_;
+    TestData& test_data_;
   };
-  SnapshotTestEventListener listener{"doc", &events};
+  SnapshotTestEventListener listener{"doc", test_data};
   ListenerRegistration doc_registration = listener.AttachTo(&document);
   // Wait for the initial event from the backend so that we know we'll get
   // exactly one snapshot event for our local write below.
   Await(listener);
-  EXPECT_EQ(1, events.size());
-  events.clear();
-
-#if defined(__APPLE__)
-  // TODO(varconst): the implementation of `Semaphore::Post()` on Apple
-  // platforms has a data race which may result in semaphore data being accessed
-  // on the listener thread after it was destroyed on the main thread. To work
-  // around this, use `std::promise`.
-  std::promise<void> promise;
-#else
-  Semaphore completed{0};
-#endif
+  EXPECT_EQ(1, test_data.GetEventCount());
+  test_data.ClearEvents();
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
   ListenerRegistration sync_registration =
-      TestFirestore()->AddSnapshotsInSyncListener([&] {
-        events.push_back("snapshots-in-sync");
-        if (events.size() == 3) {
-#if defined(__APPLE__)
-          promise.set_value();
-#else
-          completed.Post();
-#endif
-        }
-      });
+      TestFirestore()->AddSnapshotsInSyncListener(
+          [&test_data] { test_data.AddEvent("snapshots-in-sync"); });
 
 #else
   class SyncEventListener : public EventListener<void> {
    public:
-    explicit SyncEventListener(std::vector<std::string>* events,
-                               Semaphore* completed)
-        : events_(events), completed_(completed) {}
+    explicit SyncEventListener(TestData& test_data) : test_data_(test_data) {}
 
-    void OnEvent(Error) override {
-      events_->push_back("snapshots-in-sync");
-      if (events.size() == 3) {
-        completed_->Post();
-      }
-    }
+    void OnEvent(Error) override { test_data_.AddEvent("snapshots-in-sync"); }
 
    private:
-    std::vector<std::string>* events_ = nullptr;
-    Semaphore* completed_ = nullptr;
+    TestData& test_data_;
   };
-  SyncEventListener sync_listener{&events, &completed};
+  SyncEventListener sync_listener{test_data};
   ListenerRegistration sync_registration =
       TestFirestore()->AddSnapshotsInSyncListener(sync_listener);
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
   Await(document.Set(MapFieldValue{{"foo", FieldValue::Double(3.0)}}));
   // Wait for the snapshots-in-sync listener to fire afterwards.
-#if defined(__APPLE__)
-  promise.get_future().wait();
-#else
-  completed.Wait();
-#endif
+  test_data.WaitForEventCount("snapshots-in-sync", 2);
 
   // We should have an initial snapshots-in-sync event, then a snapshot event
   // for set(), then another event to indicate we're in sync again.
-  EXPECT_EQ(events, std::vector<std::string>(
-                        {"snapshots-in-sync", "doc", "snapshots-in-sync"}));
+  EXPECT_EQ(test_data.GetEvents(),
+            std::vector<std::string>(
+                {"snapshots-in-sync", "doc", "snapshots-in-sync"}));
   doc_registration.Remove();
   sync_registration.Remove();
 }
@@ -736,45 +758,49 @@ TEST_F(FirestoreIntegrationTest, TestQueriesAreValidatedOnClient) {
 // The test harness will generate Java JUnit test regardless whether this is
 // inside a #if or not. So we move #if inside instead of enclose the whole case.
 TEST_F(FirestoreIntegrationTest, TestListenCanBeCalledMultipleTimes) {
-  // Note: this test is flaky -- the test case may finish, triggering the
-  // destruction of Firestore, before the async callback finishes.
 #if defined(FIREBASE_USE_STD_FUNCTION)
+  class TestData {
+   public:
+    void SetDocumentSnapshot(const DocumentSnapshot& document_snapshot) {
+      MutexLock lock(mutex_);
+      document_snapshot_ = document_snapshot;
+      is_document_snapshot_set_ = true;
+    }
+
+    DocumentSnapshot WaitForDocumentSnapshot() {
+      while (true) {
+        MutexLock lock(mutex_);
+        if (is_document_snapshot_set_) {
+          return document_snapshot_;
+        }
+      }
+    }
+
+   private:
+    Mutex mutex_;
+    DocumentSnapshot document_snapshot_;
+    bool is_document_snapshot_set_ = false;
+  };
+
   DocumentReference document = Collection("collection").Document();
   WriteDocument(document, MapFieldValue{{"foo", FieldValue::String("bar")}});
-#if defined(__APPLE__)
-  // TODO(varconst): the implementation of `Semaphore::Post()` on Apple
-  // platforms has a data race which may result in semaphore data being accessed
-  // on the listener thread after it was destroyed on the main thread. To work
-  // around this, use `std::promise`.
-  std::promise<void> promise;
-#else
-  Semaphore completed{0};
-#endif
-  DocumentSnapshot resulting_data;
-  document.AddSnapshotListener([&](const DocumentSnapshot& snapshot,
-                                   Error error_code,
-                                   const std::string& error_message) {
-    EXPECT_EQ(Error::kErrorOk, error_code);
-    EXPECT_EQ(std::string(), error_message);
-    document.AddSnapshotListener([&](const DocumentSnapshot& snapshot,
-                                     Error error_code,
-                                     const std::string& error_message) {
-      EXPECT_EQ(Error::kErrorOk, error_code);
-      EXPECT_EQ(std::string(), error_message);
-      resulting_data = snapshot;
-#if defined(__APPLE__)
-      promise.set_value();
-#else
-      completed.Post();
-#endif
-    });
-  });
-#if defined(__APPLE__)
-  promise.get_future().wait();
-#else
-  completed.Wait();
-#endif
-  EXPECT_THAT(resulting_data.GetData(),
+  TestData test_data;
+  document.AddSnapshotListener(
+      [&document, &test_data](const DocumentSnapshot& snapshot,
+                              Error error_code,
+                              const std::string& error_message) {
+        EXPECT_EQ(Error::kErrorOk, error_code);
+        EXPECT_EQ(std::string(), error_message);
+        document.AddSnapshotListener(
+            [&test_data](const DocumentSnapshot& snapshot, Error error_code,
+                         const std::string& error_message) {
+              EXPECT_EQ(Error::kErrorOk, error_code);
+              EXPECT_EQ(std::string(), error_message);
+              test_data.SetDocumentSnapshot(snapshot);
+            });
+      });
+
+  EXPECT_THAT(test_data.WaitForDocumentSnapshot().GetData(),
               ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 }
@@ -1264,8 +1290,6 @@ TEST_F(FirestoreIntegrationTest, MaintainsPersistenceAfterRestarting) {
   EXPECT_TRUE(snap->exists());
 }
 
-// TODO(b/173730469) Enable this test on Android once the Auth issue is fixed.
-#if !defined(__ANDROID__)
 TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewInstance) {
   // Get App and Settings objects to use in the test.
   Firestore* db_template = TestFirestore("restart_firestore_new_instance_test");
@@ -1273,15 +1297,9 @@ TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewInstance) {
   Settings settings = db_template->settings();
   DeleteFirestore(db_template);
 
-  // Get the Auth object so that it can be explicitly deleted to avoid a leak.
-  // This memory leak avoidance hack can be removed once Auth becomes a soft
-  // dependency (b/147772264).
-  InitResult init_result;
-  Auth* auth = Auth::GetAuth(app, &init_result);
-  ASSERT_EQ(kInitResultSuccess, init_result);
-
   // Verify that GetInstance() returns the same instance when specified the same
   // App.
+  InitResult init_result;
   Firestore* db1 = Firestore::GetInstance(app, &init_result);
   ASSERT_EQ(kInitResultSuccess, init_result);
   Firestore* db1_copy = Firestore::GetInstance(app, &init_result);
@@ -1313,9 +1331,7 @@ TEST_F(FirestoreIntegrationTest, RestartFirestoreLeadsToNewInstance) {
 
   delete db2;
   delete db1;
-  delete auth;
 }
-#endif  // if !defined(__ANDROID__)
 
 TEST_F(FirestoreIntegrationTest, CanStopListeningAfterTerminate) {
   auto instance = TestFirestore();
@@ -1435,13 +1451,6 @@ TEST_F(FirestoreIntegrationTest, CanClearPersistenceOnANewFirestoreInstance) {
   const std::string path = document.path();
   WriteDocument(document, MapFieldValue{{"foo", FieldValue::Integer(42)}});
 
-#if defined(__ANDROID__)
-  // TODO(b/168628900) Remove this call to Terminate() once deleting the
-  // Firestore* instance removes the underlying Java object from the instance
-  // cache in Android.
-  EXPECT_THAT(db->Terminate(), FutureSucceeds());
-#endif
-
   // Call DeleteFirestore() to ensure that both the App and Firestore instances
   // are deleted, which emulates the way an end user would experience their
   // application being killed and later re-launched by the user.
@@ -1552,6 +1561,21 @@ TEST_F(FirestoreIntegrationTest, FirestoreCanBeDeletedFromTransaction) {
   deletion.wait();
 }
 #endif  // #if !defined(__ANDROID__)
+
+#if defined(__ANDROID__)
+TEST_F(FirestoreAndroidIntegrationTest,
+       CanDeleteFirestoreInstanceOnJavaMainThread) {
+  jni::Env env;
+  Firestore* db = TestFirestore();
+  auto runnable = MakeJniRunnable(env, [db] { delete db; });
+
+  jni::Local<jni::Task> task = runnable.RunOnMainThread(env);
+
+  Await(env, task);
+  EXPECT_TRUE(task.IsSuccessful(env));
+  DisownFirestore(db);  // Avoid double-deletion of the `db`.
+}
+#endif  // defined(__ANDROID__)
 
 #endif  // defined(FIRESTORE_STUB_BUILD)
 
