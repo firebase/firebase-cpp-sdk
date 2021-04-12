@@ -3,8 +3,8 @@ platform :ios, '10.0'
 # Cloud Firestore internal test application.
 
 target 'integration_test' do
-  pod 'Firebase/Firestore', '7.5.0'
-  pod 'Firebase/Auth', '7.5.0'
+  pod 'Firebase/Firestore', '7.10.0'
+  pod 'Firebase/Auth', '7.10.0'
 end
 
 post_install do |installer|
