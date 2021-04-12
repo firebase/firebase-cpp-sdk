@@ -55,6 +55,11 @@ namespace internal {
 class AppInternal;
 }  // namespace internal
 
+#ifdef _STLPORT_VERSION
+#warning "Firebase support for STLPort is deprecated and will be removed in \
+  the next major release. Please use libc++ instead."
+#endif
+
 /// @brief Reports whether a Firebase module initialized successfully.
 enum InitResult {
   /// The given library was successfully initialized.
