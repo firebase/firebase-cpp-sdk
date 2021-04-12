@@ -366,10 +366,6 @@ jobs:
           name: firebase-cpp-sdk-${{ env.SDK_NAME }}-build
           path: firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz
 
-      - name: Stats for ccache (mac and linux)
-        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
-        run: ccache -s
-
   package_desktop:
     name: package-${{ matrix.sdk_platform }}${{ matrix.suffix }}
     runs-on: ${{ matrix.runs_on_platform }}
