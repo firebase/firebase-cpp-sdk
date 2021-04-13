@@ -77,7 +77,7 @@ flags.DEFINE_string(
     "testapp_dir", None,
     "Testapps in this directory will be tested.")
 flags.DEFINE_string(
-    "ios_device", "iPhone 11;14.3",
+    "ios_device", "iPhone 11;4",
     "iOS device, which is a combination of device name and os version")
 flags.DEFINE_string(
     "android_device", "system-images;android-29;google_apis;x86;29.0.3",
