@@ -163,7 +163,7 @@ class Settings final {
    * handlers.
    *
    * If no dispatch queue is explictly set by calling `set_dispatch_queue()`
-   * then a dedicated "callback thread" will be used; namely, the main thread
+   * then a dedicated "callback queue" will be used; namely, the main thread
    * will not be used for callbacks unless expliclty set to do so by a call to
    * `set_dispatch_queue()`.
    *
