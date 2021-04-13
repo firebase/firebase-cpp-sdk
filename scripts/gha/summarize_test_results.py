@@ -292,8 +292,11 @@ def main(argv):
 
     # Extract test failures, which follow "TESTAPPS EXPERIENCED ERRORS:"
     m = re.search(r'^TEST SUMMARY(.*)TESTAPPS (EXPERIENCED ERRORS|FAILED):\n(([^\n]*\n)+)', log_text, re.MULTILINE | re.DOTALL)
-    if m and ((SIMULATOR in platform and not "(ON SIMULATOR)" in m.group(1)) or
-        (HARDWARE in platform and not "(ON HARDWARE)" in m.group(1))):
+    # If the log reports "(ON SIMULATOR)" or "(ON HARDWARE)", make sure it matches the platform.
+    if m and "(ON " in m.group(1) and (
+        (SIMULATOR in platform and not "(ON SIMULATOR)" in m.group(1)) or
+        (HARDWARE in platform and not "(ON HARDWARE)" in m.group(1))
+      ):
       m = None  # don't process this if it's for the wrong hardware target
     if m:
       for test_failure_line in m.group(3).strip("\n").split("\n"):
