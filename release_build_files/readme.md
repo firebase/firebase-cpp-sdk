@@ -587,6 +587,9 @@ code.
     -   General: Fixed rare crashes at application exit when destructors were
         being executed
         ([#345](https://github.com/firebase/firebase-cpp-sdk/pull/345)).
+    -   General (Android): Removed checks for Google Play services for Auth, Database,
+        Functions and Storage as the native Android packages no longer need it.
+        ([#361](https://github.com/firebase/firebase-cpp-sdk/pull/361)).
 
 ### 7.1.1
 -   Changes

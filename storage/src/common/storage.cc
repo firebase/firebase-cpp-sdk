@@ -41,7 +41,6 @@
 FIREBASE_APP_REGISTER_CALLBACKS(
     storage,
     {
-      FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(*app);
       return ::firebase::kInitResultSuccess;
     },
     {
@@ -103,7 +102,6 @@ Storage* Storage::GetInstance(::firebase::App* app, const char* url,
     if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
     return it->second;
   }
-  FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(*app, init_result_out);
 
   Storage* storage = new Storage(app, url);
   if (!storage->internal_->initialized()) {

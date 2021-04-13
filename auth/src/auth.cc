@@ -46,7 +46,6 @@
 FIREBASE_APP_REGISTER_CALLBACKS(
     auth,
     {
-      FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(*app);
       return ::firebase::kInitResultSuccess;
     },
     {
@@ -74,8 +73,6 @@ Auth* Auth::GetAuth(App* app, InitResult* init_result_out) {
     if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
     return existing_auth;
   }
-
-  FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(*app, init_result_out);
 
   // Create the platform dependent version of Auth.
   void* auth_impl = CreatePlatformAuth(app);

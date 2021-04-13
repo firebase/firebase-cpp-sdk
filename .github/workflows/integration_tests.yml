@@ -265,6 +265,14 @@ jobs:
         with:
           python-version: '3.7'
 
+      - name: Update homebrew (avoid bintray errors)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          # Temporarily here until Github runners have updated their version of
+          # homebrew. This prevents errors arising from the shut down of
+          # binutils, used by older version of homebrew for hosting packages.
+          brew update
+
       - name: Install SDK Desktop prerequisites
         if: matrix.target_platform == 'Desktop'
         run: |

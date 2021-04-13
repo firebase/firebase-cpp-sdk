@@ -43,7 +43,6 @@
 FIREBASE_APP_REGISTER_CALLBACKS(
     database,
     {
-      FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(*app);
       return ::firebase::kInitResultSuccess;
     },
     {
@@ -84,7 +83,6 @@ Database* Database::GetInstance(App* app, const char* url,
     if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
     return it->second;
   }
-  FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(*app, init_result_out);
 
   Database* database = url ? new Database(app, new DatabaseInternal(app, url))
                            : new Database(app, new DatabaseInternal(app));
