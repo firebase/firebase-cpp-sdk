@@ -124,7 +124,7 @@ def validate_results_cpp(log_text):
       summary=result_summary)
 
 
-def summarize_test_results(tests, platform, summary_dir):
+def summarize_test_results(tests, platform, summary_dir, tested_simulator=False):
   """Summarizes and logs test results for multiple tests.
 
   Each 'test' should be an object with properties "testapp_path", which
@@ -150,14 +150,13 @@ def summarize_test_results(tests, platform, summary_dir):
   failures = []
   errors = []
 
-  test_on = ""
-  for test in tests:
-    if not test_on:
-      if test.testapp_path.endswith(".ipa"):
-        test_on = " (ON REAL DEVICE VIA FTL)"
-      elif test.testapp_path.endswith(".app"):
-        test_on = " (ON SIMULATOR) "
+  if tested_simulator:
+    test_on = " (ON SIMULATOR/EMULATOR)"
+  else:
+    test_on = " (ON REAL DEVICE VIA FTL)"
+    
 
+  for test in tests:
     results = validate_results(test.logs, platform)
     test_result_pair = (test, results)
     if not results.complete:

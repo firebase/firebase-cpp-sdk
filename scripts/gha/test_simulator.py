@@ -77,7 +77,7 @@ flags.DEFINE_string(
     "testapp_dir", None,
     "Testapps in this directory will be tested.")
 flags.DEFINE_string(
-    "ios_device", "iPhone 11;14.4",
+    "ios_device", "iPhone 11;14.3",
     "iOS device, which is a combination of device name and os version")
 flags.DEFINE_string(
     "android_device", "system-images;android-29;google_apis;x86;29.0.3",
@@ -178,7 +178,7 @@ def main(argv):
                       logs=_run_android_gameloop_test(package_name, app_path, android_gameloop_project)))
 
   return test_validation.summarize_test_results(
-    tests, test_validation.CPP, testapp_dir)
+    tests, test_validation.CPP, testapp_dir, tested_simulator=True)
 
 
 def _build_ios_gameloop(gameloop_project, device_name, device_os):
@@ -434,8 +434,8 @@ def _get_android_test_log(test_package):
   """Read integration_test app testing result."""
   path = "$EXTERNAL_STORAGE/Android/data/%s/files/%s/results1.json" % (_GAMELOOP_PACKAGE, test_package)
   args = ["adb", "shell", "cat", path]
-  logging.info("Running game-loop test: %s", " ".join(args))
-  result = subprocess.run(args=args, check=False)
+  logging.info("Get android test result: %s", " ".join(args))
+  result = subprocess.run(args=args, capture_output=True, text=True, check=False)
   return result.stdout
 
 
