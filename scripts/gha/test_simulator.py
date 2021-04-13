@@ -164,7 +164,7 @@ def main(argv):
       logging.error("Please set JAVA_HOME to java 8")
       return 1
 
-    _set_android_env(platforms_version, build_tools_version)  
+    _setup_android(platforms_version, build_tools_version, sdk_id)  
 
     _create_and_boot_emulator(sdk_id)
 
@@ -315,10 +315,11 @@ def _check_java_version():
   logging.info("Get java version: %s", command)
   result = subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
   java_version = result.stdout.read().strip()
+  logging.info("Java version: %s", java_version)
   return "1.8" in java_version
 
 
-def _set_android_env(platforms_version, build_tools_version):
+def _setup_android(platforms_version, build_tools_version, sdk_id):
   android_home = os.environ["ANDROID_HOME"]
   pathlist = ["%s/emulator" % android_home, 
     "%s/tools" % android_home, 
@@ -334,16 +335,20 @@ def _set_android_env(platforms_version, build_tools_version):
   logging.info("Install packages: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
-  args = ["sdkmanager", "--update"]
-  logging.info("Update all installed packages: %s", " ".join(args))
-  subprocess.run(args=args, check=True)
-
-
-def _create_and_boot_emulator(sdk_id):
   args = ["sdkmanager", sdk_id]
   logging.info("Download an emulator: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
+  args = ["sdkmanager", "--update"]
+  logging.info("Update all installed packages: %s", " ".join(args))
+  subprocess.run(args=args, check=True)
+
+  args = ["sdkmanager", "--licenses"]
+  logging.info("Accept all licenses: %s", " ".join(args))
+  subprocess.run(args=args, check=True)
+
+
+def _create_and_boot_emulator(sdk_id):
   args = ["avdmanager", "-s", 
     "create", "avd", 
     "-n", "test_emulator", 
@@ -364,9 +369,9 @@ def _create_and_boot_emulator(sdk_id):
   subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
 
   if not FLAGS.ci: 
-    command = "emulator -avd test_emulator &"
+    command = "$ANDROID_HOME/emulator/emulator -avd test_emulator &"
   else:
-    command = "emulator -avd test_emulator -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect &"
+    command = "$ANDROID_HOME/emulator/emulator -avd test_emulator -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect &"
   logging.info("Boot test emulator: %s", command)
   subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
 
