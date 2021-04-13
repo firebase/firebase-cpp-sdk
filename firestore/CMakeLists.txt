@@ -325,10 +325,6 @@ if (WIN32 AND NOT ANDROID AND NOT IOS)
   # On Windows, gRPC gives a compiler error in firebase_metadata_provider_desktop.cc
   # unless _WIN32_WINNT is defined to this value (0x0600, Windows Vista).
   set(FIREBASE_FIRESTORE_CPP_DEFINES ${FIREBASE_FIRESTORE_CPP_DEFINES} -D_WIN32_WINNT=0x0600 -DNOMINMAX)
-  target_compile_definitions(firestore_core
-    PRIVATE
-      -DNOMINMAX
-  )
 endif()
 
 target_compile_definitions(firebase_firestore
