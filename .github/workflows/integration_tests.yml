@@ -354,7 +354,7 @@ jobs:
       - name: Run iOS integration tests on Simulator/Emulator locally
         if: contains(env.mobileTestOn, 'simulator') && startsWith(matrix.os, 'macos') && matrix.target_platform != 'Desktop' && !cancelled()
         run: |
-          python scripts/gha/test_simulator.py --testapp_dir ta
+          python scripts/gha/test_simulator.py --testapp_dir ta --ci
       # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
       # Must be run after the Python setup action
       - name: Set CLOUDSDK_PYTHON (Windows)
