@@ -326,10 +326,14 @@ if (WIN32 AND NOT ANDROID AND NOT IOS)
   # unless _WIN32_WINNT is defined to this value (0x0600, Windows Vista).
   # Also set -DNOMINMAX for both Firestore and Firestore Core.
   set(FIREBASE_FIRESTORE_CPP_DEFINES ${FIREBASE_FIRESTORE_CPP_DEFINES} -D_WIN32_WINNT=0x0600 -DNOMINMAX)
-  target_compile_definitions(firestore_core
+  # Special handling for the absl time zone library, define _LIBCPP_VERSION on
+  # Windows to avoid the shenanigans they do with Windows mangled symbols to
+  # accomplish weak linking. See
+  # https://github.com/google/cctz/blob/master/src/zone_info_source.cc for a
+  # look at what we're up against.
+  target_compile_definitions(absl_time_zone
     PRIVATE
-      -DNOMINMAX
-  )
+    _LIBCPP_VERSION=99)
 endif()
 
 target_compile_definitions(firebase_firestore
