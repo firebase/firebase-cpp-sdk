@@ -50,7 +50,7 @@ env:
   statusLabelFailed: "tests: failed"
   statusLabelSucceeded: "tests: succeeded"
   statusCommentIdentifier: "integration-test-status-comment"
-  mobileTestOn: "device"
+  mobileTestOn: "device,simulator"
 
 jobs:
   check_trigger:
@@ -352,7 +352,7 @@ jobs:
         run: |
           python scripts/gha/desktop_tester.py --testapp_dir ta
       - name: Run iOS integration tests on Simulator locally
-        if: contains(env.mobileTestOn, 'simulator') && matrix.target_platform == 'iOS' && !cancelled()
+        if: contains(env.mobileTestOn, 'simulator') && startsWith(matrix.os, 'macos') && matrix.target_platform != 'Desktop' && !cancelled()
         run: |
           python scripts/gha/test_simulator.py --testapp_dir ta
       # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
