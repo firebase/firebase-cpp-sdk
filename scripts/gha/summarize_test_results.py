@@ -205,7 +205,9 @@ def print_log(log_results):
 def print_github_log(log_results):
   """Print a text log, but replace newlines with %0A and add
   the GitHub ::error text."""
-  output_lines = [LOG_HEADER, ""] + print_log(log_results)
+  output_lines = [LOG_HEADER,
+                  "".ljust(len(LOG_HEADER), "—"),
+                  ""] + print_log(log_results)
   # "%0A" produces a newline in GitHub workflow logs.
   return ["::error ::%s" % "%0A".join(output_lines)]
 
