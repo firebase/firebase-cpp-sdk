@@ -37,11 +37,12 @@ iPhone 11, OS 14.4:
   --ios_device "iPhone 11;14.4"
 
 ----Android only----
+Java 8 is required
 Environment Variables (on MacOS)
     JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-8-latest/Contents/Home
     ANDROID_HOME=/Users/user_name/Library/Android/sdk
 Environment Variables (on Linux)
-    JAVA_HOME=/usr/local/buildtools/java/jdk/
+    JAVA_HOME=/usr/local/buildtools/java/jdk8/
     ANDROID_HOME=~/Android/Sdk
 
 If you wish to specify a particular Android device to test on, you will need 
@@ -341,10 +342,6 @@ def _setup_android(platforms_version, build_tools_version, sdk_id):
 
   args = ["sdkmanager", "--update"]
   logging.info("Update all installed packages: %s", " ".join(args))
-  subprocess.run(args=args, check=True)
-
-  args = ["sdkmanager", "--licenses"]
-  logging.info("Accept all licenses: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
 
