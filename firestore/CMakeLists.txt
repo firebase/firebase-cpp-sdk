@@ -331,7 +331,9 @@ if (WIN32 AND NOT ANDROID AND NOT IOS)
   # accomplish weak linking. See
   # https://github.com/google/cctz/blob/master/src/zone_info_source.cc for a
   # look at what we're up against.
-  target_compile_definitions(absl_time_zone "-D_LIBCPP_VERSION=99")
+  target_compile_definitions(absl_time_zone
+    PRIVATE
+    _LIBCPP_VERSION=99)
 endif()
 
 target_compile_definitions(firebase_firestore
