@@ -205,7 +205,9 @@ def print_log(log_results):
 def print_github_log(log_results):
   """Print a text log, but replace newlines with %0A and add
   the GitHub ::error text."""
-  output_lines = [LOG_HEADER, ""] + print_log(log_results)
+  output_lines = [LOG_HEADER,
+                  "".ljust(len(LOG_HEADER), "—"),
+                  ""] + print_log(log_results)
   # "%0A" produces a newline in GitHub workflow logs.
   return ["::error ::%s" % "%0A".join(output_lines)]
 
@@ -292,8 +294,11 @@ def main(argv):
 
     # Extract test failures, which follow "TESTAPPS EXPERIENCED ERRORS:"
     m = re.search(r'^TEST SUMMARY(.*)TESTAPPS (EXPERIENCED ERRORS|FAILED):\n(([^\n]*\n)+)', log_text, re.MULTILINE | re.DOTALL)
-    if m and ((SIMULATOR in platform and not "(ON SIMULATOR)" in m.group(1)) or
-        (HARDWARE in platform and not "(ON HARDWARE)" in m.group(1))):
+    # If the log reports "(ON SIMULATOR)" or "(ON HARDWARE)", make sure it matches the platform.
+    if m and "(ON " in m.group(1) and (
+        (SIMULATOR in platform and not "(ON SIMULATOR)" in m.group(1)) or
+        (HARDWARE in platform and not "(ON HARDWARE)" in m.group(1))
+      ):
       m = None  # don't process this if it's for the wrong hardware target
     if m:
       for test_failure_line in m.group(3).strip("\n").split("\n"):
