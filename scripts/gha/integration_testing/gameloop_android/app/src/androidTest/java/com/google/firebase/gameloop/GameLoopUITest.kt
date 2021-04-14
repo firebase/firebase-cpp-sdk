@@ -19,7 +19,7 @@ class GameLoopUITest {
 
   companion object {
     const val COMPLETE_TEST = "Game Loop Complete"
-    const val GAMELOOP_TIMEOUT = 3 * 60 * 1000L
+    const val GAMELOOP_TIMEOUT = 15 * 60 * 1000L
   }
 
   private lateinit var device: UiDevice
