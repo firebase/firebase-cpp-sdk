@@ -322,11 +322,11 @@ def _check_java_version():
 
 def _setup_android(platforms_version, build_tools_version, sdk_id):
   android_home = os.environ["ANDROID_HOME"]
-  pathlist = ["%s/emulator" % android_home, 
-    "%s/tools" % android_home, 
-    "%s/tools/bin" % android_home, 
-    "%s/platform-tools" % android_home, 
-    "%s/build-tools/%s" % (android_home, build_tools_version)]
+  pathlist = [os.path.join(android_home, "emulator"), 
+    os.path.join(android_home, "tools"), 
+    os.path.join(android_home, "tools", "bin"), 
+    os.path.join(android_home, "platform-tools"), 
+    os.path.join(android_home, "build-tools", build_tools_version)]
   os.environ["PATH"] += os.pathsep + os.pathsep.join(pathlist)
   
   args = ["sdkmanager", 
