@@ -184,7 +184,10 @@ bool Initialize(JNIEnv* env, jobject activity) {
     }
     firebase::util::Terminate(env);
   }
-
+  if (env->ExceptionCheck()) {
+    env->ExceptionDescribe();
+    env->ExceptionClear();
+  }
   firebase::LogError(
       "Unable to check Google Play services availablity as the "
       "com.google.android.gms.common.GoogleApiAvailability class is not "
@@ -196,7 +199,11 @@ bool Initialize(JNIEnv* env, jobject activity) {
 }
 
 void Terminate(JNIEnv* env) {
-  FIREBASE_ASSERT(g_initialized_count);
+  if (g_initialized_count == 0) {
+    // Nothing to terminate.
+    firebase::LogWarning("Extraneous call to google_play_services::Terminate");
+    return;
+  }
   g_initialized_count--;
   if (g_data && g_initialized_count == 0) {
     if (g_data->classes_loaded) {

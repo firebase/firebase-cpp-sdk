@@ -33,8 +33,8 @@ AuthRequest::AuthRequest(const char* schema) : RequestJson(schema) {
   // dependencies.
   static std::string auth_user_agent;           // NOLINT
   static std::string extended_auth_user_agent;  // NOLINT
-  static Mutex user_agent_mutex;                // NOLINT
-  MutexLock lock(user_agent_mutex);
+  static Mutex* user_agent_mutex = new Mutex();
+  MutexLock lock(*user_agent_mutex);
   if (auth_user_agent.empty()) {
     std::string sdk;
     std::string version;

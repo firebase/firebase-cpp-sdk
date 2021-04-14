@@ -21,6 +21,7 @@
 #include "firestore/src/android/field_path_android.h"
 #include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/geo_point_android.h"
+#include "firestore/src/android/jni_runnable_android.h"
 #include "firestore/src/android/lambda_event_listener.h"
 #include "firestore/src/android/lambda_transaction_function.h"
 #include "firestore/src/android/listener_registration_android.h"
@@ -60,6 +61,8 @@ namespace {
 
 using jni::Constructor;
 using jni::Env;
+using jni::Global;
+using jni::HashMap;
 using jni::Loader;
 using jni::Local;
 using jni::Long;
@@ -134,6 +137,15 @@ void InitializeUserCallbackExecutor(Loader& loader) {
                    kExecutorShutdown);
 }
 
+constexpr char kFirestoreTasksClassName[] = PROGUARD_KEEP_CLASS
+    "com/google/firebase/firestore/internal/cpp/FirestoreTasks";
+StaticMethod<void> kAwaitCompletion("awaitCompletion",
+                                    "(Lcom/google/android/gms/tasks/Task;)V");
+
+void InitializeFirestoreTasks(Loader& loader) {
+  loader.LoadClass(kFirestoreTasksClassName, kAwaitCompletion);
+}
+
 /**
  * A map of Java Firestore instance to C++ Firestore instance.
  */
@@ -169,15 +181,15 @@ class JavaFirestoreMap {
  private:
   // Ensures that the backing map is initialized.
   // Prerequisite: `mutex_` must be locked before calling this method.
-  jni::HashMap& GetMapLocked(Env& env) {
+  HashMap& GetMapLocked(Env& env) {
     if (!firestores_) {
-      firestores_ = jni::HashMap::Create(env);
+      firestores_ = HashMap::Create(env);
     }
     return firestores_;
   }
 
   Mutex mutex_;
-  jni::Global<jni::HashMap> firestores_;
+  Global<HashMap> firestores_;
 };
 
 // init_mutex protects all the globals below.
@@ -255,6 +267,7 @@ bool FirestoreInternal::Initialize(App* app) {
     jni::Map::Initialize(loader);
 
     InitializeFirestore(loader);
+    InitializeFirestoreTasks(loader);
     InitializeUserCallbackExecutor(loader);
 
     BlobInternal::Initialize(loader);
@@ -269,6 +282,7 @@ bool FirestoreInternal::Initialize(App* app) {
     FieldPathConverter::Initialize(loader);
     FieldValueInternal::Initialize(loader);
     GeoPointInternal::Initialize(loader);
+    JniRunnableBase::Initialize(loader);
     ListenerRegistrationInternal::Initialize(loader);
     MetadataChangesInternal::Initialize(loader);
     QueryInternal::Initialize(loader);
@@ -333,6 +347,13 @@ FirestoreInternal::~FirestoreInternal() {
   ClearListeners();
 
   Env env = GetEnv();
+
+  // Call `terminate()` on the Java `FirebaseFirestore` object and wait for it
+  // to complete to guarantee that the next instance of `FirestoreInternal` will
+  // be backed by a new Java `FirebaseFirestore` instance.
+  Local<Task> terminate_task = env.Call(obj_, kTerminate);
+  env.Call(kAwaitCompletion, terminate_task);
+
   ShutdownUserCallbackExecutor(env);
 
   promises_.reset(nullptr);
@@ -494,34 +515,34 @@ void FirestoreInternal::ClearListeners() {
   listener_registrations_.clear();
 }
 
-jni::Env FirestoreInternal::GetEnv() {
-  jni::Env env;
+Env FirestoreInternal::GetEnv() {
+  Env env;
   env.SetUnhandledExceptionHandler(GlobalUnhandledExceptionHandler, nullptr);
   return env;
 }
 
 CollectionReference FirestoreInternal::NewCollectionReference(
-    jni::Env& env, const jni::Object& reference) const {
+    Env& env, const jni::Object& reference) const {
   return MakePublic<CollectionReference>(env, mutable_this(), reference);
 }
 
 DocumentReference FirestoreInternal::NewDocumentReference(
-    jni::Env& env, const jni::Object& reference) const {
+    Env& env, const jni::Object& reference) const {
   return MakePublic<DocumentReference>(env, mutable_this(), reference);
 }
 
 DocumentSnapshot FirestoreInternal::NewDocumentSnapshot(
-    jni::Env& env, const jni::Object& snapshot) const {
+    Env& env, const jni::Object& snapshot) const {
   return MakePublic<DocumentSnapshot>(env, mutable_this(), snapshot);
 }
 
-Query FirestoreInternal::NewQuery(jni::Env& env,
+Query FirestoreInternal::NewQuery(Env& env,
                                   const jni::Object& query) const {
   return MakePublic<Query>(env, mutable_this(), query);
 }
 
 QuerySnapshot FirestoreInternal::NewQuerySnapshot(
-    jni::Env& env, const jni::Object& snapshot) const {
+    Env& env, const jni::Object& snapshot) const {
   return MakePublic<QuerySnapshot>(env, mutable_this(), snapshot);
 }
 

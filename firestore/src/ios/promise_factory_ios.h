@@ -6,7 +6,7 @@
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "firestore/src/ios/hard_assert_ios.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/ios/promise_ios.h"
 
 namespace firebase {

@@ -18,7 +18,7 @@ if(TARGET firestore)
   return()
 endif()
 
-set(version 5f6febab5e133960ca8fc6d2639ea460253bc43a)
+set(version 9bae3613d885fb8cc7d74c612c90f821a0e1981f)
 ExternalProject_Add(
   firestore
 

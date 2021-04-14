@@ -59,6 +59,7 @@ using testing::PrintToString;
 using testing::UnorderedElementsAre;
 
 const char kIntegrationTestRootPath[] = "integration_test_data";
+const size_t kLargeWriteStringLength = 1024 * 1024; // 1 Megabyte.
 
 // Returns true if the given given timestamp is within 15 minutes of the
 // expected timestamp. The value compared against must be a Variant of type
@@ -365,7 +366,6 @@ firebase::database::DatabaseReference FirebaseDatabaseTest::CreateWorkingPath(
 }
 
 // Test cases below.
-
 TEST_F(FirebaseDatabaseTest, TestInitializeAndTerminate) {
   // Already tested via SetUp() and TearDown().
 }
@@ -502,6 +502,32 @@ class ExpectValueListener : public firebase::database::ValueListener {
   bool value_changed_;
   bool got_expected_value_;
 };
+
+TEST_F(FirebaseDatabaseTest, TestLargeWrite) {
+  const char* test_name = test_info_->name();
+  SignIn();
+  firebase::database::DatabaseReference ref = CreateWorkingPath();
+
+  LogDebug("Setting value.");
+  std::string large_string;
+  large_string.reserve(kLargeWriteStringLength);
+  for(uint32_t i = 0; i < kLargeWriteStringLength; i++ ) {
+    large_string.push_back('1');
+  }
+
+  // Setup a listener to ensure the value changes properly.
+  ExpectValueListener listener(large_string);
+  ref.Child(test_name).Child("LargeString").AddValueListener(&listener);
+
+  // Set the value.
+  firebase::Future<void> f1 =
+    ref.Child(test_name).Child("LargeString").SetValue(std::string(large_string));
+  WaitForCompletion(f1, "SetLargeString");
+
+  LogDebug("Listening for value to change as expected");
+  ASSERT_TRUE(listener.WaitForExpectedValue());
+  ref.Child(test_name).Child("LargeString").RemoveValueListener(&listener);
+}
 
 TEST_F(FirebaseDatabaseTest, TestReadingFromPersistanceWhileOffline) {
   const char* test_name = test_info_->name();
@@ -800,6 +826,7 @@ class LoggingValueListener : public firebase::database::ValueListener {
 };
 
 TEST_F(FirebaseDatabaseTest, TestAddAndRemoveListenerRace) {
+  SKIP_TEST_ON_MOBILE;
   const char* test_name = test_info_->name();
 
   SignIn();

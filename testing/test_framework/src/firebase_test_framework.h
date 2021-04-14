@@ -49,6 +49,27 @@ namespace firebase_test_framework {
 #define TEST_REQUIRES_USER_INTERACTION_ON_ANDROID ((void)0)
 #endif  // TARGET_OS_IPHONE
 
+// Macros for skipping tests on various platforms.
+// 
+// Simply place the macro at the top of the test to skip that test on
+// the given platform.
+// For example:
+// TEST_F(MyFirebaseTest, TestThatFailsOnDesktop) {
+//   SKIP_TEST_ON_DESKTOP;
+//   EXPECT_TRUE(do_test_things(...))
+// }
+//
+// SKIP_TEST_ON_MOBILE
+// SKIP_TEST_ON_IOS
+// SKIP_TEST_ON_ANDROID
+// SKIP_TEST_ON_DESKTOP
+// SKIP_TEST_ON_LINUX
+// SKIP_TEST_ON_WINDOWS
+// SKIP_TEST_ON_MACOS
+//
+// Also includes a special macro SKIP_TEST_IF_USING_STLPORT if compiling for Android
+// STLPort, which does not fully support C++11.
+  
 #if !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 #define SKIP_TEST_ON_DESKTOP                                               \
   {                                                                        \
@@ -60,6 +81,39 @@ namespace firebase_test_framework {
 #define SKIP_TEST_ON_DESKTOP ((void)0)
 #endif  // !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 
+#if (defined(TARGET_OS_OSX) && TARGET_OS_OSX)
+#define SKIP_TEST_ON_MACOS                                                 \
+  {                                                                        \
+    app_framework::LogInfo("Skipping %s on MacOS.", test_info_->name());   \
+    GTEST_SKIP();                                                          \
+    return;                                                                \
+  }
+#else
+#define SKIP_TEST_ON_MACOS ((void)0)
+#endif  // (defined(TARGET_OS_OSX) && TARGET_OS_OSX)
+
+#if defined(_WIN32)
+#define SKIP_TEST_ON_WINDOWS                                               \
+  {                                                                        \
+    app_framework::LogInfo("Skipping %s on Windows.", test_info_->name()); \
+    GTEST_SKIP();                                                          \
+    return;                                                                \
+  }
+#else
+#define SKIP_TEST_ON_WINDOWS ((void)0)
+#endif  // defined(_WIN32)
+
+#if defined(__linux__)
+#define SKIP_TEST_ON_LINUX                                                 \
+  {                                                                        \
+    app_framework::LogInfo("Skipping %s on Linux.", test_info_->name());   \
+    GTEST_SKIP();                                                          \
+    return;                                                                \
+  }
+#else
+#define SKIP_TEST_ON_LINUX ((void)0)
+#endif  // defined(__linux__)
+
 #if defined(ANDROID) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 #define SKIP_TEST_ON_MOBILE                                               \
   {                                                                       \
@@ -70,6 +124,28 @@ namespace firebase_test_framework {
 #else
 #define SKIP_TEST_ON_MOBILE ((void)0)
 #endif  // defined(ANDROID) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+
+#if (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+#define SKIP_TEST_ON_IOS                                                  \
+  {                                                                       \
+    app_framework::LogInfo("Skipping %s on iOS.", test_info_->name());    \
+    GTEST_SKIP();                                                         \
+    return;                                                               \
+  }
+#else
+#define SKIP_TEST_ON_IOS ((void)0)
+#endif  // (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
+
+#if defined(ANDROID)
+#define SKIP_TEST_ON_ANDROID                                              \
+  {                                                                       \
+    app_framework::LogInfo("Skipping %s on Android.", test_info_->name()); \
+    GTEST_SKIP();                                                         \
+    return;                                                               \
+  }
+#else
+#define SKIP_TEST_ON_ANDROID ((void)0)
+#endif  // defined(ANDROID)
 
 #if defined(STLPORT)
 #define SKIP_TEST_IF_USING_STLPORT                                             \

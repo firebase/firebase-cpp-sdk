@@ -534,25 +534,6 @@ void Repo::PostEvents(const std::vector<Event>& events) {
   }
 }
 
-static std::map<Path, Variant> VariantToPathMap(const Variant& data) {
-  std::map<Path, Variant> path_map;
-  if (data.is_map()) {
-    for (const auto& key_value : data.map()) {
-      Variant key_string_variant;
-      const char* key;
-      if (key_value.first.is_string()) {
-        key = key_value.first.string_value();
-      } else {
-        key_string_variant = key_value.first.AsString();
-        key = key_string_variant.string_value();
-      }
-      const Variant& value = key_value.second;
-      path_map.insert(std::make_pair(Path(key), value));
-    }
-  }
-  return path_map;
-}
-
 void Repo::OnConnect() {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
 

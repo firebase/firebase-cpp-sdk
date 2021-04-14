@@ -16,29 +16,33 @@ import org.gradle.util.ConfigureUtil;
 
 // A map of library to the dependencies that need to be added for it.
 def firebaseDependenciesMap = [
-  'app' : ['com.google.firebase:firebase-analytics:18.0.2'],
-  'admob' : ['com.google.firebase:firebase-ads:19.7.0',
-             'com.google.android.gms:play-services-measurement-sdk-api:18.0.2',
+  'app' : ['com.google.firebase:firebase-analytics:18.0.3'],
+  'admob' : ['com.google.firebase:firebase-ads:19.8.0',
+             'com.google.android.gms:play-services-measurement-sdk-api:18.0.3',
              'com.google.android.gms:play-services-base:17.6.0'],
-  'analytics' : ['com.google.firebase:firebase-analytics:18.0.2',
+  'analytics' : ['com.google.firebase:firebase-analytics:18.0.3',
                  'com.google.android.gms:play-services-base:17.6.0'],
-  'auth' : ['com.google.firebase:firebase-auth:20.0.2'],
-  'database' : ['com.google.firebase:firebase-database:19.6.0'],
+  'auth' : ['com.google.firebase:firebase-auth:20.0.4'],
+  'database' : ['com.google.firebase:firebase-database:19.7.0'],
   'dynamic_links' : ['com.google.firebase:firebase-dynamic-links:19.1.1'],
-  'firestore' : ['com.google.firebase:firebase-firestore:22.0.2'],
+  'firestore' : ['com.google.firebase:firebase-firestore:22.1.2'],
   'functions' : ['com.google.firebase:firebase-functions:19.2.0'],
   'installations' : ['com.google.firebase:firebase-installations:16.3.5',
                      'com.google.android.gms:play-services-base:17.6.0'],
-  'instance_id' : ['com.google.firebase:firebase-iid:21.0.1'],
+  'instance_id' : ['com.google.firebase:firebase-iid:21.1.0',
+                   'com.google.android.gms:play-services-base:17.6.0'],
   'invites' : ['com.google.firebase:firebase-invites:17.0.0'],
-  'messaging' : ['com.google.firebase.messaging.cpp:firebase_messaging_cpp@aar',
-                 'com.google.firebase:firebase-messaging:21.0.1',
+  // Messaging has an additional local dependency to include.
+  'messaging' : ['com.google.firebase:firebase-messaging:21.1.0',
+                 'com.google.firebase.messaging.cpp:firebase_messaging_cpp@aar',
                  'androidx.core:core:1.0.1',
-                 'com.google.flatbuffers:flatbuffers-java:1.9.0'],
-  'performance' : ['com.google.firebase:firebase-perf:19.1.0'],
-  'remote_config' : ['com.google.firebase:firebase-config:20.0.3',
+                 'com.google.flatbuffers:flatbuffers-java:1.9.0',
+                 'com.google.android.gms:play-services-base:17.6.0'],
+  'performance' : ['com.google.firebase:firebase-perf:19.1.1'],
+  'remote_config' : ['com.google.firebase:firebase-config:20.0.4',
                      'com.google.android.gms:play-services-base:17.6.0'],
-  'storage' : ['com.google.firebase:firebase-storage:19.2.1']
+  'storage' : ['com.google.firebase:firebase-storage:19.2.2'],
+  'testlab' : []
 ]
 
 // Handles adding the Firebase C++ dependencies as properties.

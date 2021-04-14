@@ -1,5 +1,6 @@
 #include "firestore/src/android/transaction_android.h"
 
+#include <stdexcept>
 #include <utility>
 
 #include "app/meta/move.h"
@@ -10,9 +11,11 @@
 #include "firestore/src/android/field_value_android.h"
 #include "firestore/src/android/set_options_android.h"
 #include "firestore/src/android/util_android.h"
+#include "firestore/src/common/macros.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/hash_map.h"
 #include "firestore/src/jni/loader.h"
+#include "Firestore/core/src/util/firestore_exceptions.h"
 
 namespace firebase {
 namespace firestore {
@@ -121,9 +124,10 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
     }
 
     if (!ExceptionInternal::IsFirestoreException(env, exception)) {
-      // We would only preserve exception if it is not
-      // FirebaseFirestoreException. The user should decide whether to raise the
-      // error or let the transaction succeed.
+      // Only preserve the exception if it is not `FirebaseFirestoreException`.
+      // For Firestore exceptions, the user decides whether to raise the error
+      // or let the transaction succeed through the error code/message the
+      // `TransactionFunction` returns.
       PreserveException(env, Move(exception));
     }
     return DocumentSnapshot{};
@@ -141,9 +145,18 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
 }
 
 Env TransactionInternal::GetEnv() {
+#if FIRESTORE_HAVE_EXCEPTIONS
+  // If exceptions are enabled, report Java exceptions by translating them to
+  // their C++ equivalents in the usual way. These will throw out to the
+  // user-supplied TransactionFunction and ultimately out to
+  // `TransactionFunctionNativeApply`, below.
+  return FirestoreInternal::GetEnv();
+
+#else
   Env env;
   env.SetUnhandledExceptionHandler(ExceptionHandler, this);
   return env;
+#endif
 }
 
 void TransactionInternal::ExceptionHandler(Env& env,
@@ -195,7 +208,32 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
       new TransactionInternal(firestore, Object(java_transaction)));
 
   std::string message;
-  Error code = transaction_function->Apply(transaction, message);
+  Error code;
+
+#if FIRESTORE_HAVE_EXCEPTIONS
+  try {
+#endif
+
+    code = transaction_function->Apply(transaction, message);
+
+#if FIRESTORE_HAVE_EXCEPTIONS
+  } catch (const FirestoreException& e) {
+    message = e.what();
+    code = e.code();
+  } catch (const std::invalid_argument& e) {
+    message = e.what();
+    code = Error::kErrorInvalidArgument;
+  } catch (const std::logic_error& e) {
+    message = e.what();
+    code = Error::kErrorFailedPrecondition;
+  } catch (const std::exception& e) {
+    message = std::string("Unknown exception: ") + e.what();
+    code = Error::kErrorUnknown;
+  } catch (...) {
+    message = "Unknown exception";
+    code = Error::kErrorUnknown;
+  }
+#endif  // FIRESTORE_HAVE_EXCEPTIONS
 
   // Verify that `internal_` is not null before using it. It could be set to
   // `nullptr` if the `FirestoreInternal` is destroyed during the invocation of

@@ -3,63 +3,116 @@ name: Desktop Builds
 on:
   pull_request:
     types: [opened, reopened, synchronize]
+  workflow_dispatch:
+    inputs:
+      expanded_matrix:
+        description: 'Use an expanded matrix?'
+        default: '0'
+        required: true
 
 env:
   CCACHE_DIR: ${{ github.workspace }}/ccache_dir
-  # Xcode version 11.7 is the version we build the SDK with.
-  # Our MacOS runners will use the version in /Applications/Xcode_${xcodeVersion}.app
-  xcodeVersion: "11.7"
 
 jobs:
+  prepare_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix_os: ${{ steps.export-result.outputs.matrix_os }}
+      matrix_build_type: ${{ steps.export-result.outputs.matrix_build_type }}
+      matrix_architecture: ${{ steps.export-result.outputs.matrix_architecture }}
+      matrix_msvc_runtime: ${{ steps.export-result.outputs.msvc_runtime }}
+      matrix_xcode_version: ${{ steps.export-result.outputs.xcode_version }}
+      matrix_python_version: ${{ steps.export-result.outputs.python_version }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: false
+      - name: Use expanded matrix
+        if: github.event.inputs.expanded_matrix == '1'
+        run: |
+          echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
+      - id: export-result
+        run: |
+          echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w desktop -k os ${EXPANDED_MATRIX_PARAM})"
+          echo "::set-output name=matrix_build_type::$( python scripts/gha/print_matrix_configuration.py -w desktop -k build_type ${EXPANDED_MATRIX_PARAM})"
+          echo "::set-output name=matrix_architecture::$( python scripts/gha/print_matrix_configuration.py -w desktop -k architecture ${EXPANDED_MATRIX_PARAM})"
+          echo "::set-output name=msvc_runtime::$( python scripts/gha/print_matrix_configuration.py -w desktop -k msvc_runtime ${EXPANDED_MATRIX_PARAM})"
+          echo "::set-output name=xcode_version::$( python scripts/gha/print_matrix_configuration.py -w desktop -k xcode_version ${EXPANDED_MATRIX_PARAM})"
+          echo "::set-output name=python_version::$( python scripts/gha/print_matrix_configuration.py -w desktop -k python_version ${EXPANDED_MATRIX_PARAM})"
   build:
     name: ${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime}}
     runs-on: ${{ matrix.os }}
+    needs: prepare_matrix
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        build_type: ["Release", "Debug"]
-        architecture: ["x64", "x86"]
-        python_version: [3.7]
+        os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
+        build_type: ${{ fromJson(needs.prepare_matrix.outputs.matrix_build_type) }}
+        architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
+        msvc_runtime: ${{ fromJson(needs.prepare_matrix.outputs.matrix_msvc_runtime) }}
+        xcode_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_xcode_version) }}
+        python_version: ${{ fromJson(needs.prepare_matrix.outputs.matrix_python_version) }}
         include:
-        # Add these Windows jobs.
-        - os: windows-latest
-          build_type: "Release"
-          architecture: "x64"
-          msvc_runtime: "static"
-          vcpkg_triplet_suffix: "windows-static"
-        - os: windows-latest
-          build_type: "Debug"
-          architecture: "x86"
-          msvc_runtime: "dynamic"
-          vcpkg_triplet_suffix: "windows-static-md"
-
-        # Specify additional parameters for these jobs.
-        - os: ubuntu-latest
-          msvc_runtime: "static"
-          vcpkg_triplet_suffix: "linux"
-        - os: macos-latest
-          msvc_runtime: "static"
-          vcpkg_triplet_suffix: "osx"
-
-        # Don't build for x86 on MacOS.
+          # More Windows combinations are in the expanded matrix. 
+          - os: windows-latest
+            build_type: "Release"
+            architecture: "x64"
+            msvc_runtime: "static"
+          - os: windows-latest
+            build_type: "Debug"
+            architecture: "x86"
+            msvc_runtime: "dynamic"
         exclude:
-        - os: macos-latest
-          architecture: "x86"
-
-    steps:
-      - name: setup Xcode version (macos)
+          # msvc_runtime excludes
+          - os: ubuntu-latest
+            msvc_runtime: "dynamic"
+          - os: macos-latest
+            msvc_runtime: "dynamic"
+          # architecture excluees
+          - os: macos-latest
+            architecture: "x86"
+          # Xcode excludes -- allow only one on osx and linux
+          - os: ubuntu-latest
+            xcode_version: "12.4"
+          - os: windows-latest
+            xcode_version: "12.4"
+    steps:                
+      - name: Setup Xcode version (macos)
         if: runner.os == 'macOS'
-        run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer
 
       - uses: actions/checkout@v2
         with:
           submodules: true
+      
+      - name: Set env vars (ubuntu)
+        if: startsWith(matrix.os, 'ubuntu')
+        shell: bash
+        run:  echo "VCPKG_SUFFIX=linux" >> $GITHUB_ENV
+
+      - name: Set env vars (macos)
+        if: startsWith(matrix.os, 'macos')
+        shell: bash
+        run: echo "VCPKG_SUFFIX=osx" >> $GITHUB_ENV
+
+      - name: Set env vars (windows)
+        if: startsWith(matrix.os, 'windows')
+        shell: bash
+        run: |
+          if [[ ${{matrix.msvc_runtime}}  == "static" ]];
+            then echo "VCPKG_SUFFIX=windows-static" >> $GITHUB_ENV;
+          elif [[ ${{matrix.msvc_runtime}} == "dynamic" ]];
+            then echo "VCPKG_SUFFIX=windows-static-md" >> $GITHUB_ENV;
+          else
+            echo "Warning, could not resolve vcpkg suffix.";
+          fi
 
       - name: Set env variables for subsequent steps (all)
         shell: bash
         run: |
-          echo "VCPKG_RESPONSE_FILE=external/vcpkg_custom_data/response_files/${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}.txt" >> $GITHUB_ENV
+          echo "BUILD_TYPE: ${{ matrix.build_type }}"
+          echo "VCPKG_SUFFIX: ${{env.VCPKG_SUFFIX}}"
+          echo "VCPKG_RESPONSE_FILE=external/vcpkg_custom_data/response_files/${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}.txt" >> $GITHUB_ENV
           echo "MATRIX_UNIQUE_NAME=${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}" >> $GITHUB_ENV
 
       - name: Cache vcpkg C++ dependencies
@@ -67,7 +120,7 @@ jobs:
         uses: actions/cache@v2
         with:
           path: external/vcpkg/installed
-          key: dev-vcpkg-${{ matrix.architecture }}-${{ matrix.vcpkg_triplet_suffix }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
+          key: dev-vcpkg-${{ matrix.architecture }}-${{ env.VCPKG_SUFFIX }}-${{ matrix.msvc_runtime }}-${{ hashFiles(format('{0}', env.VCPKG_RESPONSE_FILE)) }}-${{ hashFiles('.git/modules/external/vcpkg/HEAD') }}
 
       - name: Cache ccache files
         if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
@@ -82,6 +135,14 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
           architecture: 'x64'
+
+      - name: Update homebrew (avoid bintray errors)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          # Temporarily here until Github runners have updated their version of
+          # homebrew. This prevents errors arising from the shut down of
+          # binutils, used by older version of homebrew for hosting packages.
+          brew update
 
       - name: Install prerequisites
         run: |
@@ -193,7 +254,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: failure() && startsWith(matrix.build_type, 'Debug') && startsWith(matrix.os, 'macos')
         with:
-          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}
+          name: crashes-${{ matrix.os }}-${{ matrix.build_type }}-${{ matrix.architecture }}-${{ matrix.python_version }}-${{ matrix.xcode_version }}
           path: |
             ~/Library/Logs/DiagnosticReports/*
             /tmp/bins/*

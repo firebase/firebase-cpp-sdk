@@ -155,15 +155,41 @@ class Settings final {
    */
   void set_cache_size_bytes(int64_t value);
 
-#if defined(__OBJC__)
+#if defined(__OBJC__) || defined(DOXYGEN)
   /**
-   * A dispatch queue to be used to execute all completion handlers and event
-   * handlers. By default, the main queue is used.
+   * Returns a dispatch queue that Firestore will use to execute callbacks.
+   *
+   * The returned dispatch queue is used for all completion handlers and event
+   * handlers.
+   *
+   * If no dispatch queue is explictly set by calling `set_dispatch_queue()`
+   * then a dedicated "callback queue" will be used; namely, the main thread
+   * will not be used for callbacks unless expliclty set to do so by a call to
+   * `set_dispatch_queue()`.
+   *
+   * @note This method is only available when `__OBJC__` is defined, such as
+   * when compiling for iOS.
+   *
+   * @see `set_dispatch_queue(dispatch_queue_t)` for information on how to
+   * explicitly set the dispatch queue to use.
    */
   dispatch_queue_t dispatch_queue() const;
 
+  /**
+   * Sets the dispatch queue that Firestore will use to execute callbacks.
+   *
+   * The specified dispatch queue will be used for all completion handlers and
+   * event handlers.
+   *
+   * @param queue The dispatch queue to use.
+   *
+   * @note This method is only available when `__OBJC__` is defined, such as
+   * when compiling for iOS.
+   *
+   * @see `dispatch_queue()` for the "get" counterpart to this method.
+   */
   void set_dispatch_queue(dispatch_queue_t queue);
-#endif
+#endif  // defined(__OBJC__) || defined(DOXYGEN)
 
   /**
    * Returns a string representation of these `Settings` for

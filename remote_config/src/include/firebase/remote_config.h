@@ -34,11 +34,13 @@ FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(remote_config)
 /// @brief Namespace that encompasses all Firebase APIs.
 namespace firebase {
 
+#ifndef SWIG
 /// @brief Firebase Remote Config API.
 ///
 /// Firebase Remote Config is a cloud service that lets you change the
 /// appearance and behavior of your app without requiring users to download an
 /// app update.
+#endif  // SWIG
 namespace remote_config {
 
 /// @brief Describes the most recent fetch request status.
@@ -115,8 +117,8 @@ enum ConfigSetting {
 };
 
 /// @brief The default cache expiration used by Fetch(), equal to 12 hours,
-/// in seconds.
-static const uint64_t kDefaultCacheExpiration = 60 * 60 * 12;
+/// in milliseconds.
+static const uint64_t kDefaultCacheExpiration = 60 * 60 * 12 * 1000;
 
 /// @brief The default timeout used by Fetch(), equal to 30 seconds,
 /// in milliseconds.

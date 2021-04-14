@@ -206,10 +206,8 @@ void PersistenceManager::DoPruneCheckAfterServerUpdate() {
           tracked_query_manager_->PruneOldQueries(*cache_policy_);
       PruneForestRef prune_forest_ref(&prune_forest);
       if (prune_forest_ref.PrunesAnything()) {
-        std::cout << __LINE__ << std::endl;
         storage_engine_->PruneCache(Path(), prune_forest_ref);
       } else {
-        std::cout << __LINE__ << std::endl;
         can_prune = false;
       }
       cache_size = storage_engine_->ServerCacheEstimatedSizeInBytes();

@@ -357,6 +357,9 @@ std::string GetAppDataPath(const char* app_name, bool should_create = true);
 // delimiter. Returns of vector of constituent parts
 std::vector<std::string> split_string(const std::string& s,
                                       const char delimiter='/');
+
+std::map<Path, Variant> VariantToPathMap(const Variant& data);
+
 }  // namespace internal
 }  // namespace database
 }  // namespace firebase

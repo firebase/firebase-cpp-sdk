@@ -15,6 +15,8 @@
 #ifndef FIREBASE_FIS_CLIENT_CPP_SRC_INSTALLATIONS_INTERNAL_H_
 #define FIREBASE_FIS_CLIENT_CPP_SRC_INSTALLATIONS_INTERNAL_H_
 
+#include "app/src/include/firebase/internal/platform.h"
+
 // InstallationsInternal is defined in these 2 files, one implementation for
 // each OS.
 #if FIREBASE_PLATFORM_ANDROID || FIREBASE_ANDROID_FOR_DESKTOP

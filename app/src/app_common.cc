@@ -255,7 +255,7 @@ class LibraryRegistry {
 };
 
 // Guards g_apps and g_default_app.
-static Mutex g_app_mutex;  // NOLINT
+static Mutex* g_app_mutex = new Mutex();
 static std::map<std::string, UniquePtr<AppData>>* g_apps;
 static App* g_default_app = nullptr;
 LibraryRegistry* LibraryRegistry::library_registry_ = nullptr;
@@ -265,7 +265,7 @@ App* AddApp(App* app, std::map<std::string, InitResult>* results) {
   assert(app);
   App* existing_app = FindAppByName(app->name());
   FIREBASE_ASSERT_RETURN(nullptr, !existing_app);
-  MutexLock lock(g_app_mutex);
+  MutexLock lock(*g_app_mutex);
   if (IsDefaultAppName(app->name())) {
     assert(!g_default_app);
     g_default_app = app;
@@ -309,7 +309,7 @@ App* AddApp(App* app, std::map<std::string, InitResult>* results) {
 
 App* FindAppByName(const char* name) {
   assert(name);
-  MutexLock lock(g_app_mutex);
+  MutexLock lock(*g_app_mutex);
   if (g_apps) {
     auto it = g_apps->find(std::string(name));
     if (it == g_apps->end()) return nullptr;
@@ -325,7 +325,7 @@ App* GetAnyApp() {
     return g_default_app;
   }
 
-  MutexLock lock(g_app_mutex);
+  MutexLock lock(*g_app_mutex);
   if (g_apps && !g_apps->empty()) {
     return g_apps->begin()->second->app;
   }
@@ -334,7 +334,7 @@ App* GetAnyApp() {
 
 void RemoveApp(App* app) {
   assert(app);
-  MutexLock lock(g_app_mutex);
+  MutexLock lock(*g_app_mutex);
   if (g_apps) {
     auto it = g_apps->find(std::string(app->name()));
     bool last_app = false;
@@ -369,7 +369,7 @@ void RemoveApp(App* app) {
 void DestroyAllApps() {
   std::vector<App*> apps_to_delete;
   App* const default_app = GetDefaultApp();
-  MutexLock lock(g_app_mutex);
+  MutexLock lock(*g_app_mutex);
   if (g_apps) {
     for (auto it = g_apps->begin(); it != g_apps->end(); ++it) {
       if (it->second->app != default_app)
@@ -391,7 +391,7 @@ bool IsDefaultAppName(const char* name) {
 }
 
 void RegisterLibrary(const char* library, const char* version) {
-  MutexLock lock(g_app_mutex);
+  MutexLock lock(*g_app_mutex);
   LibraryRegistry* registry = LibraryRegistry::Initialize();
   if (registry->RegisterLibrary(library, version)) {
     registry->UpdateUserAgent();
@@ -399,7 +399,7 @@ void RegisterLibrary(const char* library, const char* version) {
 }
 
 void RegisterLibrariesFromUserAgent(const char* user_agent) {
-  MutexLock lock(g_app_mutex);
+  MutexLock lock(*g_app_mutex);
   LibraryRegistry* registry = LibraryRegistry::Initialize();
   // Copy the string into a vector so that we can safely mutate the string.
   std::vector<char> user_agent_vector(user_agent,
@@ -427,12 +427,12 @@ void RegisterLibrariesFromUserAgent(const char* user_agent) {
 }
 
 const char* GetUserAgent() {
-  MutexLock lock(g_app_mutex);
+  MutexLock lock(*g_app_mutex);
   return LibraryRegistry::Initialize()->GetUserAgent();
 }
 
 std::string GetLibraryVersion(const char* library) {
-  MutexLock lock(g_app_mutex);
+  MutexLock lock(*g_app_mutex);
   return LibraryRegistry::Initialize()->GetLibraryVersion(library);
 }
 
@@ -442,7 +442,7 @@ void GetOuterMostSdkAndVersion(std::string* sdk, std::string* version) {
   sdk->clear();
   version->clear();
 
-  MutexLock lock(g_app_mutex);
+  MutexLock lock(*g_app_mutex);
   // Set of library versions to query in order of outer wrapper to inner.
   // We're only retrieving the outer-most SDK version here as we can only send
   // one component as part of the user agent string to the storage backend.
@@ -466,7 +466,7 @@ void GetOuterMostSdkAndVersion(std::string* sdk, std::string* version) {
 // Find a logger associated with an app by app name.
 Logger* FindAppLoggerByName(const char* name) {
   assert(name);
-  MutexLock lock(g_app_mutex);
+  MutexLock lock(*g_app_mutex);
   if (g_apps) {
     auto it = g_apps->find(std::string(name));
     if (it == g_apps->end()) return nullptr;
