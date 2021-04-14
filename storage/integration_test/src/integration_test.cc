@@ -630,6 +630,11 @@ class StorageListener : public firebase::storage::Listener {
 #endif  // FIREBASE_PLATFORM_DESKTOP
     on_paused_was_called_ = true;
     resume_succeeded_ = controller->Resume();
+    if (!resume_succeeded_) {
+      // Resume failed, try it one more time.
+      ProcessEvents(1000);
+      resume_succeeded_ = controller->Resume();
+    }
   }
 
   void OnProgress(firebase::storage::Controller* controller) override {
