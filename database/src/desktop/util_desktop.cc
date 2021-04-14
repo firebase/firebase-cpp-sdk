@@ -990,7 +990,7 @@ const std::string& GetHash(const Variant& data, std::string* output) {
 }
 
 bool IsValidPriority(const Variant& variant) {
-  return variant.is_numeric() || variant.is_string();
+  return variant.is_null() || variant.is_numeric() || variant.is_string();
 }
 
 std::pair<Variant, Variant> MakePost(const QueryParams& params,
@@ -1022,11 +1022,13 @@ std::pair<Variant, Variant> MakePost(const QueryParams& params,
 }
 
 bool HasStart(const QueryParams& params) {
-  return !params.start_at_value.is_null() || !params.equal_to_value.is_null();
+  return !params.start_at_value.is_null() || !params.equal_to_value.is_null() ||
+         GetStartName(params) != QueryParamsComparator::kMinKey;
 }
 
 bool HasEnd(const QueryParams& params) {
-  return !params.end_at_value.is_null() || !params.equal_to_value.is_null();
+  return !params.end_at_value.is_null() || !params.equal_to_value.is_null() ||
+         GetEndName(params) != QueryParamsComparator::kMaxKey;
 }
 
 std::string GetStartName(const QueryParams& params) {
@@ -1227,6 +1229,23 @@ std::vector<std::string> split_string(const std::string& s, const char delimiter
   }
 
   return split_parts;
+}
+
+std::map<Path, Variant> VariantToPathMap(const Variant& data) {
+  std::map<Path, Variant> path_map;
+  if (data.is_map()) {
+    for (const auto& key_value : data.map()) {
+      const char* key;
+      if (key_value.first.is_string()) {
+        key = key_value.first.string_value();
+      } else {
+        key = key_value.first.AsString().string_value();
+      }
+      const Variant& value = key_value.second;
+      path_map.insert(std::make_pair(Path(key), value));
+    }
+  }
+  return path_map;
 }
 
 }  // namespace internal

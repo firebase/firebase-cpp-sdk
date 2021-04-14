@@ -1,0 +1,102 @@
+// Copyright 2021 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// This schema uses some non-idiomatic style for field names because it's
+// designed to parse an existing JSON file used by the Android and iOS
+// implementations of Realtime Database.
+
+namespace firebase.database.internal.test_data;
+
+// Order of these enum values matters. It must match the order of the EventType
+// enum in `database/src/desktop/view/event_type.h`
+enum EventType : uint8 {
+  child_removed,
+  child_added,
+  child_moved,
+  child_changed,
+  value,
+}
+
+enum StepType : uint8 {
+  ackUserWrite,
+  listen,
+  serverMerge,
+  serverUpdate,
+  set,
+  suppressWarning,
+  unlisten,
+  update,
+}
+
+table Event {
+  path: string;
+  type: EventType;
+  name: string;
+  prevName: string;
+  data: [uint8] (flexbuffer);
+}
+
+table Bound {
+  index: [uint8] (flexbuffer);
+  name: string;
+}
+
+table QueryParams {
+  tag: int32;
+  limitToFirst: int32;
+  limitToLast: int32;
+  orderByKey: bool;
+  orderByPriority: bool;
+  startAt: Bound;
+  endAt: Bound;
+  equalTo: Bound;
+  orderBy: string;
+}
+
+table Step {
+  // A comment that may be printed during the test, describing what the action 
+  // that the current step is performing. 
+  comment: string;
+
+  type: StepType;
+  path: string;
+  tag: int64;
+  params: QueryParams;
+  data: [uint8] (flexbuffer);
+  events: [Event];
+
+  visible: bool = true;
+  callbackId: int32;
+  writeId: int32;
+  revert: bool;
+}
+
+table TestCase {
+  // A comment that may be printed during the test, describing what the what is
+  // being tested.
+  comment: string;
+
+  // The name of the test.
+  name: string;
+
+  // The series of steps in this test, including what actions to take and what
+  // events are expected to be raised at each step.
+  steps: [Step];
+}
+
+table TestSuite {
+  test_cases: [TestCase];
+}
+
+root_type TestSuite;
