@@ -1,4 +1,4 @@
- // Copyright 2019 Google Inc. All rights reserved.
+// Copyright 2019 Google Inc. All rights reserved.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -102,13 +102,15 @@ class FirebaseAuthTest : public FirebaseTest {
   void DeleteUser();
 
   // Passthrough method to the base class's WaitForCompletion.
-  bool WaitForCompletion(firebase::Future<std::string> future, const char* fn,
+  bool WaitForCompletion(firebase::Future<std::string> future,
+                         const char* fn,
                          int expected_error = firebase::auth::kAuthErrorNone) {
     return FirebaseTest::WaitForCompletion(future, fn, expected_error);
   }
 
   // Passthrough method to the base class's WaitForCompletion.
-  bool WaitForCompletion(firebase::Future<void> future, const char* fn,
+  bool WaitForCompletion(firebase::Future<void> future,
+                         const char* fn,
                          int expected_error = firebase::auth::kAuthErrorNone) {
     return FirebaseTest::WaitForCompletion(future, fn, expected_error);
   }
@@ -125,7 +127,8 @@ class FirebaseAuthTest : public FirebaseTest {
   // Custom WaitForCompletion that checks if User and Provider ID matches
   // afterwards.
   bool WaitForCompletion(firebase::Future<firebase::auth::SignInResult> future,
-                         const char* fn, const std::string& provider_id);
+                         const char* fn,
+                         const std::string& provider_id);
 
   bool initialized_;
   firebase::auth::Auth* auth_;
@@ -198,7 +201,8 @@ void FirebaseAuthTest::Terminate() {
 }
 
 bool FirebaseAuthTest::WaitForCompletion(
-    firebase::Future<firebase::auth::User*> future, const char* fn,
+    firebase::Future<firebase::auth::User*> future,
+    const char* fn,
     int expected_error) {
   bool succeeded = FirebaseTest::WaitForCompletion(future, fn, expected_error);
 
@@ -216,7 +220,8 @@ bool FirebaseAuthTest::WaitForCompletion(
 }
 
 bool FirebaseAuthTest::WaitForCompletion(
-    firebase::Future<firebase::auth::SignInResult> future, const char* fn,
+    firebase::Future<firebase::auth::SignInResult> future,
+    const char* fn,
     int expected_error) {
   bool succeeded = FirebaseTest::WaitForCompletion(future, fn, expected_error);
 
@@ -235,7 +240,8 @@ bool FirebaseAuthTest::WaitForCompletion(
 }
 
 bool FirebaseAuthTest::WaitForCompletion(
-    firebase::Future<firebase::auth::SignInResult> future, const char* fn,
+    firebase::Future<firebase::auth::SignInResult> future,
+    const char* fn,
     const std::string& provider_id) {
   bool succeeded = FirebaseTest::WaitForCompletion(future, fn);
   if (succeeded) {
@@ -320,7 +326,9 @@ class TestAuthStateListener : public firebase::auth::AuthStateListener {
       auth_states_.push_back(provider);
     }
   }
-  const std::vector<std::string>& auth_states() { return auth_states_; }
+  const std::vector<std::string>& auth_states() {
+    return auth_states_;
+  }
 
  private:
   std::vector<std::string> auth_states_;
@@ -350,7 +358,9 @@ class TestIdTokenListener : public firebase::auth::IdTokenListener {
     }
   }
 
-  const std::vector<std::string>& token_states() { return token_states_; }
+  const std::vector<std::string>& token_states() {
+    return token_states_;
+  }
 
  private:
   std::vector<std::string> token_states_;
@@ -395,7 +405,8 @@ TEST_F(FirebaseAuthTest, TestTokensAndAuthStateListeners) {
 
 static std::string GenerateEmailAddress() {
   char time_string[22];
-  snprintf(time_string, 22, "%d", app_framework::GetCurrentTimeInMicroseconds());
+  snprintf(time_string, 22, "%d",
+           app_framework::GetCurrentTimeInMicroseconds());
   std::string email = "random_user_";
   email.append(time_string);
   email.append("@gmail.com");
@@ -718,7 +729,7 @@ TEST_F(FirebaseAuthTest, TestWithCustomEmailAndPassword) {
   EXPECT_NE(auth_->current_user(), nullptr);
 }
 
-#if ! defined(__linux__)
+#if !defined(__linux__)
 // Test is disabled on linux due to the need to unlock the keystore.
 TEST_F(FirebaseAuthTest, TestAuthPersistenceWithAnonymousSignin) {
   WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
@@ -734,7 +745,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithAnonymousSignin) {
 }
 #endif  // ! defined(__linux__)
 
-#if ! defined(__linux__)
+#if !defined(__linux__)
 // Test is disabled on linux due to the need to unlock the keychain.
 TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   std::string email = GenerateEmailAddress();
@@ -775,14 +786,14 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
 }
 #endif  // ! defined(__linux__)
 
-
 class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
  public:
   PhoneListener()
       : on_verification_complete_count_(0),
         on_verification_failed_count_(0),
         on_code_sent_count_(0),
-        on_code_auto_retrieval_time_out_count_(0) {}
+        on_code_auto_retrieval_time_out_count_(0) {
+  }
 
   void OnVerificationCompleted(firebase::auth::Credential credential) override {
     LogDebug("PhoneListener: successful automatic verification.");
@@ -812,7 +823,9 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
     on_code_auto_retrieval_time_out_count_++;
   }
 
-  const std::string& verification_id() const { return verification_id_; }
+  const std::string& verification_id() const {
+    return verification_id_;
+  }
   const firebase::auth::PhoneAuthProvider::ForceResendingToken&
   force_resending_token() const {
     return force_resending_token_;
@@ -823,7 +836,9 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
   int on_verification_failed_count() const {
     return on_verification_failed_count_;
   }
-  int on_code_sent_count() const { return on_code_sent_count_; }
+  int on_code_sent_count() const {
+    return on_code_sent_count_;
+  }
   int on_code_auto_retrieval_time_out_count() const {
     return on_code_auto_retrieval_time_out_count_;
   }
@@ -840,7 +855,9 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
            on_code_auto_retrieval_time_out_count() == 0;
   }
 
-  firebase::auth::Credential credential() { return credential_; }
+  firebase::auth::Credential credential() {
+    return credential_;
+  }
 
  private:
   std::string verification_id_;
@@ -867,7 +884,8 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
     LogDebug("Calling VerifyPhoneNumber.");
     // Randomly choose one of the phone numbers to avoid collisions.
     const int random_phone_number =
-        app_framework::GetCurrentTimeInMicroseconds() % kPhoneAuthTestNumPhoneNumbers;
+        app_framework::GetCurrentTimeInMicroseconds() %
+        kPhoneAuthTestNumPhoneNumbers;
     phone_provider.VerifyPhoneNumber(
         kPhoneAuthTestPhoneNumbers[random_phone_number], kPhoneAuthTimeoutMs,
         nullptr, &listener);

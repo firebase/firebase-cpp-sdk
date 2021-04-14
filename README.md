@@ -1,4 +1,4 @@
- # Firebase C++ Open Source Development
+# Firebase C++ Open Source Development
 
 The repository contains the Firebase C++ SDK source, with support for Android,
 iOS, and desktop platforms. It includes the following Firebase libraries:
