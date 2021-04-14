@@ -124,7 +124,7 @@ def validate_results_cpp(log_text):
       summary=result_summary)
 
 
-def summarize_test_results(tests, platform, summary_dir, tested_simulator=False):
+def summarize_test_results(tests, platform, summary_dir, extra_info=""):
   """Summarizes and logs test results for multiple tests.
 
   Each 'test' should be an object with properties "testapp_path", which
@@ -149,12 +149,6 @@ def summarize_test_results(tests, platform, summary_dir, tested_simulator=False)
   successes = []
   failures = []
   errors = []
-
-  if tested_simulator:
-    test_on = " (ON SIMULATOR/EMULATOR)"
-  else:
-    test_on = " (ON REAL DEVICE VIA FTL)"
-    
 
   for test in tests:
     results = validate_results(test.logs, platform)
@@ -182,7 +176,7 @@ def summarize_test_results(tests, platform, summary_dir, tested_simulator=False)
   # The summary is much more terse, to minimize the time it takes to understand
   # what went wrong, without necessarily providing full debugging context.
   summary = []
-  summary.append("TEST SUMMARY%s:" % test_on)
+  summary.append("TEST SUMMARY%s:" % extra_info)
   if successes:
     summary.append("%d TESTAPPS SUCCEEDED:" % len(successes))
     summary.extend((test.testapp_path for (test, _) in successes))

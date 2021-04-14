@@ -179,7 +179,7 @@ def main(argv):
                       logs=_run_android_gameloop_test(package_name, app_path, android_gameloop_project)))
 
   return test_validation.summarize_test_results(
-    tests, test_validation.CPP, testapp_dir, tested_simulator=True)
+    tests, test_validation.CPP, testapp_dir, extra_info=" (ON SIMULATOR/EMULATOR)")
 
 
 def _build_ios_gameloop(gameloop_project, device_name, device_os):
@@ -381,7 +381,6 @@ def _create_and_boot_emulator(sdk_id):
     time.sleep(90)
   else:
     time.sleep(45)
-
 
 
 def _get_package_name(app_path):
