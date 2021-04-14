@@ -217,6 +217,8 @@ def main(argv):
     sys.exit(2)
   
   filenames = []
+  if FLAGS.file:
+      filenames = FLAGS.file
 
   if FLAGS.dr or FLAGS.d:
     filenames += directory_search_list_files()
