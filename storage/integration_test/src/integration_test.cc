@@ -49,10 +49,10 @@ const char* kStorageUrl = nullptr;
 
 #if FIREBASE_PLATFORM_DESKTOP
 // Use a larger file on desktop...
-const int kLargeFileMegabytes = 25;
+const int kLargeFileMegabytes = 32;
 #else
 // ...and a smaller file on mobile.
-const int kLargeFileMegabytes = 10;
+const int kLargeFileMegabytes = 16;
 #endif
 
 const char kRootNodeName[] = "integration_test_data";
@@ -696,7 +696,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
 #if FIREBASE_PLATFORM_DESKTOP
       ProcessEvents(1);
 #else // FIREBASE_PLATFORM_MOBILE
-      ProcessEvents(500);
+      ProcessEvents(100);
 #endif
     }
 
