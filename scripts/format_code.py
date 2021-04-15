@@ -131,6 +131,7 @@ def list_files_from_directory(path, recurse):
     in FILE_TYPE_EXTENSIONS.
   """
   filenames = []
+  
   for root, dirs, files in os.walk(path):
     for filename in files:
       if filename.endswith(FILE_TYPE_EXTENSIONS):
@@ -169,7 +170,7 @@ def validate_arguments():
     bool: True if the either directories or git diff is defined, or both.
     Returns False otherwise signalling that execution should end.
   """
-  if not FLAGS.git_diff and not Flags.f and not Flags.d_:
+  if not FLAGS.git_diff and not FLAGS.f and not FLAGS.d:
       print()
       print('ERROR:  -git_diff not defined, and there are no file or')
       print('directory search targets.')
