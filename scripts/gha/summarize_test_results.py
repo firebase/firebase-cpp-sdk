@@ -270,7 +270,6 @@ def main(argv):
           # Rejoin matrix name with spaces.
           log_name_str = ' '.join([log_name[1], log_name[0]]+log_name[2:])
           log_data[log_name_str] = log_reader_data
-        # print(log_data)
 
   log_results = {}
   # Go through each log and extract out the build and test failures.
