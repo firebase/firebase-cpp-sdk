@@ -46,8 +46,8 @@ flags.DEFINE_multi_string("f", None, "Append the filename to the list of "
   "files to check.")
 flags.DEFINE_multi_string("d", None, 
   "Append the directory to the file list to format.")
-flags.DEFINE_multi_string("r", None, 
-  "When formatting  a directory, recurse through its children.")
+flags.DEFINE_boolean("r", False, 
+  "Recurse through the directory's children When formatting a target directory.")
 flags.DEFINE_boolean("format_file", True, "Format files in place.")
 flags.DEFINE_boolean("verbose", False, "Execute in verbose mode.")
 
@@ -138,8 +138,8 @@ def list_files_from_directory(path, recurse):
         if FLAGS.verbose:
           print('  - {0}'.format(full_path))
         filenames.append(full_path)  
-      if not recurse:
-        break;
+    if not recurse:
+      break;
   return filenames
 
 def directory_search_list_files():
