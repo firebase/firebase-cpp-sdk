@@ -33,57 +33,30 @@ import os
 import subprocess
 import sys
 
-from os import listdir
-from os.path import isfile, join
 from absl import app
 from absl import flags
 
-
 # Flag Definitions:
-
 FLAGS = flags.FLAGS
 
 flags.DEFINE_boolean("git_diff", False, "Use git-diff to assemble a file list")
 flags.DEFINE_string("git_range", "main..", "the range string when using "
-  "git-diff")
-flags.DEFINE_multi_string("file", None, "Append the filename to the list of "
+  "git-diff.")
+flags.DEFINE_multi_string("f", None, "Append the filename to the list of "
   "files to check.")
 flags.DEFINE_multi_string("d", None, 
   "Append the directory to the file list to format.")
-flags.DEFINE_multi_string("dr", None, 
-  "Append the directory, and recurse through its children, and add their "
-  "contents to the list of files to check.")
-flags.DEFINE_boolean("format_file", True, "Format files in place")
-flags.DEFINE_boolean("verbose", False, "Execute in verbose mode")
+flags.DEFINE_multi_string("r", None, 
+  "When formatting  a directory, recurse through its children.")
+flags.DEFINE_boolean("format_file", True, "Format files in place.")
+flags.DEFINE_boolean("verbose", False, "Execute in verbose mode.")
 
 # Constants:
-
 # The list of file types to run clang-format on.   Used to filter out
 # results when searching across directories or git diffs.
-FILE_TYPE_EXTENSIONS = (".ccp", ".cc", ".c", ".h")
-
-# Common execution arguments across all clang-format executions.
-CLANG_FORMAT_BASE = "clang-format -style=file "
-
-# Flag which informs clang-format to alter the file in place, overwriting
-# the original file with thew newly formatted version.
-CLANG_FORMAT_PARM_IN_PLACE = "-i "
-
-# Flag which informs clang-format to use stdout to log the changes it would
-# make to a file.  Logging in XML format allows us to easily parse the results 
-# to detect if the file requires formatting changes.
-CLANG_FORMAT_PARAM_LOG_REPLACEMENTS = "-output-replacements-xml "
-
-# Conmmon exeuction arguments across all git diff executions.
-GIT_DIFF_BASE = "git diff "
-
-# Parameters to append for all git diff executions. The ACMRT filter lists
-# the files that have been (A)dded (C)opied (M)odified (R)enamed or (T)ype
-# changed.
-GIT_DIFF_PARAMS = " --name-only --diff-filter=ACMRT"
+FILE_TYPE_EXTENSIONS = (".cpp", ".cc", ".c", ".h")
 
 # Functions:    
-
 def does_file_need_formatting(filename):
   """Executes clang-format on the file to determine if it includes any
   formatting changes the user needs to fix.
@@ -92,10 +65,8 @@ def does_file_need_formatting(filename):
     True if the file requires format changes, False if formatting would produce
     an identical file.
   """
-  command_line = CLANG_FORMAT_BASE + CLANG_FORMAT_PARAM_LOG_REPLACEMENTS
-  command_line += filename
-  args = command_line.split(" ")
-  proc = subprocess.Popen(command_line.split(" "), stdout=subprocess.PIPE)
+  args = ['clang-format', '-style=file', '-output-replacements-xml', filename]
+  proc = subprocess.Popen(args, stdout=subprocess.PIPE)
   for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
     if line.strip().startswith("<replacement "):
       return True
@@ -111,8 +82,7 @@ def format_file(filename):
   Args:
    filename: path to the file to format.
   """
-  command_line = CLANG_FORMAT_BASE + CLANG_FORMAT_PARM_IN_PLACE + filename
-  args = command_line.split(" ")
+  args = ['clang-format', '-style=file', '-i', filename]
   proc = subprocess.Popen(args)
 
 def git_diff_list_files():
@@ -123,21 +93,23 @@ def git_diff_list_files():
     A list of file paths for each file in the git diff list with an extension
     matching one of those in FILE_TYPE_EXTENSIONS.
   """
+  # The ACMRT filter lists files that have been (A)dded (C)opied (M)odified
+  # (R)enamed or (T)ype changed.
+  args = ['git', 'diff', FLAGS.git_range, '--name-only', '--diff-filter=ACMRT']
   filenames = []
-  command_line = (GIT_DIFF_BASE + FLAGS.git_range + GIT_DIFF_PARAMS).strip()
-  args = command_line.split(" ")
   if FLAGS.verbose:
     print()
-    print("Executing git diff to detect changed files, git_range:",
-      "\"" + FLAGS.git_range + "\"") 
+    print('Executing git diff to detect changed files, git_range: "{0}"'
+        .format(FLAGS.git_range))
   proc = subprocess.Popen(args, stdout=subprocess.PIPE)
   for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
     line = line.rstrip()
     if(line.endswith(FILE_TYPE_EXTENSIONS)):
       filenames.append(line.strip())
       if FLAGS.verbose:
-        print("  - File detected: " + line)
-  if filenames and FLAGS.verbose:
+        print('  - File detected: {0}'.format(line))
+  if FLAGS.verbose:
+    print('  > Found {0} file(s)'.format(len(filenames)))
     print()
   return filenames
 
@@ -160,7 +132,7 @@ def list_files_from_directory(path, recurse):
       if filename.endswith(FILE_TYPE_EXTENSIONS):
         full_path = os.path.join(root, filename)
         if FLAGS.verbose:
-          print("\t\t" + full_path)
+          print('  - {0}'.format(full_path))
         filenames.append(full_path)  
       if not recurse:
         break;
@@ -175,20 +147,12 @@ def directory_search_list_files():
     FILE_TYPE_EXTENSIONS.
   """
   filenames = []
-  if FLAGS.dr:
-    if FLAGS.verbose:
-      print()
-      print("Adding files by recursivly traversing directories:")
-    for directory in FLAGS.dr:
-      if FLAGS.verbose:
-        print("\tRecursive searching directory: \""+directory+"\"")
-      filenames += list_files_from_directory(directory, True)
   if FLAGS.d:
     for directory in FLAGS.d:
-      print("\Searching files in directory: \""+directory+"\"")
-      filenames += list_files_from_directory(directory, False)
+      print('Searching files in directory: "{0}"'.format(directory))
+      filenames += list_files_from_directory(directory, FLAGS.r)
   if FLAGS.verbose:
-    print("  Found", len(filenames), "files.")
+    print('  > Found {0} file(s)'.format(len(filenames)))
     print()
   return filenames
 
@@ -201,11 +165,11 @@ def validate_arguments():
     True if the either directories or git diff is defined, or both.  Returns
     False otherwise signallingt hat execution should end.
   """
-  if not FLAGS.git_diff:
-    if not FLAGS.file: 
+  if not FLAGS.git_diff and not Flags.f and not Flags.d_:
       print()
-      print("ERROR:  -git_diff not defined, and there are no -file targets.")
-      print("Nothing to do. Exiting.")
+      print('ERROR:  -git_diff not defined, and there are no file or')
+      print('directory search targets.')
+      print('Nothing to do. Exiting.')
       print()
       return False
   return True
@@ -217,40 +181,41 @@ def main(argv):
     sys.exit(2)
   
   filenames = []
-  if FLAGS.file:
-      filenames = FLAGS.file
+  if FLAGS.f:
+      filenames = FLAGS.f
 
-  if FLAGS.dr or FLAGS.d:
+  if FLAGS.d:
     filenames += directory_search_list_files()
 
   if FLAGS.git_diff:
     filenames += git_diff_list_files()
 
-  print("Checking the format of", len(filenames), "file(s). Please wait:")
+  print('Checking the format of {0} file(s). Please wait:'
+    .format(len(filenames)))
   exit_code = 0
   if FLAGS.format_file:
     count = 0
     for filename in filenames:
         if does_file_need_formatting(filename):
-          print("  - Formatting: \""+filename+"\"")
+          print('  - Formatting: "{0}"'.format(filename))
           format_file(filename)
           count += 1
         else:
-           print("  - File already formatted: \""+filename+"\"")
-    print("  - Formatted", count, "files.")
+           print('  - File already formatted: "{0}"'.format(filename))
+    print('   - Formatted {0} files.'.format(count))
   else:
     count = 0
     for filename in filenames:      
       if does_file_need_formatting(filename):  
         exit_code = 1
         count += 1
-        print("  - Requires reformatting:", "\""+filename+"\"")
-    print("  - Done. ", count, " files need formatting.")
+        print('  - Requires reformatting: "{0}"'.format(filename))
+    print('  > Done. {0} file(s) need formatting.'.format(count))
   print()
   if exit_code == 0:
-      print("Success!")
+      print('Success!')
   else:
-    print("Returning exit code:", exit_code)
+    print('Returning exit code: {0}'.format(exit_code))
   sys.exit(exit_code)
 
 if __name__ == '__main__':
