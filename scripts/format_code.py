@@ -52,22 +52,26 @@ flags.DEFINE_boolean("format_file", True, "Format files in place.")
 flags.DEFINE_boolean("verbose", False, "Execute in verbose mode.")
 
 # Constants:
-# The list of file types to run clang-format on.   Used to filter out
-# results when searching across directories or git diffs.
 FILE_TYPE_EXTENSIONS = (".cpp", ".cc", ".c", ".h")
+"""Tuple: The file types to run clang-format on.
+Used to filter out results when searching across directories or git diffs.
+"""
+
 
 # Functions:    
 def does_file_need_formatting(filename):
   """Executes clang-format on the file to determine if it includes any
   formatting changes the user needs to fix.
-    
+  Args:
+    filename (string): path to the file to check.
+  
   Returns:
-    True if the file requires format changes, False if formatting would produce
+    bool: True if the file requires format changes, False if formatting would produce
     an identical file.
   """
   args = ['clang-format', '-style=file', '-output-replacements-xml', filename]
-  proc = subprocess.Popen(args, stdout=subprocess.PIPE)
-  for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
+  result = subprocess.run(args, stdout=subprocess.PIPE)
+  for line in result.stdout.decode('utf-8').splitlines():
     if line.strip().startswith("<replacement "):
       return True
   return False    
@@ -80,10 +84,10 @@ def format_file(filename):
   to standard out.
 
   Args:
-   filename: path to the file to format.
+   filename (string): path to the file to format.
   """
   args = ['clang-format', '-style=file', '-i', filename]
-  proc = subprocess.Popen(args)
+  subprocess.run(args)
 
 def git_diff_list_files():
   """Compares the current branch to master to assemble a list of source
@@ -101,8 +105,8 @@ def git_diff_list_files():
     print()
     print('Executing git diff to detect changed files, git_range: "{0}"'
         .format(FLAGS.git_range))
-  proc = subprocess.Popen(args, stdout=subprocess.PIPE)
-  for line in io.TextIOWrapper(proc.stdout, encoding="utf-8"):
+  result = subprocess.run(args, stdout=subprocess.PIPE)
+  for line in result.stdout.decode('utf-8').splitlines():
     line = line.rstrip()
     if(line.endswith(FILE_TYPE_EXTENSIONS)):
       filenames.append(line.strip())
@@ -118,16 +122,16 @@ def list_files_from_directory(path, recurse):
   which match those with extensions defined in FILE_TYPE_EXTENSIONS. 
 
   Args:
-    path: the path to a directory to start searching from.
-    recurse: when True, will also recursively search for files in any
+    path (string): the path to a directory to start searching from.
+    recurse (bool): when True, will also recursively search for files in any
       subdirectories found in path.
   
   Returns:
-    A list of matching filenames found in the directory.
+    list: the filenames found in the directory which match one of the extensions
+    in FILE_TYPE_EXTENSIONS.
   """
   filenames = []
   for root, dirs, files in os.walk(path):
-    path = root.split(os.sep)
     for filename in files:
       if filename.endswith(FILE_TYPE_EXTENSIONS):
         full_path = os.path.join(root, filename)
@@ -143,7 +147,7 @@ def directory_search_list_files():
   line arguments -dr and -d.
   
   Returns:
-    A list of filenames which match one of the extensions in
+    list: the filenames which match one of the extensions in
     FILE_TYPE_EXTENSIONS.
   """
   filenames = []
@@ -162,8 +166,8 @@ def validate_arguments():
   Logs an error if theres an errant configuration.
   
   Returns:
-    True if the either directories or git diff is defined, or both.  Returns
-    False otherwise signallingt hat execution should end.
+    bool: True if the either directories or git diff is defined, or both.
+    Returns False otherwise signalling that execution should end.
   """
   if not FLAGS.git_diff and not Flags.f and not Flags.d_:
       print()
