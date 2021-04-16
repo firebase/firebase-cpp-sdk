@@ -86,7 +86,7 @@ def format_file(filename):
    filename (string): path to the file to format.
   """
   args = ['clang-format', '-style=file', '-i', filename]
-  result = subprocess.run(args, check=True)
+  subprocess.run(args, check=True)
 
 def git_diff_list_files():
   """Compares the current branch to master to assemble a list of source
