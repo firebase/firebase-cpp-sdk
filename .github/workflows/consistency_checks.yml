@@ -1,10 +1,6 @@
 name: Consistency Checks
 
 on:
-  push:
-    branches:
-      - feature/format-workflow
-
   pull_request:
     types: [opened, reopened, synchronize]
 
@@ -24,7 +20,7 @@ jobs:
       - name: log clang format version
         shell: bash
         run: clang-format --version
-      - name:  git fetch origin main
+      - name: git fetch origin main
         shell: bash
         run: git fetch origin main
       - name: Detect Formatting Changes
