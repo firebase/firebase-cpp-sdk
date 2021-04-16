@@ -1,0 +1,34 @@
+name: Consistency Checks
+
+on:
+  push:
+    branches:
+      - feature/format-workflow
+
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  detect_source_file_format_changes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: false
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: Install prerequisites
+        run: python scripts/gha/install_prereqs_desktop.py
+      - name: log clang format version
+        shell: bash
+        run: clang-format --version
+      - name:  git fetch origin main
+        shell: bash
+        run: git fetch origin main
+      - name: Detect Formatting Changes
+        shell: bash
+        run: python3 scripts/format_code.py -git_diff -noformat_file -verbose
+
+

@@ -40,7 +40,7 @@ from absl import flags
 FLAGS = flags.FLAGS
 
 flags.DEFINE_boolean("git_diff", False, "Use git-diff to assemble a file list")
-flags.DEFINE_string("git_range", "main..", "the range string when using "
+flags.DEFINE_string("git_range", "origin/main..", "the range string when using "
   "git-diff.")
 flags.DEFINE_multi_string("f", None, "Append the filename to the list of "
   "files to check.")
@@ -57,7 +57,6 @@ FILE_TYPE_EXTENSIONS = (".cpp", ".cc", ".c", ".h")
 Used to filter out results when searching across directories or git diffs.
 """
 
-
 # Functions:    
 def does_file_need_formatting(filename):
   """Executes clang-format on the file to determine if it includes any
@@ -70,7 +69,7 @@ def does_file_need_formatting(filename):
     an identical file.
   """
   args = ['clang-format', '-style=file', '-output-replacements-xml', filename]
-  result = subprocess.run(args, stdout=subprocess.PIPE)
+  result = subprocess.run(args, stdout=subprocess.PIPE, check=True)
   for line in result.stdout.decode('utf-8').splitlines():
     if line.strip().startswith("<replacement "):
       return True
@@ -87,7 +86,7 @@ def format_file(filename):
    filename (string): path to the file to format.
   """
   args = ['clang-format', '-style=file', '-i', filename]
-  subprocess.run(args)
+  result = subprocess.run(args, check=True)
 
 def git_diff_list_files():
   """Compares the current branch to master to assemble a list of source
@@ -175,14 +174,11 @@ def validate_arguments():
       print('ERROR:  -git_diff not defined, and there are no file or')
       print('directory search targets.')
       print('Nothing to do. Exiting.')
-      print()
       return False
   return True
 
 def main(argv):
   if not validate_arguments():
-    if FLAGS.verbose:
-        print("Returning exit code 2")
     sys.exit(2)
   
   filenames = []
@@ -195,32 +191,40 @@ def main(argv):
   if FLAGS.git_diff:
     filenames += git_diff_list_files()
 
-  print('Checking the format of {0} file(s). Please wait:'
-    .format(len(filenames)))
   exit_code = 0
+  if 0 == len(filenames):
+    print("No files to format.")
+    sys.exit(exit_code)
+
+  if FLAGS.verbose:
+    print('Found {0} file(s). Checking their format.'.format(len(filenames)))
+  
   if FLAGS.format_file:
     count = 0
     for filename in filenames:
         if does_file_need_formatting(filename):
-          print('  - Formatting: "{0}"'.format(filename))
+          if FLAGS.verbose:
+            print('  - Formatting: "{0}"'.format(filename))
           format_file(filename)
           count += 1
         else:
-           print('  - File already formatted: "{0}"'.format(filename))
-    print('   - Formatted {0} files.'.format(count))
+          if FLAGS.verbose:
+            print('  - OK: "{0}"'.format(filename))
+    print('  > Formatted {0} file(s).'.format(count))
   else:
     count = 0
     for filename in filenames:      
       if does_file_need_formatting(filename):  
         exit_code = 1
         count += 1
-        print('  - Requires reformatting: "{0}"'.format(filename))
-    print('  > Done. {0} file(s) need formatting.'.format(count))
-  print()
-  if exit_code == 0:
-      print('Success!')
-  else:
-    print('Returning exit code: {0}'.format(exit_code))
+        if FLAGS.verbose:
+          print('  - Requires reformatting: "{0}"'.format(filename))
+    if FLAGS.verbose:
+      print('  > Done. {0} file(s) need formatting.'.format(count))
+    else:
+      print('{0} file(s) need formatting.'.format(count))
+      print('run scripts/format_code.py -git_diff')
+      
   sys.exit(exit_code)
 
 if __name__ == '__main__':
