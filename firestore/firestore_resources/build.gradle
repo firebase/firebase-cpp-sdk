@@ -36,12 +36,15 @@ android {
 
   sourceSets {
     main {
-      manifest.srcFile '../../android_build_files/AndroidManifest.xml'
+      manifest.srcFile 'AndroidManifest.xml'
       java {
         srcDirs = ['../src_java/com/google/firebase/firestore/internal/cpp']
         exclude 'Dummy.java'
       }
     }
+  }
+  lintOptions {
+    abortOnError false
   }
 }
 
