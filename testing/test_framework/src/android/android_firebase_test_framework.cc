@@ -104,9 +104,7 @@ static bool SendHttpRequest(const char* url,
   if (response_code) *response_code = response_code_jint;
 
   env->DeleteLocalRef(http_request);
-  if (response_jstring == nullptr) {
-    return false;
-  }
+  if (response_jstring == nullptr) { return false; }
   const char* response_text = env->GetStringUTFChars(response_jstring, nullptr);
   LogDebug("Got response: %s", response_text);
   if (response_str) *response_str = response_text;
@@ -180,9 +178,7 @@ bool FirebaseTest::SetPersistentString(const char* key, const char* value) {
   env->CallStaticVoidMethod(simple_persistent_storage_class, set_string,
                             activity, key_jstring, value_jstring);
   env->DeleteLocalRef(key_jstring);
-  if (value_jstring) {
-    env->DeleteLocalRef(value_jstring);
-  }
+  if (value_jstring) { env->DeleteLocalRef(value_jstring); }
   if (env->ExceptionCheck()) {
     env->ExceptionDescribe();
     env->ExceptionClear();
@@ -212,14 +208,10 @@ bool FirebaseTest::GetPersistentString(const char* key,
   if (env->ExceptionCheck()) {
     env->ExceptionDescribe();
     env->ExceptionClear();
-    if (value_jstring) {
-      env->DeleteLocalRef(value_jstring);
-    }
+    if (value_jstring) { env->DeleteLocalRef(value_jstring); }
     return false;
   }
-  if (value_jstring == nullptr) {
-    return false;
-  }
+  if (value_jstring == nullptr) { return false; }
   const char* value_text = env->GetStringUTFChars(value_jstring, nullptr);
   if (value_out) *value_out = std::string(value_text);
   env->ReleaseStringUTFChars(value_jstring, value_text);

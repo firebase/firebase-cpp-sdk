@@ -34,10 +34,8 @@ class SchedulerTest : public ::testing::Test {
 
   void SetUp() override {
     atomic_count_.store(0);
-    while (callback_sem1_.TryWait()) {
-    }
-    while (callback_sem2_.TryWait()) {
-    }
+    while (callback_sem1_.TryWait()) {}
+    while (callback_sem2_.TryWait()) {}
     ordered_value_.clear();
     repeat_period_ms_ = 0;
     repeat_countdown_ = 0;
@@ -217,18 +215,14 @@ TEST_F(SchedulerTest, RecursiveCallbackWithInterval) {
       new callback::CallbackValue1<Scheduler*>(&scheduler_, RecursiveCallback),
       repeat_period_ms_);
 
-  for (int i = 0; i < 5; ++i) {
-    EXPECT_TRUE(callback_sem1_.TimedWait(1000));
-  }
+  for (int i = 0; i < 5; ++i) { EXPECT_TRUE(callback_sem1_.TimedWait(1000)); }
 }
 
 TEST_F(SchedulerTest, RepeatCallbackNoDelay) {
   scheduler_.Schedule(new callback::CallbackVoid(SemaphorePost1), 0, 1);
 
   // Wait for it to repeat 100 times
-  for (int i = 0; i < 100; ++i) {
-    EXPECT_TRUE(callback_sem1_.TimedWait(1000));
-  }
+  for (int i = 0; i < 100; ++i) { EXPECT_TRUE(callback_sem1_.TimedWait(1000)); }
 }
 
 TEST_F(SchedulerTest, RepeatCallbackWithDelay) {
@@ -247,9 +241,7 @@ TEST_F(SchedulerTest, RepeatCallbackWithDelay) {
   EXPECT_LT(error, 0.25 * internal::kMillisecondsPerSecond);
 
   // Wait for it to repeat 100 times
-  for (int i = 0; i < 100; ++i) {
-    EXPECT_TRUE(callback_sem1_.TimedWait(1000));
-  }
+  for (int i = 0; i < 100; ++i) { EXPECT_TRUE(callback_sem1_.TimedWait(1000)); }
 }
 
 TEST_F(SchedulerTest, CancelImmediateCallback) {
@@ -267,9 +259,7 @@ TEST_F(SchedulerTest, CancelImmediateCallback) {
                       [](compat::Atomic<int>* count) { count->fetch_add(1); }),
                   0)
               .Cancel();
-      if (cancelled) {
-        ++success_cancel;
-      }
+      if (cancelled) { ++success_cancel; }
     }
 
     internal::Sleep(10);
@@ -296,8 +286,7 @@ TEST_F(SchedulerTest, CancelRepeatCallback) {
     // Use standalone scheduler and counter for iterations
     Scheduler scheduler;
     compat::Atomic<int> count(0);
-    while (callback_sem1_.TryWait()) {
-    }
+    while (callback_sem1_.TryWait()) {}
 
     RequestHandle handler =
         scheduler.Schedule(new callback::CallbackValue1<compat::Atomic<int>*>(

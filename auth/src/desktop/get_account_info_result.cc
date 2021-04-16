@@ -46,9 +46,7 @@ GetAccountInfoResult GetAccountInfoResult::FromResponse(
 }
 
 void GetAccountInfoResult::MergeToUser(UserView::Writer& user) const {
-  if (!IsValid() || !user.IsValid()) {
-    return;
-  }
+  if (!IsValid() || !user.IsValid()) { return; }
   user->uid = user_impl_.uid;
   user->email = user_impl_.email;
   user->display_name = user_impl_.display_name;

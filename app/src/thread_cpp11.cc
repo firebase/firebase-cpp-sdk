@@ -49,9 +49,7 @@ Thread::Thread(Thread::NoArgRoutine start_routine) : thread_(start_routine) {
 Thread& Thread::operator=(Thread&& other) = default;
 #else
 Thread& Thread::operator=(Thread&& other) {
-  if (this == &other) {
-    return *this;
-  }
+  if (this == &other) { return *this; }
 
   thread_.swap(other.thread_);
   return *this;

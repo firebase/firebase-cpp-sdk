@@ -22,14 +22,10 @@ namespace auth {
 namespace detail {
 
 std::map<Variant, Variant> ParseUserProfile(const std::string& json) {
-  if (json.empty()) {
-    return std::map<Variant, Variant>();
-  }
+  if (json.empty()) { return std::map<Variant, Variant>(); }
 
   const Variant parsed_profile = firebase::util::JsonToVariant(json.c_str());
-  if (parsed_profile.is_map()) {
-    return parsed_profile.map();
-  }
+  if (parsed_profile.is_map()) { return parsed_profile.map(); }
 
   LogError(
       "Expected user profile from server response to contain map as the root "

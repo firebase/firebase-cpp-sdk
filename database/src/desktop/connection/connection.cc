@@ -243,9 +243,7 @@ void Connection::OnError(const WebSocketClientErrorData& error_data) {
 }
 
 void Connection::HandleIncomingFrame(const char* msg) {
-  if (state_ == kStateDisconnected) {
-    return;
-  }
+  if (state_ == kStateDisconnected) { return; }
 
   // Firebase server splits large message into multiple frames, the same way
   // how client split large message into frames before sending.  If the received
@@ -270,9 +268,7 @@ void Connection::HandleIncomingFrame(const char* msg) {
     // counts (length <= 6).
     if (std::strlen(msg) <= 6) {
       int32_t parse_value = strtol(msg, nullptr, 10);  // NOLINT
-      if (parse_value > 0) {
-        num_of_frame = parse_value;
-      }
+      if (parse_value > 0) { num_of_frame = parse_value; }
     }
 
     if (num_of_frame > 0) {
@@ -304,14 +300,10 @@ void Connection::ProcessMessage(const char* message) {
       std::string type = itType->second.string_value();
       if (type == kServerDataMessage) {
         auto itData = messageMap.find(kServerEnvelopeData);
-        if (itData != messageMap.end()) {
-          OnDataMessage(itData->second);
-        }
+        if (itData != messageMap.end()) { OnDataMessage(itData->second); }
       } else if (type == kServerControlMessage) {
         auto itData = messageMap.find(kServerEnvelopeData);
-        if (itData != messageMap.end()) {
-          OnControlMessage(itData->second);
-        }
+        if (itData != messageMap.end()) { OnControlMessage(itData->second); }
       } else {
         logger_->LogDebug("%s Ignore unknown server message type: %s",
                           log_id_.c_str(), type.c_str());
@@ -440,9 +432,7 @@ void Connection::OnHandshake(const Variant& handshake) {
                       log_id_.c_str());
   }
 
-  if (state_ == kStateConnecting) {
-    OnConnectionReady(timestamp, sessionId);
-  }
+  if (state_ == kStateConnecting) { OnConnectionReady(timestamp, sessionId); }
 }
 
 void Connection::OnConnectionReady(int64_t timestamp,

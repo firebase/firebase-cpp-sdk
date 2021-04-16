@@ -66,9 +66,7 @@ FieldPath::~FieldPath() {
 }
 
 FieldPath& FieldPath::operator=(const FieldPath& path) {
-  if (this == &path) {
-    return *this;
-  }
+  if (this == &path) { return *this; }
 
   delete internal_;
   internal_ = new FieldPathInternal{*path.internal_};

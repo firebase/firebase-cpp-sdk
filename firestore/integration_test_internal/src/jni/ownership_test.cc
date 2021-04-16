@@ -78,9 +78,7 @@ class RefTracker {
   void ExpectLiveIsExactly(Objects&&... objects) {
     std::set<jobject> refs = {ToJni(std::forward<Objects>(objects))...};
     EXPECT_THAT(refs, testing::ContainerEq(valid_refs_));
-    for (jobject ref : refs) {
-      EXPECT_THAT(invalid_refs_, Not(Contains(ref)));
-    }
+    for (jobject ref : refs) { EXPECT_THAT(invalid_refs_, Not(Contains(ref))); }
   }
 
   /**
@@ -93,9 +91,7 @@ class RefTracker {
   template <typename... Objects>
   void ExpectNull(Objects&&... objects) {
     std::vector<jobject> refs = {ToJni(std::forward<Objects>(objects))...};
-    for (jobject ref : refs) {
-      EXPECT_EQ(ref, nullptr);
-    }
+    for (jobject ref : refs) { EXPECT_EQ(ref, nullptr); }
   }
 
  private:

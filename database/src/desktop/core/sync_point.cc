@@ -169,9 +169,7 @@ std::vector<const View*> SyncPoint::GetIncompleteQueryViews() const {
   std::vector<const View*> result;
   for (auto& query_spec_view_pair : views_) {
     const View& view = query_spec_view_pair.second;
-    if (!QuerySpecLoadsAllData(view.query_spec())) {
-      result.push_back(&view);
-    }
+    if (!QuerySpecLoadsAllData(view.query_spec())) { result.push_back(&view); }
   }
   return result;
 }
@@ -180,9 +178,7 @@ const Variant* SyncPoint::GetCompleteServerCache(const Path& path) const {
   for (auto& query_spec_view_pair : views_) {
     const View& view = query_spec_view_pair.second;
     const Variant* result = view.GetCompleteServerCache(path);
-    if (result != nullptr) {
-      return result;
-    }
+    if (result != nullptr) { return result; }
   }
   return nullptr;
 }
@@ -206,9 +202,7 @@ bool SyncPoint::HasCompleteView() const {
 const View* SyncPoint::GetCompleteView() const {
   for (auto& query_spec_view_pair : views_) {
     const View& view = query_spec_view_pair.second;
-    if (QuerySpecLoadsAllData(view.query_spec())) {
-      return &view;
-    }
+    if (QuerySpecLoadsAllData(view.query_spec())) { return &view; }
   }
   return nullptr;
 }

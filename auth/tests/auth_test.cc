@@ -58,8 +58,7 @@ inline void MaybeWaitForFuture(const Future<T>& future) {
   // right now, the return of last-result actually happens after future is
   // completed.
   // EXPECT_EQ(firebase::kFutureStatusPending, future.status());
-  while (firebase::kFutureStatusPending == future.status()) {
-  }
+  while (firebase::kFutureStatusPending == future.status()) {}
 #endif  // defined(FIREBASE_WAIT_ASYNC_IN_TEST)
 }
 
@@ -76,9 +75,7 @@ void Verify(const AuthError error,
   MaybeWaitForFuture(result);
   EXPECT_EQ(firebase::kFutureStatusComplete, result.status());
   EXPECT_EQ(error, result.error());
-  if (check_result_not_null) {
-    EXPECT_NE(nullptr, result.result());
-  }
+  if (check_result_not_null) { EXPECT_NE(nullptr, result.result()); }
 }
 
 template <typename T>
@@ -122,9 +119,7 @@ class AuthTest : public ::testing::Test {
   void MakeAuth() {
     firebase_app_ = testing::CreateApp();
     firebase_auth_ = Auth::GetAuth(firebase_app_);
-    if (firebase_auth_->current_user()) {
-      firebase_auth_->SignOut();
-    }
+    if (firebase_auth_->current_user()) { firebase_auth_->SignOut(); }
   }
 
   App* firebase_app_ = nullptr;

@@ -74,9 +74,7 @@ void PhoneAuthProvider::VerifyPhoneNumber(
 
   // Mock the tokens by sending a new one whenever it's unspecified.
   ForceResendingToken token;
-  if (force_resending_token != nullptr) {
-    token = *force_resending_token;
-  }
+  if (force_resending_token != nullptr) { token = *force_resending_token; }
 
   listener->OnCodeAutoRetrievalTimeOut(kMockVerificationId);
   listener->OnCodeSent(kMockVerificationId, token);

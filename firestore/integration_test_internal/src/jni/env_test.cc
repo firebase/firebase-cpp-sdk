@@ -48,9 +48,7 @@ TEST_F(EnvTest, ToolchainSupportsThrowingFromDestructors) {
   try {
     { ThrowsInDestructor obj; }
     FAIL() << "Should have thrown";
-  } catch (const std::exception& e) {
-    SUCCEED() << "Caught exception";
-  }
+  } catch (const std::exception& e) { SUCCEED() << "Caught exception"; }
 }
 #endif  // FIRESTORE_HAVE_EXCEPTIONS
 

@@ -118,9 +118,7 @@ void NotifyListenerOnTokenReceived(const char* token) {
   // If we have a previous token that we've notified any listener about, check
   // to ensure no repeat.
   if (g_prev_token_received) {
-    if (*g_prev_token_received == token) {
-      return;
-    }
+    if (*g_prev_token_received == token) { return; }
     *g_prev_token_received = token;
   }
   if (g_listener) g_listener->OnTokenReceived(token);
@@ -158,9 +156,7 @@ class PollableListenerImpl {
 
   bool PollMessage(Message* message) {
     MutexLock lock(mutex_);
-    if (messages_.empty()) {
-      return false;
-    }
+    if (messages_.empty()) { return false; }
     *message = messages_.front();
     messages_.pop();
     return true;
@@ -168,9 +164,7 @@ class PollableListenerImpl {
 
   bool PollRegistrationToken(std::string* token) {
     MutexLock lock(mutex_);
-    if (token_.empty()) {
-      return false;
-    }
+    if (token_.empty()) { return false; }
     *token = token_;
     token_.clear();
     return true;

@@ -56,17 +56,13 @@ bool CheckAndUpdateHeartbeatTime(const char* tag,
 
 bool ReadFromStorage(HeartbeatDateStorage& storage) {
   bool ok = storage.ReadPersisted();
-  if (!ok) {
-    LogOnce("Heartbeat failed: unable to read the heartbeat data");
-  }
+  if (!ok) { LogOnce("Heartbeat failed: unable to read the heartbeat data"); }
   return ok;
 }
 
 bool WriteToStorage(const HeartbeatDateStorage& storage) {
   bool ok = storage.WritePersisted();
-  if (!ok) {
-    LogOnce("Heartbeat failed: unable to write the heartbeat data");
-  }
+  if (!ok) { LogOnce("Heartbeat failed: unable to write the heartbeat data"); }
   return ok;
 }
 
@@ -76,17 +72,13 @@ HeartbeatInfo::Code HeartbeatInfo::GetHeartbeatCode(const char* tag) {
   HeartbeatDateStorage storage;
 
   bool read_ok = ReadFromStorage(storage);
-  if (!read_ok) {
-    return Code::None;
-  }
+  if (!read_ok) { return Code::None; }
 
   bool send_sdk = CheckAndUpdateHeartbeatTime(tag, storage);
   bool send_global = CheckAndUpdateHeartbeatTime(kHeartbeatGlobalTag, storage);
 
   bool write_ok = WriteToStorage(storage);
-  if (!write_ok) {
-    return Code::None;
-  }
+  if (!write_ok) { return Code::None; }
 
   if (!send_sdk && !send_global) {
     return Code::None;

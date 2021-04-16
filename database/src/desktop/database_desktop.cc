@@ -120,9 +120,7 @@ DatabaseReference DatabaseInternal::GetReferenceFromUrl(const char* url) {
     logger_.LogError("Url is not valid: %s", url);
   }
 
-  if (result != ParseUrl::kParseOk) {
-    return DatabaseReference();
-  }
+  if (result != ParseUrl::kParseOk) { return DatabaseReference(); }
 
   connection::HostInfo host_info(parser.hostname.c_str(), parser.ns.c_str(),
                                  parser.secure);
@@ -186,9 +184,7 @@ const char* DatabaseInternal::GetSdkVersion() {
 void DatabaseInternal::SetPersistenceEnabled(bool enabled) {
   MutexLock lock(repo_mutex_);
   // Only set persistence if the repo has not yet been initialized.
-  if (!repo_) {
-    persistence_enabled_ = enabled;
-  }
+  if (!repo_) { persistence_enabled_ = enabled; }
 }
 
 void DatabaseInternal::set_log_level(LogLevel log_level) {
@@ -219,9 +215,7 @@ bool DatabaseInternal::UnregisterValueListener(const internal::QuerySpec& spec,
                                                ValueListener* listener) {
   EventRegistration* registration =
       ActiveEventRegistration(spec, (void*)listener);
-  if (registration) {
-    registration->set_status(EventRegistration::kRemoved);
-  }
+  if (registration) { registration->set_status(EventRegistration::kRemoved); }
 
   MutexLock lock(listener_mutex_);
   if (value_listeners_by_query_.Unregister(spec, listener)) {
@@ -296,13 +290,9 @@ EventRegistration* DatabaseInternal::ActiveEventRegistration(
     const QuerySpec& query_spec, void* listener_ptr) {
   auto* listener_registration_map =
       MapGet(&event_registration_lookup_, query_spec);
-  if (!listener_registration_map) {
-    return nullptr;
-  }
+  if (!listener_registration_map) { return nullptr; }
   auto* registration_vector = MapGet(listener_registration_map, listener_ptr);
-  if (!registration_vector) {
-    return nullptr;
-  }
+  if (!registration_vector) { return nullptr; }
   for (auto* registration : *registration_vector) {
     if (registration->status() == EventRegistration::kActive) {
       return registration;

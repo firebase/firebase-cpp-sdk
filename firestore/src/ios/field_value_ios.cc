@@ -173,9 +173,7 @@ bool operator==(const FieldValueInternal& lhs, const FieldValueInternal& rhs) {
   using MapT = FieldValueInternal::MapT;
 
   auto type = lhs.type();
-  if (type != rhs.type()) {
-    return false;
-  }
+  if (type != rhs.type()) { return false; }
 
   switch (type) {
     case Type::kNull:

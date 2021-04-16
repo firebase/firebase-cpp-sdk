@@ -644,9 +644,7 @@ Credential OAuthProvider::GetCredential(const char* provider_id,
       j_cred = env->CallObjectMethod(
           j_cred_builder, oauthprovider_credentialbuilder::GetMethodId(
                               oauthprovider_credentialbuilder::kBuild));
-      if (firebase::util::CheckAndClearJniExceptions(env)) {
-        j_cred = nullptr;
-      }
+      if (firebase::util::CheckAndClearJniExceptions(env)) { j_cred = nullptr; }
 
       env->DeleteLocalRef(j_cred_builder);
     }
@@ -994,14 +992,10 @@ jobject ConstructOAuthProvider(
       oauthprovider::GetMethodId(oauthprovider::kNewBuilder), provider_id,
       AuthImpl(auth_data));
   env->DeleteLocalRef(provider_id);
-  if (env->ExceptionCheck()) {
-    return nullptr;
-  }
+  if (env->ExceptionCheck()) { return nullptr; }
 
   jobject scopes_list = util::StdVectorToJavaList(env, provider_data.scopes);
-  if (env->ExceptionCheck()) {
-    return nullptr;
-  }
+  if (env->ExceptionCheck()) { return nullptr; }
 
   jobject builder_return_ref = env->CallObjectMethod(
       oauthprovider_builder,
@@ -1035,9 +1029,7 @@ jobject ConstructOAuthProvider(
       oauthprovider_builder,
       oauthprovider_builder::GetMethodId(oauthprovider_builder::kBuild));
   env->DeleteLocalRef(oauthprovider_builder);
-  if (env->ExceptionCheck()) {
-    return nullptr;
-  }
+  if (env->ExceptionCheck()) { return nullptr; }
 
   return oauthprovider;
 }

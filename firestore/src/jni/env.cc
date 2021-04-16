@@ -196,9 +196,7 @@ void Env::RecordException() {
 std::string Env::ErrorDescription(const Object& object) {
   ExceptionClearGuard block(*this);
   std::string result = object.ToString(*this);
-  if (ok()) {
-    return result;
-  }
+  if (ok()) { return result; }
 
   auto exception = ExceptionOccurred();
 

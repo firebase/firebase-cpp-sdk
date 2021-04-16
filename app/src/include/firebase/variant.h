@@ -459,9 +459,7 @@ class Variant {
   Type type() const {
     // To avoid breaking user code, alias the small string type to mutable
     // string.
-    if (type_ == kInternalTypeSmallString) {
-      return kTypeMutableString;
-    }
+    if (type_ == kInternalTypeSmallString) { return kTypeMutableString; }
 
     return static_cast<Type>(type_);
   }
@@ -904,9 +902,7 @@ class Variant {
   void set_mutable_blob(const void* src_data, size_t size_bytes) {
     uint8_t* dest_data = new uint8_t[size_bytes];  // Will be deleted when
                                                    // `this` is deleted.
-    if (src_data != nullptr) {
-      memcpy(dest_data, src_data, size_bytes);
-    }
+    if (src_data != nullptr) { memcpy(dest_data, src_data, size_bytes); }
     Clear(kTypeMutableBlob);
     set_blob_pointer(dest_data, size_bytes);
   }

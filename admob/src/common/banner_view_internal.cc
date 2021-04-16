@@ -63,9 +63,7 @@ void BannerViewInternal::NotifyListenerOfPresentationStateChange(
 
 void BannerViewInternal::NotifyListenerOfBoundingBoxChange(BoundingBox box) {
   MutexLock lock(listener_mutex_);
-  if (listener_ != nullptr) {
-    listener_->OnBoundingBoxChanged(base_, box);
-  }
+  if (listener_ != nullptr) { listener_->OnBoundingBoxChanged(base_, box); }
 }
 
 Future<void> BannerViewInternal::GetLastResult(BannerViewFn fn) {

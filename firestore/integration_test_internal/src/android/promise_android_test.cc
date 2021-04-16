@@ -128,19 +128,13 @@ class TestCompletionBase : public Promise<PublicType,
     while (true) {
       {
         MutexLock lock(mutex_);
-        if (invocation_count_ > 0) {
-          return true;
-        }
+        if (invocation_count_ > 0) { return true; }
       }
 
-      if (ProcessEvents(kCheckIntervalMillis)) {
-        return false;
-      }
+      if (ProcessEvents(kCheckIntervalMillis)) { return false; }
 
       cycles_remaining--;
-      if (cycles_remaining == 0) {
-        return false;
-      }
+      if (cycles_remaining == 0) { return false; }
     }
   }
 

@@ -42,9 +42,7 @@ std::unique_ptr<rest::Request> CreateRequestFromCredential(
   if (provider == kEmailPasswordAuthProviderId) {
     const EmailAuthCredential* email_credential =
         GetEmailCredential(raw_credential);
-    if (!email_credential) {
-      return nullptr;
-    }
+    if (!email_credential) { return nullptr; }
     return std::unique_ptr<rest::Request>(  // NOLINT
         new VerifyPasswordRequest(GetApiKey(*auth_data),
                                   email_credential->GetEmail().c_str(),

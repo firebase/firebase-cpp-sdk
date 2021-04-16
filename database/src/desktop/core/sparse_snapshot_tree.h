@@ -48,9 +48,7 @@ class SparseSnapshotTree {
 
   template <typename Func>
   void ForEachChild(const Func& func) const {
-    for (auto& entry : children_) {
-      func(entry.first, entry.second);
-    }
+    for (auto& entry : children_) { func(entry.first, entry.second); }
   }
 
  private:

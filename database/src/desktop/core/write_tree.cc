@@ -59,9 +59,7 @@ void WriteTree::AddMerge(const Path& path,
 
 UserWriteRecord* WriteTree::GetWrite(WriteId write_id) {
   for (UserWriteRecord& record : all_writes_) {
-    if (record.write_id == write_id) {
-      return &record;
-    }
+    if (record.write_id == write_id) { return &record; }
   }
   return nullptr;
 }
@@ -225,9 +223,7 @@ Variant WriteTree::CalcCompleteEventChildren(
   Optional<Variant> top_level_set =
       visible_writes_.GetCompleteVariant(tree_path);
   if (top_level_set.has_value()) {
-    if (top_level_set->is_map()) {
-      complete_children = *top_level_set;
-    }
+    if (top_level_set->is_map()) { complete_children = *top_level_set; }
   } else {
     // Layer any children we have on top of this.
     // We know we don't have a top-level set, so just enumerate existing

@@ -562,9 +562,7 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
     bool orphaned = is_orphaned();
     // If the owner was destroyed as a result of running callbacks, this API
     // is orphaned and should delete itself.
-    if (orphaned) {
-      delete this;
-    }
+    if (orphaned) { delete this; }
   }
 
   // See CompleteWithResult.

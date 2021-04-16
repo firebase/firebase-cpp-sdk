@@ -34,15 +34,9 @@ SignUpNewUserRequest::SignUpNewUserRequest(const char* api_key,
   SetUrl(api_key);
   // It's fine for any of the additional parameters to be null, in case it's an
   // anonymous sign up.
-  if (email) {
-    application_data_->email = email;
-  }
-  if (password) {
-    application_data_->password = password;
-  }
-  if (display_name) {
-    application_data_->displayName = display_name;
-  }
+  if (email) { application_data_->email = email; }
+  if (password) { application_data_->password = password; }
+  if (display_name) { application_data_->displayName = display_name; }
   application_data_->returnSecureToken = true;
   UpdatePostFields();
 }

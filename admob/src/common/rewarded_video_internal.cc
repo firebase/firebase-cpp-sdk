@@ -56,17 +56,13 @@ void RewardedVideoInternal::SetListener(Listener* listener) {
 
 void RewardedVideoInternal::NotifyListenerOfReward(RewardItem reward) {
   MutexLock lock(listener_mutex_);
-  if (listener_ != nullptr) {
-    listener_->OnRewarded(reward);
-  }
+  if (listener_ != nullptr) { listener_->OnRewarded(reward); }
 }
 
 void RewardedVideoInternal::NotifyListenerOfPresentationStateChange(
     PresentationState state) {
   MutexLock lock(listener_mutex_);
-  if (listener_ != nullptr) {
-    listener_->OnPresentationStateChanged(state);
-  }
+  if (listener_ != nullptr) { listener_->OnPresentationStateChanged(state); }
 }
 
 Future<void> RewardedVideoInternal::GetLastResult(RewardedVideoFn fn) {

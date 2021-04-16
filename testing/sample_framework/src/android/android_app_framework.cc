@@ -58,9 +58,7 @@ bool ProcessEvents(int msec) {
     int events;
     looperId = ALooper_pollAll(msec, nullptr, &events,
                                reinterpret_cast<void**>(&source));
-    if (looperId >= 0 && source) {
-      source->process(g_app_state, source);
-    }
+    if (looperId >= 0 && source) { source->process(g_app_state, source); }
   } while (looperId != ALOOPER_POLL_TIMEOUT && !g_destroy_requested &&
            !g_restarted);
   return g_destroy_requested | g_restarted;
@@ -130,9 +128,7 @@ class LoggingUtilsData {
   ~LoggingUtilsData() {
     JNIEnv* env = GetJniEnv();
     assert(env);
-    if (logging_utils_class_) {
-      env->DeleteGlobalRef(logging_utils_class_);
-    }
+    if (logging_utils_class_) { env->DeleteGlobalRef(logging_utils_class_); }
   }
 
   void Init() {
@@ -262,9 +258,7 @@ void LogMessageV(bool suppress, const char* format, va_list list) {
   buffer[string_len] = '\n';
   buffer[string_len + 1] = '\0';
 
-  if (GetPreserveFullLog()) {
-    AddToFullLog(buffer);
-  }
+  if (GetPreserveFullLog()) { AddToFullLog(buffer); }
   if (!suppress) {
     fputs(buffer, stdout);
     fflush(stdout);

@@ -28,9 +28,7 @@ namespace scheduler {
 bool RequestHandle::Cancel() {
   assert(status_);
 
-  if (!IsValid()) {
-    return false;
-  }
+  if (!IsValid()) { return false; }
 
   MutexLock lock(status_->mutex);
   if (status_->cancelled || (!status_->repeat && status_->triggered)) {
@@ -162,14 +160,11 @@ void Scheduler::WorkerThreadRoutine(void* data) {
       }
 
       // Drain the semaphore after wake
-      while (scheduler->sleep_sem_.TryWait()) {
-      }
+      while (scheduler->sleep_sem_.TryWait()) {}
 
       // Check if the scheduler is terminating after sleep.
       MutexLock lock(scheduler->request_mutex_);
-      if (scheduler->terminating_) {
-        return;
-      }
+      if (scheduler->terminating_) { return; }
     }
 
     // If the top request is due, trigger the callback.  If the repeat interval
@@ -199,9 +194,7 @@ bool Scheduler::TriggerCallback(const RequestDataPtr& request) {
     request->status->triggered = true;
 
     // return true if this callback repeats and should be push back to the queue
-    if (request->repeat_ms > 0) {
-      return true;
-    }
+    if (request->repeat_ms > 0) { return true; }
   }
 
   return false;

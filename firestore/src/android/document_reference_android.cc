@@ -143,9 +143,7 @@ Future<void> DocumentReferenceInternal::Update(const MapFieldValue& data) {
 }
 
 Future<void> DocumentReferenceInternal::Update(const MapFieldPathValue& data) {
-  if (data.empty()) {
-    return Update(MapFieldValue{});
-  }
+  if (data.empty()) { return Update(MapFieldValue{}); }
 
   Env env = GetEnv();
   UpdateFieldPathArgs args = MakeUpdateFieldPathArgs(env, data);

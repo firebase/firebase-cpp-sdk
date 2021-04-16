@@ -104,9 +104,7 @@ class Promise {
   template <typename DummyT = ResultT,
             typename = absl::enable_if_t<!std::is_void<DummyT>::value>>
   void SetValue(DummyT result) {
-    if (IsCleanedUp()) {
-      return;
-    }
+    if (IsCleanedUp()) { return; }
     future_api_->Complete(handle_, NoError(), /*error_message=*/"",
                           [&](ResultT* value) {
                             // Future API doesn't support moving the value, use
@@ -118,9 +116,7 @@ class Promise {
   template <typename DummyT = ResultT,
             typename = absl::enable_if_t<std::is_void<DummyT>::value>>
   void SetValue() {
-    if (IsCleanedUp()) {
-      return;
-    }
+    if (IsCleanedUp()) { return; }
     future_api_->Complete(handle_, NoError());
   }
 
@@ -128,18 +124,14 @@ class Promise {
     SIMPLE_HARD_ASSERT(
         !status.ok(),
         "To fulfill a promise with 'ok' status, use Promise::SetValue.");
-    if (IsCleanedUp()) {
-      return;
-    }
+    if (IsCleanedUp()) { return; }
 
     future_api_->Complete(handle_, status.code(),
                           status.error_message().c_str());
   }
 
   Future<ResultT> future() {
-    if (IsCleanedUp()) {
-      return Future<ResultT>{};
-    }
+    if (IsCleanedUp()) { return Future<ResultT>{}; }
 
     return Future<ResultT>{future_api_, handle_.get()};
   }
@@ -161,9 +153,7 @@ class Promise {
   // Note: `CleanupFn` is not used because `Promise` is a header-only class, to
   // avoid a circular dependency between headers.
   void RegisterForCleanup() {
-    if (IsCleanedUp()) {
-      return;
-    }
+    if (IsCleanedUp()) { return; }
 
     cleanup_->RegisterObject(this, [](void* raw_this) {
       auto* this_ptr = static_cast<Promise*>(raw_this);
@@ -174,18 +164,14 @@ class Promise {
       // otherwise, trying to acquire the mutex will result in a deadlock
       // (because cleanup is currently holding the cleanup mutex which the
       // destructor will try to acquire to unregister itself from cleanup).
-      if (!lock) {
-        return;
-      }
+      if (!lock) { return; }
 
       this_ptr->Reset();
     });
   }
 
   void UnregisterForCleanup() {
-    if (IsCleanedUp()) {
-      return;
-    }
+    if (IsCleanedUp()) { return; }
     cleanup_->UnregisterObject(this);
   }
 

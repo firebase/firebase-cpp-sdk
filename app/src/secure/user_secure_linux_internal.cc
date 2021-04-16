@@ -57,9 +57,7 @@ UserSecureLinuxInternal::~UserSecureLinuxInternal() {
 std::string UserSecureLinuxInternal::LoadUserData(const std::string& app_name) {
   std::string empty_str("");
 
-  if (key_namespace_.length() <= 0) {
-    return empty_str;
-  }
+  if (key_namespace_.length() <= 0) { return empty_str; }
 
   GError* error = nullptr;
   char* result = secret_password_lookup_sync(
@@ -81,9 +79,7 @@ std::string UserSecureLinuxInternal::LoadUserData(const std::string& app_name) {
 
 void UserSecureLinuxInternal::SaveUserData(const std::string& app_name,
                                            const std::string& user_data) {
-  if (key_namespace_.length() <= 0) {
-    return;
-  }
+  if (key_namespace_.length() <= 0) { return; }
   GError* error = nullptr;
   secret_password_store_sync(
       &storage_schema_, SECRET_COLLECTION_DEFAULT, /* label= */ "UserSecure",
@@ -96,9 +92,7 @@ void UserSecureLinuxInternal::SaveUserData(const std::string& app_name,
 }
 
 void UserSecureLinuxInternal::DeleteUserData(const std::string& app_name) {
-  if (key_namespace_.length() <= 0) {
-    return;
-  }
+  if (key_namespace_.length() <= 0) { return; }
   GError* error = nullptr;
   secret_password_clear_sync(&storage_schema_,
                              /* cancellable= */ nullptr, /* error= */ &error,
@@ -111,9 +105,7 @@ void UserSecureLinuxInternal::DeleteUserData(const std::string& app_name) {
 }
 
 void UserSecureLinuxInternal::DeleteAllData() {
-  if (key_namespace_.length() <= 0) {
-    return;
-  }
+  if (key_namespace_.length() <= 0) { return; }
   GError* error = nullptr;
   secret_password_clear_sync(&storage_schema_, /* cancellable= */ nullptr,
                              /* error= */ &error,

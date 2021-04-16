@@ -58,8 +58,7 @@ inline void MaybeWaitForFuture(const Future<T>& future) {
   // right now, the return of last-result actually happens after future is
   // completed.
   // EXPECT_EQ(firebase::kFutureStatusPending, future.status());
-  while (firebase::kFutureStatusPending == future.status()) {
-  }
+  while (firebase::kFutureStatusPending == future.status()) {}
 #endif  // defined(FIREBASE_WAIT_ASYNC_IN_TEST)
 }
 

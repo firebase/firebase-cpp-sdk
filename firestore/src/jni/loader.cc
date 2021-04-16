@@ -138,9 +138,7 @@ bool Loader::RegisterNatives(const JNINativeMethod methods[],
       env_->RegisterNatives(last_class_, true_native_methods, num_methods);
   CleanUpConvertedJNINativeMethod(true_native_methods);
 
-  if (result != JNI_OK) {
-    ok_ = false;
-  }
+  if (result != JNI_OK) { ok_ = false; }
   return ok_;
 }
 
@@ -148,9 +146,7 @@ void Loader::Unload() {
   if (loaded_classes_.empty()) return;
 
   JNIEnv* env = GetEnv();
-  for (jclass clazz : loaded_classes_) {
-    env->DeleteGlobalRef(clazz);
-  }
+  for (jclass clazz : loaded_classes_) { env->DeleteGlobalRef(clazz); }
   loaded_classes_.clear();
 }
 

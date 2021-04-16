@@ -103,9 +103,7 @@ FieldValue DocumentSnapshotInternal::Get(const FieldPath& field,
   // Android returns null for both null fields and nonexistent fields, so first
   // use contains() to check if the field exists.
   bool contains_field = env.Call(obj_, kContains, java_field);
-  if (!contains_field) {
-    return FieldValue();
-  }
+  if (!contains_field) { return FieldValue(); }
 
   Local<Object> java_stb = ServerTimestampBehaviorInternal::Create(env, stb);
   Local<Object> field_value = env.Call(obj_, kGet, java_field, java_stb);

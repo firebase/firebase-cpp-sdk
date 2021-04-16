@@ -38,9 +38,7 @@ const Variant& ResolveDeferredValue(const Variant& value,
   const Variant* key = GetInternalVariant(&value, kNameSubkeyServerValue);
   if (key) {
     const Variant* resolved_value = GetInternalVariant(&server_values, *key);
-    if (resolved_value) {
-      return *resolved_value;
-    }
+    if (resolved_value) { return *resolved_value; }
   }
   return value;
 }

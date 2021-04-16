@@ -246,9 +246,7 @@ void SyncTreeTest::RunTest(const test_data::TestCase* test_spec,
 
   std::map<int, EventRegistration*> registrations;
   for (const test_data::Step* spec : *test_spec->steps()) {
-    if (spec->comment()) {
-      logger_.LogInfo(" > %s", spec->comment()->c_str());
-    }
+    if (spec->comment()) { logger_.LogInfo(" > %s", spec->comment()->c_str()); }
     const char* path_str = spec->path() ? spec->path()->c_str() : "";
     Path path = base_path.GetChild(path_str);
     DatabaseReferenceInternal reference(nullptr, path);

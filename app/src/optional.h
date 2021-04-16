@@ -51,9 +51,7 @@ class Optional {
   // Copy contructor. If the other Optional has a value, it is copied into this
   // Optional using its copy constructor.
   Optional(const Optional& other) : has_value_(other.has_value()) {
-    if (other.has_value()) {
-      new (aligned_buffer()) value_type(other.value());
-    }
+    if (other.has_value()) { new (aligned_buffer()) value_type(other.value()); }
   }
 
   // Copy assignment. If the other Optional has a value, it is copy constructed

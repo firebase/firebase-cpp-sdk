@@ -32,9 +32,7 @@ Future<std::string> GetAuthTokenAsync(App& app, bool force_refresh) {
   bool success = app.function_registry()->CallFunction(
       ::firebase::internal::FnAuthGetTokenAsync, &app, &force_refresh, &result);
 
-  if (success) {
-    return result;
-  }
+  if (success) { return result; }
 
   // If CallFunction does not succeed, it's because either Auth has not
   // registered implementations for the FunctionId we're using or because there
@@ -206,9 +204,7 @@ void FirebaseCppCredentialsProvider::RequestToken(TokenListener listener) {
         auto contents = weak_contents.lock();
         // Auth may invoke the callback when credentials provider has already
         // been destroyed.
-        if (!contents) {
-          return;
-        }
+        if (!contents) { return; }
 
         std::lock_guard<std::recursive_mutex> lock(contents->mutex);
         OnToken(future_token, contents->app, contents->token_generation,

@@ -56,9 +56,7 @@ ListenerRegistration::~ListenerRegistration() {
 
 ListenerRegistration& ListenerRegistration::operator=(
     const ListenerRegistration& registration) {
-  if (this == &registration) {
-    return *this;
-  }
+  if (this == &registration) { return *this; }
 
   firestore_ = registration.firestore_;
   CleanupFnListenerRegistration::Unregister(this, firestore_);
@@ -69,9 +67,7 @@ ListenerRegistration& ListenerRegistration::operator=(
 
 ListenerRegistration& ListenerRegistration::operator=(
     ListenerRegistration&& registration) {
-  if (this == &registration) {
-    return *this;
-  }
+  if (this == &registration) { return *this; }
 
   firestore_ = registration.firestore_;
   CleanupFnListenerRegistration::Unregister(&registration,

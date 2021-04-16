@@ -72,17 +72,13 @@ SetAccountInfoResult SetAccountInfoResult::FromResponse(
 User* SetAccountInfoResult::MergeToCurrentUser(
     AuthData* const auth_data) const {
   FIREBASE_ASSERT_RETURN(nullptr, auth_data);
-  if (!IsValid()) {
-    return nullptr;
-  }
+  if (!IsValid()) { return nullptr; }
 
   bool has_token_changed = false;
   User* api_user_to_return = nullptr;
   {
     UserView::Writer user = UserView::GetWriter(auth_data);
-    if (!user.IsValid()) {
-      return nullptr;
-    }
+    if (!user.IsValid()) { return nullptr; }
 
     has_token_changed =
         UpdateUserTokensIfChanged(user, TokenUpdate(user_impl_));
@@ -108,9 +104,7 @@ User* SetAccountInfoResult::MergeToCurrentUser(
     api_user_to_return = &auth_data->current_user;
   }
 
-  if (has_token_changed) {
-    NotifyIdTokenListeners(auth_data);
-  }
+  if (has_token_changed) { NotifyIdTokenListeners(auth_data); }
   return api_user_to_return;
 }
 

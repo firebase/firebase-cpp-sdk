@@ -265,9 +265,7 @@ Query QueryInternal::Where(const FieldPath& field,
 
   size_t size = values.size();
   Local<ArrayList> java_values = ArrayList::Create(env, size);
-  for (size_t i = 0; i < size; ++i) {
-    java_values.Add(env, ToJava(values[i]));
-  }
+  for (size_t i = 0; i < size; ++i) { java_values.Add(env, ToJava(values[i])); }
 
   Local<Object> java_field = FieldPathConverter::Create(env, field);
   Local<Object> query = env.Call(obj_, method, java_field, java_values);

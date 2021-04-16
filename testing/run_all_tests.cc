@@ -102,9 +102,7 @@ extern "C" JNIEXPORT jint JNICALL JNI_FUNCTION_NAME
   } else {
     LOG(WARNING) << "Native test logs are not dumped";
   }
-  if (log_path != nullptr) {
-    env->ReleaseStringUTFChars(j_log_path, log_path);
-  }
+  if (log_path != nullptr) { env->ReleaseStringUTFChars(j_log_path, log_path); }
 #endif  // OUTPUT_TO_INFO
 
   // Run test could succeed trivially if the test case is not linked.

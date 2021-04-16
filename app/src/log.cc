@@ -83,9 +83,7 @@ static void DefaultLogCallback(LogLevel log_level,
                                const char* message,
                                void* /*callback_data*/) {
   InternalLogMessage(log_level, "%s", message);
-  if (log_level == kLogLevelAssert) {
-    abort();
-  }
+  if (log_level == kLogLevelAssert) { abort(); }
 }
 
 #if FIREBASE_LOG_TO_FILE

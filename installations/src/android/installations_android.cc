@@ -129,9 +129,7 @@ void TokenResultCallback(JNIEnv* env,
                          void* callback_data) {
   bool success = (result_code == util::kFutureResultSuccess);
   std::string result_value = "";
-  if (success && result) {
-    result_value = JTokenResultToString(env, result);
-  }
+  if (success && result) { result_value = JTokenResultToString(env, result); }
   auto* data_handle =
       reinterpret_cast<FISDataHandle<std::string>*>(callback_data);
   data_handle->future_api->CompleteWithResult(

@@ -110,9 +110,7 @@ static bool StdMapToJson(const std::map<Variant, Variant>& map,
   *ss << '{';
   std::string nextIndent = indent + "  ";
   for (auto iter = map.begin(); iter != map.end();) {
-    if (prettyPrint) {
-      *ss << '\n' << nextIndent;
-    }
+    if (prettyPrint) { *ss << '\n' << nextIndent; }
     // JSON only supports string keys, return false if the key is not a type
     // that can be coerced to a string.
     if (iter->first.is_null() || !iter->first.is_fundamental_type()) {
@@ -124,19 +122,13 @@ static bool StdMapToJson(const std::map<Variant, Variant>& map,
       return false;
     }
     *ss << ':';
-    if (prettyPrint) {
-      *ss << ' ';
-    }
+    if (prettyPrint) { *ss << ' '; }
     if (!VariantToJson(iter->second, prettyPrint, nextIndent, ss)) {
       return false;
     }
-    if (++iter != map.end()) {
-      *ss << ',';
-    }
+    if (++iter != map.end()) { *ss << ','; }
   }
-  if (prettyPrint) {
-    *ss << '\n' << indent;
-  }
+  if (prettyPrint) { *ss << '\n' << indent; }
   *ss << '}';
   return true;
 }
@@ -148,19 +140,11 @@ static bool StdVectorToJson(const std::vector<Variant>& vector,
   *ss << '[';
   std::string nextIndent = indent + "  ";
   for (auto iter = vector.begin(); iter != vector.end();) {
-    if (prettyPrint) {
-      *ss << '\n' << nextIndent;
-    }
-    if (!VariantToJson(*iter, prettyPrint, nextIndent, ss)) {
-      return false;
-    }
-    if (++iter != vector.end()) {
-      *ss << ',';
-    }
+    if (prettyPrint) { *ss << '\n' << nextIndent; }
+    if (!VariantToJson(*iter, prettyPrint, nextIndent, ss)) { return false; }
+    if (++iter != vector.end()) { *ss << ','; }
   }
-  if (prettyPrint) {
-    *ss << '\n' << indent;
-  }
+  if (prettyPrint) { *ss << '\n' << indent; }
   *ss << ']';
   return true;
 }
@@ -171,27 +155,21 @@ std::string VariantToJson(const Variant& variant) {
 
 std::string VariantToJson(const Variant& variant, bool prettyPrint) {
   std::stringstream ss;
-  if (!VariantToJson(variant, prettyPrint, "", &ss)) {
-    return "";
-  }
+  if (!VariantToJson(variant, prettyPrint, "", &ss)) { return ""; }
   return ss.str();
 }
 
 // Converts an std::map<Variant, Variant> to Json
 std::string StdMapToJson(const std::map<Variant, Variant>& map) {
   std::stringstream ss;
-  if (!StdMapToJson(map, false, "", &ss)) {
-    return "";
-  }
+  if (!StdMapToJson(map, false, "", &ss)) { return ""; }
   return ss.str();
 }
 
 // Converts an std::vector<Variant> to Json
 std::string StdVectorToJson(const std::vector<Variant>& vector) {
   std::stringstream ss;
-  if (!StdVectorToJson(vector, false, "", &ss)) {
-    return "";
-  }
+  if (!StdVectorToJson(vector, false, "", &ss)) { return ""; }
   return ss.str();
 }
 
@@ -298,15 +276,11 @@ bool VariantToFlexbuffer(const Variant& variant, flexbuffers::Builder* fbb) {
       break;
     }
     case Variant::kTypeVector: {
-      if (!VariantVectorToFlexbuffer(variant.vector(), fbb)) {
-        return false;
-      }
+      if (!VariantVectorToFlexbuffer(variant.vector(), fbb)) { return false; }
       break;
     }
     case Variant::kTypeMap: {
-      if (!VariantMapToFlexbuffer(variant.map(), fbb)) {
-        return false;
-      }
+      if (!VariantMapToFlexbuffer(variant.map(), fbb)) { return false; }
       break;
     }
     case Variant::kTypeStaticBlob:
@@ -358,9 +332,7 @@ bool VariantVectorToFlexbuffer(const std::vector<Variant>& vector,
 // Convert from a Variant to a Flexbuffer buffer.
 std::vector<uint8_t> VariantToFlexbuffer(const Variant& variant) {
   flexbuffers::Builder fbb(FLEXBUFFER_BUILDER_STARTING_SIZE);
-  if (!VariantToFlexbuffer(variant, &fbb)) {
-    return std::vector<uint8_t>();
-  }
+  if (!VariantToFlexbuffer(variant, &fbb)) { return std::vector<uint8_t>(); }
   fbb.Finish();
   return fbb.GetBuffer();
 }
@@ -368,9 +340,7 @@ std::vector<uint8_t> VariantToFlexbuffer(const Variant& variant) {
 std::vector<uint8_t> VariantMapToFlexbuffer(
     const std::map<Variant, Variant>& map) {
   flexbuffers::Builder fbb(FLEXBUFFER_BUILDER_STARTING_SIZE);
-  if (!VariantMapToFlexbuffer(map, &fbb)) {
-    return std::vector<uint8_t>();
-  }
+  if (!VariantMapToFlexbuffer(map, &fbb)) { return std::vector<uint8_t>(); }
   fbb.Finish();
   return fbb.GetBuffer();
 }

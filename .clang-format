@@ -3,8 +3,12 @@ Standard: Cpp11
 ColumnLimit: 80
 BinPackParameters: false
 AllowAllParametersOfDeclarationOnNextLine: true
+AllowShortBlocksOnASingleLine: Always
 SpacesInContainerLiterals: true
 DerivePointerAlignment: false
 PointerAlignment: Left
 AllowShortFunctionsOnASingleLine: None
 IncludeBlocks: Preserve
+BraceWrapping:
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false

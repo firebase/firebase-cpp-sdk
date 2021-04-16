@@ -56,9 +56,7 @@ DocumentReference::~DocumentReference() {
 
 DocumentReference& DocumentReference::operator=(
     const DocumentReference& reference) {
-  if (this == &reference) {
-    return *this;
-  }
+  if (this == &reference) { return *this; }
 
   CleanupFnDocumentReference::Unregister(this, internal_);
   delete internal_;
@@ -72,9 +70,7 @@ DocumentReference& DocumentReference::operator=(
 }
 
 DocumentReference& DocumentReference::operator=(DocumentReference&& reference) {
-  if (this == &reference) {
-    return *this;
-  }
+  if (this == &reference) { return *this; }
 
   CleanupFnDocumentReference::Unregister(&reference, reference.internal_);
   CleanupFnDocumentReference::Unregister(this, internal_);

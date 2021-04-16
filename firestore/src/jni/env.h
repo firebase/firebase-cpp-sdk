@@ -549,9 +549,7 @@ class ExceptionClearGuard {
   }
 
   ~ExceptionClearGuard() {
-    if (exception_) {
-      env_.Throw(exception_);
-    }
+    if (exception_) { env_.Throw(exception_); }
   }
 
  private:

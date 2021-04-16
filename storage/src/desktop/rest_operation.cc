@@ -105,9 +105,7 @@ RestOperation::~RestOperation() {
 bool RestOperation::Pause() {
   MutexLock lock(mutex_);
   bool paused = rest_controller_->Pause();
-  if (paused && listener_) {
-    listener_->OnPaused(&controller_);
-  }
+  if (paused && listener_) { listener_->OnPaused(&controller_); }
   return paused;
 }
 

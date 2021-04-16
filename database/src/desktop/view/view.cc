@@ -202,9 +202,7 @@ std::vector<Event> View::GenerateEvents(const std::vector<Change>& changes,
   // manually set up a temporary vector to hold the registration, making sure to
   // release it at the end without deallocating it.
   std::vector<UniquePtr<EventRegistration>> temp_registrations;
-  if (registration) {
-    temp_registrations.emplace_back(registration);
-  }
+  if (registration) { temp_registrations.emplace_back(registration); }
 
   // Decide if we're using the individual registration that was passed in, or
   // the entire list of registrations.

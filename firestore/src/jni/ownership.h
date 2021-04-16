@@ -93,9 +93,7 @@ class Local : public T {
   }
 
   ~Local() {
-    if (env_ && T::object_) {
-      env_->DeleteLocalRef(T::object_);
-    }
+    if (env_ && T::object_) { env_->DeleteLocalRef(T::object_); }
   }
 
   /** Returns a non-owning proxy of type `U` that points to this object. */

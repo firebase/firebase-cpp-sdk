@@ -102,9 +102,7 @@ std::string DecodeUrl(const std::string& path) {
 std::string TrimWhitespace(const std::string& str) {
   size_t start = str.find_first_not_of(" \t\n\v\f\r");
   // In case str contains only whitespace, return an empty string.
-  if (start == std::string::npos) {
-    return "";
-  }
+  if (start == std::string::npos) { return ""; }
   // Since now str contains at least a non-whitespace, end cannot be npos.
   size_t end = str.find_last_not_of(" \t\n\v\f\r");
   return str.substr(start, end - start + 1);

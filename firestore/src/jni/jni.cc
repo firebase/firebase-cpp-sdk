@@ -35,9 +35,7 @@ JavaVM* GetGlobalJavaVM() {
  */
 void DetachCurrentThread(void* env) {
   JavaVM* jvm = g_jvm;
-  if (jvm == nullptr || env == nullptr) {
-    return;
-  }
+  if (jvm == nullptr || env == nullptr) { return; }
 
   jint result = jvm->DetachCurrentThread();
   if (result != JNI_OK) {

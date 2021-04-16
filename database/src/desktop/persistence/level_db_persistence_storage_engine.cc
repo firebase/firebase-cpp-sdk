@@ -144,18 +144,14 @@ bool CallOnEachLeaf(const Path& path,
     case Variant::kTypeBool:
     case Variant::kTypeStaticString:
     case Variant::kTypeMutableString: {
-      if (!func(path, variant)) {
-        return false;
-      }
+      if (!func(path, variant)) { return false; }
       break;
     }
     case Variant::kTypeMap: {
       for (const auto& key_value : variant.map()) {
         const Variant& key = key_value.first;
         const Variant& value = key_value.second;
-        if (!key.is_string()) {
-          return false;
-        }
+        if (!key.is_string()) { return false; }
         if (!CallOnEachLeaf(path.GetChild(key.string_value()), value, func)) {
           return false;
         }
@@ -506,15 +502,11 @@ static bool VariantToFlexbuffer(const Variant& variant,
       break;
     }
     case Variant::kTypeVector: {
-      if (!VariantVectorToFlexbuffer(variant.vector(), fbb)) {
-        return false;
-      }
+      if (!VariantVectorToFlexbuffer(variant.vector(), fbb)) { return false; }
       break;
     }
     case Variant::kTypeMap: {
-      if (!VariantMapToFlexbuffer(variant.map(), fbb)) {
-        return false;
-      }
+      if (!VariantMapToFlexbuffer(variant.map(), fbb)) { return false; }
       break;
     }
     case Variant::kTypeStaticBlob:
@@ -595,9 +587,7 @@ static bool PrepareBatchOverwrite(const Path& path,
             // Value
             [&leaf, &builder](std::vector<uint8_t>* buffer) {
               // Build FlexBuffer representation of the value.
-              if (!VariantToFlexbuffer(leaf, &builder)) {
-                return false;
-              }
+              if (!VariantToFlexbuffer(leaf, &builder)) { return false; }
               // Write FlexBuffer value to buffer.
               builder.Finish();
               buffer->insert(buffer->end(), builder.GetBuffer().begin(),
@@ -846,9 +836,7 @@ std::set<std::string> LevelDbPersistenceStorageEngine::LoadTrackedQueryKeys(
 void LevelDbPersistenceStorageEngine::PruneCache(
     const Path& root, const PruneForestRef& prune_forest) {
   VerifyInsideTransaction();
-  if (!prune_forest.PrunesAnything()) {
-    return;
-  }
+  if (!prune_forest.PrunesAnything()) { return; }
 
   WriteBatch batch;
   bool has_operation_to_write = false;

@@ -26,9 +26,7 @@ namespace internal {
 
 size_t OpenSSHEncodedLength(size_t input_size) {
   size_t length;
-  if (!EVP_EncodedLength(&length, input_size)) {
-    return 0;
-  }
+  if (!EVP_EncodedLength(&length, input_size)) { return 0; }
   return length;
 }
 
@@ -47,9 +45,7 @@ bool OpenSSHEncode(absl::string_view input, std::string* output) {
 
 size_t OpenSSHDecodedLength(size_t input_size) {
   size_t length;
-  if (!EVP_DecodedLength(&length, input_size)) {
-    return 0;
-  }
+  if (!EVP_DecodedLength(&length, input_size)) { return 0; }
   return length;
 }
 

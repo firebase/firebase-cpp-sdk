@@ -55,9 +55,7 @@ static bool ValidateQueryEndpoints(const QueryParams& params, Logger* logger) {
       std::string start_name = GetStartName(params);
       if ((start_name != QueryParamsComparator::kMinKey) ||
           !(start_node.is_string())) {
-        if (logger) {
-          logger->LogWarning(message);
-        }
+        if (logger) { logger->LogWarning(message); }
         return false;
       }
     }
@@ -66,9 +64,7 @@ static bool ValidateQueryEndpoints(const QueryParams& params, Logger* logger) {
       std::string end_name = GetEndName(params);
       if ((end_name != QueryParamsComparator::kMaxKey) ||
           !(end_node.is_string())) {
-        if (logger) {
-          logger->LogWarning(message);
-        }
+        if (logger) { logger->LogWarning(message); }
         return false;
       }
     }
@@ -237,9 +233,7 @@ void QueryInternal::RemoveEventRegistration(void* listener_ptr,
   // to know when it is safe to delete a listener pointer.
   auto* registration =
       database_->ActiveEventRegistration(query_spec, listener_ptr);
-  if (registration) {
-    registration->set_status(EventRegistration::kRemoved);
-  }
+  if (registration) { registration->set_status(EventRegistration::kRemoved); }
 
   Repo::scheduler().Schedule(NewCallback(
       [](Repo::ThisRef ref, void* listener_ptr, QuerySpec query_spec) {
@@ -341,9 +335,7 @@ QueryInternal* QueryInternal::StartAt(const Variant& value) {
   }
   QuerySpec spec = query_spec_;
   spec.params.start_at_value = value;
-  if (!ValidateQueryEndpoints(spec.params, logger)) {
-    return nullptr;
-  }
+  if (!ValidateQueryEndpoints(spec.params, logger)) { return nullptr; }
   return new QueryInternal(database_, spec);
 }
 
@@ -364,9 +356,7 @@ QueryInternal* QueryInternal::StartAt(const Variant& value,
   QuerySpec spec = query_spec_;
   spec.params.start_at_value = value;
   spec.params.start_at_child_key = child_key;
-  if (!ValidateQueryEndpoints(spec.params, logger)) {
-    return nullptr;
-  }
+  if (!ValidateQueryEndpoints(spec.params, logger)) { return nullptr; }
   return new QueryInternal(database_, spec);
 }
 
@@ -390,9 +380,7 @@ QueryInternal* QueryInternal::EndAt(const Variant& value) {
   }
   QuerySpec spec = query_spec_;
   spec.params.end_at_value = value;
-  if (!ValidateQueryEndpoints(spec.params, logger)) {
-    return nullptr;
-  }
+  if (!ValidateQueryEndpoints(spec.params, logger)) { return nullptr; }
   return new QueryInternal(database_, spec);
 }
 
@@ -413,9 +401,7 @@ QueryInternal* QueryInternal::EndAt(const Variant& value,
   QuerySpec spec = query_spec_;
   spec.params.end_at_value = value;
   spec.params.end_at_child_key = child_key;
-  if (!ValidateQueryEndpoints(spec.params, logger)) {
-    return nullptr;
-  }
+  if (!ValidateQueryEndpoints(spec.params, logger)) { return nullptr; }
   return new QueryInternal(database_, spec);
 }
 
@@ -433,9 +419,7 @@ QueryInternal* QueryInternal::EqualTo(const Variant& value) {
   }
   QuerySpec spec = query_spec_;
   spec.params.equal_to_value = value;
-  if (!ValidateQueryEndpoints(spec.params, logger)) {
-    return nullptr;
-  }
+  if (!ValidateQueryEndpoints(spec.params, logger)) { return nullptr; }
   return new QueryInternal(database_, spec);
 }
 
@@ -455,9 +439,7 @@ QueryInternal* QueryInternal::EqualTo(const Variant& value,
   QuerySpec spec = query_spec_;
   spec.params.equal_to_value = value;
   spec.params.equal_to_child_key = child_key;
-  if (!ValidateQueryEndpoints(spec.params, logger)) {
-    return nullptr;
-  }
+  if (!ValidateQueryEndpoints(spec.params, logger)) { return nullptr; }
   return new QueryInternal(database_, spec);
 }
 

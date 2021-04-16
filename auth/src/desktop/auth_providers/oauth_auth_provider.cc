@@ -37,9 +37,7 @@ Credential OAuthProvider::GetCredential(const char* provider_id,
                                         const char* raw_nonce,
                                         const char* access_token) {
   FIREBASE_ASSERT_RETURN(Credential(), provider_id && id_token && raw_nonce);
-  if (access_token == nullptr) {
-    access_token = "";
-  }
+  if (access_token == nullptr) { access_token = ""; }
   return Credential{new CredentialImpl{
       new OAuthCredential{provider_id, id_token, raw_nonce, access_token}}};
 }

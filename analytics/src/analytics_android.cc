@@ -78,9 +78,7 @@ void Initialize(const ::firebase::App& app) {
   FIREBASE_ASSERT(!g_analytics_class_instance);
   JNIEnv* env = app.GetJNIEnv();
 
-  if (!util::Initialize(env, app.activity())) {
-    return;
-  }
+  if (!util::Initialize(env, app.activity())) { return; }
 
   // Cache method pointers.
   if (!analytics::CacheMethodIds(env, app.activity())) {

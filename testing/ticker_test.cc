@@ -48,9 +48,7 @@ static int g_status_count = 0;
 extern "C" JNIEXPORT void JNICALL
 Java_com_google_firebase_testing_cppsdk_TickerExample_nativeFunction(
     JNIEnv* env, jobject this_obj, jlong ticker, jlong delay) {
-  if (ticker == delay) {
-    ++g_status_count;
-  }
+  if (ticker == delay) { ++g_status_count; }
 }
 
 class Tickers {
@@ -77,9 +75,7 @@ class TickerExample : public TickerObserver {
   }
 
   void Elapse() override {
-    if (TickerNow() == delay_) {
-      ++g_status_count;
-    }
+    if (TickerNow() == delay_) { ++g_status_count; }
   }
 
  private:

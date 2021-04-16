@@ -58,9 +58,7 @@ class ConditionVariable {
   }
   template <class Predicate>
   void Wait(pthread_mutex_t* lock, Predicate predicate) {
-    while (!predicate()) {
-      Wait(lock);
-    }
+    while (!predicate()) { Wait(lock); }
   }
 
   // Waits for the condition variable to go, AND for the predicate to succeed.

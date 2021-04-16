@@ -212,9 +212,7 @@ FileLocker::~FileLocker() {
 // the contents of the storage file. This should be called at the beginning
 // of a critical section.
 int FileLocker::AcquireLock(const char* lock_filename) {
-  if (g_file_locker_mutex) {
-    g_file_locker_mutex->Acquire();
-  }
+  if (g_file_locker_mutex) { g_file_locker_mutex->Acquire(); }
   mode_t m = umask(0);
   int fd = open(lock_filename, O_RDWR | O_CREAT, 0666);
   umask(m);
@@ -232,9 +230,7 @@ void FileLocker::ReleaseLock(const char* lock_filename, int fd) {
     remove(lock_filename);
     close(fd);
   }
-  if (g_file_locker_mutex) {
-    g_file_locker_mutex->Release();
-  }
+  if (g_file_locker_mutex) { g_file_locker_mutex->Release(); }
 }
 
 // Lock the file referenced by g_lockfile_path.
@@ -307,9 +303,7 @@ void NotifyListenerSet(Listener* listener) {
   {
     MessageLockFileLocker file_lock;
     FILE* storage_file = fopen(g_local_storage_file_path->c_str(), "a");
-    if (storage_file != nullptr) {
-      fclose(storage_file);
-    }
+    if (storage_file != nullptr) { fclose(storage_file); }
   }
 }
 
@@ -374,9 +368,7 @@ static void* MessageProcessingThread(void*) {
     // Wait for inotify event.
     ssize_t numRead = read(file_descriptor, buf, sizeof(buf));
     // If Terminate has been requested, finish the thread.
-    if (TerminateRequested()) {
-      return nullptr;
-    }
+    if (TerminateRequested()) { return nullptr; }
     if (numRead <= 0) {
       // It's possible to get SIGINT here on some Android versions if the
       // app was bought to the foreground.

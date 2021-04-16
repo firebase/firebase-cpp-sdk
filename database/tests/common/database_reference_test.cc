@@ -274,9 +274,7 @@ TEST_F(DatabaseReferenceTest, RaceConditionTest) {
 
   DeleteDatabase();
 
-  for (Thread& t : threads) {
-    t.Join();
-  }
+  for (Thread& t : threads) { t.Join(); }
 }
 
 }  // namespace database

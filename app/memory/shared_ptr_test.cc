@@ -182,9 +182,7 @@ TEST(SharedPtrTest,
     }
     EXPECT_THAT(destroyed.load(), Eq(0));
   }
-  for (auto& thread : threads) {
-    thread.join();
-  }
+  for (auto& thread : threads) { thread.join(); }
   EXPECT_THAT(destroyed.load(), Eq(1));
 }
 

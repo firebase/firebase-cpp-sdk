@@ -131,9 +131,7 @@ FieldValueInternal::FieldValueInternal(const uint8_t* value, size_t size)
 
 FieldValueInternal::FieldValueInternal(DocumentReference value)
     : cached_type_{Type::kReference} {
-  if (value.internal_ != nullptr) {
-    object_ = value.internal_->ToJava();
-  }
+  if (value.internal_ != nullptr) { object_ = value.internal_->ToJava(); }
 }
 
 FieldValueInternal::FieldValueInternal(GeoPoint value)
@@ -166,12 +164,8 @@ FieldValueInternal::FieldValueInternal(MapFieldValue value)
 }
 
 Type FieldValueInternal::type() const {
-  if (cached_type_ != Type::kNull) {
-    return cached_type_;
-  }
-  if (!object_) {
-    return Type::kNull;
-  }
+  if (cached_type_ != Type::kNull) { return cached_type_; }
+  if (!object_) { return Type::kNull; }
 
   // We do not have any knowledge on the type yet. Check the runtime type with
   // each known type.
@@ -253,9 +247,7 @@ const uint8_t* FieldValueInternal::blob_value() const {
 
   Env env = GetEnv();
   EnsureCachedBlob(env);
-  if (!env.ok() || cached_blob_.get() == nullptr) {
-    return nullptr;
-  }
+  if (!env.ok() || cached_blob_.get() == nullptr) { return nullptr; }
 
   if (cached_blob_->empty()) {
     // The return value doesn't matter, but we can't return
@@ -272,18 +264,14 @@ const uint8_t* FieldValueInternal::blob_value() const {
 size_t FieldValueInternal::blob_size() const {
   Env env = GetEnv();
   EnsureCachedBlob(env);
-  if (!env.ok() || cached_blob_.get() == nullptr) {
-    return 0;
-  }
+  if (!env.ok() || cached_blob_.get() == nullptr) { return 0; }
 
   return cached_blob_->size();
 }
 
 void FieldValueInternal::EnsureCachedBlob(Env& env) const {
   auto blob = Cast<BlobInternal>(env, Type::kBlob);
-  if (cached_blob_.get() != nullptr) {
-    return;
-  }
+  if (cached_blob_.get() != nullptr) { return; }
 
   Local<Array<uint8_t>> bytes = blob.ToBytes(env);
   size_t size = bytes.Size(env);
@@ -291,9 +279,7 @@ void FieldValueInternal::EnsureCachedBlob(Env& env) const {
   auto result = MakeShared<std::vector<uint8_t>>(size);
   env.GetArrayRegion(bytes, 0, size, &(result->front()));
 
-  if (env.ok()) {
-    cached_blob_ = Move(result);
-  }
+  if (env.ok()) { cached_blob_ = Move(result); }
 }
 
 DocumentReference FieldValueInternal::reference_value() const {

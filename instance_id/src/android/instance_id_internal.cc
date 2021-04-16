@@ -69,9 +69,7 @@ SharedPtr<AsyncOperation> InstanceIdInternal::GetOperationSharedPtr(
     AsyncOperation* operation) {
   MutexLock lock(operations_mutex_);
   for (auto it = operations_.begin(); it != operations_.end(); ++it) {
-    if (&(**it) == operation) {
-      return *it;
-    }
+    if (&(**it) == operation) { return *it; }
   }
   return SharedPtr<AsyncOperation>();
 }
@@ -82,14 +80,10 @@ void InstanceIdInternal::CancelOperations() {
     SharedPtr<AsyncOperation> operation_ptr;
     {
       MutexLock lock(operations_mutex_);
-      if (operations_.empty()) {
-        break;
-      }
+      if (operations_.empty()) { break; }
       operation_ptr = operations_[0];
     }
-    if (operation_ptr) {
-      operation_ptr->Cancel();
-    }
+    if (operation_ptr) { operation_ptr->Cancel(); }
   }
 }
 

@@ -81,9 +81,7 @@ void FirebaseInstallationsTest::SetUp() {
 
 void FirebaseInstallationsTest::TearDown() {
   // Delete the shared path, if there is one.
-  if (initialized_) {
-    Terminate();
-  }
+  if (initialized_) { Terminate(); }
   FirebaseTest::TearDown();
 }
 

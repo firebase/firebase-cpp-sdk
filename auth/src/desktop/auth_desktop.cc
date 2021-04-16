@@ -175,9 +175,7 @@ bool Auth::GetAuthTokenAsyncForRegistry(App* app,
     if (user) {
       Future<std::string> future = user->GetTokenInternal(
           *in_force_refresh, kInternalFn_GetTokenForFunctionRegistry);
-      if (out_future) {
-        *out_future = future;
-      }
+      if (out_future) { *out_future = future; }
       return true;
     }
   }
@@ -197,9 +195,7 @@ bool Auth::GetCurrentUserUidForRegistry(App* app, void* /*unused*/, void* out) {
   User* user = auth->current_user();
   if (!user) return false;
 
-  if (out_string) {
-    *out_string = user->uid();
-  }
+  if (out_string) { *out_string = user->uid(); }
   return true;
 }
 
@@ -237,15 +233,11 @@ void FunctionRegistryAuthStateListener::RemoveListener(
   Entry entry = {callback, context};
 
   auto iter = std::find(callbacks_.begin(), callbacks_.end(), entry);
-  if (iter != callbacks_.end()) {
-    callbacks_.erase(iter);
-  }
+  if (iter != callbacks_.end()) { callbacks_.erase(iter); }
 }
 
 void FunctionRegistryAuthStateListener::OnAuthStateChanged(Auth* auth) {
-  for (const Entry& entry : callbacks_) {
-    entry.first(entry.second);
-  }
+  for (const Entry& entry : callbacks_) { entry.first(entry.second); }
 }
 
 bool Auth::AddAuthStateListenerForRegistry(App* app,
@@ -448,9 +440,7 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
     const char* email) {
   Promise<FetchProvidersResult> promise(&auth_data_->future_impl,
                                         kAuthFn_FetchProvidersForEmail);
-  if (!ValidateEmail(&promise, email)) {
-    return promise.LastResult();
-  }
+  if (!ValidateEmail(&promise, email)) { return promise.LastResult(); }
 
   typedef CreateAuthUriRequest RequestT;
   auto request = std::unique_ptr<RequestT>(  // NOLINT
@@ -475,9 +465,7 @@ Future<Auth::FetchProvidersResult> Auth::FetchProvidersForEmail(
 Future<void> Auth::SendPasswordResetEmail(const char* email) {
   Promise<void> promise(&auth_data_->future_impl,
                         kAuthFn_SendPasswordResetEmail);
-  if (!ValidateEmail(&promise, email)) {
-    return promise.LastResult();
-  }
+  if (!ValidateEmail(&promise, email)) { return promise.LastResult(); }
 
   const char* language_code = nullptr;
   auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
@@ -562,9 +550,7 @@ void Auth::set_language_code(const char* language_code) {
 
   auto auth_impl = static_cast<AuthImpl*>(auth_data_->auth_impl);
   std::string code;
-  if (language_code != nullptr) {
-    code.assign(language_code);
-  }
+  if (language_code != nullptr) { code.assign(language_code); }
   auth_impl->language_code = code;
 }
 

@@ -80,9 +80,7 @@ void UnregisterTerminateOnDefaultAppDestroy() {
 }
 
 CleanupNotifier* GetOrCreateCleanupNotifier() {
-  if (!g_cleanup_notifier) {
-    g_cleanup_notifier = new CleanupNotifier();
-  }
+  if (!g_cleanup_notifier) { g_cleanup_notifier = new CleanupNotifier(); }
   return g_cleanup_notifier;
 }
 

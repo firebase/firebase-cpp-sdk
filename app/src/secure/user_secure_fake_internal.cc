@@ -71,9 +71,7 @@ std::string UserSecureFakeInternal::LoadUserData(const std::string& app_name) {
   infile.seekg(0, std::ios::beg);
   output.resize(length);
   infile.read(&*output.begin(), length);
-  if (infile.fail()) {
-    return "";
-  }
+  if (infile.fail()) { return ""; }
   infile.close();
   return output;
 }
@@ -107,9 +105,7 @@ void UserSecureFakeInternal::DeleteUserData(const std::string& app_name) {
   std::string filename = GetFilePath(app_name);
   std::ifstream infile;
   infile.open(filename, std::ios::binary);
-  if (infile.fail()) {
-    return;
-  }
+  if (infile.fail()) { return; }
   infile.close();
 #if FIREBASE_PLATFORM_WINDOWS
   DeleteFile(filename.c_str());
@@ -142,9 +138,7 @@ void UserSecureFakeInternal::DeleteAllData() {
 #else
   // These are data types defined in the "dirent" header
   DIR* the_folder = opendir(full_path_.c_str());
-  if (!the_folder) {
-    return;
-  }
+  if (!the_folder) { return; }
   struct dirent* next_file;
 
   while ((next_file = readdir(the_folder)) != nullptr) {

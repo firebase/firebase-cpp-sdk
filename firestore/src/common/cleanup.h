@@ -38,21 +38,15 @@ struct CleanupFn {
   }
 
   static void Register(T* obj, U* internal) {
-    if (internal) {
-      Register(obj, internal->firestore_internal());
-    }
+    if (internal) { Register(obj, internal->firestore_internal()); }
   }
 
   static void Unregister(T* obj, F* firestore) {
-    if (firestore) {
-      firestore->cleanup().UnregisterObject(obj);
-    }
+    if (firestore) { firestore->cleanup().UnregisterObject(obj); }
   }
 
   static void Unregister(T* obj, U* internal) {
-    if (internal) {
-      Unregister(obj, internal->firestore_internal());
-    }
+    if (internal) { Unregister(obj, internal->firestore_internal()); }
   }
 
  private:

@@ -195,18 +195,14 @@ SharedPtr<T>::SharedPtr(U* ptr) : ptr_(ptr), ctrl_(nullptr) {
 template <typename T>
 SharedPtr<T>::SharedPtr(const SharedPtr& other)
     : ptr_(other.ptr_), ctrl_(other.ctrl_) {
-  if (ptr_) {
-    ctrl_->ref();
-  }
+  if (ptr_) { ctrl_->ref(); }
 }
 
 template <typename T>
 template <typename U>
 SharedPtr<T>::SharedPtr(const SharedPtr<U>& other)
     : ptr_(other.ptr_), ctrl_(other.ctrl_) {
-  if (ptr_) {
-    ctrl_->ref();
-  }
+  if (ptr_) { ctrl_->ref(); }
 }
 
 template <typename T>

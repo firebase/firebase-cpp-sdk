@@ -95,9 +95,7 @@ void MismatchMessage(const std::string& title,
                      const std::string& location,
                      ::testing::MatchResultListener* result_listener) {
   *result_listener << title << ": Expected " << expected;
-  if (!location.empty()) {
-    *result_listener << " at " << location;
-  }
+  if (!location.empty()) { *result_listener << " at " << location; }
   *result_listener << ", got " << arg;
 }
 
@@ -175,9 +173,7 @@ bool EqualsFlexbufferImpl(const flexbuffers::Reference& expected,
         std::memcmp(expected.AsBlob().data(), arg.AsBlob().data(),
                     expected.AsBlob().size()) != 0) {
       *result_listener << "Binary mismatch";
-      if (!location.empty()) {
-        *result_listener << " at " << location;
-      }
+      if (!location.empty()) { *result_listener << " at " << location; }
       return false;
     }
     return true;

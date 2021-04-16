@@ -69,9 +69,7 @@ void NativeExpressAdViewInternal::NotifyListenerOfPresentationStateChange(
 void NativeExpressAdViewInternal::NotifyListenerOfBoundingBoxChange(
     BoundingBox box) {
   MutexLock lock(listener_mutex_);
-  if (listener_ != nullptr) {
-    listener_->OnBoundingBoxChanged(base_, box);
-  }
+  if (listener_ != nullptr) { listener_->OnBoundingBoxChanged(base_, box); }
 }
 
 Future<void> NativeExpressAdViewInternal::GetLastResult(

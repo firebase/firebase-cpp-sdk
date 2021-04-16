@@ -115,9 +115,7 @@ void StorageInternal::AddOperation(RestOperation* operation) {
 void StorageInternal::RemoveOperation(RestOperation* operation) {
   MutexLock lock(operations_mutex_);
   auto it = std::find(operations_.begin(), operations_.end(), operation);
-  if (it != operations_.end()) {
-    operations_.erase(it);
-  }
+  if (it != operations_.end()) { operations_.erase(it); }
 }
 
 // Clean up completed operations.

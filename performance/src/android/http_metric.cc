@@ -62,9 +62,7 @@ class HttpMetricInternal {
 
     JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
 
-    if (active_http_metric_ != nullptr) {
-      CancelHttpMetric();
-    }
+    if (active_http_metric_ != nullptr) { CancelHttpMetric(); }
 
     jstring url_jstring = url ? env->NewStringUTF(url) : nullptr;
     jstring http_method_jstring =

@@ -82,9 +82,7 @@ void EventListenerInternal::DocumentEventListenerNativeOnEvent(
     jlong listener_ptr,
     jobject value,
     jobject raw_error) {
-  if (firestore_ptr == 0 || listener_ptr == 0) {
-    return;
-  }
+  if (firestore_ptr == 0 || listener_ptr == 0) { return; }
   auto* listener =
       reinterpret_cast<EventListener<DocumentSnapshot>*>(listener_ptr);
   auto* firestore = reinterpret_cast<FirestoreInternal*>(firestore_ptr);
@@ -109,9 +107,7 @@ void EventListenerInternal::QueryEventListenerNativeOnEvent(JNIEnv* raw_env,
                                                             jlong listener_ptr,
                                                             jobject value,
                                                             jobject raw_error) {
-  if (firestore_ptr == 0 || listener_ptr == 0) {
-    return;
-  }
+  if (firestore_ptr == 0 || listener_ptr == 0) { return; }
   auto* listener =
       reinterpret_cast<EventListener<QuerySnapshot>*>(listener_ptr);
   auto* firestore = reinterpret_cast<FirestoreInternal*>(firestore_ptr);
@@ -133,9 +129,7 @@ void EventListenerInternal::QueryEventListenerNativeOnEvent(JNIEnv* raw_env,
 void EventListenerInternal::VoidEventListenerNativeOnEvent(JNIEnv*,
                                                            jclass,
                                                            jlong listener_ptr) {
-  if (listener_ptr == 0) {
-    return;
-  }
+  if (listener_ptr == 0) { return; }
   auto* listener = reinterpret_cast<EventListener<void>*>(listener_ptr);
   listener->OnEvent(Error::kErrorOk, EmptyString());
 }

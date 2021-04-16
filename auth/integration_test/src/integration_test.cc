@@ -343,9 +343,7 @@ class TestIdTokenListener : public firebase::auth::IdTokenListener {
       firebase::Future<std::string> token_future =
           auth->current_user()->GetToken(false);
       if (token_future.status() == firebase::kFutureStatusComplete) {
-        if (token_future.error() == 0) {
-          token = *token_future.result();
-        }
+        if (token_future.error() == 0) { token = *token_future.result(); }
       } else {
         token = "[in progress]";
       }

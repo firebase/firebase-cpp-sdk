@@ -198,9 +198,7 @@ bool AppCallback::GetEnabledByName(const char* name) {
   if (!callbacks_) return false;
   std::map<std::string, AppCallback*>::const_iterator it =
       callbacks_->find(std::string(name));
-  if (it == callbacks_->end()) {
-    return false;
-  }
+  if (it == callbacks_->end()) { return false; }
   return it->second->enabled();
 }
 
@@ -231,9 +229,7 @@ void AppCallback::SetEnabledAll(bool enable) {
 }
 
 void AppCallback::AddCallback(AppCallback* callback) {
-  if (!callbacks_) {
-    callbacks_ = new std::map<std::string, AppCallback*>();
-  }
+  if (!callbacks_) { callbacks_ = new std::map<std::string, AppCallback*>(); }
   std::string name = callback->module_name();
   if (callbacks_->find(name) != callbacks_->end()) {
     LogWarning(
@@ -278,9 +274,7 @@ StaticFutureData* StaticFutureData::GetFutureDataForModule(
   auto found_value = s_future_datas_->find(module_identifier);
   if (found_value != s_future_datas_->end()) {
     StaticFutureData* existing_data = found_value->second;
-    if (existing_data != nullptr) {
-      return existing_data;
-    }
+    if (existing_data != nullptr) { return existing_data; }
   }
 
   StaticFutureData* new_data = CreateNewData(module_identifier, num_functions);
@@ -301,16 +295,12 @@ std::vector<std::string> SplitString(const std::string& s,
   // This index is used as the starting index to search the delimiters from.
   size_t delimiter_search_start = 0;
   // Skip any leading delimiters
-  while (s[delimiter_search_start] == delimiter) {
-    delimiter_search_start++;
-  }
+  while (s[delimiter_search_start] == delimiter) { delimiter_search_start++; }
 
   std::vector<std::string> split_parts;
   size_t len = s.size();
   // Can't proceed if input string consists of just delimiters
-  if (pos >= len) {
-    return split_parts;
-  }
+  if (pos >= len) { return split_parts; }
 
   while ((pos = s.find(delimiter, delimiter_search_start)) !=
          std::string::npos) {

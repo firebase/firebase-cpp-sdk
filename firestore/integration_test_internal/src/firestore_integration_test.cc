@@ -114,15 +114,11 @@ Firestore* FirestoreIntegrationTest::TestFirestore(
     const std::string& name) const {
   for (const auto& entry : firestores_) {
     const FirestoreInfo& firestore_info = entry.second;
-    if (firestore_info.name() == name) {
-      return firestore_info.firestore();
-    }
+    if (firestore_info.name() == name) { return firestore_info.firestore(); }
   }
 
   App* app = GetApp(name.c_str());
-  if (apps_.find(app) == apps_.end()) {
-    apps_[app] = UniquePtr<App>(app);
-  }
+  if (apps_.find(app) == apps_.end()) { apps_[app] = UniquePtr<App>(app); }
 
   // Firestore::set_log_level(LogLevel::kLogLevelDebug);
 

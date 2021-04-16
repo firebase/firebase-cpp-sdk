@@ -122,9 +122,7 @@ static void VariantTreeFromFlatbuffer(const persistence::VariantTreeNode* node,
 
 CompoundWrite CompoundWriteFromFlatbuffer(
     const persistence::PersistedCompoundWrite* persisted_compound_write) {
-  if (!persisted_compound_write->write_tree()) {
-    return CompoundWrite();
-  }
+  if (!persisted_compound_write->write_tree()) { return CompoundWrite(); }
   Tree<Variant> write_tree;
   const persistence::VariantTreeNode* node =
       persisted_compound_write->write_tree();

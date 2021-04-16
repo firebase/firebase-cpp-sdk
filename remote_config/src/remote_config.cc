@@ -194,9 +194,7 @@ RemoteConfig* RemoteConfig::GetInstance(App* app) {
   MutexLock lock(g_rc_mutex);
   // Return the RemoteConfig if it already exists.
   RemoteConfig* existing_rc = FindRemoteConfig(app);
-  if (existing_rc) {
-    return existing_rc;
-  }
+  if (existing_rc) { return existing_rc; }
 
   // Create a new RemoteConfig and initialize.
   RemoteConfig* rc = new RemoteConfig(app);
@@ -229,9 +227,7 @@ RemoteConfig* RemoteConfig::FindRemoteConfig(App* app) {
   MutexLock lock(g_rc_mutex);
   // Return the RemoteConfig if it already exists.
   std::map<App*, RemoteConfig*>::iterator it = g_rcs.find(app);
-  if (it != g_rcs.end()) {
-    return it->second;
-  }
+  if (it != g_rcs.end()) { return it->second; }
   return nullptr;
 }
 
@@ -394,9 +390,7 @@ const ConfigInfo RemoteConfig::GetInfo() {
 uint64_t RemoteConfig::GetConfigFetchInterval() {
   uint64_t cache_time =
       GetConfigSettings().minimum_fetch_interval_in_milliseconds;
-  if (cache_time == 0) {
-    cache_time = kDefaultCacheExpiration;
-  }
+  if (cache_time == 0) { cache_time = kDefaultCacheExpiration; }
   return cache_time;
 }
 

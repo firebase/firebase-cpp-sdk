@@ -55,9 +55,7 @@ DocumentChange::~DocumentChange() {
 }
 
 DocumentChange& DocumentChange::operator=(const DocumentChange& value) {
-  if (this == &value) {
-    return *this;
-  }
+  if (this == &value) { return *this; }
 
   CleanupFnDocumentChange::Unregister(this, internal_);
   delete internal_;
@@ -71,9 +69,7 @@ DocumentChange& DocumentChange::operator=(const DocumentChange& value) {
 }
 
 DocumentChange& DocumentChange::operator=(DocumentChange&& value) {
-  if (this == &value) {
-    return *this;
-  }
+  if (this == &value) { return *this; }
 
   CleanupFnDocumentChange::Unregister(&value, value.internal_);
   CleanupFnDocumentChange::Unregister(this, internal_);

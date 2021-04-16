@@ -22,9 +22,7 @@ namespace internal {
 const int TransactionData::kTransactionMaxRetries = 25;
 
 TransactionData::~TransactionData() {
-  if (delete_context) {
-    delete_context(context);
-  }
+  if (delete_context) { delete_context(context); }
 }
 
 }  // namespace internal

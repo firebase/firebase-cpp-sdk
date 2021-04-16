@@ -277,9 +277,7 @@ class TransactionTester {
   void RunSuccessfulTransaction() {
     Future<void> future = db_->RunTransaction(
         [this](Transaction& transaction, std::string& error_message) {
-          for (const auto& stage : stages_) {
-            stage(&transaction, doc_);
-          }
+          for (const auto& stage : stages_) { stage(&transaction, doc_); }
           return Error::kErrorOk;
         });
     FirestoreIntegrationTest::Await(future);
@@ -291,9 +289,7 @@ class TransactionTester {
   void RunFailingTransaction(Error error) {
     Future<void> future = db_->RunTransaction(
         [this](Transaction& transaction, std::string& error_message) {
-          for (const auto& stage : stages_) {
-            stage(&transaction, doc_);
-          }
+          for (const auto& stage : stages_) { stage(&transaction, doc_); }
           return Error::kErrorOk;
         });
     FirestoreIntegrationTest::Await(future);
@@ -304,9 +300,7 @@ class TransactionTester {
 
   std::string ListStages() const {
     std::vector<std::string> stages;
-    for (const auto& stage : stages_) {
-      stages.push_back(stage.tag());
-    }
+    for (const auto& stage : stages_) { stages.push_back(stage.tag()); }
     return absl::StrJoin(stages, ",");
   }
 
@@ -529,9 +523,7 @@ TEST_F(TransactionTest, TestIncrementTransactionally) {
             MutexLock lock(started_locker);
             ++started;
             // Once all of the transactions have read, allow the first write.
-            if (started == kTotal) {
-              write_barrier.Post();
-            }
+            if (started == kTotal) { write_barrier.Post(); }
           }
 
           // Let all of the transactions fetch the old value and stop once.
@@ -587,9 +579,7 @@ TEST_F(TransactionTest, TestUpdateTransactionally) {
             MutexLock lock(started_locker);
             ++started;
             // Once all of the transactions have read, allow the first write.
-            if (started == kTotal) {
-              write_barrier.Post();
-            }
+            if (started == kTotal) { write_barrier.Post(); }
           }
 
           // Let all of the transactions fetch the old value and stop once.

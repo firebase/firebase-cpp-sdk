@@ -67,19 +67,13 @@ const char* IndexedVariant::GetPredecessorChildName(
   Variant key = child_key.c_str();
   auto iter = index_.find(std::make_pair(key, child_value));
 
-  if (iter == index_.end()) {
-    return nullptr;
-  }
-  if (iter == index_.begin()) {
-    return nullptr;
-  }
+  if (iter == index_.end()) { return nullptr; }
+  if (iter == index_.begin()) { return nullptr; }
 
   // Move back to predecessor.
   --iter;
 
-  if (!iter->first.is_string()) {
-    return nullptr;
-  }
+  if (!iter->first.is_string()) { return nullptr; }
 
   return iter->first.string_value();
 }
@@ -138,15 +132,11 @@ static bool IsDefinedOn(const Variant& variant, const QueryParams& params) {
 
 void IndexedVariant::EnsureIndexed() {
   // If this isn't a map, there's no index to build.
-  if (!variant_.is_map()) {
-    return;
-  }
+  if (!variant_.is_map()) { return; }
 
   PruneNulls(&variant_);
 
-  for (const auto& entry : variant_.map()) {
-    index_.insert(entry);
-  }
+  for (const auto& entry : variant_.map()) { index_.insert(entry); }
 }
 
 IndexedVariant IndexedVariant::UpdateChild(const std::string& key,

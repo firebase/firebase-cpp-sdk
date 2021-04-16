@@ -46,9 +46,7 @@ void Request::set_post_fields(const char* data) {
 
 std::string Request::ToString() {
   std::string output = options_.url + '\n';
-  if (!ReadBodyIntoString(&output)) {
-    output += "*** aborted ***\n";
-  }
+  if (!ReadBodyIntoString(&output)) { output += "*** aborted ***\n"; }
   output += "\n";
   return output;
 }

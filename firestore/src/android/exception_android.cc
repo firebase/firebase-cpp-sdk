@@ -72,9 +72,7 @@ void ExceptionInternal::Initialize(jni::Loader& loader) {
 }
 
 Error ExceptionInternal::GetErrorCode(Env& env, const Object& exception) {
-  if (!exception) {
-    return Error::kErrorOk;
-  }
+  if (!exception) { return Error::kErrorOk; }
 
   if (IsIllegalStateException(env, exception)) {
     // Some of the Precondition failure is thrown as IllegalStateException
@@ -101,9 +99,7 @@ std::string ExceptionInternal::ToString(Env& env, const Object& exception) {
 Local<Throwable> ExceptionInternal::Create(Env& env,
                                            Error code,
                                            const std::string& message) {
-  if (code == Error::kErrorOk) {
-    return {};
-  }
+  if (code == Error::kErrorOk) { return {}; }
 
   Local<String> java_message;
   if (message.empty()) {

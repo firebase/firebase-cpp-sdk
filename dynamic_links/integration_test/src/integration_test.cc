@@ -438,9 +438,7 @@ bool FirebaseDynamicLinksTest::ClaimCurrentTest(const char* test_name) {
   std::string value;
   if (!GetPersistentString(kCurrentTestKey, &value) || value == test_name) {
     // If not already set to it, take ownership of the current test.
-    if (value != test_name) {
-      SetPersistentString(kCurrentTestKey, test_name);
-    }
+    if (value != test_name) { SetPersistentString(kCurrentTestKey, test_name); }
     return true;
   }
   return false;

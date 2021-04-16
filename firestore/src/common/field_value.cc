@@ -40,9 +40,7 @@ std::string ValueToString(const std::vector<FieldValue>& value) {
 
   bool is_first = true;
   for (const FieldValue& e : value) {
-    if (!is_first) {
-      result += ", ";
-    }
+    if (!is_first) { result += ", "; }
     is_first = false;
 
     result += e.ToString();
@@ -61,9 +59,7 @@ std::string ValueToString(const uint8_t* blob, size_t size) {
   stream << std::hex << std::setfill('0');
   bool is_first = true;
   for (const auto* ptr = blob; ptr != blob + size; ++ptr) {
-    if (!is_first) {
-      stream << " ";
-    }
+    if (!is_first) { stream << " "; }
     is_first = false;
 
     stream << std::setw(2) << static_cast<int>(*ptr);
@@ -79,9 +75,7 @@ FieldValue::FieldValue() {
 }
 
 FieldValue::FieldValue(const FieldValue& value) {
-  if (value.internal_) {
-    internal_ = new FieldValueInternal(*value.internal_);
-  }
+  if (value.internal_) { internal_ = new FieldValueInternal(*value.internal_); }
 }
 
 FieldValue::FieldValue(FieldValue&& value) noexcept {
@@ -98,9 +92,7 @@ FieldValue::~FieldValue() {
 }
 
 FieldValue& FieldValue::operator=(const FieldValue& value) {
-  if (this == &value) {
-    return *this;
-  }
+  if (this == &value) { return *this; }
 
   delete internal_;
   if (value.internal_) {
@@ -112,9 +104,7 @@ FieldValue& FieldValue::operator=(const FieldValue& value) {
 }
 
 FieldValue& FieldValue::operator=(FieldValue&& value) noexcept {
-  if (this == &value) {
-    return *this;
-  }
+  if (this == &value) { return *this; }
 
   delete internal_;
   internal_ = value.internal_;

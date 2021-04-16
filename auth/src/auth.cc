@@ -92,9 +92,7 @@ Auth* Auth::FindAuth(App* app) {
   MutexLock lock(*g_auths_mutex);
   // Return the Auth if it already exists.
   std::map<App*, Auth*>::iterator it = g_auths.find(app);
-  if (it != g_auths.end()) {
-    return it->second;
-  }
+  if (it != g_auths.end()) { return it->second; }
   return nullptr;
 }
 
@@ -163,9 +161,7 @@ void Auth::DeleteInternal() {
 
   // If this is the last Auth instance to be cleaned up, also clean up data for
   // Credentials.
-  if (num_auths_remaining == 0) {
-    CleanupCredentialFutureImpl();
-  }
+  if (num_auths_remaining == 0) { CleanupCredentialFutureImpl(); }
 
   // Destroy the platform-specific object.
   DestroyPlatformAuth(auth_data_);
@@ -311,16 +307,12 @@ void Auth::RemoveIdTokenListener(IdTokenListener* listener) {
 
 AuthStateListener::~AuthStateListener() {
   // Removing the listener edits the auths list, hence the while loop.
-  while (!auths_.empty()) {
-    (*auths_.begin())->RemoveAuthStateListener(this);
-  }
+  while (!auths_.empty()) { (*auths_.begin())->RemoveAuthStateListener(this); }
 }
 
 IdTokenListener::~IdTokenListener() {
   // Removing the listener edits the auths list, hence the while loop.
-  while (!auths_.empty()) {
-    (*auths_.begin())->RemoveIdTokenListener(this);
-  }
+  while (!auths_.empty()) { (*auths_.begin())->RemoveIdTokenListener(this); }
 }
 
 template <typename T>

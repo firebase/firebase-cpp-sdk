@@ -101,9 +101,7 @@ void SignOutIfUserNoLongerValid(Auth* const auth, const AuthError error_code) {
 // If current token is still good for at least 5 minutes, we re-use it.
 GetTokenResult GetTokenIfFresh(const UserView::Reader& user,
                                const bool force_refresh) {
-  if (force_refresh) {
-    return GetTokenResult(kAuthErrorFailure);
-  }
+  if (force_refresh) { return GetTokenResult(kAuthErrorFailure); }
 
   if (user.IsValid() && !user->id_token.empty() &&
       user->access_token_expiration_date > std::time(nullptr) + 5 * 60) {
@@ -134,12 +132,8 @@ GetTokenResult EnsureFreshToken(AuthData* const auth_data,
         refresh_token = user->refresh_token;
       });
 
-  if (!is_user_logged_in) {
-    return GetTokenResult(kAuthErrorNoSignedInUser);
-  }
-  if (old_token.IsValid()) {
-    return GetTokenResult(old_token.token());
-  }
+  if (!is_user_logged_in) { return GetTokenResult(kAuthErrorNoSignedInUser); }
+  if (old_token.IsValid()) { return GetTokenResult(old_token.token()); }
 
   const SecureTokenRequest request(GetApiKey(*auth_data),
                                    refresh_token.c_str());
@@ -296,9 +290,7 @@ bool IsProviderAlreadyLinked(const std::string& provider,
   const auto found =
       std::find_if(std::begin(linked_providers), std::end(linked_providers),
                    [&provider](const UserInfoInterface* const linked) {
-                     if (!linked) {
-                       LogError("Null provider data");
-                     }
+                     if (!linked) { LogError("Null provider data"); }
                      return linked && linked->provider_id() == provider;
                    });
   return found != std::end(linked_providers);
@@ -321,9 +313,7 @@ Future<ResultT> DoLinkCredential(Promise<ResultT> promise,
         is_provider_already_linked = IsProviderAlreadyLinked(provider, user);
       });
 
-  if (!is_user_logged_in) {
-    return promise.InvalidateLastResult();
-  }
+  if (!is_user_logged_in) { return promise.InvalidateLastResult(); }
   if (is_provider_already_linked) {
     FailPromise(&promise, kAuthErrorProviderAlreadyLinked);
     return promise.LastResult();
@@ -452,9 +442,7 @@ void AssignLoadedData(const Future<std::string>& future, AuthData* auth_data) {
   }
 
   std::string loaded_string = *(future.result());
-  if (loaded_string.length() == 0) {
-    return;
-  }
+  if (loaded_string.length() == 0) { return; }
 
   // Decode to flatbuffer
   std::string decoded;
@@ -541,9 +529,7 @@ void HandleLoadedData(const Future<std::string>& future, void* auth_data) {
 }
 
 Future<std::string> UserDataPersist::LoadUserData(AuthData* auth_data) {
-  if (auth_data == nullptr) {
-    return Future<std::string>();
-  }
+  if (auth_data == nullptr) { return Future<std::string>(); }
 
   Future<std::string> future =
       user_secure_manager_->LoadUserData(auth_data->app->name());
@@ -552,14 +538,10 @@ Future<std::string> UserDataPersist::LoadUserData(AuthData* auth_data) {
 }
 
 Future<void> UserDataPersist::SaveUserData(AuthData* auth_data) {
-  if (auth_data == nullptr) {
-    return Future<void>();
-  }
+  if (auth_data == nullptr) { return Future<void>(); }
 
   const auto user = UserView::GetReader(auth_data);
-  if (!user.IsValid()) {
-    return Future<void>();
-  }
+  if (!user.IsValid()) { return Future<void>(); }
 
   // Build up a serialized buffer algorithmically:
   flatbuffers::FlatBufferBuilder builder;
@@ -621,9 +603,7 @@ Future<void> UserDataPersist::DeleteUserData(AuthData* auth_data) {
 
 User::~User() {
   // Make sure we don't have any pending futures in flight before we disappear.
-  while (!auth_data_->future_impl.IsSafeToDelete()) {
-    internal::Sleep(100);
-  }
+  while (!auth_data_->future_impl.IsSafeToDelete()) { internal::Sleep(100); }
 }
 
 // RPCs
@@ -733,9 +713,7 @@ Future<void> User::Reload() {
       auth_data_,
       [&](const UserView::Reader& user) { id_token = user->id_token; });
 
-  if (!is_user_logged_in) {
-    return promise.InvalidateLastResult();
-  }
+  if (!is_user_logged_in) { return promise.InvalidateLastResult(); }
 
   typedef GetAccountInfoRequest RequestT;
   auto request =
@@ -762,9 +740,7 @@ Future<void> User::Reload() {
 
 Future<void> User::UpdateEmail(const char* const email) {
   Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdateEmail);
-  if (!ValidateEmail(&promise, email)) {
-    return promise.LastResult();
-  }
+  if (!ValidateEmail(&promise, email)) { return promise.LastResult(); }
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
   }
@@ -784,9 +760,7 @@ Future<void> User::UpdateEmail(const char* const email) {
 
 Future<void> User::UpdatePassword(const char* const password) {
   Promise<void> promise(&auth_data_->future_impl, kUserFn_UpdatePassword);
-  if (!ValidatePassword(&promise, password)) {
-    return promise.LastResult();
-  }
+  if (!ValidatePassword(&promise, password)) { return promise.LastResult(); }
   if (!ValidateCurrentUser(&promise, auth_data_)) {
     return promise.LastResult();
   }
@@ -832,9 +806,7 @@ Future<User*> User::Unlink(const char* const provider) {
         is_provider_linked = IsProviderAlreadyLinked(provider, user);
       });
 
-  if (!is_user_logged_in) {
-    return promise.InvalidateLastResult();
-  }
+  if (!is_user_logged_in) { return promise.InvalidateLastResult(); }
   if (!is_provider_linked) {
     FailPromise(&promise, kAuthErrorNoSuchProvider);
     return promise.LastResult();

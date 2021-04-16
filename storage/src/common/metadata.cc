@@ -70,9 +70,7 @@ class MetadataInternalCommon {
   static void UnregisterForCleanup(Metadata* obj,
                                    internal::MetadataInternal* internal) {
     internal::StorageInternal* storage_internal = GetStorage(internal);
-    if (storage_internal) {
-      storage_internal->cleanup().UnregisterObject(obj);
-    }
+    if (storage_internal) { storage_internal->cleanup().UnregisterObject(obj); }
   }
 };
 
@@ -128,9 +126,7 @@ const char* Metadata::bucket() const {
 }
 
 void Metadata::set_cache_control(const char* cache_control) {
-  if (internal_) {
-    internal_->set_cache_control(cache_control);
-  }
+  if (internal_) { internal_->set_cache_control(cache_control); }
 }
 
 const char* Metadata::cache_control() const {
@@ -138,9 +134,7 @@ const char* Metadata::cache_control() const {
 }
 
 void Metadata::set_content_disposition(const char* disposition) {
-  if (internal_) {
-    internal_->set_content_disposition(disposition);
-  }
+  if (internal_) { internal_->set_content_disposition(disposition); }
 }
 
 const char* Metadata::content_disposition() const {
@@ -148,9 +142,7 @@ const char* Metadata::content_disposition() const {
 }
 
 void Metadata::set_content_encoding(const char* encoding) {
-  if (internal_) {
-    internal_->set_content_encoding(encoding);
-  }
+  if (internal_) { internal_->set_content_encoding(encoding); }
 }
 
 const char* Metadata::content_encoding() const {
@@ -158,9 +150,7 @@ const char* Metadata::content_encoding() const {
 }
 
 void Metadata::set_content_language(const char* language) {
-  if (internal_) {
-    internal_->set_content_language(language);
-  }
+  if (internal_) { internal_->set_content_language(language); }
 }
 
 const char* Metadata::content_language() const {
@@ -168,9 +158,7 @@ const char* Metadata::content_language() const {
 }
 
 void Metadata::set_content_type(const char* type) {
-  if (internal_) {
-    internal_->set_content_type(type);
-  }
+  if (internal_) { internal_->set_content_type(type); }
 }
 
 const char* Metadata::content_type() const {

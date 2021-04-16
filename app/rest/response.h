@@ -64,9 +64,7 @@ class Response : public Transfer {
   void MarkCompleted() override {
     // Make sure the fetch_time_ is always reasonable even when the response
     // does not have a valid Date header.
-    if (fetch_time_ <= 0) {
-      fetch_time_ = std::time(nullptr);
-    }
+    if (fetch_time_ <= 0) { fetch_time_ = std::time(nullptr); }
     header_completed_ = true;
     body_completed_ = true;
   }

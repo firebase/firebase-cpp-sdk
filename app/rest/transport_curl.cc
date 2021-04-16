@@ -460,9 +460,7 @@ void BackgroundTransportCurl::CompleteOperation() {
 }
 
 void BackgroundTransportCurl::CheckOk(CURLcode code, const char* msg) {
-  if (code == CURLE_OK) {
-    return;
-  }
+  if (code == CURLE_OK) { return; }
 
   LogError("failed to %s with error code (%d) %s", msg, code, err_buf_);
   if (err_code_ == CURLE_OK) {
@@ -518,9 +516,7 @@ bool BackgroundTransportCurl::PerformBackground(Request* request) {
   err_code_ = CURLE_OK;
 
   // Set VERBOSE for debug; does not affect the HTTP connection.
-  if (options.verbose) {
-    curl_easy_setopt(curl_, CURLOPT_VERBOSE, 1L);
-  }
+  if (options.verbose) { curl_easy_setopt(curl_, CURLOPT_VERBOSE, 1L); }
 
   if (request_header_) {
     curl_slist_free_all(request_header_);
@@ -710,9 +706,7 @@ bool CurlThread::GetNextAction(TransportCurlActionData* data,
     action_data_signal_.TryWait();
   }
   MutexLock lock(mutex_);
-  if (action_data_queue_.empty()) {
-    return false;
-  }
+  if (action_data_queue_.empty()) { return false; }
   assert(data);
   *data = action_data_queue_.front();
   action_data_queue_.pop_front();

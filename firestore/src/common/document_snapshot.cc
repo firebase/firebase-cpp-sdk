@@ -54,9 +54,7 @@ DocumentSnapshot::~DocumentSnapshot() {
 
 DocumentSnapshot& DocumentSnapshot::operator=(
     const DocumentSnapshot& snapshot) {
-  if (this == &snapshot) {
-    return *this;
-  }
+  if (this == &snapshot) { return *this; }
 
   CleanupFnDocumentSnapshot::Unregister(this, internal_);
   delete internal_;
@@ -70,9 +68,7 @@ DocumentSnapshot& DocumentSnapshot::operator=(
 }
 
 DocumentSnapshot& DocumentSnapshot::operator=(DocumentSnapshot&& snapshot) {
-  if (this == &snapshot) {
-    return *this;
-  }
+  if (this == &snapshot) { return *this; }
 
   CleanupFnDocumentSnapshot::Unregister(&snapshot, snapshot.internal_);
   CleanupFnDocumentSnapshot::Unregister(this, internal_);

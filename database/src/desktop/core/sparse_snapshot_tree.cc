@@ -66,9 +66,7 @@ bool SparseSnapshotTree::Forget(const Path& path) {
       if (iter != children_.end()) {
         SparseSnapshotTree& child = iter->second;
         bool safe_to_remove = child.Forget(child_path);
-        if (safe_to_remove) {
-          children_.erase(iter);
-        }
+        if (safe_to_remove) { children_.erase(iter); }
       }
       if (children_.empty()) {
         return true;

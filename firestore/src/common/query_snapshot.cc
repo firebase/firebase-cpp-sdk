@@ -50,9 +50,7 @@ QuerySnapshot::~QuerySnapshot() {
 }
 
 QuerySnapshot& QuerySnapshot::operator=(const QuerySnapshot& snapshot) {
-  if (this == &snapshot) {
-    return *this;
-  }
+  if (this == &snapshot) { return *this; }
 
   CleanupFnQuerySnapshot::Unregister(this, internal_);
   delete internal_;
@@ -66,9 +64,7 @@ QuerySnapshot& QuerySnapshot::operator=(const QuerySnapshot& snapshot) {
 }
 
 QuerySnapshot& QuerySnapshot::operator=(QuerySnapshot&& snapshot) {
-  if (this == &snapshot) {
-    return *this;
-  }
+  if (this == &snapshot) { return *this; }
 
   CleanupFnQuerySnapshot::Unregister(&snapshot, snapshot.internal_);
   CleanupFnQuerySnapshot::Unregister(this, internal_);

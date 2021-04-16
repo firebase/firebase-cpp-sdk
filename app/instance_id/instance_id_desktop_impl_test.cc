@@ -165,9 +165,7 @@ class InstanceIdDesktopImplTest : public ::testing::Test {
   void WaitForFuture(const FutureBase& future) {
     ASSERT_THAT(future.status(), Ne(FutureStatus::kFutureStatusInvalid));
     while (true) {
-      if (future.status() != FutureStatus::kFutureStatusPending) {
-        break;
-      }
+      if (future.status() != FutureStatus::kFutureStatusPending) { break; }
     }
   }
 

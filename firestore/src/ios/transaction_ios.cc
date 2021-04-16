@@ -135,17 +135,11 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
   StatusOr<DocumentSnapshot> result = future.get();
 
   if (result.ok()) {
-    if (error_code != nullptr) {
-      *error_code = Error::kErrorOk;
-    }
-    if (error_message != nullptr) {
-      *error_message = "";
-    }
+    if (error_code != nullptr) { *error_code = Error::kErrorOk; }
+    if (error_message != nullptr) { *error_message = ""; }
     return std::move(result).ValueOrDie();
   } else {
-    if (error_code != nullptr) {
-      *error_code = result.status().code();
-    }
+    if (error_code != nullptr) { *error_code = result.status().code(); }
     if (error_message != nullptr) {
       *error_message = result.status().error_message();
     }

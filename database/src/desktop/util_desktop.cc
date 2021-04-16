@@ -74,9 +74,7 @@ bool StringStartsWith(const std::string& str, const std::string& prefix) {
 }
 
 bool PatchVariant(const Variant& patch_data, Variant* out_data) {
-  if (!patch_data.is_map() || !out_data->is_map()) {
-    return false;
-  }
+  if (!patch_data.is_map() || !out_data->is_map()) { return false; }
   for (const auto& key_value : patch_data.map()) {
     const auto& key = key_value.first;
     const auto& value = key_value.second;
@@ -140,9 +138,7 @@ void VariantUpdateChild(Variant* variant,
     if (VariantIsEmpty(immediate_child)) {
       variant->map().erase(variant->map().find(front));
     }
-    if (VariantIsEmpty(*variant)) {
-      *variant = Variant::Null();
-    }
+    if (VariantIsEmpty(*variant)) { *variant = Variant::Null(); }
   } else if (VariantIsLeaf(*variant)) {
     std::string front = path.FrontDirectory().str();
     if (VariantIsEmpty(value) && !IsPriorityKey(front)) {
@@ -150,9 +146,7 @@ void VariantUpdateChild(Variant* variant,
     } else if (IsPriorityKey(front)) {
       CombineValueAndPriorityInPlace(variant, value);
     } else {
-      if (!variant->is_map()) {
-        *variant = Variant::EmptyMap();
-      }
+      if (!variant->is_map()) { *variant = Variant::EmptyMap(); }
       auto dot_value_iter = variant->map().find(kValueKey);
       if (dot_value_iter != variant->map().end()) {
         variant->map().erase(dot_value_iter);
@@ -162,9 +156,7 @@ void VariantUpdateChild(Variant* variant,
       if (VariantIsEmpty(immediate_child)) {
         variant->map().erase(variant->map().find(front));
       }
-      if (VariantIsEmpty(*variant)) {
-        *variant = Variant::Null();
-      }
+      if (VariantIsEmpty(*variant)) { *variant = Variant::Null(); }
     }
   } else {
     if (IsPriorityKey(front)) {
@@ -175,9 +167,7 @@ void VariantUpdateChild(Variant* variant,
       if (VariantIsEmpty(immediate_child)) {
         variant->map().erase(variant->map().find(front));
       }
-      if (VariantIsEmpty(*variant)) {
-        *variant = Variant::Null();
-      }
+      if (VariantIsEmpty(*variant)) { *variant = Variant::Null(); }
     }
   }
 }
@@ -206,9 +196,7 @@ Variant* GetInternalVariant(Variant* variant, const Variant& key) {
     variant = GetVariantValue(variant);
   }
   // Ensure we're operating on a map.
-  if (!variant->is_map()) {
-    return nullptr;
-  }
+  if (!variant->is_map()) { return nullptr; }
   // Get the child Variant at the given path.
   return MapGet(&variant->map(), key);
 }
@@ -256,9 +244,7 @@ void SetVariantAtPath(Variant* variant,
       target_map.erase(kValueKey);
 
       // Fill in the new values.
-      for (auto& kvp : value.map()) {
-        target_map[kvp.first] = kvp.second;
-      }
+      for (auto& kvp : value.map()) { target_map[kvp.first] = kvp.second; }
     } else {
       *GetVariantValue(target) = value;
     }
@@ -273,9 +259,7 @@ ParseUrl::ParseResult ParseUrl::Parse(const std::string& url) {
   secure = true;
   path.clear();
 
-  if (url.empty()) {
-    return kParseErrorEmpty;
-  }
+  if (url.empty()) { return kParseErrorEmpty; }
 
   // Find the protocol.  It is ok to not specify any protocol.  If not, it
   // defaults to a secured connection.
@@ -302,9 +286,7 @@ ParseUrl::ParseResult ParseUrl::Parse(const std::string& url) {
     hostname_end = url.length();
   }
 
-  if (hostname_end == hostname_start) {
-    return kParseErrorEmptyHostname;
-  }
+  if (hostname_end == hostname_start) { return kParseErrorEmptyHostname; }
 
   hostname = url.substr(hostname_start, hostname_end - hostname_start);
 
@@ -335,9 +317,7 @@ ParseUrl::ParseResult ParseUrl::Parse(const std::string& url) {
           it_seg_start = it_char + 1;
 
           // Start port parsing
-          if (*it_char == ':') {
-            it_port_start = it_char + 1;
-          }
+          if (*it_char == ':') { it_port_start = it_char + 1; }
         }
       } else if (!isalnum(*it_char) && *it_char != '-') {
         // unsupported character
@@ -345,20 +325,14 @@ ParseUrl::ParseResult ParseUrl::Parse(const std::string& url) {
       }
     } else {
       // parsing the port section
-      if (!isdigit(*it_char)) {
-        return kParseErrorInvalidPort;
-      }
+      if (!isdigit(*it_char)) { return kParseErrorInvalidPort; }
     }
   }
 
   // Check the last segment
-  if (it_seg_start == hostname.end()) {
-    return kParseErrorEmptySegment;
-  }
+  if (it_seg_start == hostname.end()) { return kParseErrorEmptySegment; }
 
-  if (ns.empty()) {
-    return kParseErrorEmptyNamespace;
-  }
+  if (ns.empty()) { return kParseErrorEmptyNamespace; }
 
   return kParseOk;
 }
@@ -384,14 +358,10 @@ size_t CountEffectiveChildren(const Variant& variant) {
 }
 
 void PruneNulls(Variant* variant, bool recursive) {
-  if (!variant->is_map()) {
-    return;
-  }
+  if (!variant->is_map()) { return; }
   auto& map = variant->map();
   for (auto iter = map.begin(); iter != map.end();) {
-    if (recursive) {
-      PruneNulls(&iter->second, true);
-    }
+    if (recursive) { PruneNulls(&iter->second, true); }
     if (VariantIsEmpty(iter->second)) {
       iter = map.erase(iter);
     } else {
@@ -429,9 +399,7 @@ bool HasVector(const Variant& variant) {
     return true;
   } else if (variant.is_map()) {
     for (auto& it_child : variant.map()) {
-      if (HasVector(it_child.second)) {
-        return true;
-      }
+      if (HasVector(it_child.second)) { return true; }
     }
   }
   return false;
@@ -603,35 +571,23 @@ void PrunePriorities(Variant* variant, bool recursive /* = true */) {
 }
 
 const Variant* GetVariantValue(const Variant* variant) {
-  if (!variant->is_map()) {
-    return variant;
-  }
+  if (!variant->is_map()) { return variant; }
   auto iter = variant->map().find(kValueKey);
-  if (iter == variant->map().end()) {
-    return variant;
-  }
+  if (iter == variant->map().end()) { return variant; }
   return &iter->second;
 }
 
 Variant* GetVariantValue(Variant* variant) {
-  if (!variant->is_map()) {
-    return variant;
-  }
+  if (!variant->is_map()) { return variant; }
   auto iter = variant->map().find(kValueKey);
-  if (iter == variant->map().end()) {
-    return variant;
-  }
+  if (iter == variant->map().end()) { return variant; }
   return &iter->second;
 }
 
 const Variant& GetVariantPriority(const Variant& variant) {
-  if (!variant.is_map()) {
-    return kNullVariant;
-  }
+  if (!variant.is_map()) { return kNullVariant; }
   auto iter = variant.map().find(kPriorityKey);
-  if (iter == variant.map().end()) {
-    return kNullVariant;
-  }
+  if (iter == variant.map().end()) { return kNullVariant; }
   return iter->second;
 }
 
@@ -717,9 +673,7 @@ bool VariantsAreEquivalent(const Variant& a, const Variant& b) {
       const auto& value_a = iter_a->second;
       const auto& value_b = iter_b->second;
 
-      if (!VariantsAreEquivalent(value_a, value_b)) {
-        return false;
-      }
+      if (!VariantsAreEquivalent(value_a, value_b)) { return false; }
     }
     // Ensure both map iterators reached their respective ends.
     return (iter_a == a.map().end()) && (iter_b == b.map().end());
@@ -1207,16 +1161,12 @@ std::vector<std::string> split_string(const std::string& s,
   // This index is used as the starting index to search the delimiters from.
   size_t delimiter_search_start = 0;
   // Skip any leading delimiters
-  while (s[delimiter_search_start] == delimiter) {
-    delimiter_search_start++;
-  }
+  while (s[delimiter_search_start] == delimiter) { delimiter_search_start++; }
 
   std::vector<std::string> split_parts;
   size_t len = s.size();
   // Cant proceed if input string consists of just delimiters
-  if (pos >= len) {
-    return split_parts;
-  }
+  if (pos >= len) { return split_parts; }
 
   while ((pos = s.find(delimiter, delimiter_search_start)) !=
          std::string::npos) {

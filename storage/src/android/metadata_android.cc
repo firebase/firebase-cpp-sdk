@@ -96,9 +96,7 @@ MetadataInternal::~MetadataInternal() {
   }
   // Clear cached strings.
   FreeVectorOfStringPointers(&cache_);
-  if (custom_metadata_ != nullptr) {
-    delete custom_metadata_;
-  }
+  if (custom_metadata_ != nullptr) { delete custom_metadata_; }
 }
 
 JNIEnv* MetadataInternal::GetJNIEnv() {
@@ -113,9 +111,7 @@ static std::map<std::string, std::string>* CreateMapCopy(
   if (src != nullptr) {
     dest = new std::map<std::string, std::string>;
 #if defined(_STLPORT_VERSION)
-    for (auto i = src->begin(); i != src->end(); ++i) {
-      dest->insert(*i);
-    }
+    for (auto i = src->begin(); i != src->end(); ++i) { dest->insert(*i); }
 #else
     *dest = *src;
 #endif  // defined(_STLPORT_VERSION)

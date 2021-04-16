@@ -174,9 +174,7 @@ void UpdateCurrentUser(AuthData* auth_data) {
   // Update our pointer to the Android FirebaseUser that we're wrapping.
   jobject j_user = env->CallObjectMethod(
       AuthImpl(auth_data), auth::GetMethodId(auth::kGetCurrentUser));
-  if (firebase::util::CheckAndClearJniExceptions(env)) {
-    j_user = nullptr;
-  }
+  if (firebase::util::CheckAndClearJniExceptions(env)) { j_user = nullptr; }
   SetImplFromLocalRef(env, j_user, &auth_data->user_impl);
 
   // Log debug message when user sign-in status has changed.
@@ -580,9 +578,7 @@ void Auth::set_language_code(const char* language_code) {
                       auth::GetMethodId(auth::kSetLanguageCode),
                       j_language_code);
   firebase::util::CheckAndClearJniExceptions(env);
-  if (j_language_code != nullptr) {
-    env->DeleteLocalRef(j_language_code);
-  }
+  if (j_language_code != nullptr) { env->DeleteLocalRef(j_language_code); }
 }
 
 void Auth::UseAppLanguage() {

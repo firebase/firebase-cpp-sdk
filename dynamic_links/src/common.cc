@@ -164,9 +164,7 @@ void DestroyReceiver() {
 Listener* SetListener(Listener* listener) {
   if (g_cached_receiver == nullptr) return nullptr;
 
-  if (listener) {
-    Fetch();
-  }
+  if (listener) { Fetch(); }
 
   return g_cached_receiver->SetListener(listener);
 }

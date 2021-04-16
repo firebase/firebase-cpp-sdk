@@ -183,9 +183,7 @@ bool TrackedQueryManager::IsQueryComplete(const QuerySpec& query_spec) {
   } else {
     TrackedQueryMap* tracked_queries =
         tracked_query_tree_.GetValueAt(query_spec.path);
-    if (!tracked_queries) {
-      return false;
-    }
+    if (!tracked_queries) { return false; }
     const TrackedQuery* tracked_query =
         MapGet(tracked_queries, query_spec.params);
     return tracked_query && tracked_query->complete;

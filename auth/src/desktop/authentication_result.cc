@@ -37,9 +37,7 @@ std::string AuthenticationResult::uid() const {
 SignInResult AuthenticationResult::SetAsCurrentUser(
     AuthData* const auth_data) const {
   FIREBASE_ASSERT_RETURN(SignInResult(), auth_data);
-  if (!IsValid()) {
-    return SignInResult();
-  }
+  if (!IsValid()) { return SignInResult(); }
 
   // Save the previous user state to be able to check whether listeners should
   // be notified later on.
@@ -55,9 +53,7 @@ SignInResult AuthenticationResult::SetAsCurrentUser(
     api_user_to_return = &auth_data->current_user;
   }
 
-  if (previous_user.uid != uid()) {
-    NotifyAuthStateListeners(auth_data);
-  }
+  if (previous_user.uid != uid()) { NotifyAuthStateListeners(auth_data); }
   if (previous_user.id_token != id_token()) {
     NotifyIdTokenListeners(auth_data);
   }
@@ -76,12 +72,8 @@ void AuthenticationResult::SignOut(AuthData* const auth_data) {
   UserData previous_user;
   UserView::ClearUser(auth_data, &previous_user);
 
-  if (!previous_user.uid.empty()) {
-    NotifyAuthStateListeners(auth_data);
-  }
-  if (!previous_user.id_token.empty()) {
-    NotifyIdTokenListeners(auth_data);
-  }
+  if (!previous_user.uid.empty()) { NotifyAuthStateListeners(auth_data); }
+  if (!previous_user.id_token.empty()) { NotifyIdTokenListeners(auth_data); }
 }
 
 }  // namespace auth

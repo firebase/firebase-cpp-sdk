@@ -38,9 +38,7 @@ std::string CreateRawJson(const FakeSetT& fakes) {
         response + "      }";
     auto check_end = i;
     ++check_end;
-    if (check_end != fakes.end()) {
-      raw_json += ',';
-    }
+    if (check_end != fakes.end()) { raw_json += ','; }
   }
 
   raw_json +=

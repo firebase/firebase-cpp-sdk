@@ -197,9 +197,7 @@ std::vector<std::pair<Variant, Variant>> CompoundWrite::GetCompleteChildren()
   if (GetRootWrite().has_value()) {
     const Variant* value = GetVariantValue(&write_tree_.value().value());
     if (value->is_map()) {
-      for (auto& entry : value->map()) {
-        children.push_back(entry);
-      }
+      for (auto& entry : value->map()) { children.push_back(entry); }
     }
   } else {
     for (auto& entry : write_tree_.children()) {

@@ -46,9 +46,7 @@ bool FutureBase::Wait(int timeout_milliseconds) const {
     return true;
   } else {
     bool completed = semaphore.TimedWait(timeout_milliseconds);
-    if (!completed) {
-      RemoveOnCompletion(callback_handle);
-    }
+    if (!completed) { RemoveOnCompletion(callback_handle); }
     return completed;
   }
 }

@@ -275,8 +275,7 @@ template <typename T>
 T WaitForFuture(const firebase::Future<T>& future,
                 const firebase::auth::AuthError expected_error =
                     firebase::auth::kAuthErrorNone) {
-  while (future.status() == firebase::kFutureStatusPending) {
-  }
+  while (future.status() == firebase::kFutureStatusPending) {}
   // This is wrapped in a lambda to work around the assertion macro expecting
   // the function to return void.
   [&] {

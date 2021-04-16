@@ -350,9 +350,7 @@ InitResult Initialize(const App& app, Listener* listener) {
   LogDebug("%s API Initializing", kApiIdentifier);
   assert(!g_dynamic_links_class_instance);
 
-  if (!CreateReceiver(app)) {
-    return kInitResultFailedMissingDependency;
-  }
+  if (!CreateReceiver(app)) { return kInitResultFailedMissingDependency; }
 
   JNIEnv* env = app.GetJNIEnv();
   jobject activity = app.activity();
@@ -845,9 +843,7 @@ GeneratedDynamicLink GetLongLink(const DynamicLinkComponents& components) {
   JNIEnv* jni_env = g_app->GetJNIEnv();
   jobject link_builder =
       PopulateLinkBuilder(jni_env, components, &gen_link.error);
-  if (!link_builder) {
-    return gen_link;
-  }
+  if (!link_builder) { return gen_link; }
 
   jobject dlink_local = jni_env->CallObjectMethod(
       link_builder,

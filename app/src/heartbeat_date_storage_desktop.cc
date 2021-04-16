@@ -38,9 +38,7 @@ Mutex& FileMutex() {
 std::string GetFilename(std::string& error) {
   std::string app_dir =
       AppDataDir(kHeartbeatDir, /*should_create=*/true, &error);
-  if (app_dir.empty()) {
-    return "";
-  }
+  if (app_dir.empty()) { return ""; }
 
   return app_dir + "/" + kHeartbeatFilename;
 }
@@ -120,9 +118,7 @@ bool HeartbeatDateStorage::WritePersisted() const {
 
 std::time_t HeartbeatDateStorage::Get(const std::string& tag) const {
   auto found = heartbeat_map_.find(tag);
-  if (found != heartbeat_map_.end()) {
-    return found->second;
-  }
+  if (found != heartbeat_map_.end()) { return found->second; }
 
   return 0;
 }

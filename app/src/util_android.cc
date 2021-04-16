@@ -339,9 +339,7 @@ static void InitializeClassLoaders(JNIEnv* env, jobject activity_object) {
   g_class_loaders = new std::vector<jobject>();
   jobject class_loader = env->CallObjectMethod(
       activity_object, activity::GetMethodId(activity::kGetClassLoader));
-  if (!CheckAndClearJniExceptions(env)) {
-    AddClassLoader(env, class_loader);
-  }
+  if (!CheckAndClearJniExceptions(env)) { AddClassLoader(env, class_loader); }
 }
 
 // Remove all global references to class loaders and destroy the list.
@@ -433,9 +431,7 @@ static void ReleaseActivityClasses(JNIEnv* env) {
 
 bool InitializeActivityClasses(JNIEnv* env, jobject activity_object) {
   g_initialized_activity_count++;
-  if (g_initialized_activity_count > 1) {
-    return true;
-  }
+  if (g_initialized_activity_count > 1) { return true; }
 
   ScopedCleanup<JNIEnv> cleanup(TerminateActivityClasses, env);
 
@@ -457,9 +453,7 @@ void TerminateActivityClasses(JNIEnv* env) {
   g_initialized_activity_count--;
   if (g_initialized_activity_count == 0) {
     ReleaseActivityClasses(env);
-    if (g_class_loaders) {
-      TerminateClassLoaders(env);
-    }
+    if (g_class_loaders) { TerminateClassLoaders(env); }
   }
 }
 
@@ -472,9 +466,7 @@ bool Initialize(JNIEnv* env, jobject activity_object) {
     return true;
   }
 
-  if (!InitializeActivityClasses(env, activity_object)) {
-    return false;
-  }
+  if (!InitializeActivityClasses(env, activity_object)) { return false; }
 
   // Cache method pointers.
   if (!(array_list::CacheMethodIds(env, activity_object) &&
@@ -618,9 +610,7 @@ bool LookupMethodIds(JNIEnv* env,
             env->GetStaticMethodID(clazz, method.name, method.signature);
         break;
     }
-    if (CheckAndClearJniExceptions(env)) {
-      method_ids[i] = 0;
-    }
+    if (CheckAndClearJniExceptions(env)) { method_ids[i] = 0; }
     char method_message[256];
     snprintf(method_message, sizeof(method_message),
              "Method %s.%s (signature '%s', %s)", class_name, method.name,
@@ -665,9 +655,7 @@ bool LookupFieldIds(JNIEnv* env,
             env->GetStaticFieldID(clazz, field.name, field.signature);
         break;
     }
-    if (CheckAndClearJniExceptions(env)) {
-      field_ids[i] = 0;
-    }
+    if (CheckAndClearJniExceptions(env)) { field_ids[i] = 0; }
     char field_message[256];
     snprintf(field_message, sizeof(field_message),
              "Field %s.%s (signature '%s', %s)", class_name, field.name,
@@ -1644,9 +1632,7 @@ jclass FindClassInFiles(
     jobject activity_object,
     const std::vector<internal::EmbeddedFile>& embedded_files,
     const char* class_name) {
-  if (!embedded_files.size()) {
-    return nullptr;
-  }
+  if (!embedded_files.size()) { return nullptr; }
 
   jobject cache_dir = env->CallObjectMethod(
       activity_object, activity::GetMethodId(activity::kGetCacheDir));

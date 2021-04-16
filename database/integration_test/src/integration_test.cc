@@ -364,9 +364,7 @@ void FirebaseDatabaseTest::SignOut() {
 firebase::database::DatabaseReference FirebaseDatabaseTest::CreateWorkingPath(
     bool suppress_cleanup) {
   auto ref = database_->GetReference(kIntegrationTestRootPath).PushChild();
-  if (!suppress_cleanup) {
-    cleanup_paths_.push_back(ref);
-  }
+  if (!suppress_cleanup) { cleanup_paths_.push_back(ref); }
   return ref;
 }
 
@@ -495,9 +493,7 @@ class ExpectValueListener : public firebase::database::ValueListener {
 
     for (int i = 0; i < kWaitForValueSeconds; i++) {
       ProcessEvents(1000);
-      if (value_changed_) {
-        return got_expected_value_;
-      }
+      if (value_changed_) { return got_expected_value_; }
     }
     LogError("ExpectValueListener timed out.");
     return got_expected_value_;
@@ -996,9 +992,7 @@ class LoggingChildListener : public firebase::database::ChildListener {
   int num_events(const std::string& event) {
     int count = 0;
     for (int i = 0; i < events_.size(); i++) {
-      if (events_[i] == event) {
-        count++;
-      }
+      if (events_[i] == event) { count++; }
     }
     return count;
   }

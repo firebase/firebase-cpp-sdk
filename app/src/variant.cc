@@ -202,27 +202,19 @@ bool Variant::operator<(const Variant& other) const {
 
   // If we are any string type set type to static string as we care about string
   // value not type of string.
-  if (is_string()) {
-    left_type = kTypeStaticString;
-  }
+  if (is_string()) { left_type = kTypeStaticString; }
 
   // If other is any string type set type to static string as we care about
   // string value not type of string.
-  if (other.is_string()) {
-    right_type = kTypeStaticString;
-  }
+  if (other.is_string()) { right_type = kTypeStaticString; }
 
   // If we are any blob type set type to static blob as we care about blob value
   // not type of blob.
-  if (is_blob()) {
-    left_type = kTypeStaticBlob;
-  }
+  if (is_blob()) { left_type = kTypeStaticBlob; }
 
   // If other is any blob type set type to static blob as we care about blob
   // value not type of blob.
-  if (other.is_blob()) {
-    right_type = kTypeStaticBlob;
-  }
+  if (other.is_blob()) { right_type = kTypeStaticBlob; }
 
   // If the types don't match (except count both string types as matching, and
   // both blob types as matching), compare the types.

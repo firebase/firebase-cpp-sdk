@@ -41,9 +41,7 @@ FIRESTORE_ATTRIBUTE_NORETURN void DefaultThrowHandler(
     const std::string& message) {
   std::ostringstream what;
   what << ExceptionName(type) << ": ";
-  if (file && func) {
-    what << file << "(" << line << ") " << func << ": ";
-  }
+  if (file && func) { what << file << "(" << line << ") " << func << ": "; }
   what << message;
 
 #if FIRESTORE_HAVE_EXCEPTIONS

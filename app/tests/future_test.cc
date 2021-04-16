@@ -1495,9 +1495,7 @@ extern "C" int get_memory_used_kb() {
       bool got_num = false;
       while (nchar >= line) {
         if (!got_num) {
-          if (isdigit(*nchar)) {
-            got_num = true;
-          }
+          if (isdigit(*nchar)) { got_num = true; }
         } else {
           if (!isdigit(*nchar)) {
             result = atoi(nchar);  // NOLINT

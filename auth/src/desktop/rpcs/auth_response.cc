@@ -20,12 +20,8 @@ namespace firebase {
 namespace auth {
 
 AuthError AuthResponse::error_code() const {
-  if (IsSuccessful()) {
-    return kAuthErrorNone;
-  }
-  if (!application_data_->error) {
-    return kAuthErrorFailure;
-  }
+  if (IsSuccessful()) { return kAuthErrorNone; }
+  if (!application_data_->error) { return kAuthErrorFailure; }
 
   const auto& errors = application_data_->error->errors;
   const std::string error_reason =

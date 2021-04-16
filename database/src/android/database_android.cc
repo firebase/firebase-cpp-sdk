@@ -590,9 +590,7 @@ Error DatabaseInternal::ErrorFromJavaDatabaseError(
   if (error_message != nullptr) {
     jobject message = env->CallObjectMethod(
         error, database_error::GetMethodId(database_error::kGetMessage));
-    if (message) {
-      *error_message = util::JniStringToString(env, message);
-    }
+    if (message) { *error_message = util::JniStringToString(env, message); }
   }
   jint java_error_code = env->CallIntMethod(
       error, database_error::GetMethodId(database_error::kGetCode));

@@ -40,9 +40,7 @@ static void GetIntentUri();
 FILE* GetTempFile();
 
 void CreateOrOpenLogFile() {
-  if (!g_log_file) {
-    g_log_file = GetTempFile();
-  }
+  if (!g_log_file) { g_log_file = GetTempFile(); }
   if (!g_log_file) {
     LogError(
         "Could not create a cache directory file for custom results. No custom "
@@ -232,9 +230,7 @@ static void GetIntentUri() {
 
 // Helper method to initialize the custom results logging
 FILE* RetrieveCustomResultsFile() {
-  if (g_results_dir != nullptr) {
-    return OpenCustomResultsFile(GetScenario());
-  }
+  if (g_results_dir != nullptr) { return OpenCustomResultsFile(GetScenario()); }
   if (g_custom_result_uri == nullptr) {
     LogError(
         "No URI of a custom results asset were found, no custom results will "

@@ -71,9 +71,7 @@ Database* Database::GetInstance(App* app,
     return nullptr;
   }
   MutexLock lock(g_databases_lock);
-  if (!g_databases) {
-    g_databases = new DatabaseMap();
-  }
+  if (!g_databases) { g_databases = new DatabaseMap(); }
 
   DatabaseMap::key_type key = MakeKey(app, std::string(url ? url : ""));
   DatabaseMap::iterator it = g_databases->find(key);

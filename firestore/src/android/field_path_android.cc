@@ -38,9 +38,7 @@ Local<Object> FieldPathConverter::Create(Env& env, const FieldPath& path) {
   FieldPath::FieldPathInternal& internal = *path.internal_;
 
   // If the path is key (i.e. __name__).
-  if (internal.IsKeyFieldPath()) {
-    return env.Call(kDocumentId);
-  }
+  if (internal.IsKeyFieldPath()) { return env.Call(kDocumentId); }
 
   // Prepare call arguments.
   size_t size = internal.size();

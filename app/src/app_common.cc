@@ -212,9 +212,7 @@ class LibraryRegistry {
   // Get the version of a previously registered library.
   std::string GetLibraryVersion(const std::string& library) const {
     auto existing = library_to_version_.find(library);
-    if (existing != library_to_version_.end()) {
-      return existing->second;
-    }
+    if (existing != library_to_version_.end()) { return existing->second; }
     return std::string();
   }
 
@@ -327,14 +325,10 @@ App* GetDefaultApp() {
 }
 
 App* GetAnyApp() {
-  if (g_default_app) {
-    return g_default_app;
-  }
+  if (g_default_app) { return g_default_app; }
 
   MutexLock lock(*g_app_mutex);
-  if (g_apps && !g_apps->empty()) {
-    return g_apps->begin()->second->app;
-  }
+  if (g_apps && !g_apps->empty()) { return g_apps->begin()->second->app; }
   return nullptr;
 }
 
@@ -356,9 +350,7 @@ void RemoveApp(App* app) {
       // Remove the app entry from the map, from this point it is no longer
       // accessible to other components.
       g_apps->erase(it);
-      if (app == g_default_app) {
-        g_default_app = nullptr;
-      }
+      if (app == g_default_app) { g_default_app = nullptr; }
       if (g_apps->empty()) {
         last_app = true;
         delete g_apps;
@@ -366,9 +358,7 @@ void RemoveApp(App* app) {
       }
     }
     callback::Terminate(last_app);
-    if (last_app) {
-      LibraryRegistry::Terminate();
-    }
+    if (last_app) { LibraryRegistry::Terminate(); }
   }
 }
 

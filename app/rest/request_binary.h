@@ -37,9 +37,7 @@ class RequestBinary : public Request {
     // Only pick the streaming option if we constructed with a buffer.
     // The default constructor for RequestBinaryGzip calls this will a nullptr,
     // but in that case we don't actually want to turn it on by default.
-    if (read_buffer) {
-      options_.stream_post_fields = true;
-    }
+    if (read_buffer) { options_.stream_post_fields = true; }
   }
 };
 

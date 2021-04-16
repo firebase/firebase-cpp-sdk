@@ -493,9 +493,7 @@ void EnsureInitializedCallback(JNIEnv* env,
                                void* callback_data) {
   bool success = (result_code == util::kFutureResultSuccess);
   ConfigInfo info;
-  if (success && result) {
-    JConfigInfoToConfigInfo(env, result, &info);
-  }
+  if (success && result) { JConfigInfoToConfigInfo(env, result, &info); }
   auto* data_handle =
       reinterpret_cast<RCDataHandle<ConfigInfo>*>(callback_data);
 
@@ -514,9 +512,7 @@ void BoolResultCallback(JNIEnv* env,
                         void* callback_data) {
   bool success = (result_code == util::kFutureResultSuccess);
   bool result_value = false;
-  if (success && result) {
-    result_value = util::JBooleanToBool(env, result);
-  }
+  if (success && result) { result_value = util::JBooleanToBool(env, result); }
 
   auto* data_handle = reinterpret_cast<RCDataHandle<bool>*>(callback_data);
   data_handle->future_api->CompleteWithResult(
@@ -944,9 +940,7 @@ std::vector<std::string> RemoteConfigInternal::GetKeysByPrefix(
   if (key_set_java) {
     util::JavaSetToStdStringVector(env, &keys, key_set_java);
     env->DeleteLocalRef(key_set_java);
-    for (auto i = keys.begin(); i != keys.end(); ++i) {
-      key_set.insert(*i);
-    }
+    for (auto i = keys.begin(); i != keys.end(); ++i) { key_set.insert(*i); }
   }
   if (prefix_string) env->DeleteLocalRef(prefix_string);
 

@@ -119,9 +119,7 @@ Thread::Thread(Thread::UnsafeRoutine start_routine,
 }
 
 Thread& Thread::operator=(Thread&& other) {
-  if (this == &other) {
-    return *this;
-  }
+  if (this == &other) { return *this; }
   FIREBASE_ASSERT_MESSAGE(
       !is_joinable_,
       "Cannot unassign a joinable thread. Join or detach it first.");

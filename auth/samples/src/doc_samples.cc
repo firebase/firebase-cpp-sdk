@@ -386,9 +386,7 @@ void VariousUserManagementChecks(firebase::auth::Auth* auth) {
       user->SendEmailVerification().OnCompletion(
           [](const firebase::Future<void>& completed_future, void* user_data) {
             // We are probably in a different thread right now.
-            if (completed_future.error() == 0) {
-              printf("Email sent.");
-            }
+            if (completed_future.error() == 0) { printf("Email sent."); }
           },
           nullptr);
     }
@@ -560,9 +558,7 @@ void LinkCredentialFailAppleSignIn(const firebase::auth::Credential& credential,
       auth->current_user()->LinkAndRetrieveDataWithCredential(credential);
 
   // To keep example simple, wait on the current thread until call completes.
-  while (link_result.status() == firebase::kFutureStatusPending) {
-    Wait(100);
-  }
+  while (link_result.status() == firebase::kFutureStatusPending) { Wait(100); }
 
   // Determine the result of the link attempt
   if (link_result.error() == firebase::auth::kAuthErrorNone) {
@@ -594,9 +590,7 @@ void MergeCredentials(const firebase::auth::Credential& credential,
       auth->SignInWithCredential(credential);
 
   // To keep example simple, wait on the current thread until call completes.
-  while (result.status() == firebase::kFutureStatusPending) {
-    Wait(100);
-  }
+  while (result.status() == firebase::kFutureStatusPending) { Wait(100); }
 
   // The new User is now active.
   if (result.error() == firebase::auth::kAuthErrorNone) {
@@ -685,9 +679,7 @@ const char* DisplayIdentityProviders(const char* email,
   // Fetch providers from the server if we need to.
   const bool refetch =
       future.status() == firebase::kFutureStatusInvalid || result != nullptr;
-  if (refetch) {
-    auth->FetchProvidersForEmail(email);
-  }
+  if (refetch) { auth->FetchProvidersForEmail(email); }
 
   // Show a waiting icon if we're waiting for the asynchronous call to
   // complete.
@@ -745,9 +737,7 @@ void ResetPasswordScreen(firebase::auth::Auth* auth) {
   // Gather email address.
   // ShowInputBox() returns a value when `enter` is pressed.
   const std::string email = ShowInputBox("Enter e-mail");
-  if (email != "") {
-    auth->SendPasswordResetEmail(email.c_str());
-  }
+  if (email != "") { auth->SendPasswordResetEmail(email.c_str()); }
 
   // Show checkmark, X-mark, or waiting icon beside the
   // email input box, to indicate if email has been sent.
@@ -818,9 +808,7 @@ class PhoneVerifier : public firebase::auth::PhoneAuthProvider::Listener {
     // force_resending_token_.
     if (display_resend_sms_button_ && !verification_id_.empty()) {
       const bool resend_sms = ShowTextButton("Resend SMS");
-      if (resend_sms) {
-        SendSms();
-      }
+      if (resend_sms) { SendSms(); }
     }
 
     // Once the SMS has been sent, allow the user to enter the SMS

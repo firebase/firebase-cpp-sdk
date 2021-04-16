@@ -63,9 +63,7 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromIdToken(
     LogError("No id token given");
   }
 
-  if (nonce) {
-    request->post_body_ += std::string{"&nonce="} + nonce;
-  }
+  if (nonce) { request->post_body_ += std::string{"&nonce="} + nonce; }
 
   request->application_data_->postBody = request->post_body_;
   request->UpdatePostFields();
@@ -94,9 +92,7 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAccessToken(
     LogError("No access token given");
   }
 
-  if (nonce) {
-    request->post_body_ += std::string{"&nonce="} + nonce;
-  }
+  if (nonce) { request->post_body_ += std::string{"&nonce="} + nonce; }
 
   request->application_data_->postBody = request->post_body_;
   request->UpdatePostFields();

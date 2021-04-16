@@ -399,9 +399,7 @@ bool InstanceIdDesktopImpl::LoadFromStorage() {
       },
       &storage_semaphore_);
   storage_semaphore_.Wait();
-  if (future.error() == 0) {
-    ReadStoredInstanceIdData(*future.result());
-  }
+  if (future.error() == 0) { ReadStoredInstanceIdData(*future.result()); }
   return future.error() == 0;
 }
 
@@ -469,9 +467,7 @@ bool InstanceIdDesktopImpl::InitialOrRefreshCheckin() {
   }
 
   // If we don't have an instance_id_ yet, generate one now.
-  if (instance_id_.empty()) {
-    instance_id_ = GenerateAppId();
-  }
+  if (instance_id_.empty()) { instance_id_ = GenerateAppId(); }
 
   if (checkin_data_.device_id.empty() || checkin_data_.security_token.empty() ||
       checkin_data_.digest.empty()) {

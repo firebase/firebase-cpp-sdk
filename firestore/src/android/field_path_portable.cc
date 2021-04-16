@@ -15,19 +15,13 @@ namespace {
  * escaping. Valid identifies follow the regex [a-zA-Z_][a-zA-Z0-9_]*
  */
 bool IsValidFieldPathSegment(const std::string& segment) {
-  if (segment.empty()) {
-    return false;
-  }
+  if (segment.empty()) { return false; }
 
   auto iter = segment.begin();
-  if (*iter != '_' && !std::isalpha(*iter)) {
-    return false;
-  }
+  if (*iter != '_' && !std::isalpha(*iter)) { return false; }
   ++iter;
   while (iter != segment.end()) {
-    if (*iter != '_' && !std::isalnum(*iter)) {
-      return false;
-    }
+    if (*iter != '_' && !std::isalnum(*iter)) { return false; }
     ++iter;
   }
   return true;
@@ -38,17 +32,13 @@ bool IsValidFieldPathSegment(const std::string& segment) {
  * JoinEscaped().
  */
 std::string Escape(const std::string& segment) {
-  if (IsValidFieldPathSegment(segment)) {
-    return segment;
-  }
+  if (IsValidFieldPathSegment(segment)) { return segment; }
 
   std::string result;
   result.reserve(segment.size() * 2 + 2);
   result.push_back('`');
   for (auto iter = segment.begin(); iter != segment.end(); ++iter) {
-    if (*iter == '\\' || *iter == '`') {
-      result.push_back('\\');
-    }
+    if (*iter == '\\' || *iter == '`') { result.push_back('\\'); }
     result.push_back(*iter);
   }
   result.push_back('`');
@@ -80,9 +70,7 @@ std::vector<std::string> SplitOnDots(const std::string& input) {
   std::istringstream stream(input);
 
   while (std::getline(stream, current_segment, '.')) {
-    if (current_segment.empty()) {
-      fail_validation();
-    }
+    if (current_segment.empty()) { fail_validation(); }
 
     result.push_back(firebase::Move(current_segment));
   }
@@ -116,9 +104,7 @@ std::string FieldPathPortable::CanonicalString() const {
     escaped_segments.push_back(Escape(segment));
     length += escaped_segments.back().size() + 1;
   }
-  if (length == 0) {
-    return "";
-  }
+  if (length == 0) { return ""; }
 
   std::string result;
   result.reserve(length);

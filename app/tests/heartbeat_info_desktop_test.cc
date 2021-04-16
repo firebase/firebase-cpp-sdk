@@ -51,16 +51,12 @@ class HeartbeatInfoTest : public ::testing::Test {
  protected:
   void ReadHeartbeat() {
     bool read_ok = storage_.ReadPersisted();
-    if (!read_ok) {
-      FAIL() << "Unable to read the heartbeat file";
-    }
+    if (!read_ok) { FAIL() << "Unable to read the heartbeat file"; }
   }
 
   void WriteHeartbeat() {
     bool write_ok = storage_.WritePersisted();
-    if (!write_ok) {
-      FAIL() << "Unable to write the heartbeat file";
-    }
+    if (!write_ok) { FAIL() << "Unable to write the heartbeat file"; }
   }
 
   void SetRecentDate(const char* tag) {
@@ -120,9 +116,7 @@ TEST_F(HeartbeatInfoTest, ParallelRequests) {
 
   signal_promise.set_value();
 
-  for (auto& t : threads) {
-    t.join();
-  }
+  for (auto& t : threads) { t.join(); }
 }
 
 }  // namespace

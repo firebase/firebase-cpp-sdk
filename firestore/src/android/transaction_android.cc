@@ -133,12 +133,8 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
     return DocumentSnapshot{};
 
   } else {
-    if (error_code != nullptr) {
-      *error_code = Error::kErrorOk;
-    }
-    if (error_message != nullptr) {
-      *error_message = "";
-    }
+    if (error_code != nullptr) { *error_code = Error::kErrorOk; }
+    if (error_message != nullptr) { *error_message = ""; }
   }
 
   return firestore_->NewDocumentSnapshot(env, snapshot);
@@ -170,9 +166,7 @@ void TransactionInternal::ExceptionHandler(Env& env,
 void TransactionInternal::PreserveException(jni::Env& env,
                                             Local<Throwable>&& exception) {
   // Only preserve the first real exception.
-  if (*first_exception_ || !exception) {
-    return;
-  }
+  if (*first_exception_ || !exception) { return; }
 
   if (ExceptionInternal::IsAnyExceptionThrownByFirestore(env, exception)) {
     exception = ExceptionInternal::Wrap(env, Move(exception));
@@ -198,9 +192,7 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
     jlong firestore_ptr,
     jlong transaction_function_ptr,
     jobject java_transaction) {
-  if (firestore_ptr == 0 || transaction_function_ptr == 0) {
-    return nullptr;
-  }
+  if (firestore_ptr == 0 || transaction_function_ptr == 0) { return nullptr; }
 
   FirestoreInternal* firestore =
       reinterpret_cast<FirestoreInternal*>(firestore_ptr);
@@ -244,9 +236,7 @@ jobject TransactionInternal::TransactionFunctionNativeApply(
   if (transaction.internal_) {
     Local<Throwable> first_exception =
         transaction.internal_->ClearExceptionOccurred();
-    if (first_exception) {
-      return first_exception.release();
-    }
+    if (first_exception) { return first_exception.release(); }
   }
 
   Env env(raw_env);

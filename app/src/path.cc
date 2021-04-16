@@ -38,9 +38,7 @@ static std::vector<std::string> Split(const std::string& str,
     finish = std::find_if(start, str.end(), [delims](char c) {
       return strchr(delims, c) != nullptr;
     });
-    if (start != finish) {
-      result.push_back(std::string(start, finish));
-    }
+    if (start != finish) { result.push_back(std::string(start, finish)); }
   }
   return result;
 }
@@ -118,9 +116,7 @@ Path Path::GetChild(const Path& child_path) const {
 Path Path::GetParent() const {
   std::string::size_type index = path_.find_last_of(kSeparator);
   // Reached the end without finding separator character. Return empty path.
-  if (index == std::string::npos) {
-    return Path();
-  }
+  if (index == std::string::npos) { return Path(); }
   return MakePath(path_.substr(0, index));
 }
 
@@ -128,9 +124,7 @@ const char* Path::GetBaseName() const {
   std::string::size_type index = path_.find_last_of(kSeparator);
   // If there was no slash, either this is a single directory path or an empty
   // path. In either case, just return that.
-  if (index == std::string::npos) {
-    return path_.c_str();
-  }
+  if (index == std::string::npos) { return path_.c_str(); }
   return path_.c_str() + index + 1;
 }
 
@@ -187,9 +181,7 @@ Optional<Path> Path::GetRelative(const Path& from, const Path& to) {
     }
   }
   // Ensure that the from path reached the end.
-  if (from_iter != from_dirs.end()) {
-    return Optional<Path>();
-  }
+  if (from_iter != from_dirs.end()) { return Optional<Path>(); }
   // Join what remains of the `to` path, and return true.
   return Optional<Path>(MakePath(Join(kSeparator, to_iter, to_dirs.end())));
 }

@@ -235,9 +235,7 @@ TEST_F(JniRunnableTest, RunOnMainThreadRunsSynchronouslyFromMainThread) {
       MakeJniRunnable(env, [&is_recursive_call](JniRunnableBase& runnable) {
         Env env;
         EXPECT_EQ(GetCurrentThreadId(env), GetMainThreadId(env));
-        if (is_recursive_call) {
-          return;
-        }
+        if (is_recursive_call) { return; }
         is_recursive_call = true;
         Local<Task> task = runnable.RunOnMainThread(env);
         EXPECT_TRUE(task.IsComplete(env));
@@ -297,9 +295,7 @@ TEST_F(JniRunnableTest, DetachReturnsAfterLastRunOnAnotherThreadCompletes) {
         // allow `detach()` to unblock and do its job.
         while (env.ok()) {
           MutexLock lock(detach_thread_mutex);
-          if (detach_thread && IsThreadBlocked(env, detach_thread)) {
-            break;
-          }
+          if (detach_thread && IsThreadBlocked(env, detach_thread)) { break; }
         }
         EXPECT_TRUE(env.ok()) << "IsThreadBlocked() failed with an exception";
       });
@@ -318,9 +314,7 @@ TEST_F(JniRunnableTest, DetachReturnsAfterLastRunOnAnotherThreadCompletes) {
   // Wait for the `runnable1.Run()` to start to ensure that the lock is held.
   Local<Task> task1 = runnable1.RunOnNewThread(env);
   while (true) {
-    if (runnable1_run_invoke_count.load() != 0) {
-      break;
-    }
+    if (runnable1_run_invoke_count.load() != 0) { break; }
   }
 
   // Start a new thread to call `runnable1.Detach()`.

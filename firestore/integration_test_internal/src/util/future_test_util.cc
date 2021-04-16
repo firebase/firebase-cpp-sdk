@@ -15,9 +15,7 @@ void PrintTo(std::ostream* os,
              const char* error_message = nullptr) {
   *os << "Future<void>{status=" << ToEnumeratorName(future_status)
       << " error=" << firestore::ToFirestoreErrorCodeName(error);
-  if (error_message != nullptr) {
-    *os << " error_message=" << error_message;
-  }
+  if (error_message != nullptr) { *os << " error_message=" << error_message; }
   *os << "}";
 }
 

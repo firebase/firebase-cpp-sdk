@@ -13,9 +13,7 @@ std::string ToString(const MapFieldValue& map) {
 
   bool is_first = true;
   for (const auto& kv : map) {
-    if (!is_first) {
-      result += ", ";
-    }
+    if (!is_first) { result += ", "; }
     is_first = false;
 
     result += kv.first;

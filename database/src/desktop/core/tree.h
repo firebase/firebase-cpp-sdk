@@ -296,9 +296,7 @@ class Tree {
     } else {
       for (auto& key_subtree_pair : children_) {
         const Tree<Value>& subtree = key_subtree_pair.second;
-        if (subtree.ContainsMatchingValue(predicate)) {
-          return true;
-        }
+        if (subtree.ContainsMatchingValue(predicate)) { return true; }
       }
       return false;
     }
@@ -306,17 +304,13 @@ class Tree {
 
   // Get a child node using the given key.
   Tree<Value>* GetChild(const std::string& key) {
-    if (key.empty()) {
-      return this;
-    }
+    if (key.empty()) { return this; }
     return MapGet(&children_, key);
   }
 
   // Get a child node using the given key.
   const Tree<Value>* GetChild(const std::string& key) const {
-    if (key.empty()) {
-      return this;
-    }
+    if (key.empty()) { return this; }
     return MapGet(&children_, key);
   }
 
@@ -326,9 +320,7 @@ class Tree {
     Tree<Value>* result = this;
     for (const std::string& directory : path.GetDirectories()) {
       Tree<Value>* child = result->GetChild(directory);
-      if (child == nullptr) {
-        return nullptr;
-      }
+      if (child == nullptr) { return nullptr; }
       result = child;
     }
     return result;
@@ -387,9 +379,7 @@ class Tree {
   template <typename Func>
   void CallOnEach(const Path& path, const Func& func) {
     Tree<Value>* subtree = GetChild(path);
-    if (subtree) {
-      subtree->CallOnEachInternal(path, func);
-    }
+    if (subtree) { subtree->CallOnEachInternal(path, func); }
   }
 
   template <typename Func>
@@ -407,9 +397,7 @@ class Tree {
   // TODO(amablue): Replace calls to this with Fold.
   void CallOnEach(const Path& path, CallFunc func, void* data) {
     Tree<Value>* subtree = GetChild(path);
-    if (subtree) {
-      subtree->CallOnEachInternal(path, func, data);
-    }
+    if (subtree) { subtree->CallOnEachInternal(path, func, data); }
   }
 
   void CallOnEach(const Path& path, CallFunc func, void* data) const {
@@ -423,9 +411,7 @@ class Tree {
   bool CallOnEachAncestor(const Func& predicate, bool include_self) {
     Tree<Value>* tree = include_self ? this : this->parent_;
     for (; tree != nullptr; tree = tree->parent_) {
-      if (predicate(tree)) {
-        return true;
-      }
+      if (predicate(tree)) { return true; }
     }
     return false;
   }
@@ -464,18 +450,14 @@ class Tree {
   void CallOnEachDescendant(const Func& predicate,
                             bool include_self,
                             bool children_first) {
-    if (include_self && !children_first) {
-      predicate(this);
-    }
+    if (include_self && !children_first) { predicate(this); }
 
     for (auto& key_subtree_pair : children_) {
       Tree<Value>& subtree = key_subtree_pair.second;
       subtree.CallOnEachDescendant(predicate, true, children_first);
     }
 
-    if (include_self && children_first) {
-      predicate(this);
-    }
+    if (include_self && children_first) { predicate(this); }
   }
 
   // Given a path, find the root-most element in the tree's path for which the
@@ -487,9 +469,7 @@ class Tree {
     for (auto iter = directories.begin(); /* see below for break */; ++iter) {
       Path current_path(directories.begin(), iter);
       const Tree<Value>* subtree = GetChild(current_path);
-      if (subtree == nullptr) {
-        break;
-      }
+      if (subtree == nullptr) { break; }
       if (subtree->value().has_value() && predicate(subtree->value().value())) {
         return Optional<Path>(current_path);
       }
@@ -540,9 +520,7 @@ class Tree {
  private:
   template <typename Func>
   void CallOnEachInternal(const Path& path, const Func& func) {
-    if (value_.has_value()) {
-      func(path, value_.value());
-    }
+    if (value_.has_value()) { func(path, value_.value()); }
     for (auto& key_subtree_pair : children_) {
       const std::string& key = key_subtree_pair.first;
       Tree<Value>& subtree = key_subtree_pair.second;
@@ -551,9 +529,7 @@ class Tree {
   }
 
   void CallOnEachInternal(const Path& path, CallFunc func, void* data) {
-    if (value_.has_value()) {
-      func(path, &value_.value(), data);
-    }
+    if (value_.has_value()) { func(path, &value_.value(), data); }
     for (auto& key_subtree_pair : children_) {
       const std::string& key = key_subtree_pair.first;
       Tree<Value>& subtree = key_subtree_pair.second;

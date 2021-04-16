@@ -124,9 +124,7 @@ bool ReadFileToString(absl::string_view filename,
                       int64 max_size) {
   std::ifstream f;
   f.open(filename);
-  if (f.fail()) {
-    return false;
-  }
+  if (f.fail()) { return false; }
   f.seekg(0, std::ios::end);
   int64 length = std::min(static_cast<int64>(f.tellg()), max_size);
   f.seekg(0, std::ios::beg);

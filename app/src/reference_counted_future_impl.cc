@@ -101,9 +101,7 @@ class FutureProxyManager {
   };
 
   static void UnregisterCallback(void* data) {
-    if (data == nullptr) {
-      return;
-    }
+    if (data == nullptr) { return; }
     UnregisterData* udata = static_cast<UnregisterData*>(data);
     if (udata != nullptr) {
       udata->proxy->UnregisterClient(udata->handle);
@@ -293,9 +291,7 @@ intrusive_list_iterator FutureBackingData::ClearCallbackData(
 }
 
 void FutureBackingData::AddCallbackData(CompletionCallbackData* callback) {
-  if (callback == nullptr) {
-    return;
-  }
+  if (callback == nullptr) { return; }
   reference_count++;
   completion_multiple_callbacks.push_back(*callback);
   // Add new callback to reference count. It will be removed via
@@ -304,9 +300,7 @@ void FutureBackingData::AddCallbackData(CompletionCallbackData* callback) {
 
 void FutureBackingData::ClearSingleCallbackData(
     CompletionCallbackData** field_to_clear) {
-  if (*field_to_clear == nullptr) {
-    return;
-  }
+  if (*field_to_clear == nullptr) { return; }
   if ((*field_to_clear)->callback_user_data_delete_fn != nullptr) {
     (*field_to_clear)
         ->callback_user_data_delete_fn((*field_to_clear)->callback_user_data);
@@ -507,9 +501,7 @@ void ReferenceCountedFutureImpl::ReleaseFuture(const FutureHandle& handle) {
   // FutureBase and FutureHandle and FutureProxyManager are still having
   // dependencies.
   auto it = backings_.find(handle.id());
-  if (it == backings_.end()) {
-    return;
-  }
+  if (it == backings_.end()) { return; }
 
   // Decrement the reference count.
   FutureBackingData* backing = it->second;
@@ -727,9 +719,7 @@ bool ReferenceCountedFutureImpl::IsSafeToDelete() const {
     if (i->second->status == kFutureStatusPending) return false;
   }
 
-  if (is_running_callback_) {
-    return false;
-  }
+  if (is_running_callback_) { return false; }
 
   return true;
 }
@@ -784,9 +774,7 @@ FutureBase ReferenceCountedFutureImpl::LastResultProxy(int fn_idx) {
   MutexLock lock(mutex_);
   const FutureBase& future = last_results_[fn_idx];
   // We only do this complicated dance if the Future is pending.
-  if (future.status() != kFutureStatusPending) {
-    return future;
-  }
+  if (future.status() != kFutureStatusPending) { return future; }
 
   // Get the subject backing and (if needed) allocate the ProxyManager.
   const FutureHandle handle = future.GetHandle();

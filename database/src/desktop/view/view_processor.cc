@@ -187,9 +187,7 @@ ViewCache ViewProcessor::RevertUserWrite(
     const Variant* opt_complete_server_cache,
     ChildChangeAccumulator* accumulator) {
   // If there is a shadowing write, this change can't be seen, so do nothing.
-  if (writes_cache.ShadowingWrite(path).has_value()) {
-    return view_cache;
-  }
+  if (writes_cache.ShadowingWrite(path).has_value()) { return view_cache; }
 
   WriteTreeCompleteChildSource source(writes_cache, view_cache,
                                       opt_complete_server_cache);
@@ -655,9 +653,7 @@ ViewCache ViewProcessor::AckUserWrite(const ViewCache& view_cache,
                                       const WriteTreeRef& writes_cache,
                                       const Variant* opt_complete_cache,
                                       ChildChangeAccumulator* accumulator) {
-  if (writes_cache.ShadowingWrite(ack_path).has_value()) {
-    return view_cache;
-  }
+  if (writes_cache.ShadowingWrite(ack_path).has_value()) { return view_cache; }
 
   // Only filter server node if it is currently filtered.
   bool filter_server_node = view_cache.server_snap().filtered();

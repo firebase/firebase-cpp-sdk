@@ -69,9 +69,7 @@ static inline void SetUserImpl(AuthData* _Nonnull auth_data,
   }
 
   // Create new pointer to FIRUser.
-  if (user != nullptr) {
-    auth_data->user_impl = new FIRUserPointer(user);
-  }
+  if (user != nullptr) { auth_data->user_impl = new FIRUserPointer(user); }
 }
 
 /// Convert from the platform-independent void* to the Obj-C FIRAuth pointer.

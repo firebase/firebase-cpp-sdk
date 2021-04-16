@@ -63,9 +63,7 @@ inline AuthenticationResult CompleteSignInFlow(AuthData* const auth_data,
   FIREBASE_ASSERT_RETURN(AuthenticationResult(kAuthErrorFailure), auth_data);
 
   auto auth_result = AuthenticationResult::FromResponse(response);
-  if (!auth_result.IsValid()) {
-    return auth_result;
-  }
+  if (!auth_result.IsValid()) { return auth_result; }
 
   const GetAccountInfoResult user_account_info =
       GetAccountInfo(*auth_data, auth_result.id_token());
@@ -83,9 +81,7 @@ inline AuthenticationResult CompleteAuthenticedUserSignInFlow(
   FIREBASE_ASSERT_RETURN(AuthenticationResult(kAuthErrorFailure), auth_data);
 
   auto auth_result = AuthenticationResult::FromAuthenticatedUserData(user_data);
-  if (!auth_result.IsValid()) {
-    return auth_result;
-  }
+  if (!auth_result.IsValid()) { return auth_result; }
 
   const GetAccountInfoResult user_account_info =
       GetAccountInfo(*auth_data, auth_result.id_token());

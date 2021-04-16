@@ -64,9 +64,7 @@ class ListenerCollection {
       auto j = std::find(i->second.begin(), i->second.end(), value);
       if (j != i->second.end()) {
         i->second.erase(j);
-        if (i->second.size() == 0) {
-          map->erase(i);
-        }
+        if (i->second.size() == 0) { map->erase(i); }
         return true;
       }
     }

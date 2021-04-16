@@ -41,9 +41,7 @@ class TraceInternal {
 
     JNIEnv* env = GetFirebaseApp()->GetJNIEnv();
 
-    if (active_trace_ != nullptr) {
-      CancelTrace();
-    }
+    if (active_trace_ != nullptr) { CancelTrace(); }
 
     jstring name_jstring = env->NewStringUTF(name);
 

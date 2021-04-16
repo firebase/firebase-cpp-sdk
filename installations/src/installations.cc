@@ -31,9 +31,7 @@ Installations* Installations::GetInstance(App* app) {
 
   // Return the Installations if it already exists.
   Installations* existing_installations = FindInstallations(app);
-  if (existing_installations) {
-    return existing_installations;
-  }
+  if (existing_installations) { return existing_installations; }
 
   // Create a new Installations and initialize.
   Installations* installations = new Installations(app);
@@ -74,9 +72,7 @@ Installations* Installations::FindInstallations(App* app) {
   // Return the Installations if it already exists.
   std::map<App*, Installations*>::iterator it =
       g_installations->find(app);  // NOLINT
-  if (it != g_installations->end()) {
-    return it->second;
-  }
+  if (it != g_installations->end()) { return it->second; }
   return nullptr;
 }
 
@@ -89,9 +85,7 @@ Installations::~Installations() {
   MutexLock lock(g_installations_mutex);
 
   CleanupNotifier* notifier = CleanupNotifier::FindByOwner(app_);
-  if (notifier) {
-    notifier->UnregisterObject(this);
-  }
+  if (notifier) { notifier->UnregisterObject(this); }
 
   DeleteInternal();
 

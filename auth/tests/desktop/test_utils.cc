@@ -57,8 +57,7 @@ using ::testing::StrNe;
 
 void WaitForFuture(const firebase::Future<void>& future,
                    const firebase::auth::AuthError expected_error) {
-  while (future.status() == firebase::kFutureStatusPending) {
-  }
+  while (future.status() == firebase::kFutureStatusPending) {}
   [&] {
     ASSERT_EQ(firebase::kFutureStatusComplete, future.status());
     EXPECT_EQ(expected_error, future.error());

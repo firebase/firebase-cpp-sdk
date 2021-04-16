@@ -28,9 +28,7 @@ namespace firebase {
 namespace rest {
 
 void WwwFormUrlEncoded::Add(const char* key, const char* value) {
-  if (output_->length()) {
-    *output_ += "&";
-  }
+  if (output_->length()) { *output_ += "&"; }
   *output_ += util::EncodeUrl(key);
   *output_ += "=";
   *output_ += util::EncodeUrl(value);

@@ -104,9 +104,7 @@ WebSocketClientImpl::~WebSocketClientImpl() {
   is_destructing_.store(1);
 
   // Remove the handler to keep event loop alive
-  if (keep_loop_alive_ != nullptr) {
-    keep_loop_alive_->send();
-  }
+  if (keep_loop_alive_ != nullptr) { keep_loop_alive_->send(); }
 
   // Wait for the thread to end.
   if (thread_) {
@@ -145,9 +143,7 @@ void WebSocketClientImpl::Close() {
 }
 
 void WebSocketClientImpl::CloseSync() {
-  if (IsWebSocketAvailable()) {
-    websocket_->close(1000);
-  }
+  if (IsWebSocketAvailable()) { websocket_->close(1000); }
 }
 
 void WebSocketClientImpl::Send(const char* msg) {
@@ -210,9 +206,7 @@ void WebSocketClientImpl::OnConnection(ClientWebSocket* ws,
   // This may have racing condition with the destructor.  But since the
   // destructor schedule another task, which runs on the same thread to this
   // call, in order to close the websocket, it should not be a big issue.
-  if (client->is_destructing_.load() > 0) {
-    client->CloseSync();
-  }
+  if (client->is_destructing_.load() > 0) { client->CloseSync(); }
 }
 
 void WebSocketClientImpl::OnMessage(ClientWebSocket* ws,

@@ -294,9 +294,7 @@ std::string MetadataInternal::ExportAsJson() {
   if (!content_language_.empty()) {
     root_map[kContentLanguageKey] = content_language_;
   }
-  if (!cache_control_.empty()) {
-    root_map[kCacheControlKey] = cache_control_;
-  }
+  if (!cache_control_.empty()) { root_map[kCacheControlKey] = cache_control_; }
 
   // Make a nice comma-separated string for download tokens:
   bool first_in_list = true;

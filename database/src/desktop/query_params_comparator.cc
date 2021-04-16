@@ -65,23 +65,17 @@ int QueryParamsComparator::Compare(const Variant& key_a,
   // value. If that's the case, we can short circuit the rest of the comparison.
   int min_max_a = VariantIsSentinel(key_a, value_a);
   int min_max_b = VariantIsSentinel(key_b, value_b);
-  if (min_max_a != min_max_b) {
-    return min_max_a - min_max_b;
-  }
+  if (min_max_a != min_max_b) { return min_max_a - min_max_b; }
 
   switch (query_params_->order_by) {
     case QueryParams::kOrderByPriority: {
       int result = ComparePriorities(value_a, value_b);
-      if (result == 0) {
-        result = CompareKeys(key_a, key_b);
-      }
+      if (result == 0) { result = CompareKeys(key_a, key_b); }
       return result;
     }
     case QueryParams::kOrderByChild: {
       int result = CompareChildren(value_a, value_b);
-      if (result == 0) {
-        result = CompareKeys(key_a, key_b);
-      }
+      if (result == 0) { result = CompareKeys(key_a, key_b); }
       return result;
     }
     case QueryParams::kOrderByKey: {
@@ -89,9 +83,7 @@ int QueryParamsComparator::Compare(const Variant& key_a,
     }
     case QueryParams::kOrderByValue: {
       int result = CompareValues(value_a, value_b);
-      if (result == 0) {
-        result = CompareKeys(key_a, key_b);
-      }
+      if (result == 0) { result = CompareKeys(key_a, key_b); }
       return result;
     }
   }
@@ -197,9 +189,7 @@ int QueryParamsComparator::CompareValues(const Variant& variant_a,
 
   // If we have different priorities we don't need to compare the values
   // themselves. Just return the difference between the priorities.
-  if (precedence_a != precedence_b) {
-    return precedence_a - precedence_b;
-  }
+  if (precedence_a != precedence_b) { return precedence_a - precedence_b; }
 
   // If the priority is the same we need to compare the value of the types.
   switch (precedence_a) {

@@ -92,9 +92,7 @@ void Terminate() {
 }
 
 int GetScenario() {
-  if (!internal::IsInitialized()) {
-    return 0;
-  }
+  if (!internal::IsInitialized()) { return 0; }
   return internal::GetScenario();
 }
 
@@ -110,9 +108,7 @@ void LogText(const char* format, ...) {
 void FinishScenario(::firebase::test_lab::game_loop::ScenarioOutcome outcome) {
   if (GetScenario() == 0) return;
   FILE* result_file = internal::OpenCustomResultsFile(GetScenario());
-  if (result_file != nullptr) {
-    internal::OutputResult(outcome, result_file);
-  }
+  if (result_file != nullptr) { internal::OutputResult(outcome, result_file); }
   Terminate();
   // TODO(brandonmorris): Find a way to signal a test is complete (e.g. write to
   // a file in the results dir or set an env var).
@@ -161,9 +157,7 @@ void CreateOrOpenLogFile() {
 }
 
 static std::string GetResultFilename() {
-  if (GetScenario() <= 0) {
-    return "";
-  }
+  if (GetScenario() <= 0) { return ""; }
   return "results_scenario_" + std::to_string(GetScenario()) + ".json";
 }
 
@@ -230,9 +224,7 @@ static void ParseCommandLineArgs() {
   SetScenarioIfNotEmpty(scenario_str);
   std::string directory =
       GetArgumentForPrefix(kResultsDirFlagPrefix, arguments);
-  if (!directory.empty()) {
-    SetResultsDirectory(directory.c_str());
-  }
+  if (!directory.empty()) { SetResultsDirectory(directory.c_str()); }
 }
 
 }  // namespace internal

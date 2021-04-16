@@ -142,9 +142,7 @@ void ControllerCurl::set_transfer_size(int64_t transfer_size) {
   // Only set the transfer size if it is larger than the current value.
   // Curl reports -1 for the transfer size if the transfer is just starting or
   // is complete.
-  if (transfer_size > transfer_size_) {
-    transfer_size_ = transfer_size;
-  }
+  if (transfer_size > transfer_size_) { transfer_size_ = transfer_size; }
 }
 
 }  // namespace rest

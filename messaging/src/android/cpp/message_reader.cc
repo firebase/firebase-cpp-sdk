@@ -118,9 +118,7 @@ void MessageReader::ConsumeMessage(
       const DataPair* pair = serialized_message->data()->Get(i);
       const char* key = SafeFlatbufferString(pair->key());
       const char* value = SafeFlatbufferString(pair->value());
-      if (key && value) {
-        message.data[key] = value;
-      }
+      if (key && value) { message.data[key] = value; }
     }
   }
   if (serialized_message->raw_data()) {

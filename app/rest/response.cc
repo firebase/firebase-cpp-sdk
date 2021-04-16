@@ -78,19 +78,13 @@ const char* Response::GetHeader(const char* name) {
 
 const char* Response::GetBody() const {
   // If already concatenated before, return it.
-  if (!body_cache_.empty()) {
-    return body_cache_.c_str();
-  }
+  if (!body_cache_.empty()) { return body_cache_.c_str(); }
   // Compute the length of message body.
   size_t length = 0;
-  for (const std::string& body : body_) {
-    length += body.length();
-  }
+  for (const std::string& body : body_) { length += body.length(); }
   // Concatenate the message body.
   body_cache_.reserve(length);
-  for (const std::string& body : body_) {
-    body_cache_ += body;
-  }
+  for (const std::string& body : body_) { body_cache_ += body; }
   return body_cache_.c_str();
 }
 

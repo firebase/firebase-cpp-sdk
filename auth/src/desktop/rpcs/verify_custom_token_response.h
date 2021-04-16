@@ -56,9 +56,7 @@ class VerifyCustomTokenResponse : public AuthResponse {
 
   // The number of seconds till the access token expires.
   int expires_in() const {
-    if (application_data_->expiresIn.empty()) {
-      return 0;
-    }
+    if (application_data_->expiresIn.empty()) { return 0; }
     return std::stoi(application_data_->expiresIn);
   }
 };

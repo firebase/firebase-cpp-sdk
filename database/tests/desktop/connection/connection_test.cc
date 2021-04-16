@@ -154,18 +154,14 @@ TEST_F(ConnectionTest, MultipleConnections) {
         new Connection(&scheduler_, GetHostInfo(), nullptr, this, &logger));
   }
 
-  for (auto& itConnection : connections) {
-    ScheduledOpen(itConnection);
-  }
+  for (auto& itConnection : connections) { ScheduledOpen(itConnection); }
 
   for (int i = 0; i < connections.size(); ++i) {
     EXPECT_TRUE(sem_on_cache_host_.TimedWait(kTimeoutMs));
     EXPECT_TRUE(sem_on_ready_.TimedWait(kTimeoutMs));
   }
 
-  for (auto& itConnection : connections) {
-    ScheduledClose(itConnection);
-  }
+  for (auto& itConnection : connections) { ScheduledClose(itConnection); }
 
   for (int i = 0; i < connections.size(); ++i) {
     EXPECT_TRUE(sem_on_disconnect_.TimedWait(kTimeoutMs));
@@ -236,9 +232,7 @@ TEST_F(ConnectionTest, LargeMessage) {
   std::stringstream ss;
   ss << "{\"r\":3,\"a\":\"p\",\"b\":{\"p\":\"/connection/ConnectionTest/"
         "\",\"d\":\"";
-  for (int i = 0; i < 20000; ++i) {
-    ss << "!";
-  }
+  for (int i = 0; i < 20000; ++i) { ss << "!"; }
   ss << "\"}}";
 
   ScheduledSend(&connection, util::JsonToVariant(ss.str().c_str()));

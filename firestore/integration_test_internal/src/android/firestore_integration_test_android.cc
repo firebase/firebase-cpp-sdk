@@ -9,9 +9,7 @@ namespace firebase {
 namespace firestore {
 
 std::string ToDebugString(const jni::Object& object) {
-  if (!object) {
-    return "null";
-  }
+  if (!object) { return "null"; }
   jni::Env env;
   jni::ExceptionClearGuard block(env);
   return object.ToString(env);
@@ -81,9 +79,7 @@ void FirestoreAndroidIntegrationTest::Await(Env& env, const Task& task) {
     }
     --cycles;
   }
-  if (env.ok()) {
-    EXPECT_GT(cycles, 0) << "Waiting for Task timed out.";
-  }
+  if (env.ok()) { EXPECT_GT(cycles, 0) << "Waiting for Task timed out."; }
 }
 
 }  // namespace firestore

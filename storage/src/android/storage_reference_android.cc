@@ -398,9 +398,7 @@ Future<size_t> StorageReferenceInternal::GetFile(const char* path,
                                                      kStorageReferenceFnGetFile,
                                                      java_listener)),
       kApiIdentifier);
-  if (controller_out) {
-    controller_out->internal_->AssignTask(storage_, task);
-  }
+  if (controller_out) { controller_out->internal_->AssignTask(storage_, task); }
   env->DeleteLocalRef(task);
   env->DeleteLocalRef(uri);
   util::CheckAndClearJniExceptions(env);
@@ -461,9 +459,7 @@ Future<size_t> StorageReferenceInternal::GetBytes(void* buffer,
           handle, future(), storage_, kStorageReferenceFnGetBytes,
           java_listener, buffer, buffer_size, byte_downloader)),
       kApiIdentifier);
-  if (controller_out) {
-    controller_out->internal_->AssignTask(storage_, task);
-  }
+  if (controller_out) { controller_out->internal_->AssignTask(storage_, task); }
   env->DeleteLocalRef(task);
   util::CheckAndClearJniExceptions(env);
   return GetBytesLastResult();
@@ -653,9 +649,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
                                                      kStorageReferenceFnPutFile,
                                                      java_listener)),
       kApiIdentifier);
-  if (controller_out) {
-    controller_out->internal_->AssignTask(storage_, task);
-  }
+  if (controller_out) { controller_out->internal_->AssignTask(storage_, task); }
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(task);
   env->DeleteLocalRef(uri);
@@ -684,9 +678,7 @@ Future<Metadata> StorageReferenceInternal::PutFile(const char* path,
                                                      kStorageReferenceFnPutFile,
                                                      java_listener)),
       kApiIdentifier);
-  if (controller_out) {
-    controller_out->internal_->AssignTask(storage_, task);
-  }
+  if (controller_out) { controller_out->internal_->AssignTask(storage_, task); }
   util::CheckAndClearJniExceptions(env);
   env->DeleteLocalRef(task);
   env->DeleteLocalRef(uri);

@@ -395,9 +395,7 @@ class intrusive_list {
   template <class InputIt>
   iterator insert(iterator pos, InputIt first, InputIt last) {
     iterator return_value = pos;
-    for (InputIt iter = first; iter != last; ++iter) {
-      insert(pos, *iter);
-    }
+    for (InputIt iter = first; iter != last; ++iter) { insert(pos, *iter); }
     return return_value;
   }
 
@@ -514,9 +512,7 @@ class intrusive_list {
   }
 
   void splice(iterator pos, iterator first, iterator last) {
-    if (first == last) {
-      return;
-    }
+    if (first == last) { return; }
     node_type* before_pos_node = pos.value_->previous_;
     node_type* before_first_node = first.value_->previous_;
     node_type* before_last_node = last.value_->previous_;
@@ -556,9 +552,7 @@ class intrusive_list {
 
   template <typename BinaryPredicate>
   void unique(BinaryPredicate pred = BinaryPredicate()) {
-    if (empty()) {
-      return;
-    }
+    if (empty()) { return; }
     iterator iter = begin();
     while (iter != emulate_std::prev(end())) {
       iterator next_iter = emulate_std::next(iter);
@@ -583,9 +577,7 @@ class intrusive_list {
       // Cache the `next` node because `i` might move.
       next = emulate_std::next(i);
       iterator j = i;
-      while (j != begin() && compare(*i, *emulate_std::prev(j))) {
-        --j;
-      }
+      while (j != begin() && compare(*i, *emulate_std::prev(j))) { --j; }
       if (i != j) {
         pointer object = &*i;
         insert(j, remove(*object, node_offset_));

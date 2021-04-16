@@ -27,9 +27,7 @@ bool GetNewUserLocalIdAndIdToken(const char* const api_key,
 
   firebase::rest::CreateTransport()->Perform(request, &response);
 
-  if (response.status() != 200) {
-    return false;
-  }
+  if (response.status() != 200) { return false; }
 
   *local_id = response.local_id();
   *id_token = response.id_token();
@@ -44,9 +42,7 @@ bool GetNewUserLocalIdAndRefreshToken(const char* const api_key,
 
   firebase::rest::CreateTransport()->Perform(request, &response);
 
-  if (response.status() != 200) {
-    return false;
-  }
+  if (response.status() != 200) { return false; }
 
   *local_id = response.local_id();
   *refresh_token = response.refresh_token();
@@ -59,9 +55,7 @@ std::string SignUpNewUserAndGetIdToken(const char* const api_key,
   SignUpNewUserResponse response;
 
   firebase::rest::CreateTransport()->Perform(request, &response);
-  if (response.status() != 200) {
-    return "";
-  }
+  if (response.status() != 200) { return ""; }
   return response.id_token();
 }
 

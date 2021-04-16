@@ -56,9 +56,7 @@ DisconnectionHandler::DisconnectionHandler(
 
 DisconnectionHandler::~DisconnectionHandler() {
   CleanupFnDisconnectionHandler::Unregister(this, internal_);
-  if (internal_) {
-    delete internal_;
-  }
+  if (internal_) { delete internal_; }
 }
 
 Future<void> DisconnectionHandler::Cancel() {

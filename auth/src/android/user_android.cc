@@ -302,9 +302,7 @@ void ReadTokenResult(jobject result,
 }
 
 Future<std::string> User::GetToken(bool force_refresh) {
-  if (!ValidUser(auth_data_)) {
-    return Future<std::string>();
-  }
+  if (!ValidUser(auth_data_)) { return Future<std::string>(); }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<std::string>(kUserFn_GetToken);
   JNIEnv* env = Env(auth_data_);
@@ -359,9 +357,7 @@ const std::vector<UserInfoInterface*>& User::provider_data() const {
 }
 
 Future<void> User::UpdateEmail(const char* email) {
-  if (!ValidUser(auth_data_)) {
-    return Future<void>();
-  }
+  if (!ValidUser(auth_data_)) { return Future<void>(); }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_UpdateEmail);
   JNIEnv* env = Env(auth_data_);
@@ -379,9 +375,7 @@ Future<void> User::UpdateEmail(const char* email) {
 }
 
 Future<void> User::UpdatePassword(const char* password) {
-  if (!ValidUser(auth_data_)) {
-    return Future<void>();
-  }
+  if (!ValidUser(auth_data_)) { return Future<void>(); }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_UpdatePassword);
   JNIEnv* env = Env(auth_data_);
@@ -400,9 +394,7 @@ Future<void> User::UpdatePassword(const char* password) {
 }
 
 Future<void> User::UpdateUserProfile(const UserProfile& profile) {
-  if (!ValidUser(auth_data_)) {
-    return Future<void>();
-  }
+  if (!ValidUser(auth_data_)) { return Future<void>(); }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_UpdateUserProfile);
   JNIEnv* env = Env(auth_data_);
@@ -422,9 +414,7 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
         j_display_name);
 
     error = CheckAndClearJniAuthExceptions(env, &exception_error_message);
-    if (j_builder_discard) {
-      env->DeleteLocalRef(j_builder_discard);
-    }
+    if (j_builder_discard) { env->DeleteLocalRef(j_builder_discard); }
     env->DeleteLocalRef(j_display_name);
   }
 
@@ -436,9 +426,7 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
         userprofilebuilder::GetMethodId(userprofilebuilder::kSetPhotoUri),
         j_uri);
     error = CheckAndClearJniAuthExceptions(env, &exception_error_message);
-    if (j_builder_discard) {
-      env->DeleteLocalRef(j_builder_discard);
-    }
+    if (j_builder_discard) { env->DeleteLocalRef(j_builder_discard); }
     env->DeleteLocalRef(j_uri);
   }
 
@@ -465,17 +453,13 @@ Future<void> User::UpdateUserProfile(const UserProfile& profile) {
   } else {
     futures.Complete(handle, error, exception_error_message.c_str());
   }
-  if (j_user_profile_request) {
-    env->DeleteLocalRef(j_user_profile_request);
-  }
+  if (j_user_profile_request) { env->DeleteLocalRef(j_user_profile_request); }
   env->DeleteLocalRef(j_user_profile_builder);
   return MakeFuture(&futures, handle);
 }
 
 Future<User*> User::LinkWithCredential(const Credential& credential) {
-  if (!ValidUser(auth_data_)) {
-    return Future<User*>();
-  }
+  if (!ValidUser(auth_data_)) { return Future<User*>(); }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User*>(kUserFn_LinkWithCredential);
   JNIEnv* env = Env(auth_data_);
@@ -494,9 +478,7 @@ Future<User*> User::LinkWithCredential(const Credential& credential) {
 
 Future<SignInResult> User::LinkAndRetrieveDataWithCredential(
     const Credential& credential) {
-  if (!ValidUser(auth_data_)) {
-    return Future<SignInResult>();
-  }
+  if (!ValidUser(auth_data_)) { return Future<SignInResult>(); }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<SignInResult>(
       kUserFn_LinkAndRetrieveDataWithCredential);
@@ -520,9 +502,7 @@ Future<SignInResult> User::LinkWithProvider(
 }
 
 Future<User*> User::Unlink(const char* provider) {
-  if (!ValidUser(auth_data_)) {
-    return Future<User*>();
-  }
+  if (!ValidUser(auth_data_)) { return Future<User*>(); }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<User*>(kUserFn_Unlink);
   JNIEnv* env = Env(auth_data_);
@@ -541,9 +521,7 @@ Future<User*> User::Unlink(const char* provider) {
 }
 
 Future<User*> User::UpdatePhoneNumberCredential(const Credential& credential) {
-  if (!ValidUser(auth_data_)) {
-    return Future<User*>();
-  }
+  if (!ValidUser(auth_data_)) { return Future<User*>(); }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle =
       futures.SafeAlloc<User*>(kUserFn_UpdatePhoneNumberCredential);
@@ -568,9 +546,7 @@ Future<User*> User::UpdatePhoneNumberCredential(const Credential& credential) {
 }
 
 Future<void> User::Reload() {
-  if (!ValidUser(auth_data_)) {
-    return Future<void>();
-  }
+  if (!ValidUser(auth_data_)) { return Future<void>(); }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_Reload);
   JNIEnv* env = Env(auth_data_);
@@ -586,9 +562,7 @@ Future<void> User::Reload() {
 }
 
 Future<void> User::Reauthenticate(const Credential& credential) {
-  if (!ValidUser(auth_data_)) {
-    return Future<void>();
-  }
+  if (!ValidUser(auth_data_)) { return Future<void>(); }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_Reauthenticate);
   JNIEnv* env = Env(auth_data_);
@@ -606,9 +580,7 @@ Future<void> User::Reauthenticate(const Credential& credential) {
 
 Future<SignInResult> User::ReauthenticateAndRetrieveData(
     const Credential& credential) {
-  if (!ValidUser(auth_data_)) {
-    return Future<SignInResult>();
-  }
+  if (!ValidUser(auth_data_)) { return Future<SignInResult>(); }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle =
       futures.SafeAlloc<SignInResult>(kUserFn_ReauthenticateAndRetrieveData);
@@ -633,9 +605,7 @@ Future<SignInResult> User::ReauthenticateWithProvider(
 }
 
 Future<void> User::SendEmailVerification() {
-  if (!ValidUser(auth_data_)) {
-    return Future<void>();
-  }
+  if (!ValidUser(auth_data_)) { return Future<void>(); }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_SendEmailVerification);
   JNIEnv* env = Env(auth_data_);
@@ -651,9 +621,7 @@ Future<void> User::SendEmailVerification() {
 }
 
 Future<void> User::Delete() {
-  if (!ValidUser(auth_data_)) {
-    return Future<void>();
-  }
+  if (!ValidUser(auth_data_)) { return Future<void>(); }
   ReferenceCountedFutureImpl& futures = auth_data_->future_impl;
   const auto handle = futures.SafeAlloc<void>(kUserFn_Delete);
   JNIEnv* env = Env(auth_data_);
@@ -665,9 +633,7 @@ Future<void> User::Delete() {
     RegisterCallback(pending_result, handle, auth_data_,
                      [](jobject result, FutureCallbackData<void>* d,
                         bool success, void* void_data) {
-                       if (success) {
-                         UpdateCurrentUser(d->auth_data);
-                       }
+                       if (success) { UpdateCurrentUser(d->auth_data); }
                      });
     env->DeleteLocalRef(pending_result);
   }

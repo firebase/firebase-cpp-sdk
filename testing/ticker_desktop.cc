@@ -41,9 +41,7 @@ int64_t TickerNow() {
 }
 
 TickerObserver::~TickerObserver() {
-  if (g_observers == nullptr) {
-    return;
-  }
+  if (g_observers == nullptr) { return; }
   for (auto iter = g_observers->begin(); iter != g_observers->end(); ++iter) {
     if (*iter == this) {
       g_observers->erase(iter);
@@ -54,12 +52,8 @@ TickerObserver::~TickerObserver() {
 
 void TickerElapse() {
   ++g_ticker;
-  if (g_observers == nullptr) {
-    return;
-  }
-  for (TickerObserver* observer : *g_observers) {
-    observer->Elapse();
-  }
+  if (g_observers == nullptr) { return; }
+  for (TickerObserver* observer : *g_observers) { observer->Elapse(); }
 }
 
 void TickerReset() {

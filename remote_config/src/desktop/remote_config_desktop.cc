@@ -90,9 +90,7 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
 
 RemoteConfigInternal::~RemoteConfigInternal() {
   save_channel_.Close();
-  if (save_thread_.joinable()) {
-    save_thread_.join();
-  }
+  if (save_thread_.joinable()) { save_thread_.join(); }
 
   safe_this_.ClearReference();
 }
@@ -272,9 +270,7 @@ Future<void> RemoteConfigInternal::SetDefaults(
     const char* key = defaults[i].key;
     bool failure = false;
     std::string value = VariantToString(defaults[i].value, &failure);
-    if (key && !failure) {
-      defaults_map[key] = value;
-    }
+    if (key && !failure) { defaults_map[key] = value; }
   }
   SetDefaults(defaults_map);
   future_impl_.Complete(handle, kFutureStatusSuccess);
@@ -294,9 +290,7 @@ Future<void> RemoteConfigInternal::SetDefaults(const ConfigKeyValue* defaults,
   for (size_t i = 0; i < number_of_defaults; i++) {
     const char* key = defaults[i].key;
     const char* value = defaults[i].value;
-    if (key && value) {
-      defaults_map[key] = value;
-    }
+    if (key && value) { defaults_map[key] = value; }
   }
   SetDefaults(defaults_map);
 
@@ -321,9 +315,7 @@ std::string RemoteConfigInternal::GetConfigSetting(ConfigSetting setting) {
 
 void RemoteConfigInternal::SetConfigSetting(ConfigSetting setting,
                                             const char* value) {
-  if (value == nullptr) {
-    return;
-  }
+  if (value == nullptr) { return; }
   {
     MutexLock lock(internal_mutex_);
     configs_.metadata.AddSetting(setting, value);
@@ -350,9 +342,7 @@ bool RemoteConfigInternal::CheckValueInConfig(
 
   {
     MutexLock lock(internal_mutex_);
-    if (!config.HasValue(key, kDefaultNamespace)) {
-      return false;
-    }
+    if (!config.HasValue(key, kDefaultNamespace)) { return false; }
     *value = config.GetValue(key, kDefaultNamespace);
   }
 
@@ -540,21 +530,15 @@ Variant RemoteConfigInternal::StringToVariant(const std::string& from) {
   // Try int
   int64_t long_value;
   bool conversion_successful = ConvertToLong(from, &long_value);
-  if (conversion_successful) {
-    return Variant(long_value);
-  }
+  if (conversion_successful) { return Variant(long_value); }
   // Not int, try double
   double double_value;
   conversion_successful = ConvertToDouble(from, &double_value);
-  if (conversion_successful) {
-    return Variant(double_value);
-  }
+  if (conversion_successful) { return Variant(double_value); }
   // Not double, try bool
   bool bool_value;
   conversion_successful = ConvertToBool(from, &bool_value);
-  if (conversion_successful) {
-    return Variant(bool_value);
-  }
+  if (conversion_successful) { return Variant(bool_value); }
   return Variant::FromMutableString(from);
 }
 

@@ -28,9 +28,7 @@ Query::Query() {
 }
 
 Query::Query(const Query& query) {
-  if (query.internal_) {
-    internal_ = new QueryInternal(*query.internal_);
-  }
+  if (query.internal_) { internal_ = new QueryInternal(*query.internal_); }
   CleanupFnQuery::Register(this, internal_);
 }
 
@@ -53,9 +51,7 @@ Query::~Query() {
 }
 
 Query& Query::operator=(const Query& query) {
-  if (this == &query) {
-    return *this;
-  }
+  if (this == &query) { return *this; }
 
   CleanupFnQuery::Unregister(this, internal_);
   delete internal_;
@@ -69,9 +65,7 @@ Query& Query::operator=(const Query& query) {
 }
 
 Query& Query::operator=(Query&& query) {
-  if (this == &query) {
-    return *this;
-  }
+  if (this == &query) { return *this; }
 
   CleanupFnQuery::Unregister(&query, query.internal_);
   CleanupFnQuery::Unregister(this, internal_);

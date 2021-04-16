@@ -53,9 +53,7 @@ class UserView {
     const std::vector<UserInfoInterface*>& GetUserInfos() const;
 
     ~Reader() {
-      if (mutex_) {
-        mutex_->Release();
-      }
+      if (mutex_) { mutex_->Release(); }
     }
 
    private:
@@ -93,9 +91,7 @@ class UserView {
     void ClearUserInfos();
 
     ~Writer() {
-      if (mutex_) {
-        mutex_->Release();
-      }
+      if (mutex_) { mutex_->Release(); }
     }
 
    private:
@@ -187,9 +183,7 @@ class UserView {
 template <typename CallbackT>
 inline bool UserView::TryRead(AuthData* const auth_data, CallbackT callback) {
   const Reader reader = GetReader(auth_data);
-  if (!reader.IsValid()) {
-    return false;
-  }
+  if (!reader.IsValid()) { return false; }
   callback(reader);
   return true;
 }

@@ -53,9 +53,7 @@ std::vector<Event> SyncTree::AckUserWrite(WriteId write_id,
                                           int64_t server_time_offset) {
   std::vector<Event> results;
   persistence_manager_->RunInTransaction([&, this]() -> bool {
-    if (persist) {
-      this->persistence_manager_->RemoveUserWrite(write_id);
-    }
+    if (persist) { this->persistence_manager_->RemoveUserWrite(write_id); }
     // Make a copy of the write, as it is about to be deleted.
     UserWriteRecord write = *pending_write_tree_->GetWrite(write_id);
     bool need_to_reevaluate = pending_write_tree_->RemoveWrite(write_id);
@@ -656,9 +654,7 @@ std::vector<Event> SyncTree::RemoveEventRegistration(
         current_tree = current_tree->GetChild(directory);
         covered = covered || (current_tree->value().has_value() &&
                               current_tree->value()->HasCompleteView());
-        if (covered || current_tree->IsEmpty()) {
-          break;
-        }
+        if (covered || current_tree->IsEmpty()) { break; }
       }
 
       if (removing_default && !covered) {

@@ -100,12 +100,8 @@ std::string QueryParamsToString(const QueryParams& params) {
   if (!params.end_at_child_key.empty()) {
     ss << ", end_at_child_key=" << params.end_at_child_key;
   }
-  if (params.limit_first != 0) {
-    ss << ", limit_first=" << params.limit_first;
-  }
-  if (params.limit_last != 0) {
-    ss << ", limit_last=" << params.limit_last;
-  }
+  if (params.limit_first != 0) { ss << ", limit_first=" << params.limit_first; }
+  if (params.limit_last != 0) { ss << ", limit_last=" << params.limit_last; }
   ss << " }";
 
   return ss.str();

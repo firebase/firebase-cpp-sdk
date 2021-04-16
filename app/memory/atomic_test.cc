@@ -70,8 +70,7 @@ TEST(AtomicTest, AtomicUpdatesAreVisibleAcrossThreads) {
   Atomic<uint64_t> atomic(kValue);
 
   std::thread thread([&atomic]() {
-    while (atomic.load() == kValue) {
-    }
+    while (atomic.load() == kValue) {}
     atomic.fetch_add(1);
   });
   atomic.store(kUpdatedValue);
@@ -88,9 +87,7 @@ TEST(AtomicTest, AtomicUpdatesAreVisibleAcrossMultipleThreads) {
   for (int i = 0; i < num_threads; ++i) {
     threads.emplace_back([&atomic] { atomic.fetch_add(1); });
   }
-  for (auto& thread : threads) {
-    thread.join();
-  }
+  for (auto& thread : threads) { thread.join(); }
   EXPECT_THAT(atomic.load(), Eq(num_threads));
 }
 

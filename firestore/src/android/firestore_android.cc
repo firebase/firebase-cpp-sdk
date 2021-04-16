@@ -155,9 +155,7 @@ class JavaFirestoreMap {
     MutexLock lock(mutex_);
     auto& map = GetMapLocked(env);
     Local<Long> boxed_ptr = map.Get(env, java_firestore).CastTo<Long>();
-    if (!boxed_ptr) {
-      return nullptr;
-    }
+    if (!boxed_ptr) { return nullptr; }
     return reinterpret_cast<FirestoreInternal*>(boxed_ptr.LongValue(env));
   }
 
@@ -183,9 +181,7 @@ class JavaFirestoreMap {
   // Ensures that the backing map is initialized.
   // Prerequisite: `mutex_` must be locked before calling this method.
   HashMap& GetMapLocked(Env& env) {
-    if (!firestores_) {
-      firestores_ = HashMap::Create(env);
-    }
+    if (!firestores_) { firestores_ = HashMap::Create(env); }
     return firestores_;
   }
 
@@ -510,9 +506,7 @@ void FirestoreInternal::UnregisterListenerRegistration(
 void FirestoreInternal::ClearListeners() {
   MutexLock lock(listener_registration_mutex_);
 
-  for (auto* reg : listener_registrations_) {
-    delete reg;
-  }
+  for (auto* reg : listener_registrations_) { delete reg; }
   listener_registrations_.clear();
 }
 

@@ -749,9 +749,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
         ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
     ASSERT_TRUE(controller.is_valid());
 
-    while (controller.bytes_transferred() == 0) {
-      ProcessEvents(1);
-    }
+    while (controller.bytes_transferred() == 0) { ProcessEvents(1); }
 
     LogDebug("Pausing download.");
     EXPECT_TRUE(controller.Pause()) << "Download pause";
@@ -806,9 +804,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
         ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
     ASSERT_TRUE(controller.is_valid());
 
-    while (controller.bytes_transferred() == 0) {
-      ProcessEvents(1);
-    }
+    while (controller.bytes_transferred() == 0) { ProcessEvents(1); }
 
     LogDebug("Cancelling download.");
     EXPECT_TRUE(controller.Cancel());
@@ -835,9 +831,7 @@ TEST_F(FirebaseStorageTest, TestLargeFileCancelUpload) {
     // operation.
     ASSERT_TRUE(controller.is_valid());
 
-    while (controller.bytes_transferred() == 0) {
-      ProcessEvents(1);
-    }
+    while (controller.bytes_transferred() == 0) { ProcessEvents(1); }
 
     LogDebug("Cancelling upload.");
     // Cancel the operation and verify it was successfully canceled.

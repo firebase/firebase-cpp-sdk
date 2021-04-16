@@ -44,9 +44,7 @@ PollableRewardListener::~PollableRewardListener() {
 bool PollableRewardListener::PollReward(RewardItem* reward) {
   FIREBASE_ASSERT(reward != nullptr);
   MutexLock lock(*mutex_);
-  if (rewards_.empty()) {
-    return false;
-  }
+  if (rewards_.empty()) { return false; }
   reward->amount = rewards_.front().amount;
   reward->reward_type = rewards_.front().reward_type;
   rewards_.pop();

@@ -70,26 +70,18 @@ void NamespacedConfigData::SetNamespace(
 bool NamespacedConfigData::HasValue(const std::string& key,
                                     const std::string& name_space) const {
   auto name_space_iter = config_.find(name_space);
-  if (name_space_iter == config_.end()) {
-    return false;
-  }
+  if (name_space_iter == config_.end()) { return false; }
   auto key_iter = name_space_iter->second.find(key);
-  if (key_iter == name_space_iter->second.end()) {
-    return false;
-  }
+  if (key_iter == name_space_iter->second.end()) { return false; }
   return true;
 }
 
 std::string NamespacedConfigData::GetValue(
     const std::string& key, const std::string& name_space) const {
   auto name_space_iter = config_.find(name_space);
-  if (name_space_iter == config_.end()) {
-    return "";
-  }
+  if (name_space_iter == config_.end()) { return ""; }
   auto key_iter = name_space_iter->second.find(key);
-  if (key_iter == name_space_iter->second.end()) {
-    return "";
-  }
+  if (key_iter == name_space_iter->second.end()) { return ""; }
   return key_iter->second;
 }
 

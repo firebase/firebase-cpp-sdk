@@ -156,14 +156,10 @@ void PersistentConnection::OnCacheHost(const std::string& host) {
 std::string GetStringValue(const Variant& data,
                            const char* key,
                            bool force = false) {
-  if (!data.is_map()) {
-    return "";
-  }
+  if (!data.is_map()) { return ""; }
 
   auto itValue = data.map().find(key);
-  if (itValue == data.map().end()) {
-    return "";
-  }
+  if (itValue == data.map().end()) { return ""; }
 
   if (itValue->second.is_string()) {
     return itValue->second.string_value();
@@ -174,9 +170,7 @@ std::string GetStringValue(const Variant& data,
 }
 
 bool HasKey(const Variant& data, const char* key) {
-  if (!data.is_map()) {
-    return false;
-  }
+  if (!data.is_map()) { return false; }
 
   return data.map().find(key) != data.map().end();
 }
@@ -289,9 +283,7 @@ void PersistentConnection::OnDataMessage(const Variant& message) {
       logger_->LogError("Received Server Async Action is not a string.");
 
     auto* body = GetInternalVariant(&message, kServerAsyncPayload);
-    if (action && body) {
-      OnDataPush(action->string_value(), *body);
-    }
+    if (action && body) { OnDataPush(action->string_value(), *body); }
   } else {
     logger_->LogDebug("%s Ignoring unknown message: %s", log_id_.c_str(),
                       util::VariantToJson(message).c_str());
@@ -318,9 +310,7 @@ void PersistentConnection::OnDisconnect(Connection::DisconnectReason reason) {
 
   CancelSentTransactions();
 
-  if (ShouldReconnect()) {
-    TryScheduleReconnect();
-  }
+  if (ShouldReconnect()) { TryScheduleReconnect(); }
 
   // Trigger OnDisconnect event
   event_handler_->OnDisconnect();
@@ -377,9 +367,7 @@ void PersistentConnection::Listen(const QuerySpec& query_spec,
 
   // If the connection is established, send the request immediately.  Otherwise,
   // wait for RestoreOutstandingRequests() being called.
-  if (IsConnected()) {
-    SendListen(*it.first->second);
-  }
+  if (IsConnected()) { SendListen(*it.first->second); }
 }
 
 void PersistentConnection::Unlisten(const QuerySpec& query_spec) {
@@ -391,9 +379,7 @@ void PersistentConnection::Unlisten(const QuerySpec& query_spec) {
 
   // If the connection is established, send the request immediately.  Otherwise,
   // do nothing because all listen request is cancelled when disconnected.
-  if (listen && IsConnected()) {
-    SendUnlisten(*listen);
-  }
+  if (listen && IsConnected()) { SendUnlisten(*listen); }
 }
 
 void PersistentConnection::Put(const Path& path,
@@ -517,9 +503,7 @@ void PersistentConnection::ResumeInternal(InterruptReason reason) {
 }
 
 void PersistentConnection::TryScheduleReconnect() {
-  if (!ShouldReconnect()) {
-    return;
-  }
+  if (!ShouldReconnect()) { return; }
 
   FIREBASE_DEV_ASSERT(connection_state_ == kDisconnected);
   bool force_refresh = force_auth_refresh_;
@@ -775,9 +759,7 @@ void PersistentConnection::OnDataPush(const std::string& action,
     // TODO(chkuang): Support Compound Hash
   } else if (action.compare(kServerAsyncListenCancelled) == 0) {
     auto* path = GetInternalVariant(&body, kServerDataUpdatePath);
-    if (path) {
-      OnListenRevoked(Path(path->AsString().string_value()));
-    }
+    if (path) { OnListenRevoked(Path(path->AsString().string_value())); }
   } else if (action.compare(kServerAsyncAuthRevoked) == 0) {
     auto* status = GetInternalVariant(&body, kRequestStatus);
     auto* reason = GetInternalVariant(&body, kServerDataUpdateBody);
@@ -830,17 +812,13 @@ void PersistentConnection::PutInternal(const char* action,
   Variant request = Variant::EmptyMap();
   request.map()[kRequestPath] = path.str();
   request.map()[kRequestDataPayload] = data;
-  if (hash != nullptr) {
-    request.map()[kRequestDataHash] = std::string(hash);
-  }
+  if (hash != nullptr) { request.map()[kRequestDataHash] = std::string(hash); }
 
   uint64_t write_id = next_write_id_++;
   outstanding_puts_[write_id] =
       MakeUnique<OutstandingPut>(action, request, response);
 
-  if (CanSendWrites()) {
-    SendPut(write_id);
-  }
+  if (CanSendWrites()) { SendPut(write_id); }
 }
 
 void PersistentConnection::SendPut(uint64_t write_id) {
@@ -959,9 +937,7 @@ void PersistentConnection::RestoreOutstandingRequests() {
   }
 
   // Restore puts
-  for (auto& it_put : outstanding_puts_) {
-    SendPut(it_put.first);
-  }
+  for (auto& it_put : outstanding_puts_) { SendPut(it_put.first); }
 
   // Restore disconnect operations
   while (!outstanding_ondisconnects_.empty()) {
@@ -1103,9 +1079,7 @@ void PersistentConnection::TriggerResponse(const ResponsePtr& response_ptr,
   if (response_ptr) {
     response_ptr->error_code_ = error_code;
     response_ptr->error_message_ = error_message;
-    if (response_ptr->callback_) {
-      response_ptr->callback_(response_ptr);
-    }
+    if (response_ptr->callback_) { response_ptr->callback_(response_ptr); }
   }
 }
 
@@ -1129,9 +1103,7 @@ static const struct ErrorMap {
 
 Error PersistentConnection::StatusStringToErrorCode(const std::string& status) {
   for (auto& error : g_error_codes) {
-    if (status == error.error_string) {
-      return error.error_code;
-    }
+    if (status == error.error_string) { return error.error_code; }
   }
   return kErrorUnknownError;
 }

@@ -62,9 +62,7 @@ void Terminate() {
     LogWarning("Test Lab API was never initialized");
     return;
   }
-  if (ref_count.references() == 1) {
-    internal::Terminate();
-  }
+  if (ref_count.references() == 1) { internal::Terminate(); }
   ref_count.RemoveReference();
 }
 

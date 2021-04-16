@@ -721,9 +721,7 @@ class PollableListener : public Listener {
   bool PollRegistrationToken(std::string* token) {
     bool got_token;
     std::string token_received = PollRegistrationToken(&got_token);
-    if (got_token) {
-      *token = token_received;
-    }
+    if (got_token) { *token = token_received; }
     return got_token;
   }
 

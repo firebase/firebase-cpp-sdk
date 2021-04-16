@@ -33,9 +33,7 @@ DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* database,
                                            const Variant& data,
                                            const QuerySpec& query_spec)
     : database_(database), data_(data), query_spec_(query_spec) {
-  if (HasVector(data_)) {
-    ConvertVectorToMap(&data_);
-  }
+  if (HasVector(data_)) { ConvertVectorToMap(&data_); }
 }
 
 DataSnapshotInternal::DataSnapshotInternal(const DataSnapshotInternal& internal)

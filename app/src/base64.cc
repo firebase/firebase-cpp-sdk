@@ -63,9 +63,7 @@ static bool Base64EncodeInternal(const std::string& input,
                                  std::string* output,
                                  bool url_safe,
                                  bool pad_to_32_bits) {
-  if (!output) {
-    return false;
-  }
+  if (!output) { return false; }
 
   // Workaround for if input and output are the same string.
   bool inplace = (output == &input);
@@ -107,9 +105,7 @@ static bool Base64EncodeInternal(const std::string& input,
       }
     }
   }
-  if (inplace) {
-    *output = inplace_buffer;
-  }
+  if (inplace) { *output = inplace_buffer; }
   return true;
 }
 
@@ -139,14 +135,10 @@ size_t GetBase64EncodedSize(const std::string& input) {
 // the string is not a multiple of 4 bytes in size, = or == are implied at the
 // end.
 bool Base64Decode(const std::string& input, std::string* output) {
-  if (!output) {
-    return false;
-  }
+  if (!output) { return false; }
   // All Base64 strings must be padded to 4 bytes, with optionally 1 or 2 of the
   // ending bytes removed.
-  if (input.size() % 4 == 1) {
-    return false;
-  }
+  if (input.size() % 4 == 1) { return false; }
   // Workaround for if input and output are the same string.
   bool inplace = (output == &input);
   std::string inplace_buffer;
@@ -193,9 +185,7 @@ bool Base64Decode(const std::string& input, std::string* output) {
       return false;
     }
   }
-  if (inplace) {
-    *output = inplace_buffer;
-  }
+  if (inplace) { *output = inplace_buffer; }
   return true;
 }
 

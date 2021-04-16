@@ -81,9 +81,7 @@ int GetScenario() {
   return g_scenario;
 }
 std::string GetResultsDirectory() {
-  if (g_results_dir == nullptr) {
-    return "";
-  }
+  if (g_results_dir == nullptr) { return ""; }
   return *g_results_dir;
 }
 
@@ -183,9 +181,7 @@ void SetResultsDirectory(const char* path) {
     delete g_results_dir;
     g_results_dir = nullptr;
   }
-  if (path && strlen(path)) {
-    g_results_dir = new std::string(path);
-  }
+  if (path && strlen(path)) { g_results_dir = new std::string(path); }
 }
 
 FILE* OpenCustomResultsFile(int scenario) {

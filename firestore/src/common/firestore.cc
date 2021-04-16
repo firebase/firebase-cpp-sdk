@@ -54,9 +54,7 @@ std::map<App*, Firestore*>* g_firestores = nullptr;
 // Prerequisite: `g_firestores_lock` must be locked before calling this
 // function.
 std::map<App*, Firestore*>* FirestoreCache() {
-  if (!g_firestores) {
-    g_firestores = new std::map<App*, Firestore*>();
-  }
+  if (!g_firestores) { g_firestores = new std::map<App*, Firestore*>(); }
   return g_firestores;
 }
 
@@ -75,9 +73,7 @@ Firestore* FindFirestoreInCache(App* app, InitResult* init_result_out) {
 }
 
 InitResult CheckInitialized(const FirestoreInternal& firestore) {
-  if (!firestore.initialized()) {
-    return kInitResultFailedMissingDependency;
-  }
+  if (!firestore.initialized()) { return kInitResultFailedMissingDependency; }
 
   return kInitResultSuccess;
 }
@@ -91,9 +87,7 @@ Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
   MutexLock lock(*g_firestores_lock);
 
   Firestore* from_cache = FindFirestoreInCache(app, init_result_out);
-  if (from_cache) {
-    return from_cache;
-  }
+  if (from_cache) { return from_cache; }
 
   return AddFirestoreToCache(new Firestore(app), init_result_out);
 }
@@ -124,9 +118,7 @@ Firestore* Firestore::CreateFirestore(App* app,
 Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
                                           InitResult* init_result_out) {
   InitResult init_result = CheckInitialized(*firestore->internal_);
-  if (init_result_out) {
-    *init_result_out = init_result;
-  }
+  if (init_result_out) { *init_result_out = init_result; }
   if (init_result != kInitResultSuccess) {
     delete firestore;
     return nullptr;

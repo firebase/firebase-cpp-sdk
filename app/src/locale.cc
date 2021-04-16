@@ -68,14 +68,10 @@ std::string GetLocale() {
   // terminal encoding, e.g.  "en_US.UTF-8", so we want to cut the string on the
   // ".".
   size_t cut = output.find('.');
-  if (cut != std::string::npos) {
-    output = output.substr(0, cut);
-  }
+  if (cut != std::string::npos) { output = output.substr(0, cut); }
   // Do the same with a "@" which some locales also have.
   cut = output.find('@');
-  if (cut != std::string::npos) {
-    output = output.substr(0, cut);
-  }
+  if (cut != std::string::npos) { output = output.substr(0, cut); }
   return output;
 #else
   // An error was already triggered above.

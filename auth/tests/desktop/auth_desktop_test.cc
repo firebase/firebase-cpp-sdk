@@ -211,9 +211,7 @@ bool WaitOnLoadPersistence(AuthData* auth_data) {
   bool load_finished = false;
   int load_wait_counter = 0;
   while (!load_finished) {
-    if (load_wait_counter >= kWaitForLoadMaxTryout) {
-      break;
-    }
+    if (load_wait_counter >= kWaitForLoadMaxTryout) { break; }
     load_wait_counter++;
     firebase::internal::Sleep(1);
     {
@@ -274,9 +272,7 @@ class AuthDesktopTest : public ::testing::Test {
     provider->SetProviderData(GetFakeOAuthProviderData());
     provider->SetAuthHandler(handler);
     Future<SignInResult> future = firebase_auth_->SignInWithProvider(provider);
-    if (trigger_sign_in) {
-      handler->TriggerSignInComplete();
-    }
+    if (trigger_sign_in) { handler->TriggerSignInComplete(); }
     return future;
   }
 

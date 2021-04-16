@@ -70,9 +70,7 @@ struct MobileAdsCallData {
   }
   ~MobileAdsCallData() {
     JNIEnv* env = firebase::util::GetThreadsafeJNIEnv(vm);
-    if (admob_app_id_global) {
-      env->DeleteGlobalRef(admob_app_id_global);
-    }
+    if (admob_app_id_global) { env->DeleteGlobalRef(admob_app_id_global); }
     env->DeleteGlobalRef(activity_global);
   }
   JavaVM* vm;
@@ -144,9 +142,7 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
 }
 
 InitResult Initialize(JNIEnv* env, jobject activity, const char* admob_app_id) {
-  if (g_java_vm == nullptr) {
-    env->GetJavaVM(&g_java_vm);
-  }
+  if (g_java_vm == nullptr) { env->GetJavaVM(&g_java_vm); }
 
   // AdMob requires Google Play services if the class
   // "com.google.android.gms.ads.internal.ClientApi" does not exist.

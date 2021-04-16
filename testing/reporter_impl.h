@@ -37,9 +37,7 @@ class FakeReporterClass {
                  const char* result,
                  const IterableType& args) {
     std::vector<std::string> args_vector;
-    for (const auto& arg : args) {
-      args_vector.push_back(arg);
-    }
+    for (const auto& arg : args) { args_vector.push_back(arg); }
     reports_[fake] =
         firebase::testing::cppsdk::ReportRow(fake, result, args_vector);
   }

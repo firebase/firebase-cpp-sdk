@@ -197,9 +197,7 @@ class Timer {
  public:
   // Initialize the tick period value.
   static void InitializeTickPeriod() {
-    if (tick_period_ != 0) {
-      return;
-    }
+    if (tick_period_ != 0) { return; }
 #if FIREBASE_PLATFORM_WINDOWS
     LARGE_INTEGER frequency;
     QueryPerformanceFrequency(&frequency);

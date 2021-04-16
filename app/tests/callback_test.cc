@@ -454,9 +454,7 @@ TEST_F(CallbackTest, CallbackDeadlockTest) {
         [](void* arg) {
           DeadlockData* data = static_cast<DeadlockData*>(arg);
           MutexLock lock(data->user_mutex);
-          if (data->handle) {
-            callback::RemoveCallback(data->handle);
-          }
+          if (data->handle) { callback::RemoveCallback(data->handle); }
         },
         &data);
 

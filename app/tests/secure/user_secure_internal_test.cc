@@ -235,9 +235,7 @@ TEST_F(UserSecureInternalTest, SetLargeDataThenDeleteIt) {
   // Set up a large buffer of data.
   const size_t kSize = 20000;
   char data[kSize];
-  for (int i = 0; i < kSize - 1; ++i) {
-    data[i] = 'A' + (i % 26);
-  }
+  for (int i = 0; i < kSize - 1; ++i) { data[i] = 'A' + (i % 26); }
   data[kSize - 1] = '\0';
   std::string user_data(data);
   // Add Data

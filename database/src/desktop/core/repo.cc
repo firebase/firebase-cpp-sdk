@@ -459,9 +459,7 @@ void Repo::AckWriteAndRerunTransactions(WriteId write_id,
   AckStatus ack_status = success ? kAckConfirm : kAckRevert;
   std::vector<Event> events = server_sync_tree_->AckUserWrite(
       write_id, ack_status, kPersist, server_time_offset_);
-  if (!events.empty()) {
-    RerunTransactions(path);
-  }
+  if (!events.empty()) { RerunTransactions(path); }
   PostEvents(events);
 }
 
@@ -765,9 +763,7 @@ void Repo::SendReadyTransactions(Tree<std::vector<TransactionDataPtr>>* node) {
       }
     }
     // If they're all run (and not sent), we can send them.  Else, we must wait.
-    if (all_run) {
-      SendTransactionQueue(*queue, node->GetPath());
-    }
+    if (all_run) { SendTransactionQueue(*queue, node->GetPath()); }
   } else {
     for (auto& child : node->children()) {
       SendReadyTransactions(&child.second);
@@ -908,9 +904,7 @@ void Repo::SendTransactionQueue(const std::vector<TransactionDataPtr>& queue,
   // listener of the first transaction for sake of ease.
   Variant latest_state = GetLatestState(path, sets_to_ignore);
   Variant snap_to_send = latest_state;
-  if (HasVector(latest_state)) {
-    ConvertVectorToMap(&latest_state);
-  }
+  if (HasVector(latest_state)) { ConvertVectorToMap(&latest_state); }
 
   std::string hash;
   GetHash(latest_state, &hash);
@@ -1079,9 +1073,7 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
             GetLatestState(transaction->path, sets_to_ignore);
         // TODO(chkuang): Make sure the local cache does not contain vector.
         //                Gently convert everything for now.
-        if (HasVector(current_input)) {
-          ConvertVectorToMap(&current_input);
-        }
+        if (HasVector(current_input)) { ConvertVectorToMap(&current_input); }
 
         transaction->current_input_snapshot = current_input;
 
@@ -1178,9 +1170,7 @@ void Repo::PruneCompletedTransactions(
                                          TransactionData::kStatusComplete;
                                 }),
                  queue->end());
-    if (queue->empty()) {
-      node->value().reset();
-    }
+    if (queue->empty()) { node->value().reset(); }
   }
   for (auto& key_subtree_pair : node->children()) {
     auto& subtree = key_subtree_pair.second;
@@ -1217,9 +1207,7 @@ void Repo::AggregateTransactionQueues(
     std::vector<TransactionDataPtr>* queue,
     Tree<std::vector<TransactionDataPtr>>* node) {
   Optional<std::vector<TransactionDataPtr>>& child_queue = node->value();
-  if (child_queue.has_value()) {
-    Extend(queue, *child_queue);
-  }
+  if (child_queue.has_value()) { Extend(queue, *child_queue); }
 
   for (auto& key_subtree_pair : node->children()) {
     Tree<std::vector<TransactionDataPtr>>& subtree = key_subtree_pair.second;

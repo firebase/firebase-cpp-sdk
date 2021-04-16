@@ -76,9 +76,7 @@ ListenerRegistrationInternal::ListenerRegistrationInternal(
 // FirestoreInternal will hold the lock and unregister all of them. So we do not
 // call UnregisterListenerRegistration explicitly here.
 ListenerRegistrationInternal::~ListenerRegistrationInternal() {
-  if (!listener_registration_) {
-    return;
-  }
+  if (!listener_registration_) { return; }
 
   // Remove listener and release java ListenerRegistration object.
   Env env = GetEnv();

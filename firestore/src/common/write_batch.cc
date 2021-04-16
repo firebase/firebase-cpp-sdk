@@ -25,9 +25,7 @@ WriteBatch::WriteBatch() {
 }
 
 WriteBatch::WriteBatch(const WriteBatch& value) {
-  if (value.internal_) {
-    internal_ = new WriteBatchInternal(*value.internal_);
-  }
+  if (value.internal_) { internal_ = new WriteBatchInternal(*value.internal_); }
   CleanupFnWriteBatch::Register(this, internal_);
 }
 
@@ -49,9 +47,7 @@ WriteBatch::~WriteBatch() {
 }
 
 WriteBatch& WriteBatch::operator=(const WriteBatch& value) {
-  if (this == &value) {
-    return *this;
-  }
+  if (this == &value) { return *this; }
 
   CleanupFnWriteBatch::Unregister(this, internal_);
   delete internal_;
@@ -65,9 +61,7 @@ WriteBatch& WriteBatch::operator=(const WriteBatch& value) {
 }
 
 WriteBatch& WriteBatch::operator=(WriteBatch&& value) {
-  if (this == &value) {
-    return *this;
-  }
+  if (this == &value) { return *this; }
 
   CleanupFnWriteBatch::Unregister(&value, value.internal_);
   CleanupFnWriteBatch::Unregister(this, internal_);

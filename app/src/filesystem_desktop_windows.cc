@@ -31,9 +31,7 @@ std::wstring Utf8ToNative(const std::string& input, std::string* out_error) {
 
   // `MultiByteToWideChar` considers a zero length to be an error, so
   // special-case the empty string.
-  if (input_len == 0) {
-    return L"";
-  }
+  if (input_len == 0) { return L""; }
 
   auto conversion_func = [&](wchar_t* output, int output_size) {
     // The input buffer may contain embedded nulls and isn't necessarily null-
@@ -49,9 +47,7 @@ std::wstring Utf8ToNative(const std::string& input, std::string* out_error) {
     // TODO(varconst): output the human-readable error description as well (see
     // `GetLastError` in Firestore).
     DWORD error = ::GetLastError();
-    if (out_error) {
-      *out_error = "Utf8ToNative failed with code " + error;
-    }
+    if (out_error) { *out_error = "Utf8ToNative failed with code " + error; }
 
     return L"";
   }
@@ -77,9 +73,7 @@ std::string NativeToUtf8(const wchar_t* input,
                          size_t input_size,
                          std::string* out_error) {
   int input_len = static_cast<int>(input_size);
-  if (input_len == 0) {
-    return "";
-  }
+  if (input_len == 0) { return ""; }
 
   auto conversion_func = [&](char* output, int output_size) {
     // The input buffer may contain embedded nulls and isn't necessarily null-
@@ -125,9 +119,7 @@ std::string NativeToUtf8(const std::wstring& input, std::string* out_error) {
 }
 
 bool Mkdir(const std::wstring& path, std::string* out_error) {
-  if (::CreateDirectoryW(path.c_str(), nullptr)) {
-    return true;
-  }
+  if (::CreateDirectoryW(path.c_str(), nullptr)) { return true; }
 
   DWORD error = ::GetLastError();
   if (error == ERROR_ALREADY_EXISTS) {
@@ -169,9 +161,7 @@ std::string AppDataDir(const char* app_name,
                        bool should_create,
                        std::string* out_error) {
   if (!app_name || std::strlen(app_name) == 0) {
-    if (out_error) {
-      *out_error = "AppDataDir failed: no app_name provided";
-    }
+    if (out_error) { *out_error = "AppDataDir failed: no app_name provided"; }
     return "";
   }
 
@@ -216,9 +206,7 @@ std::string AppDataDir(const char* app_name,
 
   } else {
     auto app_name_utf16 = Utf8ToNative(app_name, out_error);
-    if (app_name_utf16.empty()) {
-      return "";
-    }
+    if (app_name_utf16.empty()) { return ""; }
     return NativeToUtf8(base_dir + L"/" + app_name_utf16, out_error);
   }
 }

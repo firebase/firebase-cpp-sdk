@@ -231,9 +231,7 @@ model::FieldValue UserDataConverter::ParseQueryValue(const FieldValue& input,
 absl::optional<model::FieldValue> UserDataConverter::ParseData(
     const FieldValue& value, ParseContext&& context) const {
   auto maybe_add_to_field_mask = [&] {
-    if (context.path()) {
-      context.AddToFieldMask(*context.path());
-    }
+    if (context.path()) { context.AddToFieldMask(*context.path()); }
   };
 
   switch (value.type()) {
@@ -276,9 +274,7 @@ model::FieldValue::Array UserDataConverter::ParseArray(
   for (size_t i = 0; i != input.size(); ++i) {
     absl::optional<model::FieldValue> parsed =
         ParseData(input[i], context.ChildContext(i));
-    if (!parsed) {
-      parsed = model::FieldValue::Null();
-    }
+    if (!parsed) { parsed = model::FieldValue::Null(); }
     result.push_back(std::move(parsed).value());
   }
 
@@ -289,9 +285,7 @@ model::ObjectValue UserDataConverter::ParseMap(const MapFieldValue& input,
                                                ParseContext&& context) const {
   if (input.empty()) {
     const model::FieldPath* path = context.path();
-    if (path && !path->empty()) {
-      context.AddToFieldMask(*path);
-    }
+    if (path && !path->empty()) { context.AddToFieldMask(*path); }
     return model::ObjectValue{};
   }
 
@@ -302,9 +296,7 @@ model::ObjectValue UserDataConverter::ParseMap(const MapFieldValue& input,
 
     absl::optional<model::FieldValue> parsed =
         ParseData(value, context.ChildContext(key));
-    if (parsed) {
-      result = result.insert(key, std::move(parsed).value());
-    }
+    if (parsed) { result = result.insert(key, std::move(parsed).value()); }
   }
 
   return model::ObjectValue::FromMap(std::move(result));

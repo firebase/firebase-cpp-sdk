@@ -36,9 +36,7 @@ TEST(PushChildNameGeneratorTest, TestOrderOfGeneratedNamesSameTime) {
   for (int i = 0; i < 100; ++i) {
     keys.push_back(generator.GeneratePushChildName(0));
   }
-  for (int i = 0; i < 99; ++i) {
-    EXPECT_THAT(keys[i], Lt(keys[i + 1]));
-  }
+  for (int i = 0; i < 99; ++i) { EXPECT_THAT(keys[i], Lt(keys[i + 1])); }
 }
 
 TEST(PushChildNameGeneratorTest, TestOrderOfGeneratedNamesDifferentTime) {

@@ -224,9 +224,7 @@ bool PersistenceManager::RunInTransaction(
     std::function<bool()> transaction_func) {
   storage_engine_->BeginTransaction();
   bool success = transaction_func();
-  if (success) {
-    storage_engine_->SetTransactionSuccessful();
-  }
+  if (success) { storage_engine_->SetTransactionSuccessful(); }
   storage_engine_->EndTransaction();
   return success;
 }

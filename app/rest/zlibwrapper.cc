@@ -62,12 +62,8 @@ ZLib::ZLib()
 }
 
 ZLib::~ZLib() {
-  if (comp_init_) {
-    deflateEnd(&comp_stream_);
-  }
-  if (uncomp_init_) {
-    inflateEnd(&uncomp_stream_);
-  }
+  if (comp_init_) { deflateEnd(&comp_stream_); }
+  if (uncomp_init_) { inflateEnd(&uncomp_stream_); }
   delete gzip_header_;
 }
 
@@ -727,9 +723,7 @@ int ZLib::UncompressChunk(Bytef* dest,
 // mode, we also check the gzip footer to make sure we pass the gzip
 // consistency checks.  We RETURN true iff both types of checks pass.
 bool ZLib::UncompressChunkDone() {
-  if (first_chunk_ || !uncomp_init_) {
-    return false;
-  }
+  if (first_chunk_ || !uncomp_init_) { return false; }
   // Make sure we're at the end-of-compressed-data point.  This means
   // if we call inflate with Z_FINISH we won't consume any input or
   // write any output
@@ -744,9 +738,7 @@ bool ZLib::UncompressChunkDone() {
   Reset();
 
   // We don't need to check footer when this flag is true.
-  if (should_be_flexible_with_gzip_footer_) {
-    return true;
-  }
+  if (should_be_flexible_with_gzip_footer_) { return true; }
 
   // Whether we were hoping for a gzip footer or not, we allow a gzip
   // footer.  (See the note above about bugs in old zlibwrappers.) But
@@ -773,9 +765,7 @@ bool ZLib::IsGzipFooterValid() const {
   uncompressed_size += gzip_footer_[6] << 16;
   uncompressed_size += gzip_footer_[5] << 8;
   uncompressed_size += gzip_footer_[4] << 0;
-  if (uncompressed_size != (uncompressed_size_ & 0xffffffff)) {
-    return false;
-  }
+  if (uncompressed_size != (uncompressed_size_ & 0xffffffff)) { return false; }
 
   uLong checksum = 0;
   checksum += static_cast<uLong>(gzip_footer_[3]) << 24;

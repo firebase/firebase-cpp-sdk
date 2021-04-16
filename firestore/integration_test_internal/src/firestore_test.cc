@@ -641,9 +641,7 @@ TEST_F(FirestoreIntegrationTest,
 
     void WaitForEventCount(const std::string& event, int expected_count) {
       while (true) {
-        if (GetEventCount(event) >= expected_count) {
-          break;
-        }
+        if (GetEventCount(event) >= expected_count) { break; }
       }
     }
 
@@ -775,9 +773,7 @@ TEST_F(FirestoreIntegrationTest, TestListenCanBeCalledMultipleTimes) {
     DocumentSnapshot WaitForDocumentSnapshot() {
       while (true) {
         MutexLock lock(mutex_);
-        if (is_document_snapshot_set_) {
-          return document_snapshot_;
-        }
+        if (is_document_snapshot_set_) { return document_snapshot_; }
       }
     }
 

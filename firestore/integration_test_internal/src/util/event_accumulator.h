@@ -52,18 +52,14 @@ class EventAccumulator {
   /** Waits for a snapshot with pending writes. */
   T AwaitLocalEvent() {
     T event;
-    do {
-      event = Await();
-    } while (!HasPendingWrites(event));
+    do { event = Await(); } while (!HasPendingWrites(event));
     return event;
   }
 
   /** Waits for a snapshot that has no pending writes. */
   T AwaitRemoteEvent() {
     T event;
-    do {
-      event = Await();
-    } while (HasPendingWrites(event));
+    do { event = Await(); } while (HasPendingWrites(event));
     return event;
   }
 
@@ -73,9 +69,7 @@ class EventAccumulator {
    */
   T AwaitCacheEvent() {
     T event;
-    do {
-      event = Await();
-    } while (!IsFromCache(event));
+    do { event = Await(); } while (!IsFromCache(event));
     return event;
   }
 
@@ -85,9 +79,7 @@ class EventAccumulator {
    */
   T AwaitServerEvent() {
     T event;
-    do {
-      event = Await();
-    } while (IsFromCache(event));
+    do { event = Await(); } while (IsFromCache(event));
     return event;
   }
 

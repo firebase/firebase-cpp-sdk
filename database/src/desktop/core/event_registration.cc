@@ -28,9 +28,7 @@ void EventRegistration::SafelyFireEvent(const Event& event) {
   // callbacks on a listener that has been removed. This does not protect
   // callbacks that are currently running when the listener is removed: those
   // must handled by a mutex from within the callback.
-  if (status_ == kRemoved) {
-    return;
-  }
+  if (status_ == kRemoved) { return; }
 
   FireEvent(event);
 }
@@ -42,9 +40,7 @@ void EventRegistration::SafelyFireCancelEvent(Error error) {
   // callbacks on a listener that has been removed. This does not protect
   // callbacks that are currently running when the listener is removed: those
   // must handled by a mutex from within the callback.
-  if (status_ == kRemoved) {
-    return;
-  }
+  if (status_ == kRemoved) { return; }
 
   FireCancelEvent(error);
 }

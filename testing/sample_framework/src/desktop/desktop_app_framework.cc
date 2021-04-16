@@ -43,9 +43,7 @@ static bool quit = false;
 
 #ifdef _WIN32
 static BOOL WINAPI SignalHandler(DWORD event) {
-  if (!(event == CTRL_C_EVENT || event == CTRL_BREAK_EVENT)) {
-    return FALSE;
-  }
+  if (!(event == CTRL_C_EVENT || event == CTRL_BREAK_EVENT)) { return FALSE; }
   quit = true;
   return TRUE;
 }
@@ -89,9 +87,7 @@ std::string PathForResource() {
   }
   struct stat s;
   if (stat("/tmp", &s) == 0) {
-    if (s.st_mode & S_IFDIR) {
-      return std::string("/tmp/");
-    }
+    if (s.st_mode & S_IFDIR) { return std::string("/tmp/"); }
   }
 #endif  // defined(_WIN32)
   // If nothing else, use the current directory.
@@ -107,9 +103,7 @@ void LogMessageV(bool suppress, const char* format, va_list list) {
   // Append a linebreak to the buffer.
   buffer[string_len] = '\n';
   buffer[string_len + 1] = '\0';
-  if (GetPreserveFullLog()) {
-    AddToFullLog(buffer);
-  }
+  if (GetPreserveFullLog()) { AddToFullLog(buffer); }
   if (!suppress) {
     fputs(buffer, stdout);
     fflush(stdout);
@@ -200,18 +194,12 @@ std::string ReadTextInput(const char* title,
   if (title && *title) {
     int len = strlen(title);
     printf("\n");
-    for (int i = 0; i < len; ++i) {
-      printf("=");
-    }
+    for (int i = 0; i < len; ++i) { printf("="); }
     printf("\n%s\n", title);
-    for (int i = 0; i < len; ++i) {
-      printf("=");
-    }
+    for (int i = 0; i < len; ++i) { printf("="); }
   }
   printf("\n%s", message);
-  if (placeholder && *placeholder) {
-    printf(" [%s]", placeholder);
-  }
+  if (placeholder && *placeholder) { printf(" [%s]", placeholder); }
   printf(": ");
   fflush(stdout);
   std::string input_line;

@@ -234,9 +234,7 @@ bool WaitOnLoadPersistence(AuthData* auth_data) {
   bool load_finished = false;
   int load_wait_counter = 0;
   while (!load_finished) {
-    if (load_wait_counter >= kWaitForLoadMaxTryout) {
-      break;
-    }
+    if (load_wait_counter >= kWaitForLoadMaxTryout) { break; }
     load_wait_counter++;
     firebase::internal::Sleep(1);
     {
@@ -279,8 +277,7 @@ class UserDesktopTest : public ::testing::Test {
     auth_state_listener.ExpectChanges(2);
 
     Future<User*> future = firebase_auth_->SignInAnonymously();
-    while (future.status() == kFutureStatusPending) {
-    }
+    while (future.status() == kFutureStatusPending) {}
     firebase_user_ = firebase_auth_->current_user();
     EXPECT_NE(nullptr, firebase_user_);
 
@@ -315,9 +312,7 @@ class UserDesktopTest : public ::testing::Test {
       bool trigger_link) {
     InitializeSuccessfulAuthenticateWithProviderFlow(provider, handler);
     Future<SignInResult> future = firebase_user_->LinkWithProvider(provider);
-    if (trigger_link) {
-      handler->TriggerLinkComplete();
-    }
+    if (trigger_link) { handler->TriggerLinkComplete(); }
     return future;
   }
 
@@ -328,9 +323,7 @@ class UserDesktopTest : public ::testing::Test {
     InitializeSuccessfulAuthenticateWithProviderFlow(provider, handler);
     Future<SignInResult> future =
         firebase_user_->ReauthenticateWithProvider(provider);
-    if (trigger_reauthenticate) {
-      handler->TriggerReauthenticateComplete();
-    }
+    if (trigger_reauthenticate) { handler->TriggerReauthenticateComplete(); }
     return future;
   }
 
@@ -890,8 +883,7 @@ TEST_F(UserDesktopTest, TestRaceCondition_SetAccountInfoAndSignOut) {
 
   auto future = firebase_user_->UpdateEmail("some_email");
   firebase_auth_->SignOut();
-  while (future.status() == firebase::kFutureStatusPending) {
-  }
+  while (future.status() == firebase::kFutureStatusPending) {}
 
   EXPECT_THAT(future.error(), AnyOf(kAuthErrorNone, kAuthErrorNoSignedInUser));
   EXPECT_EQ(nullptr, firebase_auth_->current_user());
