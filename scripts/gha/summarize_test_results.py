@@ -259,7 +259,7 @@ def main(argv):
         log_name[1] = "**%s" % log_name[1]
       with open(log_file, "r") as log_reader:
         log_reader_data = log_reader.read()
-        if "Android" in log_name or "iOS" in log_name:
+        if "Android" in log_name[1] or "iOS" in log_name[1]:
           # Rejoin matrix name with spaces.
           log_name_str = ' '.join([log_name[1], SIMULATOR, log_name[0]]+log_name[2:])
           log_data[log_name_str] = log_reader_data
