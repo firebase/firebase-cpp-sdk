@@ -38,7 +38,8 @@ class DatabaseReferenceInternal;
 // Firebase Database location.
 class DataSnapshotInternal {
  public:
-  DataSnapshotInternal(DatabaseInternal* database, const Variant& data,
+  DataSnapshotInternal(DatabaseInternal* database,
+                       const Variant& data,
                        const QuerySpec& query_spec);
 
   DataSnapshotInternal(const DataSnapshotInternal& snapshot);
@@ -95,13 +96,19 @@ class DataSnapshotInternal {
   /// Get the absolute URL of this data snapshot.
   std::string GetUrl() const;
 
-  DatabaseInternal* database_internal() const { return database_; }
+  DatabaseInternal* database_internal() const {
+    return database_;
+  }
 
-  const Path& path() const { return query_spec_.path; }
+  const Path& path() const {
+    return query_spec_.path;
+  }
 
   // Special method to create an invalid DataSnapshot, because
   // DataSnapshot's constructor is private.
-  static DataSnapshot GetInvalidDataSnapshot() { return DataSnapshot(nullptr); }
+  static DataSnapshot GetInvalidDataSnapshot() {
+    return DataSnapshot(nullptr);
+  }
 
   bool operator==(const DataSnapshotInternal& other) const;
   bool operator!=(const DataSnapshotInternal& other) const;

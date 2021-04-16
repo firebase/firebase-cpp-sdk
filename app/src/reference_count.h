@@ -28,7 +28,8 @@ namespace internal {
 class ReferenceCount {
  public:
   // Initialize with no references.
-  ReferenceCount() : references_(0) {}
+  ReferenceCount() : references_(0) {
+  }
 
   // Increase the reference count, returning the previous number of references.
   int AddReference() {
@@ -64,7 +65,9 @@ class ReferenceCount {
   }
 
   // Get the mutex that guards this object.
-  Mutex& mutex() { return mutex_; }
+  Mutex& mutex() {
+    return mutex_;
+  }
 
  private:
   // Number of references to this object.
@@ -83,7 +86,9 @@ class ReferenceCountLock {
     reference_count->AddReference();
   }
 
-  ~ReferenceCountLock() { reference_count_->RemoveReference(); }
+  ~ReferenceCountLock() {
+    reference_count_->RemoveReference();
+  }
 
   // Increase the number of references returning the previous count excluding
   // the reference added by this lock.
@@ -113,7 +118,9 @@ class ReferenceCountLock {
 
  private:
   // Remove the lock's reference from the specified reference count.
-  static int GetBaseReferences(int count) { return count ? count - 1 : count; }
+  static int GetBaseReferences(int count) {
+    return count ? count - 1 : count;
+  }
 
  private:
   T* reference_count_;
@@ -163,16 +170,20 @@ class ReferenceCountedInitializer {
  public:
   // Construct the object with no initialize or terminate methods.
   ReferenceCountedInitializer()
-      : initialize_(nullptr), terminate_(nullptr), context_(nullptr) {}
+      : initialize_(nullptr), terminate_(nullptr), context_(nullptr) {
+  }
 
   // Construct the object with just a terminate method.
   ReferenceCountedInitializer(Terminate terminate, T* context)
-      : initialize_(nullptr), terminate_(terminate), context_(context) {}
+      : initialize_(nullptr), terminate_(terminate), context_(context) {
+  }
 
   // Construct the object, both initialize and terminate are optional.
-  ReferenceCountedInitializer(Initialize initialize, Terminate terminate,
+  ReferenceCountedInitializer(Initialize initialize,
+                              Terminate terminate,
                               T* context)
-      : initialize_(initialize), terminate_(terminate), context_(context) {}
+      : initialize_(initialize), terminate_(terminate), context_(context) {
+  }
 
   // Increase the reference count calling the specified initialization method
   // with context if increasing the reference count from 0 to 1, returning the
@@ -191,7 +202,9 @@ class ReferenceCountedInitializer {
   // Increase the reference count calling the initialize method if increasing
   // the reference count from 0 to 1, returning the previous reference count.
   // A reference count of -1 is returned if initialization fails.
-  int AddReference() { return AddReference(initialize_, context_); }
+  int AddReference() {
+    return AddReference(initialize_, context_);
+  }
 
   // Decrease the reference count, returning the previous number of references.
   int RemoveReference() {
@@ -218,16 +231,24 @@ class ReferenceCountedInitializer {
   }
 
   // Get the current number of references.
-  int references() { return count_.references(); }
+  int references() {
+    return count_.references();
+  }
 
   // Get the mutex that guards this object.
-  Mutex& mutex() { return count_.mutex(); }
+  Mutex& mutex() {
+    return count_.mutex();
+  }
 
   // Get the initialize method.
-  Initialize initialize() const { return initialize_; }
+  Initialize initialize() const {
+    return initialize_;
+  }
 
   // Get the terminate method.
-  Terminate terminate() const { return terminate_; }
+  Terminate terminate() const {
+    return terminate_;
+  }
 
   // Set the initialization context.
   void set_context(T* new_context) {
@@ -236,11 +257,15 @@ class ReferenceCountedInitializer {
   }
 
   // Get the context for the initializer.
-  T* context() const { return context_; }
+  T* context() const {
+    return context_;
+  }
 
  private:
   // Execute the terminate method.
-  void ExecuteTerminate() { if (terminate_) terminate_(context_); }
+  void ExecuteTerminate() {
+    if (terminate_) terminate_(context_);
+  }
 
  private:
   ReferenceCount count_;

@@ -46,9 +46,13 @@ class GetAccountInfoResult {
       const GetAccountInfoResponse& response);
 
   // Whether the operation was successful.
-  bool IsValid() const { return error_ == kAuthErrorNone; }
+  bool IsValid() const {
+    return error_ == kAuthErrorNone;
+  }
   // Error code associated with this operation.
-  AuthError error() const { return error_; }
+  AuthError error() const {
+    return error_;
+  }
 
   // Updates the properties of the currently signed-in user to those returned by
   // the operation this result represents.
@@ -59,12 +63,15 @@ class GetAccountInfoResult {
 
   // Only contains fields that are returned by getAccountInfo API. Blank if
   // operation failed.
-  const UserData& user() const { return user_impl_; }
+  const UserData& user() const {
+    return user_impl_;
+  }
 
  private:
   friend class AuthenticationResult;
 
-  GetAccountInfoResult() : error_(kAuthErrorNone) {}
+  GetAccountInfoResult() : error_(kAuthErrorNone) {
+  }
 
   AuthError error_;
 

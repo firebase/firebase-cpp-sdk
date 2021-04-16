@@ -130,8 +130,10 @@ namespace {
 struct FutureCallbackData {
   FutureCallbackData(SafeFutureHandle<HttpsCallableResult> handle_,
                      ReferenceCountedFutureImpl* impl_,
-                     FunctionsInternal* functions_, CallableReferenceFn func_)
-      : handle(handle_), impl(impl_), functions(functions_), func(func_) {}
+                     FunctionsInternal* functions_,
+                     CallableReferenceFn func_)
+      : handle(handle_), impl(impl_), functions(functions_), func(func_) {
+  }
   SafeFutureHandle<HttpsCallableResult> handle;
   ReferenceCountedFutureImpl* impl;
   FunctionsInternal* functions;
@@ -142,8 +144,11 @@ struct FutureCallbackData {
 
 // Universal callback handler.
 void HttpsCallableReferenceInternal::FutureCallback(
-    JNIEnv* env, jobject java_result, util::FutureResult result_code,
-    const char* status_message, void* callback_data) {
+    JNIEnv* env,
+    jobject java_result,
+    util::FutureResult result_code,
+    const char* status_message,
+    void* callback_data) {
   auto data = reinterpret_cast<FutureCallbackData*>(callback_data);
   assert(data != nullptr);
   if (result_code != util::kFutureResultSuccess) {

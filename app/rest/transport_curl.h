@@ -52,8 +52,12 @@ class TransportCurl : public Transport {
   // TODO(b/67899466): This is just a stop-gap until we can make all operations
   // async all the time. Since some code currently relies on operations being
   // synchronous this defaults to false and must be manually turned on.
-  void set_is_async(bool is_async) { is_async_ = is_async; }
-  bool is_async() { return is_async_; }
+  void set_is_async(bool is_async) {
+    is_async_ = is_async;
+  }
+  bool is_async() {
+    return is_async_;
+  }
 
   // Perform a HTTP request and put result in response.
   // This function does not actually perform the transfer, but rather informs
@@ -68,7 +72,8 @@ class TransportCurl : public Transport {
   // call does not take ownership of any arguments passed in. The request and
   // response and must both live until Response::MarkComplete is called.
   void PerformInternal(
-      Request* request, Response* response,
+      Request* request,
+      Response* response,
       flatbuffers::unique_ptr<Controller>* controller_out) override;
 
  private:

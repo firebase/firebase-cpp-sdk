@@ -56,7 +56,8 @@ StoragePath::StoragePath(const std::string& path) {
 
 // Constructs a storage path, based on raw strings for the bucket, path, and
 // object.
-StoragePath::StoragePath(const std::string& bucket, const std::string& path,
+StoragePath::StoragePath(const std::string& bucket,
+                         const std::string& path,
                          const std::string& object) {
   bucket_ = bucket;
   path_ = Path(path).GetChild(object);

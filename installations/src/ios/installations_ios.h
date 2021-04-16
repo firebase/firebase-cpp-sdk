@@ -15,10 +15,10 @@
 #ifndef FIREBASE_FIS_CLIENT_CPP_SRC_IOS_INSTALLATIONS_IOS_H_
 #define FIREBASE_FIS_CLIENT_CPP_SRC_IOS_INSTALLATIONS_IOS_H_
 
-#include "firebase/app.h"
 #include "app/memory/unique_ptr.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_ios.h"
+#include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 
@@ -57,7 +57,9 @@ class InstallationsInternal {
 
  private:
 #ifdef __OBJC__
-  FIRInstallations* _Nullable impl() const { return impl_->get(); }
+  FIRInstallations* _Nullable impl() const {
+    return impl_->get();
+  }
 #endif
   // app
   const firebase::App& app_;

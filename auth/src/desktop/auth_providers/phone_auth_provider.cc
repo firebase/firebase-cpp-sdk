@@ -28,17 +28,20 @@ namespace auth {
 
 static const char* kMockVerificationId = "mock verification id";
 
-PhoneAuthProvider::ForceResendingToken::ForceResendingToken()
-    : data_(nullptr) {}
+PhoneAuthProvider::ForceResendingToken::ForceResendingToken() : data_(nullptr) {
+}
 
-PhoneAuthProvider::ForceResendingToken::~ForceResendingToken() {}
+PhoneAuthProvider::ForceResendingToken::~ForceResendingToken() {
+}
 
 PhoneAuthProvider::ForceResendingToken::ForceResendingToken(
     const ForceResendingToken& rhs)
-    : data_(nullptr) {}
+    : data_(nullptr) {
+}
 
-PhoneAuthProvider::ForceResendingToken& PhoneAuthProvider::ForceResendingToken::
-operator=(const ForceResendingToken& rhs) {
+PhoneAuthProvider::ForceResendingToken&
+PhoneAuthProvider::ForceResendingToken::operator=(
+    const ForceResendingToken& rhs) {
   return *this;
 }
 
@@ -52,15 +55,21 @@ bool PhoneAuthProvider::ForceResendingToken::operator!=(
   return true;
 }
 
-PhoneAuthProvider::Listener::Listener() : data_(nullptr) {}
-PhoneAuthProvider::Listener::~Listener() {}
+PhoneAuthProvider::Listener::Listener() : data_(nullptr) {
+}
+PhoneAuthProvider::Listener::~Listener() {
+}
 
-PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {}
-PhoneAuthProvider::~PhoneAuthProvider() {}
+PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {
+}
+PhoneAuthProvider::~PhoneAuthProvider() {
+}
 
 void PhoneAuthProvider::VerifyPhoneNumber(
-    const char* /*phone_number*/, uint32_t /*auto_verify_time_out_ms*/,
-    const ForceResendingToken* force_resending_token, Listener* listener) {
+    const char* /*phone_number*/,
+    uint32_t /*auto_verify_time_out_ms*/,
+    const ForceResendingToken* force_resending_token,
+    Listener* listener) {
   FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
 
   // Mock the tokens by sending a new one whenever it's unspecified.

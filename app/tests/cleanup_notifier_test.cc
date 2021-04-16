@@ -15,8 +15,8 @@
  */
 
 #include "app/src/cleanup_notifier.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace testing {
@@ -25,7 +25,8 @@ class CleanupNotifierTest : public ::testing::Test {};
 
 namespace {
 struct Object {
-  explicit Object(int counter_) : counter(counter_) {}
+  explicit Object(int counter_) : counter(counter_) {
+  }
   int counter;
 
   static void IncrementCounter(void* obj_void) {
@@ -147,8 +148,12 @@ TEST_F(CleanupNotifierTest, TestMultipleCleanupNotifiersReferringToSameObject) {
 namespace {
 class OwnerObject {
  public:
-  OwnerObject() { notifier_.RegisterOwner(this); }
-  ~OwnerObject() { notifier_.CleanupAll(); }
+  OwnerObject() {
+    notifier_.RegisterOwner(this);
+  }
+  ~OwnerObject() {
+    notifier_.CleanupAll();
+  }
 
  protected:
   CleanupNotifier notifier_;
@@ -156,8 +161,11 @@ class OwnerObject {
 
 class DerivedOwnerObject : public OwnerObject {
  public:
-  DerivedOwnerObject() { notifier_.RegisterOwner(this); }
-  ~DerivedOwnerObject() {}
+  DerivedOwnerObject() {
+    notifier_.RegisterOwner(this);
+  }
+  ~DerivedOwnerObject() {
+  }
 };
 
 class SubscriberObject {
@@ -296,11 +304,16 @@ class TypedCleanupNotifierTest : public ::testing::Test {};
 
 namespace {
 struct TypedObject {
-  explicit TypedObject(int counter_) : counter(counter_) {}
+  explicit TypedObject(int counter_) : counter(counter_) {
+  }
   int counter;
 
-  static void IncrementCounter(TypedObject* obj) { obj->counter++; }
-  static void DecrementCounter(TypedObject* obj) { obj->counter--; }
+  static void IncrementCounter(TypedObject* obj) {
+    obj->counter++;
+  }
+  static void DecrementCounter(TypedObject* obj) {
+    obj->counter--;
+  }
 };
 }  // namespace
 

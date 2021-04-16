@@ -38,17 +38,23 @@ namespace util {
 // since these aren't made available in the header. These return true on success
 // and false on failure. Failure is a result of using binary blobs in the
 // variant, or using types that cannot be coerced to a string as a key in a map.
-static bool VariantToJson(const Variant& variant, bool prettyPrint,
-                          const std::string& indent, std::stringstream* ss);
+static bool VariantToJson(const Variant& variant,
+                          bool prettyPrint,
+                          const std::string& indent,
+                          std::stringstream* ss);
 static bool StdMapToJson(const std::map<Variant, Variant>& map,
-                         bool prettyPrint, const std::string& indent,
+                         bool prettyPrint,
+                         const std::string& indent,
                          std::stringstream* ss);
 static bool StdVectorToJson(const std::vector<Variant>& vector,
-                            bool prettyPrint, const std::string& indent,
+                            bool prettyPrint,
+                            const std::string& indent,
                             std::stringstream* ss);
 
-static bool VariantToJson(const Variant& variant, bool prettyPrint,
-                          const std::string& indent, std::stringstream* ss) {
+static bool VariantToJson(const Variant& variant,
+                          bool prettyPrint,
+                          const std::string& indent,
+                          std::stringstream* ss) {
   switch (variant.type()) {
     case Variant::kTypeNull: {
       *ss << "null";
@@ -98,7 +104,8 @@ static bool VariantToJson(const Variant& variant, bool prettyPrint,
 }
 
 static bool StdMapToJson(const std::map<Variant, Variant>& map,
-                         bool prettyPrint, const std::string& indent,
+                         bool prettyPrint,
+                         const std::string& indent,
                          std::stringstream* ss) {
   *ss << '{';
   std::string nextIndent = indent + "  ";
@@ -135,7 +142,8 @@ static bool StdMapToJson(const std::map<Variant, Variant>& map,
 }
 
 static bool StdVectorToJson(const std::vector<Variant>& vector,
-                            bool prettyPrint, const std::string& indent,
+                            bool prettyPrint,
+                            const std::string& indent,
                             std::stringstream* ss) {
   *ss << '[';
   std::string nextIndent = indent + "  ";

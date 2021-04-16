@@ -68,14 +68,17 @@ class StorageReferenceInternal {
   Future<void> DeleteLastResult();
 
   // Asynchronously downloads the object from this StorageReference.
-  Future<size_t> GetFile(const char* path, Listener* listener,
+  Future<size_t> GetFile(const char* path,
+                         Listener* listener,
                          Controller* controller_out);
 
   // Returns the result of the most recent call to GetFile();
   Future<size_t> GetFileLastResult();
 
   // Asynchronously downloads the object from this StorageReference.
-  Future<size_t> GetBytes(void* buffer, size_t buffer_size, Listener* listener,
+  Future<size_t> GetBytes(void* buffer,
+                          size_t buffer_size,
+                          Listener* listener,
                           Controller* controller_out);
 
   // Returns the result of the most recent call to GetBytes();
@@ -101,13 +104,17 @@ class StorageReferenceInternal {
 
   // Asynchronously uploads data to the currently specified StorageReference,
   // without additional metadata.
-  Future<Metadata> PutBytes(const void* buffer, size_t buffer_size,
-                            Listener* listener, Controller* controller_out);
+  Future<Metadata> PutBytes(const void* buffer,
+                            size_t buffer_size,
+                            Listener* listener,
+                            Controller* controller_out);
 
   // Asynchronously uploads data to the currently specified StorageReference,
   // without additional metadata.
-  Future<Metadata> PutBytes(const void* buffer, size_t buffer_size,
-                            const Metadata* metadata, Listener* listener,
+  Future<Metadata> PutBytes(const void* buffer,
+                            size_t buffer_size,
+                            const Metadata* metadata,
+                            Listener* listener,
                             Controller* controller_out);
 
   // Returns the result of the most recent call to Write();
@@ -115,19 +122,24 @@ class StorageReferenceInternal {
 
   // Asynchronously uploads data to the currently specified StorageReference,
   // without additional metadata.
-  Future<Metadata> PutFile(const char* path, Listener* listener,
+  Future<Metadata> PutFile(const char* path,
+                           Listener* listener,
                            Controller* controller_out);
 
   // Asynchronously uploads data to the currently specified StorageReference,
   // without additional metadata.
-  Future<Metadata> PutFile(const char* path, const Metadata* metadata,
-                           Listener* listener, Controller* controller_out);
+  Future<Metadata> PutFile(const char* path,
+                           const Metadata* metadata,
+                           Listener* listener,
+                           Controller* controller_out);
 
   // Returns the result of the most recent call to Write();
   Future<Metadata> PutFileLastResult();
 
   // Pointer to the StorageInternal instance we are a part of.
-  StorageInternal* storage_internal() const { return storage_; }
+  StorageInternal* storage_internal() const {
+    return storage_;
+  }
 
   // Wrap this in a StorageReference.
   // Exposed for testing.
@@ -135,18 +147,24 @@ class StorageReferenceInternal {
 
  private:
   // Upload data without metadata.
-  Future<Metadata> PutBytesInternal(const void* buffer, size_t buffer_size,
+  Future<Metadata> PutBytesInternal(const void* buffer,
+                                    size_t buffer_size,
                                     Listener* listener,
                                     Controller* controller_out);
   // Upload file without metadata.
-  Future<Metadata> PutFileInternal(const char* path, Listener* listener,
+  Future<Metadata> PutFileInternal(const char* path,
+                                   Listener* listener,
                                    Controller* controller_out);
 
-  void RestCall(rest::Request* request, internal::Notifier* request_notifier,
-                BlockingResponse* response, FutureHandle handle,
-                Listener* listener, Controller* controller_out);
+  void RestCall(rest::Request* request,
+                internal::Notifier* request_notifier,
+                BlockingResponse* response,
+                FutureHandle handle,
+                Listener* listener,
+                Controller* controller_out);
 
-  void PrepareRequest(rest::Request* request, const char* url,
+  void PrepareRequest(rest::Request* request,
+                      const char* url,
                       const char* method);
 
   void SetupMetadataChain(Future<Metadata> starting_future,

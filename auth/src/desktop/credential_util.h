@@ -43,7 +43,8 @@ std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
 // a VerifyAssertionRequest (if it's one of OAuth providers), assuming that the
 // given void pointer refers to a CredentialImpl*.
 std::unique_ptr<rest::Request> CreateRequestFromCredential(
-    AuthData* const auth_data, const std::string& provider,
+    AuthData* const auth_data,
+    const std::string& provider,
     const void* raw_credential);
 
 // Extracts a pointer to EmailAuthCredential* from the given void pointer (which

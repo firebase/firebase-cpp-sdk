@@ -138,8 +138,10 @@ Future<void> DatabaseReferenceInternal::RemoveValueLastResult() {
 }
 
 Future<DataSnapshot> DatabaseReferenceInternal::RunTransaction(
-    DoTransactionWithContext transaction_function, void* context,
-    void (*delete_context)(void*), bool trigger_local_events) {
+    DoTransactionWithContext transaction_function,
+    void* context,
+    void (*delete_context)(void*),
+    bool trigger_local_events) {
   SafeFutureHandle<DataSnapshot> handle = ref_future()->SafeAlloc<DataSnapshot>(
       kDatabaseReferenceFnRunTransaction, DataSnapshot(nullptr));
 
@@ -289,9 +291,13 @@ DisconnectionHandler* DatabaseReferenceInternal::OnDisconnect() {
       new DisconnectionHandlerInternal(database_, query_spec_.path));
 }
 
-void DatabaseReferenceInternal::GoOffline() { database_->GoOffline(); }
+void DatabaseReferenceInternal::GoOffline() {
+  database_->GoOffline();
+}
 
-void DatabaseReferenceInternal::GoOnline() { database_->GoOnline(); }
+void DatabaseReferenceInternal::GoOnline() {
+  database_->GoOnline();
+}
 
 ReferenceCountedFutureImpl* DatabaseReferenceInternal::ref_future() {
   return database_->future_manager().GetFutureApi(&future_api_id_);

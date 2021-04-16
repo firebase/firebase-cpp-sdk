@@ -17,8 +17,8 @@
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/indexed_variant.h"
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::Eq;
 using ::testing::Pointwise;
@@ -193,7 +193,7 @@ TEST(IndexedFilter, UpdateChild_RemovedValue) {
   EXPECT_THAT(change_accumulator, Pointwise(Eq(), expected_changes));
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST(IndexedFilterDeathTest, DISABLED_UpdateChild_OrderByMismatch) {
@@ -317,7 +317,7 @@ TEST(IndexedFilter, UpdateFullVariant) {
   }
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST(IndexedFilterDeathTest, DISABLED_UpdateFullVariant_OrderByMismatch) {

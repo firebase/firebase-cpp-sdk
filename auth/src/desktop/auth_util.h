@@ -69,7 +69,8 @@ void FailPromise(Promise<T>* promise, AuthError error_code);
 // arguments to the invocation.
 template <typename ResultT, typename RequestT>
 Future<ResultT> CallAsync(
-    AuthData* auth_data, Promise<ResultT> promise,
+    AuthData* auth_data,
+    Promise<ResultT> promise,
     std::unique_ptr<RequestT> request,
     const typename AuthDataHandle<ResultT, RequestT>::CallbackT callback);
 
@@ -86,7 +87,8 @@ T GetResponse(const rest::Request& request);
 
 template <typename ResultT, typename RequestT>
 inline Future<ResultT> CallAsync(
-    AuthData* const auth_data, Promise<ResultT> promise,
+    AuthData* const auth_data,
+    Promise<ResultT> promise,
     std::unique_ptr<RequestT> request,
     const typename AuthDataHandle<ResultT, RequestT>::CallbackT callback) {
   // Note: it's okay for the caller to pass a null request - they may want to

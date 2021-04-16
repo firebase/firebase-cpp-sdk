@@ -88,15 +88,16 @@ class ModuleInitializer {
   /// @note If a pending Initialize() is already running, this function will
   /// return the existing Future rather than adding any new functions to the
   /// initializer list.
-  Future<void> Initialize(App* app, void* context,
-                          const InitializerFn* init_fns, size_t init_fns_count);
+  Future<void> Initialize(App* app,
+                          void* context,
+                          const InitializerFn* init_fns,
+                          size_t init_fns_count);
 
   /// @brief Initialize one Firebase module by calling a single user-supplied
   /// function that should initialize a Firebase module and return the
   /// InitResult. @see Initialize(::firebase::App*, void*, const InitializerFn*)
   /// for more information.
-  Future<void> Initialize(App* app, void* context,
-                          InitializerFn init_fn);
+  Future<void> Initialize(App* app, void* context, InitializerFn init_fn);
 
   /// @brief Get the result of the most recent call to @see Initialize().
   Future<void> InitializeLastResult();

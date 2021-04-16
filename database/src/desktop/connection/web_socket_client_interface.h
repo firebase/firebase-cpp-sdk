@@ -27,7 +27,8 @@ namespace connection {
 // platform.
 class WebSocketClientInterface {
  public:
-  virtual ~WebSocketClientInterface(){}
+  virtual ~WebSocketClientInterface() {
+  }
 
   // Request to connect to websocket server
   virtual void Connect(int timeout_ms) = 0;
@@ -42,19 +43,24 @@ class WebSocketClientInterface {
 // Context when OnError occurs.  Currently only contains the uri.
 class WebSocketClientErrorData {
  public:
-  explicit WebSocketClientErrorData(const char* uri) : uri_(uri) {}
+  explicit WebSocketClientErrorData(const char* uri) : uri_(uri) {
+  }
 
-  const std::string& GetUri() const { return uri_; }
+  const std::string& GetUri() const {
+    return uri_;
+  }
 
  private:
-  WebSocketClientErrorData() : WebSocketClientErrorData("") {}
+  WebSocketClientErrorData() : WebSocketClientErrorData("") {
+  }
 
   std::string uri_;
 };
 
 class WebSocketClientEventHandler {
  public:
-  virtual ~WebSocketClientEventHandler(){}
+  virtual ~WebSocketClientEventHandler() {
+  }
 
   // Called when the connection is established
   virtual void OnOpen() = 0;

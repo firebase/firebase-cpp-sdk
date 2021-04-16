@@ -20,11 +20,11 @@
 #include <string>
 #include <vector>
 
+#include "firebase/auth/credential.h"
+#include "firebase/auth/types.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 #include "firebase/variant.h"
-#include "firebase/auth/credential.h"
-#include "firebase/auth/types.h"
 
 namespace firebase {
 namespace auth {
@@ -131,7 +131,8 @@ struct AdditionalUserInfo {
 
 /// @brief Metadata corresponding to a Firebase user.
 struct UserMetadata {
-  UserMetadata() : last_sign_in_timestamp(0), creation_timestamp(0) {}
+  UserMetadata() : last_sign_in_timestamp(0), creation_timestamp(0) {
+  }
 
   /// The last sign in UTC timestamp in milliseconds.
   /// See https://en.wikipedia.org/wiki/Unix_time for details of UTC.
@@ -143,7 +144,8 @@ struct UserMetadata {
 
 /// @brief Result of operations that can affect authentication state.
 struct SignInResult {
-  SignInResult() : user(NULL) {}
+  SignInResult() : user(NULL) {
+  }
 
   /// The currently signed-in @ref User, or NULL if there isn't any (i.e. the
   /// user is signed out).
@@ -169,7 +171,8 @@ class User : public UserInfoInterface {
   /// For fields you want to reset, pass "".
   struct UserProfile {
     /// Construct a UserProfile with no display name or photo URL.
-    UserProfile() : display_name(NULL), photo_url(NULL) {}
+    UserProfile() : display_name(NULL), photo_url(NULL) {
+    }
 
     /// User display name.
     const char* display_name;
@@ -473,7 +476,8 @@ class User : public UserInfoInterface {
   /// @cond FIREBASE_APP_INTERNAL
   friend struct AuthData;
   // Only exists in AuthData. Access via @ref Auth::CurrentUser().
-  explicit User(AuthData* auth_data) : auth_data_(auth_data) {}
+  explicit User(AuthData* auth_data) : auth_data_(auth_data) {
+  }
 
   // Disable copy constructor.
   User(const User&) = delete;

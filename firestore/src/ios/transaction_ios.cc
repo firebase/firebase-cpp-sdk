@@ -3,13 +3,6 @@
 #include <future>  // NOLINT(build/c++11)
 #include <utility>
 
-#include "firestore/src/common/hard_assert_common.h"
-#include "firestore/src/ios/converter_ios.h"
-#include "firestore/src/ios/document_reference_ios.h"
-#include "firestore/src/ios/field_value_ios.h"
-#include "firestore/src/ios/set_options_ios.h"
-#include "firestore/src/ios/util_ios.h"
-#include "absl/types/optional.h"
 #include "Firestore/core/src/core/user_data.h"
 #include "Firestore/core/src/model/document.h"
 #include "Firestore/core/src/model/document_key.h"
@@ -17,6 +10,13 @@
 #include "Firestore/core/src/model/maybe_document.h"
 #include "Firestore/core/src/util/status.h"
 #include "Firestore/core/src/util/statusor.h"
+#include "absl/types/optional.h"
+#include "firestore/src/common/hard_assert_common.h"
+#include "firestore/src/ios/converter_ios.h"
+#include "firestore/src/ios/document_reference_ios.h"
+#include "firestore/src/ios/field_value_ios.h"
+#include "firestore/src/ios/set_options_ios.h"
+#include "firestore/src/ios/util_ios.h"
 
 namespace firebase {
 namespace firestore {
@@ -35,7 +35,8 @@ const model::DocumentKey& GetKey(const DocumentReference& document) {
 }
 
 DocumentSnapshot ConvertToSingleSnapshot(
-    const std::shared_ptr<api::Firestore>& firestore, model::DocumentKey key,
+    const std::shared_ptr<api::Firestore>& firestore,
+    model::DocumentKey key,
     const std::vector<MaybeDocument>& documents) {
   SIMPLE_HARD_ASSERT(
       documents.size() == 1,
@@ -77,7 +78,8 @@ TransactionInternal::TransactionInternal(
     FirestoreInternal* firestore_internal)
     : transaction_{std::move(NOT_NULL(transaction))},
       firestore_internal_{NOT_NULL(firestore_internal)},
-      user_data_converter_{&firestore_internal->database_id()} {}
+      user_data_converter_{&firestore_internal->database_id()} {
+}
 
 Firestore* TransactionInternal::firestore() {
   return Firestore::GetInstance(firestore_internal_->app());

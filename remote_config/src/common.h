@@ -45,10 +45,14 @@ enum FutureStatus {
 // future required by this API (fetch_future_).
 class FutureData {
  public:
-  FutureData() : api_(kRemoteConfigFnCount) {}
-  ~FutureData() {}
+  FutureData() : api_(kRemoteConfigFnCount) {
+  }
+  ~FutureData() {
+  }
 
-  ReferenceCountedFutureImpl* api() { return &api_; }
+  ReferenceCountedFutureImpl* api() {
+    return &api_;
+  }
 
   // Create FutureData singleton.
   static FutureData* Create();
@@ -60,7 +64,7 @@ class FutureData {
  private:
   ReferenceCountedFutureImpl api_;
 
-  static FutureData *s_future_data_;
+  static FutureData* s_future_data_;
 };
 
 namespace internal {
@@ -72,7 +76,8 @@ bool IsInitialized();
 // Waits until the given future is complete and asserts that it completed with
 // the given error (no error by default). Returns the future's result.
 template <typename T>
-void WaitForFuture(const firebase::Future<T>& future, Semaphore* future_sem,
+void WaitForFuture(const firebase::Future<T>& future,
+                   Semaphore* future_sem,
                    const char* action_name) {
   // Block and wait until Future is complete.
   future.OnCompletion(

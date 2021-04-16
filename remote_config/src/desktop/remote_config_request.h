@@ -36,11 +36,13 @@ class RemoteConfigRequest
   FRIEND_TEST(RemoteConfigRESTTest, SetupRESTRequest);
 #endif  // FIREBASE_TESTING
  public:
-  RemoteConfigRequest() : RemoteConfigRequest(request_resource_data) {}
+  RemoteConfigRequest() : RemoteConfigRequest(request_resource_data) {
+  }
   explicit RemoteConfigRequest(const char* schema);
 
   explicit RemoteConfigRequest(const unsigned char* schema)
-      : RemoteConfigRequest(reinterpret_cast<const char*>(schema)) {}
+      : RemoteConfigRequest(reinterpret_cast<const char*>(schema)) {
+  }
 
   void SetAppId(std::string app_id) {
     application_data_->appId = std::move(app_id);
@@ -87,7 +89,9 @@ class RemoteConfigRequest
         std::move(analytics_user_properties);
   }
 
-  void UpdatePost() { UpdatePostFields(); }
+  void UpdatePost() {
+    UpdatePostFields();
+  }
 };
 
 }  // namespace internal

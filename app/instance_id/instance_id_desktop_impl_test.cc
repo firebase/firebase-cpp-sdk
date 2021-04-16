@@ -29,8 +29,8 @@
 #include "app/src/secure/user_secure_manager_fake.h"
 #include "app/src/time.h"
 #include "app/tests/include/firebase/app_for_testing.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/config.h"
 #include "third_party/jsoncpp/testing.h"
 
@@ -46,7 +46,9 @@ using ::testing::Ne;
   static void Set##name(object* impl, field_type value) {  \
     impl->field_name = value;                              \
   }                                                        \
-  static field_type Get##name(object* impl) { return impl->field_name; }
+  static field_type Get##name(object* impl) {              \
+    return impl->field_name;                               \
+  }
 
 #define ACCESS_METHOD0(object, method_return_type, method_name) \
   static method_return_type method_name(object* impl) {         \
@@ -84,18 +86,22 @@ static const char kDigest[] = "test_digest";
 class ValidatingTransportMock : public rest::TransportMock {
  public:
   struct ExpectedRequest {
-    ExpectedRequest() {}
+    ExpectedRequest() {
+    }
 
-    ExpectedRequest(const char* body_, bool body_is_json_,
+    ExpectedRequest(const char* body_,
+                    bool body_is_json_,
                     const std::map<std::string, std::string>& headers_)
-        : body(body_), body_is_json(body_is_json_), headers(headers_) {}
+        : body(body_), body_is_json(body_is_json_), headers(headers_) {
+    }
 
     std::string body;
     bool body_is_json;
     std::map<std::string, std::string> headers;
   };
 
-  ValidatingTransportMock() {}
+  ValidatingTransportMock() {
+  }
 
   void SetExpectedRequestForUrl(const std::string& url,
                                 const ExpectedRequest& expected) {
@@ -104,7 +110,8 @@ class ValidatingTransportMock : public rest::TransportMock {
 
  protected:
   void PerformInternal(
-      rest::Request* request, rest::Response* response,
+      rest::Request* request,
+      rest::Response* response,
       flatbuffers::unique_ptr<rest::Controller>* controller_out) override {
     std::string body;
     EXPECT_TRUE(request->ReadBodyIntoString(&body));
@@ -165,7 +172,8 @@ class InstanceIdDesktopImplTest : public ::testing::Test {
   }
 
   // Create accessors / mutators for private fields in InstanceIdDesktopImpl.
-  ACCESS_FIELD(InstanceIdDesktopImpl, UserSecureManager,
+  ACCESS_FIELD(InstanceIdDesktopImpl,
+               UserSecureManager,
                UniquePtr<firebase::app::secure::UserSecureManager>,
                user_secure_manager_);
   ACCESS_FIELD(InstanceIdDesktopImpl, InstanceId, std::string, instance_id_);
@@ -174,22 +182,36 @@ class InstanceIdDesktopImplTest : public ::testing::Test {
   ACCESS_FIELD(InstanceIdDesktopImpl, Locale, std::string, locale_);
   ACCESS_FIELD(InstanceIdDesktopImpl, Timezone, std::string, timezone_);
   ACCESS_FIELD(InstanceIdDesktopImpl, LoggingId, int, logging_id_);
-  ACCESS_FIELD(InstanceIdDesktopImpl, IosDeviceModel, std::string,
+  ACCESS_FIELD(InstanceIdDesktopImpl,
+               IosDeviceModel,
+               std::string,
                ios_device_model_);
-  ACCESS_FIELD(InstanceIdDesktopImpl, IosDeviceVersion, std::string,
+  ACCESS_FIELD(InstanceIdDesktopImpl,
+               IosDeviceVersion,
+               std::string,
                ios_device_version_);
-  ACCESS_FIELD(InstanceIdDesktopImpl, CheckinDataLastCheckinTimeMs, uint64_t,
+  ACCESS_FIELD(InstanceIdDesktopImpl,
+               CheckinDataLastCheckinTimeMs,
+               uint64_t,
                checkin_data_.last_checkin_time_ms);
-  ACCESS_FIELD(InstanceIdDesktopImpl, CheckinDataSecurityToken, std::string,
+  ACCESS_FIELD(InstanceIdDesktopImpl,
+               CheckinDataSecurityToken,
+               std::string,
                checkin_data_.security_token);
-  ACCESS_FIELD(InstanceIdDesktopImpl, CheckinDataDeviceId, std::string,
+  ACCESS_FIELD(InstanceIdDesktopImpl,
+               CheckinDataDeviceId,
+               std::string,
                checkin_data_.device_id);
-  ACCESS_FIELD(InstanceIdDesktopImpl, CheckinDataDigest, std::string,
+  ACCESS_FIELD(InstanceIdDesktopImpl,
+               CheckinDataDigest,
+               std::string,
                checkin_data_.digest);
   ACCESS_FIELD(InstanceIdDesktopImpl, AppVersion, std::string, app_version_);
   ACCESS_FIELD(InstanceIdDesktopImpl, OsVersion, std::string, os_version_);
   ACCESS_FIELD(InstanceIdDesktopImpl, Platform, int, platform_);
-  ACCESS_FIELD(InstanceIdDesktopImpl, Transport, UniquePtr<rest::Transport>,
+  ACCESS_FIELD(InstanceIdDesktopImpl,
+               Transport,
+               UniquePtr<rest::Transport>,
                transport_);
   // Create wrappers for private methods in InstanceIdDesktopImpl.
   ACCESS_METHOD0(InstanceIdDesktopImpl, bool, SaveToStorage);
@@ -197,10 +219,10 @@ class InstanceIdDesktopImplTest : public ::testing::Test {
   ACCESS_METHOD0(InstanceIdDesktopImpl, bool, DeleteFromStorage);
   ACCESS_METHOD0(InstanceIdDesktopImpl, bool, InitialOrRefreshCheckin);
   ACCESS_METHOD0(InstanceIdDesktopImpl, std::string, GenerateAppId);
-  ACCESS_METHOD2(InstanceIdDesktopImpl, bool, FetchServerToken, const char*,
-                 bool*);
-  ACCESS_METHOD2(InstanceIdDesktopImpl, bool, DeleteServerToken, const char*,
-                 bool);
+  ACCESS_METHOD2(
+      InstanceIdDesktopImpl, bool, FetchServerToken, const char*, bool*);
+  ACCESS_METHOD2(
+      InstanceIdDesktopImpl, bool, DeleteServerToken, const char*, bool);
 
   InstanceIdDesktopImpl* impl_;
   App* app_;

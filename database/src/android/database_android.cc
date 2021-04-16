@@ -112,12 +112,14 @@ METHOD_LOOKUP_DEFINITION(firebase_database,
     X(WriteCanceled, "WRITE_CANCELED", "I", util::kFieldTypeStatic)
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(database_error, DATABASE_ERROR_METHODS,
+METHOD_LOOKUP_DECLARATION(database_error,
+                          DATABASE_ERROR_METHODS,
                           DATABASE_ERROR_FIELDS)
 METHOD_LOOKUP_DEFINITION(database_error,
                          PROGUARD_KEEP_CLASS
                          "com/google/firebase/database/DatabaseError",
-                         DATABASE_ERROR_METHODS, DATABASE_ERROR_FIELDS)
+                         DATABASE_ERROR_METHODS,
+                         DATABASE_ERROR_FIELDS)
 
 // clang-format off
 #define CPP_TRANSACTION_HANDLER_METHODS(X)                                    \
@@ -440,7 +442,9 @@ DatabaseInternal::~DatabaseInternal() {
   util::CheckAndClearJniExceptions(env);
 }
 
-App* DatabaseInternal::GetApp() const { return app_; }
+App* DatabaseInternal::GetApp() const {
+  return app_;
+}
 
 DatabaseReference DatabaseInternal::GetReference() const {
   JNIEnv* env = app_->GetJNIEnv();
@@ -553,7 +557,9 @@ void DatabaseInternal::set_log_level(LogLevel log_level) {
   }
 }
 
-LogLevel DatabaseInternal::log_level() const { return logger_.GetLogLevel(); }
+LogLevel DatabaseInternal::log_level() const {
+  return logger_.GetLogLevel();
+}
 
 Error DatabaseInternal::ErrorFromResultAndErrorCode(
     util::FutureResult result_code, jint error_code) const {

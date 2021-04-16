@@ -28,7 +28,9 @@ class GitHubAuthProvider;
 
 class GitHubAuthCredential : public IdentityProviderCredential {
  public:
-  std::string GetProvider() const override { return kGitHubAuthProviderId; }
+  std::string GetProvider() const override {
+    return kGitHubAuthProviderId;
+  }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
       const char* const api_key) const override {
@@ -37,7 +39,8 @@ class GitHubAuthCredential : public IdentityProviderCredential {
   }
 
  private:
-  explicit GitHubAuthCredential(const std::string& token) : token_(token) {}
+  explicit GitHubAuthCredential(const std::string& token) : token_(token) {
+  }
 
   const std::string token_;
 

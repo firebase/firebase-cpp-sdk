@@ -94,9 +94,11 @@ void* CreatePlatformAuth(App* const app) {
 void InitializeFunctionRegistryListener(AuthData* auth_data);
 void DestroyFunctionRegistryListener(AuthData* auth_data);
 
-IdTokenRefreshListener::IdTokenRefreshListener() : token_timestamp_(0) {}
+IdTokenRefreshListener::IdTokenRefreshListener() : token_timestamp_(0) {
+}
 
-IdTokenRefreshListener::~IdTokenRefreshListener() {}
+IdTokenRefreshListener::~IdTokenRefreshListener() {
+}
 
 void IdTokenRefreshListener::OnIdTokenChanged(Auth* auth) {
   // Note:  Make sure to always make future_impl.mutex the innermost lock,
@@ -156,7 +158,8 @@ bool Auth::GetAuthTokenForRegistry(App* app, void* /*unused*/, void* out) {
 
 // It basically just calls the public GetToken function on the current user and
 // output the Future.
-bool Auth::GetAuthTokenAsyncForRegistry(App* app, void* force_refresh,
+bool Auth::GetAuthTokenAsyncForRegistry(App* app,
+                                        void* force_refresh,
                                         void* out) {
   Future<std::string>* out_future = static_cast<Future<std::string>*>(out);
   // Reset the future
@@ -200,7 +203,8 @@ bool Auth::GetCurrentUserUidForRegistry(App* app, void* /*unused*/, void* out) {
   return true;
 }
 
-bool Auth::StartTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
+bool Auth::StartTokenRefreshThreadForRegistry(App* app,
+                                              void* /*unused*/,
                                               void* /*unused*/) {
   Auth* auth = Auth::FindAuth(app);
   if (auth) {
@@ -210,7 +214,8 @@ bool Auth::StartTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
   return false;
 }
 
-bool Auth::StopTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
+bool Auth::StopTokenRefreshThreadForRegistry(App* app,
+                                             void* /*unused*/,
                                              void* /*unused*/) {
   Auth* auth = Auth::FindAuth(app);
   if (auth) {
@@ -243,7 +248,8 @@ void FunctionRegistryAuthStateListener::OnAuthStateChanged(Auth* auth) {
   }
 }
 
-bool Auth::AddAuthStateListenerForRegistry(App* app, void* callback,
+bool Auth::AddAuthStateListenerForRegistry(App* app,
+                                           void* callback,
                                            void* context) {
   auto typed_callback = reinterpret_cast<FunctionRegistryCallback>(callback);
 
@@ -255,7 +261,8 @@ bool Auth::AddAuthStateListenerForRegistry(App* app, void* callback,
   return true;
 }
 
-bool Auth::RemoveAuthStateListenerForRegistry(App* app, void* callback,
+bool Auth::RemoveAuthStateListenerForRegistry(App* app,
+                                              void* callback,
                                               void* context) {
   auto typed_callback = reinterpret_cast<FunctionRegistryCallback>(callback);
 
@@ -504,12 +511,18 @@ void Auth::SignOut() {
 // finished.
 class CurrentUserBlockListener : public firebase::auth::AuthStateListener {
  public:
-  explicit CurrentUserBlockListener() : semaphore_(0) {}
-  ~CurrentUserBlockListener() override {}
+  explicit CurrentUserBlockListener() : semaphore_(0) {
+  }
+  ~CurrentUserBlockListener() override {
+  }
 
-  void OnAuthStateChanged(Auth* auth) override { semaphore_.Post(); }
+  void OnAuthStateChanged(Auth* auth) override {
+    semaphore_.Post();
+  }
 
-  void WaitForEvent() { semaphore_.Wait(); }
+  void WaitForEvent() {
+    semaphore_.Wait();
+  }
 
  private:
   Semaphore semaphore_;
@@ -633,10 +646,13 @@ void LoadFinishTriggerListeners(AuthData* auth_data) {
   NotifyIdTokenListeners(auth_data);
 }
 
-void IdTokenRefreshThread::WakeThread() { wakeup_sem_.Post(); }
+void IdTokenRefreshThread::WakeThread() {
+  wakeup_sem_.Post();
+}
 
 IdTokenRefreshThread::IdTokenRefreshThread()
-    : ref_count_(0), is_shutting_down_(false), wakeup_sem_(0) {}
+    : ref_count_(0), is_shutting_down_(false), wakeup_sem_(0) {
+}
 
 // Called once, at startup.
 // Should only be used by the Auth object, on construction.

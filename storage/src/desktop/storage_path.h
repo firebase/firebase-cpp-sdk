@@ -30,7 +30,8 @@ extern const char kGsScheme[];
 class StoragePath {
  public:
   // Default constructor.
-  StoragePath() {}
+  StoragePath() {
+  }
 
   // Constructs a storage path, based on an input URL.  The URL can either be
   // an HTTP[s] link, or a gs URI.
@@ -38,20 +39,27 @@ class StoragePath {
 
   // Constructs a storage path, based on raw strings for the bucket, path, and
   // object.
-  StoragePath(const std::string& bucket, const std::string& path,
+  StoragePath(const std::string& bucket,
+              const std::string& path,
               const std::string& object = "");
 
   // The bucket portion of this path.
   // In the path: MyBucket/folder/object, it would return "MyBucket".
-  const std::string& GetBucket() const { return bucket_; }
+  const std::string& GetBucket() const {
+    return bucket_;
+  }
 
-  const Path& GetPath() const { return path_; }
+  const Path& GetPath() const {
+    return path_;
+  }
 
   // Returns the full path of the object.  This is the concatenation of the
   // bucket, local path, and object.  It's not a full URI, but it is the path
   // to the object, starting from the bucket.
   // ex:  "bucket/path1/path2/object"
-  std::string GetFullPath() const { return bucket_ + kSeparator + path_.str(); }
+  std::string GetFullPath() const {
+    return bucket_ + kSeparator + path_.str();
+  }
 
   // Moves to a child of the current location.  If there is currently an object
   // specified, it is lost.  (i. e:
@@ -76,13 +84,16 @@ class StoragePath {
   std::string AsHttpMetadataUrl() const;
 
   // Check to see if the path has been initialized correctly.
-  bool IsValid() const { return !bucket_.empty(); }
+  bool IsValid() const {
+    return !bucket_.empty();
+  }
 
  private:
   static const char* const kSeparator;
 
   StoragePath(const std::string& bucket, const Path& path)
-      : bucket_(bucket), path_(path) {}
+      : bucket_(bucket), path_(path) {
+  }
 
   void ConstructFromGsUri(const std::string& uri, int path_start);
   void ConstructFromHttpUrl(const std::string& url, int path_start);

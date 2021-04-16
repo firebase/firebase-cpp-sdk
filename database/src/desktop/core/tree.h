@@ -30,7 +30,8 @@ namespace internal {
 template <typename Value>
 class Tree {
  public:
-  Tree() : key_(), value_(), children_(), parent_(nullptr) {}
+  Tree() : key_(), value_(), children_(), parent_(nullptr) {
+  }
 
   Tree(const Tree& other)
       : key_(other.key_),
@@ -75,38 +76,59 @@ class Tree {
   }
 
   explicit Tree(const Value& value)
-      : key_(), value_(value), children_(), parent_(nullptr) {}
+      : key_(), value_(value), children_(), parent_(nullptr) {
+  }
   explicit Tree(const Optional<Value>& maybe_value)
-      : key_(), value_(maybe_value), children_(), parent_(nullptr) {}
+      : key_(), value_(maybe_value), children_(), parent_(nullptr) {
+  }
   explicit Tree(Value&& value)
-      : key_(), value_(std::move(value)), children_(), parent_(nullptr) {}
+      : key_(), value_(std::move(value)), children_(), parent_(nullptr) {
+  }
   explicit Tree(Optional<Value>&& maybe_value)
-      : key_(), value_(std::move(maybe_value)), children_(), parent_(nullptr) {}
+      : key_(), value_(std::move(maybe_value)), children_(), parent_(nullptr) {
+  }
 
-  ~Tree() {}
+  ~Tree() {
+  }
 
   // Return the key of this node in the tree. Root elements will not have a key.
-  const std::string& key() const { return key_; }
+  const std::string& key() const {
+    return key_;
+  }
 
   // If a value has been set at this location, return a pointer to it. Return
   // nullptr otherwise. Note that the pointer might go bad if any operations are
   // applied to the tree (such as adding new children).
-  Optional<Value>& value() { return value_; }
-  const Optional<Value>& value() const { return value_; }
+  Optional<Value>& value() {
+    return value_;
+  }
+  const Optional<Value>& value() const {
+    return value_;
+  }
 
   // Return the map of key/child-nodes.
-  std::map<std::string, Tree<Value>>& children() { return children_; }
+  std::map<std::string, Tree<Value>>& children() {
+    return children_;
+  }
   const std::map<std::string, Tree<Value>>& children() const {
     return children_;
   }
 
   // Return a pointer to the parent node of this node in the tree, if present.
-  const Tree<Value>* parent() const { return parent_; }
+  const Tree<Value>* parent() const {
+    return parent_;
+  }
 
   // Set the value at this location in the tree.
-  void set_value(const Value& value) { value_ = value; }
-  void set_value(const Optional<Value>& maybe_value) { value_ = maybe_value; }
-  void set_value(Value&& value) { value_ = std::move(value); }
+  void set_value(const Value& value) {
+    value_ = value;
+  }
+  void set_value(const Optional<Value>& maybe_value) {
+    value_ = maybe_value;
+  }
+  void set_value(Value&& value) {
+    value_ = std::move(value);
+  }
   void set_value(Optional<Value>&& maybe_value) {
     value_ = std::move(maybe_value);
   }
@@ -340,7 +362,9 @@ class Tree {
 
   // Return true if there is no value and no child nodes at this location in the
   // tree.
-  bool IsEmpty() const { return !value_.has_value() && children_.empty(); }
+  bool IsEmpty() const {
+    return !value_.has_value() && children_.empty();
+  }
 
   // Get the full path to this element in the tree from the root.
   Path GetPath() const {
@@ -437,7 +461,8 @@ class Tree {
   // recurse and call the children after the recursive step.
   // The predicate can return true to cease futher calls, or false to continue.
   template <typename Func>
-  void CallOnEachDescendant(const Func& predicate, bool include_self,
+  void CallOnEachDescendant(const Func& predicate,
+                            bool include_self,
                             bool children_first) {
     if (include_self && !children_first) {
       predicate(this);
@@ -508,7 +533,9 @@ class Tree {
     return value_ == other.value_ && children_ == other.children_;
   }
 
-  bool operator!=(const Tree& other) const { return !(*this == other); }
+  bool operator!=(const Tree& other) const {
+    return !(*this == other);
+  }
 
  private:
   template <typename Func>

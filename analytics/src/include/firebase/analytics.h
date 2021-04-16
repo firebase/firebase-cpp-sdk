@@ -128,7 +128,8 @@ struct Parameter {
   /// Construct an empty parameter.
   ///
   /// This is provided to allow initialization after construction.
-  Parameter() : name(nullptr) {}
+  Parameter() : name(nullptr) {
+  }
 #endif  // !SWIG
 
 // <SWIG>
@@ -299,7 +300,8 @@ void SetAnalyticsCollectionEnabled(bool enabled);
 /// @if cpp_examples
 /// @see LogEvent(const char*, const Parameter*, size_t)
 /// @endif
-void LogEvent(const char* name, const char* parameter_name,
+void LogEvent(const char* name,
+              const char* parameter_name,
               const char* parameter_value);
 
 /// @brief Log an event with one float parameter.
@@ -331,7 +333,8 @@ void LogEvent(const char* name, const char* parameter_name,
 /// @if cpp_examples
 /// @see LogEvent(const char*, const Parameter*, size_t)
 /// @endif
-void LogEvent(const char* name, const char* parameter_name,
+void LogEvent(const char* name,
+              const char* parameter_name,
               const double parameter_value);
 
 /// @brief Log an event with one 64-bit integer parameter.
@@ -363,7 +366,8 @@ void LogEvent(const char* name, const char* parameter_name,
 /// @if cpp_examples
 /// @see LogEvent(const char*, const Parameter*, size_t)
 /// @endif
-void LogEvent(const char* name, const char* parameter_name,
+void LogEvent(const char* name,
+              const char* parameter_name,
               const int64_t parameter_value);
 
 /// @brief Log an event with one integer parameter
@@ -396,7 +400,8 @@ void LogEvent(const char* name, const char* parameter_name,
 /// @if cpp_examples
 /// @see LogEvent(const char*, const Parameter*, size_t)
 /// @endif
-void LogEvent(const char* name, const char* parameter_name,
+void LogEvent(const char* name,
+              const char* parameter_name,
               const int parameter_value);
 
 /// @brief Log an event with no parameters.

@@ -20,10 +20,10 @@
 #include <cstdlib>
 
 #include "app/src/mutex.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
-#include "testing/testdata_config_generated.h"
 #include "flatbuffers/idl.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "testing/testdata_config_generated.h"
 
 namespace firebase {
 namespace testing {

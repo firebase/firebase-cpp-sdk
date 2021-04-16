@@ -19,7 +19,8 @@ namespace firebase {
 namespace auth {
 
 CredentialImpl::CredentialImpl(AuthCredential* const set_auth_credential)
-    : auth_credential{set_auth_credential} {}
+    : auth_credential{set_auth_credential} {
+}
 
 }  // namespace auth
 }  // namespace firebase

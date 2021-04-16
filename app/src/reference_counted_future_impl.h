@@ -66,12 +66,18 @@ const FutureHandleId kInvalidFutureHandle = 0;
 template <typename T>
 class SafeFutureHandle {
  public:
-  inline SafeFutureHandle() : handle_(kInvalidFutureHandle) {}
+  inline SafeFutureHandle() : handle_(kInvalidFutureHandle) {
+  }
   inline explicit SafeFutureHandle(const FutureHandle& handle)
-      : handle_(handle) {}
-  inline const FutureHandle& get() const { return handle_; }
+      : handle_(handle) {
+  }
+  inline const FutureHandle& get() const {
+    return handle_;
+  }
   // See FutureHandle::Detach.
-  void Detach() { handle_.Detach(); }
+  void Detach() {
+    handle_.Detach();
+  }
 
   static const SafeFutureHandle kInvalidHandle;
 
@@ -122,7 +128,8 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   explicit ReferenceCountedFutureImpl(size_t last_result_count)
       : next_future_handle_(kInvalidFutureHandle + 1),
-        last_results_(last_result_count) {}
+        last_results_(last_result_count) {
+  }
   ~ReferenceCountedFutureImpl() override;
 
   // Implementation of detail::FutureApiInterface.
@@ -137,8 +144,10 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   // some form of deletion after the callback is executed (or is removed), you
   // can specify the deletion function as well.
   detail::CompletionCallbackHandle AddCompletionCallback(
-      const FutureHandle& handle, FutureBase::CompletionCallback callback,
-      void* user_data, void (*user_data_delete_fn_ptr)(void*),
+      const FutureHandle& handle,
+      FutureBase::CompletionCallback callback,
+      void* user_data,
+      void (*user_data_delete_fn_ptr)(void*),
       bool single_completion) override;
 
   // Remove a callback that was previously registered via AddCompletionCallback.
@@ -247,7 +256,8 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// @deprecated use safe overload instead.
   ///
   template <typename T, typename F>
-  FIREBASE_DEPRECATED void Complete(const FutureHandle& handle, int error,
+  FIREBASE_DEPRECATED void Complete(const FutureHandle& handle,
+                                    int error,
                                     const char* error_msg,
                                     const F& populate_data_fn) {
     CompleteInternal<T>(handle, error, error_msg, populate_data_fn);
@@ -255,7 +265,9 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   /// Safe overload of Complete.
   template <typename T, typename PopulateFn>
-  void Complete(SafeFutureHandle<T> handle, int error, const char* error_msg,
+  void Complete(SafeFutureHandle<T> handle,
+                int error,
+                const char* error_msg,
                 const PopulateFn& populate_data_fn) {
     CompleteInternal<T>(handle.get(), error, error_msg, populate_data_fn);
   }
@@ -264,14 +276,16 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   ///
   /// @deprecated use safe overload instead.
   template <typename T, typename F>
-  FIREBASE_DEPRECATED void Complete(const FutureHandle& handle, int error,
+  FIREBASE_DEPRECATED void Complete(const FutureHandle& handle,
+                                    int error,
                                     const F& populate_data_fn) {
     CompleteInternal<T, F>(handle, error, nullptr, populate_data_fn);
   }
 
   /// Safe overload of Complete.
   template <typename T, typename PopulateFn>
-  void Complete(SafeFutureHandle<T> handle, int error,
+  void Complete(SafeFutureHandle<T> handle,
+                int error,
                 const PopulateFn& populate_data_fn) {
     CompleteInternal<T>(handle.get(), error, nullptr, populate_data_fn);
   }
@@ -290,15 +304,18 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   ///
   template <typename T>
   FIREBASE_DEPRECATED void CompleteWithResult(const FutureHandle& handle,
-                                              int error, const char* error_msg,
+                                              int error,
+                                              const char* error_msg,
                                               const T& result) {
     CompleteWithResultInternal(handle, error, error_msg, result);
   }
 
   /// Safe overload of CompleteWithResult.
   template <typename T>
-  void CompleteWithResult(SafeFutureHandle<T> handle, int error,
-                          const char* error_msg, const T& result) {
+  void CompleteWithResult(SafeFutureHandle<T> handle,
+                          int error,
+                          const char* error_msg,
+                          const T& result) {
     CompleteWithResultInternal(handle.get(), error, error_msg, result);
   }
 
@@ -307,13 +324,15 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// @deprecated use safe overload instead.
   template <typename T>
   FIREBASE_DEPRECATED void CompleteWithResult(const FutureHandle& handle,
-                                              int error, const T& result) {
+                                              int error,
+                                              const T& result) {
     CompleteWithResultInternal(handle, error, nullptr, result);
   }
 
   /// Safe overload of CompleteWithResult.
   template <typename T>
-  void CompleteWithResult(SafeFutureHandle<T> handle, int error,
+  void CompleteWithResult(SafeFutureHandle<T> handle,
+                          int error,
                           const T& result) {
     CompleteWithResultInternal(handle.get(), error, nullptr, result);
   }
@@ -326,7 +345,8 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   ///
   /// @deprecated use safe overload instead.
   ///
-  FIREBASE_DEPRECATED void Complete(const FutureHandle& handle, int error,
+  FIREBASE_DEPRECATED void Complete(const FutureHandle& handle,
+                                    int error,
                                     const char* error_msg) {
     CompleteInternal<void>(handle, error, error_msg);
   }
@@ -393,10 +413,14 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   /// The synchronization mutex, for data that's accessed in both in and out
   /// of callbacks.
-  Mutex& mutex() { return mutex_; }
+  Mutex& mutex() {
+    return mutex_;
+  }
 
   /// Get the number of LastResult functions.
-  size_t GetLastResultCount() { return last_results_.size(); }
+  size_t GetLastResultCount() {
+    return last_results_.size();
+  }
 
   /// Check if it's safe to delete this API. It's only safe to delete this if
   /// no futures are Pending.
@@ -412,12 +436,15 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// Sets temporary context data associated with a FutureHandle that will be
   /// deallocated alongside the FutureBackingData. This will occur when there
   /// are no more Futures referencing it.
-  void SetContextData(const FutureHandle& handle, void* context_data,
+  void SetContextData(const FutureHandle& handle,
+                      void* context_data,
                       void (*delete_context_data_fn)(void* data_to_delete));
 
   /// CleanupNotifier will invalidate any stale Future instances that
   /// are held by outside code, when this is deleted.
-  TypedCleanupNotifier<FutureBase>& cleanup() { return cleanup_; }
+  TypedCleanupNotifier<FutureBase>& cleanup() {
+    return cleanup_;
+  }
   TypedCleanupNotifier<FutureHandle>& cleanup_handles() {
     return cleanup_handles_;
   }
@@ -461,7 +488,8 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   /// be this newly created Future.
   /// The result data for the future is passed in as `data`, and a function to
   /// delete `data` is also passed in (required since `data` can be any type).
-  FutureHandle AllocInternal(int fn_idx, void* data,
+  FutureHandle AllocInternal(int fn_idx,
+                             void* data,
                              void (*delete_data_fn)(void* data_to_delete));
 
   template <typename T>
@@ -480,7 +508,8 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   void* BackingData(FutureBackingData* backing);
 
   /// Set the error value that will be returned by the Future for `backing`.
-  void SetBackingError(FutureBackingData* backing, int error,
+  void SetBackingError(FutureBackingData* backing,
+                       int error,
                        const char* error_msg);
 
   /// Complete the proxies of the Future for `backing`.
@@ -493,8 +522,10 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   // See Complete() methods.
   template <typename T, typename F>
-  void CompleteInternal(const FutureHandle& handle, int error,
-                        const char* error_msg, const F& populate_data_fn) {
+  void CompleteInternal(const FutureHandle& handle,
+                        int error,
+                        const char* error_msg,
+                        const F& populate_data_fn) {
     // We don't want to call to the user defined callback with the lock held,
     // so acquire the lock directly, and have it released prior to calling the
     // callback in CompleteHandle.
@@ -538,15 +569,18 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   // See CompleteWithResult.
   template <typename T>
-  void CompleteWithResultInternal(const FutureHandle& handle, int error,
-                                  const char* error_msg, const T& result) {
+  void CompleteWithResultInternal(const FutureHandle& handle,
+                                  int error,
+                                  const char* error_msg,
+                                  const T& result) {
     CompleteInternal<T>(handle, error, error_msg,
                         [result](T* data) { *data = result; });
   }
 
   // See Complete.
   template <typename T>
-  void CompleteInternal(const FutureHandle& handle, int error,
+  void CompleteInternal(const FutureHandle& handle,
+                        int error,
                         const char* error_msg) {
     // Call templated Complete() with an empty lambda. The syntax is alarming,
     // but the empty lambda just turns `populate_data_fn` into a no-op.
@@ -558,7 +592,8 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
   void ReleaseMutexAndRunCallbacks(const FutureHandle& handle);
 
   void RunCallback(FutureBase* future_base,
-                   FutureBase::CompletionCallback callback, void* user_data);
+                   FutureBase::CompletionCallback callback,
+                   void* user_data);
 
   bool is_orphaned() const;
 

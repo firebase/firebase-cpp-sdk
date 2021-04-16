@@ -37,7 +37,8 @@ const uint8_t GZipHeader::magic[] = {0x1f, 0x8b};
 //    pointed to by header_end to the first byte beyond the gzip header.
 // ----------------------------------------------------------------------
 
-GZipHeader::Status GZipHeader::ReadMore(const char* inbuf, int inbuf_len,
+GZipHeader::Status GZipHeader::ReadMore(const char* inbuf,
+                                        int inbuf_len,
                                         const char** header_end) {
   FIREBASE_ASSERT(inbuf_len >= 0);
   const uint8_t* pos = reinterpret_cast<const uint8_t*>(inbuf);

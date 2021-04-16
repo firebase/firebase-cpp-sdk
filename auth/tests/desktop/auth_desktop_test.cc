@@ -33,11 +33,11 @@
 #include "auth/src/include/firebase/auth/user.h"
 #include "auth/tests/desktop/fakes.h"
 #include "auth/tests/desktop/test_utils.h"
+#include "flatbuffers/stl_emulation.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/config.h"
 #include "testing/ticker.h"
-#include "flatbuffers/stl_emulation.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 
 namespace firebase {
 namespace auth {
@@ -159,7 +159,8 @@ void InitializeSignInWithProviderFakes(
 }
 
 void InitializeSuccessfulSignInWithProviderFlow(
-    FederatedOAuthProvider* provider, OAuthProviderTestHandler* handler,
+    FederatedOAuthProvider* provider,
+    OAuthProviderTestHandler* handler,
     const std::string& get_account_info_response) {
   InitializeSignInWithProviderFakes(get_account_info_response);
   provider->SetProviderData(GetFakeOAuthProviderData());
@@ -253,12 +254,10 @@ class AuthDesktopTest : public ::testing::Test {
 
     // Wait for the app to finish any remaining tasks in queue,
     // specifically delete app data from persistent cache after SignOut.
-    // This is to avoid race conditions where the next test's SignIn 
+    // This is to avoid race conditions where the next test's SignIn
     // doesn't cause a change in auth state or id tokens because persistent
     // cache has valid user logged in, preventing listeners from firing.
-    {
-      SleepUponDestruction sleep_for_listeners;
-    }
+    { SleepUponDestruction sleep_for_listeners; }
 
     firebase_auth_.reset(nullptr);
     firebase_app_.reset(nullptr);
@@ -268,7 +267,8 @@ class AuthDesktopTest : public ::testing::Test {
   }
 
   Future<SignInResult> ProcessSignInWithProviderFlow(
-      FederatedOAuthProvider* provider, OAuthProviderTestHandler* handler,
+      FederatedOAuthProvider* provider,
+      OAuthProviderTestHandler* handler,
       bool trigger_sign_in) {
     InitializeSignInWithProviderFakes(CreateGetAccountInfoFake());
     provider->SetProviderData(GetFakeOAuthProviderData());
@@ -287,9 +287,8 @@ class AuthDesktopTest : public ::testing::Test {
   test::AuthStateChangesCounter auth_state_listener;
 };
 
-TEST_F(AuthDesktopTest,
-       TestSignInWithProviderReturnsUnsupportedError) {
-    FederatedOAuthProvider provider;
+TEST_F(AuthDesktopTest, TestSignInWithProviderReturnsUnsupportedError) {
+  FederatedOAuthProvider provider;
   Future<SignInResult> future = firebase_auth_->SignInWithProvider(&provider);
   EXPECT_EQ(future.result()->user, nullptr);
   EXPECT_EQ(future.error(), kAuthErrorUnimplemented);
@@ -370,7 +369,7 @@ TEST_F(AuthDesktopTest, DISABLED_TestSignInCompleteNullUsernamePasses) {
   FederatedOAuthProvider provider;
   OAuthProviderTestHandler handler;
   handler.GetAuthenticatedUserData()->user_name = nullptr;
-    Future<SignInResult> future = ProcessSignInWithProviderFlow(
+  Future<SignInResult> future = ProcessSignInWithProviderFlow(
       &provider, &handler, /*trigger_sign_in=*/true);
   SignInResult sign_in_result = WaitForFuture(future);
   VerifyProviderData(*sign_in_result.user);

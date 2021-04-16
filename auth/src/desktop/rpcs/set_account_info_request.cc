@@ -50,7 +50,8 @@ SetAccountInfoRequest::CreateUpdateEmailRequest(const char* const api_key,
 
 std::unique_ptr<SetAccountInfoRequest>
 SetAccountInfoRequest::CreateUpdatePasswordRequest(
-    const char* const api_key, const char* const password,
+    const char* const api_key,
+    const char* const password,
     const char* const language_code) {
   auto request = CreateRequest(api_key);
   if (language_code != nullptr) {
@@ -67,7 +68,8 @@ SetAccountInfoRequest::CreateUpdatePasswordRequest(
 
 std::unique_ptr<SetAccountInfoRequest>
 SetAccountInfoRequest::CreateLinkWithEmailAndPasswordRequest(
-    const char* const api_key, const char* const email,
+    const char* const api_key,
+    const char* const email,
     const char* const password) {
   auto request = CreateRequest(api_key);
   if (email) {
@@ -86,7 +88,8 @@ SetAccountInfoRequest::CreateLinkWithEmailAndPasswordRequest(
 
 std::unique_ptr<SetAccountInfoRequest>
 SetAccountInfoRequest::CreateUpdateProfileRequest(
-    const char* const api_key, const char* const set_display_name,
+    const char* const api_key,
+    const char* const set_display_name,
     const char* const set_photo_url) {
   auto request = CreateRequest(api_key);
 

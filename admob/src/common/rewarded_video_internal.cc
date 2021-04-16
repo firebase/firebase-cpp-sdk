@@ -36,7 +36,8 @@ namespace rewarded_video {
 namespace internal {
 
 RewardedVideoInternal::RewardedVideoInternal()
-    : future_data_(kRewardedVideoFnCount), listener_(nullptr) {}
+    : future_data_(kRewardedVideoFnCount), listener_(nullptr) {
+}
 
 RewardedVideoInternal* RewardedVideoInternal::CreateInstance() {
 #if FIREBASE_PLATFORM_ANDROID

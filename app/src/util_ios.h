@@ -68,48 +68,60 @@ template <typename T>
 class ObjCPointer {
  public:
   // Construct with an empty class.
-  ObjCPointer() : objc_object_(nil) {}
+  ObjCPointer() : objc_object_(nil) {
+  }
 
   // Construct with a reference to an Obj-C object.
-  explicit ObjCPointer(T *_Nullable objc_object) : objc_object_(objc_object) {}
+  explicit ObjCPointer(T* _Nullable objc_object) : objc_object_(objc_object) {
+  }
 
   // Release the reference to the Obj-C object.
-  ~ObjCPointer() { release(); }
+  ~ObjCPointer() {
+    release();
+  }
 
   // Determine whether the Obj-C object is valid.
-  explicit operator bool() const { return get() != nil; }
+  explicit operator bool() const {
+    return get() != nil;
+  }
 
   // Get the Obj-C object.
-  T *_Nullable operator*() const { return get(); }
+  T* _Nullable operator*() const {
+    return get();
+  }
 
   // Get the Obj-C object.
-  T *_Nullable get() const { return objc_object_; }
+  T* _Nullable get() const {
+    return objc_object_;
+  }
 
   // Release the reference to the Obj-C object.
-  T *_Nullable release() {
-    T *released = objc_object_;
+  T* _Nullable release() {
+    T* released = objc_object_;
     objc_object_ = nil;
     return released;
   }
 
   // Assign a new Obj-C object.
-  void reset(T *_Nullable objc_object) { objc_object_ = objc_object; }
+  void reset(T* _Nullable objc_object) {
+    objc_object_ = objc_object;
+  }
 
   // Assign a new Obj-C object.
-  ObjCPointer &operator=(T *_Nullable objc_object) {
+  ObjCPointer& operator=(T* _Nullable objc_object) {
     reset(objc_object);
     return *this;
   }
 
   // Get the Obj-C object from an ObjCPointer if the specified object is
   // non-null.
-  static T *_Nullable SafeGet(const ObjCPointer *_Nullable reference) {
+  static T* _Nullable SafeGet(const ObjCPointer* _Nullable reference) {
     return reference ? reference->get() : nil;
   }
 
  private:
   /* This should be private */
-  T *_Nullable objc_object_;
+  T* _Nullable objc_object_;
 };
 
 // Generate the class named class_name as an alias of ObjCPointer to contain
@@ -117,13 +129,16 @@ class ObjCPointer {
 #define OBJ_C_PTR_WRAPPER_NAMED(class_name, objc_type_name)               \
   class class_name : public firebase::util::ObjCPointer<objc_type_name> { \
    public:                                                                \
-    class_name() {}                                                       \
+    class_name() {                                                        \
+    }                                                                     \
     explicit class_name(                                                  \
         const firebase::util::ObjCPointer<objc_type_name>& obj)           \
-        : firebase::util::ObjCPointer<objc_type_name>(obj) {}             \
-    explicit class_name(objc_type_name *_Nullable objc_object)            \
-        : firebase::util::ObjCPointer<objc_type_name>(objc_object) {}     \
-    class_name &operator=(objc_type_name *_Nullable objc_object) {        \
+        : firebase::util::ObjCPointer<objc_type_name>(obj) {              \
+    }                                                                     \
+    explicit class_name(objc_type_name* _Nullable objc_object)            \
+        : firebase::util::ObjCPointer<objc_type_name>(objc_object) {      \
+    }                                                                     \
+    class_name& operator=(objc_type_name* _Nullable objc_object) {        \
       ObjCPointer<objc_type_name>::operator=(objc_object);                \
       return *this;                                                       \
     }                                                                     \
@@ -131,13 +146,13 @@ class ObjCPointer {
 
 /// Return an std::string created from an NSString pointer.
 /// If the NSString pointer is nil, returns a string of length zero.
-static inline std::string StringFromNSString(NSString *_Nullable ns_string) {
+static inline std::string StringFromNSString(NSString* _Nullable ns_string) {
   return std::string(ns_string ? [ns_string UTF8String] : "");
 }
 
 /// Return an std::string created from an NSURL pointer.
 /// If the NSURL pointer is nil, returns a string of length zero.
-static inline std::string StringFromNSUrl(NSURL *_Nullable url) {
+static inline std::string StringFromNSUrl(NSURL* _Nullable url) {
   return url ? StringFromNSString(url.absoluteString) : "";
 }
 
@@ -146,42 +161,63 @@ NS_ASSUME_NONNULL_BEGIN
 // C function typedef's of methods in AppDelegate which can be replaced by
 // your library.
 typedef BOOL (*AppDelegateApplicationDidFinishLaunchingWithOptionsFunc)(
-    id self, SEL selector_value, UIApplication *application,
-    NSDictionary *launch_options);
+    id self,
+    SEL selector_value,
+    UIApplication* application,
+    NSDictionary* launch_options);
 typedef BOOL (*AppDelegateApplicationDidFinishLaunchingWithOptionsFunc)(
-    id self, SEL selector_value, UIApplication *application,
-    NSDictionary *launch_options);
+    id self,
+    SEL selector_value,
+    UIApplication* application,
+    NSDictionary* launch_options);
 typedef void (*AppDelegateApplicationDidBecomeActiveFunc)(
-    id self, SEL selector_value, UIApplication *application);
+    id self, SEL selector_value, UIApplication* application);
 typedef void (*AppDelegateApplicationDidEnterBackgroundFunc)(
-    id self, SEL selector_value, UIApplication *application);
+    id self, SEL selector_value, UIApplication* application);
 typedef void (
     *AppDelegateApplicationDidRegisterForRemoteNotificationsWithDeviceTokenFunc)(
-    id self, SEL selector_value, UIApplication *application,
-    NSData *deviceToken);
+    id self,
+    SEL selector_value,
+    UIApplication* application,
+    NSData* deviceToken);
 typedef void (
     *AppDelegateApplicationDidFailToRegisterForRemoteNotificationsWithErrorFunc)(
-    id self, SEL selector_value, UIApplication *application, NSError *error);
+    id self, SEL selector_value, UIApplication* application, NSError* error);
 typedef void (*AppDelegateApplicationDidReceiveRemoteNotificationFunc)(
-    id self, SEL selector_value, UIApplication *application,
-    NSDictionary *user_info);
+    id self,
+    SEL selector_value,
+    UIApplication* application,
+    NSDictionary* user_info);
 typedef void (^UIBackgroundFetchResultFunction)(UIBackgroundFetchResult result);
 typedef void (
     *AppDelegateApplicationDidReceiveRemoteNotificationFetchCompletionHandlerFunc)(
-    id self, SEL selector_value, UIApplication *application,
-    NSDictionary *user_info, UIBackgroundFetchResultFunction handler);
+    id self,
+    SEL selector_value,
+    UIApplication* application,
+    NSDictionary* user_info,
+    UIBackgroundFetchResultFunction handler);
 typedef BOOL (*AppDelegateApplicationOpenUrlSourceApplicationAnnotationFunc)(
-    id self, SEL selector_value, UIApplication *application, NSURL *url,
-    NSString *sourceApplication, id annotation);
+    id self,
+    SEL selector_value,
+    UIApplication* application,
+    NSURL* url,
+    NSString* sourceApplication,
+    id annotation);
 
 typedef BOOL (*AppDelegateApplicationOpenUrlOptionsFunc)(
-    id self, SEL selector_value, UIApplication *application, NSURL *url,
-    NSDictionary *options);
+    id self,
+    SEL selector_value,
+    UIApplication* application,
+    NSURL* url,
+    NSDictionary* options);
 
 typedef BOOL (
     *AppDelegateApplicationContinueUserActivityRestorationHandlerFunc)(
-    id self, SEL selector_value, UIApplication *application,
-    NSUserActivity *user_activity, void (^restoration_handler)(NSArray *));
+    id self,
+    SEL selector_value,
+    UIApplication* application,
+    NSUserActivity* user_activity,
+    void (^restoration_handler)(NSArray*));
 
 // Call the given block once for every Objective-C class that exists that
 // implements the UIApplicationDelegate protocol (except for those in a
@@ -189,56 +225,56 @@ typedef BOOL (
 void ForEachAppDelegateClass(void (^block)(Class));
 
 // Convert a string array into an NSMutableArray.
-NSMutableArray *StringVectorToNSMutableArray(
-    const std::vector<std::string> &vector);
+NSMutableArray* StringVectorToNSMutableArray(
+    const std::vector<std::string>& vector);
 
 // Convert a string map to NSDictionary.
-NSDictionary *StringMapToNSDictionary(
-    const std::map<std::string, std::string> &string_map);
+NSDictionary* StringMapToNSDictionary(
+    const std::map<std::string, std::string>& string_map);
 
 // Convert a const char * map to NSDictionary.
-NSDictionary *CharArrayMapToNSDictionary(
-    const std::map<const char *, const char *> &string_map);
+NSDictionary* CharArrayMapToNSDictionary(
+    const std::map<const char*, const char*>& string_map);
 
 // Convert a std::string to NSData.
-NSData *StringToNSData(const std::string &str);
+NSData* StringToNSData(const std::string& str);
 
 // Convert bytes to NSData.
-NSData *BytesToNSData(const char *bytes, const int len);
+NSData* BytesToNSData(const char* bytes, const int len);
 
 // Convert an NSData to std::string.
-std::string NSDataToString(NSData *data);
+std::string NSDataToString(NSData* data);
 
 // Convert a std::string to NSString.
-NSString *StringToNSString(const std::string &str);
+NSString* StringToNSString(const std::string& str);
 
 // Convert a C-string to NSString.
-NSString *CStringToNSString(const char *c_str);
+NSString* CStringToNSString(const char* c_str);
 
 // Convert an NSString to std::string.
-std::string NSStringToString(NSString *string);
+std::string NSStringToString(NSString* string);
 
 // Convert a Variant to an NSObject.
-id VariantToId(const Variant &variant);
+id VariantToId(const Variant& variant);
 
 // Convert an NSObject to a Variant.
 Variant IdToVariant(id value);
 
 // Converts an NSMutableDictionary mapping id-to-id to a map<Variant, Variant>.
-void NSDictionaryToStdMap(NSDictionary *dictionary,  // NOLINT
-                          std::map<Variant, Variant> *map);
+void NSDictionaryToStdMap(NSDictionary* dictionary,  // NOLINT
+                          std::map<Variant, Variant>* map);
 
 // Runs a block on the main/UI thread immediately if the current thread is the
 // main thread; otherwise, dispatches asynchronously to the main thread.
 void DispatchAsyncSafeMainQueue(void (^block)(void));
 
 // Runs a C++ function on the main/UI thread.
-void RunOnMainThread(void (*function_ptr)(void *function_data),
-                     void *function_data);
+void RunOnMainThread(void (*function_ptr)(void* function_data),
+                     void* function_data);
 
 // Runs a C++ function on a background thread.
-void RunOnBackgroundThread(void (*function_ptr)(void *function_data),
-                           void *function_data);
+void RunOnBackgroundThread(void (*function_ptr)(void* function_data),
+                           void* function_data);
 
 // Class which caches function implementations for a class.
 //
@@ -258,7 +294,9 @@ class ClassMethodImplementationCache {
   // therefore a new method needs to be added to the class.
   //
   // The cached method method implementation can be retrieved using GetMethod().
-  void ReplaceOrAddMethod(Class clazz, SEL name, IMP imp,
+  void ReplaceOrAddMethod(Class clazz,
+                          SEL name,
+                          IMP imp,
                           Class type_encoding_class) {
     ReplaceOrAddMethod(clazz, name, imp, type_encoding_class, true);
   }
@@ -267,7 +305,9 @@ class ClassMethodImplementationCache {
   // If an implementation for the specified selector does not exist, this
   // function does not modify the class.
   // See ReplaceOrAddMethod() for more details.
-  void ReplaceMethod(Class clazz, SEL name, IMP imp,
+  void ReplaceMethod(Class clazz,
+                     SEL name,
+                     IMP imp,
                      Class type_encoding_class) {
     ReplaceOrAddMethod(clazz, name, imp, type_encoding_class, false);
   }
@@ -281,20 +321,23 @@ class ClassMethodImplementationCache {
   // Get or create a cache object.
   // This simplifies the creation of a new cache object before C++ static
   // constructors are executed.
-  static ClassMethodImplementationCache *_Nullable GetCreateCache(
-      ClassMethodImplementationCache *_Nullable *_Nullable cache);
+  static ClassMethodImplementationCache* _Nullable GetCreateCache(
+      ClassMethodImplementationCache* _Nullable* _Nullable cache);
 
  private:
   // Replace or add a method (if add_method is true) to a class.
   // See ReplaceOrAddMethod() for more details.
-  void ReplaceOrAddMethod(Class clazz, SEL name, IMP imp,
-                          Class type_encoding_class, bool add_method);
+  void ReplaceOrAddMethod(Class clazz,
+                          SEL name,
+                          IMP imp,
+                          Class type_encoding_class,
+                          bool add_method);
 
-  void SetMethod(SEL name, NSString *implementation_selector_name);
+  void SetMethod(SEL name, NSString* implementation_selector_name);
 
   // Generate a random method name from the specified selector name.  This is
   // used to store the implementation of an overridden method.
-  NSString *GenerateRandomSelectorName(SEL name);
+  NSString* GenerateRandomSelectorName(SEL name);
 
  private:
   // Dictionary which contains the implementation (IMP) of swizzled methods
@@ -304,7 +347,7 @@ class ClassMethodImplementationCache {
   // implementation on the class.
   // i.e
   // selector_implementation_names_dict = dict[original_selector_name];
-  NSMutableDictionary *selector_implementation_names_per_selector_;
+  NSMutableDictionary* selector_implementation_names_per_selector_;
 
   // Number of times to attempt to generate a random selector name.
   static const int kRandomNameGenerationRetries;

@@ -45,7 +45,7 @@ typedef jobject AdParent;
 typedef id AdParent;
 #else
 /// A void pointer for stub classes.
-typedef void *AdParent;
+typedef void* AdParent;
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 
 #ifdef INTERNAL_EXPERIMENTAL
@@ -118,26 +118,26 @@ enum ChildDirectedTreatmentState {
 /// @ref firebase::admob::AdRequest.
 struct KeyValuePair {
   /// The name for an "extra."
-  const char *key;
+  const char* key;
   /// The value for an "extra."
-  const char *value;
+  const char* value;
 };
 
 /// @brief The information needed to request an ad.
 struct AdRequest {
   /// An array of test device IDs specifying devices that test ads will be
   /// returned for.
-  const char **test_device_ids;
+  const char** test_device_ids;
   /// The number of entries in the array referenced by test_device_ids.
   unsigned int test_device_id_count;
   /// An array of keywords or phrases describing the current user activity, such
   /// as "Sports Scores" or "Football."
-  const char **keywords;
+  const char** keywords;
   /// The number of entries in the array referenced by keywords.
   unsigned int keyword_count;
   /// A @ref KeyValuePair specifying additional parameters accepted by an ad
   /// network.
-  const KeyValuePair *extras;
+  const KeyValuePair* extras;
   /// The number of entries in the array referenced by extras.
   unsigned int extras_count;
   /// The day the user was born. Specify the user's birthday to increase ad
@@ -161,7 +161,8 @@ struct AdRequest {
 /// initialized.
 struct BoundingBox {
   /// Default constructor which initializes all member variables to 0.
-  BoundingBox() : height(0), width(0), x(0), y(0) {}
+  BoundingBox() : height(0), width(0), x(0), y(0) {
+  }
   /// Height of the ad in pixels.
   int height;
   /// Width of the ad in pixels.

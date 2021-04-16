@@ -33,13 +33,18 @@ class WebSocketListenProvider : public ListenProvider {
       : repo_(repo),
         sync_tree_(nullptr),
         connection_(connection),
-        logger_(logger) {}
+        logger_(logger) {
+  }
 
-  ~WebSocketListenProvider() override {}
+  ~WebSocketListenProvider() override {
+  }
 
-  void set_sync_tree(SyncTree* sync_tree) { sync_tree_ = sync_tree; }
+  void set_sync_tree(SyncTree* sync_tree) {
+    sync_tree_ = sync_tree;
+  }
 
-  void StartListening(const QuerySpec& query_spec, const Tag& tag,
+  void StartListening(const QuerySpec& query_spec,
+                      const Tag& tag,
                       const View* view) override;
 
   void StopListening(const QuerySpec& query_spec, const Tag& tag) override;

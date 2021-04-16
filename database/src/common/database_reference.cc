@@ -154,7 +154,9 @@ bool DatabaseReference::is_root() const {
   return internal_ ? internal_->IsRoot() : false;
 }
 
-bool DatabaseReference::is_valid() const { return internal_ != nullptr; }
+bool DatabaseReference::is_valid() const {
+  return internal_ != nullptr;
+}
 
 DatabaseReference DatabaseReference::GetParent() const {
   return internal_ ? DatabaseReference(internal_->GetParent())
@@ -189,7 +191,8 @@ Future<void> DatabaseReference::RemoveValueLastResult() {
 }
 
 Future<DataSnapshot> DatabaseReference::RunTransaction(
-    DoTransactionWithContext transaction_function, void* context,
+    DoTransactionWithContext transaction_function,
+    void* context,
     bool trigger_local_events) {
   return internal_ ? internal_->RunTransaction(transaction_function, context,
                                                nullptr, trigger_local_events)

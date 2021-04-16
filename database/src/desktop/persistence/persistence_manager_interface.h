@@ -33,14 +33,16 @@ namespace internal {
 
 class PersistenceManagerInterface {
  public:
-  virtual ~PersistenceManagerInterface() {}
+  virtual ~PersistenceManagerInterface() {
+  }
 
   // Persist a user write to the storage engine.
   //
   // @param path The path for this write.
   // @param variant The variant for this write.
   // @param write_id The write id that was used for this write.
-  virtual void SaveUserOverwrite(const Path& path, const Variant& variant,
+  virtual void SaveUserOverwrite(const Path& path,
+                                 const Variant& variant,
                                  WriteId write_id) = 0;
 
   // Persist a user merge to the storage engine.
@@ -48,7 +50,8 @@ class PersistenceManagerInterface {
   // @param path The path for this merge.
   // @param children The children for this merge.
   // @param write_id The write id that was used for this merge.
-  virtual void SaveUserMerge(const Path& path, const CompoundWrite& children,
+  virtual void SaveUserMerge(const Path& path,
+                             const CompoundWrite& children,
                              WriteId write_id) = 0;
 
   // Remove the user write with the given write id.

@@ -16,8 +16,6 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_DATABASE_H_
 
 #include "firebase/app.h"
-#include "firebase/internal/common.h"
-#include "firebase/log.h"
 #include "firebase/database/common.h"
 #include "firebase/database/data_snapshot.h"
 #include "firebase/database/database_reference.h"
@@ -26,6 +24,8 @@
 #include "firebase/database/mutable_data.h"
 #include "firebase/database/query.h"
 #include "firebase/database/transaction.h"
+#include "firebase/internal/common.h"
+#include "firebase/log.h"
 
 namespace firebase {
 
@@ -83,7 +83,8 @@ class Database {
   /// not available on the current device.
   ///
   /// @returns An instance of Database corresponding to the given App and URL.
-  static Database* GetInstance(::firebase::App* app, const char* url,
+  static Database* GetInstance(::firebase::App* app,
+                               const char* url,
                                InitResult* init_result_out = nullptr);
 
   /// @brief Destructor for the Database object.
@@ -181,7 +182,8 @@ class Database {
   LogLevel log_level() const;
 
  private:
-  friend Database* GetDatabaseInstance(::firebase::App* app, const char* url,
+  friend Database* GetDatabaseInstance(::firebase::App* app,
+                                       const char* url,
                                        InitResult* init_result_out);
   Database(::firebase::App* app, internal::DatabaseInternal* internal);
   Database(const Database& src);

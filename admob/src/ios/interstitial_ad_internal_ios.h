@@ -43,11 +43,11 @@ class InterstitialAdInternalIOS : public InterstitialAdInternal {
   InterstitialAd::PresentationState GetPresentationState() const override;
 
 #ifdef __OBJC__
-  void InterstitialDidReceiveAd(GADInterstitial *interstitial);
-  void InterstitialDidFailToReceiveAdWithError(GADInterstitial *interstitial,
-      GADRequestError *error);
-  void InterstitialWillPresentScreen(GADInterstitial *interstitial);
-  void InterstitialDidDismissScreen(GADInterstitial *interstitial);
+  void InterstitialDidReceiveAd(GADInterstitial* interstitial);
+  void InterstitialDidFailToReceiveAdWithError(GADInterstitial* interstitial,
+                                               GADRequestError* error);
+  void InterstitialWillPresentScreen(GADInterstitial* interstitial);
+  void InterstitialDidDismissScreen(GADInterstitial* interstitial);
 #endif  // __OBJC__
 
  private:

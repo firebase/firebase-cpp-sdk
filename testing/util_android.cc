@@ -24,7 +24,7 @@ namespace testing {
 namespace cppsdk {
 namespace util {
 
-bool CheckAndClearException(JNIEnv *env) {
+bool CheckAndClearException(JNIEnv* env) {
   if (env->ExceptionCheck()) {
     env->ExceptionDescribe();
     env->ExceptionClear();
@@ -43,11 +43,8 @@ std::vector<std::string> JavaStringListToStdStringVector(JNIEnv* env,
   std::vector<std::string> vector(size);
   for (int i = 0; i < size; i++) {
     cls = env->FindClass("java/util/List");
-    jobject element =
-        env->CallObjectMethod(list,
-                              env->GetMethodID(cls, "get",
-                                               "(I)Ljava/lang/Object;"),
-                              i);
+    jobject element = env->CallObjectMethod(
+        list, env->GetMethodID(cls, "get", "(I)Ljava/lang/Object;"), i);
     bool failed = CheckAndClearException(env);
     env->DeleteLocalRef(cls);
     if (failed) break;

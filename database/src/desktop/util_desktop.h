@@ -101,9 +101,11 @@ const Variant& VariantGetChild(const Variant* variant, const std::string& key);
 // in the Java API. This should be used in place of SetVariantAtPath, which is
 // more naive in how it updates the child variant, and is not guaranteed to
 // update the .priority or .value keys correctly.
-void VariantUpdateChild(Variant* variant, const Path& path,
+void VariantUpdateChild(Variant* variant,
+                        const Path& path,
                         const Variant& value);
-void VariantUpdateChild(Variant* variant, const std::string& key,
+void VariantUpdateChild(Variant* variant,
+                        const std::string& key,
                         const Variant& value);
 
 // Given a root Variant and a Path, get the Variant at that path. This returns a
@@ -148,7 +150,8 @@ void SetVariantAtPath(Variant* variant, const Path& path, const Variant& value);
 // * Validation for path
 // * Expect no params in the url or they all be part of the path
 struct ParseUrl {
-  ParseUrl() {}
+  ParseUrl() {
+  }
   enum ParseResult {
     kParseOk = 0,
     kParseErrorEmpty,
@@ -356,7 +359,7 @@ std::string GetAppDataPath(const char* app_name, bool should_create = true);
 // Platform independent function to split a string based on specified character
 // delimiter. Returns of vector of constituent parts
 std::vector<std::string> split_string(const std::string& s,
-                                      const char delimiter='/');
+                                      const char delimiter = '/');
 
 std::map<Path, Variant> VariantToPathMap(const Variant& data);
 

@@ -32,27 +32,39 @@ ReportRow::ReportRow()
     : fake_(""),
       result_(""),
       platform_(kAny),
-      args_(std::vector<std::string>()) {}
+      args_(std::vector<std::string>()) {
+}
 
-ReportRow::ReportRow(std::string fake, std::string result,
+ReportRow::ReportRow(std::string fake,
+                     std::string result,
                      std::vector<std::string> args)
     : fake_(std::move(fake)),
       result_(std::move(result)),
       platform_(kAny),
-      args_(std::move(args)) {}
+      args_(std::move(args)) {
+}
 
-ReportRow::ReportRow(std::string fake, std::string result, Platform platform,
+ReportRow::ReportRow(std::string fake,
+                     std::string result,
+                     Platform platform,
                      std::initializer_list<std::string> args)
     : fake_(std::move(fake)),
       result_(std::move(result)),
       platform_(platform),
-      args_(args) {}
+      args_(args) {
+}
 
-std::string ReportRow::getFake() const { return fake_; }
+std::string ReportRow::getFake() const {
+  return fake_;
+}
 
-std::string ReportRow::getResult() const { return result_; }
+std::string ReportRow::getResult() const {
+  return result_;
+}
 
-Platform ReportRow::getPlatform() const { return platform_; }
+Platform ReportRow::getPlatform() const {
+  return platform_;
+}
 
 std::string ReportRow::getPlatformString() const {
   switch (platform_) {
@@ -67,7 +79,9 @@ std::string ReportRow::getPlatformString() const {
   }
 }
 
-std::vector<std::string> ReportRow::getArgs() const { return args_; }
+std::vector<std::string> ReportRow::getArgs() const {
+  return args_;
+}
 
 bool ReportRow::operator==(const ReportRow& other) const {
   if (fake_ != other.fake_ || result_ != other.result_ ||
@@ -94,8 +108,7 @@ std::string ReportRow::toString() const {
   stream << fake_ << " " << result_ << " " << getPlatformString() << " [";
   for (int i = 0; i < args_.size(); i++) {
     stream << args_[i];
-    if (i < args_.size()-1)
-      stream << " ";
+    if (i < args_.size() - 1) stream << " ";
   }
   stream << "]";
 
@@ -119,7 +132,8 @@ void Reporter::addExpectation(const ReportRow& expectation) {
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || defined(__ANDROID__)
 }
 
-void Reporter::addExpectation(std::string fake, std::string result,
+void Reporter::addExpectation(std::string fake,
+                              std::string result,
                               Platform platform,
                               std::initializer_list<std::string> args) {
   addExpectation(ReportRow(std::move(fake), std::move(result), platform, args));

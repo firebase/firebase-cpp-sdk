@@ -23,8 +23,8 @@
 
 #include "app/src/include/firebase/variant.h"
 #include "app/src/semaphore.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/run_all_tests.h"
 
 namespace firebase {
@@ -32,13 +32,13 @@ namespace util {
 
 using ::testing::Eq;
 using ::testing::IsNull;
-using ::testing::NotNull;
 using ::testing::Ne;
+using ::testing::NotNull;
 
 TEST(UtilAndroidTest, TestInitializeAndTerminate) {
   // Initialize firebase util, including caching class/methods and dealing with
   // embedded jar.
-  JNIEnv *env = firebase::testing::cppsdk::GetTestJniEnv();
+  JNIEnv* env = firebase::testing::cppsdk::GetTestJniEnv();
   EXPECT_NE(nullptr, env);
   jobject activity_object = firebase::testing::cppsdk::GetTestActivity();
   EXPECT_NE(nullptr, activity_object);
@@ -48,7 +48,7 @@ TEST(UtilAndroidTest, TestInitializeAndTerminate) {
 }
 
 TEST(JniUtilities, LocalToGlobalReference) {
-  JNIEnv *env = firebase::testing::cppsdk::GetTestJniEnv();
+  JNIEnv* env = firebase::testing::cppsdk::GetTestJniEnv();
   jobject local_java_string = env->NewStringUTF("a string");
   jobject global_java_string = LocalToGlobalReference(env, local_java_string);
   EXPECT_NE(nullptr, global_java_string);
@@ -62,7 +62,7 @@ class JavaThreadContextTest : public ::testing::Test {
  protected:
   class ThreadContext {
    public:
-    explicit ThreadContext(JavaThreadContext *java_thread_context = nullptr)
+    explicit ThreadContext(JavaThreadContext* java_thread_context = nullptr)
         : started_(1),
           complete_(1),
           block_store_(1),
@@ -76,37 +76,49 @@ class JavaThreadContextTest : public ::testing::Test {
     }
 
     // Wait for the thread to start.
-    void WaitForStart() { started_.Wait(); }
+    void WaitForStart() {
+      started_.Wait();
+    }
 
     // Wait for the thread to complete.
-    void WaitForCompletion() { complete_.Wait(); }
+    void WaitForCompletion() {
+      complete_.Wait();
+    }
 
     // Continue Store() execution (if it's blocked).
-    void Continue() { block_store_.Post(); }
+    void Continue() {
+      block_store_.Post();
+    }
 
     // Get the thread ID.
-    pthread_t thread_id() const { return thread_id_; }
+    pthread_t thread_id() const {
+      return thread_id_;
+    }
 
     // Get whether the thread was canceled.
-    bool canceled() const { return canceled_; }
+    bool canceled() const {
+      return canceled_;
+    }
 
     // Get whether CancelStore was called.
-    bool cancel_store_called() const { return cancel_store_called_; }
+    bool cancel_store_called() const {
+      return cancel_store_called_;
+    }
 
     // Store the current thread ID and signal thread completion.
-    static void Store(void *data) {
-      static_cast<ThreadContext *>(data)->Store(false);
+    static void Store(void* data) {
+      static_cast<ThreadContext*>(data)->Store(false);
     }
 
     // Wait for Continue() to be called then store the current thread ID
     // if the context wasn't cancelled and signal thread completion.
-    static void WaitAndStore(void *data) {
-      static_cast<ThreadContext *>(data)->Store(true);
+    static void WaitAndStore(void* data) {
+      static_cast<ThreadContext*>(data)->Store(true);
     }
 
     // Cancel the store operation.
-    static void CancelStore(void *data) {
-      static_cast<ThreadContext *>(data)->cancel_store_called_ = true;
+    static void CancelStore(void* data) {
+      static_cast<ThreadContext*>(data)->cancel_store_called_ = true;
     }
 
    private:
@@ -146,7 +158,7 @@ class JavaThreadContextTest : public ::testing::Test {
     bool canceled_;
     // Whether CancelStore() was called.
     bool cancel_store_called_;
-    JavaThreadContext *java_thread_context_;
+    JavaThreadContext* java_thread_context_;
   };
 
   void SetUp() override {
@@ -162,7 +174,7 @@ class JavaThreadContextTest : public ::testing::Test {
     Terminate(env_);
   }
 
-  JNIEnv *env_;
+  JNIEnv* env_;
   jobject activity_;
 };
 
@@ -233,11 +245,11 @@ class JavaObjectToVariantTest : public ::testing::Test {
   const int16_t kTestValueShort = 0x3456;
   const char kTestValueByte = 0x12;
   const bool kTestValueBool = true;
-  const char *const kTestValueString = "Hello, world!";
+  const char* const kTestValueString = "Hello, world!";
   const float kTestValueFloat = 0.15625f;
   const double kTestValueDouble = 1048576.15625;
 
-  JNIEnv *env_;
+  JNIEnv* env_;
   jobject activity_;
 };
 

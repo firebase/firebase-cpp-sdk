@@ -20,7 +20,8 @@ const char* kRewardedVideoAdUnit = "ca-app-pub-2618531387707574/6671583249";
 // A simple listener that logs changes to a BannerView.
 class LoggingBannerViewListener : public firebase::admob::BannerView::Listener {
  public:
-  LoggingBannerViewListener() {}
+  LoggingBannerViewListener() {
+  }
   void OnPresentationStateChanged(
       firebase::admob::BannerView* banner_view,
       firebase::admob::BannerView::PresentationState state) override {
@@ -39,7 +40,8 @@ class LoggingBannerViewListener : public firebase::admob::BannerView::Listener {
 class LoggingNativeExpressAdViewListener
     : public firebase::admob::NativeExpressAdView::Listener {
  public:
-  LoggingNativeExpressAdViewListener() {}
+  LoggingNativeExpressAdViewListener() {
+  }
   void OnPresentationStateChanged(
       firebase::admob::NativeExpressAdView* native_express_view,
       firebase::admob::NativeExpressAdView::PresentationState state) override {
@@ -60,7 +62,8 @@ class LoggingNativeExpressAdViewListener
 class LoggingInterstitialAdListener
     : public firebase::admob::InterstitialAd::Listener {
  public:
-  LoggingInterstitialAdListener() {}
+  LoggingInterstitialAdListener() {
+  }
   void OnPresentationStateChanged(
       firebase::admob::InterstitialAd* interstitial_ad,
       firebase::admob::InterstitialAd::PresentationState state) override {
@@ -71,7 +74,8 @@ class LoggingInterstitialAdListener
 // A simple listener that logs changes to rewarded video state.
 class LoggingRewardedVideoListener : public rewarded_video::Listener {
  public:
-  LoggingRewardedVideoListener() {}
+  LoggingRewardedVideoListener() {
+  }
   void OnRewarded(rewarded_video::RewardItem reward) override {
     LogMessage("Reward user with %f %s.", reward.amount,
                reward.reward_type.c_str());
@@ -89,7 +93,8 @@ LoggingInterstitialAdListener interstitial_listener;
 LoggingRewardedVideoListener rewarded_listener;
 
 // GameEngine constructor.
-GameEngine::GameEngine() {}
+GameEngine::GameEngine() {
+}
 
 // Sets up AdMob C++.
 void GameEngine::Initialize(firebase::admob::AdParent ad_parent) {

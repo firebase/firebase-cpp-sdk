@@ -12,7 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
 #include "functions/src/desktop/callable_reference_desktop.h"
 #include "app/rest/request.h"
 #include "app/rest/util.h"
@@ -319,7 +318,7 @@ Future<HttpsCallableResult> HttpsCallableReferenceInternal::Call(
   request_.set_post_fields(json.data());
 
   firebase::LogDebug("Calling Cloud Function with name: %s\nurl: %s\ndata: %s",
-      name_.c_str(), url.c_str(), json.c_str());
+                     name_.c_str(), url.c_str(), json.c_str());
 
   // Set up the future to resolve when the request is complete.
   ReferenceCountedFutureImpl* future_impl = future();

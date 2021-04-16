@@ -29,7 +29,8 @@ namespace rest {
 // The base class to deal with HTTP/REST request.
 class Request : public Transfer {
  public:
-  Request() : Request(nullptr) {}
+  Request() : Request(nullptr) {
+  }
 
   // Create a request that will read post fields from the specified buffer.
   // NOTE: This will *not copy* data into the request.  The buffer must not be
@@ -39,10 +40,14 @@ class Request : public Transfer {
   ~Request() override;
 
   // Sets URL for HTTP/REST request.
-  virtual void set_url(const char* url) { options_.url = url; }
+  virtual void set_url(const char* url) {
+    options_.url = url;
+  }
 
   // Sets HTTP/REST method.
-  virtual void set_method(const char* method) { options_.method = method; }
+  virtual void set_method(const char* method) {
+    options_.method = method;
+  }
 
   // If a POST fields were not specified on construction, it's possible to copy
   // data into this class to read here.
@@ -52,7 +57,9 @@ class Request : public Transfer {
   virtual void set_post_fields(const char* data);
 
   // Get the size of the POST fields.
-  virtual size_t GetPostFieldsSize() const { return read_buffer_size_; }
+  virtual size_t GetPostFieldsSize() const {
+    return read_buffer_size_;
+  }
 
   // Adds a header line.
   virtual void add_header(const char* name, const char* value) {
@@ -60,11 +67,17 @@ class Request : public Transfer {
   }
 
   // Sets verbose to true to display more verbose info for debug.
-  virtual void set_verbose(bool verbose) { options_.verbose = verbose; }
+  virtual void set_verbose(bool verbose) {
+    options_.verbose = verbose;
+  }
 
   // Returns all request options.
-  const RequestOptions& options() const { return options_; }
-  RequestOptions& options() { return options_; }
+  const RequestOptions& options() const {
+    return options_;
+  }
+  RequestOptions& options() {
+    return options_;
+  }
 
   // Convert into a human readable string (exposed for debugging).
   std::string ToString();
@@ -79,12 +92,18 @@ class Request : public Transfer {
   bool ReadBodyIntoString(std::string* destination_string);
 
   // Mark the transfer completed.
-  void MarkCompleted() override { completed_ = true; }
+  void MarkCompleted() override {
+    completed_ = true;
+  }
 
   // Mark the transfer failed, usually from cancellation or timeout.
-  void MarkFailed() override { completed_ = false; }
+  void MarkFailed() override {
+    completed_ = false;
+  }
 
-  bool completed() const { return completed_; }
+  bool completed() const {
+    return completed_;
+  }
 
  protected:
   // Initialize the buffer pointer.

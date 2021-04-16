@@ -33,8 +33,10 @@ class SignUpNewUserRequest : public AuthRequest {
   explicit SignUpNewUserRequest(const char* api_key);
 
   // initializer for sign-in with email and password.
-  SignUpNewUserRequest(const char* api_key, const char* email,
-                       const char* password, const char* display_name);
+  SignUpNewUserRequest(const char* api_key,
+                       const char* email,
+                       const char* password,
+                       const char* display_name);
 
  private:
   void SetUrl(const char* api_key);

@@ -48,7 +48,8 @@ struct ModuleInitializerData {
       : future_impl(kModuleInitializerCount),
         app(nullptr),
         context(nullptr),
-        init_fn_idx(0) {}
+        init_fn_idx(0) {
+  }
   // Futures implementation.
   ReferenceCountedFutureImpl future_impl;
   // Handle to the Initialize() future.
@@ -67,7 +68,9 @@ struct ModuleInitializerData {
   int init_fn_idx;
 };
 
-ModuleInitializer::ModuleInitializer() { data_ = new ModuleInitializerData; }
+ModuleInitializer::ModuleInitializer() {
+  data_ = new ModuleInitializerData;
+}
 
 ModuleInitializer::~ModuleInitializer() {
   delete data_;
@@ -108,7 +111,7 @@ static void PerformInitialize(ModuleInitializerData* data) {
           },
           data);
     }
-#else  // !FIREBASE_PLATFORM_ANDROID
+#else   // !FIREBASE_PLATFORM_ANDROID
     // Outside of Android, we shouldn't get kInitResultFailedMissingDependency.
     FIREBASE_ASSERT(init_result != kInitResultFailedMissingDependency);
 #endif  // FIREBASE_PLATFORM_ANDROID
@@ -132,7 +135,9 @@ Future<void> ModuleInitializer::Initialize(
 }
 
 Future<void> ModuleInitializer::Initialize(
-    App* app, void* context, const ModuleInitializer::InitializerFn* init_fns,
+    App* app,
+    void* context,
+    const ModuleInitializer::InitializerFn* init_fns,
     size_t init_fns_count) {
   FIREBASE_ASSERT(app != nullptr);
   FIREBASE_ASSERT(init_fns != nullptr);

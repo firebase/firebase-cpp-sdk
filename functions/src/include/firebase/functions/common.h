@@ -25,7 +25,7 @@ namespace functions {
 /// https://github.com/googleapis/googleapis/blob/master/google/rpc/code.proto
 enum Error {
 #ifdef INTERNAL_EXPERIMENTAL
-  // LINT.IfChange
+// LINT.IfChange
 #endif  // INTERNAL_EXPERIMENTAL
 
   // Not an error; returned on success
@@ -182,7 +182,7 @@ enum Error {
   kErrorDataLoss = 15,
 
 #ifdef INTERNAL_EXPERIMENTAL
-  // LINT.ThenChange(//depot_firebase_cpp/functions/client/cpp/src/ios/\
+// LINT.ThenChange(//depot_firebase_cpp/functions/client/cpp/src/ios/\
   //                 callable_reference_ios.mm)
 #endif  // INTERNAL_EXPERIMENTAL
 };

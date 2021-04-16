@@ -36,12 +36,14 @@ namespace internal {
 PersistenceManager::PersistenceManager(
     UniquePtr<PersistenceStorageEngine> storage_engine,
     UniquePtr<TrackedQueryManagerInterface> tracked_query_manager,
-    UniquePtr<CachePolicy> cache_policy, LoggerBase* logger)
+    UniquePtr<CachePolicy> cache_policy,
+    LoggerBase* logger)
     : storage_engine_(std::move(storage_engine)),
       tracked_query_manager_(std::move(tracked_query_manager)),
       cache_policy_(std::move(cache_policy)),
       server_cache_updates_since_last_prune_check_(0),
-      logger_(logger) {}
+      logger_(logger) {
+}
 
 void PersistenceManager::SaveUserOverwrite(const Path& path,
                                            const Variant& variant,
@@ -173,7 +175,8 @@ void PersistenceManager::SetTrackedQueryKeys(
 }
 
 void PersistenceManager::UpdateTrackedQueryKeys(
-    const QuerySpec& query_spec, const std::set<std::string>& added,
+    const QuerySpec& query_spec,
+    const std::set<std::string>& added,
     const std::set<std::string>& removed) {
   FIREBASE_DEV_ASSERT_MESSAGE(
       !QuerySpecLoadsAllData(query_spec),

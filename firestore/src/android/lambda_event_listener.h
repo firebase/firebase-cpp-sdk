@@ -2,8 +2,8 @@
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LAMBDA_EVENT_LISTENER_H_
 
 #include "app/meta/move.h"
-#include "firestore/src/include/firebase/firestore/event_listener.h"
 #include "firebase/firestore/firestore_errors.h"
+#include "firestore/src/include/firebase/firestore/event_listener.h"
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 #include <functional>
@@ -24,7 +24,8 @@ class LambdaEventListener : public EventListener<T> {
     FIREBASE_ASSERT(callback_);
   }
 
-  void OnEvent(const T& value, Error error_code,
+  void OnEvent(const T& value,
+               Error error_code,
                const std::string& error_message) override {
     callback_(value, error_code, error_message);
   }
@@ -41,7 +42,9 @@ class LambdaEventListener<void> : public EventListener<void> {
     FIREBASE_ASSERT(callback_);
   }
 
-  void OnEvent(Error, const std::string&) override { callback_(); }
+  void OnEvent(Error, const std::string&) override {
+    callback_();
+  }
 
  private:
   std::function<void()> callback_;

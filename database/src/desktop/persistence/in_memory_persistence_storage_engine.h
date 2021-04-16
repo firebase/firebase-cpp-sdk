@@ -46,7 +46,8 @@ class InMemoryPersistenceStorageEngine : public PersistenceStorageEngine {
   // @param path The path for this write
   // @param data The data for this write
   // @param write_id The write id that was used for this write
-  void SaveUserOverwrite(const Path& path, const Variant& data,
+  void SaveUserOverwrite(const Path& path,
+                         const Variant& data,
                          WriteId write_id) override;
 
   // Write data to the local cache, merging the data at the given path.
@@ -56,7 +57,8 @@ class InMemoryPersistenceStorageEngine : public PersistenceStorageEngine {
   // @param path The path for this merge
   // @param children The children for this merge
   // @param write_id The write id that was used for this merge
-  void SaveUserMerge(const Path& path, const CompoundWrite& children,
+  void SaveUserMerge(const Path& path,
+                     const CompoundWrite& children,
                      WriteId write_id) override;
 
   // Remove a write with the given write id.

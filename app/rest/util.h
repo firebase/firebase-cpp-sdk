@@ -86,11 +86,16 @@ std::string DecodeUrl(const std::string& path);
 // flexbuffers.
 class JsonData {
  public:
-  virtual ~JsonData() {}
+  virtual ~JsonData() {
+  }
 
   virtual bool Parse(const char* json_txt);
-  Variant root() { return root_; }
-  virtual bool is_valid() { return !root_.is_null(); }
+  Variant root() {
+    return root_;
+  }
+  virtual bool is_valid() {
+    return !root_.is_null();
+  }
 
  protected:
   bool parsed_;

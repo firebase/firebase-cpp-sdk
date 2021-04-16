@@ -57,7 +57,8 @@ struct RCDataHandle {
       : future_api(_future_api),
         future_handle(_future_handle),
         rc_internal(_rc_internal),
-        default_keys(_default_keys) {}
+        default_keys(_default_keys) {
+  }
   ReferenceCountedFutureImpl* future_api;
   SafeFutureHandle<T> future_handle;
   RemoteConfigInternal* rc_internal;
@@ -340,8 +341,11 @@ bool RemoteConfigInternal::CheckValueInActiveAndDefault(const char* key,
 }
 
 bool RemoteConfigInternal::CheckValueInConfig(
-    const NamespacedConfigData& config, ValueSource source, const char* key,
-    ValueInfo* info, std::string* value) {
+    const NamespacedConfigData& config,
+    ValueSource source,
+    const char* key,
+    ValueInfo* info,
+    std::string* value) {
   if (!key) return false;
 
   {

@@ -70,7 +70,8 @@ class WriteTreeRef {
       const Variant& complete_server_children) const;
 
   Optional<Variant> CalcEventCacheAfterServerOverwrite(
-      const Path& path, const Variant* existing_local_snap,
+      const Path& path,
+      const Variant* existing_local_snap,
       const Variant* existing_server_snap) const;
 
   Optional<Variant> ShadowingWrite(const Path& path) const;
@@ -82,7 +83,8 @@ class WriteTreeRef {
   Optional<std::pair<Variant, Variant>> CalcNextVariantAfterPost(
       const Optional<Variant>& complete_server_data,
       const std::pair<Variant, Variant>& start_post,
-      IterationDirection direction, const QueryParams& query_params) const;
+      IterationDirection direction,
+      const QueryParams& query_params) const;
 
   // Return a WriteTreeRef for a child.
   WriteTreeRef Child(const std::string& child_key) const;
@@ -117,9 +119,11 @@ class WriteTree {
   // calculate the result of merging them with underlying server data (to create
   // "event cache" data). Pending writes are added with AddOverwrite() and
   // AddMerge(), and removed with RemoveWrite().
-  WriteTree() : visible_writes_(), all_writes_(), last_write_id_(-1L) {}
+  WriteTree() : visible_writes_(), all_writes_(), last_write_id_(-1L) {
+  }
 
-  virtual ~WriteTree() {}
+  virtual ~WriteTree() {
+  }
 
   // Create a new WriteTreeRef for the given path. For use with a new sync point
   // at the given path.
@@ -127,13 +131,16 @@ class WriteTree {
 
   // Record a new overwrite from user code. The new overwrite must have a higher
   // WriteId than all previous Overwrites or Merges.
-  void AddOverwrite(const Path& path, const Variant& snap, WriteId write_id,
+  void AddOverwrite(const Path& path,
+                    const Variant& snap,
+                    WriteId write_id,
                     OverwriteVisibility visibility);
 
   // Record a new merge from user code. The new merge must have a higher
   // WriteId than all previous Overwrites or Merges.
 
-  void AddMerge(const Path& path, const CompoundWrite& changed_children,
+  void AddMerge(const Path& path,
+                const CompoundWrite& changed_children,
                 WriteId write_id);
 
   // Returns the UserWriteRecord associated with the given WriteId
@@ -162,11 +169,13 @@ class WriteTree {
       const Path& tree_path, const Variant* complete_server_cache) const;
 
   virtual Optional<Variant> CalcCompleteEventCache(
-      const Path& tree_path, const Variant* complete_server_cache,
+      const Path& tree_path,
+      const Variant* complete_server_cache,
       const std::vector<WriteId>& write_ids_to_exclude) const;
 
   virtual Optional<Variant> CalcCompleteEventCache(
-      const Path& tree_path, const Variant* complete_server_cache,
+      const Path& tree_path,
+      const Variant* complete_server_cache,
       const std::vector<WriteId>& write_ids_to_exclude,
       HiddenWriteInclusion include_hidden_writes) const;
 
@@ -190,22 +199,26 @@ class WriteTree {
   //
   // Either existing_local_snap or existing_server_snap must exist.
   virtual Optional<Variant> CalcEventCacheAfterServerOverwrite(
-      const Path& tree_path, const Path& child_path,
+      const Path& tree_path,
+      const Path& child_path,
       const Variant* existing_local_snap,
       const Variant* existing_server_snap) const;
 
   // Returns a complete child for a given server snap after applying all user
   // writes or nothing if there is no complete child for this std::string.
   virtual Optional<Variant> CalcCompleteChild(
-      const Path& tree_path, const std::string& child_key,
+      const Path& tree_path,
+      const std::string& child_key,
       const CacheNode& existing_server_snap) const;
 
   // This method is used when processing child remove events on a query. If we
   // can, we pull in children that were outside the window, but may now be in
   // the window.
   virtual Optional<std::pair<Variant, Variant>> CalcNextVariantAfterPost(
-      const Path& tree_path, const Optional<Variant>& complete_server_data,
-      const std::pair<Variant, Variant>& post, IterationDirection direction,
+      const Path& tree_path,
+      const Optional<Variant>& complete_server_data,
+      const std::pair<Variant, Variant>& post,
+      IterationDirection direction,
       const QueryParams& params) const;
 
   // Returns a node if there is a complete overwrite for this path. More
@@ -229,7 +242,8 @@ class WriteTree {
   // include, and a path, construct a merge at that path.
   static CompoundWrite LayerTree(const std::vector<UserWriteRecord>& writes,
                                  UserWriteRecordPredicateFn filter,
-                                 void* userdata, const Path& tree_root);
+                                 void* userdata,
+                                 const Path& tree_root);
 
   // A tree tracking the result of applying all visible writes. This does not
   // include transactions with apply_locally=false or writes that are completely

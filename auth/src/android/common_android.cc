@@ -428,7 +428,8 @@ AuthError CheckAndClearJniAuthExceptions(JNIEnv* env,
 
 // Checks for Future success and/or Android based Exceptions, and maps them
 // to corresonding AuthError codes.
-AuthError MapFutureCallbackResultToAuthError(JNIEnv* env, jobject result,
+AuthError MapFutureCallbackResultToAuthError(JNIEnv* env,
+                                             jobject result,
                                              util::FutureResult result_code,
                                              bool* success) {
   *success = false;
@@ -466,8 +467,10 @@ void SetImplFromLocalRef(JNIEnv* env, jobject j_local, void** impl) {
 
 // The `ReadFutureResultFn` for `SignIn` APIs.
 // Reads the `AuthResult` in `result` and initialize the `User*` in `void_data`.
-void ReadSignInResult(jobject result, FutureCallbackData<SignInResult>* d,
-                      bool success, void* void_data) {
+void ReadSignInResult(jobject result,
+                      FutureCallbackData<SignInResult>* d,
+                      bool success,
+                      void* void_data) {
   JNIEnv* env = Env(d->auth_data);
 
   // Update the currently signed-in user on success.
@@ -502,8 +505,10 @@ void ReadSignInResult(jobject result, FutureCallbackData<SignInResult>* d,
 
 // The `ReadFutureResultFn` for `SignIn` APIs.
 // Reads the `AuthResult` in `result` and initialize the `User*` in `void_data`.
-void ReadUserFromSignInResult(jobject result, FutureCallbackData<User*>* d,
-                              bool success, void* void_data) {
+void ReadUserFromSignInResult(jobject result,
+                              FutureCallbackData<User*>* d,
+                              bool success,
+                              void* void_data) {
   JNIEnv* env = Env(d->auth_data);
 
   // Update the currently signed-in user on success.

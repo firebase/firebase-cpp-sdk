@@ -21,11 +21,11 @@
 
 #include "app/src/util.h"
 #include "app/src/util_android.h"
+#include "flatbuffers/util.h"
 #include "messaging/messaging_generated.h"
 #include "messaging/src/android/cpp/messaging_internal.h"
 #include "messaging/src/include/firebase/messaging.h"
 #include "testing/run_all_tests.h"
-#include "flatbuffers/util.h"
 
 using ::com::google::firebase::messaging::cpp::CreateDataPair;
 using ::com::google::firebase::messaging::cpp::CreateSerializedEvent;
@@ -49,8 +49,10 @@ static std::string* g_lockfile_path;
 // Lock the file referenced by g_lockfile_path.
 class TestMessageLockFileLocker : private FileLocker {
  public:
-  TestMessageLockFileLocker() : FileLocker(g_lockfile_path->c_str()) {}
-  ~TestMessageLockFileLocker() {}
+  TestMessageLockFileLocker() : FileLocker(g_lockfile_path->c_str()) {
+  }
+  ~TestMessageLockFileLocker() {
+  }
 };
 
 void InitializeMessagingTest() {
@@ -90,8 +92,7 @@ void OnTokenReceived(const char* tokenstr) {
   auto token = builder.CreateString(tokenstr);
   auto tokenreceived = CreateSerializedTokenReceived(builder, token);
   auto event = CreateSerializedEvent(
-      builder,
-      SerializedEventUnion_SerializedTokenReceived,
+      builder, SerializedEventUnion_SerializedTokenReceived,
       tokenreceived.Union());
   builder.Finish(event);
   WriteBuffer(builder);
@@ -113,9 +114,7 @@ void OnDeletedMessages() {
   message_builder.add_link(link);
   auto message = message_builder.Finish();
   auto event = CreateSerializedEvent(
-      builder,
-      SerializedEventUnion_SerializedMessage,
-      message.Union());
+      builder, SerializedEventUnion_SerializedMessage, message.Union());
   builder.Finish(event);
   WriteBuffer(builder);
 }
@@ -215,10 +214,9 @@ void OnMessageReceived(const Message& message) {
   message_builder.add_link(link);
   message_builder.add_data(data);
   auto serialized_message = message_builder.Finish();
-  auto event = CreateSerializedEvent(
-      builder,
-      SerializedEventUnion_SerializedMessage,
-      serialized_message.Union());
+  auto event =
+      CreateSerializedEvent(builder, SerializedEventUnion_SerializedMessage,
+                            serialized_message.Union());
   builder.Finish(event);
   WriteBuffer(builder);
 }
@@ -239,9 +237,7 @@ void OnMessageSent(const char* message_id) {
   message_builder.add_link(link);
   auto message = message_builder.Finish();
   auto event = CreateSerializedEvent(
-      builder,
-      SerializedEventUnion_SerializedMessage,
-      message.Union());
+      builder, SerializedEventUnion_SerializedMessage, message.Union());
   builder.Finish(event);
   WriteBuffer(builder);
 }
@@ -262,9 +258,7 @@ void OnMessageSentError(const char* message_id, const char* error) {
   message_builder.add_link(link);
   auto message = message_builder.Finish();
   auto event = CreateSerializedEvent(
-      builder,
-      SerializedEventUnion_SerializedMessage,
-      message.Union());
+      builder, SerializedEventUnion_SerializedMessage, message.Union());
   builder.Finish(event);
   WriteBuffer(builder);
 }

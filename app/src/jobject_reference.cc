@@ -25,10 +25,12 @@
 namespace FIREBASE_NAMESPACE {
 namespace internal {
 
-JObjectReference::JObjectReference() : java_vm_(nullptr), object_(nullptr) {}
+JObjectReference::JObjectReference() : java_vm_(nullptr), object_(nullptr) {
+}
 
 JObjectReference::JObjectReference(JNIEnv* env)
-    : java_vm_(GetJavaVM(env)), object_(nullptr) {}
+    : java_vm_(GetJavaVM(env)), object_(nullptr) {
+}
 
 JObjectReference::JObjectReference(JNIEnv* env, jobject object) {
   Initialize(GetJavaVM(env), env, object);
@@ -44,7 +46,9 @@ JObjectReference::JObjectReference(JObjectReference&& reference) noexcept {
 }
 #endif  // FIREBASE_USE_MOVE_OPERATORS
 
-JObjectReference::~JObjectReference() { Set(nullptr); }
+JObjectReference::~JObjectReference() {
+  Set(nullptr);
+}
 
 JObjectReference& JObjectReference::operator=(
     const JObjectReference& reference) {
@@ -53,8 +57,8 @@ JObjectReference& JObjectReference::operator=(
 }
 
 #ifdef FIREBASE_USE_MOVE_OPERATORS
-JObjectReference& JObjectReference::operator=(JObjectReference&& reference)
-    noexcept {
+JObjectReference& JObjectReference::operator=(
+    JObjectReference&& reference) noexcept {
   java_vm_ = reference.java_vm_;
   object_ = reference.object_;
   reference.java_vm_ = nullptr;
@@ -92,7 +96,8 @@ JObjectReference JObjectReference::FromLocalReference(JNIEnv* env,
   return jobject_reference;
 }
 
-void JObjectReference::Initialize(JavaVM* jvm, JNIEnv* env,
+void JObjectReference::Initialize(JavaVM* jvm,
+                                  JNIEnv* env,
                                   jobject jobject_reference) {
   FIREBASE_DEV_ASSERT(env || !jobject_reference);
   java_vm_ = jvm;

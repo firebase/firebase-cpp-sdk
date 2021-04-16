@@ -48,7 +48,8 @@ bool ValidateEmail(Promise<FutureResultT>* promise, const char* email);
 // return true.
 template <typename FutureResultT>
 bool ValidateEmailAndPassword(Promise<FutureResultT>* promise,
-                              const char* email, const char* password);
+                              const char* email,
+                              const char* password);
 
 // Impl
 

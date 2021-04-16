@@ -37,24 +37,30 @@ class UniquePtr final {
 
  public:
   // Default constructor that creates an instance which does not own a pointer.
-  UniquePtr() : UniquePtr(nullptr) {}
+  UniquePtr() : UniquePtr(nullptr) {
+  }
 
   // Constructor that takes ownership of a raw pointer.
-  explicit UniquePtr(T* ptr) : ptr_(ptr) {}
+  explicit UniquePtr(T* ptr) : ptr_(ptr) {
+  }
 
   // Move constructor.
   //
   // Supports moves from UniquePtr's of a different type |U| as long as |U*| is
   // implicitly convertible to |T*|.
   template <typename U>
-  UniquePtr(UniquePtr<U>&& other) : ptr_(other.release()) {}
+  UniquePtr(UniquePtr<U>&& other) : ptr_(other.release()) {
+  }
 
-  ~UniquePtr() { delete ptr_; }
+  ~UniquePtr() {
+    delete ptr_;
+  }
 
   // Copy that actually performs a move.  This is useful for STL implementations
   // that do not support emplace (e.g stlport).
   UniquePtr(const UniquePtr& other)
-      : ptr_(const_cast<UniquePtr*>(&other)->release()) {}
+      : ptr_(const_cast<UniquePtr*>(&other)->release()) {
+  }
 
   // Move assignment.
   //
@@ -86,14 +92,20 @@ class UniquePtr final {
 
   // Arrow operators that provide access to the underlying pointer through
   // UniquePtr.
-  T* operator->() const { return ptr_; }
+  T* operator->() const {
+    return ptr_;
+  }
 
   // Dereference operators that provide access to the underlying pointer
   // through UniquePtr.
-  T& operator*() const { return *ptr_; }
+  T& operator*() const {
+    return *ptr_;
+  }
 
   // Retrieve the raw pointer, not giving up ownership of it.
-  T* get() const { return ptr_; }
+  T* get() const {
+    return ptr_;
+  }
 
   // Retrieve the raw pointer, giving up ownership of it.
   T* release() {
@@ -104,7 +116,9 @@ class UniquePtr final {
 
   // Implicit conversion to bool, which is true if the managed pointer is not
   // null.
-  operator bool() const { return ptr_ != nullptr; }  // NOLINT
+  operator bool() const {
+    return ptr_ != nullptr;
+  }  // NOLINT
 
  private:
   T* ptr_;

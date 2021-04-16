@@ -42,10 +42,16 @@ class IndexedVariant {
   IndexedVariant(const IndexedVariant& other);
   IndexedVariant& operator=(const IndexedVariant& other);
 
-  const QueryParams& query_params() const { return query_params_; }
-  const Variant& variant() const { return variant_; }
+  const QueryParams& query_params() const {
+    return query_params_;
+  }
+  const Variant& variant() const {
+    return variant_;
+  }
 
-  const Index& index() const { return index_; }
+  const Index& index() const {
+    return index_;
+  }
 
   // Find an element in the index.
   Index::const_iterator Find(const Variant& key) const;
@@ -92,7 +98,8 @@ class IndexedVariant {
   // order_by, order_by_child, equal_to_(value|child_key),
   // start_at_(value|child_key) and end_at_(value|child_key).
   // This does not take limit_first and limit_last into account.
-  bool IsKeyValueInRange(const QueryParams& qs, const Variant& key,
+  bool IsKeyValueInRange(const QueryParams& qs,
+                         const Variant& key,
                          const Variant& value);
 
   // The raw variant underlying this IndexedVariant. When a Variant represents a

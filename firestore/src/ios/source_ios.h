@@ -1,9 +1,9 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_SOURCE_IOS_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_SOURCE_IOS_H_
 
+#include "Firestore/core/src/api/source.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/include/firebase/firestore/source.h"
-#include "Firestore/core/src/api/source.h"
 
 namespace firebase {
 namespace firestore {

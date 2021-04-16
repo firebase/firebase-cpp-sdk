@@ -20,9 +20,12 @@ namespace test {
 
 namespace detail {
 ListenerChangeCounter::ListenerChangeCounter()
-    : actual_changes_(0), expected_changes_(-1) {}
+    : actual_changes_(0), expected_changes_(-1) {
+}
 
-ListenerChangeCounter::~ListenerChangeCounter() { Verify(); }
+ListenerChangeCounter::~ListenerChangeCounter() {
+  Verify();
+}
 
 void ListenerChangeCounter::ExpectChanges(const int num) {
   expected_changes_ = num;

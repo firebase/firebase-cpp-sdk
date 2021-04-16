@@ -63,7 +63,8 @@ MetadataInternal::MetadataInternal(StorageInternal* storage, jobject obj)
 }
 
 MetadataInternal::MetadataInternal(StorageInternal* storage)
-    : MetadataInternal(storage, nullptr) {}
+    : MetadataInternal(storage, nullptr) {
+}
 
 // Free any assigned string pointers from the given vector, assigning them to
 // nullptr.
@@ -444,7 +445,8 @@ const char* MetadataInternal::GetStringProperty(
 }
 
 void MetadataInternal::SetStringProperty(
-    const char* string_value, storage_metadata_builder::Method builder_method,
+    const char* string_value,
+    storage_metadata_builder::Method builder_method,
     CacheString cache_string) {
   std::string** cached_string = &cache_[cache_string];
   if (*cached_string != nullptr) {

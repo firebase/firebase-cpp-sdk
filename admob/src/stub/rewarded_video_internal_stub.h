@@ -29,7 +29,8 @@ namespace internal {
 /// completes the Future for each method.
 class RewardedVideoInternalStub : public RewardedVideoInternal {
  public:
-  RewardedVideoInternalStub() : RewardedVideoInternal() {}
+  RewardedVideoInternalStub() : RewardedVideoInternal() {
+  }
 
   Future<void> Initialize() override {
     return CreateAndCompleteFutureStub(kRewardedVideoFnInitialize);

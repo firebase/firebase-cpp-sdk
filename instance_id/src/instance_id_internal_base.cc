@@ -33,7 +33,8 @@
 
 // Module initializer does nothing at the moment.
 FIREBASE_APP_REGISTER_CALLBACKS(instance_id,
-                                { return firebase::kInitResultSuccess; }, {});
+                                { return firebase::kInitResultSuccess; },
+                                {});
 
 namespace firebase {
 namespace instance_id {
@@ -56,7 +57,8 @@ InstanceIdInternalBase::InstanceIdInternalBase()
                reinterpret_cast<intptr_t>(this)));
 }
 
-InstanceIdInternalBase::~InstanceIdInternalBase() {}
+InstanceIdInternalBase::~InstanceIdInternalBase() {
+}
 
 // Associate an InstanceId instance with an app.
 void InstanceIdInternalBase::RegisterInstanceIdForApp(App* app,

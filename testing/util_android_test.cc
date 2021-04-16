@@ -17,10 +17,10 @@
 #include <string>
 #include <vector>
 
-#include "testing/run_all_tests.h"
-#include "testing/util_android.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "testing/run_all_tests.h"
+#include "testing/util_android.h"
 
 namespace firebase {
 namespace testing {

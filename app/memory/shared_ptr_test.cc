@@ -21,8 +21,8 @@
 
 #include "app/memory/atomic.h"
 #include "app/meta/move.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace {
@@ -33,8 +33,11 @@ using ::testing::IsNull;
 
 class Destructable {
  public:
-  explicit Destructable(Atomic<uint64_t>* destroyed) : destroyed_(destroyed) {}
-  virtual ~Destructable() { destroyed_->fetch_add(1); }
+  explicit Destructable(Atomic<uint64_t>* destroyed) : destroyed_(destroyed) {
+  }
+  virtual ~Destructable() {
+    destroyed_->fetch_add(1);
+  }
 
  private:
   Atomic<uint64_t>* const destroyed_;
@@ -42,7 +45,8 @@ class Destructable {
 
 class Derived : public Destructable {
  public:
-  explicit Derived(Atomic<uint64_t>* destroyed) : Destructable(destroyed) {}
+  explicit Derived(Atomic<uint64_t>* destroyed) : Destructable(destroyed) {
+  }
 };
 
 TEST(SharedPtrTest, DefaultConstructedSharedPtrDoesNotManageAnObject) {
@@ -185,8 +189,8 @@ TEST(SharedPtrTest,
 }
 
 TEST(SharedPtrTest, CopySharedPtr) {
-  SharedPtr<int> *value1 = new SharedPtr<int>(new int(10));
-  SharedPtr<int> *value2 = new SharedPtr<int>();
+  SharedPtr<int>* value1 = new SharedPtr<int>(new int(10));
+  SharedPtr<int>* value2 = new SharedPtr<int>();
   *value2 = *value1;
   delete value1;
   EXPECT_THAT(**value2, 10);

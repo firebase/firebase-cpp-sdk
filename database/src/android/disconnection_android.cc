@@ -88,15 +88,20 @@ void DisconnectionHandlerInternal::Terminate(App* app) {
 namespace {
 struct FutureCallbackData {
   FutureCallbackData(SafeFutureHandle<void> handle_,
-                     ReferenceCountedFutureImpl* impl_, DatabaseInternal* db_)
-      : handle(handle_), impl(impl_), db(db_) {}
+                     ReferenceCountedFutureImpl* impl_,
+                     DatabaseInternal* db_)
+      : handle(handle_), impl(impl_), db(db_) {
+  }
   SafeFutureHandle<void> handle;
   ReferenceCountedFutureImpl* impl;
   DatabaseInternal* db;
 };
 
-void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
-                    const char* status_message, void* callback_data) {
+void FutureCallback(JNIEnv* env,
+                    jobject result,
+                    util::FutureResult result_code,
+                    const char* status_message,
+                    void* callback_data) {
   int status = 0;  // TODO(140207379): populate with proper status code
   FutureCallbackData* data =
       reinterpret_cast<FutureCallbackData*>(callback_data);

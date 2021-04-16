@@ -23,11 +23,17 @@
 #include <vector>
 
 extern "C" {
-int test_symbol(void) { return 1; }  // NOLINT
+int test_symbol(void) {
+  return 1;
+}  // NOLINT
 
-int test_another_symbol(void) { return 2; }  // NOLINT
+int test_another_symbol(void) {
+  return 2;
+}  // NOLINT
 
-int test_yet_one_more_symbol(void) { return 3; }  // NOLINT
+int test_yet_one_more_symbol(void) {
+  return 3;
+}  // NOLINT
 
 int global_c_symbol = 789;  // NOLINT
 
@@ -54,22 +60,28 @@ int global_cpp_symbol = 12345;  // NOLINT
 
 int TestClass::test_static_field;
 
-TestClass::TestClass() {}
+TestClass::TestClass() {
+}
 
 int TestClass::TestMethod() {
   return TestMethodNotInThisfile() + not_in_this_file();
 }
 
-int TestClass::TestStaticMethod() { return TestStaticMethodNotInThisFile(); }
+int TestClass::TestStaticMethod() {
+  return TestStaticMethodNotInThisFile();
+}
 
 }  // namespace test_namespace
 
-void GlobalFunctionWithParameter(test_namespace::TestClass const&, int) {}
+void GlobalFunctionWithParameter(test_namespace::TestClass const&, int) {
+}
 
 void GlobalFunctionWithMultipleParameters(
-    test_namespace::TestClass* p1, std::vector<test_namespace::TestClass> p2,
+    test_namespace::TestClass* p1,
+    std::vector<test_namespace::TestClass> p2,
     std::unique_ptr<test_namespace::TestClass> p3,
-    std::vector<std::unique_ptr<test_namespace::TestClass>> p4, std::string) {
+    std::vector<std::unique_ptr<test_namespace::TestClass>> p4,
+    std::string) {
   p2.push_back(*p1);
   p2.pop_back();
   p4.push_back(std::move(p3));
@@ -80,7 +92,8 @@ extern void ExternFunctionWithParameter(test_namespace::TestClass&&, int);
 
 extern void ExternFunctionWithMultipleParameters(
     const test_namespace::TestClass&,
-    std::unique_ptr<test_namespace::TestClass>, std::string);
+    std::unique_ptr<test_namespace::TestClass>,
+    std::string);
 
 namespace another_namespace {
 

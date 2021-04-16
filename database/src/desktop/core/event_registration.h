@@ -35,7 +35,8 @@ struct Event;
 class EventRegistration {
  public:
   explicit EventRegistration(const QuerySpec& query_spec)
-      : status_(kActive), query_spec_(query_spec) {}
+      : status_(kActive), query_spec_(query_spec) {
+  }
 
   virtual ~EventRegistration();
 
@@ -59,9 +60,13 @@ class EventRegistration {
   // share a common base class.
   virtual bool MatchesListener(const void* listener_ptr) const = 0;
 
-  const QuerySpec& query_spec() const { return query_spec_; }
+  const QuerySpec& query_spec() const {
+    return query_spec_;
+  }
 
-  bool is_user_initiated() { return is_user_initiated_; }
+  bool is_user_initiated() {
+    return is_user_initiated_;
+  }
 
   void set_is_user_initiated(bool is_user_initiated) {
     is_user_initiated_ = is_user_initiated;
@@ -76,11 +81,15 @@ class EventRegistration {
 
   // Returns the current status of this EventRegistration, indicating whether
   // this registration has been removed from the database or not.
-  Status status() { return status_; }
+  Status status() {
+    return status_;
+  }
 
   // Set the status of this EventRegistration. When an EventRegistration is
   // marked as kRemoved, it will no longer fire events.
-  void set_status(Status status) { status_ = status; }
+  void set_status(Status status) {
+    status_ = status;
+  }
 
  protected:
   virtual void FireEvent(const Event& event) = 0;

@@ -44,14 +44,20 @@ class FunctionsInternal {
   // Returns the URL for the endpoint with the given name.
   std::string GetUrl(const std::string& name) const;
 
-  FutureManager& future_manager() { return future_manager_; }
+  FutureManager& future_manager() {
+    return future_manager_;
+  }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return true; }
+  bool initialized() const {
+    return true;
+  }
 
   // When this is deleted, it will clean up all FunctionsReferences and other
   // objects.
-  CleanupNotifier& cleanup() { return cleanup_; }
+  CleanupNotifier& cleanup() {
+    return cleanup_;
+  }
 
  private:
   // The firebase::App that this Functions was created with.

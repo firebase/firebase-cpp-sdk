@@ -17,9 +17,9 @@
 
 #include <cstdint>
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/desktop/core/cache_policy.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {
@@ -27,13 +27,17 @@ namespace internal {
 
 class MockCachePolicy : public CachePolicy {
  public:
-  ~MockCachePolicy() override {}
+  ~MockCachePolicy() override {
+  }
 
-  MOCK_METHOD(bool, ShouldPrune,
+  MOCK_METHOD(bool,
+              ShouldPrune,
               (uint64_t current_size_bytes, uint64_t count_of_prunable_queries),
               (const, override));
-  MOCK_METHOD(bool, ShouldCheckCacheSize,
-              (uint64_t server_updates_since_last_check), (const, override));
+  MOCK_METHOD(bool,
+              ShouldCheckCacheSize,
+              (uint64_t server_updates_since_last_check),
+              (const, override));
   MOCK_METHOD(double, GetPercentOfQueriesToPruneAtOnce, (), (const, override));
   MOCK_METHOD(uint64_t, GetMaxNumberOfQueriesToKeep, (), (const, override));
 };

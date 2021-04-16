@@ -26,14 +26,22 @@
 // [END auth_includes]
 
 // Stub functions to allow sample functions to compile.
-void Wait(int /*time*/) {}
-void ShowTextBox(const char* /*message*/, ...) {}
-bool ShowTextButton(const char* /*message*/, ...) { return false; }
-std::string ShowInputBox(const char* /*message*/, ...) { return ""; }
-void ShowImage(const char* /*image_file_name*/) {}
+void Wait(int /*time*/) {
+}
+void ShowTextBox(const char* /*message*/, ...) {
+}
+bool ShowTextButton(const char* /*message*/, ...) {
+  return false;
+}
+std::string ShowInputBox(const char* /*message*/, ...) {
+  return "";
+}
+void ShowImage(const char* /*image_file_name*/) {
+}
 struct Mutex {};
 struct MutexLock {
-  explicit MutexLock(const Mutex& /*mutex*/) {}
+  explicit MutexLock(const Mutex& /*mutex*/) {
+  }
 };
 
 // Stub values to allow sample functions to compile.
@@ -727,10 +735,9 @@ bool SignIn(firebase::auth::Auth* auth) {
 /// [Password Reset]
 const char* ImageNameForStatus(const firebase::FutureBase& future) {
   assert(future.status() != firebase::kFutureStatusInvalid);
-  return future.status() == firebase::kFutureStatusPending
-             ? "waiting icon"
-             : future.error() == firebase::auth::kAuthErrorNone ? "checkmark"
-                                                                : "x mark";
+  return future.status() == firebase::kFutureStatusPending  ? "waiting icon"
+         : future.error() == firebase::auth::kAuthErrorNone ? "checkmark"
+                                                            : "x mark";
 }
 
 // This function is called once per frame.
@@ -760,15 +767,16 @@ class PhoneVerifier : public firebase::auth::PhoneAuthProvider::Listener {
  public:
   PhoneVerifier(const char* phone_number,
                 firebase::auth::PhoneAuthProvider* phone_auth_provider)
-    : display_message_("Sending SMS with verification code"),
-      display_verification_code_input_box_(false),
-      display_resend_sms_button_(false),
-      phone_auth_provider_(phone_auth_provider),
-      phone_number_(phone_number) {
+      : display_message_("Sending SMS with verification code"),
+        display_verification_code_input_box_(false),
+        display_resend_sms_button_(false),
+        phone_auth_provider_(phone_auth_provider),
+        phone_number_(phone_number) {
     SendSms();
   }
 
-  ~PhoneVerifier() override {}
+  ~PhoneVerifier() override {
+  }
 
   void OnVerificationCompleted(firebase::auth::Credential credential) override {
     // Grab `mutex_` for the scope of `lock`. Callbacks can be called on other
@@ -838,9 +846,9 @@ class PhoneVerifier : public firebase::auth::PhoneAuthProvider::Listener {
   void SendSms() {
     static const uint32_t kAutoVerifyTimeOut = 2000;
     MutexLock lock(mutex_);
-    phone_auth_provider_->VerifyPhoneNumber(
-        phone_number_.c_str(), kAutoVerifyTimeOut, &force_resending_token_,
-        this);
+    phone_auth_provider_->VerifyPhoneNumber(phone_number_.c_str(),
+                                            kAutoVerifyTimeOut,
+                                            &force_resending_token_, this);
     display_resend_sms_button_ = false;
   }
 

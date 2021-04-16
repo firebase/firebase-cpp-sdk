@@ -23,7 +23,8 @@ class FieldPathPortable {
   static constexpr const char* kDocumentKeyPath = "__name__";
 
   explicit FieldPathPortable(std::vector<std::string>&& segments)
-      : segments_(firebase::Move(segments)) {}
+      : segments_(firebase::Move(segments)) {
+  }
 
   /** Returns i-th segment of the path. */
   const std::string& operator[](const size_t i) const {
@@ -31,11 +32,17 @@ class FieldPathPortable {
     return segments_[i];
   }
 
-  const_iterator begin() const { return segments_.begin(); }
+  const_iterator begin() const {
+    return segments_.begin();
+  }
 
-  const_iterator end() const { return segments_.end(); }
+  const_iterator end() const {
+    return segments_.end();
+  }
 
-  size_t size() const { return segments_.size(); }
+  size_t size() const {
+    return segments_.size();
+  }
 
   std::string CanonicalString() const;
 

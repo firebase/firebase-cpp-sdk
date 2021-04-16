@@ -35,11 +35,15 @@ class CallbackEntry;
 
 class CallbackQueue : public std::list<SharedPtr<CallbackEntry>> {
  public:
-  CallbackQueue() {}
-  ~CallbackQueue() {}
+  CallbackQueue() {
+  }
+  ~CallbackQueue() {
+  }
 
   // Get the mutex that controls access to this queue.
-  Mutex* mutex() { return &mutex_; }
+  Mutex* mutex() {
+    return &mutex_;
+  }
 
  private:
   Mutex mutex_;
@@ -52,11 +56,14 @@ class CallbackEntry {
   // callback_mutex_ is used to enforce a critical section for callback
   // execution and destruction.
   CallbackEntry(Callback* callback, Mutex* callback_mutex)
-      : callback_(callback), mutex_(callback_mutex), executing_(false) {}
+      : callback_(callback), mutex_(callback_mutex), executing_(false) {
+  }
 
   // Destroy the callback.  This blocks if the callback is currently
   // executing.
-  ~CallbackEntry() { DisableCallback(); }
+  ~CallbackEntry() {
+    DisableCallback();
+  }
 
   // Execute the callback associated with this entry.
   // Returns true if a callback was associated with this entry and was executed,
@@ -108,7 +115,8 @@ class CallbackEntry {
 // Dispatches a queue of callbacks.
 class CallbackDispatcher {
  public:
-  CallbackDispatcher() {}
+  CallbackDispatcher() {
+  }
 
   ~CallbackDispatcher() {
     MutexLock lock(*queue_.mutex());
@@ -210,7 +218,9 @@ static bool InitializeIfInitialized() {
   return false;
 }
 
-bool IsInitialized() { return g_callback_ref_count > 0; }
+bool IsInitialized() {
+  return g_callback_ref_count > 0;
+}
 
 // Remove number_of_references_to_remove from the module, clean up if the
 // reference count reaches 0, do nothing if the reference count is already 0.
@@ -277,7 +287,8 @@ void* AddCallbackWithThreadCheck(Callback* callback) {
 class BlockingCallback : public Callback {
  public:
   BlockingCallback(Callback* callback, Semaphore* sem)
-      : callback_(callback), sem_(sem) {}
+      : callback_(callback), sem_(sem) {
+  }
   ~BlockingCallback() override {
     // CallbackEntry does delete callbacks after running them.
     // By posting here, we make sure that the semaphore does get posted even
@@ -288,9 +299,10 @@ class BlockingCallback : public Callback {
   void Run() override {
     callback_->Run();
   }
+
  private:
   Callback* callback_;  // owned
-  Semaphore* sem_;  // not owned
+  Semaphore* sem_;      // not owned
 };
 
 void AddBlockingCallback(Callback* callback) {

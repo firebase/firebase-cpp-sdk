@@ -20,9 +20,9 @@
 #include <vector>
 
 #include "firebase/app.h"
+#include "firebase/auth/user.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
-#include "firebase/auth/user.h"
 
 #if !defined(DOXYGEN)
 #ifndef SWIG
@@ -546,22 +546,26 @@ class Auth {
   // the caller to force-refresh the token.  Even without force-refresh, this
   // ensure the future contain a fresh current user's auth token.  This function
   // returns invalid future if user data is not available.
-  static bool GetAuthTokenAsyncForRegistry(App* app, void* force_refresh,
+  static bool GetAuthTokenAsyncForRegistry(App* app,
+                                           void* force_refresh,
                                            void* out_future);
 
   // Provides access to the current user's uid, equivalent to calling
   // this->current_user()->uid(). Returns the current user's uid or an empty
   // string, if there isn't one. The out pointer is expected to point to an
   // instance of std::string.
-  static bool GetCurrentUserUidForRegistry(App* app, void* /*unused*/,
+  static bool GetCurrentUserUidForRegistry(App* app,
+                                           void* /*unused*/,
                                            void* out);
 
   // Starts and stops a thread to ensure that the cached auth token is never
   // kept long enough for it to expire.  Refcounted, so multiple classes can
   // register this without causing problems.
-  static bool StartTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
+  static bool StartTokenRefreshThreadForRegistry(App* app,
+                                                 void* /*unused*/,
                                                  void* /*unused*/);
-  static bool StopTokenRefreshThreadForRegistry(App* app, void* /*unused*/,
+  static bool StopTokenRefreshThreadForRegistry(App* app,
+                                                void* /*unused*/,
                                                 void* /*unused*/);
 
   // Adds an indirect auth state listener implemented as a callback and a
@@ -571,12 +575,14 @@ class Auth {
   //     returns void (i.e. it has type void (*)(void*)).
   // @param context a pointer to an arbitrary object that Auth will pass to
   //     the callback when the auth state changes.
-  static bool AddAuthStateListenerForRegistry(App* app, void* callback,
+  static bool AddAuthStateListenerForRegistry(App* app,
+                                              void* callback,
                                               void* context);
 
   // Removes the indirect auth state listener that was added with the same
   // arguments.
-  static bool RemoveAuthStateListenerForRegistry(App* app, void* callback,
+  static bool RemoveAuthStateListenerForRegistry(App* app,
+                                                 void* callback,
                                                  void* context);
 
   // Init and Destroy the platform specific auth data.
@@ -715,7 +721,8 @@ class FederatedAuthProvider {
   template <class T>
   class Handler {
    public:
-    virtual ~Handler() {}
+    virtual ~Handler() {
+    }
 
     /// @brief Application sign-in handler.
     ///
@@ -752,7 +759,8 @@ class FederatedAuthProvider {
     /// @see Auth::SignInWithProvider
     void SignInComplete(AuthCompletionHandle* completion_handle,
                         const AuthenticatedUserData& user_data,
-                        AuthError auth_error, const char* error_message);
+                        AuthError auth_error,
+                        const char* error_message);
 
     /// @brief Application user account link handler.
     ///
@@ -788,7 +796,8 @@ class FederatedAuthProvider {
     /// @see User#LinkWithProvider
     void LinkComplete(AuthCompletionHandle* completion_handle,
                       const AuthenticatedUserData& user_data,
-                      AuthError auth_error, const char* error_message);
+                      AuthError auth_error,
+                      const char* error_message);
 
     /// @brief Application user re-authentication handler.
     ///
@@ -831,8 +840,10 @@ class FederatedAuthProvider {
 #endif  // not SWIG
 #endif  // INTERNAL_EXPERIMENTAL
 
-  FederatedAuthProvider() {}
-  virtual ~FederatedAuthProvider() {}
+  FederatedAuthProvider() {
+  }
+  virtual ~FederatedAuthProvider() {
+  }
 
  private:
   friend class ::firebase::auth::Auth;

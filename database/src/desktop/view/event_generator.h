@@ -31,7 +31,8 @@ namespace internal {
 // This will organize which events belong to which registrations and apply the
 // appropriate sorting and filtering.
 std::vector<Event> GenerateEventsForChanges(
-    const QuerySpec& query_spec, const std::vector<Change>& changes,
+    const QuerySpec& query_spec,
+    const std::vector<Change>& changes,
     const IndexedVariant& event_cache,
     const std::vector<UniquePtr<EventRegistration>>& event_registrations);
 

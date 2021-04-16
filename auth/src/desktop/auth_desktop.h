@@ -108,7 +108,8 @@ struct AuthCompletionHandle {
  public:
   AuthCompletionHandle(const SafeFutureHandle<SignInResult>& handle,
                        AuthData* auth_data)
-      : future_handle(handle), auth_data(auth_data) {}
+      : future_handle(handle), auth_data(auth_data) {
+  }
 
   AuthCompletionHandle() = delete;
 
@@ -141,7 +142,8 @@ class FunctionRegistryAuthStateListener : public AuthStateListener {
 
 // The desktop-specific Auth implementation.
 struct AuthImpl {
-  AuthImpl() {}
+  AuthImpl() {
+  }
 
   // The application's API key.
   std::string api_key;

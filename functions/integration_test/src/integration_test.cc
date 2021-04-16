@@ -66,7 +66,8 @@ class FirebaseFunctionsTest : public FirebaseTest {
   void SignIn();
 
   firebase::Future<firebase::functions::HttpsCallableResult> TestFunction(
-      const char* function_name, const firebase::Variant* const function_data,
+      const char* function_name,
+      const firebase::Variant* const function_data,
       const firebase::Variant& expected_result,
       firebase::functions::Error expected_error =
           firebase::functions::kErrorNone);
@@ -182,7 +183,8 @@ void FirebaseFunctionsTest::SignIn() {
 // A helper function for calling a Firebase Function and waiting on the result.
 firebase::Future<firebase::functions::HttpsCallableResult>
 FirebaseFunctionsTest::TestFunction(
-    const char* function_name, const firebase::Variant* const function_data,
+    const char* function_name,
+    const firebase::Variant* const function_data,
     const firebase::Variant& expected_result,
     firebase::functions::Error expected_error) {
   // Create a callable that we can run our test with.

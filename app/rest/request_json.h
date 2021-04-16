@@ -51,7 +51,8 @@ class RequestJson : public Request {
 
   // Constructs from a FlatBuffer schema, which should match FbsType.
   explicit RequestJson(const unsigned char* schema)
-      : RequestJson(reinterpret_cast<const char*>(schema)) {}
+      : RequestJson(reinterpret_cast<const char*>(schema)) {
+  }
 
  protected:
   // Updates POST field from application data.

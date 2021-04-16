@@ -31,24 +31,29 @@ namespace database {
 namespace internal {
 
 SyncPoint::SyncPoint(const SyncPoint& other)
-    : views_(std::move(const_cast<SyncPoint*>(&other)->views_)) {}
+    : views_(std::move(const_cast<SyncPoint*>(&other)->views_)) {
+}
 
 SyncPoint& SyncPoint::operator=(const SyncPoint& other) {
   views_ = std::move(const_cast<SyncPoint*>(&other)->views_);
   return *this;
 }
 
-SyncPoint::SyncPoint(SyncPoint&& other) : views_(std::move(other.views_)) {}
+SyncPoint::SyncPoint(SyncPoint&& other) : views_(std::move(other.views_)) {
+}
 
 SyncPoint& SyncPoint::operator=(SyncPoint&& other) {
   views_ = std::move(other.views_);
   return *this;
 }
 
-bool SyncPoint::IsEmpty() const { return views_.empty(); }
+bool SyncPoint::IsEmpty() const {
+  return views_.empty();
+}
 
 std::vector<Event> SyncPoint::ApplyOperation(
-    const Operation& operation, const WriteTreeRef& writes_cache,
+    const Operation& operation,
+    const WriteTreeRef& writes_cache,
     const Variant* opt_complete_server_cache,
     PersistenceManagerInterface* persistence_manager) {
   const Optional<QueryParams>& query_params = operation.source.query_params;
@@ -71,7 +76,8 @@ std::vector<Event> SyncPoint::ApplyOperation(
 
 std::vector<Event> SyncPoint::AddEventRegistration(
     UniquePtr<EventRegistration> event_registration,
-    const WriteTreeRef& writes_cache, const CacheNode& server_cache,
+    const WriteTreeRef& writes_cache,
+    const CacheNode& server_cache,
     PersistenceManagerInterface* persistence_manager) {
   const QuerySpec& query_spec = event_registration->query_spec();
   View* view = MapGet(&views_, query_spec.params);
@@ -114,7 +120,9 @@ std::vector<Event> SyncPoint::AddEventRegistration(
 }
 
 std::vector<Event> SyncPoint::RemoveEventRegistration(
-    const QuerySpec& query_spec, void* listener_ptr, Error cancel_error,
+    const QuerySpec& query_spec,
+    void* listener_ptr,
+    Error cancel_error,
     std::vector<QuerySpec>* out_removed) {
   std::vector<Event> cancel_events;
 
@@ -191,7 +199,9 @@ bool SyncPoint::ViewExistsForQuery(const QuerySpec& query_spec) const {
   return ViewForQuery(query_spec) != nullptr;
 }
 
-bool SyncPoint::HasCompleteView() const { return GetCompleteView() != nullptr; }
+bool SyncPoint::HasCompleteView() const {
+  return GetCompleteView() != nullptr;
+}
 
 const View* SyncPoint::GetCompleteView() const {
   for (auto& query_spec_view_pair : views_) {
@@ -204,7 +214,9 @@ const View* SyncPoint::GetCompleteView() const {
 }
 
 std::vector<Event> SyncPoint::ApplyOperationToView(
-    View* view, const Operation& operation, const WriteTreeRef& writes,
+    View* view,
+    const Operation& operation,
+    const WriteTreeRef& writes,
     const Variant* opt_complete_server_cache,
     PersistenceManagerInterface* persistence_manager) {
   std::vector<Change> changes;

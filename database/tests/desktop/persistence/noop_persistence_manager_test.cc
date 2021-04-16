@@ -16,8 +16,8 @@
 
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {
@@ -64,7 +64,7 @@ TEST(NoopPersistenceManager, InsideTransaction) {
   }));
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST(NoopPersistenceManagerDeathTest, DISABLED_NestedTransaction) {

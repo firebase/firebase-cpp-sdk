@@ -64,7 +64,9 @@ class InvitesReceiverInternalIos : public InvitesReceiverInternal {
     }
 
     // Identifier used to debug this object.
-    const char* identifier() const { return identifier_; }
+    const char* identifier() const {
+      return identifier_;
+    }
 
    private:
     const char* identifier_;
@@ -75,7 +77,8 @@ class InvitesReceiverInternalIos : public InvitesReceiverInternal {
   // URL link before InvitesReceiverInternalIos falls back to it's default
   // behavior.
   struct LinkInfo {
-    LinkInfo() : match_strength(kLinkMatchStrengthNoMatch) {}
+    LinkInfo() : match_strength(kLinkMatchStrengthNoMatch) {
+    }
 
     // ID of the invite derived from a URL link.
     std::string invite_id;
@@ -89,17 +92,21 @@ class InvitesReceiverInternalIos : public InvitesReceiverInternal {
   // Class used by the invites API to hook operations performed by the receiver.
   class Callbacks {
    public:
-    virtual ~Callbacks() {}
+    virtual ~Callbacks() {
+    }
 
     // Used by Invites to complete Google Sign-in when sending an invite.
-    virtual bool OpenUrl(NSURL* url, NSString* source_application,
+    virtual bool OpenUrl(NSURL* url,
+                         NSString* source_application,
                          id annotation) = 0;
 
     // Called when a URL link (vs. universal link) is being processed by
     // InvitesReceiverInternalIos::FinishFetch().  Dynamic link processing
     // stops if this returns true.
-    virtual bool FinishFetch(NSURL* url, NSString* source_application,
-                             id annotation, LinkInfo* link_info) = 0;
+    virtual bool FinishFetch(NSURL* url,
+                             NSString* source_application,
+                             id annotation,
+                             LinkInfo* link_info) = 0;
 
     // Called from InvitesReceiverInternalIos::PerformConvertInvitation() to
     // convert an invite.

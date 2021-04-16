@@ -23,21 +23,21 @@ NS_ASSUME_NONNULL_BEGIN
 /**
     @brief A string constant identifying the email & password identity provider.
  */
-extern NSString *const FIREmailAuthProviderID NS_SWIFT_NAME(EmailAuthProviderID);
+extern NSString* const FIREmailAuthProviderID NS_SWIFT_NAME(EmailAuthProviderID);
 
 /**
     @brief A string constant identifying the email-link sign-in method.
  */
-extern NSString *const FIREmailLinkAuthSignInMethod NS_SWIFT_NAME(EmailLinkAuthSignInMethod);
+extern NSString* const FIREmailLinkAuthSignInMethod NS_SWIFT_NAME(EmailLinkAuthSignInMethod);
 
 /**
     @brief A string constant identifying the email & password sign-in method.
  */
-extern NSString *const FIREmailPasswordAuthSignInMethod
-    NS_SWIFT_NAME(EmailPasswordAuthSignInMethod);
+extern NSString* const FIREmailPasswordAuthSignInMethod NS_SWIFT_NAME(EmailPasswordAuthSignInMethod);
 
 /** @class FIREmailAuthProvider
-    @brief A concrete implementation of `FIRAuthProvider` for Email & Password Sign In.
+    @brief A concrete implementation of `FIRAuthProvider` for Email & Password
+   Sign In.
  */
 NS_SWIFT_NAME(EmailAuthProvider)
 @interface FIREmailAuthProvider : NSObject
@@ -49,7 +49,8 @@ NS_SWIFT_NAME(EmailAuthProvider)
     @param password The user's password.
     @return A FIRAuthCredential containing the email & password credential.
  */
-+ (FIRAuthCredential *)credentialWithEmail:(NSString *)email password:(NSString *)password;
++ (FIRAuthCredential*)credentialWithEmail:(NSString*)email
+                                 password:(NSString*)password;
 
 /** @fn credentialWithEmail:Link:
     @brief Creates an `FIRAuthCredential` for an email & link sign in.
@@ -58,7 +59,7 @@ NS_SWIFT_NAME(EmailAuthProvider)
     @param link The email sign-in link.
     @return A FIRAuthCredential containing the email & link credential.
  */
-+ (FIRAuthCredential *)credentialWithEmail:(NSString *)email link:(NSString *)link;
++ (FIRAuthCredential*)credentialWithEmail:(NSString*)email link:(NSString*)link;
 
 /** @fn init
     @brief This class is not meant to be initialized.

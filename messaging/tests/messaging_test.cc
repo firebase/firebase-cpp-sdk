@@ -31,12 +31,12 @@
 #endif  // defined(__APPLE_)
 
 #include "app/src/util.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "messaging/tests/messaging_test_util.h"
 #include "testing/config.h"
 #include "testing/reporter.h"
 #include "testing/ticker.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 
 using ::testing::StrEq;
 
@@ -48,13 +48,21 @@ class MessagingTestListener : public Listener {
   void OnMessage(const Message& message) override;
   void OnTokenReceived(const char* token) override;
 
-  const Message& GetMessage() const { return message_; }
+  const Message& GetMessage() const {
+    return message_;
+  }
 
-  const std::string& GetToken() const { return token_; }
+  const std::string& GetToken() const {
+    return token_;
+  }
 
-  int GetOnTokenReceivedCount() const { return on_token_received_count_; }
+  int GetOnTokenReceivedCount() const {
+    return on_token_received_count_;
+  }
 
-  int GetOnMessageReceivedCount() const { return on_message_received_count_; }
+  int GetOnMessageReceivedCount() const {
+    return on_message_received_count_;
+  }
 
  private:
   Message message_;
@@ -313,14 +321,14 @@ TEST_F(MessagingTest, TestNotificationReceived) {
   EXPECT_THAT(message.notification->tag, StrEq("my_tag"));
   EXPECT_THAT(message.notification->color, StrEq("my_color"));
   EXPECT_THAT(message.notification->click_action, StrEq("my_click_action"));
-  EXPECT_THAT(
-      message.notification->body_loc_key, StrEq("my_body_localization_key"));
+  EXPECT_THAT(message.notification->body_loc_key,
+              StrEq("my_body_localization_key"));
   EXPECT_THAT(message.notification->body_loc_args[0],
-            StrEq("my_body_localization_item"));
-  EXPECT_THAT(
-      message.notification->title_loc_key, StrEq("my_title_localization_key"));
+              StrEq("my_body_localization_item"));
+  EXPECT_THAT(message.notification->title_loc_key,
+              StrEq("my_title_localization_key"));
   EXPECT_THAT(message.notification->title_loc_args[0],
-            StrEq("my_title_localization_item"));
+              StrEq("my_title_localization_item"));
   EXPECT_THAT(message.notification->android->channel_id,
               StrEq("my_android_channel_id"));
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)

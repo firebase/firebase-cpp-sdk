@@ -86,7 +86,8 @@ const char* StringEnd(const char (&str)[n]) {
 //     for (auto& child : ChildrenAtPath(database, path)) { ... }
 class ChildrenAtPath {
  public:
-  ChildrenAtPath(DB* database, Slice path) : database_(database), path_(path) {}
+  ChildrenAtPath(DB* database, Slice path) : database_(database), path_(path) {
+  }
 
   class iterator {
    public:
@@ -95,7 +96,9 @@ class ChildrenAtPath {
       if (impl_) impl_->Seek(path);
     }
 
-    leveldb::Iterator& operator*() { return *(impl_.get()); }
+    leveldb::Iterator& operator*() {
+      return *(impl_.get());
+    }
 
     iterator& operator++() {
       if (impl_) impl_->Next();
@@ -117,7 +120,9 @@ class ChildrenAtPath {
                     path_);
   }
 
-  iterator end() { return iterator(nullptr, path_); }
+  iterator end() {
+    return iterator(nullptr, path_);
+  }
 
  private:
   DB* database_;
@@ -129,7 +134,8 @@ class ChildrenAtPath {
 // the callback reported a failure by returning false, or that it encountered a
 // type it doesn't know how to handle (vector, blobs).
 template <typename Func>
-bool CallOnEachLeaf(const Path& path, const Variant& variant,
+bool CallOnEachLeaf(const Path& path,
+                    const Variant& variant,
                     const Func& func) {
   switch (variant.type()) {
     case Variant::kTypeNull:
@@ -190,7 +196,8 @@ class BufferedWriteBatch {
         offset_slices_(),
         batch_(),
         has_operation_to_write_(false),
-        error_detected_(false) {}
+        error_detected_(false) {
+  }
 
   template <typename KeyFunc, typename ValueFunc>
   bool AddWrite(const KeyFunc& key_func, const ValueFunc value_func) {
@@ -292,7 +299,8 @@ class BufferedWriteBatch {
 
 LevelDbPersistenceStorageEngine::LevelDbPersistenceStorageEngine(
     LoggerBase* logger)
-    : database_(nullptr), inside_transaction_(false), logger_(logger) {}
+    : database_(nullptr), inside_transaction_(false), logger_(logger) {
+}
 
 bool LevelDbPersistenceStorageEngine::Initialize(
     const std::string& level_db_path) {
@@ -310,7 +318,8 @@ bool LevelDbPersistenceStorageEngine::Initialize(
   return status.ok();
 }
 
-LevelDbPersistenceStorageEngine::~LevelDbPersistenceStorageEngine() {}
+LevelDbPersistenceStorageEngine::~LevelDbPersistenceStorageEngine() {
+}
 
 void LevelDbPersistenceStorageEngine::SaveUserOverwrite(const Path& path,
                                                         const Variant& data,
@@ -401,7 +410,8 @@ void LevelDbPersistenceStorageEngine::RemoveAllUserWrites() {
 // fields being stored are leaves (as in, not maps or vectors), and it does not
 // have to deal with the rules about merging .value and .priority fields, as
 // that is all handled before it is written to the database.
-static void VariantAddCachedValue(Variant* variant, const Path& path,
+static void VariantAddCachedValue(Variant* variant,
+                                  const Path& path,
                                   const Variant& value) {
   for (const std::string& directory : path.GetDirectories()) {
     // Ensure we're operating on a map.
@@ -553,7 +563,8 @@ static bool VariantVectorToFlexbuffer(const std::vector<Variant>& vector,
   return true;
 }
 
-static bool PrepareBatchOverwrite(const Path& path, const Variant& data,
+static bool PrepareBatchOverwrite(const Path& path,
+                                  const Variant& data,
                                   BufferedWriteBatch* buffered_write_batch) {
   // Reuse a single builder for all values so that we don't keep reallocating
   // each iteration.
@@ -756,7 +767,9 @@ void LevelDbPersistenceStorageEngine::ResetPreviouslyActiveTrackedQueries(
 }
 
 static bool SaveTrackedQueryKeysInternal(
-    BufferedWriteBatch* buffered_write_batch, DB* database, QueryId query_id,
+    BufferedWriteBatch* buffered_write_batch,
+    DB* database,
+    QueryId query_id,
     const std::set<std::string>& keys) {
   std::string prefix =
       kDbKeyTrackedQueryKeys + std::to_string(query_id) + kSeparator;
@@ -788,7 +801,8 @@ void LevelDbPersistenceStorageEngine::SaveTrackedQueryKeys(
 }
 
 void LevelDbPersistenceStorageEngine::UpdateTrackedQueryKeys(
-    QueryId query_id, const std::set<std::string>& added,
+    QueryId query_id,
+    const std::set<std::string>& added,
     const std::set<std::string>& removed) {
   VerifyInsideTransaction();
   BufferedWriteBatch buffered_write_batch(database_.get());
@@ -803,7 +817,8 @@ void LevelDbPersistenceStorageEngine::UpdateTrackedQueryKeys(
   buffered_write_batch.Commit();
 }
 
-static void LoadTrackedQueryKeysInternal(DB* database, QueryId query_id,
+static void LoadTrackedQueryKeysInternal(DB* database,
+                                         QueryId query_id,
                                          std::set<std::string>* out_result) {
   std::string path =
       kDbKeyTrackedQueryKeys + std::to_string(query_id) + kSeparator;
@@ -870,7 +885,8 @@ void LevelDbPersistenceStorageEngine::EndTransaction() {
   logger_->LogDebug("Transaction completed.");
 }
 
-void LevelDbPersistenceStorageEngine::SetTransactionSuccessful() {}
+void LevelDbPersistenceStorageEngine::SetTransactionSuccessful() {
+}
 
 void LevelDbPersistenceStorageEngine::VerifyInsideTransaction() {
   FIREBASE_ASSERT_MESSAGE(inside_transaction_,

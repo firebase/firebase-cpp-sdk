@@ -41,7 +41,9 @@ App::~App() {
   delete static_cast<internal::FunctionRegistry*>(data_);
 }
 
-App* App::Create() { return Create(AppOptions()); }
+App* App::Create() {
+  return Create(AppOptions());
+}
 
 App* App::Create(const AppOptions& options) {
   return Create(options, kDefaultAppName);
@@ -61,7 +63,9 @@ App* App::Create(const AppOptions& options, const char* name) {
                             &app->init_results_);
 }
 
-App* App::GetInstance() { return app_common::GetDefaultApp(); }
+App* App::GetInstance() {
+  return app_common::GetDefaultApp();
+}
 
 App* App::GetInstance(const char* name) {
   return app_common::FindAppByName(name);
@@ -77,12 +81,18 @@ void App::RegisterLibrary(const char* library, const char* version) {
   app_common::RegisterLibrary(library, version);
 }
 
-const char* App::GetUserAgent() { return app_common::GetUserAgent(); }
+const char* App::GetUserAgent() {
+  return app_common::GetUserAgent();
+}
 
-void App::SetDefaultConfigPath(const char* /* path */) {}
+void App::SetDefaultConfigPath(const char* /* path */) {
+}
 
-void App::SetDataCollectionDefaultEnabled(bool /* enabled */) {}
+void App::SetDataCollectionDefaultEnabled(bool /* enabled */) {
+}
 
-bool App::IsDataCollectionDefaultEnabled() const { return true; }
+bool App::IsDataCollectionDefaultEnabled() const {
+  return true;
+}
 
 }  // namespace firebase

@@ -36,7 +36,7 @@ namespace internal {
 class ControllerInternal {
  public:
   ControllerInternal();
-  ControllerInternal(const ControllerInternal &other);
+  ControllerInternal(const ControllerInternal& other);
 
   ~ControllerInternal();
 
@@ -59,7 +59,7 @@ class ControllerInternal {
   int64_t total_byte_count() const;
 
   // Returns the StorageReference associated with this Controller.
-  StorageReferenceInternal *_Nullable GetReference() const;
+  StorageReferenceInternal* _Nullable GetReference() const;
 
 #ifdef __OBJC__
   // Assign implementation pointers.
@@ -68,23 +68,25 @@ class ControllerInternal {
   // constructed by the user of the library, and those controllers are not
   // associated with a specific operation until passed to a Read or Write call.
   void AssignTask(
-      StorageInternal *_Nonnull storage,
-      FIRStorageObservableTask<FIRStorageTaskManagement> *_Nonnull task_impl);
+      StorageInternal* _Nonnull storage,
+      FIRStorageObservableTask<FIRStorageTaskManagement>* _Nonnull task_impl);
 #endif  // __OBJC__
 
   bool is_valid() const;
 
-  void set_pending_valid(bool pending_valid) { pending_valid_ = pending_valid; }
+  void set_pending_valid(bool pending_valid) {
+    pending_valid_ = pending_valid;
+  }
 
  private:
 #ifdef __OBJC__
-  FIRStorageObservableTask<FIRStorageTaskManagement> *_Nullable task_impl()
+  FIRStorageObservableTask<FIRStorageTaskManagement>* _Nullable task_impl()
       const {
-    return (FIRStorageObservableTask<FIRStorageTaskManagement> *)
+    return (FIRStorageObservableTask<FIRStorageTaskManagement>*)
         task_impl_->get();
   }
 #endif  // __OBJC__
-  StorageInternal *_Nullable storage_;
+  StorageInternal* _Nullable storage_;
 
   // Object lifetime managed by Objective C ARC.
   UniquePtr<FIRStorageObservableTaskPointer> task_impl_;

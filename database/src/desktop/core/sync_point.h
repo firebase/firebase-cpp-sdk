@@ -57,14 +57,16 @@ class SyncPoint {
   // Apply the given operation to the sync point, taking ito account the data in
   // the pending write tree and the server cache.
   std::vector<Event> ApplyOperation(
-      const Operation& operation, const WriteTreeRef& writes_cache,
+      const Operation& operation,
+      const WriteTreeRef& writes_cache,
       const Variant* opt_complete_server_cache,
       PersistenceManagerInterface* persistence_manager);
 
   // Add an event callback for the specified query.
   std::vector<Event> AddEventRegistration(
       UniquePtr<EventRegistration> event_registration,
-      const WriteTreeRef& writes_cache, const CacheNode& server_cache,
+      const WriteTreeRef& writes_cache,
+      const CacheNode& server_cache,
       PersistenceManagerInterface* persistence_manager);
 
   // Remove event callback(s). Return cancel_events if a cancel_error is
@@ -78,7 +80,9 @@ class SyncPoint {
   // cancel_error If a cancel_error is provided, appropriate cancel events will
   // be returned.
   std::vector<Event> RemoveEventRegistration(
-      const QuerySpec& query_spec, void* listener_ptr, Error cancel_error,
+      const QuerySpec& query_spec,
+      void* listener_ptr,
+      Error cancel_error,
       std::vector<QuerySpec>* out_removed);
 
   // Return the list of views that have and incomplete (i.e. filtered) view of
@@ -107,7 +111,9 @@ class SyncPoint {
   // Apply an operation to a given view of the database, and return the
   // resulting events.
   std::vector<Event> ApplyOperationToView(
-      View* view, const Operation& operation, const WriteTreeRef& writes,
+      View* view,
+      const Operation& operation,
+      const WriteTreeRef& writes,
       const Variant* opt_complete_server_cache,
       PersistenceManagerInterface* persistence_manager);
 

@@ -1,13 +1,13 @@
 #include <chrono>  // NOLINT(build/c++11)
 #include <thread>  // NOLINT(build/c++11)
 
+#include "Firestore/core/src/auth/empty_credentials_provider.h"
+#include "absl/memory/memory.h"
+#include "app_framework.h"
 #include "firebase/app.h"
 #include "firebase/firestore.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/ios/firestore_ios.h"
-#include "absl/memory/memory.h"
-#include "Firestore/core/src/auth/empty_credentials_provider.h"
-#include "app_framework.h"
 
 namespace firebase {
 namespace firestore {
@@ -32,7 +32,8 @@ App* GetApp(const char* name) {
 
   if (name == nullptr || std::string{name} == kDefaultAppName) {
 #if defined(__ANDROID__)
-    return App::Create(app_framework::GetJniEnv(), app_framework::GetActivity());
+    return App::Create(app_framework::GetJniEnv(),
+                       app_framework::GetActivity());
 #else
     return App::Create();
 #endif  // defined(__ANDROID__)
@@ -41,15 +42,17 @@ App* GetApp(const char* name) {
     SIMPLE_HARD_ASSERT(default_app,
                        "Cannot create a named app before the default app");
 #if defined(__ANDROID__)
-    return App::Create(default_app->options(), name,
-		       app_framework::GetJniEnv(), app_framework::GetActivity());
+    return App::Create(default_app->options(), name, app_framework::GetJniEnv(),
+                       app_framework::GetActivity());
 #else
     return App::Create(default_app->options(), name);
 #endif  // defined(__ANDROID__)
   }
 }
 
-App* GetApp() { return GetApp(nullptr); }
+App* GetApp() {
+  return GetApp(nullptr);
+}
 
 FirestoreInternal* CreateTestFirestoreInternal(App* app) {
   return TestFriend::CreateTestFirestoreInternal(app);

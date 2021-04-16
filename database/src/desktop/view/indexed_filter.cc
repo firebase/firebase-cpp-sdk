@@ -24,11 +24,14 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-IndexedFilter::~IndexedFilter() {}
+IndexedFilter::~IndexedFilter() {
+}
 
 IndexedVariant IndexedFilter::UpdateChild(
-    const IndexedVariant& indexed_variant, const std::string& key,
-    const Variant& new_child, const Path& affected_path,
+    const IndexedVariant& indexed_variant,
+    const std::string& key,
+    const Variant& new_child,
+    const Path& affected_path,
     const CompleteChildSource* source,
     ChildChangeAccumulator* opt_change_accumulator) const {
   FIREBASE_DEV_ASSERT_MESSAGE(
@@ -74,7 +77,8 @@ IndexedVariant IndexedFilter::UpdateChild(
 }
 
 IndexedVariant IndexedFilter::UpdateFullVariant(
-    const IndexedVariant& old_snap, const IndexedVariant& new_snap,
+    const IndexedVariant& old_snap,
+    const IndexedVariant& new_snap,
     ChildChangeAccumulator* opt_change_accumulator) const {
   FIREBASE_DEV_ASSERT_MESSAGE(
       new_snap.query_params().order_by == query_params().order_by,
@@ -127,9 +131,13 @@ IndexedVariant IndexedFilter::UpdatePriority(
   }
 }
 
-const VariantFilter* IndexedFilter::GetIndexedFilter() const { return this; }
+const VariantFilter* IndexedFilter::GetIndexedFilter() const {
+  return this;
+}
 
-bool IndexedFilter::FiltersVariants() const { return false; }
+bool IndexedFilter::FiltersVariants() const {
+  return false;
+}
 
 }  // namespace internal
 }  // namespace database

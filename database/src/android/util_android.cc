@@ -39,8 +39,10 @@ Variant JavaObjectToVariant(JNIEnv* env, jobject obj) {
   return ::firebase::util::JavaObjectToVariant(env, obj);
 }
 
-void Callbacks::ChildListenerNativeOnCancelled(JNIEnv* env, jclass clazz,
-                                               jlong db_ptr, jlong listener_ptr,
+void Callbacks::ChildListenerNativeOnCancelled(JNIEnv* env,
+                                               jclass clazz,
+                                               jlong db_ptr,
+                                               jlong listener_ptr,
                                                jobject database_error) {
   if (db_ptr != 0 && listener_ptr != 0) {
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
@@ -52,7 +54,8 @@ void Callbacks::ChildListenerNativeOnCancelled(JNIEnv* env, jclass clazz,
   }
 }
 
-void Callbacks::ChildListenerNativeOnChildAdded(JNIEnv* env, jclass clazz,
+void Callbacks::ChildListenerNativeOnChildAdded(JNIEnv* env,
+                                                jclass clazz,
                                                 jlong db_ptr,
                                                 jlong listener_ptr,
                                                 jobject data_snapshot,
@@ -68,7 +71,8 @@ void Callbacks::ChildListenerNativeOnChildAdded(JNIEnv* env, jclass clazz,
   }
 }
 
-void Callbacks::ChildListenerNativeOnChildChanged(JNIEnv* env, jclass clazz,
+void Callbacks::ChildListenerNativeOnChildChanged(JNIEnv* env,
+                                                  jclass clazz,
                                                   jlong db_ptr,
                                                   jlong listener_ptr,
                                                   jobject data_snapshot,
@@ -84,7 +88,8 @@ void Callbacks::ChildListenerNativeOnChildChanged(JNIEnv* env, jclass clazz,
   }
 }
 
-void Callbacks::ChildListenerNativeOnChildMoved(JNIEnv* env, jclass clazz,
+void Callbacks::ChildListenerNativeOnChildMoved(JNIEnv* env,
+                                                jclass clazz,
                                                 jlong db_ptr,
                                                 jlong listener_ptr,
                                                 jobject data_snapshot,
@@ -100,7 +105,8 @@ void Callbacks::ChildListenerNativeOnChildMoved(JNIEnv* env, jclass clazz,
   }
 }
 
-void Callbacks::ChildListenerNativeOnChildRemoved(JNIEnv* env, jclass clazz,
+void Callbacks::ChildListenerNativeOnChildRemoved(JNIEnv* env,
+                                                  jclass clazz,
                                                   jlong db_ptr,
                                                   jlong listener_ptr,
                                                   jobject data_snapshot) {
@@ -112,8 +118,10 @@ void Callbacks::ChildListenerNativeOnChildRemoved(JNIEnv* env, jclass clazz,
   }
 }
 
-void Callbacks::ValueListenerNativeOnCancelled(JNIEnv* env, jclass clazz,
-                                               jlong db_ptr, jlong listener_ptr,
+void Callbacks::ValueListenerNativeOnCancelled(JNIEnv* env,
+                                               jclass clazz,
+                                               jlong db_ptr,
+                                               jlong listener_ptr,
                                                jobject database_error) {
   if (db_ptr != 0 && listener_ptr != 0) {
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
@@ -125,7 +133,8 @@ void Callbacks::ValueListenerNativeOnCancelled(JNIEnv* env, jclass clazz,
   }
 }
 
-void Callbacks::ValueListenerNativeOnDataChange(JNIEnv* env, jclass clazz,
+void Callbacks::ValueListenerNativeOnDataChange(JNIEnv* env,
+                                                jclass clazz,
                                                 jlong db_ptr,
                                                 jlong listener_ptr,
                                                 jobject data_snapshot,
@@ -138,7 +147,8 @@ void Callbacks::ValueListenerNativeOnDataChange(JNIEnv* env, jclass clazz,
   }
 }
 
-jobject Callbacks::TransactionHandlerDoTransaction(JNIEnv* env, jclass clazz,
+jobject Callbacks::TransactionHandlerDoTransaction(JNIEnv* env,
+                                                   jclass clazz,
                                                    jlong db_ptr,
                                                    jlong transaction_data_ptr,
                                                    jobject java_mutable_data) {
@@ -159,9 +169,13 @@ jobject Callbacks::TransactionHandlerDoTransaction(JNIEnv* env, jclass clazz,
   return nullptr;
 }
 
-void Callbacks::TransactionHandlerOnComplete(
-    JNIEnv* env, jclass clazz, jlong db_ptr, jlong transaction_data_ptr,
-    jobject database_error, jboolean was_committed, jobject data_snapshot) {
+void Callbacks::TransactionHandlerOnComplete(JNIEnv* env,
+                                             jclass clazz,
+                                             jlong db_ptr,
+                                             jlong transaction_data_ptr,
+                                             jobject database_error,
+                                             jboolean was_committed,
+                                             jobject data_snapshot) {
   if (db_ptr != 0 && transaction_data_ptr != 0) {
     DatabaseInternal* db = reinterpret_cast<DatabaseInternal*>(db_ptr);
     TransactionData* data =

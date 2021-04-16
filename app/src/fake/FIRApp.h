@@ -21,7 +21,6 @@ extern "C" {
 void FIRAppCreateUsingDefaultOptions(const char* name);
 // Test method to clear all app instances.
 void FIRAppResetApps();
-
 }
 
 @class FIROptions;
@@ -38,19 +37,19 @@ typedef void (^FIRAppVoidBoolCallback)(BOOL success);
 
 + (void)configure;
 
-+ (void)configureWithOptions:(FIROptions *)options;
++ (void)configureWithOptions:(FIROptions*)options;
 
-+ (void)configureWithName:(NSString *)name options:(FIROptions *)options;
++ (void)configureWithName:(NSString*)name options:(FIROptions*)options;
 
-+ (FIRApp *)defaultApp;
++ (FIRApp*)defaultApp;
 
-+ (FIRApp *)appNamed:(NSString *)name;
++ (FIRApp*)appNamed:(NSString*)name;
 
 - (void)deleteApp:(FIRAppVoidBoolCallback)completion;
 
-@property(nonatomic, copy, readonly) NSString *name;
+@property(nonatomic, copy, readonly) NSString* name;
 
-@property(nonatomic, copy, readonly) FIROptions *options;
+@property(nonatomic, copy, readonly) FIROptions* options;
 
 @property(nonatomic, readwrite, getter=isDataCollectionDefaultEnabled)
     BOOL dataCollectionDefaultEnabled;

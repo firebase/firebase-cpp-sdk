@@ -29,13 +29,15 @@ namespace rest {
 
 class Transport {
  public:
-  Transport() {}
+  Transport() {
+  }
   virtual ~Transport();
 
   // Perform a HTTP request and put result in response and return a Controller
   // in controller_out.
   // Deprecated.
-  void Perform(const Request& request, Response* response,
+  void Perform(const Request& request,
+               Response* response,
                flatbuffers::unique_ptr<Controller>* controller_out) {
     PerformInternal(const_cast<Request*>(&request), response, controller_out);
   }
@@ -48,14 +50,16 @@ class Transport {
 
   // Perform a HTTP request and put result in response and return a Controller
   // in controller_out.
-  void Perform(Request* request, Response* response,
+  void Perform(Request* request,
+               Response* response,
                flatbuffers::unique_ptr<Controller>* controller_out) {
     PerformInternal(request, response, controller_out);
   }
 
  private:
   virtual void PerformInternal(
-      Request* request, Response* response,
+      Request* request,
+      Response* response,
       flatbuffers::unique_ptr<Controller>* controller_out) = 0;
 };
 

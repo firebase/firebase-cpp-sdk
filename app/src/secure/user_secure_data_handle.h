@@ -39,13 +39,15 @@ enum UserSecureFutureResult {
 
 template <typename T>
 struct UserSecureDataHandle {
-  UserSecureDataHandle(const std::string& appName, const std::string& userData,
+  UserSecureDataHandle(const std::string& appName,
+                       const std::string& userData,
                        ReferenceCountedFutureImpl* futureApi,
                        const SafeFutureHandle<T>& futureHandle)
       : app_name(appName),
         user_data(userData),
         future_api(futureApi),
-        future_handle(futureHandle) {}
+        future_handle(futureHandle) {
+  }
 
   const std::string app_name;
   const std::string user_data;

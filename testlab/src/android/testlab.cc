@@ -37,7 +37,9 @@ static ReferenceCount g_initializer;  // NOLINT
 namespace internal {
 
 // Determine whether the test lab module is initialized.
-bool IsInitialized() { return g_initializer.references() > 0; }
+bool IsInitialized() {
+  return g_initializer.references() > 0;
+}
 
 }  // namespace internal
 

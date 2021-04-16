@@ -33,7 +33,8 @@ class ListenerCollection {
   // Returns true if it was inserted, false if it was already in the list.
   template <typename K, typename V>
   static bool InsertIntoValueVectorAtKey(std::map<K, std::vector<V>>* map,
-                                         const K& key, const V& value) {
+                                         const K& key,
+                                         const V& value) {
     auto i = map->find(key);
     if (i == map->end()) {
       // Add new key with 1-element vector.
@@ -56,7 +57,8 @@ class ListenerCollection {
   // if the vector ends up empty. Returns true if successful.
   template <typename K, typename V>
   static bool RemoveFromValueVectorAtKey(std::map<K, std::vector<V>>* map,
-                                         const K& key, const V& value) {
+                                         const K& key,
+                                         const V& value) {
     auto i = map->find(key);
     if (i != map->end()) {
       auto j = std::find(i->second.begin(), i->second.end(), value);

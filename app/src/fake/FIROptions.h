@@ -19,33 +19,33 @@
  */
 @interface FIROptions : NSObject <NSCopying>
 
-@property(nonatomic, copy) NSString *APIKey;
+@property(nonatomic, copy) NSString* APIKey;
 
-@property(nonatomic, copy) NSString *bundleID;
+@property(nonatomic, copy) NSString* bundleID;
 
-@property(nonatomic, copy) NSString *clientID;
+@property(nonatomic, copy) NSString* clientID;
 
-@property(nonatomic, copy) NSString *trackingID;
+@property(nonatomic, copy) NSString* trackingID;
 
-@property(nonatomic, copy) NSString *GCMSenderID;
+@property(nonatomic, copy) NSString* GCMSenderID;
 
-@property(nonatomic, copy) NSString *projectID;
+@property(nonatomic, copy) NSString* projectID;
 
-@property(nonatomic, copy) NSString *androidClientID;
+@property(nonatomic, copy) NSString* androidClientID;
 
-@property(nonatomic, copy) NSString *googleAppID;
+@property(nonatomic, copy) NSString* googleAppID;
 
-@property(nonatomic, copy) NSString *databaseURL;
+@property(nonatomic, copy) NSString* databaseURL;
 
-@property(nonatomic, copy) NSString *deepLinkURLScheme;
+@property(nonatomic, copy) NSString* deepLinkURLScheme;
 
-@property(nonatomic, copy) NSString *storageBucket;
+@property(nonatomic, copy) NSString* storageBucket;
 
-@property(nonatomic, copy) NSString *appGroupID;
+@property(nonatomic, copy) NSString* appGroupID;
 
-+ (FIROptions *)defaultOptions;
++ (FIROptions*)defaultOptions;
 
-- (instancetype)initWithGoogleAppID:(NSString *)googleAppID
-                        GCMSenderID:(NSString *)GCMSenderID;
+- (instancetype)initWithGoogleAppID:(NSString*)googleAppID
+                        GCMSenderID:(NSString*)GCMSenderID;
 
 @end

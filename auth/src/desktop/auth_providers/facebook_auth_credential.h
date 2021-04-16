@@ -28,7 +28,9 @@ class FacebookAuthProvider;
 
 class FacebookAuthCredential : public IdentityProviderCredential {
  public:
-  std::string GetProvider() const override { return kFacebookAuthProviderId; }
+  std::string GetProvider() const override {
+    return kFacebookAuthProviderId;
+  }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
       const char* const api_key) const override {
@@ -38,7 +40,8 @@ class FacebookAuthCredential : public IdentityProviderCredential {
 
  private:
   explicit FacebookAuthCredential(const std::string& access_token)
-      : access_token_(access_token) {}
+      : access_token_(access_token) {
+  }
 
   const std::string access_token_;
 

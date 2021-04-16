@@ -30,46 +30,61 @@ Variant JavaObjectToVariant(JNIEnv* env, jobject obj);
 
 class Callbacks {
  public:
-  static jobject TransactionHandlerDoTransaction(JNIEnv* env, jclass clazz,
+  static jobject TransactionHandlerDoTransaction(JNIEnv* env,
+                                                 jclass clazz,
                                                  jlong db_ptr,
                                                  jlong transaction_ptr,
                                                  jobject mutable_data);
-  static void TransactionHandlerOnComplete(JNIEnv* env, jclass clazz,
-                                           jlong db_ptr, jlong listener_ptr,
+  static void TransactionHandlerOnComplete(JNIEnv* env,
+                                           jclass clazz,
+                                           jlong db_ptr,
+                                           jlong listener_ptr,
                                            jobject database_error,
                                            jboolean was_committed,
                                            jobject data_snapshot);
-  static void ChildListenerNativeOnCancelled(JNIEnv* env, jclass clazz,
-                                             jlong db_ptr, jlong listener_ptr,
+  static void ChildListenerNativeOnCancelled(JNIEnv* env,
+                                             jclass clazz,
+                                             jlong db_ptr,
+                                             jlong listener_ptr,
                                              jobject database_error);
 
-  static void ChildListenerNativeOnChildAdded(JNIEnv* env, jclass clazz,
-                                              jlong db_ptr, jlong listener_ptr,
+  static void ChildListenerNativeOnChildAdded(JNIEnv* env,
+                                              jclass clazz,
+                                              jlong db_ptr,
+                                              jlong listener_ptr,
                                               jobject data_snapshot,
                                               jobject previous_child);
 
-  static void ChildListenerNativeOnChildChanged(JNIEnv* env, jclass clazz,
+  static void ChildListenerNativeOnChildChanged(JNIEnv* env,
+                                                jclass clazz,
                                                 jlong db_ptr,
                                                 jlong listener_ptr,
                                                 jobject data_snapshot,
                                                 jobject previous_child);
 
-  static void ChildListenerNativeOnChildMoved(JNIEnv* env, jclass clazz,
-                                              jlong db_ptr, jlong listener_ptr,
+  static void ChildListenerNativeOnChildMoved(JNIEnv* env,
+                                              jclass clazz,
+                                              jlong db_ptr,
+                                              jlong listener_ptr,
                                               jobject data_snapshot,
                                               jobject previous_child);
 
-  static void ChildListenerNativeOnChildRemoved(JNIEnv* env, jclass clazz,
+  static void ChildListenerNativeOnChildRemoved(JNIEnv* env,
+                                                jclass clazz,
                                                 jlong db_ptr,
                                                 jlong listener_ptr,
                                                 jobject data_snapshot);
 
-  static void ValueListenerNativeOnCancelled(JNIEnv* env, jclass clazz,
-                                             jlong db_ptr, jlong listener_ptr,
+  static void ValueListenerNativeOnCancelled(JNIEnv* env,
+                                             jclass clazz,
+                                             jlong db_ptr,
+                                             jlong listener_ptr,
                                              jobject database_error);
 
-  static void ValueListenerNativeOnDataChange(JNIEnv* env, jclass clazz,
-                                              jlong db_ptr, jlong listener_ptr,
+  static void ValueListenerNativeOnDataChange(JNIEnv* env,
+                                              jclass clazz,
+                                              jlong db_ptr,
+                                              jlong listener_ptr,
                                               jobject data_snapshot,
                                               jobject previous_child_name);
 };

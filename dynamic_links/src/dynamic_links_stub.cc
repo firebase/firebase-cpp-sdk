@@ -48,7 +48,9 @@ InitResult Initialize(const App& app, Listener* listener) {
 
 namespace internal {
 
-bool IsInitialized() { return g_initialized; }
+bool IsInitialized() {
+  return g_initialized;
+}
 
 }  // namespace internal
 
@@ -63,7 +65,8 @@ void Terminate() {
 // output_map.
 template <typename T>
 void StoreKeyValuePairAsStringInMap(
-    std::map<std::string, std::string>* output_map, const char* key,
+    std::map<std::string, std::string>* output_map,
+    const char* key,
     const T value) {
   (*output_map)[key] = Variant(value).AsString().mutable_string();
 }
@@ -71,7 +74,8 @@ void StoreKeyValuePairAsStringInMap(
 // Specialization of StoreKeyValuePairAsStringInMap() that ignores null strings.
 template <>
 void StoreKeyValuePairAsStringInMap<const char*>(
-    std::map<std::string, std::string>* output_map, const char* key,
+    std::map<std::string, std::string>* output_map,
+    const char* key,
     const char* value) {
   if (value) (*output_map)[key] = value;
 }
@@ -101,7 +105,7 @@ static GeneratedDynamicLink LongLinkFromComponents(
     return generated_link;
   }
   if (components.domain_uri_prefix == nullptr ||
-       strlen(components.domain_uri_prefix) == 0) {
+      strlen(components.domain_uri_prefix) == 0) {
     generated_link.error = "No domain specified.";
     return generated_link;
   }
@@ -174,7 +178,7 @@ static GeneratedDynamicLink LongLinkFromComponents(
     }
   }
   generated_link.url = std::string(components.domain_uri_prefix) + "/" +
-      QueryStringFromMap(query_parameters);
+                       QueryStringFromMap(query_parameters);
   return generated_link;
 }
 

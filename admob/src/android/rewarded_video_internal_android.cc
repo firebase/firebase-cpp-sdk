@@ -66,9 +66,10 @@ Future<void> RewardedVideoInternalAndroid::Initialize() {
 
   JNIEnv* env = ::firebase::admob::GetJNI();
 
-  env->CallVoidMethod(helper_, rewarded_video_helper::GetMethodId(
-                                   rewarded_video_helper::kInitialize),
-                      reinterpret_cast<jlong>(callback_data));
+  env->CallVoidMethod(
+      helper_,
+      rewarded_video_helper::GetMethodId(rewarded_video_helper::kInitialize),
+      reinterpret_cast<jlong>(callback_data));
 
   return GetLastResult(kRewardedVideoFnInitialize);
 }

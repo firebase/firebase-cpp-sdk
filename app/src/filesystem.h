@@ -55,7 +55,8 @@ namespace FIREBASE_NAMESPACE {
 //
 // TODO(b/171738655): use a separate function instead of the `should_create`
 // flag. Use `StatusOr` for returning errors.
-std::string AppDataDir(const char* app_name, bool should_create = true,
+std::string AppDataDir(const char* app_name,
+                       bool should_create = true,
                        std::string* out_error = nullptr);
 
 }  // namespace FIREBASE_NAMESPACE

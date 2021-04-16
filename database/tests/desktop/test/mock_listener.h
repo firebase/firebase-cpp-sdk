@@ -18,8 +18,8 @@
 #include "database/src/desktop/data_snapshot_desktop.h"
 #include "database/src/include/firebase/database/common.h"
 #include "database/src/include/firebase/database/listener.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {
@@ -28,24 +28,31 @@ namespace internal {
 class MockValueListener : public ValueListener {
  public:
   MOCK_METHOD(void, OnValueChanged, (const DataSnapshot& snapshot), (override));
-  MOCK_METHOD(void, OnCancelled,
-              (const Error& error, const char* error_message), (override));
+  MOCK_METHOD(void,
+              OnCancelled,
+              (const Error& error, const char* error_message),
+              (override));
 };
 
 class MockChildListener : public ChildListener {
  public:
-  MOCK_METHOD(void, OnChildAdded,
+  MOCK_METHOD(void,
+              OnChildAdded,
               (const DataSnapshot& snapshot, const char* previous_sibling_key),
               (override));
-  MOCK_METHOD(void, OnChildChanged,
+  MOCK_METHOD(void,
+              OnChildChanged,
               (const DataSnapshot& snapshot, const char* previous_sibling_key),
               (override));
-  MOCK_METHOD(void, OnChildMoved,
+  MOCK_METHOD(void,
+              OnChildMoved,
               (const DataSnapshot& snapshot, const char* previous_sibling_key),
               (override));
   MOCK_METHOD(void, OnChildRemoved, (const DataSnapshot& snapshot), (override));
-  MOCK_METHOD(void, OnCancelled,
-              (const Error& error, const char* error_message), (override));
+  MOCK_METHOD(void,
+              OnCancelled,
+              (const Error& error, const char* error_message),
+              (override));
 };
 
 }  // namespace internal

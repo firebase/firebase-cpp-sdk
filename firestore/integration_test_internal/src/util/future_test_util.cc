@@ -2,14 +2,16 @@
 
 #include <ostream>
 
-#include "firestore_integration_test.h"
 #include "firebase/firestore/firestore_errors.h"
+#include "firestore_integration_test.h"
 
 namespace firebase {
 
 namespace {
 
-void PrintTo(std::ostream* os, FutureStatus future_status, int error,
+void PrintTo(std::ostream* os,
+             FutureStatus future_status,
+             int error,
              const char* error_message = nullptr) {
   *os << "Future<void>{status=" << ToEnumeratorName(future_status)
       << " error=" << firestore::ToFirestoreErrorCodeName(error);

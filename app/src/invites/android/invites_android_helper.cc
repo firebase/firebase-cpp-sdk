@@ -43,8 +43,12 @@ extern "C" {
 
 JNIEXPORT void JNICALL
 Java_com_google_firebase_dynamiclinks_internal_cpp_DynamicLinksNativeWrapper_receivedDynamicLinkCallback(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jstring deep_link_url_java,
-    jint result, jstring error_string_java);
+    JNIEnv* env,
+    jclass clazz,
+    jlong data_ptr,
+    jstring deep_link_url_java,
+    jint result,
+    jstring error_string_java);
 
 }  // extern "C"
 
@@ -170,7 +174,8 @@ void AndroidHelper::CallMethod(dynamic_links_native_wrapper::Method method) {
 }
 
 void AndroidHelper::CallMethodStringString(
-    dynamic_links_native_wrapper::Method method, const char* strparam1,
+    dynamic_links_native_wrapper::Method method,
+    const char* strparam1,
     const char* strparam2) {
   JNIEnv* env = app_->GetJNIEnv();
   jstring param1 = env->NewStringUTF(strparam1);
@@ -224,8 +229,12 @@ extern "C" {
 // ReceivedInviteCallback method.
 JNIEXPORT void JNICALL
 Java_com_google_firebase_dynamiclinks_internal_cpp_DynamicLinksNativeWrapper_receivedDynamicLinkCallback(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jstring deep_link_url_java,
-    jint result, jstring error_string_java) {
+    JNIEnv* env,
+    jclass clazz,
+    jlong data_ptr,
+    jstring deep_link_url_java,
+    jint result,
+    jstring error_string_java) {
   if (data_ptr == 0) return;  // test call only
 
   // Be careful - we are in a different thread now. No JNI calls are allowed

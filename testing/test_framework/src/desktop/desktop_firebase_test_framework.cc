@@ -19,15 +19,19 @@ namespace firebase_test_framework {
 using app_framework::LogWarning;
 
 bool FirebaseTest::SendHttpGetRequest(
-    const char* url, const std::map<std::string, std::string>& headers,
-    int* response_code, std::string* response_str) {
+    const char* url,
+    const std::map<std::string, std::string>& headers,
+    int* response_code,
+    std::string* response_str) {
   LogWarning("SendHttpGetRequest is not implemented on desktop.");
   return false;
 }
 
 bool FirebaseTest::SendHttpPostRequest(
-    const char* url, const std::map<std::string, std::string>& headers,
-    const std::string& post_body, int* response_code,
+    const char* url,
+    const std::map<std::string, std::string>& headers,
+    const std::string& post_body,
+    int* response_code,
     std::string* response_str) {
   LogWarning("SendHttpPostRequest is not implemented on desktop.");
   return false;

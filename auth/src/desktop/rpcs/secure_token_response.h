@@ -30,13 +30,19 @@ class SecureTokenResponse : public AuthResponse {
   DEFAULT_AND_MOVE_CTRS_NO_CLASS_MEMBERS(SecureTokenResponse, AuthResponse)
 
   // The access token.
-  std::string access_token() const { return application_data_->access_token; }
+  std::string access_token() const {
+    return application_data_->access_token;
+  }
 
   // The refresh token.
-  std::string refresh_token() const { return application_data_->refresh_token; }
+  std::string refresh_token() const {
+    return application_data_->refresh_token;
+  }
 
   // The id token.
-  std::string id_token() const { return application_data_->id_token; }
+  std::string id_token() const {
+    return application_data_->id_token;
+  }
 
   // The number of seconds till the access token expires.
   int expires_in() const {

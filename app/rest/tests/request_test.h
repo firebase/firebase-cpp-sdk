@@ -23,8 +23,8 @@
 #include <vector>
 
 #include "app/rest/request.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace rest {
@@ -49,7 +49,8 @@ static std::string NoCodec(const std::string& string_to_decode) {
 // Test creating and reading from a request.
 template <typename T>
 void TestCreateAndReadRequestBody(
-    const char* buffer, size_t size,
+    const char* buffer,
+    size_t size,
     std::function<std::string(const std::string&)> codec = NoCodec) {
   {
     // Test read without copying into the request.
@@ -93,7 +94,7 @@ static const std::string CreateLargeTextData() {
   unsigned int seed = 0;
   srand(seed);
   for (size_t i = 0; i < kLargeDataSize; i++) {
-    s += '0' + (rand() % 10); // NOLINT (rand_r() doesn't work on MSVC)
+    s += '0' + (rand() % 10);  // NOLINT (rand_r() doesn't work on MSVC)
   }
   return s;
 }
@@ -104,7 +105,7 @@ static const std::string CreateLargeBinaryData() {
   unsigned int seed = 0;
   srand(seed);
   for (size_t i = 0; i < kLargeDataSize; i++) {
-    s += static_cast<char>(rand()); // NOLINT (rand_r() doesn't work on MSVC)
+    s += static_cast<char>(rand());  // NOLINT (rand_r() doesn't work on MSVC)
   }
   return s;
 }

@@ -119,12 +119,16 @@ class ControllerInternal {
   static ControllerInternal* ControllerFromTaskSnapshot(
       StorageInternal* storage, jobject task_snapshot_obj);
 
-  static void CppStorageListenerCallback(JNIEnv* env, jclass clazz,
-                                         jlong storage_ptr, jlong listener_ptr,
+  static void CppStorageListenerCallback(JNIEnv* env,
+                                         jclass clazz,
+                                         jlong storage_ptr,
+                                         jlong listener_ptr,
                                          jobject snapshot,
                                          jboolean is_on_paused);
 
-  bool is_valid() { return storage_ != nullptr && task_obj_ != nullptr; }
+  bool is_valid() {
+    return storage_ != nullptr && task_obj_ != nullptr;
+  }
 
  private:
   StorageInternal* storage_;

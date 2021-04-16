@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/reporter.h"
 #include "testing/reporter_impl_fake.h"
 
@@ -23,7 +23,9 @@ namespace cppsdk {
 
 class ReporterImplTest : public ::testing::Test {
  protected:
-  void SetUp() override { reporter_.reset(); }
+  void SetUp() override {
+    reporter_.reset();
+  }
 
   void TearDown() override {
     EXPECT_THAT(reporter_.getFakeReports(),

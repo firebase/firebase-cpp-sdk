@@ -43,7 +43,8 @@ class UserSecureInternal {
 
   // By default does nothing, but for subclasses this enables running in test
   // mode (needed on some platforms).
-  static void EnableTestMode() {}
+  static void EnableTestMode() {
+  }
 };
 
 }  // namespace secure

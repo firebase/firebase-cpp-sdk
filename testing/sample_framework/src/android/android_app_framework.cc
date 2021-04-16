@@ -73,10 +73,14 @@ std::string PathForResource() {
 }
 
 // Get the activity.
-jobject GetActivity() { return g_app_state->activity->clazz; }
+jobject GetActivity() {
+  return g_app_state->activity->clazz;
+}
 
 // Get the window context. For Android, it's a jobject pointing to the Activity.
-jobject GetWindowContext() { return g_app_state->activity->clazz; }
+jobject GetWindowContext() {
+  return g_app_state->activity->clazz;
+}
 
 // Find a class, attempting to load the class if it's not found.
 jclass FindClass(JNIEnv* env, jobject activity_object, const char* class_name) {
@@ -120,7 +124,8 @@ class LoggingUtilsData {
       : logging_utils_class_(nullptr),
         logging_utils_add_log_text_(0),
         logging_utils_init_log_window_(0),
-        logging_utils_get_did_touch_(0) {}
+        logging_utils_get_did_touch_(0) {
+  }
 
   ~LoggingUtilsData() {
     JNIEnv* env = GetJniEnv();
@@ -276,12 +281,20 @@ void LogMessage(const char* format, ...) {
 static bool g_save_full_log = false;
 static std::vector<std::string> g_full_logs;  // NOLINT
 
-void AddToFullLog(const char* str) { g_full_logs.push_back(std::string(str)); }
+void AddToFullLog(const char* str) {
+  g_full_logs.push_back(std::string(str));
+}
 
-bool GetPreserveFullLog() { return g_save_full_log; }
-void SetPreserveFullLog(bool b) { g_save_full_log = b; }
+bool GetPreserveFullLog() {
+  return g_save_full_log;
+}
+void SetPreserveFullLog(bool b) {
+  g_save_full_log = b;
+}
 
-void ClearFullLog() { g_full_logs.clear(); }
+void ClearFullLog() {
+  g_full_logs.clear();
+}
 
 void OutputFullLog() {
   for (int i = 0; i < g_full_logs.size(); ++i) {
@@ -387,7 +400,8 @@ void RunOnBackgroundThread(void* (*func)(void*), void* data) {
 class TextEntryFieldData {
  public:
   TextEntryFieldData()
-      : text_entry_field_class_(nullptr), text_entry_field_read_text_(0) {}
+      : text_entry_field_class_(nullptr), text_entry_field_read_text_(0) {
+  }
 
   ~TextEntryFieldData() {
     JNIEnv* env = GetJniEnv();
@@ -427,7 +441,8 @@ class TextEntryFieldData {
   // Call TextEntryField.readText(), which shows a text entry dialog and spins
   // until the user enters some text (or cancels). If the user cancels, returns
   // an empty string.
-  std::string ReadText(const char* title, const char* message,
+  std::string ReadText(const char* title,
+                       const char* message,
                        const char* placeholder) {
     if (text_entry_field_class_ == 0) {
       LogMessage(
@@ -472,7 +487,8 @@ TextEntryFieldData* g_text_entry_field_data;
 // Use a Java class, TextEntryField, to prompt the user to enter some text.
 // This function blocks until text was entered or the dialog was canceled.
 // If the user cancels, returns an empty string.
-std::string ReadTextInput(const char* title, const char* message,
+std::string ReadTextInput(const char* title,
+                          const char* message,
                           const char* placeholder) {
   assert(g_text_entry_field_data);
   return g_text_entry_field_data->ReadText(title, message, placeholder);

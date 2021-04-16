@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 #ifndef FIREBASE_FIS_CLIENT_CPP_SRC_IOS_FAKE_FIRINSTALLATIONSAUTHTOKENRESULT_H_
 #define FIREBASE_FIS_CLIENT_CPP_SRC_IOS_FAKE_FIRINSTALLATIONSAUTHTOKENRESULT_H_
 
@@ -27,12 +26,13 @@ NS_SWIFT_NAME(InstallationsAuthTokenResult)
 @interface FIRInstallationsAuthTokenResult : NSObject
 
 /** The installation auth token string. */
-@property(nonatomic, readonly) NSString *authToken;
+@property(nonatomic, readonly) NSString* authToken;
 
 /** The installation auth token expiration date. */
-@property(nonatomic, readonly) NSDate *expirationDate;
+@property(nonatomic, readonly) NSDate* expirationDate;
 
-- (instancetype)initWithToken:(NSString *)token expirationDate:(NSDate *)expirationTime;
+- (instancetype)initWithToken:(NSString*)token
+               expirationDate:(NSDate*)expirationTime;
 
 @end
 

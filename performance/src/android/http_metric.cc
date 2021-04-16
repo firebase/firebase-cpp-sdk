@@ -35,7 +35,8 @@ const char* GetFIRHttpMethodString(HttpMethod method) {
 // access is atomic on any of the platforms this will be used on.
 class HttpMetricInternal {
  public:
-  explicit HttpMetricInternal() {}
+  explicit HttpMetricInternal() {
+  }
 
   ~HttpMetricInternal() {
     if (active_http_metric_) {
@@ -49,7 +50,8 @@ class HttpMetricInternal {
 
   // Creates an underlying Java HttpMetric. If a previous one exists,
   // it is cancelled.
-  void CreateHttpMetric(const char* url, HttpMethod http_method,
+  void CreateHttpMetric(const char* url,
+                        HttpMethod http_method,
                         bool stop_on_destroy) {
     FIREBASE_ASSERT_RETURN_VOID(IsInitialized());
     stop_on_destroy_ = stop_on_destroy;
@@ -100,7 +102,9 @@ class HttpMetricInternal {
 
   // Gets whether the underlying HttpMetric associated with this object is
   // created.
-  bool IsHttpMetricCreated() { return active_http_metric_ != nullptr; }
+  bool IsHttpMetricCreated() {
+    return active_http_metric_ != nullptr;
+  }
 
   // Cancels the http metric, and makes sure it isn't logged to the backend.
   void CancelHttpMetric() {
@@ -278,7 +282,9 @@ HttpMetric::HttpMetric(const char* url, HttpMethod http_method) {
   internal_->CreateAndStartHttpMetric(url, http_method);
 }
 
-HttpMetric::~HttpMetric() { delete internal_; }
+HttpMetric::~HttpMetric() {
+  delete internal_;
+}
 
 HttpMetric::HttpMetric(HttpMetric&& other) {
   internal_ = other.internal_;
@@ -302,9 +308,13 @@ bool HttpMetric::is_started() {
   return internal_->IsHttpMetricCreated();
 }
 
-void HttpMetric::Cancel() { internal_->CancelHttpMetric(); }
+void HttpMetric::Cancel() {
+  internal_->CancelHttpMetric();
+}
 
-void HttpMetric::Stop() { internal_->StopHttpMetric(); }
+void HttpMetric::Stop() {
+  internal_->StopHttpMetric();
+}
 
 void HttpMetric::Start(const char* url, HttpMethod http_method) {
   internal_->StopHttpMetric();

@@ -17,12 +17,12 @@
 
 #include <map>
 #include <string>
-#include "firebase/future.h"
-#include "firebase/internal/common.h"
-#include "firebase/variant.h"
 #include "firebase/database/disconnection.h"
 #include "firebase/database/query.h"
 #include "firebase/database/transaction.h"
+#include "firebase/future.h"
+#include "firebase/internal/common.h"
+#include "firebase/variant.h"
 
 namespace firebase {
 namespace database {
@@ -47,7 +47,8 @@ class DatabaseReference : public Query {
   /// @brief Default constructor. This creates an invalid DatabaseReference.
   /// Attempting to perform any operations on this reference will fail unless a
   /// valid DatabaseReference has been assigned to it.
-  DatabaseReference() : Query(), internal_(nullptr) {}
+  DatabaseReference() : Query(), internal_(nullptr) {
+  }
 
   /// @brief Required virtual destructor.
   virtual ~DatabaseReference();
@@ -199,7 +200,8 @@ class DatabaseReference : public Query {
   /// @note Only one RunTransaction() should be running on a given database
   /// location at the same time.
   Future<DataSnapshot> RunTransaction(
-      DoTransactionWithContext transaction_function, void* context,
+      DoTransactionWithContext transaction_function,
+      void* context,
       bool trigger_local_events = true);
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)

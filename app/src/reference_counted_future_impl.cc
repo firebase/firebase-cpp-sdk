@@ -71,7 +71,8 @@ class FutureProxyManager {
  public:
   FutureProxyManager(ReferenceCountedFutureImpl* api,
                      const FutureHandle& subject)
-      : api_(api), subject_(subject) {}
+      : api_(api), subject_(subject) {
+  }
 
   ~FutureProxyManager() {
     MutexLock lock(mutex_);
@@ -93,7 +94,8 @@ class FutureProxyManager {
 
   struct UnregisterData {
     UnregisterData(FutureProxyManager* proxy, const FutureHandle& handle)
-        : proxy(proxy), handle(handle) {}
+        : proxy(proxy), handle(handle) {
+    }
     FutureProxyManager* proxy;
     FutureHandle handle;
   };
@@ -156,10 +158,12 @@ struct CompletionCallbackData {
   void (*callback_user_data_delete_fn)(void*);
 
   CompletionCallbackData(FutureBase::CompletionCallback callback,
-                         void* user_data, void (*user_data_delete_fn)(void*))
+                         void* user_data,
+                         void (*user_data_delete_fn)(void*))
       : completion_callback(callback),
         callback_user_data(user_data),
-        callback_user_data_delete_fn(user_data_delete_fn) {}
+        callback_user_data_delete_fn(user_data_delete_fn) {
+  }
 };
 
 using intrusive_list_iterator =
@@ -179,7 +183,8 @@ struct FutureBackingData {
         context_data_delete_fn(nullptr),
         completion_single_callback(nullptr),
         completion_multiple_callbacks(&CompletionCallbackData::node),
-        proxy(nullptr) {}
+        proxy(nullptr) {
+  }
 
   // Call the type-specific destructor on data.
   // Also call the type-specific context data destructor on context_data.
@@ -325,7 +330,8 @@ namespace detail {
 
 // Non-inline implementation of FutureApiInterface's virtual destructor
 // to prevent its vtable being emitted in each translation unit.
-FutureApiInterface::~FutureApiInterface() {}
+FutureApiInterface::~FutureApiInterface() {
+}
 
 }  // namespace detail
 
@@ -451,7 +457,8 @@ void ReferenceCountedFutureImpl::ReleaseMutexAndRunCallbacks(
 }
 
 void ReferenceCountedFutureImpl::RunCallback(
-    FutureBase* future_base, FutureBase::CompletionCallback callback,
+    FutureBase* future_base,
+    FutureBase::CompletionCallback callback,
     void* user_data) {
   // Make sure we're not deallocated while running the callback, because it
   // would make `future_base` invalid.
@@ -471,7 +478,9 @@ bool ReferenceCountedFutureImpl::is_orphaned() const {
   return is_orphaned_;
 }
 
-static void CleanupFuture(FutureBase* future) { future->Release(); }
+static void CleanupFuture(FutureBase* future) {
+  future->Release();
+}
 
 void ReferenceCountedFutureImpl::RegisterFutureForCleanup(FutureBase* future) {
   cleanup_.RegisterObject(future, CleanupFuture);
@@ -558,8 +567,10 @@ FutureBackingData* ReferenceCountedFutureImpl::BackingFromHandle(
 
 detail::CompletionCallbackHandle
 ReferenceCountedFutureImpl::AddCompletionCallback(
-    const FutureHandle& handle, FutureBase::CompletionCallback callback,
-    void* user_data, void (*user_data_delete_fn_ptr)(void*),
+    const FutureHandle& handle,
+    FutureBase::CompletionCallback callback,
+    void* user_data,
+    void (*user_data_delete_fn_ptr)(void*),
     bool single_completion) {
   // Record the callback parameters.
   CompletionCallbackData* callback_data =
@@ -603,9 +614,11 @@ class CompletionMatcher {
   CompletionCallbackData match_;
 
  public:
-  CompletionMatcher(FutureBase::CompletionCallback callback, void* user_data,
+  CompletionMatcher(FutureBase::CompletionCallback callback,
+                    void* user_data,
                     void (*user_data_delete_fn)(void*))
-      : match_(callback, user_data, user_data_delete_fn) {}
+      : match_(callback, user_data, user_data_delete_fn) {
+  }
   bool operator()(const CompletionCallbackData& data) const {
     return data.completion_callback == match_.completion_callback &&
            data.callback_user_data == match_.callback_user_data &&
@@ -660,7 +673,8 @@ static void DeleteStdFunction(void* function_void) {
 
 detail::CompletionCallbackHandle
 ReferenceCountedFutureImpl::AddCompletionCallbackLambda(
-    const FutureHandle& handle, std::function<void(const FutureBase&)> callback,
+    const FutureHandle& handle,
+    std::function<void(const FutureBase&)> callback,
     bool single_completion) {
   // Record the callback parameters.
   CompletionCallbackData* completion_callback_data = new CompletionCallbackData(
@@ -747,7 +761,8 @@ bool ReferenceCountedFutureImpl::IsReferencedExternally() const {
 }
 
 void ReferenceCountedFutureImpl::SetContextData(
-    const FutureHandle& handle, void* context_data,
+    const FutureHandle& handle,
+    void* context_data,
     void (*delete_context_data_fn)(void* data_to_delete)) {
   MutexLock lock(mutex_);
 
@@ -795,7 +810,9 @@ FutureBase ReferenceCountedFutureImpl::LastResultProxy(int fn_idx) {
 }
 #endif  // defined(INTERNAL_EXPERIMENTAL)
 
-static void CleanupFutureHandle(FutureHandle* handle) { handle->Cleanup(); }
+static void CleanupFutureHandle(FutureHandle* handle) {
+  handle->Cleanup();
+}
 
 TypedCleanupNotifier<FutureHandle>& CleanupMgr(
     detail::FutureApiInterface* api) {
@@ -819,7 +836,8 @@ void ReferenceCountedFutureImpl::MarkOrphaned() {
 }
 
 // Implementation of FutureHandle from future.h
-FutureHandle::FutureHandle() : id_(0), api_(nullptr) {}
+FutureHandle::FutureHandle() : id_(0), api_(nullptr) {
+}
 
 FutureHandle::FutureHandle(FutureHandleId id, detail::FutureApiInterface* api)
     : id_(id), api_(api) {

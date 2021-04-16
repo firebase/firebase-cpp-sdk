@@ -50,8 +50,10 @@ static std::string StripTrailingSlash(const std::string& value) {
 }
 
 // Validate a URI scheme and extract the bucket / host and path.
-bool UriToComponents(const std::string& url, const char* object_type,
-                     std::string* bucket, std::string* path) {
+bool UriToComponents(const std::string& url,
+                     const char* object_type,
+                     std::string* bucket,
+                     std::string* path) {
   // Check the scheme.
   bool is_cloud_storage_scheme = false;
   const char* valid_scheme = nullptr;

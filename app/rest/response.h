@@ -34,7 +34,8 @@ namespace rest {
 class Response : public Transfer {
  public:
   Response();
-  virtual ~Response() {}
+  virtual ~Response() {
+  }
 
   // Note: remove if support for Visual Studio <2015 is no longer needed.
   // Prior to version 2015, Visual Studio didn't support implicitly
@@ -50,7 +51,8 @@ class Response : public Transfer {
         fetch_time_(std::move(rhs.fetch_time_)),              // NOLINT
         header_(std::move(rhs.header_)),
         body_(std::move(rhs.body_)),
-        body_cache_(std::move(rhs.body_cache_)) {}
+        body_cache_(std::move(rhs.body_cache_)) {
+  }
 
   // Process headers. Return false when it fails and will interrupt the request.
   virtual bool ProcessHeader(const char* buffer, size_t length);
@@ -77,14 +79,26 @@ class Response : public Transfer {
   }
 
   // Getters.
-  int status() const { return status_; }
-  bool header_completed() const { return header_completed_; }
-  bool body_completed() const { return body_completed_; }
-  int sdk_error_code() const { return sdk_error_code_; }
-  std::time_t fetch_time() const { return fetch_time_; }
+  int status() const {
+    return status_;
+  }
+  bool header_completed() const {
+    return header_completed_;
+  }
+  bool body_completed() const {
+    return body_completed_;
+  }
+  int sdk_error_code() const {
+    return sdk_error_code_;
+  }
+  std::time_t fetch_time() const {
+    return fetch_time_;
+  }
 
   // Setters.
-  void set_status(int status) { status_ = status; }
+  void set_status(int status) {
+    status_ = status;
+  }
 
   void set_sdk_error_code(int sdk_error_code) {
     sdk_error_code_ = sdk_error_code;

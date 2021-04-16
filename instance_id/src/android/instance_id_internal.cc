@@ -27,7 +27,8 @@ namespace internal {
 const char* InstanceIdInternal::kCancelledError = "Cancelled";
 
 InstanceIdInternal::InstanceIdInternal()
-    : instance_id_(nullptr), java_instance_id_(nullptr) {}
+    : instance_id_(nullptr), java_instance_id_(nullptr) {
+}
 
 InstanceIdInternal::~InstanceIdInternal() {
   CancelOperations();
@@ -93,7 +94,8 @@ void InstanceIdInternal::CancelOperations() {
 }
 
 void InstanceIdInternal::CompleteOperation(
-    const SharedPtr<AsyncOperation>& operation, Error error,
+    const SharedPtr<AsyncOperation>& operation,
+    Error error,
     const char* error_message) {
   future_api().Complete(operation->future_handle<void>(), error,
                         error_message ? error_message : "");

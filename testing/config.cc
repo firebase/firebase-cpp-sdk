@@ -14,11 +14,10 @@
 
 #include "testing/config.h"
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
-#include "testing/testdata_config_resource.h"
 #include "flatbuffers/idl.h"
-
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "testing/testdata_config_resource.h"
 
 namespace firebase {
 namespace testing {
@@ -41,7 +40,9 @@ void ConfigSet(const char* test_data_in_json) {
                           parser.builder_.GetSize());
 }
 
-void ConfigReset() { internal::ConfigSetImpl(nullptr, 0); }
+void ConfigReset() {
+  internal::ConfigSetImpl(nullptr, 0);
+}
 
 }  // namespace cppsdk
 }  // namespace testing

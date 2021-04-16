@@ -172,7 +172,8 @@ SystemLogger g_system_logger;  // NOLINT
 struct AppData {
   // TODO(b/140528778): Remove kLogLevelVerbose here and add [GS]etLogLevel
   // member functions to app.
-  AppData() : logger(&g_system_logger, kLogLevelVerbose) {}
+  AppData() : logger(&g_system_logger, kLogLevelVerbose) {
+  }
 
   // App associated with this data.
   App* app;
@@ -185,7 +186,8 @@ struct AppData {
 // Tracks library registrations.
 class LibraryRegistry {
  private:
-  LibraryRegistry() {}
+  LibraryRegistry() {
+  }
 
  public:
   // Register a library, returns true if the library version changed.
@@ -230,7 +232,9 @@ class LibraryRegistry {
   }
 
   // Get the cached user agent string.
-  const char* GetUserAgent() const { return user_agent_.c_str(); }
+  const char* GetUserAgent() const {
+    return user_agent_.c_str();
+  }
 
  public:
   // Create the library registry singleton and get the instance.
@@ -318,7 +322,9 @@ App* FindAppByName(const char* name) {
   return nullptr;
 }
 
-App* GetDefaultApp() { return g_default_app; }
+App* GetDefaultApp() {
+  return g_default_app;
+}
 
 App* GetAnyApp() {
   if (g_default_app) {

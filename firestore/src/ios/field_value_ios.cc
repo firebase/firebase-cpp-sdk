@@ -2,11 +2,11 @@
 
 #include <utility>
 
+#include "Firestore/core/src/nanopb/byte_string.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
 #include "firestore/src/ios/converter_ios.h"
-#include "Firestore/core/src/nanopb/byte_string.h"
 
 namespace firebase {
 namespace firestore {
@@ -22,37 +22,46 @@ using Type = FieldValue::Type;
 // Constructors
 
 FieldValueInternal::FieldValueInternal(bool value)
-    : type_{Type::kBoolean}, value_{model::FieldValue::FromBoolean(value)} {}
+    : type_{Type::kBoolean}, value_{model::FieldValue::FromBoolean(value)} {
+}
 
 FieldValueInternal::FieldValueInternal(int64_t value)
-    : type_{Type::kInteger}, value_{model::FieldValue::FromInteger(value)} {}
+    : type_{Type::kInteger}, value_{model::FieldValue::FromInteger(value)} {
+}
 
 FieldValueInternal::FieldValueInternal(double value)
-    : type_{Type::kDouble}, value_{model::FieldValue::FromDouble(value)} {}
+    : type_{Type::kDouble}, value_{model::FieldValue::FromDouble(value)} {
+}
 
 FieldValueInternal::FieldValueInternal(Timestamp value)
-    : type_{Type::kTimestamp},
-      value_{model::FieldValue::FromTimestamp(value)} {}
+    : type_{Type::kTimestamp}, value_{model::FieldValue::FromTimestamp(value)} {
+}
 
 FieldValueInternal::FieldValueInternal(std::string value)
     : type_{Type::kString},
-      value_{model::FieldValue::FromString(std::move(value))} {}
+      value_{model::FieldValue::FromString(std::move(value))} {
+}
 
 FieldValueInternal::FieldValueInternal(const uint8_t* value, size_t size)
     : type_{Type::kBlob},
-      value_{model::FieldValue::FromBlob(ByteString{value, size})} {}
+      value_{model::FieldValue::FromBlob(ByteString{value, size})} {
+}
 
 FieldValueInternal::FieldValueInternal(DocumentReference value)
-    : type_{Type::kReference}, value_{std::move(value)} {}
+    : type_{Type::kReference}, value_{std::move(value)} {
+}
 
 FieldValueInternal::FieldValueInternal(GeoPoint value)
-    : type_{Type::kGeoPoint}, value_{model::FieldValue::FromGeoPoint(value)} {}
+    : type_{Type::kGeoPoint}, value_{model::FieldValue::FromGeoPoint(value)} {
+}
 
 FieldValueInternal::FieldValueInternal(std::vector<FieldValue> value)
-    : type_{Type::kArray}, value_{std::move(value)} {}
+    : type_{Type::kArray}, value_{std::move(value)} {
+}
 
 FieldValueInternal::FieldValueInternal(MapFieldValue value)
-    : type_{Type::kMap}, value_{std::move(value)} {}
+    : type_{Type::kMap}, value_{std::move(value)} {
+}
 
 // Accessors
 

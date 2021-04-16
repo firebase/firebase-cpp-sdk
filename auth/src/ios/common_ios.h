@@ -52,19 +52,19 @@ struct AuthDataIos {
 };
 
 /// Convert from the platform-independent void* to the Obj-C FIRUser pointer.
-static inline FIRUser *_Nullable UserImpl(AuthData *_Nonnull auth_data) {
+static inline FIRUser* _Nullable UserImpl(AuthData* _Nonnull auth_data) {
   return FIRUserPointer::SafeGet(
-    static_cast<FIRUserPointer *>(auth_data->user_impl));
+      static_cast<FIRUserPointer*>(auth_data->user_impl));
 }
 
 /// Release the platform-dependent FIRUser object.
-static inline void SetUserImpl(AuthData *_Nonnull auth_data,
-                               FIRUser *_Nullable user) {
+static inline void SetUserImpl(AuthData* _Nonnull auth_data,
+                               FIRUser* _Nullable user) {
   MutexLock lock(auth_data->future_impl.mutex());
 
   // Delete existing pointer to FIRUser.
   if (auth_data->user_impl != nullptr) {
-    delete static_cast<FIRUserPointer *>(auth_data->user_impl);
+    delete static_cast<FIRUserPointer*>(auth_data->user_impl);
     auth_data->user_impl = nullptr;
   }
 
@@ -75,45 +75,47 @@ static inline void SetUserImpl(AuthData *_Nonnull auth_data,
 }
 
 /// Convert from the platform-independent void* to the Obj-C FIRAuth pointer.
-static inline FIRAuth *_Nonnull AuthImpl(AuthData *_Nonnull auth_data) {
-  return static_cast<AuthDataIos *>(auth_data->auth_impl)->fir_auth.get();
+static inline FIRAuth* _Nonnull AuthImpl(AuthData* _Nonnull auth_data) {
+  return static_cast<AuthDataIos*>(auth_data->auth_impl)->fir_auth.get();
 }
 
 /// Convert from the void* credential implementation pointer into the Obj-C
 /// FIRAuthCredential pointer.
-static inline FIRAuthCredential *_Nonnull CredentialFromImpl(
-    void *_Nonnull impl) {
-  return static_cast<FIRAuthCredentialPointer *>(impl)->get();
+static inline FIRAuthCredential* _Nonnull CredentialFromImpl(
+    void* _Nonnull impl) {
+  return static_cast<FIRAuthCredentialPointer*>(impl)->get();
 }
 
-AuthError AuthErrorFromNSError(NSError *_Nullable error);
+AuthError AuthErrorFromNSError(NSError* _Nullable error);
 
 /// Common code for all API calls that return a User*.
 /// Initialize `auth_data->current_user` and complete the `future`.
-void SignInCallback(FIRUser *_Nullable user, NSError *_Nullable error,
+void SignInCallback(FIRUser* _Nullable user,
+                    NSError* _Nullable error,
                     SafeFutureHandle<User*> handle,
-                    AuthData *_Nonnull auth_data);
+                    AuthData* _Nonnull auth_data);
 
 /// Common code for all API calls that return a SignInResult.
 /// Initialize `auth_data->current_user` and complete the `future`.
-void SignInResultCallback(FIRAuthDataResult *_Nullable auth_result,
-                          NSError *_Nullable error,
+void SignInResultCallback(FIRAuthDataResult* _Nullable auth_result,
+                          NSError* _Nullable error,
                           SafeFutureHandle<SignInResult> handle,
-                          AuthData *_Nonnull auth_data);
+                          AuthData* _Nonnull auth_data);
 
 /// Common code for all FederatedOAuth API calls which return a SignInResult and
 /// must hold a reference to a FIROAuthProvider so that the provider is not
 /// deallocated by the Objective-C environment. Directly invokes
 /// SignInResultCallback().
 void SignInResultWithProviderCallback(
-    FIRAuthDataResult* _Nullable auth_result, NSError* _Nullable error,
-    SafeFutureHandle<SignInResult> handle, AuthData *_Nonnull auth_data,
-    const FIROAuthProvider *_Nonnull ios_auth_provider);
+    FIRAuthDataResult* _Nullable auth_result,
+    NSError* _Nullable error,
+    SafeFutureHandle<SignInResult> handle,
+    AuthData* _Nonnull auth_data,
+    const FIROAuthProvider* _Nonnull ios_auth_provider);
 
 /// Remap iOS SDK errors reported by the UIDelegate. While these errors seem
 /// like user interaction errors, they are actually caused by bad provider ids.
 NSError* RemapBadProviderIDErrors(NSError* _Nonnull error);
-
 
 }  // namespace auth
 }  // namespace firebase

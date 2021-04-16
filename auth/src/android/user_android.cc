@@ -148,7 +148,8 @@ void ReleaseUserClasses(JNIEnv* env) {
 
 enum PropertyType { kPropertyTypeString, kPropertyTypeUri };
 
-static std::string GetUserProperty(AuthData* auth_data, jobject impl,
+static std::string GetUserProperty(AuthData* auth_data,
+                                   jobject impl,
                                    userinfo::Method method_id,
                                    PropertyType type = kPropertyTypeString) {
   JNIEnv* env = Env(auth_data);
@@ -191,7 +192,8 @@ static std::string GetProviderId(AuthData* auth_data, jobject impl) {
   return GetUserProperty(auth_data, impl, userinfo::kGetProviderId);
 }
 
-User::~User() {}
+User::~User() {
+}
 
 std::string User::uid() const {
   return ValidUser(auth_data_) ? GetUID(auth_data_, UserImpl(auth_data_)) : "";
@@ -241,7 +243,9 @@ class AndroidWrappedUserInfo : public UserInfoInterface {
     user_info_ = nullptr;
   }
 
-  std::string uid() const override { return GetUID(auth_data_, user_info_); }
+  std::string uid() const override {
+    return GetUID(auth_data_, user_info_);
+  }
 
   std::string email() const override {
     return GetEmail(auth_data_, user_info_);
@@ -273,8 +277,10 @@ class AndroidWrappedUserInfo : public UserInfoInterface {
   jobject user_info_;
 };
 
-void ReadTokenResult(jobject result, FutureCallbackData<std::string>* d,
-                     bool success, void* void_data) {
+void ReadTokenResult(jobject result,
+                     FutureCallbackData<std::string>* d,
+                     bool success,
+                     void* void_data) {
   auto data = static_cast<std::string*>(void_data);
   JNIEnv* env = Env(d->auth_data);
 
@@ -625,7 +631,6 @@ Future<SignInResult> User::ReauthenticateWithProvider(
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), provider);
   return provider->Reauthenticate(auth_data_);
 }
-
 
 Future<void> User::SendEmailVerification() {
   if (!ValidUser(auth_data_)) {

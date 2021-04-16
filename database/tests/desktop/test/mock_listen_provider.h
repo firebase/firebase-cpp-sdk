@@ -15,10 +15,10 @@
 #ifndef FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_LISTEN_PROVIDER_H_
 #define FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_LISTEN_PROVIDER_H_
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/listen_provider.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {
@@ -26,11 +26,14 @@ namespace internal {
 
 class MockListenProvider : public ListenProvider {
  public:
-  MOCK_METHOD(void, StartListening,
+  MOCK_METHOD(void,
+              StartListening,
               (const QuerySpec& query_spec, const Tag& tag, const View* view),
               (override));
-  MOCK_METHOD(void, StopListening,
-              (const QuerySpec& query_spec, const Tag& tag), (override));
+  MOCK_METHOD(void,
+              StopListening,
+              (const QuerySpec& query_spec, const Tag& tag),
+              (override));
 };
 
 }  // namespace internal

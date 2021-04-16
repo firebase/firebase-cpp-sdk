@@ -23,7 +23,8 @@ namespace cppsdk {
 
 class TickerObserver {
  public:
-  TickerObserver() {}
+  TickerObserver() {
+  }
   virtual ~TickerObserver();
 
   virtual void Elapse() = 0;

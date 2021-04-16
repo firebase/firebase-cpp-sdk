@@ -18,8 +18,8 @@
 #include <map>
 #include <string>
 
-#include "remote_config/src/include/firebase/remote_config.h"
 #include "flatbuffers/flexbuffers.h"
+#include "remote_config/src/include/firebase/remote_config.h"
 
 namespace firebase {
 namespace remote_config {
@@ -45,8 +45,12 @@ class RemoteConfigMetadata {
   std::string Serialize() const;
   void Deserialize(const std::string& buffer);
 
-  const ConfigInfo& info() const { return info_; }
-  void set_info(const ConfigInfo& info) { info_ = info; }
+  const ConfigInfo& info() const {
+    return info_;
+  }
+  void set_info(const ConfigInfo& info) {
+    info_ = info;
+  }
 
   // Returns a map from namespace to digest (hash of last known server state).
   const MetaDigestMap& digest_by_namespace() const {
@@ -57,7 +61,9 @@ class RemoteConfigMetadata {
   }
 
   // Set setting with value.
-  const MetaSettingsMap& settings() const { return settings_; }
+  const MetaSettingsMap& settings() const {
+    return settings_;
+  }
   void AddSetting(const ConfigSetting& setting, const std::string& value);
   // Return setting value by setting. Return "0" if value does not given.
   std::string GetSetting(const ConfigSetting& setting) const;

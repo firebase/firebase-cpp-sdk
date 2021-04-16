@@ -31,10 +31,14 @@ class VerifyCustomTokenResponse : public AuthResponse {
 
   // Either an authorization code suitable for performing an STS token exchange,
   // or the access token from Secure Token Service
-  std::string id_token() const { return application_data_->idToken; }
+  std::string id_token() const {
+    return application_data_->idToken;
+  }
 
   // The refresh token from Secure Token Service.
-  std::string refresh_token() const { return application_data_->refreshToken; }
+  std::string refresh_token() const {
+    return application_data_->refreshToken;
+  }
 
   // TODO(varconst): see if it needs implementing. Unlike other responses,
   // VerifyCustomTokenResponse *doesn't* contain local_id as a field; instead,
@@ -42,9 +46,13 @@ class VerifyCustomTokenResponse : public AuthResponse {
   // (see e.g. how it's done on Android: http://shortn/_EqJt1rsi2O).
   // However, since the desktop implementation always calls GetAccountInfo
   // before resolving the future, the result will be overridden anyway.
-  std::string local_id() const { return std::string(); }
+  std::string local_id() const {
+    return std::string();
+  }
 
-  bool is_new_user() const { return application_data_->isNewUser; }
+  bool is_new_user() const {
+    return application_data_->isNewUser;
+  }
 
   // The number of seconds till the access token expires.
   int expires_in() const {

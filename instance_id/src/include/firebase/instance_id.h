@@ -121,7 +121,9 @@ class InstanceId {
   /// @brief Gets the App this object is connected to.
   ///
   /// @returns App this object is connected to.
-  App& app() const { return *app_; }
+  App& app() const {
+    return *app_;
+  }
 
 #if defined(INTERNAL_EXPERIMENTAL)
   // TODO(b/69932424): Blocked by iOS implementation.

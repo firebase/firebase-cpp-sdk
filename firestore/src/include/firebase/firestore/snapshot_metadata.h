@@ -41,8 +41,8 @@ class SnapshotMetadata final {
    * @param is_from_cache Whether the snapshot is from cache instead of backend.
    */
   SnapshotMetadata(bool has_pending_writes, bool is_from_cache)
-      : has_pending_writes_(has_pending_writes),
-        is_from_cache_(is_from_cache) {}
+      : has_pending_writes_(has_pending_writes), is_from_cache_(is_from_cache) {
+  }
 
   /**
    * @brief Copy constructor.
@@ -104,7 +104,9 @@ class SnapshotMetadata final {
    * has_pending_writes() equal to false once the writes have been committed to
    * the backend.
    */
-  bool has_pending_writes() const { return has_pending_writes_; }
+  bool has_pending_writes() const {
+    return has_pending_writes_;
+  }
 
   /**
    * Returns whether the snapshot was created from cached data.
@@ -115,7 +117,9 @@ class SnapshotMetadata final {
    * with is_from_cache() equal to false once the client has received up-to-date
    * data from the backend.
    */
-  bool is_from_cache() const { return is_from_cache_; }
+  bool is_from_cache() const {
+    return is_from_cache_;
+  }
 
   /**
    * Returns a string representation of this `SnapshotMetadata` for

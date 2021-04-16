@@ -98,7 +98,8 @@ METHOD_LOOKUP_DEFINITION(signinmethodquery,
 // clang-format on
 METHOD_LOOKUP_DECLARATION(jnilistener, JNI_LISTENER_CALLBACK_METHODS)
 METHOD_LOOKUP_DEFINITION(
-    jnilistener, "com/google/firebase/auth/internal/cpp/JniAuthStateListener",
+    jnilistener,
+    "com/google/firebase/auth/internal/cpp/JniAuthStateListener",
     JNI_LISTENER_CALLBACK_METHODS)
 
 // clang-format off
@@ -132,7 +133,8 @@ static const JNINativeMethod kNativeOnIdTokenChangedMethod = {
     reinterpret_cast<void*>(JniIdTokenListener_nativeOnIdTokenChanged)};
 
 bool CacheAuthMethodIds(
-    JNIEnv* env, jobject activity,
+    JNIEnv* env,
+    jobject activity,
     const std::vector<internal::EmbeddedFile>& embedded_files) {
   if (!(auth::CacheMethodIds(env, activity) &&
         signinmethodquery::CacheMethodIds(env, activity))) {
@@ -328,8 +330,10 @@ JNIEXPORT void JNICALL JniIdTokenListener_nativeOnIdTokenChanged(
 
 // Record the provider data returned from Java.
 static void ReadProviderResult(
-    jobject result, FutureCallbackData<Auth::FetchProvidersResult>* d,
-    bool success, void* void_data) {
+    jobject result,
+    FutureCallbackData<Auth::FetchProvidersResult>* d,
+    bool success,
+    void* void_data) {
   auto data = static_cast<Auth::FetchProvidersResult*>(void_data);
   JNIEnv* env = Env(d->auth_data);
 
@@ -556,8 +560,8 @@ User* Auth::current_user() {
 std::string Auth::language_code() const {
   if (!auth_data_) return std::string();
   JNIEnv* env = Env(auth_data_);
-  jobject j_pending_result = env->CallObjectMethod(AuthImpl(auth_data_),
-                              auth::GetMethodId(auth::kGetLanguageCode));
+  jobject j_pending_result = env->CallObjectMethod(
+      AuthImpl(auth_data_), auth::GetMethodId(auth::kGetLanguageCode));
   if (firebase::util::CheckAndClearJniExceptions(env) ||
       j_pending_result == nullptr) {
     return std::string();
@@ -622,10 +626,14 @@ Future<void> Auth::SendPasswordResetEmail(const char* email) {
 }
 
 // Not implemented for Android.
-void EnableTokenAutoRefresh(AuthData* auth_data) {}
-void DisableTokenAutoRefresh(AuthData* auth_data) {}
-void InitializeTokenRefresher(AuthData* auth_data) {}
-void DestroyTokenRefresher(AuthData* auth_data) {}
+void EnableTokenAutoRefresh(AuthData* auth_data) {
+}
+void DisableTokenAutoRefresh(AuthData* auth_data) {
+}
+void InitializeTokenRefresher(AuthData* auth_data) {
+}
+void DestroyTokenRefresher(AuthData* auth_data) {
+}
 
 }  // namespace auth
 }  // namespace firebase

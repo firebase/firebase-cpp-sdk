@@ -54,7 +54,8 @@ class ViewProcessor {
                       std::vector<Change>* out_changes);
 
   // Reverts a write operation using data in the cache.
-  ViewCache RevertUserWrite(const ViewCache& view_cache, const Path& path,
+  ViewCache RevertUserWrite(const ViewCache& view_cache,
+                            const Path& path,
                             const WriteTreeRef& writes_cache,
                             const Variant* opt_complete_server_cache,
                             ChildChangeAccumulator* accumulator);
@@ -73,8 +74,10 @@ class ViewProcessor {
   // writes_cache, and use the accumulator to gather the resulting Changes for
   // later processing.
   ViewCache GenerateEventCacheAfterServerEvent(
-      const ViewCache& view_cache, const Path& change_path,
-      const WriteTreeRef& writes_cache, const CompleteChildSource* source,
+      const ViewCache& view_cache,
+      const Path& change_path,
+      const WriteTreeRef& writes_cache,
+      const CompleteChildSource* source,
       ChildChangeAccumulator* accumulator);
 
   // Apply a server overwrite to a location in the database, and return the
@@ -98,7 +101,8 @@ class ViewProcessor {
 
   // Apply a local merge to a location in the database, and return the
   // updated cache.
-  ViewCache ApplyServerMerge(const ViewCache& view_cache, const Path& path,
+  ViewCache ApplyServerMerge(const ViewCache& view_cache,
+                             const Path& path,
                              const CompoundWrite& changed_children,
                              const WriteTreeRef& writes_cache,
                              const Variant& server_cache,
@@ -107,7 +111,8 @@ class ViewProcessor {
 
   // Apply a local merge to a location in the database, and return the
   // updated cache.
-  ViewCache ApplyUserMerge(const ViewCache& view_cache, const Path& path,
+  ViewCache ApplyUserMerge(const ViewCache& view_cache,
+                           const Path& path,
                            const CompoundWrite& changed_children,
                            const WriteTreeRef& writes_cache,
                            const Variant& server_cache,
@@ -115,7 +120,8 @@ class ViewProcessor {
 
   // Acknowledge a write made by the user was accepted by the server, and return
   // the updated cache.
-  ViewCache AckUserWrite(const ViewCache& view_cache, const Path& ack_path,
+  ViewCache AckUserWrite(const ViewCache& view_cache,
+                         const Path& ack_path,
                          const Tree<bool>& affected_tree,
                          const WriteTreeRef& writes_cache,
                          const Variant* opt_complete_cache,
@@ -123,7 +129,8 @@ class ViewProcessor {
 
   // Listening is complete on this location. Update the server cache to refect
   // this.
-  ViewCache ListenComplete(const ViewCache& view_cache, const Path& path,
+  ViewCache ListenComplete(const ViewCache& view_cache,
+                           const Path& path,
                            const WriteTreeRef& writes_cache,
                            ChildChangeAccumulator* accumulator);
 

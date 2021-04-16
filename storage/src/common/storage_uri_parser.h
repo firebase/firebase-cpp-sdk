@@ -24,8 +24,10 @@ namespace internal {
 extern const char* kCloudStorageScheme;
 
 // Validate a URI scheme and extract the bucket / host and path.
-bool UriToComponents(const std::string& url, const char* object_type,
-                     std::string* bucket, std::string* path);
+bool UriToComponents(const std::string& url,
+                     const char* object_type,
+                     std::string* bucket,
+                     std::string* path);
 
 }  // namespace internal
 }  // namespace storage

@@ -37,20 +37,20 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;
 
 /// Unavailable (UIView).
-- (instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
+- (instancetype)initWithCoder:(NSCoder*)coder NS_UNAVAILABLE;
 
-/// Designated Initializer. Returns a FADNativeExpressAdView object with the publisher-provided
-/// UIView (the parent view of FADNativeExpressAdView), ad unit ID, ad size, and
-/// NativeExpressAdViewInternalIOS object.
-- (instancetype)initWithView:(UIView *)view
-                       adUnitID:(NSString *)adUnitID
+/// Designated Initializer. Returns a FADNativeExpressAdView object with the
+/// publisher-provided UIView (the parent view of FADNativeExpressAdView), ad
+/// unit ID, ad size, and NativeExpressAdViewInternalIOS object.
+- (instancetype)initWithView:(UIView*)view
+                       adUnitID:(NSString*)adUnitID
                          adSize:(firebase::admob::AdSize)adSize
     internalNativeExpressAdView:
-        (firebase::admob::internal::NativeExpressAdViewInternalIOS *)cppNativeExpressAdView
-    NS_DESIGNATED_INITIALIZER;
+        (firebase::admob::internal::NativeExpressAdViewInternalIOS*)
+            cppNativeExpressAdView NS_DESIGNATED_INITIALIZER;
 
 /// Requests a native express ad.
-- (void)loadRequest:(GADRequest *)request;
+- (void)loadRequest:(GADRequest*)request;
 
 /// Hides the native express ad view.
 - (void)hide;
@@ -65,7 +65,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)moveNativeExpressAdViewToXCoordinate:(int)x yCoordinate:(int)y;
 
 /// Moves the native express ad view to a NativeExpressAdView::Position.
-- (void)moveNativeExpressAdViewToPosition:(firebase::admob::NativeExpressAdView::Position)position;
+- (void)moveNativeExpressAdViewToPosition:
+    (firebase::admob::NativeExpressAdView::Position)position;
 
 @end
 

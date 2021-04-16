@@ -14,7 +14,8 @@ namespace firestore {
 using Type = DocumentChange::Type;
 
 DocumentChangeInternal::DocumentChangeInternal(api::DocumentChange&& change)
-    : change_{std::move(change)} {}
+    : change_{std::move(change)} {
+}
 
 FirestoreInternal* DocumentChangeInternal::firestore_internal() {
   return GetFirestoreInternal(&change_);

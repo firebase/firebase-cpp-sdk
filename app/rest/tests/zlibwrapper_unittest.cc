@@ -24,11 +24,11 @@
 #include <string_view>
 #include <vector>
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "absl/base/macros.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "util/random/acmrandom.h"
 
 // 1048576 == 2^20 == 1 MB
@@ -38,18 +38,24 @@
 DEFINE_int32(min_comp_lvl, 6, "Minimum compression level");
 DEFINE_int32(max_comp_lvl, 6, "Maximum compression level");
 DEFINE_string(dict, "", "Dictionary file to use (overrides default text)");
-DEFINE_string(files_to_process, "",
+DEFINE_string(files_to_process,
+              "",
               "Comma separated list of filenames to read in for our tests. "
               "If empty, a default file from testdata is used.");
-DEFINE_int32(zlib_max_size_uncompressed_data, 10 * 1024 * 1024,  // 10MB
+DEFINE_int32(zlib_max_size_uncompressed_data,
+             10 * 1024 * 1024,  // 10MB
              "Maximum expected size of the uncompress length "
              "in the gzip footer.");
-DEFINE_string(read_past_window_data_file, "",
+DEFINE_string(read_past_window_data_file,
+              "",
               "Data to use for reproducing read-past-window bug;"
               " defaults to zlib/testdata/read_past_window.data");
-DEFINE_int32(read_past_window_iterations, 4000,
+DEFINE_int32(read_past_window_iterations,
+             4000,
              "Number of attempts to read past end of window");
-ABSL_FLAG(absl::Duration, slow_test_deadline, absl::Minutes(2),
+ABSL_FLAG(absl::Duration,
+          slow_test_deadline,
+          absl::Minutes(2),
           "The voluntary time limit some of the slow tests attempt to "
           "adhere to.  Used only if the build is detected as an unusually "
           "slow one according to ValgrindSlowdown().  Set to \"inf\" to "
@@ -71,14 +77,20 @@ class SlowTestLimiter {
   SlowTestLimiter();
 
   // A human readable reason for the limiter's policy.
-  std::string reason() { return reason_; }
+  std::string reason() {
+    return reason_;
+  }
 
   // Returns true if this known to be a slow build.
-  bool IsSlowBuild() const { return deadline_ < absl::InfiniteFuture(); }
+  bool IsSlowBuild() const {
+    return deadline_ < absl::InfiniteFuture();
+  }
 
   // Returns true iff absl::Now() > deadline().  This class is passive; the
   // test must poll.
-  bool DeadlineExceeded() const { return absl::Now() > deadline_; }
+  bool DeadlineExceeded() const {
+    return absl::Now() > deadline_;
+  }
 
  private:
   std::string reason_;
@@ -107,7 +119,8 @@ REGISTER_MODULE_INITIALIZER(zlibwrapper_unittest, {
       << "  Reason: " << limiter.reason();
 });
 
-bool ReadFileToString(absl::string_view filename, std::string* output,
+bool ReadFileToString(absl::string_view filename,
+                      std::string* output,
                       int64 max_size) {
   std::ifstream f;
   f.open(filename);
@@ -123,7 +136,8 @@ bool ReadFileToString(absl::string_view filename, std::string* output,
   return !f.fail();
 }
 
-void TestCompression(ZLib* zlib, const std::string& uncompbuf,
+void TestCompression(ZLib* zlib,
+                     const std::string& uncompbuf,
                      const char* msg) {
   LOG(INFO) << "TestCompression of " << uncompbuf.size() << " bytes.";
 
@@ -518,7 +532,8 @@ void TestGzip(ZLib* zlib, const std::string& uncompbuf_str) {
   if (tmpbuf) free(tmpbuf);
 }
 
-void TestChunkedGzip(ZLib* zlib, const std::string& uncompbuf_str,
+void TestChunkedGzip(ZLib* zlib,
+                     const std::string& uncompbuf_str,
                      int num_chunks) {
   const char* uncompbuf = uncompbuf_str.data();
   const uLongf uncomplen = uncompbuf_str.size();
@@ -902,7 +917,8 @@ std::vector<std::string> GetFilesToProcess() {
   return absl::StrSplit(files_to_process, ",", absl::SkipWhitespace());
 }
 
-INSTANTIATE_TEST_SUITE_P(AllTests, ZLibWrapperTest,
+INSTANTIATE_TEST_SUITE_P(AllTests,
+                         ZLibWrapperTest,
                          ::testing::ValuesIn(GetFilesToProcess()));
 
 TEST(ZLibWrapperStandaloneTest, GzipCompatibility) {

@@ -100,9 +100,11 @@ std::string GetDebugQuerySpecString(const QuerySpec& query_spec) {
 }
 
 PersistentConnection::PersistentConnection(
-    App* app, const HostInfo& info,
+    App* app,
+    const HostInfo& info,
     PersistentConnectionEventHandler* event_handler,
-    scheduler::Scheduler* scheduler, Logger* logger)
+    scheduler::Scheduler* scheduler,
+    Logger* logger)
     : app_(app),
       safe_this_(this),
       scheduler_(scheduler),
@@ -151,7 +153,8 @@ void PersistentConnection::OnCacheHost(const std::string& host) {
   // TODO(chkuang): Ignore cache host for now.
 }
 
-std::string GetStringValue(const Variant& data, const char* key,
+std::string GetStringValue(const Variant& data,
+                           const char* key,
                            bool force = false) {
   if (!data.is_map()) {
     return "";
@@ -232,7 +235,8 @@ void PersistentConnection::OnReady(int64_t timestamp,
 }
 
 void PersistentConnection::HandleConnectStatsResponse(
-    const Variant& message, const ResponsePtr& response,
+    const Variant& message,
+    const ResponsePtr& response,
     uint64_t outstanding_id) {
   auto status = GetStringValue(message, kRequestStatus);
   if (status != kRequestStatusOk) {
@@ -352,7 +356,8 @@ void PersistentConnection::ScheduleShutdown() {
       }));
 }
 
-void PersistentConnection::Listen(const QuerySpec& query_spec, const Tag& tag,
+void PersistentConnection::Listen(const QuerySpec& query_spec,
+                                  const Tag& tag,
                                   ResponsePtr response) {
   CheckAuthTokenAndSendOnChange();
   logger_->LogDebug("%s Listening on %s", log_id_.c_str(),
@@ -391,20 +396,23 @@ void PersistentConnection::Unlisten(const QuerySpec& query_spec) {
   }
 }
 
-void PersistentConnection::Put(const Path& path, const Variant& data,
+void PersistentConnection::Put(const Path& path,
+                               const Variant& data,
                                ResponsePtr response) {
   CheckAuthTokenAndSendOnChange();
   PutInternal(kRequestActionPut, path, data, /*hash=*/nullptr, Move(response));
 }
 
-void PersistentConnection::CompareAndPut(const Path& path, const Variant& data,
+void PersistentConnection::CompareAndPut(const Path& path,
+                                         const Variant& data,
                                          const std::string& hash,
                                          ResponsePtr response) {
   CheckAuthTokenAndSendOnChange();
   PutInternal(kRequestActionPut, path, data, hash.c_str(), Move(response));
 }
 
-void PersistentConnection::Merge(const Path& path, const Variant& data,
+void PersistentConnection::Merge(const Path& path,
+                                 const Variant& data,
                                  ResponsePtr response) {
   CheckAuthTokenAndSendOnChange();
   PutInternal(kRequestActionMerge, path, data, nullptr, Move(response));
@@ -467,9 +475,13 @@ void PersistentConnection::OnDisconnectCancel(const Path& path,
   }
 }
 
-void PersistentConnection::Interrupt() { InterruptInternal(kInterruptManual); }
+void PersistentConnection::Interrupt() {
+  InterruptInternal(kInterruptManual);
+}
 
-void PersistentConnection::Resume() { ResumeInternal(kInterruptManual); }
+void PersistentConnection::Resume() {
+  ResumeInternal(kInterruptManual);
+}
 
 bool PersistentConnection::IsInterrupted() {
   return IsInterruptedInternal(kInterruptManual);
@@ -810,8 +822,10 @@ void PersistentConnection::OnListenRevoked(const Path& path) {
   }
 }
 
-void PersistentConnection::PutInternal(const char* action, const Path& path,
-                                       const Variant& data, const char* hash,
+void PersistentConnection::PutInternal(const char* action,
+                                       const Path& path,
+                                       const Variant& data,
+                                       const char* hash,
                                        ResponsePtr response) {
   Variant request = Variant::EmptyMap();
   request.map()[kRequestPath] = path.str();
@@ -899,7 +913,8 @@ void PersistentConnection::SendOnDisconnect(const char* action,
 }
 
 void PersistentConnection::HandleOnDisconnectResponse(
-    const Variant& message, const ResponsePtr& response,
+    const Variant& message,
+    const ResponsePtr& response,
     uint64_t outstanding_id) {
   std::string status_string = GetStringValue(message, kRequestStatus);
   Error error_code = StatusStringToErrorCode(status_string);
@@ -910,7 +925,8 @@ void PersistentConnection::HandleOnDisconnectResponse(
       is_ok ? "" : GetStringValue(message, kServerDataUpdateBody, true));
 }
 
-void PersistentConnection::SendSensitive(const char* action, bool sensitive,
+void PersistentConnection::SendSensitive(const char* action,
+                                         bool sensitive,
                                          const Variant& message,
                                          ResponsePtr response,
                                          ConnectionResponseHandler callback,
@@ -988,7 +1004,8 @@ class SendAuthResponse : public Response {
  public:
   explicit SendAuthResponse(bool restore_outstanding_on_response)
       : Response(nullptr),
-        restore_outstanding_on_response_(restore_outstanding_on_response) {}
+        restore_outstanding_on_response_(restore_outstanding_on_response) {
+  }
 
   bool GetRestoreOutstandingsFlag() const {
     return restore_outstanding_on_response_;

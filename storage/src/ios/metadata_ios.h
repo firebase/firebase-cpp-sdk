@@ -129,15 +129,21 @@ class MetadataInternal {
   const char* md5_hash();
 
   // Gets the StorageInternal we are a part of.
-  StorageInternal* storage_internal() const { return storage_; }
+  StorageInternal* storage_internal() const {
+    return storage_;
+  }
 
   // Special method to create an invalid Metadata, because Metadata's default
   // constructor now gives us a valid one.
-  static Metadata GetInvalidMetadata() { return Metadata(nullptr); }
+  static Metadata GetInvalidMetadata() {
+    return Metadata(nullptr);
+  }
 
  private:
 #ifdef __OBJC__
-  FIRStorageMetadata* impl() const { return impl_->get(); }
+  FIRStorageMetadata* impl() const {
+    return impl_->get();
+  }
 #endif  // __OBJC__
 
   friend class StorageReferenceInternal;

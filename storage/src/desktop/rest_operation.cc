@@ -31,9 +31,12 @@ namespace internal {
 
 RestOperation::RestOperation(StorageInternal* storage_internal,
                              const StorageReference& storage_reference,
-                             rest::Request* request, Notifier* request_notifier,
-                             BlockingResponse* response, Listener* listener,
-                             FutureHandle handle, Controller* controller_out)
+                             rest::Request* request,
+                             Notifier* request_notifier,
+                             BlockingResponse* response,
+                             Listener* listener,
+                             FutureHandle handle,
+                             Controller* controller_out)
     : storage_internal_(storage_internal),
       request_(request),
       request_notifier_(request_notifier),

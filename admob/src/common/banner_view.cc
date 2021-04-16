@@ -54,7 +54,8 @@ static bool CheckIsInitialized(internal::BannerViewInternal* internal) {
   return true;
 }
 
-Future<void> BannerView::Initialize(AdParent parent, const char* ad_unit_id,
+Future<void> BannerView::Initialize(AdParent parent,
+                                    const char* ad_unit_id,
                                     AdSize size) {
   return internal_->Initialize(parent, ad_unit_id, size);
 }

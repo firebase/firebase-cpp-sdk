@@ -17,12 +17,12 @@
 
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/desktop/core/cache_policy.h"
 #include "database/src/desktop/core/compound_write.h"
 #include "database/src/desktop/persistence/persistence_manager.h"
 #include "database/src/desktop/view/view_cache.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {
@@ -33,39 +33,57 @@ class MockPersistenceManager : public PersistenceManager {
   MockPersistenceManager(
       UniquePtr<PersistenceStorageEngine> storage_engine,
       UniquePtr<TrackedQueryManagerInterface> tracked_query_manager,
-      UniquePtr<CachePolicy> cache_policy, LoggerBase* logger)
+      UniquePtr<CachePolicy> cache_policy,
+      LoggerBase* logger)
       : PersistenceManager(std::move(storage_engine),
                            std::move(tracked_query_manager),
-                           std::move(cache_policy), logger) {}
-  ~MockPersistenceManager() override {}
+                           std::move(cache_policy),
+                           logger) {
+  }
+  ~MockPersistenceManager() override {
+  }
 
-  MOCK_METHOD(void, SaveUserOverwrite,
+  MOCK_METHOD(void,
+              SaveUserOverwrite,
               (const Path& path, const Variant& variant, WriteId write_id),
               (override));
-  MOCK_METHOD(void, SaveUserMerge,
-              (const Path& path, const CompoundWrite& children,
+  MOCK_METHOD(void,
+              SaveUserMerge,
+              (const Path& path,
+               const CompoundWrite& children,
                WriteId write_id),
               (override));
   MOCK_METHOD(void, RemoveUserWrite, (WriteId write_id), (override));
   MOCK_METHOD(void, RemoveAllUserWrites, (), (override));
-  MOCK_METHOD(void, ApplyUserWriteToServerCache,
-              (const Path& path, const Variant& variant), (override));
-  MOCK_METHOD(void, ApplyUserWriteToServerCache,
-              (const Path& path, const CompoundWrite& merge), (override));
+  MOCK_METHOD(void,
+              ApplyUserWriteToServerCache,
+              (const Path& path, const Variant& variant),
+              (override));
+  MOCK_METHOD(void,
+              ApplyUserWriteToServerCache,
+              (const Path& path, const CompoundWrite& merge),
+              (override));
   MOCK_METHOD(std::vector<UserWriteRecord>, LoadUserWrites, (), (override));
   MOCK_METHOD(CacheNode, ServerCache, (const QuerySpec& query), (override));
-  MOCK_METHOD(void, UpdateServerCache,
-              (const QuerySpec& query, const Variant& variant), (override));
-  MOCK_METHOD(void, UpdateServerCache,
-              (const Path& path, const CompoundWrite& children), (override));
+  MOCK_METHOD(void,
+              UpdateServerCache,
+              (const QuerySpec& query, const Variant& variant),
+              (override));
+  MOCK_METHOD(void,
+              UpdateServerCache,
+              (const Path& path, const CompoundWrite& children),
+              (override));
   MOCK_METHOD(void, SetQueryActive, (const QuerySpec& query), (override));
   MOCK_METHOD(void, SetQueryInactive, (const QuerySpec& query), (override));
   MOCK_METHOD(void, SetQueryComplete, (const QuerySpec& query), (override));
-  MOCK_METHOD(void, SetTrackedQueryKeys,
+  MOCK_METHOD(void,
+              SetTrackedQueryKeys,
               (const QuerySpec& query, const std::set<std::string>& keys),
               (override));
-  MOCK_METHOD(void, UpdateTrackedQueryKeys,
-              (const QuerySpec& query, const std::set<std::string>& added,
+  MOCK_METHOD(void,
+              UpdateTrackedQueryKeys,
+              (const QuerySpec& query,
+               const std::set<std::string>& added,
                const std::set<std::string>& removed),
               (override));
 };

@@ -61,7 +61,8 @@ struct TransportCurlActionData {
         curl(nullptr),
         request(nullptr),
         response(nullptr),
-        controller(nullptr) {}
+        controller(nullptr) {
+  }
   // Transport that scheduled this request.
   // Required by:
   // * kRequestedActionPerform
@@ -101,7 +102,8 @@ struct TransportCurlActionData {
 
   // Create a perform action.
   static TransportCurlActionData Perform(TransportCurl* transport_curl,
-                                         Request* request, Response* response,
+                                         Request* request,
+                                         Response* response,
                                          CURL* curl,
                                          ControllerCurl* controller = nullptr) {
     TransportCurlActionData transport_action;
@@ -116,21 +118,24 @@ struct TransportCurlActionData {
 
   // Create a cancellation action.
   static TransportCurlActionData Cancel(TransportCurl* transport_curl,
-                                        Response* response, CURL* curl) {
+                                        Response* response,
+                                        CURL* curl) {
     return ResponseAction(transport_curl, kRequestedActionCancel, response,
                           curl);
   }
 
   // Create a pause action.
   static TransportCurlActionData Pause(TransportCurl* transport_curl,
-                                       Response* response, CURL* curl) {
+                                       Response* response,
+                                       CURL* curl) {
     return ResponseAction(transport_curl, kRequestedActionPause, response,
                           curl);
   }
 
   // Create a resume action.
   static TransportCurlActionData Resume(TransportCurl* transport_curl,
-                                        Response* response, CURL* curl) {
+                                        Response* response,
+                                        CURL* curl) {
     return ResponseAction(transport_curl, kRequestedActionResume, response,
                           curl);
   }
@@ -159,20 +164,36 @@ class BackgroundTransportCurl {
                                    void* data);
 
  public:
-  BackgroundTransportCurl(CURLM* curl_multi, CURL* curl, Request* request,
-                          Response* response, Mutex* controller_mutex,
+  BackgroundTransportCurl(CURLM* curl_multi,
+                          CURL* curl,
+                          Request* request,
+                          Response* response,
+                          Mutex* controller_mutex,
                           ControllerCurl* controller,
                           TransportCurl* transport_curl,
-                          CompleteFunction complete, void* complete_data);
+                          CompleteFunction complete,
+                          void* complete_data);
   ~BackgroundTransportCurl();
   bool PerformBackground(Request* request);
 
-  CURL* curl() const { return curl_; }
-  Response* response() const { return response_; }
-  void set_canceled(bool canceled) { canceled_ = canceled; }
-  void set_timed_out(bool timed_out) { timed_out_ = timed_out; }
-  ControllerCurl* controller() const { return controller_; }
-  TransportCurl* transport_curl() const { return transport_curl_; }
+  CURL* curl() const {
+    return curl_;
+  }
+  Response* response() const {
+    return response_;
+  }
+  void set_canceled(bool canceled) {
+    canceled_ = canceled;
+  }
+  void set_timed_out(bool timed_out) {
+    timed_out_ = timed_out;
+  }
+  ControllerCurl* controller() const {
+    return controller_;
+  }
+  TransportCurl* transport_curl() const {
+    return transport_curl_;
+  }
 
  private:
   void CheckOk(CURLcode code, const char* msg);
@@ -221,7 +242,8 @@ class CurlThread {
   void ScheduleAction(const TransportCurlActionData& action_data);
 
   // Cancel a request or flush scheduled matching requests.
-  int CancelRequest(TransportCurl* transport_curl, Response* response,
+  int CancelRequest(TransportCurl* transport_curl,
+                    Response* response,
                     CURL* curl);
 
  private:
@@ -241,7 +263,9 @@ class CurlThread {
   // Cancel all outstanding requests.
   void CancelAllTransfers();
 
-  Mutex* mutex() { return &mutex_; }
+  Mutex* mutex() {
+    return &mutex_;
+  }
 
   // Process requests from action_data_ the see the function definition for the
   // complete documentation.
@@ -270,7 +294,9 @@ class CurlThread {
 namespace {
 
 // Called when curl has received the header from the server.
-size_t CurlHeaderCallback(char* buffer, size_t size, size_t nitems,
+size_t CurlHeaderCallback(char* buffer,
+                          size_t size,
+                          size_t nitems,
                           void* userdata) {
   FIREBASE_ASSERT_RETURN(0, userdata != nullptr);
   Response* response = static_cast<Response*>(userdata);
@@ -283,7 +309,9 @@ size_t CurlHeaderCallback(char* buffer, size_t size, size_t nitems,
 }
 
 // Called when curl has received more data from the server.
-size_t CurlWriteCallback(char* buffer, size_t size, size_t nmemb,
+size_t CurlWriteCallback(char* buffer,
+                         size_t size,
+                         size_t nmemb,
                          void* userdata) {
   FIREBASE_ASSERT_RETURN(0, userdata != nullptr);
   Response* response = static_cast<Response*>(userdata);
@@ -296,7 +324,9 @@ size_t CurlWriteCallback(char* buffer, size_t size, size_t nmemb,
 }
 
 // Called when curl is ready to send more data to the server.
-size_t CurlReadCallback(char* buffer, size_t size, size_t nitems,
+size_t CurlReadCallback(char* buffer,
+                        size_t size,
+                        size_t nitems,
                         void* userdata) {
   FIREBASE_ASSERT_RETURN(0, userdata != nullptr);
   Request* request = reinterpret_cast<Request*>(userdata);
@@ -346,11 +376,15 @@ void CleanupTransportCurl() {
   }
 }
 
-BackgroundTransportCurl::BackgroundTransportCurl(
-    CURLM* curl_multi, CURL* curl, Request* request, Response* response,
-    Mutex* controller_mutex, ControllerCurl* controller,
-    TransportCurl* transport_curl, CompleteFunction complete,
-    void* complete_data)
+BackgroundTransportCurl::BackgroundTransportCurl(CURLM* curl_multi,
+                                                 CURL* curl,
+                                                 Request* request,
+                                                 Response* response,
+                                                 Mutex* controller_mutex,
+                                                 ControllerCurl* controller,
+                                                 TransportCurl* transport_curl,
+                                                 CompleteFunction complete,
+                                                 void* complete_data)
     : curl_multi_(curl_multi),
       curl_(curl),
       err_code_(CURLE_OK),
@@ -615,7 +649,8 @@ void CurlThread::ScheduleAction(const TransportCurlActionData& action_data) {
   action_data_signal_.Post();
 }
 
-int CurlThread::CancelRequest(TransportCurl* transport_curl, Response* response,
+int CurlThread::CancelRequest(TransportCurl* transport_curl,
+                              Response* response,
                               CURL* curl) {
   int removed_from_queue = 0;
   MutexLock lock(mutex_);
@@ -925,7 +960,8 @@ void CurlThread::ProcessRequests(void* thread) {
 }
 
 void TransportCurl::PerformInternal(
-    Request* request, Response* response,
+    Request* request,
+    Response* response,
     flatbuffers::unique_ptr<Controller>* controller_out) {
   ControllerCurl* controller =
       controller_out

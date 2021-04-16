@@ -20,7 +20,9 @@
 namespace firebase {
 namespace auth {
 
-Credential::~Credential() { delete static_cast<CredentialImpl*>(impl_); }
+Credential::~Credential() {
+  delete static_cast<CredentialImpl*>(impl_);
+}
 
 Credential::Credential(const Credential& rhs) : impl_(nullptr) {
   if (rhs.impl_) {
@@ -54,7 +56,9 @@ std::string Credential::provider() const {
   }
 }
 
-bool Credential::is_valid() const { return impl_ != nullptr; }
+bool Credential::is_valid() const {
+  return impl_ != nullptr;
+}
 
 }  // namespace auth
 }  // namespace firebase

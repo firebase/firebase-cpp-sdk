@@ -147,11 +147,13 @@ StorageReferenceInternal* MetadataInternal::GetReference() const {
   return new StorageReferenceInternal(*storage_reference_.internal_);
 }
 
-std::string MetadataInternal::LookUpString(Variant* root, const char* key,
+std::string MetadataInternal::LookUpString(Variant* root,
+                                           const char* key,
                                            const char* default_value) {
   std::map<Variant, Variant>::iterator lookup = root->map().find(key);
   return lookup != root->map().end() ? lookup->second.string_value()
-                                     : default_value ? default_value : "";
+         : default_value             ? default_value
+                                     : "";
 }
 
 int64_t MetadataInternal::LookUpInt64(Variant* root, const char* key) {

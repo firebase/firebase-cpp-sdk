@@ -30,29 +30,32 @@ namespace internal {
 // Creates an alias of internal::JObjectReference named classname.
 // This is useful when defining the implementation of a forward declared class
 // using JObjectReference.
-#define JOBJECT_REFERENCE(classname)                                          \
-  class classname : public FIREBASE_NAMESPACE::internal::JObjectReference {   \
-   public:                                                                    \
-     explicit classname(JNIEnv *env) :                                        \
-         FIREBASE_NAMESPACE::internal::JObjectReference(env) {}               \
-     explicit classname(                                                      \
-         const FIREBASE_NAMESPACE::internal::JObjectReference& obj) :         \
-         FIREBASE_NAMESPACE::internal::JObjectReference(obj) {}               \
-     explicit classname(                                                      \
-           FIREBASE_NAMESPACE::internal::JObjectReference&& obj) :            \
-         FIREBASE_NAMESPACE::internal::JObjectReference(obj) {}               \
-     classname(JNIEnv *env, jobject obj) :                                    \
-         FIREBASE_NAMESPACE::internal::JObjectReference(env, obj) {}          \
-     classname& operator=(                                                    \
-         const FIREBASE_NAMESPACE::internal::JObjectReference& rhs) {         \
-       FIREBASE_NAMESPACE::internal::JObjectReference::operator=(rhs);        \
-       return *this;                                                          \
-     }                                                                        \
-     classname& operator=(                                                    \
-           FIREBASE_NAMESPACE::internal::JObjectReference&& rhs) {            \
-       FIREBASE_NAMESPACE::internal::JObjectReference::operator=(rhs);        \
-       return *this;                                                          \
-     }                                                                        \
+#define JOBJECT_REFERENCE(classname)                                         \
+  class classname : public FIREBASE_NAMESPACE::internal::JObjectReference {  \
+   public:                                                                   \
+    explicit classname(JNIEnv* env)                                          \
+        : FIREBASE_NAMESPACE::internal::JObjectReference(env) {              \
+    }                                                                        \
+    explicit classname(                                                      \
+        const FIREBASE_NAMESPACE::internal::JObjectReference& obj)           \
+        : FIREBASE_NAMESPACE::internal::JObjectReference(obj) {              \
+    }                                                                        \
+    explicit classname(FIREBASE_NAMESPACE::internal::JObjectReference&& obj) \
+        : FIREBASE_NAMESPACE::internal::JObjectReference(obj) {              \
+    }                                                                        \
+    classname(JNIEnv* env, jobject obj)                                      \
+        : FIREBASE_NAMESPACE::internal::JObjectReference(env, obj) {         \
+    }                                                                        \
+    classname& operator=(                                                    \
+        const FIREBASE_NAMESPACE::internal::JObjectReference& rhs) {         \
+      FIREBASE_NAMESPACE::internal::JObjectReference::operator=(rhs);        \
+      return *this;                                                          \
+    }                                                                        \
+    classname& operator=(                                                    \
+        FIREBASE_NAMESPACE::internal::JObjectReference&& rhs) {              \
+      FIREBASE_NAMESPACE::internal::JObjectReference::operator=(rhs);        \
+      return *this;                                                          \
+    }                                                                        \
   }
 
 // Creates and holds a global reference to a Java object.
@@ -88,18 +91,24 @@ class JObjectReference {
   JNIEnv* GetJNIEnv() const;
 
   // Get the JavaVM associated with this class.
-  JavaVM* java_vm() const { return java_vm_; }
+  JavaVM* java_vm() const {
+    return java_vm_;
+  }
 
   // Get the global reference to the Java object without incrementing the
   // reference count.
-  jobject object() const { return object_; }
+  jobject object() const {
+    return object_;
+  }
 
   // Get a local reference to the object. The returned reference must be
   // deleted after use with DeleteLocalRef().
   jobject GetLocalRef() const;
 
   // Same as object()
-  jobject operator*() const { return object(); }
+  jobject operator*() const {
+    return object();
+  }
 
   // Convert a local reference to a JObjectReference, deleting the local
   // reference.

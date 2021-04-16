@@ -23,11 +23,11 @@ NS_ASSUME_NONNULL_BEGIN
 /**
     @brief A string constant identifying the Twitter identity provider.
  */
-extern NSString *const FIRTwitterAuthProviderID NS_SWIFT_NAME(TwitterAuthProviderID);
+extern NSString* const FIRTwitterAuthProviderID NS_SWIFT_NAME(TwitterAuthProviderID);
 /**
     @brief A string constant identifying the Twitter sign-in method.
  */
-extern NSString *const _Nonnull FIRTwitterAuthSignInMethod NS_SWIFT_NAME(TwitterAuthSignInMethod);
+extern NSString* const _Nonnull FIRTwitterAuthSignInMethod NS_SWIFT_NAME(TwitterAuthSignInMethod);
 
 /** @class FIRTwitterAuthProvider
     @brief Utility class for constructing Twitter credentials.
@@ -42,7 +42,8 @@ NS_SWIFT_NAME(TwitterAuthProvider)
     @param secret The Twitter OAuth secret.
     @return A FIRAuthCredential containing the Twitter credential.
  */
-+ (FIRAuthCredential *)credentialWithToken:(NSString *)token secret:(NSString *)secret;
++ (FIRAuthCredential*)credentialWithToken:(NSString*)token
+                                   secret:(NSString*)secret;
 
 /** @fn init
     @brief This class is not meant to be initialized.

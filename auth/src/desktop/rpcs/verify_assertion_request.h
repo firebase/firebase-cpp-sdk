@@ -33,15 +33,21 @@ class VerifyAssertionRequest : public AuthRequest {
   static std::unique_ptr<VerifyAssertionRequest> FromIdToken(
       const char* api_key, const char* provider_id, const char* id_token);
   static std::unique_ptr<VerifyAssertionRequest> FromIdToken(
-      const char* api_key, const char* provider_id, const char* id_token,
+      const char* api_key,
+      const char* provider_id,
+      const char* id_token,
       const char* nonce);
   static std::unique_ptr<VerifyAssertionRequest> FromAccessToken(
       const char* api_key, const char* provider_id, const char* access_token);
   static std::unique_ptr<VerifyAssertionRequest> FromAccessToken(
-      const char* api_key, const char* provider_id, const char* access_token,
+      const char* api_key,
+      const char* provider_id,
+      const char* access_token,
       const char* nonce);
   static std::unique_ptr<VerifyAssertionRequest> FromAccessTokenAndOAuthSecret(
-      const char* api_key, const char* provider_id, const char* access_token,
+      const char* api_key,
+      const char* provider_id,
+      const char* access_token,
       const char* oauth_secret);
   static std::unique_ptr<VerifyAssertionRequest> FromAuthCode(
       const char* api_key, const char* provider_id, const char* auth_code);

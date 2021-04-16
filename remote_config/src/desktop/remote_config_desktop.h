@@ -19,11 +19,11 @@
 #include <string>
 #include <thread>  // NOLINT
 
-#include "firebase/app.h"
 #include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/safe_reference.h"
 #include "app/src/scheduler.h"
+#include "firebase/app.h"
 #include "firebase/future.h"
 #include "remote_config/src/desktop/config_data.h"
 #include "remote_config/src/desktop/file_manager.h"
@@ -156,14 +156,17 @@ class RemoteConfigInternal {
   //
   // Assign `info->source` If info is not nullptr.
   bool CheckValueInActiveAndDefault(const char* key,
-                                    ValueInfo* info, std::string* value);
+                                    ValueInfo* info,
+                                    std::string* value);
 
   // Returns true and assigns the found record to the `value` if the `holder`
   // contains a record for the key.
   //
   // Assign `info->source` If info is not nullptr.
   bool CheckValueInConfig(const NamespacedConfigData& config,
-                          ValueSource source, const char* key, ValueInfo* info,
+                          ValueSource source,
+                          const char* key,
+                          ValueInfo* info,
                           std::string* value);
 
   void FetchInternal();

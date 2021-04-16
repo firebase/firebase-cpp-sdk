@@ -35,8 +35,10 @@ namespace connection {
 
 class WebSocketClientImpl : public WebSocketClientInterface {
  public:
-  WebSocketClientImpl(const std::string& uri, const std::string& user_agent,
-                      Logger* logger, scheduler::Scheduler* scheduler,
+  WebSocketClientImpl(const std::string& uri,
+                      const std::string& user_agent,
+                      Logger* logger,
+                      scheduler::Scheduler* scheduler,
                       WebSocketClientEventHandler* handler = nullptr);
   ~WebSocketClientImpl() override;
 
@@ -52,7 +54,8 @@ class WebSocketClientImpl : public WebSocketClientInterface {
 
  private:
   typedef uWS::WebSocket<uWS::CLIENT> ClientWebSocket;
-  typedef void (*Callback)(WebSocketClientImpl* client, int int_value,
+  typedef void (*Callback)(WebSocketClientImpl* client,
+                           int int_value,
                            const std::string& string_value);
 
   // Callback for hub_ when connection error occurs
@@ -62,11 +65,15 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   static void OnConnection(ClientWebSocket* ws, uWS::HttpRequest req);
 
   // Callback for hub_ when a message is received from the server
-  static void OnMessage(ClientWebSocket* ws, char* message, size_t length,
+  static void OnMessage(ClientWebSocket* ws,
+                        char* message,
+                        size_t length,
                         uWS::OpCode opCode);
 
   // Callback for hub_ when the connection is closed
-  static void OnDisconnection(ClientWebSocket* ws, int code, char* message,
+  static void OnDisconnection(ClientWebSocket* ws,
+                              int code,
+                              char* message,
                               size_t length);
 
   // The thread routine to host the event loop of hub_
@@ -79,7 +86,8 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   // Schedule an async callback to be trigger in the next iteration of the event
   // loop.  This call is thread-safe and is to prevent multiple threads fighting
   // for the same resource, such as websocket_
-  void ScheduleOnce(Callback cb, int int_value,
+  void ScheduleOnce(Callback cb,
+                    int int_value,
                     const std::string& string_value);
 
   // Process callback queue in event loop thread
@@ -116,9 +124,12 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   // the event loop thread.  The callback member is called with a reference to
   // the client, int_value and string_value stored in this data structure.
   struct CallbackData {
-    explicit CallbackData(Callback c, WebSocketClientImpl* ws_client, int i,
+    explicit CallbackData(Callback c,
+                          WebSocketClientImpl* ws_client,
+                          int i,
                           const std::string& str)
-        : callback(c), client(ws_client), int_value(i), string_value(str) {}
+        : callback(c), client(ws_client), int_value(i), string_value(str) {
+    }
 
     Callback callback;
 

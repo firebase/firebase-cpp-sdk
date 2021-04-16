@@ -89,7 +89,9 @@ FlexbuffersMetaTypes GetFlexbuffersReferenceType(
 }
 
 template <typename T>
-void MismatchMessage(const std::string& title, const T& expected, const T& arg,
+void MismatchMessage(const std::string& title,
+                     const T& expected,
+                     const T& arg,
                      const std::string& location,
                      ::testing::MatchResultListener* result_listener) {
   *result_listener << title << ": Expected " << expected;

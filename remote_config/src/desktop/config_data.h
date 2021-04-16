@@ -62,7 +62,8 @@ class NamespacedConfigData {
 
   // Assign keys that start with `prefix` from `name_space` namespace to the
   // `keys` variable.
-  void GetKeysByPrefix(const std::string& prefix, const std::string& name_space,
+  void GetKeysByPrefix(const std::string& prefix,
+                       const std::string& name_space,
                        std::set<std::string>* keys) const;
 
   const NamespaceKeyValueMap& config() const;

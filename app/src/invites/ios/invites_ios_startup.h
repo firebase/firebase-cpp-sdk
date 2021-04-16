@@ -37,9 +37,13 @@ class InvitesIosStartup {
   // Priority is an arbitrary value used to determine the execution order
   // of each method of this object.  Lower values of priority are executed
   // first (e.g 0 is executed before 1).
-  explicit InvitesIosStartup(int priority) : priority_(priority) { Register(); }
+  explicit InvitesIosStartup(int priority) : priority_(priority) {
+    Register();
+  }
 
-  virtual ~InvitesIosStartup() { Unregister(); }
+  virtual ~InvitesIosStartup() {
+    Unregister();
+  }
 
   // Register this object with the set of instances that are called from
   // static methods (e.g OpenUrl) of this class.
@@ -51,50 +55,57 @@ class InvitesIosStartup {
   void Unregister();
 
   // Call HandleDidBecomeActive methods of registered instances of this class.
-  static void DidBecomeActive(UIApplication *application);
+  static void DidBecomeActive(UIApplication* application);
 
   // Call HandleOpenUrl methods of registered instances of this class.
-  static BOOL OpenUrl(UIApplication *application, NSURL *url,
-                      NSString *sourceApplication, id annotation);
-  static BOOL OpenUrl(UIApplication *application, NSURL *url,
-                      NSDictionary *options);
+  static BOOL OpenUrl(UIApplication* application,
+                      NSURL* url,
+                      NSString* sourceApplication,
+                      id annotation);
+  static BOOL OpenUrl(UIApplication* application,
+                      NSURL* url,
+                      NSDictionary* options);
 
   // Call HandleContinueUserActivity methods of registered instances of this
   // class.
-  static BOOL ContinueUserActivity(UIApplication *application,
-                                   NSUserActivity *userActivity,
-                                   void (^restorationHandler)(NSArray *));
+  static BOOL ContinueUserActivity(UIApplication* application,
+                                   NSUserActivity* userActivity,
+                                   void (^restorationHandler)(NSArray*));
 
  protected:
   // Called from UIApplicationDelegate application:didBecomeActive.
   // All registered methods are called.
-  virtual void HandleDidBecomeActive(UIApplication *application) = 0;
+  virtual void HandleDidBecomeActive(UIApplication* application) = 0;
 
   // Called from
   // UIApplicationDelegate openURL:application:url:sourceApplication:annotation
   // If this method returns true methods of lower priority (e.g N+1) are not
   // called.
-  virtual BOOL HandleOpenUrl(UIApplication *application, NSURL *url,
-                             NSString *sourceApplication, id annotation) = 0;
+  virtual BOOL HandleOpenUrl(UIApplication* application,
+                             NSURL* url,
+                             NSString* sourceApplication,
+                             id annotation) = 0;
   // Called from
   // UIApplicationDelegate openURL:application:url:options
   // If this method returns true methods of lower priority (e.g N+1) are not
   // called.
-  virtual BOOL HandleOpenUrl(UIApplication *application, NSURL *url,
-                             NSDictionary *options) = 0;
+  virtual BOOL HandleOpenUrl(UIApplication* application,
+                             NSURL* url,
+                             NSDictionary* options) = 0;
   // Called from
   // UIApplicationDelegate
   // continueUserActivity:application::userActivity:restorationHandler
   // If this method returns true methods of lower priority (e.g N+1) are not
   // called.
   virtual BOOL HandleContinueUserActivity(
-      UIApplication *application, NSUserActivity *userActivity,
-      void (^restorationHandler)(NSArray *)) = 0;
+      UIApplication* application,
+      NSUserActivity* userActivity,
+      void (^restorationHandler)(NSArray*)) = 0;
 
  private:
   int priority_;
 
-  static std::vector<InvitesIosStartup *> *s_invites_ios_startups;
+  static std::vector<InvitesIosStartup*>* s_invites_ios_startups;
 };
 
 }  // namespace internal

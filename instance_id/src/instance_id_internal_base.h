@@ -50,17 +50,21 @@ class InstanceIdInternalBase {
   }
 
   // Get the future API implementation.
-  ReferenceCountedFutureImpl &future_api() { return future_api_; }
+  ReferenceCountedFutureImpl& future_api() {
+    return future_api_;
+  }
 
   // Associate an InstanceId instance with an app.
-  static void RegisterInstanceIdForApp(App *app, InstanceId *instance_id);
+  static void RegisterInstanceIdForApp(App* app, InstanceId* instance_id);
   // Remove association of InstanceId instance with an App.
-  static void UnregisterInstanceIdForApp(App *app, InstanceId *instance_id);
+  static void UnregisterInstanceIdForApp(App* app, InstanceId* instance_id);
   // Find an InstanceId instance associated with an app.
-  static InstanceId *FindInstanceIdByApp(App *app);
+  static InstanceId* FindInstanceIdByApp(App* app);
 
   // Return the mutex to make sure both find and register are guarded.
-  static Mutex& mutex() { return instance_id_by_app_mutex_; }
+  static Mutex& mutex() {
+    return instance_id_by_app_mutex_;
+  }
 
  private:
   /// Handle calls from Futures that the API returns.
@@ -68,7 +72,7 @@ class InstanceIdInternalBase {
   /// Identifier used to track futures associated with future_impl.
   std::string future_api_id_;
 
-  static std::map<App *, InstanceId *> instance_id_by_app_;
+  static std::map<App*, InstanceId*> instance_id_by_app_;
   static Mutex instance_id_by_app_mutex_;
 };
 

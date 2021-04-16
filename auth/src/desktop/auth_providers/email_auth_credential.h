@@ -31,12 +31,17 @@ class EmailAuthCredential : public AuthCredential {
     return kEmailPasswordAuthProviderId;
   }
 
-  std::string GetEmail() const { return email_; }
-  std::string GetPassword() const { return password_; }
+  std::string GetEmail() const {
+    return email_;
+  }
+  std::string GetPassword() const {
+    return password_;
+  }
 
  private:
   EmailAuthCredential(const std::string& email, const std::string& password)
-      : email_(email), password_(password) {}
+      : email_(email), password_(password) {
+  }
 
   const std::string email_;
   const std::string password_;

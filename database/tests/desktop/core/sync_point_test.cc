@@ -17,8 +17,6 @@
 #include "app/src/include/firebase/variant.h"
 #include "app/src/optional.h"
 #include "app/src/path.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/desktop/core/cache_policy.h"
 #include "database/src/desktop/core/child_event_registration.h"
 #include "database/src/desktop/core/value_event_registration.h"
@@ -33,6 +31,8 @@
 #include "database/tests/desktop/test/mock_persistence_manager.h"
 #include "database/tests/desktop/test/mock_persistence_storage_engine.h"
 #include "database/tests/desktop/test/mock_tracked_query_manager.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::Eq;
 using ::testing::NiceMock;
@@ -55,7 +55,9 @@ class SyncPointTest : public ::testing::Test {
         sync_point_(),
         persistence_manager_(MakeUnique<MockPersistenceStorageEngine>(),
                              MakeUnique<MockTrackedQueryManager>(),
-                             MakeUnique<MockCachePolicy>(), &logger_) {}
+                             MakeUnique<MockCachePolicy>(),
+                             &logger_) {
+  }
 
  protected:
   SystemLogger logger_;

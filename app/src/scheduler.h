@@ -43,7 +43,8 @@ struct RequestStatusBlock {
       : mutex(Mutex::kModeNonRecursive),
         cancelled(false),
         triggered(false),
-        repeat(repeat) {}
+        repeat(repeat) {
+  }
 
   // Guard both "cancelled" and "triggered"
   Mutex mutex;
@@ -64,16 +65,20 @@ struct RequestStatusBlock {
 // is not thread-safe.
 class RequestHandle {
  public:
-  RequestHandle() : status_() {}
+  RequestHandle() : status_() {
+  }
   explicit RequestHandle(const SharedPtr<RequestStatusBlock>& status)
-      : status_(status) {}
+      : status_(status) {
+  }
 
   // Attempt to cancel the scheduled task.  return true if success or false if
   // it is cancelled or complete already.
   bool Cancel();
 
   // Return true if the handler is pointing to a request
-  bool IsValid() const { return status_; }
+  bool IsValid() const {
+    return status_;
+  }
 
   // Thread-safe call to check if the scheduled callback has been cancelled.
   bool IsCancelled() const;
@@ -114,13 +119,15 @@ class Scheduler {
   // triggered in order.  The only edge case is when request id reaches 2^64 - 1
   // and some of the requests of the same due time are using the wrapped id. Ex.
   // [2^64 - 2, 2^64 - 1, 0, 1, 2].  This should be really rare.
-  RequestHandle Schedule(callback::Callback* callback, ScheduleTimeMs delay = 0,
-                          ScheduleTimeMs repeat = 0);
+  RequestHandle Schedule(callback::Callback* callback,
+                         ScheduleTimeMs delay = 0,
+                         ScheduleTimeMs repeat = 0);
 
 #ifdef FIREBASE_USE_STD_FUNCTION
   // std::function version of Schedule(callback, delay, repeat)
   RequestHandle Schedule(const std::function<void(void)>& callback,
-                          ScheduleTimeMs delay = 0, ScheduleTimeMs repeat = 0);
+                         ScheduleTimeMs delay = 0,
+                         ScheduleTimeMs repeat = 0);
 #endif  // FIREBASE_USE_STD_FUNCTION
 
   // Cancel all scheduled callbacks and shut down the worker thread.
@@ -130,8 +137,10 @@ class Scheduler {
   typedef uint64_t RequestId;
   // The request data for all scheduled callback.
   struct RequestData {
-    explicit RequestData(RequestId id, callback::Callback* cb,
-                         ScheduleTimeMs delay, ScheduleTimeMs repeat);
+    explicit RequestData(RequestId id,
+                         callback::Callback* cb,
+                         ScheduleTimeMs delay,
+                         ScheduleTimeMs repeat);
 
     // Unique id per scheduler.
     RequestId id;
@@ -168,7 +177,7 @@ class Scheduler {
     bool operator()(const RequestDataPtr& lhs,
                     const RequestDataPtr& rhs) const {
       return lhs->due_timestamp > rhs->due_timestamp ||
-          (lhs->due_timestamp == rhs->due_timestamp && lhs->id > rhs->id);
+             (lhs->due_timestamp == rhs->due_timestamp && lhs->id > rhs->id);
     }
   };
 
@@ -184,7 +193,8 @@ class Scheduler {
 
   // Priority queue for all scheduled callback, ordered by due timestamp and
   // request id
-  std::priority_queue<RequestDataPtr, std::vector<RequestDataPtr>,
+  std::priority_queue<RequestDataPtr,
+                      std::vector<RequestDataPtr>,
                       RequestDataPtrComparer>
       request_queue_;
 
@@ -203,7 +213,8 @@ class Scheduler {
 
   // Move the request to the priority queue that will be triggered in given
   // milliseconds since now
-  void AddToQueue(RequestDataPtr request, uint64_t current,
+  void AddToQueue(RequestDataPtr request,
+                  uint64_t current,
                   ScheduleTimeMs after);
 
   // Trigger the callback.  Return true if this callback repeats and is not

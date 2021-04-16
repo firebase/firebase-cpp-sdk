@@ -32,12 +32,15 @@ struct OperationSource {
   enum Source { kSourceUser, kSourceServer };
 
   explicit OperationSource(Source _source)
-      : source(_source), query_params(), tagged(false) {}
+      : source(_source), query_params(), tagged(false) {
+  }
 
   explicit OperationSource(const Optional<QueryParams>& _query_params)
-      : source(kSourceServer), query_params(_query_params), tagged(false) {}
+      : source(kSourceServer), query_params(_query_params), tagged(false) {
+  }
 
-  OperationSource(Source _source, const Optional<QueryParams>& _query_params,
+  OperationSource(Source _source,
+                  const Optional<QueryParams>& _query_params,
                   bool _tagged)
       : source(_source), query_params(_query_params), tagged(_tagged) {
     FIREBASE_DEV_ASSERT(!tagged || source == kSourceServer);
@@ -78,23 +81,31 @@ struct Operation {
         snapshot(),
         children(),
         affected_tree(),
-        revert() {}
+        revert() {
+  }
 
-  Operation(Type _type, const OperationSource& _source, const Path& _path,
-            const Variant& _snapshot, const CompoundWrite& _children,
-            const Tree<bool>& _affected_tree, AckStatus status)
+  Operation(Type _type,
+            const OperationSource& _source,
+            const Path& _path,
+            const Variant& _snapshot,
+            const CompoundWrite& _children,
+            const Tree<bool>& _affected_tree,
+            AckStatus status)
       : type(_type),
         source(_source),
         path(_path),
         snapshot(_snapshot),
         children(_children),
         affected_tree(_affected_tree),
-        revert(status == kAckRevert) {}
+        revert(status == kAckRevert) {
+  }
 
   // Utility constructors for building each kind of operation.
-  static Operation Overwrite(const OperationSource& source, const Path& path,
+  static Operation Overwrite(const OperationSource& source,
+                             const Path& path,
                              const Variant& snapshot);
-  static Operation Merge(const OperationSource& source, const Path& path,
+  static Operation Merge(const OperationSource& source,
+                         const Path& path,
                          const CompoundWrite& children);
   static Operation AckUserWrite(const Path& path,
                                 const Tree<bool>& affected_tree,

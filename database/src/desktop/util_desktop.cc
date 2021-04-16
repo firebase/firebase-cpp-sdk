@@ -127,7 +127,8 @@ const Variant& VariantGetChild(const Variant* variant, const std::string& key) {
   return VariantGetChild(variant, Path(key));
 }
 
-void VariantUpdateChild(Variant* variant, const Path& path,
+void VariantUpdateChild(Variant* variant,
+                        const Path& path,
                         const Variant& value) {
   std::string front = path.FrontDirectory().str();
   if (front.empty()) {
@@ -181,7 +182,8 @@ void VariantUpdateChild(Variant* variant, const Path& path,
   }
 }
 
-void VariantUpdateChild(Variant* variant, const std::string& key,
+void VariantUpdateChild(Variant* variant,
+                        const std::string& key,
                         const Variant& value) {
   VariantUpdateChild(variant, Path(key), value);
 }
@@ -241,7 +243,8 @@ Variant* MakeVariantAtPath(Variant* variant, const Path& path) {
   return variant;
 }
 
-void SetVariantAtPath(Variant* variant, const Path& path,
+void SetVariantAtPath(Variant* variant,
+                      const Path& path,
                       const Variant& value) {
   Variant* target = MakeVariantAtPath(variant, path);
   if (target->is_map()) {
@@ -872,7 +875,8 @@ int ChildKeyCompareTo(const Variant& left, const Variant& right) {
 
 // Private function to serialize all child nodes
 void ProcessChildNodes(std::stringstream* ss,
-                       std::vector<NodeSortingData>* nodes, bool saw_priority) {
+                       std::vector<NodeSortingData>* nodes,
+                       bool saw_priority) {
   // If any node has priority, sort using priority.
   if (saw_priority) {
     QueryParams params;
@@ -1197,12 +1201,13 @@ Variant GetWireProtocolParams(const QueryParams& query_params) {
 }
 
 // Split a string based on specified character delimiter into constituent parts
-std::vector<std::string> split_string(const std::string& s, const char delimiter) {
+std::vector<std::string> split_string(const std::string& s,
+                                      const char delimiter) {
   size_t pos = 0;
   // This index is used as the starting index to search the delimiters from.
   size_t delimiter_search_start = 0;
   // Skip any leading delimiters
-  while(s[delimiter_search_start] == delimiter) {
+  while (s[delimiter_search_start] == delimiter) {
     delimiter_search_start++;
   }
 
@@ -1213,10 +1218,12 @@ std::vector<std::string> split_string(const std::string& s, const char delimiter
     return split_parts;
   }
 
-  while((pos = s.find(delimiter, delimiter_search_start)) != std::string::npos) {
-    split_parts.push_back(s.substr(delimiter_search_start, pos-delimiter_search_start));
+  while ((pos = s.find(delimiter, delimiter_search_start)) !=
+         std::string::npos) {
+    split_parts.push_back(
+        s.substr(delimiter_search_start, pos - delimiter_search_start));
 
-    while(s[pos] == delimiter && pos<len) {
+    while (s[pos] == delimiter && pos < len) {
       pos++;
       delimiter_search_start = pos;
     }
@@ -1225,7 +1232,8 @@ std::vector<std::string> split_string(const std::string& s, const char delimiter
   // If the input string doesn't end with a delimiter we need to push the last
   // token into our return vector
   if (delimiter_search_start != len) {
-    split_parts.push_back(s.substr(delimiter_search_start, len-delimiter_search_start));
+    split_parts.push_back(
+        s.substr(delimiter_search_start, len - delimiter_search_start));
   }
 
   return split_parts;

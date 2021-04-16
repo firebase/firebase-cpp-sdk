@@ -15,16 +15,17 @@
 #include <map>
 #include <string>
 
+#include "flatbuffers/flexbuffers.h"
 #include "remote_config/src/desktop/metadata.h"
 #include "remote_config/src/include/firebase/remote_config.h"
-#include "flatbuffers/flexbuffers.h"
 
 namespace firebase {
 namespace remote_config {
 namespace internal {
 
 RemoteConfigMetadata::RemoteConfigMetadata()
-    : info_({0, kLastFetchStatusSuccess, kFetchFailureReasonInvalid, 0}) {}
+    : info_({0, kLastFetchStatusSuccess, kFetchFailureReasonInvalid, 0}) {
+}
 
 std::string RemoteConfigMetadata::Serialize() const {
   flexbuffers::Builder fbb;

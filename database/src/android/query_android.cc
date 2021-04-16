@@ -100,7 +100,8 @@ QueryInternal::QueryInternal(DatabaseInternal* db, jobject obj) : db_(db) {
   obj_ = db_->GetApp()->GetJNIEnv()->NewGlobalRef(obj);
 }
 
-QueryInternal::QueryInternal(DatabaseInternal* db, jobject obj,
+QueryInternal::QueryInternal(DatabaseInternal* db,
+                             jobject obj,
                              const internal::QuerySpec& query_spec)
     : db_(db), query_spec_(query_spec) {
   db_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
@@ -501,7 +502,8 @@ QueryInternal* QueryInternal::EqualTo(Variant value, const char* key) {
 SingleValueListener::SingleValueListener(DatabaseInternal* db,
                                          ReferenceCountedFutureImpl* future,
                                          SafeFutureHandle<DataSnapshot> handle)
-    : db_(db), future_(future), handle_(handle), java_listener_(nullptr) {}
+    : db_(db), future_(future), handle_(handle), java_listener_(nullptr) {
+}
 
 SingleValueListener::~SingleValueListener() {
   if (java_listener_ != nullptr) {

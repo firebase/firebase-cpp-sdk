@@ -66,7 +66,8 @@ bool g_initialized = false;
 struct MobileAdsCallData {
   // Thread-safe call data.
   MobileAdsCallData()
-      : vm(g_java_vm), activity_global(nullptr), admob_app_id_global(nullptr) {}
+      : vm(g_java_vm), activity_global(nullptr), admob_app_id_global(nullptr) {
+  }
   ~MobileAdsCallData() {
     JNIEnv* env = firebase::util::GetThreadsafeJNIEnv(vm);
     if (admob_app_id_global) {
@@ -214,7 +215,9 @@ void ReleaseClasses(JNIEnv* env) {
   rewarded_video::rewarded_video_helper::ReleaseClass(env);
 }
 
-bool IsInitialized() { return g_initialized; }
+bool IsInitialized() {
+  return g_initialized;
+}
 
 void Terminate() {
   if (!g_initialized) {
@@ -249,10 +252,15 @@ JNIEnv* GetJNI() {
   }
 }
 
-jobject GetActivity() { return (g_app) ? g_app->activity() : g_activity; }
+jobject GetActivity() {
+  return (g_app) ? g_app->activity() : g_activity;
+}
 
-static void CompleteAdFutureCallback(JNIEnv* env, jclass clazz, jlong data_ptr,
-                                     jint error_code, jstring error_message) {
+static void CompleteAdFutureCallback(JNIEnv* env,
+                                     jclass clazz,
+                                     jlong data_ptr,
+                                     jint error_code,
+                                     jstring error_message) {
   if (data_ptr == 0) return;  // test call only
 
   const char* error_msg = env->GetStringUTFChars(error_message, nullptr);
@@ -271,7 +279,10 @@ static void CompleteAdFutureCallback(JNIEnv* env, jclass clazz, jlong data_ptr,
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_completeBannerViewFutureCallback(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jint error_code,
+    JNIEnv* env,
+    jclass clazz,
+    jlong data_ptr,
+    jint error_code,
     jstring error_message) {
   CompleteAdFutureCallback(env, clazz, data_ptr, error_code, error_message);
 }
@@ -300,7 +311,10 @@ Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyStateChanged(
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterstitialAdFutureCallback(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jint error_code,
+    JNIEnv* env,
+    jclass clazz,
+    jlong data_ptr,
+    jint error_code,
     jstring error_message) {
   CompleteAdFutureCallback(env, clazz, data_ptr, error_code, error_message);
 }
@@ -320,7 +334,10 @@ Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_notifyPresentat
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_google_firebase_admob_internal_cpp_NativeExpressAdViewHelper_completeNativeExpressAdViewFutureCallback(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jint error_code,
+    JNIEnv* env,
+    jclass clazz,
+    jlong data_ptr,
+    jint error_code,
     jstring error_message) {
   CompleteAdFutureCallback(env, clazz, data_ptr, error_code, error_message);
 }
@@ -349,7 +366,10 @@ Java_com_google_firebase_admob_internal_cpp_NativeExpressAdViewHelper_notifyStat
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_google_firebase_admob_internal_cpp_RewardedVideoHelper_completeRewardedVideoFutureCallback(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jint error_code,
+    JNIEnv* env,
+    jclass clazz,
+    jlong data_ptr,
+    jint error_code,
     jstring error_message) {
   CompleteAdFutureCallback(env, clazz, data_ptr, error_code, error_message);
 }
@@ -372,7 +392,10 @@ Java_com_google_firebase_admob_internal_cpp_RewardedVideoHelper_notifyPresentati
 
 extern "C" JNIEXPORT void JNICALL
 Java_com_google_firebase_admob_internal_cpp_RewardedVideoHelper_grantReward(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jint amount,
+    JNIEnv* env,
+    jclass clazz,
+    jlong data_ptr,
+    jint amount,
     jstring rewardType) {
   if (data_ptr == 0) return;  // test call only
 

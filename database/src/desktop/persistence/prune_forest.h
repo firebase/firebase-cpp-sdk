@@ -116,7 +116,8 @@ class PruneForestRef {
   }
 
  private:
-  void DoAll(const Path& path, const std::set<std::string>& children,
+  void DoAll(const Path& path,
+             const std::set<std::string>& children,
              const Tree<bool>& keep_or_prune_tree);
 
   PruneForest* prune_forest_;

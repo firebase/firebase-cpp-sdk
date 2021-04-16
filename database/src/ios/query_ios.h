@@ -35,8 +35,8 @@
 // blocks.
 @interface FIRCPPDatabaseQueryCallbackState : NSObject
 // Guarded by lock.
-@property(nonatomic, nullable) firebase::database::internal::DatabaseInternal*
-    databaseInternal;
+@property(nonatomic, nullable)
+    firebase::database::internal::DatabaseInternal* databaseInternal;
 // Guarded by lock.
 @property(nonatomic, nullable) FIRDatabaseQuery* databaseQuery;
 // Guarded by lock.
@@ -46,20 +46,20 @@
 // Callers should lock the lock property while using any properties of this
 // object.
 @property(nonatomic, readonly) NSRecursiveLock* _Nonnull lock;
--(_Nullable instancetype) init NS_UNAVAILABLE;
+- (_Nullable instancetype)init NS_UNAVAILABLE;
 // Initialize this state.
--(_Nonnull instancetype)
+- (_Nonnull instancetype)
     initWithDatabase:(firebase::database::internal::DatabaseInternal* _Nonnull)
-                     databaseInternal
+                         databaseInternal
             andQuery:(FIRDatabaseQuery* _Nonnull)databaseQuery
     andValueListener:(firebase::database::ValueListener* _Nullable)valueListener
-    andChildListener:(firebase::database::ChildListener* _Nullable)
-                     childListener NS_DESIGNATED_INITIALIZER;
+    andChildListener:(firebase::database::ChildListener* _Nullable)childListener
+    NS_DESIGNATED_INITIALIZER;
 // Associate an observer with this state.
--(void)addObserverHandle:(FIRDatabaseHandle)handle;
+- (void)addObserverHandle:(FIRDatabaseHandle)handle;
 // Remove all observer handles managed by this state from the database and
 // remove references to C++ objects.
--(void)removeAllObservers;
+- (void)removeAllObservers;
 @end
 #endif  // __OBJC__
 
@@ -197,13 +197,19 @@ class QueryInternal {
   // The returned pointer should be passed to a Query for lifetime management.
   QueryInternal* LimitToLast(size_t limit);
 
-  const internal::QuerySpec& query_spec() const { return query_spec_; }
+  const internal::QuerySpec& query_spec() const {
+    return query_spec_;
+  }
 
-  DatabaseInternal* database_internal() const { return database_; }
+  DatabaseInternal* database_internal() const {
+    return database_;
+  }
 
  protected:
 #ifdef __OBJC__
-  FIRDatabaseQuery* impl() const { return impl_->get(); }
+  FIRDatabaseQuery* impl() const {
+    return impl_->get();
+  }
 #endif  // __OBJC__
 
   internal::QuerySpec query_spec_;

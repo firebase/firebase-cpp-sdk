@@ -17,7 +17,7 @@
 
 #if defined(__OBJC__)
 #import <Foundation/Foundation.h>
-#endif   // defined(__OBJC__)
+#endif  // defined(__OBJC__)
 
 #include "app/src/mutex.h"
 #include "app/src/util_ios.h"
@@ -29,7 +29,7 @@
 
 #if defined(__OBJC__)
 typedef firebase::instance_id::internal::InstanceIdInternal
-        FIRInstanceIdInternal;
+    FIRInstanceIdInternal;
 
 // Async operation being performed on a InstanceIdInternal instance.
 @interface FIRInstanceIdInternalOperation : NSObject
@@ -39,7 +39,7 @@ typedef firebase::instance_id::internal::InstanceIdInternal
 // Initialize the operation.
 - (nonnull instancetype)
     initWithInstanceIdInternal:(nonnull FIRInstanceIdInternal*)iidInternal
-                          lock:(nonnull NSRecursiveLock *)lock;
+                          lock:(nonnull NSRecursiveLock*)lock;
 // Get the InstanceIdInternal and acquire the lock.
 - (nullable FIRInstanceIdInternal*)start;
 
@@ -81,29 +81,29 @@ OBJ_C_PTR_WRAPPER(FIRInstanceIdInternalOperationList);
 class InstanceIdInternal : public InstanceIdInternalBase {
  public:
   explicit InstanceIdInternal(
-      FIRInstanceIDPointer *_Nullable fir_instance_id_pointer);
+      FIRInstanceIDPointer* _Nullable fir_instance_id_pointer);
   ~InstanceIdInternal();
 
 #if defined(__OBJC__)
   // Get the Obj-C instance ID object.
-  FIRInstanceID *_Nullable GetFIRInstanceID() const {
+  FIRInstanceID* _Nullable GetFIRInstanceID() const {
     return fir_instance_id_pointer_->get();
   }
 
   // Create a reference to an instance ID object to the array tracking
   // outstanding operations.
-  FIRInstanceIdInternalOperation *_Nonnull AddOperation();
+  FIRInstanceIdInternalOperation* _Nonnull AddOperation();
   // Remove a reference to an instance ID object from the array tracking
   // outstanding operations.
-  void RemoveOperation(FIRInstanceIdInternalOperation *_Nonnull operation);
+  void RemoveOperation(FIRInstanceIdInternalOperation* _Nonnull operation);
 #endif  // defined(__OBJC__)
 
  private:
-  FIRInstanceIDPointer *_Nullable fir_instance_id_pointer_;
+  FIRInstanceIDPointer* _Nullable fir_instance_id_pointer_;
   // Contains Operation objects which reference this class for each operation.
   // DisconnectOperation() clears all objects to remove all references to this
   // object from async operations.
-  FIRInstanceIdInternalOperationListPointer *_Nullable operation_list_;
+  FIRInstanceIdInternalOperationListPointer* _Nullable operation_list_;
 };
 
 }  // namespace internal

@@ -22,8 +22,8 @@
 #include "app/src/time.h"
 #include "app/src/variant_util.h"
 #include "app/tests/include/firebase/app_for_testing.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 static const char kDatabaseHostname[] = "cpp-database-test-app.firebaseio.com";
 static const char kDatabaseNamespace[] = "cpp-database-test-app";
@@ -40,7 +40,8 @@ class ConnectionTest : public ::testing::Test, public ConnectionEventHandler {
         sem_on_cache_host_(0),
         sem_on_ready_(0),
         sem_on_data_message_(0),
-        sem_on_disconnect_(0) {}
+        sem_on_disconnect_(0) {
+  }
 
   void SetUp() override {
     testing::CreateApp();

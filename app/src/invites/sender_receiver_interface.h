@@ -33,12 +33,15 @@ namespace internal {
 // is completely separate from the invite sending logic.
 class SenderReceiverInterface : public ReceiverInterface {
  public:
-  SenderReceiverInterface() {}
-  virtual ~SenderReceiverInterface() {}
+  SenderReceiverInterface() {
+  }
+  virtual ~SenderReceiverInterface() {
+  }
 
   // Called when an invite has been sent.
   virtual void SentInviteCallback(
-      const std::vector<std::string>& invitation_ids, int result_code,
+      const std::vector<std::string>& invitation_ids,
+      int result_code,
       const std::string& error_message) = 0;
 
   // Callback called when an invite conversion occurs. If an error occurred,

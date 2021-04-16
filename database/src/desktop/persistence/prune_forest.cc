@@ -28,11 +28,16 @@ namespace internal {
 static const Tree<bool> kPruneTree(true);  // NOLINT
 static const Tree<bool> kKeepTree(false);  // NOLINT
 
-static bool KeepPredicate(bool prune) { return !prune; }
-static bool PrunePredicate(bool prune) { return prune; }
+static bool KeepPredicate(bool prune) {
+  return !prune;
+}
+static bool PrunePredicate(bool prune) {
+  return prune;
+}
 
 PruneForestRef::PruneForestRef(PruneForest* prune_forest)
-    : prune_forest_(prune_forest) {}
+    : prune_forest_(prune_forest) {
+}
 
 bool PruneForestRef::operator==(const PruneForestRef& other) const {
   return (prune_forest_ == other.prune_forest_) ||

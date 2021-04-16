@@ -2,9 +2,15 @@
 
 #include <string>
 
+#include "android/cancellation_token_source.h"
+#include "android/firestore_integration_test_android.h"
+#include "android/task_completion_source.h"
 #include "app/memory/unique_ptr.h"
 #include "app/src/assert.h"
 #include "app/src/mutex.h"
+#include "app_framework.h"
+#include "firebase/firestore/firestore_errors.h"
+#include "firebase_test_framework.h"
 #include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/firestore_android.h"
@@ -15,14 +21,8 @@
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
 #include "firestore/src/jni/task.h"
-#include "android/cancellation_token_source.h"
-#include "android/firestore_integration_test_android.h"
-#include "android/task_completion_source.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "firebase/firestore/firestore_errors.h"
-#include "app_framework.h"
-#include "firebase_test_framework.h"
 
 namespace firebase {
 namespace firestore {
@@ -41,14 +41,15 @@ namespace {
 
 class PromiseTest : public FirestoreAndroidIntegrationTest {
  public:
-  PromiseTest() : promises_(GetFirestoreInternal(TestFirestore())) {}
+  PromiseTest() : promises_(GetFirestoreInternal(TestFirestore())) {
+  }
 
   void SetUp() override {
     FirestoreAndroidIntegrationTest::SetUp();
     jni::Env env = GetEnv();
     cancellation_token_source_ = CancellationTokenSource::Create(env);
     task_completion_source_ = TaskCompletionSource::Create(
-       env, cancellation_token_source_.GetToken(env));
+        env, cancellation_token_source_.GetToken(env));
   }
 
   // An enum of asynchronous functions to use in tests, as required by
@@ -59,7 +60,9 @@ class PromiseTest : public FirestoreAndroidIntegrationTest {
   };
 
  protected:
-  PromiseFactory<AsyncFn>& promises() { return promises_; }
+  PromiseFactory<AsyncFn>& promises() {
+    return promises_;
+  }
 
   jni::Local<jni::Task> GetTask() {
     jni::Env env = GetEnv();
@@ -103,10 +106,12 @@ class PromiseTest : public FirestoreAndroidIntegrationTest {
 // latter specialization provides access to the "result" specified to
 // `CompleteWith`.
 template <typename PublicType, typename InternalType>
-class TestCompletionBase : public Promise<PublicType, InternalType,
+class TestCompletionBase : public Promise<PublicType,
+                                          InternalType,
                                           PromiseTest::AsyncFn>::Completion {
  public:
-  void CompleteWith(Error error_code, const char* error_message,
+  void CompleteWith(Error error_code,
+                    const char* error_message,
                     PublicType* result) override {
     MutexLock lock(mutex_);
     FIREBASE_ASSERT(invocation_count_ == 0);
@@ -213,7 +218,9 @@ class TestVoidCompletion : public TestCompletionBase<void, void> {
   }
 
  protected:
-  void HandleResult(void* result) override { result_ = result; }
+  void HandleResult(void* result) override {
+    result_ = result;
+  }
 
  private:
   void* result_;

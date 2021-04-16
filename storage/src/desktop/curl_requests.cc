@@ -62,7 +62,8 @@ Error HttpToErrorCode(int http_status) {
 // remains valid while the future handle isn't complete.
 BlockingResponse::BlockingResponse(FutureHandle handle,
                                    ReferenceCountedFutureImpl* ref_future)
-    : handle_(handle), ref_future_(ref_future) {}
+    : handle_(handle), ref_future_(ref_future) {
+}
 
 BlockingResponse::~BlockingResponse() {
   // If the response isn't complete, cancel it.
@@ -72,7 +73,9 @@ BlockingResponse::~BlockingResponse() {
   }
 }
 
-void BlockingResponse::MarkCompleted() { rest::Response::MarkCompleted(); }
+void BlockingResponse::MarkCompleted() {
+  rest::Response::MarkCompleted();
+}
 
 void BlockingResponse::MarkFailed() {
   rest::Response::MarkFailed();
@@ -85,9 +88,13 @@ void BlockingResponse::MarkFailed() {
   NotifyFailed();
 }
 
-void BlockingResponse::NotifyComplete() { notifier_.NotifyComplete(); }
+void BlockingResponse::NotifyComplete() {
+  notifier_.NotifyComplete();
+}
 
-void BlockingResponse::NotifyFailed() { notifier_.NotifyFailed(); }
+void BlockingResponse::NotifyFailed() {
+  notifier_.NotifyFailed();
+}
 
 // Read in the raw response string, and try to make sense of it.
 bool StorageNetworkError::Parse(const char* json_txt) {
@@ -118,13 +125,15 @@ bool StorageNetworkError::Parse(const char* json_txt) {
   return true;
 }
 
-GetBytesResponse::GetBytesResponse(void* buffer, size_t buffer_size,
+GetBytesResponse::GetBytesResponse(void* buffer,
+                                   size_t buffer_size,
                                    SafeFutureHandle<size_t> handle,
                                    ReferenceCountedFutureImpl* ref_future)
     : BlockingResponse(handle.get(), ref_future),
       output_buffer_(buffer),
       buffer_size_(buffer_size),
-      buffer_index_(0) {}
+      buffer_index_(0) {
+}
 
 // Since buffer may NOT necessarily end with \0, pass in length.
 bool GetBytesResponse::ProcessBody(const char* buffer, size_t length) {
@@ -163,7 +172,8 @@ void GetBytesResponse::MarkCompleted() {
 
 EmptyResponse::EmptyResponse(SafeFutureHandle<void> handle,
                              ReferenceCountedFutureImpl* ref_future)
-    : BlockingResponse(handle.get(), ref_future) {}
+    : BlockingResponse(handle.get(), ref_future) {
+}
 
 bool EmptyResponse::ProcessBody(const char* buffer, size_t length) {
   buffer_ += std::string(buffer, length);
@@ -195,7 +205,8 @@ GetFileResponse::GetFileResponse(const char* filename,
                                  ReferenceCountedFutureImpl* ref_future)
     : BlockingResponse(handle.get(), ref_future),
       filename_(filename),
-      bytes_written_(0) {}
+      bytes_written_(0) {
+}
 
 // Since buffer may NOT necessarily end with \0, pass in length.
 bool GetFileResponse::ProcessBody(const char* buffer, size_t length) {
@@ -242,10 +253,12 @@ void GetFileResponse::MarkCompleted() {
 }
 
 ReturnedMetadataResponse::ReturnedMetadataResponse(
-    SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* ref_future,
+    SafeFutureHandle<Metadata> handle,
+    ReferenceCountedFutureImpl* ref_future,
     const StorageReference& storage_reference)
     : BlockingResponse(handle.get(), ref_future),
-      storage_reference_(storage_reference) {}
+      storage_reference_(storage_reference) {
+}
 
 bool ReturnedMetadataResponse::ProcessBody(const char* buffer, size_t length) {
   buffer_ += std::string(buffer, length);

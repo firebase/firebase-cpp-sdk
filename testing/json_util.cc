@@ -28,7 +28,8 @@ namespace cppsdk {
 namespace internal {
 
 EqualsJsonMatcher::EqualsJsonMatcher(const std::string& expected_json)
-    : expected_json_(expected_json) {}
+    : expected_json_(expected_json) {
+}
 
 bool EqualsJsonMatcher::MatchAndExplain(
     const std::string& actual, ::testing::MatchResultListener* listener) const {
@@ -71,9 +72,9 @@ void EqualsJsonMatcher::DescribeNegationTo(std::ostream* os) const {
 
 bool EqualsJsonMatcher::CompareFlexbufferReference(
     flexbuffers::Reference reference_actual,
-    flexbuffers::Reference reference_expected, std::string key_name,
+    flexbuffers::Reference reference_expected,
+    std::string key_name,
     ::testing::MatchResultListener* listener) const {
-
   auto type_actual = reference_actual.GetType();
   auto type_expected = reference_expected.GetType();
   if (type_actual != type_expected) {

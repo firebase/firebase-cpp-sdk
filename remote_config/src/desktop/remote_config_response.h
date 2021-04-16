@@ -37,11 +37,13 @@ Variant FlexbufferVectorToVariant(const flexbuffers::Vector& vector);
 class RemoteConfigResponse
     : public firebase::rest::ResponseJson<fbs::Response, fbs::ResponseT> {
  public:
-  RemoteConfigResponse() : ResponseJson(response_resource_data) {}
+  RemoteConfigResponse() : ResponseJson(response_resource_data) {
+  }
   explicit RemoteConfigResponse(const char* schema);
 
   explicit RemoteConfigResponse(const unsigned char* schema)
-      : RemoteConfigResponse(reinterpret_cast<const char*>(schema)) {}
+      : RemoteConfigResponse(reinterpret_cast<const char*>(schema)) {
+  }
 
   void MarkCompleted() override;
 

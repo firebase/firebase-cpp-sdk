@@ -23,8 +23,7 @@ namespace cppsdk {
 
 void TickerElapse() {
   JNIEnv* android_jni_env = GetTestJniEnv();
-  jclass cls = android_jni_env->FindClass(
-      "com/google/testing/TickerAndroid");
+  jclass cls = android_jni_env->FindClass("com/google/testing/TickerAndroid");
   android_jni_env->CallStaticVoidMethod(
       cls, android_jni_env->GetStaticMethodID(cls, "elapse", "()V"));
   util::CheckAndClearException(android_jni_env);
@@ -33,8 +32,7 @@ void TickerElapse() {
 
 void TickerReset() {
   JNIEnv* android_jni_env = GetTestJniEnv();
-  jclass cls = android_jni_env->FindClass(
-      "com/google/testing/TickerAndroid");
+  jclass cls = android_jni_env->FindClass("com/google/testing/TickerAndroid");
   android_jni_env->CallStaticVoidMethod(
       cls, android_jni_env->GetStaticMethodID(cls, "reset", "()V"));
   util::CheckAndClearException(android_jni_env);

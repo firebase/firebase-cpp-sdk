@@ -52,7 +52,8 @@ class DataSnapshot {
   /// This DataSnapshot contains nothing and is considered invalid (i.e.
   /// is_valid() == false). Use this to construct an empty DataSnapshot that you
   /// will later populate with data from a database callback.
-  DataSnapshot() : internal_(nullptr) {}
+  DataSnapshot() : internal_(nullptr) {
+  }
 
 #ifdef INTERNAL_EXPERIMENTAL
   explicit DataSnapshot(internal::DataSnapshotInternal* internal);

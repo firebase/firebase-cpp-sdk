@@ -93,8 +93,10 @@ class FutureApiInterface {
   /// After the callback has been called, if `user_data_delete_fn_ptr` is
   /// non-null, then `(*user_data_delete_fn_ptr)(user_data)` will be called.
   virtual CompletionCallbackHandle AddCompletionCallback(
-      const FutureHandle& handle, FutureBase::CompletionCallback callback,
-      void* user_data, void (*user_data_delete_fn)(void*),
+      const FutureHandle& handle,
+      FutureBase::CompletionCallback callback,
+      void* user_data,
+      void (*user_data_delete_fn)(void*),
       bool clear_existing_callbacks) = 0;
 
   /// Unregister a callback that was previously registered with
@@ -143,18 +145,19 @@ class CompletionCallbackHandle {
  public:
   // Construct a null CompletionCallbackHandle.
   CompletionCallbackHandle()
-      : callback_(nullptr),
-        user_data_(nullptr),
-        user_data_delete_fn_(nullptr) {}
+      : callback_(nullptr), user_data_(nullptr), user_data_delete_fn_(nullptr) {
+  }
 
  private:
   friend class ::FIREBASE_NAMESPACE::FutureBase;
   friend class ::FIREBASE_NAMESPACE::ReferenceCountedFutureImpl;
   CompletionCallbackHandle(FutureBase::CompletionCallback callback,
-                           void* user_data, void (*user_data_delete_fn)(void*))
+                           void* user_data,
+                           void (*user_data_delete_fn)(void*))
       : callback_(callback),
         user_data_(user_data),
-        user_data_delete_fn_(user_data_delete_fn) {}
+        user_data_delete_fn_(user_data_delete_fn) {
+  }
 
   FutureBase::CompletionCallback callback_;
   void* user_data_;
@@ -198,7 +201,8 @@ inline FutureBase::CompletionCallbackHandle Future<ResultType>::AddOnCompletion(
 
 #endif  // defined(INTERNAL_EXPERIMENTAL)
 
-inline FutureBase::FutureBase() : api_(NULL), handle_(0) {}  // NOLINT
+inline FutureBase::FutureBase() : api_(NULL), handle_(0) {
+}  // NOLINT
 
 inline FutureBase::FutureBase(detail::FutureApiInterface* api,
                               const FutureHandle& handle)
@@ -209,7 +213,9 @@ inline FutureBase::FutureBase(detail::FutureApiInterface* api,
   detail::RegisterForCleanup(api_, this);
 }
 
-inline FutureBase::~FutureBase() { Release(); }
+inline FutureBase::~FutureBase() {
+  Release();
+}
 
 inline FutureBase::FutureBase(const FutureBase& rhs)
     : api_(NULL)  // NOLINT

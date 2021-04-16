@@ -89,11 +89,15 @@ class DataSnapshotInternal {
   // Does this DataSnapshot have data at a particular location?
   bool HasChild(const char* path) const;
 
-  DatabaseInternal* database_internal() const { return db_; }
+  DatabaseInternal* database_internal() const {
+    return db_;
+  }
 
   // Special method to create an invalid DataSnapshot, because
   // DataSnapshot's constructor is private.
-  static DataSnapshot GetInvalidDataSnapshot() { return DataSnapshot(nullptr); }
+  static DataSnapshot GetInvalidDataSnapshot() {
+    return DataSnapshot(nullptr);
+  }
 
  private:
   friend class DatabaseInternal;

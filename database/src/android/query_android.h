@@ -35,7 +35,8 @@ class QueryInternal {
   // QueryInternal instance.
   QueryInternal(DatabaseInternal* database, jobject query_obj);
 
-  QueryInternal(DatabaseInternal* database, jobject query_obj,
+  QueryInternal(DatabaseInternal* database,
+                jobject query_obj,
                 const internal::QuerySpec& query_spec);
 
   QueryInternal(const QueryInternal& query);
@@ -88,12 +89,16 @@ class QueryInternal {
   QueryInternal* LimitToFirst(size_t limit);
   QueryInternal* LimitToLast(size_t limit);
 
-  const internal::QuerySpec& query_spec() const { return query_spec_; }
+  const internal::QuerySpec& query_spec() const {
+    return query_spec_;
+  }
 
   static bool Initialize(App* app);
   static void Terminate(App* app);
 
-  DatabaseInternal* database_internal() const { return db_; }
+  DatabaseInternal* database_internal() const {
+    return db_;
+  }
 
  protected:
   DatabaseInternal* db_;
@@ -114,7 +119,8 @@ class QueryInternal {
 // Used by Query::GetValue().
 class SingleValueListener : public ValueListener {
  public:
-  SingleValueListener(DatabaseInternal* db, ReferenceCountedFutureImpl* future,
+  SingleValueListener(DatabaseInternal* db,
+                      ReferenceCountedFutureImpl* future,
                       SafeFutureHandle<DataSnapshot> handle);
   // Unregister ourselves from the db.
   virtual ~SingleValueListener();

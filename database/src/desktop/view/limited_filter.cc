@@ -29,13 +29,17 @@ LimitedFilter::LimitedFilter(const QueryParams& params)
     : VariantFilter(params),
       ranged_filter_(MakeUnique<RangedFilter>(params)),
       limit_(params.limit_first ? params.limit_first : params.limit_last),
-      reverse_(!!params.limit_last) {}
+      reverse_(!!params.limit_last) {
+}
 
-LimitedFilter::~LimitedFilter() {}
+LimitedFilter::~LimitedFilter() {
+}
 
 IndexedVariant LimitedFilter::UpdateChild(
-    const IndexedVariant& indexed_variant, const std::string& key,
-    const Variant& new_child, const Path& affected_path,
+    const IndexedVariant& indexed_variant,
+    const std::string& key,
+    const Variant& new_child,
+    const Path& affected_path,
     const CompleteChildSource* source,
     ChildChangeAccumulator* opt_change_accumulator) const {
   const Variant& variant =
@@ -63,9 +67,13 @@ IndexedVariant LimitedFilter::UpdateChild(
 
 template <typename IteratorType>
 IndexedVariant UpdateFullVariantHelper(
-    IndexedVariant filtered, int limit, IteratorType iter,
-    IteratorType iter_end, const std::pair<Variant, Variant>& start_post,
-    const std::pair<Variant, Variant>& end_post, int sign,
+    IndexedVariant filtered,
+    int limit,
+    IteratorType iter,
+    IteratorType iter_end,
+    const std::pair<Variant, Variant>& start_post,
+    const std::pair<Variant, Variant>& end_post,
+    int sign,
     const QueryParams& params) {
   int count = 0;
   bool found_start_post = false;
@@ -89,7 +97,8 @@ IndexedVariant UpdateFullVariantHelper(
 }
 
 IndexedVariant LimitedFilter::UpdateFullVariant(
-    const IndexedVariant& old_snap, const IndexedVariant& new_snap,
+    const IndexedVariant& old_snap,
+    const IndexedVariant& new_snap,
     ChildChangeAccumulator* opt_change_accumulator) const {
   IndexedVariant filtered;
   if (VariantIsLeaf(new_snap.variant()) || VariantIsEmpty(new_snap.variant())) {
@@ -120,13 +129,19 @@ IndexedVariant LimitedFilter::UpdatePriority(
   return old_snap;
 }
 
-const VariantFilter* LimitedFilter::GetIndexedFilter() const { return this; }
+const VariantFilter* LimitedFilter::GetIndexedFilter() const {
+  return this;
+}
 
-bool LimitedFilter::FiltersVariants() const { return true; }
+bool LimitedFilter::FiltersVariants() const {
+  return true;
+}
 
 IndexedVariant LimitedFilter::FullLimitUpdateChild(
-    const IndexedVariant& old_indexed, const std::string& child_key,
-    const Variant& child_snap, const CompleteChildSource* source,
+    const IndexedVariant& old_indexed,
+    const std::string& child_key,
+    const Variant& child_snap,
+    const CompleteChildSource* source,
     ChildChangeAccumulator* opt_change_accumulator) const {
   std::pair<Variant, Variant> new_child_node(child_key, child_snap);
   Optional<std::pair<Variant, Variant>> window_boundary =

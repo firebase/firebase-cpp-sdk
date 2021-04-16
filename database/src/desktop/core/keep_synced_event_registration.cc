@@ -22,7 +22,8 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-KeepSyncedEventRegistration::~KeepSyncedEventRegistration() {}
+KeepSyncedEventRegistration::~KeepSyncedEventRegistration() {
+}
 
 bool KeepSyncedEventRegistration::RespondsTo(EventType event_type) {
   (void)event_type;
@@ -40,9 +41,13 @@ Event KeepSyncedEventRegistration::GenerateEvent(const Change& change,
                Path());
 }
 
-void KeepSyncedEventRegistration::FireEvent(const Event& event) { (void)event; }
+void KeepSyncedEventRegistration::FireEvent(const Event& event) {
+  (void)event;
+}
 
-void KeepSyncedEventRegistration::FireCancelEvent(Error error) { (void)error; }
+void KeepSyncedEventRegistration::FireCancelEvent(Error error) {
+  (void)error;
+}
 
 bool KeepSyncedEventRegistration::MatchesListener(
     const void* listener_ptr) const {

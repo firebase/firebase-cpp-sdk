@@ -169,19 +169,29 @@ class DatabaseInternal {
   // from the cleanup list.
   void DeleteJavaTransactionHandler(jobject transaction_handler_global);
 
-  FutureManager& future_manager() { return future_manager_; }
+  FutureManager& future_manager() {
+    return future_manager_;
+  }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return app_ != nullptr; }
+  bool initialized() const {
+    return app_ != nullptr;
+  }
 
   // When this is deleted, it will clean up all DatabaseReferences,
   // DataSnapshots, and other such objects.
-  CleanupNotifier& cleanup() { return cleanup_; }
+  CleanupNotifier& cleanup() {
+    return cleanup_;
+  }
 
   // The url that was passed to the constructor.
-  const std::string& constructor_url() const { return constructor_url_; }
+  const std::string& constructor_url() const {
+    return constructor_url_;
+  }
 
-  Logger* logger() { return &logger_; }
+  Logger* logger() {
+    return &logger_;
+  }
 
  private:
   static bool Initialize(App* app);

@@ -37,14 +37,11 @@
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(
-    functions,
-    {
-      return ::firebase::kInitResultSuccess;
-    },
-    {
-        // Nothing to tear down.
-    });
+FIREBASE_APP_REGISTER_CALLBACKS(functions,
+                                { return ::firebase::kInitResultSuccess; },
+                                {
+                                    // Nothing to tear down.
+                                });
 
 namespace firebase {
 namespace functions {
@@ -62,7 +59,8 @@ Functions* Functions::GetInstance(::firebase::App* app,
   return GetInstance(app, nullptr, init_result_out);
 }
 
-Functions* Functions::GetInstance(::firebase::App* app, const char* region,
+Functions* Functions::GetInstance(::firebase::App* app,
+                                  const char* region,
                                   InitResult* init_result_out) {
   MutexLock lock(g_functions_lock);
   if (!g_functions) {
@@ -114,7 +112,9 @@ Functions::Functions(::firebase::App* app, const char* region) {
   }
 }
 
-Functions::~Functions() { DeleteInternal(); }
+Functions::~Functions() {
+  DeleteInternal();
+}
 
 void Functions::DeleteInternal() {
   MutexLock lock(g_functions_lock);

@@ -106,20 +106,28 @@ class Settings final {
   /**
    * Gets the host of the Firestore backend to connect to.
    */
-  const std::string& host() const { return host_; }
+  const std::string& host() const {
+    return host_;
+  }
 
   /**
    * Returns whether to use SSL when communicating.
    */
-  bool is_ssl_enabled() const { return ssl_enabled_; }
+  bool is_ssl_enabled() const {
+    return ssl_enabled_;
+  }
 
   /**
    * Returns whether to enable local persistent storage.
    */
-  bool is_persistence_enabled() const { return persistence_enabled_; }
+  bool is_persistence_enabled() const {
+    return persistence_enabled_;
+  }
 
   /** Returns cache size for on-disk data. */
-  int64_t cache_size_bytes() const { return cache_size_bytes_; }
+  int64_t cache_size_bytes() const {
+    return cache_size_bytes_;
+  }
 
   /**
    * Sets the host of the Firestore backend. The default is

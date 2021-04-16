@@ -10,7 +10,9 @@ namespace firestore {
 class ListenerRegistrationInternal {
  public:
   using ApiType = ListenerRegistration;
-  FirestoreInternal* firestore_internal() { return nullptr; }
+  FirestoreInternal* firestore_internal() {
+    return nullptr;
+  }
 };
 
 }  // namespace firestore

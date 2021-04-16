@@ -50,7 +50,8 @@ class BannerViewInternal {
   virtual ~BannerViewInternal() = default;
 
   // Initializes this object and any platform-specific helpers that it uses.
-  virtual Future<void> Initialize(AdParent parent, const char* ad_unit_id,
+  virtual Future<void> Initialize(AdParent parent,
+                                  const char* ad_unit_id,
                                   AdSize size) = 0;
 
   // Initiates an ad request.

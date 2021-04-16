@@ -121,7 +121,8 @@ InitResult Initialize(JNIEnv* jni_env, jobject activity);
 /// kInitResultFailedMissingDependency on Android if Google Play services is not
 /// available on the current device and the AdMob SDK requires
 /// Google Play services (for example when using 'play-services-ads-lite').
-InitResult Initialize(JNIEnv* jni_env, jobject activity,
+InitResult Initialize(JNIEnv* jni_env,
+                      jobject activity,
                       const char* admob_app_id);
 #endif  // defined(__ANDROID__) || defined(DOXYGEN)
 #if !FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)

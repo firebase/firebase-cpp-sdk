@@ -40,20 +40,22 @@ namespace internal {
 
 class HttpsCallableReferenceInternal {
  public:
-  explicit HttpsCallableReferenceInternal(FunctionsInternal* functions,
-                                          UniquePtr<FIRHTTPSCallablePointer> impl);
+  explicit HttpsCallableReferenceInternal(
+      FunctionsInternal* functions, UniquePtr<FIRHTTPSCallablePointer> impl);
 
   ~HttpsCallableReferenceInternal();
 
   // Copy constructor. It's totally okay (and efficient) to copy
   // HttpsCallableReferenceInternal instances, as they simply point to the same
   // location.
-  HttpsCallableReferenceInternal(const HttpsCallableReferenceInternal& reference);
+  HttpsCallableReferenceInternal(
+      const HttpsCallableReferenceInternal& reference);
 
   // Copy assignment operator. It's totally okay (and efficient) to copy
   // HttpsCallableReferenceInternal instances, as they simply point to the same
   // location.
-  HttpsCallableReferenceInternal& operator=(const HttpsCallableReferenceInternal& reference);
+  HttpsCallableReferenceInternal& operator=(
+      const HttpsCallableReferenceInternal& reference);
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   // Move constructor. Moving is an efficient operation for
@@ -62,7 +64,8 @@ class HttpsCallableReferenceInternal {
 
   // Move assignment operator. Moving is an efficient operation for
   // HttpsCallableReferenceInternal instances.
-  HttpsCallableReferenceInternal& operator=(HttpsCallableReferenceInternal&& other);
+  HttpsCallableReferenceInternal& operator=(
+      HttpsCallableReferenceInternal&& other);
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
   // Gets the functions to which we refer.
@@ -74,13 +77,16 @@ class HttpsCallableReferenceInternal {
   Future<HttpsCallableResult> Call(const Variant& data);
 
   // FunctionsInternal instance we are associated with.
-  FunctionsInternal* functions_internal() const { return functions_; }
+  FunctionsInternal* functions_internal() const {
+    return functions_;
+  }
 
  private:
 #ifdef __OBJC__
   static void CompleteFuture(ReferenceCountedFutureImpl* future_impl,
                              SafeFutureHandle<HttpsCallableResult> handle,
-                             FIRHTTPSCallableResult* _Nullable result, NSError* error);
+                             FIRHTTPSCallableResult* _Nullable result,
+                             NSError* error);
 #endif  // __OBJC__
 
   // Get the Future for the HttpsCallableReferenceInternal.

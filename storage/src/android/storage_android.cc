@@ -105,12 +105,14 @@ METHOD_LOOKUP_DEFINITION(firebase_storage,
   X(GetErrorCode, "getErrorCode", "()I")
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(storage_exception, STORAGE_EXCEPTION_METHODS,
+METHOD_LOOKUP_DECLARATION(storage_exception,
+                          STORAGE_EXCEPTION_METHODS,
                           STORAGE_EXCEPTION_FIELDS)
 METHOD_LOOKUP_DEFINITION(storage_exception,
                          PROGUARD_KEEP_CLASS
                          "com/google/firebase/storage/StorageException",
-                         STORAGE_EXCEPTION_METHODS, STORAGE_EXCEPTION_FIELDS)
+                         STORAGE_EXCEPTION_METHODS,
+                         STORAGE_EXCEPTION_FIELDS)
 
 METHOD_LOOKUP_DECLARATION(index_out_of_bounds_exception, METHOD_LOOKUP_NONE)
 METHOD_LOOKUP_DEFINITION(index_out_of_bounds_exception,
@@ -303,7 +305,9 @@ void StorageInternal::Terminate(App* app) {
   }
 }
 
-App* StorageInternal::app() const { return app_; }
+App* StorageInternal::app() const {
+  return app_;
+}
 
 Error StorageInternal::ErrorFromJavaErrorCode(jint error_code) const {
   auto found = java_error_to_cpp_->find(error_code);

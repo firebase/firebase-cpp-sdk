@@ -51,7 +51,9 @@ static App* CreateApp(const AppOptions& options) {
 }
 
 // Create a firebase::App with mock options.
-static App* CreateApp() { return CreateApp(MockAppOptions()); }
+static App* CreateApp() {
+  return CreateApp(MockAppOptions());
+}
 
 }  // namespace testing
 }  // namespace firebase

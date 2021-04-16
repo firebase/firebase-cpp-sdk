@@ -73,7 +73,8 @@ std::wstring Utf8ToNative(const std::string& input, std::string* out_error) {
   return output;
 }
 
-std::string NativeToUtf8(const wchar_t* input, size_t input_size,
+std::string NativeToUtf8(const wchar_t* input,
+                         size_t input_size,
                          std::string* out_error) {
   int input_len = static_cast<int>(input_size);
   if (input_len == 0) {
@@ -164,7 +165,8 @@ bool Mkdir(const std::wstring& path, std::string* out_error) {
 
 }  // namespace
 
-std::string AppDataDir(const char* app_name, bool should_create,
+std::string AppDataDir(const char* app_name,
+                       bool should_create,
                        std::string* out_error) {
   if (!app_name || std::strlen(app_name) == 0) {
     if (out_error) {

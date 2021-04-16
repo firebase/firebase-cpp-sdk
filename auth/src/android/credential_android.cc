@@ -146,7 +146,8 @@ METHOD_LOOKUP_DEFINITION(oauthprovider,
 METHOD_LOOKUP_DECLARATION(timeunit, TIME_UNIT_METHODS, TIME_UNIT_FIELDS)
 METHOD_LOOKUP_DEFINITION(timeunit,
                          PROGUARD_KEEP_CLASS "java/util/concurrent/TimeUnit",
-                         TIME_UNIT_METHODS, TIME_UNIT_FIELDS)
+                         TIME_UNIT_METHODS,
+                         TIME_UNIT_FIELDS)
 // clang-format off
 #define PHONE_CRED_METHODS(X)                                                  \
     X(GetInstance, "getInstance",                                              \
@@ -243,7 +244,8 @@ METHOD_LOOKUP_DEFINITION(user_idp,
 // clang-format on
 METHOD_LOOKUP_DECLARATION(jniphone, JNI_PHONE_LISTENER_CALLBACK_METHODS)
 METHOD_LOOKUP_DEFINITION(
-    jniphone, "com/google/firebase/auth/internal/cpp/JniAuthPhoneListener",
+    jniphone,
+    "com/google/firebase/auth/internal/cpp/JniAuthPhoneListener",
     JNI_PHONE_LISTENER_CALLBACK_METHODS)
 
 // These static functions are wrapped in a class so that they can be "friends"
@@ -255,16 +257,23 @@ class JniAuthPhoneListener {
       JNIEnv* env, jobject instance, jlong c_listener, jobject j_credential);
 
   static JNIEXPORT void JNICALL
-  nativeOnVerificationFailed(JNIEnv* env, jobject instance, jlong c_listener,
+  nativeOnVerificationFailed(JNIEnv* env,
+                             jobject instance,
+                             jlong c_listener,
                              jstring exception_message);
 
   static JNIEXPORT void JNICALL
-  nativeOnCodeSent(JNIEnv* env, jobject instance, jlong c_listener,
-                   jstring j_verification_id, jobject j_force_resending_token);
+  nativeOnCodeSent(JNIEnv* env,
+                   jobject instance,
+                   jlong c_listener,
+                   jstring j_verification_id,
+                   jobject j_force_resending_token);
 
   static JNIEXPORT void JNICALL
-  nativeOnCodeAutoRetrievalTimeOut(JNIEnv* env, jobject instance,
-                                   jlong c_listener, jstring j_verification_id);
+  nativeOnCodeAutoRetrievalTimeOut(JNIEnv* env,
+                                   jobject instance,
+                                   jlong c_listener,
+                                   jstring j_verification_id);
 };
 
 static const JNINativeMethod kNativeJniAuthPhoneListenerMethods[] = {
@@ -290,7 +299,8 @@ const char kMethodsNotCachedError[] =
     "Create an Auth instance first.";
 
 bool CacheCredentialMethodIds(
-    JNIEnv* env, jobject activity,
+    JNIEnv* env,
+    jobject activity,
     const std::vector<internal::EmbeddedFile>& embedded_files) {
   // Cache the JniAuthPhoneListener class and register the native callback
   // methods.
@@ -385,7 +395,9 @@ std::string Credential::provider() const {
   return JniStringToString(env, j_provider);
 }
 
-bool Credential::is_valid() const { return impl_ != nullptr; }
+bool Credential::is_valid() const {
+  return impl_ != nullptr;
+}
 
 static void* CredentialLocalToGlobalRef(jobject j_cred) {
   if (!j_cred) return nullptr;
@@ -579,14 +591,12 @@ Credential OAuthProvider::GetCredential(const char* provider_id,
   return Credential(CredentialLocalToGlobalRef(j_cred));
 }
 
-
 // static
 Credential OAuthProvider::GetCredential(const char* provider_id,
                                         const char* id_token,
                                         const char* raw_nonce,
                                         const char* access_token) {
-  FIREBASE_ASSERT_RETURN(Credential(),
-                         provider_id && id_token && raw_nonce );
+  FIREBASE_ASSERT_RETURN(Credential(), provider_id && id_token && raw_nonce);
   FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), g_methods_cached,
                                  kMethodsNotCachedError);
 
@@ -687,8 +697,11 @@ bool GameCenterAuthProvider::IsPlayerAuthenticated() {
 // This implementation of ForceResendingTokenData is specific to Android.
 class ForceResendingTokenData {
  public:
-  ForceResendingTokenData() : token_global_ref_(nullptr) {}
-  ~ForceResendingTokenData() { FreeRef(); }
+  ForceResendingTokenData() : token_global_ref_(nullptr) {
+  }
+  ~ForceResendingTokenData() {
+    FreeRef();
+  }
 
   // token_ref can be a local or global reference.
   void SetRef(jobject token_ref) {
@@ -705,16 +718,21 @@ class ForceResendingTokenData {
       token_global_ref_ = nullptr;
     }
   }
-  jobject token_global_ref() const { return token_global_ref_; }
+  jobject token_global_ref() const {
+    return token_global_ref_;
+  }
 
  private:
   jobject token_global_ref_;
 };
 
 PhoneAuthProvider::ForceResendingToken::ForceResendingToken()
-    : data_(new ForceResendingTokenData) {}
+    : data_(new ForceResendingTokenData) {
+}
 
-PhoneAuthProvider::ForceResendingToken::~ForceResendingToken() { delete data_; }
+PhoneAuthProvider::ForceResendingToken::~ForceResendingToken() {
+  delete data_;
+}
 
 PhoneAuthProvider::ForceResendingToken::ForceResendingToken(
     const ForceResendingToken& rhs)
@@ -743,8 +761,8 @@ bool PhoneAuthProvider::ForceResendingToken::operator!=(
 
 // This implementation of PhoneAuthProviderData is specific to Android.
 struct PhoneAuthProviderData {
-  PhoneAuthProviderData()
-      : auth_data(nullptr), j_phone_auth_provider(nullptr) {}
+  PhoneAuthProviderData() : auth_data(nullptr), j_phone_auth_provider(nullptr) {
+  }
 
   // Back-pointer to structure that holds this one.
   AuthData* auth_data;
@@ -756,7 +774,8 @@ struct PhoneAuthProviderData {
 // The `data_` pimpl is created lazily in @ref PhoneAuthProvider::GetInstance.
 // This is necessary since the Java Auth class must be fully created to get
 // `j_phone_auth_provider`.
-PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {}
+PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {
+}
 PhoneAuthProvider::~PhoneAuthProvider() {
   if (data_ != nullptr) {
     JNIEnv* env = GetJniEnv();
@@ -767,7 +786,8 @@ PhoneAuthProvider::~PhoneAuthProvider() {
 
 // This implementation of PhoneListenerData is specific to Android.
 struct PhoneListenerData {
-  PhoneListenerData() : j_listener(nullptr) {}
+  PhoneListenerData() : j_listener(nullptr) {
+  }
 
   // The JniAuthStateListener class that has the same lifespan as the C++ class.
   jobject j_listener;
@@ -807,8 +827,10 @@ PhoneAuthProvider::Listener::~Listener() {
 }
 
 void PhoneAuthProvider::VerifyPhoneNumber(
-    const char* phone_number, uint32_t auto_verify_time_out_ms,
-    const ForceResendingToken* force_resending_token, Listener* listener) {
+    const char* phone_number,
+    uint32_t auto_verify_time_out_ms,
+    const ForceResendingToken* force_resending_token,
+    Listener* listener) {
   FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
   JNIEnv* env = GetJniEnv();
 
@@ -902,18 +924,23 @@ JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnVerificationCompleted(
 
 // Redirect JniAuthPhoneListener.java callback to C++
 // PhoneAuthProvider::Listener::OnVerificationFailed().
-JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnVerificationFailed(
-    JNIEnv* env, jobject j_listener, jlong c_listener,
-    jstring exception_message) {
+JNIEXPORT void JNICALL
+JniAuthPhoneListener::nativeOnVerificationFailed(JNIEnv* env,
+                                                 jobject j_listener,
+                                                 jlong c_listener,
+                                                 jstring exception_message) {
   auto listener = reinterpret_cast<PhoneAuthProvider::Listener*>(c_listener);
   listener->OnVerificationFailed(util::JStringToString(env, exception_message));
 }
 
 // Redirect JniAuthPhoneListener.java callback to C++
 // PhoneAuthProvider::Listener::OnCodeSent().
-JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnCodeSent(
-    JNIEnv* env, jobject j_listener, jlong c_listener,
-    jstring j_verification_id, jobject j_force_resending_token) {
+JNIEXPORT void JNICALL
+JniAuthPhoneListener::nativeOnCodeSent(JNIEnv* env,
+                                       jobject j_listener,
+                                       jlong c_listener,
+                                       jstring j_verification_id,
+                                       jobject j_force_resending_token) {
   auto listener = reinterpret_cast<PhoneAuthProvider::Listener*>(c_listener);
 
   // Change the passed-in local reference to a global reference that has the
@@ -926,7 +953,9 @@ JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnCodeSent(
 // Redirect JniAuthPhoneListener.java callback to C++
 // PhoneAuthProvider::Listener::OnCodeAutoRetrievalTimeOut().
 JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnCodeAutoRetrievalTimeOut(
-    JNIEnv* env, jobject j_listener, jlong c_listener,
+    JNIEnv* env,
+    jobject j_listener,
+    jlong c_listener,
     jstring j_verification_id) {
   auto listener = reinterpret_cast<PhoneAuthProvider::Listener*>(c_listener);
   listener->OnCodeAutoRetrievalTimeOut(
@@ -934,14 +963,16 @@ JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnCodeAutoRetrievalTimeOut(
 }
 
 // FederatedAuthHandlers
-FederatedOAuthProvider::FederatedOAuthProvider() {}
+FederatedOAuthProvider::FederatedOAuthProvider() {
+}
 
 FederatedOAuthProvider::FederatedOAuthProvider(
     const FederatedOAuthProviderData& provider_data) {
   provider_data_ = provider_data;
 }
 
-FederatedOAuthProvider::~FederatedOAuthProvider() {}
+FederatedOAuthProvider::~FederatedOAuthProvider() {
+}
 
 void FederatedOAuthProvider::SetProviderData(
     const FederatedOAuthProviderData& provider_data) {

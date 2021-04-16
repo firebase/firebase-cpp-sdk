@@ -26,7 +26,8 @@ namespace firebase {
 namespace rest {
 
 ControllerCurl::ControllerCurl(TransportCurl* transport,
-                               TransferDirection direction, Response* response)
+                               TransferDirection direction,
+                               Response* response)
     : transport_(transport),
       direction_(direction),
       is_paused_(false),
@@ -35,7 +36,8 @@ ControllerCurl::ControllerCurl(TransportCurl* transport,
       bytes_transferred_(0),
       transfer_size_(0),
       this_handle_(nullptr),
-      this_handle_mutex_(nullptr) {}
+      this_handle_mutex_(nullptr) {
+}
 
 ControllerCurl::~ControllerCurl() {
   if (this_handle_mutex_) {
@@ -119,9 +121,13 @@ float ControllerCurl::Progress() {
   return transferred / size;
 }
 
-int64_t ControllerCurl::TransferSize() { return transfer_size_; }
+int64_t ControllerCurl::TransferSize() {
+  return transfer_size_;
+}
 
-int64_t ControllerCurl::BytesTransferred() { return bytes_transferred_; }
+int64_t ControllerCurl::BytesTransferred() {
+  return bytes_transferred_;
+}
 
 void ControllerCurl::set_bytes_transferred(int64_t bytes_transferred) {
   // Only set the bytes transferred if it is larger than the current value.

@@ -18,9 +18,9 @@
 #include "app/src/log.h"
 #include "app/src/path.h"
 #include "app/src/reference_count.h"
+#include "flatbuffers/util.h"
 #include "testlab/src/common/common.h"
 #include "testlab/src/include/firebase/testlab.h"
-#include "flatbuffers/util.h"
 
 #if defined(_WIN32)
 // windows.h must be first to define basic Windows types.
@@ -58,7 +58,9 @@ static const char* kLogFileName = "firebase-game-loop.log";
 namespace internal {
 
 // Determine whether the test lab module is initialized.
-bool IsInitialized() { return g_initializer.references() > 0; }
+bool IsInitialized() {
+  return g_initializer.references() > 0;
+}
 static void ParseCommandLineArgs();
 static FILE* GetCustomResultsFile();
 

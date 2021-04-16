@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <utility>
 
+#include "Firestore/core/src/util/firestore_exceptions.h"
 #include "app/meta/move.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "firestore/src/android/document_reference_android.h"
@@ -15,7 +16,6 @@
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/hash_map.h"
 #include "firestore/src/jni/loader.h"
-#include "Firestore/core/src/util/firestore_exceptions.h"
 
 namespace firebase {
 namespace firestore {
@@ -193,8 +193,11 @@ Local<Object> TransactionInternal::Create(Env& env,
 }
 
 jobject TransactionInternal::TransactionFunctionNativeApply(
-    JNIEnv* raw_env, jclass clazz, jlong firestore_ptr,
-    jlong transaction_function_ptr, jobject java_transaction) {
+    JNIEnv* raw_env,
+    jclass clazz,
+    jlong firestore_ptr,
+    jlong transaction_function_ptr,
+    jobject java_transaction) {
   if (firestore_ptr == 0 || transaction_function_ptr == 0) {
     return nullptr;
   }

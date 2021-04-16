@@ -49,7 +49,8 @@ class FunctionRegistry {
   // arbitrary structs, and a pointer indicating where to place the output
   // data.  The function should return true if it completed successfully,
   // and false otherwise.
-  typedef bool (*RegisteredFunction)(::FIREBASE_NAMESPACE::App* app, void* args,
+  typedef bool (*RegisteredFunction)(::FIREBASE_NAMESPACE::App* app,
+                                     void* args,
                                      void* out);
 
   // Add a function to the registry, bound to a unique identifier.  Asserts

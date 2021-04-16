@@ -16,8 +16,8 @@
 
 #include "app/src/include/firebase/variant.h"
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
@@ -55,7 +55,7 @@ namespace testing {
 
 const int64_t kTestInt64 = 12345L;
 const char* kTestString = "Hello, world!";
-const std::string kTestSmallString = "<eight"; // NOLINT
+const std::string kTestSmallString = "<eight";  // NOLINT
 // Note: Mutable string needs to be bigger than the small string optimisation
 const std::string kTestMutableString =  // NOLINT
     "I am just great, thanks for asking!";
@@ -73,7 +73,8 @@ std::map<Variant, Variant> g_test_complex_map;       // NOLINT
 
 class VariantTest : public ::testing::Test {
  protected:
-  VariantTest() {}
+  VariantTest() {
+  }
   void SetUp() override {
     g_test_map.clear();
     g_test_map["first"] = 101;
@@ -375,20 +376,10 @@ TEST_F(VariantTest, TestConstructingVectorViaTemplate) {
                           Property(&Variant::double_value, Eq(4)))));
   }
   {
-    std::vector<const char*> list1 {
-      "hello",
-      "world",
-      "how",
-      "are",
-      "you with more chars"
-    };
-    std::vector<std::string> list2 {
-      "hello",
-      "world",
-      "how",
-      "are",
-      "you with more chars"
-    };
+    std::vector<const char*> list1{"hello", "world", "how", "are",
+                                   "you with more chars"};
+    std::vector<std::string> list2{"hello", "world", "how", "are",
+                                   "you with more chars"};
     Variant v1(list1), v2(list2);
     EXPECT_THAT(
         v1.vector(),

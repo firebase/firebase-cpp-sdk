@@ -22,13 +22,18 @@ namespace installations {
 namespace internal {
 
 InstallationsInternal::InstallationsInternal(const firebase::App& app)
-    : app_(app), future_impl_(kInstallationsFnCount) {}
+    : app_(app), future_impl_(kInstallationsFnCount) {
+}
 
-InstallationsInternal::~InstallationsInternal() {}
+InstallationsInternal::~InstallationsInternal() {
+}
 
-bool InstallationsInternal::Initialized() const { return true; }
+bool InstallationsInternal::Initialized() const {
+  return true;
+}
 
-void InstallationsInternal::Cleanup() {}
+void InstallationsInternal::Cleanup() {
+}
 
 Future<std::string> InstallationsInternal::GetId() {
   const auto handle =
@@ -48,9 +53,10 @@ Future<std::string> InstallationsInternal::GetToken(bool forceRefresh) {
   const auto handle =
       future_impl_.SafeAlloc<std::string>(kInstallationsFnGetToken);
 
-  future_impl_.CompleteWithResult(
-      handle, kInstallationsErrorNone, "",
-      forceRefresh ? std::string("FakeTokenForceRefresh") : std::string("FakeToken"));
+  future_impl_.CompleteWithResult(handle, kInstallationsErrorNone, "",
+                                  forceRefresh
+                                      ? std::string("FakeTokenForceRefresh")
+                                      : std::string("FakeToken"));
 
   return MakeFuture<std::string>(&future_impl_, handle);
 }

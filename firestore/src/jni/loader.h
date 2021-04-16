@@ -44,12 +44,15 @@ class Loader {
    * Returns true if the loader has succeeded. If not, any errors have already
    * been logged.
    */
-  bool ok() const { return ok_ && !env_->ExceptionCheck(); }
+  bool ok() const {
+    return ok_ && !env_->ExceptionCheck();
+  }
 
   /**
    * Adds metadata about embedded class files in the binary distribution.
    */
-  void AddEmbeddedFile(const char* name, const unsigned char* data,
+  void AddEmbeddedFile(const char* name,
+                       const unsigned char* data,
                        size_t size);
   /**
    * Unpacks any embedded files added above and writes them out to a temporary
@@ -82,7 +85,8 @@ class Loader {
    * param existing_ref An existing local or global reference to a Java class.
    */
   template <typename... Members>
-  void LoadFromExistingClass(const char* class_name, jclass existing_ref,
+  void LoadFromExistingClass(const char* class_name,
+                             jclass existing_ref,
                              Members&&... members) {
     UsingExistingClass(class_name, existing_ref);
     LoadAll(Forward<Members>(members)...);
@@ -132,7 +136,8 @@ class Loader {
     Load(Forward<Member>(first));
     LoadAll(Forward<Members>(rest)...);
   }
-  void LoadAll() {}
+  void LoadAll() {
+  }
 
   /**
    * Registers the given native methods with the JVM.

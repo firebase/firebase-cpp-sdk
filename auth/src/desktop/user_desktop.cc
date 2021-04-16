@@ -64,13 +64,21 @@ namespace {
 // non-successful.
 class GetTokenResult {
  public:
-  explicit GetTokenResult(const AuthError error) : error_(error) {}
+  explicit GetTokenResult(const AuthError error) : error_(error) {
+  }
   explicit GetTokenResult(const std::string& token)
-      : error_(kAuthErrorNone), token_(token) {}
+      : error_(kAuthErrorNone), token_(token) {
+  }
 
-  bool IsValid() const { return error_ == kAuthErrorNone; }
-  AuthError error() const { return error_; }
-  std::string token() const { return token_; }
+  bool IsValid() const {
+    return error_ == kAuthErrorNone;
+  }
+  AuthError error() const {
+    return error_;
+  }
+  std::string token() const {
+    return token_;
+  }
 
  private:
   AuthError error_;
@@ -182,7 +190,8 @@ bool ValidateCurrentUser(Promise<T>* const promise, AuthData* const auth_data) {
 // and sets this token on the given request.
 template <typename ResultT, typename RequestT>
 Future<ResultT> CallAsyncWithFreshToken(
-    AuthData* const auth_data, Promise<ResultT> promise,
+    AuthData* const auth_data,
+    Promise<ResultT> promise,
     std::unique_ptr<RequestT> request,
     const typename AuthDataHandle<ResultT, RequestT>::CallbackT callback) {
   FIREBASE_ASSERT_RETURN(Future<ResultT>(), auth_data && request && callback);
@@ -262,7 +271,8 @@ void PerformSetAccountInfoFlow(
 // Non-blocking.
 template <typename ResultT>
 Future<ResultT> DoLinkWithEmailAndPassword(
-    AuthData* const auth_data, Promise<ResultT> promise,
+    AuthData* const auth_data,
+    Promise<ResultT> promise,
     const void* const raw_credential_impl) {
   FIREBASE_ASSERT_RETURN(Future<ResultT>(), auth_data && raw_credential_impl);
 
@@ -421,7 +431,8 @@ UserDataPersist::UserDataPersist(const char* app_id) {
 
 UserDataPersist::UserDataPersist(
     UniquePtr<UserSecureManager> user_secure_manager)
-    : user_secure_manager_(std::move(user_secure_manager)) {}
+    : user_secure_manager_(std::move(user_secure_manager)) {
+}
 
 void UserDataPersist::OnAuthStateChanged(Auth* auth) {  // NOLINT
   if (auth->current_user() != nullptr) {
@@ -555,7 +566,7 @@ Future<void> UserDataPersist::SaveUserData(AuthData* auth_data) {
 
   const auto& user_infos = user.GetUserInfos();
 
-  auto create_callback = [&builder, &user_infos](size_t index){
+  auto create_callback = [&builder, &user_infos](size_t index) {
     const auto& user_info = user_infos[index];
 
     auto uid = builder.CreateString(user_info->uid());
@@ -565,13 +576,13 @@ Future<void> UserDataPersist::SaveUserData(AuthData* auth_data) {
     auto provider_id = builder.CreateString(user_info->provider_id());
     auto phone_number = builder.CreateString(user_info->phone_number());
 
-    return CreateUserProviderData(
-      builder, uid, email, display_name, photo_url, provider_id, phone_number);
+    return CreateUserProviderData(builder, uid, email, display_name, photo_url,
+                                  provider_id, phone_number);
   };
 
   auto provider_data_list =
       builder.CreateVector<flatbuffers::Offset<UserProviderData>>(
-        user_infos.size(), create_callback);
+          user_infos.size(), create_callback);
 
   // Compile data using schema
   auto uid = builder.CreateString(user->uid);

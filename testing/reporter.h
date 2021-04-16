@@ -34,9 +34,12 @@ enum Platform {
 class ReportRow {
  public:
   ReportRow();
-  ReportRow(std::string fake, std::string result,
+  ReportRow(std::string fake,
+            std::string result,
             std::vector<std::string> args);
-  ReportRow(std::string fake, std::string result, Platform platform,
+  ReportRow(std::string fake,
+            std::string result,
+            Platform platform,
             std::initializer_list<std::string> args);
 
   std::string getFake() const;
@@ -68,7 +71,8 @@ class Reporter {
 
   void reset();
   void addExpectation(const ReportRow& expectation);
-  void addExpectation(std::string fake, std::string result,
+  void addExpectation(std::string fake,
+                      std::string result,
                       Platform platform,
                       std::initializer_list<std::string> args);
 

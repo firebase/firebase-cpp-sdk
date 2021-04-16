@@ -40,14 +40,11 @@
         // defined(FIREBASE_TARGET_DESKTOP)
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(
-    database,
-    {
-      return ::firebase::kInitResultSuccess;
-    },
-    {
-        // Nothing to tear down.
-    });
+FIREBASE_APP_REGISTER_CALLBACKS(database,
+                                { return ::firebase::kInitResultSuccess; },
+                                {
+                                    // Nothing to tear down.
+                                });
 
 namespace firebase {
 namespace database {
@@ -66,7 +63,8 @@ DatabaseMap::key_type MakeKey(App* app, const std::string& url) {
 }
 }  // namespace
 
-Database* Database::GetInstance(App* app, const char* url,
+Database* Database::GetInstance(App* app,
+                                const char* url,
                                 InitResult* init_result_out) {
   if (!app) {
     LogError("Database::GetInstance(): The app must not be null.");
@@ -149,7 +147,9 @@ void Database::DeleteInternal() {
   }
 }
 
-Database::~Database() { DeleteInternal(); }
+Database::~Database() {
+  DeleteInternal();
+}
 
 Database::Database(const Database& src) {
   FIREBASE_ASSERT_MESSAGE(false,
@@ -162,7 +162,9 @@ Database& Database::operator=(const Database& src) {
   return *this;
 }
 
-App* Database::app() const { return internal_ ? internal_->GetApp() : nullptr; }
+App* Database::app() const {
+  return internal_ ? internal_->GetApp() : nullptr;
+}
 
 const char* Database::url() const {
   return internal_ ? internal_->constructor_url().c_str() : "";

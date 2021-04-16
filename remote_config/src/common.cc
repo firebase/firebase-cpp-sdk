@@ -27,7 +27,7 @@ FIREBASE_APP_REGISTER_CALLBACKS(remote_config,
                                   return kInitResultSuccess;
                                 },
                                 {
-                                  // Nothing to do.
+                                    // Nothing to do.
                                 });
 
 namespace firebase {
@@ -48,7 +48,9 @@ void FutureData::Destroy() {
 }
 
 // Get the Future data singleton.
-FutureData* FutureData::Get() { return s_future_data_; }
+FutureData* FutureData::Get() {
+  return s_future_data_;
+}
 
 }  // namespace remote_config
 }  // namespace firebase

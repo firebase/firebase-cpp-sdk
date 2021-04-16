@@ -20,21 +20,25 @@ namespace firebase {
 namespace storage {
 namespace internal {
 
-METHOD_LOOKUP_DEFINITION(storage_task, PROGUARD_KEEP_CLASS
+METHOD_LOOKUP_DEFINITION(storage_task,
+                         PROGUARD_KEEP_CLASS
                          "com/google/firebase/storage/StorageTask",
                          STORAGE_TASK_METHODS)
 
-METHOD_LOOKUP_DEFINITION(upload_task_task_snapshot, PROGUARD_KEEP_CLASS
+METHOD_LOOKUP_DEFINITION(upload_task_task_snapshot,
+                         PROGUARD_KEEP_CLASS
                          "com/google/firebase/storage/UploadTask$TaskSnapshot",
                          UPLOAD_TASK_TASK_SNAPSHOT_METHODS)
 
 METHOD_LOOKUP_DEFINITION(
-    file_download_task_task_snapshot, PROGUARD_KEEP_CLASS
+    file_download_task_task_snapshot,
+    PROGUARD_KEEP_CLASS
     "com/google/firebase/storage/FileDownloadTask$TaskSnapshot",
     DOWNLOAD_TASK_TASK_SNAPSHOT_METHODS)
 
 METHOD_LOOKUP_DEFINITION(
-    stream_download_task_task_snapshot, PROGUARD_KEEP_CLASS
+    stream_download_task_task_snapshot,
+    PROGUARD_KEEP_CLASS
     "com/google/firebase/storage/StreamDownloadTask$TaskSnapshot",
     DOWNLOAD_TASK_TASK_SNAPSHOT_METHODS)
 
@@ -57,7 +61,8 @@ void ControllerInternal::Terminate(App* app) {
 }
 
 ControllerInternal::ControllerInternal()
-    : storage_(nullptr), task_obj_(nullptr) {}
+    : storage_(nullptr), task_obj_(nullptr) {
+}
 
 ControllerInternal::~ControllerInternal() {
   if (task_obj_ != nullptr && storage_ != nullptr) {
@@ -219,7 +224,8 @@ StorageReferenceInternal* ControllerInternal::GetReference() const {
   return internal;
 }
 
-void ControllerInternal::CppStorageListenerCallback(JNIEnv* env, jclass clazz,
+void ControllerInternal::CppStorageListenerCallback(JNIEnv* env,
+                                                    jclass clazz,
                                                     jlong storage_ptr,
                                                     jlong listener_ptr,
                                                     jobject snapshot,

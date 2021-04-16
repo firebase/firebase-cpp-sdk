@@ -29,11 +29,14 @@ namespace internal {
 class NativeExpressAdViewInternalStub : public NativeExpressAdViewInternal {
  public:
   explicit NativeExpressAdViewInternalStub(NativeExpressAdView* base)
-      : NativeExpressAdViewInternal(base) {}
+      : NativeExpressAdViewInternal(base) {
+  }
 
-  ~NativeExpressAdViewInternalStub() override {}
+  ~NativeExpressAdViewInternalStub() override {
+  }
 
-  Future<void> Initialize(AdParent parent, const char* ad_unit_id,
+  Future<void> Initialize(AdParent parent,
+                          const char* ad_unit_id,
                           AdSize size) override {
     return CreateAndCompleteFutureStub(kNativeExpressAdViewFnInitialize);
   }
@@ -74,7 +77,9 @@ class NativeExpressAdViewInternalStub : public NativeExpressAdViewInternal {
     return NativeExpressAdView::PresentationState::kPresentationStateHidden;
   }
 
-  BoundingBox GetBoundingBox() const override { return BoundingBox(); }
+  BoundingBox GetBoundingBox() const override {
+    return BoundingBox();
+  }
 
  private:
   Future<void> CreateAndCompleteFutureStub(NativeExpressAdViewFn fn) {

@@ -40,7 +40,9 @@ namespace database {
 
 using internal::MutableDataInternal;
 
-MutableData GetInvalidMutableData() { return MutableData(nullptr); }
+MutableData GetInvalidMutableData() {
+  return MutableData(nullptr);
+}
 
 typedef CleanupFn<MutableData, MutableDataInternal> CleanupFnMutableData;
 

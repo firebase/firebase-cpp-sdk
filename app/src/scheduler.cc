@@ -53,21 +53,25 @@ bool RequestHandle::IsTriggered() const {
   return status_->triggered;
 }
 
-Scheduler::RequestData::RequestData(RequestId id, callback::Callback* cb,
-                                    ScheduleTimeMs delay, ScheduleTimeMs repeat)
+Scheduler::RequestData::RequestData(RequestId id,
+                                    callback::Callback* cb,
+                                    ScheduleTimeMs delay,
+                                    ScheduleTimeMs repeat)
     : id(id),
       cb(cb),
       delay_ms(delay),
       repeat_ms(repeat),
       due_timestamp(0),
-      status(new RequestStatusBlock(repeat > 0)) {}
+      status(new RequestStatusBlock(repeat > 0)) {
+}
 
 Scheduler::Scheduler()
     : thread_(nullptr),
       next_request_id_(0),
       terminating_(false),
       request_mutex_(Mutex::kModeRecursive),
-      sleep_sem_(0) {}
+      sleep_sem_(0) {
+}
 
 Scheduler::~Scheduler() {
   CancelAllAndShutdownWorkerThread();
@@ -92,8 +96,8 @@ void Scheduler::CancelAllAndShutdownWorkerThread() {
 }
 
 RequestHandle Scheduler::Schedule(callback::Callback* callback,
-                                   ScheduleTimeMs delay /* = 0 */,
-                                   ScheduleTimeMs repeat /* = 0 */) {
+                                  ScheduleTimeMs delay /* = 0 */,
+                                  ScheduleTimeMs repeat /* = 0 */) {
   assert(callback);
 
   MutexLock lock(request_mutex_);
@@ -117,8 +121,8 @@ RequestHandle Scheduler::Schedule(callback::Callback* callback,
 
 #ifdef FIREBASE_USE_STD_FUNCTION
 RequestHandle Scheduler::Schedule(const std::function<void(void)>& callback,
-                                   ScheduleTimeMs delay /* = 0 */,
-                                   ScheduleTimeMs repeat /* = 0 */) {
+                                  ScheduleTimeMs delay /* = 0 */,
+                                  ScheduleTimeMs repeat /* = 0 */) {
   return Schedule(new callback::CallbackStdFunction(callback), delay, repeat);
 }
 #endif
@@ -158,7 +162,8 @@ void Scheduler::WorkerThreadRoutine(void* data) {
       }
 
       // Drain the semaphore after wake
-      while (scheduler->sleep_sem_.TryWait()) {}
+      while (scheduler->sleep_sem_.TryWait()) {
+      }
 
       // Check if the scheduler is terminating after sleep.
       MutexLock lock(scheduler->request_mutex_);
@@ -178,7 +183,8 @@ void Scheduler::WorkerThreadRoutine(void* data) {
 }
 
 void Scheduler::AddToQueue(RequestDataPtr request,
-                           uint64_t current, ScheduleTimeMs after) {
+                           uint64_t current,
+                           ScheduleTimeMs after) {
   // Calculate the future timestamp
   request->due_timestamp = current + after;
 

@@ -43,7 +43,8 @@
 // FIRCPPGTMSessionFetcher:beginFetchWithCompletionHandler.
 // This allows the handler of this event to stream received into a buffer or
 // to the application.
-@property(atomic, copy, GTM_NULLABLE) GTMSessionFetcherAccumulateDataBlock accumulateDataBlock;
+@property(atomic, copy, GTM_NULLABLE)
+    GTMSessionFetcherAccumulateDataBlock accumulateDataBlock;
 
 // Returns FIRCPPGTMSessionFetch as the fetcher class so that it's possible to
 // override properties on instances created from the class before the fetch
@@ -59,7 +60,8 @@
 // Override the fetch method so that it's possible to customize fetch options.
 // Specifically, if service.accumulateDataBlock is set it overrides the
 // fetcher's accumulateDataBlock property.
-- (void)beginFetchWithCompletionHandler:(GTM_NULLABLE GTMSessionFetcherCompletionHandler)handler;
+- (void)beginFetchWithCompletionHandler:
+    (GTM_NULLABLE GTMSessionFetcherCompletionHandler)handler;
 @end
 #endif  // __OBJC__
 
@@ -84,16 +86,20 @@ class StorageInternal {
   App* _Nonnull app() const;
 
   // Return the URL we were created with.
-  const std::string& url() const { return url_; }
+  const std::string& url() const {
+    return url_;
+  }
 
   // Get a StorageReference to the root of the database.
   StorageReferenceInternal* _Nullable GetReference() const;
 
   // Get a StorageReference for the specified path.
-  StorageReferenceInternal* _Nullable GetReference(const char* _Nullable path) const;
+  StorageReferenceInternal* _Nullable GetReference(
+      const char* _Nullable path) const;
 
   // Get a StorageReference for the provided URL.
-  StorageReferenceInternal* _Nullable GetReferenceFromUrl(const char* _Nullable url) const;
+  StorageReferenceInternal* _Nullable GetReferenceFromUrl(
+      const char* _Nullable url) const;
 
   // Returns the maximum time in seconds to retry a download if a failure
   // occurs.
@@ -113,14 +119,18 @@ class StorageInternal {
   // if a failure occurs.
   void set_max_operation_retry_time(double max_transfer_retry_seconds);
 
-  FutureManager& future_manager() { return future_manager_; }
+  FutureManager& future_manager() {
+    return future_manager_;
+  }
 
   // Whether this object was successfully initialized by the constructor.
   bool initialized() const;
 
   // When this is deleted, it will clean up all StorageReferences and other
   // objects.
-  CleanupNotifier& cleanup() { return cleanup_; }
+  CleanupNotifier& cleanup() {
+    return cleanup_;
+  }
 
 #ifdef __OBJC__
   // Get the session fetcher for streaming.
@@ -134,7 +144,9 @@ class StorageInternal {
 
  private:
 #ifdef __OBJC__
-  FIRStorage* _Nullable impl() const { return impl_->get(); }
+  FIRStorage* _Nullable impl() const {
+    return impl_->get();
+  }
 #endif
   // The firease::App that this Storage was created with.
   App* _Nonnull app_;

@@ -52,7 +52,8 @@ UserSecureFakeInternal::UserSecureFakeInternal(const char* domain,
   full_path_ = base_path_ + kDirectorySeparator + domain_;
 }
 
-UserSecureFakeInternal::~UserSecureFakeInternal() {}
+UserSecureFakeInternal::~UserSecureFakeInternal() {
+}
 
 std::string UserSecureFakeInternal::LoadUserData(const std::string& app_name) {
   std::string output;

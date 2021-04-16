@@ -34,7 +34,8 @@ std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
 }
 
 std::unique_ptr<rest::Request> CreateRequestFromCredential(
-    AuthData* const auth_data, const std::string& provider,
+    AuthData* const auth_data,
+    const std::string& provider,
     const void* const raw_credential) {
   FIREBASE_ASSERT_RETURN(nullptr, provider != kPhoneAuthProdiverId);
 

@@ -15,8 +15,8 @@
 #ifndef FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_
 #define FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_
 
-#include "firebase/variant.h"
 #include "firebase/functions/common.h"
+#include "firebase/variant.h"
 
 namespace firebase {
 namespace functions {
@@ -31,14 +31,17 @@ class HttpsCallableReferenceInternal;
 class HttpsCallableResult {
  public:
   /// @brief Creates an HttpsCallableResult with null data.
-  HttpsCallableResult() {}
+  HttpsCallableResult() {
+  }
 
-  ~HttpsCallableResult() {}
+  ~HttpsCallableResult() {
+  }
 
   /// @brief Copy constructor. Copying is as efficient as copying a Variant.
   ///
   /// @param[in] other HttpsCallableResult to copy data from.
-  HttpsCallableResult(const HttpsCallableResult& other) : data_(other.data_) {}
+  HttpsCallableResult(const HttpsCallableResult& other) : data_(other.data_) {
+  }
 
   /// @brief Assignment operator. Copying is as efficient as copying a Variant.
   ///
@@ -75,15 +78,19 @@ class HttpsCallableResult {
   /// @brief Returns the data that is the result of a Call.
   ///
   /// @returns The variant containing the data.
-  const Variant& data() const { return data_; }
+  const Variant& data() const {
+    return data_;
+  }
 
  private:
   /// @cond FIREBASE_APP_INTERNAL
   // Only functions are allowed to construct results.
   friend class ::firebase::functions::internal::HttpsCallableReferenceInternal;
-  HttpsCallableResult(const Variant& data) : data_(data) {}
+  HttpsCallableResult(const Variant& data) : data_(data) {
+  }
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
-  HttpsCallableResult(Variant&& data) : data_(std::move(data)) {}
+  HttpsCallableResult(Variant&& data) : data_(std::move(data)) {
+  }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
   Variant data_;

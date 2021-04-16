@@ -62,7 +62,8 @@ template <typename T>
 struct FISDataHandle {
   FISDataHandle(ReferenceCountedFutureImpl* _future_api,
                 const SafeFutureHandle<T>& _future_handle)
-      : future_api(_future_api), future_handle(_future_handle) {}
+      : future_api(_future_api), future_handle(_future_handle) {
+  }
   ReferenceCountedFutureImpl* future_api;
   SafeFutureHandle<T> future_handle;
 };
@@ -77,9 +78,11 @@ static void ReleaseClasses(JNIEnv* env) {
   token_result::ReleaseClass(env);
 }
 
-void CompleteVoidCallback(JNIEnv* env, jobject result,
+void CompleteVoidCallback(JNIEnv* env,
+                          jobject result,
                           util::FutureResult result_code,
-                          const char* status_message, void* callback_data) {
+                          const char* status_message,
+                          void* callback_data) {
   auto* data_handle = reinterpret_cast<FISDataHandle<void>*>(callback_data);
   data_handle->future_api->Complete(data_handle->future_handle,
                                     result_code == util::kFutureResultSuccess
@@ -89,9 +92,11 @@ void CompleteVoidCallback(JNIEnv* env, jobject result,
   delete data_handle;
 }
 
-void StringResultCallback(JNIEnv* env, jobject result,
+void StringResultCallback(JNIEnv* env,
+                          jobject result,
                           util::FutureResult result_code,
-                          const char* status_message, void* callback_data) {
+                          const char* status_message,
+                          void* callback_data) {
   bool success = (result_code == util::kFutureResultSuccess);
   std::string result_value = "";
   if (success && result) {
@@ -117,9 +122,11 @@ static std::string JTokenResultToString(JNIEnv* env, jobject jtoken) {
   return result_value;
 }
 
-void TokenResultCallback(JNIEnv* env, jobject result,
+void TokenResultCallback(JNIEnv* env,
+                         jobject result,
                          util::FutureResult result_code,
-                         const char* status_message, void* callback_data) {
+                         const char* status_message,
+                         void* callback_data) {
   bool success = (result_code == util::kFutureResultSuccess);
   std::string result_value = "";
   if (success && result) {
@@ -171,7 +178,8 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app)
   LogDebug("%s API Initialized", kApiIdentifier);
 }
 
-InstallationsInternal::~InstallationsInternal() {}
+InstallationsInternal::~InstallationsInternal() {
+}
 
 bool InstallationsInternal::Initialized() const {
   return internal_obj_ != nullptr;

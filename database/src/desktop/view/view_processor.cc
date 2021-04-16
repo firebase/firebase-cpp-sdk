@@ -47,7 +47,8 @@ class WriteTreeCompleteChildSource : public CompleteChildSource {
       : writes_(writes),
         view_cache_(view_cache),
         opt_complete_server_cache_(
-            OptionalFromPointer(opt_complete_server_cache)) {}
+            OptionalFromPointer(opt_complete_server_cache)) {
+  }
 
   Optional<Variant> GetCompleteChild(
       const std::string& child_key) const override {
@@ -72,7 +73,8 @@ class WriteTreeCompleteChildSource : public CompleteChildSource {
   }
 
   Optional<std::pair<Variant, Variant>> GetChildAfterChild(
-      const QueryParams& query_params, const std::pair<Variant, Variant>& child,
+      const QueryParams& query_params,
+      const std::pair<Variant, Variant>& child,
       IterationDirection direction) const override {
     return writes_.CalcNextVariantAfterPost(
         opt_complete_server_cache_.has_value()
@@ -97,16 +99,19 @@ class NoCompleteSource : public CompleteChildSource {
   }
 
   Optional<std::pair<Variant, Variant>> GetChildAfterChild(
-      const QueryParams& query_params, const std::pair<Variant, Variant>& child,
+      const QueryParams& query_params,
+      const std::pair<Variant, Variant>& child,
       IterationDirection direction) const override {
     return Optional<std::pair<Variant, Variant>>();
   }
 };
 
 ViewProcessor::ViewProcessor(UniquePtr<VariantFilter> filter)
-    : filter_(std::move(filter)) {}
+    : filter_(std::move(filter)) {
+}
 
-ViewProcessor::~ViewProcessor() {}
+ViewProcessor::~ViewProcessor() {
+}
 
 void ViewProcessor::ApplyOperation(const ViewCache& old_view_cache,
                                    const Operation& operation,
@@ -176,8 +181,10 @@ void ViewProcessor::ApplyOperation(const ViewCache& old_view_cache,
 }
 
 ViewCache ViewProcessor::RevertUserWrite(
-    const ViewCache& view_cache, const Path& path,
-    const WriteTreeRef& writes_cache, const Variant* opt_complete_server_cache,
+    const ViewCache& view_cache,
+    const Path& path,
+    const WriteTreeRef& writes_cache,
+    const Variant* opt_complete_server_cache,
     ChildChangeAccumulator* accumulator) {
   // If there is a shadowing write, this change can't be seen, so do nothing.
   if (writes_cache.ShadowingWrite(path).has_value()) {
@@ -273,8 +280,10 @@ void ViewProcessor::MaybeAddValueEvent(const ViewCache& old_view_cache,
 }
 
 ViewCache ViewProcessor::GenerateEventCacheAfterServerEvent(
-    const ViewCache& view_cache, const Path& change_path,
-    const WriteTreeRef& writes_cache, const CompleteChildSource* source,
+    const ViewCache& view_cache,
+    const Path& change_path,
+    const WriteTreeRef& writes_cache,
+    const CompleteChildSource* source,
     ChildChangeAccumulator* accumulator) {
   const CacheNode& old_local_snap = view_cache.local_snap();
   if (writes_cache.ShadowingWrite(change_path).has_value()) {
@@ -378,9 +387,12 @@ ViewCache ViewProcessor::GenerateEventCacheAfterServerEvent(
 }
 
 ViewCache ViewProcessor::ApplyServerOverwrite(
-    const ViewCache& old_view_cache, const Path& change_path,
-    const Variant& changed_snap, const WriteTreeRef& writes_cache,
-    const Variant* opt_complete_cache, bool filter_server_node,
+    const ViewCache& old_view_cache,
+    const Path& change_path,
+    const Variant& changed_snap,
+    const WriteTreeRef& writes_cache,
+    const Variant* opt_complete_cache,
+    bool filter_server_node,
     ChildChangeAccumulator* accumulator) {
   CacheNode old_server_snap = old_view_cache.server_snap();
   IndexedVariant new_server_cache;
@@ -444,9 +456,12 @@ ViewCache ViewProcessor::ApplyServerOverwrite(
 }
 
 ViewCache ViewProcessor::ApplyUserOverwrite(
-    const ViewCache& old_view_cache, const Path& change_path,
-    const Variant& changed_snap, const WriteTreeRef& writes_cache,
-    const Variant* opt_complete_cache, ChildChangeAccumulator* accumulator) {
+    const ViewCache& old_view_cache,
+    const Path& change_path,
+    const Variant& changed_snap,
+    const WriteTreeRef& writes_cache,
+    const Variant* opt_complete_cache,
+    ChildChangeAccumulator* accumulator) {
   const CacheNode& old_local_snap = old_view_cache.local_snap();
   ViewCache new_view_cache;
   WriteTreeCompleteChildSource source(writes_cache, old_view_cache,

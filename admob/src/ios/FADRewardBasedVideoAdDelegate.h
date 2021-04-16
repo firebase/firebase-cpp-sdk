@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-// An Objective-C++ wrapper class that conforms to the GADRewardBasedVideoAdDelegate protocol.
-// When the delegate for receiving state change messages from a GADRewardBasedVideoAd is notified,
-// this wrapper class forwards the notification to the RewardedVideoInternalIOS object to handle
+// An Objective-C++ wrapper class that conforms to the
+// GADRewardBasedVideoAdDelegate protocol. When the delegate for receiving state
+// change messages from a GADRewardBasedVideoAd is notified, this wrapper class
+// forwards the notification to the RewardedVideoInternalIOS object to handle
 // the state changes for rewarded video.
 
 #import <Foundation/Foundation.h>
@@ -34,11 +35,14 @@ class RewardedVideoInternalIOS;
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface FADRewardBasedVideoAdDelegate : NSObject<GADRewardBasedVideoAdDelegate>
+@interface FADRewardBasedVideoAdDelegate
+    : NSObject <GADRewardBasedVideoAdDelegate>
 
-/// Returns a FADRewardBasedVideoAdDelegate object with RewardedVideoInternalIOS.
-- (FADRewardBasedVideoAdDelegate *)initWithRewardedVideoInternal:
-    (firebase::admob::rewarded_video::internal::RewardedVideoInternalIOS *)rewardedVideo;
+/// Returns a FADRewardBasedVideoAdDelegate object with
+/// RewardedVideoInternalIOS.
+- (FADRewardBasedVideoAdDelegate*)initWithRewardedVideoInternal:
+    (firebase::admob::rewarded_video::internal::RewardedVideoInternalIOS*)
+        rewardedVideo;
 
 @end
 

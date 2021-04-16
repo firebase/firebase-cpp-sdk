@@ -21,7 +21,8 @@ namespace firebase {
 namespace storage {
 namespace internal {
 
-ControllerInternal::ControllerInternal() : operation_(nullptr) {}
+ControllerInternal::ControllerInternal() : operation_(nullptr) {
+}
 
 ControllerInternal::~ControllerInternal() {
   Initialize(StorageReference(), nullptr);
@@ -106,8 +107,8 @@ void ControllerInternal::Initialize(const StorageReference& reference,
   }
 }
 
-void ControllerInternal::UpdateFromOperation(
-    int64_t* transferred, int64_t* total) {
+void ControllerInternal::UpdateFromOperation(int64_t* transferred,
+                                             int64_t* total) {
   MutexLock lock(mutex_);
   int64_t new_value = bytes_transferred_;
   if (operation_) new_value = operation_->bytes_transferred();

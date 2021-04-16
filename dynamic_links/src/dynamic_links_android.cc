@@ -294,13 +294,15 @@ METHOD_LOOKUP_DEFINITION(
   X(Short, "SHORT", "I", util::kFieldTypeStatic)
 // clang-format on
 
-METHOD_LOOKUP_DECLARATION(short_dynamic_link_suffix, METHOD_LOOKUP_NONE,
+METHOD_LOOKUP_DECLARATION(short_dynamic_link_suffix,
+                          METHOD_LOOKUP_NONE,
                           SHORT_DYNAMIC_LINK_SUFFIX_FIELDS)
 METHOD_LOOKUP_DEFINITION(
     short_dynamic_link_suffix,
     PROGUARD_KEEP_CLASS
     "com/google/firebase/dynamiclinks/ShortDynamicLink$Suffix",
-    METHOD_LOOKUP_NONE, SHORT_DYNAMIC_LINK_SUFFIX_FIELDS)
+    METHOD_LOOKUP_NONE,
+    SHORT_DYNAMIC_LINK_SUFFIX_FIELDS)
 
 // Map c++ PathLength constants to java path length constants.
 static struct {
@@ -408,7 +410,9 @@ InitResult Initialize(const App& app, Listener* listener) {
 
 namespace internal {
 
-bool IsInitialized() { return g_app != nullptr; }
+bool IsInitialized() {
+  return g_app != nullptr;
+}
 
 }  // namespace internal
 
@@ -432,7 +436,8 @@ void Terminate() {
 // the builder_set_method_id.
 // Deletes and clears the reference to the builder passed in.
 // Returns the new builder which can be used for additional calls.
-static jobject SetBuilderUri(JNIEnv* jni_env, jobject builder,
+static jobject SetBuilderUri(JNIEnv* jni_env,
+                             jobject builder,
                              const char* value,
                              jmethodID builder_set_method_id) {
   // The builder is null. Did you forget to take the builder result of a
@@ -452,7 +457,8 @@ static jobject SetBuilderUri(JNIEnv* jni_env, jobject builder,
 // the builder_set_method_id.
 // Deletes and clears the reference to the builder passed in.
 // Returns the new builder which can be used for additional calls.
-static jobject SetBuilderString(JNIEnv* jni_env, jobject builder,
+static jobject SetBuilderString(JNIEnv* jni_env,
+                                jobject builder,
                                 const char* value,
                                 jmethodID builder_set_method_id) {
   // The builder is null. Did you forget to take the builder result of a
@@ -468,7 +474,9 @@ static jobject SetBuilderString(JNIEnv* jni_env, jobject builder,
 }
 
 // Sets an object reference on a builder
-static jobject SetBuilderObject(JNIEnv* jni_env, jobject builder, jobject obj,
+static jobject SetBuilderObject(JNIEnv* jni_env,
+                                jobject builder,
+                                jobject obj,
                                 jmethodID builder_set_method_id) {
   // The builder is null. Did you forget to take the builder result of a
   // previous set call?
@@ -486,7 +494,9 @@ static jobject SetBuilderObject(JNIEnv* jni_env, jobject builder, jobject obj,
 // Deletes and clears the reference to the builder passed in.
 // Returns the new builder which can be used for additional calls.
 template <typename T>
-static jobject SetBuilderBaseType(JNIEnv* jni_env, jobject builder, T arg,
+static jobject SetBuilderBaseType(JNIEnv* jni_env,
+                                  jobject builder,
+                                  T arg,
                                   jmethodID builder_set_method_id) {
   // The builder is null. Did you forget to take the builder result of a
   // previous set call?
@@ -501,7 +511,8 @@ static jobject SetBuilderBaseType(JNIEnv* jni_env, jobject builder, T arg,
 // This also deletes the local ref to the builder.
 // Returns a local ref to the constructed object. (You must call DeleteLocalRef
 // on the returned object.)
-static jobject BuildBuilder(JNIEnv* jni_env, jobject builder,
+static jobject BuildBuilder(JNIEnv* jni_env,
+                            jobject builder,
                             jmethodID builder_build_method_id) {
   // The builder is null. Did you forget to take the builder result of a
   // previous set call?
@@ -578,7 +589,8 @@ static jobject CreateGoogleAnalyticsParameters(
 }
 
 // You must call DeleteLocalRef on the returned object.
-static jobject CreateIOSParameters(JNIEnv* jni_env, const IOSParameters& params,
+static jobject CreateIOSParameters(JNIEnv* jni_env,
+                                   const IOSParameters& params,
                                    std::string* error_out) {
   if (!params.bundle_id || !*params.bundle_id) {
     *error_out = "IOS Bundle ID is missing.";
@@ -776,7 +788,8 @@ static jobject PopulateLinkBuilder(JNIEnv* jni_env,
   return link_builder;
 }
 
-static jobject PopulateLinkBuilder(JNIEnv* jni_env, const char* long_link,
+static jobject PopulateLinkBuilder(JNIEnv* jni_env,
+                                   const char* long_link,
                                    std::string* error_out) {
   jobject link_builder = jni_env->CallObjectMethod(
       g_dynamic_links_class_instance,
@@ -863,7 +876,8 @@ GeneratedDynamicLink GetLongLink(const DynamicLinkComponents& components) {
   return gen_link;
 }
 
-static void FutureShortLinkCallback(JNIEnv* jni_env, jobject result,
+static void FutureShortLinkCallback(JNIEnv* jni_env,
+                                    jobject result,
                                     util::FutureResult result_code,
                                     const char* status_message,
                                     void* callback_data) {
@@ -919,8 +933,10 @@ static jint GetSuffixOption(const PathLength& path_length) {
 
 // Common code for short links to set up the callback to handle the result.
 static Future<GeneratedDynamicLink> HandleShortLinkTask(
-    JNIEnv* jni_env, jobject link_builder,
-    const DynamicLinkOptions& dynamic_link_options, const std::string& error) {
+    JNIEnv* jni_env,
+    jobject link_builder,
+    const DynamicLinkOptions& dynamic_link_options,
+    const std::string& error) {
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();
   const SafeFutureHandle<GeneratedDynamicLink> handle =
       api->SafeAlloc<GeneratedDynamicLink>(kDynamicLinksFnGetShortLink);
@@ -952,9 +968,9 @@ static Future<GeneratedDynamicLink> HandleShortLinkTask(
     api->CompleteWithResult(handle, kErrorCodeFailed, exception_message.c_str(),
                             gen_link);
   } else {
-    util::RegisterCallbackOnTask(
-        jni_env, task, FutureShortLinkCallback,
-        reinterpret_cast<void*>(handle.get().id()), kApiIdentifier);
+    util::RegisterCallbackOnTask(jni_env, task, FutureShortLinkCallback,
+                                 reinterpret_cast<void*>(handle.get().id()),
+                                 kApiIdentifier);
   }
 
   jni_env->DeleteLocalRef(link_builder);

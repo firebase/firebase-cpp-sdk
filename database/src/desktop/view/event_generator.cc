@@ -33,17 +33,21 @@ namespace database {
 namespace internal {
 
 static void GenerateEventsForType(
-    const QuerySpec& query_spec, EventType event_type,
+    const QuerySpec& query_spec,
+    EventType event_type,
     const std::vector<Change>& changes,
     const std::vector<UniquePtr<EventRegistration>>& event_registrations,
-    const IndexedVariant& event_cache, std::vector<Event>* events);
+    const IndexedVariant& event_cache,
+    std::vector<Event>* events);
 
-static Event GenerateEvent(const QuerySpec& query_spec, const Change& change,
+static Event GenerateEvent(const QuerySpec& query_spec,
+                           const Change& change,
                            EventRegistration* registration,
                            const IndexedVariant& event_cache);
 
 std::vector<Event> GenerateEventsForChanges(
-    const QuerySpec& query_spec, const std::vector<Change>& changes,
+    const QuerySpec& query_spec,
+    const std::vector<Change>& changes,
     const IndexedVariant& event_cache,
     const std::vector<UniquePtr<EventRegistration>>& event_registrations) {
   std::vector<Event> events;
@@ -80,7 +84,8 @@ std::vector<Event> GenerateEventsForChanges(
 
 class ChangeLesser {
  public:
-  ChangeLesser(const QueryParams* query_params) : comparator_(query_params) {}
+  ChangeLesser(const QueryParams* query_params) : comparator_(query_params) {
+  }
 
   bool operator()(const Change* a, const Change* b) const {
     return comparator_.Compare(
@@ -93,10 +98,12 @@ class ChangeLesser {
 };
 
 void GenerateEventsForType(
-    const QuerySpec& query_spec, EventType event_type,
+    const QuerySpec& query_spec,
+    EventType event_type,
     const std::vector<Change>& changes,
     const std::vector<UniquePtr<EventRegistration>>& event_registrations,
-    const IndexedVariant& event_cache, std::vector<Event>* events) {
+    const IndexedVariant& event_cache,
+    std::vector<Event>* events) {
   std::vector<const Change*> filtered_changes;
   filtered_changes.reserve(changes.size());
   for (auto iter = changes.begin(); iter != changes.end(); ++iter) {
@@ -132,7 +139,8 @@ void GenerateEventsForType(
   }
 }
 
-Event GenerateEvent(const QuerySpec& query_spec, const Change& change,
+Event GenerateEvent(const QuerySpec& query_spec,
+                    const Change& change,
                     EventRegistration* registration,
                     const IndexedVariant& event_cache) {
   if (change.event_type == kEventTypeValue ||

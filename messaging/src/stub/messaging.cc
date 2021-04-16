@@ -93,7 +93,8 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener) {
   return Initialize(app, listener, MessagingOptions());
 }
 
-InitResult Initialize(const ::firebase::App& /*app*/, Listener* listener,
+InitResult Initialize(const ::firebase::App& /*app*/,
+                      Listener* listener,
                       const MessagingOptions& /*options*/) {
   if (internal::IsInitialized()) return kInitResultSuccess;
   SetListenerIfNotNull(listener);
@@ -117,7 +118,9 @@ InitResult Initialize(const ::firebase::App& /*app*/, Listener* listener,
 
 namespace internal {
 
-bool IsInitialized() { return g_initialized; }
+bool IsInitialized() {
+  return g_initialized;
+}
 
 }  // namespace internal
 
@@ -137,7 +140,8 @@ void Terminate() {
   g_initialized = false;
 }
 
-void NotifyListenerSet(Listener* /*listener*/) {}
+void NotifyListenerSet(Listener* /*listener*/) {
+}
 
 namespace {
 // Functions to handle returning completed stub futures.
@@ -187,13 +191,19 @@ Future<void> RequestPermissionLastResult() {
   return GetLastResultFuture(kMessagingFnRequestPermission);
 }
 
-bool IsTokenRegistrationOnInitEnabled() { return true; }
+bool IsTokenRegistrationOnInitEnabled() {
+  return true;
+}
 
-void SetTokenRegistrationOnInitEnabled(bool /*enable*/) {}
+void SetTokenRegistrationOnInitEnabled(bool /*enable*/) {
+}
 
-bool DeliveryMetricsExportToBigQueryEnabled() { return false; }
+bool DeliveryMetricsExportToBigQueryEnabled() {
+  return false;
+}
 
-void SetDeliveryMetricsExportToBigQuery(bool /*enable*/) {}
+void SetDeliveryMetricsExportToBigQuery(bool /*enable*/) {
+}
 
 Future<std::string> GetToken() {
   ReferenceCountedFutureImpl* api = FutureData::Get()->api();

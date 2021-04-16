@@ -43,14 +43,11 @@
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(
-    auth,
-    {
-      return ::firebase::kInitResultSuccess;
-    },
-    {
-        // Nothing to tear down.
-    });
+FIREBASE_APP_REGISTER_CALLBACKS(auth,
+                                { return ::firebase::kInitResultSuccess; },
+                                {
+                                    // Nothing to tear down.
+                                });
 
 namespace firebase {
 namespace auth {
@@ -178,7 +175,9 @@ void Auth::DeleteInternal() {
   auth_data_ = nullptr;
 }
 
-Auth::~Auth() { DeleteInternal(); }
+Auth::~Auth() {
+  DeleteInternal();
+}
 
 // Always non-nullptr since set in constructor.
 App& Auth::app() {
@@ -200,7 +199,9 @@ static bool PushBackIfMissing(const T& entry, std::vector<T>* v) {
 // either succeed or fail otherwise this method asserts.
 // Return whether the listener is added.
 template <typename T>
-static bool AddListener(T listener, std::vector<T>* listener_vector, Auth* auth,
+static bool AddListener(T listener,
+                        std::vector<T>* listener_vector,
+                        Auth* auth,
                         std::vector<Auth*>* auth_vector) {
   // Add to array of listeners if not already there.
   const bool listener_added = PushBackIfMissing(listener, listener_vector);
@@ -275,8 +276,10 @@ static bool ReplaceEntryWithBack(const T& entry, std::vector<T>* v) {
 // auth_vector.  Both vectors must be in sync, i.e addition must either
 // succeed or fail otherwise this method asserts.
 template <typename T>
-static void RemoveListener(T listener, std::vector<T>* listener_vector,
-                           Auth* auth, std::vector<Auth*>* auth_vector,
+static void RemoveListener(T listener,
+                           std::vector<T>* listener_vector,
+                           Auth* auth,
+                           std::vector<Auth*>* auth_vector,
                            Mutex* mutex) {
   MutexLock lock(*mutex);
   // Remove `listener` from our vector of listeners.
@@ -356,10 +359,14 @@ static inline bool VectorContains(const T& entry, const std::vector<T>& v) {
     }                                                                          \
   }
 
-AUTH_NOTIFY_LISTENERS(NotifyAuthStateListeners, "Auth state", listeners,
+AUTH_NOTIFY_LISTENERS(NotifyAuthStateListeners,
+                      "Auth state",
+                      listeners,
                       OnAuthStateChanged);
 
-AUTH_NOTIFY_LISTENERS(NotifyIdTokenListeners, "ID token", id_token_listeners,
+AUTH_NOTIFY_LISTENERS(NotifyIdTokenListeners,
+                      "ID token",
+                      id_token_listeners,
                       OnIdTokenChanged);
 
 AUTH_RESULT_FN(Auth, FetchProvidersForEmail, Auth::FetchProvidersResult)

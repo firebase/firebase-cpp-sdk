@@ -60,10 +60,12 @@ void ClearUserInfos(AuthData* auth_data) {
 
 void PhoneAuthProvider::Listener::OnCodeSent(
     const std::string& /*verification_id*/,
-    const ForceResendingToken& /*force_resending_token*/) {}
+    const ForceResendingToken& /*force_resending_token*/) {
+}
 
 void PhoneAuthProvider::Listener::OnCodeAutoRetrievalTimeOut(
-    const std::string& /*verification_id*/) {}
+    const std::string& /*verification_id*/) {
+}
 
 }  // namespace auth
 }  // namespace firebase

@@ -14,9 +14,9 @@
 
 #include "app/tests/flexbuffer_matcher.h"
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "flatbuffers/flexbuffers.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::Not;
 
@@ -24,7 +24,8 @@ namespace {
 
 class FlexbufferMatcherTest : public ::testing::Test {
  protected:
-  FlexbufferMatcherTest() : fbb_(512) {}
+  FlexbufferMatcherTest() : fbb_(512) {
+  }
 
   void SetUp() override {
     // Null type.

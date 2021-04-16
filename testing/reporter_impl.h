@@ -32,9 +32,10 @@ class FakeReporterClass {
 
   void AddReport(const char* fake, std::initializer_list<const char*> args);
 
-  template<typename IterableType>
-  void AddReport(
-      const char* fake, const char* result, const IterableType& args) {
+  template <typename IterableType>
+  void AddReport(const char* fake,
+                 const char* result,
+                 const IterableType& args) {
     std::vector<std::string> args_vector;
     for (const auto& arg : args) {
       args_vector.push_back(arg);

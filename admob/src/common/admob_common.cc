@@ -28,18 +28,19 @@
 #include "app/src/include/firebase/version.h"
 #include "app/src/util.h"
 
-FIREBASE_APP_REGISTER_CALLBACKS(admob,
-                                {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    return firebase::admob::Initialize(*app);
-                                  }
-                                  return kInitResultSuccess;
-                                },
-                                {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    firebase::admob::Terminate();
-                                  }
-                                });
+FIREBASE_APP_REGISTER_CALLBACKS(
+    admob,
+    {
+      if (app == ::firebase::App::GetInstance()) {
+        return firebase::admob::Initialize(*app);
+      }
+      return kInitResultSuccess;
+    },
+    {
+      if (app == ::firebase::App::GetInstance()) {
+        firebase::admob::Terminate();
+      }
+    });
 
 namespace firebase {
 namespace admob {
@@ -108,14 +109,18 @@ FutureHandle CreateFuture(int fn_idx, FutureData* future_data) {
 }
 
 // Mark a future as complete.
-void CompleteFuture(int error, const char* error_msg, FutureHandle handle,
+void CompleteFuture(int error,
+                    const char* error_msg,
+                    FutureHandle handle,
                     FutureData* future_data) {
   future_data->future_impl.Complete(handle, error, error_msg);
 }
 
 // For calls that aren't asynchronous, we can create and complete at the
 // same time.
-void CreateAndCompleteFuture(int fn_idx, int error, const char* error_msg,
+void CreateAndCompleteFuture(int fn_idx,
+                             int error,
+                             const char* error_msg,
                              FutureData* future_data) {
   FutureHandle handle = CreateFuture(fn_idx, future_data);
   CompleteFuture(error, error_msg, handle, future_data);
@@ -131,10 +136,14 @@ FutureCallbackData* CreateFutureCallbackData(FutureData* future_data,
 
 // Non-inline implementation of the Listeners' virtual destructors, to prevent
 // their vtables from being emitted in each translation unit.
-BannerView::Listener::~Listener() {}
-InterstitialAd::Listener::~Listener() {}
-NativeExpressAdView::Listener::~Listener() {}
-rewarded_video::Listener::~Listener() {}
+BannerView::Listener::~Listener() {
+}
+InterstitialAd::Listener::~Listener() {
+}
+NativeExpressAdView::Listener::~Listener() {
+}
+rewarded_video::Listener::~Listener() {
+}
 
 }  // namespace admob
 }  // namespace firebase

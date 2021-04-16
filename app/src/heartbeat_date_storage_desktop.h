@@ -42,7 +42,9 @@ class HeartbeatDateStorage {
 
   // If the previous disk operation failed, contains additional details about
   // the error; otherwise is empty.
-  const std::string& GetError() const { return error_; }
+  const std::string& GetError() const {
+    return error_;
+  }
 
   // Reads the persisted data from disk. Returns `false` if the read operation
   // failed. Always call before calling `Get`.
@@ -58,7 +60,9 @@ class HeartbeatDateStorage {
   void Set(const std::string& tag, std::time_t last_sent);
 
  private:
-  bool IsValid() const { return error_.empty(); }
+  bool IsValid() const {
+    return error_.empty();
+  }
 
   // The storage format is very simple: a key and a value are separated by
   // spaces and map entries are separated by newlines, e.g.

@@ -17,15 +17,16 @@
 #include "app/rest/request_json.h"
 #include "app/rest/sample_generated.h"
 #include "app/rest/sample_resource.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace rest {
 
 class RequestSample : public RequestJson<Sample, SampleT> {
  public:
-  RequestSample() : RequestJson(sample_resource_data) {}
+  RequestSample() : RequestJson(sample_resource_data) {
+  }
 
   void set_token(const char* token) {
     application_data_->token = token;
@@ -52,8 +53,10 @@ TEST(RequestJsonTest, Creation) {
 TEST(RequestJsonTest, UpdatePostFieldsEmpty) {
   RequestSample request;
   request.UpdatePostFieldForTest();
-  EXPECT_EQ("{\n"
-            "}\n", request.options().post_fields);
+  EXPECT_EQ(
+      "{\n"
+      "}\n",
+      request.options().post_fields);
 }
 
 // Test with fields set.
@@ -61,10 +64,12 @@ TEST(RequestJsonTest, UpdatePostFields) {
   RequestSample request;
   request.set_number(123);
   request.set_token("abc");
-  EXPECT_EQ("{\n"
-            "  token: \"abc\",\n"
-            "  number: 123\n"
-            "}\n", request.options().post_fields);
+  EXPECT_EQ(
+      "{\n"
+      "  token: \"abc\",\n"
+      "  number: 123\n"
+      "}\n",
+      request.options().post_fields);
 }
 
 }  // namespace rest

@@ -27,18 +27,19 @@
 #include "analytics/src/include/firebase/analytics/user_property_names.h"
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(analytics,
-                                {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    firebase::analytics::Initialize(*app);
-                                  }
-                                  return kInitResultSuccess;
-                                },
-                                {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    firebase::analytics::Terminate();
-                                  }
-                                });
+FIREBASE_APP_REGISTER_CALLBACKS(
+    analytics,
+    {
+      if (app == ::firebase::App::GetInstance()) {
+        firebase::analytics::Initialize(*app);
+      }
+      return kInitResultSuccess;
+    },
+    {
+      if (app == ::firebase::App::GetInstance()) {
+        firebase::analytics::Terminate();
+      }
+    });
 
 namespace firebase {
 namespace analytics {
@@ -61,7 +62,9 @@ void FutureData::Destroy() {
 }
 
 // Get the Future data singleton.
-FutureData* FutureData::Get() { return s_future_data_; }
+FutureData* FutureData::Get() {
+  return s_future_data_;
+}
 
 // Registers a cleanup task for this module if auto-initialization is disabled.
 void RegisterTerminateOnDefaultAppDestroy() {

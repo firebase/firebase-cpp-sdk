@@ -29,7 +29,9 @@ bool operator==(const Change& lhs, const Change& rhs) {
          lhs.old_indexed_variant == rhs.old_indexed_variant;
 }
 
-bool operator!=(const Change& lhs, const Change& rhs) { return !(lhs == rhs); }
+bool operator!=(const Change& lhs, const Change& rhs) {
+  return !(lhs == rhs);
+}
 
 Change ValueChange(const IndexedVariant& snapshot) {
   return Change(kEventTypeValue, snapshot);

@@ -73,9 +73,11 @@ class Connection : public WebSocketClientEventHandler {
     kDisconnectReasonServerReset
   };
 
-  explicit Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
+  explicit Connection(scheduler::Scheduler* scheduler,
+                      const HostInfo& info,
                       const char* opt_last_session_id,
-                      ConnectionEventHandler* event_handler, Logger* logger);
+                      ConnectionEventHandler* event_handler,
+                      Logger* logger);
   ~Connection() override;
 
   // Connection is neither copyable nor movable.
@@ -215,7 +217,8 @@ class Connection : public WebSocketClientEventHandler {
 // All the function here will be triggered only from scheduler thread.
 class ConnectionEventHandler {
  public:
-  virtual ~ConnectionEventHandler() {}
+  virtual ~ConnectionEventHandler() {
+  }
 
   // Triggered when a handshake message or a reset message is received from
   // server  Those messages contain the information of the cache host.

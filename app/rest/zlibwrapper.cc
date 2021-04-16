@@ -150,7 +150,9 @@ void ZLib::SetDictionary(const char* initial_dict, unsigned int dict_len) {
   CheckValidParams();
 }
 
-void ZLib::SetDontHideStreamEnd() { settings_.dont_hide_zstream_end_ = true; }
+void ZLib::SetDontHideStreamEnd() {
+  settings_.dont_hide_zstream_end_ = true;
+}
 
 int ZLib::MinFooterSize() const {
   int min_footer_size = 2;  // Room for empty chunk.
@@ -212,7 +214,9 @@ int ZLib::DeflateInit() {
   return err;
 }
 
-int ZLib::CompressInit(Bytef* dest, uLongf* destLen, const Bytef* source,
+int ZLib::CompressInit(Bytef* dest,
+                       uLongf* destLen,
+                       const Bytef* source,
                        uLong* sourceLen) {
   int err;
 
@@ -279,7 +283,9 @@ int ZLib::CompressInit(Bytef* dest, uLongf* destLen, const Bytef* source,
 // application, we compress the header, send it off, then compress the
 // results, send them off, then compress the footer.  Thus we need to
 // use the chunked compression features of zlib.
-int ZLib::CompressAtMostOrAll(Bytef* dest, uLongf* destLen, const Bytef* source,
+int ZLib::CompressAtMostOrAll(Bytef* dest,
+                              uLongf* destLen,
+                              const Bytef* source,
                               uLong* sourceLen,
                               int flush_mode) {  // Z_FULL_FLUSH or Z_FINISH
   int err;
@@ -346,7 +352,9 @@ int ZLib::CompressAtMostOrAll(Bytef* dest, uLongf* destLen, const Bytef* source,
   return err;
 }
 
-int ZLib::CompressChunkOrAll(Bytef* dest, uLongf* destLen, const Bytef* source,
+int ZLib::CompressChunkOrAll(Bytef* dest,
+                             uLongf* destLen,
+                             const Bytef* source,
                              uLong sourceLen,
                              int flush_mode) {  // Z_FULL_FLUSH or Z_FINISH
   const int ret =
@@ -355,12 +363,16 @@ int ZLib::CompressChunkOrAll(Bytef* dest, uLongf* destLen, const Bytef* source,
   return ret;
 }
 
-int ZLib::CompressChunk(Bytef* dest, uLongf* destLen, const Bytef* source,
+int ZLib::CompressChunk(Bytef* dest,
+                        uLongf* destLen,
+                        const Bytef* source,
                         uLong sourceLen) {
   return CompressChunkOrAll(dest, destLen, source, sourceLen, Z_SYNC_FLUSH);
 }
 
-int ZLib::CompressAtMost(Bytef* dest, uLongf* destLen, const Bytef* source,
+int ZLib::CompressAtMost(Bytef* dest,
+                         uLongf* destLen,
+                         const Bytef* source,
                          uLong* sourceLen) {
   return CompressAtMostOrAll(dest, destLen, source, sourceLen, Z_SYNC_FLUSH);
 }
@@ -406,7 +418,9 @@ int ZLib::CompressChunkDone(Bytef* dest, uLongf* destLen) {
 
 // This routine only initializes the compression stream once.  Thereafter, it
 // just does a deflateReset on the stream, which should be faster.
-int ZLib::Compress(Bytef* dest, uLongf* destLen, const Bytef* source,
+int ZLib::Compress(Bytef* dest,
+                   uLongf* destLen,
+                   const Bytef* source,
                    uLong sourceLen) {
   int err;
   const uLongf orig_destLen = *destLen;
@@ -448,7 +462,9 @@ void ZLib::UncompressErrorInit() {
   Reset();
 }
 
-int ZLib::UncompressInit(Bytef* dest, uLongf* destLen, const Bytef* source,
+int ZLib::UncompressInit(Bytef* dest,
+                         uLongf* destLen,
+                         const Bytef* source,
                          uLong* sourceLen) {
   int err;
 
@@ -500,8 +516,10 @@ int ZLib::UncompressInit(Bytef* dest, uLongf* destLen, const Bytef* source,
 // you can uncompress it a chunk at a time with UncompressChunk.
 // Only difference bewteen chunked and unchunked uncompression
 // is the flush mode we use: Z_SYNC_FLUSH (chunked) or Z_FINISH (unchunked).
-int ZLib::UncompressAtMostOrAll(Bytef* dest, uLongf* destLen,
-                                const Bytef* source, uLong* sourceLen,
+int ZLib::UncompressAtMostOrAll(Bytef* dest,
+                                uLongf* destLen,
+                                const Bytef* source,
+                                uLong* sourceLen,
                                 int flush_mode) {  // Z_SYNC_FLUSH or Z_FINISH
   int err = Z_OK;
 
@@ -679,8 +697,10 @@ int ZLib::UncompressAtMostOrAll(Bytef* dest, uLongf* destLen,
   return err;
 }
 
-int ZLib::UncompressChunkOrAll(Bytef* dest, uLongf* destLen,
-                               const Bytef* source, uLong sourceLen,
+int ZLib::UncompressChunkOrAll(Bytef* dest,
+                               uLongf* destLen,
+                               const Bytef* source,
+                               uLong sourceLen,
                                int flush_mode) {  // Z_SYNC_FLUSH or Z_FINISH
   const int ret =
       UncompressAtMostOrAll(dest, destLen, source, &sourceLen, flush_mode);
@@ -688,12 +708,16 @@ int ZLib::UncompressChunkOrAll(Bytef* dest, uLongf* destLen,
   return ret;
 }
 
-int ZLib::UncompressAtMost(Bytef* dest, uLongf* destLen, const Bytef* source,
+int ZLib::UncompressAtMost(Bytef* dest,
+                           uLongf* destLen,
+                           const Bytef* source,
                            uLong* sourceLen) {
   return UncompressAtMostOrAll(dest, destLen, source, sourceLen, Z_SYNC_FLUSH);
 }
 
-int ZLib::UncompressChunk(Bytef* dest, uLongf* destLen, const Bytef* source,
+int ZLib::UncompressChunk(Bytef* dest,
+                          uLongf* destLen,
+                          const Bytef* source,
                           uLong sourceLen) {
   return UncompressChunkOrAll(dest, destLen, source, sourceLen, Z_SYNC_FLUSH);
 }
@@ -771,7 +795,9 @@ bool ZLib::IsGzipFooterValid() const {
 // inflateReset2, which should be faster.
 //
 // Returns Z_OK on success, otherwise, it returns a zlib error code.
-int ZLib::Uncompress(Bytef* dest, uLongf* destLen, const Bytef* source,
+int ZLib::Uncompress(Bytef* dest,
+                     uLongf* destLen,
+                     const Bytef* source,
                      uLong sourceLen) {
   int err;
   if ((err = UncompressChunkOrAll(dest, destLen, source, sourceLen,
@@ -794,8 +820,10 @@ uLongf ZLib::GzipUncompressedLength(const Bytef* source, uLong len) {
          (static_cast<uLongf>(source[len - 4]) << 0);
 }
 
-int ZLib::UncompressGzipAndAllocate(Bytef** dest, uLongf* destLen,
-                                    const Bytef* source, uLong sourceLen) {
+int ZLib::UncompressGzipAndAllocate(Bytef** dest,
+                                    uLongf* destLen,
+                                    const Bytef* source,
+                                    uLong sourceLen) {
   *dest = nullptr;  // until we successfully allocate
   if (!settings_.gzip_header_mode_) return Z_VERSION_ERROR;  // *shrug*
 

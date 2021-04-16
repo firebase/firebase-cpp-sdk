@@ -5,7 +5,8 @@
 namespace firebase {
 namespace firestore {
 
-void Firestore::set_log_level(LogLevel) {}
+void Firestore::set_log_level(LogLevel) {
+}
 
 }  // namespace firestore
 }  // namespace firebase

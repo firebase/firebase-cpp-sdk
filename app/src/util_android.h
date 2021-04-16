@@ -175,16 +175,20 @@ void TerminateActivityClasses(JNIEnv* env);
 
 // Lookup method IDs specified by the method_name_signatures array and store
 // in method_ids.  Used by METHOD_LOOKUP_DECLARATION.
-bool LookupMethodIds(JNIEnv* env, jclass clazz,
+bool LookupMethodIds(JNIEnv* env,
+                     jclass clazz,
                      const MethodNameSignature* method_name_signatures,
                      size_t number_of_method_name_signatures,
-                     jmethodID* method_ids, const char* class_name);
+                     jmethodID* method_ids,
+                     const char* class_name);
 
 // Lookup field IDs specified by the field_descriptors array and store
 // in field_ids.  Used by FIELD_LOOKUP_DECLARATION.
-bool LookupFieldIds(JNIEnv* env, jclass clazz,
+bool LookupFieldIds(JNIEnv* env,
+                    jclass clazz,
                     const FieldDescriptor* field_descriptors,
-                    size_t number_of_field_descriptors, jfieldID* field_ids,
+                    size_t number_of_field_descriptors,
+                    jfieldID* field_ids,
                     const char* class_name);
 
 // Used to make METHOD_ID and METHOD_NAME_SIGNATURE macros variadic.
@@ -769,19 +773,23 @@ class JavaThreadContext {
 
   // Cache classes for this module.
   static bool Initialize(
-      JNIEnv* env, jobject activity_object,
+      JNIEnv* env,
+      jobject activity_object,
       const std::vector<internal::EmbeddedFile>& embedded_files);
   // Discard classes for this module.
   static void Terminate(JNIEnv* env);
 
   // Run a C++ function on the main/UI thread.
-  static void RunOnMainThread(JNIEnv* env, jobject activity_object,
-                              Callback function_ptr, void* function_data,
+  static void RunOnMainThread(JNIEnv* env,
+                              jobject activity_object,
+                              Callback function_ptr,
+                              void* function_data,
                               Callback cancel_function_ptr,
                               JavaThreadContext* context);
 
   // Run a C++ function on a background thread.
-  static void RunOnBackgroundThread(JNIEnv* env, Callback function_ptr,
+  static void RunOnBackgroundThread(JNIEnv* env,
+                                    Callback function_ptr,
                                     void* function_data,
                                     Callback cancel_function_ptr,
                                     JavaThreadContext* context);
@@ -790,7 +798,8 @@ class JavaThreadContext {
   // Create a CppThreadDispatcher and optionally attach it to the
   // specified JavaContext object.  This method returns a local reference to the
   // CppThreadDispatcher which must be deleted after use.
-  static jobject SetupInstance(JNIEnv* env, Callback function_ptr,
+  static jobject SetupInstance(JNIEnv* env,
+                               Callback function_ptr,
                                void* function_data,
                                Callback cancel_function_ptr,
                                JavaThreadContext* context);
@@ -814,35 +823,42 @@ jobject StdVectorToJavaList(JNIEnv* env,
 
 // Converts an `std::map<const char*, const char*>` to a
 // `java.util.Map<String, String>`.
-void StdMapToJavaMap(JNIEnv* env, jobject* to,
+void StdMapToJavaMap(JNIEnv* env,
+                     jobject* to,
                      const std::map<const char*, const char*>& string_map);
 
 // Converts an `std::map<std::string, std::string>` to a
 // `java.util.Map<String, String>`.
-void StdMapToJavaMap(JNIEnv* env, jobject* to,
+void StdMapToJavaMap(JNIEnv* env,
+                     jobject* to,
                      const std::map<std::string, std::string>& from);
 
 // Converts a `java.util.Map<String, String>` to an
 // `std::map<std::string, std::string>`.
-void JavaMapToStdMap(JNIEnv* env, std::map<std::string, std::string>* to,
+void JavaMapToStdMap(JNIEnv* env,
+                     std::map<std::string, std::string>* to,
                      jobject from);
 
 // Converts a `java.util.Map<java.lang.Object, java.lang.Object>` to an
 // `std::map<Variant, Variant>`.
-void JavaMapToVariantMap(JNIEnv* env, std::map<Variant, Variant>* to,
+void JavaMapToVariantMap(JNIEnv* env,
+                         std::map<Variant, Variant>* to,
                          jobject from);
 
 // Converts a `java.util.Set<String>` to a `std::vector<std::string>`.
-void JavaSetToStdStringVector(JNIEnv* env, std::vector<std::string>* to,
+void JavaSetToStdStringVector(JNIEnv* env,
+                              std::vector<std::string>* to,
                               jobject from);
 
 // Converts a `java.util.List<String>` to a `std::vector<std::string>`.
-void JavaListToStdStringVector(JNIEnv* env, std::vector<std::string>* to,
+void JavaListToStdStringVector(JNIEnv* env,
+                               std::vector<std::string>* to,
                                jobject from);
 
 // Converts a `java.util.List<Object>` to a `std::vector<std::string>`,
 // calling toString() on each object first.
-void JavaObjectListToStdStringVector(JNIEnv* env, std::vector<std::string>* to,
+void JavaObjectListToStdStringVector(JNIEnv* env,
+                                     std::vector<std::string>* to,
                                      jobject from);
 
 // Convert a jstring to a std::string, releasing the reference to the jstring.
@@ -951,7 +967,8 @@ std::vector<unsigned char> JniByteArrayToVector(JNIEnv* env, jobject array);
 
 // Convert a byte array with size into a Java byte[] (jbyteArray in JNI).
 // The caller must call env->DeleteLocalRef() on the returned object.
-jbyteArray ByteBufferToJavaByteArray(JNIEnv* env, const uint8_t* data,
+jbyteArray ByteBufferToJavaByteArray(JNIEnv* env,
+                                     const uint8_t* data,
                                      size_t size);
 
 // Convert a local to global reference, deleting the specified local reference.
@@ -993,16 +1010,20 @@ enum FutureResult {
 // @param result_code The result of the Future (Success, Failure, Cancelled).
 // @param callback_data Passed through verbatim from
 // RegisterCallbackOnTask().
-typedef void TaskCallbackFn(JNIEnv* env, jobject result,
+typedef void TaskCallbackFn(JNIEnv* env,
+                            jobject result,
                             FutureResult result_code,
-                            const char* status_message, void* callback_data);
+                            const char* status_message,
+                            void* callback_data);
 
 // Calls callback_fn when the Task `task` is complete, where `task` is an
 // instance of com.google.android.gms.tasks.Task.
 // NOTE: api_identifier must *not* be deallocated or can be nullptr to place
 // the callback in the global pool.
-void RegisterCallbackOnTask(JNIEnv* env, jobject task,
-                            TaskCallbackFn callback_fn, void* callback_data,
+void RegisterCallbackOnTask(JNIEnv* env,
+                            jobject task,
+                            TaskCallbackFn callback_fn,
+                            void* callback_data,
                             const char* api_identifier);
 
 // Cancel all callbacks associated with the specified API identifier.  If an
@@ -1015,37 +1036,44 @@ void CancelCallbacks(JNIEnv* env, const char* api_identifier);
 // NOTE: This method will log an error if the class isn't found unless
 // optional == kClassOptional.
 jclass FindClassGlobal(
-    JNIEnv* env, jobject activity_object,
+    JNIEnv* env,
+    jobject activity_object,
     const std::vector<internal::EmbeddedFile>* embedded_files,
-    const char* class_name, ClassRequirement optional);
+    const char* class_name,
+    ClassRequirement optional);
 
 // Find a class, attempting to load the class if it's not found.
 jclass FindClass(JNIEnv* env, const char* class_name);
 // Deprecated method.
-static inline jclass FindClass(JNIEnv* env, jobject activity_object,
+static inline jclass FindClass(JNIEnv* env,
+                               jobject activity_object,
                                const char* class_name) {
   return FindClass(env, class_name);
 }
 
 // Cache a list of embedded files to the activity's cache directory.
 const std::vector<internal::EmbeddedFile>& CacheEmbeddedFiles(
-    JNIEnv* env, jobject activity_object,
+    JNIEnv* env,
+    jobject activity_object,
     const std::vector<internal::EmbeddedFile>& embedded_files);
 
 // Attempt to load a class from a set of files which have been cached to local
 // storage using CacheEmbeddedFiles().
 jclass FindClassInFiles(
-    JNIEnv* env, jobject activity_object,
+    JNIEnv* env,
+    jobject activity_object,
     const std::vector<internal::EmbeddedFile>& embedded_files,
     const char* class_name);
 
 // Get a resource ID from the activity's package.
-int GetResourceIdFromActivity(JNIEnv* env, jobject activity_object,
+int GetResourceIdFromActivity(JNIEnv* env,
+                              jobject activity_object,
                               const char* resource_name,
                               ResourceType resource_type);
 
 // Get a resource value as a string from the activity's package.
-std::string GetResourceStringFromActivity(JNIEnv* env, jobject activity_object,
+std::string GetResourceStringFromActivity(JNIEnv* env,
+                                          jobject activity_object,
                                           int resource_id);
 
 // Get the name of the package associated with this activity.
@@ -1055,7 +1083,8 @@ std::string GetPackageName(JNIEnv* env, jobject activity_object);
 // Be very careful using this function - make sure you clean up any JNI local
 // object references you create in your callback during the function, as
 // their deletion cannot occur in any other thread.
-void RunOnMainThread(JNIEnv* env, jobject activity_object,
+void RunOnMainThread(JNIEnv* env,
+                     jobject activity_object,
                      JavaThreadContext::Callback function_ptr,
                      void* function_data,
                      JavaThreadContext::Callback cancel_function_ptr = nullptr,
@@ -1066,7 +1095,9 @@ void RunOnMainThread(JNIEnv* env, jobject activity_object,
 // object references you create in your callback during the function, as
 // their deletion cannot occur in any other thread.
 void RunOnBackgroundThread(
-    JNIEnv* env, JavaThreadContext::Callback function_ptr, void* function_data,
+    JNIEnv* env,
+    JavaThreadContext::Callback function_ptr,
+    void* function_data,
     JavaThreadContext::Callback cancel_function_ptr = nullptr,
     JavaThreadContext* context = nullptr);
 
@@ -1091,8 +1122,10 @@ std::string GetMessageFromException(JNIEnv* env, jobject exception);
 //
 // If an exception occurred, this function will clear it and return true.
 // Otherwise it will return false.
-bool LogException(JNIEnv* env, LogLevel log_level = kLogLevelError,
-                  const char* log_fmt = nullptr, ...);
+bool LogException(JNIEnv* env,
+                  LogLevel log_level = kLogLevelError,
+                  const char* log_fmt = nullptr,
+                  ...);
 
 // Returns a pointer to the JNI environment.  Also, registers a destructor
 // to automatically detach the thread from the JVM when it exits.  (Failure

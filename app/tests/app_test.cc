@@ -26,8 +26,8 @@
 #include "app/src/app_common.h"
 #include "app/src/app_identifier.h"
 #include "app/src/include/firebase/app.h"
-#include "app/src/include/firebase/version.h"
 #include "app/src/include/firebase/internal/platform.h"
+#include "app/src/include/firebase/version.h"
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
 #undef __ANDROID__
@@ -48,10 +48,10 @@
 #include <unistd.h>
 #endif  // defined(_WIN32)
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/config.h"
 #include "testing/ticker.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 
 #ifdef __APPLE__
 #include "TargetConditionals.h"
@@ -108,7 +108,7 @@ class AppTest : public ::testing::Test {
     FIRAppCreateUsingDefaultOptions(name ? name : "__FIRAPP_DEFAULT");
 #endif  // FIREBASE_PLATFORM_IOS
 #if FIREBASE_ANDROID_FOR_DESKTOP
-    JNIEnv *env = firebase::testing::cppsdk::GetTestJniEnv();
+    JNIEnv* env = firebase::testing::cppsdk::GetTestJniEnv();
     jclass firebase_app_class =
         env->FindClass("com/google/firebase/FirebaseApp");
     env->ExceptionCheck();
@@ -117,10 +117,9 @@ class AppTest : public ::testing::Test {
     env->ExceptionCheck();
     jobject options = env->CallStaticObjectMethod(
         firebase_options_class,
-        env->GetStaticMethodID(
-            firebase_options_class, "fromResource",
-            "(Landroid/content/Context;)"
-            "Lcom/google/firebase/FirebaseOptions;"),
+        env->GetStaticMethodID(firebase_options_class, "fromResource",
+                               "(Landroid/content/Context;)"
+                               "Lcom/google/firebase/FirebaseOptions;"),
         firebase::testing::cppsdk::GetTestActivity());
     env->ExceptionCheck();
     jobject app_name = env->NewStringUTF(name ? name : "[DEFAULT]");
@@ -131,9 +130,7 @@ class AppTest : public ::testing::Test {
             "(Landroid/content/Context;"
             "Lcom/google/firebase/FirebaseOptions;"
             "Ljava/lang/String;)Lcom/google/firebase/FirebaseApp;"),
-        firebase::testing::cppsdk::GetTestActivity(),
-        options,
-        app_name);
+        firebase::testing::cppsdk::GetTestActivity(), options, app_name);
     env->ExceptionCheck();
     env->DeleteLocalRef(app);
     env->DeleteLocalRef(app_name);
@@ -151,7 +148,7 @@ class AppTest : public ::testing::Test {
     FIRAppResetApps();
 #endif  // FIREBASE_PLATFORM_IOS
 #if FIREBASE_ANDROID_FOR_DESKTOP
-    JNIEnv *env = firebase::testing::cppsdk::GetTestJniEnv();
+    JNIEnv* env = firebase::testing::cppsdk::GetTestJniEnv();
     jclass firebase_app_class =
         env->FindClass("com/google/firebase/FirebaseApp");
     env->ExceptionCheck();
@@ -228,16 +225,15 @@ TEST_F(AppTest, TestSetProjectId) {
 
 TEST_F(AppTest, LoadDefault) {
   AppOptions options;
-  EXPECT_EQ(&options,
-            AppOptions::LoadDefault(
-                &options
+  EXPECT_EQ(&options, AppOptions::LoadDefault(
+                          &options
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
-                // Additional parameters are required for Android.
-                ,
-                firebase::testing::cppsdk::GetTestJniEnv(),
-                firebase::testing::cppsdk::GetTestActivity()
+                          // Additional parameters are required for Android.
+                          ,
+                          firebase::testing::cppsdk::GetTestJniEnv(),
+                          firebase::testing::cppsdk::GetTestActivity()
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
-                                    ));
+                              ));
   EXPECT_STREQ("fake app id from resource", options.app_id());
   EXPECT_STREQ("fake api key from resource", options.api_key());
   EXPECT_STREQ("fake messaging sender id from resource",
@@ -260,14 +256,13 @@ TEST_F(AppTest, PopulateRequiredWithDefaults) {
   EXPECT_STREQ("", options.app_id());
   EXPECT_STREQ("", options.api_key());
   EXPECT_STREQ("", options.project_id());
-  EXPECT_TRUE(
-      options.PopulateRequiredWithDefaults(
+  EXPECT_TRUE(options.PopulateRequiredWithDefaults(
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
-          // Additional parameters are required for Android.
-          firebase::testing::cppsdk::GetTestJniEnv(),
-          firebase::testing::cppsdk::GetTestActivity()
+      // Additional parameters are required for Android.
+      firebase::testing::cppsdk::GetTestJniEnv(),
+      firebase::testing::cppsdk::GetTestActivity()
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
-                                           ));
+          ));
   EXPECT_STREQ("fake app id from resource", options.app_id());
   EXPECT_STREQ("fake api key from resource", options.api_key());
   EXPECT_STREQ("fake project id from resource", options.project_id());
@@ -288,7 +283,8 @@ std::unique_ptr<App> CreateFirebaseApp() {
 
 std::unique_ptr<App> CreateFirebaseApp(const char* name) {
   return std::unique_ptr<App>(App::Create(
-      AppOptions(), name
+      AppOptions(),
+      name
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
       // Additional parameters are required for Android.
       ,
@@ -393,8 +389,7 @@ TEST_F(AppTest, TestCreateNamedWithDifferentOptionsToExistingApp) {
   AppOptions options;
   options.set_api_key("an api key");
   options.set_app_id("a different app id");
-  std::unique_ptr<App> firebase_app = CreateFirebaseApp(
-      options, "a named app");
+  std::unique_ptr<App> firebase_app = CreateFirebaseApp(options, "a named app");
   EXPECT_NE(nullptr, firebase_app);
   EXPECT_STREQ("a named app", firebase_app->name());
   EXPECT_STREQ("a different app id", firebase_app->options().app_id());

@@ -33,8 +33,8 @@ static const char* kPathSep = "//";
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "app/src/variant_util.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {

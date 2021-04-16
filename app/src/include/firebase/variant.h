@@ -36,7 +36,7 @@ namespace firebase {
 namespace internal {
 class VariantInternal;
 }
-}
+}  // namespace firebase
 
 namespace FIREBASE_NAMESPACE {
 
@@ -87,9 +87,8 @@ class Variant {
   /// @brief Construct a null Variant.
   ///
   /// The Variant constructed will be of type Null.
-  Variant()
-    : type_(kInternalTypeNull)
-    , value_({}) {}
+  Variant() : type_(kInternalTypeNull), value_({}) {
+  }
 
   /// @brief Construct a Variant with the given templated type.
   ///
@@ -130,7 +129,7 @@ class Variant {
   ///   * `std::map<K, V>` where K and V is convertible to variant type
   template <typename T>
   Variant(T value)  // NOLINT
-    : type_(kInternalTypeNull) {
+      : type_(kInternalTypeNull) {
     set_value_t(value);
   }
 
@@ -142,7 +141,7 @@ class Variant {
   ///
   /// @param[in] value The string to use for the Variant.
   Variant(const std::string& value)  // NOLINT
-    : type_(kInternalTypeNull) {
+      : type_(kInternalTypeNull) {
     set_mutable_string(value);
   }
 
@@ -152,7 +151,7 @@ class Variant {
   ///
   /// @param[in] value The STL vector to copy into the Variant.
   Variant(const std::vector<Variant>& value)  // NOLINT
-    : type_(kInternalTypeNull) {
+      : type_(kInternalTypeNull) {
     set_vector(value);
   }
 
@@ -166,7 +165,7 @@ class Variant {
   /// each element, and copied into the Vector Variant constructed here.
   template <typename T>
   Variant(const std::vector<T>& value)  // NOLINT
-    : type_(kInternalTypeNull) {
+      : type_(kInternalTypeNull) {
     Clear(kTypeVector);
     vector().reserve(value.size());
     for (size_t i = 0; i < value.size(); i++) {
@@ -185,7 +184,7 @@ class Variant {
   /// @param[in] array_size Number of elements of the array.
   template <typename T>
   Variant(const T array_of_values[], size_t array_size)
-    : type_(kInternalTypeNull) {
+      : type_(kInternalTypeNull) {
     Clear(kTypeVector);
     vector().reserve(array_size);
     for (size_t i = 0; i < array_size; i++) {
@@ -200,7 +199,7 @@ class Variant {
   ///
   /// @param[in] value The STL map to copy into the Variant.
   Variant(const std::map<Variant, Variant>& value)  // NOLINT
-  : type_(kInternalTypeNull) {
+      : type_(kInternalTypeNull) {
     set_map(value);
   }
 
@@ -216,7 +215,7 @@ class Variant {
   /// Variant constructed here.
   template <typename K, typename V>
   Variant(const std::map<K, V>& value)  // NOLINT
-    : type_(kInternalTypeNull) {
+      : type_(kInternalTypeNull) {
     Clear(kTypeMap);
     for (typename std::map<K, V>::const_iterator i = value.begin();
          i != value.end(); ++i) {
@@ -227,7 +226,9 @@ class Variant {
   /// @brief Copy constructor. Performs a deep copy.
   ///
   /// @param[in] other Source Variant to copy from.
-  Variant(const Variant& other) : type_(kInternalTypeNull) { *this = other; }
+  Variant(const Variant& other) : type_(kInternalTypeNull) {
+    *this = other;
+  }
 
   /// @brief Copy assignment operator. Performs a deep copy.
   ///
@@ -254,7 +255,9 @@ class Variant {
 #endif  // SWIG
 
   /// Destructor. Frees the memory that this Variant owns.
-  ~Variant() { Clear(); }
+  ~Variant() {
+    Clear();
+  }
 
   /// @brief Equality operator. Both the type and the value must be equal
   /// (except that static strings CAN be == to mutable strings). For container
@@ -307,28 +310,36 @@ class Variant {
   /// @param[in] other Variant to compare to.
   ///
   /// @return Results of the comparison.
-  bool operator!=(const Variant& other) const { return !(*this == other); }
+  bool operator!=(const Variant& other) const {
+    return !(*this == other);
+  }
 
   /// @brief Inequality operator: x > y is evaluated as y < x
   ///
   /// @param[in] other Variant to compare to.
   ///
   /// @return Results of the comparison.
-  bool operator>(const Variant& other) const { return other < *this; }
+  bool operator>(const Variant& other) const {
+    return other < *this;
+  }
 
   /// @brief Inequality operator: x >= y is evaluated as !(x < y)
   ///
   /// @param[in] other Variant to compare to.
   ///
   /// @return Results of the comparison.
-  bool operator>=(const Variant& other) const { return !(*this < other); }
+  bool operator>=(const Variant& other) const {
+    return !(*this < other);
+  }
 
   /// @brief Inequality operator: x <= y is evaluated as !(x > y)
   ///
   /// @param[in] other Variant to compare to.
   ///
   /// @return Results of the comparison.
-  bool operator<=(const Variant& other) const { return !(*this > other); }
+  bool operator<=(const Variant& other) const {
+    return !(*this > other);
+  }
 
   /// @brief Clear the given Variant data, optionally into a new type. Frees up
   /// any memory that might have been allocated. After calling this, you can
@@ -343,42 +354,58 @@ class Variant {
   /// @brief Get a Variant of type Null.
   ///
   /// @return A Variant of type Null.
-  static Variant Null() { return Variant(); }
+  static Variant Null() {
+    return Variant();
+  }
 
   /// @brief Get a Variant of integer value 0.
   ///
   /// @return A Variant of type Int64, with value 0.
-  static Variant Zero() { return Variant::FromInt64(0L); }
+  static Variant Zero() {
+    return Variant::FromInt64(0L);
+  }
 
   /// @brief Get a Variant of integer value 1.
   ///
   /// @return A Variant of type Int64, with value 1.
-  static Variant One() { return Variant::FromInt64(1L); }
+  static Variant One() {
+    return Variant::FromInt64(1L);
+  }
 
   /// @brief Get a Variant of double value 0.0.
   ///
   /// @return A Variant of type Double, with value 0.0.
-  static Variant ZeroPointZero() { return Variant::FromDouble(0.0); }
+  static Variant ZeroPointZero() {
+    return Variant::FromDouble(0.0);
+  }
 
   /// @brief Get a Variant of double value 1.0.
   ///
   /// @return A Variant of type Double, with value 1.0.
-  static Variant OnePointZero() { return Variant::FromDouble(1.0); }
+  static Variant OnePointZero() {
+    return Variant::FromDouble(1.0);
+  }
 
   /// @brief Get a Variant of bool value false.
   ///
   /// @return A Variant of type Bool, with value false.
-  static Variant False() { return Variant::FromBool(false); }
+  static Variant False() {
+    return Variant::FromBool(false);
+  }
 
   /// @brief Get a Variant of bool value true.
   ///
   /// @return A Variant of type Bool, with value true.
-  static Variant True() { return Variant::FromBool(true); }
+  static Variant True() {
+    return Variant::FromBool(true);
+  }
 
   /// @brief Get an empty string variant.
   ///
   /// @return A Variant of type StaticString, referring to an empty string.
-  static Variant EmptyString() { return Variant::FromStaticString(""); }
+  static Variant EmptyString() {
+    return Variant::FromStaticString("");
+  }
 
   /// @brief Get a Variant containing an empty mutable string.
   ///
@@ -442,42 +469,58 @@ class Variant {
   /// @brief Get whether this Variant is currently null.
   ///
   /// @return True if the Variant is Null, false otherwise.
-  bool is_null() const { return type() == kTypeNull; }
+  bool is_null() const {
+    return type() == kTypeNull;
+  }
 
   /// @brief Get whether this Variant contains an integer.
   ///
   /// @return True if the Variant's type is Int64, false otherwise.
-  bool is_int64() const { return type() == kTypeInt64; }
+  bool is_int64() const {
+    return type() == kTypeInt64;
+  }
 
   /// @brief Get whether this Variant contains a double.
   ///
   /// @return True if the Variant's type is Double, false otherwise.
-  bool is_double() const { return type() == kTypeDouble; }
+  bool is_double() const {
+    return type() == kTypeDouble;
+  }
 
   /// @brief Get whether this Variant contains a bool.
   ///
   /// @return True if the Variant's type is Bool, false otherwise.
-  bool is_bool() const { return type() == kTypeBool; }
+  bool is_bool() const {
+    return type() == kTypeBool;
+  }
 
   /// @brief Get whether this Variant contains a vector.
   ///
   /// @return True if the Variant's type is Vector, false otherwise.
-  bool is_vector() const { return type() == kTypeVector; }
+  bool is_vector() const {
+    return type() == kTypeVector;
+  }
 
   /// @brief Get whether this Variant contains a map.
   ///
   /// @return True if the Variant's type is Map, false otherwise.
-  bool is_map() const { return type() == kTypeMap; }
+  bool is_map() const {
+    return type() == kTypeMap;
+  }
 
   /// @brief Get whether this Variant contains a static string.
   ///
   /// @return True if the Variant's type is StaticString, false otherwise.
-  bool is_static_string() const { return type() == kTypeStaticString; }
+  bool is_static_string() const {
+    return type() == kTypeStaticString;
+  }
 
   /// @brief Get whether this Variant contains a mutable string.
   ///
   /// @return True if the Variant's type is MutableString, false otherwise.
-  bool is_mutable_string() const { return type() == kTypeMutableString; }
+  bool is_mutable_string() const {
+    return type() == kTypeMutableString;
+  }
 
   /// @brief Get whether this Variant contains a string.
   ///
@@ -493,12 +536,16 @@ class Variant {
   /// @brief Get whether this Variant contains a static blob.
   ///
   /// @return True if the Variant's type is StaticBlob, false otherwise.
-  bool is_static_blob() const { return type() == kTypeStaticBlob; }
+  bool is_static_blob() const {
+    return type() == kTypeStaticBlob;
+  }
 
   /// @brief Get whether this Variant contains a mutable blob.
   ///
   /// @return True if the Variant's type is MutableBlob, false otherwise.
-  bool is_mutable_blob() const { return type() == kTypeMutableBlob; }
+  bool is_mutable_blob() const {
+    return type() == kTypeMutableBlob;
+  }
 
   /// @brief Get whether this Variant contains a blob.
   ///
@@ -507,13 +554,17 @@ class Variant {
   ///
   /// @note No matter which type of blob the Variant contains, you can read
   /// its data via blob_data() and get its size via blob_size().
-  bool is_blob() const { return is_static_blob() || is_mutable_blob(); }
+  bool is_blob() const {
+    return is_static_blob() || is_mutable_blob();
+  }
 
   /// @brief Get whether this Variant contains a numeric type, Int64 or Double.
   ///
   /// @return True if the Variant's type is either Int64 or Double; false
   /// otherwise.
-  bool is_numeric() const { return is_int64() || is_double(); }
+  bool is_numeric() const {
+    return is_int64() || is_double();
+  }
 
   /// @brief Get whether this Variant contains a fundamental type: Null, Int64,
   /// Double, Bool, or one of the two String types. Essentially
@@ -528,7 +579,9 @@ class Variant {
   /// @brief Get whether this Variant contains a container type: Vector or Map.
   ///
   /// @return True if the Variant's type is Vector or Map; false otherwise.
-  bool is_container_type() const { return is_vector() || is_map(); }
+  bool is_container_type() const {
+    return is_vector() || is_map();
+  }
 
   /// @brief Get the current Variant converted into a string. Only valid for
   /// fundamental types.
@@ -744,7 +797,9 @@ class Variant {
   /// @brief Sets the Variant value to null.
   ///
   /// The Variant's type will be Null.
-  void set_null() { Clear(kTypeNull); }
+  void set_null() {
+    Clear(kTypeNull);
+  }
 
   /// @brief Sets the Variant to an 64-bit integer value.
   ///
@@ -814,7 +869,9 @@ class Variant {
   /// The Variant's type will be set to MutableString.
   ///
   /// @param[in] value The string to use for the Variant.
-  void set_string_value(const std::string& value) { set_mutable_string(value); }
+  void set_string_value(const std::string& value) {
+    set_mutable_string(value);
+  }
 
   /// @brief Sets the Variant to a copy of the given string.
   ///
@@ -950,7 +1007,9 @@ class Variant {
   /// @param[in] value 64-bit integer value to put into the Variant.
   ///
   /// @returns A Variant containing the 64-bit integer.
-  static Variant FromInt64(int64_t value) { return Variant(value); }
+  static Variant FromInt64(int64_t value) {
+    return Variant(value);
+  }
 
   /// @brief Return a Variant from a double-precision floating point number.
   ///
@@ -958,14 +1017,18 @@ class Variant {
   /// Variant;
   ///
   /// @returns A Variant containing the double-precision floating point number.
-  static Variant FromDouble(double value) { return Variant(value); }
+  static Variant FromDouble(double value) {
+    return Variant(value);
+  }
 
   /// @brief Return a Variant from a boolean.
   ///
   /// @param[in] value Boolean value to put into the Variant.
   ///
   /// @returns A Variant containing the Boolean.
-  static Variant FromBool(bool value) { return Variant(value); }
+  static Variant FromBool(bool value) {
+    return Variant(value);
+  }
 
   /// @brief Return a Variant from a static string.
   ///
@@ -977,7 +1040,9 @@ class Variant {
   /// to stays valid for the life of the Variant, otherwise call
   /// mutable_string() or set_mutable_string(), which will copy the string to an
   /// internal buffer.
-  static Variant FromStaticString(const char* value) { return Variant(value); }
+  static Variant FromStaticString(const char* value) {
+    return Variant(value);
+  }
 
   /// @brief Return a Variant from a string.
   ///
@@ -1111,7 +1176,9 @@ class Variant {
   void set_value_t(T value) = delete;
 
   // Get whether this Variant contains a small string.
-  bool is_small_string() const { return type_ == kInternalTypeSmallString; }
+  bool is_small_string() const {
+    return type_ == kInternalTypeSmallString;
+  }
 
   // Current type contained in this Variant.
   InternalType type_;
@@ -1119,8 +1186,8 @@ class Variant {
   // Older versions of visual studio cant have this inline in the union and do
   // sizeof for small string
   typedef struct {
-      const uint8_t* ptr;
-      size_t size;
+    const uint8_t* ptr;
+    size_t size;
   } BlobValue;
 
   // Union of plain old data (scalars or pointers).

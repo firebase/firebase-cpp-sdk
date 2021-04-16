@@ -33,7 +33,8 @@ class GetOobConfirmationCodeRequest : public AuthRequest {
                                      const char* language_code = nullptr);
 
   static std::unique_ptr<GetOobConfirmationCodeRequest>
-  CreateSendPasswordResetEmailRequest(const char* api_key, const char* email,
+  CreateSendPasswordResetEmailRequest(const char* api_key,
+                                      const char* email,
                                       const char* language_code = nullptr);
 
   void SetIdToken(const char* const id_token) {

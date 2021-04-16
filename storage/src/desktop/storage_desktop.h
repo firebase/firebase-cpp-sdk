@@ -37,10 +37,14 @@ class StorageInternal {
   ~StorageInternal();
 
   // Get the firease::App that this Storage was created with.
-  ::firebase::App* app() { return app_; }
+  ::firebase::App* app() {
+    return app_;
+  }
 
   // Return the URL we were created with, if we were created with it explicitly.
-  std::string url() { return url_; }
+  std::string url() {
+    return url_;
+  }
 
   // Get a StorageReference to the root of the database.
   StorageReferenceInternal* GetReference() const;
@@ -53,7 +57,9 @@ class StorageInternal {
 
   // Returns the maximum time (in seconds) to retry a download if a failure
   // occurs.
-  double max_download_retry_time() { return max_download_retry_time_; }
+  double max_download_retry_time() {
+    return max_download_retry_time_;
+  }
 
   // Sets the maximum time (in seconds) to retry a download if a failure occurs.
   void set_max_download_retry_time(double max_download_retry_time) {
@@ -62,7 +68,9 @@ class StorageInternal {
 
   // Returns the maximum time (in seconds) to retry an upload if a failure
   // occurs.
-  double max_upload_retry_time() { return max_upload_retry_time_; }
+  double max_upload_retry_time() {
+    return max_upload_retry_time_;
+  }
 
   // Sets the maximum time (in seconds) to retry an upload if a failure occurs.
   void set_max_upload_retry_time(double max_upload_retry_time) {
@@ -71,7 +79,9 @@ class StorageInternal {
 
   // Returns the maximum time (in seconds) to retry operations other than upload
   // and download if a failure occurs.
-  double max_operation_retry_time() { return max_operation_retry_time_; }
+  double max_operation_retry_time() {
+    return max_operation_retry_time_;
+  }
 
   // Sets the maximum time (in seconds) to retry operations other than upload
   // and download if a failure occurs.
@@ -80,19 +90,27 @@ class StorageInternal {
   }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return app_ != nullptr; }
+  bool initialized() const {
+    return app_ != nullptr;
+  }
 
   // When this is deleted, it will clean up all StorageReferences and other
   // objects.
-  FutureManager& future_manager() { return future_manager_; }
-  CleanupNotifier& cleanup() { return cleanup_; }
+  FutureManager& future_manager() {
+    return future_manager_;
+  }
+  CleanupNotifier& cleanup() {
+    return cleanup_;
+  }
 
   // Fetches the auth token (if available) from app via the function callback
   // registry.  If not available, it returns an empty string.
   std::string GetAuthToken();
 
   // Get the user agent to send with storage requests.
-  const std::string& user_agent() const { return user_agent_; }
+  const std::string& user_agent() const {
+    return user_agent_;
+  }
 
   // Add an operation to the list of outstanding operations.
   void AddOperation(RestOperation* operation);

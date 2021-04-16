@@ -32,8 +32,9 @@ class NativeExpressAdViewInternalIOS : public NativeExpressAdViewInternal {
   NativeExpressAdViewInternalIOS(NativeExpressAdView* base);
   ~NativeExpressAdViewInternalIOS();
 
-  Future<void> Initialize(AdParent parent, const char* ad_unit_id, AdSize size)
-      override;
+  Future<void> Initialize(AdParent parent,
+                          const char* ad_unit_id,
+                          AdSize size) override;
   Future<void> LoadAd(const AdRequest& request) override;
   Future<void> Hide() override;
   Future<void> Show() override;

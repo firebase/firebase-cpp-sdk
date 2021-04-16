@@ -20,16 +20,16 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/mutex.h"
 #include "app/tests/include/firebase/app_for_testing.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "auth/src/desktop/auth_desktop.h"
 #include "auth/src/include/firebase/auth.h"
 #include "auth/src/include/firebase/auth/user.h"
 #include "auth/tests/desktop/fakes.h"
 #include "auth/tests/desktop/test_utils.h"
+#include "flatbuffers/stl_emulation.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/config.h"
 #include "testing/ticker.h"
-#include "flatbuffers/stl_emulation.h"
 
 namespace firebase {
 namespace auth {
@@ -180,7 +180,8 @@ void InitializeAuthorizeWithProviderFakes(
 }
 
 void InitializeSuccessfulAuthenticateWithProviderFlow(
-    FederatedOAuthProvider* provider, OAuthProviderTestHandler* handler,
+    FederatedOAuthProvider* provider,
+    OAuthProviderTestHandler* handler,
     const std::string& get_account_info_response) {
   InitializeAuthorizeWithProviderFakes(get_account_info_response);
   provider->SetProviderData(GetFakeOAuthProviderData());
@@ -250,7 +251,8 @@ bool WaitOnLoadPersistence(AuthData* auth_data) {
 
 class UserDesktopTest : public ::testing::Test {
  protected:
-  UserDesktopTest() : sem_(0) {}
+  UserDesktopTest() : sem_(0) {
+  }
 
   void SetUp() override {
     rest::SetTransportBuilder([]() -> flatbuffers::unique_ptr<rest::Transport> {
@@ -295,12 +297,10 @@ class UserDesktopTest : public ::testing::Test {
 
     // Wait for the app to finish any remaining tasks in queue,
     // specifically delete app data from persistent cache after SignOut.
-    // This is to avoid race conditions where the next test's SignIn 
+    // This is to avoid race conditions where the next test's SignIn
     // doesn't cause a change in auth state or id tokens because persistent
     // cache has valid user logged in, preventing listeners from firing.
-    {
-      SleepUponDestruction sleep_for_listeners;
-    }
+    { SleepUponDestruction sleep_for_listeners; }
 
     firebase_auth_.reset(nullptr);
     firebase_app_.reset(nullptr);
@@ -310,7 +310,8 @@ class UserDesktopTest : public ::testing::Test {
   }
 
   Future<SignInResult> ProcessLinkWithProviderFlow(
-      FederatedOAuthProvider* provider, OAuthProviderTestHandler* handler,
+      FederatedOAuthProvider* provider,
+      OAuthProviderTestHandler* handler,
       bool trigger_link) {
     InitializeSuccessfulAuthenticateWithProviderFlow(provider, handler);
     Future<SignInResult> future = firebase_user_->LinkWithProvider(provider);
@@ -321,7 +322,8 @@ class UserDesktopTest : public ::testing::Test {
   }
 
   Future<SignInResult> ProcessReauthenticateWithProviderFlow(
-      FederatedOAuthProvider* provider, OAuthProviderTestHandler* handler,
+      FederatedOAuthProvider* provider,
+      OAuthProviderTestHandler* handler,
       bool trigger_reauthenticate) {
     InitializeSuccessfulAuthenticateWithProviderFlow(provider, handler);
     Future<SignInResult> future =

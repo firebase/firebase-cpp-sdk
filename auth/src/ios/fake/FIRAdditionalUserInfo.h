@@ -30,8 +30,9 @@ NS_SWIFT_NAME(AdditionalUserInfo)
 - (instancetype)init;
 #else
 /** @fn init
-    @brief This class should not be initialized manually. `FIRAdditionalUserInfo` can be retrieved
-        from from an instance of `FIRAuthDataResult`.
+    @brief This class should not be initialized manually.
+   `FIRAdditionalUserInfo` can be retrieved from from an instance of
+   `FIRAuthDataResult`.
  */
 - (instancetype)init NS_UNAVAILABLE;
 #endif  // defined(FIREBASE_AUTH_TESTING)
@@ -39,20 +40,22 @@ NS_SWIFT_NAME(AdditionalUserInfo)
 /** @property providerID
     @brief The provider identifier.
  */
-@property(nonatomic, readonly) NSString *providerID;
+@property(nonatomic, readonly) NSString* providerID;
 
 /** @property profile
     @brief Dictionary containing the additional IdP specific information.
  */
-@property(nonatomic, readonly, nullable) NSDictionary<NSString *, NSObject *> *profile;
+@property(nonatomic, readonly, nullable)
+    NSDictionary<NSString*, NSObject*>* profile;
 
 /** @property username
     @brief username The name of the user.
  */
-@property(nonatomic, readonly, nullable) NSString *username;
+@property(nonatomic, readonly, nullable) NSString* username;
 
 /** @property newUser
-    @brief Indicates whether or not the current user was signed in for the first time.
+    @brief Indicates whether or not the current user was signed in for the first
+   time.
  */
 @property(nonatomic, readonly, getter=isNewUser) BOOL newUser;
 

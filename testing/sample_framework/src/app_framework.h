@@ -123,7 +123,8 @@ void RunOnBackgroundThread(void* (*func)(void* data), void* data);
 // until the user enters the text or the dialog box is canceled.
 // Returns the text that was entered, or an empty string if the user
 // canceled.
-std::string ReadTextInput(const char* title, const char* message,
+std::string ReadTextInput(const char* title,
+                          const char* message,
                           const char* placeholder);
 
 }  // namespace app_framework

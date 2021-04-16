@@ -108,17 +108,23 @@ class AppCallback {
   }
 
   // Get the name of the module associated with this callback class.
-  const char* module_name() const { return module_name_; }
+  const char* module_name() const {
+    return module_name_;
+  }
 
   // Get whether this is enabled.
-  bool enabled() const { return enabled_; }
+  bool enabled() const {
+    return enabled_;
+  }
 
   // Enable / disable this callback object.
   // NOTE: Use of this method is perilous!  This method should only disable
   // a callback *before* any App instances are created otherwise it's possible
   // to get into a state where a module is initialized and will never be torn
   // down.
-  void set_enabled(bool enable) { enabled_ = enable; }
+  void set_enabled(bool enable) {
+    enabled_ = enable;
+  }
 
   // Called by firebase::App when an instance is created.
   static void NotifyAllAppCreated(
@@ -190,29 +196,35 @@ class AppCallback {
 //       firebase::analytics::Terminate();
 //     }
 //   });
-#define FIREBASE_APP_REGISTER_CALLBACKS(module_name, created_code,             \
-                                        destroyed_code)                        \
-  namespace firebase {                                                         \
-  static InitResult module_name##Created(::firebase::App* app) {               \
-    created_code;                                                              \
-  }                                                                            \
-  static void module_name##Destroyed(::firebase::App* app) { destroyed_code; } \
-  static ::firebase::AppCallback module_name##_app_callback(                   \
-      #module_name, module_name##Created, module_name##Destroyed);             \
-  /* This is a global symbol that is referenced from all compilation units */  \
-  /* that include this module. */                                              \
-  void* FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name)          \
-      FIREBASE_APP_KEEP_SYMBOL = &module_name##_app_callback;                  \
+#define FIREBASE_APP_REGISTER_CALLBACKS(module_name, created_code,            \
+                                        destroyed_code)                       \
+  namespace firebase {                                                        \
+  static InitResult module_name##Created(::firebase::App* app) {              \
+    created_code;                                                             \
+  }                                                                           \
+  static void module_name##Destroyed(::firebase::App* app) {                  \
+    destroyed_code;                                                           \
+  }                                                                           \
+  static ::firebase::AppCallback module_name##_app_callback(                  \
+      #module_name, module_name##Created, module_name##Destroyed);            \
+  /* This is a global symbol that is referenced from all compilation units */ \
+  /* that include this module. */                                             \
+  void* FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name)         \
+      FIREBASE_APP_KEEP_SYMBOL = &module_name##_app_callback;                 \
   } /* namespace firebase */
 
 // Helper class to provide easy management and static access of
 // ReferenceCountedFutureImpls for modules.
 class StaticFutureData {
  public:
-  explicit StaticFutureData(int num_functions) : api_(num_functions) {}
-  ~StaticFutureData() {}
+  explicit StaticFutureData(int num_functions) : api_(num_functions) {
+  }
+  ~StaticFutureData() {
+  }
 
-  ReferenceCountedFutureImpl* api() { return &api_; }
+  ReferenceCountedFutureImpl* api() {
+    return &api_;
+  }
 
   // Cleanup StaticFutureData for the specified module.
   static void CleanupFutureDataForModule(const void* module_identifier);

@@ -16,9 +16,9 @@
 
 #include "app/src/logger.h"
 #include "app/src/variant_util.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/desktop/core/compound_write.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {
@@ -35,9 +35,11 @@ TEST(InMemoryPersistenceStorageEngine, Constructor) {
 
 class InMemoryPersistenceStorageEngineTest : public ::testing::Test {
  public:
-  InMemoryPersistenceStorageEngineTest() : logger_(), engine_(&logger_) {}
+  InMemoryPersistenceStorageEngineTest() : logger_(), engine_(&logger_) {
+  }
 
-  ~InMemoryPersistenceStorageEngineTest() override {}
+  ~InMemoryPersistenceStorageEngineTest() override {
+  }
 
  protected:
   SystemLogger logger_;
@@ -52,7 +54,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, LoadServerCache) {
   EXPECT_EQ(engine_.LoadServerCache(), Variant::Null());
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveUserOverwrite) {
@@ -72,7 +74,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, SaveUserOverwrite) {
   engine_.EndTransaction();
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveUserMerge) {
@@ -92,7 +94,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, SaveUserMerge) {
   engine_.EndTransaction();
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_RemoveUserWrite) {
@@ -114,10 +116,11 @@ TEST_F(InMemoryPersistenceStorageEngineTest, LoadUserWrites) {
   EXPECT_TRUE(engine_.LoadUserWrites().empty());
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
-TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_RemoveAllUserWrites) {
+TEST_F(InMemoryPersistenceStorageEngineDeathTest,
+       DISABLED_RemoveAllUserWrites) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, RemoveAllUserWrites) {
 #endif
@@ -134,10 +137,11 @@ TEST_F(InMemoryPersistenceStorageEngineTest, RemoveAllUserWrites) {
   engine_.EndTransaction();
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
-TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_OverwriteServerCache) {
+TEST_F(InMemoryPersistenceStorageEngineDeathTest,
+       DISABLED_OverwriteServerCache) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, OverwriteServerCache) {
 #endif
@@ -175,7 +179,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, OverwriteServerCache) {
   // clang-format on
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest,
@@ -225,7 +229,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, MergeIntoServerCache_Variant) {
   // clang-format on
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest,
@@ -295,7 +299,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, ServerCacheEstimatedSizeInBytes) {
             9 * sizeof(Variant) + 4 * kKeyLengths + 2 * kValueLengths);
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveTrackedQuery) {
@@ -315,7 +319,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, SaveTrackedQuery) {
   engine_.EndTransaction();
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_DeleteTrackedQuery) {
@@ -383,7 +387,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, PruneCache) {
   // clang-format on
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest,
@@ -407,10 +411,11 @@ TEST_F(InMemoryPersistenceStorageEngineTest,
   engine_.EndTransaction();
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
-TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_SaveTrackedQueryKeys) {
+TEST_F(InMemoryPersistenceStorageEngineDeathTest,
+       DISABLED_SaveTrackedQueryKeys) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveTrackedQueryKeys) {
 #endif
@@ -419,10 +424,11 @@ TEST_F(InMemoryPersistenceStorageEngineDeathTest, SaveTrackedQueryKeys) {
                DEATHTEST_SIGABRT);
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
-TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_UpdateTrackedQueryKeys) {
+TEST_F(InMemoryPersistenceStorageEngineDeathTest,
+       DISABLED_UpdateTrackedQueryKeys) {
 #else
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, UpdateTrackedQueryKeys) {
 #endif
@@ -463,7 +469,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, TrackedQueryKeys) {
   engine_.EndTransaction();
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_BeginTransaction) {
@@ -480,7 +486,7 @@ TEST_F(InMemoryPersistenceStorageEngineTest, BeginTransaction) {
   EXPECT_TRUE(engine_.BeginTransaction());
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(InMemoryPersistenceStorageEngineDeathTest, DISABLED_EndTransaction) {

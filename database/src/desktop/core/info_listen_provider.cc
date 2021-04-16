@@ -26,7 +26,8 @@ namespace database {
 namespace internal {
 
 void InfoListenProvider::StartListening(const QuerySpec& query_spec,
-                                        const Tag& tag, const View* view) {
+                                        const Tag& tag,
+                                        const View* view) {
   repo_->scheduler().Schedule([this, query_spec]() {
     const Variant& value = VariantGetChild(info_data_, query_spec.path);
     if (!VariantIsEmpty(value)) {
@@ -37,7 +38,8 @@ void InfoListenProvider::StartListening(const QuerySpec& query_spec,
 }
 
 void InfoListenProvider::StopListening(const QuerySpec& query_spec,
-                                       const Tag& tag) {}
+                                       const Tag& tag) {
+}
 
 }  // namespace internal
 }  // namespace database

@@ -65,7 +65,8 @@ View::View(const View& other)
       view_processor_(const_cast<View*>(&other)->view_processor_),
       view_cache_(std::move(const_cast<View*>(&other)->view_cache_)),
       event_registrations_(
-          std::move(const_cast<View*>(&other)->event_registrations_)) {}
+          std::move(const_cast<View*>(&other)->event_registrations_)) {
+}
 
 View& View::operator=(const View& other) {
   query_spec_ = std::move(const_cast<View*>(&other)->query_spec_);
@@ -80,7 +81,8 @@ View::View(View&& other)
     : query_spec_(std::move(other.query_spec_)),
       view_processor_(other.view_processor_),
       view_cache_(std::move(other.view_cache_)),
-      event_registrations_(std::move(other.event_registrations_)) {}
+      event_registrations_(std::move(other.event_registrations_)) {
+}
 
 View& View::operator=(View&& other) {
   query_spec_ = std::move(other.query_spec_);
@@ -90,7 +92,8 @@ View& View::operator=(View&& other) {
   return *this;
 }
 
-View::~View() {}
+View::~View() {
+}
 
 const Variant* View::GetCompleteServerCache(const Path& path) const {
   const Variant* snap = view_cache_.GetCompleteServerSnap();
@@ -146,7 +149,8 @@ std::vector<Event> View::RemoveEventRegistration(void* listener_ptr,
 }
 
 std::vector<Event> View::ApplyOperation(
-    const Operation& operation, const WriteTreeRef& writes_cache,
+    const Operation& operation,
+    const WriteTreeRef& writes_cache,
     const Variant* opt_complete_server_cache,
     std::vector<Change>* out_changes) {
   if (operation.type == Operation::kTypeMerge &&

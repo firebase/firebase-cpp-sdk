@@ -111,7 +111,8 @@ StorageReference StorageReferenceInternal::AsStorageReference() const {
 void StorageReferenceInternal::RestCall(rest::Request* request,
                                         Notifier* request_notifier,
                                         BlockingResponse* response,
-                                        FutureHandle handle, Listener* listener,
+                                        FutureHandle handle,
+                                        Listener* listener,
                                         Controller* controller_out) {
   RestOperation::Start(storage_, AsStorageReference(), request,
                        request_notifier, response, listener, handle,
@@ -302,13 +303,17 @@ Future<size_t> StorageReferenceInternal::GetBytesLastResult() {
 // Asynchronously uploads data to the currently specified StorageReference,
 // without additional metadata.
 Future<Metadata> StorageReferenceInternal::PutBytes(
-    const void* buffer, size_t buffer_size, Listener* listener,
+    const void* buffer,
+    size_t buffer_size,
+    Listener* listener,
     Controller* controller_out) {
   return PutBytes(buffer, buffer_size, nullptr, listener, controller_out);
 }
 
 Future<Metadata> StorageReferenceInternal::PutBytesInternal(
-    const void* buffer, size_t buffer_size, Listener* listener,
+    const void* buffer,
+    size_t buffer_size,
+    Listener* listener,
     Controller* controller_out) {
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutBytes);
@@ -329,8 +334,11 @@ Future<Metadata> StorageReferenceInternal::PutBytesInternal(
 // Asynchronously uploads data to the currently specified StorageReference,
 // with metadata included.
 Future<Metadata> StorageReferenceInternal::PutBytes(
-    const void* buffer, size_t buffer_size, const Metadata* metadata,
-    Listener* listener, Controller* controller_out) {
+    const void* buffer,
+    size_t buffer_size,
+    const Metadata* metadata,
+    Listener* listener,
+    Controller* controller_out) {
   // This is the handle for the actual future returned to the user.
   auto* future_api = future();
   auto handle = future_api->SafeAlloc<Metadata>(kStorageReferenceFnPutBytes);
@@ -479,7 +487,8 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
   struct GetUrlOnCompletionData {
     GetUrlOnCompletionData(ReferenceCountedFutureImpl* future_,
                            SafeFutureHandle<std::string> handle_)
-        : future(future_), handle(handle_) {}
+        : future(future_), handle(handle_) {
+    }
     ReferenceCountedFutureImpl* future;
     SafeFutureHandle<std::string> handle;
   };

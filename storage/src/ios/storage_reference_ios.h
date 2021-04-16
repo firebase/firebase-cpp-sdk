@@ -94,7 +94,8 @@ class StorageReferenceInternal {
   Future<size_t> GetFileLastResult();
 
   // Asynchronously downloads the object from this StorageReferenceInternal.
-  Future<size_t> GetBytes(void* _Nonnull buffer, size_t buffer_size,
+  Future<size_t> GetBytes(void* _Nonnull buffer,
+                          size_t buffer_size,
                           Listener* _Nullable listener,
                           Controller* _Nullable controller_out);
 
@@ -129,13 +130,15 @@ class StorageReferenceInternal {
 
   // Asynchronously uploads data to the currently specified
   // StorageReferenceInternal, without additional metadata.
-  Future<Metadata> PutBytes(const void* _Nonnull buffer, size_t buffer_size,
+  Future<Metadata> PutBytes(const void* _Nonnull buffer,
+                            size_t buffer_size,
                             Listener* _Nullable listener,
                             Controller* _Nullable controller_out);
 
   // Asynchronously uploads data to the currently specified
   // StorageReferenceInternal, without additional metadata.
-  Future<Metadata> PutBytes(const void* _Nonnull buffer, size_t buffer_size,
+  Future<Metadata> PutBytes(const void* _Nonnull buffer,
+                            size_t buffer_size,
                             const Metadata* _Nullable metadata,
                             Listener* _Nullable listener,
                             Controller* _Nullable controller_out);
@@ -160,21 +163,28 @@ class StorageReferenceInternal {
   Future<Metadata> PutFileLastResult();
 
   // StorageInternal instance we are associated with.
-  StorageInternal* _Nullable storage_internal() const { return storage_; }
+  StorageInternal* _Nullable storage_internal() const {
+    return storage_;
+  }
 
  private:
 #ifdef __OBJC__
   void AssignListener(
       FIRStorageObservableTask<FIRStorageTaskManagement>* _Nonnull task,
-      Listener* _Nullable listener, StorageInternal* _Nullable storage);
+      Listener* _Nullable listener,
+      StorageInternal* _Nullable storage);
 
   // Create a download task that will stream data into the specified buffer.
   FIRStorageDownloadTask* _Nonnull CreateStreamingDownloadTask(
-      FIRStorageReference* _Nonnull impl, StorageInternal* _Nonnull storage,
-      FIRStorageVoidDataError _Nonnull completion, void* _Nonnull buffer,
+      FIRStorageReference* _Nonnull impl,
+      StorageInternal* _Nonnull storage,
+      FIRStorageVoidDataError _Nonnull completion,
+      void* _Nonnull buffer,
       size_t buffer_size);
 
-  FIRStorageReference* _Nullable impl() const { return impl_->get(); }
+  FIRStorageReference* _Nullable impl() const {
+    return impl_->get();
+  }
 #endif  // __OBJC__
 
   // Get the Future for the StorageReferenceInternal.

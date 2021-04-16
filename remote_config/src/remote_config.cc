@@ -19,8 +19,8 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/mutex.h"
 #include "app/src/semaphore.h"
-#include "remote_config/src/common.h"
 #include "include/firebase/remote_config.h"
+#include "remote_config/src/common.h"
 
 // QueryInternal is defined in these 3 files, one implementation for each OS.
 #if FIREBASE_PLATFORM_ANDROID
@@ -45,7 +45,9 @@ static Semaphore* g_future_sem_ = nullptr;
 
 namespace internal {
 
-bool IsInitialized() { return g_remote_config_instance != nullptr; }
+bool IsInitialized() {
+  return g_remote_config_instance != nullptr;
+}
 
 }  // namespace internal
 
@@ -172,7 +174,9 @@ const ConfigInfo& GetInfo() {
   return config_info;
 }
 
-Future<void> Fetch() { return Fetch(kDefaultCacheExpiration); }
+Future<void> Fetch() {
+  return Fetch(kDefaultCacheExpiration);
+}
 
 Future<void> Fetch(uint64_t cache_expiration_in_seconds) {
   FIREBASE_ASSERT_RETURN(Future<void>(), internal::IsInitialized());
@@ -253,9 +257,13 @@ RemoteConfig::RemoteConfig(App* app) {
   internal_ = new internal::RemoteConfigInternal(*app);
 }
 
-RemoteConfig::~RemoteConfig() { DeleteInternal(); }
+RemoteConfig::~RemoteConfig() {
+  DeleteInternal();
+}
 
-bool RemoteConfig::InitInternal() { return internal_->Initialized(); }
+bool RemoteConfig::InitInternal() {
+  return internal_->Initialized();
+}
 
 Future<ConfigInfo> RemoteConfig::EnsureInitialized() {
   return internal_->EnsureInitialized();
@@ -265,7 +273,9 @@ Future<ConfigInfo> RemoteConfig::EnsureInitializedLastResult() {
   return internal_->EnsureInitializedLastResult();
 }
 
-Future<bool> RemoteConfig::Activate() { return internal_->Activate(); }
+Future<bool> RemoteConfig::Activate() {
+  return internal_->Activate();
+}
 
 Future<bool> RemoteConfig::ActivateLastResult() {
   return internal_->ActivateLastResult();
@@ -279,7 +289,9 @@ Future<bool> RemoteConfig::FetchAndActivateLastResult() {
   return internal_->FetchAndActivateLastResult();
 }
 
-Future<void> RemoteConfig::Fetch() { return Fetch(GetConfigFetchInterval()); }
+Future<void> RemoteConfig::Fetch() {
+  return Fetch(GetConfigFetchInterval());
+}
 
 Future<void> RemoteConfig::Fetch(uint64_t cache_expiration_in_seconds) {
   return internal_->Fetch(cache_expiration_in_seconds);
@@ -375,7 +387,9 @@ std::map<std::string, Variant> RemoteConfig::GetAll() {
 }
 
 // TODO(b/147143718): Change to a more descriptive name.
-const ConfigInfo RemoteConfig::GetInfo() { return internal_->GetInfo(); }
+const ConfigInfo RemoteConfig::GetInfo() {
+  return internal_->GetInfo();
+}
 
 uint64_t RemoteConfig::GetConfigFetchInterval() {
   uint64_t cache_time =

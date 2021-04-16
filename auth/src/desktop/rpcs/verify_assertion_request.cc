@@ -43,14 +43,17 @@ VerifyAssertionRequest::VerifyAssertionRequest(const char* const api_key,
 }
 
 std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromIdToken(
-    const char* const api_key, const char* const provider_id,
+    const char* const api_key,
+    const char* const provider_id,
     const char* const id_token) {
   return FromIdToken(api_key, provider_id, id_token, /*nonce=*/nullptr);
 }
 
 std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromIdToken(
-    const char* const api_key, const char* const provider_id,
-    const char* const id_token, const char* nonce) {
+    const char* const api_key,
+    const char* const provider_id,
+    const char* const id_token,
+    const char* nonce) {
   auto request = std::unique_ptr<VerifyAssertionRequest>(  // NOLINT
       new VerifyAssertionRequest{api_key, provider_id});
 
@@ -70,15 +73,18 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromIdToken(
 }
 
 std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAccessToken(
-    const char* const api_key, const char* const provider_id,
+    const char* const api_key,
+    const char* const provider_id,
     const char* const access_token) {
   return FromAccessToken(api_key, provider_id, access_token,
-                                /*nonce=*/nullptr);
+                         /*nonce=*/nullptr);
 }
 
 std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAccessToken(
-    const char* const api_key, const char* const provider_id,
-    const char* const access_token, const char* nonce) {
+    const char* const api_key,
+    const char* const provider_id,
+    const char* const access_token,
+    const char* nonce) {
   auto request = std::unique_ptr<VerifyAssertionRequest>(  // NOLINT
       new VerifyAssertionRequest{api_key, provider_id});
 
@@ -99,8 +105,10 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAccessToken(
 
 std::unique_ptr<VerifyAssertionRequest>
 VerifyAssertionRequest::FromAccessTokenAndOAuthSecret(
-    const char* const api_key, const char* const provider_id,
-    const char* const access_token, const char* const oauth_secret) {
+    const char* const api_key,
+    const char* const provider_id,
+    const char* const access_token,
+    const char* const oauth_secret) {
   auto request = std::unique_ptr<VerifyAssertionRequest>(  // NOLINT
       new VerifyAssertionRequest{api_key, provider_id});
 
@@ -124,7 +132,8 @@ static std::unique_ptr<VerifyAssertionRequest> FromAuthCode(
     const char* api_key, const char* provider_id, const char* auth_code);
 
 std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAuthCode(
-    const char* const api_key, const char* const provider_id,
+    const char* const api_key,
+    const char* const provider_id,
     const char* const auth_code) {
   auto request = std::unique_ptr<VerifyAssertionRequest>(  // NOLINT
       new VerifyAssertionRequest{api_key, provider_id});

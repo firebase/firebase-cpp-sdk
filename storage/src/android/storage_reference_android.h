@@ -66,14 +66,17 @@ class StorageReferenceInternal {
   std::string full_path();
 
   // Asynchronously downloads the object from this StorageReferenceInternal.
-  Future<size_t> GetFile(const char* path, Listener* listener,
+  Future<size_t> GetFile(const char* path,
+                         Listener* listener,
                          Controller* controller_out);
 
   // Returns the result of the most recent call to GetFile();
   Future<size_t> GetFileLastResult();
 
   // Asynchronously downloads the object from this StorageReferenceInternal.
-  Future<size_t> GetBytes(void* buffer, size_t buffer_size, Listener* listener,
+  Future<size_t> GetBytes(void* buffer,
+                          size_t buffer_size,
+                          Listener* listener,
                           Controller* controller_out);
 
   // Returns the result of the most recent call to GetBytes();
@@ -104,13 +107,17 @@ class StorageReferenceInternal {
 
   // Asynchronously uploads data to the currently specified
   // StorageReferenceInternal, without additional metadata.
-  Future<Metadata> PutBytes(const void* buffer, size_t buffer_size,
-                            Listener* listener, Controller* controller_out);
+  Future<Metadata> PutBytes(const void* buffer,
+                            size_t buffer_size,
+                            Listener* listener,
+                            Controller* controller_out);
 
   // Asynchronously uploads data to the currently specified
   // StorageReferenceInternal, without additional metadata.
-  Future<Metadata> PutBytes(const void* buffer, size_t buffer_size,
-                            const Metadata* metadata, Listener* listener,
+  Future<Metadata> PutBytes(const void* buffer,
+                            size_t buffer_size,
+                            const Metadata* metadata,
+                            Listener* listener,
                             Controller* controller_out);
 
   // Returns the result of the most recent call to PutBytes();
@@ -118,13 +125,16 @@ class StorageReferenceInternal {
 
   // Asynchronously uploads data to the currently specified
   // StorageReferenceInternal, without additional metadata.
-  Future<Metadata> PutFile(const char* path, Listener* listener,
+  Future<Metadata> PutFile(const char* path,
+                           Listener* listener,
                            Controller* controller_out);
 
   // Asynchronously uploads data to the currently specified
   // StorageReferenceInternal, without additional metadata.
-  Future<Metadata> PutFile(const char* path, const Metadata* metadata,
-                           Listener* listener, Controller* controller_out);
+  Future<Metadata> PutFile(const char* path,
+                           const Metadata* metadata,
+                           Listener* listener,
+                           Controller* controller_out);
 
   // Returns the result of the most recent call to PutFile();
   Future<Metadata> PutFileLastResult();
@@ -135,28 +145,36 @@ class StorageReferenceInternal {
 
   // Called from the Java CppByteDownloader class, this simply writes some bytes
   // into a buffer at the specified offset.
-  static void CppByteDownloaderWriteBytes(JNIEnv* env, jclass clazz,
-                                          jlong buffer_ptr, jlong buffer_size,
+  static void CppByteDownloaderWriteBytes(JNIEnv* env,
+                                          jclass clazz,
+                                          jlong buffer_ptr,
+                                          jlong buffer_size,
                                           jlong buffer_offset,
                                           jbyteArray byte_array,
                                           jlong num_bytes_to_copy);
 
   // Called from the Java CppByteUploader class, this simply reads some bytes
   // from a C++ buffer into a Java buffer at the specified offset.
-  static jint CppByteUploaderReadBytes(JNIEnv* env, jclass clazz,
+  static jint CppByteUploaderReadBytes(JNIEnv* env,
+                                       jclass clazz,
                                        jlong cpp_buffer_pointer,
                                        jlong cpp_buffer_size,
-                                       jlong cpp_buffer_offset, jobject bytes,
+                                       jlong cpp_buffer_offset,
+                                       jobject bytes,
                                        jint bytes_offset,
                                        jint num_bytes_to_read);
 
   // StorageInternal instance we are associated with.
-  StorageInternal* storage_internal() const { return storage_; }
+  StorageInternal* storage_internal() const {
+    return storage_;
+  }
 
  private:
-  static void FutureCallback(JNIEnv* env, jobject result,
+  static void FutureCallback(JNIEnv* env,
+                             jobject result,
                              util::FutureResult result_code,
-                             const char* status_message, void* callback_data);
+                             const char* status_message,
+                             void* callback_data);
 
   // If `listener` is not nullptr, create a Java listener class for it and
   // assign it to the running task, returning the new Java listener.

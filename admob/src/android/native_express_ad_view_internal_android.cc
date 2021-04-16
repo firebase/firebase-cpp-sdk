@@ -91,8 +91,9 @@ Future<void> NativeExpressAdViewInternalAndroid::Initialize(
 
   jstring ad_unit_id_str = env->NewStringUTF(ad_unit_id);
 
-  env->CallVoidMethod(helper_, native_express_ad_view_helper::GetMethodId(
-                                   native_express_ad_view_helper::kInitialize),
+  env->CallVoidMethod(helper_,
+                      native_express_ad_view_helper::GetMethodId(
+                          native_express_ad_view_helper::kInitialize),
                       reinterpret_cast<jlong>(callback_data), activity,
                       ad_unit_id_str, static_cast<jint>(size.ad_size_type),
                       static_cast<jint>(size.width),
@@ -112,8 +113,9 @@ Future<void> NativeExpressAdViewInternalAndroid::LoadAd(
   jobject request_ref = converter.GetJavaRequestObject();
 
   ::firebase::admob::GetJNI()->CallVoidMethod(
-      helper_, native_express_ad_view_helper::GetMethodId(
-                   native_express_ad_view_helper::kLoadAd),
+      helper_,
+      native_express_ad_view_helper::GetMethodId(
+          native_express_ad_view_helper::kLoadAd),
       reinterpret_cast<jlong>(callback_data), request_ref);
 
   return GetLastResult(kNativeExpressAdViewFnLoadAd);
@@ -151,8 +153,9 @@ Future<void> NativeExpressAdViewInternalAndroid::MoveTo(int x, int y) {
       CreateFutureCallbackData(&future_data_, kNativeExpressAdViewFnMoveTo);
 
   ::firebase::admob::GetJNI()->CallVoidMethod(
-      helper_, native_express_ad_view_helper::GetMethodId(
-                   native_express_ad_view_helper::kMoveToXY),
+      helper_,
+      native_express_ad_view_helper::GetMethodId(
+          native_express_ad_view_helper::kMoveToXY),
       reinterpret_cast<jlong>(callback_data), x, y);
 
   return GetLastResult(kNativeExpressAdViewFnMoveTo);
@@ -164,8 +167,9 @@ Future<void> NativeExpressAdViewInternalAndroid::MoveTo(
       CreateFutureCallbackData(&future_data_, kNativeExpressAdViewFnMoveTo);
 
   ::firebase::admob::GetJNI()->CallVoidMethod(
-      helper_, native_express_ad_view_helper::GetMethodId(
-                   native_express_ad_view_helper::kMoveToPosition),
+      helper_,
+      native_express_ad_view_helper::GetMethodId(
+          native_express_ad_view_helper::kMoveToPosition),
       reinterpret_cast<jlong>(callback_data), static_cast<int>(position));
 
   return GetLastResult(kNativeExpressAdViewFnMoveTo);

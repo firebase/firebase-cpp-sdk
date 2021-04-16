@@ -16,11 +16,16 @@ class Array : public Object {
   using jni_type = JniType<Array<T>>;
 
   Array() = default;
-  explicit Array(jni_type array) : Object(array) {}
+  explicit Array(jni_type array) : Object(array) {
+  }
 
-  jni_type get() const override { return static_cast<jni_type>(Object::get()); }
+  jni_type get() const override {
+    return static_cast<jni_type>(Object::get());
+  }
 
-  size_t Size(Env& env) const { return env.GetArrayLength(*this); }
+  size_t Size(Env& env) const {
+    return env.GetArrayLength(*this);
+  }
 
   Local<T> Get(Env& env, size_t i) const {
     return env.GetArrayElement<T>(*this, i);

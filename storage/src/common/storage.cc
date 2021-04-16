@@ -38,14 +38,11 @@
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(
-    storage,
-    {
-      return ::firebase::kInitResultSuccess;
-    },
-    {
-        // Nothing to tear down.
-    });
+FIREBASE_APP_REGISTER_CALLBACKS(storage,
+                                { return ::firebase::kInitResultSuccess; },
+                                {
+                                    // Nothing to tear down.
+                                });
 
 namespace firebase {
 namespace storage {
@@ -60,7 +57,8 @@ Storage* Storage::GetInstance(::firebase::App* app,
   return GetInstance(app, nullptr, init_result_out);
 }
 
-Storage* Storage::GetInstance(::firebase::App* app, const char* url,
+Storage* Storage::GetInstance(::firebase::App* app,
+                              const char* url,
                               InitResult* init_result_out) {
   MutexLock lock(g_storages_lock);
   if (!g_storages) {
@@ -157,7 +155,9 @@ void Storage::DeleteInternal() {
   }
 }
 
-Storage::~Storage() { DeleteInternal(); }
+Storage::~Storage() {
+  DeleteInternal();
+}
 
 ::firebase::App* Storage::app() {
   return internal_ ? internal_->app() : nullptr;

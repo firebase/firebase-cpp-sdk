@@ -23,15 +23,15 @@
 #include <cstdio>
 #include <string>
 
-#include "app/rest/request.h"
-#include "app/rest/response.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
-#include "net/http2/server/lib/public/httpserver2.h"
-#include "net/util/ports.h"
 #include "absl/strings/str_format.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/time/time.h"
+#include "app/rest/request.h"
+#include "app/rest/response.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "net/http2/server/lib/public/httpserver2.h"
+#include "net/util/ports.h"
 #include "util/task/status.h"
 
 namespace firebase {
@@ -126,7 +126,9 @@ TEST_F(TransportCurlTest, TestGlobalInitAndCleanup) {
   CleanupTransportCurl();
 }
 
-TEST_F(TransportCurlTest, TestCreation) { TransportCurl curl; }
+TEST_F(TransportCurlTest, TestCreation) {
+  TransportCurl curl;
+}
 
 TEST_F(TransportCurlTest, TestHttpGet) {
   Request request;

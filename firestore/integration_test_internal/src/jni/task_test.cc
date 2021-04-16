@@ -1,13 +1,13 @@
 #include "firestore/src/jni/task.h"
 
+#include "android/cancellation_token_source.h"
+#include "android/firestore_integration_test_android.h"
+#include "android/task_completion_source.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
 #include "firestore/src/jni/string.h"
 #include "firestore/src/jni/throwable.h"
-#include "android/cancellation_token_source.h"
-#include "android/firestore_integration_test_android.h"
-#include "android/task_completion_source.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 

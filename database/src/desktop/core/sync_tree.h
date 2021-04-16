@@ -51,9 +51,11 @@ class SyncTree {
       : pending_write_tree_(std::move(pending_write_tree)),
         persistence_manager_(std::move(persistence_manager)),
         next_query_tag_(1L),
-        listen_provider_(std::move(listen_provider)) {}
+        listen_provider_(std::move(listen_provider)) {
+  }
 
-  virtual ~SyncTree() {}
+  virtual ~SyncTree() {
+  }
 
   // Returns true if the SyncTree does not contain any SyncPoints.
   virtual bool IsEmpty();
@@ -61,7 +63,8 @@ class SyncTree {
   // Acknowlege that a write was received by the server, and whether it was
   // accepted or rejected (meaning that is should be reverted) and generate any
   // necessary events that result from the change to the sync tree.
-  virtual std::vector<Event> AckUserWrite(WriteId write_id, AckStatus revert,
+  virtual std::vector<Event> AckUserWrite(WriteId write_id,
+                                          AckStatus revert,
                                           Persist persist,
                                           int64_t server_time_offset);
 
@@ -87,7 +90,8 @@ class SyncTree {
   // Apply a merge from the server to the given path, and generate any necessary
   // events that result from the change to the sync tree.
   virtual std::vector<Event> ApplyTaggedQueryMerge(
-      const Path& path, const std::map<Path, Variant>& changed_children,
+      const Path& path,
+      const std::map<Path, Variant>& changed_children,
       const Tag& tag);
 
   // Listening is now complete at the given location (which can be for a number
@@ -108,14 +112,20 @@ class SyncTree {
   // Apply a merge from the user to the given path, and generate any necessary
   // events that result from the change to the sync tree.
   virtual std::vector<Event> ApplyUserMerge(
-      const Path& path, const CompoundWrite& unresolved_children,
-      const CompoundWrite& children, const WriteId write_id, Persist persist);
+      const Path& path,
+      const CompoundWrite& unresolved_children,
+      const CompoundWrite& children,
+      const WriteId write_id,
+      Persist persist);
 
   // Apply an overwrite from the user to the given path, and generate any
   // necessary events that result from the change to the sync tree.
   virtual std::vector<Event> ApplyUserOverwrite(
-      const Path& path, const Variant& unresolved_new_data,
-      const Variant& new_data, WriteId write_id, OverwriteVisibility visibility,
+      const Path& path,
+      const Variant& unresolved_new_data,
+      const Variant& new_data,
+      WriteId write_id,
+      OverwriteVisibility visibility,
       Persist persist);
 
   // Remove all pending writes to the server, and generate any necessary revert
@@ -156,8 +166,10 @@ class SyncTree {
 
   // Recursive helper for ApplyOperationToSyncPoints
   std::vector<Event> ApplyOperationDescendantsHelper(
-      const Operation& operation, Tree<SyncPoint>* sync_point_tree,
-      const Variant* server_cache, WriteTreeRef* writes_cache);
+      const Operation& operation,
+      Tree<SyncPoint>* sync_point_tree,
+      const Variant* server_cache,
+      WriteTreeRef* writes_cache);
 
   // Apply the operation to all applicable SyncPoints.
   std::vector<Event> ApplyOperationToSyncPoints(const Operation& operation);

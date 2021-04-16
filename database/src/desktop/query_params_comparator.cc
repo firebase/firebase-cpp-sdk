@@ -33,9 +33,11 @@ const char QueryParamsComparator::kMaxKey[] = "[MAX_KEY]";
 // directly - they should only be used with the QueryParamsComparator, which
 // uses the Variant::type() to do comparisons.
 static const Variant kMinVariant = Variant::FromStaticBlob(  // NOLINT
-    QueryParamsComparator::kMinKey, sizeof(QueryParamsComparator::kMinKey));
+    QueryParamsComparator::kMinKey,
+    sizeof(QueryParamsComparator::kMinKey));
 static const Variant kMaxVariant = Variant::FromStaticBlob(  // NOLINT
-    QueryParamsComparator::kMaxKey, sizeof(QueryParamsComparator::kMaxKey));
+    QueryParamsComparator::kMaxKey,
+    sizeof(QueryParamsComparator::kMaxKey));
 
 const std::pair<Variant, Variant> QueryParamsComparator::kMinNode =  // NOLINT
     std::make_pair(QueryParamsComparator::kMinKey, kMinVariant);
@@ -52,7 +54,8 @@ static int VariantIsSentinel(const Variant& key, const Variant& value) {
   }
 }
 
-int QueryParamsComparator::Compare(const Variant& key_a, const Variant& value_a,
+int QueryParamsComparator::Compare(const Variant& key_a,
+                                   const Variant& value_a,
                                    const Variant& key_b,
                                    const Variant& value_b) const {
   assert(key_a.is_string() || key_a.is_int64());

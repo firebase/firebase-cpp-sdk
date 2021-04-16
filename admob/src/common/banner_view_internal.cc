@@ -35,7 +35,8 @@ namespace admob {
 namespace internal {
 
 BannerViewInternal::BannerViewInternal(BannerView* base)
-    : base_(base), future_data_(kBannerViewFnCount), listener_(nullptr) {}
+    : base_(base), future_data_(kBannerViewFnCount), listener_(nullptr) {
+}
 
 BannerViewInternal* BannerViewInternal::CreateInstance(BannerView* base) {
 #if FIREBASE_PLATFORM_ANDROID

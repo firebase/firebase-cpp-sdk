@@ -28,13 +28,18 @@ namespace internal {
 class InfoListenProvider : public ListenProvider {
  public:
   InfoListenProvider(Repo* repo, Variant* info_data)
-      : repo_(repo), info_data_(info_data), sync_tree_(nullptr) {}
+      : repo_(repo), info_data_(info_data), sync_tree_(nullptr) {
+  }
 
-  ~InfoListenProvider() override {}
+  ~InfoListenProvider() override {
+  }
 
-  void set_sync_tree(SyncTree* sync_tree) { sync_tree_ = sync_tree; }
+  void set_sync_tree(SyncTree* sync_tree) {
+    sync_tree_ = sync_tree;
+  }
 
-  void StartListening(const QuerySpec& query_spec, const Tag& tag,
+  void StartListening(const QuerySpec& query_spec,
+                      const Tag& tag,
                       const View* view) override;
 
   void StopListening(const QuerySpec& query_spec, const Tag& tag) override;

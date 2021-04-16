@@ -31,9 +31,13 @@ void LogMessageV(bool filtered, const char* format, va_list list);
 
 enum LogLevel g_log_level = kInfo;
 
-void SetLogLevel(LogLevel log_level) { g_log_level = log_level; }
+void SetLogLevel(LogLevel log_level) {
+  g_log_level = log_level;
+}
 
-LogLevel GetLogLevel() { return g_log_level; }
+LogLevel GetLogLevel() {
+  return g_log_level;
+}
 
 void LogDebug(const char* format, ...) {
   va_list list;
@@ -80,7 +84,8 @@ int64_t GetCurrentTimeInMicroseconds() {
 #endif  // !defined(_WIN32)
 
 #if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-void ChangeToFileDirectory(const char*) {}
+void ChangeToFileDirectory(const char*) {
+}
 #endif  // defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
 

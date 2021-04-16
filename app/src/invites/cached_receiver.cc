@@ -26,9 +26,12 @@ CachedReceiver::CachedReceiver()
     : match_strength_(kLinkMatchStrengthNoMatch),
       result_code_(0),
       has_pending_invite_(false),
-      receiver_(nullptr) {}
+      receiver_(nullptr) {
+}
 
-CachedReceiver::~CachedReceiver() { SetReceiver(nullptr); }
+CachedReceiver::~CachedReceiver() {
+  SetReceiver(nullptr);
+}
 
 ReceiverInterface* CachedReceiver::SetReceiver(ReceiverInterface* receiver) {
   MutexLock lock(lock_);
@@ -56,8 +59,10 @@ void CachedReceiver::NotifyReceiver(ReceiverInterface* receiver) {
 }
 
 void CachedReceiver::ReceivedInviteCallback(
-    const std::string& invitation_id, const std::string& deep_link_url,
-    InternalLinkMatchStrength match_strength, int result_code,
+    const std::string& invitation_id,
+    const std::string& deep_link_url,
+    InternalLinkMatchStrength match_strength,
+    int result_code,
     const std::string& error_message) {
   MutexLock lock(lock_);
   // If there is already a pending invite, don't override it with an empty

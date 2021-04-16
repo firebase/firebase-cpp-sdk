@@ -21,8 +21,8 @@
 #include "app/src/logger.h"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/persistence/flatbuffer_conversions.h"
-#include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
+#include "testing/base/public/gmock.h"
 
 using testing::Eq;
 using testing::Pointwise;
@@ -70,7 +70,9 @@ class LevelDbPersistenceStorageEngineTest : public ::testing::Test {
     engine_ = new LevelDbPersistenceStorageEngine(&logger_);
   }
 
-  void TearDown() override { delete engine_; }
+  void TearDown() override {
+    delete engine_;
+  }
 
   // All tests should start with this. This sets the path Level DB should read
   // from and write to, and caches that path so that when we re-start Level DB

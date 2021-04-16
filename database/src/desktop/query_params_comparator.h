@@ -61,14 +61,18 @@ namespace internal {
 //    kOrderByKey rules.
 class QueryParamsComparator {
  public:
-  QueryParamsComparator() : query_params_(nullptr) {}
+  QueryParamsComparator() : query_params_(nullptr) {
+  }
 
   explicit QueryParamsComparator(const QueryParams* query_params)
-      : query_params_(query_params) {}
+      : query_params_(query_params) {
+  }
 
   // Compare two database values given their key and value.
-  int Compare(const Variant& key_a, const Variant& value_a,
-              const Variant& key_b, const Variant& value_b) const;
+  int Compare(const Variant& key_a,
+              const Variant& value_a,
+              const Variant& key_b,
+              const Variant& value_b) const;
 
   // Compare two database values given their key and value.
   int Compare(const std::pair<Variant, Variant>& a,
@@ -100,9 +104,11 @@ class QueryParamsComparator {
 // as the std::set's comparator argument.
 class QueryParamsLesser {
  public:
-  QueryParamsLesser() : comparator_() {}
+  QueryParamsLesser() : comparator_() {
+  }
   explicit QueryParamsLesser(const QueryParams* query_params)
-      : comparator_(query_params) {}
+      : comparator_(query_params) {
+  }
 
   bool operator()(const std::pair<Variant, Variant>& a,
                   const std::pair<Variant, Variant>& b) const {

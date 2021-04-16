@@ -24,9 +24,12 @@
 // [END functions_includes]
 
 // Stub functions to allow sample functions to compile.
-void DisplayError(firebase::functions::Error code, const char *message) {}
-void DisplayResult(int result) {}
-void DisplayResult(const std::string& result) {}
+void DisplayError(firebase::functions::Error code, const char* message) {
+}
+void DisplayResult(int result) {
+}
+void DisplayResult(const std::string& result) {
+}
 
 // [START define_functions_instance]
 firebase::functions::Functions* functions;
@@ -82,7 +85,7 @@ void OnAddNumbersCallback(
     return;
   }
 
-  const firebase::functions::HttpsCallableResult *result = future.result();
+  const firebase::functions::HttpsCallableResult* result = future.result();
   firebase::Variant data = result->data();
   // This will assert if the result returned from the function wasn't a map with
   // a number for the "operationResult" result key.
@@ -95,10 +98,10 @@ void OnAddNumbersCallback(
 
 // [START_EXCLUDE]
 void AddNumbersAndDisplay(int firstNumber, int secondNumber) {
-// [END_EXCLUDE]
+  // [END_EXCLUDE]
   auto future = AddNumbers(firstNumber, secondNumber);
   future.OnCompletion(OnAddNumbersCallback);
-// [START_EXCLUDE]
+  // [START_EXCLUDE]
 }
 // [END_EXCLUDE]
 // [END call_add_numbers]
@@ -116,7 +119,7 @@ void OnAddMessageCallback(
     return;
   }
 
-  const firebase::functions::HttpsCallableResult *result = future.result();
+  const firebase::functions::HttpsCallableResult* result = future.result();
   firebase::Variant data = result->data();
   // This will assert if the result returned from the function wasn't a string.
   std::string message = data.string_value();
@@ -128,10 +131,10 @@ void OnAddMessageCallback(
 
 // [START_EXCLUDE]
 void AddMessageAndDisplay(const std::string& message) {
-// [END_EXCLUDE]
+  // [END_EXCLUDE]
   auto future = AddMessage(message);
   future.OnCompletion(OnAddMessageCallback);
-// [START_EXCLUDE]
+  // [START_EXCLUDE]
 }
 // [END_EXCLUDE]
 // [END call_add_message]

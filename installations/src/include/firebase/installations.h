@@ -58,7 +58,9 @@ class Installations {
   /// @brief Get the App this object is connected to.
   ///
   /// @return App this object is connected to.
-  App* app() const { return app_; }
+  App* app() const {
+    return app_;
+  }
 
   /// @brief Returns the Installations object for an App creating the
   /// Installations if required.

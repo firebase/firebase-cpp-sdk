@@ -145,7 +145,8 @@ std::string StorageReference::full_path() {
   return internal_ ? internal_->full_path() : std::string();
 }
 
-Future<size_t> StorageReference::GetFile(const char* path, Listener* listener,
+Future<size_t> StorageReference::GetFile(const char* path,
+                                         Listener* listener,
                                          Controller* controller_out) {
   return internal_ ? internal_->GetFile(path, listener, controller_out)
                    : Future<size_t>();
@@ -155,7 +156,8 @@ Future<size_t> StorageReference::GetFileLastResult() {
   return internal_ ? internal_->GetFileLastResult() : Future<size_t>();
 }
 
-Future<size_t> StorageReference::GetBytes(void* buffer, size_t buffer_size,
+Future<size_t> StorageReference::GetBytes(void* buffer,
+                                          size_t buffer_size,
                                           Listener* listener,
                                           Controller* controller_out) {
   return internal_ ? internal_->GetBytes(buffer, buffer_size, listener,
@@ -226,7 +228,8 @@ Future<Metadata> StorageReference::PutBytesLastResult() {
   return internal_ ? internal_->PutBytesLastResult() : Future<Metadata>();
 }
 
-Future<Metadata> StorageReference::PutFile(const char* path, Listener* listener,
+Future<Metadata> StorageReference::PutFile(const char* path,
+                                           Listener* listener,
                                            Controller* controller_out) {
   return internal_ ? internal_->PutFile(path, listener, controller_out)
                    : Future<Metadata>();
@@ -246,7 +249,9 @@ Future<Metadata> StorageReference::PutFileLastResult() {
   return internal_ ? internal_->PutFileLastResult() : Future<Metadata>();
 }
 
-bool StorageReference::is_valid() const { return internal_ != nullptr; }
+bool StorageReference::is_valid() const {
+  return internal_ != nullptr;
+}
 
 }  // namespace storage
 }  // namespace firebase

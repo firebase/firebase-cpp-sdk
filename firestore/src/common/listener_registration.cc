@@ -23,7 +23,8 @@ namespace firestore {
 
 using CleanupFnListenerRegistration = CleanupFn<ListenerRegistration>;
 
-ListenerRegistration::ListenerRegistration() : ListenerRegistration(nullptr) {}
+ListenerRegistration::ListenerRegistration() : ListenerRegistration(nullptr) {
+}
 
 ListenerRegistration::ListenerRegistration(
     const ListenerRegistration& registration)

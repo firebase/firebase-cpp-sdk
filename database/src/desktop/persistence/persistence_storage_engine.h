@@ -33,25 +33,31 @@ typedef int64_t WriteId;
 // A pending write to the server.
 struct UserWriteRecord {
   UserWriteRecord()
-      : write_id(), path(), overwrite(), merge(), visible(), is_overwrite() {}
+      : write_id(), path(), overwrite(), merge(), visible(), is_overwrite() {
+  }
 
-  UserWriteRecord(WriteId _write_id, const Path& _path,
-                  const Variant& _overwrite, bool _visible)
+  UserWriteRecord(WriteId _write_id,
+                  const Path& _path,
+                  const Variant& _overwrite,
+                  bool _visible)
       : write_id(_write_id),
         path(_path),
         overwrite(_overwrite),
         merge(),
         visible(_visible),
-        is_overwrite(true) {}
+        is_overwrite(true) {
+  }
 
-  UserWriteRecord(WriteId _write_id, const Path& _path,
+  UserWriteRecord(WriteId _write_id,
+                  const Path& _path,
                   const CompoundWrite& _merge)
       : write_id(_write_id),
         path(_path),
         overwrite(),
         merge(_merge),
         visible(true),
-        is_overwrite(false) {}
+        is_overwrite(false) {
+  }
 
   // The unique write ID used to identify this write.
   WriteId write_id;
@@ -94,7 +100,8 @@ inline bool operator==(const UserWriteRecord& lhs, const UserWriteRecord& rhs) {
 //     query.
 class PersistenceStorageEngine {
  public:
-  virtual ~PersistenceStorageEngine() {}
+  virtual ~PersistenceStorageEngine() {
+  }
   // Write data to the local cache, overwriting the data at the given path.
   // Additionally, log that this write occurred so that when the database is
   // online again it can send updates.
@@ -102,7 +109,8 @@ class PersistenceStorageEngine {
   // @param path The path for this write
   // @param data The data for this write
   // @param write_id The write id that was used for this write
-  virtual void SaveUserOverwrite(const Path& path, const Variant& data,
+  virtual void SaveUserOverwrite(const Path& path,
+                                 const Variant& data,
                                  WriteId write_id) = 0;
 
   // Write data to the local cache, merging the data at the given path.
@@ -112,7 +120,8 @@ class PersistenceStorageEngine {
   // @param path The path for this merge
   // @param children The children for this merge
   // @param write_id The write id that was used for this merge
-  virtual void SaveUserMerge(const Path& path, const CompoundWrite& children,
+  virtual void SaveUserMerge(const Path& path,
+                             const CompoundWrite& children,
                              WriteId write_id) = 0;
 
   // Remove a write with the given write id.

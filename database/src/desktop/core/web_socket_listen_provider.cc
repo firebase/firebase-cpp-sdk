@@ -30,23 +30,39 @@ using connection::ResponsePtr;
 class WebSocketListenResponse : public connection::Response {
  public:
   WebSocketListenResponse(const Response::ResponseCallback& callback,
-                          const Repo::ThisRef& repo_ref, SyncTree* sync_tree,
-                          const QuerySpec& query_spec, const Tag& tag,
-                          const View* view, Logger* logger)
+                          const Repo::ThisRef& repo_ref,
+                          SyncTree* sync_tree,
+                          const QuerySpec& query_spec,
+                          const Tag& tag,
+                          const View* view,
+                          Logger* logger)
       : connection::Response(callback),
         repo_ref_(repo_ref),
         sync_tree_(sync_tree),
         query_spec_(query_spec),
         tag_(tag),
         view_(view),
-        logger_(logger) {}
+        logger_(logger) {
+  }
 
-  Repo::ThisRef& repo_ref() { return repo_ref_; }
-  SyncTree* sync_tree() { return sync_tree_; }
-  const QuerySpec& query_spec() const { return query_spec_; }
-  const Tag& tag() const { return tag_; }
-  const View* view() const { return view_; }
-  Logger* logger() { return logger_; }
+  Repo::ThisRef& repo_ref() {
+    return repo_ref_;
+  }
+  SyncTree* sync_tree() {
+    return sync_tree_;
+  }
+  const QuerySpec& query_spec() const {
+    return query_spec_;
+  }
+  const Tag& tag() const {
+    return tag_;
+  }
+  const View* view() const {
+    return view_;
+  }
+  Logger* logger() {
+    return logger_;
+  }
 
  private:
   Repo::ThisRef repo_ref_;
@@ -58,7 +74,8 @@ class WebSocketListenResponse : public connection::Response {
 };
 
 void WebSocketListenProvider::StartListening(const QuerySpec& query_spec,
-                                             const Tag& tag, const View* view) {
+                                             const Tag& tag,
+                                             const View* view) {
   connection_->Listen(
       query_spec, tag,
       MakeShared<WebSocketListenResponse>(

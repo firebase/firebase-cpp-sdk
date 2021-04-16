@@ -45,17 +45,17 @@ class RewardedVideoInternalIOS : public RewardedVideoInternal {
 
 #ifdef __OBJC__
   void RewardBasedVideoAdDidReceiveAd(
-      GADRewardBasedVideoAd *reward_based_video_ad);
-  void RewardBasedVideoAdDidOpen(GADRewardBasedVideoAd *reward_based_video_ad);
+      GADRewardBasedVideoAd* reward_based_video_ad);
+  void RewardBasedVideoAdDidOpen(GADRewardBasedVideoAd* reward_based_video_ad);
   void RewardBasedVideoAdDidStartPlaying(
-      GADRewardBasedVideoAd *reward_based_video_ad);
+      GADRewardBasedVideoAd* reward_based_video_ad);
   void RewardBasedVideoAdDidCompletePlaying(
-      GADRewardBasedVideoAd *reward_based_video_ad);
-  void RewardBasedVideoAdDidClose(GADRewardBasedVideoAd *reward_based_video_ad);
+      GADRewardBasedVideoAd* reward_based_video_ad);
+  void RewardBasedVideoAdDidClose(GADRewardBasedVideoAd* reward_based_video_ad);
   void RewardBasedVideoAdDidRewardUserWithReward(
-      GADRewardBasedVideoAd *reward_based_video_ad, GADAdReward *reward);
+      GADRewardBasedVideoAd* reward_based_video_ad, GADAdReward* reward);
   void RewardBasedVideoAdDidFailToLoadWithError(
-      GADRewardBasedVideoAd *reward_based_video_ad, NSError *error);
+      GADRewardBasedVideoAd* reward_based_video_ad, NSError* error);
 #endif  // __OBJC__
 
  private:

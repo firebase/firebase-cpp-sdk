@@ -20,8 +20,8 @@
 #include "database/src/desktop/core/indexed_variant.h"
 #include "database/src/desktop/util_desktop.h"
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::Eq;
 using ::testing::Ne;
@@ -113,7 +113,8 @@ std::string QueryParamsToString(const QueryParams& params) {
 
 // Validate the index created by IndexedVariant and its order
 void VerifyIndex(const Variant* input_variant,
-                 const QueryParams* input_query_params, TestList* expected) {
+                 const QueryParams* input_query_params,
+                 TestList* expected) {
   // IndexedVariant supports 4 types of constructor:
   //   IndexedVariant() - both input_variant and input_query_params are null
   //   IndexedVariant(Variant) - only input_query_params is null
@@ -262,8 +263,10 @@ TEST(IndexedVariant, ConstructorTestDefaultQueryParamsNoPriority) {
 // Therefore this class is friended by IndexedVariant
 class IndexedVariantGetOrderByVariantTest : public ::testing::Test {
  protected:
-  void RunTest(const QueryParams& params, const Variant& key,
-               const TestList& value_result_list, const char* test_name) {
+  void RunTest(const QueryParams& params,
+               const Variant& key,
+               const TestList& value_result_list,
+               const char* test_name) {
     IndexedVariant indexed_variant(Variant::Null(), params);
 
     for (auto& test : value_result_list) {

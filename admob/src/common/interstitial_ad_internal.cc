@@ -35,7 +35,8 @@ namespace admob {
 namespace internal {
 
 InterstitialAdInternal::InterstitialAdInternal(InterstitialAd* base)
-    : base_(base), future_data_(kInterstitialAdFnCount), listener_(nullptr) {}
+    : base_(base), future_data_(kInterstitialAdFnCount), listener_(nullptr) {
+}
 
 InterstitialAdInternal* InterstitialAdInternal::CreateInstance(
     InterstitialAd* base) {

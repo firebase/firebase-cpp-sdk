@@ -42,7 +42,9 @@ namespace database {
 
 using internal::QueryInternal;
 
-static Query GetInvalidQuery() { return Query(); }
+static Query GetInvalidQuery() {
+  return Query();
+}
 
 typedef CleanupFn<Query, QueryInternal> CleanupFnQuery;
 
@@ -216,7 +218,9 @@ Query Query::LimitToLast(size_t limit) {
   return internal_ ? Query(internal_->LimitToLast(limit)) : Query(nullptr);
 }
 
-bool Query::is_valid() const { return internal_ != nullptr; }
+bool Query::is_valid() const {
+  return internal_ != nullptr;
+}
 
 }  // namespace database
 }  // namespace firebase

@@ -33,32 +33,34 @@ class EventRegistration;
 // acted upon by a listener.
 struct Event {
   Event()
-      : type(),
-        event_registration(),
-        snapshot(),
-        prev_name(),
-        error(),
-        path() {}
+      : type(), event_registration(), snapshot(), prev_name(), error(), path() {
+  }
 
-  Event(EventType _type, EventRegistration* _event_registration,
+  Event(EventType _type,
+        EventRegistration* _event_registration,
         const DataSnapshotInternal& _snapshot)
       : type(_type),
         event_registration(_event_registration),
         snapshot(_snapshot),
         prev_name(),
         error(kErrorNone),
-        path() {}
+        path() {
+  }
 
-  Event(EventType _type, EventRegistration* _event_registration,
-        const DataSnapshotInternal& _snapshot, const std::string& _prev_name)
+  Event(EventType _type,
+        EventRegistration* _event_registration,
+        const DataSnapshotInternal& _snapshot,
+        const std::string& _prev_name)
       : type(_type),
         event_registration(_event_registration),
         snapshot(_snapshot),
         prev_name(_prev_name),
         error(kErrorNone),
-        path() {}
+        path() {
+  }
 
-  Event(UniquePtr<EventRegistration> _event_registration, Error _error,
+  Event(UniquePtr<EventRegistration> _event_registration,
+        Error _error,
         const Path& _path)
       : type(kEventTypeError),
         event_registration(_event_registration.get()),

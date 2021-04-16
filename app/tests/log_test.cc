@@ -15,8 +15,8 @@
  */
 
 #include "app/src/log.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 // The test-cases here are by no means exhaustive. We only make sure the log

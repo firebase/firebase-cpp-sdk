@@ -21,7 +21,9 @@ void Double::Initialize(Loader& loader) {
   loader.LoadFromExistingClass(kClassName, g_clazz, kConstructor, kDoubleValue);
 }
 
-Class Double::GetClass() { return Class(g_clazz); }
+Class Double::GetClass() {
+  return Class(g_clazz);
+}
 
 Local<Double> Double::Create(Env& env, double value) {
   return env.New(kConstructor, value);

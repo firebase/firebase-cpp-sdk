@@ -66,13 +66,15 @@ class LoggerBase {
   // Handles the filtering for any message passed to it. If the log level of the
   // message is greater than or equal to the log level of the logger, the
   // message will be passed along to LogMessageImplV.
-  void FilterLogMessageV(LogLevel log_level, const char* format,
+  void FilterLogMessageV(LogLevel log_level,
+                         const char* format,
                          va_list args) const;
 
   // LogMessageImplV is responsible for doing the actual logging. It should pass
   // along the format string and arguments to whatever library calls handle
   // displaying logs for the given platform.
-  virtual void LogMessageImplV(LogLevel log_level, const char* format,
+  virtual void LogMessageImplV(LogLevel log_level,
+                               const char* format,
                                va_list args) const = 0;
 };
 
@@ -90,7 +92,8 @@ class SystemLogger : public LoggerBase {
   //
   // In Firebase we already have a whole set of wrappers around system level
   // logging, so this merely calls through to ::firebase::LogMessageV.
-  void LogMessageImplV(LogLevel log_level, const char* format,
+  void LogMessageImplV(LogLevel log_level,
+                       const char* format,
                        va_list args) const override;
 };
 
@@ -103,9 +106,11 @@ class SystemLogger : public LoggerBase {
 class Logger : public LoggerBase {
  public:
   explicit Logger(const LoggerBase* parent_logger)
-      : parent_logger_(parent_logger), log_level_(kDefaultLogLevel) {}
+      : parent_logger_(parent_logger), log_level_(kDefaultLogLevel) {
+  }
   Logger(const LoggerBase* parent_logger, LogLevel log_level)
-      : parent_logger_(parent_logger), log_level_(log_level) {}
+      : parent_logger_(parent_logger), log_level_(log_level) {
+  }
 
   ~Logger() override;
 
@@ -115,7 +120,8 @@ class Logger : public LoggerBase {
 
  private:
   // Passes messages to the parent logger to be displayed.
-  void LogMessageImplV(LogLevel log_level, const char* format,
+  void LogMessageImplV(LogLevel log_level,
+                       const char* format,
                        va_list args) const override;
 
   const LoggerBase* parent_logger_;

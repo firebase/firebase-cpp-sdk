@@ -24,8 +24,8 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/locale.h"
 #include "app/tests/include/firebase/app_for_testing.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/config.h"
 
 namespace firebase {
@@ -51,7 +51,9 @@ class RemoteConfigRESTTest : public ::testing::Test {
     SetupContent();
   }
 
-  void TearDown() override { delete app_; }
+  void TearDown() override {
+    delete app_;
+  }
 
   void SetupContent() {
     std::map<std::string, std::string> empty_map;

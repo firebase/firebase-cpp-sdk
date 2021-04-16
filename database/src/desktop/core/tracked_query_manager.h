@@ -40,20 +40,20 @@ struct TrackedQuery {
   enum ActivityStatus { kInactive, kActive };
 
   TrackedQuery()
-      : query_id(0),
-        query_spec(),
-        last_use(0),
-        complete(false),
-        active(false) {}
+      : query_id(0), query_spec(), last_use(0), complete(false), active(false) {
+  }
 
-  TrackedQuery(QueryId _query_id, const QuerySpec& _query_spec,
-               uint64_t _last_use, CompletionStatus _complete,
+  TrackedQuery(QueryId _query_id,
+               const QuerySpec& _query_spec,
+               uint64_t _last_use,
+               CompletionStatus _complete,
                ActivityStatus _active)
       : query_id(_query_id),
         query_spec(_query_spec),
         last_use(_last_use),
         complete(_complete == kComplete),
-        active(_active == kActive) {}
+        active(_active == kActive) {
+  }
 
   // The globally unique identifier for this tracked query.
   QueryId query_id;

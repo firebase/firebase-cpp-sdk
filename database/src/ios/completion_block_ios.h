@@ -39,17 +39,20 @@ namespace internal {
 
 template <typename T>
 struct FutureCallbackData {
-  FutureCallbackData(SafeFutureHandle<T> handle_, ReferenceCountedFutureImpl *_Nonnull impl_)
-      : handle(handle_), impl(impl_), database(nullptr) {}
+  FutureCallbackData(SafeFutureHandle<T> handle_,
+                     ReferenceCountedFutureImpl* _Nonnull impl_)
+      : handle(handle_), impl(impl_), database(nullptr) {
+  }
   SafeFutureHandle<T> handle;
-  ReferenceCountedFutureImpl *_Nonnull impl;
-  DatabaseInternal *_Nullable database;
+  ReferenceCountedFutureImpl* _Nonnull impl;
+  DatabaseInternal* _Nullable database;
 };
 
-typedef void (^CompletionBlock)(NSError *_Nullable, FIRDatabaseReference *_Nonnull);
+typedef void (^CompletionBlock)(NSError* _Nullable,
+                                FIRDatabaseReference* _Nonnull);
 
-CompletionBlock _Nonnull CreateCompletionBlock(SafeFutureHandle<void> handle,
-                                               ReferenceCountedFutureImpl *_Nonnull future);
+CompletionBlock _Nonnull CreateCompletionBlock(
+    SafeFutureHandle<void> handle, ReferenceCountedFutureImpl* _Nonnull future);
 
 }  // namespace internal
 }  // namespace database

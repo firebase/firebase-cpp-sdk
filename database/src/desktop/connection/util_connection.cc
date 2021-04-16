@@ -22,8 +22,10 @@ namespace internal {
 namespace connection {
 
 UniquePtr<WebSocketClientInterface> CreateWebSocketClient(
-    const HostInfo& info, WebSocketClientEventHandler* delegate,
-    const char* opt_last_session_id, Logger* logger,
+    const HostInfo& info,
+    WebSocketClientEventHandler* delegate,
+    const char* opt_last_session_id,
+    Logger* logger,
     scheduler::Scheduler* scheduler) {
   // Currently we use uWebSockets implementation.
   std::string uri = info.GetConnectionUrl(opt_last_session_id);

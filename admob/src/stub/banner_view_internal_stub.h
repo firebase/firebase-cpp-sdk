@@ -28,12 +28,14 @@ namespace internal {
 /// Future for each method.
 class BannerViewInternalStub : public BannerViewInternal {
  public:
-  explicit BannerViewInternalStub(BannerView* base)
-      : BannerViewInternal(base) {}
+  explicit BannerViewInternalStub(BannerView* base) : BannerViewInternal(base) {
+  }
 
-  ~BannerViewInternalStub() override {}
+  ~BannerViewInternalStub() override {
+  }
 
-  Future<void> Initialize(AdParent parent, const char* ad_unit_id,
+  Future<void> Initialize(AdParent parent,
+                          const char* ad_unit_id,
                           AdSize size) override {
     return CreateAndCompleteFutureStub(kBannerViewFnInitialize);
   }

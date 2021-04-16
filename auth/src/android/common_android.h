@@ -50,14 +50,18 @@ template <typename T>
 struct FutureCallbackData {
   // During the callback, read `result` data from Java into the returned
   // C++ data in `d->future_data->Data()`.
-  typedef void ReadFutureResultFn(jobject result, FutureCallbackData* d,
-                                  bool success, void* void_data);
+  typedef void ReadFutureResultFn(jobject result,
+                                  FutureCallbackData* d,
+                                  bool success,
+                                  void* void_data);
 
-  FutureCallbackData(const SafeFutureHandle<T>& handle, AuthData* auth_data,
+  FutureCallbackData(const SafeFutureHandle<T>& handle,
+                     AuthData* auth_data,
                      ReadFutureResultFn* future_data_read_fn)
       : handle(handle),
         auth_data(auth_data),
-        future_data_read_fn(future_data_read_fn) {}
+        future_data_read_fn(future_data_read_fn) {
+  }
 
   SafeFutureHandle<T> handle;
   AuthData* auth_data;
@@ -66,15 +70,20 @@ struct FutureCallbackData {
 
 // The `ReadFutureResultFn` for `SignIn` APIs.
 // Reads the `AuthResult` in `result` and initialize the `User*` in `void_data`.
-void ReadSignInResult(jobject result, FutureCallbackData<SignInResult>* d,
-                      bool success, void* void_data);
+void ReadSignInResult(jobject result,
+                      FutureCallbackData<SignInResult>* d,
+                      bool success,
+                      void* void_data);
 
 // The `ReadFutureResultFn` for `SignIn` APIs.
 // Reads the `AuthResult` in `result` and initialize the `User*` in `void_data`.
-void ReadUserFromSignInResult(jobject result, FutureCallbackData<User*>* d,
-                              bool success, void* void_data);
+void ReadUserFromSignInResult(jobject result,
+                              FutureCallbackData<User*>* d,
+                              bool success,
+                              void* void_data);
 
-inline void ReadAdditionalUserInfo(JNIEnv* env, jobject j_additional_user_info,
+inline void ReadAdditionalUserInfo(JNIEnv* env,
+                                   jobject j_additional_user_info,
                                    AdditionalUserInfo* info) {
   if (j_additional_user_info == nullptr) {
     *info = AdditionalUserInfo();
@@ -105,7 +114,9 @@ inline void ReadAdditionalUserInfo(JNIEnv* env, jobject j_additional_user_info,
 }
 
 // Return the JNI environment.
-inline JNIEnv* Env(AuthData* auth_data) { return auth_data->app->GetJNIEnv(); }
+inline JNIEnv* Env(AuthData* auth_data) {
+  return auth_data->app->GetJNIEnv();
+}
 
 // Convert j_local (a local reference) into a global reference, delete the local
 // reference, and set the impl pointer to the new global reference.
@@ -125,11 +136,15 @@ inline jobject UserImpl(AuthData* auth_data) {
 }
 
 // Return a platform-independent representation of Java's FirebaseUser class.
-inline void* ImplFromUser(jobject user) { return static_cast<void*>(user); }
+inline void* ImplFromUser(jobject user) {
+  return static_cast<void*>(user);
+}
 
 // Return the Java FirebaseUser class from our platform-independent
 // representation.
-inline jobject UserFromImpl(void* impl) { return static_cast<jobject>(impl); }
+inline jobject UserFromImpl(void* impl) {
+  return static_cast<jobject>(impl);
+}
 
 // Return the Java Credential class from our platform-independent
 // representation.
@@ -144,7 +159,8 @@ void ReleaseUserClasses(JNIEnv* env);
 
 // Cache the method ids so we don't have to look up JNI functions by name.
 bool CacheCredentialMethodIds(
-    JNIEnv* env, jobject activity,
+    JNIEnv* env,
+    jobject activity,
     const std::vector<internal::EmbeddedFile>& embedded_files);
 // Release credential classes cached by CacheCredentialMethodIds().
 void ReleaseCredentialClasses(JNIEnv* env);
@@ -169,14 +185,18 @@ AuthError CheckAndClearJniAuthExceptions(JNIEnv* env,
 
 // Checks for Future success / failure or Android based exceptions, and maps
 // them to corresponding AuthError codes.
-AuthError MapFutureCallbackResultToAuthError(JNIEnv* env, jobject result,
+AuthError MapFutureCallbackResultToAuthError(JNIEnv* env,
+                                             jobject result,
                                              util::FutureResult result_code,
                                              bool* success);
 
 // The function called by the Java thread when a result completes.
 template <typename T>
-void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
-                    const char* status_message, void* callback_data) {
+void FutureCallback(JNIEnv* env,
+                    jobject result,
+                    util::FutureResult result_code,
+                    const char* status_message,
+                    void* callback_data) {
   FutureCallbackData<T>* data =
       static_cast<FutureCallbackData<T>*>(callback_data);
   bool success = false;
@@ -199,7 +219,8 @@ void FutureCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
 
 // The function called by the Java thread when a result completes.
 template <typename T>
-void FederatedAuthProviderFutureCallback(JNIEnv* env, jobject result,
+void FederatedAuthProviderFutureCallback(JNIEnv* env,
+                                         jobject result,
                                          util::FutureResult result_code,
                                          const char* status_message,
                                          void* callback_data) {
@@ -234,7 +255,9 @@ void FederatedAuthProviderFutureCallback(JNIEnv* env, jobject result,
 // data from Java, and then complete the Future for `handle`.
 template <typename T>
 void RegisterCallback(
-    jobject pending_result, SafeFutureHandle<T> handle, AuthData* auth_data,
+    jobject pending_result,
+    SafeFutureHandle<T> handle,
+    AuthData* auth_data,
     typename FutureCallbackData<T>::ReadFutureResultFn read_result_fn) {
   // The FutureCallbackData structure is deleted in FutureCallback().
   util::RegisterCallbackOnTask(
@@ -250,7 +273,9 @@ void RegisterCallback(
 // with the existing API behavior for other sign in events.
 template <typename T>
 void RegisterFederatedAuthProviderCallback(
-    jobject pending_result, SafeFutureHandle<T> handle, AuthData* auth_data,
+    jobject pending_result,
+    SafeFutureHandle<T> handle,
+    AuthData* auth_data,
     typename FutureCallbackData<T>::ReadFutureResultFn read_result_fn) {
   // The FutureCallbackData structure is deleted in
   // FederatedAuthProviderFutureCallback().

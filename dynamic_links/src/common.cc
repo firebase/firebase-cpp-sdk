@@ -23,19 +23,19 @@
 #include "dynamic_links/src/include/firebase/dynamic_links.h"
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(dynamic_links,
-                                {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    return firebase::dynamic_links::Initialize(
-                                        *app, nullptr);
-                                  }
-                                  return kInitResultSuccess;
-                                },
-                                {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    firebase::dynamic_links::Terminate();
-                                  }
-                                });
+FIREBASE_APP_REGISTER_CALLBACKS(
+    dynamic_links,
+    {
+      if (app == ::firebase::App::GetInstance()) {
+        return firebase::dynamic_links::Initialize(*app, nullptr);
+      }
+      return kInitResultSuccess;
+    },
+    {
+      if (app == ::firebase::App::GetInstance()) {
+        firebase::dynamic_links::Terminate();
+      }
+    });
 
 namespace firebase {
 namespace dynamic_links {
@@ -47,8 +47,11 @@ const char kDynamicLinksModuleName[] = "dynamic_links";
 // Notifies a listener of a cached invite.
 class CachedListenerNotifier : public invites::internal::ReceiverInterface {
  public:
-  CachedListenerNotifier() : listener_(nullptr) {}
-  virtual ~CachedListenerNotifier() { SetListener(nullptr); }
+  CachedListenerNotifier() : listener_(nullptr) {
+  }
+  virtual ~CachedListenerNotifier() {
+    SetListener(nullptr);
+  }
 
   // Set the listener which should be notified of any cached or receiver
   // links.
@@ -65,9 +68,11 @@ class CachedListenerNotifier : public invites::internal::ReceiverInterface {
   // result_code should be non-zero. Otherwise, either invitation_id should be
   // set, or deep_link_url should be set, or both.
   void ReceivedInviteCallback(
-      const std::string& invitation_id, const std::string& deep_link_url,
+      const std::string& invitation_id,
+      const std::string& deep_link_url,
       invites::internal::InternalLinkMatchStrength match_strength,
-      int result_code, const std::string& error_message) override {
+      int result_code,
+      const std::string& error_message) override {
     MutexLock lock(lock_);
     if (listener_) {
       if (!deep_link_url.empty()) {
@@ -110,7 +115,9 @@ void FutureData::Destroy() {
 }
 
 // Get the Future data singleton.
-FutureData* FutureData::Get() { return s_future_data_; }
+FutureData* FutureData::Get() {
+  return s_future_data_;
+}
 
 bool CreateReceiver(const App& app) {
   assert(!g_cached_receiver && !g_receiver);

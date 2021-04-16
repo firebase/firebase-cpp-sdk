@@ -32,12 +32,14 @@ namespace internal {
 // existing path will modify that existing write to reflect the write added.
 class CompoundWrite {
  public:
-  CompoundWrite() : write_tree_() {}
+  CompoundWrite() : write_tree_() {
+  }
 
   // Create a compound write from a tree of variants, where each variant in the
   // tree represents a write at that location.
   explicit CompoundWrite(const Tree<Variant>& write_tree)
-      : write_tree_(write_tree) {}
+      : write_tree_(write_tree) {
+  }
 
   // Create a CompoundWrite from a map of strings (that represent database
   // Paths) to Variants, where each variant in the map represents a write at the
@@ -69,8 +71,7 @@ class CompoundWrite {
   // Incorperate the new value to write at the given path.
   void AddWriteInline(const Path& path, const Optional<Variant>& variant);
   void AddWriteInline(const Path& path, const Variant& value);
-  void AddWriteInline(const std::string& key,
-    const Optional<Variant>& value);
+  void AddWriteInline(const std::string& key, const Optional<Variant>& value);
   void AddWriteInline(const std::string& key, const Variant& value);
 
   // Create a new CompoundWrite that incorperates all of the writes in the given
@@ -122,7 +123,9 @@ class CompoundWrite {
   // writes from this CompoundWrite applied to the variant.
   Variant Apply(const Variant& variant) const;
 
-  const Tree<Variant>& write_tree() const { return write_tree_; }
+  const Tree<Variant>& write_tree() const {
+    return write_tree_;
+  }
 
   bool operator==(const CompoundWrite& other) const {
     return write_tree_ == other.write_tree_;

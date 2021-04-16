@@ -28,7 +28,9 @@ class PlayGamesAuthProvider;
 
 class PlayGamesAuthCredential : public IdentityProviderCredential {
  public:
-  std::string GetProvider() const override { return kPlayGamesAuthProviderId; }
+  std::string GetProvider() const override {
+    return kPlayGamesAuthProviderId;
+  }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
       const char* const api_key) const override {
@@ -38,7 +40,8 @@ class PlayGamesAuthCredential : public IdentityProviderCredential {
 
  private:
   explicit PlayGamesAuthCredential(const std::string& server_auth_code)
-      : server_auth_code_(server_auth_code) {}
+      : server_auth_code_(server_auth_code) {
+  }
 
   const std::string server_auth_code_;
 

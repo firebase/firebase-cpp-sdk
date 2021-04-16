@@ -27,7 +27,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, readonly) firebase::admob::BoundingBox boundingBox;
 
 /// The banner view's presentation state.
-@property(nonatomic, readonly) firebase::admob::BannerView::PresentationState presentationState;
+@property(nonatomic, readonly)
+    firebase::admob::BannerView::PresentationState presentationState;
 
 /// Unavailable (NSObject).
 - (instancetype)init NS_UNAVAILABLE;
@@ -36,18 +37,20 @@ NS_ASSUME_NONNULL_BEGIN
 - (instancetype)initWithFrame:(CGRect)frame NS_UNAVAILABLE;
 
 /// Unavailable (UIView).
-- (instancetype)initWithCoder:(NSCoder *)coder NS_UNAVAILABLE;
+- (instancetype)initWithCoder:(NSCoder*)coder NS_UNAVAILABLE;
 
-/// Designated Initializer. Returns a FADBannerView object with the publisher-provided UIView (the
-/// parent view of FADBannerView), ad unit ID, ad size, and BannerViewInternalIOS object.
-- (instancetype)initWithView:(UIView *)view
-                    adUnitID:(NSString *)adUnitID
+/// Designated Initializer. Returns a FADBannerView object with the
+/// publisher-provided UIView (the parent view of FADBannerView), ad unit ID, ad
+/// size, and BannerViewInternalIOS object.
+- (instancetype)initWithView:(UIView*)view
+                    adUnitID:(NSString*)adUnitID
                       adSize:(firebase::admob::AdSize)adSize
-          internalBannerView:(firebase::admob::internal::BannerViewInternalIOS *)cppBannerView
+          internalBannerView:
+              (firebase::admob::internal::BannerViewInternalIOS*)cppBannerView
     NS_DESIGNATED_INITIALIZER;
 
 /// Requests a banner ad.
-- (void)loadRequest:(GADRequest *)request;
+- (void)loadRequest:(GADRequest*)request;
 
 /// Hides the banner view.
 - (void)hide;
@@ -62,7 +65,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)moveBannerViewToXCoordinate:(int)x yCoordinate:(int)y;
 
 /// Moves the banner view to a BannerView::Position.
-- (void)moveBannerViewToPosition:(firebase::admob::BannerView::Position)position;
+- (void)moveBannerViewToPosition:
+    (firebase::admob::BannerView::Position)position;
 
 @end
 

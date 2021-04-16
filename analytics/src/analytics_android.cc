@@ -108,7 +108,9 @@ void Initialize(const ::firebase::App& app) {
 namespace internal {
 
 // Determine whether the analytics module is initialized.
-bool IsInitialized() { return g_app != nullptr; }
+bool IsInitialized() {
+  return g_app != nullptr;
+}
 
 }  // namespace internal
 
@@ -159,7 +161,9 @@ void LogEvent(JNIEnv* env, const char* name, BuildBundleFunction build_bundle) {
 }
 
 // Add a string to a Bundle.
-void AddToBundle(JNIEnv* env, jobject bundle, const char* key,
+void AddToBundle(JNIEnv* env,
+                 jobject bundle,
+                 const char* key,
                  const char* value) {
   jstring key_string = env->NewStringUTF(key);
   jstring value_string = env->NewStringUTF(value);
@@ -191,7 +195,8 @@ void AddToBundle(JNIEnv* env, jobject bundle, const char* key, int64_t value) {
 }
 
 // Log an event with one string parameter.
-void LogEvent(const char* name, const char* parameter_name,
+void LogEvent(const char* name,
+              const char* parameter_name,
               const char* parameter_value) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   JNIEnv* env = g_app->GetJNIEnv();
@@ -201,7 +206,8 @@ void LogEvent(const char* name, const char* parameter_name,
 }
 
 // Log an event with one float parameter.
-void LogEvent(const char* name, const char* parameter_name,
+void LogEvent(const char* name,
+              const char* parameter_name,
               const double parameter_value) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   JNIEnv* env = g_app->GetJNIEnv();
@@ -211,7 +217,8 @@ void LogEvent(const char* name, const char* parameter_name,
 }
 
 // Log an event with one 64-bit integer parameter.
-void LogEvent(const char* name, const char* parameter_name,
+void LogEvent(const char* name,
+              const char* parameter_name,
               const int64_t parameter_value) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   JNIEnv* env = g_app->GetJNIEnv();
@@ -221,7 +228,8 @@ void LogEvent(const char* name, const char* parameter_name,
 }
 
 /// Log an event with one integer parameter (stored as a 64-bit integer).
-void LogEvent(const char* name, const char* parameter_name,
+void LogEvent(const char* name,
+              const char* parameter_name,
               const int parameter_value) {
   LogEvent(name, parameter_name, static_cast<int64_t>(parameter_value));
 }
@@ -232,7 +240,8 @@ void LogEvent(const char* name) {
 }
 
 // Log an event with associated parameters.
-void LogEvent(const char* name, const Parameter* parameters,
+void LogEvent(const char* name,
+              const Parameter* parameters,
               size_t number_of_parameters) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   JNIEnv* env = g_app->GetJNIEnv();
@@ -313,7 +322,8 @@ namespace {
 // Data passed into SetCurrentScreen, stored here because it is needed on a
 // different thread.
 struct SetCurrentScreenData {
-  SetCurrentScreenData() : screen_name(nullptr), screen_class(nullptr) {}
+  SetCurrentScreenData() : screen_name(nullptr), screen_class(nullptr) {
+  }
   SetCurrentScreenData(const char* screen_name_, const char* screen_class_)
       : screen_name(screen_name_ ? new std::string(screen_name_) : nullptr),
         screen_class(screen_class_ ? new std::string(screen_class_) : nullptr) {
@@ -401,9 +411,9 @@ Future<std::string> GetAnalyticsInstanceId() {
             FutureHandle handle(future_id);
             future_data->api()->CompleteWithResult(
                 handle, success ? 0 : -1,
-                success ? ""
-                        : status_message ? status_message
-                                         : "Unknown error occurred",
+                success          ? ""
+                : status_message ? status_message
+                                 : "Unknown error occurred",
                 // Both JStringToString and GetMessageFromException are
                 // able to handle a nullptr being passed in, and neither
                 // deletes the object passed in (so delete it below).

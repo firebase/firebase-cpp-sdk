@@ -22,17 +22,17 @@
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/platform.h"
+#include "app/src/time.h"
 #include "app/tests/include/firebase/app_for_testing.h"
 #include "auth/src/include/firebase/auth.h"
 #include "auth/src/include/firebase/auth/user.h"
-#include "app/src/time.h"
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
 #undef __ANDROID__
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/config.h"
 #include "testing/ticker.h"
 
@@ -177,7 +177,7 @@ class UserTest : public ::testing::Test {
 
     // Wait for the app to finish any remaining tasks in queue,
     // specifically delete app data from persistent cache after SignOut.
-    // This is to avoid race conditions where the next test's SignIn 
+    // This is to avoid race conditions where the next test's SignIn
     // doesn't cause a change in auth state or id tokens because persistent
     // cache has valid user logged in, preventing listeners from firing.
     firebase::internal::Sleep(200);
@@ -336,10 +336,12 @@ TEST_F(UserTest, TestReauthenticate) {
   firebase::testing::cppsdk::ConfigSet(config.c_str());
 
   Credential credential = EmailAuthProvider::GetCredential("i@email.com", "pw");
-  Future<User*> sign_in_result = firebase_auth_->SignInWithCredential(credential);
+  Future<User*> sign_in_result =
+      firebase_auth_->SignInWithCredential(credential);
   Verify(sign_in_result);
 
-  Future<void> reauthenticate_result = firebase_user_->Reauthenticate(credential);
+  Future<void> reauthenticate_result =
+      firebase_user_->Reauthenticate(credential);
   Verify(reauthenticate_result);
 }
 

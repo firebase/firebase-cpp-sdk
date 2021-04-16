@@ -135,13 +135,19 @@ void FirebaseAdMobTest::TearDownTestSuite() {
   shared_app_ = nullptr;
 }
 
-FirebaseAdMobTest::FirebaseAdMobTest() {}
+FirebaseAdMobTest::FirebaseAdMobTest() {
+}
 
-FirebaseAdMobTest::~FirebaseAdMobTest() {}
+FirebaseAdMobTest::~FirebaseAdMobTest() {
+}
 
-void FirebaseAdMobTest::SetUp() { FirebaseTest::SetUp(); }
+void FirebaseAdMobTest::SetUp() {
+  FirebaseTest::SetUp();
+}
 
-void FirebaseAdMobTest::TearDown() { FirebaseTest::TearDown(); }
+void FirebaseAdMobTest::TearDown() {
+  FirebaseTest::TearDown();
+}
 
 firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
   // Sample keywords to use in making the request.
@@ -200,7 +206,9 @@ firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
 
 // Test cases below.
 
-TEST_F(FirebaseAdMobTest, TestGetAdRequest) { GetAdRequest(); }
+TEST_F(FirebaseAdMobTest, TestGetAdRequest) {
+  GetAdRequest();
+}
 
 // A simple listener to help test changes to a BannerView.
 class TestBannerViewListener : public firebase::admob::BannerView::Listener {
@@ -430,7 +438,9 @@ TEST_F(FirebaseAdMobTest, TestInterstitialAd) {
 class TestRewardedVideoListener
     : public firebase::admob::rewarded_video::Listener {
  public:
-  TestRewardedVideoListener() { got_reward_ = false; }
+  TestRewardedVideoListener() {
+    got_reward_ = false;
+  }
   void OnRewarded(firebase::admob::rewarded_video::RewardItem reward) override {
     got_reward_ = true;
     reward_type_ = reward.reward_type;
@@ -502,8 +512,8 @@ TEST_F(FirebaseAdMobTest, TestRewardedVideoAd) {
 // Test runs & compiles for phones only.
 
 struct ThreadArgs {
-      firebase::admob::BannerView* banner;
-      sem_t* semaphore;
+  firebase::admob::BannerView* banner;
+  sem_t* semaphore;
 };
 
 static void* DeleteBannerViewOnSignal(void* args) {

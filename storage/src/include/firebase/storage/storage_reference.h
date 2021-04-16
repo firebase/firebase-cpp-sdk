@@ -49,7 +49,8 @@ class StorageReference {
   /// @brief Default constructor. This creates an invalid StorageReference.
   /// Attempting to perform any operations on this reference will fail unless a
   /// valid StorageReference has been assigned to it.
-  StorageReference() : internal_(nullptr) {}
+  StorageReference() : internal_(nullptr) {
+  }
 
   ~StorageReference();
 
@@ -150,7 +151,8 @@ class StorageReference {
   /// control the write operation.
   ///
   /// @returns A future that returns the number of bytes read.
-  Future<size_t> GetFile(const char* path, Listener* listener = nullptr,
+  Future<size_t> GetFile(const char* path,
+                         Listener* listener = nullptr,
                          Controller* controller_out = nullptr);
 
   /// @brief Returns the result of the most recent call to GetFile();
@@ -177,7 +179,8 @@ class StorageReference {
   /// control the write operation.
   ///
   /// @returns A future that returns the number of bytes read.
-  Future<size_t> GetBytes(void* buffer, size_t buffer_size,
+  Future<size_t> GetBytes(void* buffer,
+                          size_t buffer_size,
                           Listener* listener = nullptr,
                           Controller* controller_out = nullptr);
 
@@ -254,7 +257,8 @@ class StorageReference {
   /// control the write operation.
   ///
   /// @returns A future that returns the Metadata.
-  Future<Metadata> PutBytes(const void* buffer, size_t buffer_size,
+  Future<Metadata> PutBytes(const void* buffer,
+                            size_t buffer_size,
                             Listener* listener = nullptr,
                             Controller* controller_out = nullptr);
 
@@ -276,7 +280,8 @@ class StorageReference {
   /// control the write operation.
   ///
   /// @returns A future that returns the Metadata.
-  Future<Metadata> PutBytes(const void* buffer, size_t buffer_size,
+  Future<Metadata> PutBytes(const void* buffer,
+                            size_t buffer_size,
                             const Metadata& metadata,
                             Listener* listener = nullptr,
                             Controller* controller_out = nullptr);
@@ -301,7 +306,8 @@ class StorageReference {
   /// control the write operation.
   ///
   /// @returns A future that returns the Metadata.
-  Future<Metadata> PutFile(const char* path, Listener* listener = nullptr,
+  Future<Metadata> PutFile(const char* path,
+                           Listener* listener = nullptr,
                            Controller* controller_out = nullptr);
 
   /// @brief Asynchronously uploads data to the currently specified
@@ -321,7 +327,8 @@ class StorageReference {
   /// control the write operation.
   ///
   /// @returns A future that returns the Metadata.
-  Future<Metadata> PutFile(const char* path, const Metadata& metadata,
+  Future<Metadata> PutFile(const char* path,
+                           const Metadata& metadata,
                            Listener* listener = nullptr,
                            Controller* controller_out = nullptr);
 

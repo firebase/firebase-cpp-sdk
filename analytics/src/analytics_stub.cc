@@ -41,7 +41,9 @@ void Initialize(const ::firebase::App& /*app*/) {
 namespace internal {
 
 // Determine whether the analytics module is initialized.
-bool IsInitialized() { return g_initialized; }
+bool IsInitialized() {
+  return g_initialized;
+}
 
 }  // namespace internal
 
@@ -58,25 +60,29 @@ void SetAnalyticsCollectionEnabled(bool /*enabled*/) {
 }
 
 // Log an event with one string parameter.
-void LogEvent(const char* /*name*/, const char* /*parameter_name*/,
+void LogEvent(const char* /*name*/,
+              const char* /*parameter_name*/,
               const char* /*parameter_value*/) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 }
 
 // Log an event with one double parameter.
-void LogEvent(const char* /*name*/, const char* /*parameter_name*/,
+void LogEvent(const char* /*name*/,
+              const char* /*parameter_name*/,
               const double /*parameter_value*/) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 }
 
 // Log an event with one 64-bit integer parameter.
-void LogEvent(const char* /*name*/, const char* /*parameter_name*/,
+void LogEvent(const char* /*name*/,
+              const char* /*parameter_name*/,
               const int64_t /*parameter_value*/) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 }
 
 // Log an event with one integer parameter (stored as a 64-bit integer).
-void LogEvent(const char* name, const char* parameter_name,
+void LogEvent(const char* name,
+              const char* parameter_name,
               const int parameter_value) {
   LogEvent(name, parameter_name, static_cast<int64_t>(parameter_value));
 }
@@ -88,7 +94,8 @@ void LogEvent(const char* name) {
 }
 
 // Log an event with associated parameters.
-void LogEvent(const char* /*name*/, const Parameter* /*parameters*/,
+void LogEvent(const char* /*name*/,
+              const Parameter* /*parameters*/,
               size_t /*number_of_parameters*/) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 }

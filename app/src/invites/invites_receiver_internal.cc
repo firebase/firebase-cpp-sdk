@@ -108,8 +108,10 @@ void InvitesReceiverInternal::Fetch() {
 }
 
 void InvitesReceiverInternal::ReceivedInviteCallback(
-    const std::string& invitation_id, const std::string& deep_link_url,
-    InternalLinkMatchStrength match_strength, int result_code,
+    const std::string& invitation_id,
+    const std::string& deep_link_url,
+    InternalLinkMatchStrength match_strength,
+    int result_code,
     const std::string& error_message) {
   LogDebug(
       "Received link: invite_id=%s url=%s match_strength=%d result=%d "
@@ -150,7 +152,8 @@ Future<void> InvitesReceiverInternal::ConvertInvitationLastResult() {
 }
 
 void InvitesReceiverInternal::ConvertedInviteCallback(
-    const std::string& invitation_id, int result_code,
+    const std::string& invitation_id,
+    int result_code,
     std::string error_message) {
   future_impl_.Complete(future_handle_convert_, result_code,
                         error_message.c_str());

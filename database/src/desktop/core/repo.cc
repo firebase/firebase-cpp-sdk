@@ -56,17 +56,25 @@ scheduler::Scheduler* Repo::s_scheduler_;
 // triggered.
 class TransactionResponse : public connection::Response {
  public:
-  TransactionResponse(const Repo::ThisRef& repo, const Path& path,
+  TransactionResponse(const Repo::ThisRef& repo,
+                      const Path& path,
                       const std::vector<TransactionDataPtr> queue,
                       ResponseCallback callback)
       : connection::Response(callback),
         repo_ref_(repo),
         path_(path),
-        queue_(queue) {}
+        queue_(queue) {
+  }
 
-  Repo::ThisRef& repo_ref() { return repo_ref_; }
-  const Path& path() { return path_; }
-  std::vector<TransactionDataPtr>& queue() { return queue_; }
+  Repo::ThisRef& repo_ref() {
+    return repo_ref_;
+  }
+  const Path& path() {
+    return path_;
+  }
+  std::vector<TransactionDataPtr>& queue() {
+    return queue_;
+  }
 
  private:
   // Database reference to call HandleTransactionResponse()
@@ -79,8 +87,11 @@ class TransactionResponse : public connection::Response {
   std::vector<TransactionDataPtr> queue_;
 };
 
-Repo::Repo(App* app, DatabaseInternal* database, const char* url,
-           Logger* logger, bool persistence_enabled)
+Repo::Repo(App* app,
+           DatabaseInternal* database,
+           const char* url,
+           Logger* logger,
+           bool persistence_enabled)
     : database_(database),
       host_info_(),
       persistence_enabled_(persistence_enabled),
@@ -161,9 +172,12 @@ void Repo::RemoveEventCallback(void* listener_ptr,
 
 class OnDisconnectResponse : public connection::Response {
  public:
-  OnDisconnectResponse(Repo* repo, const SafeFutureHandle<void>& handle,
-                       ReferenceCountedFutureImpl* ref_future, const Path& path,
-                       const Variant& data, ResponseCallback callback)
+  OnDisconnectResponse(Repo* repo,
+                       const SafeFutureHandle<void>& handle,
+                       ReferenceCountedFutureImpl* ref_future,
+                       const Path& path,
+                       const Variant& data,
+                       ResponseCallback callback)
       : connection::Response(callback),
         repo_(repo),
         handle_(handle),
@@ -181,9 +195,15 @@ class OnDisconnectResponse : public connection::Response {
     }
   }
 
-  Repo* repo() const { return repo_; }
-  const Path& path() const { return path_; }
-  const Variant& data() const { return data_; }
+  Repo* repo() const {
+    return repo_;
+  }
+  const Path& path() const {
+    return path_;
+  }
+  const Variant& data() const {
+    return data_;
+  }
 
  private:
   Repo* repo_;
@@ -195,7 +215,8 @@ class OnDisconnectResponse : public connection::Response {
 
 void Repo::OnDisconnectSetValue(const SafeFutureHandle<void>& handle,
                                 ReferenceCountedFutureImpl* ref_future,
-                                const Path& path, const Variant& data) {
+                                const Path& path,
+                                const Variant& data) {
   connection::ResponsePtr response = MakeShared<OnDisconnectResponse>(
       this, handle, ref_future, path, data,
       [](const connection::ResponsePtr& ptr) {
@@ -254,7 +275,8 @@ void Repo::OnDisconnectCancel(const SafeFutureHandle<void>& handle,
 
 void Repo::OnDisconnectUpdate(const SafeFutureHandle<void>& handle,
                               ReferenceCountedFutureImpl* ref_future,
-                              const Path& path, const Variant& data) {
+                              const Path& path,
+                              const Variant& data) {
   connection::ResponsePtr response = MakeShared<OnDisconnectResponse>(
       this, handle, ref_future, path, data,
       [](const connection::ResponsePtr& ptr) {
@@ -303,21 +325,35 @@ void Repo::PurgeOutstandingWrites() {
 // triggered.
 class SetValueResponse : public connection::Response {
  public:
-  SetValueResponse(const Repo::ThisRef& repo, const Path& path,
-                   WriteId write_id, ReferenceCountedFutureImpl* api,
-                   SafeFutureHandle<void> handle, ResponseCallback callback)
+  SetValueResponse(const Repo::ThisRef& repo,
+                   const Path& path,
+                   WriteId write_id,
+                   ReferenceCountedFutureImpl* api,
+                   SafeFutureHandle<void> handle,
+                   ResponseCallback callback)
       : connection::Response(callback),
         repo_ref_(repo),
         path_(path),
         write_id_(write_id),
         api_(api),
-        handle_(handle) {}
+        handle_(handle) {
+  }
 
-  Repo::ThisRef& repo_ref() { return repo_ref_; }
-  const Path& path() { return path_; }
-  WriteId write_id() { return write_id_; }
-  ReferenceCountedFutureImpl* api() { return api_; }
-  SafeFutureHandle<void> handle() { return handle_; }
+  Repo::ThisRef& repo_ref() {
+    return repo_ref_;
+  }
+  const Path& path() {
+    return path_;
+  }
+  WriteId write_id() {
+    return write_id_;
+  }
+  ReferenceCountedFutureImpl* api() {
+    return api_;
+  }
+  SafeFutureHandle<void> handle() {
+    return handle_;
+  }
 
  private:
   // Repo reference
@@ -333,7 +369,8 @@ class SetValueResponse : public connection::Response {
   SafeFutureHandle<void> handle_;
 };
 
-void Repo::SetValue(const Path& path, const Variant& new_data_unresolved,
+void Repo::SetValue(const Path& path,
+                    const Variant& new_data_unresolved,
                     ReferenceCountedFutureImpl* api,
                     SafeFutureHandle<void> handle) {
   Variant server_values = GenerateServerValues(server_time_offset_);
@@ -366,7 +403,8 @@ void Repo::SetValue(const Path& path, const Variant& new_data_unresolved,
   RerunTransactions(affected_path);
 }
 
-void Repo::UpdateChildren(const Path& path, const Variant& data,
+void Repo::UpdateChildren(const Path& path,
+                          const Variant& data,
                           ReferenceCountedFutureImpl* api,
                           SafeFutureHandle<void> handle) {
   CompoundWrite updates = CompoundWrite::FromVariantMerge(data);
@@ -409,7 +447,8 @@ void Repo::UpdateChildren(const Path& path, const Variant& data,
       });
 }
 
-void Repo::AckWriteAndRerunTransactions(WriteId write_id, const Path& path,
+void Repo::AckWriteAndRerunTransactions(WriteId write_id,
+                                        const Path& path,
                                         Error error) {
   if (error == kErrorWriteCanceled) {
     // This write was already removed, we just need to ignore it...
@@ -585,7 +624,9 @@ void Repo::OnServerInfoUpdate(const std::map<Variant, Variant>& updates) {
   }
 }
 
-void Repo::OnDataUpdate(const Path& path, const Variant& data, bool is_merge,
+void Repo::OnDataUpdate(const Path& path,
+                        const Variant& data,
+                        bool is_merge,
                         const Tag& tag) {
   SAFE_REFERENCE_RETURN_VOID_IF_INVALID(ThisRefLock, lock, safe_this_);
 
@@ -621,8 +662,11 @@ void Repo::SetKeepSynchronized(const QuerySpec& query_spec,
 
 class NoopListener : public ValueListener {
  public:
-  virtual ~NoopListener() {}
-  void OnValueChanged(const DataSnapshot& snapshot) { (void)snapshot; }
+  virtual ~NoopListener() {
+  }
+  void OnValueChanged(const DataSnapshot& snapshot) {
+    (void)snapshot;
+  }
   void OnCancelled(const Error& error, const char* error_message) {
     (void)error;
     (void)error_message;
@@ -631,7 +675,8 @@ class NoopListener : public ValueListener {
 
 void Repo::StartTransaction(const Path& path,
                             DoTransactionWithContext transaction_function,
-                            void* context, void (*delete_context)(void*),
+                            void* context,
+                            void (*delete_context)(void*),
                             bool trigger_local_events,
                             ReferenceCountedFutureImpl* api,
                             SafeFutureHandle<DataSnapshot> handle) {
@@ -760,7 +805,8 @@ void Repo::AbortTransactionsAtNode(Tree<std::vector<TransactionDataPtr>>* node,
   if (queue.has_value()) {
     struct FutureToComplete {
       FutureToComplete(const TransactionDataPtr& transaction, Error abort_error)
-          : transaction(transaction), abort_error(abort_error) {}
+          : transaction(transaction), abort_error(abort_error) {
+      }
       TransactionDataPtr transaction;
       Error abort_error;
     };
@@ -830,7 +876,9 @@ void Repo::AbortTransactionsAtNode(Tree<std::vector<TransactionDataPtr>>* node,
   }
 }
 
-WriteId Repo::GetNextWriteId() { return next_write_id_++; }
+WriteId Repo::GetNextWriteId() {
+  return next_write_id_++;
+}
 
 Path Repo::RerunTransactions(const Path& changed_path) {
   Tree<std::vector<TransactionDataPtr>>* root_most_transaction_node =
@@ -912,7 +960,8 @@ void Repo::HandleTransactionResponse(const connection::ResponsePtr& ptr) {
     struct FutureToComplete {
       FutureToComplete(const TransactionDataPtr& transaction,
                        const Variant& node)
-          : transaction(transaction), node(node) {}
+          : transaction(transaction), node(node) {
+      }
       TransactionDataPtr transaction;
       Variant node;
     };
@@ -984,9 +1033,11 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
   }
 
   struct FutureToComplete {
-    FutureToComplete(TransactionDataPtr transaction, Error abort_reason,
+    FutureToComplete(TransactionDataPtr transaction,
+                     Error abort_reason,
                      Variant node)
-        : transaction(transaction), abort_reason(abort_reason), node(node) {}
+        : transaction(transaction), abort_reason(abort_reason), node(node) {
+    }
     TransactionDataPtr transaction;
     Error abort_reason;
     Variant node;

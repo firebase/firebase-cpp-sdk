@@ -15,10 +15,10 @@
 #include <string>
 #include <vector>
 
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/reporter.h"
 #include "testing/run_all_tests.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 
 namespace firebase {
 namespace testing {

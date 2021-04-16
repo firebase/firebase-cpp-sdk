@@ -45,12 +45,17 @@ class Repo : public connection::PersistentConnectionEventHandler {
   typedef firebase::internal::SafeReference<Repo> ThisRef;
   typedef firebase::internal::SafeReferenceLock<Repo> ThisRefLock;
 
-  Repo(App* app, DatabaseInternal* database, const char* url, Logger* logger,
+  Repo(App* app,
+       DatabaseInternal* database,
+       const char* url,
+       Logger* logger,
        bool persistence_enabled);
 
   ~Repo() override;
 
-  connection::PersistentConnection* connection() { return connection_.get(); }
+  connection::PersistentConnection* connection() {
+    return connection_.get();
+  }
 
   void AddEventCallback(UniquePtr<EventRegistration> event_registration);
 
@@ -58,7 +63,8 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   void OnDisconnectSetValue(const SafeFutureHandle<void>& handle,
                             ReferenceCountedFutureImpl* ref_future,
-                            const Path& path, const Variant& data);
+                            const Path& path,
+                            const Variant& data);
 
   void OnDisconnectCancel(const SafeFutureHandle<void>& handle,
                           ReferenceCountedFutureImpl* ref_future,
@@ -66,18 +72,23 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   void OnDisconnectUpdate(const SafeFutureHandle<void>& handle,
                           ReferenceCountedFutureImpl* ref_future,
-                          const Path& path, const Variant& data);
+                          const Path& path,
+                          const Variant& data);
 
   void PurgeOutstandingWrites();
 
-  void SetValue(const Path& path, const Variant& data,
-                ReferenceCountedFutureImpl* api, SafeFutureHandle<void> handle);
+  void SetValue(const Path& path,
+                const Variant& data,
+                ReferenceCountedFutureImpl* api,
+                SafeFutureHandle<void> handle);
 
-  void UpdateChildren(const Path& path, const Variant& data,
+  void UpdateChildren(const Path& path,
+                      const Variant& data,
                       ReferenceCountedFutureImpl* api,
                       SafeFutureHandle<void> handle);
 
-  void AckWriteAndRerunTransactions(WriteId write_id, const Path& path,
+  void AckWriteAndRerunTransactions(WriteId write_id,
+                                    const Path& path,
                                     Error error);
 
   void PostEvents(const std::vector<Event>& events);
@@ -86,12 +97,15 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   void StartTransaction(const Path& path,
                         DoTransactionWithContext transaction_function,
-                        void* context, void (*delete_context)(void*),
+                        void* context,
+                        void (*delete_context)(void*),
                         bool trigger_local_events,
                         ReferenceCountedFutureImpl* api,
                         SafeFutureHandle<DataSnapshot> handle);
 
-  SyncTree* server_sync_tree() { return server_sync_tree_.get(); }
+  SyncTree* server_sync_tree() {
+    return server_sync_tree_.get();
+  }
 
   void OnConnect() override;
 
@@ -103,14 +117,22 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   void OnServerInfoUpdate(const std::map<Variant, Variant>& updates) override;
 
-  void OnDataUpdate(const Path& path, const Variant& payload_data,
-                    bool is_merge, const Tag& tag) override;
+  void OnDataUpdate(const Path& path,
+                    const Variant& payload_data,
+                    bool is_merge,
+                    const Tag& tag) override;
 
-  const std::string& url() const { return url_; }
+  const std::string& url() const {
+    return url_;
+  }
 
-  static scheduler::Scheduler& scheduler() { return *s_scheduler_; }
+  static scheduler::Scheduler& scheduler() {
+    return *s_scheduler_;
+  }
 
-  ThisRef& this_ref() { return safe_this_; }
+  ThisRef& this_ref() {
+    return safe_this_;
+  }
 
  private:
   WriteId GetNextWriteId();

@@ -25,11 +25,11 @@
 
 #include "app/src/log.h"
 #include "app/src/util.h"
+#include "flatbuffers/idl.h"
+#include "flatbuffers/util.h"
 #include "testlab/scenario_result_generated.h"
 #include "testlab/scenario_result_resource.h"
 #include "testlab/src/include/firebase/testlab.h"
-#include "flatbuffers/idl.h"
-#include "flatbuffers/util.h"
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(
@@ -61,7 +61,9 @@ void SetResultsDirectory(const char* path) {
   internal::SetResultsDirectory(path);
 }
 
-std::string GetResultsDirectory() { return internal::GetResultsDirectory(); }
+std::string GetResultsDirectory() {
+  return internal::GetResultsDirectory();
+}
 
 namespace internal {
 
@@ -72,8 +74,12 @@ static const char* kRootType = "ScenarioResult";
 
 static int g_scenario = 0;
 
-void SetScenario(int scenario) { g_scenario = scenario; }
-int GetScenario() { return g_scenario; }
+void SetScenario(int scenario) {
+  g_scenario = scenario;
+}
+int GetScenario() {
+  return g_scenario;
+}
 std::string GetResultsDirectory() {
   if (g_results_dir == nullptr) {
     return "";
@@ -160,7 +166,9 @@ std::vector<std::string> TokenizeByCharacter(std::vector<char> buffer,
   return tokens;
 }
 
-void TerminateCommon() { SetResultsDirectory(nullptr); }
+void TerminateCommon() {
+  SetResultsDirectory(nullptr);
+}
 
 void ResetLog() {
   if (g_log_file) {

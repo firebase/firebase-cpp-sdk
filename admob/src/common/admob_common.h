@@ -56,7 +56,8 @@ const char* GetRequestAgentString();
 // Hold backing data for returned Futures.
 struct FutureData {
   explicit FutureData(int num_functions_that_return_futures)
-      : future_impl(num_functions_that_return_futures) {}
+      : future_impl(num_functions_that_return_futures) {
+  }
 
   // Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl;
@@ -66,12 +67,16 @@ struct FutureData {
 FutureHandle CreateFuture(int fn_idx, FutureData* future_data);
 
 // Mark a future as complete.
-void CompleteFuture(int error, const char* error_msg, FutureHandle handle,
+void CompleteFuture(int error,
+                    const char* error_msg,
+                    FutureHandle handle,
                     FutureData* future_data);
 
 // For calls that aren't asynchronous, create and complete the future at the
 // same time.
-void CreateAndCompleteFuture(int fn_idx, int error, const char* error_msg,
+void CreateAndCompleteFuture(int fn_idx,
+                             int error,
+                             const char* error_msg,
                              FutureData* future_data);
 
 struct FutureCallbackData {

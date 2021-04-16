@@ -42,7 +42,9 @@ class HttpsCallableRequest : public rest::Request {
     future_handle_ = handle;
   }
 
-  void set_response(rest::Response* response) { response_ = response; }
+  void set_response(rest::Response* response) {
+    response_ = response;
+  }
 
  private:
   ReferenceCountedFutureImpl* future_impl_;
@@ -83,7 +85,9 @@ class HttpsCallableReferenceInternal {
   Functions* functions() const;
 
   // Asynchronously calls this CallableReference.
-  Future<HttpsCallableResult> Call() { return Call(Variant::Null()); }
+  Future<HttpsCallableResult> Call() {
+    return Call(Variant::Null());
+  }
   Future<HttpsCallableResult> Call(const Variant& data);
   Future<HttpsCallableResult> CallLastResult();
 
@@ -94,7 +98,9 @@ class HttpsCallableReferenceInternal {
                             rest::Response* response);
 
   // Pointer to the FunctionsInternal instance we are a part of.
-  FunctionsInternal* functions_internal() const { return functions_; }
+  FunctionsInternal* functions_internal() const {
+    return functions_;
+  }
 
  private:
   // Returns the auth token for the current user, if there is a current user,

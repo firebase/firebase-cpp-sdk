@@ -23,13 +23,19 @@ namespace functions {
 namespace internal {
 
 FunctionsInternal::FunctionsInternal(App* app, const char* region)
-    : app_(app), region_(region) {}
+    : app_(app), region_(region) {
+}
 
-FunctionsInternal::~FunctionsInternal() {}
+FunctionsInternal::~FunctionsInternal() {
+}
 
-::firebase::App* FunctionsInternal::app() const { return app_; }
+::firebase::App* FunctionsInternal::app() const {
+  return app_;
+}
 
-const char* FunctionsInternal::region() const { return region_.c_str(); }
+const char* FunctionsInternal::region() const {
+  return region_.c_str();
+}
 
 HttpsCallableReferenceInternal* FunctionsInternal::GetHttpsCallable(
     const char* name) const {

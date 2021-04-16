@@ -170,7 +170,8 @@ inline uint64_t GetTimestampEpoch() {
 }
 
 // High resolution timer.
-// Copied from https://github.com/google/mathfu/blob/master/benchmarks/benchmark_common.h
+// Copied from
+// https://github.com/google/mathfu/blob/master/benchmarks/benchmark_common.h
 class Timer {
  public:
   Timer() {
@@ -179,10 +180,14 @@ class Timer {
   }
 
   // Save the current number of counter ticks.
-  void Reset() { start_ = GetTicks(); }
+  void Reset() {
+    start_ = GetTicks();
+  }
 
   // Get the time elapsed in counter ticks since Reset() was called.
-  uint64_t GetElapsedTicks() { return GetTicks() - start_; }
+  uint64_t GetElapsedTicks() {
+    return GetTicks() - start_;
+  }
 
   // Get the time elapsed in seconds since Reset() was called.
   double GetElapsedSeconds() {

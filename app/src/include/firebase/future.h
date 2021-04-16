@@ -65,7 +65,8 @@ class FutureHandle {
  public:
   /// @cond FIREBASE_APP_INTERNAL
   FutureHandle();
-  explicit FutureHandle(FutureHandleId id) : FutureHandle(id, nullptr) {}
+  explicit FutureHandle(FutureHandleId id) : FutureHandle(id, nullptr) {
+  }
   FutureHandle(FutureHandleId id, detail::FutureApiInterface* api);
   ~FutureHandle();
 
@@ -80,15 +81,21 @@ class FutureHandle {
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
   // Comparison operators.
-  bool operator!=(const FutureHandle& rhs) const { return !(*this == rhs); }
+  bool operator!=(const FutureHandle& rhs) const {
+    return !(*this == rhs);
+  }
   bool operator==(const FutureHandle& rhs) const {
     // Only compare IDs, since the API is irrelevant (comparison will only occur
     // within the context of a single API anyway).
     return id() == rhs.id();
   }
 
-  FutureHandleId id() const { return id_; }
-  detail::FutureApiInterface* api() const { return api_; }
+  FutureHandleId id() const {
+    return id_;
+  }
+  detail::FutureApiInterface* api() const {
+    return api_;
+  }
 
   // Detach from the FutureApi. This handle will no longer increment the
   // Future's reference count. This is mainly used for testing, so that you can
@@ -99,7 +106,9 @@ class FutureHandle {
   // Called by CleanupNotifier when the API is being deleted. At this point we
   // can ignore all of the reference counts since all Future data is about to be
   // deleted anyway.
-  void Cleanup() { api_ = nullptr; }
+  void Cleanup() {
+    api_ = nullptr;
+  }
 
  private:
   FutureHandleId id_;
@@ -317,11 +326,15 @@ class FutureBase {
   }
 
   /// Returns true if the two Futures reference different results.
-  bool operator!=(const FutureBase& rhs) const { return !operator==(rhs); }
+  bool operator!=(const FutureBase& rhs) const {
+    return !operator==(rhs);
+  }
 
 #if defined(INTERNAL_EXPERIMENTAL)
   /// Returns the API-specific handle. Should only be called by the API.
-  const FutureHandle& GetHandle() const { return handle_; }
+  const FutureHandle& GetHandle() const {
+    return handle_;
+  }
 #endif  // defined(INTERNAL_EXPERIMENTAL)
 
  protected:
@@ -406,7 +419,8 @@ class Future : public FutureBase {
                                           void* user_data);
 
   /// Construct a future.
-  Future() {}
+  Future() {
+  }
 
   /// @cond FIREBASE_APP_INTERNAL
 
@@ -415,7 +429,8 @@ class Future : public FutureBase {
   /// @param api API class used to provide the future implementation.
   /// @param handle Handle to the future.
   Future(detail::FutureApiInterface* api, const FutureHandle& handle)
-      : FutureBase(api, handle) {}
+      : FutureBase(api, handle) {
+  }
 
   /// @endcond
 

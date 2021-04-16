@@ -25,7 +25,8 @@ namespace auth {
 
 #ifdef INTERNAL_EXPERIMENTAL
 
-FederatedOAuthProvider::FederatedOAuthProvider() { }
+FederatedOAuthProvider::FederatedOAuthProvider() {
+}
 
 FederatedOAuthProvider::FederatedOAuthProvider(
     const FederatedOAuthProviderData& provider_data) {
@@ -54,8 +55,7 @@ Future<SignInResult> CreateAuthFuture(AuthData* auth_data,
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), auth_data);
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   MutexLock lock(auth_impl->provider_mutex);
-  auto future_base =
-      auth_data->future_impl.LastResult(api_function);
+  auto future_base = auth_data->future_impl.LastResult(api_function);
   if (future_base.status() == kFutureStatusPending) {
     // There's an operation in progress. Create and return a new failed
     // future.
@@ -70,10 +70,9 @@ Future<SignInResult> CreateAuthFuture(AuthData* auth_data,
     // initialize the future.
     SafeFutureHandle<SignInResult> handle =
         auth_data->future_impl.SafeAlloc<SignInResult>(api_function);
-    Future<SignInResult> result = MakeFuture(&auth_data->future_impl,
-                    SafeFutureHandle<SignInResult>(handle));
-    auto future_base =
-      auth_data->future_impl.LastResult(api_function);
+    Future<SignInResult> result = MakeFuture(
+        &auth_data->future_impl, SafeFutureHandle<SignInResult>(handle));
+    auto future_base = auth_data->future_impl.LastResult(api_function);
     return result;
   } else {
     // Construct future.
@@ -145,7 +144,8 @@ const char* CheckForRequiredAuthenicatedUserData(
 void CompleteAuthHandle(
     AuthCompletionHandle* completion_handle,
     const FederatedAuthProvider::AuthenticatedUserData& user_data,
-    AuthError auth_error, const char* error_message) {
+    AuthError auth_error,
+    const char* error_message) {
   assert(completion_handle);
   assert(completion_handle->auth_data);
   SignInResult sign_in_result;
@@ -175,7 +175,8 @@ void CompleteAuthHandle(
 template <>
 void FederatedAuthProvider::Handler<FederatedOAuthProviderData>::SignInComplete(
     AuthCompletionHandle* completion_handle,
-    const AuthenticatedUserData& user_data, AuthError auth_error,
+    const AuthenticatedUserData& user_data,
+    AuthError auth_error,
     const char* error_message) {
   FIREBASE_ASSERT_RETURN_VOID(completion_handle);
   CompleteAuthHandle(completion_handle, user_data, auth_error, error_message);
@@ -184,7 +185,8 @@ void FederatedAuthProvider::Handler<FederatedOAuthProviderData>::SignInComplete(
 template <>
 void FederatedAuthProvider::Handler<FederatedOAuthProviderData>::LinkComplete(
     AuthCompletionHandle* completion_handle,
-    const AuthenticatedUserData& user_data, AuthError auth_error,
+    const AuthenticatedUserData& user_data,
+    AuthError auth_error,
     const char* error_message) {
   FIREBASE_ASSERT_RETURN_VOID(completion_handle);
   CompleteAuthHandle(completion_handle, user_data, auth_error, error_message);
@@ -194,7 +196,8 @@ template <>
 void FederatedAuthProvider::Handler<FederatedOAuthProviderData>::
     ReauthenticateComplete(AuthCompletionHandle* completion_handle,
                            const AuthenticatedUserData& user_data,
-                           AuthError auth_error, const char* error_message) {
+                           AuthError auth_error,
+                           const char* error_message) {
   FIREBASE_ASSERT_RETURN_VOID(completion_handle);
   CompleteAuthHandle(completion_handle, user_data, auth_error, error_message);
 }

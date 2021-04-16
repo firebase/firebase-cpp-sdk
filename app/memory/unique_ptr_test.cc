@@ -17,8 +17,8 @@
 #include "app/memory/unique_ptr.h"
 
 #include "app/meta/move.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace {
@@ -29,10 +29,15 @@ typedef void (*OnDestroyFn)(bool*);
 
 class Destructable {
  public:
-  explicit Destructable(bool* destroyed) : destroyed_(destroyed) {}
-  ~Destructable() { *destroyed_ = true; }
+  explicit Destructable(bool* destroyed) : destroyed_(destroyed) {
+  }
+  ~Destructable() {
+    *destroyed_ = true;
+  }
 
-  bool destroyed() const { return destroyed_; }
+  bool destroyed() const {
+    return destroyed_;
+  }
 
  private:
   bool* const destroyed_;
@@ -40,20 +45,27 @@ class Destructable {
 
 class Base {
  public:
-  virtual ~Base() {}
+  virtual ~Base() {
+  }
 };
 
 class Derived : public Base {
  public:
-  Derived(bool* destroyed) : destroyed_(destroyed) {}
-  ~Derived() override { *destroyed_ = true; }
-  bool destroyed() const { return destroyed_; }
+  Derived(bool* destroyed) : destroyed_(destroyed) {
+  }
+  ~Derived() override {
+    *destroyed_ = true;
+  }
+  bool destroyed() const {
+    return destroyed_;
+  }
 
  private:
   bool* const destroyed_;
 };
 
-void Foo(UniquePtr<Base> b) {}
+void Foo(UniquePtr<Base> b) {
+}
 
 void AssertRawPtrEq(const UniquePtr<Destructable>& ptr, Destructable* value) {
   ASSERT_THAT(ptr.get(), Eq(value));

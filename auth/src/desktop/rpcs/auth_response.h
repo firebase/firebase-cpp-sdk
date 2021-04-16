@@ -29,11 +29,13 @@ namespace auth {
 class AuthResponse
     : public firebase::rest::ResponseJson<fbs::Response, fbs::ResponseT> {
  public:
-  AuthResponse() : ResponseJson(response_resource_data) {}
+  AuthResponse() : ResponseJson(response_resource_data) {
+  }
 
   // Visual Studio 2013 and below don't generate implicitly-defined move
   // constructors.
-  AuthResponse(AuthResponse&& rhs) : ResponseJson(std::move(rhs)) {}
+  AuthResponse(AuthResponse&& rhs) : ResponseJson(std::move(rhs)) {
+  }
 
   AuthError error_code() const;
   bool IsSuccessful() const;

@@ -30,11 +30,13 @@ class DatabaseInternal;
 
 class ValueEventRegistration : public EventRegistration {
  public:
-  ValueEventRegistration(DatabaseInternal* database, ValueListener* listener,
+  ValueEventRegistration(DatabaseInternal* database,
+                         ValueListener* listener,
                          const QuerySpec& query_spec)
       : EventRegistration(query_spec),
         database_(database),
-        listener_(listener) {}
+        listener_(listener) {
+  }
 
   ~ValueEventRegistration() override;
 

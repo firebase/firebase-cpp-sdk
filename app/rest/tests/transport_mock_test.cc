@@ -17,13 +17,15 @@
 #include "app/rest/transport_mock.h"
 #include "app/rest/request.h"
 #include "app/rest/response.h"
-#include "testing/config.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "testing/config.h"
 
 namespace firebase {
 namespace rest {
-TEST(TransportMockTest, TestCreation) { TransportMock mock; }
+TEST(TransportMockTest, TestCreation) {
+  TransportMock mock;
+}
 
 TEST(TransportMockTest, TestHttpGet200) {
   Request request;

@@ -42,7 +42,8 @@
 namespace FIREBASE_NAMESPACE {
 
 // Default log callback.
-static void DefaultLogCallback(LogLevel log_level, const char* message,
+static void DefaultLogCallback(LogLevel log_level,
+                               const char* message,
                                void* /*callback_data*/);
 
 #if FIREBASE_LOG_DEBUG
@@ -78,7 +79,8 @@ static void InternalLogMessage(LogLevel log_level, const char* message, ...) {
 }
 
 // Default log callback.  Halts the application after logging assert messages.
-static void DefaultLogCallback(LogLevel log_level, const char* message,
+static void DefaultLogCallback(LogLevel log_level,
+                               const char* message,
                                void* /*callback_data*/) {
   InternalLogMessage(log_level, "%s", message);
   if (log_level == kLogLevelAssert) {
@@ -126,7 +128,8 @@ static void LogToFile(LogLevel log_level, const char* format, va_list args) {
 #endif  // FIREBASE_LOG_TO_FILE
 
 // Log a firebase message (implemented by the platform specific logger).
-void LogMessageWithCallbackV(LogLevel log_level, const char* format,
+void LogMessageWithCallbackV(LogLevel log_level,
+                             const char* format,
                              va_list args) {
   // We create the mutex on the heap as this can be called before the C++
   // runtime is initialized on iOS.  This ensures the Mutex class is
@@ -154,11 +157,17 @@ void SetLogLevel(LogLevel level) {
   LogSetPlatformLevel(level);
 }
 
-LogLevel GetLogLevel() { return g_log_level; }
+LogLevel GetLogLevel() {
+  return g_log_level;
+}
 
-void LogSetLevel(LogLevel level) { SetLogLevel(level); }
+void LogSetLevel(LogLevel level) {
+  SetLogLevel(level);
+}
 
-LogLevel LogGetLevel() { return GetLogLevel(); }
+LogLevel LogGetLevel() {
+  return GetLogLevel();
+}
 
 // Log a debug message to the system log.
 void LogDebug(const char* format, ...) {

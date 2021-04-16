@@ -22,7 +22,8 @@
 namespace firebase {
 namespace rest {
 void TransportMock::PerformInternal(
-    Request* request, Response* response,
+    Request* request,
+    Response* response,
     flatbuffers::unique_ptr<Controller>* controller_out) {
   const char* url = request->options().url.c_str();
   // Naively use the whole request url as a key.

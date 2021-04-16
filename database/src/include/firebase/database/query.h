@@ -16,9 +16,9 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_DATABASE_QUERY_H_
 
 #include <string>
+#include "firebase/database/listener.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
-#include "firebase/database/listener.h"
 
 namespace firebase {
 namespace database {
@@ -37,7 +37,8 @@ class Query {
   /// Default constructor. This creates an invalid Query. Attempting to perform
   /// any operations on this reference will fail unless a valid Query has been
   /// assigned to it.
-  Query() : internal_(nullptr) {}
+  Query() : internal_(nullptr) {
+  }
 
   /// Copy constructor. Queries can be copied. Copies exist independently of
   /// each other.

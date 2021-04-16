@@ -18,10 +18,10 @@
 #include <vector>
 
 #include "app/src/path.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/desktop/core/compound_write.h"
 #include "database/src/desktop/persistence/persistence_storage_engine.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {
@@ -29,42 +29,63 @@ namespace internal {
 
 class MockPersistenceStorageEngine : public PersistenceStorageEngine {
  public:
-  MOCK_METHOD(void, SaveUserOverwrite,
+  MOCK_METHOD(void,
+              SaveUserOverwrite,
               (const Path& path, const Variant& data, WriteId write_id),
               (override));
-  MOCK_METHOD(void, SaveUserMerge,
-              (const Path& path, const CompoundWrite& children,
+  MOCK_METHOD(void,
+              SaveUserMerge,
+              (const Path& path,
+               const CompoundWrite& children,
                WriteId write_id),
               (override));
   MOCK_METHOD(void, RemoveUserWrite, (WriteId write_id), (override));
   MOCK_METHOD(std::vector<UserWriteRecord>, LoadUserWrites, (), (override));
   MOCK_METHOD(void, RemoveAllUserWrites, (), (override));
   MOCK_METHOD(Variant, ServerCache, (const Path& path), (override));
-  MOCK_METHOD(void, OverwriteServerCache,
-              (const Path& path, const Variant& data), (override));
-  MOCK_METHOD(void, MergeIntoServerCache,
-              (const Path& path, const Variant& data), (override));
-  MOCK_METHOD(void, MergeIntoServerCache,
-              (const Path& path, const CompoundWrite& children), (override));
+  MOCK_METHOD(void,
+              OverwriteServerCache,
+              (const Path& path, const Variant& data),
+              (override));
+  MOCK_METHOD(void,
+              MergeIntoServerCache,
+              (const Path& path, const Variant& data),
+              (override));
+  MOCK_METHOD(void,
+              MergeIntoServerCache,
+              (const Path& path, const CompoundWrite& children),
+              (override));
   MOCK_METHOD(uint64_t, ServerCacheEstimatedSizeInBytes, (), (const, override));
-  MOCK_METHOD(void, SaveTrackedQuery, (const TrackedQuery& tracked_query),
+  MOCK_METHOD(void,
+              SaveTrackedQuery,
+              (const TrackedQuery& tracked_query),
               (override));
   MOCK_METHOD(void, DeleteTrackedQuery, (QueryId tracked_query_id), (override));
   MOCK_METHOD(std::vector<TrackedQuery>, LoadTrackedQueries, (), (override));
-  MOCK_METHOD(void, ResetPreviouslyActiveTrackedQueries, (uint64_t last_use),
+  MOCK_METHOD(void,
+              ResetPreviouslyActiveTrackedQueries,
+              (uint64_t last_use),
               (override));
-  MOCK_METHOD(void, SaveTrackedQueryKeys,
+  MOCK_METHOD(void,
+              SaveTrackedQueryKeys,
               (QueryId tracked_query_id, const std::set<std::string>& keys),
               (override));
-  MOCK_METHOD(void, UpdateTrackedQueryKeys,
-              (QueryId tracked_query_id, const std::set<std::string>& added,
+  MOCK_METHOD(void,
+              UpdateTrackedQueryKeys,
+              (QueryId tracked_query_id,
+               const std::set<std::string>& added,
                const std::set<std::string>& removed),
               (override));
-  MOCK_METHOD(std::set<std::string>, LoadTrackedQueryKeys,
-              (QueryId tracked_query_id), (override));
-  MOCK_METHOD(std::set<std::string>, LoadTrackedQueryKeys,
-              (const std::set<QueryId>& trackedQueryIds), (override));
-  MOCK_METHOD(void, PruneCache,
+  MOCK_METHOD(std::set<std::string>,
+              LoadTrackedQueryKeys,
+              (QueryId tracked_query_id),
+              (override));
+  MOCK_METHOD(std::set<std::string>,
+              LoadTrackedQueryKeys,
+              (const std::set<QueryId>& trackedQueryIds),
+              (override));
+  MOCK_METHOD(void,
+              PruneCache,
               (const Path& root, const PruneForestRef& prune_forest),
               (override));
   MOCK_METHOD(bool, BeginTransaction, (), (override));

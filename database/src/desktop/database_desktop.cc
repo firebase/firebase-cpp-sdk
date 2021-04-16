@@ -50,9 +50,11 @@ SingleValueListener::SingleValueListener(DatabaseInternal* database,
     : database_(database),
       query_spec_(query_spec),
       future_(future),
-      handle_(handle) {}
+      handle_(handle) {
+}
 
-SingleValueListener::~SingleValueListener() {}
+SingleValueListener::~SingleValueListener() {
+}
 
 void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {
   future_->CompleteWithResult<DataSnapshot>(handle_, kErrorNone, "", snapshot);
@@ -94,7 +96,9 @@ DatabaseInternal::~DatabaseInternal() {
       ::firebase::internal::FnAuthStopTokenListener, app_, nullptr, nullptr);
 }
 
-App* DatabaseInternal::GetApp() { return app_; }
+App* DatabaseInternal::GetApp() {
+  return app_;
+}
 
 DatabaseReference DatabaseInternal::GetReference() {
   EnsureRepo();
@@ -191,10 +195,13 @@ void DatabaseInternal::set_log_level(LogLevel log_level) {
   logger_.SetLogLevel(log_level);
 }
 
-LogLevel DatabaseInternal::log_level() const { return logger_.GetLogLevel(); }
+LogLevel DatabaseInternal::log_level() const {
+  return logger_.GetLogLevel();
+}
 
 bool DatabaseInternal::RegisterValueListener(
-    const internal::QuerySpec& spec, ValueListener* listener,
+    const internal::QuerySpec& spec,
+    ValueListener* listener,
     ValueListenerCleanupData cleanup_data) {
   MutexLock lock(listener_mutex_);
   if (value_listeners_by_query_.Register(spec, listener)) {
@@ -239,7 +246,8 @@ void DatabaseInternal::UnregisterAllValueListeners(
 }
 
 bool DatabaseInternal::RegisterChildListener(
-    const internal::QuerySpec& spec, ChildListener* listener,
+    const internal::QuerySpec& spec,
+    ChildListener* listener,
     ChildListenerCleanupData cleanup_data) {
   MutexLock lock(listener_mutex_);
   if (child_listeners_by_query_.Register(spec, listener)) {
@@ -277,7 +285,8 @@ void DatabaseInternal::UnregisterAllChildListeners(
 }
 
 void DatabaseInternal::AddEventRegistration(
-    const QuerySpec& query_spec, void* listener_ptr,
+    const QuerySpec& query_spec,
+    void* listener_ptr,
     EventRegistration* event_registration) {
   event_registration_lookup_[query_spec][listener_ptr].push_back(
       event_registration);

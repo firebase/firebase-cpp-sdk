@@ -16,8 +16,8 @@
 
 #include "app/src/jobject_reference.h"
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 // For firebase::util::JStringToString.
 #include "app/src/util_android.h"
 #include "testing/run_all_tests.h"
@@ -38,12 +38,12 @@ class JObjectReferenceTest : public ::testing::Test {
     ASSERT_TRUE(env_ != nullptr);
   }
 
-  JNIEnv *env_;
+  JNIEnv* env_;
 
-  static const char *const kTestString;
+  static const char* const kTestString;
 };
 
-const char *const JObjectReferenceTest::kTestString = "Testing testing 1 2 3";
+const char* const JObjectReferenceTest::kTestString = "Testing testing 1 2 3";
 
 TEST_F(JObjectReferenceTest, ConstructEmpty) {
   JObjectReference ref(env_);

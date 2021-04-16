@@ -26,7 +26,8 @@ namespace internal {
 
 // QueryParams are the set of filters and sorting options to apply to a Query.
 struct QueryParams {
-  QueryParams() : order_by(kOrderByPriority), limit_first(0), limit_last(0) {}
+  QueryParams() : order_by(kOrderByPriority), limit_first(0), limit_last(0) {
+  }
 
   // Compare two QueryParams, which are considered the same if all fields are
   // the same (except only compare order_by_child if order_by is kOrderByChild).
@@ -106,11 +107,15 @@ struct QueryParams {
 // not by the Query itself, but by the Query's QuerySpec. This allows you to
 // remove a listener from a different (but matching) Query to the original.
 struct QuerySpec {
-  QuerySpec() : path(), params() {}
-  explicit QuerySpec(const Path& _path) : path(_path), params() {}
-  explicit QuerySpec(const QueryParams& _params) : path(), params(_params) {}
+  QuerySpec() : path(), params() {
+  }
+  explicit QuerySpec(const Path& _path) : path(_path), params() {
+  }
+  explicit QuerySpec(const QueryParams& _params) : path(), params(_params) {
+  }
   QuerySpec(const Path& _path, const QueryParams& _params)
-      : path(_path), params(_params) {}
+      : path(_path), params(_params) {
+  }
 
   // Compare two QuerySpecs, which are considered the same if all fields are the
   // same.

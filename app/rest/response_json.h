@@ -47,7 +47,8 @@ class ResponseJson : public Response {
 
   // Constructs from a FlatBuffer schema, which should match FbsType.
   explicit ResponseJson(const unsigned char* schema)
-      : ResponseJson(reinterpret_cast<const char*>(schema)) {}
+      : ResponseJson(reinterpret_cast<const char*>(schema)) {
+  }
 
   // Note: remove if support for Visual Studio <2015 is no longer
   // needed.
@@ -58,7 +59,8 @@ class ResponseJson : public Response {
   ResponseJson(ResponseJson&& rhs)
       : Response(std::move(rhs)),
         parser_(std::move(rhs.parser_)),
-        application_data_(std::move(rhs.application_data_)) {}
+        application_data_(std::move(rhs.application_data_)) {
+  }
 
   // When transmission is completed, we parse the response JSON string.
   void MarkCompleted() override {

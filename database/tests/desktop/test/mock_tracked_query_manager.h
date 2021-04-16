@@ -15,10 +15,10 @@
 #ifndef FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_TRACKED_QUERY_MANAGER_H_
 #define FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_TRACKED_QUERY_MANAGER_H_
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/tracked_query_manager.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {
@@ -26,21 +26,30 @@ namespace internal {
 
 class MockTrackedQueryManager : public TrackedQueryManagerInterface {
  public:
-  MOCK_METHOD(const TrackedQuery*, FindTrackedQuery, (const QuerySpec& query),
+  MOCK_METHOD(const TrackedQuery*,
+              FindTrackedQuery,
+              (const QuerySpec& query),
               (const, override));
   MOCK_METHOD(void, RemoveTrackedQuery, (const QuerySpec& query), (override));
-  MOCK_METHOD(void, SetQueryActiveFlag,
+  MOCK_METHOD(void,
+              SetQueryActiveFlag,
               (const QuerySpec& query,
                TrackedQuery::ActivityStatus activity_status),
               (override));
-  MOCK_METHOD(void, SetQueryCompleteIfExists, (const QuerySpec& query),
+  MOCK_METHOD(void,
+              SetQueryCompleteIfExists,
+              (const QuerySpec& query),
               (override));
   MOCK_METHOD(void, SetQueriesComplete, (const Path& path), (override));
   MOCK_METHOD(bool, IsQueryComplete, (const QuerySpec& query), (override));
-  MOCK_METHOD(PruneForest, PruneOldQueries, (const CachePolicy& cache_policy),
+  MOCK_METHOD(PruneForest,
+              PruneOldQueries,
+              (const CachePolicy& cache_policy),
               (override));
-  MOCK_METHOD(std::set<std::string>, GetKnownCompleteChildren,
-              (const Path& path), (override));
+  MOCK_METHOD(std::set<std::string>,
+              GetKnownCompleteChildren,
+              (const Path& path),
+              (override));
   MOCK_METHOD(void, EnsureCompleteTrackedQuery, (const Path& path), (override));
   MOCK_METHOD(bool, HasActiveDefaultQuery, (const Path& path), (override));
   MOCK_METHOD(uint64_t, CountOfPrunableQueries, (), (override));

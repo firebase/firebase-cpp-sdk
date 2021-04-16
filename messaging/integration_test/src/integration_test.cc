@@ -43,8 +43,7 @@ namespace firebase_testapp_automated {
 // Your Firebase project's Server Key for Cloud Messaging goes here.
 // You can get this from Firebase Console, in your Project settings under Cloud
 // Messaging.
-const char kFcmServerKey[] =
-    "REPLACE_WITH_YOUR_SERVER_KEY";
+const char kFcmServerKey[] = "REPLACE_WITH_YOUR_SERVER_KEY";
 
 const char kRestEndpoint[] = "https://fcm.googleapis.com/fcm/send";
 
@@ -77,7 +76,8 @@ class FirebaseMessagingTest : public FirebaseTest {
   // Create a request and heads for a test message (returning false if unable to
   // do so). send_to can be a FCM token or a topic subscription.
   bool CreateTestMessage(
-      const char* send_to, const char* notification_title,
+      const char* send_to,
+      const char* notification_title,
       const char* notification_body,
       const std::map<std::string, std::string>& message_fields,
       std::string* request_out,
@@ -87,7 +87,8 @@ class FirebaseMessagingTest : public FirebaseTest {
                        const std::map<std::string, std::string>& headers);
   // Convenience method combining the above.
   void SendTestMessage(
-      const char* send_to, const char* notification_title,
+      const char* send_to,
+      const char* notification_title,
       const char* notification_body,
       const std::map<std::string, std::string>& message_fields);
 
@@ -191,11 +192,16 @@ FirebaseMessagingTest::FirebaseMessagingTest() {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
 
-FirebaseMessagingTest::~FirebaseMessagingTest() {}
+FirebaseMessagingTest::~FirebaseMessagingTest() {
+}
 
-void FirebaseMessagingTest::SetUp() { FirebaseTest::SetUp(); }
+void FirebaseMessagingTest::SetUp() {
+  FirebaseTest::SetUp();
+}
 
-void FirebaseMessagingTest::TearDown() { FirebaseTest::TearDown(); }
+void FirebaseMessagingTest::TearDown() {
+  FirebaseTest::TearDown();
+}
 
 std::string FirebaseMessagingTest::GetUniqueMessageId() {
   int64_t time_in_microseconds = GetCurrentTimeInMicroseconds();
@@ -207,10 +213,12 @@ std::string FirebaseMessagingTest::GetUniqueMessageId() {
 
 // send_to can be a FCM token or a topic subscription.
 bool FirebaseMessagingTest::CreateTestMessage(
-    const char* send_to, const char* notification_title,
+    const char* send_to,
+    const char* notification_title,
     const char* notification_body,
     const std::map<std::string, std::string>& message_fields,
-    std::string* request_out, std::map<std::string, std::string>* headers_out) {
+    std::string* request_out,
+    std::map<std::string, std::string>* headers_out) {
   if (is_desktop_stub_) {
     // Don't send HTTP requests in stub mode.
     return false;
@@ -244,7 +252,8 @@ bool FirebaseMessagingTest::CreateTestMessage(
 }
 
 void FirebaseMessagingTest::SendTestMessage(
-    const char* send_to, const char* notification_title,
+    const char* send_to,
+    const char* notification_title,
     const char* notification_body,
     const std::map<std::string, std::string>& message_fields) {
   std::string request;
@@ -357,7 +366,8 @@ TEST_F(FirebaseMessagingTest, TestSubscribeAndUnsubscribe) {
 
 static std::string ConstructHtmlToSendMessage(
     const std::string& request,
-    const std::map<std::string, std::string>& headers, int delay_seconds) {
+    const std::map<std::string, std::string>& headers,
+    int delay_seconds) {
   // Generate some simple HTML/Javascript to pause a few seconds, then send the
   // POST request via XMLHttpRequest.
   std::string h;
@@ -548,7 +558,7 @@ TEST_F(FirebaseMessagingTest, TestChangingListener) {
   firebase::messaging::SetListener(shared_listener_);
   // Pause a moment to make sure old listeners are deleted.
   ProcessEvents(1000);
-  
+
   std::string unique_id = GetUniqueMessageId();
   const char kNotificationTitle[] = "New Listener Test";
   const char kNotificationBody[] = "New Listener Test notification body";

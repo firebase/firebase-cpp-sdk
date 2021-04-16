@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-// An Objective-C++ wrapper class that conforms to the GADInterstitialDelegate protocol. When the
-// delegate for receiving state change messages from a GADInterstitial is notified, this wrapper
-// class forwards the notification to the InterstitialAdInternalIOS object to handle the state
-// changes for an interstitial ad.
+// An Objective-C++ wrapper class that conforms to the GADInterstitialDelegate
+// protocol. When the delegate for receiving state change messages from a
+// GADInterstitial is notified, this wrapper class forwards the notification to
+// the InterstitialAdInternalIOS object to handle the state changes for an
+// interstitial ad.
 
 #import <Foundation/Foundation.h>
 #import <GoogleMobileAds/GoogleMobileAds.h>
@@ -32,11 +33,11 @@ class InterstitialAdInternalIOS;
 
 NS_ASSUME_NONNULL_BEGIN
 
-@interface FADInterstitialDelegate : NSObject<GADInterstitialDelegate>
+@interface FADInterstitialDelegate : NSObject <GADInterstitialDelegate>
 
 /// Returns a FADInterstitialDelegate object with InterstitialAdInternalIOS.
-- (FADInterstitialDelegate *)initWithInternalInterstitialAd:
-    (firebase::admob::internal::InterstitialAdInternalIOS *)interstitialAd;
+- (FADInterstitialDelegate*)initWithInternalInterstitialAd:
+    (firebase::admob::internal::InterstitialAdInternalIOS*)interstitialAd;
 
 @end
 

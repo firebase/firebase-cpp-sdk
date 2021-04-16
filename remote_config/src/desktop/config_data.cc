@@ -13,19 +13,21 @@
 // limitations under the License.
 
 #include "remote_config/src/desktop/config_data.h"
-#include "remote_config/src/desktop/metadata.h"
 #include "flatbuffers/flexbuffers.h"
+#include "remote_config/src/desktop/metadata.h"
 
 namespace firebase {
 namespace remote_config {
 namespace internal {
 
 NamespacedConfigData::NamespacedConfigData()
-    : config_(NamespaceKeyValueMap()), timestamp_(0) {}
+    : config_(NamespaceKeyValueMap()), timestamp_(0) {
+}
 
 NamespacedConfigData::NamespacedConfigData(const NamespaceKeyValueMap& config,
                                            uint64_t timestamp)
-    : config_(config), timestamp_(timestamp) {}
+    : config_(config), timestamp_(timestamp) {
+}
 
 std::string NamespacedConfigData::Serialize() const {
   flexbuffers::Builder fbb;
@@ -108,13 +110,16 @@ const NamespaceKeyValueMap& NamespacedConfigData::config() const {
   return config_;
 }
 
-uint64_t NamespacedConfigData::timestamp() const { return timestamp_; }
+uint64_t NamespacedConfigData::timestamp() const {
+  return timestamp_;
+}
 
 bool NamespacedConfigData::operator==(const NamespacedConfigData& right) const {
   return config_ == right.config_ && timestamp_ == right.timestamp_;
 }
 
-LayeredConfigs::LayeredConfigs() {}
+LayeredConfigs::LayeredConfigs() {
+}
 LayeredConfigs::LayeredConfigs(const NamespacedConfigData& config_fetched,
                                const NamespacedConfigData& config_active,
                                const NamespacedConfigData& config_default,
@@ -122,7 +127,8 @@ LayeredConfigs::LayeredConfigs(const NamespacedConfigData& config_fetched,
     : fetched(config_fetched),
       active(config_active),
       defaults(config_default),
-      metadata(fetch_metadata) {}
+      metadata(fetch_metadata) {
+}
 
 std::string LayeredConfigs::Serialize() const {
   flexbuffers::Builder fbb;

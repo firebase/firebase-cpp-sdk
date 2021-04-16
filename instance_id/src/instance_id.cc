@@ -38,7 +38,9 @@ InstanceId::InstanceId(App* app, InstanceIdInternal* instance_id_internal)
   InstanceIdInternal::RegisterInstanceIdForApp(app_, this);
 }
 
-InstanceId::~InstanceId() { DeleteInternal(); }
+InstanceId::~InstanceId() {
+  DeleteInternal();
+}
 
 void InstanceId::DeleteInternal() {
   MutexLock lock(g_instance_ids_lock);

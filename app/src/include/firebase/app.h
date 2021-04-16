@@ -56,7 +56,8 @@ class AppInternal;
 }  // namespace internal
 
 #ifdef _STLPORT_VERSION
-#warning "Firebase support for STLPort is deprecated and will be removed in \
+#warning \
+    "Firebase support for STLPort is deprecated and will be removed in \
   the next major release. Please use libc++ instead."
 #endif
 
@@ -122,7 +123,8 @@ class AppOptions {
   /// @see FirebaseApp.Create().
   /// @endif
   /// </SWIG>
-  AppOptions() {}
+  AppOptions() {
+  }
 
   /// Set the Firebase app ID used to uniquely identify an instance of an app.
   ///
@@ -131,7 +133,9 @@ class AppOptions {
   ///
   /// This only needs to be specified if your application does not include
   /// google-services.json or GoogleService-Info.plist in its resources.
-  void set_app_id(const char* id) { app_id_ = id; }
+  void set_app_id(const char* id) {
+    app_id_ = id;
+  }
 
   /// Retrieves the app ID.
   ///
@@ -152,7 +156,9 @@ class AppOptions {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  const char* app_id() const { return app_id_.c_str(); }
+  const char* app_id() const {
+    return app_id_.c_str();
+  }
 
   /// API key used to authenticate requests from your app.
   ///
@@ -161,7 +167,9 @@ class AppOptions {
   ///
   /// This only needs to be specified if your application does not include
   /// google-services.json or GoogleService-Info.plist in its resources.
-  void set_api_key(const char* key) { api_key_ = key; }
+  void set_api_key(const char* key) {
+    api_key_ = key;
+  }
 
   /// Get the API key.
   ///
@@ -182,7 +190,9 @@ class AppOptions {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  const char* api_key() const { return api_key_.c_str(); }
+  const char* api_key() const {
+    return api_key_.c_str();
+  }
 
   /// Set the Firebase Cloud Messaging sender ID.
   ///
@@ -210,10 +220,14 @@ class AppOptions {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  const char* messaging_sender_id() const { return fcm_sender_id_.c_str(); }
+  const char* messaging_sender_id() const {
+    return fcm_sender_id_.c_str();
+  }
 
   /// Set the database root URL, e.g. @"http://abc-xyz-123.firebaseio.com".
-  void set_database_url(const char* url) { database_url_ = url; }
+  void set_database_url(const char* url) {
+    database_url_ = url;
+  }
 
   /// Get database root URL, e.g. @"http://abc-xyz-123.firebaseio.com".
   ///
@@ -225,12 +239,16 @@ class AppOptions {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  const char* database_url() const { return database_url_.c_str(); }
+  const char* database_url() const {
+    return database_url_.c_str();
+  }
 
   /// @cond FIREBASE_APP_INTERNAL
 
   /// Set the tracking ID for Google Analytics, e.g. @"UA-12345678-1".
-  void set_ga_tracking_id(const char* id) { ga_tracking_id_ = id; }
+  void set_ga_tracking_id(const char* id) {
+    ga_tracking_id_ = id;
+  }
 
   /// Get the tracking ID for Google Analytics,
   ///
@@ -238,13 +256,17 @@ class AppOptions {
   /// @see set_ga_tracking_id().
   /// @endif
   ///
-  const char* ga_tracking_id() const { return ga_tracking_id_.c_str(); }
+  const char* ga_tracking_id() const {
+    return ga_tracking_id_.c_str();
+  }
 
   /// @endcond
 
   /// Set the Google Cloud Storage bucket name,
   /// e.g. @\"abc-xyz-123.storage.firebase.com\".
-  void set_storage_bucket(const char* bucket) { storage_bucket_ = bucket; }
+  void set_storage_bucket(const char* bucket) {
+    storage_bucket_ = bucket;
+  }
 
   /// Get the Google Cloud Storage bucket name,
   /// @see set_storage_bucket().
@@ -256,10 +278,14 @@ class AppOptions {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  const char* storage_bucket() const { return storage_bucket_.c_str(); }
+  const char* storage_bucket() const {
+    return storage_bucket_.c_str();
+  }
 
   /// Set the Google Cloud project ID.
-  void set_project_id(const char* project) { project_id_ = project; }
+  void set_project_id(const char* project) {
+    project_id_ = project;
+  }
 
   /// Get the Google Cloud project ID.
   ///
@@ -275,18 +301,24 @@ class AppOptions {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  const char* project_id() const { return project_id_.c_str(); }
+  const char* project_id() const {
+    return project_id_.c_str();
+  }
 
 #ifdef INTERNAL_EXPERIMENTAL
   /// @brief set the iOS client ID.
   ///
   /// This is the clientID in the GoogleService-Info.plist.
-  void set_client_id(const char* client_id) { client_id_ = client_id; }
+  void set_client_id(const char* client_id) {
+    client_id_ = client_id;
+  }
 
   /// @brief Get the iOS client ID.
   ///
   /// This is the client_id in the GoogleService-Info.plist.
-  const char* client_id() const { return client_id_.c_str(); }
+  const char* client_id() const {
+    return client_id_.c_str();
+  }
 #endif  // INTERNAL_EXPERIMENTAL
 
 #ifdef INTERNAL_EXPERIMENTAL
@@ -302,7 +334,9 @@ class AppOptions {
   ///
   /// This is the project_name in the Android google-services.json config
   /// file or BUNDLE_ID in the GoogleService-Info.plist.
-  const char* package_name() const { return package_name_.c_str(); }
+  const char* package_name() const {
+    return package_name_.c_str();
+  }
 #endif  // INTERNAL_EXPERIMENTAL
 
   /// @brief Load options from a config string.
@@ -363,7 +397,8 @@ class AppOptions {
   /// @return An instance containing the loaded options if successful.
   /// If the options argument to this function is null, this method returns an
   /// AppOptions instance allocated from the heap..
-  static AppOptions* LoadDefault(AppOptions* options, JNIEnv* jni_env,
+  static AppOptions* LoadDefault(AppOptions* options,
+                                 JNIEnv* jni_env,
                                  jobject activity);
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 
@@ -516,7 +551,8 @@ class App {
   ///
   /// @return New App instance. The App should not be destroyed for the
   /// lifetime of the application.
-  static App* Create(const AppOptions& options, JNIEnv* jni_env,
+  static App* Create(const AppOptions& options,
+                     JNIEnv* jni_env,
                      jobject activity);
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 #endif  // SWIG
@@ -560,8 +596,10 @@ class App {
   ///
   /// @return New App instance. The App should not be destroyed for the
   /// lifetime of the application.
-  static App* Create(const AppOptions& options, const char* name,
-                     JNIEnv* jni_env, jobject activity);
+  static App* Create(const AppOptions& options,
+                     const char* name,
+                     JNIEnv* jni_env,
+                     jobject activity);
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 #endif  // SWIG
 
@@ -594,7 +632,9 @@ class App {
   ///
   /// @return Global JNI reference to the Android activity used to create
   /// the App.  The reference count of the returned object is not increased.
-  jobject activity() const { return activity_; }
+  jobject activity() const {
+    return activity_;
+  }
 #endif  // FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
 #endif  // SWIG
 
@@ -610,7 +650,9 @@ class App {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  const char* name() const { return name_.c_str(); }
+  const char* name() const {
+    return name_.c_str();
+  }
 
   /// Get options the App was created with.
   ///
@@ -623,7 +665,9 @@ class App {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  const AppOptions& options() const { return options_; }
+  const AppOptions& options() const {
+    return options_;
+  }
 
 #ifdef INTERNAL_EXPERIMENTAL
   /// Sets whether automatic data collection is enabled for all products.
@@ -730,18 +774,18 @@ class App {
 
  private:
   /// Construct the object.
-  App() :
+  App()
+      :
 #if FIREBASE_PLATFORM_ANDROID || defined(DOXYGEN)
-    activity_(nullptr),
+        activity_(nullptr),
 #endif
-    internal_(nullptr) {
+        internal_(nullptr) {
     Initialize();
 
 #ifdef FIREBASE_LINUX_BUILD_CONFIG_STRING
-  CheckCompilerString(FIREBASE_LINUX_BUILD_CONFIG_STRING);
+    CheckCompilerString(FIREBASE_LINUX_BUILD_CONFIG_STRING);
 #endif  // FIREBASE_LINUX_BUILD_CONFIG_STRING
   }
-
 
   /// Initialize internal implementation
   void Initialize();

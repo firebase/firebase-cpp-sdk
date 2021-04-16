@@ -33,13 +33,16 @@ namespace internal {
 // Context for async operations on Android.
 class AsyncOperation : public util::JavaThreadContext {
  public:
-  AsyncOperation(JNIEnv* env, InstanceIdInternal* instance_id_internal,
+  AsyncOperation(JNIEnv* env,
+                 InstanceIdInternal* instance_id_internal,
                  FutureHandle future_handle)
       : JavaThreadContext(env),
         derived_(nullptr),
         instance_id_internal_(instance_id_internal),
-        future_handle_(future_handle) {}
-  virtual ~AsyncOperation() {}
+        future_handle_(future_handle) {
+  }
+  virtual ~AsyncOperation() {
+  }
 
   // Get the InstanceId.
   InstanceIdInternal* instance_id_internal() const {
@@ -53,7 +56,9 @@ class AsyncOperation : public util::JavaThreadContext {
   }
 
   // Get the derived class pointer from this class.
-  void* derived() const { return derived_; }
+  void* derived() const {
+    return derived_;
+  }
 
  protected:
   void* derived_;
@@ -78,10 +83,14 @@ class InstanceIdInternal : public InstanceIdInternalBase {
   void Initialize(InstanceId* instance_id, jobject java_instance_id);
 
   // Get the Java InstanceId class.
-  jobject java_instance_id() const { return java_instance_id_; }
+  jobject java_instance_id() const {
+    return java_instance_id_;
+  }
 
   // Get the InstanceId object.
-  InstanceId* instance_id() const { return instance_id_; }
+  InstanceId* instance_id() const {
+    return instance_id_;
+  }
 
   // Store a reference to a scheduled operation.
   SharedPtr<AsyncOperation> AddOperation(AsyncOperation* operation);
@@ -99,7 +108,8 @@ class InstanceIdInternal : public InstanceIdInternalBase {
   // operation.
   template <typename T>
   void CompleteOperationWithResult(const SharedPtr<AsyncOperation>& operation,
-                                   const T& result, Error error = kErrorNone,
+                                   const T& result,
+                                   Error error = kErrorNone,
                                    const char* error_message = nullptr) {
     future_api().CompleteWithResult(operation->future_handle<T>(), error,
                                     error_message ? error_message : "", result);

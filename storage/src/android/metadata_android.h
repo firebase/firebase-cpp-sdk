@@ -184,11 +184,15 @@ class MetadataInternal {
   static void Terminate(App* app);
 
   // Gets the StorageInternal we are a part of.
-  StorageInternal* storage_internal() const { return storage_; }
+  StorageInternal* storage_internal() const {
+    return storage_;
+  }
 
   // Special method to create an invalid Metadata, because Metadata's default
   // constructor now gives us a valid one.
-  static Metadata GetInvalidMetadata() { return Metadata(nullptr); }
+  static Metadata GetInvalidMetadata() {
+    return Metadata(nullptr);
+  }
 
  private:
   friend class StorageReferenceInternal;
@@ -211,7 +215,9 @@ class MetadataInternal {
     kCacheStringCount,
   };
 
-  jobject obj() { return obj_; }
+  jobject obj() {
+    return obj_;
+  }
 
   void ReadCustomMetadata(
       std::map<std::string, std::string>* custom_metadata_out);
@@ -263,7 +269,8 @@ class MetadataInternal {
   // properties are cached when this object is constructed and returned
   // throughout the lifetime of the object.
   struct Constants {
-    Constants() : size_bytes(0), updated_time(0), creation_time(0) {}
+    Constants() : size_bytes(0), updated_time(0), creation_time(0) {
+    }
 
     int64_t size_bytes;
     int64_t updated_time;

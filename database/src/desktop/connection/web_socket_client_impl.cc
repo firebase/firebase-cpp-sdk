@@ -29,7 +29,9 @@ namespace internal {
 namespace connection {
 
 WebSocketClientImpl::WebSocketClientImpl(
-    const std::string& uri, const std::string& user_agent, Logger* logger,
+    const std::string& uri,
+    const std::string& user_agent,
+    Logger* logger,
     scheduler::Scheduler* scheduler,
     WebSocketClientEventHandler* handler /*=nullptr*/)
     : uri_(uri),
@@ -213,8 +215,10 @@ void WebSocketClientImpl::OnConnection(ClientWebSocket* ws,
   }
 }
 
-void WebSocketClientImpl::OnMessage(ClientWebSocket* ws, char* message,
-                                    size_t length, uWS::OpCode opCode) {
+void WebSocketClientImpl::OnMessage(ClientWebSocket* ws,
+                                    char* message,
+                                    size_t length,
+                                    uWS::OpCode opCode) {
   assert(ws != nullptr);
   assert(ws->getUserData() != nullptr);
   WebSocketClientImpl* client =
@@ -235,8 +239,10 @@ void WebSocketClientImpl::OnMessage(ClientWebSocket* ws, char* message,
   }
 }
 
-void WebSocketClientImpl::OnDisconnection(ClientWebSocket* ws, int code,
-                                          char* message, size_t length) {
+void WebSocketClientImpl::OnDisconnection(ClientWebSocket* ws,
+                                          int code,
+                                          char* message,
+                                          size_t length) {
   assert(ws != nullptr);
   assert(ws->getUserData() != nullptr);
   WebSocketClientImpl* client =
@@ -257,7 +263,8 @@ void WebSocketClientImpl::OnDisconnection(ClientWebSocket* ws, int code,
   }
 }
 
-void WebSocketClientImpl::ScheduleOnce(Callback cb, int int_value,
+void WebSocketClientImpl::ScheduleOnce(Callback cb,
+                                       int int_value,
                                        const std::string& string_value) {
   assert(cb != nullptr);
 

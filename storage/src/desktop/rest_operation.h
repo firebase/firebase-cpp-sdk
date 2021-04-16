@@ -45,15 +45,20 @@ class RestOperation {
   // See Start().
   RestOperation(StorageInternal* storage_internal,
                 const StorageReference& storage_reference,
-                rest::Request* request, Notifier* request_notifier,
-                BlockingResponse* response, Listener* listener,
-                FutureHandle handle, Controller* controller_out);
+                rest::Request* request,
+                Notifier* request_notifier,
+                BlockingResponse* response,
+                Listener* listener,
+                FutureHandle handle,
+                Controller* controller_out);
 
  public:
   ~RestOperation();
 
   // Get the notifier used to cleanup this object.
-  CleanupNotifier& cleanup() { return cleanup_; }
+  CleanupNotifier& cleanup() {
+    return cleanup_;
+  }
 
   // Pauses the operation currently in progress.
   bool Pause();
@@ -88,9 +93,12 @@ class RestOperation {
   // the rest call.
   static void Start(StorageInternal* storage_internal,
                     const StorageReference& storage_reference,
-                    rest::Request* request, Notifier* request_notifier,
-                    BlockingResponse* response, Listener* listener,
-                    FutureHandle handle, Controller* controller_out) {
+                    rest::Request* request,
+                    Notifier* request_notifier,
+                    BlockingResponse* response,
+                    Listener* listener,
+                    FutureHandle handle,
+                    Controller* controller_out) {
     RestOperation* operation = new RestOperation(
         storage_internal, storage_reference, request, request_notifier,
         response, listener, handle, controller_out);

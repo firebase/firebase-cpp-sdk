@@ -14,8 +14,8 @@
 
 #include "app/src/secure/user_secure_manager.h"
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace app {
@@ -39,9 +39,12 @@ TEST(UserSecureManager, Constructor) {
 
 class UserSecureInternalMock : public UserSecureInternal {
  public:
-  MOCK_METHOD(std::string, LoadUserData, (const std::string& app_name),
+  MOCK_METHOD(std::string,
+              LoadUserData,
+              (const std::string& app_name),
               (override));
-  MOCK_METHOD(void, SaveUserData,
+  MOCK_METHOD(void,
+              SaveUserData,
               (const std::string& app_name, const std::string& user_data),
               (override));
   MOCK_METHOD(void, DeleteUserData, (const std::string& app_name), (override));
@@ -58,7 +61,9 @@ class UserSecureManagerTest : public ::testing::Test {
     manager_ = new UserSecureManager(std::move(user_secure_ptr));
   }
 
-  void TearDown() override { delete manager_; }
+  void TearDown() override {
+    delete manager_;
+  }
 
   // Busy waits until |response_future| has completed.
   void WaitForResponse(const FutureBase& response_future) {

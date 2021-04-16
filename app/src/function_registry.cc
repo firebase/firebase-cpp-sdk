@@ -54,7 +54,9 @@ bool FunctionRegistry::FunctionExists(FunctionId id) {
   return itr != registered_functions_.end();
 }
 
-bool FunctionRegistry::CallFunction(FunctionId id, App* app, void* args,
+bool FunctionRegistry::CallFunction(FunctionId id,
+                                    App* app,
+                                    void* args,
                                     void* out) {
   RegisteredFunction function;
   {

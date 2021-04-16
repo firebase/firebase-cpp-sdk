@@ -16,8 +16,8 @@
 
 #include "app/src/variant_util.h"
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::StrictMock;
 
@@ -28,14 +28,18 @@ namespace {
 
 class Visitor {
  public:
-  virtual ~Visitor() {}
+  virtual ~Visitor() {
+  }
   virtual void Visit(const Path& path, const Variant& variant) = 0;
 };
 
 class MockVisitor : public Visitor {
  public:
-  ~MockVisitor() override {}
-  MOCK_METHOD(void, Visit, (const Path& path, const Variant& variant),
+  ~MockVisitor() override {
+  }
+  MOCK_METHOD(void,
+              Visit,
+              (const Path& path, const Variant& variant),
               (override));
 };
 

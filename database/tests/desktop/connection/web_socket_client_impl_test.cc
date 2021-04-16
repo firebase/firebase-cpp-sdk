@@ -14,8 +14,8 @@
 
 #include "database/src/desktop/connection/web_socket_client_impl.h"
 #include "app/src/semaphore.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {
@@ -48,7 +48,9 @@ class TestWebSocketEchoServer {
     });
   }
 
-  ~TestWebSocketEchoServer() { Stop(); }
+  ~TestWebSocketEchoServer() {
+    Stop();
+  }
 
   void Start() {
     keep_alive_ = new uS::Async(hub_.getLoop());
@@ -64,7 +66,7 @@ class TestWebSocketEchoServer {
 
     run_ = true;
     thread_ = new std::thread([this]() {
-      auto listen = [&](int port){
+      auto listen = [&](int port) {
         if (hub_.listen(port)) {
           LogDebug("[Server] Starts to listen to port %d", port);
           return true;
@@ -81,7 +83,7 @@ class TestWebSocketEchoServer {
 
         do {
           --attempts;
-          port = 10000 + (rand() % 55000); // NOLINT
+          port = 10000 + (rand() % 55000);  // NOLINT
           res = listen(port);
         } while (run_ == true && res == false && attempts != 0);
 
@@ -148,7 +150,8 @@ class TestClientEventHandler : public WebSocketClientEventHandler {
         msg_received_(),
         is_closed_(false),
         is_error_(false),
-        semaphore_(s) {}
+        semaphore_(s) {
+  }
   ~TestClientEventHandler() override{};
 
   void OnOpen() override {

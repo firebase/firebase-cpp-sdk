@@ -18,21 +18,22 @@
 
 @interface FIRAnalytics : NSObject
 
-+ (void)logEventWithName:(nonnull NSString *)name
-              parameters:(nullable NSDictionary<NSString *, id> *)parameters;
++ (void)logEventWithName:(nonnull NSString*)name
+              parameters:(nullable NSDictionary<NSString*, id>*)parameters;
 
-+ (void)setUserPropertyString:(nullable NSString *)value forName:(nonnull NSString *)name;
++ (void)setUserPropertyString:(nullable NSString*)value
+                      forName:(nonnull NSString*)name;
 
-+ (void)setUserID:(nullable NSString *)userID;
++ (void)setUserID:(nullable NSString*)userID;
 
-+ (void)setScreenName:(nullable NSString *)screenName
-          screenClass:(nullable NSString *)screenClassOverride;
++ (void)setScreenName:(nullable NSString*)screenName
+          screenClass:(nullable NSString*)screenClassOverride;
 
 + (void)setAnalyticsCollectionEnabled:(BOOL)analyticsCollectionEnabled;
 
 + (void)setSessionTimeoutInterval:(NSTimeInterval)sessionTimeoutInterval;
 
-+ (nullable NSString *)appInstanceID;
++ (nullable NSString*)appInstanceID;
 
 + (void)resetAnalyticsData;
 

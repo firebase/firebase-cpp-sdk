@@ -193,10 +193,14 @@ StorageReferenceInternal* StorageReferenceInternal::Child(
 namespace {
 
 struct FutureCallbackData {
-  FutureCallbackData(FutureHandle handle_, ReferenceCountedFutureImpl* impl_,
-                     StorageInternal* storage_, StorageReferenceFn func_,
-                     jobject listener_ = nullptr, void* dest_ = nullptr,
-                     size_t size_ = 0, jobject cpp_byte_downloader_ = nullptr,
+  FutureCallbackData(FutureHandle handle_,
+                     ReferenceCountedFutureImpl* impl_,
+                     StorageInternal* storage_,
+                     StorageReferenceFn func_,
+                     jobject listener_ = nullptr,
+                     void* dest_ = nullptr,
+                     size_t size_ = 0,
+                     jobject cpp_byte_downloader_ = nullptr,
                      jobject cpp_byte_uploader_ = nullptr)
       : handle(handle_),
         impl(impl_),
@@ -206,7 +210,8 @@ struct FutureCallbackData {
         dest(dest_),
         size(size_),
         cpp_byte_downloader(cpp_byte_downloader_),
-        cpp_byte_uploader(cpp_byte_uploader_) {}
+        cpp_byte_uploader(cpp_byte_uploader_) {
+  }
   FutureHandle handle;
   ReferenceCountedFutureImpl* impl;
   StorageInternal* storage;
@@ -222,7 +227,8 @@ struct FutureCallbackData {
 
 // Universal callback handler. This callback checks the Java type of `result`
 // and completes a different typed Future depending on that type.
-void StorageReferenceInternal::FutureCallback(JNIEnv* env, jobject result,
+void StorageReferenceInternal::FutureCallback(JNIEnv* env,
+                                              jobject result,
                                               util::FutureResult result_code,
                                               const char* status_message,
                                               void* callback_data) {
@@ -564,14 +570,19 @@ StorageReferenceInternal* StorageReferenceInternal::GetParent() {
 }
 
 Future<Metadata> StorageReferenceInternal::PutBytes(
-    const void* buffer, size_t buffer_size, Listener* listener,
+    const void* buffer,
+    size_t buffer_size,
+    Listener* listener,
     Controller* controller_out) {
   return PutBytes(buffer, buffer_size, nullptr, listener, controller_out);
 }
 
 Future<Metadata> StorageReferenceInternal::PutBytes(
-    const void* buffer, size_t buffer_size, const Metadata* metadata,
-    Listener* listener, Controller* controller_out) {
+    const void* buffer,
+    size_t buffer_size,
+    const Metadata* metadata,
+    Listener* listener,
+    Controller* controller_out) {
   if (metadata && metadata->is_valid()) {
     metadata->internal_->CommitCustomMetadata();
   }
@@ -692,8 +703,13 @@ ReferenceCountedFutureImpl* StorageReferenceInternal::future() {
 }
 
 void StorageReferenceInternal::CppByteDownloaderWriteBytes(
-    JNIEnv* env, jclass clazz, jlong buffer_ptr, jlong buffer_size,
-    jlong buffer_offset, jbyteArray byte_array, jlong num_bytes_to_copy) {
+    JNIEnv* env,
+    jclass clazz,
+    jlong buffer_ptr,
+    jlong buffer_size,
+    jlong buffer_offset,
+    jbyteArray byte_array,
+    jlong num_bytes_to_copy) {
   if (!buffer_ptr) return;
   FIREBASE_ASSERT(buffer_offset + num_bytes_to_copy <= buffer_size);
 
@@ -704,8 +720,13 @@ void StorageReferenceInternal::CppByteDownloaderWriteBytes(
 }
 
 jint StorageReferenceInternal::CppByteUploaderReadBytes(
-    JNIEnv* env, jclass clazz, jlong cpp_buffer_pointer, jlong cpp_buffer_size,
-    jlong cpp_buffer_offset, jobject bytes, jint bytes_offset,
+    JNIEnv* env,
+    jclass clazz,
+    jlong cpp_buffer_pointer,
+    jlong cpp_buffer_size,
+    jlong cpp_buffer_offset,
+    jobject bytes,
+    jint bytes_offset,
     jint num_bytes_to_read) {
   if (!cpp_buffer_pointer) return -1;
   // Right now we don't support unbound streaming.  Once a streaming callback is

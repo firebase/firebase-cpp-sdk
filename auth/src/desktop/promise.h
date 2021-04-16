@@ -72,7 +72,9 @@ class Promise {
         future_manager_.LastResult(identifier_));
   }
 
-  Future<ResultT> future() { return future_; }
+  Future<ResultT> future() {
+    return future_;
+  }
 
  private:
   ReferenceCountedFutureImpl& future_manager_;
@@ -93,7 +95,9 @@ class Promise<void> {
     future_ = static_cast<firebase::Future<void>&>(future_base);
   }
 
-  void Complete() { future_manager_.Complete(handle_, kAuthErrorNone, ""); }
+  void Complete() {
+    future_manager_.Complete(handle_, kAuthErrorNone, "");
+  }
 
   void Fail(AuthError error, const char* const message) {
     if (message) {
@@ -117,7 +121,9 @@ class Promise<void> {
         future_manager_.LastResult(identifier_));
   }
 
-  Future<void> future() { return future_; }
+  Future<void> future() {
+    return future_;
+  }
 
  private:
   ReferenceCountedFutureImpl& future_manager_;

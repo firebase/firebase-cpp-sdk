@@ -73,11 +73,14 @@ namespace {
 
 class FakeListenProvider : public ListenProvider {
  public:
-  FakeListenProvider(LoggerBase* logger) : logger_(logger), listens_() {}
+  FakeListenProvider(LoggerBase* logger) : logger_(logger), listens_() {
+  }
 
-  ~FakeListenProvider() override {}
+  ~FakeListenProvider() override {
+  }
 
-  void StartListening(const QuerySpec& query_spec, const Tag& tag,
+  void StartListening(const QuerySpec& query_spec,
+                      const Tag& tag,
                       const View* view) override {
     const Path& path = query_spec.path;
     logger_->LogDebug(
@@ -115,7 +118,9 @@ class SyncTreeTest : public Test {
                               MakeUnique<FakeListenProvider>(&logger_));
   }
 
-  void TearDown() override { delete sync_tree_; }
+  void TearDown() override {
+    delete sync_tree_;
+  }
   void RunOne(const char* name);
   void RunTest(const test_data::TestCase* test_spec, Path base_path);
 
@@ -129,9 +134,12 @@ class SyncTreeTest : public Test {
 
 class TestEventRegistration : public EventRegistration {
  public:
-  TestEventRegistration(QuerySpec query_spec) : EventRegistration(query_spec) {}
+  TestEventRegistration(QuerySpec query_spec) : EventRegistration(query_spec) {
+  }
 
-  bool RespondsTo(EventType event_type) override { return true; }
+  bool RespondsTo(EventType event_type) override {
+    return true;
+  }
 
   Event GenerateEvent(const Change& change,
                       const QuerySpec& query_spec) override {
@@ -560,11 +568,17 @@ TEST_F(SyncTreeTest, LimitIsRefilledFromServerDataAfterSet) {
   RunOne("Limit is refilled from server data after set");
 }
 
-TEST_F(SyncTreeTest, QueryOnWeirdPath) { RunOne("query on weird path."); }
+TEST_F(SyncTreeTest, QueryOnWeirdPath) {
+  RunOne("query on weird path.");
+}
 
-TEST_F(SyncTreeTest, RunsRound2) { RunOne("runs, round2"); }
+TEST_F(SyncTreeTest, RunsRound2) {
+  RunOne("runs, round2");
+}
 
-TEST_F(SyncTreeTest, HandlesNestedListens) { RunOne("handles nested listens"); }
+TEST_F(SyncTreeTest, HandlesNestedListens) {
+  RunOne("handles nested listens");
+}
 
 TEST_F(SyncTreeTest, HandlesASetBelowAListen) {
   RunOne("Handles a set below a listen");
@@ -623,7 +637,9 @@ TEST_F(SyncTreeTest, WriteLeafOverwriteFromParent) {
   RunOne("Write leaf, overwrite from parent");
 }
 
-TEST_F(SyncTreeTest, BasicUpdateTest) { RunOne("Basic update test"); }
+TEST_F(SyncTreeTest, BasicUpdateTest) {
+  RunOne("Basic update test");
+}
 
 TEST_F(SyncTreeTest, NoDoubleValueEventsForUserAck) {
   RunOne("No double value events for user ack");
@@ -713,7 +729,9 @@ TEST_F(SyncTreeTest, UserWriteWithDeepOverwrite) {
   RunOne("User write with deep user overwrite");
 }
 
-TEST_F(SyncTreeTest, DeepServerMerge) { RunOne("Deep server merge"); }
+TEST_F(SyncTreeTest, DeepServerMerge) {
+  RunOne("Deep server merge");
+}
 
 TEST_F(SyncTreeTest, ServerUpdatesPriority) {
   GTEST_SKIP();  // Fails expectations.

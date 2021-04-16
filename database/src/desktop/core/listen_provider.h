@@ -32,7 +32,8 @@ class ListenProvider {
   // Begin listening on a location with a set of parameters given by the
   // QuerySpec. While listening, the server will send down updates which will be
   // parsed and passed along to the SyncTree to be cached locally.
-  virtual void StartListening(const QuerySpec& query_spec, const Tag& tag,
+  virtual void StartListening(const QuerySpec& query_spec,
+                              const Tag& tag,
                               const View* view) = 0;
 
   // Stop listening on a location given by the QuerySpec.

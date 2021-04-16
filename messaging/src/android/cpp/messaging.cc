@@ -240,8 +240,10 @@ void FileLocker::ReleaseLock(const char* lock_filename, int fd) {
 // Lock the file referenced by g_lockfile_path.
 class MessageLockFileLocker : private FileLocker {
  public:
-  MessageLockFileLocker() : FileLocker(g_lockfile_path->c_str()) {}
-  ~MessageLockFileLocker() {}
+  MessageLockFileLocker() : FileLocker(g_lockfile_path->c_str()) {
+  }
+  ~MessageLockFileLocker() {
+  }
 };
 
 static bool LoadFile(const char* name, std::string* buf) {
@@ -417,7 +419,9 @@ static bool StringEquals(const char* a, const char* b) {
   return strcmp(a, b) == 0;
 }
 
-static void NotificationField(JNIEnv* env, std::string* field, jobject from,
+static void NotificationField(JNIEnv* env,
+                              std::string* field,
+                              jobject from,
                               const char* key) {
   jstring key_jstring = env->NewStringUTF(key);
   jstring value_jstring = static_cast<jstring>(env->CallObjectMethod(
@@ -474,7 +478,8 @@ static void BundleToMessageData(JNIEnv* env,
 }
 
 // Returns the string associated with the given key in the bundle.
-static std::string BundleGetString(JNIEnv* env, jobject bundle,
+static std::string BundleGetString(JNIEnv* env,
+                                   jobject bundle,
                                    const char* key) {
   jstring key_jstring = env->NewStringUTF(key);
   jstring value_jstring = static_cast<jstring>(env->CallObjectMethod(
@@ -559,7 +564,8 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener) {
   return Initialize(app, listener, MessagingOptions());
 }
 
-InitResult Initialize(const ::firebase::App& app, Listener* listener,
+InitResult Initialize(const ::firebase::App& app,
+                      Listener* listener,
                       const MessagingOptions& options) {
   FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(app);
   SetListenerIfNotNull(listener);
@@ -666,7 +672,9 @@ InitResult Initialize(const ::firebase::App& app, Listener* listener,
 
 namespace internal {
 
-bool IsInitialized() { return g_app != nullptr; }
+bool IsInitialized() {
+  return g_app != nullptr;
+}
 
 }  // namespace internal
 
@@ -730,7 +738,8 @@ static void InstallationsGetToken() {
   env->DeleteLocalRef(new_intent);
 }
 
-static void SubscriptionUpdateComplete(JNIEnv* env, jobject result,
+static void SubscriptionUpdateComplete(JNIEnv* env,
+                                       jobject result,
                                        util::FutureResult result_code,
                                        const char* status_message,
                                        void* callback_data) {
@@ -825,12 +834,12 @@ static void HandlePendingSubscriptions() {
   }
 }
 
-static void CompleteVoidCallback(JNIEnv* env, jobject result,
+static void CompleteVoidCallback(JNIEnv* env,
+                                 jobject result,
                                  util::FutureResult result_code,
                                  const char* status_message,
                                  void* callback_data) {
-  FutureHandleId future_id =
-                reinterpret_cast<FutureHandleId>(callback_data);
+  FutureHandleId future_id = reinterpret_cast<FutureHandleId>(callback_data);
   FutureHandle handle(future_id);
   Error error =
       (result_code == util::kFutureResultSuccess) ? kErrorNone : kErrorUnknown;
@@ -839,7 +848,8 @@ static void CompleteVoidCallback(JNIEnv* env, jobject result,
   if (result) env->DeleteLocalRef(result);
 }
 
-static void CompleteStringCallback(JNIEnv* env, jobject result,
+static void CompleteStringCallback(JNIEnv* env,
+                                   jobject result,
                                    util::FutureResult result_code,
                                    const char* status_message,
                                    void* callback_data) {
@@ -1040,10 +1050,9 @@ Future<void> DeleteToken() {
       firebase_messaging::GetMethodId(firebase_messaging::kDeleteToken));
   std::string error = util::GetAndClearExceptionMessage(env);
   if (error.empty()) {
-    util::RegisterCallbackOnTask(
-        env, task, CompleteVoidCallback,
-        reinterpret_cast<void*>(handle.get().id()),
-        kApiIdentifier);
+    util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
+                                 reinterpret_cast<void*>(handle.get().id()),
+                                 kApiIdentifier);
   } else {
     api->Complete(handle, -1, error.c_str());
   }

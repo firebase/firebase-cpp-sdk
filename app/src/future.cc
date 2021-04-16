@@ -28,8 +28,8 @@ namespace {
 
 // Callback function installed by FutureBase::Wait().
 // This will be called when the future is complete.
-void WaitCallback(const FutureBase &, void *user_data) {
-  Semaphore *semaphore = static_cast<Semaphore *>(user_data);
+void WaitCallback(const FutureBase&, void* user_data) {
+  Semaphore* semaphore = static_cast<Semaphore*>(user_data);
   // Wake up the thread that called Wait().
   semaphore->Post();
 }

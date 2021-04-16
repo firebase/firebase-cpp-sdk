@@ -22,7 +22,8 @@ using app_framework::LogError;
 // Blocking HTTP request helper function.
 static bool SendHttpRequest(const char* url,
                             const std::map<std::string, std::string>& headers,
-                            const std::string* post_body, int* response_code,
+                            const std::string* post_body,
+                            int* response_code,
                             std::string* response_str) {
   JNIEnv* env = app_framework::GetJniEnv();
   jobject activity = app_framework::GetActivity();
@@ -116,14 +117,18 @@ static bool SendHttpRequest(const char* url,
 
 // Blocking HTTP request helper function, for testing only.
 bool FirebaseTest::SendHttpGetRequest(
-    const char* url, const std::map<std::string, std::string>& headers,
-    int* response_code, std::string* response_str) {
+    const char* url,
+    const std::map<std::string, std::string>& headers,
+    int* response_code,
+    std::string* response_str) {
   return SendHttpRequest(url, headers, nullptr, response_code, response_str);
 }
 
 bool FirebaseTest::SendHttpPostRequest(
-    const char* url, const std::map<std::string, std::string>& headers,
-    const std::string& post_body, int* response_code,
+    const char* url,
+    const std::map<std::string, std::string>& headers,
+    const std::string& post_body,
+    int* response_code,
     std::string* response_str) {
   return SendHttpRequest(url, headers, &post_body, response_code, response_str);
 }

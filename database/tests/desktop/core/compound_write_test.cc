@@ -18,8 +18,8 @@
 #include <utility>
 
 #include "app/src/variant_util.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using testing::Eq;
 using testing::Pointwise;
@@ -154,7 +154,8 @@ class CompoundWriteTest : public ::testing::Test {
     write_ = CompoundWrite::FromPathMerge(merge);
   }
 
-  void TearDown() override {}
+  void TearDown() override {
+  }
 
  protected:
   CompoundWrite write_;

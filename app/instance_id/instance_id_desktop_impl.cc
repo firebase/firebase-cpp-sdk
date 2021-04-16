@@ -44,7 +44,8 @@ using firebase::callback::NewCallback;
 // Response that signals this class when it's complete or canceled.
 class SignalSemaphoreResponse : public rest::Response {
  public:
-  explicit SignalSemaphoreResponse(Semaphore* complete) : complete_(complete) {}
+  explicit SignalSemaphoreResponse(Semaphore* complete) : complete_(complete) {
+  }
 
   void MarkCompleted() override {
     rest::Response::MarkCompleted();
@@ -56,7 +57,9 @@ class SignalSemaphoreResponse : public rest::Response {
     complete_->Post();
   }
 
-  void Wait() { complete_->Wait(); }
+  void Wait() {
+    complete_->Wait();
+  }
 
  private:
   Semaphore* complete_;
@@ -66,7 +69,8 @@ class SignalSemaphoreResponse : public rest::Response {
 struct NetworkOperation {
   NetworkOperation(const std::string& request_data, Semaphore* complete)
       : request(request_data.c_str(), request_data.length()),
-        response(complete) {}
+        response(complete) {
+  }
 
   // Schedule the network operation.
   void Perform(rest::Transport* transport) {
@@ -490,16 +494,21 @@ bool InstanceIdDesktopImpl::InitialOrRefreshCheckin() {
   // Construct the JSON request.
   flexbuffers::Builder fbb;
   struct BuilderScope {
-    BuilderScope(flexbuffers::Builder* fbb_, const CheckinData* checkin_data_,
-                 const char* locale_, const char* timezone_, int logging_id_,
-                 const char* ios_device_model_, const char* ios_device_version_)
+    BuilderScope(flexbuffers::Builder* fbb_,
+                 const CheckinData* checkin_data_,
+                 const char* locale_,
+                 const char* timezone_,
+                 int logging_id_,
+                 const char* ios_device_model_,
+                 const char* ios_device_version_)
         : fbb(fbb_),
           checkin_data(checkin_data_),
           locale(locale_),
           timezone(timezone_),
           logging_id(logging_id_),
           ios_device_model(ios_device_model_),
-          ios_device_version(ios_device_version_) {}
+          ios_device_version(ios_device_version_) {
+    }
 
     flexbuffers::Builder* fbb;
     const CheckinData* checkin_data;

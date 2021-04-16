@@ -37,7 +37,8 @@ class KeepSyncedEventRegistration : public EventRegistration {
  public:
   explicit KeepSyncedEventRegistration(SyncTree* sync_tree,
                                        const QuerySpec& query_spec)
-      : EventRegistration(query_spec), sync_tree_(sync_tree) {}
+      : EventRegistration(query_spec), sync_tree_(sync_tree) {
+  }
 
   virtual ~KeepSyncedEventRegistration();
 

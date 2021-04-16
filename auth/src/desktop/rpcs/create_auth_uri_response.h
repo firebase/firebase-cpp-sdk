@@ -35,7 +35,9 @@ class CreateAuthUriResponse : public AuthResponse {
   }
 
   // Whether the user is registered if the identifier is an email.
-  bool registered() const { return application_data_->registered; }
+  bool registered() const {
+    return application_data_->registered;
+  }
 };
 
 }  // namespace auth

@@ -23,9 +23,11 @@ namespace database {
 namespace internal {
 
 const OperationSource OperationSource::kUser(OperationSource::kSourceUser,
-                                             Optional<QueryParams>(), false);
+                                             Optional<QueryParams>(),
+                                             false);
 const OperationSource OperationSource::kServer(OperationSource::kSourceServer,
-                                               Optional<QueryParams>(), false);
+                                               Optional<QueryParams>(),
+                                               false);
 
 OperationSource OperationSource::ForServerTaggedQuery(
     const QueryParams& params) {
@@ -33,13 +35,15 @@ OperationSource OperationSource::ForServerTaggedQuery(
                          Optional<QueryParams>(params), true);
 }
 
-Operation Operation::Overwrite(const OperationSource& source, const Path& path,
+Operation Operation::Overwrite(const OperationSource& source,
+                               const Path& path,
                                const Variant& snapshot) {
   return Operation(Operation::kTypeOverwrite, source, path, snapshot,
                    CompoundWrite(), Tree<bool>(), kAckConfirm);
 }
 
-Operation Operation::Merge(const OperationSource& source, const Path& path,
+Operation Operation::Merge(const OperationSource& source,
+                           const Path& path,
                            const CompoundWrite& children) {
   return Operation(Operation::kTypeMerge, source, path, Variant(), children,
                    Tree<bool>(), kAckConfirm);

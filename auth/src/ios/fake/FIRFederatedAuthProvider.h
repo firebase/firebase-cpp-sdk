@@ -32,19 +32,21 @@ NS_SWIFT_NAME(FederatedAuthProvider)
     @param credential The credential obtained.
     @param error The error that occurred if any.
  */
-typedef void(^FIRAuthCredentialCallback)(FIRAuthCredential *_Nullable credential,
-                                         NSError *_Nullable error)
-                                             NS_SWIFT_NAME(AuthCredentialCallback);
+typedef void (^FIRAuthCredentialCallback)(
+    FIRAuthCredential* _Nullable credential, NSError* _Nullable error)
+    NS_SWIFT_NAME(AuthCredentialCallback);
 
 #if TARGET_OS_IOS
 /** @fn getCredentialWithUIDelegate:completion:
     @brief Used to obtain an auth credential via a mobile web flow.
-    @param UIDelegate An optional UI delegate used to presenet the mobile web flow.
-    @param completion Optionally; a block which is invoked asynchronously on the main thread when
-        the mobile web flow is completed.
+    @param UIDelegate An optional UI delegate used to presenet the mobile web
+   flow.
+    @param completion Optionally; a block which is invoked asynchronously on the
+   main thread when the mobile web flow is completed.
  */
 - (void)getCredentialWithUIDelegate:(nullable id<FIRAuthUIDelegate>)UIDelegate
-                         completion:(nullable FIRAuthCredentialCallback)completion;
+                         completion:
+                             (nullable FIRAuthCredentialCallback)completion;
 #endif  // TARGET_OS_IOS
 
 @end

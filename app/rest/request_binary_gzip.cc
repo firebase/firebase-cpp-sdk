@@ -51,7 +51,8 @@ void RequestBinaryGzip::set_post_fields(const char* data) {
   uncompressed_size_ = GetBufferRemaining();
 }
 
-size_t RequestBinaryGzip::ReadAndCompress(char* buffer, size_t length,
+size_t RequestBinaryGzip::ReadAndCompress(char* buffer,
+                                          size_t length,
                                           bool* abort) {
   *abort = false;
   uLong remaining = static_cast<uLong>(GetBufferRemaining());

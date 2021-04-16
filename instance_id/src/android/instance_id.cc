@@ -209,8 +209,10 @@ Future<void> InstanceId::DeleteId() {
 // Context for a token retrieve / delete operation.
 class AsyncTokenOperation : public AsyncOperation {
  public:
-  AsyncTokenOperation(JNIEnv* env, InstanceIdInternal* instance_id_internal,
-                      FutureHandle future_handle, const char* entity,
+  AsyncTokenOperation(JNIEnv* env,
+                      InstanceIdInternal* instance_id_internal,
+                      FutureHandle future_handle,
+                      const char* entity,
                       const char* scope)
       : AsyncOperation(env, instance_id_internal, future_handle),
         entity_(entity),
@@ -218,10 +220,15 @@ class AsyncTokenOperation : public AsyncOperation {
     derived_ = this;
   }
 
-  virtual ~AsyncTokenOperation() {}
+  virtual ~AsyncTokenOperation() {
+  }
 
-  const std::string& entity() const { return entity_; }
-  const std::string& scope() const { return scope_; }
+  const std::string& entity() const {
+    return entity_;
+  }
+  const std::string& scope() const {
+    return scope_;
+  }
 
  private:
   std::string entity_;
@@ -349,8 +356,7 @@ InstanceId* InstanceId::GetInstanceId(App* app, InitResult* init_result_out) {
   jobject platform_app = app->GetPlatformApp();
   jobject java_instance_id = env->CallStaticObjectMethod(
       instance_id::GetClass(),
-      instance_id::GetMethodId(instance_id::kGetInstance),
-      platform_app);
+      instance_id::GetMethodId(instance_id::kGetInstance), platform_app);
   env->DeleteLocalRef(platform_app);
   if (firebase::util::CheckAndClearJniExceptions(env) || !java_instance_id) {
     Terminate(*app);

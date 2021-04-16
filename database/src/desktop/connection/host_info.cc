@@ -54,9 +54,12 @@ HostInfo::HostInfo(const char* host, const char* ns, bool secure)
                            hypen_separated_sdk_version;
 }
 
-HostInfo::HostInfo(const HostInfo& other) { *this = other; }
+HostInfo::HostInfo(const HostInfo& other) {
+  *this = other;
+}
 
-HostInfo::~HostInfo() {}
+HostInfo::~HostInfo() {
+}
 
 HostInfo& HostInfo::operator=(const HostInfo& other) {
   host_ = other.host_;

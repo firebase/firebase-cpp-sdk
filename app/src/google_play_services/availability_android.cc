@@ -99,7 +99,8 @@ struct AvailabilityData {
       : future_impl(kAvailabilityFnCount),
         classes_loaded(false),
         fetched_availability(false),
-        cached_availability(kAvailabilityUnavailableOther) {}
+        cached_availability(kAvailabilityUnavailableOther) {
+  }
   // Mapping of Java ConnectionResult values to C++ enum.
 
   // Future support for MakeGooglePlayServicesAvailable.

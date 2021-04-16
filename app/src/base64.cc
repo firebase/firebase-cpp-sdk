@@ -59,8 +59,10 @@ static const int8_t kBase64TableReverse[256] = {
 static const char kBase64NullEnding = '=';
 
 // Base64 encode a string (binary allowed). Returns true if successful.
-static bool Base64EncodeInternal(const std::string& input, std::string* output,
-                                 bool url_safe, bool pad_to_32_bits) {
+static bool Base64EncodeInternal(const std::string& input,
+                                 std::string* output,
+                                 bool url_safe,
+                                 bool pad_to_32_bits) {
   if (!output) {
     return false;
   }

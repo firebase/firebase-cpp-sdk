@@ -34,18 +34,22 @@ namespace internal {
 class IndexedFilter : public VariantFilter {
  public:
   explicit IndexedFilter(const QueryParams& query_params)
-      : VariantFilter(query_params) {}
+      : VariantFilter(query_params) {
+  }
 
   ~IndexedFilter() override;
 
   IndexedVariant UpdateChild(
-      const IndexedVariant& indexed_variant, const std::string& key,
-      const Variant& new_child, const Path& affected_path,
+      const IndexedVariant& indexed_variant,
+      const std::string& key,
+      const Variant& new_child,
+      const Path& affected_path,
       const CompleteChildSource* source,
       ChildChangeAccumulator* opt_change_accumulator) const override;
 
   IndexedVariant UpdateFullVariant(
-      const IndexedVariant& old_snap, const IndexedVariant& new_snap,
+      const IndexedVariant& old_snap,
+      const IndexedVariant& new_snap,
       ChildChangeAccumulator* opt_change_accumulator) const override;
 
   IndexedVariant UpdatePriority(const IndexedVariant& old_snap,

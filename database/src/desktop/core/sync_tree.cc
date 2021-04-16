@@ -43,9 +43,12 @@ using callback::NewCallback;
 namespace database {
 namespace internal {
 
-bool SyncTree::IsEmpty() { return sync_point_tree_.IsEmpty(); }
+bool SyncTree::IsEmpty() {
+  return sync_point_tree_.IsEmpty();
+}
 
-std::vector<Event> SyncTree::AckUserWrite(WriteId write_id, AckStatus revert,
+std::vector<Event> SyncTree::AckUserWrite(WriteId write_id,
+                                          AckStatus revert,
                                           Persist persist,
                                           int64_t server_time_offset) {
   std::vector<Event> results;
@@ -269,7 +272,8 @@ std::vector<Event> SyncTree::ApplyTaggedQueryOverwrite(const Path& path,
 }
 
 std::vector<Event> SyncTree::ApplyTaggedQueryMerge(
-    const Path& path, const std::map<Path, Variant>& changed_children,
+    const Path& path,
+    const std::map<Path, Variant>& changed_children,
     const Tag& tag) {
   std::vector<Event> results;
   persistence_manager_->RunInTransaction([&, this]() -> bool {
@@ -339,8 +343,10 @@ std::vector<Event> SyncTree::ApplyOperationToSyncPoints(
 }
 
 std::vector<Event> SyncTree::ApplyOperationHelper(
-    const Operation& operation, Tree<SyncPoint>* sync_point_tree,
-    const Variant* server_cache, WriteTreeRef* writes_cache) {
+    const Operation& operation,
+    Tree<SyncPoint>* sync_point_tree,
+    const Variant* server_cache,
+    WriteTreeRef* writes_cache) {
   if (operation.path.empty()) {
     return ApplyOperationDescendantsHelper(operation, sync_point_tree,
                                            server_cache, writes_cache);
@@ -379,8 +385,10 @@ std::vector<Event> SyncTree::ApplyOperationHelper(
 }
 
 std::vector<Event> SyncTree::ApplyOperationDescendantsHelper(
-    const Operation& operation, Tree<SyncPoint>* sync_point_tree,
-    const Variant* server_cache, WriteTreeRef* writes_cache) {
+    const Operation& operation,
+    Tree<SyncPoint>* sync_point_tree,
+    const Variant* server_cache,
+    WriteTreeRef* writes_cache) {
   Optional<SyncPoint>& sync_point = sync_point_tree->value();
 
   // If we don't have cached server data, see if we can get it from this
@@ -436,8 +444,11 @@ std::vector<Event> SyncTree::ApplyServerOverwrite(const Path& path,
 }
 
 std::vector<Event> SyncTree::ApplyUserMerge(
-    const Path& path, const CompoundWrite& unresolved_children,
-    const CompoundWrite& children, const WriteId write_id, Persist persist) {
+    const Path& path,
+    const CompoundWrite& unresolved_children,
+    const CompoundWrite& children,
+    const WriteId write_id,
+    Persist persist) {
   std::vector<Event> results;
   persistence_manager_->RunInTransaction([&, this]() -> bool {
     if (persist) {
@@ -452,8 +463,11 @@ std::vector<Event> SyncTree::ApplyUserMerge(
 }
 
 std::vector<Event> SyncTree::ApplyUserOverwrite(
-    const Path& path, const Variant& unresolved_new_data,
-    const Variant& new_data, WriteId write_id, OverwriteVisibility visibility,
+    const Path& path,
+    const Variant& unresolved_new_data,
+    const Variant& new_data,
+    WriteId write_id,
+    OverwriteVisibility visibility,
     Persist persist) {
   FIREBASE_DEV_ASSERT_MESSAGE(visibility == kOverwriteVisible || !persist,
                               "We shouldn't be persisting non-visible writes.");
@@ -719,7 +733,9 @@ Tag SyncTree::TagForQuerySpec(const QuerySpec& query_spec) {
   return tag_ptr ? *tag_ptr : Tag();
 }
 
-Tag SyncTree::GetNextQueryTag() { return Tag(next_query_tag_++); }
+Tag SyncTree::GetNextQueryTag() {
+  return Tag(next_query_tag_++);
+}
 
 }  // namespace internal
 }  // namespace database

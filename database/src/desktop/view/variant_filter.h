@@ -36,12 +36,14 @@ namespace internal {
 // in pulling into the view.
 class CompleteChildSource {
  public:
-  virtual ~CompleteChildSource() {}
+  virtual ~CompleteChildSource() {
+  }
   virtual Optional<Variant> GetCompleteChild(
       const std::string& child_key) const = 0;
 
   virtual Optional<std::pair<Variant, Variant>> GetChildAfterChild(
-      const QueryParams& query_params, const std::pair<Variant, Variant>& child,
+      const QueryParams& query_params,
+      const std::pair<Variant, Variant>& child,
       IterationDirection direction) const = 0;
 };
 
@@ -53,22 +55,27 @@ class CompleteChildSource {
 class VariantFilter {
  public:
   explicit VariantFilter(const QueryParams& query_params)
-      : query_params_(query_params) {}
+      : query_params_(query_params) {
+  }
 
-  virtual ~VariantFilter() {}
+  virtual ~VariantFilter() {
+  }
 
   // Update a single complete child in the snap. If the child equals the old
   // child in the snap, this is a no-op. The method expects an indexed snap.
   virtual IndexedVariant UpdateChild(
-      const IndexedVariant& indexed_variant, const std::string& key,
-      const Variant& new_child, const Path& affected_path,
+      const IndexedVariant& indexed_variant,
+      const std::string& key,
+      const Variant& new_child,
+      const Path& affected_path,
       const CompleteChildSource* source,
       ChildChangeAccumulator* opt_change_accumulator) const = 0;
 
   // Update a variant in full and output any resulting change from this
   // complete update.
   virtual IndexedVariant UpdateFullVariant(
-      const IndexedVariant& old_snap, const IndexedVariant& new_snap,
+      const IndexedVariant& old_snap,
+      const IndexedVariant& new_snap,
       ChildChangeAccumulator* opt_change_accumulator) const = 0;
 
   // Update the priority of the root variant
@@ -82,7 +89,9 @@ class VariantFilter {
   // doesn't filter any children.
   const virtual VariantFilter* GetIndexedFilter() const = 0;
 
-  const QueryParams& query_params() const { return query_params_; }
+  const QueryParams& query_params() const {
+    return query_params_;
+  }
 
  private:
   const QueryParams query_params_;

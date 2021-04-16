@@ -47,8 +47,7 @@ OBJ_C_PTR_WRAPPER(FIRDatabaseReference);
 class DatabaseReferenceInternal : public QueryInternal {
  public:
   explicit DatabaseReferenceInternal(
-      DatabaseInternal* database,
-      UniquePtr<FIRDatabaseReferencePointer> impl);
+      DatabaseInternal* database, UniquePtr<FIRDatabaseReferencePointer> impl);
 
   virtual ~DatabaseReferenceInternal();
 
@@ -112,7 +111,7 @@ class DatabaseReferenceInternal : public QueryInternal {
   Future<DataSnapshot> RunTransaction(
       DoTransactionWithContext transaction_function,
       void* _Nullable context,
-      void (* _Nullable delete_context)(void* _Nullable),
+      void (*_Nullable delete_context)(void* _Nullable),
       bool trigger_local_events = true);
 
   // Get the result of the most recent call to RunTransaction().
@@ -163,7 +162,9 @@ class DatabaseReferenceInternal : public QueryInternal {
 
  protected:
 #ifdef __OBJC__
-  FIRDatabaseReference* impl() const { return impl_->get(); }
+  FIRDatabaseReference* impl() const {
+    return impl_->get();
+  }
 #endif  // __OBJC__
 
  private:

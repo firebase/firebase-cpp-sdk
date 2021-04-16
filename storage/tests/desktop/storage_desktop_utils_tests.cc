@@ -18,8 +18,8 @@
 #include "app/rest/util.h"
 #include "app/src/include/firebase/app.h"
 #include "app/tests/include/firebase/app_for_testing.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "storage/src/desktop/controller_desktop.h"
 #include "storage/src/desktop/metadata_desktop.h"
 #include "storage/src/desktop/storage_path.h"
@@ -37,9 +37,13 @@ using firebase::storage::internal::StorageReferenceInternal;
 // The fixture for testing helper classes for storage desktop.
 class StorageDesktopUtilsTests : public ::testing::Test {
  protected:
-  void SetUp() override { firebase::rest::util::Initialize(); }
+  void SetUp() override {
+    firebase::rest::util::Initialize();
+  }
 
-  void TearDown() override { firebase::rest::util::Terminate(); }
+  void TearDown() override {
+    firebase::rest::util::Terminate();
+  }
 };
 
 // Test the GS URI-based StoragePath constructors
@@ -169,20 +173,18 @@ TEST_F(StorageDesktopUtilsTests, testMetadataJsonExporter) {
   std::string json = metadata.ExportAsJson();
 
   // clang-format=off
-  EXPECT_THAT(
-      json,
-      ::firebase::testing::cppsdk::EqualsJson(
-          "{\"bucket\":\"abucket\","
-          "\"cacheControl\":\"cache_control_test\","
-          "\"contentDisposition\":\"content_disposition_test\","
-          "\"contentEncoding\":\"content_encoding_test\","
-          "\"contentLanguage\":\"content_language_test\","
-          "\"contentType\":\"content_type_test\","
-          "\"metadata\":"
-            "{\"key1\":\"value1\","
-            "\"key2\":\"value2\","
-            "\"key3\":\"value3\"},"
-          "\"name\":\"file.txt\"}"));
+  EXPECT_THAT(json, ::firebase::testing::cppsdk::EqualsJson(
+                        "{\"bucket\":\"abucket\","
+                        "\"cacheControl\":\"cache_control_test\","
+                        "\"contentDisposition\":\"content_disposition_test\","
+                        "\"contentEncoding\":\"content_encoding_test\","
+                        "\"contentLanguage\":\"content_language_test\","
+                        "\"contentType\":\"content_type_test\","
+                        "\"metadata\":"
+                        "{\"key1\":\"value1\","
+                        "\"key2\":\"value2\","
+                        "\"key3\":\"value3\"},"
+                        "\"name\":\"file.txt\"}"));
   // clang-format=on
 }
 

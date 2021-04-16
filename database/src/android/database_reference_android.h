@@ -81,8 +81,10 @@ class DatabaseReferenceInternal : public QueryInternal {
   Future<void> RemoveValueLastResult();
 
   Future<DataSnapshot> RunTransaction(
-      DoTransactionWithContext transaction_function, void* context,
-      void (*delete_context)(void*), bool trigger_local_events = true);
+      DoTransactionWithContext transaction_function,
+      void* context,
+      void (*delete_context)(void*),
+      bool trigger_local_events = true);
 
   Future<DataSnapshot> RunTransactionLastResult();
 
@@ -138,7 +140,8 @@ struct TransactionData {
         handle(handle_),
         context(nullptr),
         delete_context(nullptr),
-        java_handler(nullptr) {}
+        java_handler(nullptr) {
+  }
   ~TransactionData() {
     if (delete_context) delete_context(context);
     delete_context = nullptr;

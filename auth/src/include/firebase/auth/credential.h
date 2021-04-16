@@ -21,8 +21,8 @@
 
 #include <string>
 
-#include "firebase/internal/common.h"
 #include "firebase/auth/types.h"
+#include "firebase/internal/common.h"
 
 namespace firebase {
 
@@ -74,10 +74,12 @@ class Credential {
   /// @see EmailAuthProvider::GetCredential()
   /// @see FacebookAuthProvider::GetCredential()
   /// @see GoogleAuthProvider::GetCredential()
-  explicit Credential(void* impl) : impl_(impl), error_code_(kAuthErrorNone) {}
+  explicit Credential(void* impl) : impl_(impl), error_code_(kAuthErrorNone) {
+  }
 
  public:
-  Credential() : impl_(nullptr), error_code_(kAuthErrorNone) {}
+  Credential() : impl_(nullptr), error_code_(kAuthErrorNone) {
+  }
   ~Credential();
 
   /// Copy constructor.
@@ -205,7 +207,6 @@ class GoogleAuthProvider {
   static const char* const kProviderId;
 };
 
-
 /// @brief Use an access token provided by Microsoft to authenticate.
 class MicrosoftAuthProvider {
  public:
@@ -223,7 +224,8 @@ class OAuthProvider {
   /// @param id_token The authentication token (OIDC only).
   /// @param access_token TODO(jsanmiya) add explanation (currently missing
   ///    from Android and iOS implementations).
-  static Credential GetCredential(const char* provider_id, const char* id_token,
+  static Credential GetCredential(const char* provider_id,
+                                  const char* id_token,
                                   const char* access_token);
 
   /// Generate a credential for an OAuth2 provider.
@@ -234,7 +236,8 @@ class OAuthProvider {
   /// created.
   /// @param access_token The access token associated with the Auth credential
   /// to be created, if available.  This value may be null.
-  static Credential GetCredential(const char* provider_id, const char* id_token,
+  static Credential GetCredential(const char* provider_id,
+                                  const char* id_token,
                                   const char* raw_nonce,
                                   const char* access_token);
 };
@@ -612,14 +615,12 @@ class TwitterAuthProvider {
   static const char* const kProviderId;
 };
 
-
 /// @brief Use an access token provided by Yahoo to authenticate.
 class YahooAuthProvider {
  public:
   /// The string used to identify this provider.
   static const char* const kProviderId;
 };
-
 
 }  // namespace auth
 }  // namespace firebase

@@ -70,16 +70,23 @@ class Response {
     // TODO(b/77552340): Replace the implementation of Response with
     // std::function
   }
-  virtual ~Response() {}
+  virtual ~Response() {
+  }
 
   // Check if there is any error in response
-  bool HasError() const { return error_code_ != kErrorNone; }
+  bool HasError() const {
+    return error_code_ != kErrorNone;
+  }
 
   // Get error code from response message. Empty if received "ok"
-  const Error& GetErrorCode() const { return error_code_; }
+  const Error& GetErrorCode() const {
+    return error_code_;
+  }
 
   // Get error message from response message. Usually in human readable format.
-  const std::string& GetErrorMessage() const { return error_message_; }
+  const std::string& GetErrorMessage() const {
+    return error_message_;
+  }
 
  protected:
   // Callback to be triggered when response message is received.
@@ -100,7 +107,8 @@ typedef SharedPtr<Response> ResponsePtr;
 
 class PersistentConnection : public ConnectionEventHandler {
  public:
-  explicit PersistentConnection(App* app, const HostInfo& info,
+  explicit PersistentConnection(App* app,
+                                const HostInfo& info,
                                 PersistentConnectionEventHandler* event_handler,
                                 scheduler::Scheduler* scheduler,
                                 Logger* logger);
@@ -130,7 +138,8 @@ class PersistentConnection : public ConnectionEventHandler {
   // tag is required if the query filters any child data.
   // This should only be called from scheduler thread.
   // TODO(chkuang): Implement ListenHashProvider.
-  void Listen(const QuerySpec& query_spec, const Tag& tag,
+  void Listen(const QuerySpec& query_spec,
+              const Tag& tag,
               ResponsePtr response);
 
   // Request to unlisten with a given query spec, which contains path and query
@@ -146,8 +155,10 @@ class PersistentConnection : public ConnectionEventHandler {
   // current value using the hash.  If not the same, the server returns error
   // code "datastale".
   // This should only be called from scheduler thread.
-  void CompareAndPut(const Path& path, const Variant& data,
-                     const std::string& hash, ResponsePtr response);
+  void CompareAndPut(const Path& path,
+                     const Variant& data,
+                     const std::string& hash,
+                     ResponsePtr response);
 
   // Merge the value at the given path.
   // This should only be called from scheduler thread.
@@ -160,12 +171,14 @@ class PersistentConnection : public ConnectionEventHandler {
 
   // Overwrite the value at the given path on disconnection.
   // This should only be called from scheduler thread.
-  void OnDisconnectPut(const Path& path, const Variant& data,
+  void OnDisconnectPut(const Path& path,
+                       const Variant& data,
                        ResponsePtr response);
 
   // Merge the value at the given path on disconnection.
   // This should only be called from scheduler thread.
-  void OnDisconnectMerge(const Path& path, const Variant& updates,
+  void OnDisconnectMerge(const Path& path,
+                         const Variant& updates,
                          ResponsePtr response);
 
   // Cancel all OnDisconnect operation at the given path.
@@ -211,7 +224,8 @@ class PersistentConnection : public ConnectionEventHandler {
   // The callback function to be triggered first when a response message is
   // received.  This should be a class function pointer.
   typedef void (PersistentConnection::*ConnectionResponseHandler)(
-      const Variant& message, const ResponsePtr& response,
+      const Variant& message,
+      const ResponsePtr& response,
       uint64_t outstanding_id);
 
   // Request Data containing the Response and a callback.
@@ -219,9 +233,11 @@ class PersistentConnection : public ConnectionEventHandler {
   // Also, the callback to be used to pre-process data before triggering
   // Response, or when Response is irrelevant (ex. ConnectionStatus message)
   struct RequestData {
-    explicit RequestData(ResponsePtr response, ConnectionResponseHandler cb,
+    explicit RequestData(ResponsePtr response,
+                         ConnectionResponseHandler cb,
                          uint64_t id)
-        : response(Move(response)), callback(cb), outstanding_id(id) {}
+        : response(Move(response)), callback(cb), outstanding_id(id) {
+    }
 
     // Pointer to the response.  Can be nullptr
     ResponsePtr response;
@@ -237,12 +253,15 @@ class PersistentConnection : public ConnectionEventHandler {
 
   // Capture the outstanding or ongoing listen requests.
   struct OutstandingListen {
-    explicit OutstandingListen(const QuerySpec& query_spec, const Tag& tag,
-                               ResponsePtr response, uint64_t outstanding_id)
+    explicit OutstandingListen(const QuerySpec& query_spec,
+                               const Tag& tag,
+                               ResponsePtr response,
+                               uint64_t outstanding_id)
         : query_spec(query_spec),
           tag(tag),
           response(response),
-          outstanding_id(outstanding_id) {}
+          outstanding_id(outstanding_id) {
+    }
 
     // Path and query params for the listen request.
     QuerySpec query_spec;
@@ -263,9 +282,12 @@ class PersistentConnection : public ConnectionEventHandler {
   // Capture the outstanding OnDisconnect requests when the connection is not
   // established yet.
   struct OutstandingOnDisconnect {
-    explicit OutstandingOnDisconnect(const char* action, const Path& path,
-                                     const Variant& data, ResponsePtr response)
-        : action(action), path(path), data(data), response(Move(response)) {}
+    explicit OutstandingOnDisconnect(const char* action,
+                                     const Path& path,
+                                     const Variant& data,
+                                     ResponsePtr response)
+        : action(action), path(path), data(data), response(Move(response)) {
+    }
 
     // Action of the request such as PUT, MERGE and CANCEL
     std::string action;
@@ -284,9 +306,11 @@ class PersistentConnection : public ConnectionEventHandler {
   // Capture the outstanding Put requests when the connection is not
   // established yet.
   struct OutstandingPut {
-    explicit OutstandingPut(const char* action, const Variant& data,
+    explicit OutstandingPut(const char* action,
+                            const Variant& data,
                             ResponsePtr response)
-        : action(action), data(data), response(Move(response)), sent(false) {}
+        : action(action), data(data), response(Move(response)), sent(false) {
+    }
 
     // Action of the request such as PUT, MERGE and CANCEL
     std::string action;
@@ -300,9 +324,13 @@ class PersistentConnection : public ConnectionEventHandler {
     // Whether the put request is sent or not
     bool sent;
 
-    void MarkSent() { sent = true; }
+    void MarkSent() {
+      sent = true;
+    }
 
-    bool WasSent() { return sent; }
+    bool WasSent() {
+      return sent;
+    }
   };
   typedef UniquePtr<OutstandingPut> OutstandingPutPtr;
 
@@ -312,7 +340,9 @@ class PersistentConnection : public ConnectionEventHandler {
     return interrupt_reasons_.find(reason) != interrupt_reasons_.end();
   }
 
-  bool ShouldReconnect() { return interrupt_reasons_.empty(); }
+  bool ShouldReconnect() {
+    return interrupt_reasons_.empty();
+  }
 
   // Try to reconnect to RT DB server.
   void TryScheduleReconnect();
@@ -330,7 +360,9 @@ class PersistentConnection : public ConnectionEventHandler {
   // Start to establish connection to RT DB server.
   void OpenNetworkConnection();
 
-  bool CanSendWrites() const { return connection_state_ == kConnected; }
+  bool CanSendWrites() const {
+    return connection_state_ == kConnected;
+  }
 
   bool IsConnected() const {
     return connection_state_ == kConnected ||
@@ -346,7 +378,8 @@ class PersistentConnection : public ConnectionEventHandler {
 
   // Callback function triggered when the server response to listen request is
   // received.
-  void HandleListenResponse(const Variant& message, const ResponsePtr& response,
+  void HandleListenResponse(const Variant& message,
+                            const ResponsePtr& response,
                             uint64_t listen_id);
 
   // Log warnings from the server response to listen request.
@@ -366,24 +399,33 @@ class PersistentConnection : public ConnectionEventHandler {
   // failed listen.
   void OnListenRevoked(const Path& path);
 
-  void PutInternal(const char* action, const Path& path, const Variant& data,
-                   const char* hash, ResponsePtr response);
+  void PutInternal(const char* action,
+                   const Path& path,
+                   const Variant& data,
+                   const char* hash,
+                   ResponsePtr response);
 
   void SendPut(uint64_t write_id);
 
-  void HandlePutResponse(const Variant& message, const ResponsePtr& response,
+  void HandlePutResponse(const Variant& message,
+                         const ResponsePtr& response,
                          uint64_t outstanding_id);
 
   void CancelSentTransactions();
 
-  void SendOnDisconnect(const char* action, const Path& path,
-                        const Variant& data, ResponsePtr response);
+  void SendOnDisconnect(const char* action,
+                        const Path& path,
+                        const Variant& data,
+                        ResponsePtr response);
   void HandleOnDisconnectResponse(const Variant& message,
                                   const ResponsePtr& response,
                                   uint64_t outstanding_id);
 
-  void SendSensitive(const char* action, bool sensitive, const Variant& message,
-                     ResponsePtr response, ConnectionResponseHandler callback,
+  void SendSensitive(const char* action,
+                     bool sensitive,
+                     const Variant& message,
+                     ResponsePtr response,
+                     ConnectionResponseHandler callback,
                      uint64_t outstanding_id);
 
   // Restore outstanding requests created when connection is not established,
@@ -415,7 +457,8 @@ class PersistentConnection : public ConnectionEventHandler {
 
   void OnAuthRevoked(Error error_code, const std::string& reason);
 
-  static void TriggerResponse(const ResponsePtr& response_ptr, Error error_code,
+  static void TriggerResponse(const ResponsePtr& response_ptr,
+                              Error error_code,
                               const std::string& error_message);
 
   static Error StatusStringToErrorCode(const std::string& status);
@@ -550,7 +593,8 @@ class PersistentConnection : public ConnectionEventHandler {
 
 class PersistentConnectionEventHandler {
  public:
-  virtual ~PersistentConnectionEventHandler() {}
+  virtual ~PersistentConnectionEventHandler() {
+  }
 
   virtual void OnConnect() = 0;
 
@@ -561,8 +605,10 @@ class PersistentConnectionEventHandler {
   virtual void OnServerInfoUpdate(
       const std::map<Variant, Variant>& updates) = 0;
 
-  virtual void OnDataUpdate(const Path& path, const Variant& payload_data,
-                            bool is_merge, const Tag& tag) = 0;
+  virtual void OnDataUpdate(const Path& path,
+                            const Variant& payload_data,
+                            bool is_merge,
+                            const Tag& tag) = 0;
 };
 
 }  // namespace connection

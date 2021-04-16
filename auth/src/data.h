@@ -84,7 +84,8 @@ struct AuthData {
         id_token_listener_impl(nullptr),
         expect_id_token_listener_callback(false),
         persistent_cache_load_pending(true),
-        destructing(false) {}
+        destructing(false) {
+  }
 
   ~AuthData() {
     ClearUserInfos(this);

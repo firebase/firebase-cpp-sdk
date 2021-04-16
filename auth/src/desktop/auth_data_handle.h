@@ -38,7 +38,8 @@ struct AuthDataHandle {
       : auth_data(set_auth_data),
         promise(set_promise),
         request(std::move(set_request)),
-        callback(set_callback) {}
+        callback(set_callback) {
+  }
 
   AuthData* const auth_data;
   Promise<ResultT> promise;

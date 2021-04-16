@@ -189,7 +189,8 @@ static void ReleaseClasses(JNIEnv* env) {
 }
 
 template <typename T>
-static void SaveDefaultKeys(const T* defaults, std::vector<std::string>* keys,
+static void SaveDefaultKeys(const T* defaults,
+                            std::vector<std::string>* keys,
                             size_t number_of_defaults) {
   assert(keys);
   keys->clear();
@@ -260,7 +261,8 @@ static jobject VariantToJavaObject(JNIEnv* env, const Variant& variant) {
 // Convert a ConfigKeyValueVariant array into a Java HashMap of string to
 // Object.
 static jobject ConfigKeyValueVariantArrayToHashMap(
-    JNIEnv* env, const ConfigKeyValueVariant* defaults,
+    JNIEnv* env,
+    const ConfigKeyValueVariant* defaults,
     size_t number_of_defaults) {
   jobject hash_map =
       env->NewObject(util::hash_map::GetClass(),
@@ -287,7 +289,8 @@ static jobject ConfigKeyValueVariantArrayToHashMap(
 // Check pending exceptions following a key fetch and log an error if a
 // failure occurred.  If an error occurs this method returns true, false
 // otherwise.
-static bool CheckKeyRetrievalLogError(JNIEnv* env, const char* key,
+static bool CheckKeyRetrievalLogError(JNIEnv* env,
+                                      const char* key,
                                       const char* value_type) {
   if (env->ExceptionCheck()) {
     env->ExceptionDescribe();
@@ -322,7 +325,9 @@ static bool CheckKeyRetrievalLogError(JNIEnv* env, const char* key,
   }
 
 // Get the FirebaseRemoteConfigValue interface and the value source for a key.
-static jobject GetValue(JNIEnv* env, jobject rc_obj, const char* key,
+static jobject GetValue(JNIEnv* env,
+                        jobject rc_obj,
+                        const char* key,
                         ValueInfo* info) {
   bool configFetchFailed = false;
   jstring key_string = env->NewStringUTF(key);
@@ -377,7 +382,8 @@ static jobject GetValue(JNIEnv* env, jobject rc_obj, const char* key,
     return failed ? static_cast<c_type>(0) : value;                   \
   }
 
-static void JConfigInfoToConfigInfo(JNIEnv* env, jobject jinfo,
+static void JConfigInfoToConfigInfo(JNIEnv* env,
+                                    jobject jinfo,
                                     ConfigInfo* info) {
   FIREBASE_DEV_ASSERT(env->IsInstanceOf(jinfo, config_info::GetClass()));
 
@@ -423,7 +429,8 @@ struct RCDataHandle {
       : future_api(_future_api),
         future_handle(_future_handle),
         rc_internal(_rc_internal),
-        default_keys(_default_keys) {}
+        default_keys(_default_keys) {
+  }
   ReferenceCountedFutureImpl* future_api;
   SafeFutureHandle<T> future_handle;
   RemoteConfigInternal* rc_internal;
@@ -463,9 +470,10 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
   LogDebug("%s API Initialized", kApiIdentifier);
 }
 
-RemoteConfigInternal::~RemoteConfigInternal() {}
+RemoteConfigInternal::~RemoteConfigInternal() {
+}
 
-bool RemoteConfigInternal::Initialized() const{
+bool RemoteConfigInternal::Initialized() const {
   return internal_obj_ != nullptr;
 }
 
@@ -478,7 +486,8 @@ void RemoteConfigInternal::Cleanup() {
   }
 }
 
-void EnsureInitializedCallback(JNIEnv* env, jobject result,
+void EnsureInitializedCallback(JNIEnv* env,
+                               jobject result,
                                util::FutureResult result_code,
                                const char* status_message,
                                void* callback_data) {
@@ -487,7 +496,8 @@ void EnsureInitializedCallback(JNIEnv* env, jobject result,
   if (success && result) {
     JConfigInfoToConfigInfo(env, result, &info);
   }
-  auto* data_handle = reinterpret_cast<RCDataHandle<ConfigInfo>*>(callback_data);
+  auto* data_handle =
+      reinterpret_cast<RCDataHandle<ConfigInfo>*>(callback_data);
 
   data_handle->future_api->CompleteWithResult(
       data_handle->future_handle,
@@ -497,9 +507,11 @@ void EnsureInitializedCallback(JNIEnv* env, jobject result,
   delete data_handle;
 }
 
-void BoolResultCallback(JNIEnv* env, jobject result,
+void BoolResultCallback(JNIEnv* env,
+                        jobject result,
                         util::FutureResult result_code,
-                        const char* status_message, void* callback_data) {
+                        const char* status_message,
+                        void* callback_data) {
   bool success = (result_code == util::kFutureResultSuccess);
   bool result_value = false;
   if (success && result) {
@@ -515,9 +527,11 @@ void BoolResultCallback(JNIEnv* env, jobject result,
   delete data_handle;
 }
 
-void CompleteVoidCallback(JNIEnv* env, jobject result,
+void CompleteVoidCallback(JNIEnv* env,
+                          jobject result,
                           util::FutureResult result_code,
-                          const char* status_message, void* callback_data) {
+                          const char* status_message,
+                          void* callback_data) {
   auto* data_handle = reinterpret_cast<RCDataHandle<void>*>(callback_data);
   data_handle->future_api->Complete(data_handle->future_handle,
                                     result_code == util::kFutureResultSuccess
@@ -526,8 +540,11 @@ void CompleteVoidCallback(JNIEnv* env, jobject result,
   delete data_handle;
 }
 
-void FetchCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
-                   const char* status_message, void* callback_data) {
+void FetchCallback(JNIEnv* env,
+                   jobject result,
+                   util::FutureResult result_code,
+                   const char* status_message,
+                   void* callback_data) {
   bool success = (result_code == util::kFutureResultSuccess);
   int64_t throttle_end_time = 0;
   if (!success && result) {
@@ -545,9 +562,11 @@ void FetchCallback(JNIEnv* env, jobject result, util::FutureResult result_code,
   CompleteVoidCallback(env, result, result_code, status_message, callback_data);
 }
 
-void SetDefaultsCallback(JNIEnv* env, jobject result,
+void SetDefaultsCallback(JNIEnv* env,
+                         jobject result,
                          util::FutureResult result_code,
-                         const char* status_message, void* callback_data) {
+                         const char* status_message,
+                         void* callback_data) {
   auto data_handle = reinterpret_cast<RCDataHandle<void>*>(callback_data);
   if (result_code == util::kFutureResultSuccess &&
       !data_handle->default_keys.empty()) {

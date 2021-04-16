@@ -33,8 +33,10 @@ WriteTreeRef WriteTree::ChildWrites(const Path& database_path) {
   return WriteTreeRef(database_path, this);
 }
 
-void WriteTree::AddOverwrite(const Path& path, const Variant& snap,
-                             WriteId write_id, OverwriteVisibility visibility) {
+void WriteTree::AddOverwrite(const Path& path,
+                             const Variant& snap,
+                             WriteId write_id,
+                             OverwriteVisibility visibility) {
   // Stacking an older write on top of newer ones.
   FIREBASE_DEV_ASSERT(write_id > last_write_id_);
   all_writes_.push_back(
@@ -138,14 +140,16 @@ Optional<Variant> WriteTree::CalcCompleteEventCache(
 }
 
 Optional<Variant> WriteTree::CalcCompleteEventCache(
-    const Path& tree_path, const Variant* complete_server_cache,
+    const Path& tree_path,
+    const Variant* complete_server_cache,
     const std::vector<WriteId>& write_ids_to_exclude) const {
   return CalcCompleteEventCache(tree_path, complete_server_cache,
                                 write_ids_to_exclude, kExcludeHiddenWrites);
 }
 
 Optional<Variant> WriteTree::CalcCompleteEventCache(
-    const Path& tree_path, const Variant* complete_server_cache,
+    const Path& tree_path,
+    const Variant* complete_server_cache,
     const std::vector<WriteId>& write_ids_to_exclude,
     HiddenWriteInclusion include_hidden_writes) const {
   if (write_ids_to_exclude.empty() &&
@@ -252,7 +256,8 @@ Variant WriteTree::CalcCompleteEventChildren(
 }
 
 Optional<Variant> WriteTree::CalcEventCacheAfterServerOverwrite(
-    const Path& tree_path, const Path& child_path,
+    const Path& tree_path,
+    const Path& child_path,
     const Variant* existing_local_snap,
     const Variant* existing_server_snap) const {
   // Possibilities:
@@ -292,7 +297,8 @@ Optional<Variant> WriteTree::CalcEventCacheAfterServerOverwrite(
 }
 
 Optional<Variant> WriteTree::CalcCompleteChild(
-    const Path& tree_path, const std::string& child_key,
+    const Path& tree_path,
+    const std::string& child_key,
     const CacheNode& existing_server_snap) const {
   Path path = tree_path.GetChild(child_key);
   Optional<Variant> shadowing_variant =
@@ -311,8 +317,10 @@ Optional<Variant> WriteTree::CalcCompleteChild(
 }
 
 Optional<std::pair<Variant, Variant>> WriteTree::CalcNextVariantAfterPost(
-    const Path& tree_path, const Optional<Variant>& complete_server_data,
-    const std::pair<Variant, Variant>& post, IterationDirection direction,
+    const Path& tree_path,
+    const Optional<Variant>& complete_server_data,
+    const std::pair<Variant, Variant>& post,
+    IterationDirection direction,
     const QueryParams& query_params) const {
   Optional<Variant> to_iterate;
   CompoundWrite merge = visible_writes_.ChildCompoundWrite(tree_path);
@@ -436,7 +444,8 @@ CompoundWrite WriteTree::LayerTree(const std::vector<UserWriteRecord>& writes,
 }
 
 WriteTreeRef::WriteTreeRef(const Path& path, WriteTree* write_tree)
-    : path_(path), write_tree_(write_tree) {}
+    : path_(path), write_tree_(write_tree) {
+}
 
 Optional<Variant> WriteTreeRef::CalcCompleteEventCache(
     const Variant* complete_server_cache) const {
@@ -466,7 +475,8 @@ Variant WriteTreeRef::CalcCompleteEventChildren(
 }
 
 Optional<Variant> WriteTreeRef::CalcEventCacheAfterServerOverwrite(
-    const Path& path, const Variant* existing_local_snap,
+    const Path& path,
+    const Variant* existing_local_snap,
     const Variant* existing_server_snap) const {
   return write_tree_->CalcEventCacheAfterServerOverwrite(
       path_, path, existing_local_snap, existing_server_snap);
@@ -485,7 +495,8 @@ Optional<Variant> WriteTreeRef::CalcCompleteChild(
 
 Optional<std::pair<Variant, Variant>> WriteTreeRef::CalcNextVariantAfterPost(
     const Optional<Variant>& complete_server_data,
-    const std::pair<Variant, Variant>& start_post, IterationDirection direction,
+    const std::pair<Variant, Variant>& start_post,
+    IterationDirection direction,
     const QueryParams& query_params) const {
   return write_tree_->CalcNextVariantAfterPost(
       path_, complete_server_data, start_post, direction, query_params);
@@ -496,9 +507,13 @@ WriteTreeRef WriteTreeRef::Child(const std::string& child_key) const {
   return WriteTreeRef(path_.GetChild(child_key), write_tree_);
 }
 
-Path WriteTreeRef::path() { return path_; }
+Path WriteTreeRef::path() {
+  return path_;
+}
 
-WriteTree* WriteTreeRef::write_tree() { return write_tree_; }
+WriteTree* WriteTreeRef::write_tree() {
+  return write_tree_;
+}
 
 }  // namespace internal
 }  // namespace database

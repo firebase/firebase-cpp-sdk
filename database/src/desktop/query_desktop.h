@@ -39,7 +39,8 @@ class DatabaseInternal;
 
 class QueryInternal {
  public:
-  QueryInternal() : database_(nullptr) {}
+  QueryInternal() : database_(nullptr) {
+  }
 
   QueryInternal(DatabaseInternal* database, const QuerySpec& query_spec);
 
@@ -91,9 +92,13 @@ class QueryInternal {
   QueryInternal* LimitToFirst(size_t limit);
   QueryInternal* LimitToLast(size_t limit);
 
-  const QuerySpec& query_spec() const { return query_spec_; }
+  const QuerySpec& query_spec() const {
+    return query_spec_;
+  }
 
-  DatabaseInternal* database_internal() const { return database_; }
+  DatabaseInternal* database_internal() const {
+    return database_;
+  }
 
  protected:
   DatabaseInternal* database_;
@@ -124,14 +129,16 @@ class QueryInternal {
 
 struct ValueListenerCleanupData {
   explicit ValueListenerCleanupData(const QuerySpec& query_spec)
-      : query_spec(query_spec) {}
+      : query_spec(query_spec) {
+  }
 
   QuerySpec query_spec;
 };
 
 struct ChildListenerCleanupData {
   explicit ChildListenerCleanupData(const QuerySpec& query_spec)
-      : query_spec(query_spec) {}
+      : query_spec(query_spec) {
+  }
 
   QuerySpec query_spec;
 };

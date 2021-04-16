@@ -16,8 +16,8 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MATCHERS_H_
 
 #include <utility>
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {

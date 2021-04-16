@@ -187,7 +187,8 @@ void ReleaseClasses(JNIEnv* env) {
   }
 }
 
-static void PlatformOptionsBuilderSetString(JNIEnv* jni_env, jobject builder,
+static void PlatformOptionsBuilderSetString(JNIEnv* jni_env,
+                                            jobject builder,
                                             const char* value,
                                             options_builder::Method setter_id) {
   jstring string_value = jni_env->NewStringUTF(value);
@@ -317,7 +318,8 @@ static jobject GetPlatformAppByName(JNIEnv* jni_env, const char* name) {
 }
 
 // Get options from an Android SDK FirebaseApp instance.
-static void GetAppOptionsFromPlatformApp(JNIEnv* jni_env, jobject platform_app,
+static void GetAppOptionsFromPlatformApp(JNIEnv* jni_env,
+                                         jobject platform_app,
                                          AppOptions* app_options) {
   jobject platform_options = jni_env->CallObjectMethod(
       platform_app, app::GetMethodId(app::kGetOptions));
@@ -328,8 +330,10 @@ static void GetAppOptionsFromPlatformApp(JNIEnv* jni_env, jobject platform_app,
 }
 
 // Create an Android SDK FirebaseApp instance.
-static jobject CreatePlatformApp(JNIEnv* jni_env, const AppOptions& options,
-                                  const char* name, jobject activity) {
+static jobject CreatePlatformApp(JNIEnv* jni_env,
+                                 const AppOptions& options,
+                                 const char* name,
+                                 jobject activity) {
   jobject platform_app = nullptr;
   jobject platform_options = AppOptionsToPlatformOptions(jni_env, options);
   if (platform_options != nullptr) {
@@ -340,8 +344,8 @@ static jobject CreatePlatformApp(JNIEnv* jni_env, const AppOptions& options,
     } else {
       jstring app_name = jni_env->NewStringUTF(name);
       platform_app = jni_env->CallStaticObjectMethod(
-          app::GetClass(), app::GetMethodId(app::kInitializeApp),
-          activity, platform_options, app_name);
+          app::GetClass(), app::GetMethodId(app::kInitializeApp), activity,
+          platform_options, app_name);
       jni_env->DeleteLocalRef(app_name);
     }
     jni_env->DeleteLocalRef(platform_options);
@@ -355,7 +359,8 @@ static jobject CreatePlatformApp(JNIEnv* jni_env, const AppOptions& options,
 // nullptr otherwise.
 static jobject CreateOrGetPlatformApp(JNIEnv* jni_env,
                                       const AppOptions& options,
-                                      const char* name, jobject activity) {
+                                      const char* name,
+                                      jobject activity) {
   jobject platform_app = GetPlatformAppByName(jni_env, name);
   if (platform_app) {
     AppOptions options_to_compare = options;
@@ -365,9 +370,11 @@ static jobject CreateOrGetPlatformApp(JNIEnv* jni_env,
     AppOptions existing_options;
     GetAppOptionsFromPlatformApp(jni_env, platform_app, &existing_options);
     if (options_to_compare != existing_options) {
-      LogWarning("Existing instance of App %s found and options do not match "
-                 "the requested options.  Deleting %s to attempt recreation "
-                 "with requested options.", name, name);
+      LogWarning(
+          "Existing instance of App %s found and options do not match "
+          "the requested options.  Deleting %s to attempt recreation "
+          "with requested options.",
+          name, name);
       // Delete this FirebaseApp instance.
       jni_env->CallVoidMethod(platform_app, app::GetMethodId(app::kDelete));
       util::CheckAndClearJniExceptions(jni_env);
@@ -378,8 +385,8 @@ static jobject CreateOrGetPlatformApp(JNIEnv* jni_env,
   if (!platform_app) {
     AppOptions options_with_defaults = options;
     if (options_with_defaults.PopulateRequiredWithDefaults(jni_env, activity)) {
-      platform_app = CreatePlatformApp(jni_env, options_with_defaults, name,
-                                       activity);
+      platform_app =
+          CreatePlatformApp(jni_env, options_with_defaults, name, activity);
     }
   }
   return platform_app;
@@ -388,7 +395,8 @@ static jobject CreateOrGetPlatformApp(JNIEnv* jni_env,
 }  // namespace
 
 AppOptions* AppOptions::LoadDefault(AppOptions* app_options,
-                                    JNIEnv* jni_env, jobject activity) {
+                                    JNIEnv* jni_env,
+                                    jobject activity) {
   if (CacheMethods(jni_env, activity)) {
     // Read the options from the embedded resources.
     jobject platform_options = jni_env->CallStaticObjectMethod(
@@ -420,7 +428,8 @@ AppOptions* AppOptions::LoadDefault(AppOptions* app_options,
   return app_options;
 }
 
-void App::Initialize() {}
+void App::Initialize() {
+}
 
 App::~App() {
   app_common::RemoveApp(this);
@@ -441,9 +450,10 @@ App* App::Create(JNIEnv* jni_env, jobject activity) {
     if (AppOptions::LoadDefault(&options, jni_env, activity)) {
       app = Create(options, jni_env, activity);
     } else {
-      LogError("Failed to read Firebase options from the app's resources. "
-               "Either make sure google-services.json is included in your "
-               "build or specify options explicitly.");
+      LogError(
+          "Failed to read Firebase options from the app's resources. "
+          "Either make sure google-services.json is included in your "
+          "build or specify options explicitly.");
     }
     ReleaseClasses(jni_env);
   }
@@ -454,7 +464,9 @@ App* App::Create(const AppOptions& options, JNIEnv* jni_env, jobject activity) {
   return Create(options, kDefaultAppName, jni_env, activity);
 }
 
-App* App::Create(const AppOptions& options, const char* name, JNIEnv* jni_env,
+App* App::Create(const AppOptions& options,
+                 const char* name,
+                 JNIEnv* jni_env,
                  jobject activity) {
   // If the app has already been initialize log an error.
   App* app = GetInstance(name);
@@ -465,8 +477,8 @@ App* App::Create(const AppOptions& options, const char* name, JNIEnv* jni_env,
   LogDebug("Creating Firebase App %s for %s", name, kFirebaseVersionString);
   if (CacheMethods(jni_env, activity)) {
     // Try to get or create a new FirebaseApp object.
-    jobject platform_app = CreateOrGetPlatformApp(jni_env, options, name,
-                                                  activity);
+    jobject platform_app =
+        CreateOrGetPlatformApp(jni_env, options, name, activity);
     if (platform_app) {
       app = new App();
       app->name_ = name;
@@ -482,13 +494,17 @@ App* App::Create(const AppOptions& options, const char* name, JNIEnv* jni_env,
   return app;
 }
 
-App* App::GetInstance() { return app_common::GetDefaultApp(); }
+App* App::GetInstance() {
+  return app_common::GetDefaultApp();
+}
 
 App* App::GetInstance(const char* name) {
   return app_common::FindAppByName(name);
 }
 
-JNIEnv* App::GetJNIEnv() const { return util::GetThreadsafeJNIEnv(java_vm()); }
+JNIEnv* App::GetJNIEnv() const {
+  return util::GetThreadsafeJNIEnv(java_vm());
+}
 
 static void RegisterLibraryWithVersionRegistrar(JNIEnv* env,
                                                 const char* library,
@@ -517,7 +533,8 @@ void App::RegisterLibrary(const char* library, const char* version) {
   app_common::RegisterLibrary(library, version);
 }
 
-void App::SetDefaultConfigPath(const char* /* path */) {}
+void App::SetDefaultConfigPath(const char* /* path */) {
+}
 
 void App::SetDataCollectionDefaultEnabled(bool enabled) {
   if (!app::GetMethodId(app::kSetDataCollectionDefaultEnabled)) {
@@ -548,10 +565,16 @@ bool App::IsDataCollectionDefaultEnabled() const {
   return result != JNI_FALSE;
 }
 
-const char* App::GetUserAgent() { return app_common::GetUserAgent(); }
+const char* App::GetUserAgent() {
+  return app_common::GetUserAgent();
+}
 
-JavaVM* App::java_vm() const { return internal_->java_vm(); }
+JavaVM* App::java_vm() const {
+  return internal_->java_vm();
+}
 
-jobject App::GetPlatformApp() const { return internal_->GetLocalRef(); }
+jobject App::GetPlatformApp() const {
+  return internal_->GetLocalRef();
+}
 
 }  // namespace firebase

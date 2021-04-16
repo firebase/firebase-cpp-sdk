@@ -47,7 +47,8 @@ namespace messaging {
 /// Firebase Cloud Messaging's behavior.
 struct MessagingOptions {
   /// Default constructor.
-  MessagingOptions() : suppress_notification_permission_prompt(false) {}
+  MessagingOptions() : suppress_notification_permission_prompt(false) {
+  }
 
   /// If true, do not display the prompt to the user requesting permission to
   /// allow notifications to this app. If the prompt is suppressed in this way,
@@ -73,11 +74,14 @@ struct AndroidNotificationParams {
 /// On android, this requires that the app is using the Play Services client
 /// library.
 struct Notification {
-  Notification() : android(nullptr) {}
+  Notification() : android(nullptr) {
+  }
 
 #ifndef SWIG
   /// Copy constructor. Makes a deep copy of this Message.
-  Notification(const Notification& other) : android(nullptr) { *this = other; }
+  Notification(const Notification& other) : android(nullptr) {
+    *this = other;
+  }
 #endif  // !SWIG
 
 #ifndef SWIG
@@ -105,7 +109,9 @@ struct Notification {
 #endif  // !SWIG
 
   /// Destructor.
-  ~Notification() { delete android; }
+  ~Notification() {
+    delete android;
+  }
 
   /// Indicates notification title. This field is not visible on iOS phones
   /// and tablets.
@@ -200,14 +206,19 @@ struct Message {
       : time_to_live(0),
         notification(nullptr),
         notification_opened(false),
-        sent_time(0) {}
+        sent_time(0) {
+  }
 
   /// Destructor.
-  ~Message() { delete notification; }
+  ~Message() {
+    delete notification;
+  }
 
 #ifndef SWIG
   /// Copy constructor. Makes a deep copy of this Message.
-  Message(const Message& other) : notification(nullptr) { *this = other; }
+  Message(const Message& other) : notification(nullptr) {
+    *this = other;
+  }
 #endif  // !SWIG
 
 #ifndef SWIG
@@ -435,7 +446,8 @@ InitResult Initialize(const App& app, Listener* listener);
 /// @return kInitResultSuccess if initialization succeeded, or
 /// kInitResultFailedMissingDependency on Android if Google Play services is
 /// not available on the current device.
-InitResult Initialize(const App& app, Listener* listener,
+InitResult Initialize(const App& app,
+                      Listener* listener,
                       const MessagingOptions& options);
 
 /// @brief Terminate Firebase Cloud Messaging.

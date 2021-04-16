@@ -18,8 +18,8 @@
 
 #include "app/src/mutex.h"
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace {
 
@@ -29,7 +29,8 @@ using ::testing::Eq;
 template <typename T>
 class ThreadSafe {
  public:
-  explicit ThreadSafe(T value) : value_(value) {}
+  explicit ThreadSafe(T value) : value_(value) {
+  }
 
   T get() const {
     firebase::MutexLock lock(const_cast<firebase::Mutex&>(mtx_));
@@ -185,7 +186,8 @@ TEST(ThreadTest, ThreadIsNotEqualToDifferentThread) {
   firebase::Thread thread(
       [](ThreadSafe<firebase::Thread::Id>* value) {
         value->set(firebase::Thread::CurrentId());
-      }, &value);
+      },
+      &value);
   thread.Join();
 
   ASSERT_THAT(firebase::Thread::IsCurrentThread(value.get()), Eq(false));

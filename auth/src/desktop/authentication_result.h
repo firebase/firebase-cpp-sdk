@@ -59,9 +59,13 @@ class AuthenticationResult {
   static void SignOut(AuthData* auth_data);
 
   // Whether the sign in operation was successful.
-  bool IsValid() const { return error_ == kAuthErrorNone; }
+  bool IsValid() const {
+    return error_ == kAuthErrorNone;
+  }
   // Error code associated with this sign-in operation.
-  AuthError error() const { return error_; }
+  AuthError error() const {
+    return error_;
+  }
 
   // Returns uid of the user associated with this sign in operation; blank if
   // sign in failed.
@@ -69,7 +73,9 @@ class AuthenticationResult {
 
   // Returns access token of the user associated with this sign in operation;
   // blank if sign in failed.
-  std::string id_token() const { return user_impl_.id_token; }
+  std::string id_token() const {
+    return user_impl_.id_token;
+  }
 
   // Sets the currently signed in user to the one associated with this sign-in
   // operation, and updates listeners if the user changed.
@@ -85,7 +91,8 @@ class AuthenticationResult {
 
  private:
   AuthenticationResult()
-      : error_(kAuthErrorNone), user_account_info_(kAuthErrorFailure) {}
+      : error_(kAuthErrorNone), user_account_info_(kAuthErrorFailure) {
+  }
 
   const AuthError error_;
 

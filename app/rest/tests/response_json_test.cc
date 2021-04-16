@@ -18,16 +18,18 @@
 #include <utility>
 #include "app/rest/sample_generated.h"
 #include "app/rest/sample_resource.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace rest {
 
 class ResponseSample : public ResponseJson<Sample, SampleT> {
  public:
-  ResponseSample() : ResponseJson(sample_resource_data) {}
-  ResponseSample(ResponseSample&& rhs) : ResponseJson(std::move(rhs)) {}
+  ResponseSample() : ResponseJson(sample_resource_data) {
+  }
+  ResponseSample(ResponseSample&& rhs) : ResponseJson(std::move(rhs)) {
+  }
 
   std::string token() const {
     return application_data_ ? application_data_->token : std::string();

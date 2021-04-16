@@ -44,7 +44,8 @@ class NoopPersistenceManager : public PersistenceManagerInterface {
   // @param path The path for this write.
   // @param variant The variant for this write.
   // @param write_id The write id that was used for this write.
-  void SaveUserOverwrite(const Path& path, const Variant& variant,
+  void SaveUserOverwrite(const Path& path,
+                         const Variant& variant,
                          WriteId write_id) override;
 
   // Persist a user merge to the storage engine.
@@ -52,7 +53,8 @@ class NoopPersistenceManager : public PersistenceManagerInterface {
   // @param path The path for this merge.
   // @param children The children for this merge.
   // @param write_id The write id that was used for this merge.
-  void SaveUserMerge(const Path& path, const CompoundWrite& children,
+  void SaveUserMerge(const Path& path,
+                     const CompoundWrite& children,
                      WriteId write_id) override;
 
   // Remove the user write with the given write id.

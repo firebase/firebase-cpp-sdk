@@ -52,7 +52,8 @@ class Notifier {
   typedef void (*UpdateCallback)(UpdateCallbackType update_type, void* data);
 
  public:
-  Notifier() : update_callback_(nullptr), update_callback_data_(nullptr) {}
+  Notifier() : update_callback_(nullptr), update_callback_data_(nullptr) {
+  }
 
   // Set the callback to be notified about this object.
   void set_update_callback(UpdateCallback callback, void* callback_data) {
@@ -93,7 +94,9 @@ class Notifier {
 
 // Generates the common body of a request class.
 #define FIREBASE_STORAGE_REQUEST_CLASS_BODY(base_class_name)             \
-  Notifier* notifier() { return &notifier_; }                            \
+  Notifier* notifier() {                                                 \
+    return &notifier_;                                                   \
+  }                                                                      \
                                                                          \
   void MarkCompleted() override {                                        \
     notifier_.NotifyProgress();                                          \
@@ -119,7 +122,8 @@ class Notifier {
 // Base request.
 class Request : public rest::Request {
  public:
-  Request() {}
+  Request() {
+  }
 
   FIREBASE_STORAGE_REQUEST_CLASS_BODY(rest::Request);
 };
@@ -128,7 +132,8 @@ class Request : public rest::Request {
 class RequestBinary : public rest::RequestBinary {
  public:
   RequestBinary(const char* buffer, size_t buffer_size)
-      : rest::RequestBinary(buffer, buffer_size) {}
+      : rest::RequestBinary(buffer, buffer_size) {
+  }
 
   FIREBASE_STORAGE_REQUEST_CLASS_BODY(rest::RequestBinary);
 };
@@ -137,7 +142,8 @@ class RequestBinary : public rest::RequestBinary {
 class RequestFile : public rest::RequestFile {
  public:
   RequestFile(const char* filename, size_t offset)
-      : rest::RequestFile(filename, offset) {}
+      : rest::RequestFile(filename, offset) {
+  }
 
   FIREBASE_STORAGE_REQUEST_CLASS_BODY(rest::RequestFile);
 };
@@ -176,7 +182,9 @@ class BlockingResponse : public rest::Response {
   void NotifyFailed();
   // Convenience function to perform null checks and update the listener when
   // progress has happened.
-  void NotifyProgress() { notifier_.NotifyProgress(); }
+  void NotifyProgress() {
+    notifier_.NotifyProgress();
+  }
 
  private:
   Notifier notifier_;
@@ -204,7 +212,8 @@ class EmptyResponse : public BlockingResponse {
 // Response class for downloading a storage resource into memory, via CURL.
 class GetBytesResponse : public BlockingResponse {
  public:
-  GetBytesResponse(void* buffer, size_t buffer_size,
+  GetBytesResponse(void* buffer,
+                   size_t buffer_size,
                    SafeFutureHandle<size_t> handle,
                    ReferenceCountedFutureImpl* ref_future);
   bool ProcessBody(const char* buffer, size_t length) override;
@@ -221,7 +230,8 @@ class GetBytesResponse : public BlockingResponse {
 // shoved into an fstream as they are received.
 class GetFileResponse : public BlockingResponse {
  public:
-  GetFileResponse(const char* filename, SafeFutureHandle<size_t> handle,
+  GetFileResponse(const char* filename,
+                  SafeFutureHandle<size_t> handle,
                   ReferenceCountedFutureImpl* ref_future);
   bool ProcessBody(const char* buffer, size_t length) override;
   void MarkCompleted() override;
@@ -262,12 +272,19 @@ class ReturnedMetadataResponse : public BlockingResponse {
 //  }
 class StorageNetworkError : rest::util::JsonData {
  public:
-  StorageNetworkError() : error_code_(0), is_valid_(false) {}
+  StorageNetworkError() : error_code_(0), is_valid_(false) {
+  }
 
   bool Parse(const char* json_txt) override;
-  int error_code() const { return error_code_; }
-  std::string error_message() const { return error_message_; }
-  bool is_valid() override { return is_valid_; }
+  int error_code() const {
+    return error_code_;
+  }
+  std::string error_message() const {
+    return error_message_;
+  }
+  bool is_valid() override {
+    return is_valid_;
+  }
 
  private:
   int error_code_;

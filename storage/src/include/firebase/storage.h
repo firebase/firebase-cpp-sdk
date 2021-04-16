@@ -88,7 +88,8 @@ class Storage {
   /// not available on the current device.
   ///
   /// @returns An instance of Storage corresponding to the given App.
-  static Storage* GetInstance(::firebase::App* app, const char* url,
+  static Storage* GetInstance(::firebase::App* app,
+                              const char* url,
                               InitResult* init_result_out = nullptr);
 
   /// @brief Get the firease::App that this Storage was created with.

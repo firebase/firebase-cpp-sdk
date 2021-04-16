@@ -30,9 +30,11 @@ namespace internal {
 
 // File embedded in the binary.
 struct EmbeddedFile {
-  EmbeddedFile() : name(nullptr), data(nullptr), size(0) {}
+  EmbeddedFile() : name(nullptr), data(nullptr), size(0) {
+  }
   EmbeddedFile(const char* _name, const unsigned char* _data, size_t _size)
-      : name(_name), data(_data), size(_size) {}
+      : name(_name), data(_data), size(_size) {
+  }
 
   const char* name;
   const unsigned char* data;

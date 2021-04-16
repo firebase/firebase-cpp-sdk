@@ -15,8 +15,8 @@
  */
 
 #include "app/src/assert.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace {
@@ -32,7 +32,8 @@ struct CallbackData {
   std::string message;
 };
 
-void TestLogCallback(LogLevel log_level, const char* message,
+void TestLogCallback(LogLevel log_level,
+                     const char* message,
                      void* callback_data) {
   if (callback_data) {
     auto* data = static_cast<CallbackData*>(callback_data);
@@ -249,7 +250,9 @@ TEST_F(AssertTest, FirebaseDevAssertWithExpressionCompiledOut) {
   FIREBASE_DEV_ASSERT_WITH_EXPRESSION(false, FailureExpression);
 }
 
-TEST_F(AssertTest, FirebaseDevAssertCompiledOut) { FIREBASE_DEV_ASSERT(false); }
+TEST_F(AssertTest, FirebaseDevAssertCompiledOut) {
+  FIREBASE_DEV_ASSERT(false);
+}
 
 TEST_F(AssertTest, FirebaseDevAssertReturnCompiledOut) {
   FIREBASE_DEV_ASSERT_RETURN(1, false);
@@ -269,8 +272,8 @@ TEST_F(AssertTest, FirebaseDevAssertMessageCompiledOut) {
 }
 
 TEST_F(AssertTest, FirebaseDevAssertMessageReturnCompiledOut){
-    FIREBASE_DEV_ASSERT_MESSAGE_RETURN(1, false, "Test Message: %s",
-                                       kTestMessage)}
+    FIREBASE_DEV_ASSERT_MESSAGE_RETURN(
+        1, false, "Test Message: %s", kTestMessage)}
 
 TEST_F(AssertTest, FirebaseDevAssertMessageReturnVoidAborts) {
   FIREBASE_DEV_ASSERT_MESSAGE_RETURN_VOID(false, "Test Message: %s",

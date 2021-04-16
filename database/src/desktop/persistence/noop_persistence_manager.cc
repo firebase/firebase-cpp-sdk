@@ -23,7 +23,8 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-NoopPersistenceManager::NoopPersistenceManager() : inside_transaction_(false) {}
+NoopPersistenceManager::NoopPersistenceManager() : inside_transaction_(false) {
+}
 
 void NoopPersistenceManager::SaveUserOverwrite(const Path& path,
                                                const Variant& variant,
@@ -91,7 +92,8 @@ void NoopPersistenceManager::SetTrackedQueryKeys(
 }
 
 void NoopPersistenceManager::UpdateTrackedQueryKeys(
-    const QuerySpec& query_spec, const std::set<std::string>& added,
+    const QuerySpec& query_spec,
+    const std::set<std::string>& added,
     const std::set<std::string>& removed) {
   VERIFY_INSIDE_TRANSACTION();
 }

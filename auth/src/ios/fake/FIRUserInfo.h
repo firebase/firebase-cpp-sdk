@@ -27,33 +27,34 @@ NS_SWIFT_NAME(UserInfo)
 /** @property providerID
     @brief The provider identifier.
  */
-@property(nonatomic, copy, readonly) NSString *providerID;
+@property(nonatomic, copy, readonly) NSString* providerID;
 
 /** @property uid
     @brief The provider's user ID for the user.
  */
-@property(nonatomic, copy, readonly) NSString *uid;
+@property(nonatomic, copy, readonly) NSString* uid;
 
 /** @property displayName
     @brief The name of the user.
  */
-@property(nonatomic, copy, readonly, nullable) NSString *displayName;
+@property(nonatomic, copy, readonly, nullable) NSString* displayName;
 
 /** @property photoURL
     @brief The URL of the user's profile photo.
  */
-@property(nonatomic, copy, readonly, nullable) NSURL *photoURL;
+@property(nonatomic, copy, readonly, nullable) NSURL* photoURL;
 
 /** @property email
     @brief The user's email address.
  */
-@property(nonatomic, copy, readonly, nullable) NSString *email;
+@property(nonatomic, copy, readonly, nullable) NSString* email;
 
 /** @property phoneNumber
     @brief A phone number associated with the user.
-    @remarks This property is only available for users authenticated via phone number auth.
+    @remarks This property is only available for users authenticated via phone
+   number auth.
  */
-@property(nonatomic, readonly, nullable) NSString *phoneNumber;
+@property(nonatomic, readonly, nullable) NSString* phoneNumber;
 
 @end
 

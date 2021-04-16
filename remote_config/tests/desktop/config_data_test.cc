@@ -13,8 +13,8 @@
 // limitations under the License.
 
 #include "remote_config/src/desktop/config_data.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace remote_config {

@@ -65,12 +65,16 @@ class HttpsCallableReferenceInternal {
   static void Terminate(App* app);
 
   // FunctionsInternal instance we are associated with.
-  FunctionsInternal* functions_internal() const { return functions_; }
+  FunctionsInternal* functions_internal() const {
+    return functions_;
+  }
 
  private:
-  static void FutureCallback(JNIEnv* env, jobject result,
+  static void FutureCallback(JNIEnv* env,
+                             jobject result,
                              util::FutureResult result_code,
-                             const char* status_message, void* callback_data);
+                             const char* status_message,
+                             void* callback_data);
 
   ReferenceCountedFutureImpl* future();
 

@@ -31,7 +31,8 @@ Request::Request(const char* post_fields_buffer, size_t post_fields_buffer_size)
   InitializeBuffer(post_fields_buffer, post_fields_buffer_size);
 }
 
-Request::~Request() {}
+Request::~Request() {
+}
 
 void Request::set_post_fields(const char* data, size_t size) {
   std::string* post_fields = &options_.post_fields;

@@ -27,17 +27,17 @@ NS_SWIFT_NAME(AuthCredential)
 /** @property provider
     @brief Gets the name of the identity provider for the credential.
  */
-@property(nonatomic, copy, readonly) NSString *provider;
+@property(nonatomic, copy, readonly) NSString* provider;
 
 /** @fn init
-    @brief This is an abstract base class. Concrete instances should be created via factory
-        methods available in the various authentication provider libraries (like the Facebook
-        provider or the Google provider libraries.)
+    @brief This is an abstract base class. Concrete instances should be created
+   via factory methods available in the various authentication provider
+   libraries (like the Facebook provider or the Google provider libraries.)
  */
 - (instancetype)init NS_UNAVAILABLE;
 
 // Only used for testing.
-- (instancetype)initWithProvider:(NSString *)provider NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithProvider:(NSString*)provider NS_DESIGNATED_INITIALIZER;
 
 @end
 

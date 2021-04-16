@@ -3,9 +3,9 @@
 
 #include "firebase/firestore.h"
 #include "firestore_integration_test.h"
-#include "util/event_accumulator.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "util/event_accumulator.h"
 
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRArrayTransformTests.mm
@@ -28,7 +28,9 @@ class ArrayTransformTest : public FirestoreIntegrationTest {
     EXPECT_FALSE(snapshot.exists());
   }
 
-  void TearDown() override { registration_.Remove(); }
+  void TearDown() override {
+    registration_.Remove();
+  }
 
   void WriteInitialData(const MapFieldValue& data) {
     Await(document_.Set(data));
@@ -49,7 +51,9 @@ class ArrayTransformTest : public FirestoreIntegrationTest {
 
 class ArrayTransformServerApplicationTest : public FirestoreIntegrationTest {
  protected:
-  void SetUp() override { document_ = Document(); }
+  void SetUp() override {
+    document_ = Document();
+  }
 
   DocumentReference document_;
 };

@@ -38,9 +38,11 @@ namespace internal {
 
 InMemoryPersistenceStorageEngine::InMemoryPersistenceStorageEngine(
     LoggerBase* logger)
-    : server_cache_(), inside_transaction_(false), logger_(logger) {}
+    : server_cache_(), inside_transaction_(false), logger_(logger) {
+}
 
-InMemoryPersistenceStorageEngine::~InMemoryPersistenceStorageEngine() {}
+InMemoryPersistenceStorageEngine::~InMemoryPersistenceStorageEngine() {
+}
 
 Variant InMemoryPersistenceStorageEngine::LoadServerCache() {
   // No persistence, so nothing to save.
@@ -186,7 +188,8 @@ void InMemoryPersistenceStorageEngine::SaveTrackedQueryKeys(
 }
 
 void InMemoryPersistenceStorageEngine::UpdateTrackedQueryKeys(
-    QueryId query_id, const std::set<std::string>& added,
+    QueryId query_id,
+    const std::set<std::string>& added,
     const std::set<std::string>& removed) {
   VerifyInTransaction();
 
@@ -212,7 +215,8 @@ std::set<std::string> InMemoryPersistenceStorageEngine::LoadTrackedQueryKeys(
   return result;
 }
 
-void PruneVariant(const Path& root, const PruneForestRef prune_forest,
+void PruneVariant(const Path& root,
+                  const PruneForestRef prune_forest,
                   Variant* variant) {
   Variant result = prune_forest.FoldKeptNodes(
       Variant::Null(),
@@ -245,7 +249,8 @@ void InMemoryPersistenceStorageEngine::EndTransaction() {
   logger_->LogDebug("Transaction completed.");
 }
 
-void InMemoryPersistenceStorageEngine::SetTransactionSuccessful() {}
+void InMemoryPersistenceStorageEngine::SetTransactionSuccessful() {
+}
 
 void InMemoryPersistenceStorageEngine::VerifyInTransaction() {
   FIREBASE_DEV_ASSERT_MESSAGE(

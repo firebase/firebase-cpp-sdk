@@ -31,7 +31,8 @@ struct RequestOptions {
       : method("GET"),
         stream_post_fields(false),
         timeout_ms(300000),  // Same timeout used by Chromium.
-        verbose(false) {}
+        verbose(false) {
+  }
 
   // The URL to use in the request.
   std::string url;

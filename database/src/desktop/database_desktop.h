@@ -50,14 +50,17 @@ typedef int64_t WriteId;
 
 class SingleValueListener : public ValueListener {
  public:
-  SingleValueListener(DatabaseInternal* database, const QuerySpec& query_spec,
+  SingleValueListener(DatabaseInternal* database,
+                      const QuerySpec& query_spec,
                       ReferenceCountedFutureImpl* future,
                       SafeFutureHandle<DataSnapshot> handle);
   // Unregister ourselves from the database.
   ~SingleValueListener() override;
   void OnValueChanged(const DataSnapshot& snapshot) override;
   void OnCancelled(const Error& error_code, const char* error_message) override;
-  const QuerySpec& query_spec() { return query_spec_; }
+  const QuerySpec& query_spec() {
+    return query_spec_;
+  }
 
  private:
   DatabaseInternal* database_;
@@ -99,36 +102,49 @@ class DatabaseInternal {
   // Get the logging verbosity.
   LogLevel log_level() const;
 
-  FutureManager& future_manager() { return future_manager_; }
+  FutureManager& future_manager() {
+    return future_manager_;
+  }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return app_ != nullptr; }
+  bool initialized() const {
+    return app_ != nullptr;
+  }
 
-  const char* database_url() const { return database_url_.c_str(); }
+  const char* database_url() const {
+    return database_url_.c_str();
+  }
 
-  CleanupNotifier& cleanup() { return cleanup_; }
+  CleanupNotifier& cleanup() {
+    return cleanup_;
+  }
 
-  bool RegisterValueListener(const QuerySpec& spec, ValueListener* listener,
+  bool RegisterValueListener(const QuerySpec& spec,
+                             ValueListener* listener,
                              ValueListenerCleanupData cleanup_data);
 
   bool UnregisterValueListener(const QuerySpec& spec, ValueListener* listener);
 
   void UnregisterAllValueListeners(const QuerySpec& spec);
 
-  bool RegisterChildListener(const QuerySpec& spec, ChildListener* listener,
+  bool RegisterChildListener(const QuerySpec& spec,
+                             ChildListener* listener,
                              ChildListenerCleanupData cleanup_data);
 
   bool UnregisterChildListener(const QuerySpec& spec, ChildListener* listener);
 
   void UnregisterAllChildListeners(const QuerySpec& spec);
 
-  void AddEventRegistration(const QuerySpec& query_spec, void* listener_ptr,
+  void AddEventRegistration(const QuerySpec& query_spec,
+                            void* listener_ptr,
                             EventRegistration* event_registration);
 
   EventRegistration* ActiveEventRegistration(const QuerySpec& query_spec,
                                              void* listener_ptr);
 
-  PushChildNameGenerator& name_generator() { return name_generator_; }
+  PushChildNameGenerator& name_generator() {
+    return name_generator_;
+  }
 
   typedef firebase::internal::SafeReference<DatabaseInternal> ThisRef;
   typedef firebase::internal::SafeReferenceLock<DatabaseInternal> ThisRefLock;
@@ -137,13 +153,21 @@ class DatabaseInternal {
   void HandleTransactionResponse(const connection::ResponsePtr& ptr);
 
   // The url that was passed to the constructor.
-  const std::string& constructor_url() const { return constructor_url_; }
+  const std::string& constructor_url() const {
+    return constructor_url_;
+  }
 
-  Repo* repo() { return repo_.get(); }
+  Repo* repo() {
+    return repo_.get();
+  }
 
-  Mutex* listener_mutex() { return &listener_mutex_; }
+  Mutex* listener_mutex() {
+    return &listener_mutex_;
+  }
 
-  Logger* logger() { return &logger_; }
+  Logger* logger() {
+    return &logger_;
+  }
 
  private:
   void EnsureRepo();

@@ -47,21 +47,29 @@ RemoteConfigREST::RemoteConfigREST(const firebase::AppOptions& app_options,
       MetaDigestMap({{"namespace", "digest"}}));
 }
 
-RemoteConfigREST::~RemoteConfigREST() {}
+RemoteConfigREST::~RemoteConfigREST() {
+}
 
 void RemoteConfigREST::Fetch(const App& app,
-                             uint64_t fetch_timeout_in_milliseconds) {}
+                             uint64_t fetch_timeout_in_milliseconds) {
+}
 
 void RemoteConfigREST::SetupRestRequest(
-    const App& app, uint64_t fetch_timeout_in_milliseconds) {}
+    const App& app, uint64_t fetch_timeout_in_milliseconds) {
+}
 
-void RemoteConfigREST::ParseRestResponse() {}
+void RemoteConfigREST::ParseRestResponse() {
+}
 
-void RemoteConfigREST::FetchSuccess(LastFetchStatus status) {}
+void RemoteConfigREST::FetchSuccess(LastFetchStatus status) {
+}
 
-void RemoteConfigREST::FetchFailure(FetchFailureReason reason) {}
+void RemoteConfigREST::FetchFailure(FetchFailureReason reason) {
+}
 
-uint64_t RemoteConfigREST::MillisecondsSinceEpoch() { return 0; }
+uint64_t RemoteConfigREST::MillisecondsSinceEpoch() {
+  return 0;
+}
 
 }  // namespace internal
 }  // namespace remote_config

@@ -50,9 +50,11 @@ const char* const Connection::kServerHelloSessionId = "s";
 
 compat::Atomic<uint32_t> Connection::next_log_id_(0);
 
-Connection::Connection(scheduler::Scheduler* scheduler, const HostInfo& info,
+Connection::Connection(scheduler::Scheduler* scheduler,
+                       const HostInfo& info,
                        const char* opt_last_session_id,
-                       ConnectionEventHandler* event_handler, Logger* logger)
+                       ConnectionEventHandler* event_handler,
+                       Logger* logger)
     : safe_this_(this),
       event_handler_(event_handler),
       scheduler_(scheduler),

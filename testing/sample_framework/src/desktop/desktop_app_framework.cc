@@ -50,7 +50,9 @@ static BOOL WINAPI SignalHandler(DWORD event) {
   return TRUE;
 }
 #else
-static void SignalHandler(int /* ignored */) { quit = true; }
+static void SignalHandler(int /* ignored */) {
+  quit = true;
+}
 #endif  // _WIN32
 
 namespace app_framework {
@@ -127,10 +129,15 @@ static std::mutex g_full_log_mutex;
 
 void AddToFullLog(const char* str) {
   std::lock_guard<std::mutex> guard(g_full_log_mutex);
-  g_full_logs.push_back(std::string(str)); }
+  g_full_logs.push_back(std::string(str));
+}
 
-bool GetPreserveFullLog() { return g_save_full_log; }
-void SetPreserveFullLog(bool b) { g_save_full_log = b; }
+bool GetPreserveFullLog() {
+  return g_save_full_log;
+}
+void SetPreserveFullLog(bool b) {
+  g_save_full_log = b;
+}
 
 void ClearFullLog() {
   std::lock_guard<std::mutex> guard(g_full_log_mutex);
@@ -146,7 +153,9 @@ void OutputFullLog() {
   g_full_logs.clear();
 }
 
-WindowContext GetWindowContext() { return nullptr; }
+WindowContext GetWindowContext() {
+  return nullptr;
+}
 
 // Change the current working directory to the directory containing the
 // specified file.
@@ -185,7 +194,8 @@ void RunOnBackgroundThread(void* (*func)(void*), void* data) {
   thread.detach();
 }
 
-std::string ReadTextInput(const char* title, const char* message,
+std::string ReadTextInput(const char* title,
+                          const char* message,
                           const char* placeholder) {
   if (title && *title) {
     int len = strlen(title);
@@ -209,7 +219,9 @@ std::string ReadTextInput(const char* title, const char* message,
   return input_line.empty() ? std::string(placeholder) : input_line;
 }
 
-bool IsLoggingToFile() { return false; }
+bool IsLoggingToFile() {
+  return false;
+}
 
 }  // namespace app_framework
 

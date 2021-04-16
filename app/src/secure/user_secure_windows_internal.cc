@@ -36,7 +36,8 @@ UserSecureWindowsInternal::UserSecureWindowsInternal(const char* domain,
                kNamespaceSuffix1 + domain + kNamespaceSuffix2;
 }
 
-UserSecureWindowsInternal::~UserSecureWindowsInternal() {}
+UserSecureWindowsInternal::~UserSecureWindowsInternal() {
+}
 
 std::string UserSecureWindowsInternal::GetTargetName(
     const std::string& app_name) {
@@ -49,7 +50,8 @@ std::string UserSecureWindowsInternal::GetTargetName(
 }
 
 // Returns true if an actual error occurred, false if not.
-static bool LogCredentialError(DWORD error, const char* func,
+static bool LogCredentialError(DWORD error,
+                               const char* func,
                                const char* target) {
   if (error == ERROR_NOT_FOUND) {
     // If error is ERROR_NOT_FOUND, don't report an error, all is fine.

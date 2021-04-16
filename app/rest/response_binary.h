@@ -34,7 +34,9 @@ class ResponseBinary : public Response {
   // Call `set_use_gunzip(true)` to use gzip to uncompress HTTP body.
   //
   // By default we don't use decompression.
-  virtual void set_use_gunzip(bool use_gunzip) { use_gunzip_ = use_gunzip; }
+  virtual void set_use_gunzip(bool use_gunzip) {
+    use_gunzip_ = use_gunzip;
+  }
 
  private:
   std::string Gunzip(const char* input_data, size_t input_size) const;

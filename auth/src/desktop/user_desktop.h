@@ -65,7 +65,8 @@ struct UserData : public UserInfoImpl {
       : is_anonymous(false),
         is_email_verified(false),
         access_token_expiration_date(0),
-        has_email_password_credential(false) {}
+        has_email_password_credential(false) {
+  }
 
   // Whether is anonymous.
   bool is_anonymous;
@@ -99,7 +100,8 @@ struct UserData : public UserInfoImpl {
 class UserDataPersist : public firebase::auth::AuthStateListener {
  public:
   UserDataPersist(const char* app_id);
-  ~UserDataPersist() {}
+  ~UserDataPersist() {
+  }
 
   // Overloaded constructor to set the internal instance.
   explicit UserDataPersist(

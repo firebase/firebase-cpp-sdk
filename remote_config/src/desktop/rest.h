@@ -17,10 +17,10 @@
 
 #include <cstdint>
 
-#include "firebase/app.h"
 #include "app/rest/request_json.h"
 #include "app/rest/response_json.h"
 #include "app/src/semaphore.h"
+#include "firebase/app.h"
 #include "remote_config/request_generated.h"
 #include "remote_config/request_resource.h"
 #include "remote_config/response_generated.h"
@@ -80,7 +80,8 @@ class RemoteConfigREST {
 #endif  // FIREBASE_TESTING
 
   RemoteConfigREST(const firebase::AppOptions& app_options,
-                   const LayeredConfigs& configs, const std::string namespaces);
+                   const LayeredConfigs& configs,
+                   const std::string namespaces);
 
   ~RemoteConfigREST();
 
@@ -92,11 +93,15 @@ class RemoteConfigREST {
 
   // After Fetch() will return updated fetched holder. Otherwise will return not
   // updated fetched holder.
-  const NamespacedConfigData& fetched() const { return configs_.fetched; }
+  const NamespacedConfigData& fetched() const {
+    return configs_.fetched;
+  }
 
   // After Fetch() will return updated metadata. Otherwise will return not
   // updated metadata.
-  const RemoteConfigMetadata& metadata() const { return configs_.metadata; }
+  const RemoteConfigMetadata& metadata() const {
+    return configs_.metadata;
+  }
 
  private:
   // Attempt to get Installations and Auth Token from app synchronously.  This

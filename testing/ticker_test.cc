@@ -30,8 +30,8 @@
 #include <memory>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/ticker.h"
 
 namespace firebase {
@@ -57,8 +57,8 @@ class Tickers {
  public:
   Tickers(std::initializer_list<int64_t> delays) {
     JNIEnv* android_jni_env = GetTestJniEnv();
-    jclass class_obj = android_jni_env->FindClass(
-        "com/google/testing/TickerExample");
+    jclass class_obj =
+        android_jni_env->FindClass("com/google/testing/TickerExample");
     jmethodID methid_id =
         android_jni_env->GetMethodID(class_obj, "<init>", "(J)V");
     for (int64_t delay : delays) {
@@ -97,14 +97,18 @@ class Tickers {
   }
 
  private:
-  std::vector<std::shared_ptr<TickerExample> > tickers_;
+  std::vector<std::shared_ptr<TickerExample>> tickers_;
 };
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
 class TickerTest : public ::testing::Test {
  protected:
-  void SetUp() override { g_status_count = 0; }
-  void TearDown() override { TickerReset(); }
+  void SetUp() override {
+    g_status_count = 0;
+  }
+  void TearDown() override {
+    TickerReset();
+  }
 };
 
 // This test make sure nothing is broken by calling a sequence of elapse and

@@ -79,7 +79,8 @@ class Functions {
   /// not available on the current device.
   ///
   /// @returns An instance of Functions corresponding to the given App.
-  static Functions* GetInstance(::firebase::App* app, const char* region,
+  static Functions* GetInstance(::firebase::App* app,
+                                const char* region,
                                 InitResult* init_result_out = nullptr);
 
   /// @brief Get the firebase::App that this Functions was created with.
