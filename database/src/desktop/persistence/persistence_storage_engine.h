@@ -33,8 +33,7 @@ typedef int64_t WriteId;
 // A pending write to the server.
 struct UserWriteRecord {
   UserWriteRecord()
-      : write_id(), path(), overwrite(), merge(), visible(), is_overwrite() {
-  }
+      : write_id(), path(), overwrite(), merge(), visible(), is_overwrite() {}
 
   UserWriteRecord(WriteId _write_id,
                   const Path& _path,
@@ -45,8 +44,7 @@ struct UserWriteRecord {
         overwrite(_overwrite),
         merge(),
         visible(_visible),
-        is_overwrite(true) {
-  }
+        is_overwrite(true) {}
 
   UserWriteRecord(WriteId _write_id,
                   const Path& _path,
@@ -56,8 +54,7 @@ struct UserWriteRecord {
         overwrite(),
         merge(_merge),
         visible(true),
-        is_overwrite(false) {
-  }
+        is_overwrite(false) {}
 
   // The unique write ID used to identify this write.
   WriteId write_id;
@@ -100,8 +97,7 @@ inline bool operator==(const UserWriteRecord& lhs, const UserWriteRecord& rhs) {
 //     query.
 class PersistenceStorageEngine {
  public:
-  virtual ~PersistenceStorageEngine() {
-  }
+  virtual ~PersistenceStorageEngine() {}
   // Write data to the local cache, overwriting the data at the given path.
   // Additionally, log that this write occurred so that when the database is
   // online again it can send updates.

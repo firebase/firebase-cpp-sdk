@@ -31,25 +31,21 @@ namespace database {
 namespace internal {
 
 SyncPoint::SyncPoint(const SyncPoint& other)
-    : views_(std::move(const_cast<SyncPoint*>(&other)->views_)) {
-}
+    : views_(std::move(const_cast<SyncPoint*>(&other)->views_)) {}
 
 SyncPoint& SyncPoint::operator=(const SyncPoint& other) {
   views_ = std::move(const_cast<SyncPoint*>(&other)->views_);
   return *this;
 }
 
-SyncPoint::SyncPoint(SyncPoint&& other) : views_(std::move(other.views_)) {
-}
+SyncPoint::SyncPoint(SyncPoint&& other) : views_(std::move(other.views_)) {}
 
 SyncPoint& SyncPoint::operator=(SyncPoint&& other) {
   views_ = std::move(other.views_);
   return *this;
 }
 
-bool SyncPoint::IsEmpty() const {
-  return views_.empty();
-}
+bool SyncPoint::IsEmpty() const { return views_.empty(); }
 
 std::vector<Event> SyncPoint::ApplyOperation(
     const Operation& operation,
@@ -195,9 +191,7 @@ bool SyncPoint::ViewExistsForQuery(const QuerySpec& query_spec) const {
   return ViewForQuery(query_spec) != nullptr;
 }
 
-bool SyncPoint::HasCompleteView() const {
-  return GetCompleteView() != nullptr;
-}
+bool SyncPoint::HasCompleteView() const { return GetCompleteView() != nullptr; }
 
 const View* SyncPoint::GetCompleteView() const {
   for (auto& query_spec_view_pair : views_) {

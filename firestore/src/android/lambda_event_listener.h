@@ -42,9 +42,7 @@ class LambdaEventListener<void> : public EventListener<void> {
     FIREBASE_ASSERT(callback_);
   }
 
-  void OnEvent(Error, const std::string&) override {
-    callback_();
-  }
+  void OnEvent(Error, const std::string&) override { callback_(); }
 
  private:
   std::function<void()> callback_;

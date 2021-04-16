@@ -77,20 +77,14 @@ class SlowTestLimiter {
   SlowTestLimiter();
 
   // A human readable reason for the limiter's policy.
-  std::string reason() {
-    return reason_;
-  }
+  std::string reason() { return reason_; }
 
   // Returns true if this known to be a slow build.
-  bool IsSlowBuild() const {
-    return deadline_ < absl::InfiniteFuture();
-  }
+  bool IsSlowBuild() const { return deadline_ < absl::InfiniteFuture(); }
 
   // Returns true iff absl::Now() > deadline().  This class is passive; the
   // test must poll.
-  bool DeadlineExceeded() const {
-    return absl::Now() > deadline_;
-  }
+  bool DeadlineExceeded() const { return absl::Now() > deadline_; }
 
  private:
   std::string reason_;

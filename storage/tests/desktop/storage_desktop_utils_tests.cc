@@ -37,13 +37,9 @@ using firebase::storage::internal::StorageReferenceInternal;
 // The fixture for testing helper classes for storage desktop.
 class StorageDesktopUtilsTests : public ::testing::Test {
  protected:
-  void SetUp() override {
-    firebase::rest::util::Initialize();
-  }
+  void SetUp() override { firebase::rest::util::Initialize(); }
 
-  void TearDown() override {
-    firebase::rest::util::Terminate();
-  }
+  void TearDown() override { firebase::rest::util::Terminate(); }
 };
 
 // Test the GS URI-based StoragePath constructors

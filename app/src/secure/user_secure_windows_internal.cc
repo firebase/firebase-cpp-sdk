@@ -36,8 +36,7 @@ UserSecureWindowsInternal::UserSecureWindowsInternal(const char* domain,
                kNamespaceSuffix1 + domain + kNamespaceSuffix2;
 }
 
-UserSecureWindowsInternal::~UserSecureWindowsInternal() {
-}
+UserSecureWindowsInternal::~UserSecureWindowsInternal() {}
 
 std::string UserSecureWindowsInternal::GetTargetName(
     const std::string& app_name) {

@@ -35,8 +35,7 @@ class RequestFileTest : public ::testing::Test {
   RequestFileTest()
       : filename_(absl::GetFlag(FLAGS_test_tmpdir) + "/a_file.txt"),
         file_(nullptr),
-        file_size_(0) {
-  }
+        file_size_(0) {}
 
   void SetUp() override;
   void TearDown() override;
@@ -66,9 +65,7 @@ void RequestFileTest::SetUp() {
   CHECK_EQ(0, fclose(file_));
 }
 
-void RequestFileTest::TearDown() {
-  CHECK_EQ(0, unlink(filename_.c_str()));
-}
+void RequestFileTest::TearDown() { CHECK_EQ(0, unlink(filename_.c_str())); }
 
 TEST_F(RequestFileTest, NonExistentFile) {
   RequestFile request("a_file_that_doesnt_exist.txt", 0);

@@ -30,8 +30,7 @@ namespace internal {
 class InvitesReceiverInternalStub : public InvitesReceiverInternal {
  public:
   explicit InvitesReceiverInternalStub(const ::firebase::App& app)
-      : InvitesReceiverInternal(app) {
-  }
+      : InvitesReceiverInternal(app) {}
   virtual ~InvitesReceiverInternalStub();                           // NOLINT
   virtual bool PerformFetch();                                      // NOLINT
   virtual bool PerformConvertInvitation(const char* /* unused */);  // NOLINT

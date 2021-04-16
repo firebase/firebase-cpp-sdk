@@ -461,13 +461,9 @@ void PersistentConnection::OnDisconnectCancel(const Path& path,
   }
 }
 
-void PersistentConnection::Interrupt() {
-  InterruptInternal(kInterruptManual);
-}
+void PersistentConnection::Interrupt() { InterruptInternal(kInterruptManual); }
 
-void PersistentConnection::Resume() {
-  ResumeInternal(kInterruptManual);
-}
+void PersistentConnection::Resume() { ResumeInternal(kInterruptManual); }
 
 bool PersistentConnection::IsInterrupted() {
   return IsInterruptedInternal(kInterruptManual);
@@ -980,8 +976,7 @@ class SendAuthResponse : public Response {
  public:
   explicit SendAuthResponse(bool restore_outstanding_on_response)
       : Response(nullptr),
-        restore_outstanding_on_response_(restore_outstanding_on_response) {
-  }
+        restore_outstanding_on_response_(restore_outstanding_on_response) {}
 
   bool GetRestoreOutstandingsFlag() const {
     return restore_outstanding_on_response_;

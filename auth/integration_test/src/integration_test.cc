@@ -326,9 +326,7 @@ class TestAuthStateListener : public firebase::auth::AuthStateListener {
       auth_states_.push_back(provider);
     }
   }
-  const std::vector<std::string>& auth_states() {
-    return auth_states_;
-  }
+  const std::vector<std::string>& auth_states() { return auth_states_; }
 
  private:
   std::vector<std::string> auth_states_;
@@ -356,9 +354,7 @@ class TestIdTokenListener : public firebase::auth::IdTokenListener {
     }
   }
 
-  const std::vector<std::string>& token_states() {
-    return token_states_;
-  }
+  const std::vector<std::string>& token_states() { return token_states_; }
 
  private:
   std::vector<std::string> token_states_;
@@ -790,8 +786,7 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
       : on_verification_complete_count_(0),
         on_verification_failed_count_(0),
         on_code_sent_count_(0),
-        on_code_auto_retrieval_time_out_count_(0) {
-  }
+        on_code_auto_retrieval_time_out_count_(0) {}
 
   void OnVerificationCompleted(firebase::auth::Credential credential) override {
     LogDebug("PhoneListener: successful automatic verification.");
@@ -821,9 +816,7 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
     on_code_auto_retrieval_time_out_count_++;
   }
 
-  const std::string& verification_id() const {
-    return verification_id_;
-  }
+  const std::string& verification_id() const { return verification_id_; }
   const firebase::auth::PhoneAuthProvider::ForceResendingToken&
   force_resending_token() const {
     return force_resending_token_;
@@ -834,9 +827,7 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
   int on_verification_failed_count() const {
     return on_verification_failed_count_;
   }
-  int on_code_sent_count() const {
-    return on_code_sent_count_;
-  }
+  int on_code_sent_count() const { return on_code_sent_count_; }
   int on_code_auto_retrieval_time_out_count() const {
     return on_code_auto_retrieval_time_out_count_;
   }
@@ -853,9 +844,7 @@ class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
            on_code_auto_retrieval_time_out_count() == 0;
   }
 
-  firebase::auth::Credential credential() {
-    return credential_;
-  }
+  firebase::auth::Credential credential() { return credential_; }
 
  private:
   std::string verification_id_;

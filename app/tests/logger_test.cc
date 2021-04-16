@@ -30,22 +30,13 @@ class FakeLogger : public LoggerBase {
   FakeLogger()
       : logged_message_(),
         logged_message_level_(static_cast<LogLevel>(-1)),
-        log_level_(kLogLevelInfo) {
-  }
+        log_level_(kLogLevelInfo) {}
 
-  void SetLogLevel(LogLevel log_level) override {
-    log_level_ = log_level;
-  }
-  LogLevel GetLogLevel() const override {
-    return log_level_;
-  }
+  void SetLogLevel(LogLevel log_level) override { log_level_ = log_level; }
+  LogLevel GetLogLevel() const override { return log_level_; }
 
-  const std::string& logged_message() const {
-    return logged_message_;
-  }
-  LogLevel logged_message_level() const {
-    return logged_message_level_;
-  }
+  const std::string& logged_message() const { return logged_message_; }
+  LogLevel logged_message_level() const { return logged_message_level_; }
 
  private:
   void LogMessageImplV(LogLevel log_level,

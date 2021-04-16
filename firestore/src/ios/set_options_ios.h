@@ -18,15 +18,10 @@ class SetOptionsInternal {
   using Type = SetOptions::Type;
 
   explicit SetOptionsInternal(SetOptions options)
-      : options_{std::move(options)} {
-  }
+      : options_{std::move(options)} {}
 
-  Type type() const {
-    return options_.type_;
-  }
-  const std::vector<FieldPath>& field_mask() const {
-    return options_.fields_;
-  }
+  Type type() const { return options_.type_; }
+  const std::vector<FieldPath>& field_mask() const { return options_.fields_; }
 
  private:
   SetOptions options_;

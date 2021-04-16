@@ -22,9 +22,7 @@ void Object::Initialize(Loader& loader) {
                                kToString);
 }
 
-Class Object::GetClass() {
-  return Class(object_class);
-}
+Class Object::GetClass() { return Class(object_class); }
 
 std::string Object::ToString(Env& env) const {
   Local<String> java_string = env.Call(*this, kToString);

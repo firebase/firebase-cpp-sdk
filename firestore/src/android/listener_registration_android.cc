@@ -91,9 +91,7 @@ ListenerRegistrationInternal::~ListenerRegistrationInternal() {
   }
 }
 
-jni::Env ListenerRegistrationInternal::GetEnv() {
-  return firestore_->GetEnv();
-}
+jni::Env ListenerRegistrationInternal::GetEnv() { return firestore_->GetEnv(); }
 
 }  // namespace firestore
 }  // namespace firebase

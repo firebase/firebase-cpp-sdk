@@ -17,21 +17,11 @@ namespace firestore {
 class CollectionReferenceInternal : public QueryInternal {
  public:
   using ApiType = CollectionReference;
-  FirestoreInternal* firestore_internal() {
-    return nullptr;
-  }
-  const std::string& id() {
-    return id_;
-  }
-  const std::string& path() {
-    return id_;
-  }
-  DocumentReference Parent() const {
-    return DocumentReference{};
-  }
-  DocumentReference Document() const {
-    return DocumentReference{};
-  }
+  FirestoreInternal* firestore_internal() { return nullptr; }
+  const std::string& id() { return id_; }
+  const std::string& path() { return id_; }
+  DocumentReference Parent() const { return DocumentReference{}; }
+  DocumentReference Document() const { return DocumentReference{}; }
   DocumentReference Document(const std::string& document_path) const {
     return DocumentReference{};
   }

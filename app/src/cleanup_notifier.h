@@ -68,14 +68,10 @@ class CleanupNotifier {
   void CleanupAll();
 
   // Register an owner with the notifier.
-  void RegisterOwner(void* owner) {
-    RegisterOwner(this, owner);
-  }
+  void RegisterOwner(void* owner) { RegisterOwner(this, owner); }
 
   // Unregister an owner from the notifier.
-  void UnregisterOwner(void* owner) {
-    UnregisterOwner(this, owner);
-  }
+  void UnregisterOwner(void* owner) { UnregisterOwner(this, owner); }
 
   // Find a cleanup notifier by owner object.
   // If a cleanup notifier was registered with an owner object using
@@ -123,18 +119,12 @@ class TypedCleanupNotifier {
         object, reinterpret_cast<CleanupNotifier::CleanupCallback>(callback));
   }
 
-  void UnregisterObject(T* object) {
-    notifier_.UnregisterObject(object);
-  }
+  void UnregisterObject(T* object) { notifier_.UnregisterObject(object); }
 
-  void CleanupAll() {
-    notifier_.CleanupAll();
-  }
+  void CleanupAll() { notifier_.CleanupAll(); }
 
   // Get the underlying notifier.
-  CleanupNotifier& cleanup_notifier() {
-    return notifier_;
-  }
+  CleanupNotifier& cleanup_notifier() { return notifier_; }
 
  private:
   CleanupNotifier notifier_;

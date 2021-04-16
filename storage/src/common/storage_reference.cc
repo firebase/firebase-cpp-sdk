@@ -249,9 +249,7 @@ Future<Metadata> StorageReference::PutFileLastResult() {
   return internal_ ? internal_->PutFileLastResult() : Future<Metadata>();
 }
 
-bool StorageReference::is_valid() const {
-  return internal_ != nullptr;
-}
+bool StorageReference::is_valid() const { return internal_ != nullptr; }
 
 }  // namespace storage
 }  // namespace firebase

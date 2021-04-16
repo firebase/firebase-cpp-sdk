@@ -27,8 +27,7 @@ namespace internal {
 
 class MockCachePolicy : public CachePolicy {
  public:
-  ~MockCachePolicy() override {
-  }
+  ~MockCachePolicy() override {}
 
   MOCK_METHOD(bool,
               ShouldPrune,

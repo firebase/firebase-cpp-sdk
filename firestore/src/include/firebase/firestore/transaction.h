@@ -145,8 +145,7 @@ class Transaction {
  */
 class TransactionFunction {
  public:
-  virtual ~TransactionFunction() {
-  }
+  virtual ~TransactionFunction() {}
 
   /**
    * Subclass should override this method and put the transaction logic here.

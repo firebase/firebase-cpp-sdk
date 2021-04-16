@@ -487,8 +487,7 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
   struct GetUrlOnCompletionData {
     GetUrlOnCompletionData(ReferenceCountedFutureImpl* future_,
                            SafeFutureHandle<std::string> handle_)
-        : future(future_), handle(handle_) {
-    }
+        : future(future_), handle(handle_) {}
     ReferenceCountedFutureImpl* future;
     SafeFutureHandle<std::string> handle;
   };

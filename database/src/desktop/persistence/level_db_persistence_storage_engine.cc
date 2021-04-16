@@ -86,8 +86,7 @@ const char* StringEnd(const char (&str)[n]) {
 //     for (auto& child : ChildrenAtPath(database, path)) { ... }
 class ChildrenAtPath {
  public:
-  ChildrenAtPath(DB* database, Slice path) : database_(database), path_(path) {
-  }
+  ChildrenAtPath(DB* database, Slice path) : database_(database), path_(path) {}
 
   class iterator {
    public:
@@ -96,9 +95,7 @@ class ChildrenAtPath {
       if (impl_) impl_->Seek(path);
     }
 
-    leveldb::Iterator& operator*() {
-      return *(impl_.get());
-    }
+    leveldb::Iterator& operator*() { return *(impl_.get()); }
 
     iterator& operator++() {
       if (impl_) impl_->Next();
@@ -120,9 +117,7 @@ class ChildrenAtPath {
                     path_);
   }
 
-  iterator end() {
-    return iterator(nullptr, path_);
-  }
+  iterator end() { return iterator(nullptr, path_); }
 
  private:
   DB* database_;
@@ -192,8 +187,7 @@ class BufferedWriteBatch {
         offset_slices_(),
         batch_(),
         has_operation_to_write_(false),
-        error_detected_(false) {
-  }
+        error_detected_(false) {}
 
   template <typename KeyFunc, typename ValueFunc>
   bool AddWrite(const KeyFunc& key_func, const ValueFunc value_func) {
@@ -295,8 +289,7 @@ class BufferedWriteBatch {
 
 LevelDbPersistenceStorageEngine::LevelDbPersistenceStorageEngine(
     LoggerBase* logger)
-    : database_(nullptr), inside_transaction_(false), logger_(logger) {
-}
+    : database_(nullptr), inside_transaction_(false), logger_(logger) {}
 
 bool LevelDbPersistenceStorageEngine::Initialize(
     const std::string& level_db_path) {
@@ -314,8 +307,7 @@ bool LevelDbPersistenceStorageEngine::Initialize(
   return status.ok();
 }
 
-LevelDbPersistenceStorageEngine::~LevelDbPersistenceStorageEngine() {
-}
+LevelDbPersistenceStorageEngine::~LevelDbPersistenceStorageEngine() {}
 
 void LevelDbPersistenceStorageEngine::SaveUserOverwrite(const Path& path,
                                                         const Variant& data,
@@ -873,8 +865,7 @@ void LevelDbPersistenceStorageEngine::EndTransaction() {
   logger_->LogDebug("Transaction completed.");
 }
 
-void LevelDbPersistenceStorageEngine::SetTransactionSuccessful() {
-}
+void LevelDbPersistenceStorageEngine::SetTransactionSuccessful() {}
 
 void LevelDbPersistenceStorageEngine::VerifyInsideTransaction() {
   FIREBASE_ASSERT_MESSAGE(inside_transaction_,

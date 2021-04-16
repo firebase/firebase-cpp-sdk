@@ -43,13 +43,9 @@ class Mutex {
     kModeRecursive = (1 << 0),
   };
 
-  Mutex() {
-    Initialize(kModeRecursive);
-  }
+  Mutex() { Initialize(kModeRecursive); }
 
-  explicit Mutex(Mode mode) {
-    Initialize(mode);
-  }
+  explicit Mutex(Mode mode) { Initialize(mode); }
 
   ~Mutex() {
 #if !FIREBASE_PLATFORM_WINDOWS
@@ -101,13 +97,9 @@ class Mutex {
 // Returns the implementation-defined native mutex handle.
 // Used by firebase::Thread implementation.
 #if !FIREBASE_PLATFORM_WINDOWS
-  pthread_mutex_t* native_handle() {
-    return &mutex_;
-  }
+  pthread_mutex_t* native_handle() { return &mutex_; }
 #else
-  HANDLE* native_handle() {
-    return &synchronization_object_;
-  }
+  HANDLE* native_handle() { return &synchronization_object_; }
 #endif
 
  private:
@@ -157,12 +149,8 @@ class Mutex {
 ///   \endcode
 class MutexLock {
  public:
-  explicit MutexLock(Mutex& mutex) : mutex_(&mutex) {
-    mutex_->Acquire();
-  }
-  ~MutexLock() {
-    mutex_->Release();
-  }
+  explicit MutexLock(Mutex& mutex) : mutex_(&mutex) { mutex_->Acquire(); }
+  ~MutexLock() { mutex_->Release(); }
 
  private:
   // Copy is disallowed.

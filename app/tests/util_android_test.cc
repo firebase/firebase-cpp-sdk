@@ -76,34 +76,22 @@ class JavaThreadContextTest : public ::testing::Test {
     }
 
     // Wait for the thread to start.
-    void WaitForStart() {
-      started_.Wait();
-    }
+    void WaitForStart() { started_.Wait(); }
 
     // Wait for the thread to complete.
-    void WaitForCompletion() {
-      complete_.Wait();
-    }
+    void WaitForCompletion() { complete_.Wait(); }
 
     // Continue Store() execution (if it's blocked).
-    void Continue() {
-      block_store_.Post();
-    }
+    void Continue() { block_store_.Post(); }
 
     // Get the thread ID.
-    pthread_t thread_id() const {
-      return thread_id_;
-    }
+    pthread_t thread_id() const { return thread_id_; }
 
     // Get whether the thread was canceled.
-    bool canceled() const {
-      return canceled_;
-    }
+    bool canceled() const { return canceled_; }
 
     // Get whether CancelStore was called.
-    bool cancel_store_called() const {
-      return cancel_store_called_;
-    }
+    bool cancel_store_called() const { return cancel_store_called_; }
 
     // Store the current thread ID and signal thread completion.
     static void Store(void* data) {

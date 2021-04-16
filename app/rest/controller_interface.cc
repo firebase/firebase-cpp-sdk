@@ -19,8 +19,7 @@
 namespace firebase {
 namespace rest {
 
-Controller::~Controller() {
-}
+Controller::~Controller() {}
 
 }  // namespace rest
 }  // namespace firebase

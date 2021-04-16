@@ -34,12 +34,9 @@ const char kUninitializedError[] =
 const char kCannotInitTwiceError[] =
     "rewarded_video::Initialize cannot be called twice.";
 
-PollableRewardListener::PollableRewardListener() : mutex_(new Mutex()) {
-}
+PollableRewardListener::PollableRewardListener() : mutex_(new Mutex()) {}
 
-PollableRewardListener::~PollableRewardListener() {
-  delete mutex_;
-}
+PollableRewardListener::~PollableRewardListener() { delete mutex_; }
 
 bool PollableRewardListener::PollReward(RewardItem* reward) {
   FIREBASE_ASSERT(reward != nullptr);

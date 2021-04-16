@@ -55,9 +55,7 @@ class ZLib {
   void SetNoHeaderMode(bool no_header_mode);
 
   // Returns our current no_header_mode.
-  bool no_header_mode() const {
-    return settings_.no_header_mode_;
-  }
+  bool no_header_mode() const { return settings_.no_header_mode_; }
 
   // Uses a gzip header/footer; the output is a valid gzip file.
   // This also causes us to generate a crc32 checksum used with gzip
@@ -71,9 +69,7 @@ class ZLib {
   void SetDontHideStreamEnd();
 
   // Sets the compression level to be used
-  void SetCompressionLevel(int level) {
-    settings_.compression_level_ = level;
-  }
+  void SetCompressionLevel(int level) { settings_.compression_level_ = level; }
 
   // Sets the size of the window (history buffer) used by the compressor.
   // The size is expressed in bits (log base 2 of the desired size).
@@ -83,9 +79,7 @@ class ZLib {
 
   // Controls the amount of memory used by the compresser.
   // Legal value are 1 through 9. See zlib.h for more info.
-  void SetCompressionMemLevel(int level) {
-    settings_.mem_level_ = level;
-  }
+  void SetCompressionMemLevel(int level) { settings_.mem_level_ = level; }
 
   // Sets the initial dictionary to be used for decompression.
   void SetDictionary(const char* initial_dict, unsigned int dict_len);
@@ -216,14 +210,10 @@ class ZLib {
   // Only meaningful for chunked compressing/uncompressing. It's true
   // after initialization or reset and before the first chunk of
   // user data is received.
-  bool first_chunk() const {
-    return first_chunk_;
-  }
+  bool first_chunk() const { return first_chunk_; }
 
   // Returns a pointer to our current dictionary:
-  const Bytef* dictionary() const {
-    return settings_.dictionary_;
-  }
+  const Bytef* dictionary() const { return settings_.dictionary_; }
 
   // Convenience method to check if a bytestream has a header.  This
   // is intended as a quick test: "Is this likely a GZip file?"
@@ -235,9 +225,7 @@ class ZLib {
   bool IsGzipFooterValid() const;
 
   // Accessor for the uncompressed size (first added to address issue #509976)
-  uLong uncompressed_size() const {
-    return uncompressed_size_;
-  }
+  uLong uncompressed_size() const { return uncompressed_size_; }
 
  private:
   int InflateInit();  // sets up the zlib inflate structure

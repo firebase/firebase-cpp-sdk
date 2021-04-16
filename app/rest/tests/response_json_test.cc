@@ -26,10 +26,8 @@ namespace rest {
 
 class ResponseSample : public ResponseJson<Sample, SampleT> {
  public:
-  ResponseSample() : ResponseJson(sample_resource_data) {
-  }
-  ResponseSample(ResponseSample&& rhs) : ResponseJson(std::move(rhs)) {
-  }
+  ResponseSample() : ResponseJson(sample_resource_data) {}
+  ResponseSample(ResponseSample&& rhs) : ResponseJson(std::move(rhs)) {}
 
   std::string token() const {
     return application_data_ ? application_data_->token : std::string();

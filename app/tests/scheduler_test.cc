@@ -29,8 +29,7 @@ using ::testing::Eq;
 
 class SchedulerTest : public ::testing::Test {
  protected:
-  SchedulerTest() {
-  }
+  SchedulerTest() {}
 
   void SetUp() override {
     atomic_count_.store(0);
@@ -41,9 +40,7 @@ class SchedulerTest : public ::testing::Test {
     repeat_countdown_ = 0;
   }
 
-  static void SemaphorePost1() {
-    callback_sem1_.Post();
-  }
+  static void SemaphorePost1() { callback_sem1_.Post(); }
 
   static void AddCount() {
     atomic_count_.fetch_add(1);

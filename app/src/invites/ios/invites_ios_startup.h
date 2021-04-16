@@ -37,13 +37,9 @@ class InvitesIosStartup {
   // Priority is an arbitrary value used to determine the execution order
   // of each method of this object.  Lower values of priority are executed
   // first (e.g 0 is executed before 1).
-  explicit InvitesIosStartup(int priority) : priority_(priority) {
-    Register();
-  }
+  explicit InvitesIosStartup(int priority) : priority_(priority) { Register(); }
 
-  virtual ~InvitesIosStartup() {
-    Unregister();
-  }
+  virtual ~InvitesIosStartup() { Unregister(); }
 
   // Register this object with the set of instances that are called from
   // static methods (e.g OpenUrl) of this class.

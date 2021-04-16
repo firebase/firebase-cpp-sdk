@@ -35,8 +35,7 @@ class ValueEventRegistration : public EventRegistration {
                          const QuerySpec& query_spec)
       : EventRegistration(query_spec),
         database_(database),
-        listener_(listener) {
-  }
+        listener_(listener) {}
 
   ~ValueEventRegistration() override;
 

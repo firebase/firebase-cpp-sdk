@@ -78,8 +78,7 @@ class RemoteConfigTest : public ::testing::Test {
   reporter_.addExpectation(fake, result, platform, __VA_ARGS__)
 
 // Check SetUp and TearDown working well.
-TEST_F(RemoteConfigTest, InitializeAndTerminate) {
-}
+TEST_F(RemoteConfigTest, InitializeAndTerminate) {}
 
 TEST_F(RemoteConfigTest, InitializeTwice) {
   InitResult result = Initialize(*firebase_app_);

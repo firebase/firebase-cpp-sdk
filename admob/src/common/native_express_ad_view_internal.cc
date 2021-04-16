@@ -38,8 +38,7 @@ NativeExpressAdViewInternal::NativeExpressAdViewInternal(
     NativeExpressAdView* base)
     : base_(base),
       future_data_(kNativeExpressAdViewFnCount),
-      listener_(nullptr) {
-}
+      listener_(nullptr) {}
 
 NativeExpressAdViewInternal* NativeExpressAdViewInternal::CreateInstance(
     NativeExpressAdView* base) {

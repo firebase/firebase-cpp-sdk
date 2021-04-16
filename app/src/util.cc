@@ -48,8 +48,7 @@ struct ModuleInitializerData {
       : future_impl(kModuleInitializerCount),
         app(nullptr),
         context(nullptr),
-        init_fn_idx(0) {
-  }
+        init_fn_idx(0) {}
   // Futures implementation.
   ReferenceCountedFutureImpl future_impl;
   // Handle to the Initialize() future.
@@ -68,9 +67,7 @@ struct ModuleInitializerData {
   int init_fn_idx;
 };
 
-ModuleInitializer::ModuleInitializer() {
-  data_ = new ModuleInitializerData;
-}
+ModuleInitializer::ModuleInitializer() { data_ = new ModuleInitializerData; }
 
 ModuleInitializer::~ModuleInitializer() {
   delete data_;

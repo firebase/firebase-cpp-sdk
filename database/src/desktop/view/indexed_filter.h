@@ -34,8 +34,7 @@ namespace internal {
 class IndexedFilter : public VariantFilter {
  public:
   explicit IndexedFilter(const QueryParams& query_params)
-      : VariantFilter(query_params) {
-  }
+      : VariantFilter(query_params) {}
 
   ~IndexedFilter() override;
 

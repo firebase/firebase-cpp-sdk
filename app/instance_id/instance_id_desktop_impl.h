@@ -108,17 +108,14 @@ class InstanceIdDesktopImpl {
   Future<void> DeleteTokenLastResult();
 
   // Gets the App this object is connected to.
-  App& app() {
-    return *app_;
-  }
+  App& app() { return *app_; }
 
  private:
   friend class InstanceIdDesktopImplTest;
 
   // Data cached from a check-in and required to perform instance ID operations.
   struct CheckinData {
-    CheckinData() : last_checkin_time_ms(0) {
-    }
+    CheckinData() : last_checkin_time_ms(0) {}
 
     // Reset to the default state.
     void Clear() {
@@ -147,8 +144,7 @@ class InstanceIdDesktopImpl {
         : iid_(iid),
           scope_(scope),
           future_handle_(future_handle),
-          retry_delay_time_(0) {
-    }
+          retry_delay_time_(0) {}
 
     void Run() override;
 
@@ -162,9 +158,7 @@ class InstanceIdDesktopImpl {
   explicit InstanceIdDesktopImpl(App* app);
 
   // Get future manager of this object
-  FutureManager& future_manager() {
-    return future_manager_;
-  }
+  FutureManager& future_manager() { return future_manager_; }
 
   // Get the ReferenceCountedFutureImpl for this object
   ReferenceCountedFutureImpl* ref_future() {

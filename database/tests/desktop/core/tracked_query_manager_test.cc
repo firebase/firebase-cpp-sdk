@@ -102,9 +102,7 @@ class TrackedQueryManagerTest : public ::testing::Test {
     manager_ = new TrackedQueryManager(&storage_engine_, &logger_);
   }
 
-  void TearDown() override {
-    delete manager_;
-  }
+  void TearDown() override { delete manager_; }
 
  protected:
   SystemLogger logger_;

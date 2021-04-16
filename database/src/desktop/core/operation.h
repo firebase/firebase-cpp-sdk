@@ -32,12 +32,10 @@ struct OperationSource {
   enum Source { kSourceUser, kSourceServer };
 
   explicit OperationSource(Source _source)
-      : source(_source), query_params(), tagged(false) {
-  }
+      : source(_source), query_params(), tagged(false) {}
 
   explicit OperationSource(const Optional<QueryParams>& _query_params)
-      : source(kSourceServer), query_params(_query_params), tagged(false) {
-  }
+      : source(kSourceServer), query_params(_query_params), tagged(false) {}
 
   OperationSource(Source _source,
                   const Optional<QueryParams>& _query_params,
@@ -81,8 +79,7 @@ struct Operation {
         snapshot(),
         children(),
         affected_tree(),
-        revert() {
-  }
+        revert() {}
 
   Operation(Type _type,
             const OperationSource& _source,
@@ -97,8 +94,7 @@ struct Operation {
         snapshot(_snapshot),
         children(_children),
         affected_tree(_affected_tree),
-        revert(status == kAckRevert) {
-  }
+        revert(status == kAckRevert) {}
 
   // Utility constructors for building each kind of operation.
   static Operation Overwrite(const OperationSource& source,

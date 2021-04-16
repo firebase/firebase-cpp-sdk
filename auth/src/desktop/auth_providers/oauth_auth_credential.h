@@ -28,9 +28,7 @@ class OAuthProvider;
 
 class OAuthCredential : public IdentityProviderCredential {
  public:
-  std::string GetProvider() const override {
-    return provider_id_;
-  }
+  std::string GetProvider() const override { return provider_id_; }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
       const char* const api_key) const override {
@@ -53,8 +51,7 @@ class OAuthCredential : public IdentityProviderCredential {
       : provider_id_(provider_id),
         id_token_(id_token),
         raw_nonce_(raw_nonce),
-        access_token_(access_token) {
-  }
+        access_token_(access_token) {}
 
   const std::string provider_id_;
   const std::string id_token_;

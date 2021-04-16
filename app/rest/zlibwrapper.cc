@@ -146,9 +146,7 @@ void ZLib::SetDictionary(const char* initial_dict, unsigned int dict_len) {
   CheckValidParams();
 }
 
-void ZLib::SetDontHideStreamEnd() {
-  settings_.dont_hide_zstream_end_ = true;
-}
+void ZLib::SetDontHideStreamEnd() { settings_.dont_hide_zstream_end_ = true; }
 
 int ZLib::MinFooterSize() const {
   int min_footer_size = 2;  // Room for empty chunk.

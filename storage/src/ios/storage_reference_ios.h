@@ -163,9 +163,7 @@ class StorageReferenceInternal {
   Future<Metadata> PutFileLastResult();
 
   // StorageInternal instance we are associated with.
-  StorageInternal* _Nullable storage_internal() const {
-    return storage_;
-  }
+  StorageInternal* _Nullable storage_internal() const { return storage_; }
 
  private:
 #ifdef __OBJC__
@@ -182,9 +180,7 @@ class StorageReferenceInternal {
       void* _Nonnull buffer,
       size_t buffer_size);
 
-  FIRStorageReference* _Nullable impl() const {
-    return impl_->get();
-  }
+  FIRStorageReference* _Nullable impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
   // Get the Future for the StorageReferenceInternal.

@@ -64,21 +64,13 @@ namespace {
 // non-successful.
 class GetTokenResult {
  public:
-  explicit GetTokenResult(const AuthError error) : error_(error) {
-  }
+  explicit GetTokenResult(const AuthError error) : error_(error) {}
   explicit GetTokenResult(const std::string& token)
-      : error_(kAuthErrorNone), token_(token) {
-  }
+      : error_(kAuthErrorNone), token_(token) {}
 
-  bool IsValid() const {
-    return error_ == kAuthErrorNone;
-  }
-  AuthError error() const {
-    return error_;
-  }
-  std::string token() const {
-    return token_;
-  }
+  bool IsValid() const { return error_ == kAuthErrorNone; }
+  AuthError error() const { return error_; }
+  std::string token() const { return token_; }
 
  private:
   AuthError error_;
@@ -421,8 +413,7 @@ UserDataPersist::UserDataPersist(const char* app_id) {
 
 UserDataPersist::UserDataPersist(
     UniquePtr<UserSecureManager> user_secure_manager)
-    : user_secure_manager_(std::move(user_secure_manager)) {
-}
+    : user_secure_manager_(std::move(user_secure_manager)) {}
 
 void UserDataPersist::OnAuthStateChanged(Auth* auth) {  // NOLINT
   if (auth->current_user() != nullptr) {

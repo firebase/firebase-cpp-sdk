@@ -119,11 +119,9 @@ class WriteTree {
   // calculate the result of merging them with underlying server data (to create
   // "event cache" data). Pending writes are added with AddOverwrite() and
   // AddMerge(), and removed with RemoveWrite().
-  WriteTree() : visible_writes_(), all_writes_(), last_write_id_(-1L) {
-  }
+  WriteTree() : visible_writes_(), all_writes_(), last_write_id_(-1L) {}
 
-  virtual ~WriteTree() {
-  }
+  virtual ~WriteTree() {}
 
   // Create a new WriteTreeRef for the given path. For use with a new sync point
   // at the given path.

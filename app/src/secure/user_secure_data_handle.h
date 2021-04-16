@@ -46,8 +46,7 @@ struct UserSecureDataHandle {
       : app_name(appName),
         user_data(userData),
         future_api(futureApi),
-        future_handle(futureHandle) {
-  }
+        future_handle(futureHandle) {}
 
   const std::string app_name;
   const std::string user_data;

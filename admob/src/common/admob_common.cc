@@ -134,14 +134,10 @@ FutureCallbackData* CreateFutureCallbackData(FutureData* future_data,
 
 // Non-inline implementation of the Listeners' virtual destructors, to prevent
 // their vtables from being emitted in each translation unit.
-BannerView::Listener::~Listener() {
-}
-InterstitialAd::Listener::~Listener() {
-}
-NativeExpressAdView::Listener::~Listener() {
-}
-rewarded_video::Listener::~Listener() {
-}
+BannerView::Listener::~Listener() {}
+InterstitialAd::Listener::~Listener() {}
+NativeExpressAdView::Listener::~Listener() {}
+rewarded_video::Listener::~Listener() {}
 
 }  // namespace admob
 }  // namespace firebase

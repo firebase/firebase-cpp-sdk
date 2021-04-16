@@ -220,15 +220,10 @@ class AsyncTokenOperation : public AsyncOperation {
     derived_ = this;
   }
 
-  virtual ~AsyncTokenOperation() {
-  }
+  virtual ~AsyncTokenOperation() {}
 
-  const std::string& entity() const {
-    return entity_;
-  }
-  const std::string& scope() const {
-    return scope_;
-  }
+  const std::string& entity() const { return entity_; }
+  const std::string& scope() const { return scope_; }
 
  private:
   std::string entity_;

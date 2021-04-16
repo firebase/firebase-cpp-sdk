@@ -31,16 +31,14 @@ struct Change {
         indexed_variant(),
         child_key(),
         prev_name(),
-        old_indexed_variant() {
-  }
+        old_indexed_variant() {}
 
   Change(EventType _event_type, const IndexedVariant& _indexed_variant)
       : event_type(_event_type),
         indexed_variant(_indexed_variant),
         child_key(),
         prev_name(),
-        old_indexed_variant() {
-  }
+        old_indexed_variant() {}
 
   Change(EventType _event_type,
          const IndexedVariant& _indexed_variant,
@@ -49,8 +47,7 @@ struct Change {
         indexed_variant(_indexed_variant),
         child_key(_child_key),
         prev_name(),
-        old_indexed_variant() {
-  }
+        old_indexed_variant() {}
 
   Change(EventType _event_type,
          const IndexedVariant& _indexed_variant,
@@ -61,8 +58,7 @@ struct Change {
         indexed_variant(_indexed_variant),
         child_key(_child_key),
         prev_name(_prev_name),
-        old_indexed_variant(_old_indexed_variant) {
-  }
+        old_indexed_variant(_old_indexed_variant) {}
 
   // The type of event that has occurred.
   EventType event_type;

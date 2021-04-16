@@ -127,9 +127,7 @@ class UserSecureInternalTest : public ::testing::Test {
     user_secure_test_helper_ = nullptr;
   }
 
-  void CleanUpTestData() {
-    user_secure_->DeleteAllData();
-  }
+  void CleanUpTestData() { user_secure_->DeleteAllData(); }
 
   UniquePtr<USER_SECURE_TYPE> user_secure_;
   UniquePtr<USER_SECURE_TEST_HELPER> user_secure_test_helper_;

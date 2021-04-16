@@ -41,8 +41,7 @@ namespace {
 
 class PromiseTest : public FirestoreAndroidIntegrationTest {
  public:
-  PromiseTest() : promises_(GetFirestoreInternal(TestFirestore())) {
-  }
+  PromiseTest() : promises_(GetFirestoreInternal(TestFirestore())) {}
 
   void SetUp() override {
     FirestoreAndroidIntegrationTest::SetUp();
@@ -60,9 +59,7 @@ class PromiseTest : public FirestoreAndroidIntegrationTest {
   };
 
  protected:
-  PromiseFactory<AsyncFn>& promises() {
-    return promises_;
-  }
+  PromiseFactory<AsyncFn>& promises() { return promises_; }
 
   jni::Local<jni::Task> GetTask() {
     jni::Env env = GetEnv();
@@ -85,9 +82,7 @@ class PromiseTest : public FirestoreAndroidIntegrationTest {
     cancellation_token_source_.Cancel(env);
   }
 
-  static jni::Env GetEnv() {
-    return jni::Env(app_framework::GetJniEnv());
-  }
+  static jni::Env GetEnv() { return jni::Env(app_framework::GetJniEnv()); }
 
  private:
   PromiseFactory<AsyncFn> promises_;
@@ -212,9 +207,7 @@ class TestVoidCompletion : public TestCompletionBase<void, void> {
   }
 
  protected:
-  void HandleResult(void* result) override {
-    result_ = result;
-  }
+  void HandleResult(void* result) override { result_ = result; }
 
  private:
   void* result_;

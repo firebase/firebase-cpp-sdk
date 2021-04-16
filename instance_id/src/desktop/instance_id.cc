@@ -25,9 +25,7 @@ namespace instance_id {
 
 using internal::InstanceIdInternal;
 
-int64_t InstanceId::creation_time() const {
-  return 0;
-}
+int64_t InstanceId::creation_time() const { return 0; }
 
 Future<std::string> InstanceId::GetId() const {
   if (!instance_id_internal_) return Future<std::string>();

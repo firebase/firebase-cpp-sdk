@@ -50,8 +50,7 @@ using flatbuffers::FlatBufferBuilder;
 
 class MessageReaderTest : public ::testing::Test {
  protected:
-  void SetUp() override {
-  }
+  void SetUp() override {}
 
   void TearDown() override {
     messages_received_.clear();

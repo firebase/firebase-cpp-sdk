@@ -42,8 +42,7 @@ PersistenceManager::PersistenceManager(
       tracked_query_manager_(std::move(tracked_query_manager)),
       cache_policy_(std::move(cache_policy)),
       server_cache_updates_since_last_prune_check_(0),
-      logger_(logger) {
-}
+      logger_(logger) {}
 
 void PersistenceManager::SaveUserOverwrite(const Path& path,
                                            const Variant& variant,

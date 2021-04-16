@@ -64,9 +64,7 @@ class InvitesReceiverInternalIos : public InvitesReceiverInternal {
     }
 
     // Identifier used to debug this object.
-    const char* identifier() const {
-      return identifier_;
-    }
+    const char* identifier() const { return identifier_; }
 
    private:
     const char* identifier_;
@@ -77,8 +75,7 @@ class InvitesReceiverInternalIos : public InvitesReceiverInternal {
   // URL link before InvitesReceiverInternalIos falls back to it's default
   // behavior.
   struct LinkInfo {
-    LinkInfo() : match_strength(kLinkMatchStrengthNoMatch) {
-    }
+    LinkInfo() : match_strength(kLinkMatchStrengthNoMatch) {}
 
     // ID of the invite derived from a URL link.
     std::string invite_id;
@@ -92,8 +89,7 @@ class InvitesReceiverInternalIos : public InvitesReceiverInternal {
   // Class used by the invites API to hook operations performed by the receiver.
   class Callbacks {
    public:
-    virtual ~Callbacks() {
-    }
+    virtual ~Callbacks() {}
 
     // Used by Invites to complete Google Sign-in when sending an invite.
     virtual bool OpenUrl(NSURL* url,

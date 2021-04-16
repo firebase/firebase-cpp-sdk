@@ -192,9 +192,7 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
       firestore_, listener, passing_listener_ownership, java_registration));
 }
 
-Class DocumentReferenceInternal::GetClass() {
-  return Class(clazz);
-}
+Class DocumentReferenceInternal::GetClass() { return Class(clazz); }
 
 }  // namespace firestore
 }  // namespace firebase

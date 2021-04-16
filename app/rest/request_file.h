@@ -29,32 +29,24 @@ class RequestFile : public Request {
  public:
   // Create a request that will read from the specified file.
   RequestFile(const char* filename, size_t offset);
-  ~RequestFile() override {
-    CloseFile();
-  }
+  ~RequestFile() override { CloseFile(); }
 
   // This object will assert if post fields are set.
   void set_post_fields(const char* data, size_t size) override;
   void set_post_fields(const char* data) override;
 
   // Get the size of the POST fields.
-  size_t GetPostFieldsSize() const override {
-    return file_size();
-  }
+  size_t GetPostFieldsSize() const override { return file_size(); }
 
   // Read from the file.
   size_t ReadBody(char* buffer, size_t length, bool* abort) override;
 
   // Determine whether the file is open.
-  bool IsFileOpen() const {
-    return file_ != nullptr;
-  }
+  bool IsFileOpen() const { return file_ != nullptr; }
 
   // Size of the file in bytes, if the file references an unseekable stream this
   // will return 0.
-  size_t file_size() const {
-    return file_size_;
-  }
+  size_t file_size() const { return file_size_; }
 
  protected:
   // Close the file.

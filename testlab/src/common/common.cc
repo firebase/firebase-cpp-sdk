@@ -61,9 +61,7 @@ void SetResultsDirectory(const char* path) {
   internal::SetResultsDirectory(path);
 }
 
-std::string GetResultsDirectory() {
-  return internal::GetResultsDirectory();
-}
+std::string GetResultsDirectory() { return internal::GetResultsDirectory(); }
 
 namespace internal {
 
@@ -74,12 +72,8 @@ static const char* kRootType = "ScenarioResult";
 
 static int g_scenario = 0;
 
-void SetScenario(int scenario) {
-  g_scenario = scenario;
-}
-int GetScenario() {
-  return g_scenario;
-}
+void SetScenario(int scenario) { g_scenario = scenario; }
+int GetScenario() { return g_scenario; }
 std::string GetResultsDirectory() {
   if (g_results_dir == nullptr) { return ""; }
   return *g_results_dir;
@@ -164,9 +158,7 @@ std::vector<std::string> TokenizeByCharacter(std::vector<char> buffer,
   return tokens;
 }
 
-void TerminateCommon() {
-  SetResultsDirectory(nullptr);
-}
+void TerminateCommon() { SetResultsDirectory(nullptr); }
 
 void ResetLog() {
   if (g_log_file) {

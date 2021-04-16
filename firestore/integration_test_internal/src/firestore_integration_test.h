@@ -57,11 +57,9 @@ class EventAccumulator;
 template <typename T>
 class TestEventListener : public EventListener<T> {
  public:
-  explicit TestEventListener(std::string name) : name_(std::move(name)) {
-  }
+  explicit TestEventListener(std::string name) : name_(std::move(name)) {}
 
-  ~TestEventListener() override {
-  }
+  ~TestEventListener() override {}
 
   void OnEvent(const T& value,
                Error error_code,
@@ -131,9 +129,7 @@ class TestEventListener : public EventListener<T> {
   }
 
   // Set this to true to print more details for each arrived event for debug.
-  void set_print_debug_info(bool value) {
-    print_debug_info_ = value;
-  }
+  void set_print_debug_info(bool value) { print_debug_info_ = value; }
 
   // Copies events from the internal buffer, starting from `start`, up to but
   // not including `end`.
@@ -176,9 +172,7 @@ class FirestoreIntegrationTest : public testing::Test {
   FirestoreIntegrationTest& operator=(FirestoreIntegrationTest&&) = delete;
 
  protected:
-  App* app() {
-    return TestFirestore()->app();
-  }
+  App* app() { return TestFirestore()->app(); }
 
   // Returns a Firestore instance for an app with the given name.
   // If this method is invoked again with the same `name`, then the same pointer
@@ -311,13 +305,9 @@ class FirestoreIntegrationTest : public testing::Test {
 
   static std::string DescribeFailedFuture(const FutureBase& future);
 
-  void DisableNetwork() {
-    Await(TestFirestore()->DisableNetwork());
-  }
+  void DisableNetwork() { Await(TestFirestore()->DisableNetwork()); }
 
-  void EnableNetwork() {
-    Await(TestFirestore()->EnableNetwork());
-  }
+  void EnableNetwork() { Await(TestFirestore()->EnableNetwork()); }
 
   static FirestoreInternal* GetFirestoreInternal(Firestore* firestore) {
     return firestore->internal_;
@@ -331,18 +321,11 @@ class FirestoreIntegrationTest : public testing::Test {
    public:
     FirestoreInfo() = default;
     FirestoreInfo(const std::string& name, UniquePtr<Firestore>&& firestore)
-        : name_(name), firestore_(Move(firestore)) {
-    }
+        : name_(name), firestore_(Move(firestore)) {}
 
-    const std::string& name() const {
-      return name_;
-    }
-    Firestore* firestore() const {
-      return firestore_.get();
-    }
-    void ReleaseFirestore() {
-      firestore_.release();
-    }
+    const std::string& name() const { return name_; }
+    Firestore* firestore() const { return firestore_.get(); }
+    void ReleaseFirestore() { firestore_.release(); }
 
    private:
     std::string name_;

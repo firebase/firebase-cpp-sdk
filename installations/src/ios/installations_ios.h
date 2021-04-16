@@ -57,9 +57,7 @@ class InstallationsInternal {
 
  private:
 #ifdef __OBJC__
-  FIRInstallations* _Nullable impl() const {
-    return impl_->get();
-  }
+  FIRInstallations* _Nullable impl() const { return impl_->get(); }
 #endif
   // app
   const firebase::App& app_;

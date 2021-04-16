@@ -76,19 +76,13 @@ class MutableDataInternal {
   Variant* GetNode();
 
   // Get stored path_.  Mostly for debug purpose
-  const Path& GetPath() const {
-    return path_;
-  }
+  const Path& GetPath() const { return path_; }
 
   // Get stored holder_.  Mostly for debug purpose
-  const Variant& GetHolder() const {
-    return *holder_;
-  }
+  const Variant& GetHolder() const { return *holder_; }
 
   // Returns a pointer to the database this MutableData is from.
-  DatabaseInternal* database_internal() const {
-    return db_;
-  }
+  DatabaseInternal* database_internal() const { return db_; }
 
  private:
   explicit MutableDataInternal(const MutableDataInternal& other,

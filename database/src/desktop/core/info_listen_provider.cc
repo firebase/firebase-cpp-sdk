@@ -38,8 +38,7 @@ void InfoListenProvider::StartListening(const QuerySpec& query_spec,
 }
 
 void InfoListenProvider::StopListening(const QuerySpec& query_spec,
-                                       const Tag& tag) {
-}
+                                       const Tag& tag) {}
 
 }  // namespace internal
 }  // namespace database

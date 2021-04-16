@@ -123,9 +123,7 @@ Future<HttpsCallableResult> HttpsCallableReference::Call(const Variant& data) {
   return internal_ ? internal_->Call(data) : Future<HttpsCallableResult>();
 }
 
-bool HttpsCallableReference::is_valid() const {
-  return internal_ != nullptr;
-}
+bool HttpsCallableReference::is_valid() const { return internal_ != nullptr; }
 
 }  // namespace functions
 }  // namespace firebase

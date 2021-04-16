@@ -128,8 +128,7 @@ class WebSocketClientImpl : public WebSocketClientInterface {
                           WebSocketClientImpl* ws_client,
                           int i,
                           const std::string& str)
-        : callback(c), client(ws_client), int_value(i), string_value(str) {
-    }
+        : callback(c), client(ws_client), int_value(i), string_value(str) {}
 
     Callback callback;
 

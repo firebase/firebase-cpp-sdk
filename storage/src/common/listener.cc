@@ -27,15 +27,11 @@
 namespace firebase {
 namespace storage {
 
-Listener::Listener() {
-  impl_ = new internal::ListenerInternal(this);
-}
+Listener::Listener() { impl_ = new internal::ListenerInternal(this); }
 
 // Non-inline implementation of Listener's virtual destructor
 // to prevent its vtable being emitted in each translation unit.
-Listener::~Listener() {
-  delete impl_;
-}
+Listener::~Listener() { delete impl_; }
 
 }  // namespace storage
 }  // namespace firebase

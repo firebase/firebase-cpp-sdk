@@ -18,12 +18,9 @@ namespace jni {
 class Throwable : public Object {
  public:
   Throwable() = default;
-  explicit Throwable(jthrowable throwable) : Object(throwable) {
-  }
+  explicit Throwable(jthrowable throwable) : Object(throwable) {}
 
-  jthrowable get() const override {
-    return static_cast<jthrowable>(object_);
-  }
+  jthrowable get() const override { return static_cast<jthrowable>(object_); }
 
   /**
    * Gets the message associated with this throwable.

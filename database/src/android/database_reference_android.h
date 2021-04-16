@@ -140,8 +140,7 @@ struct TransactionData {
         handle(handle_),
         context(nullptr),
         delete_context(nullptr),
-        java_handler(nullptr) {
-  }
+        java_handler(nullptr) {}
   ~TransactionData() {
     if (delete_context) delete_context(context);
     delete_context = nullptr;

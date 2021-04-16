@@ -21,8 +21,7 @@ namespace firebase {
 namespace storage {
 namespace internal {
 
-ControllerInternal::ControllerInternal() : operation_(nullptr) {
-}
+ControllerInternal::ControllerInternal() : operation_(nullptr) {}
 
 ControllerInternal::~ControllerInternal() {
   Initialize(StorageReference(), nullptr);

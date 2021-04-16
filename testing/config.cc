@@ -40,9 +40,7 @@ void ConfigSet(const char* test_data_in_json) {
                           parser.builder_.GetSize());
 }
 
-void ConfigReset() {
-  internal::ConfigSetImpl(nullptr, 0);
-}
+void ConfigReset() { internal::ConfigSetImpl(nullptr, 0); }
 
 }  // namespace cppsdk
 }  // namespace testing

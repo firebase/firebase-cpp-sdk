@@ -48,21 +48,13 @@ class MessagingTestListener : public Listener {
   void OnMessage(const Message& message) override;
   void OnTokenReceived(const char* token) override;
 
-  const Message& GetMessage() const {
-    return message_;
-  }
+  const Message& GetMessage() const { return message_; }
 
-  const std::string& GetToken() const {
-    return token_;
-  }
+  const std::string& GetToken() const { return token_; }
 
-  int GetOnTokenReceivedCount() const {
-    return on_token_received_count_;
-  }
+  int GetOnTokenReceivedCount() const { return on_token_received_count_; }
 
-  int GetOnMessageReceivedCount() const {
-    return on_message_received_count_;
-  }
+  int GetOnMessageReceivedCount() const { return on_message_received_count_; }
 
  private:
   Message message_;

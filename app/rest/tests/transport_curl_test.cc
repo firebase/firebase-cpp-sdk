@@ -126,9 +126,7 @@ TEST_F(TransportCurlTest, TestGlobalInitAndCleanup) {
   CleanupTransportCurl();
 }
 
-TEST_F(TransportCurlTest, TestCreation) {
-  TransportCurl curl;
-}
+TEST_F(TransportCurlTest, TestCreation) { TransportCurl curl; }
 
 TEST_F(TransportCurlTest, TestHttpGet) {
   Request request;

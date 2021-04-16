@@ -305,9 +305,7 @@ void StorageInternal::Terminate(App* app) {
   }
 }
 
-App* StorageInternal::app() const {
-  return app_;
-}
+App* StorageInternal::app() const { return app_; }
 
 Error StorageInternal::ErrorFromJavaErrorCode(jint error_code) const {
   auto found = java_error_to_cpp_->find(error_code);

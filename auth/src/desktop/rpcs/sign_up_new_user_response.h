@@ -32,30 +32,20 @@ class SignUpNewUserResponse : public AuthResponse {
 
   // Either an authorization code suitable for performing an STS token exchange,
   // or the access token from Secure Token Service
-  std::string id_token() const {
-    return application_data_->idToken;
-  }
+  std::string id_token() const { return application_data_->idToken; }
 
   // The refresh token from Secure Token Service.
-  std::string refresh_token() const {
-    return application_data_->refreshToken;
-  }
+  std::string refresh_token() const { return application_data_->refreshToken; }
 
   // The local id of the new user.
-  std::string local_id() const {
-    return application_data_->localId;
-  }
+  std::string local_id() const { return application_data_->localId; }
 
   // The email of the new user; empty if the user is anonymous.
-  std::string email() const {
-    return application_data_->email;
-  }
+  std::string email() const { return application_data_->email; }
 
   // Whether the newly created user is anonymous. If false, then the user was
   // created with an email and password.
-  bool IsAnonymousUser() const {
-    return email().empty();
-  }
+  bool IsAnonymousUser() const { return email().empty(); }
 
   // The number of seconds til the access token expires.
   int expires_in() const {

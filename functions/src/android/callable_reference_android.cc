@@ -132,8 +132,7 @@ struct FutureCallbackData {
                      ReferenceCountedFutureImpl* impl_,
                      FunctionsInternal* functions_,
                      CallableReferenceFn func_)
-      : handle(handle_), impl(impl_), functions(functions_), func(func_) {
-  }
+      : handle(handle_), impl(impl_), functions(functions_), func(func_) {}
   SafeFutureHandle<HttpsCallableResult> handle;
   ReferenceCountedFutureImpl* impl;
   FunctionsInternal* functions;

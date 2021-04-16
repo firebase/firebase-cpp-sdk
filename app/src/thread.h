@@ -61,18 +61,14 @@ class Thread {
   // Returns the ID of the current thread.
 #if defined(_STLPORT_VERSION)
   typedef pthread_t Id;
-  static Id CurrentId() {
-    return pthread_self();
-  }
+  static Id CurrentId() { return pthread_self(); }
   static bool IsCurrentThread(const Id& thread_id) {
     // pthread_t is an "opaque" C type and must be compared with pthread_equal.
     return pthread_equal(pthread_self(), thread_id) != 0;
   }
 #else
   typedef std::thread::id Id;
-  static Id CurrentId() {
-    return std::this_thread::get_id();
-  }
+  static Id CurrentId() { return std::this_thread::get_id(); }
   static bool IsCurrentThread(const Id& thread_id) {
     return std::this_thread::get_id() == thread_id;
   }
@@ -153,13 +149,11 @@ Thread::Thread(Thread::OneArgRoutine<T> start_routine, T* arg)
              [](Thread::UnsafeRoutine start_routine, void* arg) {
                reinterpret_cast<Thread::OneArgRoutine<T>>(start_routine)(
                    static_cast<T*>(arg));
-             }) {
-}
+             }) {}
 #else
 template <typename T>
 Thread::Thread(Thread::OneArgRoutine<T> start_routine, T* arg)
-    : thread_(start_routine, arg) {
-}
+    : thread_(start_routine, arg) {}
 #endif
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace FIREBASE_NAMESPACE

@@ -29,11 +29,9 @@ LimitedFilter::LimitedFilter(const QueryParams& params)
     : VariantFilter(params),
       ranged_filter_(MakeUnique<RangedFilter>(params)),
       limit_(params.limit_first ? params.limit_first : params.limit_last),
-      reverse_(!!params.limit_last) {
-}
+      reverse_(!!params.limit_last) {}
 
-LimitedFilter::~LimitedFilter() {
-}
+LimitedFilter::~LimitedFilter() {}
 
 IndexedVariant LimitedFilter::UpdateChild(
     const IndexedVariant& indexed_variant,
@@ -129,13 +127,9 @@ IndexedVariant LimitedFilter::UpdatePriority(
   return old_snap;
 }
 
-const VariantFilter* LimitedFilter::GetIndexedFilter() const {
-  return this;
-}
+const VariantFilter* LimitedFilter::GetIndexedFilter() const { return this; }
 
-bool LimitedFilter::FiltersVariants() const {
-  return true;
-}
+bool LimitedFilter::FiltersVariants() const { return true; }
 
 IndexedVariant LimitedFilter::FullLimitUpdateChild(
     const IndexedVariant& old_indexed,

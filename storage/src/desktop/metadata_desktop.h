@@ -63,18 +63,13 @@ class MetadataInternal {
   MetadataInternal& operator=(MetadataInternal&& other);
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-  ~MetadataInternal() {
-  }
+  ~MetadataInternal() {}
 
   // Return the owning Google Cloud Storage bucket for the StorageReference.
-  const char* bucket() {
-    return bucket_.c_str();
-  }
+  const char* bucket() { return bucket_.c_str(); }
 
   // Return the path of the StorageReference object.
-  const char* path() {
-    return path_.c_str();
-  }
+  const char* path() { return path_.c_str(); }
 
   // Set the Cache Control setting of the StorageReference.
   void set_cache_control(const char* cache_control) {
@@ -82,9 +77,7 @@ class MetadataInternal {
   }
 
   // Return the Cache Control setting of the StorageReference.
-  const char* cache_control() const {
-    return cache_control_.c_str();
-  }
+  const char* cache_control() const { return cache_control_.c_str(); }
 
   // Set the content disposition of the StorageReference.
   void set_content_disposition(const char* content_disposition) {
@@ -102,9 +95,7 @@ class MetadataInternal {
   }
 
   // Return the content encoding for the StorageReference.
-  const char* content_encoding() const {
-    return content_encoding_.c_str();
-  }
+  const char* content_encoding() const { return content_encoding_.c_str(); }
 
   // Set the content language for the StorageReference.
   void set_content_language(const char* language) {
@@ -112,9 +103,7 @@ class MetadataInternal {
   }
 
   // Return the content language for the StorageReference.
-  const char* content_language() const {
-    return content_language_.c_str();
-  }
+  const char* content_language() const { return content_language_.c_str(); }
 
   // Set the content type of the StorageReference.
   void set_content_type(const char* content_type) {
@@ -122,14 +111,10 @@ class MetadataInternal {
   }
 
   // Return the content type of the StorageReference.
-  const char* content_type() const {
-    return content_type_.c_str();
-  }
+  const char* content_type() const { return content_type_.c_str(); }
 
   // Return the time the StorageReference was created.
-  int64_t creation_time() const {
-    return creation_time_;
-  }
+  int64_t creation_time() const { return creation_time_; }
 
   // Return a map of custom metadata key value pairs.
   std::map<std::string, std::string>* custom_metadata() {
@@ -142,48 +127,32 @@ class MetadataInternal {
   const char* download_url() const;
 
   // Return a version String indicating what version of the StorageReference.
-  int64_t generation() const {
-    return generation_;
-  }
+  int64_t generation() const { return generation_; }
 
   // Return a version String indicating the version of this StorageMetadata.
-  int64_t metadata_generation() const {
-    return metadata_generation_;
-  }
+  int64_t metadata_generation() const { return metadata_generation_; }
 
   // Return a simple name of the StorageReference object.  (Or an empty string
   // if there isn't one.)
-  const char* name() {
-    return name_.c_str();
-  }
+  const char* name() { return name_.c_str(); }
 
   // Return the associated StorageReference for which this metadata belongs to.
   StorageReferenceInternal* GetReference() const;
 
   // Return the stored Size in bytes of the StorageReference object.
-  int64_t size_bytes() const {
-    return size_bytes_;
-  }
+  int64_t size_bytes() const { return size_bytes_; }
 
   // Return the time the StorageReference was last updated.
-  int64_t updated_time() const {
-    return updated_time_;
-  }
+  int64_t updated_time() const { return updated_time_; }
 
   // Gets the StorageInternal we are a part of.
-  StorageInternal* storage_internal() const {
-    return storage_internal_;
-  }
+  StorageInternal* storage_internal() const { return storage_internal_; }
 
-  const char* md5_hash() {
-    return md5_hash_.c_str();
-  }
+  const char* md5_hash() { return md5_hash_.c_str(); }
 
   // Special method to create an invalid Metadata, because Metadata's default
   // constructor now gives us a valid one.
-  static Metadata GetInvalidMetadata() {
-    return Metadata(nullptr);
-  }
+  static Metadata GetInvalidMetadata() { return Metadata(nullptr); }
 
   // Import and export functions for json text.
   bool ImportFromJson(const char* json);

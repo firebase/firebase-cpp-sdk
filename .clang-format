@@ -7,7 +7,7 @@ AllowShortBlocksOnASingleLine: Always
 SpacesInContainerLiterals: true
 DerivePointerAlignment: false
 PointerAlignment: Left
-AllowShortFunctionsOnASingleLine: None
+AllowShortFunctionsOnASingleLine: All
 IncludeBlocks: Preserve
 BraceWrapping:
   SplitEmptyFunction: false

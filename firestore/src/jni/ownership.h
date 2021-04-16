@@ -29,8 +29,7 @@ class Local : public T {
   /**
    * Adopts a local reference that is the result of a JNI invocation.
    */
-  Local(JNIEnv* env, jni_type value) : T(value), env_(env) {
-  }
+  Local(JNIEnv* env, jni_type value) : T(value), env_(env) {}
 
   /**
    * An explicit copy constructor, which prevents accidental copies at function
@@ -54,8 +53,7 @@ class Local : public T {
     return *this;
   }
 
-  Local(Local&& other) noexcept : T(other.release()), env_(other.env_) {
-  }
+  Local(Local&& other) noexcept : T(other.release()), env_(other.env_) {}
 
   Local& operator=(Local&& other) noexcept {
     if (T::object_ != other.get()) {
@@ -112,9 +110,7 @@ class Local : public T {
     return Local<U>(env_, release());
   }
 
-  jni_type get() const override {
-    return static_cast<jni_type>(T::object_);
-  }
+  jni_type get() const override { return static_cast<jni_type>(T::object_); }
 
   jni_type release() {
     jobject result = T::object_;
@@ -129,9 +125,7 @@ class Local : public T {
     }
   }
 
-  JNIEnv* env() const {
-    return env_;
-  }
+  JNIEnv* env() const { return env_; }
 
  private:
   void EnsureEnv(JNIEnv* other = nullptr) {
@@ -170,8 +164,7 @@ class Global : public T {
 
   Global() = default;
 
-  Global(jni_type object, AdoptExisting) : T(object) {
-  }
+  Global(jni_type object, AdoptExisting) : T(object) {}
 
   Global(const Local<T>& other) {
     JNIEnv* env = EnsureEnv(other.env());
@@ -205,16 +198,14 @@ class Global : public T {
   // Without this, the implicitly-defined copy constructor would be deleted, and
   // during overload resolution the deleted copy constructor would take priority
   // over the looser match above that takes `const T&`.
-  Global(const Global& other) : Global(static_cast<const T&>(other)) {
-  }
+  Global(const Global& other) : Global(static_cast<const T&>(other)) {}
 
   Global& operator=(const Global& other) {
     *this = static_cast<const T&>(other);
     return *this;
   }
 
-  Global(Global&& other) noexcept : T(other.release()) {
-  }
+  Global(Global&& other) noexcept : T(other.release()) {}
 
   Global& operator=(Global&& other) noexcept {
     if (T::object_ != other.get()) {
@@ -248,9 +239,7 @@ class Global : public T {
     }
   }
 
-  jni_type get() const override {
-    return static_cast<jni_type>(T::object_);
-  }
+  jni_type get() const override { return static_cast<jni_type>(T::object_); }
 
   jni_type release() {
     jobject result = T::object_;

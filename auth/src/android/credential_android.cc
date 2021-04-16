@@ -395,9 +395,7 @@ std::string Credential::provider() const {
   return JniStringToString(env, j_provider);
 }
 
-bool Credential::is_valid() const {
-  return impl_ != nullptr;
-}
+bool Credential::is_valid() const { return impl_ != nullptr; }
 
 static void* CredentialLocalToGlobalRef(jobject j_cred) {
   if (!j_cred) return nullptr;
@@ -695,11 +693,8 @@ bool GameCenterAuthProvider::IsPlayerAuthenticated() {
 // This implementation of ForceResendingTokenData is specific to Android.
 class ForceResendingTokenData {
  public:
-  ForceResendingTokenData() : token_global_ref_(nullptr) {
-  }
-  ~ForceResendingTokenData() {
-    FreeRef();
-  }
+  ForceResendingTokenData() : token_global_ref_(nullptr) {}
+  ~ForceResendingTokenData() { FreeRef(); }
 
   // token_ref can be a local or global reference.
   void SetRef(jobject token_ref) {
@@ -716,21 +711,16 @@ class ForceResendingTokenData {
       token_global_ref_ = nullptr;
     }
   }
-  jobject token_global_ref() const {
-    return token_global_ref_;
-  }
+  jobject token_global_ref() const { return token_global_ref_; }
 
  private:
   jobject token_global_ref_;
 };
 
 PhoneAuthProvider::ForceResendingToken::ForceResendingToken()
-    : data_(new ForceResendingTokenData) {
-}
+    : data_(new ForceResendingTokenData) {}
 
-PhoneAuthProvider::ForceResendingToken::~ForceResendingToken() {
-  delete data_;
-}
+PhoneAuthProvider::ForceResendingToken::~ForceResendingToken() { delete data_; }
 
 PhoneAuthProvider::ForceResendingToken::ForceResendingToken(
     const ForceResendingToken& rhs)
@@ -759,8 +749,8 @@ bool PhoneAuthProvider::ForceResendingToken::operator!=(
 
 // This implementation of PhoneAuthProviderData is specific to Android.
 struct PhoneAuthProviderData {
-  PhoneAuthProviderData() : auth_data(nullptr), j_phone_auth_provider(nullptr) {
-  }
+  PhoneAuthProviderData()
+      : auth_data(nullptr), j_phone_auth_provider(nullptr) {}
 
   // Back-pointer to structure that holds this one.
   AuthData* auth_data;
@@ -772,8 +762,7 @@ struct PhoneAuthProviderData {
 // The `data_` pimpl is created lazily in @ref PhoneAuthProvider::GetInstance.
 // This is necessary since the Java Auth class must be fully created to get
 // `j_phone_auth_provider`.
-PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {
-}
+PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {}
 PhoneAuthProvider::~PhoneAuthProvider() {
   if (data_ != nullptr) {
     JNIEnv* env = GetJniEnv();
@@ -784,8 +773,7 @@ PhoneAuthProvider::~PhoneAuthProvider() {
 
 // This implementation of PhoneListenerData is specific to Android.
 struct PhoneListenerData {
-  PhoneListenerData() : j_listener(nullptr) {
-  }
+  PhoneListenerData() : j_listener(nullptr) {}
 
   // The JniAuthStateListener class that has the same lifespan as the C++ class.
   jobject j_listener;
@@ -961,16 +949,14 @@ JNIEXPORT void JNICALL JniAuthPhoneListener::nativeOnCodeAutoRetrievalTimeOut(
 }
 
 // FederatedAuthHandlers
-FederatedOAuthProvider::FederatedOAuthProvider() {
-}
+FederatedOAuthProvider::FederatedOAuthProvider() {}
 
 FederatedOAuthProvider::FederatedOAuthProvider(
     const FederatedOAuthProviderData& provider_data) {
   provider_data_ = provider_data;
 }
 
-FederatedOAuthProvider::~FederatedOAuthProvider() {
-}
+FederatedOAuthProvider::~FederatedOAuthProvider() {}
 
 void FederatedOAuthProvider::SetProviderData(
     const FederatedOAuthProviderData& provider_data) {

@@ -61,8 +61,7 @@ struct TransportCurlActionData {
         curl(nullptr),
         request(nullptr),
         response(nullptr),
-        controller(nullptr) {
-  }
+        controller(nullptr) {}
   // Transport that scheduled this request.
   // Required by:
   // * kRequestedActionPerform
@@ -176,24 +175,12 @@ class BackgroundTransportCurl {
   ~BackgroundTransportCurl();
   bool PerformBackground(Request* request);
 
-  CURL* curl() const {
-    return curl_;
-  }
-  Response* response() const {
-    return response_;
-  }
-  void set_canceled(bool canceled) {
-    canceled_ = canceled;
-  }
-  void set_timed_out(bool timed_out) {
-    timed_out_ = timed_out;
-  }
-  ControllerCurl* controller() const {
-    return controller_;
-  }
-  TransportCurl* transport_curl() const {
-    return transport_curl_;
-  }
+  CURL* curl() const { return curl_; }
+  Response* response() const { return response_; }
+  void set_canceled(bool canceled) { canceled_ = canceled; }
+  void set_timed_out(bool timed_out) { timed_out_ = timed_out; }
+  ControllerCurl* controller() const { return controller_; }
+  TransportCurl* transport_curl() const { return transport_curl_; }
 
  private:
   void CheckOk(CURLcode code, const char* msg);
@@ -263,9 +250,7 @@ class CurlThread {
   // Cancel all outstanding requests.
   void CancelAllTransfers();
 
-  Mutex* mutex() {
-    return &mutex_;
-  }
+  Mutex* mutex() { return &mutex_; }
 
   // Process requests from action_data_ the see the function definition for the
   // complete documentation.

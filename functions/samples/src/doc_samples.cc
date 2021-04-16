@@ -24,12 +24,9 @@
 // [END functions_includes]
 
 // Stub functions to allow sample functions to compile.
-void DisplayError(firebase::functions::Error code, const char* message) {
-}
-void DisplayResult(int result) {
-}
-void DisplayResult(const std::string& result) {
-}
+void DisplayError(firebase::functions::Error code, const char* message) {}
+void DisplayResult(int result) {}
+void DisplayResult(const std::string& result) {}
 
 // [START define_functions_instance]
 firebase::functions::Functions* functions;

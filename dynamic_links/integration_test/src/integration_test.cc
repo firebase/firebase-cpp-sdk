@@ -110,8 +110,7 @@ std::vector<std::string> FirebaseDynamicLinksTest::cleanup_persistent_keys_;
 // Handles a received dynamic link.
 class TestListener : public firebase::dynamic_links::Listener {
  public:
-  TestListener() : received_link_(false) {
-  }
+  TestListener() : received_link_(false) {}
   void OnDynamicLinkReceived(
       const firebase::dynamic_links::DynamicLink* dynamic_link) override {
     LogInfo("Received dynamic link: %s", dynamic_link->url.c_str());

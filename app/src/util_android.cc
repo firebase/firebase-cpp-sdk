@@ -360,16 +360,13 @@ class ScopedCleanup {
   // cb is a callback to be called when the instance goes out of scope.
   // user_data here will be passed to the callback.
   ScopedCleanup(void (*callback)(T*), T* user_data)
-      : callback_(callback), user_data_(user_data) {
-  }
+      : callback_(callback), user_data_(user_data) {}
 
   ~ScopedCleanup() {
     if (callback_) callback_(user_data_);
   }
 
-  void Cancel() {
-    callback_ = nullptr;
-  }
+  void Cancel() { callback_ = nullptr; }
 
  private:
   void (*callback_)(T*);
@@ -1339,11 +1336,9 @@ JNIEXPORT void JNICALL CppThreadDispatcherContext_nativeFunction(
 
 int JavaThreadContext::initialize_count_ = 0;
 
-JavaThreadContext::JavaThreadContext(JNIEnv* env) : object_(env) {
-}
+JavaThreadContext::JavaThreadContext(JNIEnv* env) : object_(env) {}
 
-JavaThreadContext::~JavaThreadContext() {
-}
+JavaThreadContext::~JavaThreadContext() {}
 
 void JavaThreadContext::Cancel() {
   JNIEnv* env = object_.GetJNIEnv();

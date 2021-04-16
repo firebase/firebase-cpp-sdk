@@ -20,12 +20,9 @@ namespace firebase {
 namespace invites {
 namespace internal {
 
-InvitesReceiverInternalStub::~InvitesReceiverInternalStub() {
-}
+InvitesReceiverInternalStub::~InvitesReceiverInternalStub() {}
 
-bool InvitesReceiverInternalStub::PerformFetch() {
-  return true;
-}
+bool InvitesReceiverInternalStub::PerformFetch() { return true; }
 
 bool InvitesReceiverInternalStub::PerformConvertInvitation(
     const char* /* unused */) {

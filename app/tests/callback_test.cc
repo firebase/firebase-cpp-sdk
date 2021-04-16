@@ -32,8 +32,7 @@ namespace firebase {
 
 class CallbackTest : public ::testing::Test {
  protected:
-  CallbackTest() {
-  }
+  CallbackTest() {}
 
   void SetUp() override {
     callback_void_count_ = 0;
@@ -46,18 +45,14 @@ class CallbackTest : public ::testing::Test {
   }
 
   // Counts callbacks from callback::CallbackVoid.
-  static void CountCallbackVoid() {
-    callback_void_count_++;
-  }
+  static void CountCallbackVoid() { callback_void_count_++; }
   // Counts callbacks from callback::Callback1.
   static void CountCallback1(void* test) {
     CallbackTest* callback_test = *(static_cast<CallbackTest**>(test));
     callback_test->callback1_count_++;
   }
   // Adds the value passed to CallbackValue1 to callback_value1_sum_.
-  static void SumCallbackValue1(int value) {
-    callback_value1_sum_ += value;
-  }
+  static void SumCallbackValue1(int value) { callback_value1_sum_ += value; }
 
   // Add the value passed to CallbackValue1 to callback_value1_ordered_.
   static void OrderedCallbackValue1(int value) {

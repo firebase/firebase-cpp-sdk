@@ -39,8 +39,7 @@ MutableDataInternal::MutableDataInternal(DatabaseInternal* database,
 
 MutableDataInternal::MutableDataInternal(const MutableDataInternal& other,
                                          const Path& path)
-    : db_(other.db_), path_(path), holder_(other.holder_) {
-}
+    : db_(other.db_), path_(path), holder_(other.holder_) {}
 
 MutableDataInternal* MutableDataInternal::Clone() {
   // Just use the copy constructor
@@ -72,9 +71,7 @@ size_t MutableDataInternal::GetChildrenCount() {
   return CountEffectiveChildren(*GetNode());
 }
 
-const char* MutableDataInternal::GetKey() const {
-  return path_.GetBaseName();
-}
+const char* MutableDataInternal::GetKey() const { return path_.GetBaseName(); }
 
 std::string MutableDataInternal::GetKeyString() const {
   return path_.GetBaseName();

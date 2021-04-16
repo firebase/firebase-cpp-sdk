@@ -53,9 +53,7 @@ class Repo : public connection::PersistentConnectionEventHandler {
 
   ~Repo() override;
 
-  connection::PersistentConnection* connection() {
-    return connection_.get();
-  }
+  connection::PersistentConnection* connection() { return connection_.get(); }
 
   void AddEventCallback(UniquePtr<EventRegistration> event_registration);
 
@@ -103,9 +101,7 @@ class Repo : public connection::PersistentConnectionEventHandler {
                         ReferenceCountedFutureImpl* api,
                         SafeFutureHandle<DataSnapshot> handle);
 
-  SyncTree* server_sync_tree() {
-    return server_sync_tree_.get();
-  }
+  SyncTree* server_sync_tree() { return server_sync_tree_.get(); }
 
   void OnConnect() override;
 
@@ -122,17 +118,11 @@ class Repo : public connection::PersistentConnectionEventHandler {
                     bool is_merge,
                     const Tag& tag) override;
 
-  const std::string& url() const {
-    return url_;
-  }
+  const std::string& url() const { return url_; }
 
-  static scheduler::Scheduler& scheduler() {
-    return *s_scheduler_;
-  }
+  static scheduler::Scheduler& scheduler() { return *s_scheduler_; }
 
-  ThisRef& this_ref() {
-    return safe_this_;
-  }
+  ThisRef& this_ref() { return safe_this_; }
 
  private:
   WriteId GetNextWriteId();

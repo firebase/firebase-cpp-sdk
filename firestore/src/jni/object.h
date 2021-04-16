@@ -25,17 +25,12 @@ class Loader;
 class Object {
  public:
   Object() = default;
-  constexpr explicit Object(jobject object) : object_(object) {
-  }
+  constexpr explicit Object(jobject object) : object_(object) {}
   virtual ~Object() = default;
 
-  explicit operator bool() const {
-    return object_ != nullptr;
-  }
+  explicit operator bool() const { return object_ != nullptr; }
 
-  virtual jobject get() const {
-    return object_;
-  }
+  virtual jobject get() const { return object_; }
 
   static void Initialize(Loader& loader);
 

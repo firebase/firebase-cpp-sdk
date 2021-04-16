@@ -29,11 +29,9 @@ RangedFilter::RangedFilter(const QueryParams& params)
     : VariantFilter(params),
       indexed_filter_(MakeUnique<IndexedFilter>(params)),
       start_post_(GetStartPost(params)),
-      end_post_(GetEndPost(params)) {
-}
+      end_post_(GetEndPost(params)) {}
 
-RangedFilter::~RangedFilter() {
-}
+RangedFilter::~RangedFilter() {}
 
 IndexedVariant RangedFilter::UpdateChild(
     const IndexedVariant& indexed_variant,
@@ -79,13 +77,9 @@ IndexedVariant RangedFilter::UpdatePriority(const IndexedVariant& old_snap,
   return old_snap;
 }
 
-const VariantFilter* RangedFilter::GetIndexedFilter() const {
-  return this;
-}
+const VariantFilter* RangedFilter::GetIndexedFilter() const { return this; }
 
-bool RangedFilter::FiltersVariants() const {
-  return true;
-}
+bool RangedFilter::FiltersVariants() const { return true; }
 
 bool RangedFilter::Matches(const Variant& key, const Variant& value) const {
   QueryParamsComparator comp(&query_params());

@@ -40,8 +40,7 @@ class ConnectionTest : public ::testing::Test, public ConnectionEventHandler {
         sem_on_cache_host_(0),
         sem_on_ready_(0),
         sem_on_data_message_(0),
-        sem_on_disconnect_(0) {
-  }
+        sem_on_disconnect_(0) {}
 
   void SetUp() override {
     testing::CreateApp();

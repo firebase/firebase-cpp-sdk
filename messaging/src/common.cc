@@ -126,8 +126,7 @@ void NotifyListenerOnTokenReceived(const char* token) {
 
 class PollableListenerImpl {
  public:
-  PollableListenerImpl() : token_(), messages_() {
-  }
+  PollableListenerImpl() : token_(), messages_() {}
 
   void OnMessage(const Message& message) {
     // Since locking can potentially take a while, especially given that we
@@ -186,12 +185,9 @@ class PollableListenerImpl {
   std::queue<Message> messages_;
 };
 
-PollableListener::PollableListener() : impl_(new PollableListenerImpl()) {
-}
+PollableListener::PollableListener() : impl_(new PollableListenerImpl()) {}
 
-PollableListener::~PollableListener() {
-  delete impl_;
-}
+PollableListener::~PollableListener() { delete impl_; }
 
 void PollableListener::OnMessage(const Message& message) {
   impl_->OnMessage(message);
@@ -226,9 +222,7 @@ void FutureData::Destroy() {
 }
 
 // Get the Future data singleton.
-FutureData* FutureData::Get() {
-  return s_future_data_;
-}
+FutureData* FutureData::Get() { return s_future_data_; }
 
 }  // namespace messaging
 }  // namespace firebase

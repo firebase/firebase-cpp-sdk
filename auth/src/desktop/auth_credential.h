@@ -33,8 +33,7 @@ class AuthCredential {
   // This is an abstract class. Concrete instances should be created via factory
   // method getCredential() in each authentication provider class e.g.
   // FacebookAuthProvider::getCredential().
-  AuthCredential() {
-  }
+  AuthCredential() {}
 };
 
 }  // namespace auth

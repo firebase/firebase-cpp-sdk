@@ -28,18 +28,15 @@
 namespace firebase {
 namespace storage {
 
-Controller::Controller() : internal_(new internal::ControllerInternal()) {
-}
+Controller::Controller() : internal_(new internal::ControllerInternal()) {}
 
 Controller::Controller(internal::ControllerInternal* internal)
-    : internal_(internal) {
-}
+    : internal_(internal) {}
 
 Controller::Controller(const Controller& other)
     : internal_(other.internal_
                     ? new internal::ControllerInternal(*other.internal_)
-                    : nullptr) {
-}
+                    : nullptr) {}
 
 Controller& Controller::operator=(const Controller& other) {
   if (internal_) delete internal_;
@@ -67,17 +64,11 @@ Controller::~Controller() {
   if (internal_) delete internal_;
 }
 
-bool Controller::Pause() {
-  return internal_ ? internal_->Pause() : false;
-}
+bool Controller::Pause() { return internal_ ? internal_->Pause() : false; }
 
-bool Controller::Resume() {
-  return internal_ ? internal_->Resume() : false;
-}
+bool Controller::Resume() { return internal_ ? internal_->Resume() : false; }
 
-bool Controller::Cancel() {
-  return internal_ ? internal_->Cancel() : false;
-}
+bool Controller::Cancel() { return internal_ ? internal_->Cancel() : false; }
 
 bool Controller::is_paused() const {
   return internal_ ? internal_->is_paused() : false;

@@ -47,8 +47,7 @@ class WriteTreeCompleteChildSource : public CompleteChildSource {
       : writes_(writes),
         view_cache_(view_cache),
         opt_complete_server_cache_(
-            OptionalFromPointer(opt_complete_server_cache)) {
-  }
+            OptionalFromPointer(opt_complete_server_cache)) {}
 
   Optional<Variant> GetCompleteChild(
       const std::string& child_key) const override {
@@ -107,11 +106,9 @@ class NoCompleteSource : public CompleteChildSource {
 };
 
 ViewProcessor::ViewProcessor(UniquePtr<VariantFilter> filter)
-    : filter_(std::move(filter)) {
-}
+    : filter_(std::move(filter)) {}
 
-ViewProcessor::~ViewProcessor() {
-}
+ViewProcessor::~ViewProcessor() {}
 
 void ViewProcessor::ApplyOperation(const ViewCache& old_view_cache,
                                    const Operation& operation,

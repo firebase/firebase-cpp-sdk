@@ -48,9 +48,7 @@ InitResult Initialize(const App& app, Listener* listener) {
 
 namespace internal {
 
-bool IsInitialized() {
-  return g_initialized;
-}
+bool IsInitialized() { return g_initialized; }
 
 }  // namespace internal
 

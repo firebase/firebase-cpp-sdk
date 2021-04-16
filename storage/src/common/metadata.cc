@@ -117,9 +117,7 @@ Metadata& Metadata::operator=(Metadata&& other) {
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-Metadata::~Metadata() {
-  MetadataInternalCommon::DeleteInternal(this);
-}
+Metadata::~Metadata() { MetadataInternalCommon::DeleteInternal(this); }
 
 const char* Metadata::bucket() const {
   return internal_ ? internal_->bucket() : nullptr;
@@ -202,9 +200,7 @@ int64_t Metadata::updated_time() const {
   return internal_ ? internal_->updated_time() : -1;
 }
 
-bool Metadata::is_valid() const {
-  return internal_ != nullptr;
-}
+bool Metadata::is_valid() const { return internal_ != nullptr; }
 
 const char* Metadata::md5_hash() const {
   return internal_ ? internal_->md5_hash() : nullptr;

@@ -22,10 +22,8 @@ namespace internal {
 
 class InstanceIdInternal : public InstanceIdInternalBase {
  public:
-  InstanceIdInternal() {
-  }
-  ~InstanceIdInternal() {
-  }
+  InstanceIdInternal() {}
+  ~InstanceIdInternal() {}
 };
 
 }  // namespace internal

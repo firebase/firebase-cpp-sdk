@@ -25,17 +25,14 @@ namespace auth {
 
 #ifdef INTERNAL_EXPERIMENTAL
 
-FederatedOAuthProvider::FederatedOAuthProvider() {
-}
+FederatedOAuthProvider::FederatedOAuthProvider() {}
 
 FederatedOAuthProvider::FederatedOAuthProvider(
     const FederatedOAuthProviderData& provider_data) {
   provider_data_ = provider_data;
 }
 
-FederatedOAuthProvider::~FederatedOAuthProvider() {
-  handler_ = nullptr;
-}
+FederatedOAuthProvider::~FederatedOAuthProvider() { handler_ = nullptr; }
 
 void FederatedOAuthProvider::SetAuthHandler(AuthHandler* handler) {
   handler_ = handler;

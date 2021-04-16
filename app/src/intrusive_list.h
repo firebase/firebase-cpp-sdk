@@ -123,11 +123,8 @@ class intrusive_list;
 class intrusive_list_node {
  public:
   // Initialize an intrusive_list_node.
-  intrusive_list_node() : next_(this), previous_(this) {
-  }
-  ~intrusive_list_node() {
-    remove();
-  }
+  intrusive_list_node() : next_(this), previous_(this) {}
+  ~intrusive_list_node() { remove(); }
 
   // Move contructor.
   intrusive_list_node(intrusive_list_node&& other) FIREBASE_NOEXCEPT {
@@ -145,9 +142,7 @@ class intrusive_list_node {
 
 #if defined(_MSC_VER)
   // Copy contructor.
-  intrusive_list_node(intrusive_list_node& other) {
-    move(other);
-  }
+  intrusive_list_node(intrusive_list_node& other) { move(other); }
   // Copy assignment operator.
   intrusive_list_node& operator=(intrusive_list_node& other) {
     next_->previous_ = previous_;
@@ -158,9 +153,7 @@ class intrusive_list_node {
 #endif  // defined(_MSC_VER)
 
   // Retuns true if this node is in a list.
-  bool in_list() const {
-    return next_ != this;
-  }
+  bool in_list() const { return next_ != this; }
 
   // Removes this node from the list it is in.
   intrusive_list_node* remove() {
@@ -172,8 +165,7 @@ class intrusive_list_node {
 
  private:
   intrusive_list_node(intrusive_list_node* next, intrusive_list_node* previous)
-      : next_(next), previous_(previous) {
-  }
+      : next_(next), previous_(previous) {}
 
   inline void move(intrusive_list_node& other) FIREBASE_NOEXCEPT {  // NOLINT
     if (other.in_list()) {
@@ -253,17 +245,13 @@ class intrusive_list {
   typedef intrusive_list_node node_type;
 
   explicit intrusive_list(size_t node_offset)
-      : data_(&data_, &data_), node_offset_(node_offset) {
-  }
+      : data_(&data_, &data_), node_offset_(node_offset) {}
 
   explicit intrusive_list(intrusive_list_node T::*node_member)
-      : data_(&data_, &data_), node_offset_(offset_of_node(node_member)) {
-  }
+      : data_(&data_, &data_), node_offset_(offset_of_node(node_member)) {}
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
-  intrusive_list(this_type&& other) noexcept {
-    *this = std::move(other);
-  }
+  intrusive_list(this_type&& other) noexcept { *this = std::move(other); }
 
   intrusive_list& operator=(this_type&& other) noexcept {
     data_ = std::move(other.data_);
@@ -284,21 +272,15 @@ class intrusive_list {
   // should be using the move constructor for operations in the map.
   //
   // TODO: Find a better way around this limitation.
-  intrusive_list(intrusive_list<value_type>& other) {
-    *this = other;
-  }
+  intrusive_list(intrusive_list<value_type>& other) { *this = other; }
   intrusive_list& operator=(this_type& other) {
     data_ = other.data_;
     node_offset_ = other.node_offset_;
     return *this;
   }
 #else
-  intrusive_list(const intrusive_list<value_type>&) {
-    assert(false);
-  }
-  intrusive_list& operator=(const this_type&) {
-    assert(false);
-  }
+  intrusive_list(const intrusive_list<value_type>&) { assert(false); }
+  intrusive_list& operator=(const this_type&) { assert(false); }
 #endif  // defined(_MSC_VER)
 
   template <class InputIt>
@@ -306,9 +288,7 @@ class intrusive_list {
     insert(begin(), first, last);
   }
 
-  iterator begin() {
-    return iterator(data_.next_, node_offset_);
-  }
+  iterator begin() { return iterator(data_.next_, node_offset_); }
 
   const_iterator begin() const {
     return const_iterator(data_.next_, node_offset_);
@@ -318,9 +298,7 @@ class intrusive_list {
     return const_iterator(data_.next_, node_offset_);
   }
 
-  reverse_iterator rbegin() {
-    return reverse_iterator(end());
-  }
+  reverse_iterator rbegin() { return reverse_iterator(end()); }
 
   const_reverse_iterator rbegin() const {
     return const_reverse_iterator(end());
@@ -330,25 +308,15 @@ class intrusive_list {
     return const_reverse_iterator(cend());
   }
 
-  iterator end() {
-    return iterator(&data_, node_offset_);
-  }
+  iterator end() { return iterator(&data_, node_offset_); }
 
-  const_iterator end() const {
-    return const_iterator(&data_, node_offset_);
-  }
+  const_iterator end() const { return const_iterator(&data_, node_offset_); }
 
-  const_iterator cend() const {
-    return const_iterator(&data_, node_offset_);
-  }
+  const_iterator cend() const { return const_iterator(&data_, node_offset_); }
 
-  reverse_iterator rend() {
-    return reverse_iterator(begin());
-  }
+  reverse_iterator rend() { return reverse_iterator(begin()); }
 
-  const reverse_iterator rend() const {
-    return reverse_iterator(begin());
-  }
+  const reverse_iterator rend() const { return reverse_iterator(begin()); }
 
   const_reverse_iterator crend() const {
     return const_reverse_iterator(cbegin());
@@ -360,9 +328,7 @@ class intrusive_list {
     data_.insert_after(value_node);
   }
 
-  void pop_front() {
-    data_.next_->remove();
-  }
+  void pop_front() { data_.next_->remove(); }
 
   void push_back(reference value) {
     node_type* value_node = node_from_object(value, node_offset_);
@@ -370,9 +336,7 @@ class intrusive_list {
     data_.insert_before(value_node);
   }
 
-  void pop_back() {
-    data_.previous_->remove();
-  }
+  void pop_back() { data_.previous_->remove(); }
 
   void clear() {
     for (iterator iter = begin(); iter != end();) {
@@ -433,25 +397,17 @@ class intrusive_list {
     value_node->insert_after(other_node);
   }
 
-  bool empty() const {
-    return !data_.in_list();
-  }
+  bool empty() const { return !data_.in_list(); }
 
-  size_type size() const {
-    return std::distance(cbegin(), cend());
-  }
+  size_type size() const { return std::distance(cbegin(), cend()); }
 
-  reference front() {
-    return *object_from_node(data_.next_, node_offset_);
-  }
+  reference front() { return *object_from_node(data_.next_, node_offset_); }
 
   const_reference front() const {
     return *object_from_node(data_.next_, node_offset_);
   }
 
-  reference back() {
-    return *object_from_node(data_.previous_, node_offset_);
-  }
+  reference back() { return *object_from_node(data_.previous_, node_offset_); }
 
   const_reference back() const {
     return *object_from_node(data_.previous_, node_offset_);
@@ -499,9 +455,7 @@ class intrusive_list {
     return value;
   }
 
-  void splice(iterator pos, reference other) {
-    insert(pos, remove(other));
-  }
+  void splice(iterator pos, reference other) { insert(pos, remove(other)); }
 
   void splice(iterator pos, this_type& other) {
     splice(pos, other.begin(), other.end());
@@ -629,8 +583,7 @@ class intrusive_list {
                                           const intrusive_list_node,
                                           intrusive_list_node>::type node_type;
 
-    intrusive_list_iterator() : value_(nullptr) {
-    }
+    intrusive_list_iterator() : value_(nullptr) {}
 
     bool operator==(const this_type& other) const {
       return value_ == other.value_;
@@ -640,16 +593,12 @@ class intrusive_list {
       return !this->operator==(other);
     }
 
-    reference operator*() {
-      return *object_from_node(value_, node_offset_);
-    }
+    reference operator*() { return *object_from_node(value_, node_offset_); }
     const_reference operator*() const {
       return *object_from_node(value_, node_offset_);
     }
 
-    pointer operator->() {
-      return object_from_node(value_, node_offset_);
-    }
+    pointer operator->() { return object_from_node(value_, node_offset_); }
     const_pointer operator->() const {
       return object_from_node(value_, node_offset_);
     }
@@ -678,11 +627,9 @@ class intrusive_list {
 
    private:
     intrusive_list_iterator(node_type* value, size_t node_offset)
-        : value_(value), node_offset_(node_offset) {
-    }
+        : value_(value), node_offset_(node_offset) {}
     intrusive_list_iterator(reference value, size_t node_offset)
-        : value_(*node_from_object(value)), node_offset_(node_offset) {
-    }
+        : value_(*node_from_object(value)), node_offset_(node_offset) {}
     friend class intrusive_list<value_type>;
     node_type* value_;
     // Node offset is the position of the intrusive_list_node in the structure.

@@ -48,8 +48,7 @@ static std::string GetTestTmpDir(const char test_namespace[]) {
 UserSecureManagerFake::UserSecureManagerFake(const char* domain,
                                              const char* app_id)
     : UserSecureManager(MakeUnique<UserSecureFakeInternal>(
-          domain, GetTestTmpDir(app_id).c_str())) {
-}
+          domain, GetTestTmpDir(app_id).c_str())) {}
 
 }  // namespace secure
 }  // namespace app

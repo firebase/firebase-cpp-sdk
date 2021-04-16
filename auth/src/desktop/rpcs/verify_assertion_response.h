@@ -28,17 +28,11 @@ class VerifyAssertionResponse : public AuthResponse {
  public:
   DEFAULT_AND_MOVE_CTRS_NO_CLASS_MEMBERS(VerifyAssertionResponse, AuthResponse)
 
-  std::string local_id() const {
-    return application_data_->localId;
-  }
+  std::string local_id() const { return application_data_->localId; }
 
-  std::string id_token() const {
-    return application_data_->idToken;
-  }
+  std::string id_token() const { return application_data_->idToken; }
 
-  std::string refresh_token() const {
-    return application_data_->refreshToken;
-  }
+  std::string refresh_token() const { return application_data_->refreshToken; }
 
   // The number of seconds until the ID token expires.
   int expires_in() const {
@@ -49,17 +43,11 @@ class VerifyAssertionResponse : public AuthResponse {
     }
   }
 
-  std::string provider_id() const {
-    return application_data_->providerId;
-  }
+  std::string provider_id() const { return application_data_->providerId; }
 
-  std::string raw_user_info() const {
-    return application_data_->rawUserInfo;
-  }
+  std::string raw_user_info() const { return application_data_->rawUserInfo; }
 
-  bool need_confirmation() const {
-    return application_data_->needConfirmation;
-  }
+  bool need_confirmation() const { return application_data_->needConfirmation; }
 };
 
 }  // namespace auth

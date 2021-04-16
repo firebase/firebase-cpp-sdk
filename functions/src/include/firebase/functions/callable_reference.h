@@ -44,8 +44,7 @@ class HttpsCallableReference {
   /// HttpsCallableReference. Attempting to perform any operations on this
   /// reference will fail unless a valid HttpsCallableReference has been
   /// assigned to it.
-  HttpsCallableReference() : internal_(nullptr) {
-  }
+  HttpsCallableReference() : internal_(nullptr) {}
 
   ~HttpsCallableReference();
 

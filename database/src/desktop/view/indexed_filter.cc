@@ -24,8 +24,7 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-IndexedFilter::~IndexedFilter() {
-}
+IndexedFilter::~IndexedFilter() {}
 
 IndexedVariant IndexedFilter::UpdateChild(
     const IndexedVariant& indexed_variant,
@@ -131,13 +130,9 @@ IndexedVariant IndexedFilter::UpdatePriority(
   }
 }
 
-const VariantFilter* IndexedFilter::GetIndexedFilter() const {
-  return this;
-}
+const VariantFilter* IndexedFilter::GetIndexedFilter() const { return this; }
 
-bool IndexedFilter::FiltersVariants() const {
-  return false;
-}
+bool IndexedFilter::FiltersVariants() const { return false; }
 
 }  // namespace internal
 }  // namespace database

@@ -37,18 +37,12 @@ namespace internal {
 // It is not portable so it lives here.
 class ConditionVariable {
  public:
-  ConditionVariable() {
-    pthread_cond_init(&cond_, nullptr);
-  }
+  ConditionVariable() { pthread_cond_init(&cond_, nullptr); }
   ConditionVariable(const ConditionVariable&) = delete;
   ConditionVariable& operator=(const ConditionVariable&) = delete;
-  ~ConditionVariable() {
-    pthread_cond_destroy(&cond_);
-  }
+  ~ConditionVariable() { pthread_cond_destroy(&cond_); }
 
-  void Wait(pthread_mutex_t* mutex) {
-    pthread_cond_wait(&cond_, mutex);
-  }
+  void Wait(pthread_mutex_t* mutex) { pthread_cond_wait(&cond_, mutex); }
   bool TimedWait(pthread_mutex_t* mutex, const timespec* abstime) {
     return pthread_cond_wait(&cond_, mutex) != 0;
   }
@@ -84,12 +78,8 @@ class ConditionVariable {
     return current_time_ms < end_time_ms;
   }
 
-  void NotifyOne() {
-    pthread_cond_signal(&cond_);
-  }
-  void NotifyAll() {
-    pthread_cond_broadcast(&cond_);
-  }
+  void NotifyOne() { pthread_cond_signal(&cond_); }
+  void NotifyAll() { pthread_cond_broadcast(&cond_); }
 
  private:
   pthread_cond_t cond_;

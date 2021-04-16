@@ -273,12 +273,9 @@ TEST(View, AddEventRegistration) {
 
 class DummyValueListener : public ValueListener {
  public:
-  ~DummyValueListener() override {
-  }
-  void OnValueChanged(const DataSnapshot& snapshot) override {
-  }
-  void OnCancelled(const Error& error, const char* error_message) override {
-  }
+  ~DummyValueListener() override {}
+  void OnValueChanged(const DataSnapshot& snapshot) override {}
+  void OnCancelled(const Error& error, const char* error_message) override {}
 };
 
 TEST(View, RemoveEventRegistration_RemoveOne) {

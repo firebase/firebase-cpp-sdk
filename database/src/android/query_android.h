@@ -89,16 +89,12 @@ class QueryInternal {
   QueryInternal* LimitToFirst(size_t limit);
   QueryInternal* LimitToLast(size_t limit);
 
-  const internal::QuerySpec& query_spec() const {
-    return query_spec_;
-  }
+  const internal::QuerySpec& query_spec() const { return query_spec_; }
 
   static bool Initialize(App* app);
   static void Terminate(App* app);
 
-  DatabaseInternal* database_internal() const {
-    return db_;
-  }
+  DatabaseInternal* database_internal() const { return db_; }
 
  protected:
   DatabaseInternal* db_;

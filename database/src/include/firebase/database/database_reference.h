@@ -47,8 +47,7 @@ class DatabaseReference : public Query {
   /// @brief Default constructor. This creates an invalid DatabaseReference.
   /// Attempting to perform any operations on this reference will fail unless a
   /// valid DatabaseReference has been assigned to it.
-  DatabaseReference() : Query(), internal_(nullptr) {
-  }
+  DatabaseReference() : Query(), internal_(nullptr) {}
 
   /// @brief Required virtual destructor.
   virtual ~DatabaseReference();

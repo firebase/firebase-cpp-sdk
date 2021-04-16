@@ -25,8 +25,7 @@ namespace rest {
 
 class RequestSample : public RequestJson<Sample, SampleT> {
  public:
-  RequestSample() : RequestJson(sample_resource_data) {
-  }
+  RequestSample() : RequestJson(sample_resource_data) {}
 
   void set_token(const char* token) {
     application_data_->token = token;
@@ -38,9 +37,7 @@ class RequestSample : public RequestJson<Sample, SampleT> {
     UpdatePostFields();
   }
 
-  void UpdatePostFieldForTest() {
-    UpdatePostFields();
-  }
+  void UpdatePostFieldForTest() { UpdatePostFields(); }
 };
 
 // Test the creation.

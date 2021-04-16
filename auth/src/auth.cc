@@ -171,9 +171,7 @@ void Auth::DeleteInternal() {
   auth_data_ = nullptr;
 }
 
-Auth::~Auth() {
-  DeleteInternal();
-}
+Auth::~Auth() { DeleteInternal(); }
 
 // Always non-nullptr since set in constructor.
 App& Auth::app() {

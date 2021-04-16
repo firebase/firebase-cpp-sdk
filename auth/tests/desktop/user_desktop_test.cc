@@ -249,8 +249,7 @@ bool WaitOnLoadPersistence(AuthData* auth_data) {
 
 class UserDesktopTest : public ::testing::Test {
  protected:
-  UserDesktopTest() : sem_(0) {
-  }
+  UserDesktopTest() : sem_(0) {}
 
   void SetUp() override {
     rest::SetTransportBuilder([]() -> flatbuffers::unique_ptr<rest::Transport> {

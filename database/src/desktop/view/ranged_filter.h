@@ -57,13 +57,9 @@ class RangedFilter : public VariantFilter {
 
   bool FiltersVariants() const override;
 
-  const std::pair<Variant, Variant>& start_post() const {
-    return start_post_;
-  }
+  const std::pair<Variant, Variant>& start_post() const { return start_post_; }
 
-  const std::pair<Variant, Variant>& end_post() const {
-    return end_post_;
-  }
+  const std::pair<Variant, Variant>& end_post() const { return end_post_; }
 
   bool Matches(const std::pair<Variant, Variant>& node) const;
   bool Matches(const Variant& key, const Variant& value) const;

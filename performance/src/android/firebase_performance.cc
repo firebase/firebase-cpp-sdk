@@ -79,17 +79,13 @@ InitResult Initialize(const ::firebase::App& app) {
 namespace internal {
 
 // Determine whether the performance module is initialized.
-bool IsInitialized() {
-  return g_app != nullptr;
-}
+bool IsInitialized() { return g_app != nullptr; }
 
 jobject GetFirebasePerformanceClassInstance() {
   return g_performance_class_instance;
 }
 
-const ::firebase::App* GetFirebaseApp() {
-  return g_app;
-}
+const ::firebase::App* GetFirebaseApp() { return g_app; }
 
 DEFINE_FIREBASE_VERSION_STRING(FirebasePerformance);
 

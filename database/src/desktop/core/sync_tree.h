@@ -51,11 +51,9 @@ class SyncTree {
       : pending_write_tree_(std::move(pending_write_tree)),
         persistence_manager_(std::move(persistence_manager)),
         next_query_tag_(1L),
-        listen_provider_(std::move(listen_provider)) {
-  }
+        listen_provider_(std::move(listen_provider)) {}
 
-  virtual ~SyncTree() {
-  }
+  virtual ~SyncTree() {}
 
   // Returns true if the SyncTree does not contain any SyncPoints.
   virtual bool IsEmpty();

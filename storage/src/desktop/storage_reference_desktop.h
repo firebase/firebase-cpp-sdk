@@ -137,9 +137,7 @@ class StorageReferenceInternal {
   Future<Metadata> PutFileLastResult();
 
   // Pointer to the StorageInternal instance we are a part of.
-  StorageInternal* storage_internal() const {
-    return storage_;
-  }
+  StorageInternal* storage_internal() const { return storage_; }
 
   // Wrap this in a StorageReference.
   // Exposed for testing.

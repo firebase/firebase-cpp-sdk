@@ -48,9 +48,7 @@ class TestWebSocketEchoServer {
     });
   }
 
-  ~TestWebSocketEchoServer() {
-    Stop();
-  }
+  ~TestWebSocketEchoServer() { Stop(); }
 
   void Start() {
     keep_alive_ = new uS::Async(hub_.getLoop());
@@ -150,8 +148,7 @@ class TestClientEventHandler : public WebSocketClientEventHandler {
         msg_received_(),
         is_closed_(false),
         is_error_(false),
-        semaphore_(s) {
-  }
+        semaphore_(s) {}
   ~TestClientEventHandler() override{};
 
   void OnOpen() override {

@@ -75,14 +75,10 @@ class Env {
   Env& operator=(Env&&) noexcept = default;
 
   /** Returns true if the Env has not encountered an exception. */
-  bool ok() const {
-    return !env_->ExceptionCheck();
-  }
+  bool ok() const { return !env_->ExceptionCheck(); }
 
   /** Returns the underlying JNIEnv pointer. */
-  JNIEnv* get() const {
-    return env_;
-  }
+  JNIEnv* get() const { return env_; }
 
   // MARK: Class Operations
 
@@ -545,8 +541,7 @@ class Env {
 class ExceptionClearGuard {
  public:
   explicit ExceptionClearGuard(Env& env)
-      : env_(env), exception_(env.ClearExceptionOccurred()) {
-  }
+      : env_(env), exception_(env.ClearExceptionOccurred()) {}
 
   ~ExceptionClearGuard() {
     if (exception_) { env_.Throw(exception_); }

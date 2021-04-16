@@ -26,8 +26,7 @@ namespace rest {
 
 class RequestBinary : public Request {
  public:
-  RequestBinary() : RequestBinary(nullptr) {
-  }
+  RequestBinary() : RequestBinary(nullptr) {}
 
   // Create a binary request that will read from the specified buffer.
   // NOTE: This will *not copy* data into the request.  The buffer must not be

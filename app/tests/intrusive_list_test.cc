@@ -27,22 +27,17 @@
 
 class IntegerListNode {
  public:
-  explicit IntegerListNode(int value) : node(), value_(value) {
-  }
+  explicit IntegerListNode(int value) : node(), value_(value) {}
   // Older versions of Visual Studio don't generate move constructors or move
   // assignment operators.
-  IntegerListNode(IntegerListNode&& other) {
-    *this = std::move(other);
-  }
+  IntegerListNode(IntegerListNode&& other) { *this = std::move(other); }
   IntegerListNode& operator=(IntegerListNode&& other) {
     value_ = other.value_;
     node = std::move(other.node);
     return *this;
   }
 
-  int value() const {
-    return value_;
-  }
+  int value() const { return value_; }
   firebase::intrusive_list_node node;  // NOLINT
 
  private:
@@ -83,8 +78,7 @@ class intrusive_list_test : public testing::Test {
         twenty_(20),
         thirty_(30),
         fourty_(40),
-        fifty_(50) {
-  }
+        fifty_(50) {}
 
   firebase::intrusive_list<IntegerListNode> list_;
   IntegerListNode one_;

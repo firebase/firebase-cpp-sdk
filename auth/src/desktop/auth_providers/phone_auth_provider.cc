@@ -28,16 +28,14 @@ namespace auth {
 
 static const char* kMockVerificationId = "mock verification id";
 
-PhoneAuthProvider::ForceResendingToken::ForceResendingToken() : data_(nullptr) {
-}
+PhoneAuthProvider::ForceResendingToken::ForceResendingToken()
+    : data_(nullptr) {}
 
-PhoneAuthProvider::ForceResendingToken::~ForceResendingToken() {
-}
+PhoneAuthProvider::ForceResendingToken::~ForceResendingToken() {}
 
 PhoneAuthProvider::ForceResendingToken::ForceResendingToken(
     const ForceResendingToken& rhs)
-    : data_(nullptr) {
-}
+    : data_(nullptr) {}
 
 PhoneAuthProvider::ForceResendingToken&
 PhoneAuthProvider::ForceResendingToken::operator=(
@@ -55,15 +53,11 @@ bool PhoneAuthProvider::ForceResendingToken::operator!=(
   return true;
 }
 
-PhoneAuthProvider::Listener::Listener() : data_(nullptr) {
-}
-PhoneAuthProvider::Listener::~Listener() {
-}
+PhoneAuthProvider::Listener::Listener() : data_(nullptr) {}
+PhoneAuthProvider::Listener::~Listener() {}
 
-PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {
-}
-PhoneAuthProvider::~PhoneAuthProvider() {
-}
+PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {}
+PhoneAuthProvider::~PhoneAuthProvider() {}
 
 void PhoneAuthProvider::VerifyPhoneNumber(
     const char* /*phone_number*/,

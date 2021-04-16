@@ -57,8 +57,7 @@ InstanceIdInternalBase::InstanceIdInternalBase()
                reinterpret_cast<intptr_t>(this)));
 }
 
-InstanceIdInternalBase::~InstanceIdInternalBase() {
-}
+InstanceIdInternalBase::~InstanceIdInternalBase() {}
 
 // Associate an InstanceId instance with an app.
 void InstanceIdInternalBase::RegisterInstanceIdForApp(App* app,

@@ -63,9 +63,7 @@ TEST_F(ReferenceCountTest, RemoveAllReferences) {
 
 class ReferenceCountLockTest : public ::testing::Test {
  protected:
-  void SetUp() override {
-    count_.AddReference();
-  }
+  void SetUp() override { count_.AddReference(); }
 
  protected:
   ReferenceCount count_;
@@ -126,9 +124,7 @@ class ReferenceCountedInitializerTest : public ::testing::Test {
     return true;
   }
 
-  static void Terminate(Context* context) {
-    context->initialized_count--;
-  }
+  static void Terminate(Context* context) { context->initialized_count--; }
 };
 
 TEST_F(ReferenceCountedInitializerTest, ConstructEmpty) {

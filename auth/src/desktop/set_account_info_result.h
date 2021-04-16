@@ -35,20 +35,16 @@ struct TokenUpdate {
   explicit TokenUpdate(const ResponseT& response)
       : id_token(response.id_token()),
         expiration_date(response.fetch_time() + response.expires_in()),
-        refresh_token(response.refresh_token()) {
-  }
+        refresh_token(response.refresh_token()) {}
 
   explicit TokenUpdate(const UserData& user)
       : id_token(user.id_token),
         expiration_date(user.access_token_expiration_date),
-        refresh_token(user.refresh_token) {
-  }
+        refresh_token(user.refresh_token) {}
 
   // Whether this update contains any non-blank tokens. Use this check to see
   // if there's any need to update user and lock the mutex.
-  bool HasUpdate() const {
-    return !id_token.empty() || !refresh_token.empty();
-  }
+  bool HasUpdate() const { return !id_token.empty() || !refresh_token.empty(); }
 
   const std::string id_token;
   const std::time_t expiration_date;
@@ -77,13 +73,9 @@ class SetAccountInfoResult {
       const SetAccountInfoResponse& response);
 
   // Whether the operation was successful.
-  bool IsValid() const {
-    return error_ == kAuthErrorNone;
-  }
+  bool IsValid() const { return error_ == kAuthErrorNone; }
   // Error code associated with this operation.
-  AuthError error() const {
-    return error_;
-  }
+  AuthError error() const { return error_; }
 
   // Updates the properties of the currently signed-in user to those returned by
   // the operation this result represents, and returns the pointer to current
@@ -95,8 +87,7 @@ class SetAccountInfoResult {
  private:
   friend class AuthenticationResult;
 
-  SetAccountInfoResult() : error_(kAuthErrorNone) {
-  }
+  SetAccountInfoResult() : error_(kAuthErrorNone) {}
 
   const AuthError error_;
 

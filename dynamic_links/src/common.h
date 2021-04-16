@@ -28,14 +28,10 @@ enum DynamicLinksFn { kDynamicLinksFnGetShortLink, kDynamicLinksFnCount };
 // future required by this API.
 class FutureData {
  public:
-  FutureData() : api_(kDynamicLinksFnCount) {
-  }
-  ~FutureData() {
-  }
+  FutureData() : api_(kDynamicLinksFnCount) {}
+  ~FutureData() {}
 
-  ReferenceCountedFutureImpl* api() {
-    return &api_;
-  }
+  ReferenceCountedFutureImpl* api() { return &api_; }
 
   // Create the FutureData singleton.
   static FutureData* Create();

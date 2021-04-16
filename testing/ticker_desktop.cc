@@ -36,9 +36,7 @@ void RegisterTicker(TickerObserver* observer) {
   observer->Elapse();
 }
 
-int64_t TickerNow() {
-  return g_ticker;
-}
+int64_t TickerNow() { return g_ticker; }
 
 TickerObserver::~TickerObserver() {
   if (g_observers == nullptr) { return; }

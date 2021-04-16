@@ -28,9 +28,7 @@ class TwitterAuthProvider;
 
 class TwitterAuthCredential : public IdentityProviderCredential {
  public:
-  std::string GetProvider() const override {
-    return kTwitterAuthProviderId;
-  }
+  std::string GetProvider() const override { return kTwitterAuthProviderId; }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
       const char* const api_key) const override {
@@ -40,8 +38,7 @@ class TwitterAuthCredential : public IdentityProviderCredential {
 
  private:
   TwitterAuthCredential(const std::string& token, const std::string& secret)
-      : token_(token), secret_(secret) {
-  }
+      : token_(token), secret_(secret) {}
 
   const std::string token_;
   const std::string secret_;

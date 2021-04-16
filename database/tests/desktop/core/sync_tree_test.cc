@@ -86,9 +86,7 @@ class SyncTreeTest : public Test {
                               std::move(listen_provider_ptr));
   }
 
-  void TearDown() override {
-    delete sync_tree_;
-  }
+  void TearDown() override { delete sync_tree_; }
 
  protected:
   // We keep a local copy of these pointers so that we can do expectation

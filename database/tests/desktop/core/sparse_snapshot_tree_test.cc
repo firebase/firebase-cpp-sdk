@@ -28,15 +28,13 @@ namespace {
 
 class Visitor {
  public:
-  virtual ~Visitor() {
-  }
+  virtual ~Visitor() {}
   virtual void Visit(const Path& path, const Variant& variant) = 0;
 };
 
 class MockVisitor : public Visitor {
  public:
-  ~MockVisitor() override {
-  }
+  ~MockVisitor() override {}
   MOCK_METHOD(void,
               Visit,
               (const Path& path, const Variant& variant),

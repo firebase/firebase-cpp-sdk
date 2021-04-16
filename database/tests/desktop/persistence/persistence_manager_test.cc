@@ -49,9 +49,7 @@ class PersistenceManagerTest : public Test {
                                       std::move(cache_policy_ptr), &logger_);
   }
 
-  void TearDown() override {
-    delete manager_;
-  }
+  void TearDown() override { delete manager_; }
 
  protected:
   MockPersistenceStorageEngine* storage_engine_;

@@ -85,9 +85,7 @@ Variant FlexbufferToVariant(const flexbuffers::Reference& ref) {
   return Variant::Null();
 }
 
-Variant RemoteConfigResponse::GetEntries() {
-  return entries_;
-}
+Variant RemoteConfigResponse::GetEntries() { return entries_; }
 
 // Mark the response completed for both header and body.
 void RemoteConfigResponse::MarkCompleted() {

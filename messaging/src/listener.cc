@@ -19,8 +19,7 @@ namespace messaging {
 
 // Non-inline implementation of Listener's virtual destructor
 // to prevent its vtable being emitted in each translation unit.
-Listener::~Listener() {
-}
+Listener::~Listener() {}
 
 }  // namespace messaging
 }  // namespace firebase

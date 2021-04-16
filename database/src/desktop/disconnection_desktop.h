@@ -77,9 +77,7 @@ class DisconnectionHandlerInternal {
   // UpdateChildren().
   Future<void> UpdateChildrenLastResult();
 
-  DatabaseInternal* database_internal() const {
-    return database_;
-  }
+  DatabaseInternal* database_internal() const { return database_; }
 
   // Special method to create an invalid DisconnectionHandlerInternal, because
   // DisconnectionHandler's constructor is private.

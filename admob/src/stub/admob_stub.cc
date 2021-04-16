@@ -54,9 +54,7 @@ InitResult Initialize() {
   return kInitResultSuccess;
 }
 
-bool IsInitialized() {
-  return g_initialized;
-}
+bool IsInitialized() { return g_initialized; }
 
 void Terminate() {
   UnregisterTerminateOnDefaultAppDestroy();
@@ -65,9 +63,7 @@ void Terminate() {
   g_app = nullptr;
 }
 
-const ::firebase::App* GetApp() {
-  return g_app;
-}
+const ::firebase::App* GetApp() { return g_app; }
 
 }  // namespace admob
 }  // namespace firebase

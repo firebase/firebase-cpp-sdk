@@ -26,13 +26,9 @@ void Map::Initialize(Loader& loader) {
                                kRemove, kKeySet);
 }
 
-Class Map::GetClass() {
-  return Class(g_clazz);
-}
+Class Map::GetClass() { return Class(g_clazz); }
 
-size_t Map::Size(Env& env) const {
-  return env.Call(*this, kSize);
-}
+size_t Map::Size(Env& env) const { return env.Call(*this, kSize); }
 
 Local<Object> Map::Get(Env& env, const Object& key) {
   return env.Call(*this, kGet, key);
@@ -46,9 +42,7 @@ Local<Object> Map::Remove(Env& env, const Object& key) {
   return env.Call(*this, kRemove, key);
 }
 
-Local<Set> Map::KeySet(Env& env) {
-  return env.Call(*this, kKeySet);
-}
+Local<Set> Map::KeySet(Env& env) { return env.Call(*this, kKeySet); }
 
 }  // namespace jni
 }  // namespace firestore

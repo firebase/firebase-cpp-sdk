@@ -63,18 +63,11 @@ class TransactionResponse : public connection::Response {
       : connection::Response(callback),
         repo_ref_(repo),
         path_(path),
-        queue_(queue) {
-  }
+        queue_(queue) {}
 
-  Repo::ThisRef& repo_ref() {
-    return repo_ref_;
-  }
-  const Path& path() {
-    return path_;
-  }
-  std::vector<TransactionDataPtr>& queue() {
-    return queue_;
-  }
+  Repo::ThisRef& repo_ref() { return repo_ref_; }
+  const Path& path() { return path_; }
+  std::vector<TransactionDataPtr>& queue() { return queue_; }
 
  private:
   // Database reference to call HandleTransactionResponse()
@@ -195,15 +188,9 @@ class OnDisconnectResponse : public connection::Response {
     }
   }
 
-  Repo* repo() const {
-    return repo_;
-  }
-  const Path& path() const {
-    return path_;
-  }
-  const Variant& data() const {
-    return data_;
-  }
+  Repo* repo() const { return repo_; }
+  const Path& path() const { return path_; }
+  const Variant& data() const { return data_; }
 
  private:
   Repo* repo_;
@@ -336,24 +323,13 @@ class SetValueResponse : public connection::Response {
         path_(path),
         write_id_(write_id),
         api_(api),
-        handle_(handle) {
-  }
+        handle_(handle) {}
 
-  Repo::ThisRef& repo_ref() {
-    return repo_ref_;
-  }
-  const Path& path() {
-    return path_;
-  }
-  WriteId write_id() {
-    return write_id_;
-  }
-  ReferenceCountedFutureImpl* api() {
-    return api_;
-  }
-  SafeFutureHandle<void> handle() {
-    return handle_;
-  }
+  Repo::ThisRef& repo_ref() { return repo_ref_; }
+  const Path& path() { return path_; }
+  WriteId write_id() { return write_id_; }
+  ReferenceCountedFutureImpl* api() { return api_; }
+  SafeFutureHandle<void> handle() { return handle_; }
 
  private:
   // Repo reference
@@ -660,11 +636,8 @@ void Repo::SetKeepSynchronized(const QuerySpec& query_spec,
 
 class NoopListener : public ValueListener {
  public:
-  virtual ~NoopListener() {
-  }
-  void OnValueChanged(const DataSnapshot& snapshot) {
-    (void)snapshot;
-  }
+  virtual ~NoopListener() {}
+  void OnValueChanged(const DataSnapshot& snapshot) { (void)snapshot; }
   void OnCancelled(const Error& error, const char* error_message) {
     (void)error;
     (void)error_message;
@@ -801,8 +774,7 @@ void Repo::AbortTransactionsAtNode(Tree<std::vector<TransactionDataPtr>>* node,
   if (queue.has_value()) {
     struct FutureToComplete {
       FutureToComplete(const TransactionDataPtr& transaction, Error abort_error)
-          : transaction(transaction), abort_error(abort_error) {
-      }
+          : transaction(transaction), abort_error(abort_error) {}
       TransactionDataPtr transaction;
       Error abort_error;
     };
@@ -872,9 +844,7 @@ void Repo::AbortTransactionsAtNode(Tree<std::vector<TransactionDataPtr>>* node,
   }
 }
 
-WriteId Repo::GetNextWriteId() {
-  return next_write_id_++;
-}
+WriteId Repo::GetNextWriteId() { return next_write_id_++; }
 
 Path Repo::RerunTransactions(const Path& changed_path) {
   Tree<std::vector<TransactionDataPtr>>* root_most_transaction_node =
@@ -954,8 +924,7 @@ void Repo::HandleTransactionResponse(const connection::ResponsePtr& ptr) {
     struct FutureToComplete {
       FutureToComplete(const TransactionDataPtr& transaction,
                        const Variant& node)
-          : transaction(transaction), node(node) {
-      }
+          : transaction(transaction), node(node) {}
       TransactionDataPtr transaction;
       Variant node;
     };
@@ -1030,8 +999,7 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
     FutureToComplete(TransactionDataPtr transaction,
                      Error abort_reason,
                      Variant node)
-        : transaction(transaction), abort_reason(abort_reason), node(node) {
-    }
+        : transaction(transaction), abort_reason(abort_reason), node(node) {}
     TransactionDataPtr transaction;
     Error abort_reason;
     Variant node;

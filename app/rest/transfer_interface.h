@@ -22,8 +22,7 @@ namespace rest {
 
 class Transfer {
  public:
-  virtual ~Transfer() {
-  }
+  virtual ~Transfer() {}
 
   // Mark the transfer completed.
   virtual void MarkCompleted() = 0;

@@ -68,8 +68,7 @@ class InvitesReceiverInternal : public SenderReceiverInterface {
   // Not used by the receiver.
   void SentInviteCallback(const std::vector<std::string>& /*invitation_ids*/,
                           int /*result_code*/,
-                          const std::string& /*error_message*/) override {
-  }
+                          const std::string& /*error_message*/) override {}
 
   // Callback called when an invite is received. If an error occurred,
   // result_code should be non-zero. Otherwise, either invitation_id should be
@@ -102,9 +101,7 @@ class InvitesReceiverInternal : public SenderReceiverInterface {
                                std::string error_message) override;
 
   // Get the app this is attached to.
-  const App* app() const {
-    return app_;
-  }
+  const App* app() const { return app_; }
 
  protected:
   enum InvitesFn { kInvitesFnConvert, kInvitesFnCount };
@@ -120,13 +117,10 @@ class InvitesReceiverInternal : public SenderReceiverInterface {
   }
 
   // Virtual destructor is required.
-  virtual ~InvitesReceiverInternal() {
-  }
+  virtual ~InvitesReceiverInternal() {}
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const {
-    return app_ != nullptr;
-  }
+  bool initialized() const { return app_ != nullptr; }
 
  protected:
   // Keep a pointer to the App in case we need to call Initialize().

@@ -37,8 +37,7 @@ class Query {
   /// Default constructor. This creates an invalid Query. Attempting to perform
   /// any operations on this reference will fail unless a valid Query has been
   /// assigned to it.
-  Query() : internal_(nullptr) {
-  }
+  Query() : internal_(nullptr) {}
 
   /// Copy constructor. Queries can be copied. Copies exist independently of
   /// each other.

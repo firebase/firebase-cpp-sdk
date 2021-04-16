@@ -62,9 +62,7 @@ void FutureData::Destroy() {
 }
 
 // Get the Future data singleton.
-FutureData* FutureData::Get() {
-  return s_future_data_;
-}
+FutureData* FutureData::Get() { return s_future_data_; }
 
 // Registers a cleanup task for this module if auto-initialization is disabled.
 void RegisterTerminateOnDefaultAppDestroy() {

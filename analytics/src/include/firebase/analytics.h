@@ -128,8 +128,7 @@ struct Parameter {
   /// Construct an empty parameter.
   ///
   /// This is provided to allow initialization after construction.
-  Parameter() : name(nullptr) {
-  }
+  Parameter() : name(nullptr) {}
 #endif  // !SWIG
 
 // <SWIG>

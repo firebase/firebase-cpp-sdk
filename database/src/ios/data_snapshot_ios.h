@@ -103,21 +103,15 @@ class DataSnapshotInternal {
   /// Get the absolute URL of this data snapshot.
   std::string GetUrl() const;
 
-  DatabaseInternal* database_internal() const {
-    return database_;
-  }
+  DatabaseInternal* database_internal() const { return database_; }
 
   // Special method to create an invalid DataSnapshot, because
   // DataSnapshot's constructor is private.
-  static DataSnapshot GetInvalidDataSnapshot() {
-    return DataSnapshot(nullptr);
-  }
+  static DataSnapshot GetInvalidDataSnapshot() { return DataSnapshot(nullptr); }
 
  private:
 #ifdef __OBJC__
-  FIRDataSnapshot* impl() const {
-    return impl_->get();
-  }
+  FIRDataSnapshot* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
   DatabaseInternal* database_;

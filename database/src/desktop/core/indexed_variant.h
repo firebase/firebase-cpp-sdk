@@ -42,16 +42,10 @@ class IndexedVariant {
   IndexedVariant(const IndexedVariant& other);
   IndexedVariant& operator=(const IndexedVariant& other);
 
-  const QueryParams& query_params() const {
-    return query_params_;
-  }
-  const Variant& variant() const {
-    return variant_;
-  }
+  const QueryParams& query_params() const { return query_params_; }
+  const Variant& variant() const { return variant_; }
 
-  const Index& index() const {
-    return index_;
-  }
+  const Index& index() const { return index_; }
 
   // Find an element in the index.
   Index::const_iterator Find(const Variant& key) const;

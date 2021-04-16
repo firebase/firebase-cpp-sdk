@@ -33,40 +33,28 @@ namespace internal {
 class CacheNode {
  public:
   CacheNode()
-      : indexed_variant_(), fully_initialized_(false), filtered_(false) {
-  }
+      : indexed_variant_(), fully_initialized_(false), filtered_(false) {}
 
   CacheNode(const IndexedVariant& indexed_variant,
             bool fully_initialized,
             bool filtered)
       : indexed_variant_(indexed_variant),
         fully_initialized_(fully_initialized),
-        filtered_(filtered) {
-  }
+        filtered_(filtered) {}
 
-  const IndexedVariant& indexed_variant() const {
-    return indexed_variant_;
-  }
-  IndexedVariant& indexed_variant() {
-    return indexed_variant_;
-  }
+  const IndexedVariant& indexed_variant() const { return indexed_variant_; }
+  IndexedVariant& indexed_variant() { return indexed_variant_; }
 
-  const Variant& variant() const {
-    return indexed_variant_.variant();
-  }
+  const Variant& variant() const { return indexed_variant_.variant(); }
 
   // Returns true if this cache is fully initialized, meaning all values have
   // been pulled down from the server, rather than relying on local cache
   // values.
-  bool fully_initialized() const {
-    return fully_initialized_;
-  }
+  bool fully_initialized() const { return fully_initialized_; }
 
   // Returns true if this cache is filtered in some way by the query parameters
   // that initiated this cache.
-  bool filtered() const {
-    return filtered_;
-  }
+  bool filtered() const { return filtered_; }
 
   // Returns true if the cache is complete (fully initialized and unfiltered) at
   // the given path.
@@ -117,12 +105,10 @@ inline bool operator!=(const CacheNode& lhs, const CacheNode& rhs) {
 // have been made that the server may or may not yet be aware of.
 class ViewCache {
  public:
-  ViewCache() : local_snap_(), server_snap_() {
-  }
+  ViewCache() : local_snap_(), server_snap_() {}
 
   ViewCache(const CacheNode& local_snap, const CacheNode& server_snap)
-      : local_snap_(local_snap), server_snap_(server_snap) {
-  }
+      : local_snap_(local_snap), server_snap_(server_snap) {}
 
   // Get the complete snapshot of the local cache, or null if it is not
   // present.
@@ -154,19 +140,11 @@ class ViewCache {
     return ViewCache(local_snap_, CacheNode(server_snap, complete, filtered));
   }
 
-  const CacheNode& local_snap() const {
-    return local_snap_;
-  }
-  CacheNode& local_snap() {
-    return local_snap_;
-  }
+  const CacheNode& local_snap() const { return local_snap_; }
+  CacheNode& local_snap() { return local_snap_; }
 
-  const CacheNode& server_snap() const {
-    return server_snap_;
-  }
-  CacheNode& server_snap() {
-    return server_snap_;
-  }
+  const CacheNode& server_snap() const { return server_snap_; }
+  CacheNode& server_snap() { return server_snap_; }
 
  private:
   // Snapshot of what the local view is of this location.

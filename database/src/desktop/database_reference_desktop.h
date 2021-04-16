@@ -32,8 +32,7 @@ class DatabaseReferenceInternal : public QueryInternal {
  public:
   DatabaseReferenceInternal(DatabaseInternal* database, const Path& path);
 
-  ~DatabaseReferenceInternal() override {
-  }
+  ~DatabaseReferenceInternal() override {}
 
   DatabaseReferenceInternal(const DatabaseReferenceInternal& reference);
 
@@ -48,13 +47,9 @@ class DatabaseReferenceInternal : public QueryInternal {
 
   Database* GetDatabase() const;
 
-  const char* GetKey() const {
-    return query_spec_.path.GetBaseName();
-  }
+  const char* GetKey() const { return query_spec_.path.GetBaseName(); }
 
-  std::string GetKeyString() const {
-    return query_spec_.path.GetBaseName();
-  }
+  std::string GetKeyString() const { return query_spec_.path.GetBaseName(); }
 
   std::string GetUrl() const;
 

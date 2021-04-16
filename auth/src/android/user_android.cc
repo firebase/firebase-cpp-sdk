@@ -192,8 +192,7 @@ static std::string GetProviderId(AuthData* auth_data, jobject impl) {
   return GetUserProperty(auth_data, impl, userinfo::kGetProviderId);
 }
 
-User::~User() {
-}
+User::~User() {}
 
 std::string User::uid() const {
   return ValidUser(auth_data_) ? GetUID(auth_data_, UserImpl(auth_data_)) : "";
@@ -243,9 +242,7 @@ class AndroidWrappedUserInfo : public UserInfoInterface {
     user_info_ = nullptr;
   }
 
-  std::string uid() const override {
-    return GetUID(auth_data_, user_info_);
-  }
+  std::string uid() const override { return GetUID(auth_data_, user_info_); }
 
   std::string email() const override {
     return GetEmail(auth_data_, user_info_);

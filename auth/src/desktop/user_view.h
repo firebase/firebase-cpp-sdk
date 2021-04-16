@@ -44,12 +44,8 @@ class UserView {
   // mutex lock is associated with an invalid Reader.
   class Reader {
    public:
-    bool IsValid() const {
-      return user_data_ != nullptr;
-    }
-    const UserData* operator->() const {
-      return user_data_;
-    }
+    bool IsValid() const { return user_data_ != nullptr; }
+    const UserData* operator->() const { return user_data_; }
     const std::vector<UserInfoInterface*>& GetUserInfos() const;
 
     ~Reader() {
@@ -59,8 +55,7 @@ class UserView {
    private:
     friend class UserView;
 
-    Reader() : user_data_(nullptr), auth_data_(nullptr), mutex_(nullptr) {
-    }
+    Reader() : user_data_(nullptr), auth_data_(nullptr), mutex_(nullptr) {}
     Reader(Mutex* const mutex,
            const UserData* const user_data,
            const AuthData& auth_data)
@@ -80,12 +75,8 @@ class UserView {
   // reset or clear UserInfos associated with the current user.
   class Writer {
    public:
-    bool IsValid() const {
-      return user_data_ != nullptr;
-    }
-    UserData* operator->() {
-      return user_data_;
-    }
+    bool IsValid() const { return user_data_ != nullptr; }
+    UserData* operator->() { return user_data_; }
 
     void ResetUserInfos(const std::vector<UserInfoImpl>& provider_data);
     void ClearUserInfos();
@@ -97,8 +88,7 @@ class UserView {
    private:
     friend class UserView;
 
-    Writer() : user_data_(nullptr), auth_data_(nullptr), mutex_(nullptr) {
-    }
+    Writer() : user_data_(nullptr), auth_data_(nullptr), mutex_(nullptr) {}
     Writer(Mutex* const mutex, UserData* const user_data, AuthData& auth_data)
         : user_data_(user_data), auth_data_(&auth_data), mutex_(mutex) {
       FIREBASE_ASSERT(mutex);
@@ -110,13 +100,10 @@ class UserView {
   };
 
   // Construct a user view from an existing set of user data.
-  explicit UserView(const UserData& user_data) : user_data_(user_data) {
-  }
+  explicit UserView(const UserData& user_data) : user_data_(user_data) {}
 
   // Exposed for testing.
-  const UserData& user_data() const {
-    return user_data_;
-  }
+  const UserData& user_data() const { return user_data_; }
 
   // Resets the currently signed-in user with the given user_data and returns
   // a writeable view of the user for additional reads or modifications (e.g.,

@@ -86,9 +86,7 @@ class StorageInternal {
   App* _Nonnull app() const;
 
   // Return the URL we were created with.
-  const std::string& url() const {
-    return url_;
-  }
+  const std::string& url() const { return url_; }
 
   // Get a StorageReference to the root of the database.
   StorageReferenceInternal* _Nullable GetReference() const;
@@ -119,18 +117,14 @@ class StorageInternal {
   // if a failure occurs.
   void set_max_operation_retry_time(double max_transfer_retry_seconds);
 
-  FutureManager& future_manager() {
-    return future_manager_;
-  }
+  FutureManager& future_manager() { return future_manager_; }
 
   // Whether this object was successfully initialized by the constructor.
   bool initialized() const;
 
   // When this is deleted, it will clean up all StorageReferences and other
   // objects.
-  CleanupNotifier& cleanup() {
-    return cleanup_;
-  }
+  CleanupNotifier& cleanup() { return cleanup_; }
 
 #ifdef __OBJC__
   // Get the session fetcher for streaming.
@@ -144,9 +138,7 @@ class StorageInternal {
 
  private:
 #ifdef __OBJC__
-  FIRStorage* _Nullable impl() const {
-    return impl_->get();
-  }
+  FIRStorage* _Nullable impl() const { return impl_->get(); }
 #endif
   // The firease::App that this Storage was created with.
   App* _Nonnull app_;

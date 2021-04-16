@@ -18,11 +18,9 @@
 namespace firebase {
 namespace database {
 
-ValueListener::~ValueListener() {
-}
+ValueListener::~ValueListener() {}
 
-ChildListener::~ChildListener() {
-}
+ChildListener::~ChildListener() {}
 
 }  // namespace database
 }  // namespace firebase

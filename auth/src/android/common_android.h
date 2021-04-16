@@ -60,8 +60,7 @@ struct FutureCallbackData {
                      ReadFutureResultFn* future_data_read_fn)
       : handle(handle),
         auth_data(auth_data),
-        future_data_read_fn(future_data_read_fn) {
-  }
+        future_data_read_fn(future_data_read_fn) {}
 
   SafeFutureHandle<T> handle;
   AuthData* auth_data;
@@ -114,9 +113,7 @@ inline void ReadAdditionalUserInfo(JNIEnv* env,
 }
 
 // Return the JNI environment.
-inline JNIEnv* Env(AuthData* auth_data) {
-  return auth_data->app->GetJNIEnv();
-}
+inline JNIEnv* Env(AuthData* auth_data) { return auth_data->app->GetJNIEnv(); }
 
 // Convert j_local (a local reference) into a global reference, delete the local
 // reference, and set the impl pointer to the new global reference.
@@ -136,15 +133,11 @@ inline jobject UserImpl(AuthData* auth_data) {
 }
 
 // Return a platform-independent representation of Java's FirebaseUser class.
-inline void* ImplFromUser(jobject user) {
-  return static_cast<void*>(user);
-}
+inline void* ImplFromUser(jobject user) { return static_cast<void*>(user); }
 
 // Return the Java FirebaseUser class from our platform-independent
 // representation.
-inline jobject UserFromImpl(void* impl) {
-  return static_cast<jobject>(impl);
-}
+inline jobject UserFromImpl(void* impl) { return static_cast<jobject>(impl); }
 
 // Return the Java Credential class from our platform-independent
 // representation.

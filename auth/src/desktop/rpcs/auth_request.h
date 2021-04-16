@@ -33,8 +33,7 @@ class AuthRequest
   explicit AuthRequest(const char* schema);
 
   explicit AuthRequest(const unsigned char* schema)
-      : AuthRequest(reinterpret_cast<const char*>(schema)) {
-  }
+      : AuthRequest(reinterpret_cast<const char*>(schema)) {}
 };
 
 }  // namespace auth

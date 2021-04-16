@@ -25,13 +25,9 @@ namespace rest {
 
 class WwwFormUrlEncodedTest : public ::testing::Test {
  protected:
-  void SetUp() override {
-    util::Initialize();
-  }
+  void SetUp() override { util::Initialize(); }
 
-  void TearDown() override {
-    util::Terminate();
-  }
+  void TearDown() override { util::Terminate(); }
 };
 
 TEST_F(WwwFormUrlEncodedTest, Initialize) {

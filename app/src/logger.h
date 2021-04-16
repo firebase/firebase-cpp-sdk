@@ -106,11 +106,9 @@ class SystemLogger : public LoggerBase {
 class Logger : public LoggerBase {
  public:
   explicit Logger(const LoggerBase* parent_logger)
-      : parent_logger_(parent_logger), log_level_(kDefaultLogLevel) {
-  }
+      : parent_logger_(parent_logger), log_level_(kDefaultLogLevel) {}
   Logger(const LoggerBase* parent_logger, LogLevel log_level)
-      : parent_logger_(parent_logger), log_level_(log_level) {
-  }
+      : parent_logger_(parent_logger), log_level_(log_level) {}
 
   ~Logger() override;
 

@@ -48,8 +48,7 @@ class Promise {
                               PublicType* result) = 0;
   };
 
-  ~Promise() {
-  }
+  ~Promise() {}
 
   Promise(const Promise&) = delete;
   Promise& operator=(const Promise&) = delete;
@@ -67,9 +66,7 @@ class Promise {
                                  completer, kApiIdentifier);
   }
 
-  Future<PublicType> GetFuture() {
-    return MakeFuture(impl_, handle_);
-  }
+  Future<PublicType> GetFuture() { return MakeFuture(impl_, handle_); }
 
  private:
   // The constructor is intentionally private.
@@ -79,8 +76,7 @@ class Promise {
           Completion* completion)
       : completer_(MakeUnique<Completer<PublicType, InternalType>>(
             impl, firestore, completion)),
-        impl_(impl) {
-  }
+        impl_(impl) {}
 
   template <typename PublicT>
   class CompleterBase {
@@ -88,14 +84,11 @@ class Promise {
     CompleterBase(ReferenceCountedFutureImpl* impl,
                   FirestoreInternal* firestore,
                   Completion* completion)
-        : impl_{impl}, firestore_{firestore}, completion_(completion) {
-    }
+        : impl_{impl}, firestore_{firestore}, completion_(completion) {}
 
     virtual ~CompleterBase() = default;
 
-    FirestoreInternal* firestore() {
-      return firestore_;
-    }
+    FirestoreInternal* firestore() { return firestore_; }
 
     SafeFutureHandle<PublicT> Alloc(int fn_index) {
       handle_ = impl_->SafeAlloc<PublicT>(fn_index);

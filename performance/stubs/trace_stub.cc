@@ -44,9 +44,7 @@ firebase::performance::Trace& firebase::performance::Trace::operator=(
   return *this;
 }
 
-bool firebase::performance::Trace::is_started() {
-  return true;
-}
+bool firebase::performance::Trace::is_started() { return true; }
 
 void firebase::performance::Trace::Cancel() {
   std::cout << "Cancel()" << std::endl;
@@ -70,12 +68,10 @@ void firebase::performance::Trace::IncrementMetric(const char* metric_name,
 }
 
 void firebase::performance::Trace::SetMetric(const char* metric_name,
-                                             const int64_t metric_value) {
-}
+                                             const int64_t metric_value) {}
 
 void firebase::performance::Trace::SetAttribute(const char* attribute_name,
-                                                const char* attribute_value) {
-}
+                                                const char* attribute_value) {}
 
 std::string firebase::performance::Trace::GetAttribute(
     const char* attribute_name) const {

@@ -28,8 +28,7 @@ namespace cppsdk {
 namespace internal {
 
 EqualsJsonMatcher::EqualsJsonMatcher(const std::string& expected_json)
-    : expected_json_(expected_json) {
-}
+    : expected_json_(expected_json) {}
 
 bool EqualsJsonMatcher::MatchAndExplain(
     const std::string& actual, ::testing::MatchResultListener* listener) const {

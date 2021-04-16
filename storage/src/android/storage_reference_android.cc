@@ -210,8 +210,7 @@ struct FutureCallbackData {
         dest(dest_),
         size(size_),
         cpp_byte_downloader(cpp_byte_downloader_),
-        cpp_byte_uploader(cpp_byte_uploader_) {
-  }
+        cpp_byte_uploader(cpp_byte_uploader_) {}
   FutureHandle handle;
   ReferenceCountedFutureImpl* impl;
   StorageInternal* storage;

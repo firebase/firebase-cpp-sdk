@@ -33,8 +33,7 @@ namespace connection {
 // server hostname may look like "s-usc1c-nss-123.firebaseio.com"
 class HostInfo {
  public:
-  explicit HostInfo() {
-  }
+  explicit HostInfo() {}
 
   // Constructor to pass in hostname, namespace and whether this is for a
   // secured connection
@@ -50,21 +49,13 @@ class HostInfo {
   // Http host url
   std::string ToString() const;
 
-  const std::string& GetHost() const {
-    return host_;
-  }
+  const std::string& GetHost() const { return host_; }
 
-  const std::string& GetNamespace() const {
-    return namespace_;
-  }
+  const std::string& GetNamespace() const { return namespace_; }
 
-  bool IsSecure() const {
-    return secure_;
-  }
+  bool IsSecure() const { return secure_; }
 
-  const std::string& user_agent() const {
-    return user_agent_;
-  }
+  const std::string& user_agent() const { return user_agent_; }
 
   // User agent sent when a web socket connection is opened.
   const std::string& web_socket_user_agent() const {

@@ -13,26 +13,19 @@ namespace firestore {
 class TransactionInternal {
  public:
   using ApiType = Transaction;
-  TransactionInternal() {
-  }
-  FirestoreInternal* firestore_internal() const {
-    return nullptr;
-  }
+  TransactionInternal() {}
+  FirestoreInternal* firestore_internal() const { return nullptr; }
 
   void Set(const DocumentReference& document,
            const MapFieldValue& data,
-           const SetOptions& options) {
-  }
+           const SetOptions& options) {}
 
-  void Update(const DocumentReference& document, const MapFieldValue& data) {
-  }
+  void Update(const DocumentReference& document, const MapFieldValue& data) {}
 
   void Update(const DocumentReference& document,
-              const MapFieldPathValue& data) {
-  }
+              const MapFieldPathValue& data) {}
 
-  void Delete(const DocumentReference& document) {
-  }
+  void Delete(const DocumentReference& document) {}
 
   DocumentSnapshot Get(const DocumentReference& document,
                        Error* error_code,

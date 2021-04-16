@@ -442,9 +442,7 @@ DatabaseInternal::~DatabaseInternal() {
   util::CheckAndClearJniExceptions(env);
 }
 
-App* DatabaseInternal::GetApp() const {
-  return app_;
-}
+App* DatabaseInternal::GetApp() const { return app_; }
 
 DatabaseReference DatabaseInternal::GetReference() const {
   JNIEnv* env = app_->GetJNIEnv();
@@ -557,9 +555,7 @@ void DatabaseInternal::set_log_level(LogLevel log_level) {
   }
 }
 
-LogLevel DatabaseInternal::log_level() const {
-  return logger_.GetLogLevel();
-}
+LogLevel DatabaseInternal::log_level() const { return logger_.GetLogLevel(); }
 
 Error DatabaseInternal::ErrorFromResultAndErrorCode(
     util::FutureResult result_code, jint error_code) const {

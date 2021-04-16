@@ -29,15 +29,12 @@ class MoveTester {
  public:
   MoveTester() = default;
   MoveTester(const MoveTester&) = default;
-  MoveTester(MoveTester&& other) : moved_(true) {
-  }
+  MoveTester(MoveTester&& other) : moved_(true) {}
   MoveTester& operator=(MoveTester&& other) {
     moved_ = true;
     return *this;
   }
-  bool moved() const {
-    return moved_;
-  }
+  bool moved() const { return moved_; }
 
  private:
   bool moved_ = false;

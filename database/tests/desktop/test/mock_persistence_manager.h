@@ -38,10 +38,8 @@ class MockPersistenceManager : public PersistenceManager {
       : PersistenceManager(std::move(storage_engine),
                            std::move(tracked_query_manager),
                            std::move(cache_policy),
-                           logger) {
-  }
-  ~MockPersistenceManager() override {
-  }
+                           logger) {}
+  ~MockPersistenceManager() override {}
 
   MOCK_METHOD(void,
               SaveUserOverwrite,

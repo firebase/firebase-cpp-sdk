@@ -95,9 +95,7 @@ DataSnapshot::~DataSnapshot() {
   internal_ = nullptr;
 }
 
-bool DataSnapshot::exists() const {
-  return internal_ && internal_->Exists();
-}
+bool DataSnapshot::exists() const { return internal_ && internal_->Exists(); }
 
 DataSnapshot DataSnapshot::Child(const char* path) const {
   return internal_ && path ? DataSnapshot(internal_->Child(path))
@@ -149,9 +147,7 @@ bool DataSnapshot::HasChild(const std::string& path) const {
   return HasChild(path.c_str());
 }
 
-bool DataSnapshot::is_valid() const {
-  return internal_ != nullptr;
-}
+bool DataSnapshot::is_valid() const { return internal_ != nullptr; }
 
 }  // namespace database
 }  // namespace firebase

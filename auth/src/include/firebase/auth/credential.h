@@ -74,12 +74,10 @@ class Credential {
   /// @see EmailAuthProvider::GetCredential()
   /// @see FacebookAuthProvider::GetCredential()
   /// @see GoogleAuthProvider::GetCredential()
-  explicit Credential(void* impl) : impl_(impl), error_code_(kAuthErrorNone) {
-  }
+  explicit Credential(void* impl) : impl_(impl), error_code_(kAuthErrorNone) {}
 
  public:
-  Credential() : impl_(nullptr), error_code_(kAuthErrorNone) {
-  }
+  Credential() : impl_(nullptr), error_code_(kAuthErrorNone) {}
   ~Credential();
 
   /// Copy constructor.

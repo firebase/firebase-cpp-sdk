@@ -834,9 +834,7 @@ class RemoteConfig {
   const ConfigInfo GetInfo();
 
   /// Gets the App this remote config object is connected to.
-  App* app() {
-    return app_;
-  }
+  App* app() { return app_; }
 
   /// Returns the RemoteConfig object for an App. Creates the RemoteConfig if
   /// required.

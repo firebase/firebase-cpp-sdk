@@ -45,8 +45,7 @@ std::shared_ptr<AsyncQueue> CreateWorkerQueue() {
 }  // namespace
 
 FirestoreInternal::FirestoreInternal(App* app)
-    : FirestoreInternal{app, CreateCredentialsProvider(*app)} {
-}
+    : FirestoreInternal{app, CreateCredentialsProvider(*app)} {}
 
 FirestoreInternal::FirestoreInternal(
     App* app, std::unique_ptr<CredentialsProvider> credentials)

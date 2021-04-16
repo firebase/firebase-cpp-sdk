@@ -58,9 +58,7 @@ class SingleValueListener : public ValueListener {
   ~SingleValueListener() override;
   void OnValueChanged(const DataSnapshot& snapshot) override;
   void OnCancelled(const Error& error_code, const char* error_message) override;
-  const QuerySpec& query_spec() {
-    return query_spec_;
-  }
+  const QuerySpec& query_spec() { return query_spec_; }
 
  private:
   DatabaseInternal* database_;
@@ -102,22 +100,14 @@ class DatabaseInternal {
   // Get the logging verbosity.
   LogLevel log_level() const;
 
-  FutureManager& future_manager() {
-    return future_manager_;
-  }
+  FutureManager& future_manager() { return future_manager_; }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const {
-    return app_ != nullptr;
-  }
+  bool initialized() const { return app_ != nullptr; }
 
-  const char* database_url() const {
-    return database_url_.c_str();
-  }
+  const char* database_url() const { return database_url_.c_str(); }
 
-  CleanupNotifier& cleanup() {
-    return cleanup_;
-  }
+  CleanupNotifier& cleanup() { return cleanup_; }
 
   bool RegisterValueListener(const QuerySpec& spec,
                              ValueListener* listener,
@@ -142,9 +132,7 @@ class DatabaseInternal {
   EventRegistration* ActiveEventRegistration(const QuerySpec& query_spec,
                                              void* listener_ptr);
 
-  PushChildNameGenerator& name_generator() {
-    return name_generator_;
-  }
+  PushChildNameGenerator& name_generator() { return name_generator_; }
 
   typedef firebase::internal::SafeReference<DatabaseInternal> ThisRef;
   typedef firebase::internal::SafeReferenceLock<DatabaseInternal> ThisRefLock;
@@ -153,21 +141,13 @@ class DatabaseInternal {
   void HandleTransactionResponse(const connection::ResponsePtr& ptr);
 
   // The url that was passed to the constructor.
-  const std::string& constructor_url() const {
-    return constructor_url_;
-  }
+  const std::string& constructor_url() const { return constructor_url_; }
 
-  Repo* repo() {
-    return repo_.get();
-  }
+  Repo* repo() { return repo_.get(); }
 
-  Mutex* listener_mutex() {
-    return &listener_mutex_;
-  }
+  Mutex* listener_mutex() { return &listener_mutex_; }
 
-  Logger* logger() {
-    return &logger_;
-  }
+  Logger* logger() { return &logger_; }
 
  private:
   void EnsureRepo();

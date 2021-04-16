@@ -58,9 +58,7 @@ class View {
   const Variant* GetCompleteServerCache(const Path& path) const;
 
   // Returns true if there are no event registrations at this location.
-  bool IsEmpty() {
-    return event_registrations_.empty();
-  }
+  bool IsEmpty() { return event_registrations_.empty(); }
 
   // Adds the given registration to the list of registrations this view manages.
   // Adding a registration gives ownership of the registration to the view.
@@ -86,14 +84,10 @@ class View {
   std::vector<Event> GetInitialEvents(EventRegistration* registration);
 
   // Return the QuerySpec associated this this View of the database.
-  const QuerySpec& query_spec() const {
-    return query_spec_;
-  }
+  const QuerySpec& query_spec() const { return query_spec_; }
 
   // Return the ViewCache representing the data in this View of the database.
-  const ViewCache& view_cache() const {
-    return view_cache_;
-  }
+  const ViewCache& view_cache() const { return view_cache_; }
 
   // The EventRegistrations owned by this View of the database.
   const std::vector<UniquePtr<EventRegistration>>& event_registrations() const {

@@ -287,9 +287,7 @@ std::string FirestoreIntegrationTest::DescribeFailedFuture(
          std::to_string(future.error()) + "): " + future.error_message();
 }
 
-bool ProcessEvents(int msec) {
-  return app_framework::ProcessEvents(msec);
-}
+bool ProcessEvents(int msec) { return app_framework::ProcessEvents(msec); }
 
 }  // namespace firestore
 }  // namespace firebase

@@ -43,9 +43,7 @@ using callback::NewCallback;
 namespace database {
 namespace internal {
 
-bool SyncTree::IsEmpty() {
-  return sync_point_tree_.IsEmpty();
-}
+bool SyncTree::IsEmpty() { return sync_point_tree_.IsEmpty(); }
 
 std::vector<Event> SyncTree::AckUserWrite(WriteId write_id,
                                           AckStatus revert,
@@ -729,9 +727,7 @@ Tag SyncTree::TagForQuerySpec(const QuerySpec& query_spec) {
   return tag_ptr ? *tag_ptr : Tag();
 }
 
-Tag SyncTree::GetNextQueryTag() {
-  return Tag(next_query_tag_++);
-}
+Tag SyncTree::GetNextQueryTag() { return Tag(next_query_tag_++); }
 
 }  // namespace internal
 }  // namespace database

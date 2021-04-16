@@ -32,15 +32,11 @@ int FirebaseTest::argc_ = 0;
 char** FirebaseTest::argv_ = nullptr;
 bool FirebaseTest::found_config_ = false;
 
-FirebaseTest::FirebaseTest() : app_(nullptr) {
-}
+FirebaseTest::FirebaseTest() : app_(nullptr) {}
 
-FirebaseTest::~FirebaseTest() {
-  assert(app_ == nullptr);
-}
+FirebaseTest::~FirebaseTest() { assert(app_ == nullptr); }
 
-void FirebaseTest::SetUp() {
-}
+void FirebaseTest::SetUp() {}
 
 void FirebaseTest::TearDown() {
   if (HasFailure()) {

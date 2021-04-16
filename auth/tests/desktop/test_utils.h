@@ -264,9 +264,7 @@ class AuthStateChangesCounter : public detail::ListenerChangeCounter,
 // listener callbacks have time to be invoked before they're verified.
 class SleepUponDestruction {
  public:
-  ~SleepUponDestruction() {
-    firebase::internal::Sleep(200);
-  }
+  ~SleepUponDestruction() { firebase::internal::Sleep(200); }
 };
 
 // Waits until the given future is complete and asserts that it completed with

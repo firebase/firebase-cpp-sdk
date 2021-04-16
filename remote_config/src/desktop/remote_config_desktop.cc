@@ -57,8 +57,7 @@ struct RCDataHandle {
       : future_api(_future_api),
         future_handle(_future_handle),
         rc_internal(_rc_internal),
-        default_keys(_default_keys) {
-  }
+        default_keys(_default_keys) {}
   ReferenceCountedFutureImpl* future_api;
   SafeFutureHandle<T> future_handle;
   RemoteConfigInternal* rc_internal;
@@ -101,9 +100,7 @@ void RemoteConfigInternal::InternalInit() {
   initialized_ = true;
 }
 
-bool RemoteConfigInternal::Initialized() const {
-  return initialized_;
-}
+bool RemoteConfigInternal::Initialized() const { return initialized_; }
 
 void RemoteConfigInternal::Cleanup() {
   // Do nothing.

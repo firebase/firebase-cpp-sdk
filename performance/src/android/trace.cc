@@ -15,8 +15,7 @@ namespace internal {
 // access is atomic on any of the platforms this will be used on.
 class TraceInternal {
  public:
-  explicit TraceInternal() {
-  }
+  explicit TraceInternal() {}
 
   ~TraceInternal() {
     if (active_trace_) {
@@ -101,9 +100,7 @@ class TraceInternal {
   }
 
   // Returns whether there is a trace that is currently created.
-  bool IsTraceCreated() {
-    return active_trace_ != nullptr;
-  }
+  bool IsTraceCreated() { return active_trace_ != nullptr; }
 
   // Sets a value for the given attribute for the given trace.
   void SetAttribute(const char* attribute_name, const char* attribute_value) {
@@ -261,9 +258,7 @@ Trace::Trace(const char* name) {
   internal_->CreateAndStartTrace(name);
 }
 
-Trace::~Trace() {
-  delete internal_;
-}
+Trace::~Trace() { delete internal_; }
 
 Trace::Trace(Trace&& other) {
   internal_ = other.internal_;
@@ -286,13 +281,9 @@ bool Trace::is_started() {
   return internal_->IsTraceCreated();
 }
 
-void Trace::Cancel() {
-  internal_->CancelTrace();
-}
+void Trace::Cancel() { internal_->CancelTrace(); }
 
-void Trace::Stop() {
-  internal_->StopTrace();
-}
+void Trace::Stop() { internal_->StopTrace(); }
 
 void Trace::Start(const char* name) {
   internal_->StopTrace();
@@ -321,13 +312,9 @@ void Trace::SetMetric(const char* metric_name, const int64_t metric_value) {
   internal_->SetMetric(metric_name, metric_value);
 }
 
-void Trace::Create(const char* name) {
-  internal_->CreateTrace(name, false);
-}
+void Trace::Create(const char* name) { internal_->CreateTrace(name, false); }
 
-void Trace::StartCreatedTrace() {
-  internal_->StartCreatedTrace();
-}
+void Trace::StartCreatedTrace() { internal_->StartCreatedTrace(); }
 
 }  // namespace performance
 }  // namespace firebase

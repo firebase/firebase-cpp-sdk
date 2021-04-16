@@ -30,8 +30,7 @@ namespace firebase {
 class Path {
  public:
   // Default constructor.
-  Path() : path_() {
-  }
+  Path() : path_() {}
 
   // Constructs a path based on an input string, removing excess slashes.
   explicit Path(const std::string& path);
@@ -45,39 +44,21 @@ class Path {
   Path(const std::vector<std::string>::iterator start,
        const std::vector<std::string>::iterator finish);
 
-  bool operator==(const Path& other) const {
-    return path_ == other.path_;
-  }
-  bool operator>=(const Path& other) const {
-    return path_ >= other.path_;
-  }
-  bool operator>(const Path& other) const {
-    return path_ > other.path_;
-  }
-  bool operator<=(const Path& other) const {
-    return path_ <= other.path_;
-  }
-  bool operator<(const Path& other) const {
-    return path_ < other.path_;
-  }
-  bool operator!=(const Path& other) const {
-    return path_ != other.path_;
-  }
+  bool operator==(const Path& other) const { return path_ == other.path_; }
+  bool operator>=(const Path& other) const { return path_ >= other.path_; }
+  bool operator>(const Path& other) const { return path_ > other.path_; }
+  bool operator<=(const Path& other) const { return path_ <= other.path_; }
+  bool operator<(const Path& other) const { return path_ < other.path_; }
+  bool operator!=(const Path& other) const { return path_ != other.path_; }
 
   // Returns the full path of the object.
-  const std::string& str() const {
-    return path_;
-  }
+  const std::string& str() const { return path_; }
 
   // Returns the full path of the object as a c-style string.
-  const char* c_str() const {
-    return path_.c_str();
-  }
+  const char* c_str() const { return path_.c_str(); }
 
   // Returns true if this path is empty.
-  bool empty() const {
-    return path_.empty();
-  }
+  bool empty() const { return path_.empty(); }
 
   // Create a new path at the child directory.
   Path GetChild(const std::string& child) const;
@@ -115,9 +96,7 @@ class Path {
   Path PopFrontDirectory() const;
 
   // Get the root path.
-  static Path GetRoot() {
-    return Path();
-  }
+  static Path GetRoot() { return Path(); }
 
   // Given paths `from` and `to`, return the path from `from` to `to`. If a path
   // from A to B could be found, return true and place the result in out_result.

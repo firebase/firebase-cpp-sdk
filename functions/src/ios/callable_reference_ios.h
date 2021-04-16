@@ -77,9 +77,7 @@ class HttpsCallableReferenceInternal {
   Future<HttpsCallableResult> Call(const Variant& data);
 
   // FunctionsInternal instance we are associated with.
-  FunctionsInternal* functions_internal() const {
-    return functions_;
-  }
+  FunctionsInternal* functions_internal() const { return functions_; }
 
  private:
 #ifdef __OBJC__

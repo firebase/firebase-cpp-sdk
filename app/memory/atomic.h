@@ -70,12 +70,9 @@ class Atomic {
 
  public:
   // Default constructed counter is initialized with 0.
-  Atomic() : Atomic(0) {
-  }
+  Atomic() : Atomic(0) {}
 
-  explicit Atomic(T value) {
-    store(value);
-  }
+  explicit Atomic(T value) { store(value); }
 
   Atomic& operator=(T value) {
     store(value);

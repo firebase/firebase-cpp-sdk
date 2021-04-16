@@ -43,8 +43,7 @@ struct RequestStatusBlock {
       : mutex(Mutex::kModeNonRecursive),
         cancelled(false),
         triggered(false),
-        repeat(repeat) {
-  }
+        repeat(repeat) {}
 
   // Guard both "cancelled" and "triggered"
   Mutex mutex;
@@ -65,20 +64,16 @@ struct RequestStatusBlock {
 // is not thread-safe.
 class RequestHandle {
  public:
-  RequestHandle() : status_() {
-  }
+  RequestHandle() : status_() {}
   explicit RequestHandle(const SharedPtr<RequestStatusBlock>& status)
-      : status_(status) {
-  }
+      : status_(status) {}
 
   // Attempt to cancel the scheduled task.  return true if success or false if
   // it is cancelled or complete already.
   bool Cancel();
 
   // Return true if the handler is pointing to a request
-  bool IsValid() const {
-    return status_;
-  }
+  bool IsValid() const { return status_; }
 
   // Thread-safe call to check if the scheduled callback has been cancelled.
   bool IsCancelled() const;

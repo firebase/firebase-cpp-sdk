@@ -90,8 +90,7 @@ struct FutureCallbackData {
   FutureCallbackData(SafeFutureHandle<void> handle_,
                      ReferenceCountedFutureImpl* impl_,
                      DatabaseInternal* db_)
-      : handle(handle_), impl(impl_), db(db_) {
-  }
+      : handle(handle_), impl(impl_), db(db_) {}
   SafeFutureHandle<void> handle;
   ReferenceCountedFutureImpl* impl;
   DatabaseInternal* db;

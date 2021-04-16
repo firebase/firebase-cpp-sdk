@@ -70,23 +70,16 @@ class Response {
     // TODO(b/77552340): Replace the implementation of Response with
     // std::function
   }
-  virtual ~Response() {
-  }
+  virtual ~Response() {}
 
   // Check if there is any error in response
-  bool HasError() const {
-    return error_code_ != kErrorNone;
-  }
+  bool HasError() const { return error_code_ != kErrorNone; }
 
   // Get error code from response message. Empty if received "ok"
-  const Error& GetErrorCode() const {
-    return error_code_;
-  }
+  const Error& GetErrorCode() const { return error_code_; }
 
   // Get error message from response message. Usually in human readable format.
-  const std::string& GetErrorMessage() const {
-    return error_message_;
-  }
+  const std::string& GetErrorMessage() const { return error_message_; }
 
  protected:
   // Callback to be triggered when response message is received.
@@ -236,8 +229,7 @@ class PersistentConnection : public ConnectionEventHandler {
     explicit RequestData(ResponsePtr response,
                          ConnectionResponseHandler cb,
                          uint64_t id)
-        : response(Move(response)), callback(cb), outstanding_id(id) {
-    }
+        : response(Move(response)), callback(cb), outstanding_id(id) {}
 
     // Pointer to the response.  Can be nullptr
     ResponsePtr response;
@@ -260,8 +252,7 @@ class PersistentConnection : public ConnectionEventHandler {
         : query_spec(query_spec),
           tag(tag),
           response(response),
-          outstanding_id(outstanding_id) {
-    }
+          outstanding_id(outstanding_id) {}
 
     // Path and query params for the listen request.
     QuerySpec query_spec;
@@ -286,8 +277,7 @@ class PersistentConnection : public ConnectionEventHandler {
                                      const Path& path,
                                      const Variant& data,
                                      ResponsePtr response)
-        : action(action), path(path), data(data), response(Move(response)) {
-    }
+        : action(action), path(path), data(data), response(Move(response)) {}
 
     // Action of the request such as PUT, MERGE and CANCEL
     std::string action;
@@ -309,8 +299,7 @@ class PersistentConnection : public ConnectionEventHandler {
     explicit OutstandingPut(const char* action,
                             const Variant& data,
                             ResponsePtr response)
-        : action(action), data(data), response(Move(response)), sent(false) {
-    }
+        : action(action), data(data), response(Move(response)), sent(false) {}
 
     // Action of the request such as PUT, MERGE and CANCEL
     std::string action;
@@ -324,13 +313,9 @@ class PersistentConnection : public ConnectionEventHandler {
     // Whether the put request is sent or not
     bool sent;
 
-    void MarkSent() {
-      sent = true;
-    }
+    void MarkSent() { sent = true; }
 
-    bool WasSent() {
-      return sent;
-    }
+    bool WasSent() { return sent; }
   };
   typedef UniquePtr<OutstandingPut> OutstandingPutPtr;
 
@@ -340,9 +325,7 @@ class PersistentConnection : public ConnectionEventHandler {
     return interrupt_reasons_.find(reason) != interrupt_reasons_.end();
   }
 
-  bool ShouldReconnect() {
-    return interrupt_reasons_.empty();
-  }
+  bool ShouldReconnect() { return interrupt_reasons_.empty(); }
 
   // Try to reconnect to RT DB server.
   void TryScheduleReconnect();
@@ -360,9 +343,7 @@ class PersistentConnection : public ConnectionEventHandler {
   // Start to establish connection to RT DB server.
   void OpenNetworkConnection();
 
-  bool CanSendWrites() const {
-    return connection_state_ == kConnected;
-  }
+  bool CanSendWrites() const { return connection_state_ == kConnected; }
 
   bool IsConnected() const {
     return connection_state_ == kConnected ||
@@ -593,8 +574,7 @@ class PersistentConnection : public ConnectionEventHandler {
 
 class PersistentConnectionEventHandler {
  public:
-  virtual ~PersistentConnectionEventHandler() {
-  }
+  virtual ~PersistentConnectionEventHandler() {}
 
   virtual void OnConnect() = 0;
 

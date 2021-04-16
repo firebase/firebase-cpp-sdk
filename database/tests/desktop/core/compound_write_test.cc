@@ -154,8 +154,7 @@ class CompoundWriteTest : public ::testing::Test {
     write_ = CompoundWrite::FromPathMerge(merge);
   }
 
-  void TearDown() override {
-  }
+  void TearDown() override {}
 
  protected:
   CompoundWrite write_;

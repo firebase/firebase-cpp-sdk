@@ -51,12 +51,10 @@ static Mutex g_log_mutex;  // NOLINT
 #endif                     // FIREBASE_PLATFORM_WINDOWS
 
 // Initializes the logging module.
-void LogInitialize() {
-}
+void LogInitialize() {}
 
 // Set the platform specific SDK log level.
-void LogSetPlatformLevel(LogLevel level) {
-}
+void LogSetPlatformLevel(LogLevel level) {}
 
 // Log a firebase message.
 void LogMessageV(LogLevel log_level, const char* format, va_list args) {

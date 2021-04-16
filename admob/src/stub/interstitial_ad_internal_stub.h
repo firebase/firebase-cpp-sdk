@@ -29,11 +29,9 @@ namespace internal {
 class InterstitialAdInternalStub : public InterstitialAdInternal {
  public:
   explicit InterstitialAdInternalStub(InterstitialAd* base)
-      : InterstitialAdInternal(base) {
-  }
+      : InterstitialAdInternal(base) {}
 
-  ~InterstitialAdInternalStub() override {
-  }
+  ~InterstitialAdInternalStub() override {}
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id) override {
     return CreateAndCompleteFutureStub(kInterstitialAdFnInitialize);

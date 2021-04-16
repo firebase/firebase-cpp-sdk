@@ -58,9 +58,7 @@ static const char* kLogFileName = "firebase-game-loop.log";
 namespace internal {
 
 // Determine whether the test lab module is initialized.
-bool IsInitialized() {
-  return g_initializer.references() > 0;
-}
+bool IsInitialized() { return g_initializer.references() > 0; }
 static void ParseCommandLineArgs();
 static FILE* GetCustomResultsFile();
 

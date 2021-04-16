@@ -23,8 +23,7 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-NoopPersistenceManager::NoopPersistenceManager() : inside_transaction_(false) {
-}
+NoopPersistenceManager::NoopPersistenceManager() : inside_transaction_(false) {}
 
 void NoopPersistenceManager::SaveUserOverwrite(const Path& path,
                                                const Variant& variant,

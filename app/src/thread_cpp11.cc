@@ -24,26 +24,20 @@
 
 namespace FIREBASE_NAMESPACE {
 
-Thread::Thread() {
-}
+Thread::Thread() {}
 
-Thread::~Thread() {
-}
+Thread::~Thread() {}
 
 #ifdef FIREBASE_USE_EXPLICIT_DEFAULT_METHODS
 Thread::Thread(Thread&& other) = default;
 #else
-Thread::Thread(Thread&& other) {
-  thread_.swap(other.thread_);
-}
+Thread::Thread(Thread&& other) { thread_.swap(other.thread_); }
 #endif  // FIREBASE_USE_EXPLICIT_DEFAULT_METHODS
 
 Thread::Thread(Thread::UnsafeRoutine start_routine, void* arg)
-    : thread_(start_routine, arg) {
-}
+    : thread_(start_routine, arg) {}
 
-Thread::Thread(Thread::NoArgRoutine start_routine) : thread_(start_routine) {
-}
+Thread::Thread(Thread::NoArgRoutine start_routine) : thread_(start_routine) {}
 
 #ifdef FIREBASE_USE_EXPLICIT_DEFAULT_METHODS
 Thread& Thread::operator=(Thread&& other) = default;
@@ -56,17 +50,11 @@ Thread& Thread::operator=(Thread&& other) {
 }
 #endif  // FIREBASE_USE_EXPLICIT_DEFAULT_METHODS
 
-bool Thread::Joinable() const {
-  return thread_.joinable();
-}
+bool Thread::Joinable() const { return thread_.joinable(); }
 
-void Thread::Join() {
-  thread_.join();
-}
+void Thread::Join() { thread_.join(); }
 
-void Thread::Detach() {
-  thread_.detach();
-}
+void Thread::Detach() { thread_.detach(); }
 
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace FIREBASE_NAMESPACE

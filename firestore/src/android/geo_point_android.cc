@@ -28,9 +28,7 @@ void GeoPointInternal::Initialize(jni::Loader& loader) {
       loader.LoadClass(kClassName, kConstructor, kGetLatitude, kGetLongitude);
 }
 
-Class GeoPointInternal::GetClass() {
-  return Class(g_clazz);
-}
+Class GeoPointInternal::GetClass() { return Class(g_clazz); }
 
 Local<GeoPointInternal> GeoPointInternal::Create(Env& env,
                                                  const GeoPoint& point) {

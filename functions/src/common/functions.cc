@@ -112,9 +112,7 @@ Functions::Functions(::firebase::App* app, const char* region) {
   }
 }
 
-Functions::~Functions() {
-  DeleteInternal();
-}
+Functions::~Functions() { DeleteInternal(); }
 
 void Functions::DeleteInternal() {
   MutexLock lock(g_functions_lock);

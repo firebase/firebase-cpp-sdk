@@ -127,8 +127,7 @@ QueryInternal& QueryInternal::operator=(QueryInternal&& internal) {
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-QueryInternal::~QueryInternal() {
-}
+QueryInternal::~QueryInternal() {}
 
 class SingleValueEventRegistration : public ValueEventRegistration {
  public:
@@ -138,8 +137,7 @@ class SingleValueEventRegistration : public ValueEventRegistration {
       : ValueEventRegistration(database, listener.get(), query_spec),
         active_(true),
         database_(database),
-        listener_(Move(listener)) {
-  }
+        listener_(Move(listener)) {}
 
   void FireEvent(const Event& event) override {
     if (active_) {

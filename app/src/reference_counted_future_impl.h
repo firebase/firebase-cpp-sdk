@@ -66,18 +66,12 @@ const FutureHandleId kInvalidFutureHandle = 0;
 template <typename T>
 class SafeFutureHandle {
  public:
-  inline SafeFutureHandle() : handle_(kInvalidFutureHandle) {
-  }
+  inline SafeFutureHandle() : handle_(kInvalidFutureHandle) {}
   inline explicit SafeFutureHandle(const FutureHandle& handle)
-      : handle_(handle) {
-  }
-  inline const FutureHandle& get() const {
-    return handle_;
-  }
+      : handle_(handle) {}
+  inline const FutureHandle& get() const { return handle_; }
   // See FutureHandle::Detach.
-  void Detach() {
-    handle_.Detach();
-  }
+  void Detach() { handle_.Detach(); }
 
   static const SafeFutureHandle kInvalidHandle;
 
@@ -128,8 +122,7 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   explicit ReferenceCountedFutureImpl(size_t last_result_count)
       : next_future_handle_(kInvalidFutureHandle + 1),
-        last_results_(last_result_count) {
-  }
+        last_results_(last_result_count) {}
   ~ReferenceCountedFutureImpl() override;
 
   // Implementation of detail::FutureApiInterface.
@@ -413,14 +406,10 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   /// The synchronization mutex, for data that's accessed in both in and out
   /// of callbacks.
-  Mutex& mutex() {
-    return mutex_;
-  }
+  Mutex& mutex() { return mutex_; }
 
   /// Get the number of LastResult functions.
-  size_t GetLastResultCount() {
-    return last_results_.size();
-  }
+  size_t GetLastResultCount() { return last_results_.size(); }
 
   /// Check if it's safe to delete this API. It's only safe to delete this if
   /// no futures are Pending.
@@ -442,9 +431,7 @@ class ReferenceCountedFutureImpl : public detail::FutureApiInterface {
 
   /// CleanupNotifier will invalidate any stale Future instances that
   /// are held by outside code, when this is deleted.
-  TypedCleanupNotifier<FutureBase>& cleanup() {
-    return cleanup_;
-  }
+  TypedCleanupNotifier<FutureBase>& cleanup() { return cleanup_; }
   TypedCleanupNotifier<FutureHandle>& cleanup_handles() {
     return cleanup_handles_;
   }

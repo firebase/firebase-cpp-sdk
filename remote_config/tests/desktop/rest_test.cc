@@ -51,9 +51,7 @@ class RemoteConfigRESTTest : public ::testing::Test {
     SetupContent();
   }
 
-  void TearDown() override {
-    delete app_;
-  }
+  void TearDown() override { delete app_; }
 
   void SetupContent() {
     std::map<std::string, std::string> empty_map;

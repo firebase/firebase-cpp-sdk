@@ -26,27 +26,14 @@ namespace auth {
 // Simple storage for user info properties, but conforming to UserInfoInterface.
 struct UserInfoInterfaceImpl : public UserInfoInterface {
   explicit UserInfoInterfaceImpl(const UserInfoImpl& set_impl)
-      : impl(set_impl) {
-  }
+      : impl(set_impl) {}
 
-  std::string uid() const override {
-    return impl.uid;
-  }
-  std::string email() const override {
-    return impl.email;
-  }
-  std::string display_name() const override {
-    return impl.display_name;
-  }
-  std::string photo_url() const override {
-    return impl.photo_url;
-  }
-  std::string provider_id() const override {
-    return impl.provider_id;
-  }
-  std::string phone_number() const override {
-    return impl.phone_number;
-  }
+  std::string uid() const override { return impl.uid; }
+  std::string email() const override { return impl.email; }
+  std::string display_name() const override { return impl.display_name; }
+  std::string photo_url() const override { return impl.photo_url; }
+  std::string provider_id() const override { return impl.provider_id; }
+  std::string phone_number() const override { return impl.phone_number; }
 
   const UserInfoImpl impl;
 };

@@ -135,41 +135,29 @@ class DatabaseInternal {
     single_value_listeners_.erase(it);
   }
 
-  FutureManager& future_manager() {
-    return future_manager_;
-  }
+  FutureManager& future_manager() { return future_manager_; }
 
   // Whether this object was successfully initialized by the constructor.
   bool initialized() const;
 
   // When this is deleted, it will clean up all DatabaseReferences,
   // DataSnapshots, and other such objects.
-  CleanupNotifier& cleanup() {
-    return cleanup_;
-  }
+  CleanupNotifier& cleanup() { return cleanup_; }
 
   // The url that was passed to the constructor.
-  const std::string& constructor_url() const {
-    return constructor_url_;
-  }
+  const std::string& constructor_url() const { return constructor_url_; }
 
 #ifdef __OBJC__
   // Guard access to C++ objects referenced by
   // FIRCPPDatabaseQueryCallbackStatePointer.
-  NSRecursiveLock* query_lock() const {
-    return query_lock_->get();
-  }
+  NSRecursiveLock* query_lock() const { return query_lock_->get(); }
 #endif  // __OBJC__
 
-  Logger* logger() {
-    return &logger_;
-  }
+  Logger* logger() { return &logger_; }
 
  private:
 #ifdef __OBJC__
-  FIRDatabase* impl() const {
-    return impl_->get();
-  }
+  FIRDatabase* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
   // The firebase::App that this Database was created with.

@@ -93,17 +93,14 @@ static std::string Join(const std::string& separator,
   return Join(separator.c_str(), strings.begin(), strings.end());
 }
 
-Path::Path(const std::string& path) : path_(NormalizeSlashes(path)) {
-}
+Path::Path(const std::string& path) : path_(NormalizeSlashes(path)) {}
 
 Path::Path(const std::vector<std::string>& directories)
-    : Path(Join(kSeparator, directories)) {
-}
+    : Path(Join(kSeparator, directories)) {}
 
 Path::Path(const std::vector<std::string>::iterator start,
            const std::vector<std::string>::iterator finish)
-    : Path(Join(kSeparator, start, finish)) {
-}
+    : Path(Join(kSeparator, start, finish)) {}
 
 Path Path::GetChild(const std::string& child) const {
   return Path(path_ + kSeparator + child);

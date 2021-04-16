@@ -139,9 +139,7 @@ class Promise {
  private:
   Promise() = default;
 
-  int NoError() const {
-    return static_cast<int>(Error::kErrorOk);
-  }
+  int NoError() const { return static_cast<int>(Error::kErrorOk); }
 
   void Reset() {
     cleanup_ = nullptr;
@@ -175,9 +173,7 @@ class Promise {
     cleanup_->UnregisterObject(this);
   }
 
-  bool IsCleanedUp() const {
-    return cleanup_ == nullptr;
-  }
+  bool IsCleanedUp() const { return cleanup_ == nullptr; }
 
   CleanupNotifier* cleanup_ = nullptr;
   ReferenceCountedFutureImpl* future_api_ = nullptr;

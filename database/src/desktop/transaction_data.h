@@ -55,8 +55,7 @@ struct TransactionData {
   };
 
   // This constructor is primarily used for testing
-  TransactionData() : delete_context(nullptr), outstanding_listener(nullptr) {
-  }
+  TransactionData() : delete_context(nullptr), outstanding_listener(nullptr) {}
 
   // Constructor to capture all data for a RunTransaction request
   TransactionData(const SafeFutureHandle<DataSnapshot>& handle,
@@ -76,8 +75,7 @@ struct TransactionData {
         trigger_local_events(trigger_local_events),
         outstanding_listener(outstanding_listener),
         status(kStatusInitializing),
-        retry_count(0) {
-  }
+        retry_count(0) {}
 
   ~TransactionData();
 

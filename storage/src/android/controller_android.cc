@@ -61,8 +61,7 @@ void ControllerInternal::Terminate(App* app) {
 }
 
 ControllerInternal::ControllerInternal()
-    : storage_(nullptr), task_obj_(nullptr) {
-}
+    : storage_(nullptr), task_obj_(nullptr) {}
 
 ControllerInternal::~ControllerInternal() {
   if (task_obj_ != nullptr && storage_ != nullptr) {

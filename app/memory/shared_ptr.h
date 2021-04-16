@@ -35,25 +35,18 @@ namespace internal {
 // Used to implement SharedPtr.
 class ControlBlock {
  public:
-  ControlBlock() : ref_count_(1) {
-  }
+  ControlBlock() : ref_count_(1) {}
 
   // Increase the reference count by one.
   // Returns the newly updated reference count.
-  uint64_t ref() {
-    return ref_count_.fetch_add(1) + 1;
-  }
+  uint64_t ref() { return ref_count_.fetch_add(1) + 1; }
 
   // Decrease the reference count by one.
   // Returns the newly updated reference count.
-  uint64_t deref() {
-    return ref_count_.fetch_sub(1) - 1;
-  }
+  uint64_t deref() { return ref_count_.fetch_sub(1) - 1; }
 
   // Returns current reference count.
-  uint64_t ref_count() const {
-    return ref_count_.load();
-  }
+  uint64_t ref_count() const { return ref_count_.load(); }
 
  private:
   ::FIREBASE_NAMESPACE::compat::Atomic<uint64_t> ref_count_;
@@ -71,8 +64,7 @@ class SharedPtr final {
 
  public:
   // Default consturcted SharedPtr's contain no managed pointer.
-  SharedPtr() : ptr_(nullptr), ctrl_(nullptr) {
-  }
+  SharedPtr() : ptr_(nullptr), ctrl_(nullptr) {}
 
   // Takes ownership of the provided ptr argument.
   template <typename U>
@@ -113,29 +105,21 @@ class SharedPtr final {
   }
 
   // Returns the contained pointer, nullptr if the SharedPtr is empty.
-  T* get() const {
-    return ptr_;
-  }
+  T* get() const { return ptr_; }
 
   // Returns the contained pointer, nullptr if the SharedPtr is empty.
-  T* operator->() const {
-    return ptr_;
-  }
+  T* operator->() const { return ptr_; }
 
   // Returns a reference to the object cointed to by the managed pointer.
   //
   // Warning: It is undefined behavior to dereference an empty SharedPtr.
-  T& operator*() const {
-    return *ptr_;
-  }
+  T& operator*() const { return *ptr_; }
 
   // Returns the number of SharedPtr instances that point to the managed
   // pointer.
   //
   // Note: Returns 0 if called on an empty SharedPtr.
-  uint64_t use_count() const {
-    return ptr_ ? ctrl_->ref_count() : 0;
-  }
+  uint64_t use_count() const { return ptr_ ? ctrl_->ref_count() : 0; }
 
   // Releases ownership of the managed pointer and clear the pointer. SharedPtr
   // is reusable after reset() is called.
@@ -145,9 +129,7 @@ class SharedPtr final {
 
   // Implicit conversion to bool, which is true if the managed pointer is not
   // null.
-  operator bool() const {
-    return ptr_ != nullptr;
-  }  // NOLINT
+  operator bool() const { return ptr_ != nullptr; }  // NOLINT
 
   // Required to implement converting constructors.
   template <typename U>

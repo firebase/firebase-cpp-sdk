@@ -49,8 +49,7 @@ class StorageReference {
   /// @brief Default constructor. This creates an invalid StorageReference.
   /// Attempting to perform any operations on this reference will fail unless a
   /// valid StorageReference has been assigned to it.
-  StorageReference() : internal_(nullptr) {
-  }
+  StorageReference() : internal_(nullptr) {}
 
   ~StorageReference();
 

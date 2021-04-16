@@ -47,11 +47,8 @@ const char kDynamicLinksModuleName[] = "dynamic_links";
 // Notifies a listener of a cached invite.
 class CachedListenerNotifier : public invites::internal::ReceiverInterface {
  public:
-  CachedListenerNotifier() : listener_(nullptr) {
-  }
-  virtual ~CachedListenerNotifier() {
-    SetListener(nullptr);
-  }
+  CachedListenerNotifier() : listener_(nullptr) {}
+  virtual ~CachedListenerNotifier() { SetListener(nullptr); }
 
   // Set the listener which should be notified of any cached or receiver
   // links.
@@ -115,9 +112,7 @@ void FutureData::Destroy() {
 }
 
 // Get the Future data singleton.
-FutureData* FutureData::Get() {
-  return s_future_data_;
-}
+FutureData* FutureData::Get() { return s_future_data_; }
 
 bool CreateReceiver(const App& app) {
   assert(!g_cached_receiver && !g_receiver);

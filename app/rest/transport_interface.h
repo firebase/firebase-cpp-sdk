@@ -29,8 +29,7 @@ namespace rest {
 
 class Transport {
  public:
-  Transport() {
-  }
+  Transport() {}
   virtual ~Transport();
 
   // Perform a HTTP request and put result in response and return a Controller

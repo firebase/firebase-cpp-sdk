@@ -22,8 +22,7 @@
 
 namespace FIREBASE_NAMESPACE {
 
-FutureManager::FutureManager() {
-}
+FutureManager::FutureManager() {}
 
 FutureManager::~FutureManager() {
   MutexLock lock(future_api_mutex_);

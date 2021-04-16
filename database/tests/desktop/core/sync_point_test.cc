@@ -56,8 +56,7 @@ class SyncPointTest : public ::testing::Test {
         persistence_manager_(MakeUnique<MockPersistenceStorageEngine>(),
                              MakeUnique<MockTrackedQueryManager>(),
                              MakeUnique<MockCachePolicy>(),
-                             &logger_) {
-  }
+                             &logger_) {}
 
  protected:
   SystemLogger logger_;

@@ -22,8 +22,7 @@
 namespace firebase {
 namespace rest {
 
-Transport::~Transport() {
-}
+Transport::~Transport() {}
 
 }  // namespace rest
 }  // namespace firebase

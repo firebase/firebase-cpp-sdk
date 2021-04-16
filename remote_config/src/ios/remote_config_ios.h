@@ -91,9 +91,7 @@ class RemoteConfigInternal {
 
  private:
 #ifdef __OBJC__
-  FIRRemoteConfig* _Nullable impl() const {
-    return impl_->get();
-  }
+  FIRRemoteConfig* _Nullable impl() const { return impl_->get(); }
 #endif
   // app
   const firebase::App& app_;

@@ -39,16 +39,11 @@ namespace internal {
 template <typename T>
 class SafeReference {
  public:
-  explicit SafeReference(T* ref) : data_(new ReferenceData(ref)) {
-  }
+  explicit SafeReference(T* ref) : data_(new ReferenceData(ref)) {}
 
-  Mutex& GetMutex() {
-    return data_->mutex;
-  }
+  Mutex& GetMutex() { return data_->mutex; }
 
-  T* GetReferenceUnsafe() {
-    return data_->ref;
-  }
+  T* GetReferenceUnsafe() { return data_->ref; }
 
   void ClearReference() {
     MutexLock lock(data_->mutex);
@@ -57,8 +52,7 @@ class SafeReference {
 
  private:
   struct ReferenceData {
-    explicit ReferenceData(T* ref) : mutex(Mutex::kModeRecursive), ref(ref) {
-    }
+    explicit ReferenceData(T* ref) : mutex(Mutex::kModeRecursive), ref(ref) {}
 
     Mutex mutex;
     T* ref;
@@ -74,12 +68,9 @@ template <typename T>
 class SafeReferenceLock {
  public:
   explicit SafeReferenceLock(SafeReference<T>* ref)
-      : ref_(ref), lock_(ref->GetMutex()) {
-  }
+      : ref_(ref), lock_(ref->GetMutex()) {}
 
-  T* GetReference() {
-    return ref_->GetReferenceUnsafe();
-  }
+  T* GetReference() { return ref_->GetReferenceUnsafe(); }
 
  private:
   SafeReference<T>* ref_;

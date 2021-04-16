@@ -126,9 +126,7 @@ class ControllerInternal {
                                          jobject snapshot,
                                          jboolean is_on_paused);
 
-  bool is_valid() {
-    return storage_ != nullptr && task_obj_ != nullptr;
-  }
+  bool is_valid() { return storage_ != nullptr && task_obj_ != nullptr; }
 
  private:
   StorageInternal* storage_;

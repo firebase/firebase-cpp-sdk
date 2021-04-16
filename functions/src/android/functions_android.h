@@ -62,20 +62,14 @@ class FunctionsInternal {
   Error ErrorFromJavaFunctionsException(jobject java_error,
                                         std::string* error_message) const;
 
-  FutureManager& future_manager() {
-    return future_manager_;
-  }
+  FutureManager& future_manager() { return future_manager_; }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const {
-    return app_ != nullptr;
-  }
+  bool initialized() const { return app_ != nullptr; }
 
   // When this is deleted, it will clean up all FunctionsReferences and other
   // objects.
-  CleanupNotifier& cleanup() {
-    return cleanup_;
-  }
+  CleanupNotifier& cleanup() { return cleanup_; }
 
  private:
   // Initialize JNI for all classes.

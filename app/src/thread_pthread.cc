@@ -65,8 +65,7 @@ void* InitializeAndRun(void* data) {
 
 namespace FIREBASE_NAMESPACE {
 
-Thread::Thread() : is_joinable_(false) {
-}
+Thread::Thread() : is_joinable_(false) {}
 
 Thread::~Thread() {
   FIREBASE_ASSERT_MESSAGE(!is_joinable_,
@@ -86,16 +85,14 @@ Thread::Thread(Thread::UnsafeRoutine start_routine, void* arg)
              arg,
              [](Thread::UnsafeRoutine start_routine, void* arg) {
                start_routine(arg);
-             }) {
-}
+             }) {}
 
 Thread::Thread(Thread::NoArgRoutine start_routine)
     : Thread(reinterpret_cast<Thread::UnsafeRoutine>(start_routine),
              nullptr,
              [](Thread::UnsafeRoutine start_routine, void* arg) {
                reinterpret_cast<Thread::NoArgRoutine>(start_routine)();
-             }) {
-}
+             }) {}
 
 Thread::Thread(Thread::UnsafeRoutine start_routine,
                void* arg,
@@ -130,9 +127,7 @@ Thread& Thread::operator=(Thread&& other) {
   return *this;
 }
 
-bool Thread::Joinable() const {
-  return is_joinable_;
-}
+bool Thread::Joinable() const { return is_joinable_; }
 
 void Thread::Join() {
   FIREBASE_ASSERT_MESSAGE(is_joinable_,

@@ -32,8 +32,7 @@ ReportRow::ReportRow()
     : fake_(""),
       result_(""),
       platform_(kAny),
-      args_(std::vector<std::string>()) {
-}
+      args_(std::vector<std::string>()) {}
 
 ReportRow::ReportRow(std::string fake,
                      std::string result,
@@ -41,8 +40,7 @@ ReportRow::ReportRow(std::string fake,
     : fake_(std::move(fake)),
       result_(std::move(result)),
       platform_(kAny),
-      args_(std::move(args)) {
-}
+      args_(std::move(args)) {}
 
 ReportRow::ReportRow(std::string fake,
                      std::string result,
@@ -51,20 +49,13 @@ ReportRow::ReportRow(std::string fake,
     : fake_(std::move(fake)),
       result_(std::move(result)),
       platform_(platform),
-      args_(args) {
-}
+      args_(args) {}
 
-std::string ReportRow::getFake() const {
-  return fake_;
-}
+std::string ReportRow::getFake() const { return fake_; }
 
-std::string ReportRow::getResult() const {
-  return result_;
-}
+std::string ReportRow::getResult() const { return result_; }
 
-Platform ReportRow::getPlatform() const {
-  return platform_;
-}
+Platform ReportRow::getPlatform() const { return platform_; }
 
 std::string ReportRow::getPlatformString() const {
   switch (platform_) {
@@ -79,9 +70,7 @@ std::string ReportRow::getPlatformString() const {
   }
 }
 
-std::vector<std::string> ReportRow::getArgs() const {
-  return args_;
-}
+std::vector<std::string> ReportRow::getArgs() const { return args_; }
 
 bool ReportRow::operator==(const ReportRow& other) const {
   if (fake_ != other.fake_ || result_ != other.result_ ||

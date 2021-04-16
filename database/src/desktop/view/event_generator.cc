@@ -84,8 +84,7 @@ std::vector<Event> GenerateEventsForChanges(
 
 class ChangeLesser {
  public:
-  ChangeLesser(const QueryParams* query_params) : comparator_(query_params) {
-  }
+  ChangeLesser(const QueryParams* query_params) : comparator_(query_params) {}
 
   bool operator()(const Change* a, const Change* b) const {
     return comparator_.Compare(

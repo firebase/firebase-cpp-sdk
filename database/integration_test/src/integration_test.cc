@@ -176,9 +176,7 @@ firebase::auth::Auth* FirebaseDatabaseTest::shared_auth_;
 
 bool FirebaseDatabaseTest::first_time_ = true;
 
-void FirebaseDatabaseTest::SetUpTestSuite() {
-  InitializeAppAndAuth();
-}
+void FirebaseDatabaseTest::SetUpTestSuite() { InitializeAppAndAuth(); }
 
 void FirebaseDatabaseTest::InitializeAppAndAuth() {
   LogDebug("Initialize Firebase App.");
@@ -220,9 +218,7 @@ void FirebaseDatabaseTest::InitializeAppAndAuth() {
   SignIn();
 }
 
-void FirebaseDatabaseTest::TearDownTestSuite() {
-  TerminateAppAndAuth();
-}
+void FirebaseDatabaseTest::TearDownTestSuite() { TerminateAppAndAuth(); }
 
 void FirebaseDatabaseTest::TerminateAppAndAuth() {
   if (shared_auth_) {
@@ -470,8 +466,7 @@ class ExpectValueListener : public firebase::database::ValueListener {
   explicit ExpectValueListener(const firebase::Variant& value_to_expect)
       : value_to_expect_(value_to_expect),
         value_changed_(false),
-        got_expected_value_(false) {
-  }
+        got_expected_value_(false) {}
   void OnValueChanged(
       const firebase::database::DataSnapshot& snapshot) override {
     value_changed_ = true;
@@ -800,8 +795,7 @@ TEST_F(FirebaseDatabaseTest, TestQueryFiltering) {
 // A simple ValueListener that logs the values it sees.
 class LoggingValueListener : public firebase::database::ValueListener {
  public:
-  LoggingValueListener() : got_error_(false) {
-  }
+  LoggingValueListener() : got_error_(false) {}
   void OnValueChanged(
       const firebase::database::DataSnapshot& snapshot) override {
     LogDebug("  ValueListener.OnValueChanged(%s)",
@@ -814,20 +808,14 @@ class LoggingValueListener : public firebase::database::ValueListener {
     LogError("ValueListener got error: %d: %s", error_code, error_message);
     got_error_ = true;
   }
-  const firebase::Variant& last_seen_value() {
-    return last_seen_value_;
-  }
+  const firebase::Variant& last_seen_value() { return last_seen_value_; }
   bool has_seen_value(const firebase::Variant& value) {
     return std::find(seen_values_.begin(), seen_values_.end(), value) !=
            seen_values_.end();
   }
-  size_t num_seen_values() {
-    return seen_values_.size();
-  }
+  size_t num_seen_values() { return seen_values_.size(); }
 
-  bool got_error() {
-    return got_error_;
-  }
+  bool got_error() { return got_error_; }
 
  private:
   firebase::Variant last_seen_value_;
@@ -950,8 +938,7 @@ TEST_F(FirebaseDatabaseTest, TestValueListener) {
 // An simple ChildListener class that simply logs the events it sees.
 class LoggingChildListener : public firebase::database::ChildListener {
  public:
-  LoggingChildListener() : got_error_(false) {
-  }
+  LoggingChildListener() : got_error_(false) {}
 
   void OnChildAdded(const firebase::database::DataSnapshot& snapshot,
                     const char* previous_sibling) override {
@@ -979,14 +966,10 @@ class LoggingChildListener : public firebase::database::ChildListener {
     got_error_ = true;
   }
 
-  const std::vector<std::string>& events() {
-    return events_;
-  }
+  const std::vector<std::string>& events() { return events_; }
 
   // Get the total number of Child events this listener saw.
-  size_t total_events() {
-    return events_.size();
-  }
+  size_t total_events() { return events_.size(); }
 
   // Get the number of times this event was seen.
   int num_events(const std::string& event) {
@@ -996,9 +979,7 @@ class LoggingChildListener : public firebase::database::ChildListener {
     }
     return count;
   }
-  bool got_error() {
-    return got_error_;
-  }
+  bool got_error() { return got_error_; }
 
  public:
   // Vector of strings defining the events we saw, in order.

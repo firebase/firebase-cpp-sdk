@@ -41,8 +41,7 @@ template <typename T>
 struct FutureCallbackData {
   FutureCallbackData(SafeFutureHandle<T> handle_,
                      ReferenceCountedFutureImpl* _Nonnull impl_)
-      : handle(handle_), impl(impl_), database(nullptr) {
-  }
+      : handle(handle_), impl(impl_), database(nullptr) {}
   SafeFutureHandle<T> handle;
   ReferenceCountedFutureImpl* _Nonnull impl;
   DatabaseInternal* _Nullable database;

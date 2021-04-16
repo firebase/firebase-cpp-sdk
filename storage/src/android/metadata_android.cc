@@ -63,8 +63,7 @@ MetadataInternal::MetadataInternal(StorageInternal* storage, jobject obj)
 }
 
 MetadataInternal::MetadataInternal(StorageInternal* storage)
-    : MetadataInternal(storage, nullptr) {
-}
+    : MetadataInternal(storage, nullptr) {}
 
 // Free any assigned string pointers from the given vector, assigning them to
 // nullptr.

@@ -408,9 +408,7 @@ InitResult Initialize(const App& app, Listener* listener) {
 
 namespace internal {
 
-bool IsInitialized() {
-  return g_app != nullptr;
-}
+bool IsInitialized() { return g_app != nullptr; }
 
 }  // namespace internal
 

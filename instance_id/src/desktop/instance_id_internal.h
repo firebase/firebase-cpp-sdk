@@ -28,9 +28,7 @@ class InstanceIdInternal : public InstanceIdInternalBase {
   explicit InstanceIdInternal(App* app);
   virtual ~InstanceIdInternal();
 
-  InstanceIdDesktopImpl* impl() {
-    return impl_;
-  }
+  InstanceIdDesktopImpl* impl() { return impl_; }
 
   // Safe reference to this.  Set in constructor and cleared in destructor
   // Should be safe to be copied in any thread because the SharedPtr never
@@ -38,9 +36,7 @@ class InstanceIdInternal : public InstanceIdInternalBase {
   typedef firebase::internal::SafeReference<InstanceIdInternal> InternalRef;
   typedef firebase::internal::SafeReferenceLock<InstanceIdInternal>
       InternalRefLock;
-  InternalRef& safe_ref() {
-    return safe_ref_;
-  }
+  InternalRef& safe_ref() { return safe_ref_; }
 
  public:
   InstanceIdDesktopImpl* impl_;

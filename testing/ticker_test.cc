@@ -99,12 +99,8 @@ class Tickers {
 
 class TickerTest : public ::testing::Test {
  protected:
-  void SetUp() override {
-    g_status_count = 0;
-  }
-  void TearDown() override {
-    TickerReset();
-  }
+  void SetUp() override { g_status_count = 0; }
+  void TearDown() override { TickerReset(); }
 };
 
 // This test make sure nothing is broken by calling a sequence of elapse and

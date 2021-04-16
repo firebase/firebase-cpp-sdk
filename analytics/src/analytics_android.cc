@@ -106,9 +106,7 @@ void Initialize(const ::firebase::App& app) {
 namespace internal {
 
 // Determine whether the analytics module is initialized.
-bool IsInitialized() {
-  return g_app != nullptr;
-}
+bool IsInitialized() { return g_app != nullptr; }
 
 }  // namespace internal
 
@@ -320,8 +318,7 @@ namespace {
 // Data passed into SetCurrentScreen, stored here because it is needed on a
 // different thread.
 struct SetCurrentScreenData {
-  SetCurrentScreenData() : screen_name(nullptr), screen_class(nullptr) {
-  }
+  SetCurrentScreenData() : screen_name(nullptr), screen_class(nullptr) {}
   SetCurrentScreenData(const char* screen_name_, const char* screen_class_)
       : screen_name(screen_name_ ? new std::string(screen_name_) : nullptr),
         screen_class(screen_class_ ? new std::string(screen_class_) : nullptr) {

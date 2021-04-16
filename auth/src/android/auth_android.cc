@@ -622,14 +622,10 @@ Future<void> Auth::SendPasswordResetEmail(const char* email) {
 }
 
 // Not implemented for Android.
-void EnableTokenAutoRefresh(AuthData* auth_data) {
-}
-void DisableTokenAutoRefresh(AuthData* auth_data) {
-}
-void InitializeTokenRefresher(AuthData* auth_data) {
-}
-void DestroyTokenRefresher(AuthData* auth_data) {
-}
+void EnableTokenAutoRefresh(AuthData* auth_data) {}
+void DisableTokenAutoRefresh(AuthData* auth_data) {}
+void InitializeTokenRefresher(AuthData* auth_data) {}
+void DestroyTokenRefresher(AuthData* auth_data) {}
 
 }  // namespace auth
 }  // namespace firebase

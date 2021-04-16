@@ -28,9 +28,7 @@ class GoogleAuthProvider;
 
 class GoogleAuthCredential : public IdentityProviderCredential {
  public:
-  std::string GetProvider() const override {
-    return kGoogleAuthProviderId;
-  }
+  std::string GetProvider() const override { return kGoogleAuthProviderId; }
 
   std::unique_ptr<VerifyAssertionRequest> CreateVerifyAssertionRequest(
       const char* const api_key) const override {
@@ -46,8 +44,7 @@ class GoogleAuthCredential : public IdentityProviderCredential {
  private:
   GoogleAuthCredential(const std::string& id_token,
                        const std::string& access_token)
-      : id_token_(id_token), access_token_(access_token) {
-  }
+      : id_token_(id_token), access_token_(access_token) {}
 
   const std::string id_token_;
   const std::string access_token_;

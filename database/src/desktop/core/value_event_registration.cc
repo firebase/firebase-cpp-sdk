@@ -22,8 +22,7 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-ValueEventRegistration::~ValueEventRegistration() {
-}
+ValueEventRegistration::~ValueEventRegistration() {}
 
 bool ValueEventRegistration::RespondsTo(EventType event_type) {
   return event_type == kEventTypeValue;

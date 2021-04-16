@@ -31,8 +31,7 @@ namespace {
 // functions instead, so that they can be counted.
 class SpecialFunctionsNotifier {
  public:
-  virtual ~SpecialFunctionsNotifier() {
-  }
+  virtual ~SpecialFunctionsNotifier() {}
 
   virtual void Construct() = 0;
   virtual void Copy() = 0;
@@ -46,9 +45,7 @@ class SpecialFunctionsNotifier {
 // SpecialFunctionNotifier so that those calls can be counted.
 class SpecialFunctionsNotifierWrapper {
  public:
-  SpecialFunctionsNotifierWrapper() {
-    s_notifier_->Construct();
-  }
+  SpecialFunctionsNotifierWrapper() { s_notifier_->Construct(); }
   SpecialFunctionsNotifierWrapper(
       const SpecialFunctionsNotifierWrapper& other) {
     s_notifier_->Copy();
@@ -70,9 +67,7 @@ class SpecialFunctionsNotifierWrapper {
   }
 #endif
 
-  ~SpecialFunctionsNotifierWrapper() {
-    s_notifier_->Destruct();
-  }
+  ~SpecialFunctionsNotifierWrapper() { s_notifier_->Destruct(); }
 
   static SpecialFunctionsNotifier* s_notifier_;
 };
@@ -94,11 +89,8 @@ class SpecialFunctionsNotifierMock : public SpecialFunctionsNotifier {
 // Optional<T>.
 class IntHolder {
  public:
-  explicit IntHolder(int value) : value_(value) {
-  }
-  int GetValue() const {
-    return value_;
-  }
+  explicit IntHolder(int value) : value_(value) {}
+  int GetValue() const { return value_; }
 
  private:
   int value_;
@@ -109,8 +101,7 @@ class IntHolder {
 class ExpectCallSetup {
  public:
   explicit ExpectCallSetup(SpecialFunctionsNotifierMock* mock_notifier)
-      : mock_notifier_(mock_notifier) {
-  }
+      : mock_notifier_(mock_notifier) {}
 
   ExpectCallSetup& Construct(size_t expectecCallCount) {
     EXPECT_CALL(*mock_notifier_, Construct()).Times(expectecCallCount);
@@ -139,8 +130,7 @@ class ExpectCallSetup {
 
 class OptionalTest : public ::testing::Test, protected ExpectCallSetup {
  protected:
-  OptionalTest() : ExpectCallSetup(&mock_notifier_) {
-  }
+  OptionalTest() : ExpectCallSetup(&mock_notifier_) {}
 
   void SetUp() override {
     SpecialFunctionsNotifierWrapper::s_notifier_ = &mock_notifier_;
@@ -150,9 +140,7 @@ class OptionalTest : public ::testing::Test, protected ExpectCallSetup {
     SpecialFunctionsNotifierWrapper::s_notifier_ = nullptr;
   }
 
-  ExpectCallSetup& SetupExpectCall() {
-    return *this;
-  }
+  ExpectCallSetup& SetupExpectCall() { return *this; }
 
   SpecialFunctionsNotifierMock mock_notifier_;
 };

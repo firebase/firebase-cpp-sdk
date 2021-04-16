@@ -44,9 +44,7 @@ void TestLogCallback(LogLevel log_level,
 
 class AssertTest : public ::testing::Test {
  public:
-  ~AssertTest() override {
-    LogSetCallback(nullptr, nullptr);
-  }
+  ~AssertTest() override { LogSetCallback(nullptr, nullptr); }
 };
 
 // Tests that check the functionality of FIREBASE_ASSERT_* macros in both debug
@@ -250,9 +248,7 @@ TEST_F(AssertTest, FirebaseDevAssertWithExpressionCompiledOut) {
   FIREBASE_DEV_ASSERT_WITH_EXPRESSION(false, FailureExpression);
 }
 
-TEST_F(AssertTest, FirebaseDevAssertCompiledOut) {
-  FIREBASE_DEV_ASSERT(false);
-}
+TEST_F(AssertTest, FirebaseDevAssertCompiledOut) { FIREBASE_DEV_ASSERT(false); }
 
 TEST_F(AssertTest, FirebaseDevAssertReturnCompiledOut) {
   FIREBASE_DEV_ASSERT_RETURN(1, false);

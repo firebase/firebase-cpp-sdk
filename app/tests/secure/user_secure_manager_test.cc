@@ -61,9 +61,7 @@ class UserSecureManagerTest : public ::testing::Test {
     manager_ = new UserSecureManager(std::move(user_secure_ptr));
   }
 
-  void TearDown() override {
-    delete manager_;
-  }
+  void TearDown() override { delete manager_; }
 
   // Busy waits until |response_future| has completed.
   void WaitForResponse(const FutureBase& response_future) {

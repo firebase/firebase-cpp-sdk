@@ -25,12 +25,10 @@
 namespace FIREBASE_NAMESPACE {
 namespace internal {
 
-JObjectReference::JObjectReference() : java_vm_(nullptr), object_(nullptr) {
-}
+JObjectReference::JObjectReference() : java_vm_(nullptr), object_(nullptr) {}
 
 JObjectReference::JObjectReference(JNIEnv* env)
-    : java_vm_(GetJavaVM(env)), object_(nullptr) {
-}
+    : java_vm_(GetJavaVM(env)), object_(nullptr) {}
 
 JObjectReference::JObjectReference(JNIEnv* env, jobject object) {
   Initialize(GetJavaVM(env), env, object);
@@ -46,9 +44,7 @@ JObjectReference::JObjectReference(JObjectReference&& reference) noexcept {
 }
 #endif  // FIREBASE_USE_MOVE_OPERATORS
 
-JObjectReference::~JObjectReference() {
-  Set(nullptr);
-}
+JObjectReference::~JObjectReference() { Set(nullptr); }
 
 JObjectReference& JObjectReference::operator=(
     const JObjectReference& reference) {

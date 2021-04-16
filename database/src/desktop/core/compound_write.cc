@@ -56,9 +56,7 @@ CompoundWrite CompoundWrite::FromPathMerge(
   return CompoundWrite(write_tree);
 }
 
-CompoundWrite CompoundWrite::EmptyWrite() {
-  return CompoundWrite();
-}
+CompoundWrite CompoundWrite::EmptyWrite() { return CompoundWrite(); }
 
 CompoundWrite CompoundWrite::AddWrite(const Path& path,
                                       const Optional<Variant>& variant) const {
@@ -237,9 +235,7 @@ std::map<std::string, CompoundWrite> CompoundWrite::ChildCompoundWrites()
   return children;
 }
 
-bool CompoundWrite::IsEmpty() const {
-  return write_tree_.IsEmpty();
-}
+bool CompoundWrite::IsEmpty() const { return write_tree_.IsEmpty(); }
 
 Variant CompoundWrite::Apply(const Variant& variant) const {
   return ApplySubtreeWrite(Path::GetRoot(), &write_tree_, variant);

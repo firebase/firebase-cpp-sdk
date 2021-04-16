@@ -145,9 +145,7 @@ void Database::DeleteInternal() {
   }
 }
 
-Database::~Database() {
-  DeleteInternal();
-}
+Database::~Database() { DeleteInternal(); }
 
 Database::Database(const Database& src) {
   FIREBASE_ASSERT_MESSAGE(false,
@@ -160,9 +158,7 @@ Database& Database::operator=(const Database& src) {
   return *this;
 }
 
-App* Database::app() const {
-  return internal_ ? internal_->GetApp() : nullptr;
-}
+App* Database::app() const { return internal_ ? internal_->GetApp() : nullptr; }
 
 const char* Database::url() const {
   return internal_ ? internal_->constructor_url().c_str() : "";

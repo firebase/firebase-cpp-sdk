@@ -32,9 +32,7 @@ void BlobInternal::Initialize(jni::Loader& loader) {
   loader.LoadAll(kConstructor, kFromBytes, kToBytes);
 }
 
-Class BlobInternal::GetClass() {
-  return Class(g_class);
-}
+Class BlobInternal::GetClass() { return Class(g_class); }
 
 Local<BlobInternal> BlobInternal::Create(Env& env,
                                          const uint8_t* value,

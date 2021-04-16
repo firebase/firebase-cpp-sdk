@@ -440,8 +440,7 @@ CompoundWrite WriteTree::LayerTree(const std::vector<UserWriteRecord>& writes,
 }
 
 WriteTreeRef::WriteTreeRef(const Path& path, WriteTree* write_tree)
-    : path_(path), write_tree_(write_tree) {
-}
+    : path_(path), write_tree_(write_tree) {}
 
 Optional<Variant> WriteTreeRef::CalcCompleteEventCache(
     const Variant* complete_server_cache) const {
@@ -503,13 +502,9 @@ WriteTreeRef WriteTreeRef::Child(const std::string& child_key) const {
   return WriteTreeRef(path_.GetChild(child_key), write_tree_);
 }
 
-Path WriteTreeRef::path() {
-  return path_;
-}
+Path WriteTreeRef::path() { return path_; }
 
-WriteTree* WriteTreeRef::write_tree() {
-  return write_tree_;
-}
+WriteTree* WriteTreeRef::write_tree() { return write_tree_; }
 
 }  // namespace internal
 }  // namespace database

@@ -46,9 +46,7 @@ using ::testing::Ne;
   static void Set##name(object* impl, field_type value) {  \
     impl->field_name = value;                              \
   }                                                        \
-  static field_type Get##name(object* impl) {              \
-    return impl->field_name;                               \
-  }
+  static field_type Get##name(object* impl) { return impl->field_name; }
 
 #define ACCESS_METHOD0(object, method_return_type, method_name) \
   static method_return_type method_name(object* impl) {         \
@@ -86,22 +84,19 @@ static const char kDigest[] = "test_digest";
 class ValidatingTransportMock : public rest::TransportMock {
  public:
   struct ExpectedRequest {
-    ExpectedRequest() {
-    }
+    ExpectedRequest() {}
 
     ExpectedRequest(const char* body_,
                     bool body_is_json_,
                     const std::map<std::string, std::string>& headers_)
-        : body(body_), body_is_json(body_is_json_), headers(headers_) {
-    }
+        : body(body_), body_is_json(body_is_json_), headers(headers_) {}
 
     std::string body;
     bool body_is_json;
     std::map<std::string, std::string> headers;
   };
 
-  ValidatingTransportMock() {
-  }
+  ValidatingTransportMock() {}
 
   void SetExpectedRequestForUrl(const std::string& url,
                                 const ExpectedRequest& expected) {

@@ -15,12 +15,8 @@
 
 class SanityTest : public testing::Test {
  protected:
-  void SetUp() override {
-    printf("==== SetUp ====\n");
-  }
-  void TearDown() override {
-    printf("==== TearDown ====\n");
-  }
+  void SetUp() override { printf("==== SetUp ====\n"); }
+  void TearDown() override { printf("==== TearDown ====\n"); }
 };
 
 // So far, Android native method cannot be inside namespace. So this has to be

@@ -49,10 +49,8 @@ static std::string* g_lockfile_path;
 // Lock the file referenced by g_lockfile_path.
 class TestMessageLockFileLocker : private FileLocker {
  public:
-  TestMessageLockFileLocker() : FileLocker(g_lockfile_path->c_str()) {
-  }
-  ~TestMessageLockFileLocker() {
-  }
+  TestMessageLockFileLocker() : FileLocker(g_lockfile_path->c_str()) {}
+  ~TestMessageLockFileLocker() {}
 };
 
 void InitializeMessagingTest() {

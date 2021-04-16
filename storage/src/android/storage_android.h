@@ -67,9 +67,7 @@ class StorageInternal {
   App* app() const;
 
   // Return the URL we were created with.
-  const std::string& url() const {
-    return url_;
-  }
+  const std::string& url() const { return url_; }
 
   StorageReferenceInternal* GetReference() const;
 
@@ -105,20 +103,14 @@ class StorageInternal {
   Error ErrorFromJavaStorageException(jobject java_error,
                                       std::string* error_message) const;
 
-  FutureManager& future_manager() {
-    return future_manager_;
-  }
+  FutureManager& future_manager() { return future_manager_; }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const {
-    return app_ != nullptr;
-  }
+  bool initialized() const { return app_ != nullptr; }
 
   // When this is deleted, it will clean up all StorageReferences and other
   // objects.
-  CleanupNotifier& cleanup() {
-    return cleanup_;
-  }
+  CleanupNotifier& cleanup() { return cleanup_; }
 
  private:
   // Initialize JNI for all classes.

@@ -56,8 +56,7 @@ class FutureTest : public ::testing::Test {
  protected:
   enum FutureTestFn { kFutureTestFnOne, kFutureTestFnTwo, kFutureTestFnCount };
 
-  FutureTest() : future_impl_(kFutureTestFnCount) {
-  }
+  FutureTest() : future_impl_(kFutureTestFnCount) {}
   void SetUp() override {
     handle_ = future_impl_.SafeAlloc<TestResult>();
     future_ = MakeFuture(&future_impl_, handle_);

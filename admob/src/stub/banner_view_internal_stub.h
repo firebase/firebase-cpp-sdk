@@ -28,11 +28,10 @@ namespace internal {
 /// Future for each method.
 class BannerViewInternalStub : public BannerViewInternal {
  public:
-  explicit BannerViewInternalStub(BannerView* base) : BannerViewInternal(base) {
-  }
+  explicit BannerViewInternalStub(BannerView* base)
+      : BannerViewInternal(base) {}
 
-  ~BannerViewInternalStub() override {
-  }
+  ~BannerViewInternalStub() override {}
 
   Future<void> Initialize(AdParent parent,
                           const char* ad_unit_id,
@@ -76,9 +75,7 @@ class BannerViewInternalStub : public BannerViewInternal {
     return BannerView::PresentationState::kPresentationStateHidden;
   }
 
-  BoundingBox GetBoundingBox() const override {
-    return BoundingBox();
-  }
+  BoundingBox GetBoundingBox() const override { return BoundingBox(); }
 
  private:
   Future<void> CreateAndCompleteFutureStub(BannerViewFn fn) {

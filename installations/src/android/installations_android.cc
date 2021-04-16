@@ -62,8 +62,7 @@ template <typename T>
 struct FISDataHandle {
   FISDataHandle(ReferenceCountedFutureImpl* _future_api,
                 const SafeFutureHandle<T>& _future_handle)
-      : future_api(_future_api), future_handle(_future_handle) {
-  }
+      : future_api(_future_api), future_handle(_future_handle) {}
   ReferenceCountedFutureImpl* future_api;
   SafeFutureHandle<T> future_handle;
 };
@@ -176,8 +175,7 @@ InstallationsInternal::InstallationsInternal(const firebase::App& app)
   LogDebug("%s API Initialized", kApiIdentifier);
 }
 
-InstallationsInternal::~InstallationsInternal() {
-}
+InstallationsInternal::~InstallationsInternal() {}
 
 bool InstallationsInternal::Initialized() const {
   return internal_obj_ != nullptr;

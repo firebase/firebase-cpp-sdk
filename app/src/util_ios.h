@@ -68,32 +68,22 @@ template <typename T>
 class ObjCPointer {
  public:
   // Construct with an empty class.
-  ObjCPointer() : objc_object_(nil) {
-  }
+  ObjCPointer() : objc_object_(nil) {}
 
   // Construct with a reference to an Obj-C object.
-  explicit ObjCPointer(T* _Nullable objc_object) : objc_object_(objc_object) {
-  }
+  explicit ObjCPointer(T* _Nullable objc_object) : objc_object_(objc_object) {}
 
   // Release the reference to the Obj-C object.
-  ~ObjCPointer() {
-    release();
-  }
+  ~ObjCPointer() { release(); }
 
   // Determine whether the Obj-C object is valid.
-  explicit operator bool() const {
-    return get() != nil;
-  }
+  explicit operator bool() const { return get() != nil; }
 
   // Get the Obj-C object.
-  T* _Nullable operator*() const {
-    return get();
-  }
+  T* _Nullable operator*() const { return get(); }
 
   // Get the Obj-C object.
-  T* _Nullable get() const {
-    return objc_object_;
-  }
+  T* _Nullable get() const { return objc_object_; }
 
   // Release the reference to the Obj-C object.
   T* _Nullable release() {
@@ -103,9 +93,7 @@ class ObjCPointer {
   }
 
   // Assign a new Obj-C object.
-  void reset(T* _Nullable objc_object) {
-    objc_object_ = objc_object;
-  }
+  void reset(T* _Nullable objc_object) { objc_object_ = objc_object; }
 
   // Assign a new Obj-C object.
   ObjCPointer& operator=(T* _Nullable objc_object) {
@@ -129,15 +117,12 @@ class ObjCPointer {
 #define OBJ_C_PTR_WRAPPER_NAMED(class_name, objc_type_name)               \
   class class_name : public firebase::util::ObjCPointer<objc_type_name> { \
    public:                                                                \
-    class_name() {                                                        \
-    }                                                                     \
+    class_name() {}                                                       \
     explicit class_name(                                                  \
         const firebase::util::ObjCPointer<objc_type_name>& obj)           \
-        : firebase::util::ObjCPointer<objc_type_name>(obj) {              \
-    }                                                                     \
+        : firebase::util::ObjCPointer<objc_type_name>(obj) {}             \
     explicit class_name(objc_type_name* _Nullable objc_object)            \
-        : firebase::util::ObjCPointer<objc_type_name>(objc_object) {      \
-    }                                                                     \
+        : firebase::util::ObjCPointer<objc_type_name>(objc_object) {}     \
     class_name& operator=(objc_type_name* _Nullable objc_object) {        \
       ObjCPointer<objc_type_name>::operator=(objc_object);                \
       return *this;                                                       \

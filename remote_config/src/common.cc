@@ -48,9 +48,7 @@ void FutureData::Destroy() {
 }
 
 // Get the Future data singleton.
-FutureData* FutureData::Get() {
-  return s_future_data_;
-}
+FutureData* FutureData::Get() { return s_future_data_; }
 
 }  // namespace remote_config
 }  // namespace firebase

@@ -24,8 +24,7 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-ChildEventRegistration::~ChildEventRegistration() {
-}
+ChildEventRegistration::~ChildEventRegistration() {}
 
 bool ChildEventRegistration::RespondsTo(EventType event_type) {
   return event_type == kEventTypeChildRemoved ||

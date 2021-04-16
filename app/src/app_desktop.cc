@@ -117,9 +117,7 @@ AppOptions* AppOptions::LoadDefault(AppOptions* options) {
   return nullptr;
 }
 
-void App::Initialize() {
-  internal_ = new internal::AppInternal();
-}
+void App::Initialize() { internal_ = new internal::AppInternal(); }
 
 App::~App() {
   app_common::RemoveApp(this);
@@ -174,9 +172,7 @@ void App::RegisterLibrary(const char* library, const char* version) {
   app_common::RegisterLibrary(library, version);
 }
 
-const char* App::GetUserAgent() {
-  return app_common::GetUserAgent();
-}
+const char* App::GetUserAgent() { return app_common::GetUserAgent(); }
 
 void App::SetDefaultConfigPath(const char* path) {
   internal::g_default_config_path = path;
@@ -197,13 +193,10 @@ void App::SetDefaultConfigPath(const char* path) {
 
 // Desktop support is for developer workflow only, so automatic data collection
 // is always enabled.
-void App::SetDataCollectionDefaultEnabled(bool /* enabled */) {
-}
+void App::SetDataCollectionDefaultEnabled(bool /* enabled */) {}
 
 // Desktop support is for developer workflow only, so automatic data collection
 // is always enabled.
-bool App::IsDataCollectionDefaultEnabled() const {
-  return true;
-}
+bool App::IsDataCollectionDefaultEnabled() const { return true; }
 
 }  // namespace firebase

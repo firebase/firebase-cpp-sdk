@@ -78,16 +78,13 @@ FieldValue FieldValueInternal::Create(Env& env,
   return FieldValue(new FieldValueInternal(type, object));
 }
 
-FieldValueInternal::FieldValueInternal() : cached_type_(Type::kNull) {
-}
+FieldValueInternal::FieldValueInternal() : cached_type_(Type::kNull) {}
 
 FieldValueInternal::FieldValueInternal(const Object& object)
-    : object_(object), cached_type_(Type::kNull) {
-}
+    : object_(object), cached_type_(Type::kNull) {}
 
 FieldValueInternal::FieldValueInternal(Type type, const Object& object)
-    : object_(object), cached_type_(type) {
-}
+    : object_(object), cached_type_(type) {}
 
 FieldValueInternal::FieldValueInternal(bool value)
     : cached_type_(Type::kBoolean) {
@@ -391,9 +388,7 @@ Local<Array<Object>> FieldValueInternal::MakeArray(
   return result;
 }
 
-Env FieldValueInternal::GetEnv() {
-  return FirestoreInternal::GetEnv();
-}
+Env FieldValueInternal::GetEnv() { return FirestoreInternal::GetEnv(); }
 
 Object FieldValueInternal::ToJava(const FieldValue& value) {
   return value.internal_ ? value.internal_->object_ : Object();

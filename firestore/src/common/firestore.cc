@@ -130,8 +130,7 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
 }
 
 Firestore::Firestore(::firebase::App* app)
-    : Firestore{new FirestoreInternal{app}} {
-}
+    : Firestore{new FirestoreInternal{app}} {}
 
 Firestore::Firestore(FirestoreInternal* internal)
     // TODO(wuandy): use make_unique once it is supported for our build here.
@@ -159,9 +158,7 @@ Firestore::Firestore(FirestoreInternal* internal)
   }
 }
 
-Firestore::~Firestore() {
-  DeleteInternal();
-}
+Firestore::~Firestore() { DeleteInternal(); }
 
 void Firestore::DeleteInternal() {
   MutexLock lock(*g_firestores_lock);

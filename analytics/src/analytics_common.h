@@ -28,14 +28,10 @@ enum AnalyticsFn { kAnalyticsFnGetAnalyticsInstanceId, kAnalyticsFnCount };
 // Data structure which holds the Future API for this module.
 class FutureData {
  public:
-  FutureData() : api_(kAnalyticsFnCount) {
-  }
-  ~FutureData() {
-  }
+  FutureData() : api_(kAnalyticsFnCount) {}
+  ~FutureData() {}
 
-  ReferenceCountedFutureImpl* api() {
-    return &api_;
-  }
+  ReferenceCountedFutureImpl* api() { return &api_; }
 
   // Create FutureData singleton.
   static FutureData* Create();

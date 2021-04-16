@@ -37,8 +37,7 @@ struct GoogleAnalyticsParameters {
         medium(nullptr),
         campaign(nullptr),
         term(nullptr),
-        content(nullptr) {
-  }
+        content(nullptr) {}
 
   /// The campaign source; used to identify a search engine, newsletter,
   /// or other source.
@@ -73,8 +72,7 @@ struct IOSParameters {
         ipad_fallback_url(nullptr),
         ipad_bundle_id(nullptr),
         app_store_id(nullptr),
-        minimum_version(nullptr) {
-  }
+        minimum_version(nullptr) {}
 
   /// Constructs an empty set of IOS parameters.
   IOSParameters()
@@ -84,8 +82,7 @@ struct IOSParameters {
         ipad_fallback_url(nullptr),
         ipad_bundle_id(nullptr),
         app_store_id(nullptr),
-        minimum_version(nullptr) {
-  }
+        minimum_version(nullptr) {}
 
   /// The parameters ID of the iOS app to use to open the link. The app must be
   /// connected to your project from the Overview page of the Firebase console.
@@ -123,8 +120,7 @@ struct ITunesConnectAnalyticsParameters {
   ITunesConnectAnalyticsParameters()
       : provider_token(nullptr),
         affiliate_token(nullptr),
-        campaign_token(nullptr) {
-  }
+        campaign_token(nullptr) {}
 
   /// The provider token that enables analytics for Dynamic Links from
   /// within iTunes Connect.
@@ -146,13 +142,13 @@ struct AndroidParameters {
   ///
   /// The package name of the Android app to use to open the link.
   AndroidParameters(const char* package_name_)
-      : package_name(package_name_), fallback_url(nullptr), minimum_version(0) {
-  }
+      : package_name(package_name_),
+        fallback_url(nullptr),
+        minimum_version(0) {}
 
   /// Constructs an empty set of Android parameters.
   AndroidParameters()
-      : package_name(nullptr), fallback_url(nullptr), minimum_version(0) {
-  }
+      : package_name(nullptr), fallback_url(nullptr), minimum_version(0) {}
 
   /// The package name of the Android app to use to open the link. The app
   /// must be connected to your project from the Overview page of the Firebase
@@ -177,8 +173,7 @@ struct AndroidParameters {
 struct SocialMetaTagParameters {
   /// Constructs an empty set of Social meta-tag parameters.
   SocialMetaTagParameters()
-      : title(nullptr), description(nullptr), image_url(nullptr) {
-  }
+      : title(nullptr), description(nullptr), image_url(nullptr) {}
 
   /// The title to use when the Dynamic Link is shared in a social post.
   const char* title;
@@ -203,8 +198,7 @@ enum PathLength {
 /// @brief Additional options for Dynamic Link creation.
 struct DynamicLinkOptions {
   /// Constructs an empty set of Dynamic Link options.
-  DynamicLinkOptions() : path_length(kPathLengthDefault) {
-  }
+  DynamicLinkOptions() : path_length(kPathLengthDefault) {}
 
   /// The desired path length for shortened Dynamic Link URLs.
   PathLength path_length;
@@ -267,8 +261,7 @@ struct DynamicLinkComponents {
         ios_parameters(nullptr),
         itunes_connect_analytics_parameters(nullptr),
         android_parameters(nullptr),
-        social_meta_tag_parameters(nullptr) {
-  }
+        social_meta_tag_parameters(nullptr) {}
 
   /// Constructor that initializes with the given link and domain.
   ///

@@ -29,8 +29,7 @@ using ::testing::Eq;
 template <typename T>
 class ThreadSafe {
  public:
-  explicit ThreadSafe(T value) : value_(value) {
-  }
+  explicit ThreadSafe(T value) : value_(value) {}
 
   T get() const {
     firebase::MutexLock lock(const_cast<firebase::Mutex&>(mtx_));

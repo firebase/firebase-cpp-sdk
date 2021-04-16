@@ -28,8 +28,7 @@ namespace rest {
 
 class RequestBinaryGzip : public RequestBinary {
  public:
-  RequestBinaryGzip() : RequestBinaryGzip(nullptr) {
-  }
+  RequestBinaryGzip() : RequestBinaryGzip(nullptr) {}
 
   // Create a binary request that will read from the specified buffer.
   // NOTE: This will *not copy* data into the request.  The buffer must not be
@@ -43,9 +42,7 @@ class RequestBinaryGzip : public RequestBinary {
   void set_post_fields(const char* data) override;
 
   // Get the size of the POST fields.
-  size_t GetPostFieldsSize() const override {
-    return uncompressed_size_;
-  }
+  size_t GetPostFieldsSize() const override { return uncompressed_size_; }
 
   // Called to read the body of the request to send to the server.
   // Returns the number of bytes written into the buffer, or 0 if the no more

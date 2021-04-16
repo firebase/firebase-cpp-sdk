@@ -23,9 +23,7 @@
 
 namespace firebase {
 namespace rest {
-TEST(TransportMockTest, TestCreation) {
-  TransportMock mock;
-}
+TEST(TransportMockTest, TestCreation) { TransportMock mock; }
 
 TEST(TransportMockTest, TestHttpGet200) {
   Request request;

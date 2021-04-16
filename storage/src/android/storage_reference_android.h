@@ -165,9 +165,7 @@ class StorageReferenceInternal {
                                        jint num_bytes_to_read);
 
   // StorageInternal instance we are associated with.
-  StorageInternal* storage_internal() const {
-    return storage_;
-  }
+  StorageInternal* storage_internal() const { return storage_; }
 
  private:
   static void FutureCallback(JNIEnv* env,

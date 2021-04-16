@@ -192,16 +192,11 @@ FirebaseMessagingTest::FirebaseMessagingTest() {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
 }
 
-FirebaseMessagingTest::~FirebaseMessagingTest() {
-}
+FirebaseMessagingTest::~FirebaseMessagingTest() {}
 
-void FirebaseMessagingTest::SetUp() {
-  FirebaseTest::SetUp();
-}
+void FirebaseMessagingTest::SetUp() { FirebaseTest::SetUp(); }
 
-void FirebaseMessagingTest::TearDown() {
-  FirebaseTest::TearDown();
-}
+void FirebaseMessagingTest::TearDown() { FirebaseTest::TearDown(); }
 
 std::string FirebaseMessagingTest::GetUniqueMessageId() {
   int64_t time_in_microseconds = GetCurrentTimeInMicroseconds();

@@ -56,8 +56,7 @@ const char* GetRequestAgentString();
 // Hold backing data for returned Futures.
 struct FutureData {
   explicit FutureData(int num_functions_that_return_futures)
-      : future_impl(num_functions_that_return_futures) {
-  }
+      : future_impl(num_functions_that_return_futures) {}
 
   // Handle calls from Futures that the API returns.
   ReferenceCountedFutureImpl future_impl;

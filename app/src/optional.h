@@ -45,8 +45,7 @@ class Optional {
   typedef T value_type;
 
   // Initialize an empty Optional.
-  Optional() : has_value_(false) {
-  }
+  Optional() : has_value_(false) {}
 
   // Copy contructor. If the other Optional has a value, it is copied into this
   // Optional using its copy constructor.
@@ -122,32 +121,20 @@ class Optional {
   }
 #endif  // FIREBASE_USE_MOVE_OPERATORS
 
-  ~Optional() {
-    reset();
-  }
+  ~Optional() { reset(); }
 
   // Structure reference operator, to allow access to the members of the object
   // held by the Optional.
-  const value_type* operator->() const {
-    return &value();
-  }
-  value_type* operator->() {
-    return &value();
-  }
+  const value_type* operator->() const { return &value(); }
+  value_type* operator->() { return &value(); }
 
   // Dereference operator, to allow access to the members of the object held by
   // the Optional.
-  const value_type& operator*() const {
-    return value();
-  }
-  value_type& operator*() {
-    return value();
-  }
+  const value_type& operator*() const { return value(); }
+  value_type& operator*() { return value(); }
 
   // Returns true if this value contains a value, false otherwise.
-  bool has_value() const {
-    return has_value_;
-  }
+  bool has_value() const { return has_value_; }
 
   // Returns the value held. Value must be present.
   const value_type& value() const {
@@ -183,9 +170,7 @@ class Optional {
   const T* aligned_buffer() const {
     return reinterpret_cast<const T*>(&buffer_);
   }
-  T* aligned_buffer() {
-    return reinterpret_cast<T*>(&buffer_);
-  }
+  T* aligned_buffer() { return reinterpret_cast<T*>(&buffer_); }
 
   // Older versions of Visual Studio (2013 and prior) do not have support
   // for alignof, but do have __alignof, so map it to use that if necessary.

@@ -429,8 +429,7 @@ struct RCDataHandle {
       : future_api(_future_api),
         future_handle(_future_handle),
         rc_internal(_rc_internal),
-        default_keys(_default_keys) {
-  }
+        default_keys(_default_keys) {}
   ReferenceCountedFutureImpl* future_api;
   SafeFutureHandle<T> future_handle;
   RemoteConfigInternal* rc_internal;
@@ -470,8 +469,7 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
   LogDebug("%s API Initialized", kApiIdentifier);
 }
 
-RemoteConfigInternal::~RemoteConfigInternal() {
-}
+RemoteConfigInternal::~RemoteConfigInternal() {}
 
 bool RemoteConfigInternal::Initialized() const {
   return internal_obj_ != nullptr;

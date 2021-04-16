@@ -26,8 +26,7 @@ namespace internal {
 class PushChildNameGenerator {
  public:
   PushChildNameGenerator()
-      : random_device_(), mutex_(), last_push_time_(0), last_rand_chars_() {
-  }
+      : random_device_(), mutex_(), last_push_time_(0), last_rand_chars_() {}
 
   std::string GeneratePushChildName(int64_t now);
 

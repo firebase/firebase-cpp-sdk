@@ -8,12 +8,8 @@ firebase::InitResult firebase::performance::Initialize(
   return kInitResultSuccess;
 }
 
-void firebase::performance::Terminate() {
-}
+void firebase::performance::Terminate() {}
 
-bool firebase::performance::GetPerformanceCollectionEnabled() {
-  return true;
-}
+bool firebase::performance::GetPerformanceCollectionEnabled() { return true; }
 
-void firebase::performance::SetPerformanceCollectionEnabled(bool enabled) {
-}
+void firebase::performance::SetPerformanceCollectionEnabled(bool enabled) {}

@@ -42,27 +42,14 @@ class WebSocketListenResponse : public connection::Response {
         query_spec_(query_spec),
         tag_(tag),
         view_(view),
-        logger_(logger) {
-  }
+        logger_(logger) {}
 
-  Repo::ThisRef& repo_ref() {
-    return repo_ref_;
-  }
-  SyncTree* sync_tree() {
-    return sync_tree_;
-  }
-  const QuerySpec& query_spec() const {
-    return query_spec_;
-  }
-  const Tag& tag() const {
-    return tag_;
-  }
-  const View* view() const {
-    return view_;
-  }
-  Logger* logger() {
-    return logger_;
-  }
+  Repo::ThisRef& repo_ref() { return repo_ref_; }
+  SyncTree* sync_tree() { return sync_tree_; }
+  const QuerySpec& query_spec() const { return query_spec_; }
+  const Tag& tag() const { return tag_; }
+  const View* view() const { return view_; }
+  Logger* logger() { return logger_; }
 
  private:
   Repo::ThisRef repo_ref_;

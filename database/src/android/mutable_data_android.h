@@ -74,9 +74,7 @@ class MutableDataInternal {
   void SetPriority(Variant priority);
 
   // Returns a pointer to the database this MutableData is from.
-  DatabaseInternal* database_internal() const {
-    return db_;
-  }
+  DatabaseInternal* database_internal() const { return db_; }
 
  private:
   friend class DatabaseInternal;

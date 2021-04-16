@@ -192,9 +192,7 @@ AdRequestConverter::~AdRequestConverter() {
   env->DeleteGlobalRef(java_request_);
 }
 
-jobject AdRequestConverter::GetJavaRequestObject() {
-  return java_request_;
-}
+jobject AdRequestConverter::GetJavaRequestObject() { return java_request_; }
 
 }  // namespace admob
 }  // namespace firebase

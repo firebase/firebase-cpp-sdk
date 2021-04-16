@@ -24,10 +24,8 @@ namespace rest {
 // Implement the mock transport layer without network connection.
 class TransportMock : public Transport {
  public:
-  TransportMock() {
-  }
-  ~TransportMock() override {
-  }
+  TransportMock() {}
+  ~TransportMock() override {}
 
   // Mock a HTTP request and put specified result in response.
   void PerformInternal(

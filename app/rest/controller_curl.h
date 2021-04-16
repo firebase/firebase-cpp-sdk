@@ -87,9 +87,7 @@ class ControllerCurl : public Controller {
   // The following methods are called by TransportCurl to set the status of this
   // object.
   // Set whether a transfer is active.
-  void set_transferring(bool transferring) {
-    transferring_ = transferring;
-  }
+  void set_transferring(bool transferring) { transferring_ = transferring; }
 
   // Set the current number of bytes transferred.
   void set_bytes_transferred(int64_t bytes_transferred);
@@ -104,9 +102,7 @@ class ControllerCurl : public Controller {
   }
 
   // Direction of the transfer.
-  TransferDirection direction() const {
-    return direction_;
-  }
+  TransferDirection direction() const { return direction_; }
 
  private:
   ControllerCurl(const ControllerCurl& other) = delete;

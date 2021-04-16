@@ -428,8 +428,7 @@ AppOptions* AppOptions::LoadDefault(AppOptions* app_options,
   return app_options;
 }
 
-void App::Initialize() {
-}
+void App::Initialize() {}
 
 App::~App() {
   app_common::RemoveApp(this);
@@ -494,17 +493,13 @@ App* App::Create(const AppOptions& options,
   return app;
 }
 
-App* App::GetInstance() {
-  return app_common::GetDefaultApp();
-}
+App* App::GetInstance() { return app_common::GetDefaultApp(); }
 
 App* App::GetInstance(const char* name) {
   return app_common::FindAppByName(name);
 }
 
-JNIEnv* App::GetJNIEnv() const {
-  return util::GetThreadsafeJNIEnv(java_vm());
-}
+JNIEnv* App::GetJNIEnv() const { return util::GetThreadsafeJNIEnv(java_vm()); }
 
 static void RegisterLibraryWithVersionRegistrar(JNIEnv* env,
                                                 const char* library,
@@ -533,8 +528,7 @@ void App::RegisterLibrary(const char* library, const char* version) {
   app_common::RegisterLibrary(library, version);
 }
 
-void App::SetDefaultConfigPath(const char* /* path */) {
-}
+void App::SetDefaultConfigPath(const char* /* path */) {}
 
 void App::SetDataCollectionDefaultEnabled(bool enabled) {
   if (!app::GetMethodId(app::kSetDataCollectionDefaultEnabled)) {
@@ -565,16 +559,10 @@ bool App::IsDataCollectionDefaultEnabled() const {
   return result != JNI_FALSE;
 }
 
-const char* App::GetUserAgent() {
-  return app_common::GetUserAgent();
-}
+const char* App::GetUserAgent() { return app_common::GetUserAgent(); }
 
-JavaVM* App::java_vm() const {
-  return internal_->java_vm();
-}
+JavaVM* App::java_vm() const { return internal_->java_vm(); }
 
-jobject App::GetPlatformApp() const {
-  return internal_->GetLocalRef();
-}
+jobject App::GetPlatformApp() const { return internal_->GetLocalRef(); }
 
 }  // namespace firebase

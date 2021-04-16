@@ -27,29 +27,17 @@ class VerifyPasswordResponse : public AuthResponse {
  public:
   DEFAULT_AND_MOVE_CTRS_NO_CLASS_MEMBERS(VerifyPasswordResponse, AuthResponse)
 
-  std::string local_id() const {
-    return application_data_->localId;
-  }
+  std::string local_id() const { return application_data_->localId; }
 
-  std::string email() const {
-    return application_data_->email;
-  }
+  std::string email() const { return application_data_->email; }
 
-  std::string display_name() const {
-    return application_data_->displayName;
-  }
+  std::string display_name() const { return application_data_->displayName; }
 
-  std::string id_token() const {
-    return application_data_->idToken;
-  }
+  std::string id_token() const { return application_data_->idToken; }
 
-  std::string refresh_token() const {
-    return application_data_->refreshToken;
-  }
+  std::string refresh_token() const { return application_data_->refreshToken; }
 
-  std::string photo_url() const {
-    return application_data_->photoUrl;
-  }
+  std::string photo_url() const { return application_data_->photoUrl; }
 
   // The number of seconds til the access token expires.
   int expires_in() const {

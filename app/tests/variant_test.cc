@@ -41,9 +41,7 @@ class VariantInternal {
   static constexpr uint32_t kInternalTypeSmallString =
       Variant::kInternalTypeSmallString;
 
-  static uint32_t type(const Variant& v) {
-    return v.type_;
-  }
+  static uint32_t type(const Variant& v) { return v.type_; }
 };
 }  // namespace internal
 }  // namespace firebase
@@ -73,8 +71,7 @@ std::map<Variant, Variant> g_test_complex_map;       // NOLINT
 
 class VariantTest : public ::testing::Test {
  protected:
-  VariantTest() {
-  }
+  VariantTest() {}
   void SetUp() override {
     g_test_map.clear();
     g_test_map["first"] = 101;

@@ -50,11 +50,9 @@ SingleValueListener::SingleValueListener(DatabaseInternal* database,
     : database_(database),
       query_spec_(query_spec),
       future_(future),
-      handle_(handle) {
-}
+      handle_(handle) {}
 
-SingleValueListener::~SingleValueListener() {
-}
+SingleValueListener::~SingleValueListener() {}
 
 void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {
   future_->CompleteWithResult<DataSnapshot>(handle_, kErrorNone, "", snapshot);
@@ -96,9 +94,7 @@ DatabaseInternal::~DatabaseInternal() {
       ::firebase::internal::FnAuthStopTokenListener, app_, nullptr, nullptr);
 }
 
-App* DatabaseInternal::GetApp() {
-  return app_;
-}
+App* DatabaseInternal::GetApp() { return app_; }
 
 DatabaseReference DatabaseInternal::GetReference() {
   EnsureRepo();
@@ -191,9 +187,7 @@ void DatabaseInternal::set_log_level(LogLevel log_level) {
   logger_.SetLogLevel(log_level);
 }
 
-LogLevel DatabaseInternal::log_level() const {
-  return logger_.GetLogLevel();
-}
+LogLevel DatabaseInternal::log_level() const { return logger_.GetLogLevel(); }
 
 bool DatabaseInternal::RegisterValueListener(
     const internal::QuerySpec& spec,

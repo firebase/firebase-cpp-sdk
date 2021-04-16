@@ -45,9 +45,7 @@ firebase::performance::HttpMetric& firebase::performance::HttpMetric::operator=(
   return *this;
 }
 
-bool firebase::performance::HttpMetric::is_started() {
-  return true;
-}
+bool firebase::performance::HttpMetric::is_started() { return true; }
 
 void firebase::performance::HttpMetric::Cancel() {
   std::cout << "Cancel()" << std::endl;
@@ -84,12 +82,10 @@ void firebase::performance::HttpMetric::set_request_payload_size(
 }
 
 void firebase::performance::HttpMetric::set_response_content_type(
-    const char* content_type) {
-}
+    const char* content_type) {}
 
 void firebase::performance::HttpMetric::set_response_payload_size(
-    int64_t bytes) {
-}
+    int64_t bytes) {}
 
 // Used only in SWIG.
 

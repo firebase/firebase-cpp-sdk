@@ -71,8 +71,7 @@ class FutureProxyManager {
  public:
   FutureProxyManager(ReferenceCountedFutureImpl* api,
                      const FutureHandle& subject)
-      : api_(api), subject_(subject) {
-  }
+      : api_(api), subject_(subject) {}
 
   ~FutureProxyManager() {
     MutexLock lock(mutex_);
@@ -94,8 +93,7 @@ class FutureProxyManager {
 
   struct UnregisterData {
     UnregisterData(FutureProxyManager* proxy, const FutureHandle& handle)
-        : proxy(proxy), handle(handle) {
-    }
+        : proxy(proxy), handle(handle) {}
     FutureProxyManager* proxy;
     FutureHandle handle;
   };
@@ -160,8 +158,7 @@ struct CompletionCallbackData {
                          void (*user_data_delete_fn)(void*))
       : completion_callback(callback),
         callback_user_data(user_data),
-        callback_user_data_delete_fn(user_data_delete_fn) {
-  }
+        callback_user_data_delete_fn(user_data_delete_fn) {}
 };
 
 using intrusive_list_iterator =
@@ -181,8 +178,7 @@ struct FutureBackingData {
         context_data_delete_fn(nullptr),
         completion_single_callback(nullptr),
         completion_multiple_callbacks(&CompletionCallbackData::node),
-        proxy(nullptr) {
-  }
+        proxy(nullptr) {}
 
   // Call the type-specific destructor on data.
   // Also call the type-specific context data destructor on context_data.
@@ -324,8 +320,7 @@ namespace detail {
 
 // Non-inline implementation of FutureApiInterface's virtual destructor
 // to prevent its vtable being emitted in each translation unit.
-FutureApiInterface::~FutureApiInterface() {
-}
+FutureApiInterface::~FutureApiInterface() {}
 
 }  // namespace detail
 
@@ -472,9 +467,7 @@ bool ReferenceCountedFutureImpl::is_orphaned() const {
   return is_orphaned_;
 }
 
-static void CleanupFuture(FutureBase* future) {
-  future->Release();
-}
+static void CleanupFuture(FutureBase* future) { future->Release(); }
 
 void ReferenceCountedFutureImpl::RegisterFutureForCleanup(FutureBase* future) {
   cleanup_.RegisterObject(future, CleanupFuture);
@@ -609,8 +602,7 @@ class CompletionMatcher {
   CompletionMatcher(FutureBase::CompletionCallback callback,
                     void* user_data,
                     void (*user_data_delete_fn)(void*))
-      : match_(callback, user_data, user_data_delete_fn) {
-  }
+      : match_(callback, user_data, user_data_delete_fn) {}
   bool operator()(const CompletionCallbackData& data) const {
     return data.completion_callback == match_.completion_callback &&
            data.callback_user_data == match_.callback_user_data &&
@@ -798,9 +790,7 @@ FutureBase ReferenceCountedFutureImpl::LastResultProxy(int fn_idx) {
 }
 #endif  // defined(INTERNAL_EXPERIMENTAL)
 
-static void CleanupFutureHandle(FutureHandle* handle) {
-  handle->Cleanup();
-}
+static void CleanupFutureHandle(FutureHandle* handle) { handle->Cleanup(); }
 
 TypedCleanupNotifier<FutureHandle>& CleanupMgr(
     detail::FutureApiInterface* api) {
@@ -824,8 +814,7 @@ void ReferenceCountedFutureImpl::MarkOrphaned() {
 }
 
 // Implementation of FutureHandle from future.h
-FutureHandle::FutureHandle() : id_(0), api_(nullptr) {
-}
+FutureHandle::FutureHandle() : id_(0), api_(nullptr) {}
 
 FutureHandle::FutureHandle(FutureHandleId id, detail::FutureApiInterface* api)
     : id_(id), api_(api) {

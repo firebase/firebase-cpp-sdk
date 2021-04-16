@@ -25,8 +25,7 @@ namespace storage {
 namespace internal {
 
 ListenerInternal::ListenerInternal(Listener* listener)
-    : listener_(listener), bytes_transferred_(-1), total_byte_count_(-1) {
-}
+    : listener_(listener), bytes_transferred_(-1), total_byte_count_(-1) {}
 
 ListenerInternal::~ListenerInternal() {
   MutexLock lock(mutex_);

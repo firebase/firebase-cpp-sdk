@@ -43,8 +43,7 @@ class MessageReader {
       : message_callback_(message_callback),
         message_callback_data_(message_callback_data),
         token_callback_(token_callback),
-        token_callback_data_(token_callback_data) {
-  }
+        token_callback_data_(token_callback_data) {}
 
   // Read messages or tokens from a buffer, calling message_callback and
   // token_callback (set on construction) on each message or token respectively.
@@ -63,24 +62,16 @@ class MessageReader {
           serialized_token_received) const;
 
   // Get the message callback function.
-  MessageCallback message_callback() const {
-    return message_callback_;
-  }
+  MessageCallback message_callback() const { return message_callback_; }
 
   // Get the message callback data.
-  void* message_callback_data() const {
-    return message_callback_data_;
-  }
+  void* message_callback_data() const { return message_callback_data_; }
 
   // Get the token callback function.
-  TokenCallback token_callback() const {
-    return token_callback_;
-  }
+  TokenCallback token_callback() const { return token_callback_; }
 
   // Get the token callback data.
-  void* token_callback_data() const {
-    return token_callback_data_;
-  }
+  void* token_callback_data() const { return token_callback_data_; }
 
  private:
   static const char* SafeFlatbufferString(const flatbuffers::String* str) {

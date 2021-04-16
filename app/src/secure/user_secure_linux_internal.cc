@@ -51,8 +51,7 @@ UserSecureLinuxInternal::UserSecureLinuxInternal(const char* domain,
   storage_schema_ = BuildSchema(key_namespace_.c_str());
 }
 
-UserSecureLinuxInternal::~UserSecureLinuxInternal() {
-}
+UserSecureLinuxInternal::~UserSecureLinuxInternal() {}
 
 std::string UserSecureLinuxInternal::LoadUserData(const std::string& app_name) {
   std::string empty_str("");

@@ -27,8 +27,7 @@ Response::Response()
       header_completed_(false),
       body_completed_(false),
       sdk_error_code_(0),
-      fetch_time_(0) {
-}
+      fetch_time_(0) {}
 
 bool Response::ProcessHeader(const char* buffer, size_t length) {
   // Since buffer may NOT neccessarily end with \0, pass in length in the init.

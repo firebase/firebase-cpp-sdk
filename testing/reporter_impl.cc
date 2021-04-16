@@ -21,9 +21,7 @@
 
 FakeReporterClass* FakeReporter = new FakeReporterClass();
 
-void FakeReporterClass::Reset() {
-  reports_.clear();
-}
+void FakeReporterClass::Reset() { reports_.clear(); }
 
 void FakeReporterClass::AddReport(const char* fake,
                                   std::initializer_list<const char*> args) {
@@ -52,9 +50,7 @@ namespace firebase {
 namespace testing {
 namespace cppsdk {
 
-void Reporter::reset() {
-  FakeReporter->Reset();
-}
+void Reporter::reset() { FakeReporter->Reset(); }
 
 std::vector<std::string> Reporter::getAllFakes() {
   return FakeReporter->GetAllFakes();

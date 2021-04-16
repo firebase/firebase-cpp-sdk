@@ -60,20 +60,16 @@ Scheduler::RequestData::RequestData(RequestId id,
       delay_ms(delay),
       repeat_ms(repeat),
       due_timestamp(0),
-      status(new RequestStatusBlock(repeat > 0)) {
-}
+      status(new RequestStatusBlock(repeat > 0)) {}
 
 Scheduler::Scheduler()
     : thread_(nullptr),
       next_request_id_(0),
       terminating_(false),
       request_mutex_(Mutex::kModeRecursive),
-      sleep_sem_(0) {
-}
+      sleep_sem_(0) {}
 
-Scheduler::~Scheduler() {
-  CancelAllAndShutdownWorkerThread();
-}
+Scheduler::~Scheduler() { CancelAllAndShutdownWorkerThread(); }
 
 void Scheduler::CancelAllAndShutdownWorkerThread() {
   {

@@ -155,17 +155,11 @@ void SetLogLevel(LogLevel level) {
   LogSetPlatformLevel(level);
 }
 
-LogLevel GetLogLevel() {
-  return g_log_level;
-}
+LogLevel GetLogLevel() { return g_log_level; }
 
-void LogSetLevel(LogLevel level) {
-  SetLogLevel(level);
-}
+void LogSetLevel(LogLevel level) { SetLogLevel(level); }
 
-LogLevel LogGetLevel() {
-  return GetLogLevel();
-}
+LogLevel LogGetLevel() { return GetLogLevel(); }
 
 // Log a debug message to the system log.
 void LogDebug(const char* format, ...) {

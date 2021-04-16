@@ -236,10 +236,8 @@ void FileLocker::ReleaseLock(const char* lock_filename, int fd) {
 // Lock the file referenced by g_lockfile_path.
 class MessageLockFileLocker : private FileLocker {
  public:
-  MessageLockFileLocker() : FileLocker(g_lockfile_path->c_str()) {
-  }
-  ~MessageLockFileLocker() {
-  }
+  MessageLockFileLocker() : FileLocker(g_lockfile_path->c_str()) {}
+  ~MessageLockFileLocker() {}
 };
 
 static bool LoadFile(const char* name, std::string* buf) {
@@ -664,9 +662,7 @@ InitResult Initialize(const ::firebase::App& app,
 
 namespace internal {
 
-bool IsInitialized() {
-  return g_app != nullptr;
-}
+bool IsInitialized() { return g_app != nullptr; }
 
 }  // namespace internal
 

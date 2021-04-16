@@ -502,8 +502,7 @@ QueryInternal* QueryInternal::EqualTo(Variant value, const char* key) {
 SingleValueListener::SingleValueListener(DatabaseInternal* db,
                                          ReferenceCountedFutureImpl* future,
                                          SafeFutureHandle<DataSnapshot> handle)
-    : db_(db), future_(future), handle_(handle), java_listener_(nullptr) {
-}
+    : db_(db), future_(future), handle_(handle), java_listener_(nullptr) {}
 
 SingleValueListener::~SingleValueListener() {
   if (java_listener_ != nullptr) {

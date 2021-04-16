@@ -26,12 +26,9 @@ CachedReceiver::CachedReceiver()
     : match_strength_(kLinkMatchStrengthNoMatch),
       result_code_(0),
       has_pending_invite_(false),
-      receiver_(nullptr) {
-}
+      receiver_(nullptr) {}
 
-CachedReceiver::~CachedReceiver() {
-  SetReceiver(nullptr);
-}
+CachedReceiver::~CachedReceiver() { SetReceiver(nullptr); }
 
 ReceiverInterface* CachedReceiver::SetReceiver(ReceiverInterface* receiver) {
   MutexLock lock(lock_);

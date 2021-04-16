@@ -27,8 +27,7 @@ namespace internal {
 const char* InstanceIdInternal::kCancelledError = "Cancelled";
 
 InstanceIdInternal::InstanceIdInternal()
-    : instance_id_(nullptr), java_instance_id_(nullptr) {
-}
+    : instance_id_(nullptr), java_instance_id_(nullptr) {}
 
 InstanceIdInternal::~InstanceIdInternal() {
   CancelOperations();

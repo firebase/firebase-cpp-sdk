@@ -155,9 +155,7 @@ void Storage::DeleteInternal() {
   }
 }
 
-Storage::~Storage() {
-  DeleteInternal();
-}
+Storage::~Storage() { DeleteInternal(); }
 
 ::firebase::App* Storage::app() {
   return internal_ ? internal_->app() : nullptr;

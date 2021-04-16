@@ -37,8 +37,7 @@ const char* kDefaultTag = STR(FIREBASE_NAMESPACE);
 // and use the logic here.
 #if !defined(FIREBASE_ANDROID_FOR_DESKTOP)
 // Initializes the logging module.
-void LogInitialize() {
-}
+void LogInitialize() {}
 
 // Log a firebase message.
 void AndroidLogMessageV(int priority,

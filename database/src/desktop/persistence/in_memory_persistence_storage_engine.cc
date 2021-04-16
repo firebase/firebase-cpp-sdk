@@ -38,11 +38,9 @@ namespace internal {
 
 InMemoryPersistenceStorageEngine::InMemoryPersistenceStorageEngine(
     LoggerBase* logger)
-    : server_cache_(), inside_transaction_(false), logger_(logger) {
-}
+    : server_cache_(), inside_transaction_(false), logger_(logger) {}
 
-InMemoryPersistenceStorageEngine::~InMemoryPersistenceStorageEngine() {
-}
+InMemoryPersistenceStorageEngine::~InMemoryPersistenceStorageEngine() {}
 
 Variant InMemoryPersistenceStorageEngine::LoadServerCache() {
   // No persistence, so nothing to save.
@@ -249,8 +247,7 @@ void InMemoryPersistenceStorageEngine::EndTransaction() {
   logger_->LogDebug("Transaction completed.");
 }
 
-void InMemoryPersistenceStorageEngine::SetTransactionSuccessful() {
-}
+void InMemoryPersistenceStorageEngine::SetTransactionSuccessful() {}
 
 void InMemoryPersistenceStorageEngine::VerifyInTransaction() {
   FIREBASE_DEV_ASSERT_MESSAGE(

@@ -161,8 +161,7 @@ struct AdRequest {
 /// initialized.
 struct BoundingBox {
   /// Default constructor which initializes all member variables to 0.
-  BoundingBox() : height(0), width(0), x(0), y(0) {
-  }
+  BoundingBox() : height(0), width(0), x(0), y(0) {}
   /// Height of the ad in pixels.
   int height;
   /// Width of the ad in pixels.

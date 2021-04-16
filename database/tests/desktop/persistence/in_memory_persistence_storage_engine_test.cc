@@ -35,11 +35,9 @@ TEST(InMemoryPersistenceStorageEngine, Constructor) {
 
 class InMemoryPersistenceStorageEngineTest : public ::testing::Test {
  public:
-  InMemoryPersistenceStorageEngineTest() : logger_(), engine_(&logger_) {
-  }
+  InMemoryPersistenceStorageEngineTest() : logger_(), engine_(&logger_) {}
 
-  ~InMemoryPersistenceStorageEngineTest() override {
-  }
+  ~InMemoryPersistenceStorageEngineTest() override {}
 
  protected:
   SystemLogger logger_;

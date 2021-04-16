@@ -131,9 +131,7 @@ FirebaseStorageTest::~FirebaseStorageTest() {
   assert(storage_ == nullptr);
 }
 
-void FirebaseStorageTest::SetUpTestSuite() {
-  InitializeAppAndAuth();
-}
+void FirebaseStorageTest::SetUpTestSuite() { InitializeAppAndAuth(); }
 
 void FirebaseStorageTest::InitializeAppAndAuth() {
   LogDebug("Initialize Firebase App.");
@@ -175,9 +173,7 @@ void FirebaseStorageTest::InitializeAppAndAuth() {
   SignIn();
 }
 
-void FirebaseStorageTest::TearDownTestSuite() {
-  TerminateAppAndAuth();
-}
+void FirebaseStorageTest::TearDownTestSuite() { TerminateAppAndAuth(); }
 
 void FirebaseStorageTest::TerminateAppAndAuth() {
   if (shared_auth_) {
@@ -618,8 +614,7 @@ TEST_F(FirebaseStorageTest, TestDeleteFile) {
 class StorageListener : public firebase::storage::Listener {
  public:
   StorageListener()
-      : on_paused_was_called_(false), on_progress_was_called_(false) {
-  }
+      : on_paused_was_called_(false), on_progress_was_called_(false) {}
 
   // Tracks whether OnPaused was ever called and resumes the transfer.
   void OnPaused(firebase::storage::Controller* controller) override {
@@ -638,12 +633,8 @@ class StorageListener : public firebase::storage::Listener {
     on_progress_was_called_ = true;
   }
 
-  bool on_paused_was_called() const {
-    return on_paused_was_called_;
-  }
-  bool on_progress_was_called() const {
-    return on_progress_was_called_;
-  }
+  bool on_paused_was_called() const { return on_paused_was_called_; }
+  bool on_progress_was_called() const { return on_progress_was_called_; }
 
  public:
   bool on_paused_was_called_;

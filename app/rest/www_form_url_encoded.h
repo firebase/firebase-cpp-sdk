@@ -30,11 +30,9 @@ class WwwFormUrlEncoded {
  public:
   // Form item.
   struct Item {
-    Item() {
-    }
+    Item() {}
     Item(const std::string& key_, const std::string& value_)
-        : key(key_), value(value_) {
-    }
+        : key(key_), value(value_) {}
 
     std::string key;
     std::string value;
@@ -42,21 +40,16 @@ class WwwFormUrlEncoded {
 
  public:
   // Initialize with a string to output constructed form data.
-  explicit WwwFormUrlEncoded(std::string* output) : output_(output) {
-  }
+  explicit WwwFormUrlEncoded(std::string* output) : output_(output) {}
 
   // Add a key / value pair to the form.
   void Add(const char* key, const char* value);
 
   // Add a key / value pair using a form item.
-  void Add(const Item& item) {
-    Add(item.key.c_str(), item.value.c_str());
-  }
+  void Add(const Item& item) { Add(item.key.c_str(), item.value.c_str()); }
 
   // Get the form data string constructed by successive calls to Add().
-  const std::string& form_data() const {
-    return *output_;
-  }
+  const std::string& form_data() const { return *output_; }
 
   // Parse a x-www-form-urlencoded encoded form into a list of key value pairs.
   static std::vector<Item> Parse(const char* form);

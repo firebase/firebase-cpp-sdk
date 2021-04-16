@@ -23,17 +23,11 @@
 #include <vector>
 
 extern "C" {
-int test_symbol(void) {
-  return 1;
-}  // NOLINT
+int test_symbol(void) { return 1; }  // NOLINT
 
-int test_another_symbol(void) {
-  return 2;
-}  // NOLINT
+int test_another_symbol(void) { return 2; }  // NOLINT
 
-int test_yet_one_more_symbol(void) {
-  return 3;
-}  // NOLINT
+int test_yet_one_more_symbol(void) { return 3; }  // NOLINT
 
 int global_c_symbol = 789;  // NOLINT
 
@@ -60,21 +54,17 @@ int global_cpp_symbol = 12345;  // NOLINT
 
 int TestClass::test_static_field;
 
-TestClass::TestClass() {
-}
+TestClass::TestClass() {}
 
 int TestClass::TestMethod() {
   return TestMethodNotInThisfile() + not_in_this_file();
 }
 
-int TestClass::TestStaticMethod() {
-  return TestStaticMethodNotInThisFile();
-}
+int TestClass::TestStaticMethod() { return TestStaticMethodNotInThisFile(); }
 
 }  // namespace test_namespace
 
-void GlobalFunctionWithParameter(test_namespace::TestClass const&, int) {
-}
+void GlobalFunctionWithParameter(test_namespace::TestClass const&, int) {}
 
 void GlobalFunctionWithMultipleParameters(
     test_namespace::TestClass* p1,

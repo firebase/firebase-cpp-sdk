@@ -33,8 +33,7 @@ namespace internal {
 class InvitesReceiverInternalAndroid : public InvitesReceiverInternal {
  public:
   InvitesReceiverInternalAndroid(const ::firebase::App& app);
-  virtual ~InvitesReceiverInternalAndroid() {
-  }
+  virtual ~InvitesReceiverInternalAndroid() {}
 
   virtual bool PerformFetch();
 

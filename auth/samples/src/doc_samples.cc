@@ -26,22 +26,14 @@
 // [END auth_includes]
 
 // Stub functions to allow sample functions to compile.
-void Wait(int /*time*/) {
-}
-void ShowTextBox(const char* /*message*/, ...) {
-}
-bool ShowTextButton(const char* /*message*/, ...) {
-  return false;
-}
-std::string ShowInputBox(const char* /*message*/, ...) {
-  return "";
-}
-void ShowImage(const char* /*image_file_name*/) {
-}
+void Wait(int /*time*/) {}
+void ShowTextBox(const char* /*message*/, ...) {}
+bool ShowTextButton(const char* /*message*/, ...) { return false; }
+std::string ShowInputBox(const char* /*message*/, ...) { return ""; }
+void ShowImage(const char* /*image_file_name*/) {}
 struct Mutex {};
 struct MutexLock {
-  explicit MutexLock(const Mutex& /*mutex*/) {
-  }
+  explicit MutexLock(const Mutex& /*mutex*/) {}
 };
 
 // Stub values to allow sample functions to compile.
@@ -765,8 +757,7 @@ class PhoneVerifier : public firebase::auth::PhoneAuthProvider::Listener {
     SendSms();
   }
 
-  ~PhoneVerifier() override {
-  }
+  ~PhoneVerifier() override {}
 
   void OnVerificationCompleted(firebase::auth::Credential credential) override {
     // Grab `mutex_` for the scope of `lock`. Callbacks can be called on other

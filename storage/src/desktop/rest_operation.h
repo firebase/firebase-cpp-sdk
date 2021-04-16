@@ -56,9 +56,7 @@ class RestOperation {
   ~RestOperation();
 
   // Get the notifier used to cleanup this object.
-  CleanupNotifier& cleanup() {
-    return cleanup_;
-  }
+  CleanupNotifier& cleanup() { return cleanup_; }
 
   // Pauses the operation currently in progress.
   bool Pause();

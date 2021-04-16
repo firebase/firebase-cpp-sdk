@@ -66,8 +66,7 @@ bool g_initialized = false;
 struct MobileAdsCallData {
   // Thread-safe call data.
   MobileAdsCallData()
-      : vm(g_java_vm), activity_global(nullptr), admob_app_id_global(nullptr) {
-  }
+      : vm(g_java_vm), activity_global(nullptr), admob_app_id_global(nullptr) {}
   ~MobileAdsCallData() {
     JNIEnv* env = firebase::util::GetThreadsafeJNIEnv(vm);
     if (admob_app_id_global) { env->DeleteGlobalRef(admob_app_id_global); }
@@ -211,9 +210,7 @@ void ReleaseClasses(JNIEnv* env) {
   rewarded_video::rewarded_video_helper::ReleaseClass(env);
 }
 
-bool IsInitialized() {
-  return g_initialized;
-}
+bool IsInitialized() { return g_initialized; }
 
 void Terminate() {
   if (!g_initialized) {
@@ -248,9 +245,7 @@ JNIEnv* GetJNI() {
   }
 }
 
-jobject GetActivity() {
-  return (g_app) ? g_app->activity() : g_activity;
-}
+jobject GetActivity() { return (g_app) ? g_app->activity() : g_activity; }
 
 static void CompleteAdFutureCallback(JNIEnv* env,
                                      jclass clazz,

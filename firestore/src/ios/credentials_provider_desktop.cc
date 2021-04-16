@@ -98,8 +98,7 @@ void OnToken(const Future<std::string>& future_token,
 }  // namespace
 
 FirebaseCppCredentialsProvider::FirebaseCppCredentialsProvider(App& app)
-    : contents_(std::make_shared<Contents>(app)) {
-}
+    : contents_(std::make_shared<Contents>(app)) {}
 
 FirebaseCppCredentialsProvider::~FirebaseCppCredentialsProvider() {
   RemoveAuthStateListener();

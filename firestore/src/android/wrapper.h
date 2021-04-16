@@ -27,12 +27,8 @@ class Wrapper {
   Wrapper& operator=(const Wrapper& wrapper) = delete;
   Wrapper& operator=(Wrapper&& wrapper) = delete;
 
-  FirestoreInternal* firestore_internal() {
-    return firestore_;
-  }
-  const jni::Object& ToJava() const {
-    return obj_;
-  }
+  FirestoreInternal* firestore_internal() { return firestore_; }
+  const jni::Object& ToJava() const { return obj_; }
 
   static jni::Object ToJava(const FieldValue& value);
 

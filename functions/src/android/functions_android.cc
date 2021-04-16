@@ -144,12 +144,8 @@ void FunctionsInternal::Terminate(App* app) {
   }
 }
 
-App* FunctionsInternal::app() const {
-  return app_;
-}
-const char* FunctionsInternal::region() const {
-  return region_.c_str();
-}
+App* FunctionsInternal::app() const { return app_; }
+const char* FunctionsInternal::region() const { return region_.c_str(); }
 
 Error FunctionsInternal::ErrorFromJavaFunctionsException(
     jobject java_exception, std::string* error_message) const {

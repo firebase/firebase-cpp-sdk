@@ -41,9 +41,7 @@ void Initialize(const ::firebase::App& /*app*/) {
 namespace internal {
 
 // Determine whether the analytics module is initialized.
-bool IsInitialized() {
-  return g_initialized;
-}
+bool IsInitialized() { return g_initialized; }
 
 }  // namespace internal
 

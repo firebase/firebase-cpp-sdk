@@ -58,9 +58,7 @@ void RequestFile::set_post_fields(const char* /*data*/, size_t /*size*/) {
   assert(false);
 }
 
-void RequestFile::set_post_fields(const char* /*data*/) {
-  assert(false);
-}
+void RequestFile::set_post_fields(const char* /*data*/) { assert(false); }
 
 size_t RequestFile::ReadBody(char* buffer, size_t length, bool* abort) {
   size_t data_read = 0;

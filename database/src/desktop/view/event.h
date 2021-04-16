@@ -33,8 +33,12 @@ class EventRegistration;
 // acted upon by a listener.
 struct Event {
   Event()
-      : type(), event_registration(), snapshot(), prev_name(), error(), path() {
-  }
+      : type(),
+        event_registration(),
+        snapshot(),
+        prev_name(),
+        error(),
+        path() {}
 
   Event(EventType _type,
         EventRegistration* _event_registration,
@@ -44,8 +48,7 @@ struct Event {
         snapshot(_snapshot),
         prev_name(),
         error(kErrorNone),
-        path() {
-  }
+        path() {}
 
   Event(EventType _type,
         EventRegistration* _event_registration,
@@ -56,8 +59,7 @@ struct Event {
         snapshot(_snapshot),
         prev_name(_prev_name),
         error(kErrorNone),
-        path() {
-  }
+        path() {}
 
   Event(UniquePtr<EventRegistration> _event_registration,
         Error _error,

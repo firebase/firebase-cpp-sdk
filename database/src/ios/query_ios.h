@@ -197,19 +197,13 @@ class QueryInternal {
   // The returned pointer should be passed to a Query for lifetime management.
   QueryInternal* LimitToLast(size_t limit);
 
-  const internal::QuerySpec& query_spec() const {
-    return query_spec_;
-  }
+  const internal::QuerySpec& query_spec() const { return query_spec_; }
 
-  DatabaseInternal* database_internal() const {
-    return database_;
-  }
+  DatabaseInternal* database_internal() const { return database_; }
 
  protected:
 #ifdef __OBJC__
-  FIRDatabaseQuery* impl() const {
-    return impl_->get();
-  }
+  FIRDatabaseQuery* impl() const { return impl_->get(); }
 #endif  // __OBJC__
 
   internal::QuerySpec query_spec_;

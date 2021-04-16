@@ -20,8 +20,8 @@ namespace firebase {
 namespace remote_config {
 namespace internal {
 
-NotificationChannel::NotificationChannel() : have_item_(false), closed_(false) {
-}
+NotificationChannel::NotificationChannel()
+    : have_item_(false), closed_(false) {}
 
 bool NotificationChannel::Get() {
   std::unique_lock<std::mutex> lock(mutex_);

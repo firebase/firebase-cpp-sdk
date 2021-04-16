@@ -48,9 +48,7 @@ class AndroidHelper {
   ~AndroidHelper();
 
   // The DynamicLinksNativeWrapper Java object we have instantiated.
-  jobject wrapper_obj() {
-    return wrapper_obj_;
-  }
+  jobject wrapper_obj() { return wrapper_obj_; }
 
   // JNI helper functions
 
@@ -78,9 +76,7 @@ class AndroidHelper {
   void ConnectionFailedCallback(int error_code);
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const {
-    return app_ != nullptr;
-  }
+  bool initialized() const { return app_ != nullptr; }
 
  private:
   // The App contains a global reference to the Activity, as well as access to

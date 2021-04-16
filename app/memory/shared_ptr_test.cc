@@ -33,11 +33,8 @@ using ::testing::IsNull;
 
 class Destructable {
  public:
-  explicit Destructable(Atomic<uint64_t>* destroyed) : destroyed_(destroyed) {
-  }
-  virtual ~Destructable() {
-    destroyed_->fetch_add(1);
-  }
+  explicit Destructable(Atomic<uint64_t>* destroyed) : destroyed_(destroyed) {}
+  virtual ~Destructable() { destroyed_->fetch_add(1); }
 
  private:
   Atomic<uint64_t>* const destroyed_;
@@ -45,8 +42,7 @@ class Destructable {
 
 class Derived : public Destructable {
  public:
-  explicit Derived(Atomic<uint64_t>* destroyed) : Destructable(destroyed) {
-  }
+  explicit Derived(Atomic<uint64_t>* destroyed) : Destructable(destroyed) {}
 };
 
 TEST(SharedPtrTest, DefaultConstructedSharedPtrDoesNotManageAnObject) {

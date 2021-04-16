@@ -23,9 +23,7 @@ namespace cppsdk {
 
 class ReporterImplTest : public ::testing::Test {
  protected:
-  void SetUp() override {
-    reporter_.reset();
-  }
+  void SetUp() override { reporter_.reset(); }
 
   void TearDown() override {
     EXPECT_THAT(reporter_.getFakeReports(),

@@ -74,9 +74,7 @@ class ControllerInternal {
 
   bool is_valid() const;
 
-  void set_pending_valid(bool pending_valid) {
-    pending_valid_ = pending_valid;
-  }
+  void set_pending_valid(bool pending_valid) { pending_valid_ = pending_valid; }
 
  private:
 #ifdef __OBJC__
