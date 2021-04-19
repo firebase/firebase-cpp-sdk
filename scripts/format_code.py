@@ -130,7 +130,6 @@ def list_files_from_directory(path, recurse):
     in FILE_TYPE_EXTENSIONS.
   """
   filenames = []
-  
   for root, dirs, files in os.walk(path):
     for filename in files:
       if filename.endswith(FILE_TYPE_EXTENSIONS):
@@ -177,6 +176,26 @@ def validate_arguments():
       return False
   return True
 
+def is_file_objc_header(filename):
+  """Checks the contents of the file to determine if it contains language 
+  constructs that appear in obj-c but not in C/C++.
+  
+  Args:
+    filename (string): the name of the file to check
+  
+  Returns:
+    bool: True if the header file contains known obj-c language definitions.
+    Returns False otherwise.
+  """
+  if '.h' not in filename:
+    return False
+  objective_c_tags = [ '@end', '@class', '#import']
+  for line in open(filename):
+    for tag in objective_c_tags:
+      if tag in line:
+        return True
+  return False
+
 def main(argv):
   if not validate_arguments():
     sys.exit(2)
@@ -203,13 +222,17 @@ def main(argv):
     count = 0
     for filename in filenames:
         if does_file_need_formatting(filename):
-          if FLAGS.verbose:
-            print('  - Formatting: "{0}"'.format(filename))
-          format_file(filename)
-          count += 1
+          if is_file_objc_header(filename):
+            if FLAGS.verbose:
+              print('  - Ignoring obj header: "{0}"'.format(filename)) 
+          else:
+            if FLAGS.verbose:
+              print('  - FRMT: "{0}"'.format(filename))
+            format_file(filename)
+            count += 1
         else:
           if FLAGS.verbose:
-            print('  - OK: "{0}"'.format(filename))
+            print('  - OK:   "{0}"'.format(filename))
     print('  > Formatted {0} file(s).'.format(count))
   else:
     count = 0
