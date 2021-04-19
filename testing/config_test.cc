@@ -18,6 +18,7 @@
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
 #include <jni.h>
+
 #include "testing/run_all_tests.h"
 #elif defined(__APPLE__) && TARGET_OS_IPHONE
 #include "testing/config_ios.h"
@@ -25,18 +26,18 @@
 #include "testing/config_desktop.h"
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP), defined(__APPLE__)
 
-#include "gtest/gtest.h"
+#include "flatbuffers/idl.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/config.h"
 #include "testing/testdata_config_generated.h"
-#include "flatbuffers/idl.h"
 
 namespace firebase {
 namespace testing {
 namespace cppsdk {
 
 const constexpr int64_t kNullObject = -1;
-const constexpr int64_t kException = -2; // NOLINT
+const constexpr int64_t kException = -2;  // NOLINT
 
 // Mimic what fake will do to get the test data provided by test user.
 int64_t GetFutureBoolTicker(const char* fake) {
@@ -50,8 +51,8 @@ int64_t GetFutureBoolTicker(const char* fake) {
   JNIEnv* android_jni_env = GetTestJniEnv();
   jstring jfake = android_jni_env->NewStringUTF(fake);
 
-  jclass config_cls = android_jni_env->FindClass(
-      "com/google/testing/ConfigAndroid");
+  jclass config_cls =
+      android_jni_env->FindClass("com/google/testing/ConfigAndroid");
   jobject jrow = android_jni_env->CallStaticObjectMethod(
       config_cls,
       android_jni_env->GetStaticMethodID(
@@ -67,16 +68,14 @@ int64_t GetFutureBoolTicker(const char* fake) {
   } else if (jrow == nullptr) {
     result = kNullObject;
   } else {
-    jclass row_cls = android_jni_env->FindClass(
-        "com/google/testing/ConfigRow");
+    jclass row_cls = android_jni_env->FindClass("com/google/testing/ConfigRow");
     jobject jfuturebool = android_jni_env->CallObjectMethod(
         jrow, android_jni_env->GetMethodID(
-                  row_cls, "futurebool",
-                  "()Lcom/google/testing/FutureBool;"));
+                  row_cls, "futurebool", "()Lcom/google/testing/FutureBool;"));
     EXPECT_EQ(android_jni_env->ExceptionCheck(), JNI_FALSE);
     android_jni_env->ExceptionClear();
-    jclass futurebool_cls = android_jni_env->FindClass(
-        "com/google/testing/FutureBool");
+    jclass futurebool_cls =
+        android_jni_env->FindClass("com/google/testing/FutureBool");
     jlong jticker = android_jni_env->CallLongMethod(
         jfuturebool,
         android_jni_env->GetMethodID(futurebool_cls, "ticker", "()J"));

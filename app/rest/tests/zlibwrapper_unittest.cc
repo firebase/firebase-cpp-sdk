@@ -24,11 +24,11 @@
 #include <string_view>
 #include <vector>
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "absl/base/macros.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "util/random/acmrandom.h"
 
 // 1048576 == 2^20 == 1 MB

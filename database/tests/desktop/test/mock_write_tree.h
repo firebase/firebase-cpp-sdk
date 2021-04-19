@@ -17,14 +17,15 @@
 
 #include <string>
 #include <vector>
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/optional.h"
 #include "app/src/path.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/desktop/core/write_tree.h"
 #include "database/src/desktop/persistence/persistence_storage_engine.h"
 #include "database/src/desktop/view/view_cache.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {

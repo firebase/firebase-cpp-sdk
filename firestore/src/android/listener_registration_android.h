@@ -55,7 +55,9 @@ class ListenerRegistrationInternal {
   ListenerRegistrationInternal& operator=(
       ListenerRegistrationInternal&& another) = delete;
 
-  FirestoreInternal* firestore_internal() { return firestore_; }
+  FirestoreInternal* firestore_internal() {
+    return firestore_;
+  }
 
  private:
   friend class DocumentReferenceInternal;

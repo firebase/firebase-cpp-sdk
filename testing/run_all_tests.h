@@ -29,13 +29,9 @@ namespace cppsdk {
 extern JNIEnv* g_android_jni_env;
 extern jobject g_android_activity;
 
-inline JNIEnv* GetTestJniEnv() {
-  return g_android_jni_env;
-}
+inline JNIEnv* GetTestJniEnv() { return g_android_jni_env; }
 
-inline jobject GetTestActivity() {
-  return g_android_activity;
-}
+inline jobject GetTestActivity() { return g_android_activity; }
 
 // Wrapper functions should not be exposed to test-case writer.
 

@@ -1,5 +1,6 @@
 #include "firestore/src/android/jni_runnable_android.h"
 
+#include "android/firestore_integration_test_android.h"
 #include "app/memory/atomic.h"
 #include "app/src/mutex.h"
 #include "firestore/src/jni/declaration.h"
@@ -7,7 +8,6 @@
 #include "firestore/src/jni/ownership.h"
 #include "firestore/src/jni/task.h"
 #include "firestore/src/jni/throwable.h"
-#include "android/firestore_integration_test_android.h"
 #include "gtest/gtest.h"
 
 namespace firebase {

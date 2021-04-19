@@ -40,14 +40,11 @@
         // defined(FIREBASE_TARGET_DESKTOP)
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(
-    database,
-    {
-      return ::firebase::kInitResultSuccess;
-    },
-    {
-        // Nothing to tear down.
-    });
+FIREBASE_APP_REGISTER_CALLBACKS(database,
+                                { return ::firebase::kInitResultSuccess; },
+                                {
+                                    // Nothing to tear down.
+                                });
 
 namespace firebase {
 namespace database {

@@ -5,6 +5,7 @@
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "firebase/firestore/firestore_errors.h"
 #include "firestore/src/android/document_snapshot_android.h"
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/query_snapshot_android.h"
@@ -12,7 +13,6 @@
 #include "firestore/src/include/firebase/firestore/query_snapshot.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
-#include "firebase/firestore/firestore_errors.h"
 
 namespace firebase {
 namespace firestore {
@@ -76,8 +76,12 @@ void EventListenerInternal::Initialize(jni::Loader& loader) {
 }
 
 void EventListenerInternal::DocumentEventListenerNativeOnEvent(
-    JNIEnv* raw_env, jclass, jlong firestore_ptr, jlong listener_ptr,
-    jobject value, jobject raw_error) {
+    JNIEnv* raw_env,
+    jclass,
+    jlong firestore_ptr,
+    jlong listener_ptr,
+    jobject value,
+    jobject raw_error) {
   if (firestore_ptr == 0 || listener_ptr == 0) {
     return;
   }
@@ -99,9 +103,12 @@ void EventListenerInternal::DocumentEventListenerNativeOnEvent(
 }
 
 /* static */
-void EventListenerInternal::QueryEventListenerNativeOnEvent(
-    JNIEnv* raw_env, jclass, jlong firestore_ptr, jlong listener_ptr,
-    jobject value, jobject raw_error) {
+void EventListenerInternal::QueryEventListenerNativeOnEvent(JNIEnv* raw_env,
+                                                            jclass,
+                                                            jlong firestore_ptr,
+                                                            jlong listener_ptr,
+                                                            jobject value,
+                                                            jobject raw_error) {
   if (firestore_ptr == 0 || listener_ptr == 0) {
     return;
   }
@@ -123,7 +130,8 @@ void EventListenerInternal::QueryEventListenerNativeOnEvent(
 }
 
 /* static */
-void EventListenerInternal::VoidEventListenerNativeOnEvent(JNIEnv*, jclass,
+void EventListenerInternal::VoidEventListenerNativeOnEvent(JNIEnv*,
+                                                           jclass,
                                                            jlong listener_ptr) {
   if (listener_ptr == 0) {
     return;
@@ -133,14 +141,16 @@ void EventListenerInternal::VoidEventListenerNativeOnEvent(JNIEnv*, jclass,
 }
 
 Local<Object> EventListenerInternal::Create(
-    Env& env, FirestoreInternal* firestore,
+    Env& env,
+    FirestoreInternal* firestore,
     EventListener<DocumentSnapshot>* listener) {
   return env.New(kNewDocumentEventListener, reinterpret_cast<jlong>(firestore),
                  reinterpret_cast<jlong>(listener));
 }
 
 Local<Object> EventListenerInternal::Create(
-    Env& env, FirestoreInternal* firestore,
+    Env& env,
+    FirestoreInternal* firestore,
     EventListener<QuerySnapshot>* listener) {
   return env.New(kNewQueryEventListener, reinterpret_cast<jlong>(firestore),
                  reinterpret_cast<jlong>(listener));

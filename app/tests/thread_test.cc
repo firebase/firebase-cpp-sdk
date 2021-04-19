@@ -17,9 +17,8 @@
 #include "app/src/thread.h"
 
 #include "app/src/mutex.h"
-
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace {
 
@@ -185,7 +184,8 @@ TEST(ThreadTest, ThreadIsNotEqualToDifferentThread) {
   firebase::Thread thread(
       [](ThreadSafe<firebase::Thread::Id>* value) {
         value->set(firebase::Thread::CurrentId());
-      }, &value);
+      },
+      &value);
   thread.Join();
 
   ASSERT_THAT(firebase::Thread::IsCurrentThread(value.get()), Eq(false));

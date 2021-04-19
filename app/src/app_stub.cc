@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-#include "app/src/include/firebase/app.h"
-
 #include <string.h>
 
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
 #include "app/src/function_registry.h"
+#include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/log.h"
 #include "app/src/util.h"

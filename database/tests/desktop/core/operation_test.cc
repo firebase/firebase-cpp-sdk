@@ -14,8 +14,8 @@
 
 #include "database/src/desktop/core/operation.h"
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {
@@ -71,7 +71,7 @@ TEST(OperationSource, OperationSourceAllArgConstructor) {
   }
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST(OperationSourceDeathTest, DISABLED_BadConstructorArgs) {
@@ -160,7 +160,7 @@ TEST(Operation, ListenComplete) {
   EXPECT_EQ(op.path.str(), "A/B/C");
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST(OperationDeathTest, DISABLED_ListenCompleteWithWrongSource) {
@@ -319,7 +319,7 @@ TEST(Operation, OperationForChildAckUserWriteNonEmptyPath) {
   EXPECT_TRUE(result->revert);
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST(OperationDeathTest,
@@ -356,7 +356,7 @@ TEST(Operation, OperationForChildAckUserWriteEmptyPathHasValue) {
   EXPECT_TRUE(result->revert);
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST(OperationDeathTest,

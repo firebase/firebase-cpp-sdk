@@ -16,6 +16,7 @@
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_SET_ACCOUNT_INFO_RESULT_H_
 
 #include <vector>
+
 #include "app/src/assert.h"
 #include "app/src/log.h"
 #include "auth/src/common.h"

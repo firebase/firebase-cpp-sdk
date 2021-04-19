@@ -15,12 +15,12 @@
  */
 
 #include "app/src/scheduler.h"
+
 #include "app/memory/atomic.h"
 #include "app/src/semaphore.h"
 #include "app/src/time.h"
-
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace scheduler {
@@ -33,16 +33,16 @@ class SchedulerTest : public ::testing::Test {
 
   void SetUp() override {
     atomic_count_.store(0);
-    while (callback_sem1_.TryWait()) {}
-    while (callback_sem2_.TryWait()) {}
+    while (callback_sem1_.TryWait()) {
+    }
+    while (callback_sem2_.TryWait()) {
+    }
     ordered_value_.clear();
     repeat_period_ms_ = 0;
     repeat_countdown_ = 0;
   }
 
-  static void SemaphorePost1() {
-    callback_sem1_.Post();
-  }
+  static void SemaphorePost1() { callback_sem1_.Post(); }
 
   static void AddCount() {
     atomic_count_.fetch_add(1);
@@ -59,10 +59,9 @@ class SchedulerTest : public ::testing::Test {
     --repeat_countdown_;
 
     if (repeat_countdown_ > 0) {
-        scheduler->Schedule(
-            new callback::CallbackValue1<Scheduler*>(
-                scheduler, RecursiveCallback),
-            repeat_period_ms_);
+      scheduler->Schedule(new callback::CallbackValue1<Scheduler*>(
+                              scheduler, RecursiveCallback),
+                          repeat_period_ms_);
     }
   }
 
@@ -77,8 +76,8 @@ class SchedulerTest : public ::testing::Test {
 };
 
 compat::Atomic<int> SchedulerTest::atomic_count_(0);
-Semaphore SchedulerTest::callback_sem1_(0);  // NOLINT
-Semaphore SchedulerTest::callback_sem2_(0);  // NOLINT
+Semaphore SchedulerTest::callback_sem1_(0);      // NOLINT
+Semaphore SchedulerTest::callback_sem2_(0);      // NOLINT
 std::vector<int> SchedulerTest::ordered_value_;  // NOLINT
 int SchedulerTest::repeat_period_ms_ = 0;
 int SchedulerTest::repeat_countdown_ = 0;
@@ -96,9 +95,7 @@ TEST_F(SchedulerTest, Basic) {
 
 #ifdef FIREBASE_USE_STD_FUNCTION
 TEST_F(SchedulerTest, BasicStdFunction) {
-  std::function<void(void)> func = [this](){
-    callback_sem1_.Post();
-  };
+  std::function<void(void)> func = [this]() { callback_sem1_.Post(); };
 
   scheduler_.Schedule(func);
   EXPECT_TRUE(callback_sem1_.TimedWait(1000));
@@ -110,11 +107,8 @@ TEST_F(SchedulerTest, BasicStdFunction) {
 
 TEST_F(SchedulerTest, TriggerOrderNoDelay) {
   std::vector<int> expected;
-  for (int i = 0; i < kThreadTestIteration; ++i)
-  {
-    scheduler_.Schedule(
-        new callback::CallbackValue1<int>(
-            i, AddValueInOrder));
+  for (int i = 0; i < kThreadTestIteration; ++i) {
+    scheduler_.Schedule(new callback::CallbackValue1<int>(i, AddValueInOrder));
     expected.push_back(i);
   }
 
@@ -126,11 +120,9 @@ TEST_F(SchedulerTest, TriggerOrderNoDelay) {
 
 TEST_F(SchedulerTest, TriggerOrderSameDelay) {
   std::vector<int> expected;
-  for (int i = 0; i < kThreadTestIteration; ++i)
-  {
-    scheduler_.Schedule(
-        new callback::CallbackValue1<int>(
-            i, AddValueInOrder), 1);
+  for (int i = 0; i < kThreadTestIteration; ++i) {
+    scheduler_.Schedule(new callback::CallbackValue1<int>(i, AddValueInOrder),
+                        1);
     expected.push_back(i);
   }
 
@@ -142,11 +134,9 @@ TEST_F(SchedulerTest, TriggerOrderSameDelay) {
 
 TEST_F(SchedulerTest, TriggerOrderDifferentDelay) {
   std::vector<int> expected;
-  for (int i = 0; i < 1000; ++i)
-  {
-    scheduler_.Schedule(
-        new callback::CallbackValue1<int>(
-            i, AddValueInOrder), i);
+  for (int i = 0; i < 1000; ++i) {
+    scheduler_.Schedule(new callback::CallbackValue1<int>(i, AddValueInOrder),
+                        i);
     expected.push_back(i);
   }
 
@@ -158,16 +148,12 @@ TEST_F(SchedulerTest, TriggerOrderDifferentDelay) {
 }
 
 TEST_F(SchedulerTest, ExecuteDuringCallback) {
-  scheduler_.Schedule(
-      new callback::CallbackValue1<Scheduler*>(
-          &scheduler_, [](Scheduler* scheduler){
-            callback_sem1_.Post();
-            scheduler->Schedule(
-                new callback::CallbackValue1<Scheduler*>(
-                    scheduler, [](Scheduler* scheduler){
-                      callback_sem2_.Post();
-                    }));
-          }));
+  scheduler_.Schedule(new callback::CallbackValue1<Scheduler*>(
+      &scheduler_, [](Scheduler* scheduler) {
+        callback_sem1_.Post();
+        scheduler->Schedule(new callback::CallbackValue1<Scheduler*>(
+            scheduler, [](Scheduler* scheduler) { callback_sem2_.Post(); }));
+      }));
 
   EXPECT_TRUE(callback_sem1_.TimedWait(1000));
   EXPECT_TRUE(callback_sem2_.TimedWait(1000));
@@ -176,14 +162,16 @@ TEST_F(SchedulerTest, ExecuteDuringCallback) {
 TEST_F(SchedulerTest, ScheduleDuringCallback1) {
   scheduler_.Schedule(
       new callback::CallbackValue1<Scheduler*>(
-          &scheduler_, [](Scheduler* scheduler){
+          &scheduler_,
+          [](Scheduler* scheduler) {
             callback_sem1_.Post();
             scheduler->Schedule(
                 new callback::CallbackValue1<Scheduler*>(
-                    scheduler, [](Scheduler* scheduler){
-                      callback_sem2_.Post();
-                    }), 1);
-          }), 1);
+                    scheduler,
+                    [](Scheduler* scheduler) { callback_sem2_.Post(); }),
+                1);
+          }),
+      1);
 
   EXPECT_TRUE(callback_sem1_.TimedWait(1000));
   EXPECT_TRUE(callback_sem2_.TimedWait(1000));
@@ -192,14 +180,16 @@ TEST_F(SchedulerTest, ScheduleDuringCallback1) {
 TEST_F(SchedulerTest, ScheduleDuringCallback100) {
   scheduler_.Schedule(
       new callback::CallbackValue1<Scheduler*>(
-          &scheduler_, [](Scheduler* scheduler){
+          &scheduler_,
+          [](Scheduler* scheduler) {
             callback_sem1_.Post();
             scheduler->Schedule(
                 new callback::CallbackValue1<Scheduler*>(
-                    scheduler, [](Scheduler* scheduler){
-                      callback_sem2_.Post();
-                    }), 100);
-          }), 100);
+                    scheduler,
+                    [](Scheduler* scheduler) { callback_sem2_.Post(); }),
+                100);
+          }),
+      100);
 
   EXPECT_TRUE(callback_sem1_.TimedWait(1000));
   EXPECT_TRUE(callback_sem2_.TimedWait(1000));
@@ -209,8 +199,7 @@ TEST_F(SchedulerTest, RecursiveCallbackNoInterval) {
   repeat_period_ms_ = 0;
   repeat_countdown_ = 1000;
   scheduler_.Schedule(
-      new callback::CallbackValue1<Scheduler*>(
-          &scheduler_, RecursiveCallback),
+      new callback::CallbackValue1<Scheduler*>(&scheduler_, RecursiveCallback),
       repeat_period_ms_);
 
   for (int i = 0; i < 1000; ++i) {
@@ -222,8 +211,7 @@ TEST_F(SchedulerTest, RecursiveCallbackWithInterval) {
   repeat_period_ms_ = 10;
   repeat_countdown_ = 5;
   scheduler_.Schedule(
-      new callback::CallbackValue1<Scheduler*>(
-          &scheduler_, RecursiveCallback),
+      new callback::CallbackValue1<Scheduler*>(&scheduler_, RecursiveCallback),
       repeat_period_ms_);
 
   for (int i = 0; i < 5; ++i) {
@@ -262,17 +250,20 @@ TEST_F(SchedulerTest, RepeatCallbackWithDelay) {
 }
 
 TEST_F(SchedulerTest, CancelImmediateCallback) {
-  auto test_func = [](int delay){
+  auto test_func = [](int delay) {
     // Use standalone scheduler and counter
     Scheduler scheduler;
     compat::Atomic<int> count(0);
     int success_cancel = 0;
     for (int i = 0; i < kThreadTestIteration; ++i) {
-      bool cancelled = scheduler.Schedule(
-          new callback::CallbackValue1<compat::Atomic<int>*>(
-              &count, [](compat::Atomic<int>* count){
-                count->fetch_add(1);
-          }), 0).Cancel();
+      bool cancelled =
+          scheduler
+              .Schedule(
+                  new callback::CallbackValue1<compat::Atomic<int>*>(
+                      &count,
+                      [](compat::Atomic<int>* count) { count->fetch_add(1); }),
+                  0)
+              .Cancel();
       if (cancelled) {
         ++success_cancel;
       }
@@ -282,10 +273,11 @@ TEST_F(SchedulerTest, CancelImmediateCallback) {
 
     // Does not guarantee 100% successful cancellation
     float success_rate = success_cancel * 100.0f / kThreadTestIteration;
-    printf("[Delay %dms] Cancel success rate: %.1f%% (And it is ok if not 100%%"
-           ")\n", delay, success_rate);
-    EXPECT_THAT(success_cancel + count.load(),
-                Eq(kThreadTestIteration));
+    printf(
+        "[Delay %dms] Cancel success rate: %.1f%% (And it is ok if not 100%%"
+        ")\n",
+        delay, success_rate);
+    EXPECT_THAT(success_cancel + count.load(), Eq(kThreadTestIteration));
   };
 
   // Test without delay
@@ -297,18 +289,21 @@ TEST_F(SchedulerTest, CancelImmediateCallback) {
 
 // This test can take around 5s ~ 30s depending on the platform
 TEST_F(SchedulerTest, CancelRepeatCallback) {
-  auto test_func = [](int delay, int repeat, int wait_repeat){
+  auto test_func = [](int delay, int repeat, int wait_repeat) {
     // Use standalone scheduler and counter for iterations
     Scheduler scheduler;
     compat::Atomic<int> count(0);
-    while (callback_sem1_.TryWait()) {}
+    while (callback_sem1_.TryWait()) {
+    }
 
     RequestHandle handler =
         scheduler.Schedule(new callback::CallbackValue1<compat::Atomic<int>*>(
-            &count, [](compat::Atomic<int>* count){
-              count->fetch_add(1);
-              callback_sem1_.Post();
-            }), delay, repeat);
+                               &count,
+                               [](compat::Atomic<int>* count) {
+                                 count->fetch_add(1);
+                                 callback_sem1_.Post();
+                               }),
+                           delay, repeat);
     EXPECT_FALSE(handler.IsCancelled());
 
     for (int i = 0; i < wait_repeat; ++i) {

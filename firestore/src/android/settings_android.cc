@@ -67,8 +67,7 @@ Local<SettingsInternal> SettingsInternal::Create(Env& env,
   builder = env.Call(builder, kSetPersistenceEnabled,
                      settings.is_persistence_enabled());
 
-  builder = env.Call(builder, kSetCacheSizeBytes,
-                     settings.cache_size_bytes());
+  builder = env.Call(builder, kSetCacheSizeBytes, settings.cache_size_bytes());
 
   return env.Call(builder, kBuild);
 }

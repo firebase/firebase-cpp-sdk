@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_MUTABLE_DATA_DESKTOP_H_
 
 #include <string>
+
 #include "app/memory/shared_ptr.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
@@ -30,8 +31,7 @@ namespace internal {
 class MutableDataInternal {
  public:
   // This constructor is used when creating the original copy of MutableData
-  explicit MutableDataInternal(
-      DatabaseInternal* database, const Variant& data);
+  explicit MutableDataInternal(DatabaseInternal* database, const Variant& data);
 
   // Create a shallow copy of the MutableData.
   // The caller owns the returned pointer and is responsible for deleting it.

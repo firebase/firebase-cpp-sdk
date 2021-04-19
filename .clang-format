@@ -1,12 +1,1 @@
 BasedOnStyle: Google
-Standard: Cpp11
-ColumnLimit: 80
-BinPackParameters: true
-BinPackArguments: true
-AllowAllParametersOfDeclarationOnNextLine: true
-AllowAllArgumentsOnNextLine: true
-SpacesInContainerLiterals: true
-DerivePointerAlignment: false
-PointerAlignment: Left
-AllowShortFunctionsOnASingleLine: All
-AlignAfterOpenBracket: Align

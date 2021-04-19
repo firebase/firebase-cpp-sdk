@@ -4,6 +4,16 @@
 #include <memory>
 #include <utility>
 
+#include "Firestore/core/src/api/collection_reference.h"
+#include "Firestore/core/src/api/document_change.h"
+#include "Firestore/core/src/api/document_reference.h"
+#include "Firestore/core/src/api/document_snapshot.h"
+#include "Firestore/core/src/api/listener_registration.h"
+#include "Firestore/core/src/api/query_core.h"
+#include "Firestore/core/src/api/query_snapshot.h"
+#include "Firestore/core/src/core/transaction.h"
+#include "Firestore/core/src/model/field_path.h"
+#include "absl/memory/memory.h"
 #include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/ios/collection_reference_ios.h"
@@ -16,16 +26,6 @@
 #include "firestore/src/ios/query_snapshot_ios.h"
 #include "firestore/src/ios/transaction_ios.h"
 #include "firestore/src/ios/write_batch_ios.h"
-#include "absl/memory/memory.h"
-#include "Firestore/core/src/api/collection_reference.h"
-#include "Firestore/core/src/api/document_change.h"
-#include "Firestore/core/src/api/document_reference.h"
-#include "Firestore/core/src/api/document_snapshot.h"
-#include "Firestore/core/src/api/listener_registration.h"
-#include "Firestore/core/src/api/query_core.h"
-#include "Firestore/core/src/api/query_snapshot.h"
-#include "Firestore/core/src/core/transaction.h"
-#include "Firestore/core/src/model/field_path.h"
 
 namespace firebase {
 namespace firestore {
@@ -45,8 +45,10 @@ struct ConverterImpl {
     return PublicT{internal};
   }
 
-  template <typename PublicT, typename CoreT,
-            typename InternalT = InternalType<PublicT>, typename... Args>
+  template <typename PublicT,
+            typename CoreT,
+            typename InternalT = InternalType<PublicT>,
+            typename... Args>
   static PublicT MakePublicFromCore(CoreT&& from, Args... args) {
     auto* internal = new InternalT(std::move(from), std::move(args)...);
     return PublicT{internal};

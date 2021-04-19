@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include "database/src/desktop/view/ranged_filter.h"
+
 #include <utility>
+
 #include "app/src/assert.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"

@@ -18,6 +18,7 @@
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_AUTH_RESPONSE_H_
 
 #include <string>
+
 #include "app/rest/response_json.h"
 #include "auth/response_generated.h"
 #include "auth/response_resource.h"

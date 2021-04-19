@@ -36,6 +36,8 @@
 #include "firebase/firestore/event_listener.h"
 #include "firebase/firestore/field_path.h"
 #include "firebase/firestore/field_value.h"
+#include "firebase/firestore/firestore_errors.h"
+#include "firebase/firestore/geo_point.h"
 #include "firebase/firestore/listener_registration.h"
 #include "firebase/firestore/map_field_value.h"
 #include "firebase/firestore/metadata_changes.h"
@@ -45,11 +47,9 @@
 #include "firebase/firestore/settings.h"
 #include "firebase/firestore/snapshot_metadata.h"
 #include "firebase/firestore/source.h"
+#include "firebase/firestore/timestamp.h"
 #include "firebase/firestore/transaction.h"
 #include "firebase/firestore/write_batch.h"
-#include "firebase/firestore/firestore_errors.h"
-#include "firebase/firestore/geo_point.h"
-#include "firebase/firestore/timestamp.h"
 
 namespace firebase {
 /**

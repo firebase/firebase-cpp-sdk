@@ -67,8 +67,7 @@ UserView::Writer UserView::ResetUser(AuthData* const auth_data,
 
   // Ownership of mutex is transferred to Writer, which will take care to
   // release it in the destructor.
-  return Writer(&mutex, &CastToUser(auth_data)->user_data_,
-                *auth_data);
+  return Writer(&mutex, &CastToUser(auth_data)->user_data_, *auth_data);
 }
 
 void UserView::ClearUser(AuthData* const auth_data,

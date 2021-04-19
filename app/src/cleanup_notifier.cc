@@ -26,7 +26,7 @@
 
 namespace FIREBASE_NAMESPACE {
 
-Mutex* CleanupNotifier::cleanup_notifiers_by_owner_mutex_ = new Mutex();
+Mutex *CleanupNotifier::cleanup_notifiers_by_owner_mutex_ = new Mutex();
 std::map<void *, CleanupNotifier *>
     *CleanupNotifier::cleanup_notifiers_by_owner_;
 
@@ -69,7 +69,7 @@ void CleanupNotifier::CleanupAll() {
   if (!cleaned_up_) {
     while (callbacks_.begin() != callbacks_.end()) {
       std::pair<void *, CleanupCallback> object_and_callback =
-        *callbacks_.begin();
+          *callbacks_.begin();
       object_and_callback.second(object_and_callback.first);
       UnregisterObject(object_and_callback.first);
     }

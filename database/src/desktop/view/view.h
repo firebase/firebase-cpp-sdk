@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_VIEW_H_
 
 #include <vector>
+
 #include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/optional.h"

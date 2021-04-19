@@ -27,7 +27,7 @@ FIREBASE_APP_REGISTER_CALLBACKS(remote_config,
                                   return kInitResultSuccess;
                                 },
                                 {
-                                  // Nothing to do.
+                                    // Nothing to do.
                                 });
 
 namespace firebase {

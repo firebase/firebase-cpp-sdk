@@ -24,8 +24,8 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/locale.h"
 #include "app/tests/include/firebase/app_for_testing.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/config.h"
 
 namespace firebase {

@@ -329,7 +329,7 @@ static void GetAppOptionsFromPlatformApp(JNIEnv* jni_env, jobject platform_app,
 
 // Create an Android SDK FirebaseApp instance.
 static jobject CreatePlatformApp(JNIEnv* jni_env, const AppOptions& options,
-                                  const char* name, jobject activity) {
+                                 const char* name, jobject activity) {
   jobject platform_app = nullptr;
   jobject platform_options = AppOptionsToPlatformOptions(jni_env, options);
   if (platform_options != nullptr) {
@@ -340,8 +340,8 @@ static jobject CreatePlatformApp(JNIEnv* jni_env, const AppOptions& options,
     } else {
       jstring app_name = jni_env->NewStringUTF(name);
       platform_app = jni_env->CallStaticObjectMethod(
-          app::GetClass(), app::GetMethodId(app::kInitializeApp),
-          activity, platform_options, app_name);
+          app::GetClass(), app::GetMethodId(app::kInitializeApp), activity,
+          platform_options, app_name);
       jni_env->DeleteLocalRef(app_name);
     }
     jni_env->DeleteLocalRef(platform_options);
@@ -365,9 +365,11 @@ static jobject CreateOrGetPlatformApp(JNIEnv* jni_env,
     AppOptions existing_options;
     GetAppOptionsFromPlatformApp(jni_env, platform_app, &existing_options);
     if (options_to_compare != existing_options) {
-      LogWarning("Existing instance of App %s found and options do not match "
-                 "the requested options.  Deleting %s to attempt recreation "
-                 "with requested options.", name, name);
+      LogWarning(
+          "Existing instance of App %s found and options do not match "
+          "the requested options.  Deleting %s to attempt recreation "
+          "with requested options.",
+          name, name);
       // Delete this FirebaseApp instance.
       jni_env->CallVoidMethod(platform_app, app::GetMethodId(app::kDelete));
       util::CheckAndClearJniExceptions(jni_env);
@@ -378,8 +380,8 @@ static jobject CreateOrGetPlatformApp(JNIEnv* jni_env,
   if (!platform_app) {
     AppOptions options_with_defaults = options;
     if (options_with_defaults.PopulateRequiredWithDefaults(jni_env, activity)) {
-      platform_app = CreatePlatformApp(jni_env, options_with_defaults, name,
-                                       activity);
+      platform_app =
+          CreatePlatformApp(jni_env, options_with_defaults, name, activity);
     }
   }
   return platform_app;
@@ -387,8 +389,8 @@ static jobject CreateOrGetPlatformApp(JNIEnv* jni_env,
 
 }  // namespace
 
-AppOptions* AppOptions::LoadDefault(AppOptions* app_options,
-                                    JNIEnv* jni_env, jobject activity) {
+AppOptions* AppOptions::LoadDefault(AppOptions* app_options, JNIEnv* jni_env,
+                                    jobject activity) {
   if (CacheMethods(jni_env, activity)) {
     // Read the options from the embedded resources.
     jobject platform_options = jni_env->CallStaticObjectMethod(
@@ -441,9 +443,10 @@ App* App::Create(JNIEnv* jni_env, jobject activity) {
     if (AppOptions::LoadDefault(&options, jni_env, activity)) {
       app = Create(options, jni_env, activity);
     } else {
-      LogError("Failed to read Firebase options from the app's resources. "
-               "Either make sure google-services.json is included in your "
-               "build or specify options explicitly.");
+      LogError(
+          "Failed to read Firebase options from the app's resources. "
+          "Either make sure google-services.json is included in your "
+          "build or specify options explicitly.");
     }
     ReleaseClasses(jni_env);
   }
@@ -465,8 +468,8 @@ App* App::Create(const AppOptions& options, const char* name, JNIEnv* jni_env,
   LogDebug("Creating Firebase App %s for %s", name, kFirebaseVersionString);
   if (CacheMethods(jni_env, activity)) {
     // Try to get or create a new FirebaseApp object.
-    jobject platform_app = CreateOrGetPlatformApp(jni_env, options, name,
-                                                  activity);
+    jobject platform_app =
+        CreateOrGetPlatformApp(jni_env, options, name, activity);
     if (platform_app) {
       app = new App();
       app->name_ = name;

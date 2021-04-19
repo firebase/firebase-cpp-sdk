@@ -48,9 +48,10 @@ Future<std::string> InstallationsInternal::GetToken(bool forceRefresh) {
   const auto handle =
       future_impl_.SafeAlloc<std::string>(kInstallationsFnGetToken);
 
-  future_impl_.CompleteWithResult(
-      handle, kInstallationsErrorNone, "",
-      forceRefresh ? std::string("FakeTokenForceRefresh") : std::string("FakeToken"));
+  future_impl_.CompleteWithResult(handle, kInstallationsErrorNone, "",
+                                  forceRefresh
+                                      ? std::string("FakeTokenForceRefresh")
+                                      : std::string("FakeToken"));
 
   return MakeFuture<std::string>(&future_impl_, handle);
 }

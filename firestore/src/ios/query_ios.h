@@ -4,15 +4,15 @@
 #include <cstdint>
 #include <vector>
 
+#include "Firestore/core/src/api/query_core.h"
+#include "Firestore/core/src/core/bound.h"
+#include "Firestore/core/src/core/order_by.h"
+#include "Firestore/core/src/core/query.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/query.h"
 #include "firestore/src/ios/firestore_ios.h"
 #include "firestore/src/ios/promise_factory_ios.h"
 #include "firestore/src/ios/user_data_converter_ios.h"
-#include "Firestore/core/src/api/query_core.h"
-#include "Firestore/core/src/core/bound.h"
-#include "Firestore/core/src/core/order_by.h"
-#include "Firestore/core/src/core/query.h"
 
 namespace firebase {
 namespace firestore {
@@ -146,9 +146,15 @@ class QueryInternal {
     kCount,
   };
 
-  const api::Query& query_core_api() const { return query_; }
-  const UserDataConverter& converter() const { return user_data_converter_; }
-  PromiseFactory<AsyncApis>& promise_factory() { return promise_factory_; }
+  const api::Query& query_core_api() const {
+    return query_;
+  }
+  const UserDataConverter& converter() const {
+    return user_data_converter_;
+  }
+  PromiseFactory<AsyncApis>& promise_factory() {
+    return promise_factory_;
+  }
 
  private:
   enum class BoundPosition {
@@ -160,9 +166,11 @@ class QueryInternal {
 
   using Operator = core::Filter::Operator;
 
-  Query Where(const FieldPath& field, Operator op,
+  Query Where(const FieldPath& field,
+              Operator op,
               const FieldValue& value) const;
-  Query Where(const FieldPath& field, Operator op,
+  Query Where(const FieldPath& field,
+              Operator op,
               const std::vector<FieldValue>& values) const;
 
   Query WithBound(BoundPosition bound_pos,

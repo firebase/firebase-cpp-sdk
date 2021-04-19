@@ -32,13 +32,17 @@ Local<Throwable> Task::GetException(Env& env) const {
   return env.Call(*this, kGetException);
 }
 
-bool Task::IsComplete(Env& env) const { return env.Call(*this, kIsComplete); }
+bool Task::IsComplete(Env& env) const {
+  return env.Call(*this, kIsComplete);
+}
 
 bool Task::IsSuccessful(Env& env) const {
   return env.Call(*this, kIsSuccessful);
 }
 
-bool Task::IsCanceled(Env& env) const { return env.Call(*this, kIsCanceled); }
+bool Task::IsCanceled(Env& env) const {
+  return env.Call(*this, kIsCanceled);
+}
 
 }  // namespace jni
 }  // namespace firestore

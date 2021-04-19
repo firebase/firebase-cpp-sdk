@@ -82,8 +82,7 @@ AppOptions* AppOptions::LoadFromJsonConfig(const char* config,  // NOLINT
       options->set_database_url(project_info->firebase_url()->c_str());
     }
     if (project_info->project_number()) {
-      options->set_messaging_sender_id(
-          project_info->project_number()->c_str());
+      options->set_messaging_sender_id(project_info->project_number()->c_str());
     }
     if (project_info->storage_bucket()) {
       options->set_storage_bucket(project_info->storage_bucket()->c_str());
@@ -185,15 +184,17 @@ bool AppOptions::PopulateRequiredWithDefaults(
     AppOptions default_options;
     if (AppOptions::LoadDefault(&default_options
 #if FIREBASE_PLATFORM_ANDROID
-                                , jni_env, activity
+                                ,
+                                jni_env, activity
 #endif  // FIREBASE_PLATFORM_ANDROID
                                 )) {
       if (app_id_.empty()) app_id_ = default_options.app_id_;
       if (api_key_.empty()) api_key_ = default_options.api_key_;
       if (project_id_.empty()) project_id_ = default_options.project_id_;
     } else {
-      LogError("Failed to load default options when attempting to populate "
-               "missing fields");
+      LogError(
+          "Failed to load default options when attempting to populate "
+          "missing fields");
     }
   }
   if (app_id_.empty() || api_key_.empty() || project_id_.empty()) {

@@ -59,5 +59,4 @@ const char* GetErrorMessage(Error error);
 }  // namespace storage
 }  // namespace firebase
 
-
 #endif  // FIREBASE_STORAGE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_STORAGE_COMMON_H_

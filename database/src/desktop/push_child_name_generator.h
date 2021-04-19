@@ -17,6 +17,7 @@
 
 #include <random>
 #include <string>
+
 #include "app/src/mutex.h"
 
 namespace firebase {

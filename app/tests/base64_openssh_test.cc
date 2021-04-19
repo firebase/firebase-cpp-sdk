@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
+#include "absl/strings/string_view.h"
 #include "app/src/base64.h"
 #include "app/src/log.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
-#include "absl/strings/string_view.h"
+#include "gtest/gtest.h"
 #include "openssl/base64.h"
 
 namespace firebase {

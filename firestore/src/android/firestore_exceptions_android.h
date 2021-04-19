@@ -20,8 +20,8 @@
 // This file contains a Copy of the classes defined in
 // Firestore/core/firestore_exceptions.h, without the absl dependency.
 
-#include "firestore/src/common/macros.h"  // for FIRESTORE_HAVE_EXCEPTIONS
 #include "Firestore/core/include/firebase/firestore/firestore_errors.h"
+#include "firestore/src/common/macros.h"  // for FIRESTORE_HAVE_EXCEPTIONS
 
 namespace firebase {
 namespace firestore {
@@ -66,4 +66,4 @@ class FirestoreInternalError : public FirestoreException {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif // FIRESTORE_FIRESTORE_EXCEPTIONS_ANDROID_H_
+#endif  // FIRESTORE_FIRESTORE_EXCEPTIONS_ANDROID_H_

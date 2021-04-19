@@ -101,7 +101,7 @@ static GeneratedDynamicLink LongLinkFromComponents(
     return generated_link;
   }
   if (components.domain_uri_prefix == nullptr ||
-       strlen(components.domain_uri_prefix) == 0) {
+      strlen(components.domain_uri_prefix) == 0) {
     generated_link.error = "No domain specified.";
     return generated_link;
   }
@@ -174,7 +174,7 @@ static GeneratedDynamicLink LongLinkFromComponents(
     }
   }
   generated_link.url = std::string(components.domain_uri_prefix) + "/" +
-      QueryStringFromMap(query_parameters);
+                       QueryStringFromMap(query_parameters);
   return generated_link;
 }
 

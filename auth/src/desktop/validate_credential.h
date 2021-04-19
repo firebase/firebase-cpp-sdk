@@ -16,6 +16,7 @@
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_VALIDATE_CREDENTIAL_H_
 
 #include <string>
+
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/auth_providers/email_auth_credential.h"
 #include "auth/src/desktop/credential_util.h"

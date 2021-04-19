@@ -13,8 +13,9 @@
 // limitations under the License.
 
 #include "remote_config/src/desktop/config_data.h"
-#include "remote_config/src/desktop/metadata.h"
+
 #include "flatbuffers/flexbuffers.h"
+#include "remote_config/src/desktop/metadata.h"
 
 namespace firebase {
 namespace remote_config {

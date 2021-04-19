@@ -21,13 +21,17 @@ void Long::Initialize(Loader& loader) {
   loader.LoadFromExistingClass(kClassName, g_clazz, kConstructor, kLongValue);
 }
 
-Class Long::GetClass() { return Class(g_clazz); }
+Class Long::GetClass() {
+  return Class(g_clazz);
+}
 
 Local<Long> Long::Create(Env& env, int64_t value) {
   return env.New(kConstructor, value);
 }
 
-int64_t Long::LongValue(Env& env) const { return env.Call(*this, kLongValue); }
+int64_t Long::LongValue(Env& env) const {
+  return env.Call(*this, kLongValue);
+}
 
 }  // namespace jni
 }  // namespace firestore

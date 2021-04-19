@@ -23,7 +23,7 @@ namespace internal {
 
 class ListenerInternal {
  public:
-  explicit ListenerInternal(Listener *listener) : listener_(listener) {}
+  explicit ListenerInternal(Listener* listener) : listener_(listener) {}
   ~ListenerInternal() {}
 
  private:

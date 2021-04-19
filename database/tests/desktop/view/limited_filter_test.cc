@@ -14,8 +14,8 @@
 
 #include "database/src/desktop/view/limited_filter.h"
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {

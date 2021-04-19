@@ -2,17 +2,17 @@
 
 #include <utility>
 
-#include "firestore/src/common/macros.h"
-#include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/ios/converter_ios.h"
-#include "firestore/src/ios/util_ios.h"
-#include "absl/memory/memory.h"
 #include "Firestore/core/src/api/document_reference.h"
 #include "Firestore/core/src/model/database_id.h"
 #include "Firestore/core/src/model/document_key.h"
 #include "Firestore/core/src/model/field_path.h"
 #include "Firestore/core/src/model/field_value_options.h"
 #include "Firestore/core/src/nanopb/byte_string.h"
+#include "absl/memory/memory.h"
+#include "firestore/src/common/macros.h"
+#include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/ios/converter_ios.h"
+#include "firestore/src/ios/util_ios.h"
 
 namespace firebase {
 namespace firestore {
@@ -23,7 +23,8 @@ using model::DocumentKey;
 
 DocumentSnapshotInternal::DocumentSnapshotInternal(
     api::DocumentSnapshot&& snapshot)
-    : snapshot_{std::move(snapshot)} {}
+    : snapshot_{std::move(snapshot)} {
+}
 
 Firestore* DocumentSnapshotInternal::firestore() {
   return GetFirestore(&snapshot_);
@@ -50,7 +51,9 @@ SnapshotMetadata DocumentSnapshotInternal::metadata() const {
   return SnapshotMetadata{result.pending_writes(), result.from_cache()};
 }
 
-bool DocumentSnapshotInternal::exists() const { return snapshot_.exists(); }
+bool DocumentSnapshotInternal::exists() const {
+  return snapshot_.exists();
+}
 
 MapFieldValue DocumentSnapshotInternal::GetData(
     ServerTimestampBehavior stb) const {

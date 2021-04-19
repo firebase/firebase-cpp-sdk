@@ -15,11 +15,11 @@
 #ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_DATABASE_TRANSACTION_H_
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_DATABASE_TRANSACTION_H_
 
-#include "firebase/internal/common.h"
-#include "firebase/variant.h"
 #include "firebase/database/common.h"
 #include "firebase/database/data_snapshot.h"
 #include "firebase/database/mutable_data.h"
+#include "firebase/internal/common.h"
+#include "firebase/variant.h"
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
 #include <functional>

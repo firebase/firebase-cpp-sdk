@@ -18,8 +18,8 @@
 #include "database/src/desktop/data_snapshot_desktop.h"
 #include "database/src/include/firebase/database/common.h"
 #include "database/src/include/firebase/database/listener.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {

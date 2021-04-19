@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
+#include "app/rest/response_binary.h"
+
 #include <memory>
 #include <string>
 
-#include "app/rest/response_binary.h"
 #include "app/rest/zlibwrapper.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace rest {
@@ -95,7 +96,7 @@ TEST_F(ResponseBinaryTest, GetBodyWihGunzipHugeBuffer) {
   srand(seed);
   size_t size = 10 * 1024 * 1024;
   for (size_t i = 0; i < size; i++) {
-    s += '0' + (rand() % 10); // NOLINT (rand_r() doesn't work on windows)
+    s += '0' + (rand() % 10);  // NOLINT (rand_r() doesn't work on windows)
   }
   SetBody(Compress(s));
 
@@ -113,8 +114,8 @@ TEST_F(ResponseBinaryTest, GetBinaryBodyWihGunzipHugeBuffer) {
   srand(seed);
   for (size_t i = 0; i < size; i++) {
     // Add 0-9 numbers and '\0' to buffer.
-    buffer[i] = (i % 10) ? ('0' + (rand() % 10)): '\0';  // NOLINT
-                                                         // (no rand_r on msvc)
+    buffer[i] = (i % 10) ? ('0' + (rand() % 10)) : '\0';  // NOLINT
+                                                          // (no rand_r on msvc)
   }
 
   std::string s(buffer, sizeof(buffer));

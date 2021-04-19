@@ -2,8 +2,19 @@
 
 #include <utility>
 
+#include "Firestore/core/src/api/document_reference.h"
+#include "Firestore/core/src/api/query_core.h"
+#include "Firestore/core/src/model/database_id.h"
+#include "Firestore/core/src/model/resource_path.h"
+#include "Firestore/core/src/util/async_queue.h"
+#include "Firestore/core/src/util/executor.h"
+#include "Firestore/core/src/util/log.h"
+#include "Firestore/core/src/util/status.h"
+#include "absl/memory/memory.h"
+#include "absl/types/any.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "firebase/firestore/firestore_version.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/common/util.h"
@@ -14,17 +25,6 @@
 #include "firestore/src/ios/document_reference_ios.h"
 #include "firestore/src/ios/document_snapshot_ios.h"
 #include "firestore/src/ios/listener_ios.h"
-#include "absl/memory/memory.h"
-#include "absl/types/any.h"
-#include "firebase/firestore/firestore_version.h"
-#include "Firestore/core/src/api/document_reference.h"
-#include "Firestore/core/src/api/query_core.h"
-#include "Firestore/core/src/model/database_id.h"
-#include "Firestore/core/src/model/resource_path.h"
-#include "Firestore/core/src/util/async_queue.h"
-#include "Firestore/core/src/util/executor.h"
-#include "Firestore/core/src/util/log.h"
-#include "Firestore/core/src/util/status.h"
 
 namespace firebase {
 namespace firestore {
@@ -45,7 +45,8 @@ std::shared_ptr<AsyncQueue> CreateWorkerQueue() {
 }  // namespace
 
 FirestoreInternal::FirestoreInternal(App* app)
-    : FirestoreInternal{app, CreateCredentialsProvider(*app)} {}
+    : FirestoreInternal{app, CreateCredentialsProvider(*app)} {
+}
 
 FirestoreInternal::FirestoreInternal(
     App* app, std::unique_ptr<CredentialsProvider> credentials)
@@ -69,8 +70,7 @@ std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
   const AppOptions& opt = app->options();
   return std::make_shared<api::Firestore>(
       DatabaseId{opt.project_id()}, app->name(), std::move(credentials),
-      CreateWorkerQueue(),
-      CreateFirebaseMetadataProvider(*app), this);
+      CreateWorkerQueue(), CreateFirebaseMetadataProvider(*app), this);
 }
 
 CollectionReference FirestoreInternal::Collection(

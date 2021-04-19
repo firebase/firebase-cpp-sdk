@@ -5,8 +5,8 @@
 #include <sstream>
 
 #if !defined(__ANDROID__)
-#include "absl/strings/ascii.h"
 #include "Firestore/core/src/util/autoid.h"
+#include "absl/strings/ascii.h"
 #else
 #include "android/util_autoid.h"
 #endif  // !defined(__ANDROID__)

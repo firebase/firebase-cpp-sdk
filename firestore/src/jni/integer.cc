@@ -21,13 +21,17 @@ void Integer::Initialize(Loader& loader) {
   loader.LoadFromExistingClass(kClassName, g_clazz, kConstructor, kIntValue);
 }
 
-Class Integer::GetClass() { return Class(g_clazz); }
+Class Integer::GetClass() {
+  return Class(g_clazz);
+}
 
 Local<Integer> Integer::Create(Env& env, int32_t value) {
   return env.New(kConstructor, value);
 }
 
-int32_t Integer::IntValue(Env& env) const { return env.Call(*this, kIntValue); }
+int32_t Integer::IntValue(Env& env) const {
+  return env.Call(*this, kIntValue);
+}
 
 }  // namespace jni
 }  // namespace firestore

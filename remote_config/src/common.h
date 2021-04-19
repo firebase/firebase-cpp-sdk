@@ -60,7 +60,7 @@ class FutureData {
  private:
   ReferenceCountedFutureImpl api_;
 
-  static FutureData *s_future_data_;
+  static FutureData* s_future_data_;
 };
 
 namespace internal {

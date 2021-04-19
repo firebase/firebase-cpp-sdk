@@ -5,14 +5,14 @@
 #include <string>
 #include <vector>
 
+#include "Firestore/core/src/model/field_value.h"
+#include "absl/types/variant.h"
 #include "app/src/assert.h"
+#include "firebase/firestore/geo_point.h"
+#include "firebase/firestore/timestamp.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/ios/firestore_ios.h"
-#include "absl/types/variant.h"
-#include "firebase/firestore/geo_point.h"
-#include "firebase/firestore/timestamp.h"
-#include "Firestore/core/src/model/field_value.h"
 
 namespace firebase {
 namespace firestore {
@@ -32,7 +32,9 @@ class FieldValueInternal {
   explicit FieldValueInternal(std::vector<FieldValue> value);
   explicit FieldValueInternal(MapFieldValue value);
 
-  FieldValue::Type type() const { return type_; }
+  FieldValue::Type type() const {
+    return type_;
+  }
 
   bool boolean_value() const;
   int64_t integer_value() const;
@@ -68,7 +70,8 @@ class FieldValueInternal {
 
   template <typename T>
   explicit FieldValueInternal(FieldValue::Type type, T value)
-      : type_{type}, value_{std::move(value)} {}
+      : type_{type}, value_{std::move(value)} {
+  }
 
   FieldValue::Type type_ = FieldValue::Type::kNull;
   // Note: it's impossible to roundtrip between a `DocumentReference` and

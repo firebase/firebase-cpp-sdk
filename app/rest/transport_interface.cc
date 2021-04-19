@@ -15,8 +15,10 @@
  */
 
 #include "app/rest/transport_interface.h"
+
 #include <limits>
 #include <memory>
+
 #include "flatbuffers/stl_emulation.h"
 
 namespace firebase {

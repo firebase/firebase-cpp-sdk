@@ -3,18 +3,18 @@
 #include <set>
 #include <string>
 
+#include "Firestore/core/src/core/user_data.h"
+#include "Firestore/core/src/model/field_mask.h"
+#include "Firestore/core/src/model/transform_operation.h"
+#include "Firestore/core/src/nanopb/byte_string.h"
+#include "Firestore/core/src/util/exception.h"
+#include "absl/memory/memory.h"
 #include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/field_value_ios.h"
 #include "firestore/src/ios/set_options_ios.h"
-#include "absl/memory/memory.h"
-#include "Firestore/core/src/core/user_data.h"
-#include "Firestore/core/src/model/field_mask.h"
-#include "Firestore/core/src/model/transform_operation.h"
-#include "Firestore/core/src/nanopb/byte_string.h"
-#include "Firestore/core/src/util/exception.h"
 
 namespace firebase {
 namespace firestore {
@@ -72,7 +72,8 @@ void ParseServerTimestamp(ParseContext&& context) {
   context.AddToFieldTransforms(*context.path(), ServerTimestampTransform{});
 }
 
-void ParseArrayTransform(Type type, const model::FieldValue::Array& elements,
+void ParseArrayTransform(Type type,
+                         const model::FieldValue::Array& elements,
                          ParseContext&& context) {
   auto transform_type = [type] {
     switch (type) {
@@ -217,7 +218,7 @@ ParsedSetData UserDataConverter::ParseMergeData(
 model::FieldValue UserDataConverter::ParseQueryValue(const FieldValue& input,
                                                      bool allow_arrays) const {
   ParseAccumulator accumulator{allow_arrays ? UserDataSource::ArrayArgument
-                                           : UserDataSource::Argument};
+                                            : UserDataSource::Argument};
 
   absl::optional<model::FieldValue> parsed =
       ParseData(input, accumulator.RootContext());
