@@ -4,11 +4,11 @@
 #include <cstdint>
 #include <string>
 
+#include "firebase/firestore/geo_point.h"
+#include "firebase/firestore/timestamp.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/stub/firestore_stub.h"
-#include "firebase/firestore/geo_point.h"
-#include "firebase/firestore/timestamp.h"
 
 namespace firebase {
 namespace firestore {
@@ -17,25 +17,40 @@ namespace firestore {
 class FieldValueInternal {
  public:
   using ApiType = FieldValue;
-  FieldValueInternal() {}
-  explicit FieldValueInternal(bool value) {}
-  explicit FieldValueInternal(int64_t value) {}
-  explicit FieldValueInternal(double value) {}
+  FieldValueInternal() {
+  }
+  explicit FieldValueInternal(bool value) {
+  }
+  explicit FieldValueInternal(int64_t value) {
+  }
+  explicit FieldValueInternal(double value) {
+  }
   // NOLINTNEXTLINE (performance-unnecessary-value-param)
-  explicit FieldValueInternal(Timestamp value) {}
+  explicit FieldValueInternal(Timestamp value) {
+  }
   // NOLINTNEXTLINE (performance-unnecessary-value-param)
-  explicit FieldValueInternal(std::string value) {}
-  FieldValueInternal(const uint8_t* value, size_t size) {}
+  explicit FieldValueInternal(std::string value) {
+  }
+  FieldValueInternal(const uint8_t* value, size_t size) {
+  }
   // NOLINTNEXTLINE (performance-unnecessary-value-param)
-  explicit FieldValueInternal(DocumentReference value) {}
+  explicit FieldValueInternal(DocumentReference value) {
+  }
   // NOLINTNEXTLINE (performance-unnecessary-value-param)
-  explicit FieldValueInternal(GeoPoint value) {}
+  explicit FieldValueInternal(GeoPoint value) {
+  }
   // NOLINTNEXTLINE (performance-unnecessary-value-param)
-  explicit FieldValueInternal(std::vector<FieldValue> value) {}
+  explicit FieldValueInternal(std::vector<FieldValue> value) {
+  }
   // NOLINTNEXTLINE (performance-unnecessary-value-param)
-  explicit FieldValueInternal(MapFieldValue value) {}
-  FirestoreInternal* firestore_internal() const { return nullptr; }
-  FieldValue::Type type() const { return FieldValue::Type::kNull; }
+  explicit FieldValueInternal(MapFieldValue value) {
+  }
+  FirestoreInternal* firestore_internal() const {
+    return nullptr;
+  }
+  FieldValue::Type type() const {
+    return FieldValue::Type::kNull;
+  }
 
   // The stub implemantion of _value() methods just return default values. We
   // could FIREBASE_ASSERT(false), since technically the caller shouldn't call
@@ -48,7 +63,9 @@ class FieldValueInternal {
   int64_t integer_value() const {
     return 0;
   }
-  double double_value() const { return 0; }
+  double double_value() const {
+    return 0;
+  }
   Timestamp timestamp_value() const {
     return Timestamp{};
   }
@@ -87,8 +104,12 @@ class FieldValueInternal {
   static FieldValue ArrayRemove(std::vector<FieldValue> elements) {
     return FieldValue{};
   }
-  static FieldValue IntegerIncrement(std::int64_t) { return FieldValue{}; }
-  static FieldValue DoubleIncrement(double) { return FieldValue{}; }
+  static FieldValue IntegerIncrement(std::int64_t) {
+    return FieldValue{};
+  }
+  static FieldValue DoubleIncrement(double) {
+    return FieldValue{};
+  }
 };
 
 inline bool operator==(const FieldValueInternal& lhs,

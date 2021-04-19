@@ -17,6 +17,7 @@
 
 #include <assert.h>
 #include <jni.h>
+
 #include <vector>
 
 #include "app/memory/shared_ptr.h"

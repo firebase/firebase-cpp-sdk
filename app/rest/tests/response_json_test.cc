@@ -15,11 +15,13 @@
  */
 
 #include "app/rest/response_json.h"
+
 #include <utility>
+
 #include "app/rest/sample_generated.h"
 #include "app/rest/sample_resource.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace rest {

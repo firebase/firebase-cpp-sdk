@@ -36,7 +36,7 @@ namespace firebase {
 namespace internal {
 class VariantInternal;
 }
-}
+}  // namespace firebase
 
 namespace FIREBASE_NAMESPACE {
 
@@ -87,9 +87,7 @@ class Variant {
   /// @brief Construct a null Variant.
   ///
   /// The Variant constructed will be of type Null.
-  Variant()
-    : type_(kInternalTypeNull)
-    , value_({}) {}
+  Variant() : type_(kInternalTypeNull), value_({}) {}
 
   /// @brief Construct a Variant with the given templated type.
   ///
@@ -130,7 +128,7 @@ class Variant {
   ///   * `std::map<K, V>` where K and V is convertible to variant type
   template <typename T>
   Variant(T value)  // NOLINT
-    : type_(kInternalTypeNull) {
+      : type_(kInternalTypeNull) {
     set_value_t(value);
   }
 
@@ -142,7 +140,7 @@ class Variant {
   ///
   /// @param[in] value The string to use for the Variant.
   Variant(const std::string& value)  // NOLINT
-    : type_(kInternalTypeNull) {
+      : type_(kInternalTypeNull) {
     set_mutable_string(value);
   }
 
@@ -152,7 +150,7 @@ class Variant {
   ///
   /// @param[in] value The STL vector to copy into the Variant.
   Variant(const std::vector<Variant>& value)  // NOLINT
-    : type_(kInternalTypeNull) {
+      : type_(kInternalTypeNull) {
     set_vector(value);
   }
 
@@ -166,7 +164,7 @@ class Variant {
   /// each element, and copied into the Vector Variant constructed here.
   template <typename T>
   Variant(const std::vector<T>& value)  // NOLINT
-    : type_(kInternalTypeNull) {
+      : type_(kInternalTypeNull) {
     Clear(kTypeVector);
     vector().reserve(value.size());
     for (size_t i = 0; i < value.size(); i++) {
@@ -185,7 +183,7 @@ class Variant {
   /// @param[in] array_size Number of elements of the array.
   template <typename T>
   Variant(const T array_of_values[], size_t array_size)
-    : type_(kInternalTypeNull) {
+      : type_(kInternalTypeNull) {
     Clear(kTypeVector);
     vector().reserve(array_size);
     for (size_t i = 0; i < array_size; i++) {
@@ -200,7 +198,7 @@ class Variant {
   ///
   /// @param[in] value The STL map to copy into the Variant.
   Variant(const std::map<Variant, Variant>& value)  // NOLINT
-  : type_(kInternalTypeNull) {
+      : type_(kInternalTypeNull) {
     set_map(value);
   }
 
@@ -216,7 +214,7 @@ class Variant {
   /// Variant constructed here.
   template <typename K, typename V>
   Variant(const std::map<K, V>& value)  // NOLINT
-    : type_(kInternalTypeNull) {
+      : type_(kInternalTypeNull) {
     Clear(kTypeMap);
     for (typename std::map<K, V>::const_iterator i = value.begin();
          i != value.end(); ++i) {
@@ -1119,8 +1117,8 @@ class Variant {
   // Older versions of visual studio cant have this inline in the union and do
   // sizeof for small string
   typedef struct {
-      const uint8_t* ptr;
-      size_t size;
+    const uint8_t* ptr;
+    size_t size;
   } BlobValue;
 
   // Union of plain old data (scalars or pointers).

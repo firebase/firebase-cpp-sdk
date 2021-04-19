@@ -25,11 +25,11 @@
 
 #include "app/src/log.h"
 #include "app/src/util.h"
+#include "flatbuffers/idl.h"
+#include "flatbuffers/util.h"
 #include "testlab/scenario_result_generated.h"
 #include "testlab/scenario_result_resource.h"
 #include "testlab/src/include/firebase/testlab.h"
-#include "flatbuffers/idl.h"
-#include "flatbuffers/util.h"
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(

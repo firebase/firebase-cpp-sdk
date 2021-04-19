@@ -25,8 +25,8 @@
 #include "database/src/include/firebase/database/common.h"
 #include "database/tests/desktop/test/mock_listener.h"
 #include "firebase/database/common.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::_;
 using ::testing::StrEq;

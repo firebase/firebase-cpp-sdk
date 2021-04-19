@@ -16,13 +16,13 @@
 
 #include <string>
 
+#include "absl/flags/flag.h"
 #include "app/google_services_resource.h"
 #include "app/src/log.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "flatbuffers/idl.h"
 #include "flatbuffers/util.h"
-#include "absl/flags/flag.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace fbs {

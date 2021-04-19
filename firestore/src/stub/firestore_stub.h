@@ -14,24 +14,34 @@ class FirestoreInternal;
 // incomplete type error for now.
 class Stub {
  public:
-  FirestoreInternal* firestore_internal() { return nullptr; }
+  FirestoreInternal* firestore_internal() {
+    return nullptr;
+  }
 };
 
 // This is the stub implementation of Firestore.
 class FirestoreInternal {
  public:
   using ApiType = Firestore;
-  explicit FirestoreInternal(App* app) : app_(app) {}
+  explicit FirestoreInternal(App* app) : app_(app) {
+  }
 
-  ~FirestoreInternal() {}
+  ~FirestoreInternal() {
+  }
 
-  App* app() const { return app_; }
+  App* app() const {
+    return app_;
+  }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return app_ != nullptr; }
+  bool initialized() const {
+    return app_ != nullptr;
+  }
 
   // Default CleanupNotifier as required by the shared code; nothing more.
-  CleanupNotifier& cleanup() { return cleanup_; }
+  CleanupNotifier& cleanup() {
+    return cleanup_;
+  }
 
   // Returns a null Collection.
   CollectionReference Collection(const char* collection_path) const {
@@ -44,15 +54,23 @@ class FirestoreInternal {
   }
 
   // Returns a null Query.
-  Query CollectionGroup(const char* collection_id) const { return Query{}; }
+  Query CollectionGroup(const char* collection_id) const {
+    return Query{};
+  }
 
   // Gets the settings class member. Has no effect to the stub yet.
-  Settings settings() const { return settings_; }
+  Settings settings() const {
+    return settings_;
+  }
 
   // Sets the settings class member. Has no effect to the stub yet.
-  void set_settings(Settings settings) { settings_ = settings; }
+  void set_settings(Settings settings) {
+    settings_ = settings;
+  }
 
-  WriteBatch batch() const { return WriteBatch{}; }
+  WriteBatch batch() const {
+    return WriteBatch{};
+  }
 
   // Runs transaction atomically.
   Future<void> RunTransaction(TransactionFunction* update) {
@@ -67,16 +85,26 @@ class FirestoreInternal {
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
   // Disables network and gets anything from cache instead of server.
-  Future<void> DisableNetwork() { return FailedFuture<void>(); }
+  Future<void> DisableNetwork() {
+    return FailedFuture<void>();
+  }
 
   // Re-enables network after a prior call to DisableNetwork().
-  Future<void> EnableNetwork() { return FailedFuture<void>(); }
+  Future<void> EnableNetwork() {
+    return FailedFuture<void>();
+  }
 
-  Future<void> Terminate() { return FailedFuture<void>(); }
+  Future<void> Terminate() {
+    return FailedFuture<void>();
+  }
 
-  Future<void> WaitForPendingWrites() { return FailedFuture<void>(); }
+  Future<void> WaitForPendingWrites() {
+    return FailedFuture<void>();
+  }
 
-  Future<void> ClearPersistence() { return FailedFuture<void>(); }
+  Future<void> ClearPersistence() {
+    return FailedFuture<void>();
+  }
 
   ListenerRegistration AddSnapshotsInSyncListener(
       EventListener<void>* listener) {
@@ -93,9 +121,11 @@ class FirestoreInternal {
   static void set_log_level(LogLevel level);
 
   void UnregisterListenerRegistration(
-      ListenerRegistrationInternal* registration) {}
+      ListenerRegistrationInternal* registration) {
+  }
 
-  void ClearListeners() {}
+  void ClearListeners() {
+  }
 
   // The following builders are test helpers to avoid expose the details into
   // public header.
@@ -112,9 +142,11 @@ class FirestoreInternal {
     return static_cast<InternalType*>(value.internal_);
   }
 
-  void set_firestore_public(Firestore*) {}
+  void set_firestore_public(Firestore*) {
+  }
 
-  static void SetClientLanguage(const std::string& language_token) {}
+  static void SetClientLanguage(const std::string& language_token) {
+  }
 
  private:
   CleanupNotifier cleanup_;

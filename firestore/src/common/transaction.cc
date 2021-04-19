@@ -30,7 +30,8 @@ Transaction::~Transaction() {
 }
 
 void Transaction::Set(const DocumentReference& document,
-                      const MapFieldValue& data, const SetOptions& options) {
+                      const MapFieldValue& data,
+                      const SetOptions& options) {
   if (!internal_) return;
   internal_->Set(document, data, options);
 }

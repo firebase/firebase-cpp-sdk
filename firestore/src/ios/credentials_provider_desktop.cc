@@ -3,12 +3,12 @@
 #include <string>
 #include <utility>
 
+#include "Firestore/core/src/util/status.h"
 #include "app/src/function_registry.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "firebase/firestore/firestore_errors.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/hard_assert_common.h"
-#include "firebase/firestore/firestore_errors.h"
-#include "Firestore/core/src/util/status.h"
 
 namespace firebase {
 namespace firestore {
@@ -76,8 +76,10 @@ StatusOr<Token> ConvertToken(const Future<std::string>& future, App& app) {
 // the `listener` with the error. If the current token generation is higher
 // than `expected_generation`, will invoke the `listener` with "aborted"
 // error. `future_token` must be a completed future.
-void OnToken(const Future<std::string>& future_token, App& app,
-             int token_generation, const TokenListener& listener,
+void OnToken(const Future<std::string>& future_token,
+             App& app,
+             int token_generation,
+             const TokenListener& listener,
              int expected_generation) {
   SIMPLE_HARD_ASSERT(
       future_token.status() == FutureStatus::kFutureStatusComplete,
@@ -98,7 +100,8 @@ void OnToken(const Future<std::string>& future_token, App& app,
 }  // namespace
 
 FirebaseCppCredentialsProvider::FirebaseCppCredentialsProvider(App& app)
-    : contents_(std::make_shared<Contents>(app)) {}
+    : contents_(std::make_shared<Contents>(app)) {
+}
 
 FirebaseCppCredentialsProvider::~FirebaseCppCredentialsProvider() {
   RemoveAuthStateListener();

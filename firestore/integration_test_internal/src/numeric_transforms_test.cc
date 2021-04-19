@@ -2,9 +2,9 @@
 
 #include "firebase/firestore.h"
 #include "firestore_integration_test.h"
-#include "util/event_accumulator.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "util/event_accumulator.h"
 
 namespace firebase {
 namespace firestore {
@@ -74,7 +74,9 @@ class NumericTransformsTest : public FirestoreIntegrationTest {
     EXPECT_FALSE(initial_snapshot.exists());
   }
 
-  ~NumericTransformsTest() override { listener_.Remove(); }
+  ~NumericTransformsTest() override {
+    listener_.Remove();
+  }
 
  protected:
   /** Writes values and waits for the corresponding snapshot. */

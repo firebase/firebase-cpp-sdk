@@ -12,7 +12,8 @@ namespace jni {
 
 class ObjectTest : public FirestoreIntegrationTest {
  public:
-  ObjectTest() : env_(app()->GetJNIEnv()) {}
+  ObjectTest() : env_(app()->GetJNIEnv()) {
+  }
 
  protected:
   JNIEnv* env_ = nullptr;

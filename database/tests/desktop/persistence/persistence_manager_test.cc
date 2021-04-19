@@ -14,11 +14,11 @@
 
 #include "database/src/desktop/persistence/persistence_manager.h"
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/tests/desktop/test/mock_cache_policy.h"
 #include "database/tests/desktop/test/mock_persistence_storage_engine.h"
 #include "database/tests/desktop/test/mock_tracked_query_manager.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using testing::_;
 using testing::NiceMock;

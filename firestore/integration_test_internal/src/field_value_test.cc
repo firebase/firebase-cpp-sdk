@@ -147,8 +147,8 @@ TEST_F(FieldValueTest, TestGeoPointType) {
 }
 
 TEST_F(FieldValueTest, TestArrayType) {
-  FieldValue value = FieldValue::Array(
-      {FieldValue::Boolean(true), FieldValue::Integer(123)});
+  FieldValue value =
+      FieldValue::Array({FieldValue::Boolean(true), FieldValue::Integer(123)});
   EXPECT_TRUE(Type::kArray == value.type());
   const std::vector<FieldValue>& array = value.array_value();
   EXPECT_TRUE(2 == array.size());
@@ -157,9 +157,8 @@ TEST_F(FieldValueTest, TestArrayType) {
 }
 
 TEST_F(FieldValueTest, TestMapType) {
-  FieldValue value =
-      FieldValue::Map(MapFieldValue{{"Bool", FieldValue::Boolean(true)},
-                                    {"Int", FieldValue::Integer(123)}});
+  FieldValue value = FieldValue::Map(MapFieldValue{
+      {"Bool", FieldValue::Boolean(true)}, {"Int", FieldValue::Integer(123)}});
   EXPECT_TRUE(Type::kMap == value.type());
   MapFieldValue map = value.map_value();
   EXPECT_TRUE(2 == map.size());
@@ -196,11 +195,11 @@ TEST_F(FieldValueTest, TestEquality) {
   EXPECT_TRUE(FieldValue::String("foo") == FieldValue::String("foo"));
 
   EXPECT_TRUE(FieldValue::Timestamp({123, 456}) ==
-            FieldValue::Timestamp({123, 456}));
+              FieldValue::Timestamp({123, 456}));
 
   uint8_t blob[] = "( ͡° ͜ʖ ͡°)";
   EXPECT_TRUE(FieldValue::Blob(blob, sizeof(blob)) ==
-            FieldValue::Blob(blob, sizeof(blob)));
+              FieldValue::Blob(blob, sizeof(blob)));
 
   EXPECT_TRUE(FieldValue::GeoPoint({43, 80}) == FieldValue::GeoPoint({43, 80}));
 
@@ -209,7 +208,7 @@ TEST_F(FieldValueTest, TestEquality) {
       FieldValue::Array({FieldValue::Integer(3), FieldValue::Double(4.0)}));
 
   EXPECT_TRUE(FieldValue::Map(MapFieldValue{{"foo", FieldValue::Integer(3)}}) ==
-            FieldValue::Map(MapFieldValue{{"foo", FieldValue::Integer(3)}}));
+              FieldValue::Map(MapFieldValue{{"foo", FieldValue::Integer(3)}}));
 
   EXPECT_TRUE(FieldValue::Delete() == FieldValue::Delete());
   EXPECT_TRUE(FieldValue::ServerTimestamp() == FieldValue::ServerTimestamp());
@@ -270,22 +269,23 @@ TEST_F(FieldValueTest, TestToString) {
   EXPECT_TRUE("123" == FieldValue::Integer(123L).ToString());
   EXPECT_TRUE("3.14" == FieldValue::Double(3.14).ToString());
   EXPECT_TRUE("Timestamp(seconds=12345, nanoseconds=54321)" ==
-            FieldValue::Timestamp({12345, 54321}).ToString());
+              FieldValue::Timestamp({12345, 54321}).ToString());
   EXPECT_TRUE("'hello'" == FieldValue::String("hello").ToString());
   uint8_t blob[] = "( ͡° ͜ʖ ͡°)";
   EXPECT_TRUE("Blob(28 20 cd a1 c2 b0 20 cd 9c ca 96 20 cd a1 c2 b0 29 00)" ==
-            FieldValue::Blob(blob, sizeof(blob)).ToString());
+              FieldValue::Blob(blob, sizeof(blob)).ToString());
   EXPECT_TRUE("GeoPoint(latitude=43, longitude=80)" ==
-            FieldValue::GeoPoint({43, 80}).ToString());
+              FieldValue::GeoPoint({43, 80}).ToString());
 
-  EXPECT_TRUE("DocumentReference(invalid)" == FieldValue::Reference({}).ToString());
+  EXPECT_TRUE("DocumentReference(invalid)" ==
+              FieldValue::Reference({}).ToString());
 
   EXPECT_TRUE("[]" == FieldValue::Array({}).ToString());
   EXPECT_TRUE("[null]" == FieldValue::Array({FieldValue::Null()}).ToString());
   EXPECT_TRUE("[null, true, 1]" ==
-            FieldValue::Array({FieldValue::Null(), FieldValue::Boolean(true),
-                               FieldValue::Integer(1)})
-                .ToString());
+              FieldValue::Array({FieldValue::Null(), FieldValue::Boolean(true),
+                                 FieldValue::Integer(1)})
+                  .ToString());
   // TODO(b/150016438): uncomment this case (fails on Android).
   // EXPECT_TRUE("[<invalid>]" == FieldValue::Array({FieldValue()}).ToString());
 
@@ -296,23 +296,25 @@ TEST_F(FieldValueTest, TestToString) {
   //                                                       FieldValue()},
   //                                                   })
   //                                   .ToString());
-  EXPECT_TRUE("{Null: null}" == FieldValue::Map({
-                                                {"Null", FieldValue::Null()},
-                                            })
-                                .ToString());
+  EXPECT_TRUE("{Null: null}" ==
+              FieldValue::Map({
+                                  {"Null", FieldValue::Null()},
+                              })
+                  .ToString());
   // Note: because the map is unordered, it's hard to check the case where a map
   // has more than one element.
 
   EXPECT_TRUE("FieldValue::Delete()" == FieldValue::Delete().ToString());
   EXPECT_TRUE("FieldValue::ServerTimestamp()" ==
-            FieldValue::ServerTimestamp().ToString());
+              FieldValue::ServerTimestamp().ToString());
   EXPECT_TRUE("FieldValue::ArrayUnion()" ==
-            FieldValue::ArrayUnion({FieldValue::Null()}).ToString());
+              FieldValue::ArrayUnion({FieldValue::Null()}).ToString());
   EXPECT_TRUE("FieldValue::ArrayRemove()" ==
-            FieldValue::ArrayRemove({FieldValue::Null()}).ToString());
+              FieldValue::ArrayRemove({FieldValue::Null()}).ToString());
 
   EXPECT_TRUE("FieldValue::Increment()" == FieldValue::Increment(1).ToString());
-  EXPECT_TRUE("FieldValue::Increment()" == FieldValue::Increment(1.0).ToString());
+  EXPECT_TRUE("FieldValue::Increment()" ==
+              FieldValue::Increment(1.0).ToString());
 }
 
 TEST_F(FieldValueTest, TestIncrementChoosesTheCorrectType) {
@@ -342,13 +344,15 @@ TEST_F(FieldValueTest, TestIncrementChoosesTheCorrectType) {
   // Types that would lead to truncation:
   // EXPECT_TRUE(FieldValue::Increment(1UL).type() == Type::kIncrementInteger);
   // unsigned long long ullfoo = 1;
-  // EXPECT_TRUE(FieldValue::Increment(ullfoo).type() == Type::kIncrementInteger);
-  // EXPECT_TRUE(FieldValue::Increment(1.0L).type() == Type::kIncrementDouble);
+  // EXPECT_TRUE(FieldValue::Increment(ullfoo).type() ==
+  // Type::kIncrementInteger); EXPECT_TRUE(FieldValue::Increment(1.0L).type() ==
+  // Type::kIncrementDouble);
 
   // Inapplicable types:
   // EXPECT_TRUE(FieldValue::Increment(true).type() == Type::kIncrementInteger);
   // EXPECT_TRUE(FieldValue::Increment('a').type() == Type::kIncrementInteger);
-  // EXPECT_TRUE(FieldValue::Increment("abc").type() == Type::kIncrementInteger);
+  // EXPECT_TRUE(FieldValue::Increment("abc").type() ==
+  // Type::kIncrementInteger);
 }
 
 #endif  // !defined(FIRESTORE_STUB_BUILD)

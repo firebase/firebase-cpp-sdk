@@ -18,12 +18,12 @@
 
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/child_event_registration.h"
 #include "database/src/desktop/core/value_event_registration.h"
 #include "database/src/desktop/util_desktop.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using testing::Eq;
 using testing::Pointwise;
@@ -318,7 +318,7 @@ TEST_F(EventGeneratorTest, GenerateEventsForChangesWithDifferentQuerySpec) {
   EXPECT_THAT(result, Pointwise(Eq(), expected));
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(EventGeneratorDeathTest, DISABLED_MissingChildName) {
@@ -335,7 +335,7 @@ TEST_F(EventGeneratorDeathTest, MissingChildName) {
                DEATHTEST_SIGABRT);
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(EventGeneratorDeathTest, DISABLED_MultipleValueChanges) {

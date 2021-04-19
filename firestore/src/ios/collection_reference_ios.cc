@@ -3,11 +3,11 @@
 #include <future>  // NOLINT(build/c++11)
 #include <utility>
 
+#include "Firestore/core/src/core/user_data.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/document_reference_ios.h"
 #include "firestore/src/ios/field_value_ios.h"
 #include "firestore/src/ios/user_data_converter_ios.h"
-#include "Firestore/core/src/core/user_data.h"
 
 namespace firebase {
 namespace firestore {
@@ -16,7 +16,8 @@ using core::ParsedSetData;
 
 CollectionReferenceInternal::CollectionReferenceInternal(
     api::CollectionReference&& collection)
-    : QueryInternal{std::move(collection)} {}
+    : QueryInternal{std::move(collection)} {
+}
 
 const api::CollectionReference&
 CollectionReferenceInternal::collection_core_api() const {

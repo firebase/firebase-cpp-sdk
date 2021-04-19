@@ -8,8 +8,8 @@
 #endif  // __cpp_exceptions
 
 #include "app/src/include/firebase/app.h"
-#include "firestore/src/jni/jni_fwd.h"
 #include "firebase/firestore/firestore_errors.h"
+#include "firestore/src/jni/jni_fwd.h"
 
 namespace firebase {
 namespace firestore {
@@ -21,7 +21,8 @@ class ExceptionInternal {
   static Error GetErrorCode(jni::Env& env, const jni::Object& exception);
   static std::string ToString(jni::Env& env, const jni::Object& exception);
 
-  static jni::Local<jni::Throwable> Create(jni::Env& env, Error code,
+  static jni::Local<jni::Throwable> Create(jni::Env& env,
+                                           Error code,
                                            const std::string& message);
   static jni::Local<jni::Throwable> Wrap(
       jni::Env& env, jni::Local<jni::Throwable>&& exception);

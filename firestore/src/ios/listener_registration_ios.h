@@ -3,8 +3,8 @@
 
 #include <memory>
 
-#include "firestore/src/ios/firestore_ios.h"
 #include "Firestore/core/src/api/listener_registration.h"
+#include "firestore/src/ios/firestore_ios.h"
 
 namespace firebase {
 namespace firestore {
@@ -20,12 +20,16 @@ class ListenerRegistrationInternal {
   ListenerRegistrationInternal& operator=(const ListenerRegistrationInternal&) =
       delete;
 
-  FirestoreInternal* firestore_internal() { return firestore_; }
+  FirestoreInternal* firestore_internal() {
+    return firestore_;
+  }
 
  private:
   friend class FirestoreInternal;
 
-  void Remove() { registration_->Remove(); }
+  void Remove() {
+    registration_->Remove();
+  }
 
   std::unique_ptr<api::ListenerRegistration> registration_;
   FirestoreInternal* firestore_ = nullptr;

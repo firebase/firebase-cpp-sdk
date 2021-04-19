@@ -556,8 +556,8 @@ User* Auth::current_user() {
 std::string Auth::language_code() const {
   if (!auth_data_) return std::string();
   JNIEnv* env = Env(auth_data_);
-  jobject j_pending_result = env->CallObjectMethod(AuthImpl(auth_data_),
-                              auth::GetMethodId(auth::kGetLanguageCode));
+  jobject j_pending_result = env->CallObjectMethod(
+      AuthImpl(auth_data_), auth::GetMethodId(auth::kGetLanguageCode));
   if (firebase::util::CheckAndClearJniExceptions(env) ||
       j_pending_result == nullptr) {
     return std::string();

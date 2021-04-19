@@ -17,8 +17,8 @@
 
 #include "app/src/secure/user_secure_internal.h"
 #include "app/src/secure/user_secure_manager.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 #ifdef __APPLE__
 #include "TargetConditionals.h"

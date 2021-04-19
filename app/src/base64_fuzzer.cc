@@ -19,10 +19,10 @@
 
 #include "app/src/base64.h"
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size) {
   // Test encoding and decoding this string with various permutations of
   // options.
-  std::string orig(reinterpret_cast<const char *>(data), size);
+  std::string orig(reinterpret_cast<const char*>(data), size);
   std::string encoded, decoded;
   bool success;
   success = firebase::internal::Base64Encode(orig, &encoded);

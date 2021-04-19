@@ -28,7 +28,9 @@ void TimestampInternal::Initialize(jni::Loader& loader) {
       loader.LoadClass(kClassName, kConstructor, kGetSeconds, kGetNanoseconds);
 }
 
-Class TimestampInternal::GetClass() { return Class(g_clazz); }
+Class TimestampInternal::GetClass() {
+  return Class(g_clazz);
+}
 
 Local<TimestampInternal> TimestampInternal::Create(Env& env,
                                                    const Timestamp& timestamp) {

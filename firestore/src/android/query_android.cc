@@ -249,7 +249,8 @@ Future<QuerySnapshot> QueryInternal::Get(Source source) {
   return promises_.NewFuture<QuerySnapshot>(env, AsyncFn::kGet, task);
 }
 
-Query QueryInternal::Where(const FieldPath& field, const Method<Object>& method,
+Query QueryInternal::Where(const FieldPath& field,
+                           const Method<Object>& method,
                            const FieldValue& value) const {
   Env env = GetEnv();
   Local<Object> java_field = FieldPathConverter::Create(env, field);
@@ -257,7 +258,8 @@ Query QueryInternal::Where(const FieldPath& field, const Method<Object>& method,
   return firestore_->NewQuery(env, query);
 }
 
-Query QueryInternal::Where(const FieldPath& field, const Method<Object>& method,
+Query QueryInternal::Where(const FieldPath& field,
+                           const Method<Object>& method,
                            const std::vector<FieldValue>& values) const {
   Env env = GetEnv();
 
@@ -300,7 +302,8 @@ ListenerRegistration QueryInternal::AddSnapshotListener(
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 ListenerRegistration QueryInternal::AddSnapshotListener(
-    MetadataChanges metadata_changes, EventListener<QuerySnapshot>* listener,
+    MetadataChanges metadata_changes,
+    EventListener<QuerySnapshot>* listener,
     bool passing_listener_ownership) {
   Env env = GetEnv();
 

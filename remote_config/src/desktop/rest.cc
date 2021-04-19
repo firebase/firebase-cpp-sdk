@@ -19,7 +19,6 @@
 #include <memory>
 #include <sstream>
 
-#include "firebase/app.h"
 #include "app/instance_id/instance_id_desktop_impl.h"
 #include "app/meta/move.h"
 #include "app/rest/transport_builder.h"
@@ -31,6 +30,7 @@
 #include "app/src/locale.h"
 #include "app/src/log.h"
 #include "app/src/uuid.h"
+#include "firebase/app.h"
 #include "remote_config/src/common.h"
 #include "remote_config/src/desktop/config_data.h"
 

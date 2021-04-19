@@ -24,8 +24,8 @@ namespace firebase {
 namespace storage {
 namespace internal {
 
-ListenerInternal::ListenerInternal(Listener *listener) :
-    listener_(listener), bytes_transferred_(-1), total_byte_count_(-1) {}
+ListenerInternal::ListenerInternal(Listener* listener)
+    : listener_(listener), bytes_transferred_(-1), total_byte_count_(-1) {}
 
 ListenerInternal::~ListenerInternal() {
   MutexLock lock(mutex_);
@@ -46,15 +46,15 @@ void ListenerInternal::NotifyProgress(Controller* controller) {
   }
 }
 
-void ListenerInternal::set_rest_operation(RestOperation *operation) {
+void ListenerInternal::set_rest_operation(RestOperation* operation) {
   MutexLock lock(mutex_);
   rest_operation_ = operation;
   if (rest_operation_) {
     // Remove the reference to the rest operation from this listener when the
     // operation is destroyed.  Since this is called when rest_operation_ is
     // destroyed we know the operation will no longer reference this listener.
-    rest_operation_->cleanup().RegisterObject(this, [](void *listener) {
-      reinterpret_cast<ListenerInternal *>(listener)->set_rest_operation(
+    rest_operation_->cleanup().RegisterObject(this, [](void* listener) {
+      reinterpret_cast<ListenerInternal*>(listener)->set_rest_operation(
           nullptr);
       // Do not call rest_operation->set_listener() here as it can lead to
       // deadlock between the mutex owned by the listener and the operation's

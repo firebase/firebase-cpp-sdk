@@ -16,8 +16,8 @@
 
 #include "app/src/optional.h"
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {
@@ -114,8 +114,8 @@ class ExpectCallSetup {
     EXPECT_CALL(*mock_notifier_, Copy()).Times(expectecCopyCallCount);
     EXPECT_CALL(*mock_notifier_, Move()).Times(expectecMoveCallCount);
 #else
-    EXPECT_CALL(*mock_notifier_, Copy()).
-        Times(expectecCopyCallCount + expectecMoveCallCount);
+    EXPECT_CALL(*mock_notifier_, Copy())
+        .Times(expectecCopyCallCount + expectecMoveCallCount);
 #endif
     return *this;
   }
@@ -130,9 +130,7 @@ class ExpectCallSetup {
 
 class OptionalTest : public ::testing::Test, protected ExpectCallSetup {
  protected:
-  OptionalTest()
-    : ExpectCallSetup(&mock_notifier_)
-  {}
+  OptionalTest() : ExpectCallSetup(&mock_notifier_) {}
 
   void SetUp() override {
     SpecialFunctionsNotifierWrapper::s_notifier_ = &mock_notifier_;
@@ -142,9 +140,7 @@ class OptionalTest : public ::testing::Test, protected ExpectCallSetup {
     SpecialFunctionsNotifierWrapper::s_notifier_ = nullptr;
   }
 
-  ExpectCallSetup& SetupExpectCall() {
-    return *this;
-  }
+  ExpectCallSetup& SetupExpectCall() { return *this; }
 
   SpecialFunctionsNotifierMock mock_notifier_;
 };
@@ -168,10 +164,7 @@ TEST_F(OptionalTest, CopyConstructor) {
   EXPECT_TRUE(another_copy_of_optional_int.has_value());
   EXPECT_EQ(another_copy_of_optional_int.value(), 9999);
 
-  SetupExpectCall()
-    .Construct(1)
-    .CopyAndMove(2, 1)
-    .Destruct(4);
+  SetupExpectCall().Construct(1).CopyAndMove(2, 1).Destruct(4);
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(
       SpecialFunctionsNotifierWrapper{});
@@ -194,10 +187,7 @@ TEST_F(OptionalTest, CopyAssignment) {
   EXPECT_TRUE(another_optional_int.has_value());
   EXPECT_EQ(another_optional_int.value(), 9999);
 
-  SetupExpectCall()
-    .Construct(2)
-    .CopyAndMove(1, 2)
-    .Destruct(4);
+  SetupExpectCall().Construct(2).CopyAndMove(1, 2).Destruct(4);
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(
       SpecialFunctionsNotifierWrapper{});
@@ -214,10 +204,7 @@ TEST_F(OptionalTest, CopyAssignmentSelf) {
   EXPECT_TRUE(optional_int.has_value());
   EXPECT_EQ(optional_int.value(), 9999);
 
-  SetupExpectCall()
-    .Construct(1)
-    .CopyAndMove(1, 1)
-    .Destruct(2);
+  SetupExpectCall().Construct(1).CopyAndMove(1, 1).Destruct(2);
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(
       SpecialFunctionsNotifierWrapper{});
@@ -236,10 +223,7 @@ TEST_F(OptionalTest, MoveConstructor) {
   EXPECT_TRUE(another_moved_optional_int.has_value());
   EXPECT_EQ(another_moved_optional_int.value(), 9999);
 
-  SetupExpectCall()
-    .Construct(1)
-    .CopyAndMove(0, 3)
-    .Destruct(4);
+  SetupExpectCall().Construct(1).CopyAndMove(0, 3).Destruct(4);
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(
       SpecialFunctionsNotifierWrapper{});
@@ -261,10 +245,7 @@ TEST_F(OptionalTest, MoveAssignment) {
   EXPECT_TRUE(another_optional_int.has_value());
   EXPECT_EQ(another_optional_int.value(), 9999);
 
-  SetupExpectCall()
-    .Construct(2)
-    .CopyAndMove(0, 3)
-    .Destruct(4);
+  SetupExpectCall().Construct(2).CopyAndMove(0, 3).Destruct(4);
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(
       SpecialFunctionsNotifierWrapper{});
@@ -276,10 +257,7 @@ TEST_F(OptionalTest, MoveAssignment) {
 }
 
 TEST_F(OptionalTest, Destructor) {
-  SetupExpectCall()
-    .Construct(2)
-    .CopyAndMove(0, 2)
-    .Destruct(4);
+  SetupExpectCall().Construct(2).CopyAndMove(0, 2).Destruct(4);
 
   // Verify the destructor is called when object goes out of scope.
   {
@@ -300,10 +278,7 @@ TEST_F(OptionalTest, ValueConstructor) {
   EXPECT_TRUE(optional_int.has_value());
   EXPECT_EQ(optional_int.value(), 1337);
 
-  SetupExpectCall()
-    .Construct(1)
-    .CopyAndMove(1, 0)
-    .Destruct(2);
+  SetupExpectCall().Construct(1).CopyAndMove(1, 0).Destruct(2);
 
   SpecialFunctionsNotifierWrapper value{};
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(value);
@@ -311,10 +286,7 @@ TEST_F(OptionalTest, ValueConstructor) {
 }
 
 TEST_F(OptionalTest, ValueMoveConstructor) {
-  SetupExpectCall()
-    .Construct(1)
-    .CopyAndMove(0, 1)
-    .Destruct(2);
+  SetupExpectCall().Construct(1).CopyAndMove(0, 1).Destruct(2);
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(
       SpecialFunctionsNotifierWrapper{});
@@ -327,10 +299,7 @@ TEST_F(OptionalTest, ValueCopyAssignmentToUnpopulatedOptional) {
   EXPECT_TRUE(optional_int.has_value());
   EXPECT_EQ(optional_int.value(), 9999);
 
-  SetupExpectCall()
-    .Construct(1)
-    .CopyAndMove(1, 0)
-    .Destruct(2);
+  SetupExpectCall().Construct(1).CopyAndMove(1, 0).Destruct(2);
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct;
   SpecialFunctionsNotifierWrapper my_struct{};
@@ -344,10 +313,7 @@ TEST_F(OptionalTest, ValueCopyAssignmentToPopulatedOptional) {
   EXPECT_TRUE(optional_int.has_value());
   EXPECT_EQ(optional_int.value(), 9999);
 
-  SetupExpectCall()
-    .Construct(2)
-    .CopyAndMove(1, 1)
-    .Destruct(3);
+  SetupExpectCall().Construct(2).CopyAndMove(1, 1).Destruct(3);
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(
       SpecialFunctionsNotifierWrapper{});
@@ -357,10 +323,7 @@ TEST_F(OptionalTest, ValueCopyAssignmentToPopulatedOptional) {
 }
 
 TEST_F(OptionalTest, ValueMoveAssignmentToUnpopulatedOptional) {
-  SetupExpectCall()
-    .Construct(1)
-    .CopyAndMove(0, 1)
-    .Destruct(2);
+  SetupExpectCall().Construct(1).CopyAndMove(0, 1).Destruct(2);
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct;
   SpecialFunctionsNotifierWrapper my_struct{};
@@ -369,10 +332,7 @@ TEST_F(OptionalTest, ValueMoveAssignmentToUnpopulatedOptional) {
 }
 
 TEST_F(OptionalTest, ValueMoveAssignmentToPopulatedOptional) {
-  SetupExpectCall()
-    .Construct(2)
-    .CopyAndMove(0, 2)
-    .Destruct(3);
+  SetupExpectCall().Construct(2).CopyAndMove(0, 2).Destruct(3);
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(
       SpecialFunctionsNotifierWrapper{});
@@ -397,7 +357,7 @@ TEST_F(OptionalTest, HasValue) {
   EXPECT_FALSE(optional_int.has_value());
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(OptionalTest, DISABLED_ValueDeathTest) {

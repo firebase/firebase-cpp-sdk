@@ -16,11 +16,11 @@
 #define FIREBASE_AUTH_CLIENT_CPP_TESTS_DESKTOP_TEST_UTILS_H_
 
 #include "app/src/include/firebase/future.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "auth/src/desktop/auth_desktop.h"
 #include "auth/src/include/firebase/auth.h"
 #include "auth/src/include/firebase/auth/types.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace auth {
@@ -87,8 +87,7 @@ inline void VerifySignInResult(const Future<SignInResult>& future,
 
 inline FederatedOAuthProviderData GetFakeOAuthProviderData() {
   FederatedOAuthProviderData provider_data;
-  provider_data.provider_id =
-      firebase::auth::GitHubAuthProvider::kProviderId;
+  provider_data.provider_id = firebase::auth::GitHubAuthProvider::kProviderId;
   provider_data.scopes = {"read:user", "user:email"};
   provider_data.custom_parameters = {{"req_id", "1234"}};
   return provider_data;
@@ -132,7 +131,7 @@ class OAuthProviderTestHandler
   // Caches the auth_completion_handler, which will be invoked via
   // the test framework's inovcation of the TriggerSignInComplete method.
   void OnSignIn(const FederatedOAuthProviderData& provider_data,
-                        AuthCompletionHandle* completion_handle) override {
+                AuthCompletionHandle* completion_handle) override {
     // ensure we're not invoking this handler twice, thereby overwritting the
     // sign_in_auth_completion_handle_
     assert(sign_in_auth_completion_handle_ == nullptr);
@@ -162,7 +161,7 @@ class OAuthProviderTestHandler
   // Caches the auth_completion_handler, which will be invoked via
   // the test framework's inovcation of the TriggerLinkComplete method.
   void OnLink(const FederatedOAuthProviderData& provider_data,
-                      AuthCompletionHandle* completion_handle) override {
+              AuthCompletionHandle* completion_handle) override {
     assert(link_auth_completion_handle_ == nullptr);
     link_auth_completion_handle_ = completion_handle;
     PerformIntegrityChecks(provider_data, completion_handle);
@@ -184,7 +183,7 @@ class OAuthProviderTestHandler
                                     const char* error_message) {
     assert(link_auth_completion_handle_);
     LinkComplete(link_auth_completion_handle_, authenticated_user_data_,
-                   auth_error, error_message);
+                 auth_error, error_message);
   }
 
   // Caches the auth_completion_handler, which will be invoked via
@@ -264,12 +263,9 @@ class AuthStateChangesCounter : public detail::ListenerChangeCounter,
 // Class that when destroyed will momentarly sleep.  Used to ensure that
 // listener callbacks have time to be invoked before they're verified.
 class SleepUponDestruction {
-  public:
-  ~SleepUponDestruction() {
-    firebase::internal::Sleep(200);
-  }
+ public:
+  ~SleepUponDestruction() { firebase::internal::Sleep(200); }
 };
-
 
 // Waits until the given future is complete and asserts that it completed with
 // the given error (no error by default). Returns the future's result.

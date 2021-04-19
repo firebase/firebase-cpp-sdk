@@ -18,6 +18,7 @@
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_GET_OOB_CONFIRMATION_CODE_REQUEST_H_
 
 #include <memory>
+
 #include "app/src/log.h"
 #include "auth/request_generated.h"
 #include "auth/request_resource.h"

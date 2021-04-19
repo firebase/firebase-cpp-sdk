@@ -5,12 +5,12 @@
 #include <mutex>  // NOLINT(build/c++11)
 #include <string>
 
-#include "app/src/include/firebase/app.h"
-#include "app/src/include/firebase/future.h"
 #include "Firestore/core/src/auth/credentials_provider.h"
 #include "Firestore/core/src/auth/token.h"
 #include "Firestore/core/src/auth/user.h"
 #include "Firestore/core/src/util/statusor.h"
+#include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/future.h"
 
 namespace firebase {
 namespace firestore {
@@ -59,7 +59,8 @@ class FirebaseCppCredentialsProvider
   // the `GetToken` callback might be invoked after this credentials provider
   // has already been destroyed (Auth may outlive Firestore).
   struct Contents {
-    explicit Contents(App& app) : app(app) {}
+    explicit Contents(App& app) : app(app) {
+    }
 
     // FirebaseCppCredentialsProvider may be used by more than one thread. The
     // mutex is locked in all public member functions and none of the private

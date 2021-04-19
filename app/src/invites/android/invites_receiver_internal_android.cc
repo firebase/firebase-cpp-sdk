@@ -27,7 +27,7 @@ namespace invites {
 namespace internal {
 
 InvitesReceiverInternalAndroid::InvitesReceiverInternalAndroid(
-    const ::firebase::App &app)
+    const ::firebase::App& app)
     : InvitesReceiverInternal(app), android(app, this) {
   if (!android.initialized()) app_ = nullptr;
 }
@@ -38,7 +38,7 @@ bool InvitesReceiverInternalAndroid::PerformFetch() {
 }
 
 bool InvitesReceiverInternalAndroid::PerformConvertInvitation(
-    const char * /*invitation_id*/) {
+    const char* /*invitation_id*/) {
   LogWarning("ConvertInvitation is not implemented.");
   return false;
 }

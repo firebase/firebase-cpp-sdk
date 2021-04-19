@@ -25,11 +25,11 @@
 #include <functional>
 #endif
 
+#include "firebase/firestore/firestore_errors.h"
 #include "firebase/firestore/map_field_value.h"
 #include "firebase/firestore/metadata_changes.h"
 #include "firebase/firestore/set_options.h"
 #include "firebase/firestore/source.h"
-#include "firebase/firestore/firestore_errors.h"
 
 namespace firebase {
 
@@ -355,7 +355,9 @@ class DocumentReference {
    * @return true if this DocumentReference is valid, false if this
    * DocumentReference is invalid.
    */
-  bool is_valid() const { return internal_ != nullptr; }
+  bool is_valid() const {
+    return internal_ != nullptr;
+  }
 
   /**
    * Returns a string representation of this `DocumentReference` for

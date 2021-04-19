@@ -17,8 +17,8 @@
 #include "app/rest/request.h"
 
 #include "app/rest/tests/request_test.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace rest {

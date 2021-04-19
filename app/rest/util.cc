@@ -22,11 +22,11 @@
 #include <string>
 
 #include "app/src/variant_util.h"
+#include "curl/curl.h"
 #include "flatbuffers/flatbuffers.h"
 #include "flatbuffers/flexbuffers.h"
 #include "flatbuffers/idl.h"
 #include "flatbuffers/util.h"
-#include "curl/curl.h"
 
 namespace firebase {
 namespace rest {

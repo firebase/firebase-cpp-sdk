@@ -19,7 +19,9 @@ void HashMap::Initialize(Loader& loader) {
                                kConstructor);
 }
 
-Local<HashMap> HashMap::Create(Env& env) { return env.New(kConstructor); }
+Local<HashMap> HashMap::Create(Env& env) {
+  return env.New(kConstructor);
+}
 
 }  // namespace jni
 }  // namespace firestore

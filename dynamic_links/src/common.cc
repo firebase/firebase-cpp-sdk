@@ -23,19 +23,19 @@
 #include "dynamic_links/src/include/firebase/dynamic_links.h"
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(dynamic_links,
-                                {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    return firebase::dynamic_links::Initialize(
-                                        *app, nullptr);
-                                  }
-                                  return kInitResultSuccess;
-                                },
-                                {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    firebase::dynamic_links::Terminate();
-                                  }
-                                });
+FIREBASE_APP_REGISTER_CALLBACKS(
+    dynamic_links,
+    {
+      if (app == ::firebase::App::GetInstance()) {
+        return firebase::dynamic_links::Initialize(*app, nullptr);
+      }
+      return kInitResultSuccess;
+    },
+    {
+      if (app == ::firebase::App::GetInstance()) {
+        firebase::dynamic_links::Terminate();
+      }
+    });
 
 namespace firebase {
 namespace dynamic_links {

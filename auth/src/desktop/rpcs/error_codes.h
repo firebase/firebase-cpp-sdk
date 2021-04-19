@@ -18,6 +18,7 @@
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_ERROR_CODES_H_
 
 #include <string>
+
 #include "auth/src/include/firebase/auth/types.h"
 
 namespace firebase {

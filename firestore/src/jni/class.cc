@@ -28,7 +28,9 @@ std::string Class::GetClassName(Env& env, const Object& object) {
   return util::JObjectClassName(env.get(), object.get());
 }
 
-bool Class::IsArray(Env& env) const { return env.Call(*this, kIsArray); }
+bool Class::IsArray(Env& env) const {
+  return env.Call(*this, kIsArray);
+}
 
 }  // namespace jni
 }  // namespace firestore

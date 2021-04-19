@@ -23,8 +23,8 @@
 #include "database/src/desktop/view/view_cache.h"
 #include "database/src/include/firebase/database/common.h"
 #include "database/tests/desktop/test/matchers.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::Eq;
 using ::testing::Not;
@@ -379,7 +379,7 @@ TEST(View, RemoveEventRegistration_RemoveAll) {
 // difficult to mock the interaction. Those functions are themselves tested in
 // view_processor_test.cc and event_generator_test.cc respectively.
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST(ViewDeathTest, DISABLED_ApplyOperation_MustHaveLocalCache) {
@@ -405,7 +405,7 @@ TEST(ViewDeathTest, ApplyOperation_MustHaveLocalCache) {
                DEATHTEST_SIGABRT);
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST(ViewDeathTest, DISABLED_ApplyOperation_MustHaveServerCache) {

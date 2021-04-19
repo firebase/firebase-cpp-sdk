@@ -12,15 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "testing/util_android.h"
+
 #include <jni.h>
 
 #include <string>
 #include <vector>
 
-#include "testing/run_all_tests.h"
-#include "testing/util_android.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "testing/run_all_tests.h"
 
 namespace firebase {
 namespace testing {

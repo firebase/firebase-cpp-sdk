@@ -59,13 +59,11 @@ std::string GetLocale() {
   // of the LANG or LC_CTYPE environment variables if set, or otherwise return a
   // default locale (empty in real life, or placeholder when running in a unit
   // test, as the test environment has no locale variables set).
-  std::string output = std::locale().name() != "C"
-                           ? std::locale().name()
-                           : getenv("LANG")
-                                 ? getenv("LANG")
-                                 : getenv("LC_CTYPE")
-                                       ? getenv("LC_CTYPE")
-                                       : getenv("TEST_TMPDIR") ? "en_US" : "";
+  std::string output = std::locale().name() != "C" ? std::locale().name()
+                       : getenv("LANG")            ? getenv("LANG")
+                       : getenv("LC_CTYPE")        ? getenv("LC_CTYPE")
+                       : getenv("TEST_TMPDIR")     ? "en_US"
+                                                   : "";
   // Some of the environment variables have a "." after the name to specify the
   // terminal encoding, e.g.  "en_US.UTF-8", so we want to cut the string on the
   // ".".

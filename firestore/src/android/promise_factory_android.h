@@ -28,7 +28,9 @@ class PromiseFactory {
     firestore_->future_manager().MoveFutureApi(&rhs, this);
   }
 
-  ~PromiseFactory() { firestore_->future_manager().ReleaseFutureApi(this); }
+  ~PromiseFactory() {
+    firestore_->future_manager().ReleaseFutureApi(this);
+  }
 
   PromiseFactory& operator=(const PromiseFactory&) = delete;
   PromiseFactory& operator=(PromiseFactory&&) = delete;
@@ -46,7 +48,9 @@ class PromiseFactory {
 
   template <typename PublicT, typename InternalT = InternalType<PublicT>>
   Future<PublicT> NewFuture(
-      jni::Env& env, EnumT op, const jni::Task& task,
+      jni::Env& env,
+      EnumT op,
+      const jni::Task& task,
       typename Promise<PublicT, InternalT, EnumT>::Completion* completion =
           nullptr) {
     if (!env.ok()) return {};
@@ -63,7 +67,9 @@ class PromiseFactory {
     return firestore_->future_manager().GetFutureApi(this);
   }
 
-  constexpr int ApiCount() const { return static_cast<int>(EnumT::kCount); }
+  constexpr int ApiCount() const {
+    return static_cast<int>(EnumT::kCount);
+  }
 
   FirestoreInternal* firestore_ = nullptr;
 };

@@ -18,8 +18,8 @@
 #include <map>
 #include <string>
 
-#include "remote_config/src/include/firebase/remote_config.h"
 #include "flatbuffers/flexbuffers.h"
+#include "remote_config/src/include/firebase/remote_config.h"
 
 namespace firebase {
 namespace remote_config {

@@ -38,14 +38,11 @@
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(
-    storage,
-    {
-      return ::firebase::kInitResultSuccess;
-    },
-    {
-        // Nothing to tear down.
-    });
+FIREBASE_APP_REGISTER_CALLBACKS(storage,
+                                { return ::firebase::kInitResultSuccess; },
+                                {
+                                    // Nothing to tear down.
+                                });
 
 namespace firebase {
 namespace storage {

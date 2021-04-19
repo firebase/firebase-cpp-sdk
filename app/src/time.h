@@ -170,7 +170,8 @@ inline uint64_t GetTimestampEpoch() {
 }
 
 // High resolution timer.
-// Copied from https://github.com/google/mathfu/blob/master/benchmarks/benchmark_common.h
+// Copied from
+// https://github.com/google/mathfu/blob/master/benchmarks/benchmark_common.h
 class Timer {
  public:
   Timer() {

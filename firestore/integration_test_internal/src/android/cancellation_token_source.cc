@@ -14,7 +14,7 @@ using jni::Method;
 using jni::Object;
 
 constexpr char kClassName[] =
-  "com/google/android/gms/tasks/CancellationTokenSource";
+    "com/google/android/gms/tasks/CancellationTokenSource";
 Constructor<CancellationTokenSource> kConstructor("()V");
 Method<Object> kGetToken("getToken",
                          "()Lcom/google/android/gms/tasks/CancellationToken;");
@@ -34,7 +34,9 @@ Local<Object> CancellationTokenSource::GetToken(Env& env) {
   return env.Call(*this, kGetToken);
 }
 
-void CancellationTokenSource::Cancel(Env& env) { env.Call(*this, kCancel); }
+void CancellationTokenSource::Cancel(Env& env) {
+  env.Call(*this, kCancel);
+}
 
 }  // namespace firestore
 }  // namespace firebase

@@ -21,6 +21,7 @@
 #include <cstdint>
 #include <new>
 #include <utility>
+
 #include "app/src/include/firebase/internal/common.h"
 
 namespace firebase {

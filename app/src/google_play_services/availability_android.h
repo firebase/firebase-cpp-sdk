@@ -17,9 +17,9 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_GOOGLE_PLAY_SERVICES_AVAILABILITY_ANDROID_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_GOOGLE_PLAY_SERVICES_AVAILABILITY_ANDROID_H_
 
-#include "app/src/include/google_play_services/availability.h"
-
 #include <jni.h>
+
+#include "app/src/include/google_play_services/availability.h"
 
 namespace google_play_services {
 

@@ -28,8 +28,8 @@ namespace auth {
 // static
 Future<Credential> GameCenterAuthProvider::GetCredential() {
   auto future_api = GetCredentialFutureImpl();
-  const auto handle = future_api->SafeAlloc<Credential>(
-      kCredentialFn_GameCenterGetCredential);
+  const auto handle =
+      future_api->SafeAlloc<Credential>(kCredentialFn_GameCenterGetCredential);
 
   future_api->Complete(handle, kAuthErrorInvalidCredential,
                        "GameCenter is not supported on Android.");

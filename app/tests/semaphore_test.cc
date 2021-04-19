@@ -18,8 +18,8 @@
 
 #include "app/src/thread.h"
 #include "app/src/time.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace {
 
@@ -71,8 +71,9 @@ TEST(SemaphoreTest, TimedWait) {
   EXPECT_FALSE(sem.TimedWait(firebase::internal::kMillisecondsPerSecond));
   int64_t finish_ms = firebase::internal::GetTimestamp();
 
-  ASSERT_LT(labs((finish_ms - start_ms) - firebase::internal::kMillisecondsPerSecond),
-            0.20 * firebase::internal::kMillisecondsPerSecond);
+  ASSERT_LT(
+      labs((finish_ms - start_ms) - firebase::internal::kMillisecondsPerSecond),
+      0.20 * firebase::internal::kMillisecondsPerSecond);
 }
 
 TEST(SemaphoreTest, DISABLED_MultithreadedStressTest) {

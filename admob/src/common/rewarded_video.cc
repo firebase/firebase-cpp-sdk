@@ -15,6 +15,7 @@
  */
 
 #include "admob/src/include/firebase/admob/rewarded_video.h"
+
 #include "admob/src/common/admob_common.h"
 #include "admob/src/common/rewarded_video_internal.h"
 #include "app/src/assert.h"

@@ -12,14 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "remote_config/src/desktop/rest.h"
-
 #include <chrono>  // NOLINT
 #include <cstdint>
 #include <memory>
 
 #include "firebase/app.h"
 #include "remote_config/src/desktop/config_data.h"
+#include "remote_config/src/desktop/rest.h"
 
 namespace firebase {
 namespace remote_config {

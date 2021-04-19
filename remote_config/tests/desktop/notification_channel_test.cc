@@ -12,12 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "remote_config/src/desktop/notification_channel.h"
+
 #include <chrono>              // NOLINT
 #include <condition_variable>  // NOLINT
 #include <thread>              // NOLINT
-#include "gtest/gtest.h"
 
-#include "remote_config/src/desktop/notification_channel.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace remote_config {

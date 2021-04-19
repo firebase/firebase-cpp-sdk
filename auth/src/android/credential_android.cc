@@ -579,14 +579,12 @@ Credential OAuthProvider::GetCredential(const char* provider_id,
   return Credential(CredentialLocalToGlobalRef(j_cred));
 }
 
-
 // static
 Credential OAuthProvider::GetCredential(const char* provider_id,
                                         const char* id_token,
                                         const char* raw_nonce,
                                         const char* access_token) {
-  FIREBASE_ASSERT_RETURN(Credential(),
-                         provider_id && id_token && raw_nonce );
+  FIREBASE_ASSERT_RETURN(Credential(), provider_id && id_token && raw_nonce);
   FIREBASE_ASSERT_MESSAGE_RETURN(Credential(), g_methods_cached,
                                  kMethodsNotCachedError);
 

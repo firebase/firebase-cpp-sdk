@@ -5,14 +5,14 @@
 #include <string>
 #include <vector>
 
+#include "Firestore/core/src/api/document_snapshot.h"
+#include "Firestore/core/src/model/field_value.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
 #include "firestore/src/include/firebase/firestore/snapshot_metadata.h"
 #include "firestore/src/ios/firestore_ios.h"
-#include "Firestore/core/src/api/document_snapshot.h"
-#include "Firestore/core/src/model/field_value.h"
 
 namespace firebase {
 namespace firestore {

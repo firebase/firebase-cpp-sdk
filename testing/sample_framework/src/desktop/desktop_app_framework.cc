@@ -127,7 +127,8 @@ static std::mutex g_full_log_mutex;
 
 void AddToFullLog(const char* str) {
   std::lock_guard<std::mutex> guard(g_full_log_mutex);
-  g_full_logs.push_back(std::string(str)); }
+  g_full_logs.push_back(std::string(str));
+}
 
 bool GetPreserveFullLog() { return g_save_full_log; }
 void SetPreserveFullLog(bool b) { g_save_full_log = b; }

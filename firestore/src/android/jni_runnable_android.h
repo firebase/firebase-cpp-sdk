@@ -116,9 +116,12 @@ template <typename CallbackT>
 class JniRunnable : public JniRunnableBase {
  public:
   JniRunnable(jni::Env& env, CallbackT callback)
-      : JniRunnableBase(env), callback_(firebase::Move(callback)) {}
+      : JniRunnableBase(env), callback_(firebase::Move(callback)) {
+  }
 
-  void Run() override { Run(*this, callback_); }
+  void Run() override {
+    Run(*this, callback_);
+  }
 
  private:
   // These two static overloads of `Run()` use SFINAE to invoke the callback

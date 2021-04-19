@@ -40,7 +40,8 @@ class LambdaTransactionFunction
   }
 
   // Override Promise::Completion::CompleteWith().
-  void CompleteWith(Error error_code, const char* error_message,
+  void CompleteWith(Error error_code,
+                    const char* error_message,
                     void* result) override {
     delete this;
   }

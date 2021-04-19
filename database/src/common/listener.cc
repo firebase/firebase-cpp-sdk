@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "database/src/common/listener.h"
+
 #include "database/src/include/firebase/database/listener.h"
 
 namespace firebase {

@@ -15,10 +15,10 @@
 #ifndef FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_LISTEN_PROVIDER_H_
 #define FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_LISTEN_PROVIDER_H_
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/listen_provider.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {

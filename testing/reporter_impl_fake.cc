@@ -24,8 +24,8 @@ namespace fake {
 void TestFunction() {
   FakeReporter->AddReport(
       "fake_function_name", "fake_function_result",
-      std::initializer_list<const char *>({
-         "fake_argument0", "fake_argument1", "fake_argument2"}));
+      std::initializer_list<const char*>(
+          {"fake_argument0", "fake_argument1", "fake_argument2"}));
 }
 
 }  // namespace fake
