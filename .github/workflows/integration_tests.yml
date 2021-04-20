@@ -405,15 +405,15 @@ jobs:
         with:
           name: test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
           path: test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
-      ### The below allow us to set the failure label and comment early, when the first failure
-      ### in the matrix occurs. It'll be cleaned up in a subsequent job.
-     - name: Generate token for GitHub API
-       uses: tibdex/github-app-token@v1
-       if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-       id: generate-token
-       with:
-         app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
-         private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+        ### The below allow us to set the failure label and comment early, when the first failure
+        ### in the matrix occurs. It'll be cleaned up in a subsequent job.
+      - name: Generate token for GitHub API
+        uses: tibdex/github-app-token@v1
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        id: generate-token
+        with:
+          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
+          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
       - name: add failure label
         # We can do mark a failure as soon as any one test fails.
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
