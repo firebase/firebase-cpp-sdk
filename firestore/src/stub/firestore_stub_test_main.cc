@@ -58,8 +58,9 @@ void InitializeFirestore(Firestore*) {
 // causes a link error when _tmain is defined in a static library and UNICODE
 // is enabled. For this reason instead of _tmain, main function is used on
 // Windows. See the following link to track the current status of this bug:
-// http://connect.microsoft.com/VisualStudio/feedback/ViewFeedback.aspx?FeedbackID=394464
-// // NOLINT
+// clang-format off
+// http://connect.microsoft.com/VisualStudio/feedback/ViewFeedback.aspx?FeedbackID=394464 // NOLINT
+// clang-format on
 #if GTEST_OS_WINDOWS_MOBILE
 #include <tchar.h>  // NOLINT
 
