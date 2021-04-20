@@ -122,6 +122,7 @@ jobs:
         elif [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
           echo "::set-output name=requested_tests::auto"
         fi
+        echo 'Workflow event actor: ${{ toJson(github.event.actor) }}'
     ### Add the in-progress label and remove any previous success/fail labels.
     - name: add in-progress label
       uses: buildsville/add-remove-label@v1
