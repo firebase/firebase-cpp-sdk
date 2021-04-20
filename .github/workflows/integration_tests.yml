@@ -53,7 +53,7 @@ env:
   mobileTestOn: "device"
   # If triggered by this user, don't run the tests.
   # This prevents the tests from triggering themselves when editing labels.
-  ignoreTriggeringUser: "firebase-workflow-trigger"
+  ignoreTriggeringUser: "jonsimantov"
 
 jobs:
   check_trigger:
@@ -85,7 +85,6 @@ jobs:
           github.event.actor.login == env.ignoreTriggeringUser
         }}
       run: |
-        echo "Actor: ${{ github.event.actor }}"
         sleep 300
         exit 1  # fail out if the cancellation above somehow failed.
     ### Below this line, the label is one of the test-request triggers.
