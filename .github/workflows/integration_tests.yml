@@ -77,8 +77,7 @@ jobs:
           github.event.actor.login == env.ignoreTriggeringUser
         }}
       uses: andymckay/cancel-action@0.2
-      uses: andymckay/cancel-action@0.2
-    - name: wait for above cancellation, if it ran
+    - name: wait for above cancellation, if applicable
       if: |
         ${{
           !startsWith(github.event.label.name, env.triggerLabelPrefix) ||
