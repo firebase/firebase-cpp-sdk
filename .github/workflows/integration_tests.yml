@@ -91,20 +91,29 @@ jobs:
       uses: styfle/cancel-workflow-action@0.8.0
       with:
         access_token: ${{ github.token }}
-    ### Generate a token to use for labeling and commenting this PR.
-    ### This is required because github.token might be read-only if it comes
-    ### from a forked repo. You will see other instances in this script of
-    ### generating a fresh token for labeling/commenting for the same reason.
-    - name: Generate token for GitHub API
+    ### Generate a token to use for labeling and commenting this PR, if this PR
+    ### comes from a forked repo.
+    ### This is required because github.token will be read-only on PRs from forked
+    ### repositories.
+    ###
+    ### This pattern is repeated elsewhere in the script for labeling/commenting.
+    - name: Generate token for forked repo
       uses: tibdex/github-app-token@v1
-      id: generate-token
+      if: ${{ github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name }}
+      id: generate-fork-token
       with:
         app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
         private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+    - id: comment-token
+      run: |
+        if [[ -z "${{steps.generate-fork-token.outputs.token}}" ]]
+          echo "::set-output name=token::${{github.token}}"
+        else
+          echo "::set-output name=token::${{steps.generate-fork-token.outputs.token}}"
     - name: remove triggering label
       uses: buildsville/add-remove-label@v1
       with:
-        token: ${{steps.generate-token.outputs.token}}
+        token: ${{steps.comment-token.outputs.token}}
         label: "${{ github.event.label.name }}"
         type: remove
     ### Fail the workflow if the user does not have admin access to run the tests.
@@ -127,19 +136,19 @@ jobs:
     - name: add in-progress label
       uses: buildsville/add-remove-label@v1
       with:
-        token: ${{steps.generate-token.outputs.token}}
+        token: ${{steps.comment-token.outputs.token}}
         label: "${{ env.statusLabelInProgress }}"
         type: add
     - name: remove previous success label
       uses: buildsville/add-remove-label@v1
       with:
-        token: ${{steps.generate-token.outputs.token}}
+        token: ${{steps.comment-token.outputs.token}}
         label: "${{ env.statusLabelSucceeded }}"
         type: remove
     - name: remove previous failure label
       uses: buildsville/add-remove-label@v1
       with:
-        token: ${{steps.generate-token.outputs.token}}
+        token: ${{steps.comment-token.outputs.token}}
         label: "${{ env.statusLabelFailed }}"
         type: remove
     - name: find old status comment, if any
@@ -148,14 +157,14 @@ jobs:
       with:
         issue-number: ${{github.event.number}}
         body-includes: ${{ env.statusCommentIdentifier }}
-        token: ${{steps.generate-token.outputs.token}}
+        token: ${{steps.comment-token.outputs.token}}
     - name: delete old status comment
       if: ${{ steps.find-comment.outputs.comment-id != 0 }}
       uses: jungwinter/comment@v1
       with:
         type: delete
         comment_id: ${{ steps.find-comment.outputs.comment-id }}
-        token: ${{steps.generate-token.outputs.token}}
+        token: ${{steps.comment-token.outputs.token}}
     - name: get current time for status comment
       id: get-time
       shell: bash
@@ -170,7 +179,7 @@ jobs:
           Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
           Last updated: ${{ steps.get-time.outputs.time }}
           **[View integration test run](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-        GITHUB_TOKEN: ${{steps.generate-token.outputs.token}}
+        GITHUB_TOKEN: ${{steps.comment-token.outputs.token}}
         COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
 
   # To feed input into the job matrix, we first need to convert to a JSON
@@ -407,19 +416,25 @@ jobs:
           path: test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
         ### The below allow us to set the failure label and comment early, when the first failure
         ### in the matrix occurs. It'll be cleaned up in a subsequent job.
-      - name: Generate token for GitHub API
+      - name: Generate token for forked repo
         uses: tibdex/github-app-token@v1
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        id: generate-token
+        if: ${{ github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name }}
+        id: generate-fork-token
         with:
           app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
           private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+      - id: comment-token
+        run: |
+          if [[ -z "${{steps.generate-fork-token.outputs.token}}" ]]
+            echo "::set-output name=token::${{github.token}}"
+          else
+            echo "::set-output name=token::${{steps.generate-fork-token.outputs.token}}"
       - name: add failure label
         # We can do mark a failure as soon as any one test fails.
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         uses: buildsville/add-remove-label@v1
         with:
-          token: ${{steps.generate-token.outputs.token}}
+          token: ${{steps.comment-token.outputs.token}}
           label: "${{ env.statusLabelFailed }}"
           type: add
       - name: get current time for status comment
@@ -455,7 +470,7 @@ jobs:
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
             ${{ env.SUMMARY_TABLE }}
-          GITHUB_TOKEN: ${{steps.generate-token.outputs.token}}
+          GITHUB_TOKEN: ${{steps.comment-token.outputs.token}}
           COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
 
       - name: Summarize build and test results
@@ -473,34 +488,41 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && !failure() }}
     steps:
-      - name: Generate token for GitHub API
-        uses: tibdex/github-app-token@v1
-        id: generate-token
-        with:
-          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
-          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
-      - name: add success label
-        uses: buildsville/add-remove-label@v1
-        with:
-          token: ${{steps.generate-token.outputs.token}}
-          label: "${{ env.statusLabelSucceeded }}"
-          type: add
-      - name: get current time for status comment
-        id: get-time
-        shell: bash
-        run: |
-          echo -n "::set-output name=time::"
-          TZ=America/Los_Angeles date
-      - name: add success status comment
-        uses: phulsechinmay/rewritable-pr-comment@v0.2.1
-        with:
-          message: |
-            ### ✅&nbsp; Integration test succeeded!
-            Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
-            Last updated: ${{ steps.get-time.outputs.time }}
-            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-          GITHUB_TOKEN: ${{steps.generate-token.outputs.token}}
-          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
+    - name: Generate token for forked repo
+      uses: tibdex/github-app-token@v1
+      if: ${{ github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name }}
+      id: generate-fork-token
+      with:
+        app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
+        private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+    - id: comment-token
+      run: |
+        if [[ -z "${{steps.generate-fork-token.outputs.token}}" ]]
+          echo "::set-output name=token::${{github.token}}"
+        else
+          echo "::set-output name=token::${{steps.generate-fork-token.outputs.token}}"
+    - name: add success label
+      uses: buildsville/add-remove-label@v1
+      with:
+        token: ${{steps.comment-token.outputs.token}}
+        label: "${{ env.statusLabelSucceeded }}"
+        type: add
+    - name: get current time for status comment
+      id: get-time
+      shell: bash
+      run: |
+        echo -n "::set-output name=time::"
+        TZ=America/Los_Angeles date
+    - name: add success status comment
+      uses: phulsechinmay/rewritable-pr-comment@v0.2.1
+      with:
+        message: |
+          ### ✅&nbsp; Integration test succeeded!
+          Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
+          Last updated: ${{ steps.get-time.outputs.time }}
+          **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
+        GITHUB_TOKEN: ${{steps.comment-token.outputs.token}}
+        COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
 
   add_failure_label:
     name: "add-failure-label"
@@ -508,58 +530,65 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && failure() }}
     steps:
-      - name: Generate token for GitHub API
-        uses: tibdex/github-app-token@v1
-        id: generate-token
-        with:
-          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
-          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
-      - name: add failure label
-        uses: buildsville/add-remove-label@v1
-        with:
-          token: ${{steps.generate-token.outputs.token}}
-          label: "${{ env.statusLabelFailed }}"
-          type: add
-      - name: get current time for status comment
-        id: get-time
-        shell: bash
-        run: |
-          echo -n "::set-output name=time::"
-          TZ=America/Los_Angeles date
-      - uses: actions/checkout@v2
-      - name: Setup python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.7'
+    - name: Generate token for forked repo
+      uses: tibdex/github-app-token@v1
+      if: ${{ github.event.pull_request.head.repo.full_name != github.event.pull_request.base.repo.full_name }}
+      id: generate-fork-token
+      with:
+        app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
+        private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+    - id: comment-token
+      run: |
+        if [[ -z "${{steps.generate-fork-token.outputs.token}}" ]]
+          echo "::set-output name=token::${{github.token}}"
+        else
+          echo "::set-output name=token::${{steps.generate-fork-token.outputs.token}}"
+    - name: add failure label
+      uses: buildsville/add-remove-label@v1
+      with:
+        token: ${{steps.comment-token.outputs.token}}
+        label: "${{ env.statusLabelFailed }}"
+        type: add
+    - name: get current time for status comment
+      id: get-time
+      shell: bash
+      run: |
+        echo -n "::set-output name=time::"
+        TZ=America/Los_Angeles date
+    - uses: actions/checkout@v2
+    - name: Setup python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.7'
 
-      - name: Install python deps
-        run: |
-          python scripts/gha/install_prereqs_desktop.py
+    - name: Install python deps
+      run: |
+        python scripts/gha/install_prereqs_desktop.py
 
-      - name: download artifact
-        uses: actions/download-artifact@v2.0.8
-        with:
-          # download-artifact doesn't support wildcards, but by default
-          # will download all artifacts. Sadly this is what we must do.
-          path: test_results
-      - name: get summary of test results
-        shell: bash
-        run: |
-          mv test_results/test-results-*/test-results-*.txt test_results || true
-          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
-          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
-      - name: add failure status comment
-        uses: phulsechinmay/rewritable-pr-comment@v0.2.1
-        with:
-          message: |
-            ### ❌&nbsp; Integration test FAILED
-            Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
-            Last updated: ${{ steps.get-time.outputs.time }}
-            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-            ${{ env.SUMMARY_TABLE }}
-          GITHUB_TOKEN: ${{steps.generate-token.outputs.token}}
-          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
+    - name: download artifact
+      uses: actions/download-artifact@v2.0.8
+      with:
+        # download-artifact doesn't support wildcards, but by default
+        # will download all artifacts. Sadly this is what we must do.
+        path: test_results
+    - name: get summary of test results
+      shell: bash
+      run: |
+        mv test_results/test-results-*/test-results-*.txt test_results || true
+        echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
+        python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
+        echo 'EOF' >> $GITHUB_ENV
+    - name: add failure status comment
+      uses: phulsechinmay/rewritable-pr-comment@v0.2.1
+      with:
+        message: |
+          ### ❌&nbsp; Integration test FAILED
+          Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
+          Last updated: ${{ steps.get-time.outputs.time }}
+          **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
+          ${{ env.SUMMARY_TABLE }}
+        GITHUB_TOKEN: ${{steps.comment-token.outputs.token}}
+        COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
 
   remove_in_progress_label:
     name: "remove-in-progress-label"
@@ -567,7 +596,7 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() }}
     steps:
-      # Use a different token to remove the "in-progress" label,
+      # Always use a different token to remove the "in-progress" label,
       # to allow the removal to trigger the "Check Labels" workflow.
       - name: Generate token for GitHub API
         uses: tibdex/github-app-token@v1
