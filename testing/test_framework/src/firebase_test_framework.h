@@ -214,6 +214,11 @@ class FirebaseTest : public testing::Test {
   static bool WaitForCompletion(const firebase::FutureBase& future,
                                 const char* name, int expected_error = 0);
 
+  // Just wait for completion, not caring what the result is (as long as
+  // it's not Invalid). Returns true, unless Invalid.
+  static bool WaitForCompletionAnyResult(const firebase::FutureBase& future,
+					 const char* name);
+
   // Run an operation that returns a Future (via a callback), retrying with
   // exponential backoff if the operation fails.
   //

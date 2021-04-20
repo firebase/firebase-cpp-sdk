@@ -170,6 +170,18 @@ bool FirebaseTest::WaitForCompletion(const firebase::FutureBase& future,
           future.error() == expected_error);
 }
 
+void FirebaseTest::WaitForCompletionAnyResult(
+				     const firebase::FutureBase& future,
+                                     const char* name) {
+  app_framework::LogDebug("WaitForCompletion %s", name);
+  while (future.status() == firebase::kFutureStatusPending) {
+    app_framework::ProcessEvents(100);
+  }
+  EXPECT_EQ(future.status(), firebase::kFutureStatusComplete)
+      << name << " returned an invalid status.";
+  return (future.status() == firebase::kFutureStatusComplete);
+}
+
 static void VariantToStringInternal(const firebase::Variant& variant,
                                     std::ostream& out,
                                     const std::string& indent) {

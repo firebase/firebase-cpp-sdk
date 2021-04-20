@@ -210,7 +210,7 @@ void FirebaseStorageTest::TearDown() {
 	cleanups.push_back(cleanup_files_[i].Delete());
       }
       for (int i = 0; i < cleanups.size(); ++i) {
-	WaitForCompletion(cleanups[i], "FirebaseStorageTest::TearDown");
+	WaitForCompletionAnyResult(cleanups[i], "FirebaseStorageTest::TearDown");
       }
       cleanup_files_.clear();
     }
