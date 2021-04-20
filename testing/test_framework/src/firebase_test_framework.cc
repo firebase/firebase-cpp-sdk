@@ -170,7 +170,7 @@ bool FirebaseTest::WaitForCompletion(const firebase::FutureBase& future,
           future.error() == expected_error);
 }
 
-void FirebaseTest::WaitForCompletionAnyResult(
+bool FirebaseTest::WaitForCompletionAnyResult(
 				     const firebase::FutureBase& future,
                                      const char* name) {
   app_framework::LogDebug("WaitForCompletion %s", name);
