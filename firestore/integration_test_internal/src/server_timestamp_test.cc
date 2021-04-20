@@ -20,8 +20,7 @@ using ServerTimestampBehavior = DocumentSnapshot::ServerTimestampBehavior;
 
 class ServerTimestampTest : public FirestoreIntegrationTest {
  public:
-  ~ServerTimestampTest() override {
-  }
+  ~ServerTimestampTest() override {}
 
  protected:
   void SetUp() override {
@@ -34,9 +33,7 @@ class ServerTimestampTest : public FirestoreIntegrationTest {
     EXPECT_FALSE(initial_snapshot.exists());
   }
 
-  void TearDown() override {
-    listener_registration_.Remove();
-  }
+  void TearDown() override { listener_registration_.Remove(); }
 
   /** Returns the expected data, with the specified timestamp substituted in. */
   MapFieldValue ExpectedDataWithTimestamp(const FieldValue& timestamp) {

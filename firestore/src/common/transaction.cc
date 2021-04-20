@@ -2,7 +2,6 @@
 
 #include "app/src/assert.h"
 #include "firestore/src/common/cleanup.h"
-
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #if defined(__ANDROID__)
@@ -30,8 +29,7 @@ Transaction::~Transaction() {
 }
 
 void Transaction::Set(const DocumentReference& document,
-                      const MapFieldValue& data,
-                      const SetOptions& options) {
+                      const MapFieldValue& data, const SetOptions& options) {
   if (!internal_) return;
   internal_->Set(document, data, options);
 }

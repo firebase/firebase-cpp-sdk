@@ -4,7 +4,6 @@
 
 #include "app/src/assert.h"
 #include "firestore/src/common/cleanup.h"
-
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/document_change_android.h"
@@ -26,8 +25,7 @@ using Type = DocumentChange::Type;
 const std::size_t DocumentChange::npos = static_cast<std::size_t>(-1);
 #endif  // defined(ANDROID)
 
-DocumentChange::DocumentChange() {
-}
+DocumentChange::DocumentChange() {}
 
 DocumentChange::DocumentChange(const DocumentChange& value) {
   if (value.internal_) {

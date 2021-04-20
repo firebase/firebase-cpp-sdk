@@ -6,7 +6,6 @@
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/futures.h"
-
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/write_batch_android.h"
@@ -21,8 +20,7 @@ namespace firestore {
 
 using CleanupFnWriteBatch = CleanupFn<WriteBatch>;
 
-WriteBatch::WriteBatch() {
-}
+WriteBatch::WriteBatch() {}
 
 WriteBatch::WriteBatch(const WriteBatch& value) {
   if (value.internal_) {

@@ -6,7 +6,6 @@
 
 #include "app/meta/move.h"
 #include "app/src/assert.h"
-
 #include "firebase/firestore/geo_point.h"
 #include "firebase/firestore/timestamp.h"
 #include "firestore/src/common/to_string.h"
@@ -75,8 +74,7 @@ std::string ValueToString(const uint8_t* blob, size_t size) {
 
 }  // namespace
 
-FieldValue::FieldValue() {
-}
+FieldValue::FieldValue() {}
 
 FieldValue::FieldValue(const FieldValue& value) {
   if (value.internal_) {
@@ -240,9 +238,7 @@ FieldValue FieldValue::Null() {
 }
 
 /* static */
-FieldValue FieldValue::Delete() {
-  return FieldValueInternal::Delete();
-}
+FieldValue FieldValue::Delete() { return FieldValueInternal::Delete(); }
 
 /* static */
 FieldValue FieldValue::ServerTimestamp() {

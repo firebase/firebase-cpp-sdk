@@ -45,10 +45,8 @@ struct ConverterImpl {
     return PublicT{internal};
   }
 
-  template <typename PublicT,
-            typename CoreT,
-            typename InternalT = InternalType<PublicT>,
-            typename... Args>
+  template <typename PublicT, typename CoreT,
+            typename InternalT = InternalType<PublicT>, typename... Args>
   static PublicT MakePublicFromCore(CoreT&& from, Args... args) {
     auto* internal = new InternalT(std::move(from), std::move(args)...);
     return PublicT{internal};

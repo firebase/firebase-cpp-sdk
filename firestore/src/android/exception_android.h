@@ -21,8 +21,7 @@ class ExceptionInternal {
   static Error GetErrorCode(jni::Env& env, const jni::Object& exception);
   static std::string ToString(jni::Env& env, const jni::Object& exception);
 
-  static jni::Local<jni::Throwable> Create(jni::Env& env,
-                                           Error code,
+  static jni::Local<jni::Throwable> Create(jni::Env& env, Error code,
                                            const std::string& message);
   static jni::Local<jni::Throwable> Wrap(
       jni::Env& env, jni::Local<jni::Throwable>&& exception);

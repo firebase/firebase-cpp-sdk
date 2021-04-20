@@ -20,23 +20,21 @@
 #include "firestore/src/jni/task.h"
 #endif  // defined(__ANDROID__)
 
-#include "firestore_integration_test.h"
-#include "util/event_accumulator.h"
-#include "util/future_test_util.h"
-
 #include "app/memory/unique_ptr.h"
 #include "app/src/mutex.h"
 #include "auth/src/include/firebase/auth.h"
 #include "firestore/src/common/macros.h"
+#include "firestore_integration_test.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "util/event_accumulator.h"
+#include "util/future_test_util.h"
 #if !defined(__ANDROID__)
 #include "Firestore/core/src/util/autoid.h"
 #else
 #include "android/util_autoid.h"
 #endif  // !defined(__ANDROID__)
 #include "Firestore/core/src/util/firestore_exceptions.h"
-
 #include "firebase_test_framework.h"
 
 // These test cases are in sync with native iOS client SDK test
@@ -673,11 +671,9 @@ TEST_F(FirestoreIntegrationTest,
   class SnapshotTestEventListener : public TestEventListener<DocumentSnapshot> {
    public:
     SnapshotTestEventListener(std::string name, TestData& test_data)
-        : TestEventListener(std::move(name)), test_data_(test_data) {
-    }
+        : TestEventListener(std::move(name)), test_data_(test_data) {}
 
-    void OnEvent(const DocumentSnapshot& value,
-                 Error error_code,
+    void OnEvent(const DocumentSnapshot& value, Error error_code,
                  const std::string& error_message) override {
       TestEventListener::OnEvent(value, error_code, error_message);
       test_data_.AddEvent("doc");
@@ -702,12 +698,9 @@ TEST_F(FirestoreIntegrationTest,
 #else
   class SyncEventListener : public EventListener<void> {
    public:
-    explicit SyncEventListener(TestData& test_data) : test_data_(test_data) {
-    }
+    explicit SyncEventListener(TestData& test_data) : test_data_(test_data) {}
 
-    void OnEvent(Error) override {
-      test_data_.AddEvent("snapshots-in-sync");
-    }
+    void OnEvent(Error) override { test_data_.AddEvent("snapshots-in-sync"); }
 
    private:
     TestData& test_data_;

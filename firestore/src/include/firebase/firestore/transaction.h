@@ -72,8 +72,7 @@ class Transaction {
    * @param[in] data A map of the fields and values to write to the document.
    * @param[in] options An object to configure the Set() behavior (optional).
    */
-  virtual void Set(const DocumentReference& document,
-                   const MapFieldValue& data,
+  virtual void Set(const DocumentReference& document, const MapFieldValue& data,
                    const SetOptions& options = SetOptions());
 
   /**
@@ -116,8 +115,7 @@ class Transaction {
    * DocumentSnapshot if there is any error.
    */
   virtual DocumentSnapshot Get(const DocumentReference& document,
-                               Error* error_code,
-                               std::string* error_message);
+                               Error* error_code, std::string* error_message);
 
  protected:
   /**
@@ -145,8 +143,7 @@ class Transaction {
  */
 class TransactionFunction {
  public:
-  virtual ~TransactionFunction() {
-  }
+  virtual ~TransactionFunction() {}
 
   /**
    * Subclass should override this method and put the transaction logic here.

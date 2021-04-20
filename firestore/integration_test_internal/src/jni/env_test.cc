@@ -15,8 +15,7 @@ namespace jni {
 
 class EnvTest : public FirestoreIntegrationTest {
  public:
-  EnvTest() : env_(MakeUnique<Env>(GetEnv())) {
-  }
+  EnvTest() : env_(MakeUnique<Env>(GetEnv())) {}
 
   ~EnvTest() override {
     // Ensure that after the test is done that any pending exception is cleared
@@ -24,9 +23,7 @@ class EnvTest : public FirestoreIntegrationTest {
     env_->ExceptionClear();
   }
 
-  Env& env() const {
-    return *env_;
-  }
+  Env& env() const { return *env_; }
 
  protected:
   // Env is declared as having a `noexcept(false)` destructor, which causes the
@@ -40,9 +37,7 @@ class EnvTest : public FirestoreIntegrationTest {
 TEST_F(EnvTest, ToolchainSupportsThrowingFromDestructors) {
   class ThrowsInDestructor {
    public:
-    ~ThrowsInDestructor() noexcept(false) {
-      throw std::exception();
-    }
+    ~ThrowsInDestructor() noexcept(false) { throw std::exception(); }
   };
 
   try {

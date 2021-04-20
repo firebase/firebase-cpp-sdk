@@ -23,8 +23,7 @@ using model::DocumentKey;
 
 DocumentSnapshotInternal::DocumentSnapshotInternal(
     api::DocumentSnapshot&& snapshot)
-    : snapshot_{std::move(snapshot)} {
-}
+    : snapshot_{std::move(snapshot)} {}
 
 Firestore* DocumentSnapshotInternal::firestore() {
   return GetFirestore(&snapshot_);
@@ -51,9 +50,7 @@ SnapshotMetadata DocumentSnapshotInternal::metadata() const {
   return SnapshotMetadata{result.pending_writes(), result.from_cache()};
 }
 
-bool DocumentSnapshotInternal::exists() const {
-  return snapshot_.exists();
-}
+bool DocumentSnapshotInternal::exists() const { return snapshot_.exists(); }
 
 MapFieldValue DocumentSnapshotInternal::GetData(
     ServerTimestampBehavior stb) const {

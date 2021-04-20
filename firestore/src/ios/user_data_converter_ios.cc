@@ -72,8 +72,7 @@ void ParseServerTimestamp(ParseContext&& context) {
   context.AddToFieldTransforms(*context.path(), ServerTimestampTransform{});
 }
 
-void ParseArrayTransform(Type type,
-                         const model::FieldValue::Array& elements,
+void ParseArrayTransform(Type type, const model::FieldValue::Array& elements,
                          ParseContext&& context) {
   auto transform_type = [type] {
     switch (type) {

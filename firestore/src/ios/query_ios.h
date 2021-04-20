@@ -146,15 +146,9 @@ class QueryInternal {
     kCount,
   };
 
-  const api::Query& query_core_api() const {
-    return query_;
-  }
-  const UserDataConverter& converter() const {
-    return user_data_converter_;
-  }
-  PromiseFactory<AsyncApis>& promise_factory() {
-    return promise_factory_;
-  }
+  const api::Query& query_core_api() const { return query_; }
+  const UserDataConverter& converter() const { return user_data_converter_; }
+  PromiseFactory<AsyncApis>& promise_factory() { return promise_factory_; }
 
  private:
   enum class BoundPosition {
@@ -166,11 +160,9 @@ class QueryInternal {
 
   using Operator = core::Filter::Operator;
 
-  Query Where(const FieldPath& field,
-              Operator op,
+  Query Where(const FieldPath& field, Operator op,
               const FieldValue& value) const;
-  Query Where(const FieldPath& field,
-              Operator op,
+  Query Where(const FieldPath& field, Operator op,
               const std::vector<FieldValue>& values) const;
 
   Query WithBound(BoundPosition bound_pos,

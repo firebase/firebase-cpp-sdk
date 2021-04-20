@@ -5,9 +5,8 @@
 
 #include "app/src/assert.h"
 #include "firestore/src/common/cleanup.h"
-#include "firestore/src/common/util.h"
-
 #include "firestore/src/common/to_string.h"
+#include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
@@ -24,8 +23,7 @@ namespace firestore {
 
 using CleanupFnDocumentSnapshot = CleanupFn<DocumentSnapshot>;
 
-DocumentSnapshot::DocumentSnapshot() {
-}
+DocumentSnapshot::DocumentSnapshot() {}
 
 DocumentSnapshot::DocumentSnapshot(const DocumentSnapshot& snapshot) {
   if (snapshot.internal_) {

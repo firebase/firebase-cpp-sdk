@@ -34,8 +34,7 @@ class QueryInternal : public Wrapper {
   static void Initialize(jni::Loader& loader);
 
   QueryInternal(FirestoreInternal* firestore, const jni::Object& object)
-      : Wrapper(firestore, object), promises_(firestore) {
-  }
+      : Wrapper(firestore, object), promises_(firestore) {}
 
   /** Gets the Firestore instance associated with this query. */
   Firestore* firestore();
@@ -366,8 +365,7 @@ class QueryInternal : public Wrapper {
    * @return A registration object that can be used to remove the listener.
    */
   ListenerRegistration AddSnapshotListener(
-      MetadataChanges metadata_changes,
-      EventListener<QuerySnapshot>* listener,
+      MetadataChanges metadata_changes, EventListener<QuerySnapshot>* listener,
       bool passing_listener_ownership = false);
 
  protected:
@@ -377,11 +375,9 @@ class QueryInternal : public Wrapper {
   friend class FirestoreInternal;
 
   // A generalized function for all WhereFoo calls.
-  Query Where(const FieldPath& field,
-              const jni::Method<jni::Object>& method,
+  Query Where(const FieldPath& field, const jni::Method<jni::Object>& method,
               const FieldValue& value) const;
-  Query Where(const FieldPath& field,
-              const jni::Method<jni::Object>& method,
+  Query Where(const FieldPath& field, const jni::Method<jni::Object>& method,
               const std::vector<FieldValue>& values) const;
 
   // A generalized function for all {Start|End}{Before|After|At} calls.

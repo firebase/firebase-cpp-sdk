@@ -164,7 +164,12 @@ TEST_F(OptionalTest, CopyConstructor) {
   EXPECT_TRUE(another_copy_of_optional_int.has_value());
   EXPECT_EQ(another_copy_of_optional_int.value(), 9999);
 
-  SetupExpectCall().Construct(1).CopyAndMove(2, 1).Destruct(4);
+  // clang-format off
+  SetupExpectCall()
+    .Construct(1)
+    .CopyAndMove(2, 1)
+    .Destruct(4);
+  // clang-format on
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(
       SpecialFunctionsNotifierWrapper{});
@@ -187,7 +192,12 @@ TEST_F(OptionalTest, CopyAssignment) {
   EXPECT_TRUE(another_optional_int.has_value());
   EXPECT_EQ(another_optional_int.value(), 9999);
 
-  SetupExpectCall().Construct(2).CopyAndMove(1, 2).Destruct(4);
+  // clang-format off
+  SetupExpectCall()
+    .Construct(2)
+    .CopyAndMove(1, 2)
+    .Destruct(4);
+  // clang-format on
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(
       SpecialFunctionsNotifierWrapper{});
@@ -204,7 +214,12 @@ TEST_F(OptionalTest, CopyAssignmentSelf) {
   EXPECT_TRUE(optional_int.has_value());
   EXPECT_EQ(optional_int.value(), 9999);
 
-  SetupExpectCall().Construct(1).CopyAndMove(1, 1).Destruct(2);
+  // clang-format off
+  SetupExpectCall()
+    .Construct(1)
+    .CopyAndMove(1, 1)
+    .Destruct(2);
+  // clang-format on
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(
       SpecialFunctionsNotifierWrapper{});
@@ -223,7 +238,12 @@ TEST_F(OptionalTest, MoveConstructor) {
   EXPECT_TRUE(another_moved_optional_int.has_value());
   EXPECT_EQ(another_moved_optional_int.value(), 9999);
 
-  SetupExpectCall().Construct(1).CopyAndMove(0, 3).Destruct(4);
+  // clang-format off
+  SetupExpectCall()
+    .Construct(1)
+    .CopyAndMove(0, 3)
+    .Destruct(4);
+  // clang-format on
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(
       SpecialFunctionsNotifierWrapper{});
@@ -245,7 +265,12 @@ TEST_F(OptionalTest, MoveAssignment) {
   EXPECT_TRUE(another_optional_int.has_value());
   EXPECT_EQ(another_optional_int.value(), 9999);
 
-  SetupExpectCall().Construct(2).CopyAndMove(0, 3).Destruct(4);
+  // clang-format off
+  SetupExpectCall()
+    .Construct(2)
+    .CopyAndMove(0, 3)
+    .Destruct(4);
+  // clang-format on
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(
       SpecialFunctionsNotifierWrapper{});
@@ -278,7 +303,12 @@ TEST_F(OptionalTest, ValueConstructor) {
   EXPECT_TRUE(optional_int.has_value());
   EXPECT_EQ(optional_int.value(), 1337);
 
-  SetupExpectCall().Construct(1).CopyAndMove(1, 0).Destruct(2);
+  // clang-format off
+  SetupExpectCall()
+    .Construct(1)
+    .CopyAndMove(1, 0)
+    .Destruct(2);
+  // clang-format on
 
   SpecialFunctionsNotifierWrapper value{};
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(value);
@@ -299,7 +329,12 @@ TEST_F(OptionalTest, ValueCopyAssignmentToUnpopulatedOptional) {
   EXPECT_TRUE(optional_int.has_value());
   EXPECT_EQ(optional_int.value(), 9999);
 
-  SetupExpectCall().Construct(1).CopyAndMove(1, 0).Destruct(2);
+  // clang-format off
+  SetupExpectCall()
+    .Construct(1)
+    .CopyAndMove(1, 0)
+    .Destruct(2);
+  // clang-format on
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct;
   SpecialFunctionsNotifierWrapper my_struct{};
@@ -313,7 +348,12 @@ TEST_F(OptionalTest, ValueCopyAssignmentToPopulatedOptional) {
   EXPECT_TRUE(optional_int.has_value());
   EXPECT_EQ(optional_int.value(), 9999);
 
-  SetupExpectCall().Construct(2).CopyAndMove(1, 1).Destruct(3);
+  // clang-format off
+  SetupExpectCall()
+    .Construct(2)
+    .CopyAndMove(1, 1)
+    .Destruct(3);
+  // clang-format on
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(
       SpecialFunctionsNotifierWrapper{});
@@ -323,7 +363,12 @@ TEST_F(OptionalTest, ValueCopyAssignmentToPopulatedOptional) {
 }
 
 TEST_F(OptionalTest, ValueMoveAssignmentToUnpopulatedOptional) {
-  SetupExpectCall().Construct(1).CopyAndMove(0, 1).Destruct(2);
+  // clang-format off
+  SetupExpectCall()
+    .Construct(1)
+    .CopyAndMove(0, 1)
+    .Destruct(2);
+  // clang-format on
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct;
   SpecialFunctionsNotifierWrapper my_struct{};
@@ -332,7 +377,12 @@ TEST_F(OptionalTest, ValueMoveAssignmentToUnpopulatedOptional) {
 }
 
 TEST_F(OptionalTest, ValueMoveAssignmentToPopulatedOptional) {
-  SetupExpectCall().Construct(2).CopyAndMove(0, 2).Destruct(3);
+  // clang-format off
+  SetupExpectCall()
+    .Construct(2)
+    .CopyAndMove(0, 2)
+    .Destruct(3);
+  // clang-format on
 
   Optional<SpecialFunctionsNotifierWrapper> optional_struct(
       SpecialFunctionsNotifierWrapper{});

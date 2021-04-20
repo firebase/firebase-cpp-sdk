@@ -355,9 +355,7 @@ class DocumentReference {
    * @return true if this DocumentReference is valid, false if this
    * DocumentReference is invalid.
    */
-  bool is_valid() const {
-    return internal_ != nullptr;
-  }
+  bool is_valid() const { return internal_ != nullptr; }
 
   /**
    * Returns a string representation of this `DocumentReference` for

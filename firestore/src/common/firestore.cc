@@ -104,8 +104,7 @@ Firestore* Firestore::GetInstance(InitResult* init_result_out) {
   return Firestore::GetInstance(app, init_result_out);
 }
 
-Firestore* Firestore::CreateFirestore(App* app,
-                                      FirestoreInternal* internal,
+Firestore* Firestore::CreateFirestore(App* app, FirestoreInternal* internal,
                                       InitResult* init_result_out) {
   FIREBASE_ASSERT_MESSAGE(app != nullptr,
                           "Provided firebase::App must not be null.");
@@ -138,8 +137,7 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
 }
 
 Firestore::Firestore(::firebase::App* app)
-    : Firestore{new FirestoreInternal{app}} {
-}
+    : Firestore{new FirestoreInternal{app}} {}
 
 Firestore::Firestore(FirestoreInternal* internal)
     // TODO(wuandy): use make_unique once it is supported for our build here.
@@ -167,9 +165,7 @@ Firestore::Firestore(FirestoreInternal* internal)
   }
 }
 
-Firestore::~Firestore() {
-  DeleteInternal();
-}
+Firestore::~Firestore() { DeleteInternal(); }
 
 void Firestore::DeleteInternal() {
   MutexLock lock(*g_firestores_lock);

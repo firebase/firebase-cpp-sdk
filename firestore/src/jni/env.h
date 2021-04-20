@@ -75,14 +75,10 @@ class Env {
   Env& operator=(Env&&) noexcept = default;
 
   /** Returns true if the Env has not encountered an exception. */
-  bool ok() const {
-    return !env_->ExceptionCheck();
-  }
+  bool ok() const { return !env_->ExceptionCheck(); }
 
   /** Returns the underlying JNIEnv pointer. */
-  JNIEnv* get() const {
-    return env_;
-  }
+  JNIEnv* get() const { return env_; }
 
   // MARK: Class Operations
 
@@ -211,8 +207,7 @@ class Env {
   }
 
   template <typename T, typename... Args>
-  ResultType<T> Call(const Object& object,
-                     const Method<T>& method,
+  ResultType<T> Call(const Object& object, const Method<T>& method,
                      Args&&... args) {
     auto env_method = CallTraits<JniType<T>>::kCall;
     return CallHelper<T>(env_method, object.get(), method.id(),
@@ -230,8 +225,7 @@ class Env {
 
   // MARK: Accessing Static Fields
 
-  jfieldID GetStaticFieldId(const Class& clazz,
-                            const char* name,
+  jfieldID GetStaticFieldId(const Class& clazz, const char* name,
                             const char* sig);
 
   /**
@@ -269,8 +263,7 @@ class Env {
    * Finds the method on the given class that's associated with the method name
    * and signature.
    */
-  jmethodID GetStaticMethodId(const Class& clazz,
-                              const char* name,
+  jmethodID GetStaticMethodId(const Class& clazz, const char* name,
                               const char* sig);
 
   /**
@@ -287,8 +280,7 @@ class Env {
    *     or a local reference to the returned object.
    */
   template <typename T, typename... Args>
-  ResultType<T> CallStatic(const Class& clazz,
-                           jmethodID method,
+  ResultType<T> CallStatic(const Class& clazz, jmethodID method,
                            Args&&... args) {
     auto env_method = CallTraits<JniType<T>>::kCallStatic;
     return CallHelper<T>(env_method, clazz.get(), method,
@@ -405,8 +397,7 @@ class Env {
    * Sets the value at the given index in the Java object array.
    */
   template <typename T = Object>
-  EnableForReference<T, void> SetArrayElement(Array<T>& array,
-                                              size_t index,
+  EnableForReference<T, void> SetArrayElement(Array<T>& array, size_t index,
                                               const Object& value) {
     if (!ok()) return;
 
@@ -421,8 +412,7 @@ class Env {
    */
   template <typename T>
   EnableForPrimitive<T, void> GetArrayRegion(const Array<T>& array,
-                                             size_t start,
-                                             size_t len,
+                                             size_t start, size_t len,
                                              T* buffer) {
     if (!ok()) return;
 
@@ -450,10 +440,8 @@ class Env {
    * elements.
    */
   template <typename T>
-  EnableForPrimitive<T, void> SetArrayRegion(Array<T>& array,
-                                             size_t start,
-                                             size_t len,
-                                             const T* buffer) {
+  EnableForPrimitive<T, void> SetArrayRegion(Array<T>& array, size_t start,
+                                             size_t len, const T* buffer) {
     if (!ok()) return;
 
     auto env_method = CallTraits<JniType<T>>::kSetArrayRegion;
@@ -545,8 +533,7 @@ class Env {
 class ExceptionClearGuard {
  public:
   explicit ExceptionClearGuard(Env& env)
-      : env_(env), exception_(env.ClearExceptionOccurred()) {
-  }
+      : env_(env), exception_(env.ClearExceptionOccurred()) {}
 
   ~ExceptionClearGuard() {
     if (exception_) {

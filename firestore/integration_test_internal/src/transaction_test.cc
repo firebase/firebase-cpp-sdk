@@ -50,8 +50,7 @@ class TransactionTest : public FirestoreIntegrationTest {
   // backend. Backend didn't respond within 10 seconds". Transaction requires
   // online and thus will not retry. So we do the retry in the testcase.
   void RunTransactionAndExpect(
-      Error error,
-      const char* message,
+      Error error, const char* message,
       std::function<Error(Transaction&, std::string&)> update) {
     Future<void> future;
     // Re-try 5 times in case server is unavailable.
@@ -101,8 +100,7 @@ class TransactionTest : public FirestoreIntegrationTest {
 
 class TestTransactionFunction : public TransactionFunction {
  public:
-  TestTransactionFunction(DocumentReference doc) : doc_(doc) {
-  }
+  TestTransactionFunction(DocumentReference doc) : doc_(doc) {}
 
   Error Apply(Transaction& transaction, std::string& error_message) override {
     Error error = Error::kErrorUnknown;
@@ -113,12 +111,8 @@ class TestTransactionFunction : public TransactionFunction {
     return error;
   }
 
-  std::string key() {
-    return key_;
-  }
-  std::string value() {
-    return value_;
-  }
+  std::string key() { return key_; }
+  std::string value() { return value_; }
 
  private:
   DocumentReference doc_;
@@ -145,12 +139,9 @@ class TransactionStage {
   TransactionStage(
       std::string tag,
       std::function<void(Transaction*, const DocumentReference&)> func)
-      : tag_(std::move(tag)), func_(std::move(func)) {
-  }
+      : tag_(std::move(tag)), func_(std::move(func)) {}
 
-  const std::string& tag() const {
-    return tag_;
-  }
+  const std::string& tag() const { return tag_; }
 
   void operator()(Transaction* transaction,
                   const DocumentReference& doc) const {
@@ -180,17 +171,17 @@ const auto delete1 = new TransactionStage(
       transaction->Delete(doc);
     });
 
-const auto update1 = new TransactionStage(
-    "update", [](Transaction* transaction, const DocumentReference& doc) {
-      transaction->Update(doc,
-                          MapFieldValue{{"foo", FieldValue::String("bar1")}});
-    });
+const auto update1 = new TransactionStage("update", [](Transaction* transaction,
+                                                       const DocumentReference&
+                                                           doc) {
+  transaction->Update(doc, MapFieldValue{{"foo", FieldValue::String("bar1")}});
+});
 
-const auto update2 = new TransactionStage(
-    "update", [](Transaction* transaction, const DocumentReference& doc) {
-      transaction->Update(doc,
-                          MapFieldValue{{"foo", FieldValue::String("bar2")}});
-    });
+const auto update2 = new TransactionStage("update", [](Transaction* transaction,
+                                                       const DocumentReference&
+                                                           doc) {
+  transaction->Update(doc, MapFieldValue{{"foo", FieldValue::String("bar2")}});
+});
 
 const auto set1 = new TransactionStage(
     "set", [](Transaction* transaction, const DocumentReference& doc) {
@@ -221,8 +212,7 @@ const auto get = new TransactionStage(
  */
 class TransactionTester {
  public:
-  explicit TransactionTester(Firestore* db) : db_(db) {
-  }
+  explicit TransactionTester(Firestore* db) : db_(db) {}
 
   template <typename... Args>
   TransactionTester& Run(Args... args) {

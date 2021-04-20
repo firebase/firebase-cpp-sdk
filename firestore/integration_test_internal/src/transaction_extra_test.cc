@@ -77,12 +77,11 @@ TEST_F(TransactionExtraTest, TestReadingADocTwiceWithDifferentVersions) {
   DocumentReference doc = TestFirestore()->Collection("counters").Document();
   WriteDocument(doc, MapFieldValue{{"count", FieldValue::Double(15.0)}});
 
-  Future<void> future = TestFirestore()->RunTransaction([&doc, &counter](
-                                                            Transaction&
-                                                                transaction,
-                                                            std::string&
-                                                                error_message)
-                                                            -> Error {
+  // clang-format off
+  Future<void> future = TestFirestore()->RunTransaction(
+      [&doc, &counter](Transaction& transaction,
+                       std::string& error_message) -> Error {
+    // clang-format on
     Error error = Error::kErrorOk;
     // Get the doc once.
     DocumentSnapshot snapshot1 = transaction.Get(doc, &error, &error_message);

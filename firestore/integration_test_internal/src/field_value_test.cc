@@ -341,18 +341,18 @@ TEST_F(FieldValueTest, TestIncrementChoosesTheCorrectType) {
 
   // The statements below shouldn't compile (uncomment to check).
 
+  // clang-format off
   // Types that would lead to truncation:
   // EXPECT_TRUE(FieldValue::Increment(1UL).type() == Type::kIncrementInteger);
   // unsigned long long ullfoo = 1;
-  // EXPECT_TRUE(FieldValue::Increment(ullfoo).type() ==
-  // Type::kIncrementInteger); EXPECT_TRUE(FieldValue::Increment(1.0L).type() ==
-  // Type::kIncrementDouble);
+  // EXPECT_TRUE(FieldValue::Increment(ullfoo).type() == Type::kIncrementInteger);
+  // EXPECT_TRUE(FieldValue::Increment(1.0L).type() == Type::kIncrementDouble);
 
   // Inapplicable types:
   // EXPECT_TRUE(FieldValue::Increment(true).type() == Type::kIncrementInteger);
   // EXPECT_TRUE(FieldValue::Increment('a').type() == Type::kIncrementInteger);
-  // EXPECT_TRUE(FieldValue::Increment("abc").type() ==
-  // Type::kIncrementInteger);
+  // EXPECT_TRUE(FieldValue::Increment("abc").type() == Type::kIncrementInteger);
+  // clang-format on
 }
 
 #endif  // !defined(FIRESTORE_STUB_BUILD)

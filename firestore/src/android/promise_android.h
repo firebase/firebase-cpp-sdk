@@ -43,13 +43,11 @@ class Promise {
   class Completion {
    public:
     virtual ~Completion() = default;
-    virtual void CompleteWith(Error error_code,
-                              const char* error_message,
+    virtual void CompleteWith(Error error_code, const char* error_message,
                               PublicType* result) = 0;
   };
 
-  ~Promise() {
-  }
+  ~Promise() {}
 
   Promise(const Promise&) = delete;
   Promise& operator=(const Promise&) = delete;
@@ -67,35 +65,27 @@ class Promise {
                                  completer, kApiIdentifier);
   }
 
-  Future<PublicType> GetFuture() {
-    return MakeFuture(impl_, handle_);
-  }
+  Future<PublicType> GetFuture() { return MakeFuture(impl_, handle_); }
 
  private:
   // The constructor is intentionally private.
   // Create instances with `PromiseFactory`.
-  Promise(ReferenceCountedFutureImpl* impl,
-          FirestoreInternal* firestore,
+  Promise(ReferenceCountedFutureImpl* impl, FirestoreInternal* firestore,
           Completion* completion)
       : completer_(MakeUnique<Completer<PublicType, InternalType>>(
             impl, firestore, completion)),
-        impl_(impl) {
-  }
+        impl_(impl) {}
 
   template <typename PublicT>
   class CompleterBase {
    public:
     CompleterBase(ReferenceCountedFutureImpl* impl,
-                  FirestoreInternal* firestore,
-                  Completion* completion)
-        : impl_{impl}, firestore_{firestore}, completion_(completion) {
-    }
+                  FirestoreInternal* firestore, Completion* completion)
+        : impl_{impl}, firestore_{firestore}, completion_(completion) {}
 
     virtual ~CompleterBase() = default;
 
-    FirestoreInternal* firestore() {
-      return firestore_;
-    }
+    FirestoreInternal* firestore() { return firestore_; }
 
     SafeFutureHandle<PublicT> Alloc(int fn_index) {
       handle_ = impl_->SafeAlloc<PublicT>(fn_index);
@@ -184,11 +174,9 @@ class Promise {
     }
   };
 
-  static void ResultCallback(JNIEnv* env,
-                             jobject result,
+  static void ResultCallback(JNIEnv* env, jobject result,
                              util::FutureResult result_code,
-                             const char* status_message,
-                             void* callback_data) {
+                             const char* status_message, void* callback_data) {
     if (callback_data != nullptr) {
       auto* data =
           static_cast<Completer<PublicType, InternalType>*>(callback_data);

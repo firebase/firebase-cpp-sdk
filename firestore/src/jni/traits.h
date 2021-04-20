@@ -191,9 +191,7 @@ using nullptr_t = decltype(nullptr);
 using nullptr_t = std::nullptr_t;
 #endif
 
-inline jobject RankedToJni(nullptr_t, ConverterChoice<2>) {
-  return nullptr;
-}
+inline jobject RankedToJni(nullptr_t, ConverterChoice<2>) { return nullptr; }
 
 /**
  * Converts wrapper types to JNI references by unwrapping them.

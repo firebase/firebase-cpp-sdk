@@ -189,12 +189,9 @@ RefTracker* RefTracker::instance_ = nullptr;
 
 class OwnershipTest : public FirestoreIntegrationTest {
  public:
-  OwnershipTest() : env_(GetEnv()) {
-  }
+  OwnershipTest() : env_(GetEnv()) {}
 
-  ~OwnershipTest() override {
-    refs_.ExpectLiveIsExactly();
-  }
+  ~OwnershipTest() override { refs_.ExpectLiveIsExactly(); }
 
  protected:
   JNIEnv* env_ = nullptr;

@@ -65,9 +65,7 @@ class FieldValueInternal {
   std::vector<FieldValue> array_value() const;
   MapFieldValue map_value() const;
 
-  const jni::Global<jni::Object>& ToJava() const {
-    return object_;
-  }
+  const jni::Global<jni::Object>& ToJava() const { return object_; }
 
   static FieldValue Delete();
   static FieldValue ServerTimestamp();

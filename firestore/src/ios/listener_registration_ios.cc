@@ -14,9 +14,7 @@ ListenerRegistrationInternal::ListenerRegistrationInternal(
   firestore->RegisterListenerRegistration(this);
 }
 
-ListenerRegistrationInternal::~ListenerRegistrationInternal() {
-  Remove();
-}
+ListenerRegistrationInternal::~ListenerRegistrationInternal() { Remove(); }
 
 }  // namespace firestore
 }  // namespace firebase

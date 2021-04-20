@@ -4,7 +4,6 @@
 
 #include "app/src/assert.h"
 #include "firestore/src/common/cleanup.h"
-
 #include "firestore/src/include/firebase/firestore/document_change.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/query.h"
@@ -21,8 +20,7 @@ namespace firestore {
 
 using CleanupFnQuerySnapshot = CleanupFn<QuerySnapshot>;
 
-QuerySnapshot::QuerySnapshot() {
-}
+QuerySnapshot::QuerySnapshot() {}
 
 QuerySnapshot::QuerySnapshot(const QuerySnapshot& snapshot) {
   if (snapshot.internal_) {
