@@ -51,6 +51,9 @@ env:
   statusLabelSucceeded: "tests: succeeded"
   statusCommentIdentifier: "integration-test-status-comment"
   mobileTestOn: "device"
+  # If triggered by this user, don't run the tests.
+  # This prevents the tests from triggering themselves when editing labels.
+  ignoreTriggeringUser: "firebase-workflow-trigger"
 
 jobs:
   check_trigger:
@@ -65,13 +68,24 @@ jobs:
       should_update_labels: ${{ steps.set_outputs.outputs.should_update_labels }}
       requested_tests: ${{ steps.set_outputs.outputs.requested_tests }}
     steps:
-    ### If the label isn't one of the test-request triggers, cancel the workflow.
-    - name: cancel workflow if label is irrelevant
-      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix) }}
+    ### If the label isn't one of the test-request triggers, or if it was
+    ### triggered by a bot, cancel the workflow.
+    - name: cancel workflow if label is irrelevant or triggered by bot
+      if: |
+        ${{
+          !startsWith(github.event.label.name, env.triggerLabelPrefix) ||
+          github.event.actor.login == env.ignoreTriggeringUser
+        }}
       uses: andymckay/cancel-action@0.2
-    - name: wait for above cancellation if label is irrelevant
-      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix) }}
+      uses: andymckay/cancel-action@0.2
+    - name: wait for above cancellation, if it ran
+      if: |
+        ${{
+          !startsWith(github.event.label.name, env.triggerLabelPrefix) ||
+          github.event.actor.login == env.ignoreTriggeringUser
+        }}
       run: |
+        echo "Actor: ${{ github.event.actor }}"
         sleep 300
         exit 1  # fail out if the cancellation above somehow failed.
     ### Below this line, the label is one of the test-request triggers.
