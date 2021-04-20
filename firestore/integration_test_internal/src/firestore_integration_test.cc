@@ -5,11 +5,11 @@
 
 #if !defined(__ANDROID__)
 #include "Firestore/core/src/util/autoid.h"
-#include "absl/strings/ascii.h"
 #else
 #include "android/util_autoid.h"
 #endif  // !defined(__ANDROID__)
 #include "app_framework.h"
+#include "absl/strings/ascii.h"
 
 namespace firebase {
 namespace firestore {
