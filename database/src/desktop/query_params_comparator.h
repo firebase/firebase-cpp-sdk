@@ -24,6 +24,18 @@ namespace firebase {
 namespace database {
 namespace internal {
 
+inline const Variant* ToVariantPtr(const Optional<Variant>& v) {
+  return v.has_value() ? &v.value() : nullptr;
+}
+
+inline const Variant* ToVariantPtr(const Variant& v) {
+  return &v;
+}
+
+inline const Variant* ToVariantPtr(const Variant* v) {
+  return v;
+}
+
 // A Variant comparator, only meant for internal use.
 //
 // Explanation: Variants by default sort their elements into a map using a
@@ -62,19 +74,27 @@ namespace internal {
 //    kOrderByKey rules.
 class QueryParamsComparator {
  public:
-  QueryParamsComparator() : query_params_(nullptr) {}
+  QueryParamsComparator() : query_params_(nullptr) {
+  }
 
   explicit QueryParamsComparator(const QueryParams* query_params)
-      : query_params_(query_params) {}
+      : query_params_(query_params) {
+  }
 
   // Compare two database values given their key and value.
-  int Compare(const Variant& key_a, const Variant& value_a,
-              const Variant& key_b, const Variant& value_b) const;
+  template <typename V1, typename V2>
+  int Compare(const std::pair<V1, V1>& a, const std::pair<V2, V2>& b) const {
+    return CompareInternal(ToVariantPtr(a.first), ToVariantPtr(a.second),
+                           ToVariantPtr(b.first), ToVariantPtr(b.second));
+  }
 
-  // Compare two database values given their key and value.
-  int Compare(const std::pair<Variant, Variant>& a,
-              const std::pair<Variant, Variant>& b) const {
-    return Compare(a.first, a.second, b.first, b.second);
+  template <typename KeyA, typename ValueA, typename KeyB, typename ValueB>
+  int Compare(const KeyA& key_a,
+              const ValueA& value_a,
+              const KeyB& key_b,
+              const ValueB& value_b) const {
+    return CompareInternal(ToVariantPtr(key_a), ToVariantPtr(value_a),
+                           ToVariantPtr(key_b), ToVariantPtr(value_b));
   }
 
   // Utility function to compare two variants as keys.
@@ -88,10 +108,15 @@ class QueryParamsComparator {
   // These values will always be sorted before or after all over values.
   static const char kMinKey[];
   static const char kMaxKey[];
-  static const std::pair<Variant, Variant> kMinNode;
-  static const std::pair<Variant, Variant> kMaxNode;
+  static const std::pair<Optional<Variant>, Optional<Variant>> kMinNode;
+  static const std::pair<Optional<Variant>, Optional<Variant>> kMaxNode;
 
  private:
+  int CompareInternal(const Variant* key_a,
+                      const Variant* value_a,
+                      const Variant* key_b,
+                      const Variant* value_b) const;
+
   int CompareChildren(const Variant& value_a, const Variant& value_b) const;
 
   const QueryParams* query_params_;
@@ -101,28 +126,18 @@ class QueryParamsComparator {
 // as the std::set's comparator argument.
 class QueryParamsLesser {
  public:
-  QueryParamsLesser() : comparator_() {}
+  QueryParamsLesser() : comparator_() {
+  }
   explicit QueryParamsLesser(const QueryParams* query_params)
-      : comparator_(query_params) {}
-
-  bool operator()(const std::pair<Variant, Variant>& a,
-                  const std::pair<Variant, Variant>& b) const {
-    return comparator_.Compare(a.first, a.second, b.first, b.second) < 0;
+      : comparator_(query_params) {
   }
 
-  bool operator()(const std::pair<const Variant, const Variant>& a,
-                  const std::pair<const Variant, const Variant>& b) const {
-    return comparator_.Compare(a.first, a.second, b.first, b.second) < 0;
-  }
-
-  bool operator()(const std::pair<Variant*, Variant*>& a,
-                  const std::pair<Variant*, Variant*>& b) const {
-    return comparator_.Compare(*a.first, *a.second, *b.first, *b.second) < 0;
-  }
-
-  bool operator()(const std::pair<const Variant*, const Variant*>& a,
-                  const std::pair<const Variant*, const Variant*>& b) const {
-    return comparator_.Compare(*a.first, *a.second, *b.first, *b.second) < 0;
+  template <typename V1, typename V2>
+  bool operator()(const std::pair<V1, V1>& a,
+                  const std::pair<V2, V2>& b) const {
+    return comparator_.Compare(ToVariantPtr(a.first), ToVariantPtr(a.second),
+                               ToVariantPtr(b.first),
+                               ToVariantPtr(b.second)) < 0;
   }
 
  private:

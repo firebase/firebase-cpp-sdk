@@ -65,7 +65,7 @@ IndexedVariant& IndexedVariant::operator=(const IndexedVariant& other) {
 const char* IndexedVariant::GetPredecessorChildName(
     const std::string& child_key, const Variant& child_value) const {
   Variant key = child_key.c_str();
-  auto iter = index_.find(std::make_pair(key, child_value));
+  auto iter = index_.find(std::make_pair(Variant(key), child_value));
 
   if (iter == index_.end()) {
     return nullptr;

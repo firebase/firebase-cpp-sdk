@@ -358,10 +358,10 @@ QueryInternal* QueryInternal::StartAt(const Variant& value,
     }
     return nullptr;
   }
-  FIREBASE_ASSERT_RETURN(nullptr, child_key != nullptr);
   QuerySpec spec = query_spec_;
   spec.params.start_at_value = value;
-  spec.params.start_at_child_key = child_key;
+  spec.params.start_at_child_key =
+      child_key ? Optional<std::string>(child_key) : Optional<std::string>();
   if (!ValidateQueryEndpoints(spec.params, logger)) {
     return nullptr;
   }
@@ -407,10 +407,10 @@ QueryInternal* QueryInternal::EndAt(const Variant& value,
     }
     return nullptr;
   }
-  FIREBASE_ASSERT_RETURN(nullptr, child_key != nullptr);
   QuerySpec spec = query_spec_;
   spec.params.end_at_value = value;
-  spec.params.end_at_child_key = child_key;
+  spec.params.end_at_child_key =
+      child_key ? Optional<std::string>(child_key) : Optional<std::string>();
   if (!ValidateQueryEndpoints(spec.params, logger)) {
     return nullptr;
   }
@@ -452,7 +452,8 @@ QueryInternal* QueryInternal::EqualTo(const Variant& value,
   }
   QuerySpec spec = query_spec_;
   spec.params.equal_to_value = value;
-  spec.params.equal_to_child_key = child_key;
+  spec.params.equal_to_child_key =
+      child_key ? Optional<std::string>(child_key) : Optional<std::string>();
   if (!ValidateQueryEndpoints(spec.params, logger)) {
     return nullptr;
   }

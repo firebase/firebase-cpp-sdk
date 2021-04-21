@@ -37,10 +37,14 @@ static const Variant kMinVariant = Variant::FromStaticBlob(  // NOLINT
 static const Variant kMaxVariant = Variant::FromStaticBlob(  // NOLINT
     QueryParamsComparator::kMaxKey, sizeof(QueryParamsComparator::kMaxKey));
 
-const std::pair<Variant, Variant> QueryParamsComparator::kMinNode =  // NOLINT
-    std::make_pair(QueryParamsComparator::kMinKey, kMinVariant);
-const std::pair<Variant, Variant> QueryParamsComparator::kMaxNode =  // NOLINT
-    std::make_pair(QueryParamsComparator::kMaxKey, kMaxVariant);
+const std::pair<Optional<Variant>, Optional<Variant>>
+    QueryParamsComparator::kMinNode =
+        std::make_pair(Optional<Variant>(QueryParamsComparator::kMinKey),
+                       Optional<Variant>(kMinVariant));  // NOLINT
+const std::pair<Optional<Variant>, Optional<Variant>>
+    QueryParamsComparator::kMaxNode =
+        std::make_pair(Optional<Variant>(QueryParamsComparator::kMaxKey),
+                       Optional<Variant>(kMaxVariant));  // NOLINT
 
 static int VariantIsSentinel(const Variant& key, const Variant& value) {
   if (key == QueryParamsComparator::kMinKey && value == kMinVariant) {
@@ -52,42 +56,43 @@ static int VariantIsSentinel(const Variant& key, const Variant& value) {
   }
 }
 
-int QueryParamsComparator::Compare(const Variant& key_a, const Variant& value_a,
-                                   const Variant& key_b,
-                                   const Variant& value_b) const {
-  assert(key_a.is_string() || key_a.is_int64());
-  assert(key_b.is_string() || key_b.is_int64());
+int QueryParamsComparator::CompareInternal(const Variant* key_a,
+                                           const Variant* value_a,
+                                           const Variant* key_b,
+                                           const Variant* value_b) const {
+  assert(key_a->is_string() || key_a->is_int64());
+  assert(key_b->is_string() || key_b->is_int64());
 
   // First check if either of our nodes is the special min or max sentinel
   // value. If that's the case, we can short circuit the rest of the comparison.
-  int min_max_a = VariantIsSentinel(key_a, value_a);
-  int min_max_b = VariantIsSentinel(key_b, value_b);
+  int min_max_a = VariantIsSentinel(*key_a, *value_a);
+  int min_max_b = VariantIsSentinel(*key_b, *value_b);
   if (min_max_a != min_max_b) {
     return min_max_a - min_max_b;
   }
 
   switch (query_params_->order_by) {
     case QueryParams::kOrderByPriority: {
-      int result = ComparePriorities(value_a, value_b);
+      int result = ComparePriorities(*value_a, *value_b);
       if (result == 0) {
-        result = CompareKeys(key_a, key_b);
+        result = CompareKeys(*key_a, *key_b);
       }
       return result;
     }
     case QueryParams::kOrderByChild: {
-      int result = CompareChildren(value_a, value_b);
+      int result = CompareChildren(*value_a, *value_b);
       if (result == 0) {
-        result = CompareKeys(key_a, key_b);
+        result = CompareKeys(*key_a, *key_b);
       }
       return result;
     }
     case QueryParams::kOrderByKey: {
-      return CompareKeys(key_a, key_b);
+      return CompareKeys(*key_a, *key_b);
     }
     case QueryParams::kOrderByValue: {
-      int result = CompareValues(value_a, value_b);
+      int result = CompareValues(*value_a, *value_b);
       if (result == 0) {
-        result = CompareKeys(key_a, key_b);
+        result = CompareKeys(*key_a, *key_b);
       }
       return result;
     }

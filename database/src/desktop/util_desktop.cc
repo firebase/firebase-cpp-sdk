@@ -993,61 +993,73 @@ bool IsValidPriority(const Variant& variant) {
   return variant.is_null() || variant.is_numeric() || variant.is_string();
 }
 
-std::pair<Variant, Variant> MakePost(const QueryParams& params,
-                                     const std::string& name,
-                                     const Variant& value) {
+std::pair<Optional<Variant>, Optional<Variant>> MakePost(
+    const QueryParams& params,
+    const Optional<std::string>& name,
+    const Optional<Variant>& value) {
   switch (params.order_by) {
     case QueryParams::kOrderByPriority: {
-      return std::make_pair(name, std::map<Variant, Variant>{
-                                      std::make_pair(".priority", value),
-                                  });
+      return std::make_pair(
+          name.has_value() ? Optional<Variant>(*name) : Optional<Variant>(),
+          value.has_value() ? Optional<Variant>(std::map<Variant, Variant>{
+                                  std::make_pair(".priority", *value),
+                              })
+                            : Optional<Variant>());
     }
     case QueryParams::kOrderByChild: {
       Variant variant;
-      SetVariantAtPath(&variant, Path(params.order_by_child), value);
-      return std::make_pair(name, variant);
+      SetVariantAtPath(&variant, Path(params.order_by_child),
+                       value.has_value() ? *value : Variant::Null());
+      return std::make_pair(
+          name.has_value() ? Optional<Variant>(*name) : Optional<Variant>(),
+          Optional<Variant>(variant));
     }
     case QueryParams::kOrderByKey: {
-      FIREBASE_DEV_ASSERT(value.is_string());
+      FIREBASE_DEV_ASSERT(value.has_value() && value->is_string());
       // We just use empty node, but it'll never be compared, since our
       // comparator only looks at name.
-      return std::make_pair(value.string_value(), Variant::Null());
+      return std::make_pair(value.has_value()
+                                ? Optional<Variant>(value->mutable_string())
+                                : Optional<Variant>(),
+                            Optional<Variant>(Variant::Null()));
     }
     case QueryParams::kOrderByValue: {
-      return std::make_pair(name, value);
+      return std::make_pair(
+          name.has_value() ? Optional<Variant>(*name) : Optional<Variant>(),
+          value);
     }
   }
   FIREBASE_DEV_ASSERT_MESSAGE(false, "Invalid QueryParams::OrderBy");
-  return std::pair<Variant, Variant>();
+  return std::pair<Optional<Variant>, Optional<Variant>>();
 }
 
 bool HasStart(const QueryParams& params) {
-  return !params.start_at_value.is_null() || !params.equal_to_value.is_null() ||
-         GetStartName(params) != QueryParamsComparator::kMinKey;
+  return params.start_at_value.has_value() || params.equal_to_value.has_value();
 }
 
 bool HasEnd(const QueryParams& params) {
-  return !params.end_at_value.is_null() || !params.equal_to_value.is_null() ||
-         GetEndName(params) != QueryParamsComparator::kMaxKey;
+  return params.end_at_value.has_value() || params.equal_to_value.has_value();
 }
 
-std::string GetStartName(const QueryParams& params) {
-  if (!params.start_at_child_key.empty()) {
-    return params.start_at_child_key;
-  } else if (!params.equal_to_child_key.empty()) {
-    return params.equal_to_child_key;
+const std::string& GetStartName(const QueryParams& params) {
+  if (params.start_at_child_key.has_value()) {
+    return *params.start_at_child_key;
+  } else if (params.equal_to_child_key.has_value()) {
+    return *params.equal_to_child_key;
   } else {
-    return QueryParamsComparator::kMinKey;
+    static std::string s_min_key_str(QueryParamsComparator::kMinKey);
+    return s_min_key_str;
   }
 }
 
-std::string GetEndName(const QueryParams& params) {
-  if (!params.end_at_child_key.empty()) {
-    return params.end_at_child_key;
-  } else if (!params.equal_to_child_key.empty()) {
-    return params.equal_to_child_key;
+const std::string& GetEndName(const QueryParams& params) {
+  if (params.end_at_child_key.has_value()) {
+    return *params.end_at_child_key;
+  } else if (params.equal_to_child_key.has_value()) {
+    return *params.equal_to_child_key;
   } else {
-    return QueryParamsComparator::kMaxKey;
+    static std::string s_max_key_str(QueryParamsComparator::kMaxKey);
+    return s_max_key_str;
   }
 }
 
@@ -1055,28 +1067,32 @@ const Variant& GetStartValue(const QueryParams& params) {
   FIREBASE_DEV_ASSERT_MESSAGE(
       HasStart(params),
       "Cannot get index start value if start has not been set");
-  return params.equal_to_value.is_null() ? params.start_at_value
-                                         : params.equal_to_value;
+  return params.equal_to_value.has_value() ? *params.equal_to_value
+                                           : *params.start_at_value;
 }
 
 const Variant& GetEndValue(const QueryParams& params) {
   FIREBASE_DEV_ASSERT_MESSAGE(
       HasEnd(params), "Cannot get index end value if end has not been set");
-  return params.equal_to_value.is_null() ? params.end_at_value
-                                         : params.equal_to_value;
+  return params.equal_to_value.has_value() ? *params.equal_to_value
+                                           : *params.end_at_value;
 }
 
-std::pair<Variant, Variant> GetStartPost(const QueryParams& params) {
+std::pair<Optional<Variant>, Optional<Variant>> GetStartPost(
+    const QueryParams& params) {
   if (HasStart(params)) {
-    return MakePost(params, GetStartName(params), GetStartValue(params));
+    return MakePost(params, Optional<std::string>(GetStartName(params)),
+                    Optional<Variant>(GetStartValue(params)));
   } else {
     return QueryParamsComparator::kMinNode;
   }
 }
 
-std::pair<Variant, Variant> GetEndPost(const QueryParams& params) {
+std::pair<Optional<Variant>, Optional<Variant>> GetEndPost(
+    const QueryParams& params) {
   if (HasEnd(params)) {
-    return MakePost(params, GetEndName(params), GetEndValue(params));
+    return MakePost(params, Optional<std::string>(GetEndName(params)),
+                    Optional<Variant>(GetEndValue(params)));
   } else {
     return QueryParamsComparator::kMaxNode;
   }
@@ -1087,10 +1103,13 @@ bool QuerySpecLoadsAllData(const QuerySpec& query_spec) {
 }
 
 bool QueryParamsLoadsAllData(const QueryParams& params) {
-  return params.start_at_value.is_null() && params.start_at_child_key.empty() &&
-         params.end_at_value.is_null() && params.end_at_child_key.empty() &&
-         params.equal_to_value.is_null() && params.equal_to_child_key.empty() &&
-         params.limit_first == 0 && params.limit_last == 0;
+  return !params.start_at_value.has_value() &&
+         !params.start_at_child_key.has_value() &&
+         !params.end_at_value.has_value() &&
+         !params.end_at_child_key.has_value() &&
+         !params.equal_to_value.has_value() &&
+         !params.equal_to_child_key.has_value() && params.limit_first == 0 &&
+         params.limit_last == 0;
 }
 
 bool QuerySpecIsDefault(const QuerySpec& query_spec) {
@@ -1128,31 +1147,31 @@ std::string WireProtocolPathToString(const Path& path) {
 Variant GetWireProtocolParams(const QueryParams& query_params) {
   Variant result = Variant::EmptyMap();
 
-  if (!query_params.start_at_value.is_null()) {
-    result.map()[kQueryParamsIndexStartValue] = query_params.start_at_value;
-    if (!query_params.start_at_child_key.empty()) {
+  if (query_params.start_at_value.has_value()) {
+    result.map()[kQueryParamsIndexStartValue] = *query_params.start_at_value;
+    if (query_params.start_at_child_key.has_value()) {
       result.map()[kQueryParamsIndexStartName] =
-          query_params.start_at_child_key;
+          *query_params.start_at_child_key;
     }
   }
 
-  if (!query_params.end_at_value.is_null()) {
-    result.map()[kQueryParamsIndexEndValue] = query_params.end_at_value;
-    if (!query_params.end_at_child_key.empty()) {
-      result.map()[kQueryParamsIndexEndName] = query_params.end_at_child_key;
+  if (query_params.end_at_value.has_value()) {
+    result.map()[kQueryParamsIndexEndValue] = *query_params.end_at_value;
+    if (query_params.end_at_child_key.has_value()) {
+      result.map()[kQueryParamsIndexEndName] = *query_params.end_at_child_key;
     }
   }
 
   // QueryParams in Android implementation does not really have "equal_to"
   // property.  Instead, it is converted into "start_at" and "end_at" with the
   // same value.
-  if (!query_params.equal_to_value.is_null()) {
-    result.map()[kQueryParamsIndexStartValue] = query_params.equal_to_value;
-    result.map()[kQueryParamsIndexEndValue] = query_params.equal_to_value;
-    if (!query_params.equal_to_child_key.empty()) {
+  if (query_params.equal_to_value.has_value()) {
+    result.map()[kQueryParamsIndexStartValue] = *query_params.equal_to_value;
+    result.map()[kQueryParamsIndexEndValue] = *query_params.equal_to_value;
+    if (query_params.equal_to_child_key.has_value()) {
       result.map()[kQueryParamsIndexStartName] =
-          query_params.equal_to_child_key;
-      result.map()[kQueryParamsIndexEndName] = query_params.equal_to_child_key;
+          *query_params.equal_to_child_key;
+      result.map()[kQueryParamsIndexEndName] = *query_params.equal_to_child_key;
     }
   }
 

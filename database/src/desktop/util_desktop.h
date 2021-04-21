@@ -279,9 +279,10 @@ const std::string& GetHashRepresentation(const Variant& data,
 // SDK
 const std::string& GetHash(const Variant& data, std::string* output);
 
-std::pair<Variant, Variant> MakePost(const QueryParams& params,
-                                     const std::string& name,
-                                     const Variant& value);
+std::pair<Optional<Variant>, Optional<Variant>> MakePost(
+    const QueryParams& params,
+    const Optional<std::string>& name,
+    const Optional<Variant>& value);
 
 bool IsValidPriority(const Variant& variant);
 
@@ -296,12 +297,12 @@ bool HasEnd(const QueryParams& params);
 // Get the lower bound of the key for the earliest element that can appear in
 // an IndexedVariant associated with these QueryParams. This will either be the
 // start_at_child_key or the equal_to_child_key if either is set.
-std::string GetStartName(const QueryParams& params);
+const std::string& GetStartName(const QueryParams& params);
 
 // Get the upper bound of the key for the latest element that can appear in
 // an IndexedVariant associated with these QueryParams. This will either be the
 // end_at_child_key or the equal_to_child_key if either is set.
-std::string GetEndName(const QueryParams& params);
+const std::string& GetEndName(const QueryParams& params);
 
 // Get the lower bound of the value for the earliest element that can appear in
 // an IndexedVariant associated with these QueryParams. This will either be the
@@ -315,11 +316,13 @@ const Variant& GetEndValue(const QueryParams& params);
 
 // Get the earliest key/value pair that can appear in a given IndexedVariant,
 // based on the sorting order and range given in the QueryParams.
-std::pair<Variant, Variant> GetStartPost(const QueryParams& params);
+std::pair<Optional<Variant>, Optional<Variant>> GetStartPost(
+    const QueryParams& params);
 
 // Get the latest key/value pair that can appear in a given IndexedVariant,
 // based on the sorting order and range given in the QueryParams.
-std::pair<Variant, Variant> GetEndPost(const QueryParams& params);
+std::pair<Optional<Variant>, Optional<Variant>> GetEndPost(
+    const QueryParams& params);
 
 // Returns true if the QuerySpec does no filtering of child data, meaning that
 // the data loaded locally under this QuerySpec is a complete view of the data
