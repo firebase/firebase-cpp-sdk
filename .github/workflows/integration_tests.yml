@@ -68,29 +68,6 @@ jobs:
       should_update_labels: ${{ steps.set_outputs.outputs.should_update_labels }}
       requested_tests: ${{ steps.set_outputs.outputs.requested_tests }}
     steps:
-    ### If the label isn't one of the test-request triggers, or if it was
-    ### triggered by a bot, cancel the workflow.
-    - name: cancel workflow if label is irrelevant or triggered by bot
-      if: |
-        ${{
-          !startsWith(github.event.label.name, env.triggerLabelPrefix) ||
-          github.event.actor.login == env.ignoreTriggeringUser
-        }}
-      uses: andymckay/cancel-action@0.2
-    - name: wait for above cancellation, if applicable
-      if: |
-        ${{
-          !startsWith(github.event.label.name, env.triggerLabelPrefix) ||
-          github.event.actor.login == env.ignoreTriggeringUser
-        }}
-      run: |
-        sleep 300
-        exit 1  # fail out if the cancellation above somehow failed.
-    ### Below this line, the label is one of the test-request triggers.
-    - name: cancel previous runs on the same PR
-      uses: styfle/cancel-workflow-action@0.8.0
-      with:
-        access_token: ${{ github.token }}
     ### Generate a token to use for labeling and commenting this PR, if this PR
     ### comes from a forked repo.
     ### This is required because github.token will be read-only on PRs from forked
@@ -107,9 +84,39 @@ jobs:
     - id: comment-token
       run: |
         if [[ -z "${{steps.generate-fork-token.outputs.token}}" ]]
+          echo "Using default github token."
           echo "::set-output name=token::${{github.token}}"
         else
+          echo "Using generated token due to forked repo."
           echo "::set-output name=token::${{steps.generate-fork-token.outputs.token}}"
+        echo "Head repo name: ${{ github.event.pull_request.head.repo.full_name }}"
+        echo "Base repo name: ${{ github.event.pull_request.base.repo.full_name }}"
+        echo "Actor: ${{ github.event.actor.login }}"
+    ### If the label isn't one of the test-request triggers, or if it was
+    ### triggered by a bot, cancel the workflow.
+    - name: cancel workflow if label is irrelevant or triggered by bot
+      if: |
+        ${{
+          !startsWith(github.event.label.name, env.triggerLabelPrefix) ||
+          github.event.actor.login == env.ignoreTriggeringUser
+        }}
+      uses: andymckay/cancel-action@0.2
+      with:
+        token: ${{steps.comment-token.outputs.token}}
+    - name: wait for above cancellation, if applicable
+      if: |
+        ${{
+          !startsWith(github.event.label.name, env.triggerLabelPrefix) ||
+          github.event.actor.login == env.ignoreTriggeringUser
+        }}
+      run: |
+        sleep 300
+        exit 1  # fail out if the cancellation above somehow failed.
+    ### Below this line, the label is one of the test-request triggers.
+    - name: cancel previous runs on the same PR
+      uses: styfle/cancel-workflow-action@0.8.0
+      with:
+        access_token: ${{steps.comment-token.outputs.token}}
     - name: remove triggering label
       uses: buildsville/add-remove-label@v1
       with:
