@@ -19,7 +19,7 @@ Usage:
   python test_simulator.py --testapp_dir ~/testapps 
 
 This will recursively search ~/testapps for apps,
-test on local simulators/emulatrs, and validate their results. The validation is 
+test on local simulators/emulators, and validate their results. The validation is 
 specific to the structure of the Firebase Unity and C++ testapps.
 
 ----iOS only----
