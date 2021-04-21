@@ -8,7 +8,7 @@ android {
     defaultConfig {
         applicationId "com.google.firebase.gameloop"
         minSdkVersion rootProject.minSdk
-        targetSdkVersion rootProject.targetSDK
+        targetSdkVersion rootProject.targetSdk
         versionCode 1
         versionName "1.0"
 

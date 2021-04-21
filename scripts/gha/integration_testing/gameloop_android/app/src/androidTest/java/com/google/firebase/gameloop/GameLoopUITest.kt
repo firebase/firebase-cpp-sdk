@@ -4,6 +4,7 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
+import androidx.test.platform.app.InstrumentationRegistry.getInstrumentation
 import androidx.test.uiautomator.By
 import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
@@ -18,7 +19,6 @@ import org.junit.runner.RunWith
 class GameLoopUITest {
 
   companion object {
-    const val COMPLETE_TEST = "Game Loop Complete"
     const val GAMELOOP_TIMEOUT = 7 * 60 * 1000L
   }
 
@@ -35,7 +35,9 @@ class GameLoopUITest {
 
   @Test
   fun testLaunchGameLoop() {
-    val element = device.wait(Until.findObject(By.text(COMPLETE_TEST)), GAMELOOP_TIMEOUT)
+    val element = device.wait(
+      Until.findObject(By.text(getInstrumentation().targetContext.getString(R.string.test_complete))),
+      GAMELOOP_TIMEOUT)
     assertNotNull(element)
   }
 }

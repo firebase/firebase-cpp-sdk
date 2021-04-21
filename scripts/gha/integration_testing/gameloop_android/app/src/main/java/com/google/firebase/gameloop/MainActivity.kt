@@ -13,7 +13,6 @@ import java.io.File
 
 class MainActivity : AppCompatActivity(R.layout.activity_main) {
   companion object {
-    const val COMPLETE_TEST = "Game Loop Complete"
     const val GAMELOOP_INTENT = "com.google.intent.action.TEST_LOOP"
     const val TEST_LOOP_REQUEST_CODE = 1
   }
@@ -49,7 +48,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
   override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
     super.onActivityResult(requestCode, resultCode, data)
     when (requestCode) {
-      TEST_LOOP_REQUEST_CODE -> testingTV.text = COMPLETE_TEST
+      TEST_LOOP_REQUEST_CODE -> testingTV.text = getString(R.string.test_complete)
     }
   }
 }

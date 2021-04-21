@@ -56,6 +56,12 @@ Note: you need to combine them with ";". Examples:
 sdk id "system-images;android-29;google_apis", build tool version "29.0.3":
   --android_device "system-images;android-29;google_apis;x86;29.0.3"
 
+Returns:
+   1: No iOS/Android integration_test apps found
+   21: iOS Simulator created fail  
+   22: iOS gameloop app not found
+   23: build_testapps.json file not found
+   31: For android test, JAVA_HOME is not set to java 8
 """
 
 import json
@@ -131,21 +137,21 @@ def main(argv):
     device_id = _boot_simulator(device_name, device_os)
     if not device_id:
       logging.error("simulator created fail")
-      return 1
+      return 21
 
     # A tool that enable game-loop test. This is a XCode project
     ios_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop")
     ios_gameloop_app = _build_ios_gameloop(ios_gameloop_project, device_name, device_os)
     if not ios_gameloop_app:
       logging.error("gameloop app not found")
-      return 2
+      return 22
 
     config_path = os.path.join(current_dir, "integration_testing", "build_testapps.json")
     with open(config_path, "r") as configFile:
       config = json.load(configFile)
     if not config:
       logging.error("No config file found")
-      return 3
+      return 23
   
     for app_path in ios_testapps:
       bundle_id = _get_bundle_id(app_path, config)
@@ -164,7 +170,7 @@ def main(argv):
 
     if not _check_java_version():
       logging.error("Please set JAVA_HOME to java 8")
-      return 1
+      return 31
 
     _setup_android(platforms_version, build_tools_version, sdk_id)  
 
