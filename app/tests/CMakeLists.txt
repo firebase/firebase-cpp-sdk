@@ -395,14 +395,6 @@ firebase_cpp_cc_test(firebase_app_base64_test
 )
 
 # google3 - thread/fiber/fiber.h (thread::Fiber)
-firebase_cpp_cc_test(firebase_app_future_playbillingclient_test
-  SOURCES
-    future_playbillingclient_test.cc
-  DEPENDS
-    firebase_app
-)
-
-# google3 - thread/fiber/fiber.h (thread::Fiber)
 firebase_cpp_cc_test(firebase_app_future_test
   SOURCES
     future_test.cc
