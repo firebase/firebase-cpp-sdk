@@ -1,11 +1,26 @@
 name: Consistency Checks
 
 on:
+
   pull_request:
-    types: [opened, reopened, synchronize]
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+env:
+  triggerLabelFull: "tests-requested: full"
+  triggerLabelQuick: "tests-requested: quick"
+  statusLabelInProgress: "tests: in-progress"
+  statusLabelFailed: "tests: failed"
 
 jobs:
-  detect_source_file_format_changes:
+  check_integration_test_labels:
+    # This check fails if integration tests are queued, in progress, or failed.
+    runs-on: ubuntu-latest
+    steps:
+    - uses: docker://agilepathway/pull-request-label-checker:latest
+      with:
+        none_of: "${{ env.statusLabelInProgress }},${{ env.statusLabelFailed }},${{ env.triggerLabelFull }},${{ env.triggerLabelQuick }}"
+        repo_token: ${{ github.token }}
+  file_format_check:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
