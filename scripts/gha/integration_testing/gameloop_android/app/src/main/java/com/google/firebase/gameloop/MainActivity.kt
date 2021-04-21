@@ -11,7 +11,7 @@ import androidx.core.content.FileProvider
 import java.io.File
 
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(R.layout.activity_main) {
   companion object {
     const val COMPLETE_TEST = "Game Loop Complete"
     const val GAMELOOP_INTENT = "com.google.intent.action.TEST_LOOP"
@@ -21,7 +21,6 @@ class MainActivity : AppCompatActivity() {
   private lateinit var testingTV: TextView
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-    setContentView(R.layout.activity_main)
     testingTV = findViewById(R.id.test)
     launchGame()
   }
@@ -35,7 +34,7 @@ class MainActivity : AppCompatActivity() {
 
     val dir = File(getExternalFilesDir(null), gamePackageName)
     if (!dir.exists()) dir.mkdirs()
-    val filename = "results1.json"
+    val filename = "Results1.json"
     val file = File(dir, filename)
     file.createNewFile()
     Log.d("TAG", "Test Result Path :" + file)

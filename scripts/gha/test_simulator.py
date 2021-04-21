@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-r"""Tool for mobile testapps to Test on local simulators/emulaotrs.
+r"""Tool for mobile testapps to Test on iOS Simulator / Android Emulator locally.
 
 Usage:
 
@@ -53,7 +53,7 @@ available tools with the following commands:
 
 Note: you need to combine them with ";". Examples:
 
-sdk id "system-images;android-29;google_apis", build tool "29.0.3":
+sdk id "system-images;android-29;google_apis", build tool version "29.0.3":
   --android_device "system-images;android-29;google_apis;x86;29.0.3"
 
 """
@@ -71,6 +71,7 @@ import attr
 from integration_testing import test_validation
 
 _GAMELOOP_PACKAGE = "com.google.firebase.gameloop"
+_RESULT_FILE = "Results1.json"
 
 FLAGS = flags.FLAGS
 
@@ -140,10 +141,10 @@ def main(argv):
       return 2
 
     config_path = os.path.join(current_dir, "integration_testing", "build_testapps.json")
-    with open(config_path, "r") as config:
-      config = json.load(config)
+    with open(config_path, "r") as configFile:
+      config = json.load(configFile)
     if not config:
-      logging.error("No config found")
+      logging.error("No config file found")
       return 3
   
     for app_path in ios_testapps:
@@ -297,7 +298,7 @@ def _get_ios_test_log(bundle_id, app_path, device_id):
     logging.info("No test Result")
     return None
 
-  log_path = os.path.join(result.stdout.strip(), "Documents", "GameLoopResults", "Results1.json") 
+  log_path = os.path.join(result.stdout.strip(), "Documents", "GameLoopResults", _RESULT_FILE) 
   return _read_file(log_path) 
 
 
@@ -433,7 +434,7 @@ def _run_instrumented_test():
 
 def _get_android_test_log(test_package):
   """Read integration_test app testing result."""
-  path = "$EXTERNAL_STORAGE/Android/data/%s/files/%s/results1.json" % (_GAMELOOP_PACKAGE, test_package)
+  path = "$EXTERNAL_STORAGE/Android/data/%s/files/%s/%s" % (_GAMELOOP_PACKAGE, test_package, _RESULT_FILE)
   args = ["adb", "shell", "cat", path]
   logging.info("Get android test result: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False)
