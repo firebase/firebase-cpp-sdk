@@ -37,7 +37,8 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseRemoteConfig);
 // clang-format off
 #define REMOTE_CONFIG_METHODS(X)                                           \
   X(GetInstance, "getInstance",                                            \
-    "()Lcom/google/firebase/remoteconfig/FirebaseRemoteConfig;",           \
+    "(Lcom/google/firebase/FirebaseApp;)"                                  \
+    "Lcom/google/firebase/remoteconfig/FirebaseRemoteConfig;",             \
     util::kMethodTypeStatic),                                              \
   X(EnsureInitialized, "ensureInitialized",                                \
     "()Lcom/google/android/gms/tasks/Task;"),                              \
@@ -454,8 +455,12 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
 
   // Create the remote config class.
   jclass config_class = config::GetClass();
+  jobject platform_app = app_.GetPlatformApp();
   jobject config_instance_local = env->CallStaticObjectMethod(
-      config_class, config::GetMethodId(config::kGetInstance));
+      config_class,
+      config::GetMethodId(config::kGetInstance),
+      platform_app);
+  env->DeleteLocalRef(platform_app);
   if (util::CheckAndClearJniExceptions(env)) config_instance_local = nullptr;
   FIREBASE_ASSERT(config_instance_local);
   internal_obj_ = env->NewGlobalRef(config_instance_local);
