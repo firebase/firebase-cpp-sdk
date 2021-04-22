@@ -99,15 +99,17 @@ PARAMETERS = {
     "matrix": {
       "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS"],
-      "ssl_lib": ["openssl", "boringssl"]
+      "ssl_lib": ["openssl", "boringssl"],
+      "android_device": ["virtual:29;google_apis;x86;29.0.3", "real:flame;29"],
+      "ios_device": ["virtual:iPhone 11;14.4", "real:iphone8;12.4"],
+      EXPANDED_KEY: {
+        "android_device": ["virtual:24;google_apis;x86;24.0.3", "virtual:29;google_apis;x86;29.0.3", "real:Nexus6P;24","real:flame;29"],
+        "ios_device": ["virtual:iPhone 8;14.4", "virtual:iPhone 11;14.4", "real:iphone8;12.4", "real:iphonexr;13.2"]
+      }
     },
     "config": {
       "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,instance_id,messaging,remote_config,storage",
-      "mobile_test_on": "device,simulator",
-      "android_device": "flame",
-      "android_api": "29",
-      "ios_device": "iphone8",
-      "ios_version": "12.4"
+      "mobile_test_on": "real,virtual"
     }
   },
 
@@ -170,6 +172,18 @@ def get_value(workflow, use_expanded, parm_key, config_parms_only=False):
                                                                 parm_type_key,
                                                                 workflow,
                                                                 use_expanded))
+
+
+def filter_value(workflow, parm_key, value, by):
+  """ Filter value by condtional
+
+  Currently only used for filter mobile device by device type.
+  """
+  if workflow == "integration_tests" and (parm_key == "android_device" or parm_key == "ios_device"):
+    filtered_value = filter(lambda device: device.split(":")[0] in by, value)
+    value = list(filtered_value)
+
+  return value  
 
 
 def print_value(value):
@@ -276,6 +290,7 @@ def main():
     return
 
   value = get_value(args.workflow, args.expanded, args.parm_key, args.config)
+  value = filter_value(args.workflow, args.parm_key, value, by = args.device)
   if args.auto_diff:
     value = filter_values_on_diff(args.parm_key, value, args.auto_diff)
   print_value(value)
@@ -289,6 +304,7 @@ def parse_cmdline_args():
   parser.add_argument('-k', '--parm_key', required=True, help='Print the value of specified key from matrix or config maps.')
   parser.add_argument('-a', '--auto_diff', metavar='BRANCH', help='Compare with specified base branch to automatically set matrix options')
   parser.add_argument('-o', '--override', help='Override existing value with provided value')
+  parser.add_argument('-d', '--device', default=['real', 'virtual'], help='Test on which type of mobile devices')
   args = parser.parse_args()
   return args
 

@@ -45,7 +45,7 @@ def get_args_for_build(
     scheme (str): Name of the scheme to build.
     output_dir (str): Directory for the resulting build artifacts. Will be
         created if it doesn't already exist.
-    ios_sdk (str): Where this build will be run: device or simulator.
+    ios_sdk (str): Where this build will be run: real device or virtual device (simulator).
     configuration (str): Value for the -configuration flag.
 
   Returns:
@@ -77,9 +77,9 @@ def get_args_for_build(
 
 def _get_ios_env_from_target(ios_sdk):
   """Return a value for the -sdk flag based on the target (device/simulator)."""
-  if ios_sdk == "device":
+  if ios_sdk == "real":
     return "iphoneos"
-  elif ios_sdk == "simulator":
+  elif ios_sdk == "virtual":
     return "iphonesimulator"
   else:
     raise ValueError("Unrecognized ios_sdk: %s" % ios_sdk)

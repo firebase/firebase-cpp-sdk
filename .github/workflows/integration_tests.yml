@@ -24,18 +24,10 @@ on:
         description: 'CSV of desktop SSL variants to use'
         default: 'openssl,boringssl'
         required: true
-      android_device:
-        description: 'Android device model'
-        default: 'flame'
-      android_api:
-        description: 'Android API level'
-        default: '29'
-      ios_device:
-        description: 'iOS device model'
-        default: 'iphone8'
-      ios_version:
-        description: 'iOS device version'
-        default: '12.4'
+      mobile_test_on:
+        description: 'Mobile integration_test apps test on FTL or iOS Simulator/Android Emulator'
+        default: 'real,virtual'
+        required: true 
       use_expanded_matrix:
         description: 'Use an expanded matrix? Note: above config will be ignored.'
         default: '0'
@@ -50,7 +42,6 @@ env:
   statusLabelFailed: "tests: failed"
   statusLabelSucceeded: "tests: succeeded"
   statusCommentIdentifier: "integration-test-status-comment"
-  mobileTestOn: "device"
 
 jobs:
   check_trigger:
@@ -161,10 +152,9 @@ jobs:
       matrix_os: ${{ steps.export-result.outputs.matrix_os }}
       matrix_ssl: ${{ steps.export-result.outputs.matrix_ssl }}
       apis: ${{ steps.export-result.outputs.apis }}
+      mobile_test_on: ${{ steps.export-result.outputs.mobile_test_on }}
       android_device: ${{ steps.export-result.outputs.android_device }}
-      android_api: ${{ steps.export-result.outputs.android_api }}
       ios_device: ${{ steps.export-result.outputs.ios_device }}
-      ios_version: ${{ steps.export-result.outputs.ios_version }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -194,10 +184,9 @@ jobs:
           else
             echo "::set-output name=matrix_ssl::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ssl_lib -o "${{github.event.inputs.desktop_ssl_variants}}" )"
           fi
-          echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k android_device -o "${{github.event.inputs.android_device}}" )"
-          echo "::set-output name=android_api::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k android_api -o "${{github.event.inputs.android_api}}" )"
-          echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_device -o "${{github.event.inputs.ios_device}}" )"
-          echo "::set-output name=ios_version::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_version -o "${{github.event.inputs.ios_version}}" )"
+          echo "::set-output name=mobile_test_on::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k mobile_test_on -o "${{github.event.inputs.mobile_test_on}}" )"
+          echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k android_device -d "${{github.event.inputs.mobile_test_on}}" )"
+          echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ios_device -d "${{github.event.inputs.mobile_test_on}}" )"
 
   tests:
     name: ${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
@@ -345,14 +334,20 @@ jobs:
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
           fi
-          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --ios_sdk "${{ env.mobileTestOn }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths
+          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --ios_sdk "${{ needs.prepare_matrix.outputs.mobile_test_on }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-${{ matrix.os }}-${{ matrix.target_platform }}"
 
+      - name: Upload mobile integration tests artifact
+        uses: actions/upload-artifact@v2.2.2
+        if: matrix.target_platform != 'Desktop' && ${{ !cancelled() }}
+        with:
+          name: testapps-${{ matrix.os }}-${{ matrix.target_platform }}.zip
+          path: testapps-${{ matrix.os }}-${{ matrix.target_platform }}.zip
       - name: Run desktop integration tests
         if: matrix.target_platform == 'Desktop' && !cancelled()
         run: |
           python scripts/gha/desktop_tester.py --testapp_dir ta
       - name: Run iOS integration tests on iOS Simulator / Android Emulator locally
-        if: contains(env.mobileTestOn, 'simulator') && startsWith(matrix.os, 'macos') && matrix.target_platform != 'Desktop' && !cancelled()
+        if: contains(env.mobileTestOn, 'virtual') && startsWith(matrix.os, 'macos') && matrix.target_platform != 'Desktop' && !cancelled()
         run: |
           python scripts/gha/test_simulator.py --testapp_dir ta --ci
       # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
@@ -369,7 +364,7 @@ jobs:
         run: |
           python scripts/gha/gcs_uploader.py --testapp_dir ta --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Run mobile integration tests on Real Device via FTL
-        if: contains(env.mobileTestOn, 'device') && matrix.target_platform != 'Desktop' && !cancelled()
+        if: contains(env.mobileTestOn, 'real') && matrix.target_platform != 'Desktop' && !cancelled()
         run: |
           python scripts/gha/test_lab.py --android_model ${{ needs.prepare_matrix.outputs.android_device }} --android_api ${{ needs.prepare_matrix.outputs.android_api }} --ios_model ${{ needs.prepare_matrix.outputs.ios_device }} --ios_version ${{ needs.prepare_matrix.outputs.ios_version }} --testapp_dir ta --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Prepare results summary artifact
@@ -437,9 +432,91 @@ jobs:
             exit 1
           fi
 
+  test_ios:
+    name: macos-latest-iOS-${{ matrix.ios_device }}
+    needs: [prepare_matrix, tests]
+    runs-on: macos-latest
+    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'iOS') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
+    strategy:
+      fail-fast: false
+      matrix:
+        ios_device: ${{ fromJson(needs.prepare_matrix.outputs.ios_device) }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Install python deps
+        run: |
+          pip install -r scripts/gha/requirements.txt
+      - name: download artifact
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: testapps
+          name: testapps-macos-latest-iOS.zip
+      - name: unzip artifact
+        run: |
+          unzip testapps/testapps-macos-latest-iOS.zip
+      - id: get-device
+        run: |
+          device=$(echo "${{ matrix.ios_device }}" | cut -d ":" -f2)
+          echo "::set-output name=device::$device"
+      - name: Run iOS integration tests on Simulator locally
+        if: startsWith(matrix.ios_device, 'virtual')
+        run: |
+          python scripts/gha/test_simulator.py --testapp_dir testapps-macos-latest-iOS --ios_device "${{steps.get-device.outputs.device}}" --ci --artifact
+      - name: Run iOS integration tests on Real Device via FTL
+        if: startsWith(matrix.ios_device, 'real')
+        run: |
+          python scripts/gha/test_lab.py --testapp_dir testapps-macos-latest-iOS  
+          
+  test_android:
+    name: ${{ matrix.build_os }}-Android-${{ matrix.android_device }}
+    needs: [prepare_matrix, tests]
+    runs-on: macos-latest
+    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'Android') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
+    strategy:
+      fail-fast: false
+      matrix:
+        build_os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
+        android_device: ${{ fromJson(needs.prepare_matrix.outputs.android_device) }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Install python deps
+        run: |
+          pip install -r scripts/gha/requirements.txt
+      - name: Install python deps
+        run: |
+          python scripts/gha/install_prereqs_desktop.py
+      - name: download artifact
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: testapps
+          name: testapps-${{ matrix.build_os }}-Android.zip
+      - name: unzip artifact
+        run: |
+          unzip testapps/testapps-${{ matrix.build_os }}-Android.zip
+      - id: get-device
+        run: |
+          device=$(echo "${{ matrix.android_device }}" | cut -d ":" -f2)
+          echo "::set-output name=device::$device"
+      - name: Run Android integration tests on Emulator locally
+        if: startsWith(matrix.android_device, 'virtual')
+        run: |
+          python scripts/gha/test_simulator.py --testapp_dir testapps-${{ matrix.build_os }}-Android --android_device "${{steps.get-device.outputs.device}}" --ci --artifact
+      - name: Run Android integration tests on Real Device via FTL
+        if: startsWith(matrix.android_device, 'real')
+        run: |
+          python scripts/gha/test_lab.py --testapp_dir testapps-${{ matrix.build_os }}-Android 
+
   add_success_label:
     name: "add-success-label"
-    needs: [check_trigger, tests]
+    needs: [check_trigger, tests, test_ios, test_android]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && !failure() }}
     steps:
@@ -468,7 +545,7 @@ jobs:
 
   add_failure_label:
     name: "add-failure-label"
-    needs: [check_trigger, tests]
+    needs: [check_trigger, tests, test_ios, test_android]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && failure() }}
     steps:
@@ -521,7 +598,7 @@ jobs:
 
   remove_in_progress_label:
     name: "remove-in-progress-label"
-    needs: [check_trigger, tests]
+    needs: [check_trigger, tests, test_ios, test_android]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() }}
     steps:

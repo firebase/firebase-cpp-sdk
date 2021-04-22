@@ -54,7 +54,7 @@ available tools with the following commands:
 Note: you need to combine them with ";". Examples:
 
 sdk id "system-images;android-29;google_apis", build tool version "29.0.3":
-  --android_device "system-images;android-29;google_apis;x86;29.0.3"
+  --android_device "29;google_apis;x86;29.0.3"
 
 Returns:
    1: No iOS/Android integration_test apps found
@@ -88,11 +88,14 @@ flags.DEFINE_string(
     "ios_device", "iPhone 11;14.4",
     "iOS device, which is a combination of device name and os version")
 flags.DEFINE_string(
-    "android_device", "system-images;android-29;google_apis;x86;29.0.3",
+    "android_device", "29;google_apis;x86;29.0.3",
     "android device, which is a combination of sdk id and build tool version")
 flags.DEFINE_boolean(
     "ci", False,
     "If this script used in a CI system, set True.")
+flags.DEFINE_boolean(
+    "artifact", False,
+    "If testapp_dir is artifact dir, set True. It helps to find iOS apps.")
 
 
 @attr.s(frozen=False, eq=False)
@@ -114,7 +117,10 @@ def main(argv):
     # .app is treated as a directory, not a file in MacOS
     for directory in directories:
       full_path = os.path.join(file_dir, directory)
-      if "simulator" in full_path and directory.endswith(".app"):
+      # Build for real device .ipa also generate .app file, but not usable here
+      # Only .app under "simulator" folder is what we want
+      # If it is an artifact folder, we are safe to assume .app is build for simulator
+      if directory.endswith(".app") and ("simulator" in full_path or FLAGS.artifact):
         ios_testapps.append(full_path)
     for file_name in file_names:
       full_path = os.path.join(file_dir, file_name)
@@ -164,15 +170,20 @@ def main(argv):
 
     android_device = FLAGS.android_device
     device_info = android_device.rsplit(";", 1)
-    sdk_id = device_info[0]
-    platforms_version = sdk_id.split(";")[1]
-    build_tools_version = device_info[1]
+    print(device_info)
+    sdk_id = "system-images;android-%s" % device_info[0]
+    platforms_tool_version = sdk_id.split(";")[1]
+    build_tool_version = device_info[1]
+
+    print(sdk_id)
+    print(platforms_tool_version)
+    print(build_tool_version)
 
     if not _check_java_version():
       logging.error("Please set JAVA_HOME to java 8")
       return 31
 
-    _setup_android(platforms_version, build_tools_version, sdk_id)  
+    _setup_android(platforms_tool_version, build_tool_version, sdk_id)  
 
     _create_and_boot_emulator(sdk_id)
 
@@ -327,19 +338,19 @@ def _check_java_version():
   return "1.8" in java_version
 
 
-def _setup_android(platforms_version, build_tools_version, sdk_id):
+def _setup_android(platforms_tool_version, build_tool_version, sdk_id):
   android_home = os.environ["ANDROID_HOME"]
   pathlist = [os.path.join(android_home, "emulator"), 
     os.path.join(android_home, "tools"), 
     os.path.join(android_home, "tools", "bin"), 
     os.path.join(android_home, "platform-tools"), 
-    os.path.join(android_home, "build-tools", build_tools_version)]
+    os.path.join(android_home, "build-tools", build_tool_version)]
   os.environ["PATH"] += os.pathsep + os.pathsep.join(pathlist)
   
   args = ["sdkmanager", 
     "emulator", "platform-tools", 
-    "platforms;%s" % platforms_version, 
-    "build-tools;%s" % build_tools_version]
+    "platforms;%s" % platforms_tool_version, 
+    "build-tools;%s" % build_tool_version]
   logging.info("Install packages: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
