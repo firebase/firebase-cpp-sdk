@@ -16,6 +16,7 @@
 #define FIREBASE_STORAGE_CLIENT_CPP_SRC_DESKTOP_STORAGE_PATH_H_
 
 #include <string>
+
 #include "app/src/path.h"
 
 namespace firebase {

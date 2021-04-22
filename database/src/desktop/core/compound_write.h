@@ -17,6 +17,7 @@
 
 #include <map>
 #include <string>
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "database/src/desktop/core/tree.h"
@@ -69,8 +70,7 @@ class CompoundWrite {
   // Incorperate the new value to write at the given path.
   void AddWriteInline(const Path& path, const Optional<Variant>& variant);
   void AddWriteInline(const Path& path, const Variant& value);
-  void AddWriteInline(const std::string& key,
-    const Optional<Variant>& value);
+  void AddWriteInline(const std::string& key, const Optional<Variant>& value);
   void AddWriteInline(const std::string& key, const Variant& value);
 
   // Create a new CompoundWrite that incorperates all of the writes in the given

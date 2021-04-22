@@ -20,8 +20,6 @@
 #include "app/src/include/firebase/variant.h"
 #include "app/src/variant_util.h"
 #include "app/tests/flexbuffer_matcher.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/desktop/core/compound_write.h"
 #include "database/src/desktop/persistence/persisted_compound_write_generated.h"
 #include "database/src/desktop/persistence/persisted_query_params_generated.h"
@@ -29,6 +27,8 @@
 #include "database/src/desktop/persistence/persisted_tracked_query_generated.h"
 #include "database/src/desktop/persistence/persisted_user_write_record_generated.h"
 #include "database/src/desktop/persistence/persistence_storage_engine.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using firebase::database::internal::persistence::CreatePersistedCompoundWrite;
 using firebase::database::internal::persistence::CreatePersistedQueryParams;

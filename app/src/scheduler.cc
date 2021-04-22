@@ -15,7 +15,9 @@
  */
 
 #include "app/src/scheduler.h"
+
 #include <cassert>
+
 #include "app/src/time.h"
 
 #if !defined(FIREBASE_NAMESPACE)
@@ -69,9 +71,7 @@ Scheduler::Scheduler()
       request_mutex_(Mutex::kModeRecursive),
       sleep_sem_(0) {}
 
-Scheduler::~Scheduler() {
-  CancelAllAndShutdownWorkerThread();
-}
+Scheduler::~Scheduler() { CancelAllAndShutdownWorkerThread(); }
 
 void Scheduler::CancelAllAndShutdownWorkerThread() {
   {
@@ -92,8 +92,8 @@ void Scheduler::CancelAllAndShutdownWorkerThread() {
 }
 
 RequestHandle Scheduler::Schedule(callback::Callback* callback,
-                                   ScheduleTimeMs delay /* = 0 */,
-                                   ScheduleTimeMs repeat /* = 0 */) {
+                                  ScheduleTimeMs delay /* = 0 */,
+                                  ScheduleTimeMs repeat /* = 0 */) {
   assert(callback);
 
   MutexLock lock(request_mutex_);
@@ -117,8 +117,8 @@ RequestHandle Scheduler::Schedule(callback::Callback* callback,
 
 #ifdef FIREBASE_USE_STD_FUNCTION
 RequestHandle Scheduler::Schedule(const std::function<void(void)>& callback,
-                                   ScheduleTimeMs delay /* = 0 */,
-                                   ScheduleTimeMs repeat /* = 0 */) {
+                                  ScheduleTimeMs delay /* = 0 */,
+                                  ScheduleTimeMs repeat /* = 0 */) {
   return Schedule(new callback::CallbackStdFunction(callback), delay, repeat);
 }
 #endif
@@ -158,7 +158,8 @@ void Scheduler::WorkerThreadRoutine(void* data) {
       }
 
       // Drain the semaphore after wake
-      while (scheduler->sleep_sem_.TryWait()) {}
+      while (scheduler->sleep_sem_.TryWait()) {
+      }
 
       // Check if the scheduler is terminating after sleep.
       MutexLock lock(scheduler->request_mutex_);
@@ -177,8 +178,8 @@ void Scheduler::WorkerThreadRoutine(void* data) {
   }
 }
 
-void Scheduler::AddToQueue(RequestDataPtr request,
-                           uint64_t current, ScheduleTimeMs after) {
+void Scheduler::AddToQueue(RequestDataPtr request, uint64_t current,
+                           ScheduleTimeMs after) {
   // Calculate the future timestamp
   request->due_timestamp = current + after;
 

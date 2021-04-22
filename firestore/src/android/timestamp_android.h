@@ -1,9 +1,9 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_TIMESTAMP_ANDROID_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_TIMESTAMP_ANDROID_H_
 
+#include "firebase/firestore/timestamp.h"
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
-#include "firebase/firestore/timestamp.h"
 
 namespace firebase {
 namespace firestore {

@@ -17,8 +17,8 @@
 #include "app/src/variant_util.h"
 #include "database/src/desktop/core/compound_write.h"
 #include "database/tests/desktop/test/mock_write_tree.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using testing::_;
 using testing::Eq;
@@ -68,7 +68,7 @@ TEST(WriteTree, AddMerge) {
   EXPECT_EQ(record->path, Path("test/path"));
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST(WriteTreeDeathTest, DISABLED_AddMerge) {
@@ -136,7 +136,7 @@ TEST(WriteTree, RemoveWrite) {
   EXPECT_NE(write_tree.GetWrite(102), nullptr);
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST(WriteTreeDeathTest, DISABLED_RemoveWrite) {

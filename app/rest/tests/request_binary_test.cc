@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
+#include "app/rest/request_binary.h"
+
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "app/rest/request_binary.h"
 #include "app/rest/request_binary_gzip.h"
 #include "app/rest/request_options.h"
-#include "app/rest/zlibwrapper.h"
 #include "app/rest/tests/request_test.h"
-#include "gtest/gtest.h"
+#include "app/rest/zlibwrapper.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace rest {

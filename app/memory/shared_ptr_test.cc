@@ -21,8 +21,8 @@
 
 #include "app/memory/atomic.h"
 #include "app/meta/move.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace {
@@ -185,8 +185,8 @@ TEST(SharedPtrTest,
 }
 
 TEST(SharedPtrTest, CopySharedPtr) {
-  SharedPtr<int> *value1 = new SharedPtr<int>(new int(10));
-  SharedPtr<int> *value2 = new SharedPtr<int>();
+  SharedPtr<int>* value1 = new SharedPtr<int>(new int(10));
+  SharedPtr<int>* value2 = new SharedPtr<int>();
   *value2 = *value1;
   delete value1;
   EXPECT_THAT(**value2, 10);

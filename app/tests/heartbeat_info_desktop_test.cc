@@ -86,8 +86,7 @@ TEST_F(HeartbeatInfoTest, CombinedHeartbeat) {
 
 TEST_F(HeartbeatInfoTest, SdkOnlyHeartbeat) {
   SetRecentDate(kGlobalTag);
-  EXPECT_EQ(HeartbeatInfo::GetHeartbeatCode(kSdkTag),
-            HeartbeatInfo::Code::Sdk);
+  EXPECT_EQ(HeartbeatInfo::GetHeartbeatCode(kSdkTag), HeartbeatInfo::Code::Sdk);
 }
 
 TEST_F(HeartbeatInfoTest, GlobalOnlyHeartbeat) {

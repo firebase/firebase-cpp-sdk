@@ -17,6 +17,7 @@
 
 #include <list>
 #include <queue>
+
 #include "app/memory/shared_ptr.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/variant.h"

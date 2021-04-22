@@ -15,6 +15,7 @@
 #include "functions/src/android/functions_android.h"
 
 #include <jni.h>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_android.h"
 #include "functions/src/android/callable_reference_android.h"

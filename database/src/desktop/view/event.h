@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_EVENT_H_
 
 #include <string>
+
 #include "app/memory/unique_ptr.h"
 #include "app/src/optional.h"
 #include "app/src/path.h"

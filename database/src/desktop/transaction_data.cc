@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "database/src/desktop/transaction_data.h"
+
 #include "database/src/desktop/database_desktop.h"
 
 namespace firebase {

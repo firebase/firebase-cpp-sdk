@@ -15,6 +15,7 @@
  */
 
 #include <stdint.h>
+
 #include "app/src/assert.h"
 #include "auth/src/data.h"
 #include "auth/src/include/firebase/auth.h"
@@ -37,8 +38,9 @@ PhoneAuthProvider::ForceResendingToken::ForceResendingToken(
     const ForceResendingToken& rhs)
     : data_(nullptr) {}
 
-PhoneAuthProvider::ForceResendingToken& PhoneAuthProvider::ForceResendingToken::
-operator=(const ForceResendingToken& rhs) {
+PhoneAuthProvider::ForceResendingToken&
+PhoneAuthProvider::ForceResendingToken::operator=(
+    const ForceResendingToken& rhs) {
   return *this;
 }
 

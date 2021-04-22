@@ -40,8 +40,8 @@ namespace instance_id {
 namespace internal {
 
 class InstanceIdDesktopImplTest;  // For testing.
-class NetworkOperation;  // Defined in instance_id_desktop_impl.cc
-class SignalSemaphoreResponse;  // Defined in instance_id_desktop_impl.cc
+class NetworkOperation;           // Defined in instance_id_desktop_impl.cc
+class SignalSemaphoreResponse;    // Defined in instance_id_desktop_impl.cc
 
 class InstanceIdDesktopImpl {
  public:

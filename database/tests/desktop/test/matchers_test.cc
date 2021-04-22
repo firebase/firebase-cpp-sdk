@@ -17,8 +17,8 @@
 #include <vector>
 
 #include "app/memory/unique_ptr.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::Not;
 using ::testing::Pointwise;

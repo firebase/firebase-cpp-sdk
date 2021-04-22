@@ -13,11 +13,12 @@
 // limitations under the License.
 
 #include "testing/reporter_impl.h"
-#include "testing/reporter.h"
 
 #include <map>
 #include <string>
 #include <vector>
+
+#include "testing/reporter.h"
 
 FakeReporterClass* FakeReporter = new FakeReporterClass();
 

@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
+#include "app/rest/controller_curl.h"
+
 #include <utility>
 
-#include "app/rest/controller_curl.h"
 #include "app/rest/transport_curl.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/log.h"

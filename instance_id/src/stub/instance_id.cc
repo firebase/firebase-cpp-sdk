@@ -12,10 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "instance_id/src/include/firebase/instance_id.h"
+
 #include <cstdint>
 #include <string>
 
-#include "instance_id/src/include/firebase/instance_id.h"
 #include "instance_id/src/instance_id_internal.h"
 
 namespace firebase {

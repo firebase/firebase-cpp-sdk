@@ -20,8 +20,8 @@
 // This file contains a Copy of the classes defined in
 // Firestore/core/firestore_exceptions.h, without the absl dependency.
 
-#include "firestore/src/common/macros.h"  // for FIRESTORE_HAVE_EXCEPTIONS
 #include "Firestore/core/include/firebase/firestore/firestore_errors.h"
+#include "firestore/src/common/macros.h"  // for FIRESTORE_HAVE_EXCEPTIONS
 
 namespace firebase {
 namespace firestore {
@@ -34,16 +34,11 @@ namespace firestore {
 class FirestoreException : public std::exception {
  public:
   FirestoreException(const std::string& message, Error code)
-      : message_(message), code_(code) {
-  }
+      : message_(message), code_(code) {}
 
-  const char* what() const noexcept override {
-    return message_.c_str();
-  }
+  const char* what() const noexcept override { return message_.c_str(); }
 
-  Error code() const {
-    return code_;
-  }
+  Error code() const { return code_; }
 
  private:
   std::string message_;
@@ -57,8 +52,7 @@ class FirestoreInternalError : public FirestoreException {
  public:
   FirestoreInternalError(const std::string& message,
                          Error code = Error::kErrorInternal)
-      : FirestoreException(message, code) {
-  }
+      : FirestoreException(message, code) {}
 };
 
 #endif  // FIRESTORE_HAVE_EXCEPTIONS
@@ -66,4 +60,4 @@ class FirestoreInternalError : public FirestoreException {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif // FIRESTORE_FIRESTORE_EXCEPTIONS_ANDROID_H_
+#endif  // FIRESTORE_FIRESTORE_EXCEPTIONS_ANDROID_H_

@@ -12,12 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "remote_config/src/desktop/metadata.h"
+
 #include <map>
 #include <string>
 
 #include "gtest/gtest.h"
-
-#include "remote_config/src/desktop/metadata.h"
 #include "remote_config/src/include/firebase/remote_config.h"
 
 namespace firebase {

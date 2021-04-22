@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "database/src/desktop/view/limited_filter.h"
+
 #include "app/src/assert.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"

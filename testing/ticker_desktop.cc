@@ -13,9 +13,10 @@
 // limitations under the License.
 
 #include "testing/ticker_desktop.h"
-#include "testing/ticker.h"
 
 #include <vector>
+
+#include "testing/ticker.h"
 
 namespace firebase {
 namespace testing {

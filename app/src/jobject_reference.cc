@@ -53,8 +53,8 @@ JObjectReference& JObjectReference::operator=(
 }
 
 #ifdef FIREBASE_USE_MOVE_OPERATORS
-JObjectReference& JObjectReference::operator=(JObjectReference&& reference)
-    noexcept {
+JObjectReference& JObjectReference::operator=(
+    JObjectReference&& reference) noexcept {
   java_vm_ = reference.java_vm_;
   object_ = reference.object_;
   reference.java_vm_ = nullptr;

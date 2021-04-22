@@ -16,7 +16,9 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_ANDROID_MUTABLE_DATA_ANDROID_H_
 
 #include <jni.h>
+
 #include <string>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"

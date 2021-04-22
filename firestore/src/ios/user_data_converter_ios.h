@@ -4,13 +4,13 @@
 #include <utility>
 #include <vector>
 
-#include "firestore/src/include/firebase/firestore/field_path.h"
-#include "firestore/src/include/firebase/firestore/field_value.h"
-#include "firestore/src/include/firebase/firestore/map_field_value.h"
-#include "absl/types/optional.h"
 #include "Firestore/core/src/model/database_id.h"
 #include "Firestore/core/src/model/field_path.h"
 #include "Firestore/core/src/model/field_value.h"
+#include "absl/types/optional.h"
+#include "firestore/src/include/firebase/firestore/field_path.h"
+#include "firestore/src/include/firebase/firestore/field_value.h"
+#include "firestore/src/include/firebase/firestore/map_field_value.h"
 
 namespace firebase {
 namespace firestore {

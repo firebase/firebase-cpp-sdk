@@ -1,9 +1,9 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_UTIL_IOS_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_UTIL_IOS_H_
 
+#include "Firestore/core/src/api/firestore.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/ios/firestore_ios.h"
-#include "Firestore/core/src/api/firestore.h"
 
 namespace firebase {
 namespace firestore {

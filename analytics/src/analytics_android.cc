@@ -401,9 +401,9 @@ Future<std::string> GetAnalyticsInstanceId() {
             FutureHandle handle(future_id);
             future_data->api()->CompleteWithResult(
                 handle, success ? 0 : -1,
-                success ? ""
-                        : status_message ? status_message
-                                         : "Unknown error occurred",
+                success          ? ""
+                : status_message ? status_message
+                                 : "Unknown error occurred",
                 // Both JStringToString and GetMessageFromException are
                 // able to handle a nullptr being passed in, and neither
                 // deletes the object passed in (so delete it below).

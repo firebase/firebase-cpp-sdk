@@ -73,7 +73,7 @@ std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAccessToken(
     const char* const api_key, const char* const provider_id,
     const char* const access_token) {
   return FromAccessToken(api_key, provider_id, access_token,
-                                /*nonce=*/nullptr);
+                         /*nonce=*/nullptr);
 }
 
 std::unique_ptr<VerifyAssertionRequest> VerifyAssertionRequest::FromAccessToken(

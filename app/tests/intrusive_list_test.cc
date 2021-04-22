@@ -17,8 +17,8 @@
 #include <algorithm>
 #include <functional>
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 // EXPECT_DEATH tests don't work on Android or Windows.
 #if defined(__ANDROID__) || defined(_MSC_VER)
@@ -348,8 +348,8 @@ TEST_F(intrusive_list_test, insert_before) {
   auto iter = list_.begin();
   ++iter;
   ++iter;
-  firebase::intrusive_list<IntegerListNode>::
-      insert_before<&IntegerListNode::node>(*iter, ten_);
+  firebase::intrusive_list<IntegerListNode>::insert_before<
+      &IntegerListNode::node>(*iter, ten_);
 
   iter = list_.begin();
   EXPECT_EQ(1, iter->value());
@@ -376,8 +376,8 @@ TEST_F(intrusive_list_test, insert_after) {
 
   auto iter = list_.begin();
   ++iter;
-  firebase::intrusive_list<IntegerListNode>::
-      insert_after<&IntegerListNode::node>(*iter, ten_);
+  firebase::intrusive_list<IntegerListNode>::insert_after<
+      &IntegerListNode::node>(*iter, ten_);
 
   iter = list_.begin();
   EXPECT_EQ(1, iter->value());
@@ -1152,7 +1152,7 @@ TEST_F(intrusive_list_test, swap_self) {
 }
 
 TEST_F(intrusive_list_test, erase_iterator) {
-  IntegerListNode *e[10];
+  IntegerListNode* e[10];
 
   // Create a list with 10 items.
   for (int i = 0; i < 10; ++i) {
@@ -1179,7 +1179,7 @@ TEST_F(intrusive_list_test, erase_iterator) {
 }
 
 TEST_F(intrusive_list_test, erase_range) {
-  IntegerListNode *e[10];
+  IntegerListNode* e[10];
 
   // Create a list with 10 items.
   for (int i = 0; i < 10; ++i) {
@@ -1192,8 +1192,8 @@ TEST_F(intrusive_list_test, erase_range) {
   // Test that erase(iterator, iterator) with a null range has no effect.
   for (int i = 0; i < 10; ++i) {
     EXPECT_EQ(list_.size(), 10);
-    iterator range_begin = std::find(list_.begin(), list_.end(),
-                                     IntegerListNode(i));
+    iterator range_begin =
+        std::find(list_.begin(), list_.end(), IntegerListNode(i));
     iterator range_end = range_begin;
     iterator result = list_.erase(range_begin, range_end);
     EXPECT_EQ(list_.size(), 10);
@@ -1205,10 +1205,10 @@ TEST_F(intrusive_list_test, erase_range) {
   // Test that erase(iterator, iterator) with a non-empty range works.
   for (int i = 0; i < 10; i += 2) {
     EXPECT_EQ(list_.size(), 10 - i);
-    iterator range_begin = std::find(list_.begin(), list_.end(),
-                                     IntegerListNode(i));
-    iterator range_end = std::find(list_.begin(), list_.end(),
-                                   IntegerListNode(i + 2));
+    iterator range_begin =
+        std::find(list_.begin(), list_.end(), IntegerListNode(i));
+    iterator range_end =
+        std::find(list_.begin(), list_.end(), IntegerListNode(i + 2));
     iterator result = list_.erase(range_begin, range_end);
     EXPECT_EQ(result, range_end);
     if (i + 2 == 10) {

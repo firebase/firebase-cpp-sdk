@@ -16,8 +16,8 @@
 
 #include "app/src/jobject_reference.h"
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 // For firebase::util::JStringToString.
 #include "app/src/util_android.h"
 #include "testing/run_all_tests.h"

@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_INDEXED_FILTER_H_
 
 #include <string>
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"

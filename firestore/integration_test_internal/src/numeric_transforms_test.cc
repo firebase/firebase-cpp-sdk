@@ -2,9 +2,9 @@
 
 #include "firebase/firestore.h"
 #include "firestore_integration_test.h"
-#include "util/event_accumulator.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "util/event_accumulator.h"
 
 namespace firebase {
 namespace firestore {

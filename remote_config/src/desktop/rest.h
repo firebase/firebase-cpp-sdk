@@ -17,10 +17,10 @@
 
 #include <cstdint>
 
-#include "firebase/app.h"
 #include "app/rest/request_json.h"
 #include "app/rest/response_json.h"
 #include "app/src/semaphore.h"
+#include "firebase/app.h"
 #include "remote_config/request_generated.h"
 #include "remote_config/request_resource.h"
 #include "remote_config/response_generated.h"

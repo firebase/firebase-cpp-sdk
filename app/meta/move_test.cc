@@ -17,8 +17,8 @@
 #include "app/meta/move.h"
 
 #include "app/src/include/firebase/internal/type_traits.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace {

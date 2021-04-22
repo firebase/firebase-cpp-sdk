@@ -7,13 +7,13 @@
 #include "app/src/time.h"
 #endif
 
+#include "absl/strings/str_join.h"
 #include "firebase/firestore.h"
+#include "firebase/firestore/firestore_errors.h"
 #include "firestore_integration_test.h"
-#include "util/event_accumulator.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "absl/strings/str_join.h"
-#include "firebase/firestore/firestore_errors.h"
+#include "util/event_accumulator.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/transaction_android.h"
 #elif defined(FIRESTORE_STUB_BUILD)

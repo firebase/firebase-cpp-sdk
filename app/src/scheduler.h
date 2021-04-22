@@ -18,6 +18,7 @@
 #define FIREBASE_APP_CLIENT_CPP_SRC_SCHEDULER_H_
 
 #include <queue>
+
 #include "app/memory/shared_ptr.h"
 #include "app/src/callback.h"
 #include "app/src/mutex.h"
@@ -115,12 +116,12 @@ class Scheduler {
   // and some of the requests of the same due time are using the wrapped id. Ex.
   // [2^64 - 2, 2^64 - 1, 0, 1, 2].  This should be really rare.
   RequestHandle Schedule(callback::Callback* callback, ScheduleTimeMs delay = 0,
-                          ScheduleTimeMs repeat = 0);
+                         ScheduleTimeMs repeat = 0);
 
 #ifdef FIREBASE_USE_STD_FUNCTION
   // std::function version of Schedule(callback, delay, repeat)
   RequestHandle Schedule(const std::function<void(void)>& callback,
-                          ScheduleTimeMs delay = 0, ScheduleTimeMs repeat = 0);
+                         ScheduleTimeMs delay = 0, ScheduleTimeMs repeat = 0);
 #endif  // FIREBASE_USE_STD_FUNCTION
 
   // Cancel all scheduled callbacks and shut down the worker thread.
@@ -168,7 +169,7 @@ class Scheduler {
     bool operator()(const RequestDataPtr& lhs,
                     const RequestDataPtr& rhs) const {
       return lhs->due_timestamp > rhs->due_timestamp ||
-          (lhs->due_timestamp == rhs->due_timestamp && lhs->id > rhs->id);
+             (lhs->due_timestamp == rhs->due_timestamp && lhs->id > rhs->id);
     }
   };
 

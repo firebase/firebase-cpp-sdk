@@ -18,6 +18,7 @@
 #define FIREBASE_APP_CLIENT_CPP_SRC_FUNCTION_REGISTRY_H_
 
 #include <map>
+
 #include "app/src/mutex.h"
 
 #if !defined(FIREBASE_NAMESPACE)

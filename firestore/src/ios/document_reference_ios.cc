@@ -1,5 +1,8 @@
 #include "firestore/src/ios/document_reference_ios.h"
 
+#include "Firestore/core/src/api/listener_registration.h"
+#include "Firestore/core/src/core/listen_options.h"
+#include "Firestore/core/src/core/user_data.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/ios/document_snapshot_ios.h"
 #include "firestore/src/ios/listener_ios.h"
@@ -7,9 +10,6 @@
 #include "firestore/src/ios/set_options_ios.h"
 #include "firestore/src/ios/source_ios.h"
 #include "firestore/src/ios/util_ios.h"
-#include "Firestore/core/src/api/listener_registration.h"
-#include "Firestore/core/src/core/listen_options.h"
-#include "Firestore/core/src/core/user_data.h"
 
 namespace firebase {
 namespace firestore {

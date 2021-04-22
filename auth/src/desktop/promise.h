@@ -16,6 +16,7 @@
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_PROMISE_H_
 
 #include <memory>
+
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "auth/src/data.h"

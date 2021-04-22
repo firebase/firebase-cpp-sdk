@@ -5,6 +5,7 @@
 #include "app/src/embedded_file.h"
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
+#include "firebase/firestore/firestore_errors.h"
 #include "firestore/src/android/document_snapshot_android.h"
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/query_snapshot_android.h"
@@ -12,7 +13,6 @@
 #include "firestore/src/include/firebase/firestore/query_snapshot.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/loader.h"
-#include "firebase/firestore/firestore_errors.h"
 
 namespace firebase {
 namespace firestore {

@@ -19,6 +19,7 @@
 
 #include <string>
 #include <vector>
+
 #include "auth/src/desktop/rpcs/auth_response.h"
 #include "auth/src/desktop/visual_studio_compatibility.h"
 

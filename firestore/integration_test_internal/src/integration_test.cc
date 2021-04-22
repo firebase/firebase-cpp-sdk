@@ -22,8 +22,9 @@
      - firestore/integration_test/src/integration_test.cc
      - firestore/integration_test_internal/src/integration_test.cc
 
-   If you make any modifications to this file in one of the two locations, please
-   copy the modified file into the other location before committing the change.
+   If you make any modifications to this file in one of the two locations,
+   please copy the modified file into the other location before committing the
+   change.
 */
 
 #include <inttypes.h>
@@ -139,9 +140,7 @@ class FirebaseFirestoreBasicTest : public FirebaseTest {
 firebase::App* FirebaseFirestoreBasicTest::shared_app_;
 firebase::auth::Auth* FirebaseFirestoreBasicTest::shared_auth_;
 
-void FirebaseFirestoreBasicTest::SetUpTestSuite() {
-  InitializeAppAndAuth();
-}
+void FirebaseFirestoreBasicTest::SetUpTestSuite() { InitializeAppAndAuth(); }
 
 void FirebaseFirestoreBasicTest::InitializeAppAndAuth() {
   LogDebug("Initialize Firebase App.");
@@ -161,14 +160,14 @@ void FirebaseFirestoreBasicTest::InitializeAppAndAuth() {
 
   // Initialize Firebase Auth.
   ::firebase::ModuleInitializer initializer;
-  initializer.Initialize(
-      shared_app_, &shared_auth_, [](::firebase::App* app, void* target) {
-        LogDebug("Attempting to initialize Firebase Auth.");
-        ::firebase::InitResult result;
-        *reinterpret_cast<firebase::auth::Auth**>(target) =
-          ::firebase::auth::Auth::GetAuth(app, &result);
-        return result;
-      });
+  initializer.Initialize(shared_app_, &shared_auth_,
+                         [](::firebase::App* app, void* target) {
+                           LogDebug("Attempting to initialize Firebase Auth.");
+                           ::firebase::InitResult result;
+                           *reinterpret_cast<firebase::auth::Auth**>(target) =
+                               ::firebase::auth::Auth::GetAuth(app, &result);
+                           return result;
+                         });
 
   WaitForCompletion(initializer.InitializeLastResult(), "InitializeAuth");
 
@@ -183,9 +182,7 @@ void FirebaseFirestoreBasicTest::InitializeAppAndAuth() {
   SignIn();
 }
 
-void FirebaseFirestoreBasicTest::TearDownTestSuite() {
-  TerminateAppAndAuth();
-}
+void FirebaseFirestoreBasicTest::TearDownTestSuite() { TerminateAppAndAuth(); }
 
 void FirebaseFirestoreBasicTest::TerminateAppAndAuth() {
   if (shared_auth_) {
@@ -245,7 +242,7 @@ void FirebaseFirestoreBasicTest::InitializeFirestore() {
         LogDebug("Attempting to initialize Firebase Firestore.");
         ::firebase::InitResult result;
         *reinterpret_cast<firebase::firestore::Firestore**>(target) =
-          firebase::firestore::Firestore::GetInstance(app, &result);
+            firebase::firestore::Firestore::GetInstance(app, &result);
         return result;
       });
 
@@ -300,9 +297,9 @@ void FirebaseFirestoreBasicTest::SignOut() {
 
   if (shared_auth_->current_user()->is_anonymous()) {
     // If signed in anonymously, delete the anonymous user.
-    WaitForCompletion(shared_auth_->current_user()->Delete(), "DeleteAnonymousUser");
-  }
-  else {
+    WaitForCompletion(shared_auth_->current_user()->Delete(),
+                      "DeleteAnonymousUser");
+  } else {
     // If not signed in anonymously (e.g. if the tests were modified to sign in
     // as an actual user), just sign out normally.
     shared_auth_->SignOut();
@@ -314,7 +311,6 @@ void FirebaseFirestoreBasicTest::SignOut() {
   }
   EXPECT_EQ(shared_auth_->current_user(), nullptr);
 }
-
 
 firebase::firestore::CollectionReference
 FirebaseFirestoreBasicTest::GetTestCollection() {

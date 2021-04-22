@@ -16,9 +16,8 @@
 
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_APP_IOS_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_APP_IOS_H_
-#include "app/src/util_ios.h"
-
 #include "FIRApp.h"
+#include "app/src/util_ios.h"
 
 namespace firebase {
 

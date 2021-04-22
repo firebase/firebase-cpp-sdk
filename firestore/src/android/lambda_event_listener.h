@@ -2,8 +2,8 @@
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LAMBDA_EVENT_LISTENER_H_
 
 #include "app/meta/move.h"
-#include "firestore/src/include/firebase/firestore/event_listener.h"
 #include "firebase/firestore/firestore_errors.h"
+#include "firestore/src/include/firebase/firestore/event_listener.h"
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 #include <functional>

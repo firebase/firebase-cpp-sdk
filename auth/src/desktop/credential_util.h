@@ -17,6 +17,7 @@
 
 #include <memory>
 #include <string>
+
 #include "app/rest/request.h"
 #include "auth/src/common.h"
 #include "auth/src/data.h"

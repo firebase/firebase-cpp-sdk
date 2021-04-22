@@ -25,7 +25,7 @@ namespace firebase {
 namespace auth {
 
 // Key name for header when sending language code data.
-extern  const char* kHeaderFirebaseLocale;
+extern const char* kHeaderFirebaseLocale;
 
 class AuthRequest
     : public firebase::rest::RequestJson<fbs::Request, fbs::RequestT> {

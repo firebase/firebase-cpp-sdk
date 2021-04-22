@@ -4,11 +4,11 @@
 #include <cstdint>
 #include <string>
 
+#include "firebase/firestore/geo_point.h"
+#include "firebase/firestore/timestamp.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/stub/firestore_stub.h"
-#include "firebase/firestore/geo_point.h"
-#include "firebase/firestore/timestamp.h"
 
 namespace firebase {
 namespace firestore {
@@ -42,43 +42,19 @@ class FieldValueInternal {
   // these when the type() is kNull, but for no-op desktop support, it's
   // probably more helpful to return default values so if the developer is
   // assuming some schema for their data, it behaves better.
-  bool boolean_value() const {
-    return false;
-  }
-  int64_t integer_value() const {
-    return 0;
-  }
+  bool boolean_value() const { return false; }
+  int64_t integer_value() const { return 0; }
   double double_value() const { return 0; }
-  Timestamp timestamp_value() const {
-    return Timestamp{};
-  }
-  std::string string_value() const {
-    return "";
-  }
-  const uint8_t* blob_value() const {
-    return nullptr;
-  }
-  size_t blob_size() const {
-    return 0;
-  }
-  DocumentReference reference_value() const {
-    return DocumentReference{};
-  }
-  GeoPoint geo_point_value() const {
-    return GeoPoint{};
-  }
-  std::vector<FieldValue> array_value() const {
-    return {};
-  }
-  MapFieldValue map_value() const {
-    return MapFieldValue{};
-  }
-  static FieldValue Delete() {
-    return FieldValue{};
-  }
-  static FieldValue ServerTimestamp() {
-    return FieldValue{};
-  }
+  Timestamp timestamp_value() const { return Timestamp{}; }
+  std::string string_value() const { return ""; }
+  const uint8_t* blob_value() const { return nullptr; }
+  size_t blob_size() const { return 0; }
+  DocumentReference reference_value() const { return DocumentReference{}; }
+  GeoPoint geo_point_value() const { return GeoPoint{}; }
+  std::vector<FieldValue> array_value() const { return {}; }
+  MapFieldValue map_value() const { return MapFieldValue{}; }
+  static FieldValue Delete() { return FieldValue{}; }
+  static FieldValue ServerTimestamp() { return FieldValue{}; }
   // NOLINTNEXTLINE (performance-unnecessary-value-param)
   static FieldValue ArrayUnion(std::vector<FieldValue> elements) {
     return FieldValue{};

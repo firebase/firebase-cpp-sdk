@@ -48,7 +48,7 @@ static const char* kLogLevelPrefix[] = {
 #if FIREBASE_PLATFORM_WINDOWS
 // Guards the log buffer on Windows.
 static Mutex g_log_mutex;  // NOLINT
-#endif  // FIREBASE_PLATFORM_WINDOWS
+#endif                     // FIREBASE_PLATFORM_WINDOWS
 
 // Initializes the logging module.
 void LogInitialize() {}

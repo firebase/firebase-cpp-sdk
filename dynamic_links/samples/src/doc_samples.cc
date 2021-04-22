@@ -31,7 +31,6 @@ JNIEnv* my_jni_env = nullptr;
 jobject my_activity = nullptr;
 #endif  // defined(__ANDROID__)
 
-
 void CreateLinks() {
   {
     // [START dlink_create_longlink_minimal]
@@ -81,4 +80,3 @@ class Listener : public firebase::dynamic_links::Listener {
   }
 };
 // [END dlink_listener]
-

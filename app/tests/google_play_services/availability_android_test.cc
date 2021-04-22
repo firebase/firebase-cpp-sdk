@@ -28,8 +28,8 @@
 #endif  // !defined(__ANDROID__)
 
 #include "base/stringprintf.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/config.h"
 #include "testing/run_all_tests.h"
 #include "testing/testdata_config_generated.h"
@@ -139,9 +139,9 @@ TEST(AvailabilityAndroidTest, CheckAvailabilityCases) {
 
 TEST(AvailabilityAndroidTest, CheckAvailabilityCached) {
   const int kTestData[] = {
-      0,   // SUCCESS
-      1,   // SERVICE_MISSING
-      2,   // SERVICE_VERSION_UPDATE_REQUIRED
+      0,  // SUCCESS
+      1,  // SERVICE_MISSING
+      2,  // SERVICE_VERSION_UPDATE_REQUIRED
   };
   const Availability kExpected = kAvailabilityAvailable;
   EXPECT_TRUE(Initialize(firebase::testing::cppsdk::GetTestJniEnv(),
@@ -175,9 +175,9 @@ TEST(AvailabilityAndroidTest, MakeAvailableAlreadyAvailable) {
       "  ]"
       "}");
   {
-    firebase::Future<void> result = MakeAvailable(
-        firebase::testing::cppsdk::GetTestJniEnv(),
-        firebase::testing::cppsdk::GetTestActivity());
+    firebase::Future<void> result =
+        MakeAvailable(firebase::testing::cppsdk::GetTestJniEnv(),
+                      firebase::testing::cppsdk::GetTestActivity());
     WaitForFutureWithTimeout(result);
     EXPECT_EQ(firebase::kFutureStatusComplete, result.status());
     EXPECT_EQ(0, result.error());
@@ -198,9 +198,9 @@ TEST(AvailabilityAndroidTest, MakeAvailableFailed) {
       "  ]"
       "}");
   {
-    firebase::Future<void> result = MakeAvailable(
-        firebase::testing::cppsdk::GetTestJniEnv(),
-        firebase::testing::cppsdk::GetTestActivity());
+    firebase::Future<void> result =
+        MakeAvailable(firebase::testing::cppsdk::GetTestJniEnv(),
+                      firebase::testing::cppsdk::GetTestActivity());
     WaitForFutureWithTimeout(result);
     EXPECT_EQ(firebase::kFutureStatusComplete, result.status());
     EXPECT_EQ(-1, result.error());
@@ -226,9 +226,9 @@ TEST(AvailabilityAndroidTest, MakeAvailableWithStatus) {
       "  ]"
       "}");
   {
-    firebase::Future<void> result = MakeAvailable(
-        firebase::testing::cppsdk::GetTestJniEnv(),
-        firebase::testing::cppsdk::GetTestActivity());
+    firebase::Future<void> result =
+        MakeAvailable(firebase::testing::cppsdk::GetTestJniEnv(),
+                      firebase::testing::cppsdk::GetTestActivity());
     EXPECT_EQ(firebase::kFutureStatusPending, result.status());
     firebase::testing::cppsdk::TickerElapse();
     WaitForFutureWithTimeout(result);

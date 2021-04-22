@@ -29,8 +29,8 @@
 #include "app/src/secure/user_secure_manager_fake.h"
 #include "app/src/time.h"
 #include "app/tests/include/firebase/app_for_testing.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/config.h"
 #include "third_party/jsoncpp/testing.h"
 

@@ -15,6 +15,7 @@
 #include "auth/src/desktop/authentication_result.h"
 
 #include <vector>
+
 #include "auth/src/desktop/auth_util.h"
 #include "auth/src/desktop/user_view.h"
 

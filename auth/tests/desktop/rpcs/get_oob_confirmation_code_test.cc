@@ -17,11 +17,11 @@
 #include "app/rest/transport_builder.h"
 #include "app/src/include/firebase/app.h"
 #include "app/tests/include/firebase/app_for_testing.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "auth/src/desktop/rpcs/get_oob_confirmation_code_request.h"
 #include "auth/src/desktop/rpcs/get_oob_confirmation_code_response.h"
 #include "auth/tests/desktop/rpcs/test_util.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace auth {
