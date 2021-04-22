@@ -34,8 +34,7 @@ void ConfigSetImpl(const uint8_t* test_data_binary,
         j_test_data, 0, size,
         reinterpret_cast<jbyte*>(const_cast<uint8_t*>(test_data_binary)));
   }
-  jclass cls = android_jni_env->FindClass(
-      "com/google/testing/ConfigAndroid");
+  jclass cls = android_jni_env->FindClass("com/google/testing/ConfigAndroid");
   android_jni_env->CallStaticVoidMethod(
       cls, android_jni_env->GetStaticMethodID(cls, "setImpl", "([B)V"),
       j_test_data);

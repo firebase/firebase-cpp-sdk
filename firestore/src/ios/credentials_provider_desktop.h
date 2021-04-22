@@ -5,12 +5,12 @@
 #include <mutex>  // NOLINT(build/c++11)
 #include <string>
 
-#include "app/src/include/firebase/app.h"
-#include "app/src/include/firebase/future.h"
 #include "Firestore/core/src/auth/credentials_provider.h"
 #include "Firestore/core/src/auth/token.h"
 #include "Firestore/core/src/auth/user.h"
 #include "Firestore/core/src/util/statusor.h"
+#include "app/src/include/firebase/app.h"
+#include "app/src/include/firebase/future.h"
 
 namespace firebase {
 namespace firestore {

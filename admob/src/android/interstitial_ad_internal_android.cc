@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "admob/src/android/interstitial_ad_internal_android.h"
+
 #include <assert.h>
 #include <jni.h>
 
@@ -23,7 +25,6 @@
 #include "admob/admob_resources.h"
 #include "admob/src/android/ad_request_converter.h"
 #include "admob/src/android/admob_android.h"
-#include "admob/src/android/interstitial_ad_internal_android.h"
 #include "admob/src/common/admob_common.h"
 #include "admob/src/include/firebase/admob.h"
 #include "admob/src/include/firebase/admob/interstitial_ad.h"

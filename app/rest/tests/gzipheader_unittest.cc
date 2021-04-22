@@ -23,10 +23,10 @@
 #include <string>
 #include <vector>
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "absl/base/macros.h"
 #include "absl/strings/escaping.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "util/random/acmrandom.h"
 
 namespace firebase {

@@ -1,6 +1,6 @@
 #include "app/src/include/firebase/internal/common.h"
-#include "firestore/src/common/futures.h"
 #include "firebase/firestore.h"
+#include "firestore/src/common/futures.h"
 #include "firestore_integration_test.h"
 
 namespace firebase {
@@ -181,17 +181,18 @@ void ExpectAllMethodsAreNoOps(Query* ptr) {
 
   EXPECT_TRUE(ptr->WhereLessThanOrEqualTo("foo", FieldValue()) == Query());
   EXPECT_TRUE(ptr->WhereLessThanOrEqualTo(FieldPath{"foo"}, FieldValue()) ==
-            Query());
+              Query());
 
   EXPECT_TRUE(ptr->WhereGreaterThan("foo", FieldValue()) == Query());
   EXPECT_TRUE(ptr->WhereGreaterThan(FieldPath{"foo"}, FieldValue()) == Query());
 
   EXPECT_TRUE(ptr->WhereGreaterThanOrEqualTo("foo", FieldValue()) == Query());
   EXPECT_TRUE(ptr->WhereGreaterThanOrEqualTo(FieldPath{"foo"}, FieldValue()) ==
-            Query());
+              Query());
 
   EXPECT_TRUE(ptr->WhereArrayContains("foo", FieldValue()) == Query());
-  EXPECT_TRUE(ptr->WhereArrayContains(FieldPath{"foo"}, FieldValue()) == Query());
+  EXPECT_TRUE(ptr->WhereArrayContains(FieldPath{"foo"}, FieldValue()) ==
+              Query());
 
   EXPECT_TRUE(ptr->OrderBy("foo") == Query());
   EXPECT_TRUE(ptr->OrderBy(FieldPath{"foo"}) == Query());

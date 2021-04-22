@@ -285,12 +285,11 @@ class BlockingCallback : public Callback {
     sem_->Post();
     delete callback_;
   }
-  void Run() override {
-    callback_->Run();
-  }
+  void Run() override { callback_->Run(); }
+
  private:
   Callback* callback_;  // owned
-  Semaphore* sem_;  // not owned
+  Semaphore* sem_;      // not owned
 };
 
 void AddBlockingCallback(Callback* callback) {

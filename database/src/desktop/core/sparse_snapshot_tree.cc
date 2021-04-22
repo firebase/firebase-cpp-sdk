@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "database/src/desktop/core/sparse_snapshot_tree.h"
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "database/src/desktop/core/tree.h"

@@ -15,8 +15,9 @@
  */
 
 #include "app/src/cleanup_notifier.h"
-#include "gtest/gtest.h"
+
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace testing {

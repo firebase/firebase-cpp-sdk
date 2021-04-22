@@ -16,6 +16,7 @@
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_DATA_HANDLE_H_
 
 #include <memory>
+
 #include "app/rest/request.h"
 #include "app/src/include/firebase/future.h"
 #include "auth/src/data.h"

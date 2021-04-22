@@ -14,13 +14,14 @@
  * limitations under the License.
  */
 
+#include "admob/src/android/rewarded_video_internal_android.h"
+
 #include <assert.h>
 #include <jni.h>
 
 #include "admob/admob_resources.h"
 #include "admob/src/android/ad_request_converter.h"
 #include "admob/src/android/admob_android.h"
-#include "admob/src/android/rewarded_video_internal_android.h"
 #include "admob/src/common/rewarded_video_internal.h"
 #include "admob/src/include/firebase/admob/rewarded_video.h"
 #include "admob/src/include/firebase/admob/types.h"
@@ -66,9 +67,10 @@ Future<void> RewardedVideoInternalAndroid::Initialize() {
 
   JNIEnv* env = ::firebase::admob::GetJNI();
 
-  env->CallVoidMethod(helper_, rewarded_video_helper::GetMethodId(
-                                   rewarded_video_helper::kInitialize),
-                      reinterpret_cast<jlong>(callback_data));
+  env->CallVoidMethod(
+      helper_,
+      rewarded_video_helper::GetMethodId(rewarded_video_helper::kInitialize),
+      reinterpret_cast<jlong>(callback_data));
 
   return GetLastResult(kRewardedVideoFnInitialize);
 }

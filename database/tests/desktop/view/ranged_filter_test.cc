@@ -15,8 +15,8 @@
 #include "database/src/desktop/view/ranged_filter.h"
 
 #include "app/src/variant_util.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {

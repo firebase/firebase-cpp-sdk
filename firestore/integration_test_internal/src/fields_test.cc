@@ -162,9 +162,9 @@ TEST_F(FieldsTest, TestFieldsWithSpecialCharsCanBeReadDirectly) {
   MapFieldValue expected = DottedData(1);
   EXPECT_EQ(expected["a"].string_value(), snapshot.Get("a").string_value());
   EXPECT_TRUE(expected["b.dot"].integer_value() ==
-	      snapshot.GetData()["b.dot"].integer_value());
-  EXPECT_TRUE(expected["c\\slash"].integer_value() == 
-	      snapshot.GetData()["c\\slash"].integer_value());
+              snapshot.GetData()["b.dot"].integer_value());
+  EXPECT_TRUE(expected["c\\slash"].integer_value() ==
+              snapshot.GetData()["c\\slash"].integer_value());
 }
 
 TEST_F(FieldsTest, TestFieldsWithSpecialCharsCanBeUpdated) {

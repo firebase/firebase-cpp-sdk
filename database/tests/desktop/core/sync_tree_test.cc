@@ -15,8 +15,6 @@
 #include "database/src/desktop/core/sync_tree.h"
 
 #include "app/src/path.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/desktop/core/child_event_registration.h"
 #include "database/src/desktop/core/indexed_variant.h"
 #include "database/src/desktop/core/value_event_registration.h"
@@ -32,6 +30,8 @@
 #include "database/tests/desktop/test/mock_persistence_storage_engine.h"
 #include "database/tests/desktop/test/mock_tracked_query_manager.h"
 #include "database/tests/desktop/test/mock_write_tree.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::NiceMock;
 using ::testing::Pointee;
@@ -733,7 +733,7 @@ TEST_F(SyncTreeTest, RemoveEventRegistration) {
   EXPECT_EQ(results, std::vector<Event>{expected_event});
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(SyncTreeDeathTest, DISABLED_RemoveEventRegistration) {

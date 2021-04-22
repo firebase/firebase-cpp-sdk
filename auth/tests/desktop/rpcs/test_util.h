@@ -30,8 +30,7 @@ bool GetNewUserLocalIdAndIdToken(const char* api_key, std::string* local_id,
 bool GetNewUserLocalIdAndRefreshToken(const char* api_key,
                                       std::string* local_id,
                                       std::string* refresh_token);
-std::string SignUpNewUserAndGetIdToken(const char* api_key,
-                                      const char* email);
+std::string SignUpNewUserAndGetIdToken(const char* api_key, const char* email);
 
 }  // namespace auth
 }  // namespace firebase

@@ -2,11 +2,11 @@
 
 #include <utility>
 
+#include "Firestore/core/src/nanopb/byte_string.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
 #include "firestore/src/ios/converter_ios.h"
-#include "Firestore/core/src/nanopb/byte_string.h"
 
 namespace firebase {
 namespace firestore {

@@ -4,6 +4,8 @@
 #include <cstddef>
 #include <vector>
 
+#include "Firestore/core/src/api/query_snapshot.h"
+#include "absl/types/optional.h"
 #include "firestore/src/include/firebase/firestore/document_change.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/metadata_changes.h"
@@ -11,8 +13,6 @@
 #include "firestore/src/include/firebase/firestore/query_snapshot.h"
 #include "firestore/src/include/firebase/firestore/snapshot_metadata.h"
 #include "firestore/src/ios/firestore_ios.h"
-#include "absl/types/optional.h"
-#include "Firestore/core/src/api/query_snapshot.h"
 
 namespace firebase {
 namespace firestore {

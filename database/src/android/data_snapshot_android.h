@@ -17,7 +17,9 @@
 
 #include <jni.h>
 #include <stddef.h>
+
 #include <string>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"

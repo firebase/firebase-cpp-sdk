@@ -18,10 +18,10 @@
 #include <string>
 
 #include "file/base/path.h"
+#include "gtest/gtest.h"
 #include "remote_config/src/desktop/config_data.h"
 #include "remote_config/src/desktop/metadata.h"
 #include "testing/base/public/googletest.h"
-#include "gtest/gtest.h"
 
 namespace firebase {
 namespace remote_config {

@@ -18,6 +18,7 @@
 #define FIREBASE_APP_CLIENT_CPP_REST_REQUEST_FILE_H_
 
 #include <stdio.h>
+
 #include <cstddef>
 
 #include "app/rest/request.h"

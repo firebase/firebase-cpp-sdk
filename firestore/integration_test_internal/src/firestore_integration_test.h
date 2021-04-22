@@ -13,17 +13,17 @@
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/mutex.h"
+#include "app_framework.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "gtest/gtest.h"
-#include "app_framework.h"
 
 namespace firebase {
 namespace firestore {
 
-using ::app_framework::LogError;
-using ::app_framework::LogWarning;
-using ::app_framework::LogInfo;
 using ::app_framework::LogDebug;
+using ::app_framework::LogError;
+using ::app_framework::LogInfo;
+using ::app_framework::LogWarning;
 
 // The interval between checks for future completion.
 const int kCheckIntervalMillis = 100;

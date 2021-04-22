@@ -5,8 +5,8 @@
 #include <sstream>
 
 #if !defined(__ANDROID__)
-#include "absl/strings/ascii.h"
 #include "Firestore/core/src/util/autoid.h"
+#include "absl/strings/ascii.h"
 #else
 #include "android/util_autoid.h"
 #endif  // !defined(__ANDROID__)
@@ -291,9 +291,7 @@ std::string FirestoreIntegrationTest::DescribeFailedFuture(
          std::to_string(future.error()) + "): " + future.error_message();
 }
 
-bool ProcessEvents(int msec) {
-  return app_framework::ProcessEvents(msec);
-}
+bool ProcessEvents(int msec) { return app_framework::ProcessEvents(msec); }
 
 }  // namespace firestore
 }  // namespace firebase

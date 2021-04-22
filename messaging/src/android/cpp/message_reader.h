@@ -17,9 +17,9 @@
 
 #include <string>
 
+#include "flatbuffers/util.h"
 #include "messaging/messaging_generated.h"
 #include "messaging/src/include/firebase/messaging.h"
-#include "flatbuffers/util.h"
 
 namespace firebase {
 namespace messaging {

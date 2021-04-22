@@ -93,6 +93,6 @@
 #define FIRESTORE_UNREACHABLE() __assume(false)
 #else
 #define FIRESTORE_UNREACHABLE()  // nothing
-#endif  // defined(__GNUC__) || defined(__clang__)
+#endif                           // defined(__GNUC__) || defined(__clang__)
 
 #endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_MACROS_H_

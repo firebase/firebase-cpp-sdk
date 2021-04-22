@@ -132,9 +132,9 @@ class Promise {
 
    protected:
     SafeFutureHandle<PublicT> handle_;
-    ReferenceCountedFutureImpl* impl_;    // not owning
-    FirestoreInternal* firestore_;        // not owning
-    Completion* completion_;              // not owning
+    ReferenceCountedFutureImpl* impl_;  // not owning
+    FirestoreInternal* firestore_;      // not owning
+    Completion* completion_;            // not owning
   };
 
   // Partial specialization of a nested class is allowed. So adding the no-op

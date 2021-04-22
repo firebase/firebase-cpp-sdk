@@ -15,10 +15,10 @@
 #ifndef FIREBASE_FIS_CLIENT_CPP_SRC_ANDROID_INSTALLATIONS_ANDROID_H_
 #define FIREBASE_FIS_CLIENT_CPP_SRC_ANDROID_INSTALLATIONS_ANDROID_H_
 
-#include "firebase/app.h"
 #include "app/src/reference_count.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
+#include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 

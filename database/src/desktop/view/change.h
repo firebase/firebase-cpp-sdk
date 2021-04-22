@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_CHANGE_H_
 
 #include <string>
+
 #include "app/src/include/firebase/variant.h"
 #include "database/src/desktop/core/indexed_variant.h"
 #include "database/src/desktop/view/event_type.h"

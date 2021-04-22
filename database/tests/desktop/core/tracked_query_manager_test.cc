@@ -15,10 +15,10 @@
 #include "database/src/desktop/core/tracked_query_manager.h"
 
 #include "app/src/logger.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/desktop/persistence/persistence_storage_engine.h"
 #include "database/tests/desktop/test/mock_persistence_storage_engine.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using testing::_;
 using testing::InSequence;
@@ -187,7 +187,7 @@ TEST_F(TrackedQueryManagerTest, RemoveTrackedQuery) {
   EXPECT_EQ(manager_->FindTrackedQuery(spec_complete_active_), nullptr);
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(TrackedQueryManagerDeathTest, DISABLED_RemoveTrackedQuery_Failure) {
@@ -239,7 +239,7 @@ TEST_F(TrackedQueryManagerTest, SetQueryActiveFlag_ExistingQueryWasFalse) {
   EXPECT_TRUE(result->active);
 }
 
-// Disable DeathTest in Release mode because it depends on a crash 
+// Disable DeathTest in Release mode because it depends on a crash
 // caused by `assert` which has no effect when NDEBUG is defined
 #ifdef NDEBUG
 TEST_F(TrackedQueryManagerDeathTest, DISABLED_SetQueryInactive_NewQuery) {

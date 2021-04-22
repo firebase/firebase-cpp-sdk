@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <map>
+
 #include "app/src/mutex.h"
 #include "database/src/common/query_spec.h"
 

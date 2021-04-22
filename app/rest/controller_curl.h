@@ -120,7 +120,7 @@ class ControllerCurl : public Controller {
 
   // Whether the transfer is running.
   bool transferring_;
-    // Number of bytes transferred.
+  // Number of bytes transferred.
   int64_t bytes_transferred_;
   // Total size of the transfer.
   int64_t transfer_size_;

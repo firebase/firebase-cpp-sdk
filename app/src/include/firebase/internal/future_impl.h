@@ -21,12 +21,7 @@
 
 // You shouldn't include future_impl.h directly, since its just the inline
 // implementation of the functions in future.h. Include future.h instead.
-// This is here to ensure that presubmit tests pass.
-#ifdef USE_PLAYBILLING_FUTURE
-#include "playbillingclient/future.h"
-#else
 #include "firebase/future.h"
-#endif
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
 #include <utility>

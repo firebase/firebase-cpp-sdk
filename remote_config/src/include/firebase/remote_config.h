@@ -243,7 +243,7 @@ FIREBASE_DEPRECATED void SetDefaults(int defaults_resource_id);
 /// Use firebase::remote_config::RemoteConfig::GetInstance() to obtain an
 /// instance and call SetDefaults on that instance.
 FIREBASE_DEPRECATED void SetDefaults(const ConfigKeyValueVariant* defaults,
-                 size_t number_of_defaults);
+                                     size_t number_of_defaults);
 
 #endif  // SWIG
 
@@ -437,8 +437,8 @@ FIREBASE_DEPRECATED std::vector<unsigned char> GetData(const char* key,
 /// @deprecated GetKeysByPrefix is deprecated and will be removed in future
 /// release. Use firebase::remote_config::RemoteConfig::GetInstance() to obtain
 /// an instance and call GetKeysByPrefix on that instance.
-FIREBASE_DEPRECATED std::vector<std::string> GetKeysByPrefix(const char*
-                                                             prefix);
+FIREBASE_DEPRECATED std::vector<std::string> GetKeysByPrefix(
+    const char* prefix);
 
 /// @brief Gets the set of all keys.
 ///

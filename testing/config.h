@@ -19,6 +19,7 @@
 #define FIREBASE_TESTING_CPPSDK_CONFIG_H_
 
 #include <cstdint>
+
 #include "testing/testdata_config_generated.h"
 
 namespace firebase {

@@ -4,14 +4,14 @@
 #include <mutex>  // NOLINT(build/c++11)
 #include <utility>
 
+#include "Firestore/core/src/util/status.h"
+#include "Firestore/core/src/util/statusor.h"
+#include "absl/meta/type_traits.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
-#include "firestore/src/common/hard_assert_common.h"
-#include "absl/meta/type_traits.h"
 #include "firebase/firestore/firestore_errors.h"
-#include "Firestore/core/src/util/status.h"
-#include "Firestore/core/src/util/statusor.h"
+#include "firestore/src/common/hard_assert_common.h"
 
 namespace firebase {
 namespace firestore {
@@ -165,7 +165,7 @@ class Promise {
     cleanup_->RegisterObject(this, [](void* raw_this) {
       auto* this_ptr = static_cast<Promise*>(raw_this);
       std::unique_lock<std::mutex> lock(this_ptr->destruction_mutex_,
-                                     std::try_to_lock_t());
+                                        std::try_to_lock_t());
       // If the destruction mutex is locked, it means the destructor is
       // currently running. In that case, leave the cleanup to destructor;
       // otherwise, trying to acquire the mutex will result in a deadlock

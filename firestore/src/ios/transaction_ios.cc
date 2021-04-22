@@ -3,13 +3,6 @@
 #include <future>  // NOLINT(build/c++11)
 #include <utility>
 
-#include "firestore/src/common/hard_assert_common.h"
-#include "firestore/src/ios/converter_ios.h"
-#include "firestore/src/ios/document_reference_ios.h"
-#include "firestore/src/ios/field_value_ios.h"
-#include "firestore/src/ios/set_options_ios.h"
-#include "firestore/src/ios/util_ios.h"
-#include "absl/types/optional.h"
 #include "Firestore/core/src/core/user_data.h"
 #include "Firestore/core/src/model/document.h"
 #include "Firestore/core/src/model/document_key.h"
@@ -17,6 +10,13 @@
 #include "Firestore/core/src/model/maybe_document.h"
 #include "Firestore/core/src/util/status.h"
 #include "Firestore/core/src/util/statusor.h"
+#include "absl/types/optional.h"
+#include "firestore/src/common/hard_assert_common.h"
+#include "firestore/src/ios/converter_ios.h"
+#include "firestore/src/ios/document_reference_ios.h"
+#include "firestore/src/ios/field_value_ios.h"
+#include "firestore/src/ios/set_options_ios.h"
+#include "firestore/src/ios/util_ios.h"
 
 namespace firebase {
 namespace firestore {

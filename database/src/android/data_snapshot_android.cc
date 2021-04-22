@@ -15,6 +15,7 @@
 #include "database/src/android/data_snapshot_android.h"
 
 #include <jni.h>
+
 #include "app/src/util_android.h"
 #include "database/src/android/database_android.h"
 #include "database/src/android/database_reference_android.h"

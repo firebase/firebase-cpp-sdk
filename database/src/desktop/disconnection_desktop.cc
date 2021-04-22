@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "database/src/desktop/disconnection_desktop.h"
+
 #include "app/src/future_manager.h"
 #include "database/src/common/database_reference.h"
 #include "database/src/desktop/core/repo.h"
