@@ -571,6 +571,12 @@ code.
 
 ## Release Notes
 
+### 7.2.1
+-   Changes
+    -   Remote Config(Android): Fix for getting Remote Config instance for a
+        specific app object.
+        ([#991](https://github.com/firebase/quickstart-unity/issues/991).
+
 ### 7.2.0
 -   Changes
     -   General (Android): Firebase support for STLPort is deprecated and will
