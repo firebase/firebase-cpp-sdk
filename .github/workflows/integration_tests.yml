@@ -346,10 +346,6 @@ jobs:
         if: matrix.target_platform == 'Desktop' && !cancelled()
         run: |
           python scripts/gha/desktop_tester.py --testapp_dir ta
-      - name: Run iOS integration tests on iOS Simulator / Android Emulator locally
-        if: contains(env.mobileTestOn, 'virtual') && startsWith(matrix.os, 'macos') && matrix.target_platform != 'Desktop' && !cancelled()
-        run: |
-          python scripts/gha/test_simulator.py --testapp_dir ta --ci
       # Workaround for https://github.com/GoogleCloudPlatform/github-actions/issues/100
       # Must be run after the Python setup action
       - name: Set CLOUDSDK_PYTHON (Windows)
@@ -363,10 +359,6 @@ jobs:
         if: matrix.target_platform == 'Desktop' && !cancelled()
         run: |
           python scripts/gha/gcs_uploader.py --testapp_dir ta --key_file scripts/gha-encrypted/gcs_key_file.json
-      - name: Run mobile integration tests on Real Device via FTL
-        if: contains(env.mobileTestOn, 'real') && matrix.target_platform != 'Desktop' && !cancelled()
-        run: |
-          python scripts/gha/test_lab.py --android_model ${{ needs.prepare_matrix.outputs.android_device }} --android_api ${{ needs.prepare_matrix.outputs.android_api }} --ios_model ${{ needs.prepare_matrix.outputs.ios_device }} --ios_version ${{ needs.prepare_matrix.outputs.ios_version }} --testapp_dir ta --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         run: |
@@ -466,10 +458,14 @@ jobs:
         if: startsWith(matrix.ios_device, 'virtual')
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps-macos-latest-iOS --ios_device "${{steps.get-device.outputs.device}}" --ci --artifact
+      - name: Install Cloud SDK
+        if: startsWith(matrix.ios_device, 'real')
+        uses: google-github-actions/setup-gcloud@master
       - name: Run iOS integration tests on Real Device via FTL
         if: startsWith(matrix.ios_device, 'real')
         run: |
-          python scripts/gha/test_lab.py --testapp_dir testapps-macos-latest-iOS  
+          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+          python scripts/gha/test_lab.py --testapp_dir testapps-macos-latest-iOS --ios_device "${{steps.get-device.outputs.device}}" --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
           
   test_android:
     name: ${{ matrix.build_os }}-Android-${{ matrix.android_device }}
@@ -509,10 +505,14 @@ jobs:
         if: startsWith(matrix.android_device, 'virtual')
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps-${{ matrix.build_os }}-Android --android_device "${{steps.get-device.outputs.device}}" --ci --artifact
+      - name: Install Cloud SDK
+        if: startsWith(matrix.android_device, 'real')
+        uses: google-github-actions/setup-gcloud@master
       - name: Run Android integration tests on Real Device via FTL
         if: startsWith(matrix.android_device, 'real')
         run: |
-          python scripts/gha/test_lab.py --testapp_dir testapps-${{ matrix.build_os }}-Android 
+          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+          python scripts/gha/test_lab.py --testapp_dir testapps-${{ matrix.build_os }}-Android --android_device "${{steps.get-device.outputs.device}}" --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
 
   add_success_label:
     name: "add-success-label"

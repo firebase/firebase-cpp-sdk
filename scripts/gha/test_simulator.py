@@ -58,9 +58,11 @@ sdk id "system-images;android-29;google_apis", build tool version "29.0.3":
 
 Returns:
    1: No iOS/Android integration_test apps found
+   20: invalid ios_device flag  
    21: iOS Simulator created fail  
    22: iOS gameloop app not found
    23: build_testapps.json file not found
+   30: invalid android_device flag  
    31: For android test, JAVA_HOME is not set to java 8
 """
 
@@ -135,8 +137,11 @@ def main(argv):
   if ios_testapps:
     logging.info("iOS Testapps found: %s", "\n".join(path for path in ios_testapps))
     
-    ios_device = FLAGS.ios_device
-    device_info = ios_device.split(";")
+    device_info = FLAGS.ios_device.split(";")
+    if len(device_info) != 2:
+      logging.error("Not a valid ios device: %s" % FLAGS.ios_device)
+      return 20
+
     device_name = device_info[0]
     device_os = device_info[1]
 
@@ -168,9 +173,11 @@ def main(argv):
   if android_testapps:
     logging.info("Android Testapps found: %s", "\n".join(path for path in android_testapps))
 
-    android_device = FLAGS.android_device
-    device_info = android_device.rsplit(";", 1)
-    print(device_info)
+    device_info = FLAGS.android_device.rsplit(";", 1)
+    if len(device_info) != 2:
+      logging.error("Not a valid android device: %s" % FLAGS.android_device)
+      return 30
+
     sdk_id = "system-images;android-%s" % device_info[0]
     platforms_tool_version = sdk_id.split(";")[1]
     build_tool_version = device_info[1]
