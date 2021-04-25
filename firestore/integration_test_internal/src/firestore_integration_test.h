@@ -49,12 +49,12 @@ std::string ToFirestoreErrorCodeName(int error_code);
 // that were left before a timeout would have occurred.
 int WaitFor(const FutureBase &future);
 
-template<typename T>
+template <typename T>
 class EventAccumulator;
 
 // An EventListener class for writing tests. This listener counts the number of
 // events as well as keeps track of the last result.
-template<typename T>
+template <typename T>
 class TestEventListener : public EventListener<T> {
  public:
   explicit TestEventListener(std::string name) : name_(std::move(name)) {}
@@ -109,7 +109,7 @@ class TestEventListener : public EventListener<T> {
 
   // Hides the STLPort-related quirk that `AddSnapshotListener` has different
   // signatures depending on whether `std::function` is available.
-  template<typename U>
+  template <typename U>
   ListenerRegistration AttachTo(
       U *ref, MetadataChanges metadata_changes = MetadataChanges::kExclude) {
 #if defined(FIREBASE_USE_STD_FUNCTION)
@@ -174,7 +174,8 @@ class FirestoreIntegrationTest : public testing::Test {
   FirestoreIntegrationTest(const FirestoreIntegrationTest &) = delete;
   FirestoreIntegrationTest(FirestoreIntegrationTest &&) = delete;
 
-  FirestoreIntegrationTest &operator=(const FirestoreIntegrationTest &) = delete;
+  FirestoreIntegrationTest &operator=(const FirestoreIntegrationTest &) =
+      delete;
   FirestoreIntegrationTest &operator=(FirestoreIntegrationTest &&) = delete;
 
  protected:
@@ -185,7 +186,7 @@ class FirestoreIntegrationTest : public testing::Test {
   // will be returned. The only exception is if the `Firestore` was removed
   // from the cache by a call to `DeleteFirestore()` or `DisownFirestore()`, or
   // if `DeleteApp()` is called with the `App` of the returned `Firestore`.
-  Firestore* TestFirestore(const std::string& name = kDefaultAppName) const;
+  Firestore *TestFirestore(const std::string &name = kDefaultAppName) const;
 
   // Deletes the given `Firestore` instance, which must have been returned by a
   // previous invocation of `TestFirestore()`, and removes it from the cache of
@@ -196,7 +197,7 @@ class FirestoreIntegrationTest : public testing::Test {
   // `Firestore` instance has already been removed from the cache, such as by a
   // previous invocation of this method, then the behavior of this method is
   // undefined.
-  void DeleteFirestore(Firestore* firestore);
+  void DeleteFirestore(Firestore *firestore);
 
   // Relinquishes ownership of the given `Firestore` instance, which must have
   // been returned by a previous invocation of `TestFirestore()`, and removes it
@@ -207,7 +208,7 @@ class FirestoreIntegrationTest : public testing::Test {
   // deletion. If the given `Firestore` instance has already been removed from
   // the cache, such as by a previous invocation of this method, then the
   // behavior of this method is undefined.
-  void DisownFirestore(Firestore* firestore);
+  void DisownFirestore(Firestore *firestore);
 
   // Deletes the given `App` instance. The given `App` must have been the `App`
   // associated with a `Firestore` instance returned by a previous invocation of
@@ -244,7 +245,7 @@ class FirestoreIntegrationTest : public testing::Test {
                       const std::map<std::string, MapFieldValue> &data) const;
 
   // Update the specified document and wait for the update to complete.
-  template<typename MapType>
+  template <typename MapType>
   void UpdateDocument(DocumentReference reference, const MapType &data) const {
     Future<void> future = reference.Update(data);
     Await(future);
@@ -272,7 +273,7 @@ class FirestoreIntegrationTest : public testing::Test {
   // TODO(zxu): add a helper function to block on signal.
 
   // A helper function to block until the future completes.
-  template<typename T>
+  template <typename T>
   static const T *Await(const Future<T> &future) {
     int cycles = WaitFor(future);
     EXPECT_GT(cycles, 0) << "Waiting future timed out.";
@@ -289,7 +290,7 @@ class FirestoreIntegrationTest : public testing::Test {
   static void Await(const Future<void> &future);
 
   // A helper function to block until there is at least n event.
-  template<typename T>
+  template <typename T>
   static void Await(const TestEventListener<T> &listener, int n = 1) {
     // Instead of getting a clock, we count the cycles instead.
     int cycles = kTimeOutMillis / kCheckIntervalMillis;
@@ -320,9 +321,8 @@ class FirestoreIntegrationTest : public testing::Test {
   }
 
  private:
-  template<typename T>
-  friend
-  class EventAccumulator;
+  template <typename T>
+  friend class EventAccumulator;
 
   class FirestoreInfo {
    public:
@@ -330,8 +330,8 @@ class FirestoreIntegrationTest : public testing::Test {
     FirestoreInfo(const std::string &name, UniquePtr<Firestore> &&firestore)
         : name_(name), firestore_(Move(firestore)) {}
 
-    const std::string& name() const { return name_; }
-    Firestore* firestore() const { return firestore_.get(); }
+    const std::string &name() const { return name_; }
+    Firestore *firestore() const { return firestore_.get(); }
     void ReleaseFirestore() { firestore_.release(); }
 
    private:
