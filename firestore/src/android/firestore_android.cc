@@ -25,6 +25,8 @@
 #include "firestore/src/android/lambda_event_listener.h"
 #include "firestore/src/android/lambda_transaction_function.h"
 #include "firestore/src/android/listener_registration_android.h"
+#include "firestore/src/android/load_bundle_task_android.h"
+#include "firestore/src/android/load_bundle_task_progress_android.h"
 #include "firestore/src/android/metadata_changes_android.h"
 #include "firestore/src/android/promise_android.h"
 #include "firestore/src/android/query_android.h"
@@ -39,6 +41,7 @@
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/android/write_batch_android.h"
 #include "firestore/src/include/firebase/firestore.h"
+#include "firestore/src/jni/array.h"
 #include "firestore/src/jni/array_list.h"
 #include "firestore/src/jni/boolean.h"
 #include "firestore/src/jni/collection.h"
@@ -59,6 +62,7 @@ namespace firebase {
 namespace firestore {
 namespace {
 
+using jni::Array;
 using jni::Constructor;
 using jni::Env;
 using jni::Global;
@@ -116,6 +120,12 @@ Method<Object> kAddSnapshotsInSyncListener(
     "addSnapshotsInSyncListener",
     "(Ljava/util/concurrent/Executor;Ljava/lang/Runnable;)"
     "Lcom/google/firebase/firestore/ListenerRegistration;");
+Method<Task> kGetNamedQuery("getNamedQuery",
+                            "(Ljava/lang/String;)"
+                            "Lcom/google/android/gms/tasks/Task;");
+Method<LoadBundleTaskInternal> kLoadBundle("loadBundle",
+                            "([B)"
+                            "Lcom/google/firebase/firestore/LoadBundleTask;");
 
 void InitializeFirestore(Loader& loader) {
   loader.LoadClass(kFirestoreClassName, kCollection, kDocument,
@@ -123,7 +133,7 @@ void InitializeFirestore(Loader& loader) {
                    kSetLoggingEnabled, kSetClientLanguage, kSetSettings, kBatch,
                    kRunTransaction, kEnableNetwork, kDisableNetwork, kTerminate,
                    kWaitForPendingWrites, kClearPersistence,
-                   kAddSnapshotsInSyncListener);
+                   kAddSnapshotsInSyncListener, kGetNamedQuery, kLoadBundle);
 }
 
 constexpr char kUserCallbackExecutorClassName[] = PROGUARD_KEEP_CLASS
@@ -296,6 +306,8 @@ bool FirestoreInternal::Initialize(App* app) {
     TimestampInternal::Initialize(loader);
     TransactionInternal::Initialize(loader);
     WriteBatchInternal::Initialize(loader);
+    LoadBundleTaskInternal::Initialize(loader);
+    LoadBundleTaskProgressInternal::Initialize(loader);
     if (!loader.ok()) {
       ReleaseClassesLocked(env);
       return false;
@@ -513,6 +525,42 @@ void FirestoreInternal::ClearListeners() {
     delete reg;
   }
   listener_registrations_.clear();
+}
+
+Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(const std::string &bundle) {
+  Env env = GetEnv();
+  Local<String> bundle_jstring = env.NewStringUtf(bundle.c_str());
+  Local<String> encoding = env.NewStringUtf("UTF-8");
+  Local<Array<uint8_t>> bytes = bundle_jstring.GetBytes(env, encoding);
+  Local<LoadBundleTaskInternal> task = env.Call(obj_, kLoadBundle, bytes);
+
+  return promises_->NewFuture<LoadBundleTaskProgress>(env, AsyncFn::kLoadBundle, task);
+}
+
+Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
+    const std::string &bundle,
+    std::function<void(const LoadBundleTaskProgress &)> progress_callback){
+  Env env = GetEnv();
+  Local<String> bundle_jstring = env.NewStringUtf(bundle.c_str());
+  Local<String> encoding = env.NewStringUtf("UTF-8");
+  Local<Array<uint8_t>> bytes = bundle_jstring.GetBytes(env, encoding);
+  Local<LoadBundleTaskInternal> task = env.Call(obj_, kLoadBundle, bytes.get());
+
+  auto* listener = new LambdaEventListener<LoadBundleTaskProgress>(
+      [progress_callback](const LoadBundleTaskProgress& p, Error e, const std::string& s) {
+        progress_callback(p);
+      });
+  Local<Object> progress_listener = EventListenerInternal::Create(env, this, listener);
+  task.AddProgressListener(env, user_callback_executor(), progress_listener);
+
+  return promises_->NewFuture<LoadBundleTaskProgress>(env, AsyncFn::kLoadBundle, task);
+}
+
+Future<Query> FirestoreInternal::NamedQuery(const std::string &query_name) {
+  Env env = GetEnv();
+  Local<String> name = env.NewStringUtf(query_name.c_str());
+  Local<Task> task = env.Call(obj_, kGetNamedQuery, name);
+  return promises_->NewFuture<Query>(env, AsyncFn::kGetNamedQuery, task);
 }
 
 Env FirestoreInternal::GetEnv() {

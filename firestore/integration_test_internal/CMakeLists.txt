@@ -75,6 +75,7 @@ set(FIREBASE_INTEGRATION_TEST_PORTABLE_TEST_SRCS
     # public API are performed.
     src/integration_test.cc
     # Internal tests below.
+    src/bundle_test.cc
     src/collection_reference_test.cc
     src/cursor_test.cc
     src/document_change_test.cc
@@ -127,6 +128,7 @@ set(FIREBASE_INTEGRATION_TEST_DESKTOP_AND_IOS_TEST_SRCS
 # These sources contain test plumbing and support, for all platforms.
 set(FIREBASE_INTEGRATION_TEST_PORTABLE_SUPPORT_SRCS
     src/firestore_integration_test.cc
+    src/util/bundle_builder.cc
     src/util/future_test_util.cc
     src/util/integration_test_util.cc
 )

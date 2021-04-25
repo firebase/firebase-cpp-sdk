@@ -15,6 +15,7 @@
 #include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
+#include "firestore/src/include/firebase/firestore/load_bundle_task_progress.h"
 #include "firestore/src/include/firebase/firestore/settings.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/jni_fwd.h"
@@ -53,6 +54,8 @@ class FirestoreInternal {
     kTerminate,
     kWaitForPendingWrites,
     kClearPersistence,
+    kGetNamedQuery,
+    kLoadBundle,
     kCount,  // Must be the last enum value.
   };
 
@@ -122,6 +125,13 @@ class FirestoreInternal {
   void UnregisterListenerRegistration(
       ListenerRegistrationInternal* registration);
   void ClearListeners();
+
+  // Bundles
+  Future<LoadBundleTaskProgress> LoadBundle(const std::string &bundle);
+  Future<LoadBundleTaskProgress> LoadBundle(
+      const std::string &bundle,
+      std::function<void(const LoadBundleTaskProgress &)> progress_callback);
+  Future<Query> NamedQuery(const std::string &query_name);
 
   static jni::Env GetEnv();
 

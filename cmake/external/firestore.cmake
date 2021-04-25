@@ -18,12 +18,13 @@ if(TARGET firestore)
   return()
 endif()
 
-set(version 9bae3613d885fb8cc7d74c612c90f821a0e1981f)
 ExternalProject_Add(
   firestore
 
   DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-  URL https://github.com/firebase/firebase-ios-sdk/archive/${version}.tar.gz
+  GIT_REPOSITORY https://github.com/firebase/firebase-ios-sdk
+  GIT_TAG release-7.10
+  GIT_SHALLOW true
 
   PREFIX ${PROJECT_BINARY_DIR}
 

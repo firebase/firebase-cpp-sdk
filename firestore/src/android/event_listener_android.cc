@@ -8,6 +8,7 @@
 #include "firebase/firestore/firestore_errors.h"
 #include "firestore/src/android/document_snapshot_android.h"
 #include "firestore/src/android/exception_android.h"
+#include "firestore/src/android/load_bundle_task_progress_android.h"
 #include "firestore/src/android/query_snapshot_android.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/query_snapshot.h"
@@ -39,6 +40,10 @@ Constructor<Object> kNewQueryEventListener("(JJ)V");
 constexpr char kVoidEventListenerClassName[] =
     "com/google/firebase/firestore/internal/cpp/VoidEventListener";
 Constructor<Object> kNewVoidEventListener("(J)V");
+
+constexpr char kProgressListenerClassName[] =
+    "com/google/firebase/firestore/internal/cpp/LoadBundleProgressListener";
+Constructor<Object> kNewProgressListener("(JJ)V");
 
 }  // namespace
 
@@ -73,6 +78,14 @@ void EventListenerInternal::Initialize(jni::Loader& loader) {
   loader.LoadClass(kVoidEventListenerClassName, kNewVoidEventListener);
   loader.RegisterNatives(kVoidEventListenerNatives,
                          FIREBASE_ARRAYSIZE(kVoidEventListenerNatives));
+
+  static const JNINativeMethod kProgressListenerNatives[] = {
+      {"nativeOnProgress", "(JJLjava/lang/Object;)V",
+       reinterpret_cast<void*>(
+           &EventListenerInternal::ProgressListenerNativeOnProgress)}};
+  loader.LoadClass(kProgressListenerClassName, kNewProgressListener);
+  loader.RegisterNatives(kProgressListenerNatives,
+                         FIREBASE_ARRAYSIZE(kProgressListenerNatives));
 }
 
 void EventListenerInternal::DocumentEventListenerNativeOnEvent(
@@ -132,6 +145,20 @@ void EventListenerInternal::VoidEventListenerNativeOnEvent(JNIEnv*, jclass,
   listener->OnEvent(Error::kErrorOk, EmptyString());
 }
 
+/* static */
+void EventListenerInternal::ProgressListenerNativeOnProgress(JNIEnv*, jclass,
+                                                             jlong firestore_ptr,
+                                                             jlong listener_ptr,
+                                                          jobject progress) {
+  if (listener_ptr == 0) {
+    return;
+  }
+  auto* firestore = reinterpret_cast<FirestoreInternal*>(firestore_ptr);
+  auto* listener = reinterpret_cast<EventListener<LoadBundleTaskProgress>*>(listener_ptr);
+  LoadBundleTaskProgress cpp_progress(new LoadBundleTaskProgressInternal(firestore, Object(progress)));
+  listener->OnEvent(cpp_progress, Error::kErrorOk, EmptyString());
+}
+
 Local<Object> EventListenerInternal::Create(
     Env& env, FirestoreInternal* firestore,
     EventListener<DocumentSnapshot>* listener) {
@@ -149,6 +176,11 @@ Local<Object> EventListenerInternal::Create(
 Local<Object> EventListenerInternal::Create(Env& env,
                                             EventListener<void>* listener) {
   return env.New(kNewVoidEventListener, reinterpret_cast<jlong>(listener));
+}
+
+Local<Object> EventListenerInternal::Create(Env& env,FirestoreInternal* firestore,
+                                            EventListener<LoadBundleTaskProgress>* listener) {
+  return env.New(kNewProgressListener, reinterpret_cast<jlong>(firestore), reinterpret_cast<jlong>(listener));
 }
 
 }  // namespace firestore

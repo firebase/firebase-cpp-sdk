@@ -744,7 +744,7 @@ TEST_F(TransactionTest, TestCancellationOnError) {
 
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
-#endif  // defined(__ANDROID__) || defined(__APPLE__)
+#endif  // !defined(FIRESTORE_STUB_BUILD)
 
 }  // namespace firestore
 }  // namespace firebase

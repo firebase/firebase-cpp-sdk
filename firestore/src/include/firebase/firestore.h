@@ -39,6 +39,7 @@
 #include "firebase/firestore/firestore_errors.h"
 #include "firebase/firestore/geo_point.h"
 #include "firebase/firestore/listener_registration.h"
+#include "firebase/firestore/load_bundle_task_progress.h"
 #include "firebase/firestore/map_field_value.h"
 #include "firebase/firestore/metadata_changes.h"
 #include "firebase/firestore/query.h"
@@ -103,8 +104,8 @@ class Firestore {
    *
    * @return An instance of Firestore corresponding to the given App.
    */
-  static Firestore* GetInstance(::firebase::App* app,
-                                InitResult* init_result_out = nullptr);
+  static Firestore *GetInstance(::firebase::App *app,
+                                InitResult *init_result_out = nullptr);
 
   /**
    * @brief Returns an instance of Firestore corresponding to the default App.
@@ -121,7 +122,7 @@ class Firestore {
    *
    * @return An instance of Firestore corresponding to the default App.
    */
-  static Firestore* GetInstance(InitResult* init_result_out = nullptr);
+  static Firestore *GetInstance(InitResult *init_result_out = nullptr);
 
   /**
    * @brief Destructor for the Firestore object.
@@ -136,27 +137,27 @@ class Firestore {
    * Deleted copy constructor; Firestore must be created with
    * Firestore::GetInstance().
    */
-  Firestore(const Firestore& src) = delete;
+  Firestore(const Firestore &src) = delete;
 
   /**
    * Deleted copy assignment operator; Firestore must be created with
    * Firestore::GetInstance().
    */
-  Firestore& operator=(const Firestore& src) = delete;
+  Firestore &operator=(const Firestore &src) = delete;
 
   /**
    * @brief Returns the firebase::App that this Firestore was created with.
    *
    * @return The firebase::App this Firestore was created with.
    */
-  virtual const App* app() const;
+  virtual const App *app() const;
 
   /**
    * @brief Returns the firebase::App that this Firestore was created with.
    *
    * @return The firebase::App this Firestore was created with.
    */
-  virtual App* app();
+  virtual App *app();
 
   /**
    * @brief Returns a CollectionReference instance that refers to the
@@ -166,7 +167,7 @@ class Firestore {
    *
    * @return The CollectionReference instance.
    */
-  virtual CollectionReference Collection(const char* collection_path) const;
+  virtual CollectionReference Collection(const char *collection_path) const;
 
   /**
    * @brief Returns a CollectionReference instance that refers to the
@@ -177,7 +178,7 @@ class Firestore {
    * @return The CollectionReference instance.
    */
   virtual CollectionReference Collection(
-      const std::string& collection_path) const;
+      const std::string &collection_path) const;
 
   /**
    * @brief Returns a DocumentReference instance that refers to the document at
@@ -186,7 +187,7 @@ class Firestore {
    * @param[in] document_path A slash-separated path to a document.
    * @return The DocumentReference instance.
    */
-  virtual DocumentReference Document(const char* document_path) const;
+  virtual DocumentReference Document(const char *document_path) const;
 
   /**
    * @brief Returns a DocumentReference instance that refers to the document at
@@ -196,7 +197,7 @@ class Firestore {
    *
    * @return The DocumentReference instance.
    */
-  virtual DocumentReference Document(const std::string& document_path) const;
+  virtual DocumentReference Document(const std::string &document_path) const;
 
   /**
    * @brief Returns a Query instance that includes all documents in the
@@ -209,7 +210,7 @@ class Firestore {
    *
    * @return The Query instance.
    */
-  virtual Query CollectionGroup(const char* collection_id) const;
+  virtual Query CollectionGroup(const char *collection_id) const;
 
   /**
    * @brief Returns a Query instance that includes all documents in the
@@ -222,7 +223,7 @@ class Firestore {
    *
    * @return The Query instance.
    */
-  virtual Query CollectionGroup(const std::string& collection_id) const;
+  virtual Query CollectionGroup(const std::string &collection_id) const;
 
   /** Returns the settings used by this Firestore object. */
   virtual Settings settings() const;
@@ -257,7 +258,7 @@ class Firestore {
    * library.
    */
   virtual Future<void> RunTransaction(
-      std::function<Error(Transaction&, std::string&)> update);
+      std::function<Error(Transaction &, std::string &)> update);
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
   /**
@@ -272,7 +273,7 @@ class Firestore {
    *
    * @return A Future that will be resolved when the transaction finishes.
    */
-  virtual Future<void> RunTransaction(TransactionFunction* update);
+  virtual Future<void> RunTransaction(TransactionFunction *update);
 
   /**
    * Sets the log verbosity of all Firestore instances.
@@ -405,6 +406,12 @@ class Firestore {
       EventListener<void>* listener);
 #endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
+  virtual Future<LoadBundleTaskProgress> LoadBundle(const std::string &bundle);
+  virtual Future<LoadBundleTaskProgress> LoadBundle(const std::string &bundle,
+                                                    std::function<void(const LoadBundleTaskProgress &)> progress_callback);
+
+  virtual Future<Query> NamedQuery(const std::string &query_name);
+
  protected:
   /**
    * Default constructor, to be used only for mocking `Firestore`.
@@ -418,27 +425,28 @@ class Firestore {
   friend struct ConverterImpl;
   friend class FirestoreIntegrationTest;
   friend class IncludesTest;
-  template <typename T, typename U, typename F>
-  friend struct CleanupFn;
+  template<typename T, typename U, typename F>
+  friend
+  struct CleanupFn;
 
   friend class csharp::ApiHeaders;
   friend class csharp::TransactionManager;
 
-  explicit Firestore(::firebase::App* app);
-  explicit Firestore(FirestoreInternal* internal);
+  explicit Firestore(::firebase::App *app);
+  explicit Firestore(FirestoreInternal *internal);
 
-  static Firestore* CreateFirestore(::firebase::App* app,
-                                    FirestoreInternal* internal,
-                                    InitResult* init_result_out);
-  static Firestore* AddFirestoreToCache(Firestore* firestore,
-                                        InitResult* init_result_out);
+  static Firestore *CreateFirestore(::firebase::App *app,
+                                    FirestoreInternal *internal,
+                                    InitResult *init_result_out);
+  static Firestore *AddFirestoreToCache(Firestore *firestore,
+                                        InitResult *init_result_out);
 
-  static void SetClientLanguage(const std::string& language_token);
+  static void SetClientLanguage(const std::string &language_token);
 
   // Delete the internal_ data.
   void DeleteInternal();
 
-  mutable FirestoreInternal* internal_ = nullptr;
+  mutable FirestoreInternal *internal_ = nullptr;
 };
 
 }  // namespace firestore

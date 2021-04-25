@@ -7,12 +7,12 @@ namespace firebase {
 namespace firestore {
 
 // Event accumulator for integration test. Ported from the native SDKs.
-template <typename T>
+template<typename T>
 class EventAccumulator {
  public:
   EventAccumulator() : listener_("EventAccumulator") {}
 
-  TestEventListener<T>* listener() { return &listener_; }
+  TestEventListener<T> *listener() { return &listener_; }
 
   std::vector<T> Await(int num_events) {
     int old_num_events = num_events_consumed_;
@@ -86,6 +86,10 @@ class EventAccumulator {
       event = Await();
     } while (IsFromCache(event));
     return event;
+  }
+
+  void AssertNoAdditionalEvents() {
+    listener_.AssertNoAdditionalEvents();
   }
 
  private:
