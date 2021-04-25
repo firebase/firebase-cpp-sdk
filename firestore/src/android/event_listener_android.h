@@ -25,7 +25,8 @@ class EventListenerInternal {
                                              jlong listener_ptr);
   static void ProgressListenerNativeOnProgress(JNIEnv* env, jclass clazz,
                                                jlong firestore_ptr,
-                                             jlong listener_ptr, jobject progress);
+                                               jlong listener_ptr,
+                                               jobject progress);
 
   static jni::Local<jni::Object> Create(
       jni::Env& env, FirestoreInternal* firestore,
@@ -49,9 +50,9 @@ class EventListenerInternal {
   static jobject EventListenerToJavaRunnable(JNIEnv* env,
                                              EventListener<void>* listener);
 
-  static jni::Local<jni::Object> Create(jni::Env& env,FirestoreInternal* firestore,
-                                              EventListener<LoadBundleTaskProgress>* listener);
-
+  static jni::Local<jni::Object> Create(
+      jni::Env& env, FirestoreInternal* firestore,
+      EventListener<LoadBundleTaskProgress>* listener);
 };
 
 }  // namespace firestore

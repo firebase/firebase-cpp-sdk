@@ -28,27 +28,19 @@ class LoadBundleTaskProgress {
   enum class State { kError, kInProgress, kSuccess };
 
   LoadBundleTaskProgress() = default;
-  LoadBundleTaskProgress(int32_t documents_loaded, int32_t total_documents, int64_t bytes_loaded, int64_t total_bytes, State state);
+  LoadBundleTaskProgress(int32_t documents_loaded, int32_t total_documents,
+                         int64_t bytes_loaded, int64_t total_bytes,
+                         State state);
 
-  int32_t documents_loaded() const {
-    return documents_loaded_;
-  }
+  int32_t documents_loaded() const { return documents_loaded_; }
 
-  int32_t total_documents() const {
-    return total_documents_;
-  }
+  int32_t total_documents() const { return total_documents_; }
 
-  int64_t bytes_loaded() const {
-    return bytes_loaded_;
-  }
+  int64_t bytes_loaded() const { return bytes_loaded_; }
 
-  int64_t total_bytes() const {
-    return total_bytes_;
-  }
+  int64_t total_bytes() const { return total_bytes_; }
 
-  State state() const {
-    return state_;
-  }
+  State state() const { return state_; }
 
  private:
   friend class EventListenerInternal;
@@ -67,10 +59,10 @@ class LoadBundleTaskProgress {
 inline bool operator==(const LoadBundleTaskProgress lhs,
                        const LoadBundleTaskProgress& rhs) {
   return lhs.state() == rhs.state() &&
-      lhs.bytes_loaded() == rhs.bytes_loaded() &&
-      lhs.documents_loaded() == rhs.documents_loaded() &&
-      lhs.total_bytes() == rhs.total_bytes() &&
-      lhs.total_documents() == rhs.total_documents();
+         lhs.bytes_loaded() == rhs.bytes_loaded() &&
+         lhs.documents_loaded() == rhs.documents_loaded() &&
+         lhs.total_bytes() == rhs.total_bytes() &&
+         lhs.total_documents() == rhs.total_documents();
 }
 
 inline bool operator!=(const LoadBundleTaskProgress lhs,
@@ -81,4 +73,4 @@ inline bool operator!=(const LoadBundleTaskProgress lhs,
 }  // namespace firestore
 }  // namespace firebase
 
-#endif //FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_LOAD_BUNDLE_TASK_PROGRESS_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_LOAD_BUNDLE_TASK_PROGRESS_H_

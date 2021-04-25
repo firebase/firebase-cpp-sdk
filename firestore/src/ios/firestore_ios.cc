@@ -44,19 +44,25 @@ std::shared_ptr<AsyncQueue> CreateWorkerQueue() {
   return AsyncQueue::Create(std::move(executor));
 }
 
-LoadBundleTaskProgress::State ToApiProgressState(api::LoadBundleTaskState state) {
+LoadBundleTaskProgress::State ToApiProgressState(
+    api::LoadBundleTaskState state) {
   switch (state) {
-    case api::LoadBundleTaskState::kError:return LoadBundleTaskProgress::State::kError;
-    case api::LoadBundleTaskState::kSuccess:return LoadBundleTaskProgress::State::kSuccess;
-    case api::LoadBundleTaskState::kInProgress:return LoadBundleTaskProgress::State::kInProgress;
+    case api::LoadBundleTaskState::kError:
+      return LoadBundleTaskProgress::State::kError;
+    case api::LoadBundleTaskState::kSuccess:
+      return LoadBundleTaskProgress::State::kSuccess;
+    case api::LoadBundleTaskState::kInProgress:
+      return LoadBundleTaskProgress::State::kInProgress;
   }
 }
 
-LoadBundleTaskProgress ToApiProgress(const api::LoadBundleTaskProgress &internal_progress) {
-  return {
-      static_cast<int32_t>(internal_progress.documents_loaded()), static_cast<int32_t>(internal_progress.total_documents()),
-      static_cast<int64_t>(internal_progress.bytes_loaded()), static_cast<int64_t>(internal_progress.total_bytes()),
-      ToApiProgressState(internal_progress.state())};
+LoadBundleTaskProgress ToApiProgress(
+    const api::LoadBundleTaskProgress &internal_progress) {
+  return {static_cast<int32_t>(internal_progress.documents_loaded()),
+          static_cast<int32_t>(internal_progress.total_documents()),
+          static_cast<int64_t>(internal_progress.bytes_loaded()),
+          static_cast<int64_t>(internal_progress.total_bytes()),
+          ToApiProgressState(internal_progress.state())};
 }
 
 }  // namespace
@@ -293,16 +299,19 @@ void Firestore::set_log_level(LogLevel log_level) {
       // Firestore doesn't have the distinction between "verbose" and "debug".
       LogSetLevel(util::kLogLevelDebug);
       break;
-    case kLogLevelInfo:LogSetLevel(util::kLogLevelNotice);
+    case kLogLevelInfo:
+      LogSetLevel(util::kLogLevelNotice);
       break;
-    case kLogLevelWarning:LogSetLevel(util::kLogLevelWarning);
+    case kLogLevelWarning:
+      LogSetLevel(util::kLogLevelWarning);
       break;
     case kLogLevelError:
     case kLogLevelAssert:
       // Firestore doesn't have a separate "assert" log level.
       LogSetLevel(util::kLogLevelError);
       break;
-    default:FIRESTORE_UNREACHABLE();
+    default:
+      FIRESTORE_UNREACHABLE();
       break;
   }
 
@@ -349,30 +358,30 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
       absl::make_unique<std::stringstream>(std::stringstream(bundle)));
   std::shared_ptr<api::LoadBundleTask> task =
       firestore_core_->LoadBundle(std::move(bundle_stream));
-  task->Observe(
-      [promise, task,
-          progress_callback](const api::LoadBundleTaskProgress &progress) mutable {
-        progress_callback(ToApiProgress(progress));
-        if (progress.state() == api::LoadBundleTaskState::kSuccess) {
-          promise.SetValue(ToApiProgress(progress));
-          task->RemoveAllObservers();
-        }
-        if (progress.state() == api::LoadBundleTaskState::kError) {
-          promise.SetError(progress.error_status());
-          task->RemoveAllObservers();
-        }
-      });
+  task->Observe([promise, task, progress_callback](
+                    const api::LoadBundleTaskProgress &progress) mutable {
+    progress_callback(ToApiProgress(progress));
+    if (progress.state() == api::LoadBundleTaskState::kSuccess) {
+      promise.SetValue(ToApiProgress(progress));
+      task->RemoveAllObservers();
+    }
+    if (progress.state() == api::LoadBundleTaskState::kError) {
+      promise.SetError(progress.error_status());
+      task->RemoveAllObservers();
+    }
+  });
 
   return promise.future();
 }
 
 Future<Query> FirestoreInternal::NamedQuery(const std::string &query_name) {
-  auto promise =
-      promise_factory_.CreatePromise<Query>(AsyncApi::kNamedQuery);
+  auto promise = promise_factory_.CreatePromise<Query>(AsyncApi::kNamedQuery);
   firestore_core_->GetNamedQuery(
-      query_name, [this, promise](const absl::optional<core::Query> &query) mutable {
+      query_name,
+      [this, promise](const absl::optional<core::Query> &query) mutable {
         if (query.has_value()) {
-          promise.SetValue(MakePublic(api::Query(query.value(), firestore_core_)));
+          promise.SetValue(
+              MakePublic(api::Query(query.value(), firestore_core_)));
         } else {
           promise.SetError(
               Status(kErrorNotFound, "Named query cannot be found"));

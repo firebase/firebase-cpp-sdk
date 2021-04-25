@@ -140,7 +140,7 @@ Firestore::Firestore(::firebase::App *app)
     : Firestore{new FirestoreInternal{app}} {}
 
 Firestore::Firestore(FirestoreInternal *internal)
-// TODO(wuandy): use make_unique once it is supported for our build here.
+    // TODO(wuandy): use make_unique once it is supported for our build here.
     : internal_(internal) {
   internal_->set_firestore_public(this);
 
@@ -302,7 +302,7 @@ Future<void> Firestore::ClearPersistence() {
 
 #if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 ListenerRegistration Firestore::AddSnapshotsInSyncListener(
-    EventListener<void>* listener) {
+    EventListener<void> *listener) {
   if (!internal_) return {};
   return internal_->AddSnapshotsInSyncListener(listener);
 }
@@ -326,13 +326,15 @@ void Firestore::SetClientLanguage(const std::string &language_token) {
   FirestoreInternal::SetClientLanguage(language_token + " " + GetPlatform());
 }
 
-Future<LoadBundleTaskProgress> Firestore::LoadBundle(const std::string &bundle) {
+Future<LoadBundleTaskProgress> Firestore::LoadBundle(
+    const std::string &bundle) {
   if (!internal_) return FailedFuture<LoadBundleTaskProgress>();
   return internal_->LoadBundle(bundle);
 }
 
-Future<LoadBundleTaskProgress> Firestore::LoadBundle(const std::string &bundle,
-                                                     std::function<void(const LoadBundleTaskProgress &)> progress_callback) {
+Future<LoadBundleTaskProgress> Firestore::LoadBundle(
+    const std::string &bundle,
+    std::function<void(const LoadBundleTaskProgress &)> progress_callback) {
   if (!internal_) return FailedFuture<LoadBundleTaskProgress>();
   return internal_->LoadBundle(bundle, std::move(progress_callback));
 }

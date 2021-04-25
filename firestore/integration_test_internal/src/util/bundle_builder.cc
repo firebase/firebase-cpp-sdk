@@ -22,14 +22,15 @@ namespace firebase {
 namespace firestore {
 namespace {
 
-std::string ReplaceAll(const std::string& str, const std::string& from, const std::string& to) {
+std::string ReplaceAll(const std::string& str, const std::string& from,
+                       const std::string& to) {
   std::string result(str);
-  if(from.empty())
-    return result;
+  if (from.empty()) return result;
   size_t start_pos = 0;
-  while((start_pos = result.find(from, start_pos)) != std::string::npos) {
+  while ((start_pos = result.find(from, start_pos)) != std::string::npos) {
     result.replace(start_pos, from.length(), to);
-    start_pos += to.length(); // In case 'to' contains 'from', like replacing 'x' with 'yx'
+    start_pos += to.length();  // In case 'to' contains 'from', like replacing
+                               // 'x' with 'yx'
   }
 
   return result;
@@ -198,25 +199,24 @@ std::vector<std::string> BundleTemplate() {
    }
 })|";
 
-  return {metadata, named_query1, named_query2, document_metadata1,
+  return {metadata,   named_query1,       named_query2, document_metadata1,
           document_1, document_metadata2, document_2};
 }
 
 }  // namespace
 
-std::string CreateBundle(const std::string &project_id) {
+std::string CreateBundle(const std::string& project_id) {
   std::string bundle;
 
   auto bundle_template = BundleTemplate();
   for (size_t i = 1; i < bundle_template.size(); ++i) {
-    auto element =
-        ReplaceAll(bundle_template[i], "{projectId}", project_id);
+    auto element = ReplaceAll(bundle_template[i], "{projectId}", project_id);
     bundle.append(std::to_string(element.size()));
     bundle.append(std::move(element));
   }
 
-  std::string metadata = ReplaceAll(
-      bundle_template[0], "{totalBytes}", std::to_string(bundle.size()));
+  std::string metadata = ReplaceAll(bundle_template[0], "{totalBytes}",
+                                    std::to_string(bundle.size()));
   return std::to_string(metadata.size()) + metadata + bundle;
 }
 

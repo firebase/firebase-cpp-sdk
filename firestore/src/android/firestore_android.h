@@ -127,11 +127,11 @@ class FirestoreInternal {
   void ClearListeners();
 
   // Bundles
-  Future<LoadBundleTaskProgress> LoadBundle(const std::string &bundle);
+  Future<LoadBundleTaskProgress> LoadBundle(const std::string& bundle);
   Future<LoadBundleTaskProgress> LoadBundle(
-      const std::string &bundle,
-      std::function<void(const LoadBundleTaskProgress &)> progress_callback);
-  Future<Query> NamedQuery(const std::string &query_name);
+      const std::string& bundle,
+      std::function<void(const LoadBundleTaskProgress&)> progress_callback);
+  Future<Query> NamedQuery(const std::string& query_name);
 
   static jni::Env GetEnv();
 

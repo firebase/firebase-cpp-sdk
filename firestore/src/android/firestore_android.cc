@@ -123,9 +123,10 @@ Method<Object> kAddSnapshotsInSyncListener(
 Method<Task> kGetNamedQuery("getNamedQuery",
                             "(Ljava/lang/String;)"
                             "Lcom/google/android/gms/tasks/Task;");
-Method<LoadBundleTaskInternal> kLoadBundle("loadBundle",
-                            "([B)"
-                            "Lcom/google/firebase/firestore/LoadBundleTask;");
+Method<LoadBundleTaskInternal> kLoadBundle(
+    "loadBundle",
+    "([B)"
+    "Lcom/google/firebase/firestore/LoadBundleTask;");
 
 void InitializeFirestore(Loader& loader) {
   loader.LoadClass(kFirestoreClassName, kCollection, kDocument,
@@ -527,19 +528,21 @@ void FirestoreInternal::ClearListeners() {
   listener_registrations_.clear();
 }
 
-Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(const std::string &bundle) {
+Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
+    const std::string& bundle) {
   Env env = GetEnv();
   Local<String> bundle_jstring = env.NewStringUtf(bundle.c_str());
   Local<String> encoding = env.NewStringUtf("UTF-8");
   Local<Array<uint8_t>> bytes = bundle_jstring.GetBytes(env, encoding);
   Local<LoadBundleTaskInternal> task = env.Call(obj_, kLoadBundle, bytes);
 
-  return promises_->NewFuture<LoadBundleTaskProgress>(env, AsyncFn::kLoadBundle, task);
+  return promises_->NewFuture<LoadBundleTaskProgress>(env, AsyncFn::kLoadBundle,
+                                                      task);
 }
 
 Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
-    const std::string &bundle,
-    std::function<void(const LoadBundleTaskProgress &)> progress_callback){
+    const std::string& bundle,
+    std::function<void(const LoadBundleTaskProgress&)> progress_callback) {
   Env env = GetEnv();
   Local<String> bundle_jstring = env.NewStringUtf(bundle.c_str());
   Local<String> encoding = env.NewStringUtf("UTF-8");
@@ -547,16 +550,17 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
   Local<LoadBundleTaskInternal> task = env.Call(obj_, kLoadBundle, bytes.get());
 
   auto* listener = new LambdaEventListener<LoadBundleTaskProgress>(
-      [progress_callback](const LoadBundleTaskProgress& p, Error e, const std::string& s) {
-        progress_callback(p);
-      });
-  Local<Object> progress_listener = EventListenerInternal::Create(env, this, listener);
+      [progress_callback](const LoadBundleTaskProgress& p, Error e,
+                          const std::string& s) { progress_callback(p); });
+  Local<Object> progress_listener =
+      EventListenerInternal::Create(env, this, listener);
   task.AddProgressListener(env, user_callback_executor(), progress_listener);
 
-  return promises_->NewFuture<LoadBundleTaskProgress>(env, AsyncFn::kLoadBundle, task);
+  return promises_->NewFuture<LoadBundleTaskProgress>(env, AsyncFn::kLoadBundle,
+                                                      task);
 }
 
-Future<Query> FirestoreInternal::NamedQuery(const std::string &query_name) {
+Future<Query> FirestoreInternal::NamedQuery(const std::string& query_name) {
   Env env = GetEnv();
   Local<String> name = env.NewStringUtf(query_name.c_str());
   Local<Task> task = env.Call(obj_, kGetNamedQuery, name);

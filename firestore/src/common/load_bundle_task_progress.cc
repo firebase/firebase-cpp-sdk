@@ -27,13 +27,19 @@
 namespace firebase {
 namespace firestore {
 
-LoadBundleTaskProgress::LoadBundleTaskProgress(int32_t documents_loaded, int32_t total_documents, int64_t bytes_loaded, int64_t total_bytes, State state)
-: documents_loaded_(documents_loaded), total_documents_(total_documents), bytes_loaded_(bytes_loaded), total_bytes_(total_bytes), state_(state){
+LoadBundleTaskProgress::LoadBundleTaskProgress(int32_t documents_loaded,
+                                               int32_t total_documents,
+                                               int64_t bytes_loaded,
+                                               int64_t total_bytes, State state)
+    : documents_loaded_(documents_loaded),
+      total_documents_(total_documents),
+      bytes_loaded_(bytes_loaded),
+      total_bytes_(total_bytes),
+      state_(state) {}
 
-}
-
-LoadBundleTaskProgress::LoadBundleTaskProgress(LoadBundleTaskProgressInternal* internal){
-    FIREBASE_ASSERT(internal != nullptr);
+LoadBundleTaskProgress::LoadBundleTaskProgress(
+    LoadBundleTaskProgressInternal* internal) {
+  FIREBASE_ASSERT(internal != nullptr);
   documents_loaded_ = internal->documents_loaded();
   total_documents_ = internal->total_documents();
   bytes_loaded_ = internal->bytes_loaded();

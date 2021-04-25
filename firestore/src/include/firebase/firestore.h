@@ -403,12 +403,13 @@ class Firestore {
    * listener.
    */
   virtual ListenerRegistration AddSnapshotsInSyncListener(
-      EventListener<void>* listener);
+      EventListener<void> *listener);
 #endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
   virtual Future<LoadBundleTaskProgress> LoadBundle(const std::string &bundle);
-  virtual Future<LoadBundleTaskProgress> LoadBundle(const std::string &bundle,
-                                                    std::function<void(const LoadBundleTaskProgress &)> progress_callback);
+  virtual Future<LoadBundleTaskProgress> LoadBundle(
+      const std::string &bundle,
+      std::function<void(const LoadBundleTaskProgress &)> progress_callback);
 
   virtual Future<Query> NamedQuery(const std::string &query_name);
 
@@ -425,9 +426,8 @@ class Firestore {
   friend struct ConverterImpl;
   friend class FirestoreIntegrationTest;
   friend class IncludesTest;
-  template<typename T, typename U, typename F>
-  friend
-  struct CleanupFn;
+  template <typename T, typename U, typename F>
+  friend struct CleanupFn;
 
   friend class csharp::ApiHeaders;
   friend class csharp::TransactionManager;

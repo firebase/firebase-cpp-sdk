@@ -24,16 +24,18 @@
 namespace firebase {
 namespace firestore {
 
- class LoadBundleTaskInternal: public jni::Task{
-  public:
+class LoadBundleTaskInternal : public jni::Task {
+ public:
   using Task::Task;
 
   static void Initialize(jni::Loader& loader);
 
-  void AddProgressListener(jni::Env& env, const jni::Global<jni::Object>& executor, jni::Local<jni::Object>& listener);
+  void AddProgressListener(jni::Env& env,
+                           const jni::Global<jni::Object>& executor,
+                           jni::Local<jni::Object>& listener);
 };
 
-} // namespace firestore
-} // namespace firebase
+}  // namespace firestore
+}  // namespace firebase
 
-#endif //FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LOAD_BUNDLE_TASK_ANDROID_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LOAD_BUNDLE_TASK_ANDROID_H_

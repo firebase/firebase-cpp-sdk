@@ -7,7 +7,7 @@ namespace firebase {
 namespace firestore {
 
 // Event accumulator for integration test. Ported from the native SDKs.
-template<typename T>
+template <typename T>
 class EventAccumulator {
  public:
   EventAccumulator() : listener_("EventAccumulator") {}
@@ -88,9 +88,7 @@ class EventAccumulator {
     return event;
   }
 
-  void AssertNoAdditionalEvents() {
-    listener_.AssertNoAdditionalEvents();
-  }
+  void AssertNoAdditionalEvents() { listener_.AssertNoAdditionalEvents(); }
 
  private:
   bool HasPendingWrites(T event) {

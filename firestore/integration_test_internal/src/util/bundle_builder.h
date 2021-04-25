@@ -27,4 +27,3 @@ std::string CreateBundle(const std::string &project_id);
 }  // namespace firebase
 
 #endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_TESTS_UTIL_BUNDLE_BUILDER_H_
-

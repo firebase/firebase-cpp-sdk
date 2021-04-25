@@ -146,16 +146,17 @@ void EventListenerInternal::VoidEventListenerNativeOnEvent(JNIEnv*, jclass,
 }
 
 /* static */
-void EventListenerInternal::ProgressListenerNativeOnProgress(JNIEnv*, jclass,
-                                                             jlong firestore_ptr,
-                                                             jlong listener_ptr,
-                                                          jobject progress) {
+void EventListenerInternal::ProgressListenerNativeOnProgress(
+    JNIEnv*, jclass, jlong firestore_ptr, jlong listener_ptr,
+    jobject progress) {
   if (listener_ptr == 0) {
     return;
   }
   auto* firestore = reinterpret_cast<FirestoreInternal*>(firestore_ptr);
-  auto* listener = reinterpret_cast<EventListener<LoadBundleTaskProgress>*>(listener_ptr);
-  LoadBundleTaskProgress cpp_progress(new LoadBundleTaskProgressInternal(firestore, Object(progress)));
+  auto* listener =
+      reinterpret_cast<EventListener<LoadBundleTaskProgress>*>(listener_ptr);
+  LoadBundleTaskProgress cpp_progress(
+      new LoadBundleTaskProgressInternal(firestore, Object(progress)));
   listener->OnEvent(cpp_progress, Error::kErrorOk, EmptyString());
 }
 
@@ -178,9 +179,11 @@ Local<Object> EventListenerInternal::Create(Env& env,
   return env.New(kNewVoidEventListener, reinterpret_cast<jlong>(listener));
 }
 
-Local<Object> EventListenerInternal::Create(Env& env,FirestoreInternal* firestore,
-                                            EventListener<LoadBundleTaskProgress>* listener) {
-  return env.New(kNewProgressListener, reinterpret_cast<jlong>(firestore), reinterpret_cast<jlong>(listener));
+Local<Object> EventListenerInternal::Create(
+    Env& env, FirestoreInternal* firestore,
+    EventListener<LoadBundleTaskProgress>* listener) {
+  return env.New(kNewProgressListener, reinterpret_cast<jlong>(firestore),
+                 reinterpret_cast<jlong>(listener));
 }
 
 }  // namespace firestore

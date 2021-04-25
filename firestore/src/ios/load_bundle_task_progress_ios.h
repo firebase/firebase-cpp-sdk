@@ -23,25 +23,15 @@ namespace firestore {
 
 class LoadBundleTaskProgressInternal {
  public:
-  int32_t documents_loaded() const {
-    return documents_loaded_;
-  }
+  int32_t documents_loaded() const { return documents_loaded_; }
 
-  int32_t total_documents() const {
-    return total_documents_;
-  }
+  int32_t total_documents() const { return total_documents_; }
 
-  int64_t bytes_loaded() const {
-    return bytes_loaded_;
-  }
+  int64_t bytes_loaded() const { return bytes_loaded_; }
 
-  int64_t total_bytes() const {
-    return total_bytes_;
-  }
+  int64_t total_bytes() const { return total_bytes_; }
 
-  LoadBundleTaskProgress::State state() const {
-    return state_;
-  }
+  LoadBundleTaskProgress::State state() const { return state_; }
 
  private:
   int32_t documents_loaded_;
@@ -51,7 +41,7 @@ class LoadBundleTaskProgressInternal {
   LoadBundleTaskProgress::State state_;
 };
 
-} // namespace firestore
-} // namespace firebase
+}  // namespace firestore
+}  // namespace firebase
 
-#endif //FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_LOAD_BUNDLE_TASK_PROGRESS_IOS_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_LOAD_BUNDLE_TASK_PROGRESS_IOS_H_

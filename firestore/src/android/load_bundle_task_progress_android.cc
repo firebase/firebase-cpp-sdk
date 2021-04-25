@@ -37,10 +37,12 @@ Method<int32_t> kGetDocumentsLoaded("getDocumentsLoaded", "()I");
 Method<int32_t> kGetTotalDocuments("getTotalDocuments", "()I");
 Method<int64_t> kGetBytesLoaded("getBytesLoaded", "()J");
 Method<int64_t> kGetTotalBytes("getTotalBytes", "()J");
-Method<Object> kGetTaskState("getTaskState", "()Lcom/google/firebase/firestore/LoadBundleTaskProgress$TaskState;");
+Method<Object> kGetTaskState(
+    "getTaskState",
+    "()Lcom/google/firebase/firestore/LoadBundleTaskProgress$TaskState;");
 
-constexpr char kStateEnumName[] =
-    PROGUARD_KEEP_CLASS "com/google/firebase/firestore/LoadBundleTaskProgress$TaskState";
+constexpr char kStateEnumName[] = PROGUARD_KEEP_CLASS
+    "com/google/firebase/firestore/LoadBundleTaskProgress$TaskState";
 Method<String> kName("name", "()Ljava/lang/String;");
 
 jclass g_clazz = nullptr;
@@ -49,7 +51,8 @@ jclass g_clazz = nullptr;
 
 void LoadBundleTaskProgressInternal::Initialize(jni::Loader& loader) {
   g_clazz =
-      loader.LoadClass(kClassName, kGetDocumentsLoaded, kGetTotalDocuments, kGetBytesLoaded, kGetTotalBytes, kGetTaskState);
+      loader.LoadClass(kClassName, kGetDocumentsLoaded, kGetTotalDocuments,
+                       kGetBytesLoaded, kGetTotalBytes, kGetTaskState);
   loader.LoadClass(kStateEnumName, kName);
 }
 
@@ -75,15 +78,15 @@ int64_t LoadBundleTaskProgressInternal::total_bytes() const {
   return env.Call(obj_, kGetTotalBytes);
 }
 
-LoadBundleTaskProgress::State LoadBundleTaskProgressInternal::state() const{
+LoadBundleTaskProgress::State LoadBundleTaskProgressInternal::state() const {
   Env env = GetEnv();
   Local<Object> state = env.Call(obj_, kGetTaskState);
   std::string enum_name = env.Call(state, kName).ToString(env);
-  if(enum_name == "SUCCESS") {
+  if (enum_name == "SUCCESS") {
     return LoadBundleTaskProgress::State::kSuccess;
-  } else if(enum_name == "RUNNING") {
+  } else if (enum_name == "RUNNING") {
     return LoadBundleTaskProgress::State::kInProgress;
-  } else { // "ERROR"
+  } else {  // "ERROR"
     return LoadBundleTaskProgress::State::kError;
   }
 }

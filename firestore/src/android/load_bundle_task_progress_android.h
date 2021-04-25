@@ -22,8 +22,8 @@
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/include/firebase/firestore/load_bundle_task_progress.h"
 
-namespace firebase{
-namespace firestore{
+namespace firebase {
+namespace firestore {
 class Firestore;
 
 class LoadBundleTaskProgressInternal : public Wrapper {
@@ -34,10 +34,12 @@ class LoadBundleTaskProgressInternal : public Wrapper {
 
   static jni::Class GetClass();
 
-  LoadBundleTaskProgressInternal(FirestoreInternal* firestore, const jni::Object& object)
-  : Wrapper(firestore, object) {}
+  LoadBundleTaskProgressInternal(FirestoreInternal* firestore,
+                                 const jni::Object& object)
+      : Wrapper(firestore, object) {}
 
-  /** Converts a Java LoadBundleTaskProgress to a public C++ LoadBundleTaskProgress. */
+  /** Converts a Java LoadBundleTaskProgress to a public C++
+   * LoadBundleTaskProgress. */
   // LoadBundleTaskProgress ToPublic(jni::Env& env) const;
 
   int32_t documents_loaded() const;
@@ -51,7 +53,7 @@ class LoadBundleTaskProgressInternal : public Wrapper {
   LoadBundleTaskProgress::State state() const;
 };
 
-}
-}
+}  // namespace firestore
+}  // namespace firebase
 
-#endif //FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LOAD_BUNDLE_TASK_PROGRESS_ANDROID_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LOAD_BUNDLE_TASK_PROGRESS_ANDROID_H_

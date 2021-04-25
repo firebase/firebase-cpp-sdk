@@ -31,19 +31,23 @@ using jni::Object;
 
 constexpr char kLoadBundleTaskClassName[] =
     PROGUARD_KEEP_CLASS "com/google/firebase/firestore/LoadBundleTask";
-jni::Method<LoadBundleTaskInternal> kAddProgressListener("addOnProgressListener",
-                                  "(Ljava/util/concurrent/Executor;Lcom/google/firebase/firestore/OnProgressListener;)"
-                                  "Lcom/google/firebase/firestore/LoadBundleTask;");
-} // namespace
+jni::Method<LoadBundleTaskInternal> kAddProgressListener(
+    "addOnProgressListener",
+    "(Ljava/util/concurrent/Executor;Lcom/google/firebase/firestore/"
+    "OnProgressListener;)"
+    "Lcom/google/firebase/firestore/LoadBundleTask;");
+}  // namespace
 
 /*static*/
 void LoadBundleTaskInternal::Initialize(Loader& loader) {
   loader.LoadClass(kLoadBundleTaskClassName, kAddProgressListener);
 }
 
-void LoadBundleTaskInternal::AddProgressListener(Env& env, const Global<Object>& executor, Local<Object>& listener) {
+void LoadBundleTaskInternal::AddProgressListener(Env& env,
+                                                 const Global<Object>& executor,
+                                                 Local<Object>& listener) {
   env.Call(*this, kAddProgressListener, executor, listener);
 }
 
-} // namespace firestore
-} // namespace firebase
+}  // namespace firestore
+}  // namespace firebase
