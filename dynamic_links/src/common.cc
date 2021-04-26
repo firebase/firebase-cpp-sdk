@@ -48,7 +48,7 @@ const char kDynamicLinksModuleName[] = "dynamic_links";
 class CachedListenerNotifier : public invites::internal::ReceiverInterface {
  public:
   CachedListenerNotifier() : listener_(nullptr) {}
-  virtual ~CachedListenerNotifier() { SetListener(nullptr); }
+  ~CachedListenerNotifier() override { SetListener(nullptr); }
 
   // Set the listener which should be notified of any cached or receiver
   // links.

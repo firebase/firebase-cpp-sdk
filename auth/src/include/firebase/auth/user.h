@@ -178,7 +178,7 @@ class User : public UserInfoInterface {
     const char* photo_url;
   };
 
-  ~User();
+  ~User() override;
 
   /// The Java Web Token (JWT) that can be used to identify the user to
   /// the backend.
@@ -424,7 +424,7 @@ class User : public UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string uid() const;
+  std::string uid() const override;
 
   /// Gets email associated with the user, if any.
   /// <SWIG>
@@ -434,7 +434,7 @@ class User : public UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string email() const;
+  std::string email() const override;
 
   /// Gets the display name associated with the user, if any.
   /// <SWIG>
@@ -444,7 +444,7 @@ class User : public UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string display_name() const;
+  std::string display_name() const override;
 
   /// Gets the photo url associated with the user, if any.
   /// <SWIG>
@@ -454,7 +454,7 @@ class User : public UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string photo_url() const;
+  std::string photo_url() const override;
 
   /// Gets the provider ID for the user (For example, "Facebook").
   /// <SWIG>
@@ -464,10 +464,10 @@ class User : public UserInfoInterface {
   /// </csproperty>
   /// @endxmlonly
   /// </SWIG>
-  virtual std::string provider_id() const;
+  std::string provider_id() const override;
 
   /// Gets the phone number for the user, in E.164 format.
-  virtual std::string phone_number() const;
+  std::string phone_number() const override;
 
  private:
   /// @cond FIREBASE_APP_INTERNAL

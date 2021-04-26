@@ -32,7 +32,7 @@ namespace internal {
 class CachedReceiver : public ReceiverInterface {
  public:
   CachedReceiver();
-  virtual ~CachedReceiver();
+  ~CachedReceiver() override;
 
   // Callback called when an invite is received. If an error occurred,
   // result_code should be non-zero. Otherwise, either invitation_id should be

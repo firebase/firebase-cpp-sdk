@@ -39,7 +39,7 @@ class KeepSyncedEventRegistration : public EventRegistration {
                                        const QuerySpec& query_spec)
       : EventRegistration(query_spec), sync_tree_(sync_tree) {}
 
-  virtual ~KeepSyncedEventRegistration();
+  ~KeepSyncedEventRegistration() override;
 
   // KeepSyncedEventRegistrations never respond to any events of any type.
   bool RespondsTo(EventType event_type) override;

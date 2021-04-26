@@ -148,9 +148,9 @@ class Listener {
 class PollableRewardListener : public Listener {
  public:
   PollableRewardListener();
-  ~PollableRewardListener();
-  void OnRewarded(RewardItem reward);
-  void OnPresentationStateChanged(PresentationState state);
+  ~PollableRewardListener() override;
+  void OnRewarded(RewardItem reward) override;
+  void OnPresentationStateChanged(PresentationState state) override;
 
   /// Pop the oldest queued reward, and copy its data into the provided
   /// RewardItem. If no reward is available, the struct is unchanged.

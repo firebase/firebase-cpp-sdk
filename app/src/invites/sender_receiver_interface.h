@@ -34,7 +34,7 @@ namespace internal {
 class SenderReceiverInterface : public ReceiverInterface {
  public:
   SenderReceiverInterface() {}
-  virtual ~SenderReceiverInterface() {}
+  ~SenderReceiverInterface() override {}
 
   // Called when an invite has been sent.
   virtual void SentInviteCallback(

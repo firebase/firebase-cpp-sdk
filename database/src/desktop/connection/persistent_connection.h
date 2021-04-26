@@ -104,7 +104,7 @@ class PersistentConnection : public ConnectionEventHandler {
                                 PersistentConnectionEventHandler* event_handler,
                                 scheduler::Scheduler* scheduler,
                                 Logger* logger);
-  ~PersistentConnection();
+  ~PersistentConnection() override;
 
   // PersistentConnection is neither copyable nor movable.
   PersistentConnection(const PersistentConnection&) = delete;

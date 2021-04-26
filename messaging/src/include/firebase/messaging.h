@@ -660,15 +660,15 @@ class PollableListener : public Listener {
   PollableListener();
 
   /// @brief The required virtual destructor.
-  virtual ~PollableListener();
+  ~PollableListener() override;
 
   /// @brief An implementation of `OnMessage` which adds the incoming messages
   /// to a queue, which can be consumed by calling `PollMessage`.
-  virtual void OnMessage(const Message& message);
+  void OnMessage(const Message& message) override;
 
   /// @brief An implementation of `OnTokenReceived` which stores the incoming
   /// token so that it can be consumed by calling `PollRegistrationToken`.
-  virtual void OnTokenReceived(const char* token);
+  void OnTokenReceived(const char* token) override;
 
   /// @brief Returns the first message queued up, if any.
   ///

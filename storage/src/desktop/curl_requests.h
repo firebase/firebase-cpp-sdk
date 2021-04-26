@@ -149,7 +149,7 @@ class BlockingResponse : public rest::Response {
   // ref_future must be allocated using FutureManager to ensure ref_future
   // remains valid while the future handle isn't complete.
   BlockingResponse(FutureHandle handle, ReferenceCountedFutureImpl* ref_future);
-  virtual ~BlockingResponse();
+  ~BlockingResponse() override;
 
   // NOTE: This does *not* call the UpdateCallback.  Each subclass needs to
   // manually complete with NotifyComplete.

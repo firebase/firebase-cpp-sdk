@@ -50,7 +50,7 @@ class DatabaseReference : public Query {
   DatabaseReference() : Query(), internal_(nullptr) {}
 
   /// @brief Required virtual destructor.
-  virtual ~DatabaseReference();
+  ~DatabaseReference() override;
 
   /// @brief Copy constructor. It's totally okay (and efficient) to copy
   /// DatabaseReference instances, as they simply point to the same location in

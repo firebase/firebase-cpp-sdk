@@ -36,7 +36,7 @@ namespace auth {
 class IdTokenRefreshListener : public IdTokenListener {
  public:
   IdTokenRefreshListener();
-  ~IdTokenRefreshListener();
+  ~IdTokenRefreshListener() override;
 
   void OnIdTokenChanged(Auth* auth) override;
   std::string GetCurrentToken();
