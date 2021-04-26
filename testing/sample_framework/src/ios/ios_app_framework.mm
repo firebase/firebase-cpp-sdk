@@ -184,7 +184,7 @@ void *stdout_logger(void *filedes_ptr) {
   int fd = reinterpret_cast<int *>(filedes_ptr)[0];
   std::string buffer;
   char bufchar;
-  while (int n = read(fd, &bufchar, 1)) {
+  while (size_t n = read(fd, &bufchar, 1)) {
     if (bufchar == '\0') {
       break;
     } else if (bufchar == '\n') {
