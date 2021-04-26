@@ -16,7 +16,7 @@
 
 #include "app/src/function_registry.h"
 
-#include <assert.h>
+#include <cassert>
 
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase

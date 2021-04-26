@@ -28,7 +28,7 @@
 // you've read from a file or socket.
 //
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace firebase {
 

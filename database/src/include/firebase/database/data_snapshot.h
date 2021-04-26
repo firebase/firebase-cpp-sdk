@@ -15,8 +15,7 @@
 #ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_DATABASE_DATA_SNAPSHOT_H_
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_DATABASE_DATA_SNAPSHOT_H_
 
-#include <stddef.h>
-
+#include <cstddef>
 #include <string>
 
 #include "firebase/internal/common.h"

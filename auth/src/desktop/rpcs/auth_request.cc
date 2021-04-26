@@ -14,7 +14,7 @@
 
 #include "auth/src/desktop/rpcs/auth_request.h"
 
-#include <assert.h>
+#include <cassert>
 
 #include "app/src/app_common.h"
 #include "app/src/include/firebase/app.h"

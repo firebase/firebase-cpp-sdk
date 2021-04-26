@@ -16,9 +16,8 @@
 
 #include "app/src/app_common.h"
 
-#include <assert.h>
-#include <string.h>
-
+#include <cassert>
+#include <cstring>
 #include <map>
 #include <string>
 #include <utility>  // Used to detect STL variant.

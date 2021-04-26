@@ -25,8 +25,9 @@
 #include <windows.h>
 #else  // !FIREBASE_PLATFORM_WINDOWS
 #include <sys/time.h>
-#include <time.h>
 #include <unistd.h>
+
+#include <ctime>
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
 #if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS

@@ -14,8 +14,8 @@
 
 #include "storage/src/desktop/controller_desktop.h"
 
-#include <stdint.h>
-#include <string.h>
+#include <cstdint>
+#include <cstring>
 
 namespace firebase {
 namespace storage {

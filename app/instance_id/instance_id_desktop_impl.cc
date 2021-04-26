@@ -14,9 +14,8 @@
 
 #include "app/instance_id/instance_id_desktop_impl.h"
 
-#include <assert.h>
-
 #include <algorithm>
+#include <cassert>
 
 #include "app/instance_id/iid_data_generated.h"
 #include "app/rest/transport_curl.h"

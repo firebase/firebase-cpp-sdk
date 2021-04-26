@@ -15,8 +15,7 @@
 #ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_DATA_SNAPSHOT_DESKTOP_H_
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_DATA_SNAPSHOT_DESKTOP_H_
 
-#include <stddef.h>
-
+#include <cstddef>
 #include <string>
 
 #include "app/src/include/firebase/variant.h"

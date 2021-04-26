@@ -14,8 +14,7 @@
 
 #include "database/src/desktop/data_snapshot_desktop.h"
 
-#include <stddef.h>
-
+#include <cstddef>
 #include <string>
 #include <utility>
 

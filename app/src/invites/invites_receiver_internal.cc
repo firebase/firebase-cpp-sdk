@@ -16,9 +16,8 @@
 
 #include "app/src/invites/invites_receiver_internal.h"
 
-#include <assert.h>
-
 #include <algorithm>
+#include <cassert>
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
@@ -116,9 +115,10 @@ void InvitesReceiverInternal::ReceivedInviteCallback(
       "error=%s",
       invitation_id.c_str(), deep_link_url.c_str(),
       static_cast<int>(match_strength), result_code, error_message.c_str());
-  for (auto & receiver_implementation : receiver_implementations_) {
-    receiver_implementation->ReceivedInviteCallback(invitation_id, deep_link_url, match_strength,
-                                  result_code, error_message);
+  for (auto& receiver_implementation : receiver_implementations_) {
+    receiver_implementation->ReceivedInviteCallback(
+        invitation_id, deep_link_url, match_strength, result_code,
+        error_message);
   }
 }
 

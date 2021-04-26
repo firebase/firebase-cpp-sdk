@@ -14,7 +14,7 @@
 
 #include "remote_config/src/common.h"
 
-#include <assert.h>
+#include <cassert>
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/util.h"

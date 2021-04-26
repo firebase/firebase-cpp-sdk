@@ -16,8 +16,7 @@
 
 #include "app/src/include/firebase/util.h"
 
-#include <assert.h>
-
+#include <cassert>
 #include <map>
 #include <string>
 #include <vector>

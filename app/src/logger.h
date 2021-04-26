@@ -15,7 +15,7 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_LOGGER_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_LOGGER_H_
 
-#include <stdarg.h>
+#include <cstdarg>
 
 #include "app/src/include/firebase/log.h"
 #include "app/src/log.h"

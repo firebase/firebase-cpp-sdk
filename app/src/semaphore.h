@@ -17,7 +17,7 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_SEMAPHORE_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_SEMAPHORE_H_
 
-#include <errno.h>
+#include <cerrno>
 
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/time.h"
@@ -29,8 +29,8 @@
 #include <fcntl.h>
 #include <semaphore.h>
 #include <sys/stat.h>
-#include <time.h>
 
+#include <ctime>
 #include <string>
 #endif  // FIREBASE_PLATFORM_WINDOWS
 

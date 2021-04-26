@@ -14,8 +14,7 @@
 
 #include "storage/src/desktop/curl_requests.h"
 
-#include <stdio.h>
-
+#include <cstdio>
 #include <string>
 #include <utility>
 

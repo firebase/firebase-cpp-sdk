@@ -16,11 +16,10 @@
 
 #include "auth/src/include/firebase/auth.h"
 
-#include <assert.h>
-#include <stdio.h>
-
 #include <algorithm>
+#include <cassert>
 #include <cstdint>
+#include <cstdio>
 #include <map>
 #include <string>
 

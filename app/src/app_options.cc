@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-#include <string.h>
-
 #include <cstdint>
+#include <cstring>
 #include <string>
 
 #include "app/google_services_generated.h"
@@ -158,7 +157,7 @@ AppOptions* AppOptions::LoadFromJsonConfig(const char* config,  // NOLINT
       // We explicitly ignore the value of GA tracking ID and Messaging Sender
       // ID as we don't support analytics on desktop at the moment.
   };
-  for (auto & validate_option : options_to_validate) {
+  for (auto& validate_option : options_to_validate) {
     if (strlen(validate_option.option_value) == 0) {
       LogWarning("%s not set in the Firebase config.",
                  validate_option.option_name);

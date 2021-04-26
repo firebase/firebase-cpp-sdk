@@ -17,7 +17,7 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_UUID_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_UUID_H_
 
-#include <stdint.h>
+#include <cstdint>
 
 namespace firebase {
 namespace internal {

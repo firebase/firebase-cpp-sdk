@@ -14,7 +14,7 @@
 
 #include "storage/src/include/firebase/storage/common.h"
 
-#include <string.h>
+#include <cstring>
 
 #include "app/src/include/firebase/internal/common.h"
 #include "storage/src/common/common_internal.h"

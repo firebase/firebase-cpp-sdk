@@ -14,9 +14,8 @@
 
 #include "storage/src/desktop/storage_desktop.h"
 
-#include <assert.h>
-
 #include <algorithm>
+#include <cassert>
 
 #include "app/rest/transport_curl.h"
 #include "app/rest/util.h"
@@ -124,10 +123,10 @@ void StorageInternal::RemoveOperation(RestOperation* operation) {
 void StorageInternal::CleanupCompletedOperations() {
   MutexLock lock(operations_mutex_);
   std::vector<RestOperation*> operations_to_delete;
-  for (auto & operation : operations_) {
+  for (auto& operation : operations_) {
     if (operation->is_complete()) operations_to_delete.push_back(operation);
   }
-  for (auto & it : operations_to_delete) {
+  for (auto& it : operations_to_delete) {
     RemoveOperation(it);
     delete it;
   }

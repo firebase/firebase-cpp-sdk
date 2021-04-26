@@ -16,8 +16,7 @@
 
 #include "admob/src/common/admob_common.h"
 
-#include <assert.h>
-
+#include <cassert>
 #include <vector>
 
 #include "admob/src/include/firebase/admob.h"

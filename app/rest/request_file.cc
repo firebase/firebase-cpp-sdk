@@ -21,10 +21,9 @@
 #ifndef _FILE_OFFSET_BITS
 #define _FILE_OFFSET_BITS 64
 #endif  // _FILE_OFFSET_BITS
-#include <stdio.h>
-
 #include <cassert>
 #include <cstddef>
+#include <cstdio>
 
 // Map to POSIX compliant fseek on Windows.
 #if FIREBASE_PLATFORM_WINDOWS

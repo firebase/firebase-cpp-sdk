@@ -14,8 +14,7 @@
 
 #include "database/src/desktop/database_reference_desktop.h"
 
-#include <stdio.h>
-
+#include <cstdio>
 #include <sstream>
 
 #include "app/rest/util.h"

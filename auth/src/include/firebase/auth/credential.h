@@ -17,12 +17,11 @@
 #ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_CREDENTIAL_H_
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_CREDENTIAL_H_
 
-#include <stdint.h>
-
+#include <cstdint>
 #include <string>
 
-#include "firebase/internal/common.h"
 #include "firebase/auth/types.h"
+#include "firebase/internal/common.h"
 
 namespace firebase {
 

@@ -16,9 +16,8 @@
 
 #include "app/src/cleanup_notifier.h"
 
-#include <assert.h>
-
 #include <algorithm>
+#include <cassert>
 
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase

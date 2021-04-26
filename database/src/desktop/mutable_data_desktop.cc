@@ -14,9 +14,8 @@
 
 #include "database/src/desktop/mutable_data_desktop.h"
 
-#include <stdlib.h>
-
 #include <cassert>
+#include <cstdlib>
 #include <sstream>
 #include <utility>
 

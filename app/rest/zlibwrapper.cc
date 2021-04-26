@@ -16,10 +16,9 @@
 
 #include "app/rest/zlibwrapper.h"
 
-#include <assert.h>
-#include <stdio.h>
-
 #include <algorithm>
+#include <cassert>
+#include <cstdio>
 #include <memory>
 #include <string>
 

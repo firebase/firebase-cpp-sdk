@@ -14,9 +14,8 @@
 
 #include "database/src/desktop/connection/host_info.h"
 
-#include <assert.h>
-
 #include <algorithm>
+#include <cassert>
 #include <sstream>
 #include <string>
 

@@ -16,7 +16,7 @@
 
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_MUTEX_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_MUTEX_H_
-#include <errno.h>
+#include <cerrno>
 
 #include "app/src/include/firebase/internal/platform.h"
 

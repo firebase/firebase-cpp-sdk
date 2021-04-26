@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "app/src/assert.h"
 #include "auth/src/data.h"

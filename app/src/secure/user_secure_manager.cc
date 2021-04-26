@@ -279,7 +279,7 @@ void UserSecureManager::BinaryToAscii(const std::string& original,
 }
 
 void UserSecureManager::CancelScheduledTasks() {
-  for (auto & operation_handle : operation_handles_) {
+  for (auto& operation_handle : operation_handles_) {
     operation_handle.second.Cancel();
   }
   operation_handles_.clear();

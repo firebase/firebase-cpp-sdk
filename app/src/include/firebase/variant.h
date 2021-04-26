@@ -17,8 +17,7 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_VARIANT_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_VARIANT_H_
 
-#include <stdint.h>
-
+#include <cstdint>
 #include <cstring>
 #include <map>
 #include <string>

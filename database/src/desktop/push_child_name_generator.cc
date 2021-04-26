@@ -14,7 +14,7 @@
 
 #include "database/src/desktop/push_child_name_generator.h"
 
-#include <assert.h>
+#include <cassert>
 
 namespace firebase {
 namespace database {

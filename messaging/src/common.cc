@@ -14,8 +14,7 @@
 
 #include "messaging/src/common.h"
 
-#include <assert.h>
-
+#include <cassert>
 #include <queue>
 
 #include "app/src/cleanup_notifier.h"

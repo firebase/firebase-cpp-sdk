@@ -49,7 +49,7 @@ std::vector<Event> GenerateEventsForChanges(
   std::vector<Event> events;
   std::vector<Change> moves;
   QueryParamsComparator comparator(&query_spec.params);
-  for (const auto & change : changes) {
+  for (const auto& change : changes) {
     if (change.event_type == kEventTypeChildChanged) {
       const Variant& old_variant = change.old_indexed_variant.variant();
       const Variant& variant = change.indexed_variant.variant();
@@ -98,7 +98,7 @@ void GenerateEventsForType(
     const IndexedVariant& event_cache, std::vector<Event>* events) {
   std::vector<const Change*> filtered_changes;
   filtered_changes.reserve(changes.size());
-  for (const auto & change : changes) {
+  for (const auto& change : changes) {
     if (change.event_type != kEventTypeValue) {
       FIREBASE_DEV_ASSERT_MESSAGE(!change.child_key.empty(),
                                   "Child changes must have a child_key");
@@ -117,7 +117,7 @@ void GenerateEventsForType(
   }
 
   for (auto change : filtered_changes) {
-    for (const auto & registration : event_registrations) {
+    for (const auto& registration : event_registrations) {
       if (registration->RespondsTo(event_type)) {
         events->push_back(GenerateEvent(query_spec, *change, registration.get(),
                                         event_cache));

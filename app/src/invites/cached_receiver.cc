@@ -16,7 +16,7 @@
 
 #include "app/src/invites/cached_receiver.h"
 
-#include <assert.h>
+#include <cassert>
 
 namespace firebase {
 namespace invites {

@@ -16,7 +16,7 @@
 
 #include "analytics/src/analytics_common.h"
 
-#include <assert.h>
+#include <cassert>
 
 #include "analytics/src/include/firebase/analytics.h"
 #include "app/src/cleanup_notifier.h"

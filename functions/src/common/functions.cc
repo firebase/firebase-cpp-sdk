@@ -14,8 +14,7 @@
 
 #include "functions/src/include/firebase/functions.h"
 
-#include <assert.h>
-
+#include <cassert>
 #include <map>
 #include <string>
 

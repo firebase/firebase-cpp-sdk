@@ -16,8 +16,7 @@
 
 #include "app/src/app_identifier.h"
 
-#include <string.h>
-
+#include <cstring>
 #include <string>
 
 #include "app/src/include/firebase/app.h"

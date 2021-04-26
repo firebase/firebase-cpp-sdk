@@ -14,8 +14,7 @@
  * limitations under the License.
  */
 
-#include <string.h>
-
+#include <cstring>
 #include <fstream>
 
 #include "app/src/app_common.h"

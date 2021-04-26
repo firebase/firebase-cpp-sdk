@@ -647,10 +647,9 @@ int CurlThread::CancelRequest(TransportCurl* transport_curl, Response* response,
   }
   // Make sure the transfer is currently running.
   bool transferring = false;
-  for (auto & it : transport_by_response_) {
+  for (auto& it : transport_by_response_) {
     BackgroundTransportCurl* transport = it.second;
-    if (it.first == response &&
-        transport->transport_curl() == transport_curl &&
+    if (it.first == response && transport->transport_curl() == transport_curl &&
         transport->curl() == curl) {
       transferring = true;
     }
@@ -700,7 +699,7 @@ BackgroundTransportCurl* CurlThread::RemoveTransfer(Response* response) {
 
 void CurlThread::CancelAllTransfers() {
   MutexLock lock(mutex_);
-  for (auto & it : transport_by_response_) {
+  for (auto& it : transport_by_response_) {
     BackgroundTransportCurl* transport = it.second;
     CancelRequest(transport->transport_curl(), transport->response(),
                   transport->curl());
@@ -826,7 +825,7 @@ void CurlThread::ProcessRequests() {
     // Update controllers with transfer status.
     {
       MutexLock lock(mutex_);
-      for (auto & it : transport_by_response_) {
+      for (auto& it : transport_by_response_) {
         BackgroundTransportCurl* transport = it.second;
         ControllerCurl* controller = transport->controller();
         if (!controller) continue;

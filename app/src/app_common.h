@@ -17,8 +17,7 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_APP_COMMON_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_APP_COMMON_H_
 
-#include <stddef.h>
-
+#include <cstddef>
 #include <map>
 #include <string>
 

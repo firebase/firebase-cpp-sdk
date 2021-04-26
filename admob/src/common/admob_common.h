@@ -17,8 +17,7 @@
 #ifndef FIREBASE_ADMOB_CLIENT_CPP_SRC_COMMON_ADMOB_COMMON_H_
 #define FIREBASE_ADMOB_CLIENT_CPP_SRC_COMMON_ADMOB_COMMON_H_
 
-#include <stdarg.h>
-
+#include <cstdarg>
 #include <vector>
 
 #include "app/src/cleanup_notifier.h"

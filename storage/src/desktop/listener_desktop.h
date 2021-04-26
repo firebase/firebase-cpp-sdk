@@ -15,7 +15,7 @@
 #ifndef FIREBASE_STORAGE_CLIENT_CPP_SRC_DESKTOP_LISTENER_DESKTOP_H_
 #define FIREBASE_STORAGE_CLIENT_CPP_SRC_DESKTOP_LISTENER_DESKTOP_H_
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "app/src/mutex.h"
 #include "storage/src/desktop/rest_operation.h"

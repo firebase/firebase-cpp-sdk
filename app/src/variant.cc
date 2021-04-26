@@ -16,9 +16,8 @@
 
 #include "app/src/include/firebase/variant.h"
 
-#include <limits.h>
-#include <stdlib.h>
-
+#include <climits>
+#include <cstdlib>
 #include <iomanip>
 #include <sstream>
 

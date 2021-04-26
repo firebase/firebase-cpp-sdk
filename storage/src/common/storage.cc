@@ -14,9 +14,8 @@
 
 #include "storage/src/include/firebase/storage.h"
 
-#include <assert.h>
-#include <string.h>
-
+#include <cassert>
+#include <cstring>
 #include <map>
 #include <string>
 

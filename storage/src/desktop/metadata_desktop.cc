@@ -14,10 +14,9 @@
 
 #include "storage/src/desktop/metadata_desktop.h"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-
+#include <cstdio>
+#include <cstdlib>
+#include <ctime>
 #include <iostream>
 #include <sstream>
 #include <utility>

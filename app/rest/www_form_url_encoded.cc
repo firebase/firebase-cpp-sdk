@@ -16,9 +16,8 @@
 
 #include "app/rest/www_form_url_encoded.h"
 
-#include <string.h>
-
 #include <algorithm>
+#include <cstring>
 #include <string>
 #include <vector>
 

@@ -14,8 +14,7 @@
 
 #include "storage/src/desktop/storage_path.h"
 
-#include <string.h>
-
+#include <cstring>
 #include <string>
 
 #include "app/rest/util.h"

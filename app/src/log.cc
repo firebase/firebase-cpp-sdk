@@ -16,9 +16,8 @@
 
 #include "app/src/log.h"
 
-#include <stdarg.h>
-#include <stdio.h>
-
+#include <cstdarg>
+#include <cstdio>
 #include <cstdlib>
 
 #include "app/src/assert.h"

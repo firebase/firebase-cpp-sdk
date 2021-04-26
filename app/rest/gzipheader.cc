@@ -17,9 +17,8 @@
 
 #include "app/rest/gzipheader.h"
 
-#include <assert.h>
-
 #include <algorithm>
+#include <cassert>
 
 #include "app/src/assert.h"
 #include "app/src/util.h"

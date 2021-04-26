@@ -14,7 +14,7 @@
 
 #include "storage/src/desktop/listener_desktop.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 #include "app/src/mutex.h"
 #include "storage/src/desktop/rest_operation.h"

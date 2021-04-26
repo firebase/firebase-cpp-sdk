@@ -14,7 +14,7 @@
 
 #include "dynamic_links/src/common.h"
 
-#include <assert.h>
+#include <cassert>
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/invites/cached_receiver.h"
