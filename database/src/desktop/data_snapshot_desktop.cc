@@ -39,8 +39,8 @@ DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* database,
 }
 
 DataSnapshotInternal::DataSnapshotInternal(const DataSnapshotInternal& internal)
-    
-      = default;
+
+    = default;
 
 DataSnapshotInternal& DataSnapshotInternal::operator=(
     const DataSnapshotInternal& internal) = default;

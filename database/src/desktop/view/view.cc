@@ -123,8 +123,8 @@ std::vector<Event> View::RemoveEventRegistration(void* listener_ptr,
     for (auto iter = event_registrations_.begin();
          iter != event_registrations_.end(); ++iter) {
       UniquePtr<EventRegistration>& event_registration = *iter;
-      cancel_events.push_back(
-          Event(std::move(event_registration), cancel_error, path));
+      cancel_events.emplace_back(std::move(event_registration), cancel_error,
+                                 path);
     }
     event_registrations_.clear();
     return cancel_events;

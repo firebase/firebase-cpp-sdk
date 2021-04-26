@@ -39,7 +39,7 @@ static std::vector<std::string> Split(const std::string& str,
       return strchr(delims, c) != nullptr;
     });
     if (start != finish) {
-      result.push_back(std::string(start, finish));
+      result.emplace_back(start, finish);
     }
   }
   return result;

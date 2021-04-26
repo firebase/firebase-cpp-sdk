@@ -804,8 +804,7 @@ void Repo::AbortTransactionsAtNode(Tree<std::vector<TransactionDataPtr>>* node,
                                       "Unknown transaction abort reason");
           // If it was cancelled, it was already removed from the sync tree
         }
-        futures_to_complete.push_back(
-            FutureToComplete(transaction, abort_error));
+        futures_to_complete.emplace_back(transaction, abort_error);
       }
     }
 
@@ -926,8 +925,8 @@ void Repo::HandleTransactionResponse(const connection::ResponsePtr& ptr) {
                                                kAckConfirm, kDoNotPersist,
                                                server_time_offset_);
 
-      futures_to_complete.push_back(FutureToComplete(
-          transaction, transaction->current_output_snapshot_resolved));
+      futures_to_complete.emplace_back(
+          transaction, transaction->current_output_snapshot_resolved);
     }
 
     // Now remove the completed transactions.
@@ -1081,8 +1080,8 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
           new DatabaseReferenceInternal(database_, path);
       DatabaseReference ref(database_ref_impl);
 
-      futures_to_complete.push_back(FutureToComplete(
-          transaction, abort_reason, transaction->current_input_snapshot));
+      futures_to_complete.emplace_back(transaction, abort_reason,
+                                       transaction->current_input_snapshot);
 
       // Removing a callback can trigger pruning which can muck with
       // merged_data/visible_data (as it prunes data). So defer removing the

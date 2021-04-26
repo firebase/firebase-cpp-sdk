@@ -37,8 +37,7 @@ void WriteTree::AddOverwrite(const Path& path, const Variant& snap,
                              WriteId write_id, OverwriteVisibility visibility) {
   // Stacking an older write on top of newer ones.
   FIREBASE_DEV_ASSERT(write_id > last_write_id_);
-  all_writes_.push_back(
-      UserWriteRecord(write_id, path, snap, visibility == kOverwriteVisible));
+  all_writes_.emplace_back(write_id, path, snap, visibility == kOverwriteVisible);
   if (visibility == kOverwriteVisible) {
     visible_writes_.AddWriteInline(path, snap);
   }
@@ -50,7 +49,7 @@ void WriteTree::AddMerge(const Path& path,
                          WriteId write_id) {
   // Stacking an older write on top of newer ones.
   FIREBASE_DEV_ASSERT(write_id > last_write_id_);
-  all_writes_.push_back(UserWriteRecord(write_id, path, changed_children));
+  all_writes_.emplace_back(write_id, path, changed_children);
   visible_writes_.AddWritesInline(path, changed_children);
   last_write_id_ = write_id;
 }

@@ -912,8 +912,8 @@ void AppendHashRepAsContainer(std::stringstream* ss, const Variant& data) {
     for (int i = 0; i < data.vector().size(); ++i) {
       std::stringstream index_stream;
       index_stream << i;
-      index_variants.push_back(index_stream.str());
-      nodes.push_back(NodeSortingData(&index_variants[i], &data.vector()[i]));
+      index_variants.emplace_back(index_stream.str());
+      nodes.emplace_back(&index_variants[i], &data.vector()[i]);
       saw_priority =
           saw_priority || !GetVariantPriority(data.vector()[i]).is_null();
     }
@@ -921,7 +921,7 @@ void AppendHashRepAsContainer(std::stringstream* ss, const Variant& data) {
   } else if (data.is_map()) {
     bool saw_priority = false;
     for (auto& it_child : data.map()) {
-      nodes.push_back(NodeSortingData(&it_child.first, &it_child.second));
+      nodes.emplace_back(&it_child.first, &it_child.second);
       saw_priority =
           saw_priority || !GetVariantPriority(it_child.second).is_null();
     }
