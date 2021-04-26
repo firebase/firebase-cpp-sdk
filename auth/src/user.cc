@@ -54,7 +54,7 @@ Future<std::string> User::GetTokenThreadSafe(bool force_refresh) {
 
 // Non-inline implementation of UserInfoInterface's virtual destructor
 // to prevent its vtable being emitted in each translation unit.
-UserInfoInterface::~UserInfoInterface() {}
+UserInfoInterface::~UserInfoInterface() = default;
 
 }  // namespace auth
 }  // namespace firebase

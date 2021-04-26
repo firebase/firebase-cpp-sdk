@@ -22,7 +22,7 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-KeepSyncedEventRegistration::~KeepSyncedEventRegistration() {}
+KeepSyncedEventRegistration::~KeepSyncedEventRegistration() = default;
 
 bool KeepSyncedEventRegistration::RespondsTo(EventType event_type) {
   (void)event_type;

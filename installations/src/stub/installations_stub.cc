@@ -24,7 +24,7 @@ namespace internal {
 InstallationsInternal::InstallationsInternal(const firebase::App& app)
     : app_(app), future_impl_(kInstallationsFnCount) {}
 
-InstallationsInternal::~InstallationsInternal() {}
+InstallationsInternal::~InstallationsInternal() = default;
 
 bool InstallationsInternal::Initialized() const { return true; }
 

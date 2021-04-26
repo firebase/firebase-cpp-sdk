@@ -24,7 +24,7 @@ namespace auth {
 
 #ifdef INTERNAL_EXPERIMENTAL
 
-FederatedOAuthProvider::FederatedOAuthProvider() {}
+FederatedOAuthProvider::FederatedOAuthProvider() = default;
 
 FederatedOAuthProvider::FederatedOAuthProvider(
     const FederatedOAuthProviderData& provider_data) {

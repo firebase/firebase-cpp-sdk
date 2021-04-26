@@ -28,12 +28,12 @@ const uint64_t kMaxNumberOfPrunableQueriesToKeep = 1000;
 // 20% at a time until we're below our max.
 const double kPercentOfQueriesToPruneAtOnce = 0.2;
 
-CachePolicy::~CachePolicy() {}
+CachePolicy::~CachePolicy() = default;
 
 LRUCachePolicy::LRUCachePolicy(uint64_t max_size_bytes)
     : max_size_bytes_(max_size_bytes) {}
 
-LRUCachePolicy::~LRUCachePolicy() {}
+LRUCachePolicy::~LRUCachePolicy() = default;
 
 bool LRUCachePolicy::ShouldPrune(uint64_t current_size_bytes,
                                  uint64_t count_of_prunable_queries) const {

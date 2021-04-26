@@ -74,7 +74,7 @@ std::string ValueToString(const uint8_t* blob, size_t size) {
 
 }  // namespace
 
-FieldValue::FieldValue() {}
+FieldValue::FieldValue() = default;
 
 FieldValue::FieldValue(const FieldValue& value) {
   if (value.internal_) {

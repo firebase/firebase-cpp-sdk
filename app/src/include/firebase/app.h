@@ -122,7 +122,7 @@ class AppOptions {
   /// @see FirebaseApp.Create().
   /// @endif
   /// </SWIG>
-  AppOptions() {}
+  AppOptions() = default;
 
   /// Set the Firebase app ID used to uniquely identify an instance of an app.
   ///

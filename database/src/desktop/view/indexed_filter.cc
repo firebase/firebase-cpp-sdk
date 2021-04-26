@@ -24,7 +24,7 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-IndexedFilter::~IndexedFilter() {}
+IndexedFilter::~IndexedFilter() = default;
 
 IndexedVariant IndexedFilter::UpdateChild(
     const IndexedVariant& indexed_variant, const std::string& key,

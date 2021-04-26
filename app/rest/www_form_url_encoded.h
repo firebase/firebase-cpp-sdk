@@ -30,7 +30,7 @@ class WwwFormUrlEncoded {
  public:
   // Form item.
   struct Item {
-    Item() {}
+    Item() = default;
     Item(const std::string& key_, const std::string& value_)
         : key(key_), value(value_) {}
 

@@ -33,7 +33,7 @@ namespace internal {
 
 class PersistenceManagerInterface {
  public:
-  virtual ~PersistenceManagerInterface() {}
+  virtual ~PersistenceManagerInterface() = default;
 
   // Persist a user write to the storage engine.
   //

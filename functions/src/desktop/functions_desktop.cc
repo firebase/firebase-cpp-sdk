@@ -26,7 +26,7 @@ namespace internal {
 FunctionsInternal::FunctionsInternal(App* app, const char* region)
     : app_(app), region_(region) {}
 
-FunctionsInternal::~FunctionsInternal() {}
+FunctionsInternal::~FunctionsInternal() = default;
 
 ::firebase::App* FunctionsInternal::app() const { return app_; }
 

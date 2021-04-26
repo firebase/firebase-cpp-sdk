@@ -35,8 +35,8 @@ class CallbackEntry;
 
 class CallbackQueue : public std::list<SharedPtr<CallbackEntry>> {
  public:
-  CallbackQueue() {}
-  ~CallbackQueue() {}
+  CallbackQueue() = default;
+  ~CallbackQueue() = default;
 
   // Get the mutex that controls access to this queue.
   Mutex* mutex() { return &mutex_; }
@@ -108,7 +108,7 @@ class CallbackEntry {
 // Dispatches a queue of callbacks.
 class CallbackDispatcher {
  public:
-  CallbackDispatcher() {}
+  CallbackDispatcher() = default;
 
   ~CallbackDispatcher() {
     MutexLock lock(*queue_.mutex());

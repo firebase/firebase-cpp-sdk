@@ -119,7 +119,7 @@ class Notifier {
 // Base request.
 class Request : public rest::Request {
  public:
-  Request() {}
+  Request() = default;
 
   FIREBASE_STORAGE_REQUEST_CLASS_BODY(rest::Request);
 };

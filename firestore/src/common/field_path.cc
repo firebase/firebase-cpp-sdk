@@ -36,7 +36,7 @@
 namespace firebase {
 namespace firestore {
 
-FieldPath::FieldPath() {}
+FieldPath::FieldPath() = default;
 
 #if !defined(_STLPORT_VERSION)
 FieldPath::FieldPath(std::initializer_list<std::string> field_names)

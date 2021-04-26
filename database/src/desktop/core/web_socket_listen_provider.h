@@ -35,7 +35,7 @@ class WebSocketListenProvider : public ListenProvider {
         connection_(connection),
         logger_(logger) {}
 
-  ~WebSocketListenProvider() override {}
+  ~WebSocketListenProvider() override = default;
 
   void set_sync_tree(SyncTree* sync_tree) { sync_tree_ = sync_tree; }
 

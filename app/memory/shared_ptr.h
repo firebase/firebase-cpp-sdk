@@ -35,7 +35,7 @@ namespace internal {
 // Used to implement SharedPtr.
 class ControlBlock {
  public:
-  ControlBlock() : ref_count_(1) {}
+  ControlBlock() : ref_count_(1) = default;
 
   // Increase the reference count by one.
   // Returns the newly updated reference count.

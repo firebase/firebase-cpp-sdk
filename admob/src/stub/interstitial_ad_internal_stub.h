@@ -31,7 +31,7 @@ class InterstitialAdInternalStub : public InterstitialAdInternal {
   explicit InterstitialAdInternalStub(InterstitialAd* base)
       : InterstitialAdInternal(base) {}
 
-  ~InterstitialAdInternalStub() override {}
+  ~InterstitialAdInternalStub() override = default;
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id) override {
     return CreateAndCompleteFutureStub(kInterstitialAdFnInitialize);

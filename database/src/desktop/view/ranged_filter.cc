@@ -33,7 +33,7 @@ RangedFilter::RangedFilter(const QueryParams& params)
       start_post_(GetStartPost(params)),
       end_post_(GetEndPost(params)) {}
 
-RangedFilter::~RangedFilter() {}
+RangedFilter::~RangedFilter() = default;
 
 IndexedVariant RangedFilter::UpdateChild(
     const IndexedVariant& indexed_variant, const std::string& key,

@@ -39,17 +39,11 @@ DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* database,
 }
 
 DataSnapshotInternal::DataSnapshotInternal(const DataSnapshotInternal& internal)
-    : database_(internal.database_),
-      data_(internal.data_),
-      query_spec_(internal.query_spec_) {}
+    
+      = default;
 
 DataSnapshotInternal& DataSnapshotInternal::operator=(
-    const DataSnapshotInternal& internal) {
-  database_ = internal.database_;
-  data_ = internal.data_;
-  query_spec_ = internal.query_spec_;
-  return *this;
-}
+    const DataSnapshotInternal& internal) = default;
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DataSnapshotInternal::DataSnapshotInternal(DataSnapshotInternal&& internal) {
@@ -67,7 +61,7 @@ DataSnapshotInternal& DataSnapshotInternal::operator=(
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-DataSnapshotInternal::~DataSnapshotInternal() {}
+DataSnapshotInternal::~DataSnapshotInternal() = default;
 
 bool DataSnapshotInternal::Exists() const { return data_ != Variant::Null(); }
 

@@ -31,7 +31,7 @@ class NativeExpressAdViewInternalStub : public NativeExpressAdViewInternal {
   explicit NativeExpressAdViewInternalStub(NativeExpressAdView* base)
       : NativeExpressAdViewInternal(base) {}
 
-  ~NativeExpressAdViewInternalStub() override {}
+  ~NativeExpressAdViewInternalStub() override = default;
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
                           AdSize size) override {

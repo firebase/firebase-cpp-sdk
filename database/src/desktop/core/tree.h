@@ -83,7 +83,7 @@ class Tree {
   explicit Tree(Optional<Value>&& maybe_value)
       : key_(), value_(std::move(maybe_value)), children_(), parent_(nullptr) {}
 
-  ~Tree() {}
+  ~Tree() = default;
 
   // Return the key of this node in the tree. Root elements will not have a key.
   const std::string& key() const { return key_; }

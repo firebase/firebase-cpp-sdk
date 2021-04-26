@@ -120,7 +120,7 @@ class WriteTree {
   // AddMerge(), and removed with RemoveWrite().
   WriteTree() : visible_writes_(), all_writes_(), last_write_id_(-1L) {}
 
-  virtual ~WriteTree() {}
+  virtual ~WriteTree() = default;
 
   // Create a new WriteTreeRef for the given path. For use with a new sync point
   // at the given path.

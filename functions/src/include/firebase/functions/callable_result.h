@@ -31,24 +31,21 @@ class HttpsCallableReferenceInternal;
 class HttpsCallableResult {
  public:
   /// @brief Creates an HttpsCallableResult with null data.
-  HttpsCallableResult() {}
+  HttpsCallableResult() = default;
 
-  ~HttpsCallableResult() {}
+  ~HttpsCallableResult() = default;
 
   /// @brief Copy constructor. Copying is as efficient as copying a Variant.
   ///
   /// @param[in] other HttpsCallableResult to copy data from.
-  HttpsCallableResult(const HttpsCallableResult& other) : data_(other.data_) {}
+  HttpsCallableResult(const HttpsCallableResult& other)  = default;
 
   /// @brief Assignment operator. Copying is as efficient as copying a Variant.
   ///
   /// @param[in] other HttpsCallableResult to copy data from.
   ///
   /// @returns Reference to the destination HttpsCallableResult.
-  HttpsCallableResult& operator=(const HttpsCallableResult& other) {
-    data_ = other.data_;
-    return *this;
-  }
+  HttpsCallableResult& operator=(const HttpsCallableResult& other) = default;
 
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
   /// @brief Move constructor. Moving is an efficient operation for

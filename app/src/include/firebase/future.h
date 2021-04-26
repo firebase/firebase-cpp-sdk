@@ -406,7 +406,7 @@ class Future : public FutureBase {
                                           void* user_data);
 
   /// Construct a future.
-  Future() {}
+  Future() = default;
 
   /// @cond FIREBASE_APP_INTERNAL
 

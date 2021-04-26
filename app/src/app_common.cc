@@ -185,7 +185,7 @@ struct AppData {
 // Tracks library registrations.
 class LibraryRegistry {
  private:
-  LibraryRegistry() {}
+  LibraryRegistry() = default;
 
  public:
   // Register a library, returns true if the library version changed.

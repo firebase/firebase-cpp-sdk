@@ -25,7 +25,7 @@ namespace firestore {
 
 using CleanupFnDocumentReference = CleanupFn<DocumentReference>;
 
-DocumentReference::DocumentReference() {}
+DocumentReference::DocumentReference() = default;
 
 DocumentReference::DocumentReference(const DocumentReference& reference) {
   if (reference.internal_) {

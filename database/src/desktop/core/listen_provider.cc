@@ -18,7 +18,7 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-ListenProvider::~ListenProvider() {}
+ListenProvider::~ListenProvider() = default;
 
 }  // namespace internal
 }  // namespace database

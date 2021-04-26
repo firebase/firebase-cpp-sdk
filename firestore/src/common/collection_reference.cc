@@ -25,7 +25,7 @@ namespace firestore {
 // Java CollectionReference) be subclass of QueryInternal (resp. Java Query),
 // which is already the case.
 
-CollectionReference::CollectionReference() {}
+CollectionReference::CollectionReference() = default;
 
 CollectionReference::CollectionReference(const CollectionReference& reference)
     : Query(reference.internal()
@@ -39,10 +39,7 @@ CollectionReference::CollectionReference(CollectionReferenceInternal* internal)
     : Query(internal) {}
 
 CollectionReference& CollectionReference::operator=(
-    const CollectionReference& reference) {
-  Query::operator=(reference);
-  return *this;
-}
+    const CollectionReference& reference) = default;
 
 CollectionReference& CollectionReference::operator=(
     CollectionReference&& reference) {

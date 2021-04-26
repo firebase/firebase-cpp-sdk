@@ -20,7 +20,7 @@ namespace firestore {
 
 using CleanupFnQuerySnapshot = CleanupFn<QuerySnapshot>;
 
-QuerySnapshot::QuerySnapshot() {}
+QuerySnapshot::QuerySnapshot() = default;
 
 QuerySnapshot::QuerySnapshot(const QuerySnapshot& snapshot) {
   if (snapshot.internal_) {

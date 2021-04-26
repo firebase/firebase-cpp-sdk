@@ -30,7 +30,7 @@ class InfoListenProvider : public ListenProvider {
   InfoListenProvider(Repo* repo, Variant* info_data)
       : repo_(repo), info_data_(info_data), sync_tree_(nullptr) {}
 
-  ~InfoListenProvider() override {}
+  ~InfoListenProvider() override = default;
 
   void set_sync_tree(SyncTree* sync_tree) { sync_tree_ = sync_tree; }
 

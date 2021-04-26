@@ -148,7 +148,7 @@ void SetVariantAtPath(Variant* variant, const Path& path, const Variant& value);
 // * Validation for path
 // * Expect no params in the url or they all be part of the path
 struct ParseUrl {
-  ParseUrl() {}
+  ParseUrl() = default;
   enum ParseResult {
     kParseOk = 0,
     kParseErrorEmpty,

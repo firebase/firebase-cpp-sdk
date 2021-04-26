@@ -31,7 +31,7 @@ class BannerViewInternalStub : public BannerViewInternal {
   explicit BannerViewInternalStub(BannerView* base)
       : BannerViewInternal(base) {}
 
-  ~BannerViewInternalStub() override {}
+  ~BannerViewInternalStub() override = default;
 
   Future<void> Initialize(AdParent parent, const char* ad_unit_id,
                           AdSize size) override {

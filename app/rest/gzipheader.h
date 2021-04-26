@@ -35,7 +35,7 @@ namespace firebase {
 class GZipHeader {
  public:
   GZipHeader() { Reset(); }
-  ~GZipHeader() {}
+  ~GZipHeader() = default;
 
   // Wipe the slate clean and start from scratch.
   void Reset() {

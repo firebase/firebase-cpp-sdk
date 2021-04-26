@@ -32,7 +32,7 @@ LimitedFilter::LimitedFilter(const QueryParams& params)
       limit_(params.limit_first ? params.limit_first : params.limit_last),
       reverse_(!!params.limit_last) {}
 
-LimitedFilter::~LimitedFilter() {}
+LimitedFilter::~LimitedFilter() = default;
 
 IndexedVariant LimitedFilter::UpdateChild(
     const IndexedVariant& indexed_variant, const std::string& key,

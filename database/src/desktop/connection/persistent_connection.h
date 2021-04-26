@@ -70,7 +70,7 @@ class Response {
     // TODO(b/77552340): Replace the implementation of Response with
     // std::function
   }
-  virtual ~Response() {}
+  virtual ~Response() = default;
 
   // Check if there is any error in response
   bool HasError() const { return error_code_ != kErrorNone; }
@@ -550,7 +550,7 @@ class PersistentConnection : public ConnectionEventHandler {
 
 class PersistentConnectionEventHandler {
  public:
-  virtual ~PersistentConnectionEventHandler() {}
+  virtual ~PersistentConnectionEventHandler() = default;
 
   virtual void OnConnect() = 0;
 

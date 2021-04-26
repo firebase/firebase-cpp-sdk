@@ -45,8 +45,8 @@ enum FutureStatus {
 // future required by this API (fetch_future_).
 class FutureData {
  public:
-  FutureData() : api_(kRemoteConfigFnCount) {}
-  ~FutureData() {}
+  FutureData() : api_(kRemoteConfigFnCount) = default;
+  ~FutureData() = default;
 
   ReferenceCountedFutureImpl* api() { return &api_; }
 

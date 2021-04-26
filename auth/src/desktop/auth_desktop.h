@@ -139,7 +139,7 @@ class FunctionRegistryAuthStateListener : public AuthStateListener {
 
 // The desktop-specific Auth implementation.
 struct AuthImpl {
-  AuthImpl() {}
+  AuthImpl() = default;
 
   // The application's API key.
   std::string api_key;

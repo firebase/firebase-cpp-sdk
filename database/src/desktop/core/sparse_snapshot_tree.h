@@ -25,7 +25,7 @@ namespace internal {
 
 class SparseSnapshotTree {
  public:
-  SparseSnapshotTree() : value_(), children_() {}
+  SparseSnapshotTree() : value_(), children_() = default;
 
   void Remember(const Path& path, const Variant& data);
 

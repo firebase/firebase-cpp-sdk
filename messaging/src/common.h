@@ -47,8 +47,8 @@ enum MessagingFn {
 // future required by this API (fetch_future_).
 class FutureData {
  public:
-  FutureData() : api_(kMessagingFnCount) {}
-  ~FutureData() {}
+  FutureData() : api_(kMessagingFnCount) = default;
+  ~FutureData() = default;
 
   ReferenceCountedFutureImpl* api() { return &api_; }
 

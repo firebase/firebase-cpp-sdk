@@ -715,7 +715,7 @@ class FederatedAuthProvider {
   template <class T>
   class Handler {
    public:
-    virtual ~Handler() {}
+    virtual ~Handler() = default;
 
     /// @brief Application sign-in handler.
     ///
@@ -831,8 +831,8 @@ class FederatedAuthProvider {
 #endif  // not SWIG
 #endif  // INTERNAL_EXPERIMENTAL
 
-  FederatedAuthProvider() {}
-  virtual ~FederatedAuthProvider() {}
+  FederatedAuthProvider() = default;
+  virtual ~FederatedAuthProvider() = default;
 
  private:
   friend class ::firebase::auth::Auth;

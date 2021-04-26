@@ -33,7 +33,7 @@ namespace internal {
 // existing path will modify that existing write to reflect the write added.
 class CompoundWrite {
  public:
-  CompoundWrite() : write_tree_() {}
+  CompoundWrite() : write_tree_() = default;
 
   // Create a compound write from a tree of variants, where each variant in the
   // tree represents a write at that location.

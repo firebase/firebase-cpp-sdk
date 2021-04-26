@@ -94,7 +94,7 @@ inline bool operator==(const UserWriteRecord& lhs, const UserWriteRecord& rhs) {
 //     query.
 class PersistenceStorageEngine {
  public:
-  virtual ~PersistenceStorageEngine() {}
+  virtual ~PersistenceStorageEngine() = default;
   // Write data to the local cache, overwriting the data at the given path.
   // Additionally, log that this write occurred so that when the database is
   // online again it can send updates.

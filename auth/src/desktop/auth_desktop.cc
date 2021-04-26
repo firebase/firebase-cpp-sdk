@@ -96,7 +96,7 @@ void DestroyFunctionRegistryListener(AuthData* auth_data);
 
 IdTokenRefreshListener::IdTokenRefreshListener() : token_timestamp_(0) {}
 
-IdTokenRefreshListener::~IdTokenRefreshListener() {}
+IdTokenRefreshListener::~IdTokenRefreshListener() = default;
 
 void IdTokenRefreshListener::OnIdTokenChanged(Auth* auth) {
   // Note:  Make sure to always make future_impl.mutex the innermost lock,
@@ -505,7 +505,7 @@ void Auth::SignOut() {
 class CurrentUserBlockListener : public firebase::auth::AuthStateListener {
  public:
   explicit CurrentUserBlockListener() : semaphore_(0) {}
-  ~CurrentUserBlockListener() override {}
+  ~CurrentUserBlockListener() override = default;
 
   void OnAuthStateChanged(Auth* auth) override { semaphore_.Post(); }
 

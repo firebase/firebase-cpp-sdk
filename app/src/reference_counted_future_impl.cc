@@ -325,7 +325,7 @@ namespace detail {
 
 // Non-inline implementation of FutureApiInterface's virtual destructor
 // to prevent its vtable being emitted in each translation unit.
-FutureApiInterface::~FutureApiInterface() {}
+FutureApiInterface::~FutureApiInterface() = default;
 
 }  // namespace detail
 

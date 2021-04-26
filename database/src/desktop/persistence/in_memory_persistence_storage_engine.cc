@@ -40,7 +40,7 @@ InMemoryPersistenceStorageEngine::InMemoryPersistenceStorageEngine(
     LoggerBase* logger)
     : server_cache_(), inside_transaction_(false), logger_(logger) {}
 
-InMemoryPersistenceStorageEngine::~InMemoryPersistenceStorageEngine() {}
+InMemoryPersistenceStorageEngine::~InMemoryPersistenceStorageEngine() = default;
 
 Variant InMemoryPersistenceStorageEngine::LoadServerCache() {
   // No persistence, so nothing to save.

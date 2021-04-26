@@ -18,7 +18,7 @@
 
 namespace FIREBASE_NAMESPACE {
 
-LoggerBase::~LoggerBase() {}
+LoggerBase::~LoggerBase() = default;
 
 void LoggerBase::LogDebug(const char* format, ...) const {
   va_list list;
@@ -74,7 +74,7 @@ void LoggerBase::FilterLogMessageV(LogLevel log_level, const char* format,
   }
 }
 
-SystemLogger::~SystemLogger() {}
+SystemLogger::~SystemLogger() = default;
 
 void SystemLogger::SetLogLevel(LogLevel log_level) {
   ::FIREBASE_NAMESPACE::SetLogLevel(log_level);
@@ -89,7 +89,7 @@ void SystemLogger::LogMessageImplV(LogLevel log_level, const char* format,
   ::FIREBASE_NAMESPACE::LogMessageWithCallbackV(log_level, format, args);
 }
 
-Logger::~Logger() {}
+Logger::~Logger() = default;
 
 void Logger::SetLogLevel(LogLevel log_level) { log_level_ = log_level; }
 

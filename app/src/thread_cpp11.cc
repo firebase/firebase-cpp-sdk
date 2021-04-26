@@ -24,9 +24,9 @@
 
 namespace FIREBASE_NAMESPACE {
 
-Thread::Thread() {}
+Thread::Thread() = default;
 
-Thread::~Thread() {}
+Thread::~Thread() = default;
 
 #ifdef FIREBASE_USE_EXPLICIT_DEFAULT_METHODS
 Thread::Thread(Thread&& other) = default;

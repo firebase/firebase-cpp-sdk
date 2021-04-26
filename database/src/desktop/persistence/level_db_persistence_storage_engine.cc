@@ -310,7 +310,7 @@ bool LevelDbPersistenceStorageEngine::Initialize(
   return status.ok();
 }
 
-LevelDbPersistenceStorageEngine::~LevelDbPersistenceStorageEngine() {}
+LevelDbPersistenceStorageEngine::~LevelDbPersistenceStorageEngine() = default;
 
 void LevelDbPersistenceStorageEngine::SaveUserOverwrite(const Path& path,
                                                         const Variant& data,

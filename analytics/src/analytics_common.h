@@ -29,7 +29,7 @@ enum AnalyticsFn { kAnalyticsFnGetAnalyticsInstanceId, kAnalyticsFnCount };
 class FutureData {
  public:
   FutureData() : api_(kAnalyticsFnCount) {}
-  ~FutureData() {}
+  ~FutureData() = default;
 
   ReferenceCountedFutureImpl* api() { return &api_; }
 

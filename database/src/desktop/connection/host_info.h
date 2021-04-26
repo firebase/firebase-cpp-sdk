@@ -33,7 +33,7 @@ namespace connection {
 // server hostname may look like "s-usc1c-nss-123.firebaseio.com"
 class HostInfo {
  public:
-  explicit HostInfo() {}
+  explicit HostInfo() = default;
 
   // Constructor to pass in hostname, namespace and whether this is for a
   // secured connection

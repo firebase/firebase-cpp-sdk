@@ -92,7 +92,7 @@ View& View::operator=(View&& other) {
   return *this;
 }
 
-View::~View() {}
+View::~View() = default;
 
 const Variant* View::GetCompleteServerCache(const Path& path) const {
   const Variant* snap = view_cache_.GetCompleteServerSnap();

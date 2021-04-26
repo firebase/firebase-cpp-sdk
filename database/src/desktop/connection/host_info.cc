@@ -56,16 +56,9 @@ HostInfo::HostInfo(const char* host, const char* ns, bool secure)
 
 HostInfo::HostInfo(const HostInfo& other) { *this = other; }
 
-HostInfo::~HostInfo() {}
+HostInfo::~HostInfo() = default;
 
-HostInfo& HostInfo::operator=(const HostInfo& other) {
-  host_ = other.host_;
-  namespace_ = other.namespace_;
-  secure_ = other.secure_;
-  user_agent_ = other.user_agent_;
-  web_socket_user_agent_ = other.web_socket_user_agent_;
-  return *this;
-}
+HostInfo& HostInfo::operator=(const HostInfo& other) = default;
 
 std::string HostInfo::GetConnectionUrl(const char* last_session_id) const {
   std::stringstream ss;

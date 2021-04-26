@@ -33,7 +33,7 @@ class DatabaseReferenceInternal : public QueryInternal {
  public:
   DatabaseReferenceInternal(DatabaseInternal* database, const Path& path);
 
-  ~DatabaseReferenceInternal() override {}
+  ~DatabaseReferenceInternal() override = default;
 
   DatabaseReferenceInternal(const DatabaseReferenceInternal& reference);
 

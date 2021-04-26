@@ -65,7 +65,7 @@ struct RequestStatusBlock {
 // is not thread-safe.
 class RequestHandle {
  public:
-  RequestHandle() : status_() {}
+  RequestHandle() : status_() = default;
   explicit RequestHandle(const SharedPtr<RequestStatusBlock>& status)
       : status_(status) {}
 

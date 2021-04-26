@@ -34,7 +34,7 @@ namespace rest {
 class Response : public Transfer {
  public:
   Response();
-  ~Response() override {}
+  ~Response() override = default;
 
   // Note: remove if support for Visual Studio <2015 is no longer needed.
   // Prior to version 2015, Visual Studio didn't support implicitly

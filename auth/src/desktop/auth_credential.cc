@@ -17,6 +17,6 @@
 namespace firebase {
 namespace auth {
 
-AuthCredential::~AuthCredential() {}
+AuthCredential::~AuthCredential() = default;
 }  // namespace auth
 }  // namespace firebase

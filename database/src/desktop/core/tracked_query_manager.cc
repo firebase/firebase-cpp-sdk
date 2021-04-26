@@ -40,7 +40,7 @@ bool operator!=(const TrackedQuery& lhs, const TrackedQuery& rhs) {
   return !(lhs == rhs);
 }
 
-TrackedQueryManagerInterface::~TrackedQueryManagerInterface() {}
+TrackedQueryManagerInterface::~TrackedQueryManagerInterface() = default;
 
 // Returns true if the given TrackedQueryMap has a complete default query.
 static bool HasDefaultCompletePredicate(
@@ -97,7 +97,7 @@ TrackedQueryManager::TrackedQueryManager(
   }
 }
 
-TrackedQueryManager::~TrackedQueryManager() {}
+TrackedQueryManager::~TrackedQueryManager() = default;
 
 const TrackedQuery* TrackedQueryManager::FindTrackedQuery(
     const QuerySpec& query_spec) const {

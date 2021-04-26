@@ -131,7 +131,7 @@ QueryInternal& QueryInternal::operator=(QueryInternal&& internal) {
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-QueryInternal::~QueryInternal() {}
+QueryInternal::~QueryInternal() = default;
 
 class SingleValueEventRegistration : public ValueEventRegistration {
  public:

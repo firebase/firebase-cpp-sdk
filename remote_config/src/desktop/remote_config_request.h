@@ -36,7 +36,7 @@ class RemoteConfigRequest
   FRIEND_TEST(RemoteConfigRESTTest, SetupRESTRequest);
 #endif  // FIREBASE_TESTING
  public:
-  RemoteConfigRequest() : RemoteConfigRequest(request_resource_data) {}
+  RemoteConfigRequest() : RemoteConfigRequest(request_resource_data) = default;
   explicit RemoteConfigRequest(const char* schema);
 
   explicit RemoteConfigRequest(const unsigned char* schema)

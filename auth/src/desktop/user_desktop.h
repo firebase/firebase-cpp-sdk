@@ -99,7 +99,7 @@ struct UserData : public UserInfoImpl {
 class UserDataPersist : public firebase::auth::AuthStateListener {
  public:
   UserDataPersist(const char* app_id);
-  ~UserDataPersist() override {}
+  ~UserDataPersist() override = default;
 
   // Overloaded constructor to set the internal instance.
   explicit UserDataPersist(

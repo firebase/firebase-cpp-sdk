@@ -36,7 +36,7 @@ namespace internal {
 // in pulling into the view.
 class CompleteChildSource {
  public:
-  virtual ~CompleteChildSource() {}
+  virtual ~CompleteChildSource() = default;
   virtual Optional<Variant> GetCompleteChild(
       const std::string& child_key) const = 0;
 
@@ -55,7 +55,7 @@ class VariantFilter {
   explicit VariantFilter(const QueryParams& query_params)
       : query_params_(query_params) {}
 
-  virtual ~VariantFilter() {}
+  virtual ~VariantFilter() = default;
 
   // Update a single complete child in the snap. If the child equals the old
   // child in the snap, this is a no-op. The method expects an indexed snap.

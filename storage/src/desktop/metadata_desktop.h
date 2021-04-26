@@ -63,7 +63,7 @@ class MetadataInternal {
   MetadataInternal& operator=(MetadataInternal&& other);
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
-  ~MetadataInternal() {}
+  ~MetadataInternal() = default;
 
   // Return the owning Google Cloud Storage bucket for the StorageReference.
   const char* bucket() { return bucket_.c_str(); }

@@ -52,7 +52,7 @@ SingleValueListener::SingleValueListener(DatabaseInternal* database,
       future_(future),
       handle_(handle) {}
 
-SingleValueListener::~SingleValueListener() {}
+SingleValueListener::~SingleValueListener() = default;
 
 void SingleValueListener::OnValueChanged(const DataSnapshot& snapshot) {
   future_->CompleteWithResult<DataSnapshot>(handle_, kErrorNone, "", snapshot);

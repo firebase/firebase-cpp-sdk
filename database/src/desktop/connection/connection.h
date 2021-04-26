@@ -215,7 +215,7 @@ class Connection : public WebSocketClientEventHandler {
 // All the function here will be triggered only from scheduler thread.
 class ConnectionEventHandler {
  public:
-  virtual ~ConnectionEventHandler() {}
+  virtual ~ConnectionEventHandler() = default;
 
   // Triggered when a handshake message or a reset message is received from
   // server  Those messages contain the information of the cache host.

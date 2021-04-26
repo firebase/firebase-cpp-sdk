@@ -23,7 +23,7 @@ namespace firestore {
 
 using CleanupFnDocumentSnapshot = CleanupFn<DocumentSnapshot>;
 
-DocumentSnapshot::DocumentSnapshot() {}
+DocumentSnapshot::DocumentSnapshot() = default;
 
 DocumentSnapshot::DocumentSnapshot(const DocumentSnapshot& snapshot) {
   if (snapshot.internal_) {

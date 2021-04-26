@@ -106,7 +106,7 @@ class NoCompleteSource : public CompleteChildSource {
 ViewProcessor::ViewProcessor(UniquePtr<VariantFilter> filter)
     : filter_(std::move(filter)) {}
 
-ViewProcessor::~ViewProcessor() {}
+ViewProcessor::~ViewProcessor() = default;
 
 void ViewProcessor::ApplyOperation(const ViewCache& old_view_cache,
                                    const Operation& operation,

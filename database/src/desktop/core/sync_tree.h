@@ -53,7 +53,7 @@ class SyncTree {
         next_query_tag_(1L),
         listen_provider_(std::move(listen_provider)) {}
 
-  virtual ~SyncTree() {}
+  virtual ~SyncTree() = default;
 
   // Returns true if the SyncTree does not contain any SyncPoints.
   virtual bool IsEmpty();

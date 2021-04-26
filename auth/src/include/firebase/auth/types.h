@@ -433,7 +433,7 @@ struct FederatedProviderData {
 /// @brief Contains information to identify an OAuth povider.
 struct FederatedOAuthProviderData : FederatedProviderData {
   /// Initailizes an empty provider data structure.
-  FederatedOAuthProviderData() {}
+  FederatedOAuthProviderData() = default;
 
   /// Initializes the provider data structure with a provider id.
   explicit FederatedOAuthProviderData(const std::string& provider) {

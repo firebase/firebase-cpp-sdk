@@ -18,7 +18,7 @@ namespace firebase {
 namespace database {
 namespace internal {
 
-EventRegistration::~EventRegistration() {}
+EventRegistration::~EventRegistration() = default;
 
 void EventRegistration::SafelyFireEvent(const Event& event) {
   // Ensure that the listener has not already been removed.

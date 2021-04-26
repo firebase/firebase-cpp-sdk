@@ -210,7 +210,7 @@ class AppCallback {
 class StaticFutureData {
  public:
   explicit StaticFutureData(int num_functions) : api_(num_functions) {}
-  ~StaticFutureData() {}
+  ~StaticFutureData() = default;
 
   ReferenceCountedFutureImpl* api() { return &api_; }
 

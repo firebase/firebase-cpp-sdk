@@ -33,8 +33,8 @@ namespace internal {
 // is completely separate from the invite sending logic.
 class SenderReceiverInterface : public ReceiverInterface {
  public:
-  SenderReceiverInterface() {}
-  ~SenderReceiverInterface() override {}
+  SenderReceiverInterface() = default;
+  ~SenderReceiverInterface() override = default;
 
   // Called when an invite has been sent.
   virtual void SentInviteCallback(

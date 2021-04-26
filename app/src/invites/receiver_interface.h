@@ -49,7 +49,7 @@ enum InternalLinkMatchStrength {
 
 class ReceiverInterface {
  public:
-  virtual ~ReceiverInterface() {}
+  virtual ~ReceiverInterface() = default;
 
   // Callback called when an invite is received. If an error occurred,
   // result_code should be non-zero. Otherwise, either invitation_id should be

@@ -115,7 +115,7 @@ bool NamespacedConfigData::operator==(const NamespacedConfigData& right) const {
   return config_ == right.config_ && timestamp_ == right.timestamp_;
 }
 
-LayeredConfigs::LayeredConfigs() {}
+LayeredConfigs::LayeredConfigs() = default;
 LayeredConfigs::LayeredConfigs(const NamespacedConfigData& config_fetched,
                                const NamespacedConfigData& config_active,
                                const NamespacedConfigData& config_default,

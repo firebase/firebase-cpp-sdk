@@ -621,7 +621,7 @@ void Repo::SetKeepSynchronized(const QuerySpec& query_spec,
 
 class NoopListener : public ValueListener {
  public:
-  ~NoopListener() override {}
+  ~NoopListener() override = default;
   void OnValueChanged(const DataSnapshot& snapshot) override { (void)snapshot; }
   void OnCancelled(const Error& error, const char* error_message) override {
     (void)error;

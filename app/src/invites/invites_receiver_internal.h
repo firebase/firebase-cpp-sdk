@@ -118,7 +118,7 @@ class InvitesReceiverInternal : public SenderReceiverInterface {
   }
 
   // Virtual destructor is required.
-  ~InvitesReceiverInternal() override {}
+  ~InvitesReceiverInternal() override = default;
 
   // Whether this object was successfully initialized by the constructor.
   bool initialized() const { return app_ != nullptr; }
