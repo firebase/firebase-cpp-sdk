@@ -17,6 +17,7 @@
 #include <memory>
 #include <queue>
 #include <stack>
+#include <utility>
 
 #include "app/memory/shared_ptr.h"
 #include "app/src/app_common.h"
@@ -44,13 +45,13 @@ namespace internal {
 Mutex g_database_reference_constructor_mutex;  // NOLINT
 
 SingleValueListener::SingleValueListener(DatabaseInternal* database,
-                                         const QuerySpec& query_spec,
+                                         QuerySpec query_spec,
                                          ReferenceCountedFutureImpl* future,
                                          SafeFutureHandle<DataSnapshot> handle)
     : database_(database),
-      query_spec_(query_spec),
+      query_spec_(std::move(query_spec)),
       future_(future),
-      handle_(handle) {}
+      handle_(std::move(handle)) {}
 
 SingleValueListener::~SingleValueListener() = default;
 

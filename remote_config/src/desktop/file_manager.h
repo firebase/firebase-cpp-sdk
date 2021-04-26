@@ -27,7 +27,7 @@ namespace internal {
 // load from file.
 class RemoteConfigFileManager {
  public:
-  explicit RemoteConfigFileManager(const std::string& file_path);
+  explicit RemoteConfigFileManager(std::string  file_path);
 
   // Load `configs` from file. Will return `true` if success.
   bool Load(LayeredConfigs* configs) const;

@@ -32,7 +32,7 @@ class DatabaseInternal;
 class DisconnectionHandlerInternal {
  public:
   explicit DisconnectionHandlerInternal(DatabaseInternal* database,
-                                        const Path& path);
+                                        Path  path);
 
   ~DisconnectionHandlerInternal();
 

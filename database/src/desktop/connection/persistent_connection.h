@@ -20,6 +20,7 @@
 #include <queue>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "app/memory/atomic.h"
@@ -237,11 +238,11 @@ class PersistentConnection : public ConnectionEventHandler {
 
   // Capture the outstanding or ongoing listen requests.
   struct OutstandingListen {
-    explicit OutstandingListen(const QuerySpec& query_spec, const Tag& tag,
+    explicit OutstandingListen(QuerySpec query_spec, Tag tag,
                                ResponsePtr response, uint64_t outstanding_id)
-        : query_spec(query_spec),
-          tag(tag),
-          response(response),
+        : query_spec(std::move(query_spec)),
+          tag(std::move(tag)),
+          response(std::move(response)),
           outstanding_id(outstanding_id) {}
 
     // Path and query params for the listen request.
@@ -263,9 +264,12 @@ class PersistentConnection : public ConnectionEventHandler {
   // Capture the outstanding OnDisconnect requests when the connection is not
   // established yet.
   struct OutstandingOnDisconnect {
-    explicit OutstandingOnDisconnect(const char* action, const Path& path,
-                                     const Variant& data, ResponsePtr response)
-        : action(action), path(path), data(data), response(Move(response)) {}
+    explicit OutstandingOnDisconnect(const char* action, Path path,
+                                     Variant data, ResponsePtr response)
+        : action(action),
+          path(std::move(path)),
+          data(std::move(data)),
+          response(Move(response)) {}
 
     // Action of the request such as PUT, MERGE and CANCEL
     std::string action;
@@ -284,9 +288,12 @@ class PersistentConnection : public ConnectionEventHandler {
   // Capture the outstanding Put requests when the connection is not
   // established yet.
   struct OutstandingPut {
-    explicit OutstandingPut(const char* action, const Variant& data,
+    explicit OutstandingPut(const char* action, Variant data,
                             ResponsePtr response)
-        : action(action), data(data), response(Move(response)), sent(false) {}
+        : action(action),
+          data(std::move(data)),
+          response(Move(response)),
+          sent(false) {}
 
     // Action of the request such as PUT, MERGE and CANCEL
     std::string action;

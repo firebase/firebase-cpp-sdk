@@ -15,6 +15,7 @@
 #include "database/src/desktop/view/view_processor.h"
 
 #include <algorithm>
+#include <utility>
 #include <vector>
 
 #include "app/src/assert.h"
@@ -41,11 +42,10 @@ namespace internal {
 // to have, as well as the writes that are pending to form a complete child.
 class WriteTreeCompleteChildSource : public CompleteChildSource {
  public:
-  WriteTreeCompleteChildSource(const WriteTreeRef& writes,
-                               const ViewCache& view_cache,
+  WriteTreeCompleteChildSource(WriteTreeRef writes, ViewCache view_cache,
                                const Variant* opt_complete_server_cache)
-      : writes_(writes),
-        view_cache_(view_cache),
+      : writes_(std::move(writes)),
+        view_cache_(std::move(view_cache)),
         opt_complete_server_cache_(
             OptionalFromPointer(opt_complete_server_cache)) {}
 

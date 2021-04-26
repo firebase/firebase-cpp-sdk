@@ -18,6 +18,7 @@
 
 #include <cassert>
 #include <sstream>
+#include <utility>
 
 #include "app/memory/shared_ptr.h"
 #include "app/src/log.h"
@@ -40,8 +41,8 @@ MutableDataInternal::MutableDataInternal(DatabaseInternal* database,
 }
 
 MutableDataInternal::MutableDataInternal(const MutableDataInternal& other,
-                                         const Path& path)
-    : db_(other.db_), path_(path), holder_(other.holder_) {}
+                                         Path  path)
+    : db_(other.db_), path_(std::move(path)), holder_(other.holder_) {}
 
 MutableDataInternal* MutableDataInternal::Clone() {
   // Just use the copy constructor

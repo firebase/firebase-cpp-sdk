@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/core/repo.h"
 
+#include <utility>
+
 #include "app/src/callback.h"
 #include "app/src/filesystem.h"
 #include "app/src/log.h"
@@ -56,12 +58,12 @@ scheduler::Scheduler* Repo::s_scheduler_;
 // triggered.
 class TransactionResponse : public connection::Response {
  public:
-  TransactionResponse(const Repo::ThisRef& repo, const Path& path,
+  TransactionResponse(Repo::ThisRef repo, Path path,
                       const std::vector<TransactionDataPtr> queue,
                       ResponseCallback callback)
       : connection::Response(callback),
-        repo_ref_(repo),
-        path_(path),
+        repo_ref_(std::move(repo)),
+        path_(std::move(path)),
         queue_(queue) {}
 
   Repo::ThisRef& repo_ref() { return repo_ref_; }
@@ -162,14 +164,14 @@ void Repo::RemoveEventCallback(void* listener_ptr,
 class OnDisconnectResponse : public connection::Response {
  public:
   OnDisconnectResponse(Repo* repo, const SafeFutureHandle<void>& handle,
-                       ReferenceCountedFutureImpl* ref_future, const Path& path,
-                       const Variant& data, ResponseCallback callback)
+                       ReferenceCountedFutureImpl* ref_future, Path path,
+                       Variant data, ResponseCallback callback)
       : connection::Response(callback),
         repo_(repo),
         handle_(handle),
         ref_future_(ref_future),
-        path_(path),
-        data_(data) {
+        path_(std::move(path)),
+        data_(std::move(data)) {
     assert(ref_future != nullptr);
   }
 
@@ -303,15 +305,15 @@ void Repo::PurgeOutstandingWrites() {
 // triggered.
 class SetValueResponse : public connection::Response {
  public:
-  SetValueResponse(const Repo::ThisRef& repo, const Path& path,
-                   WriteId write_id, ReferenceCountedFutureImpl* api,
+  SetValueResponse(Repo::ThisRef repo, Path path, WriteId write_id,
+                   ReferenceCountedFutureImpl* api,
                    SafeFutureHandle<void> handle, ResponseCallback callback)
       : connection::Response(callback),
-        repo_ref_(repo),
-        path_(path),
+        repo_ref_(std::move(repo)),
+        path_(std::move(path)),
         write_id_(write_id),
         api_(api),
-        handle_(handle) {}
+        handle_(std::move(handle)) {}
 
   Repo::ThisRef& repo_ref() { return repo_ref_; }
   const Path& path() { return path_; }
@@ -759,8 +761,8 @@ void Repo::AbortTransactionsAtNode(Tree<std::vector<TransactionDataPtr>>* node,
 
   if (queue.has_value()) {
     struct FutureToComplete {
-      FutureToComplete(const TransactionDataPtr& transaction, Error abort_error)
-          : transaction(transaction), abort_error(abort_error) {}
+      FutureToComplete(TransactionDataPtr transaction, Error abort_error)
+          : transaction(std::move(transaction)), abort_error(abort_error) {}
       TransactionDataPtr transaction;
       Error abort_error;
     };
@@ -909,9 +911,8 @@ void Repo::HandleTransactionResponse(const connection::ResponsePtr& ptr) {
 
   if (!response->HasError()) {
     struct FutureToComplete {
-      FutureToComplete(const TransactionDataPtr& transaction,
-                       const Variant& node)
-          : transaction(transaction), node(node) {}
+      FutureToComplete(TransactionDataPtr transaction, Variant node)
+          : transaction(std::move(transaction)), node(std::move(node)) {}
       TransactionDataPtr transaction;
       Variant node;
     };
@@ -985,7 +986,9 @@ void Repo::RerunTransactionQueue(const std::vector<TransactionDataPtr>& queue,
   struct FutureToComplete {
     FutureToComplete(TransactionDataPtr transaction, Error abort_reason,
                      Variant node)
-        : transaction(transaction), abort_reason(abort_reason), node(node) {}
+        : transaction(std::move(transaction)),
+          abort_reason(abort_reason),
+          node(std::move(node)) {}
     TransactionDataPtr transaction;
     Error abort_reason;
     Variant node;

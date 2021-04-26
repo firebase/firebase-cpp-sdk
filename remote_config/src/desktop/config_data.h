@@ -40,7 +40,7 @@ typedef std::map<std::string, std::map<std::string, std::string>>
 class NamespacedConfigData {
  public:
   NamespacedConfigData();
-  NamespacedConfigData(const NamespaceKeyValueMap& config, uint64_t timestamp);
+  NamespacedConfigData(NamespaceKeyValueMap  config, uint64_t timestamp);
 
   // Serialize to a buffer as a string.
   // This happens to be using Flexbuffers, but could be implemented with any
@@ -94,10 +94,10 @@ class NamespacedConfigData {
 // making HTTP requests.
 struct LayeredConfigs {
   LayeredConfigs();
-  LayeredConfigs(const NamespacedConfigData& config_fetched,
-                 const NamespacedConfigData& config_active,
-                 const NamespacedConfigData& config_default,
-                 const RemoteConfigMetadata& fetch_metadata);
+  LayeredConfigs(NamespacedConfigData  config_fetched,
+                 NamespacedConfigData  config_active,
+                 NamespacedConfigData  config_default,
+                 RemoteConfigMetadata  fetch_metadata);
 
   std::string Serialize() const;
   void Deserialize(const std::string& buffer);

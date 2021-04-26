@@ -17,6 +17,7 @@
 
 #include <cstdint>
 #include <set>
+#include <utility>
 
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
@@ -35,21 +36,20 @@ struct UserWriteRecord {
   UserWriteRecord()
       : write_id(), path(), overwrite(), merge(), visible(), is_overwrite() {}
 
-  UserWriteRecord(WriteId _write_id, const Path& _path,
-                  const Variant& _overwrite, bool _visible)
+  UserWriteRecord(WriteId _write_id, Path _path, Variant _overwrite,
+                  bool _visible)
       : write_id(_write_id),
-        path(_path),
-        overwrite(_overwrite),
+        path(std::move(_path)),
+        overwrite(std::move(_overwrite)),
         merge(),
         visible(_visible),
         is_overwrite(true) {}
 
-  UserWriteRecord(WriteId _write_id, const Path& _path,
-                  const CompoundWrite& _merge)
+  UserWriteRecord(WriteId _write_id, Path _path, CompoundWrite _merge)
       : write_id(_write_id),
-        path(_path),
+        path(std::move(_path)),
         overwrite(),
-        merge(_merge),
+        merge(std::move(_merge)),
         visible(true),
         is_overwrite(false) {}
 

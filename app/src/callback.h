@@ -35,6 +35,7 @@
 /// to the threads created to handle them internally.
 
 #include <string>
+#include <utility>
 
 namespace FIREBASE_NAMESPACE {
 namespace callback {
@@ -282,8 +283,8 @@ class CallbackMoveValue1 : public Callback {
 /// Callback implementation that wraps std::function
 class CallbackStdFunction : public Callback {
  public:
-  explicit CallbackStdFunction(const std::function<void()>& func)
-      : func_(func) {}
+  explicit CallbackStdFunction(std::function<void()>  func)
+      : func_(std::move(func)) {}
   ~CallbackStdFunction() override = default;
   void Run() override { func_(); }
 

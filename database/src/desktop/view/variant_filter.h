@@ -15,6 +15,8 @@
 #ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_VARIANT_FILTER_H_
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_VARIANT_FILTER_H_
 
+#include <utility>
+
 #include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
@@ -52,8 +54,8 @@ class CompleteChildSource {
 // of implementations of this interface.
 class VariantFilter {
  public:
-  explicit VariantFilter(const QueryParams& query_params)
-      : query_params_(query_params) {}
+  explicit VariantFilter(QueryParams query_params)
+      : query_params_(std::move(query_params)) {}
 
   virtual ~VariantFilter() = default;
 

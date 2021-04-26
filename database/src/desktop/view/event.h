@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_EVENT_H_
 
 #include <string>
+#include <utility>
 
 #include "app/memory/unique_ptr.h"
 #include "app/src/optional.h"
@@ -51,22 +52,22 @@ struct Event {
         path() {}
 
   Event(EventType _type, EventRegistration* _event_registration,
-        const DataSnapshotInternal& _snapshot, const std::string& _prev_name)
+        const DataSnapshotInternal& _snapshot, std::string  _prev_name)
       : type(_type),
         event_registration(_event_registration),
         snapshot(_snapshot),
-        prev_name(_prev_name),
+        prev_name(std::move(_prev_name)),
         error(kErrorNone),
         path() {}
 
   Event(UniquePtr<EventRegistration> _event_registration, Error _error,
-        const Path& _path)
+        Path  _path)
       : type(kEventTypeError),
         event_registration(_event_registration.get()),
         snapshot(),
         prev_name(),
         error(_error),
-        path(_path),
+        path(std::move(_path)),
         event_registration_ownership_ptr() {
     event_registration_ownership_ptr = std::move(_event_registration);
   }

@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <map>
 #include <set>
+#include <utility>
 
 #include "app/src/logger.h"
 #include "app/src/optional.h"
@@ -46,11 +47,11 @@ struct TrackedQuery {
         complete(false),
         active(false) {}
 
-  TrackedQuery(QueryId _query_id, const QuerySpec& _query_spec,
+  TrackedQuery(QueryId _query_id, QuerySpec  _query_spec,
                uint64_t _last_use, CompletionStatus _complete,
                ActivityStatus _active)
       : query_id(_query_id),
-        query_spec(_query_spec),
+        query_spec(std::move(_query_spec)),
         last_use(_last_use),
         complete(_complete == kComplete),
         active(_active == kActive) {}

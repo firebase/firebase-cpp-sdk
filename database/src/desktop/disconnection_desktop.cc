@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/disconnection_desktop.h"
 
+#include <utility>
+
 #include "app/src/future_manager.h"
 #include "database/src/common/database_reference.h"
 #include "database/src/desktop/core/repo.h"
@@ -38,8 +40,8 @@ const char kVirtualChildKeyValue[] = ".value";
 const char kVirtualChildKeyPriority[] = ".priority";
 
 DisconnectionHandlerInternal::DisconnectionHandlerInternal(
-    DatabaseInternal* database, const Path& path)
-    : database_(database), path_(path) {
+    DatabaseInternal* database, Path  path)
+    : database_(database), path_(std::move(path)) {
   database_->future_manager().AllocFutureApi(this,
                                              kDisconnectionHandlerFnCount);
 }

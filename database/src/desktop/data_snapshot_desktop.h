@@ -38,8 +38,8 @@ class DatabaseReferenceInternal;
 // Firebase Database location.
 class DataSnapshotInternal {
  public:
-  DataSnapshotInternal(DatabaseInternal* database, const Variant& data,
-                       const QuerySpec& query_spec);
+  DataSnapshotInternal(DatabaseInternal* database, Variant  data,
+                       QuerySpec  query_spec);
 
   DataSnapshotInternal(const DataSnapshotInternal& snapshot);
 

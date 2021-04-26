@@ -17,6 +17,8 @@
 #ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_GOOGLE_AUTH_CREDENTIAL_H_
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_GOOGLE_AUTH_CREDENTIAL_H_
 
+#include <utility>
+
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/identity_provider_credential.h"
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
@@ -42,9 +44,9 @@ class GoogleAuthCredential : public IdentityProviderCredential {
   }
 
  private:
-  GoogleAuthCredential(const std::string& id_token,
-                       const std::string& access_token)
-      : id_token_(id_token), access_token_(access_token) {}
+  GoogleAuthCredential(std::string  id_token,
+                       std::string  access_token)
+      : id_token_(std::move(id_token)), access_token_(std::move(access_token)) {}
 
   const std::string id_token_;
   const std::string access_token_;

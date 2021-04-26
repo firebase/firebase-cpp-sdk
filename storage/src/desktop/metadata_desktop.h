@@ -51,7 +51,7 @@ class MetadataInternal {
   static const char* kNameKey;
   static const char* kGenerationKey;
 
-  MetadataInternal(const StorageReference& storage_reference);
+  MetadataInternal(StorageReference storage_reference);
 
   MetadataInternal(const MetadataInternal& metadata);
 

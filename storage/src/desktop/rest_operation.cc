@@ -15,6 +15,7 @@
 #include "storage/src/desktop/rest_operation.h"
 
 #include <memory>
+#include <utility>
 
 #include "app/rest/transport_curl.h"
 #include "app/src/mutex.h"
@@ -39,7 +40,7 @@ RestOperation::RestOperation(StorageInternal* storage_internal,
       request_notifier_(request_notifier),
       response_(response),
       listener_(nullptr),
-      handle_(handle),
+      handle_(std::move(handle)),
       is_complete_(false) {
   // Notify this operation when the response reports progress and clean up if
   // the response completes.

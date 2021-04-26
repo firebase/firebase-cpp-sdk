@@ -49,8 +49,9 @@ std::vector<WwwFormUrlEncoded::Item> WwwFormUrlEncoded::Parse(
     if (end_of_field != current_field) {
       const char* separator = std::find(current_field, end_of_field, '=');
       if (separator != end_of_field) {
-        form_data.emplace_back(util::DecodeUrl(std::string(current_field, separator)),
-                 util::DecodeUrl(std::string(separator + 1, end_of_field)));
+        form_data.emplace_back(
+            util::DecodeUrl(std::string(current_field, separator)),
+            util::DecodeUrl(std::string(separator + 1, end_of_field)));
       }
     }
     current_field = end_of_field + 1;

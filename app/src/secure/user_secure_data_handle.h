@@ -16,6 +16,7 @@
 #define FIREBASE_APP_CLIENT_CPP_SRC_SECURE_USER_SECURE_DATA_HANDLE_H_
 
 #include <string>
+#include <utility>
 
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -39,11 +40,11 @@ enum UserSecureFutureResult {
 
 template <typename T>
 struct UserSecureDataHandle {
-  UserSecureDataHandle(const std::string& appName, const std::string& userData,
+  UserSecureDataHandle(std::string  appName, std::string  userData,
                        ReferenceCountedFutureImpl* futureApi,
                        const SafeFutureHandle<T>& futureHandle)
-      : app_name(appName),
-        user_data(userData),
+      : app_name(std::move(appName)),
+        user_data(std::move(userData)),
         future_api(futureApi),
         future_handle(futureHandle) {}
 

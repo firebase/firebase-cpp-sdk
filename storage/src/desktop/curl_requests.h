@@ -239,7 +239,7 @@ class ReturnedMetadataResponse : public BlockingResponse {
  public:
   ReturnedMetadataResponse(SafeFutureHandle<Metadata> handle,
                            ReferenceCountedFutureImpl* ref_future,
-                           const StorageReference& storage_reference);
+                           StorageReference storage_reference);
   bool ProcessBody(const char* buffer, size_t length) override;
   void MarkCompleted() override;
 

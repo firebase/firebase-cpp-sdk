@@ -16,6 +16,7 @@
 
 #include <fstream>
 #include <memory>
+#include <utility>
 
 #include "app/rest/transport_builder.h"
 #include "app/rest/util.h"
@@ -65,8 +66,8 @@ namespace {
 class GetTokenResult {
  public:
   explicit GetTokenResult(const AuthError error) : error_(error) {}
-  explicit GetTokenResult(const std::string& token)
-      : error_(kAuthErrorNone), token_(token) {}
+  explicit GetTokenResult(std::string  token)
+      : error_(kAuthErrorNone), token_(std::move(token)) {}
 
   bool IsValid() const { return error_ == kAuthErrorNone; }
   AuthError error() const { return error_; }

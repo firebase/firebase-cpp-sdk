@@ -15,6 +15,7 @@
 #include "database/src/desktop/connection/web_socket_client_impl.h"
 
 #include <cassert>
+#include <utility>
 
 #include "app/src/app_common.h"
 #include "app/src/assert.h"
@@ -29,10 +30,10 @@ namespace internal {
 namespace connection {
 
 WebSocketClientImpl::WebSocketClientImpl(
-    const std::string& uri, const std::string& user_agent, Logger* logger,
+    std::string  uri, std::string  user_agent, Logger* logger,
     scheduler::Scheduler* scheduler,
     WebSocketClientEventHandler* handler /*=nullptr*/)
-    : uri_(uri),
+    : uri_(std::move(uri)),
       handler_(handler),
       thread_(nullptr),
       hub_(),
@@ -42,7 +43,7 @@ WebSocketClientImpl::WebSocketClientImpl(
       callback_queue_mutex_(Mutex::kModeNonRecursive),
       is_destructing_(0),
       websocket_(nullptr),
-      user_agent_(user_agent),
+      user_agent_(std::move(user_agent)),
       logger_(logger),
       scheduler_(scheduler),
       safe_this_(this) {

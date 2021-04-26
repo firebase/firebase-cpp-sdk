@@ -16,6 +16,7 @@
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_PROVIDER_USER_INFO_H_
 
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "auth/src/desktop/user_desktop.h"
@@ -26,8 +27,8 @@ namespace auth {
 
 // Simple storage for user info properties, but conforming to UserInfoInterface.
 struct UserInfoInterfaceImpl : public UserInfoInterface {
-  explicit UserInfoInterfaceImpl(const UserInfoImpl& set_impl)
-      : impl(set_impl) {}
+  explicit UserInfoInterfaceImpl(UserInfoImpl  set_impl)
+      : impl(std::move(set_impl)) {}
 
   std::string uid() const override { return impl.uid; }
   std::string email() const override { return impl.email; }

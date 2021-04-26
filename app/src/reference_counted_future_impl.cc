@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <string>
+#include <utility>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
@@ -69,9 +70,8 @@ namespace {
 // This class manages the link between the two.
 class FutureProxyManager {
  public:
-  FutureProxyManager(ReferenceCountedFutureImpl* api,
-                     const FutureHandle& subject)
-      : api_(api), subject_(subject) {}
+  FutureProxyManager(ReferenceCountedFutureImpl* api, FutureHandle subject)
+      : api_(api), subject_(std::move(subject)) {}
 
   ~FutureProxyManager() {
     MutexLock lock(mutex_);
@@ -92,8 +92,8 @@ class FutureProxyManager {
   }
 
   struct UnregisterData {
-    UnregisterData(FutureProxyManager* proxy, const FutureHandle& handle)
-        : proxy(proxy), handle(handle) {}
+    UnregisterData(FutureProxyManager* proxy, FutureHandle handle)
+        : proxy(proxy), handle(std::move(handle)) {}
     FutureProxyManager* proxy;
     FutureHandle handle;
   };

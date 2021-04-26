@@ -17,6 +17,7 @@
 #include <stdio.h>
 
 #include <string>
+#include <utility>
 
 #include "app/rest/util.h"
 #include "storage/src/desktop/metadata_desktop.h"
@@ -62,7 +63,7 @@ Error HttpToErrorCode(int http_status) {
 // remains valid while the future handle isn't complete.
 BlockingResponse::BlockingResponse(FutureHandle handle,
                                    ReferenceCountedFutureImpl* ref_future)
-    : handle_(handle), ref_future_(ref_future) {}
+    : handle_(std::move(handle)), ref_future_(ref_future) {}
 
 BlockingResponse::~BlockingResponse() {
   // If the response isn't complete, cancel it.
@@ -243,9 +244,9 @@ void GetFileResponse::MarkCompleted() {
 
 ReturnedMetadataResponse::ReturnedMetadataResponse(
     SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* ref_future,
-    const StorageReference& storage_reference)
+    StorageReference  storage_reference)
     : BlockingResponse(handle.get(), ref_future),
-      storage_reference_(storage_reference) {}
+      storage_reference_(std::move(storage_reference)) {}
 
 bool ReturnedMetadataResponse::ProcessBody(const char* buffer, size_t length) {
   buffer_ += std::string(buffer, length);

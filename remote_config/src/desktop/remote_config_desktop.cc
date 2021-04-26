@@ -22,6 +22,7 @@
 #include <sstream>
 #include <string>
 #include <thread>  // NOLINT
+#include <utility>
 #include <vector>
 
 #include "app/src/callback.h"
@@ -65,9 +66,9 @@ struct RCDataHandle {
 };
 
 RemoteConfigInternal::RemoteConfigInternal(
-    const firebase::App& app, const RemoteConfigFileManager& file_manager)
+    const firebase::App& app, RemoteConfigFileManager  file_manager)
     : app_(app),
-      file_manager_(file_manager),
+      file_manager_(std::move(file_manager)),
       is_fetch_process_have_task_(false),
       future_impl_(kRemoteConfigFnCount),
       safe_this_(this),

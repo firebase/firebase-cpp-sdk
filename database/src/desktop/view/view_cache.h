@@ -15,6 +15,8 @@
 #ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_VIEW_CACHE_H_
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_VIEW_CACHE_H_
 
+#include <utility>
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 #include "database/src/desktop/core/indexed_variant.h"
@@ -106,8 +108,8 @@ class ViewCache {
  public:
   ViewCache() : local_snap_(), server_snap_() {}
 
-  ViewCache(const CacheNode& local_snap, const CacheNode& server_snap)
-      : local_snap_(local_snap), server_snap_(server_snap) {}
+  ViewCache(CacheNode  local_snap, CacheNode  server_snap)
+      : local_snap_(std::move(local_snap)), server_snap_(std::move(server_snap)) {}
 
   // Get the complete snapshot of the local cache, or null if it is not
   // present.

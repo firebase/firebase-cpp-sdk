@@ -14,6 +14,8 @@
 
 #include "database/src/desktop/core/web_socket_listen_provider.h"
 
+#include <utility>
+
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/connection/persistent_connection.h"
 #include "database/src/desktop/core/listen_provider.h"
@@ -30,14 +32,14 @@ using connection::ResponsePtr;
 class WebSocketListenResponse : public connection::Response {
  public:
   WebSocketListenResponse(const Response::ResponseCallback& callback,
-                          const Repo::ThisRef& repo_ref, SyncTree* sync_tree,
-                          const QuerySpec& query_spec, const Tag& tag,
+                          Repo::ThisRef  repo_ref, SyncTree* sync_tree,
+                          QuerySpec  query_spec, Tag  tag,
                           const View* view, Logger* logger)
       : connection::Response(callback),
-        repo_ref_(repo_ref),
+        repo_ref_(std::move(repo_ref)),
         sync_tree_(sync_tree),
-        query_spec_(query_spec),
-        tag_(tag),
+        query_spec_(std::move(query_spec)),
+        tag_(std::move(tag)),
         view_(view),
         logger_(logger) {}
 

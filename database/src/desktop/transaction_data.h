@@ -17,6 +17,7 @@
 
 #include <list>
 #include <queue>
+#include <utility>
 
 #include "app/memory/shared_ptr.h"
 #include "app/src/include/firebase/future.h"
@@ -60,13 +61,13 @@ struct TransactionData {
 
   // Constructor to capture all data for a RunTransaction request
   TransactionData(const SafeFutureHandle<DataSnapshot>& handle,
-                  ReferenceCountedFutureImpl* ref_future, const Path& path,
+                  ReferenceCountedFutureImpl* ref_future, Path  path,
                   DoTransactionWithContext function, void* context,
                   void (*delete_context)(void*), bool trigger_local_events,
                   UniquePtr<ValueListener> outstanding_listener)
       : future_handle(handle),
         ref_future(ref_future),
-        path(path),
+        path(std::move(path)),
         transaction_function(function),
         context(context),
         delete_context(delete_context),

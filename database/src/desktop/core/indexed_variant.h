@@ -36,8 +36,8 @@ class IndexedVariant {
       Index;
 
   IndexedVariant();
-  IndexedVariant(const Variant& variant);
-  IndexedVariant(const Variant& variant, const QueryParams& query_params);
+  IndexedVariant(Variant  variant);
+  IndexedVariant(Variant  variant, QueryParams  query_params);
 
   IndexedVariant(const IndexedVariant& other);
   IndexedVariant& operator=(const IndexedVariant& other);

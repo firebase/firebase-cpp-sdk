@@ -17,6 +17,8 @@
 #ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_OAUTH_AUTH_CREDENTIAL_H_
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_OAUTH_AUTH_CREDENTIAL_H_
 
+#include <utility>
+
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/identity_provider_credential.h"
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
@@ -44,12 +46,12 @@ class OAuthCredential : public IdentityProviderCredential {
   }
 
  private:
-  OAuthCredential(const std::string& provider_id, const std::string& id_token,
-                  const std::string& raw_nonce, const std::string& access_token)
-      : provider_id_(provider_id),
-        id_token_(id_token),
-        raw_nonce_(raw_nonce),
-        access_token_(access_token) {}
+  OAuthCredential(std::string  provider_id, std::string  id_token,
+                  std::string  raw_nonce, std::string  access_token)
+      : provider_id_(std::move(provider_id)),
+        id_token_(std::move(id_token)),
+        raw_nonce_(std::move(raw_nonce)),
+        access_token_(std::move(access_token)) {}
 
   const std::string provider_id_;
   const std::string id_token_;

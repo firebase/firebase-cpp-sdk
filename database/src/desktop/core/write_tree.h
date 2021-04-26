@@ -53,7 +53,7 @@ enum IterationDirection {
 // WriteTree.
 class WriteTreeRef {
  public:
-  WriteTreeRef(const Path& path, WriteTree* write_tree);
+  WriteTreeRef(Path path, WriteTree* write_tree);
 
   Optional<Variant> CalcCompleteEventCache(
       const Variant* complete_server_cache) const;

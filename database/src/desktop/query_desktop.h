@@ -17,6 +17,7 @@
 
 #include <limits>
 #include <memory>
+#include <utility>
 
 #include "app/memory/unique_ptr.h"
 #include "app/src/include/firebase/future.h"
@@ -41,7 +42,7 @@ class QueryInternal {
  public:
   QueryInternal() : database_(nullptr) {}
 
-  QueryInternal(DatabaseInternal* database, const QuerySpec& query_spec);
+  QueryInternal(DatabaseInternal* database, QuerySpec  query_spec);
 
   QueryInternal(const QueryInternal& query);
 
@@ -123,15 +124,15 @@ class QueryInternal {
 };
 
 struct ValueListenerCleanupData {
-  explicit ValueListenerCleanupData(const QuerySpec& query_spec)
-      : query_spec(query_spec) {}
+  explicit ValueListenerCleanupData(QuerySpec  query_spec)
+      : query_spec(std::move(query_spec)) {}
 
   QuerySpec query_spec;
 };
 
 struct ChildListenerCleanupData {
-  explicit ChildListenerCleanupData(const QuerySpec& query_spec)
-      : query_spec(query_spec) {}
+  explicit ChildListenerCleanupData(QuerySpec  query_spec)
+      : query_spec(std::move(query_spec)) {}
 
   QuerySpec query_spec;
 };

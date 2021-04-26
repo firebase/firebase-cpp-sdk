@@ -17,6 +17,7 @@
 #include <stddef.h>
 
 #include <string>
+#include <utility>
 
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"
@@ -30,9 +31,10 @@ namespace database {
 namespace internal {
 
 DataSnapshotInternal::DataSnapshotInternal(DatabaseInternal* database,
-                                           const Variant& data,
-                                           const QuerySpec& query_spec)
-    : database_(database), data_(data), query_spec_(query_spec) {
+                                           Variant data, QuerySpec query_spec)
+    : database_(database),
+      data_(std::move(data)),
+      query_spec_(std::move(query_spec)) {
   if (HasVector(data_)) {
     ConvertVectorToMap(&data_);
   }

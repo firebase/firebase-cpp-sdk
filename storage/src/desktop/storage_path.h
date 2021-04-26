@@ -16,6 +16,7 @@
 #define FIREBASE_STORAGE_CLIENT_CPP_SRC_DESKTOP_STORAGE_PATH_H_
 
 #include <string>
+#include <utility>
 
 #include "app/src/path.h"
 
@@ -82,8 +83,8 @@ class StoragePath {
  private:
   static const char* const kSeparator;
 
-  StoragePath(const std::string& bucket, const Path& path)
-      : bucket_(bucket), path_(path) {}
+  StoragePath(std::string bucket, Path path)
+      : bucket_(std::move(bucket)), path_(std::move(path)) {}
 
   void ConstructFromGsUri(const std::string& uri, int path_start);
   void ConstructFromHttpUrl(const std::string& url, int path_start);

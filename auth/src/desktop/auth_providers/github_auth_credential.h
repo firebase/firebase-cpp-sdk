@@ -17,6 +17,8 @@
 #ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_GITHUB_AUTH_CREDENTIAL_H_
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_GITHUB_AUTH_CREDENTIAL_H_
 
+#include <utility>
+
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/identity_provider_credential.h"
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
@@ -37,7 +39,7 @@ class GitHubAuthCredential : public IdentityProviderCredential {
   }
 
  private:
-  explicit GitHubAuthCredential(const std::string& token) : token_(token) {}
+  explicit GitHubAuthCredential(std::string  token) : token_(std::move(token)) {}
 
   const std::string token_;
 

@@ -14,6 +14,8 @@
 
 #include "remote_config/src/desktop/config_data.h"
 
+#include <utility>
+
 #include "flatbuffers/flexbuffers.h"
 #include "remote_config/src/desktop/metadata.h"
 
@@ -24,9 +26,9 @@ namespace internal {
 NamespacedConfigData::NamespacedConfigData()
     : config_(NamespaceKeyValueMap()), timestamp_(0) {}
 
-NamespacedConfigData::NamespacedConfigData(const NamespaceKeyValueMap& config,
+NamespacedConfigData::NamespacedConfigData(NamespaceKeyValueMap config,
                                            uint64_t timestamp)
-    : config_(config), timestamp_(timestamp) {}
+    : config_(std::move(config)), timestamp_(timestamp) {}
 
 std::string NamespacedConfigData::Serialize() const {
   flexbuffers::Builder fbb;
@@ -116,14 +118,14 @@ bool NamespacedConfigData::operator==(const NamespacedConfigData& right) const {
 }
 
 LayeredConfigs::LayeredConfigs() = default;
-LayeredConfigs::LayeredConfigs(const NamespacedConfigData& config_fetched,
-                               const NamespacedConfigData& config_active,
-                               const NamespacedConfigData& config_default,
-                               const RemoteConfigMetadata& fetch_metadata)
-    : fetched(config_fetched),
-      active(config_active),
-      defaults(config_default),
-      metadata(fetch_metadata) {}
+LayeredConfigs::LayeredConfigs(NamespacedConfigData config_fetched,
+                               NamespacedConfigData config_active,
+                               NamespacedConfigData config_default,
+                               RemoteConfigMetadata fetch_metadata)
+    : fetched(std::move(config_fetched)),
+      active(std::move(config_active)),
+      defaults(std::move(config_default)),
+      metadata(std::move(fetch_metadata)) {}
 
 std::string LayeredConfigs::Serialize() const {
   flexbuffers::Builder fbb;

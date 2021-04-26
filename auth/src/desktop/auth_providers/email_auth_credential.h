@@ -17,6 +17,8 @@
 #ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_EMAIL_AUTH_CREDENTIAL_H_
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_EMAIL_AUTH_CREDENTIAL_H_
 
+#include <utility>
+
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/auth_credential.h"
 
@@ -35,8 +37,8 @@ class EmailAuthCredential : public AuthCredential {
   std::string GetPassword() const { return password_; }
 
  private:
-  EmailAuthCredential(const std::string& email, const std::string& password)
-      : email_(email), password_(password) {}
+  EmailAuthCredential(std::string  email, std::string  password)
+      : email_(std::move(email)), password_(std::move(password)) {}
 
   const std::string email_;
   const std::string password_;

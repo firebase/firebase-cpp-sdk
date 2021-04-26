@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_CHANGE_H_
 
 #include <string>
+#include <utility>
 
 #include "app/src/include/firebase/variant.h"
 #include "database/src/desktop/core/indexed_variant.h"
@@ -42,20 +43,20 @@ struct Change {
         old_indexed_variant() {}
 
   Change(EventType _event_type, const IndexedVariant& _indexed_variant,
-         const std::string& _child_key)
+         std::string  _child_key)
       : event_type(_event_type),
         indexed_variant(_indexed_variant),
-        child_key(_child_key),
+        child_key(std::move(_child_key)),
         prev_name(),
         old_indexed_variant() {}
 
   Change(EventType _event_type, const IndexedVariant& _indexed_variant,
-         const std::string& _child_key, const std::string& _prev_name,
+         std::string  _child_key, std::string  _prev_name,
          const IndexedVariant& _old_indexed_variant)
       : event_type(_event_type),
         indexed_variant(_indexed_variant),
-        child_key(_child_key),
-        prev_name(_prev_name),
+        child_key(std::move(_child_key)),
+        prev_name(std::move(_prev_name)),
         old_indexed_variant(_old_indexed_variant) {}
 
   // The type of event that has occurred.

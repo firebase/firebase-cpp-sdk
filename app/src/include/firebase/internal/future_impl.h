@@ -196,8 +196,8 @@ inline FutureBase::CompletionCallbackHandle Future<ResultType>::AddOnCompletion(
 inline FutureBase::FutureBase() : api_(NULL), handle_(0) {}  // NOLINT
 
 inline FutureBase::FutureBase(detail::FutureApiInterface* api,
-                              const FutureHandle& handle)
-    : api_(api), handle_(handle) {
+                              FutureHandle  handle)
+    : api_(api), handle_(std::move(handle)) {
   api_->ReferenceFuture(handle_);
   // Once the FutureBase has reference, we don't need extra handle reference.
   handle_.Detach();

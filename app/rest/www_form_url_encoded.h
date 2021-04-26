@@ -18,6 +18,7 @@
 #define FIREBASE_APP_CLIENT_CPP_REST_WWW_FORM_URL_ENCODED_H_
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace firebase {
@@ -31,8 +32,8 @@ class WwwFormUrlEncoded {
   // Form item.
   struct Item {
     Item() = default;
-    Item(const std::string& key_, const std::string& value_)
-        : key(key_), value(value_) {}
+    Item(std::string key_, std::string value_)
+        : key(std::move(key_)), value(std::move(value_)) {}
 
     std::string key;
     std::string value;

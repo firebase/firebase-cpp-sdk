@@ -17,6 +17,8 @@
 #ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_PLAYGAMES_AUTH_CREDENTIAL_H_
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_PLAYGAMES_AUTH_CREDENTIAL_H_
 
+#include <utility>
+
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/identity_provider_credential.h"
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
@@ -37,8 +39,8 @@ class PlayGamesAuthCredential : public IdentityProviderCredential {
   }
 
  private:
-  explicit PlayGamesAuthCredential(const std::string& server_auth_code)
-      : server_auth_code_(server_auth_code) {}
+  explicit PlayGamesAuthCredential(std::string  server_auth_code)
+      : server_auth_code_(std::move(server_auth_code)) {}
 
   const std::string server_auth_code_;
 

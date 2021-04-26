@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <cassert>
+#include <utility>
 
 #include "app/src/assert.h"
 #include "app/src/include/firebase/variant.h"
@@ -32,17 +33,17 @@ IndexedVariant::IndexedVariant()
   EnsureIndexed();
 }
 
-IndexedVariant::IndexedVariant(const Variant& variant)
-    : variant_(variant),
+IndexedVariant::IndexedVariant(Variant  variant)
+    : variant_(std::move(variant)),
       query_params_(),
       index_(QueryParamsLesser(&query_params_)) {
   EnsureIndexed();
 }
 
-IndexedVariant::IndexedVariant(const Variant& variant,
-                               const QueryParams& query_params)
-    : variant_(variant),
-      query_params_(query_params),
+IndexedVariant::IndexedVariant(Variant  variant,
+                               QueryParams  query_params)
+    : variant_(std::move(variant)),
+      query_params_(std::move(query_params)),
       index_(QueryParamsLesser(&query_params_)) {
   EnsureIndexed();
 }

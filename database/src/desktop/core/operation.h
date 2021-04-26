@@ -15,6 +15,8 @@
 #ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_OPERATION_H_
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_OPERATION_H_
 
+#include <utility>
+
 #include "app/src/assert.h"
 #include "app/src/optional.h"
 #include "app/src/path.h"
@@ -80,14 +82,14 @@ struct Operation {
         affected_tree(),
         revert() {}
 
-  Operation(Type _type, const OperationSource& _source, const Path& _path,
-            const Variant& _snapshot, const CompoundWrite& _children,
+  Operation(Type _type, OperationSource  _source, Path  _path,
+            Variant  _snapshot, CompoundWrite  _children,
             const Tree<bool>& _affected_tree, AckStatus status)
       : type(_type),
-        source(_source),
-        path(_path),
-        snapshot(_snapshot),
-        children(_children),
+        source(std::move(_source)),
+        path(std::move(_path)),
+        snapshot(std::move(_snapshot)),
+        children(std::move(_children)),
         affected_tree(_affected_tree),
         revert(status == kAckRevert) {}
 

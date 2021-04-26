@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <map>
 #include <string>
+#include <utility>
 
 #include "app/memory/unique_ptr.h"
 #include "app/src/callback.h"
@@ -139,11 +140,11 @@ class InstanceIdDesktopImpl {
   class FetchServerTokenCallback : public callback::Callback {
    public:
     FetchServerTokenCallback(InstanceIdDesktopImpl* iid,
-                             const std::string& scope,
+                             std::string  scope,
                              SafeFutureHandle<std::string> future_handle)
         : iid_(iid),
-          scope_(scope),
-          future_handle_(future_handle),
+          scope_(std::move(scope)),
+          future_handle_(std::move(future_handle)),
           retry_delay_time_(0) {}
 
     void Run() override;

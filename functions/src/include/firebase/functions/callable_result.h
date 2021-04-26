@@ -15,8 +15,10 @@
 #ifndef FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_
 #define FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_
 
-#include "firebase/variant.h"
+#include <utility>
+
 #include "firebase/functions/common.h"
+#include "firebase/variant.h"
 
 namespace firebase {
 namespace functions {
@@ -78,7 +80,7 @@ class HttpsCallableResult {
   /// @cond FIREBASE_APP_INTERNAL
   // Only functions are allowed to construct results.
   friend class ::firebase::functions::internal::HttpsCallableReferenceInternal;
-  HttpsCallableResult(const Variant& data) : data_(data) {}
+  HttpsCallableResult(Variant  data) : data_(std::move(data)) {}
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
   HttpsCallableResult(Variant&& data) : data_(std::move(data)) {}
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS)

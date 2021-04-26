@@ -15,6 +15,7 @@
 #include "database/src/desktop/core/write_tree.h"
 
 #include <algorithm>
+#include <utility>
 
 #include "app/src/assert.h"
 #include "database/src/desktop/core/compound_write.h"
@@ -37,7 +38,8 @@ void WriteTree::AddOverwrite(const Path& path, const Variant& snap,
                              WriteId write_id, OverwriteVisibility visibility) {
   // Stacking an older write on top of newer ones.
   FIREBASE_DEV_ASSERT(write_id > last_write_id_);
-  all_writes_.emplace_back(write_id, path, snap, visibility == kOverwriteVisible);
+  all_writes_.emplace_back(write_id, path, snap,
+                           visibility == kOverwriteVisible);
   if (visibility == kOverwriteVisible) {
     visible_writes_.AddWriteInline(path, snap);
   }
@@ -434,8 +436,8 @@ CompoundWrite WriteTree::LayerTree(const std::vector<UserWriteRecord>& writes,
   return compound_write;
 }
 
-WriteTreeRef::WriteTreeRef(const Path& path, WriteTree* write_tree)
-    : path_(path), write_tree_(write_tree) {}
+WriteTreeRef::WriteTreeRef(Path path, WriteTree* write_tree)
+    : path_(std::move(path)), write_tree_(write_tree) {}
 
 Optional<Variant> WriteTreeRef::CalcCompleteEventCache(
     const Variant* complete_server_cache) const {

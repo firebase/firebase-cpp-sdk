@@ -15,6 +15,8 @@
 #ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_EVENT_REGISTRATION_H_
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_EVENT_REGISTRATION_H_
 
+#include <utility>
+
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/view/change.h"
@@ -34,8 +36,8 @@ struct Event;
 // can be used to fire the event later.
 class EventRegistration {
  public:
-  explicit EventRegistration(const QuerySpec& query_spec)
-      : status_(kActive), query_spec_(query_spec) {}
+  explicit EventRegistration(QuerySpec  query_spec)
+      : status_(kActive), query_spec_(std::move(query_spec)) {}
 
   virtual ~EventRegistration();
 

@@ -15,6 +15,7 @@
 #include "database/src/desktop/query_desktop.h"
 
 #include <sstream>
+#include <utility>
 
 #include "app/memory/unique_ptr.h"
 #include "app/rest/transport_builder.h"
@@ -89,9 +90,8 @@ static bool ValidateQueryEndpoints(const QueryParams& params, Logger* logger) {
   return true;
 }
 
-QueryInternal::QueryInternal(DatabaseInternal* database,
-                             const QuerySpec& query_spec)
-    : database_(database), query_spec_(query_spec) {
+QueryInternal::QueryInternal(DatabaseInternal* database, QuerySpec query_spec)
+    : database_(database), query_spec_(std::move(query_spec)) {
   if (database_) {
     database_->future_manager().AllocFutureApi(&future_api_id_, kQueryFnCount);
   }

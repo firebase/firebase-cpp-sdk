@@ -15,6 +15,8 @@
 #ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_COMMON_QUERY_SPEC_H_
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_COMMON_QUERY_SPEC_H_
 
+#include <utility>
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
 
@@ -107,10 +109,10 @@ struct QueryParams {
 // remove a listener from a different (but matching) Query to the original.
 struct QuerySpec {
   QuerySpec() : path(), params() {}
-  explicit QuerySpec(const Path& _path) : path(_path), params() {}
-  explicit QuerySpec(const QueryParams& _params) : path(), params(_params) {}
-  QuerySpec(const Path& _path, const QueryParams& _params)
-      : path(_path), params(_params) {}
+  explicit QuerySpec(Path  _path) : path(std::move(_path)), params() {}
+  explicit QuerySpec(QueryParams  _params) : path(), params(std::move(_params)) {}
+  QuerySpec(Path  _path, QueryParams  _params)
+      : path(std::move(_path)), params(std::move(_params)) {}
 
   // Compare two QuerySpecs, which are considered the same if all fields are the
   // same.

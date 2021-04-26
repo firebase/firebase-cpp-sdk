@@ -19,6 +19,7 @@
 
 #include <functional>
 #include <map>
+#include <utility>
 #include <vector>
 
 #include "app/src/cleanup_notifier.h"
@@ -63,8 +64,8 @@ template <typename T>
 class SafeFutureHandle {
  public:
   inline SafeFutureHandle() : handle_(kInvalidFutureHandle) {}
-  inline explicit SafeFutureHandle(const FutureHandle& handle)
-      : handle_(handle) {}
+  inline explicit SafeFutureHandle(FutureHandle  handle)
+      : handle_(std::move(handle)) {}
   inline const FutureHandle& get() const { return handle_; }
   // See FutureHandle::Detach.
   void Detach() { handle_.Detach(); }

@@ -149,7 +149,7 @@ class FutureBase {
   ///
   /// @param api API class used to provide the future implementation.
   /// @param handle Handle to the future.
-  FutureBase(detail::FutureApiInterface* api, const FutureHandle& handle);
+  FutureBase(detail::FutureApiInterface* api, FutureHandle  handle);
 
   /// @endcond
 

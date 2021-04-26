@@ -17,6 +17,8 @@
 #ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_FACEBOOK_AUTH_CREDENTIAL_H_
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_FACEBOOK_AUTH_CREDENTIAL_H_
 
+#include <utility>
+
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/identity_provider_credential.h"
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
@@ -37,8 +39,8 @@ class FacebookAuthCredential : public IdentityProviderCredential {
   }
 
  private:
-  explicit FacebookAuthCredential(const std::string& access_token)
-      : access_token_(access_token) {}
+  explicit FacebookAuthCredential(std::string  access_token)
+      : access_token_(std::move(access_token)) {}
 
   const std::string access_token_;
 

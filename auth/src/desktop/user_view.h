@@ -103,7 +103,7 @@ class UserView {
   };
 
   // Construct a user view from an existing set of user data.
-  explicit UserView(const UserData& user_data) : user_data_(user_data) {}
+  explicit UserView(UserData  user_data) : user_data_(std::move(user_data)) {}
 
   // Exposed for testing.
   const UserData& user_data() const { return user_data_; }

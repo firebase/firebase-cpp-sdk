@@ -16,6 +16,7 @@
 
 #include <limits>
 #include <memory>
+#include <utility>
 
 #include "app/memory/unique_ptr.h"
 #include "app/rest/request.h"
@@ -63,8 +64,8 @@ StorageReferenceInternal::StorageReferenceInternal(
 }
 
 StorageReferenceInternal::StorageReferenceInternal(
-    const StoragePath& storageUri, StorageInternal* storage)
-    : storage_(storage), storageUri_(storageUri) {
+    StoragePath  storageUri, StorageInternal* storage)
+    : storage_(storage), storageUri_(std::move(storageUri)) {
   storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
 }
 
@@ -136,10 +137,10 @@ std::string StripProtocol(std::string s) {
 struct MetadataChainData {
   MetadataChainData(SafeFutureHandle<Metadata> handle_,
                     const Metadata* metadata_,
-                    const StorageReference& storage_ref_,
+                    StorageReference  storage_ref_,
                     ReferenceCountedFutureImpl* original_future_)
-      : handle(handle_),
-        storage_ref(storage_ref_),
+      : handle(std::move(handle_)),
+        storage_ref(std::move(storage_ref_)),
         original_future(original_future_) {
     if (metadata_) metadata = *metadata_;
     MetadataSetDefaults(&metadata);
@@ -479,7 +480,7 @@ Future<std::string> StorageReferenceInternal::GetDownloadUrl() {
   struct GetUrlOnCompletionData {
     GetUrlOnCompletionData(ReferenceCountedFutureImpl* future_,
                            SafeFutureHandle<std::string> handle_)
-        : future(future_), handle(handle_) {}
+        : future(future_), handle(std::move(handle_)) {}
     ReferenceCountedFutureImpl* future;
     SafeFutureHandle<std::string> handle;
   };

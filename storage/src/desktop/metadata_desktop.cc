@@ -54,8 +54,8 @@ const char* MetadataInternal::kBucketKey = "bucket";
 const char* MetadataInternal::kNameKey = "name";
 const char* MetadataInternal::kGenerationKey = "generation";
 
-MetadataInternal::MetadataInternal(const StorageReference& storage_reference)
-    : storage_reference_(storage_reference),
+MetadataInternal::MetadataInternal(StorageReference  storage_reference)
+    : storage_reference_(std::move(storage_reference)),
       generation_(-1),
       metadata_generation_(-1),
       creation_time_(-1),

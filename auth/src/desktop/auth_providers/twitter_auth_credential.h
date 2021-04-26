@@ -17,6 +17,8 @@
 #ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_TWITTER_AUTH_CREDENTIAL_H_
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_TWITTER_AUTH_CREDENTIAL_H_
 
+#include <utility>
+
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/identity_provider_credential.h"
 #include "auth/src/desktop/rpcs/verify_assertion_request.h"
@@ -37,8 +39,8 @@ class TwitterAuthCredential : public IdentityProviderCredential {
   }
 
  private:
-  TwitterAuthCredential(const std::string& token, const std::string& secret)
-      : token_(token), secret_(secret) {}
+  TwitterAuthCredential(std::string  token, std::string  secret)
+      : token_(std::move(token)), secret_(std::move(secret)) {}
 
   const std::string token_;
   const std::string secret_;
