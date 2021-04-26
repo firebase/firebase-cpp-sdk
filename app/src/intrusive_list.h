@@ -209,8 +209,8 @@ class intrusive_list_node {
 
 #if !defined(_MSC_VER)
   // Disallow copying.
-  intrusive_list_node(const intrusive_list_node&);
-  intrusive_list_node& operator=(const intrusive_list_node&);
+  intrusive_list_node(const intrusive_list_node&) = delete;
+  intrusive_list_node& operator=(const intrusive_list_node&) = delete;
 #endif  // !defined(_MSC_VER)
 };
 

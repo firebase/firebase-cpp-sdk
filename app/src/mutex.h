@@ -157,7 +157,7 @@ class MutexLock {
  private:
   // Copy is disallowed.
   MutexLock(const MutexLock& rhs);  // NOLINT
-  MutexLock& operator=(const MutexLock& rhs);
+  MutexLock& operator=(const MutexLock& rhs) = delete;
 
   Mutex* mutex_;
 };

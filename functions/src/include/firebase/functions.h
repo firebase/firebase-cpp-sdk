@@ -96,8 +96,8 @@ class Functions {
  private:
   /// @cond FIREBASE_APP_INTERNAL
   Functions(::firebase::App* app, const char* region);
-  Functions(const Functions& src);
-  Functions& operator=(const Functions& src);
+  Functions(const Functions& src) = delete;
+  Functions& operator=(const Functions& src) = delete;
 
   // Delete the internal_ data.
   void DeleteInternal();

@@ -63,10 +63,10 @@ class FutureManager {
 
  private:
   // Disallow copying and moving.
-  FutureManager(const FutureManager& rhs);
-  FutureManager& operator=(const FutureManager& rhs);
-  FutureManager(FutureManager&& rhs);
-  FutureManager& operator=(FutureManager&& rhs);
+  FutureManager(const FutureManager& rhs) = delete;
+  FutureManager& operator=(const FutureManager& rhs) = delete;
+  FutureManager(FutureManager&& rhs) = delete;
+  FutureManager& operator=(FutureManager&& rhs) = delete;
 
   // Insert a ReferenceCountedFutureImpl into the API list, owned by the given
   // object. If any previous ReferenceCountedFutureImpl was owned by the object,

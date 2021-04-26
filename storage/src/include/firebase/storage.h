@@ -145,8 +145,8 @@ class Storage {
   friend class internal::MetadataInternal;
 
   Storage(::firebase::App* app, const char* url);
-  Storage(const Storage& src);
-  Storage& operator=(const Storage& src);
+  Storage(const Storage& src) = delete;
+  Storage& operator=(const Storage& src) = delete;
 
   // Destroy the internal_ object.
   void DeleteInternal();
