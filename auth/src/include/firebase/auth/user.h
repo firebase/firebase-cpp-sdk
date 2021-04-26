@@ -143,7 +143,7 @@ struct UserMetadata {
 
 /// @brief Result of operations that can affect authentication state.
 struct SignInResult {
-  SignInResult() : user(NULL) {}
+  SignInResult() : user(nullptr) {}
 
   /// The currently signed-in @ref User, or NULL if there isn't any (i.e. the
   /// user is signed out).
@@ -169,7 +169,7 @@ class User : public UserInfoInterface {
   /// For fields you want to reset, pass "".
   struct UserProfile {
     /// Construct a UserProfile with no display name or photo URL.
-    UserProfile() : display_name(NULL), photo_url(NULL) {}
+    UserProfile() : display_name(nullptr), photo_url(nullptr) {}
 
     /// User display name.
     const char* display_name;

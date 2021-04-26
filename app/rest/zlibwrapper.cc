@@ -264,9 +264,9 @@ int ZLib::CompressInit(Bytef* dest, uLongf* destLen, const Bytef* source,
 
   // First use or previous state was not reusable with current settings.
   if (!comp_init_) {
-    comp_stream_.zalloc = (alloc_func)0;
-    comp_stream_.zfree = (free_func)0;
-    comp_stream_.opaque = (voidpf)0;
+    comp_stream_.zalloc = (alloc_func)nullptr;
+    comp_stream_.zfree = (free_func)nullptr;
+    comp_stream_.opaque = (voidpf)nullptr;
     err = DeflateInit();
     if (err != Z_OK) return err;
     comp_init_ = true;
@@ -487,9 +487,9 @@ int ZLib::UncompressInit(Bytef* dest, uLongf* destLen, const Bytef* source,
 
   // First use or previous state was not reusable with current settings.
   if (!uncomp_init_) {
-    uncomp_stream_.zalloc = (alloc_func)0;
-    uncomp_stream_.zfree = (free_func)0;
-    uncomp_stream_.opaque = (voidpf)0;
+    uncomp_stream_.zalloc = (alloc_func)nullptr;
+    uncomp_stream_.zfree = (free_func)nullptr;
+    uncomp_stream_.opaque = (voidpf)nullptr;
     err = InflateInit();
     if (err != Z_OK) return err;
     uncomp_init_ = true;
