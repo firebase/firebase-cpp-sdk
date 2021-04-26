@@ -47,9 +47,8 @@ struct TrackedQuery {
         complete(false),
         active(false) {}
 
-  TrackedQuery(QueryId _query_id, QuerySpec  _query_spec,
-               uint64_t _last_use, CompletionStatus _complete,
-               ActivityStatus _active)
+  TrackedQuery(QueryId _query_id, QuerySpec _query_spec, uint64_t _last_use,
+               CompletionStatus _complete, ActivityStatus _active)
       : query_id(_query_id),
         query_spec(std::move(_query_spec)),
         last_use(_last_use),

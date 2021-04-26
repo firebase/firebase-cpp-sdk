@@ -52,7 +52,7 @@ struct Event {
         path() {}
 
   Event(EventType _type, EventRegistration* _event_registration,
-        const DataSnapshotInternal& _snapshot, std::string  _prev_name)
+        const DataSnapshotInternal& _snapshot, std::string _prev_name)
       : type(_type),
         event_registration(_event_registration),
         snapshot(_snapshot),
@@ -61,7 +61,7 @@ struct Event {
         path() {}
 
   Event(UniquePtr<EventRegistration> _event_registration, Error _error,
-        Path  _path)
+        Path _path)
       : type(kEventTypeError),
         event_registration(_event_registration.get()),
         snapshot(),

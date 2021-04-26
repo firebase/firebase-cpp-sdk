@@ -27,8 +27,8 @@ FutureManager::FutureManager() = default;
 FutureManager::~FutureManager() {
   MutexLock lock(future_api_mutex_);
   // Move all future APIs to the orphaned list.
-  for (auto i = future_apis_.begin(); i != future_apis_.end(); ++i) {
-    orphaned_future_apis_.insert(i->second);
+  for (auto& future_api : future_apis_) {
+    orphaned_future_apis_.insert(future_api.second);
   }
   future_apis_.clear();
   CleanupOrphanedFutureApis(/*force_delete_all=*/true);
@@ -93,37 +93,34 @@ ReferenceCountedFutureImpl* FutureManager::GetFutureApi(void* owner) {
 void FutureManager::CleanupOrphanedFutureApis(bool force_delete_all) {
   MutexLock lock(future_api_mutex_);
   std::vector<ReferenceCountedFutureImpl*> to_delete;
-  for (auto api = orphaned_future_apis_.begin();
-       api != orphaned_future_apis_.end(); ++api) {
-    if (IsSafeToDeleteFutureApi(*api)) {
-      to_delete.push_back(*api);
+  for (auto orphaned_future_api : orphaned_future_apis_) {
+    if (IsSafeToDeleteFutureApi(orphaned_future_api)) {
+      to_delete.push_back(orphaned_future_api);
     } else if (force_delete_all) {
       // Deleting an API while it's running a callback (which could have
       // triggered the current call to `CleanupOrphanedFutureApis`) will lead to
       // a use-after-free. Instead, mark the API to be deleted once the callback
       // finishes.
-      if ((*api)->IsRunningCallback()) {
-        (*api)->MarkOrphaned();
+      if (orphaned_future_api->IsRunningCallback()) {
+        orphaned_future_api->MarkOrphaned();
       } else {
-        to_delete.push_back(*api);
+        to_delete.push_back(orphaned_future_api);
       }
     }
   }
 
-  for (int i = 0; i < to_delete.size(); i++) {
-    auto* api = to_delete[i];
+  for (auto& i : to_delete) {
+    auto* api = i;
     // Deleting the API could result in the side effect of running
     // CleanupOrphanedFutureApis() again so make sure the API we're going to
     // delete is still in the orphan list.
     orphaned_future_apis_.erase(api);
-    api->cleanup().cleanup_notifier().RegisterObject(
-        &to_delete[i], [](void* object) {
-          *(reinterpret_cast<ReferenceCountedFutureImpl**>(object)) = nullptr;
-        });
+    api->cleanup().cleanup_notifier().RegisterObject(&i, [](void* object) {
+      *(reinterpret_cast<ReferenceCountedFutureImpl**>(object)) = nullptr;
+    });
   }
 
-  for (int i = 0; i < to_delete.size(); i++) {
-    auto* api = to_delete[i];
+  for (auto api : to_delete) {
     if (api) delete api;
   }
 }

@@ -334,8 +334,8 @@ const char ReferenceCountedFutureImpl::kErrorMessageFutureIsNoLongerValid[] =
 
 ReferenceCountedFutureImpl::~ReferenceCountedFutureImpl() {
   // All futures should be released before we destroy ourselves.
-  for (size_t i = 0; i < last_results_.size(); ++i) {
-    last_results_[i].Release();
+  for (auto& last_result : last_results_) {
+    last_result.Release();
   }
 
   // Invalidate any externally-held futures.
@@ -708,9 +708,9 @@ ReferenceCountedFutureImpl::AddCompletionCallbackLambda(
 bool ReferenceCountedFutureImpl::IsSafeToDelete() const {
   MutexLock lock(mutex_);
   // Check if any Futures we have are still pending.
-  for (auto i = backings_.begin(); i != backings_.end(); ++i) {
+  for (auto backing : backings_) {
     // If any Future is still pending, not safe to delete.
-    if (i->second->status == kFutureStatusPending) return false;
+    if (backing.second->status == kFutureStatusPending) return false;
   }
 
   if (is_running_callback_) {
@@ -730,12 +730,12 @@ bool ReferenceCountedFutureImpl::IsReferencedExternally() const {
 
   int total_references = 0;
   int internal_references = 0;
-  for (auto i = backings_.begin(); i != backings_.end(); ++i) {
+  for (auto backing : backings_) {
     // Count the total number of references to all valid Futures.
-    total_references += i->second->reference_count;
+    total_references += backing.second->reference_count;
   }
-  for (int i = 0; i < last_results_.size(); i++) {
-    if (last_results_[i].status() != kFutureStatusInvalid) {
+  for (const auto& last_result : last_results_) {
+    if (last_result.status() != kFutureStatusInvalid) {
       // If the status is not invalid, this entry is using up a reference.
       // Count up the internal references.
       internal_references++;

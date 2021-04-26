@@ -124,13 +124,12 @@ void StorageInternal::RemoveOperation(RestOperation* operation) {
 void StorageInternal::CleanupCompletedOperations() {
   MutexLock lock(operations_mutex_);
   std::vector<RestOperation*> operations_to_delete;
-  for (auto it = operations_.begin(); it != operations_.end(); ++it) {
-    if ((*it)->is_complete()) operations_to_delete.push_back(*it);
+  for (auto & operation : operations_) {
+    if (operation->is_complete()) operations_to_delete.push_back(operation);
   }
-  for (auto it = operations_to_delete.begin(); it != operations_to_delete.end();
-       ++it) {
-    RemoveOperation(*it);
-    delete *it;
+  for (auto & it : operations_to_delete) {
+    RemoveOperation(it);
+    delete it;
   }
 }
 

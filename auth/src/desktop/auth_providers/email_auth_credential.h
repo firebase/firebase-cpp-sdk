@@ -37,7 +37,7 @@ class EmailAuthCredential : public AuthCredential {
   std::string GetPassword() const { return password_; }
 
  private:
-  EmailAuthCredential(std::string  email, std::string  password)
+  EmailAuthCredential(std::string email, std::string password)
       : email_(std::move(email)), password_(std::move(password)) {}
 
   const std::string email_;

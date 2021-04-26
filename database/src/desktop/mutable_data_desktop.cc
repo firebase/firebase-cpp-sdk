@@ -41,7 +41,7 @@ MutableDataInternal::MutableDataInternal(DatabaseInternal* database,
 }
 
 MutableDataInternal::MutableDataInternal(const MutableDataInternal& other,
-                                         Path  path)
+                                         Path path)
     : db_(other.db_), path_(std::move(path)), holder_(other.holder_) {}
 
 MutableDataInternal* MutableDataInternal::Clone() {

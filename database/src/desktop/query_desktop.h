@@ -42,7 +42,7 @@ class QueryInternal {
  public:
   QueryInternal() : database_(nullptr) {}
 
-  QueryInternal(DatabaseInternal* database, QuerySpec  query_spec);
+  QueryInternal(DatabaseInternal* database, QuerySpec query_spec);
 
   QueryInternal(const QueryInternal& query);
 
@@ -124,14 +124,14 @@ class QueryInternal {
 };
 
 struct ValueListenerCleanupData {
-  explicit ValueListenerCleanupData(QuerySpec  query_spec)
+  explicit ValueListenerCleanupData(QuerySpec query_spec)
       : query_spec(std::move(query_spec)) {}
 
   QuerySpec query_spec;
 };
 
 struct ChildListenerCleanupData {
-  explicit ChildListenerCleanupData(QuerySpec  query_spec)
+  explicit ChildListenerCleanupData(QuerySpec query_spec)
       : query_spec(std::move(query_spec)) {}
 
   QuerySpec query_spec;

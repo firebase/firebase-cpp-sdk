@@ -108,8 +108,9 @@ class ViewCache {
  public:
   ViewCache() : local_snap_(), server_snap_() {}
 
-  ViewCache(CacheNode  local_snap, CacheNode  server_snap)
-      : local_snap_(std::move(local_snap)), server_snap_(std::move(server_snap)) {}
+  ViewCache(CacheNode local_snap, CacheNode server_snap)
+      : local_snap_(std::move(local_snap)),
+        server_snap_(std::move(server_snap)) {}
 
   // Get the complete snapshot of the local cache, or null if it is not
   // present.

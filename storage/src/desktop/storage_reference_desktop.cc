@@ -63,8 +63,8 @@ StorageReferenceInternal::StorageReferenceInternal(
   storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
 }
 
-StorageReferenceInternal::StorageReferenceInternal(
-    StoragePath  storageUri, StorageInternal* storage)
+StorageReferenceInternal::StorageReferenceInternal(StoragePath storageUri,
+                                                   StorageInternal* storage)
     : storage_(storage), storageUri_(std::move(storageUri)) {
   storage_->future_manager().AllocFutureApi(this, kStorageReferenceFnCount);
 }
@@ -136,8 +136,7 @@ std::string StripProtocol(std::string s) {
 // Is deleted by the final call.
 struct MetadataChainData {
   MetadataChainData(SafeFutureHandle<Metadata> handle_,
-                    const Metadata* metadata_,
-                    StorageReference  storage_ref_,
+                    const Metadata* metadata_, StorageReference storage_ref_,
                     ReferenceCountedFutureImpl* original_future_)
       : handle(std::move(handle_)),
         storage_ref(std::move(storage_ref_)),

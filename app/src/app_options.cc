@@ -158,8 +158,7 @@ AppOptions* AppOptions::LoadFromJsonConfig(const char* config,  // NOLINT
       // We explicitly ignore the value of GA tracking ID and Messaging Sender
       // ID as we don't support analytics on desktop at the moment.
   };
-  for (size_t i = 0; i < FIREBASE_ARRAYSIZE(options_to_validate); ++i) {
-    const auto& validate_option = options_to_validate[i];
+  for (auto & validate_option : options_to_validate) {
     if (strlen(validate_option.option_value) == 0) {
       LogWarning("%s not set in the Firebase config.",
                  validate_option.option_name);

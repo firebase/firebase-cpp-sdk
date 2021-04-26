@@ -244,7 +244,7 @@ void GetFileResponse::MarkCompleted() {
 
 ReturnedMetadataResponse::ReturnedMetadataResponse(
     SafeFutureHandle<Metadata> handle, ReferenceCountedFutureImpl* ref_future,
-    StorageReference  storage_reference)
+    StorageReference storage_reference)
     : BlockingResponse(handle.get(), ref_future),
       storage_reference_(std::move(storage_reference)) {}
 

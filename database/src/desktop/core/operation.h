@@ -82,9 +82,9 @@ struct Operation {
         affected_tree(),
         revert() {}
 
-  Operation(Type _type, OperationSource  _source, Path  _path,
-            Variant  _snapshot, CompoundWrite  _children,
-            const Tree<bool>& _affected_tree, AckStatus status)
+  Operation(Type _type, OperationSource _source, Path _path, Variant _snapshot,
+            CompoundWrite _children, const Tree<bool>& _affected_tree,
+            AckStatus status)
       : type(_type),
         source(std::move(_source)),
         path(std::move(_path)),

@@ -70,7 +70,7 @@ class RemoteConfigInternal {
 #endif  // FIREBASE_TESTING
 
   explicit RemoteConfigInternal(const firebase::App& app,
-                                RemoteConfigFileManager  file_manager);
+                                RemoteConfigFileManager file_manager);
 
   explicit RemoteConfigInternal(const firebase::App& app);
 

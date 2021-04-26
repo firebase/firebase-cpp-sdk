@@ -27,7 +27,7 @@ namespace firebase {
 namespace remote_config {
 namespace internal {
 
-RemoteConfigFileManager::RemoteConfigFileManager(std::string  file_path)
+RemoteConfigFileManager::RemoteConfigFileManager(std::string file_path)
     : file_path_(std::move(file_path)) {}
 
 bool RemoteConfigFileManager::Load(LayeredConfigs* configs) const {

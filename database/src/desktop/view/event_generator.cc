@@ -49,8 +49,7 @@ std::vector<Event> GenerateEventsForChanges(
   std::vector<Event> events;
   std::vector<Change> moves;
   QueryParamsComparator comparator(&query_spec.params);
-  for (auto iter = changes.begin(); iter != changes.end(); ++iter) {
-    const Change& change = *iter;
+  for (const auto & change : changes) {
     if (change.event_type == kEventTypeChildChanged) {
       const Variant& old_variant = change.old_indexed_variant.variant();
       const Variant& variant = change.indexed_variant.variant();
@@ -99,8 +98,7 @@ void GenerateEventsForType(
     const IndexedVariant& event_cache, std::vector<Event>* events) {
   std::vector<const Change*> filtered_changes;
   filtered_changes.reserve(changes.size());
-  for (auto iter = changes.begin(); iter != changes.end(); ++iter) {
-    const Change& change = *iter;
+  for (const auto & change : changes) {
     if (change.event_type != kEventTypeValue) {
       FIREBASE_DEV_ASSERT_MESSAGE(!change.child_key.empty(),
                                   "Child changes must have a child_key");
@@ -118,12 +116,8 @@ void GenerateEventsForType(
                                 "Value changes must occur one at a time");
   }
 
-  for (auto change_iter = filtered_changes.begin();
-       change_iter != filtered_changes.end(); ++change_iter) {
-    const Change* change = *change_iter;
-    for (auto registration_iter = event_registrations.begin();
-         registration_iter != event_registrations.end(); ++registration_iter) {
-      const UniquePtr<EventRegistration>& registration = *registration_iter;
+  for (auto change : filtered_changes) {
+    for (const auto & registration : event_registrations) {
       if (registration->RespondsTo(event_type)) {
         events->push_back(GenerateEvent(query_spec, *change, registration.get(),
                                         event_cache));

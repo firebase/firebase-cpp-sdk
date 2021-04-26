@@ -452,8 +452,8 @@ void GetOuterMostSdkAndVersion(std::string* sdk, std::string* version) {
       FIREBASE_CPP_USER_AGENT_PREFIX,
   };
   LibraryRegistry* registry = LibraryRegistry::Initialize();
-  for (size_t i = 0; i < FIREBASE_ARRAYSIZE(kLibraryVersions); ++i) {
-    std::string library(kLibraryVersions[i]);
+  for (auto& kLibraryVersion : kLibraryVersions) {
+    std::string library(kLibraryVersion);
     std::string library_version = registry->GetLibraryVersion(library);
     if (!library_version.empty()) {
       *sdk = library;

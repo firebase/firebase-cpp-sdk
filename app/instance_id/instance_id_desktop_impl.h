@@ -139,8 +139,7 @@ class InstanceIdDesktopImpl {
   // Fetches a token with expodential backoff using the scheduler.
   class FetchServerTokenCallback : public callback::Callback {
    public:
-    FetchServerTokenCallback(InstanceIdDesktopImpl* iid,
-                             std::string  scope,
+    FetchServerTokenCallback(InstanceIdDesktopImpl* iid, std::string scope,
                              SafeFutureHandle<std::string> future_handle)
         : iid_(iid),
           scope_(std::move(scope)),

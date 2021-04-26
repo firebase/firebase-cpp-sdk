@@ -39,7 +39,7 @@ class FacebookAuthCredential : public IdentityProviderCredential {
   }
 
  private:
-  explicit FacebookAuthCredential(std::string  access_token)
+  explicit FacebookAuthCredential(std::string access_token)
       : access_token_(std::move(access_token)) {}
 
   const std::string access_token_;

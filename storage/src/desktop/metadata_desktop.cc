@@ -54,7 +54,7 @@ const char* MetadataInternal::kBucketKey = "bucket";
 const char* MetadataInternal::kNameKey = "name";
 const char* MetadataInternal::kGenerationKey = "generation";
 
-MetadataInternal::MetadataInternal(StorageReference  storage_reference)
+MetadataInternal::MetadataInternal(StorageReference storage_reference)
     : storage_reference_(std::move(storage_reference)),
       generation_(-1),
       metadata_generation_(-1),
@@ -235,10 +235,8 @@ bool MetadataInternal::ImportFromJson(const char* json) {
   if (lookup != no_value) {
     Variant json_metadata = root.map()[kMetadataKey];
     if (json_metadata.is_map()) {
-      for (auto itr = json_metadata.map().begin();
-           itr != json_metadata.map().end(); ++itr) {
-        custom_metadata_[itr->first.string_value()] =
-            itr->second.string_value();
+      for (auto& itr : json_metadata.map()) {
+        custom_metadata_[itr.first.string_value()] = itr.second.string_value();
       }
     }
   }
@@ -300,19 +298,17 @@ std::string MetadataInternal::ExportAsJson() {
   // Make a nice comma-separated string for download tokens:
   bool first_in_list = true;
   std::string download_tokens;
-  for (auto itr = download_tokens_.begin(); itr != download_tokens_.end();
-       ++itr) {
+  for (auto& download_token : download_tokens_) {
     if (!first_in_list) download_tokens += ",";
     first_in_list = false;
-    download_tokens += *itr;
+    download_tokens += download_token;
   }
   if (!download_tokens.empty())
     root.map()[kDownloadTokensKey] = download_tokens;
 
   std::map<Variant, Variant> metadata_map;
-  for (auto itr = custom_metadata_.begin(); itr != custom_metadata_.end();
-       ++itr) {
-    metadata_map[Variant(itr->first)] = Variant(itr->second);
+  for (auto& itr : custom_metadata_) {
+    metadata_map[Variant(itr.first)] = Variant(itr.second);
   }
   if (!metadata_map.empty()) root.map()[kMetadataKey] = metadata_map;
 

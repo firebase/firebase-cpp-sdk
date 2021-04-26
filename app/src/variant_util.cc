@@ -313,19 +313,19 @@ bool VariantToFlexbuffer(const Variant& variant, flexbuffers::Builder* fbb) {
 bool VariantMapToFlexbuffer(const std::map<Variant, Variant>& map,
                             flexbuffers::Builder* fbb) {
   auto start = fbb->StartMap();
-  for (auto iter = map.begin(); iter != map.end(); ++iter) {
+  for (const auto & iter : map) {
     // Flexbuffers only supports string keys, return false if the key is not a
     // type that can be coerced to a string.
-    if (iter->first.is_null() || !iter->first.is_fundamental_type()) {
+    if (iter.first.is_null() || !iter.first.is_fundamental_type()) {
       LogError(
           "Variants of non-fundamental types may not be used as map keys.");
       fbb->EndMap(start);
       return false;
     }
     // Add key.
-    fbb->Key(iter->first.AsString().string_value());
+    fbb->Key(iter.first.AsString().string_value());
     // Add value.
-    if (!VariantToFlexbuffer(iter->second, fbb)) {
+    if (!VariantToFlexbuffer(iter.second, fbb)) {
       fbb->EndMap(start);
       return false;
     }
@@ -337,8 +337,8 @@ bool VariantMapToFlexbuffer(const std::map<Variant, Variant>& map,
 bool VariantVectorToFlexbuffer(const std::vector<Variant>& vector,
                                flexbuffers::Builder* fbb) {
   auto start = fbb->StartVector();
-  for (auto iter = vector.begin(); iter != vector.end(); ++iter) {
-    if (!VariantToFlexbuffer(*iter, fbb)) {
+  for (const auto & iter : vector) {
+    if (!VariantToFlexbuffer(iter, fbb)) {
       fbb->EndVector(start, false, false);
       return false;
     }

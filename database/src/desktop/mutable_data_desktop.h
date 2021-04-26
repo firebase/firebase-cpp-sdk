@@ -86,8 +86,7 @@ class MutableDataInternal {
   DatabaseInternal* database_internal() const { return db_; }
 
  private:
-  explicit MutableDataInternal(const MutableDataInternal& other,
-                               Path  path);
+  explicit MutableDataInternal(const MutableDataInternal& other, Path path);
 
   DatabaseInternal* db_;
   // Path relative to the root of holder_

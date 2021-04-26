@@ -66,7 +66,7 @@ namespace {
 class GetTokenResult {
  public:
   explicit GetTokenResult(const AuthError error) : error_(error) {}
-  explicit GetTokenResult(std::string  token)
+  explicit GetTokenResult(std::string token)
       : error_(kAuthErrorNone), token_(std::move(token)) {}
 
   bool IsValid() const { return error_ == kAuthErrorNone; }

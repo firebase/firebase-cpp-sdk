@@ -65,8 +65,8 @@ struct RCDataHandle {
   std::vector<std::string> default_keys;
 };
 
-RemoteConfigInternal::RemoteConfigInternal(
-    const firebase::App& app, RemoteConfigFileManager  file_manager)
+RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app,
+                                           RemoteConfigFileManager file_manager)
     : app_(app),
       file_manager_(std::move(file_manager)),
       is_fetch_process_have_task_(false),

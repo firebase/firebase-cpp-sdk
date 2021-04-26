@@ -32,9 +32,9 @@ using connection::ResponsePtr;
 class WebSocketListenResponse : public connection::Response {
  public:
   WebSocketListenResponse(const Response::ResponseCallback& callback,
-                          Repo::ThisRef  repo_ref, SyncTree* sync_tree,
-                          QuerySpec  query_spec, Tag  tag,
-                          const View* view, Logger* logger)
+                          Repo::ThisRef repo_ref, SyncTree* sync_tree,
+                          QuerySpec query_spec, Tag tag, const View* view,
+                          Logger* logger)
       : connection::Response(callback),
         repo_ref_(std::move(repo_ref)),
         sync_tree_(sync_tree),

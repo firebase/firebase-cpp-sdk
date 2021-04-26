@@ -50,7 +50,7 @@ typedef int64_t WriteId;
 
 class SingleValueListener : public ValueListener {
  public:
-  SingleValueListener(DatabaseInternal* database, QuerySpec  query_spec,
+  SingleValueListener(DatabaseInternal* database, QuerySpec query_spec,
                       ReferenceCountedFutureImpl* future,
                       SafeFutureHandle<DataSnapshot> handle);
   // Unregister ourselves from the database.

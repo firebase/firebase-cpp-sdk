@@ -61,7 +61,7 @@ struct TransactionData {
 
   // Constructor to capture all data for a RunTransaction request
   TransactionData(const SafeFutureHandle<DataSnapshot>& handle,
-                  ReferenceCountedFutureImpl* ref_future, Path  path,
+                  ReferenceCountedFutureImpl* ref_future, Path path,
                   DoTransactionWithContext function, void* context,
                   void (*delete_context)(void*), bool trigger_local_events,
                   UniquePtr<ValueListener> outstanding_listener)

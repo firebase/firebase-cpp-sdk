@@ -33,15 +33,14 @@ IndexedVariant::IndexedVariant()
   EnsureIndexed();
 }
 
-IndexedVariant::IndexedVariant(Variant  variant)
+IndexedVariant::IndexedVariant(Variant variant)
     : variant_(std::move(variant)),
       query_params_(),
       index_(QueryParamsLesser(&query_params_)) {
   EnsureIndexed();
 }
 
-IndexedVariant::IndexedVariant(Variant  variant,
-                               QueryParams  query_params)
+IndexedVariant::IndexedVariant(Variant variant, QueryParams query_params)
     : variant_(std::move(variant)),
       query_params_(std::move(query_params)),
       index_(QueryParamsLesser(&query_params_)) {

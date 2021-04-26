@@ -39,7 +39,7 @@ class TwitterAuthCredential : public IdentityProviderCredential {
   }
 
  private:
-  TwitterAuthCredential(std::string  token, std::string  secret)
+  TwitterAuthCredential(std::string token, std::string secret)
       : token_(std::move(token)), secret_(std::move(secret)) {}
 
   const std::string token_;

@@ -31,8 +31,7 @@ class DatabaseInternal;
 // register server-side actions to occur when the client disconnects.
 class DisconnectionHandlerInternal {
  public:
-  explicit DisconnectionHandlerInternal(DatabaseInternal* database,
-                                        Path  path);
+  explicit DisconnectionHandlerInternal(DatabaseInternal* database, Path path);
 
   ~DisconnectionHandlerInternal();
 

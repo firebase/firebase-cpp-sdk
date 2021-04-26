@@ -39,7 +39,7 @@ class PlayGamesAuthCredential : public IdentityProviderCredential {
   }
 
  private:
-  explicit PlayGamesAuthCredential(std::string  server_auth_code)
+  explicit PlayGamesAuthCredential(std::string server_auth_code)
       : server_auth_code_(std::move(server_auth_code)) {}
 
   const std::string server_auth_code_;

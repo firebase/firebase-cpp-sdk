@@ -30,7 +30,7 @@ namespace internal {
 namespace connection {
 
 WebSocketClientImpl::WebSocketClientImpl(
-    std::string  uri, std::string  user_agent, Logger* logger,
+    std::string uri, std::string user_agent, Logger* logger,
     scheduler::Scheduler* scheduler,
     WebSocketClientEventHandler* handler /*=nullptr*/)
     : uri_(std::move(uri)),

@@ -120,9 +120,7 @@ std::vector<Event> View::RemoveEventRegistration(void* listener_ptr,
         "A cancel should cancel all event registrations");
     std::vector<Event> cancel_events;
     Path path(query_spec_.path);
-    for (auto iter = event_registrations_.begin();
-         iter != event_registrations_.end(); ++iter) {
-      UniquePtr<EventRegistration>& event_registration = *iter;
+    for (auto& event_registration : event_registrations_) {
       cancel_events.emplace_back(std::move(event_registration), cancel_error,
                                  path);
     }

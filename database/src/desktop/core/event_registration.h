@@ -36,7 +36,7 @@ struct Event;
 // can be used to fire the event later.
 class EventRegistration {
  public:
-  explicit EventRegistration(QuerySpec  query_spec)
+  explicit EventRegistration(QuerySpec query_spec)
       : status_(kActive), query_spec_(std::move(query_spec)) {}
 
   virtual ~EventRegistration();

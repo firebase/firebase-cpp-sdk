@@ -46,8 +46,8 @@ class OAuthCredential : public IdentityProviderCredential {
   }
 
  private:
-  OAuthCredential(std::string  provider_id, std::string  id_token,
-                  std::string  raw_nonce, std::string  access_token)
+  OAuthCredential(std::string provider_id, std::string id_token,
+                  std::string raw_nonce, std::string access_token)
       : provider_id_(std::move(provider_id)),
         id_token_(std::move(id_token)),
         raw_nonce_(std::move(raw_nonce)),

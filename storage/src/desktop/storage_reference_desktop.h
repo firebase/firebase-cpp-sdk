@@ -36,8 +36,7 @@ class StorageReferenceInternal {
  public:
   StorageReferenceInternal(const std::string& storageUri,
                            StorageInternal* storage);
-  StorageReferenceInternal(StoragePath  storageUri,
-                           StorageInternal* storage);
+  StorageReferenceInternal(StoragePath storageUri, StorageInternal* storage);
   StorageReferenceInternal(const StorageReferenceInternal& other);
 
   ~StorageReferenceInternal();

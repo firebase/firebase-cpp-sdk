@@ -27,7 +27,7 @@ namespace auth {
 
 // Simple storage for user info properties, but conforming to UserInfoInterface.
 struct UserInfoInterfaceImpl : public UserInfoInterface {
-  explicit UserInfoInterfaceImpl(UserInfoImpl  set_impl)
+  explicit UserInfoInterfaceImpl(UserInfoImpl set_impl)
       : impl(std::move(set_impl)) {}
 
   std::string uid() const override { return impl.uid; }

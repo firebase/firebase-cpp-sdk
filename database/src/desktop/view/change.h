@@ -43,7 +43,7 @@ struct Change {
         old_indexed_variant() {}
 
   Change(EventType _event_type, const IndexedVariant& _indexed_variant,
-         std::string  _child_key)
+         std::string _child_key)
       : event_type(_event_type),
         indexed_variant(_indexed_variant),
         child_key(std::move(_child_key)),
@@ -51,7 +51,7 @@ struct Change {
         old_indexed_variant() {}
 
   Change(EventType _event_type, const IndexedVariant& _indexed_variant,
-         std::string  _child_key, std::string  _prev_name,
+         std::string _child_key, std::string _prev_name,
          const IndexedVariant& _old_indexed_variant)
       : event_type(_event_type),
         indexed_variant(_indexed_variant),

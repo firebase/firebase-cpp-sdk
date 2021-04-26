@@ -39,7 +39,7 @@ class GitHubAuthCredential : public IdentityProviderCredential {
   }
 
  private:
-  explicit GitHubAuthCredential(std::string  token) : token_(std::move(token)) {}
+  explicit GitHubAuthCredential(std::string token) : token_(std::move(token)) {}
 
   const std::string token_;
 

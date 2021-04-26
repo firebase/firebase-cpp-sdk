@@ -44,9 +44,9 @@ class GoogleAuthCredential : public IdentityProviderCredential {
   }
 
  private:
-  GoogleAuthCredential(std::string  id_token,
-                       std::string  access_token)
-      : id_token_(std::move(id_token)), access_token_(std::move(access_token)) {}
+  GoogleAuthCredential(std::string id_token, std::string access_token)
+      : id_token_(std::move(id_token)),
+        access_token_(std::move(access_token)) {}
 
   const std::string id_token_;
   const std::string access_token_;

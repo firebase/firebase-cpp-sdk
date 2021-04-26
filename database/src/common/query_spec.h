@@ -109,9 +109,10 @@ struct QueryParams {
 // remove a listener from a different (but matching) Query to the original.
 struct QuerySpec {
   QuerySpec() : path(), params() {}
-  explicit QuerySpec(Path  _path) : path(std::move(_path)), params() {}
-  explicit QuerySpec(QueryParams  _params) : path(), params(std::move(_params)) {}
-  QuerySpec(Path  _path, QueryParams  _params)
+  explicit QuerySpec(Path _path) : path(std::move(_path)), params() {}
+  explicit QuerySpec(QueryParams _params)
+      : path(), params(std::move(_params)) {}
+  QuerySpec(Path _path, QueryParams _params)
       : path(std::move(_path)), params(std::move(_params)) {}
 
   // Compare two QuerySpecs, which are considered the same if all fields are the

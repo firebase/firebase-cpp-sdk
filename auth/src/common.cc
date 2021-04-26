@@ -52,9 +52,9 @@ void CleanupCredentialFutureImpl() {
 }
 
 void ClearUserInfos(AuthData* auth_data) {
-  for (size_t i = 0; i < auth_data->user_infos.size(); ++i) {
-    delete auth_data->user_infos[i];
-    auth_data->user_infos[i] = nullptr;
+  for (auto & user_info : auth_data->user_infos) {
+    delete user_info;
+    user_info = nullptr;
   }
   auth_data->user_infos.clear();
 }

@@ -36,8 +36,8 @@ namespace connection {
 
 class WebSocketClientImpl : public WebSocketClientInterface {
  public:
-  WebSocketClientImpl(std::string  uri, std::string  user_agent,
-                      Logger* logger, scheduler::Scheduler* scheduler,
+  WebSocketClientImpl(std::string uri, std::string user_agent, Logger* logger,
+                      scheduler::Scheduler* scheduler,
                       WebSocketClientEventHandler* handler = nullptr);
   ~WebSocketClientImpl() override;
 
@@ -118,8 +118,11 @@ class WebSocketClientImpl : public WebSocketClientInterface {
   // the client, int_value and string_value stored in this data structure.
   struct CallbackData {
     explicit CallbackData(Callback c, WebSocketClientImpl* ws_client, int i,
-                          std::string  str)
-        : callback(c), client(ws_client), int_value(i), string_value(std::move(str)) {}
+                          std::string str)
+        : callback(c),
+          client(ws_client),
+          int_value(i),
+          string_value(std::move(str)) {}
 
     Callback callback;
 

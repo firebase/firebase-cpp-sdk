@@ -40,7 +40,7 @@ const char kVirtualChildKeyValue[] = ".value";
 const char kVirtualChildKeyPriority[] = ".priority";
 
 DisconnectionHandlerInternal::DisconnectionHandlerInternal(
-    DatabaseInternal* database, Path  path)
+    DatabaseInternal* database, Path path)
     : database_(database), path_(std::move(path)) {
   database_->future_manager().AllocFutureApi(this,
                                              kDisconnectionHandlerFnCount);
