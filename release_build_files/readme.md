@@ -571,6 +571,11 @@ code.
 
 ## Release Notes
 
+### 7.3.0
+-   Changes
+    -   General (iOS): Update dependencies.
+    -   General (Android): Fix a gradle error if ANDROID_NDK_HOME is not set.
+
 ### 7.2.0
 -   Changes
     -   General (Android): Firebase support for STLPort is deprecated and will
