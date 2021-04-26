@@ -24,6 +24,7 @@
 namespace firebase {
 namespace firestore {
 
+/** A C++ proxy for a Java `LoadBundleTask`, which is a subclass of `Task`. */
 class LoadBundleTaskInternal : public jni::Task {
  public:
   using Task::Task;

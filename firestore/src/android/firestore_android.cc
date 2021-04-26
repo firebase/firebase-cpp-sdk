@@ -551,7 +551,11 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
 
   auto* listener = new LambdaEventListener<LoadBundleTaskProgress>(
       [progress_callback](const LoadBundleTaskProgress& p, Error e,
-                          const std::string& s) { progress_callback(p); });
+                          const std::string& s) {
+        // `e` is always `kErrorOk` and `s` is always empty for progress
+        // listeners.
+        progress_callback(p);
+      });
   Local<Object> progress_listener =
       EventListenerInternal::Create(env, this, listener);
   task.AddProgressListener(env, user_callback_executor(), progress_listener);

@@ -406,11 +406,36 @@ class Firestore {
       EventListener<void> *listener);
 #endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
+  /**
+   * Loads a Firestore bundle into the local cache.
+   *
+   * @param bundle A string representing the bundle to be loaded.
+   * @return A `Future` that is resolved when the loading is either completed,
+   * or aborted due to an error.
+   */
   virtual Future<LoadBundleTaskProgress> LoadBundle(const std::string &bundle);
+
+  /**
+   * Loads a Firestore bundle into the local cache, with provided callbacks
+   * executed for progress updates.
+   *
+   * @param bundle A string representing the bundle to be loaded.
+   * @param progress_callback A `std::function` that is called with progress
+   * updates.
+   * @return A `Future` that is resolved when the loading is either completed,
+   * or aborted due to an error.
+   */
   virtual Future<LoadBundleTaskProgress> LoadBundle(
       const std::string &bundle,
       std::function<void(const LoadBundleTaskProgress &)> progress_callback);
 
+  /**
+   * Reads a Firestore `Query` from local cache, identified by the given name.
+   *
+   * The named queries are packaged into bundles on the server side (along with
+   * resulting documents) and loaded to local cache using `loadBundle`. Once in
+   * local cache, you can use this method to extract a query by name.
+   */
   virtual Future<Query> NamedQuery(const std::string &query_name);
 
  protected:

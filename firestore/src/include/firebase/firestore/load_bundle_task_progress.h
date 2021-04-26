@@ -23,8 +23,15 @@ namespace firestore {
 
 class LoadBundleTaskProgressInternal;
 
+/** Represents a progress update or a final state from loading bundles. */
 class LoadBundleTaskProgress {
  public:
+  /**
+   * Represents the state of bundle loading tasks.
+   *
+   * Both `kSuccess` and `kError` are final states: task will abort
+   * or complete and there will be no more updates after they are reported.
+   */
   enum class State { kError, kInProgress, kSuccess };
 
   LoadBundleTaskProgress() = default;
@@ -32,14 +39,23 @@ class LoadBundleTaskProgress {
                          int64_t bytes_loaded, int64_t total_bytes,
                          State state);
 
+  /** Returns how many documents have been loaded. */
   int32_t documents_loaded() const { return documents_loaded_; }
 
+  /**
+   * Returns the total number of documents in the bundle. Returns 0 if the
+   * bundle failed to parse.
+   */
   int32_t total_documents() const { return total_documents_; }
 
+  /** Returns how many bytes have been loaded. */
   int64_t bytes_loaded() const { return bytes_loaded_; }
 
+  /** Returns the total number of bytes in the bundle. Returns 0 if the bundle
+   * failed to parse. */
   int64_t total_bytes() const { return total_bytes_; }
 
+  /** Returns the current state of the loading progress. */
   State state() const { return state_; }
 
  private:

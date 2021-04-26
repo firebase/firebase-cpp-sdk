@@ -8,22 +8,20 @@ import com.google.firebase.firestore.FirebaseFirestoreException;
 
 /**
  * Implements Firestore {@code
- * firebase::firestore::EventListener<firebase::firestore::DocumentSnapshot>} by redirecting calls
+ * firebase::firestore::EventListener<firebase::firestore::LoadBundleTaskProgress>} by redirecting calls
  * into the C++ equivalent.
  */
 public class LoadBundleProgressListener extends CppEventListener
     implements OnProgressListener<LoadBundleTaskProgress> {
   /**
-   * Constructs a DocumentEventListener. Ownership of the underlying EventListener can be
-   * transferred when creating the {@code ListenerRegistration}. If the ListenerRegistration owns
-   * the EventListener, it will de-allocate the EventListener in its destructor.
+   * Constructs a ProgressEventListener.
    *
    * <p>Passing in 0 is considered a null pointer and will result in {@code onEvent} becoming a
    * no-op.
    *
    * @param cppFirestoreObject Pointer to a {@code firebase::firestore::Firestore}.
    * @param cppListenerObject Pointer to a {@code
-   *     firebase::firestore::EventListener<firebase::firestore::DocumentSnapshot>}.
+   *     firebase::firestore::EventListener<firebase::firestore::LoadBundleTaskProgress>}.
    */
   public LoadBundleProgressListener(long cppFirestoreObject, long cppListenerObject) {
     super(cppFirestoreObject, cppListenerObject);
@@ -37,9 +35,8 @@ public class LoadBundleProgressListener extends CppEventListener
 
   /**
    * Interprets the {@code listenerObject} as a {@code
-   * firebase::firestore::EventListener<DocumentSnapshot>} and invokes the listener's {@code
-   * OnEvent} method with the {@code error} and {@code DocumentSnapshot} created by interpreting the
-   * {@code firestoreObject} as a {@code firebase::firestore::Firestore}.
+   * firebase::firestore::EventListener<LoadBundleTaskProgress>} and invokes the listener's {@code
+   * OnEvent} method with {@code value} interpreted as (@code LoadBundleTaskProgress).
    *
    * <p>This native method is implemented in the Firestore C++ library {@code
    * event_listener_android.cc}.

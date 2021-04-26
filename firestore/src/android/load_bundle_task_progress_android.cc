@@ -81,6 +81,7 @@ int64_t LoadBundleTaskProgressInternal::total_bytes() const {
 LoadBundleTaskProgress::State LoadBundleTaskProgressInternal::state() const {
   Env env = GetEnv();
   Local<Object> state = env.Call(obj_, kGetTaskState);
+  // Get the name of the enum value for inspection.
   std::string enum_name = env.Call(state, kName).ToString(env);
   if (enum_name == "SUCCESS") {
     return LoadBundleTaskProgress::State::kSuccess;
