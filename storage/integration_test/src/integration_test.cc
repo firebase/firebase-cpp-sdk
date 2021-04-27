@@ -628,11 +628,15 @@ class StorageListener : public firebase::storage::Listener {
     ProcessEvents(1000);
 #endif  // FIREBASE_PLATFORM_DESKTOP
     on_paused_was_called_ = true;
+    LogDebug("Resuming");
     resume_succeeded_ = controller->Resume();
     if (!resume_succeeded_) {
       // Resume failed, try it one more time.
       ProcessEvents(1000);
       resume_succeeded_ = controller->Resume();
+    }
+    if (resume_succeeded_) {
+      LogDebug("Resume succeeded");
     }
   }
 
