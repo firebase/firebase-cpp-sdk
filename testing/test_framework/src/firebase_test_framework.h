@@ -223,7 +223,7 @@ class FirebaseTest : public testing::Test {
   // false), try it again, after a short delay. Returns true once it succeeds,
   // or if it fails enough times, returns false.
   static bool RunFlakyBlock(bool (*flaky_block)(void* context), void* context,
-			    const char* name = "");
+                            const char* name = "");
 
   // Run an operation that returns a Future (via a callback), retrying with
   // exponential backoff if the operation fails.

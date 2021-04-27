@@ -791,78 +791,79 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
         << "Read large file failed, contents did not match.";
   }
 #if FIREBASE_PLATFORM_DESKTOP
-  if (!RunFlakyBlock([](void* context_void)
-  {
-    Context* context = reinterpret_cast<Context*>(context_void);
-    firebase::storage::StorageReference* ref = context->ref;
-    const std::string* test_file = context->test_file;
-    size_t test_file_size = context->test_file_size;
-    // Test pausing/resuming while downloading (desktop only).
-    std::vector<char> buffer(test_file_size);
-    memset(&buffer[0], 0, test_file_size);
-    LogDebug("Downloading large file with pausing/resuming.");
-    StorageListener listener;
-    firebase::storage::Controller controller;
-    firebase::Future<size_t> future =
-        ref->GetBytes(&buffer[0], test_file_size, &listener, &controller);
-    if (!controller.is_valid()) {
-      LogError("Controller invalid");
-      return false;
-    }
+  if (!RunFlakyBlock(
+          [](void* context_void) {
+            Context* context = reinterpret_cast<Context*>(context_void);
+            firebase::storage::StorageReference* ref = context->ref;
+            const std::string* test_file = context->test_file;
+            size_t test_file_size = context->test_file_size;
+            // Test pausing/resuming while downloading (desktop only).
+            std::vector<char> buffer(test_file_size);
+            memset(&buffer[0], 0, test_file_size);
+            LogDebug("Downloading large file with pausing/resuming.");
+            StorageListener listener;
+            firebase::storage::Controller controller;
+            firebase::Future<size_t> future = ref->GetBytes(
+                &buffer[0], test_file_size, &listener, &controller);
+            if (!controller.is_valid()) {
+              LogError("Controller invalid");
+              return false;
+            }
 
-    while (controller.bytes_transferred() == 0) {
-      ProcessEvents(1);
-    }
+            while (controller.bytes_transferred() == 0) {
+              ProcessEvents(1);
+            }
 
-    LogDebug("Pausing download.");
-    if (!FirebaseTest::RunFlakyBlock(
-            [](void* controller_void) {
-              firebase::storage::Controller* controller =
-                  reinterpret_cast<firebase::storage::Controller*>(
-                      controller_void);
-              return controller->Pause();
-            },
-            &controller, "Pause")) {
-      LogError("Pause failed.");
-      return false;
-    }
+            LogDebug("Pausing download.");
+            if (!FirebaseTest::RunFlakyBlock(
+                    [](void* controller_void) {
+                      firebase::storage::Controller* controller =
+                          reinterpret_cast<firebase::storage::Controller*>(
+                              controller_void);
+                      return controller->Pause();
+                    },
+                    &controller, "Pause")) {
+              LogError("Pause failed.");
+              return false;
+            }
 
-    WaitForCompletionAnyResult(future, "GetBytes");
-    if (future.error() != firebase::storage::kErrorNone) {
-      LogError("GetBytes returned error %d: %s", future.error(),
-	       future.error_message());
-      return false;
-    }
-    LogDebug("Download complete.");
+            WaitForCompletionAnyResult(future, "GetBytes");
+            if (future.error() != firebase::storage::kErrorNone) {
+              LogError("GetBytes returned error %d: %s", future.error(),
+                       future.error_message());
+              return false;
+            }
+            LogDebug("Download complete.");
 
-    // Ensure the progress and pause callbacks were called.
-    if (!listener.on_paused_was_called()) {
-      LogError("Listener::OnPaused was not called");
-      return false;
-    }
-    if (!listener.on_progress_was_called()) {
-      LogError("Listener::OnProgress was not called");
-      return false;
-    }
-    if (!listener.resume_succeeded()) {
-      LogError("Resume failed");
-      return false;
-    }
-    if (future.result() == nullptr) {
-      LogError("Future returned null data");
-      return false;
-    }
-    size_t file_size = *future.result();
-    if (file_size != test_file_size) {
-      LogError("Read size with pause/resume did not match");
-      return false;
-    }
-    if (memcmp(test_file->c_str(), &buffer[0], test_file_size) != 0) {
-      LogError("Read large file failed, contents did not match.");
-      return false;
-    }
-    return true;
-  }, &context, "GetBytes")) {
+            // Ensure the progress and pause callbacks were called.
+            if (!listener.on_paused_was_called()) {
+              LogError("Listener::OnPaused was not called");
+              return false;
+            }
+            if (!listener.on_progress_was_called()) {
+              LogError("Listener::OnProgress was not called");
+              return false;
+            }
+            if (!listener.resume_succeeded()) {
+              LogError("Resume failed");
+              return false;
+            }
+            if (future.result() == nullptr) {
+              LogError("Future returned null data");
+              return false;
+            }
+            size_t file_size = *future.result();
+            if (file_size != test_file_size) {
+              LogError("Read size with pause/resume did not match");
+              return false;
+            }
+            if (memcmp(test_file->c_str(), &buffer[0], test_file_size) != 0) {
+              LogError("Read large file failed, contents did not match.");
+              return false;
+            }
+            return true;
+          },
+          &context, "GetBytes")) {
     FAIL() << "Download of file with pause/resume failed, see error log";
   }
 #else

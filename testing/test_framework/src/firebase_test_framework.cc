@@ -113,7 +113,7 @@ bool FirebaseTest::RunFlakyBlock(bool (*flaky_block)(void* context),
       return result;
     }
     app_framework::LogDebug("RunFlakyBlock%s%s: Attempt %d failed",
-			    *name ? " " : "", name, attempt + 1);
+                            *name ? " " : "", name, attempt + 1);
     int delay_ms = kRetryDelaysMs[attempt];
     app_framework::ProcessEvents(delay_ms);
     attempt++;
