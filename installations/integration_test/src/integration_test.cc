@@ -164,13 +164,13 @@ TEST_F(FirebaseInstallationsTest, TestGettingIdTwiceMatches) {
       LogError("GetId 2 returned error %d: %s", id.error(), id.error_message());
       return false;
     }
-    if (*id.result() == first_id) {
+    if (*id.result() != first_id) {
       LogError("GetId 2 returned non-matching ID: first(%s) vs second(%s)",
 	       first_id.c_str(), id.result()->c_str());
       return false;
     }
     return true;
-  }, &installations_)) {
+  }, installations_)) {
     FAIL() << "Test failed, check error log for details.";
   }
 }
@@ -219,7 +219,7 @@ TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewIdNextTime) {
 #endif  // defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
     return true;
-  }, &installations_)) {
+  }, installations_)) {
     FAIL() << "Test failed, check error log for details.";
   }
 }
