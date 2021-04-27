@@ -719,7 +719,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
 #if FIREBASE_PLATFORM_DESKTOP
               ProcessEvents(1);
 #else  // FIREBASE_PLATFORM_MOBILE
-              ProcessEvents(100);
+              ProcessEvents(500);
 #endif
             }
 
