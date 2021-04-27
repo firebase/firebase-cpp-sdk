@@ -96,7 +96,8 @@ void FirebaseTest::TerminateApp() {
   app_ = nullptr;
 }
 
-bool FirebaseTest::RunFlakyBlock(bool (*flaky_block)(void* context), void* context) {
+bool FirebaseTest::RunFlakyBlock(bool (*flaky_block)(void* context),
+                                 void* context) {
   // Run flaky_block(context). If it returns true, all is well, return true.
   // If it returns false, something flaky failed; wait a moment and try again.
   const int kRetryDelaysMs[] = {// Roughly exponential backoff for the retries.
@@ -105,7 +106,7 @@ bool FirebaseTest::RunFlakyBlock(bool (*flaky_block)(void* context), void* conte
       1 + (sizeof(kRetryDelaysMs) / sizeof(kRetryDelaysMs[0]));
 
   int attempt = 0;
-  
+
   while (attempt < kNumAttempts) {
     bool result = flaky_block(context);
     if (result || (attempt == kNumAttempts - 1)) {
@@ -187,8 +188,7 @@ bool FirebaseTest::WaitForCompletion(const firebase::FutureBase& future,
 }
 
 bool FirebaseTest::WaitForCompletionAnyResult(
-				     const firebase::FutureBase& future,
-                                     const char* name) {
+    const firebase::FutureBase& future, const char* name) {
   app_framework::LogDebug("WaitForCompletion %s", name);
   while (future.status() == firebase::kFutureStatusPending) {
     app_framework::ProcessEvents(100);

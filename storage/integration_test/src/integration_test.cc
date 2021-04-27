@@ -206,7 +206,8 @@ void FirebaseStorageTest::TearDown() {
         cleanups.push_back(cleanup_files_[i].Delete());
       }
       for (int i = 0; i < cleanups.size(); ++i) {
-	WaitForCompletionAnyResult(cleanups[i], "FirebaseStorageTest::TearDown");
+        WaitForCompletionAnyResult(cleanups[i],
+                                   "FirebaseStorageTest::TearDown");
       }
       cleanup_files_.clear();
     }
@@ -615,7 +616,9 @@ TEST_F(FirebaseStorageTest, TestDeleteFile) {
 class StorageListener : public firebase::storage::Listener {
  public:
   StorageListener()
-    : on_paused_was_called_(false), on_progress_was_called_(false), resume_succeeded_(false) {}
+      : on_paused_was_called_(false),
+        on_progress_was_called_(false),
+        resume_succeeded_(false) {}
 
   // Tracks whether OnPaused was ever called and resumes the transfer.
   void OnPaused(firebase::storage::Controller* controller) override {
@@ -688,76 +691,83 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
   context.ref = &ref;
   context.test_file = &kLargeTestFile;
   context.test_file_size = kLargeFileSize;
-  if (!RunFlakyBlock([](void* context_void)
-  {
-    Context* context = reinterpret_cast<Context*>(context_void);
-    firebase::storage::StorageReference* ref = context->ref;
-    const std::string* test_file = context->test_file;
-    size_t test_file_size = context->test_file_size;
-    LogDebug("Uploading large file with pause/resume.");
-    StorageListener listener;
-    firebase::storage::Controller controller;
-    firebase::Future<firebase::storage::Metadata> future = ref->PutBytes(
-        test_file->c_str(), test_file_size, &listener, &controller);
+  if (!RunFlakyBlock(
+          [](void* context_void) {
+            Context* context = reinterpret_cast<Context*>(context_void);
+            firebase::storage::StorageReference* ref = context->ref;
+            const std::string* test_file = context->test_file;
+            size_t test_file_size = context->test_file_size;
+            LogDebug("Uploading large file with pause/resume.");
+            StorageListener listener;
+            firebase::storage::Controller controller;
+            firebase::Future<firebase::storage::Metadata> future =
+                ref->PutBytes(test_file->c_str(), test_file_size, &listener,
+                              &controller);
 
-    // Ensure the Controller is valid now that we have associated it with an
-    // operation.
-    if (!controller.is_valid()) {
-      LogError("Controller is invalid");
-      return false;
-    }
+            // Ensure the Controller is valid now that we have associated it
+            // with an operation.
+            if (!controller.is_valid()) {
+              LogError("Controller is invalid");
+              return false;
+            }
 
-    while (controller.bytes_transferred() == 0) {
+            while (controller.bytes_transferred() == 0) {
 #if FIREBASE_PLATFORM_DESKTOP
-      ProcessEvents(1);
-#else // FIREBASE_PLATFORM_MOBILE
-      ProcessEvents(100);
+              ProcessEvents(1);
+#else  // FIREBASE_PLATFORM_MOBILE
+              ProcessEvents(100);
 #endif
-    }
+            }
 
-    // After waiting a moment for the operation to start (above), pause the
-    // operation and verify it was successfully paused when the future
-    // completes.
-    LogDebug("Pausing upload.");
-    if (!FirebaseTest::RunFlakyBlock([](void* controller_void) {
-			 firebase::storage::Controller* controller =
-			   reinterpret_cast<firebase::storage::Controller*>(controller_void);
-			 return controller->Pause();
-		       }, &controller)) {
-      LogError("Pause failed.");
-      return false;
-    }
-    // The StorageListener's OnPaused will call Resume().
+            // After waiting a moment for the operation to start (above), pause
+            // the operation and verify it was successfully paused when the
+            // future completes.
+            LogDebug("Pausing upload.");
+            if (!FirebaseTest::RunFlakyBlock(
+                    [](void* controller_void) {
+                      firebase::storage::Controller* controller =
+                          reinterpret_cast<firebase::storage::Controller*>(
+                              controller_void);
+                      return controller->Pause();
+                    },
+                    &controller)) {
+              LogError("Pause failed.");
+              return false;
+            }
+            // The StorageListener's OnPaused will call Resume().
 
-    LogDebug("Waiting for future.");
-    WaitForCompletion(future, "WriteLargeFile");
-    LogDebug("Upload complete.");
+            LogDebug("Waiting for future.");
+            WaitForCompletion(future, "WriteLargeFile");
+            LogDebug("Upload complete.");
 
-    // Ensure the various callbacks were called.
-    if (!listener.on_paused_was_called()) {
-      LogError("Listener::OnPaused was not called");
-      return false;
-    }
-    if (!listener.on_progress_was_called()) {
-      LogError("Listener::OnProgress was not called");
-      return false;
-    }
-    if (!listener.resume_succeeded()) {
-      LogError("Resume failed");
-      return false;
-    }
-      
-    if (future.error() != firebase::storage::kErrorNone) {
-      LogError("PutBytes returned error %d: %s", future.error(), future.error_message());
-      return false;
-    }
-    auto metadata = future.result();
-    if (metadata->size_bytes() != test_file_size) {
-      LogError("Metadata reports incorrect size, file failed to upload.");
-      return false;
-    }
-    return true;
-  }, &context)) {
+            // Ensure the various callbacks were called.
+            if (!listener.on_paused_was_called()) {
+              LogError("Listener::OnPaused was not called");
+              return false;
+            }
+            if (!listener.on_progress_was_called()) {
+              LogError("Listener::OnProgress was not called");
+              return false;
+            }
+            if (!listener.resume_succeeded()) {
+              LogError("Resume failed");
+              return false;
+            }
+
+            if (future.error() != firebase::storage::kErrorNone) {
+              LogError("PutBytes returned error %d: %s", future.error(),
+                       future.error_message());
+              return false;
+            }
+            auto metadata = future.result();
+            if (metadata->size_bytes() != test_file_size) {
+              LogError(
+                  "Metadata reports incorrect size, file failed to upload.");
+              return false;
+            }
+            return true;
+          },
+          &context)) {
     FAIL() << "PutBytes with pause/resume failed, check error log for details.";
   }
 
