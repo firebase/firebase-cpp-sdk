@@ -163,7 +163,7 @@ def main(argv):
   )
 
   return test_validation.summarize_test_results(
-      tests, code_platform, testapp_dir)
+      tests, code_platform, testapp_dir, extra_info=" (ON REAL DEVICE VIA FTL)")
 
 
 def _install_gcloud_beta():

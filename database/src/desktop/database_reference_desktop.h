@@ -17,6 +17,7 @@
 
 #include <map>
 #include <string>
+
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"

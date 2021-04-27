@@ -24,8 +24,8 @@ namespace firebase {
 namespace storage {
 namespace internal {
 
-ListenerInternal::ListenerInternal(Listener *listener) :
-    listener_(listener), bytes_transferred_(-1), total_byte_count_(-1) {}
+ListenerInternal::ListenerInternal(Listener *listener)
+    : listener_(listener), bytes_transferred_(-1), total_byte_count_(-1) {}
 
 ListenerInternal::~ListenerInternal() {
   MutexLock lock(mutex_);
@@ -35,7 +35,7 @@ ListenerInternal::~ListenerInternal() {
   }
 }
 
-void ListenerInternal::NotifyProgress(Controller* controller) {
+void ListenerInternal::NotifyProgress(Controller *controller) {
   int64_t new_bytes_transferred = controller->bytes_transferred();
   int64_t new_total_byte_count = controller->total_byte_count();
   if (new_bytes_transferred != bytes_transferred_ ||

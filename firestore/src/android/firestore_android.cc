@@ -422,7 +422,7 @@ Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update,
       static_cast<LambdaTransactionFunction*>(is_lambda ? update : nullptr);
   return promises_->NewFuture<void>(env, AsyncFn::kRunTransaction, task,
                                     completion);
-#else  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+#else   // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   return promises_->NewFuture<void>(env, AsyncFn::kRunTransaction, task);
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 }
@@ -536,8 +536,7 @@ DocumentSnapshot FirestoreInternal::NewDocumentSnapshot(
   return MakePublic<DocumentSnapshot>(env, mutable_this(), snapshot);
 }
 
-Query FirestoreInternal::NewQuery(Env& env,
-                                  const jni::Object& query) const {
+Query FirestoreInternal::NewQuery(Env& env, const jni::Object& query) const {
   return MakePublic<Query>(env, mutable_this(), query);
 }
 

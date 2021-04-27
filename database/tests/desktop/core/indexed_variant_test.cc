@@ -12,16 +12,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "database/src/desktop/core/indexed_variant.h"
+
 #include <fstream>
 #include <sstream>
 
 #include "app/memory/unique_ptr.h"
 #include "app/src/variant_util.h"
-#include "database/src/desktop/core/indexed_variant.h"
 #include "database/src/desktop/util_desktop.h"
-
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::Eq;
 using ::testing::Ne;

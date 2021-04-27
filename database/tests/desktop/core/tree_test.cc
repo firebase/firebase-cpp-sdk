@@ -17,8 +17,8 @@
 #include "app/memory/unique_ptr.h"
 #include "app/src/optional.h"
 #include "app/src/path.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {

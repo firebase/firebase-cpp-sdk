@@ -49,9 +49,9 @@ namespace firebase_testapp_automated {
 using app_framework::LogDebug;
 using app_framework::LogWarning;
 using app_framework::ProcessEvents;
-using firebase_test_framework::FirebaseTest;
 using firebase::Future;
 using firebase::remote_config::RemoteConfig;
+using firebase_test_framework::FirebaseTest;
 
 using testing::UnorderedElementsAre;
 
@@ -153,7 +153,7 @@ void FirebaseRemoteConfigTest::TerminateDeprecated() {
   ProcessEvents(100);
 }
 
-#else  // !TEST_DEPRECATED
+#else   // !TEST_DEPRECATED
 
 void FirebaseRemoteConfigTest::Initialize() {
   if (initialized_) return;
@@ -183,7 +183,6 @@ void FirebaseRemoteConfigTest::Initialize() {
 
   initialized_ = true;
 }
-
 
 void FirebaseRemoteConfigTest::Terminate() {
   if (!initialized_) return;
@@ -484,9 +483,9 @@ TEST_F(FirebaseRemoteConfigTest, TestGetAll) {
   ASSERT_NE(rc_, nullptr);
 
   EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
-  EXPECT_TRUE(WaitForCompletion(RunWithRetry([](RemoteConfig* rc) {
-    return rc->Fetch();
-  }, rc_), "Fetch"));
+  EXPECT_TRUE(WaitForCompletion(
+      RunWithRetry([](RemoteConfig* rc) { return rc->Fetch(); }, rc_),
+      "Fetch"));
   EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
   std::map<std::string, firebase::Variant> key_values = rc_->GetAll();
   EXPECT_EQ(key_values.size(), 6);
@@ -510,9 +509,9 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchV2) {
   ASSERT_NE(rc_, nullptr);
 
   EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
-  EXPECT_TRUE(WaitForCompletion(RunWithRetry([](RemoteConfig* rc) {
-    return rc->Fetch();
-  }, rc_), "Fetch"));
+  EXPECT_TRUE(WaitForCompletion(
+      RunWithRetry([](RemoteConfig* rc) { return rc->Fetch(); }, rc_),
+      "Fetch"));
   EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
   LogDebug("Fetch time: %lld", rc_->GetInfo().fetch_time);
   firebase::remote_config::ValueInfo value_info;

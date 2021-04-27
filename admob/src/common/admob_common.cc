@@ -17,6 +17,7 @@
 #include "admob/src/common/admob_common.h"
 
 #include <assert.h>
+
 #include <vector>
 
 #include "admob/src/include/firebase/admob.h"
@@ -28,18 +29,19 @@
 #include "app/src/include/firebase/version.h"
 #include "app/src/util.h"
 
-FIREBASE_APP_REGISTER_CALLBACKS(admob,
-                                {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    return firebase::admob::Initialize(*app);
-                                  }
-                                  return kInitResultSuccess;
-                                },
-                                {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    firebase::admob::Terminate();
-                                  }
-                                });
+FIREBASE_APP_REGISTER_CALLBACKS(
+    admob,
+    {
+      if (app == ::firebase::App::GetInstance()) {
+        return firebase::admob::Initialize(*app);
+      }
+      return kInitResultSuccess;
+    },
+    {
+      if (app == ::firebase::App::GetInstance()) {
+        firebase::admob::Terminate();
+      }
+    });
 
 namespace firebase {
 namespace admob {

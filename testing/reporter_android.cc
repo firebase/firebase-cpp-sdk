@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include <jni.h>
+
 #include <string>
 #include <vector>
 
@@ -27,8 +28,7 @@ namespace cppsdk {
 void Reporter::reset() {
   expectations_.clear();
   JNIEnv* env = GetTestJniEnv();
-  jclass cls =
-      env->FindClass("com/google/testing/FakeReporter");
+  jclass cls = env->FindClass("com/google/testing/FakeReporter");
   env->CallStaticVoidMethod(cls, env->GetStaticMethodID(cls, "reset", "()V"));
   util::CheckAndClearException(env);
   env->DeleteLocalRef(cls);
@@ -36,8 +36,7 @@ void Reporter::reset() {
 
 std::vector<std::string> Reporter::getAllFakes() {
   JNIEnv* env = GetTestJniEnv();
-  jclass cls =
-      env->FindClass("com/google/testing/FakeReporter");
+  jclass cls = env->FindClass("com/google/testing/FakeReporter");
   jobject fake_functions_list = env->CallStaticObjectMethod(
       cls, env->GetStaticMethodID(cls, "getAllFakes", "()Ljava/util/List;"));
   util::CheckAndClearException(env);
@@ -52,8 +51,7 @@ std::vector<std::string> Reporter::getAllFakes() {
 std::vector<std::string> Reporter::getFakeArgs(const std::string& fake) {
   JNIEnv* env = GetTestJniEnv();
   jstring fake_string = env->NewStringUTF(fake.c_str());
-  jclass cls =
-      env->FindClass("com/google/testing/FakeReporter");
+  jclass cls = env->FindClass("com/google/testing/FakeReporter");
   jobject fake_args_list = env->CallStaticObjectMethod(
       cls,
       env->GetStaticMethodID(cls, "getFakeArgs",
@@ -72,8 +70,7 @@ std::vector<std::string> Reporter::getFakeArgs(const std::string& fake) {
 std::string Reporter::getFakeResult(const std::string& fake) {
   JNIEnv* env = GetTestJniEnv();
   jstring fake_string = env->NewStringUTF(fake.c_str());
-  jclass cls =
-      env->FindClass("com/google/testing/FakeReporter");
+  jclass cls = env->FindClass("com/google/testing/FakeReporter");
   jobject fake_result_string = env->CallStaticObjectMethod(
       cls,
       env->GetStaticMethodID(cls, "getFakeResult",

@@ -1,5 +1,6 @@
 #include "firestore/src/jni/env.h"
 
+#include "Firestore/core/src/util/firestore_exceptions.h"
 #include "app/memory/unique_ptr.h"
 #include "app/meta/move.h"
 #include "firestore/src/android/exception_android.h"
@@ -7,7 +8,6 @@
 #include "firestore/src/jni/array.h"
 #include "firestore_integration_test.h"
 #include "gtest/gtest.h"
-#include "Firestore/core/src/util/firestore_exceptions.h"
 
 namespace firebase {
 namespace firestore {

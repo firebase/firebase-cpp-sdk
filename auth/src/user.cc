@@ -45,8 +45,7 @@ Future<std::string> User::GetTokenThreadSafe(bool force_refresh) {
   if (future.status() != kFutureStatusPending) {
     return future;
   } else {
-    FutureBase base =
-        auth_data_->future_impl.LastResultProxy(kUserFn_GetToken);
+    FutureBase base = auth_data_->future_impl.LastResultProxy(kUserFn_GetToken);
     const FutureBase& rFuture = base;
     return static_cast<const Future<std::string>&>(rFuture);
   }

@@ -15,7 +15,9 @@
  */
 
 #include "app/rest/response.h"
+
 #include <string>
+
 #include "app/rest/util.h"
 #include "curl/curl.h"
 
@@ -23,8 +25,11 @@ namespace firebase {
 namespace rest {
 
 Response::Response()
-    : status_(0), header_completed_(false), body_completed_(false),
-      sdk_error_code_(0), fetch_time_(0) {}
+    : status_(0),
+      header_completed_(false),
+      body_completed_(false),
+      sdk_error_code_(0),
+      fetch_time_(0) {}
 
 bool Response::ProcessHeader(const char* buffer, size_t length) {
   // Since buffer may NOT neccessarily end with \0, pass in length in the init.
@@ -50,7 +55,7 @@ bool Response::ProcessHeader(const char* buffer, size_t length) {
     // Below we update this response object by each header.
     // Update fetch_time_ from Date.
     if (key == util::kDate) {
-      fetch_time_ = curl_getdate(value.c_str(), nullptr  /* unused */);
+      fetch_time_ = curl_getdate(value.c_str(), nullptr /* unused */);
     }
   }
   return true;

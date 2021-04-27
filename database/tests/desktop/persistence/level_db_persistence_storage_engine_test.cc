@@ -21,8 +21,8 @@
 #include "app/src/logger.h"
 #include "app/src/variant_util.h"
 #include "database/src/desktop/persistence/flatbuffer_conversions.h"
-#include "testing/base/public/gmock.h"
 #include "gtest/gtest.h"
+#include "testing/base/public/gmock.h"
 
 using testing::Eq;
 using testing::Pointwise;

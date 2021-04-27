@@ -1,8 +1,8 @@
 #include <string>
 
+#include "app_framework.h"
 #include "firebase/firestore.h"
 #include "firestore_integration_test.h"
-#include "app_framework.h"
 #include "gtest/gtest.h"
 
 namespace firebase {
@@ -36,7 +36,8 @@ TEST_F(IncludesTest, TestIncludingFirestoreHeaderIsSufficient) {
   // We don't actually need to run any of the below, just compile it.
   if (0) {
 #if defined(__ANDROID__)
-    App* app = App::Create(app_framework::GetJniEnv(), app_framework::GetActivity());
+    App* app =
+        App::Create(app_framework::GetJniEnv(), app_framework::GetActivity());
 
 #elif defined(FIRESTORE_STUB_BUILD)
     // Stubs don't load values from `GoogleService-Info.plist`/etc., so the app

@@ -13,10 +13,9 @@
 // limitations under the License.
 
 #include "app/src/include/firebase/future.h"
+#include "app/src/mutex.h"
 #include "auth/src/desktop/auth_desktop.h"
 #include "auth/src/desktop/sign_in_flow.h"
-
-#include "app/src/mutex.h"
 #include "auth/src/include/firebase/auth.h"
 #include "auth/src/include/firebase/auth/types.h"
 
@@ -25,16 +24,14 @@ namespace auth {
 
 #ifdef INTERNAL_EXPERIMENTAL
 
-FederatedOAuthProvider::FederatedOAuthProvider() { }
+FederatedOAuthProvider::FederatedOAuthProvider() {}
 
 FederatedOAuthProvider::FederatedOAuthProvider(
     const FederatedOAuthProviderData& provider_data) {
   provider_data_ = provider_data;
 }
 
-FederatedOAuthProvider::~FederatedOAuthProvider() {
-  handler_ = nullptr;
-}
+FederatedOAuthProvider::~FederatedOAuthProvider() { handler_ = nullptr; }
 
 void FederatedOAuthProvider::SetAuthHandler(AuthHandler* handler) {
   handler_ = handler;
@@ -54,8 +51,7 @@ Future<SignInResult> CreateAuthFuture(AuthData* auth_data,
   FIREBASE_ASSERT_RETURN(Future<SignInResult>(), auth_data);
   auto auth_impl = static_cast<AuthImpl*>(auth_data->auth_impl);
   MutexLock lock(auth_impl->provider_mutex);
-  auto future_base =
-      auth_data->future_impl.LastResult(api_function);
+  auto future_base = auth_data->future_impl.LastResult(api_function);
   if (future_base.status() == kFutureStatusPending) {
     // There's an operation in progress. Create and return a new failed
     // future.
@@ -70,10 +66,9 @@ Future<SignInResult> CreateAuthFuture(AuthData* auth_data,
     // initialize the future.
     SafeFutureHandle<SignInResult> handle =
         auth_data->future_impl.SafeAlloc<SignInResult>(api_function);
-    Future<SignInResult> result = MakeFuture(&auth_data->future_impl,
-                    SafeFutureHandle<SignInResult>(handle));
-    auto future_base =
-      auth_data->future_impl.LastResult(api_function);
+    Future<SignInResult> result = MakeFuture(
+        &auth_data->future_impl, SafeFutureHandle<SignInResult>(handle));
+    auto future_base = auth_data->future_impl.LastResult(api_function);
     return result;
   } else {
     // Construct future.

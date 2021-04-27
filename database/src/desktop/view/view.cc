@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include "database/src/desktop/view/view.h"
+
 #include <vector>
+
 #include "app/memory/unique_ptr.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/variant.h"

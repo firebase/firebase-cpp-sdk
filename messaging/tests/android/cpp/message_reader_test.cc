@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "messaging/src/android/cpp/message_reader.h"
+
 #include <string.h>
 
 #include <cstdint>
@@ -19,10 +21,9 @@
 #include <vector>
 
 #include "app/src/util.h"
-#include "messaging/messaging_generated.h"
-#include "messaging/src/android/cpp/message_reader.h"
-#include "messaging/src/include/firebase/messaging.h"
 #include "gtest/gtest.h"
+#include "messaging/messaging_generated.h"
+#include "messaging/src/include/firebase/messaging.h"
 
 // Since we're compiling a subset of the Android library on all platforms,
 // we need to register a stub module initializer referenced by messaging.h
@@ -41,12 +42,11 @@ using com::google::firebase::messaging::cpp::CreateSerializedTokenReceived;
 using com::google::firebase::messaging::cpp::DataPair;
 using com::google::firebase::messaging::cpp::FinishSerializedEventBuffer;
 using com::google::firebase::messaging::cpp::SerializedEventUnion;
+using com::google::firebase::messaging::cpp::SerializedEventUnion_MAX;
 using com::google::firebase::messaging::cpp::
     SerializedEventUnion_SerializedMessage;
 using com::google::firebase::messaging::cpp::
     SerializedEventUnion_SerializedTokenReceived;
-using com::google::firebase::messaging::cpp::
-    SerializedEventUnion_MAX;
 using flatbuffers::FlatBufferBuilder;
 
 class MessageReaderTest : public ::testing::Test {
@@ -271,9 +271,7 @@ TEST_F(MessageReaderTest, ReadFromBufferInvalidEventType) {
   FinishSerializedEventBuffer(
       fbb,
       CreateSerializedEvent(
-          fbb,
-          static_cast<SerializedEventUnion>(
-              SerializedEventUnion_MAX + 1),
+          fbb, static_cast<SerializedEventUnion>(SerializedEventUnion_MAX + 1),
           CreateSerializedTokenReceived(fbb, fbb.CreateString("ignoreme"))
               .Union()));
   std::string buffer;

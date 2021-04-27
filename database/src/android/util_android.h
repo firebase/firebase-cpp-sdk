@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_ANDROID_UTIL_ANDROID_H_
 
 #include <jni.h>
+
 #include "app/src/include/firebase/variant.h"
 
 namespace firebase {

@@ -18,8 +18,8 @@
 
 #include <time.h>
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace {
 
@@ -72,7 +72,7 @@ TEST(TimeTests, GetTimestampTest) {
 
   uint64_t end = firebase::internal::GetTimestamp();
 
-  EXPECT_GE(end, start+500);
+  EXPECT_GE(end, start + 500);
 }
 
 // Test GetTimestampEpoch function
@@ -93,7 +93,7 @@ TEST(TimeTests, GetTimestampEpochTest) {
   printf("%llu -> %llu (%lld)\n", start, end, error);
 #endif  // __linux__
 
-  EXPECT_GE(end, start+500);
+  EXPECT_GE(end, start + 500);
 }
 
 }  // namespace

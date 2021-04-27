@@ -130,8 +130,7 @@ void FutureManager::CleanupOrphanedFutureApis(bool force_delete_all) {
 
 bool FutureManager::IsSafeToDeleteFutureApi(ReferenceCountedFutureImpl* api) {
   MutexLock lock(future_api_mutex_);
-  return api ? api->IsSafeToDelete() && !api->IsReferencedExternally()
-             : false;
+  return api ? api->IsSafeToDelete() && !api->IsReferencedExternally() : false;
 }
 
 // NOLINTNEXTLINE - allow namespace overridden

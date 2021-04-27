@@ -15,12 +15,12 @@
 #include "database/src/desktop/view/view_processor.h"
 
 #include "app/src/variant_util.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/desktop/core/indexed_variant.h"
 #include "database/src/desktop/core/operation.h"
 #include "database/src/desktop/util_desktop.h"
 #include "database/src/desktop/view/indexed_filter.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 // There are four types of operations we can apply: Overwrites, Merges,
 // AckUserWrites, and ListenCompletes. Overwrites and merges can come from

@@ -23,11 +23,7 @@
 #define FIREBASE_NAMESPACE firebase
 #endif
 
-#ifdef USE_PLAYBILLING_FUTURE
-#include "playbillingclient/future.h"
-#else
 #include "firebase/future.h"
-#endif
 
 namespace FIREBASE_NAMESPACE {
 
@@ -95,8 +91,7 @@ class ModuleInitializer {
   /// function that should initialize a Firebase module and return the
   /// InitResult. @see Initialize(::firebase::App*, void*, const InitializerFn*)
   /// for more information.
-  Future<void> Initialize(App* app, void* context,
-                          InitializerFn init_fn);
+  Future<void> Initialize(App* app, void* context, InitializerFn init_fn);
 
   /// @brief Get the result of the most recent call to @see Initialize().
   Future<void> InitializeLastResult();

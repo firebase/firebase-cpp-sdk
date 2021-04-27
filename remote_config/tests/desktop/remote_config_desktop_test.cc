@@ -16,12 +16,12 @@
 
 #include <chrono>  // NOLINT
 
+#include "app/tests/include/firebase/app_for_testing.h"
 #include "file/base/path.h"
 #include "firebase/app.h"
-#include "app/tests/include/firebase/app_for_testing.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "firebase/future.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "remote_config/src/common.h"
 #include "remote_config/src/desktop/config_data.h"
 #include "remote_config/src/desktop/file_manager.h"
@@ -84,9 +84,7 @@ class RemoteConfigDesktopTest : public ::testing::Test {
                                 {"key_string", "aaa"},
                                 {"key_data", "zzz"}}}}),
         1234567);
-    NamespacedConfigData defaults(
-        NamespaceKeyValueMap({}),
-        9999999);
+    NamespacedConfigData defaults(NamespaceKeyValueMap({}), 9999999);
     RemoteConfigMetadata metadata;
     metadata.set_info(ConfigInfo({1498757224, kLastFetchStatusPending,
                                   kFetchFailureReasonThrottled, 1498758888}));
@@ -266,10 +264,9 @@ TEST_F(RemoteConfigDesktopTest, GetData) {
 
 TEST_F(RemoteConfigDesktopTest, GetKeys) {
   {
-    EXPECT_THAT(
-        instance_->GetKeys(),
-        ::testing::Eq(std::vector<std::string>{
-            "key_bool", "key_data", "key_double", "key_long", "key_string"}));
+    EXPECT_THAT(instance_->GetKeys(), ::testing::Eq(std::vector<std::string>{
+                                          "key_bool", "key_data", "key_double",
+                                          "key_long", "key_string"}));
   }
 }
 

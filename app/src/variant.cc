@@ -305,8 +305,8 @@ void Variant::Clear(Type new_type) {
       break;
     }
     case kInternalTypeMutableString: {
-      if (new_type != kTypeMutableString
-          || value_.mutable_string_value == nullptr) {
+      if (new_type != kTypeMutableString ||
+          value_.mutable_string_value == nullptr) {
         delete value_.mutable_string_value;
         value_.mutable_string_value = nullptr;
       } else {
@@ -418,9 +418,9 @@ const char* const Variant::kTypeNames[] = {
 };
 
 void Variant::assert_is_type(Variant::Type type) const {
-    static_assert(FIREBASE_ARRAYSIZE(Variant::kTypeNames) ==
-                Variant::kMaxTypeValue + 1,
-                  "Type Enum should match kTypeNames");
+  static_assert(
+      FIREBASE_ARRAYSIZE(Variant::kTypeNames) == Variant::kMaxTypeValue + 1,
+      "Type Enum should match kTypeNames");
 
   FIREBASE_ASSERT_MESSAGE(
       this->type_ == static_cast<InternalType>(type),

@@ -25,8 +25,8 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/semaphore.h"
 #include "app/src/thread.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "thread/fiber/fiber.h"
 #include "util/random/mt_random_thread_safe.h"
 

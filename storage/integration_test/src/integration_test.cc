@@ -43,6 +43,7 @@
 namespace firebase_testapp_automated {
 
 using app_framework::LogDebug;
+using app_framework::LogError;
 
 // You can customize the Storage URL here.
 const char* kStorageUrl = nullptr;
@@ -121,7 +122,6 @@ class FirebaseStorageTest : public FirebaseTest {
 firebase::App* FirebaseStorageTest::shared_app_;
 firebase::auth::Auth* FirebaseStorageTest::shared_auth_;
 
-
 FirebaseStorageTest::FirebaseStorageTest()
     : initialized_(false), storage_(nullptr) {
   FindFirebaseConfig(FIREBASE_CONFIG_STRING);
@@ -132,9 +132,7 @@ FirebaseStorageTest::~FirebaseStorageTest() {
   assert(storage_ == nullptr);
 }
 
-void FirebaseStorageTest::SetUpTestSuite() {
-  InitializeAppAndAuth();
-}
+void FirebaseStorageTest::SetUpTestSuite() { InitializeAppAndAuth(); }
 
 void FirebaseStorageTest::InitializeAppAndAuth() {
   LogDebug("Initialize Firebase App.");
@@ -154,14 +152,14 @@ void FirebaseStorageTest::InitializeAppAndAuth() {
 
   // Initialize Firebase Auth.
   ::firebase::ModuleInitializer initializer;
-  initializer.Initialize(
-      shared_app_, &shared_auth_, [](::firebase::App* app, void* target) {
-        LogDebug("Attempting to initialize Firebase Auth.");
-        ::firebase::InitResult result;
-        *reinterpret_cast<firebase::auth::Auth**>(target) =
-          ::firebase::auth::Auth::GetAuth(app, &result);
-        return result;
-      });
+  initializer.Initialize(shared_app_, &shared_auth_,
+                         [](::firebase::App* app, void* target) {
+                           LogDebug("Attempting to initialize Firebase Auth.");
+                           ::firebase::InitResult result;
+                           *reinterpret_cast<firebase::auth::Auth**>(target) =
+                               ::firebase::auth::Auth::GetAuth(app, &result);
+                           return result;
+                         });
 
   WaitForCompletion(initializer.InitializeLastResult(), "InitializeAuth");
 
@@ -176,9 +174,7 @@ void FirebaseStorageTest::InitializeAppAndAuth() {
   SignIn();
 }
 
-void FirebaseStorageTest::TearDownTestSuite() {
-  TerminateAppAndAuth();
-}
+void FirebaseStorageTest::TearDownTestSuite() { TerminateAppAndAuth(); }
 
 void FirebaseStorageTest::TerminateAppAndAuth() {
   if (shared_auth_) {
@@ -207,7 +203,7 @@ void FirebaseStorageTest::TearDown() {
       std::vector<firebase::Future<void>> cleanups;
       cleanups.reserve(cleanup_files_.size());
       for (int i = 0; i < cleanup_files_.size(); ++i) {
-	cleanups.push_back(cleanup_files_[i].Delete());
+        cleanups.push_back(cleanup_files_[i].Delete());
       }
       for (int i = 0; i < cleanups.size(); ++i) {
 	WaitForCompletionAnyResult(cleanups[i], "FirebaseStorageTest::TearDown");
@@ -228,7 +224,7 @@ void FirebaseStorageTest::InitializeStorage() {
         LogDebug("Attempting to initialize Firebase Storage.");
         ::firebase::InitResult result;
         *reinterpret_cast<firebase::storage::Storage**>(target) =
-          firebase::storage::Storage::GetInstance(app, kStorageUrl, &result);
+            firebase::storage::Storage::GetInstance(app, kStorageUrl, &result);
         return result;
       });
 
@@ -283,9 +279,9 @@ void FirebaseStorageTest::SignOut() {
   }
   if (shared_auth_->current_user()->is_anonymous()) {
     // If signed in anonymously, delete the anonymous user.
-    WaitForCompletion(shared_auth_->current_user()->Delete(), "DeleteAnonymousUser");
-  }
-  else {
+    WaitForCompletion(shared_auth_->current_user()->Delete(),
+                      "DeleteAnonymousUser");
+  } else {
     // If not signed in anonymously (e.g. if the tests were modified to sign in
     // as an actual user), just sign out normally.
     shared_auth_->SignOut();
@@ -363,8 +359,8 @@ TEST_F(FirebaseStorageTest, TestStorageUrl) {
   storage_ = nullptr;
   {
     firebase::storage::Storage* storage_explicit =
-        firebase::storage::Storage::GetInstance(shared_app_, default_url.c_str(),
-                                                nullptr);
+        firebase::storage::Storage::GetInstance(shared_app_,
+                                                default_url.c_str(), nullptr);
     ASSERT_NE(storage_explicit, nullptr);
     EXPECT_EQ(storage_explicit->url(), default_url);
     delete storage_explicit;
@@ -684,20 +680,34 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
 
   const size_t kLargeFileSize = kLargeFileMegabytes * 1024 * 1024;
   const std::string kLargeTestFile = CreateDataForLargeFile(kLargeFileSize);
-
+  struct Context {
+    firebase::storage::StorageReference* ref;
+    const std::string* test_file;
+    size_t test_file_size;
+  } context;
+  context.ref = &ref;
+  context.test_file = &kLargeTestFile;
+  context.test_file_size = kLargeFileSize;
+  if (!RunFlakyBlock([](void* context_void)
   {
+    Context* context = reinterpret_cast<Context*>(context_void);
+    firebase::storage::StorageReference* ref = context->ref;
+    const std::string* test_file = context->test_file;
+    size_t test_file_size = context->test_file_size;
     LogDebug("Uploading large file with pause/resume.");
     StorageListener listener;
     firebase::storage::Controller controller;
-    firebase::Future<firebase::storage::Metadata> future = ref.PutBytes(
-        kLargeTestFile.c_str(), kLargeFileSize, &listener, &controller);
+    firebase::Future<firebase::storage::Metadata> future = ref->PutBytes(
+        test_file->c_str(), test_file_size, &listener, &controller);
 
     // Ensure the Controller is valid now that we have associated it with an
     // operation.
-    ASSERT_TRUE(controller.is_valid());
+    if (!controller.is_valid()) {
+      LogError("Controller is invalid");
+      return false;
+    }
 
-    while(controller.bytes_transferred() == 0)
-    {
+    while (controller.bytes_transferred() == 0) {
 #if FIREBASE_PLATFORM_DESKTOP
       ProcessEvents(1);
 #else // FIREBASE_PLATFORM_MOBILE
@@ -709,8 +719,14 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     // operation and verify it was successfully paused when the future
     // completes.
     LogDebug("Pausing upload.");
-    EXPECT_TRUE(controller.Pause()) << "Upload pause";
-
+    if (!FirebaseTest::RunFlakyBlock([](void* controller_void) {
+			 firebase::storage::Controller* controller =
+			   reinterpret_cast<firebase::storage::Controller*>(controller_void);
+			 return controller->Pause();
+		       }, &controller)) {
+      LogError("Pause failed.");
+      return false;
+    }
     // The StorageListener's OnPaused will call Resume().
 
     LogDebug("Waiting for future.");
@@ -718,14 +734,31 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     LogDebug("Upload complete.");
 
     // Ensure the various callbacks were called.
-    EXPECT_TRUE(listener.on_paused_was_called());
-    EXPECT_TRUE(listener.on_progress_was_called());
-    EXPECT_TRUE(listener.resume_succeeded());
-
-    ASSERT_EQ(future.error(), firebase::storage::kErrorNone);
+    if (!listener.on_paused_was_called()) {
+      LogError("Listener::OnPaused was not called");
+      return false;
+    }
+    if (!listener.on_progress_was_called()) {
+      LogError("Listener::OnProgress was not called");
+      return false;
+    }
+    if (!listener.resume_succeeded()) {
+      LogError("Resume failed");
+      return false;
+    }
+      
+    if (future.error() != firebase::storage::kErrorNone) {
+      LogError("PutBytes returned error %d: %s", future.error(), future.error_message());
+      return false;
+    }
     auto metadata = future.result();
-    ASSERT_EQ(metadata->size_bytes(), kLargeFileSize)
-        << "Metadata reports incorrect size, file failed to upload.";
+    if (metadata->size_bytes() != test_file_size) {
+      LogError("Metadata reports incorrect size, file failed to upload.");
+      return false;
+    }
+    return true;
+  }, &context)) {
+    FAIL() << "PutBytes with pause/resume failed, check error log for details.";
   }
 
   // Download the file and confirm it's correct.
@@ -754,8 +787,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
         ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
     ASSERT_TRUE(controller.is_valid());
 
-    while(controller.bytes_transferred() == 0)
-    {
+    while (controller.bytes_transferred() == 0) {
       ProcessEvents(1);
     }
 
@@ -812,8 +844,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
         ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
     ASSERT_TRUE(controller.is_valid());
 
-    while(controller.bytes_transferred() == 0)
-    {
+    while (controller.bytes_transferred() == 0) {
       ProcessEvents(1);
     }
 
@@ -842,8 +873,7 @@ TEST_F(FirebaseStorageTest, TestLargeFileCancelUpload) {
     // operation.
     ASSERT_TRUE(controller.is_valid());
 
-    while(controller.bytes_transferred() == 0)
-    {
+    while (controller.bytes_transferred() == 0) {
       ProcessEvents(1);
     }
 

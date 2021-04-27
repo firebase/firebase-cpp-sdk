@@ -5,12 +5,12 @@
 #include <memory>
 #include <utility>
 
+#include "Firestore/core/src/core/event_listener.h"
+#include "Firestore/core/src/util/statusor.h"
+#include "firebase/firestore/firestore_errors.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/promise_ios.h"
-#include "firebase/firestore/firestore_errors.h"
-#include "Firestore/core/src/core/event_listener.h"
-#include "Firestore/core/src/util/statusor.h"
 
 namespace firebase {
 namespace firestore {

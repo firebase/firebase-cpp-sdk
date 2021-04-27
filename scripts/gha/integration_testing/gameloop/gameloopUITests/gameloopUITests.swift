@@ -85,7 +85,7 @@ class GameLoopLauncherUITests: XCTestCase {
       return timeoutSecs
     } else {
       // Default 5 minutes
-      return TimeInterval(60 * 3)
+      return TimeInterval(60 * 5)
     }
   }
 

@@ -23,8 +23,8 @@
 #include "app/src/mutex.h"
 #include "app/src/thread.h"
 #include "app/src/time.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::Eq;
 
@@ -389,7 +389,7 @@ TEST_F(CallbackTest, AddCallbackWithThreadCheckTest) {
   // would be set to current thread which runs the tests.  We want it to be set
   // to a different thread id in the beginning of this test.
   Thread changeThreadIdThread([]() {
-    callback::AddCallback(new callback::CallbackVoid([](){}));
+    callback::AddCallback(new callback::CallbackVoid([]() {}));
     callback::PollCallbacks();
   });
   changeThreadIdThread.Join();

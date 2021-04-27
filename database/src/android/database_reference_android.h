@@ -16,8 +16,10 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_ANDROID_DATABASE_REFERENCE_ANDROID_H_
 
 #include <jni.h>
+
 #include <map>
 #include <string>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/include/firebase/internal/common.h"

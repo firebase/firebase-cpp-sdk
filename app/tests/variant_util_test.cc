@@ -21,8 +21,8 @@
 
 #include "app/src/include/firebase/variant.h"
 #include "app/tests/flexbuffer_matcher.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/json_util.h"
 
 namespace {

@@ -7,6 +7,9 @@
 #include <mutex>  // NOLINT(build/c++11)
 #include <unordered_set>
 
+#include "Firestore/core/src/api/firestore.h"
+#include "Firestore/core/src/auth/credentials_provider.h"
+#include "Firestore/core/src/model/database_id.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -14,9 +17,6 @@
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/settings.h"
 #include "firestore/src/ios/promise_factory_ios.h"
-#include "Firestore/core/src/api/firestore.h"
-#include "Firestore/core/src/auth/credentials_provider.h"
-#include "Firestore/core/src/model/database_id.h"
 
 namespace firebase {
 namespace firestore {

@@ -15,6 +15,7 @@
  */
 
 #include "app/rest/transport_builder.h"
+
 #include "app/rest/transport_curl.h"
 #include "flatbuffers/stl_emulation.h"
 
@@ -23,7 +24,7 @@ namespace rest {
 
 namespace {
 // The default transport builder.
-flatbuffers::unique_ptr<Transport>(* g_transport_builder)() = nullptr;
+flatbuffers::unique_ptr<Transport> (*g_transport_builder)() = nullptr;
 }  // namespace
 
 flatbuffers::unique_ptr<Transport> CreateTransport() {
@@ -34,7 +35,7 @@ flatbuffers::unique_ptr<Transport> CreateTransport() {
   }
 }
 
-void SetTransportBuilder(flatbuffers::unique_ptr<Transport>(* builder)()) {
+void SetTransportBuilder(flatbuffers::unique_ptr<Transport> (*builder)()) {
   g_transport_builder = builder;
 }
 

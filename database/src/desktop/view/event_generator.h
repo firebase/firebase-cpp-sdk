@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_EVENT_GENERATOR_H_
 
 #include <vector>
+
 #include "app/memory/unique_ptr.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"

@@ -2,9 +2,15 @@
 
 #include <string>
 
+#include "android/cancellation_token_source.h"
+#include "android/firestore_integration_test_android.h"
+#include "android/task_completion_source.h"
 #include "app/memory/unique_ptr.h"
 #include "app/src/assert.h"
 #include "app/src/mutex.h"
+#include "app_framework.h"
+#include "firebase/firestore/firestore_errors.h"
+#include "firebase_test_framework.h"
 #include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/firestore_android.h"
@@ -15,14 +21,8 @@
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/ownership.h"
 #include "firestore/src/jni/task.h"
-#include "android/cancellation_token_source.h"
-#include "android/firestore_integration_test_android.h"
-#include "android/task_completion_source.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "firebase/firestore/firestore_errors.h"
-#include "app_framework.h"
-#include "firebase_test_framework.h"
 
 namespace firebase {
 namespace firestore {
@@ -48,7 +48,7 @@ class PromiseTest : public FirestoreAndroidIntegrationTest {
     jni::Env env = GetEnv();
     cancellation_token_source_ = CancellationTokenSource::Create(env);
     task_completion_source_ = TaskCompletionSource::Create(
-       env, cancellation_token_source_.GetToken(env));
+        env, cancellation_token_source_.GetToken(env));
   }
 
   // An enum of asynchronous functions to use in tests, as required by
@@ -82,9 +82,7 @@ class PromiseTest : public FirestoreAndroidIntegrationTest {
     cancellation_token_source_.Cancel(env);
   }
 
-  static jni::Env GetEnv() {
-    return jni::Env(app_framework::GetJniEnv());
-  }
+  static jni::Env GetEnv() { return jni::Env(app_framework::GetJniEnv()); }
 
  private:
   PromiseFactory<AsyncFn> promises_;

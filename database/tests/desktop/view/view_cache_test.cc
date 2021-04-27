@@ -14,8 +14,8 @@
 
 #include "database/src/desktop/view/view_cache.h"
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {

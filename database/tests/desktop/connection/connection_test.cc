@@ -22,8 +22,8 @@
 #include "app/src/time.h"
 #include "app/src/variant_util.h"
 #include "app/tests/include/firebase/app_for_testing.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 static const char kDatabaseHostname[] = "cpp-database-test-app.firebaseio.com";
 static const char kDatabaseNamespace[] = "cpp-database-test-app";
