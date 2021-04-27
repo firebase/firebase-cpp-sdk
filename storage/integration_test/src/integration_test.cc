@@ -737,7 +737,12 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
             // The StorageListener's OnPaused will call Resume().
 
             LogDebug("Waiting for future.");
-            WaitForCompletion(future, "WriteLargeFile");
+            WaitForCompletionAnyResult(future, "WriteLargeFile");
+            if (future.error() != firebase::storage::kErrorNone) {
+              LogError("PutBytes returned error %d: %s", future.error(),
+                       future.error_message());
+              return false;
+            }
             LogDebug("Upload complete.");
 
             // Ensure the various callbacks were called.
@@ -754,11 +759,6 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
               return false;
             }
 
-            if (future.error() != firebase::storage::kErrorNone) {
-              LogError("PutBytes returned error %d: %s", future.error(),
-                       future.error_message());
-              return false;
-            }
             auto metadata = future.result();
             if (metadata->size_bytes() != test_file_size) {
               LogError(
@@ -772,8 +772,8 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
   }
 
   // Download the file and confirm it's correct.
-  std::vector<char> buffer(kLargeFileSize);
   {
+    std::vector<char> buffer(kLargeFileSize);
     memset(&buffer[0], 0, kLargeFileSize);
     LogDebug("Downloading large file for comparison.");
     StorageListener listener;
@@ -787,39 +787,83 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
         << "Read large file failed, contents did not match.";
   }
 #if FIREBASE_PLATFORM_DESKTOP
+  if (!RunFlakyBlock([](void* context_void)
   {
+    Context* context = reinterpret_cast<Context*>(context_void);
+    firebase::storage::StorageReference* ref = context->ref;
+    const std::string* test_file = context->test_file;
+    size_t test_file_size = context->test_file_size;
     // Test pausing/resuming while downloading (desktop only).
-    memset(&buffer[0], 0, kLargeFileSize);
+    std::vector<char> buffer(test_file_size);
+    memset(&buffer[0], 0, test_file_size);
     LogDebug("Downloading large file with pausing/resuming.");
     StorageListener listener;
     firebase::storage::Controller controller;
     firebase::Future<size_t> future =
-        ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
-    ASSERT_TRUE(controller.is_valid());
+        ref->GetBytes(&buffer[0], test_file_size, &listener, &controller);
+    if (!controller.is_valid()) {
+      LogError("Controller invalid");
+      return false;
+    }
 
     while (controller.bytes_transferred() == 0) {
       ProcessEvents(1);
     }
 
     LogDebug("Pausing download.");
-    EXPECT_TRUE(controller.Pause()) << "Download pause";
+    if (!FirebaseTest::RunFlakyBlock(
+            [](void* controller_void) {
+              firebase::storage::Controller* controller =
+                  reinterpret_cast<firebase::storage::Controller*>(
+                      controller_void);
+              return controller->Pause();
+            },
+            &controller)) {
+      LogError("Pause failed.");
+      return false;
+    }
 
-    WaitForCompletion(future, "GetBytes");
+    WaitForCompletionAnyResult(future, "GetBytes");
+    if (future.error() != firebase::storage::kErrorNone) {
+      LogError("GetBytes returned error %d: %s", future.error(),
+	       future.error_message());
+      return false;
+    }
     LogDebug("Download complete.");
 
     // Ensure the progress and pause callbacks were called.
-    EXPECT_TRUE(listener.on_progress_was_called());
-    EXPECT_TRUE(listener.on_paused_was_called());
-
-    ASSERT_NE(future.result(), nullptr);
+    if (!listener.on_paused_was_called()) {
+      LogError("Listener::OnPaused was not called");
+      return false;
+    }
+    if (!listener.on_progress_was_called()) {
+      LogError("Listener::OnProgress was not called");
+      return false;
+    }
+    if (!listener.resume_succeeded()) {
+      LogError("Resume failed");
+      return false;
+    }
+    if (future.result() == nullptr) {
+      LogError("Future returned null data");
+      return false;
+    }
     size_t file_size = *future.result();
-    EXPECT_EQ(file_size, kLargeFileSize)
-        << "Read size with pause/resume did not match";
-    EXPECT_TRUE(memcmp(kLargeTestFile.c_str(), &buffer[0], kLargeFileSize) == 0)
-        << "Read large file failed, contents did not match.";
+    if (file_size != test_file_size) {
+      LogError("Read size with pause/resume did not match");
+      return false;
+    }
+    if (memcmp(test_file->c_str(), &buffer[0], test_file_size) != 0) {
+      LogError("Read large file failed, contents did not match.");
+      return false;
+    }
+    return true;
+  }, &context)) {
+    FAIL() << "Download of file with pause/resume failed, see error log";
   }
 #else
   {
+    std::vector<char> buffer(kLargeFileSize);
     // Test downloading large file (mobile only), without pausing, as mobile
     // does not support pause during file download, only upload.
     memset(&buffer[0], 0, kLargeFileSize);
@@ -847,6 +891,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
 
   // Try canceling while downloading.
   {
+    std::vector<char> buffer(kLargeFileSize);
     LogDebug("Downloading large file with cancellation.");
     StorageListener listener;
     firebase::storage::Controller controller;

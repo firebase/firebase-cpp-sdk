@@ -41,6 +41,7 @@
 namespace firebase_testapp_automated {
 
 using app_framework::LogDebug;
+using app_framework::LogError;
 
 using app_framework::ProcessEvents;
 using firebase_test_framework::FirebaseTest;
@@ -143,34 +144,84 @@ TEST_F(FirebaseInstallationsTest, TestCanGetId) {
 }
 
 TEST_F(FirebaseInstallationsTest, TestGettingIdTwiceMatches) {
-  firebase::Future<std::string> id = installations_->GetId();
-  WaitForCompletion(id, "GetId");
-  EXPECT_NE(*id.result(), "");
-  std::string first_id = *id.result();
-  id = installations_->GetId();
-  WaitForCompletion(id, "GetId 2");
-  EXPECT_EQ(*id.result(), first_id);
+  if (!RunFlakyBlock([](void* installations_void)
+  {
+    firebase::installations::Installations* installations = reinterpret_cast<firebase::installations::Installations*>(installations_void);
+    firebase::Future<std::string> id = installations->GetId();
+    WaitForCompletionAnyResult(id, "GetId");
+    if (id.error() != 0) {
+      LogError("GetId returned error %d: %s", id.error(), id.error_message());
+      return false;
+    }
+    if (*id.result() == "") {
+      LogError("GetId returned blank");
+      return false;
+    }
+    std::string first_id = *id.result();
+    id = installations->GetId();
+    WaitForCompletionAnyResult(id, "GetId 2");
+    if (id.error() != 0) {
+      LogError("GetId 2 returned error %d: %s", id.error(), id.error_message());
+      return false;
+    }
+    if (*id.result() == first_id) {
+      LogError("GetId 2 returned non-matching ID: first(%s) vs second(%s)",
+	       first_id.c_str(), id.result()->c_str());
+      return false;
+    }
+    return true;
+  }, &installations_)) {
+    FAIL() << "Test failed, check error log for details.";
+  }
 }
 
 TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewIdNextTime) {
-  firebase::Future<std::string> id = installations_->GetId();
-  WaitForCompletion(id, "GetId");
-  EXPECT_NE(*id.result(), "");
-  std::string first_id = *id.result();
+  if (!RunFlakyBlock([](void* installations_void)
+  {
+    firebase::installations::Installations* installations = reinterpret_cast<firebase::installations::Installations*>(installations_void);
+    firebase::Future<std::string> id = installations->GetId();
+    WaitForCompletionAnyResult(id, "GetId");
+    if (id.error() != 0) {
+      LogError("GetId returned error %d: %s", id.error(), id.error_message());
+      return false;
+    }
+    if (*id.result() == "") {
+      LogError("GetId returned blank");
+      return false;
+    }
+    std::string first_id = *id.result();
 
-  firebase::Future<void> del = installations_->Delete();
-  WaitForCompletion(del, "Delete");
+    firebase::Future<void> del = installations->Delete();
+    WaitForCompletionAnyResult(del, "Delete");
+    if (del.error() != 0) {
+      LogError("Delete returned error %d: %s", id.error(), id.error_message());
+      return false;
+    }
 
-  // Ensure that we now get a different installations id.
-  id = installations_->GetId();
-  WaitForCompletion(id, "GetId 2");
-  EXPECT_NE(*id.result(), "");
+    // Ensure that we now get a different installations id.
+    id = installations->GetId();
+    WaitForCompletionAnyResult(id, "GetId 2");
+    if (id.error() != 0) {
+      LogError("GetId 2 returned error %d: %s", id.error(), id.error_message());
+      return false;
+    }
+    if (*id.result() == "") {
+      LogError("GetId 2 returned blank");
+      return false;
+    }
 #if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-  // Desktop is a stub and returns the same ID, but on mobile it should
-  // return a new ID.
-  EXPECT_NE(*id.result(), first_id);
+    // Desktop is a stub and returns the same ID, but on mobile it should
+    // return a new ID.
+    if (*id.result() == first_id) {
+      LogError("IDs match (should be different): %s", first_id.c_str());
+      return false;
+    }
 #endif  // defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
+    return true;
+  }, &installations_)) {
+    FAIL() << "Test failed, check error log for details.";
+  }
 }
 
 TEST_F(FirebaseInstallationsTest, TestCanGetToken) {
