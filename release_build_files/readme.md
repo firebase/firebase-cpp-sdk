@@ -45,23 +45,9 @@ structure.
 Directories               | Contents
 ------------------------- | --------
 include                   | C++ headers
-frameworks/ios/ARCH       | iOS frameworks (compiled against libc++)
-                          | A multi-architecture framework is
-                          | provided in the *universal* directory.
-libs/ios/ARCH             | iOS static libraries (compiled against
-                          | libc++)
-                          | Multi-architecture libraries are
-                          | provided in the *universal* directory.
-libs/android/ARCH/STL     | Android (GCC 4.8+ compatible) static
-                          | libraries for each architecture and STL
-                          | variant.
-                          | _STL variants available:_
-                          | * `c++`: LLVM libc++ runtime (recommended)
-                          | * `gnustl`: GNU STL
-                          | * `stlport`: STLport runtime
-                          | More information can be found in the
-                          | [NDK C++ Helper Runtimes](https://developer.android.com/ndk/guides/cpp-support.html#runtimes)
-                          | documentation.
+frameworks/ios/ARCH       | iOS frameworks (compiled against libc++)<br>A multi-architecture framework is<br>provided in the *universal* directory.
+libs/ios/ARCH             | iOS static libraries (compiled against<br>libc++)<br>Multi-architecture libraries are<br/>provided in the *universal* directory.
+libs/android/ARCH/STL     | Android (GCC 4.8+ compatible) static<br>libraries for each architecture and STL variant.<br>_STL variants available:_<br><ul><li>`c++`: LLVM libc++ runtime (recommended)</li><li>`gnustl`: GNU STL</li><li>`stlport`: STLport runtime</li></ul><br>More information can be found in the<br>[NDK C++ Helper Runtimes](https://developer.android.com/ndk/guides/cpp-support.html#runtimes) documentation.
 *Desktop Implementations* |
 libs/darwin               | OS X static libraries (desktop or stub
                           | implementations, compiled against libc++)
