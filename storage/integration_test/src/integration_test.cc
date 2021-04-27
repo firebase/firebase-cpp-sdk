@@ -730,7 +730,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
                               controller_void);
                       return controller->Pause();
                     },
-                    &controller)) {
+                    &controller, "Pause")) {
               LogError("Pause failed.");
               return false;
             }
@@ -767,8 +767,8 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
             }
             return true;
           },
-          &context)) {
-    FAIL() << "PutBytes with pause/resume failed, check error log for details.";
+          &context, "PutBytes")) {
+    FAIL() << "Upload with pause/resume failed, check error log for details.";
   }
 
   // Download the file and confirm it's correct.
@@ -818,7 +818,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
                       controller_void);
               return controller->Pause();
             },
-            &controller)) {
+            &controller, "Pause")) {
       LogError("Pause failed.");
       return false;
     }
@@ -858,7 +858,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
       return false;
     }
     return true;
-  }, &context)) {
+  }, &context, "GetBytes")) {
     FAIL() << "Download of file with pause/resume failed, see error log";
   }
 #else
