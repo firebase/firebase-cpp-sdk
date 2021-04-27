@@ -67,27 +67,9 @@ Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
 Firebase AdMob             | libfirebase_admob.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-ads:20.0.0<br>(Maven package)<br>com.google.android.gms:play-services-measurement-sdk-api:18.0.3<br>(Maven package)
 Firebase Analytics         | libfirebase_analytics.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)
-Firebase Authentication    | libfirebase_auth.a
-                           | libfirebase_app.a
-                           | com.google.firebase:firebase-analytics:18.0.3
-                           | (Maven package)
-                           | com.google.firebase:firebase-auth:20.0.4
-                           | (Maven package)
-Firebase Dynamic Links     | libfirebase_dynamic_links.a
-                           | libfirebase_app.a
-                           | com.google.firebase:firebase-analytics:18.0.3
-                           | (Maven package)
-                           | com.google.firebase:firebase-dynamic-links:19.1.1
-                           | (Maven package)
-Cloud Firestore            | libfirebase_firestore.a
-                           | libfirebase_auth.a
-                           | libfirebase_app.a
-                           | com.google.firebase:firebase-analytics:18.0.3
-                           | (Maven package)
-                           | com.google.firebase:firebase-firestore:22.1.2
-                           | (Maven package)
-                           | com.google.firebase:firebase-auth:20.0.4
-                           | (Maven package)
+Firebase Authentication    | libfirebase_auth.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-auth:20.0.4<br>(Maven package)
+Firebase Dynamic Links     | libfirebase_dynamic_links.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-dynamic-links:19.1.1<br>(Maven package)
+Cloud Firestore            | libfirebase_firestore.a<br>libfirebase_auth.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-firestore:22.1.2<br>(Maven package)<br>com.google.firebase:firebase-auth:20.0.4<br>(Maven package)
 Firebase Functions         | libfirebase_functions
                            | libfirebase_auth.a (optional)
                            | libfirebase_app.a
