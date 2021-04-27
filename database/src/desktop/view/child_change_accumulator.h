@@ -17,6 +17,7 @@
 
 #include <map>
 #include <string>
+
 #include "database/src/desktop/view/change.h"
 
 namespace firebase {

@@ -77,18 +77,18 @@ struct conditional<false, T1, T2> {
 
 // Same as std::prev,
 // but works with older compilers that don't support std::prev.
-template<class BidirectionalIt>
+template <class BidirectionalIt>
 BidirectionalIt prev(BidirectionalIt it) {
-    std::advance(it, -1);
-    return it;
+  std::advance(it, -1);
+  return it;
 }
 
 // Same as std::next,
 // but works with older compilers that don't support std::prev.
-template<class ForwardIt>
+template <class ForwardIt>
 ForwardIt next(ForwardIt it) {
-    std::advance(it, 1);
-    return it;
+  std::advance(it, 1);
+  return it;
 }
 
 }  // namespace emulate_std.
@@ -167,7 +167,7 @@ class intrusive_list_node {
   intrusive_list_node(intrusive_list_node* next, intrusive_list_node* previous)
       : next_(next), previous_(previous) {}
 
-  inline void move(intrusive_list_node& other) FIREBASE_NOEXCEPT { // NOLINT
+  inline void move(intrusive_list_node& other) FIREBASE_NOEXCEPT {  // NOLINT
     if (other.in_list()) {
       next_ = other.next_;
       previous_ = other.previous_;
@@ -581,11 +581,12 @@ class intrusive_list {
     typedef std::ptrdiff_t difference_type;
     typedef typename emulate_std::conditional<is_const, const T&, T&>::type
         reference;
-    typedef typename emulate_std::conditional<is_const, const T*, T*>::type
-        pointer;
+    typedef
+        typename emulate_std::conditional<is_const, const T*, T*>::type pointer;
     typedef std::bidirectional_iterator_tag iterator_category;
-    typedef typename emulate_std::conditional<is_const,
-        const intrusive_list_node, intrusive_list_node>::type node_type;
+    typedef
+        typename emulate_std::conditional<is_const, const intrusive_list_node,
+                                          intrusive_list_node>::type node_type;
 
     intrusive_list_iterator() : value_(nullptr) {}
 
@@ -671,7 +672,7 @@ class intrusive_list {
   }
 };
 
-}  // namespace FIREBASE_NAMESPACE, i.e. namespace firebase. (NOLINT)
+}  // namespace FIREBASE_NAMESPACE
 
 #if defined(_MSC_VER)
 #pragma warning(pop)

@@ -3,8 +3,8 @@
 
 #include <memory>
 
-#include "firestore/src/ios/firestore_ios.h"
 #include "Firestore/core/src/api/listener_registration.h"
+#include "firestore/src/ios/firestore_ios.h"
 
 namespace firebase {
 namespace firestore {

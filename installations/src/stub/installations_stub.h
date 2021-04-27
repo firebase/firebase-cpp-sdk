@@ -14,8 +14,8 @@
 #ifndef FIREBASE_FIS_CLIENT_CPP_SRC_STUB_INSTALLATIONS_STUB_H_
 #define FIREBASE_FIS_CLIENT_CPP_SRC_STUB_INSTALLATIONS_STUB_H_
 
-#include "firebase/app.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "firebase/app.h"
 #include "firebase/future.h"
 #include "firebase/internal/common.h"
 

@@ -17,6 +17,7 @@
 
 #include <set>
 #include <vector>
+
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/event_registration.h"
 #include "database/src/desktop/core/operation.h"

@@ -89,9 +89,7 @@ static bool LoadAppOptionsFromJsonConfigFile(const char* path,
 // config file in turn.
 AppOptions* AppOptions::LoadDefault(AppOptions* options) {
   static const char* kDefaultGoogleServicesNames[] = {
-    "google-services-desktop.json",
-    "google-services.json"
-  };
+      "google-services-desktop.json", "google-services.json"};
   bool allocated_options;
   if (options) {
     allocated_options = false;
@@ -103,8 +101,8 @@ AppOptions* AppOptions::LoadDefault(AppOptions* options) {
   size_t number_of_config_filenames =
       FIREBASE_ARRAYSIZE(kDefaultGoogleServicesNames);
   for (size_t i = 0; i < number_of_config_filenames; i++) {
-    std::string full_path = internal::g_default_config_path +
-                            kDefaultGoogleServicesNames[i];
+    std::string full_path =
+        internal::g_default_config_path + kDefaultGoogleServicesNames[i];
     if (LoadAppOptionsFromJsonConfigFile(full_path.c_str(), options)) {
       return options;
     }
@@ -112,14 +110,14 @@ AppOptions* AppOptions::LoadDefault(AppOptions* options) {
     if (i < number_of_config_filenames - 1) config_files += ", ";
   }
   if (allocated_options) delete options;
-  LogError("Unable to load Firebase app options ([%s] are missing or "
-           "malformed)", config_files.c_str());
+  LogError(
+      "Unable to load Firebase app options ([%s] are missing or "
+      "malformed)",
+      config_files.c_str());
   return nullptr;
 }
 
-void App::Initialize() {
-  internal_ = new internal::AppInternal();
-}
+void App::Initialize() { internal_ = new internal::AppInternal(); }
 
 App::~App() {
   app_common::RemoveApp(this);

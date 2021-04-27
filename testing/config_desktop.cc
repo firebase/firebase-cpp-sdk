@@ -13,17 +13,17 @@
 // limitations under the License.
 
 #include "testing/config_desktop.h"
-#include "testing/config.h"
 
 #include <cassert>
 #include <cstdint>
 #include <cstdlib>
 
 #include "app/src/mutex.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
-#include "testing/testdata_config_generated.h"
 #include "flatbuffers/idl.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
+#include "testing/config.h"
+#include "testing/testdata_config_generated.h"
 
 namespace firebase {
 namespace testing {

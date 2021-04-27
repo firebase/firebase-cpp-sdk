@@ -19,8 +19,8 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/mutex.h"
 #include "app/src/semaphore.h"
-#include "remote_config/src/common.h"
 #include "include/firebase/remote_config.h"
+#include "remote_config/src/common.h"
 
 // QueryInternal is defined in these 3 files, one implementation for each OS.
 #if FIREBASE_PLATFORM_ANDROID

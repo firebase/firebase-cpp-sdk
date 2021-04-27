@@ -14,7 +14,7 @@ using jni::Method;
 using jni::Object;
 
 constexpr char kClassName[] =
-  "com/google/android/gms/tasks/CancellationTokenSource";
+    "com/google/android/gms/tasks/CancellationTokenSource";
 Constructor<CancellationTokenSource> kConstructor("()V");
 Method<Object> kGetToken("getToken",
                          "()Lcom/google/android/gms/tasks/CancellationToken;");

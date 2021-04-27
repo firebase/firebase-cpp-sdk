@@ -8,7 +8,6 @@
 #include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/util.h"
-
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #include "firestore/src/include/firebase/firestore/event_listener.h"

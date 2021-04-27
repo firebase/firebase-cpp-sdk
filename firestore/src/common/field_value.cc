@@ -6,11 +6,10 @@
 
 #include "app/meta/move.h"
 #include "app/src/assert.h"
-
-#include "firestore/src/common/to_string.h"
-#include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firebase/firestore/geo_point.h"
 #include "firebase/firestore/timestamp.h"
+#include "firestore/src/common/to_string.h"
+#include "firestore/src/include/firebase/firestore/document_reference.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/field_value_android.h"
 #elif defined(FIRESTORE_STUB_BUILD)

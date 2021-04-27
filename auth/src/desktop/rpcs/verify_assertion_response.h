@@ -18,6 +18,7 @@
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_VERIFY_ASSERTION_RESPONSE_H_
 
 #include <string>
+
 #include "auth/src/desktop/rpcs/auth_response.h"
 #include "auth/src/desktop/visual_studio_compatibility.h"
 

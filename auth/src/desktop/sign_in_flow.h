@@ -16,6 +16,7 @@
 #define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_SIGN_IN_FLOW_H_
 
 #include <string>
+
 #include "app/src/assert.h"
 #include "auth/src/common.h"
 #include "auth/src/desktop/auth_data_handle.h"

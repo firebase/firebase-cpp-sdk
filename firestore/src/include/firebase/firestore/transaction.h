@@ -19,9 +19,9 @@
 
 #include <string>
 
+#include "firebase/firestore/firestore_errors.h"
 #include "firebase/firestore/map_field_value.h"
 #include "firebase/firestore/set_options.h"
-#include "firebase/firestore/firestore_errors.h"
 
 namespace firebase {
 namespace firestore {

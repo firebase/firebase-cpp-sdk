@@ -5,10 +5,10 @@
 #include <utility>
 #include <vector>
 
-#include "firestore/src/common/macros.h"
 #include "firebase/firestore.h"
 #include "firebase/firestore/field_value.h"
 #include "firebase/firestore/map_field_value.h"
+#include "firestore/src/common/macros.h"
 #include "firestore_integration_test.h"
 #include "util/event_accumulator.h"
 
@@ -20,11 +20,11 @@
 #include "firestore/src/stub/query_stub.h"
 #endif  // defined(__ANDROID__)
 
+#include "Firestore/core/src/util/firestore_exceptions.h"
+#include "firebase/firestore/firestore_errors.h"
+#include "firebase_test_framework.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "firebase/firestore/firestore_errors.h"
-#include "Firestore/core/src/util/firestore_exceptions.h"
-#include "firebase_test_framework.h"
 
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRQueryTests.mm
@@ -104,8 +104,7 @@ TEST_F(QueryTest, TestLimitToLastMustAlsoHaveExplicitOrderBy) {
 // queries are sent to the backend with a modified OrderBy() clause, they can
 // map to the same target representation as Limit() query, even if both queries
 // appear separate to the user.
-TEST_F(QueryTest,
-       TestListenUnlistenRelistenSequenceOfMirrorQueries) {
+TEST_F(QueryTest, TestListenUnlistenRelistenSequenceOfMirrorQueries) {
   CollectionReference collection = Collection(
       {{"a",
         {{"k", FieldValue::String("a")}, {"sort", FieldValue::Integer(0)}}},
@@ -203,8 +202,7 @@ TEST_F(QueryTest,
                                          {"sort", FieldValue::Integer(-2)}}));
 }
 
-TEST_F(QueryTest,
-       TestKeyOrderIsDescendingForDescendingInequality) {
+TEST_F(QueryTest, TestKeyOrderIsDescendingForDescendingInequality) {
   CollectionReference collection =
       Collection({{"a", {{"foo", FieldValue::Integer(42)}}},
                   {"b", {{"foo", FieldValue::Double(42.0)}}},
@@ -279,8 +277,7 @@ TEST_F(QueryTest, TestWillNotGetMetadataOnlyUpdates) {
   registration.Remove();
 }
 
-TEST_F(QueryTest,
-       TestCanListenForTheSameQueryWithDifferentOptions) {
+TEST_F(QueryTest, TestCanListenForTheSameQueryWithDifferentOptions) {
   CollectionReference collection = Collection();
   WriteDocuments(collection, {{"a", {{"v", FieldValue::String("a")}}},
                               {"b", {{"v", FieldValue::String("b")}}}});
@@ -804,8 +801,7 @@ TEST_F(QueryTest, TestQueriesCanUseNotInFiltersWithNan) {
               ElementsAreArray(AllDocsExcept(docs, {"a", "i", "j"})));
 }
 
-TEST_F(QueryTest,
-       TestQueriesCanUseNotInFiltersWithNanAndNumber) {
+TEST_F(QueryTest, TestQueriesCanUseNotInFiltersWithNanAndNumber) {
   // These documents are ordered by value in "zip" since the NotEqual filter is
   // an inequality, which results in documents being sorted by value.
   std::map<std::string, MapFieldValue> docs = {

@@ -20,23 +20,21 @@
 #include "firestore/src/jni/task.h"
 #endif  // defined(__ANDROID__)
 
-#include "firestore_integration_test.h"
-#include "util/event_accumulator.h"
-#include "util/future_test_util.h"
-
 #include "app/memory/unique_ptr.h"
 #include "app/src/mutex.h"
 #include "auth/src/include/firebase/auth.h"
 #include "firestore/src/common/macros.h"
+#include "firestore_integration_test.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "util/event_accumulator.h"
+#include "util/future_test_util.h"
 #if !defined(__ANDROID__)
 #include "Firestore/core/src/util/autoid.h"
 #else
 #include "android/util_autoid.h"
 #endif  // !defined(__ANDROID__)
 #include "Firestore/core/src/util/firestore_exceptions.h"
-
 #include "firebase_test_framework.h"
 
 // These test cases are in sync with native iOS client SDK test

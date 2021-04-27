@@ -13,9 +13,11 @@
 // limitations under the License.
 
 #include "database/src/desktop/view/child_change_accumulator.h"
+
 #include <cassert>
 #include <map>
 #include <string>
+
 #include "app/src/assert.h"
 #include "database/src/desktop/view/change.h"
 #include "database/src/desktop/view/event.h"

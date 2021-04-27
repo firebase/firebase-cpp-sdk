@@ -15,6 +15,7 @@
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
 #define __ANDROID__
 #include <jni.h>
+
 #include "testing/run_all_tests.h"
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
@@ -29,12 +30,12 @@
 #include <string>
 #include <vector>
 
+#include "firebase/variant.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/config.h"
 #include "testing/reporter.h"
 #include "testing/ticker.h"
-#include "firebase/variant.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 
 namespace firebase {
 namespace remote_config {
@@ -128,7 +129,8 @@ TEST_F(RemoteConfigTest, SetDefaultsWithConfigKeyValue) {
 }
 
 TEST_F(RemoteConfigTest, GetConfigSettingTrue) {
-  GTEST_SKIP(); // TODO(cynthiajiang): Re-implement the test in SetGet ConfigSetting V2 update
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test in SetGet
+                 // ConfigSetting V2 update
   REPORT_EXPECT("FirebaseRemoteConfig.getInfo", "", {});
   REPORT_EXPECT("FirebaseRemoteConfigInfo.getConfigSettings", "", {});
   REPORT_EXPECT("FirebaseRemoteConfigSettings.isDeveloperModeEnabled", "true",
@@ -144,7 +146,8 @@ TEST_F(RemoteConfigTest, GetConfigSettingTrue) {
 }
 
 TEST_F(RemoteConfigTest, GetConfigSettingFalse) {
-  GTEST_SKIP(); // TODO(cynthiajiang): Re-implement the test in SetGet ConfigSetting V2 update
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test in SetGet
+                 // ConfigSetting V2 update
   REPORT_EXPECT("FirebaseRemoteConfig.getInfo", "", {});
   REPORT_EXPECT("FirebaseRemoteConfigInfo.getConfigSettings", "", {});
   REPORT_EXPECT("FirebaseRemoteConfigSettings.isDeveloperModeEnabled", "false",
@@ -160,7 +163,8 @@ TEST_F(RemoteConfigTest, GetConfigSettingFalse) {
 }
 
 TEST_F(RemoteConfigTest, SetConfigSettingTrue) {
-  GTEST_SKIP(); // TODO(cynthiajiang): Re-implement the test in SetGet ConfigSetting V2 update
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test in SetGet
+                 // ConfigSetting V2 update
   REPORT_EXPECT("FirebaseRemoteConfig.setConfigSettings", "", {});
   REPORT_EXPECT("FirebaseRemoteConfigSettings.Builder.setDeveloperModeEnabled",
                 "", {"true"});
@@ -169,7 +173,8 @@ TEST_F(RemoteConfigTest, SetConfigSettingTrue) {
 }
 
 TEST_F(RemoteConfigTest, SetConfigSettingFalse) {
-  GTEST_SKIP(); // TODO(cynthiajiang): Re-implement the test in SetGet ConfigSetting V2 update
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test in SetGet
+                 // ConfigSetting V2 update
   REPORT_EXPECT("FirebaseRemoteConfig.setConfigSettings", "", {});
   REPORT_EXPECT("FirebaseRemoteConfigSettings.Builder.setDeveloperModeEnabled",
                 "", {"false"});
@@ -419,7 +424,7 @@ TEST_F(RemoteConfigTest, GetStringKeyAndInfo) {
 
 // Start check GetData functions
 TEST_F(RemoteConfigTest, GetDataNullKey) {
-  GTEST_SKIP(); // TODO(cynthiajiang): Re-implement the test using GetData
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test using GetData
   REPORT_EXPECT("FirebaseRemoteConfig.getByteArray", "abcd", {""});
   firebase::testing::cppsdk::ConfigSet(
       "{"
@@ -434,7 +439,7 @@ TEST_F(RemoteConfigTest, GetDataNullKey) {
 }
 
 TEST_F(RemoteConfigTest, GetDataKey) {
-  GTEST_SKIP(); // TODO(cynthiajiang): Re-implement the test using GetData
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test using GetData
   REPORT_EXPECT("FirebaseRemoteConfig.getByteArray", "abc", {"name"});
   firebase::testing::cppsdk::ConfigSet(
       "{"
@@ -653,7 +658,8 @@ TEST_F(RemoteConfigTest, FetchLastResultWithCallFetchTwice) {
 }
 
 TEST_F(RemoteConfigTest, ActivateFetchedTrue) {
-  GTEST_SKIP(); // TODO(cynthiajiang): Re-implement the test with actual activate
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test with actual
+                 // activate
   REPORT_EXPECT("FirebaseRemoteConfig.activate", "true", {});
   firebase::testing::cppsdk::ConfigSet(
       "{"
@@ -666,7 +672,8 @@ TEST_F(RemoteConfigTest, ActivateFetchedTrue) {
 }
 
 TEST_F(RemoteConfigTest, ActivateFetchedFalse) {
-  GTEST_SKIP(); // TODO(cynthiajiang): Re-implement the test with actual activate
+  GTEST_SKIP();  // TODO(cynthiajiang): Re-implement the test with actual
+                 // activate
   REPORT_EXPECT("FirebaseRemoteConfig.activate", "false", {});
   firebase::testing::cppsdk::ConfigSet(
       "{"

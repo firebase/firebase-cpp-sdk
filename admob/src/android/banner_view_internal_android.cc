@@ -58,11 +58,9 @@ BannerViewInternalAndroid::BannerViewInternalAndroid(BannerView* base)
   env->DeleteLocalRef(helper_ref);
 }
 
-
-void DestroyOnDeleteCallback(const Future<void>& result,
-                          void* sem_data) {
+void DestroyOnDeleteCallback(const Future<void>& result, void* sem_data) {
   if (sem_data != nullptr) {
-    Semaphore* semaphore =  static_cast<Semaphore*>(sem_data);
+    Semaphore* semaphore = static_cast<Semaphore*>(sem_data);
     semaphore->Post();
   }
 }

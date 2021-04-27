@@ -19,10 +19,10 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/thread.h"
 #include "app/tests/include/firebase/app_for_testing.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/common/database_reference.h"
 #include "database/src/include/firebase/database.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using firebase::App;
 using firebase::AppOptions;

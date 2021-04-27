@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#include "analytics/src/include/firebase/analytics.h"
+#include "analytics/src/analytics_common.h"
 
 #include <assert.h>
 
-#include "analytics/src/analytics_common.h"
+#include "analytics/src/include/firebase/analytics.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/util.h"
 // Include the generated headers to force their compilation for test purposes.
@@ -27,18 +27,19 @@
 #include "analytics/src/include/firebase/analytics/user_property_names.h"
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(analytics,
-                                {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    firebase::analytics::Initialize(*app);
-                                  }
-                                  return kInitResultSuccess;
-                                },
-                                {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    firebase::analytics::Terminate();
-                                  }
-                                });
+FIREBASE_APP_REGISTER_CALLBACKS(
+    analytics,
+    {
+      if (app == ::firebase::App::GetInstance()) {
+        firebase::analytics::Initialize(*app);
+      }
+      return kInitResultSuccess;
+    },
+    {
+      if (app == ::firebase::App::GetInstance()) {
+        firebase::analytics::Terminate();
+      }
+    });
 
 namespace firebase {
 namespace analytics {

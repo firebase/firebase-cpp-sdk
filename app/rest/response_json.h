@@ -19,6 +19,7 @@
 
 #include <string>
 #include <utility>
+
 #include "app/rest/response.h"
 #include "app/src/assert.h"
 #include "flatbuffers/idl.h"

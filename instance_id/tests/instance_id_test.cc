@@ -48,8 +48,8 @@
 #undef __ANDROID__
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/config.h"
 #include "testing/reporter.h"
 #include "testing/ticker.h"

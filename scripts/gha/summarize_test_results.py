@@ -259,7 +259,7 @@ def main(argv):
         log_name[1] = "**%s" % log_name[1]
       with open(log_file, "r") as log_reader:
         log_reader_data = log_reader.read()
-        if "Android" in log_name or "iOS" in log_name:
+        if "Android" in log_name[1] or "iOS" in log_name[1]:
           # Rejoin matrix name with spaces.
           log_name_str = ' '.join([log_name[1], SIMULATOR, log_name[0]]+log_name[2:])
           log_data[log_name_str] = log_reader_data
@@ -292,16 +292,21 @@ def main(argv):
             log_results[platform]["build_failures"].add(product_name)
             any_failures = True
 
-    # Extract test failures, which follow "TESTAPPS EXPERIENCED ERRORS:"
-    m = re.search(r'^TEST SUMMARY(.*)TESTAPPS (EXPERIENCED ERRORS|FAILED):\n(([^\n]*\n)+)', log_text, re.MULTILINE | re.DOTALL)
-    # If the log reports "(ON SIMULATOR)" or "(ON HARDWARE)", make sure it matches the platform.
-    if m and "(ON " in m.group(1) and (
-        (SIMULATOR in platform and not "(ON SIMULATOR)" in m.group(1)) or
-        (HARDWARE in platform and not "(ON HARDWARE)" in m.group(1))
-      ):
-      m = None  # don't process this if it's for the wrong hardware target
+    test_summary_title = "TEST SUMMARY:"
+    # If the log reports "(ON SIMULATOR/EMULATOR)" or "(ON REAL DEVICE VIA FTL)", make sure it matches the platform.
+    if SIMULATOR in platform:
+      test_summary_title = r"TEST SUMMARY \(ON SIMULATOR/EMULATOR\):"
+    elif HARDWARE in platform:
+      test_summary_title = r"TEST SUMMARY \(ON REAL DEVICE VIA FTL\):"
+    # Extract test failures.
+    # (.*) Greedy match, which follows "TESTAPPS FAILED:" and skips "TESTAPPS EXPERIENCED ERRORS:"
+    # (.*?) Nongreedy match, which follows "TESTAPPS EXPERIENCED ERRORS:"
+    pattern = r'^%s(.*?)TESTAPPS (EXPERIENCED ERRORS|FAILED):\n(([^\n]*\n)+)' % test_summary_title
+    m = re.search(pattern, log_text, re.MULTILINE | re.DOTALL)
     if m:
       for test_failure_line in m.group(3).strip("\n").split("\n"):
+        # Don't process this if meet another TEST SUMMARY
+        if "TEST SUMMARY" in test_failure_line: break
         # Only get the lines showing paths.
         if "/firebase-cpp-sdk/" not in test_failure_line: continue
         test_filename = "";

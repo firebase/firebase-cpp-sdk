@@ -74,9 +74,7 @@ class BannerViewInternalStub : public BannerViewInternal {
     return BannerView::PresentationState::kPresentationStateHidden;
   }
 
-  BoundingBox GetBoundingBox() const override {
-    return BoundingBox();
-  }
+  BoundingBox GetBoundingBox() const override { return BoundingBox(); }
 
  private:
   Future<void> CreateAndCompleteFutureStub(BannerViewFn fn) {

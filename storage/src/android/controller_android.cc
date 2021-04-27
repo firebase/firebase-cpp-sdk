@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "storage/src/android/controller_android.h"
+
 #include "app/src/util_android.h"
 #include "storage/src/include/firebase/storage/listener.h"
 
@@ -20,21 +21,25 @@ namespace firebase {
 namespace storage {
 namespace internal {
 
-METHOD_LOOKUP_DEFINITION(storage_task, PROGUARD_KEEP_CLASS
+METHOD_LOOKUP_DEFINITION(storage_task,
+                         PROGUARD_KEEP_CLASS
                          "com/google/firebase/storage/StorageTask",
                          STORAGE_TASK_METHODS)
 
-METHOD_LOOKUP_DEFINITION(upload_task_task_snapshot, PROGUARD_KEEP_CLASS
+METHOD_LOOKUP_DEFINITION(upload_task_task_snapshot,
+                         PROGUARD_KEEP_CLASS
                          "com/google/firebase/storage/UploadTask$TaskSnapshot",
                          UPLOAD_TASK_TASK_SNAPSHOT_METHODS)
 
 METHOD_LOOKUP_DEFINITION(
-    file_download_task_task_snapshot, PROGUARD_KEEP_CLASS
+    file_download_task_task_snapshot,
+    PROGUARD_KEEP_CLASS
     "com/google/firebase/storage/FileDownloadTask$TaskSnapshot",
     DOWNLOAD_TASK_TASK_SNAPSHOT_METHODS)
 
 METHOD_LOOKUP_DEFINITION(
-    stream_download_task_task_snapshot, PROGUARD_KEEP_CLASS
+    stream_download_task_task_snapshot,
+    PROGUARD_KEEP_CLASS
     "com/google/firebase/storage/StreamDownloadTask$TaskSnapshot",
     DOWNLOAD_TASK_TASK_SNAPSHOT_METHODS)
 

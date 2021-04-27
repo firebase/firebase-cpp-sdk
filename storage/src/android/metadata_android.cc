@@ -13,8 +13,10 @@
 // limitations under the License.
 
 #include "storage/src/android/metadata_android.h"
+
 #include <jni.h>
 #include <stdlib.h>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_android.h"
 #include "storage/src/android/storage_android.h"

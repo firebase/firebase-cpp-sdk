@@ -18,6 +18,7 @@
 #define FIREBASE_APP_CLIENT_CPP_REST_REQUEST_JSON_H_
 
 #include <string>
+
 #include "app/rest/request.h"
 #include "app/rest/util.h"
 #include "app/src/assert.h"

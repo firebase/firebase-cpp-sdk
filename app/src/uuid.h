@@ -30,7 +30,6 @@ struct Uuid {
   void Generate();
 };
 
-
 }  // namespace internal
 }  // namespace firebase
 

@@ -19,6 +19,7 @@
 
 #include <limits>
 #include <memory>
+
 #include "app/rest/transport_interface.h"
 #include "flatbuffers/stl_emulation.h"
 
@@ -32,7 +33,7 @@ namespace rest {
 flatbuffers::unique_ptr<Transport> CreateTransport();
 
 // Set a custom builder to use for new Transport.
-void SetTransportBuilder(flatbuffers::unique_ptr<Transport>(* builder)());
+void SetTransportBuilder(flatbuffers::unique_ptr<Transport> (*builder)());
 
 }  // namespace rest
 }  // namespace firebase

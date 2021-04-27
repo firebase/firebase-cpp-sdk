@@ -18,10 +18,10 @@
 #include <vector>
 
 #include "app/src/path.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/desktop/core/compound_write.h"
 #include "database/src/desktop/persistence/persistence_storage_engine.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {

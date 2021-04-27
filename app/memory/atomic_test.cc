@@ -19,8 +19,8 @@
 #include <thread>  // NOLINT
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 // Basic sanity tests for atomic operations.
 

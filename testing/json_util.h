@@ -15,9 +15,9 @@
 #ifndef FIREBASE_TESTING_CPPSDK_JSON_UTIL_H_
 #define FIREBASE_TESTING_CPPSDK_JSON_UTIL_H_
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "flatbuffers/flexbuffers.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace testing {

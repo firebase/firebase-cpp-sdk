@@ -2,14 +2,14 @@
 
 #include <utility>
 
+#include "Firestore/core/src/core/user_data.h"
+#include "Firestore/core/src/model/field_path.h"
 #include "firestore/src/ios/converter_ios.h"
 #include "firestore/src/ios/document_reference_ios.h"
 #include "firestore/src/ios/field_value_ios.h"
 #include "firestore/src/ios/listener_ios.h"
 #include "firestore/src/ios/set_options_ios.h"
 #include "firestore/src/ios/util_ios.h"
-#include "Firestore/core/src/core/user_data.h"
-#include "Firestore/core/src/model/field_path.h"
 
 namespace firebase {
 namespace firestore {

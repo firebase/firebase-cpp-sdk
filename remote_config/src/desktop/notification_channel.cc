@@ -12,9 +12,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <condition_variable>  // NOLINT
-
 #include "remote_config/src/desktop/notification_channel.h"
+
+#include <condition_variable>  // NOLINT
 
 namespace firebase {
 namespace remote_config {

@@ -15,10 +15,12 @@
 // Author: Neal Cardwell
 //
 
+#include "app/rest/gzipheader.h"
+
 #include <assert.h>
+
 #include <algorithm>
 
-#include "app/rest/gzipheader.h"
 #include "app/src/assert.h"
 #include "app/src/util.h"
 #include "zlib/zlib.h"  // for Z_DEFAULT_COMPRESSION

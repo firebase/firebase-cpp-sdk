@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_QUERY_PARAMS_COMPARATOR_H_
 
 #include <map>
+
 #include "app/src/include/firebase/variant.h"
 #include "database/src/common/query_spec.h"
 

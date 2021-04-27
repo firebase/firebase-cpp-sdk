@@ -470,7 +470,7 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
 
 RemoteConfigInternal::~RemoteConfigInternal() {}
 
-bool RemoteConfigInternal::Initialized() const{
+bool RemoteConfigInternal::Initialized() const {
   return internal_obj_ != nullptr;
 }
 
@@ -492,7 +492,8 @@ void EnsureInitializedCallback(JNIEnv* env, jobject result,
   if (success && result) {
     JConfigInfoToConfigInfo(env, result, &info);
   }
-  auto* data_handle = reinterpret_cast<RCDataHandle<ConfigInfo>*>(callback_data);
+  auto* data_handle =
+      reinterpret_cast<RCDataHandle<ConfigInfo>*>(callback_data);
 
   data_handle->future_api->CompleteWithResult(
       data_handle->future_handle,

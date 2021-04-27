@@ -555,7 +555,7 @@ Future<void> UserDataPersist::SaveUserData(AuthData* auth_data) {
 
   const auto& user_infos = user.GetUserInfos();
 
-  auto create_callback = [&builder, &user_infos](size_t index){
+  auto create_callback = [&builder, &user_infos](size_t index) {
     const auto& user_info = user_infos[index];
 
     auto uid = builder.CreateString(user_info->uid());
@@ -565,13 +565,13 @@ Future<void> UserDataPersist::SaveUserData(AuthData* auth_data) {
     auto provider_id = builder.CreateString(user_info->provider_id());
     auto phone_number = builder.CreateString(user_info->phone_number());
 
-    return CreateUserProviderData(
-      builder, uid, email, display_name, photo_url, provider_id, phone_number);
+    return CreateUserProviderData(builder, uid, email, display_name, photo_url,
+                                  provider_id, phone_number);
   };
 
   auto provider_data_list =
       builder.CreateVector<flatbuffers::Offset<UserProviderData>>(
-        user_infos.size(), create_callback);
+          user_infos.size(), create_callback);
 
   // Compile data using schema
   auto uid = builder.CreateString(user->uid);

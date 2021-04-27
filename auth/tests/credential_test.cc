@@ -17,6 +17,7 @@
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
 #define __ANDROID__
 #include <jni.h>
+
 #include "testing/run_all_tests.h"
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
@@ -29,8 +30,8 @@
 #undef __ANDROID__
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/config.h"
 #include "testing/ticker.h"
 

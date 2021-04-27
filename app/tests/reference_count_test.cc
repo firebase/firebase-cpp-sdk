@@ -17,8 +17,8 @@
 #include "app/src/reference_count.h"
 
 #include "app/src/mutex.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::Eq;
 using ::testing::IsNull;

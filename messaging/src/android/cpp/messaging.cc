@@ -829,8 +829,7 @@ static void CompleteVoidCallback(JNIEnv* env, jobject result,
                                  util::FutureResult result_code,
                                  const char* status_message,
                                  void* callback_data) {
-  FutureHandleId future_id =
-                reinterpret_cast<FutureHandleId>(callback_data);
+  FutureHandleId future_id = reinterpret_cast<FutureHandleId>(callback_data);
   FutureHandle handle(future_id);
   Error error =
       (result_code == util::kFutureResultSuccess) ? kErrorNone : kErrorUnknown;
@@ -1040,10 +1039,9 @@ Future<void> DeleteToken() {
       firebase_messaging::GetMethodId(firebase_messaging::kDeleteToken));
   std::string error = util::GetAndClearExceptionMessage(env);
   if (error.empty()) {
-    util::RegisterCallbackOnTask(
-        env, task, CompleteVoidCallback,
-        reinterpret_cast<void*>(handle.get().id()),
-        kApiIdentifier);
+    util::RegisterCallbackOnTask(env, task, CompleteVoidCallback,
+                                 reinterpret_cast<void*>(handle.get().id()),
+                                 kApiIdentifier);
   } else {
     api->Complete(handle, -1, error.c_str());
   }

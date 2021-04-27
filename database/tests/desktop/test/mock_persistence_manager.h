@@ -17,12 +17,12 @@
 
 #include "app/src/include/firebase/variant.h"
 #include "app/src/path.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/desktop/core/cache_policy.h"
 #include "database/src/desktop/core/compound_write.h"
 #include "database/src/desktop/persistence/persistence_manager.h"
 #include "database/src/desktop/view/view_cache.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {

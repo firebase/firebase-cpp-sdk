@@ -8,8 +8,8 @@
 #endif  // __cpp_exceptions
 
 #include "app/src/include/firebase/app.h"
-#include "firestore/src/jni/jni_fwd.h"
 #include "firebase/firestore/firestore_errors.h"
+#include "firestore/src/jni/jni_fwd.h"
 
 namespace firebase {
 namespace firestore {

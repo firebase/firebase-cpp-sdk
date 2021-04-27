@@ -60,7 +60,7 @@ class InstanceIdInternalBase {
   static InstanceId *FindInstanceIdByApp(App *app);
 
   // Return the mutex to make sure both find and register are guarded.
-  static Mutex& mutex() { return instance_id_by_app_mutex_; }
+  static Mutex &mutex() { return instance_id_by_app_mutex_; }
 
  private:
   /// Handle calls from Futures that the API returns.
