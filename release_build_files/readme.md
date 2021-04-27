@@ -70,57 +70,13 @@ Firebase Analytics         | libfirebase_analytics.a<br>libfirebase_app.a<br>com
 Firebase Authentication    | libfirebase_auth.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-auth:20.0.4<br>(Maven package)
 Firebase Dynamic Links     | libfirebase_dynamic_links.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-dynamic-links:19.1.1<br>(Maven package)
 Cloud Firestore            | libfirebase_firestore.a<br>libfirebase_auth.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-firestore:22.1.2<br>(Maven package)<br>com.google.firebase:firebase-auth:20.0.4<br>(Maven package)
-Firebase Functions         | libfirebase_functions
-                           | libfirebase_auth.a (optional)
-                           | libfirebase_app.a
-                           | com.google.firebase:firebase-analytics:18.0.3
-                           | (Maven package)
-                           | com.google.firebase:firebase-functions:19.2.0
-                           | (Maven package)
-                           | com.google.firebase:firebase-auth:20.0.4
-                           | (Maven package)
-Firebase Installations     | libfirebase_installations.a
-                           | libfirebase_app.a
-                           | com.google.firebase:firebase-installations:16.3.5
-                           | (Maven package)
-Firebase Instance ID       | libfirebase_instance_id.a
-                           | libfirebase_app.a
-                           | com.google.firebase:firebase-analytics:18.0.3
-                           | (Maven package)
-                           | com.google.firebase:firebase-iid:21.1.0
-                           | (Maven package)
-Firebase Messaging         | libfirebase_messaging.a
-                           | libfirebase_app.a
-                           | com.google.firebase:firebase-analytics:18.0.3
-                           | (Maven package)
-                           | com.google.firebase:firebase-messaging:21.1.0
-                           | (Maven package)
-                           | libmessaging_java.jar (Android service)
-                           | androidx.core:core:1.0.1 (Maven package)
-Firebase Realtime Database | libfirebase_database.a
-                           | libfirebase_auth.a
-                           | libfirebase_app.a
-                           | com.google.firebase:firebase-analytics:18.0.3
-                           | (Maven package)
-                           | com.google.firebase:firebase-database:19.7.0
-                           | (Maven package)
-                           | com.google.firebase:firebase-auth:20.0.4
-                           | (Maven package)
-Firebase Remote Config     | libfirebase_remote_config.a
-                           | libfirebase_app.a
-                           | com.google.firebase:firebase-analytics:18.0.3
-                           | (Maven package)
-                           | com.google.firebase:firebase-config:20.0.4
-                           | (Maven package)
-Firebase Storage           | libfirebase_storage.a
-                           | libfirebase_auth.a
-                           | libfirebase_app.a
-                           | com.google.firebase:firebase-analytics:18.0.3
-                           | (Maven package)
-                           | com.google.firebase:firebase-storage:19.2.2
-                           | (Maven package)
-                           | com.google.firebase:firebase-auth:20.0.4
-                           | (Maven package)
+Firebase Functions         | libfirebase_functions<br>libfirebase_auth.a (optional)<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-functions:19.2.0<br>(Maven package)<br>com.google.firebase:firebase-auth:20.0.4<br>(Maven package)
+Firebase Installations     | libfirebase_installations.a<br>libfirebase_app.a<br>com.google.firebase:firebase-installations:16.3.5<br>(Maven package)
+Firebase Instance ID       | libfirebase_instance_id.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-iid:21.1.0<br>(Maven package)
+Firebase Messaging         | libfirebase_messaging.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-messaging:21.1.0<br>(Maven package)<br>libmessaging_java.jar (Android service)<br>androidx.core:core:1.0.1 (Maven package)
+Firebase Realtime Database | libfirebase_database.a<br>libfirebase_auth.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-database:19.7.0<br>(Maven package)<br>com.google.firebase:firebase-auth:20.0.4<br>(Maven package)
+Firebase Remote Config     | libfirebase_remote_config.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-config:20.0.4<br>(Maven package)
+Firebase Storage           | libfirebase_storage.a<br>libfirebase_auth.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-storage:19.2.2<br>(Maven package)<br>com.google.firebase:firebase-auth:20.0.4<br>(Maven package)
 
 Important: Each version of the Firebase C++ SDK supports specific Firebase
 Android SDK module versions. Please ensure that you reference the correct
