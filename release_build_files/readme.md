@@ -49,15 +49,10 @@ frameworks/ios/ARCH       | iOS frameworks (compiled against libc++)<br>A multi-
 libs/ios/ARCH             | iOS static libraries (compiled against<br>libc++)<br>Multi-architecture libraries are<br/>provided in the *universal* directory.
 libs/android/ARCH/STL     | Android (GCC 4.8+ compatible) static<br>libraries for each architecture and STL variant.<br>_STL variants available:_<br><ul><li>`c++`: LLVM libc++ runtime (recommended)</li><li>`gnustl`: GNU STL</li><li>`stlport`: STLport runtime</li></ul><br>More information can be found in the<br>[NDK C++ Helper Runtimes](https://developer.android.com/ndk/guides/cpp-support.html#runtimes) documentation.
 *Desktop Implementations* |
-libs/darwin               | OS X static libraries (desktop or stub
-                          | implementations, compiled against libc++)
-frameworks/darwin         | OS X frameworks (desktop or stub
-                          | implementations, compiled against libc++)
-libs/linux/ARCH/ABI       | Linux static libraries (desktop or stub
-                          | implementations, GCC 4.8+, libc++).
-                          | Built against C++11 or legacy ABI.
-libs/windows              | Windows static libraries (desktop or stub
-                          | implementations, MSVC 2019+)
+libs/darwin               | OS X static libraries (desktop or stub implementations, compiled against libc++)
+frameworks/darwin         | OS X frameworks (desktop or stub implementations, compiled against libc++)
+libs/linux/ARCH/ABI       | Linux static libraries (desktop or stub implementations, GCC 4.8+, libc++). Built against C++11 or legacy ABI.
+libs/windows              | Windows static libraries (desktop or stub implementations, MSVC 2019+)
 
 ## Library / Framework Dependencies
 
