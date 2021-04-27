@@ -65,14 +65,8 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-Firebase AdMob             | libfirebase_admob.a<br>
-                           | libfirebase_app.a<br>
-                           | com.google.firebase:firebase-analytics:18.0.3<br>
-                           | (Maven package)<br>
-                           | com.google.firebase:firebase-ads:20.0.0<br>
-                           | (Maven package)<br>
-                           | com.google.android.gms:play-services-measurement-sdk-api:18.0.3<br>
-                           | (Maven package)<br>
+Firebase AdMob             | libfirebase_admob.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>
+                           | com.google.firebase:firebase-ads:20.0.0<br>(Maven package)<br>com.google.android.gms:play-services-measurement-sdk-api:18.0.3<br>(Maven package)<br>
 Firebase Analytics         | libfirebase_analytics.a
                            | libfirebase_app.a
                            | com.google.firebase:firebase-analytics:18.0.3
