@@ -31,9 +31,8 @@ class LoadBundleTaskInternal : public jni::Task {
 
   static void Initialize(jni::Loader& loader);
 
-  void AddProgressListener(jni::Env& env,
-                           const jni::Global<jni::Object>& executor,
-                           jni::Local<jni::Object>& listener);
+  void AddProgressListener(jni::Env& env, const jni::Object& executor,
+                           jni::Object& listener);
 };
 
 }  // namespace firestore

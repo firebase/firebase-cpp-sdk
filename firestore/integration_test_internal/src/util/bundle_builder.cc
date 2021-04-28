@@ -22,18 +22,17 @@ namespace firebase {
 namespace firestore {
 namespace {
 
-std::string ReplaceAll(const std::string& str, const std::string& from,
+std::string ReplaceAll(std::string str, const std::string& from,
                        const std::string& to) {
-  std::string result(str);
-  if (from.empty()) return result;
+  if (from.empty()) return str;
   size_t start_pos = 0;
-  while ((start_pos = result.find(from, start_pos)) != std::string::npos) {
-    result.replace(start_pos, from.length(), to);
+  while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+    str.replace(start_pos, from.length(), to);
     start_pos += to.length();  // In case 'to' contains 'from', like replacing
                                // 'x' with 'yx'
   }
 
-  return result;
+  return str;
 }
 
 std::vector<std::string> BundleTemplate() {

@@ -20,8 +20,6 @@
 #include "app/src/assert.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/load_bundle_task_progress_android.h"
-#else
-#include "firestore/src/ios/load_bundle_task_progress_ios.h"
 #endif  // defined(__ANDROID__)
 
 namespace firebase {
@@ -37,6 +35,7 @@ LoadBundleTaskProgress::LoadBundleTaskProgress(int32_t documents_loaded,
       total_bytes_(total_bytes),
       state_(state) {}
 
+#if defined(__ANDROID__)
 LoadBundleTaskProgress::LoadBundleTaskProgress(
     LoadBundleTaskProgressInternal* internal) {
   FIREBASE_ASSERT(internal != nullptr);
@@ -48,6 +47,7 @@ LoadBundleTaskProgress::LoadBundleTaskProgress(
 
   delete internal;
 }
+#endif  // defined(__ANDROID__)
 
 }  // namespace firestore
 }  // namespace firebase

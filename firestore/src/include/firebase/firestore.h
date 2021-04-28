@@ -435,6 +435,9 @@ class Firestore {
    * The named queries are packaged into bundles on the server side (along with
    * resulting documents) and loaded to local cache using `loadBundle`. Once in
    * local cache, you can use this method to extract a query by name.
+   *
+   * If a query cannot be found, the returned future will complete with its
+   * `error()` set to a non-zero error code.
    */
   virtual Future<Query> NamedQuery(const std::string &query_name);
 

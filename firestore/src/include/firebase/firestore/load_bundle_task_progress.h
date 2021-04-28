@@ -72,7 +72,7 @@ class LoadBundleTaskProgress {
   State state_;
 };
 
-inline bool operator==(const LoadBundleTaskProgress lhs,
+inline bool operator==(const LoadBundleTaskProgress& lhs,
                        const LoadBundleTaskProgress& rhs) {
   return lhs.state() == rhs.state() &&
          lhs.bytes_loaded() == rhs.bytes_loaded() &&
@@ -81,7 +81,7 @@ inline bool operator==(const LoadBundleTaskProgress lhs,
          lhs.total_documents() == rhs.total_documents();
 }
 
-inline bool operator!=(const LoadBundleTaskProgress lhs,
+inline bool operator!=(const LoadBundleTaskProgress& lhs,
                        const LoadBundleTaskProgress& rhs) {
   return !(lhs == rhs);
 }

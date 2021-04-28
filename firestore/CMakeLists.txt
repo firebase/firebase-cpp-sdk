@@ -195,7 +195,6 @@ set(main_SRCS
     src/ios/listener_ios.h
     src/ios/listener_registration_ios.cc
     src/ios/listener_registration_ios.h
-    src/ios/load_bundle_task_progress_ios.h
     src/ios/promise_factory_ios.h
     src/ios/promise_ios.h
     src/ios/query_ios.cc

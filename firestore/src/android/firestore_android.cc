@@ -152,9 +152,14 @@ constexpr char kFirestoreTasksClassName[] = PROGUARD_KEEP_CLASS
     "com/google/firebase/firestore/internal/cpp/FirestoreTasks";
 StaticMethod<void> kAwaitCompletion("awaitCompletion",
                                     "(Lcom/google/android/gms/tasks/Task;)V");
+StaticMethod<Task> kFailTaskWhenResultIsNull(
+    "failTaskWhenResultIsNull",
+    "(Lcom/google/android/gms/tasks/Task;Ljava/lang/String;)"
+    "Lcom/google/android/gms/tasks/Task;");
 
 void InitializeFirestoreTasks(Loader& loader) {
-  loader.LoadClass(kFirestoreTasksClassName, kAwaitCompletion);
+  loader.LoadClass(kFirestoreTasksClassName, kAwaitCompletion,
+                   kFailTaskWhenResultIsNull);
 }
 
 /**
@@ -545,7 +550,7 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
     std::function<void(const LoadBundleTaskProgress&)> progress_callback) {
   Env env = GetEnv();
   Local<String> bundle_jstring = env.NewStringUtf(bundle.c_str());
-  Local<String> encoding = env.NewStringUtf("UTF-8");
+  String encoding = String::GetUtf8();
   Local<Array<uint8_t>> bytes = bundle_jstring.GetBytes(env, encoding);
   Local<LoadBundleTaskInternal> task = env.Call(obj_, kLoadBundle, bytes.get());
 
@@ -560,15 +565,23 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
       EventListenerInternal::Create(env, this, listener);
   task.AddProgressListener(env, user_callback_executor(), progress_listener);
 
-  return promises_->NewFuture<LoadBundleTaskProgress>(env, AsyncFn::kLoadBundle,
-                                                      task);
+  auto future = promises_->NewFuture<LoadBundleTaskProgress>(
+      env, AsyncFn::kLoadBundle, task);
+  future.OnCompletion(
+      [listener](const Future<LoadBundleTaskProgress>& f) { delete listener; });
+
+  return future;
 }
 
 Future<Query> FirestoreInternal::NamedQuery(const std::string& query_name) {
   Env env = GetEnv();
   Local<String> name = env.NewStringUtf(query_name.c_str());
   Local<Task> task = env.Call(obj_, kGetNamedQuery, name);
-  return promises_->NewFuture<Query>(env, AsyncFn::kGetNamedQuery, task);
+  Local<Task> null_checked_task =
+      env.Call(kFailTaskWhenResultIsNull, task,
+               env.NewStringUtf("Failed to find named query."));
+  return promises_->NewFuture<Query>(env, AsyncFn::kGetNamedQuery,
+                                     null_checked_task);
 }
 
 Env FirestoreInternal::GetEnv() {

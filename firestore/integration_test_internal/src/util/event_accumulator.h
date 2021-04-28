@@ -88,7 +88,7 @@ class EventAccumulator {
     return event;
   }
 
-  void AssertNoAdditionalEvents() { listener_.AssertNoAdditionalEvents(); }
+  void FailOnNextEvent() { listener_.FailOnNextEvent(); }
 
  private:
   bool HasPendingWrites(T event) {

@@ -29,6 +29,7 @@ using jni::Env;
 using jni::Local;
 using jni::Method;
 using jni::Object;
+using jni::StaticField;
 using jni::String;
 
 constexpr char kClassName[] =
@@ -43,6 +44,12 @@ Method<Object> kGetTaskState(
 
 constexpr char kStateEnumName[] = PROGUARD_KEEP_CLASS
     "com/google/firebase/firestore/LoadBundleTaskProgress$TaskState";
+StaticField<Object> kTaskStateSuccess(
+    "SUCCESS",
+    "Lcom/google/firebase/firestore/LoadBundleTaskProgress$TaskState;");
+StaticField<Object> kTaskStateRunning(
+    "RUNNING",
+    "Lcom/google/firebase/firestore/LoadBundleTaskProgress$TaskState;");
 Method<String> kName("name", "()Ljava/lang/String;");
 
 jclass g_clazz = nullptr;
@@ -53,7 +60,8 @@ void LoadBundleTaskProgressInternal::Initialize(jni::Loader& loader) {
   g_clazz =
       loader.LoadClass(kClassName, kGetDocumentsLoaded, kGetTotalDocuments,
                        kGetBytesLoaded, kGetTotalBytes, kGetTaskState);
-  loader.LoadClass(kStateEnumName, kName);
+  loader.LoadClass(kStateEnumName, kTaskStateSuccess);
+  loader.LoadClass(kStateEnumName, kTaskStateRunning);
 }
 
 Class LoadBundleTaskProgressInternal::GetClass() { return Class(g_clazz); }
@@ -81,11 +89,11 @@ int64_t LoadBundleTaskProgressInternal::total_bytes() const {
 LoadBundleTaskProgress::State LoadBundleTaskProgressInternal::state() const {
   Env env = GetEnv();
   Local<Object> state = env.Call(obj_, kGetTaskState);
-  // Get the name of the enum value for inspection.
-  std::string enum_name = env.Call(state, kName).ToString(env);
-  if (enum_name == "SUCCESS") {
+  Local<Object> running_state = env.Get(kTaskStateRunning);
+  Local<Object> success_state = env.Get(kTaskStateSuccess);
+  if (Object::Equals(env, state, success_state)) {
     return LoadBundleTaskProgress::State::kSuccess;
-  } else if (enum_name == "RUNNING") {
+  } else if (Object::Equals(env, state, running_state)) {
     return LoadBundleTaskProgress::State::kInProgress;
   } else {  // "ERROR"
     return LoadBundleTaskProgress::State::kError;

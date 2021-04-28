@@ -96,7 +96,7 @@ class TestEventListener : public EventListener<T> {
     return static_cast<int>(last_results_.size());
   }
 
-  void AssertNoAdditionalEvents() {
+  void FailOnNextEvent() {
     MutexLock lock(mutex_);
     check_no_additional_events_ = true;
   }

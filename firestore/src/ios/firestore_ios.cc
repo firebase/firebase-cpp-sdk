@@ -331,7 +331,7 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
   auto promise = promise_factory_.CreatePromise<LoadBundleTaskProgress>(
       AsyncApi::kLoadBundle);
   auto bundle_stream = absl::make_unique<util::ByteStreamCpp>(
-      absl::make_unique<std::stringstream>(std::stringstream(bundle)));
+      absl::make_unique<std::stringstream>(bundle));
   std::shared_ptr<api::LoadBundleTask> task =
       firestore_core_->LoadBundle(std::move(bundle_stream));
   task->Observe(
@@ -355,7 +355,7 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
   auto promise = promise_factory_.CreatePromise<LoadBundleTaskProgress>(
       AsyncApi::kLoadBundle);
   auto bundle_stream = absl::make_unique<util::ByteStreamCpp>(
-      absl::make_unique<std::stringstream>(std::stringstream(bundle)));
+      absl::make_unique<std::stringstream>(bundle));
   std::shared_ptr<api::LoadBundleTask> task =
       firestore_core_->LoadBundle(std::move(bundle_stream));
   task->Observe([promise, task, progress_callback](
@@ -364,8 +364,7 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
     if (progress.state() == api::LoadBundleTaskState::kSuccess) {
       promise.SetValue(ToApiProgress(progress));
       task->RemoveAllObservers();
-    }
-    if (progress.state() == api::LoadBundleTaskState::kError) {
+    } else if (progress.state() == api::LoadBundleTaskState::kError) {
       promise.SetError(progress.error_status());
       task->RemoveAllObservers();
     }
