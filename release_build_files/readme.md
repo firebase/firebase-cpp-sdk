@@ -571,6 +571,14 @@ code.
 
 ## Release Notes
 
+### 8.0.0
+-   Changes
+    -   General (Android): Firebase no longer supports STLPort. Please
+        [use libc++ instead](https://developer.android.com/ndk/guides/cpp-support#cs).
+    -   General (Android): Firebase support for gnustl (also known as libstdc++)
+        is deprecated and will be removed in the next major release. Please use
+        libc++ instead.
+
 ### 7.3.0
 -   Changes
     -   General (iOS): Update dependencies.
