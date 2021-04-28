@@ -116,50 +116,18 @@ required for each SDK feature.
 
 Feature                    | Required Libraries and Cocoapods
 -------------------------- | -----------------------------------------
-Firebase AdMob             | libfirebase_admob.a
-                           | libfirebase_app.a
-                           | Firebase/AdMob Cocoapod (7.11.0)
-Firebase Analytics         | libfirebase_analytics.a
-                           | libfirebase_app.a
-                           | Firebase/Analytics Cocoapod (7.11.0)
-Firebase Authentication    | libfirebase_auth.a
-                           | libfirebase_app.a
-                           | Firebase/Auth Cocoapod (7.11.0)
-Firebase Dynamic Links     | libfirebase_dynamic_links.a
-                           | libfirebase_app.a
-                           | Firebase/DynamicLinks Cocoapod (7.11.0)
-Cloud Firestore            | libfirebase_firestore.a
-                           | libfirebase_app.a
-                           | libfirebase_auth.a
-                           | Firebase/Firestore Cocoapod (7.11.0)
-                           | Firebase/Auth Cocoapod (7.11.0)
-Firebase Functions         | libfirebase_functions.a
-                           | libfirebase_app.a
-                           | libfirebase_auth.a (optional)
-                           | Firebase/Functions Cocoapod (7.11.0)
-                           | Firebase/Auth Cocoapod (7.11.0)
-Firebase Installations     | libfirebase_installations.a
-                           | libfirebase_app.a
-                           | FirebaseInstallations Cocoapod (7.11.0)
-Firebase Instance ID       | libfirebase_instance_id.a
-                           | libfirebase_app.a
-                           | FirebaseInstanceID Cocoapod (7.11.0)
-Firebase Cloud Messaging   | libfirebase_messaging.a
-                           | libfirebase_app.a
-                           | Firebase/CloudMessaging Cocoapod (7.11.0)
-Firebase Realtime Database | libfirebase_database.a
-                           | libfirebase_app.a
-                           | libfirebase_auth.a
-                           | Firebase/Database Cocoapod (7.11.0)
-                           | Firebase/Auth Cocoapod (7.11.0)
-Firebase Remote Config     | libfirebase_remote_config.a
-                           | libfirebase_app.a
-                           | Firebase/RemoteConfig Cocoapod (7.11.0)
-Firebase Storage           | libfirebase_storage.a
-                           | libfirebase_app.a
-                           | libfirebase_auth.a
-                           | Firebase/Storage Cocoapod (7.11.0)
-                           | Firebase/Auth Cocoapod (7.11.0)
+Firebase AdMob             | libfirebase_admob.a<br>libfirebase_app.a<br>Firebase/AdMob Cocoapod (7.11.0)
+Firebase Analytics         | libfirebase_analytics.a<br>libfirebase_app.a<br>Firebase/Analytics Cocoapod (7.11.0)
+Firebase Authentication    | libfirebase_auth.a<br>libfirebase_app.a<br>Firebase/Auth Cocoapod (7.11.0)
+Firebase Dynamic Links     | libfirebase_dynamic_links.a<br>libfirebase_app.a<br>Firebase/DynamicLinks Cocoapod (7.11.0)
+Cloud Firestore            | libfirebase_firestore.a<br>libfirebase_app.a<br>libfirebase_auth.a<br>Firebase/Firestore Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (7.11.0)
+Firebase Functions         | libfirebase_functions.a<br>libfirebase_app.a<br>libfirebase_auth.a (optional)<br>Firebase/Functions Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (7.11.0)
+Firebase Installations     | libfirebase_installations.a<br>libfirebase_app.a<br>FirebaseInstallations Cocoapod (7.11.0)
+Firebase Instance ID       | libfirebase_instance_id.a<br>libfirebase_app.a<br>FirebaseInstanceID Cocoapod (7.11.0)
+Firebase Cloud Messaging   | libfirebase_messaging.a<br>libfirebase_app.a<br>Firebase/CloudMessaging Cocoapod (7.11.0)
+Firebase Realtime Database | libfirebase_database.a<br>libfirebase_app.a<br>libfirebase_auth.a<br>Firebase/Database Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (7.11.0)
+Firebase Remote Config     | libfirebase_remote_config.a<br>libfirebase_app.a<br>Firebase/RemoteConfig Cocoapod (7.11.0)
+Firebase Storage           | libfirebase_storage.a<br>libfirebase_app.a<br>libfirebase_auth.a<br>Firebase/Storage Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (7.11.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
