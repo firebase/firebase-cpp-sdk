@@ -130,12 +130,6 @@ Firebase Installations     | libfirebase_installations.a
                            | libfirebase_app.a
                            | com.google.firebase:firebase-installations:16.3.5
                            | (Maven package)
-Firebase Instance ID       | libfirebase_instance_id.a
-                           | libfirebase_app.a
-                           | com.google.firebase:firebase-analytics:18.0.3
-                           | (Maven package)
-                           | com.google.firebase:firebase-iid:21.1.0
-                           | (Maven package)
 Firebase Messaging         | libfirebase_messaging.a
                            | libfirebase_app.a
                            | com.google.firebase:firebase-analytics:18.0.3
@@ -207,9 +201,6 @@ Firebase Functions         | firebase_functions.framework
 Firebase Installations     | firebase_installations.framework
                            | firebase.framework
                            | FirebaseInstallations Cocoapod (7.11.0)
-Firebase Instance ID       | firebase_instance_id.framework
-                           | firebase.framework
-                           | FirebaseInstanceID Cocoapod (7.11.0)
 Firebase Cloud Messaging   | firebase_messaging.framework
                            | firebase.framework
                            | Firebase/Messaging Cocoapod (7.11.0)
@@ -264,9 +255,6 @@ Firebase Functions         | libfirebase_functions.a
 Firebase Installations     | libfirebase_installations.a
                            | libfirebase_app.a
                            | FirebaseInstallations Cocoapod (7.11.0)
-Firebase Instance ID       | libfirebase_instance_id.a
-                           | libfirebase_app.a
-                           | FirebaseInstanceID Cocoapod (7.11.0)
 Firebase Cloud Messaging   | libfirebase_messaging.a
                            | libfirebase_app.a
                            | Firebase/CloudMessaging Cocoapod (7.11.0)
@@ -325,8 +313,6 @@ Firebase Dynamic Links (stub)   | libfirebase_dynamic_links.a
                                 | libfirebase_app.a
 Firebase Installations (stub)   | libfirebase_installations.a
                                 | libfirebase_app.a
-Firebase Instance ID (stub)     | libfirebase_instance_id.a
-                                | libfirebase_app.a
 Firebase Cloud Messaging (stub) | libfirebase_messaging.a
                                 | libfirebase_app.a
 
@@ -366,8 +352,6 @@ Firebase Analytics (stub)       | firebase_analytics.xcframework
 Firebase Dynamic Links (stub)   | firebase_dynamic_links.xcframework
                                 | firebase.xcframework
 Firebase Installations (stub)   | firebase_installations.xcframework
-                                | firebase.xcframework
-Firebase Instance ID (stub)     | firebase_instance_id.xcframework
                                 | firebase.xcframework
 Firebase Cloud Messaging (stub) | firebase_messaging.xcframework
                                 | firebase.xcframework
@@ -410,8 +394,6 @@ Firebase Analytics (stub)       | firebase_analytics.lib
 Firebase Dynamic Links (stub)   | firebase_dynamic_links.lib
                                 | firebase_app.lib
 Firebase Installations (stub)   | firebase_installations.lib
-                                | firebase_app.lib
-Firebase Instance ID (stub)     | firebase_instance_id.lib
                                 | firebase_app.lib
 Firebase Cloud Messaging (stub) | firebase_messaging.lib
                                 | firebase_app.lib
