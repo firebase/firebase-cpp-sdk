@@ -14,7 +14,7 @@ if [[ ! -d "${sourcepath}" ]]; then
     exit 2
 fi
 
-if [[ "${stl}" == "c++" || "${stl}" == "gnustl"]]; then
+if [[ "${stl}" == "c++" || "${stl}" == "gnustl" ]]; then
     export FIREBASE_ANDROID_STL="${stl}"_static
 elif [[ ! -z "${stl}" ]]; then
     echo "Invalid STL specified."
