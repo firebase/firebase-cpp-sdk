@@ -146,34 +146,18 @@ to the compiler option -D_GLIBCXX_USE_CXX11_ABI=1 or 0, respectively.
 
 Feature                         | Required Libraries
 ------------------------------- | -----------------------------
-Firebase Authentication         | libfirebase_auth.a
-                                | libfirebase_app.a
-Cloud Firestore                 | libfirebase_firestore.a
-                                | libfirebase_auth.a
-                                | libfirebase_app.a
-Firebase Functions              | libfirebase_functions.a
-                                | libfirebase_auth.a (optional)
-                                | libfirebase_app.a
-Firebase Realtime Database      | libfirebase_database.a
-                                | libfirebase_auth.a
-                                | libfirebase_app.a
-Firebase Remote Config          | libfirebase_remote_config.a
-                                | libfirebase_app.a
-Firebase Storage                | libfirebase_storage.a
-                                | libfirebase_auth.a
-                                | libfirebase_app.a
-Firebase AdMob (stub)           | libfirebase_admob.a
-                                | libfirebase_app.a
-Firebase Analytics (stub)       | libfirebase_analytics.a
-                                | libfirebase_app.a
-Firebase Dynamic Links (stub)   | libfirebase_dynamic_links.a
-                                | libfirebase_app.a
-Firebase Installations (stub)   | libfirebase_installations.a
-                                | libfirebase_app.a
-Firebase Instance ID (stub)     | libfirebase_instance_id.a
-                                | libfirebase_app.a
-Firebase Cloud Messaging (stub) | libfirebase_messaging.a
-                                | libfirebase_app.a
+Firebase Authentication         | libfirebase_auth.a<br>libfirebase_app.a
+Cloud Firestore                 | libfirebase_firestore.a<br>libfirebase_auth.a<br>libfirebase_app.a
+Firebase Functions              | libfirebase_functions.a<br>libfirebase_auth.a (optional)<br>libfirebase_app.a
+Firebase Realtime Database      | libfirebase_database.a<br>libfirebase_auth.a<br>libfirebase_app.a
+Firebase Remote Config          | libfirebase_remote_config.a<br>libfirebase_app.a
+Firebase Storage                | libfirebase_storage.a<br>libfirebase_auth.a<br>libfirebase_app.a
+Firebase AdMob (stub)           | libfirebase_admob.a<br>libfirebase_app.a
+Firebase Analytics (stub)       | libfirebase_analytics.a<br>libfirebase_app.a
+Firebase Dynamic Links (stub)   | libfirebase_dynamic_links.a<br>libfirebase_app.a
+Firebase Installations (stub)   | libfirebase_installations.a<br>libfirebase_app.a
+Firebase Instance ID (stub)     | libfirebase_instance_id.a<br>libfirebase_app.a
+Firebase Cloud Messaging (stub) | libfirebase_messaging.a<br>libfirebase_app.a
 
 The provided libraries have been tested using GCC 4.8.0, GCC 7.2.0, and Clang
 5.0 on Ubuntu. When building C++ desktop apps on Linux, you will need to link
