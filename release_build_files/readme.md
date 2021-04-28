@@ -91,50 +91,18 @@ preferred build environment.
 
 Feature                    | Required Frameworks and Cocoapods
 -------------------------- | ---------------------------------------
-Firebase AdMob             | firebase_admob.framework
-                           | firebase.framework
-                           | Firebase/AdMob Cocoapod (7.11.0)
-Firebase Analytics         | firebase_analytics.framework
-                           | firebase.framework
-                           | Firebase/Analytics Cocoapod (7.11.0)
-Firebase Authentication    | firebase_auth.framework
-                           | firebase.framework
-                           | Firebase/Auth Cocoapod (7.11.0)
-Firebase Dynamic Links     | firebase_dynamic_links.framework
-                           | firebase.framework
-                           | Firebase/DynamicLinks Cocoapod (7.11.0)
-Cloud Firestore            | firebase_firestore.framework
-                           | firebase_auth.framework
-                           | firebase.framework
-                           | Firebase/Firestore Cocoapod (7.11.0)
-                           | Firebase/Auth Cocoapod (7.11.0)
-Firebase Functions         | firebase_functions.framework
-                           | firebase_auth.framework (optional)
-                           | firebase.framework
-                           | Firebase/Functions Cocoapod (7.11.0)
-                           | Firebase/Auth Cocoapod (7.11.0)
-Firebase Installations     | firebase_installations.framework
-                           | firebase.framework
-                           | FirebaseInstallations Cocoapod (7.11.0)
-Firebase Instance ID       | firebase_instance_id.framework
-                           | firebase.framework
-                           | FirebaseInstanceID Cocoapod (7.11.0)
-Firebase Cloud Messaging   | firebase_messaging.framework
-                           | firebase.framework
-                           | Firebase/Messaging Cocoapod (7.11.0)
-Firebase Realtime Database | firebase_database.framework
-                           | firebase_auth.framework
-                           | firebase.framework
-                           | Firebase/Database Cocoapod (7.11.0)
-                           | Firebase/Auth Cocoapod (7.11.0)
-Firebase Remote Config     | firebase_remote_config.framework
-                           | firebase.framework
-                           | Firebase/RemoteConfig Cocoapod (7.11.0)
-Firebase Storage           | firebase_storage.framework
-                           | firebase_auth.framework
-                           | firebase.framework
-                           | Firebase/Storage Cocoapod (7.11.0)
-                           | Firebase/Auth Cocoapod (7.11.0)
+Firebase AdMob             | firebase_admob.framework<br>firebase.framework<br>Firebase/AdMob Cocoapod (7.11.0)
+Firebase Analytics         | firebase_analytics.framework<br>firebase.framework<br>Firebase/Analytics Cocoapod (7.11.0)
+Firebase Authentication    | firebase_auth.framework<br>firebase.framework<br>Firebase/Auth Cocoapod (7.11.0)
+Firebase Dynamic Links     | firebase_dynamic_links.framework<br>firebase.framework<br>Firebase/DynamicLinks Cocoapod (7.11.0)
+Cloud Firestore            | firebase_firestore.framework<br>firebase_auth.framework<br>firebase.framework<br>Firebase/Firestore Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (7.11.0)
+Firebase Functions         | firebase_functions.framework<br>firebase_auth.framework (optional)<br>firebase.framework<br>Firebase/Functions Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (7.11.0)
+Firebase Installations     | firebase_installations.framework<br>firebase.framework<br>FirebaseInstallations Cocoapod (7.11.0)
+Firebase Instance ID       | firebase_instance_id.framework<br>firebase.framework<br>FirebaseInstanceID Cocoapod (7.11.0)
+Firebase Cloud Messaging   | firebase_messaging.framework<br>firebase.framework<br>Firebase/Messaging Cocoapod (7.11.0)
+Firebase Realtime Database | firebase_database.framework<br>firebase_auth.framework<br>firebase.framework<br>Firebase/Database Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (7.11.0)
+Firebase Remote Config     | firebase_remote_config.framework<br>firebase.framework<br>Firebase/RemoteConfig Cocoapod (7.11.0)
+Firebase Storage           | firebase_storage.framework<br>firebase_auth.framework<br>firebase.framework<br>Firebase/Storage Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (7.11.0)
 
 Important: Each version of the Firebase C++ SDK supports a specific version of
 the Firebase iOS SDK. Please ensure that you reference the Cocoapod versions
