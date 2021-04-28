@@ -571,7 +571,7 @@ code.
 
 ## Release Notes
 
-### 7.3.1
+### TBD
 -   Changes
     -   Remote Config(Android): Fix for getting Remote Config instance for a
         specific app object.
