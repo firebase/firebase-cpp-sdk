@@ -172,34 +172,18 @@ library dependencies. XCFrameworks are also provided for convenience.
 
 Feature                         | Required XCFrameworks
 ------------------------------- | ----------------------------------
-Firebase Authentication         | firebase_auth.xcframework
-                                | firebase.xcframework
-Cloud Firestore                 | firebase_firestore.xcframework
-                                | firebase_auth.xcframework
-                                | firebase.xcframework
-Firebase Functions              | firebase_functions.xcframework
-                                | firebase_auth.xcframework (optional)
-                                | firebase.xcframework
-Firebase Realtime Database      | firebase_database.xcframework
-                                | firebase_auth.xcframework
-                                | firebase.xcframework
-Firebase Remote Config          | firebase_remote_config.xcframework
-                                | firebase.xcframework
-Firebase Storage                | firebase_storage.xcframework
-                                | firebase_auth.xcframework
-                                | firebase.xcframework
-Firebase AdMob (stub)           | firebase_admob.xcframework
-                                | firebase.xcframework
-Firebase Analytics (stub)       | firebase_analytics.xcframework
-                                | firebase.xcframework
-Firebase Dynamic Links (stub)   | firebase_dynamic_links.xcframework
-                                | firebase.xcframework
-Firebase Installations (stub)   | firebase_installations.xcframework
-                                | firebase.xcframework
-Firebase Instance ID (stub)     | firebase_instance_id.xcframework
-                                | firebase.xcframework
-Firebase Cloud Messaging (stub) | firebase_messaging.xcframework
-                                | firebase.xcframework
+Firebase Authentication         | firebase_auth.xcframework<br>firebase.xcframework
+Cloud Firestore                 | firebase_firestore.xcframework<br>firebase_auth.xcframework<br>firebase.xcframework
+Firebase Functions              | firebase_functions.xcframework<br>firebase_auth.xcframework (optional)<br>firebase.xcframework
+Firebase Realtime Database      | firebase_database.xcframework<br>firebase_auth.xcframework<br>firebase.xcframework
+Firebase Remote Config          | firebase_remote_config.xcframework<br>firebase.xcframework
+Firebase Storage                | firebase_storage.xcframework<br>firebase_auth.xcframework<br>firebase.xcframework
+Firebase AdMob (stub)           | firebase_admob.xcframework<br>firebase.xcframework
+Firebase Analytics (stub)       | firebase_analytics.xcframework<br>firebase.xcframework
+Firebase Dynamic Links (stub)   | firebase_dynamic_links.xcframework<br>firebase.xcframework
+Firebase Installations (stub)   | firebase_installations.xcframework<br>firebase.xcframework
+Firebase Instance ID (stub)     | firebase_instance_id.xcframework<br>firebase.xcframework
+Firebase Cloud Messaging (stub) | firebase_messaging.xcframework<br>firebase.xcframework
 
 The provided libraries have been tested using Xcode 12.0. When building C++
 desktop apps on OS X, you will need to link the `gssapi_krb5` and `pthread`
@@ -216,34 +200,18 @@ targeting Release or Debug.
 
 Feature                         | Required Libraries and Gradle Packages
 ------------------------------- | --------------------------------------
-Firebase Authentication         | firebase_auth.lib
-                                | firebase_app.lib
-Cloud Firestore                 | firebase_firestore.lib
-                                | firebase_auth.lib
-                                | firebase_app.lib
-Firebase Functions              | firebase_functions.lib
-                                | firebase_auth.lib (optional)
-                                | firebase_app.lib
-Firebase Realtime Database      | firebase_database.lib
-                                | firebase_auth.lib
-                                | firebase_app.lib
-Firebase Remote Config          | firebase_remote_config.lib
-                                | firebase_app.lib
-Firebase Storage                | firebase_storage.lib
-                                | firebase_auth.lib
-                                | firebase_app.lib
-Firebase AdMob (stub)           | firebase_admob.lib
-                                | firebase_app.lib
-Firebase Analytics (stub)       | firebase_analytics.lib
-                                | firebase_app.lib
-Firebase Dynamic Links (stub)   | firebase_dynamic_links.lib
-                                | firebase_app.lib
-Firebase Installations (stub)   | firebase_installations.lib
-                                | firebase_app.lib
-Firebase Instance ID (stub)     | firebase_instance_id.lib
-                                | firebase_app.lib
-Firebase Cloud Messaging (stub) | firebase_messaging.lib
-                                | firebase_app.lib
+Firebase Authentication         | firebase_auth.lib<br>firebase_app.lib
+Cloud Firestore                 | firebase_firestore.lib<br>firebase_auth.lib<br>firebase_app.lib
+Firebase Functions              | firebase_functions.lib<br>firebase_auth.lib (optional)<br>firebase_app.lib
+Firebase Realtime Database      | firebase_database.lib<br>firebase_auth.lib<br>firebase_app.lib
+Firebase Remote Config          | firebase_remote_config.lib<br>firebase_app.lib
+Firebase Storage                | firebase_storage.lib<br>firebase_auth.lib<br>firebase_app.lib
+Firebase AdMob (stub)           | firebase_admob.lib<br>firebase_app.lib
+Firebase Analytics (stub)       | firebase_analytics.lib<br>firebase_app.lib
+Firebase Dynamic Links (stub)   | firebase_dynamic_links.lib<br>firebase_app.lib
+Firebase Installations (stub)   | firebase_installations.lib<br>firebase_app.lib
+Firebase Instance ID (stub)     | firebase_instance_id.lib<br>firebase_app.lib
+Firebase Cloud Messaging (stub) | firebase_messaging.lib<br>firebase_app.lib
 
 The provided libraries have been tested using Visual Studio 2019. When
 building C++ desktop apps on Windows, you will need to link the following
