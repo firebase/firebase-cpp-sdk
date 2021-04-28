@@ -1,0 +1,45 @@
+name: Checks
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, labeled, unlabeled]
+
+env:
+  triggerLabelFull: "tests-requested: full"
+  triggerLabelQuick: "tests-requested: quick"
+  statusLabelInProgress: "tests: in-progress"
+  statusLabelFailed: "tests: failed"
+
+jobs:
+  file_format_check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: false
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: Install prerequisites
+        run: python scripts/gha/install_prereqs_desktop.py
+      - name: log clang format version
+        shell: bash
+        run: clang-format --version
+      - name: git fetch origin main
+        shell: bash
+        run: git fetch origin main
+      - name: Detect Formatting Changes
+        shell: bash
+        run: python3 scripts/format_code.py -git_diff -noformat_file -verbose
+  
+  check_integration_test_labels:
+    # This check fails if integration tests are queued, in progress, or failed.
+    runs-on: ubuntu-latest
+    steps:
+    - uses: docker://agilepathway/pull-request-label-checker:latest
+      with:
+        none_of: "${{ env.statusLabelInProgress }},${{ env.statusLabelFailed }},${{ env.triggerLabelFull }},${{ env.triggerLabelQuick }}"
+        repo_token: ${{ github.token }}
+
+

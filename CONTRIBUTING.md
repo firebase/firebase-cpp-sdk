@@ -118,6 +118,11 @@ Before you submit your pull request consider the following guidelines:
 * Follow our [Coding Rules](#rules).
 * Avoid checking in files that shouldn't be tracked (e.g `.tmp`, `.idea`).
   We recommend using a [global](#global-gitignore) gitignore for this.
+* Format your code:
+     ```shell
+     python3 scripts/format_code.py -git_diff -verbose
+     ```
+
 * Commit your changes using a descriptive commit message.
 
      ```shell
