@@ -381,14 +381,6 @@ jobs:
             unzip -q ../firebase_cpp_sdk.zip
             cd ..
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
-          else
-            # Building integration tests against the SDK source.
-            #
-            # When building the SDK from source, the default SSL is openssl.
-            # To build using boringssl, a cmake flag must be added:
-            if [[ "${{ matrix.ssl_variant }}" == "boringssl" ]]; then
-              additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
-            fi
           fi
           python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p Android --output_directory "${{ github.workspace }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-android-${{ matrix.os }}"
 
@@ -407,7 +399,7 @@ jobs:
     if: contains(needs.prepare_matrix.outputs.matrix_platform, 'iOS') && contains(needs.prepare_matrix.outputs.matrix_os, 'macos-latest') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
     strategy:
       fail-fast: false
-      
+
     steps:
       - uses: actions/checkout@v2
         with:
@@ -458,16 +450,8 @@ jobs:
             unzip -q ../firebase_cpp_sdk.zip
             cd ..
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
-          else
-            # Building integration tests against the SDK source.
-            #
-            # When building the SDK from source, the default SSL is openssl.
-            # To build using boringssl, a cmake flag must be added:
-            if [[ "${{ matrix.ssl_variant }}" == "boringssl" ]]; then
-              additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
-            fi
           fi
-          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p iOS --output_directory "${{ github.workspace }}" --ios_sdk "${{ needs.prepare_matrix.outputs.mobile_test_on }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-ios-macos-latest"
+          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p iOS --output_directory "${{ github.workspace }}" --ios_sdk ${{ needs.prepare_matrix.outputs.mobile_test_on }} --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-ios-macos-latest"
 
       - name: Upload mobile integration tests artifact
         uses: actions/upload-artifact@v2.2.2
