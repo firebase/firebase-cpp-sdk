@@ -298,24 +298,7 @@ jobs:
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
           fi
-          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --ios_sdk "${{ needs.prepare_matrix.outputs.mobile_test_on }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-${{ matrix.target_platform }}-${{ matrix.os }}"
-
-      - name: get current time for status comment
-        id: get-time
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        shell: bash
-        run: |
-          echo -n "::set-output name=time::"
-          TZ=America/Los_Angeles date
-
-      - name: Summarize build and test results
-        if: ${{ !cancelled() }}
-        shell: bash
-        run: |
-          cat ta/summary.log
-          if [[ "${{ job.status }}" != "success" ]]; then
-            exit 1
-          fi
+          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p Desktop --output_directory "${{ github.workspace }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
 
   build_android:
     name: android-${{ matrix.os }}
@@ -408,17 +391,17 @@ jobs:
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
           fi
-          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --ios_sdk "${{ needs.prepare_matrix.outputs.mobile_test_on }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-${{ matrix.target_platform }}-${{ matrix.os }}"
+          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p Android --output_directory "${{ github.workspace }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-android-${{ matrix.os }}"
 
       - name: Upload mobile integration tests artifact
         uses: actions/upload-artifact@v2.2.2
         if: matrix.target_platform != 'Desktop' && ${{ !cancelled() }}
         with:
-          name: testapps-${{ matrix.target_platform }}-${{ matrix.os }}.zip
-          path: testapps-${{ matrix.target_platform }}-${{ matrix.os }}.zip
+          name: testapps-android-${{ matrix.os }}.zip
+          path: testapps-android-${{ matrix.os }}.zip
 
   build_ios:
-    name: ios-${{ matrix.os }}
+    name: ios-macos-latest
     needs: [prepare_matrix]
     runs-on: macos-latest
     if: contains(needs.prepare_matrix.outputs.matrix_platform, 'iOS') && contains(needs.prepare_matrix.outputs.matrix_os, 'macos-latest') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
@@ -484,14 +467,14 @@ jobs:
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
           fi
-          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p ${{ matrix.target_platform }} --output_directory "${{ github.workspace }}" --ios_sdk "${{ needs.prepare_matrix.outputs.mobile_test_on }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-${{ matrix.target_platform }}-${{ matrix.os }}"
+          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p iOS --output_directory "${{ github.workspace }}" --ios_sdk "${{ needs.prepare_matrix.outputs.mobile_test_on }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-ios-${{ matrix.os }}"
 
       - name: Upload mobile integration tests artifact
         uses: actions/upload-artifact@v2.2.2
         if: matrix.target_platform != 'Desktop' && ${{ !cancelled() }}
         with:
-          name: testapps-${{ matrix.target_platform }}-${{ matrix.os }}.zip
-          path: testapps-${{ matrix.target_platform }}-${{ matrix.os }}.zip
+          name: testapps-ios-${{ matrix.os }}.zip
+          path: testapps-ios-${{ matrix.os }}.zip
 
   test_android:
     name: android-${{ matrix.build_os }}-${{ matrix.android_device }}
@@ -519,7 +502,7 @@ jobs:
         uses: actions/download-artifact@v2.0.8
         with:
           path: testapps
-          name: testapps-${{ matrix.build_os }}-Android.zip
+          name: testapps-android-${{ matrix.build_os }}.zip
       - name: unzip artifact
         run: |
           unzip testapps/testapps-${{ matrix.build_os }}-Android.zip
@@ -562,7 +545,7 @@ jobs:
         uses: actions/download-artifact@v2.0.8
         with:
           path: testapps
-          name: testapps-macos-latest-iOS.zip
+          name: testapps-ios-macos-latest.zip
       - name: unzip artifact
         run: |
           unzip testapps/testapps-macos-latest-iOS.zip
