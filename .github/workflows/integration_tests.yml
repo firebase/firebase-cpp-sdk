@@ -353,7 +353,6 @@ jobs:
           brew update
 
       - name: Install SDK Android prerequisites
-        if: matrix.target_platform == 'Android'
         shell: bash
         run: |
           build_scripts/android/install_prereqs.sh
@@ -423,7 +422,6 @@ jobs:
           python-version: '3.7'
 
       - name: Update homebrew (avoid bintray errors)
-        if: startsWith(matrix.os, 'macos')
         run: |
           # Temporarily here until Github runners have updated their version of
           # homebrew. This prevents errors arising from the shut down of
@@ -431,7 +429,6 @@ jobs:
           brew update
 
       - name: Install SDK iOS prerequisites
-        if: matrix.target_platform == 'iOS'
         run: |
           build_scripts/ios/install_prereqs.sh
 
