@@ -690,7 +690,10 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
     firebase::storage::StorageReference* ref;
     const std::string* test_file;
     size_t test_file_size;
-  } context;
+  };
+  Context context;
+  // It's safe to use stack-allocated pointers as RunFlakyBlock does all its
+  // work in this thread.
   context.ref = &ref;
   context.test_file = &kLargeTestFile;
   context.test_file_size = kLargeFileSize;
@@ -733,6 +736,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
               LogError("Pause failed.");
               return false;
             }
+	    
             // The StorageListener's OnPaused will call Resume().
 
             LogDebug("Waiting for future.");
