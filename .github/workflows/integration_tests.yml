@@ -405,7 +405,9 @@ jobs:
     needs: [prepare_matrix]
     runs-on: macos-latest
     if: contains(needs.prepare_matrix.outputs.matrix_platform, 'iOS') && contains(needs.prepare_matrix.outputs.matrix_os, 'macos-latest') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
-
+    strategy:
+      fail-fast: false
+      
     steps:
       - uses: actions/checkout@v2
         with:
@@ -465,21 +467,21 @@ jobs:
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
           fi
-          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p iOS --output_directory "${{ github.workspace }}" --ios_sdk "${{ needs.prepare_matrix.outputs.mobile_test_on }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-ios-${{ matrix.os }}"
+          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p iOS --output_directory "${{ github.workspace }}" --ios_sdk "${{ needs.prepare_matrix.outputs.mobile_test_on }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-ios-macos-latest"
 
       - name: Upload mobile integration tests artifact
         uses: actions/upload-artifact@v2.2.2
         if: matrix.target_platform != 'Desktop' && ${{ !cancelled() }}
         with:
-          name: testapps-ios-${{ matrix.os }}.zip
-          path: testapps-ios-${{ matrix.os }}.zip
+          name: testapps-ios-macos-latest.zip
+          path: testapps-ios-macos-latest.zip
           retention-days: 1
 
   test_android:
     name: android-${{ matrix.build_os }}-${{ matrix.android_device }}
     needs: [build_android]
     runs-on: macos-latest
-    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'Android') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
+    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'Android') && needs.prepare_matrix.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
       matrix:
@@ -526,7 +528,7 @@ jobs:
     name: ios-macos-latest-${{ matrix.ios_device }}
     needs: [build_ios]
     runs-on: macos-latest
-    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'iOS') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
+    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'iOS') && needs.prepare_matrix.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
       matrix:
