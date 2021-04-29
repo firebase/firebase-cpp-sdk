@@ -228,13 +228,13 @@ class FirebaseTest : public testing::Test {
   // Note that the callback must return a bool or a type implicitly convertable
   // to bool.
   template <class CallbackType, class ContextType>
-  static bool RunFlakyBlock(CallbackType callback_typed, ContextType* context_typed,
+  static bool RunFlakyBlock(CallbackType flaky_callback, ContextType* context_typed,
                             const char* name = "") {
     struct RunData {
       CallbackType callback;
       ContextType* context;
     };
-    RunData run_data = {callback_typed, context_typed};
+    RunData run_data = {flaky_callback, context_typed};
     return RunFlakyBlockBase(
         [](void* ctx) {
           CallbackType callback = static_cast<RunData*>(ctx)->callback;
