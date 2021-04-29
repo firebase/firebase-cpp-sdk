@@ -180,7 +180,7 @@ TEST_F(FirebaseInstallationsTest, TestGettingIdTwiceMatches) {
 
 TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewIdNextTime) {
   if (!RunFlakyBlock(
-            [](firebase::installations::Installations* installations) {
+          [](firebase::installations::Installations* installations) {
             firebase::Future<std::string> id = installations->GetId();
             WaitForCompletionAnyResult(id, "GetId");
             if (id.error() != 0) {
