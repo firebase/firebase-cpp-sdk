@@ -399,6 +399,7 @@ jobs:
         with:
           name: testapps-android-${{ matrix.os }}.zip
           path: testapps-android-${{ matrix.os }}.zip
+          retention-days: 1
 
   build_ios:
     name: ios-macos-latest
@@ -475,6 +476,7 @@ jobs:
         with:
           name: testapps-ios-${{ matrix.os }}.zip
           path: testapps-ios-${{ matrix.os }}.zip
+          retention-days: 1
 
   test_android:
     name: android-${{ matrix.build_os }}-${{ matrix.android_device }}
