@@ -696,8 +696,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
   context.test_file = &kLargeTestFile;
   context.test_file_size = kLargeFileSize;
   if (!RunFlakyBlock(
-          [](void* context_void) {
-            Context* context = reinterpret_cast<Context*>(context_void);
+          [](Context* context) {
             firebase::storage::StorageReference* ref = context->ref;
             const std::string* test_file = context->test_file;
             size_t test_file_size = context->test_file_size;
@@ -728,10 +727,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
             // future completes.
             LogDebug("Pausing upload.");
             if (!FirebaseTest::RunFlakyBlock(
-                    [](void* controller_void) {
-                      firebase::storage::Controller* controller =
-                          reinterpret_cast<firebase::storage::Controller*>(
-                              controller_void);
+                    [](firebase::storage::Controller* controller) {
                       return controller->Pause();
                     },
                     &controller, "Pause")) {
@@ -792,8 +788,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
   }
 #if FIREBASE_PLATFORM_DESKTOP
   if (!RunFlakyBlock(
-          [](void* context_void) {
-            Context* context = reinterpret_cast<Context*>(context_void);
+          [](Context* context) {
             firebase::storage::StorageReference* ref = context->ref;
             const std::string* test_file = context->test_file;
             size_t test_file_size = context->test_file_size;
@@ -816,10 +811,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
 
             LogDebug("Pausing download.");
             if (!FirebaseTest::RunFlakyBlock(
-                    [](void* controller_void) {
-                      firebase::storage::Controller* controller =
-                          reinterpret_cast<firebase::storage::Controller*>(
-                              controller_void);
+                    [](firebase::storage::Controller* controller) {
                       return controller->Pause();
                     },
                     &controller, "Pause")) {

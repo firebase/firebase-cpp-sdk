@@ -145,10 +145,7 @@ TEST_F(FirebaseInstallationsTest, TestCanGetId) {
 
 TEST_F(FirebaseInstallationsTest, TestGettingIdTwiceMatches) {
   if (!RunFlakyBlock(
-          [](void* installations_void) {
-            firebase::installations::Installations* installations =
-                reinterpret_cast<firebase::installations::Installations*>(
-                    installations_void);
+          [](firebase::installations::Installations* installations) {
             firebase::Future<std::string> id = installations->GetId();
             WaitForCompletionAnyResult(id, "GetId");
             if (id.error() != 0) {
@@ -183,10 +180,7 @@ TEST_F(FirebaseInstallationsTest, TestGettingIdTwiceMatches) {
 
 TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewIdNextTime) {
   if (!RunFlakyBlock(
-          [](void* installations_void) {
-            firebase::installations::Installations* installations =
-                reinterpret_cast<firebase::installations::Installations*>(
-                    installations_void);
+            [](firebase::installations::Installations* installations) {
             firebase::Future<std::string> id = installations->GetId();
             WaitForCompletionAnyResult(id, "GetId");
             if (id.error() != 0) {

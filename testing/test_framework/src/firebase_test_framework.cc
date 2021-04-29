@@ -96,8 +96,8 @@ void FirebaseTest::TerminateApp() {
   app_ = nullptr;
 }
 
-bool FirebaseTest::RunFlakyBlock(bool (*flaky_block)(void* context),
-                                 void* context, const char* name) {
+bool FirebaseTest::RunFlakyBlockBase(bool (*flaky_block)(void* context),
+                                     void* context, const char* name) {
   // Run flaky_block(context). If it returns true, all is well, return true.
   // If it returns false, something flaky failed; wait a moment and try again.
   const int kRetryDelaysMs[] = {// Roughly exponential backoff for the retries.

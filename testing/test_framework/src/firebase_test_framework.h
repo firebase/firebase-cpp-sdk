@@ -222,8 +222,27 @@ class FirebaseTest : public testing::Test {
   // Run an operation that returns a bool. If it fails (and the bool returns
   // false), try it again, after a short delay. Returns true once it succeeds,
   // or if it fails enough times, returns false.
-  static bool RunFlakyBlock(bool (*flaky_block)(void* context), void* context,
-                            const char* name = "");
+  // This is designed to allow you to try a flaky set of operations multiple
+  // times until it succeeds.
+  //
+  // Note that the callback must return a bool or a type implicitly convertable
+  // to bool.
+  template <class CallbackType, class ContextType>
+  static bool RunFlakyBlock(CallbackType callback_typed, ContextType* context_typed,
+                            const char* name = "") {
+    struct RunData {
+      CallbackType callback;
+      ContextType* context;
+    };
+    RunData run_data = {callback_typed, context_typed};
+    return RunFlakyBlockBase(
+        [](void* ctx) {
+          CallbackType callback = static_cast<RunData*>(ctx)->callback;
+          ContextType* context = static_cast<RunData*>(ctx)->context;
+          return callback(context);
+        },
+        static_cast<void*>(&run_data), name);
+  }
 
   // Run an operation that returns a Future (via a callback), retrying with
   // exponential backoff if the operation fails.
@@ -326,6 +345,11 @@ class FirebaseTest : public testing::Test {
   static firebase::FutureBase RunWithRetryBase(
       firebase::FutureBase (*run_future)(void* context), void* context,
       const char* name, int expected_error);
+  // Untyped version of RunFlakyBlock, with implementation.
+  // This is kept private because the templated version should be used instead,
+  // for type safety.
+  static bool RunFlakyBlockBase(bool (*flaky_block)(void* context),
+                                void* context, const char* name = "");
 };
 
 }  // namespace firebase_test_framework
