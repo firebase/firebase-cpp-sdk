@@ -35,10 +35,6 @@ MutableDataInternal::MutableDataInternal(DatabaseInternal* database,
 
 MutableDataInternal::~MutableDataInternal() {}
 
-MutableDataInternal* MutableDataInternal::Clone() {
-  return new MutableDataInternal(db_, MakeUnique<FIRMutableDataPointer>(impl()));
-}
-
 MutableDataInternal* MutableDataInternal::Child(const char* path) {
   return new MutableDataInternal(
       db_, MakeUnique<FIRMutableDataPointer>([impl() childDataByAppendingPath:@(path)]));

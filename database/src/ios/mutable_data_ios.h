@@ -43,10 +43,6 @@ class MutableDataInternal {
  public:
   ~MutableDataInternal();
 
-  // Create a shallow copy of the MutableData.
-  // The caller owns the returned pointer and is responsible for deleting it.
-  MutableDataInternal* Clone();
-
   // Used to obtain a MutableData instance that encapsulates the data and
   // priority at the given relative path.
   MutableDataInternal* Child(const char* path);
