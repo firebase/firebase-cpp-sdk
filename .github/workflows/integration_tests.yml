@@ -656,7 +656,7 @@ jobs:
 
   summarize_results:
     name: "summarize-results"
-    needs: [add_failure_label, add_success_label, remove_in_progress_label]
+    needs: [add_failure_label, add_success_label, remove_in_progress_label, test_ios, test_android]
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }}
     steps:
