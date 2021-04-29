@@ -993,44 +993,32 @@ bool IsValidPriority(const Variant& variant) {
   return variant.is_null() || variant.is_numeric() || variant.is_string();
 }
 
-std::pair<Optional<Variant>, Optional<Variant>> MakePost(
-    const QueryParams& params,
-    const Optional<std::string>& name,
-    const Optional<Variant>& value) {
+std::pair<Variant, Variant> MakePost(const QueryParams& params,
+                                     const std::string& name,
+                                     const Variant& value) {
   switch (params.order_by) {
     case QueryParams::kOrderByPriority: {
-      return std::make_pair(
-          name.has_value() ? Optional<Variant>(*name) : Optional<Variant>(),
-          value.has_value() ? Optional<Variant>(std::map<Variant, Variant>{
-                                  std::make_pair(".priority", *value),
-                              })
-                            : Optional<Variant>());
+      return std::make_pair(name, std::map<Variant, Variant>{
+                                      std::make_pair(".priority", value),
+                                  });
     }
     case QueryParams::kOrderByChild: {
       Variant variant;
-      SetVariantAtPath(&variant, Path(params.order_by_child),
-                       value.has_value() ? *value : Variant::Null());
-      return std::make_pair(
-          name.has_value() ? Optional<Variant>(*name) : Optional<Variant>(),
-          Optional<Variant>(variant));
+      SetVariantAtPath(&variant, Path(params.order_by_child), value);
+      return std::make_pair(name, variant);
     }
     case QueryParams::kOrderByKey: {
-      FIREBASE_DEV_ASSERT(value.has_value() && value->is_string());
+      FIREBASE_DEV_ASSERT(value.is_string());
       // We just use empty node, but it'll never be compared, since our
       // comparator only looks at name.
-      return std::make_pair(value.has_value()
-                                ? Optional<Variant>(value->mutable_string())
-                                : Optional<Variant>(),
-                            Optional<Variant>(Variant::Null()));
+      return std::make_pair(value.string_value(), Variant::Null());
     }
     case QueryParams::kOrderByValue: {
-      return std::make_pair(
-          name.has_value() ? Optional<Variant>(*name) : Optional<Variant>(),
-          value);
+      return std::make_pair(name, value);
     }
   }
   FIREBASE_DEV_ASSERT_MESSAGE(false, "Invalid QueryParams::OrderBy");
-  return std::pair<Optional<Variant>, Optional<Variant>>();
+  return std::pair<Variant, Variant>();
 }
 
 bool HasStart(const QueryParams& params) {
@@ -1041,25 +1029,28 @@ bool HasEnd(const QueryParams& params) {
   return params.end_at_value.has_value() || params.equal_to_value.has_value();
 }
 
-const std::string& GetStartName(const QueryParams& params) {
+std::string GetStartName(const QueryParams& params) {
+  FIREBASE_DEV_ASSERT_MESSAGE(
+      HasStart(params),
+      "Cannot get index start name if start has not been set");
   if (params.start_at_child_key.has_value()) {
     return *params.start_at_child_key;
   } else if (params.equal_to_child_key.has_value()) {
     return *params.equal_to_child_key;
   } else {
-    static std::string s_min_key_str(QueryParamsComparator::kMinKey);
-    return s_min_key_str;
+    return QueryParamsComparator::kMinKey;
   }
 }
 
-const std::string& GetEndName(const QueryParams& params) {
+std::string GetEndName(const QueryParams& params) {
+  FIREBASE_DEV_ASSERT_MESSAGE(
+      HasEnd(params), "Cannot get index end name if end has not been set");
   if (params.end_at_child_key.has_value()) {
     return *params.end_at_child_key;
   } else if (params.equal_to_child_key.has_value()) {
     return *params.equal_to_child_key;
   } else {
-    static std::string s_max_key_str(QueryParamsComparator::kMaxKey);
-    return s_max_key_str;
+    return QueryParamsComparator::kMaxKey;
   }
 }
 
@@ -1078,21 +1069,17 @@ const Variant& GetEndValue(const QueryParams& params) {
                                            : *params.end_at_value;
 }
 
-std::pair<Optional<Variant>, Optional<Variant>> GetStartPost(
-    const QueryParams& params) {
+std::pair<Variant, Variant> GetStartPost(const QueryParams& params) {
   if (HasStart(params)) {
-    return MakePost(params, Optional<std::string>(GetStartName(params)),
-                    Optional<Variant>(GetStartValue(params)));
+    return MakePost(params, GetStartName(params), GetStartValue(params));
   } else {
     return QueryParamsComparator::kMinNode;
   }
 }
 
-std::pair<Optional<Variant>, Optional<Variant>> GetEndPost(
-    const QueryParams& params) {
+std::pair<Variant, Variant> GetEndPost(const QueryParams& params) {
   if (HasEnd(params)) {
-    return MakePost(params, Optional<std::string>(GetEndName(params)),
-                    Optional<Variant>(GetEndValue(params)));
+    return MakePost(params, GetEndName(params), GetEndValue(params));
   } else {
     return QueryParamsComparator::kMaxNode;
   }

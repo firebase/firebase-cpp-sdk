@@ -65,9 +65,8 @@ IndexedVariant LimitedFilter::UpdateChild(
 template <typename IteratorType>
 IndexedVariant UpdateFullVariantHelper(
     IndexedVariant filtered, int limit, IteratorType iter,
-    IteratorType iter_end,
-    const std::pair<Optional<Variant>, Optional<Variant>>& start_post,
-    const std::pair<Optional<Variant>, Optional<Variant>>& end_post, int sign,
+    IteratorType iter_end, const std::pair<Variant, Variant>& start_post,
+    const std::pair<Variant, Variant>& end_post, int sign,
     const QueryParams& params) {
   int count = 0;
   bool found_start_post = false;

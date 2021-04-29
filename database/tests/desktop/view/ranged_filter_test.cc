@@ -176,18 +176,12 @@ TEST(RangedFilter, StartAndEndPost) {
     params.end_at_value = "ddd";
     RangedFilter filter(params);
 
-    std::pair<Optional<Variant>, Optional<Variant>> start_post =
-        filter.start_post();
-    std::pair<Optional<Variant>, Optional<Variant>> end_post =
-        filter.end_post();
-    std::pair<Optional<Variant>, Optional<Variant>> expected_start_post =
-        std::make_pair(Optional<Variant>("aaa"),
-                       Optional<Variant>(Variant(std::map<Variant, Variant>{
-                           std::make_pair(".priority", "bbb")})));
-    std::pair<Optional<Variant>, Optional<Variant>> expected_end_post =
-        std::make_pair(Optional<Variant>("ccc"),
-                       Optional<Variant>(Variant(std::map<Variant, Variant>{
-                           std::make_pair(".priority", "ddd")})));
+    std::pair<Variant, Variant> start_post = filter.start_post();
+    std::pair<Variant, Variant> end_post = filter.end_post();
+    std::pair<Variant, Variant> expected_start_post = std::make_pair(
+        "aaa", std::map<Variant, Variant>{std::make_pair(".priority", "bbb")});
+    std::pair<Variant, Variant> expected_end_post = std::make_pair(
+        "ccc", std::map<Variant, Variant>{std::make_pair(".priority", "ddd")});
 
     EXPECT_EQ(start_post, expected_start_post);
     EXPECT_EQ(end_post, expected_end_post);
@@ -204,21 +198,19 @@ TEST(RangedFilter, StartAndEndPost) {
     params.order_by_child = "zzz";
     RangedFilter filter(params);
 
-    std::pair<Optional<Variant>, Optional<Variant>> start_post =
-        filter.start_post();
-    std::pair<Optional<Variant>, Optional<Variant>> end_post =
-        filter.end_post();
-    std::pair<Optional<Variant>, Optional<Variant>> expected_start_post =
-        std::make_pair(Optional<Variant>("aaa"),
-                       Optional<Variant>((std::map<Variant, Variant>{
-                           std::make_pair("zzz", "bbb")})));
-    std::pair<Optional<Variant>, Optional<Variant>> expected_end_post =
-        std::make_pair(Optional<Variant>("ccc"),
-                       Optional<Variant>(std::map<Variant, Variant>{
-                           std::make_pair("zzz", "ddd")}));
+    std::pair<Variant, Variant> start_post = filter.start_post();
+    std::pair<Variant, Variant> end_post = filter.end_post();
+    std::pair<Variant, Variant> expected_start_post = std::make_pair(
+        "aaa", std::map<Variant, Variant>{std::make_pair("zzz", "bbb")});
+    std::pair<Variant, Variant> expected_end_post = std::make_pair(
+        "ccc", std::map<Variant, Variant>{std::make_pair("zzz", "ddd")});
 
-    EXPECT_EQ(start_post, expected_start_post);
-    EXPECT_EQ(end_post, expected_end_post);
+    EXPECT_EQ(start_post, expected_start_post)
+        << util::VariantToJson(start_post.first) << " | "
+        << util::VariantToJson(start_post.second);
+    EXPECT_EQ(end_post, expected_end_post)
+        << util::VariantToJson(end_post.first) << " | "
+        << util::VariantToJson(end_post.second);
   }
 
   // Key
@@ -231,16 +223,12 @@ TEST(RangedFilter, StartAndEndPost) {
     params.end_at_value = "ddd";
     RangedFilter filter(params);
 
-    std::pair<Optional<Variant>, Optional<Variant>> start_post =
-        filter.start_post();
-    std::pair<Optional<Variant>, Optional<Variant>> end_post =
-        filter.end_post();
-    std::pair<Optional<Variant>, Optional<Variant>> expected_start_post =
-        std::make_pair(Optional<Variant>("bbb"),
-                       Optional<Variant>(Variant::Null()));
-    std::pair<Optional<Variant>, Optional<Variant>> expected_end_post =
-        std::make_pair(Optional<Variant>("ddd"),
-                       Optional<Variant>(Variant::Null()));
+    std::pair<Variant, Variant> start_post = filter.start_post();
+    std::pair<Variant, Variant> end_post = filter.end_post();
+    std::pair<Variant, Variant> expected_start_post =
+        std::make_pair("bbb", Variant::Null());
+    std::pair<Variant, Variant> expected_end_post =
+        std::make_pair("ddd", Variant::Null());
 
     EXPECT_EQ(start_post, expected_start_post);
     EXPECT_EQ(end_post, expected_end_post);
@@ -256,14 +244,12 @@ TEST(RangedFilter, StartAndEndPost) {
     params.end_at_value = "ddd";
     RangedFilter filter(params);
 
-    std::pair<Optional<Variant>, Optional<Variant>> start_post =
-        filter.start_post();
-    std::pair<Optional<Variant>, Optional<Variant>> end_post =
-        filter.end_post();
-    std::pair<Optional<Variant>, Optional<Variant>> expected_start_post =
-        std::make_pair(Optional<Variant>("aaa"), Optional<Variant>("bbb"));
-    std::pair<Optional<Variant>, Optional<Variant>> expected_end_post =
-        std::make_pair(Optional<Variant>("ccc"), Optional<Variant>("ddd"));
+    std::pair<Variant, Variant> start_post = filter.start_post();
+    std::pair<Variant, Variant> end_post = filter.end_post();
+    std::pair<Variant, Variant> expected_start_post =
+        std::make_pair("aaa", "bbb");
+    std::pair<Variant, Variant> expected_end_post =
+        std::make_pair("ccc", "ddd");
 
     EXPECT_EQ(start_post, expected_start_post);
     EXPECT_EQ(end_post, expected_end_post);
