@@ -553,8 +553,13 @@ code.
 
 ## Release Notes
 
-### TBD
+### 8.0.0
+    
 -   Changes
+    -   Instance Id: Removed support for the previously-deprecated Instance ID SDK.
+    -   Remote Config: The previously-deprecated static methods have been removed.
+        Please use the new instance-based `firebase::remote_config::RemoteConfig`
+        API.
     -   Remote Config(Android): Fix for getting Remote Config instance for a
         specific app object.
         ([#991](https://github.com/firebase/quickstart-unity/issues/991).

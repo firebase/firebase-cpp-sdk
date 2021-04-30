@@ -457,9 +457,7 @@ RemoteConfigInternal::RemoteConfigInternal(const firebase::App& app)
   jclass config_class = config::GetClass();
   jobject platform_app = app_.GetPlatformApp();
   jobject config_instance_local = env->CallStaticObjectMethod(
-      config_class,
-      config::GetMethodId(config::kGetInstance),
-      platform_app);
+      config_class, config::GetMethodId(config::kGetInstance), platform_app);
   env->DeleteLocalRef(platform_app);
   if (util::CheckAndClearJniExceptions(env)) config_instance_local = nullptr;
   FIREBASE_ASSERT(config_instance_local);
