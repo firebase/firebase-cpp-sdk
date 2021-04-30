@@ -461,6 +461,49 @@ jobs:
           path: testapps-ios-macos-latest.zip
           retention-days: 1
 
+  test_desktop:
+    name: desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-test
+    needs: [prepare_matrix, build_desktop]
+    runs-on: ${{ matrix.os }}
+    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'Desktop') && needs.prepare_matrix.outputs.apis != '' && !cancelled()
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
+        ssl_variant: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ssl) }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Install python deps
+        run: |
+          pip install -r scripts/gha/requirements.txt
+      - name: download artifact
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: testapps
+          name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.zip
+      - name: unzip artifact
+        run: |
+          unzip testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.zip
+      - name: Run desktop integration tests
+        if: matrix.target_platform == 'Desktop' && !cancelled()
+        run: |
+          python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+      - name: Set CLOUDSDK_PYTHON (Windows)
+        shell: bash
+        if: startsWith(matrix.os, 'windows') && !cancelled()
+        run: echo "CLOUDSDK_PYTHON=${{env.pythonLocation}}\python.exe" >> $GITHUB_ENV
+      - name: Install Cloud SDK
+        if: ${{ !cancelled() }}
+        uses: google-github-actions/setup-gcloud@master
+      - name: Upload Desktop Artifacts to GCS
+        if: matrix.target_platform == 'Desktop' && !cancelled()
+        run: |
+          python scripts/gha/gcs_uploader.py --testapp_dir ta --key_file scripts/gha-encrypted/gcs_key_file.json
+
   test_android:
     name: android-${{ matrix.build_os }}-${{ matrix.android_device }}
     needs: [prepare_matrix, build_android]
@@ -480,17 +523,6 @@ jobs:
       - name: Install python deps
         run: |
           pip install -r scripts/gha/requirements.txt
-      - name: Install python deps
-        run: |
-          python scripts/gha/install_prereqs_desktop.py
-      - name: download artifact
-        uses: actions/download-artifact@v2.0.8
-        with:
-          path: testapps
-          name: testapps-android-${{ matrix.build_os }}.zip
-      - name: unzip artifact
-        run: |
-          unzip testapps/testapps-android-${{ matrix.build_os }}.zip
       - id: get-device
         run: |
           device=$(echo "${{ matrix.android_device }}" | cut -d ":" -f2)
@@ -498,7 +530,7 @@ jobs:
       - name: Run Android integration tests on Emulator locally
         if: startsWith(matrix.android_device, 'virtual')
         run: |
-          python scripts/gha/test_simulator.py --testapp_dir testapps-android-${{ matrix.build_os }} --android_device "${{steps.get-device.outputs.device}}" --ci --artifact
+          python scripts/gha/test_simulator.py --testapp_dir testapps-android-${{ matrix.build_os }} --android_device "${{steps.get-device.outputs.device}}" --ci
       - name: Install Cloud SDK
         if: startsWith(matrix.android_device, 'real')
         uses: google-github-actions/setup-gcloud@master
@@ -541,7 +573,7 @@ jobs:
       - name: Run iOS integration tests on Simulator locally
         if: startsWith(matrix.ios_device, 'virtual')
         run: |
-          python scripts/gha/test_simulator.py --testapp_dir testapps-ios-macos-latest --ios_device "${{steps.get-device.outputs.device}}" --ci --artifact
+          python scripts/gha/test_simulator.py --testapp_dir testapps-ios-macos-latest --ios_device "${{steps.get-device.outputs.device}}" --ci
       - name: Install Cloud SDK
         if: startsWith(matrix.ios_device, 'real')
         uses: google-github-actions/setup-gcloud@master

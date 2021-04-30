@@ -340,7 +340,7 @@ def _zip_integration_tests(testapps, output_dir, artifact_name):
   for file_dir, directories, file_names in os.walk(output_dir):
     for directory in directories:
       if directory.endswith(ios_simualtor_testapp_extension):
-        testapp_paths.append(os.path.join(file_dir, file_name))
+        testapp_paths.append(os.path.join(file_dir, directory))
     for file_name in file_names:
       if ((file_name == desktop_testapp_name and "ios_build" not in file_dir) 
           or file_name.endswith(android_testapp_extension) 
