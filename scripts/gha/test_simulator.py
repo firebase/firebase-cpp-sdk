@@ -95,9 +95,6 @@ flags.DEFINE_string(
 flags.DEFINE_boolean(
     "ci", False,
     "If this script used in a CI system, set True.")
-flags.DEFINE_boolean(
-    "artifact", False,
-    "If testapp_dir is artifact dir, set True. It helps to find iOS apps.")
 
 
 @attr.s(frozen=False, eq=False)
@@ -119,10 +116,7 @@ def main(argv):
     # .app is treated as a directory, not a file in MacOS
     for directory in directories:
       full_path = os.path.join(file_dir, directory)
-      # Build for real device .ipa also generate .app file, but not usable here
-      # Only .app under "simulator" folder is what we want
-      # If it is an artifact folder, we are safe to assume .app is build for simulator
-      if directory.endswith(".app") and ("simulator" in full_path or FLAGS.artifact):
+      if directory.endswith(".app"):
         ios_testapps.append(full_path)
     for file_name in file_names:
       full_path = os.path.join(file_dir, file_name)

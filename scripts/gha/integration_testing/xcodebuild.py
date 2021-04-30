@@ -86,7 +86,7 @@ def _get_ios_env_from_target(ios_sdk):
 
 
 def generate_unsigned_ipa(output_dir, configuration):
-  """create unsigned .ipa from .app
+  """create unsigned .ipa from .app, then remove .app afterwards
 
   Args:
     output_dir (str): Same value as get_args_for_build. generated unsigned .ipa 
@@ -101,3 +101,4 @@ def generate_unsigned_ipa(output_dir, configuration):
   shutil.move(app_path, payload_path)
   shutil.make_archive(payload_path, 'zip', root_dir=iphone_build_dir, base_dir='Payload')
   shutil.move('%s.%s'%(payload_path, 'zip'), ipa_path)
+  shutil.rmtree(payload_path)

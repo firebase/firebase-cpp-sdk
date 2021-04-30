@@ -55,7 +55,7 @@ def main(argv):
   testapps = []
   for file_dir, _, file_names in os.walk(testapp_dir):
     for file_name in file_names:
-      if file_name == testapp_name:
+      if file_name == testapp_name and "ios_build" not in file_dir:
         testapps.append(os.path.join(file_dir, file_name))
   if not testapps:
     logging.error("No testapps found.")

@@ -329,16 +329,23 @@ def _build(
 
 
 def _zip_integration_tests(testapps, output_dir, artifact_name):
+  android_testapp_extension = ".apk"
+  ios_testapp_extension = ".ipa"
+  ios_simualtor_testapp_extension = ".app"
+  desktop_testapp_name = "integration_test" 
+  if platform.system() == "Windows":
+    desktop_testapp_name += ".exe"
+
   testapp_paths = []
   for file_dir, directories, file_names in os.walk(output_dir):
     for directory in directories:
-      full_path = os.path.join(file_dir, directory)
-      if "simulator" in full_path and directory.endswith(".app"):
-        testapp_paths.append(full_path)
+      if directory.endswith(ios_simualtor_testapp_extension):
+        testapp_paths.append(os.path.join(file_dir, file_name))
     for file_name in file_names:
-      full_path = os.path.join(file_dir, file_name)
-      if file_name.endswith(".apk") or file_name.endswith(".ipa"):
-        testapp_paths.append(full_path)
+      if ((file_name == desktop_testapp_name and "ios_build" not in file_dir) 
+          or file_name.endswith(android_testapp_extension) 
+          or file_name.endswith(ios_testapp_extension)):
+        testapp_paths.append(os.path.join(file_dir, file_name))
 
   artifact_path = os.path.join(output_dir, artifact_name)
   for testapp in testapps:
