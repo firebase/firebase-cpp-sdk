@@ -736,7 +736,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
               LogError("Pause failed.");
               return false;
             }
-	    
+
             // The StorageListener's OnPaused will call Resume().
 
             LogDebug("Waiting for future.");
