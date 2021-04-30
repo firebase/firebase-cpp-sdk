@@ -490,7 +490,7 @@ jobs:
           name: testapps-android-${{ matrix.build_os }}.zip
       - name: unzip artifact
         run: |
-          unzip testapps/testapps-${{ matrix.build_os }}-Android.zip
+          unzip testapps/testapps-android-${{ matrix.build_os }}.zip
       - id: get-device
         run: |
           device=$(echo "${{ matrix.android_device }}" | cut -d ":" -f2)
@@ -498,7 +498,7 @@ jobs:
       - name: Run Android integration tests on Emulator locally
         if: startsWith(matrix.android_device, 'virtual')
         run: |
-          python scripts/gha/test_simulator.py --testapp_dir testapps-${{ matrix.build_os }}-Android --android_device "${{steps.get-device.outputs.device}}" --ci --artifact
+          python scripts/gha/test_simulator.py --testapp_dir testapps-android-${{ matrix.build_os }} --android_device "${{steps.get-device.outputs.device}}" --ci --artifact
       - name: Install Cloud SDK
         if: startsWith(matrix.android_device, 'real')
         uses: google-github-actions/setup-gcloud@master
@@ -506,7 +506,7 @@ jobs:
         if: startsWith(matrix.android_device, 'real')
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
-          python scripts/gha/test_lab.py --testapp_dir testapps-${{ matrix.build_os }}-Android --android_device "${{steps.get-device.outputs.device}}" --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
+          python scripts/gha/test_lab.py --testapp_dir testapps-android-${{ matrix.build_os }} --android_device "${{steps.get-device.outputs.device}}" --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
 
   test_ios:
     name: ios-macos-latest-${{ matrix.ios_device }}
@@ -533,7 +533,7 @@ jobs:
           name: testapps-ios-macos-latest.zip
       - name: unzip artifact
         run: |
-          unzip testapps/testapps-macos-latest-iOS.zip
+          unzip testapps/testapps-ios-macos-latest.zip
       - id: get-device
         run: |
           device=$(echo "${{ matrix.ios_device }}" | cut -d ":" -f2)
@@ -541,7 +541,7 @@ jobs:
       - name: Run iOS integration tests on Simulator locally
         if: startsWith(matrix.ios_device, 'virtual')
         run: |
-          python scripts/gha/test_simulator.py --testapp_dir testapps-macos-latest-iOS --ios_device "${{steps.get-device.outputs.device}}" --ci --artifact
+          python scripts/gha/test_simulator.py --testapp_dir testapps-ios-macos-latest --ios_device "${{steps.get-device.outputs.device}}" --ci --artifact
       - name: Install Cloud SDK
         if: startsWith(matrix.ios_device, 'real')
         uses: google-github-actions/setup-gcloud@master
@@ -549,7 +549,7 @@ jobs:
         if: startsWith(matrix.ios_device, 'real')
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
-          python scripts/gha/test_lab.py --testapp_dir testapps-macos-latest-iOS --ios_device "${{steps.get-device.outputs.device}}" --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
+          python scripts/gha/test_lab.py --testapp_dir testapps-ios-macos-latest --ios_device "${{steps.get-device.outputs.device}}" --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
           
   add_success_label:
     name: "add-success-label"
