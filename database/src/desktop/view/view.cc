@@ -152,7 +152,7 @@ std::vector<Event> View::ApplyOperation(
     const Variant* opt_complete_server_cache,
     std::vector<Change>* out_changes) {
   if (operation.type == Operation::kTypeMerge &&
-      !operation.source.query_params.has_value()) {
+      operation.source.query_params.has_value()) {
     FIREBASE_DEV_ASSERT_MESSAGE(
         view_cache_.GetCompleteServerSnap() != nullptr,
         "We should always have a full cache before handling merges");

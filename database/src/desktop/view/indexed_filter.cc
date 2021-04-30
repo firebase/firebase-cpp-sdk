@@ -86,6 +86,10 @@ IndexedVariant IndexedFilter::UpdateFullVariant(
     const Variant* new_value = GetVariantValue(&new_snap.variant());
     if (old_value->is_map()) {
       for (auto& key_value_pair : old_value->map()) {
+        if (key_value_pair.first.string_value()[0] == '.') {
+          // Do not create events for pseudo-keys.
+          continue;
+        }
         const Variant& key = key_value_pair.first;
         const Variant& value = key_value_pair.second;
         if (!GetInternalVariant(new_value, key)) {
@@ -97,6 +101,10 @@ IndexedVariant IndexedFilter::UpdateFullVariant(
     if (new_value->is_map()) {
       // Check which elements were changed or added.
       for (auto& key_value_pair : new_value->map()) {
+        if (key_value_pair.first.string_value()[0] == '.') {
+          // Do not create events for pseudo-keys.
+          continue;
+        }
         std::string key = key_value_pair.first.string_value();
         const Variant& value = key_value_pair.second;
         const Variant* old_child = GetInternalVariant(old_value, key);

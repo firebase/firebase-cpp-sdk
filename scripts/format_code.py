@@ -241,7 +241,7 @@ def main(argv):
   else:
     count = 0
     for filename in filenames:      
-      if does_file_need_formatting(filename):  
+      if does_file_need_formatting(filename) and not is_file_objc_header(filename):    
         exit_code = 1
         count += 1
         if FLAGS.verbose:

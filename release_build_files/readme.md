@@ -362,6 +362,12 @@ code.
 
 ## Release Notes
 
+### TBD
+-   Changes
+    -   Remote Config(Android): Fix for getting Remote Config instance for a
+        specific app object.
+        ([#991](https://github.com/firebase/quickstart-unity/issues/991).
+
 ### 7.3.0
 -   Changes
     -   General (iOS): Update dependencies.
