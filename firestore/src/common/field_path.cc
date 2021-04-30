@@ -36,24 +36,29 @@
 namespace firebase {
 namespace firestore {
 
-FieldPath::FieldPath() {}
+FieldPath::FieldPath() {
+}
 
 #if !defined(_STLPORT_VERSION)
 FieldPath::FieldPath(std::initializer_list<std::string> field_names)
-    : internal_(InternalFromSegments(std::vector<std::string>(field_names))) {}
+    : internal_(InternalFromSegments(std::vector<std::string>(field_names))) {
+}
 #endif  // !defined(_STLPORT_VERSION)
 
 FieldPath::FieldPath(const std::vector<std::string>& field_names)
-    : internal_(InternalFromSegments(field_names)) {}
+    : internal_(InternalFromSegments(field_names)) {
+}
 
 FieldPath::FieldPath(const FieldPath& path)
-    : internal_(new FieldPathInternal{*path.internal_}) {}
+    : internal_(new FieldPathInternal{*path.internal_}) {
+}
 
 FieldPath::FieldPath(FieldPath&& path) noexcept : internal_(path.internal_) {
   path.internal_ = nullptr;
 }
 
-FieldPath::FieldPath(FieldPathInternal* internal) : internal_(internal) {}
+FieldPath::FieldPath(FieldPathInternal* internal) : internal_(internal) {
+}
 
 FieldPath::~FieldPath() {
   delete internal_;

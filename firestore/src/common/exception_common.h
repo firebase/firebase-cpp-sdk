@@ -52,8 +52,10 @@ enum class ExceptionType {
  * platform. Implementations of `ThrowHandler` must tolerate null/zero values
  * for `file`, `func`, and `line`.
  */
-using ThrowHandler = void (*)(ExceptionType type, const char* file,
-                              const char* func, int line,
+using ThrowHandler = void (*)(ExceptionType type,
+                              const char* file,
+                              const char* func,
+                              int line,
                               const std::string& message);
 
 /**
@@ -72,8 +74,10 @@ using ThrowHandler = void (*)(ExceptionType type, const char* file,
 ThrowHandler SetThrowHandler(ThrowHandler handler);
 
 FIRESTORE_ATTRIBUTE_NORETURN void Throw(ExceptionType exception,
-                                        const char* file, const char* func,
-                                        int line, const std::string& message);
+                                        const char* file,
+                                        const char* func,
+                                        int line,
+                                        const std::string& message);
 
 }  // namespace util
 

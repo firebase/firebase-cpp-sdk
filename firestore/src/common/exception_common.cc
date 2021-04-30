@@ -34,7 +34,10 @@ const char* ExceptionName(ExceptionType exception) {
 }
 
 FIRESTORE_ATTRIBUTE_NORETURN void DefaultThrowHandler(
-    ExceptionType type, const char* file, const char* func, int line,
+    ExceptionType type,
+    const char* file,
+    const char* func,
+    int line,
     const std::string& message) {
   std::ostringstream what;
   what << ExceptionName(type) << ": ";
@@ -82,8 +85,10 @@ ThrowHandler SetThrowHandler(ThrowHandler handler) {
 }
 
 FIRESTORE_ATTRIBUTE_NORETURN void Throw(ExceptionType exception,
-                                        const char* file, const char* func,
-                                        int line, const std::string& message) {
+                                        const char* file,
+                                        const char* func,
+                                        int line,
+                                        const std::string& message) {
   throw_handler(exception, file, func, line, message);
 
   // It's expected that the throw handler above does not return. If it does,

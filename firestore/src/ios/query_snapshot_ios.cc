@@ -12,7 +12,8 @@ namespace firebase {
 namespace firestore {
 
 QuerySnapshotInternal::QuerySnapshotInternal(api::QuerySnapshot&& snapshot)
-    : snapshot_{std::move(snapshot)} {}
+    : snapshot_{std::move(snapshot)} {
+}
 
 FirestoreInternal* QuerySnapshotInternal::firestore_internal() {
   return GetFirestoreInternal(&snapshot_);
@@ -27,7 +28,9 @@ SnapshotMetadata QuerySnapshotInternal::metadata() const {
   return SnapshotMetadata{result.pending_writes(), result.from_cache()};
 }
 
-std::size_t QuerySnapshotInternal::size() const { return snapshot_.size(); }
+std::size_t QuerySnapshotInternal::size() const {
+  return snapshot_.size();
+}
 
 std::vector<DocumentChange> QuerySnapshotInternal::DocumentChanges(
     MetadataChanges metadata_changes) const {

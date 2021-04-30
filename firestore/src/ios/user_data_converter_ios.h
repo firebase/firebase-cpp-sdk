@@ -27,7 +27,8 @@ class ParseContext;
 class UserDataConverter {
  public:
   explicit UserDataConverter(const model::DatabaseId* database_id)
-      : database_id_{database_id} {}
+      : database_id_{database_id} {
+  }
 
   /** Parse document data from a non-merge `SetData` call. */
   core::ParsedSetData ParseSetData(const MapFieldValue& input) const;

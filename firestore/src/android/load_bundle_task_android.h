@@ -31,7 +31,8 @@ class LoadBundleTaskInternal : public jni::Task {
 
   static void Initialize(jni::Loader& loader);
 
-  void AddProgressListener(jni::Env& env, const jni::Object& executor,
+  void AddProgressListener(jni::Env& env,
+                           const jni::Object& executor,
                            jni::Object& listener);
 };
 

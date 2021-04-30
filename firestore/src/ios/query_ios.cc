@@ -31,9 +31,12 @@ using model::ResourcePath;
 QueryInternal::QueryInternal(api::Query&& query)
     : query_{std::move(query)},
       promise_factory_{PromiseFactory<AsyncApis>::Create(this)},
-      user_data_converter_{&firestore_internal()->database_id()} {}
+      user_data_converter_{&firestore_internal()->database_id()} {
+}
 
-Firestore* QueryInternal::firestore() { return GetFirestore(&query_); }
+Firestore* QueryInternal::firestore() {
+  return GetFirestore(&query_);
+}
 
 FirestoreInternal* QueryInternal::firestore_internal() {
   return GetFirestoreInternal(&query_);
@@ -65,7 +68,8 @@ Future<QuerySnapshot> QueryInternal::Get(Source source) {
   return promise.future();
 }
 
-Query QueryInternal::Where(const FieldPath& field_path, Operator op,
+Query QueryInternal::Where(const FieldPath& field_path,
+                           Operator op,
                            const FieldValue& value) const {
   const model::FieldPath& path = GetInternal(field_path);
   model::FieldValue parsed = user_data_converter_.ParseQueryValue(value);
@@ -75,7 +79,8 @@ Query QueryInternal::Where(const FieldPath& field_path, Operator op,
   return MakePublic(std::move(decorated));
 }
 
-Query QueryInternal::Where(const FieldPath& field_path, Operator op,
+Query QueryInternal::Where(const FieldPath& field_path,
+                           Operator op,
                            const std::vector<FieldValue>& values) const {
   const model::FieldPath& path = GetInternal(field_path);
   auto array_value = FieldValue::Array(values);

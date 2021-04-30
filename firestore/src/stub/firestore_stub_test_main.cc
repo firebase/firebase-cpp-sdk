@@ -26,7 +26,9 @@ App* GetApp(const char* name) {
   }
 }
 
-App* GetApp() { return GetApp(nullptr); }
+App* GetApp() {
+  return GetApp(nullptr);
+}
 
 // For desktop stub, we just let it sleep for the specified time and return
 // false, which means the app does not receive an event requesting exit.

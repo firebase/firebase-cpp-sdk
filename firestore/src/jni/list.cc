@@ -20,7 +20,9 @@ void List::Initialize(Loader& loader) {
   loader.LoadFromExistingClass("java/util/List", g_clazz, kGet, kSet);
 }
 
-Class List::GetClass() { return Class(g_clazz); }
+Class List::GetClass() {
+  return Class(g_clazz);
+}
 
 Local<Object> List::Get(Env& env, size_t i) const {
   return env.Call(*this, kGet, i);

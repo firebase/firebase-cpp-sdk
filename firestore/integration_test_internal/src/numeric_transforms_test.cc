@@ -74,7 +74,9 @@ class NumericTransformsTest : public FirestoreIntegrationTest {
     EXPECT_FALSE(initial_snapshot.exists());
   }
 
-  ~NumericTransformsTest() override { listener_.Remove(); }
+  ~NumericTransformsTest() override {
+    listener_.Remove();
+  }
 
  protected:
   /** Writes values and waits for the corresponding snapshot. */

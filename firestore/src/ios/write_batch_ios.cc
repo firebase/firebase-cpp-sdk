@@ -20,9 +20,12 @@ using core::ParsedUpdateData;
 WriteBatchInternal::WriteBatchInternal(api::WriteBatch&& batch)
     : batch_{std::move(batch)},
       promise_factory_{PromiseFactory<AsyncApis>::Create(this)},
-      user_data_converter_{&firestore_internal()->database_id()} {}
+      user_data_converter_{&firestore_internal()->database_id()} {
+}
 
-Firestore* WriteBatchInternal::firestore() { return GetFirestore(&batch_); }
+Firestore* WriteBatchInternal::firestore() {
+  return GetFirestore(&batch_);
+}
 
 FirestoreInternal* WriteBatchInternal::firestore_internal() {
   return GetFirestoreInternal(&batch_);

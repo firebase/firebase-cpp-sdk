@@ -37,10 +37,12 @@ int CurrentExceptionCount() {
 
 }  // namespace
 
-Env::Env() : Env(GetEnv()) {}
+Env::Env() : Env(GetEnv()) {
+}
 
 Env::Env(JNIEnv* env)
-    : env_(env), initial_pending_exceptions_(CurrentExceptionCount()) {}
+    : env_(env), initial_pending_exceptions_(CurrentExceptionCount()) {
+}
 
 Env::~Env() noexcept(false) {
   if (ok()) return;
@@ -87,7 +89,9 @@ Local<Throwable> Env::ExceptionOccurred() {
   return Local<Throwable>(env_, exception);
 }
 
-void Env::ExceptionClear() { env_->ExceptionClear(); }
+void Env::ExceptionClear() {
+  env_->ExceptionClear();
+}
 
 Local<Throwable> Env::ClearExceptionOccurred() {
   Local<Throwable> result = ExceptionOccurred();
@@ -119,7 +123,8 @@ bool Env::IsSameObject(const Object& object1, const Object& object2) {
   return result;
 }
 
-jmethodID Env::GetMethodId(const Class& clazz, const char* name,
+jmethodID Env::GetMethodId(const Class& clazz,
+                           const char* name,
                            const char* sig) {
   if (!ok()) return nullptr;
 
@@ -128,7 +133,8 @@ jmethodID Env::GetMethodId(const Class& clazz, const char* name,
   return result;
 }
 
-jfieldID Env::GetStaticFieldId(const Class& clazz, const char* name,
+jfieldID Env::GetStaticFieldId(const Class& clazz,
+                               const char* name,
                                const char* sig) {
   if (!ok()) return nullptr;
 
@@ -137,7 +143,8 @@ jfieldID Env::GetStaticFieldId(const Class& clazz, const char* name,
   return result;
 }
 
-jmethodID Env::GetStaticMethodId(const Class& clazz, const char* name,
+jmethodID Env::GetStaticMethodId(const Class& clazz,
+                                 const char* name,
                                  const char* sig) {
   if (!ok()) return nullptr;
 

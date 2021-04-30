@@ -30,7 +30,8 @@ template <typename ResultT>
 class Promise {
  public:
   // Creates a future backed by `LastResults` cache.
-  Promise(CleanupNotifier* cleanup, ReferenceCountedFutureImpl* future_api,
+  Promise(CleanupNotifier* cleanup,
+          ReferenceCountedFutureImpl* future_api,
           int identifier)
       : cleanup_{NOT_NULL(cleanup)},
         future_api_{NOT_NULL(future_api)},
@@ -146,7 +147,9 @@ class Promise {
  private:
   Promise() = default;
 
-  int NoError() const { return static_cast<int>(Error::kErrorOk); }
+  int NoError() const {
+    return static_cast<int>(Error::kErrorOk);
+  }
 
   void Reset() {
     cleanup_ = nullptr;
@@ -186,7 +189,9 @@ class Promise {
     cleanup_->UnregisterObject(this);
   }
 
-  bool IsCleanedUp() const { return cleanup_ == nullptr; }
+  bool IsCleanedUp() const {
+    return cleanup_ == nullptr;
+  }
 
   CleanupNotifier* cleanup_ = nullptr;
   ReferenceCountedFutureImpl* future_api_ = nullptr;

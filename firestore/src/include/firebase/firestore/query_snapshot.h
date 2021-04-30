@@ -141,7 +141,9 @@ class QuerySnapshot {
    *
    * @return True if there are no documents in the QuerySnapshot.
    */
-  bool empty() const { return size() == 0; }
+  bool empty() const {
+    return size() == 0;
+  }
 
   /**
    * @brief Checks the size of the QuerySnapshot.

@@ -22,12 +22,18 @@ class ConstructorBase {
    * the string. The internal method ID should be populated later with a call to
    * `Loader::Load`.
    */
-  constexpr explicit ConstructorBase(const char* sig) : sig_(sig) {}
+  constexpr explicit ConstructorBase(const char* sig) : sig_(sig) {
+  }
 
-  ConstructorBase(jclass clazz, jmethodID id) : clazz_(clazz), id_(id) {}
+  ConstructorBase(jclass clazz, jmethodID id) : clazz_(clazz), id_(id) {
+  }
 
-  jclass clazz() const { return clazz_; }
-  jmethodID id() const { return id_; }
+  jclass clazz() const {
+    return clazz_;
+  }
+  jmethodID id() const {
+    return id_;
+  }
 
  private:
   friend class Loader;
@@ -62,11 +68,15 @@ class MethodBase {
    * to `Loader::Load`.
    */
   constexpr MethodBase(const char* name, const char* sig)
-      : name_(name), sig_(sig) {}
+      : name_(name), sig_(sig) {
+  }
 
-  explicit MethodBase(jmethodID id) : id_(id) {}
+  explicit MethodBase(jmethodID id) : id_(id) {
+  }
 
-  jmethodID id() const { return id_; }
+  jmethodID id() const {
+    return id_;
+  }
 
  private:
   friend class Loader;
@@ -102,13 +112,19 @@ class StaticFieldBase {
    * with a call to `Loader::Load`.
    */
   constexpr StaticFieldBase(const char* name, const char* sig)
-      : name_(name), sig_(sig) {}
+      : name_(name), sig_(sig) {
+  }
 
-  explicit StaticFieldBase(jfieldID id) : id_(id) {}
+  explicit StaticFieldBase(jfieldID id) : id_(id) {
+  }
 
-  jclass clazz() const { return clazz_; }
+  jclass clazz() const {
+    return clazz_;
+  }
 
-  jfieldID id() const { return id_; }
+  jfieldID id() const {
+    return id_;
+  }
 
  private:
   friend class Loader;
@@ -145,12 +161,18 @@ class StaticMethodBase {
    * with a call to `Loader::Load`.
    */
   constexpr StaticMethodBase(const char* name, const char* sig)
-      : name_(name), sig_(sig) {}
+      : name_(name), sig_(sig) {
+  }
 
-  StaticMethodBase(jclass clazz, jmethodID id) : clazz_(clazz), id_(id) {}
+  StaticMethodBase(jclass clazz, jmethodID id) : clazz_(clazz), id_(id) {
+  }
 
-  jclass clazz() const { return clazz_; }
-  jmethodID id() const { return id_; }
+  jclass clazz() const {
+    return clazz_;
+  }
+  jmethodID id() const {
+    return id_;
+  }
 
  private:
   friend class Loader;

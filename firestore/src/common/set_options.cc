@@ -22,9 +22,11 @@ namespace firebase {
 namespace firestore {
 
 SetOptions::SetOptions(Type type, std::vector<FieldPath> fields)
-    : type_(type), fields_(firebase::Move(fields)) {}
+    : type_(type), fields_(firebase::Move(fields)) {
+}
 
-SetOptions::~SetOptions() {}
+SetOptions::~SetOptions() {
+}
 
 /* static */
 SetOptions SetOptions::Merge() {
