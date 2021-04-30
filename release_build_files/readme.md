@@ -72,7 +72,6 @@ Firebase Dynamic Links     | libfirebase_dynamic_links.a<br>libfirebase_app.a<br
 Cloud Firestore            | libfirebase_firestore.a<br>libfirebase_auth.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-firestore:22.1.2<br>(Maven package)<br>com.google.firebase:firebase-auth:20.0.4<br>(Maven package)
 Firebase Functions         | libfirebase_functions<br>libfirebase_auth.a (optional)<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-functions:19.2.0<br>(Maven package)<br>com.google.firebase:firebase-auth:20.0.4<br>(Maven package)
 Firebase Installations     | libfirebase_installations.a<br>libfirebase_app.a<br>com.google.firebase:firebase-installations:16.3.5<br>(Maven package)
-Firebase Instance ID       | libfirebase_instance_id.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-iid:21.1.0<br>(Maven package)
 Firebase Messaging         | libfirebase_messaging.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-messaging:21.1.0<br>(Maven package)<br>libmessaging_java.jar (Android service)<br>androidx.core:core:1.0.1 (Maven package)
 Firebase Realtime Database | libfirebase_database.a<br>libfirebase_auth.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-database:19.7.0<br>(Maven package)<br>com.google.firebase:firebase-auth:20.0.4<br>(Maven package)
 Firebase Remote Config     | libfirebase_remote_config.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-config:20.0.4<br>(Maven package)
@@ -98,7 +97,6 @@ Firebase Dynamic Links     | firebase_dynamic_links.framework<br>firebase.framew
 Cloud Firestore            | firebase_firestore.framework<br>firebase_auth.framework<br>firebase.framework<br>Firebase/Firestore Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (7.11.0)
 Firebase Functions         | firebase_functions.framework<br>firebase_auth.framework (optional)<br>firebase.framework<br>Firebase/Functions Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (7.11.0)
 Firebase Installations     | firebase_installations.framework<br>firebase.framework<br>FirebaseInstallations Cocoapod (7.11.0)
-Firebase Instance ID       | firebase_instance_id.framework<br>firebase.framework<br>FirebaseInstanceID Cocoapod (7.11.0)
 Firebase Cloud Messaging   | firebase_messaging.framework<br>firebase.framework<br>Firebase/Messaging Cocoapod (7.11.0)
 Firebase Realtime Database | firebase_database.framework<br>firebase_auth.framework<br>firebase.framework<br>Firebase/Database Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (7.11.0)
 Firebase Remote Config     | firebase_remote_config.framework<br>firebase.framework<br>Firebase/RemoteConfig Cocoapod (7.11.0)
@@ -123,7 +121,6 @@ Firebase Dynamic Links     | libfirebase_dynamic_links.a<br>libfirebase_app.a<br
 Cloud Firestore            | libfirebase_firestore.a<br>libfirebase_app.a<br>libfirebase_auth.a<br>Firebase/Firestore Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (7.11.0)
 Firebase Functions         | libfirebase_functions.a<br>libfirebase_app.a<br>libfirebase_auth.a (optional)<br>Firebase/Functions Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (7.11.0)
 Firebase Installations     | libfirebase_installations.a<br>libfirebase_app.a<br>FirebaseInstallations Cocoapod (7.11.0)
-Firebase Instance ID       | libfirebase_instance_id.a<br>libfirebase_app.a<br>FirebaseInstanceID Cocoapod (7.11.0)
 Firebase Cloud Messaging   | libfirebase_messaging.a<br>libfirebase_app.a<br>Firebase/CloudMessaging Cocoapod (7.11.0)
 Firebase Realtime Database | libfirebase_database.a<br>libfirebase_app.a<br>libfirebase_auth.a<br>Firebase/Database Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (7.11.0)
 Firebase Remote Config     | libfirebase_remote_config.a<br>libfirebase_app.a<br>Firebase/RemoteConfig Cocoapod (7.11.0)
@@ -156,7 +153,6 @@ Firebase AdMob (stub)           | libfirebase_admob.a<br>libfirebase_app.a
 Firebase Analytics (stub)       | libfirebase_analytics.a<br>libfirebase_app.a
 Firebase Dynamic Links (stub)   | libfirebase_dynamic_links.a<br>libfirebase_app.a
 Firebase Installations (stub)   | libfirebase_installations.a<br>libfirebase_app.a
-Firebase Instance ID (stub)     | libfirebase_instance_id.a<br>libfirebase_app.a
 Firebase Cloud Messaging (stub) | libfirebase_messaging.a<br>libfirebase_app.a
 
 The provided libraries have been tested using GCC 4.8.0, GCC 7.2.0, and Clang
@@ -182,7 +178,6 @@ Firebase AdMob (stub)           | firebase_admob.xcframework<br>firebase.xcframe
 Firebase Analytics (stub)       | firebase_analytics.xcframework<br>firebase.xcframework
 Firebase Dynamic Links (stub)   | firebase_dynamic_links.xcframework<br>firebase.xcframework
 Firebase Installations (stub)   | firebase_installations.xcframework<br>firebase.xcframework
-Firebase Instance ID (stub)     | firebase_instance_id.xcframework<br>firebase.xcframework
 Firebase Cloud Messaging (stub) | firebase_messaging.xcframework<br>firebase.xcframework
 
 The provided libraries have been tested using Xcode 12.0. When building C++
@@ -210,7 +205,6 @@ Firebase AdMob (stub)           | firebase_admob.lib<br>firebase_app.lib
 Firebase Analytics (stub)       | firebase_analytics.lib<br>firebase_app.lib
 Firebase Dynamic Links (stub)   | firebase_dynamic_links.lib<br>firebase_app.lib
 Firebase Installations (stub)   | firebase_installations.lib<br>firebase_app.lib
-Firebase Instance ID (stub)     | firebase_instance_id.lib<br>firebase_app.lib
 Firebase Cloud Messaging (stub) | firebase_messaging.lib<br>firebase_app.lib
 
 The provided libraries have been tested using Visual Studio 2019. When
