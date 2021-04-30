@@ -76,7 +76,9 @@ IndexedVariant RangedFilter::UpdatePriority(const IndexedVariant& old_snap,
   return old_snap;
 }
 
-const VariantFilter* RangedFilter::GetIndexedFilter() const { return this; }
+const VariantFilter* RangedFilter::GetIndexedFilter() const {
+  return indexed_filter_.get();
+}
 
 bool RangedFilter::FiltersVariants() const { return true; }
 

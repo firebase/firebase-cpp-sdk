@@ -160,7 +160,6 @@ class TestEventRegistration : public EventRegistration {
   }
 
   bool MatchesListener(const void* listener_ptr) const override {
-    EXPECT_TRUE(false) << "Can't raise test events!";
     return static_cast<const void*>(this) == listener_ptr;
   }
 };
@@ -257,7 +256,8 @@ void SyncTreeTest::RunTest(const test_data::TestCase* test_spec,
         EventRegistration* event_registration = nullptr;
         int callback_id = spec->callbackId();
         if (callback_id != 0 && registrations.count(callback_id) != 0) {
-          event_registration = registrations[callback_id];
+          event_registration = new TestEventRegistration(
+              registrations[callback_id]->query_spec());
         } else {
           event_registration = new TestEventRegistration(query->query_spec());
           if (callback_id != 0) {
@@ -296,8 +296,9 @@ void SyncTreeTest::RunTest(const test_data::TestCase* test_spec,
         break;
       }
       case test_data::StepType_serverMerge: {
-        std::map<Path, Variant> merges =
-            VariantToPathMap(FlexbufferToVariant(spec->data_flexbuffer_root()));
+        std::map<Path, Variant> merges = VariantToPathMap(
+            spec->data() ? FlexbufferToVariant(spec->data_flexbuffer_root())
+                         : Variant::Null());
         std::vector<Event> actual;
         if (spec->tag()) {
           actual =
@@ -309,7 +310,9 @@ void SyncTreeTest::RunTest(const test_data::TestCase* test_spec,
         break;
       }
       case test_data::StepType_set: {
-        Variant to_set = FlexbufferToVariant(spec->data_flexbuffer_root());
+        Variant to_set = spec->data()
+                             ? FlexbufferToVariant(spec->data_flexbuffer_root())
+                             : Variant::Null();
         OverwriteVisibility visible =
             spec->visible() ? kOverwriteVisible : kOverwriteInvisible;
         // For now, assume anything visible should be persisted.
@@ -321,7 +324,8 @@ void SyncTreeTest::RunTest(const test_data::TestCase* test_spec,
       }
       case test_data::StepType_update: {
         CompoundWrite merges = CompoundWrite::FromVariantMerge(
-            FlexbufferToVariant(spec->data_flexbuffer_root()));
+            spec->data() ? FlexbufferToVariant(spec->data_flexbuffer_root())
+                         : Variant::Null());
         std::vector<Event> actual = sync_tree_->ApplyUserMerge(
             path, merges, merges, current_write_id++, kPersist);
         EXPECT_THAT(actual, UnorderedPointwise(EventEq(), expected));
@@ -420,12 +424,10 @@ TEST_F(SyncTreeTest, AQueryCanGetACompleteCacheThenAMerge) {
 }
 
 TEST_F(SyncTreeTest, ServerMergeOnListenerWithCompleteChildren) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("Server merge on listener with complete children");
 }
 
 TEST_F(SyncTreeTest, DeepMergeOnListenerWithCompleteChildren) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("Deep merge on listener with complete children");
 }
 
@@ -490,7 +492,6 @@ TEST_F(SyncTreeTest, RevertDeepSetWithNoServerData) {
 }
 
 TEST_F(SyncTreeTest, RevertSetCoveredByNonvisibleTransaction) {
-  GTEST_SKIP();  // Fails expectations.
   RunOne("Revert set covered by non-visible transaction");
 }
 
@@ -511,17 +512,14 @@ TEST_F(SyncTreeTest, CanSetAlongsideARemoteMerge) {
 }
 
 TEST_F(SyncTreeTest, SetPriorityOnALocationWithNoCache) {
-  // GTEST_SKIP();
   RunOne("setPriority on a location with no cache");
 }
 
 TEST_F(SyncTreeTest, DeepUpdateDeletesChildFromLimitWindowAndPullsInNewChild) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("deep update deletes child from limit window and pulls in new child");
 }
 
 TEST_F(SyncTreeTest, DeepSetDeletesChildFromLimitWindowAndPullsInNewChild) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("deep set deletes child from limit window and pulls in new child");
 }
 
@@ -534,7 +532,6 @@ TEST_F(SyncTreeTest, RevertSetInQueryWindow) {
 }
 
 TEST_F(SyncTreeTest, HandlesAServerValueMovingAChildOutOfAQueryWindow) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("Handles a server value moving a child out of a query window");
 }
 
@@ -551,12 +548,10 @@ TEST_F(SyncTreeTest, LimitIsRefilledFromServerDataAfterMerge) {
 }
 
 TEST_F(SyncTreeTest, HandleRepeatedListenWithMergeAsFirstUpdate) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("Handle repeated listen with merge as first update");
 }
 
 TEST_F(SyncTreeTest, LimitIsRefilledFromServerDataAfterSet) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("Limit is refilled from server data after set");
 }
 
@@ -615,7 +610,6 @@ TEST_F(SyncTreeTest, WriteLeafNodeOverwriteAtParentNode) {
 }
 
 TEST_F(SyncTreeTest, ConfirmCompleteChildrenFromTheServer) {
-  GTEST_SKIP();  // Fails expectations.
   RunOne("Confirm complete children from the server");
 }
 
@@ -634,7 +628,6 @@ TEST_F(SyncTreeTest, BasicKeyIndexSanityCheck) {
 }
 
 TEST_F(SyncTreeTest, CollectCorrectSubviewsToListenOn) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("Collect correct subviews to listen on");
 }
 
@@ -663,7 +656,6 @@ TEST_F(SyncTreeTest, ServerDataIsNotPurgedForNonServerIndexedQueries) {
 }
 
 TEST_F(SyncTreeTest, LimitWithCustomOrderByIsRefilledWithCorrectItem) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("Limit with custom orderBy is refilled with correct item");
 }
 
@@ -680,7 +672,6 @@ TEST_F(SyncTreeTest, LimitedQueryDoesntPullInOutOfRangeChild) {
 }
 
 TEST_F(SyncTreeTest, MergerForLocationWithDefaultAndLimitedListener) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("Merge for location with default and limited listener");
 }
 
@@ -715,7 +706,6 @@ TEST_F(SyncTreeTest, UserWriteWithDeepOverwrite) {
 TEST_F(SyncTreeTest, DeepServerMerge) { RunOne("Deep server merge"); }
 
 TEST_F(SyncTreeTest, ServerUpdatesPriority) {
-  GTEST_SKIP();  // Fails expectations.
   RunOne("Server updates priority");
 }
 
@@ -728,27 +718,22 @@ TEST_F(SyncTreeTest, UserChildOverwriteForNonexistentServerNode) {
 }
 
 TEST_F(SyncTreeTest, RevertUserOverwriteOfChildOnLeafNode) {
-  GTEST_SKIP();  // Fails expectations.
   RunOne("Revert user overwrite of child on leaf node");
 }
 
 TEST_F(SyncTreeTest, ServerOverwriteWithDeepUserDelete) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("Server overwrite with deep user delete");
 }
 
 TEST_F(SyncTreeTest, UserOverwritesLeafNodeWithPriority) {
-  GTEST_SKIP();  // Fails expectations.
   RunOne("User overwrites leaf node with priority");
 }
 
 TEST_F(SyncTreeTest, UserOverwritesInheritPriorityValuesFromLeafNodes) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("User overwrites inherit priority values from leaf nodes");
 }
 
 TEST_F(SyncTreeTest, UserUpdateOnUserSetLeafNodeWithPriorityAfterServerUpdate) {
-  GTEST_SKIP();  // Fails expectations.
   RunOne("User update on user set leaf node with priority after server update");
 }
 
@@ -761,32 +746,26 @@ TEST_F(SyncTreeTest, UserSetsRootPriority) {
 }
 
 TEST_F(SyncTreeTest, UserUpdatesPriorityOnEmptyRoot) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("User updates priority on empty root");
 }
 
 TEST_F(SyncTreeTest, RevertSetAtRootWithPriority) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("Revert set at root with priority");
 }
 
 TEST_F(SyncTreeTest, ServerUpdatesPriorityAfterUserSetsPriority) {
-  GTEST_SKIP();  // Fails expectations.
   RunOne("Server updates priority after user sets priority");
 }
 
 TEST_F(SyncTreeTest, EmptySetDoesntPreventServerUpdates) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("Empty set doesn't prevent server updates");
 }
 
 TEST_F(SyncTreeTest, UserUpdatesPriorityTwiceFirstIsReverted) {
-  GTEST_SKIP();  // Fails expectations.
   RunOne("User updates priority twice, first is reverted");
 }
 
 TEST_F(SyncTreeTest, ServerAcksRootPrioritySetAfterUserDeletesRootNode) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("Server acks root priority set after user deletes root node");
 }
 
@@ -795,7 +774,6 @@ TEST_F(SyncTreeTest, ADeleteInAMergeDoesntPushOutNodes) {
 }
 
 TEST_F(SyncTreeTest, ATaggedQueryFiresEventsEventually) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("A tagged query fires events eventually");
 }
 
@@ -816,13 +794,11 @@ TEST_F(SyncTreeTest, ClearParentShadowingServerValuesMergeWithServerChildren) {
 }
 
 TEST_F(SyncTreeTest, PrioritiesDontMakeMeSick) {
-  GTEST_SKIP();  // Fails assert.
   RunOne("Priorities don't make me sick");
 }
 
 TEST_F(SyncTreeTest,
        MergeThatMovesChildFromWindowToBoundaryDoesNotCauseChildToBeReadded) {
-  GTEST_SKIP();  // Fails expectations.
   RunOne(
       "Merge that moves child from window to boundary does not cause child "
       "to be readded");
@@ -864,7 +840,6 @@ TEST_F(SyncTreeTest, UnrelatedAckedUpdateIsNotCachedInTaggedListen) {
 }
 
 TEST_F(SyncTreeTest, DeepUpdateRaisesImmediateEventsOnlyIfHasCompleteData) {
-  GTEST_SKIP();  // Fails expectations.
   RunOne("Deep update raises immediate events only if has complete data");
 }
 

@@ -99,18 +99,6 @@
       "provision": "Firebase_Dev_Wildcard.mobileprovision"
     },
     {
-      "name": "instance_id",
-      "full_name": "FirebaseInstanceId",
-      "bundle_id": "com.google.firebase.instanceid.testapp",
-      "ios_target": "integration_test",
-      "testapp_path": "instance_id/integration_test",
-      "frameworks": [
-        "firebase_instance_id.xcframework",
-        "firebase.xcframework"
-      ],
-      "provision": "Firebase_Dev_Wildcard.mobileprovision"
-    },
-    {
       "name": "messaging",
       "full_name": "FirebaseMessaging",
       "bundle_id": "com.google.FirebaseCppMessagingTestApp.dev",

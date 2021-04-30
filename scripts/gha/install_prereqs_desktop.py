@@ -64,10 +64,18 @@ def main():
     if utils.is_linux_os():
         # sudo apt install ccache
         utils.run_command(['apt', 'install', '-y', 'ccache'], as_root=True)
-
     elif utils.is_mac_os():
         # brew install ccache
         utils.run_command(['brew', 'install', 'ccache'])
+  
+  # Install clang-format on linux/mac if its not installed already
+  if not utils.is_command_installed('clang-format'):
+    if utils.is_linux_os():
+        # sudo apt install clang-format
+        utils.run_command(['apt', 'install', '-y','clang-format'], as_root=True)
+    elif utils.is_mac_os():
+        # brew install protobuf
+        utils.run_command(['brew', 'install', 'clang-format'])
 
   # Install required python dependencies. 
   # On Catalina, python2 in installed as default python.

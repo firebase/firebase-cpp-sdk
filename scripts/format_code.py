@@ -39,20 +39,20 @@ from absl import flags
 # Flag Definitions:
 FLAGS = flags.FLAGS
 
-flags.DEFINE_boolean("git_diff", False, "Use git-diff to assemble a file list")
-flags.DEFINE_string("git_range", "origin/main..", "the range string when using "
-  "git-diff.")
-flags.DEFINE_multi_string("f", None, "Append the filename to the list of "
-  "files to check.")
-flags.DEFINE_multi_string("d", None, 
-  "Append the directory to the file list to format.")
-flags.DEFINE_boolean("r", False, 
+flags.DEFINE_boolean('git_diff', False, 'Use git-diff to assemble a file list')
+flags.DEFINE_string('git_range', 'origin/main..', 'the range string when using '
+  'git-diff.')
+flags.DEFINE_multi_string('f', None, 'Append the filename to the list of '
+  'files to check.')
+flags.DEFINE_multi_string('d', None,
+  'Append the directory to the file list to format.')
+flags.DEFINE_boolean('r', False,
   "Recurse through the directory's children When formatting a target directory.")
-flags.DEFINE_boolean("format_file", True, "Format files in place.")
-flags.DEFINE_boolean("verbose", False, "Execute in verbose mode.")
+flags.DEFINE_boolean('format_file', True, 'Format files in place.')
+flags.DEFINE_boolean("verbose", False, 'Execute in verbose mode.')
 
 # Constants:
-FILE_TYPE_EXTENSIONS = (".cpp", ".cc", ".c", ".h")
+FILE_TYPE_EXTENSIONS = ('.cpp', '.cc', '.c', '.h')
 """Tuple: The file types to run clang-format on.
 Used to filter out results when searching across directories or git diffs.
 """
@@ -73,7 +73,7 @@ def does_file_need_formatting(filename):
   for line in result.stdout.decode('utf-8').splitlines():
     if line.strip().startswith("<replacement "):
       return True
-  return False    
+  return False
 
 def format_file(filename):
   """Executes clang-format on the file to reformat it according to our
@@ -187,10 +187,14 @@ def is_file_objc_header(filename):
     bool: True if the header file contains known obj-c language definitions.
     Returns False otherwise.
   """
-  if '.h' not in filename:
-    return False
-  objective_c_tags = [ '@end', '@class', '#import']
-  for line in open(filename):
+  _, ext = os.path.splitext(filename)
+  if ext != '.h':
+   return False  
+  objective_c_tags = ('@end', '@class', '#import')
+  
+  with open(filename) as header_file:
+   lines = header_file.readlines()
+   for line in lines:
     for tag in objective_c_tags:
       if tag in line:
         return True
@@ -211,8 +215,8 @@ def main(argv):
     filenames += git_diff_list_files()
 
   exit_code = 0
-  if 0 == len(filenames):
-    print("No files to format.")
+  if not filenames:
+    print('No files to format.')
     sys.exit(exit_code)
 
   if FLAGS.verbose:
@@ -224,7 +228,7 @@ def main(argv):
         if does_file_need_formatting(filename):
           if is_file_objc_header(filename):
             if FLAGS.verbose:
-              print('  - Ignoring obj header: "{0}"'.format(filename)) 
+              print('  - IGNORE OBJC: "{0}"'.format(filename)) 
           else:
             if FLAGS.verbose:
               print('  - FRMT: "{0}"'.format(filename))
@@ -237,7 +241,7 @@ def main(argv):
   else:
     count = 0
     for filename in filenames:      
-      if does_file_need_formatting(filename):  
+      if does_file_need_formatting(filename) and not is_file_objc_header(filename):    
         exit_code = 1
         count += 1
         if FLAGS.verbose:

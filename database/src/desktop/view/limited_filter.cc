@@ -121,7 +121,9 @@ IndexedVariant LimitedFilter::UpdatePriority(
   return old_snap;
 }
 
-const VariantFilter* LimitedFilter::GetIndexedFilter() const { return this; }
+const VariantFilter* LimitedFilter::GetIndexedFilter() const {
+  return ranged_filter_->GetIndexedFilter();
+}
 
 bool LimitedFilter::FiltersVariants() const { return true; }
 

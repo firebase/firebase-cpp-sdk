@@ -48,9 +48,6 @@ option(FIREBASE_INCLUDE_FUNCTIONS
 option(FIREBASE_INCLUDE_INSTALLATIONS
        "Include the Firebase Installations library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
-option(FIREBASE_INCLUDE_INSTANCE_ID
-       "Include the Firebase Instance ID library."
-       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
 option(FIREBASE_INCLUDE_MESSAGING
        "Include the Firebase Cloud Messaging library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
@@ -553,9 +550,6 @@ if (FIREBASE_INCLUDE_FUNCTIONS)
 endif()
 if (FIREBASE_INCLUDE_INSTALLATIONS)
   add_subdirectory(installations)
-endif()
-if (FIREBASE_INCLUDE_INSTANCE_ID)
-  add_subdirectory(instance_id)
 endif()
 if (FIREBASE_INCLUDE_MESSAGING)
   add_subdirectory(messaging)

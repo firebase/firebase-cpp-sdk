@@ -175,7 +175,7 @@ TEST(IndexedFilter, UpdateChild_RemovedValue) {
   CompleteChildSource* source = nullptr;
   ChildChangeAccumulator change_accumulator;
 
-  IndexedVariant expected_result(Variant::EmptyMap());
+  IndexedVariant expected_result(Variant::Null());
   ChildChangeAccumulator expected_changes{
       std::make_pair(
           "aaa",

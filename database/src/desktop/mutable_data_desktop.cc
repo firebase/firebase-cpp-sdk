@@ -43,11 +43,6 @@ MutableDataInternal::MutableDataInternal(const MutableDataInternal& other,
                                          const Path& path)
     : db_(other.db_), path_(path), holder_(other.holder_) {}
 
-MutableDataInternal* MutableDataInternal::Clone() {
-  // Just use the copy constructor
-  return new MutableDataInternal(*this);
-}
-
 MutableDataInternal* MutableDataInternal::Child(const char* path) {
   return new MutableDataInternal(*this, path_.GetChild(path));
 }
