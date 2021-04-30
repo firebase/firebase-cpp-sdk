@@ -37,7 +37,8 @@ class LoadBundleTaskProgressInternal : public Wrapper {
 
   LoadBundleTaskProgressInternal(FirestoreInternal* firestore,
                                  const jni::Object& object)
-      : Wrapper(firestore, object) {}
+      : Wrapper(firestore, object) {
+  }
 
   int32_t documents_loaded() const;
 

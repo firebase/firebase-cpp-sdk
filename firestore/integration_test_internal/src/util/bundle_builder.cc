@@ -22,7 +22,8 @@ namespace firebase {
 namespace firestore {
 namespace {
 
-std::string ReplaceAll(std::string str, const std::string& from,
+std::string ReplaceAll(std::string str,
+                       const std::string& from,
                        const std::string& to) {
   if (from.empty()) return str;
   size_t start_pos = 0;

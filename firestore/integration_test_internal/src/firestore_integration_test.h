@@ -31,11 +31,11 @@ const int kCheckIntervalMillis = 100;
 // The timeout of waiting for a Future or a listener.
 const int kTimeOutMillis = 15000;
 
-FirestoreInternal *CreateTestFirestoreInternal(App *app);
-void InitializeFirestore(Firestore *instance);
+FirestoreInternal* CreateTestFirestoreInternal(App* app);
+void InitializeFirestore(Firestore* instance);
 
-App *GetApp();
-App *GetApp(const char *name);
+App* GetApp();
+App* GetApp(const char* name);
 bool ProcessEvents(int msec);
 
 // Converts a Firestore error code to a human-friendly name. The `error_code`
@@ -47,7 +47,7 @@ std::string ToFirestoreErrorCodeName(int error_code);
 // returns as if successful; therefore, the caller should verify the status of
 // the given Future after this function returns. Returns the number of cycles
 // that were left before a timeout would have occurred.
-int WaitFor(const FutureBase &future);
+int WaitFor(const FutureBase& future);
 
 template <typename T>
 class EventAccumulator;
@@ -57,12 +57,15 @@ class EventAccumulator;
 template <typename T>
 class TestEventListener : public EventListener<T> {
  public:
-  explicit TestEventListener(std::string name) : name_(std::move(name)) {}
+  explicit TestEventListener(std::string name) : name_(std::move(name)) {
+  }
 
-  ~TestEventListener() override {}
+  ~TestEventListener() override {
+  }
 
-  void OnEvent(const T &value, Error error_code,
-               const std::string &error_message) override {
+  void OnEvent(const T& value,
+               Error error_code,
+               const std::string& error_message) override {
     if (print_debug_info_) {
       std::cout << "TestEventListener got: ";
       if (error_code == Error::kErrorOk) {
@@ -101,7 +104,7 @@ class TestEventListener : public EventListener<T> {
     check_no_additional_events_ = true;
   }
 
-  const T &last_result(int i = 0) {
+  const T& last_result(int i = 0) {
     FIREBASE_ASSERT(i >= 0 && i < last_results_.size());
     MutexLock lock(mutex_);
     return last_results_[last_results_.size() - 1 - i];
@@ -111,11 +114,11 @@ class TestEventListener : public EventListener<T> {
   // signatures depending on whether `std::function` is available.
   template <typename U>
   ListenerRegistration AttachTo(
-      U *ref, MetadataChanges metadata_changes = MetadataChanges::kExclude) {
+      U* ref, MetadataChanges metadata_changes = MetadataChanges::kExclude) {
 #if defined(FIREBASE_USE_STD_FUNCTION)
     return ref->AddSnapshotListener(
-        metadata_changes, [this](const T &result, Error error_code,
-                                 const std::string &error_message) {
+        metadata_changes, [this](const T& result, Error error_code,
+                                 const std::string& error_message) {
           OnEvent(result, error_code, error_message);
         });
 #else
@@ -134,7 +137,9 @@ class TestEventListener : public EventListener<T> {
   }
 
   // Set this to true to print more details for each arrived event for debug.
-  void set_print_debug_info(bool value) { print_debug_info_ = value; }
+  void set_print_debug_info(bool value) {
+    print_debug_info_ = value;
+  }
 
   // Copies events from the internal buffer, starting from `start`, up to but
   // not including `end`.
@@ -171,22 +176,23 @@ class FirestoreIntegrationTest : public testing::Test {
 
  public:
   FirestoreIntegrationTest();
-  FirestoreIntegrationTest(const FirestoreIntegrationTest &) = delete;
-  FirestoreIntegrationTest(FirestoreIntegrationTest &&) = delete;
+  FirestoreIntegrationTest(const FirestoreIntegrationTest&) = delete;
+  FirestoreIntegrationTest(FirestoreIntegrationTest&&) = delete;
 
-  FirestoreIntegrationTest &operator=(const FirestoreIntegrationTest &) =
-      delete;
-  FirestoreIntegrationTest &operator=(FirestoreIntegrationTest &&) = delete;
+  FirestoreIntegrationTest& operator=(const FirestoreIntegrationTest&) = delete;
+  FirestoreIntegrationTest& operator=(FirestoreIntegrationTest&&) = delete;
 
  protected:
-  App *app() { return TestFirestore()->app(); }
+  App* app() {
+    return TestFirestore()->app();
+  }
 
   // Returns a Firestore instance for an app with the given name.
   // If this method is invoked again with the same `name`, then the same pointer
   // will be returned. The only exception is if the `Firestore` was removed
   // from the cache by a call to `DeleteFirestore()` or `DisownFirestore()`, or
   // if `DeleteApp()` is called with the `App` of the returned `Firestore`.
-  Firestore *TestFirestore(const std::string &name = kDefaultAppName) const;
+  Firestore* TestFirestore(const std::string& name = kDefaultAppName) const;
 
   // Deletes the given `Firestore` instance, which must have been returned by a
   // previous invocation of `TestFirestore()`, and removes it from the cache of
@@ -197,7 +203,7 @@ class FirestoreIntegrationTest : public testing::Test {
   // `Firestore` instance has already been removed from the cache, such as by a
   // previous invocation of this method, then the behavior of this method is
   // undefined.
-  void DeleteFirestore(Firestore *firestore);
+  void DeleteFirestore(Firestore* firestore);
 
   // Relinquishes ownership of the given `Firestore` instance, which must have
   // been returned by a previous invocation of `TestFirestore()`, and removes it
@@ -208,7 +214,7 @@ class FirestoreIntegrationTest : public testing::Test {
   // deletion. If the given `Firestore` instance has already been removed from
   // the cache, such as by a previous invocation of this method, then the
   // behavior of this method is undefined.
-  void DisownFirestore(Firestore *firestore);
+  void DisownFirestore(Firestore* firestore);
 
   // Deletes the given `App` instance. The given `App` must have been the `App`
   // associated with a `Firestore` instance returned by a previous invocation of
@@ -217,18 +223,18 @@ class FirestoreIntegrationTest : public testing::Test {
   // earlier than that. Any `Firestore` instances that were returned from
   // `TestFirestore()` and were associated with the given `App` will be deleted
   // as if with `DeleteFirestore()`.
-  void DeleteApp(App *app);
+  void DeleteApp(App* app);
 
   // Return a reference to the collection with auto-generated id.
   CollectionReference Collection() const;
 
   // Return a reference to a collection with the path constructed by appending a
   // unique id to the given name.
-  CollectionReference Collection(const std::string &name_prefix) const;
+  CollectionReference Collection(const std::string& name_prefix) const;
 
   // Return a reference to the collection with given content.
   CollectionReference Collection(
-      const std::map<std::string, MapFieldValue> &docs) const;
+      const std::map<std::string, MapFieldValue>& docs) const;
 
   // Return an auto-generated document path under collection "test-collection".
   std::string DocumentPath() const;
@@ -238,15 +244,15 @@ class FirestoreIntegrationTest : public testing::Test {
 
   // Write to the specified document and wait for the write to complete.
   void WriteDocument(DocumentReference reference,
-                     const MapFieldValue &data) const;
+                     const MapFieldValue& data) const;
 
   // Write to the specified documents to a collection and wait for completion.
   void WriteDocuments(CollectionReference reference,
-                      const std::map<std::string, MapFieldValue> &data) const;
+                      const std::map<std::string, MapFieldValue>& data) const;
 
   // Update the specified document and wait for the update to complete.
   template <typename MapType>
-  void UpdateDocument(DocumentReference reference, const MapType &data) const {
+  void UpdateDocument(DocumentReference reference, const MapType& data) const {
     Future<void> future = reference.Update(data);
     Await(future);
     EXPECT_EQ(FutureStatus::kFutureStatusComplete, future.status());
@@ -254,27 +260,27 @@ class FirestoreIntegrationTest : public testing::Test {
   }
 
   // Read the specified document.
-  DocumentSnapshot ReadDocument(const DocumentReference &reference) const;
+  DocumentSnapshot ReadDocument(const DocumentReference& reference) const;
 
   // Read documents in the specified collection / query.
-  QuerySnapshot ReadDocuments(const Query &reference) const;
+  QuerySnapshot ReadDocuments(const Query& reference) const;
 
   // Delete the specified document.
   void DeleteDocument(DocumentReference reference) const;
 
   // Convert a QuerySnapshot to the id of each document.
   std::vector<std::string> QuerySnapshotToIds(
-      const QuerySnapshot &snapshot) const;
+      const QuerySnapshot& snapshot) const;
 
   // Convert a QuerySnapshot to the contents of each document.
   std::vector<MapFieldValue> QuerySnapshotToValues(
-      const QuerySnapshot &snapshot) const;
+      const QuerySnapshot& snapshot) const;
 
   // TODO(zxu): add a helper function to block on signal.
 
   // A helper function to block until the future completes.
   template <typename T>
-  static const T *Await(const Future<T> &future) {
+  static const T* Await(const Future<T>& future) {
     int cycles = WaitFor(future);
     EXPECT_GT(cycles, 0) << "Waiting future timed out.";
     if (future.status() == FutureStatus::kFutureStatusComplete) {
@@ -287,11 +293,11 @@ class FirestoreIntegrationTest : public testing::Test {
     return future.result();
   }
 
-  static void Await(const Future<void> &future);
+  static void Await(const Future<void>& future);
 
   // A helper function to block until there is at least n event.
   template <typename T>
-  static void Await(const TestEventListener<T> &listener, int n = 1) {
+  static void Await(const TestEventListener<T>& listener, int n = 1) {
     // Instead of getting a clock, we count the cycles instead.
     int cycles = kTimeOutMillis / kCheckIntervalMillis;
     while (listener.event_count() < n && cycles > 0) {
@@ -307,16 +313,20 @@ class FirestoreIntegrationTest : public testing::Test {
 
   // Fails the current test if the given future did not complete or contained an
   // error. Returns true if the future has failed.
-  static bool FailIfUnsuccessful(const char *operation,
-                                 const FutureBase &future);
+  static bool FailIfUnsuccessful(const char* operation,
+                                 const FutureBase& future);
 
-  static std::string DescribeFailedFuture(const FutureBase &future);
+  static std::string DescribeFailedFuture(const FutureBase& future);
 
-  void DisableNetwork() { Await(TestFirestore()->DisableNetwork()); }
+  void DisableNetwork() {
+    Await(TestFirestore()->DisableNetwork());
+  }
 
-  void EnableNetwork() { Await(TestFirestore()->EnableNetwork()); }
+  void EnableNetwork() {
+    Await(TestFirestore()->EnableNetwork());
+  }
 
-  static FirestoreInternal *GetFirestoreInternal(Firestore *firestore) {
+  static FirestoreInternal* GetFirestoreInternal(Firestore* firestore) {
     return firestore->internal_;
   }
 
@@ -327,12 +337,19 @@ class FirestoreIntegrationTest : public testing::Test {
   class FirestoreInfo {
    public:
     FirestoreInfo() = default;
-    FirestoreInfo(const std::string &name, UniquePtr<Firestore> &&firestore)
-        : name_(name), firestore_(Move(firestore)) {}
+    FirestoreInfo(const std::string& name, UniquePtr<Firestore>&& firestore)
+        : name_(name), firestore_(Move(firestore)) {
+    }
 
-    const std::string &name() const { return name_; }
-    Firestore *firestore() const { return firestore_.get(); }
-    void ReleaseFirestore() { firestore_.release(); }
+    const std::string& name() const {
+      return name_;
+    }
+    Firestore* firestore() const {
+      return firestore_.get();
+    }
+    void ReleaseFirestore() {
+      firestore_.release();
+    }
 
    private:
     std::string name_;
@@ -343,8 +360,8 @@ class FirestoreIntegrationTest : public testing::Test {
   // Note that `firestores_` is intentionally ordered *after* `apps_` so that
   // the Firestore pointers will be deleted before the App pointers when this
   // object is destructed.
-  mutable std::unordered_map<App *, UniquePtr<App>> apps_;
-  mutable std::unordered_map<Firestore *, FirestoreInfo> firestores_;
+  mutable std::unordered_map<App*, UniquePtr<App>> apps_;
+  mutable std::unordered_map<Firestore*, FirestoreInfo> firestores_;
 };
 
 }  // namespace firestore

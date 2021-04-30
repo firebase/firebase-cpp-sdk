@@ -57,7 +57,7 @@ LoadBundleTaskProgress::State ToApiProgressState(
 }
 
 LoadBundleTaskProgress ToApiProgress(
-    const api::LoadBundleTaskProgress &internal_progress) {
+    const api::LoadBundleTaskProgress& internal_progress) {
   return {static_cast<int32_t>(internal_progress.documents_loaded()),
           static_cast<int32_t>(internal_progress.total_documents()),
           static_cast<int64_t>(internal_progress.bytes_loaded()),
@@ -67,11 +67,12 @@ LoadBundleTaskProgress ToApiProgress(
 
 }  // namespace
 
-FirestoreInternal::FirestoreInternal(App *app)
-    : FirestoreInternal{app, CreateCredentialsProvider(*app)} {}
+FirestoreInternal::FirestoreInternal(App* app)
+    : FirestoreInternal{app, CreateCredentialsProvider(*app)} {
+}
 
 FirestoreInternal::FirestoreInternal(
-    App *app, std::unique_ptr<CredentialsProvider> credentials)
+    App* app, std::unique_ptr<CredentialsProvider> credentials)
     : app_(NOT_NULL(app)),
       firestore_core_(CreateFirestore(app, std::move(credentials))),
       transaction_executor_(absl::ShareUniquePtr(Executor::CreateConcurrent(
@@ -88,25 +89,25 @@ FirestoreInternal::~FirestoreInternal() {
 }
 
 std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
-    App *app, std::unique_ptr<CredentialsProvider> credentials) {
-  const AppOptions &opt = app->options();
+    App* app, std::unique_ptr<CredentialsProvider> credentials) {
+  const AppOptions& opt = app->options();
   return std::make_shared<api::Firestore>(
       DatabaseId{opt.project_id()}, app->name(), std::move(credentials),
       CreateWorkerQueue(), CreateFirebaseMetadataProvider(*app), this);
 }
 
 CollectionReference FirestoreInternal::Collection(
-    const char *collection_path) const {
+    const char* collection_path) const {
   auto result = firestore_core_->GetCollection(collection_path);
   return MakePublic(std::move(result));
 }
 
-DocumentReference FirestoreInternal::Document(const char *document_path) const {
+DocumentReference FirestoreInternal::Document(const char* document_path) const {
   auto result = firestore_core_->GetDocument(document_path);
   return MakePublic(std::move(result));
 }
 
-Query FirestoreInternal::CollectionGroup(const char *collection_id) const {
+Query FirestoreInternal::CollectionGroup(const char* collection_id) const {
   core::Query core_query = firestore_core_->GetCollectionGroup(collection_id);
   api::Query api_query(std::move(core_query), firestore_core_);
   return MakePublic(std::move(api_query));
@@ -124,7 +125,7 @@ Settings FirestoreInternal::settings() const {
 
   Settings result;
 
-  const api::Settings &from = firestore_core_->settings();
+  const api::Settings& from = firestore_core_->settings();
   result.set_host(from.host());
   result.set_ssl_enabled(from.ssl_enabled());
   result.set_persistence_enabled(from.persistence_enabled());
@@ -149,15 +150,15 @@ WriteBatch FirestoreInternal::batch() const {
   return MakePublic(firestore_core_->GetBatch());
 }
 
-Future<void> FirestoreInternal::RunTransaction(TransactionFunction *update) {
+Future<void> FirestoreInternal::RunTransaction(TransactionFunction* update) {
   return RunTransaction(
-      [update](Transaction &transaction, std::string &error_message) {
+      [update](Transaction& transaction, std::string& error_message) {
         return update->Apply(transaction, error_message);
       });
 }
 
 Future<void> FirestoreInternal::RunTransaction(
-    std::function<Error(Transaction &, std::string &)> update) {
+    std::function<Error(Transaction&, std::string&)> update) {
   auto executor = transaction_executor_;
   auto promise =
       promise_factory_.CreatePromise<void>(AsyncApi::kRunTransaction);
@@ -174,7 +175,7 @@ Future<void> FirestoreInternal::RunTransaction(
               // Note: there is no `MakePublic` overload for `Transaction`
               // because it is not copyable or movable and thus cannot be
               // returned from a function.
-              auto *transaction_internal =
+              auto* transaction_internal =
                   new TransactionInternal(core_transaction, this);
               Transaction transaction{transaction_internal};
 
@@ -245,7 +246,7 @@ Future<void> FirestoreInternal::ClearPersistence() {
 
 void FirestoreInternal::ClearListeners() {
   std::lock_guard<std::mutex> lock(listeners_mutex_);
-  for (auto *listener : listeners_) {
+  for (auto* listener : listeners_) {
     listener->Remove();
     delete listener;
   }
@@ -253,7 +254,7 @@ void FirestoreInternal::ClearListeners() {
 }
 
 ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
-    EventListener<void> *listener) {
+    EventListener<void>* listener) {
   std::function<void()> listener_function = [listener] {
     listener->OnEvent(Error::kErrorOk, EmptyString());
   };
@@ -270,13 +271,13 @@ ListenerRegistration FirestoreInternal::AddSnapshotsInSyncListener(
 }
 
 void FirestoreInternal::RegisterListenerRegistration(
-    ListenerRegistrationInternal *registration) {
+    ListenerRegistrationInternal* registration) {
   std::lock_guard<std::mutex> lock(listeners_mutex_);
   listeners_.insert(registration);
 }
 
 void FirestoreInternal::UnregisterListenerRegistration(
-    ListenerRegistrationInternal *registration) {
+    ListenerRegistrationInternal* registration) {
   std::lock_guard<std::mutex> lock(listeners_mutex_);
   auto iter = listeners_.find(registration);
   if (iter != listeners_.end()) {
@@ -322,12 +323,12 @@ void Firestore::set_log_level(LogLevel log_level) {
                                                     : log_level);
 }
 
-void FirestoreInternal::SetClientLanguage(const std::string &language_token) {
+void FirestoreInternal::SetClientLanguage(const std::string& language_token) {
   api::Firestore::SetClientLanguage(language_token);
 }
 
 Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
-    const std::string &bundle) {
+    const std::string& bundle) {
   auto promise = promise_factory_.CreatePromise<LoadBundleTaskProgress>(
       AsyncApi::kLoadBundle);
   auto bundle_stream = absl::make_unique<util::ByteStreamCpp>(
@@ -335,7 +336,7 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
   std::shared_ptr<api::LoadBundleTask> task =
       firestore_core_->LoadBundle(std::move(bundle_stream));
   task->Observe(
-      [promise, task](const api::LoadBundleTaskProgress &progress) mutable {
+      [promise, task](const api::LoadBundleTaskProgress& progress) mutable {
         if (progress.state() == api::LoadBundleTaskState::kSuccess) {
           promise.SetValue(ToApiProgress(progress));
           task->RemoveAllObservers();
@@ -350,8 +351,8 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
 }
 
 Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
-    const std::string &bundle,
-    std::function<void(const LoadBundleTaskProgress &)> progress_callback) {
+    const std::string& bundle,
+    std::function<void(const LoadBundleTaskProgress&)> progress_callback) {
   auto promise = promise_factory_.CreatePromise<LoadBundleTaskProgress>(
       AsyncApi::kLoadBundle);
   auto bundle_stream = absl::make_unique<util::ByteStreamCpp>(
@@ -359,7 +360,7 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
   std::shared_ptr<api::LoadBundleTask> task =
       firestore_core_->LoadBundle(std::move(bundle_stream));
   task->Observe([promise, task, progress_callback](
-                    const api::LoadBundleTaskProgress &progress) mutable {
+                    const api::LoadBundleTaskProgress& progress) mutable {
     progress_callback(ToApiProgress(progress));
     if (progress.state() == api::LoadBundleTaskState::kSuccess) {
       promise.SetValue(ToApiProgress(progress));
@@ -373,11 +374,11 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
   return promise.future();
 }
 
-Future<Query> FirestoreInternal::NamedQuery(const std::string &query_name) {
+Future<Query> FirestoreInternal::NamedQuery(const std::string& query_name) {
   auto promise = promise_factory_.CreatePromise<Query>(AsyncApi::kNamedQuery);
   firestore_core_->GetNamedQuery(
       query_name,
-      [this, promise](const absl::optional<core::Query> &query) mutable {
+      [this, promise](const absl::optional<core::Query>& query) mutable {
         if (query.has_value()) {
           promise.SetValue(
               MakePublic(api::Query(query.value(), firestore_core_)));

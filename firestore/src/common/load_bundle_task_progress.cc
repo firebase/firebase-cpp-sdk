@@ -28,12 +28,14 @@ namespace firestore {
 LoadBundleTaskProgress::LoadBundleTaskProgress(int32_t documents_loaded,
                                                int32_t total_documents,
                                                int64_t bytes_loaded,
-                                               int64_t total_bytes, State state)
+                                               int64_t total_bytes,
+                                               State state)
     : documents_loaded_(documents_loaded),
       total_documents_(total_documents),
       bytes_loaded_(bytes_loaded),
       total_bytes_(total_bytes),
-      state_(state) {}
+      state_(state) {
+}
 
 #if defined(__ANDROID__)
 LoadBundleTaskProgress::LoadBundleTaskProgress(

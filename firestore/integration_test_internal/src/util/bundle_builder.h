@@ -25,7 +25,7 @@ namespace firestore {
  * Builds a bundle from a template, by replacing project id place holders with
  * the given project id.
  */
-std::string CreateBundle(const std::string &project_id);
+std::string CreateBundle(const std::string& project_id);
 
 }  // namespace firestore
 }  // namespace firebase
