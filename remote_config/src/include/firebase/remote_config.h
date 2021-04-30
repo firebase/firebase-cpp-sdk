@@ -178,7 +178,6 @@ struct ConfigSettings {
   uint64_t minimum_fetch_interval_in_milliseconds = kDefaultCacheExpiration;
 };
 
-
 namespace internal {
 class RemoteConfigInternal;
 }  // namespace internal
