@@ -34,9 +34,7 @@ Local<Object> CancellationTokenSource::GetToken(Env& env) {
   return env.Call(*this, kGetToken);
 }
 
-void CancellationTokenSource::Cancel(Env& env) {
-  env.Call(*this, kCancel);
-}
+void CancellationTokenSource::Cancel(Env& env) { env.Call(*this, kCancel); }
 
 }  // namespace firestore
 }  // namespace firebase

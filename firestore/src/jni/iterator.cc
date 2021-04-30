@@ -20,13 +20,9 @@ void Iterator::Initialize(Loader& loader) {
                                kNext);
 }
 
-bool Iterator::HasNext(Env& env) const {
-  return env.Call(*this, kHasNext);
-}
+bool Iterator::HasNext(Env& env) const { return env.Call(*this, kHasNext); }
 
-Local<Object> Iterator::Next(Env& env) {
-  return env.Call(*this, kNext);
-}
+Local<Object> Iterator::Next(Env& env) { return env.Call(*this, kNext); }
 
 }  // namespace jni
 }  // namespace firestore

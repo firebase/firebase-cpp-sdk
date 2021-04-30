@@ -106,13 +106,11 @@ namespace internal {
 // These symbols are in the util::internal namespace to match their iOS
 // equivalents.
 FIRESTORE_ATTRIBUTE_NORETURN void FailAssertion(const char* file,
-                                                const char* func,
-                                                int line,
+                                                const char* func, int line,
                                                 const std::string& message);
 
 FIRESTORE_ATTRIBUTE_NORETURN void FailAssertion(const char* file,
-                                                const char* func,
-                                                int line,
+                                                const char* func, int line,
                                                 const std::string& message,
                                                 const char* condition);
 

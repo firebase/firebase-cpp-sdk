@@ -63,25 +63,17 @@ class FirestoreInternal {
   explicit FirestoreInternal(App* app);
   ~FirestoreInternal();
 
-  App* app() const {
-    return app_;
-  }
+  App* app() const { return app_; }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const {
-    return app_ != nullptr;
-  }
+  bool initialized() const { return app_ != nullptr; }
 
   // Manages all Future objects returned from Firestore API.
-  FutureManager& future_manager() {
-    return future_manager_;
-  }
+  FutureManager& future_manager() { return future_manager_; }
 
   // When this is deleted, it will clean up all DatabaseReferences,
   // DataSnapshots, and other such objects.
-  CleanupNotifier& cleanup() {
-    return cleanup_;
-  }
+  CleanupNotifier& cleanup() { return cleanup_; }
 
   // Returns a CollectionReference that refers to the specific path.
   CollectionReference Collection(const char* collection_path) const;
@@ -157,12 +149,8 @@ class FirestoreInternal {
     firestore_public_ = firestore_public;
   }
 
-  Firestore* firestore_public() {
-    return firestore_public_;
-  }
-  const Firestore* firestore_public() const {
-    return firestore_public_;
-  }
+  Firestore* firestore_public() { return firestore_public_; }
+  const Firestore* firestore_public() const { return firestore_public_; }
 
   /**
    * Finds the FirestoreInternal instance for the given Java Firestore instance.

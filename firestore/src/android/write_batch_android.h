@@ -24,11 +24,9 @@ class WriteBatchInternal : public Wrapper {
   static void Initialize(jni::Loader& loader);
 
   WriteBatchInternal(FirestoreInternal* firestore, const jni::Object& object)
-      : Wrapper(firestore, object), promises_(firestore) {
-  }
+      : Wrapper(firestore, object), promises_(firestore) {}
 
-  void Set(const DocumentReference& document,
-           const MapFieldValue& data,
+  void Set(const DocumentReference& document, const MapFieldValue& data,
            const SetOptions& options);
 
   void Update(const DocumentReference& document, const MapFieldValue& data);

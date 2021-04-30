@@ -176,8 +176,7 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
 ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
-    MetadataChanges metadata_changes,
-    EventListener<DocumentSnapshot>* listener,
+    MetadataChanges metadata_changes, EventListener<DocumentSnapshot>* listener,
     bool passing_listener_ownership) {
   Env env = GetEnv();
   Local<Object> java_metadata =
@@ -194,9 +193,7 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
       firestore_, listener, passing_listener_ownership, java_registration));
 }
 
-Class DocumentReferenceInternal::GetClass() {
-  return Class(clazz);
-}
+Class DocumentReferenceInternal::GetClass() { return Class(clazz); }
 
 }  // namespace firestore
 }  // namespace firebase

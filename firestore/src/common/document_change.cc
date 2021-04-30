@@ -25,8 +25,7 @@ using Type = DocumentChange::Type;
 const std::size_t DocumentChange::npos = static_cast<std::size_t>(-1);
 #endif  // defined(ANDROID)
 
-DocumentChange::DocumentChange() {
-}
+DocumentChange::DocumentChange() {}
 
 DocumentChange::DocumentChange(const DocumentChange& value) {
   if (value.internal_) {

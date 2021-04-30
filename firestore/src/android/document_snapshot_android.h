@@ -20,8 +20,7 @@ class DocumentSnapshotInternal : public Wrapper {
 
   static void Initialize(jni::Loader& loader);
 
-  ~DocumentSnapshotInternal() override {
-  }
+  ~DocumentSnapshotInternal() override {}
 
   /** Gets the Firestore instance associated with this document snapshot. */
   Firestore* firestore() const;

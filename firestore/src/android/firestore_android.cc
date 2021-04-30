@@ -177,8 +177,7 @@ class JavaFirestoreMap {
     return reinterpret_cast<FirestoreInternal*>(boxed_ptr.LongValue(env));
   }
 
-  void Put(Env& env,
-           const Object& java_firestore,
+  void Put(Env& env, const Object& java_firestore,
            FirestoreInternal* internal) {
     static_assert(sizeof(uintptr_t) <= sizeof(int64_t),
                   "pointers must fit in Java long");

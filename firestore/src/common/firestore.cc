@@ -31,7 +31,7 @@ DEFINE_FIREBASE_VERSION_STRING(FirebaseFirestore);
 
 namespace {
 
-const char* GetPlatform() {
+const char *GetPlatform() {
 #if defined(__ANDROID__)
   return "gl-android/";
 #elif TARGET_OS_IOS
@@ -47,23 +47,23 @@ const char* GetPlatform() {
 #endif
 }
 
-Mutex* g_firestores_lock = new Mutex();
-std::map<App*, Firestore*>* g_firestores = nullptr;
+Mutex *g_firestores_lock = new Mutex();
+std::map<App *, Firestore *> *g_firestores = nullptr;
 
 // Ensures that the cache is initialized.
 // Prerequisite: `g_firestores_lock` must be locked before calling this
 // function.
-std::map<App*, Firestore*>* FirestoreCache() {
+std::map<App *, Firestore *> *FirestoreCache() {
   if (!g_firestores) {
-    g_firestores = new std::map<App*, Firestore*>();
+    g_firestores = new std::map<App *, Firestore *>();
   }
   return g_firestores;
 }
 
 // Prerequisite: `g_firestores_lock` must be locked before calling this
 // function.
-Firestore* FindFirestoreInCache(App* app, InitResult* init_result_out) {
-  auto* cache = FirestoreCache();
+Firestore *FindFirestoreInCache(App *app, InitResult *init_result_out) {
+  auto *cache = FirestoreCache();
 
   auto found = cache->find(app);
   if (found != cache->end()) {
@@ -74,7 +74,7 @@ Firestore* FindFirestoreInCache(App* app, InitResult* init_result_out) {
   return nullptr;
 }
 
-InitResult CheckInitialized(const FirestoreInternal& firestore) {
+InitResult CheckInitialized(const FirestoreInternal &firestore) {
   if (!firestore.initialized()) {
     return kInitResultFailedMissingDependency;
   }
@@ -84,13 +84,13 @@ InitResult CheckInitialized(const FirestoreInternal& firestore) {
 
 }  // namespace
 
-Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
+Firestore *Firestore::GetInstance(App *app, InitResult *init_result_out) {
   FIREBASE_ASSERT_MESSAGE(app != nullptr,
                           "Provided firebase::App must not be null.");
 
   MutexLock lock(*g_firestores_lock);
 
-  Firestore* from_cache = FindFirestoreInCache(app, init_result_out);
+  Firestore *from_cache = FindFirestoreInCache(app, init_result_out);
   if (from_cache) {
     return from_cache;
   }
@@ -98,15 +98,14 @@ Firestore* Firestore::GetInstance(App* app, InitResult* init_result_out) {
   return AddFirestoreToCache(new Firestore(app), init_result_out);
 }
 
-Firestore* Firestore::GetInstance(InitResult* init_result_out) {
-  App* app = App::GetInstance();
+Firestore *Firestore::GetInstance(InitResult *init_result_out) {
+  App *app = App::GetInstance();
   FIREBASE_ASSERT_MESSAGE(app, "You must call firebase::App.Create first.");
   return Firestore::GetInstance(app, init_result_out);
 }
 
-Firestore* Firestore::CreateFirestore(App* app,
-                                      FirestoreInternal* internal,
-                                      InitResult* init_result_out) {
+Firestore *Firestore::CreateFirestore(App *app, FirestoreInternal *internal,
+                                      InitResult *init_result_out) {
   FIREBASE_ASSERT_MESSAGE(app != nullptr,
                           "Provided firebase::App must not be null.");
   FIREBASE_ASSERT_MESSAGE(internal != nullptr,
@@ -114,15 +113,15 @@ Firestore* Firestore::CreateFirestore(App* app,
 
   MutexLock lock(*g_firestores_lock);
 
-  Firestore* from_cache = FindFirestoreInCache(app, init_result_out);
+  Firestore *from_cache = FindFirestoreInCache(app, init_result_out);
   FIREBASE_ASSERT_MESSAGE(from_cache == nullptr,
                           "Firestore must not be created already");
 
   return AddFirestoreToCache(new Firestore(internal), init_result_out);
 }
 
-Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
-                                          InitResult* init_result_out) {
+Firestore *Firestore::AddFirestoreToCache(Firestore *firestore,
+                                          InitResult *init_result_out) {
   InitResult init_result = CheckInitialized(*firestore->internal_);
   if (init_result_out) {
     *init_result_out = init_result;
@@ -137,11 +136,10 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
   return firestore;
 }
 
-Firestore::Firestore(::firebase::App* app)
-    : Firestore{new FirestoreInternal{app}} {
-}
+Firestore::Firestore(::firebase::App *app)
+    : Firestore{new FirestoreInternal{app}} {}
 
-Firestore::Firestore(FirestoreInternal* internal)
+Firestore::Firestore(FirestoreInternal *internal)
     // TODO(wuandy): use make_unique once it is supported for our build here.
     : internal_(internal) {
   internal_->set_firestore_public(this);
@@ -153,10 +151,10 @@ Firestore::Firestore(FirestoreInternal* internal)
   SetClientLanguage(std::string("gl-cpp/") + GetFullCompilerInfo());
 
   if (internal_->initialized()) {
-    CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(app());
+    CleanupNotifier *app_notifier = CleanupNotifier::FindByOwner(app());
     assert(app_notifier);
-    app_notifier->RegisterObject(this, [](void* object) {
-      Firestore* firestore = reinterpret_cast<Firestore*>(object);
+    app_notifier->RegisterObject(this, [](void *object) {
+      Firestore *firestore = reinterpret_cast<Firestore *>(object);
       LogWarning(
           "Firestore object 0x%08x should be deleted before the App 0x%08x it "
           "depends upon.",
@@ -167,20 +165,18 @@ Firestore::Firestore(FirestoreInternal* internal)
   }
 }
 
-Firestore::~Firestore() {
-  DeleteInternal();
-}
+Firestore::~Firestore() { DeleteInternal(); }
 
 void Firestore::DeleteInternal() {
   MutexLock lock(*g_firestores_lock);
 
   if (!internal_) return;
 
-  App* my_app = app();
+  App *my_app = app();
 
   // Only need to unregister if internal_ is initialized.
   if (internal_->initialized()) {
-    CleanupNotifier* app_notifier = CleanupNotifier::FindByOwner(my_app);
+    CleanupNotifier *app_notifier = CleanupNotifier::FindByOwner(my_app);
     assert(app_notifier);
     app_notifier->UnregisterObject(this);
   }
@@ -208,17 +204,17 @@ void Firestore::DeleteInternal() {
   }
 }
 
-const App* Firestore::app() const {
+const App *Firestore::app() const {
   if (!internal_) return {};
   return internal_->app();
 }
 
-App* Firestore::app() {
+App *Firestore::app() {
   if (!internal_) return {};
   return internal_->app();
 }
 
-CollectionReference Firestore::Collection(const char* collection_path) const {
+CollectionReference Firestore::Collection(const char *collection_path) const {
   FIREBASE_ASSERT_MESSAGE(collection_path != nullptr,
                           "Provided collection path must not be null");
   if (!internal_) return {};
@@ -226,25 +222,25 @@ CollectionReference Firestore::Collection(const char* collection_path) const {
 }
 
 CollectionReference Firestore::Collection(
-    const std::string& collection_path) const {
+    const std::string &collection_path) const {
   return Collection(collection_path.c_str());
 }
 
-DocumentReference Firestore::Document(const char* document_path) const {
+DocumentReference Firestore::Document(const char *document_path) const {
   if (!internal_) return {};
   return internal_->Document(document_path);
 }
 
-DocumentReference Firestore::Document(const std::string& document_path) const {
+DocumentReference Firestore::Document(const std::string &document_path) const {
   return Document(document_path.c_str());
 }
 
-Query Firestore::CollectionGroup(const char* collection_id) const {
+Query Firestore::CollectionGroup(const char *collection_id) const {
   if (!internal_) return {};
   return internal_->CollectionGroup(collection_id);
 }
 
-Query Firestore::CollectionGroup(const std::string& collection_id) const {
+Query Firestore::CollectionGroup(const std::string &collection_id) const {
   if (!internal_) return {};
   return internal_->CollectionGroup(collection_id.c_str());
 }
@@ -264,14 +260,14 @@ WriteBatch Firestore::batch() const {
   return internal_->batch();
 }
 
-Future<void> Firestore::RunTransaction(TransactionFunction* update) {
+Future<void> Firestore::RunTransaction(TransactionFunction *update) {
   if (!internal_) return FailedFuture<void>();
   return internal_->RunTransaction(update);
 }
 
 #if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 Future<void> Firestore::RunTransaction(
-    std::function<Error(Transaction&, std::string&)> update) {
+    std::function<Error(Transaction &, std::string &)> update) {
   FIREBASE_ASSERT_MESSAGE(update, "invalid update parameter is passed in.");
   if (!internal_) return FailedFuture<void>();
   return internal_->RunTransaction(firebase::Move(update));
@@ -306,7 +302,7 @@ Future<void> Firestore::ClearPersistence() {
 
 #if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 ListenerRegistration Firestore::AddSnapshotsInSyncListener(
-    EventListener<void>* listener) {
+    EventListener<void> *listener) {
   if (!internal_) return {};
   return internal_->AddSnapshotsInSyncListener(listener);
 }
@@ -320,7 +316,7 @@ ListenerRegistration Firestore::AddSnapshotsInSyncListener(
 }
 #endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
-void Firestore::SetClientLanguage(const std::string& language_token) {
+void Firestore::SetClientLanguage(const std::string &language_token) {
   // TODO(b/135633112): this is a temporary measure until the Firestore backend
   // rolls out Firebase platform logging.
   // Note: this implementation lumps together the language and platform tokens,
@@ -331,19 +327,19 @@ void Firestore::SetClientLanguage(const std::string& language_token) {
 }
 
 Future<LoadBundleTaskProgress> Firestore::LoadBundle(
-    const std::string& bundle) {
+    const std::string &bundle) {
   if (!internal_) return FailedFuture<LoadBundleTaskProgress>();
   return internal_->LoadBundle(bundle);
 }
 
 Future<LoadBundleTaskProgress> Firestore::LoadBundle(
-    const std::string& bundle,
-    std::function<void(const LoadBundleTaskProgress&)> progress_callback) {
+    const std::string &bundle,
+    std::function<void(const LoadBundleTaskProgress &)> progress_callback) {
   if (!internal_) return FailedFuture<LoadBundleTaskProgress>();
   return internal_->LoadBundle(bundle, std::move(progress_callback));
 }
 
-Future<Query> Firestore::NamedQuery(const std::string& query_name) {
+Future<Query> Firestore::NamedQuery(const std::string &query_name) {
   if (!internal_) return FailedFuture<Query>();
   return internal_->NamedQuery(query_name);
 }

@@ -64,9 +64,7 @@ void LoadBundleTaskProgressInternal::Initialize(jni::Loader& loader) {
   loader.LoadClass(kStateEnumName, kTaskStateRunning);
 }
 
-Class LoadBundleTaskProgressInternal::GetClass() {
-  return Class(g_clazz);
-}
+Class LoadBundleTaskProgressInternal::GetClass() { return Class(g_clazz); }
 
 int32_t LoadBundleTaskProgressInternal::documents_loaded() const {
   Env env = GetEnv();

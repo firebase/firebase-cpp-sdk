@@ -29,9 +29,7 @@ Constructor<Object> kNewInteger("(I)V");
 
 class DeclarationTest : public FirestoreIntegrationTest {
  public:
-  DeclarationTest() : loader_(app()) {
-    loader_.LoadClass(kString);
-  }
+  DeclarationTest() : loader_(app()) { loader_.LoadClass(kString); }
 
  protected:
   Loader loader_;

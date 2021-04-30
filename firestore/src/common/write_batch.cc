@@ -20,8 +20,7 @@ namespace firestore {
 
 using CleanupFnWriteBatch = CleanupFn<WriteBatch>;
 
-WriteBatch::WriteBatch() {
-}
+WriteBatch::WriteBatch() {}
 
 WriteBatch::WriteBatch(const WriteBatch& value) {
   if (value.internal_) {

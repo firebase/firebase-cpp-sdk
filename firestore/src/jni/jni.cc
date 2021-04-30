@@ -17,9 +17,7 @@ JavaVM* g_jvm = nullptr;
  * Reinterprets `JNIEnv**` out parameters to `void**` on platforms where that's
  * required.
  */
-void** EnvOut(JNIEnv** env) {
-  return reinterpret_cast<void**>(env);
-}
+void** EnvOut(JNIEnv** env) { return reinterpret_cast<void**>(env); }
 
 JavaVM* GetGlobalJavaVM() {
   // TODO(mcg): Use dlsym to call JNI_GetCreatedJavaVMs.

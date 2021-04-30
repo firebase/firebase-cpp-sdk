@@ -202,63 +202,41 @@ class FieldValue final {
   Type type() const;
 
   /** @brief Gets whether this FieldValue is currently null. */
-  bool is_null() const {
-    return type() == Type::kNull;
-  }
+  bool is_null() const { return type() == Type::kNull; }
 
   /** @brief Gets whether this FieldValue contains a boolean value. */
-  bool is_boolean() const {
-    return type() == Type::kBoolean;
-  }
+  bool is_boolean() const { return type() == Type::kBoolean; }
 
   /** @brief Gets whether this FieldValue contains an integer value. */
-  bool is_integer() const {
-    return type() == Type::kInteger;
-  }
+  bool is_integer() const { return type() == Type::kInteger; }
 
   /** @brief Gets whether this FieldValue contains a double value. */
-  bool is_double() const {
-    return type() == Type::kDouble;
-  }
+  bool is_double() const { return type() == Type::kDouble; }
 
   /** @brief Gets whether this FieldValue contains a timestamp. */
-  bool is_timestamp() const {
-    return type() == Type::kTimestamp;
-  }
+  bool is_timestamp() const { return type() == Type::kTimestamp; }
 
   /** @brief Gets whether this FieldValue contains a string. */
-  bool is_string() const {
-    return type() == Type::kString;
-  }
+  bool is_string() const { return type() == Type::kString; }
 
   /** @brief Gets whether this FieldValue contains a blob. */
-  bool is_blob() const {
-    return type() == Type::kBlob;
-  }
+  bool is_blob() const { return type() == Type::kBlob; }
 
   /**
    * @brief Gets whether this FieldValue contains a reference to a document in
    * the same Firestore.
    */
-  bool is_reference() const {
-    return type() == Type::kReference;
-  }
+  bool is_reference() const { return type() == Type::kReference; }
 
   /** @brief Gets whether this FieldValue contains a GeoPoint. */
-  bool is_geo_point() const {
-    return type() == Type::kGeoPoint;
-  }
+  bool is_geo_point() const { return type() == Type::kGeoPoint; }
 
   /** @brief Gets whether this FieldValue contains an array of FieldValues. */
-  bool is_array() const {
-    return type() == Type::kArray;
-  }
+  bool is_array() const { return type() == Type::kArray; }
 
   /** @brief Gets whether this FieldValue contains a map of std::string to
    * FieldValue. */
-  bool is_map() const {
-    return type() == Type::kMap;
-  }
+  bool is_map() const { return type() == Type::kMap; }
 
   /** @brief Gets the boolean value contained in this FieldValue. */
   bool boolean_value() const;
@@ -305,9 +283,7 @@ class FieldValue final {
    * @return `true` if this `FieldValue` is valid, `false` if this `FieldValue`
    * is invalid.
    */
-  bool is_valid() const {
-    return internal_ != nullptr;
-  }
+  bool is_valid() const { return internal_ != nullptr; }
 
   /** @brief Constructs a null. */
   static FieldValue Null();

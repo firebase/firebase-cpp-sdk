@@ -193,11 +193,8 @@ Local<Object> TransactionInternal::Create(Env& env,
 }
 
 jobject TransactionInternal::TransactionFunctionNativeApply(
-    JNIEnv* raw_env,
-    jclass clazz,
-    jlong firestore_ptr,
-    jlong transaction_function_ptr,
-    jobject java_transaction) {
+    JNIEnv* raw_env, jclass clazz, jlong firestore_ptr,
+    jlong transaction_function_ptr, jobject java_transaction) {
   if (firestore_ptr == 0 || transaction_function_ptr == 0) {
     return nullptr;
   }

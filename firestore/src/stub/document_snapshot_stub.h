@@ -18,24 +18,12 @@ namespace firestore {
 class DocumentSnapshotInternal {
  public:
   using ApiType = DocumentSnapshot;
-  FirestoreInternal* firestore_internal() const {
-    return nullptr;
-  }
-  Firestore* firestore() const {
-    return nullptr;
-  }
-  const std::string& id() const {
-    return id_;
-  }
-  DocumentReference reference() const {
-    return DocumentReference{};
-  }
-  SnapshotMetadata metadata() const {
-    return SnapshotMetadata(false, false);
-  }
-  bool exists() const {
-    return false;
-  }
+  FirestoreInternal* firestore_internal() const { return nullptr; }
+  Firestore* firestore() const { return nullptr; }
+  const std::string& id() const { return id_; }
+  DocumentReference reference() const { return DocumentReference{}; }
+  SnapshotMetadata metadata() const { return SnapshotMetadata(false, false); }
+  bool exists() const { return false; }
   MapFieldValue GetData(DocumentSnapshot::ServerTimestampBehavior stb) const {
     return MapFieldValue{};
   }

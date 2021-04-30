@@ -11,23 +11,12 @@ namespace firestore {
 class DocumentChangeInternal {
  public:
   using ApiType = DocumentChange;
-  DocumentChangeInternal() {
-  }
-  FirestoreInternal* firestore_internal() const {
-    return nullptr;
-  }
-  DocumentChange::Type type() const {
-    return DocumentChange::Type::kModified;
-  }
-  DocumentSnapshot document() const {
-    return DocumentSnapshot{};
-  }
-  std::size_t old_index() const {
-    return 1;
-  }
-  std::size_t new_index() const {
-    return 2;
-  }
+  DocumentChangeInternal() {}
+  FirestoreInternal* firestore_internal() const { return nullptr; }
+  DocumentChange::Type type() const { return DocumentChange::Type::kModified; }
+  DocumentSnapshot document() const { return DocumentSnapshot{}; }
+  std::size_t old_index() const { return 1; }
+  std::size_t new_index() const { return 2; }
 };
 
 }  // namespace firestore

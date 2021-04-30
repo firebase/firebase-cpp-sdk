@@ -35,8 +35,7 @@ const model::DocumentKey& GetKey(const DocumentReference& document) {
 }
 
 DocumentSnapshot ConvertToSingleSnapshot(
-    const std::shared_ptr<api::Firestore>& firestore,
-    model::DocumentKey key,
+    const std::shared_ptr<api::Firestore>& firestore, model::DocumentKey key,
     const std::vector<MaybeDocument>& documents) {
   SIMPLE_HARD_ASSERT(
       documents.size() == 1,
@@ -78,8 +77,7 @@ TransactionInternal::TransactionInternal(
     FirestoreInternal* firestore_internal)
     : transaction_{std::move(NOT_NULL(transaction))},
       firestore_internal_{NOT_NULL(firestore_internal)},
-      user_data_converter_{&firestore_internal->database_id()} {
-}
+      user_data_converter_{&firestore_internal->database_id()} {}
 
 Firestore* TransactionInternal::firestore() {
   return Firestore::GetInstance(firestore_internal_->app());

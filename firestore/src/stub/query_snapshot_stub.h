@@ -17,12 +17,8 @@ namespace firestore {
 class QuerySnapshotInternal {
  public:
   using ApiType = QuerySnapshot;
-  FirestoreInternal* firestore_internal() {
-    return nullptr;
-  }
-  Query query() const {
-    return Query{};
-  }
+  FirestoreInternal* firestore_internal() { return nullptr; }
+  Query query() const { return Query{}; }
   SnapshotMetadata metadata() const {
     return SnapshotMetadata{/*has_pending_writes=*/false,
                             /*is_from_cache=*/false};
@@ -31,12 +27,8 @@ class QuerySnapshotInternal {
       MetadataChanges metadata_changes) const {
     return {};
   }
-  std::vector<DocumentSnapshot> documents() const {
-    return {};
-  }
-  std::size_t size() const {
-    return 0;
-  }
+  std::vector<DocumentSnapshot> documents() const { return {}; }
+  std::size_t size() const { return 0; }
 };
 
 }  // namespace firestore

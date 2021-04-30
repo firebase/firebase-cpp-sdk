@@ -23,13 +23,10 @@ class FirestoreInternal;
 // F is almost always FirestoreInternal unless one wants something else to
 // manage the cleanup process. We define type F to make this CleanupFn
 // implementation platform-independent.
-template <typename T,
-          typename U = InternalType<T>,
+template <typename T, typename U = InternalType<T>,
           typename F = FirestoreInternal>
 struct CleanupFn {
-  static void Cleanup(void* obj_void) {
-    DoCleanup(static_cast<T*>(obj_void));
-  }
+  static void Cleanup(void* obj_void) { DoCleanup(static_cast<T*>(obj_void)); }
 
   static void Register(T* obj, F* firestore) {
     if (firestore) {
@@ -74,9 +71,7 @@ struct CleanupFn {
   }
 
   // `ListenerRegistration` objects differ from the common pattern.
-  static void DoCleanup(ListenerRegistration* obj) {
-    obj->Cleanup();
-  }
+  static void DoCleanup(ListenerRegistration* obj) { obj->Cleanup(); }
 };
 
 }  // namespace firestore

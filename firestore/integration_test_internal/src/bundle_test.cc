@@ -46,13 +46,13 @@ class BundleTest : public FirestoreIntegrationTest {
   }
 
   template <typename T>
-  T AwaitResult(const Future<T>& f) {
-    auto* ptr = Await(f);
+  T AwaitResult(const Future<T> &f) {
+    auto *ptr = Await(f);
     EXPECT_NE(ptr, nullptr);
     return *ptr;
   }
 
-  void VerifyQueryResults(Firestore* db) {
+  void VerifyQueryResults(Firestore *db) {
     {
       auto snapshot = AwaitResult(db->Collection("coll-1").Get(Source::kCache));
       EXPECT_THAT(
@@ -85,12 +85,12 @@ class BundleTest : public FirestoreIntegrationTest {
 };
 
 TEST_F(BundleTest, CanLoadBundlesWithProgressUpdates) {
-  Firestore* db = TestFirestore();
+  Firestore *db = TestFirestore();
   auto bundle = CreateBundle(db->app()->options().project_id());
 
   std::vector<LoadBundleTaskProgress> progresses;
   Future<LoadBundleTaskProgress> result = db->LoadBundle(
-      bundle, [&progresses](const LoadBundleTaskProgress& progress) {
+      bundle, [&progresses](const LoadBundleTaskProgress &progress) {
         progresses.push_back(progress);
       });
 
@@ -109,14 +109,14 @@ TEST_F(BundleTest, CanLoadBundlesWithProgressUpdates) {
 }
 
 TEST_F(BundleTest, LoadBundlesForASecondTimeSkips) {
-  Firestore* db = TestFirestore();
+  Firestore *db = TestFirestore();
   auto bundle = CreateBundle(db->app()->options().project_id());
   LoadBundleTaskProgress first_load = AwaitResult(db->LoadBundle(bundle));
   VerifySuccessProgress(first_load);
 
   std::vector<LoadBundleTaskProgress> progresses;
   LoadBundleTaskProgress second_load = AwaitResult(db->LoadBundle(
-      bundle, [&progresses](const LoadBundleTaskProgress& progress) {
+      bundle, [&progresses](const LoadBundleTaskProgress &progress) {
         progresses.push_back(progress);
       }));
 
@@ -128,7 +128,7 @@ TEST_F(BundleTest, LoadBundlesForASecondTimeSkips) {
 }
 
 TEST_F(BundleTest, LoadBundleWithDocumentsAlreadyPulledFromBackend) {
-  Firestore* db = TestFirestore();
+  Firestore *db = TestFirestore();
   auto collection = db->Collection("coll-1");
   WriteDocuments(collection,
                  {
@@ -170,7 +170,7 @@ TEST_F(BundleTest, LoadBundleWithDocumentsAlreadyPulledFromBackend) {
 }
 
 TEST_F(BundleTest, LoadedDocumentsShouldNotBeGarbageCollectedRightAway) {
-  Firestore* db = TestFirestore();
+  Firestore *db = TestFirestore();
   // This test really only makes sense with memory persistence, as disk
   // persistence only ever lazily deletes data
   auto new_settings = db->settings();
@@ -190,11 +190,11 @@ TEST_F(BundleTest, LoadedDocumentsShouldNotBeGarbageCollectedRightAway) {
 }
 
 TEST_F(BundleTest, LoadDocumentsFromOtherProjectsShouldFail) {
-  Firestore* db = TestFirestore();
+  Firestore *db = TestFirestore();
   auto bundle = CreateBundle("other-project");
   std::vector<LoadBundleTaskProgress> progresses;
   Future<LoadBundleTaskProgress> result = db->LoadBundle(
-      bundle, [&progresses](const LoadBundleTaskProgress& progress) {
+      bundle, [&progresses](const LoadBundleTaskProgress &progress) {
         progresses.push_back(progress);
       });
   Await(result);
@@ -206,7 +206,7 @@ TEST_F(BundleTest, LoadDocumentsFromOtherProjectsShouldFail) {
 }
 
 TEST_F(BundleTest, GetInvalidNamedQuery) {
-  Firestore* db = TestFirestore();
+  Firestore *db = TestFirestore();
   auto bundle = CreateBundle(db->app()->options().project_id());
   VerifySuccessProgress(AwaitResult(db->LoadBundle(bundle)));
 

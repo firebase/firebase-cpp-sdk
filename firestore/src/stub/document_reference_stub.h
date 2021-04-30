@@ -16,21 +16,11 @@ namespace firestore {
 class DocumentReferenceInternal {
  public:
   using ApiType = DocumentReference;
-  FirestoreInternal* firestore_internal() {
-    return nullptr;
-  }
-  Firestore* firestore() {
-    return nullptr;
-  }
-  const std::string& id() {
-    return id_;
-  }
-  const std::string& path() {
-    return id_;
-  }
-  CollectionReference Parent() const {
-    return CollectionReference{};
-  }
+  FirestoreInternal* firestore_internal() { return nullptr; }
+  Firestore* firestore() { return nullptr; }
+  const std::string& id() { return id_; }
+  const std::string& path() { return id_; }
+  CollectionReference Parent() const { return CollectionReference{}; }
   CollectionReference Collection(const std::string& collection_path) {
     return CollectionReference{};
   }
@@ -46,9 +36,7 @@ class DocumentReferenceInternal {
   Future<void> Update(const MapFieldPathValue& data) {
     return FailedFuture<void>();
   }
-  Future<void> Delete() {
-    return FailedFuture<void>();
-  }
+  Future<void> Delete() { return FailedFuture<void>(); }
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
       EventListener<DocumentSnapshot>* listener) {

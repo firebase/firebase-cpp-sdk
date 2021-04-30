@@ -22,9 +22,7 @@ void Boolean::Initialize(Loader& loader) {
                                kBooleanValue);
 }
 
-Class Boolean::GetClass() {
-  return Class(g_clazz);
-}
+Class Boolean::GetClass() { return Class(g_clazz); }
 
 Local<Boolean> Boolean::Create(Env& env, bool value) {
   return env.New(kConstructor, value);

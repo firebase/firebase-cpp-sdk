@@ -16,8 +16,7 @@ using core::ParsedSetData;
 
 CollectionReferenceInternal::CollectionReferenceInternal(
     api::CollectionReference&& collection)
-    : QueryInternal{std::move(collection)} {
-}
+    : QueryInternal{std::move(collection)} {}
 
 const api::CollectionReference&
 CollectionReferenceInternal::collection_core_api() const {

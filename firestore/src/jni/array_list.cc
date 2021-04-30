@@ -20,9 +20,7 @@ void ArrayList::Initialize(Loader& loader) {
                                kConstructorWithSize);
 }
 
-Local<ArrayList> ArrayList::Create(Env& env) {
-  return env.New(kConstructor);
-}
+Local<ArrayList> ArrayList::Create(Env& env) { return env.New(kConstructor); }
 
 Local<ArrayList> ArrayList::Create(Env& env, size_t size) {
   return env.New(kConstructorWithSize, size);

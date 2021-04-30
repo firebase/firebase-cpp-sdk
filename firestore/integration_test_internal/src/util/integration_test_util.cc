@@ -50,9 +50,7 @@ App* GetApp(const char* name) {
   }
 }
 
-App* GetApp() {
-  return GetApp(nullptr);
-}
+App* GetApp() { return GetApp(nullptr); }
 
 FirestoreInternal* CreateTestFirestoreInternal(App* app) {
   return TestFriend::CreateTestFirestoreInternal(app);
