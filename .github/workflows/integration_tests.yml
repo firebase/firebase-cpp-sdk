@@ -481,13 +481,6 @@ jobs:
         ssl_variant: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ssl) }}
     steps:
       - uses: actions/checkout@v2
-      - name: Setup python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.7'
-      - name: Install python deps
-        run: |
-          pip install -r scripts/gha/requirements.txt
       - name: download artifact
         uses: actions/download-artifact@v2.0.8
         with:
@@ -496,6 +489,14 @@ jobs:
       - name: unzip artifact
         run: |
           unzip testapps/testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.zip
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Install python deps
+        run: |
+          pip install -r scripts/gha/requirements.txt
+          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
       - name: Run desktop integration tests
         run: |
           python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
@@ -521,13 +522,6 @@ jobs:
         android_device: ${{ fromJson(needs.prepare_matrix.outputs.android_device) }}
     steps:
       - uses: actions/checkout@v2
-      - name: Setup python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.7'
-      - name: Install python deps
-        run: |
-          pip install -r scripts/gha/requirements.txt
       - name: download artifact
         uses: actions/download-artifact@v2.0.8
         with:
@@ -536,6 +530,13 @@ jobs:
       - name: unzip artifact
         run: |
           unzip testapps/testapps-android-${{ matrix.build_os }}.zip
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Install python deps
+        run: |
+          pip install -r scripts/gha/requirements.txt
       - id: get-device
         run: |
           device=$(echo "${{ matrix.android_device }}" | cut -d ":" -f2)
@@ -564,13 +565,6 @@ jobs:
         ios_device: ${{ fromJson(needs.prepare_matrix.outputs.ios_device) }}
     steps:
       - uses: actions/checkout@v2
-      - name: Setup python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.7'
-      - name: Install python deps
-        run: |
-          pip install -r scripts/gha/requirements.txt
       - name: download artifact
         uses: actions/download-artifact@v2.0.8
         with:
@@ -579,6 +573,13 @@ jobs:
       - name: unzip artifact
         run: |
           unzip testapps/testapps-ios-macos-latest.zip
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Install python deps
+        run: |
+          pip install -r scripts/gha/requirements.txt
       - id: get-device
         run: |
           device=$(echo "${{ matrix.ios_device }}" | cut -d ":" -f2)
