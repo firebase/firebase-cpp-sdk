@@ -253,8 +253,7 @@ def main(argv):
           short_output_paths=FLAGS.short_output_paths)
       logging.info("END building for %s", testapp)
   
-  if _ANDROID in platforms or _IOS in platforms:
-    _zip_integration_tests(testapps, root_output_dir, FLAGS.artifact_name)
+  _zip_integration_tests(testapps, root_output_dir, FLAGS.artifact_name)
 
   _summarize_results(testapps, platforms, failures, output_dir)
   return 1 if failures else 0
