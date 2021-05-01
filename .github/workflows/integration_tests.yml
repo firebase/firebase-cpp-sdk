@@ -300,6 +300,14 @@ jobs:
           fi
           python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p Desktop --output_directory "${{ github.workspace }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
 
+      - name: Upload desktop integration tests artifact
+        uses: actions/upload-artifact@v2.2.2
+        if: matrix.target_platform != 'Desktop' && ${{ !cancelled() }}
+        with:
+          name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.zip
+          path: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.zip
+          retention-days: 1
+
   build_android:
     name: build-android-${{ matrix.os }}
     needs: [prepare_matrix]
@@ -386,7 +394,7 @@ jobs:
 
       - name: Upload mobile integration tests artifact
         uses: actions/upload-artifact@v2.2.2
-        if: matrix.target_platform != 'Desktop' && ${{ !cancelled() }}
+        if: ${{ !cancelled() }}
         with:
           name: testapps-android-${{ matrix.os }}.zip
           path: testapps-android-${{ matrix.os }}.zip
@@ -455,7 +463,7 @@ jobs:
 
       - name: Upload mobile integration tests artifact
         uses: actions/upload-artifact@v2.2.2
-        if: matrix.target_platform != 'Desktop' && ${{ !cancelled() }}
+        if: ${{ !cancelled() }}
         with:
           name: testapps-ios-macos-latest.zip
           path: testapps-ios-macos-latest.zip
@@ -523,6 +531,15 @@ jobs:
       - name: Install python deps
         run: |
           pip install -r scripts/gha/requirements.txt
+      - name: download artifact
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: testapps
+          name: testapps-android-${{ matrix.build_os }}.zip
+      - name: unzip artifact
+        run: |
+          unzip testapps/testapps-android-${{ matrix.build_os }}.zip
+      - id: get-device
       - id: get-device
         run: |
           device=$(echo "${{ matrix.android_device }}" | cut -d ":" -f2)
