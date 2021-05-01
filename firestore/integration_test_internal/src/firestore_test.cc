@@ -1488,15 +1488,6 @@ TEST_F(FirestoreIntegrationTest, DomainObjectsReferToSameFirestoreInstance) {
 }
 
 TEST_F(FirestoreIntegrationTest, AuthWorks) {
-  SKIP_TEST_ON_MACOS;  // TODO(b/183294303) Fix this test on Mac.
-
-  // This test only works locally or on guitar because it depends on a live
-  // Auth backend.
-  if (getenv("UNITTEST_ON_FORGE") != nullptr) {
-    LogWarning("Skipped AuthWorks test: incompatible with Forge");
-    return;
-  }
-
   // This app instance is managed by the text fixture.
   App* app = GetApp();
   EXPECT_NE(app, nullptr);
