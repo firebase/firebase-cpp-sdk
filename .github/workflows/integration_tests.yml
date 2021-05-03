@@ -124,14 +124,18 @@ jobs:
         github_token: ${{ github.token }}
         number: "${{ steps.get_pr_number.outputs.pr_number }}"
         labels: "${{ env.statusLabelInProgress }}"
-    - name: remove previous labels
+    - name: remove previous succeeded label
       uses: actions-ecosystem/action-remove-labels@v1
       with:
         github_token: ${{ github.token }}
         number: "${{ steps.get_pr_number.outputs.pr_number }}"
-        labels: |
-          "${{ env.statusLabelSucceeded }}"
-          "${{ env.statusLabelFailed }}"
+        labels: "${{ env.statusLabelSucceeded }}"
+    - name: remove previous failed label
+      uses: actions-ecosystem/action-remove-labels@v1
+      with:
+        github_token: ${{ github.token }}
+        number: "${{ steps.get_pr_number.outputs.pr_number }}"
+        labels: "${{ env.statusLabelFailed }}"
     - name: find old status comment, if any
       uses: peter-evans/find-comment@v1
       id: find-comment
