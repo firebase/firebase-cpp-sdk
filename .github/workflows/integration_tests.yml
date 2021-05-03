@@ -459,11 +459,11 @@ jobs:
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && !failure() }}
     steps:
       - name: add success label
-      uses: actions-ecosystem/action-add-labels@v1
-      with:
-        github_token: ${{ github.token }}
-        number: "${{needs.check_trigger.outputs.pr_number}}"
-        labels: "${{ env.statusLabelSucceeded }}"
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ github.token }}
+          number: "${{needs.check_trigger.outputs.pr_number}}"
+          labels: "${{ env.statusLabelSucceeded }}"
       - name: get current time for status comment
         id: get-time
         shell: bash
