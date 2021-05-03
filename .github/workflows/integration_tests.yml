@@ -138,18 +138,23 @@ jobs:
         comment_id: ${{ steps.find-comment.outputs.comment-id }}
         token: ${{ github.token }}
     - name: get current time for status comment
-      id: get-time
+      id: get-time-and-ref
       shell: bash
       run: |
         echo -n "::set-output name=time::"
         TZ=America/Los_Angeles date
+        if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
+          echo "::set-output name=github_ref::$GITHUB_SHA"
+        else
+          echo "::set-output name=github_ref::refs/pull/${{github.event.inputs.test_pull_request}}/merge"
+        fi
     - name: add in progress status comment
       uses: phulsechinmay/rewritable-pr-comment@v0.3.0
       with:
         message: |
           ### ⏳&nbsp; Integration test in progress...
-          Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
-          Last updated: ${{ steps.get-time.outputs.time }}
+          Requested by @${{github.actor}} on commit ${{steps.get-time-and-ref.outputs.github_ref}}
+          Last updated: ${{ steps.get-time-and-ref.outputs.time }}
           **[View integration test run](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
         GITHUB_TOKEN: ${{ github.token }}
         COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
@@ -441,7 +446,7 @@ jobs:
         with:
           message: |
             ### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)
-            Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
+            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
             ${{ env.SUMMARY_TABLE }}
@@ -481,7 +486,7 @@ jobs:
         with:
           message: |
             ### ✅&nbsp; Integration test succeeded!
-            Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
+            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
           GITHUB_TOKEN: ${{ github.token }}
@@ -536,7 +541,7 @@ jobs:
         with:
           message: |
             ### ❌&nbsp; Integration test FAILED
-            Requested by @${{github.actor}} on commit ${{github.event.pull_request.head.sha}}
+            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
             Last updated: ${{ steps.get-time.outputs.time }}
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
             ${{ env.SUMMARY_TABLE }}
