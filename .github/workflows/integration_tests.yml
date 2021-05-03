@@ -24,24 +24,15 @@ on:
         description: 'CSV of desktop SSL variants to use'
         default: 'openssl,boringssl'
         required: true
-      android_device:
-        description: 'Android device model'
-        default: 'flame'
-      android_api:
-        description: 'Android API level'
-        default: '29'
-      ios_device:
-        description: 'iOS device model'
-        default: 'iphone8'
-      ios_version:
-        description: 'iOS device version'
-        default: '12.4'
       use_expanded_matrix:
         description: 'Use an expanded matrix? Note: above config will be ignored.'
         default: '0'
         required: true
       test_packaged_sdk:
         description: 'Optional: Packaging run # to build against?'
+      test_pull_request:
+        description: 'Optional: Test a pull request (use this for external PRs)'
+
 env:
   triggerLabelPrefix: "tests-requested: "
   triggerLabelFull: "tests-requested: full"
@@ -51,6 +42,10 @@ env:
   statusLabelSucceeded: "tests: succeeded"
   statusCommentIdentifier: "integration-test-status-comment"
   mobileTestOn: "device"
+  default_android_device: "flame"
+  default_android_api: "29"
+  default_ios_device: "iphone8"
+  default_ios_version: "12.4"
 
 jobs:
   check_trigger:
@@ -60,31 +55,41 @@ jobs:
     ### outputs to control the test matrix (full or quick) and to tell
     ### subsequent steps to update the labels as well.
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request' && github.event.action == 'labeled'
+    if: |
+      (github.event_name == 'pull_request' && github.event.action == 'labeled') ||
+      (github.event.inputs.test_pull_request != '')
     outputs:
       should_update_labels: ${{ steps.set_outputs.outputs.should_update_labels }}
       requested_tests: ${{ steps.set_outputs.outputs.requested_tests }}
+      pr_number: ${{ steps.get_pr_number.outputs.pr_number }}
     steps:
     ### If the label isn't one of the test-request triggers, cancel the workflow.
     - name: cancel workflow if label is irrelevant
-      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix) }}
+      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix) && github.event.inputs.test_pull_request == '' }}
       uses: andymckay/cancel-action@0.2
     - name: wait for above cancellation if label is irrelevant
-      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix) }}
+      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix) && github.event.inputs.test_pull_request == '' }}
       run: |
         sleep 300
         exit 1  # fail out if the cancellation above somehow failed.
+    - id: get_pr_number
+      run: |
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          echo "::set-output name=pr_number::${{ github.event.number }}"
+        else
+          echo "::set-output name=pr_number::${{ github.event.inputs.test_pull_request }}"
+        fi
     ### Below this line, the label is one of the test-request triggers.
     - name: cancel previous runs on the same PR
       uses: styfle/cancel-workflow-action@0.8.0
       with:
         access_token: ${{ github.token }}
     - name: remove triggering label
-      uses: buildsville/add-remove-label@v1
+      uses: actions-ecosystem/action-remove-labels@v1
       with:
-        token: ${{ github.token }}
-        label: "${{ github.event.label.name }}"
-        type: remove
+        github_token: ${{ github.token }}
+        number: "${{ steps.get_pr_number.outputs.pr_number }}"
+        labels: "${{ github.event.label.name }}"
     ### Fail the workflow if the user does not have admin access to run the tests.
     - name: check if user has permission to trigger tests
       uses: lannonbr/repo-permission-check-action@2.0.0
@@ -102,28 +107,24 @@ jobs:
         fi
     ### Add the in-progress label and remove any previous success/fail labels.
     - name: add in-progress label
-      uses: buildsville/add-remove-label@v1
+      uses: actions-ecosystem/action-add-labels@v1
       with:
-        token: ${{ github.token }}
-        label: "${{ env.statusLabelInProgress }}"
-        type: add
-    - name: remove previous success label
-      uses: buildsville/add-remove-label@v1
+        github_token: ${{ github.token }}
+        number: "${{ steps.get_pr_number.outputs.pr_number }}"
+        labels: "${{ env.statusLabelInProgress }}"
+    - name: remove previous labels
+      uses: actions-ecosystem/action-remove-labels@v1
       with:
-        token: ${{ github.token }}
-        label: "${{ env.statusLabelSucceeded }}"
-        type: remove
-    - name: remove previous failure label
-      uses: buildsville/add-remove-label@v1
-      with:
-        token: ${{ github.token }}
-        label: "${{ env.statusLabelFailed }}"
-        type: remove
+        github_token: ${{ github.token }}
+        number: "${{ steps.get_pr_number.outputs.pr_number }}"
+        labels: |
+          "${{ env.statusLabelSucceeded }}"
+          "${{ env.statusLabelFailed }}"
     - name: find old status comment, if any
       uses: peter-evans/find-comment@v1
       id: find-comment
       with:
-        issue-number: ${{github.event.number}}
+        issue-number: ${{steps.get_pr_number.outputs.pr_number}}
         body-includes: ${{ env.statusCommentIdentifier }}
         token: ${{github.token}}
     - name: delete old status comment
@@ -149,6 +150,7 @@ jobs:
           **[View integration test run](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
         GITHUB_TOKEN: ${{ github.token }}
         COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
+        ISSUE_ID: ${{steps.get_pr_number.outputs.pr_number}}
 
   # To feed input into the job matrix, we first need to convert to a JSON
   # list. Then we can use fromJson to define the field in the matrix for the tests job.
@@ -194,10 +196,10 @@ jobs:
           else
             echo "::set-output name=matrix_ssl::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ssl_lib -o "${{github.event.inputs.desktop_ssl_variants}}" )"
           fi
-          echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k android_device -o "${{github.event.inputs.android_device}}" )"
-          echo "::set-output name=android_api::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k android_api -o "${{github.event.inputs.android_api}}" )"
-          echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_device -o "${{github.event.inputs.ios_device}}" )"
-          echo "::set-output name=ios_version::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_version -o "${{github.event.inputs.ios_version}}" )"
+          echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k android_device -o "${{env.default_android_device}}" )"
+          echo "::set-output name=android_api::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k android_api -o "${{env.default_android_api}}" )"
+          echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_device -o "${{env.default_ios_device}}" )"
+          echo "::set-output name=ios_version::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_version -o "${{env.default_ios_version}}" )"
 
   tests:
     name: ${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
@@ -387,11 +389,11 @@ jobs:
       - name: add failure label
         # We can do mark a failure as soon as any one test fails.
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        uses: buildsville/add-remove-label@v1
+        uses: actions-ecosystem/action-add-labels@v1
         with:
-          token: ${{ github.token }}
-          label: "${{ env.statusLabelFailed }}"
-          type: add
+          github_token: ${{ github.token }}
+          number: "${{needs.check_trigger.outputs.pr_number}}"
+          labels: "${{ env.statusLabelFailed }}"
       - name: get current time for status comment
         id: get-time
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
@@ -427,6 +429,7 @@ jobs:
             ${{ env.SUMMARY_TABLE }}
           GITHUB_TOKEN: ${{ github.token }}
           COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
+          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
 
       - name: Summarize build and test results
         if: ${{ !cancelled() }}
@@ -444,11 +447,11 @@ jobs:
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && !failure() }}
     steps:
       - name: add success label
-        uses: buildsville/add-remove-label@v1
-        with:
-          token: ${{github.token}}
-          label: "${{ env.statusLabelSucceeded }}"
-          type: add
+      uses: actions-ecosystem/action-add-labels@v1
+      with:
+        github_token: ${{ github.token }}
+        number: "${{needs.check_trigger.outputs.pr_number}}"
+        labels: "${{ env.statusLabelSucceeded }}"
       - name: get current time for status comment
         id: get-time
         shell: bash
@@ -465,6 +468,7 @@ jobs:
             **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
           GITHUB_TOKEN: ${{ github.token }}
           COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
+          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
 
   add_failure_label:
     name: "add-failure-label"
@@ -473,11 +477,11 @@ jobs:
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && failure() }}
     steps:
       - name: add failure label
-        uses: buildsville/add-remove-label@v1
+        uses: actions-ecosystem/action-remove-labels@v1
         with:
-          token: ${{ github.token }}
-          label: "${{ env.statusLabelFailed }}"
-          type: add
+          github_token: ${{ github.token }}
+          number: "${{needs.check_trigger.outputs.pr_number}}"
+          labels: "${{ env.statusLabelFailed }}"
       - name: get current time for status comment
         id: get-time
         shell: bash
@@ -518,6 +522,7 @@ jobs:
             ${{ env.SUMMARY_TABLE }}
           GITHUB_TOKEN: ${{ github.token }}
           COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
+          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
 
   remove_in_progress_label:
     name: "remove-in-progress-label"
@@ -534,11 +539,11 @@ jobs:
           app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
           private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
       - name: remove in progress label
-        uses: buildsville/add-remove-label@v1
+        uses: actions-ecosystem/action-remove-labels@v1
         with:
-          token: ${{steps.generate-token.outputs.token}}
-          label: "${{ env.statusLabelInProgress }}"
-          type: remove
+          github_token: ${{steps.generate-token.outputs.token}}
+          number: "${{needs.check_trigger.outputs.pr_number}}"
+          labels: "${{ env.statusLabelInProgress }}"
 
   summarize_results:
     name: "summarize-results"
