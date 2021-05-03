@@ -31,7 +31,7 @@ on:
       test_packaged_sdk:
         description: 'Optional: Packaging run # to build against?'
       test_pull_request:
-        description: 'Optional: Test a pull request (use this for external PRs)'
+        description: 'Optional: Test a pull request (and optional commit hash, separated by a colon).'
 
 env:
   triggerLabelPrefix: "tests-requested: "
@@ -74,10 +74,19 @@ jobs:
         exit 1  # fail out if the cancellation above somehow failed.
     - id: get_pr_number
       run: |
+        # In this step, github_ref is only used for the status message below.
+        # It will be recalculated in prepare_matrix.
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
           echo "::set-output name=pr_number::${{ github.event.pull_request.number }}"
+          echo "::set-output name=github_ref::$GITHUB_REF"
+        elif [[ "${{github.event.inputs.test_pull_request}}" == *:* ]]; then
+          # If specified as pr:commit_hash, split them.
+          echo "::set-output name=pr_number::$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f1)"
+          echo "::set-output name=github_ref::$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f2)"
         else
+          # Just a PR number.
           echo "::set-output name=pr_number::${{ github.event.inputs.test_pull_request }}"
+          echo "::set-output name=github_ref::refs/pull/${{github.event.inputs.test_pull_request}}/merge"
         fi
     ### Below this line, the label is one of the test-request triggers.
     - name: cancel previous runs on the same PR
@@ -138,23 +147,18 @@ jobs:
         comment_id: ${{ steps.find-comment.outputs.comment-id }}
         token: ${{ github.token }}
     - name: get current time for status comment
-      id: get-time-and-ref
+      id: get-time
       shell: bash
       run: |
         echo -n "::set-output name=time::"
         TZ=America/Los_Angeles date
-        if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
-          echo "::set-output name=github_ref::$GITHUB_SHA"
-        else
-          echo "::set-output name=github_ref::refs/pull/${{github.event.inputs.test_pull_request}}/merge"
-        fi
     - name: add in progress status comment
       uses: phulsechinmay/rewritable-pr-comment@v0.3.0
       with:
         message: |
           ### ⏳&nbsp; Integration test in progress...
-          Requested by @${{github.actor}} on commit ${{steps.get-time-and-ref.outputs.github_ref}}
-          Last updated: ${{ steps.get-time-and-ref.outputs.time }}
+          Requested by @${{github.actor}} on commit ${{steps.get_pr_number.outputs.github_ref}}
+          Last updated: ${{ steps.get-time.outputs.time }}
           **[View integration test run](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
         GITHUB_TOKEN: ${{ github.token }}
         COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
@@ -216,10 +220,15 @@ jobs:
           echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_device -o "${{env.default_ios_device}}" )"
           echo "::set-output name=ios_version::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_version -o "${{env.default_ios_version}}" )"
           if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
-            echo "::warning ::$GITHUB_SHA"
+            echo "::warning ::github_ref = $GITHUB_SHA"
             echo "::set-output name=github_ref::$GITHUB_SHA"
+          elif [[ "${{github.event.inputs.test_pull_request}}" == *:* ]]; then
+            # If specified as pr:commit_hash, split them to get the exact hash.
+            echo "::warning ::github_ref = $(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f2)"
+            echo "::set-output name=github_ref::$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f2)"
           else
-            echo "::warning ::refs/pull/${{github.event.inputs.test_pull_request}}/merge"
+            # Just the PR specified, use refs/pull/<number>/merge as the ref.
+            echo "::warning ::github_ref = refs/pull/${{github.event.inputs.test_pull_request}}/merge"
             echo "::set-output name=github_ref::refs/pull/${{github.event.inputs.test_pull_request}}/merge"
           fi
 
