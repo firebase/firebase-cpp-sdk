@@ -1538,8 +1538,6 @@ TEST_F(FirestoreIntegrationTest, AuthWorks) {
 // This test is to ensure b/172986326 doesn't regress.
 // Note: this test only exists in C++.
 TEST_F(FirestoreIntegrationTest, FirestoreCanBeDeletedFromTransaction) {
-  SKIP_TEST_ON_MACOS;  // TODO(b/183294303) Fix this test on Mac.
-
   auto* app = App::Create(this->app()->options(), "foo");
   auto* db = Firestore::GetInstance(app);
 
