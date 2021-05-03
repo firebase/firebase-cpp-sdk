@@ -170,6 +170,7 @@ jobs:
       android_api: ${{ steps.export-result.outputs.android_api }}
       ios_device: ${{ steps.export-result.outputs.ios_device }}
       ios_version: ${{ steps.export-result.outputs.ios_version }}
+      github_ref: ${{ steps.export-result.outputs.github_ref }}
     steps:
       - uses: actions/checkout@v2
         with:
@@ -203,6 +204,13 @@ jobs:
           echo "::set-output name=android_api::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k android_api -o "${{env.default_android_api}}" )"
           echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_device -o "${{env.default_ios_device}}" )"
           echo "::set-output name=ios_version::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_version -o "${{env.default_ios_version}}" )"
+          if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
+            echo "::warning ::$GITHUB_SHA"
+            echo "::set-output name=github_ref::$GITHUB_SHA"
+          else
+            echo "::warning ::refs/pull/${{github.event.inputs.test_pull_request}}/merge"
+            echo "::set-output name=github_ref::refs/pull/${{github.event.inputs.test_pull_request}}/merge"
+          fi
 
   tests:
     name: ${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}
@@ -230,6 +238,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
+          ref: ${{needs.prepare_matrix.outputs.github_ref}}
           submodules: true
       - name: Set env vars (ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
@@ -492,6 +501,8 @@ jobs:
           echo -n "::set-output name=time::"
           TZ=America/Los_Angeles date
       - uses: actions/checkout@v2
+        with:
+          ref: ${{needs.prepare_matrix.outputs.github_ref}}
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -555,6 +566,8 @@ jobs:
     if: ${{ !cancelled() }}
     steps:
       - uses: actions/checkout@v2
+        with:
+          ref: ${{needs.prepare_matrix.outputs.github_ref}}
       - name: Setup python
         uses: actions/setup-python@v2
         with:
