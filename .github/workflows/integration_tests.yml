@@ -78,7 +78,7 @@ jobs:
         # It will be recalculated in prepare_matrix.
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
           echo "::set-output name=pr_number::${{ github.event.pull_request.number }}"
-          echo "::set-output name=github_ref::$GITHUB_REF"
+          echo "::set-output name=github_ref::$GITHUB_SHA"
         elif [[ "${{github.event.inputs.test_pull_request}}" == *:* ]]; then
           # If specified as pr:commit_hash, split them.
           echo "::set-output name=pr_number::$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f1)"
