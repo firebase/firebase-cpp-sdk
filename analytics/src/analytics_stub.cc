@@ -109,11 +109,6 @@ void SetSessionTimeoutDuration(int64_t /*milliseconds*/) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 }
 
-void SetCurrentScreen(const char* /*screen_name*/,
-                      const char* /*screen_class*/) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-}
-
 void ResetAnalyticsData() {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   g_fake_instance_id++;

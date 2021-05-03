@@ -357,16 +357,6 @@ static void SetCurrentScreenReal(void* raw_data) {
   delete data;
 }
 
-void SetCurrentScreen(const char* screen_name, const char* screen_class) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  // Run SetCurrentScreen on the main thread.
-  SetCurrentScreenData* data =
-      new SetCurrentScreenData(screen_name, screen_class);
-  // The callback will delete `data`.
-  util::RunOnMainThread(g_app->GetJNIEnv(), g_app->activity(),
-                        SetCurrentScreenReal, data);
-}
-
 void ResetAnalyticsData() {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
   JNIEnv* env = g_app->GetJNIEnv();
