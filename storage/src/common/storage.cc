@@ -54,6 +54,7 @@ static std::map<std::pair<App*, std::string>, Storage*>* g_storages = nullptr;
 
 Storage* Storage::GetInstance(::firebase::App* app,
                               InitResult* init_result_out) {
+  LogInfo("PLACEHOLDER - Creating storage instance!");
   return GetInstance(app, nullptr, init_result_out);
 }
 
