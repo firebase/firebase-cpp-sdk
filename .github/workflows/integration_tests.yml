@@ -144,7 +144,7 @@ jobs:
         echo -n "::set-output name=time::"
         TZ=America/Los_Angeles date
     - name: add in progress status comment
-      uses: phulsechinmay/rewritable-pr-comment@v0.2.1
+      uses: phulsechinmay/rewritable-pr-comment@v0.3.0
       with:
         message: |
           ### ⏳&nbsp; Integration test in progress...
@@ -430,7 +430,7 @@ jobs:
           python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
       - name: add failure status comment
-        uses: phulsechinmay/rewritable-pr-comment@v0.2.1
+        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         with:
           message: |
@@ -471,7 +471,7 @@ jobs:
           echo -n "::set-output name=time::"
           TZ=America/Los_Angeles date
       - name: add success status comment
-        uses: phulsechinmay/rewritable-pr-comment@v0.2.1
+        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
         with:
           message: |
             ### ✅&nbsp; Integration test succeeded!
@@ -526,7 +526,7 @@ jobs:
           python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
       - name: add failure status comment
-        uses: phulsechinmay/rewritable-pr-comment@v0.2.1
+        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
         with:
           message: |
             ### ❌&nbsp; Integration test FAILED
