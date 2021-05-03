@@ -75,7 +75,7 @@ jobs:
     - id: get_pr_number
       run: |
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-          echo "::set-output name=pr_number::${{ github.event.number }}"
+          echo "::set-output name=pr_number::${{ github.event.pull_request.number }}"
         else
           echo "::set-output name=pr_number::${{ github.event.inputs.test_pull_request }}"
         fi
