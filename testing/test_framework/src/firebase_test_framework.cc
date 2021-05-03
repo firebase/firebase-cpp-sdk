@@ -96,6 +96,31 @@ void FirebaseTest::TerminateApp() {
   app_ = nullptr;
 }
 
+bool FirebaseTest::RunFlakyBlockBase(bool (*flaky_block)(void* context),
+                                     void* context, const char* name) {
+  // Run flaky_block(context). If it returns true, all is well, return true.
+  // If it returns false, something flaky failed; wait a moment and try again.
+  const int kRetryDelaysMs[] = {// Roughly exponential backoff for the retries.
+                                100, 1000, 5000, 10000, 30000};
+  const int kNumAttempts =
+      1 + (sizeof(kRetryDelaysMs) / sizeof(kRetryDelaysMs[0]));
+
+  int attempt = 0;
+
+  while (attempt < kNumAttempts) {
+    bool result = flaky_block(context);
+    if (result || (attempt == kNumAttempts - 1)) {
+      return result;
+    }
+    app_framework::LogDebug("RunFlakyBlock%s%s: Attempt %d failed",
+                            *name ? " " : "", name, attempt + 1);
+    int delay_ms = kRetryDelaysMs[attempt];
+    app_framework::ProcessEvents(delay_ms);
+    attempt++;
+  }
+  return false;
+}
+
 firebase::FutureBase FirebaseTest::RunWithRetryBase(
     firebase::FutureBase (*run_future)(void* context), void* context,
     const char* name, int expected_error) {
@@ -162,6 +187,17 @@ bool FirebaseTest::WaitForCompletion(const firebase::FutureBase& future,
       << future.error_message();
   return (future.status() == firebase::kFutureStatusComplete &&
           future.error() == expected_error);
+}
+
+bool FirebaseTest::WaitForCompletionAnyResult(
+    const firebase::FutureBase& future, const char* name) {
+  app_framework::LogDebug("WaitForCompletion %s", name);
+  while (future.status() == firebase::kFutureStatusPending) {
+    app_framework::ProcessEvents(100);
+  }
+  EXPECT_EQ(future.status(), firebase::kFutureStatusComplete)
+      << name << " returned an invalid status.";
+  return (future.status() == firebase::kFutureStatusComplete);
 }
 
 static void VariantToStringInternal(const firebase::Variant& variant,

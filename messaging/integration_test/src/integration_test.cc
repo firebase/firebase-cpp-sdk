@@ -184,6 +184,10 @@ void FirebaseMessagingTest::TearDownTestSuite() {
   LogDebug("Shutdown Firebase App.");
   delete shared_app_;
   shared_app_ = nullptr;
+
+  // On iOS/FTL, most or all of the tests are skipped, so add a delay so the app
+  // doesn't finish too quickly, as this makes test results flaky.
+  ProcessEvents(1000);
 }
 
 FirebaseMessagingTest::FirebaseMessagingTest() {
