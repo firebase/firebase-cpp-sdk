@@ -31,7 +31,7 @@ on:
       test_packaged_sdk:
         description: 'Optional: Packaging run # to build against?'
       test_pull_request:
-        description: 'Optional: Test a pull request (and optional commit hash, separated by a colon).'
+        description: 'Optional: Pull request # to build and test? (with optional commit hash, separated by a colon)'
 
 env:
   triggerLabelPrefix: "tests-requested: "
