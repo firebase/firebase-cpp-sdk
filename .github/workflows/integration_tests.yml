@@ -213,7 +213,7 @@ jobs:
           echo "::set-output name=matrix_os::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k os -o "${{github.event.inputs.operating_systems}}" ${AUTO_DIFF_PARAM})"
           # If building against a packaged SDK, only use boringssl.
           if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
-            echo "::warning ::Downloading SDK package from previous run: https://github.com/firebase/firebase-cpp-sdk/actions/runs/${{ github.event.inputs.test_packaged_sdk }}"
+            echo "::warning ::Downloading SDK package from previous run: https://github.com/${{github.repository}}/actions/runs/${{ github.event.inputs.test_packaged_sdk }}"
             # Because the mobile tests require this value to be set to 'openssl', set it to 'openssl' here. It won't actually matter later.
             echo "::set-output name=matrix_ssl::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ssl_lib -o openssl )"
           else
@@ -224,15 +224,15 @@ jobs:
           echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_device -o "${{env.default_ios_device}}" )"
           echo "::set-output name=ios_version::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k ios_version -o "${{env.default_ios_version}}" )"
           if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
-            echo "::warning ::github_ref = $GITHUB_SHA"
+            echo "::warning ::Running on https://github.com/${{github.repository}}/commits/$GITHUB_SHA"
             echo "::set-output name=github_ref::$GITHUB_SHA"
           elif [[ "${{github.event.inputs.test_pull_request}}" == *:* ]]; then
             # If specified as pr:commit_hash, split them to get the exact hash.
-            echo "::warning ::github_ref = $(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f2)"
+            echo "::warning ::Running on https://github.com/${{github.repository}}/commits/$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f2)"
             echo "::set-output name=github_ref::$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f2)"
           else
             # Just the PR specified, use refs/pull/<number>/merge as the ref.
-            echo "::warning ::github_ref = refs/pull/${{github.event.inputs.test_pull_request}}/merge"
+            echo "::warning ::Running on https://github.com/${{github.repository}}/pull/${{github.event.inputs.test_pull_request}}"
             echo "::set-output name=github_ref::refs/pull/${{github.event.inputs.test_pull_request}}/merge"
           fi
 
