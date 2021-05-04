@@ -581,7 +581,7 @@ jobs:
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
-          path: testapps-android-${{ matrix.build_os }}/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log
+          path: testapps-android-${{ matrix.build_os }}/test-results-android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}.log
           retention-days: 1  
 
   test_ios:
@@ -630,7 +630,7 @@ jobs:
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
-          path: testapps-ios-macos-latest/test-results-ios-${{ matrix.build_os }}-${{ matrix.ios_device }}.log
+          path: testapps-ios-macos-latest/test-results-ios-macos-latest-${{steps.get-device.outputs.device}}.log
           retention-days: 1  
           
   add_success_label:
