@@ -121,8 +121,10 @@ flags.DEFINE_string(
     "Build output will be placed in this directory.")
 
 flags.DEFINE_string(
-    "artifact_name", "~",
-    "integration_tests will be compressed with the name and placed in output_directory.")    
+    "artifact_name", "",
+    "artifacts will be created and placed in output_directory."
+    " testapps artifact is testapps-$artifact_name.zip;"
+    " build log artifact is build-results-$artifact_name.log.")    
 
 flags.DEFINE_string(
     "repo_dir", os.getcwd(),
@@ -255,7 +257,7 @@ def main(argv):
   
   _zip_integration_tests(testapps, root_output_dir, FLAGS.artifact_name)
 
-  _summarize_results(testapps, platforms, failures, output_dir)
+  _summarize_results(testapps, platforms, failures, root_output_dir, FLAGS.artifact_name)
   return 1 if failures else 0
 
 
@@ -328,6 +330,7 @@ def _build(
 
 
 def _zip_integration_tests(testapps, output_dir, artifact_name):
+  testapps_artifact_dir = "testapps-" + artifact_name
   android_testapp_extension = ".apk"
   ios_testapp_extension = ".ipa"
   ios_simualtor_testapp_extension = ".app"
@@ -346,19 +349,24 @@ def _zip_integration_tests(testapps, output_dir, artifact_name):
           or file_name.endswith(ios_testapp_extension)):
         testapp_paths.append(os.path.join(file_dir, file_name))
 
-  artifact_path = os.path.join(output_dir, artifact_name)
+  artifact_path = os.path.join(output_dir, testapps_artifact_dir)
   for testapp in testapps:
     os.makedirs(os.path.join(artifact_path, testapp))
   for path in testapp_paths:
     for testapp in testapps:
       if testapp in path:
-        shutil.move(path, os.path.join(artifact_path, testapp))
+        if os.path.isfile(path):
+          shutil.copy(path, os.path.join(artifact_path, testapp))
+        else:
+          dir_util.copy_tree(os.path.join(path, "integration_test.app"), os.path.join(artifact_path, testapp))
         break
-  shutil.make_archive(artifact_path, 'zip', root_dir=output_dir, base_dir=artifact_name)
+  shutil.make_archive(artifact_path, 'zip', root_dir=output_dir, base_dir=testapps_artifact_dir)
 
 
-def _summarize_results(testapps, platforms, failures, output_dir):
+def _summarize_results(testapps, platforms, failures, output_dir, artifact_name):
   """Logs a readable summary of the results of the build."""
+  file_name = "build-results-" + artifact_name + ".log"
+
   summary = []
   summary.append("BUILD SUMMARY:")
   summary.append("TRIED TO BUILD: " + ",".join(testapps))
@@ -373,7 +381,7 @@ def _summarize_results(testapps, platforms, failures, output_dir):
   summary = "\n".join(summary)
 
   logging.info(summary)
-  test_validation.write_summary(output_dir, summary)
+  test_validation.write_summary(output_dir, summary, file_name=file_name)
 
 
 def _build_desktop(sdk_dir, cmake_flags):

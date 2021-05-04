@@ -298,14 +298,20 @@ jobs:
               additional_flags+=(--cmake_flag=-DFIREBASE_USE_BORINGSSL=ON)
             fi
           fi
-          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p Desktop --output_directory "${{ github.workspace }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
+          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p Desktop --output_directory ${{ github.workspace }} --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
 
-      - name: Upload desktop integration tests artifact
+      - name: Upload Desktop integration tests artifact
         uses: actions/upload-artifact@v2.2.2
-        if: matrix.target_platform != 'Desktop' && ${{ !cancelled() }}
         with:
           name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.zip
           path: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.zip
+          retention-days: 1
+
+      - name: Upload Desktop build results artifact
+        uses: actions/upload-artifact@v2.2.2
+        with:
+          name: log-artifact
+          path: build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
           retention-days: 1
 
   build_android:
@@ -390,14 +396,20 @@ jobs:
             cd ..
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
           fi
-          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p Android --output_directory "${{ github.workspace }}" --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-android-${{ matrix.os }}"
+          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p Android --output_directory ${{ github.workspace }} --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name android-${{ matrix.os }}
 
-      - name: Upload mobile integration tests artifact
+      - name: Upload Android integration tests artifact
         uses: actions/upload-artifact@v2.2.2
-        if: ${{ !cancelled() }}
         with:
           name: testapps-android-${{ matrix.os }}.zip
           path: testapps-android-${{ matrix.os }}.zip
+          retention-days: 1
+
+      - name: Upload Android build results artifact
+        uses: actions/upload-artifact@v2.2.2
+        with:
+          name: log-artifact
+          path: build-results-android-${{ matrix.os }}.log
           retention-days: 1
 
   build_ios:
@@ -459,14 +471,20 @@ jobs:
             cd ..
             additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
           fi
-          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p iOS --output_directory "${{ github.workspace }}" --ios_sdk ${{ needs.prepare_matrix.outputs.mobile_test_on }} --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name "testapps-ios-macos-latest"
+          python scripts/gha/build_testapps.py --t ${{ needs.prepare_matrix.outputs.apis }} --p iOS --output_directory ${{ github.workspace }} --ios_sdk ${{ needs.prepare_matrix.outputs.mobile_test_on }} --noadd_timestamp ${additional_flags[*]} --short_output_paths --artifact_name ios-macos-latest
 
-      - name: Upload mobile integration tests artifact
+      - name: Upload iOS integration tests artifact
         uses: actions/upload-artifact@v2.2.2
-        if: ${{ !cancelled() }}
         with:
           name: testapps-ios-macos-latest.zip
           path: testapps-ios-macos-latest.zip
+          retention-days: 1
+
+      - name: Upload iOS build results artifact
+        uses: actions/upload-artifact@v2.2.2
+        with:
+          name: log-artifact
+          path: build-results-ios-macos-latest.log
           retention-days: 1
 
   test_desktop:
@@ -499,7 +517,13 @@ jobs:
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
       - name: Run desktop integration tests
         run: |
-          python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+          python scripts/gha/desktop_tester.py --testapp_dir testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }} --artifact_name desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+      - name: Upload Desktop test results artifact
+        uses: actions/upload-artifact@v2.2.2
+        with:
+          name: log-artifact
+          path: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
+          retention-days: 1          
       - name: Set CLOUDSDK_PYTHON (Windows)
         shell: bash
         if: startsWith(matrix.os, 'windows') && !cancelled()
@@ -544,7 +568,7 @@ jobs:
       - name: Run Android integration tests on Emulator locally
         if: startsWith(matrix.android_device, 'virtual')
         run: |
-          python scripts/gha/test_simulator.py --testapp_dir testapps-android-${{ matrix.build_os }} --android_device "${{steps.get-device.outputs.device}}" --ci
+          python scripts/gha/test_simulator.py --testapp_dir testapps-android-${{ matrix.build_os }} --android_device "${{steps.get-device.outputs.device}}" --artifact_name android-${{ matrix.build_os }}-${{ matrix.android_device }} --ci
       - name: Install Cloud SDK
         if: startsWith(matrix.android_device, 'real')
         uses: google-github-actions/setup-gcloud@master
@@ -552,7 +576,13 @@ jobs:
         if: startsWith(matrix.android_device, 'real')
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
-          python scripts/gha/test_lab.py --testapp_dir testapps-android-${{ matrix.build_os }} --android_device "${{steps.get-device.outputs.device}}" --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
+          python scripts/gha/test_lab.py --testapp_dir testapps-android-${{ matrix.build_os }} --android_device ${{steps.get-device.outputs.device}} --artifact_name android-${{ matrix.build_os }}-${{ matrix.android_device }} --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
+      - name: Upload Android test results artifact
+        uses: actions/upload-artifact@v2.2.2
+        with:
+          name: log-artifact
+          path: testapps-android-${{ matrix.build_os }}/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log
+          retention-days: 1  
 
   test_ios:
     name: test-ios-macos-latest-${{ matrix.ios_device }}
@@ -587,7 +617,7 @@ jobs:
       - name: Run iOS integration tests on Simulator locally
         if: startsWith(matrix.ios_device, 'virtual')
         run: |
-          python scripts/gha/test_simulator.py --testapp_dir testapps-ios-macos-latest --ios_device "${{steps.get-device.outputs.device}}" --ci
+          python scripts/gha/test_simulator.py --testapp_dir testapps-ios-macos-latest --ios_device ${{steps.get-device.outputs.device}} --artifact_name ios-macos-latest-${{ matrix.ios_device }} --ci
       - name: Install Cloud SDK
         if: startsWith(matrix.ios_device, 'real')
         uses: google-github-actions/setup-gcloud@master
@@ -595,7 +625,13 @@ jobs:
         if: startsWith(matrix.ios_device, 'real')
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
-          python scripts/gha/test_lab.py --testapp_dir testapps-ios-macos-latest --ios_device "${{steps.get-device.outputs.device}}" --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
+          python scripts/gha/test_lab.py --testapp_dir testapps-ios-macos-latest --ios_device ${{steps.get-device.outputs.device}} --artifact_name ios-macos-latest-${{ matrix.ios_device }} --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
+      - name: Upload Android test results artifact
+        uses: actions/upload-artifact@v2.2.2
+        with:
+          name: log-artifact
+          path: testapps-ios-macos-latest/test-results-ios-${{ matrix.build_os }}-${{ matrix.android_device }}.log
+          retention-days: 1  
           
   add_success_label:
     name: "add-success-label"

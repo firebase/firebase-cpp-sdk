@@ -86,6 +86,10 @@ flags.DEFINE_string(
     "ios_device", None,
     "Model_id and IOS_version for desired device. See module docstring for "
     "details on how to get this id. If none, will use FTL's default.")
+flags.DEFINE_string(
+    "artifact_name", "",
+    "Create test log artifact is test-results-$artifact_name.log."
+    " artifacts will be created and placed in testapp_dir.")   
 
 def main(argv):
   if len(argv) > 1:
@@ -170,7 +174,11 @@ def main(argv):
   )
 
   return test_validation.summarize_test_results(
-      tests, code_platform, testapp_dir, extra_info=" (ON REAL DEVICE VIA FTL)")
+      tests, 
+      code_platform, 
+      testapp_dir, 
+      file_name="test-results-" + FLAGS.artifact_name + ".log",
+      extra_info=" (ON REAL DEVICE VIA FTL)")
 
 
 def _install_gcloud_beta():

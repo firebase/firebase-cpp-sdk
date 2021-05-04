@@ -86,11 +86,15 @@ flags.DEFINE_string(
     "testapp_dir", None,
     "Testapps in this directory will be tested.")
 flags.DEFINE_string(
-    "ios_device", "iPhone 11|14.4",
+    "ios_device", "iPhone 8|12.0",
     "iOS device, which is a combination of device name and os version")
 flags.DEFINE_string(
-    "android_device", "system-images;android-29;google_apis;x86|29.0.3",
+    "android_device", "system-images;android-28;google_apis;x86_64|28.0.3",
     "android device, which is a combination of sdk id and build tool version")
+flags.DEFINE_string(
+    "artifact_name", "",
+    "Create test log artifact is test-results-$artifact_name.log."
+    " artifacts will be created and placed in testapp_dir.")   
 flags.DEFINE_boolean(
     "ci", False,
     "If this script used in a CI system, set True.")
@@ -197,7 +201,11 @@ def main(argv):
                       logs=_run_android_gameloop_test(package_name, app_path, android_gameloop_project)))
 
   return test_validation.summarize_test_results(
-    tests, test_validation.CPP, testapp_dir, extra_info=" (ON SIMULATOR/EMULATOR)")
+    tests, 
+    test_validation.CPP, 
+    testapp_dir, 
+    file_name="test-results-" + FLAGS.artifact_name + ".log", 
+    extra_info=" (ON SIMULATOR/EMULATOR)")
 
 
 def _build_ios_gameloop(gameloop_project, device_name, device_os):

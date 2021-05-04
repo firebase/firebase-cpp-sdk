@@ -103,7 +103,7 @@ PARAMETERS = {
       "android_device": ["virtual:system-images;android-28;google_apis;x86_64|28.0.3", "real:Pixel2|28"],
       "ios_device": ["virtual:iPhone 8|12.0", "real:iphone6s|12.0"],
       EXPANDED_KEY: {
-        "android_device": ["virtual:system-images;android-19;default;x86|28.0.3", "virtual:system-images;android-28;google_apis;x86_64|28.0.3", "virtual:system-images;android-29;default;x86|28.0.3", "real:Nexus10|19", "real:Pixel2|28", "real:flame|29"],
+        "android_device": ["virtual:system-images;android-18;default;x86|28.0.3", "virtual:system-images;android-28;google_apis;x86_64|28.0.3", "virtual:system-images;android-29;default;x86|28.0.3", "real:Nexus10|19", "real:Pixel2|28", "real:flame|29"],
         "ios_device": ["virtual:iPhone 6|11.4", "virtual:iPhone 8|12.0", "virtual:iPhone 11|14.4", "real:iphone8|11.4", "real:iphone6s|12.0", "real:iphone11pro|14.1"]
       }
     },
