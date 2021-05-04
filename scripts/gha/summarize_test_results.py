@@ -277,7 +277,7 @@ def main(argv):
     if platform not in log_results:
       log_results[platform] = { "build_failures": set(), "test_failures": set(),
                                 "attempted": set(), "successful": set() }
-    if "No summary found." in log_text:
+    if "__SUMMARY_MISSING__" in log_text:
       log_results[platform]["build_failures"].add('[log file missing]')
     # Get a full list of the products built.
     m = re.search(r'TRIED TO BUILD: ([^\n]*)', log_text)

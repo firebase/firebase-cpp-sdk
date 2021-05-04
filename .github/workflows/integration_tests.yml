@@ -417,7 +417,7 @@ jobs:
             cp ta/summary.log test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
           else
             # No summary was created, make a placeholder one.
-            echo "No summary found." > test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
+            echo "__SUMMARY_MISSING__" > test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
           fi
       - name: Upload results summary artifact
         uses: actions/upload-artifact@v2.2.2
