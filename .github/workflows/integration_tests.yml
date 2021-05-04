@@ -229,7 +229,7 @@ jobs:
             echo "::set-output name=github_ref::$GITHUB_SHA"
           elif [[ "${{github.event.inputs.test_pull_request}}" == *:* ]]; then
             # If specified as pr:commit_hash, split them to get the exact hash.
-            echo "::warning ::Running on https://github.com/${{github.repository}}/commits/$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f2)"
+            echo "::warning ::Running on https://github.com/${{github.repository}}/pull/$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f1) on commit https://github.com/${{github.repository}}/commits/$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f2)"
             echo "::set-output name=github_ref::$(echo ${{ github.event.inputs.test_pull_request }} | cut -d: -f2)"
           else
             # Just the PR specified, use refs/pull/<number>/merge as the ref.
