@@ -55,7 +55,7 @@ flags.DEFINE_string(
     short_name="d")
 
 flags.DEFINE_string(
-    "pattern", "test-results-*.txt",
+    "pattern", "test-results-*.log",
     "File pattern (glob) for test results."
     "The '*' part is used to determine the platform.")
 
@@ -240,8 +240,6 @@ def main(argv):
       log_name = re.sub(r'[-_.]+', ' ', log_name).split()
       # Remove redundant components.
       if "latest" in log_name: log_name.remove("latest")
-      if "Android" in log_name or "iOS" in log_name:
-          log_name.remove('openssl')
       # Capitalize components in a nice way.
       log_name = [
           CAPITALIZATIONS[name.lower()]
@@ -259,16 +257,16 @@ def main(argv):
         log_name[1] = "**%s" % log_name[1]
       with open(log_file, "r") as log_reader:
         log_reader_data = log_reader.read()
-        if "Android" in log_name[1] or "iOS" in log_name[1]:
+        if "Android" in log_name[0] or "iOS" in log_name[0]:
           # Rejoin matrix name with spaces.
-          log_name_str = ' '.join([log_name[1], SIMULATOR, log_name[0]]+log_name[2:])
+          log_name_str = ' '.join([log_name[0], SIMULATOR, log_name[1]]+log_name[2:])
           log_data[log_name_str] = log_reader_data
           # iOS and Android repeat the list for simulator and device
-          log_name_str = ' '.join([log_name[1], HARDWARE, log_name[0]]+log_name[2:])
+          log_name_str = ' '.join([log_name[0], HARDWARE, log_name[1]]+log_name[2:])
           log_data[log_name_str] = log_reader_data
         else:
           # Rejoin matrix name with spaces.
-          log_name_str = ' '.join([log_name[1], log_name[0]]+log_name[2:])
+          log_name_str = ' '.join([log_name[0], log_name[1]]+log_name[2:])
           log_data[log_name_str] = log_reader_data
 
   log_results = {}
@@ -277,20 +275,20 @@ def main(argv):
     if platform not in log_results:
       log_results[platform] = { "build_failures": set(), "test_failures": set(),
                                 "attempted": set(), "successful": set() }
-    # Get a full list of the products built.
-    m = re.search(r'TRIED TO BUILD: ([^\n]*)', log_text)
-    if m:
-      log_results[platform]["attempted"].update(m.group(1).split(","))
-    # Extract build failure lines, which follow "SOME FAILURES OCCURRED:"
-    m = re.search(r'SOME FAILURES OCCURRED:\n(([\d]+:[^\n]*\n)+)', log_text, re.MULTILINE)
-    if m:
-      for build_failure_line in m.group(1).strip("\n").split("\n"):
-        m2 = re.match(r'[\d]+: ([^,]+)', build_failure_line)
-        if m2:
-          product_name = m2.group(1).lower()
-          if product_name:
-            log_results[platform]["build_failures"].add(product_name)
-            any_failures = True
+    # # Get a full list of the products built.
+    # m = re.search(r'TRIED TO BUILD: ([^\n]*)', log_text)
+    # if m:
+    #   log_results[platform]["attempted"].update(m.group(1).split(","))
+    # # Extract build failure lines, which follow "SOME FAILURES OCCURRED:"
+    # m = re.search(r'SOME FAILURES OCCURRED:\n(([\d]+:[^\n]*\n)+)', log_text, re.MULTILINE)
+    # if m:
+    #   for build_failure_line in m.group(1).strip("\n").split("\n"):
+    #     m2 = re.match(r'[\d]+: ([^,]+)', build_failure_line)
+    #     if m2:
+    #       product_name = m2.group(1).lower()
+    #       if product_name:
+    #         log_results[platform]["build_failures"].add(product_name)
+    #         any_failures = True
 
     test_summary_title = "TEST SUMMARY:"
     # If the log reports "(ON SIMULATOR/EMULATOR)" or "(ON REAL DEVICE VIA FTL)", make sure it matches the platform.
@@ -335,6 +333,8 @@ def main(argv):
     log_results[platform]["successful"] = log_results[platform]["attempted"].difference(
       log_results[platform]["test_failures"].union(
         log_results[platform]["build_failures"]))
+  
+  print(log_results)
 
   # Also, if any simulator and hardware targets are identical, filter them.
   to_del = set()
