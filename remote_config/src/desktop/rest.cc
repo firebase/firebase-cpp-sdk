@@ -19,7 +19,6 @@
 #include <memory>
 #include <sstream>
 
-#include "app/instance_id/instance_id_desktop_impl.h"
 #include "app/meta/move.h"
 #include "app/rest/transport_builder.h"
 #include "app/rest/transport_curl.h"
@@ -98,30 +97,10 @@ static std::string GenerateFakeId() {
 }
 
 void RemoteConfigREST::TryGetInstallationsAndToken(const App& app) {
-  // Convert the app reference stored in RemoteConfigInternal
-  // pointer for InstanceIdDesktopImpl.
-  App* non_const_app = const_cast<App*>(&app);
-  auto* iid_impl =
-      firebase::instance_id::internal::InstanceIdDesktopImpl::GetInstance(
-          non_const_app);
-  if (iid_impl == nullptr) {
-    // Instance ID not supported.
-    app_instance_id_ = GenerateFakeId();
-    app_instance_id_token_ = GenerateFakeId();
-    return;
-  }
-
-  Future<std::string> id_future = iid_impl->GetId();
-  WaitForFuture<std::string>(id_future, &fetch_future_sem_, "Get Instance Id");
-  app_instance_id_ = *id_future.result();
-
-  // Only get token if instance id is retrieved.
-  if (!app_instance_id_.empty()) {
-    Future<std::string> token_future = iid_impl->GetToken(kTokenScope);
-    WaitForFuture<std::string>(token_future, &fetch_future_sem_,
-                               "Get Instance Id Token");
-    app_instance_id_token_ = *token_future.result();
-  }
+  // Instance ID no longer supported.
+  // TODO: use Installations instead.
+  app_instance_id_ = GenerateFakeId();
+  app_instance_id_token_ = GenerateFakeId();
 }
 
 void RemoteConfigREST::SetupRestRequest(

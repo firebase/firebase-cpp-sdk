@@ -393,8 +393,9 @@ TEST(ViewDeathTest, ApplyOperation_MustHaveLocalCache) {
   View view(query_spec, initial_view_cache);
 
   Operation operation(Operation::kTypeMerge,
-                      OperationSource(Optional<QueryParams>()), Path(),
-                      Variant(), CompoundWrite(), Tree<bool>(), kAckConfirm);
+                      OperationSource(Optional<QueryParams>(QueryParams())),
+                      Path(), Variant(), CompoundWrite(), Tree<bool>(),
+                      kAckConfirm);
   WriteTree write_tree;
   WriteTreeRef writes_cache(Path(), &write_tree);
   Variant complete_server_cache;
@@ -419,8 +420,9 @@ TEST(ViewDeathTest, ApplyOperation_MustHaveServerCache) {
   View view(query_spec, initial_view_cache);
 
   Operation operation(Operation::kTypeMerge,
-                      OperationSource(Optional<QueryParams>()), Path(),
-                      Variant(), CompoundWrite(), Tree<bool>(), kAckConfirm);
+                      OperationSource(Optional<QueryParams>(QueryParams())),
+                      Path(), Variant(), CompoundWrite(), Tree<bool>(),
+                      kAckConfirm);
   WriteTree write_tree;
   WriteTreeRef writes_cache(Path(), &write_tree);
   Variant complete_server_cache;

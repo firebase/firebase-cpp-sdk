@@ -29,8 +29,6 @@ def firebaseDependenciesMap = [
   'functions' : ['com.google.firebase:firebase-functions:19.2.0'],
   'installations' : ['com.google.firebase:firebase-installations:16.3.5',
                      'com.google.android.gms:play-services-base:17.6.0'],
-  'instance_id' : ['com.google.firebase:firebase-iid:21.1.0',
-                   'com.google.android.gms:play-services-base:17.6.0'],
   'invites' : ['com.google.firebase:firebase-invites:17.0.0'],
   // Messaging has an additional local dependency to include.
   'messaging' : ['com.google.firebase:firebase-messaging:21.1.0',
@@ -94,9 +92,6 @@ class Dependencies {
   }
   def getInstallations() {
     libSet.add('installations')
-  }
-  def getInstanceId() {
-    libSet.add('instance_id')
   }
   def getInvites() {
     libSet.add('invites')

@@ -308,7 +308,8 @@ def main(argv):
         # Don't process this if meet another TEST SUMMARY
         if "TEST SUMMARY" in test_failure_line: break
         # Only get the lines showing paths.
-        if "/firebase-cpp-sdk/" not in test_failure_line: continue
+        if ("/firebase-cpp-sdk/" not in test_failure_line and
+            "\\firebase-cpp-sdk\\" not in test_failure_line): continue
         test_filename = "";
         if "log tail" in test_failure_line:
           test_filename = re.match(r'^(.*) log tail', test_failure_line).group(1)
@@ -322,6 +323,7 @@ def main(argv):
           test_filename = re.match(r'^(.*integration_test\.app)', test_failure_line).group(1)
 
         if test_filename:
+          test_filename = test_filename.replace('\\', '/')
           m2 = re.search(r'/ta/(firebase)?([^/]+)/iti?/', test_filename, re.IGNORECASE)
           if not m2: m2 = re.search(r'/testapps/(firebase)?([^/]+)/integration_test', test_filename, re.IGNORECASE)
           if m2:

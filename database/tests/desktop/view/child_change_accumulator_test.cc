@@ -121,7 +121,7 @@ TEST(ChildChangeAccumulator, TrackChildChangeAddedThenRemoved) {
 // in sequence.
 TEST(ChildChangeAccumulator, TrackChildChangeChangedThenRemoved) {
   ChildChangeAccumulator accumulator;
-  TrackChildChange(ChildChangedChange("ChildChangeThenRemove", "old", "order"),
+  TrackChildChange(ChildChangedChange("ChildChangeThenRemove", "old", "older"),
                    &accumulator);
   // Note: the removed value "new" does not need to match the value "old"
   //       changed previously.
@@ -129,7 +129,7 @@ TEST(ChildChangeAccumulator, TrackChildChangeChangedThenRemoved) {
                    &accumulator);
 
   // Expected result should be a ChildRemoved change from "old" value
-  Change expected = ChildRemovedChange("ChildChangeThenRemove", "old");
+  Change expected = ChildRemovedChange("ChildChangeThenRemove", "older");
 
   auto it = accumulator.find("ChildChangeThenRemove");
   ASSERT_NE(it, accumulator.end());

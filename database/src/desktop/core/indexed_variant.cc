@@ -145,19 +145,18 @@ void IndexedVariant::EnsureIndexed() {
   PruneNulls(&variant_);
 
   for (const auto& entry : variant_.map()) {
+    if (entry.first.is_string() && entry.first.string_value()[0] == '.') {
+      // Do not index pseudo-keys.
+      continue;
+    }
     index_.insert(entry);
   }
 }
 
 IndexedVariant IndexedVariant::UpdateChild(const std::string& key,
                                            const Variant& child) const {
-  // Remove element.
-  Variant result = variant_.is_map() ? variant_ : Variant::EmptyMap();
-  if (child.is_null()) {
-    result.map().erase(key);
-  } else {
-    result.map()[key] = child;
-  }
+  Variant result = variant_;
+  VariantUpdateChild(&result, key, child);
   return IndexedVariant(result, query_params_);
 }
 
