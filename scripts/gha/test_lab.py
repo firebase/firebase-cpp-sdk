@@ -45,10 +45,10 @@ following commands:
 Note: you need the value in the MODEL_ID column, not MODEL_NAME. Examples:
 
 Pixel 2, API level 28:
-  --android_device walleye|28
+  --android_device walleye+28
 
 iPhone 8 Plus, OS 11.4:
-  --ios_device iphone8plus|11.4
+  --ios_device iphone8plus+11.4
 
 """
 
@@ -103,7 +103,7 @@ def main(argv):
     raise ValueError("Key file path does not exist: %s" % key_file_path)
 
   if FLAGS.android_device:
-    android_device_info = FLAGS.android_device.split("|")
+    android_device_info = FLAGS.android_device.split("+")
     if len(android_device_info) == 2:
       android_device = Device(model=android_device_info[0], version=android_device_info[1])
     else:
@@ -112,7 +112,7 @@ def main(argv):
     android_device = Device(model=None, version=None)
   
   if FLAGS.ios_device:
-    ios_device_info = FLAGS.ios_device.split("|")
+    ios_device_info = FLAGS.ios_device.split("+")
     if len(ios_device_info) == 2:
       ios_device = Device(model=ios_device_info[0], version=ios_device_info[1])
     else:

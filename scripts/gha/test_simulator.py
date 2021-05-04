@@ -32,9 +32,9 @@ available simulators (supported models and versions) with the following commands
 
   xcrun simctl list
 
-Note: you need to combine Name and Version with "|". Examples:
+Note: you need to combine Name and Version with "+". Examples:
 iPhone 11, OS 14.4:
-  --ios_device "iPhone 11|14.4"
+  --ios_device "iPhone 11+14.4"
 
 ----Android only----
 Java 8 is required
@@ -51,9 +51,9 @@ available tools with the following commands:
 
   $ANDROID_HOME/tools/bin/sdkmanager --list
 
-Note: you need to combine them with "|". Examples:
+Note: you need to combine them with "+". Examples:
 sdk id "system-images;android-29;google_apis;x86", build tool version "29.0.3":
-  --android_device "system-images;android-29;google_apis;x86|29.0.3"
+  --android_device "system-images;android-29;google_apis;x86+29.0.3"
 
 Returns:
    1: No iOS/Android integration_test apps found
@@ -86,10 +86,10 @@ flags.DEFINE_string(
     "testapp_dir", None,
     "Testapps in this directory will be tested.")
 flags.DEFINE_string(
-    "ios_device", "iPhone 8|12.0",
+    "ios_device", "iPhone 8+12.0",
     "iOS device, which is a combination of device name and os version")
 flags.DEFINE_string(
-    "android_device", "system-images;android-28;google_apis;x86_64|28.0.3",
+    "android_device", "system-images;android-28;google_apis;x86_64+28.0.3",
     "android device, which is a combination of sdk id and build tool version")
 flags.DEFINE_string(
     "artifact_name", "",
@@ -134,7 +134,7 @@ def main(argv):
   if ios_testapps:
     logging.info("iOS Testapps found: %s", "\n".join(path for path in ios_testapps))
     
-    device_info = FLAGS.ios_device.split("|")
+    device_info = FLAGS.ios_device.split("+")
     if len(device_info) != 2:
       logging.error("Not a valid ios device: %s" % FLAGS.ios_device)
       return 20
@@ -170,7 +170,7 @@ def main(argv):
   if android_testapps:
     logging.info("Android Testapps found: %s", "\n".join(path for path in android_testapps))
 
-    device_info = FLAGS.android_device.split("|", 1)
+    device_info = FLAGS.android_device.split("+", 1)
     if len(device_info) != 2:
       logging.error("Not a valid android device: %s" % FLAGS.android_device)
       return 30

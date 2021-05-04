@@ -333,8 +333,6 @@ def main(argv):
     log_results[platform]["successful"] = log_results[platform]["attempted"].difference(
       log_results[platform]["test_failures"].union(
         log_results[platform]["build_failures"]))
-  
-  print(log_results)
 
   # Also, if any simulator and hardware targets are identical, filter them.
   to_del = set()
