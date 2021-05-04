@@ -413,7 +413,12 @@ jobs:
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         run: |
-          cp ta/summary.log test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
+          if [[ -r ta/summary.log ]]; then
+            cp ta/summary.log test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
+          else
+            # No summary was created, make a placeholder one.
+            echo "No summary found." > test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
+          fi
       - name: Upload results summary artifact
         uses: actions/upload-artifact@v2.2.2
         if: ${{ !cancelled() }}
