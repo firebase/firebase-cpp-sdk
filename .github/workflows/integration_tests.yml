@@ -478,7 +478,7 @@ jobs:
 
   add_success_label:
     name: "add-success-label"
-    needs: [check_trigger, tests]
+    needs: [check_trigger, prepare_matrix, tests]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && !failure() }}
     steps:
@@ -508,7 +508,7 @@ jobs:
 
   add_failure_label:
     name: "add-failure-label"
-    needs: [check_trigger, tests]
+    needs: [check_trigger, prepare_matrix, tests]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && failure() }}
     steps:
@@ -564,7 +564,7 @@ jobs:
 
   remove_in_progress_label:
     name: "remove-in-progress-label"
-    needs: [check_trigger, tests]
+    needs: [check_trigger, prepare_matrix, tests]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() }}
     steps:
@@ -585,7 +585,7 @@ jobs:
 
   summarize_results:
     name: "summarize-results"
-    needs: [add_failure_label, add_success_label, remove_in_progress_label, tests]
+    needs: [add_failure_label, add_success_label, remove_in_progress_label, prepare_matrix, tests]
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }}
     steps:
