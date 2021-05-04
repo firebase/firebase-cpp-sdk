@@ -538,7 +538,7 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
     const std::string& bundle) {
   Env env = GetEnv();
   Local<String> bundle_jstring = env.NewStringUtf(bundle.c_str());
-  Local<String> encoding = env.NewStringUtf("UTF-8");
+  String encoding = String::GetUtf8();
   Local<Array<uint8_t>> bytes = bundle_jstring.GetBytes(env, encoding);
   Local<LoadBundleTaskInternal> task = env.Call(obj_, kLoadBundle, bytes);
 

@@ -56,6 +56,12 @@ if(MSVC)
   add_definitions(-DNOMINMAX)
 endif()
 
+# SET(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=thread")
+# SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fsanitize=thread")
+# set_target_properties(${TARGET} PROPERTIES
+    # LINK_FLAGS -fsanitizer=thread
+    # COMPILE_FLAGS -fsanitizer=thread)
+
 # Integration test source files.
 set(FIREBASE_APP_FRAMEWORK_SRCS
   src/app_framework.cc

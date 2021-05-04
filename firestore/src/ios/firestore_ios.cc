@@ -340,8 +340,7 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
         if (progress.state() == api::LoadBundleTaskState::kSuccess) {
           promise.SetValue(ToApiProgress(progress));
           task->RemoveAllObservers();
-        }
-        if (progress.state() == api::LoadBundleTaskState::kError) {
+        } else if (progress.state() == api::LoadBundleTaskState::kError) {
           promise.SetError(progress.error_status());
           task->RemoveAllObservers();
         }

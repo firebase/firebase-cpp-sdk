@@ -1,3 +1,5 @@
+#include <condition_variable>
+#include <mutex>
 #include <string>
 #include <vector>
 
@@ -42,6 +44,8 @@ class BundleTest : public FirestoreIntegrationTest {
  protected:
   void SetUp() override {
     FirestoreIntegrationTest::SetUp();
+    // Clear the storage to avoid tests interfering with each other, since they
+    // will be loading the same bundle file.
     Await(TestFirestore()->ClearPersistence());
   }
 
@@ -106,6 +110,51 @@ TEST_F(BundleTest, CanLoadBundlesWithProgressUpdates) {
   EXPECT_EQ(progresses[3], final_progress);
 
   VerifyQueryResults(db);
+}
+
+TEST_F(BundleTest, CanLoadBundlesWithoutProgressUpdates) {
+  Firestore* db = TestFirestore();
+  auto bundle = CreateBundle(db->app()->options().project_id());
+
+  Future<LoadBundleTaskProgress> result = db->LoadBundle(bundle);
+
+  VerifySuccessProgress(AwaitResult(result));
+  VerifyQueryResults(db);
+}
+
+TEST_F(BundleTest, CanDeleteFirestoreFromProgressUpdate) {
+  Firestore* db = TestFirestore();
+  auto bundle = CreateBundle(db->app()->options().project_id());
+
+  std::mutex lock;
+  std::condition_variable cv;
+  std::vector<LoadBundleTaskProgress> progresses;
+  Future<LoadBundleTaskProgress> result =
+      db->LoadBundle(bundle, [this, db, &progresses, &lock,
+                              &cv](const LoadBundleTaskProgress& progress) {
+        progresses.push_back(progress);
+        // Delete firestore before the final progress.
+        if (progresses.size() == 3) {
+          std::lock_guard<std::mutex> lk(lock);
+          DeleteFirestore(db);
+          cv.notify_one();
+        }
+      });
+
+  // Wait for the notification that the instance is deleted. We cannot rely on
+  // the returned future because it will not complete.
+  std::unique_lock<std::mutex> lk(lock);
+  cv.wait(lk);
+
+  // This future is not completed, and returns back a nullptr for result.
+  EXPECT_EQ(Await(result), nullptr);
+
+  // 3 progresses will be reported: initial, document 1, document 2.
+  // Final progress update is missing because Firestore is deleted before that.
+  EXPECT_EQ(progresses.size(), 3);
+  VerifyProgress(progresses[0], 0);
+  VerifyProgress(progresses[1], 1);
+  VerifyProgress(progresses[2], 2);
 }
 
 TEST_F(BundleTest, LoadBundlesForASecondTimeSkips) {
