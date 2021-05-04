@@ -11,18 +11,6 @@
 namespace firebase {
 namespace firestore {
 
-// class SourceTest : public FirestoreIntegrationTest {
-//  public:
-//   DocumentReference WriteDocumentWithInitData(const MapFieldValue& data)
-//   const {
-//     DocumentReference docRef = Document();
-//     Future<void> future = docRef.Set(data);
-//     Await(future);
-//     FailIfUnsuccessful("WriteDocumentWithInitData", future);
-//     return docRef;
-//   }
-// };
-
 using SourceTest = FirestoreIntegrationTest;
 
 TEST_F(SourceTest, TestGetDocumentWhileOnlineWithDefaultGetOptions) {
