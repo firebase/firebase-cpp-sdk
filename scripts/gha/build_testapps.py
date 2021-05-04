@@ -358,9 +358,10 @@ def _zip_integration_tests(testapps, output_dir, artifact_name):
         if os.path.isfile(path):
           shutil.copy(path, os.path.join(artifact_path, testapp))
         else:
-          dir_util.copy_tree(os.path.join(path, "integration_test.app"), os.path.join(artifact_path, testapp))
+          dir_util.copy_tree(path, os.path.join(artifact_path, testapp, "integration_test.app"))
         break
   shutil.make_archive(artifact_path, 'zip', root_dir=output_dir, base_dir=testapps_artifact_dir)
+  logging.info("integration tests artifact: %s.zip", artifact_path)
 
 
 def _summarize_results(testapps, platforms, failures, output_dir, artifact_name):

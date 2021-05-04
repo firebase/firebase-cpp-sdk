@@ -40,6 +40,10 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("testapp_dir", None, "Look for testapps in this directory.")
 flags.DEFINE_string("testapp_name", "integration_test", "Name of the testapps.")
+flags.DEFINE_string(
+    "artifact_name", "",
+    "Create test log artifact is test-results-$artifact_name.log."
+    " artifacts will be created and placed in testapp_dir.")  
 
 
 def main(argv):
@@ -75,7 +79,10 @@ def main(argv):
     thread.join()
 
   return test_validation.summarize_test_results(
-      tests, test_validation.CPP, testapp_dir)
+      tests, 
+      test_validation.CPP, 
+      testapp_dir, 
+      file_name="test-results-" + FLAGS.artifact_name + ".log")
 
 
 def _fix_path(path):

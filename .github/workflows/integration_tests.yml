@@ -635,7 +635,7 @@ jobs:
           
   add_success_label:
     name: "add-success-label"
-    needs: [check_trigger, test_ios, test_android]
+    needs: [check_trigger, test_desktop, test_ios, test_android]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && !failure() }}
     steps:
@@ -664,7 +664,7 @@ jobs:
 
   add_failure_label:
     name: "add-failure-label"
-    needs: [check_trigger, test_ios, test_android]
+    needs: [check_trigger, test_desktop, test_ios, test_android]
     runs-on: ubuntu-latest
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && failure() }}
     steps:
