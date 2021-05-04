@@ -412,6 +412,7 @@ jobs:
           python scripts/gha/test_lab.py --android_model ${{ needs.prepare_matrix.outputs.android_device }} --android_api ${{ needs.prepare_matrix.outputs.android_api }} --ios_model ${{ needs.prepare_matrix.outputs.ios_device }} --ios_version ${{ needs.prepare_matrix.outputs.ios_version }} --testapp_dir ta --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
+        shell: bash
         run: |
           if [[ -r ta/summary.log ]]; then
             cp ta/summary.log test-results-${{ matrix.os }}-${{ matrix.target_platform }}-${{ matrix.ssl_variant }}.txt
