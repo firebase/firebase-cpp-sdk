@@ -752,6 +752,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: google-github-actions/setup-gcloud@master
       - name: Upload Desktop Artifacts to GCS
+        if: ${{ !cancelled() }}
         run: |
           python scripts/gha/gcs_uploader.py --testapp_dir ta --key_file scripts/gha-encrypted/gcs_key_file.json
       ### The below allow us to set the failure label and comment early, when the first failure
@@ -842,14 +843,14 @@ jobs:
           device=$(echo "${{ matrix.android_device }}" | cut -d ":" -f2)
           echo "::set-output name=device::$device"
       - name: Run Android integration tests on Emulator locally
-        if: startsWith(matrix.android_device, 'virtual') && !cancelled()
+        if: startsWith(matrix.android_device, 'virtual')
         run: |
           python scripts/gha/test_simulator.py --testapp_dir "testapps-android-${{ matrix.build_os }}" --android_device "${{steps.get-device.outputs.device}}" --artifact_name "android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}" --ci
       - name: Install Cloud SDK
-        if: startsWith(matrix.android_device, 'real') && !cancelled()
+        if: startsWith(matrix.android_device, 'real')
         uses: google-github-actions/setup-gcloud@master
       - name: Run Android integration tests on Real Device via FTL
-        if: startsWith(matrix.android_device, 'real') && !cancelled()
+        if: startsWith(matrix.android_device, 'real')
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           python scripts/gha/test_lab.py --testapp_dir "testapps-android-${{ matrix.build_os }}" --android_device "${{steps.get-device.outputs.device}}" --artifact_name "android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}" --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
@@ -947,14 +948,14 @@ jobs:
           device=$(echo "${{ matrix.ios_device }}" | cut -d ":" -f2)
           echo "::set-output name=device::$device"
       - name: Run iOS integration tests on Simulator locally
-        if: startsWith(matrix.ios_device, 'virtual') && !cancelled()
+        if: startsWith(matrix.ios_device, 'virtual')
         run: |
           python scripts/gha/test_simulator.py --testapp_dir "testapps-ios-macos-latest" --ios_device "${{steps.get-device.outputs.device}}" --artifact_name "ios-macos-latest-${{steps.get-device.outputs.device}}" --ci
       - name: Install Cloud SDK
-        if: startsWith(matrix.ios_device, 'real') && !cancelled()
+        if: startsWith(matrix.ios_device, 'real')
         uses: google-github-actions/setup-gcloud@master
       - name: Run iOS integration tests on Real Device via FTL
-        if: startsWith(matrix.ios_device, 'real') && !cancelled()
+        if: startsWith(matrix.ios_device, 'real')
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           python scripts/gha/test_lab.py --testapp_dir "testapps-ios-macos-latest" --ios_device "${{steps.get-device.outputs.device}}" --artifact_name "ios-macos-latest-${{steps.get-device.outputs.device}}" --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
