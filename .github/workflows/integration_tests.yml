@@ -361,6 +361,15 @@ jobs:
           path: build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
           retention-days: 2
 
+      - name: Summarize build results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cat build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi
+
   build_android:
     name: build-android-${{ matrix.os }}
     needs: [prepare_matrix]
@@ -459,6 +468,15 @@ jobs:
           path: build-results-android-${{ matrix.os }}.log
           retention-days: 2
 
+      - name: Summarize build results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cat build-results-android-${{ matrix.os }}.log
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi
+
   build_ios:
     name: build-ios-macos-latest
     needs: [prepare_matrix]
@@ -533,6 +551,15 @@ jobs:
           name: log-artifact
           path: build-results-ios-macos-latest.log
           retention-days: 2
+
+      - name: Summarize build results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cat build-results-ios-macos-latest.log
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi
 
   test_desktop:
     name: test-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
@@ -630,12 +657,11 @@ jobs:
           COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
           ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
 
-      - name: Summarize build and test results
+      - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat test_results/build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
-          cat test_results/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
+          cat testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
@@ -736,12 +762,11 @@ jobs:
           COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
           ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
 
-      - name: Summarize build and test results
+      - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat test_results/test-results-android-${{ matrix.build_os }}.log
-          cat test_results/test-results-android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}.log
+          cat testapps-android-${{ matrix.build_os }}/test-results-android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
@@ -841,12 +866,11 @@ jobs:
           COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
           ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
 
-      - name: Summarize build and test results
+      - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat test_results/build-results-ios-macos-latest.log
-          cat test_results/test-results-ios-macos-latest-${{steps.get-device.outputs.device}}.log
+          cat testapps-ios-macos-latest/test-results-ios-macos-latest-${{steps.get-device.outputs.device}}.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
@@ -979,4 +1003,5 @@ jobs:
           name: log-artifact
       - name: Summarize results into GitHub log
         run: |
+          ls test_results
           python scripts/gha/summarize_test_results.py --dir test_results --github_log
