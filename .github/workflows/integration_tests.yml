@@ -766,7 +766,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat testapps-android-${{ matrix.build_os }}/test-results-android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}.log
+          cat "testapps-android-${{ matrix.build_os }}/test-results-android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}.log"
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
@@ -870,7 +870,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat testapps-ios-macos-latest/test-results-ios-macos-latest-${{steps.get-device.outputs.device}}.log
+          cat "testapps-ios-macos-latest/test-results-ios-macos-latest-${{steps.get-device.outputs.device}}.log"
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
@@ -912,7 +912,7 @@ jobs:
     if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && failure() }}
     steps:
       - name: add failure label
-        uses: actions-ecosystem/action-remove-labels@v1
+        uses: actions-ecosystem/action-add-labels@v1
         with:
           github_token: ${{ github.token }}
           number: "${{needs.check_trigger.outputs.pr_number}}"
@@ -1003,5 +1003,4 @@ jobs:
           name: log-artifact
       - name: Summarize results into GitHub log
         run: |
-          ls test_results
           python scripts/gha/summarize_test_results.py --dir test_results --github_log
