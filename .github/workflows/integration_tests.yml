@@ -351,12 +351,14 @@ jobs:
 
       - name: Upload Desktop integration tests artifact
         uses: actions/upload-artifact@v2.2.2
+        if: ${{ !cancelled() }}
         with:
           name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.zip
           path: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.zip
           retention-days: 2
       - name: Upload Desktop build results artifact
         uses: actions/upload-artifact@v2.2.2
+        if: ${{ !cancelled() }}
         with:
           name: log-artifact
           path: build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
@@ -503,12 +505,14 @@ jobs:
 
       - name: Upload Android integration tests artifact
         uses: actions/upload-artifact@v2.2.2
+        if: ${{ !cancelled() }}
         with:
           name: testapps-android-${{ matrix.os }}.zip
           path: testapps-android-${{ matrix.os }}.zip
           retention-days: 2
       - name: Upload Android build results artifact
         uses: actions/upload-artifact@v2.2.2
+        if: ${{ !cancelled() }}
         with:
           name: log-artifact
           path: build-results-android-${{ matrix.os }}.log
@@ -632,12 +636,14 @@ jobs:
 
       - name: Upload iOS integration tests artifact
         uses: actions/upload-artifact@v2.2.2
+        if: ${{ !cancelled() }}
         with:
           name: testapps-ios-macos-latest.zip
           path: testapps-ios-macos-latest.zip
           retention-days: 2
       - name: Upload iOS build results artifact
         uses: actions/upload-artifact@v2.2.2
+        if: ${{ !cancelled() }}
         with:
           name: log-artifact
           path: build-results-ios-macos-latest.log
@@ -729,10 +735,10 @@ jobs:
           pip install -r scripts/gha/requirements.txt
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
       - name: Run desktop integration tests
-        if: ${{ !cancelled() }}
         run: |
           python scripts/gha/desktop_tester.py --testapp_dir "testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}" --artifact_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
       - name: Upload Desktop test results artifact
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
@@ -848,6 +854,7 @@ jobs:
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           python scripts/gha/test_lab.py --testapp_dir "testapps-android-${{ matrix.build_os }}" --android_device "${{steps.get-device.outputs.device}}" --artifact_name "android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}" --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Upload Android test results artifact
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
@@ -952,6 +959,7 @@ jobs:
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           python scripts/gha/test_lab.py --testapp_dir "testapps-ios-macos-latest" --ios_device "${{steps.get-device.outputs.device}}" --artifact_name "ios-macos-latest-${{steps.get-device.outputs.device}}" --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Upload Android test results artifact
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
