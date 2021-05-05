@@ -218,7 +218,7 @@ jobs:
           else
             echo "::set-output name=matrix_ssl::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ssl_lib -o "${{github.event.inputs.desktop_ssl_variants}}" )"
           fi
-          echo "::set-output name=mobile_test_on::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k mobile_test_on -o "${{github.event.inputs.mobile_test_on}}" )"
+          echo "::set-output name=mobile_test_on::$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k mobile_test_on -o "${{github.event.inputs.mobile_test_on}}" )" ${AUTO_DIFF_PARAM})"
           echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k android_device -d "${{github.event.inputs.mobile_test_on}}" )"
           echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ios_device -d "${{github.event.inputs.mobile_test_on}}" )"
           if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
@@ -248,7 +248,7 @@ jobs:
         ssl_variant: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ssl) }}
 
     steps:
-      - run: echo ${{needs.prepare_matrix.outputs.matrix_platform}} ${{needs.prepare_matrix.outputs.android_device}}
+      - run: echo ${{needs.prepare_matrix.outputs.mobile_test_on}} ${{needs.prepare_matrix.outputs.android_device}}
 
       - uses: actions/checkout@v2
         with:
