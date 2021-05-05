@@ -51,7 +51,7 @@ jobs:
     ### This job only runs when the workflow was triggered by a PR getting labeled.
     ### It checks whether the label is a test-request trigger (cancelling
     ### the workflow if not), and then sets the in-progress label. It sets
-    ### outputs to control the test matrix (full or quick) and to tell
+    ### outputs to control the build_* matrix (full or quick) and to tell
     ### subsequent steps to update the labels as well.
     runs-on: ubuntu-latest
     if: |
@@ -232,7 +232,7 @@ jobs:
             # Just the PR specified, use refs/pull/<number>/merge as the ref.
             echo "::warning ::Running on https://github.com/${{github.repository}}/pull/${{github.event.inputs.test_pull_request}}"
             echo "::set-output name=github_ref::refs/pull/${{github.event.inputs.test_pull_request}}/merge"
-          fi          
+          fi
 
   build_desktop:
     name: build-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
@@ -252,6 +252,7 @@ jobs:
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
           submodules: true
+
       - name: Set env vars (ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
         run: echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
@@ -352,14 +353,13 @@ jobs:
         with:
           name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.zip
           path: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.zip
-          retention-days: 1
-
+          retention-days: 2
       - name: Upload Desktop build results artifact
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
           path: build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
-          retention-days: 1
+          retention-days: 2
 
   build_android:
     name: build-android-${{ matrix.os }}
@@ -451,14 +451,13 @@ jobs:
         with:
           name: testapps-android-${{ matrix.os }}.zip
           path: testapps-android-${{ matrix.os }}.zip
-          retention-days: 1
-
+          retention-days: 2
       - name: Upload Android build results artifact
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
           path: build-results-android-${{ matrix.os }}.log
-          retention-days: 1
+          retention-days: 2
 
   build_ios:
     name: build-ios-macos-latest
@@ -527,25 +526,25 @@ jobs:
         with:
           name: testapps-ios-macos-latest.zip
           path: testapps-ios-macos-latest.zip
-          retention-days: 1
-
+          retention-days: 2
       - name: Upload iOS build results artifact
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
           path: build-results-ios-macos-latest.log
-          retention-days: 1
+          retention-days: 2
 
   test_desktop:
     name: test-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
-    needs: [prepare_matrix, build_desktop]
+    needs: [check_trigger, prepare_matrix, build_desktop]
     runs-on: ${{ matrix.os }}
-    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'Desktop') && needs.prepare_matrix.outputs.apis != '' && !cancelled()
+    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'Desktop') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
     strategy:
       fail-fast: false
       matrix:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
         ssl_variant: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ssl) }}
+
     steps:
       - uses: actions/checkout@v2
         with:
@@ -567,6 +566,7 @@ jobs:
           pip install -r scripts/gha/requirements.txt
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
       - name: Run desktop integration tests
+        if: ${{ !cancelled() }}
         run: |
           python scripts/gha/desktop_tester.py --testapp_dir "testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}" --artifact_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
       - name: Upload Desktop test results artifact
@@ -574,22 +574,77 @@ jobs:
         with:
           name: log-artifact
           path: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
-          retention-days: 1          
+          retention-days: 2          
       - name: Set CLOUDSDK_PYTHON (Windows)
         shell: bash
         if: startsWith(matrix.os, 'windows') && !cancelled()
         run: echo "CLOUDSDK_PYTHON=${{env.pythonLocation}}\python.exe" >> $GITHUB_ENV
       - name: Install Cloud SDK
+        if: ${{ !cancelled() }}
         uses: google-github-actions/setup-gcloud@master
       - name: Upload Desktop Artifacts to GCS
         run: |
           python scripts/gha/gcs_uploader.py --testapp_dir ta --key_file scripts/gha-encrypted/gcs_key_file.json
+      ### The below allow us to set the failure label and comment early, when the first failure
+      ### in the matrix occurs. It'll be cleaned up in a subsequent job.
+      - name: add failure label
+        # We can do mark a failure as soon as any one test fails.
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ github.token }}
+          number: "${{needs.check_trigger.outputs.pr_number}}"
+          labels: "${{ env.statusLabelFailed }}"
+      - name: get current time for status comment
+        id: get-time
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        shell: bash
+        run: |
+          echo -n "::set-output name=time::"
+          TZ=America/Los_Angeles date
+      - name: download artifact
+        uses: actions/download-artifact@v2.0.8
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        with:
+          path: test_results
+          name: log-artifact
+      - name: get summary of test results
+        id: get-summary
+        shell: bash
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        run: |
+          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
+          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+      - name: add failure status comment
+        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        with:
+          message: |
+            ### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)
+            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
+            Last updated: ${{ steps.get-time.outputs.time }}
+            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
+            ${{ env.SUMMARY_TABLE }}
+          GITHUB_TOKEN: ${{ github.token }}
+          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
+          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
+
+      - name: Summarize build and test results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cat test_results/build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
+          cat test_results/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi
 
   test_android:
     name: test-android-${{ matrix.build_os }}-${{ matrix.android_device }}
-    needs: [prepare_matrix, build_android]
+    needs: [check_trigger, prepare_matrix, build_android]
     runs-on: macos-latest
-    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'Android') && needs.prepare_matrix.outputs.apis != '' && !cancelled()
+    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'Android') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
     strategy:
       fail-fast: false
       matrix:
@@ -619,14 +674,14 @@ jobs:
           device=$(echo "${{ matrix.android_device }}" | cut -d ":" -f2)
           echo "::set-output name=device::$device"
       - name: Run Android integration tests on Emulator locally
-        if: startsWith(matrix.android_device, 'virtual')
+        if: startsWith(matrix.android_device, 'virtual') && !cancelled()
         run: |
           python scripts/gha/test_simulator.py --testapp_dir "testapps-android-${{ matrix.build_os }}" --android_device "${{steps.get-device.outputs.device}}" --artifact_name "android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}" --ci
       - name: Install Cloud SDK
-        if: startsWith(matrix.android_device, 'real')
+        if: startsWith(matrix.android_device, 'real') && !cancelled()
         uses: google-github-actions/setup-gcloud@master
       - name: Run Android integration tests on Real Device via FTL
-        if: startsWith(matrix.android_device, 'real')
+        if: startsWith(matrix.android_device, 'real') && !cancelled()
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           python scripts/gha/test_lab.py --testapp_dir "testapps-android-${{ matrix.build_os }}" --android_device "${{steps.get-device.outputs.device}}" --artifact_name "android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}" --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
@@ -635,13 +690,67 @@ jobs:
         with:
           name: log-artifact
           path: testapps-android-${{ matrix.build_os }}/test-results-android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}.log
-          retention-days: 1  
+          retention-days: 2  
+      ### The below allow us to set the failure label and comment early, when the first failure
+      ### in the matrix occurs. It'll be cleaned up in a subsequent job.
+      - name: add failure label
+        # We can do mark a failure as soon as any one test fails.
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ github.token }}
+          number: "${{needs.check_trigger.outputs.pr_number}}"
+          labels: "${{ env.statusLabelFailed }}"
+      - name: get current time for status comment
+        id: get-time
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        shell: bash
+        run: |
+          echo -n "::set-output name=time::"
+          TZ=America/Los_Angeles date
+      - name: download artifact
+        uses: actions/download-artifact@v2.0.8
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        with:
+          path: test_results
+          name: log-artifact
+      - name: get summary of test results
+        id: get-summary
+        shell: bash
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        run: |
+          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
+          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+      - name: add failure status comment
+        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        with:
+          message: |
+            ### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)
+            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
+            Last updated: ${{ steps.get-time.outputs.time }}
+            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
+            ${{ env.SUMMARY_TABLE }}
+          GITHUB_TOKEN: ${{ github.token }}
+          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
+          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
+
+      - name: Summarize build and test results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cat test_results/test-results-android-${{ matrix.build_os }}.log
+          cat test_results/test-results-android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}.log
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi
 
   test_ios:
     name: test-ios-macos-latest-${{ matrix.ios_device }}
-    needs: [prepare_matrix, build_ios]
+    needs: [check_trigger, prepare_matrix, build_ios]
     runs-on: macos-latest
-    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'iOS') && needs.prepare_matrix.outputs.apis != '' && !cancelled()
+    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'iOS') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
     strategy:
       fail-fast: false
       matrix:
@@ -670,14 +779,14 @@ jobs:
           device=$(echo "${{ matrix.ios_device }}" | cut -d ":" -f2)
           echo "::set-output name=device::$device"
       - name: Run iOS integration tests on Simulator locally
-        if: startsWith(matrix.ios_device, 'virtual')
+        if: startsWith(matrix.ios_device, 'virtual') && !cancelled()
         run: |
           python scripts/gha/test_simulator.py --testapp_dir "testapps-ios-macos-latest" --ios_device "${{steps.get-device.outputs.device}}" --artifact_name "ios-macos-latest-${{steps.get-device.outputs.device}}" --ci
       - name: Install Cloud SDK
-        if: startsWith(matrix.ios_device, 'real')
+        if: startsWith(matrix.ios_device, 'real') && !cancelled()
         uses: google-github-actions/setup-gcloud@master
       - name: Run iOS integration tests on Real Device via FTL
-        if: startsWith(matrix.ios_device, 'real')
+        if: startsWith(matrix.ios_device, 'real') && !cancelled()
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           python scripts/gha/test_lab.py --testapp_dir "testapps-ios-macos-latest" --ios_device "${{steps.get-device.outputs.device}}" --artifact_name "ios-macos-latest-${{steps.get-device.outputs.device}}" --code_platform cpp --key_file scripts/gha-encrypted/gcs_key_file.json
@@ -686,7 +795,61 @@ jobs:
         with:
           name: log-artifact
           path: testapps-ios-macos-latest/test-results-ios-macos-latest-${{steps.get-device.outputs.device}}.log
-          retention-days: 1  
+          retention-days: 2  
+      ### The below allow us to set the failure label and comment early, when the first failure
+      ### in the matrix occurs. It'll be cleaned up in a subsequent job.
+      - name: add failure label
+        # We can do mark a failure as soon as any one test fails.
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ github.token }}
+          number: "${{needs.check_trigger.outputs.pr_number}}"
+          labels: "${{ env.statusLabelFailed }}"
+      - name: get current time for status comment
+        id: get-time
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        shell: bash
+        run: |
+          echo -n "::set-output name=time::"
+          TZ=America/Los_Angeles date
+      - name: download artifact
+        uses: actions/download-artifact@v2.0.8
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        with:
+          path: test_results
+          name: log-artifact
+      - name: get summary of test results
+        id: get-summary
+        shell: bash
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        run: |
+          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
+          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+      - name: add failure status comment
+        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        with:
+          message: |
+            ### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)
+            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
+            Last updated: ${{ steps.get-time.outputs.time }}
+            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
+            ${{ env.SUMMARY_TABLE }}
+          GITHUB_TOKEN: ${{ github.token }}
+          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
+          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
+
+      - name: Summarize build and test results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cat test_results/build-results-ios-macos-latest.log
+          cat test_results/test-results-ios-macos-latest-${{steps.get-device.outputs.device}}.log
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi
           
   add_success_label:
     name: "add-success-label"
@@ -751,13 +914,11 @@ jobs:
       - name: download artifact
         uses: actions/download-artifact@v2.0.8
         with:
-          # download-artifact doesn't support wildcards, but by default
-          # will download all artifacts. Sadly this is what we must do.
           path: test_results
+          name: log-artifact
       - name: get summary of test results
         shell: bash
         run: |
-          mv test_results/test-results-*/test-results-*.txt test_results || true
           echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
           python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
           echo 'EOF' >> $GITHUB_ENV
@@ -818,15 +979,4 @@ jobs:
           name: log-artifact
       - name: Summarize results into GitHub log
         run: |
-          python scripts/gha/summarize_test_results.py --dir test_results/log-artifact
-      - name: Summarize results into GitHub log
-        run: |
-          python scripts/gha/summarize_test_results.py --dir test_results
           python scripts/gha/summarize_test_results.py --dir test_results --github_log
-      - uses: geekyeggo/delete-artifact@1-glob-support
-        # Delete all of the test result artifacts.
-        with:
-          name: |
-            test-results-*
-          failOnError: false
-          useGlob: true
