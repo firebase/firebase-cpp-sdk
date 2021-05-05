@@ -248,7 +248,8 @@ jobs:
         ssl_variant: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ssl) }}
 
     steps:
-      - name: print prepare_matrix
+      - name: print prepare matrix
+        shell: bash
         run: |
           echo ${{ needs.prepare_matrix.outputs.matrix_platform }}
           echo ${{ needs.prepare_matrix.outputs.matrix_os }}
