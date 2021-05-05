@@ -249,6 +249,8 @@ jobs:
         ssl_variant: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ssl) }}
 
     steps:
+      - run: echo ${{needs.prepare_matrix.outputs.mobile_test_on}} ${{needs.prepare_matrix.outputs.android_device}}
+
       - uses: actions/checkout@v2
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
