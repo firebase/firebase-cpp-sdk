@@ -236,7 +236,7 @@ jobs:
 
   build_desktop:
     name: build-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
-    needs: [prepare_matrix]
+    needs: [check_trigger, prepare_matrix]
     runs-on: ${{ matrix.os }}
     # Skip this if there is an empty matrix (which can happen if "auto" was set above).
     # But check cancelled() && !failure() so it runs even if check_trigger was skipped.
@@ -361,6 +361,51 @@ jobs:
           path: build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
           retention-days: 2
 
+      ### The below allow us to set the failure label and comment early, when the first failure
+      ### in the matrix occurs. It'll be cleaned up in a subsequent job.
+      - name: add failure label
+        # We can do mark a failure as soon as any one test fails.
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ github.token }}
+          number: "${{needs.check_trigger.outputs.pr_number}}"
+          labels: "${{ env.statusLabelFailed }}"
+      - name: get current time for status comment
+        id: get-time
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        shell: bash
+        run: |
+          echo -n "::set-output name=time::"
+          TZ=America/Los_Angeles date
+      - name: download artifact
+        uses: actions/download-artifact@v2.0.8
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        with:
+          path: test_results
+          name: log-artifact
+      - name: get summary of test results
+        id: get-summary
+        shell: bash
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        run: |
+          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
+          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+      - name: add failure status comment
+        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        with:
+          message: |
+            ### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)
+            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
+            Last updated: ${{ steps.get-time.outputs.time }}
+            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
+            ${{ env.SUMMARY_TABLE }}
+          GITHUB_TOKEN: ${{ github.token }}
+          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
+          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
+
       - name: Summarize build results
         if: ${{ !cancelled() }}
         shell: bash
@@ -372,7 +417,7 @@ jobs:
 
   build_android:
     name: build-android-${{ matrix.os }}
-    needs: [prepare_matrix]
+    needs: [check_trigger, prepare_matrix]
     runs-on: ${{ matrix.os }}
     if: contains(needs.prepare_matrix.outputs.matrix_platform, 'Android') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
     strategy:
@@ -468,6 +513,51 @@ jobs:
           path: build-results-android-${{ matrix.os }}.log
           retention-days: 2
 
+      ### The below allow us to set the failure label and comment early, when the first failure
+      ### in the matrix occurs. It'll be cleaned up in a subsequent job.
+      - name: add failure label
+        # We can do mark a failure as soon as any one test fails.
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ github.token }}
+          number: "${{needs.check_trigger.outputs.pr_number}}"
+          labels: "${{ env.statusLabelFailed }}"
+      - name: get current time for status comment
+        id: get-time
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        shell: bash
+        run: |
+          echo -n "::set-output name=time::"
+          TZ=America/Los_Angeles date
+      - name: download artifact
+        uses: actions/download-artifact@v2.0.8
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        with:
+          path: test_results
+          name: log-artifact
+      - name: get summary of test results
+        id: get-summary
+        shell: bash
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        run: |
+          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
+          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+      - name: add failure status comment
+        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        with:
+          message: |
+            ### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)
+            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
+            Last updated: ${{ steps.get-time.outputs.time }}
+            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
+            ${{ env.SUMMARY_TABLE }}
+          GITHUB_TOKEN: ${{ github.token }}
+          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
+          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
+
       - name: Summarize build results
         if: ${{ !cancelled() }}
         shell: bash
@@ -479,7 +569,7 @@ jobs:
 
   build_ios:
     name: build-ios-macos-latest
-    needs: [prepare_matrix]
+    needs: [check_trigger, prepare_matrix]
     runs-on: macos-latest
     if: contains(needs.prepare_matrix.outputs.matrix_platform, 'iOS') && contains(needs.prepare_matrix.outputs.matrix_os, 'macos-latest') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
     strategy:
@@ -551,6 +641,51 @@ jobs:
           name: log-artifact
           path: build-results-ios-macos-latest.log
           retention-days: 2
+
+      ### The below allow us to set the failure label and comment early, when the first failure
+      ### in the matrix occurs. It'll be cleaned up in a subsequent job.
+      - name: add failure label
+        # We can do mark a failure as soon as any one test fails.
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ github.token }}
+          number: "${{needs.check_trigger.outputs.pr_number}}"
+          labels: "${{ env.statusLabelFailed }}"
+      - name: get current time for status comment
+        id: get-time
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        shell: bash
+        run: |
+          echo -n "::set-output name=time::"
+          TZ=America/Los_Angeles date
+      - name: download artifact
+        uses: actions/download-artifact@v2.0.8
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        with:
+          path: test_results
+          name: log-artifact
+      - name: get summary of test results
+        id: get-summary
+        shell: bash
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        run: |
+          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
+          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
+          echo 'EOF' >> $GITHUB_ENV
+      - name: add failure status comment
+        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        with:
+          message: |
+            ### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)
+            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
+            Last updated: ${{ steps.get-time.outputs.time }}
+            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
+            ${{ env.SUMMARY_TABLE }}
+          GITHUB_TOKEN: ${{ github.token }}
+          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
+          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
 
       - name: Summarize build results
         if: ${{ !cancelled() }}
