@@ -176,18 +176,14 @@ def main(argv):
       return 30
 
     sdk_id = device_info[0]
-    platforms_tool_version = sdk_id.split(";")[1]
+    platform_version = sdk_id.split(";")[1]
     build_tool_version = device_info[1]
-
-    print(sdk_id)
-    print(platforms_tool_version)
-    print(build_tool_version)
 
     if not _check_java_version():
       logging.error("Please set JAVA_HOME to java 8")
       return 31
 
-    _setup_android(platforms_tool_version, build_tool_version, sdk_id)  
+    _setup_android(platform_version, build_tool_version, sdk_id)  
 
     _create_and_boot_emulator(sdk_id)
 
@@ -362,7 +358,7 @@ def _check_java_version():
   return "1.8" in java_version
 
 
-def _setup_android(platforms_tool_version, build_tool_version, sdk_id):
+def _setup_android(platform_version, build_tool_version, sdk_id):
   android_home = os.environ["ANDROID_HOME"]
   pathlist = [os.path.join(android_home, "emulator"), 
     os.path.join(android_home, "tools"), 
@@ -373,7 +369,7 @@ def _setup_android(platforms_tool_version, build_tool_version, sdk_id):
   
   args = ["sdkmanager", 
     "emulator", "platform-tools", 
-    "platforms;%s" % platforms_tool_version, 
+    "platforms;%s" % platform_version, 
     "build-tools;%s" % build_tool_version]
   logging.info("Install packages: %s", " ".join(args))
   subprocess.run(args=args, check=True)

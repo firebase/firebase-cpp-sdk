@@ -267,11 +267,10 @@ def main(argv):
             any_failures = True
 
     test_failures = {}
-    test_summary_title = "TEST SUMMARY"
     # Extract test failures.
     # (.*) Greedy match, which follows "TESTAPPS FAILED:" and skips "TESTAPPS EXPERIENCED ERRORS:"
     # (.*?) Nongreedy match, which follows "TESTAPPS EXPERIENCED ERRORS:"
-    pattern = r'^%s(.*?)TESTAPPS (EXPERIENCED ERRORS|FAILED):\n(([^\n]*\n)+)' % test_summary_title
+    pattern = r'^TEST SUMMARY(.*?)TESTAPPS (EXPERIENCED ERRORS|FAILED):\n(([^\n]*\n)+)'
     for (test_config, test_log) in logs["test_logs"].items():
       m = re.search(pattern, test_log, re.MULTILINE | re.DOTALL)
       if m:
@@ -280,7 +279,7 @@ def main(argv):
           if "TEST SUMMARY" in test_failure_line: break
           # Only get the lines showing paths.
           if "/firebase-cpp-sdk/" not in test_failure_line: continue
-          test_filename = "";
+          test_filename = ""
           if "log tail" in test_failure_line:
             test_filename = re.match(r'^(.*) log tail', test_failure_line).group(1)
           elif "lacks logs" in test_failure_line:
@@ -342,7 +341,7 @@ def format_log_file_name(file_name, file_name_re):
   # Extract the matrix name for this log.
   log_name = re.search(file_name_re, file_name).groups(1)[0]
   # Split the matrix name into components.
-  log_name = re.sub(r'[-_.]+', ' ', log_name).split()
+  log_name = re.sub('-', ' ', log_name).split()
   # Remove redundant components.
   if "latest" in log_name: log_name.remove("latest")
   # Capitalize components in a nice way.
@@ -355,7 +354,7 @@ def format_log_file_name(file_name, file_name_re):
   if "Android" in log_name or "iOS" in log_name:
     # For Android and iOS, highlight the target OS.
     log_name[1] = "(built on %s)" % log_name[1]
-    if len(log_name) == 3:
+    if len(log_name) >= 3:
       extra_config = log_name[2:]
       log_name = log_name[:2]
     if FLAGS.markdown:
@@ -365,7 +364,7 @@ def format_log_file_name(file_name, file_name_re):
     log_name[0] = "**%s" % log_name[0]
     log_name[1] = "%s**" % log_name[1]
   
-  return ' '.join(log_name), ' '.join(extra_config)  
+  return ' '.join(log_name), '-'.join(extra_config)  
 
 
 if __name__ == "__main__":

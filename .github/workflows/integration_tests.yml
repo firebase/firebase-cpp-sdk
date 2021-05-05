@@ -759,7 +759,6 @@ jobs:
         run: |
           ls
           python scripts/gha/summarize_test_results.py --dir test_results
-          python scripts/gha/summarize_test_results.py --dir test_results/log-artifact
           python scripts/gha/summarize_test_results.py --dir test_results --github_log
       - uses: geekyeggo/delete-artifact@1-glob-support
         # Delete all of the test result artifacts.
