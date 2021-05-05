@@ -13,78 +13,78 @@ namespace firestore {
 
 using SourceTest = FirestoreIntegrationTest;
 
-TEST_F(SourceTest, TestGetDocumentWhileOnlineWithDefaultGetOptions) {
-  MapFieldValue initialData = {{"key", FieldValue::String("value")}};
-  DocumentReference docRef = DocumentWithData(initialData);
+TEST_F(SourceTest, GetDocumentWhileOnlineWithDefaultGetOptions) {
+  MapFieldValue initial_data = {{"key", FieldValue::String("value")}};
+  DocumentReference doc_ref = DocumentWithData(initial_data);
 
-  Future<DocumentSnapshot> future = docRef.Get();
-  WaitFor(future);
+  Future<DocumentSnapshot> future = doc_ref.Get();
+  Await(future);
 
   DocumentSnapshot snapshot = *future.result();
-  ASSERT_TRUE(snapshot.exists());
-  ASSERT_FALSE(snapshot.metadata().is_from_cache());
-  ASSERT_FALSE(snapshot.metadata().has_pending_writes());
-  ASSERT_EQ(initialData, snapshot.GetData());
+  EXPECT_TRUE(snapshot.exists());
+  EXPECT_FALSE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
+  EXPECT_EQ(initial_data, snapshot.GetData());
 }
 
-TEST_F(SourceTest, TestGetCollectionWhileOnlineWithDefaultGetOptions) {
-  const std::map<std::string, MapFieldValue> initialDocs = {
+TEST_F(SourceTest, GetCollectionWhileOnlineWithDefaultGetOptions) {
+  std::map<std::string, MapFieldValue> initial_docs = {
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2", {{"key2", FieldValue::String("value2")}}},
       {"doc3", {{"key3", FieldValue::String("value3")}}}};
-  CollectionReference colRef = Collection(initialDocs);
+  CollectionReference col_ref = Collection(initial_docs);
 
-  Future<QuerySnapshot> future = colRef.Get();
-  WaitFor(future);
+  Future<QuerySnapshot> future = col_ref.Get();
+  Await(future);
 
-  QuerySnapshot querySnapshot = *future.result();
-  ASSERT_FALSE(querySnapshot.metadata().is_from_cache());
-  ASSERT_FALSE(querySnapshot.metadata().has_pending_writes());
-  ASSERT_EQ(3, querySnapshot.DocumentChanges().size());
-  ASSERT_EQ(initialDocs, QuerySnapshotToMap(querySnapshot));
+  QuerySnapshot snapshot = *future.result();
+  EXPECT_FALSE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
+  EXPECT_EQ(snapshot.DocumentChanges().size(), 3);
+  EXPECT_EQ(initial_docs, QuerySnapshotToMap(snapshot));
 }
 
-TEST_F(SourceTest, TestGetDocumentWhileOfflineWithDefaultGetOptions) {
-  MapFieldValue initialData = {{"key", FieldValue::String("value")}};
-  DocumentReference docRef = DocumentWithData(initialData);
+TEST_F(SourceTest, GetDocumentWhileOfflineWithDefaultGetOptions) {
+  MapFieldValue initial_data = {{"key", FieldValue::String("value")}};
+  DocumentReference doc_ref = DocumentWithData(initial_data);
 
-  WaitFor(docRef.Get());
-  WaitFor(TestFirestore()->DisableNetwork());
+  Await(doc_ref.Get());
+  DisableNetwork();
 
-  Future<DocumentSnapshot> future = docRef.Get();
-  WaitFor(future);
+  Future<DocumentSnapshot> future = doc_ref.Get();
+  Await(future);
   DocumentSnapshot snapshot = *future.result();
 
-  ASSERT_TRUE(snapshot.exists());
-  ASSERT_TRUE(snapshot.metadata().is_from_cache());
-  ASSERT_FALSE(snapshot.metadata().has_pending_writes());
-  ASSERT_EQ(initialData, snapshot.GetData());
+  EXPECT_TRUE(snapshot.exists());
+  EXPECT_TRUE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
+  EXPECT_EQ(initial_data, snapshot.GetData());
 }
 
-TEST_F(SourceTest, TestGetCollectionWhileOfflineWithDefaultGetOptions) {
-  const std::map<std::string, MapFieldValue> initialDocs = {
+TEST_F(SourceTest, GetCollectionWhileOfflineWithDefaultGetOptions) {
+  std::map<std::string, MapFieldValue> initial_docs = {
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2", {{"key2", FieldValue::String("value2")}}},
       {"doc3", {{"key3", FieldValue::String("value3")}}}};
-  CollectionReference colRef = Collection(initialDocs);
+  CollectionReference col_ref = Collection(initial_docs);
 
-  WaitFor(colRef.Get());
-  WaitFor(TestFirestore()->DisableNetwork());
+  Await(col_ref.Get());
+  DisableNetwork();
 
   // Since we're offline, the returned futures won't complete.
-  colRef.Document("doc2").Set({{"key2b", FieldValue::String("value2b")}},
-                              SetOptions().Merge());
-  colRef.Document("doc3").Set({{"key3b", FieldValue::String("value3b")}});
-  colRef.Document("doc4").Set({{"key4", FieldValue::String("value4")}});
+  col_ref.Document("doc2").Set({{"key2b", FieldValue::String("value2b")}},
+                               SetOptions().Merge());
+  col_ref.Document("doc3").Set({{"key3b", FieldValue::String("value3b")}});
+  col_ref.Document("doc4").Set({{"key4", FieldValue::String("value4")}});
 
-  Future<QuerySnapshot> future = colRef.Get();
-  WaitFor(future);
+  Future<QuerySnapshot> future = col_ref.Get();
+  Await(future);
 
-  QuerySnapshot querySnapshot = *future.result();
-  ASSERT_TRUE(querySnapshot.metadata().is_from_cache());
-  ASSERT_TRUE(querySnapshot.metadata().has_pending_writes());
-  ASSERT_EQ(4, querySnapshot.DocumentChanges().size());
-  std::map<std::string, MapFieldValue> newData{
+  QuerySnapshot snapshot = *future.result();
+  EXPECT_TRUE(snapshot.metadata().is_from_cache());
+  EXPECT_TRUE(snapshot.metadata().has_pending_writes());
+  EXPECT_EQ(snapshot.DocumentChanges().size(), 4);
+  std::map<std::string, MapFieldValue> new_data{
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2",
        {{"key2", FieldValue::String("value2")},
@@ -92,82 +92,82 @@ TEST_F(SourceTest, TestGetCollectionWhileOfflineWithDefaultGetOptions) {
       {"doc3", {{"key3b", FieldValue::String("value3b")}}},
       {"doc4", {{"key4", FieldValue::String("value4")}}},
   };
-  ASSERT_EQ(newData, QuerySnapshotToMap(querySnapshot));
+  EXPECT_EQ(new_data, QuerySnapshotToMap(snapshot));
 }
 
-TEST_F(SourceTest, TestGetDocumentWhileOnlineWithSourceEqualToCache) {
-  MapFieldValue initialData = {{"key", FieldValue::String("value")}};
-  DocumentReference docRef = DocumentWithData(initialData);
+TEST_F(SourceTest, GetDocumentWhileOnlineWithSourceEqualToCache) {
+  MapFieldValue initial_data = {{"key", FieldValue::String("value")}};
+  DocumentReference doc_ref = DocumentWithData(initial_data);
 
-  WaitFor(docRef.Get());
-  Future<DocumentSnapshot> future = docRef.Get(Source::kCache);
-  WaitFor(future);
+  Await(doc_ref.Get());
+  Future<DocumentSnapshot> future = doc_ref.Get(Source::kCache);
+  Await(future);
   DocumentSnapshot snapshot = *future.result();
 
-  ASSERT_TRUE(snapshot.exists());
-  ASSERT_TRUE(snapshot.metadata().is_from_cache());
-  ASSERT_FALSE(snapshot.metadata().has_pending_writes());
-  ASSERT_EQ(initialData, snapshot.GetData());
+  EXPECT_TRUE(snapshot.exists());
+  EXPECT_TRUE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
+  EXPECT_EQ(initial_data, snapshot.GetData());
 }
 
-TEST_F(SourceTest, TestGetCollectionWhileOnlineWithSourceEqualToCache) {
-  const std::map<std::string, MapFieldValue> initialDocs = {
+TEST_F(SourceTest, GetCollectionWhileOnlineWithSourceEqualToCache) {
+  std::map<std::string, MapFieldValue> initial_docs = {
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2", {{"key2", FieldValue::String("value2")}}},
       {"doc3", {{"key3", FieldValue::String("value3")}}}};
-  CollectionReference colRef = Collection(initialDocs);
+  CollectionReference col_ref = Collection(initial_docs);
 
-  WaitFor(colRef.Get());
-  Future<QuerySnapshot> future = colRef.Get(Source::kCache);
-  WaitFor(future);
+  Await(col_ref.Get());
+  Future<QuerySnapshot> future = col_ref.Get(Source::kCache);
+  Await(future);
 
-  QuerySnapshot querySnapshot = *future.result();
-  ASSERT_TRUE(querySnapshot.metadata().is_from_cache());
-  ASSERT_FALSE(querySnapshot.metadata().has_pending_writes());
-  ASSERT_EQ(3, querySnapshot.DocumentChanges().size());
-  ASSERT_EQ(initialDocs, QuerySnapshotToMap(querySnapshot));
+  QuerySnapshot snapshot = *future.result();
+  EXPECT_TRUE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
+  EXPECT_EQ(snapshot.DocumentChanges().size(), 3);
+  EXPECT_EQ(initial_docs, QuerySnapshotToMap(snapshot));
 }
 
-TEST_F(SourceTest, TestGetDocumentWhileOfflineWithSourceEqualToCache) {
-  MapFieldValue initialData = {{"key", FieldValue::String("value")}};
-  DocumentReference docRef = DocumentWithData(initialData);
+TEST_F(SourceTest, GetDocumentWhileOfflineWithSourceEqualToCache) {
+  MapFieldValue initial_data = {{"key", FieldValue::String("value")}};
+  DocumentReference doc_ref = DocumentWithData(initial_data);
 
-  WaitFor(docRef.Get());
-  WaitFor(TestFirestore()->DisableNetwork());
-  Future<DocumentSnapshot> future = docRef.Get(Source::kCache);
-  WaitFor(future);
+  Await(doc_ref.Get());
+  DisableNetwork();
+  Future<DocumentSnapshot> future = doc_ref.Get(Source::kCache);
+  Await(future);
   DocumentSnapshot snapshot = *future.result();
 
-  ASSERT_TRUE(snapshot.exists());
-  ASSERT_TRUE(snapshot.metadata().is_from_cache());
-  ASSERT_FALSE(snapshot.metadata().has_pending_writes());
-  ASSERT_EQ(initialData, snapshot.GetData());
+  EXPECT_TRUE(snapshot.exists());
+  EXPECT_TRUE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
+  EXPECT_EQ(initial_data, snapshot.GetData());
 }
 
-TEST_F(SourceTest, TestGetCollectionWhileOfflineWithSourceEqualToCache) {
-  const std::map<std::string, MapFieldValue> initialDocs = {
+TEST_F(SourceTest, GetCollectionWhileOfflineWithSourceEqualToCache) {
+  std::map<std::string, MapFieldValue> initial_docs = {
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2", {{"key2", FieldValue::String("value2")}}},
       {"doc3", {{"key3", FieldValue::String("value3")}}}};
-  CollectionReference colRef = Collection(initialDocs);
+  CollectionReference col_ref = Collection(initial_docs);
 
-  WaitFor(colRef.Get());
-  WaitFor(TestFirestore()->DisableNetwork());
+  Await(col_ref.Get());
+  DisableNetwork();
 
   // Since we're offline, the returned futures won't complete.
-  colRef.Document("doc2").Set({{"key2b", FieldValue::String("value2b")}},
-                              SetOptions().Merge());
-  colRef.Document("doc3").Set({{"key3b", FieldValue::String("value3b")}});
-  colRef.Document("doc4").Set({{"key4", FieldValue::String("value4")}});
+  col_ref.Document("doc2").Set({{"key2b", FieldValue::String("value2b")}},
+                               SetOptions().Merge());
+  col_ref.Document("doc3").Set({{"key3b", FieldValue::String("value3b")}});
+  col_ref.Document("doc4").Set({{"key4", FieldValue::String("value4")}});
 
-  Future<QuerySnapshot> future = colRef.Get(Source::kCache);
-  WaitFor(future);
+  Future<QuerySnapshot> future = col_ref.Get(Source::kCache);
+  Await(future);
 
-  QuerySnapshot querySnapshot = *future.result();
-  ASSERT_TRUE(querySnapshot.metadata().is_from_cache());
-  ASSERT_TRUE(querySnapshot.metadata().has_pending_writes());
-  ASSERT_EQ(4, querySnapshot.DocumentChanges().size());
-  std::map<std::string, MapFieldValue> newData{
+  QuerySnapshot snapshot = *future.result();
+  EXPECT_TRUE(snapshot.metadata().is_from_cache());
+  EXPECT_TRUE(snapshot.metadata().has_pending_writes());
+  EXPECT_EQ(snapshot.DocumentChanges().size(), 4);
+  std::map<std::string, MapFieldValue> new_data{
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2",
        {{"key2", FieldValue::String("value2")},
@@ -175,147 +175,153 @@ TEST_F(SourceTest, TestGetCollectionWhileOfflineWithSourceEqualToCache) {
       {"doc3", {{"key3b", FieldValue::String("value3b")}}},
       {"doc4", {{"key4", FieldValue::String("value4")}}},
   };
-  ASSERT_EQ(newData, QuerySnapshotToMap(querySnapshot));
+  EXPECT_EQ(new_data, QuerySnapshotToMap(snapshot));
 }
 
-TEST_F(SourceTest, TestGetDocumentWhileOnlineWithSourceEqualToServer) {
-  MapFieldValue initialData = {{"key", FieldValue::String("value")}};
-  DocumentReference docRef = DocumentWithData(initialData);
+TEST_F(SourceTest, GetDocumentWhileOnlineWithSourceEqualToServer) {
+  MapFieldValue initial_data = {{"key", FieldValue::String("value")}};
+  DocumentReference doc_ref = DocumentWithData(initial_data);
 
-  Future<DocumentSnapshot> future = docRef.Get(Source::kServer);
-  WaitFor(future);
+  Future<DocumentSnapshot> future = doc_ref.Get(Source::kServer);
+  Await(future);
 
   DocumentSnapshot snapshot = *future.result();
-  ASSERT_TRUE(snapshot.exists());
-  ASSERT_FALSE(snapshot.metadata().is_from_cache());
-  ASSERT_FALSE(snapshot.metadata().has_pending_writes());
-  ASSERT_EQ(initialData, snapshot.GetData());
+  EXPECT_TRUE(snapshot.exists());
+  EXPECT_FALSE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
+  EXPECT_EQ(initial_data, snapshot.GetData());
 }
 
-TEST_F(SourceTest, TestGetCollectionWhileOnlineWithSourceEqualToServer) {
-  const std::map<std::string, MapFieldValue> initialDocs = {
+TEST_F(SourceTest, GetCollectionWhileOnlineWithSourceEqualToServer) {
+  std::map<std::string, MapFieldValue> initial_docs = {
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2", {{"key2", FieldValue::String("value2")}}},
       {"doc3", {{"key3", FieldValue::String("value3")}}}};
-  CollectionReference colRef = Collection(initialDocs);
+  CollectionReference col_ref = Collection(initial_docs);
 
-  Future<QuerySnapshot> future = colRef.Get(Source::kServer);
-  WaitFor(future);
+  Future<QuerySnapshot> future = col_ref.Get(Source::kServer);
+  Await(future);
 
-  QuerySnapshot querySnapshot = *future.result();
-  ASSERT_FALSE(querySnapshot.metadata().is_from_cache());
-  ASSERT_FALSE(querySnapshot.metadata().has_pending_writes());
-  ASSERT_EQ(3, querySnapshot.DocumentChanges().size());
-  ASSERT_EQ(initialDocs, QuerySnapshotToMap(querySnapshot));
+  QuerySnapshot snapshot = *future.result();
+  EXPECT_FALSE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
+  EXPECT_EQ(snapshot.DocumentChanges().size(), 3);
+  EXPECT_EQ(initial_docs, QuerySnapshotToMap(snapshot));
 }
 
-TEST_F(SourceTest, TestGetDocumentWhileOfflineWithSourceEqualToServer) {
-  MapFieldValue initialData = {{"key", FieldValue::String("value")}};
-  DocumentReference docRef = DocumentWithData(initialData);
+TEST_F(SourceTest, GetDocumentWhileOfflineWithSourceEqualToServer) {
+  MapFieldValue initial_data = {{"key", FieldValue::String("value")}};
+  DocumentReference doc_ref = DocumentWithData(initial_data);
 
-  WaitFor(docRef.Get());
-  WaitFor(TestFirestore()->DisableNetwork());
+  Await(doc_ref.Get());
+  DisableNetwork();
 
-  Future<DocumentSnapshot> future = docRef.Get(Source::kServer);
+  Future<DocumentSnapshot> future = doc_ref.Get(Source::kServer);
   Await(future);
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(SourceTest, TestGetCollectionWhileOfflineWithSourceEqualToServer) {
-  const std::map<std::string, MapFieldValue> initialDocs = {
+TEST_F(SourceTest, GetCollectionWhileOfflineWithSourceEqualToServer) {
+  std::map<std::string, MapFieldValue> initial_docs = {
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2", {{"key2", FieldValue::String("value2")}}},
       {"doc3", {{"key3", FieldValue::String("value3")}}}};
-  CollectionReference colRef = Collection(initialDocs);
+  CollectionReference col_ref = Collection(initial_docs);
 
-  WaitFor(colRef.Get());
-  WaitFor(TestFirestore()->DisableNetwork());
+  Await(col_ref.Get());
+  DisableNetwork();
 
-  Future<QuerySnapshot> future = colRef.Get(Source::kServer);
+  Future<QuerySnapshot> future = col_ref.Get(Source::kServer);
   Await(future);
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(SourceTest, TestGetDocumentWhileOfflineWithDifferentGetOptions) {
-  MapFieldValue initialData = {{"key", FieldValue::String("value")}};
-  DocumentReference docRef = DocumentWithData(initialData);
+TEST_F(SourceTest, GetDocumentWhileOfflineWithDifferentGetOptions) {
+  MapFieldValue initial_data = {{"key", FieldValue::String("value")}};
+  DocumentReference doc_ref = DocumentWithData(initial_data);
 
-  WaitFor(docRef.Get());
-  WaitFor(TestFirestore()->DisableNetwork());
+  Await(doc_ref.Get());
+  DisableNetwork();
 
-  // Create an initial listener for this query (to attempt to disrupt the
+  // Create an initial listener for this query (to attempt to disrupt the gets
   // below) and wait for the listener to deliver its initial snapshot before
   // continuing.
-  std::promise<Error> errorPromise;
-  std::future<Error> errorFuture = errorPromise.get_future();
+  std::promise<Error> error_promise;
+  std::future<Error> error_future = error_promise.get_future();
 
-  docRef.AddSnapshotListener([&errorPromise](const DocumentSnapshot& snapshot,
-                                             Error error_code,
-                                             const std::string& error_message) {
-    errorPromise.set_value(error_code);
-  });
-  errorFuture.wait();
+  doc_ref.AddSnapshotListener(
+      [&error_promise](const DocumentSnapshot& snapshot, Error error_code,
+                       const std::string& error_message) {
+        error_promise.set_value(error_code);
+      });
+  // Note that future::get() will wait until the future has a valid result and
+  // retrieves it. Calling wait() before get() is not needed.
+  Error error_code = error_future.get();
+  EXPECT_EQ(error_code, kErrorNone);
 
-  Future<DocumentSnapshot> future = docRef.Get(Source::kCache);
-  WaitFor(future);
+  Future<DocumentSnapshot> future = doc_ref.Get(Source::kCache);
+  Await(future);
   DocumentSnapshot snapshot = *future.result();
-  ASSERT_TRUE(snapshot.exists());
-  ASSERT_TRUE(snapshot.metadata().is_from_cache());
-  ASSERT_FALSE(snapshot.metadata().has_pending_writes());
-  ASSERT_EQ(initialData, snapshot.GetData());
+  EXPECT_TRUE(snapshot.exists());
+  EXPECT_TRUE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
+  EXPECT_EQ(initial_data, snapshot.GetData());
 
-  future = docRef.Get();
-  WaitFor(future);
+  future = doc_ref.Get();
+  Await(future);
   snapshot = *future.result();
-  ASSERT_TRUE(snapshot.exists());
-  ASSERT_TRUE(snapshot.metadata().is_from_cache());
-  ASSERT_FALSE(snapshot.metadata().has_pending_writes());
-  ASSERT_EQ(initialData, snapshot.GetData());
+  EXPECT_TRUE(snapshot.exists());
+  EXPECT_TRUE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
+  EXPECT_EQ(initial_data, snapshot.GetData());
 
-  future = docRef.Get(Source::kServer);
+  future = doc_ref.Get(Source::kServer);
   Await(future);
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(SourceTest, TestGetCollectionWhileOfflineWithDifferentGetOptions) {
-  const std::map<std::string, MapFieldValue> initialDocs = {
+TEST_F(SourceTest, GetCollectionWhileOfflineWithDifferentGetOptions) {
+  std::map<std::string, MapFieldValue> initial_docs = {
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2", {{"key2", FieldValue::String("value2")}}},
       {"doc3", {{"key3", FieldValue::String("value3")}}}};
-  CollectionReference colRef = Collection(initialDocs);
+  CollectionReference col_ref = Collection(initial_docs);
 
-  WaitFor(colRef.Get());
-  WaitFor(TestFirestore()->DisableNetwork());
+  Await(col_ref.Get());
+  DisableNetwork();
 
   // Since we're offline, the returned futures won't complete.
-  colRef.Document("doc2").Set({{"key2b", FieldValue::String("value2b")}},
-                              SetOptions().Merge());
-  colRef.Document("doc3").Set({{"key3b", FieldValue::String("value3b")}});
-  colRef.Document("doc4").Set({{"key4", FieldValue::String("value4")}});
+  col_ref.Document("doc2").Set({{"key2b", FieldValue::String("value2b")}},
+                               SetOptions().Merge());
+  col_ref.Document("doc3").Set({{"key3b", FieldValue::String("value3b")}});
+  col_ref.Document("doc4").Set({{"key4", FieldValue::String("value4")}});
 
-  // Create an initial listener for this query (to attempt to disrupt the
+  // Create an initial listener for this query (to attempt to disrupt the gets
   // below) and wait for the listener to deliver its initial snapshot before
   // continuing.
-  std::promise<Error> errorPromise;
-  std::future<Error> errorFuture = errorPromise.get_future();
+  std::promise<Error> error_promise;
+  std::future<Error> error_future = error_promise.get_future();
 
-  colRef.AddSnapshotListener([&errorPromise](const QuerySnapshot& snapshot,
-                                             Error error_code,
-                                             const std::string& error_message) {
-    errorPromise.set_value(error_code);
-  });
-  errorFuture.wait();
+  col_ref.AddSnapshotListener(
+      [&error_promise](const QuerySnapshot& snapshot, Error error_code,
+                       const std::string& error_message) {
+        error_promise.set_value(error_code);
+      });
+  // Note that future::get() will wait until the future has a valid result and
+  // retrieves it. Calling wait() before get() is not needed.
+  Error error_code = error_future.get();
+  EXPECT_EQ(error_code, kErrorNone);
 
-  Future<QuerySnapshot> future = colRef.Get(Source::kCache);
-  WaitFor(future);
-  QuerySnapshot querySnapshot = *future.result();
-  ASSERT_TRUE(querySnapshot.metadata().is_from_cache());
-  ASSERT_TRUE(querySnapshot.metadata().has_pending_writes());
-  ASSERT_EQ(4, querySnapshot.DocumentChanges().size());
-  std::map<std::string, MapFieldValue> newData{
+  Future<QuerySnapshot> future = col_ref.Get(Source::kCache);
+  Await(future);
+  QuerySnapshot snapshot = *future.result();
+  EXPECT_TRUE(snapshot.metadata().is_from_cache());
+  EXPECT_TRUE(snapshot.metadata().has_pending_writes());
+  EXPECT_EQ(snapshot.DocumentChanges().size(), 4);
+  std::map<std::string, MapFieldValue> new_data{
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2",
        {{"key2", FieldValue::String("value2")},
@@ -323,197 +329,194 @@ TEST_F(SourceTest, TestGetCollectionWhileOfflineWithDifferentGetOptions) {
       {"doc3", {{"key3b", FieldValue::String("value3b")}}},
       {"doc4", {{"key4", FieldValue::String("value4")}}},
   };
-  ASSERT_EQ(newData, QuerySnapshotToMap(querySnapshot));
+  EXPECT_EQ(new_data, QuerySnapshotToMap(snapshot));
 
-  future = colRef.Get();
-  WaitFor(future);
-  querySnapshot = *future.result();
-  ASSERT_TRUE(querySnapshot.metadata().is_from_cache());
-  ASSERT_TRUE(querySnapshot.metadata().has_pending_writes());
-  ASSERT_EQ(4, querySnapshot.DocumentChanges().size());
-  ASSERT_EQ(newData, QuerySnapshotToMap(querySnapshot));
+  future = col_ref.Get();
+  Await(future);
+  snapshot = *future.result();
+  EXPECT_TRUE(snapshot.metadata().is_from_cache());
+  EXPECT_TRUE(snapshot.metadata().has_pending_writes());
+  EXPECT_EQ(snapshot.DocumentChanges().size(), 4);
+  EXPECT_EQ(new_data, QuerySnapshotToMap(snapshot));
 
-  future = colRef.Get(Source::kServer);
+  future = col_ref.Get(Source::kServer);
   Await(future);
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(SourceTest, TestGetNonExistingDocWhileOnlineWithDefaultGetOptions) {
-  DocumentReference docRef = Document();
+TEST_F(SourceTest, GetNonExistingDocWhileOnlineWithDefaultGetOptions) {
+  DocumentReference doc_ref = Document();
 
-  Future<DocumentSnapshot> future = docRef.Get();
-  WaitFor(future);
+  Future<DocumentSnapshot> future = doc_ref.Get();
+  Await(future);
 
   DocumentSnapshot snapshot = *future.result();
-  ASSERT_FALSE(snapshot.exists());
-  ASSERT_FALSE(snapshot.metadata().is_from_cache());
-  ASSERT_FALSE(snapshot.metadata().has_pending_writes());
+  EXPECT_FALSE(snapshot.exists());
+  EXPECT_FALSE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest,
-       TestGetNonExistingCollectionWhileOnlineWithDefaultGetOptions) {
-  CollectionReference colRef = Collection();
+TEST_F(SourceTest, GetNonExistingCollectionWhileOnlineWithDefaultGetOptions) {
+  CollectionReference col_ref = Collection();
 
-  Future<QuerySnapshot> future = colRef.Get();
-  WaitFor(future);
+  Future<QuerySnapshot> future = col_ref.Get();
+  Await(future);
 
-  QuerySnapshot querySnapshot = *future.result();
-  ASSERT_TRUE(querySnapshot.empty());
-  ASSERT_EQ(0, querySnapshot.DocumentChanges().size());
-  ASSERT_FALSE(querySnapshot.metadata().is_from_cache());
-  ASSERT_FALSE(querySnapshot.metadata().has_pending_writes());
+  QuerySnapshot snapshot = *future.result();
+  EXPECT_TRUE(snapshot.empty());
+  EXPECT_EQ(snapshot.DocumentChanges().size(), 0);
+  EXPECT_FALSE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest, TestGetNonExistingDocWhileOfflineWithDefaultGetOptions) {
-  DocumentReference docRef = Document();
+TEST_F(SourceTest, GetNonExistingDocWhileOfflineWithDefaultGetOptions) {
+  DocumentReference doc_ref = Document();
 
-  WaitFor(TestFirestore()->DisableNetwork());
-  Future<DocumentSnapshot> future = docRef.Get();
+  DisableNetwork();
+  Future<DocumentSnapshot> future = doc_ref.Get();
   Await(future);
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(SourceTest, TestGetDeletedDocWhileOfflineWithDefaultGetOptions) {
-  DocumentReference docRef = Document();
-  WaitFor(docRef.Delete());
+// TODO(b/112267729): We should raise a fromCache=true event with a
+// nonexistent snapshot, but because the default source goes through a normal
+// listener, we do not.
+TEST_F(SourceTest, DISABLED_GetDeletedDocWhileOfflineWithDefaultGetOptions) {
+  DocumentReference doc_ref = Document();
+  Await(doc_ref.Delete());
 
-  WaitFor(TestFirestore()->DisableNetwork());
-  Future<DocumentSnapshot> future = docRef.Get();
-  WaitFor(future);
+  DisableNetwork();
+  Future<DocumentSnapshot> future = doc_ref.Get();
+  Await(future);
 
   DocumentSnapshot snapshot = *future.result();
-  ASSERT_FALSE(snapshot.exists());
-  ASSERT_EQ(0, snapshot.GetData().size());
-  // TODO(ehsann): is_from_cache() is false. why?
-  // ASSERT_TRUE(snapshot.metadata().is_from_cache());
-  ASSERT_FALSE(snapshot.metadata().has_pending_writes());
+  EXPECT_FALSE(snapshot.exists());
+  EXPECT_EQ(snapshot.GetData().size(), 0);
+  EXPECT_TRUE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest,
-       TestGetNonExistingCollectionWhileOfflineWithDefaultGetOptions) {
-  CollectionReference colRef = Collection();
+TEST_F(SourceTest, GetNonExistingCollectionWhileOfflineWithDefaultGetOptions) {
+  CollectionReference col_ref = Collection();
 
-  WaitFor(TestFirestore()->DisableNetwork());
-  Future<QuerySnapshot> future = colRef.Get();
-  WaitFor(future);
+  DisableNetwork();
+  Future<QuerySnapshot> future = col_ref.Get();
+  Await(future);
 
-  QuerySnapshot querySnapshot = *future.result();
-  ASSERT_TRUE(querySnapshot.empty());
-  ASSERT_EQ(0, querySnapshot.DocumentChanges().size());
-  ASSERT_TRUE(querySnapshot.metadata().is_from_cache());
-  ASSERT_FALSE(querySnapshot.metadata().has_pending_writes());
+  QuerySnapshot snapshot = *future.result();
+  EXPECT_TRUE(snapshot.empty());
+  EXPECT_EQ(snapshot.DocumentChanges().size(), 0);
+  EXPECT_TRUE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest, TestGetNonExistingDocWhileOnlineWithSourceEqualToCache) {
-  DocumentReference docRef = Document();
+TEST_F(SourceTest, GetNonExistingDocWhileOnlineWithSourceEqualToCache) {
+  DocumentReference doc_ref = Document();
 
   // Attempt to get doc. This will fail since there's nothing in cache.
-  Future<DocumentSnapshot> future = docRef.Get(Source::kCache);
+  Future<DocumentSnapshot> future = doc_ref.Get(Source::kCache);
   Await(future);
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(SourceTest,
-       TestGetNonExistingCollectionWhileOnlineWithSourceEqualToCache) {
-  CollectionReference colRef = Collection();
+TEST_F(SourceTest, GetNonExistingCollectionWhileOnlineWithSourceEqualToCache) {
+  CollectionReference col_ref = Collection();
 
-  Future<QuerySnapshot> future = colRef.Get(Source::kCache);
-  WaitFor(future);
+  Future<QuerySnapshot> future = col_ref.Get(Source::kCache);
+  Await(future);
 
-  QuerySnapshot querySnapshot = *future.result();
-  ASSERT_TRUE(querySnapshot.empty());
-  ASSERT_EQ(0, querySnapshot.DocumentChanges().size());
-  ASSERT_TRUE(querySnapshot.metadata().is_from_cache());
-  ASSERT_FALSE(querySnapshot.metadata().has_pending_writes());
+  QuerySnapshot snapshot = *future.result();
+  EXPECT_TRUE(snapshot.empty());
+  EXPECT_EQ(snapshot.DocumentChanges().size(), 0);
+  EXPECT_TRUE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest, TestGetNonExistingDocWhileOfflineWithSourceEqualToCache) {
-  DocumentReference docRef = Document();
+TEST_F(SourceTest, GetNonExistingDocWhileOfflineWithSourceEqualToCache) {
+  DocumentReference doc_ref = Document();
 
-  WaitFor(TestFirestore()->DisableNetwork());
+  DisableNetwork();
   // Attempt to get doc. This will fail since there's nothing in cache.
-  Future<DocumentSnapshot> future = docRef.Get(Source::kCache);
+  Future<DocumentSnapshot> future = doc_ref.Get(Source::kCache);
   Await(future);
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(SourceTest, TestGetDeletedDocWhileOfflineWithSourceEqualToCache) {
-  DocumentReference docRef = Document();
-  WaitFor(docRef.Delete());
+TEST_F(SourceTest, GetDeletedDocWhileOfflineWithSourceEqualToCache) {
+  DocumentReference doc_ref = Document();
+  Await(doc_ref.Delete());
 
-  WaitFor(TestFirestore()->DisableNetwork());
-  Future<DocumentSnapshot> future = docRef.Get(Source::kCache);
-  WaitFor(future);
+  DisableNetwork();
+  Future<DocumentSnapshot> future = doc_ref.Get(Source::kCache);
+  Await(future);
 
   DocumentSnapshot snapshot = *future.result();
-  ASSERT_FALSE(snapshot.exists());
-  ASSERT_EQ(0, snapshot.GetData().size());
-  ASSERT_TRUE(snapshot.metadata().is_from_cache());
-  ASSERT_FALSE(snapshot.metadata().has_pending_writes());
+  EXPECT_FALSE(snapshot.exists());
+  EXPECT_EQ(snapshot.GetData().size(), 0);
+  EXPECT_TRUE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest,
-       TestGetNonExistingCollectionWhileOfflineWithSourceEqualToCache) {
-  CollectionReference colRef = Collection();
+TEST_F(SourceTest, GetNonExistingCollectionWhileOfflineWithSourceEqualToCache) {
+  CollectionReference col_ref = Collection();
 
-  WaitFor(TestFirestore()->DisableNetwork());
-  Future<QuerySnapshot> future = colRef.Get(Source::kCache);
-  WaitFor(future);
+  DisableNetwork();
+  Future<QuerySnapshot> future = col_ref.Get(Source::kCache);
+  Await(future);
 
-  QuerySnapshot querySnapshot = *future.result();
-  ASSERT_TRUE(querySnapshot.empty());
-  ASSERT_EQ(0, querySnapshot.DocumentChanges().size());
-  ASSERT_TRUE(querySnapshot.metadata().is_from_cache());
-  ASSERT_FALSE(querySnapshot.metadata().has_pending_writes());
+  QuerySnapshot snapshot = *future.result();
+  EXPECT_TRUE(snapshot.empty());
+  EXPECT_EQ(snapshot.DocumentChanges().size(), 0);
+  EXPECT_TRUE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest, TestGetNonExistingDocWhileOnlineWithSourceEqualToServer) {
-  DocumentReference docRef = Document();
+TEST_F(SourceTest, GetNonExistingDocWhileOnlineWithSourceEqualToServer) {
+  DocumentReference doc_ref = Document();
 
-  Future<DocumentSnapshot> future = docRef.Get(Source::kServer);
-  WaitFor(future);
+  Future<DocumentSnapshot> future = doc_ref.Get(Source::kServer);
+  Await(future);
 
   DocumentSnapshot snapshot = *future.result();
-  ASSERT_FALSE(snapshot.exists());
-  ASSERT_FALSE(snapshot.metadata().is_from_cache());
-  ASSERT_FALSE(snapshot.metadata().has_pending_writes());
+  EXPECT_FALSE(snapshot.exists());
+  EXPECT_FALSE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest,
-       TestGetNonExistingCollectionWhileOnlineWithSourceEqualToServer) {
-  CollectionReference colRef = Collection();
+TEST_F(SourceTest, GetNonExistingCollectionWhileOnlineWithSourceEqualToServer) {
+  CollectionReference col_ref = Collection();
 
-  Future<QuerySnapshot> future = colRef.Get(Source::kServer);
-  WaitFor(future);
+  Future<QuerySnapshot> future = col_ref.Get(Source::kServer);
+  Await(future);
 
-  QuerySnapshot querySnapshot = *future.result();
-  ASSERT_TRUE(querySnapshot.empty());
-  ASSERT_EQ(0, querySnapshot.DocumentChanges().size());
-  ASSERT_FALSE(querySnapshot.metadata().is_from_cache());
-  ASSERT_FALSE(querySnapshot.metadata().has_pending_writes());
+  QuerySnapshot snapshot = *future.result();
+  EXPECT_TRUE(snapshot.empty());
+  EXPECT_EQ(snapshot.DocumentChanges().size(), 0);
+  EXPECT_FALSE(snapshot.metadata().is_from_cache());
+  EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest, TestGetNonExistingDocWhileOfflineWithSourceEqualToServer) {
-  DocumentReference docRef = Document();
+TEST_F(SourceTest, GetNonExistingDocWhileOfflineWithSourceEqualToServer) {
+  DocumentReference doc_ref = Document();
 
-  WaitFor(TestFirestore()->DisableNetwork());
+  DisableNetwork();
   // Attempt to get doc. This will fail since there's nothing in cache.
-  Future<DocumentSnapshot> future = docRef.Get(Source::kServer);
+  Future<DocumentSnapshot> future = doc_ref.Get(Source::kServer);
   Await(future);
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
 TEST_F(SourceTest,
-       TestGetNonExistingCollectionWhileOfflineWithSourceEqualToServer) {
-  CollectionReference colRef = Collection();
+       GetNonExistingCollectionWhileOfflineWithSourceEqualToServer) {
+  CollectionReference col_ref = Collection();
 
-  WaitFor(TestFirestore()->DisableNetwork());
-  Future<QuerySnapshot> future = colRef.Get(Source::kServer);
+  DisableNetwork();
+  Future<QuerySnapshot> future = col_ref.Get(Source::kServer);
   Await(future);
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
