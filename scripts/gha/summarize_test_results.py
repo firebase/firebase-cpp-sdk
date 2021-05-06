@@ -36,7 +36,8 @@ iOS (built on MacOS):
   - auth
   - firestore
 Desktop Windows (OpenSSL):
-  Build failures (1):
+  Build failures (2):
+  - admob
   - analytics
 """
 
