@@ -194,7 +194,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        stl: ["c++", "gnustl", "stlport"]
+        stl: ["c++", "gnustl"]
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1

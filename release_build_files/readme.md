@@ -363,11 +363,15 @@ code.
 ## Release Notes
 
 ### 8.0.0
-    
 -   Changes
     -   Analytics: Removed `SetCurrentScreen()` following its removal from iOS SDK
         and deprecation from Android SDK. Please use `LogEvent` with ScreenView 
         event to manually log screen changes.
+    -   General (Android): Firebase no longer supports STLPort. Please
+        [use libc++ instead](https://developer.android.com/ndk/guides/cpp-support#cs).
+    -   General (Android): Firebase support for gnustl (also known as libstdc++)
+        is deprecated and will be removed in the next major release. Please use
+        libc++ instead.
     -   Instance Id: Removed support for the previously-deprecated Instance ID SDK.
     -   Remote Config: The previously-deprecated static methods have been removed.
         Please use the new instance-based `firebase::remote_config::RemoteConfig`

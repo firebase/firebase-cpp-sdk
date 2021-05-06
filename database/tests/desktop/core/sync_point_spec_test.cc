@@ -177,7 +177,7 @@ UniquePtr<QueryInternal> ParseQuery(
   }
   if (query_params->startAt()) {
     const test_data::Bound* bound = query_params->startAt();
-    const char* name = bound->name() ? bound->name()->c_str() : "";
+    const char* name = bound->name() ? bound->name()->c_str() : nullptr;
     Variant index =
         bound->index()
             ? util::FlexbufferToVariant(bound->index_flexbuffer_root())
@@ -186,7 +186,7 @@ UniquePtr<QueryInternal> ParseQuery(
   }
   if (query_params->endAt()) {
     const test_data::Bound* bound = query_params->endAt();
-    const char* name = bound->name() ? bound->name()->c_str() : "";
+    const char* name = bound->name() ? bound->name()->c_str() : nullptr;
     Variant index =
         bound->index()
             ? util::FlexbufferToVariant(bound->index_flexbuffer_root())
@@ -195,7 +195,7 @@ UniquePtr<QueryInternal> ParseQuery(
   }
   if (query_params->equalTo()) {
     const test_data::Bound* bound = query_params->equalTo();
-    const char* name = bound->name() ? bound->name()->c_str() : "";
+    const char* name = bound->name() ? bound->name()->c_str() : nullptr;
     Variant index =
         bound->index()
             ? util::FlexbufferToVariant(bound->index_flexbuffer_root())
@@ -684,7 +684,6 @@ TEST_F(SyncTreeTest, UserDeepSetPullsInCorrectValues) {
 }
 
 TEST_F(SyncTreeTest, QueriesWithEqualToNullWork) {
-  GTEST_SKIP();  // Fails expectations.
   RunOne("Queries with equalTo(null) work");
 }
 
