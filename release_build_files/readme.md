@@ -365,8 +365,8 @@ code.
 ### 8.0.0
     
 -   Changes
-    -   Analytics: Removed `SetCurrentScreen()` following the removal from underlying
-        native SDKs.
+    -   Analytics: Removed `SetCurrentScreen()` following its removal from iOS SDK
+        and deprecation from Android SDK.
     -   Instance Id: Removed support for the previously-deprecated Instance ID SDK.
     -   Remote Config: The previously-deprecated static methods have been removed.
         Please use the new instance-based `firebase::remote_config::RemoteConfig`
