@@ -63,7 +63,8 @@ TEST_F(SourceTest, GetDocumentWhileOfflineWithDefaultGetOptions) {
   EXPECT_EQ(initial_data, snapshot.GetData());
 }
 
-TEST_F(SourceTest, GetCollectionWhileOfflineWithDefaultGetOptions) {
+// TODO(b/187448376): Disabling temporarily as it seems to time out on Android.
+TEST_F(SourceTest, DISABLED_GetCollectionWhileOfflineWithDefaultGetOptions) {
   std::map<std::string, MapFieldValue> initial_docs = {
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2", {{"key2", FieldValue::String("value2")}}},
