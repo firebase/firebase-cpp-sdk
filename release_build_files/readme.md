@@ -366,7 +366,8 @@ code.
     
 -   Changes
     -   Analytics: Removed `SetCurrentScreen()` following its removal from iOS SDK
-        and deprecation from Android SDK.
+        and deprecation from Android SDK. Please use `LogEvent` with ScreenView 
+        event to manually log screen changes.
     -   Instance Id: Removed support for the previously-deprecated Instance ID SDK.
     -   Remote Config: The previously-deprecated static methods have been removed.
         Please use the new instance-based `firebase::remote_config::RemoteConfig`
