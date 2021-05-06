@@ -364,6 +364,9 @@ code.
 
 ### 8.0.0
 -   Changes
+    -   Analytics: Removed `SetCurrentScreen()` following its removal from iOS SDK
+        and deprecation from Android SDK. Please use `LogEvent` with ScreenView 
+        event to manually log screen changes.
     -   General (Android): Firebase no longer supports STLPort. Please
         [use libc++ instead](https://developer.android.com/ndk/guides/cpp-support#cs).
     -   General (Android): Firebase support for gnustl (also known as libstdc++)

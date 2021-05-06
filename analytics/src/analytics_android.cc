@@ -50,8 +50,6 @@ static const ::firebase::App* g_app = nullptr;
   X(LogEvent, "logEvent", "(Ljava/lang/String;Landroid/os/Bundle;)V"),        \
   X(SetUserProperty, "setUserProperty",                                       \
     "(Ljava/lang/String;Ljava/lang/String;)V"),                               \
-  X(SetCurrentScreen, "setCurrentScreen",                                     \
-    "(Landroid/app/Activity;Ljava/lang/String;Ljava/lang/String;)V"),         \
   X(SetUserId, "setUserId", "(Ljava/lang/String;)V"),                         \
   X(SetSessionTimeoutDuration, "setSessionTimeoutDuration", "(J)V"),          \
   X(ResetAnalyticsData, "resetAnalyticsData", "()V"),                         \
@@ -307,64 +305,6 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
       analytics::GetMethodId(analytics::kSetSessionTimeoutDuration),
       milliseconds);
   util::CheckAndClearJniExceptions(env);
-}
-
-namespace {
-// Data passed into SetCurrentScreen, stored here because it is needed on a
-// different thread.
-struct SetCurrentScreenData {
-  SetCurrentScreenData() : screen_name(nullptr), screen_class(nullptr) {}
-  SetCurrentScreenData(const char* screen_name_, const char* screen_class_)
-      : screen_name(screen_name_ ? new std::string(screen_name_) : nullptr),
-        screen_class(screen_class_ ? new std::string(screen_class_) : nullptr) {
-  }
-  ~SetCurrentScreenData() {
-    if (screen_name) delete screen_name;
-    screen_name = nullptr;
-    if (screen_class) delete screen_class;
-    screen_class = nullptr;
-  }
-  // These are pointers to std::string because these can be null.
-  std::string* screen_name;
-  std::string* screen_class;
-};
-}  // namespace
-
-static void SetCurrentScreenReal(void* raw_data) {
-  SetCurrentScreenData* data =
-      reinterpret_cast<SetCurrentScreenData*>(raw_data);
-  raw_data = nullptr;
-  const char* screen_name =
-      data->screen_name ? data->screen_name->c_str() : nullptr;
-  const char* screen_class =
-      data->screen_class ? data->screen_class->c_str() : nullptr;
-
-  JNIEnv* env = g_app->GetJNIEnv();
-  jstring jni_screen_name =
-      screen_name ? env->NewStringUTF(screen_name) : nullptr;
-  jstring jni_screen_class =
-      screen_class ? env->NewStringUTF(screen_class) : nullptr;
-  env->CallVoidMethod(g_analytics_class_instance,
-                      analytics::GetMethodId(analytics::kSetCurrentScreen),
-                      g_app->activity(), jni_screen_name, jni_screen_class);
-  if (util::CheckAndClearJniExceptions(env)) {
-    LogError("Unable to set current screen name='%s', class='%s'", screen_name,
-             screen_class);
-  }
-  if (jni_screen_name) env->DeleteLocalRef(jni_screen_name);
-  if (jni_screen_class) env->DeleteLocalRef(jni_screen_class);
-
-  delete data;
-}
-
-void SetCurrentScreen(const char* screen_name, const char* screen_class) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  // Run SetCurrentScreen on the main thread.
-  SetCurrentScreenData* data =
-      new SetCurrentScreenData(screen_name, screen_class);
-  // The callback will delete `data`.
-  util::RunOnMainThread(g_app->GetJNIEnv(), g_app->activity(),
-                        SetCurrentScreenReal, data);
 }
 
 void ResetAnalyticsData() {
