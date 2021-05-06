@@ -619,7 +619,7 @@ jobs:
             --t ${{ needs.prepare_matrix.outputs.apis }}  \
             --output_directory "${{ github.workspace }}" \
             --ios_sdk ${{ needs.prepare_matrix.outputs.mobile_test_on }} \
-            --artifact_name "ios-macos-latest"
+            --artifact_name "ios-macos-latest" \
             --noadd_timestamp \
             --short_output_paths \
             ${additional_flags[*]} 
@@ -711,11 +711,11 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ env.pythonVersion }}
-      - name: Install python deps
+      - name: Setup integration test deps
         run: |
           pip install -r scripts/gha/requirements.txt
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
-      - name: Run desktop integration tests
+      - name: Run Desktop integration tests
         run: python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
       - name: Upload Desktop test results artifact
         if: ${{ !cancelled() }}

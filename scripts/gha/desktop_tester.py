@@ -103,6 +103,7 @@ class Test(object):
   def run(self):
     """Executes this testapp."""
     result = None  # Ensures this var is defined if timeout occurs.
+    os.chmod(self.testapp_path, 0o777)
     try:
       result = subprocess.run(
           args=[self.testapp_path],

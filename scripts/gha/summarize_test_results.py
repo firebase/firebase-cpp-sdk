@@ -20,7 +20,7 @@ python summarize_test_results.py --dir <directory> [--markdown]
 
 Example table mode output (will be slightly different with --markdown):
 
-| Platform (Build Config)   | Build failures | Test failures (Test Config)  |
+| Platform (Build Config)   | Build failures | Test failures (Test Devices) |
 |---------------------------|----------------|------------------------------|
 | iOS (build on iOS)        |                | auth (device1, device2)      |
 | Desktop Windows (OpenSSL) | analytics      | database                     |
@@ -93,7 +93,7 @@ HARDWARE = "hardware"
 
 PLATFORM_HEADER = "Platform (Build Config)"
 BUILD_FAILURES_HEADER = "Build failures"
-TEST_FAILURES_HEADER = "Test failures (Test Config)"
+TEST_FAILURES_HEADER = "Test failures (Test Devices)"
 SUCCESSFUL_TESTS_HEADER = "Successful tests"
 
 LOG_HEADER = "INTEGRATION TEST FAILURES"
@@ -240,10 +240,10 @@ def main(argv):
       log_data[log_name_str] = { "build_log": log_reader_data, "test_logs": dict()}
 
   for test_log_file in test_log_files:
-    log_name_str, test_config = format_log_file_name(test_log_file, test_log_name_re)
+    log_name_str, test_device = format_log_file_name(test_log_file, test_log_name_re)
     with open(test_log_file, "r") as log_reader:
       log_reader_data = log_reader.read()
-      log_data[log_name_str]["test_logs"][test_config] = log_reader_data
+      log_data[log_name_str]["test_logs"][test_device] = log_reader_data
 
   log_results = {}
   # Go through each log and extract out the build and test failures.
@@ -271,7 +271,7 @@ def main(argv):
     # (.*) Greedy match, which follows "TESTAPPS FAILED:" and skips "TESTAPPS EXPERIENCED ERRORS:"
     # (.*?) Nongreedy match, which follows "TESTAPPS EXPERIENCED ERRORS:"
     pattern = r'^TEST SUMMARY(.*?)TESTAPPS (EXPERIENCED ERRORS|FAILED):\n(([^\n]*\n)+)'
-    for (test_config, test_log) in logs["test_logs"].items():
+    for (test_device, test_log) in logs["test_logs"].items():
       m = re.search(pattern, test_log, re.MULTILINE | re.DOTALL)
       if m:
         for test_failure_line in m.group(3).strip("\n").split("\n"):
@@ -301,15 +301,18 @@ def main(argv):
               dirs = m2.group(0).split("/")
               product_name = dirs[2]
               if product_name in test_failures.keys():
-                test_failures[product_name].append(test_config)
+                test_failures[product_name].append(test_device)
               else:
-                test_failures[product_name] = [test_config]
+                test_failures[product_name] = [test_device]
             any_failures = True
 
-    for (product_name, test_configs) in test_failures.items():
+    for (product_name, test_devices) in test_failures.items():
       if "Android" in platform or "iOS" in platform:
-        test_configs.sort()
-        log_results[platform]["test_failures"].add("%s (%s)" % (product_name, ', '.join(test_configs)))
+        if len(test_devices) == len(logs["test_logs"]): 
+          log_results[platform]["test_failures"].add("%s (all devices)" % product_name) 
+        else:
+          test_devices.sort()
+          log_results[platform]["test_failures"].add("%s (%s)" % (product_name, ', '.join(test_devices)))
       else:
         log_results[platform]["test_failures"].add(product_name)
 
