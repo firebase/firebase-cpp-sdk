@@ -20,7 +20,7 @@ python summarize_test_results.py --dir <directory> [--markdown]
 
 Example table mode output (will be slightly different with --markdown):
 
-| Build Config              | Build failures | Test failures (Test Config)  |
+| Platform (Build Config)   | Build failures | Test failures (Test Config)  |
 |---------------------------|----------------|------------------------------|
 | iOS (build on iOS)        |                | auth (device1, device2)      |
 | Desktop Windows (OpenSSL) | analytics      | database                     |
@@ -91,7 +91,7 @@ TEST_FILE_PATTERN = "test-results-*.log"
 SIMULATOR = "simulator"
 HARDWARE = "hardware"
 
-PLATFORM_HEADER = "Build Config"
+PLATFORM_HEADER = "Platform (Build Config)"
 BUILD_FAILURES_HEADER = "Build failures"
 TEST_FAILURES_HEADER = "Test failures (Test Config)"
 SUCCESSFUL_TESTS_HEADER = "Successful tests"
@@ -296,22 +296,22 @@ def main(argv):
             test_filename = re.match(r'^(.*integration_test\.exe)', test_failure_line).group(1)
 
           if test_filename:
-            m2 = re.search(r'/ta/(firebase)?([^/]+)/iti?/', test_filename, re.IGNORECASE)
-            if not m2: m2 = re.search(r'/testapps/(firebase)?([^/]+)/integration_test', test_filename, re.IGNORECASE)
+            m2 = re.search(r'/testapps-(.*?)/(.*?)/', test_filename, re.IGNORECASE)
             if m2:
-              product_name = m2.group(2).lower()
-              if product_name:
-                if product_name in test_failures:
-                  test_failures[product_name].append(test_config)
-                else:
-                  test_failures[product_name] = [test_config]
-                any_failures = True
+              dirs = m2.group(0).split("/")
+              product_name = dirs[2]
+              if product_name in test_failures.keys():
+                test_failures[product_name].append(test_config)
+              else:
+                test_failures[product_name] = [test_config]
+            any_failures = True
 
     for (product_name, test_configs) in test_failures.items():
       if "Android" in platform or "iOS" in platform:
+        test_configs.sort()
         log_results[platform]["test_failures"].add("%s (%s)" % (product_name, ', '.join(test_configs)))
       else:
-        log_results[platform]["test_failures"].add(product_name)           
+        log_results[platform]["test_failures"].add(product_name)
 
   # After processing all the logs, we can determine the successful builds for each platform.
   for platform in log_results.keys():
