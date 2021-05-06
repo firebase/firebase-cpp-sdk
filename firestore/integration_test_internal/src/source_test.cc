@@ -1,4 +1,6 @@
 #include <future>
+#include <map>
+#include <string>
 
 #include "firebase/firestore.h"
 #include "firestore_integration_test.h"
@@ -257,7 +259,7 @@ TEST_F(SourceTest, GetDocumentWhileOfflineWithDifferentGetOptions) {
         error_promise.set_value(error_code);
       });
   // Note that future::get() will wait until the future has a valid result and
-  // retrieves it. Calling wait() before get() is not needed.
+  // retrieve it. Calling wait() before get() is not needed.
   Error error_code = error_future.get();
   EXPECT_EQ(error_code, kErrorNone);
 
@@ -311,7 +313,7 @@ TEST_F(SourceTest, GetCollectionWhileOfflineWithDifferentGetOptions) {
         error_promise.set_value(error_code);
       });
   // Note that future::get() will wait until the future has a valid result and
-  // retrieves it. Calling wait() before get() is not needed.
+  // retrieve it. Calling wait() before get() is not needed.
   Error error_code = error_future.get();
   EXPECT_EQ(error_code, kErrorNone);
 
