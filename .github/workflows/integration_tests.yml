@@ -697,7 +697,7 @@ jobs:
       - name: Install python deps
         run: |
           pip install -r scripts/gha/requirements.txt
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
       - name: Run desktop integration tests
         run: python scripts/gha/desktop_tester.py --testapp_dir testapps --artifact_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
       - name: Upload Desktop test results artifact
@@ -852,7 +852,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat testapps/test-results-android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}.log"
+          cat "testapps/test-results-android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}.log"
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
