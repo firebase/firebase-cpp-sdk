@@ -41,9 +41,9 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string("testapp_dir", None, "Look for testapps in this directory.")
 flags.DEFINE_string("testapp_name", "integration_test", "Name of the testapps.")
 flags.DEFINE_string(
-    "artifact_name", "",
-    "Create test log artifact is test-results-$artifact_name.log."
-    " artifacts will be created and placed in testapp_dir.")  
+    "logfile_name", "",
+    "Create test log artifact test-results-$logfile_name.log."
+    " logfile will be created and placed in testapp_dir.")  
 
 
 def main(argv):
@@ -59,6 +59,7 @@ def main(argv):
   testapps = []
   for file_dir, _, file_names in os.walk(testapp_dir):
     for file_name in file_names:
+      # ios build create intermediates file with same name, filter them out 
       if file_name == testapp_name and "ios_build" not in file_dir:
         testapps.append(os.path.join(file_dir, file_name))
   if not testapps:
@@ -82,7 +83,7 @@ def main(argv):
       tests, 
       test_validation.CPP, 
       testapp_dir, 
-      file_name="test-results-" + FLAGS.artifact_name + ".log")
+      file_name="test-results-" + FLAGS.logfile_name + ".log")
 
 
 def _fix_path(path):

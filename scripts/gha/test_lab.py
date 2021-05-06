@@ -87,9 +87,9 @@ flags.DEFINE_string(
     "Model_id and IOS_version for desired device. See module docstring for "
     "details on how to get this id. If none, will use FTL's default.")
 flags.DEFINE_string(
-    "artifact_name", "",
-    "Create test log artifact is test-results-$artifact_name.log."
-    " artifacts will be created and placed in testapp_dir.")   
+    "logfile_name", "",
+    "Create test log artifact test-results-$logfile_name.log."
+    " logfile will be created and placed in testapp_dir.")   
 
 def main(argv):
   if len(argv) > 1:
@@ -177,7 +177,7 @@ def main(argv):
       tests, 
       code_platform, 
       testapp_dir, 
-      file_name="test-results-" + FLAGS.artifact_name + ".log",
+      file_name="test-results-" + FLAGS.logfile_name + ".log",
       extra_info=" (ON REAL DEVICE VIA FTL)")
 
 

@@ -57,11 +57,11 @@ sdk id "system-images;android-29;google_apis;x86", build tool version "29.0.3":
 
 Returns:
    1: No iOS/Android integration_test apps found
-   20: invalid ios_device flag  
+   20: Invalid ios_device flag  
    21: iOS Simulator created fail  
    22: iOS gameloop app not found
    23: build_testapps.json file not found
-   30: invalid android_device flag  
+   30: Invalid android_device flag  
    31: For android test, JAVA_HOME is not set to java 8
 """
 
@@ -92,9 +92,9 @@ flags.DEFINE_string(
     "android_device", "system-images;android-28;google_apis;x86_64+28.0.3",
     "android device, which is a combination of sdk id and build tool version")
 flags.DEFINE_string(
-    "artifact_name", "",
-    "Create test log artifact is test-results-$artifact_name.log."
-    " artifacts will be created and placed in testapp_dir.")   
+    "logfile_name", "",
+    "Create test log artifact test-results-$logfile_name.log."
+    " logfile will be created and placed in testapp_dir.")   
 flags.DEFINE_boolean(
     "ci", False,
     "If this script used in a CI system, set True.")
@@ -200,7 +200,7 @@ def main(argv):
     tests, 
     test_validation.CPP, 
     testapp_dir, 
-    file_name="test-results-" + FLAGS.artifact_name + ".log", 
+    file_name="test-results-" + FLAGS.logfile_name + ".log", 
     extra_info=" (ON SIMULATOR/EMULATOR)")
 
 
