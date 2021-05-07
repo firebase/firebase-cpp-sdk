@@ -47,7 +47,7 @@ Directories               | Contents
 include                   | C++ headers
 frameworks/ios/ARCH       | iOS frameworks (compiled against libc++)<br>A multi-architecture framework is<br>provided in the *universal* directory.
 libs/ios/ARCH             | iOS static libraries (compiled against<br>libc++)<br>Multi-architecture libraries are<br/>provided in the *universal* directory.
-libs/android/ARCH/STL     | Android (GCC 4.8+ compatible) static<br>libraries for each architecture and STL variant.<br>_STL variants available:_<br><ul><li>`c++`: LLVM libc++ runtime (recommended)</li><li>`gnustl`: GNU STL</li><li>`stlport`: STLport runtime</li></ul><br>More information can be found in the<br>[NDK C++ Helper Runtimes](https://developer.android.com/ndk/guides/cpp-support.html#runtimes) documentation.
+libs/android/ARCH/STL     | Android (GCC 4.8+ compatible) static<br>libraries for each architecture and STL variant.<br>_STL variants available:_<br><ul><li>`c++`: LLVM libc++ runtime (recommended)</li><li>`gnustl`: GNU STL (deprecated)</li></ul><br>More information can be found in the<br>[NDK C++ Helper Runtimes](https://developer.android.com/ndk/guides/cpp-support.html#runtimes) documentation.
 *Desktop Implementations* |
 libs/darwin               | OS X static libraries (desktop or stub implementations, compiled against libc++)
 frameworks/darwin         | OS X frameworks (desktop or stub implementations, compiled against libc++)
@@ -364,6 +364,9 @@ code.
 
 ### 8.0.0
 -   Changes
+    -   Analytics: Removed `SetCurrentScreen()` following its removal from iOS SDK
+        and deprecation from Android SDK. Please use `LogEvent` with ScreenView 
+        event to manually log screen changes.
     -   General (Android): Firebase no longer supports STLPort. Please
         [use libc++ instead](https://developer.android.com/ndk/guides/cpp-support#cs).
     -   General (Android): Firebase support for gnustl (also known as libstdc++)

@@ -64,13 +64,6 @@
   FakeReporter->AddReport("+[FIRAnalytics setUserID:]", { userID ? [userID UTF8String] : "nil" });
 }
 
-+ (void)setScreenName:(nullable NSString *)screenName
-          screenClass:(nullable NSString *)screenClassOverride {
-  FakeReporter->AddReport("+[FIRAnalytics setScreenName:screenClass:]",
-      { screenName ? [screenName UTF8String] : "nil",
-        screenClassOverride ? [screenClassOverride UTF8String] : "nil" });
-}
-
 + (void)setSessionTimeoutInterval:(NSTimeInterval)sessionTimeoutInterval {
   FakeReporter->AddReport(
       "+[FIRAnalytics setSessionTimeoutInterval:]",

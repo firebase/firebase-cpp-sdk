@@ -497,18 +497,6 @@ void SetUserId(const char* user_id);
 /// session.
 void SetSessionTimeoutDuration(int64_t milliseconds);
 
-/// @brief Sets the current screen name and screen class, which specifies the
-/// current visual context in your app. This helps identify the areas in your
-/// app where users spend their time and how they interact with your app.
-///
-/// @param screen_name The name of the current screen. Set to nullptr to clear
-/// the current screen name. Limited to 100 characters.
-/// @param screen_class The name of the screen class. If you specify nullptr for
-/// this, it will use the default. On Android, the default is the class name of
-/// the current Activity. On iOS, the default is the class name of the current
-/// UIViewController. Limited to 100 characters.
-void SetCurrentScreen(const char* screen_name, const char* screen_class);
-
 /// Clears all analytics data for this app from the device and resets the app
 /// instance id.
 void ResetAnalyticsData();

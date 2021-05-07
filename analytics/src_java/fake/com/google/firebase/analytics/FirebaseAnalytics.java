@@ -68,12 +68,6 @@ public final class FirebaseAnalytics {
     FakeReporter.addReport("FirebaseAnalytics.setUserProperty", name, String.valueOf(value));
   }
 
-  public void setCurrentScreen(Activity activity, String screenName,
-      String screenClassOverride) {
-    FakeReporter.addReport("FirebaseAnalytics.setCurrentScreen", activity.getClass().getName(),
-        String.valueOf(screenName), String.valueOf(screenClassOverride));
-  }
-
   public void setUserId(String userId) {
     FakeReporter.addReport("FirebaseAnalytics.setUserId", String.valueOf(userId));
   }
