@@ -290,7 +290,7 @@ def modify_pod_file(pod_file, pod_version_map, dryrun=True):
 
 
 RE_README_POD_VERSION = re.compile(
-  r"Firebase/(?P<product_pod_name>\w+) Cocoapod \((?P<version>([0-9.]+))\)")
+  r"<br>Firebase/(?P<product_pod_name>\w+) Cocoapod \((?P<version>([0-9.]+))\)")
 
 def modify_readme_file_pods(readme_filepath, version_map, dryrun=True):
   """Modify a readme Markdown file to reference correct cocoapods versions.
@@ -323,7 +323,7 @@ def modify_readme_file_pods(readme_filepath, version_map, dryrun=True):
     pod_key = 'Firebase' + m.group('product_pod_name')
     if pod_key not in version_map:
       return m.group(0)
-    repl = 'Firebase/%s Cocoapod (%s)' % (m.group('product_pod_name'),
+    repl = '<br>Firebase/%s Cocoapod (%s)' % (m.group('product_pod_name'),
                                           version_map[pod_key])
     return repl
 
@@ -438,7 +438,7 @@ def modify_dependency_file(dependency_filepath, version_map, dryrun=True):
 
 
 RE_README_ANDROID_VERSION = re.compile(
-    r"<br>(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([0-9.]+)<br>")
+    r"<br>(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([0-9.]+)")
 
 
 def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
@@ -473,7 +473,7 @@ def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
     pkg = m.group('pkg').replace('-', '_').replace(':', '.')
     if pkg not in version_map:
       return m.group(0)
-    repl = '<br>%s:%s<br>' % (m.group('pkg'), version_map[pkg])
+    repl = '<br>%s:%s' % (m.group('pkg'), version_map[pkg])
     return repl
 
   substituted_pairs = []
