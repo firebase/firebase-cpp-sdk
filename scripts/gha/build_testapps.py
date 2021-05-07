@@ -123,7 +123,7 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     "artifact_name", "",
     "artifacts will be created and placed in output_directory."
-    " testapps artifact is testapps-$artifact_name.zip;"
+    " testapps artifact is testapps-$artifact_name;"
     " build log artifact is build-results-$artifact_name.log.")    
 
 flags.DEFINE_string(
@@ -255,7 +255,7 @@ def main(argv):
           short_output_paths=FLAGS.short_output_paths)
       logging.info("END building for %s", testapp)
   
-  _zip_integration_tests(testapps, root_output_dir, FLAGS.artifact_name)
+  _collect_integration_tests(testapps, root_output_dir, FLAGS.artifact_name)
 
   _summarize_results(testapps, platforms, failures, root_output_dir, FLAGS.artifact_name)
   return 1 if failures else 0
@@ -329,7 +329,7 @@ def _build(
   return failures
 
 
-def _zip_integration_tests(testapps, output_dir, artifact_name):
+def _collect_integration_tests(testapps, output_dir, artifact_name):
   testapps_artifact_dir = "testapps-" + artifact_name
   android_testapp_extension = ".apk"
   ios_testapp_extension = ".ipa"
@@ -360,8 +360,6 @@ def _zip_integration_tests(testapps, output_dir, artifact_name):
         else:
           dir_util.copy_tree(path, os.path.join(artifact_path, testapp, "integration_test.app"))
         break
-  shutil.make_archive(artifact_path, 'zip', root_dir=output_dir, base_dir=testapps_artifact_dir)
-  logging.info("integration tests artifact: %s.zip", artifact_path)
 
 
 def _summarize_results(testapps, platforms, failures, output_dir, artifact_name):
