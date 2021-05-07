@@ -290,19 +290,19 @@ def modify_pod_file(pod_file, pod_version_map, dryrun=True):
 
 
 RE_README_POD_VERSION = re.compile(
-  r"<br>(?P<pod_name>.+) Cocoapod \((?P<version>.+)\)")
+  r"Firebase/(?P<product_pod_name>\w+) Cocoapod \((?P<version>([0-9.]+))\)")
 
 def modify_readme_file_pods(readme_filepath, version_map, dryrun=True):
   """Modify a readme Markdown file to reference correct cocoapods versions.
 
   Looks for lines like:
-  <br>Firebase/AdMob Cocoapod (7.11.0)
+  <br>Firebase/AdMob Cocoapod (7.11.0)<br>Firebase/Auth Cocoapod (8.1.0)
   for pods matching the ones in the version map, and modifies them in-place.
 
   Args:
     readme_filepath: Path to readme file to edit.
     version_map: Dictionary of packages to version numbers, e.g. {
-        'FirebaseAuth': '15.0.0' }
+        'FirebaseAuth': '15.0.0', 'FirebaseDatabase': '14.0.0' }
     dryrun (bool, optional): Just print the substitutions.
                              Do not write to file. Defaults to True.
   """
@@ -317,18 +317,20 @@ def modify_readme_file_pods(readme_filepath, version_map, dryrun=True):
   output_lines = []
 
   # Replacement function, look up the version number of the given pkg.
-  def replace_module_line(m):
-    if not m.group('pod_name'):
+  def replace_pod_line(m):
+    if not m.group('product_pod_name'):
       return m.group(0)
-    pod_key = m.group('pod_name').replace('/', '')
+    pod_key = 'Firebase' + m.group('product_pod_name')
     if pod_key not in version_map:
       return m.group(0)
-    repl = '%s Cocoapod (%s)' % (m.group('pod_name'), version_map[pod_key])
-    return '<br>{0}'.format(repl)
+    repl = 'Firebase/%s Cocoapod (%s)' % (m.group('product_pod_name'),
+                                          version_map[pod_key])
+    return repl
 
   substituted_pairs = []
+  to_update = False
   for line in lines:
-    substituted_line = re.sub(RE_README_ANDROID_VERSION, replace_module_line,
+    substituted_line = re.sub(RE_README_POD_VERSION, replace_pod_line,
                               line)
     output_lines.append(substituted_line)
     if substituted_line != line:
@@ -415,6 +417,7 @@ def modify_dependency_file(dependency_filepath, version_map, dryrun=True):
                           quote_type)
 
   substituted_pairs = []
+  to_update = False
   for line in lines:
     substituted_line = re.sub(RE_GENERIC_DEPENDENCY_MODULE, replace_dependency,
                              line)
@@ -438,7 +441,7 @@ RE_README_ANDROID_VERSION = re.compile(
     r"<br>(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([0-9.]+)<br>")
 
 
-def modify_readme_file(readme_filepath, version_map, dryrun=True):
+def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
   """Modify a readme Markdown file to reference correct module versions.
 
   Looks for lines like:
@@ -458,7 +461,8 @@ def modify_readme_file(readme_filepath, version_map, dryrun=True):
   with open(readme_filepath, "r") as readme_file:
     lines = readme_file.readlines()
   if not lines:
-    logging.fatal('Could not read contents of file %s', readme_filepath)
+    logging.fatal('Update failed. ' +
+          'Could not read contents from file {0}.'.format(readme_filepath))
 
   output_lines = []
 
@@ -469,10 +473,11 @@ def modify_readme_file(readme_filepath, version_map, dryrun=True):
     pkg = m.group('pkg').replace('-', '_').replace(':', '.')
     if pkg not in version_map:
       return m.group(0)
-    repl = '%s:%s' % (m.group('pkg'), version_map[pkg])
-    return '<br>{0}<br>'.format(repl)
+    repl = '<br>%s:%s<br>' % (m.group('pkg'), version_map[pkg])
+    return repl
 
   substituted_pairs = []
+  to_update = False
   for line in lines:
     substituted_line = re.sub(RE_README_ANDROID_VERSION, replace_module_line,
                               line)
@@ -545,7 +550,9 @@ def main():
                           file_name='readme')
   if not args.skip_ios:
     #latest_pod_versions_map = get_latest_pod_versions(args.specs_repo, PODS)
-    latest_pod_versions_map = {'FirebaseAuth': '8.0.0', 'FirebaseRemoteConfig':'9.9.9'}
+    latest_pod_versions_map = {'FirebaseAuth': '8.0.0',
+                               'FirebaseRemoteConfig':'9.9.9',
+                               'FirebaseDatabase': '11.11.11'}
     pod_files = get_files(args.podfiles, file_extension='', file_name='Podfile')
     for pod_file in pod_files:
       modify_pod_file(pod_file, latest_pod_versions_map, args.dryrun)
@@ -556,6 +563,7 @@ def main():
     #latest_android_versions_map = get_latest_maven_versions()
     latest_android_versions_map = {
       'com.google.firebase.firebase_auth': '6.6.6',
+      'com.google.firebase.firebase_analytics': '8.8.8',
       'com.google.firebase.firebase_database': '9.9.9',
     }
 
