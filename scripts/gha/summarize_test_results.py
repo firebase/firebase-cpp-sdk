@@ -296,7 +296,7 @@ def main(argv):
             test_filename = re.match(r'^(.*integration_test\.exe)', test_failure_line).group(1)
 
           if test_filename:
-            m2 = re.search(r'/testapps-(.*?)/(.*?)/', test_filename, re.IGNORECASE)
+            m2 = re.search(r'/testapps(.*?)/(.*?)/', test_filename, re.IGNORECASE)
             if m2:
               dirs = m2.group(0).split("/")
               product_name = dirs[2]
