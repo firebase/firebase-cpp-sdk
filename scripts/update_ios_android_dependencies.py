@@ -548,11 +548,9 @@ def main():
   # Readme files have to be updated for both android and iOS dependencies.
   readme_files = get_files(args.readmefiles, file_extension='.md',
                           file_name='readme')
+
   if not args.skip_ios:
-    #latest_pod_versions_map = get_latest_pod_versions(args.specs_repo, PODS)
-    latest_pod_versions_map = {'FirebaseAuth': '8.0.0',
-                               'FirebaseRemoteConfig':'9.9.9',
-                               'FirebaseDatabase': '11.11.11'}
+    latest_pod_versions_map = get_latest_pod_versions(args.specs_repo, PODS)
     pod_files = get_files(args.podfiles, file_extension='', file_name='Podfile')
     for pod_file in pod_files:
       modify_pod_file(pod_file, latest_pod_versions_map, args.dryrun)
@@ -560,12 +558,7 @@ def main():
       modify_readme_file_pods(readme_file, latest_pod_versions_map, args.dryrun)
 
   if not args.skip_android:
-    #latest_android_versions_map = get_latest_maven_versions()
-    latest_android_versions_map = {
-      'com.google.firebase.firebase_auth': '6.6.6',
-      'com.google.firebase.firebase_analytics': '8.8.8',
-      'com.google.firebase.firebase_database': '9.9.9',
-    }
+    latest_android_versions_map = get_latest_maven_versions()
 
     dep_files = get_files(args.depfiles, file_extension='.gradle',
                           file_name='firebase_dependencies.gradle')
