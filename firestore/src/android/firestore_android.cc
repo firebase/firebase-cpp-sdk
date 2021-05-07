@@ -567,8 +567,12 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
   // than ideal. This is to support the unlikely case when user try to delete
   // Firestore instance in the listener. Once the referred bug is fixed, it can
   // be managed through a `shared_ptr`.
-  bundle_listeners_.push_back(
-      std::unique_ptr<LambdaEventListener<LoadBundleTaskProgress>>(listener));
+  {
+    MutexLock lock(bundle_listener_mutex_);
+    bundle_listeners_.push_back(
+        std::unique_ptr<LambdaEventListener<LoadBundleTaskProgress>>(listener));
+  }
+
   Local<Object> progress_listener =
       EventListenerInternal::Create(env, this, listener);
   task.AddProgressListener(env, user_callback_executor(), progress_listener);

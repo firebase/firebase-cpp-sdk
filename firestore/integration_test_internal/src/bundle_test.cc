@@ -154,7 +154,7 @@ TEST_F(BundleTest, CanDeleteFirestoreFromProgressUpdate) {
 
   // 3 progresses will be reported: initial, document 1, document 2.
   // Final progress update is missing because Firestore is deleted before that.
-  EXPECT_EQ(progresses.size(), 3);
+  ASSERT_EQ(progresses.size(), 3);
   VerifyProgress(progresses[0], 0);
   VerifyProgress(progresses[1], 1);
   VerifyProgress(progresses[2], 2);
