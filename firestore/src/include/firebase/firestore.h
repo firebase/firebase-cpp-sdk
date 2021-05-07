@@ -433,7 +433,7 @@ class Firestore {
    * Reads a Firestore `Query` from local cache, identified by the given name.
    *
    * The named queries are packaged into bundles on the server side (along with
-   * resulting documents) and loaded to local cache using `loadBundle`. Once in
+   * resulting documents) and loaded to local cache using `LoadBundle`. Once in
    * local cache, you can use this method to extract a query by name.
    *
    * If a query cannot be found, the returned future will complete with its

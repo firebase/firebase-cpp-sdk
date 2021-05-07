@@ -223,6 +223,14 @@ enum class InitialLogState {
   kSetDisabled,
 } initial_log_state = InitialLogState::kUnset;
 
+Local<LoadBundleTaskInternal> CreateLoadBundleTask(Env& env,
+                                                   Object& firestore,
+                                                   const std::string& bundle) {
+  Local<String> bundle_jstring = env.NewStringUtf(bundle.c_str());
+  Local<Array<uint8_t>> bytes = bundle_jstring.GetBytes(env, String::GetUtf8());
+  return env.Call(firestore, kLoadBundle, bytes);
+}
+
 }  // namespace
 
 const char kApiIdentifier[] = "Firestore";
@@ -537,11 +545,7 @@ void FirestoreInternal::ClearListeners() {
 Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
     const std::string& bundle) {
   Env env = GetEnv();
-  Local<String> bundle_jstring = env.NewStringUtf(bundle.c_str());
-  String encoding = String::GetUtf8();
-  Local<Array<uint8_t>> bytes = bundle_jstring.GetBytes(env, encoding);
-  Local<LoadBundleTaskInternal> task = env.Call(obj_, kLoadBundle, bytes);
-
+  Local<LoadBundleTaskInternal> task = CreateLoadBundleTask(env, obj_, bundle);
   return promises_->NewFuture<LoadBundleTaskProgress>(env, AsyncFn::kLoadBundle,
                                                       task);
 }
@@ -550,10 +554,7 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
     const std::string& bundle,
     std::function<void(const LoadBundleTaskProgress&)> progress_callback) {
   Env env = GetEnv();
-  Local<String> bundle_jstring = env.NewStringUtf(bundle.c_str());
-  String encoding = String::GetUtf8();
-  Local<Array<uint8_t>> bytes = bundle_jstring.GetBytes(env, encoding);
-  Local<LoadBundleTaskInternal> task = env.Call(obj_, kLoadBundle, bytes.get());
+  Local<LoadBundleTaskInternal> task = CreateLoadBundleTask(env, obj_, bundle);
 
   auto* listener = new LambdaEventListener<LoadBundleTaskProgress>(
       [progress_callback](const LoadBundleTaskProgress& p, Error e,
@@ -562,14 +563,18 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
         // listeners.
         progress_callback(p);
       });
+  // TODO(b/187420421): The listener is owned by the firestore instance, longer
+  // than ideal. This is to support the unlikely case when user try to delete
+  // Firestore instance in the listener. Once the referred bug is fixed, it can
+  // be managed through a `shared_ptr`.
+  bundle_listeners_.push_back(
+      std::unique_ptr<LambdaEventListener<LoadBundleTaskProgress>>(listener));
   Local<Object> progress_listener =
       EventListenerInternal::Create(env, this, listener);
   task.AddProgressListener(env, user_callback_executor(), progress_listener);
 
   auto future = promises_->NewFuture<LoadBundleTaskProgress>(
       env, AsyncFn::kLoadBundle, task);
-  future.OnCompletion(
-      [listener](const Future<LoadBundleTaskProgress>& f) { delete listener; });
 
   return future;
 }

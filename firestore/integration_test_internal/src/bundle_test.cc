@@ -1,5 +1,4 @@
-#include <condition_variable>
-#include <mutex>
+#include <future>
 #include <string>
 #include <vector>
 
@@ -9,6 +8,7 @@
 #include "gtest/gtest.h"
 #include "util/bundle_builder.h"
 #include "util/event_accumulator.h"
+#include "util/future_test_util.h"
 
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRBundlesTests.mm
@@ -46,13 +46,18 @@ class BundleTest : public FirestoreIntegrationTest {
     FirestoreIntegrationTest::SetUp();
     // Clear the storage to avoid tests interfering with each other, since they
     // will be loading the same bundle file.
-    Await(TestFirestore()->ClearPersistence());
+    ASSERT_THAT(TestFirestore()->ClearPersistence(), FutureSucceeds());
   }
 
   template <typename T>
   T AwaitResult(const Future<T>& f) {
     auto* ptr = Await(f);
     EXPECT_NE(ptr, nullptr);
+    // Return default instance instead of crashing.
+    if (ptr == nullptr) {
+      return {};
+    }
+
     return *ptr;
   }
 
@@ -102,7 +107,7 @@ TEST_F(BundleTest, CanLoadBundlesWithProgressUpdates) {
 
   // 4 progresses will be reported: initial, document 1, document 2, final
   // success.
-  EXPECT_EQ(progresses.size(), 4);
+  ASSERT_EQ(progresses.size(), 4);
   VerifyProgress(progresses[0], 0);
   VerifyProgress(progresses[1], 1);
   VerifyProgress(progresses[2], 2);
@@ -126,28 +131,26 @@ TEST_F(BundleTest, CanDeleteFirestoreFromProgressUpdate) {
   Firestore* db = TestFirestore();
   auto bundle = CreateBundle(db->app()->options().project_id());
 
-  std::mutex lock;
-  std::condition_variable cv;
+  std::promise<void> db_deleted;
+  std::future<void> db_deleted_future = db_deleted.get_future();
   std::vector<LoadBundleTaskProgress> progresses;
   Future<LoadBundleTaskProgress> result =
-      db->LoadBundle(bundle, [this, db, &progresses, &lock,
-                              &cv](const LoadBundleTaskProgress& progress) {
+      db->LoadBundle(bundle, [this, db, &progresses, &db_deleted](
+                                 const LoadBundleTaskProgress& progress) {
         progresses.push_back(progress);
         // Delete firestore before the final progress.
         if (progresses.size() == 3) {
-          std::lock_guard<std::mutex> lk(lock);
           DeleteFirestore(db);
-          cv.notify_one();
+          db_deleted.set_value();
         }
       });
 
   // Wait for the notification that the instance is deleted. We cannot rely on
   // the returned future because it will not complete.
-  std::unique_lock<std::mutex> lk(lock);
-  cv.wait(lk);
+  db_deleted_future.wait();
 
   // This future is not completed, and returns back a nullptr for result.
-  EXPECT_EQ(Await(result), nullptr);
+  ASSERT_EQ(Await(result), nullptr);
 
   // 3 progresses will be reported: initial, document 1, document 2.
   // Final progress update is missing because Firestore is deleted before that.
@@ -169,7 +172,7 @@ TEST_F(BundleTest, LoadBundlesForASecondTimeSkips) {
         progresses.push_back(progress);
       }));
 
-  EXPECT_EQ(progresses.size(), 1);
+  ASSERT_EQ(progresses.size(), 1);
   VerifySuccessProgress(progresses[0]);
   EXPECT_EQ(progresses[0], second_load);
 
@@ -249,16 +252,13 @@ TEST_F(BundleTest, LoadDocumentsFromOtherProjectsShouldFail) {
   Await(result);
 
   EXPECT_NE(result.error(), Error::kErrorOk);
-  EXPECT_EQ(progresses.size(), 2);
+  ASSERT_EQ(progresses.size(), 2);
   VerifyProgress(progresses[0], 0);
   VerifyErrorProgress(progresses[1]);
 }
 
 TEST_F(BundleTest, GetInvalidNamedQuery) {
   Firestore* db = TestFirestore();
-  auto bundle = CreateBundle(db->app()->options().project_id());
-  VerifySuccessProgress(AwaitResult(db->LoadBundle(bundle)));
-
   {
     auto future = db->NamedQuery("DOES_NOT_EXIST");
     Await(future);

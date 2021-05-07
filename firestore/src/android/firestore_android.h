@@ -12,6 +12,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
+#include "firestore/src/android/lambda_event_listener.h"
 #include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
@@ -213,6 +214,8 @@ class FirestoreInternal {
 #else   //  defined(_STLPORT_VERSION)
   std::unordered_set<ListenerRegistrationInternal*> listener_registrations_;
 #endif  //  defined(_STLPORT_VERSION)
+  std::vector<std::unique_ptr<LambdaEventListener<LoadBundleTaskProgress>>>
+      bundle_listeners_;
 
   FutureManager future_manager_;
   UniquePtr<PromiseFactory<AsyncFn>> promises_;

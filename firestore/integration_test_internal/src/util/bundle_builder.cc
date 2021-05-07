@@ -22,6 +22,8 @@ namespace firebase {
 namespace firestore {
 namespace {
 
+// Copied from
+// https://stackoverflow.com/questions/2896600/how-to-replace-all-occurrences-of-a-character-in-string
 std::string ReplaceAll(std::string str,
                        const std::string& from,
                        const std::string& to) {
@@ -210,9 +212,10 @@ std::string CreateBundle(const std::string& project_id) {
 
   auto bundle_template = BundleTemplate();
   for (size_t i = 1; i < bundle_template.size(); ++i) {
-    auto element = ReplaceAll(bundle_template[i], "{projectId}", project_id);
+    std::string element =
+        ReplaceAll(bundle_template[i], "{projectId}", project_id);
     bundle.append(std::to_string(element.size()));
-    bundle.append(std::move(element));
+    bundle.append(element);
   }
 
   std::string metadata = ReplaceAll(bundle_template[0], "{totalBytes}",

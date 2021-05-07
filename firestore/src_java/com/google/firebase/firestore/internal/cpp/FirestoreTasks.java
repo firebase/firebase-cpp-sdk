@@ -8,10 +8,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/** Helper methods for working with {@link Task} objects from C++. */
+/**
+ * Helper methods for working with {@link Task} objects from C++.
+ */
 public final class FirestoreTasks {
 
-  private FirestoreTasks() {}
+  private FirestoreTasks() {
+  }
 
   /**
    * Takes a Task and returns a new Task, whose result will be the same as the incoming Task,
@@ -19,16 +22,16 @@ public final class FirestoreTasks {
    */
   public static <T> Task<T> failTaskWhenResultIsNull(Task<T> task, final String message) {
     Continuation<T, T> continuation =
-        new Continuation<T, T>() {
-          @Override
-          public T then(Task<T> task) throws Exception {
-            T result = task.getResult();
-                  if(result == null) {
-                      throw new FirebaseFirestoreException(message, FirebaseFirestoreException.Code.NOT_FOUND);
-                  }
-            return result;
+      new Continuation<T, T>() {
+        @Override
+        public T then(Task<T> task) throws Exception {
+          T result = task.getResult();
+          if (result == null) {
+            throw new FirebaseFirestoreException(message, FirebaseFirestoreException.Code.NOT_FOUND);
           }
-        };
+          return result;
+        }
+      };
     return task.continueWith(continuation);
   }
 

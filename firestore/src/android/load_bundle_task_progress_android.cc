@@ -60,8 +60,7 @@ void LoadBundleTaskProgressInternal::Initialize(jni::Loader& loader) {
   g_clazz =
       loader.LoadClass(kClassName, kGetDocumentsLoaded, kGetTotalDocuments,
                        kGetBytesLoaded, kGetTotalBytes, kGetTaskState);
-  loader.LoadClass(kStateEnumName, kTaskStateSuccess);
-  loader.LoadClass(kStateEnumName, kTaskStateRunning);
+  loader.LoadClass(kStateEnumName, kTaskStateSuccess, kTaskStateRunning);
 }
 
 Class LoadBundleTaskProgressInternal::GetClass() {

@@ -45,7 +45,7 @@ void LoadBundleTaskInternal::Initialize(Loader& loader) {
 
 void LoadBundleTaskInternal::AddProgressListener(Env& env,
                                                  const Object& executor,
-                                                 Object& listener) {
+                                                 const Object& listener) {
   env.Call(*this, kAddProgressListener, executor, listener);
 }
 

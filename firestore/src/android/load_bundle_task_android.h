@@ -33,7 +33,7 @@ class LoadBundleTaskInternal : public jni::Task {
 
   void AddProgressListener(jni::Env& env,
                            const jni::Object& executor,
-                           jni::Object& listener);
+                           const jni::Object& listener);
 };
 
 }  // namespace firestore
