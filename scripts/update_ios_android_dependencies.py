@@ -65,7 +65,7 @@ from xml.etree import ElementTree
 
 def get_files_from_directory(dirpath, file_extension, file_name=None,
                              absolute_paths=True):
-  """ Helper function to filter files in directories.
+  """Helper function to filter files in directories.
 
   Args:
       dirpath (str): Root directory to search in.
@@ -96,13 +96,35 @@ def get_files_from_directory(dirpath, file_extension, file_name=None,
   return files
 
 
+def get_files(dirs_and_files, file_extension, file_name=None):
+  """Get final list of files after searching directories.
+  If a directory is passed, it is searched recursively.
+
+  Args:
+      dirs_and_files (iterable(str)): List of paths which could be files or
+                                      directories.
+
+  Returns:
+      iterable(str): Final list of files after recursively searching dirs.
+  """
+  files = []
+  for entry in dirs_and_files:
+    abspath = os.path.abspath(entry)
+    if not os.path.exists(abspath):
+      continue
+    if os.path.isdir(abspath):
+      files = files + get_files_from_directory(abspath,
+                                                  file_extension=file_extension,
+                                                  file_name=file_name)
+    elif os.path.isfile(abspath):
+      files.append(abspath)
+    return files
+
+
+##########  iOS pods versions update #######################################
+
 # Cocoapods github repo from where we scan available pods and their versions.
 PODSPEC_REPOSITORY = 'https://github.com/CocoaPods/Specs.git'
-
-# Android gMaven repostiory from where we scan available android packages
-# and their versions
-GMAVEN_MASTER_INDEX = "https://dl.google.com/dl/android/maven2/master-index.xml"
-GMAVEN_GROUP_INDEX = "https://dl.google.com/dl/android/maven2/{0}/group-index.xml"
 
 # List of Pods that we are interested in.
 PODS = (
@@ -124,7 +146,7 @@ PODS = (
 
 
 def get_pod_versions(specs_repo, pods=PODS):
-  """ Get available pods and their versions from the specs repo
+  """Get available pods and their versions from the specs repo
 
   Args:
       local_repo_dir (str): Directory mirroring Cocoapods specs repo
@@ -195,7 +217,7 @@ def get_latest_pod_versions(specs_repo=None, pods=PODS):
 
 
 def get_pod_files(dirs_and_files):
-  """ Get final list of podfiles to update.
+  """Get final list of podfiles to update.
   If a directory is passed, it is searched recursively.
 
   Args:
@@ -223,7 +245,7 @@ def get_pod_files(dirs_and_files):
 RE_PODFILE_VERSION = re.compile("\s+pod '(?P<pod_name>.+)', '(?P<version>.+)'\n")
 
 def modify_pod_file(pod_file, pod_version_map, dryrun=True):
-  """ Update pod versions in specified podfile.
+  """Update pod versions in specified podfile.
 
   Args:
       pod_file (str): Absolute path to a podfile.
@@ -236,9 +258,9 @@ def modify_pod_file(pod_file, pod_version_map, dryrun=True):
   with open(pod_file, "r") as podfile:
     existing_lines = podfile.readlines()
   if not existing_lines:
-    logging.debug('Update failed. ' +
+    logging.fatal('Update failed. ' +
                   'Could not read contents from pod file {0}.'.format(podfile))
-    return
+
   logging.debug('Checking if update is required for {0}'.format(pod_file))
 
   substituted_pairs = []
@@ -266,14 +288,152 @@ def modify_pod_file(pod_file, pod_version_map, dryrun=True):
         podfile.writelines(existing_lines)
     print()
 
+########## END: iOS pods versions update #####################################
 
-def main():
-  args = parse_cmdline_args()
-  latest_versions_map = get_latest_pod_versions(args.specs_repo, PODS)
-  #latest_versions_map = {'FirebaseAuth': '8.0.0', 'FirebaseRemoteConfig':'9.9.9'}
-  pod_files = get_pod_files(args.podfiles)
-  for pod_file in pod_files:
-    modify_pod_file(pod_file, latest_versions_map, args.dryrun)
+########## Android versions update #############################
+
+# Android gMaven repostiory from where we scan available android packages
+# and their versions
+GMAVEN_MASTER_INDEX = "https://dl.google.com/dl/android/maven2/master-index.xml"
+GMAVEN_GROUP_INDEX = "https://dl.google.com/dl/android/maven2/{0}/group-index.xml"
+
+
+def get_latest_maven_versions():
+  latest_versions = {}
+  response = requests.get(GMAVEN_MASTER_INDEX)
+  index_xml = ElementTree.fromstring(response.content)
+  for index_child in index_xml:
+    group_name = index_child.tag
+    group_path = group_name.replace('.', '/')
+    response = requests.get(GMAVEN_GROUP_INDEX.format(group_path))
+    group_xml = ElementTree.fromstring(response.content)
+    for group_child in group_xml:
+      package_name = group_child.tag.replace('-', '_')
+      package_full_name = group_name + "." + package_name
+      package_version = group_child.attrib['versions'].split(',')[-1]
+      latest_versions[package_full_name] = package_version
+  return latest_versions
+
+
+# Regex to match lines like:
+# 'com.google.firebase:firebase-auth:1.2.3'
+RE_GENERIC_DEPENDENCY_MODULE = re.compile(
+    r"(?P<quote>[\'\"])(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([0-9.]+)[\'\"]"
+)
+
+def modify_dependency_file(dependency_filepath, version_map, dryrun=True):
+  """Modify a dependency file to reference the correct module versions.
+
+  Looks for lines like: 'com.google.firebase:firebase-auth:1.2.3'
+  for modules matching the ones in the version map, and modifies them in-place.
+
+  Args:
+    dependency_filename: Relative path to the dependency file to edit.
+    version_map: Dictionary of packages to version numbers, e.g. {
+        'com.google.firebase.firebase_auth': '15.0.0' }
+    dryrun (bool, optional): Just print the substitutions.
+                             Do not write to file. Defaults to True.
+  """
+  logging.debug('Reading dependency file: {0}'.format(dependency_filepath))
+  lines = None
+  with open(dependency_filepath, "r") as dependency_file:
+    lines = dependency_file.readlines()
+  if not lines:
+    logging.fatal('Update failed. ' +
+          'Could not read contents from file {0}.'.format(dependency_filepath))
+
+  output_lines = []
+
+  # Replacement function, look up the version number of the given pkg.
+  def replace_dependency(m):
+    if not m.group('pkg'):
+      return m.group(0)
+    pkg = m.group('pkg').replace('-', '_').replace(':', '.')
+    if pkg not in version_map:
+      return m.group(0)
+    quote_type = m.group('quote')
+    if not quote_type:
+      quote_type = "'"
+    return '%s%s:%s%s' % (quote_type, m.group('pkg'), version_map[pkg],
+                          quote_type)
+
+  substituted_pairs = []
+  for line in lines:
+    substituted_line = re.sub(RE_GENERIC_DEPENDENCY_MODULE, replace_dependency,
+                             line)
+    output_lines.append(substituted_line)
+    if substituted_line != line:
+      substituted_pairs.append((line, substituted_line))
+      to_update = True
+
+  if to_update:
+    print('Updating contents of {0}'.format(dependency_filepath))
+    for original, substituted in substituted_pairs:
+      print('(-) ' + original + '(+) ' + substituted)
+
+    if not dryrun:
+      with open(dependency_filepath, 'w') as dependency_file:
+        dependency_file.writelines(output_lines)
+    print()
+
+
+RE_README_ANDROID_VERSION = re.compile(
+    r"<br>(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([0-9.]+)<br>")
+
+
+def modify_readme_file(readme_filepath, version_map, dryrun=True):
+  """Modify a readme Markdown file to reference correct module versions.
+
+  Looks for lines like:
+  <br>com.google.firebase:firebase-core:15.0.0<br>
+  for modules matching the ones in the version map, and modifies them in-place.
+
+  Args:
+    readme_filepath: Path to readme file to edit.
+    version_map: Dictionary of packages to version numbers, e.g. {
+        'com.google.firebase.firebase_auth': '15.0.0' }
+    dryrun (bool, optional): Just print the substitutions.
+                             Do not write to file. Defaults to True.
+  """
+  logging.debug('Reading readme file: {0}'.format(readme_filepath))
+
+  lines = None
+  with open(readme_filepath, "r") as readme_file:
+    lines = readme_file.readlines()
+  if not lines:
+    logging.fatal('Could not read contents of file %s', readme_filepath)
+
+  output_lines = []
+
+  # Replacement function, look up the version number of the given pkg.
+  def replace_module_line(m):
+    if not m.group('pkg'):
+      return m.group(0)
+    pkg = m.group('pkg').replace('-', '_').replace(':', '.')
+    if pkg not in version_map:
+      return m.group(0)
+    repl = '%s:%s' % (m.group('pkg'), version_map[pkg])
+    return '<br>{0}<br>'.format(repl)
+
+  substituted_pairs = []
+  for line in lines:
+    substituted_line = re.sub(RE_README_ANDROID_VERSION, replace_module_line,
+                              line)
+    output_lines.append(substituted_line)
+    if substituted_line != line:
+      substituted_pairs.append((line, substituted_line))
+      to_update = True
+
+  if to_update:
+    print('Updating contents of {0}'.format(readme_filepath))
+    for original, substituted in substituted_pairs:
+      print('(-) ' + original + '(+) ' + substituted)
+
+    if not dryrun:
+      with open(readme_filepath, 'w') as readme_file:
+        readme_file.writelines(output_lines)
+    print()
+
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Update pod files with '
@@ -283,11 +443,15 @@ def parse_cmdline_args():
   parser.add_argument( "--log_level", default="info",
             help="Logging level (debug, warning, info)")
   # iOS options
+  parser.add_argument('--skip_ios', action='store_true',
+            help='Skip iOS pod version update.')
   parser.add_argument('--podfiles', nargs='+', default=(os.getcwd(),),
             help= 'List of pod files or directories containing podfiles')
   parser.add_argument('--specs_repo',
             help= 'Local checkout of github Cocoapods Specs repository')
   # Android options
+  parser.add_argument('--skip_android', action='store_true',
+            help='Skip Android libraries version update.')
   parser.add_argument('--depfiles', nargs='+',
             default=('Android/firebase_dependencies.gradle',),
             help= 'List of android dependency files or directories'
@@ -316,7 +480,33 @@ def parse_cmdline_args():
   logger = logging.getLogger(__name__)
   return args
 
+
+def main():
+  args = parse_cmdline_args()
+  if not args.skip_ios:
+    #latest_pod_versions_map = get_latest_pod_versions(args.specs_repo, PODS)
+    latest_pod_versions_map = {'FirebaseAuth': '8.0.0', 'FirebaseRemoteConfig':'9.9.9'}
+    pod_files = get_files(args.podfiles, file_extension='', file_name='Podfile')
+    for pod_file in pod_files:
+      modify_pod_file(pod_file, latest_pod_versions_map, args.dryrun)
+
+  if not args.skip_android:
+    #latest_android_versions_map = get_latest_maven_versions()
+    latest_android_versions_map = {
+      'com.google.firebase.firebase_auth': '6.6.6',
+      'com.google.firebase.firebase_database': '9.9.9',
+    }
+
+    dep_files = get_files(args.depfiles, file_extension='.gradle',
+                          file_name='firebase_dependencies.gradle')
+    for dep_file in dep_files:
+      modify_dependency_file(dep_file, latest_android_versions_map, args.dryrun)
+
+    readme_files = get_files(args.readmefiles, file_extension='.md',
+                          file_name='readme')
+    for readme_file in readme_files:
+      modify_readme_file(readme_file, latest_android_versions_map, args.dryrun)
+
+
 if __name__ == '__main__':
   main()
-  # from IPython import embed
-  # embed()
