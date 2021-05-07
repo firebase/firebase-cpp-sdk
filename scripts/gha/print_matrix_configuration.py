@@ -100,8 +100,8 @@ PARAMETERS = {
       "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS"],
       "ssl_lib": ["openssl", "boringssl"],
-      "android_device": ["virtual:system-images;android-28;google_apis;x86_64+28.0.3", "real:Pixel2+28"],
-      "ios_device": ["virtual:iPhone 8+12.0", "real:iphone6s+12.0"],
+      "android_device": ["virtual:system-images;android-28;google_apis;x86_64+28.0.3", "real:flame+29"],
+      "ios_device": ["virtual:iPhone 8+12.0", "real:iphone8+12.4"],
       EXPANDED_KEY: {
         "android_device": ["virtual:system-images;android-18;default;x86+28.0.3", 
                           "virtual:system-images;android-28;google_apis;x86_64+28.0.3", 
@@ -119,7 +119,7 @@ PARAMETERS = {
     },
     "config": {
       "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage",
-      "mobile_test_on": "real,virtual"
+      "mobile_test_on": "real"
     }
   },
 

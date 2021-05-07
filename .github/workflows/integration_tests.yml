@@ -26,7 +26,7 @@ on:
         required: true
       mobile_test_on:
         description: 'Run mobile tests on real and/or virtual devices? (separated by commas)'
-        default: 'real,virtual'
+        default: 'real'
         required: true 
       use_expanded_matrix:
         description: 'Use an expanded matrix? Note: above config will be ignored.'
