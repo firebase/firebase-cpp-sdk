@@ -32,9 +32,9 @@ available simulators (supported models and versions) with the following commands
 
   xcrun simctl list
 
-Note: you need to combine Name and Version with ";". Examples:
+Note: you need to combine Name and Version with "+". Examples:
 iPhone 11, OS 14.4:
-  --ios_device "iPhone 11;14.4"
+  --ios_device "iPhone 11+14.4"
 
 ----Android only----
 Java 8 is required
@@ -51,16 +51,17 @@ available tools with the following commands:
 
   $ANDROID_HOME/tools/bin/sdkmanager --list
 
-Note: you need to combine them with ";". Examples:
-
-sdk id "system-images;android-29;google_apis", build tool version "29.0.3":
-  --android_device "system-images;android-29;google_apis;x86;29.0.3"
+Note: you need to combine them with "+". Examples:
+sdk id "system-images;android-29;google_apis;x86", build tool version "29.0.3":
+  --android_device "system-images;android-29;google_apis;x86+29.0.3"
 
 Returns:
    1: No iOS/Android integration_test apps found
+   20: Invalid ios_device flag  
    21: iOS Simulator created fail  
    22: iOS gameloop app not found
    23: build_testapps.json file not found
+   30: Invalid android_device flag  
    31: For android test, JAVA_HOME is not set to java 8
 """
 
@@ -85,11 +86,15 @@ flags.DEFINE_string(
     "testapp_dir", None,
     "Testapps in this directory will be tested.")
 flags.DEFINE_string(
-    "ios_device", "iPhone 11;14.4",
+    "ios_device", "iPhone 8+12.0",
     "iOS device, which is a combination of device name and os version")
 flags.DEFINE_string(
-    "android_device", "system-images;android-29;google_apis;x86;29.0.3",
+    "android_device", "system-images;android-28;google_apis;x86_64+28.0.3",
     "android device, which is a combination of sdk id and build tool version")
+flags.DEFINE_string(
+    "logfile_name", "",
+    "Create test log artifact test-results-$logfile_name.log."
+    " logfile will be created and placed in testapp_dir.")   
 flags.DEFINE_boolean(
     "ci", False,
     "If this script used in a CI system, set True.")
@@ -114,7 +119,7 @@ def main(argv):
     # .app is treated as a directory, not a file in MacOS
     for directory in directories:
       full_path = os.path.join(file_dir, directory)
-      if "simulator" in full_path and directory.endswith(".app"):
+      if directory.endswith(".app"):
         ios_testapps.append(full_path)
     for file_name in file_names:
       full_path = os.path.join(file_dir, file_name)
@@ -129,12 +134,15 @@ def main(argv):
   if ios_testapps:
     logging.info("iOS Testapps found: %s", "\n".join(path for path in ios_testapps))
     
-    ios_device = FLAGS.ios_device
-    device_info = ios_device.split(";")
+    device_info = FLAGS.ios_device.split("+")
+    if len(device_info) != 2:
+      logging.error("Not a valid ios device: %s" % FLAGS.ios_device)
+      return 20
+
     device_name = device_info[0]
     device_os = device_info[1]
 
-    device_id = _boot_simulator(device_name, device_os)
+    device_id = _create_and_boot_simulator(device_name, device_os)
     if not device_id:
       logging.error("simulator created fail")
       return 21
@@ -162,17 +170,20 @@ def main(argv):
   if android_testapps:
     logging.info("Android Testapps found: %s", "\n".join(path for path in android_testapps))
 
-    android_device = FLAGS.android_device
-    device_info = android_device.rsplit(";", 1)
+    device_info = FLAGS.android_device.split("+", 1)
+    if len(device_info) != 2:
+      logging.error("Not a valid android device: %s" % FLAGS.android_device)
+      return 30
+
     sdk_id = device_info[0]
-    platforms_version = sdk_id.split(";")[1]
-    build_tools_version = device_info[1]
+    platform_version = sdk_id.split(";")[1]
+    build_tool_version = device_info[1]
 
     if not _check_java_version():
       logging.error("Please set JAVA_HOME to java 8")
       return 31
 
-    _setup_android(platforms_version, build_tools_version, sdk_id)  
+    _setup_android(platform_version, build_tool_version, sdk_id)  
 
     _create_and_boot_emulator(sdk_id)
 
@@ -186,7 +197,11 @@ def main(argv):
                       logs=_run_android_gameloop_test(package_name, app_path, android_gameloop_project)))
 
   return test_validation.summarize_test_results(
-    tests, test_validation.CPP, testapp_dir, extra_info=" (ON SIMULATOR/EMULATOR)")
+    tests, 
+    test_validation.CPP, 
+    testapp_dir, 
+    file_name="test-results-" + FLAGS.logfile_name + ".log", 
+    extra_info=" (ON SIMULATOR/EMULATOR)")
 
 
 def _build_ios_gameloop(gameloop_project, device_name, device_os):
@@ -233,16 +248,32 @@ def _run_xctest(gameloop_app, device_id):
   return log_path
 
 
-def _boot_simulator(device_name, device_os):
-  """Create a simulator locally. Will wait until this simulator botted."""
+def _create_and_boot_simulator(device_name, device_os):
+  """Create a simulator locally. Will wait until this simulator booted."""
   args = ["xcrun", "simctl", "shutdown", "all"]
   logging.info("Shutdown all simulators: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
   command = "xcrun xctrace list devices 2>&1 | grep \"%s (%s)\" | awk -F'[()]' '{print $4}'" % (device_name, device_os)
-  logging.info("Get my simulator: %s", command)
+  logging.info("Get test simulator: %s", command)
   result = subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
   device_id = result.stdout.read().strip()
+
+  if not device_id:
+    # download and create device
+    os.environ["GEM_HOME"] = "$HOME/.gem"
+    args = ["gem", "install", "xcode-install"]
+    logging.info("Download xcode-install: %s", " ".join(args))
+    subprocess.run(args=args, check=True)
+
+    args = ["xcversion", "simulators", "--install=iOS %s" % device_os]
+    logging.info("Download iOS simulator: %s", " ".join(args))
+    subprocess.run(args=args, check=False)
+    
+    args = ["xcrun", "simctl", "create", "test_simulator", device_name, "iOS%s" % device_os]
+    logging.info("Create test simulator: %s", " ".join(args))
+    result = subprocess.run(args=args, capture_output=True, text=True, check=True)
+    device_id = result.stdout.strip()
 
   args = ["xcrun", "simctl", "boot", device_id]
   logging.info("Boot my simulator: %s", " ".join(args))
@@ -327,19 +358,19 @@ def _check_java_version():
   return "1.8" in java_version
 
 
-def _setup_android(platforms_version, build_tools_version, sdk_id):
+def _setup_android(platform_version, build_tool_version, sdk_id):
   android_home = os.environ["ANDROID_HOME"]
   pathlist = [os.path.join(android_home, "emulator"), 
     os.path.join(android_home, "tools"), 
     os.path.join(android_home, "tools", "bin"), 
     os.path.join(android_home, "platform-tools"), 
-    os.path.join(android_home, "build-tools", build_tools_version)]
+    os.path.join(android_home, "build-tools", build_tool_version)]
   os.environ["PATH"] += os.pathsep + os.pathsep.join(pathlist)
   
   args = ["sdkmanager", 
     "emulator", "platform-tools", 
-    "platforms;%s" % platforms_version, 
-    "build-tools;%s" % build_tools_version]
+    "platforms;%s" % platform_version, 
+    "build-tools;%s" % build_tool_version]
   logging.info("Install packages: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
@@ -358,7 +389,7 @@ def _create_and_boot_emulator(sdk_id):
     "-n", "test_emulator", 
     "-k", sdk_id, 
     "-f"]
-  logging.info("Create an emulator: %s", args)
+  logging.info("Create an emulator: %s", " ".join(args))
   p_no = subprocess.Popen(["echo", "no"], stdout=subprocess.PIPE)
   proc = subprocess.Popen(args, stdin=p_no.stdout, stdout=subprocess.PIPE)
   p_no.stdout.close()
@@ -440,8 +471,9 @@ def _run_instrumented_test():
 
 def _get_android_test_log(test_package):
   """Read integration_test app testing result."""
-  path = "$EXTERNAL_STORAGE/Android/data/%s/files/%s/%s" % (_GAMELOOP_PACKAGE, test_package, _RESULT_FILE)
-  args = ["adb", "shell", "cat", path]
+  # getFilesDir()	-> /data/data/package/files
+  path = "/data/data/%s/files/%s/%s" % (_GAMELOOP_PACKAGE, test_package, _RESULT_FILE)
+  args = ["adb", "shell", "su", "0", "cat", path]
   logging.info("Get android test result: %s", " ".join(args))
   result = subprocess.run(args=args, capture_output=True, text=True, check=False)
   return result.stdout
