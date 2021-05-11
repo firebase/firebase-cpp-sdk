@@ -57,8 +57,7 @@ libs/android/ARCH/STL     | Android (GCC 4.8+ compatible) static
 |                         | variant.
 |                         | _STL variants available:_
 |                         | * `c++`: LLVM libc++ runtime (recommended)
-|                         | * `gnustl`: GNU STL
-|                         | * `stlport`: STLport runtime
+|                         | * `gnustl`: GNU STL (deprecated)
 |                         | More information can be found in the
 |                         | [NDK C++ Helper Runtimes](https://developer.android.com/ndk/guides/cpp-support.html#runtimes)
 |                         | documentation.
