@@ -142,6 +142,7 @@ PODS = (
   'FirebaseMessaging',
   'FirebaseRemoteConfig',
   'FirebaseStorage',
+  'Google-Mobile-Ads-SDK'
 )
 
 

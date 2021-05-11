@@ -177,7 +177,7 @@ Feature                    | Required Frameworks and Cocoapods
 -------------------------- | ---------------------------------------
 Firebase AdMob             | firebase_admob.framework
 |                          | firebase.framework
-|                          | Firebase/AdMob Cocoapod (7.11.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (8.4.0)
 Firebase Analytics         | firebase_analytics.framework
 |                          | firebase.framework
 |                          | Firebase/Analytics Cocoapod (7.11.0)
@@ -231,7 +231,7 @@ Feature                    | Required Libraries and Cocoapods
 -------------------------- | -----------------------------------------
 Firebase AdMob             | libfirebase_admob.a
 |                          | libfirebase_app.a
-|                          | Firebase/AdMob Cocoapod (7.11.0)
+|                          | Google-Mobile-Ads-SDK Cocoapod (8.4.0)
 Firebase Analytics         | libfirebase_analytics.a
 |                          | libfirebase_app.a
 |                          | Firebase/Analytics Cocoapod (7.11.0)
