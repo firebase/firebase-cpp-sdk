@@ -49,6 +49,7 @@ FLAGS = flags.FLAGS
 flags.DEFINE_string("repo_dir", os.getcwd(), "Path to C++ SDK Github repo.")
 flags.DEFINE_string("passphrase", None, "The passphrase itself.")
 flags.DEFINE_string("passphrase_file", None, "Path to file with passphrase.")
+flags.DEFINE_string("artifact", None, "Artifact Path, google-services.json will be placed here.")
 
 
 def main(argv):
@@ -78,6 +79,13 @@ def main(argv):
       api = os.path.basename(os.path.dirname(path))
       file_name = os.path.basename(path).replace(".gpg", "")
       dest_paths = [os.path.join(repo_dir, api, "integration_test", file_name)]
+      if FLAGS.artifact:
+        # /<repo_dir>/<artifact>/auth/google-services.json
+        if "google-services" in path and os.path.isdir(os.path.join(repo_dir, FLAGS.artifact, api)):
+          dest_paths = [os.path.join(repo_dir, FLAGS.artifact, api, file_name)]
+        else:
+          continue
+
       # Some apis like Firestore also have internal integration tests.
       if os.path.exists( os.path.join(repo_dir, api, "integration_test_internal")):
         dest_paths.append(os.path.join(repo_dir, api,
@@ -92,6 +100,9 @@ def main(argv):
         if dest_path.endswith(".plist"):
           _patch_reverse_id(dest_path)
           _patch_bundle_id(dest_path)
+
+  if FLAGS.artifact:
+    return
 
   print("Attempting to patch Dynamic Links uri prefix.")
   uri_path = os.path.join(secrets_dir, "dynamic_links", "uri_prefix.txt.gpg")

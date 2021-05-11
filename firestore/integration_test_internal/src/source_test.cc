@@ -1,4 +1,6 @@
 #include <future>
+#include <map>
+#include <string>
 
 #include "firebase/firestore.h"
 #include "firestore_integration_test.h"
@@ -11,9 +13,12 @@
 namespace firebase {
 namespace firestore {
 
+// TODO(b/187448376): Temporarily disabling all tests as they seem to time out
+// on Android.
+
 using SourceTest = FirestoreIntegrationTest;
 
-TEST_F(SourceTest, GetDocumentWhileOnlineWithDefaultGetOptions) {
+TEST_F(SourceTest, DISABLED_GetDocumentWhileOnlineWithDefaultGetOptions) {
   MapFieldValue initial_data = {{"key", FieldValue::String("value")}};
   DocumentReference doc_ref = DocumentWithData(initial_data);
 
@@ -27,7 +32,7 @@ TEST_F(SourceTest, GetDocumentWhileOnlineWithDefaultGetOptions) {
   EXPECT_EQ(initial_data, snapshot.GetData());
 }
 
-TEST_F(SourceTest, GetCollectionWhileOnlineWithDefaultGetOptions) {
+TEST_F(SourceTest, DISABLED_GetCollectionWhileOnlineWithDefaultGetOptions) {
   std::map<std::string, MapFieldValue> initial_docs = {
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2", {{"key2", FieldValue::String("value2")}}},
@@ -44,7 +49,7 @@ TEST_F(SourceTest, GetCollectionWhileOnlineWithDefaultGetOptions) {
   EXPECT_EQ(initial_docs, QuerySnapshotToMap(snapshot));
 }
 
-TEST_F(SourceTest, GetDocumentWhileOfflineWithDefaultGetOptions) {
+TEST_F(SourceTest, DISABLED_GetDocumentWhileOfflineWithDefaultGetOptions) {
   MapFieldValue initial_data = {{"key", FieldValue::String("value")}};
   DocumentReference doc_ref = DocumentWithData(initial_data);
 
@@ -61,7 +66,7 @@ TEST_F(SourceTest, GetDocumentWhileOfflineWithDefaultGetOptions) {
   EXPECT_EQ(initial_data, snapshot.GetData());
 }
 
-TEST_F(SourceTest, GetCollectionWhileOfflineWithDefaultGetOptions) {
+TEST_F(SourceTest, DISABLED_GetCollectionWhileOfflineWithDefaultGetOptions) {
   std::map<std::string, MapFieldValue> initial_docs = {
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2", {{"key2", FieldValue::String("value2")}}},
@@ -95,7 +100,7 @@ TEST_F(SourceTest, GetCollectionWhileOfflineWithDefaultGetOptions) {
   EXPECT_EQ(new_data, QuerySnapshotToMap(snapshot));
 }
 
-TEST_F(SourceTest, GetDocumentWhileOnlineWithSourceEqualToCache) {
+TEST_F(SourceTest, DISABLED_GetDocumentWhileOnlineWithSourceEqualToCache) {
   MapFieldValue initial_data = {{"key", FieldValue::String("value")}};
   DocumentReference doc_ref = DocumentWithData(initial_data);
 
@@ -110,7 +115,7 @@ TEST_F(SourceTest, GetDocumentWhileOnlineWithSourceEqualToCache) {
   EXPECT_EQ(initial_data, snapshot.GetData());
 }
 
-TEST_F(SourceTest, GetCollectionWhileOnlineWithSourceEqualToCache) {
+TEST_F(SourceTest, DISABLED_GetCollectionWhileOnlineWithSourceEqualToCache) {
   std::map<std::string, MapFieldValue> initial_docs = {
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2", {{"key2", FieldValue::String("value2")}}},
@@ -128,7 +133,7 @@ TEST_F(SourceTest, GetCollectionWhileOnlineWithSourceEqualToCache) {
   EXPECT_EQ(initial_docs, QuerySnapshotToMap(snapshot));
 }
 
-TEST_F(SourceTest, GetDocumentWhileOfflineWithSourceEqualToCache) {
+TEST_F(SourceTest, DISABLED_GetDocumentWhileOfflineWithSourceEqualToCache) {
   MapFieldValue initial_data = {{"key", FieldValue::String("value")}};
   DocumentReference doc_ref = DocumentWithData(initial_data);
 
@@ -144,7 +149,7 @@ TEST_F(SourceTest, GetDocumentWhileOfflineWithSourceEqualToCache) {
   EXPECT_EQ(initial_data, snapshot.GetData());
 }
 
-TEST_F(SourceTest, GetCollectionWhileOfflineWithSourceEqualToCache) {
+TEST_F(SourceTest, DISABLED_GetCollectionWhileOfflineWithSourceEqualToCache) {
   std::map<std::string, MapFieldValue> initial_docs = {
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2", {{"key2", FieldValue::String("value2")}}},
@@ -178,7 +183,7 @@ TEST_F(SourceTest, GetCollectionWhileOfflineWithSourceEqualToCache) {
   EXPECT_EQ(new_data, QuerySnapshotToMap(snapshot));
 }
 
-TEST_F(SourceTest, GetDocumentWhileOnlineWithSourceEqualToServer) {
+TEST_F(SourceTest, DISABLED_GetDocumentWhileOnlineWithSourceEqualToServer) {
   MapFieldValue initial_data = {{"key", FieldValue::String("value")}};
   DocumentReference doc_ref = DocumentWithData(initial_data);
 
@@ -192,7 +197,7 @@ TEST_F(SourceTest, GetDocumentWhileOnlineWithSourceEqualToServer) {
   EXPECT_EQ(initial_data, snapshot.GetData());
 }
 
-TEST_F(SourceTest, GetCollectionWhileOnlineWithSourceEqualToServer) {
+TEST_F(SourceTest, DISABLED_GetCollectionWhileOnlineWithSourceEqualToServer) {
   std::map<std::string, MapFieldValue> initial_docs = {
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2", {{"key2", FieldValue::String("value2")}}},
@@ -209,7 +214,7 @@ TEST_F(SourceTest, GetCollectionWhileOnlineWithSourceEqualToServer) {
   EXPECT_EQ(initial_docs, QuerySnapshotToMap(snapshot));
 }
 
-TEST_F(SourceTest, GetDocumentWhileOfflineWithSourceEqualToServer) {
+TEST_F(SourceTest, DISABLED_GetDocumentWhileOfflineWithSourceEqualToServer) {
   MapFieldValue initial_data = {{"key", FieldValue::String("value")}};
   DocumentReference doc_ref = DocumentWithData(initial_data);
 
@@ -222,7 +227,7 @@ TEST_F(SourceTest, GetDocumentWhileOfflineWithSourceEqualToServer) {
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(SourceTest, GetCollectionWhileOfflineWithSourceEqualToServer) {
+TEST_F(SourceTest, DISABLED_GetCollectionWhileOfflineWithSourceEqualToServer) {
   std::map<std::string, MapFieldValue> initial_docs = {
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2", {{"key2", FieldValue::String("value2")}}},
@@ -238,7 +243,7 @@ TEST_F(SourceTest, GetCollectionWhileOfflineWithSourceEqualToServer) {
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(SourceTest, GetDocumentWhileOfflineWithDifferentGetOptions) {
+TEST_F(SourceTest, DISABLED_GetDocumentWhileOfflineWithDifferentGetOptions) {
   MapFieldValue initial_data = {{"key", FieldValue::String("value")}};
   DocumentReference doc_ref = DocumentWithData(initial_data);
 
@@ -257,7 +262,7 @@ TEST_F(SourceTest, GetDocumentWhileOfflineWithDifferentGetOptions) {
         error_promise.set_value(error_code);
       });
   // Note that future::get() will wait until the future has a valid result and
-  // retrieves it. Calling wait() before get() is not needed.
+  // retrieve it. Calling wait() before get() is not needed.
   Error error_code = error_future.get();
   EXPECT_EQ(error_code, kErrorNone);
 
@@ -283,7 +288,7 @@ TEST_F(SourceTest, GetDocumentWhileOfflineWithDifferentGetOptions) {
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(SourceTest, GetCollectionWhileOfflineWithDifferentGetOptions) {
+TEST_F(SourceTest, DISABLED_GetCollectionWhileOfflineWithDifferentGetOptions) {
   std::map<std::string, MapFieldValue> initial_docs = {
       {"doc1", {{"key1", FieldValue::String("value1")}}},
       {"doc2", {{"key2", FieldValue::String("value2")}}},
@@ -311,7 +316,7 @@ TEST_F(SourceTest, GetCollectionWhileOfflineWithDifferentGetOptions) {
         error_promise.set_value(error_code);
       });
   // Note that future::get() will wait until the future has a valid result and
-  // retrieves it. Calling wait() before get() is not needed.
+  // retrieve it. Calling wait() before get() is not needed.
   Error error_code = error_future.get();
   EXPECT_EQ(error_code, kErrorNone);
 
@@ -345,7 +350,7 @@ TEST_F(SourceTest, GetCollectionWhileOfflineWithDifferentGetOptions) {
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(SourceTest, GetNonExistingDocWhileOnlineWithDefaultGetOptions) {
+TEST_F(SourceTest, DISABLED_GetNonExistingDocWhileOnlineWithDefaultGetOptions) {
   DocumentReference doc_ref = Document();
 
   Future<DocumentSnapshot> future = doc_ref.Get();
@@ -357,7 +362,8 @@ TEST_F(SourceTest, GetNonExistingDocWhileOnlineWithDefaultGetOptions) {
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest, GetNonExistingCollectionWhileOnlineWithDefaultGetOptions) {
+TEST_F(SourceTest,
+       DISABLED_GetNonExistingCollectionWhileOnlineWithDefaultGetOptions) {
   CollectionReference col_ref = Collection();
 
   Future<QuerySnapshot> future = col_ref.Get();
@@ -370,7 +376,8 @@ TEST_F(SourceTest, GetNonExistingCollectionWhileOnlineWithDefaultGetOptions) {
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest, GetNonExistingDocWhileOfflineWithDefaultGetOptions) {
+TEST_F(SourceTest,
+       DISABLED_GetNonExistingDocWhileOfflineWithDefaultGetOptions) {
   DocumentReference doc_ref = Document();
 
   DisableNetwork();
@@ -398,7 +405,8 @@ TEST_F(SourceTest, DISABLED_GetDeletedDocWhileOfflineWithDefaultGetOptions) {
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest, GetNonExistingCollectionWhileOfflineWithDefaultGetOptions) {
+TEST_F(SourceTest,
+       DISABLED_GetNonExistingCollectionWhileOfflineWithDefaultGetOptions) {
   CollectionReference col_ref = Collection();
 
   DisableNetwork();
@@ -412,7 +420,8 @@ TEST_F(SourceTest, GetNonExistingCollectionWhileOfflineWithDefaultGetOptions) {
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest, GetNonExistingDocWhileOnlineWithSourceEqualToCache) {
+TEST_F(SourceTest,
+       DISABLED_GetNonExistingDocWhileOnlineWithSourceEqualToCache) {
   DocumentReference doc_ref = Document();
 
   // Attempt to get doc. This will fail since there's nothing in cache.
@@ -422,7 +431,8 @@ TEST_F(SourceTest, GetNonExistingDocWhileOnlineWithSourceEqualToCache) {
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(SourceTest, GetNonExistingCollectionWhileOnlineWithSourceEqualToCache) {
+TEST_F(SourceTest,
+       DISABLED_GetNonExistingCollectionWhileOnlineWithSourceEqualToCache) {
   CollectionReference col_ref = Collection();
 
   Future<QuerySnapshot> future = col_ref.Get(Source::kCache);
@@ -435,7 +445,8 @@ TEST_F(SourceTest, GetNonExistingCollectionWhileOnlineWithSourceEqualToCache) {
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest, GetNonExistingDocWhileOfflineWithSourceEqualToCache) {
+TEST_F(SourceTest,
+       DISABLED_GetNonExistingDocWhileOfflineWithSourceEqualToCache) {
   DocumentReference doc_ref = Document();
 
   DisableNetwork();
@@ -446,7 +457,7 @@ TEST_F(SourceTest, GetNonExistingDocWhileOfflineWithSourceEqualToCache) {
   EXPECT_EQ(future.error(), Error::kErrorUnavailable);
 }
 
-TEST_F(SourceTest, GetDeletedDocWhileOfflineWithSourceEqualToCache) {
+TEST_F(SourceTest, DISABLED_GetDeletedDocWhileOfflineWithSourceEqualToCache) {
   DocumentReference doc_ref = Document();
   Await(doc_ref.Delete());
 
@@ -461,7 +472,8 @@ TEST_F(SourceTest, GetDeletedDocWhileOfflineWithSourceEqualToCache) {
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest, GetNonExistingCollectionWhileOfflineWithSourceEqualToCache) {
+TEST_F(SourceTest,
+       DISABLED_GetNonExistingCollectionWhileOfflineWithSourceEqualToCache) {
   CollectionReference col_ref = Collection();
 
   DisableNetwork();
@@ -475,7 +487,8 @@ TEST_F(SourceTest, GetNonExistingCollectionWhileOfflineWithSourceEqualToCache) {
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest, GetNonExistingDocWhileOnlineWithSourceEqualToServer) {
+TEST_F(SourceTest,
+       DISABLED_GetNonExistingDocWhileOnlineWithSourceEqualToServer) {
   DocumentReference doc_ref = Document();
 
   Future<DocumentSnapshot> future = doc_ref.Get(Source::kServer);
@@ -487,7 +500,8 @@ TEST_F(SourceTest, GetNonExistingDocWhileOnlineWithSourceEqualToServer) {
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest, GetNonExistingCollectionWhileOnlineWithSourceEqualToServer) {
+TEST_F(SourceTest,
+       DISABLED_GetNonExistingCollectionWhileOnlineWithSourceEqualToServer) {
   CollectionReference col_ref = Collection();
 
   Future<QuerySnapshot> future = col_ref.Get(Source::kServer);
@@ -500,7 +514,8 @@ TEST_F(SourceTest, GetNonExistingCollectionWhileOnlineWithSourceEqualToServer) {
   EXPECT_FALSE(snapshot.metadata().has_pending_writes());
 }
 
-TEST_F(SourceTest, GetNonExistingDocWhileOfflineWithSourceEqualToServer) {
+TEST_F(SourceTest,
+       DISABLED_GetNonExistingDocWhileOfflineWithSourceEqualToServer) {
   DocumentReference doc_ref = Document();
 
   DisableNetwork();
@@ -512,7 +527,7 @@ TEST_F(SourceTest, GetNonExistingDocWhileOfflineWithSourceEqualToServer) {
 }
 
 TEST_F(SourceTest,
-       GetNonExistingCollectionWhileOfflineWithSourceEqualToServer) {
+       DISABLED_GetNonExistingCollectionWhileOfflineWithSourceEqualToServer) {
   CollectionReference col_ref = Collection();
 
   DisableNetwork();
