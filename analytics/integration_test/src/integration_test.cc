@@ -99,9 +99,6 @@ TEST_F(FirebaseAnalyticsTest, TestSetProperties) {
       firebase::analytics::kUserPropertySignUpMethod, "Google");
   // Set the user ID.
   firebase::analytics::SetUserId("my_integration_test_user");
-
-  firebase::analytics::SetCurrentScreen(
-      "Firebase Analytics C++ integration test", "integration_test");
 }
 
 TEST_F(FirebaseAnalyticsTest, TestLogEvents) {

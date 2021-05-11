@@ -243,12 +243,6 @@ void SetSessionTimeoutDuration(int64_t milliseconds) {
       setSessionTimeoutInterval:static_cast<NSTimeInterval>(milliseconds) / kMillisecondsPerSecond];
 }
 
-void SetCurrentScreen(const char* screen_name, const char* screen_class) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-  [FIRAnalytics setScreenName:screen_name ? @(screen_name) : nil
-                  screenClass:screen_class ? @(screen_class) : nil];
-}
-
 void ResetAnalyticsData() {
   MutexLock lock(g_mutex);
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());

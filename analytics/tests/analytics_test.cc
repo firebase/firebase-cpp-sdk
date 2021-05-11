@@ -259,36 +259,6 @@ TEST_F(AnalyticsTest, TestSetSessionTimeoutDuration) {
   SetSessionTimeoutDuration(1000);
 }
 
-TEST_F(AnalyticsTest, TestSetCurrentScreen) {
-  AddExpectationAndroid("FirebaseAnalytics.setCurrentScreen",
-                        {"android.app.Activity", "my_screen", "my_class"});
-  AddExpectationApple("+[FIRAnalytics setScreenName:screenClass:]",
-                      {"my_screen", "my_class"});
-
-  SetCurrentScreen("my_screen", "my_class");
-  WaitForMainThreadTask();
-}
-
-TEST_F(AnalyticsTest, TestSetCurrentScreenNullScreen) {
-  AddExpectationAndroid("FirebaseAnalytics.setCurrentScreen",
-                        {"android.app.Activity", "null", "my_class"});
-  AddExpectationApple("+[FIRAnalytics setScreenName:screenClass:]",
-                      {"nil", "my_class"});
-
-  SetCurrentScreen(nullptr, "my_class");
-  WaitForMainThreadTask();
-}
-
-TEST_F(AnalyticsTest, TestSetCurrentScreenNullClass) {
-  AddExpectationAndroid("FirebaseAnalytics.setCurrentScreen",
-                        {"android.app.Activity", "my_screen", "null"});
-  AddExpectationApple("+[FIRAnalytics setScreenName:screenClass:]",
-                      {"my_screen", "nil"});
-
-  SetCurrentScreen("my_screen", nullptr);
-  WaitForMainThreadTask();
-}
-
 TEST_F(AnalyticsTest, TestResetAnalyticsData) {
   AddExpectationAndroid("FirebaseAnalytics.resetAnalyticsData", {});
   AddExpectationApple("+[FIRAnalytics resetAnalyticsData]", {});

@@ -31,7 +31,7 @@ class MainActivity : AppCompatActivity(R.layout.activity_main) {
     val pkgAppsList: List<ResolveInfo> = packageManager.queryIntentActivities(intent, 0)
     val gamePackageName = pkgAppsList[0].activityInfo.packageName
 
-    val dir = File(getExternalFilesDir(null), gamePackageName)
+    val dir = File(getFilesDir(), gamePackageName)
     if (!dir.exists()) dir.mkdirs()
     val filename = "Results1.json"
     val file = File(dir, filename)
