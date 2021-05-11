@@ -45,9 +45,7 @@ structure.
 Directories               | Contents
 ------------------------- | --------
 include                   | C++ headers
-frameworks/ios/ARCH       | iOS frameworks (compiled against libc++)
-|                         | A multi-architecture framework is
-|                         | provided in the *universal* directory.
+xcframeworks/API/ARCH     | iOS xcframeworks (compiled against libc++)
 libs/ios/ARCH             | iOS static libraries (compiled against
 |                         | libc++)
 |                         | Multi-architecture libraries are
@@ -72,7 +70,7 @@ libs/linux/ARCH/ABI       | Linux static libraries (desktop or stub
 libs/windows              | Windows static libraries (desktop or stub
 |                         | implementations, MSVC 2019+)
 
-## Library / Framework Dependencies
+## Library / XCFramework Dependencies
 
 Each feature has dependencies upon libraries in this SDK and components
 distributed as part of the core Firebase
@@ -168,52 +166,52 @@ version of each Maven package listed above in your Gradle file.
 
 ### iOS Dependencies
 
-iOS users can include either frameworks or static libraries depending upon their
+iOS users can include either xcframeworks or static libraries depending upon their
 preferred build environment.
 
-#### Frameworks
+#### XCFrameworks
 
 Feature                    | Required Frameworks and Cocoapods
 -------------------------- | ---------------------------------------
-Firebase AdMob             | firebase_admob.framework
-|                          | firebase.framework
+Firebase AdMob             | firebase_admob.xcframework
+|                          | firebase.xcframework
 |                          | Google-Mobile-Ads-SDK Cocoapod (8.4.0)
-Firebase Analytics         | firebase_analytics.framework
-|                          | firebase.framework
+Firebase Analytics         | firebase_analytics.xcframework
+|                          | firebase.xcframework
 |                          | Firebase/Analytics Cocoapod (7.11.0)
-Firebase Authentication    | firebase_auth.framework
-|                          | firebase.framework
+Firebase Authentication    | firebase_auth.xcframework
+|                          | firebase.xcframework
 |                          | Firebase/Auth Cocoapod (7.11.0)
-Firebase Dynamic Links     | firebase_dynamic_links.framework
-|                          | firebase.framework
+Firebase Dynamic Links     | firebase_dynamic_links.xcframework
+|                          | firebase.xcframework
 |                          | Firebase/DynamicLinks Cocoapod (7.11.0)
-Cloud Firestore            | firebase_firestore.framework
-|                          | firebase_auth.framework
-|                          | firebase.framework
+Cloud Firestore            | firebase_firestore.xcframework
+|                          | firebase_auth.xcframework
+|                          | firebase.xcframework
 |                          | Firebase/Firestore Cocoapod (7.11.0)
 |                          | Firebase/Auth Cocoapod (7.11.0)
-Firebase Functions         | firebase_functions.framework
-|                          | firebase_auth.framework (optional)
-|                          | firebase.framework
+Firebase Functions         | firebase_functions.xcframework
+|                          | firebase_auth.xcframework (optional)
+|                          | firebase.xcframework
 |                          | Firebase/Functions Cocoapod (7.11.0)
 |                          | Firebase/Auth Cocoapod (7.11.0)
-Firebase Installations     | firebase_installations.framework
-|                          | firebase.framework
+Firebase Installations     | firebase_installations.xcframework
+|                          | firebase.xcframework
 |                          | FirebaseInstallations Cocoapod (7.11.0)
-Firebase Cloud Messaging   | firebase_messaging.framework
-|                          | firebase.framework
+Firebase Cloud Messaging   | firebase_messaging.xcframework
+|                          | firebase.xcframework
 |                          | Firebase/Messaging Cocoapod (7.11.0)
-Firebase Realtime Database | firebase_database.framework
-|                          | firebase_auth.framework
-|                          | firebase.framework
+Firebase Realtime Database | firebase_database.xcframework
+|                          | firebase_auth.xcframework
+|                          | firebase.xcframework
 |                          | Firebase/Database Cocoapod (7.11.0)
 |                          | Firebase/Auth Cocoapod (7.11.0)
-Firebase Remote Config     | firebase_remote_config.framework
-|                          | firebase.framework
+Firebase Remote Config     | firebase_remote_config.xcframework
+|                          | firebase.xcframework
 |                          | Firebase/RemoteConfig Cocoapod (7.11.0)
-Firebase Storage           | firebase_storage.framework
-|                          | firebase_auth.framework
-|                          | firebase.framework
+Firebase Storage           | firebase_storage.xcframework
+|                          | firebase_auth.xcframework
+|                          | firebase.xcframework
 |                          | Firebase/Storage Cocoapod (7.11.0)
 |                          | Firebase/Auth Cocoapod (7.11.0)
 
@@ -223,7 +221,7 @@ listed above.
 
 #### Libraries
 
-If you prefer to link against static libraries instead of frameworks (see the
+If you prefer to link against static libraries instead of xcframeworks (see the
 previous section) the following table describes the libraries and Cocoapods
 required for each SDK feature.
 
