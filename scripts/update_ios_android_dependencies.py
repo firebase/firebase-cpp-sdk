@@ -32,8 +32,15 @@ There are 3 types of files being updated by this script,
                and their versions. Eg: 'release_build_files/readme.md`
 
 Usage:
-# Update versions in default set of files in the repository.
+# Dryrun (does not update any files on disk but prints out all replacements for
+# preview) - Update versions in default set of files in the repository.
+python3 scripts/update_ios_android_dependencies.py --dryrun
+
+# Update versions in default set of files in the repository
 python3 scripts/update_ios_android_dependencies.py
+
+# Update only android packages
+python3 scripts/update_ios_android_dependencies.py --skip_ios
 
 # Update specific pod files (or directories containing pod files)
 python3 scripts/update_ios_android_dependencies.py --podfiles foo/Podfile
