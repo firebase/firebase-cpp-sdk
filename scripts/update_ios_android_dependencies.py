@@ -125,7 +125,7 @@ def get_files(dirs_and_files, file_extension, file_name=None):
                                                   file_name=file_name)
     elif os.path.isfile(abspath):
       files.append(abspath)
-    return files
+  return files
 
 
 ##########  iOS pods versions update #######################################
