@@ -524,7 +524,8 @@ def parse_cmdline_args():
   parser.add_argument('--skip_android', action='store_true',
             help='Skip Android libraries version update.')
   parser.add_argument('--depfiles', nargs='+',
-            default=('Android/firebase_dependencies.gradle',),
+            default=('Android/firebase_dependencies.gradle',
+                    'release_build_files/Android/firebase_dependencies.gradle'),
             help= 'List of android dependency files or directories'
                   'containing them.')
   parser.add_argument('--readmefiles', nargs='+',
