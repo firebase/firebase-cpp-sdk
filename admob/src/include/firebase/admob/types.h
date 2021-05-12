@@ -92,17 +92,6 @@ struct AdSize {
   int width;
 };
 
-/// @brief Gender information used as part of the
-/// @ref firebase::admob::AdRequest struct.
-enum Gender {
-  /// The gender of the current user is unknown or unspecified by the publisher.
-  kGenderUnknown = 0,
-  /// The current user is known to be male.
-  kGenderMale,
-  /// The current user is known to be female.
-  kGenderFemale
-};
-
 /// @brief Indicates whether an ad request is considered tagged for
 /// child-directed treatment.
 enum ChildDirectedTreatmentState {
@@ -125,6 +114,7 @@ struct KeyValuePair {
 
 /// @brief The information needed to request an ad.
 struct AdRequest {
+  AdRequest() : tagged_for_child_directed_treatment(kChildDirectedTreatmentStateUnknown) {}
   /// An array of test device IDs specifying devices that test ads will be
   /// returned for.
   const char **test_device_ids;
@@ -140,18 +130,6 @@ struct AdRequest {
   const KeyValuePair *extras;
   /// The number of entries in the array referenced by extras.
   unsigned int extras_count;
-  /// The day the user was born. Specify the user's birthday to increase ad
-  /// relevancy.
-  int birthday_day;
-  /// The month the user was born. Specify the user's birthday to increase ad
-  /// relevancy.
-  int birthday_month;
-  /// The year the user was born. Specify the user's birthday to increase ad
-  /// relevancy.
-  int birthday_year;
-  /// The user's @ref Gender. Specify the user's gender to increase ad
-  /// relevancy.
-  Gender gender;
   /// Specifies whether the request should be considered as child-directed for
   /// purposes of the Children’s Online Privacy Protection Act (COPPA).
   ChildDirectedTreatmentState tagged_for_child_directed_treatment;

@@ -270,20 +270,20 @@ namespace admob = firebase::admob;
   }
 }
 
-- (void)adView:(GADBannerView *)bannerView didFailToReceiveAdWithError:(GADRequestError *)error {
+- (void)adView:(GADBannerView *)bannerView didFailToReceiveAdWithError:(NSError *)error {
   admob::AdMobError api_error;
   const char* error_msg = error.localizedDescription.UTF8String;
   switch (error.code) {
-    case kGADErrorInvalidRequest:
+    case GADErrorInvalidRequest:
       api_error = admob::kAdMobErrorInvalidRequest;
       break;
-    case kGADErrorNoFill:
+    case GADErrorNoFill:
       api_error = admob::kAdMobErrorNoFill;
       break;
-    case kGADErrorNetworkError:
+    case GADErrorNetworkError:
       api_error = admob::kAdMobErrorNetworkError;
       break;
-    case kGADErrorInternalError:
+    case GADErrorInternalError:
       api_error = admob::kAdMobErrorInternalError;
       break;
     default:

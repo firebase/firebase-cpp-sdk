@@ -4,7 +4,8 @@ platform :ios, '10.0'
 # Firebase AdMob test application.
 
 target 'integration_test' do
-  pod 'Firebase/AdMob', '7.11.0'
+  pod 'Firebase/Core', '8.0.0'
+  pod 'Google-Mobile-Ads-SDK', '8.5.0'
 end
 
 post_install do |installer|

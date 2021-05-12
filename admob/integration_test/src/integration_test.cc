@@ -61,12 +61,8 @@ const char* kAdMobAppID = "ca-app-pub-3940256099942544~1458002511";
 // always return test ads.
 #if defined(__ANDROID__)
 const char* kBannerAdUnit = "ca-app-pub-3940256099942544/6300978111";
-const char* kInterstitialAdUnit = "ca-app-pub-3940256099942544/1033173712";
-const char* kRewardedVideoAdUnit = "ca-app-pub-3940256099942544/5224354917";
 #else
 const char* kBannerAdUnit = "ca-app-pub-3940256099942544/2934735716";
-const char* kInterstitialAdUnit = "ca-app-pub-3940256099942544/4411468910";
-const char* kRewardedVideoAdUnit = "ca-app-pub-3940256099942544/1712485313";
 #endif
 
 using app_framework::LogDebug;
@@ -157,9 +153,6 @@ firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
                                          "098fe087d987c9a878965454a65654d7"};
 
   firebase::admob::AdRequest request;
-  // If the app is aware of the user's gender, it can be added to the targeting
-  // information. Otherwise, "unknown" should be used.
-  request.gender = firebase::admob::kGenderUnknown;
 
   // This value allows publishers to specify whether they would like the request
   // to be treated as child-directed for purposes of the Children’s Online
@@ -167,11 +160,6 @@ firebase::admob::AdRequest FirebaseAdMobTest::GetAdRequest() {
   // See http://business.ftc.gov/privacy-and-security/childrens-privacy.
   request.tagged_for_child_directed_treatment =
       firebase::admob::kChildDirectedTreatmentStateTagged;
-
-  // The user's birthday, if known. Note that months are indexed from one.
-  request.birthday_day = kBirthdayDay;
-  request.birthday_month = kBirthdayMonth;
-  request.birthday_year = kBirthdayYear;
 
   // Additional keywords to be used in targeting.
   request.keyword_count = sizeof(kKeywords) / sizeof(kKeywords[0]);
@@ -376,131 +364,6 @@ TEST_F(FirebaseAdMobTest, TestBannerView) {
 #endif
 }
 
-// A simple listener to help test changes to a InterstitialAd.
-class TestInterstitialAdListener
-    : public firebase::admob::InterstitialAd::Listener {
- public:
-  void OnPresentationStateChanged(
-      firebase::admob::InterstitialAd* interstitial_ad,
-      firebase::admob::InterstitialAd::PresentationState state) override {
-    presentation_states_.push_back(state);
-  }
-  std::vector<firebase::admob::InterstitialAd::PresentationState>
-      presentation_states_;
-};
-
-TEST_F(FirebaseAdMobTest, TestInterstitialAd) {
-  TEST_REQUIRES_USER_INTERACTION;
-
-  firebase::admob::InterstitialAd* interstitial =
-      new firebase::admob::InterstitialAd();
-  WaitForCompletion(interstitial->Initialize(app_framework::GetWindowContext(),
-                                             kInterstitialAdUnit),
-                    "Initialize");
-  TestInterstitialAdListener interstitial_listener;
-  interstitial->SetListener(&interstitial_listener);
-
-  firebase::admob::AdRequest request = GetAdRequest();
-  // When the InterstitialAd is initialized, load an ad.
-  WaitForCompletion(interstitial->LoadAd(request), "LoadAd");
-  std::vector<firebase::admob::InterstitialAd::PresentationState>
-      expected_presentation_states;
-
-  WaitForCompletion(interstitial->Show(), "Show");
-  expected_presentation_states.push_back(
-      firebase::admob::InterstitialAd::PresentationState::
-          kPresentationStateCoveringUI);
-  // Wait for the user to close the interstitial ad.
-  while (interstitial->presentation_state() !=
-         firebase::admob::InterstitialAd::PresentationState::
-             kPresentationStateHidden) {
-    app_framework::ProcessEvents(1000);
-  }
-  expected_presentation_states.push_back(
-      firebase::admob::InterstitialAd::PresentationState::
-          kPresentationStateHidden);
-#if defined(__ANDROID__) || TARGET_OS_IPHONE
-  EXPECT_EQ(interstitial_listener.presentation_states_,
-            expected_presentation_states);
-#endif
-  delete interstitial;
-}
-
-// A simple listener to help test changes to rewarded video state.
-class TestRewardedVideoListener
-    : public firebase::admob::rewarded_video::Listener {
- public:
-  TestRewardedVideoListener() { got_reward_ = false; }
-  void OnRewarded(firebase::admob::rewarded_video::RewardItem reward) override {
-    got_reward_ = true;
-    reward_type_ = reward.reward_type;
-    reward_amount_ = reward.amount;
-  }
-  void OnPresentationStateChanged(
-      firebase::admob::rewarded_video::PresentationState state) override {
-    presentation_states_.push_back(state);
-  }
-  bool got_reward_;
-  std::string reward_type_;
-  float reward_amount_;
-  std::vector<firebase::admob::rewarded_video::PresentationState>
-      presentation_states_;
-};
-
-TEST_F(FirebaseAdMobTest, TestRewardedVideoAd) {
-  TEST_REQUIRES_USER_INTERACTION;
-
-  namespace rewarded_video = firebase::admob::rewarded_video;
-  WaitForCompletion(rewarded_video::Initialize(), "Initialize");
-
-  TestRewardedVideoListener rewarded_listener;
-  rewarded_video::SetListener(&rewarded_listener);
-
-  firebase::admob::AdRequest request = GetAdRequest();
-  WaitForCompletion(rewarded_video::LoadAd(kRewardedVideoAdUnit, request),
-                    "LoadAd");
-
-  std::vector<rewarded_video::PresentationState> expected_presentation_states;
-
-  WaitForCompletion(rewarded_video::Show(app_framework::GetWindowContext()),
-                    "Show");
-
-  expected_presentation_states.push_back(
-      rewarded_video::PresentationState::kPresentationStateCoveringUI);
-  expected_presentation_states.push_back(
-      rewarded_video::PresentationState::kPresentationStateVideoHasStarted);
-
-  // Wait a moment, then pause, then resume.
-  ProcessEvents(1000);
-  WaitForCompletion(rewarded_video::Pause(), "Pause");
-  ProcessEvents(1000);
-  WaitForCompletion(rewarded_video::Resume(), "Resume");
-
-#if defined(__ANDROID__) || TARGET_OS_IPHONE
-  // Wait for video to complete.
-  while (
-      rewarded_listener.presentation_states_.back() !=
-      rewarded_video::PresentationState::kPresentationStateVideoHasCompleted) {
-    ProcessEvents(1000);
-  }
-  expected_presentation_states.push_back(
-      rewarded_video::PresentationState::kPresentationStateVideoHasCompleted);
-
-  EXPECT_TRUE(rewarded_listener.got_reward_);
-  EXPECT_NE(rewarded_listener.reward_type_, "");
-  EXPECT_NE(rewarded_listener.reward_amount_, 0);
-  LogDebug("Got reward: %.02f %s", rewarded_listener.reward_amount_,
-           rewarded_listener.reward_type_.c_str());
-
-  EXPECT_EQ(rewarded_listener.presentation_states_,
-            expected_presentation_states);
-#endif
-  rewarded_video::Destroy();
-}
-
-#if defined(ANDROID) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-// Test runs & compiles for phones only.
-
 struct ThreadArgs {
   firebase::admob::BannerView* banner;
   sem_t* semaphore;
@@ -512,6 +375,8 @@ static void* DeleteBannerViewOnSignal(void* args) {
   delete thread_args->banner;
   return nullptr;
 }
+
+#if defined(ANDROID) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 
 TEST_F(FirebaseAdMobTest, TestBannerViewMultithreadDeletion) {
   SKIP_TEST_ON_DESKTOP;

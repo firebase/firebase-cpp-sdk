@@ -51,6 +51,23 @@ Future<void> BannerViewInternalIOS::Initialize(AdParent parent, const char* ad_u
 }
 
 Future<void> BannerViewInternalIOS::LoadAd(const AdRequest& request) {
+  // If request contains tagForChildDirectedTreatment and/or testDevices,
+  // those are now handled by the GADMobileAds.sharedInstance.requestConfiguration.
+  // Set those flags now. They will be globally set until the next request.
+  if (request.tagged_for_child_directed_treatment == kChildDirectedTreatmentStateTagged) {
+    [GADMobileAds.sharedInstance.requestConfiguration tagForChildDirectedTreatment:YES];
+  }
+  else if (request.tagged_for_child_directed_treatment == kChildDirectedTreatmentStateNotTagged) {
+    [GADMobileAds.sharedInstance.requestConfiguration tagForChildDirectedTreatment:NO];
+  }
+  if (request.test_device_id_count > 0) {
+    NSMutableArray *testDevices = [[NSMutableArray alloc] init];
+    for (int i = 0; i < request.test_device_id_count; i++) {
+      [testDevices addObject:@(request.test_device_ids[i])];
+    }
+    GADMobileAds.sharedInstance.requestConfiguration.testDeviceIdentifiers = testDevices;
+  }
+  
   if (future_handle_for_load_ != ReferenceCountedFutureImpl::kInvalidHandle) {
     // Checks if an outstanding Future exists.
     // It is safe to call the LoadAd method concurrently on multiple threads; however, the second

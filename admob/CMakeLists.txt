@@ -19,12 +19,7 @@ set(common_SRCS
     src/common/admob_common.cc
     src/common/banner_view.cc
     src/common/banner_view_internal.cc
-    src/common/interstitial_ad.cc
-    src/common/interstitial_ad_internal.cc
-    src/common/native_express_ad_view.cc
-    src/common/native_express_ad_view_internal.cc
-    src/common/rewarded_video.cc
-    src/common/rewarded_video_internal.cc)
+    )
 
 # Define the resource build needed for Android
 firebase_cpp_gradle(":admob:admob_resources:generateDexJarRelease"
@@ -40,22 +35,15 @@ set(android_SRCS
     src/android/ad_request_converter.cc
     src/android/admob_android.cc
     src/android/banner_view_internal_android.cc
-    src/android/interstitial_ad_internal_android.cc
-    src/android/native_express_ad_view_internal_android.cc
-    src/android/rewarded_video_internal_android.cc)
+    )
 
 # Source files used by the iOS implementation.
 set(ios_SRCS
     src/ios/FADBannerView.mm
-    src/ios/FADInterstitialDelegate.mm
-    src/ios/FADNativeExpressAdView.mm
     src/ios/FADRequest.mm
-    src/ios/FADRewardBasedVideoAdDelegate.mm
     src/ios/admob_ios.mm
     src/ios/banner_view_internal_ios.mm
-    src/ios/interstitial_ad_internal_ios.mm
-    src/ios/native_express_ad_view_internal_ios.mm
-    src/ios/rewarded_video_internal_ios.mm)
+)
 
 # Source files used by the stub implementation.
 set(stub_SRCS

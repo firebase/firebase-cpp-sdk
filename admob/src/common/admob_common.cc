@@ -22,9 +22,6 @@
 
 #include "admob/src/include/firebase/admob.h"
 #include "admob/src/include/firebase/admob/banner_view.h"
-#include "admob/src/include/firebase/admob/interstitial_ad.h"
-#include "admob/src/include/firebase/admob/native_express_ad_view.h"
-#include "admob/src/include/firebase/admob/rewarded_video.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/include/firebase/version.h"
 #include "app/src/util.h"
@@ -134,9 +131,6 @@ FutureCallbackData* CreateFutureCallbackData(FutureData* future_data,
 // Non-inline implementation of the Listeners' virtual destructors, to prevent
 // their vtables from being emitted in each translation unit.
 BannerView::Listener::~Listener() {}
-InterstitialAd::Listener::~Listener() {}
-NativeExpressAdView::Listener::~Listener() {}
-rewarded_video::Listener::~Listener() {}
 
 }  // namespace admob
 }  // namespace firebase
