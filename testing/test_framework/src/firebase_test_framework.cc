@@ -15,6 +15,9 @@
 #include "firebase_test_framework.h"  // NOLINT
 
 #include <cstdio>
+#include <cstring>
+#include <string>
+#include <vector>
 
 #include "firebase/future.h"
 
@@ -294,7 +297,57 @@ std::ostream& operator<<(std::ostream& os, const Variant& v) {
 }
 }  // namespace firebase
 
+namespace {
+
+/**
+ * Makes changes to argc and argv before passing them to `InitGoogleTest`.
+ *
+ * This function is a convenience function for developers to edit during
+ * development/debugging to customize the the arguments specified to googletest
+ * when directly specifying command-line arguments is not available, such as on
+ * Android and iOS. For example, to debug a specific test, add the
+ * --gtest_filter argument, and to list all tests add the --gtest_list_tests
+ * argument.
+ *
+ * @param argc A pointer to the `argc` that will be specified to
+ * `InitGoogleTest`; the integer to which this pointer points will be updated
+ * with the new length of `argv`.
+ * @param argv The `argv` that contains the arguments that would have otherwise
+ * been specified to `InitGoogleTest()`; they will not be modified.
+ *
+ * @return The new `argv` to be specified to `InitGoogleTest()`.
+ */
+char** EditMainArgsForGoogleTest(int* argc, char* argv[]) {
+  // Put the args into a vector of strings because modifying string objects in
+  // a vector is far easier than modifying a char** array.
+  std::vector<std::string> args_vector;
+  for (int i = 0; i < *argc; ++i) {
+    args_vector.push_back(argv[i]);
+  }
+
+  // This is where you can add elements to the `args_vector` vector that will be
+  // specified to googletest.
+  // e.g. args_vector.push_back("--gtest_list_tests");
+
+  // Write the elements of the vector back into argv and modify argc.
+  // The memory leaks produced below are acceptable because they would last the
+  // entire lifetime of the application anyways.
+  char** new_argv = new char*[args_vector.size()];
+  for (int i = 0; i < args_vector.size(); ++i) {
+    const char* arg = args_vector[i].c_str();
+    char* arg_copy = new char[std::strlen(arg) + 1];
+    std::strcpy(arg_copy, arg);
+    new_argv[i] = arg_copy;
+  }
+
+  *argc = static_cast<int>(args_vector.size());
+  return new_argv;
+}
+
+}  // namespace
+
 extern "C" int common_main(int argc, char* argv[]) {
+  argv = EditMainArgsForGoogleTest(&argc, argv);
   ::testing::InitGoogleTest(&argc, argv);
   firebase_test_framework::FirebaseTest::SetArgs(argc, argv);
   app_framework::SetLogLevel(app_framework::kDebug);
