@@ -217,7 +217,7 @@
   "unreleased_dep_versions": [
     "def firebaseDependenciesMap = [",
     "'app' : ['com.google.firebase:firebase-analytics:[0,)'],",
-    "'admob' : ['com.google.firebase:firebase-ads:[0,)',",
+    "'admob' : ['com.google.android.gms:play-services-ads:[0,)',",
     "'com.google.android.gms:play-services-measurement-sdk-api:[0,)'],",
     "'analytics' : ['com.google.firebase:firebase-analytics:[0,)'],",
     "'auth' : ['com.google.firebase:firebase-auth:[0,)'],",

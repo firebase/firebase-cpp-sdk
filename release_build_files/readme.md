@@ -65,7 +65,7 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-Firebase AdMob             | libfirebase_admob.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-ads:20.0.0<br>(Maven package)<br>com.google.android.gms:play-services-measurement-sdk-api:18.0.3<br>(Maven package)
+Firebase AdMob             | libfirebase_admob.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.android.gms:play-services-ads:\[19.8.0\]<br>(Maven package)<br>com.google.android.gms:play-services-measurement-sdk-api:18.0.3<br>(Maven package)
 Firebase Analytics         | libfirebase_analytics.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)
 Firebase Authentication    | libfirebase_auth.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-auth:20.0.4<br>(Maven package)
 Firebase Dynamic Links     | libfirebase_dynamic_links.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-dynamic-links:19.1.1<br>(Maven package)
@@ -328,8 +328,8 @@ Storage              | Required
 Most versions of the Google Mobile Ads SDK for Android can work properly without
 Google Play services. However, if you are using the
 `com.google.android.gms:play-services-ads-lite` dependency instead of the
-standard `com.google.firebase:firebase-ads` dependency, Google Play services
-WILL be required in your specific case.
+standard `com.google.android.gms:play-services-ads` dependency, Google Play
+services WILL be required in your specific case.
 
 AdMob initialization will only return `kInitResultFailedMissingDependency` when
 Google Play services is unavailable AND you are using
@@ -365,7 +365,7 @@ code.
 ### 8.0.0
 -   Changes
     -   Analytics: Removed `SetCurrentScreen()` following its removal from iOS SDK
-        and deprecation from Android SDK. Please use `LogEvent` with ScreenView 
+        and deprecation from Android SDK. Please use `LogEvent` with ScreenView
         event to manually log screen changes.
     -   General (Android): Firebase no longer supports STLPort. Please
         [use libc++ instead](https://developer.android.com/ndk/guides/cpp-support#cs).
