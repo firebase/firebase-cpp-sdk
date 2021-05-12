@@ -4,7 +4,6 @@ platform :ios, '10.0'
 target 'GetPods' do
   pod 'Firebase/Core', '7.11.0'
 
-  pod 'Firebase/AdMob', '7.11.0'
   pod 'Firebase/Analytics', '7.11.0'
   pod 'Firebase/Auth', '7.11.0'
   pod 'Firebase/Crashlytics', '7.11.0'

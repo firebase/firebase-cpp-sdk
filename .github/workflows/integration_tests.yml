@@ -14,7 +14,7 @@ on:
         required: true
       apis:
         description: 'CSV of apis to build and test'
-        default: 'admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage'
+        default: 'analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage'
         required: true
       operating_systems:
         description: 'CSV of VMs to run on'

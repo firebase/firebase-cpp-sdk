@@ -17,9 +17,6 @@ import org.gradle.util.ConfigureUtil;
 // A map of library to the dependencies that need to be added for it.
 def firebaseDependenciesMap = [
   'app' : ['com.google.firebase:firebase-analytics:18.0.3'],
-  'admob' : ['com.google.firebase:firebase-ads:19.8.0',
-             'com.google.android.gms:play-services-measurement-sdk-api:18.0.3',
-             'com.google.android.gms:play-services-base:17.6.0'],
   'analytics' : ['com.google.firebase:firebase-analytics:18.0.3',
                  'com.google.android.gms:play-services-base:17.6.0'],
   'auth' : ['com.google.firebase:firebase-auth:20.0.4'],
@@ -48,7 +45,6 @@ def firebaseResourceDependenciesMap = [
   'app' : [':app:app_resources',
            ':app:google_api_resources',
            ':app:invites_resources'],
-  'admob' : [':admob:admob_resources'],
   'auth' : [':auth:auth_resources'],
   'database' : [':database:database_resources'],
   'firestore' : [':firestore:firestore_resources'],
@@ -68,9 +64,6 @@ class Dependencies {
 
   def getApp() {
     libSet.add('app')
-  }
-  def getAdmob() {
-    libSet.add('admob')
   }
   def getAnalytics() {
     libSet.add('analytics')

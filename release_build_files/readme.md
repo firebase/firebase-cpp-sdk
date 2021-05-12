@@ -3,7 +3,6 @@
 The Firebase C++ SDK provides C++ interfaces for the following Firebase services
 on *iOS* and *Android*:
 
-*   AdMob
 *   Firebase Analytics
 *   Firebase Authentication
 *   Firebase Cloud Messaging
@@ -65,7 +64,6 @@ distributed as part of the core Firebase
 
 Feature                    | Required Libraries and Gradle Packages
 -------------------------- | --------------------------------------
-Firebase AdMob             | libfirebase_admob.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-ads:20.0.0<br>(Maven package)<br>com.google.android.gms:play-services-measurement-sdk-api:18.0.3<br>(Maven package)
 Firebase Analytics         | libfirebase_analytics.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)
 Firebase Authentication    | libfirebase_auth.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-auth:20.0.4<br>(Maven package)
 Firebase Dynamic Links     | libfirebase_dynamic_links.a<br>libfirebase_app.a<br>com.google.firebase:firebase-analytics:18.0.3<br>(Maven package)<br>com.google.firebase:firebase-dynamic-links:19.1.1<br>(Maven package)
@@ -90,7 +88,6 @@ preferred build environment.
 
 Feature                    | Required Frameworks and Cocoapods
 -------------------------- | ---------------------------------------
-Firebase AdMob             | firebase_admob.framework<br>firebase.framework<br>Firebase/AdMob Cocoapod (7.11.0)
 Firebase Analytics         | firebase_analytics.framework<br>firebase.framework<br>Firebase/Analytics Cocoapod (7.11.0)
 Firebase Authentication    | firebase_auth.framework<br>firebase.framework<br>Firebase/Auth Cocoapod (7.11.0)
 Firebase Dynamic Links     | firebase_dynamic_links.framework<br>firebase.framework<br>Firebase/DynamicLinks Cocoapod (7.11.0)
@@ -114,7 +111,6 @@ required for each SDK feature.
 
 Feature                    | Required Libraries and Cocoapods
 -------------------------- | -----------------------------------------
-Firebase AdMob             | libfirebase_admob.a<br>libfirebase_app.a<br>Firebase/AdMob Cocoapod (7.11.0)
 Firebase Analytics         | libfirebase_analytics.a<br>libfirebase_app.a<br>Firebase/Analytics Cocoapod (7.11.0)
 Firebase Authentication    | libfirebase_auth.a<br>libfirebase_app.a<br>Firebase/Auth Cocoapod (7.11.0)
 Firebase Dynamic Links     | libfirebase_dynamic_links.a<br>libfirebase_app.a<br>Firebase/DynamicLinks Cocoapod (7.11.0)
@@ -149,7 +145,6 @@ Firebase Functions              | libfirebase_functions.a<br>libfirebase_auth.a 
 Firebase Realtime Database      | libfirebase_database.a<br>libfirebase_auth.a<br>libfirebase_app.a
 Firebase Remote Config          | libfirebase_remote_config.a<br>libfirebase_app.a
 Firebase Storage                | libfirebase_storage.a<br>libfirebase_auth.a<br>libfirebase_app.a
-Firebase AdMob (stub)           | libfirebase_admob.a<br>libfirebase_app.a
 Firebase Analytics (stub)       | libfirebase_analytics.a<br>libfirebase_app.a
 Firebase Dynamic Links (stub)   | libfirebase_dynamic_links.a<br>libfirebase_app.a
 Firebase Installations (stub)   | libfirebase_installations.a<br>libfirebase_app.a
@@ -174,7 +169,6 @@ Firebase Functions              | firebase_functions.xcframework<br>firebase_aut
 Firebase Realtime Database      | firebase_database.xcframework<br>firebase_auth.xcframework<br>firebase.xcframework
 Firebase Remote Config          | firebase_remote_config.xcframework<br>firebase.xcframework
 Firebase Storage                | firebase_storage.xcframework<br>firebase_auth.xcframework<br>firebase.xcframework
-Firebase AdMob (stub)           | firebase_admob.xcframework<br>firebase.xcframework
 Firebase Analytics (stub)       | firebase_analytics.xcframework<br>firebase.xcframework
 Firebase Dynamic Links (stub)   | firebase_dynamic_links.xcframework<br>firebase.xcframework
 Firebase Installations (stub)   | firebase_installations.xcframework<br>firebase.xcframework
@@ -201,7 +195,6 @@ Firebase Functions              | firebase_functions.lib<br>firebase_auth.lib (o
 Firebase Realtime Database      | firebase_database.lib<br>firebase_auth.lib<br>firebase_app.lib
 Firebase Remote Config          | firebase_remote_config.lib<br>firebase_app.lib
 Firebase Storage                | firebase_storage.lib<br>firebase_auth.lib<br>firebase_app.lib
-Firebase AdMob (stub)           | firebase_admob.lib<br>firebase_app.lib
 Firebase Analytics (stub)       | firebase_analytics.lib<br>firebase_app.lib
 Firebase Dynamic Links (stub)   | firebase_dynamic_links.lib<br>firebase_app.lib
 Firebase Installations (stub)   | firebase_installations.lib<br>firebase_app.lib
@@ -311,7 +304,6 @@ library.
 Firebase C++ Library | Google Play services required?
 -------------------- | ---------------------------------
 Analytics            | Not required
-AdMob                | Not required (usually; see below)
 Cloud Messaging      | Required
 Auth                 | Required
 Dynamic Links        | Required
@@ -322,18 +314,6 @@ Instance ID          | Required
 Realtime Database    | Required
 Remote Config        | Required
 Storage              | Required
-
-#### A note on AdMob and Google Play services
-
-Most versions of the Google Mobile Ads SDK for Android can work properly without
-Google Play services. However, if you are using the
-`com.google.android.gms:play-services-ads-lite` dependency instead of the
-standard `com.google.firebase:firebase-ads` dependency, Google Play services
-WILL be required in your specific case.
-
-AdMob initialization will only return `kInitResultFailedMissingDependency` when
-Google Play services is unavailable AND you are using
-`com.google.android.gms:play-services-ads-lite`.
 
 ### Desktop project setup
 

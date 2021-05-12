@@ -86,7 +86,6 @@ endfunction()
 
 # Define targets for all the Firebase libraries
 add_firebase_target(firebase_app)
-add_firebase_target(firebase_admob)
 add_firebase_target(firebase_analytics)
 add_firebase_target(firebase_auth)
 add_firebase_target(firebase_database)

@@ -34,7 +34,6 @@ $ python scripts/gha/inspect_built_libraries.py build/
 ****************************************************
 Library                                Architecture
 ****************************************************
-libfirebase_admob.a                    x86_64
 libfirebase_analytics.a                x86_64
 libfirebase_app.a                      x86_64
 libfirebase_auth.a                     x86_64
@@ -58,7 +57,6 @@ $ python scripts/gha/inspect_built_libraries.py build/
 ******************************************************************
 Library                                 Architecture MSVC_Runtime
 ******************************************************************
-firebase_admob-d.lib                    x64          /MTd
 firebase_analytics-d.lib                x64          /MTd
 firebase_app-d.lib                      x64          /MTd
 firebase_auth-d.lib                     x64          /MTd

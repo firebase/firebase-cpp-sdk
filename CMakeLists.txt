@@ -26,8 +26,7 @@ option(FIREBASE_INCLUDE_LIBRARY_DEFAULT
        "Should each library be included by default." ON)
 # Different options to enable/disable each library being included during
 # configuration.
-option(FIREBASE_INCLUDE_ADMOB "Include the AdMob library."
-       ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})
+option(FIREBASE_INCLUDE_ADMOB "Include the AdMob library." OFF)
 option(FIREBASE_INCLUDE_ANALYTICS
        "Include the Google Analytics for Firebase library."
        ${FIREBASE_INCLUDE_LIBRARY_DEFAULT})

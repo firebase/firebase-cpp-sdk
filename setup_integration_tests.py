@@ -31,7 +31,6 @@ FRAMEWORK_DIRECTORIES = [
 # If running without specifying a directory, these are the destination
 # directories to use instead, relative to this script's location.
 DEFAULT_DESTINATIONS = [
-    'admob/integration_test',
     'analytics/integration_test',
     'app/integration_test',
     'auth/integration_test',

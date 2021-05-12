@@ -118,7 +118,7 @@ PARAMETERS = {
       }
     },
     "config": {
-      "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage",
+      "apis": "analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage",
       "mobile_test_on": "real"
     }
   },

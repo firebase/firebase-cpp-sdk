@@ -1,4 +1,4 @@
-{
+/{
   "apis": [
     {
       "name": "app",
@@ -8,18 +8,6 @@
       "testapp_path": "analytics/integration_test",
       "frameworks": [
         "firebase_analytics.xcframework",
-        "firebase.xcframework"
-      ],
-      "provision": "Google_Development.mobileprovision"
-    },
-    {
-      "name": "admob",
-      "full_name": "FirebaseAdmob",
-      "bundle_id": "com.google.ios.admob.testapp",
-      "ios_target": "integration_test",
-      "testapp_path": "admob/integration_test",
-      "frameworks": [
-        "firebase_admob.xcframework",
         "firebase.xcframework"
       ],
       "provision": "Google_Development.mobileprovision"
@@ -217,7 +205,6 @@
   "unreleased_dep_versions": [
     "def firebaseDependenciesMap = [",
     "'app' : ['com.google.firebase:firebase-analytics:[0,)'],",
-    "'admob' : ['com.google.firebase:firebase-ads:[0,)',",
     "'com.google.android.gms:play-services-measurement-sdk-api:[0,)'],",
     "'analytics' : ['com.google.firebase:firebase-analytics:[0,)'],",
     "'auth' : ['com.google.firebase:firebase-auth:[0,)'],",
