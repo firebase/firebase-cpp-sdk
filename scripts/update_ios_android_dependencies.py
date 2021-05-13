@@ -79,7 +79,7 @@ def get_files_from_directory(dirpath, file_extension, file_name=None,
       file_extension (str): File extension to search for.
                             Eg: '.gradle'
       file_name (str, optional): Exact file name to search for.
-                                 Defaults to None.
+                                 Defaults to None. Eg: 'foo.gradle'
       absolute_paths (bool, optional): Return absolute paths to files.
                                        Defaults to True.
                                        If False, just filenames are returned.
@@ -110,6 +110,10 @@ def get_files(dirs_and_files, file_extension, file_name=None):
   Args:
       dirs_and_files (iterable(str)): List of paths which could be files or
                                       directories.
+      file_extension (str): File extension to search for.
+                            Eg: '.gradle'
+      file_name (str, optional): Exact file name to search for.
+                                 Defaults to None. Eg: 'foo.gradle'
 
   Returns:
       iterable(str): Final list of files after recursively searching dirs.
@@ -506,6 +510,66 @@ def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
     print()
 
 
+# Regex to match lines like:
+# implementation 'com.google.firebase:firebase-auth:1.2.3'
+RE_GRADLE_COMPILE_MODULE = re.compile(
+    r"implementation\s*\'(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([0-9.]+)\'")
+
+
+def modify_gradle_file(gradle_filepath, version_map, dryrun=True):
+  """Modify a build.gradle file to reference the correct module versions.
+
+  Looks for lines like: implementation 'com.google.firebase:firebase-auth:1.2.3'
+  for modules matching the ones in the version map, and modifies them in-place
+  (with a g4 edit) to reference the released version.
+
+  Args:
+    gradle_filename: Relative path to build.gradle file to edit.
+    version_map: Dictionary of packages to version numbers, e.g. {
+        'com.google.firebase.firebase_auth': '15.0.0' }
+    dryrun (bool, optional): Just print the substitutions.
+                             Do not write to file. Defaults to True.
+  """
+  logging.debug("Reading gradle file: %s", gradle_filepath)
+
+  lines = None
+  with open(gradle_filepath, "r") as gradle_file:
+    lines = gradle_file.readlines()
+  if not lines:
+    logging.fatal('Update failed. ' +
+          'Could not read contents from file {0}.'.format(gradle_filepath))
+  output_lines = []
+
+  # Replacement function, look up the version number of the given pkg.
+  def replace_module_line(m):
+    if not m.group("pkg"):
+      return m.group(0)
+    pkg = m.group("pkg").replace("-", "_").replace(":", ".")
+    if pkg not in version_map:
+      return m.group(0)
+    return "implementation '%s:%s'" % (m.group("pkg"), version_map[pkg])
+
+  substituted_pairs = []
+  to_update = False
+  for line in lines:
+    substituted_line = re.sub(RE_GRADLE_COMPILE_MODULE, replace_module_line,
+                              line)
+    output_lines.append(substituted_line)
+    if substituted_line != line:
+      substituted_pairs.append((line, substituted_line))
+      to_update = True
+
+  if to_update:
+    print('Updating contents of {0}'.format(gradle_filepath))
+    for original, substituted in substituted_pairs:
+      print('(-) ' + original + '(+) ' + substituted)
+
+    if not dryrun:
+      with open(gradle_filepath, 'w') as gradle_file:
+        gradle_file.writelines(output_lines)
+    print()
+
+
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Update pod files with '
                                                 'latest pod versions')
@@ -528,6 +592,9 @@ def parse_cmdline_args():
                     'release_build_files/Android/firebase_dependencies.gradle'),
             help= 'List of android dependency files or directories'
                   'containing them.')
+  parser.add_argument('--gradlefiles', nargs='+',
+            default=(os.getcwd(),),
+            help= 'List of android build.gradle files to update.')
   parser.add_argument('--readmefiles', nargs='+',
             default=('release_build_files/readme.md',),
             help= 'List of release readme markdown files or directories'
@@ -575,7 +642,13 @@ def main():
       modify_dependency_file(dep_file, latest_android_versions_map, args.dryrun)
 
     for readme_file in readme_files:
-      modify_readme_file_android(readme_file, latest_android_versions_map, args.dryrun)
+      modify_readme_file_android(readme_file, latest_android_versions_map,
+                                 args.dryrun)
+
+    gradle_files = get_files(args.gradlefiles, file_extension='.gradle',
+                             file_name='build.gradle')
+    for gradle_file in gradle_files:
+      modify_gradle_file(gradle_file, latest_android_versions_map, args.dryrun)
 
 if __name__ == '__main__':
   main()
