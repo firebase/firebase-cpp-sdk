@@ -333,6 +333,7 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
       AsyncApi::kLoadBundle);
   auto bundle_stream = absl::make_unique<util::ByteStreamCpp>(
       absl::make_unique<std::stringstream>(bundle));
+
   std::shared_ptr<api::LoadBundleTask> task =
       firestore_core_->LoadBundle(std::move(bundle_stream));
   task->Observe(
@@ -340,6 +341,7 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
         if (progress.state() == api::LoadBundleTaskState::kSuccess) {
           promise.SetValue(ToApiProgress(progress));
           task->RemoveAllObservers();
+
         } else if (progress.state() == api::LoadBundleTaskState::kError) {
           promise.SetError(progress.error_status());
           task->RemoveAllObservers();
@@ -356,14 +358,17 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
       AsyncApi::kLoadBundle);
   auto bundle_stream = absl::make_unique<util::ByteStreamCpp>(
       absl::make_unique<std::stringstream>(bundle));
+
   std::shared_ptr<api::LoadBundleTask> task =
       firestore_core_->LoadBundle(std::move(bundle_stream));
+  // TODO(C++14): Move progress_callback into the lambda.
   task->Observe([promise, task, progress_callback](
                     const api::LoadBundleTaskProgress& progress) mutable {
     progress_callback(ToApiProgress(progress));
     if (progress.state() == api::LoadBundleTaskState::kSuccess) {
       promise.SetValue(ToApiProgress(progress));
       task->RemoveAllObservers();
+
     } else if (progress.state() == api::LoadBundleTaskState::kError) {
       promise.SetError(progress.error_status());
       task->RemoveAllObservers();
@@ -383,7 +388,7 @@ Future<Query> FirestoreInternal::NamedQuery(const std::string& query_name) {
               MakePublic(api::Query(query.value(), firestore_core_)));
         } else {
           promise.SetError(
-              Status(kErrorNotFound, "Named query cannot be found"));
+              Status(Error::kErrorNotFound, "Named query cannot be found"));
         }
       });
 

@@ -82,7 +82,7 @@ class TestEventListener : public EventListener<T> {
     }
 
     MutexLock lock(mutex_);
-    EXPECT_FALSE(check_no_additional_events_);
+    EXPECT_FALSE(fail_on_next_event_);
     if (error_code != Error::kErrorOk) {
       std::cerr << "ERROR: EventListener " << name_ << " got " << error_code
                 << std::endl;
@@ -101,7 +101,7 @@ class TestEventListener : public EventListener<T> {
 
   void FailOnNextEvent() {
     MutexLock lock(mutex_);
-    check_no_additional_events_ = true;
+    fail_on_next_event_ = true;
   }
 
   const T& last_result(int i = 0) {
@@ -159,7 +159,7 @@ class TestEventListener : public EventListener<T> {
   // We may want the last N result. So we store all in a vector in the order
   // they arrived.
   std::vector<T> last_results_;
-  bool check_no_additional_events_ = false;
+  bool fail_on_next_event_ = false;
 
   // We generally only check to see if there is any error. So we only store the
   // first non-OK error, if any.

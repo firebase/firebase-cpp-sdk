@@ -21,6 +21,29 @@ namespace firebase {
 namespace firestore {
 namespace {
 
+// Query names from the testing bundle in bundle_builder.cc
+constexpr char limit_query_name[] = "limit";
+constexpr char limit_to_last_query_name[] = "limit-to-last";
+
+MATCHER_P(
+    InProgressWithLoadedDocuments,
+    expected_documents,
+    std::string("Is a valid InProgress update with documents_loaded() == ") +
+        std::to_string(expected_documents)) {
+  *result_listener << "progress state() is kInProgress: "
+                   << (arg.state() == LoadBundleTaskProgress::State::kInProgress
+                           ? "true"
+                           : "false")
+                   << " documents_loaded() is: " << arg.documents_loaded()
+                   << " total_documents() is: " << arg.total_documents()
+                   << " bytes_loaded() is: " << arg.bytes_loaded()
+                   << " total_bytes() is: " << arg.total_bytes();
+  return arg.state() == LoadBundleTaskProgress::State::kInProgress &&
+         arg.documents_loaded() == expected_documents &&
+         arg.documents_loaded() <= arg.total_documents() &&
+         arg.bytes_loaded() <= arg.total_bytes();
+}
+
 void VerifyProgress(LoadBundleTaskProgress progress, int expected_documents) {
   EXPECT_EQ(progress.state(), LoadBundleTaskProgress::State::kInProgress);
   EXPECT_EQ(progress.documents_loaded(), expected_documents);
@@ -38,6 +61,10 @@ void VerifyErrorProgress(LoadBundleTaskProgress progress) {
   EXPECT_EQ(progress.state(), LoadBundleTaskProgress::State::kError);
   EXPECT_EQ(progress.documents_loaded(), 0);
   EXPECT_EQ(progress.bytes_loaded(), 0);
+}
+
+std::string CreateTestBundle(Firestore* db) {
+  return CreateBundle(db->app()->options().project_id());
 }
 
 class BundleTest : public FirestoreIntegrationTest {
@@ -73,7 +100,7 @@ class BundleTest : public FirestoreIntegrationTest {
     }
 
     {
-      Query limit = AwaitResult(db->NamedQuery("limit"));
+      Query limit = AwaitResult(db->NamedQuery(limit_query_name));
       auto limit_snapshot = AwaitResult(limit.Get(Source::kCache));
       EXPECT_THAT(
           QuerySnapshotToValues(limit_snapshot),
@@ -82,7 +109,8 @@ class BundleTest : public FirestoreIntegrationTest {
     }
 
     {
-      Query limit_to_last = AwaitResult(db->NamedQuery("limit-to-last"));
+      Query limit_to_last =
+          AwaitResult(db->NamedQuery(limit_to_last_query_name));
       auto limit_to_last_snapshot =
           AwaitResult(limit_to_last.Get(Source::kCache));
       EXPECT_THAT(
@@ -93,9 +121,19 @@ class BundleTest : public FirestoreIntegrationTest {
   }
 };
 
+TEST_F(BundleTest, CanLoadBundlesWithoutProgressUpdates) {
+  Firestore* db = TestFirestore();
+  auto bundle = CreateTestBundle(db);
+
+  Future<LoadBundleTaskProgress> result = db->LoadBundle(bundle);
+
+  VerifySuccessProgress(AwaitResult(result));
+  VerifyQueryResults(db);
+}
+
 TEST_F(BundleTest, CanLoadBundlesWithProgressUpdates) {
   Firestore* db = TestFirestore();
-  auto bundle = CreateBundle(db->app()->options().project_id());
+  auto bundle = CreateTestBundle(db);
 
   std::vector<LoadBundleTaskProgress> progresses;
   Future<LoadBundleTaskProgress> result = db->LoadBundle(
@@ -108,31 +146,20 @@ TEST_F(BundleTest, CanLoadBundlesWithProgressUpdates) {
   // 4 progresses will be reported: initial, document 1, document 2, final
   // success.
   ASSERT_EQ(progresses.size(), 4);
-  VerifyProgress(progresses[0], 0);
-  VerifyProgress(progresses[1], 1);
-  VerifyProgress(progresses[2], 2);
+  EXPECT_THAT(progresses[0], InProgressWithLoadedDocuments(0));
+  EXPECT_THAT(progresses[1], InProgressWithLoadedDocuments(1));
+  EXPECT_THAT(progresses[2], InProgressWithLoadedDocuments(2));
   VerifySuccessProgress(progresses[3]);
   EXPECT_EQ(progresses[3], final_progress);
 
   VerifyQueryResults(db);
 }
 
-TEST_F(BundleTest, CanLoadBundlesWithoutProgressUpdates) {
-  Firestore* db = TestFirestore();
-  auto bundle = CreateBundle(db->app()->options().project_id());
-
-  Future<LoadBundleTaskProgress> result = db->LoadBundle(bundle);
-
-  VerifySuccessProgress(AwaitResult(result));
-  VerifyQueryResults(db);
-}
-
 TEST_F(BundleTest, CanDeleteFirestoreFromProgressUpdate) {
   Firestore* db = TestFirestore();
-  auto bundle = CreateBundle(db->app()->options().project_id());
+  auto bundle = CreateTestBundle(db);
 
   std::promise<void> db_deleted;
-  std::future<void> db_deleted_future = db_deleted.get_future();
   std::vector<LoadBundleTaskProgress> progresses;
   Future<LoadBundleTaskProgress> result =
       db->LoadBundle(bundle, [this, db, &progresses, &db_deleted](
@@ -147,22 +174,22 @@ TEST_F(BundleTest, CanDeleteFirestoreFromProgressUpdate) {
 
   // Wait for the notification that the instance is deleted. We cannot rely on
   // the returned future because it will not complete.
-  db_deleted_future.wait();
+  db_deleted.get_future().wait();
 
   // This future is not completed, and returns back a nullptr for result.
-  ASSERT_EQ(Await(result), nullptr);
+  EXPECT_EQ(Await(result), nullptr);
 
   // 3 progresses will be reported: initial, document 1, document 2.
   // Final progress update is missing because Firestore is deleted before that.
   ASSERT_EQ(progresses.size(), 3);
-  VerifyProgress(progresses[0], 0);
-  VerifyProgress(progresses[1], 1);
-  VerifyProgress(progresses[2], 2);
+  EXPECT_THAT(progresses[0], InProgressWithLoadedDocuments(0));
+  EXPECT_THAT(progresses[1], InProgressWithLoadedDocuments(1));
+  EXPECT_THAT(progresses[2], InProgressWithLoadedDocuments(2));
 }
 
 TEST_F(BundleTest, LoadBundlesForASecondTimeSkips) {
   Firestore* db = TestFirestore();
-  auto bundle = CreateBundle(db->app()->options().project_id());
+  auto bundle = CreateTestBundle(db);
   LoadBundleTaskProgress first_load = AwaitResult(db->LoadBundle(bundle));
   VerifySuccessProgress(first_load);
 
@@ -172,6 +199,7 @@ TEST_F(BundleTest, LoadBundlesForASecondTimeSkips) {
         progresses.push_back(progress);
       }));
 
+  // There will be 4 progress updates if it does not skip loading.
   ASSERT_EQ(progresses.size(), 1);
   VerifySuccessProgress(progresses[0]);
   EXPECT_EQ(progresses[0], second_load);
@@ -197,7 +225,7 @@ TEST_F(BundleTest, LoadBundleWithDocumentsAlreadyPulledFromBackend) {
   // tested in spec tests.
   accumulator.FailOnNextEvent();
 
-  auto bundle = CreateBundle(db->app()->options().project_id());
+  auto bundle = CreateTestBundle(db);
   VerifySuccessProgress(AwaitResult(db->LoadBundle(bundle)));
 
   EXPECT_THAT(QuerySnapshotToValues(*Await(collection.Get(Source::kCache))),
@@ -206,14 +234,14 @@ TEST_F(BundleTest, LoadBundleWithDocumentsAlreadyPulledFromBackend) {
                   MapFieldValue{{"bar", FieldValue::String("newValueB")}}));
 
   {
-    Query limit = AwaitResult(db->NamedQuery("limit"));
+    Query limit = AwaitResult(db->NamedQuery(limit_query_name));
     EXPECT_THAT(QuerySnapshotToValues(AwaitResult(limit.Get(Source::kCache))),
                 testing::ElementsAre(
                     MapFieldValue{{"bar", FieldValue::String("newValueB")}}));
   }
 
   {
-    Query limit_to_last = AwaitResult(db->NamedQuery("limit-to-last"));
+    Query limit_to_last = AwaitResult(db->NamedQuery(limit_to_last_query_name));
     EXPECT_THAT(
         QuerySnapshotToValues(AwaitResult(limit_to_last.Get(Source::kCache))),
         testing::ElementsAre(
@@ -224,12 +252,12 @@ TEST_F(BundleTest, LoadBundleWithDocumentsAlreadyPulledFromBackend) {
 TEST_F(BundleTest, LoadedDocumentsShouldNotBeGarbageCollectedRightAway) {
   Firestore* db = TestFirestore();
   // This test really only makes sense with memory persistence, as disk
-  // persistence only ever lazily deletes data
+  // persistence only ever lazily deletes data.
   auto new_settings = db->settings();
   new_settings.set_persistence_enabled(false);
   db->set_settings(new_settings);
 
-  auto bundle = CreateBundle(db->app()->options().project_id());
+  auto bundle = CreateTestBundle(db);
   VerifySuccessProgress(AwaitResult(db->LoadBundle(bundle)));
 
   // Read a different collection. This will trigger GC.
@@ -253,7 +281,7 @@ TEST_F(BundleTest, LoadDocumentsFromOtherProjectsShouldFail) {
 
   EXPECT_NE(result.error(), Error::kErrorOk);
   ASSERT_EQ(progresses.size(), 2);
-  VerifyProgress(progresses[0], 0);
+  EXPECT_THAT(progresses[0], InProgressWithLoadedDocuments(0));
   VerifyErrorProgress(progresses[1]);
 }
 
@@ -263,13 +291,13 @@ TEST_F(BundleTest, GetInvalidNamedQuery) {
     auto future = db->NamedQuery("DOES_NOT_EXIST");
     Await(future);
     EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
-    EXPECT_EQ(future.error(), kErrorNotFound);
+    EXPECT_EQ(future.error(), Error::kErrorNotFound);
   }
   {
     auto future = db->NamedQuery("");
     Await(future);
     EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
-    EXPECT_EQ(future.error(), kErrorNotFound);
+    EXPECT_EQ(future.error(), Error::kErrorNotFound);
   }
 }
 

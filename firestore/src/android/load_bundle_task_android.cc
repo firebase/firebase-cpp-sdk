@@ -38,7 +38,6 @@ jni::Method<LoadBundleTaskInternal> kAddProgressListener(
     "Lcom/google/firebase/firestore/LoadBundleTask;");
 }  // namespace
 
-/*static*/
 void LoadBundleTaskInternal::Initialize(Loader& loader) {
   loader.LoadClass(kLoadBundleTaskClassName, kAddProgressListener);
 }

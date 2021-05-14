@@ -17,7 +17,7 @@ public final class FirestoreTasks {
   }
 
   /**
-   * Takes a Task and returns a new Task, whose result will be the same as the incoming Task,
+   * Takes a {@link Task}and returns a new Task, whose result will be the same as the incoming Task,
    * if the result is not null, otherwise fails the returned Task with given error message.
    */
   public static <T> Task<T> failTaskWhenResultIsNull(Task<T> task, final String message) {

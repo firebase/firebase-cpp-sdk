@@ -16,7 +16,7 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LOAD_BUNDLE_TASK_PROGRESS_ANDROID_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LOAD_BUNDLE_TASK_PROGRESS_ANDROID_H_
 
-#include <cstdint>
+#include <stdint.h>
 
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/wrapper.h"
@@ -24,6 +24,7 @@
 
 namespace firebase {
 namespace firestore {
+
 class Firestore;
 
 /** A C++ proxy for a Java `LoadBundleTaskProgress`. */

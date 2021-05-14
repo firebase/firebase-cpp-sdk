@@ -15,9 +15,9 @@
  */
 #include "firestore/src/include/firebase/firestore/load_bundle_task_progress.h"
 
-#include <cstdint>
+#include <stdint.h>
 
-#include "app/src/assert.h"
+#include "firestore/src/common/hard_assert_common.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/load_bundle_task_progress_android.h"
 #endif  // defined(__ANDROID__)
@@ -37,6 +37,8 @@ LoadBundleTaskProgress::LoadBundleTaskProgress(int32_t documents_loaded,
       state_(state) {
 }
 
+// Android requires below constructor to create this object from internal
+// objects in a promise. See promise_android.h
 #if defined(__ANDROID__)
 LoadBundleTaskProgress::LoadBundleTaskProgress(
     LoadBundleTaskProgressInternal* internal) {

@@ -215,7 +215,7 @@ class FirestoreInternal {
   std::unordered_set<ListenerRegistrationInternal*> listener_registrations_;
 #endif  //  defined(_STLPORT_VERSION)
 
-  Mutex bundle_listener_mutex_;
+  Mutex bundle_listeners_mutex_;
   std::vector<std::unique_ptr<LambdaEventListener<LoadBundleTaskProgress>>>
       bundle_listeners_;
 

@@ -410,19 +410,19 @@ class Firestore {
    * Loads a Firestore bundle into the local cache.
    *
    * @param bundle A string representing the bundle to be loaded.
-   * @return A `Future` that is resolved when the loading is either completed,
+   * @return A `Future` that is resolved when the loading is either completed
    * or aborted due to an error.
    */
   virtual Future<LoadBundleTaskProgress> LoadBundle(const std::string& bundle);
 
   /**
-   * Loads a Firestore bundle into the local cache, with provided callbacks
+   * Loads a Firestore bundle into the local cache, with the provided callback
    * executed for progress updates.
    *
    * @param bundle A string representing the bundle to be loaded.
-   * @param progress_callback A `std::function` that is called with progress
-   * updates.
-   * @return A `Future` that is resolved when the loading is either completed,
+   * @param progress_callback A callback that is called with progress
+   * updates, and completion or error updates.
+   * @return A `Future` that is resolved when the loading is either completed
    * or aborted due to an error.
    */
   virtual Future<LoadBundleTaskProgress> LoadBundle(
@@ -430,11 +430,12 @@ class Firestore {
       std::function<void(const LoadBundleTaskProgress&)> progress_callback);
 
   /**
-   * Reads a Firestore `Query` from local cache, identified by the given name.
+   * Reads a Firestore `Query` from the local cache, identified by the given
+   * name.
    *
-   * The named queries are packaged into bundles on the server side (along with
+   * Named queries are packaged into bundles on the server side (along with
    * resulting documents) and loaded to local cache using `LoadBundle`. Once in
-   * local cache, you can use this method to extract a query by name.
+   * the local cache, you can use this method to extract a query by name.
    *
    * If a query cannot be found, the returned future will complete with its
    * `error()` set to a non-zero error code.

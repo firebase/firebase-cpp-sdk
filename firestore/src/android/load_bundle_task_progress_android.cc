@@ -92,6 +92,7 @@ LoadBundleTaskProgress::State LoadBundleTaskProgressInternal::state() const {
   Local<Object> state = env.Call(obj_, kGetTaskState);
   Local<Object> running_state = env.Get(kTaskStateRunning);
   Local<Object> success_state = env.Get(kTaskStateSuccess);
+
   if (Object::Equals(env, state, success_state)) {
     return LoadBundleTaskProgress::State::kSuccess;
   } else if (Object::Equals(env, state, running_state)) {

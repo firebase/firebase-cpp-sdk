@@ -556,31 +556,31 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
   Env env = GetEnv();
   Local<LoadBundleTaskInternal> task = CreateLoadBundleTask(env, obj_, bundle);
 
-  auto* listener = new LambdaEventListener<LoadBundleTaskProgress>(
-      [progress_callback](const LoadBundleTaskProgress& p, Error e,
-                          const std::string& s) {
-        // `e` is always `kErrorOk` and `s` is always empty for progress
-        // listeners.
-        progress_callback(p);
-      });
+  std::unique_ptr<LambdaEventListener<LoadBundleTaskProgress>> listener(
+      new LambdaEventListener<LoadBundleTaskProgress>(
+          // TODO(C++14): Move the callback into the lambda.
+          [progress_callback](const LoadBundleTaskProgress& p, Error,
+                              const std::string&) {
+            // Error is always `kErrorOk` and error message is always empty for
+            // progress listeners.
+            progress_callback(p);
+          }));
+
+  Local<Object> progress_listener =
+      EventListenerInternal::Create(env, this, listener.get());
+  task.AddProgressListener(env, user_callback_executor(), progress_listener);
+
   // TODO(b/187420421): The listener is owned by the firestore instance, longer
   // than ideal. This is to support the unlikely case when user try to delete
   // Firestore instance in the listener. Once the referred bug is fixed, it can
   // be managed through a `shared_ptr`.
   {
-    MutexLock lock(bundle_listener_mutex_);
-    bundle_listeners_.push_back(
-        std::unique_ptr<LambdaEventListener<LoadBundleTaskProgress>>(listener));
+    MutexLock lock(bundle_listeners_mutex_);
+    bundle_listeners_.push_back(std::move(listener));
   }
 
-  Local<Object> progress_listener =
-      EventListenerInternal::Create(env, this, listener);
-  task.AddProgressListener(env, user_callback_executor(), progress_listener);
-
-  auto future = promises_->NewFuture<LoadBundleTaskProgress>(
-      env, AsyncFn::kLoadBundle, task);
-
-  return future;
+  return promises_->NewFuture<LoadBundleTaskProgress>(env, AsyncFn::kLoadBundle,
+                                                      task);
 }
 
 Future<Query> FirestoreInternal::NamedQuery(const std::string& query_name) {
