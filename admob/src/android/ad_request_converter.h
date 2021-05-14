@@ -35,10 +35,6 @@ namespace admob {
       "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
   X(AddTestDevice, "addTestDevice",                                          \
       "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
-  X(SetBirthday, "setBirthday",                                              \
-      "(Ljava/util/Date;)Lcom/google/android/gms/ads/AdRequest$Builder;"),   \
-  X(SetGender, "setGender",                                                  \
-      "(I)Lcom/google/android/gms/ads/AdRequest$Builder;"),                  \
   X(SetRequestAgent, "setRequestAgent",                                      \
       "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
   X(TagForChildDirectedTreatment, "tagForChildDirectedTreatment",            \
@@ -53,6 +49,19 @@ namespace admob {
   X(Constructor, "<init>", "()V"),                                           \
   X(CreateDate, "createDate", "(III)Ljava/util/Date;")
 // clang-format on
+
+// clang-format off
+#define REQUESTCONFIGURATIONBUILDER_METHODS(X)                               \
+  X(Constructor, "<init>", "()V"),                                           \
+  X(Build, "build",                                                          \
+    "()Lcom/google/android/gms/ads/RequestConfiguration$Builder;"),          \
+  X(SetMaxAdContentRating, "setMaxAdContentRating",                          \
+      "(Ljava/lang/String;)"                                                 \
+      "Lcom/google/android/gms/ads/RequestConfiguration$Builder;"),          \
+  X(SetTagForChildDirectedTreatment, "setTagForChildDirectedTreatment",      \
+      "(I)Lcom/google/android/gms/ads/RequestConfiguration$Builder;"),       \
+// clang-format on
+
 
 METHOD_LOOKUP_DECLARATION(ad_request_builder, ADREQUESTBUILDER_METHODS);
 

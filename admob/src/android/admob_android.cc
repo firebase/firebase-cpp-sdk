@@ -298,100 +298,6 @@ Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyStateChanged(
   }
 }
 
-extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterstitialAdFutureCallback(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jint error_code,
-    jstring error_message) {
-  CompleteAdFutureCallback(env, clazz, data_ptr, error_code, error_message);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_notifyPresentationStateChanged(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jint state) {
-  if (data_ptr == 0) return;  // test call only
-
-  firebase::admob::internal::InterstitialAdInternal* internal =
-      reinterpret_cast<firebase::admob::internal::InterstitialAdInternal*>(
-          data_ptr);
-
-  internal->NotifyListenerOfPresentationStateChange(
-      static_cast<firebase::admob::InterstitialAd::PresentationState>(state));
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_NativeExpressAdViewHelper_completeNativeExpressAdViewFutureCallback(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jint error_code,
-    jstring error_message) {
-  CompleteAdFutureCallback(env, clazz, data_ptr, error_code, error_message);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_NativeExpressAdViewHelper_notifyStateChanged(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jint change_code) {
-  if (data_ptr == 0) return;  // test call only
-
-  firebase::admob::internal::NativeExpressAdViewInternal* internal =
-      reinterpret_cast<firebase::admob::internal::NativeExpressAdViewInternal*>(
-          data_ptr);
-
-  switch (static_cast<firebase::admob::AdViewChangeCode>(change_code)) {
-    case kChangePresentationState:
-      internal->NotifyListenerOfPresentationStateChange(
-          internal->GetPresentationState());
-      break;
-    case kChangeBoundingBox:
-      internal->NotifyListenerOfBoundingBoxChange(internal->GetBoundingBox());
-      break;
-    default:
-      break;
-  }
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_RewardedVideoHelper_completeRewardedVideoFutureCallback(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jint error_code,
-    jstring error_message) {
-  CompleteAdFutureCallback(env, clazz, data_ptr, error_code, error_message);
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_RewardedVideoHelper_notifyPresentationStateChanged(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jint state) {
-  if (data_ptr == 0) return;  // test call only
-
-  firebase::admob::rewarded_video::internal::RewardedVideoInternal* internal =
-      reinterpret_cast<
-          firebase::admob::rewarded_video::internal::RewardedVideoInternal*>(
-          data_ptr);
-
-  // There's only one type of change at the moment, so no need to check the
-  // code.
-  internal->NotifyListenerOfPresentationStateChange(
-      static_cast<firebase::admob::rewarded_video::PresentationState>(state));
-}
-
-extern "C" JNIEXPORT void JNICALL
-Java_com_google_firebase_admob_internal_cpp_RewardedVideoHelper_grantReward(
-    JNIEnv* env, jclass clazz, jlong data_ptr, jint amount,
-    jstring rewardType) {
-  if (data_ptr == 0) return;  // test call only
-
-  firebase::admob::rewarded_video::internal::RewardedVideoInternal* internal =
-      reinterpret_cast<
-          firebase::admob::rewarded_video::internal::RewardedVideoInternal*>(
-          data_ptr);
-
-  firebase::admob::rewarded_video::RewardItem reward;
-
-  // The amount is a float in the iOS SDK and an int in the Android SDK, so the
-  // C++ API uses floats despite the fact that Android gives us an integer.
-  reward.amount = static_cast<float>(amount);
-  const char* chars = env->GetStringUTFChars(rewardType, 0);
-  reward.reward_type = chars;
-  env->ReleaseStringUTFChars(rewardType, chars);
-  internal->NotifyListenerOfReward(reward);
-}
-
 bool RegisterNatives() {
   static const JNINativeMethod kBannerMethods[] = {
       {"completeBannerViewFutureCallback", "(JILjava/lang/String;)V",
@@ -401,45 +307,10 @@ bool RegisterNatives() {
        reinterpret_cast<void*>(
            &Java_com_google_firebase_admob_internal_cpp_BannerViewHelper_notifyStateChanged)},  // NOLINT
   };
-  static const JNINativeMethod kInterstitialMethods[] = {
-      {"completeInterstitialAdFutureCallback", "(JILjava/lang/String;)V",
-       reinterpret_cast<void*>(
-           &Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_completeInterstitialAdFutureCallback)},  // NOLINT
-      {"notifyPresentationStateChanged", "(JI)V",
-       reinterpret_cast<void*>(
-           &Java_com_google_firebase_admob_internal_cpp_InterstitialAdHelper_notifyPresentationStateChanged)},  // NOLINT
-  };
-  static const JNINativeMethod kNativeExpressMethods[] = {
-      {"completeNativeExpressAdViewFutureCallback", "(JILjava/lang/String;)V",
-       reinterpret_cast<void*>(
-           &Java_com_google_firebase_admob_internal_cpp_NativeExpressAdViewHelper_completeNativeExpressAdViewFutureCallback)},  // NOLINT
-      {"notifyStateChanged", "(JI)V",
-       reinterpret_cast<void*>(
-           &Java_com_google_firebase_admob_internal_cpp_NativeExpressAdViewHelper_notifyStateChanged)},  // NOLINT
-  };
-  static const JNINativeMethod kRewardedVideoMethods[] = {
-      {"completeRewardedVideoFutureCallback", "(JILjava/lang/String;)V",
-       reinterpret_cast<void*>(
-           &Java_com_google_firebase_admob_internal_cpp_RewardedVideoHelper_completeRewardedVideoFutureCallback)},  // NOLINT
-      {"notifyPresentationStateChanged", "(JI)V",
-       reinterpret_cast<void*>(
-           &Java_com_google_firebase_admob_internal_cpp_RewardedVideoHelper_notifyPresentationStateChanged)},  // NOLINT
-      {"grantReward", "(JILjava/lang/String;)V",
-       reinterpret_cast<void*>(
-           &Java_com_google_firebase_admob_internal_cpp_RewardedVideoHelper_grantReward)},  // NOLINT
-  };
   JNIEnv* env = GetJNI();
   return banner_view_helper::RegisterNatives(
-             env, kBannerMethods, FIREBASE_ARRAYSIZE(kBannerMethods)) &&
-         interstitial_ad_helper::RegisterNatives(
-             env, kInterstitialMethods,
-             FIREBASE_ARRAYSIZE(kInterstitialMethods)) &&
-         native_express_ad_view_helper::RegisterNatives(
-             env, kNativeExpressMethods,
-             FIREBASE_ARRAYSIZE(kNativeExpressMethods)) &&
-         rewarded_video::rewarded_video_helper::RegisterNatives(
-             env, kRewardedVideoMethods,
-             FIREBASE_ARRAYSIZE(kRewardedVideoMethods));
+             env, kBannerMethods, FIREBASE_ARRAYSIZE(kBannerMethods));
+
 }
 
 }  // namespace admob
