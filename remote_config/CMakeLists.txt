@@ -104,9 +104,7 @@ else()
       ${PROJECT_BINARY_DIR}
       ${PROJECT_BINARY_DIR}/..)
   set(additional_link_LIB
-      firebase_rest_lib
-      firebase_instance_id_desktop_impl
-      flatbuffers)
+      firebase_rest_lib)
 endif()
 
 add_library(firebase_remote_config STATIC

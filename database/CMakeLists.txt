@@ -170,7 +170,6 @@ else()
       ${UWEBSOCKETS_SOURCE_DIR}/..)
 
   set(additional_link_LIB
-      flatbuffers
       firebase_rest_lib
       leveldb
       libuWS

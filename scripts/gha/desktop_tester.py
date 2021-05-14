@@ -40,6 +40,10 @@ FLAGS = flags.FLAGS
 
 flags.DEFINE_string("testapp_dir", None, "Look for testapps in this directory.")
 flags.DEFINE_string("testapp_name", "integration_test", "Name of the testapps.")
+flags.DEFINE_string(
+    "logfile_name", "",
+    "Create test log artifact test-results-$logfile_name.log."
+    " logfile will be created and placed in testapp_dir.")  
 
 
 def main(argv):
@@ -55,7 +59,8 @@ def main(argv):
   testapps = []
   for file_dir, _, file_names in os.walk(testapp_dir):
     for file_name in file_names:
-      if file_name == testapp_name:
+      # ios build create intermediates file with same name, filter them out 
+      if file_name == testapp_name and "ios_build" not in file_dir:
         testapps.append(os.path.join(file_dir, file_name))
   if not testapps:
     logging.error("No testapps found.")
@@ -75,7 +80,10 @@ def main(argv):
     thread.join()
 
   return test_validation.summarize_test_results(
-      tests, test_validation.CPP, testapp_dir)
+      tests, 
+      test_validation.CPP, 
+      testapp_dir, 
+      file_name="test-results-" + FLAGS.logfile_name + ".log")
 
 
 def _fix_path(path):
@@ -95,6 +103,7 @@ class Test(object):
   def run(self):
     """Executes this testapp."""
     result = None  # Ensures this var is defined if timeout occurs.
+    os.chmod(self.testapp_path, 0o777)
     try:
       result = subprocess.run(
           args=[self.testapp_path],

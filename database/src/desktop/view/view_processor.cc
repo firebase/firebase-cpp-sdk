@@ -384,9 +384,8 @@ ViewCache ViewProcessor::ApplyServerOverwrite(
     ChildChangeAccumulator* accumulator) {
   CacheNode old_server_snap = old_view_cache.server_snap();
   IndexedVariant new_server_cache;
-  IndexedFilter default_filter((QueryParams()));
-  VariantFilter* server_filter =
-      filter_server_node ? filter_.get() : &default_filter;
+  const VariantFilter* server_filter =
+      filter_server_node ? filter_.get() : filter_->GetIndexedFilter();
 
   if (change_path.empty()) {
     // If the path is empty, we can just apply the overwrite directly.
@@ -420,8 +419,8 @@ ViewCache ViewProcessor::ApplyServerOverwrite(
     VariantUpdateChild(&new_child_node, child_change_path, changed_snap);
     if (IsPriorityKey(child_key.str())) {
       // If this is a priority node, update the priority on the indexed node.
-      new_server_cache =
-          server_filter->UpdatePriority(new_server_cache, new_child_node);
+      new_server_cache = server_filter->UpdatePriority(
+          old_server_snap.indexed_variant(), new_child_node);
     } else {
       // If this is a regular update, the update through the filter to make sure
       // we get only the values that are not filtered by the query spec.

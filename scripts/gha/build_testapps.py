@@ -106,8 +106,8 @@ _DESKTOP = "Desktop"
 _SUPPORTED_PLATFORMS = (_ANDROID, _IOS, _DESKTOP)
 
 # Values for iOS SDK flag (where the iOS app will run)
-_IOS_SDK_DEVICE = "device"
-_IOS_SDK_SIMULATOR = "simulator"
+_IOS_SDK_DEVICE = "real"
+_IOS_SDK_SIMULATOR = "virtual"
 _SUPPORTED_IOS_SDK = (_IOS_SDK_DEVICE, _IOS_SDK_SIMULATOR)
 
 FLAGS = flags.FLAGS
@@ -119,6 +119,12 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     "output_directory", "~",
     "Build output will be placed in this directory.")
+
+flags.DEFINE_string(
+    "artifact_name", "",
+    "artifacts will be created and placed in output_directory."
+    " testapps artifact is testapps-$artifact_name;"
+    " build log artifact is build-results-$artifact_name.log.")    
 
 flags.DEFINE_string(
     "repo_dir", os.getcwd(),
@@ -141,8 +147,8 @@ flags.DEFINE_bool(
 
 flags.DEFINE_list(
     "ios_sdk", _IOS_SDK_DEVICE, 
-    "(iOS only) Build for device (ipa), simulator (app), or both."
-    " Building for both will produce both an .app and an .ipa.")
+    "(iOS only) Build for real device (.ipa), virtual device / simulator (.app), "
+    "or both. Building for both will produce both an .app and an .ipa.")
 
 flags.DEFINE_bool(
     "update_pod_repo", True,
@@ -186,7 +192,7 @@ def main(argv):
   testapps = FLAGS.testapps
 
   sdk_dir = _fix_path(FLAGS.packaged_sdk or FLAGS.repo_dir)
-  output_dir = _fix_path(FLAGS.output_directory)
+  root_output_dir = _fix_path(FLAGS.output_directory)
   repo_dir = _fix_path(FLAGS.repo_dir)
 
   update_pod_repo = FLAGS.update_pod_repo
@@ -196,9 +202,9 @@ def main(argv):
     timestamp = ""
 
   if FLAGS.short_output_paths:
-    output_dir = os.path.join(output_dir, "ta")
+    output_dir = os.path.join(root_output_dir, "ta")
   else:
-    output_dir = os.path.join(output_dir, "testapps" + timestamp)
+    output_dir = os.path.join(root_output_dir, "testapps" + timestamp)
 
   ios_framework_dir = os.path.join(sdk_dir, "xcframeworks")
   ios_framework_exist = os.path.isdir(ios_framework_dir)
@@ -248,8 +254,10 @@ def main(argv):
           cmake_flags=cmake_flags,
           short_output_paths=FLAGS.short_output_paths)
       logging.info("END building for %s", testapp)
+  
+  _collect_integration_tests(testapps, root_output_dir, FLAGS.artifact_name)
 
-  _summarize_results(testapps, platforms, failures, output_dir)
+  _summarize_results(testapps, platforms, failures, root_output_dir, FLAGS.artifact_name)
   return 1 if failures else 0
 
 
@@ -321,8 +329,43 @@ def _build(
   return failures
 
 
-def _summarize_results(testapps, platforms, failures, output_dir):
+def _collect_integration_tests(testapps, output_dir, artifact_name):
+  testapps_artifact_dir = "testapps-" + artifact_name
+  android_testapp_extension = ".apk"
+  ios_testapp_extension = ".ipa"
+  ios_simualtor_testapp_extension = ".app"
+  desktop_testapp_name = "integration_test" 
+  if platform.system() == "Windows":
+    desktop_testapp_name += ".exe"
+
+  testapp_paths = []
+  for file_dir, directories, file_names in os.walk(output_dir):
+    for directory in directories:
+      if directory.endswith(ios_simualtor_testapp_extension):
+        testapp_paths.append(os.path.join(file_dir, directory))
+    for file_name in file_names:
+      if ((file_name == desktop_testapp_name and "ios_build" not in file_dir) 
+          or file_name.endswith(android_testapp_extension) 
+          or file_name.endswith(ios_testapp_extension)):
+        testapp_paths.append(os.path.join(file_dir, file_name))
+
+  artifact_path = os.path.join(output_dir, testapps_artifact_dir)
+  for testapp in testapps:
+    os.makedirs(os.path.join(artifact_path, testapp))
+  for path in testapp_paths:
+    for testapp in testapps:
+      if testapp in path:
+        if os.path.isfile(path):
+          shutil.copy(path, os.path.join(artifact_path, testapp))
+        else:
+          dir_util.copy_tree(path, os.path.join(artifact_path, testapp, "integration_test.app"))
+        break
+
+
+def _summarize_results(testapps, platforms, failures, output_dir, artifact_name):
   """Logs a readable summary of the results of the build."""
+  file_name = "build-results-" + artifact_name + ".log"
+
   summary = []
   summary.append("BUILD SUMMARY:")
   summary.append("TRIED TO BUILD: " + ",".join(testapps))
@@ -337,7 +380,7 @@ def _summarize_results(testapps, platforms, failures, output_dir):
   summary = "\n".join(summary)
 
   logging.info(summary)
-  test_validation.write_summary(output_dir, summary)
+  test_validation.write_summary(output_dir, summary, file_name=file_name)
 
 
 def _build_desktop(sdk_dir, cmake_flags):

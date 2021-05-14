@@ -34,19 +34,6 @@ class Repo;
 #endif  // SWIG
 class MutableData {
  public:
-  /// @brief Copy constructor.
-  ///
-  /// This only makes a shallow copy and copies of MutableData will share the
-  /// same internal data. I.e. changes to one copy will appear in the other.
-  /// The main reason the copy constructor is provided is to allow the Child
-  /// method to return a MutableData by value.
-  MutableData(const MutableData& rhs);
-
-  /// @brief Copy assignment operator
-  ///
-  /// @deprecated MutableData is not supposed to be assigned.
-  FIREBASE_DEPRECATED MutableData& operator=(const MutableData& rhs);
-
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
   /// Move constructor
   /// Move is more efficient than copy and delete.
@@ -165,6 +152,9 @@ class MutableData {
   /// @endcond
 
   explicit MutableData(internal::MutableDataInternal* internal);
+
+  MutableData(const MutableData& rhs) = delete;
+  MutableData& operator=(const MutableData& rhs) = delete;
 
   internal::MutableDataInternal* internal_;
 };

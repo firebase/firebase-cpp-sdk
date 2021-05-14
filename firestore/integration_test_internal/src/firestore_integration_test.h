@@ -242,6 +242,10 @@ class FirestoreIntegrationTest : public testing::Test {
   // Return a reference to the document with auto-generated id.
   DocumentReference Document() const;
 
+  // Returns a reference to a document with auto-generated id. Writes the given
+  // data to the document and waits for the write to complete.
+  DocumentReference DocumentWithData(const MapFieldValue& data) const;
+
   // Write to the specified document and wait for the write to complete.
   void WriteDocument(DocumentReference reference,
                      const MapFieldValue& data) const;
@@ -274,6 +278,10 @@ class FirestoreIntegrationTest : public testing::Test {
 
   // Convert a QuerySnapshot to the contents of each document.
   std::vector<MapFieldValue> QuerySnapshotToValues(
+      const QuerySnapshot& snapshot) const;
+
+  // Convert a QuerySnapshot to a map from document id to document content.
+  std::map<std::string, MapFieldValue> QuerySnapshotToMap(
       const QuerySnapshot& snapshot) const;
 
   // TODO(zxu): add a helper function to block on signal.

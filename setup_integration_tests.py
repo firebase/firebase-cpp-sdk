@@ -41,7 +41,6 @@ DEFAULT_DESTINATIONS = [
     'firestore/integration_test_internal',
     'functions/integration_test',
     'installations/integration_test',
-    'instance_id/integration_test',
     'messaging/integration_test',
     'remote_config/integration_test',
     'storage/integration_test',

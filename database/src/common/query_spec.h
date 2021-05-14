@@ -16,6 +16,7 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_COMMON_QUERY_SPEC_H_
 
 #include "app/src/include/firebase/variant.h"
+#include "app/src/optional.h"
 #include "app/src/path.h"
 
 namespace firebase {
@@ -43,6 +44,18 @@ struct QueryParams {
            limit_first == other.limit_first && limit_last == other.limit_last;
   }
 
+  template <typename T>
+  int OptionalCmp(const Optional<T>& a, const Optional<T>& b) const {
+    if (a.has_value() && b.has_value()) {
+      if (*a < *b) return -1;
+      if (*a > *b) return 1;
+      return 0;
+    }
+    if (!a.has_value() && b.has_value()) return -1;
+    if (a.has_value() && !b.has_value()) return 1;
+    return 0;
+  }
+
   // Less-than operator, required so we can place QuerySpec instances in an
   // std::map. This is an arbitrary operation, but must be consistent.
   bool operator<(const QueryParams& other) const {
@@ -52,18 +65,32 @@ struct QueryParams {
       if (order_by_child < other.order_by_child) return true;
       if (order_by_child > other.order_by_child) return false;
     }
-    if (start_at_value < other.start_at_value) return true;
-    if (start_at_value > other.start_at_value) return false;
-    if (start_at_child_key < other.start_at_child_key) return true;
-    if (start_at_child_key > other.start_at_child_key) return false;
-    if (end_at_value < other.end_at_value) return true;
-    if (end_at_value > other.end_at_value) return false;
-    if (end_at_child_key < other.end_at_child_key) return true;
-    if (end_at_child_key > other.end_at_child_key) return false;
-    if (equal_to_value < other.equal_to_value) return true;
-    if (equal_to_value > other.equal_to_value) return false;
-    if (equal_to_child_key < other.equal_to_child_key) return true;
-    if (equal_to_child_key > other.equal_to_child_key) return false;
+    // clang-format off
+    switch (OptionalCmp(start_at_value, other.start_at_value)) {
+      case -1: return true;
+      case 1: return false;
+    }
+    switch (OptionalCmp(start_at_child_key, other.start_at_child_key)) {
+      case -1: return true;
+      case 1: return false;
+    }
+    switch (OptionalCmp(end_at_value, other.end_at_value)) {
+      case -1: return true;
+      case 1: return false;
+    }
+    switch (OptionalCmp(end_at_child_key, other.end_at_child_key)) {
+      case -1: return true;
+      case 1: return false;
+    }
+    switch (OptionalCmp(equal_to_value, other.equal_to_value)) {
+      case -1: return true;
+      case 1: return false;
+    }
+    switch (OptionalCmp(equal_to_child_key, other.equal_to_child_key)) {
+      case -1: return true;
+      case 1: return false;
+    }
+    // clang-format on
     if (limit_first < other.limit_first) return true;
     if (limit_first > other.limit_first) return false;
     if (limit_last < other.limit_last) return true;
@@ -82,19 +109,19 @@ struct QueryParams {
   std::string order_by_child;
 
   // Set by Query::StartAt(). Variant::Null() if unspecified.
-  Variant start_at_value;
+  Optional<Variant> start_at_value;
   // Set by Query::StartAt() with child specified. Blank if unspecified.
-  std::string start_at_child_key;
+  Optional<std::string> start_at_child_key;
 
   // Set by Query::EndAt(). Variant::Null() if unspecified.
-  Variant end_at_value;
+  Optional<Variant> end_at_value;
   // Set by Query::EndAt() with child specified. Blank if unspecified.
-  std::string end_at_child_key;
+  Optional<std::string> end_at_child_key;
 
   // Set by Query::EqualTo(). Variant::Null() if unspecified.
-  Variant equal_to_value;
+  Optional<Variant> equal_to_value;
   // Set by Query::EqualTo() with child specified. Blank if unspecified.
-  std::string equal_to_child_key;
+  Optional<std::string> equal_to_child_key;
 
   // Set by Query::LimitToFirst(). 0 means no limit.
   size_t limit_first;

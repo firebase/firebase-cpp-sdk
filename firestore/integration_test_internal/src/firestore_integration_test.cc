@@ -195,6 +195,13 @@ DocumentReference FirestoreIntegrationTest::Document() const {
   return TestFirestore()->Document(DocumentPath());
 }
 
+DocumentReference FirestoreIntegrationTest::DocumentWithData(
+    const MapFieldValue& data) const {
+  DocumentReference docRef = Document();
+  WriteDocument(docRef, data);
+  return docRef;
+}
+
 void FirestoreIntegrationTest::WriteDocument(DocumentReference reference,
                                              const MapFieldValue& data) const {
   Future<void> future = reference.Set(data);
@@ -253,6 +260,16 @@ std::vector<MapFieldValue> FirestoreIntegrationTest::QuerySnapshotToValues(
   std::vector<MapFieldValue> result;
   for (const DocumentSnapshot& doc : snapshot.documents()) {
     result.push_back(doc.GetData());
+  }
+  return result;
+}
+
+std::map<std::string, MapFieldValue>
+FirestoreIntegrationTest::QuerySnapshotToMap(
+    const QuerySnapshot& snapshot) const {
+  std::map<std::string, MapFieldValue> result;
+  for (const DocumentSnapshot& doc : snapshot.documents()) {
+    result[doc.id()] = doc.GetData();
   }
   return result;
 }

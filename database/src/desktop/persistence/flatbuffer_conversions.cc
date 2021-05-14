@@ -258,13 +258,25 @@ Offset<persistence::PersistedQueryParams> FlatbufferFromQueryParams(
   return CreatePersistedQueryParams(
       *builder, static_cast<persistence::OrderBy>(params.order_by),
       builder->CreateString(params.order_by_child),
-      builder->CreateVector(VariantToFlexbuffer(params.start_at_value)),
-      builder->CreateString(params.start_at_child_key),
-      builder->CreateVector(VariantToFlexbuffer(params.end_at_value)),
-      builder->CreateString(params.end_at_child_key),
-      builder->CreateVector(VariantToFlexbuffer(params.equal_to_value)),
-      builder->CreateString(params.equal_to_child_key), params.limit_first,
-      params.limit_last);
+      params.start_at_value.has_value()
+          ? builder->CreateVector(VariantToFlexbuffer(*params.start_at_value))
+          : 0,
+      params.start_at_child_key.has_value()
+          ? builder->CreateString(params.start_at_child_key->c_str())
+          : 0,
+      params.end_at_value.has_value()
+          ? builder->CreateVector(VariantToFlexbuffer(*params.end_at_value))
+          : 0,
+      params.end_at_child_key.has_value()
+          ? builder->CreateString(params.end_at_child_key->c_str())
+          : 0,
+      params.equal_to_value.has_value()
+          ? builder->CreateVector(VariantToFlexbuffer(*params.equal_to_value))
+          : 0,
+      params.equal_to_child_key.has_value()
+          ? builder->CreateString(params.equal_to_child_key->c_str())
+          : 0,
+      params.limit_first, params.limit_last);
 }
 
 Offset<persistence::PersistedQuerySpec> FlatbufferFromQuerySpec(

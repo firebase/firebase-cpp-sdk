@@ -4,7 +4,7 @@ platform :ios, '10.0'
 # Firebase Remote Config test application.
 
 target 'integration_test' do
-  pod 'Firebase/RemoteConfig', '7.10.0'
+  pod 'Firebase/RemoteConfig', '7.11.0'
 end
 
 post_install do |installer|

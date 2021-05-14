@@ -25,9 +25,6 @@
 
 + (void)setUserID:(nullable NSString *)userID;
 
-+ (void)setScreenName:(nullable NSString *)screenName
-          screenClass:(nullable NSString *)screenClassOverride;
-
 + (void)setAnalyticsCollectionEnabled:(BOOL)analyticsCollectionEnabled;
 
 + (void)setSessionTimeoutInterval:(NSTimeInterval)sessionTimeoutInterval;

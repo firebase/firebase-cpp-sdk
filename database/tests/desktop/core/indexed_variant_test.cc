@@ -82,23 +82,23 @@ std::string QueryParamsToString(const QueryParams& params) {
       break;
   }
 
-  if (!params.equal_to_value.is_null()) {
-    ss << ", equal_to_value=" << util::VariantToJson(params.equal_to_value);
+  if (params.equal_to_value.has_value()) {
+    ss << ", equal_to_value=" << util::VariantToJson(*params.equal_to_value);
   }
-  if (!params.equal_to_child_key.empty()) {
-    ss << ", equal_to_child_key=" << params.equal_to_child_key;
+  if (params.equal_to_child_key.has_value()) {
+    ss << ", equal_to_child_key=" << *params.equal_to_child_key;
   }
-  if (!params.start_at_value.is_null()) {
-    ss << ", start_at_value=" << util::VariantToJson(params.start_at_value);
+  if (params.start_at_value.has_value()) {
+    ss << ", start_at_value=" << util::VariantToJson(*params.start_at_value);
   }
-  if (!params.start_at_child_key.empty()) {
-    ss << ", start_at_child_key=" << params.start_at_child_key;
+  if (params.start_at_child_key.has_value()) {
+    ss << ", start_at_child_key=" << *params.start_at_child_key;
   }
-  if (!params.end_at_value.is_null()) {
-    ss << ", end_at_value=" << util::VariantToJson(params.end_at_value);
+  if (params.end_at_value.has_value()) {
+    ss << ", end_at_value=" << util::VariantToJson(*params.end_at_value);
   }
-  if (!params.end_at_child_key.empty()) {
-    ss << ", end_at_child_key=" << params.end_at_child_key;
+  if (params.end_at_child_key.has_value()) {
+    ss << ", end_at_child_key=" << *params.end_at_child_key;
   }
   if (params.limit_first != 0) {
     ss << ", limit_first=" << params.limit_first;

@@ -374,7 +374,6 @@ endif()
 if (NOT ANDROID AND NOT IOS)
   # Add the rest subdirectory, so that other libraries can access it
   add_subdirectory(rest)
-  add_subdirectory(instance_id)
 endif()
 
 if(FIREBASE_CPP_BUILD_TESTS)
@@ -484,8 +483,6 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_reference.h
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/callable_result.h
     ${FIREBASE_SOURCE_DIR}/functions/src/include/firebase/functions/common.h)
-  set(instance_id_HDRS
-    ${FIREBASE_SOURCE_DIR}/instance_id/src/include/firebase/instance_id.h)
   set(installations_HDRS
     ${FIREBASE_SOURCE_DIR}/installations/src/include/firebase/installations.h)
   set(messaging_HDRS
@@ -509,7 +506,6 @@ if (IOS)
     ${dynamic_links_HDRS}
     ${firestore_HDRS}
     ${functions_HDRS}
-    ${instance_id_HDRS}
     ${installations_HDRS}
     ${messaging_HDRS}
     ${remote_config_HDRS}

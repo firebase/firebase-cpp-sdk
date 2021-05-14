@@ -94,7 +94,6 @@ add_firebase_target(firebase_dynamic_links)
 add_firebase_target(firebase_firestore)
 add_firebase_target(firebase_functions)
 add_firebase_target(firebase_installations)
-add_firebase_target(firebase_instance_id)
 add_firebase_target(firebase_messaging)
 add_firebase_target(firebase_performance)
 add_firebase_target(firebase_remote_config)
@@ -116,10 +115,6 @@ if(NOT APPLE AND NOT ANDROID AND UNIX)
                      apt-get install libsecret-1-dev")
   else()
     set_target_properties(firebase_auth PROPERTIES
-      INTERFACE_INCLUDE_DIRECTORIES "${LIBSECRET_INCLUDE_DIRS}"
-      INTERFACE_LINK_LIBRARIES "${LIBSECRET_LIBRARIES}"
-    )
-    set_target_properties(firebase_instance_id PROPERTIES
       INTERFACE_INCLUDE_DIRECTORIES "${LIBSECRET_INCLUDE_DIRS}"
       INTERFACE_LINK_LIBRARIES "${LIBSECRET_LIBRARIES}"
     )
