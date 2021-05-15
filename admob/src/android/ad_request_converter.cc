@@ -42,49 +42,17 @@ METHOD_LOOKUP_DEFINITION(ad_request_builder,
                          ADREQUESTBUILDER_METHODS);
 
 METHOD_LOOKUP_DEFINITION(
-    ad_request_helper, "com/google/firebase/admob/internal/cpp/AdRequestHelper",
-    ADREQUESTHELPER_METHODS);
+    request_config_builder,
+    PROGUARD_KEEP_CLASS
+    "com/google/android/gms/ads/RequestConfiguration$Builder",
+    REQUESTCONFIGURATIONBUILDER_METHODS);
 
 AdRequestConverter::AdRequestConverter(AdRequest request) {
+  ConvertRequestConfiguration(request);
   JNIEnv* env = ::firebase::admob::GetJNI();
-
   jobject builder = env->NewObject(
       ad_request_builder::GetClass(),
       ad_request_builder::GetMethodId(ad_request_builder::kConstructor));
-
-  // Gender.
-
-  builder = util::ContinueBuilder(
-      env, builder,
-      env->CallObjectMethod(
-          builder,
-          ad_request_builder::GetMethodId(ad_request_builder::kSetGender),
-          static_cast<int>(request.gender)));
-
-  // Child-drected treatment.
-  if (request.tagged_for_child_directed_treatment !=
-      kChildDirectedTreatmentStateUnknown) {
-    builder = util::ContinueBuilder(
-        env, builder,
-        env->CallObjectMethod(
-            builder,
-            ad_request_builder::GetMethodId(
-                ad_request_builder::kTagForChildDirectedTreatment),
-            (request.tagged_for_child_directed_treatment ==
-             kChildDirectedTreatmentStateTagged)));
-  }
-
-  // Test devices.
-  for (int i = 0; i < request.test_device_id_count; i++) {
-    jstring test_device_str = env->NewStringUTF(request.test_device_ids[i]);
-    builder = util::ContinueBuilder(
-        env, builder,
-        env->CallObjectMethod(
-            builder,
-            ad_request_builder::GetMethodId(ad_request_builder::kAddTestDevice),
-            test_device_str));
-    env->DeleteLocalRef(test_device_str);
-  }
 
   // Keywords.
   for (int i = 0; i < request.keyword_count; i++) {
@@ -98,34 +66,7 @@ AdRequestConverter::AdRequestConverter(AdRequest request) {
     env->DeleteLocalRef(keyword_str);
   }
 
-  // Birthday.
-  jobject request_helper = env->NewObject(
-      ad_request_helper::GetClass(),
-      ad_request_helper::GetMethodId(ad_request_helper::kConstructor));
-
-  jobject date_ref = env->CallObjectMethod(
-      request_helper,
-      ad_request_helper::GetMethodId(ad_request_helper::kCreateDate),
-      static_cast<jint>(request.birthday_year),
-      static_cast<jint>(request.birthday_month),
-      static_cast<jint>(request.birthday_day));
-
-  env->DeleteLocalRef(request_helper);
-
-  if (date_ref != nullptr) {
-    builder = util::ContinueBuilder(
-        env, builder,
-        env->CallObjectMethod(
-            builder,
-            ad_request_builder::GetMethodId(ad_request_builder::kSetBirthday),
-            date_ref));
-  } else {
-    LogWarning(
-        "Skipping invalid AdRequest birthday fields (Y: %d, M: %d, D: %d).",
-        request.birthday_year, request.birthday_month, request.birthday_day);
-  }
-
-  // Extras.
+  // Network Extras.
   if (request.extras_count > 0) {
     jobject extras_bundle =
         env->NewObject(util::bundle::GetClass(),
@@ -193,6 +134,53 @@ AdRequestConverter::~AdRequestConverter() {
 }
 
 jobject AdRequestConverter::GetJavaRequestObject() { return java_request_; }
+
+void AdRequestConverter::ConvertRequestConfiguration(AdRequest request) const {
+  JNIEnv* env = ::firebase::admob::GetJNI();
+  jobject builder = env->NewObject(request_config_builder::GetClass(),
+                                   request_config_builder::GetMethodId(
+                                       request_config_builder::kConstructor));
+
+  // Child-drected treatment.
+  if (request.tagged_for_child_directed_treatment !=
+      kChildDirectedTreatmentStateUnknown) {
+    builder = util::ContinueBuilder(
+        env, builder,
+        env->CallObjectMethod(
+            builder,
+            request_config_builder::GetMethodId(
+                request_config_builder::kSetTagForChildDirectedTreatment),
+            (request.tagged_for_child_directed_treatment ==
+             kChildDirectedTreatmentStateTagged)));
+  }
+
+  // Test DeviceIds
+  if (request.test_device_id_count > 0) {
+    std::vector<std::string> test_devices_vector;
+    for (int i = 0; i < request.test_device_id_count; i++) {
+      test_devices_vector.push_back(request.test_device_ids[i]);
+    }
+    jobject test_device_list =
+        util::StdVectorToJavaList(env, test_devices_vector);
+    builder = util::ContinueBuilder(
+        env, builder,
+        env->CallObjectMethod(builder,
+                              request_config_builder::GetMethodId(
+                                  request_config_builder::kSetTestDeviceIds),
+                              test_device_list));
+    env->DeleteLocalRef(test_device_list);
+
+    // Build request configuration.
+    jobject request_configuration = env->CallObjectMethod(
+        builder,
+        request_config_builder::GetMethodId(request_config_builder::kBuild));
+    env->DeleteLocalRef(builder);
+    env->CallStaticVoidMethod(
+        mobile_ads::GetClass(),
+        mobile_ads::GetMethodId(mobile_ads::kSetRequestConfiguration),
+        request_configuration);
+  }
+}
 
 }  // namespace admob
 }  // namespace firebase

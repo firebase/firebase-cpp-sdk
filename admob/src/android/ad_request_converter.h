@@ -33,12 +33,8 @@ namespace admob {
   X(Build, "build", "()Lcom/google/android/gms/ads/AdRequest;"),             \
   X(AddKeyword, "addKeyword",                                                \
       "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
-  X(AddTestDevice, "addTestDevice",                                          \
-      "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
   X(SetRequestAgent, "setRequestAgent",                                      \
       "(Ljava/lang/String;)Lcom/google/android/gms/ads/AdRequest$Builder;"), \
-  X(TagForChildDirectedTreatment, "tagForChildDirectedTreatment",            \
-      "(Z)Lcom/google/android/gms/ads/AdRequest$Builder;"),                  \
   X(AddNetworkExtrasBundle, "addNetworkExtrasBundle",                        \
       "(Ljava/lang/Class;Landroid/os/Bundle;)"                               \
       "Lcom/google/android/gms/ads/AdRequest$Builder;")
@@ -54,18 +50,18 @@ namespace admob {
 #define REQUESTCONFIGURATIONBUILDER_METHODS(X)                               \
   X(Constructor, "<init>", "()V"),                                           \
   X(Build, "build",                                                          \
-    "()Lcom/google/android/gms/ads/RequestConfiguration$Builder;"),          \
-  X(SetMaxAdContentRating, "setMaxAdContentRating",                          \
-      "(Ljava/lang/String;)"                                                 \
-      "Lcom/google/android/gms/ads/RequestConfiguration$Builder;"),          \
+    "()Lcom/google/android/gms/ads/RequestConfiguration;"),          \
   X(SetTagForChildDirectedTreatment, "setTagForChildDirectedTreatment",      \
       "(I)Lcom/google/android/gms/ads/RequestConfiguration$Builder;"),       \
+  X(SetTestDeviceIds, "setTestDeviceIds",                                    \
+      "(Ljava/util/List;)"                                                   \
+      "Lcom/google/android/gms/ads/RequestConfiguration$Builder;")
 // clang-format on
-
 
 METHOD_LOOKUP_DECLARATION(ad_request_builder, ADREQUESTBUILDER_METHODS);
 
-METHOD_LOOKUP_DECLARATION(ad_request_helper, ADREQUESTHELPER_METHODS);
+METHOD_LOOKUP_DECLARATION(request_config_builder,
+                          REQUESTCONFIGURATIONBUILDER_METHODS);
 
 /// Converts instances of the AdRequest struct used by the C++ wrapper to
 /// jobject references to Mobile Ads SDK AdRequest objects.
@@ -85,6 +81,7 @@ class AdRequestConverter {
   jobject GetJavaRequestObject();
 
  private:
+  void ConvertRequestConfiguration(AdRequest request) const;
   jobject java_request_;
 };
 
