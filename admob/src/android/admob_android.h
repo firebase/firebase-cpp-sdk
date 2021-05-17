@@ -44,7 +44,7 @@ namespace admob {
   X(Initialize, "initialize",                                                  \
     "(Landroid/content/Context;)V", util::kMethodTypeStatic),                  \
   X(SetRequestConfiguration, "setRequestConfiguration",                        \
-    "(Lcom/google/android/gms/ads/RequestConfiguration)V",                     \
+    "(Lcom/google/android/gms/ads/RequestConfiguration;)V",                     \
     util::kMethodTypeStatic)
 // clang-format on
 
