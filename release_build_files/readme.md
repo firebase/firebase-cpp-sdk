@@ -378,7 +378,10 @@ code.
         API.
     -   Remote Config(Android): Fix for getting Remote Config instance for a
         specific app object.
-        ([#991](https://github.com/firebase/quickstart-unity/issues/991).
+        ([#991](https://github.com/firebase/quickstart-unity/issues/991)).
+    -   General (Android): Fixed a potential SIGABRT when a non-default app name
+        was created on KitKat
+        ([#429](https://github.com/firebase/firebase-cpp-sdk/pull/429)).
 
 ### 7.3.0
 -   Changes
