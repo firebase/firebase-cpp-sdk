@@ -380,7 +380,7 @@ code.
         specific app object.
         ([#991](https://github.com/firebase/quickstart-unity/issues/991)).
     -   General (Android): Fixed a potential SIGABRT when an app was created
-        with non-default app name on Android KitKat
+        with a non-default app name on Android KitKat
         ([#429](https://github.com/firebase/firebase-cpp-sdk/pull/429)).
 
 ### 7.3.0
