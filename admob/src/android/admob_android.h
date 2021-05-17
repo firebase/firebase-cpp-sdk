@@ -34,10 +34,6 @@ namespace admob {
 // clang-format on
 
 METHOD_LOOKUP_DECLARATION(mobile_ads, MOBILEADS_METHODS);
-METHOD_LOOKUP_DEFINITION(mobile_ads,
-                         PROGUARD_KEEP_CLASS
-                         "com/google/android/gms/ads/MobileAds",
-                         MOBILEADS_METHODS);
 
 // Change codes used when receiving state change callbacks from the Java
 // BannerViewHelper and NativeExpressAdViewHelper objects.

@@ -41,12 +41,6 @@ namespace admob {
 // clang-format on
 
 // clang-format off
-#define ADREQUESTHELPER_METHODS(X)                                           \
-  X(Constructor, "<init>", "()V"),                                           \
-  X(CreateDate, "createDate", "(III)Ljava/util/Date;")
-// clang-format on
-
-// clang-format off
 #define REQUESTCONFIGURATIONBUILDER_METHODS(X)                               \
   X(Constructor, "<init>", "()V"),                                           \
   X(Build, "build",                                                          \

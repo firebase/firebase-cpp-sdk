@@ -38,6 +38,11 @@
 namespace firebase {
 namespace admob {
 
+METHOD_LOOKUP_DEFINITION(mobile_ads,
+                         PROGUARD_KEEP_CLASS
+                         "com/google/android/gms/ads/MobileAds",
+                         MOBILEADS_METHODS);
+
 static JavaVM* g_java_vm = nullptr;
 static const ::firebase::App* g_app = nullptr;
 static jobject g_activity;

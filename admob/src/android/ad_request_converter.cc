@@ -41,6 +41,12 @@ METHOD_LOOKUP_DEFINITION(ad_request_builder,
                          "com/google/android/gms/ads/AdRequest$Builder",
                          ADREQUESTBUILDER_METHODS);
 
+METHOD_LOOKUP_DEFINITION(mobile_ads,
+                         PROGUARD_KEEP_CLASS
+                         "com/google/android/gms/ads/MobileAds",
+                         MOBILEADS_METHODS);
+
+
 METHOD_LOOKUP_DEFINITION(
     request_config_builder,
     PROGUARD_KEEP_CLASS

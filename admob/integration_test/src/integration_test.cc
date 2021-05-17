@@ -107,7 +107,7 @@ void FirebaseAdMobTest::SetUpTestSuite() {
   initializer.Initialize(
       shared_app_, nullptr, [](::firebase::App* app, void* /* userdata */) {
         LogDebug("Try to initialize AdMob");
-        return ::firebase::admob::Initialize(*app, kAdMobAppID);
+        return ::firebase::admob::Initialize(*app);
       });
 
   WaitForCompletion(initializer.InitializeLastResult(), "Initialize");
