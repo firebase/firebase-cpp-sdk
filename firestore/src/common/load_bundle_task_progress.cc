@@ -42,7 +42,7 @@ LoadBundleTaskProgress::LoadBundleTaskProgress(int32_t documents_loaded,
 #if defined(__ANDROID__)
 LoadBundleTaskProgress::LoadBundleTaskProgress(
     LoadBundleTaskProgressInternal* internal) {
-  FIREBASE_ASSERT(internal != nullptr);
+  SIMPLE_HARD_ASSERT(internal != nullptr);
   documents_loaded_ = internal->documents_loaded();
   total_documents_ = internal->total_documents();
   bytes_loaded_ = internal->bytes_loaded();

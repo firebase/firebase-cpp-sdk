@@ -216,8 +216,8 @@ class FirestoreInternal {
 #endif  //  defined(_STLPORT_VERSION)
 
   Mutex bundle_listeners_mutex_;
-  std::vector<std::unique_ptr<LambdaEventListener<LoadBundleTaskProgress>>>
-      bundle_listeners_;
+  // Using a vector to ensure FirestoreInternal owns all listener instance.
+  std::vector<LambdaEventListener<LoadBundleTaskProgress>> bundle_listeners_;
 
   FutureManager future_manager_;
   UniquePtr<PromiseFactory<AsyncFn>> promises_;

@@ -16,7 +16,7 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_LOAD_BUNDLE_TASK_PROGRESS_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_LOAD_BUNDLE_TASK_PROGRESS_H_
 
-#include <cstdint>
+#include <stdint.h>
 
 namespace firebase {
 namespace firestore {
@@ -77,13 +77,15 @@ class LoadBundleTaskProgress {
   friend class LoadBundleTaskProgressInternal;
   friend struct ConverterImpl;
 
+#if defined(__ANDROID__)
   explicit LoadBundleTaskProgress(LoadBundleTaskProgressInternal* internal);
+#endif  // defined(__ANDROID__)
 
   int32_t documents_loaded_ = 0;
   int32_t total_documents_ = 0;
   int64_t bytes_loaded_ = 0;
   int64_t total_bytes_ = 0;
-  State state_ = LoadBundleTaskProgress::State::kInProgress;
+  State state_ = State::kInProgress;
 };
 
 inline bool operator==(const LoadBundleTaskProgress& lhs,

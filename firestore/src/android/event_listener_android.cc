@@ -166,9 +166,10 @@ void EventListenerInternal::ProgressListenerNativeOnProgress(
   auto* firestore = reinterpret_cast<FirestoreInternal*>(firestore_ptr);
   auto* listener =
       reinterpret_cast<EventListener<LoadBundleTaskProgress>*>(listener_ptr);
+  LoadBundleTaskProgressInternal internal(firestore, Object(progress));
   LoadBundleTaskProgress cpp_progress(
-      // Internal progress is owned by `cpp_progress`.
-      new LoadBundleTaskProgressInternal(firestore, Object(progress)));
+      internal.documents_loaded(), internal.total_documents(),
+      internal.bytes_loaded(), internal.total_bytes(), internal.state());
   listener->OnEvent(cpp_progress, Error::kErrorOk, EmptyString());
 }
 

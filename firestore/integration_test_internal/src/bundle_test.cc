@@ -22,8 +22,8 @@ namespace firestore {
 namespace {
 
 // Query names from the testing bundle in bundle_builder.cc
-constexpr char limit_query_name[] = "limit";
-constexpr char limit_to_last_query_name[] = "limit-to-last";
+constexpr char kLimitQueryName[] = "limit";
+constexpr char kLimitToLastQueryName[] = "limit-to-last";
 
 MATCHER_P(
     InProgressWithLoadedDocuments,
@@ -42,13 +42,6 @@ MATCHER_P(
          arg.documents_loaded() == expected_documents &&
          arg.documents_loaded() <= arg.total_documents() &&
          arg.bytes_loaded() <= arg.total_bytes();
-}
-
-void VerifyProgress(LoadBundleTaskProgress progress, int expected_documents) {
-  EXPECT_EQ(progress.state(), LoadBundleTaskProgress::State::kInProgress);
-  EXPECT_EQ(progress.documents_loaded(), expected_documents);
-  EXPECT_LE(progress.documents_loaded(), progress.total_documents());
-  EXPECT_LE(progress.bytes_loaded(), progress.total_bytes());
 }
 
 void VerifySuccessProgress(LoadBundleTaskProgress progress) {
@@ -100,7 +93,7 @@ class BundleTest : public FirestoreIntegrationTest {
     }
 
     {
-      Query limit = AwaitResult(db->NamedQuery(limit_query_name));
+      Query limit = AwaitResult(db->NamedQuery(kLimitQueryName));
       auto limit_snapshot = AwaitResult(limit.Get(Source::kCache));
       EXPECT_THAT(
           QuerySnapshotToValues(limit_snapshot),
@@ -109,8 +102,7 @@ class BundleTest : public FirestoreIntegrationTest {
     }
 
     {
-      Query limit_to_last =
-          AwaitResult(db->NamedQuery(limit_to_last_query_name));
+      Query limit_to_last = AwaitResult(db->NamedQuery(kLimitToLastQueryName));
       auto limit_to_last_snapshot =
           AwaitResult(limit_to_last.Get(Source::kCache));
       EXPECT_THAT(
@@ -234,14 +226,14 @@ TEST_F(BundleTest, LoadBundleWithDocumentsAlreadyPulledFromBackend) {
                   MapFieldValue{{"bar", FieldValue::String("newValueB")}}));
 
   {
-    Query limit = AwaitResult(db->NamedQuery(limit_query_name));
+    Query limit = AwaitResult(db->NamedQuery(kLimitQueryName));
     EXPECT_THAT(QuerySnapshotToValues(AwaitResult(limit.Get(Source::kCache))),
                 testing::ElementsAre(
                     MapFieldValue{{"bar", FieldValue::String("newValueB")}}));
   }
 
   {
-    Query limit_to_last = AwaitResult(db->NamedQuery(limit_to_last_query_name));
+    Query limit_to_last = AwaitResult(db->NamedQuery(kLimitToLastQueryName));
     EXPECT_THAT(
         QuerySnapshotToValues(AwaitResult(limit_to_last.Get(Source::kCache))),
         testing::ElementsAre(
