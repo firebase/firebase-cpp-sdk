@@ -2,6 +2,7 @@
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_FIRESTORE_ANDROID_H_
 
 #include <cstdint>
+#include <list>
 #include <unordered_set>
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
@@ -216,9 +217,9 @@ class FirestoreInternal {
 #endif  //  defined(_STLPORT_VERSION)
 
   Mutex bundle_listeners_mutex_;
-  // Using a vector to ensure listener instances cannot outlive
+  // Using a list to ensure listener instances cannot outlive
   // FirestoreInternal.
-  std::vector<LambdaEventListener<LoadBundleTaskProgress>> bundle_listeners_;
+  std::list<LambdaEventListener<LoadBundleTaskProgress>> bundle_listeners_;
 
   FutureManager future_manager_;
   UniquePtr<PromiseFactory<AsyncFn>> promises_;

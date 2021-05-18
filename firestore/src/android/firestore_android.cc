@@ -226,9 +226,13 @@ enum class InitialLogState {
 Local<LoadBundleTaskInternal> CreateLoadBundleTask(Env& env,
                                                    Object& firestore,
                                                    const std::string& bundle) {
-  Local<String> bundle_jstring = env.NewStringUtf(bundle.c_str());
-  Local<Array<uint8_t>> bytes = bundle_jstring.GetBytes(env, String::GetUtf8());
-  return env.Call(firestore, kLoadBundle, bytes);
+  Local<Array<uint8_t>> java_bytes = env.NewArray<uint8_t>(bundle.size());
+  env.SetArrayRegion(java_bytes, 0, bundle.size(),
+                     reinterpret_cast<const uint8_t*>(bundle.c_str()));
+  if (!env.ok()) {
+    java_bytes = env.NewArray<uint8_t>(0);
+  }
+  return env.Call(firestore, kLoadBundle, java_bytes);
 }
 
 }  // namespace

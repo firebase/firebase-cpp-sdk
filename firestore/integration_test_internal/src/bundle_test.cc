@@ -30,10 +30,12 @@ MATCHER_P(
     expected_documents,
     std::string("Is a valid InProgress update with documents_loaded() == ") +
         std::to_string(expected_documents)) {
-  *result_listener << "progress state() is kInProgress: "
-                   << (arg.state() == LoadBundleTaskProgress::State::kInProgress
-                           ? "true"
-                           : "false")
+  std::string state_string =
+      arg.state() == LoadBundleTaskProgress::State::kInProgress
+          ? "kInProgress"
+          : (arg.state() == LoadBundleTaskProgress::State::kError ? "kError"
+                                                                  : "kSuccess");
+  *result_listener << "progress state() is " << state_string
                    << " documents_loaded() is: " << arg.documents_loaded()
                    << " total_documents() is: " << arg.total_documents()
                    << " bytes_loaded() is: " << arg.bytes_loaded()
@@ -70,8 +72,8 @@ class BundleTest : public FirestoreIntegrationTest {
   }
 
   template <typename T>
-  T AwaitResult(const Future<T>& f) {
-    auto* ptr = Await(f);
+  T AwaitResult(const Future<T>& future) {
+    auto* ptr = Await(future);
     EXPECT_NE(ptr, nullptr);
     // Return default instance instead of crashing.
     if (ptr == nullptr) {
@@ -199,6 +201,26 @@ TEST_F(BundleTest, LoadBundlesForASecondTimeSkips) {
   VerifyQueryResults(db);
 }
 
+TEST_F(BundleTest, LoadInvalidBundlesShouldFail) {
+  Firestore* db = TestFirestore();
+  std::vector<std::string> invalid_bundles{
+      "invalid bundle obviously", "\"(╯°□°）╯︵ ┻━┻\"",
+      "\0\1\2\3\ud7ff\ue000\uffff\""  // random bytes
+  };
+  for (const auto& bundle : invalid_bundles) {
+    std::vector<LoadBundleTaskProgress> progresses;
+    Future<LoadBundleTaskProgress> result = db->LoadBundle(
+        bundle, [&progresses](const LoadBundleTaskProgress& progress) {
+          progresses.push_back(progress);
+        });
+    Await(result);
+
+    EXPECT_NE(result.error(), Error::kErrorOk);
+    ASSERT_EQ(progresses.size(), 1);
+    VerifyErrorProgress(progresses[0]);
+  }
+}
+
 TEST_F(BundleTest, LoadBundleWithDocumentsAlreadyPulledFromBackend) {
   Firestore* db = TestFirestore();
   auto collection = db->Collection("coll-1");
@@ -287,6 +309,12 @@ TEST_F(BundleTest, GetInvalidNamedQuery) {
   }
   {
     auto future = db->NamedQuery("");
+    Await(future);
+    EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
+    EXPECT_EQ(future.error(), Error::kErrorNotFound);
+  }
+  {
+    auto future = db->NamedQuery("\0\1\2\3\4");
     Await(future);
     EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
     EXPECT_EQ(future.error(), Error::kErrorNotFound);
