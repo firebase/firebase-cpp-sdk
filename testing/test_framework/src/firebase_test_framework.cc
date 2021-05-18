@@ -299,6 +299,27 @@ std::ostream& operator<<(std::ostream& os, const Variant& v) {
 
 namespace {
 
+std::vector<std::string> ArgcArgvToVector(int argc, char* argv[]) {
+  std::vector<std::string> args_vector;
+  for (int i = 0; i < argc; ++i) {
+    args_vector.push_back(argv[i]);
+  }
+  return args_vector;
+}
+
+char** VectorToArgcArgv(const std::vector<std::string>& args_vector,
+                        int* argc) {
+  char** argv = new char*[args_vector.size()];
+  for (int i = 0; i < args_vector.size(); ++i) {
+    const char* arg = args_vector[i].c_str();
+    char* arg_copy = new char[std::strlen(arg) + 1];
+    std::strcpy(arg_copy, arg);
+    argv[i] = arg_copy;
+  }
+  *argc = static_cast<int>(args_vector.size());
+  return argv;
+}
+
 /**
  * Makes changes to argc and argv before passing them to `InitGoogleTest`.
  *
@@ -320,28 +341,22 @@ namespace {
 char** EditMainArgsForGoogleTest(int* argc, char* argv[]) {
   // Put the args into a vector of strings because modifying string objects in
   // a vector is far easier than modifying a char** array.
-  std::vector<std::string> args_vector;
-  for (int i = 0; i < *argc; ++i) {
-    args_vector.push_back(argv[i]);
+  const std::vector<std::string> original_args = ArgcArgvToVector(*argc, argv);
+  std::vector<std::string> modified_args(original_args);
+
+  // Add elements to the `modified_args` vector to specify to googletest.
+  // e.g. modified_args.push_back("--gtest_list_tests");
+  // e.g. modified_args.push_back("--gtest_filter=MyTestFixture.MyTest");
+
+  // Avoid the memory leaks documented below if there were no arg changes.
+  if (modified_args == original_args) {
+    return argv;
   }
 
-  // This is where you can add elements to the `args_vector` vector that will be
-  // specified to googletest.
-  // e.g. args_vector.push_back("--gtest_list_tests");
-
-  // Write the elements of the vector back into argv and modify argc.
-  // The memory leaks produced below are acceptable because they would last the
-  // entire lifetime of the application anyways.
-  char** new_argv = new char*[args_vector.size()];
-  for (int i = 0; i < args_vector.size(); ++i) {
-    const char* arg = args_vector[i].c_str();
-    char* arg_copy = new char[std::strlen(arg) + 1];
-    std::strcpy(arg_copy, arg);
-    new_argv[i] = arg_copy;
-  }
-
-  *argc = static_cast<int>(args_vector.size());
-  return new_argv;
+  // Create a new `argv` with the elements from the `modified_args` vector and
+  // write the new count back to `argc`. The memory leaks produced by
+  // `VectorToArgcArgv` acceptable because they last for the entire application.
+  return VectorToArgcArgv(modified_args, argc);
 }
 
 }  // namespace
