@@ -677,7 +677,7 @@ jobs:
       with:
         python-version: '3.7'
     - name: Use expanded matrix
-      if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1'
+      if: github.event.inputs.use_expanded_matrix == '1'
       run: |
         echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
     - name: Generate token for GitHub API
