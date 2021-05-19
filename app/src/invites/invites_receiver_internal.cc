@@ -26,11 +26,11 @@
 #include "app/src/reference_counted_future_impl.h"
 #if FIREBASE_PLATFORM_ANDROID
 #include "app/src/invites/android/invites_receiver_internal_android.h"
-#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#elif FIREBASE_PLATFORM_IOS
 #include "app/src/invites/ios/invites_receiver_internal_ios.h"
 #else
 #include "app/src/invites/stub/invites_receiver_internal_stub.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 
 namespace firebase {
 namespace invites {
@@ -55,11 +55,11 @@ InvitesReceiverInternal* InvitesReceiverInternal::CreateInstance(
   if (!receiver) {
 #if FIREBASE_PLATFORM_ANDROID
     receiver = new InvitesReceiverInternalAndroid(app);
-#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#elif FIREBASE_PLATFORM_IOS
     receiver = new InvitesReceiverInternalIos(app);
 #else
     receiver = new InvitesReceiverInternalStub(app);
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
     if (!receiver->initialized()) {
       delete receiver;
       return nullptr;
