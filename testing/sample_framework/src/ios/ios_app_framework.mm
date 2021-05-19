@@ -104,12 +104,11 @@ bool ProcessEvents(int msec) {
   NSDate* endDate = [NSDate dateWithTimeIntervalSinceNow:static_cast<float>(msec) / 1000.0f];
   [g_running_status_condition lock];
 
-  while (true) {
+  if (g_running_status == RunningStatus::kRunning) {
     NSDate* currentDate = [NSDate date];
-    if ([currentDate compare:endDate] != NSOrderedAscending) {
-      break;
+    if ([currentDate compare:endDate] == NSOrderedAscending) {
+      [g_running_status_condition waitUntilDate:endDate];
     }
-    [g_running_status_condition waitUntilDate:endDate];
   }
 
   RunningStatus running_status = g_running_status;
@@ -370,8 +369,10 @@ int main(int argc, char* argv[]) {
 - (void)applicationWillTerminate:(UIApplication *)application {
   [g_running_status_condition lock];
 
-  g_running_status = RunningStatus::kShuttingDown;
-  [g_running_status_condition broadcast];
+  if (g_running_status == RunningStatus::kRunning) {
+    g_running_status = RunningStatus::kShuttingDown;
+    [g_running_status_condition broadcast];
+  }
 
   while (g_running_status != RunningStatus::kShutDown) {
     [g_running_status_condition wait];
