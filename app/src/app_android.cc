@@ -311,7 +311,13 @@ static jobject GetPlatformAppByName(JNIEnv* jni_env, const char* name) {
         name_string);
     jni_env->DeleteLocalRef(name_string);
   }
-  jni_env->ExceptionCheck();
+  if (jni_env->ExceptionCheck()) {
+    // Explicitly set `platform_app` to `NULL` if an exception was thrown
+    // because on KitKat (API 19) `CallStaticObjectMethod()` may return garbage
+    // instead of `NULL` if an exception was thrown, and callers of this
+    // function expect `NULL` to be returned if the app was not found.
+    platform_app = NULL;  // NOLINT
+  }
   jni_env->ExceptionClear();
   return platform_app;
 }
