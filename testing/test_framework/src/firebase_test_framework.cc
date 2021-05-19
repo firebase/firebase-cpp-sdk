@@ -15,6 +15,9 @@
 #include "firebase_test_framework.h"  // NOLINT
 
 #include <cstdio>
+#include <cstring>
+#include <string>
+#include <vector>
 
 #include "firebase/future.h"
 
@@ -294,7 +297,72 @@ std::ostream& operator<<(std::ostream& os, const Variant& v) {
 }
 }  // namespace firebase
 
+namespace {
+
+std::vector<std::string> ArgcArgvToVector(int argc, char* argv[]) {
+  std::vector<std::string> args_vector;
+  for (int i = 0; i < argc; ++i) {
+    args_vector.push_back(argv[i]);
+  }
+  return args_vector;
+}
+
+char** VectorToArgcArgv(const std::vector<std::string>& args_vector,
+                        int* argc) {
+  char** argv = new char*[args_vector.size()];
+  for (int i = 0; i < args_vector.size(); ++i) {
+    const char* arg = args_vector[i].c_str();
+    char* arg_copy = new char[std::strlen(arg) + 1];
+    std::strcpy(arg_copy, arg);
+    argv[i] = arg_copy;
+  }
+  *argc = static_cast<int>(args_vector.size());
+  return argv;
+}
+
+/**
+ * Makes changes to argc and argv before passing them to `InitGoogleTest`.
+ *
+ * This function is a convenience function for developers to edit during
+ * development/debugging to customize the the arguments specified to googletest
+ * when directly specifying command-line arguments is not available, such as on
+ * Android and iOS. For example, to debug a specific test, add the
+ * --gtest_filter argument, and to list all tests add the --gtest_list_tests
+ * argument.
+ *
+ * @param argc A pointer to the `argc` that will be specified to
+ * `InitGoogleTest`; the integer to which this pointer points will be updated
+ * with the new length of `argv`.
+ * @param argv The `argv` that contains the arguments that would have otherwise
+ * been specified to `InitGoogleTest()`; they will not be modified.
+ *
+ * @return The new `argv` to be specified to `InitGoogleTest()`.
+ */
+char** EditMainArgsForGoogleTest(int* argc, char* argv[]) {
+  // Put the args into a vector of strings because modifying string objects in
+  // a vector is far easier than modifying a char** array.
+  const std::vector<std::string> original_args = ArgcArgvToVector(*argc, argv);
+  std::vector<std::string> modified_args(original_args);
+
+  // Add elements to the `modified_args` vector to specify to googletest.
+  // e.g. modified_args.push_back("--gtest_list_tests");
+  // e.g. modified_args.push_back("--gtest_filter=MyTestFixture.MyTest");
+
+  // Avoid the memory leaks documented below if there were no arg changes.
+  if (modified_args == original_args) {
+    return argv;
+  }
+
+  // Create a new `argv` with the elements from the `modified_args` vector and
+  // write the new count back to `argc`. The memory leaks produced by
+  // `VectorToArgcArgv` acceptable because they last for the entire application.
+  return VectorToArgcArgv(modified_args, argc);
+}
+
+}  // namespace
+
 extern "C" int common_main(int argc, char* argv[]) {
+  argv = EditMainArgsForGoogleTest(&argc, argv);
   ::testing::InitGoogleTest(&argc, argv);
   firebase_test_framework::FirebaseTest::SetArgs(argc, argv);
   app_framework::SetLogLevel(app_framework::kDebug);
