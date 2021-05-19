@@ -24,11 +24,11 @@
 
 #if FIREBASE_PLATFORM_ANDROID
 #include "admob/src/android/interstitial_ad_internal_android.h"
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "admob/src/ios/interstitial_ad_internal_ios.h"
 #else
 #include "admob/src/stub/interstitial_ad_internal_stub.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
 namespace admob {
@@ -41,11 +41,11 @@ InterstitialAdInternal* InterstitialAdInternal::CreateInstance(
     InterstitialAd* base) {
 #if FIREBASE_PLATFORM_ANDROID
   return new InterstitialAdInternalAndroid(base);
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   return new InterstitialAdInternalIOS(base);
 #else
   return new InterstitialAdInternalStub(base);
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
 }
 
 void InterstitialAdInternal::SetListener(InterstitialAd::Listener* listener) {

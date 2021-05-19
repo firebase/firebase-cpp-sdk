@@ -25,11 +25,11 @@
 // QueryInternal is defined in these 3 files, one implementation for each OS.
 #if FIREBASE_PLATFORM_ANDROID
 #include "remote_config/src/android/remote_config_android.h"
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "remote_config/src/ios/remote_config_ios.h"
 #else
 #include "remote_config/src/desktop/remote_config_desktop.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
 namespace remote_config {

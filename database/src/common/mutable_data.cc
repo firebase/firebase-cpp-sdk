@@ -21,7 +21,7 @@
 #if FIREBASE_PLATFORM_ANDROID
 #include "database/src/android/database_android.h"
 #include "database/src/android/mutable_data_android.h"
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "database/src/ios/database_ios.h"
 #include "database/src/ios/mutable_data_ios.h"
 #elif defined(FIREBASE_TARGET_DESKTOP)
@@ -30,7 +30,7 @@
 #else
 #include "database/src/stub/database_stub.h"
 #include "database/src/stub/mutable_data_stub.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS,
         // defined(FIREBASE_TARGET_DESKTOP)
 
 #include "database/src/common/cleanup.h"

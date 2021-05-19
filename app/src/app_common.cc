@@ -88,7 +88,7 @@ const char* kCpuArchitecture = "arm32";
 
 #elif defined(__APPLE__)
 const char* kCppRuntimeOrStl = "libcpp";
-#if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 const char* kOperatingSystem = "ios";
 #elif FIREBASE_PLATFORM_OSX
 const char* kOperatingSystem = "darwin";

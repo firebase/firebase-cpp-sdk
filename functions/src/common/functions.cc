@@ -30,11 +30,11 @@
 // QueryInternal is defined in these 3 files, one implementation for each OS.
 #if FIREBASE_PLATFORM_ANDROID
 #include "functions/src/android/functions_android.h"
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "functions/src/ios/functions_ios.h"
 #else
 #include "functions/src/desktop/functions_desktop.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(functions,

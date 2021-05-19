@@ -21,10 +21,10 @@
 // each OS.
 #if FIREBASE_PLATFORM_ANDROID || FIREBASE_ANDROID_FOR_DESKTOP
 #include "installations/src/android/installations_android.h"
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "installations/src/ios/installations_ios.h"
 #else
 #include "installations/src/stub/installations_stub.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
 
 #endif  // FIREBASE_FIS_CLIENT_CPP_SRC_INSTALLATIONS_INTERNAL_H_

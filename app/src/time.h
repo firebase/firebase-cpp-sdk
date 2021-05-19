@@ -29,10 +29,10 @@
 #include <unistd.h>
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
-#if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include <mach/mach.h>
 #include <mach/mach_time.h>
-#endif  // FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase
@@ -124,10 +124,10 @@ inline uint64_t GetTimestamp() {
 #if FIREBASE_PLATFORM_WINDOWS
   // return the elapse time since the system is started in milliseconds
   return GetTickCount64();
-#elif FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   // clock_gettime is only supported on macOS after 10.10 Sierra.
   // mach_absolute_time() returns absolute time in nano seconds.
-#if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   // Note that the same function does NOT return nano seconds in iOS.  Requires
   // mach_timebase_info_data_t to convert returned value into nano seconds.
   // However, the conversion may have potential risk to introduce overflow or
