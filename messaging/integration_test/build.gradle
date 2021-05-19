@@ -50,7 +50,7 @@ android {
 
   defaultConfig {
     applicationId 'com.google.firebase.cpp.messaging.testapp'
-    minSdkVersion 26
+    minSdkVersion 16
     targetSdkVersion 28
     versionCode 1
     versionName '1.0'
