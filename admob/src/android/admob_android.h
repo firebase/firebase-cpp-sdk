@@ -65,7 +65,6 @@ METHOD_LOOKUP_DECLARATION(mobile_ads, MOBILEADS_METHODS);
 METHOD_LOOKUP_DECLARATION(request_config_builder,
                           REQUESTCONFIGURATIONBUILDER_METHODS);
 
-
 // Change codes used when receiving state change callbacks from the Java
 // BannerViewHelper and NativeExpressAdViewHelper objects.
 enum AdViewChangeCode {
