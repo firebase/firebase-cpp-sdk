@@ -166,11 +166,11 @@ TEST_F(BundleTest, CanDeleteFirestoreFromProgressUpdate) {
         }
       });
 
-  // Wait for the notification that the instance is deleted. We cannot rely on
-  // the returned future because it will not complete.
+  // Wait for the notification that the instance is deleted before verifying.
   db_deleted.get_future().wait();
 
-  // This future is not completed, and returns back a nullptr for result.
+  // This future is not completed, and returns back a nullptr for result when it
+  // times out.
   EXPECT_EQ(Await(result), nullptr);
 
   // 3 progresses will be reported: initial, document 1, document 2.
@@ -205,7 +205,7 @@ TEST_F(BundleTest, LoadInvalidBundlesShouldFail) {
   Firestore* db = TestFirestore();
   std::vector<std::string> invalid_bundles{
       "invalid bundle obviously", "\"(╯°□°）╯︵ ┻━┻\"",
-      "\0\1\2\3\ud7ff\ue000\uffff\""  // random bytes
+      "\xc3\x28"  // random bytes
   };
   for (const auto& bundle : invalid_bundles) {
     std::vector<LoadBundleTaskProgress> progresses;
@@ -314,7 +314,7 @@ TEST_F(BundleTest, GetInvalidNamedQuery) {
     EXPECT_EQ(future.error(), Error::kErrorNotFound);
   }
   {
-    auto future = db->NamedQuery("\0\1\2\3\4");
+    auto future = db->NamedQuery("\xc3\x28");
     Await(future);
     EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
     EXPECT_EQ(future.error(), Error::kErrorNotFound);

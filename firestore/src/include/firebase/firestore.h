@@ -409,7 +409,7 @@ class Firestore {
   /**
    * Loads a Firestore bundle into the local cache.
    *
-   * @param bundle A string representing the bundle to be loaded.
+   * @param bundle A string containing the bundle to be loaded.
    * @return A `Future` that is resolved when the loading is either completed
    * or aborted due to an error.
    */
@@ -419,7 +419,7 @@ class Firestore {
    * Loads a Firestore bundle into the local cache, with the provided callback
    * executed for progress updates.
    *
-   * @param bundle A string representing the bundle to be loaded.
+   * @param bundle A string containing the bundle to be loaded.
    * @param progress_callback A callback that is called with progress
    * updates, and completion or error updates.
    * @return A `Future` that is resolved when the loading is either completed
