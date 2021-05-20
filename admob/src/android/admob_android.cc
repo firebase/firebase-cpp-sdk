@@ -128,6 +128,7 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
                                    firebase_admob::admob_resources_size));
 
   if (!(mobile_ads::CacheMethodIds(env, activity) &&
+        ad_request_builder::CacheMethodIds(env, activity) &&
         request_config_builder::CacheMethodIds(env, activity) &&
         banner_view_helper::CacheClassFromFiles(env, activity,
                                                 &embedded_files) != nullptr &&
@@ -150,6 +151,7 @@ InitResult Initialize(JNIEnv* env, jobject activity) {
 // Release classes registered by this module.
 void ReleaseClasses(JNIEnv* env) {
   mobile_ads::ReleaseClass(env);
+  ad_request_builder::ReleaseClass(env);
   request_config_builder::ReleaseClass(env);
   banner_view_helper::ReleaseClass(env);
 }

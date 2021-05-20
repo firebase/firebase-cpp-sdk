@@ -36,8 +36,6 @@ namespace admob {
 static const char* kAdMobAdapterClassName =
     "com/google/ads/mediation/admob/AdMobAdapter";
 
-
-
 METHOD_LOOKUP_DEFINITION(ad_request_builder,
                          PROGUARD_KEEP_CLASS
                          "com/google/android/gms/ads/AdRequest$Builder",
@@ -51,6 +49,7 @@ METHOD_LOOKUP_DEFINITION(
 
 AdRequestConverter::AdRequestConverter(AdRequest request) {
   ConvertRequestConfiguration(request);
+
   JNIEnv* env = ::firebase::admob::GetJNI();
   jobject builder = env->NewObject(
       ad_request_builder::GetClass(),
@@ -123,7 +122,6 @@ AdRequestConverter::AdRequestConverter(AdRequest request) {
   // Build request and load ad.
   jobject java_request_ref = env->CallObjectMethod(
       builder, ad_request_builder::GetMethodId(ad_request_builder::kBuild));
-
   env->DeleteLocalRef(builder);
 
   java_request_ = env->NewGlobalRef(java_request_ref);
@@ -142,7 +140,6 @@ void AdRequestConverter::ConvertRequestConfiguration(AdRequest request) const {
   jobject builder = env->NewObject(request_config_builder::GetClass(),
                                    request_config_builder::GetMethodId(
                                        request_config_builder::kConstructor));
-
   // Child-drected treatment.
   if (request.tagged_for_child_directed_treatment !=
       kChildDirectedTreatmentStateUnknown) {
