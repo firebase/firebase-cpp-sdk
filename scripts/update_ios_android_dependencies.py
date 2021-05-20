@@ -15,20 +15,20 @@
 # limitations under the License.
 
 """
-This script fetches the latest cocoapod and android package versions from their
+This script fetches the latest Cocoapod and Android package versions from their
 respective public repositories and updates these versions in various files
 across the C++ repository.
 
 There are 3 types of files being updated by this script,
-- Podfile : Files containins lists of cocoapods along with their versions.
+- Podfile : Files containing lists of cocoapods along with their versions.
             Eg: `ios_pods/Podfile` and any integration tests podfiles.
 
-- Android dependencies gradle file: Gradle files containing list of android
+- Android dependencies gradle file: Gradle files containing list of Android
                                     libraries and their versions that is
                                     referenced by gradle files from sub projects
                                     Eg: `Android/firebase_dependencies.gradle`
 
-- Readme file: Readme file containing all dependencies (ios and android) and
+- Readme file: Readme file containing all dependencies (iOS and Android) and
                and their versions. Eg: 'release_build_files/readme.md`
 
 Usage:
@@ -39,7 +39,7 @@ python3 scripts/update_ios_android_dependencies.py --dryrun
 # Update versions in default set of files in the repository
 python3 scripts/update_ios_android_dependencies.py
 
-# Update only android packages
+# Update only Android packages
 python3 scripts/update_ios_android_dependencies.py --skip_ios
 
 # Update specific pod files (or directories containing pod files)
@@ -364,7 +364,7 @@ def modify_readme_file_pods(readme_filepath, version_map, dryrun=True):
 
 ########## Android versions update #############################
 
-# Android gMaven repostiory from where we scan available android packages
+# Android gMaven repostiory from where we scan available Android packages
 # and their versions
 GMAVEN_MASTER_INDEX = "https://dl.google.com/dl/android/maven2/master-index.xml"
 GMAVEN_GROUP_INDEX = "https://dl.google.com/dl/android/maven2/{0}/group-index.xml"
@@ -622,9 +622,9 @@ def parse_cmdline_args():
 
 def main():
   args = parse_cmdline_args()
-  # Readme files have to be updated for both android and iOS dependencies.
+  # Readme files have to be updated for both Android and iOS dependencies.
   readme_files = get_files(args.readmefiles, file_extension='.md',
-                          file_name='readme')
+                           file_name='readme')
 
   if not args.skip_ios:
     latest_pod_versions_map = get_latest_pod_versions(args.specs_repo, PODS)
