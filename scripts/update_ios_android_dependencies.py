@@ -77,17 +77,17 @@ def get_files_from_directory(dirpath, file_extension, file_name=None,
   Args:
       dirpath (str): Root directory to search in.
       file_extension (str): File extension to search for.
-                            Eg: '.gradle'
+        Eg: '.gradle'
       file_name (str, optional): Exact file name to search for.
-                                 Defaults to None. Eg: 'foo.gradle'
+        Defaults to None. Eg: 'foo.gradle'
       absolute_paths (bool, optional): Return absolute paths to files.
-                                       Defaults to True.
-                                       If False, just filenames are returned.
+        Defaults to True.
+        If False, just filenames are returned.
 
   Returns:
       list(str): List of files matching the specified criteria.
-                 List of filenames (if absolute_paths=False), or
-                 a list of absolute paths (if absolute_paths=True)
+        List of filenames (if absolute_paths=False), or
+        a list of absolute paths (if absolute_paths=True)
   """
   files = []
   for dirpath, _, filenames in os.walk(dirpath):
@@ -104,16 +104,17 @@ def get_files_from_directory(dirpath, file_extension, file_name=None,
 
 
 def get_files(dirs_and_files, file_extension, file_name=None):
-  """Get final list of files after searching directories.
+  """Gets the final flat list of files after searching directories.
+
   If a directory is passed, it is searched recursively.
 
   Args:
       dirs_and_files (iterable(str)): List of paths which could be files or
-                                      directories.
+        directories.
       file_extension (str): File extension to search for.
-                            Eg: '.gradle'
+        Eg: '.gradle'
       file_name (str, optional): Exact file name to search for.
-                                 Defaults to None. Eg: 'foo.gradle'
+        Defaults to None. Eg: 'foo.gradle'
 
   Returns:
       iterable(str): Final list of files after recursively searching dirs.
@@ -125,8 +126,8 @@ def get_files(dirs_and_files, file_extension, file_name=None):
       continue
     if os.path.isdir(abspath):
       files = files + get_files_from_directory(abspath,
-                                                  file_extension=file_extension,
-                                                  file_name=file_name)
+                                               file_extension=file_extension,
+                                               file_name=file_name)
     elif os.path.isfile(abspath):
       files.append(abspath)
   return files
@@ -163,11 +164,11 @@ def get_pod_versions(specs_repo, pods=PODS):
   Args:
       local_repo_dir (str): Directory mirroring Cocoapods specs repo
       pods (iterable(str), optional): List of pods whose versions we need.
-                                      Defaults to PODS.
+        Defaults to PODS.
 
   Returns:
       dict: Map of the form {<str>:list(str)}
-            Containing a mapping of podnames to available versions.
+        Containing a mapping of podnames to available versions.
   """
   all_versions = defaultdict(list)
   logging.info('Fetching pod versions from Specs repo...')
@@ -191,12 +192,12 @@ def get_latest_pod_versions(specs_repo=None, pods=PODS):
 
   Args:
       pods (iterable(str) optional): Pods for which we need latest version.
-                                     Defaults to PODS.
+        Defaults to PODS.
       specs_repo (str optional): Local checkout of Cocoapods specs repo.
 
   Returns:
       dict: Map of the form {<str>:<str>} containing a mapping of podnames to
-            latest version.
+        latest version.
   """
   cleanup_required = False
   if specs_repo is None:
@@ -230,11 +231,12 @@ def get_latest_pod_versions(specs_repo=None, pods=PODS):
 
 def get_pod_files(dirs_and_files):
   """Get final list of podfiles to update.
+
   If a directory is passed, it is searched recursively.
 
   Args:
       dirs_and_files (iterable(str)): List of paths which could be files or
-                                      directories.
+        directories.
 
   Returns:
       iterable(str): Final list of podfiles after recursively searching dirs.
@@ -254,7 +256,8 @@ def get_pod_files(dirs_and_files):
     return pod_files
 
 # Look for lines like,  pod 'Firebase/Core', '7.11.0'
-RE_PODFILE_VERSION = re.compile("\s+pod '(?P<pod_name>.+)', '(?P<version>.+)'\n")
+RE_PODFILE_VERSION = re.compile(
+  r"\s+pod '(?P<pod_name>.+)', '(?P<version>.+)'\n")
 
 def modify_pod_file(pod_file, pod_version_map, dryrun=True):
   """Update pod versions in specified podfile.
@@ -314,9 +317,9 @@ def modify_readme_file_pods(readme_filepath, version_map, dryrun=True):
   Args:
     readme_filepath: Path to readme file to edit.
     version_map: Dictionary of packages to version numbers, e.g. {
-        'FirebaseAuth': '15.0.0', 'FirebaseDatabase': '14.0.0' }
+      'FirebaseAuth': '15.0.0', 'FirebaseDatabase': '14.0.0' }
     dryrun (bool, optional): Just print the substitutions.
-                             Do not write to file. Defaults to True.
+      Do not write to file. Defaults to True.
   """
   logging.debug('Reading readme file: {0}'.format(readme_filepath))
 
@@ -402,9 +405,9 @@ def modify_dependency_file(dependency_filepath, version_map, dryrun=True):
   Args:
     dependency_filename: Relative path to the dependency file to edit.
     version_map: Dictionary of packages to version numbers, e.g. {
-        'com.google.firebase.firebase_auth': '15.0.0' }
+      'com.google.firebase.firebase_auth': '15.0.0' }
     dryrun (bool, optional): Just print the substitutions.
-                             Do not write to file. Defaults to True.
+      Do not write to file. Defaults to True.
   """
   logging.debug('Reading dependency file: {0}'.format(dependency_filepath))
   lines = None
@@ -433,7 +436,7 @@ def modify_dependency_file(dependency_filepath, version_map, dryrun=True):
   to_update = False
   for line in lines:
     substituted_line = re.sub(RE_GENERIC_DEPENDENCY_MODULE, replace_dependency,
-                             line)
+                              line)
     output_lines.append(substituted_line)
     if substituted_line != line:
       substituted_pairs.append((line, substituted_line))
@@ -464,9 +467,9 @@ def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
   Args:
     readme_filepath: Path to readme file to edit.
     version_map: Dictionary of packages to version numbers, e.g. {
-        'com.google.firebase.firebase_auth': '15.0.0' }
+      'com.google.firebase.firebase_auth': '15.0.0' }
     dryrun (bool, optional): Just print the substitutions.
-                             Do not write to file. Defaults to True.
+      Do not write to file. Defaults to True.
   """
   logging.debug('Reading readme file: {0}'.format(readme_filepath))
 
@@ -475,7 +478,7 @@ def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
     lines = readme_file.readlines()
   if not lines:
     logging.fatal('Update failed. ' +
-          'Could not read contents from file {0}.'.format(readme_filepath))
+      'Could not read contents from file {0}.'.format(readme_filepath))
 
   output_lines = []
 
@@ -526,9 +529,9 @@ def modify_gradle_file(gradle_filepath, version_map, dryrun=True):
   Args:
     gradle_filename: Relative path to build.gradle file to edit.
     version_map: Dictionary of packages to version numbers, e.g. {
-        'com.google.firebase.firebase_auth': '15.0.0' }
+      'com.google.firebase.firebase_auth': '15.0.0' }
     dryrun (bool, optional): Just print the substitutions.
-                             Do not write to file. Defaults to True.
+      Do not write to file. Defaults to True.
   """
   logging.debug("Reading gradle file: %s", gradle_filepath)
 
@@ -537,7 +540,7 @@ def modify_gradle_file(gradle_filepath, version_map, dryrun=True):
     lines = gradle_file.readlines()
   if not lines:
     logging.fatal('Update failed. ' +
-          'Could not read contents from file {0}.'.format(gradle_filepath))
+      'Could not read contents from file {0}.'.format(gradle_filepath))
   output_lines = []
 
   # Replacement function, look up the version number of the given pkg.
@@ -614,9 +617,9 @@ def parse_cmdline_args():
   level = log_levels.get(args.log_level.lower())
   if level is None:
     raise ValueError('Please use one of the following as'
-                      'log levels:\n{0}'.format(','.join(log_levels.keys())))
+      'log levels:\n{0}'.format(','.join(log_levels.keys())))
   logging.basicConfig(level=level)
-  logger = logging.getLogger(__name__)
+  logging.getLogger(__name__)
   return args
 
 
