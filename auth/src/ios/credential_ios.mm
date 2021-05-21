@@ -27,7 +27,11 @@
 #import "FIRGitHubAuthProvider.h"
 #import "FIRGoogleAuthProvider.h"
 #import "FIROAuthProvider.h"
+
+#if FIREBASE_PLATFORM_IOS
 #import "FIRPhoneAuthProvider.h"
+#endif
+
 #import "FIRTwitterAuthProvider.h"
 
 // This object is shared between the PhoneAuthProvider::Listener and the blocks in
@@ -219,6 +223,7 @@ bool GameCenterAuthProvider::IsPlayerAuthenticated() {
   return localPlayer.isAuthenticated;
 }
 
+#if FIREBASE_PLATFORM_IOS
 // We skip the implementation of ForceResendingTokenData since it is not needed.
 // The ForceResendingToken class for iOS is empty.
 PhoneAuthProvider::ForceResendingToken::ForceResendingToken()
@@ -325,6 +330,7 @@ PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
   }
   return provider;
 }
+#endif // FIREBASE_PLATFORM_IOS
 
 // FederatedAuthHandlers
 FederatedOAuthProvider::FederatedOAuthProvider() { }
@@ -420,6 +426,7 @@ Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
   ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   auto handle =
       futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider, SignInResult());
+  #if FIREBASE_PLATFORM_IOS
   FIROAuthProvider* ios_provider = (FIROAuthProvider*)[FIROAuthProvider
       providerWithProviderID:@(provider_data_.provider_id.c_str())
                         auth:AuthImpl(auth_data)];
@@ -442,6 +449,13 @@ Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
                                SignInResult());
     return future;
   }
+
+  #else // non iOS Apple platform
+  Future<SignInResult> future = MakeFuture(&futures, handle);
+  futures.Complete(handle, kAuthErrorApiNotAvailable,
+    "Link with getCredentialWithUIDelegate is not supported on non-iOS Apple platforms.");
+  #endif // FIREBASE_PLATFORM_IOS
+
 }
 
 Future<SignInResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data) {
@@ -449,6 +463,7 @@ Future<SignInResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data)
   ReferenceCountedFutureImpl &futures = auth_data->future_impl;
   auto handle =
       futures.SafeAlloc<SignInResult>(kUserFn_LinkWithProvider, SignInResult());
+  #if FIREBASE_PLATFORM_IOS
   FIROAuthProvider* ios_provider = (FIROAuthProvider*)[FIROAuthProvider
       providerWithProviderID:@(provider_data_.provider_id.c_str())
                         auth:AuthImpl(auth_data)];
@@ -471,6 +486,12 @@ Future<SignInResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data)
                                SignInResult());
     return future;
   }
+
+  #else // non iOS Apple Platform
+  Future<SignInResult> future = MakeFuture(&futures, handle);
+  futures.Complete(handle, kAuthErrorApiNotAvailable,
+    "Reauthenticate with getCredentialWithUIDelegate is not supported on non-iOS Apple platforms.");
+  #endif // FIREBASE_PLATFORM_IOS
 }
 
 }  // namespace auth
