@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "firebase/firestore.h"
-#include "firebase/internal/platform.h"
+#include "firebase_test_framework.h"
 #include "firestore_integration_test.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -182,10 +182,11 @@ TEST_F(BundleTest, CanDeleteFirestoreFromProgressUpdate) {
   EXPECT_THAT(progresses[2], InProgressWithLoadedDocuments(2));
 }
 
-// TODO(wuandy): This test fails on Windows CI, but local run is fine. We need
-// to figure out why and re-enable it.
-#if !FIREBASE_PLATFORM_WINDOWS
 TEST_F(BundleTest, LoadBundlesForASecondTimeSkips) {
+  // TODO(wuandy): This test fails on Windows CI, but local run is fine. We need
+  // to figure out why and re-enable it.
+  SKIP_TEST_ON_WINDOWS;
+
   Firestore* db = TestFirestore();
   auto bundle = CreateTestBundle(db);
   LoadBundleTaskProgress first_load = AwaitResult(db->LoadBundle(bundle));
@@ -204,7 +205,6 @@ TEST_F(BundleTest, LoadBundlesForASecondTimeSkips) {
 
   VerifyQueryResults(db);
 }
-#endif  // !FIREBASE_PLATFORM_WINDOWS
 
 TEST_F(BundleTest, LoadInvalidBundlesShouldFail) {
   Firestore* db = TestFirestore();
