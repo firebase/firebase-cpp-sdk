@@ -342,12 +342,9 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
           promise.SetValue(ToApiProgress(progress));
           task->RemoveAllObservers();
 
-          std::cout << "XXXX: from LoadBundle, observers removed due to SU. \n";
         } else if (progress.state() == api::LoadBundleTaskState::kError) {
           promise.SetError(progress.error_status());
           task->RemoveAllObservers();
-
-          std::cout << "XXXX: from LoadBundle, observers removed due to ER. \n";
         }
       });
 
@@ -371,13 +368,10 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
     if (progress.state() == api::LoadBundleTaskState::kSuccess) {
       promise.SetValue(ToApiProgress(progress));
       task->RemoveAllObservers();
-      std::cout << "XXXX: from LoadBundle with, observers removed due to SU. \n";
 
     } else if (progress.state() == api::LoadBundleTaskState::kError) {
       promise.SetError(progress.error_status());
       task->RemoveAllObservers();
-
-      std::cout << "XXXX: from LoadBundle with, observers removed due to ER. \n";
     }
   });
 
