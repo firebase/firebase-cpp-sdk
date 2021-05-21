@@ -114,7 +114,9 @@ struct KeyValuePair {
 
 /// @brief The information needed to request an ad.
 struct AdRequest {
-  AdRequest() : tagged_for_child_directed_treatment(kChildDirectedTreatmentStateUnknown) {}
+  AdRequest()
+      : tagged_for_child_directed_treatment(
+            kChildDirectedTreatmentStateUnknown) {}
   /// An array of test device IDs specifying devices that test ads will be
   /// returned for.
   const char **test_device_ids;
