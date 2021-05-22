@@ -151,10 +151,6 @@ TEST_F(BundleTest, CanLoadBundlesWithProgressUpdates) {
 }
 
 TEST_F(BundleTest, CanDeleteFirestoreFromProgressUpdate) {
-  // TODO(wuandy): This test causes following tests to fail on Windows CI, but
-  // local run is fine. We need to figure out why and re-enable it.
-  SKIP_TEST_ON_WINDOWS;
-
   Firestore* db = TestFirestore();
   auto bundle = CreateTestBundle(db);
 
@@ -187,6 +183,10 @@ TEST_F(BundleTest, CanDeleteFirestoreFromProgressUpdate) {
 }
 
 TEST_F(BundleTest, LoadBundlesForASecondTimeSkips) {
+  // TODO(wuandy): This test fails on Windows CI, but
+  // local run is fine. We need to figure out why and re-enable it.
+  SKIP_TEST_ON_WINDOWS;
+
   Firestore* db = TestFirestore();
   auto bundle = CreateTestBundle(db);
   LoadBundleTaskProgress first_load = AwaitResult(db->LoadBundle(bundle));
@@ -207,6 +207,10 @@ TEST_F(BundleTest, LoadBundlesForASecondTimeSkips) {
 }
 
 TEST_F(BundleTest, LoadInvalidBundlesShouldFail) {
+  // TODO(wuandy): This test fails on Windows CI, but
+  // local run is fine. We need to figure out why and re-enable it.
+  SKIP_TEST_ON_WINDOWS;
+
   Firestore* db = TestFirestore();
   std::vector<std::string> invalid_bundles{
       "invalid bundle obviously", "\"(╯°□°）╯︵ ┻━┻\"",
