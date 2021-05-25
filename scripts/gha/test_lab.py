@@ -42,13 +42,15 @@ following commands:
   gcloud firebase test android models list
   gcloud firebase test ios models list
 
-Note: you need the value in the MODEL_ID column, not MODEL_NAME. Examples:
+Note: you need the value in the MODEL_ID column, not MODEL_NAME. 
+Device Information is stored in TEST_DEVICES in print_matrix_configuration.py
+Examples:
 
-Pixel 2, API level 28:
-  --android_device walleye+28
+Pixel2, API level 28:
+  --android_device android_target
 
-iPhone 8 Plus, OS 11.4:
-  --ios_device iphone8plus+11.4
+iphone6s, OS 12.0":
+  --ios_device ios_target
 
 """
 
@@ -63,6 +65,7 @@ import attr
 
 from integration_testing import gcs
 from integration_testing import test_validation
+from print_matrix_configuration import TEST_DEVICES
 
 _ANDROID = "android"
 _IOS = "ios"
@@ -81,11 +84,11 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     "android_device", None,
     "Model_id and API_level for desired device. See module docstring for "
-    "details on how to get this id. If none, will use FTL's default.")
+    "details on how to set and get this id. If none, will use FTL's default.")
 flags.DEFINE_string(
     "ios_device", None,
     "Model_id and IOS_version for desired device. See module docstring for "
-    "details on how to get this id. If none, will use FTL's default.")
+    "details on how to set and get this id. If none, will use FTL's default.")
 flags.DEFINE_string(
     "logfile_name", "",
     "Create test log artifact test-results-$logfile_name.log."
@@ -103,18 +106,20 @@ def main(argv):
     raise ValueError("Key file path does not exist: %s" % key_file_path)
 
   if FLAGS.android_device:
-    android_device_info = FLAGS.android_device.split("+")
-    if len(android_device_info) == 2:
-      android_device = Device(model=android_device_info[0], version=android_device_info[1])
+    android_device_info = TEST_DEVICES.get(FLAGS.android_device)
+    if android_device_info:
+      print(android_device_info.get("model"))
+      print(android_device_info.get("version"))
+      android_device = Device(model=android_device_info.get("model"), version=android_device_info.get("version"))
     else:
       raise ValueError("Not a valid android device: %s" % FLAGS.android_device)
   else:
     android_device = Device(model=None, version=None)
   
   if FLAGS.ios_device:
-    ios_device_info = FLAGS.ios_device.split("+")
-    if len(ios_device_info) == 2:
-      ios_device = Device(model=ios_device_info[0], version=ios_device_info[1])
+    ios_device_info = TEST_DEVICES.get(FLAGS.ios_device)
+    if ios_device_info:
+      ios_device = Device(model=ios_device_info.get("model"), version=ios_device_info.get("version"))
     else:
       raise ValueError("Not a valid android device: %s" % FLAGS.ios_device)
   else:

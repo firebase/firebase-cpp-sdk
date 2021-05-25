@@ -221,8 +221,8 @@ jobs:
           fi
           mobile_test_on=$( python scripts/gha/print_matrix_configuration.py -c -w integration_tests -k mobile_test_on -o "${{github.event.inputs.mobile_test_on}}")
           echo "::set-output name=mobile_test_on::${mobile_test_on}"
-          echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k android_device -d ${mobile_test_on} )"
-          echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ios_device -d ${mobile_test_on} )"
+          echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k android_device -t ${mobile_test_on} )"
+          echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ios_device -t ${mobile_test_on} )"
           if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
             echo "::warning ::Running on https://github.com/${{github.repository}}/commits/$GITHUB_SHA"
             echo "::set-output name=github_ref::$GITHUB_SHA"
@@ -800,27 +800,26 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
         run: pip install -r scripts/gha/requirements.txt
-      - id: get-device
+      - id: get-device-type
         run: |
-          device=$(echo "${{ matrix.android_device }}" | cut -d ":" -f2)
-          echo "::set-output name=device::$device"
+          echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
       - name: Run Android integration tests on Emulator locally
-        if: startsWith(matrix.android_device, 'virtual')
+        if: steps.get-device.outputs.device == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
-            --android_device "${{steps.get-device.outputs.device}}" \
-            --logfile_name "android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}" \
+            --android_device "${{ matrix.android_device }}" \
+            --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}" \
             --ci
       - name: Install Cloud SDK
-        if: startsWith(matrix.android_device, 'real')
+        if: steps.get-device-type.outputs.device_type ==  'real'
         uses: google-github-actions/setup-gcloud@master
       - name: Run Android integration tests on Real Device via FTL
-        if: startsWith(matrix.android_device, 'real')
+        if: steps.get-device-type.outputs.device_type ==  'real'
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           python scripts/gha/test_lab.py --testapp_dir testapps \
-            --android_device "${{steps.get-device.outputs.device}}" \
-            --logfile_name "android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}" \
+            --android_device "${{ matrix.android_device }}" \
+            --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}" \
             --code_platform cpp \
             --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Upload Android test results artifact
@@ -828,7 +827,7 @@ jobs:
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
-          path: testapps/test-results-android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}.log
+          path: testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log
           retention-days: ${{ env.artifactRetentionDays }}  
       - name: Add failure label
         # We can mark a failure as soon as any one test fails.
@@ -876,7 +875,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat "testapps/test-results-android-${{ matrix.build_os }}-${{steps.get-device.outputs.device}}.log"
+          cat "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log"
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
@@ -905,27 +904,26 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
         run: pip install -r scripts/gha/requirements.txt
-      - id: get-device
+      - id: get-device-type
         run: |
-          device=$(echo "${{ matrix.ios_device }}" | cut -d ":" -f2)
-          echo "::set-output name=device::$device"
+          echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -k -d ${{ matrix.ios_device }} )"
       - name: Run iOS integration tests on Simulator locally
-        if: startsWith(matrix.ios_device, 'virtual')
+        if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
-            --ios_device "${{steps.get-device.outputs.device}}" \
-            --logfile_name "ios-macos-latest-${{steps.get-device.outputs.device}}" \
+            --ios_device "${{ matrix.ios_device }}" \
+            --logfile_name "ios-macos-latest-${{ matrix.ios_device }}" \
             --ci
       - name: Install Cloud SDK
-        if: startsWith(matrix.ios_device, 'real')
+        if: steps.get-device-type.outputs.device_type == 'real'
         uses: google-github-actions/setup-gcloud@master
       - name: Run iOS integration tests on Real Device via FTL
-        if: startsWith(matrix.ios_device, 'real')
+        if: steps.get-device-type.outputs.device_type == 'real'
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           python scripts/gha/test_lab.py --testapp_dir testapps \
-            --ios_device "${{steps.get-device.outputs.device}}" \
-            --logfile_name "ios-macos-latest-${{steps.get-device.outputs.device}}" \
+            --ios_device "${{ matrix.ios_device }}" \
+            --logfile_name "ios-macos-latest-${{ matrix.ios_device }}" \
             --code_platform cpp \
             --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Upload Android test results artifact
@@ -933,7 +931,7 @@ jobs:
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
-          path: testapps/test-results-ios-macos-latest-${{steps.get-device.outputs.device}}.log
+          path: testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}.log
           retention-days: ${{ env.artifactRetentionDays }}  
       - name: Add failure label
         # We can mark a failure as soon as any one test fails.
@@ -981,7 +979,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat "testapps/test-results-ios-macos-latest-${{steps.get-device.outputs.device}}.log"
+          cat "testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}.log"
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi

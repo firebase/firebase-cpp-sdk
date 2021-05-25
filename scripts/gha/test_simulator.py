@@ -32,9 +32,10 @@ available simulators (supported models and versions) with the following commands
 
   xcrun simctl list
 
-Note: you need to combine Name and Version with "+". Examples:
-iPhone 11, OS 14.4:
-  --ios_device "iPhone 11+14.4"
+Device Information is stored in TEST_DEVICES in print_matrix_configuration.py
+Examples:
+iPhone 8, OS 12.0:
+  --ios_device "simulator_target"
 
 ----Android only----
 Java 8 is required
@@ -51,9 +52,10 @@ available tools with the following commands:
 
   $ANDROID_HOME/tools/bin/sdkmanager --list
 
-Note: you need to combine them with "+". Examples:
-sdk id "system-images;android-29;google_apis;x86", build tool version "29.0.3":
-  --android_device "system-images;android-29;google_apis;x86+29.0.3"
+Device Information is stored in TEST_DEVICES in print_matrix_configuration.py
+Examples:
+sdk id "system-images;android-29;google_apis;x86":
+  --android_device "emulator_target"
 
 Returns:
    1: No iOS/Android integration_test apps found
@@ -76,6 +78,7 @@ from absl import flags
 from absl import logging
 import attr
 from integration_testing import test_validation
+from print_matrix_configuration import TEST_DEVICES
 
 _GAMELOOP_PACKAGE = "com.google.firebase.gameloop"
 _RESULT_FILE = "Results1.json"
@@ -86,11 +89,16 @@ flags.DEFINE_string(
     "testapp_dir", None,
     "Testapps in this directory will be tested.")
 flags.DEFINE_string(
-    "ios_device", "iPhone 8+12.0",
-    "iOS device, which is a combination of device name and os version")
+    "ios_device", "simulator_target",
+    "iOS device, which is a combination of device name and os version"
+    "See module docstring for details on how to set and get this id.")
 flags.DEFINE_string(
-    "android_device", "system-images;android-28;google_apis;x86_64+28.0.3",
-    "android device, which is a combination of sdk id and build tool version")
+    "android_device", "emulator_target",
+    "android device, which is the sdk id of an emulator image"
+    "See module docstring for details on how to set and get this id.")
+flags.DEFINE_string(
+    "build_tools_version", "28.0.3",
+    "android build_tools_version")
 flags.DEFINE_string(
     "logfile_name", "",
     "Create test log artifact test-results-$logfile_name.log."
@@ -134,13 +142,13 @@ def main(argv):
   if ios_testapps:
     logging.info("iOS Testapps found: %s", "\n".join(path for path in ios_testapps))
     
-    device_info = FLAGS.ios_device.split("+")
-    if len(device_info) != 2:
+    device_info = TEST_DEVICES.get(FLAGS.ios_device)
+    if not device_info:
       logging.error("Not a valid ios device: %s" % FLAGS.ios_device)
       return 20
 
-    device_name = device_info[0]
-    device_os = device_info[1]
+    device_name = device_info.get("name")
+    device_os = device_info.get("version")
 
     device_id = _create_and_boot_simulator(device_name, device_os)
     if not device_id:
@@ -170,14 +178,14 @@ def main(argv):
   if android_testapps:
     logging.info("Android Testapps found: %s", "\n".join(path for path in android_testapps))
 
-    device_info = FLAGS.android_device.split("+", 1)
-    if len(device_info) != 2:
+    device_info = TEST_DEVICES.get(FLAGS.android_device)
+    if not device_info:
       logging.error("Not a valid android device: %s" % FLAGS.android_device)
       return 30
 
-    sdk_id = device_info[0]
+    sdk_id = device_info.get("image")
     platform_version = sdk_id.split(";")[1]
-    build_tool_version = device_info[1]
+    build_tool_version = FLAGS.build_tools_version
 
     if not _check_java_version():
       logging.error("Please set JAVA_HOME to java 8")
