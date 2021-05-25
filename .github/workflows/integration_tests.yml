@@ -804,17 +804,17 @@ jobs:
         run: |
           echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.android_device }} )"
       - name: Run Android integration tests on Emulator locally
-        if: steps.get-device.outputs.device == 'virtual'
+        if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --android_device "${{ matrix.android_device }}" \
             --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}" \
             --ci
       - name: Install Cloud SDK
-        if: steps.get-device-type.outputs.device_type ==  'real'
+        if: steps.get-device-type.outputs.device_type == 'real'
         uses: google-github-actions/setup-gcloud@master
       - name: Run Android integration tests on Real Device via FTL
-        if: steps.get-device-type.outputs.device_type ==  'real'
+        if: steps.get-device-type.outputs.device_type == 'real'
         run: |
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
           python scripts/gha/test_lab.py --testapp_dir testapps \

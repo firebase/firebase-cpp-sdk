@@ -335,7 +335,7 @@ def main():
     return
 
   if args.device:
-    print_value(TEST_DEVICES.get(args.parm_key).get("type"))
+    print(TEST_DEVICES.get(args.parm_key).get("type"))
     return 
 
   value = get_value(args.workflow, args.expanded, args.parm_key, args.config)
