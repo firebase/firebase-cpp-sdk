@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
+#include "app/src/time.h"
+#include "auth/src/ios/common_ios.h"
+
 #if FIREBASE_PLATFORM_IOS
 #import "FIRPhoneAuthCredential.h"
 #endif
-
-#include "app/src/time.h"
-#include "auth/src/ios/common_ios.h"
 
 namespace firebase {
 namespace auth {
@@ -245,7 +245,7 @@ Future<User*> User::UpdatePhoneNumberCredential(const Credential& credential) {
     futures.Complete(handle, kAuthErrorInvalidCredential, kInvalidCredentialMessage);
   }
 
-  #else // non iOS Apple platform
+  #else // non iOS Apple platforms (eg: tvOS).
   futures.Complete(handle, kAuthErrorApiNotAvailable,
                    "Phone Auth is not supported on non-iOS apple platforms.");
   #endif // FIREBASE_PLATFORM_IOS
