@@ -17,7 +17,6 @@ package com.google.firebase.messaging.cpp;
 import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
-import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.flatbuffers.FlatBufferBuilder;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
@@ -40,7 +39,7 @@ public class RegistrationIntentService extends IntentService {
   // Fetch the latest registration token and notify the C++ layer.
   @Override
   protected void onHandleIntent(Intent intent) {
-    String token = FirebaseInstanceId.getInstance().getToken();
+    String token = FirebaseMessaging.getToken();
     DebugLogging.log(TAG, String.format("onHandleIntent token=%s", token));
     if (token != null) {
       writeTokenToInternalStorage(this, token);
