@@ -191,7 +191,7 @@ def main(argv):
   platforms = FLAGS.platforms
   testapps = FLAGS.testapps
 
-  sdk_dir = _fix_path(FLAGS.packaged_sdk or os.path.join(FLAGS.repo_dir, "ios_build"))
+  sdk_dir = _fix_path(FLAGS.packaged_sdk or FLAGS.repo_dir)
   root_output_dir = _fix_path(FLAGS.output_directory)
   repo_dir = _fix_path(FLAGS.repo_dir)
 
@@ -503,6 +503,7 @@ def _build_ios(
   """Builds an iOS application (.app, .ipa or both)."""
   if not ios_framework_exist:
     _build_ios_framework_from_repo(repo_dir, api_config)
+    sdk_dir = os.path.join(sdk_dir, "ios_build")
 
   build_dir = os.path.join(project_dir, "ios_build")
   os.makedirs(build_dir)
