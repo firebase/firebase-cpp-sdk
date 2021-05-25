@@ -508,7 +508,7 @@ def _build_ios(
   if not ios_framework_exist:
     _build_ios_framework_from_repo(repo_dir, api_config)
     sdk_dir = os.path.join(repo_dir, "ios_build")
-    logging.info("iOS xcframework created at: %s", " ".join(sdk_dir))
+    logging.info("iOS xcframework created at: %s", sdk_dir)
 
   build_dir = os.path.join(project_dir, "ios_build")
   os.makedirs(build_dir)
