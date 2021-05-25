@@ -15,6 +15,9 @@ GoogleService-Info.plist
 uri_prefix.txt
 server_key.txt
 gcs_key_file.json
+**/integration_test/Info.plist
+**/integration_test/scr/integration_test.cc
 
 # Folders for cmake/test output
 *_build/
+testing/test_framework/external
