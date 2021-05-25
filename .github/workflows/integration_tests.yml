@@ -906,7 +906,7 @@ jobs:
         run: pip install -r scripts/gha/requirements.txt
       - id: get-device-type
         run: |
-          echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -k -d ${{ matrix.ios_device }} )"
+          echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.ios_device }} )"
       - name: Run iOS integration tests on Simulator locally
         if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
