@@ -191,7 +191,7 @@ def main(argv):
   platforms = FLAGS.platforms
   testapps = FLAGS.testapps
 
-  sdk_dir = _fix_path(FLAGS.packaged_sdk or FLAGS.repo_dir)
+  sdk_dir = _fix_path(FLAGS.packaged_sdk or os.path.join(FLAGS.repo_dir, "ios_build"))
   root_output_dir = _fix_path(FLAGS.output_directory)
   repo_dir = _fix_path(FLAGS.repo_dir)
 
@@ -209,7 +209,7 @@ def main(argv):
   ios_framework_dir = os.path.join(sdk_dir, "xcframeworks")
   ios_framework_exist = os.path.isdir(ios_framework_dir)
   if not ios_framework_exist and _IOS in platforms:
-    _generate_makefiles_from_repo(sdk_dir)
+    _generate_makefiles_from_repo(FLAGS.repo_dir)
 
   if update_pod_repo and _IOS in platforms:
     _run(["pod", "repo", "update"])
@@ -460,25 +460,24 @@ def _validate_android_environment_variables():
 
 # If sdk_dir contains no framework, consider it is Github repo, then
 # generate makefiles for ios frameworks
-def _generate_makefiles_from_repo(sdk_dir):
+def _generate_makefiles_from_repo(repo_dir):
   """Generates cmake makefiles for building iOS frameworks from SDK source."""
   ios_framework_builder = os.path.join(
-      sdk_dir, "build_scripts", "ios", "build.sh")
+      repo_dir, "build_scripts", "ios", "build.sh")
 
   framework_builder_args = [
       ios_framework_builder,
-      "-b", sdk_dir,
-      "-s", sdk_dir,
+      "-s", repo_dir,
       "-c", "false"
   ]
   _run(framework_builder_args)
 
 
 # build required ios frameworks based on makefiles
-def _build_ios_framework_from_repo(sdk_dir, api_config):
+def _build_ios_framework_from_repo(repo_dir, api_config):
   """Builds iOS framework from SDK source."""
   ios_framework_builder = os.path.join(
-      sdk_dir, "build_scripts", "ios", "build.sh")
+      repo_dir, "build_scripts", "ios", "build.sh")
 
   # build only required targets to save time
   target = set()
@@ -492,8 +491,7 @@ def _build_ios_framework_from_repo(sdk_dir, api_config):
 
   framework_builder_args = [
       ios_framework_builder,
-      "-b", sdk_dir,
-      "-s", sdk_dir,
+      "-s", repo_dir,
       "-t", ",".join(target),
       "-g", "false"
   ]
@@ -504,7 +502,7 @@ def _build_ios(
     sdk_dir, ios_framework_exist, project_dir, repo_dir, api_config, ios_sdk):
   """Builds an iOS application (.app, .ipa or both)."""
   if not ios_framework_exist:
-    _build_ios_framework_from_repo(sdk_dir, api_config)
+    _build_ios_framework_from_repo(repo_dir, api_config)
 
   build_dir = os.path.join(project_dir, "ios_build")
   os.makedirs(build_dir)
