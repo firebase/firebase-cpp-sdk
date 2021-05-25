@@ -209,7 +209,7 @@ def main(argv):
   ios_framework_dir = os.path.join(sdk_dir, "xcframeworks")
   ios_framework_exist = os.path.isdir(ios_framework_dir)
   if not ios_framework_exist and _IOS in platforms:
-    _generate_makefiles_from_repo(FLAGS.repo_dir)
+    _generate_makefiles_from_repo(repo_dir)
 
   if update_pod_repo and _IOS in platforms:
     _run(["pod", "repo", "update"])
