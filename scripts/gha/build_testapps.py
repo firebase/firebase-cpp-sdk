@@ -458,8 +458,9 @@ def _validate_android_environment_variables():
     logging.warning("No NDK env var set. Set one of %s", ", ".join(ndk_vars))
 
 
-# If sdk_dir contains no framework, consider it is Github repo, then
-# generate makefiles for ios frameworks
+# If sdk_dir contains no xcframework, consider it is Github repo, then
+# generate makefiles for ios xcframeworks
+# the xcframeworks will be placed at repo_dir/ios_build
 def _generate_makefiles_from_repo(repo_dir):
   """Generates cmake makefiles for building iOS frameworks from SDK source."""
   ios_framework_builder = os.path.join(
@@ -474,7 +475,8 @@ def _generate_makefiles_from_repo(repo_dir):
   _run(framework_builder_args)
 
 
-# build required ios frameworks based on makefiles
+# build required ios xcframeworks based on makefiles
+# the xcframeworks locates at repo_dir/ios_build
 def _build_ios_framework_from_repo(repo_dir, api_config):
   """Builds iOS framework from SDK source."""
   ios_framework_builder = os.path.join(
@@ -506,6 +508,7 @@ def _build_ios(
   if not ios_framework_exist:
     _build_ios_framework_from_repo(repo_dir, api_config)
     sdk_dir = os.path.join(repo_dir, "ios_build")
+    logging.info("iOS xcframework created at: %s", " ".join(sdk_dir))
 
   build_dir = os.path.join(project_dir, "ios_build")
   os.makedirs(build_dir)
