@@ -29,11 +29,14 @@
 #import "FIROAuthProvider.h"
 
 #if FIREBASE_PLATFORM_IOS
+// PhoneAuth is not supported on non-iOS Apple platforms (eg: tvOS).
+// We are using stub implementation for these platforms (just like on desktop).
 #import "FIRPhoneAuthProvider.h"
-#endif
+#endif //FIREBASE_PLATFORM_IOS
 
 #import "FIRTwitterAuthProvider.h"
 
+#if FIREBASE_PLATFORM_IOS
 // This object is shared between the PhoneAuthProvider::Listener and the blocks in
 // @ref VerifyPhoneNumber. It exists for as long as one of those two lives. We use Objective-C
 // for reference counting.
@@ -50,9 +53,12 @@
 @end
 @implementation PhoneListenerDataObjC
 @end
+#endif //FIREBASE_PLATFORM_IOS
 
 namespace firebase {
 namespace auth {
+
+static const char* kMockVerificationId = "mock verification id";
 
 using util::StringFromNSString;
 
@@ -211,7 +217,7 @@ bool GameCenterAuthProvider::IsPlayerAuthenticated() {
   /**
    Linking GameKit.framework without using it on macOS results in App Store rejection.
    Thus we don't link GameKit.framework to our SDK directly. `optionalLocalPlayer` is used for
-   checking whether the APP that consuming our SDK has linked GameKit.framework. If not, 
+   checking whether the APP that consuming our SDK has linked GameKit.framework. If not,
    early out.
    **/
   GKLocalPlayer *_Nullable optionalLocalPlayer = [[NSClassFromString(@"GKLocalPlayer") alloc] init];
@@ -223,7 +229,6 @@ bool GameCenterAuthProvider::IsPlayerAuthenticated() {
   return localPlayer.isAuthenticated;
 }
 
-#if FIREBASE_PLATFORM_IOS
 // We skip the implementation of ForceResendingTokenData since it is not needed.
 // The ForceResendingToken class for iOS is empty.
 PhoneAuthProvider::ForceResendingToken::ForceResendingToken()
@@ -238,6 +243,7 @@ bool PhoneAuthProvider::ForceResendingToken::operator==(
 bool PhoneAuthProvider::ForceResendingToken::operator!=(
     const ForceResendingToken&) const { return false; }
 
+#if FIREBASE_PLATFORM_IOS
 // This implementation of PhoneListenerData is specific to iOS.
 struct PhoneListenerData {
   // Hold the reference-counted ObjC structure. This structure is shared by the blocks in
@@ -249,7 +255,12 @@ PhoneAuthProvider::Listener::Listener() : data_(new PhoneListenerData) {
   data_->objc = [[PhoneListenerDataObjC alloc] init];
   data_->objc->active_listener = this;
 }
+#else // non-iOS Apple platforms (eg: tvOS)
+// Stub for tvOS and other non-iOS apple platforms.
+PhoneAuthProvider::Listener::Listener() : data_(nullptr) {}
+#endif // FIREBASE_PLATFORM_IOS
 
+#if FIREBASE_PLATFORM_IOS
 PhoneAuthProvider::Listener::~Listener() {
   // Wait while the Listener is being used (in the callbacks in VerifyPhoneNumber).
   // Then reset the active_listener so that callbacks become no-ops.
@@ -260,7 +271,11 @@ PhoneAuthProvider::Listener::~Listener() {
   data_->objc = nil;
   delete data_;
 }
+#else // non-iOS Apple platforms (eg: tvOS)
+PhoneAuthProvider::Listener::~Listener() {}
+#endif // FIREBASE_PLATFORM_IOS
 
+#if FIREBASE_PLATFORM_IOS
 // This implementation of PhoneAuthProviderData is specific to iOS.
 struct PhoneAuthProviderData {
  public:
@@ -270,10 +285,17 @@ struct PhoneAuthProviderData {
   // The wrapped provider in Objective-C.
   FIRPhoneAuthProvider* objc_provider;
 };
+#endif // FIREBASE_PLATFORM_IOS
 
 PhoneAuthProvider::PhoneAuthProvider() : data_(nullptr) {}
-PhoneAuthProvider::~PhoneAuthProvider() { delete data_; }
 
+#if FIREBASE_PLATFORM_IOS
+PhoneAuthProvider::~PhoneAuthProvider() { delete data_; }
+#else // non-iOS Apple platforms (eg: tvOS)
+PhoneAuthProvider::~PhoneAuthProvider() {}
+#endif // FIREBASE_PLATFORM_IOS
+
+#if FIREBASE_PLATFORM_IOS
 void PhoneAuthProvider::VerifyPhoneNumber(
     const char* phone_number, uint32_t /*auto_verify_time_out_ms*/,
     const ForceResendingToken* /*force_resending_token*/, Listener* listener) {
@@ -308,7 +330,24 @@ void PhoneAuthProvider::VerifyPhoneNumber(
     }
   }
 }
+#else // non-iOS Apple platforms (eg: tvOS)
+void PhoneAuthProvider::VerifyPhoneNumber(
+    const char* /*phone_number*/, uint32_t /*auto_verify_time_out_ms*/,
+    const ForceResendingToken* force_resending_token, Listener* listener) {
+  FIREBASE_ASSERT_RETURN_VOID(listener != nullptr);
 
+  // Mock the tokens by sending a new one whenever it's unspecified.
+  ForceResendingToken token;
+  if (force_resending_token != nullptr) {
+    token = *force_resending_token;
+  }
+
+  listener->OnCodeAutoRetrievalTimeOut(kMockVerificationId);
+  listener->OnCodeSent(kMockVerificationId, token);
+}
+#endif // FIREBASE_PLATFORM_IOS
+
+#if FIREBASE_PLATFORM_IOS
 Credential PhoneAuthProvider::GetCredential(const char* verification_id,
                                             const char* verification_code) {
   FIREBASE_ASSERT_RETURN(Credential(), verification_id && verification_code);
@@ -317,7 +356,17 @@ Credential PhoneAuthProvider::GetCredential(const char* verification_id,
                                         verificationCode:@(verification_code)];
   return Credential(new FIRAuthCredentialPointer((FIRAuthCredential*)credential));
 }
+#else // non-iOS Apple platforms (eg: tvOS)
+Credential PhoneAuthProvider::GetCredential(const char* verification_id,
+                                            const char* verification_code) {
+  FIREBASE_ASSERT_MESSAGE_RETURN(Credential(nullptr), false,
+                                 "Phone Auth is not supported on non iOS Apple platforms (eg:tvOS).");
 
+  return Credential(nullptr);
+}
+#endif // FIREBASE_PLATFORM_IOS
+
+#if FIREBASE_PLATFORM_IOS
 // static
 PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
   PhoneAuthProvider& provider = auth->auth_data_->phone_auth_provider;
@@ -329,6 +378,11 @@ PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
     provider.data_ = new PhoneAuthProviderData(objc_provider);
   }
   return provider;
+}
+#else // non-iOS Apple platforms (eg: tvOS)
+// static
+PhoneAuthProvider& PhoneAuthProvider::GetInstance(Auth* auth) {
+  return auth->auth_data_->phone_auth_provider;
 }
 #endif // FIREBASE_PLATFORM_IOS
 
@@ -450,7 +504,7 @@ Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
     return future;
   }
 
-  #else // non iOS Apple platform
+  #else // non-iOS Apple platforms (eg: tvOS)
   Future<SignInResult> future = MakeFuture(&futures, handle);
   futures.Complete(handle, kAuthErrorApiNotAvailable,
     "Link with getCredentialWithUIDelegate is not supported on non-iOS Apple platforms.");
@@ -487,7 +541,7 @@ Future<SignInResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data)
     return future;
   }
 
-  #else // non iOS Apple Platform
+  #else // non-iOS Apple platforms (eg: tvOS)
   Future<SignInResult> future = MakeFuture(&futures, handle);
   futures.Complete(handle, kAuthErrorApiNotAvailable,
     "Reauthenticate with getCredentialWithUIDelegate is not supported on non-iOS Apple platforms.");
