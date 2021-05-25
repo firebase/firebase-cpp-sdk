@@ -467,6 +467,7 @@ def _generate_makefiles_from_repo(repo_dir):
 
   framework_builder_args = [
       ios_framework_builder,
+      "-b", os.path.join(repo_dir, "ios_build"),
       "-s", repo_dir,
       "-c", "false"
   ]
@@ -491,6 +492,7 @@ def _build_ios_framework_from_repo(repo_dir, api_config):
 
   framework_builder_args = [
       ios_framework_builder,
+      "-b", os.path.join(repo_dir, "ios_build"),
       "-s", repo_dir,
       "-t", ",".join(target),
       "-g", "false"
