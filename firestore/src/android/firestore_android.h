@@ -2,6 +2,7 @@
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_FIRESTORE_ANDROID_H_
 
 #include <cstdint>
+#include <list>
 #include <unordered_set>
 
 #if defined(FIREBASE_USE_STD_FUNCTION)
@@ -12,9 +13,11 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
+#include "firestore/src/android/lambda_event_listener.h"
 #include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
+#include "firestore/src/include/firebase/firestore/load_bundle_task_progress.h"
 #include "firestore/src/include/firebase/firestore/settings.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/jni_fwd.h"
@@ -53,6 +56,8 @@ class FirestoreInternal {
     kTerminate,
     kWaitForPendingWrites,
     kClearPersistence,
+    kGetNamedQuery,
+    kLoadBundle,
     kCount,  // Must be the last enum value.
   };
 
@@ -60,17 +65,25 @@ class FirestoreInternal {
   explicit FirestoreInternal(App* app);
   ~FirestoreInternal();
 
-  App* app() const { return app_; }
+  App* app() const {
+    return app_;
+  }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return app_ != nullptr; }
+  bool initialized() const {
+    return app_ != nullptr;
+  }
 
   // Manages all Future objects returned from Firestore API.
-  FutureManager& future_manager() { return future_manager_; }
+  FutureManager& future_manager() {
+    return future_manager_;
+  }
 
   // When this is deleted, it will clean up all DatabaseReferences,
   // DataSnapshots, and other such objects.
-  CleanupNotifier& cleanup() { return cleanup_; }
+  CleanupNotifier& cleanup() {
+    return cleanup_;
+  }
 
   // Returns a CollectionReference that refers to the specific path.
   CollectionReference Collection(const char* collection_path) const;
@@ -123,6 +136,13 @@ class FirestoreInternal {
       ListenerRegistrationInternal* registration);
   void ClearListeners();
 
+  // Bundles
+  Future<LoadBundleTaskProgress> LoadBundle(const std::string& bundle);
+  Future<LoadBundleTaskProgress> LoadBundle(
+      const std::string& bundle,
+      std::function<void(const LoadBundleTaskProgress&)> progress_callback);
+  Future<Query> NamedQuery(const std::string& query_name);
+
   static jni::Env GetEnv();
 
   CollectionReference NewCollectionReference(
@@ -139,8 +159,12 @@ class FirestoreInternal {
     firestore_public_ = firestore_public;
   }
 
-  Firestore* firestore_public() { return firestore_public_; }
-  const Firestore* firestore_public() const { return firestore_public_; }
+  Firestore* firestore_public() {
+    return firestore_public_;
+  }
+  const Firestore* firestore_public() const {
+    return firestore_public_;
+  }
 
   /**
    * Finds the FirestoreInternal instance for the given Java Firestore instance.
@@ -191,6 +215,11 @@ class FirestoreInternal {
 #else   //  defined(_STLPORT_VERSION)
   std::unordered_set<ListenerRegistrationInternal*> listener_registrations_;
 #endif  //  defined(_STLPORT_VERSION)
+
+  Mutex bundle_listeners_mutex_;
+  // Using a list to ensure listener instances cannot outlive
+  // FirestoreInternal.
+  std::list<LambdaEventListener<LoadBundleTaskProgress>> bundle_listeners_;
 
   FutureManager future_manager_;
   UniquePtr<PromiseFactory<AsyncFn>> promises_;

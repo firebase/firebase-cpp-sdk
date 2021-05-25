@@ -20,6 +20,8 @@ class Firestore;
 class FirestoreInternal;
 class ListenerRegistration;
 class ListenerRegistrationInternal;
+class LoadBundleTaskProgress;
+class LoadBundleTaskProgressInternal;
 class Query;
 class QueryInternal;
 class QuerySnapshot;
@@ -79,6 +81,10 @@ struct InternalTypeMap<Transaction> {
 template <>
 struct InternalTypeMap<WriteBatch> {
   using type = WriteBatchInternal;
+};
+template <>
+struct InternalTypeMap<LoadBundleTaskProgress> {
+  using type = LoadBundleTaskProgressInternal;
 };
 template <>
 struct InternalTypeMap<void> {

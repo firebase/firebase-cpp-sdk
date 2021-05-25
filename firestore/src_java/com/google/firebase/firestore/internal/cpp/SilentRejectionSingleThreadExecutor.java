@@ -11,7 +11,9 @@ import java.util.concurrent.RejectedExecutionException;
  *
  * <p>During shutdown, the C++ API must be able to prevent user callbacks from running after the
  * Firestore object has been disposed. To do so, it shuts down its executors, accepting that new
- * callbacks may be rejected. This class catches and discards the {@code RejectedExecutionException}
+ * callbacks may be rejected, and if there is work already scheduled, they will not be executed.
+ *
+ * This class catches and discards the {@code RejectedExecutionException}
  * that is thrown by the underlying Java executor after shutdown, bridging the gap between C++
  * expectations and the Java implementation.
  */
@@ -28,6 +30,7 @@ public final class SilentRejectionSingleThreadExecutor implements Executor {
   }
 
   public void shutdown() {
-    internalExecutor.shutdown();
+    // Do not run any tasks that are already awaiting.
+    internalExecutor.shutdownNow();
   }
 }
