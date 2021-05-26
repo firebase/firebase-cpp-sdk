@@ -1,5 +1,6 @@
 #include "firestore/src/ios/firestore_ios.h"
 
+#include <sstream>
 #include <utility>
 
 #include "Firestore/core/src/api/document_reference.h"
@@ -7,6 +8,7 @@
 #include "Firestore/core/src/model/database_id.h"
 #include "Firestore/core/src/model/resource_path.h"
 #include "Firestore/core/src/util/async_queue.h"
+#include "Firestore/core/src/util/byte_stream_cpp.h"
 #include "Firestore/core/src/util/executor.h"
 #include "Firestore/core/src/util/log.h"
 #include "Firestore/core/src/util/status.h"
@@ -42,10 +44,32 @@ std::shared_ptr<AsyncQueue> CreateWorkerQueue() {
   return AsyncQueue::Create(std::move(executor));
 }
 
+LoadBundleTaskProgress::State ToApiProgressState(
+    api::LoadBundleTaskState state) {
+  switch (state) {
+    case api::LoadBundleTaskState::kError:
+      return LoadBundleTaskProgress::State::kError;
+    case api::LoadBundleTaskState::kSuccess:
+      return LoadBundleTaskProgress::State::kSuccess;
+    case api::LoadBundleTaskState::kInProgress:
+      return LoadBundleTaskProgress::State::kInProgress;
+  }
+}
+
+LoadBundleTaskProgress ToApiProgress(
+    const api::LoadBundleTaskProgress& internal_progress) {
+  return {static_cast<int32_t>(internal_progress.documents_loaded()),
+          static_cast<int32_t>(internal_progress.total_documents()),
+          static_cast<int64_t>(internal_progress.bytes_loaded()),
+          static_cast<int64_t>(internal_progress.total_bytes()),
+          ToApiProgressState(internal_progress.state())};
+}
+
 }  // namespace
 
 FirestoreInternal::FirestoreInternal(App* app)
-    : FirestoreInternal{app, CreateCredentialsProvider(*app)} {}
+    : FirestoreInternal{app, CreateCredentialsProvider(*app)} {
+}
 
 FirestoreInternal::FirestoreInternal(
     App* app, std::unique_ptr<CredentialsProvider> credentials)
@@ -301,6 +325,74 @@ void Firestore::set_log_level(LogLevel log_level) {
 
 void FirestoreInternal::SetClientLanguage(const std::string& language_token) {
   api::Firestore::SetClientLanguage(language_token);
+}
+
+Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
+    const std::string& bundle) {
+  auto promise = promise_factory_.CreatePromise<LoadBundleTaskProgress>(
+      AsyncApi::kLoadBundle);
+  auto bundle_stream = absl::make_unique<util::ByteStreamCpp>(
+      absl::make_unique<std::stringstream>(bundle));
+
+  std::shared_ptr<api::LoadBundleTask> task =
+      firestore_core_->LoadBundle(std::move(bundle_stream));
+  task->Observe(
+      [promise, task](const api::LoadBundleTaskProgress& progress) mutable {
+        if (progress.state() == api::LoadBundleTaskState::kSuccess) {
+          promise.SetValue(ToApiProgress(progress));
+          task->RemoveAllObservers();
+
+        } else if (progress.state() == api::LoadBundleTaskState::kError) {
+          promise.SetError(progress.error_status());
+          task->RemoveAllObservers();
+        }
+      });
+
+  return promise.future();
+}
+
+Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
+    const std::string& bundle,
+    std::function<void(const LoadBundleTaskProgress&)> progress_callback) {
+  auto promise = promise_factory_.CreatePromise<LoadBundleTaskProgress>(
+      AsyncApi::kLoadBundle);
+  auto bundle_stream = absl::make_unique<util::ByteStreamCpp>(
+      absl::make_unique<std::stringstream>(bundle));
+
+  std::shared_ptr<api::LoadBundleTask> task =
+      firestore_core_->LoadBundle(std::move(bundle_stream));
+  // TODO(C++14): Move progress_callback into the lambda.
+  task->Observe([promise, task, progress_callback](
+                    const api::LoadBundleTaskProgress& progress) mutable {
+    progress_callback(ToApiProgress(progress));
+    if (progress.state() == api::LoadBundleTaskState::kSuccess) {
+      promise.SetValue(ToApiProgress(progress));
+      task->RemoveAllObservers();
+
+    } else if (progress.state() == api::LoadBundleTaskState::kError) {
+      promise.SetError(progress.error_status());
+      task->RemoveAllObservers();
+    }
+  });
+
+  return promise.future();
+}
+
+Future<Query> FirestoreInternal::NamedQuery(const std::string& query_name) {
+  auto promise = promise_factory_.CreatePromise<Query>(AsyncApi::kNamedQuery);
+  firestore_core_->GetNamedQuery(
+      query_name,
+      [this, promise](const absl::optional<core::Query>& query) mutable {
+        if (query.has_value()) {
+          promise.SetValue(
+              MakePublic(api::Query(query.value(), firestore_core_)));
+        } else {
+          promise.SetError(
+              Status(Error::kErrorNotFound, "Named query cannot be found"));
+        }
+      });
+
+  return promise.future();
 }
 
 }  // namespace firestore
