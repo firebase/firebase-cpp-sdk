@@ -18,6 +18,7 @@ import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
+import androidx.annotation.NonNull;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -43,6 +44,7 @@ public class RegistrationIntentService extends IntentService {
   // Fetch the latest registration token and notify the C++ layer.
   @Override
   protected void onHandleIntent(Intent intent) {
+    Context context = this;
     FirebaseMessaging.getInstance().getToken()
       .addOnCompleteListener(new OnCompleteListener<String>() {
         @Override
@@ -57,7 +59,7 @@ public class RegistrationIntentService extends IntentService {
 
           DebugLogging.log(TAG, String.format("onHandleIntent token=%s", token));
           if (token != null) {
-            writeTokenToInternalStorage(this, token);
+            writeTokenToInternalStorage(context, token);
           }
         }
       });
