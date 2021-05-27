@@ -23,7 +23,11 @@ using firebase::auth::AuthError;
 using util::Status;
 using util::StatusOr;
 
-Error ConvertAuthErrorToFirestoreError(int e) {
+/**
+ * Takes an integer that represents an AuthError enum value, and returns a
+ * firestore::Error that best describes the given AuthError.
+ */
+Error FirestoreErrorFromAuthError(int error) {
   switch (e) {
     case AuthError::kAuthErrorNone:
       return kErrorNone;
@@ -85,12 +89,9 @@ User GetCurrentUser(App& app) {
 StatusOr<Token> ConvertToken(const Future<std::string>& future, App& app) {
   if (future.error() != Error::kErrorOk) {
     // `AuthError` is a different error domain from go/canonical-codes that
-    // `Status` uses, so it can't be converted directly. Instead, use
-    // `kErrorUnknown` in the `Status` because the error code from the future
-    // is "from a different error domain".
-    // TODO(b/174485290) Map `AuthError` values to Firestore `Error` values more
-    // intelligently so as to enable retries when appropriate.
-    return Status(ConvertAuthErrorToFirestoreError(future.error()),
+    // `Status` uses. We map `AuthError` values to Firestore `Error` values in
+    // order to be able to perform retries when appropriate.
+    return Status(FirestoreErrorFromAuthError(future.error()),
                   std::string(future.error_message()) + " (AuthError " +
                       std::to_string(future.error()) + ")");
   }
