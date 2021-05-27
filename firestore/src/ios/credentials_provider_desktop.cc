@@ -28,7 +28,7 @@ using util::StatusOr;
  * firestore::Error that best describes the given AuthError.
  */
 Error FirestoreErrorFromAuthError(int error) {
-  switch (e) {
+  switch (error) {
     case AuthError::kAuthErrorNone:
       return kErrorNone;
     case AuthError::kAuthErrorUnimplemented:
