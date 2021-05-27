@@ -164,7 +164,7 @@ const char* kCpuArchitecture = "x86";
 #endif  // Operating system
 // clang-format=on
 
-const char* kApiClientHeader = "x-goog-api-client";
+const char* kApiClientHeader = "x-firebase-client";
 
 SystemLogger g_system_logger;  // NOLINT
 
