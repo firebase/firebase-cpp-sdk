@@ -24,8 +24,8 @@ using util::Status;
 using util::StatusOr;
 
 /**
- * Takes an integer that represents an AuthError enum value, and returns a
- * firestore::Error that best describes the given AuthError.
+ * Takes an integer that represents an `AuthError` enum value, and returns a
+ * `firestore::Error` that best describes the given `AuthError`.
  */
 Error FirestoreErrorFromAuthError(int error) {
   switch (error) {
