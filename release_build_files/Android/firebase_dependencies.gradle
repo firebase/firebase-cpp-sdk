@@ -34,7 +34,7 @@ def firebaseDependenciesMap = [
   'messaging' : ['com.google.firebase:firebase-messaging:21.1.0',
                  'com.google.firebase.messaging.cpp:firebase_messaging_cpp@aar',
                  'androidx.core:core:1.0.1',
-                 'com.google.flatbuffers:flatbuffers-java:1.9.0',
+                 'com.google.flatbuffers:flatbuffers-java:1.12.0',
                  'com.google.android.gms:play-services-base:17.6.0'],
   'performance' : ['com.google.firebase:firebase-perf:19.1.1'],
   'remote_config' : ['com.google.firebase:firebase-config:20.0.4',
