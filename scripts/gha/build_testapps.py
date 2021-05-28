@@ -350,6 +350,7 @@ def _collect_integration_tests(testapps, output_dir, artifact_name):
         testapp_paths.append(os.path.join(file_dir, file_name))
 
   artifact_path = os.path.join(output_dir, testapps_artifact_dir)
+  shutil.rmtree(artifact_path)
   for testapp in testapps:
     os.makedirs(os.path.join(artifact_path, testapp))
   for path in testapp_paths:
@@ -465,10 +466,11 @@ def _generate_makefiles_from_repo(repo_dir):
   """Generates cmake makefiles for building iOS frameworks from SDK source."""
   ios_framework_builder = os.path.join(
       repo_dir, "build_scripts", "ios", "build.sh")
-
+  output_path = os.path.join(repo_dir, "ios_build")
+  shutil.rmtree(output_path)
   framework_builder_args = [
       ios_framework_builder,
-      "-b", os.path.join(repo_dir, "ios_build"),
+      "-b", output_path,
       "-s", repo_dir,
       "-c", "false"
   ]

@@ -156,7 +156,7 @@ def main(argv):
       return 21
 
     # A tool that enable game-loop test. This is a XCode project
-    ios_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop")
+    ios_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_ios")
     ios_gameloop_app = _build_ios_gameloop(ios_gameloop_project, device_name, device_os)
     if not ios_gameloop_app:
       logging.error("gameloop app not found")
