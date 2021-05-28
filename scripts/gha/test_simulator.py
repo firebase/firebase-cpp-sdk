@@ -33,8 +33,12 @@ available simulators (supported models and versions) with the following commands
   xcrun simctl list
 
 Device Information is stored in TEST_DEVICES in print_matrix_configuration.py
-Examples:
+Example:
 iPhone 8, OS 12.0:
+  --ios_name "iPhone 8" --ios_version "12.0"
+Alternatively, to set an iOS device, use the one of the values below:
+[simulator_min, simulator_target, simulator_latest]
+Example:
   --ios_device "simulator_target"
 
 ----Android only----
@@ -53,9 +57,14 @@ available tools with the following commands:
   $ANDROID_HOME/tools/bin/sdkmanager --list
 
 Device Information is stored in TEST_DEVICES in print_matrix_configuration.py
-Examples:
+Example:
 sdk id "system-images;android-29;google_apis;x86":
-  --android_device "emulator_target"
+  --android_sdk "system-images;android-29;google_apis;x86" --build_tools_version "28.0.3"
+
+Alternatively, to set an Android device, use the one of the values below:
+[emulator_min, emulator_target, emulator_latest]
+Example:
+  --android_device "emulator_target" --build_tools_version "28.0.3"
 
 Returns:
    1: No iOS/Android integration_test apps found
@@ -89,12 +98,23 @@ flags.DEFINE_string(
     "testapp_dir", None,
     "Testapps in this directory will be tested.")
 flags.DEFINE_string(
-    "ios_device", "simulator_target",
+    "ios_device", None,
     "iOS device, which is a combination of device name and os version"
-    "See module docstring for details on how to set and get this id.")
+    "See module docstring for details on how to set and get this id. "
+    "If none, will use ios_name and ios_version.")
 flags.DEFINE_string(
-    "android_device", "emulator_target",
-    "android device, which is the sdk id of an emulator image"
+    "ios_name", "iPhone 8",
+    "See module docstring for details on how to set and get this name.")
+flags.DEFINE_string(
+    "ios_version", "12.0",
+    "See module docstring for details on how to set and get this version.")
+flags.DEFINE_string(
+    "android_device", None,
+    "Android device, which is the sdk id of an emulator image"
+    "See module docstring for details on how to set and get this id."
+    "If none, will use android_sdk.")
+flags.DEFINE_string(
+    "android_sdk", "system-images;android-29;google_apis;x86",
     "See module docstring for details on how to set and get this id.")
 flags.DEFINE_string(
     "build_tools_version", "28.0.3",
@@ -142,13 +162,16 @@ def main(argv):
   if ios_testapps:
     logging.info("iOS Testapps found: %s", "\n".join(path for path in ios_testapps))
     
-    device_info = TEST_DEVICES.get(FLAGS.ios_device)
-    if not device_info:
-      logging.error("Not a valid ios device: %s" % FLAGS.ios_device)
-      return 20
-
-    device_name = device_info.get("name")
-    device_os = device_info.get("version")
+    if FLAGS.ios_device:
+      device_info = TEST_DEVICES.get(FLAGS.ios_device)
+      if not device_info:
+        logging.error("Not a valid ios device: %s" % FLAGS.ios_device)
+        return 20
+      device_name = device_info.get("name")
+      device_os = device_info.get("version")
+    else:
+      device_name = FLAGS.ios_name
+      device_os = FLAGS.ios_version
 
     device_id = _create_and_boot_simulator(device_name, device_os)
     if not device_id:
@@ -175,15 +198,21 @@ def main(argv):
                       testapp_path=app_path, 
                       logs=_run_ios_gameloop_test(bundle_id, app_path, ios_gameloop_app, device_id)))
 
+    _shutdown_simulator()
+
   if android_testapps:
     logging.info("Android Testapps found: %s", "\n".join(path for path in android_testapps))
 
-    device_info = TEST_DEVICES.get(FLAGS.android_device)
-    if not device_info:
-      logging.error("Not a valid android device: %s" % FLAGS.android_device)
-      return 30
+    if FLAGS.android_device:
+      device_info = TEST_DEVICES.get(FLAGS.android_device)
+      if not device_info:
+        logging.error("Not a valid android device: %s" % FLAGS.android_device)
+        return 30
+      sdk_id = device_info.get("image")
+    else:
+      sdk_id = FLAGS.android_sdk
 
-    sdk_id = device_info.get("image")
+    
     platform_version = sdk_id.split(";")[1]
     build_tool_version = FLAGS.build_tools_version
 
@@ -203,6 +232,8 @@ def main(argv):
       tests.append(Test(
                       testapp_path=app_path, 
                       logs=_run_android_gameloop_test(package_name, app_path, android_gameloop_project)))
+
+    _shutdown_emulator()
 
   return test_validation.summarize_test_results(
     tests, 
@@ -256,12 +287,15 @@ def _run_xctest(gameloop_app, device_id):
   return log_path
 
 
-def _create_and_boot_simulator(device_name, device_os):
-  """Create a simulator locally. Will wait until this simulator booted."""
+def _shutdown_simulator():
   args = ["xcrun", "simctl", "shutdown", "all"]
   logging.info("Shutdown all simulators: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
+
+def _create_and_boot_simulator(device_name, device_os):
+  """Create a simulator locally. Will wait until this simulator booted."""
+  _shutdown_simulator()
   command = "xcrun xctrace list devices 2>&1 | grep \"%s (%s)\" | awk -F'[()]' '{print $4}'" % (device_name, device_os)
   logging.info("Get test simulator: %s", command)
   result = subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
@@ -391,6 +425,11 @@ def _setup_android(platform_version, build_tool_version, sdk_id):
   subprocess.run(args=args, check=True)
 
 
+def _shutdown_emulator():
+  command = "adb devices | grep emulator | cut -f1 | while read line; do adb -s $line emu kill; done"
+  logging.info("Kill all running emulator: %s", command)
+  subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
+
 def _create_and_boot_emulator(sdk_id):
   args = ["avdmanager", "-s", 
     "create", "avd", 
@@ -407,9 +446,7 @@ def _create_and_boot_emulator(sdk_id):
   logging.info("Start adb server: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
-  command = "adb devices | grep emulator | cut -f1 | while read line; do adb -s $line emu kill; done"
-  logging.info("Kill all running emulator: %s", command)
-  subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
+  _shutdown_emulator()
 
   if not FLAGS.ci: 
     command = "$ANDROID_HOME/emulator/emulator -avd test_emulator &"

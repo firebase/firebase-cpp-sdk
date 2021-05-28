@@ -17,17 +17,19 @@ r"""Tool for sending mobile testapps to Firebase Test Lab for testing.
 Requires Cloud SDK installed with gsutil. Can be checked as follows:
   gcloud --version
 
-This tool will use the games-auto-release-testing GCS storage bucket. To
-be authorized, it's necessary have the key file (JSON) (from valentine) and
+This tool will use the games-auto-release-testing GCS storage bucket. 
+To be authorized, it's necessary have the key file (JSON) and
 supply it with the --key_file flag.
-
-Valentine ID: 1561166657633900
+1) key file Valentine ID: 1561166657633900
+2) Alternatively, decrypt the key file with 
+  python scripts/gha/restore_secrets.py --passphrase SECRET
+  SECRET Valentine ID: 1592951125596776
 
 
 Usage:
 
   python test_lab.py --testapp_dir ~/testapps --code_platform unity \
-    --key_file ~/Downloads/key_file.json
+    --key_file scripts/gha-encrypted/gcs_key_file.json
 
 This will recursively search ~/testapps for apks and ipas,
 send them to FTL, and validate their results. The validation is specific to
@@ -43,13 +45,22 @@ following commands:
   gcloud firebase test ios models list
 
 Note: you need the value in the MODEL_ID column, not MODEL_NAME. 
-Device Information is stored in TEST_DEVICES in print_matrix_configuration.py
 Examples:
+Pixel2, API level 28:
+  --android_model Pixel2 --android_version 28
 
+iphone6s, OS 12.0:
+  --ios_model iphone6s --ios_version 12.0
+
+Alternatively, to set a device, use the one of the values below:
+[android_min, android_target, android_latest]
+[ios_min, ios_target, ios_latest]
+These Device Information stored in TEST_DEVICES in print_matrix_configuration.py 
+Examples:
 Pixel2, API level 28:
   --android_device android_target
 
-iphone6s, OS 12.0":
+iphone6s, OS 12.0:
   --ios_device ios_target
 
 """
@@ -83,12 +94,28 @@ flags.DEFINE_string(
     "key_file", None, "Path to key file authorizing use of the GCS bucket.")
 flags.DEFINE_string(
     "android_device", None,
-    "Model_id and API_level for desired device. See module docstring for "
-    "details on how to set and get this id. If none, will use FTL's default.")
+    "Model_id and API_level for desired device. See module docstring for details "
+    "on how to set the value. If none, will use android_model and android_version.")
+flags.DEFINE_string(
+    "android_model", None,
+    "Model id for desired device. See module docstring for details on how"
+    " to get this id. If none, will use FTL's default.")
+flags.DEFINE_string(
+    "android_version", None,
+    "API level for desired device. See module docstring for details on how"
+    " to find available values. If none, will use FTL's default.")
 flags.DEFINE_string(
     "ios_device", None,
-    "Model_id and IOS_version for desired device. See module docstring for "
-    "details on how to set and get this id. If none, will use FTL's default.")
+    "Model_id and IOS_version for desired device. See module docstring for details "
+    "on how to set the value. If none, will use ios_model and ios_version.")
+flags.DEFINE_string(
+    "ios_model", None,
+    "Model id for desired device. See module docstring for details on how"
+    " to get this id. If none, will use FTL's default.")
+flags.DEFINE_string(
+    "ios_version", None,
+    "iOS version for desired device. See module docstring for details on how"
+    " to find available values. If none, will use FTL's default.")
 flags.DEFINE_string(
     "logfile_name", "",
     "Create test log artifact test-results-$logfile_name.log."
@@ -108,13 +135,11 @@ def main(argv):
   if FLAGS.android_device:
     android_device_info = TEST_DEVICES.get(FLAGS.android_device)
     if android_device_info:
-      print(android_device_info.get("model"))
-      print(android_device_info.get("version"))
       android_device = Device(model=android_device_info.get("model"), version=android_device_info.get("version"))
     else:
       raise ValueError("Not a valid android device: %s" % FLAGS.android_device)
   else:
-    android_device = Device(model=None, version=None)
+    android_device = Device(model=FLAGS.android_model, version=FLAGS.android_version)
   
   if FLAGS.ios_device:
     ios_device_info = TEST_DEVICES.get(FLAGS.ios_device)
@@ -123,7 +148,7 @@ def main(argv):
     else:
       raise ValueError("Not a valid android device: %s" % FLAGS.ios_device)
   else:
-    ios_device = Device(model=None, version=None)
+    ios_device = Device(model=FLAGS.ios_model, version=FLAGS.ios_version)
 
   has_ios = False
   testapps = []

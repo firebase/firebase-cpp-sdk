@@ -134,6 +134,14 @@ PARAMETERS = {
   },
 }
 
+# Platform and its build configurations 
+WINDOWS = ["os", "ssl", "build_type", "architecture_windows_linux", "msvc_runtime", "cpp_compiler_windows"]
+LINUX = ["os", "ssl", "build_type", "architecture_windows_linux", "cpp_compiler_linux"]
+MACOS = ["ssl", "architecture_macos", "xcode_version"]
+ANDROID = ["os", "ndk_version", "build_tools", "platform_version", "test_device"]
+IOS = ["xcode_version", "test_device"]
+TVOS = ["xcode_version", "test_device"]
+
 TEST_DEVICES = {
   "android_min": {
     "os": "Android", "type": "real", "model":"Nexus10", "version":"19"
