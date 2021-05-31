@@ -156,7 +156,7 @@ set(app_ios_SRCS
     src/invites/ios/invites_receiver_internal_ios.mm
     src/invites/ios/invites_ios_startup.mm
     src/uuid_ios_darwin.mm)
-if (PLATFORM STREQUAL TVOS)
+if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
   # TVOS does not have a web browser and does not support dynamic links.
   # Remove these files if we are building for TVOS.
   list(REMOVE_ITEM app_ios_SRCS
