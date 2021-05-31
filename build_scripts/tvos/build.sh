@@ -24,7 +24,7 @@ set -e
 readonly SUPPORTED_PLATFORMS=(device simulator)
 readonly SUPPORTED_ARCHITECTURES=(arm64 x86_64)
 readonly DEVICE_ARCHITECTURES=(arm64)
-readonly SIMULATOR_ARCHITECTURES=(arm64 x86_64)
+readonly SIMULATOR_ARCHITECTURES=(x86_64)
 readonly SUPPORTED_TARGETS=(firebase_analytics firebase_auth firebase_database firebase_firestore firebase_functions firebase_installations firebase_messaging firebase_remote_config firebase_storage)
 
 # build default value
