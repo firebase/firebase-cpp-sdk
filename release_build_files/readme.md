@@ -570,6 +570,8 @@ code.
     -   General (Android): Fixed a potential SIGABRT when an app was created
         with a non-default app name on Android KitKat
         ([#429](https://github.com/firebase/firebase-cpp-sdk/pull/429)).
+    -   General (Android): Updated Flatbuffers internal dependency from 1.9 to
+        1.12.
 
 ### 7.3.0
 -   Changes
