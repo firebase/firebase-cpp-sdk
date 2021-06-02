@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-#include "analytics/src/include/firebase/analytics.h"
-
 #include <sstream>
 
 #include "analytics/src/analytics_common.h"
+#include "analytics/src/include/firebase/analytics.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/version.h"
 
@@ -107,11 +106,6 @@ void SetUserId(const char* /*user_id*/) {
 
 // Sets the duration of inactivity that terminates the current session.
 void SetSessionTimeoutDuration(int64_t /*milliseconds*/) {
-  FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
-}
-
-void SetCurrentScreen(const char* /*screen_name*/,
-                      const char* /*screen_class*/) {
   FIREBASE_ASSERT_RETURN_VOID(internal::IsInitialized());
 }
 

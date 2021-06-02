@@ -13,15 +13,17 @@
 // limitations under the License.
 
 #include "database/src/desktop/database_reference_desktop.h"
+
 #include <stdio.h>
+
 #include <sstream>
+
 #include "app/rest/util.h"
 #include "app/src/variant_util.h"
 #include "database/src/common/database_reference.h"
 #include "database/src/desktop/database_desktop.h"
 #include "database/src/desktop/disconnection_desktop.h"
 #include "database/src/desktop/util_desktop.h"
-
 #include "flatbuffers/util.h"
 
 namespace firebase {
@@ -37,15 +39,19 @@ const char kVirtualChildKeyPriority[] = ".priority";
 DatabaseReferenceInternal::DatabaseReferenceInternal(DatabaseInternal* database,
                                                      const Path& path)
     : QueryInternal(database, QuerySpec(path)) {
-  database_->future_manager().AllocFutureApi(&future_api_id_,
-                                             kDatabaseReferenceFnCount);
+  if (database_) {
+    database_->future_manager().AllocFutureApi(&future_api_id_,
+                                               kDatabaseReferenceFnCount);
+  }
 }
 
 DatabaseReferenceInternal::DatabaseReferenceInternal(
     const DatabaseReferenceInternal& internal)
     : QueryInternal(internal) {
-  database_->future_manager().AllocFutureApi(&future_api_id_,
-                                             kDatabaseReferenceFnCount);
+  if (database_) {
+    database_->future_manager().AllocFutureApi(&future_api_id_,
+                                               kDatabaseReferenceFnCount);
+  }
 }
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
@@ -57,22 +63,26 @@ DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
 #if defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 DatabaseReferenceInternal::DatabaseReferenceInternal(
     DatabaseReferenceInternal&& internal) {
-  database_->future_manager().MoveFutureApi(&internal.future_api_id_,
-                                            &future_api_id_);
+  if (database_) {
+    database_->future_manager().MoveFutureApi(&internal.future_api_id_,
+                                              &future_api_id_);
+  }
   QueryInternal::operator=(std::move(internal));
 }
 
 DatabaseReferenceInternal& DatabaseReferenceInternal::operator=(
     DatabaseReferenceInternal&& internal) {
-  database_->future_manager().MoveFutureApi(&internal.future_api_id_,
-                                            &future_api_id_);
+  if (database_) {
+    database_->future_manager().MoveFutureApi(&internal.future_api_id_,
+                                              &future_api_id_);
+  }
   QueryInternal::operator=(std::move(internal));
   return *this;
 }
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS) || defined(DOXYGEN)
 
 Database* DatabaseReferenceInternal::GetDatabase() const {
-  return Database::GetInstance(database_->GetApp());
+  return database_ ? Database::GetInstance(database_->GetApp()) : nullptr;
 }
 
 std::string DatabaseReferenceInternal::GetUrl() const {

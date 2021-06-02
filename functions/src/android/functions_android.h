@@ -16,8 +16,10 @@
 #define FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_ANDROID_FUNCTIONS_ANDROID_H_
 
 #include <jni.h>
+
 #include <map>
 #include <set>
+
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"

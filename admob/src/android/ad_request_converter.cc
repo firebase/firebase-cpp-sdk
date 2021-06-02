@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+#include "admob/src/android/ad_request_converter.h"
+
 #include <assert.h>
 #include <jni.h>
 
@@ -21,7 +23,6 @@
 #include <cstddef>
 
 #include "admob/admob_resources.h"
-#include "admob/src/android/ad_request_converter.h"
 #include "admob/src/android/admob_android.h"
 #include "admob/src/common/admob_common.h"
 #include "admob/src/include/firebase/admob.h"
@@ -35,7 +36,8 @@ namespace admob {
 static const char* kAdMobAdapterClassName =
     "com/google/ads/mediation/admob/AdMobAdapter";
 
-METHOD_LOOKUP_DEFINITION(ad_request_builder, PROGUARD_KEEP_CLASS
+METHOD_LOOKUP_DEFINITION(ad_request_builder,
+                         PROGUARD_KEEP_CLASS
                          "com/google/android/gms/ads/AdRequest$Builder",
                          ADREQUESTBUILDER_METHODS);
 
@@ -54,9 +56,10 @@ AdRequestConverter::AdRequestConverter(AdRequest request) {
 
   builder = util::ContinueBuilder(
       env, builder,
-      env->CallObjectMethod(builder, ad_request_builder::GetMethodId(
-                                         ad_request_builder::kSetGender),
-                            static_cast<int>(request.gender)));
+      env->CallObjectMethod(
+          builder,
+          ad_request_builder::GetMethodId(ad_request_builder::kSetGender),
+          static_cast<int>(request.gender)));
 
   // Child-drected treatment.
   if (request.tagged_for_child_directed_treatment !=
@@ -64,8 +67,9 @@ AdRequestConverter::AdRequestConverter(AdRequest request) {
     builder = util::ContinueBuilder(
         env, builder,
         env->CallObjectMethod(
-            builder, ad_request_builder::GetMethodId(
-                         ad_request_builder::kTagForChildDirectedTreatment),
+            builder,
+            ad_request_builder::GetMethodId(
+                ad_request_builder::kTagForChildDirectedTreatment),
             (request.tagged_for_child_directed_treatment ==
              kChildDirectedTreatmentStateTagged)));
   }
@@ -75,9 +79,10 @@ AdRequestConverter::AdRequestConverter(AdRequest request) {
     jstring test_device_str = env->NewStringUTF(request.test_device_ids[i]);
     builder = util::ContinueBuilder(
         env, builder,
-        env->CallObjectMethod(builder, ad_request_builder::GetMethodId(
-                                           ad_request_builder::kAddTestDevice),
-                              test_device_str));
+        env->CallObjectMethod(
+            builder,
+            ad_request_builder::GetMethodId(ad_request_builder::kAddTestDevice),
+            test_device_str));
     env->DeleteLocalRef(test_device_str);
   }
 
@@ -86,9 +91,10 @@ AdRequestConverter::AdRequestConverter(AdRequest request) {
     jstring keyword_str = env->NewStringUTF(request.keywords[i]);
     builder = util::ContinueBuilder(
         env, builder,
-        env->CallObjectMethod(builder, ad_request_builder::GetMethodId(
-                                           ad_request_builder::kAddKeyword),
-                              keyword_str));
+        env->CallObjectMethod(
+            builder,
+            ad_request_builder::GetMethodId(ad_request_builder::kAddKeyword),
+            keyword_str));
     env->DeleteLocalRef(keyword_str);
   }
 
@@ -109,9 +115,10 @@ AdRequestConverter::AdRequestConverter(AdRequest request) {
   if (date_ref != nullptr) {
     builder = util::ContinueBuilder(
         env, builder,
-        env->CallObjectMethod(builder, ad_request_builder::GetMethodId(
-                                           ad_request_builder::kSetBirthday),
-                              date_ref));
+        env->CallObjectMethod(
+            builder,
+            ad_request_builder::GetMethodId(ad_request_builder::kSetBirthday),
+            date_ref));
   } else {
     LogWarning(
         "Skipping invalid AdRequest birthday fields (Y: %d, M: %d, D: %d).",
@@ -164,9 +171,10 @@ AdRequestConverter::AdRequestConverter(AdRequest request) {
       env->NewStringUTF(firebase::admob::GetRequestAgentString());
   builder = util::ContinueBuilder(
       env, builder,
-      env->CallObjectMethod(builder, ad_request_builder::GetMethodId(
-                                         ad_request_builder::kSetRequestAgent),
-                            agent_str));
+      env->CallObjectMethod(
+          builder,
+          ad_request_builder::GetMethodId(ad_request_builder::kSetRequestAgent),
+          agent_str));
   env->DeleteLocalRef(agent_str);
 
   // Build request and load ad.

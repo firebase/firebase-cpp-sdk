@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include "database/src/desktop/view/ranged_filter.h"
+
 #include <utility>
+
 #include "app/src/assert.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
@@ -74,7 +76,9 @@ IndexedVariant RangedFilter::UpdatePriority(const IndexedVariant& old_snap,
   return old_snap;
 }
 
-const VariantFilter* RangedFilter::GetIndexedFilter() const { return this; }
+const VariantFilter* RangedFilter::GetIndexedFilter() const {
+  return indexed_filter_.get();
+}
 
 bool RangedFilter::FiltersVariants() const { return true; }
 

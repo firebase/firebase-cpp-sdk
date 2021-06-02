@@ -45,10 +45,10 @@ following commands:
 Note: you need the value in the MODEL_ID column, not MODEL_NAME. Examples:
 
 Pixel 2, API level 28:
-  --android_model walleye --android_api 28
+  --android_device walleye+28
 
 iPhone 8 Plus, OS 11.4:
-  --ios_model iphone8plus --ios_version 11.4
+  --ios_device iphone8plus+11.4
 
 """
 
@@ -79,21 +79,17 @@ flags.DEFINE_enum(
 flags.DEFINE_string(
     "key_file", None, "Path to key file authorizing use of the GCS bucket.")
 flags.DEFINE_string(
-    "android_model", None,
-    "Model id for desired device. See module docstring for details on how"
-    " to get this id. If none, will use FTL's default.")
+    "android_device", None,
+    "Model_id and API_level for desired device. See module docstring for "
+    "details on how to get this id. If none, will use FTL's default.")
 flags.DEFINE_string(
-    "android_api", None,
-    "API level for desired device. See module docstring for details on how"
-    " to find available values. If none, will use FTL's default.")
+    "ios_device", None,
+    "Model_id and IOS_version for desired device. See module docstring for "
+    "details on how to get this id. If none, will use FTL's default.")
 flags.DEFINE_string(
-    "ios_model", None,
-    "Model id for desired device. See module docstring for details on how"
-    " to get this id. If none, will use FTL's default.")
-flags.DEFINE_string(
-    "ios_version", None,
-    "iOS version for desired device. See module docstring for details on how"
-    " to find available values. If none, will use FTL's default.")
+    "logfile_name", "",
+    "Create test log artifact test-results-$logfile_name.log."
+    " logfile will be created and placed in testapp_dir.")   
 
 def main(argv):
   if len(argv) > 1:
@@ -106,8 +102,23 @@ def main(argv):
   if not os.path.exists(key_file_path):
     raise ValueError("Key file path does not exist: %s" % key_file_path)
 
-  android_device = Device(model=FLAGS.android_model, version=FLAGS.android_api)
-  ios_device = Device(model=FLAGS.ios_model, version=FLAGS.ios_version)
+  if FLAGS.android_device:
+    android_device_info = FLAGS.android_device.split("+")
+    if len(android_device_info) == 2:
+      android_device = Device(model=android_device_info[0], version=android_device_info[1])
+    else:
+      raise ValueError("Not a valid android device: %s" % FLAGS.android_device)
+  else:
+    android_device = Device(model=None, version=None)
+  
+  if FLAGS.ios_device:
+    ios_device_info = FLAGS.ios_device.split("+")
+    if len(ios_device_info) == 2:
+      ios_device = Device(model=ios_device_info[0], version=ios_device_info[1])
+    else:
+      raise ValueError("Not a valid android device: %s" % FLAGS.ios_device)
+  else:
+    ios_device = Device(model=None, version=None)
 
   has_ios = False
   testapps = []
@@ -163,7 +174,11 @@ def main(argv):
   )
 
   return test_validation.summarize_test_results(
-      tests, code_platform, testapp_dir)
+      tests, 
+      code_platform, 
+      testapp_dir, 
+      file_name="test-results-" + FLAGS.logfile_name + ".log",
+      extra_info=" (ON REAL DEVICE VIA FTL)")
 
 
 def _install_gcloud_beta():

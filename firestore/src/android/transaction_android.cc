@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <utility>
 
+#include "Firestore/core/src/util/firestore_exceptions.h"
 #include "app/meta/move.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "firestore/src/android/document_reference_android.h"
@@ -15,7 +16,6 @@
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/hash_map.h"
 #include "firestore/src/jni/loader.h"
-#include "Firestore/core/src/util/firestore_exceptions.h"
 
 namespace firebase {
 namespace firestore {

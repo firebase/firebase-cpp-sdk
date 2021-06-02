@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "database/src/desktop/view/limited_filter.h"
+
 #include "app/src/assert.h"
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
@@ -120,7 +121,9 @@ IndexedVariant LimitedFilter::UpdatePriority(
   return old_snap;
 }
 
-const VariantFilter* LimitedFilter::GetIndexedFilter() const { return this; }
+const VariantFilter* LimitedFilter::GetIndexedFilter() const {
+  return ranged_filter_->GetIndexedFilter();
+}
 
 bool LimitedFilter::FiltersVariants() const { return true; }
 

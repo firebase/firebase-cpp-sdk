@@ -505,8 +505,8 @@ TEST_F(FirebaseAdMobTest, TestRewardedVideoAd) {
 // Test runs & compiles for phones only.
 
 struct ThreadArgs {
-      firebase::admob::BannerView* banner;
-      sem_t* semaphore;
+  firebase::admob::BannerView* banner;
+  sem_t* semaphore;
 };
 
 static void* DeleteBannerViewOnSignal(void* args) {

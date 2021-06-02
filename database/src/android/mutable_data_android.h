@@ -16,7 +16,9 @@
 #define FIREBASE_DATABASE_CLIENT_CPP_SRC_ANDROID_MUTABLE_DATA_ANDROID_H_
 
 #include <jni.h>
+
 #include <string>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/variant.h"
@@ -36,10 +38,6 @@ class Callbacks;
 class MutableDataInternal {
  public:
   ~MutableDataInternal();
-
-  // Create a shallow copy of the MutableData.
-  // The caller owns the returned pointer and is responsible for deleting it.
-  MutableDataInternal* Clone();
 
   // Used to obtain a MutableData instance that encapsulates the data and
   // priority at the given relative path.

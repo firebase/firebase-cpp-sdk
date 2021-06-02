@@ -43,8 +43,7 @@ namespace firebase_testapp_automated {
 // Your Firebase project's Server Key for Cloud Messaging goes here.
 // You can get this from Firebase Console, in your Project settings under Cloud
 // Messaging.
-const char kFcmServerKey[] =
-    "REPLACE_WITH_YOUR_SERVER_KEY";
+const char kFcmServerKey[] = "REPLACE_WITH_YOUR_SERVER_KEY";
 
 const char kRestEndpoint[] = "https://fcm.googleapis.com/fcm/send";
 
@@ -185,6 +184,10 @@ void FirebaseMessagingTest::TearDownTestSuite() {
   LogDebug("Shutdown Firebase App.");
   delete shared_app_;
   shared_app_ = nullptr;
+
+  // On iOS/FTL, most or all of the tests are skipped, so add a delay so the app
+  // doesn't finish too quickly, as this makes test results flaky.
+  ProcessEvents(1000);
 }
 
 FirebaseMessagingTest::FirebaseMessagingTest() {
@@ -548,7 +551,7 @@ TEST_F(FirebaseMessagingTest, TestChangingListener) {
   firebase::messaging::SetListener(shared_listener_);
   // Pause a moment to make sure old listeners are deleted.
   ProcessEvents(1000);
-  
+
   std::string unique_id = GetUniqueMessageId();
   const char kNotificationTitle[] = "New Listener Test";
   const char kNotificationBody[] = "New Listener Test notification body";

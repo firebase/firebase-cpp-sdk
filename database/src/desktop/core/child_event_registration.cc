@@ -35,11 +35,6 @@ bool ChildEventRegistration::RespondsTo(EventType event_type) {
 
 Event ChildEventRegistration::GenerateEvent(const Change& change,
                                             const QuerySpec& query_spec) {
-  // return Event(change.event_type, this,
-  //              DataSnapshotInternal(database_,
-  //                                   query_spec.path.GetChild(change.child_key),
-  //                                   change.indexed_variant.variant()),
-  //              change.prev_name);
   return Event(
       change.event_type, this,
       DataSnapshotInternal(database_, change.indexed_variant.variant(),

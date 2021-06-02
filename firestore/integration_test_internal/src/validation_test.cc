@@ -5,14 +5,14 @@
 #include <string>
 #include <vector>
 
-#include "firestore/src/common/macros.h"
+#include "Firestore/core/src/util/firestore_exceptions.h"
 #include "firebase/firestore.h"
+#include "firebase/firestore/firestore_errors.h"
+#include "firestore/src/common/macros.h"
 #include "firestore_integration_test.h"
-#include "util/event_accumulator.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "firebase/firestore/firestore_errors.h"
-#include "Firestore/core/src/util/firestore_exceptions.h"
+#include "util/event_accumulator.h"
 
 // These test cases are in sync with native iOS client SDK test
 //   Firestore/Example/Tests/Integration/API/FIRValidationTests.mm
@@ -597,8 +597,7 @@ TEST_F(ValidationTest, QueriesCannotBeCreatedFromDocumentsMissingSortValues) {
   }
 }
 
-TEST_F(ValidationTest,
-       QueriesCannotBeSortedByAnUncommittedServerTimestamp) {
+TEST_F(ValidationTest, QueriesCannotBeSortedByAnUncommittedServerTimestamp) {
   CollectionReference collection = Collection();
   EventAccumulator<QuerySnapshot> accumulator;
   accumulator.listener()->AttachTo(&collection);
@@ -630,7 +629,6 @@ TEST_F(ValidationTest,
                       .AddSnapshotListener([](const QuerySnapshot&, Error,
                                               const std::string&) {}));
 }
-
 
 TEST_F(ValidationTest, QueriesMustNotHaveMoreComponentsThanOrderBy) {
   CollectionReference collection = Collection();

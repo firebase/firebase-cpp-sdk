@@ -27,9 +27,9 @@
 #include <functional>
 #endif
 
+#include "firebase/firestore/firestore_errors.h"
 #include "firebase/firestore/metadata_changes.h"
 #include "firebase/firestore/source.h"
-#include "firebase/firestore/firestore_errors.h"
 
 namespace firebase {
 template <typename T>

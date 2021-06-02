@@ -1,9 +1,9 @@
 #include "firestore/src/android/geo_point_android.h"
 
+#include "firebase/firestore/geo_point.h"
 #include "firestore/src/jni/env.h"
 #include "firestore_integration_test.h"
 #include "gtest/gtest.h"
-#include "firebase/firestore/geo_point.h"
 
 namespace firebase {
 namespace firestore {

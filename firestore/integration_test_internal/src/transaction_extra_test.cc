@@ -1,9 +1,9 @@
 #include "app/src/time.h"
 #include "firebase/firestore.h"
+#include "firebase/firestore/firestore_errors.h"
 #include "firestore_integration_test.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "firebase/firestore/firestore_errors.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/transaction_android.h"
 #elif defined(FIRESTORE_STUB_BUILD)
@@ -77,31 +77,30 @@ TEST_F(TransactionExtraTest, TestReadingADocTwiceWithDifferentVersions) {
   DocumentReference doc = TestFirestore()->Collection("counters").Document();
   WriteDocument(doc, MapFieldValue{{"count", FieldValue::Double(15.0)}});
 
+  // clang-format off
   Future<void> future = TestFirestore()->RunTransaction(
       [&doc, &counter](Transaction& transaction,
                        std::string& error_message) -> Error {
-        Error error = Error::kErrorOk;
-        // Get the doc once.
-        DocumentSnapshot snapshot1 =
-            transaction.Get(doc, &error, &error_message);
-        EXPECT_EQ(Error::kErrorOk, error);
-        // Do a write outside of the transaction. Because the transaction will
-        // retry, set the document to a different value each time.
-        Await(doc.Set(
-            MapFieldValue{{"count", FieldValue::Double(1234.0 + counter)}}));
-        ++counter;
-        // Get the doc again in the transaction with the new version.
-        DocumentSnapshot snapshot2 =
-            transaction.Get(doc, &error, &error_message);
-        // We cannot check snapshot2, which is invalid as the second read would
-        // have already failed.
+    // clang-format on
+    Error error = Error::kErrorOk;
+    // Get the doc once.
+    DocumentSnapshot snapshot1 = transaction.Get(doc, &error, &error_message);
+    EXPECT_EQ(Error::kErrorOk, error);
+    // Do a write outside of the transaction. Because the transaction will
+    // retry, set the document to a different value each time.
+    Await(doc.Set(
+        MapFieldValue{{"count", FieldValue::Double(1234.0 + counter)}}));
+    ++counter;
+    // Get the doc again in the transaction with the new version.
+    DocumentSnapshot snapshot2 = transaction.Get(doc, &error, &error_message);
+    // We cannot check snapshot2, which is invalid as the second read would
+    // have already failed.
 
-        // Now try to update the doc from within the transaction.
-        // This should fail, because we read 15 earlier.
-        transaction.Set(doc,
-                        MapFieldValue{{"count", FieldValue::Double(16.0)}});
-        return error;
-      });
+    // Now try to update the doc from within the transaction.
+    // This should fail, because we read 15 earlier.
+    transaction.Set(doc, MapFieldValue{{"count", FieldValue::Double(16.0)}});
+    return error;
+  });
   Await(future);
   EXPECT_EQ(Error::kErrorAborted, future.error());
   EXPECT_STREQ("Document version changed between two reads.",

@@ -1,7 +1,7 @@
 #include <utility>
 
-#include "firestore/src/common/wrapper_assertions.h"
 #include "firebase/firestore.h"
+#include "firestore/src/common/wrapper_assertions.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/query_snapshot_android.h"
 #elif defined(FIRESTORE_STUB_BUILD)

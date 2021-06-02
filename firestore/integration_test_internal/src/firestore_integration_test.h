@@ -13,17 +13,17 @@
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/mutex.h"
+#include "app_framework.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "gtest/gtest.h"
-#include "app_framework.h"
 
 namespace firebase {
 namespace firestore {
 
-using ::app_framework::LogError;
-using ::app_framework::LogWarning;
-using ::app_framework::LogInfo;
 using ::app_framework::LogDebug;
+using ::app_framework::LogError;
+using ::app_framework::LogInfo;
+using ::app_framework::LogWarning;
 
 // The interval between checks for future completion.
 const int kCheckIntervalMillis = 100;
@@ -57,11 +57,14 @@ class EventAccumulator;
 template <typename T>
 class TestEventListener : public EventListener<T> {
  public:
-  explicit TestEventListener(std::string name) : name_(std::move(name)) {}
+  explicit TestEventListener(std::string name) : name_(std::move(name)) {
+  }
 
-  ~TestEventListener() override {}
+  ~TestEventListener() override {
+  }
 
-  void OnEvent(const T& value, Error error_code,
+  void OnEvent(const T& value,
+               Error error_code,
                const std::string& error_message) override {
     if (print_debug_info_) {
       std::cout << "TestEventListener got: ";
@@ -79,6 +82,7 @@ class TestEventListener : public EventListener<T> {
     }
 
     MutexLock lock(mutex_);
+    EXPECT_FALSE(fail_on_next_event_);
     if (error_code != Error::kErrorOk) {
       std::cerr << "ERROR: EventListener " << name_ << " got " << error_code
                 << std::endl;
@@ -93,6 +97,11 @@ class TestEventListener : public EventListener<T> {
   int event_count() const {
     MutexLock lock(mutex_);
     return static_cast<int>(last_results_.size());
+  }
+
+  void FailOnNextEvent() {
+    MutexLock lock(mutex_);
+    fail_on_next_event_ = true;
   }
 
   const T& last_result(int i = 0) {
@@ -128,7 +137,9 @@ class TestEventListener : public EventListener<T> {
   }
 
   // Set this to true to print more details for each arrived event for debug.
-  void set_print_debug_info(bool value) { print_debug_info_ = value; }
+  void set_print_debug_info(bool value) {
+    print_debug_info_ = value;
+  }
 
   // Copies events from the internal buffer, starting from `start`, up to but
   // not including `end`.
@@ -148,6 +159,7 @@ class TestEventListener : public EventListener<T> {
   // We may want the last N result. So we store all in a vector in the order
   // they arrived.
   std::vector<T> last_results_;
+  bool fail_on_next_event_ = false;
 
   // We generally only check to see if there is any error. So we only store the
   // first non-OK error, if any.
@@ -158,7 +170,7 @@ class TestEventListener : public EventListener<T> {
 };
 
 // Base class for Firestore integration tests.
-// Note it keeps a cached of created Firestore instances, and is thread-unsafe.
+// Note it keeps a cache of created Firestore instances, and is thread-unsafe.
 class FirestoreIntegrationTest : public testing::Test {
   friend class TransactionTester;
 
@@ -171,22 +183,38 @@ class FirestoreIntegrationTest : public testing::Test {
   FirestoreIntegrationTest& operator=(FirestoreIntegrationTest&&) = delete;
 
  protected:
-  App* app() { return TestFirestore()->app(); }
+  App* app() {
+    return TestFirestore()->app();
+  }
 
   // Returns a Firestore instance for an app with the given name.
   // If this method is invoked again with the same `name`, then the same pointer
   // will be returned. The only exception is if the `Firestore` was removed
-  // from the cache by a call to `DeleteFirestore()` or `DeleteApp()` with the
-  // `App` of the returned `Firestore`.
+  // from the cache by a call to `DeleteFirestore()` or `DisownFirestore()`, or
+  // if `DeleteApp()` is called with the `App` of the returned `Firestore`.
   Firestore* TestFirestore(const std::string& name = kDefaultAppName) const;
 
   // Deletes the given `Firestore` instance, which must have been returned by a
-  // previous invocation of `TestFirestore()`. If the given instance was in the
-  // cache, then it will be removed from the cache. Note that all `Firestore`
+  // previous invocation of `TestFirestore()`, and removes it from the cache of
+  // instances returned from `TestFirestore()`. Note that all `Firestore`
   // instances returned from `TestFirestore()` will be automatically deleted at
   // the end of the test case; therefore, this method is only needed if the test
-  // requires that the instance be deleted earlier than that.
+  // requires that the instance be deleted earlier than that. If the given
+  // `Firestore` instance has already been removed from the cache, such as by a
+  // previous invocation of this method, then the behavior of this method is
+  // undefined.
   void DeleteFirestore(Firestore* firestore);
+
+  // Relinquishes ownership of the given `Firestore` instance, which must have
+  // been returned by a previous invocation of `TestFirestore()`, and removes it
+  // from the cache of instances returned from `TestFirestore()`. Note that all
+  // `Firestore` instances returned from `TestFirestore()` will be automatically
+  // deleted at the end of the test case; therefore, this method is only needed
+  // if the test requires that the instance be excluded from this automatic
+  // deletion. If the given `Firestore` instance has already been removed from
+  // the cache, such as by a previous invocation of this method, then the
+  // behavior of this method is undefined.
+  void DisownFirestore(Firestore* firestore);
 
   // Deletes the given `App` instance. The given `App` must have been the `App`
   // associated with a `Firestore` instance returned by a previous invocation of
@@ -213,6 +241,10 @@ class FirestoreIntegrationTest : public testing::Test {
 
   // Return a reference to the document with auto-generated id.
   DocumentReference Document() const;
+
+  // Returns a reference to a document with auto-generated id. Writes the given
+  // data to the document and waits for the write to complete.
+  DocumentReference DocumentWithData(const MapFieldValue& data) const;
 
   // Write to the specified document and wait for the write to complete.
   void WriteDocument(DocumentReference reference,
@@ -246,6 +278,10 @@ class FirestoreIntegrationTest : public testing::Test {
 
   // Convert a QuerySnapshot to the contents of each document.
   std::vector<MapFieldValue> QuerySnapshotToValues(
+      const QuerySnapshot& snapshot) const;
+
+  // Convert a QuerySnapshot to a map from document id to document content.
+  std::map<std::string, MapFieldValue> QuerySnapshotToMap(
       const QuerySnapshot& snapshot) const;
 
   // TODO(zxu): add a helper function to block on signal.
@@ -290,9 +326,13 @@ class FirestoreIntegrationTest : public testing::Test {
 
   static std::string DescribeFailedFuture(const FutureBase& future);
 
-  void DisableNetwork() { Await(TestFirestore()->DisableNetwork()); }
+  void DisableNetwork() {
+    Await(TestFirestore()->DisableNetwork());
+  }
 
-  void EnableNetwork() { Await(TestFirestore()->EnableNetwork()); }
+  void EnableNetwork() {
+    Await(TestFirestore()->EnableNetwork());
+  }
 
   static FirestoreInternal* GetFirestoreInternal(Firestore* firestore) {
     return firestore->internal_;
@@ -306,17 +346,22 @@ class FirestoreIntegrationTest : public testing::Test {
    public:
     FirestoreInfo() = default;
     FirestoreInfo(const std::string& name, UniquePtr<Firestore>&& firestore)
-        : name_(name), firestore_(Move(firestore)) {}
+        : name_(name), firestore_(Move(firestore)) {
+    }
 
-    const std::string& name() const { return name_; }
-    Firestore* firestore() const { return firestore_.get(); }
-    bool cached() const { return cached_; }
-    void ClearCached() { cached_ = false; }
+    const std::string& name() const {
+      return name_;
+    }
+    Firestore* firestore() const {
+      return firestore_.get();
+    }
+    void ReleaseFirestore() {
+      firestore_.release();
+    }
 
    private:
     std::string name_;
     UniquePtr<Firestore> firestore_;
-    bool cached_ = true;
   };
 
   // The Firestore and App instance caches.

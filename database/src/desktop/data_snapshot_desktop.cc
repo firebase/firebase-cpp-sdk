@@ -123,7 +123,7 @@ Variant DataSnapshotInternal::GetValue() const {
   return result;
 }
 
-Variant DataSnapshotInternal::GetPriority() {
+Variant DataSnapshotInternal::GetPriority() const {
   return GetVariantPriority(data_);
 }
 

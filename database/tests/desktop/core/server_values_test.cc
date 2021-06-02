@@ -17,8 +17,8 @@
 #include <ctime>
 
 #include "database/src/include/firebase/database/common.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {

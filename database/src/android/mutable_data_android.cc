@@ -61,10 +61,6 @@ MutableDataInternal::~MutableDataInternal() {
   }
 }
 
-MutableDataInternal* MutableDataInternal::Clone() {
-  return new MutableDataInternal(db_, obj_);
-}
-
 bool MutableDataInternal::Initialize(App* app) {
   JNIEnv* env = app->GetJNIEnv();
   jobject activity = app->activity();

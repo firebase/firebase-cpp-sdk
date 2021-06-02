@@ -94,8 +94,7 @@ std::string ReportRow::toString() const {
   stream << fake_ << " " << result_ << " " << getPlatformString() << " [";
   for (int i = 0; i < args_.size(); i++) {
     stream << args_[i];
-    if (i < args_.size()-1)
-      stream << " ";
+    if (i < args_.size() - 1) stream << " ";
   }
   stream << "]";
 

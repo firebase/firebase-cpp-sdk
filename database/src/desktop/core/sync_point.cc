@@ -13,8 +13,11 @@
 // limitations under the License.
 
 #include "database/src/desktop/core/sync_point.h"
+
 #include <set>
 #include <vector>
+
+#include "app/src/log.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/event_registration.h"
 #include "database/src/desktop/core/operation.h"
@@ -23,8 +26,6 @@
 #include "database/src/desktop/view/event.h"
 #include "database/src/desktop/view/view.h"
 #include "database/src/include/firebase/database/common.h"
-
-#include "app/src/log.h"
 
 namespace firebase {
 namespace database {

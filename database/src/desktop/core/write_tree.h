@@ -18,6 +18,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+
 #include "app/src/include/firebase/variant.h"
 #include "app/src/optional.h"
 #include "app/src/path.h"

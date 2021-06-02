@@ -15,6 +15,7 @@
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
 #define __ANDROID__
 #include <jni.h>
+
 #include "testing/run_all_tests.h"
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
@@ -31,12 +32,12 @@
 #endif  // defined(__APPLE_)
 
 #include "app/src/util.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "messaging/tests/messaging_test_util.h"
 #include "testing/config.h"
 #include "testing/reporter.h"
 #include "testing/ticker.h"
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 
 using ::testing::StrEq;
 
@@ -313,14 +314,14 @@ TEST_F(MessagingTest, TestNotificationReceived) {
   EXPECT_THAT(message.notification->tag, StrEq("my_tag"));
   EXPECT_THAT(message.notification->color, StrEq("my_color"));
   EXPECT_THAT(message.notification->click_action, StrEq("my_click_action"));
-  EXPECT_THAT(
-      message.notification->body_loc_key, StrEq("my_body_localization_key"));
+  EXPECT_THAT(message.notification->body_loc_key,
+              StrEq("my_body_localization_key"));
   EXPECT_THAT(message.notification->body_loc_args[0],
-            StrEq("my_body_localization_item"));
-  EXPECT_THAT(
-      message.notification->title_loc_key, StrEq("my_title_localization_key"));
+              StrEq("my_body_localization_item"));
+  EXPECT_THAT(message.notification->title_loc_key,
+              StrEq("my_title_localization_key"));
   EXPECT_THAT(message.notification->title_loc_args[0],
-            StrEq("my_title_localization_item"));
+              StrEq("my_title_localization_item"));
   EXPECT_THAT(message.notification->android->channel_id,
               StrEq("my_android_channel_id"));
 #endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP)

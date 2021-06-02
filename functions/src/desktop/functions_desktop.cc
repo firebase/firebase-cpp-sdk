@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "functions/src/desktop/functions_desktop.h"
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"

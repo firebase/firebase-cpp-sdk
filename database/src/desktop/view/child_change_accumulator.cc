@@ -13,9 +13,11 @@
 // limitations under the License.
 
 #include "database/src/desktop/view/child_change_accumulator.h"
+
 #include <cassert>
 #include <map>
 #include <string>
+
 #include "app/src/assert.h"
 #include "database/src/desktop/view/change.h"
 #include "database/src/desktop/view/event.h"
@@ -58,7 +60,8 @@ void TrackChildChange(const Change& change,
     } else if (type == kEventTypeChildRemoved &&
                old_type == kEventTypeChildChanged) {
       // Change from kTypeChildChanged to kTypeChildRemoved => kTypeChildRemoved
-      iter->second = ChildRemovedChange(child_key, old_change.indexed_variant);
+      iter->second =
+          ChildRemovedChange(child_key, old_change.old_indexed_variant);
     } else if (type == kEventTypeChildChanged &&
                old_type == kEventTypeChildAdded) {
       // Change from kTypeChildAdded to kTypeChildChanged => kTypeChildAdded

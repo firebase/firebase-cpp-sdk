@@ -1,7 +1,7 @@
 #include <utility>
 
-#include "firestore/src/common/wrapper_assertions.h"
 #include "firebase/firestore.h"
+#include "firestore/src/common/wrapper_assertions.h"
 #include "firestore_integration_test.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"

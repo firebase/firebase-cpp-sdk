@@ -104,7 +104,8 @@ Firestore* Firestore::GetInstance(InitResult* init_result_out) {
   return Firestore::GetInstance(app, init_result_out);
 }
 
-Firestore* Firestore::CreateFirestore(App* app, FirestoreInternal* internal,
+Firestore* Firestore::CreateFirestore(App* app,
+                                      FirestoreInternal* internal,
                                       InitResult* init_result_out) {
   FIREBASE_ASSERT_MESSAGE(app != nullptr,
                           "Provided firebase::App must not be null.");
@@ -137,7 +138,8 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
 }
 
 Firestore::Firestore(::firebase::App* app)
-    : Firestore{new FirestoreInternal{app}} {}
+    : Firestore{new FirestoreInternal{app}} {
+}
 
 Firestore::Firestore(FirestoreInternal* internal)
     // TODO(wuandy): use make_unique once it is supported for our build here.
@@ -165,7 +167,9 @@ Firestore::Firestore(FirestoreInternal* internal)
   }
 }
 
-Firestore::~Firestore() { DeleteInternal(); }
+Firestore::~Firestore() {
+  DeleteInternal();
+}
 
 void Firestore::DeleteInternal() {
   MutexLock lock(*g_firestores_lock);
@@ -324,6 +328,24 @@ void Firestore::SetClientLanguage(const std::string& language_token) {
   // input in any way. This is deemed acceptable because reporting the platform
   // this way is a temporary measure.
   FirestoreInternal::SetClientLanguage(language_token + " " + GetPlatform());
+}
+
+Future<LoadBundleTaskProgress> Firestore::LoadBundle(
+    const std::string& bundle) {
+  if (!internal_) return FailedFuture<LoadBundleTaskProgress>();
+  return internal_->LoadBundle(bundle);
+}
+
+Future<LoadBundleTaskProgress> Firestore::LoadBundle(
+    const std::string& bundle,
+    std::function<void(const LoadBundleTaskProgress&)> progress_callback) {
+  if (!internal_) return FailedFuture<LoadBundleTaskProgress>();
+  return internal_->LoadBundle(bundle, std::move(progress_callback));
+}
+
+Future<Query> Firestore::NamedQuery(const std::string& query_name) {
+  if (!internal_) return FailedFuture<Query>();
+  return internal_->NamedQuery(query_name);
 }
 
 }  // namespace firestore

@@ -36,18 +36,21 @@ android {
 
   sourceSets {
     main {
-      manifest.srcFile '../../android_build_files/AndroidManifest.xml'
+      manifest.srcFile 'AndroidManifest.xml'
       java {
         srcDirs = ['../src_java/com/google/firebase/firestore/internal/cpp']
         exclude 'Dummy.java'
       }
     }
   }
+  lintOptions {
+    abortOnError false
+  }
 }
 
 dependencies {
-  implementation 'com.google.firebase:firebase-analytics:18.0.2'
-  implementation 'com.google.firebase:firebase-firestore:22.0.2'
+  implementation 'com.google.firebase:firebase-analytics:18.0.3'
+  implementation 'com.google.firebase:firebase-firestore:22.1.2'
 }
 
 afterEvaluate {

@@ -5,8 +5,8 @@
 #include <sstream>
 
 #if !defined(__ANDROID__)
-#include "absl/strings/ascii.h"
 #include "Firestore/core/src/util/autoid.h"
+#include "absl/strings/ascii.h"
 #else
 #include "android/util_autoid.h"
 #endif  // !defined(__ANDROID__)
@@ -114,7 +114,7 @@ Firestore* FirestoreIntegrationTest::TestFirestore(
     const std::string& name) const {
   for (const auto& entry : firestores_) {
     const FirestoreInfo& firestore_info = entry.second;
-    if (firestore_info.cached() && firestore_info.name() == name) {
+    if (firestore_info.name() == name) {
       return firestore_info.firestore();
     }
   }
@@ -138,6 +138,14 @@ void FirestoreIntegrationTest::DeleteFirestore(Firestore* firestore) {
   auto found = firestores_.find(firestore);
   FIREBASE_ASSERT_MESSAGE(found != firestores_.end(),
                           "The given Firestore was not found.");
+  firestores_.erase(found);
+}
+
+void FirestoreIntegrationTest::DisownFirestore(Firestore* firestore) {
+  auto found = firestores_.find(firestore);
+  FIREBASE_ASSERT_MESSAGE(found != firestores_.end(),
+                          "The given Firestore was not found.");
+  found->second.ReleaseFirestore();
   firestores_.erase(found);
 }
 
@@ -185,6 +193,13 @@ std::string FirestoreIntegrationTest::DocumentPath() const {
 
 DocumentReference FirestoreIntegrationTest::Document() const {
   return TestFirestore()->Document(DocumentPath());
+}
+
+DocumentReference FirestoreIntegrationTest::DocumentWithData(
+    const MapFieldValue& data) const {
+  DocumentReference docRef = Document();
+  WriteDocument(docRef, data);
+  return docRef;
 }
 
 void FirestoreIntegrationTest::WriteDocument(DocumentReference reference,
@@ -245,6 +260,16 @@ std::vector<MapFieldValue> FirestoreIntegrationTest::QuerySnapshotToValues(
   std::vector<MapFieldValue> result;
   for (const DocumentSnapshot& doc : snapshot.documents()) {
     result.push_back(doc.GetData());
+  }
+  return result;
+}
+
+std::map<std::string, MapFieldValue>
+FirestoreIntegrationTest::QuerySnapshotToMap(
+    const QuerySnapshot& snapshot) const {
+  std::map<std::string, MapFieldValue> result;
+  for (const DocumentSnapshot& doc : snapshot.documents()) {
+    result[doc.id()] = doc.GetData();
   }
   return result;
 }

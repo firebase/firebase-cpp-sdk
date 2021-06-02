@@ -13,6 +13,7 @@
 // limitations under the License.
 
 #include "auth/src/desktop/credential_impl.h"
+
 #include "auth/src/include/firebase/auth/credential.h"
 
 namespace firebase {

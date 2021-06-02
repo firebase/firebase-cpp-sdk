@@ -37,15 +37,11 @@
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(
-    functions,
-    {
-      FIREBASE_UTIL_RETURN_FAILURE_IF_GOOGLE_PLAY_UNAVAILABLE(*app);
-      return ::firebase::kInitResultSuccess;
-    },
-    {
-        // Nothing to tear down.
-    });
+FIREBASE_APP_REGISTER_CALLBACKS(functions,
+                                { return ::firebase::kInitResultSuccess; },
+                                {
+                                    // Nothing to tear down.
+                                });
 
 namespace firebase {
 namespace functions {
@@ -84,7 +80,6 @@ Functions* Functions::GetInstance(::firebase::App* app, const char* region,
     if (init_result_out != nullptr) *init_result_out = kInitResultSuccess;
     return it->second;
   }
-  FIREBASE_UTIL_RETURN_NULL_IF_GOOGLE_PLAY_UNAVAILABLE(*app, init_result_out);
 
   Functions* functions = new Functions(app, region_idx.c_str());
   if (!functions->internal_->initialized()) {

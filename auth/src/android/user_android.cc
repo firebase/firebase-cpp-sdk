@@ -626,7 +626,6 @@ Future<SignInResult> User::ReauthenticateWithProvider(
   return provider->Reauthenticate(auth_data_);
 }
 
-
 Future<void> User::SendEmailVerification() {
   if (!ValidUser(auth_data_)) {
     return Future<void>();

@@ -194,7 +194,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        stl: ["c++", "gnustl", "stlport"]
+        stl: ["c++", "gnustl"]
     steps:
       - name: fetch SDK
         uses: actions/checkout@v2.3.1
@@ -327,6 +327,14 @@ jobs:
         with:
           python-version: ${{ matrix.python_version }}
 
+      - name: Update homebrew (avoid bintray errors)
+        if: runner.os == 'macOS'
+        run: |
+          # Temporarily here until Github runners have updated their version of
+          # homebrew. This prevents errors arising from the shut down of
+          # binutils, used by older version of homebrew for hosting packages.
+          brew update
+
       - name: Install prerequisites
         run: |
           python scripts/gha/install_prereqs_desktop.py
@@ -365,10 +373,6 @@ jobs:
         with:
           name: firebase-cpp-sdk-${{ env.SDK_NAME }}-build
           path: firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz
-
-      - name: Stats for ccache (mac and linux)
-        if: startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')
-        run: ccache -s
 
   package_desktop:
     name: package-${{ matrix.sdk_platform }}${{ matrix.suffix }}
@@ -435,6 +439,14 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: 3.7
+
+      - name: Update homebrew (avoid bintray errors)
+        if: runner.os == 'macOS'
+        run: |
+          # Temporarily here until Github runners have updated their version of
+          # homebrew. This prevents errors arising from the shut down of
+          # binutils, used by older version of homebrew for hosting packages.
+          brew update
 
       - name: Install prerequisites
         run: |
@@ -665,7 +677,7 @@ jobs:
       with:
         python-version: '3.7'
     - name: Use expanded matrix
-      if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1'
+      if: github.event.inputs.use_expanded_matrix == '1'
       run: |
         echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
     - name: Generate token for GitHub API

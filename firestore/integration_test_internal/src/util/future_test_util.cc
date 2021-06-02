@@ -2,8 +2,8 @@
 
 #include <ostream>
 
-#include "firestore_integration_test.h"
 #include "firebase/firestore/firestore_errors.h"
+#include "firestore_integration_test.h"
 
 namespace firebase {
 

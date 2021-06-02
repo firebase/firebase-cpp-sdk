@@ -15,10 +15,10 @@
 #ifndef FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_TRACKED_QUERY_MANAGER_H_
 #define FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_TRACKED_QUERY_MANAGER_H_
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/tracked_query_manager.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace database {

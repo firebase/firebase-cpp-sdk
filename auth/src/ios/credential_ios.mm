@@ -166,9 +166,16 @@ Future<Credential> GameCenterAuthProvider::GetCredential() {
   FIREBASE_ASSERT(future_api != nullptr);
 
   const auto handle = future_api->SafeAlloc<Credential>(kCredentialFn_GameCenterGetCredential);
+  /**
+   Linking GameKit.framework without using it on macOS results in App Store rejection.
+   Thus we don't link GameKit.framework to our SDK directly. `optionalLocalPlayer` is used for
+   checking whether the APP that consuming our SDK has linked GameKit.framework. If not, will
+   complete with kAuthErrorInvalidCredential error.
+   **/
+  GKLocalPlayer *_Nullable optionalLocalPlayer = [[NSClassFromString(@"GKLocalPlayer") alloc] init];
 
   // Early-out if GameKit is not linked
-  if ([GKLocalPlayer class] == nullptr) {
+  if (!optionalLocalPlayer) {
     future_api->Complete(handle, kAuthErrorInvalidCredential,
                        "GameCenter authentication is unavailable - missing GameKit capability.");
     return MakeFuture(future_api, handle);
@@ -197,11 +204,18 @@ Future<Credential> GameCenterAuthProvider::GetCredentialLastResult() {
 
 // static
 bool GameCenterAuthProvider::IsPlayerAuthenticated() {
+  /**
+   Linking GameKit.framework without using it on macOS results in App Store rejection.
+   Thus we don't link GameKit.framework to our SDK directly. `optionalLocalPlayer` is used for
+   checking whether the APP that consuming our SDK has linked GameKit.framework. If not, 
+   early out.
+   **/
+  GKLocalPlayer *_Nullable optionalLocalPlayer = [[NSClassFromString(@"GKLocalPlayer") alloc] init];
   // If the GameKit Framework isn't linked - early out.
-  if ([GKLocalPlayer class] == nullptr) {
+  if (!optionalLocalPlayer) {
     return false;
   }
-  GKLocalPlayer *localPlayer = [GKLocalPlayer localPlayer];
+  __weak GKLocalPlayer *localPlayer = [[optionalLocalPlayer class] localPlayer];
   return localPlayer.isAuthenticated;
 }
 

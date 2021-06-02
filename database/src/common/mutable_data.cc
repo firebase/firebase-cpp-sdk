@@ -52,19 +52,6 @@ MutableData::MutableData(MutableDataInternal* internal) : internal_(internal) {
   CleanupFnMutableData::Register(this, internal_);
 }
 
-MutableData::MutableData(const MutableData& rhs)
-    : internal_(rhs.internal_ ? rhs.internal_->Clone() : nullptr) {
-  CleanupFnMutableData::Register(this, internal_);
-}
-
-MutableData& MutableData::operator=(const MutableData& rhs) {
-  CleanupFnMutableData::Unregister(this, internal_);
-  if (internal_) delete internal_;
-  internal_ = rhs.internal_ ? rhs.internal_->Clone() : nullptr;
-  CleanupFnMutableData::Register(this, internal_);
-  return *this;
-}
-
 #if defined(FIREBASE_USE_MOVE_OPERATORS)
 MutableData::MutableData(MutableData&& rhs) : internal_(rhs.internal_) {
   rhs.internal_ = nullptr;

@@ -15,8 +15,9 @@
  */
 
 #include "app/src/assert.h"
-#include "gtest/gtest.h"
+
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace {
@@ -43,9 +44,7 @@ void TestLogCallback(LogLevel log_level, const char* message,
 
 class AssertTest : public ::testing::Test {
  public:
-  ~AssertTest() override {
-    LogSetCallback(nullptr, nullptr);
-  }
+  ~AssertTest() override { LogSetCallback(nullptr, nullptr); }
 };
 
 // Tests that check the functionality of FIREBASE_ASSERT_* macros in both debug

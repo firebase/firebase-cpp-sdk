@@ -20,10 +20,10 @@ python summarize_test_results.py --dir <directory> [--markdown]
 
 Example table mode output (will be slightly different with --markdown):
 
-| Platform                  | Build failures | Test failures   |
-|---------------------------|----------------|-----------------|
-| iOS (build on iOS)        |                | auth, firestore |
-| Desktop Windows (OpenSSL) | analytics      | database        |
+| Platform (Build Config)   | Build failures | Test failures (Test Devices) |
+|---------------------------|----------------|------------------------------|
+| iOS (build on iOS)        |                | auth (device1, device2)      |
+| Desktop Windows (OpenSSL) | analytics      | database                     |
 
 python summarize_test_results.py --dir <directory> <--text_log | --github_log>
 
@@ -53,11 +53,6 @@ flags.DEFINE_string(
     "dir", None,
     "Directory containing test results.",
     short_name="d")
-
-flags.DEFINE_string(
-    "pattern", "test-results-*.txt",
-    "File pattern (glob) for test results."
-    "The '*' part is used to determine the platform.")
 
 flags.DEFINE_bool(
     "include_successful", False,
@@ -90,9 +85,15 @@ CAPITALIZATIONS = {
     "desktop": "Desktop",
 }
 
-PLATFORM_HEADER = "Platform"
+BUILD_FILE_PATTERN = "build-results-*.log"
+TEST_FILE_PATTERN = "test-results-*.log"
+
+SIMULATOR = "simulator"
+HARDWARE = "hardware"
+
+PLATFORM_HEADER = "Platform (Build Config)"
 BUILD_FAILURES_HEADER = "Build failures"
-TEST_FAILURES_HEADER = "Test failures"
+TEST_FAILURES_HEADER = "Test failures (Test Devices)"
 SUCCESSFUL_TESTS_HEADER = "Successful tests"
 
 LOG_HEADER = "INTEGRATION TEST FAILURES"
@@ -202,7 +203,9 @@ def print_log(log_results):
 def print_github_log(log_results):
   """Print a text log, but replace newlines with %0A and add
   the GitHub ::error text."""
-  output_lines = [LOG_HEADER, ""] + print_log(log_results)
+  output_lines = [LOG_HEADER,
+                  "".ljust(len(LOG_HEADER), "—"),
+                  ""] + print_log(log_results)
   # "%0A" produces a newline in GitHub workflow logs.
   return ["::error ::%s" % "%0A".join(output_lines)]
 
@@ -218,57 +221,42 @@ def main(argv):
   if len(argv) > 1:
       raise app.UsageError("Too many command-line arguments.")
 
-  log_files = glob.glob(os.path.join(FLAGS.dir, FLAGS.pattern))
-
+  build_log_files = glob.glob(os.path.join(FLAGS.dir, BUILD_FILE_PATTERN))
+  test_log_files = glob.glob(os.path.join(FLAGS.dir, TEST_FILE_PATTERN))
   # Replace the "*" in the file glob with a regex capture group,
   # so we can report the test name.
-  log_name_re = re.escape(
-      os.path.join(FLAGS.dir,FLAGS.pattern)).replace("\\*", "(.*)")
+  build_log_name_re = re.escape(
+      os.path.join(FLAGS.dir,BUILD_FILE_PATTERN)).replace("\\*", "(.*)")
+  test_log_name_re = re.escape(
+      os.path.join(FLAGS.dir,TEST_FILE_PATTERN)).replace("\\*", "(.*)")
 
   any_failures = False
   log_data = {}
 
-  for log_file in log_files:
-      # Extract the matrix name for this log.
-      log_name = re.search(log_name_re, log_file).groups(1)[0]
-      # Split the matrix name into components.
-      log_name = re.sub(r'[-_.]+', ' ', log_name).split()
-      # Remove redundant components.
-      if "latest" in log_name: log_name.remove("latest")
-      if "Android" in log_name or "iOS" in log_name:
-          log_name.remove('openssl')
-      # Capitalize components in a nice way.
-      log_name = [
-          CAPITALIZATIONS[name.lower()]
-          if name.lower() in CAPITALIZATIONS
-          else name
-          for name in log_name]
-      if "Android" in log_name or "iOS" in log_name:
-        # For Android and iOS, highlight the target OS.
-        log_name[0] = "(built on %s)" % log_name[0]
-        if FLAGS.markdown:
-          log_name[1] = "**%s**" % log_name[1]
-      elif FLAGS.markdown:
-        # For desktop, highlight the entire platform string.
-        log_name[0] = "%s**" % log_name[0]
-        log_name[1] = "**%s" % log_name[1]
-      # Rejoin matrix name with spaces.
-      log_name = ' '.join([log_name[1], log_name[0]]+log_name[2:])
-      with open(log_file, "r") as log_reader:
-          log_data[log_name] = log_reader.read()
+  for build_log_file in build_log_files:
+    log_name_str, _ = format_log_file_name(build_log_file, build_log_name_re)
+    with open(build_log_file, "r") as log_reader:
+      log_reader_data = log_reader.read()
+      log_data[log_name_str] = { "build_log": log_reader_data, "test_logs": dict()}
+
+  for test_log_file in test_log_files:
+    log_name_str, test_device = format_log_file_name(test_log_file, test_log_name_re)
+    with open(test_log_file, "r") as log_reader:
+      log_reader_data = log_reader.read()
+      log_data[log_name_str]["test_logs"][test_device] = log_reader_data
 
   log_results = {}
   # Go through each log and extract out the build and test failures.
-  for (platform, log_text) in log_data.items():
+  for (platform, logs) in log_data.items():
     if platform not in log_results:
       log_results[platform] = { "build_failures": set(), "test_failures": set(),
                                 "attempted": set(), "successful": set() }
     # Get a full list of the products built.
-    m = re.search(r'TRIED TO BUILD: ([^\n]*)', log_text)
+    m = re.search(r'TRIED TO BUILD: ([^\n]*)', logs["build_log"])
     if m:
       log_results[platform]["attempted"].update(m.group(1).split(","))
     # Extract build failure lines, which follow "SOME FAILURES OCCURRED:"
-    m = re.search(r'SOME FAILURES OCCURRED:\n(([\d]+:[^\n]*\n)+)', log_text, re.MULTILINE)
+    m = re.search(r'SOME FAILURES OCCURRED:\n(([\d]+:[^\n]*\n)+)', logs["build_log"], re.MULTILINE)
     if m:
       for build_failure_line in m.group(1).strip("\n").split("\n"):
         m2 = re.match(r'[\d]+: ([^,]+)', build_failure_line)
@@ -278,30 +266,55 @@ def main(argv):
             log_results[platform]["build_failures"].add(product_name)
             any_failures = True
 
-    # Extract test failures, which follow "TESTAPPS EXPERIENCED ERRORS:"
-    m = re.search(r'TESTAPPS (EXPERIENCED ERRORS|FAILED):\n(([^\n]*\n)+)', log_text, re.MULTILINE)
-    if m:
-      for test_failure_line in m.group(2).strip("\n").split("\n"):
-        # Only get the lines showing paths.
-        if "/firebase-cpp-sdk/" not in test_failure_line: continue
-        test_filename = "";
-        if "log tail" in test_failure_line:
-          test_filename = re.match(r'^(.*) log tail', test_failure_line).group(1)
-        if "lacks logs" in test_failure_line:
-          test_filename = re.match(r'^(.*) lacks logs', test_failure_line).group(1)
-        if "it-debug.apk" in test_failure_line:
-          test_filename = re.match(r'^(.*it-debug\.apk)', test_failure_line).group(1)
-        if "integration_test.ipa" in test_failure_line:
-          test_filename = re.match(r'^(.*integration_test\.ipa)', test_failure_line).group(1)
+    test_failures = {}
+    # Extract test failures.
+    # (.*) Greedy match, which follows "TESTAPPS FAILED:" and skips "TESTAPPS EXPERIENCED ERRORS:"
+    # (.*?) Nongreedy match, which follows "TESTAPPS EXPERIENCED ERRORS:"
+    pattern = r'^TEST SUMMARY(.*?)TESTAPPS (EXPERIENCED ERRORS|FAILED):\n(([^\n]*\n)+)'
+    for (test_device, test_log) in logs["test_logs"].items():
+      m = re.search(pattern, test_log, re.MULTILINE | re.DOTALL)
+      if m:
+        for test_failure_line in m.group(3).strip("\n").split("\n"):
+          # Don't process this if meet another TEST SUMMARY
+          if "TEST SUMMARY" in test_failure_line: break
+          # Only get the lines showing paths.
+          if "/firebase-cpp-sdk/" not in test_failure_line: continue
+          test_filename = ""
+          if "log tail" in test_failure_line:
+            test_filename = re.match(r'^(.*) log tail', test_failure_line).group(1)
+          elif "lacks logs" in test_failure_line:
+            test_filename = re.match(r'^(.*) lacks logs', test_failure_line).group(1)
+          elif "it-debug.apk" in test_failure_line:
+            test_filename = re.match(r'^(.*it-debug\.apk)', test_failure_line).group(1)
+          elif "integration_test.ipa" in test_failure_line:
+            test_filename = re.match(r'^(.*integration_test\.ipa)', test_failure_line).group(1)
+          elif "integration_test.app" in test_failure_line:
+            test_filename = re.match(r'^(.*integration_test\.app)', test_failure_line).group(1)
+          elif "integration_test" in test_failure_line:
+            test_filename = re.match(r'^(.*integration_test)', test_failure_line).group(1)
+          elif "integration_test.exe" in test_failure_line:
+            test_filename = re.match(r'^(.*integration_test\.exe)', test_failure_line).group(1)
 
-        if test_filename:
-          m2 = re.search(r'/ta/(firebase)?([^/]+)/iti?/', test_filename, re.IGNORECASE)
-          if not m2: m2 = re.search(r'/testapps/(firebase)?([^/]+)/integration_test', test_filename, re.IGNORECASE)
-          if m2:
-            product_name = m2.group(2).lower()
-            if product_name:
-              log_results[platform]["test_failures"].add(product_name)
-              any_failures = True
+          if test_filename:
+            m2 = re.search(r'/testapps(.*?)/(.*?)/', test_filename, re.IGNORECASE)
+            if m2:
+              dirs = m2.group(0).split("/")
+              product_name = dirs[2]
+              if product_name in test_failures.keys():
+                test_failures[product_name].append(test_device)
+              else:
+                test_failures[product_name] = [test_device]
+            any_failures = True
+
+    for (product_name, test_devices) in test_failures.items():
+      if "Android" in platform or "iOS" in platform:
+        if len(test_devices) == len(logs["test_logs"]): 
+          log_results[platform]["test_failures"].add("%s (all devices)" % product_name) 
+        else:
+          test_devices.sort()
+          log_results[platform]["test_failures"].add("%s (%s)" % (product_name, ', '.join(test_devices)))
+      else:
+        log_results[platform]["test_failures"].add(product_name)
 
   # After processing all the logs, we can determine the successful builds for each platform.
   for platform in log_results.keys():
@@ -325,6 +338,37 @@ def main(argv):
     log_lines = print_text_table(log_results)
 
   print("\n".join(log_lines))
+
+
+def format_log_file_name(file_name, file_name_re):
+  # Extract the matrix name for this log.
+  log_name = re.search(file_name_re, file_name).groups(1)[0]
+  # Split the matrix name into components.
+  log_name = re.sub('-', ' ', log_name).split()
+  # Remove redundant components.
+  if "latest" in log_name: log_name.remove("latest")
+  # Capitalize components in a nice way.
+  log_name = [
+      CAPITALIZATIONS[name.lower()]
+      if name.lower() in CAPITALIZATIONS
+      else name
+      for name in log_name]
+  extra_config = []
+  if "Android" in log_name or "iOS" in log_name:
+    # For Android and iOS, highlight the target OS.
+    log_name[1] = "(built on %s)" % log_name[1]
+    if len(log_name) >= 3:
+      extra_config = log_name[2:]
+      log_name = log_name[:2]
+    if FLAGS.markdown:
+      log_name[0] = "**%s**" % log_name[0]
+  elif FLAGS.markdown:
+    # For desktop, highlight the entire platform string.
+    log_name[0] = "**%s" % log_name[0]
+    log_name[1] = "%s**" % log_name[1]
+  
+  return ' '.join(log_name), '-'.join(extra_config)  
+
 
 if __name__ == "__main__":
   flags.mark_flag_as_required("dir")

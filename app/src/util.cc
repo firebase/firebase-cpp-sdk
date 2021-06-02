@@ -108,7 +108,7 @@ static void PerformInitialize(ModuleInitializerData* data) {
           },
           data);
     }
-#else  // !FIREBASE_PLATFORM_ANDROID
+#else   // !FIREBASE_PLATFORM_ANDROID
     // Outside of Android, we shouldn't get kInitResultFailedMissingDependency.
     FIREBASE_ASSERT(init_result != kInitResultFailedMissingDependency);
 #endif  // FIREBASE_PLATFORM_ANDROID

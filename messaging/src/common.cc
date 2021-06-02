@@ -15,6 +15,7 @@
 #include "messaging/src/common.h"
 
 #include <assert.h>
+
 #include <queue>
 
 #include "app/src/cleanup_notifier.h"
@@ -24,19 +25,19 @@
 #include "messaging/src/include/firebase/messaging.h"
 
 // Register the module initializer.
-FIREBASE_APP_REGISTER_CALLBACKS(messaging,
-                                {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    return firebase::messaging::Initialize(
-                                        *app, nullptr);
-                                  }
-                                  return kInitResultSuccess;
-                                },
-                                {
-                                  if (app == ::firebase::App::GetInstance()) {
-                                    firebase::messaging::Terminate();
-                                  }
-                                });
+FIREBASE_APP_REGISTER_CALLBACKS(
+    messaging,
+    {
+      if (app == ::firebase::App::GetInstance()) {
+        return firebase::messaging::Initialize(*app, nullptr);
+      }
+      return kInitResultSuccess;
+    },
+    {
+      if (app == ::firebase::App::GetInstance()) {
+        firebase::messaging::Terminate();
+      }
+    });
 
 namespace firebase {
 namespace messaging {

@@ -14,9 +14,9 @@
 
 #include "app/tests/flexbuffer_matcher.h"
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "flatbuffers/flexbuffers.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::Not;
 

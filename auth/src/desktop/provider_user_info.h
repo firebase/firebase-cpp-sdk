@@ -17,6 +17,7 @@
 
 #include <string>
 #include <vector>
+
 #include "auth/src/desktop/user_desktop.h"
 #include "auth/src/include/firebase/auth/user.h"
 

@@ -20,6 +20,7 @@
 #define FIREBASE_APP_CLIENT_CPP_SRC_INVITES_INVITES_RECEIVER_INTERNAL_H_
 
 #include <string>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/include/firebase/future.h"
 #include "app/src/invites/cached_receiver.h"

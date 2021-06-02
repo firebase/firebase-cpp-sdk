@@ -17,8 +17,8 @@
 #include "app/rest/www_form_url_encoded.h"
 
 #include "app/rest/util.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace rest {
@@ -43,10 +43,11 @@ TEST_F(WwwFormUrlEncodedTest, AddFields) {
   form.Add("bash", "bish bosh");
   form.Add("h:&=l\nlo", "g@@db=\r\tye&\xfe");
   form.Add(WwwFormUrlEncoded::Item("hip", "hop"));
-  EXPECT_EQ("foo=bar&bash=bish%20bosh&"
-            "h%3A%26%3Dl%0Alo=g%40%40db%3D%0D%09ye%26%FE&"
-            "hip=hop",
-            form.form_data());
+  EXPECT_EQ(
+      "foo=bar&bash=bish%20bosh&"
+      "h%3A%26%3Dl%0Alo=g%40%40db%3D%0D%09ye%26%FE&"
+      "hip=hop",
+      form.form_data());
 }
 
 TEST_F(WwwFormUrlEncodedTest, ParseEmpty) {

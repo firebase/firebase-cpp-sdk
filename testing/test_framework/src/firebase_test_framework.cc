@@ -15,6 +15,9 @@
 #include "firebase_test_framework.h"  // NOLINT
 
 #include <cstdio>
+#include <cstring>
+#include <string>
+#include <vector>
 
 #include "firebase/future.h"
 
@@ -96,9 +99,34 @@ void FirebaseTest::TerminateApp() {
   app_ = nullptr;
 }
 
+bool FirebaseTest::RunFlakyBlockBase(bool (*flaky_block)(void* context),
+                                     void* context, const char* name) {
+  // Run flaky_block(context). If it returns true, all is well, return true.
+  // If it returns false, something flaky failed; wait a moment and try again.
+  const int kRetryDelaysMs[] = {// Roughly exponential backoff for the retries.
+                                100, 1000, 5000, 10000, 30000};
+  const int kNumAttempts =
+      1 + (sizeof(kRetryDelaysMs) / sizeof(kRetryDelaysMs[0]));
+
+  int attempt = 0;
+
+  while (attempt < kNumAttempts) {
+    bool result = flaky_block(context);
+    if (result || (attempt == kNumAttempts - 1)) {
+      return result;
+    }
+    app_framework::LogDebug("RunFlakyBlock%s%s: Attempt %d failed",
+                            *name ? " " : "", name, attempt + 1);
+    int delay_ms = kRetryDelaysMs[attempt];
+    app_framework::ProcessEvents(delay_ms);
+    attempt++;
+  }
+  return false;
+}
+
 firebase::FutureBase FirebaseTest::RunWithRetryBase(
-    firebase::FutureBase (*run_future)(void* context),
-    void* context, const char* name, int expected_error) {
+    firebase::FutureBase (*run_future)(void* context), void* context,
+    const char* name, int expected_error) {
   // Run run_future(context), which returns a Future, then wait for that Future
   // to complete. If the Future returns Invalid, or if its error() does
   // not match expected_error, pause a moment and try again.
@@ -107,18 +135,17 @@ firebase::FutureBase FirebaseTest::RunWithRetryBase(
   // However, if it reaches the last attempt, it will return immediately once
   // the operation begins. This is because at this point we want to return the
   // results whether or not the operation succeeds.
-  const int kRetryDelaysMs[] = {
-    // Roughly exponential backoff for the retries.
-    100, 1000, 5000, 10000, 30000
-  };
-  const int kNumAttempts = 1+(sizeof(kRetryDelaysMs) / sizeof(kRetryDelaysMs[0]));
+  const int kRetryDelaysMs[] = {// Roughly exponential backoff for the retries.
+                                100, 1000, 5000, 10000, 30000};
+  const int kNumAttempts =
+      1 + (sizeof(kRetryDelaysMs) / sizeof(kRetryDelaysMs[0]));
 
   int attempt = 0;
   firebase::FutureBase future;
 
   while (attempt < kNumAttempts) {
     future = run_future(context);
-    if (attempt == kNumAttempts-1) {
+    if (attempt == kNumAttempts - 1) {
       // This is the last attempt, return immediately.
       break;
     }
@@ -130,16 +157,12 @@ firebase::FutureBase FirebaseTest::RunWithRetryBase(
     if (future.status() != firebase::kFutureStatusComplete) {
       app_framework::LogDebug(
           "RunWithRetry%s%s: Attempt %d returned invalid status",
-          *name?" ":"",
-          name, attempt+1);
-    }
-    else if (future.error() != expected_error) {
+          *name ? " " : "", name, attempt + 1);
+    } else if (future.error() != expected_error) {
       app_framework::LogDebug(
           "RunWithRetry%s%s: Attempt %d returned error %d, expected %d",
-          *name?" ":"",
-          name, attempt+1, future.error(), expected_error);
-    }
-    else {
+          *name ? " " : "", name, attempt + 1, future.error(), expected_error);
+    } else {
       // Future is completed and the error matches what's expected, no need to
       // retry further.
       break;
@@ -147,8 +170,7 @@ firebase::FutureBase FirebaseTest::RunWithRetryBase(
     int delay_ms = kRetryDelaysMs[attempt];
     app_framework::LogDebug(
         "RunWithRetry%s%s: Pause %d milliseconds before retrying.",
-        *name?" ":"",
-        name, delay_ms);
+        *name ? " " : "", name, delay_ms);
     app_framework::ProcessEvents(delay_ms);
     attempt++;
   }
@@ -168,6 +190,17 @@ bool FirebaseTest::WaitForCompletion(const firebase::FutureBase& future,
       << future.error_message();
   return (future.status() == firebase::kFutureStatusComplete &&
           future.error() == expected_error);
+}
+
+bool FirebaseTest::WaitForCompletionAnyResult(
+    const firebase::FutureBase& future, const char* name) {
+  app_framework::LogDebug("WaitForCompletion %s", name);
+  while (future.status() == firebase::kFutureStatusPending) {
+    app_framework::ProcessEvents(100);
+  }
+  EXPECT_EQ(future.status(), firebase::kFutureStatusComplete)
+      << name << " returned an invalid status.";
+  return (future.status() == firebase::kFutureStatusComplete);
 }
 
 static void VariantToStringInternal(const firebase::Variant& variant,
@@ -264,7 +297,72 @@ std::ostream& operator<<(std::ostream& os, const Variant& v) {
 }
 }  // namespace firebase
 
+namespace {
+
+std::vector<std::string> ArgcArgvToVector(int argc, char* argv[]) {
+  std::vector<std::string> args_vector;
+  for (int i = 0; i < argc; ++i) {
+    args_vector.push_back(argv[i]);
+  }
+  return args_vector;
+}
+
+char** VectorToArgcArgv(const std::vector<std::string>& args_vector,
+                        int* argc) {
+  char** argv = new char*[args_vector.size()];
+  for (int i = 0; i < args_vector.size(); ++i) {
+    const char* arg = args_vector[i].c_str();
+    char* arg_copy = new char[std::strlen(arg) + 1];
+    std::strcpy(arg_copy, arg);
+    argv[i] = arg_copy;
+  }
+  *argc = static_cast<int>(args_vector.size());
+  return argv;
+}
+
+/**
+ * Makes changes to argc and argv before passing them to `InitGoogleTest`.
+ *
+ * This function is a convenience function for developers to edit during
+ * development/debugging to customize the the arguments specified to googletest
+ * when directly specifying command-line arguments is not available, such as on
+ * Android and iOS. For example, to debug a specific test, add the
+ * --gtest_filter argument, and to list all tests add the --gtest_list_tests
+ * argument.
+ *
+ * @param argc A pointer to the `argc` that will be specified to
+ * `InitGoogleTest`; the integer to which this pointer points will be updated
+ * with the new length of `argv`.
+ * @param argv The `argv` that contains the arguments that would have otherwise
+ * been specified to `InitGoogleTest()`; they will not be modified.
+ *
+ * @return The new `argv` to be specified to `InitGoogleTest()`.
+ */
+char** EditMainArgsForGoogleTest(int* argc, char* argv[]) {
+  // Put the args into a vector of strings because modifying string objects in
+  // a vector is far easier than modifying a char** array.
+  const std::vector<std::string> original_args = ArgcArgvToVector(*argc, argv);
+  std::vector<std::string> modified_args(original_args);
+
+  // Add elements to the `modified_args` vector to specify to googletest.
+  // e.g. modified_args.push_back("--gtest_list_tests");
+  // e.g. modified_args.push_back("--gtest_filter=MyTestFixture.MyTest");
+
+  // Avoid the memory leaks documented below if there were no arg changes.
+  if (modified_args == original_args) {
+    return argv;
+  }
+
+  // Create a new `argv` with the elements from the `modified_args` vector and
+  // write the new count back to `argc`. The memory leaks produced by
+  // `VectorToArgcArgv` acceptable because they last for the entire application.
+  return VectorToArgcArgv(modified_args, argc);
+}
+
+}  // namespace
+
 extern "C" int common_main(int argc, char* argv[]) {
+  argv = EditMainArgsForGoogleTest(&argc, argv);
   ::testing::InitGoogleTest(&argc, argv);
   firebase_test_framework::FirebaseTest::SetArgs(argc, argv);
   app_framework::SetLogLevel(app_framework::kDebug);

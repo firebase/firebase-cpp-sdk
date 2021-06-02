@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "remote_config/src/desktop/file_manager.h"
+
 #include <cstdint>
 #include <fstream>
 #include <map>
@@ -20,7 +22,6 @@
 #include <utility>
 
 #include "remote_config/src/desktop/config_data.h"
-#include "remote_config/src/desktop/file_manager.h"
 
 namespace firebase {
 namespace remote_config {

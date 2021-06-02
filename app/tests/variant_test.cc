@@ -16,8 +16,8 @@
 
 #include "app/src/include/firebase/variant.h"
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::AnyOf;
 using ::testing::ElementsAre;
@@ -41,9 +41,7 @@ class VariantInternal {
   static constexpr uint32_t kInternalTypeSmallString =
       Variant::kInternalTypeSmallString;
 
-  static uint32_t type(const Variant& v) {
-    return v.type_;
-  }
+  static uint32_t type(const Variant& v) { return v.type_; }
 };
 }  // namespace internal
 }  // namespace firebase
@@ -55,7 +53,7 @@ namespace testing {
 
 const int64_t kTestInt64 = 12345L;
 const char* kTestString = "Hello, world!";
-const std::string kTestSmallString = "<eight"; // NOLINT
+const std::string kTestSmallString = "<eight";  // NOLINT
 // Note: Mutable string needs to be bigger than the small string optimisation
 const std::string kTestMutableString =  // NOLINT
     "I am just great, thanks for asking!";
@@ -375,20 +373,10 @@ TEST_F(VariantTest, TestConstructingVectorViaTemplate) {
                           Property(&Variant::double_value, Eq(4)))));
   }
   {
-    std::vector<const char*> list1 {
-      "hello",
-      "world",
-      "how",
-      "are",
-      "you with more chars"
-    };
-    std::vector<std::string> list2 {
-      "hello",
-      "world",
-      "how",
-      "are",
-      "you with more chars"
-    };
+    std::vector<const char*> list1{"hello", "world", "how", "are",
+                                   "you with more chars"};
+    std::vector<std::string> list2{"hello", "world", "how", "are",
+                                   "you with more chars"};
     Variant v1(list1), v2(list2);
     EXPECT_THAT(
         v1.vector(),

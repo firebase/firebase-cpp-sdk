@@ -18,6 +18,7 @@
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
 #include <jni.h>
+
 #include "testing/run_all_tests.h"
 #elif defined(__APPLE__) && TARGET_OS_IPHONE
 #include "testing/ticker_ios.h"
@@ -30,8 +31,8 @@
 #include <memory>
 #include <vector>
 
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/ticker.h"
 
 namespace firebase {
@@ -57,8 +58,8 @@ class Tickers {
  public:
   Tickers(std::initializer_list<int64_t> delays) {
     JNIEnv* android_jni_env = GetTestJniEnv();
-    jclass class_obj = android_jni_env->FindClass(
-        "com/google/testing/TickerExample");
+    jclass class_obj =
+        android_jni_env->FindClass("com/google/testing/TickerExample");
     jmethodID methid_id =
         android_jni_env->GetMethodID(class_obj, "<init>", "(J)V");
     for (int64_t delay : delays) {

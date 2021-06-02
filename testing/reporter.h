@@ -68,8 +68,7 @@ class Reporter {
 
   void reset();
   void addExpectation(const ReportRow& expectation);
-  void addExpectation(std::string fake, std::string result,
-                      Platform platform,
+  void addExpectation(std::string fake, std::string result, Platform platform,
                       std::initializer_list<std::string> args);
 
   std::vector<ReportRow> getExpectations();

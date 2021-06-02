@@ -15,6 +15,7 @@
  */
 
 #include "admob/src/include/firebase/admob/interstitial_ad.h"
+
 #include "admob/src/common/admob_common.h"
 #include "admob/src/common/interstitial_ad_internal.h"
 #include "app/src/assert.h"

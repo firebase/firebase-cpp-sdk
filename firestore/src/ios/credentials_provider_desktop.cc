@@ -3,12 +3,13 @@
 #include <string>
 #include <utility>
 
+#include "Firestore/core/src/util/status.h"
 #include "app/src/function_registry.h"
 #include "app/src/reference_counted_future_impl.h"
+#include "firebase/auth/types.h"
+#include "firebase/firestore/firestore_errors.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/hard_assert_common.h"
-#include "firebase/firestore/firestore_errors.h"
-#include "Firestore/core/src/util/status.h"
 
 namespace firebase {
 namespace firestore {
@@ -18,8 +19,38 @@ using auth::CredentialChangeListener;
 using auth::Token;
 using auth::TokenListener;
 using auth::User;
+using firebase::auth::AuthError;
 using util::Status;
 using util::StatusOr;
+
+/**
+ * Takes an integer that represents an `AuthError` enum value, and returns a
+ * `firestore::Error` that best describes the given `AuthError`.
+ */
+Error FirestoreErrorFromAuthError(int error) {
+  switch (error) {
+    case AuthError::kAuthErrorNone:
+      return kErrorNone;
+    case AuthError::kAuthErrorUnimplemented:
+      return kErrorUnimplemented;
+    case AuthError::kAuthErrorFailure:
+      return kErrorInternal;
+    case AuthError::kAuthErrorNetworkRequestFailed:
+      return kErrorUnavailable;
+    case AuthError::kAuthErrorCancelled:
+      return kErrorCancelled;
+    case AuthError::kAuthErrorInvalidCustomToken:
+    case AuthError::kAuthErrorInvalidCredential:
+    case AuthError::kAuthErrorUserDisabled:
+    case AuthError::kAuthErrorUserNotFound:
+    case AuthError::kAuthErrorInvalidUserToken:
+    case AuthError::kAuthErrorUserTokenExpired:
+    case AuthError::kAuthErrorNoSignedInUser:
+      return kErrorUnauthenticated;
+    default:
+      return kErrorUnknown;
+  }
+}
 
 /**
  * Returns a Future that, when completed, will contain the token for the
@@ -58,12 +89,9 @@ User GetCurrentUser(App& app) {
 StatusOr<Token> ConvertToken(const Future<std::string>& future, App& app) {
   if (future.error() != Error::kErrorOk) {
     // `AuthError` is a different error domain from go/canonical-codes that
-    // `Status` uses, so it can't be converted directly. Instead, use
-    // `kErrorUnknown` in the `Status` because the error code from the future
-    // is "from a different error domain".
-    // TODO(b/174485290) Map `AuthError` values to Firestore `Error` values more
-    // intelligently so as to enable retries when appropriate.
-    return Status(Error::kErrorUnknown,
+    // `Status` uses. We map `AuthError` values to Firestore `Error` values in
+    // order to be able to perform retries when appropriate.
+    return Status(FirestoreErrorFromAuthError(future.error()),
                   std::string(future.error_message()) + " (AuthError " +
                       std::to_string(future.error()) + ")");
   }
@@ -76,8 +104,10 @@ StatusOr<Token> ConvertToken(const Future<std::string>& future, App& app) {
 // the `listener` with the error. If the current token generation is higher
 // than `expected_generation`, will invoke the `listener` with "aborted"
 // error. `future_token` must be a completed future.
-void OnToken(const Future<std::string>& future_token, App& app,
-             int token_generation, const TokenListener& listener,
+void OnToken(const Future<std::string>& future_token,
+             App& app,
+             int token_generation,
+             const TokenListener& listener,
              int expected_generation) {
   SIMPLE_HARD_ASSERT(
       future_token.status() == FutureStatus::kFutureStatusComplete,
@@ -98,7 +128,8 @@ void OnToken(const Future<std::string>& future_token, App& app,
 }  // namespace
 
 FirebaseCppCredentialsProvider::FirebaseCppCredentialsProvider(App& app)
-    : contents_(std::make_shared<Contents>(app)) {}
+    : contents_(std::make_shared<Contents>(app)) {
+}
 
 FirebaseCppCredentialsProvider::~FirebaseCppCredentialsProvider() {
   RemoveAuthStateListener();

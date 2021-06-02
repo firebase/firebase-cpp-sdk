@@ -102,9 +102,7 @@ void RemoteConfigInternal::InternalInit() {
   initialized_ = true;
 }
 
-bool RemoteConfigInternal::Initialized() const {
-  return initialized_;
-}
+bool RemoteConfigInternal::Initialized() const { return initialized_; }
 
 void RemoteConfigInternal::Cleanup() {
   // Do nothing.

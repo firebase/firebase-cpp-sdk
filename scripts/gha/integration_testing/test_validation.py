@@ -124,7 +124,7 @@ def validate_results_cpp(log_text):
       summary=result_summary)
 
 
-def summarize_test_results(tests, platform, summary_dir):
+def summarize_test_results(tests, platform, summary_dir, file_name="summary.log", extra_info=""):
   """Summarizes and logs test results for multiple tests.
 
   Each 'test' should be an object with properties "testapp_path", which
@@ -176,7 +176,7 @@ def summarize_test_results(tests, platform, summary_dir):
   # The summary is much more terse, to minimize the time it takes to understand
   # what went wrong, without necessarily providing full debugging context.
   summary = []
-  summary.append("TEST SUMMARY:")
+  summary.append("TEST SUMMARY%s:" % extra_info)
   if successes:
     summary.append("%d TESTAPPS SUCCEEDED:" % len(successes))
     summary.extend((test.testapp_path for (test, _) in successes))
@@ -199,12 +199,12 @@ def summarize_test_results(tests, platform, summary_dir):
       % (len(tests), len(successes), len(failures), len(errors)))
   summary = "\n".join(summary)
   logging.info(summary)
-  write_summary(summary_dir, summary)
+  write_summary(summary_dir, summary, file_name)
 
   return 0 if len(tests) == len(successes) else 1
 
 
-def write_summary(testapp_dir, summary):
+def write_summary(testapp_dir, summary, file_name="summary.log"):
   """Writes a summary of tests/builds to a file in the testapp directory.
 
   This will append the given summary to a file in the testapp directory,
@@ -217,7 +217,7 @@ def write_summary(testapp_dir, summary):
 
   """
   # This method serves as the source of truth on where to put the summary.
-  with open(os.path.join(testapp_dir, "summary.log"), "a") as f:
+  with open(os.path.join(testapp_dir, file_name), "a") as f:
     # The timestamp mainly helps when running locally: if running multiple
     # tests on the same directory, the results will accumulate, with a timestamp
     # to help keep track of when a given test was run.

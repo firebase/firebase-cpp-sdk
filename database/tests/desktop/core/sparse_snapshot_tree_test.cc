@@ -15,9 +15,8 @@
 #include "database/src/desktop/core/sparse_snapshot_tree.h"
 
 #include "app/src/variant_util.h"
-
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 using ::testing::StrictMock;
 

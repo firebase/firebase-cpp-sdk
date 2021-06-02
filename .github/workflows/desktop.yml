@@ -136,6 +136,14 @@ jobs:
           python-version: ${{ matrix.python_version }}
           architecture: 'x64'
 
+      - name: Update homebrew (avoid bintray errors)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          # Temporarily here until Github runners have updated their version of
+          # homebrew. This prevents errors arising from the shut down of
+          # binutils, used by older version of homebrew for hosting packages.
+          brew update
+
       - name: Install prerequisites
         run: |
           python scripts/gha/install_prereqs_desktop.py

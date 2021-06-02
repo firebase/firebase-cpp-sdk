@@ -15,9 +15,9 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_TESTS_FLEXBUFFER_MATCHER_H_
 #define FIREBASE_APP_CLIENT_CPP_TESTS_FLEXBUFFER_MATCHER_H_
 
-#include "gtest/gtest.h"
-#include "gmock/gmock.h"
 #include "flatbuffers/flexbuffers.h"
+#include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 // TODO(73494146): Check in EqualsFlexbuffer gmock matcher into the canonical
 // Flatbuffer repository.

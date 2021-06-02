@@ -5,14 +5,14 @@
 #include <string>
 #include <vector>
 
+#include "Firestore/core/src/model/field_value.h"
+#include "absl/types/variant.h"
 #include "app/src/assert.h"
+#include "firebase/firestore/geo_point.h"
+#include "firebase/firestore/timestamp.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/ios/firestore_ios.h"
-#include "absl/types/variant.h"
-#include "firebase/firestore/geo_point.h"
-#include "firebase/firestore/timestamp.h"
-#include "Firestore/core/src/model/field_value.h"
 
 namespace firebase {
 namespace firestore {

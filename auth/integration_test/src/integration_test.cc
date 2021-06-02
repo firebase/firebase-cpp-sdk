@@ -395,7 +395,8 @@ TEST_F(FirebaseAuthTest, TestTokensAndAuthStateListeners) {
 
 static std::string GenerateEmailAddress() {
   char time_string[22];
-  snprintf(time_string, 22, "%d", app_framework::GetCurrentTimeInMicroseconds());
+  snprintf(time_string, 22, "%d",
+           app_framework::GetCurrentTimeInMicroseconds());
   std::string email = "random_user_";
   email.append(time_string);
   email.append("@gmail.com");
@@ -718,7 +719,7 @@ TEST_F(FirebaseAuthTest, TestWithCustomEmailAndPassword) {
   EXPECT_NE(auth_->current_user(), nullptr);
 }
 
-#if ! defined(__linux__)
+#if !defined(__linux__)
 // Test is disabled on linux due to the need to unlock the keystore.
 TEST_F(FirebaseAuthTest, TestAuthPersistenceWithAnonymousSignin) {
   WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
@@ -734,7 +735,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithAnonymousSignin) {
 }
 #endif  // ! defined(__linux__)
 
-#if ! defined(__linux__)
+#if !defined(__linux__)
 // Test is disabled on linux due to the need to unlock the keychain.
 TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   std::string email = GenerateEmailAddress();
@@ -774,7 +775,6 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   DeleteUser();
 }
 #endif  // ! defined(__linux__)
-
 
 class PhoneListener : public firebase::auth::PhoneAuthProvider::Listener {
  public:
@@ -867,7 +867,8 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
     LogDebug("Calling VerifyPhoneNumber.");
     // Randomly choose one of the phone numbers to avoid collisions.
     const int random_phone_number =
-        app_framework::GetCurrentTimeInMicroseconds() % kPhoneAuthTestNumPhoneNumbers;
+        app_framework::GetCurrentTimeInMicroseconds() %
+        kPhoneAuthTestNumPhoneNumbers;
     phone_provider.VerifyPhoneNumber(
         kPhoneAuthTestPhoneNumbers[random_phone_number], kPhoneAuthTimeoutMs,
         nullptr, &listener);

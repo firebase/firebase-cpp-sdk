@@ -17,8 +17,8 @@
 #include <cstddef>
 
 #include "app/src/include/firebase/internal/common.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 
 namespace firebase {
 namespace storage {

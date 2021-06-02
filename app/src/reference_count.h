@@ -240,7 +240,9 @@ class ReferenceCountedInitializer {
 
  private:
   // Execute the terminate method.
-  void ExecuteTerminate() { if (terminate_) terminate_(context_); }
+  void ExecuteTerminate() {
+    if (terminate_) terminate_(context_);
+  }
 
  private:
   ReferenceCount count_;

@@ -13,7 +13,9 @@
 // limitations under the License.
 
 #include "database/src/desktop/view/view.h"
+
 #include <vector>
+
 #include "app/memory/unique_ptr.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/variant.h"
@@ -150,7 +152,7 @@ std::vector<Event> View::ApplyOperation(
     const Variant* opt_complete_server_cache,
     std::vector<Change>* out_changes) {
   if (operation.type == Operation::kTypeMerge &&
-      !operation.source.query_params.has_value()) {
+      operation.source.query_params.has_value()) {
     FIREBASE_DEV_ASSERT_MESSAGE(
         view_cache_.GetCompleteServerSnap() != nullptr,
         "We should always have a full cache before handling merges");

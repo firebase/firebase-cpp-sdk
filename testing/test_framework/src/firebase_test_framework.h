@@ -50,7 +50,7 @@ namespace firebase_test_framework {
 #endif  // TARGET_OS_IPHONE
 
 // Macros for skipping tests on various platforms.
-// 
+//
 // Simply place the macro at the top of the test to skip that test on
 // the given platform.
 // For example:
@@ -67,9 +67,9 @@ namespace firebase_test_framework {
 // SKIP_TEST_ON_WINDOWS
 // SKIP_TEST_ON_MACOS
 //
-// Also includes a special macro SKIP_TEST_IF_USING_STLPORT if compiling for Android
-// STLPort, which does not fully support C++11.
-  
+// Also includes a special macro SKIP_TEST_IF_USING_STLPORT if compiling for
+// Android STLPort, which does not fully support C++11.
+
 #if !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 #define SKIP_TEST_ON_DESKTOP                                               \
   {                                                                        \
@@ -82,11 +82,11 @@ namespace firebase_test_framework {
 #endif  // !defined(ANDROID) && !(defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 
 #if (defined(TARGET_OS_OSX) && TARGET_OS_OSX)
-#define SKIP_TEST_ON_MACOS                                                 \
-  {                                                                        \
-    app_framework::LogInfo("Skipping %s on MacOS.", test_info_->name());   \
-    GTEST_SKIP();                                                          \
-    return;                                                                \
+#define SKIP_TEST_ON_MACOS                                               \
+  {                                                                      \
+    app_framework::LogInfo("Skipping %s on MacOS.", test_info_->name()); \
+    GTEST_SKIP();                                                        \
+    return;                                                              \
   }
 #else
 #define SKIP_TEST_ON_MACOS ((void)0)
@@ -104,11 +104,11 @@ namespace firebase_test_framework {
 #endif  // defined(_WIN32)
 
 #if defined(__linux__)
-#define SKIP_TEST_ON_LINUX                                                 \
-  {                                                                        \
-    app_framework::LogInfo("Skipping %s on Linux.", test_info_->name());   \
-    GTEST_SKIP();                                                          \
-    return;                                                                \
+#define SKIP_TEST_ON_LINUX                                               \
+  {                                                                      \
+    app_framework::LogInfo("Skipping %s on Linux.", test_info_->name()); \
+    GTEST_SKIP();                                                        \
+    return;                                                              \
   }
 #else
 #define SKIP_TEST_ON_LINUX ((void)0)
@@ -126,22 +126,22 @@ namespace firebase_test_framework {
 #endif  // defined(ANDROID) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 
 #if (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-#define SKIP_TEST_ON_IOS                                                  \
-  {                                                                       \
-    app_framework::LogInfo("Skipping %s on iOS.", test_info_->name());    \
-    GTEST_SKIP();                                                         \
-    return;                                                               \
+#define SKIP_TEST_ON_IOS                                               \
+  {                                                                    \
+    app_framework::LogInfo("Skipping %s on iOS.", test_info_->name()); \
+    GTEST_SKIP();                                                      \
+    return;                                                            \
   }
 #else
 #define SKIP_TEST_ON_IOS ((void)0)
 #endif  // (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 
 #if defined(ANDROID)
-#define SKIP_TEST_ON_ANDROID                                              \
-  {                                                                       \
+#define SKIP_TEST_ON_ANDROID                                               \
+  {                                                                        \
     app_framework::LogInfo("Skipping %s on Android.", test_info_->name()); \
-    GTEST_SKIP();                                                         \
-    return;                                                               \
+    GTEST_SKIP();                                                          \
+    return;                                                                \
   }
 #else
 #define SKIP_TEST_ON_ANDROID ((void)0)
@@ -190,6 +190,31 @@ class FirebaseTest : public testing::Test {
   // debugging.
   static std::string VariantToString(const firebase::Variant& variant);
 
+  // Run an operation that returns a bool. If it fails (and the bool returns
+  // false), try it again, after a short delay. Returns true once it succeeds,
+  // or if it fails enough times, returns false.
+  // This is designed to allow you to try a flaky set of operations multiple
+  // times until it succeeds.
+  //
+  // Note that the callback must return a bool or a type implicitly convertable
+  // to bool.
+  template <class CallbackType, class ContextType>
+  static bool RunFlakyBlock(CallbackType flaky_callback,
+                            ContextType* context_typed, const char* name = "") {
+    struct RunData {
+      CallbackType callback;
+      ContextType* context;
+    };
+    RunData run_data = {flaky_callback, context_typed};
+    return RunFlakyBlockBase(
+        [](void* ctx) {
+          CallbackType callback = static_cast<RunData*>(ctx)->callback;
+          ContextType* context = static_cast<RunData*>(ctx)->context;
+          return callback(context);
+        },
+        static_cast<void*>(&run_data), name);
+  }
+
  protected:
   // Set up firebase::App with default settings.
   void InitializeApp();
@@ -214,6 +239,11 @@ class FirebaseTest : public testing::Test {
   static bool WaitForCompletion(const firebase::FutureBase& future,
                                 const char* name, int expected_error = 0);
 
+  // Just wait for completion, not caring what the result is (as long as
+  // it's not Invalid). Returns true, unless Invalid.
+  static bool WaitForCompletionAnyResult(const firebase::FutureBase& future,
+                                         const char* name);
+
   // Run an operation that returns a Future (via a callback), retrying with
   // exponential backoff if the operation fails.
   //
@@ -233,46 +263,49 @@ class FirebaseTest : public testing::Test {
   //                        [](Auth* auth) {
   //                            return auth->DeleteUser(auth->current_user());
   //                        }, auth_), "DeleteUser"));
-  template<class CallbackType, class ContextType>
-  static firebase::FutureBase RunWithRetry(
-      CallbackType run_future_typed,
-      ContextType* context_typed,
-      const char* name = "",
-      int expected_error = 0) {
-    struct RunData { CallbackType callback; ContextType* context; };
-    RunData run_data = { run_future_typed, context_typed };
+  template <class CallbackType, class ContextType>
+  static firebase::FutureBase RunWithRetry(CallbackType run_future_typed,
+                                           ContextType* context_typed,
+                                           const char* name = "",
+                                           int expected_error = 0) {
+    struct RunData {
+      CallbackType callback;
+      ContextType* context;
+    };
+    RunData run_data = {run_future_typed, context_typed};
     return RunWithRetryBase(
-       [](void*ctx) {
-         CallbackType callback = static_cast<RunData*>(ctx)->callback;
-         ContextType* context = static_cast<RunData*>(ctx)->context;
-         return static_cast<firebase::FutureBase>(callback(context));
-       },
-       static_cast<void*>(&run_data),name, expected_error);
+        [](void* ctx) {
+          CallbackType callback = static_cast<RunData*>(ctx)->callback;
+          ContextType* context = static_cast<RunData*>(ctx)->context;
+          return static_cast<firebase::FutureBase>(callback(context));
+        },
+        static_cast<void*>(&run_data), name, expected_error);
   }
 
   // Same as RunWithRetry, but templated to return a Future<ResultType>
   // rather than a FutureBase, in case you want to use the result data
   // of the Future. You need to explicitly provide the template parameter,
   // e.g. RunWithRetry<int>(..) to return a Future<int>.
-  template<class ResultType, class CallbackType, class ContextType>
+  template <class ResultType, class CallbackType, class ContextType>
   static firebase::Future<ResultType> RunWithRetry(
-      CallbackType run_future_typed,
-      ContextType* context_typed,
-      const char* name = "",
-      int expected_error = 0) {
-    struct RunData { CallbackType callback; ContextType* context; };
-    RunData run_data = { run_future_typed, context_typed };
+      CallbackType run_future_typed, ContextType* context_typed,
+      const char* name = "", int expected_error = 0) {
+    struct RunData {
+      CallbackType callback;
+      ContextType* context;
+    };
+    RunData run_data = {run_future_typed, context_typed};
     firebase::FutureBase result_base = RunWithRetryBase(
-       [](void*ctx) {
-         CallbackType callback = static_cast<RunData*>(ctx)->callback;
-         ContextType* context = static_cast<RunData*>(ctx)->context;
-         // The following line checks that CallbackType actually returns a
-         // Future<ResultType>. If it returns any other type, the compiler will
-         // complain about implicit conversion to Future<ResultType> here.
-         firebase::Future<ResultType> future_result = callback(context);
-         return static_cast<firebase::FutureBase>(future_result);
-       },
-       static_cast<void*>(&run_data),name, expected_error);
+        [](void* ctx) {
+          CallbackType callback = static_cast<RunData*>(ctx)->callback;
+          ContextType* context = static_cast<RunData*>(ctx)->context;
+          // The following line checks that CallbackType actually returns a
+          // Future<ResultType>. If it returns any other type, the compiler will
+          // complain about implicit conversion to Future<ResultType> here.
+          firebase::Future<ResultType> future_result = callback(context);
+          return static_cast<firebase::FutureBase>(future_result);
+        },
+        static_cast<void*>(&run_data), name, expected_error);
     // Future<T> and FutureBase are reinterpret_cast-compatible, by design.
     return *reinterpret_cast<firebase::Future<ResultType>*>(&result_base);
   }
@@ -300,20 +333,23 @@ class FirebaseTest : public testing::Test {
   // false if it failed.
   static bool Base64Decode(const std::string& input, std::string* output);
 
-
   firebase::App* app_;
   static int argc_;
   static char** argv_;
   static bool found_config_;
 
-private:
+ private:
   // Untyped version of RunWithRetry, with implementation.
   // This is kept private because the templated version should be used instead,
   // for type safety.
   static firebase::FutureBase RunWithRetryBase(
-      firebase::FutureBase (*run_future)(void* context),
-      void* context,
+      firebase::FutureBase (*run_future)(void* context), void* context,
       const char* name, int expected_error);
+  // Untyped version of RunFlakyBlock, with implementation.
+  // This is kept private because the templated version should be used instead,
+  // for type safety.
+  static bool RunFlakyBlockBase(bool (*flaky_block)(void* context),
+                                void* context, const char* name = "");
 };
 
 }  // namespace firebase_test_framework

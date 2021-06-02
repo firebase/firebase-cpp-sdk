@@ -23,8 +23,8 @@
 
 #include "app/src/include/firebase/variant.h"
 #include "app/src/semaphore.h"
-#include "gtest/gtest.h"
 #include "gmock/gmock.h"
+#include "gtest/gtest.h"
 #include "testing/run_all_tests.h"
 
 namespace firebase {
@@ -32,8 +32,8 @@ namespace util {
 
 using ::testing::Eq;
 using ::testing::IsNull;
-using ::testing::NotNull;
 using ::testing::Ne;
+using ::testing::NotNull;
 
 TEST(UtilAndroidTest, TestInitializeAndTerminate) {
   // Initialize firebase util, including caching class/methods and dealing with

@@ -2,6 +2,13 @@
 
 #include <utility>
 
+#include "Firestore/core/src/api/listener_registration.h"
+#include "Firestore/core/src/core/filter.h"
+#include "Firestore/core/src/core/listen_options.h"
+#include "Firestore/core/src/model/document_key.h"
+#include "Firestore/core/src/model/field_path.h"
+#include "Firestore/core/src/model/resource_path.h"
+#include "Firestore/core/src/util/exception.h"
 #include "app/src/assert.h"
 #include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/hard_assert_common.h"
@@ -14,13 +21,6 @@
 #include "firestore/src/ios/set_options_ios.h"
 #include "firestore/src/ios/source_ios.h"
 #include "firestore/src/ios/util_ios.h"
-#include "Firestore/core/src/api/listener_registration.h"
-#include "Firestore/core/src/core/filter.h"
-#include "Firestore/core/src/core/listen_options.h"
-#include "Firestore/core/src/model/document_key.h"
-#include "Firestore/core/src/model/field_path.h"
-#include "Firestore/core/src/model/resource_path.h"
-#include "Firestore/core/src/util/exception.h"
 
 namespace firebase {
 namespace firestore {

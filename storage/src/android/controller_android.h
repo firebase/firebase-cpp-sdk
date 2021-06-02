@@ -16,6 +16,7 @@
 #define FIREBASE_STORAGE_CLIENT_CPP_SRC_ANDROID_CONTROLLER_ANDROID_H_
 
 #include <jni.h>
+
 #include "app/src/include/firebase/app.h"
 #include "app/src/util_android.h"
 #include "storage/src/android/storage_reference_android.h"

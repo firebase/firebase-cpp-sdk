@@ -106,10 +106,9 @@ _DESKTOP = "Desktop"
 _SUPPORTED_PLATFORMS = (_ANDROID, _IOS, _DESKTOP)
 
 # Values for iOS SDK flag (where the iOS app will run)
-_IOS_SDK_DEVICE = "device"
-_IOS_SDK_SIMULATOR = "simulator"
-_IOS_SDK_BOTH = "both"
-_SUPPORTED_IOS_SDK = (_IOS_SDK_DEVICE, _IOS_SDK_SIMULATOR, _IOS_SDK_BOTH)
+_IOS_SDK_DEVICE = "real"
+_IOS_SDK_SIMULATOR = "virtual"
+_SUPPORTED_IOS_SDK = (_IOS_SDK_DEVICE, _IOS_SDK_SIMULATOR)
 
 FLAGS = flags.FLAGS
 
@@ -120,6 +119,12 @@ flags.DEFINE_string(
 flags.DEFINE_string(
     "output_directory", "~",
     "Build output will be placed in this directory.")
+
+flags.DEFINE_string(
+    "artifact_name", "",
+    "artifacts will be created and placed in output_directory."
+    " testapps artifact is testapps-$artifact_name;"
+    " build log artifact is build-results-$artifact_name.log.")    
 
 flags.DEFINE_string(
     "repo_dir", os.getcwd(),
@@ -140,10 +145,10 @@ flags.DEFINE_bool(
     " Recommended when running locally, so each execution gets its own "
     " directory.")
 
-flags.DEFINE_enum(
-    "ios_sdk", _IOS_SDK_DEVICE, _SUPPORTED_IOS_SDK,
-    "(iOS only) Build for device (ipa), simulator (app), or both."
-    " Building for both will produce both an .app and an .ipa.")
+flags.DEFINE_list(
+    "ios_sdk", _IOS_SDK_DEVICE, 
+    "(iOS only) Build for real device (.ipa), virtual device / simulator (.app), "
+    "or both. Building for both will produce both an .app and an .ipa.")
 
 flags.DEFINE_bool(
     "update_pod_repo", True,
@@ -168,6 +173,12 @@ flags.register_validator(
     message="Valid platforms: " + ",".join(_SUPPORTED_PLATFORMS),
     flag_values=FLAGS)
 
+flags.register_validator(
+    "ios_sdk",
+    lambda s: all(ios_sdk in _SUPPORTED_IOS_SDK for ios_sdk in s),
+    message="Valid platforms: " + ",".join(_SUPPORTED_IOS_SDK),
+    flag_values=FLAGS)
+
 flags.DEFINE_bool(
     "short_output_paths", False,
     "Use short directory names for output paths. Useful to avoid hitting file "
@@ -181,7 +192,7 @@ def main(argv):
   testapps = FLAGS.testapps
 
   sdk_dir = _fix_path(FLAGS.packaged_sdk or FLAGS.repo_dir)
-  output_dir = _fix_path(FLAGS.output_directory)
+  root_output_dir = _fix_path(FLAGS.output_directory)
   repo_dir = _fix_path(FLAGS.repo_dir)
 
   update_pod_repo = FLAGS.update_pod_repo
@@ -191,14 +202,14 @@ def main(argv):
     timestamp = ""
 
   if FLAGS.short_output_paths:
-    output_dir = os.path.join(output_dir, "ta")
+    output_dir = os.path.join(root_output_dir, "ta")
   else:
-    output_dir = os.path.join(output_dir, "testapps" + timestamp)
+    output_dir = os.path.join(root_output_dir, "testapps" + timestamp)
 
   ios_framework_dir = os.path.join(sdk_dir, "xcframeworks")
   ios_framework_exist = os.path.isdir(ios_framework_dir)
   if not ios_framework_exist and _IOS in platforms:
-    _generate_makefiles_from_repo(sdk_dir)
+    _generate_makefiles_from_repo(repo_dir)
 
   if update_pod_repo and _IOS in platforms:
     _run(["pod", "repo", "update"])
@@ -243,8 +254,10 @@ def main(argv):
           cmake_flags=cmake_flags,
           short_output_paths=FLAGS.short_output_paths)
       logging.info("END building for %s", testapp)
+  
+  _collect_integration_tests(testapps, root_output_dir, FLAGS.artifact_name)
 
-  _summarize_results(testapps, platforms, failures, output_dir)
+  _summarize_results(testapps, platforms, failures, root_output_dir, FLAGS.artifact_name)
   return 1 if failures else 0
 
 
@@ -316,8 +329,43 @@ def _build(
   return failures
 
 
-def _summarize_results(testapps, platforms, failures, output_dir):
+def _collect_integration_tests(testapps, output_dir, artifact_name):
+  testapps_artifact_dir = "testapps-" + artifact_name
+  android_testapp_extension = ".apk"
+  ios_testapp_extension = ".ipa"
+  ios_simualtor_testapp_extension = ".app"
+  desktop_testapp_name = "integration_test" 
+  if platform.system() == "Windows":
+    desktop_testapp_name += ".exe"
+
+  testapp_paths = []
+  for file_dir, directories, file_names in os.walk(output_dir):
+    for directory in directories:
+      if directory.endswith(ios_simualtor_testapp_extension):
+        testapp_paths.append(os.path.join(file_dir, directory))
+    for file_name in file_names:
+      if ((file_name == desktop_testapp_name and "ios_build" not in file_dir) 
+          or file_name.endswith(android_testapp_extension) 
+          or file_name.endswith(ios_testapp_extension)):
+        testapp_paths.append(os.path.join(file_dir, file_name))
+
+  artifact_path = os.path.join(output_dir, testapps_artifact_dir)
+  for testapp in testapps:
+    os.makedirs(os.path.join(artifact_path, testapp))
+  for path in testapp_paths:
+    for testapp in testapps:
+      if testapp in path:
+        if os.path.isfile(path):
+          shutil.copy(path, os.path.join(artifact_path, testapp))
+        else:
+          dir_util.copy_tree(path, os.path.join(artifact_path, testapp, "integration_test.app"))
+        break
+
+
+def _summarize_results(testapps, platforms, failures, output_dir, artifact_name):
   """Logs a readable summary of the results of the build."""
+  file_name = "build-results-" + artifact_name + ".log"
+
   summary = []
   summary.append("BUILD SUMMARY:")
   summary.append("TRIED TO BUILD: " + ",".join(testapps))
@@ -332,7 +380,7 @@ def _summarize_results(testapps, platforms, failures, output_dir):
   summary = "\n".join(summary)
 
   logging.info(summary)
-  test_validation.write_summary(output_dir, summary)
+  test_validation.write_summary(output_dir, summary, file_name=file_name)
 
 
 def _build_desktop(sdk_dir, cmake_flags):
@@ -410,27 +458,29 @@ def _validate_android_environment_variables():
     logging.warning("No NDK env var set. Set one of %s", ", ".join(ndk_vars))
 
 
-# If sdk_dir contains no framework, consider it is Github repo, then
-# generate makefiles for ios frameworks
-def _generate_makefiles_from_repo(sdk_dir):
+# If sdk_dir contains no xcframework, consider it is Github repo, then
+# generate makefiles for ios xcframeworks
+# the xcframeworks will be placed at repo_dir/ios_build
+def _generate_makefiles_from_repo(repo_dir):
   """Generates cmake makefiles for building iOS frameworks from SDK source."""
   ios_framework_builder = os.path.join(
-      sdk_dir, "build_scripts", "ios", "build.sh")
+      repo_dir, "build_scripts", "ios", "build.sh")
 
   framework_builder_args = [
       ios_framework_builder,
-      "-b", sdk_dir,
-      "-s", sdk_dir,
+      "-b", os.path.join(repo_dir, "ios_build"),
+      "-s", repo_dir,
       "-c", "false"
   ]
   _run(framework_builder_args)
 
 
-# build required ios frameworks based on makefiles
-def _build_ios_framework_from_repo(sdk_dir, api_config):
+# build required ios xcframeworks based on makefiles
+# the xcframeworks locates at repo_dir/ios_build
+def _build_ios_framework_from_repo(repo_dir, api_config):
   """Builds iOS framework from SDK source."""
   ios_framework_builder = os.path.join(
-      sdk_dir, "build_scripts", "ios", "build.sh")
+      repo_dir, "build_scripts", "ios", "build.sh")
 
   # build only required targets to save time
   target = set()
@@ -444,8 +494,8 @@ def _build_ios_framework_from_repo(sdk_dir, api_config):
 
   framework_builder_args = [
       ios_framework_builder,
-      "-b", sdk_dir,
-      "-s", sdk_dir,
+      "-b", os.path.join(repo_dir, "ios_build"),
+      "-s", repo_dir,
       "-t", ",".join(target),
       "-g", "false"
   ]
@@ -456,7 +506,9 @@ def _build_ios(
     sdk_dir, ios_framework_exist, project_dir, repo_dir, api_config, ios_sdk):
   """Builds an iOS application (.app, .ipa or both)."""
   if not ios_framework_exist:
-    _build_ios_framework_from_repo(sdk_dir, api_config)
+    _build_ios_framework_from_repo(repo_dir, api_config)
+    sdk_dir = os.path.join(repo_dir, "ios_build")
+    logging.info("iOS xcframework created at: %s", " ".join(sdk_dir))
 
   build_dir = os.path.join(project_dir, "ios_build")
   os.makedirs(build_dir)
@@ -501,7 +553,7 @@ def _build_ios(
   _run(xcode_patcher_args)
 
   xcode_path = os.path.join(project_dir, api_config.ios_target + ".xcworkspace")
-  if ios_sdk in [_IOS_SDK_SIMULATOR, _IOS_SDK_BOTH]:
+  if _IOS_SDK_SIMULATOR in ios_sdk:
     _run(
         xcodebuild.get_args_for_build(
             path=xcode_path,
@@ -510,7 +562,7 @@ def _build_ios(
             ios_sdk=_IOS_SDK_SIMULATOR,
             configuration="Debug"))
 
-  if ios_sdk in [_IOS_SDK_DEVICE, _IOS_SDK_BOTH]:
+  if _IOS_SDK_DEVICE in ios_sdk:
     _run(
         xcodebuild.get_args_for_build(
             path=xcode_path,

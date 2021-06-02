@@ -990,7 +990,7 @@ const std::string& GetHash(const Variant& data, std::string* output) {
 }
 
 bool IsValidPriority(const Variant& variant) {
-  return variant.is_numeric() || variant.is_string();
+  return variant.is_null() || variant.is_numeric() || variant.is_string();
 }
 
 std::pair<Variant, Variant> MakePost(const QueryParams& params,
@@ -1022,28 +1022,33 @@ std::pair<Variant, Variant> MakePost(const QueryParams& params,
 }
 
 bool HasStart(const QueryParams& params) {
-  return !params.start_at_value.is_null() || !params.equal_to_value.is_null();
+  return params.start_at_value.has_value() || params.equal_to_value.has_value();
 }
 
 bool HasEnd(const QueryParams& params) {
-  return !params.end_at_value.is_null() || !params.equal_to_value.is_null();
+  return params.end_at_value.has_value() || params.equal_to_value.has_value();
 }
 
 std::string GetStartName(const QueryParams& params) {
-  if (!params.start_at_child_key.empty()) {
-    return params.start_at_child_key;
-  } else if (!params.equal_to_child_key.empty()) {
-    return params.equal_to_child_key;
+  FIREBASE_DEV_ASSERT_MESSAGE(
+      HasStart(params),
+      "Cannot get index start name if start has not been set");
+  if (params.start_at_child_key.has_value()) {
+    return *params.start_at_child_key;
+  } else if (params.equal_to_child_key.has_value()) {
+    return *params.equal_to_child_key;
   } else {
     return QueryParamsComparator::kMinKey;
   }
 }
 
 std::string GetEndName(const QueryParams& params) {
-  if (!params.end_at_child_key.empty()) {
-    return params.end_at_child_key;
-  } else if (!params.equal_to_child_key.empty()) {
-    return params.equal_to_child_key;
+  FIREBASE_DEV_ASSERT_MESSAGE(
+      HasEnd(params), "Cannot get index end name if end has not been set");
+  if (params.end_at_child_key.has_value()) {
+    return *params.end_at_child_key;
+  } else if (params.equal_to_child_key.has_value()) {
+    return *params.equal_to_child_key;
   } else {
     return QueryParamsComparator::kMaxKey;
   }
@@ -1053,15 +1058,15 @@ const Variant& GetStartValue(const QueryParams& params) {
   FIREBASE_DEV_ASSERT_MESSAGE(
       HasStart(params),
       "Cannot get index start value if start has not been set");
-  return params.equal_to_value.is_null() ? params.start_at_value
-                                         : params.equal_to_value;
+  return params.equal_to_value.has_value() ? *params.equal_to_value
+                                           : *params.start_at_value;
 }
 
 const Variant& GetEndValue(const QueryParams& params) {
   FIREBASE_DEV_ASSERT_MESSAGE(
       HasEnd(params), "Cannot get index end value if end has not been set");
-  return params.equal_to_value.is_null() ? params.end_at_value
-                                         : params.equal_to_value;
+  return params.equal_to_value.has_value() ? *params.equal_to_value
+                                           : *params.end_at_value;
 }
 
 std::pair<Variant, Variant> GetStartPost(const QueryParams& params) {
@@ -1085,10 +1090,13 @@ bool QuerySpecLoadsAllData(const QuerySpec& query_spec) {
 }
 
 bool QueryParamsLoadsAllData(const QueryParams& params) {
-  return params.start_at_value.is_null() && params.start_at_child_key.empty() &&
-         params.end_at_value.is_null() && params.end_at_child_key.empty() &&
-         params.equal_to_value.is_null() && params.equal_to_child_key.empty() &&
-         params.limit_first == 0 && params.limit_last == 0;
+  return !params.start_at_value.has_value() &&
+         !params.start_at_child_key.has_value() &&
+         !params.end_at_value.has_value() &&
+         !params.end_at_child_key.has_value() &&
+         !params.equal_to_value.has_value() &&
+         !params.equal_to_child_key.has_value() && params.limit_first == 0 &&
+         params.limit_last == 0;
 }
 
 bool QuerySpecIsDefault(const QuerySpec& query_spec) {
@@ -1126,31 +1134,31 @@ std::string WireProtocolPathToString(const Path& path) {
 Variant GetWireProtocolParams(const QueryParams& query_params) {
   Variant result = Variant::EmptyMap();
 
-  if (!query_params.start_at_value.is_null()) {
-    result.map()[kQueryParamsIndexStartValue] = query_params.start_at_value;
-    if (!query_params.start_at_child_key.empty()) {
+  if (query_params.start_at_value.has_value()) {
+    result.map()[kQueryParamsIndexStartValue] = *query_params.start_at_value;
+    if (query_params.start_at_child_key.has_value()) {
       result.map()[kQueryParamsIndexStartName] =
-          query_params.start_at_child_key;
+          *query_params.start_at_child_key;
     }
   }
 
-  if (!query_params.end_at_value.is_null()) {
-    result.map()[kQueryParamsIndexEndValue] = query_params.end_at_value;
-    if (!query_params.end_at_child_key.empty()) {
-      result.map()[kQueryParamsIndexEndName] = query_params.end_at_child_key;
+  if (query_params.end_at_value.has_value()) {
+    result.map()[kQueryParamsIndexEndValue] = *query_params.end_at_value;
+    if (query_params.end_at_child_key.has_value()) {
+      result.map()[kQueryParamsIndexEndName] = *query_params.end_at_child_key;
     }
   }
 
   // QueryParams in Android implementation does not really have "equal_to"
   // property.  Instead, it is converted into "start_at" and "end_at" with the
   // same value.
-  if (!query_params.equal_to_value.is_null()) {
-    result.map()[kQueryParamsIndexStartValue] = query_params.equal_to_value;
-    result.map()[kQueryParamsIndexEndValue] = query_params.equal_to_value;
-    if (!query_params.equal_to_child_key.empty()) {
+  if (query_params.equal_to_value.has_value()) {
+    result.map()[kQueryParamsIndexStartValue] = *query_params.equal_to_value;
+    result.map()[kQueryParamsIndexEndValue] = *query_params.equal_to_value;
+    if (query_params.equal_to_child_key.has_value()) {
       result.map()[kQueryParamsIndexStartName] =
-          query_params.equal_to_child_key;
-      result.map()[kQueryParamsIndexEndName] = query_params.equal_to_child_key;
+          *query_params.equal_to_child_key;
+      result.map()[kQueryParamsIndexEndName] = *query_params.equal_to_child_key;
     }
   }
 
@@ -1195,12 +1203,13 @@ Variant GetWireProtocolParams(const QueryParams& query_params) {
 }
 
 // Split a string based on specified character delimiter into constituent parts
-std::vector<std::string> split_string(const std::string& s, const char delimiter) {
+std::vector<std::string> split_string(const std::string& s,
+                                      const char delimiter) {
   size_t pos = 0;
   // This index is used as the starting index to search the delimiters from.
   size_t delimiter_search_start = 0;
   // Skip any leading delimiters
-  while(s[delimiter_search_start] == delimiter) {
+  while (s[delimiter_search_start] == delimiter) {
     delimiter_search_start++;
   }
 
@@ -1211,10 +1220,12 @@ std::vector<std::string> split_string(const std::string& s, const char delimiter
     return split_parts;
   }
 
-  while((pos = s.find(delimiter, delimiter_search_start)) != std::string::npos) {
-    split_parts.push_back(s.substr(delimiter_search_start, pos-delimiter_search_start));
+  while ((pos = s.find(delimiter, delimiter_search_start)) !=
+         std::string::npos) {
+    split_parts.push_back(
+        s.substr(delimiter_search_start, pos - delimiter_search_start));
 
-    while(s[pos] == delimiter && pos<len) {
+    while (s[pos] == delimiter && pos < len) {
       pos++;
       delimiter_search_start = pos;
     }
@@ -1223,10 +1234,28 @@ std::vector<std::string> split_string(const std::string& s, const char delimiter
   // If the input string doesn't end with a delimiter we need to push the last
   // token into our return vector
   if (delimiter_search_start != len) {
-    split_parts.push_back(s.substr(delimiter_search_start, len-delimiter_search_start));
+    split_parts.push_back(
+        s.substr(delimiter_search_start, len - delimiter_search_start));
   }
 
   return split_parts;
+}
+
+std::map<Path, Variant> VariantToPathMap(const Variant& data) {
+  std::map<Path, Variant> path_map;
+  if (data.is_map()) {
+    for (const auto& key_value : data.map()) {
+      const char* key;
+      if (key_value.first.is_string()) {
+        key = key_value.first.string_value();
+      } else {
+        key = key_value.first.AsString().string_value();
+      }
+      const Variant& value = key_value.second;
+      path_map.insert(std::make_pair(Path(key), value));
+    }
+  }
+  return path_map;
 }
 
 }  // namespace internal

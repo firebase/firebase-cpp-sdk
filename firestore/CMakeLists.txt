@@ -37,6 +37,7 @@ set(common_SRCS
     src/common/hard_assert_common.cc
     src/common/hard_assert_common.h
     src/common/listener_registration.cc
+    src/common/load_bundle_task_progress.cc
     src/common/macros.h
     src/common/main_for_testing_build.cc
     src/common/query.cc
@@ -99,6 +100,10 @@ set(android_SRCS
     src/android/lambda_transaction_function.h
     src/android/listener_registration_android.cc
     src/android/listener_registration_android.h
+    src/android/load_bundle_task_android.cc
+    src/android/load_bundle_task_android.h
+    src/android/load_bundle_task_progress_android.cc
+    src/android/load_bundle_task_progress_android.h
     src/android/metadata_changes_android.cc
     src/android/metadata_changes_android.h
     src/android/promise_android.h
@@ -299,6 +304,7 @@ if(IOS)
       # The Firestore core on iOS comes via the FirebaseFirestore CocoaPod, and
       # public headers should come from there.
       ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include
+      ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/Protos/nanopb
     PRIVATE
       # Additionally, the core C++ API is not declared publicly within the
       # FirebaseFirestore pod, so depend on headers available in the source
@@ -312,6 +318,7 @@ else()
   target_include_directories(firebase_firestore
     PUBLIC
       ${FIRESTORE_SOURCE_DIR}/Firestore/core/include
+      ${FIRESTORE_SOURCE_DIR}/Firestore/Protos/nanopb
     PRIVATE
       ${FIRESTORE_SOURCE_DIR}
   )
@@ -322,7 +329,16 @@ set(FIREBASE_FIRESTORE_CPP_DEFINES -DINTERNAL_EXPERIMENTAL=1)
 if (WIN32 AND NOT ANDROID AND NOT IOS)
   # On Windows, gRPC gives a compiler error in firebase_metadata_provider_desktop.cc
   # unless _WIN32_WINNT is defined to this value (0x0600, Windows Vista).
-  set(FIREBASE_FIRESTORE_CPP_DEFINES ${FIREBASE_FIRESTORE_CPP_DEFINES} -D_WIN32_WINNT=0x0600)
+  # Also set -DNOMINMAX for both Firestore and Firestore Core.
+  set(FIREBASE_FIRESTORE_CPP_DEFINES ${FIREBASE_FIRESTORE_CPP_DEFINES} -D_WIN32_WINNT=0x0600 -DNOMINMAX)
+  # Special handling for the absl time zone library, define _LIBCPP_VERSION on
+  # Windows to avoid the shenanigans they do with Windows mangled symbols to
+  # accomplish weak linking. See
+  # https://github.com/google/cctz/blob/master/src/zone_info_source.cc for a
+  # look at what we're up against.
+  target_compile_definitions(absl_time_zone
+    PRIVATE
+    _LIBCPP_VERSION=99)
 endif()
 
 target_compile_definitions(firebase_firestore

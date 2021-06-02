@@ -112,9 +112,7 @@ struct AuthCompletionHandle {
 
   AuthCompletionHandle() = delete;
 
-  virtual ~AuthCompletionHandle() {
-    auth_data = nullptr;
-  }
+  virtual ~AuthCompletionHandle() { auth_data = nullptr; }
 
   SafeFutureHandle<SignInResult> future_handle;
   AuthData* auth_data;
