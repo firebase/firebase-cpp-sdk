@@ -28,7 +28,8 @@
 #include "admob/src/ios/banner_view_internal_ios.h"
 #else
 #include "admob/src/stub/banner_view_internal_stub.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
 namespace admob {
@@ -44,7 +45,8 @@ BannerViewInternal* BannerViewInternal::CreateInstance(BannerView* base) {
   return new BannerViewInternalIOS(base);
 #else
   return new BannerViewInternalStub(base);
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 }
 
 void BannerViewInternal::SetListener(BannerView::Listener* listener) {

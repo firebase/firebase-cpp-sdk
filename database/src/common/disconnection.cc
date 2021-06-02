@@ -30,8 +30,8 @@
 #else
 #include "database/src/stub/database_stub.h"
 #include "database/src/stub/disconnection_stub.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS,
-        // defined(FIREBASE_TARGET_DESKTOP)
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS, defined(FIREBASE_TARGET_DESKTOP)
 
 #include "database/src/common/cleanup.h"
 

@@ -28,7 +28,8 @@
 #else
 #include "functions/src/desktop/callable_reference_desktop.h"
 #include "functions/src/desktop/functions_desktop.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
 class Variant;

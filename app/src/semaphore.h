@@ -39,7 +39,8 @@
 #if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "app/src/mutex.h"
 #include "app/src/pthread_condvar.h"
-#endif  //  FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#endif  //  FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS ||
+        //  FIREBASE_PLATFORM_TVOS
 
 #if !defined(FIREBASE_NAMESPACE)
 #define FIREBASE_NAMESPACE firebase
@@ -112,7 +113,8 @@ class Semaphore {
   void Post() {
 #if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
     MutexLock lock(cond_mutex_);
-#endif  // FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#endif  // FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS ||
+        // FIREBASE_PLATFORM_TVOS
 
 #if !FIREBASE_PLATFORM_WINDOWS
     bool success = (sem_post(semaphore_) == 0);
@@ -127,7 +129,8 @@ class Semaphore {
 #if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
     // Notify any potential timedWait calls that are waiting for this.
     cond_.NotifyAll();
-#endif  // FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#endif  // FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS ||
+        // FIREBASE_PLATFORM_TVOS
   }
 
   void Wait() {
@@ -191,7 +194,8 @@ class Semaphore {
 #elif !FIREBASE_PLATFORM_WINDOWS
   // On non-Mac POSIX systems, we keep our own sem_t object.
   sem_t semaphore_value_;
-#endif  // FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#endif  // FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS ||
+        // FIREBASE_PLATFORM_TVOS
 };
 
 // NOLINTNEXTLINE - allow namespace overridden

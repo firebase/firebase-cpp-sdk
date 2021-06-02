@@ -69,10 +69,12 @@ template <typename T>
 void Verify(const AuthError error, const Future<T>& result,
             bool check_result_not_null) {
 // Desktop stub returns result immediately and thus we skip the ticker elapse.
-#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || \
+    FIREBASE_PLATFORM_TVOS
   EXPECT_EQ(firebase::kFutureStatusPending, result.status());
   firebase::testing::cppsdk::TickerElapse();
-#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS ||
+        // FIREBASE_PLATFORM_TVOS
   MaybeWaitForFuture(result);
   EXPECT_EQ(firebase::kFutureStatusComplete, result.status());
   EXPECT_EQ(error, result.error());
@@ -351,7 +353,8 @@ TEST_F(AuthTest, TestCreateUserWithEmailAndPasswordSucceeded) {
 // Right now the desktop stub always succeeded. We could potentially test it by
 // adding a desktop fake, which does not provide much value for the specific
 // case of Auth since the C++ code is only a thin wraper.
-#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || \
+    FIREBASE_PLATFORM_TVOS
 
 TEST_F(AuthTest, TestSignInWithCustomTokenFailed) {
   firebase::testing::cppsdk::ConfigSet(
@@ -471,7 +474,8 @@ TEST_F(AuthTest, TestCreateUserWithEmailAndPasswordFailed) {
   Verify(kAuthErrorEmailAlreadyInUse, result);
 }
 
-#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS ||
+        // FIREBASE_PLATFORM_TVOS
 
 TEST_F(AuthTest, TestCurrentUserAndSignOut) {
   // Here we let mock sign-in-anonymously succeed immediately (ticker = 0).
@@ -534,7 +538,8 @@ TEST_F(AuthTest, TestSendPasswordResetEmailSucceeded) {
   Verify(kAuthErrorNone, result);
 }
 
-#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || \
+    FIREBASE_PLATFORM_TVOS
 TEST_F(AuthTest, TestSendPasswordResetEmailFailed) {
   firebase::testing::cppsdk::ConfigSet(
       "{"
@@ -557,7 +562,8 @@ TEST_F(AuthTest, TestSendPasswordResetEmailFailed) {
   Future<void> result = firebase_auth_->SendPasswordResetEmail("my@email.com");
   Verify(kAuthErrorInvalidMessagePayload, result);
 }
-#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS ||
+        // FIREBASE_PLATFORM_TVOS
 
 }  // namespace auth
 }  // namespace firebase

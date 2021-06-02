@@ -29,7 +29,8 @@
 #include "remote_config/src/ios/remote_config_ios.h"
 #else
 #include "remote_config/src/desktop/remote_config_desktop.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
 namespace remote_config {

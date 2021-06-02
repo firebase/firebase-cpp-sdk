@@ -35,7 +35,8 @@
 #include "storage/src/ios/storage_ios.h"
 #else
 #include "storage/src/desktop/storage_desktop.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(storage,

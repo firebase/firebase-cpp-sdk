@@ -25,7 +25,8 @@
 extern "C" {
 #include <objc/objc.h>
 }  // extern "C"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
 namespace admob {
@@ -46,7 +47,8 @@ typedef id AdParent;
 #else
 /// A void pointer for stub classes.
 typedef void *AdParent;
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 
 #ifdef INTERNAL_EXPERIMENTAL
 // LINT.IfChange

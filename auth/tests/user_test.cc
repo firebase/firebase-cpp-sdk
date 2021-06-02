@@ -202,10 +202,12 @@ class UserTest : public ::testing::Test {
   template <typename T>
   static void Verify(const Future<T> result) {
 // Fake Android & iOS implemented the delay. Desktop stub completed immediately.
-#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || \
+    FIREBASE_PLATFORM_TVOS
     EXPECT_EQ(firebase::kFutureStatusPending, result.status());
     firebase::testing::cppsdk::TickerElapse();
-#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS ||
+        // FIREBASE_PLATFORM_TVOS
     MaybeWaitForFuture(result);
     EXPECT_EQ(firebase::kFutureStatusComplete, result.status());
     EXPECT_EQ(0, result.error());
@@ -274,11 +276,13 @@ TEST_F(UserTest, TestUpdateEmail) {
   Future<void> result = firebase_user_->UpdateEmail("new@email.com");
 
 // Fake Android & iOS implemented the delay. Desktop stub completed immediately.
-#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || \
+    FIREBASE_PLATFORM_TVOS
   EXPECT_EQ(firebase::kFutureStatusPending, result.status());
   EXPECT_NE("new@email.com", firebase_user_->email());
   firebase::testing::cppsdk::TickerElapse();
-#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS ||
+        // FIREBASE_PLATFORM_TVOS
   MaybeWaitForFuture(result);
   EXPECT_EQ(firebase::kFutureStatusComplete, result.status());
   EXPECT_EQ(0, result.error());
@@ -519,15 +523,18 @@ TEST_F(UserTest, TestIsAnonymous) {
 
 TEST_F(UserTest, TestGetter) {
 // Test getter functions. The fake value are different between stub and fake.
-#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#if defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || \
+    FIREBASE_PLATFORM_TVOS
   EXPECT_EQ("fake email", firebase_user_->email());
   EXPECT_EQ("fake display name", firebase_user_->display_name());
   EXPECT_EQ("fake provider id", firebase_user_->provider_id());
-#else   // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#else   // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS ||
+        // FIREBASE_PLATFORM_TVOS
   EXPECT_TRUE(firebase_user_->email().empty());
   EXPECT_TRUE(firebase_user_->display_name().empty());
   EXPECT_EQ("Firebase", firebase_user_->provider_id());
-#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
+#endif  // defined(FIREBASE_ANDROID_FOR_DESKTOP) || FIREBASE_PLATFORM_IOS ||
+        // FIREBASE_PLATFORM_TVOS
 
   EXPECT_FALSE(firebase_user_->uid().empty());
   EXPECT_TRUE(firebase_user_->photo_url().empty());
