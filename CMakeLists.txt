@@ -107,9 +107,10 @@ if(FIREBASE_CPP_BUILD_TESTS)
                ${CMAKE_BINARY_DIR})
 endif()
 
-if(PLATFORM STREQUAL TVOS)
-  # AdMob is not supported on tvOS.
+if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
+  # AdMob, FDL are not supported on tvOS.
   set(FIREBASE_INCLUDE_ADMOB OFF)
+  set(FIREBASE_INCLUDE_DYNAMIC_LINKS OFF)
 endif()
 
 # Occasionally ANDROID is not being set correctly when invoked by gradle, so
