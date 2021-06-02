@@ -1,7 +1,7 @@
 #!/bin/bash -e
 #
 # Script to build iOS XCFrameworks
-# If built for all architectures (arm64 armv7 x86_64 i386),
+# If built for all architectures (arm64 x86_64),
 # it will build universal framework as well
 #
 

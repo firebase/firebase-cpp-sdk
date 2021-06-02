@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 if [[ $(uname) != "Darwin" ]]; then
-    echo "Unsupported platform, iOS can only be build on a MacOS machine."
+    echo "Unsupported platform, tvOS can only be build on a MacOS machine."
     exit 1
 fi
 

@@ -58,7 +58,7 @@
 namespace firebase {
 namespace auth {
 
-static const char* kMockVerificationId = "mock verification id";
+static const char* kMockVerificationId = "PhoneAuth not supported on this platform";
 
 using util::StringFromNSString;
 
@@ -507,7 +507,7 @@ Future<SignInResult> FederatedOAuthProvider::Link(AuthData* auth_data) {
   #else // non-iOS Apple platforms (eg: tvOS)
   Future<SignInResult> future = MakeFuture(&futures, handle);
   futures.Complete(handle, kAuthErrorApiNotAvailable,
-    "Link with getCredentialWithUIDelegate is not supported on non-iOS Apple platforms.");
+    "OAuth provider linking is not supported on non-iOS Apple platforms.");
   #endif // FIREBASE_PLATFORM_IOS
 
 }
@@ -544,7 +544,7 @@ Future<SignInResult> FederatedOAuthProvider::Reauthenticate(AuthData* auth_data)
   #else // non-iOS Apple platforms (eg: tvOS)
   Future<SignInResult> future = MakeFuture(&futures, handle);
   futures.Complete(handle, kAuthErrorApiNotAvailable,
-    "Reauthenticate with getCredentialWithUIDelegate is not supported on non-iOS Apple platforms.");
+    "OAuth reauthentication is not supported on non-iOS Apple platforms.");
   #endif // FIREBASE_PLATFORM_IOS
 }
 

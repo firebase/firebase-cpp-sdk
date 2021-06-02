@@ -1,4 +1,7 @@
 #!/bin/bash -e
+#
+# Script to package tvOS XCFrameworks.
+#
 
 builtpath=$1
 packagepath=$2
