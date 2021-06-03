@@ -39,6 +39,7 @@
 #include "firebase/firestore/firestore_errors.h"
 #include "firebase/firestore/geo_point.h"
 #include "firebase/firestore/listener_registration.h"
+#include "firebase/firestore/load_bundle_task_progress.h"
 #include "firebase/firestore/map_field_value.h"
 #include "firebase/firestore/metadata_changes.h"
 #include "firebase/firestore/query.h"
@@ -404,6 +405,44 @@ class Firestore {
   virtual ListenerRegistration AddSnapshotsInSyncListener(
       EventListener<void>* listener);
 #endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
+  /**
+   * Loads a Firestore bundle into the local cache.
+   *
+   * @param bundle A string containing the bundle to be loaded.
+   * @return A `Future` that is resolved when the loading is either completed
+   * or aborted due to an error.
+   */
+  virtual Future<LoadBundleTaskProgress> LoadBundle(const std::string& bundle);
+
+  /**
+   * Loads a Firestore bundle into the local cache, with the provided callback
+   * executed for progress updates.
+   *
+   * @param bundle A string containing the bundle to be loaded.
+   * @param progress_callback A callback that is called with progress
+   * updates, and completion or error updates.
+   * @return A `Future` that is resolved when the loading is either completed
+   * or aborted due to an error.
+   */
+  virtual Future<LoadBundleTaskProgress> LoadBundle(
+      const std::string& bundle,
+      std::function<void(const LoadBundleTaskProgress&)> progress_callback);
+
+  /**
+   * Reads a Firestore `Query` from the local cache, identified by the given
+   * name.
+   *
+   * Named queries are packaged into bundles on the server side (along with the
+   * resulting documents) and loaded into local cache using `LoadBundle`. Once
+   * in the local cache, you can use this method to extract a query by name.
+   *
+   * If a query cannot be found, the returned future will complete with its
+   * `error()` set to a non-zero error code.
+   *
+   * @param query_name The name of the query to read from saved bundles.
+   */
+  virtual Future<Query> NamedQuery(const std::string& query_name);
 
  protected:
   /**

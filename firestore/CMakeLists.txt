@@ -37,6 +37,7 @@ set(common_SRCS
     src/common/hard_assert_common.cc
     src/common/hard_assert_common.h
     src/common/listener_registration.cc
+    src/common/load_bundle_task_progress.cc
     src/common/macros.h
     src/common/main_for_testing_build.cc
     src/common/query.cc
@@ -99,6 +100,10 @@ set(android_SRCS
     src/android/lambda_transaction_function.h
     src/android/listener_registration_android.cc
     src/android/listener_registration_android.h
+    src/android/load_bundle_task_android.cc
+    src/android/load_bundle_task_android.h
+    src/android/load_bundle_task_progress_android.cc
+    src/android/load_bundle_task_progress_android.h
     src/android/metadata_changes_android.cc
     src/android/metadata_changes_android.h
     src/android/promise_android.h
