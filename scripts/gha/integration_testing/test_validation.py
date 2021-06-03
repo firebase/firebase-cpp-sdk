@@ -199,6 +199,11 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
       "%d TESTAPPS TOTAL: %d PASSES, %d FAILURES, %d ERRORS"
       % (len(tests), len(successes), len(failures), len(errors)))
 
+  # summary_json format:
+  #   { "type": "test",
+  #     "testapps": [testapp],
+  #     "errors": {testapp:error_log},
+  #     "failures": {testapp:{"log": error_log, "failed_tests": {falied_test: test_log}}}}}
   summary_json = {}
   summary_json["type"] = "test"
   summary_json["testapps"] = [test.testapp_path.split(os.sep)[-2] for test in tests]
