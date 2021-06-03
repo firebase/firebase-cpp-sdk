@@ -1,7 +1,13 @@
 #!/bin/bash -e
 #
-# Script to package tvOS XCFrameworks.
+# Script to package tvOS SDK.
 #
+
+usage(){
+    echo "Usage: $0 <built tvOS SDK path> <path to put packaged files into>
+example:
+  build_scripts/tvos/package.sh tvos_build package_out"
+}
 
 builtpath=$1
 packagepath=$2
