@@ -18,7 +18,7 @@ on:
         required: true
       operating_systems:
         description: 'CSV of VMs to run on'
-        default: 'ubuntu-latest,windows-latest,macos-latest'
+        default: 'ubuntu-latest,windows-2016,macos-latest'
         required: true
       desktop_ssl_variants:
         description: 'CSV of desktop SSL variants to use'
