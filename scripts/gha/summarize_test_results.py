@@ -256,7 +256,7 @@ def main(argv):
     if m:
       log_results[platform]["attempted"].update(m.group(1).split(","))
     # Extract build failure lines, which follow "SOME FAILURES OCCURRED:"
-    m = re.search(r'SOME FAILURES OCCURRED:\n(([\d]+:[^\n]*\n)+)', logs["build_log"], re.MULTILINE)
+    m = re.search(r'SOME ERRORS OCCURRED:\n(([\d]+:[^\n]*\n)+)', logs["build_log"], re.MULTILINE)
     if m:
       for build_failure_line in m.group(1).strip("\n").split("\n"):
         m2 = re.match(r'[\d]+: ([^,]+)', build_failure_line)

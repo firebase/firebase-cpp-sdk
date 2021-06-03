@@ -692,7 +692,7 @@ jobs:
     name: test-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
     needs: [check_trigger, prepare_matrix, build_desktop]
     runs-on: ${{ matrix.os }}
-    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'Desktop') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
+    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'Desktop') && needs.prepare_matrix.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
       matrix:
@@ -779,7 +779,7 @@ jobs:
     name: test-android-${{ matrix.build_os }}-${{ matrix.android_device }}
     needs: [check_trigger, prepare_matrix, build_android]
     runs-on: macos-latest
-    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'Android') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
+    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'Android') && needs.prepare_matrix.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
       matrix:
@@ -884,7 +884,7 @@ jobs:
     name: test-ios-macos-latest-${{ matrix.ios_device }}
     needs: [check_trigger, prepare_matrix, build_ios]
     runs-on: macos-latest
-    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'iOS') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
+    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'iOS') && needs.prepare_matrix.outputs.apis != '' && !cancelled()
     strategy:
       fail-fast: false
       matrix:
