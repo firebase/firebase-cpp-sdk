@@ -24,7 +24,7 @@
 #if defined(__ANDROID__)
 #include "storage/src/android/storage_android.h"
 #include "storage/src/android/storage_reference_android.h"
-#elif TARGET_OS_IPHONE
+#elif TARGET_OS_IPHONE || TARGET_OS_TV
 #include "storage/src/ios/storage_ios.h"
 #include "storage/src/ios/storage_reference_ios.h"
 #else

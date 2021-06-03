@@ -21,11 +21,12 @@
 
 #if FIREBASE_PLATFORM_ANDROID
 #include <jni.h>
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 extern "C" {
 #include <objc/objc.h>
 }  // extern "C"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
 namespace admob {
@@ -40,13 +41,14 @@ namespace admob {
 #if FIREBASE_PLATFORM_ANDROID
 /// An Android Activity from Java.
 typedef jobject AdParent;
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 /// A pointer to an iOS UIView.
 typedef id AdParent;
 #else
 /// A void pointer for stub classes.
 typedef void *AdParent;
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 
 #ifdef INTERNAL_EXPERIMENTAL
 // LINT.IfChange

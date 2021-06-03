@@ -22,13 +22,14 @@
 #if FIREBASE_PLATFORM_ANDROID
 #include "functions/src/android/callable_reference_android.h"
 #include "functions/src/android/functions_android.h"
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "functions/src/ios/callable_reference_ios.h"
 #include "functions/src/ios/functions_ios.h"
 #else
 #include "functions/src/desktop/callable_reference_desktop.h"
 #include "functions/src/desktop/functions_desktop.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
 class Variant;

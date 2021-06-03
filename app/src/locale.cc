@@ -19,7 +19,7 @@
 #include "app/src/include/firebase/internal/platform.h"
 #include "app/src/log.h"
 
-#if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #error "This file does not support iOS and OS X, use locale_apple.mm instead."
 #elif FIREBASE_PLATFORM_ANDROID
 #error "This file is not support on Android."

@@ -24,11 +24,12 @@
 
 #if FIREBASE_PLATFORM_ANDROID
 #include "admob/src/android/rewarded_video_internal_android.h"
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "admob/src/ios/rewarded_video_internal_ios.h"
 #else
 #include "admob/src/stub/rewarded_video_internal_stub.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
 namespace admob {
@@ -41,11 +42,12 @@ RewardedVideoInternal::RewardedVideoInternal()
 RewardedVideoInternal* RewardedVideoInternal::CreateInstance() {
 #if FIREBASE_PLATFORM_ANDROID
   return new RewardedVideoInternalAndroid();
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   return new RewardedVideoInternalIOS();
 #else
   return new RewardedVideoInternalStub();
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 }
 
 void RewardedVideoInternal::SetListener(Listener* listener) {
