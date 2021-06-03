@@ -32,6 +32,7 @@ log is obtained instead, to help identify where the crash or timeout occurred.
 import datetime
 import os
 import re
+import json
 
 from absl import logging
 
@@ -200,6 +201,25 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
   summary = "\n".join(summary)
   logging.info(summary)
   write_summary(summary_dir, summary, file_name)
+
+  summary_json = {}
+  summary_json["type"] = "test"
+  summary_json["testapps"] = [test.testapp_path.split(os.sep)[-2] for test in tests]
+  summary_json["errors"] = {test.testapp_path.split(os.sep)[-2]:results.summary  for (test, results) in errors}
+  summary_json["failures"] = {test.testapp_path.split(os.sep)[-2]:{"logs": results.summary, "failed_tests": dict()}  for (test, results) in failures}
+  for (test, results) in failures:
+    testapp = test.testapp_path.split(os.sep)[-2]
+    failed_tests = re.findall(r"\[  FAILED  \] (.+)[.](.+)", results.summary)
+    for failed_test in failed_tests:
+      failed_test = failed_test[1]
+      pattern = fr'\[ RUN      \] (.+)[.]{failed_test}(.*?)\[  FAILED  \] (.+)[.]{failed_test}'
+      print(pattern)
+      falied_log = re.search(pattern, test.logs, re.MULTILINE | re.DOTALL)
+      print(falied_log.group())
+      summary_json["failures"][testapp]["failed_tests"][failed_test] = falied_log.group()
+
+  with open(os.path.join(summary_dir, file_name+".json"), "a") as f:
+    f.write(json.dumps(summary_json, indent=2))
 
   return 0 if len(tests) == len(successes) else 1
 

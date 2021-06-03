@@ -354,7 +354,7 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: log-artifact
-          path: build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
+          path: build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Set CLOUDSDK_PYTHON (Windows)
         shell: bash
@@ -510,7 +510,7 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: log-artifact
-          path: build-results-android-${{ matrix.os }}.log
+          path: build-results-android-${{ matrix.os }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Add failure label
         # We can mark a failure as soon as any one test fails.
@@ -635,7 +635,7 @@ jobs:
         if: ${{ !cancelled() }}
         with:
           name: log-artifact
-          path: build-results-ios-macos-latest.log
+          path: build-results-ios-macos-latest*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Add failure label
         # We can mark a failure as soon as any one test fails.
@@ -722,7 +722,7 @@ jobs:
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
-          path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
+          path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}*
           retention-days: ${{ env.artifactRetentionDays }}          
       - name: Add failure label
         # We can mark a failure as soon as any one test fails.
@@ -827,7 +827,7 @@ jobs:
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
-          path: testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log
+          path: testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}*
           retention-days: ${{ env.artifactRetentionDays }}  
       - name: Add failure label
         # We can mark a failure as soon as any one test fails.
@@ -931,7 +931,7 @@ jobs:
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
-          path: testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}.log
+          path: testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}*
           retention-days: ${{ env.artifactRetentionDays }}  
       - name: Add failure label
         # We can mark a failure as soon as any one test fails.

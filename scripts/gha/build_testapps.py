@@ -80,6 +80,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import json
 
 from absl import app
 from absl import flags
@@ -255,7 +256,7 @@ def main(argv):
           short_output_paths=FLAGS.short_output_paths)
       logging.info("END building for %s", testapp)
   
-  _collect_integration_tests(testapps, root_output_dir, FLAGS.artifact_name)
+  _collect_integration_tests(testapps, root_output_dir, output_dir, FLAGS.artifact_name)
 
   _summarize_results(testapps, platforms, failures, root_output_dir, FLAGS.artifact_name)
   return 1 if failures else 0
@@ -329,7 +330,7 @@ def _build(
   return failures
 
 
-def _collect_integration_tests(testapps, output_dir, artifact_name):
+def _collect_integration_tests(testapps, root_output_dir, output_dir, artifact_name):
   testapps_artifact_dir = "testapps-" + artifact_name
   android_testapp_extension = ".apk"
   ios_testapp_extension = ".ipa"
@@ -349,7 +350,7 @@ def _collect_integration_tests(testapps, output_dir, artifact_name):
           or file_name.endswith(ios_testapp_extension)):
         testapp_paths.append(os.path.join(file_dir, file_name))
 
-  artifact_path = os.path.join(output_dir, testapps_artifact_dir)
+  artifact_path = os.path.join(root_output_dir, testapps_artifact_dir)
   _rm_dir_safe(artifact_path)
   for testapp in testapps:
     os.makedirs(os.path.join(artifact_path, testapp))
@@ -363,7 +364,7 @@ def _collect_integration_tests(testapps, output_dir, artifact_name):
         break
 
 
-def _summarize_results(testapps, platforms, failures, output_dir, artifact_name):
+def _summarize_results(testapps, platforms, failures, root_output_dir, artifact_name):
   """Logs a readable summary of the results of the build."""
   file_name = "build-results-" + artifact_name + ".log"
 
@@ -375,13 +376,20 @@ def _summarize_results(testapps, platforms, failures, output_dir, artifact_name)
   if not failures:
     summary.append("ALL BUILDS SUCCEEDED")
   else:
-    summary.append("SOME FAILURES OCCURRED:")
+    summary.append("SOME ERRORS OCCURRED:")
     for i, failure in enumerate(failures, start=1):
       summary.append("%d: %s" % (i, failure.describe()))
   summary = "\n".join(summary)
 
   logging.info(summary)
-  test_validation.write_summary(output_dir, summary, file_name=file_name)
+  test_validation.write_summary(root_output_dir, summary, file_name=file_name)
+
+  summary_json = {}
+  summary_json["type"] = "build"
+  summary_json["testapps"] = testapps
+  summary_json["errors"] = {failure.testapp:failure.error_message for failure in failures}
+  with open(os.path.join(root_output_dir, file_name+".json"), "a") as f:
+    f.write(json.dumps(summary_json, indent=2))
 
 
 def _build_desktop(sdk_dir, cmake_flags):
