@@ -1059,7 +1059,7 @@ jobs:
             ### ❌&nbsp; Integration test FAILED
             Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
             Last updated: ${{ steps.get-time.outputs.time }}
-            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
+            **[Download integration test detailed logs and artifacts](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
             ${{ env.SUMMARY_TABLE }}
           GITHUB_TOKEN: ${{ github.token }}
           COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}

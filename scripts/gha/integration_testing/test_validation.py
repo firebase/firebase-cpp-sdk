@@ -198,9 +198,6 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
   summary.append(
       "%d TESTAPPS TOTAL: %d PASSES, %d FAILURES, %d ERRORS"
       % (len(tests), len(successes), len(failures), len(errors)))
-  summary = "\n".join(summary)
-  logging.info(summary)
-  write_summary(summary_dir, summary, file_name)
 
   summary_json = {}
   summary_json["type"] = "test"
@@ -213,13 +210,16 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
     for failed_test in failed_tests:
       failed_test = failed_test[1]
       pattern = fr'\[ RUN      \] (.+)[.]{failed_test}(.*?)\[  FAILED  \] (.+)[.]{failed_test}'
-      print(pattern)
       falied_log = re.search(pattern, test.logs, re.MULTILINE | re.DOTALL)
-      print(falied_log.group())
       summary_json["failures"][testapp]["failed_tests"][failed_test] = falied_log.group()
+      summary.append("\n%s FAILED:\n%s\n" % (failed_test, falied_log.group()))
 
   with open(os.path.join(summary_dir, file_name+".json"), "a") as f:
     f.write(json.dumps(summary_json, indent=2))
+
+  summary = "\n".join(summary)
+  logging.info(summary)
+  write_summary(summary_dir, summary, file_name)
 
   return 0 if len(tests) == len(successes) else 1
 

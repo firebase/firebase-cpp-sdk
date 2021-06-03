@@ -100,8 +100,8 @@ PARAMETERS = {
       "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS"],
       "ssl_lib": ["openssl", "boringssl"],
-      "android_device": ["android_target", "emulator_target"],
-      "ios_device": ["ios_target", "simulator_target"],
+      "android_device": ["android_min", "android_target", "android_latest", "emulator_min", "emulator_target", "emulator_latest"],
+      "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
       "build_type": ["Debug"],
       "architecture_windows_linux": ["x64"],
       "architecture_macos": ["x64"],
@@ -112,10 +112,6 @@ PARAMETERS = {
       "ndk_version": ["r22b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
-      EXPANDED_KEY: {
-        "android_device": ["android_min", "android_target", "android_latest", "emulator_min", "emulator_target", "emulator_latest"],
-        "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"]
-      }
     },
     "config": {
       "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage",
@@ -134,51 +130,27 @@ PARAMETERS = {
   },
 }
 
-# Platform and its build configurations 
-WINDOWS = ["os", "ssl", "build_type", "architecture_windows_linux", "msvc_runtime", "cpp_compiler_windows"]
-LINUX = ["os", "ssl", "build_type", "architecture_windows_linux", "cpp_compiler_linux"]
-MACOS = ["ssl", "architecture_macos", "xcode_version"]
-ANDROID = ["os", "ndk_version", "build_tools", "platform_version", "test_device"]
-IOS = ["xcode_version", "test_device"]
-TVOS = ["xcode_version", "test_device"]
+BUILD_CONFIGS = {
+  "windows": ["ssl_lib", "build_type", "architecture_windows_linux", "msvc_runtime", "cpp_compiler_windows"],
+  "linux": ["ssl_lib", "build_type", "architecture_windows_linux", "cpp_compiler_linux"],
+  "macos": ["ssl_lib", "architecture_macos", "xcode_version"],
+  "android": ["os", "ndk_version", "build_tools", "platform_version", "android_device"],
+  "ios": ["os", "xcode_version", "ios_device"]
+}
 
 TEST_DEVICES = {
-  "android_min": {
-    "os": "Android", "type": "real", "model":"Nexus10", "version":"19"
-  },
-  "android_target": {
-    "os": "Android", "type": "real", "model":"Pixel2", "version":"28"
-  },
-  "android_latest": {
-    "os": "Android", "type": "real", "model":"flame", "version":"29"
-  },
-  "emulator_min": {
-    "os": "Android", "type": "virtual", "image":"system-images;android-18;default;x86"
-  },
-  "emulator_target": {
-    "os": "Android", "type": "virtual", "image":"system-images;android-28;google_apis;x86_64"
-  },
-  "emulator_latest": {
-    "os": "Android", "type": "virtual", "image":"system-images;android-29;default;x86"
-  },
-  "ios_min": {
-    "os": "iOS", "type": "real", "model":"iphone8", "version":"11.4"
-  },
-  "ios_target": {
-    "os": "iOS", "type": "real", "model":"iphone6s", "version":"12.0"
-  },
-  "ios_latest": {
-    "os": "iOS", "type": "real", "model":"iphone11pro", "version":"14.1"
-  },
-  "simulator_min": {
-    "os": "iOS", "type": "virtual", "name":"iPhone 6", "version":"11.4"
-  },
-  "simulator_target": {
-    "os": "iOS", "type": "virtual", "name":"iPhone 8", "version":"12.0"
-  },
-  "simulator_latest": {
-    "os": "iOS", "type": "virtual", "name":"iPhone 11", "version":"14.4"
-  },
+  "android_min": {"type": "real", "model":"Nexus10", "version":"19"},
+  "android_target": {"type": "real", "model":"Pixel2", "version":"28"},
+  "android_latest": {"type": "real", "model":"flame", "version":"29"},
+  "emulator_min": {"type": "virtual", "image":"system-images;android-18;default;x86"},
+  "emulator_target": {"type": "virtual", "image":"system-images;android-28;google_apis;x86_64"},
+  "emulator_latest": {"type": "virtual", "image":"system-images;android-29;default;x86"},
+  "ios_min": {"type": "real", "model":"iphone8", "version":"11.4"},
+  "ios_target": {"type": "real", "model":"iphone6s", "version":"12.0"},
+  "ios_latest": {"type": "real", "model":"iphone11pro", "version":"14.1"},
+  "simulator_min": {"type": "virtual", "name":"iPhone 6", "version":"11.4"},
+  "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"12.0"},
+  "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"14.4"},
 }
  
 
