@@ -13,12 +13,13 @@ builtpath=$1
 packagepath=$2
 
 if [[ -z "${builtpath}" || -z "${packagepath}" ]]; then
-    echo "Usage: $0 <built tvOS SDK path> <path to put packaged files into>"
+    usage
     exit 1
 fi
 
 if [[ ! -d "${builtpath}/xcframeworks" ]]; then
     echo "Built tvOS SDK not found at path '${builtpath}'."
+    usage
     exit 2
 fi
 
