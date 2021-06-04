@@ -184,8 +184,13 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
   if errors:
     summary.append("\n%d TESTAPPS EXPERIENCED ERRORS:" % len(errors))
     for test, results in errors:
+      summary.append("%s:" % test.testapp_path)
+      if hasattr(test, "ftl_link") and test.ftl_link:
+        summary.append("ftl_link: %s" % test.ftl_link)
+      if hasattr(test, "raw_result_link") and test.raw_result_link:
+        summary.append("raw_result_link: %s" % test.raw_result_link)
       if results.summary:
-        summary.append("%s log tail:" % test.testapp_path)
+        summary.append("log tail:")
         summary.append(results.summary)
       else:
         summary.append(
@@ -194,6 +199,10 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
     summary.append("\n%d TESTAPPS FAILED:" % len(failures))
     for test, results in failures:
       summary.append(test.testapp_path)
+      if hasattr(test, "ftl_link") and test.ftl_link:
+        summary.append("ftl_link: %s" % test.ftl_link)
+      if hasattr(test, "raw_result_link") and test.raw_result_link:
+        summary.append("raw_result_link: %s" % test.raw_result_link)
       summary.append(results.summary)
   summary.append(
       "%d TESTAPPS TOTAL: %d PASSES, %d FAILURES, %d ERRORS"
@@ -202,15 +211,29 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
   # summary_json format:
   #   { "type": "test",
   #     "testapps": [testapp],
-  #     "errors": {testapp:error_log},
-  #     "failures": {testapp:{"log": error_log, "failed_tests": {falied_test: test_log}}}}}
+  #     "errors": {testapp:{"log": error_log, "ftl_link": ftl_link, "raw_result_link": raw_result_link}},
+  #     "failures": {testapp:{"log": error_log, "ftl_link": ftl_link, "raw_result_link": raw_result_link,
+  #                           "failed_tests": {falied_test: test_log}}}}}
   summary_json = {}
   summary_json["type"] = "test"
   summary_json["testapps"] = [get_name(test.testapp_path) for test in tests]
-  summary_json["errors"] = {get_name(test.testapp_path):results.summary  for (test, results) in errors}
-  summary_json["failures"] = {get_name(test.testapp_path):{"logs": results.summary, "failed_tests": dict()}  for (test, results) in failures}
+  summary_json["errors"] = {get_name(test.testapp_path):{"logs": results.summary} for (test, results) in errors}
+  for (test, results) in errors:
+    testapp = get_name(test.testapp_path)
+    print("test.ftl_link")
+    print(test.ftl_link)
+    print(hasattr(test, "ftl_link"))
+    if hasattr(test, "ftl_link") and test.ftl_link:
+      summary_json["errors"][testapp]["ftl_link"] = test.ftl_link
+    if hasattr(test, "raw_result_link") and test.raw_result_link:
+      summary_json["errors"][testapp]["raw_result_link"] = test.raw_result_link   
+  summary_json["failures"] = {get_name(test.testapp_path):{"logs": results.summary, "failed_tests": dict()} for (test, results) in failures}
   for (test, results) in failures:
-    testapp = test.testapp_path.split(os.sep)[-2]
+    testapp = get_name(test.testapp_path)
+    if hasattr(test, "ftl_link") and test.ftl_link:
+      summary_json["failures"][testapp]["ftl_link"] = test.ftl_link
+    if hasattr(test, "raw_result_link") and test.raw_result_link:
+      summary_json["failures"][testapp]["raw_result_link"] = test.raw_result_link
     failed_tests = re.findall(r"\[  FAILED  \] (.+)[.](.+)", results.summary)
     for failed_test in failed_tests:
       failed_test = failed_test[1]

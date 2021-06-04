@@ -34,10 +34,10 @@ Example log mode output (will be slightly different with --github_log):
 INTEGRATION TEST FAILURES
 
 admob:
-  Error and Failures (1):
+  Errors and Failures (1):
   - [BUILD] [ERROR] [Windows] [boringssl]
 functions:
-  Error and Failures (2):
+  Errors and Failures (2):
   - [BUILD] [ERROR] [Windows] [boringssl]
   - [TEST] [FAILURE] [iOS] [macos] [simulator_min, simulator_target]
     - failed tests: ['TestSignIn', 'TestFunction', 'TestFunctionWithData']
@@ -150,7 +150,7 @@ def print_log(log_results):
       output_lines.append("")
       output_lines.append("%s:" % testapps)
       if len(configs) > 0:
-        output_lines.append("  Error and Failures (%d):" %
+        output_lines.append("  Errors and Failures (%d):" %
                             len(configs))
       for config, extra in configs.items():
         output_lines.append("  - %s" % config)
@@ -162,11 +162,11 @@ def print_log(log_results):
 def print_github_log(log_results):
   """Print a text log, but replace newlines with %0A and add
   the GitHub ::error text."""
-  output_lines = [LOG_HEADER,
+  output_lines = ["::error ::%s" % LOG_HEADER,
                   "".ljust(len(LOG_HEADER), "—"),
                   ""] + print_log(log_results)
   # "%0A" produces a newline in GitHub workflow logs.
-  return ["::error ::%s" % "%0A".join(output_lines)]
+  return ["%0A".join(output_lines)]
 
 
 def print_markdown_table(log_results):
@@ -248,7 +248,7 @@ def get_configs_from_file_name(file_name, file_name_re):
 def reorganize_log(log_data):
   log_results = {}
   for (testapp, errors) in log_data.items():
-    if combine_configs(errors.get("build")):
+    if errors.get("build"):
       combined_configs = combine_configs(errors.get("build"))
       for (platform, configs) in combined_configs.items():
         for config in configs:
@@ -314,7 +314,6 @@ def combine_configs(configs):
 #     ['ubuntu', 'windows', 'macos']
 #     -> ['All os']
 def combine_config(config, platform, k):
-  print(config)
   if k == 1 and (platform == "android" or platform == "ios"):
     # config_name = test_device here
     k = -1
@@ -340,7 +339,6 @@ def combine_config(config, platform, k):
     elif emulators.issubset(set(config)):
       config.insert(0, "All Emulators")
       config = [x for x in config if (x not in emulators)]
-  print(config)
 
   return config
 
