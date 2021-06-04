@@ -246,18 +246,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, ubuntu-latest, macos-latest]
+        os: [windows-2016, ubuntu-latest, macos-latest]
         build_type: ["Release", "Debug"]
         architecture: ["x64", "x86"]
         msvc_runtime: ["static", "dynamic"]
         linux_abi: ["legacy", "c++11"]
         python_version: [3.7]
         include:
-        - os: windows-latest
+        - os: windows-2016
           vcpkg_triplet_suffix: "windows-static"
           additional_build_flags: "--build_tests"
           sdk_platform: "windows"
-        - os: windows-latest
+        - os: windows-2016
           msvc_runtime: "dynamic"
           vcpkg_triplet_suffix: "windows-static-md"
           additional_build_flags: "--build_tests"
@@ -272,7 +272,7 @@ jobs:
           sdk_platform: "darwin"
 
         exclude:
-        - os: windows-latest
+        - os: windows-2016
           linux_abi: "c++11"
         - os: macos-latest
           architecture: "x86"

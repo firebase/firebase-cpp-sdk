@@ -18,11 +18,12 @@
 
 #if FIREBASE_PLATFORM_ANDROID
 #include "storage/src/stub/listener_stub.h"
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "storage/src/ios/listener_ios.h"
 #else
 #include "storage/src/desktop/listener_desktop.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
 namespace storage {
