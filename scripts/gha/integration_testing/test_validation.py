@@ -220,9 +220,6 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
   summary_json["errors"] = {get_name(test.testapp_path):{"logs": results.summary} for (test, results) in errors}
   for (test, results) in errors:
     testapp = get_name(test.testapp_path)
-    print("test.ftl_link")
-    print(test.ftl_link)
-    print(hasattr(test, "ftl_link"))
     if hasattr(test, "ftl_link") and test.ftl_link:
       summary_json["errors"][testapp]["ftl_link"] = test.ftl_link
     if hasattr(test, "raw_result_link") and test.raw_result_link:
