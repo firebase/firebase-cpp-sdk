@@ -30,14 +30,14 @@
 // DatabaseInternal is defined in these 3 files, one implementation for each OS.
 #if FIREBASE_PLATFORM_ANDROID
 #include "database/src/android/database_android.h"
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "database/src/ios/database_ios.h"
 #elif defined(FIREBASE_TARGET_DESKTOP)
 #include "database/src/desktop/database_desktop.h"
 #else
 #include "database/src/stub/database_stub.h"
 #endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
-        // defined(FIREBASE_TARGET_DESKTOP)
+        // FIREBASE_PLATFORM_TVOS, defined(FIREBASE_TARGET_DESKTOP)
 
 // Register the module initializer.
 FIREBASE_APP_REGISTER_CALLBACKS(database,

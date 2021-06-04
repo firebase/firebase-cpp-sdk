@@ -97,7 +97,7 @@ PARAMETERS = {
 
   "integration_tests": {
     "matrix": {
-      "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
+      "os": ["ubuntu-latest", "macos-latest", "windows-2016"],
       "platform": ["Desktop", "Android", "iOS"],
       "ssl_lib": ["openssl", "boringssl"],
       "android_device": ["virtual:system-images;android-28;google_apis;x86_64+28.0.3", "real:flame+29"],

@@ -18,3 +18,5 @@ gcs_key_file.json
 
 # Folders for cmake/test output
 *_build/
+*cmake-build-debug/
+testing/test_framework/external/

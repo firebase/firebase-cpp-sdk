@@ -156,6 +156,14 @@ set(app_ios_SRCS
     src/invites/ios/invites_receiver_internal_ios.mm
     src/invites/ios/invites_ios_startup.mm
     src/uuid_ios_darwin.mm)
+if (PLATFORM STREQUAL TVOS OR PLATFORM STREQUAL SIMULATOR_TVOS)
+  # TVOS does not have a web browser and does not support dynamic links.
+  # Remove these files if we are building for TVOS.
+  list(REMOVE_ITEM app_ios_SRCS
+    src/invites/ios/invites_receiver_internal_ios.mm
+    src/invites/ios/invites_ios_startup.mm)
+endif()
+
 set(app_desktop_SRCS
     src/app_desktop.cc
     src/heartbeat_date_storage_desktop.cc
@@ -464,6 +472,7 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_path.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_value.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/listener_registration.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/load_bundle_task_progress.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/map_field_value.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/metadata_changes.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/query_snapshot.h

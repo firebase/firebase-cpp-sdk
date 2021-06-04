@@ -49,8 +49,8 @@ android {
 }
 
 dependencies {
-  implementation 'com.google.firebase:firebase-analytics:18.0.2'
-  implementation 'com.google.firebase:firebase-firestore:22.0.2'
+  implementation 'com.google.firebase:firebase-analytics:18.0.3'
+  implementation 'com.google.firebase:firebase-firestore:22.1.2'
 }
 
 afterEvaluate {

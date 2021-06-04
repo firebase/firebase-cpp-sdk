@@ -570,6 +570,8 @@ code.
     -   General (Android): Fixed a potential SIGABRT when an app was created
         with a non-default app name on Android KitKat
         ([#429](https://github.com/firebase/firebase-cpp-sdk/pull/429)).
+    -   General (iOS): A Database URL is no longer required to be present in
+        GoogleService-Info.plist when not using the Real Time Database.
 
 ### 7.3.0
 -   Changes

@@ -15,6 +15,7 @@
 #include "app/src/include/firebase/app.h"
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
+#include "firestore/src/include/firebase/firestore/load_bundle_task_progress.h"
 #include "firestore/src/include/firebase/firestore/settings.h"
 #include "firestore/src/ios/promise_factory_ios.h"
 
@@ -40,17 +41,25 @@ class FirestoreInternal {
   FirestoreInternal(const FirestoreInternal&) = delete;
   FirestoreInternal& operator=(const FirestoreInternal&) = delete;
 
-  App* app() const { return app_; }
+  App* app() const {
+    return app_;
+  }
 
   // Whether this object was successfully initialized by the constructor.
-  bool initialized() const { return app_ != nullptr; }
+  bool initialized() const {
+    return app_ != nullptr;
+  }
 
   // Manages all Future objects returned from Firestore API.
-  FutureManager& future_manager() { return future_manager_; }
+  FutureManager& future_manager() {
+    return future_manager_;
+  }
 
   // When this is deleted, it will clean up all DatabaseReferences,
   // DataSnapshots, and other such objects.
-  CleanupNotifier& cleanup() { return cleanup_; }
+  CleanupNotifier& cleanup() {
+    return cleanup_;
+  }
 
   CollectionReference Collection(const char* collection_path) const;
 
@@ -86,6 +95,13 @@ class FirestoreInternal {
     return firestore_core_->database_id();
   }
 
+  // Bundles
+  Future<LoadBundleTaskProgress> LoadBundle(const std::string& bundle);
+  Future<LoadBundleTaskProgress> LoadBundle(
+      const std::string& bundle,
+      std::function<void(const LoadBundleTaskProgress&)> progress_callback);
+  Future<Query> NamedQuery(const std::string& query_name);
+
   // Manages the ListenerRegistrationInternal objects.
   void RegisterListenerRegistration(ListenerRegistrationInternal* registration);
   void UnregisterListenerRegistration(
@@ -96,8 +112,12 @@ class FirestoreInternal {
     firestore_public_ = firestore_public;
   }
 
-  Firestore* firestore_public() { return firestore_public_; }
-  const Firestore* firestore_public() const { return firestore_public_; }
+  Firestore* firestore_public() {
+    return firestore_public_;
+  }
+  const Firestore* firestore_public() const {
+    return firestore_public_;
+  }
 
   const std::shared_ptr<api::Firestore>& firestore_core() const {
     return firestore_core_;
@@ -115,6 +135,8 @@ class FirestoreInternal {
     kTerminate,
     kWaitForPendingWrites,
     kClearPersistence,
+    kLoadBundle,
+    kNamedQuery,
     kCount,
   };
 
