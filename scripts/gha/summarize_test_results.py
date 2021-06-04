@@ -240,9 +240,9 @@ def get_configs_from_file_name(file_name, file_name_re):
   configs = re.search(file_name_re, file_name).groups(1)[0]
   # Split the matrix name into components.
   configs = re.sub('-', ' ', configs).split()
-  # Remove redundant components.
+  # Remove redundant components. e.g. "latest" in "windows-latest"
+  del configs[2]
   if "desktop" in configs: configs.remove("desktop")
-  if "latest" in configs: configs.remove("latest")
   return configs
 
 def reorganize_log(log_data):
