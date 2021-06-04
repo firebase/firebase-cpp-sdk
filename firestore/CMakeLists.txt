@@ -14,7 +14,7 @@
 
 if(APPLE AND NOT ANDROID)
   set(settings_apple_SRCS
-      src/common/settings_ios.mm)
+      src/common/settings_apple.mm)
 else()
   set(settings_apple_SRCS)
 endif()
