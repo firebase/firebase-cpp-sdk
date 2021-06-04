@@ -1,10 +1,10 @@
-
+source 'https://github.com/firebase/SpecsStaging.git'
 source 'https://github.com/CocoaPods/Specs.git'
 platform :ios, '10.0'
 # Firebase AdMob test application.
 
 target 'integration_test' do
-  pod 'Firebase/AdMob', '7.69.0-cppsdk'
+  pod 'Google-Mobile-Ads-SDK', '7.69.0-cppsdk'
 end
 
 post_install do |installer|
