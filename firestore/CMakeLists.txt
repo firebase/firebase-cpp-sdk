@@ -179,76 +179,76 @@ set(android_SRCS
 
 # Sources that apply to all non-Android platforms.
 set(main_SRCS
-    src/ios/collection_reference_ios.cc
-    src/ios/collection_reference_ios.h
-    src/ios/converter_ios.h
-    src/ios/document_change_ios.cc
-    src/ios/document_change_ios.h
-    src/ios/document_reference_ios.cc
-    src/ios/document_reference_ios.h
-    src/ios/document_snapshot_ios.cc
-    src/ios/document_snapshot_ios.h
-    src/ios/field_value_ios.cc
-    src/ios/field_value_ios.h
-    src/ios/firestore_ios.cc
-    src/ios/firestore_ios.h
-    src/ios/listener_ios.h
-    src/ios/listener_registration_ios.cc
-    src/ios/listener_registration_ios.h
-    src/ios/promise_factory_ios.h
-    src/ios/promise_ios.h
-    src/ios/query_ios.cc
-    src/ios/query_ios.h
-    src/ios/query_snapshot_ios.cc
-    src/ios/query_snapshot_ios.h
-    src/ios/set_options_ios.h
-    src/ios/source_ios.h
-    src/ios/transaction_ios.cc
-    src/ios/transaction_ios.h
-    src/ios/user_data_converter_ios.cc
-    src/ios/user_data_converter_ios.h
-    src/ios/util_ios.h
-    src/ios/write_batch_ios.cc
-    src/ios/write_batch_ios.h)
+    src/main/collection_reference_ios.cc
+    src/main/collection_reference_ios.h
+    src/main/converter_ios.h
+    src/main/document_change_ios.cc
+    src/main/document_change_ios.h
+    src/main/document_reference_ios.cc
+    src/main/document_reference_ios.h
+    src/main/document_snapshot_ios.cc
+    src/main/document_snapshot_ios.h
+    src/main/field_value_ios.cc
+    src/main/field_value_ios.h
+    src/main/firestore_ios.cc
+    src/main/firestore_ios.h
+    src/main/listener_ios.h
+    src/main/listener_registration_ios.cc
+    src/main/listener_registration_ios.h
+    src/main/promise_factory_ios.h
+    src/main/promise_ios.h
+    src/main/query_ios.cc
+    src/main/query_ios.h
+    src/main/query_snapshot_ios.cc
+    src/main/query_snapshot_ios.h
+    src/main/set_options_ios.h
+    src/main/source_ios.h
+    src/main/transaction_ios.cc
+    src/main/transaction_ios.h
+    src/main/user_data_converter_ios.cc
+    src/main/user_data_converter_ios.h
+    src/main/util_ios.h
+    src/main/write_batch_ios.cc
+    src/main/write_batch_ios.h)
 
 # CredentialsProvider has no implementatation on Android and distinct
 # implementations for iOS and desktop platforms. On iOS, the implementation of
 # the interface actually comes from the FirebaseFirestore CocoaPod, so there's
 # no implementation listed here.
 set(credentials_provider_desktop_SRCS
-    src/ios/create_credentials_provider.h
-    src/ios/create_credentials_provider_desktop.cc
-    src/ios/credentials_provider_desktop.cc
-    src/ios/credentials_provider_desktop.h)
+    src/main/create_credentials_provider.h
+    src/main/create_credentials_provider_desktop.cc
+    src/main/credentials_provider_desktop.cc
+    src/main/credentials_provider_desktop.h)
 
 set(credentials_provider_ios_SRCS
-    src/ios/create_credentials_provider.h
-    src/ios/create_credentials_provider_ios.mm)
+    src/main/create_credentials_provider.h
+    src/main/create_credentials_provider_ios.mm)
 
 # FirebaseMetadataProvider has no implementation on Android and distinct
 # implementations for iOS and desktop platforms. On iOS, the implementation of
 # the interface actually comes from the FirebaseFirestore CocoaPod, so there's
 # no implementation listed here.
 set(firebase_metadata_provider_desktop_SRCS
-    src/ios/create_firebase_metadata_provider.h
-    src/ios/create_firebase_metadata_provider_desktop.cc
-    src/ios/firebase_metadata_provider_desktop.cc
-    src/ios/firebase_metadata_provider_desktop.h)
+    src/main/create_firebase_metadata_provider.h
+    src/main/create_firebase_metadata_provider_desktop.cc
+    src/main/firebase_metadata_provider_desktop.cc
+    src/main/firebase_metadata_provider_desktop.h)
 
 set(firebase_metadata_provider_ios_SRCS
-    src/ios/create_firebase_metadata_provider.h
-    src/ios/create_firebase_metadata_provider_apple.mm)
+    src/main/create_firebase_metadata_provider.h
+    src/main/create_firebase_metadata_provider_apple.mm)
 
 set(wrapper_assertions_SRCS
     src/common/wrapper_assertions.cc
     src/common/wrapper_assertions.h)
 
 set(ios_only_SRCS
-    src/ios/create_firebase_metadata_provider_apple.mm)
+    src/main/create_firebase_metadata_provider_apple.mm)
 
 set(desktop_only_SRCS
-    src/ios/create_firebase_metadata_provider_desktop.cc
-    src/ios/firebase_metadata_provider_desktop.cc)
+    src/main/create_firebase_metadata_provider_desktop.cc
+    src/main/firebase_metadata_provider_desktop.cc)
 
 if(ANDROID)
   set(firestore_platform_SRCS "${android_SRCS}")

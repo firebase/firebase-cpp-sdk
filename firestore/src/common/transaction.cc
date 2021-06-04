@@ -9,7 +9,7 @@
 #elif defined(FIRESTORE_STUB_BUILD)
 #include "firestore/src/stub/transaction_stub.h"
 #else
-#include "firestore/src/ios/transaction_ios.h"
+#include "firestore/src/main/transaction_ios.h"
 #endif  // defined(__ANDROID__)
 
 namespace firebase {

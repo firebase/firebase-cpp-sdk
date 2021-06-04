@@ -16,7 +16,7 @@
 #elif defined(FIRESTORE_STUB_BUILD)
 #include "firestore/src/stub/query_stub.h"
 #else
-#include "firestore/src/ios/query_ios.h"
+#include "firestore/src/main/query_ios.h"
 #endif  // defined(__ANDROID__)
 
 namespace firebase {
