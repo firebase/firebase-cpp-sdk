@@ -6,7 +6,7 @@
 #if __ANDROID__
 #include "firestore/src/android/firestore_android.h"
 #else
-#include "firestore/src/main/firestore_ios.h"
+#include "firestore/src/main/firestore_main.h"
 #endif  // __ANDROID__
 
 #include "firestore/src/common/type_mapping.h"

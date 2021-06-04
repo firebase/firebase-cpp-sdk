@@ -1,5 +1,5 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_PROMISE_FACTORY_IOS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_PROMISE_FACTORY_IOS_H_
+#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_PROMISE_FACTORY_MAIN_H_
+#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_PROMISE_FACTORY_MAIN_H_
 
 #include <utility>
 
@@ -7,7 +7,7 @@
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "firestore/src/common/hard_assert_common.h"
-#include "firestore/src/main/promise_ios.h"
+#include "firestore/src/main/promise_main.h"
 
 namespace firebase {
 class CleanupNotifier;
@@ -68,4 +68,4 @@ class PromiseFactory {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_PROMISE_FACTORY_IOS_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_PROMISE_FACTORY_MAIN_H_

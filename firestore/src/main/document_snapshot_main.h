@@ -1,5 +1,5 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_DOCUMENT_SNAPSHOT_IOS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_DOCUMENT_SNAPSHOT_IOS_H_
+#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_DOCUMENT_SNAPSHOT_MAIN_H_
+#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_DOCUMENT_SNAPSHOT_MAIN_H_
 
 #include <memory>
 #include <string>
@@ -12,7 +12,7 @@
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
 #include "firestore/src/include/firebase/firestore/snapshot_metadata.h"
-#include "firestore/src/main/firestore_ios.h"
+#include "firestore/src/main/firestore_main.h"
 
 namespace firebase {
 namespace firestore {
@@ -71,4 +71,4 @@ class DocumentSnapshotInternal {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_DOCUMENT_SNAPSHOT_IOS_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_DOCUMENT_SNAPSHOT_MAIN_H_

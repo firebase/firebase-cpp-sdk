@@ -1,4 +1,4 @@
-#include "firestore/src/main/query_ios.h"
+#include "firestore/src/main/query_main.h"
 
 #include <utility>
 
@@ -14,13 +14,13 @@
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/main/converter_ios.h"
-#include "firestore/src/main/document_snapshot_ios.h"
-#include "firestore/src/main/listener_ios.h"
-#include "firestore/src/main/promise_ios.h"
-#include "firestore/src/main/set_options_ios.h"
-#include "firestore/src/main/source_ios.h"
-#include "firestore/src/main/util_ios.h"
+#include "firestore/src/main/converter_main.h"
+#include "firestore/src/main/document_snapshot_main.h"
+#include "firestore/src/main/listener_main.h"
+#include "firestore/src/main/promise_main.h"
+#include "firestore/src/main/set_options_main.h"
+#include "firestore/src/main/source_main.h"
+#include "firestore/src/main/util_main.h"
 
 namespace firebase {
 namespace firestore {

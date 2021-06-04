@@ -10,7 +10,7 @@
 #elif defined(FIRESTORE_STUB_BUILD)
 #include "firestore/src/stub/document_change_stub.h"
 #else
-#include "firestore/src/main/document_change_ios.h"
+#include "firestore/src/main/document_change_main.h"
 #endif  // defined(__ANDROID__)
 
 namespace firebase {

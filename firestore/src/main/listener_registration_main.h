@@ -1,10 +1,10 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_LISTENER_REGISTRATION_IOS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_LISTENER_REGISTRATION_IOS_H_
+#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_LISTENER_REGISTRATION_MAIN_H_
+#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_LISTENER_REGISTRATION_MAIN_H_
 
 #include <memory>
 
 #include "Firestore/core/src/api/listener_registration.h"
-#include "firestore/src/main/firestore_ios.h"
+#include "firestore/src/main/firestore_main.h"
 
 namespace firebase {
 namespace firestore {
@@ -34,4 +34,4 @@ class ListenerRegistrationInternal {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_LISTENER_REGISTRATION_IOS_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_LISTENER_REGISTRATION_MAIN_H_

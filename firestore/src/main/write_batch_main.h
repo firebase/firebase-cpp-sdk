@@ -1,13 +1,13 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_WRITE_BATCH_IOS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_WRITE_BATCH_IOS_H_
+#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_WRITE_BATCH_MAIN_H_
+#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_WRITE_BATCH_MAIN_H_
 
 #include "Firestore/core/src/api/write_batch.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
 #include "firestore/src/include/firebase/firestore/write_batch.h"
-#include "firestore/src/main/firestore_ios.h"
-#include "firestore/src/main/promise_factory_ios.h"
-#include "firestore/src/main/user_data_converter_ios.h"
+#include "firestore/src/main/firestore_main.h"
+#include "firestore/src/main/promise_factory_main.h"
+#include "firestore/src/main/user_data_converter_main.h"
 
 namespace firebase {
 namespace firestore {
@@ -43,4 +43,4 @@ class WriteBatchInternal {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_WRITE_BATCH_IOS_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_WRITE_BATCH_MAIN_H_

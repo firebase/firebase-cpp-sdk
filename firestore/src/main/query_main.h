@@ -1,5 +1,5 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_QUERY_IOS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_QUERY_IOS_H_
+#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_QUERY_MAIN_H_
+#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_QUERY_MAIN_H_
 
 #include <cstdint>
 #include <vector>
@@ -10,9 +10,9 @@
 #include "Firestore/core/src/core/query.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/query.h"
-#include "firestore/src/main/firestore_ios.h"
-#include "firestore/src/main/promise_factory_ios.h"
-#include "firestore/src/main/user_data_converter_ios.h"
+#include "firestore/src/main/firestore_main.h"
+#include "firestore/src/main/promise_factory_main.h"
+#include "firestore/src/main/user_data_converter_main.h"
 
 namespace firebase {
 namespace firestore {
@@ -194,4 +194,4 @@ inline bool operator!=(const QueryInternal& lhs, const QueryInternal& rhs) {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_QUERY_IOS_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_QUERY_MAIN_H_

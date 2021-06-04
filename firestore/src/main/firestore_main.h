@@ -1,5 +1,5 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_FIRESTORE_IOS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_FIRESTORE_IOS_H_
+#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_FIRESTORE_MAIN_H_
+#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_FIRESTORE_MAIN_H_
 
 #include <cstdint>
 #include <functional>
@@ -17,7 +17,7 @@
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/load_bundle_task_progress.h"
 #include "firestore/src/include/firebase/firestore/settings.h"
-#include "firestore/src/main/promise_factory_ios.h"
+#include "firestore/src/main/promise_factory_main.h"
 
 namespace firebase {
 namespace firestore {
@@ -173,4 +173,4 @@ class FirestoreInternal {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_FIRESTORE_IOS_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_FIRESTORE_MAIN_H_

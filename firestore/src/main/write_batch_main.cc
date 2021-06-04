@@ -1,15 +1,15 @@
-#include "firestore/src/main/write_batch_ios.h"
+#include "firestore/src/main/write_batch_main.h"
 
 #include <utility>
 
 #include "Firestore/core/src/core/user_data.h"
 #include "Firestore/core/src/model/field_path.h"
-#include "firestore/src/main/converter_ios.h"
-#include "firestore/src/main/document_reference_ios.h"
-#include "firestore/src/main/field_value_ios.h"
-#include "firestore/src/main/listener_ios.h"
-#include "firestore/src/main/set_options_ios.h"
-#include "firestore/src/main/util_ios.h"
+#include "firestore/src/main/converter_main.h"
+#include "firestore/src/main/document_reference_main.h"
+#include "firestore/src/main/field_value_main.h"
+#include "firestore/src/main/listener_main.h"
+#include "firestore/src/main/set_options_main.h"
+#include "firestore/src/main/util_main.h"
 
 namespace firebase {
 namespace firestore {

@@ -1,15 +1,15 @@
-#include "firestore/src/main/document_reference_ios.h"
+#include "firestore/src/main/document_reference_main.h"
 
 #include "Firestore/core/src/api/listener_registration.h"
 #include "Firestore/core/src/core/listen_options.h"
 #include "Firestore/core/src/core/user_data.h"
 #include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/main/document_snapshot_ios.h"
-#include "firestore/src/main/listener_ios.h"
-#include "firestore/src/main/promise_ios.h"
-#include "firestore/src/main/set_options_ios.h"
-#include "firestore/src/main/source_ios.h"
-#include "firestore/src/main/util_ios.h"
+#include "firestore/src/main/document_snapshot_main.h"
+#include "firestore/src/main/listener_main.h"
+#include "firestore/src/main/promise_main.h"
+#include "firestore/src/main/set_options_main.h"
+#include "firestore/src/main/source_main.h"
+#include "firestore/src/main/util_main.h"
 
 namespace firebase {
 namespace firestore {

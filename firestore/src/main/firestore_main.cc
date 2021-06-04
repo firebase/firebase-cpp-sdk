@@ -1,4 +1,4 @@
-#include "firestore/src/main/firestore_ios.h"
+#include "firestore/src/main/firestore_main.h"
 
 #include <sstream>
 #include <utility>
@@ -21,12 +21,12 @@
 #include "firestore/src/common/macros.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/main/converter_ios.h"
+#include "firestore/src/main/converter_main.h"
 #include "firestore/src/main/create_credentials_provider.h"
 #include "firestore/src/main/create_firebase_metadata_provider.h"
-#include "firestore/src/main/document_reference_ios.h"
-#include "firestore/src/main/document_snapshot_ios.h"
-#include "firestore/src/main/listener_ios.h"
+#include "firestore/src/main/document_reference_main.h"
+#include "firestore/src/main/document_snapshot_main.h"
+#include "firestore/src/main/listener_main.h"
 
 namespace firebase {
 namespace firestore {

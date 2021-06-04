@@ -1,5 +1,5 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_CONVERTER_IOS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_CONVERTER_IOS_H_
+#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_CONVERTER_MAIN_H_
+#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_CONVERTER_MAIN_H_
 
 #include <memory>
 #include <utility>
@@ -16,16 +16,16 @@
 #include "absl/memory/memory.h"
 #include "firestore/src/common/type_mapping.h"
 #include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/main/collection_reference_ios.h"
-#include "firestore/src/main/document_change_ios.h"
-#include "firestore/src/main/document_reference_ios.h"
-#include "firestore/src/main/document_snapshot_ios.h"
-#include "firestore/src/main/field_value_ios.h"
-#include "firestore/src/main/listener_registration_ios.h"
-#include "firestore/src/main/query_ios.h"
-#include "firestore/src/main/query_snapshot_ios.h"
-#include "firestore/src/main/transaction_ios.h"
-#include "firestore/src/main/write_batch_ios.h"
+#include "firestore/src/main/collection_reference_main.h"
+#include "firestore/src/main/document_change_main.h"
+#include "firestore/src/main/document_reference_main.h"
+#include "firestore/src/main/document_snapshot_main.h"
+#include "firestore/src/main/field_value_main.h"
+#include "firestore/src/main/listener_registration_main.h"
+#include "firestore/src/main/query_main.h"
+#include "firestore/src/main/query_snapshot_main.h"
+#include "firestore/src/main/transaction_main.h"
+#include "firestore/src/main/write_batch_main.h"
 
 namespace firebase {
 namespace firestore {
@@ -128,4 +128,4 @@ inline const api::DocumentSnapshot& GetCoreApi(const DocumentSnapshot& from) {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_CONVERTER_IOS_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_CONVERTER_MAIN_H_

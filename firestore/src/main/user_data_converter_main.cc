@@ -1,4 +1,4 @@
-#include "firestore/src/main/user_data_converter_ios.h"
+#include "firestore/src/main/user_data_converter_main.h"
 
 #include <set>
 #include <string>
@@ -12,9 +12,9 @@
 #include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
-#include "firestore/src/main/converter_ios.h"
-#include "firestore/src/main/field_value_ios.h"
-#include "firestore/src/main/set_options_ios.h"
+#include "firestore/src/main/converter_main.h"
+#include "firestore/src/main/field_value_main.h"
+#include "firestore/src/main/set_options_main.h"
 
 namespace firebase {
 namespace firestore {

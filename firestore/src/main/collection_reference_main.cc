@@ -1,13 +1,13 @@
-#include "firestore/src/main/collection_reference_ios.h"
+#include "firestore/src/main/collection_reference_main.h"
 
 #include <future>  // NOLINT(build/c++11)
 #include <utility>
 
 #include "Firestore/core/src/core/user_data.h"
-#include "firestore/src/main/converter_ios.h"
-#include "firestore/src/main/document_reference_ios.h"
-#include "firestore/src/main/field_value_ios.h"
-#include "firestore/src/main/user_data_converter_ios.h"
+#include "firestore/src/main/converter_main.h"
+#include "firestore/src/main/document_reference_main.h"
+#include "firestore/src/main/field_value_main.h"
+#include "firestore/src/main/user_data_converter_main.h"
 
 namespace firebase {
 namespace firestore {

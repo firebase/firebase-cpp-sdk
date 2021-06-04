@@ -1,4 +1,4 @@
-#include "firestore/src/main/document_snapshot_ios.h"
+#include "firestore/src/main/document_snapshot_main.h"
 
 #include <utility>
 
@@ -11,8 +11,8 @@
 #include "absl/memory/memory.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore.h"
-#include "firestore/src/main/converter_ios.h"
-#include "firestore/src/main/util_ios.h"
+#include "firestore/src/main/converter_main.h"
+#include "firestore/src/main/util_main.h"
 
 namespace firebase {
 namespace firestore {

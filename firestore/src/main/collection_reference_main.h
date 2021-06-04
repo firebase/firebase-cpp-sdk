@@ -1,12 +1,12 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_COLLECTION_REFERENCE_IOS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_COLLECTION_REFERENCE_IOS_H_
+#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_COLLECTION_REFERENCE_MAIN_H_
+#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_COLLECTION_REFERENCE_MAIN_H_
 
 #include <string>
 
 #include "Firestore/core/src/api/collection_reference.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
-#include "firestore/src/main/promise_factory_ios.h"
-#include "firestore/src/main/query_ios.h"
+#include "firestore/src/main/promise_factory_main.h"
+#include "firestore/src/main/query_main.h"
 
 namespace firebase {
 namespace firestore {
@@ -31,4 +31,4 @@ class CollectionReferenceInternal : public QueryInternal {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_COLLECTION_REFERENCE_IOS_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_COLLECTION_REFERENCE_MAIN_H_

@@ -1,5 +1,5 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_FIELD_VALUE_IOS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_FIELD_VALUE_IOS_H_
+#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_FIELD_VALUE_MAIN_H_
+#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_FIELD_VALUE_MAIN_H_
 
 #include <cstdint>
 #include <string>
@@ -12,7 +12,7 @@
 #include "firebase/firestore/timestamp.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
-#include "firestore/src/main/firestore_ios.h"
+#include "firestore/src/main/firestore_main.h"
 
 namespace firebase {
 namespace firestore {
@@ -85,4 +85,4 @@ std::string Describe(FieldValue::Type type);
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_FIELD_VALUE_IOS_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_FIELD_VALUE_MAIN_H_

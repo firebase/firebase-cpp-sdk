@@ -1,11 +1,11 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_DOCUMENT_CHANGE_IOS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_DOCUMENT_CHANGE_IOS_H_
+#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_DOCUMENT_CHANGE_MAIN_H_
+#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_DOCUMENT_CHANGE_MAIN_H_
 
 #include <cstdint>
 
 #include "Firestore/core/src/api/document_change.h"
 #include "firestore/src/include/firebase/firestore/document_change.h"
-#include "firestore/src/main/firestore_ios.h"
+#include "firestore/src/main/firestore_main.h"
 
 namespace firebase {
 namespace firestore {
@@ -28,4 +28,4 @@ class DocumentChangeInternal {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_DOCUMENT_CHANGE_IOS_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_DOCUMENT_CHANGE_MAIN_H_

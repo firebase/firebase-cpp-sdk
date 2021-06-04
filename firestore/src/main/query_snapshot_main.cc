@@ -1,12 +1,12 @@
-#include "firestore/src/main/query_snapshot_ios.h"
+#include "firestore/src/main/query_snapshot_main.h"
 
 #include <utility>
 
-#include "firestore/src/main/converter_ios.h"
-#include "firestore/src/main/document_change_ios.h"
-#include "firestore/src/main/document_snapshot_ios.h"
-#include "firestore/src/main/query_ios.h"
-#include "firestore/src/main/util_ios.h"
+#include "firestore/src/main/converter_main.h"
+#include "firestore/src/main/document_change_main.h"
+#include "firestore/src/main/document_snapshot_main.h"
+#include "firestore/src/main/query_main.h"
+#include "firestore/src/main/util_main.h"
 
 namespace firebase {
 namespace firestore {

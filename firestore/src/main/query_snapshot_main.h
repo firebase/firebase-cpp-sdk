@@ -1,5 +1,5 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_QUERY_SNAPSHOT_IOS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_QUERY_SNAPSHOT_IOS_H_
+#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_QUERY_SNAPSHOT_MAIN_H_
+#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_QUERY_SNAPSHOT_MAIN_H_
 
 #include <cstddef>
 #include <vector>
@@ -12,7 +12,7 @@
 #include "firestore/src/include/firebase/firestore/query.h"
 #include "firestore/src/include/firebase/firestore/query_snapshot.h"
 #include "firestore/src/include/firebase/firestore/snapshot_metadata.h"
-#include "firestore/src/main/firestore_ios.h"
+#include "firestore/src/main/firestore_main.h"
 
 namespace firebase {
 namespace firestore {
@@ -44,4 +44,4 @@ class QuerySnapshotInternal {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_IOS_QUERY_SNAPSHOT_IOS_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_QUERY_SNAPSHOT_MAIN_H_

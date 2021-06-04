@@ -15,7 +15,7 @@
 #elif defined(FIRESTORE_STUB_BUILD)
 #include "firestore/src/stub/document_snapshot_stub.h"
 #else
-#include "firestore/src/main/document_snapshot_ios.h"
+#include "firestore/src/main/document_snapshot_main.h"
 #endif  // defined(__ANDROID__)
 
 namespace firebase {

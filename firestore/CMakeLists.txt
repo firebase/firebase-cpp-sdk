@@ -179,37 +179,37 @@ set(android_SRCS
 
 # Sources that apply to all non-Android platforms.
 set(main_SRCS
-    src/main/collection_reference_ios.cc
-    src/main/collection_reference_ios.h
-    src/main/converter_ios.h
-    src/main/document_change_ios.cc
-    src/main/document_change_ios.h
-    src/main/document_reference_ios.cc
-    src/main/document_reference_ios.h
-    src/main/document_snapshot_ios.cc
-    src/main/document_snapshot_ios.h
-    src/main/field_value_ios.cc
-    src/main/field_value_ios.h
-    src/main/firestore_ios.cc
-    src/main/firestore_ios.h
-    src/main/listener_ios.h
-    src/main/listener_registration_ios.cc
-    src/main/listener_registration_ios.h
-    src/main/promise_factory_ios.h
-    src/main/promise_ios.h
-    src/main/query_ios.cc
-    src/main/query_ios.h
-    src/main/query_snapshot_ios.cc
-    src/main/query_snapshot_ios.h
-    src/main/set_options_ios.h
-    src/main/source_ios.h
-    src/main/transaction_ios.cc
-    src/main/transaction_ios.h
-    src/main/user_data_converter_ios.cc
-    src/main/user_data_converter_ios.h
-    src/main/util_ios.h
-    src/main/write_batch_ios.cc
-    src/main/write_batch_ios.h)
+    src/main/collection_reference_main.cc
+    src/main/collection_reference_main.h
+    src/main/converter_main.h
+    src/main/document_change_main.cc
+    src/main/document_change_main.h
+    src/main/document_reference_main.cc
+    src/main/document_reference_main.h
+    src/main/document_snapshot_main.cc
+    src/main/document_snapshot_main.h
+    src/main/field_value_main.cc
+    src/main/field_value_main.h
+    src/main/firestore_main.cc
+    src/main/firestore_main.h
+    src/main/listener_main.h
+    src/main/listener_registration_main.cc
+    src/main/listener_registration_main.h
+    src/main/promise_factory_main.h
+    src/main/promise_main.h
+    src/main/query_main.cc
+    src/main/query_main.h
+    src/main/query_snapshot_main.cc
+    src/main/query_snapshot_main.h
+    src/main/set_options_main.h
+    src/main/source_main.h
+    src/main/transaction_main.cc
+    src/main/transaction_main.h
+    src/main/user_data_converter_main.cc
+    src/main/user_data_converter_main.h
+    src/main/util_main.h
+    src/main/write_batch_main.cc
+    src/main/write_batch_main.h)
 
 # CredentialsProvider has no implementatation on Android and distinct
 # implementations for iOS and desktop platforms. On iOS, the implementation of

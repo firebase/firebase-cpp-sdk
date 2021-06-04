@@ -1,4 +1,4 @@
-#include "firestore/src/main/field_value_ios.h"
+#include "firestore/src/main/field_value_main.h"
 
 #include <utility>
 
@@ -6,7 +6,7 @@
 #include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/common/macros.h"
 #include "firestore/src/include/firebase/firestore/map_field_value.h"
-#include "firestore/src/main/converter_ios.h"
+#include "firestore/src/main/converter_main.h"
 
 namespace firebase {
 namespace firestore {
