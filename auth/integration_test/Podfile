@@ -7,6 +7,11 @@ target 'integration_test' do
   pod 'Firebase/Auth', '7.11.0'
 end
 
+target 'integration_test_tvos' do
+  platform :tvos, '10.0'
+  pod 'Firebase/Auth', '7.11.0'
+end
+
 post_install do |installer|
   # If this is running from inside the SDK directory, run the setup script.
   system("if [[ -r ../../setup_integration_tests.py ]]; then python ../../setup_integration_tests.py .; fi")
