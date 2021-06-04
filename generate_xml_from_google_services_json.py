@@ -121,14 +121,14 @@ def update_dict_keys(key_map, input_dict):
   is `{'old': 10}`, the result will be `{'new': 10}`.
 
   Args:
-    key_map: A dictionary of strings to strings that maps source keys to
+    key_map (dict): A dictionary of strings to strings that maps source keys to
       destination keys.
-    input_dict: The dictionary of string keys to any value type, which
+    input_dict (dict): The dictionary of string keys to any value type, which
       is to be duplicated, replacing source keys with the corresponding
       destination keys from key_map.
 
   Returns:
-    A new dictionary with updated keys.
+    dict: A new dictionary with updated keys.
   """
   return {
       new_key: input_dict[old_key]
