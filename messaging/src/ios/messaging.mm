@@ -196,6 +196,7 @@ Future<void> RequestPermission() {
     LogInfo("FCM: Using FCM senderID %s", senderID.UTF8String);
     id appDelegate = [UIApplication sharedApplication];
 
+    #if FIREBASE_PLATFORM_IOS
     // Register for remote notifications. Both codepaths result in
     // application:didRegisterForRemoteNotificationsWithDeviceToken: being called when they
     // complete, or application:didFailToRegisterForRemoteNotificationsWithError: if there was an
@@ -215,6 +216,7 @@ Future<void> RequestPermission() {
       [appDelegate registerUserNotificationSettings:settings];
       [appDelegate registerForRemoteNotifications];
     }
+    #endif // FIREBASE_PLATFORM_IOS
 
     // Only request the token automatically if permitted
     if ([FIRMessaging messaging].autoInitEnabled) {
@@ -522,6 +524,7 @@ static BOOL AppDelegateApplicationDidFinishLaunchingWithOptions(id self, SEL sel
     [user_notification_center setDelegate:(id<UNUserNotificationCenterDelegate>)application];
   }
 
+  #if FIREBASE_PLATFORM_IOS
   // If the app was launched with a notification, cache it until we're connected.
   g_launch_notification =
       [launch_options objectForKey:UIApplicationLaunchOptionsRemoteNotificationKey];
@@ -548,6 +551,7 @@ static BOOL AppDelegateApplicationDidFinishLaunchingWithOptions(id self, SEL sel
     [invocation getReturnValue:&ret];
     return ret;
   }
+  #endif // FIREBASE_PLATFORM_IOS
   return NO;
 }
 
@@ -854,6 +858,7 @@ extern "C" void FirebaseMessagingHookAppDelegate(Class app_delegate) {
   });
 }
 
+#if FIREBASE_PLATFORM_IOS
 - (void)userNotificationCenter:(UNUserNotificationCenter *)notificationCenter
        willPresentNotification:(UNNotification *)notification
          withCompletionHandler:
@@ -890,6 +895,7 @@ didReceiveNotificationResponse:(UNNotificationResponse *)response
                     withCompletionHandler:completionHandler];
   }
 }
+#endif // FIREBASE_PLATFORM_IOS
 
 @end
 

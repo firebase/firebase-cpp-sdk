@@ -26,7 +26,7 @@
 #include <map>
 #include <string>
 
-#if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #ifdef __OBJC__
 @class FIRApp;
 #endif  // __OBJC__
@@ -718,14 +718,14 @@ class App {
   /// @return Global reference to the FirebaseApp.  The returned reference
   /// most be deleted after use.
   jobject GetPlatformApp() const;
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #ifdef __OBJC__
   /// Get the platform specific app implementation referenced by this object.
   ///
   /// @return Reference to the FIRApp object owned by this app.
   FIRApp* GetPlatformApp() const;
 #endif  // __OBJC__
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS, FIREBASE_PLATFORM_TVOS
 #endif  // INTERNAL_EXPERIMENTAL
 
  private:

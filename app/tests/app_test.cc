@@ -59,7 +59,7 @@
 #include "TargetConditionals.h"
 #endif  // __APPLE__
 
-#if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 // Declared in the Obj-C header fake/FIRApp.h.
 extern "C" {
 void FIRAppCreateUsingDefaultOptions(const char* name);
@@ -106,7 +106,7 @@ class AppTest : public ::testing::Test {
 
   // Create a mobile app instance using the fake options from resources.
   void CreateMobileApp(const char* name) {
-#if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
     FIRAppCreateUsingDefaultOptions(name ? name : "__FIRAPP_DEFAULT");
 #endif  // FIREBASE_PLATFORM_IOS
 #if FIREBASE_ANDROID_FOR_DESKTOP
@@ -146,7 +146,7 @@ class AppTest : public ::testing::Test {
   // Clear all C++ firebase::App objects and any mobile SDK instances.
   void ClearAppInstances() {
     app_common::DestroyAllApps();
-#if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
     FIRAppResetApps();
 #endif  // FIREBASE_PLATFORM_IOS
 #if FIREBASE_ANDROID_FOR_DESKTOP
@@ -241,7 +241,7 @@ TEST_F(AppTest, LoadDefault) {
   EXPECT_STREQ("fake messaging sender id from resource",
                options.messaging_sender_id());
   EXPECT_STREQ("fake database url from resource", options.database_url());
-#if FIREBASE_PLATFORM_IOS
+#if FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   // GA tracking ID can currently only be configured on iOS.
   EXPECT_STREQ("fake ga tracking id from resource", options.ga_tracking_id());
 #endif  // FIREBASE_PLATFORM_IOS
