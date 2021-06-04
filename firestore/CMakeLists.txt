@@ -237,14 +237,14 @@ set(firebase_metadata_provider_desktop_SRCS
 
 set(firebase_metadata_provider_ios_SRCS
     src/main/create_firebase_metadata_provider.h
-    src/main/create_firebase_metadata_provider_apple.mm)
+    src/main/create_firebase_metadata_provider_ios.mm)
 
 set(wrapper_assertions_SRCS
     src/common/wrapper_assertions.cc
     src/common/wrapper_assertions.h)
 
 set(ios_only_SRCS
-    src/main/create_firebase_metadata_provider_apple.mm)
+    src/main/create_firebase_metadata_provider_ios.mm)
 
 set(desktop_only_SRCS
     src/main/create_firebase_metadata_provider_desktop.cc
