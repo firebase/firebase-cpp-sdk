@@ -1,9 +1,9 @@
 
 source 'https://github.com/CocoaPods/Specs.git'
-platform :ios, '10.0'
 # Firebase Auth test application.
 
 target 'integration_test' do
+  platform :ios, '10.0'
   pod 'Firebase/Auth', '7.11.0'
 end
 
