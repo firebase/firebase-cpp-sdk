@@ -108,6 +108,35 @@ def construct_plist_dictionary(xml_root):
   return plist_dict
 
 
+def update_dict_keys(key_map, input_dict):
+  """Creates a dict from input_dict with the same values but new keys.
+
+  Two dictionaries are passed to this function: the key_map that represents a
+  mapping of source keys to destination keys, and the input_dict that is the
+  dictionary that is to be duplicated, replacing any key that matches a source
+  key with a destination key. Source keys that are not present in the
+  input_dict will not have their destination key represented in the result.
+
+  In other words, if key_map is `{'old': 'new', 'foo': 'bar'}`, and input_dict
+  is `{'old': 10}`, the result will be `{'new': 10}`.
+
+  Args:
+    key_map (dict): A dictionary of strings to strings that maps source keys to
+      destination keys.
+    input_dict (dict): The dictionary of string keys to any value type, which
+      is to be duplicated, replacing source keys with the corresponding
+      destination keys from key_map.
+
+  Returns:
+    dict: A new dictionary with updated keys.
+  """
+  return {
+      new_key: input_dict[old_key]
+      for (old_key, new_key) in key_map.items()
+      if old_key in input_dict
+  }
+
+
 def construct_google_services_json(xml_dict):
   """Constructs a google services json file from a dictionary.
 
@@ -117,14 +146,17 @@ def construct_google_services_json(xml_dict):
   Returns:
     A string representing the output json file.
   """
+
   try:
     json_struct = {
-        'project_info': {
-            'project_number': xml_dict['GCM_SENDER_ID'],
-            'firebase_url': xml_dict['DATABASE_URL'],
-            'project_id': xml_dict['PROJECT_ID'],
-            'storage_bucket': xml_dict['STORAGE_BUCKET']
-        },
+        'project_info':
+            update_dict_keys(
+                {
+                    'GCM_SENDER_ID': 'project_number',
+                    'DATABASE_URL': 'firebase_url',
+                    'PROJECT_ID': 'project_id',
+                    'STORAGE_BUCKET': 'storage_bucket'
+                }, xml_dict),
         'client': [{
             'client_info': {
                 'mobilesdk_app_id': xml_dict['GOOGLE_APP_ID'],
