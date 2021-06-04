@@ -113,9 +113,9 @@ def update_dict_keys(key_map, input_dict):
 
   Two dictionaries are passed to this function: the key_map that represents a
   mapping of source keys to destination keys, and the input_dict that is the
-  dictionary that is to duplicated, replacing any key that matches a source key
-  with a destination key. Source keys that are not present in the input_dict
-  will not have their destination key represented in the result.
+  dictionary that is to be duplicated, replacing any key that matches a source
+  key with a destination key. Source keys that are not present in the
+  input_dict will not have their destination key represented in the result.
 
   In other words, if key_map is `{'old': 'new', 'foo': 'bar'}`, and input_dict
   is `{'old': 10}`, the result will be `{'new': 10}`.
