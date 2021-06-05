@@ -90,6 +90,8 @@ const char* kCpuArchitecture = "arm32";
 const char* kCppRuntimeOrStl = "libcpp";
 #if FIREBASE_PLATFORM_IOS
 const char* kOperatingSystem = "ios";
+#elif FIREBASE_PLATFORM_TVOS
+const char* kOperatingSystem = "tvos";
 #elif FIREBASE_PLATFORM_OSX
 const char* kOperatingSystem = "darwin";
 #else
@@ -164,7 +166,7 @@ const char* kCpuArchitecture = "x86";
 #endif  // Operating system
 // clang-format=on
 
-const char* kApiClientHeader = "x-goog-api-client";
+const char* kApiClientHeader = "x-firebase-client";
 
 SystemLogger g_system_logger;  // NOLINT
 

@@ -585,6 +585,8 @@ code.
     -   AdMob (iOS): Temporarily pinned AdMob dependency to a special version of the
         Google-Mobile-Ads-SDK Cocoapod, "7.69.0-cppsdk", to maintain compatibility
 	with version 8.x of the Firebase iOS SDK.
+    -   General (iOS): A Database URL is no longer required to be present in
+        GoogleService-Info.plist when not using the Real Time Database.
 
 ### 7.3.0
 -   Changes
