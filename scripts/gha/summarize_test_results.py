@@ -347,6 +347,8 @@ def format_log_file_name(file_name, file_name_re):
   log_name = re.sub('-', ' ', log_name).split()
   # Remove redundant components.
   if "latest" in log_name: log_name.remove("latest")
+  if "2016" in log_name: log_name.remove("2016")
+  if "2019" in log_name: log_name.remove("2019")
   # Capitalize components in a nice way.
   log_name = [
       CAPITALIZATIONS[name.lower()]
