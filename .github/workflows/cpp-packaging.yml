@@ -346,9 +346,9 @@ jobs:
           if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
             verbose_flag=--verbose
           fi
-          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --linux_abi "${{ matrix.linux_abi }}" --build_dir out-${{ env.SDK_NAME }} ${verbose_flag} ${{ matrix.additional_build_flags }}
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --linux_abi "${{ matrix.linux_abi }}" --build_dir out-sdk ${verbose_flag} ${{ matrix.additional_build_flags }}
           # Make a list of all the source files, for debugging purposes.
-          cd out-${{ env.SDK_NAME }}
+          cd out-sdk
           find .. -type f -print > src_file_list.txt
           tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
 
@@ -365,7 +365,7 @@ jobs:
       - name: Inspect firebase libraries for cpu arch and msvc runtime.
         shell: bash
         run: |
-          python scripts/gha/inspect_built_libraries.py out-${{ env.SDK_NAME }}/
+          python scripts/gha/inspect_built_libraries.py out-sdk/
         continue-on-error: true
 
       - name: upload artifacts
