@@ -136,6 +136,17 @@ namespace firebase_test_framework {
 #define SKIP_TEST_ON_IOS ((void)0)
 #endif  // (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 
+#if (defined(TARGET_OS_TV) && TARGET_OS_TV)
+#define SKIP_TEST_ON_TVOS                                               \
+  {                                                                     \
+    app_framework::LogInfo("Skipping %s on tvOS.", test_info_->name()); \
+    GTEST_SKIP();                                                       \
+    return;                                                             \
+  }
+#else
+#define SKIP_TEST_ON_TVOS ((void)0)
+#endif  // (defined(TARGET_OS_TV) && TARGET_OS_TV)
+
 #if defined(ANDROID)
 #define SKIP_TEST_ON_ANDROID                                               \
   {                                                                        \
