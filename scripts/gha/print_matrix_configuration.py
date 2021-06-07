@@ -100,8 +100,8 @@ PARAMETERS = {
       "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS"],
       "ssl_lib": ["openssl", "boringssl"],
-      "android_device": ["android_min", "android_target", "android_latest", "emulator_min", "emulator_target", "emulator_latest"],
-      "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
+      "android_device": ["android_latest", "emulator_target"],
+      "ios_device": ["ios_target", "simulator_target"],
       "build_type": ["Debug"],
       "architecture_windows_linux": ["x64"],
       "architecture_macos": ["x64"],
@@ -115,7 +115,7 @@ PARAMETERS = {
     },
     "config": {
       "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage",
-      "mobile_test_on": "real,virtual"
+      "mobile_test_on": "real"
     }
   },
 
