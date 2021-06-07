@@ -47,17 +47,17 @@ static const float kGameLoopSecondsToPauseBeforeQuitting = 5.0f;
 // Test Loop on iOS doesn't provide the app under test a path to save logs to, so set it here.
 #define GAMELOOP_DEFAULT_LOG_FILE "Results1.json"
 
-enum class RunningStatus {
+enum class RunningState {
   kRunning,
   kShuttingDown,
   kShutDown
 };
 
-// Note: g_running_status and g_exit_status must only be accessed while holding the lock from
-// g_running_status_condition; also, any changes to these values should be followed up with a
-// call to [g_running_status_condition broadcast].
-static NSCondition *g_running_status_condition;
-static RunningStatus g_running_status = RunningStatus::kRunning;
+// Note: g_running_state and g_exit_status must only be accessed while holding the lock from
+// g_running_state_condition; also, any changes to these values should be followed up with a
+// call to [g_running_state_condition broadcast].
+static NSCondition *g_running_state_condition;
+static RunningState g_running_state = RunningState::kRunning;
 static int g_exit_status = -1;
 
 static UITextView *g_text_view;
@@ -79,13 +79,13 @@ static NSString *g_file_url_path;
     char *argv[1];
     argv[0] = new char[strlen(TESTAPP_NAME) + 1];
     strcpy(argv[0], TESTAPP_NAME);  // NOLINT
-    auto common_main_result = common_main(1, argv);
+    int common_main_result = common_main(1, argv);
 
-    [g_running_status_condition lock];
+    [g_running_state_condition lock];
     g_exit_status = common_main_result;
-    g_running_status = RunningStatus::kShutDown;
-    [g_running_status_condition broadcast];
-    [g_running_status_condition unlock];
+    g_running_state = RunningState::kShutDown;
+    [g_running_state_condition broadcast];
+    [g_running_state_condition unlock];
 
     delete[] argv[0];
     argv[0] = nullptr;
@@ -102,19 +102,16 @@ namespace app_framework {
 
 bool ProcessEvents(int msec) {
   NSDate* endDate = [NSDate dateWithTimeIntervalSinceNow:static_cast<float>(msec) / 1000.0f];
-  [g_running_status_condition lock];
+  [g_running_state_condition lock];
 
-  if (g_running_status == RunningStatus::kRunning) {
-    NSDate* currentDate = [NSDate date];
-    if ([currentDate compare:endDate] == NSOrderedAscending) {
-      [g_running_status_condition waitUntilDate:endDate];
-    }
+  if (g_running_state == RunningState::kRunning) {
+    [g_running_state_condition waitUntilDate:endDate];
   }
 
-  RunningStatus running_status = g_running_status;
-  [g_running_status_condition unlock];
+  RunningState running_status = g_running_state;
+  [g_running_state_condition unlock];
 
-  return running_status != RunningStatus::kRunning;
+  return running_status != RunningState::kRunning;
 }
 
 std::string PathForResource() {
@@ -323,9 +320,9 @@ int main(int argc, char* argv[]) {
   close(filedes[1]);
 
   int exit_status = -1;
-  [g_running_status_condition lock];
+  [g_running_state_condition lock];
   exit_status = g_exit_status;
-  [g_running_status_condition unlock];
+  [g_running_state_condition unlock];
 
   NSLog(@"Application Exit");
   return exit_status;
@@ -347,7 +344,7 @@ int main(int argc, char* argv[]) {
 
 - (BOOL)application:(UIApplication*)application
     didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
-  g_running_status_condition = [[NSCondition alloc] init];
+  g_running_state_condition = [[NSCondition alloc] init];
 
   self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
   g_view_controller = [[FTAViewController alloc] init];
@@ -367,17 +364,17 @@ int main(int argc, char* argv[]) {
 }
 
 - (void)applicationWillTerminate:(UIApplication *)application {
-  [g_running_status_condition lock];
+  [g_running_state_condition lock];
 
-  if (g_running_status == RunningStatus::kRunning) {
-    g_running_status = RunningStatus::kShuttingDown;
-    [g_running_status_condition broadcast];
+  if (g_running_state == RunningState::kRunning) {
+    g_running_state = RunningState::kShuttingDown;
+    [g_running_state_condition broadcast];
   }
 
-  while (g_running_status != RunningStatus::kShutDown) {
-    [g_running_status_condition wait];
+  while (g_running_state != RunningState::kShutDown) {
+    [g_running_state_condition wait];
   }
 
-  [g_running_status_condition unlock];
+  [g_running_state_condition unlock];
 }
 @end
