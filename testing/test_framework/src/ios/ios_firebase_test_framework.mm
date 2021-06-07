@@ -98,6 +98,7 @@ bool FirebaseTest::SendHttpPostRequest(const char* url,
 }
 
 bool FirebaseTest::OpenUrlInBrowser(const char* url) {
+#if TARGET_OS_IOS
   if (strncmp(url, "data:", strlen("data:")) == 0) {
     // Workaround because Safari can't load data: URLs by default.
     // Instead, copy the URL to the clipboard and ask the user to paste it into Safari.
@@ -148,6 +149,9 @@ bool FirebaseTest::OpenUrlInBrowser(const char* url) {
     dispatch_semaphore_wait(sem, DISPATCH_TIME_FOREVER);
     return succeeded ? true : false;
   }
+#else // Non-iOS Apple platforms (eg:tvOS)
+  return false;
+#endif //TARGET_OS_IOS
 }
 
 bool FirebaseTest::SetPersistentString(const char* key, const char* value) {

@@ -354,7 +354,9 @@ int main(int argc, char* argv[]) {
   g_text_view = [[UITextView alloc] initWithFrame:g_view_controller.view.bounds];
 
   g_text_view.accessibilityIdentifier = @"Logger";
+#if TARGET_OS_IOS
   g_text_view.editable = NO;
+#endif //TARGET_OS_IOS
   g_text_view.scrollEnabled = YES;
   g_text_view.userInteractionEnabled = YES;
   g_text_view.font = [UIFont fontWithName:@"Courier" size:10];
