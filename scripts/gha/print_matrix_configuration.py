@@ -215,9 +215,9 @@ def print_value(value):
   """ Print Json formatted string that can be consumed in Github workflow."""
   # Eg: for lists,
   # print(json.dumps) ->
-  # ["ubuntu-latest", "macos-latest", "windows-latest"]
+  # ["ubuntu-latest", "macos-latest", "windows-2016"]
   # print(repr(json.dumps)) ->
-  # '["ubuntu-latest", "macos-latest", "windows-latest"]'
+  # '["ubuntu-latest", "macos-latest", "windows-2016"]'
 
   # Eg: for strings
   # print(json.dumps) -> "flame"
