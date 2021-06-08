@@ -100,8 +100,8 @@ PARAMETERS = {
       "os": ["ubuntu-latest", "macos-latest", "windows-2016"],
       "platform": ["Desktop", "Android", "iOS"],
       "ssl_lib": ["openssl", "boringssl"],
-      "android_device": ["android_latest", "emulator_target"],
-      "ios_device": ["ios_target", "simulator_target"],
+      "android_device": ["android_min", "android_target", "android_latest", "emulator_min", "emulator_target", "emulator_latest"],
+      "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
       "build_type": ["Debug"],
       "architecture_windows_linux": ["x64"],
       "architecture_macos": ["x64"],
@@ -115,7 +115,7 @@ PARAMETERS = {
     },
     "config": {
       "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage",
-      "mobile_test_on": "real"
+      "mobile_test_on": "real,virtual"
     }
   },
 
@@ -215,9 +215,9 @@ def print_value(value):
   """ Print Json formatted string that can be consumed in Github workflow."""
   # Eg: for lists,
   # print(json.dumps) ->
-  # ["ubuntu-latest", "macos-latest", "windows-2016"]
+  # ["ubuntu-latest", "macos-latest", "windows-latest"]
   # print(repr(json.dumps)) ->
-  # '["ubuntu-latest", "macos-latest", "windows-2016"]'
+  # '["ubuntu-latest", "macos-latest", "windows-latest"]'
 
   # Eg: for strings
   # print(json.dumps) -> "flame"
