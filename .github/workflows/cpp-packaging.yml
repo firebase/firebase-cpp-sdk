@@ -339,15 +339,23 @@ jobs:
         run: |
           python scripts/gha/install_prereqs_desktop.py
 
-      - name: Build desktop SDK
+      - name: Export verbose flag
         shell: bash
         run: |
           verbose_flag=
           if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
             verbose_flag=--verbose
           fi
-          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --linux_abi "${{ matrix.linux_abi }}" --build_dir out-sdk ${verbose_flag} ${{ matrix.additional_build_flags }}
-          # Make a list of all the source files, for debugging purposes.
+          echo "VERBOSE_FLAG=${verbose_flag}" >> $GITHUB_ENV
+      
+      # Run the build in the host OS default shell since Windows can't handle long path names in bash.
+      - name: Build desktop SDK
+        run: |
+          python scripts/gha/build_desktop.py --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}" --linux_abi "${{ matrix.linux_abi }}" --build_dir out-sdk ${VERBOSE_FLAG} ${{ matrix.additional_build_flags }}
+
+      - name: Archive SDK
+        shell: bash
+        run: |
           cd out-sdk
           find .. -type f -print > src_file_list.txt
           tar -czhf ../firebase-cpp-sdk-${{ env.SDK_NAME }}-build.tgz .
