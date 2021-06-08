@@ -253,8 +253,6 @@ jobs:
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
           submodules: true
-      - name: Check LongPathsEnabled
-        run: (Get-ItemProperty "HKLM:System\CurrentControlSet\Control\FileSystem").LongPathsEnabled
       - name: Set env vars (ubuntu)
         if: startsWith(matrix.os, 'ubuntu')
         run: echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
