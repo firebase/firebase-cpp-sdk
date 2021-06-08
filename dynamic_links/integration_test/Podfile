@@ -4,7 +4,7 @@ platform :ios, '10.0'
 # Firebase Dynamic Links test application.
 
 target 'integration_test' do
-  pod 'Firebase/DynamicLinks', '7.11.0'
+  pod 'Firebase/DynamicLinks', '8.0.0'
 end
 
 post_install do |installer|

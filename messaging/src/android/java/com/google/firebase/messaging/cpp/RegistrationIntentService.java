@@ -16,8 +16,12 @@ package com.google.firebase.messaging.cpp;
 
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
+import androidx.annotation.NonNull;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.messaging.FirebaseMessaging;
 import androidx.core.app.JobIntentService;
-import com.google.firebase.iid.FirebaseInstanceId;
 import com.google.flatbuffers.FlatBufferBuilder;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
@@ -34,11 +38,25 @@ public class RegistrationIntentService extends JobIntentService {
   // Fetch the latest registration token and notify the C++ layer.
   @Override
   protected void onHandleWork(Intent intent) {
-    String token = FirebaseInstanceId.getInstance().getToken();
-    DebugLogging.log(TAG, String.format("onHandleWork token=%s", token));
-    if (token != null) {
-      writeTokenToInternalStorage(this, token);
-    }
+    Context context = this;
+    FirebaseMessaging.getInstance().getToken()
+      .addOnCompleteListener(new OnCompleteListener<String>() {
+        @Override
+        public void onComplete(@NonNull Task<String> task) {
+          if (!task.isSuccessful()) {
+            Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+            return;
+          }
+
+          // Get new FCM registration token
+          String token = task.getResult();
+
+          DebugLogging.log(TAG, String.format("onHandleWork token=%s", token));
+          if (token != null) {
+            writeTokenToInternalStorage(context, token);
+          }
+        }
+      });
   }
 
   /** Write token to internal storage so it can be accessed by the C++ layer. */
