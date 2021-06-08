@@ -24,11 +24,12 @@
 
 #if FIREBASE_PLATFORM_ANDROID
 #include "admob/src/android/native_express_ad_view_internal_android.h"
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
 #include "admob/src/ios/native_express_ad_view_internal_ios.h"
 #else
 #include "admob/src/stub/native_express_ad_view_internal_stub.h"
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 
 namespace firebase {
 namespace admob {
@@ -44,11 +45,12 @@ NativeExpressAdViewInternal* NativeExpressAdViewInternal::CreateInstance(
     NativeExpressAdView* base) {
 #if FIREBASE_PLATFORM_ANDROID
   return new NativeExpressAdViewInternalAndroid(base);
-#elif FIREBASE_PLATFORM_IOS
+#elif FIREBASE_PLATFORM_IOS || FIREBASE_PLATFORM_TVOS
   return new NativeExpressAdViewInternalIOS(base);
 #else
   return new NativeExpressAdViewInternalStub(base);
-#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS
+#endif  // FIREBASE_PLATFORM_ANDROID, FIREBASE_PLATFORM_IOS,
+        // FIREBASE_PLATFORM_TVOS
 }
 
 void NativeExpressAdViewInternal::SetListener(

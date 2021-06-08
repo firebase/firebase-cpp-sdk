@@ -77,7 +77,7 @@ PARAMETERS = {
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
+        "os": ["ubuntu-latest", "macos-latest", "windows-2016"],
         "xcode_version": ["11.7", "12.4"],
       }
     }
@@ -85,19 +85,19 @@ PARAMETERS = {
 
   "android": {
     "matrix": {
-      "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
+      "os": ["ubuntu-latest", "macos-latest", "windows-2016"],
       "architecture": ["x64"],
       "python_version": ["3.7"],
 
       EXPANDED_KEY: {
-        "os": ["ubuntu-latest", "macos-latest", "windows-latest"]
+        "os": ["ubuntu-latest", "macos-latest", "windows-2016"]
       }
     }
   },
 
   "integration_tests": {
     "matrix": {
-      "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
+      "os": ["ubuntu-latest", "macos-latest", "windows-2016"],
       "platform": ["Desktop", "Android", "iOS"],
       "ssl_lib": ["openssl", "boringssl"],
       "android_device": ["android_latest", "emulator_target"],
@@ -215,9 +215,9 @@ def print_value(value):
   """ Print Json formatted string that can be consumed in Github workflow."""
   # Eg: for lists,
   # print(json.dumps) ->
-  # ["ubuntu-latest", "macos-latest", "windows-latest"]
+  # ["ubuntu-latest", "macos-latest", "windows-2016"]
   # print(repr(json.dumps)) ->
-  # '["ubuntu-latest", "macos-latest", "windows-latest"]'
+  # '["ubuntu-latest", "macos-latest", "windows-2016"]'
 
   # Eg: for strings
   # print(json.dumps) -> "flame"
