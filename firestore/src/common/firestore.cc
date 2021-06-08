@@ -343,10 +343,5 @@ Future<LoadBundleTaskProgress> Firestore::LoadBundle(
   return internal_->LoadBundle(bundle, std::move(progress_callback));
 }
 
-Future<Query> Firestore::NamedQuery(const std::string& query_name) {
-  if (!internal_) return FailedFuture<Query>();
-  return internal_->NamedQuery(query_name);
-}
-
 }  // namespace firestore
 }  // namespace firebase
