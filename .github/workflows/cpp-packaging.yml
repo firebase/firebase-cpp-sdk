@@ -346,7 +346,7 @@ jobs:
           if [[ -n "${{ github.event.inputs.verboseBuild }}" && "${{ github.event.inputs.verboseBuild }}" -ne 0 ]]; then
             verbose_flag=--verbose
           fi
-          echo "VERBOSE_FLAG=${verbose_flag}"" >> $GITHUB_ENV
+          echo "VERBOSE_FLAG=${verbose_flag}" >> $GITHUB_ENV
       
       - name: Build desktop SDK
         run: |
