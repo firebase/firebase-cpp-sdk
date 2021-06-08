@@ -288,6 +288,9 @@ jobs:
           build_type: "Debug"
 
     steps:
+      - name: Check LongPathsEnabled
+        run: (Get-ItemProperty "HKLM:System\CurrentControlSet\Control\FileSystem").LongPathsEnabled
+
       - name: setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ env.xcodeVersion }}.app/Contents/Developer
