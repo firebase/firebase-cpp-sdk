@@ -32,6 +32,7 @@ log is obtained instead, to help identify where the crash or timeout occurred.
 import datetime
 import os
 import re
+import json
 
 from absl import logging
 
@@ -183,8 +184,13 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
   if errors:
     summary.append("\n%d TESTAPPS EXPERIENCED ERRORS:" % len(errors))
     for test, results in errors:
+      summary.append("%s:" % test.testapp_path)
+      if hasattr(test, "ftl_link") and test.ftl_link:
+        summary.append("ftl_link: %s" % test.ftl_link)
+      if hasattr(test, "raw_result_link") and test.raw_result_link:
+        summary.append("raw_result_link: %s" % test.raw_result_link)
       if results.summary:
-        summary.append("%s log tail:" % test.testapp_path)
+        summary.append("log tail:")
         summary.append(results.summary)
       else:
         summary.append(
@@ -193,10 +199,49 @@ def summarize_test_results(tests, platform, summary_dir, file_name="summary.log"
     summary.append("\n%d TESTAPPS FAILED:" % len(failures))
     for test, results in failures:
       summary.append(test.testapp_path)
+      if hasattr(test, "ftl_link") and test.ftl_link:
+        summary.append("ftl_link: %s" % test.ftl_link)
+      if hasattr(test, "raw_result_link") and test.raw_result_link:
+        summary.append("raw_result_link: %s" % test.raw_result_link)
       summary.append(results.summary)
   summary.append(
       "%d TESTAPPS TOTAL: %d PASSES, %d FAILURES, %d ERRORS"
       % (len(tests), len(successes), len(failures), len(errors)))
+
+  # summary_json format:
+  #   { "type": "test",
+  #     "testapps": [testapp],
+  #     "errors": {testapp:{"log": error_log, "ftl_link": ftl_link, "raw_result_link": raw_result_link}},
+  #     "failures": {testapp:{"log": error_log, "ftl_link": ftl_link, "raw_result_link": raw_result_link,
+  #                           "failed_tests": {falied_test: test_log}}}}}
+  summary_json = {}
+  summary_json["type"] = "test"
+  summary_json["testapps"] = [get_name(test.testapp_path) for test in tests]
+  summary_json["errors"] = {get_name(test.testapp_path):{"logs": results.summary} for (test, results) in errors}
+  for (test, results) in errors:
+    testapp = get_name(test.testapp_path)
+    if hasattr(test, "ftl_link") and test.ftl_link:
+      summary_json["errors"][testapp]["ftl_link"] = test.ftl_link
+    if hasattr(test, "raw_result_link") and test.raw_result_link:
+      summary_json["errors"][testapp]["raw_result_link"] = test.raw_result_link   
+  summary_json["failures"] = {get_name(test.testapp_path):{"logs": results.summary, "failed_tests": dict()} for (test, results) in failures}
+  for (test, results) in failures:
+    testapp = get_name(test.testapp_path)
+    if hasattr(test, "ftl_link") and test.ftl_link:
+      summary_json["failures"][testapp]["ftl_link"] = test.ftl_link
+    if hasattr(test, "raw_result_link") and test.raw_result_link:
+      summary_json["failures"][testapp]["raw_result_link"] = test.raw_result_link
+    failed_tests = re.findall(r"\[  FAILED  \] (.+)[.](.+)", results.summary)
+    for failed_test in failed_tests:
+      failed_test = failed_test[1]
+      pattern = fr'\[ RUN      \] (.+)[.]{failed_test}(.*?)\[  FAILED  \] (.+)[.]{failed_test}'
+      failure_log = re.search(pattern, test.logs, re.MULTILINE | re.DOTALL)
+      summary_json["failures"][testapp]["failed_tests"][failed_test] = failure_log.group()
+      summary.append("\n%s FAILED:\n%s\n" % (failed_test, failure_log.group()))
+
+  with open(os.path.join(summary_dir, file_name+".json"), "a") as f:
+    f.write(json.dumps(summary_json, indent=2))
+
   summary = "\n".join(summary)
   logging.info(summary)
   write_summary(summary_dir, summary, file_name)
@@ -223,6 +268,11 @@ def write_summary(testapp_dir, summary, file_name="summary.log"):
     # to help keep track of when a given test was run.
     timestamp = datetime.datetime.now().strftime("%Y_%m_%d-%H_%M_%S")
     f.write("\n%s\n%s\n" % (timestamp, summary))
+
+
+def get_name(testapp_path):
+  """Returns testapp api."""
+  return testapp_path.split(os.sep)[-2]
 
 
 def _tail(text, n):

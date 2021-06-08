@@ -17,17 +17,19 @@ r"""Tool for sending mobile testapps to Firebase Test Lab for testing.
 Requires Cloud SDK installed with gsutil. Can be checked as follows:
   gcloud --version
 
-This tool will use the games-auto-release-testing GCS storage bucket. To
-be authorized, it's necessary have the key file (JSON) (from valentine) and
+This tool will use the games-auto-release-testing GCS storage bucket. 
+To be authorized, it's necessary have the key file (JSON) and
 supply it with the --key_file flag.
-
-Valentine ID: 1561166657633900
+1) key file Valentine ID: 1561166657633900
+2) Alternatively, decrypt the key file with 
+  python scripts/gha/restore_secrets.py --passphrase SECRET
+  SECRET Valentine ID: 1592951125596776
 
 
 Usage:
 
   python test_lab.py --testapp_dir ~/testapps --code_platform unity \
-    --key_file ~/Downloads/key_file.json
+    --key_file scripts/gha-encrypted/gcs_key_file.json
 
 This will recursively search ~/testapps for apks and ipas,
 send them to FTL, and validate their results. The validation is specific to
@@ -42,19 +44,31 @@ following commands:
   gcloud firebase test android models list
   gcloud firebase test ios models list
 
-Note: you need the value in the MODEL_ID column, not MODEL_NAME. Examples:
+Note: you need the value in the MODEL_ID column, not MODEL_NAME. 
+Examples:
+Pixel2, API level 28:
+  --android_model Pixel2 --android_version 28
 
-Pixel 2, API level 28:
-  --android_device walleye+28
+iphone6s, OS 12.0:
+  --ios_model iphone6s --ios_version 12.0
 
-iPhone 8 Plus, OS 11.4:
-  --ios_device iphone8plus+11.4
+Alternatively, to set a device, use the one of the values below:
+[android_min, android_target, android_latest]
+[ios_min, ios_target, ios_latest]
+These Device Information stored in TEST_DEVICES in print_matrix_configuration.py 
+Examples:
+Pixel2, API level 28:
+  --android_device android_target
+
+iphone6s, OS 12.0:
+  --ios_device ios_target
 
 """
 
 import os
 import subprocess
 import threading
+import re
 
 from absl import app
 from absl import flags
@@ -63,6 +77,7 @@ import attr
 
 from integration_testing import gcs
 from integration_testing import test_validation
+from print_matrix_configuration import TEST_DEVICES
 
 _ANDROID = "android"
 _IOS = "ios"
@@ -80,12 +95,28 @@ flags.DEFINE_string(
     "key_file", None, "Path to key file authorizing use of the GCS bucket.")
 flags.DEFINE_string(
     "android_device", None,
-    "Model_id and API_level for desired device. See module docstring for "
-    "details on how to get this id. If none, will use FTL's default.")
+    "Model_id and API_level for desired device. See module docstring for details "
+    "on how to set the value. If none, will use android_model and android_version.")
+flags.DEFINE_string(
+    "android_model", None,
+    "Model id for desired device. See module docstring for details on how"
+    " to get this id. If none, will use FTL's default.")
+flags.DEFINE_string(
+    "android_version", None,
+    "API level for desired device. See module docstring for details on how"
+    " to find available values. If none, will use FTL's default.")
 flags.DEFINE_string(
     "ios_device", None,
-    "Model_id and IOS_version for desired device. See module docstring for "
-    "details on how to get this id. If none, will use FTL's default.")
+    "Model_id and IOS_version for desired device. See module docstring for details "
+    "on how to set the value. If none, will use ios_model and ios_version.")
+flags.DEFINE_string(
+    "ios_model", None,
+    "Model id for desired device. See module docstring for details on how"
+    " to get this id. If none, will use FTL's default.")
+flags.DEFINE_string(
+    "ios_version", None,
+    "iOS version for desired device. See module docstring for details on how"
+    " to find available values. If none, will use FTL's default.")
 flags.DEFINE_string(
     "logfile_name", "",
     "Create test log artifact test-results-$logfile_name.log."
@@ -103,22 +134,22 @@ def main(argv):
     raise ValueError("Key file path does not exist: %s" % key_file_path)
 
   if FLAGS.android_device:
-    android_device_info = FLAGS.android_device.split("+")
-    if len(android_device_info) == 2:
-      android_device = Device(model=android_device_info[0], version=android_device_info[1])
+    android_device_info = TEST_DEVICES.get(FLAGS.android_device)
+    if android_device_info:
+      android_device = Device(model=android_device_info.get("model"), version=android_device_info.get("version"))
     else:
       raise ValueError("Not a valid android device: %s" % FLAGS.android_device)
   else:
-    android_device = Device(model=None, version=None)
+    android_device = Device(model=FLAGS.android_model, version=FLAGS.android_version)
   
   if FLAGS.ios_device:
-    ios_device_info = FLAGS.ios_device.split("+")
-    if len(ios_device_info) == 2:
-      ios_device = Device(model=ios_device_info[0], version=ios_device_info[1])
+    ios_device_info = TEST_DEVICES.get(FLAGS.ios_device)
+    if ios_device_info:
+      ios_device = Device(model=ios_device_info.get("model"), version=ios_device_info.get("version"))
     else:
       raise ValueError("Not a valid android device: %s" % FLAGS.ios_device)
   else:
-    ios_device = Device(model=None, version=None)
+    ios_device = Device(model=FLAGS.ios_model, version=FLAGS.ios_version)
 
   has_ios = False
   testapps = []
@@ -220,6 +251,8 @@ class Test(object):
   results_dir = attr.ib()  # Subdirectory on Cloud storage for this testapp
   # This will be populated after the test completes, instead of initialization.
   logs = attr.ib(init=False, default=None)
+  ftl_link = attr.ib(init=False, default=None)
+  raw_result_link = attr.ib(init=False, default=None)
 
   # This runs in a separate thread, so instead of returning values we store
   # them as fields so they can be accessed from the main thread.
@@ -237,6 +270,13 @@ class Test(object):
     logging.info("Finished: %s\n%s", " ".join(args), result.stdout)
     if result.returncode:
       logging.error("gCloud returned non-zero error code")
+    ftl_link = re.search(r'Test results will be streamed to \[(.*?)\]', result.stdout, re.DOTALL)
+    if ftl_link:
+      self.ftl_link = ftl_link.group(1)
+    raw_result_link = re.search(r'Raw results will be stored in your GCS bucket at \[(.*?)\]', result.stdout, re.DOTALL)
+    if raw_result_link:
+      self.raw_result_link = raw_result_link.group(1)
+
     self.logs = self._get_testapp_log_text_from_gcs()
 
   @property

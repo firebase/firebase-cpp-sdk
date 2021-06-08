@@ -100,22 +100,18 @@ PARAMETERS = {
       "os": ["ubuntu-latest", "macos-latest", "windows-2016"],
       "platform": ["Desktop", "Android", "iOS"],
       "ssl_lib": ["openssl", "boringssl"],
-      "android_device": ["virtual:system-images;android-28;google_apis;x86_64+28.0.3", "real:flame+29"],
-      "ios_device": ["virtual:iPhone 8+12.0", "real:iphone8+12.4"],
-      EXPANDED_KEY: {
-        "android_device": ["virtual:system-images;android-18;default;x86+28.0.3", 
-                          "virtual:system-images;android-28;google_apis;x86_64+28.0.3", 
-                          "virtual:system-images;android-29;default;x86+28.0.3", 
-                          "real:Nexus10+19", 
-                          "real:Pixel2+28", 
-                          "real:flame+29"],
-        "ios_device": ["virtual:iPhone 6+11.4", 
-                      "virtual:iPhone 8+12.0", 
-                      "virtual:iPhone 11+14.4", 
-                      "real:iphone8+11.4", 
-                      "real:iphone6s+12.0", 
-                      "real:iphone11pro+14.1"]
-      }
+      "android_device": ["android_latest", "emulator_target"],
+      "ios_device": ["ios_target", "simulator_target"],
+      "build_type": ["Debug"],
+      "architecture_windows_linux": ["x64"],
+      "architecture_macos": ["x64"],
+      "msvc_runtime": ["dynamic"],
+      "cpp_compiler_windows": ["VisualStudio2019"],
+      "cpp_compiler_linux": ["clang-11.0"],
+      "xcode_version": ["12"],
+      "ndk_version": ["r22b"],
+      "platform_version": ["28"],
+      "build_tools_version": ["28.0.3"],
     },
     "config": {
       "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage",
@@ -133,6 +129,30 @@ PARAMETERS = {
     }
   },
 }
+
+BUILD_CONFIGS = {
+  "windows": ["ssl_lib", "build_type", "architecture_windows_linux", "msvc_runtime", "cpp_compiler_windows"],
+  "linux": ["ssl_lib", "build_type", "architecture_windows_linux", "cpp_compiler_linux"],
+  "macos": ["ssl_lib", "architecture_macos", "xcode_version"],
+  "android": ["os", "ndk_version", "build_tools", "platform_version", "android_device"],
+  "ios": ["os", "xcode_version", "ios_device"]
+}
+
+TEST_DEVICES = {
+  "android_min": {"type": "real", "model":"Nexus10", "version":"19"},
+  "android_target": {"type": "real", "model":"Pixel2", "version":"28"},
+  "android_latest": {"type": "real", "model":"flame", "version":"29"},
+  "emulator_min": {"type": "virtual", "image":"system-images;android-18;default;x86"},
+  "emulator_target": {"type": "virtual", "image":"system-images;android-28;google_apis;x86_64"},
+  "emulator_latest": {"type": "virtual", "image":"system-images;android-29;default;x86"},
+  "ios_min": {"type": "real", "model":"iphone8", "version":"11.4"},
+  "ios_target": {"type": "real", "model":"iphone6s", "version":"12.0"},
+  "ios_latest": {"type": "real", "model":"iphone11pro", "version":"14.1"},
+  "simulator_min": {"type": "virtual", "name":"iPhone 6", "version":"11.4"},
+  "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"12.0"},
+  "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"14.4"},
+}
+ 
 
 
 def get_value(workflow, use_expanded, parm_key, config_parms_only=False):
@@ -184,16 +204,11 @@ def get_value(workflow, use_expanded, parm_key, config_parms_only=False):
                                                                 use_expanded))
 
 
-def filter_value(workflow, parm_key, value, by):
-  """ Filter value by condtional
-
-  Currently only used for filter mobile device by device type.
+def filter_devices(devices, device_type):
+  """ Filter device by device_type
   """
-  if workflow == "integration_tests" and (parm_key == "android_device" or parm_key == "ios_device"):
-    filtered_value = filter(lambda device: device.split(":")[0] in by, value)
-    value = list(filtered_value)
-
-  return value  
+  filtered_value = filter(lambda device: TEST_DEVICES.get(device).get("type") in device_type, devices)
+  return list(filtered_value)  
 
 
 def print_value(value):
@@ -299,8 +314,13 @@ def main():
     print_value(args.override)
     return
 
+  if args.device:
+    print(TEST_DEVICES.get(args.parm_key).get("type"))
+    return 
+
   value = get_value(args.workflow, args.expanded, args.parm_key, args.config)
-  value = filter_value(args.workflow, args.parm_key, value, by = args.device)
+  if args.workflow == "integration_tests" and (args.parm_key == "android_device" or args.parm_key == "ios_device"):
+    value = filter_devices(value, args.device_type)
   if args.auto_diff:
     value = filter_values_on_diff(args.parm_key, value, args.auto_diff)
   print_value(value)
@@ -314,7 +334,8 @@ def parse_cmdline_args():
   parser.add_argument('-k', '--parm_key', required=True, help='Print the value of specified key from matrix or config maps.')
   parser.add_argument('-a', '--auto_diff', metavar='BRANCH', help='Compare with specified base branch to automatically set matrix options')
   parser.add_argument('-o', '--override', help='Override existing value with provided value')
-  parser.add_argument('-d', '--device', default=['real', 'virtual'], help='Test on which type of mobile devices')
+  parser.add_argument('-d', '--device', action='store_true', help='Get the device type, used with -k $device')
+  parser.add_argument('-t', '--device_type', default=['real', 'virtual'], help='Test on which type of mobile devices')
   args = parser.parse_args()
   return args
 

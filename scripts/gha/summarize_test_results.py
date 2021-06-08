@@ -16,36 +16,43 @@
 
 USAGE:
 
-python summarize_test_results.py --dir <directory> [--markdown]
+python summarize_test_results.py --dir <directory> --markdown
 
-Example table mode output (will be slightly different with --markdown):
+Example table mode output (with --markdown):
 
-| Platform (Build Config)   | Build failures | Test failures (Test Devices) |
-|---------------------------|----------------|------------------------------|
-| iOS (build on iOS)        |                | auth (device1, device2)      |
-| Desktop Windows (OpenSSL) | analytics      | database                     |
+| Failures   |                    Configs                         |
+|------------|----------------------------------------------------|
+| messaging  |[BUILD] [ERROR] [Windows] [boringssl]               |
+|            |[TEST] [ERROR] [Android] [All os] [emulator_min]    |
+|            |[TEST] [FAILURE] [Android] [macos] [emulator_target]|
+|            |▼(1 failed tests)                                   |
 
-python summarize_test_results.py --dir <directory> <--text_log | --github_log>
+python summarize_test_results.py --dir <directory> [--github_log]
 
 Example log mode output (will be slightly different with --github_log):
 
 INTEGRATION TEST FAILURES
 
-iOS (built on MacOS):
-  Test failures (2):
-  - auth
-  - firestore
-Desktop Windows (OpenSSL):
-  Build failures (1):
-  - analytics
+admob:
+  Errors and Failures (1):
+  - [BUILD] [ERROR] [Windows] [boringssl]
+functions:
+  Errors and Failures (2):
+  - [BUILD] [ERROR] [Windows] [boringssl]
+  - [TEST] [FAILURE] [iOS] [macos] [simulator_min, simulator_target]
+    - failed tests: ['TestSignIn', 'TestFunction', 'TestFunctionWithData']
 """
 
 from absl import app
 from absl import flags
 from absl import logging
+from print_matrix_configuration import PARAMETERS
+from print_matrix_configuration import BUILD_CONFIGS
+
 import glob
 import re
 import os
+import json
 
 FLAGS = flags.FLAGS
 
@@ -55,10 +62,6 @@ flags.DEFINE_string(
     short_name="d")
 
 flags.DEFINE_bool(
-    "include_successful", False,
-    "Print all logs including successful tests.")
-
-flags.DEFINE_bool(
     "markdown", False,
     "Display a Markdown-formatted table.")
 
@@ -66,35 +69,24 @@ flags.DEFINE_bool(
     "github_log", False,
     "Display a GitHub log list.")
 
-flags.DEFINE_bool(
-    "text_log", False,
-    "Display a text log list.")
-
 flags.DEFINE_integer(
-    "list_max", 5,
+    "list_max", 3,
     "In Markdown mode, collapse lists larger than this size. 0 to disable.")
 
 CAPITALIZATIONS = {
     "macos": "MacOS",
     "ubuntu": "Linux",
     "windows": "Windows",
-    "openssl": "(OpenSSL)",
-    "boringssl": "(BoringSSL)",
     "ios": "iOS",
     "android": "Android",
     "desktop": "Desktop",
 }
 
-BUILD_FILE_PATTERN = "build-results-*.log"
-TEST_FILE_PATTERN = "test-results-*.log"
+BUILD_FILE_PATTERN = "build-results-*.log.json"
+TEST_FILE_PATTERN = "test-results-*.log.json"
 
-SIMULATOR = "simulator"
-HARDWARE = "hardware"
-
-PLATFORM_HEADER = "Platform (Build Config)"
-BUILD_FAILURES_HEADER = "Build failures"
-TEST_FAILURES_HEADER = "Test failures (Test Devices)"
-SUCCESSFUL_TESTS_HEADER = "Successful tests"
+TESTAPPS_HEADER = "Failures"
+CONFIGS_HEADER = "Configs"
 
 LOG_HEADER = "INTEGRATION TEST FAILURES"
 
@@ -102,112 +94,79 @@ LOG_HEADER = "INTEGRATION TEST FAILURES"
 DEFAULT_LIST_SEPARATOR=", "
 
 def print_table(log_results,
-            platform_width = 0,
-            build_failures_width = 0,
-            test_failures_width = 0,
-            successful_width = 0,
+            testapps_width = 0,
+            configs_width = 0,
             space_char = " ",
             list_separator = DEFAULT_LIST_SEPARATOR):
   """Print out a table in the requested format (text or markdown)."""
   # Print table header
   output_lines = list()
   headers = [
-    re.sub(r'\b \b', space_char, PLATFORM_HEADER.ljust(platform_width)),
-    re.sub(r'\b \b', space_char,BUILD_FAILURES_HEADER.ljust(build_failures_width)),
-    re.sub(r'\b \b', space_char,TEST_FAILURES_HEADER.ljust(test_failures_width))
-  ] + (
-    [re.sub(r'\b \b', space_char,SUCCESSFUL_TESTS_HEADER.ljust(successful_width))]
-    if FLAGS.include_successful else []
-  )
+    re.sub(r'\b \b', space_char, TESTAPPS_HEADER.ljust(testapps_width)),
+    re.sub(r'\b \b', space_char,CONFIGS_HEADER.ljust(configs_width))
+  ]
   # Print header line.
   output_lines.append(("|" + " %s |" * len(headers)) % tuple(headers))
-  # Print a |-------|-------|---------| line.
+  # Print a |-------|---------| line.
   output_lines.append(("|" + "-%s-|" * len(headers)) %
                       tuple([ re.sub("[^|]","-", header) for header in headers ]))
 
   # Iterate through platforms and print out table lines.
-  for platform in sorted(log_results.keys()):
-    if log_results[platform]["build_failures"] or log_results[platform]["test_failures"] or FLAGS.include_successful:
-      columns = [
-        re.sub(r'\b \b', space_char, platform.ljust(platform_width)),
-        format_result(log_results[platform]["build_failures"], justify=build_failures_width, list_separator=list_separator),
-        format_result(log_results[platform]["test_failures"], justify=test_failures_width, list_separator=list_separator),
-      ] + (
-        [format_result(log_results[platform]["successful"], justify=successful_width, list_separator=list_separator)]
-        if FLAGS.include_successful else []
-      )
-      output_lines.append(("|" + " %s |" * len(headers)) % tuple(columns))
+  for testapp in sorted(log_results.keys()):
+    columns = [
+      re.sub(r'\b \b', space_char, testapp.ljust(testapps_width)),
+      format_result(log_results[testapp], space_char=space_char, list_separator=list_separator, justify=configs_width)
+    ]
+    output_lines.append(("|" + " %s |" * len(headers)) % tuple(columns))
 
   return output_lines
 
 
-def format_result(test_set, list_separator=DEFAULT_LIST_SEPARATOR, justify=0):
+def format_result(config_tests, space_char = " ", list_separator=DEFAULT_LIST_SEPARATOR, justify=0):
   """Format a list of test names.
   In Markdown mode, this can collapse a large list into a dropdown."""
-  list_output = list_separator.join(sorted(test_set))
-  if FLAGS.markdown and FLAGS.list_max > 0 and len(test_set) > FLAGS.list_max:
-      return "<details><summary>_(%s items)_</summary>%s</details>" % (
-        len(test_set), list_output)
+  config_set = set()
+  for config, tests in config_tests.items():
+    if len(tests) > 0:
+      count = len(tests)
+      tests = [space_char+space_char+test for test in tests]
+      tests = list_separator.join(sorted(tests))
+      tests = "<details><summary>(%s failed tests)</summary>%s</details>" % (count, tests)
+      config_set.add(config+tests)
+    else:
+      config_set.add(config+list_separator)
+
+  if FLAGS.markdown and FLAGS.list_max > 0 and len(config_set) > FLAGS.list_max:
+      return "<details><summary>(%s items)</summary>%s</details>" % (
+        len(config_set), "".join(sorted(config_set)))
   else:
-    return list_output.ljust(justify)
-
-
-def print_text_table(log_results):
-  """Print out a nicely-formatted text table."""
-  # For text formatting, see how wide the strings are so we can
-  # left-justify each column of the text table.
-  max_platform = len(PLATFORM_HEADER)
-  max_build_failures = len(BUILD_FAILURES_HEADER)
-  max_test_failures = len(TEST_FAILURES_HEADER)
-  max_sucessful = len(SUCCESSFUL_TESTS_HEADER)
-  for (platform, results) in log_results.items():
-    max_platform = max(max_platform, len(platform))
-    max_build_failures = max(max_build_failures,
-                             len(format_result(log_results[platform]["build_failures"])))
-    max_test_failures = max(max_test_failures,
-                            len(format_result(log_results[platform]["test_failures"])))
-    max_sucessful = max(max_sucessful,
-                        len(format_result(log_results[platform]["successful"])))
-  return print_table(log_results,
-                     platform_width=max_platform,
-                     build_failures_width=max_build_failures,
-                     test_failures_width=max_test_failures,
-                     successful_width=max_sucessful)
+    return  "".join(sorted(config_set)).ljust(justify)
 
 
 def print_log(log_results):
   """Print the results in a text-only log format."""
   output_lines = []
-  for platform in sorted(log_results.keys()):
-    if log_results[platform]["build_failures"] or log_results[platform]["test_failures"] or FLAGS.include_successful:
+  for (testapps, configs) in log_results.items():
       output_lines.append("")
-      output_lines.append("%s:" % platform)
-      if (FLAGS.include_successful and len(log_results[platform]["successful"]) > 0):
-        output_lines.append("  Successful tests (%d):" %
-                            len(log_results[platform]["successful"]))
-        for test_name in sorted(log_results[platform]["successful"]):
-          output_lines.append("  - %s" % test_name)
-      if (len(log_results[platform]["build_failures"]) > 0):
-        output_lines.append("  Build failures (%d):" %
-                            len(log_results[platform]["build_failures"]))
-        for test_name in sorted(log_results[platform]["build_failures"]):
-          output_lines.append("  - %s" % test_name)
-      if (len(log_results[platform]["test_failures"]) > 0):
-        output_lines.append("  Test failures (%d):" %
-                            len(log_results[platform]["test_failures"]))
-        for test_name in sorted(log_results[platform]["test_failures"]):
-          output_lines.append("  - %s" % test_name)
+      output_lines.append("%s:" % testapps)
+      if len(configs) > 0:
+        output_lines.append("  Errors and Failures (%d):" %
+                            len(configs))
+      for config, extra in configs.items():
+        output_lines.append("  - %s" % config)
+        if extra:
+          output_lines.append("    - failed tests: %s" % extra)
   return output_lines[1:]  # skip first blank line
 
 
 def print_github_log(log_results):
   """Print a text log, but replace newlines with %0A and add
   the GitHub ::error text."""
-  output_lines = [LOG_HEADER,
+  output_lines = ["::error ::%s" % LOG_HEADER,
                   "".ljust(len(LOG_HEADER), "—"),
                   ""] + print_log(log_results)
   # "%0A" produces a newline in GitHub workflow logs.
-  return ["::error ::%s" % "%0A".join(output_lines)]
+  return ["%0A".join(output_lines)]
 
 
 def print_markdown_table(log_results):
@@ -232,97 +191,35 @@ def main(argv):
 
   any_failures = False
   log_data = {}
-
+  # log_data format:
+  #   { testapps: {"build": [configs]},
+  #                "test": {"errors": [configs]},
+  #                        {"failures": {failed_test: [configs]}}}}
   for build_log_file in build_log_files:
-    log_name_str, _ = format_log_file_name(build_log_file, build_log_name_re)
+    configs = get_configs_from_file_name(build_log_file, build_log_name_re)
     with open(build_log_file, "r") as log_reader:
-      log_reader_data = log_reader.read()
-      log_data[log_name_str] = { "build_log": log_reader_data, "test_logs": dict()}
+      log_reader_data = json.loads(log_reader.read())
+      for (testapp, error) in log_reader_data["errors"].items():
+        any_failures = True
+        log_data.setdefault(testapp, {}).setdefault("build", []).append(configs)
 
   for test_log_file in test_log_files:
-    log_name_str, test_device = format_log_file_name(test_log_file, test_log_name_re)
+    configs = get_configs_from_file_name(test_log_file, test_log_name_re)
     with open(test_log_file, "r") as log_reader:
-      log_reader_data = log_reader.read()
-      log_data[log_name_str]["test_logs"][test_device] = log_reader_data
+      log_reader_data = json.loads(log_reader.read())
+      for (testapp, error) in log_reader_data["errors"].items():
+        any_failures = True
+        log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("errors", []).append(configs)
+      for (testapp, failures) in log_reader_data["failures"].items():
+        for (test, failure) in failures["failed_tests"].items():
+          any_failures = True
+          log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("failures", {}).setdefault(test, []).append(configs)
 
-  log_results = {}
-  # Go through each log and extract out the build and test failures.
-  for (platform, logs) in log_data.items():
-    if platform not in log_results:
-      log_results[platform] = { "build_failures": set(), "test_failures": set(),
-                                "attempted": set(), "successful": set() }
-    # Get a full list of the products built.
-    m = re.search(r'TRIED TO BUILD: ([^\n]*)', logs["build_log"])
-    if m:
-      log_results[platform]["attempted"].update(m.group(1).split(","))
-    # Extract build failure lines, which follow "SOME FAILURES OCCURRED:"
-    m = re.search(r'SOME FAILURES OCCURRED:\n(([\d]+:[^\n]*\n)+)', logs["build_log"], re.MULTILINE)
-    if m:
-      for build_failure_line in m.group(1).strip("\n").split("\n"):
-        m2 = re.match(r'[\d]+: ([^,]+)', build_failure_line)
-        if m2:
-          product_name = m2.group(1).lower()
-          if product_name:
-            log_results[platform]["build_failures"].add(product_name)
-            any_failures = True
+  # log_results format:
+  #   { testapps: {configs: [failed tests]} }
+  log_results = reorganize_log(log_data)
 
-    test_failures = {}
-    # Extract test failures.
-    # (.*) Greedy match, which follows "TESTAPPS FAILED:" and skips "TESTAPPS EXPERIENCED ERRORS:"
-    # (.*?) Nongreedy match, which follows "TESTAPPS EXPERIENCED ERRORS:"
-    pattern = r'^TEST SUMMARY(.*?)TESTAPPS (EXPERIENCED ERRORS|FAILED):\n(([^\n]*\n)+)'
-    for (test_device, test_log) in logs["test_logs"].items():
-      m = re.search(pattern, test_log, re.MULTILINE | re.DOTALL)
-      if m:
-        for test_failure_line in m.group(3).strip("\n").split("\n"):
-          # Don't process this if meet another TEST SUMMARY
-          if "TEST SUMMARY" in test_failure_line: break
-          # Only get the lines showing paths.
-          if "/firebase-cpp-sdk/" not in test_failure_line: continue
-          test_filename = ""
-          if "log tail" in test_failure_line:
-            test_filename = re.match(r'^(.*) log tail', test_failure_line).group(1)
-          elif "lacks logs" in test_failure_line:
-            test_filename = re.match(r'^(.*) lacks logs', test_failure_line).group(1)
-          elif "it-debug.apk" in test_failure_line:
-            test_filename = re.match(r'^(.*it-debug\.apk)', test_failure_line).group(1)
-          elif "integration_test.ipa" in test_failure_line:
-            test_filename = re.match(r'^(.*integration_test\.ipa)', test_failure_line).group(1)
-          elif "integration_test.app" in test_failure_line:
-            test_filename = re.match(r'^(.*integration_test\.app)', test_failure_line).group(1)
-          elif "integration_test" in test_failure_line:
-            test_filename = re.match(r'^(.*integration_test)', test_failure_line).group(1)
-          elif "integration_test.exe" in test_failure_line:
-            test_filename = re.match(r'^(.*integration_test\.exe)', test_failure_line).group(1)
-
-          if test_filename:
-            m2 = re.search(r'/testapps(.*?)/(.*?)/', test_filename, re.IGNORECASE)
-            if m2:
-              dirs = m2.group(0).split("/")
-              product_name = dirs[2]
-              if product_name in test_failures.keys():
-                test_failures[product_name].append(test_device)
-              else:
-                test_failures[product_name] = [test_device]
-            any_failures = True
-
-    for (product_name, test_devices) in test_failures.items():
-      if "Android" in platform or "iOS" in platform:
-        if len(test_devices) == len(logs["test_logs"]): 
-          log_results[platform]["test_failures"].add("%s (all devices)" % product_name) 
-        else:
-          test_devices.sort()
-          log_results[platform]["test_failures"].add("%s (%s)" % (product_name, ', '.join(test_devices)))
-      else:
-        log_results[platform]["test_failures"].add(product_name)
-
-  # After processing all the logs, we can determine the successful builds for each platform.
-  for platform in log_results.keys():
-    log_results[platform]["successful"] = log_results[platform]["attempted"].difference(
-      log_results[platform]["test_failures"].union(
-        log_results[platform]["build_failures"]))
-
-  if not any_failures and not FLAGS.include_successful:
+  if not any_failures:
     # No failures occurred, nothing to log.
     return(0)
 
@@ -332,44 +229,141 @@ def main(argv):
     # If outputting Markdown, don't bother justifying the table.
   elif FLAGS.github_log:
     log_lines = print_github_log(log_results)
-  elif FLAGS.text_log:
-    log_lines = print_log(log_results)
   else:
-    log_lines = print_text_table(log_results)
+    log_lines = print_log(log_results)
 
   print("\n".join(log_lines))
 
 
-def format_log_file_name(file_name, file_name_re):
+def get_configs_from_file_name(file_name, file_name_re):
   # Extract the matrix name for this log.
-  log_name = re.search(file_name_re, file_name).groups(1)[0]
+  configs = re.search(file_name_re, file_name).groups(1)[0]
   # Split the matrix name into components.
-  log_name = re.sub('-', ' ', log_name).split()
-  # Remove redundant components.
-  if "latest" in log_name: log_name.remove("latest")
-  if "2016" in log_name: log_name.remove("2016")
-  if "2019" in log_name: log_name.remove("2019")
-  # Capitalize components in a nice way.
-  log_name = [
-      CAPITALIZATIONS[name.lower()]
-      if name.lower() in CAPITALIZATIONS
-      else name
-      for name in log_name]
-  extra_config = []
-  if "Android" in log_name or "iOS" in log_name:
-    # For Android and iOS, highlight the target OS.
-    log_name[1] = "(built on %s)" % log_name[1]
-    if len(log_name) >= 3:
-      extra_config = log_name[2:]
-      log_name = log_name[:2]
-    if FLAGS.markdown:
-      log_name[0] = "**%s**" % log_name[0]
-  elif FLAGS.markdown:
-    # For desktop, highlight the entire platform string.
-    log_name[0] = "**%s" % log_name[0]
-    log_name[1] = "%s**" % log_name[1]
+  configs = re.sub('-', ' ', configs).split()
+  # Remove redundant components. e.g. "latest" in "windows-latest"
+  del configs[2]
+  if "desktop" in configs: configs.remove("desktop")
+  return configs
+
+def reorganize_log(log_data):
+  log_results = {}
+  for (testapp, errors) in log_data.items():
+    if errors.get("build"):
+      combined_configs = combine_configs(errors.get("build"))
+      for (platform, configs) in combined_configs.items():
+        for config in configs:
+          all_configs = [["BUILD"], ["ERROR"], [CAPITALIZATIONS[platform]]]
+          all_configs.extend(config)
+          log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), [])
+          
+    if errors.get("test",{}).get("errors"):
+      combined_configs = combine_configs(errors.get("test",{}).get("errors"))
+      for (platform, configs) in combined_configs.items():
+        for config in configs:
+          all_configs = [["TEST"], ["ERROR"], [CAPITALIZATIONS[platform]]]
+          all_configs.extend(config)
+          log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), [])
+    for (test, configs) in errors.get("test",{}).get("failures",{}).items():
+      combined_configs = combine_configs(configs)
+      for (platform, configs) in combined_configs.items():
+        for config in configs:
+          all_configs = [["TEST"], ["FAILURE"], [CAPITALIZATIONS[platform]]]
+          all_configs.extend(config)
+          log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), []).append(test)
   
-  return ' '.join(log_name), '-'.join(extra_config)  
+  return log_results
+
+
+# Combine Config Lists
+# e.g.
+#     [['macos', 'simulator_min'], ['macos', 'simulator_target']]
+#     -> [[['macos'], ['simulator_min', 'simulator_target']]]
+def combine_configs(configs):
+  platform_configs = {}
+  for config in configs:
+    platform = config[0]
+    config = config[1:]
+    platform_configs.setdefault(platform, []).append(config)
+
+  for (platform, configs_list) in platform_configs.items():
+    # combine kth config in configs
+    for k in range(len(configs_list[0])):
+      # once configs combined, keep the first config and remove the rest
+      remove_configs = []
+      for i in range(len(configs_list)):
+        # once configs combined, update the kth config
+        configk = []
+        configk.append(configs_list[i][k])
+        configs_i = configs_list[i][:k] + configs_list[i][k+1:]
+        for j in range(i+1, len(configs_list)):
+          if not contains(remove_configs, configs_list[j]):
+            configs_j = configs_list[j][:k] + configs_list[j][k+1:]
+            if equals(configs_i, configs_j):
+              remove_configs.append(configs_list[j])
+              configk.append(configs_list[j][k])
+        configk = combine_config(configk, platform, k)
+        configs_list[i][k] = configk
+      for config in remove_configs:
+        configs_list.remove(config)
+
+  return platform_configs
+
+
+# If possible, combine kth config to "All *"
+# e.g.
+#     ['ubuntu', 'windows', 'macos']
+#     -> ['All os']
+def combine_config(config, platform, k):
+  if k == 1 and (platform == "android" or platform == "ios"):
+    # config_name = test_device here
+    k = -1
+  config_name = BUILD_CONFIGS[platform][k]
+  config_value = PARAMETERS["integration_tests"]["matrix"][config_name]
+  if len(config) == len(config_value):
+    config = ["All %s" % config_name]
+  elif config_name == "ios_device":
+    ftl_devices = {"ios_min", "ios_target", "ios_latest"}
+    simulators = {"simulator_min", "simulator_target", "simulator_latest"}
+    if ftl_devices.issubset(set(config)):
+      config.insert(0, "All FTL Devices")
+      config = [x for x in config if (x not in ftl_devices)]
+    elif simulators.issubset(set(config)):
+      config.insert(0, "All Simulators")
+      config = [x for x in config if (x not in simulators)]
+  elif config_name == "android_device":
+    ftl_devices = {"android_min", "android_target", "android_latest"}
+    emulators = {"emulator_min", "emulator_target", "emulator_latest"}
+    if ftl_devices.issubset(set(config)):
+      config.insert(0, "All FTL Devices")
+      config = [x for x in config if (x not in ftl_devices)]
+    elif emulators.issubset(set(config)):
+      config.insert(0, "All Emulators")
+      config = [x for x in config if (x not in emulators)]
+
+  return config
+
+
+# Flat Config List and return it as a string
+# e.g.
+#     [['TEST'], ['FAILURE'], ['iOS'], ['macos'], ['simulator_min', 'simulator_target']]
+#     -> '[TEST] [FAILURE] [iOS] [macos] [simulator_min, simulator_target]'
+def flat_config(configs):
+  configs = [str(conf).replace('\'','') for conf in configs]
+  return " ".join(configs)
+
+
+def contains(configs_list, configs):
+  for x in range(len(configs_list)):
+    if equals(configs_list[x], configs):
+      return True
+  return False
+
+
+def equals(configs_i, configs_j):
+  for x in range(len(configs_i)):
+    if set(configs_i[x]) != set(configs_j[x]):
+      return False
+  return True
 
 
 if __name__ == "__main__":
