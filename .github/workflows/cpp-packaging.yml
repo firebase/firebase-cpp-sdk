@@ -338,7 +338,7 @@ jobs:
       - name: Install prerequisites
         run: |
           python scripts/gha/install_prereqs_desktop.py
-      
+
       - name: Export verbose flag
         shell: bash
         run: |

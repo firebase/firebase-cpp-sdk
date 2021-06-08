@@ -76,7 +76,7 @@ jobs:
             xcode_version: "12.4"
           - os: windows-latest
             xcode_version: "12.4"
-    steps:
+    steps:                
       - name: Setup Xcode version (macos)
         if: runner.os == 'macOS'
         run: sudo xcode-select -s /Applications/Xcode_${{ matrix.xcode_version }}.app/Contents/Developer
@@ -149,6 +149,7 @@ jobs:
           python scripts/gha/install_prereqs_desktop.py
 
       - name: Build SDK
+        shell: bash
         run: |
           python scripts/gha/build_desktop.py --build_tests --arch "${{ matrix.architecture }}" --config "${{ matrix.build_type }}" --msvc_runtime_library "${{ matrix.msvc_runtime }}"
 
