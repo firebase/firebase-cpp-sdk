@@ -65,10 +65,10 @@ jobs:
     steps:
     ### If the label isn't one of the test-request triggers, cancel the workflow.
     - name: Cancel workflow if label is irrelevant
-      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix) && github.event.inputs.test_pull_request == '' }}
+      if: ${{ github.event.action == 'labeled' && !startsWith(github.event.label.name, env.triggerLabelPrefix) && github.event.inputs.test_pull_request == '' }}
       uses: andymckay/cancel-action@0.2
     - name: Wait for above cancellation if label is irrelevant
-      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix) && github.event.inputs.test_pull_request == '' }}
+      if: ${{ github.event.action == 'labeled' && !startsWith(github.event.label.name, env.triggerLabelPrefix) && github.event.inputs.test_pull_request == '' }}
       run: |
         sleep 300
         exit 1  # fail out if the cancellation above somehow failed.
