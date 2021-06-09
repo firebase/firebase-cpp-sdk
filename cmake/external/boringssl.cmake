@@ -18,20 +18,16 @@ if(TARGET boringssl OR NOT DOWNLOAD_BORINGSSL)
   return()
 endif()
 
-# Based on https://github.com/grpc/grpc/blob/v1.27.0/bazel/grpc_deps.bzl
-# master-with-bazel@{2019-10-18}
-set(commit 83da28a68f32023fd3b95a8ae94991a07b1f6c62)
-# set(commit master)
+set(patch_file 
+  ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/boringssl/0001-disable-C4255-converting-empty-params-to-void.patch)
 
 ExternalProject_Add(
   boringssl
 
-  DOWNLOAD_DIR ${FIREBASE_DOWNLOAD_DIR}
-  DOWNLOAD_NAME boringssl-${commit}.tar.gz
-  URL https://github.com/google/boringssl/archive/${commit}.tar.gz
-
+  GIT_REPOSITORY https://github.com/google/boringssl/
+  GIT_TAG 83da28a68f32023fd3b95a8ae94991a07b1f6c62
+  PATCH_COMMAND git apply ${patch_file}
   PREFIX ${PROJECT_BINARY_DIR}
-
   CONFIGURE_COMMAND ""
   BUILD_COMMAND     ""
   INSTALL_COMMAND   ""

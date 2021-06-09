@@ -1,0 +1,25 @@
+From 831806231dd360278dac2a37e3c3158420ad7bb3 Mon Sep 17 00:00:00 2001
+From: "google.com" <google.com>
+Date: Mon, 7 Jun 2021 13:57:27 -0400
+Subject: [PATCH] disable C4255 converting () to (void)
+
+---
+ src/CMakeLists.txt | 2 ++
+ 1 file changed, 2 insertions(+)
+
+diff --git a/src/CMakeLists.txt b/src/CMakeLists.txt
+index b7f468fe6..48f61bfd8 100644
+--- a/src/CMakeLists.txt
++++ b/src/CMakeLists.txt
+@@ -193,6 +193,8 @@ elseif(MSVC)
+               # possible loss of data
+       "C4244" # 'function' : conversion from 'int' to 'uint8_t',
+               # possible loss of data
++      "C4255" # 'function' : no function prototype given: converting '()' to
++              # '(void)'
+       "C4267" # conversion from 'size_t' to 'int', possible loss of data
+       "C4371" # layout of class may have changed from a previous version of the
+               # compiler due to better packing of member '...'
+-- 
+2.32.0.rc1.229.g3e70b5a671-goog
+
