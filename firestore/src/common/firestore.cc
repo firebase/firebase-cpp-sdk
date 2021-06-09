@@ -17,7 +17,7 @@
 #elif defined(FIRESTORE_STUB_BUILD)
 #include "firestore/src/stub/firestore_stub.h"
 #else
-#include "firestore/src/ios/firestore_ios.h"
+#include "firestore/src/main/firestore_main.h"
 #endif  // defined(__ANDROID__)
 
 #ifdef __APPLE__

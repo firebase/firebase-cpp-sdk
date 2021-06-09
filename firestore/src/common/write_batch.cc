@@ -12,7 +12,7 @@
 #elif defined(FIRESTORE_STUB_BUILD)
 #include "firestore/src/stub/write_batch_stub.h"
 #else
-#include "firestore/src/ios/write_batch_ios.h"
+#include "firestore/src/main/write_batch_main.h"
 #endif  // defined(__ANDROID__)
 
 namespace firebase {

@@ -1027,7 +1027,7 @@ TEST_F(FirestoreIntegrationTest, TestDocumentReferenceExposesFirestore) {
   // aren't registered in the main cache. Because of that, Firestore objects
   // will lazily create a new Firestore instance upon the first access. This
   // doesn't affect production code, only tests.
-  // Also, the logic in `util_ios.h` can be modified to make sure that
+  // Also, the logic in `util_main.h` can be modified to make sure that
   // `TestFirestore()` doesn't create a new Firestore instance if there isn't
   // one already.
   EXPECT_NE(nullptr, db->Document("foo/bar").firestore());
