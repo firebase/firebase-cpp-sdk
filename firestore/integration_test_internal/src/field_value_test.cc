@@ -8,7 +8,7 @@
 #elif defined(FIRESTORE_STUB_BUILD)
 #include "firestore/src/stub/field_value_stub.h"
 #else
-#include "firestore/src/ios/field_value_ios.h"
+#include "firestore/src/main/field_value_main.h"
 #endif  // defined(__ANDROID__)
 
 #include "gmock/gmock.h"

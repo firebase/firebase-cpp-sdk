@@ -33,7 +33,7 @@ class FieldValueInternal {
   FieldValueInternal(Type type, const jni::Object& object);
 
   // Constructs a FieldValueInternal from a value of a specific type. Note that
-  // these constructors must match the equivalents in field_value_ios.h.
+  // these constructors must match the equivalents in field_value_main.h.
   //
   // Of particular note is that these pass by value even though the Android
   // implementation does not retain the values. This is done to make the
