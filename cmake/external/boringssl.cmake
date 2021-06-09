@@ -19,7 +19,7 @@ if(TARGET boringssl OR NOT DOWNLOAD_BORINGSSL)
 endif()
 
 set(patch_file 
-  ../../../../scripts/git/patches/boringssl/0001-disable-C4255-converting-empty-params-to-void.patch)
+  ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/boringssl/0001-disable-C4255-converting-empty-params-to-void.patch)
 
 ExternalProject_Add(
   boringssl
