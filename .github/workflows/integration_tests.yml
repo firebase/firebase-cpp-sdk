@@ -756,7 +756,7 @@ jobs:
 
   summarize_results:
     name: "summarize-results"
-    needs: [prepare_matrix, add_failure_label, add_success_label, remove_in_progress_label, test_desktop, test_android, test_ios]
+    needs: [prepare_matrix, test_desktop, test_android, test_ios]
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }}
     steps:
