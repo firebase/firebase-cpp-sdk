@@ -334,6 +334,12 @@ jobs:
       - name: Upload Desktop Artifacts to GCS
         if: ${{ !cancelled() }}
         run: python scripts/gha/gcs_uploader.py --testapp_dir ta --key_file scripts/gha-encrypted/gcs_key_file.json
+      - name: Download log artifacts
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: test_results
+          name: log-artifact
       - name: Update PR label and comment
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         run: |
@@ -447,6 +453,12 @@ jobs:
           name: log-artifact
           path: build-results-android-${{ matrix.os }}*
           retention-days: ${{ env.artifactRetentionDays }}
+      - name: Download log artifacts
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: test_results
+          name: log-artifact
       - name: Update PR label and comment
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         run: |
@@ -539,6 +551,12 @@ jobs:
           name: log-artifact
           path: build-results-ios-macos-latest*
           retention-days: ${{ env.artifactRetentionDays }}
+      - name: Download log artifacts
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: test_results
+          name: log-artifact
       - name: Update PR label and comment
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         run: |
@@ -593,6 +611,12 @@ jobs:
           name: log-artifact
           path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}*
           retention-days: ${{ env.artifactRetentionDays }}
+      - name: Download log artifacts
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: test_results
+          name: log-artifact
       - name: Update PR label and comment
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         run: |
@@ -665,6 +689,12 @@ jobs:
           name: log-artifact
           path: testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}*
           retention-days: ${{ env.artifactRetentionDays }}
+      - name: Download log artifacts
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: test_results
+          name: log-artifact
       - name: Update PR label and comment
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         run: |
@@ -729,13 +759,19 @@ jobs:
             --logfile_name "ios-macos-latest-${{ matrix.ios_device }}" \
             --code_platform cpp \
             --key_file scripts/gha-encrypted/gcs_key_file.json
-      - name: Upload Android test results artifact
+      - name: Upload iOS test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
           path: testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}*
           retention-days: ${{ env.artifactRetentionDays }}      
+      - name: Download log artifacts
+        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: test_results
+          name: log-artifact
       - name: Update PR label and comment
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         run: |
@@ -769,17 +805,20 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
         run: pip install -r scripts/gha/requirements.txt
+      - name: Download log artifacts
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: test_results
+          name: log-artifact
       # Use a different token to remove the "in-progress" label,
       # to allow the removal to trigger the "Check Labels" workflow.
       - name: Generate token for GitHub API
-        if: needs.check_trigger.outputs.should_update_labels
         uses: tibdex/github-app-token@v1
         id: generate-token
         with:
           app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
           private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
       - name: Update PR label and comment
-        if: ${{ needs.check_trigger.outputs.should_update_labels }}
         run: |
           python scripts/gha/it_workflow.py --stage end \
             --token ${{github.token}} \
@@ -788,11 +827,5 @@ jobs:
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
             --run_id ${{github.run_id}} \
             --new_token ${{steps.generate-token.outputs.token}}
-      - name: Download log artifacts
-        if: ${{ !needs.check_trigger.outputs.should_update_labels }}
-        uses: actions/download-artifact@v2.0.8
-        with:
-          path: test_results
-          name: log-artifact
       - name: Summarize results into GitHub log
         run: python scripts/gha/summarize_test_results.py --dir test_results --github_log

@@ -131,10 +131,12 @@ def get_datetime():
 
 
 def get_summary_talbe(token, run_id):
-  artifact_id = get_artifact_id(token, run_id, LOG_ARTIFACT_NAME)
-  artifact_path = LOG_ARTIFACT_NAME + ".zip"
-  github.download_artifact(token, artifact_id, artifact_path)
-  shutil.unpack_archive(artifact_path, LOG_OUTPUT_DIR)
+  # artifact_id only exist after workflow finishs running
+  # Thus, "down artifact" logic is in the workflow 
+  # artifact_id = get_artifact_id(token, run_id, LOG_ARTIFACT_NAME)
+  # artifact_path = LOG_ARTIFACT_NAME + ".zip"
+  # github.download_artifact(token, artifact_id, artifact_path)
+  # shutil.unpack_archive(artifact_path, LOG_OUTPUT_DIR)
   summary_talbe = summarize.summarize_logs(dir=LOG_OUTPUT_DIR, markdown=True)
   return summary_talbe
 
