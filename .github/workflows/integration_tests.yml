@@ -121,7 +121,8 @@ jobs:
         fi
     ### Add the in-progress label and remove any previous success/fail labels.
     - uses: actions/checkout@v2
-      ref: ${{steps.get_pr_number.outputs.github_ref}}
+      with:
+        ref: ${{steps.get_pr_number.outputs.github_ref}}
     - name: Setup python
       uses: actions/setup-python@v2
       with:
