@@ -201,7 +201,6 @@ def _update_comment(token, issue_number, comment):
   
 def _get_comment_id(issue_number, comment_identifier):
   comments = github.list_comments(issue_number)
-  print(comments)
   for comment in comments:
     if comment_identifier in comment['body']:
       return comment['id']
