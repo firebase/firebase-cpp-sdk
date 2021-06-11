@@ -50,10 +50,10 @@ env:
 
 jobs:
   check_trigger:
-    ### This job runs when the workflow was triggered by a PR getting labeled
-    ### or manumlly triggered with Pull request #.
-    ### If triggered by label, then checks whether the label is a test-request trigger
-    ### (cancelling the workflow if not). And then sets the in-progress label. 
+    ### This job runs when the workflow was triggered by 1) PR getting labeled
+    ### 2) PR merged & closed 3) or manumlly triggered with Pull request #.
+    ### If triggered by label, then checks whether the label is a test-request 
+    ### trigger (cancelling the workflow if not). 
     ### It sets outputs to control the build_* matrix (full or quick) and to tell
     ### subsequent steps to update the labels as well.
     runs-on: ubuntu-latest
@@ -64,12 +64,12 @@ jobs:
       requested_tests: ${{ steps.set_outputs.outputs.requested_tests }}
       pr_number: ${{ steps.get_pr_number.outputs.pr_number }}
     steps:
-    ### If the label isn't one of the test-request triggers, cancel the workflow.
-    - name: Cancel workflow if label is irrelevant
-      if: ${{ github.event.action == 'labeled' && !startsWith(github.event.label.name, env.triggerLabelPrefix) && github.event.inputs.test_pull_request == '' }}
+    ### If the label isn't 1)the test-request triggers, 2) closed on merge trigger, cancel the workflow.
+    - name: Cancel workflow
+      if: (github.event.action == 'labeled' && !startsWith(github.event.label.name, env.triggerLabelPrefix)) || (github.event.action == 'closed' && github.event.pull_request.merged != true)
       uses: andymckay/cancel-action@0.2
-    - name: Wait for above cancellation if label is irrelevant
-      if: ${{ github.event.action == 'labeled' && !startsWith(github.event.label.name, env.triggerLabelPrefix) && github.event.inputs.test_pull_request == '' }}
+    - name: Wait for above cancellation
+      if: (github.event.action == 'labeled' && !startsWith(github.event.label.name, env.triggerLabelPrefix)) || (github.event.action == 'closed' && github.event.pull_request.merged != true)
       run: |
         sleep 300
         exit 1  # fail out if the cancellation above somehow failed.
@@ -89,9 +89,7 @@ jobs:
           echo "::set-output name=pr_number::${{ github.event.inputs.test_pull_request }}"
           echo "::set-output name=github_ref::refs/pull/${{github.event.inputs.test_pull_request}}/merge"
         fi
-    ### Below this line, the label is one of the test-request triggers.
     - name: Cancel previous runs on the same PR
-      if: github.event.action == 'labeled'
       uses: styfle/cancel-workflow-action@0.8.0
       with:
         access_token: ${{ github.token }}
@@ -819,6 +817,7 @@ jobs:
           app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
           private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
       - name: Update PR label and comment
+        if: needs.check_trigger.outputs.should_update_labels == 1
         run: |
           python scripts/gha/it_workflow.py --stage end \
             --token ${{github.token}} \
