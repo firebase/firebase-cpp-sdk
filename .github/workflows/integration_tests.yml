@@ -817,7 +817,7 @@ jobs:
           app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
           private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
       - name: Update PR label and comment
-        if: needs.check_trigger.outputs.should_update_pr == 1
+        if: needs.check_trigger.outputs.should_update_pr == '1'
         run: |
           python scripts/gha/it_workflow.py --stage end \
             --token ${{github.token}} \
@@ -827,7 +827,7 @@ jobs:
             --run_id ${{github.run_id}} \
             --new_token ${{steps.generate-token.outputs.token}}
       - name: Update Daily Report
-        if: github.event_name == 'schedule' || needs.check_trigger.outputs.should_update_pr == 1
+        if: github.event_name == 'schedule' || needs.check_trigger.outputs.should_update_pr == '1'
         run: |
           python scripts/gha/it_workflow.py --stage report \
             --token ${{github.token}} \
