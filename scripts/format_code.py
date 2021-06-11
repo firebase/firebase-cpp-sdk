@@ -60,8 +60,8 @@ Used to filter out results when searching across directories or git diffs.
 
 # Functions:    
 def get_formatting_diff_lines(filename):
-  """Executes clang-format on the file and returns a human-friendly string
-  containing the diff of the original file against the formatted file.
+  """Calculates and returns a printable diff of the formatting changes that
+  would be applied to the given file by clang-format.
 
   Args:
     filename (string): path to the file whose formatting diff to calculate.
@@ -70,7 +70,7 @@ def get_formatting_diff_lines(filename):
     Iterable[str]: The diff of the formatted file against the original file;
       each string in the returned iterable is a "line" of the diff; they could
       be printed individually or joined into a single string using something
-      like os.linesep.join().
+      like os.linesep.join(diff_lines), where `diff_lines` is the return value.
   """
   args = ['clang-format', '-style=file', filename]
   result = subprocess.run(args, stdout=subprocess.PIPE, check=True)
@@ -80,7 +80,8 @@ def get_formatting_diff_lines(filename):
   with open(filename, 'rt', encoding='utf8', errors='replace') as f:
     original_lines = [line.rstrip('\r\n') for line in f]
 
-  return difflib.unified_diff(original_lines, formatted_lines)
+  return [line.rstrip()
+      for line in difflib.unified_diff(original_lines, formatted_lines)]
 
 def does_file_need_formatting(filename):
   """Executes clang-format on the file to determine if it includes any
@@ -272,7 +273,7 @@ def main(argv):
           print('  - Requires reformatting: "{0}"'.format(filename))
           print('------ BEGIN FORMATTING DIFF OF {0}'.format(filename))
           for diff_line in get_formatting_diff_lines(filename):
-            print(diff_line.rstrip())
+            print(diff_line)
           print('------ END FORMATTING DIFF OF {0}'.format(filename))
     if FLAGS.verbose:
       print('  > Done. {0} file(s) need formatting.'.format(count))
