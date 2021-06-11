@@ -55,7 +55,7 @@ std::ostream& operator<<(std::ostream& out, const Settings& settings) {
   return out << settings.ToString();
 }
 
-// Apple uses a different mechanism, defined in `settings_ios.mm`.
+// Apple uses a different mechanism, defined in `settings_apple.mm`.
 #if !defined(__APPLE__) && !defined(__ANDROID__) && \
     !defined(FIRESTORE_STUB_BUILD)
 std::unique_ptr<util::Executor> Settings::CreateExecutor() const {
