@@ -164,16 +164,16 @@ def test_report(token, actor, commit, run_id):
   issue_number = _get_issue_number(token, _REPORT_TITLE, _REPORT_LABEL)
   log_summary = _get_summary_talbe(token, run_id)
   if log_summary == 0:
-    github.delete_label(token, issue_number, _LABEL_FAILED)
-    github.add_label(token, issue_number, _LABEL_SUCCEED)
+#     github.delete_label(token, issue_number, _LABEL_FAILED)
+#     github.add_label(token, issue_number, _LABEL_SUCCEED)
     github.close_issue(token, issue_number)
     comment = (_COMMENT_TITLE_SUCCEED +
                _get_description(actor, commit, run_id) +
                _COMMENT_SUFFIX)
     github.update_issue_comment(token, issue_number, comment)
   else:
-    github.delete_label(token, issue_number, _LABEL_SUCCEED)
-    github.add_label(token, issue_number, _LABEL_FAILED)
+#     github.delete_label(token, issue_number, _LABEL_SUCCEED)
+#     github.add_label(token, issue_number, _LABEL_FAILED)
     github.open_issue(token, issue_number)
     comment = (_COMMENT_TITLE_FAIL +
                _get_description(actor, commit, run_id) +
