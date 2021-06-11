@@ -827,7 +827,7 @@ jobs:
             --run_id ${{github.run_id}} \
             --new_token ${{steps.generate-token.outputs.token}}
       - name: Update Daily Report
-        if: ${{ github.event_name == 'schedule' || needs.check_trigger.outputs.should_update_pr }}
+        if: ${{ github.event_name == 'schedule' }}
         run: |
           python scripts/gha/it_workflow.py --stage report \
             --token ${{github.token}} \
