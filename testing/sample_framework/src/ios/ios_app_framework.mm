@@ -90,10 +90,11 @@ static NSString *g_file_url_path;
     delete[] argv[0];
     argv[0] = nullptr;
     [NSThread sleepForTimeInterval:kGameLoopSecondsToPauseBeforeQuitting];
-    [UIApplication.sharedApplication openURL:[NSURL URLWithString:kGameLoopCompleteUrlScheme]
-                                     options:[NSDictionary dictionary]
-                           completionHandler:nil];
-
+    dispatch_async(dispatch_get_main_queue(), ^{
+      [UIApplication.sharedApplication openURL:[NSURL URLWithString:kGameLoopCompleteUrlScheme]
+                                       options:[NSDictionary dictionary]
+                             completionHandler:nil];
+    });
   });
 }
 
