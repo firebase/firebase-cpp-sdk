@@ -28,7 +28,12 @@ LOG_OUTPUT_DIR = "test_results"
 _BUILD_STAGES_START = "start"
 _BUILD_STAGES_PROGRESS = "progress"
 _BUILD_STAGES_END = "end"
-_BUILD_STAGES = [_BUILD_STAGES_START, _BUILD_STAGES_PROGRESS, _BUILD_STAGES_END]
+_BUILD_STAGES_REPORT = "report"
+_BUILD_STAGES = [_BUILD_STAGES_START, _BUILD_STAGES_PROGRESS, _BUILD_STAGES_END, _BUILD_STAGES_REPORT]
+
+
+REPORT_LABEL = "nightly-testing"
+REPORT_TITLE = "Nightly Integration Testing Report"
 
 FLAGS = flags.FLAGS
 
@@ -103,6 +108,38 @@ def test_end(token, issue_number, actor, commit, run_id, new_token):
   github.delete_label(new_token, issue_number, LABEL_PROGRESS)
 
 
+def test_report(token, actor, commit, run_id):
+  issue_number = get_issue_number(token, REPORT_TITLE, REPORT_LABEL)
+
+  log_summary = get_summary_talbe(token, run_id)
+  if log_summary == 0:
+    github.delete_label(token, issue_number, LABEL_FAILED)
+    github.add_label(token, issue_number, LABEL_SUCCEED)
+    github.close_issue(token, issue_number)
+    comment = (COMMENT_TITLE_SUCCEED +
+                get_description(actor, commit, run_id) +
+                COMMENT_SUFFIX)
+    github.update_issue_comment(token, issue_number, comment)
+  else:
+    github.delete_label(token, issue_number, LABEL_SUCCEED)
+    github.add_label(token, issue_number, LABEL_FAILED)
+    github.open_issue(token, issue_number)
+    comment = (COMMENT_TITLE_FAIL +
+                get_description(actor, commit, run_id) +
+                log_summary +
+                COMMENT_SUFFIX)
+    github.update_issue_comment(token, issue_number, comment)
+
+
+def get_issue_number(token, title, label):
+  issues = github.search_issues_by_label(label)
+  for issue in issues:
+    if issue["title"] == title:
+      return issue["number"]
+
+  return github.create_issue(token, title, label)["number"]
+
+
 def update_comment(token, issue_number, comment):
   comment_id = get_comment_id(issue_number, COMMENT_SUFFIX)
   if not comment_id:
@@ -113,6 +150,7 @@ def update_comment(token, issue_number, comment):
   
 def get_comment_id(issue_number, comment_identifier):
   comments = github.list_comments(issue_number)
+  print(comments)
   for comment in comments:
     if comment_identifier in comment['body']:
       return comment['id']
@@ -158,6 +196,8 @@ def main(argv):
     test_progress(FLAGS.token, FLAGS.issue_number, FLAGS.actor, FLAGS.commit, FLAGS.run_id)
   elif FLAGS.stage == _BUILD_STAGES_END:
     test_end(FLAGS.token, FLAGS.issue_number, FLAGS.actor, FLAGS.commit, FLAGS.run_id, FLAGS.new_token)
+  elif FLAGS.stage == _BUILD_STAGES_REPORT:
+    test_report(FLAGS.token, FLAGS.actor, FLAGS.commit, FLAGS.run_id)
   else:
     print("Invalid stage value. Valid value: " + ",".join(_BUILD_STAGES))
 

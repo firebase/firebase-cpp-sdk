@@ -60,7 +60,7 @@ jobs:
     if: |
       github.event_name == 'pull_request' || github.event.inputs.test_pull_request != ''
     outputs:
-      should_update_labels: ${{ steps.set_outputs.outputs.should_update_labels }}
+      should_update_pr: ${{ steps.set_outputs.outputs.should_update_pr }}
       requested_tests: ${{ steps.set_outputs.outputs.requested_tests }}
       pr_number: ${{ steps.get_pr_number.outputs.pr_number }}
     steps:
@@ -108,7 +108,7 @@ jobs:
         GITHUB_TOKEN: ${{ github.token }}
     - id: set_outputs
       run: |
-        echo "::set-output name=should_update_labels::1"
+        echo "::set-output name=should_update_pr::1"
         if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelFull }}" ]]; then
           echo "::set-output name=requested_tests::full"
         elif [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
@@ -333,13 +333,13 @@ jobs:
         if: ${{ !cancelled() }}
         run: python scripts/gha/gcs_uploader.py --testapp_dir ta --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Download log artifacts
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
         with:
           path: test_results
           name: log-artifact
       - name: Update PR label and comment
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
@@ -452,13 +452,13 @@ jobs:
           path: build-results-android-${{ matrix.os }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
         with:
           path: test_results
           name: log-artifact
       - name: Update PR label and comment
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
@@ -550,13 +550,13 @@ jobs:
           path: build-results-ios-macos-latest*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
         with:
           path: test_results
           name: log-artifact
       - name: Update PR label and comment
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
@@ -610,13 +610,13 @@ jobs:
           path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
         with:
           path: test_results
           name: log-artifact
       - name: Update PR label and comment
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
@@ -688,13 +688,13 @@ jobs:
           path: testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
         with:
           path: test_results
           name: log-artifact
       - name: Update PR label and comment
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
@@ -765,13 +765,13 @@ jobs:
           path: testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}*
           retention-days: ${{ env.artifactRetentionDays }}      
       - name: Download log artifacts
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
         with:
           path: test_results
           name: log-artifact
       - name: Update PR label and comment
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         run: |
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
@@ -817,7 +817,7 @@ jobs:
           app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
           private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
       - name: Update PR label and comment
-        if: needs.check_trigger.outputs.should_update_labels == 1
+        if: needs.check_trigger.outputs.should_update_pr == 1
         run: |
           python scripts/gha/it_workflow.py --stage end \
             --token ${{github.token}} \
@@ -826,5 +826,13 @@ jobs:
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
             --run_id ${{github.run_id}} \
             --new_token ${{steps.generate-token.outputs.token}}
+      - name: Update Daily Report
+        if: github.event_name == 'schedule' || needs.check_trigger.outputs.should_update_pr == 1
+        run: |
+          python scripts/gha/it_workflow.py --stage report \
+            --token ${{github.token}} \
+            --actor ${{github.actor}} \
+            --commit ${{needs.prepare_matrix.outputs.github_ref}} \
+            --run_id ${{github.run_id}}
       - name: Summarize results into GitHub log
         run: python scripts/gha/summarize_test_results.py --dir test_results --github_log
