@@ -374,7 +374,7 @@ jobs:
         # Copy the artifacts and also the upload scripts since python's relpath
         # produces errors when called across two different drives. Use tar to
         # move the files as it neatly deepcopies firestore's symlinks.
-        if:  ${{ (env.GCS_UPLOAD_DIR != github.workspace) && !canceled() }}
+        if:  ${{ (env.GCS_UPLOAD_DIR != github.workspace) && !cancelled() }}
         shell: bash
         run: |
           set -x
