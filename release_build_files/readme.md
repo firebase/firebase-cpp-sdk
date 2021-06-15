@@ -587,6 +587,9 @@ code.
 	with version 8.x of the Firebase iOS SDK.
     -   General (iOS): A Database URL is no longer required to be present in
         GoogleService-Info.plist when not using the Real Time Database.
+    -   Firestore: Added `Firestore::LoadBundle` to enable loading Firestore Data
+        Bundles into the SDK cache. `Firestore::NamedQuery` will be available in a
+        future release.
 
 ### 7.3.0
 -   Changes
