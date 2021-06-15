@@ -392,8 +392,9 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist):
         target_xcframeworks_path = os.path.join(xcframeworks_path,
           '{0}.xcframework'.format(target))
         # Create Info.plist for xcframework
+        dest_path = os.path.join(target_xcframeworks_path, 'Info.plist')
         logging.info('Copying template {0}'.format(template_info_plist))
-        dest_path = shutil.copy(template_info_plist, target_xcframeworks_path)
+        shutil.copy(template_info_plist, target_xcframeworks_path)
         contents = None
         # Replace token LIBRARY_PATH with current target framework.
         with open(dest_path, 'r') as info_plist_file:
@@ -518,7 +519,8 @@ def main():
 
   # Build xcframeworks
   xcframeworks_path = os.path.join(args.build_dir, 'xcframeworks')
-  template_info_plist_path = os.path.join(args.source_dir, 'build_scripts', 'ios', 'Info.plist')
+  template_info_plist_path = os.path.join(args.source_dir, 'build_scripts',
+                                          'tvos', 'Info_ios_and_tvos.plist')
   build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist_path)
 
 
