@@ -380,6 +380,7 @@ jobs:
           set -x
           mkdir -p ${{env.GCS_UPLOAD_DIR}}/scripts/gha/integration_testing
           mkdir -p ${{env.GCS_UPLOAD_DIR}}/scripts/gha-encrypted
+          # The ta directory contains the integration testapps to archive.
           tar -chf ${{env.GCS_UPLOAD_DIR}}/ta.tar ta
           rm -rf ta
           tar xf ${{env.GCS_UPLOAD_DIR}}/ta.tar -C ${{env.GCS_UPLOAD_DIR}}
