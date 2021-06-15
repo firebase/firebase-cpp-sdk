@@ -181,6 +181,7 @@ def build_universal_framework(frameworks_path):
     platform_architecture_dirs = os.listdir(framework_os_path)
     platform_arch_map = defaultdict(list)
     for platform_architecture in platform_architecture_dirs:
+      logging.debug('Inspecting ' + platform_architecture)
       platform, architecture = platform_architecture.split('-')
       platform_arch_map[platform].append(architecture)
 
@@ -188,8 +189,8 @@ def build_universal_framework(frameworks_path):
     for platform in platform_arch_map:
       logging.debug('Found architectures for platform '
         '{0}: {1}'.format(platform, ' '.join(platform_arch_map[platform])))
-      missing_architectures = set(CONFIG[apple_os][platform]) - \
-                              set(platform_arch_map[platform])
+      missing_architectures = set(CONFIG[apple_os][platform]['architectures']) \
+                              - set(platform_arch_map[platform])
       if missing_architectures:
         logging.error('Following architectures are missing for platform'
           '{0}: {1}'.format(platform, ' '.join(missing_architectures)))
@@ -218,6 +219,10 @@ def build_universal_framework(frameworks_path):
       # Eg: split firebase_auth.framework -> firebase_auth, .framework
       target, _ = os.path.splitext(target_framework)
       for platform_architecture_dir in platform_architecture_dirs:
+        # Since we have arm64 for both device and simulator, lipo cannot combine
+        # them in the same fat file. We ignore simulator-arm64.
+        if platform_architecture_dir == 'simulator-arm64':
+          continue
         # <build_dir>/<apple_os>/frameworks/<platform-arch>/
         # <target>.framework/target
         library_path = os.path.join(framework_os_path,
@@ -394,7 +399,7 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist):
         # Create Info.plist for xcframework
         dest_path = os.path.join(target_xcframeworks_path, 'Info.plist')
         logging.info('Copying template {0}'.format(template_info_plist))
-        shutil.copy(template_info_plist, target_xcframeworks_path)
+        shutil.copy(template_info_plist, dest_path)
         contents = None
         # Replace token LIBRARY_PATH with current target framework.
         with open(dest_path, 'r') as info_plist_file:
@@ -483,36 +488,36 @@ def main():
       raise ValueError('No supported targets found for {0}'.format(apple_os))
 
     frameworks_os_path = os.path.join(frameworks_path, apple_os)
-    for platform in args.platform:
-      os_platform_config = os_config.get(platform)
-      if not os_platform_config:
-        raise ValueError('Could not find configuration for platform '
-                         '{0} for os {1}'.format(platform, apple_os))
+    # for platform in args.platform:
+    #   os_platform_config = os_config.get(platform)
+    #   if not os_platform_config:
+    #     raise ValueError('Could not find configuration for platform '
+    #                      '{0} for os {1}'.format(platform, apple_os))
 
-      archs_from_config = set(os_platform_config['architectures'])
-      supported_archs = archs_from_config.intersection(args.architecture)
-      if not supported_archs:
-        raise ValueError('Could not find valid architectures for platform '
-                         '{0} for os {1}'.format(platform, apple_os))
+    #   archs_from_config = set(os_platform_config['architectures'])
+    #   supported_archs = archs_from_config.intersection(args.architecture)
+    #   if not supported_archs:
+    #     raise ValueError('Could not find valid architectures for platform '
+    #                      '{0} for os {1}'.format(platform, apple_os))
 
-      for architecture in supported_archs:
-        platform_architecture_token = '{0}-{1}'.format(platform, architecture)
-        archive_output_path = os.path.join(frameworks_os_path,
-                                                platform_architecture_token)
-        # Eg: <build_dir>/tvos_cmake_build/device-arm64
-        build_path = os.path.join(args.build_dir,
-                                  '{0}_cmake_build'.format(apple_os),
-                                  platform_architecture_token)
-        # For ios builds, we specify architecture to cmake configure.
-        architecture = architecture if apple_os == 'ios' else None
-        # For tvos builds, we pass a special cmake option PLATFORM to toolchain.
-        toolchain_platform = os_platform_config['toolchain_platform'] if \
-                             apple_os == 'tvos' else None
-        cmake_configure_and_build(build_path, os_platform_config['toolchain'],
-                                  archive_output_path, supported_targets,
-                                  architecture, toolchain_platform)
-        # Arrange frameworks
-        arrange_frameworks(archive_output_path)
+    #   for architecture in supported_archs:
+    #     platform_architecture_token = '{0}-{1}'.format(platform, architecture)
+    #     archive_output_path = os.path.join(frameworks_os_path,
+    #                                             platform_architecture_token)
+    #     # Eg: <build_dir>/tvos_cmake_build/device-arm64
+    #     build_path = os.path.join(args.build_dir,
+    #                               '{0}_cmake_build'.format(apple_os),
+    #                               platform_architecture_token)
+    #     # For ios builds, we specify architecture to cmake configure.
+    #     architecture = architecture if apple_os == 'ios' else None
+    #     # For tvos builds, we pass a special cmake option PLATFORM to toolchain.
+    #     toolchain_platform = os_platform_config['toolchain_platform'] if \
+    #                          apple_os == 'tvos' else None
+    #     cmake_configure_and_build(build_path, os_platform_config['toolchain'],
+    #                               archive_output_path, supported_targets,
+    #                               architecture, toolchain_platform)
+    #     # Arrange frameworks
+    #     arrange_frameworks(archive_output_path)
 
   # if we built for all architectures build universal framework as well.
   build_universal_framework(frameworks_path)
@@ -521,7 +526,8 @@ def main():
   xcframeworks_path = os.path.join(args.build_dir, 'xcframeworks')
   template_info_plist_path = os.path.join(args.source_dir, 'build_scripts',
                                           'tvos', 'Info_ios_and_tvos.plist')
-  build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist_path)
+  build_xcframeworks(frameworks_path, xcframeworks_path,
+                     template_info_plist_path)
 
 
 def parse_cmdline_args():
