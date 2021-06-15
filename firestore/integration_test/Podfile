@@ -4,8 +4,8 @@ platform :ios, '10.0'
 # Firebase Realtime Firestore test application.
 
 target 'integration_test' do
-  pod 'Firebase/Firestore', '8.0.0'
-  pod 'Firebase/Auth', '8.0.0'
+  pod 'Firebase/Firestore', '8.1.1'
+  pod 'Firebase/Auth', '8.1.1'
 end
 
 post_install do |installer|
