@@ -488,36 +488,36 @@ def main():
       raise ValueError('No supported targets found for {0}'.format(apple_os))
 
     frameworks_os_path = os.path.join(frameworks_path, apple_os)
-    # for platform in args.platform:
-    #   os_platform_config = os_config.get(platform)
-    #   if not os_platform_config:
-    #     raise ValueError('Could not find configuration for platform '
-    #                      '{0} for os {1}'.format(platform, apple_os))
+    for platform in args.platform:
+      os_platform_config = os_config.get(platform)
+      if not os_platform_config:
+        raise ValueError('Could not find configuration for platform '
+                         '{0} for os {1}'.format(platform, apple_os))
 
-    #   archs_from_config = set(os_platform_config['architectures'])
-    #   supported_archs = archs_from_config.intersection(args.architecture)
-    #   if not supported_archs:
-    #     raise ValueError('Could not find valid architectures for platform '
-    #                      '{0} for os {1}'.format(platform, apple_os))
+      archs_from_config = set(os_platform_config['architectures'])
+      supported_archs = archs_from_config.intersection(args.architecture)
+      if not supported_archs:
+        raise ValueError('Could not find valid architectures for platform '
+                         '{0} for os {1}'.format(platform, apple_os))
 
-    #   for architecture in supported_archs:
-    #     platform_architecture_token = '{0}-{1}'.format(platform, architecture)
-    #     archive_output_path = os.path.join(frameworks_os_path,
-    #                                             platform_architecture_token)
-    #     # Eg: <build_dir>/tvos_cmake_build/device-arm64
-    #     build_path = os.path.join(args.build_dir,
-    #                               '{0}_cmake_build'.format(apple_os),
-    #                               platform_architecture_token)
-    #     # For ios builds, we specify architecture to cmake configure.
-    #     architecture = architecture if apple_os == 'ios' else None
-    #     # For tvos builds, we pass a special cmake option PLATFORM to toolchain.
-    #     toolchain_platform = os_platform_config['toolchain_platform'] if \
-    #                          apple_os == 'tvos' else None
-    #     cmake_configure_and_build(build_path, os_platform_config['toolchain'],
-    #                               archive_output_path, supported_targets,
-    #                               architecture, toolchain_platform)
-    #     # Arrange frameworks
-    #     arrange_frameworks(archive_output_path)
+      for architecture in supported_archs:
+        platform_architecture_token = '{0}-{1}'.format(platform, architecture)
+        archive_output_path = os.path.join(frameworks_os_path,
+                                                platform_architecture_token)
+        # Eg: <build_dir>/tvos_cmake_build/device-arm64
+        build_path = os.path.join(args.build_dir,
+                                  '{0}_cmake_build'.format(apple_os),
+                                  platform_architecture_token)
+        # For ios builds, we specify architecture to cmake configure.
+        architecture = architecture if apple_os == 'ios' else None
+        # For tvos builds, we pass a special cmake option PLATFORM to toolchain.
+        toolchain_platform = os_platform_config['toolchain_platform'] if \
+                             apple_os == 'tvos' else None
+        cmake_configure_and_build(build_path, os_platform_config['toolchain'],
+                                  archive_output_path, supported_targets,
+                                  architecture, toolchain_platform)
+        # Arrange frameworks
+        arrange_frameworks(archive_output_path)
 
   # if we built for all architectures build universal framework as well.
   build_universal_framework(frameworks_path)
