@@ -131,7 +131,9 @@ Future<bool> RemoteConfig::FetchAndActivateLastResult() {
   return internal_->FetchAndActivateLastResult();
 }
 
-Future<void> RemoteConfig::Fetch() { return Fetch(GetConfigSettings().minimum_fetch_interval_in_milliseconds); }
+Future<void> RemoteConfig::Fetch() {
+  return Fetch(GetConfigSettings().minimum_fetch_interval_in_milliseconds);
+}
 
 Future<void> RemoteConfig::Fetch(uint64_t cache_expiration_in_seconds) {
   return internal_->Fetch(cache_expiration_in_seconds);
