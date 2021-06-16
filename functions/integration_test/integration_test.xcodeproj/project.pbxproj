@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 46;
+	objectVersion = 52;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -27,6 +27,9 @@
 		BC1D676F26799B42005DC2DA /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D676326799AA8005DC2DA /* Foundation.framework */; };
 		BC1D677026799B48005DC2DA /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D676526799AAC005DC2DA /* UIKit.framework */; };
 		BC1D677126799B4D005DC2DA /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D676726799AB0005DC2DA /* CoreGraphics.framework */; };
+		BC1D677226799B76005DC2DA /* firebase_auth.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D676B26799AB8005DC2DA /* firebase_auth.xcframework */; };
+		BC1D677326799B76005DC2DA /* firebase_functions.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D676926799AB8005DC2DA /* firebase_functions.xcframework */; };
+		BC1D677426799B76005DC2DA /* firebase.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D676A26799AB8005DC2DA /* firebase.xcframework */; };
 		D61C5F8E22BABA9C00A79141 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D61C5F8C22BABA9B00A79141 /* Images.xcassets */; };
 		D61C5F9622BABAD200A79141 /* integration_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61C5F9222BABAD100A79141 /* integration_test.cc */; };
 		D62CCBC022F367140099BE9F /* gmock-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D62CCBBF22F367140099BE9F /* gmock-all.cc */; };
@@ -97,6 +100,9 @@
 				BC1D677126799B4D005DC2DA /* CoreGraphics.framework in Frameworks */,
 				BC1D677026799B48005DC2DA /* UIKit.framework in Frameworks */,
 				BC1D676F26799B42005DC2DA /* Foundation.framework in Frameworks */,
+				BC1D677226799B76005DC2DA /* firebase_auth.xcframework in Frameworks */,
+				BC1D677326799B76005DC2DA /* firebase_functions.xcframework in Frameworks */,
+				BC1D677426799B76005DC2DA /* firebase.xcframework in Frameworks */,
 				277E62B375B47BB7CD0D4E62 /* libPods-integration_test_tvos.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -250,7 +256,6 @@
 					};
 					BC1D674426799A44005DC2DA = {
 						CreatedOnToolsVersion = 12.5;
-						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -557,8 +562,10 @@
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = EQHXZ8M8AV;
 				ENABLE_TESTABILITY = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
@@ -575,11 +582,15 @@
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 				);
 				INFOPLIST_FILE = integration_test_tvos/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.google.firebase.cpp.functions.testapp.integration-test-tvos";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "Google Development tvOS";
 				SDKROOT = appletvos;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 14.5;
@@ -609,8 +620,10 @@
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_SUSPICIOUS_MOVE = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_STYLE = Automatic;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Manual;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = EQHXZ8M8AV;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -626,10 +639,14 @@
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 				);
 				INFOPLIST_FILE = integration_test_tvos/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.google.firebase.cpp.functions.testapp.integration-test-tvos";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "Google Development tvOS";
 				SDKROOT = appletvos;
 				TARGETED_DEVICE_FAMILY = 3;
 				TVOS_DEPLOYMENT_TARGET = 14.5;
