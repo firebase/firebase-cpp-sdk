@@ -139,7 +139,7 @@ Future<bool> RemoteConfigInternal::FetchAndActivate() {
   const auto future_handle =
       future_impl_.SafeAlloc<bool>(kRemoteConfigFnFetchAndActivate);
 
-  cache_expiration_in_seconds_ = kDefaultCacheExpiration;
+  cache_expiration_in_seconds_ = config_settings_.minimum_fetch_interval_in_milliseconds;
 
   uint64_t milliseconds_since_epoch =
       std::chrono::duration_cast<std::chrono::milliseconds>(
