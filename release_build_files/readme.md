@@ -567,6 +567,11 @@ code.
 
 ## Release Notes
 
+### 8.0.1
+-   Changes
+    -   Firestore: Fixed a linker error when DocumentChange::npos was used.
+        ([#474](https://github.com/firebase/firebase-cpp-sdk/pull/474)).
+
 ### 8.0.0
 -   Changes
     -   Analytics: Removed `SetCurrentScreen()` following its removal from iOS SDK
