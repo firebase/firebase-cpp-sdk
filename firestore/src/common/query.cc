@@ -24,8 +24,7 @@ namespace firestore {
 
 using CleanupFnQuery = CleanupFn<Query>;
 
-Query::Query() {
-}
+Query::Query() {}
 
 Query::Query(const Query& query) {
   if (query.internal_) {

@@ -32,9 +32,7 @@ class FieldValueInternal {
   explicit FieldValueInternal(std::vector<FieldValue> value);
   explicit FieldValueInternal(MapFieldValue value);
 
-  FieldValue::Type type() const {
-    return type_;
-  }
+  FieldValue::Type type() const { return type_; }
 
   bool boolean_value() const;
   int64_t integer_value() const;
@@ -70,8 +68,7 @@ class FieldValueInternal {
 
   template <typename T>
   explicit FieldValueInternal(FieldValue::Type type, T value)
-      : type_{type}, value_{std::move(value)} {
-  }
+      : type_{type}, value_{std::move(value)} {}
 
   FieldValue::Type type_ = FieldValue::Type::kNull;
   // Note: it's impossible to roundtrip between a `DocumentReference` and

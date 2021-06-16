@@ -146,15 +146,9 @@ class QueryInternal {
     kCount,
   };
 
-  const api::Query& query_core_api() const {
-    return query_;
-  }
-  const UserDataConverter& converter() const {
-    return user_data_converter_;
-  }
-  PromiseFactory<AsyncApis>& promise_factory() {
-    return promise_factory_;
-  }
+  const api::Query& query_core_api() const { return query_; }
+  const UserDataConverter& converter() const { return user_data_converter_; }
+  PromiseFactory<AsyncApis>& promise_factory() { return promise_factory_; }
 
  private:
   enum class BoundPosition {

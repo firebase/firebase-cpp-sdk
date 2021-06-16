@@ -78,8 +78,7 @@ TransactionInternal::TransactionInternal(
     FirestoreInternal* firestore_internal)
     : transaction_{std::move(NOT_NULL(transaction))},
       firestore_internal_{NOT_NULL(firestore_internal)},
-      user_data_converter_{&firestore_internal->database_id()} {
-}
+      user_data_converter_{&firestore_internal->database_id()} {}
 
 Firestore* TransactionInternal::firestore() {
   return Firestore::GetInstance(firestore_internal_->app());

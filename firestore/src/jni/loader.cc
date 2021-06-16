@@ -24,9 +24,7 @@ Loader::Loader(App* app) : app_(app), env_(app->GetJNIEnv()) {
   Class::Initialize(*this);
 }
 
-Loader::~Loader() {
-  Unload();
-}
+Loader::~Loader() { Unload(); }
 
 void Loader::AddEmbeddedFile(const char* name,
                              const unsigned char* data,

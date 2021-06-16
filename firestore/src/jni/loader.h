@@ -44,9 +44,7 @@ class Loader {
    * Returns true if the loader has succeeded. If not, any errors have already
    * been logged.
    */
-  bool ok() const {
-    return ok_ && !env_->ExceptionCheck();
-  }
+  bool ok() const { return ok_ && !env_->ExceptionCheck(); }
 
   /**
    * Adds metadata about embedded class files in the binary distribution.
@@ -136,8 +134,7 @@ class Loader {
     Load(Forward<Member>(first));
     LoadAll(Forward<Members>(rest)...);
   }
-  void LoadAll() {
-  }
+  void LoadAll() {}
 
   /**
    * Registers the given native methods with the JVM.

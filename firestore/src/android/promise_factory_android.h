@@ -28,9 +28,7 @@ class PromiseFactory {
     firestore_->future_manager().MoveFutureApi(&rhs, this);
   }
 
-  ~PromiseFactory() {
-    firestore_->future_manager().ReleaseFutureApi(this);
-  }
+  ~PromiseFactory() { firestore_->future_manager().ReleaseFutureApi(this); }
 
   PromiseFactory& operator=(const PromiseFactory&) = delete;
   PromiseFactory& operator=(PromiseFactory&&) = delete;
@@ -67,9 +65,7 @@ class PromiseFactory {
     return firestore_->future_manager().GetFutureApi(this);
   }
 
-  constexpr int ApiCount() const {
-    return static_cast<int>(EnumT::kCount);
-  }
+  constexpr int ApiCount() const { return static_cast<int>(EnumT::kCount); }
 
   FirestoreInternal* firestore_ = nullptr;
 };

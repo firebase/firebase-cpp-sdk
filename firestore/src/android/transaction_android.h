@@ -24,17 +24,14 @@ class TransactionInternal : public Wrapper {
 
   TransactionInternal(FirestoreInternal* firestore, const jni::Object& obj)
       : Wrapper(firestore, obj),
-        first_exception_(MakeShared<jni::Local<jni::Throwable>>()) {
-  }
+        first_exception_(MakeShared<jni::Local<jni::Throwable>>()) {}
 
   TransactionInternal(const TransactionInternal& rhs)
-      : Wrapper(rhs), first_exception_(rhs.first_exception_) {
-  }
+      : Wrapper(rhs), first_exception_(rhs.first_exception_) {}
 
   TransactionInternal(TransactionInternal&& rhs)
       : Wrapper(firebase::Move(rhs)),
-        first_exception_(Move(rhs.first_exception_)) {
-  }
+        first_exception_(Move(rhs.first_exception_)) {}
 
   void Set(const DocumentReference& document,
            const MapFieldValue& data,

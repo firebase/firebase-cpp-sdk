@@ -40,9 +40,7 @@ Wrapper::Wrapper(Wrapper* rhs) : Wrapper() {
 
 Wrapper::~Wrapper() = default;
 
-jni::Env Wrapper::GetEnv() const {
-  return firestore_->GetEnv();
-}
+jni::Env Wrapper::GetEnv() const { return firestore_->GetEnv(); }
 
 Object Wrapper::ToJava(const FieldValue& value) {
   return FieldValueInternal::ToJava(value);

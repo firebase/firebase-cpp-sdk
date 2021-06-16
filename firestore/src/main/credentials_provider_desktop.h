@@ -59,8 +59,7 @@ class FirebaseCppCredentialsProvider
   // the `GetToken` callback might be invoked after this credentials provider
   // has already been destroyed (Auth may outlive Firestore).
   struct Contents {
-    explicit Contents(App& app) : app(app) {
-    }
+    explicit Contents(App& app) : app(app) {}
 
     // FirebaseCppCredentialsProvider may be used by more than one thread. The
     // mutex is locked in all public member functions and none of the private

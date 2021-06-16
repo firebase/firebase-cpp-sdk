@@ -20,8 +20,7 @@ class Class;
 class String : public Object {
  public:
   String() = default;
-  explicit String(jstring string) : Object(string) {
-  }
+  explicit String(jstring string) : Object(string) {}
 
   /**
    * Creates a new Java String from the given bytes, using the given encoding.
@@ -34,9 +33,7 @@ class String : public Object {
                               const Array<uint8_t>& bytes,
                               const String& encoding);
 
-  jstring get() const override {
-    return static_cast<jstring>(object_);
-  }
+  jstring get() const override { return static_cast<jstring>(object_); }
 
   static void Initialize(Env& env, Loader& loader);
   static void Terminate(Env& env);

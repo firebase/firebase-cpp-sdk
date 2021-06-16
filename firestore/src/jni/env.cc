@@ -37,12 +37,10 @@ int CurrentExceptionCount() {
 
 }  // namespace
 
-Env::Env() : Env(GetEnv()) {
-}
+Env::Env() : Env(GetEnv()) {}
 
 Env::Env(JNIEnv* env)
-    : env_(env), initial_pending_exceptions_(CurrentExceptionCount()) {
-}
+    : env_(env), initial_pending_exceptions_(CurrentExceptionCount()) {}
 
 Env::~Env() noexcept(false) {
   if (ok()) return;
@@ -89,9 +87,7 @@ Local<Throwable> Env::ExceptionOccurred() {
   return Local<Throwable>(env_, exception);
 }
 
-void Env::ExceptionClear() {
-  env_->ExceptionClear();
-}
+void Env::ExceptionClear() { env_->ExceptionClear(); }
 
 Local<Throwable> Env::ClearExceptionOccurred() {
   Local<Throwable> result = ExceptionOccurred();

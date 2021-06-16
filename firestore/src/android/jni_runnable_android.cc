@@ -47,8 +47,7 @@ void JniRunnableBase::Initialize(jni::Loader& loader) {
 }
 
 JniRunnableBase::JniRunnableBase(Env& env)
-    : java_runnable_(env.New(kConstructor, reinterpret_cast<jlong>(this))) {
-}
+    : java_runnable_(env.New(kConstructor, reinterpret_cast<jlong>(this))) {}
 
 JniRunnableBase::~JniRunnableBase() {
   Env env;
