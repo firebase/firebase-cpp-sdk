@@ -567,7 +567,7 @@ code.
 
 ## Release Notes
 
-### 8.0.1
+### 8.1.0
 -   Changes
     -   Firestore: Fixed a linker error when DocumentChange::npos was used.
         ([#474](https://github.com/firebase/firebase-cpp-sdk/pull/474)).
