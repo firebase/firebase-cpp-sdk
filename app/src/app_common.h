@@ -45,6 +45,7 @@ namespace app_common {
 extern const char* kOperatingSystem;
 extern const char* kCppRuntimeOrStl;
 extern const char* kCpuArchitecture;
+extern const char* kBuildSource;
 
 // Extended API client header for Google user agent strings.
 extern const char* kApiClientHeader;

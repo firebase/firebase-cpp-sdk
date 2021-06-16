@@ -182,6 +182,8 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
   else:
     # workaround, absl doesn't build without tests enabled
     cmd.append('-DBUILD_TESTING=off')
+  # When building from GitHub Actions, this should always be set.
+  cmd.append('-DFIREBASE_GITHUB_ACTION_BUILD=ON')
 
   if not disable_vcpkg:
     if utils.is_linux_os() and arch == 'x86':
