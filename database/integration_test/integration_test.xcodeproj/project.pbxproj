@@ -19,6 +19,8 @@
 		9F2ABA3F267A474A001A35CE /* app_framework.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6C179EF22CB32A000C2651A /* app_framework.cc */; };
 		9F2ABA40267A474D001A35CE /* firebase_test_framework.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6C179EC22CB323300C2651A /* firebase_test_framework.cc */; };
 		9F2ABA41267A474F001A35CE /* integration_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61C5F9222BABAD100A79141 /* integration_test.cc */; };
+		9F4C472E267A4DB6001E25DA /* ios_app_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E722CB322900C2651A /* ios_app_framework.mm */; };
+		9F4C472F267A4DC0001E25DA /* ios_firebase_test_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E822CB322900C2651A /* ios_firebase_test_framework.mm */; };
 		D61C5F8E22BABA9C00A79141 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D61C5F8C22BABA9B00A79141 /* Images.xcassets */; };
 		D61C5F9622BABAD200A79141 /* integration_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61C5F9222BABAD100A79141 /* integration_test.cc */; };
 		D62CCBC022F367140099BE9F /* gmock-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D62CCBBF22F367140099BE9F /* gmock-all.cc */; };
@@ -270,7 +272,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				9F2ABA41267A474F001A35CE /* integration_test.cc in Sources */,
+				9F4C472F267A4DC0001E25DA /* ios_firebase_test_framework.mm in Sources */,
 				9F2ABA3C267A4744001A35CE /* gmock-all.cc in Sources */,
+				9F4C472E267A4DB6001E25DA /* ios_app_framework.mm in Sources */,
 				9F2ABA3F267A474A001A35CE /* app_framework.cc in Sources */,
 				9F2ABA3E267A4747001A35CE /* gtest-all.cc in Sources */,
 				9F2ABA40267A474D001A35CE /* firebase_test_framework.cc in Sources */,
