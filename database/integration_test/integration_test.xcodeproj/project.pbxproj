@@ -11,6 +11,14 @@
 		529226D61C85F68000C89379 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D51C85F68000C89379 /* Foundation.framework */; };
 		529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D71C85F68000C89379 /* CoreGraphics.framework */; };
 		529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D91C85F68000C89379 /* UIKit.framework */; };
+		9F2ABA30267A4720001A35CE /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9F2ABA2E267A4720001A35CE /* Main.storyboard */; };
+		9F2ABA32267A4721001A35CE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9F2ABA31267A4721001A35CE /* Assets.xcassets */; };
+		9F2ABA35267A4721001A35CE /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9F2ABA33267A4721001A35CE /* LaunchScreen.storyboard */; };
+		9F2ABA3C267A4744001A35CE /* gmock-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D62CCBBF22F367140099BE9F /* gmock-all.cc */; };
+		9F2ABA3E267A4747001A35CE /* gtest-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D67D355622BABD2100292C1D /* gtest-all.cc */; };
+		9F2ABA3F267A474A001A35CE /* app_framework.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6C179EF22CB32A000C2651A /* app_framework.cc */; };
+		9F2ABA40267A474D001A35CE /* firebase_test_framework.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6C179EC22CB323300C2651A /* firebase_test_framework.cc */; };
+		9F2ABA41267A474F001A35CE /* integration_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61C5F9222BABAD100A79141 /* integration_test.cc */; };
 		D61C5F8E22BABA9C00A79141 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D61C5F8C22BABA9B00A79141 /* Images.xcassets */; };
 		D61C5F9622BABAD200A79141 /* integration_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61C5F9222BABAD100A79141 /* integration_test.cc */; };
 		D62CCBC022F367140099BE9F /* gmock-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D62CCBBF22F367140099BE9F /* gmock-all.cc */; };
@@ -29,6 +37,11 @@
 		529226D71C85F68000C89379 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		529226D91C85F68000C89379 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		529226EE1C85F68000C89379 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+		9F2ABA26267A4720001A35CE /* integration_test_tvos.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = integration_test_tvos.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9F2ABA2F267A4720001A35CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		9F2ABA31267A4721001A35CE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		9F2ABA34267A4721001A35CE /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		9F2ABA36267A4721001A35CE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D61C5F8C22BABA9B00A79141 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		D61C5F8D22BABA9C00A79141 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D61C5F9222BABAD100A79141 /* integration_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = integration_test.cc; path = src/integration_test.cc; sourceTree = "<group>"; };
@@ -56,6 +69,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9F2ABA23267A4720001A35CE /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -67,6 +87,7 @@
 				D66B16861CE46E8900E5638A /* LaunchScreen.storyboard */,
 				520BC0381C869159008CFBC3 /* GoogleService-Info.plist */,
 				5292271D1C85FB5500C89379 /* src */,
+				9F2ABA27267A4720001A35CE /* integration_test_tvos */,
 				529226D41C85F68000C89379 /* Frameworks */,
 				529226D31C85F68000C89379 /* Products */,
 			);
@@ -76,6 +97,7 @@
 			isa = PBXGroup;
 			children = (
 				529226D21C85F68000C89379 /* integration_test.app */,
+				9F2ABA26267A4720001A35CE /* integration_test_tvos.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -117,6 +139,17 @@
 			name = ios;
 			sourceTree = "<group>";
 		};
+		9F2ABA27267A4720001A35CE /* integration_test_tvos */ = {
+			isa = PBXGroup;
+			children = (
+				9F2ABA2E267A4720001A35CE /* Main.storyboard */,
+				9F2ABA31267A4721001A35CE /* Assets.xcassets */,
+				9F2ABA33267A4721001A35CE /* LaunchScreen.storyboard */,
+				9F2ABA36267A4721001A35CE /* Info.plist */,
+			);
+			path = integration_test_tvos;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -137,6 +170,23 @@
 			productReference = 529226D21C85F68000C89379 /* integration_test.app */;
 			productType = "com.apple.product-type.application";
 		};
+		9F2ABA25267A4720001A35CE /* integration_test_tvos */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 9F2ABA3B267A4721001A35CE /* Build configuration list for PBXNativeTarget "integration_test_tvos" */;
+			buildPhases = (
+				9F2ABA22267A4720001A35CE /* Sources */,
+				9F2ABA23267A4720001A35CE /* Frameworks */,
+				9F2ABA24267A4720001A35CE /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = integration_test_tvos;
+			productName = integration_test_tvos;
+			productReference = 9F2ABA26267A4720001A35CE /* integration_test_tvos.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -151,6 +201,10 @@
 						DevelopmentTeam = EQHXZ8M8AV;
 						ProvisioningStyle = Automatic;
 					};
+					9F2ABA25267A4720001A35CE = {
+						CreatedOnToolsVersion = 12.5;
+						ProvisioningStyle = Automatic;
+					};
 				};
 			};
 			buildConfigurationList = 529226CD1C85F68000C89379 /* Build configuration list for PBXProject "integration_test" */;
@@ -158,7 +212,9 @@
 			developmentRegion = English;
 			hasScannedForEncodings = 0;
 			knownRegions = (
+				English,
 				en,
+				Base,
 			);
 			mainGroup = 529226C91C85F68000C89379;
 			productRefGroup = 529226D31C85F68000C89379 /* Products */;
@@ -166,6 +222,7 @@
 			projectRoot = "";
 			targets = (
 				529226D11C85F68000C89379 /* integration_test */,
+				9F2ABA25267A4720001A35CE /* integration_test_tvos */,
 			);
 		};
 /* End PBXProject section */
@@ -178,6 +235,16 @@
 				D61C5F8E22BABA9C00A79141 /* Images.xcassets in Resources */,
 				D66B16871CE46E8900E5638A /* LaunchScreen.storyboard in Resources */,
 				520BC0391C869159008CFBC3 /* GoogleService-Info.plist in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9F2ABA24267A4720001A35CE /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9F2ABA35267A4721001A35CE /* LaunchScreen.storyboard in Resources */,
+				9F2ABA32267A4721001A35CE /* Assets.xcassets in Resources */,
+				9F2ABA30267A4720001A35CE /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -198,7 +265,38 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		9F2ABA22267A4720001A35CE /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				9F2ABA41267A474F001A35CE /* integration_test.cc in Sources */,
+				9F2ABA3C267A4744001A35CE /* gmock-all.cc in Sources */,
+				9F2ABA3F267A474A001A35CE /* app_framework.cc in Sources */,
+				9F2ABA3E267A4747001A35CE /* gtest-all.cc in Sources */,
+				9F2ABA40267A474D001A35CE /* firebase_test_framework.cc in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXVariantGroup section */
+		9F2ABA2E267A4720001A35CE /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				9F2ABA2F267A4720001A35CE /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		9F2ABA33267A4721001A35CE /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				9F2ABA34267A4721001A35CE /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		529226F71C85F68000C89379 /* Debug */ = {
@@ -337,6 +435,80 @@
 			};
 			name = Release;
 		};
+		9F2ABA39267A4721001A35CE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				INFOPLIST_FILE = integration_test_tvos/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.google.ios.database.testapp.integration-test-tvos";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 14.5;
+			};
+			name = Debug;
+		};
+		9F2ABA3A267A4721001A35CE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_STYLE = Automatic;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				INFOPLIST_FILE = integration_test_tvos/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				MTL_FAST_MATH = YES;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.google.ios.database.testapp.integration-test-tvos";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = appletvos;
+				TARGETED_DEVICE_FAMILY = 3;
+				TVOS_DEPLOYMENT_TARGET = 14.5;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -354,6 +526,15 @@
 			buildConfigurations = (
 				529226FA1C85F68000C89379 /* Debug */,
 				529226FB1C85F68000C89379 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		9F2ABA3B267A4721001A35CE /* Build configuration list for PBXNativeTarget "integration_test_tvos" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				9F2ABA39267A4721001A35CE /* Debug */,
+				9F2ABA3A267A4721001A35CE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
