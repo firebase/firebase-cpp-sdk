@@ -74,8 +74,10 @@ class ValidationTest : public FirestoreIntegrationTest {
    * Performs a write using each set and/or update API and makes sure it fails
    * with the expected reason.
    */
-  void ExpectWriteError(const MapFieldValue& data, const std::string& reason,
-                        bool include_sets, bool include_updates) {
+  void ExpectWriteError(const MapFieldValue& data,
+                        const std::string& reason,
+                        bool include_sets,
+                        bool include_updates) {
     DocumentReference document = Document();
 
     if (include_sets) {
@@ -162,7 +164,8 @@ class ValidationTest : public FirestoreIntegrationTest {
 #if defined(__ANDROID__)
 
 // PORT_NOTE: Does not apply to C++ as host parameter is passed by value.
-TEST_F(ValidationTest, FirestoreSettingsNullHostFails) {}
+TEST_F(ValidationTest, FirestoreSettingsNullHostFails) {
+}
 
 TEST_F(ValidationTest, ChangingSettingsAfterUseFails) {
   DocumentReference reference = Document();
@@ -197,7 +200,8 @@ TEST_F(ValidationTest, DisableSslWithoutSettingHostFails) {
 }
 
 // PORT_NOTE: Does not apply to C++ as host parameter is passed by value.
-TEST_F(ValidationTest, FirestoreGetInstanceWithNullAppFails) {}
+TEST_F(ValidationTest, FirestoreGetInstanceWithNullAppFails) {
+}
 
 TEST_F(ValidationTest,
        FirestoreGetInstanceWithNonNullAppReturnsNonNullInstance) {
@@ -305,7 +309,8 @@ TEST_F(ValidationTest, DocumentPathsMustBeEvenLength) {
 }
 
 // PORT_NOTE: Does not apply to C++ which is strong-typed.
-TEST_F(ValidationTest, WritesMustBeMapsOrPOJOs) {}
+TEST_F(ValidationTest, WritesMustBeMapsOrPOJOs) {
+}
 
 TEST_F(ValidationTest, WritesMustNotContainDirectlyNestedLists) {
   SCOPED_TRACE("WritesMustNotContainDirectlyNestedLists");
@@ -349,7 +354,8 @@ TEST_F(ValidationTest, WritesMayContainIndirectlyNestedLists) {
 }
 
 // TODO(zxu): There is no way to create Firestore with different project id yet.
-TEST_F(ValidationTest, WritesMustNotContainReferencesToADifferentDatabase) {}
+TEST_F(ValidationTest, WritesMustNotContainReferencesToADifferentDatabase) {
+}
 
 TEST_F(ValidationTest, WritesMustNotContainReservedFieldNames) {
   SCOPED_TRACE("WritesMustNotContainReservedFieldNames");
@@ -412,7 +418,8 @@ TEST_F(ValidationTest, BatchWritesRequireCorrectDocumentReferences) {
   }
 }
 
-TEST_F(ValidationTest, TransactionsRequireCorrectDocumentReferences) {}
+TEST_F(ValidationTest, TransactionsRequireCorrectDocumentReferences) {
+}
 
 #endif  // defined(__ANDROID__)
 
@@ -509,7 +516,8 @@ TEST_F(ValidationTest, ArrayTransformsFailInQueries) {
 }
 
 // PORT_NOTE: Does not apply to C++ which is strong-typed.
-TEST_F(ValidationTest, ArrayTransformsRejectInvalidElements) {}
+TEST_F(ValidationTest, ArrayTransformsRejectInvalidElements) {
+}
 
 TEST_F(ValidationTest, ArrayTransformsRejectArrays) {
   DocumentReference document = Document();
