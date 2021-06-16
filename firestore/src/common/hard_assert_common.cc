@@ -9,13 +9,18 @@ namespace internal {
 
 #if defined(__ANDROID__)
 
-void FailAssertion(const char* file, const char* func, const int line,
+void FailAssertion(const char* file,
+                   const char* func,
+                   const int line,
                    const std::string& message) {
   Throw(ExceptionType::AssertionFailure, file, func, line, message);
 }
 
-void FailAssertion(const char* file, const char* func, const int line,
-                   const std::string& message, const char* condition) {
+void FailAssertion(const char* file,
+                   const char* func,
+                   const int line,
+                   const std::string& message,
+                   const char* condition) {
   std::string failure;
   if (message.empty()) {
     failure = condition;

@@ -34,7 +34,9 @@ class PromiseFactory {
     future_manager_->AllocFutureApi(this, ApisCount());
   }
 
-  ~PromiseFactory() { future_manager_->ReleaseFutureApi(this); }
+  ~PromiseFactory() {
+    future_manager_->ReleaseFutureApi(this);
+  }
 
   PromiseFactory(const PromiseFactory& rhs)
       : cleanup_{rhs.cleanup_}, future_manager_{rhs.future_manager_} {
@@ -59,7 +61,9 @@ class PromiseFactory {
     return future_manager_->GetFutureApi(this);
   }
 
-  int ApisCount() const { return static_cast<int>(ApiEnum::kCount); }
+  int ApisCount() const {
+    return static_cast<int>(ApiEnum::kCount);
+  }
 
   CleanupNotifier* cleanup_ = nullptr;
   FutureManager* future_manager_ = nullptr;

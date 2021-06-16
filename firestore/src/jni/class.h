@@ -21,9 +21,12 @@ namespace jni {
 class Class : public Object {
  public:
   Class() = default;
-  explicit Class(jclass clazz) : Object(clazz) {}
+  explicit Class(jclass clazz) : Object(clazz) {
+  }
 
-  jclass get() const override { return static_cast<jclass>(object_); }
+  jclass get() const override {
+    return static_cast<jclass>(object_);
+  }
 
   /**
    * Returns the name of the class, as returned by the Java `Class.name` method.

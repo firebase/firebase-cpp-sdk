@@ -32,9 +32,12 @@ void BlobInternal::Initialize(jni::Loader& loader) {
   loader.LoadAll(kConstructor, kFromBytes, kToBytes);
 }
 
-Class BlobInternal::GetClass() { return Class(g_class); }
+Class BlobInternal::GetClass() {
+  return Class(g_class);
+}
 
-Local<BlobInternal> BlobInternal::Create(Env& env, const uint8_t* value,
+Local<BlobInternal> BlobInternal::Create(Env& env,
+                                         const uint8_t* value,
                                          size_t size) {
   Local<Array<uint8_t>> byte_array = env.NewArray<uint8_t>(size);
   env.SetArrayRegion(byte_array, 0, size, value);

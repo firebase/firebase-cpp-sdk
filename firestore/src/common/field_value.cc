@@ -74,7 +74,8 @@ std::string ValueToString(const uint8_t* blob, size_t size) {
 
 }  // namespace
 
-FieldValue::FieldValue() {}
+FieldValue::FieldValue() {
+}
 
 FieldValue::FieldValue(const FieldValue& value) {
   if (value.internal_) {
@@ -238,7 +239,9 @@ FieldValue FieldValue::Null() {
 }
 
 /* static */
-FieldValue FieldValue::Delete() { return FieldValueInternal::Delete(); }
+FieldValue FieldValue::Delete() {
+  return FieldValueInternal::Delete();
+}
 
 /* static */
 FieldValue FieldValue::ServerTimestamp() {

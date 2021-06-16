@@ -29,7 +29,9 @@ Local<Iterator> Collection::Iterator(Env& env) {
   return env.Call(*this, kIterator);
 }
 
-size_t Collection::Size(Env& env) const { return env.Call(*this, kSize); }
+size_t Collection::Size(Env& env) const {
+  return env.Call(*this, kSize);
+}
 
 }  // namespace jni
 }  // namespace firestore

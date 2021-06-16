@@ -26,7 +26,8 @@ void ListenerRegistrationInternal::Initialize(jni::Loader& loader) {
 
 ListenerRegistrationInternal::ListenerRegistrationInternal(
     FirestoreInternal* firestore,
-    EventListener<DocumentSnapshot>* event_listener, bool owning_event_listener,
+    EventListener<DocumentSnapshot>* event_listener,
+    bool owning_event_listener,
     const Object& listener_registration)
     : firestore_(firestore),
       listener_registration_(listener_registration),
@@ -40,8 +41,10 @@ ListenerRegistrationInternal::ListenerRegistrationInternal(
 }
 
 ListenerRegistrationInternal::ListenerRegistrationInternal(
-    FirestoreInternal* firestore, EventListener<QuerySnapshot>* event_listener,
-    bool owning_event_listener, const Object& listener_registration)
+    FirestoreInternal* firestore,
+    EventListener<QuerySnapshot>* event_listener,
+    bool owning_event_listener,
+    const Object& listener_registration)
     : firestore_(firestore),
       listener_registration_(listener_registration),
       query_event_listener_(event_listener),
@@ -54,8 +57,10 @@ ListenerRegistrationInternal::ListenerRegistrationInternal(
 }
 
 ListenerRegistrationInternal::ListenerRegistrationInternal(
-    FirestoreInternal* firestore, EventListener<void>* event_listener,
-    bool owning_event_listener, const Object& listener_registration)
+    FirestoreInternal* firestore,
+    EventListener<void>* event_listener,
+    bool owning_event_listener,
+    const Object& listener_registration)
     : firestore_(firestore),
       listener_registration_(listener_registration),
       void_event_listener_(event_listener),
@@ -88,7 +93,9 @@ ListenerRegistrationInternal::~ListenerRegistrationInternal() {
   }
 }
 
-jni::Env ListenerRegistrationInternal::GetEnv() { return firestore_->GetEnv(); }
+jni::Env ListenerRegistrationInternal::GetEnv() {
+  return firestore_->GetEnv();
+}
 
 }  // namespace firestore
 }  // namespace firebase

@@ -34,11 +34,16 @@ namespace firestore {
 class FirestoreException : public std::exception {
  public:
   FirestoreException(const std::string& message, Error code)
-      : message_(message), code_(code) {}
+      : message_(message), code_(code) {
+  }
 
-  const char* what() const noexcept override { return message_.c_str(); }
+  const char* what() const noexcept override {
+    return message_.c_str();
+  }
 
-  Error code() const { return code_; }
+  Error code() const {
+    return code_;
+  }
 
  private:
   std::string message_;
@@ -52,7 +57,8 @@ class FirestoreInternalError : public FirestoreException {
  public:
   FirestoreInternalError(const std::string& message,
                          Error code = Error::kErrorInternal)
-      : FirestoreException(message, code) {}
+      : FirestoreException(message, code) {
+  }
 };
 
 #endif  // FIRESTORE_HAVE_EXCEPTIONS

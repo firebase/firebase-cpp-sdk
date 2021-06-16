@@ -16,7 +16,9 @@ namespace {
 
 const char kDefaultHost[] = "firestore.googleapis.com";
 
-std::string ToStr(bool v) { return v ? "true" : "false"; }
+std::string ToStr(bool v) {
+  return v ? "true" : "false";
+}
 
 std::string ToStr(int64_t v) {
   // TODO(b/163140650): use `std::to_string` (which will make this function
@@ -29,12 +31,17 @@ std::string ToStr(int64_t v) {
 }  // namespace
 
 #if !defined(__APPLE__)
-Settings::Settings() : host_(kDefaultHost) {}
+Settings::Settings() : host_(kDefaultHost) {
+}
 #endif
 
-void Settings::set_host(std::string host) { host_ = firebase::Move(host); }
+void Settings::set_host(std::string host) {
+  host_ = firebase::Move(host);
+}
 
-void Settings::set_ssl_enabled(bool enabled) { ssl_enabled_ = enabled; }
+void Settings::set_ssl_enabled(bool enabled) {
+  ssl_enabled_ = enabled;
+}
 
 void Settings::set_persistence_enabled(bool enabled) {
   persistence_enabled_ = enabled;

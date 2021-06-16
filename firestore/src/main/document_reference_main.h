@@ -31,9 +31,15 @@ class DocumentReferenceInternal {
   Firestore* firestore();
   FirestoreInternal* firestore_internal();
 
-  const std::string& id() const { return reference_.document_id(); }
-  std::string path() const { return reference_.Path(); }
-  const model::DocumentKey& key() const { return reference_.key(); }
+  const std::string& id() const {
+    return reference_.document_id();
+  }
+  std::string path() const {
+    return reference_.Path();
+  }
+  const model::DocumentKey& key() const {
+    return reference_.key();
+  }
 
   CollectionReference Parent();
   CollectionReference Collection(const std::string& collection_path);
