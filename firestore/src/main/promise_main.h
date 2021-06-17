@@ -30,7 +30,8 @@ template <typename ResultT>
 class Promise {
  public:
   // Creates a future backed by `LastResults` cache.
-  Promise(CleanupNotifier* cleanup, ReferenceCountedFutureImpl* future_api,
+  Promise(CleanupNotifier* cleanup,
+          ReferenceCountedFutureImpl* future_api,
           int identifier)
       : cleanup_{NOT_NULL(cleanup)},
         future_api_{NOT_NULL(future_api)},

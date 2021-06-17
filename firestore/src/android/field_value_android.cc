@@ -71,7 +71,8 @@ FieldValue FieldValueInternal::Create(Env& env, const Object& object) {
   return FieldValue(new FieldValueInternal(Type::kNull, object));
 }
 
-FieldValue FieldValueInternal::Create(Env& env, Type type,
+FieldValue FieldValueInternal::Create(Env& env,
+                                      Type type,
                                       const Object& object) {
   if (!env.ok() || !object) return {};
   return FieldValue(new FieldValueInternal(type, object));

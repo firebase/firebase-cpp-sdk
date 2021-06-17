@@ -52,7 +52,8 @@ class EventListener {
    * @param error_message The error message if there was an error. An empty
    * string otherwise.
    */
-  virtual void OnEvent(const T& value, Error error_code,
+  virtual void OnEvent(const T& value,
+                       Error error_code,
                        const std::string& error_message) = 0;
 };
 
