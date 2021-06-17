@@ -39,7 +39,7 @@ function(binary_to_array NAME INPUT CPP_NAMESPACE OUTPUT_DIRECTORY)
     OUTPUT ${output_source}
       ${output_header}
     DEPENDS ${INPUT}
-    COMMAND python "${FIREBASE_SCRIPT_DIR}/binary_to_array.py"
+    COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${FIREBASE_SCRIPT_DIR}/binary_to_array.py"
       "--input=${INPUT}"
       "--output_header=${output_header}"
       "--output_source=${output_source}"
