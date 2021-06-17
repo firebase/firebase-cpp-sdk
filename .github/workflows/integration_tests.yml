@@ -376,8 +376,10 @@ jobs:
           path: test_results
           name: log-artifact
       - name: Update PR label and comment
+        shell: bash
         if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         run: |
+          pushd ${{env.GCS_UPLOAD_DIR}}
           python scripts/gha/it_workflow.py --stage progress \
             --token ${{github.token}} \
             --issue_number ${{needs.check_trigger.outputs.pr_number}}\
