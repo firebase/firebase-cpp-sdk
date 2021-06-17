@@ -77,6 +77,9 @@ if (NOT FIREBASE_ANDROID_STL STREQUAL "")
   set(ANDROID_STL ${FIREBASE_ANDROID_STL})
 endif()
 
+set(FIREBASE_PYTHON_EXECUTABLE "python" CACHE FILEPATH
+  "The Python interpreter to use, such as one from a venv")
+
 set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
                                  "Format to output, 'frameworks' or 'libraries'")
 
@@ -99,7 +102,6 @@ endif()
 list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(external_rules)
 include(cpp_pack)
-include(python)
 
 if(FIREBASE_CPP_BUILD_TESTS)
   enable_testing()

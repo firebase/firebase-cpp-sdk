@@ -16,7 +16,8 @@
 
 cmake_minimum_required(VERSION 2.8)
 
-include("${CMAKE_CURRENT_LIST_DIR}/../../cmake/python.cmake")
+set(FIREBASE_PYTHON_EXECUTABLE "python" CACHE FILEPATH
+  "The Python interpreter to use, such as one from a venv")
 
 # User settings for Firebase integration tests.
 # Path to Firebase SDK.
