@@ -74,8 +74,10 @@ class ValidationTest : public FirestoreIntegrationTest {
    * Performs a write using each set and/or update API and makes sure it fails
    * with the expected reason.
    */
-  void ExpectWriteError(const MapFieldValue& data, const std::string& reason,
-                        bool include_sets, bool include_updates) {
+  void ExpectWriteError(const MapFieldValue& data,
+                        const std::string& reason,
+                        bool include_sets,
+                        bool include_updates) {
     DocumentReference document = Document();
 
     if (include_sets) {

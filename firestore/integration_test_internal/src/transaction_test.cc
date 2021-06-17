@@ -101,8 +101,7 @@ class TransactionTest : public FirestoreIntegrationTest {
 
 class TestTransactionFunction : public TransactionFunction {
  public:
-  TestTransactionFunction(DocumentReference doc) : doc_(doc) {
-  }
+  TestTransactionFunction(DocumentReference doc) : doc_(doc) {}
 
   Error Apply(Transaction& transaction, std::string& error_message) override {
     Error error = Error::kErrorUnknown;
@@ -113,12 +112,8 @@ class TestTransactionFunction : public TransactionFunction {
     return error;
   }
 
-  std::string key() {
-    return key_;
-  }
-  std::string value() {
-    return value_;
-  }
+  std::string key() { return key_; }
+  std::string value() { return value_; }
 
  private:
   DocumentReference doc_;
@@ -145,12 +140,9 @@ class TransactionStage {
   TransactionStage(
       std::string tag,
       std::function<void(Transaction*, const DocumentReference&)> func)
-      : tag_(std::move(tag)), func_(std::move(func)) {
-  }
+      : tag_(std::move(tag)), func_(std::move(func)) {}
 
-  const std::string& tag() const {
-    return tag_;
-  }
+  const std::string& tag() const { return tag_; }
 
   void operator()(Transaction* transaction,
                   const DocumentReference& doc) const {
@@ -221,8 +213,7 @@ const auto get = new TransactionStage(
  */
 class TransactionTester {
  public:
-  explicit TransactionTester(Firestore* db) : db_(db) {
-  }
+  explicit TransactionTester(Firestore* db) : db_(db) {}
 
   template <typename... Args>
   TransactionTester& Run(Args... args) {
