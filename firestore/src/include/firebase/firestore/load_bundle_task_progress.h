@@ -42,35 +42,25 @@ class LoadBundleTaskProgress {
                          State state);
 
   /** Returns how many documents have been loaded. */
-  int32_t documents_loaded() const {
-    return documents_loaded_;
-  }
+  int32_t documents_loaded() const { return documents_loaded_; }
 
   /**
    * Returns the total number of documents in the bundle. Returns 0 if the
    * bundle failed to parse.
    */
-  int32_t total_documents() const {
-    return total_documents_;
-  }
+  int32_t total_documents() const { return total_documents_; }
 
   /** Returns how many bytes have been loaded. */
-  int64_t bytes_loaded() const {
-    return bytes_loaded_;
-  }
+  int64_t bytes_loaded() const { return bytes_loaded_; }
 
   /**
    * Returns the total number of bytes in the bundle. Returns 0 if the bundle
    * failed to parse.
    */
-  int64_t total_bytes() const {
-    return total_bytes_;
-  }
+  int64_t total_bytes() const { return total_bytes_; }
 
   /** Returns the current state of the loading progress. */
-  State state() const {
-    return state_;
-  }
+  State state() const { return state_; }
 
  private:
   friend class EventListenerInternal;

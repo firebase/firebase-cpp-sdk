@@ -74,24 +74,23 @@ modify your bashrc file to automatically set these variables.
 """
 
 import datetime
-from distutils import dir_util
 import os
 import platform
 import shutil
 import subprocess
 import sys
 import json
+import attr
 
 from absl import app
 from absl import flags
 from absl import logging
+from distutils import dir_util
 
-import attr
-
+import utils
 from integration_testing import config_reader
 from integration_testing import test_validation
 from integration_testing import xcodebuild
-import utils
 
 # Environment variables
 _JAVA_HOME = "JAVA_HOME"

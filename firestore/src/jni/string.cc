@@ -44,7 +44,8 @@ Class String::GetClass() { return Class(string_class); }
 
 String String::GetUtf8() { return String(utf8_string); }
 
-Local<String> String::Create(Env& env, const Array<uint8_t>& bytes,
+Local<String> String::Create(Env& env,
+                             const Array<uint8_t>& bytes,
                              const String& encoding) {
   return env.New(kNewFromBytes, bytes, encoding);
 }

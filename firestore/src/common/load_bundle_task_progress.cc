@@ -34,8 +34,7 @@ LoadBundleTaskProgress::LoadBundleTaskProgress(int32_t documents_loaded,
       total_documents_(total_documents),
       bytes_loaded_(bytes_loaded),
       total_bytes_(total_bytes),
-      state_(state) {
-}
+      state_(state) {}
 
 // Android requires below constructor to create this object from internal
 // objects in a promise. See promise_android.h
