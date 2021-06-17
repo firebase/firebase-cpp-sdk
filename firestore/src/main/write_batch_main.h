@@ -19,7 +19,8 @@ class WriteBatchInternal {
   Firestore* firestore();
   FirestoreInternal* firestore_internal();
 
-  void Set(const DocumentReference& document, const MapFieldValue& data,
+  void Set(const DocumentReference& document,
+           const MapFieldValue& data,
            const SetOptions& options);
 
   void Update(const DocumentReference& document, const MapFieldValue& data);

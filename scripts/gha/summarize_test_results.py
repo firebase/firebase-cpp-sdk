@@ -69,9 +69,7 @@ flags.DEFINE_bool(
     "github_log", False,
     "Display a GitHub log list.")
 
-flags.DEFINE_integer(
-    "list_max", 3,
-    "In Markdown mode, collapse lists larger than this size. 0 to disable.")
+LIST_MAX = 3
 
 CAPITALIZATIONS = {
     "macos": "MacOS",
@@ -136,7 +134,7 @@ def format_result(config_tests, space_char = " ", list_separator=DEFAULT_LIST_SE
     else:
       config_set.add(config+list_separator)
 
-  if FLAGS.markdown and FLAGS.list_max > 0 and len(config_set) > FLAGS.list_max:
+  if len(config_set) > LIST_MAX:
       return "<details><summary>(%s items)</summary>%s</details>" % (
         len(config_set), "".join(sorted(config_set)))
   else:
@@ -179,15 +177,18 @@ def print_markdown_table(log_results):
 def main(argv):
   if len(argv) > 1:
       raise app.UsageError("Too many command-line arguments.")
+  summarize_logs(FLAGS.dir, FLAGS.markdown, FLAGS.github_log)
 
-  build_log_files = glob.glob(os.path.join(FLAGS.dir, BUILD_FILE_PATTERN))
-  test_log_files = glob.glob(os.path.join(FLAGS.dir, TEST_FILE_PATTERN))
+
+def summarize_logs(dir, markdown=False, github_log=False):
+  build_log_files = glob.glob(os.path.join(dir, BUILD_FILE_PATTERN))
+  test_log_files = glob.glob(os.path.join(dir, TEST_FILE_PATTERN))
   # Replace the "*" in the file glob with a regex capture group,
   # so we can report the test name.
   build_log_name_re = re.escape(
-      os.path.join(FLAGS.dir,BUILD_FILE_PATTERN)).replace("\\*", "(.*)")
+      os.path.join(dir,BUILD_FILE_PATTERN)).replace("\\*", "(.*)")
   test_log_name_re = re.escape(
-      os.path.join(FLAGS.dir,TEST_FILE_PATTERN)).replace("\\*", "(.*)")
+      os.path.join(dir,TEST_FILE_PATTERN)).replace("\\*", "(.*)")
 
   any_failures = False
   log_data = {}
@@ -224,15 +225,17 @@ def main(argv):
     return(0)
 
   log_lines = []
-  if FLAGS.markdown:
+  if markdown:
     log_lines = print_markdown_table(log_results)
     # If outputting Markdown, don't bother justifying the table.
-  elif FLAGS.github_log:
+  elif github_log:
     log_lines = print_github_log(log_results)
   else:
     log_lines = print_log(log_results)
 
-  print("\n".join(log_lines))
+  log_summary = "\n".join(log_lines)
+  print(log_summary)
+  return log_summary
 
 
 def get_configs_from_file_name(file_name, file_name_re):

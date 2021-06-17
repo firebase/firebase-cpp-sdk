@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: "0 9 * * *"  # 9am UTC = 1am PST / 2am PDT
   pull_request:
-    types: [ labeled ]
+    types: [ labeled, closed ]
 
   workflow_dispatch:
     inputs:
@@ -50,26 +50,26 @@ env:
 
 jobs:
   check_trigger:
-    ### This job only runs when the workflow was triggered by a PR getting labeled.
-    ### It checks whether the label is a test-request trigger (cancelling
-    ### the workflow if not), and then sets the in-progress label. It sets
-    ### outputs to control the build_* matrix (full or quick) and to tell
+    ### This job runs when the workflow was triggered by 1) PR getting labeled
+    ### 2) PR merged & closed 3) or manumlly triggered with Pull request #.
+    ### If triggered by label, then checks whether the label is a test-request 
+    ### trigger (cancelling the workflow if not). 
+    ### It sets outputs to control the build_* matrix (full or quick) and to tell
     ### subsequent steps to update the labels as well.
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'pull_request' && github.event.action == 'labeled') ||
-      (github.event.inputs.test_pull_request != '')
+      github.event_name == 'pull_request' || github.event.inputs.test_pull_request != ''
     outputs:
-      should_update_labels: ${{ steps.set_outputs.outputs.should_update_labels }}
+      should_update_pr: ${{ steps.set_outputs.outputs.should_update_pr }}
       requested_tests: ${{ steps.set_outputs.outputs.requested_tests }}
       pr_number: ${{ steps.get_pr_number.outputs.pr_number }}
     steps:
-    ### If the label isn't one of the test-request triggers, cancel the workflow.
-    - name: Cancel workflow if label is irrelevant
-      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix) && github.event.inputs.test_pull_request == '' }}
+    ### If the label isn't 1)the test-request triggers, 2) closed on merge trigger, cancel the workflow.
+    - name: Cancel workflow
+      if: (github.event.action == 'labeled' && !startsWith(github.event.label.name, env.triggerLabelPrefix)) || (github.event.action == 'closed' && github.event.pull_request.merged != true)
       uses: andymckay/cancel-action@0.2
-    - name: Wait for above cancellation if label is irrelevant
-      if: ${{ !startsWith(github.event.label.name, env.triggerLabelPrefix) && github.event.inputs.test_pull_request == '' }}
+    - name: Wait for above cancellation
+      if: (github.event.action == 'labeled' && !startsWith(github.event.label.name, env.triggerLabelPrefix)) || (github.event.action == 'closed' && github.event.pull_request.merged != true)
       run: |
         sleep 300
         exit 1  # fail out if the cancellation above somehow failed.
@@ -89,9 +89,7 @@ jobs:
           echo "::set-output name=pr_number::${{ github.event.inputs.test_pull_request }}"
           echo "::set-output name=github_ref::refs/pull/${{github.event.inputs.test_pull_request}}/merge"
         fi
-    ### Below this line, the label is one of the test-request triggers.
     - name: Cancel previous runs on the same PR
-      if: github.event_name == 'pull_request'
       uses: styfle/cancel-workflow-action@0.8.0
       with:
         access_token: ${{ github.token }}
@@ -110,7 +108,7 @@ jobs:
         GITHUB_TOKEN: ${{ github.token }}
     - id: set_outputs
       run: |
-        echo "::set-output name=should_update_labels::1"
+        echo "::set-output name=should_update_pr::1"
         if [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelFull }}" ]]; then
           echo "::set-output name=requested_tests::full"
         elif [[ "${{ github.event.label.name }}" == "${{ env.triggerLabelQuick }}" ]]; then
@@ -120,55 +118,23 @@ jobs:
           echo "::set-output name=requested_tests::auto"
         fi
     ### Add the in-progress label and remove any previous success/fail labels.
-    - name: Add in-progress label
-      uses: actions-ecosystem/action-add-labels@v1
+    - uses: actions/checkout@v2
       with:
-        github_token: ${{ github.token }}
-        number: "${{ steps.get_pr_number.outputs.pr_number }}"
-        labels: "${{ env.statusLabelInProgress }}"
-    - name: Remove previous succeeded label
-      uses: actions-ecosystem/action-remove-labels@v1
+        ref: ${{steps.get_pr_number.outputs.github_ref}}
+    - name: Setup python
+      uses: actions/setup-python@v2
       with:
-        github_token: ${{ github.token }}
-        number: "${{ steps.get_pr_number.outputs.pr_number }}"
-        labels: "${{ env.statusLabelSucceeded }}"
-    - name: Remove previous failed label
-      uses: actions-ecosystem/action-remove-labels@v1
-      with:
-        github_token: ${{ github.token }}
-        number: "${{ steps.get_pr_number.outputs.pr_number }}"
-        labels: "${{ env.statusLabelFailed }}"
-    - name: Find old status comment, if any
-      uses: peter-evans/find-comment@v1
-      id: find-comment
-      with:
-        issue-number: ${{steps.get_pr_number.outputs.pr_number}}
-        body-includes: ${{ env.statusCommentIdentifier }}
-        token: ${{github.token}}
-    - name: Delete old status comment
-      if: ${{ steps.find-comment.outputs.comment-id != 0 }}
-      uses: jungwinter/comment@v1
-      with:
-        type: delete
-        comment_id: ${{ steps.find-comment.outputs.comment-id }}
-        token: ${{ github.token }}
-    - name: Get current time for status comment
-      id: get-time
-      shell: bash
+        python-version: ${{ env.pythonVersion }}
+    - name: Install python deps
+      run: pip install -r scripts/gha/requirements.txt
+    - name: Update PR label and comment
       run: |
-        echo -n "::set-output name=time::"
-        TZ=America/Los_Angeles date
-    - name: Add in progress status comment
-      uses: phulsechinmay/rewritable-pr-comment@v0.3.0
-      with:
-        message: |
-          ### ⏳&nbsp; Integration test in progress...
-          Requested by @${{github.actor}} on commit ${{steps.get_pr_number.outputs.github_ref}}
-          Last updated: ${{ steps.get-time.outputs.time }}
-          **[View integration test run](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-        GITHUB_TOKEN: ${{ github.token }}
-        COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
-        ISSUE_ID: ${{steps.get_pr_number.outputs.pr_number}}
+        python scripts/gha/it_workflow.py --stage start \
+          --token ${{github.token}} \
+          --issue_number ${{steps.get_pr_number.outputs.pr_number}} \
+          --actor ${{github.actor}} \
+          --commit ${{steps.get_pr_number.outputs.github_ref}} \
+          --run_id ${{github.run_id}}
 
   # To feed input into the job matrix, we first need to convert to a JSON
   # list. Then we can use fromJson to define the field in the matrix for the tests job.
@@ -403,48 +369,23 @@ jobs:
           pushd ${{env.GCS_UPLOAD_DIR}}
           python scripts/gha/gcs_uploader.py --testapp_dir ta --key_file scripts/gha-encrypted/gcs_key_file.json
           popd
-      - name: Add failure label
-        # We can mark a failure as soon as any one test fails.
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          github_token: ${{ github.token }}
-          number: "${{needs.check_trigger.outputs.pr_number}}"
-          labels: "${{ env.statusLabelFailed }}"
-      - name: Get current time for status comment
-        id: get-time
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        shell: bash
-        run: |
-          echo -n "::set-output name=time::"
-          TZ=America/Los_Angeles date
       - name: Download log artifacts
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         with:
           path: test_results
           name: log-artifact
-      - name: Get summary of test results
-        id: get-summary
+      - name: Update PR label and comment
         shell: bash
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         run: |
-          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
-          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
-      - name: Add failure status comment
-        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        with:
-          message: |
-            ### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)
-            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
-            Last updated: ${{ steps.get-time.outputs.time }}
-            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-            ${{ env.SUMMARY_TABLE }}
-          GITHUB_TOKEN: ${{ github.token }}
-          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
-          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
+          pushd ${{env.GCS_UPLOAD_DIR}}
+          python scripts/gha/it_workflow.py --stage progress \
+            --token ${{github.token}} \
+            --issue_number ${{needs.check_trigger.outputs.pr_number}}\
+            --actor ${{github.actor}} \
+            --commit ${{needs.prepare_matrix.outputs.github_ref}} \
+            --run_id ${{github.run_id}}
       - name: Summarize build results
         if: ${{ !cancelled() }}
         shell: bash
@@ -549,48 +490,21 @@ jobs:
           name: log-artifact
           path: build-results-android-${{ matrix.os }}*
           retention-days: ${{ env.artifactRetentionDays }}
-      - name: Add failure label
-        # We can mark a failure as soon as any one test fails.
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          github_token: ${{ github.token }}
-          number: "${{needs.check_trigger.outputs.pr_number}}"
-          labels: "${{ env.statusLabelFailed }}"
-      - name: Get current time for status comment
-        id: get-time
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        shell: bash
-        run: |
-          echo -n "::set-output name=time::"
-          TZ=America/Los_Angeles date
       - name: Download log artifacts
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         with:
           path: test_results
           name: log-artifact
-      - name: Get summary of test results
-        id: get-summary
-        shell: bash
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+      - name: Update PR label and comment
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         run: |
-          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
-          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
-      - name: Add failure status comment
-        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        with:
-          message: |
-            ### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)
-            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
-            Last updated: ${{ steps.get-time.outputs.time }}
-            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-            ${{ env.SUMMARY_TABLE }}
-          GITHUB_TOKEN: ${{ github.token }}
-          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
-          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
+          python scripts/gha/it_workflow.py --stage progress \
+            --token ${{github.token}} \
+            --issue_number ${{needs.check_trigger.outputs.pr_number}}\
+            --actor ${{github.actor}} \
+            --commit ${{needs.prepare_matrix.outputs.github_ref}} \
+            --run_id ${{github.run_id}}
       - name: Summarize build results
         if: ${{ !cancelled() }}
         shell: bash
@@ -674,48 +588,21 @@ jobs:
           name: log-artifact
           path: build-results-ios-macos-latest*
           retention-days: ${{ env.artifactRetentionDays }}
-      - name: Add failure label
-        # We can mark a failure as soon as any one test fails.
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          github_token: ${{ github.token }}
-          number: "${{needs.check_trigger.outputs.pr_number}}"
-          labels: "${{ env.statusLabelFailed }}"
-      - name: Get current time for status comment
-        id: get-time
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        shell: bash
-        run: |
-          echo -n "::set-output name=time::"
-          TZ=America/Los_Angeles date
       - name: Download log artifacts
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         with:
           path: test_results
           name: log-artifact
-      - name: Get summary of test results
-        id: get-summary
-        shell: bash
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+      - name: Update PR label and comment
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         run: |
-          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
-          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
-      - name: Add failure status comment
-        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        with:
-          message: |
-            ### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)
-            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
-            Last updated: ${{ steps.get-time.outputs.time }}
-            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-            ${{ env.SUMMARY_TABLE }}
-          GITHUB_TOKEN: ${{ github.token }}
-          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
-          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
+          python scripts/gha/it_workflow.py --stage progress \
+            --token ${{github.token}} \
+            --issue_number ${{needs.check_trigger.outputs.pr_number}}\
+            --actor ${{github.actor}} \
+            --commit ${{needs.prepare_matrix.outputs.github_ref}} \
+            --run_id ${{github.run_id}}
       - name: Summarize build results
         if: ${{ !cancelled() }}
         shell: bash
@@ -760,49 +647,22 @@ jobs:
         with:
           name: log-artifact
           path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}*
-          retention-days: ${{ env.artifactRetentionDays }}          
-      - name: Add failure label
-        # We can mark a failure as soon as any one test fails.
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          github_token: ${{ github.token }}
-          number: "${{needs.check_trigger.outputs.pr_number}}"
-          labels: "${{ env.statusLabelFailed }}"
-      - name: Get current time for status comment
-        id: get-time
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        shell: bash
-        run: |
-          echo -n "::set-output name=time::"
-          TZ=America/Los_Angeles date
+          retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         with:
           path: test_results
           name: log-artifact
-      - name: Get summary of test results
-        id: get-summary
-        shell: bash
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+      - name: Update PR label and comment
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         run: |
-          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
-          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
-      - name: Add failure status comment
-        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        with:
-          message: |
-            ### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)
-            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
-            Last updated: ${{ steps.get-time.outputs.time }}
-            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-            ${{ env.SUMMARY_TABLE }}
-          GITHUB_TOKEN: ${{ github.token }}
-          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
-          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
+          python scripts/gha/it_workflow.py --stage progress \
+            --token ${{github.token}} \
+            --issue_number ${{needs.check_trigger.outputs.pr_number}}\
+            --actor ${{github.actor}} \
+            --commit ${{needs.prepare_matrix.outputs.github_ref}} \
+            --run_id ${{github.run_id}}       
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
@@ -865,49 +725,22 @@ jobs:
         with:
           name: log-artifact
           path: testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}*
-          retention-days: ${{ env.artifactRetentionDays }}  
-      - name: Add failure label
-        # We can mark a failure as soon as any one test fails.
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          github_token: ${{ github.token }}
-          number: "${{needs.check_trigger.outputs.pr_number}}"
-          labels: "${{ env.statusLabelFailed }}"
-      - name: Get current time for status comment
-        id: get-time
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        shell: bash
-        run: |
-          echo -n "::set-output name=time::"
-          TZ=America/Los_Angeles date
+          retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         with:
           path: test_results
           name: log-artifact
-      - name: Get summary of test results
-        id: get-summary
-        shell: bash
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+      - name: Update PR label and comment
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         run: |
-          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
-          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
-      - name: Add failure status comment
-        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        with:
-          message: |
-            ### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)
-            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
-            Last updated: ${{ steps.get-time.outputs.time }}
-            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-            ${{ env.SUMMARY_TABLE }}
-          GITHUB_TOKEN: ${{ github.token }}
-          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
-          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
+          python scripts/gha/it_workflow.py --stage progress \
+            --token ${{github.token}} \
+            --issue_number ${{needs.check_trigger.outputs.pr_number}}\
+            --actor ${{github.actor}} \
+            --commit ${{needs.prepare_matrix.outputs.github_ref}} \
+            --run_id ${{github.run_id}}
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
@@ -963,55 +796,28 @@ jobs:
             --logfile_name "ios-macos-latest-${{ matrix.ios_device }}" \
             --code_platform cpp \
             --key_file scripts/gha-encrypted/gcs_key_file.json
-      - name: Upload Android test results artifact
+      - name: Upload iOS test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
           path: testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}*
-          retention-days: ${{ env.artifactRetentionDays }}  
-      - name: Add failure label
-        # We can mark a failure as soon as any one test fails.
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          github_token: ${{ github.token }}
-          number: "${{needs.check_trigger.outputs.pr_number}}"
-          labels: "${{ env.statusLabelFailed }}"
-      - name: Get current time for status comment
-        id: get-time
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        shell: bash
-        run: |
-          echo -n "::set-output name=time::"
-          TZ=America/Los_Angeles date
+          retention-days: ${{ env.artifactRetentionDays }}      
       - name: Download log artifacts
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
         with:
           path: test_results
           name: log-artifact
-      - name: Get summary of test results
-        id: get-summary
-        shell: bash
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
+      - name: Update PR label and comment
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         run: |
-          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
-          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
-      - name: Add failure status comment
-        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        with:
-          message: |
-            ### ❌&nbsp; Integration test FAILED (but still ⏳&nbsp; in progress)
-            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
-            Last updated: ${{ steps.get-time.outputs.time }}
-            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-            ${{ env.SUMMARY_TABLE }}
-          GITHUB_TOKEN: ${{ github.token }}
-          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
-          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
+          python scripts/gha/it_workflow.py --stage progress \
+            --token ${{github.token}} \
+            --issue_number ${{needs.check_trigger.outputs.pr_number}}\
+            --actor ${{github.actor}} \
+            --commit ${{needs.prepare_matrix.outputs.github_ref}} \
+            --run_id ${{github.run_id}}
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
@@ -1020,112 +826,10 @@ jobs:
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
-          
-  add_success_label:
-    name: "add-success-label"
-    needs: [check_trigger, prepare_matrix, test_desktop, test_android, test_ios]
-    runs-on: ubuntu-latest
-    if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && !failure() }}
-    steps:
-      - name: Add success label
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          github_token: ${{ github.token }}
-          number: "${{needs.check_trigger.outputs.pr_number}}"
-          labels: "${{ env.statusLabelSucceeded }}"
-      - name: Get current time for status comment
-        id: get-time
-        shell: bash
-        run: |
-          echo -n "::set-output name=time::"
-          TZ=America/Los_Angeles date
-      - name: Add success status comment
-        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
-        with:
-          message: |
-            ### ✅&nbsp; Integration test succeeded!
-            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
-            Last updated: ${{ steps.get-time.outputs.time }}
-            **[View integration test results](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-          GITHUB_TOKEN: ${{ github.token }}
-          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
-          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
-
-  add_failure_label:
-    name: "add-failure-label"
-    needs: [check_trigger, prepare_matrix, test_desktop, test_android, test_ios]
-    runs-on: ubuntu-latest
-    if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() && failure() }}
-    steps:
-      - name: Add failure label
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          github_token: ${{ github.token }}
-          number: "${{needs.check_trigger.outputs.pr_number}}"
-          labels: "${{ env.statusLabelFailed }}"
-      - name: Get current time for status comment
-        id: get-time
-        shell: bash
-        run: |
-          echo -n "::set-output name=time::"
-          TZ=America/Los_Angeles date
-      - uses: actions/checkout@v2
-        with:
-          ref: ${{needs.prepare_matrix.outputs.github_ref}}
-      - name: Setup python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ env.pythonVersion }}
-      - name: Install python deps
-        run: python scripts/gha/install_prereqs_desktop.py
-      - name: Download log artifacts
-        uses: actions/download-artifact@v2.0.8
-        with:
-          path: test_results
-          name: log-artifact
-      - name: Get summary of test results
-        shell: bash
-        run: |
-          echo 'SUMMARY_TABLE<<EOF' >> $GITHUB_ENV
-          python scripts/gha/summarize_test_results.py --dir test_results --markdown >> $GITHUB_ENV
-          echo 'EOF' >> $GITHUB_ENV
-      - name: Add failure status comment
-        uses: phulsechinmay/rewritable-pr-comment@v0.3.0
-        with:
-          message: |
-            ### ❌&nbsp; Integration test FAILED
-            Requested by @${{github.actor}} on commit ${{needs.prepare_matrix.outputs.github_ref}}
-            Last updated: ${{ steps.get-time.outputs.time }}
-            **[Download integration test detailed logs and artifacts](https://github.com/${{github.repository}}/actions/runs/${{github.run_id}})**
-            ${{ env.SUMMARY_TABLE }}
-          GITHUB_TOKEN: ${{ github.token }}
-          COMMENT_IDENTIFIER: ${{ env.statusCommentIdentifier }}
-          ISSUE_ID: ${{needs.check_trigger.outputs.pr_number}}
-
-  remove_in_progress_label:
-    name: "remove-in-progress-label"
-    needs: [check_trigger, prepare_matrix, test_desktop, test_android, test_ios]
-    runs-on: ubuntu-latest
-    if: ${{ needs.check_trigger.outputs.should_update_labels && !cancelled() }}
-    steps:
-      # Use a different token to remove the "in-progress" label,
-      # to allow the removal to trigger the "Check Labels" workflow.
-      - name: Generate token for GitHub API
-        uses: tibdex/github-app-token@v1
-        id: generate-token
-        with:
-          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
-          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
-      - name: Remove in progress label
-        uses: actions-ecosystem/action-remove-labels@v1
-        with:
-          github_token: ${{steps.generate-token.outputs.token}}
-          number: "${{needs.check_trigger.outputs.pr_number}}"
-          labels: "${{ env.statusLabelInProgress }}"
 
   summarize_results:
     name: "summarize-results"
-    needs: [prepare_matrix, add_failure_label, add_success_label, remove_in_progress_label, test_desktop, test_android, test_ios]
+    needs: [check_trigger, prepare_matrix, test_desktop, test_android, test_ios]
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }}
     steps:
@@ -1137,11 +841,37 @@ jobs:
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
-        run: python scripts/gha/install_prereqs_desktop.py
+        run: pip install -r scripts/gha/requirements.txt
       - name: Download log artifacts
         uses: actions/download-artifact@v2.0.8
         with:
           path: test_results
           name: log-artifact
+      # Use a different token to remove the "in-progress" label,
+      # to allow the removal to trigger the "Check Labels" workflow.
+      - name: Generate token for GitHub API
+        uses: tibdex/github-app-token@v1
+        id: generate-token
+        with:
+          app_id: ${{ secrets.WORKFLOW_TRIGGER_APP_ID }}
+          private_key: ${{ secrets.WORKFLOW_TRIGGER_APP_PRIVATE_KEY }}
+      - name: Update PR label and comment
+        if: ${{ needs.check_trigger.outputs.should_update_pr }}
+        run: |
+          python scripts/gha/it_workflow.py --stage end \
+            --token ${{github.token}} \
+            --issue_number ${{needs.check_trigger.outputs.pr_number}}\
+            --actor ${{github.actor}} \
+            --commit ${{needs.prepare_matrix.outputs.github_ref}} \
+            --run_id ${{github.run_id}} \
+            --new_token ${{steps.generate-token.outputs.token}}
+      - name: Update Daily Report
+        if: ${{ github.event_name == 'schedule' }}
+        run: |
+          python scripts/gha/it_workflow.py --stage report \
+            --token ${{github.token}} \
+            --actor ${{github.actor}} \
+            --commit ${{needs.prepare_matrix.outputs.github_ref}} \
+            --run_id ${{github.run_id}}
       - name: Summarize results into GitHub log
         run: python scripts/gha/summarize_test_results.py --dir test_results --github_log

@@ -101,10 +101,12 @@ class PromiseTest : public FirestoreAndroidIntegrationTest {
 // latter specialization provides access to the "result" specified to
 // `CompleteWith`.
 template <typename PublicType, typename InternalType>
-class TestCompletionBase : public Promise<PublicType, InternalType,
+class TestCompletionBase : public Promise<PublicType,
+                                          InternalType,
                                           PromiseTest::AsyncFn>::Completion {
  public:
-  void CompleteWith(Error error_code, const char* error_message,
+  void CompleteWith(Error error_code,
+                    const char* error_message,
                     PublicType* result) override {
     MutexLock lock(mutex_);
     FIREBASE_ASSERT(invocation_count_ == 0);
