@@ -511,8 +511,6 @@ class RemoteConfig {
   // Clean up RemoteConfig instance.
   void DeleteInternal();
 
-  uint64_t GetConfigFetchInterval();
-
   /// The Firebase App this remote config is connected to.
   App* app_;
 
