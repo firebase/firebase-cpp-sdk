@@ -10,12 +10,9 @@ namespace firestore {
 template <typename T>
 class EventAccumulator {
  public:
-  EventAccumulator() : listener_("EventAccumulator") {
-  }
+  EventAccumulator() : listener_("EventAccumulator") {}
 
-  TestEventListener<T>* listener() {
-    return &listener_;
-  }
+  TestEventListener<T>* listener() { return &listener_; }
 
   std::vector<T> Await(int num_events) {
     int old_num_events = num_events_consumed_;
@@ -91,18 +88,14 @@ class EventAccumulator {
     return event;
   }
 
-  void FailOnNextEvent() {
-    listener_.FailOnNextEvent();
-  }
+  void FailOnNextEvent() { listener_.FailOnNextEvent(); }
 
  private:
   bool HasPendingWrites(T event) {
     return event.metadata().has_pending_writes();
   }
 
-  bool IsFromCache(T event) {
-    return event.metadata().is_from_cache();
-  }
+  bool IsFromCache(T event) { return event.metadata().is_from_cache(); }
 
   TestEventListener<T> listener_;
 

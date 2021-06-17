@@ -671,8 +671,7 @@ TEST_F(FirestoreIntegrationTest,
   class SnapshotTestEventListener : public TestEventListener<DocumentSnapshot> {
    public:
     SnapshotTestEventListener(std::string name, TestData& test_data)
-        : TestEventListener(std::move(name)), test_data_(test_data) {
-    }
+        : TestEventListener(std::move(name)), test_data_(test_data) {}
 
     void OnEvent(const DocumentSnapshot& value,
                  Error error_code,
@@ -700,12 +699,9 @@ TEST_F(FirestoreIntegrationTest,
 #else
   class SyncEventListener : public EventListener<void> {
    public:
-    explicit SyncEventListener(TestData& test_data) : test_data_(test_data) {
-    }
+    explicit SyncEventListener(TestData& test_data) : test_data_(test_data) {}
 
-    void OnEvent(Error) override {
-      test_data_.AddEvent("snapshots-in-sync");
-    }
+    void OnEvent(Error) override { test_data_.AddEvent("snapshots-in-sync"); }
 
    private:
     TestData& test_data_;

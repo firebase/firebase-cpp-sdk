@@ -67,9 +67,7 @@ class FirestoreAndroidIntegrationTest : public FirestoreIntegrationTest {
   void SetUp() override;
   void TearDown() noexcept(false) override;
 
-  jni::Loader& loader() {
-    return loader_;
-  }
+  jni::Loader& loader() { return loader_; }
 
   /** Creates and returns a new Java `Exception` object with a message. */
   jni::Local<jni::Throwable> CreateException(jni::Env& env,

@@ -19,14 +19,11 @@ class IncludesTest : public testing::Test {
 namespace {
 
 struct TestListener : EventListener<int> {
-  void OnEvent(const int&, Error, const std::string&) override {
-  }
+  void OnEvent(const int&, Error, const std::string&) override {}
 };
 
 struct TestTransactionFunction : TransactionFunction {
-  Error Apply(Transaction&, std::string&) override {
-    return Error::kErrorOk;
-  }
+  Error Apply(Transaction&, std::string&) override { return Error::kErrorOk; }
 };
 
 }  // namespace
