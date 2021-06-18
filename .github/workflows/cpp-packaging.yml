@@ -161,10 +161,10 @@ jobs:
 
       - name: build sdk
         run: |
-          sdk-src/build_scripts/ios/build.sh -b firebase-cpp-sdk-ios-build -s sdk-src
-          sdk-src/build_scripts/ios/package.sh firebase-cpp-sdk-ios-build firebase-cpp-sdk-ios-package
-          cd firebase-cpp-sdk-ios-package
-          tar -czhf ../firebase-cpp-sdk-ios-package.tgz .
+          python sdk-src/scripts/gha/build_ios_tvos.py -b firebase-cpp-sdk-ios-tvos-build
+          sdk-src/build_scripts/ios/package.sh firebase-cpp-sdk-ios-tvos-build firebase-cpp-sdk-ios-tvos-package
+          cd firebase-cpp-sdk-ios-tvos-package
+          tar -czhf ../firebase-cpp-sdk-ios-tvos-package.tgz .
 
       - name: Print built libraries
         shell: bash
@@ -184,8 +184,8 @@ jobs:
       - name: upload artifacts
         uses: actions/upload-artifact@v2.2.2
         with:
-          name: firebase-cpp-sdk-ios-package
-          path: firebase-cpp-sdk-ios-package.tgz
+          name: firebase-cpp-sdk-ios-tvos-package
+          path: firebase-cpp-sdk-ios-tvos-package.tgz
 
   build_and_package_android:
     name: build-and-package-android-${{matrix.stl}}
