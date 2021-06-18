@@ -156,6 +156,11 @@ jobs:
         with:
           path: sdk-src
 
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+
       - name: install prerequisites
         run: sdk-src/build_scripts/ios/install_prereqs.sh
 
