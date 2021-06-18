@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 52;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -52,9 +52,6 @@
 		BC1D685A267B010D005DC2DA /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D6859267B010D005DC2DA /* Foundation.framework */; };
 		BC1D685C267B0112005DC2DA /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D685B267B0112005DC2DA /* UIKit.framework */; };
 		BC1D685E267B0116005DC2DA /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D685D267B0116005DC2DA /* CoreGraphics.framework */; };
-		BC1D6865267BDC93005DC2DA /* firebase_auth.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D6818267AFF9B005DC2DA /* firebase_auth.xcframework */; };
-		BC1D6866267BDC94005DC2DA /* firebase_firestore.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D681A267AFF9B005DC2DA /* firebase_firestore.xcframework */; };
-		BC1D6867267BDC94005DC2DA /* firebase.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D6819267AFF9B005DC2DA /* firebase.xcframework */; };
 		D61A465D2606EA0B007EBE9B /* transaction_extra_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61A465C2606EA0B007EBE9B /* transaction_extra_test.cc */; };
 		D61C5F8E22BABA9C00A79141 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D61C5F8C22BABA9B00A79141 /* Images.xcassets */; };
 		D61CFBC126091C3B0035CB2A /* integration_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61CFBC026091C3A0035CB2A /* integration_test.cc */; };
@@ -169,9 +166,6 @@
 				529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */,
 				529226D61C85F68000C89379 /* Foundation.framework in Frameworks */,
 				274316C12F909A9C32E0A64A /* libPods-integration_test.a in Frameworks */,
-				BC1D6865267BDC93005DC2DA /* firebase_auth.xcframework in Frameworks */,
-				BC1D6866267BDC94005DC2DA /* firebase_firestore.xcframework in Frameworks */,
-				BC1D6867267BDC94005DC2DA /* firebase.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -366,6 +360,7 @@
 					};
 					BC1D6821267B0030005DC2DA = {
 						CreatedOnToolsVersion = 12.5;
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -813,10 +808,7 @@
 					"\"$(SRCROOT)/../..\"",
 				);
 				INFOPLIST_FILE = integration_test_tvos/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.google.firebase.cpp.firestore.testapp.integration-test-tvos";
@@ -881,10 +873,7 @@
 					"\"$(SRCROOT)/../..\"",
 				);
 				INFOPLIST_FILE = integration_test_tvos/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.google.firebase.cpp.firestore.testapp.integration-test-tvos";
 				PRODUCT_NAME = "$(TARGET_NAME)";
