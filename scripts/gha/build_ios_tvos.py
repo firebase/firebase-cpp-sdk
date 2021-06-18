@@ -20,21 +20,19 @@ ios and tvos.
 
 It does the following,
 - Build ios and tvos libraries via cmake (after downloading corresponding
-cocoapods)
+cocoapods).
 - Create a "universal" framework if all platforms and architectures were built.
-- Create "xcframeworks" combining both ios and tvos frameworks under one roof.
+- Create "xcframeworks" combining both ios and tvos frameworks.
 
 Usage examples:
 # Build all supported targets and architectures on all platforms.
 python3 scripts/gha/build_ios_tvos.py
-
 
 # Build specific targets
 python3 scripts/gha/build_ios_tvos.py -t firebase_auth firebase_database
 
 # Build for specific architectures
 python3 scripts/gha/build_ios_tvos.py -p arm64 -t firebase_remote_config
-
 """
 
 import argparse
@@ -128,7 +126,7 @@ def arrange_frameworks(archive_output_path):
 def build_universal_framework(frameworks_path):
   """Create universal frameworks if possible.
 
-  If all architectures (eg: arm64, armv7 etc) and platforms(device, simulator)
+  If all architectures (eg: arm64, armv7 etc) and platforms (device, simulator)
   were built, combine all of the libraries into a single universal framework.
   Args:
       frameworks_path (str): Root path containing subdirectories for each
@@ -447,9 +445,10 @@ def cmake_configure_and_build(build_path, toolchain,
       archive_output_path (str): Path to build and save libraries/frameworks to.
       targets (list(str)): CMake build targets. (eg: firebase_auth, etc)
       architecture (str, optional): Architecture passed onto the cmake build
-        system. Used when building for ios only. Defaults to None.
+        system. Used when building for ios only. (eg:'arm64', 'x86_64')
       toolchain_platform (str, optional): Platform cmake option passed for tvos
-        builds only. Defaults to None.
+        builds only. Accepts all platforms supported by the tvos toolchain.
+        (eg: 'TVOS', 'SIMULATOR_TVOS' etc)
   """
   cmd = ['cmake', '-S', '.', '-B', build_path]
   cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(toolchain))
