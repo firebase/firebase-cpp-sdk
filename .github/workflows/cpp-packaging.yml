@@ -166,7 +166,7 @@ jobs:
 
       - name: build sdk
         run: |
-          python sdk-src/scripts/gha/build_ios_tvos.py -b firebase-cpp-sdk-ios-tvos-build
+          python sdk-src/scripts/gha/build_ios_tvos.py -b firebase-cpp-sdk-ios-tvos-build -s sdk-src
           sdk-src/build_scripts/ios/package.sh firebase-cpp-sdk-ios-tvos-build firebase-cpp-sdk-ios-tvos-package
           cd firebase-cpp-sdk-ios-tvos-package
           tar -czhf ../firebase-cpp-sdk-ios-tvos-package.tgz .
