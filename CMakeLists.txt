@@ -145,6 +145,8 @@ endif()
 
 if(FIREBASE_GITHUB_ACTION_BUILD)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIREBASE_GITHUB_ACTION_BUILD=1")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIREBASE_GITHUB_ACTION_BUILD=0")
 endif()
 
 # Set directories needed by the Firebase subprojects
