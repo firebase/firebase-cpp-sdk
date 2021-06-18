@@ -433,12 +433,13 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist):
                      dest_headers_path)
 
 
-def cmake_configure_and_build(build_path, toolchain,
+def cmake_configure_and_build(source_path, build_path, toolchain,
                               archive_output_path, targets,
                               architecture=None, toolchain_platform=None):
   """CMake configure build project and build libraries.
 
   Args:
+      source_path (str): Source directory containing top level CMakeLists.txt.
       build_path (str): CMake build path (where project is built).
       toolchain (str): Path to CMake toolchain file. Differs based on os and/or
         platform.
@@ -450,7 +451,7 @@ def cmake_configure_and_build(build_path, toolchain,
         builds only. Accepts all platforms supported by the tvos toolchain.
         (eg: 'TVOS', 'SIMULATOR_TVOS' etc)
   """
-  cmd = ['cmake', '-S', '.', '-B', build_path]
+  cmd = ['cmake', '-S', source_path, '-B', build_path]
   cmd.append('-DCMAKE_TOOLCHAIN_FILE={0}'.format(toolchain))
   cmd.append('-DCMAKE_ARCHIVE_OUTPUT_DIRECTORY={0}'.format(archive_output_path))
   if architecture:
@@ -512,7 +513,8 @@ def main():
         # For tvos builds, we pass a special cmake option PLATFORM to toolchain.
         toolchain_platform = os_platform_config['toolchain_platform'] if \
                              apple_os == 'tvos' else None
-        cmake_configure_and_build(build_path, os_platform_config['toolchain'],
+        cmake_configure_and_build(args.source_dir, build_path,
+                                  os_platform_config['toolchain'],
                                   archive_output_path, supported_targets,
                                   architecture, toolchain_platform)
         # Arrange frameworks
