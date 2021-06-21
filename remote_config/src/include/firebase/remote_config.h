@@ -245,7 +245,8 @@ class RemoteConfig {
   ///
   /// @note This does not actually apply the data or make it accessible,
   /// it merely retrieves it and caches it.  To accept and access the newly
-  /// retrieved values, you must call @ref ActivateFetched().
+  /// retrieved values, you must call @ref Activate().
+  ///
   /// Note that this function is asynchronous, and will normally take an
   /// unspecified amount of time before completion.
   ///
