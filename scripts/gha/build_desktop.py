@@ -150,7 +150,7 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, cleanup=True
 
 def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='legacy',
                     build_tests=True, config=None, target_format=None,
-                    use_openssl=False, disable_vcpkg=False, gha_build=False,verbose=False):
+                    use_openssl=False, disable_vcpkg=False, gha_build=False, verbose=False):
   """ CMake configure.
 
   If you are seeing problems when running this multiple times,
