@@ -12,8 +12,6 @@
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/document_snapshot_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/document_snapshot_stub.h"
 #else
 #include "firestore/src/main/document_snapshot_main.h"
 #endif  // defined(__ANDROID__)

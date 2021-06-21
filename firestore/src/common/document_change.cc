@@ -7,8 +7,6 @@
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/document_change_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/document_change_stub.h"
 #else
 #include "firestore/src/main/document_change_main.h"
 #endif  // defined(__ANDROID__)

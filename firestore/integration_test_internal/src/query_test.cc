@@ -15,9 +15,6 @@
 #if defined(__ANDROID__)
 #include "firestore/src/android/query_android.h"
 #include "firestore/src/common/wrapper_assertions.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/common/wrapper_assertions.h"
-#include "firestore/src/stub/query_stub.h"
 #endif  // defined(__ANDROID__)
 
 #include "Firestore/core/src/util/firestore_exceptions.h"
@@ -57,8 +54,6 @@ std::vector<MapFieldValue> AllDocsExcept(
 }
 
 }  // namespace
-
-#if !defined(FIRESTORE_STUB_BUILD)
 
 TEST_F(QueryTest, TestLimitQueries) {
   CollectionReference collection =
@@ -996,9 +991,7 @@ TEST_F(QueryTest,
             QuerySnapshotToIds(query_snapshot));
 }
 
-#endif  // !defined(FIRESTORE_STUB_BUILD)
-
-#if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#if defined(__ANDROID__)
 TEST(QueryTestAndroidStub, Construction) {
   testutil::AssertWrapperConstructionContract<Query>();
 }
@@ -1006,7 +999,7 @@ TEST(QueryTestAndroidStub, Construction) {
 TEST(QueryTestAndroidStub, Assignment) {
   testutil::AssertWrapperAssignmentContract<Query>();
 }
-#endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#endif  // defined(__ANDROID__)
 
 }  // namespace firestore
 }  // namespace firebase

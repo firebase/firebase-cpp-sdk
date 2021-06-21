@@ -47,23 +47,14 @@ Future<T> FailedFuture(Error error, const char* message) {
 }
 
 /**
- * Returns a failed future suitable for returning from a stub or "invalid"
- * instance.
- *
- * Note that without proper Desktop support, we use firsetore_stub.cc which
- * uses FailedFuture() for its own methods but constructs "invalid" instances
- * of DocumentReference, etc. which also use FailedFuture(). So the wrapped
- * error must be generic enough to cover both unimplemented desktop support as
- * well as normal "invalid" instances (i.e. the underlying Firestore instance
- * has been destructed).
+ * Returns a failed future suitable for returning from an "invalid" instance.
  */
 template <typename T>
 Future<T> FailedFuture() {
   static auto* future = new Future<T>(FailedFuture<T>(
       Error::kErrorFailedPrecondition,
-      "This instance is in an invalid state. This could either because the "
-      "underlying Firestore instance has been destructed or because you're "
-      "running on an unsupported platform."));
+      "This instance is in an invalid state. This is because the  underlying "
+      "Firestore instance has been destructed."));
   return *future;
 }
 

@@ -6,8 +6,6 @@
 #include "gtest/gtest.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/transaction_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/transaction_stub.h"
 #endif  // defined(__ANDROID__)
 #include "firebase_test_framework.h"
 // These test cases are in sync with native iOS client SDK test

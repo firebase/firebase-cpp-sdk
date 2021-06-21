@@ -26,12 +26,12 @@
 
 #include "app/meta/move.h"
 
-#if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#if defined(__ANDROID__)
 #include "firestore/src/android/field_path_portable.h"
 #else
 #include "Firestore/core/src/model/field_path.h"
 #include "Firestore/core/src/util/hashing.h"
-#endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#endif  // defined(__ANDROID__)
 
 namespace firebase {
 namespace firestore {
@@ -138,17 +138,10 @@ size_t hash<firebase::firestore::FieldPath>::operator()(
   }
   return hash;
 }
-#elif !defined(FIRESTORE_STUB_BUILD)
+#else
 size_t hash<firebase::firestore::FieldPath>::operator()(
     const firebase::firestore::FieldPath& field_path) const {
   return firebase::firestore::util::Hash(*field_path.internal_);
-}
-
-#else
-// Stub
-size_t hash<firebase::firestore::FieldPath>::operator()(
-    const firebase::firestore::FieldPath&) const {
-  return 0;
 }
 #endif  // defined(_STLPORT_VERSION)
 }  // namespace std
