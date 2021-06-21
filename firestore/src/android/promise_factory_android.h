@@ -18,19 +18,31 @@ template <typename EnumT>
 class PromiseFactory {
  public:
   explicit PromiseFactory(FirestoreInternal* firestore)
-      : firestore_(firestore) {
-    firestore_->future_manager().AllocFutureApi(this, ApiCount());
+      : firestore_ref_(firestore) {
+    firestore_ref_.RunIfValid([this](FirestoreInternal* firestore) {
+      firestore->future_manager().AllocFutureApi(this, ApiCount());
+    });
   }
 
-  PromiseFactory(const PromiseFactory& rhs) : firestore_(rhs.firestore_) {
-    firestore_->future_manager().AllocFutureApi(this, ApiCount());
+  PromiseFactory(const PromiseFactory& rhs)
+      : firestore_ref_(rhs.firestore_ref_) {
+    firestore_ref_.RunIfValid([this](FirestoreInternal* firestore) {
+      firestore->future_manager().AllocFutureApi(this, ApiCount());
+    });
   }
 
-  PromiseFactory(PromiseFactory&& rhs) : firestore_(rhs.firestore_) {
-    firestore_->future_manager().MoveFutureApi(&rhs, this);
+  PromiseFactory(PromiseFactory&& rhs)
+      : firestore_ref_(Move(rhs.firestore_ref_)) {
+    firestore_ref_.RunIfValid([this, &rhs](FirestoreInternal* firestore) {
+      firestore->future_manager().MoveFutureApi(&rhs, this);
+    });
   }
 
-  ~PromiseFactory() { firestore_->future_manager().ReleaseFutureApi(this); }
+  ~PromiseFactory() {
+    firestore_ref_.RunIfValid([this](FirestoreInternal* firestore) {
+      firestore->future_manager().ReleaseFutureApi(this);
+    });
+  }
 
   PromiseFactory& operator=(const PromiseFactory&) = delete;
   PromiseFactory& operator=(PromiseFactory&&) = delete;
@@ -42,8 +54,14 @@ class PromiseFactory {
   Promise<PublicT, InternalT, EnumT> MakePromise(
       typename Promise<PublicT, InternalT, EnumT>::Completion* completion =
           nullptr) {
-    return Promise<PublicT, InternalT, EnumT>{future_api(), firestore_,
-                                              completion};
+    return firestore_ref_.Run([this, completion](FirestoreInternal* firestore) {
+      ReferenceCountedFutureImpl* future_api = nullptr;
+      if (firestore) {
+        future_api = firestore->future_manager().GetFutureApi(this);
+      }
+      return Promise<PublicT, InternalT, EnumT>{firestore_ref_, future_api,
+                                                completion};
+    });
   }
 
   template <typename PublicT, typename InternalT = InternalType<PublicT>>
@@ -61,15 +79,9 @@ class PromiseFactory {
   }
 
  private:
-  // Gets the reference-counted Future implementation of this instance, which
-  // can be used to create a Future.
-  ReferenceCountedFutureImpl* future_api() {
-    return firestore_->future_manager().GetFutureApi(this);
-  }
-
   constexpr int ApiCount() const { return static_cast<int>(EnumT::kCount); }
 
-  FirestoreInternal* firestore_ = nullptr;
+  FirestoreInternalWeakReference firestore_ref_;
 };
 
 }  // namespace firestore
