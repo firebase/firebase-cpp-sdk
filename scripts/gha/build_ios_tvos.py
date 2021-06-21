@@ -176,22 +176,23 @@ def build_universal_framework(frameworks_path):
     # Extract list of all built platform-architecture combinations into a map.
     # Map looks like this,
     # {'device': ['arm64', 'armv7'], 'simulator': ['x86_64']}
-    platform_architecture_dirs = os.listdir(framework_os_path)
-    platform_arch_map = defaultdict(list)
-    for platform_architecture in platform_architecture_dirs:
-      logging.debug('Inspecting ' + platform_architecture)
-      platform, architecture = platform_architecture.split('-')
-      platform_arch_map[platform].append(architecture)
+    platform_variant_architecture_dirs = os.listdir(framework_os_path)
+    platform_variant_arch_map = defaultdict(list)
+    for variant_architecture in platform_variant_architecture_dirs:
+      logging.debug('Inspecting ' + variant_architecture)
+      platform_variant, architecture = variant_architecture.split('-')
+      platform_variant_arch_map[platform_variant].append(architecture)
 
     build_universal = True
-    for platform in platform_arch_map:
+    for platform in platform_variant_arch_map:
       logging.debug('Found architectures for platform '
-        '{0}: {1}'.format(platform, ' '.join(platform_arch_map[platform])))
+        '{0}: {1}'.format(platform,
+                          ' '.join(platform_variant_arch_map[platform])))
       missing_architectures = set(CONFIG[apple_os][platform]['architectures']) \
-                              - set(platform_arch_map[platform])
+                              - set(platform_variant_arch_map[platform])
       if missing_architectures:
-        logging.error('Following architectures are missing for platform'
-          '{0}: {1}'.format(platform, ' '.join(missing_architectures)))
+        logging.error('Following architectures are missing for platform variant'
+          '{0}: {1}'.format(platform_variant, ' '.join(missing_architectures)))
         build_universal = False
         break
 
@@ -203,7 +204,7 @@ def build_universal_framework(frameworks_path):
     # Pick any of the platform-arch directories as a reference candidate mainly
     # for obtaining a list of contained targets.
     reference_dir_path = os.path.join(framework_os_path,
-                                      platform_architecture_dirs[0])
+                                      platform_variant_architecture_dirs[0])
     logging.debug('Using {0} as reference path for scanning '
                   'targets'.format(reference_dir_path))
     target_frameworks = [x for x in os.listdir(reference_dir_path)
@@ -216,15 +217,15 @@ def build_universal_framework(frameworks_path):
       target_libraries = []
       # Eg: split firebase_auth.framework -> firebase_auth, .framework
       target, _ = os.path.splitext(target_framework)
-      for platform_architecture_dir in platform_architecture_dirs:
+      for variant_architecture_dir in platform_variant_architecture_dirs:
         # Since we have arm64 for both device and simulator, lipo cannot combine
         # them in the same fat file. We ignore simulator-arm64.
-        if platform_architecture_dir == 'simulator-arm64':
+        if variant_architecture_dir == 'simulator-arm64':
           continue
         # <build_dir>/<apple_os>/frameworks/<platform-arch>/
         # <target>.framework/target
         library_path = os.path.join(framework_os_path,
-                                    platform_architecture_dir,
+                                    variant_architecture_dir,
                                     target_framework, target)
         target_libraries.append(library_path)
 
@@ -265,7 +266,7 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist):
   """Build xcframeworks combining libraries for different operating systems.
 
   Combine frameworks for different operating systems (ios, tvos), architectures
-  (arm64, armv7, x86_64 etc) per platform (device, simulator).
+  (arm64, armv7, x86_64 etc) per platform variant (device, simulator).
   This makes it super convenient for developers to use a single deliverable in
   XCode and develop for multiple platforms/operating systems in one project.
 
@@ -327,50 +328,50 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist):
   """
   for apple_os in os.listdir(frameworks_path):
     framework_os_path = os.path.join(frameworks_path, apple_os)
-    platform_architecture_dirs = os.listdir(framework_os_path)
+    platform_variant_architecture_dirs = os.listdir(framework_os_path)
     # Extract list of all built platform-architecture combinations into a map.
     # Map looks like this,
     # {'device': ['arm64', 'armv7'], 'simulator': ['x86_64']}
-    platform_arch_map = defaultdict(list)
-    for platform_architecture in platform_architecture_dirs:
+    platform_variant_arch_map = defaultdict(list)
+    for variant_architecture in platform_variant_architecture_dirs:
       # Skip directories not of the format platform-arch (eg: universal)
-      if not '-' in platform_architecture:
+      if not '-' in variant_architecture:
         continue
-      platform, architecture = platform_architecture.split('-')
-      platform_arch_map[platform].append(architecture)
+      platform_variant, architecture = variant_architecture.split('-')
+      platform_variant_arch_map[platform_variant].append(architecture)
 
     reference_dir_path = os.path.join(framework_os_path,
-                                      platform_architecture_dirs[0])
+                                      platform_variant_architecture_dirs[0])
     logging.debug('Using {0} as reference path for scanning '
                   'targets'.format(reference_dir_path))
     target_frameworks = [x for x in os.listdir(reference_dir_path)
                         if x.endswith('.framework')]
     logging.debug('Targets found: {0}'.format(' '.join(target_frameworks)))
 
-    # For each target, we collect all libraries for a specific platform
+    # For each target, we collect all libraries for a specific platform variants
     # (device or simulator) and os (ios or tvos).
     for target_framework in target_frameworks:
       target_libraries = []
       # Eg: split firebase_auth.framework -> firebase_auth, .framework
       target, _ = os.path.splitext(target_framework)
       xcframework_target_map = {}
-      for platform in platform_arch_map:
-        architectures = platform_arch_map[platform]
+      for platform_variant in platform_variant_arch_map:
+        architectures = platform_variant_arch_map[platform_variant]
         xcframework_libraries = []
         for architecture in architectures:
           # <build_dir>/<apple_os>/frameworks/<platform-arch>/
           # <target>.framework/target
           library_path = os.path.join(framework_os_path,
-                                      '{0}-{1}'.format(platform, architecture),
-                                      target_framework, target)
+                                      '{0}-{1}'.format(platform_variant,
+                                      architecture), target_framework, target)
           xcframework_libraries.append(library_path)
 
         xcframework_key_parts = [apple_os]
         xcframework_key_parts.append('_'.join(sorted(architectures)))
-        if platform != 'device':
-          # device is treated as default platform and we do not add any
-          # suffix at the end. For all other platforms, add them as suffix.
-          xcframework_key_parts.append(platform)
+        if platform_variant != 'device':
+          # device is treated as default platform variant and we do not add any
+          # suffix at the end. For all other variants, add them as suffix.
+          xcframework_key_parts.append(platform_variant)
         # Eg: ios-arm64_armv7, tvos-x86_64-simulator
         xcframework_key = '-'.join(xcframework_key_parts)
 
@@ -488,20 +489,21 @@ def main():
       raise ValueError('No supported targets found for {0}'.format(apple_os))
 
     frameworks_os_path = os.path.join(frameworks_path, apple_os)
-    for platform in args.platform:
-      os_platform_config = os_config.get(platform)
-      if not os_platform_config:
+    for platform_variant in args.platform_variant:
+      os_platform_variant_config = os_config.get(platform_variant)
+      if not os_platform_variant_config:
         raise ValueError('Could not find configuration for platform '
-                         '{0} for os {1}'.format(platform, apple_os))
+                         '{0} for os {1}'.format(platform_variant, apple_os))
 
-      archs_from_config = set(os_platform_config['architectures'])
+      archs_from_config = set(os_platform_variant_config['architectures'])
       supported_archs = archs_from_config.intersection(args.architecture)
       if not supported_archs:
         raise ValueError('Could not find valid architectures for platform '
-                         '{0} for os {1}'.format(platform, apple_os))
+                         '{0} for os {1}'.format(platform_variant, apple_os))
 
       for architecture in supported_archs:
-        platform_architecture_token = '{0}-{1}'.format(platform, architecture)
+        platform_architecture_token = '{0}-{1}'.format(platform_variant,
+                                                       architecture)
         archive_output_path = os.path.join(frameworks_os_path,
                                                 platform_architecture_token)
         # Eg: <build_dir>/tvos_cmake_build/device-arm64
@@ -511,10 +513,10 @@ def main():
         # For ios builds, we specify architecture to cmake configure.
         architecture = architecture if apple_os == 'ios' else None
         # For tvos builds, we pass a special cmake option PLATFORM to toolchain.
-        toolchain_platform = os_platform_config['toolchain_platform'] if \
-                             apple_os == 'tvos' else None
+        toolchain_platform = os_platform_variant_config['toolchain_platform'] \
+                             if apple_os == 'tvos' else None
         cmake_configure_and_build(args.source_dir, build_path,
-                                  os_platform_config['toolchain'],
+                                  os_platform_variant_config['toolchain'],
                                   archive_output_path, supported_targets,
                                   architecture, toolchain_platform)
         # Arrange frameworks
@@ -538,7 +540,7 @@ def parse_cmdline_args():
   parser.add_argument('-s', '--source_dir',
     default=os.getcwd(),
     help='Directory containing source code (top level CMakeLists.txt)')
-  parser.add_argument('-p', '--platform', nargs='+',
+  parser.add_argument('-v', '--platform_variant', nargs='+',
     default=('device', 'simulator'),
     help='List of platforms to build for.')
   parser.add_argument('-a', '--architecture', nargs='+',
