@@ -1,7 +1,6 @@
 #include "firestore_integration_test.h"
 
 #include <cstdlib>
-#include <fstream>
 #include <sstream>
 
 #if !defined(__ANDROID__)
@@ -11,6 +10,7 @@
 #include "android/util_autoid.h"
 #endif  // !defined(__ANDROID__)
 #include "app_framework.h"
+#include "absl/strings/ascii.h"
 
 namespace firebase {
 namespace firestore {
@@ -20,19 +20,19 @@ namespace {
 // non-default app to avoid data ending up in the cache before tests run.
 static const char* kBootstrapAppName = "bootstrap";
 
-// Set Firestore up to use Firestore Emulator if it can be found.
+// Set Firestore up to use Firestore Emulator unless instructed not to via
+// USE_FIRESTORE_PROD
 void LocateEmulator(Firestore* db) {
-  // iOS and Android pass emulator address differently, iOS writes it to a
-  // temp file, but there is no equivalent to `/tmp/` for Android, so it
-  // uses an environment variable instead.
-  // TODO(wuandy): See if we can use environment variable for iOS as well?
-  std::ifstream ifs("/tmp/emulator_address");
-  std::stringstream buffer;
-  buffer << ifs.rdbuf();
-  std::string address;
-  if (ifs.good()) {
-    address = buffer.str();
-  } else if (std::getenv("FIRESTORE_EMULATOR_HOST")) {
+  if (std::getenv("USE_FIRESTORE_PROD")) {
+    std::string use_prod(std::getenv("USE_FIRESTORE_PROD"));
+    if (absl::AsciiStrToLower(use_prod) == "true" ||
+        absl::AsciiStrToLower(use_prod) == "yes") {
+      return;
+    }
+  }
+
+  std::string address = "localhost:8080";
+  if (std::getenv("FIRESTORE_EMULATOR_HOST")) {
     address = std::getenv("FIRESTORE_EMULATOR_HOST");
   }
 
