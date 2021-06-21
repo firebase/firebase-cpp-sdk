@@ -360,35 +360,6 @@ jobs:
         shell: bash
         run: |
           rm -rf testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
-      - name: Configure GCS Upload Directory (Linux, macOS)
-        if: (startsWith(matrix.os, 'ubuntu') || startsWith(matrix.os, 'macos')) && !cancelled()
-        shell: bash
-        run: echo "GCS_UPLOAD_DIR=${{ github.workspace }}" >> $GITHUB_ENV
-      - name: Configure GCS Upload Directory (Windows)
-        # For Windows move the uploads to C: to create enough space for the
-        # Cloud SDK installation on D:.
-        if: startsWith(matrix.os, 'windows') && !cancelled()
-        shell: bash
-        run: echo "GCS_UPLOAD_DIR=/c/fpl-upload" >> $GITHUB_ENV
-      - name: Move GCS Artifacts to GCS Upload Dir
-        # Copy the artifacts and also the upload scripts since python's relpath
-        # produces errors when called across two different drives. Use tar to
-        # move the files as it neatly deepcopies firestore's symlinks.
-        if:  ${{ (env.GCS_UPLOAD_DIR != github.workspace) && !cancelled() }}
-        shell: bash
-        run: |
-          set -x
-          mkdir -p ${{env.GCS_UPLOAD_DIR}}/scripts/gha/integration_testing
-          mkdir -p ${{env.GCS_UPLOAD_DIR}}/scripts/gha-encrypted
-          # The ta directory contains the integration testapps to archive.
-          tar -chf ${{env.GCS_UPLOAD_DIR}}/ta.tar ta
-          rm -rf ta
-          tar xf ${{env.GCS_UPLOAD_DIR}}/ta.tar -C ${{env.GCS_UPLOAD_DIR}}
-          rm ${{env.GCS_UPLOAD_DIR}}/ta.tar
-          cp scripts/gha/gcs_uploader.py  ${{env.GCS_UPLOAD_DIR}}/scripts/gha-encrypted/
-          cp scripts/gha/integration_testing/gcs.py ${{env.GCS_UPLOAD_DIR}}/scripts/gha/integration_testing/
-          cp scripts/gha/gcs_uploader.py ${{env.GCS_UPLOAD_DIR}}/scripts/gha/
-          cp scripts/gha-encrypted/gcs_key_file.json ${{env.GCS_UPLOAD_DIR}}//scripts/gha-encrypted/
       - name: Set CLOUDSDK_PYTHON (Windows)
         shell: bash
         if: startsWith(matrix.os, 'windows') && !cancelled()
@@ -400,9 +371,7 @@ jobs:
         shell: bash
         if: ${{ !cancelled() }}
         run: |
-          pushd ${{env.GCS_UPLOAD_DIR}}
           python scripts/gha/gcs_uploader.py --testapp_dir ta --key_file scripts/gha-encrypted/gcs_key_file.json
-          popd
       - name: Add failure label
         # We can mark a failure as soon as any one test fails.
         if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
