@@ -164,6 +164,12 @@ const char* kCpuArchitecture = "x86";
 #else
 #error Unknown operating system.
 #endif  // Operating system
+
+#if FIREBASE_GITHUB_ACTION_BUILD
+const char* kBuildSource = "github_action_built";
+#else
+const char* kBuildSource = "custom_built";
+#endif
 // clang-format=on
 
 const char* kApiClientHeader = "x-firebase-client";
@@ -303,6 +309,8 @@ App* AddApp(App* app, std::map<std::string, InitResult>* results) {
                          kCpuArchitecture);
     App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-stl",
                          kCppRuntimeOrStl);
+    App::RegisterLibrary(FIREBASE_CPP_USER_AGENT_PREFIX "-buildsrc",
+                         kBuildSource);
   }
   callback::Initialize();
   AppCallback::NotifyAllAppCreated(app, results);
