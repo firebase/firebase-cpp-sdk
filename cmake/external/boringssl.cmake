@@ -21,15 +21,20 @@ endif()
 set(patch_file 
   ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/boringssl/0001-disable-C4255-converting-empty-params-to-void.patch)
 
+set(commit_tag, 83da28a68f32023fd3b95a8ae94991a07b1f6c62)
+
 ExternalProject_Add(
   boringssl
+  
+  DOWNLOAD_COMMAND 
+    COMMAND git init boringssl
+    COMMAND cd boringssl && git fetch --depth=1 https://github.com/google/boringssl 83da28a68f32023fd3b95a8ae94991a07b1f6c62 && git reset --hard FETCH_HEAD
 
-  GIT_REPOSITORY https://github.com/google/boringssl/
-  GIT_TAG 83da28a68f32023fd3b95a8ae94991a07b1f6c62
-  PATCH_COMMAND git apply ${patch_file}
-  PREFIX ${PROJECT_BINARY_DIR}
-  CONFIGURE_COMMAND ""
-  BUILD_COMMAND     ""
-  INSTALL_COMMAND   ""
-  TEST_COMMAND      ""
+   PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
+   PREFIX ${PROJECT_BINARY_DIR}
+   CONFIGURE_COMMAND ""
+   BUILD_COMMAND     ""
+   INSTALL_COMMAND   ""
+   TEST_COMMAND      ""
 )
+
