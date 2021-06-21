@@ -167,7 +167,7 @@ const char* kCpuArchitecture = "x86";
 
 #if FIREBASE_GITHUB_ACTION_BUILD
 const char* kBuildSource = "github_action_built";
-#elif
+#else
 const char* kBuildSource = "custom_built";
 #endif
 // clang-format=on
