@@ -531,14 +531,6 @@ def _build_ios(
     dir_util.copy_tree(framework_src_path, framework_dest_path)
     framework_paths.append(framework_dest_path)
 
-  podfile_tool_path = os.path.join(
-      repo_dir, "scripts", "gha", "integration_testing", "update_podfile.py")
-  podfile_patcher_args = [
-      sys.executable, podfile_tool_path,
-      "--sdk_podfile", os.path.join(repo_dir, "ios_pod", "Podfile"),
-      "--app_podfile", os.path.join(project_dir, "Podfile")
-  ]
-  _run(podfile_patcher_args)
   _run(["pod", "install"])
 
   entitlements_path = os.path.join(
