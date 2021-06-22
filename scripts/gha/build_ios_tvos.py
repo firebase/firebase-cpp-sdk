@@ -462,7 +462,7 @@ def cmake_configure_and_build(source_path, build_path, toolchain,
   utils.run_command(cmd)
 
   # CMake build for os-platform-architecture
-  cmd = ['cmake', '--build', build_path]
+  cmd = ['cmake', '--build', build_path, '-j', str(os.cpu_count())]
   cmd.append('--target')
   cmd.extend(targets)
   utils.run_command(cmd)
