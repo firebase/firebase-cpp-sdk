@@ -150,7 +150,7 @@ def install_cpp_dependencies_with_vcpkg(arch, msvc_runtime_library, cleanup=True
 
 def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='legacy',
                     build_tests=True, config=None, target_format=None,
-                    use_openssl=False, disable_vcpkg=False, verbose=False):
+                    use_openssl=False, disable_vcpkg=False, gha_build=False, verbose=False):
   """ CMake configure.
 
   If you are seeing problems when running this multiple times,
@@ -168,6 +168,8 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
    use_openssl (bool) : Use prebuilt OpenSSL library instead of using boringssl
                         downloaded and built during the cmake configure step.
    disable_vcpkg (bool): If True, skip vcpkg and just use CMake for deps.
+   gha_build (bool): If True, this build will be marked as having been built
+                     from GitHub, which is useful for metrics tracking.
    verbose (bool): If True, enable verbose mode in the CMake file.
   """
   cmd = ['cmake', '-S', '.', '-B', build_dir]
@@ -216,6 +218,10 @@ def cmake_configure(build_dir, arch, msvc_runtime_library='static', linux_abi='l
   if not use_openssl:
     cmd.append('-DFIREBASE_USE_BORINGSSL=ON')
 
+  # When building from GitHub Actions, this should always be set.
+  if gha_build:
+    cmd.append('-DFIREBASE_GITHUB_ACTION_BUILD=ON')
+
   # Print out every command while building.
   if verbose:
     cmd.append('-DCMAKE_VERBOSE_MAKEFILE=1')
@@ -248,7 +254,7 @@ def main():
   # CMake configure
   cmake_configure(args.build_dir, args.arch, args.msvc_runtime_library, args.linux_abi,
                   args.build_tests, args.config, args.target_format,
-                  args.use_openssl, args.disable_vcpkg, args.verbose)
+                  args.use_openssl, args.disable_vcpkg, args.gha_build, args.verbose)
 
   # CMake build
   # cmake --build build -j 8
@@ -278,6 +284,7 @@ def parse_cmdline_args():
   parser.add_argument('--target', nargs='+', help='A list of CMake build targets (eg: firebase_app firebase_auth)')
   parser.add_argument('--target_format', default=None, help='(Mac only) whether to output frameworks (default) or libraries.')
   parser.add_argument('--use_openssl', action='store_true', default=None, help='Use openssl for build instead of boringssl')
+  parser.add_argument('--gha_build', action='store_true', default=None, help='Set to true when building on GitHub, for metric tracking purposes')
   args = parser.parse_args()
   return args
 

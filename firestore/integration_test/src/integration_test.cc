@@ -651,6 +651,14 @@ TEST_F(FirebaseFirestoreBasicTest, TestQuery) {
                   "int", firebase::firestore::FieldValue::Integer(101))))));
 }
 
+TEST_F(FirebaseFirestoreBasicTest, TestDocumentChangeNpos) {
+  // This test may seem pointless, but it exists to avoid the long-standing
+  // latent bug that `npos` was not defined on non-Android platforms and
+  // would therefore fail to link if used.
+  EXPECT_EQ(firebase::firestore::DocumentChange::npos,
+            static_cast<std::size_t>(-1));
+}
+
 TEST_F(FirebaseFirestoreBasicTest,
        TestInvalidatingReferencesWhenDeletingFirestore) {
   delete firestore_;
