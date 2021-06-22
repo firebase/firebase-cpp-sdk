@@ -671,25 +671,9 @@ TEST_F(FirestoreIntegrationTest,
   EXPECT_EQ(1, test_data.GetEventCount());
   test_data.ClearEvents();
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
   ListenerRegistration sync_registration =
       TestFirestore()->AddSnapshotsInSyncListener(
           [&test_data] { test_data.AddEvent("snapshots-in-sync"); });
-
-#else
-  class SyncEventListener : public EventListener<void> {
-   public:
-    explicit SyncEventListener(TestData& test_data) : test_data_(test_data) {}
-
-    void OnEvent(Error) override { test_data_.AddEvent("snapshots-in-sync"); }
-
-   private:
-    TestData& test_data_;
-  };
-  SyncEventListener sync_listener{test_data};
-  ListenerRegistration sync_registration =
-      TestFirestore()->AddSnapshotsInSyncListener(sync_listener);
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
   Await(document.Set(MapFieldValue{{"foo", FieldValue::Double(3.0)}}));
   // Wait for the snapshots-in-sync listener to fire afterwards.
@@ -737,7 +721,6 @@ TEST_F(FirestoreIntegrationTest, TestQueriesAreValidatedOnClient) {
 // The test harness will generate Java JUnit test regardless whether this is
 // inside a #if or not. So we move #if inside instead of enclose the whole case.
 TEST_F(FirestoreIntegrationTest, TestListenCanBeCalledMultipleTimes) {
-#if defined(FIREBASE_USE_STD_FUNCTION)
   class TestData {
    public:
     void SetDocumentSnapshot(const DocumentSnapshot& document_snapshot) {
@@ -781,7 +764,6 @@ TEST_F(FirestoreIntegrationTest, TestListenCanBeCalledMultipleTimes) {
 
   EXPECT_THAT(test_data.WaitForDocumentSnapshot().GetData(),
               ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 }
 
 TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotEventsNonExistent) {
