@@ -147,7 +147,6 @@ Future<void> DocumentReference::Delete() {
   return internal_->Delete();
 }
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 ListenerRegistration DocumentReference::AddSnapshotListener(
     std::function<void(const DocumentSnapshot&, Error, const std::string&)>
         callback) {
@@ -164,9 +163,8 @@ ListenerRegistration DocumentReference::AddSnapshotListener(
   return internal_->AddSnapshotListener(metadata_changes,
                                         firebase::Move(callback));
 }
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
-#if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+#if defined(DOXYGEN)
 ListenerRegistration DocumentReference::AddSnapshotListener(
     EventListener<DocumentSnapshot>* listener) {
   return AddSnapshotListener(MetadataChanges::kExclude, listener);
@@ -178,7 +176,7 @@ ListenerRegistration DocumentReference::AddSnapshotListener(
   if (!internal_) return {};
   return internal_->AddSnapshotListener(metadata_changes, listener);
 }
-#endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+#endif  // defined(DOXYGEN)
 
 std::string DocumentReference::ToString() const {
   if (!is_valid()) return "DocumentReference(invalid)";

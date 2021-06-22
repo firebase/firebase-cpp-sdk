@@ -17,12 +17,10 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_H_
 
+#include <functional>
 #include <string>
 
 #include "firebase/internal/common.h"
-#if defined(FIREBASE_USE_STD_FUNCTION)
-#include <functional>
-#endif
 
 #include "firebase/app.h"
 #include "firebase/future.h"
@@ -242,7 +240,6 @@ class Firestore {
    */
   virtual WriteBatch batch() const;
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /**
    * Executes the given update and then attempts to commit the changes applied
    * within the transaction. If any document read within the transaction has
@@ -253,13 +250,9 @@ class Firestore {
    * The string reference parameter can be used to set the error message.
    *
    * @return A Future that will be resolved when the transaction finishes.
-   *
-   * @note This method is not available when using the STLPort C++ runtime
-   * library.
    */
   virtual Future<void> RunTransaction(
       std::function<Error(Transaction&, std::string&)> update);
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
   /**
    * Executes the given update and then attempts to commit the changes applied
@@ -362,7 +355,6 @@ class Firestore {
    */
   virtual Future<void> ClearPersistence();
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /**
    * Attaches a listener for a snapshots-in-sync event. Server-generated
    * updates and local changes can affect multiple snapshot listeners.
@@ -382,9 +374,8 @@ class Firestore {
    */
   virtual ListenerRegistration AddSnapshotsInSyncListener(
       std::function<void()> callback);
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
-#if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+#if defined(DOXYGEN)
   /**
    * Attaches a listener for a snapshots-in-sync event. Server-generated
    * updates and local changes can affect multiple snapshot listeners.
@@ -404,7 +395,7 @@ class Firestore {
    */
   virtual ListenerRegistration AddSnapshotsInSyncListener(
       EventListener<void>* listener);
-#endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+#endif  // defined(DOXYGEN)
 
   /**
    * Loads a Firestore bundle into the local cache.

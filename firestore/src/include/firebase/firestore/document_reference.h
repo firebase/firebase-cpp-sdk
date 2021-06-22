@@ -17,13 +17,11 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_DOCUMENT_REFERENCE_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_DOCUMENT_REFERENCE_H_
 
+#include <functional>
 #include <iosfwd>
 #include <string>
 
 #include "firebase/internal/common.h"
-#if defined(FIREBASE_USE_STD_FUNCTION)
-#include <functional>
-#endif
 
 #include "firebase/firestore/firestore_errors.h"
 #include "firebase/firestore/map_field_value.h"
@@ -250,7 +248,6 @@ class DocumentReference {
    */
   virtual Future<void> Delete();
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /**
    * @brief Starts listening to the document referenced by this
    * DocumentReference.
@@ -261,9 +258,6 @@ class DocumentReference {
    * message is not available.
    *
    * @return A registration object that can be used to remove the listener.
-   *
-   * @note This method is not available when using the STLPort C++ runtime
-   * library.
    */
   virtual ListenerRegistration AddSnapshotListener(
       std::function<void(const DocumentSnapshot&, Error, const std::string&)>
@@ -282,17 +276,13 @@ class DocumentReference {
    * message is not available.
    *
    * @return A registration object that can be used to remove the listener.
-   *
-   * @note This method is not available when using the STLPort C++ runtime
-   * library.
    */
   virtual ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
       std::function<void(const DocumentSnapshot&, Error, const std::string&)>
           callback);
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
-#if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+#if defined(DOXYGEN)
   /**
    * @brief Starts listening to the document referenced by this
    * DocumentReference.
@@ -341,7 +331,7 @@ class DocumentReference {
       MetadataChanges metadata_changes,
       EventListener<DocumentSnapshot>* listener);
 
-#endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+#endif  // defined(DOXYGEN)
 
   /**
    * @brief Returns true if this DocumentReference is valid, false if it is not

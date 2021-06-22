@@ -24,8 +24,6 @@ namespace firestore {
 
 using TransactionExtraTest = FirestoreIntegrationTest;
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
-
 TEST_F(TransactionExtraTest,
        TestRetriesWhenDocumentThatWasReadWithoutBeingWrittenChanges) {
   DocumentReference doc1 = TestFirestore()->Collection("counter").Document();
@@ -102,8 +100,6 @@ TEST_F(TransactionExtraTest, TestReadingADocTwiceWithDifferentVersions) {
 
   DocumentSnapshot snapshot = ReadDocument(doc);
 }
-
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
 }  // namespace firestore
 }  // namespace firebase

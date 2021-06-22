@@ -163,9 +163,7 @@ std::ostream& operator<<(std::ostream& os, LanguageVersion) {
 struct StandardLibraryVendor {};
 
 std::ostream& operator<<(std::ostream& os, StandardLibraryVendor) {
-#if defined(_STLPORT_VERSION)
-  os << "stlport";
-#elif defined(__GLIBCXX__) || defined(__GLIBCPP__)
+#if defined(__GLIBCXX__) || defined(__GLIBCPP__)
   os << "gnustl";
 #elif defined(_LIBCPP_STD_VER)
   os << "libcpp";

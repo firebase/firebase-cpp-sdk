@@ -266,7 +266,6 @@ Future<QuerySnapshot> Query::Get(Source source) const {
   return internal_->Get(source);
 }
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 ListenerRegistration Query::AddSnapshotListener(
     std::function<void(const QuerySnapshot&, Error, const std::string&)>
         callback) {
@@ -283,9 +282,8 @@ ListenerRegistration Query::AddSnapshotListener(
   return internal_->AddSnapshotListener(metadata_changes,
                                         firebase::Move(callback));
 }
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
-#if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+#if defined(DOXYGEN)
 ListenerRegistration Query::AddSnapshotListener(
     EventListener<QuerySnapshot>* listener) {
   return AddSnapshotListener(MetadataChanges::kExclude, listener);
@@ -296,7 +294,7 @@ ListenerRegistration Query::AddSnapshotListener(
   if (!internal_) return {};
   return internal_->AddSnapshotListener(metadata_changes, listener);
 }
-#endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+#endif  // defined(DOXYGEN)
 
 bool operator==(const Query& lhs, const Query& rhs) {
   if (!lhs.internal_ || !rhs.internal_) {

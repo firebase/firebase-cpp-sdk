@@ -19,13 +19,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 
 #include "firebase/internal/common.h"
-#if defined(FIREBASE_USE_STD_FUNCTION)
-#include <functional>
-#endif
 
 #include "firebase/firestore/firestore_errors.h"
 #include "firebase/firestore/metadata_changes.h"
@@ -603,7 +601,6 @@ class Query {
    */
   virtual Future<QuerySnapshot> Get(Source source = Source::kDefault) const;
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /**
    * @brief Starts listening to the QuerySnapshot events referenced by this
    * query.
@@ -614,9 +611,6 @@ class Query {
    * message is not available.
    *
    * @return A registration object that can be used to remove the listener.
-   *
-   * @note This method is not available when using the STLPort C++ runtime
-   * library.
    */
   virtual ListenerRegistration AddSnapshotListener(
       std::function<void(const QuerySnapshot&, Error, const std::string&)>
@@ -635,17 +629,13 @@ class Query {
    * message is not available.
    *
    * @return A registration object that can be used to remove the listener.
-   *
-   * @note This method is not available when using the STLPort C++ runtime
-   * library.
    */
   virtual ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
       std::function<void(const QuerySnapshot&, Error, const std::string&)>
           callback);
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
-#if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+#if defined(DOXYGEN)
   /**
    * @brief Starts listening to the QuerySnapshot events referenced by this
    * query.
@@ -692,7 +682,7 @@ class Query {
    */
   FIREBASE_DEPRECATED virtual ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes, EventListener<QuerySnapshot>* listener);
-#endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+#endif  // defined(DOXYGEN)
 
  private:
   friend bool operator==(const Query& lhs, const Query& rhs);
