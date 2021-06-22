@@ -170,9 +170,20 @@ static const firebase::remote_config::ConfigKeyValueVariant kServerValue[] = {
     {"TestDefaultOnly", firebase::Variant::FromMutableString(
                             "Default value that won't be overridden")}};
 
-static Future<void> SetDefaultsV2(RemoteConfig* rc) {
+static Future<void> SetDefaults(RemoteConfig* rc) {
   size_t default_count = FIREBASE_ARRAYSIZE(defaults);
   return rc->SetDefaults(defaults, default_count);
+}
+
+static Future<void> SetDefaultConfigSettings(RemoteConfig* rc) {
+  firebase::remote_config::ConfigSettings defaultConfigSettings;
+  return rc->SetConfigSettings(defaultConfigSettings);
+}
+
+static Future<void> SetZeroIntervalConfigSettings(RemoteConfig* rc) {
+  firebase::remote_config::ConfigSettings zeroIntervalConfigSettings;
+  zeroIntervalConfigSettings.minimum_fetch_interval_in_milliseconds = 0;
+  return rc->SetConfigSettings(zeroIntervalConfigSettings);
 }
 
 // Test cases below.
@@ -181,10 +192,10 @@ TEST_F(FirebaseRemoteConfigTest, TestInitializeAndTerminate) {
   // Already tested via SetUp() and TearDown().
 }
 
-TEST_F(FirebaseRemoteConfigTest, TestSetDefaultsV2) {
+TEST_F(FirebaseRemoteConfigTest, TestSetDefault) {
   ASSERT_NE(rc_, nullptr);
 
-  EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
+  EXPECT_TRUE(WaitForCompletion(SetDefaults(rc_), "SetDefaults"));
 
   bool validated_defaults = true;
   firebase::remote_config::ValueInfo value_info;
@@ -243,10 +254,10 @@ TEST_F(FirebaseRemoteConfigTest, TestSetDefaultsV2) {
   }
 }
 
-TEST_F(FirebaseRemoteConfigTest, TestGetKeysV2) {
+TEST_F(FirebaseRemoteConfigTest, TestGetKeys) {
   ASSERT_NE(rc_, nullptr);
 
-  EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
+  EXPECT_TRUE(WaitForCompletion(SetDefaults(rc_), "SetDefaults"));
 
   std::vector<std::string> keys = rc_->GetKeys();
   EXPECT_THAT(
@@ -265,7 +276,7 @@ TEST_F(FirebaseRemoteConfigTest, TestGetKeysV2) {
 TEST_F(FirebaseRemoteConfigTest, TestGetAll) {
   ASSERT_NE(rc_, nullptr);
 
-  EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
+  EXPECT_TRUE(WaitForCompletion(SetDefaults(rc_), "SetDefaults"));
   EXPECT_TRUE(WaitForCompletion(
       RunWithRetry([](RemoteConfig* rc) { return rc->Fetch(); }, rc_),
       "Fetch"));
@@ -288,10 +299,10 @@ TEST_F(FirebaseRemoteConfigTest, TestGetAll) {
    TestBoolean  true
    TestString   This is a string
  */
-TEST_F(FirebaseRemoteConfigTest, TestFetchV2) {
+TEST_F(FirebaseRemoteConfigTest, TestFetch) {
   ASSERT_NE(rc_, nullptr);
 
-  EXPECT_TRUE(WaitForCompletion(SetDefaultsV2(rc_), "SetDefaultsV2"));
+  EXPECT_TRUE(WaitForCompletion(SetDefaults(rc_), "SetDefaults"));
   EXPECT_TRUE(WaitForCompletion(
       RunWithRetry([](RemoteConfig* rc) { return rc->Fetch(); }, rc_),
       "Fetch"));
@@ -332,6 +343,33 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchV2) {
   EXPECT_THAT(blob_value,
               testing::ElementsAreArray(kExpectedBlobServerValue,
                                         sizeof(kExpectedBlobServerValue)));
+}
+
+TEST_F(FirebaseRemoteConfigTest, TestFetchInterval) {
+  ASSERT_NE(rc_, nullptr);
+  EXPECT_TRUE(WaitForCompletion(
+      RunWithRetry([](RemoteConfig* rc) { return rc->Fetch(); }, rc_),
+      "Fetch"));
+  EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
+  uint64_t current_fetch_time = rc_->GetInfo().fetch_time;
+  // Making sure the config settings's fetch interval is 12 hours
+  EXPECT_TRUE(WaitForCompletion(SetDefaultConfigSettings(rc_),
+                                "SetDefaultConfigSettings"));
+  // Second fetch, should respect fetch interval and don't change data.
+  EXPECT_TRUE(WaitForCompletion(
+      RunWithRetry([](RemoteConfig* rc) { return rc->Fetch(); }, rc_),
+      "Fetch"));
+  EXPECT_EQ(current_fetch_time, rc_->GetInfo().fetch_time);
+  // Update fetch interval to 0
+  EXPECT_TRUE(WaitForCompletion(SetZeroIntervalConfigSettings(rc_),
+                                "SetZeroIntervalConfigSettings"));
+  LogDebug("Current Fetch Interval: %lld",
+           rc_->GetConfigSettings().minimum_fetch_interval_in_milliseconds);
+  // Third fetch, this should operate the real fetch and update the fetch time.
+  EXPECT_TRUE(WaitForCompletion(
+      RunWithRetry([](RemoteConfig* rc) { return rc->Fetch(); }, rc_),
+      "Fetch"));
+  EXPECT_NE(current_fetch_time, rc_->GetInfo().fetch_time);
 }
 
 }  // namespace firebase_testapp_automated

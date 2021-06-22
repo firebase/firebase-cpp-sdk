@@ -30,11 +30,11 @@ ExternalProject_Add(
     COMMAND git init boringssl
     COMMAND cd boringssl && git fetch --depth=1 https://github.com/google/boringssl 83da28a68f32023fd3b95a8ae94991a07b1f6c62 && git reset --hard FETCH_HEAD
 
-   PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
-   PREFIX ${PROJECT_BINARY_DIR}
-   CONFIGURE_COMMAND ""
-   BUILD_COMMAND     ""
-   INSTALL_COMMAND   ""
-   TEST_COMMAND      ""
+  PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
+  PREFIX ${PROJECT_BINARY_DIR}
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND     ""
+  INSTALL_COMMAND   ""
+  TEST_COMMAND      ""
 )
 

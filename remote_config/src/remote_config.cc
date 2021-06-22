@@ -131,7 +131,9 @@ Future<bool> RemoteConfig::FetchAndActivateLastResult() {
   return internal_->FetchAndActivateLastResult();
 }
 
-Future<void> RemoteConfig::Fetch() { return Fetch(GetConfigFetchInterval()); }
+Future<void> RemoteConfig::Fetch() {
+  return Fetch(GetConfigSettings().minimum_fetch_interval_in_milliseconds);
+}
 
 Future<void> RemoteConfig::Fetch(uint64_t cache_expiration_in_seconds) {
   return internal_->Fetch(cache_expiration_in_seconds);
@@ -228,15 +230,6 @@ std::map<std::string, Variant> RemoteConfig::GetAll() {
 
 // TODO(b/147143718): Change to a more descriptive name.
 const ConfigInfo RemoteConfig::GetInfo() { return internal_->GetInfo(); }
-
-uint64_t RemoteConfig::GetConfigFetchInterval() {
-  uint64_t cache_time =
-      GetConfigSettings().minimum_fetch_interval_in_milliseconds;
-  if (cache_time == 0) {
-    cache_time = kDefaultCacheExpiration;
-  }
-  return cache_time;
-}
 
 }  // namespace remote_config
 }  // namespace firebase

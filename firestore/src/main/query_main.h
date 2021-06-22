@@ -160,9 +160,11 @@ class QueryInternal {
 
   using Operator = core::Filter::Operator;
 
-  Query Where(const FieldPath& field, Operator op,
+  Query Where(const FieldPath& field,
+              Operator op,
               const FieldValue& value) const;
-  Query Where(const FieldPath& field, Operator op,
+  Query Where(const FieldPath& field,
+              Operator op,
               const std::vector<FieldValue>& values) const;
 
   Query WithBound(BoundPosition bound_pos,

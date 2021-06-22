@@ -68,8 +68,7 @@ LoadBundleTaskProgress ToApiProgress(
 }  // namespace
 
 FirestoreInternal::FirestoreInternal(App* app)
-    : FirestoreInternal{app, CreateCredentialsProvider(*app)} {
-}
+    : FirestoreInternal{app, CreateCredentialsProvider(*app)} {}
 
 FirestoreInternal::FirestoreInternal(
     App* app, std::unique_ptr<CredentialsProvider> credentials)

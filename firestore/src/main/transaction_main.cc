@@ -35,7 +35,8 @@ const model::DocumentKey& GetKey(const DocumentReference& document) {
 }
 
 DocumentSnapshot ConvertToSingleSnapshot(
-    const std::shared_ptr<api::Firestore>& firestore, model::DocumentKey key,
+    const std::shared_ptr<api::Firestore>& firestore,
+    model::DocumentKey key,
     const std::vector<MaybeDocument>& documents) {
   SIMPLE_HARD_ASSERT(
       documents.size() == 1,

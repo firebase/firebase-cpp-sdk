@@ -32,7 +32,8 @@ struct ConverterImpl {
   }
 
   template <typename PublicT, typename InternalT = InternalType<PublicT>>
-  static PublicT MakePublicFromJava(jni::Env& env, FirestoreInternal* firestore,
+  static PublicT MakePublicFromJava(jni::Env& env,
+                                    FirestoreInternal* firestore,
                                     const jni::Object& object) {
     if (!env.ok() || !object) return {};
 
@@ -62,7 +63,8 @@ PublicT MakePublic(jni::Env& env, const jni::Object& object) {
 }
 
 template <typename PublicT, typename InternalT = InternalType<PublicT>>
-PublicT MakePublic(jni::Env& env, FirestoreInternal* firestore,
+PublicT MakePublic(jni::Env& env,
+                   FirestoreInternal* firestore,
                    const jni::Object& object) {
   return ConverterImpl::MakePublicFromJava<PublicT, InternalT>(env, firestore,
                                                                object);

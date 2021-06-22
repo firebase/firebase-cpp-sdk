@@ -74,24 +74,23 @@ modify your bashrc file to automatically set these variables.
 """
 
 import datetime
-from distutils import dir_util
 import os
 import platform
 import shutil
 import subprocess
 import sys
 import json
+import attr
 
 from absl import app
 from absl import flags
 from absl import logging
+from distutils import dir_util
 
-import attr
-
+import utils
 from integration_testing import config_reader
 from integration_testing import test_validation
 from integration_testing import xcodebuild
-import utils
 
 # Environment variables
 _JAVA_HOME = "JAVA_HOME"
@@ -532,14 +531,6 @@ def _build_ios(
     dir_util.copy_tree(framework_src_path, framework_dest_path)
     framework_paths.append(framework_dest_path)
 
-  podfile_tool_path = os.path.join(
-      repo_dir, "scripts", "gha", "integration_testing", "update_podfile.py")
-  podfile_patcher_args = [
-      sys.executable, podfile_tool_path,
-      "--sdk_podfile", os.path.join(repo_dir, "ios_pod", "Podfile"),
-      "--app_podfile", os.path.join(project_dir, "Podfile")
-  ]
-  _run(podfile_patcher_args)
   _run(["pod", "install"])
 
   entitlements_path = os.path.join(

@@ -16,7 +16,8 @@ class TransactionInternal {
   TransactionInternal() {}
   FirestoreInternal* firestore_internal() const { return nullptr; }
 
-  void Set(const DocumentReference& document, const MapFieldValue& data,
+  void Set(const DocumentReference& document,
+           const MapFieldValue& data,
            const SetOptions& options) {}
 
   void Update(const DocumentReference& document, const MapFieldValue& data) {}
@@ -26,7 +27,8 @@ class TransactionInternal {
 
   void Delete(const DocumentReference& document) {}
 
-  DocumentSnapshot Get(const DocumentReference& document, Error* error_code,
+  DocumentSnapshot Get(const DocumentReference& document,
+                       Error* error_code,
                        std::string* error_message) {
     return DocumentSnapshot{};
   }

@@ -49,7 +49,8 @@ void PrintTo(const Global<T>& object, std::ostream* os) {
  * jni::Local<jni::String> object2 = env.NewStringUtf("string");
  * EXPECT_THAT(object1, JavaEq(object2));
  */
-MATCHER_P(JavaEq, object,
+MATCHER_P(JavaEq,
+          object,
           std::string("compares ") + (negation ? "unequal" : "equal") +
               " using .equals() to a " + ToDebugString(object)) {
   jni::Env env;
