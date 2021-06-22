@@ -53,7 +53,7 @@ template <typename T>
 Future<T> FailedFuture() {
   static auto* future = new Future<T>(FailedFuture<T>(
       Error::kErrorFailedPrecondition,
-      "This instance is in an invalid state. This is because the  underlying "
+      "This instance is in an invalid state. This is because the underlying "
       "Firestore instance has been destructed."));
   return *future;
 }
