@@ -338,21 +338,6 @@ jobs:
         if: ${{ !cancelled() }}
         run: |
           python scripts/gha/gcs_uploader.py --testapp_dir ta --key_file scripts/gha-encrypted/gcs_key_file.json
-      - name: Add failure label
-        # We can mark a failure as soon as any one test fails.
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        uses: actions-ecosystem/action-add-labels@v1
-        with:
-          github_token: ${{ github.token }}
-          number: "${{needs.check_trigger.outputs.pr_number}}"
-          labels: "${{ env.statusLabelFailed }}"
-      - name: Get current time for status comment
-        id: get-time
-        if: ${{ needs.check_trigger.outputs.should_update_labels && failure() && !cancelled() }}
-        shell: bash
-        run: |
-          echo -n "::set-output name=time::"
-          TZ=America/Los_Angeles date
       - name: Download log artifacts
         if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
         uses: actions/download-artifact@v2.0.8
