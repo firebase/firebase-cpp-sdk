@@ -130,9 +130,12 @@ PARAMETERS = {
   },
 }
 
+# key: supported platforms.
+# value: supported build configurations for that platform
+# It consists with workflow matrix. And Test Result Report will use it.
 BUILD_CONFIGS = {
   "windows": ["ssl_lib", "build_type", "architecture_windows_linux", "msvc_runtime", "cpp_compiler_windows"],
-  "linux": ["ssl_lib", "build_type", "architecture_windows_linux", "cpp_compiler_linux"],
+  "ubuntu": ["ssl_lib", "build_type", "architecture_windows_linux", "cpp_compiler_linux"],
   "macos": ["ssl_lib", "architecture_macos", "xcode_version"],
   "android": ["os", "ndk_version", "build_tools", "platform_version", "android_device"],
   "ios": ["os", "xcode_version", "ios_device"]
