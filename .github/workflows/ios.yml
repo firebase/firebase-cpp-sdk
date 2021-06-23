@@ -55,4 +55,4 @@ jobs:
 
       - name: Build SDK
         run: |
-          python scripts/gha/build_ios_tvos.py -b ios_tvos_build -s .
+          build_scripts/ios/build.sh -b ios_build -s .
