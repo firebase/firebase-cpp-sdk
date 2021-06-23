@@ -14,7 +14,6 @@
 		529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D71C85F68000C89379 /* CoreGraphics.framework */; };
 		529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D91C85F68000C89379 /* UIKit.framework */; };
 		BC1D682C267B0030005DC2DA /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BC1D682A267B0030005DC2DA /* Main.storyboard */; };
-		BC1D682E267B0032005DC2DA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BC1D682D267B0032005DC2DA /* Assets.xcassets */; };
 		BC1D6831267B0032005DC2DA /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BC1D682F267B0032005DC2DA /* LaunchScreen.storyboard */; };
 		BC1D6838267B00EB005DC2DA /* future_test_util.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6ED33B92606CD890058CBF9 /* future_test_util.cc */; };
 		BC1D6839267B00EB005DC2DA /* type_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6AAAD392606C22D0025C53B /* type_test.cc */; };
@@ -104,9 +103,7 @@
 		BC1D681A267AFF9B005DC2DA /* firebase_firestore.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = firebase_firestore.xcframework; path = "../../../../firebase-cpp-sdk/ios_tvos_package/xcframeworks/firebase_firestore.xcframework"; sourceTree = "<group>"; };
 		BC1D6822267B0030005DC2DA /* integration_test_tvos.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = integration_test_tvos.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BC1D682B267B0030005DC2DA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		BC1D682D267B0032005DC2DA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BC1D6830267B0032005DC2DA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		BC1D6832267B0032005DC2DA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BC1D6859267B010D005DC2DA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		BC1D685B267B0112005DC2DA /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		BC1D685D267B0116005DC2DA /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/CoreGraphics.framework; sourceTree = DEVELOPER_DIR; };
@@ -296,9 +293,7 @@
 			isa = PBXGroup;
 			children = (
 				BC1D682A267B0030005DC2DA /* Main.storyboard */,
-				BC1D682D267B0032005DC2DA /* Assets.xcassets */,
 				BC1D682F267B0032005DC2DA /* LaunchScreen.storyboard */,
-				BC1D6832267B0032005DC2DA /* Info.plist */,
 			);
 			path = integration_test_tvos;
 			sourceTree = "<group>";
@@ -401,7 +396,6 @@
 			files = (
 				BC1D6858267B0106005DC2DA /* GoogleService-Info.plist in Resources */,
 				BC1D6831267B0032005DC2DA /* LaunchScreen.storyboard in Resources */,
-				BC1D682E267B0032005DC2DA /* Assets.xcassets in Resources */,
 				BC1D682C267B0030005DC2DA /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -807,7 +801,7 @@
 					"\"$(SRCROOT)/Pods/FirebaseFirestore\"",
 					"\"$(SRCROOT)/../..\"",
 				);
-				INFOPLIST_FILE = integration_test_tvos/Info.plist;
+				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -816,7 +810,7 @@
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = appletvos;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 14.5;
+				TVOS_DEPLOYMENT_TARGET = 10.1;
 			};
 			name = Debug;
 		};
@@ -872,7 +866,7 @@
 					"\"$(SRCROOT)/Pods/FirebaseFirestore\"",
 					"\"$(SRCROOT)/../..\"",
 				);
-				INFOPLIST_FILE = integration_test_tvos/Info.plist;
+				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.google.firebase.cpp.firestore.testapp.integration-test-tvos";
@@ -880,7 +874,7 @@
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = appletvos;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 14.5;
+				TVOS_DEPLOYMENT_TARGET = 10.1;
 			};
 			name = Release;
 		};
