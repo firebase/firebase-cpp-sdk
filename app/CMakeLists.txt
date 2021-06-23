@@ -525,13 +525,14 @@ if (IOS)
 
   # Generate Framework Headers from ${framework_HDRS}
   # Copy header from source dir "src/include/firebase/*" to destination dir "Headers/*"
+  # Firestore has few headers from a different directory pattern (core/include/firebase/*).
   list(APPEND framework_HDRS ${internal_HDRS})
   foreach(hfile ${framework_HDRS})
-    string(FIND ${hfile} "src/include/firebase/" pos_firebase)
+    string(FIND ${hfile} "/include/firebase/" pos_firebase)
     string(COMPARE NOTEQUAL ${pos_firebase} -1 find)
     if(${find})
       string(FIND ${hfile} "/" pos_e REVERSE)
-      math(EXPR pos_s "${pos_firebase} + 20")
+      math(EXPR pos_s "${pos_firebase} + 17")
       math(EXPR len "${pos_e} - ${pos_s}")
       string(SUBSTRING ${hfile} ${pos_s} ${len} dir)
       # file(COPY ${hfile} DESTINATION Headers/${dir})
