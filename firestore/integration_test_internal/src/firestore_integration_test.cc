@@ -20,26 +20,35 @@ namespace {
 // non-default app to avoid data ending up in the cache before tests run.
 static const char* kBootstrapAppName = "bootstrap";
 
-// Set Firestore up to use Firestore Emulator if it can be found.
+// Set Firestore up to use Firestore Emulator via USE_FIRESTORE_EMULATOR
 void LocateEmulator(Firestore* db) {
-  // iOS and Android pass emulator address differently, iOS writes it to a
-  // temp file, but there is no equivalent to `/tmp/` for Android, so it
-  // uses an environment variable instead.
-  // TODO(wuandy): See if we can use environment variable for iOS as well?
-  std::ifstream ifs("/tmp/emulator_address");
-  std::stringstream buffer;
-  buffer << ifs.rdbuf();
-  std::string address;
-  if (ifs.good()) {
-    address = buffer.str();
-  } else if (std::getenv("FIRESTORE_EMULATOR_HOST")) {
-    address = std::getenv("FIRESTORE_EMULATOR_HOST");
+
+if (std::getenv("GTEST_FILTER") != nullptr) {
+  std::string msg = std::string("Using filter ") + std::getenv("GTEST_FILTER");
+LogDebug(msg.c_str());
+}
+// Use prod backend as long as this env variable is unset.
+  if (std::getenv("USE_FIRESTORE_EMULATOR") == nullptr) {
+    LogDebug("Using prod backend for testing...");
+    return;
   }
 
-#if !defined(__ANDROID__)
-  absl::StripAsciiWhitespace(&address);
-#endif  // !defined(__ANDROID__)
-  if (!address.empty()) {
+#if defined(__ANDROID__)
+  std::string local_host = "10.0.2.2";
+#else
+  std::string local_host = "localhost";
+#endif // defined(__ANDROID__)
+
+  std::string port = "8080";
+
+  if (std::getenv("FIRESTORE_EMULATOR_PORT")) {
+    port = std::getenv("FIRESTORE_EMULATOR_PORT");
+  }
+
+  if (!port.empty()) {
+    std::string address = local_host + ":" + port;
+    std::string message = "Using emulator (" + address + ") for testing...";
+    LogDebug(message.c_str());
     auto settings = db->settings();
     settings.set_host(address);
     // Emulator does not support ssl yet.
