@@ -109,6 +109,17 @@ flags.DEFINE_string(
     "ios_version", "12.0",
     "See module docstring for details on how to set and get this version.")
 flags.DEFINE_string(
+    "tvos_device", None,
+    "tvOS device, which is a combination of device name and os version"
+    "See module docstring for details on how to set and get this id. "
+    "If none, will use ios_name and ios_version.")
+flags.DEFINE_string(
+    "tvos_name", "Apple TV",
+    "See module docstring for details on how to set and get this name.")
+flags.DEFINE_string(
+    "tvos_version", "14.5",
+    "See module docstring for details on how to set and get this version.")
+flags.DEFINE_string(
     "android_device", None,
     "Android device, which is the sdk id of an emulator image"
     "See module docstring for details on how to set and get this id."
@@ -142,19 +153,22 @@ def main(argv):
   testapp_dir = os.path.abspath(os.path.expanduser(FLAGS.testapp_dir))
   
   ios_testapps = []
+  tvos_testapps = []
   android_testapps = []
   for file_dir, directories, file_names in os.walk(testapp_dir):
     # .app is treated as a directory, not a file in MacOS
     for directory in directories:
       full_path = os.path.join(file_dir, directory)
-      if directory.endswith(".app"):
+      if directory.endswith("integration_test.app"):
         ios_testapps.append(full_path)
+      elif directory.endswith("integration_test_tvos.app"):
+        tvos_testapps.append(full_path)
     for file_name in file_names:
       full_path = os.path.join(file_dir, file_name)
       if file_name.endswith(".apk"):
         android_testapps.append(full_path)    
 
-  if not ios_testapps and not android_testapps:
+  if not ios_testapps and not tvos_testapps and not android_testapps:
     logging.info("No testapps found")
     return 1
 
@@ -198,7 +212,50 @@ def main(argv):
                       testapp_path=app_path, 
                       logs=_run_ios_gameloop_test(bundle_id, app_path, ios_gameloop_app, device_id)))
 
-    _shutdown_simulator()
+    # _shutdown_simulator()
+
+
+  if tvos_testapps:
+    logging.info("tvOS Testapps found: %s", "\n".join(path for path in tvos_testapps))
+    
+    if FLAGS.ios_device:
+      device_info = TEST_DEVICES.get(FLAGS.tvos_device)
+      if not device_info:
+        logging.error("Not a valid tvos device: %s" % FLAGS.tvos_device)
+        return 20
+      device_name = device_info.get("name")
+      device_os = device_info.get("version")
+    else:
+      device_name = FLAGS.tvos_name
+      device_os = FLAGS.tvos_version
+
+    device_id = _create_and_boot_simulator(device_name, device_os)
+    if not device_id:
+      logging.error("simulator created fail")
+      return 21
+
+    # A tool that enable game-loop test. This is a XCode project
+    tvos_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_ios")
+    tvos_gameloop_app = _build_tvos_gameloop(tvos_gameloop_project, device_name, device_os)
+    if not tvos_gameloop_app:
+      logging.error("gameloop app not found")
+      return 22
+
+    config_path = os.path.join(current_dir, "integration_testing", "build_testapps.json")
+    with open(config_path, "r") as configFile:
+      config = json.load(configFile)
+    if not config:
+      logging.error("No config file found")
+      return 23
+  
+    for app_path in tvos_testapps:
+      bundle_id = _get_bundle_id(app_path, config)
+      tests.append(Test(
+                      testapp_path=app_path, 
+                      logs=_run_tvos_gameloop_test(bundle_id, app_path, tvos_gameloop_app, device_id)))
+
+    # _shutdown_simulator()
+
 
   if android_testapps:
     logging.info("Android Testapps found: %s", "\n".join(path for path in android_testapps))
@@ -254,9 +311,31 @@ def _build_ios_gameloop(gameloop_project, device_name, device_os):
   """Build the gameloop app for test."""
   args = ["xcodebuild", "-project", project_path,
     "-scheme", "gameloop",
-    "-sdk", "iphonesimulator",
     "build-for-testing", 
     "-destination", "platform=iOS Simulator,name=%s,OS=%s" % (device_name, device_os), 
+    "SYMROOT=%s" % output_path]
+  logging.info("Building game-loop test: %s", " ".join(args))
+  subprocess.run(args=args, check=True)
+  
+  for file_dir, _, file_names in os.walk(output_path):
+    for file_name in file_names:
+      if file_name.endswith(".xctestrun"): 
+        return os.path.join(file_dir, file_name)
+
+
+def _build_tvos_gameloop(gameloop_project, device_name, device_os):
+  """Build gameloop UI Test app. 
+
+  This gameloop app can run integration_test app automatically.
+  """
+  project_path = os.path.join(gameloop_project, "gameloop.xcodeproj")
+  output_path = os.path.join(gameloop_project, "Build")
+
+  """Build the gameloop app for test."""
+  args = ["xcodebuild", "-project", project_path,
+    "-scheme", "gameloop_tvos",
+    "build-for-testing", 
+    "-destination", "platform=tvOS Simulator,name=%s,OS=%s" % (device_name, device_os), 
     "SYMROOT=%s" % output_path]
   logging.info("Building game-loop test: %s", " ".join(args))
   subprocess.run(args=args, check=True)
@@ -339,6 +418,7 @@ def _get_bundle_id(app_path, config):
   for api in config["apis"]:
     if api["name"] != "app" and (api["name"] in app_path or api["full_name"] in app_path):
       return api["bundle_id"]
+  return "com.google.ios.remoteconfig.testapp"
 
 
 def _run_ios_gameloop_test(bundle_id, app_path, gameloop_app, device_id):
@@ -347,9 +427,17 @@ def _run_ios_gameloop_test(bundle_id, app_path, gameloop_app, device_id):
   _install_ios_app(app_path, device_id)
   _run_xctest(gameloop_app, device_id)
   logs = _get_ios_test_log(bundle_id, app_path, device_id)
-  _uninstall_ios_app(bundle_id, device_id)
+  # _uninstall_ios_app(bundle_id, device_id)
   return logs
 
+
+def _run_tvos_gameloop_test(bundle_id, app_path, gameloop_app, device_id):
+  _install_ios_app(app_path, device_id)
+  _run_xctest(gameloop_app, device_id)
+  logs = _get_ios_test_log(bundle_id, app_path, device_id)
+  _uninstall_ios_app(bundle_id, device_id)
+  return logs
+  
 
 def _install_ios_app(app_path, device_id):
   """Install integration_test app into the simulator."""

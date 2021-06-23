@@ -51,7 +51,7 @@ class GameLoopLauncherUITests: XCTestCase {
       for button in [springboard.buttons["Open"], springboard.buttons["Allow"], springboard.buttons["OK"]] {
         if button.exists {
           NSLog("Dismissing system dialog")
-          button.tap()
+//          button.tap()
         }
       }
     }
@@ -91,14 +91,14 @@ class GameLoopLauncherUITests: XCTestCase {
 
   /// Collect all the strings in the general UIPasteboard and attach them as a test result.
   func attachResults() {
-    let pasteboard = UIPasteboard.general
-    guard pasteboard.hasStrings else {
-      // No output data; do nothing
-      return
-    }
-    let allStrings = pasteboard.strings!
-    let joined = allStrings.joined(separator: "\n")
-    let attachment = XCTAttachment(string: joined)
-    add(attachment)
+//    let pasteboard = UIPasteboard.general
+//    guard pasteboard.hasStrings else {
+//      // No output data; do nothing
+//      return
+//    }
+//    let allStrings = pasteboard.strings!
+//    let joined = allStrings.joined(separator: "\n")
+//    let attachment = XCTAttachment(string: joined)
+//    add(attachment)
   }
 }
