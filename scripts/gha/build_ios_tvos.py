@@ -38,6 +38,7 @@ python3 scripts/gha/build_ios_tvos.py -p arm64 -t firebase_remote_config
 import argparse
 from collections import defaultdict
 import logging
+import multiprocessing
 import os
 import shutil
 import subprocess
@@ -434,10 +435,9 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist):
                      dest_headers_path)
 
 
-def cmake_configure_and_build(source_path, build_path, toolchain,
-                              archive_output_path, targets,
-                              architecture=None, toolchain_platform=None):
-  """CMake configure build project and build libraries.
+def cmake_configure(source_path, build_path, toolchain, archive_output_path,
+                    architecture=None, toolchain_platform=None):
+  """CMake configure which sets up the build project.
 
   Args:
       source_path (str): Source directory containing top level CMakeLists.txt.
@@ -461,8 +461,16 @@ def cmake_configure_and_build(source_path, build_path, toolchain,
     cmd.append('-DPLATFORM={0}'.format(toolchain_platform))
   utils.run_command(cmd)
 
+
+def cmake_build(build_path, targets):
+  """CMake build which builds all libraries.
+
+  Args:
+      build_path (str): CMake build path (where project is built).
+      targets (list(str)): CMake build targets. (eg: firebase_auth, etc)
+  """
   # CMake build for os-platform-architecture
-  cmd = ['cmake', '--build', build_path, '-j', str(os.cpu_count())]
+  cmd = ['cmake', '--build', build_path]
   cmd.append('--target')
   cmd.extend(targets)
   utils.run_command(cmd)
@@ -477,6 +485,8 @@ def main():
     args.source_dir = os.path.abspath(args.source_dir)
 
   frameworks_path = os.path.join(args.build_dir, 'frameworks')
+  # List of cmake build process that we will be launched in parallel.
+  processes = []
   for apple_os in args.os:
     logging.info("Building for {0}".format(apple_os))
     os_config = CONFIG.get(apple_os)
@@ -515,12 +525,25 @@ def main():
         # For tvos builds, we pass a special cmake option PLATFORM to toolchain.
         toolchain_platform = os_platform_variant_config['toolchain_platform'] \
                              if apple_os == 'tvos' else None
-        cmake_configure_and_build(args.source_dir, build_path,
-                                  os_platform_variant_config['toolchain'],
-                                  archive_output_path, supported_targets,
-                                  architecture, toolchain_platform)
-        # Arrange frameworks
-        arrange_frameworks(archive_output_path)
+        # CMake configure was having all sorts of issues when run in parallel.
+        # It might be the Cocoapods that are downloaded in parallel into a
+        # single cache directory.
+        cmake_configure(args.source_dir, build_path,
+                        os_platform_variant_config['toolchain'],
+                        archive_output_path, architecture,
+                        toolchain_platform)
+        process = multiprocessing.Process(target=cmake_build,
+                                          args=(build_path, supported_targets))
+        processes.append((process, archive_output_path))
+
+  # Launch all cmake build processes in parallel.
+  for process, _ in processes:
+    process.start()
+
+  for process, archive_output_path in processes:
+    process.wait()
+    # Reorganize frameworks (renaming, copying over headers etc)
+    arrange_frameworks(archive_output_path)
 
   # if we built for all architectures build universal framework as well.
   build_universal_framework(frameworks_path)
