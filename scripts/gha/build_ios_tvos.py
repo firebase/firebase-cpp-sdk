@@ -32,7 +32,7 @@ python3 scripts/gha/build_ios_tvos.py
 python3 scripts/gha/build_ios_tvos.py -t firebase_auth firebase_database
 
 # Build for specific architectures
-python3 scripts/gha/build_ios_tvos.py -p arm64 -t firebase_remote_config
+python3 scripts/gha/build_ios_tvos.py -a arm64 -t firebase_remote_config
 """
 
 import argparse
