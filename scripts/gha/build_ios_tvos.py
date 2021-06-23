@@ -124,7 +124,7 @@ def arrange_frameworks(archive_output_path):
         os.remove(os.path.join(root, f))
 
 
-def build_universal_framework(frameworks_path):
+def build_universal_framework(frameworks_path, targets):
   """Create universal frameworks if possible.
 
   If all architectures (eg: arm64, armv7 etc) and platforms (device, simulator)
@@ -132,6 +132,8 @@ def build_universal_framework(frameworks_path):
   Args:
       frameworks_path (str): Root path containing subdirectories for each
         operating system and its frameworks.
+      targets iterable(str): List of firebase libraries to process.
+        (eg: [firebase_auth, firebase_remote_config])
         Eg: <build_dir>/frameworks              <------------- <frameworks_path>
                 - ios
                   - device-arm64
@@ -208,8 +210,11 @@ def build_universal_framework(frameworks_path):
                                       platform_variant_architecture_dirs[0])
     logging.debug('Using {0} as reference path for scanning '
                   'targets'.format(reference_dir_path))
+    # Filter only .framework directories and make sure the framework is
+    # in list of supported targets.
     target_frameworks = [x for x in os.listdir(reference_dir_path)
-                        if x.endswith('.framework')]
+                        if x.endswith('.framework') and
+                        x.split('.')[0] in targets]
     logging.debug('Targets found: {0}'.format(' '.join(target_frameworks)))
 
     # Collect a list of libraries from various platform-arch combinations for
@@ -263,7 +268,8 @@ def build_universal_framework(frameworks_path):
                     universal_firebase_framework_headers_path)
 
 
-def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist):
+def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist,
+                       targets):
   """Build xcframeworks combining libraries for different operating systems.
 
   Combine frameworks for different operating systems (ios, tvos), architectures
@@ -276,6 +282,8 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist):
       xcframeworks_path (str): Absolute path to create xcframeworks in.
       template_info_plist (str): Absolute path to a template Info.plist that
         will be copied over to each xcframework and provides metadata to XCode.
+      targets iterable(str): List of firebase target libraries.
+        (eg: [firebase_auth, firebase_remote_config])
 
         Eg: <build_dir>/frameworks              <------------- <frameworks_path>
                 - ios                           <---------- <frameworks_os_path>
@@ -345,8 +353,12 @@ def build_xcframeworks(frameworks_path, xcframeworks_path, template_info_plist):
                                       platform_variant_architecture_dirs[0])
     logging.debug('Using {0} as reference path for scanning '
                   'targets'.format(reference_dir_path))
+
+    # Filter only .framework directories and make sure the framework is
+    # in list of supported targets.
     target_frameworks = [x for x in os.listdir(reference_dir_path)
-                        if x.endswith('.framework')]
+                        if x.endswith('.framework') and
+                        x.split('.')[0] in targets]
     logging.debug('Targets found: {0}'.format(' '.join(target_frameworks)))
 
     # For each target, we collect all libraries for a specific platform variants
@@ -545,15 +557,19 @@ def main():
     # Reorganize frameworks (renaming, copying over headers etc)
     arrange_frameworks(archive_output_path)
 
+  # Since we renamed firebase_app.framework to firebase.framework we add that
+  # to our list of targets.
+  supported_targets.add('firebase')
+
   # if we built for all architectures build universal framework as well.
-  build_universal_framework(frameworks_path)
+  build_universal_framework(frameworks_path, supported_targets)
 
   # Build xcframeworks
   xcframeworks_path = os.path.join(args.build_dir, 'xcframeworks')
   template_info_plist_path = os.path.join(args.source_dir, 'build_scripts',
                                           'tvos', 'Info_ios_and_tvos.plist')
   build_xcframeworks(frameworks_path, xcframeworks_path,
-                     template_info_plist_path)
+                     template_info_plist_path, supported_targets)
 
 
 def parse_cmdline_args():
