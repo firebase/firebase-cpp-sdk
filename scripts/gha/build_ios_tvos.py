@@ -541,7 +541,7 @@ def main():
     process.start()
 
   for process, archive_output_path in processes:
-    process.wait()
+    process.join()
     # Reorganize frameworks (renaming, copying over headers etc)
     arrange_frameworks(archive_output_path)
 
