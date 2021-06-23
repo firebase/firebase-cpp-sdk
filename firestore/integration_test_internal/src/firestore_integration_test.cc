@@ -22,12 +22,7 @@ static const char* kBootstrapAppName = "bootstrap";
 
 // Set Firestore up to use Firestore Emulator via USE_FIRESTORE_EMULATOR
 void LocateEmulator(Firestore* db) {
-
-if (std::getenv("GTEST_FILTER") != nullptr) {
-  std::string msg = std::string("Using filter ") + std::getenv("GTEST_FILTER");
-LogDebug(msg.c_str());
-}
-// Use prod backend as long as this env variable is unset.
+  // Use prod backend as long as this env variable is unset.
   if (std::getenv("USE_FIRESTORE_EMULATOR") == nullptr) {
     LogDebug("Using prod backend for testing...");
     return;
@@ -37,7 +32,7 @@ LogDebug(msg.c_str());
   std::string local_host = "10.0.2.2";
 #else
   std::string local_host = "localhost";
-#endif // defined(__ANDROID__)
+#endif  // defined(__ANDROID__)
 
   std::string port = "8080";
 

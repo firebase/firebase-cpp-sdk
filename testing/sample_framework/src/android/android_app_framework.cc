@@ -479,15 +479,18 @@ std::string ReadTextInput(const char* title, const char* message,
   return g_text_entry_field_data->ReadText(title, message, placeholder);
 }
 
-void SetEnvironmentVariableFromExtra(const char* extra_name, JNIEnv* env, jobject intent, jmethodID get_string_extra) {
+void SetEnvironmentVariableFromExtra(const char* extra_name, JNIEnv* env,
+                                     jobject intent,
+                                     jmethodID get_string_extra) {
   jstring extra_value_jstring = (jstring)env->CallObjectMethod(
-    intent, get_string_extra, env->NewStringUTF(extra_name));
+      intent, get_string_extra, env->NewStringUTF(extra_name));
 
   if (extra_value_jstring != nullptr) {
-  const char* extra_value =
-    env->GetStringUTFChars(extra_value_jstring, nullptr);
-  setenv(extra_name, extra_value == nullptr ? "" : extra_value, /*overwrite=*/1);
-  env->ReleaseStringUTFChars(extra_value_jstring, extra_value);
+    const char* extra_value =
+        env->GetStringUTFChars(extra_value_jstring, nullptr);
+    setenv(extra_name, extra_value == nullptr ? "" : extra_value,
+           /*overwrite=*/1);
+    env->ReleaseStringUTFChars(extra_value_jstring, extra_value);
   }
 }
 
@@ -504,9 +507,10 @@ void SetExtrasAsEnvironmentVariables() {
   jmethodID get_string_extra = env->GetMethodID(
       intent_clazz, "getStringExtra", "(Ljava/lang/String;)Ljava/lang/String;");
 
-  SetEnvironmentVariableFromExtra("USE_FIRESTORE_EMULATOR", env, intent, get_string_extra);
-  SetEnvironmentVariableFromExtra("FIRESTORE_EMULATOR_PORT", env, intent, get_string_extra);
-  SetEnvironmentVariableFromExtra("GTEST_FILTER", env, intent, get_string_extra);
+  SetEnvironmentVariableFromExtra("USE_FIRESTORE_EMULATOR", env, intent,
+                                  get_string_extra);
+  SetEnvironmentVariableFromExtra("FIRESTORE_EMULATOR_PORT", env, intent,
+                                  get_string_extra);
 }
 
 }  // namespace app_framework
