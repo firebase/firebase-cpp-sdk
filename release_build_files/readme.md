@@ -571,6 +571,8 @@ code.
 -   Changes
     -   Firestore: Fixed a linker error when `DocumentChange::npos` was used.
         ([#474](https://github.com/firebase/firebase-cpp-sdk/pull/474)).
+    -   Firestore: Added `Firestore.NamedQuery` to allow user to read the queries
+        used to build a Firestore Data Bundle.
 
 ### 8.0.0
 -   Changes
