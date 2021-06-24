@@ -348,9 +348,9 @@ TEST_F(FirebaseRemoteConfigTest, TestFetch) {
 TEST_F(FirebaseRemoteConfigTest, TestFetchInterval) {
   ASSERT_NE(rc_, nullptr);
   EXPECT_TRUE(WaitForCompletion(
-      RunWithRetry([](RemoteConfig* rc) { return rc->Fetch(); }, rc_),
-      "Fetch"));
-  EXPECT_TRUE(WaitForCompletion(rc_->Activate(), "Activate"));
+      RunWithRetry([](RemoteConfig* rc) { return rc->FetchAndActivate(); },
+                   rc_),
+      "FetchAndActivate"));
   uint64_t current_fetch_time = rc_->GetInfo().fetch_time;
   // Making sure the config settings's fetch interval is 12 hours
   EXPECT_TRUE(WaitForCompletion(SetDefaultConfigSettings(rc_),
@@ -360,18 +360,15 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchInterval) {
       RunWithRetry([](RemoteConfig* rc) { return rc->Fetch(); }, rc_),
       "Fetch"));
   EXPECT_EQ(current_fetch_time, rc_->GetInfo().fetch_time);
-#if !(TARGET_OS_IPHONE)  // iOS failed to set configSettings
   // Update fetch interval to 0
   EXPECT_TRUE(WaitForCompletion(SetZeroIntervalConfigSettings(rc_),
                                 "SetZeroIntervalConfigSettings"));
-  LogDebug("Current Fetch Interval: %lld",
-           rc_->GetConfigSettings().minimum_fetch_interval_in_milliseconds);
+  EXPECT_EQ(0, rc_->GetConfigSettings().minimum_fetch_interval_in_milliseconds);
   // Third fetch, this should operate the real fetch and update the fetch time.
   EXPECT_TRUE(WaitForCompletion(
       RunWithRetry([](RemoteConfig* rc) { return rc->Fetch(); }, rc_),
       "Fetch"));
   EXPECT_NE(current_fetch_time, rc_->GetInfo().fetch_time);
-#endif
 }
 
 }  // namespace firebase_testapp_automated

@@ -347,13 +347,16 @@ Future<void> RemoteConfigInternal::SetDefaultsLastResult() {
 
 Future<void> RemoteConfigInternal::SetConfigSettings(ConfigSettings settings) {
   const auto handle = future_impl_.SafeAlloc<void>(kRemoteConfigFnSetConfigSettings);
-  FIRRemoteConfigSettings *config_settings = impl().configSettings;
-  config_settings.minimumFetchInterval =
+  FIRRemoteConfigSettings *newConfigSettings = [[FIRRemoteConfigSettings alloc] init];
+  newConfigSettings.minimumFetchInterval =
       static_cast<NSTimeInterval>(settings.minimum_fetch_interval_in_milliseconds /
                                   ::firebase::internal::kMillisecondsPerSecond);
-  config_settings.fetchTimeout = static_cast<NSTimeInterval>(
+  newConfigSettings.fetchTimeout = static_cast<NSTimeInterval>(
       settings.fetch_timeout_in_milliseconds / ::firebase::internal::kMillisecondsPerSecond);
-  future_impl_.Complete(handle, kFutureStatusSuccess);
+  dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+    [impl() setConfigSettings:newConfigSettings];
+    future_impl_.Complete(handle, kFutureStatusSuccess);
+  });
   return MakeFuture<void>(&future_impl_, handle);
 }
 
