@@ -23,7 +23,7 @@ namespace firebase {
 namespace firestore {
 namespace jni {
 
-// Since we're targeting STLPort, `std::invoke` is not available.
+// TODO: Consider using `std::invoke` when we move to C++17.
 #define INVOKE(env, method, ...) ((env)->*(method))(__VA_ARGS__);
 
 /**
