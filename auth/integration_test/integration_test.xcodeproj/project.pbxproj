@@ -11,9 +11,7 @@
 		529226D61C85F68000C89379 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D51C85F68000C89379 /* Foundation.framework */; };
 		529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D71C85F68000C89379 /* CoreGraphics.framework */; };
 		529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D91C85F68000C89379 /* UIKit.framework */; };
-		9CC93CB1C0E04196BE7AA874 /* libPods-integration_test_tvos.a in Frameworks */ = {isa = PBXBuildFile; fileRef = DE5DF88312698BE99BFA8CD9 /* libPods-integration_test_tvos.a */; };
 		9F3A08F5266978C300E1D69F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9F3A08F3266978C300E1D69F /* Main.storyboard */; };
-		9F3A08F7266978C400E1D69F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9F3A08F6266978C400E1D69F /* Assets.xcassets */; };
 		9F3A08FA266978C400E1D69F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 9F3A08F8266978C400E1D69F /* LaunchScreen.storyboard */; };
 		9F3A09012669791B00E1D69F /* gmock-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D62CCBBF22F367140099BE9F /* gmock-all.cc */; };
 		9F3A09022669791E00E1D69F /* gtest-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D67D355622BABD2100292C1D /* gtest-all.cc */; };
@@ -24,6 +22,7 @@
 		9F5DD09926697AD30058C144 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 520BC0381C869159008CFBC3 /* GoogleService-Info.plist */; };
 		9F5DD0AB266A7ACE0058C144 /* ios_app_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E722CB322900C2651A /* ios_app_framework.mm */; };
 		9F5DD0AC266A7AD30058C144 /* integration_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61C5F9222BABAD100A79141 /* integration_test.cc */; };
+		BCF6A95A2682C2AB00578FDD /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BCF6A9592682C2AB00578FDD /* Foundation.framework */; };
 		D61C5F8E22BABA9C00A79141 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D61C5F8C22BABA9B00A79141 /* Images.xcassets */; };
 		D61C5F9622BABAD200A79141 /* integration_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61C5F9222BABAD100A79141 /* integration_test.cc */; };
 		D62CCBC022F367140099BE9F /* gmock-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D62CCBBF22F367140099BE9F /* gmock-all.cc */; };
@@ -33,7 +32,6 @@
 		D6C179EA22CB322900C2651A /* ios_firebase_test_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E822CB322900C2651A /* ios_firebase_test_framework.mm */; };
 		D6C179EE22CB323300C2651A /* firebase_test_framework.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6C179EC22CB323300C2651A /* firebase_test_framework.cc */; };
 		D6C179F022CB32A000C2651A /* app_framework.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6C179EF22CB32A000C2651A /* app_framework.cc */; };
-		F0EC8E33F7E7F4BF705A3991 /* libPods-integration_test.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 46998791754BF3DDE5D7A20F /* libPods-integration_test.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXBuildRule section */
@@ -51,7 +49,6 @@
 /* End PBXBuildRule section */
 
 /* Begin PBXFileReference section */
-		2584BCCABE98221F4709B89E /* Pods-integration_test.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-integration_test.release.xcconfig"; path = "Target Support Files/Pods-integration_test/Pods-integration_test.release.xcconfig"; sourceTree = "<group>"; };
 		46998791754BF3DDE5D7A20F /* libPods-integration_test.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-integration_test.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		520BC0381C869159008CFBC3 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		529226D21C85F68000C89379 /* integration_test.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = integration_test.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -59,15 +56,12 @@
 		529226D71C85F68000C89379 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		529226D91C85F68000C89379 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		529226EE1C85F68000C89379 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
-		5DEB90B0D272D92969404783 /* Pods-integration_test_tvos.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-integration_test_tvos.debug.xcconfig"; path = "Target Support Files/Pods-integration_test_tvos/Pods-integration_test_tvos.debug.xcconfig"; sourceTree = "<group>"; };
-		9C11DDB75B69AFC403F349C3 /* Pods-integration_test_tvos.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-integration_test_tvos.release.xcconfig"; path = "Target Support Files/Pods-integration_test_tvos/Pods-integration_test_tvos.release.xcconfig"; sourceTree = "<group>"; };
 		9F3A08EB266978C300E1D69F /* integration_test_tvos.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = integration_test_tvos.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9F3A08F4266978C300E1D69F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		9F3A08F6266978C400E1D69F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9F3A08F9266978C400E1D69F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		9F3A08FB266978C400E1D69F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9F5DD09126697A170058C144 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		9F5DD09326697A5F0058C144 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/CoreGraphics.framework; sourceTree = DEVELOPER_DIR; };
+		BCF6A9592682C2AB00578FDD /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		D61C5F8C22BABA9B00A79141 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		D61C5F8D22BABA9C00A79141 /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		D61C5F9222BABAD100A79141 /* integration_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = integration_test.cc; path = src/integration_test.cc; sourceTree = "<group>"; };
@@ -84,7 +78,6 @@
 		D6C179EF22CB32A000C2651A /* app_framework.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = app_framework.cc; path = src/app_framework.cc; sourceTree = "<group>"; };
 		D6E7D43C22D51D9900EDBD35 /* UserNotifications.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UserNotifications.framework; path = System/Library/Frameworks/UserNotifications.framework; sourceTree = SDKROOT; };
 		DE5DF88312698BE99BFA8CD9 /* libPods-integration_test_tvos.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-integration_test_tvos.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		F56939B9262D9DAC1194ECAB /* Pods-integration_test.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-integration_test.debug.xcconfig"; path = "Target Support Files/Pods-integration_test/Pods-integration_test.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -95,7 +88,6 @@
 				529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */,
 				529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */,
 				529226D61C85F68000C89379 /* Foundation.framework in Frameworks */,
-				F0EC8E33F7E7F4BF705A3991 /* libPods-integration_test.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,26 +95,15 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BCF6A95A2682C2AB00578FDD /* Foundation.framework in Frameworks */,
 				9F5DD09426697A5F0058C144 /* CoreGraphics.framework in Frameworks */,
 				9F5DD09226697A170058C144 /* UIKit.framework in Frameworks */,
-				9CC93CB1C0E04196BE7AA874 /* libPods-integration_test_tvos.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		1A5183E5C501F81ED7C672DA /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				F56939B9262D9DAC1194ECAB /* Pods-integration_test.debug.xcconfig */,
-				2584BCCABE98221F4709B89E /* Pods-integration_test.release.xcconfig */,
-				5DEB90B0D272D92969404783 /* Pods-integration_test_tvos.debug.xcconfig */,
-				9C11DDB75B69AFC403F349C3 /* Pods-integration_test_tvos.release.xcconfig */,
-			);
-			path = Pods;
-			sourceTree = "<group>";
-		};
 		529226C91C85F68000C89379 = {
 			isa = PBXGroup;
 			children = (
@@ -134,7 +115,6 @@
 				9F3A08EC266978C300E1D69F /* integration_test_tvos */,
 				529226D41C85F68000C89379 /* Frameworks */,
 				529226D31C85F68000C89379 /* Products */,
-				1A5183E5C501F81ED7C672DA /* Pods */,
 			);
 			sourceTree = "<group>";
 		};
@@ -150,6 +130,7 @@
 		529226D41C85F68000C89379 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				BCF6A9592682C2AB00578FDD /* Foundation.framework */,
 				9F5DD09326697A5F0058C144 /* CoreGraphics.framework */,
 				9F5DD09126697A170058C144 /* UIKit.framework */,
 				D6E7D43C22D51D9900EDBD35 /* UserNotifications.framework */,
@@ -193,9 +174,7 @@
 			isa = PBXGroup;
 			children = (
 				9F3A08F3266978C300E1D69F /* Main.storyboard */,
-				9F3A08F6266978C400E1D69F /* Assets.xcassets */,
 				9F3A08F8266978C400E1D69F /* LaunchScreen.storyboard */,
-				9F3A08FB266978C400E1D69F /* Info.plist */,
 			);
 			path = integration_test_tvos;
 			sourceTree = "<group>";
@@ -305,7 +284,6 @@
 			files = (
 				9F5DD09926697AD30058C144 /* GoogleService-Info.plist in Resources */,
 				9F3A08FA266978C400E1D69F /* LaunchScreen.storyboard in Resources */,
-				9F3A08F7266978C400E1D69F /* Assets.xcassets in Resources */,
 				9F3A08F5266978C300E1D69F /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -491,7 +469,6 @@
 		};
 		529226FA1C85F68000C89379 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = F56939B9262D9DAC1194ECAB /* Pods-integration_test.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
@@ -510,7 +487,6 @@
 					"\"$(SRCROOT)/external/googletest/src/googlemock/include\"",
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
-					/Users/drsanta/Downloads/firebase_cpp_sdk/xcframeworks_tvos/firebase.xcframework,
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -523,7 +499,6 @@
 		};
 		529226FB1C85F68000C89379 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 2584BCCABE98221F4709B89E /* Pods-integration_test.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
@@ -542,7 +517,6 @@
 					"\"$(SRCROOT)/external/googletest/src/googlemock/include\"",
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
-					/Users/drsanta/Downloads/firebase_cpp_sdk/xcframeworks_tvos/firebase.xcframework,
 				);
 				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -555,7 +529,6 @@
 		};
 		9F3A08FE266978C400E1D69F /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 5DEB90B0D272D92969404783 /* Pods-integration_test_tvos.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -601,13 +574,12 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 14.5;
+				TVOS_DEPLOYMENT_TARGET = 10.1;
 			};
 			name = Debug;
 		};
 		9F3A08FF266978C400E1D69F /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 9C11DDB75B69AFC403F349C3 /* Pods-integration_test_tvos.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -651,7 +623,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = appletvos;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 14.5;
+				TVOS_DEPLOYMENT_TARGET = 10.1;
 			};
 			name = Release;
 		};
