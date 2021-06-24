@@ -468,7 +468,6 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_change.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_reference.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_snapshot.h
-    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/event_listener.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_path.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_value.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/listener_registration.h
