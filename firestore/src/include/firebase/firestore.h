@@ -375,28 +375,6 @@ class Firestore {
   virtual ListenerRegistration AddSnapshotsInSyncListener(
       std::function<void()> callback);
 
-#if defined(DOXYGEN)
-  /**
-   * Attaches a listener for a snapshots-in-sync event. Server-generated
-   * updates and local changes can affect multiple snapshot listeners.
-   * The snapshots-in-sync event indicates that all listeners affected by
-   * a given change have fired.
-   *
-   * NOTE: The snapshots-in-sync event only indicates that listeners are
-   * in sync with each other, but does not relate to whether those
-   * snapshots are in sync with the server. Use `SnapshotMetadata` in the
-   * individual listeners to determine if a snapshot is from the cache or
-   * the server.
-   *
-   * @param listener A callback to be called every time all snapshot
-   * listeners are in sync with each other.
-   * @return A `ListenerRegistration` object that can be used to remove the
-   * listener.
-   */
-  virtual ListenerRegistration AddSnapshotsInSyncListener(
-      EventListener<void>* listener);
-#endif  // defined(DOXYGEN)
-
   /**
    * Loads a Firestore bundle into the local cache.
    *

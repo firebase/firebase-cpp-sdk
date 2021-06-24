@@ -283,19 +283,6 @@ ListenerRegistration Query::AddSnapshotListener(
                                         firebase::Move(callback));
 }
 
-#if defined(DOXYGEN)
-ListenerRegistration Query::AddSnapshotListener(
-    EventListener<QuerySnapshot>* listener) {
-  return AddSnapshotListener(MetadataChanges::kExclude, listener);
-}
-
-ListenerRegistration Query::AddSnapshotListener(
-    MetadataChanges metadata_changes, EventListener<QuerySnapshot>* listener) {
-  if (!internal_) return {};
-  return internal_->AddSnapshotListener(metadata_changes, listener);
-}
-#endif  // defined(DOXYGEN)
-
 bool operator==(const Query& lhs, const Query& rhs) {
   if (!lhs.internal_ || !rhs.internal_) {
     return lhs.internal_ == rhs.internal_;

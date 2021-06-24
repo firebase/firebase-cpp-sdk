@@ -282,57 +282,6 @@ class DocumentReference {
       std::function<void(const DocumentSnapshot&, Error, const std::string&)>
           callback);
 
-#if defined(DOXYGEN)
-  /**
-   * @brief Starts listening to the document referenced by this
-   * DocumentReference.
-   *
-   * @param[in] listener The event listener that will be called with the
-   * snapshots, which must remain in memory until you remove the listener from
-   * this DocumentReference. (Ownership is not transferred; you are responsible
-   * for making sure that listener is valid as long as this DocumentReference is
-   * valid and the listener is registered.)
-   *
-   * @return A registration object that can be used to remove the listener.
-   *
-   * @note This method is only available when using the STLPort C++ runtime
-   * library.
-   *
-   * @deprecated STLPort support in Firestore is deprecated and will be removed
-   * in a future release. Note that STLPort has been deprecated in the Android
-   * NDK since r17 (May 2018) and removed since r18 (September 2018).
-   */
-  FIREBASE_DEPRECATED virtual ListenerRegistration AddSnapshotListener(
-      EventListener<DocumentSnapshot>* listener);
-
-  /**
-   * @brief Starts listening to the document referenced by this
-   * DocumentReference.
-   *
-   * @param[in] metadata_changes Indicates whether metadata-only changes (that
-   * is, only DocumentSnapshot::metadata() changed) should trigger snapshot
-   * events.
-   * @param[in] listener The event listener that will be called with the
-   * snapshots, which must remain in memory until you remove the listener from
-   * this DocumentReference. (Ownership is not transferred; you are responsible
-   * for making sure that listener is valid as long as this DocumentReference is
-   * valid and the listener is registered.)
-   *
-   * @return A registration object that can be used to remove the listener.
-   *
-   * @note This method is only available when using the STLPort C++ runtime
-   * library.
-   *
-   * @deprecated STLPort support in Firestore is deprecated and will be removed
-   * in a future release. Note that STLPort has been deprecated in the Android
-   * NDK since r17 (May 2018) and removed since r18 (September 2018).
-   */
-  FIREBASE_DEPRECATED virtual ListenerRegistration AddSnapshotListener(
-      MetadataChanges metadata_changes,
-      EventListener<DocumentSnapshot>* listener);
-
-#endif  // defined(DOXYGEN)
-
   /**
    * @brief Returns true if this DocumentReference is valid, false if it is not
    * valid. An invalid DocumentReference could be the result of:

@@ -164,20 +164,6 @@ ListenerRegistration DocumentReference::AddSnapshotListener(
                                         firebase::Move(callback));
 }
 
-#if defined(DOXYGEN)
-ListenerRegistration DocumentReference::AddSnapshotListener(
-    EventListener<DocumentSnapshot>* listener) {
-  return AddSnapshotListener(MetadataChanges::kExclude, listener);
-}
-
-ListenerRegistration DocumentReference::AddSnapshotListener(
-    MetadataChanges metadata_changes,
-    EventListener<DocumentSnapshot>* listener) {
-  if (!internal_) return {};
-  return internal_->AddSnapshotListener(metadata_changes, listener);
-}
-#endif  // defined(DOXYGEN)
-
 std::string DocumentReference::ToString() const {
   if (!is_valid()) return "DocumentReference(invalid)";
 

@@ -297,14 +297,6 @@ Future<void> Firestore::ClearPersistence() {
   return internal_->ClearPersistence();
 }
 
-#if defined(DOXYGEN)
-ListenerRegistration Firestore::AddSnapshotsInSyncListener(
-    EventListener<void>* listener) {
-  if (!internal_) return {};
-  return internal_->AddSnapshotsInSyncListener(listener);
-}
-#endif  // defined(DOXYGEN)
-
 ListenerRegistration Firestore::AddSnapshotsInSyncListener(
     std::function<void()> callback) {
   if (!internal_) return {};
