@@ -360,7 +360,7 @@ TEST_F(FirebaseRemoteConfigTest, TestFetchInterval) {
       RunWithRetry([](RemoteConfig* rc) { return rc->Fetch(); }, rc_),
       "Fetch"));
   EXPECT_EQ(current_fetch_time, rc_->GetInfo().fetch_time);
-#if !(TARGET_OS_IPHONE) // iOS failed to set configSettings
+#if !(TARGET_OS_IPHONE)  // iOS failed to set configSettings
   // Update fetch interval to 0
   EXPECT_TRUE(WaitForCompletion(SetZeroIntervalConfigSettings(rc_),
                                 "SetZeroIntervalConfigSettings"));
