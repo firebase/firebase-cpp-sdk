@@ -348,7 +348,8 @@ TEST_F(FirebaseRemoteConfigTest, TestFetch) {
 TEST_F(FirebaseRemoteConfigTest, TestFetchInterval) {
   ASSERT_NE(rc_, nullptr);
   EXPECT_TRUE(WaitForCompletion(
-      RunWithRetry([](RemoteConfig* rc) { return rc->FetchAndActivate(); }, rc_),
+      RunWithRetry([](RemoteConfig* rc) { return rc->FetchAndActivate(); },
+                   rc_),
       "FetchAndActivate"));
   uint64_t current_fetch_time = rc_->GetInfo().fetch_time;
   // Making sure the config settings's fetch interval is 12 hours
