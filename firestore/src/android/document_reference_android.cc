@@ -171,6 +171,7 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
                              /*passing_listener_ownership=*/true);
 }
 
+// TODO(b/191969080): Remove the passing_listener_ownership if possible.
 ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
     EventListener<DocumentSnapshot>* listener,

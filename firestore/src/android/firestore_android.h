@@ -92,6 +92,7 @@ class FirestoreInternal {
   WriteBatch batch() const;
 
   // Runs transaction atomically.
+  // TODO(b/191969448): Remove the is_lambda parameter if possible.
   Future<void> RunTransaction(TransactionFunction* update,
                               bool is_lambda = false);
 
