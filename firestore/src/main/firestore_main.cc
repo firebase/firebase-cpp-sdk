@@ -377,5 +377,22 @@ Future<LoadBundleTaskProgress> FirestoreInternal::LoadBundle(
   return promise.future();
 }
 
+Future<Query> FirestoreInternal::NamedQuery(const std::string& query_name) {
+  auto promise = promise_factory_.CreatePromise<Query>(AsyncApi::kNamedQuery);
+  firestore_core_->GetNamedQuery(
+      query_name,
+      [this, promise](const absl::optional<core::Query>& query) mutable {
+        if (query.has_value()) {
+          promise.SetValue(
+              MakePublic(api::Query(query.value(), firestore_core_)));
+        } else {
+          promise.SetError(
+              Status(Error::kErrorNotFound, "Named query cannot be found"));
+        }
+      });
+
+  return promise.future();
+}
+
 }  // namespace firestore
 }  // namespace firebase
