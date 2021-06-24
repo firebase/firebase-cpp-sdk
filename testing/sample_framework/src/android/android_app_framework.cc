@@ -491,6 +491,7 @@ void SetEnvironmentVariableFromExtra(const char* extra_name, JNIEnv* env,
     setenv(extra_name, extra_value == nullptr ? "" : extra_value,
            /*overwrite=*/1);
     env->ReleaseStringUTFChars(extra_value_jstring, extra_value);
+    env->DeleteLocalRef(extra_value_jstring);
   }
 }
 
@@ -511,6 +512,8 @@ void SetExtrasAsEnvironmentVariables() {
                                   get_string_extra);
   SetEnvironmentVariableFromExtra("FIRESTORE_EMULATOR_PORT", env, intent,
                                   get_string_extra);
+
+  env->DeleteLocalRef(intent);
 }
 
 }  // namespace app_framework
