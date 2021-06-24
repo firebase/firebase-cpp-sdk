@@ -6,11 +6,11 @@
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/cleanup.h"
+#include "firestore/src/common/event_listener.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
-#include "firestore/src/include/firebase/firestore/event_listener.h"
 #include "firestore/src/include/firebase/firestore/listener_registration.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/document_reference_android.h"

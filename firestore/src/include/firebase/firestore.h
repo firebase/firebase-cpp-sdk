@@ -31,7 +31,6 @@
 #include "firebase/firestore/document_change.h"
 #include "firebase/firestore/document_reference.h"
 #include "firebase/firestore/document_snapshot.h"
-#include "firebase/firestore/event_listener.h"
 #include "firebase/firestore/field_path.h"
 #include "firebase/firestore/field_value.h"
 #include "firebase/firestore/firestore_errors.h"

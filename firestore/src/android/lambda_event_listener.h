@@ -5,7 +5,7 @@
 
 #include "app/meta/move.h"
 #include "firebase/firestore/firestore_errors.h"
-#include "firestore/src/include/firebase/firestore/event_listener.h"
+#include "firestore/src/common/event_listener.h"
 
 namespace firebase {
 namespace firestore {
