@@ -383,8 +383,7 @@ Future<Query> FirestoreInternal::NamedQuery(const std::string& query_name) {
       query_name,
       [this, promise](const core::Query& query, bool found) mutable {
         if (found) {
-          promise.SetValue(
-              MakePublic(api::Query(query, firestore_core_)));
+          promise.SetValue(MakePublic(api::Query(query, firestore_core_)));
         } else {
           promise.SetError(
               Status(Error::kErrorNotFound, "Named query cannot be found"));
