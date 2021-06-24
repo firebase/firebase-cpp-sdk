@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		12D513142684C8C200A83FAA /* bundle_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12D513132684C8C200A83FAA /* bundle_test.cc */; };
+		12D513152684C8C200A83FAA /* bundle_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12D513132684C8C200A83FAA /* bundle_test.cc */; };
+		12D5131A2684C8D100A83FAA /* bundle_builder.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12D513182684C8D100A83FAA /* bundle_builder.cc */; };
+		12D5131B2684C8D100A83FAA /* bundle_builder.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12D513182684C8D100A83FAA /* bundle_builder.cc */; };
 		274316C12F909A9C32E0A64A /* libPods-integration_test.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C6A6C05283DCA99207D26DC2 /* libPods-integration_test.a */; };
 		3500A366959DB537E290FF98 /* libPods-integration_test_tvos.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1B3D64B35A22073C76B376D5 /* libPods-integration_test_tvos.a */; };
 		520BC0391C869159008CFBC3 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 520BC0381C869159008CFBC3 /* GoogleService-Info.plist */; };
@@ -90,6 +94,9 @@
 
 /* Begin PBXFileReference section */
 		03B86EA5FCD6E2E17482DDD0 /* Pods-integration_test.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-integration_test.debug.xcconfig"; path = "Target Support Files/Pods-integration_test/Pods-integration_test.debug.xcconfig"; sourceTree = "<group>"; };
+		12D513132684C8C200A83FAA /* bundle_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bundle_test.cc; path = src/bundle_test.cc; sourceTree = "<group>"; };
+		12D513182684C8D100A83FAA /* bundle_builder.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bundle_builder.cc; path = src/util/bundle_builder.cc; sourceTree = "<group>"; };
+		12D513192684C8D100A83FAA /* bundle_builder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bundle_builder.h; path = src/util/bundle_builder.h; sourceTree = "<group>"; };
 		1B3D64B35A22073C76B376D5 /* libPods-integration_test_tvos.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-integration_test_tvos.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		520BC0381C869159008CFBC3 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		529226D21C85F68000C89379 /* integration_test.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = integration_test.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -240,6 +247,9 @@
 		5292271D1C85FB5500C89379 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				12D513182684C8D100A83FAA /* bundle_builder.cc */,
+				12D513192684C8D100A83FAA /* bundle_builder.h */,
+				12D513132684C8C200A83FAA /* bundle_test.cc */,
 				D61CFBC026091C3A0035CB2A /* integration_test.cc */,
 				D6ED33BA2606CD890058CBF9 /* event_accumulator.h */,
 				D6ED33B92606CD890058CBF9 /* future_test_util.cc */,
@@ -502,6 +512,7 @@
 				D6AAAD572606C22D0025C53B /* document_reference_test.cc in Sources */,
 				D67D355822BABD2200292C1D /* gtest-all.cc in Sources */,
 				D6AAAD4D2606C22D0025C53B /* query_snapshot_test.cc in Sources */,
+				12D513142684C8C200A83FAA /* bundle_test.cc in Sources */,
 				D6AAAD4F2606C22D0025C53B /* transaction_test.cc in Sources */,
 				D61A465D2606EA0B007EBE9B /* transaction_extra_test.cc in Sources */,
 				D6AAAD5A2606C22D0025C53B /* cleanup_test.cc in Sources */,
@@ -520,6 +531,7 @@
 				D6AAAD442606C22D0025C53B /* field_value_test.cc in Sources */,
 				D6AAAD562606C22D0025C53B /* query_network_test.cc in Sources */,
 				D6AAAD552606C22D0025C53B /* listener_registration_test.cc in Sources */,
+				12D5131A2684C8D100A83FAA /* bundle_builder.cc in Sources */,
 				D6AAAD4A2606C22D0025C53B /* fields_test.cc in Sources */,
 				D6AAAD462606C22D0025C53B /* query_test.cc in Sources */,
 				D6ED33BD2606CD890058CBF9 /* future_test_util.cc in Sources */,
@@ -541,6 +553,7 @@
 				BC1D683D267B00EB005DC2DA /* query_snapshot_test.cc in Sources */,
 				BC1D6855267B00EB005DC2DA /* transaction_test.cc in Sources */,
 				BC1D684A267B00EB005DC2DA /* firebase_test_framework.cc in Sources */,
+				12D513152684C8C200A83FAA /* bundle_test.cc in Sources */,
 				BC1D6852267B00EB005DC2DA /* smoke_test.cc in Sources */,
 				BC1D6848267B00EB005DC2DA /* sanity_test.cc in Sources */,
 				BC1D6856267B00EE005DC2DA /* ios_app_framework.mm in Sources */,
@@ -559,6 +572,7 @@
 				BC1D683B267B00EB005DC2DA /* firestore_test.cc in Sources */,
 				BC1D6842267B00EB005DC2DA /* field_value_test.cc in Sources */,
 				BC1D684D267B00EB005DC2DA /* server_timestamp_test.cc in Sources */,
+				12D5131B2684C8D100A83FAA /* bundle_builder.cc in Sources */,
 				BC1D6841267B00EB005DC2DA /* query_test.cc in Sources */,
 				BC1D684F267B00EB005DC2DA /* document_reference_test.cc in Sources */,
 				BC1D6846267B00EB005DC2DA /* collection_reference_test.cc in Sources */,
