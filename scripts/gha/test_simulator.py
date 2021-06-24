@@ -210,7 +210,7 @@ def main(argv):
       bundle_id = _get_bundle_id(app_path, config)
       tests.append(Test(
                       testapp_path=app_path, 
-                      logs=_run_ios_gameloop_test(bundle_id, app_path, ios_gameloop_app, device_id)))
+                      logs=_run_apple_gameloop_test(bundle_id, app_path, ios_gameloop_app, device_id)))
 
     _shutdown_simulator()
 
@@ -251,7 +251,7 @@ def main(argv):
       bundle_id = _get_bundle_id(app_path, config)
       tests.append(Test(
                       testapp_path=app_path, 
-                      logs=_run_tvos_gameloop_test(bundle_id, app_path, tvos_gameloop_app, device_id)))
+                      logs=_run_apple_gameloop_test(bundle_id, app_path, tvos_gameloop_app, device_id)))
 
     _shutdown_simulator()
 
@@ -299,6 +299,7 @@ def main(argv):
     extra_info=" (ON SIMULATOR/EMULATOR)")
 
 
+# -------------------Apple Only-------------------
 def _build_ios_gameloop(gameloop_project, device_name, device_os):
   """Build gameloop UI Test app. 
 
@@ -419,39 +420,31 @@ def _get_bundle_id(app_path, config):
       return api["bundle_id"]
 
 
-def _run_ios_gameloop_test(bundle_id, app_path, gameloop_app, device_id):
+def _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id):
   """Run gameloop test and collect test result."""
-  logging.info("Running iOS gameloop test: %s, %s, %s, %s", bundle_id, app_path, gameloop_app, device_id)
-  _install_ios_app(app_path, device_id)
+  logging.info("Running apple gameloop test: %s, %s, %s, %s", bundle_id, app_path, gameloop_app, device_id)
+  _install_apple_app(app_path, device_id)
   _run_xctest(gameloop_app, device_id)
-  logs = _get_ios_test_log(bundle_id, app_path, device_id)
-  # _uninstall_ios_app(bundle_id, device_id)
-  return logs
-
-
-def _run_tvos_gameloop_test(bundle_id, app_path, gameloop_app, device_id):
-  _install_ios_app(app_path, device_id)
-  _run_xctest(gameloop_app, device_id)
-  logs = _get_ios_test_log(bundle_id, app_path, device_id)
-  _uninstall_ios_app(bundle_id, device_id)
+  logs = _get_apple_test_log(bundle_id, app_path, device_id)
+  _uninstall_apple_app(bundle_id, device_id)
   return logs
   
 
-def _install_ios_app(app_path, device_id):
+def _install_apple_app(app_path, device_id):
   """Install integration_test app into the simulator."""
   args = ["xcrun", "simctl", "install", device_id, app_path]
   logging.info("Install testapp: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
 
-def _uninstall_ios_app(bundle_id, device_id):
+def _uninstall_apple_app(bundle_id, device_id):
   """Uninstall integration_test app from the simulator."""
   args = ["xcrun", "simctl", "uninstall", device_id, bundle_id]
   logging.info("Uninstall testapp: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
 
-def _get_ios_test_log(bundle_id, app_path, device_id):
+def _get_apple_test_log(bundle_id, app_path, device_id):
   """Read integration_test app testing result."""
   args=["xcrun", "simctl", "get_app_container", device_id, bundle_id, "data"]
   logging.info("Get test result: %s", " ".join(args))
@@ -477,6 +470,9 @@ def _read_file(path):
   return test_result
 
 
+
+
+# -------------------Android Only-------------------
 def _check_java_version():
   command = "java -version 2>&1 | awk -F[\\\"_] 'NR==1{print $2}'"
   logging.info("Get java version: %s", command)
