@@ -14,8 +14,6 @@
 #include "firestore/src/include/firebase/firestore/listener_registration.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/document_reference_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/document_reference_stub.h"
 #else
 #include "firestore/src/main/document_reference_main.h"
 #endif  // defined(__ANDROID__)

@@ -5,8 +5,6 @@
 #if defined(__ANDROID__)
 #include "firestore/src/android/listener_registration_android.h"
 #include "firestore/src/common/wrapper_assertions.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/listener_registration_stub.h"
 #endif  // defined(__ANDROID__)
 
 #include "gmock/gmock.h"
@@ -28,9 +26,6 @@ class ListenerRegistrationTest : public FirestoreIntegrationTest {
     // TestFirestore()->set_log_level(LogLevel::kLogLevelDebug);
   }
 };
-
-// These tests don't work with stubs.
-#if !defined(FIRESTORE_STUB_BUILD)
 
 TEST_F(ListenerRegistrationTest, TestCanBeRemoved) {
   CollectionReference collection = Collection();
@@ -119,8 +114,6 @@ TEST_F(ListenerRegistrationTest, TestCanBeRemovedIndependently) {
   EXPECT_EQ(2, listener_one.event_count());
   EXPECT_EQ(3, listener_two.event_count());
 }
-
-#endif  // defined(FIRESTORE_STUB_BUILD)
 
 #if defined(__ANDROID__)
 // TODO(b/136011600): the mechanism for creating internals doesn't work on iOS.

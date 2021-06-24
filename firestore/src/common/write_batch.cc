@@ -9,8 +9,6 @@
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/write_batch_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/write_batch_stub.h"
 #else
 #include "firestore/src/main/write_batch_main.h"
 #endif  // defined(__ANDROID__)

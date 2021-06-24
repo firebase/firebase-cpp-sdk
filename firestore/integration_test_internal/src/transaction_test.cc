@@ -1,11 +1,9 @@
 #include <utility>
 #include <vector>
 
-#if !defined(FIRESTORE_STUB_BUILD)
 #include "app/src/mutex.h"
 #include "app/src/semaphore.h"
 #include "app/src/time.h"
-#endif
 
 #include "absl/strings/str_join.h"
 #include "firebase/firestore.h"
@@ -16,9 +14,6 @@
 #include "util/event_accumulator.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/transaction_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/transaction_stub.h"
-
 #endif  // defined(__ANDROID__)
 
 // These test cases are in sync with native iOS client SDK test
@@ -31,9 +26,6 @@
 
 namespace firebase {
 namespace firestore {
-
-// These tests don't work with the stubs.
-#if !defined(FIRESTORE_STUB_BUILD)
 
 using ::testing::HasSubstr;
 
@@ -744,8 +736,6 @@ TEST_F(TransactionTest, TestCancellationOnError) {
 }
 
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
-
-#endif  // !defined(FIRESTORE_STUB_BUILD)
 
 }  // namespace firestore
 }  // namespace firebase

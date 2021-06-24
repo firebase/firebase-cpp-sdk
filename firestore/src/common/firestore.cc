@@ -14,8 +14,6 @@
 
 #if defined(__ANDROID__)
 #include "firestore/src/android/firestore_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/firestore_stub.h"
 #else
 #include "firestore/src/main/firestore_main.h"
 #endif  // defined(__ANDROID__)
