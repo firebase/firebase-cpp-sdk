@@ -479,11 +479,17 @@ std::string ReadTextInput(const char* title, const char* message,
   return g_text_entry_field_data->ReadText(title, message, placeholder);
 }
 
-void SetEnvironmentVariableFromExtra(const char* extra_name, JNIEnv* env,
-                                     jobject intent,
-                                     jmethodID get_string_extra) {
+void SetEnvironmentVariableFromStringExtra(JNIEnv* env, const char* extra_name,
+                                           jobject intent) {
+  jclass intent_class = env->GetObjectClass(intent);
+  jmethodID get_string_extra = env->GetMethodID(
+      intent_class, "getStringExtra", "(Ljava/lang/String;)Ljava/lang/String;");
+  env->DeleteLocalRef(intent_class);
+
+  jstring extra_name_jstring = env->NewStringUTF(extra_name);
   jstring extra_value_jstring = (jstring)env->CallObjectMethod(
-      intent, get_string_extra, env->NewStringUTF(extra_name));
+      intent, get_string_extra, extra_name_jstring);
+  env->DeleteLocalRef(extra_name_jstring);
 
   if (extra_value_jstring != nullptr) {
     const char* extra_value =
@@ -497,21 +503,16 @@ void SetEnvironmentVariableFromExtra(const char* extra_name, JNIEnv* env,
 
 void SetExtrasAsEnvironmentVariables() {
   JNIEnv* env = app_framework::GetJniEnv();
-  jobject activity = g_app_state->activity->clazz;
+  jobject activity = app_framework::GetActivity();
 
-  jclass activity_clazz = env->GetObjectClass(activity);
-  jmethodID get_intent = env->GetMethodID(activity_clazz, "getIntent",
+  jclass activity_class = env->GetObjectClass(activity);
+  jmethodID get_intent = env->GetMethodID(activity_class, "getIntent",
                                           "()Landroid/content/Intent;");
+  env->DeleteLocalRef(activity_class);
+
   jobject intent = env->CallObjectMethod(activity, get_intent);
-
-  jclass intent_clazz = env->GetObjectClass(intent);  // class pointer of Intent
-  jmethodID get_string_extra = env->GetMethodID(
-      intent_clazz, "getStringExtra", "(Ljava/lang/String;)Ljava/lang/String;");
-
-  SetEnvironmentVariableFromExtra("USE_FIRESTORE_EMULATOR", env, intent,
-                                  get_string_extra);
-  SetEnvironmentVariableFromExtra("FIRESTORE_EMULATOR_PORT", env, intent,
-                                  get_string_extra);
+  SetEnvironmentVariableFromStringExtra(env, "USE_FIRESTORE_EMULATOR", intent);
+  SetEnvironmentVariableFromStringExtra(env, "FIRESTORE_EMULATOR_PORT", intent);
 
   env->DeleteLocalRef(intent);
 }

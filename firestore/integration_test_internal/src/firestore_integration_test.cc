@@ -22,34 +22,33 @@ static const char* kBootstrapAppName = "bootstrap";
 
 // Set Firestore up to use Firestore Emulator via USE_FIRESTORE_EMULATOR
 void LocateEmulator(Firestore* db) {
-  // Use prod backend as long as this env variable is unset.
+  // Use emulator as long as this env variable is set, regardless its value.
   if (std::getenv("USE_FIRESTORE_EMULATOR") == nullptr) {
-    LogDebug("Using prod backend for testing...");
+    LogDebug("Using Firestore Prod for testing.");
     return;
   }
 
 #if defined(__ANDROID__)
+  // Special IP to access the hosting OS from Android Emulator.
   std::string local_host = "10.0.2.2";
 #else
   std::string local_host = "localhost";
 #endif  // defined(__ANDROID__)
 
-  std::string port = "8080";
+  // Use FIRESTORE_EMULATOR_PORT if it is set to non empty string,
+  // otherwise use the default port.
+  std::string port = std::getenv("FIRESTORE_EMULATOR_PORT")
+                         ? std::getenv("FIRESTORE_EMULATOR_PORT")
+                         : "8080";
+  std::string address =
+      port.empty() ? (local_host + ":8080") : (local_host + ":" + port);
 
-  if (std::getenv("FIRESTORE_EMULATOR_PORT")) {
-    port = std::getenv("FIRESTORE_EMULATOR_PORT");
-  }
-
-  if (!port.empty()) {
-    std::string address = local_host + ":" + port;
-    std::string message = "Using emulator (" + address + ") for testing...";
-    LogDebug(message.c_str());
-    auto settings = db->settings();
-    settings.set_host(address);
-    // Emulator does not support ssl yet.
-    settings.set_ssl_enabled(false);
-    db->set_settings(settings);
-  }
+  LogInfo("Using Firestore Emulator (%s) for testing.", address.c_str());
+  auto settings = db->settings();
+  settings.set_host(address);
+  // Emulator does not support ssl yet.
+  settings.set_ssl_enabled(false);
+  db->set_settings(settings);
 }
 
 }  // namespace
