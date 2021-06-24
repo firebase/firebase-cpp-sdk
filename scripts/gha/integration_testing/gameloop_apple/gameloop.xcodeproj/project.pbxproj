@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		6AB9DD8C2681838D00DA2B7E /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6AB9DD8A2681838D00DA2B7E /* Main.storyboard */; };
-		6AB9DD8E2681838E00DA2B7E /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6AB9DD8D2681838E00DA2B7E /* Assets.xcassets */; };
 		6AB9DD912681838E00DA2B7E /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6AB9DD8F2681838E00DA2B7E /* LaunchScreen.storyboard */; };
 		6AB9DD952681890D00DA2B7E /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ABE2696260DD8AA00675C6B /* AppDelegate.swift */; };
 		6AB9DD962681891100DA2B7E /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ABE269A260DD8AA00675C6B /* ViewController.swift */; };
@@ -17,7 +16,6 @@
 		6ABE2697260DD8AA00675C6B /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ABE2696260DD8AA00675C6B /* AppDelegate.swift */; };
 		6ABE269B260DD8AA00675C6B /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ABE269A260DD8AA00675C6B /* ViewController.swift */; };
 		6ABE269E260DD8AA00675C6B /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6ABE269C260DD8AA00675C6B /* Main.storyboard */; };
-		6ABE26A0260DD8AB00675C6B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 6ABE269F260DD8AB00675C6B /* Assets.xcassets */; };
 		6ABE26A3260DD8AB00675C6B /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 6ABE26A1260DD8AB00675C6B /* LaunchScreen.storyboard */; };
 		6ABE26AC260DD90600675C6B /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ABE26AB260DD90600675C6B /* Constants.swift */; };
 		6ABE26B9260DDA4300675C6B /* gameloopUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6ABE26B8260DDA4300675C6B /* gameloopUITests.swift */; };
@@ -43,14 +41,12 @@
 /* Begin PBXFileReference section */
 		6AB9DD842681838D00DA2B7E /* gameloop_tvos.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = gameloop_tvos.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6AB9DD8B2681838D00DA2B7E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		6AB9DD8D2681838E00DA2B7E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6AB9DD902681838E00DA2B7E /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		6AB9DDAA2681918800DA2B7E /* gameloop_tvosUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = gameloop_tvosUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ABE2693260DD8AA00675C6B /* gameloop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = gameloop.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6ABE2696260DD8AA00675C6B /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		6ABE269A260DD8AA00675C6B /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		6ABE269D260DD8AA00675C6B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		6ABE269F260DD8AB00675C6B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		6ABE26A2260DD8AB00675C6B /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		6ABE26A4260DD8AB00675C6B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		6ABE26AB260DD90600675C6B /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
@@ -95,7 +91,6 @@
 			isa = PBXGroup;
 			children = (
 				6AB9DD8A2681838D00DA2B7E /* Main.storyboard */,
-				6AB9DD8D2681838E00DA2B7E /* Assets.xcassets */,
 				6AB9DD8F2681838E00DA2B7E /* LaunchScreen.storyboard */,
 			);
 			path = gameloop_tvos;
@@ -128,7 +123,6 @@
 				6ABE2696260DD8AA00675C6B /* AppDelegate.swift */,
 				6ABE269A260DD8AA00675C6B /* ViewController.swift */,
 				6ABE269C260DD8AA00675C6B /* Main.storyboard */,
-				6ABE269F260DD8AB00675C6B /* Assets.xcassets */,
 				6ABE26A1260DD8AB00675C6B /* LaunchScreen.storyboard */,
 				6ABE26A4260DD8AB00675C6B /* Info.plist */,
 				6ABE26AB260DD90600675C6B /* Constants.swift */,
@@ -270,7 +264,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				6AB9DD912681838E00DA2B7E /* LaunchScreen.storyboard in Resources */,
-				6AB9DD8E2681838E00DA2B7E /* Assets.xcassets in Resources */,
 				6AB9DD8C2681838D00DA2B7E /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -287,7 +280,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				6ABE26A3260DD8AB00675C6B /* LaunchScreen.storyboard in Resources */,
-				6ABE26A0260DD8AB00675C6B /* Assets.xcassets in Resources */,
 				6ABE269E260DD8AA00675C6B /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -392,8 +384,8 @@
 		6AB9DD932681838E00DA2B7E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -419,8 +411,8 @@
 		6AB9DD942681838E00DA2B7E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -608,7 +600,6 @@
 		6ABE26A8260DD8AB00675C6B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				INFOPLIST_FILE = gameloop/Info.plist;
@@ -628,7 +619,6 @@
 		6ABE26A9260DD8AB00675C6B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				INFOPLIST_FILE = gameloop/Info.plist;

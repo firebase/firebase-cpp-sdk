@@ -47,19 +47,32 @@ class GameLoopLauncherUITests: XCTestCase {
 
     // Periodically check and dismiss dialogs with "Allow" or "OK"
     Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { (_) in
+#if os(iOS)
       let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
       for button in [springboard.buttons["Open"], springboard.buttons["Allow"], springboard.buttons["OK"]] {
         if button.exists {
           NSLog("Dismissing system dialog")
-//          button.tap()
+          button.tap()
         }
       }
+#elseif os(tvOS)
+      NSLog("finding pineboard ...")
+      let pineboard = XCUIApplication(bundleIdentifier: "com.apple.PineBoard")
+      for button in [pineboard.buttons["Open"], pineboard.buttons["Allow"], pineboard.buttons["OK"]] {
+        if button.exists {
+          NSLog("Dismissing system dialog")
+          let remote: XCUIRemote = XCUIRemote.shared
+          remote.press(.select)
+        }
+      }
+#endif
     }
+
 
     app.launch()
 
     let result = waitForLoopCompletion(for: app)
-    attachResults()
+
     // Terminate the app under test to clear its state
     if bundleId != nil {
       XCUIApplication(bundleIdentifier: bundleId!).terminate()
@@ -87,18 +100,5 @@ class GameLoopLauncherUITests: XCTestCase {
       // Default 5 minutes
       return TimeInterval(60 * 5)
     }
-  }
-
-  /// Collect all the strings in the general UIPasteboard and attach them as a test result.
-  func attachResults() {
-//    let pasteboard = UIPasteboard.general
-//    guard pasteboard.hasStrings else {
-//      // No output data; do nothing
-//      return
-//    }
-//    let allStrings = pasteboard.strings!
-//    let joined = allStrings.joined(separator: "\n")
-//    let attachment = XCTAttachment(string: joined)
-//    add(attachment)
   }
 }

@@ -193,7 +193,7 @@ def main(argv):
       return 21
 
     # A tool that enable game-loop test. This is a XCode project
-    ios_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_ios")
+    ios_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_apple")
     ios_gameloop_app = _build_ios_gameloop(ios_gameloop_project, device_name, device_os)
     if not ios_gameloop_app:
       logging.error("gameloop app not found")
@@ -212,13 +212,12 @@ def main(argv):
                       testapp_path=app_path, 
                       logs=_run_ios_gameloop_test(bundle_id, app_path, ios_gameloop_app, device_id)))
 
-    # _shutdown_simulator()
-
+    _shutdown_simulator()
 
   if tvos_testapps:
     logging.info("tvOS Testapps found: %s", "\n".join(path for path in tvos_testapps))
     
-    if FLAGS.ios_device:
+    if FLAGS.tvos_device:
       device_info = TEST_DEVICES.get(FLAGS.tvos_device)
       if not device_info:
         logging.error("Not a valid tvos device: %s" % FLAGS.tvos_device)
@@ -235,7 +234,7 @@ def main(argv):
       return 21
 
     # A tool that enable game-loop test. This is a XCode project
-    tvos_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_ios")
+    tvos_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_apple")
     tvos_gameloop_app = _build_tvos_gameloop(tvos_gameloop_project, device_name, device_os)
     if not tvos_gameloop_app:
       logging.error("gameloop app not found")
@@ -254,7 +253,7 @@ def main(argv):
                       testapp_path=app_path, 
                       logs=_run_tvos_gameloop_test(bundle_id, app_path, tvos_gameloop_app, device_id)))
 
-    # _shutdown_simulator()
+    _shutdown_simulator()
 
 
   if android_testapps:
@@ -418,7 +417,6 @@ def _get_bundle_id(app_path, config):
   for api in config["apis"]:
     if api["name"] != "app" and (api["name"] in app_path or api["full_name"] in app_path):
       return api["bundle_id"]
-  return "com.google.ios.remoteconfig.testapp"
 
 
 def _run_ios_gameloop_test(bundle_id, app_path, gameloop_app, device_id):
