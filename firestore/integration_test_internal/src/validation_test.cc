@@ -90,7 +90,6 @@ class ValidationTest : public FirestoreIntegrationTest {
       EXPECT_ERROR(TestFirestore()->batch().Update(document, data), reason);
     }
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
     Await(TestFirestore()->RunTransaction(
         [data, reason, include_sets, include_updates, document](
             Transaction& transaction, std::string& error_message) -> Error {
@@ -104,7 +103,6 @@ class ValidationTest : public FirestoreIntegrationTest {
           }
           return Error::kErrorOk;
         }));
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
   }
 
   /**
@@ -337,7 +335,6 @@ TEST_F(ValidationTest, WritesMayContainIndirectlyNestedLists) {
   Await(document.Update(data));
   Await(TestFirestore()->batch().Update(document, data).Commit());
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
   Await(TestFirestore()->RunTransaction(
       [data, document, another_document](Transaction& transaction,
                                          std::string& error_message) -> Error {
@@ -347,7 +344,6 @@ TEST_F(ValidationTest, WritesMayContainIndirectlyNestedLists) {
         transaction.Set(another_document, data);
         return Error::kErrorOk;
       }));
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 }
 
 // TODO(zxu): There is no way to create Firestore with different project id yet.

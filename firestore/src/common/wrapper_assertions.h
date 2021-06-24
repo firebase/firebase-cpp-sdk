@@ -9,8 +9,6 @@
 
 #include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/firestore_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/firestore_stub.h"
 #endif  // defined(__ANDROID__)
 
 #include "gtest/gtest.h"
@@ -65,7 +63,7 @@ FirestoreTypeInternal* NewInternal() {
 
 #endif  // defined(__ANDROID__)
 
-#if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#if defined(__ANDROID__)
 // A helper that tests the common contract of the construction logic of
 // Firestore wrapper class:
 //   * The default constructed FirestoreType has the internal_ set to nullptr;
@@ -124,7 +122,7 @@ void AssertWrapperAssignmentContract() {
   EXPECT_EQ(internal, GetInternal(instance_move));
 }
 
-#endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#endif  // defined(__ANDROID__)
 
 }  // namespace testutil
 }  // namespace firestore

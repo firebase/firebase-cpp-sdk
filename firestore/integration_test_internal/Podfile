@@ -1,8 +1,14 @@
 source 'https://github.com/CocoaPods/Specs.git'
-platform :ios, '10.0'
 # Cloud Firestore internal test application.
 
 target 'integration_test' do
+  platform :ios, '10.0'
+  pod 'Firebase/Firestore', '7.11.0'
+  pod 'Firebase/Auth', '7.11.0'
+end
+
+target 'integration_test_tvos' do
+  platform :tvos, '10.0'
   pod 'Firebase/Firestore', '7.11.0'
   pod 'Firebase/Auth', '7.11.0'
 end

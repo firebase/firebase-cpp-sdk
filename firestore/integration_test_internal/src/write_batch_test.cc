@@ -298,7 +298,7 @@ TEST_F(WriteBatchTest, TestUpdateNestedFields) {
                   {"e", FieldValue::Map({{"f", FieldValue::String("old")}})}}));
 }
 
-#if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#if defined(__ANDROID__)
 
 TEST_F(WriteBatchCommonTest, Construction) {
   testutil::AssertWrapperConstructionContract<WriteBatch>();
@@ -308,7 +308,7 @@ TEST_F(WriteBatchCommonTest, Assignment) {
   testutil::AssertWrapperAssignmentContract<WriteBatch>();
 }
 
-#endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#endif  // defined(__ANDROID__)
 
 }  // namespace firestore
 }  // namespace firebase

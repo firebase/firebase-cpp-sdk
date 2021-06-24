@@ -9,14 +9,12 @@
 #if defined(__ANDROID__)
 #include "firestore/src/android/converter_android.h"
 #include "firestore/src/android/document_reference_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/document_reference_stub.h"
 #endif  // defined(__ANDROID__)
 
 namespace firebase {
 namespace firestore {
 
-#if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#if defined(__ANDROID__)
 
 using DocumentReferenceTest = FirestoreIntegrationTest;
 
@@ -30,7 +28,7 @@ TEST_F(DocumentReferenceTest, Assignment) {
                                             DocumentReferenceInternal>();
 }
 
-#endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#endif  // defined(__ANDROID__)
 
 #if defined(__ANDROID__)
 

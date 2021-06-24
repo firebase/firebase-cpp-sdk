@@ -20,3 +20,6 @@ gcs_key_file.json
 *_build/
 *cmake-build-debug/
 testing/test_framework/external/
+
+# XCode user specific folders
+**/xcuserdata/

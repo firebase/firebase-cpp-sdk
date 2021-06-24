@@ -99,12 +99,8 @@ void ExpectAllMethodsAreNoOps(DocumentReference* ptr) {
 
   EXPECT_TRUE(ptr->Delete() == FailedFuture<void>());
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
   ptr->AddSnapshotListener(
       [](const DocumentSnapshot&, Error, const std::string&) {});
-#else
-  ptr->AddSnapshotListener(nullptr);
-#endif
 }
 
 void ExpectAllMethodsAreNoOps(DocumentSnapshot* ptr) {
@@ -215,12 +211,8 @@ void ExpectAllMethodsAreNoOps(Query* ptr) {
 
   EXPECT_TRUE(ptr->Get() == FailedFuture<QuerySnapshot>());
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
   ptr->AddSnapshotListener(
       [](const QuerySnapshot&, Error, const std::string&) {});
-#else
-  ptr->AddSnapshotListener(nullptr);
-#endif
 }
 
 void ExpectAllMethodsAreNoOps(QuerySnapshot* ptr) {
@@ -358,7 +350,6 @@ TEST_F(CleanupTest, FieldValueIsBlankAfterCleanup) {
 // after cleanup. Thus, there is no case where a user could be accessing
 // a "blank" Firestore instance.
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
 TEST_F(CleanupTest, ListenerRegistrationIsBlankAfterCleanup) {
   {
     ListenerRegistration default_constructed;
@@ -373,7 +364,6 @@ TEST_F(CleanupTest, ListenerRegistrationIsBlankAfterCleanup) {
   SCOPED_TRACE("ListenerRegistration.AfterCleanup");
   ExpectAllMethodsAreNoOps(&reg);
 }
-#endif
 
 // Note: `Query` cleanup is tested as part of `CollectionReference` cleanup
 // (`CollectionReference` is derived from `Query`).

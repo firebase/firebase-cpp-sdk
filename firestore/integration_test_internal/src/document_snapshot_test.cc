@@ -4,9 +4,6 @@
 #if defined(__ANDROID__)
 #include "firestore/src/android/document_snapshot_android.h"
 #include "firestore/src/common/wrapper_assertions.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/common/wrapper_assertions.h"
-#include "firestore/src/stub/document_snapshot_stub.h"
 #endif  // defined(__ANDROID__)
 
 #include "gmock/gmock.h"
@@ -15,7 +12,7 @@
 namespace firebase {
 namespace firestore {
 
-#if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#if defined(__ANDROID__)
 
 using DocumentSnapshotTest = testing::Test;
 

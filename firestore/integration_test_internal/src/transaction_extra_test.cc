@@ -6,8 +6,6 @@
 #include "gtest/gtest.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/transaction_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/transaction_stub.h"
 #endif  // defined(__ANDROID__)
 #include "firebase_test_framework.h"
 // These test cases are in sync with native iOS client SDK test
@@ -25,8 +23,6 @@ namespace firestore {
 // TestGetNonexistentDocumentThenCreate to test the non-lambda API.
 
 using TransactionExtraTest = FirestoreIntegrationTest;
-
-#if defined(FIREBASE_USE_STD_FUNCTION)
 
 TEST_F(TransactionExtraTest,
        TestRetriesWhenDocumentThatWasReadWithoutBeingWrittenChanges) {
@@ -104,8 +100,6 @@ TEST_F(TransactionExtraTest, TestReadingADocTwiceWithDifferentVersions) {
 
   DocumentSnapshot snapshot = ReadDocument(doc);
 }
-
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
 }  // namespace firestore
 }  // namespace firebase

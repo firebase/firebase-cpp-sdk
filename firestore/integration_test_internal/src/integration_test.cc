@@ -448,9 +448,6 @@ TEST_F(FirebaseFirestoreBasicTest, TestSetDelete) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestDocumentListener) {
-  SKIP_TEST_IF_USING_STLPORT;  // STLPort uses EventListener<T> rather than
-                               // std::function.
-#if !defined(STLPORT)
   SignIn();
 
   firebase::firestore::DocumentReference document = Doc();
@@ -487,7 +484,6 @@ TEST_F(FirebaseFirestoreBasicTest, TestDocumentListener) {
               {"val", firebase::firestore::FieldValue::String("start")}},
           firebase::firestore::MapFieldValue{
               {"val", firebase::firestore::FieldValue::String("update")}}));
-#endif  // !defined(STLPORT)
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestBatchWrite) {
@@ -649,6 +645,14 @@ TEST_F(FirebaseFirestoreBasicTest, TestQuery) {
               DocumentSnapshot_GetData,
               ElementsAre(Pair(
                   "int", firebase::firestore::FieldValue::Integer(101))))));
+}
+
+TEST_F(FirebaseFirestoreBasicTest, TestDocumentChangeNpos) {
+  // This test may seem pointless, but it exists to avoid the long-standing
+  // latent bug that `npos` was not defined on non-Android platforms and
+  // would therefore fail to link if used.
+  EXPECT_EQ(firebase::firestore::DocumentChange::npos,
+            static_cast<std::size_t>(-1));
 }
 
 TEST_F(FirebaseFirestoreBasicTest,
