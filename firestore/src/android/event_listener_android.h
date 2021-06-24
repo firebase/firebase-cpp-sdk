@@ -2,8 +2,8 @@
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_EVENT_LISTENER_ANDROID_H_
 
 #include "firestore/src/android/firestore_android.h"
+#include "firestore/src/common/event_listener.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
-#include "firestore/src/include/firebase/firestore/event_listener.h"
 #include "firestore/src/jni/jni_fwd.h"
 
 namespace firebase {

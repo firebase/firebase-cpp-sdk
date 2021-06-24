@@ -6,11 +6,11 @@
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/cleanup.h"
+#include "firestore/src/common/event_listener.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
-#include "firestore/src/include/firebase/firestore/event_listener.h"
 #include "firestore/src/include/firebase/firestore/listener_registration.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/document_reference_android.h"
@@ -147,7 +147,6 @@ Future<void> DocumentReference::Delete() {
   return internal_->Delete();
 }
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 ListenerRegistration DocumentReference::AddSnapshotListener(
     std::function<void(const DocumentSnapshot&, Error, const std::string&)>
         callback) {
@@ -164,21 +163,6 @@ ListenerRegistration DocumentReference::AddSnapshotListener(
   return internal_->AddSnapshotListener(metadata_changes,
                                         firebase::Move(callback));
 }
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
-
-#if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
-ListenerRegistration DocumentReference::AddSnapshotListener(
-    EventListener<DocumentSnapshot>* listener) {
-  return AddSnapshotListener(MetadataChanges::kExclude, listener);
-}
-
-ListenerRegistration DocumentReference::AddSnapshotListener(
-    MetadataChanges metadata_changes,
-    EventListener<DocumentSnapshot>* listener) {
-  if (!internal_) return {};
-  return internal_->AddSnapshotListener(metadata_changes, listener);
-}
-#endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 std::string DocumentReference::ToString() const {
   if (!is_valid()) return "DocumentReference(invalid)";

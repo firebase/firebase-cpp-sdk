@@ -289,7 +289,6 @@ Query QueryInternal::WithBound(const Method<Object>& method,
   return firestore_->NewQuery(env, query);
 }
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 ListenerRegistration QueryInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
     std::function<void(const QuerySnapshot&, Error, const std::string&)>
@@ -299,7 +298,6 @@ ListenerRegistration QueryInternal::AddSnapshotListener(
   return AddSnapshotListener(metadata_changes, listener,
                              /*passing_listener_ownership=*/true);
 }
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 ListenerRegistration QueryInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,

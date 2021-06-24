@@ -13,6 +13,7 @@
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
+#include "firestore/src/common/event_listener.h"
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #include "firestore/src/include/firebase/firestore/load_bundle_task_progress.h"
