@@ -264,12 +264,14 @@ Future<void> Firestore::RunTransaction(TransactionFunction* update) {
   return internal_->RunTransaction(update);
 }
 
+#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 Future<void> Firestore::RunTransaction(
     std::function<Error(Transaction&, std::string&)> update) {
   FIREBASE_ASSERT_MESSAGE(update, "invalid update parameter is passed in.");
   if (!internal_) return FailedFuture<void>();
   return internal_->RunTransaction(firebase::Move(update));
 }
+#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 Future<void> Firestore::DisableNetwork() {
   if (!internal_) return FailedFuture<void>();
@@ -297,11 +299,21 @@ Future<void> Firestore::ClearPersistence() {
   return internal_->ClearPersistence();
 }
 
+#if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+ListenerRegistration Firestore::AddSnapshotsInSyncListener(
+    EventListener<void>* listener) {
+  if (!internal_) return {};
+  return internal_->AddSnapshotsInSyncListener(listener);
+}
+#endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
+#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 ListenerRegistration Firestore::AddSnapshotsInSyncListener(
     std::function<void()> callback) {
   if (!internal_) return {};
   return internal_->AddSnapshotsInSyncListener(std::move(callback));
 }
+#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 void Firestore::SetClientLanguage(const std::string& language_token) {
   // TODO(b/135633112): this is a temporary measure until the Firestore backend
