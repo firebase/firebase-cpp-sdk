@@ -29,7 +29,7 @@ file(MAKE_DIRECTORY ${analytics_generated_headers_dir})
 function(generate_analytics_header OBJC_FILE CPP_FILE)
   add_custom_command(
     OUTPUT ${CPP_FILE}
-    COMMAND python "${CMAKE_CURRENT_LIST_DIR}/generate_constants.py"
+    COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${CMAKE_CURRENT_LIST_DIR}/generate_constants.py"
       "--objc_header=${OBJC_FILE}"
       "--cpp_header=${CPP_FILE}"
     DEPENDS ${OBJC_FILE}

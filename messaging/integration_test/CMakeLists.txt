@@ -16,6 +16,9 @@
 
 cmake_minimum_required(VERSION 2.8)
 
+set(FIREBASE_PYTHON_EXECUTABLE "python" CACHE FILEPATH
+  "The Python interpreter to use, such as one from a venv")
+
 # User settings for Firebase integration tests.
 # Path to Firebase SDK.
 # Try to read the path to the Firebase C++ SDK from an environment variable.
@@ -39,7 +42,7 @@ endif()
 if(NOT ANDROID)
   if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.py)
     # If this is running from inside the SDK directory, run the setup script.
-    execute_process(COMMAND "python" "${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.py" "${CMAKE_CURRENT_LIST_DIR}")
+    execute_process(COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${CMAKE_CURRENT_LIST_DIR}/../../setup_integration_tests.py" "${CMAKE_CURRENT_LIST_DIR}")
   endif()
 endif()
 
