@@ -38,16 +38,6 @@ TEST_F(IncludesTest, TestIncludingFirestoreHeaderIsSufficient) {
 #if defined(__ANDROID__)
     App* app =
         App::Create(app_framework::GetJniEnv(), app_framework::GetActivity());
-
-#elif defined(FIRESTORE_STUB_BUILD)
-    // Stubs don't load values from `GoogleService-Info.plist`/etc., so the app
-    // has to be configured explicitly.
-    AppOptions options;
-    options.set_project_id("foo");
-    options.set_app_id("foo");
-    options.set_api_key("foo");
-    App* app = App::Create(options);
-
 #else
     App* app = App::Create();
 #endif  // defined(__ANDROID__)

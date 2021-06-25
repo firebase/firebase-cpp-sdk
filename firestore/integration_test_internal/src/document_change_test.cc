@@ -1,7 +1,5 @@
 #if defined(__ANDROID__)
 #include "firestore/src/android/document_change_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/document_change_stub.h"
 #endif  // defined(__ANDROID__)
 
 #include "firebase/firestore.h"
@@ -13,7 +11,7 @@
 namespace firebase {
 namespace firestore {
 
-#if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#if defined(__ANDROID__)
 
 using DocumentChangeTest = FirestoreIntegrationTest;
 
@@ -76,7 +74,7 @@ TEST_F(DocumentChangeTest, TestDocumentChanges) {
   EXPECT_EQ(changes[0].new_index(), 0);
 }
 
-#endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#endif  // defined(__ANDROID__)
 
 }  // namespace firestore
 }  // namespace firebase

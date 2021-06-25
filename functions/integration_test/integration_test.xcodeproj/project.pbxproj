@@ -14,7 +14,6 @@
 		529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D91C85F68000C89379 /* UIKit.framework */; };
 		981D7B79193F1EDB1C9EF318 /* libPods-integration_test.a in Frameworks */ = {isa = PBXBuildFile; fileRef = AAB44827137900B6A0CA149C /* libPods-integration_test.a */; };
 		BC1D674F26799A44005DC2DA /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BC1D674D26799A44005DC2DA /* Main.storyboard */; };
-		BC1D675126799A45005DC2DA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BC1D675026799A45005DC2DA /* Assets.xcassets */; };
 		BC1D675426799A45005DC2DA /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BC1D675226799A45005DC2DA /* LaunchScreen.storyboard */; };
 		BC1D675B26799A53005DC2DA /* ios_firebase_test_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E822CB322900C2651A /* ios_firebase_test_framework.mm */; };
 		BC1D675C26799A55005DC2DA /* ios_app_framework.mm in Sources */ = {isa = PBXBuildFile; fileRef = D6C179E722CB322900C2651A /* ios_app_framework.mm */; };
@@ -51,9 +50,7 @@
 		AAB44827137900B6A0CA149C /* libPods-integration_test.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-integration_test.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BC1D674526799A44005DC2DA /* integration_test_tvos.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = integration_test_tvos.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BC1D674E26799A44005DC2DA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		BC1D675026799A45005DC2DA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BC1D675326799A45005DC2DA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		BC1D675526799A45005DC2DA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BC1D676326799AA8005DC2DA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		BC1D676526799AAC005DC2DA /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		BC1D676726799AB0005DC2DA /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/CoreGraphics.framework; sourceTree = DEVELOPER_DIR; };
@@ -188,9 +185,7 @@
 			isa = PBXGroup;
 			children = (
 				BC1D674D26799A44005DC2DA /* Main.storyboard */,
-				BC1D675026799A45005DC2DA /* Assets.xcassets */,
 				BC1D675226799A45005DC2DA /* LaunchScreen.storyboard */,
-				BC1D675526799A45005DC2DA /* Info.plist */,
 			);
 			path = integration_test_tvos;
 			sourceTree = "<group>";
@@ -291,7 +286,6 @@
 			files = (
 				BC1D676226799AA3005DC2DA /* GoogleService-Info.plist in Resources */,
 				BC1D675426799A45005DC2DA /* LaunchScreen.storyboard in Resources */,
-				BC1D675126799A45005DC2DA /* Assets.xcassets in Resources */,
 				BC1D674F26799A44005DC2DA /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -576,7 +570,7 @@
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 				);
-				INFOPLIST_FILE = integration_test_tvos/Info.plist;
+				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -585,7 +579,7 @@
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = appletvos;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 14.5;
+				TVOS_DEPLOYMENT_TARGET = 10.1;
 			};
 			name = Debug;
 		};
@@ -630,7 +624,7 @@
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 				);
-				INFOPLIST_FILE = integration_test_tvos/Info.plist;
+				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.google.firebase.cpp.functions.testapp.integration-test-tvos";
@@ -638,7 +632,7 @@
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = appletvos;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 14.5;
+				TVOS_DEPLOYMENT_TARGET = 10.1;
 			};
 			name = Release;
 		};

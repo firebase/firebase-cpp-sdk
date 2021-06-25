@@ -6,8 +6,6 @@
 #include "util/event_accumulator.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/query_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/query_stub.h"
 #endif  // defined(__ANDROID__)
 
 #include "gmock/gmock.h"

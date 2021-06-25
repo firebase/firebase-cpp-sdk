@@ -19,29 +19,23 @@
 #include <algorithm>
 #include <ostream>
 #include <utility>
-#if defined(_STLPORT_VERSION)
-// STLPort defines `std::hash` in the `unordered_` headers.
-#include <unordered_set>
-#endif  // defined(_STLPORT_VERSION)
 
 #include "app/meta/move.h"
 
-#if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#if defined(__ANDROID__)
 #include "firestore/src/android/field_path_portable.h"
 #else
 #include "Firestore/core/src/model/field_path.h"
 #include "Firestore/core/src/util/hashing.h"
-#endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#endif  // defined(__ANDROID__)
 
 namespace firebase {
 namespace firestore {
 
 FieldPath::FieldPath() {}
 
-#if !defined(_STLPORT_VERSION)
 FieldPath::FieldPath(std::initializer_list<std::string> field_names)
     : internal_(InternalFromSegments(std::vector<std::string>(field_names))) {}
-#endif  // !defined(_STLPORT_VERSION)
 
 FieldPath::FieldPath(const std::vector<std::string>& field_names)
     : internal_(InternalFromSegments(field_names)) {}
@@ -117,19 +111,7 @@ bool operator!=(const FieldPath& lhs, const FieldPath& rhs) {
 }  // namespace firebase
 
 namespace std {
-#if defined(_STLPORT_VERSION)
-size_t hash<firebase::firestore::FieldPath>::operator()(
-    const firebase::firestore::FieldPath& field_path) const {
-  size_t hash = 1;
-  for (const auto& segment : *field_path.internal_) {
-    // STLPort doesn't define `std::hash<std::string>`, but the `const char*`
-    // specialization handles C-style strings, not just the pointer value.
-    hash = 31 * hash + std::hash<const char*>{}(segment.c_str());
-  }
-  return hash;
-}
-
-#elif defined(__ANDROID__)
+#if defined(__ANDROID__)
 size_t hash<firebase::firestore::FieldPath>::operator()(
     const firebase::firestore::FieldPath& field_path) const {
   size_t hash = 1;
@@ -138,17 +120,10 @@ size_t hash<firebase::firestore::FieldPath>::operator()(
   }
   return hash;
 }
-#elif !defined(FIRESTORE_STUB_BUILD)
+#else
 size_t hash<firebase::firestore::FieldPath>::operator()(
     const firebase::firestore::FieldPath& field_path) const {
   return firebase::firestore::util::Hash(*field_path.internal_);
 }
-
-#else
-// Stub
-size_t hash<firebase::firestore::FieldPath>::operator()(
-    const firebase::firestore::FieldPath&) const {
-  return 0;
-}
-#endif  // defined(_STLPORT_VERSION)
+#endif  // defined(__ANDROID__)
 }  // namespace std

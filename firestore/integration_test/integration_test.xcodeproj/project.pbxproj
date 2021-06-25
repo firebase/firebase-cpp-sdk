@@ -3,18 +3,15 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 52;
+	objectVersion = 46;
 	objects = {
 
 /* Begin PBXBuildFile section */
-		32FDF8360C72AC634F7E6A42 /* libPods-integration_test_tvos.a in Frameworks */ = {isa = PBXBuildFile; fileRef = D17A5C9BB550486279CA858E /* libPods-integration_test_tvos.a */; };
 		520BC0391C869159008CFBC3 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 520BC0381C869159008CFBC3 /* GoogleService-Info.plist */; };
 		529226D61C85F68000C89379 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D51C85F68000C89379 /* Foundation.framework */; };
 		529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D71C85F68000C89379 /* CoreGraphics.framework */; };
 		529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D91C85F68000C89379 /* UIKit.framework */; };
-		8FE0839D2B60C8CB9E84808C /* libPods-integration_test.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2F6E59CEC74C199ECF8BB8BF /* libPods-integration_test.a */; };
 		BC1D678326799F8C005DC2DA /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BC1D678126799F8C005DC2DA /* Main.storyboard */; };
-		BC1D678526799F8D005DC2DA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BC1D678426799F8D005DC2DA /* Assets.xcassets */; };
 		BC1D678826799F8D005DC2DA /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BC1D678626799F8D005DC2DA /* LaunchScreen.storyboard */; };
 		BC1D678F26799F9A005DC2DA /* gmock-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D62CCBBF22F367140099BE9F /* gmock-all.cc */; };
 		BC1D679026799F9D005DC2DA /* gtest-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D67D355622BABD2100292C1D /* gtest-all.cc */; };
@@ -27,9 +24,6 @@
 		BC1D67982679A00B005DC2DA /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D67972679A00B005DC2DA /* Foundation.framework */; };
 		BC1D679A2679A012005DC2DA /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D67992679A012005DC2DA /* UIKit.framework */; };
 		BC1D679C2679A017005DC2DA /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D679B2679A017005DC2DA /* CoreGraphics.framework */; };
-		BC1D67A92679A6E4005DC2DA /* firebase_auth.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D679D2679A02C005DC2DA /* firebase_auth.xcframework */; };
-		BC1D67AA2679A6E4005DC2DA /* firebase_firestore.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D679F2679A02C005DC2DA /* firebase_firestore.xcframework */; };
-		BC1D67AB2679A6E4005DC2DA /* firebase.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D679E2679A02C005DC2DA /* firebase.xcframework */; };
 		D61C5F8E22BABA9C00A79141 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D61C5F8C22BABA9B00A79141 /* Images.xcassets */; };
 		D61C5F9622BABAD200A79141 /* integration_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61C5F9222BABAD100A79141 /* integration_test.cc */; };
 		D62CCBC022F367140099BE9F /* gmock-all.cc in Sources */ = {isa = PBXBuildFile; fileRef = D62CCBBF22F367140099BE9F /* gmock-all.cc */; };
@@ -43,21 +37,15 @@
 
 /* Begin PBXFileReference section */
 		2F6E59CEC74C199ECF8BB8BF /* libPods-integration_test.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-integration_test.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		309C8B39575BBCD84489BD71 /* Pods-integration_test_tvos.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-integration_test_tvos.release.xcconfig"; path = "Target Support Files/Pods-integration_test_tvos/Pods-integration_test_tvos.release.xcconfig"; sourceTree = "<group>"; };
 		520BC0381C869159008CFBC3 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		529226D21C85F68000C89379 /* integration_test.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = integration_test.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		529226D51C85F68000C89379 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		529226D71C85F68000C89379 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		529226D91C85F68000C89379 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		529226EE1C85F68000C89379 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
-		A77F86ABBFCCBE5BCF96E715 /* Pods-integration_test.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-integration_test.debug.xcconfig"; path = "Target Support Files/Pods-integration_test/Pods-integration_test.debug.xcconfig"; sourceTree = "<group>"; };
-		B4F7289D18C44A5A8495978A /* Pods-integration_test.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-integration_test.release.xcconfig"; path = "Target Support Files/Pods-integration_test/Pods-integration_test.release.xcconfig"; sourceTree = "<group>"; };
-		B8017C9163F3D385CCDD3E9D /* Pods-integration_test_tvos.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-integration_test_tvos.debug.xcconfig"; path = "Target Support Files/Pods-integration_test_tvos/Pods-integration_test_tvos.debug.xcconfig"; sourceTree = "<group>"; };
 		BC1D677926799F8C005DC2DA /* integration_test_tvos.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = integration_test_tvos.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BC1D678226799F8C005DC2DA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		BC1D678426799F8D005DC2DA /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		BC1D678726799F8D005DC2DA /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		BC1D678926799F8D005DC2DA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		BC1D67972679A00B005DC2DA /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		BC1D67992679A012005DC2DA /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/UIKit.framework; sourceTree = DEVELOPER_DIR; };
 		BC1D679B2679A017005DC2DA /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = Platforms/AppleTVOS.platform/Developer/SDKs/AppleTVOS14.5.sdk/System/Library/Frameworks/CoreGraphics.framework; sourceTree = DEVELOPER_DIR; };
@@ -89,10 +77,6 @@
 				529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */,
 				529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */,
 				529226D61C85F68000C89379 /* Foundation.framework in Frameworks */,
-				8FE0839D2B60C8CB9E84808C /* libPods-integration_test.a in Frameworks */,
-				BC1D67A92679A6E4005DC2DA /* firebase_auth.xcframework in Frameworks */,
-				BC1D67AA2679A6E4005DC2DA /* firebase_firestore.xcframework in Frameworks */,
-				BC1D67AB2679A6E4005DC2DA /* firebase.xcframework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -103,24 +87,12 @@
 				BC1D679C2679A017005DC2DA /* CoreGraphics.framework in Frameworks */,
 				BC1D679A2679A012005DC2DA /* UIKit.framework in Frameworks */,
 				BC1D67982679A00B005DC2DA /* Foundation.framework in Frameworks */,
-				32FDF8360C72AC634F7E6A42 /* libPods-integration_test_tvos.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		2AD084A34AA54558B7AFA683 /* Pods */ = {
-			isa = PBXGroup;
-			children = (
-				A77F86ABBFCCBE5BCF96E715 /* Pods-integration_test.debug.xcconfig */,
-				B4F7289D18C44A5A8495978A /* Pods-integration_test.release.xcconfig */,
-				B8017C9163F3D385CCDD3E9D /* Pods-integration_test_tvos.debug.xcconfig */,
-				309C8B39575BBCD84489BD71 /* Pods-integration_test_tvos.release.xcconfig */,
-			);
-			path = Pods;
-			sourceTree = "<group>";
-		};
 		529226C91C85F68000C89379 = {
 			isa = PBXGroup;
 			children = (
@@ -132,7 +104,6 @@
 				BC1D677A26799F8C005DC2DA /* integration_test_tvos */,
 				529226D41C85F68000C89379 /* Frameworks */,
 				529226D31C85F68000C89379 /* Products */,
-				2AD084A34AA54558B7AFA683 /* Pods */,
 			);
 			sourceTree = "<group>";
 		};
@@ -194,9 +165,7 @@
 			isa = PBXGroup;
 			children = (
 				BC1D678126799F8C005DC2DA /* Main.storyboard */,
-				BC1D678426799F8D005DC2DA /* Assets.xcassets */,
 				BC1D678626799F8D005DC2DA /* LaunchScreen.storyboard */,
-				BC1D678926799F8D005DC2DA /* Info.plist */,
 			);
 			path = integration_test_tvos;
 			sourceTree = "<group>";
@@ -253,9 +222,11 @@
 				TargetAttributes = {
 					529226D11C85F68000C89379 = {
 						CreatedOnToolsVersion = 6.4;
+						ProvisioningStyle = Manual;
 					};
 					BC1D677826799F8C005DC2DA = {
 						CreatedOnToolsVersion = 12.5;
+						ProvisioningStyle = Automatic;
 					};
 				};
 			};
@@ -296,7 +267,6 @@
 			files = (
 				BC1D67962679A005005DC2DA /* GoogleService-Info.plist in Resources */,
 				BC1D678826799F8D005DC2DA /* LaunchScreen.storyboard in Resources */,
-				BC1D678526799F8D005DC2DA /* Assets.xcassets in Resources */,
 				BC1D678326799F8C005DC2DA /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -519,7 +489,6 @@
 		};
 		529226FA1C85F68000C89379 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = A77F86ABBFCCBE5BCF96E715 /* Pods-integration_test.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
@@ -549,7 +518,6 @@
 		};
 		529226FB1C85F68000C89379 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = B4F7289D18C44A5A8495978A /* Pods-integration_test.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
@@ -579,7 +547,6 @@
 		};
 		BC1D678C26799F8D005DC2DA /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = B8017C9163F3D385CCDD3E9D /* Pods-integration_test_tvos.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -619,11 +586,8 @@
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 				);
-				INFOPLIST_FILE = integration_test_tvos/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.google.firebase.cpp.firestore.testapp.integration-test-tvos";
@@ -631,13 +595,12 @@
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = appletvos;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 14.5;
+				TVOS_DEPLOYMENT_TARGET = 10.1;
 			};
 			name = Debug;
 		};
 		BC1D678D26799F8D005DC2DA /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 309C8B39575BBCD84489BD71 /* Pods-integration_test_tvos.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -676,18 +639,15 @@
 					"\"$(SRCROOT)/external/googletest/src/googletest\"",
 					"\"$(SRCROOT)/external/googletest/src/googlemock\"",
 				);
-				INFOPLIST_FILE = integration_test_tvos/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/Frameworks",
-				);
+				INFOPLIST_FILE = "$(SRCROOT)/Info.plist";
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_FAST_MATH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = "com.google.firebase.cpp.firestore.testapp.integration-test-tvos";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = appletvos;
 				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 14.5;
+				TVOS_DEPLOYMENT_TARGET = 10.1;
 			};
 			name = Release;
 		};
