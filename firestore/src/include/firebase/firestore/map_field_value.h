@@ -26,10 +26,17 @@ namespace firestore {
 class FieldPath;
 class FieldValue;
 
+#ifdef STLPORT
+/** @brief A map of `FieldValue`s indexed by stringified field paths. */
+using MapFieldValue = std::tr1::unordered_map<std::string, FieldValue>;
+/** @brief A map of `FieldValue`s indexed by field paths. */
+using MapFieldPathValue = std::tr1::unordered_map<FieldPath, FieldValue>;
+#else
 /** @brief A map of `FieldValue`s indexed by stringified field paths. */
 using MapFieldValue = std::unordered_map<std::string, FieldValue>;
 /** @brief A map of `FieldValue`s indexed by field paths. */
 using MapFieldPathValue = std::unordered_map<FieldPath, FieldValue>;
+#endif
 
 }  // namespace firestore
 }  // namespace firebase
