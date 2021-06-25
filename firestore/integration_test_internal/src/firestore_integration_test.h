@@ -55,15 +55,15 @@ class EventAccumulator;
 // An EventListener class for writing tests. This listener counts the number of
 // events as well as keeps track of the last result.
 template <typename T>
-class TestEventListener : public EventListener<T> {
+class TestEventListener {
  public:
   explicit TestEventListener(std::string name) : name_(std::move(name)) {}
 
-  ~TestEventListener() override {}
+  virtual ~TestEventListener() {}
 
-  void OnEvent(const T& value,
-               Error error_code,
-               const std::string& error_message) override {
+  virtual void OnEvent(const T& value,
+                       Error error_code,
+                       const std::string& error_message) {
     if (print_debug_info_) {
       std::cout << "TestEventListener got: ";
       if (error_code == Error::kErrorOk) {
