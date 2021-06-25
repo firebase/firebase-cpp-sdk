@@ -23,7 +23,6 @@
 #include <cstdlib>
 #include <cstring>
 #include <ctime>
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -494,8 +493,7 @@ void SetEnvironmentVariableFromStringExtra(JNIEnv* env, const char* extra_name,
   if (extra_value_jstring != nullptr) {
     const char* extra_value =
         env->GetStringUTFChars(extra_value_jstring, nullptr);
-    setenv(extra_name, extra_value == nullptr ? "" : extra_value,
-           /*overwrite=*/1);
+    setenv(extra_name, extra_value, /*overwrite=*/1);
     env->ReleaseStringUTFChars(extra_value_jstring, extra_value);
     env->DeleteLocalRef(extra_value_jstring);
   }
