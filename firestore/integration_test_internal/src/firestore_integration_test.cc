@@ -93,7 +93,7 @@ std::string ToFirestoreErrorCodeName(int error_code) {
 
 bool WaitUntilFutureCompletes(const FutureBase& future) {
   return WaitUntil(
-    [&] { return future.status() != FutureStatus::kFutureStatusPending; });
+      [&] { return future.status() != FutureStatus::kFutureStatusPending; });
 }
 
 FirestoreIntegrationTest::FirestoreIntegrationTest() {
