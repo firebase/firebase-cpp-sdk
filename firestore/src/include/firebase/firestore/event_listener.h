@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_EVENT_LISTENER_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_EVENT_LISTENER_H_
+#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_EVENT_LISTENER_H_
+#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_EVENT_LISTENER_H_
 
 #include <string>
 
@@ -27,9 +27,12 @@ namespace firestore {
 /**
  * An interface for event listeners.
  *
- * TODO(b/191976416): This class was originally written to facilitate using the
- * STLPort C++ runtime library. STLPort is no longer supported. We can consider
- * removing this class.
+ * @note This class should only be used when using the STLPort C++ runtime
+ * library.
+ *
+ * @deprecated STLPort support in Firestore is deprecated and will be removed in
+ * a future release. Note that STLPort has been deprecated in the Android NDK
+ * since r17 (May 2018) and removed since r18 (September 2018).
  */
 template <typename T>
 class EventListener {
@@ -56,6 +59,13 @@ class EventListener {
 
 /**
  * Interface used for void EventListeners that don't produce a value.
+ *
+ * @note This class should only be used when using the STLPort C++ runtime
+ * library.
+ *
+ * @deprecated STLPort support in Firestore is deprecated and will be removed in
+ * a future release. Note that STLPort has been deprecated in the Android NDK
+ * since r17 (May 2018) and removed since r18 (September 2018).
  */
 template <>
 class EventListener<void> {
@@ -76,4 +86,4 @@ class EventListener<void> {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_EVENT_LISTENER_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_EVENT_LISTENER_H_

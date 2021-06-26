@@ -1,6 +1,8 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LAMBDA_TRANSACTION_FUNCTION_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LAMBDA_TRANSACTION_FUNCTION_H_
 
+#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
 #include <functional>
 #include <string>
 
@@ -50,5 +52,7 @@ class LambdaTransactionFunction
 
 }  // namespace firestore
 }  // namespace firebase
+
+#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 #endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LAMBDA_TRANSACTION_FUNCTION_H_

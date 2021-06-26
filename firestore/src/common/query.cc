@@ -4,9 +4,9 @@
 #include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/cleanup.h"
-#include "firestore/src/common/event_listener.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
+#include "firestore/src/include/firebase/firestore/event_listener.h"
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/include/firebase/firestore/field_value.h"
 #include "firestore/src/include/firebase/firestore/listener_registration.h"
@@ -266,6 +266,7 @@ Future<QuerySnapshot> Query::Get(Source source) const {
   return internal_->Get(source);
 }
 
+#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 ListenerRegistration Query::AddSnapshotListener(
     std::function<void(const QuerySnapshot&, Error, const std::string&)>
         callback) {
@@ -282,6 +283,20 @@ ListenerRegistration Query::AddSnapshotListener(
   return internal_->AddSnapshotListener(metadata_changes,
                                         firebase::Move(callback));
 }
+#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
+#if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+ListenerRegistration Query::AddSnapshotListener(
+    EventListener<QuerySnapshot>* listener) {
+  return AddSnapshotListener(MetadataChanges::kExclude, listener);
+}
+
+ListenerRegistration Query::AddSnapshotListener(
+    MetadataChanges metadata_changes, EventListener<QuerySnapshot>* listener) {
+  if (!internal_) return {};
+  return internal_->AddSnapshotListener(metadata_changes, listener);
+}
+#endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 bool operator==(const Query& lhs, const Query& rhs) {
   if (!lhs.internal_ || !rhs.internal_) {

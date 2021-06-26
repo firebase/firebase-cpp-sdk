@@ -17,10 +17,12 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_H_
 
-#include <functional>
 #include <string>
 
 #include "firebase/internal/common.h"
+#if defined(FIREBASE_USE_STD_FUNCTION)
+#include <functional>
+#endif
 
 #include "firebase/app.h"
 #include "firebase/future.h"
@@ -31,6 +33,7 @@
 #include "firebase/firestore/document_change.h"
 #include "firebase/firestore/document_reference.h"
 #include "firebase/firestore/document_snapshot.h"
+#include "firebase/firestore/event_listener.h"
 #include "firebase/firestore/field_path.h"
 #include "firebase/firestore/field_value.h"
 #include "firebase/firestore/firestore_errors.h"
@@ -239,6 +242,7 @@ class Firestore {
    */
   virtual WriteBatch batch() const;
 
+#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /**
    * Executes the given update and then attempts to commit the changes applied
    * within the transaction. If any document read within the transaction has
@@ -249,9 +253,13 @@ class Firestore {
    * The string reference parameter can be used to set the error message.
    *
    * @return A Future that will be resolved when the transaction finishes.
+   *
+   * @note This method is not available when using the STLPort C++ runtime
+   * library.
    */
   virtual Future<void> RunTransaction(
       std::function<Error(Transaction&, std::string&)> update);
+#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
   /**
    * Executes the given update and then attempts to commit the changes applied
@@ -354,6 +362,7 @@ class Firestore {
    */
   virtual Future<void> ClearPersistence();
 
+#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /**
    * Attaches a listener for a snapshots-in-sync event. Server-generated
    * updates and local changes can affect multiple snapshot listeners.
@@ -373,6 +382,29 @@ class Firestore {
    */
   virtual ListenerRegistration AddSnapshotsInSyncListener(
       std::function<void()> callback);
+#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
+#if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+  /**
+   * Attaches a listener for a snapshots-in-sync event. Server-generated
+   * updates and local changes can affect multiple snapshot listeners.
+   * The snapshots-in-sync event indicates that all listeners affected by
+   * a given change have fired.
+   *
+   * NOTE: The snapshots-in-sync event only indicates that listeners are
+   * in sync with each other, but does not relate to whether those
+   * snapshots are in sync with the server. Use `SnapshotMetadata` in the
+   * individual listeners to determine if a snapshot is from the cache or
+   * the server.
+   *
+   * @param listener A callback to be called every time all snapshot
+   * listeners are in sync with each other.
+   * @return A `ListenerRegistration` object that can be used to remove the
+   * listener.
+   */
+  virtual ListenerRegistration AddSnapshotsInSyncListener(
+      EventListener<void>* listener);
+#endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
   /**
    * Loads a Firestore bundle into the local cache.
