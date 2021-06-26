@@ -119,24 +119,10 @@ class TestCompletionBase : public Promise<PublicType,
   // Waits for `CompleteWith()` to be invoked. Returns `true` if an invocation
   // occurred prior to timing out or `false` otherwise.
   bool AwaitCompletion() {
-    int cycles_remaining = kTimeOutMillis / kCheckIntervalMillis;
-    while (true) {
-      {
-        MutexLock lock(mutex_);
-        if (invocation_count_ > 0) {
-          return true;
-        }
-      }
-
-      if (ProcessEvents(kCheckIntervalMillis)) {
-        return false;
-      }
-
-      cycles_remaining--;
-      if (cycles_remaining == 0) {
-        return false;
-      }
-    }
+    return WaitFor([&] {
+      MutexLock lock(mutex_);
+      return invocation_count_ > 0;
+    });
   }
 
   // Returns the number of times that `CompleteWith()` has been invoked.
@@ -226,7 +212,7 @@ TEST_F(PromiseTest, FutureVoidShouldSucceedWhenTaskSucceeds) {
 
   SetTaskResult(0);
 
-  EXPECT_GT(WaitFor(future), 0);
+  EXPECT_TRUE(WaitUntilFutureCompletes(future));
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(future.error(), 0);
   EXPECT_EQ(future.result(), nullptr);
@@ -240,7 +226,7 @@ TEST_F(PromiseTest, FutureNonVoidShouldSucceedWhenTaskSucceeds) {
 
   SetTaskResult(42);
 
-  EXPECT_GT(WaitFor(future), 0);
+  EXPECT_TRUE(WaitUntilFutureCompletes(future));
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(future.error(), 0);
   EXPECT_EQ(*future.result(), "42");
@@ -253,7 +239,7 @@ TEST_F(PromiseTest, FutureVoidShouldFailWhenTaskFails) {
 
   SetTaskException(Error::kErrorFailedPrecondition, "Simulated failure");
 
-  EXPECT_GT(WaitFor(future), 0);
+  EXPECT_TRUE(WaitUntilFutureCompletes(future));
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(future.error(), Error::kErrorFailedPrecondition);
   EXPECT_EQ(future.error_message(), std::string("Simulated failure"));
@@ -268,7 +254,7 @@ TEST_F(PromiseTest, FutureNonVoidShouldFailWhenTaskFails) {
 
   SetTaskException(Error::kErrorFailedPrecondition, "Simulated failure");
 
-  EXPECT_GT(WaitFor(future), 0);
+  EXPECT_TRUE(WaitUntilFutureCompletes(future));
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(future.error(), Error::kErrorFailedPrecondition);
   EXPECT_EQ(future.error_message(), std::string("Simulated failure"));
@@ -282,7 +268,7 @@ TEST_F(PromiseTest, FutureVoidShouldCancelWhenTaskCancels) {
 
   CancelTask();
 
-  EXPECT_GT(WaitFor(future), 0);
+  EXPECT_TRUE(WaitUntilFutureCompletes(future));
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(future.error(), Error::kErrorCancelled);
   EXPECT_EQ(future.error_message(), std::string("cancelled"));
@@ -297,7 +283,7 @@ TEST_F(PromiseTest, FutureNonVoidShouldCancelWhenTaskCancels) {
 
   CancelTask();
 
-  EXPECT_GT(WaitFor(future), 0);
+  EXPECT_TRUE(WaitUntilFutureCompletes(future));
   EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
   EXPECT_EQ(future.error(), Error::kErrorCancelled);
   EXPECT_EQ(future.error_message(), std::string("cancelled"));

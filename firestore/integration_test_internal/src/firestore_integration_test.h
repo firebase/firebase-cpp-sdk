@@ -1,6 +1,7 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_TESTS_FIRESTORE_INTEGRATION_TEST_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_TESTS_FIRESTORE_INTEGRATION_TEST_H_
 
+#include <chrono>  // NOLINT(build/c++11)
 #include <cstdio>
 #include <iostream>
 #include <map>
@@ -43,11 +44,15 @@ bool ProcessEvents(int msec);
 // enum, but this function will gracefully handle the case where it is not.
 std::string ToFirestoreErrorCodeName(int error_code);
 
-// Waits for a Future to complete. If a timeout is reached then this method
-// returns as if successful; therefore, the caller should verify the status of
-// the given Future after this function returns. Returns the number of cycles
-// that were left before a timeout would have occurred.
-int WaitFor(const FutureBase& future);
+// Blocks until either the given predicate `pred` returns `true` or timeout
+// occurs. Returns `true` on success, `false` on timeout or if exit signal was
+// received.
+template <typename PredT>
+bool WaitUntil(const PredT& pred, int timeout_ms = kTimeOutMillis);
+
+// Blocks until either the future completes or timeout occurs. Returns `true`
+// on success, `false` on timeout or if exit signal was received.
+bool WaitUntilFutureCompletes(const FutureBase& future);
 
 template <typename T>
 class EventAccumulator;
@@ -280,37 +285,27 @@ class FirestoreIntegrationTest : public testing::Test {
 
   // TODO(zxu): add a helper function to block on signal.
 
-  // A helper function to block until the future completes.
+  // Blocks until the future completes and returns the future result.
   template <typename T>
   static const T* Await(const Future<T>& future) {
-    int cycles = WaitFor(future);
-    EXPECT_GT(cycles, 0) << "Waiting future timed out.";
-    if (future.status() == FutureStatus::kFutureStatusComplete) {
-      if (future.result() == nullptr) {
-        std::cout << "WARNING: " << DescribeFailedFuture(future) << std::endl;
-      }
-    } else {
-      std::cout << "WARNING: Future is not completed." << std::endl;
-    }
+    ASSERT_TRUE(WaitUntilFutureCompletes(future)) << "Future<T> timed out.";
+
+    ASSERT_EQ(future.status(), FutureStatus::kFutureStatusComplete)
+        << DescribeFailedFuture();
+    ASSERT_NE(future.result(), nullptr) << DescribeFailedFuture();
+
     return future.result();
   }
 
+  // Blocks until the future completes.
   static void Await(const Future<void>& future);
 
-  // A helper function to block until there is at least n event.
+  // Blocks until there is at least `event_count` events.
   template <typename T>
-  static void Await(const TestEventListener<T>& listener, int n = 1) {
-    // Instead of getting a clock, we count the cycles instead.
-    int cycles = kTimeOutMillis / kCheckIntervalMillis;
-    while (listener.event_count() < n && cycles > 0) {
-      if (ProcessEvents(kCheckIntervalMillis)) {
-        std::cout << "WARNING: app receives an event requesting exit."
-                  << std::endl;
-        return;
-      }
-      --cycles;
-    }
-    EXPECT_GT(cycles, 0) << "Waiting listener timed out.";
+  static void Await(const TestEventListener<T>& listener, int event_count = 1) {
+    bool success =
+        WaitUntil([&] { return listener.event_count() >= event_count; });
+    EXPECT_TRUE(success) << "Waiting listener timed out.";
   }
 
   // Fails the current test if the given future did not complete or contained an
@@ -354,6 +349,24 @@ class FirestoreIntegrationTest : public testing::Test {
   mutable std::unordered_map<App*, UniquePtr<App>> apps_;
   mutable std::unordered_map<Firestore*, FirestoreInfo> firestores_;
 };
+
+template <typename PredT>
+bool WaitUntil(const PredT& pred, int timeout_ms) {
+  auto now = std::chrono::steady_clock::now();
+  auto timeout_time = now + std::chrono::milliseconds(timeout_ms);
+
+  while (!pred() && now < timeout_time) {
+    if (ProcessEvents(kCheckIntervalMillis)) {
+      std::cout << "WARNING: app received an event requesting exit."
+                << std::endl;
+      return false;
+    }
+
+    now = std::chrono::steady_clock::now();
+  }
+
+  return now < timeout_time;
+}
 
 }  // namespace firestore
 }  // namespace firebase

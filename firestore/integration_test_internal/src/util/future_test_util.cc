@@ -31,7 +31,7 @@ class FutureSucceedsImpl
 
   bool MatchAndExplain(const Future<void>& future,
                        testing::MatchResultListener*) const override {
-    firestore::WaitFor(future);
+    firestore::WaitUntilFutureCompletes(future);
     return future.status() == FutureStatus::kFutureStatusComplete &&
            future.error() == firestore::Error::kErrorOk;
   }

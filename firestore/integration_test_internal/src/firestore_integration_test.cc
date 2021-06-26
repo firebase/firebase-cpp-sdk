@@ -91,18 +91,9 @@ std::string ToFirestoreErrorCodeName(int error_code) {
   }
 }
 
-int WaitFor(const FutureBase& future) {
-  // Instead of getting a clock, we count the cycles instead.
-  int cycles = kTimeOutMillis / kCheckIntervalMillis;
-  while (future.status() == FutureStatus::kFutureStatusPending && cycles > 0) {
-    if (ProcessEvents(kCheckIntervalMillis)) {
-      std::cout << "WARNING: app receives an event requesting exit."
-                << std::endl;
-      break;
-    }
-    --cycles;
-  }
-  return cycles;
+bool WaitUntilFutureCompletes(const FutureBase& future) {
+  return WaitUntil(
+    [&] { return future.status() != FutureStatus::kFutureStatusPending; });
 }
 
 FirestoreIntegrationTest::FirestoreIntegrationTest() {
@@ -276,13 +267,7 @@ FirestoreIntegrationTest::QuerySnapshotToMap(
 
 /* static */
 void FirestoreIntegrationTest::Await(const Future<void>& future) {
-  while (future.status() == FutureStatus::kFutureStatusPending) {
-    if (ProcessEvents(kCheckIntervalMillis)) {
-      std::cout << "WARNING: app received an event requesting exit."
-                << std::endl;
-      break;
-    }
-  }
+  EXPECT_TRUE(WaitUntilFutureCompletes(future)) << "Future<void> timed out.";
 }
 
 /* static */

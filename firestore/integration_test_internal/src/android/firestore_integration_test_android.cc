@@ -71,17 +71,9 @@ Local<Throwable> FirestoreAndroidIntegrationTest::CreateException(
 }
 
 void FirestoreAndroidIntegrationTest::Await(Env& env, const Task& task) {
-  int cycles = kTimeOutMillis / kCheckIntervalMillis;
-  while (env.ok() && !task.IsComplete(env)) {
-    if (ProcessEvents(kCheckIntervalMillis)) {
-      std::cout << "WARNING: app receives an event requesting exit."
-                << std::endl;
-      break;
-    }
-    --cycles;
-  }
+  bool success = WaitUntil([&] { return env.ok() && task.IsComplete(env); });
   if (env.ok()) {
-    EXPECT_GT(cycles, 0) << "Waiting for Task timed out.";
+    EXPECT_TRUE(success) << "Waiting for Task timed out.";
   }
 }
 
