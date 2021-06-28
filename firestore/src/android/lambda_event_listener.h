@@ -1,11 +1,12 @@
 #ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LAMBDA_EVENT_LISTENER_H_
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LAMBDA_EVENT_LISTENER_H_
 
-#include <functional>
-
 #include "app/meta/move.h"
 #include "firebase/firestore/firestore_errors.h"
-#include "firestore/src/common/event_listener.h"
+#include "firestore/src/include/firebase/firestore/event_listener.h"
+
+#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+#include <functional>
 
 namespace firebase {
 namespace firestore {
@@ -49,5 +50,7 @@ class LambdaEventListener<void> : public EventListener<void> {
 
 }  // namespace firestore
 }  // namespace firebase
+
+#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
 #endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LAMBDA_EVENT_LISTENER_H_

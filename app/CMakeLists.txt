@@ -46,7 +46,7 @@ set(version_header ${version_header_dir}/version.h)
 file(MAKE_DIRECTORY ${version_header_dir})
 add_custom_command(
     OUTPUT ${version_header}
-    COMMAND python "${FIREBASE_SCRIPT_DIR}/version_header.py"
+    COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${FIREBASE_SCRIPT_DIR}/version_header.py"
         "--input_file=${FIREBASE_SCRIPT_DIR}/cpp_sdk_version.json"
         "--output_file=${version_header}"
         "--build_type=released"
@@ -417,7 +417,7 @@ if (IOS)
   function(generate_analytics_header OBJC_FILE CPP_FILE)
     add_custom_command(
       OUTPUT ${CPP_FILE}
-      COMMAND python "${FIREBASE_SOURCE_DIR}/analytics/generate_constants.py"
+      COMMAND ${FIREBASE_PYTHON_EXECUTABLE} "${FIREBASE_SOURCE_DIR}/analytics/generate_constants.py"
         "--objc_header=${OBJC_FILE}"
         "--cpp_header=${CPP_FILE}"
       DEPENDS ${OBJC_FILE}
@@ -468,6 +468,7 @@ if (IOS)
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_change.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_reference.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/document_snapshot.h
+    ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/event_listener.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_path.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/field_value.h
     ${FIREBASE_SOURCE_DIR}/firestore/src/include/firebase/firestore/listener_registration.h
