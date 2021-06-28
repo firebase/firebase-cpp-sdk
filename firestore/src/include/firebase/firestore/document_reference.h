@@ -33,8 +33,10 @@
 
 namespace firebase {
 
+#if !defined(DOXYGEN)
 template <typename T>
 class Future;
+#endif  // !defined(DOXYGEN)
 
 namespace firestore {
 

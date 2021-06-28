@@ -29,8 +29,10 @@ namespace firebase {
 // Predeclarations.
 class App;
 
+#if !defined(DOXYGEN)
 template <typename T>
 class Future;
+#endif  // !defined(DOXYGEN)
 
 namespace auth {
 
@@ -204,7 +206,6 @@ class GoogleAuthProvider {
   /// The string used to identify this provider.
   static const char* const kProviderId;
 };
-
 
 /// @brief Use an access token provided by Microsoft to authenticate.
 class MicrosoftAuthProvider {
@@ -612,14 +613,12 @@ class TwitterAuthProvider {
   static const char* const kProviderId;
 };
 
-
 /// @brief Use an access token provided by Yahoo to authenticate.
 class YahooAuthProvider {
  public:
   /// The string used to identify this provider.
   static const char* const kProviderId;
 };
-
 
 }  // namespace auth
 }  // namespace firebase
