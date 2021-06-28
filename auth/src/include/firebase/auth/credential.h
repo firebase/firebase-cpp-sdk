@@ -21,16 +21,18 @@
 
 #include <string>
 
-#include "firebase/internal/common.h"
 #include "firebase/auth/types.h"
+#include "firebase/internal/common.h"
 
 namespace firebase {
 
 // Predeclarations.
 class App;
 
+/// @cond FIREBASE_APP_INTERNAL
 template <typename T>
 class Future;
+/// @endcond
 
 namespace auth {
 
@@ -204,7 +206,6 @@ class GoogleAuthProvider {
   /// The string used to identify this provider.
   static const char* const kProviderId;
 };
-
 
 /// @brief Use an access token provided by Microsoft to authenticate.
 class MicrosoftAuthProvider {
@@ -612,14 +613,12 @@ class TwitterAuthProvider {
   static const char* const kProviderId;
 };
 
-
 /// @brief Use an access token provided by Yahoo to authenticate.
 class YahooAuthProvider {
  public:
   /// The string used to identify this provider.
   static const char* const kProviderId;
 };
-
 
 }  // namespace auth
 }  // namespace firebase
