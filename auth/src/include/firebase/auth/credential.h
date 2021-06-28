@@ -21,18 +21,18 @@
 
 #include <string>
 
-#include "firebase/internal/common.h"
 #include "firebase/auth/types.h"
+#include "firebase/internal/common.h"
 
 namespace firebase {
 
 // Predeclarations.
 class App;
 
-#if !defined(DOXYGEN)
+/// @cond FIREBASE_APP_INTERNAL
 template <typename T>
 class Future;
-#endif  // !defined(DOXYGEN)
+/// @endcond
 
 namespace auth {
 

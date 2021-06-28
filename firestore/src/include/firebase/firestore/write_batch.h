@@ -22,10 +22,10 @@
 
 namespace firebase {
 
-#if !defined(DOXYGEN)
+/// @cond FIREBASE_APP_INTERNAL
 template <typename T>
 class Future;
-#endif  // !defined(DOXYGEN)
+/// @endcond
 
 namespace firestore {
 
