@@ -55,7 +55,7 @@ jobs:
           python-version: 3.7
       - name: Install prerequisites
         run: python scripts/gha/install_prereqs_desktop.py
-      -	name: Generate headers
+      - name: Generate headers
         run: |
           mkdir build                                                                                                                                           
           cd build                                                                                                                                              
