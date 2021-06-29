@@ -4,7 +4,7 @@ platform :ios, '10.0'
 target 'GetPods' do
   pod 'Firebase/Core', '8.2.0'
 
-  pod 'Google-Mobile-Ads-SDK', '8.7.0'
+  pod 'Google-Mobile-Ads-SDK', '7.69.0-cppsdk'
   pod 'Firebase/Analytics', '8.2.0'
   pod 'Firebase/Auth', '8.2.0'
   pod 'Firebase/Crashlytics', '8.2.0'

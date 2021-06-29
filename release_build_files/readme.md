@@ -85,7 +85,7 @@ Firebase AdMob             | libfirebase_admob.a
 |                          | libfirebase_app.a
 |                          | com.google.firebase:firebase-analytics:19.0.0
 |                          | (Maven package)
-|                          | com.google.firebase:firebase-ads:20.2.0
+|                          | com.google.firebase:firebase-ads:19.8.0
 |                          | (Maven package)
 |                          | com.google.android.gms:play-services-base:17.6.0
 |                          | (Maven package)
