@@ -25,9 +25,9 @@ ENABLED_SECTIONS=cpp_examples
 EXCLUDE_SYMBOLS = internal
 
 #WARN_IF_UNDOCUMENTED = YES
-#WARN_IF_DOC_ERROR = YES
+WARN_IF_DOC_ERROR = YES
 #WARN_NO_PARAMDOC = YES
-WARN_IF_INCOMPLETE_DOC = YES
+#WARN_IF_INCOMPLETE_DOC = YES
 
 # Space-separated list of input files.
 # This is commented out because the Doxygen script will append the correct list of headers here.
