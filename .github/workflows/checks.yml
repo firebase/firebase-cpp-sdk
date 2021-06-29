@@ -68,7 +68,7 @@ jobs:
           cp docs/Doxyfile /tmp/Doxyfile                                                                                                                        
           echo INPUT = $(find */src/include/firebase/ build/generated/ -name '*.h') >> /tmp/Doxyfile
           doxygen /tmp/Doxyfile 2>&1 | tee doxygen_output.txt                                                                                                   
-      -	name: Check output
+      - name: Check output
         run: |
           cat doxygen_output.txt | grep -v SWIG | grep -v 'unable to resolve reference' > doxygen_output2.txt                                                   
           grep "warning:" doxygen_output2.txt                                                                                                                   
