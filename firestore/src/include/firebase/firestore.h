@@ -204,7 +204,7 @@ class Firestore {
    * database that are contained in a collection or subcollection with the
    * given collection_id.
    *
-   * @param[in] collection_identifier Identifies the collections to query over. Every
+   * @param[in] collection_id Identifies the collections to query over. Every
    * collection or subcollection with this ID as the last segment of its path
    * will be included. Cannot contain a slash.
    *
