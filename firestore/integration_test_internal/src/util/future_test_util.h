@@ -20,6 +20,12 @@ void PrintTo(const Future<void>& future, std::ostream* os);
 // will succeed.
 //
 // Here is an example of how this function could be used:
+// EXPECT_THAT(TestFirestore()->Terminate(), FutureSucceeds<QuerySnapshot>());
+template <typename T>
+testing::Matcher<const Future<T>&> FutureSucceeds();
+
+// Similar to the templated function but works for `Future<void>`. Note there's
+// no need to specify template parameters:
 // EXPECT_THAT(TestFirestore()->Terminate(), FutureSucceeds());
 testing::Matcher<const Future<void>&> FutureSucceeds();
 

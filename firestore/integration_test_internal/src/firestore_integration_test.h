@@ -288,11 +288,11 @@ class FirestoreIntegrationTest : public testing::Test {
   // Blocks until the future completes and returns the future result.
   template <typename T>
   static const T* Await(const Future<T>& future) {
-    ASSERT_TRUE(WaitUntilFutureCompletes(future)) << "Future<T> timed out.";
+    EXPECT_TRUE(WaitUntilFutureCompletes(future)) << "Future<T> timed out.";
 
-    ASSERT_EQ(future.status(), FutureStatus::kFutureStatusComplete)
-        << DescribeFailedFuture();
-    ASSERT_NE(future.result(), nullptr) << DescribeFailedFuture();
+    EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete)
+        << DescribeFailedFuture(future);
+    EXPECT_NE(future.result(), nullptr) << DescribeFailedFuture(future);
 
     return future.result();
   }

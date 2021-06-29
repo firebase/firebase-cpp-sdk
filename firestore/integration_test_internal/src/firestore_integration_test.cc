@@ -265,12 +265,10 @@ FirestoreIntegrationTest::QuerySnapshotToMap(
   return result;
 }
 
-/* static */
 void FirestoreIntegrationTest::Await(const Future<void>& future) {
   EXPECT_TRUE(WaitUntilFutureCompletes(future)) << "Future<void> timed out.";
 }
 
-/* static */
 bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,
                                                   const FutureBase& future) {
   if (future.status() != FutureStatus::kFutureStatusComplete) {
@@ -286,7 +284,6 @@ bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,
   }
 }
 
-/* static */
 std::string FirestoreIntegrationTest::DescribeFailedFuture(
     const FutureBase& future) {
   return "Future failed: " + ToFirestoreErrorCodeName(future.error()) + " (" +

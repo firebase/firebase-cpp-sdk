@@ -13,7 +13,7 @@ void PrintTo(std::ostream* os,
              FutureStatus future_status,
              int error,
              const char* error_message = nullptr) {
-  *os << "Future<void>{status=" << ToEnumeratorName(future_status)
+  *os << "Future{status=" << ToEnumeratorName(future_status)
       << " error=" << firestore::ToFirestoreErrorCodeName(error);
   if (error_message != nullptr) {
     *os << " error_message=" << error_message;
@@ -21,8 +21,9 @@ void PrintTo(std::ostream* os,
   *os << "}";
 }
 
+template <typename T>
 class FutureSucceedsImpl
-    : public testing::MatcherInterface<const Future<void>&> {
+    : public testing::MatcherInterface<const Future<T>&> {
  public:
   void DescribeTo(std::ostream* os) const override {
     PrintTo(os, FutureStatus::kFutureStatusComplete,
@@ -52,12 +53,17 @@ std::string ToEnumeratorName(FutureStatus status) {
   }
 }
 
-void PrintTo(const Future<void>& future, std::ostream* os) {
+void PrintTo(const FutureBase& future, std::ostream* os) {
   PrintTo(os, future.status(), future.error(), future.error_message());
 }
 
+template <typename T>
+testing::Matcher<const Future<T>&> FutureSucceeds() {
+  return testing::Matcher<const Future<void>&>(new FutureSucceedsImpl<T>());
+}
+
 testing::Matcher<const Future<void>&> FutureSucceeds() {
-  return testing::Matcher<const Future<void>&>(new FutureSucceedsImpl());
+  return testing::Matcher<const Future<void>&>(new FutureSucceedsImpl<void>());
 }
 
 }  // namespace firebase
