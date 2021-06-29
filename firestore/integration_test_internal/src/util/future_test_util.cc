@@ -22,8 +22,7 @@ void PrintTo(std::ostream* os,
 }
 
 template <typename T>
-class FutureSucceedsImpl
-    : public testing::MatcherInterface<const Future<T>&> {
+class FutureSucceedsImpl : public testing::MatcherInterface<const Future<T>&> {
  public:
   void DescribeTo(std::ostream* os) const override {
     PrintTo(os, FutureStatus::kFutureStatusComplete,
