@@ -42,4 +42,39 @@ jobs:
         none_of: "${{ env.statusLabelInProgress }},${{ env.statusLabelFailed }},${{ env.triggerLabelFull }},${{ env.triggerLabelQuick }}"
         repo_token: ${{ github.token }}
 
+  check_doxygen:
+    # This check fails if Doxygen documentation fails to generate.                                                                                              
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: false
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: Install prerequisites
+        run: python scripts/gha/install_prereqs_desktop.py
+      -	name: Generate headers
+        run: |
+          mkdir build                                                                                                                                           
+          cd build                                                                                                                                              
+          cmake ..                                                                                                                                              
+          cmake --build . --target FIREBASE_GENERATED_HEADERS                                                                                                   
+      - name: Install doxygen
+        run: sudo apt-get install doxygen
+      - name: Run doxygen
+        run: |
+          cp docs/Doxyfile /tmp/Doxyfile                                                                                                                        
+          echo INPUT = $(find */src/include/firebase/ build/generated/ -name '*.h') >> /tmp/Doxyfile
+          doxygen /tmp/Doxyfile 2>&1 | tee doxygen_output.txt                                                                                                   
+      -	name: Check output
+        run: |
+          cat doxygen_output.txt | grep -v SWIG | grep -v 'unable to resolve reference' > doxygen_output2.txt                                                   
+          grep "warning:" doxygen_output2.txt                                                                                                                   
+          if grep -q "warning:" doxygen_output2.txt; then                                                                                                       
+            grep -E "warning:|^  parameter" doxygen_output2.txt | sed 's/^/::error ::/'                                                                         
+            exit 1                                                                                                                                              
+          fi                                                                                                                                                    
+
 
