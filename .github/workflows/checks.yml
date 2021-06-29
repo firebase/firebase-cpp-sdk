@@ -70,7 +70,8 @@ jobs:
           doxygen /tmp/Doxyfile 2>&1 | tee doxygen_output.txt                                                                                                   
       - name: Check output
         run: |
-          cat doxygen_output.txt | grep -v SWIG | grep -v 'unable to resolve reference' > doxygen_output2.txt                                                   
+          # Ignore SWIG-related xml tag errors.
+          cat doxygen_output.txt | grep -v '</*SWIG> > doxygen_output2.txt                                                   
           grep "warning:" doxygen_output2.txt                                                                                                                   
           if grep -q "warning:" doxygen_output2.txt; then
             # Grep for warnings and print them out (replacing \n with %0A for github log)

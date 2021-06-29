@@ -28,11 +28,7 @@
 #include <functional>
 #endif
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 // Predeclarations.
 /// @cond FIREBASE_APP_INTERNAL
@@ -522,8 +518,7 @@ class Future : public FutureBase {
 #endif  // defined(INTERNAL_EXPERIMENTAL)
 };
 
-// NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 // Include the inline implementation.
 #include "firebase/internal/future_impl.h"
