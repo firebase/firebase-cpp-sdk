@@ -311,7 +311,10 @@ if(IOS)
       # distribution.
       ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore
   )
-
+  set(FIREBASE_FIRESTORE_CORE_HEADER_DIR
+    ${FIREBASE_POD_DIR}/Pods/FirebaseFirestore/Firestore/core/include
+  )
+  
 else()
   # Desktop and Android get their public headers from the CMake build in
   # firebase-ios-sdk.
@@ -322,7 +325,22 @@ else()
     PRIVATE
       ${FIRESTORE_SOURCE_DIR}
   )
+  set(FIREBASE_FIRESTORE_CORE_HEADER_DIR
+    ${FIRESTORE_SOURCE_DIR}/Firestore/core/include
+  )
 endif()
+
+set(firestore_generated_headers_dir
+    "${FIREBASE_GEN_FILE_DIR}/firestore/src/include/firebase/firestore")
+add_custom_target(
+  FIREBASE_FIRESTORE_GENERATED_HEADERS
+  COMMAND ${CMAKE_COMMAND} -E make_directory
+          "${firestore_generated_headers_dir}"
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+          ${FIREBASE_FIRESTORE_CORE_HEADER_DIR}
+          "${firestore_generated_headers_dir}"
+  COMMENT "Copying internal Firestore headers"
+)
 
 set(FIREBASE_FIRESTORE_CPP_DEFINES -DINTERNAL_EXPERIMENTAL=1)
 

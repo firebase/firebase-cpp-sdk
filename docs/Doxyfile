@@ -1,0 +1,28 @@
+# Do not modify these settings
+GENERATE_XML           = YES
+GENERATE_HTML          = NO
+GENERATE_LATEX         = NO
+OUTPUT_DIRECTORY       = .
+XML_OUTPUT             = xml
+STRIP_FROM_PATH        =
+LAYOUT_FILE            =
+HTML_HEADER            =
+HTML_FOOTER            =
+CASE_SENSE_NAMES       = NO
+SORT_GROUP_NAMES       = YES
+JAVADOC_AUTOBRIEF      = YES
+
+PREDEFINED = DOXYGEN FIREBASE_DEPRECATED
+MACRO_EXPANSION = YES  # Expand FIREBASE_DEPRECATED macros.
+EXPAND_ONLY_PREDEF = YES  # Expand FIREBASE_DEPRECATED macros.
+VERBATIM_HEADERS = NO
+SOURCE_BROWSER = NO
+REFERENCES_LINK_SOURCE = NO
+EXTRACT_STATIC = YES  # Required for constant headers in firebase/analytics.
+
+ENABLED_SECTIONS=cpp_examples
+EXCLUDE_SYMBOLS = internal
+
+# Space-separated list of input files.
+# This is commented out because the Doxygen script will append the correct list of headers here.
+# INPUT =

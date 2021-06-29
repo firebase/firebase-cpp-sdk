@@ -43,6 +43,7 @@ binary_to_array("invites_resources"
 # Generate version.h
 set(version_header_dir ${FIREBASE_GEN_FILE_DIR}/app/src/include/firebase)
 set(version_header ${version_header_dir}/version.h)
+add_custom_target(FIREBASE_APP_GENERATED_HEADERS DEPENDS "${version_header}")
 file(MAKE_DIRECTORY ${version_header_dir})
 add_custom_command(
     OUTPUT ${version_header}
