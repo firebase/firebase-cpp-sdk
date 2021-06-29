@@ -94,6 +94,25 @@ class BundleTest : public FirestoreIntegrationTest {
                                MapFieldValue{{"k", FieldValue::String("b")},
                                              {"bar", FieldValue::Integer(2)}}));
     }
+
+    {
+      Query limit = AwaitResult(db->NamedQuery(kLimitQueryName));
+      auto limit_snapshot = AwaitResult(limit.Get(Source::kCache));
+      EXPECT_THAT(
+          QuerySnapshotToValues(limit_snapshot),
+          testing::ElementsAre(MapFieldValue{{"k", FieldValue::String("b")},
+                                             {"bar", FieldValue::Integer(2)}}));
+    }
+
+    {
+      Query limit_to_last = AwaitResult(db->NamedQuery(kLimitToLastQueryName));
+      auto limit_to_last_snapshot =
+          AwaitResult(limit_to_last.Get(Source::kCache));
+      EXPECT_THAT(
+          QuerySnapshotToValues(limit_to_last_snapshot),
+          testing::ElementsAre(MapFieldValue{{"k", FieldValue::String("a")},
+                                             {"bar", FieldValue::Integer(1)}}));
+    }
   }
 };
 
@@ -240,6 +259,21 @@ TEST_F(BundleTest, LoadBundleWithDocumentsAlreadyPulledFromBackend) {
               testing::ElementsAre(
                   MapFieldValue{{"bar", FieldValue::String("newValueA")}},
                   MapFieldValue{{"bar", FieldValue::String("newValueB")}}));
+
+  {
+    Query limit = AwaitResult(db->NamedQuery(kLimitQueryName));
+    EXPECT_THAT(QuerySnapshotToValues(AwaitResult(limit.Get(Source::kCache))),
+                testing::ElementsAre(
+                    MapFieldValue{{"bar", FieldValue::String("newValueB")}}));
+  }
+
+  {
+    Query limit_to_last = AwaitResult(db->NamedQuery(kLimitToLastQueryName));
+    EXPECT_THAT(
+        QuerySnapshotToValues(AwaitResult(limit_to_last.Get(Source::kCache))),
+        testing::ElementsAre(
+            MapFieldValue{{"bar", FieldValue::String("newValueA")}}));
+  }
 }
 
 TEST_F(BundleTest, LoadedDocumentsShouldNotBeGarbageCollectedRightAway) {
@@ -280,6 +314,28 @@ TEST_F(BundleTest, LoadDocumentsFromOtherProjectsShouldFail) {
   ASSERT_EQ(progresses.size(), 2);
   EXPECT_THAT(progresses[0], InProgressWithLoadedDocuments(0));
   VerifyErrorProgress(progresses[1]);
+}
+
+TEST_F(BundleTest, GetInvalidNamedQuery) {
+  Firestore* db = TestFirestore();
+  {
+    auto future = db->NamedQuery("DOES_NOT_EXIST");
+    Await(future);
+    EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
+    EXPECT_EQ(future.error(), Error::kErrorNotFound);
+  }
+  {
+    auto future = db->NamedQuery("");
+    Await(future);
+    EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
+    EXPECT_EQ(future.error(), Error::kErrorNotFound);
+  }
+  {
+    auto future = db->NamedQuery("\xc3\x28");
+    Await(future);
+    EXPECT_EQ(future.status(), FutureStatus::kFutureStatusComplete);
+    EXPECT_EQ(future.error(), Error::kErrorNotFound);
+  }
 }
 
 }  // namespace

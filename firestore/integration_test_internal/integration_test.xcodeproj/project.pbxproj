@@ -7,10 +7,17 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		12D513142684C8C200A83FAA /* bundle_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12D513132684C8C200A83FAA /* bundle_test.cc */; };
+		12D5131A2684C8D100A83FAA /* bundle_builder.cc in Sources */ = {isa = PBXBuildFile; fileRef = 12D513182684C8D100A83FAA /* bundle_builder.cc */; };
 		520BC0391C869159008CFBC3 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 520BC0381C869159008CFBC3 /* GoogleService-Info.plist */; };
+		5270BB448DF5ECE860FDD68B /* firebase_firestore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EAFAF9474EC412ADCC65F2CC /* firebase_firestore.framework */; };
 		529226D61C85F68000C89379 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D51C85F68000C89379 /* Foundation.framework */; };
 		529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D71C85F68000C89379 /* CoreGraphics.framework */; };
 		529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 529226D91C85F68000C89379 /* UIKit.framework */; };
+		6013D96CC99BE0D747E924BF /* firebase_auth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6F2D5AB4DBDD804A38B51636 /* firebase_auth.framework */; };
+		7B510B28CC034B1F8E1A89E0 /* firebase.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6C04D181B10689799EE4823D /* firebase.framework */; };
+		8822447D5AD56650C3762A3C /* firebase.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 0F587446811C107616587386 /* firebase.framework */; };
+		B03DCEF24BED9C02CFA71109 /* firebase_auth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 8C4AC9C038C468519B583C7C /* firebase_auth.framework */; };
 		BC1D682C267B0030005DC2DA /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BC1D682A267B0030005DC2DA /* Main.storyboard */; };
 		BC1D6831267B0032005DC2DA /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = BC1D682F267B0032005DC2DA /* LaunchScreen.storyboard */; };
 		BC1D6838267B00EB005DC2DA /* future_test_util.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6ED33B92606CD890058CBF9 /* future_test_util.cc */; };
@@ -49,6 +56,7 @@
 		BC1D685A267B010D005DC2DA /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D6859267B010D005DC2DA /* Foundation.framework */; };
 		BC1D685C267B0112005DC2DA /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D685B267B0112005DC2DA /* UIKit.framework */; };
 		BC1D685E267B0116005DC2DA /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = BC1D685D267B0116005DC2DA /* CoreGraphics.framework */; };
+		C0EB70BFD56F6FD455E7A583 /* libPods-integration_test.a in Frameworks */ = {isa = PBXBuildFile; fileRef = C6A6C05283DCA99207D26DC2 /* libPods-integration_test.a */; };
 		D61A465D2606EA0B007EBE9B /* transaction_extra_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61A465C2606EA0B007EBE9B /* transaction_extra_test.cc */; };
 		D61C5F8E22BABA9C00A79141 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D61C5F8C22BABA9B00A79141 /* Images.xcassets */; };
 		D61CFBC126091C3B0035CB2A /* integration_test.cc in Sources */ = {isa = PBXBuildFile; fileRef = D61CFBC026091C3A0035CB2A /* integration_test.cc */; };
@@ -83,16 +91,27 @@
 		D6C179F022CB32A000C2651A /* app_framework.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6C179EF22CB32A000C2651A /* app_framework.cc */; };
 		D6ED33BD2606CD890058CBF9 /* future_test_util.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6ED33B92606CD890058CBF9 /* future_test_util.cc */; };
 		D6ED33BE2606CD890058CBF9 /* integration_test_util.cc in Sources */ = {isa = PBXBuildFile; fileRef = D6ED33BB2606CD890058CBF9 /* integration_test_util.cc */; };
+		D86FB1D3D4A592C451A29369 /* firebase_firestore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B7F45B5446094E107E88721A /* firebase_firestore.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		12D513132684C8C200A83FAA /* bundle_test.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bundle_test.cc; path = src/bundle_test.cc; sourceTree = "<group>"; };
+		12D513182684C8D100A83FAA /* bundle_builder.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = bundle_builder.cc; path = src/util/bundle_builder.cc; sourceTree = "<group>"; };
+		12D513192684C8D100A83FAA /* bundle_builder.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = bundle_builder.h; path = src/util/bundle_builder.h; sourceTree = "<group>"; };
 		1B3D64B35A22073C76B376D5 /* libPods-integration_test_tvos.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-integration_test_tvos.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3DE393E827F88B06CD3C39CD /* Pods-integration_test_tvos.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-integration_test_tvos.release.xcconfig"; path = "Target Support Files/Pods-integration_test_tvos/Pods-integration_test_tvos.release.xcconfig"; sourceTree = "<group>"; };
 		520BC0381C869159008CFBC3 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		529226D21C85F68000C89379 /* integration_test.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = integration_test.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		529226D51C85F68000C89379 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		529226D71C85F68000C89379 /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
 		529226D91C85F68000C89379 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		529226EE1C85F68000C89379 /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
+		5FB592CD6A6DDFBF795F22C1 /* Pods-integration_test.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-integration_test.release.xcconfig"; path = "Target Support Files/Pods-integration_test/Pods-integration_test.release.xcconfig"; sourceTree = "<group>"; };
+		6C04D181B10689799EE4823D /* firebase.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = firebase.framework; path = Frameworks/firebase.framework; sourceTree = "<group>"; };
+		6F2D5AB4DBDD804A38B51636 /* firebase_auth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = firebase_auth.framework; path = Frameworks/firebase_auth.framework; sourceTree = "<group>"; };
+		8C4AC9C038C468519B583C7C /* firebase_auth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = firebase_auth.framework; path = Frameworks/firebase_auth.framework; sourceTree = "<group>"; };
+		AA66DDF2F9BB2D8480FAB9BD /* Pods-integration_test.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-integration_test.debug.xcconfig"; path = "Target Support Files/Pods-integration_test/Pods-integration_test.debug.xcconfig"; sourceTree = "<group>"; };
+		B7F45B5446094E107E88721A /* firebase_firestore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = firebase_firestore.framework; path = Frameworks/firebase_firestore.framework; sourceTree = "<group>"; };
 		BC1D6818267AFF9B005DC2DA /* firebase_auth.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = firebase_auth.xcframework; path = "../../../../firebase-cpp-sdk/ios_tvos_package/xcframeworks/firebase_auth.xcframework"; sourceTree = "<group>"; };
 		BC1D6819267AFF9B005DC2DA /* firebase.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = firebase.xcframework; path = "../../../../firebase-cpp-sdk/ios_tvos_package/xcframeworks/firebase.xcframework"; sourceTree = "<group>"; };
 		BC1D681A267AFF9B005DC2DA /* firebase_firestore.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = firebase_firestore.xcframework; path = "../../../../firebase-cpp-sdk/ios_tvos_package/xcframeworks/firebase_firestore.xcframework"; sourceTree = "<group>"; };
@@ -146,6 +165,7 @@
 		D6ED33BA2606CD890058CBF9 /* event_accumulator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = event_accumulator.h; path = src/util/event_accumulator.h; sourceTree = "<group>"; };
 		D6ED33BB2606CD890058CBF9 /* integration_test_util.cc */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = integration_test_util.cc; path = src/util/integration_test_util.cc; sourceTree = "<group>"; };
 		D6ED33BC2606CD890058CBF9 /* future_test_util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = future_test_util.h; path = src/util/future_test_util.h; sourceTree = "<group>"; };
+		EAFAF9474EC412ADCC65F2CC /* firebase_firestore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = firebase_firestore.framework; path = Frameworks/firebase_firestore.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -156,6 +176,13 @@
 				529226D81C85F68000C89379 /* CoreGraphics.framework in Frameworks */,
 				529226DA1C85F68000C89379 /* UIKit.framework in Frameworks */,
 				529226D61C85F68000C89379 /* Foundation.framework in Frameworks */,
+				7B510B28CC034B1F8E1A89E0 /* firebase.framework in Frameworks */,
+				B03DCEF24BED9C02CFA71109 /* firebase_auth.framework in Frameworks */,
+				D86FB1D3D4A592C451A29369 /* firebase_firestore.framework in Frameworks */,
+				C0EB70BFD56F6FD455E7A583 /* libPods-integration_test.a in Frameworks */,
+				8822447D5AD56650C3762A3C /* firebase.framework in Frameworks */,
+				6013D96CC99BE0D747E924BF /* firebase_auth.framework in Frameworks */,
+				5270BB448DF5ECE860FDD68B /* firebase_firestore.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -166,12 +193,25 @@
 				BC1D685E267B0116005DC2DA /* CoreGraphics.framework in Frameworks */,
 				BC1D685C267B0112005DC2DA /* UIKit.framework in Frameworks */,
 				BC1D685A267B010D005DC2DA /* Foundation.framework in Frameworks */,
+				349D894BC9921EE411628083 /* libPods-integration_test_tvos.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		241B330D425A3B220F54AE8D /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				AA66DDF2F9BB2D8480FAB9BD /* Pods-integration_test.debug.xcconfig */,
+				5FB592CD6A6DDFBF795F22C1 /* Pods-integration_test.release.xcconfig */,
+				0E2C285E6C7E246C8636B9B5 /* Pods-integration_test_tvos.debug.xcconfig */,
+				3DE393E827F88B06CD3C39CD /* Pods-integration_test_tvos.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
 		529226C91C85F68000C89379 = {
 			isa = PBXGroup;
 			children = (
@@ -183,6 +223,7 @@
 				BC1D6823267B0030005DC2DA /* integration_test_tvos */,
 				529226D41C85F68000C89379 /* Frameworks */,
 				529226D31C85F68000C89379 /* Products */,
+				241B330D425A3B220F54AE8D /* Pods */,
 			);
 			sourceTree = "<group>";
 		};
@@ -217,6 +258,9 @@
 		5292271D1C85FB5500C89379 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				12D513182684C8D100A83FAA /* bundle_builder.cc */,
+				12D513192684C8D100A83FAA /* bundle_builder.h */,
+				12D513132684C8C200A83FAA /* bundle_test.cc */,
 				D61CFBC026091C3A0035CB2A /* integration_test.cc */,
 				D6ED33BA2606CD890058CBF9 /* event_accumulator.h */,
 				D6ED33B92606CD890058CBF9 /* future_test_util.cc */,
@@ -476,6 +520,7 @@
 				D6AAAD572606C22D0025C53B /* document_reference_test.cc in Sources */,
 				D67D355822BABD2200292C1D /* gtest-all.cc in Sources */,
 				D6AAAD4D2606C22D0025C53B /* query_snapshot_test.cc in Sources */,
+				12D513142684C8C200A83FAA /* bundle_test.cc in Sources */,
 				D6AAAD4F2606C22D0025C53B /* transaction_test.cc in Sources */,
 				D61A465D2606EA0B007EBE9B /* transaction_extra_test.cc in Sources */,
 				D6AAAD5A2606C22D0025C53B /* cleanup_test.cc in Sources */,
@@ -494,6 +539,7 @@
 				D6AAAD442606C22D0025C53B /* field_value_test.cc in Sources */,
 				D6AAAD562606C22D0025C53B /* query_network_test.cc in Sources */,
 				D6AAAD552606C22D0025C53B /* listener_registration_test.cc in Sources */,
+				12D5131A2684C8D100A83FAA /* bundle_builder.cc in Sources */,
 				D6AAAD4A2606C22D0025C53B /* fields_test.cc in Sources */,
 				D6AAAD462606C22D0025C53B /* query_test.cc in Sources */,
 				D6ED33BD2606CD890058CBF9 /* future_test_util.cc in Sources */,
@@ -515,6 +561,7 @@
 				BC1D683D267B00EB005DC2DA /* query_snapshot_test.cc in Sources */,
 				BC1D6855267B00EB005DC2DA /* transaction_test.cc in Sources */,
 				BC1D684A267B00EB005DC2DA /* firebase_test_framework.cc in Sources */,
+				12D513152684C8C200A83FAA /* bundle_test.cc in Sources */,
 				BC1D6852267B00EB005DC2DA /* smoke_test.cc in Sources */,
 				BC1D6848267B00EB005DC2DA /* sanity_test.cc in Sources */,
 				BC1D6856267B00EE005DC2DA /* ios_app_framework.mm in Sources */,
@@ -533,6 +580,7 @@
 				BC1D683B267B00EB005DC2DA /* firestore_test.cc in Sources */,
 				BC1D6842267B00EB005DC2DA /* field_value_test.cc in Sources */,
 				BC1D684D267B00EB005DC2DA /* server_timestamp_test.cc in Sources */,
+				12D5131B2684C8D100A83FAA /* bundle_builder.cc in Sources */,
 				BC1D6841267B00EB005DC2DA /* query_test.cc in Sources */,
 				BC1D684F267B00EB005DC2DA /* document_reference_test.cc in Sources */,
 				BC1D6846267B00EB005DC2DA /* collection_reference_test.cc in Sources */,
@@ -648,12 +696,14 @@
 		};
 		529226FA1C85F68000C89379 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = AA66DDF2F9BB2D8480FAB9BD /* Pods-integration_test.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "";
+				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -688,12 +738,14 @@
 		};
 		529226FB1C85F68000C89379 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 5FB592CD6A6DDFBF795F22C1 /* Pods-integration_test.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEVELOPMENT_TEAM = "";
+				ENABLE_BITCODE = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)",
@@ -728,6 +780,7 @@
 		};
 		BC1D6836267B0032005DC2DA /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 0E2C285E6C7E246C8636B9B5 /* Pods-integration_test_tvos.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -793,6 +846,7 @@
 		};
 		BC1D6837267B0032005DC2DA /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 3DE393E827F88B06CD3C39CD /* Pods-integration_test_tvos.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = "App Icon & Top Shelf Image";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
