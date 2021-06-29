@@ -35,6 +35,7 @@ class LoadBundleTaskProgress {
   enum class State { kError, kInProgress, kSuccess };
 
   LoadBundleTaskProgress() = default;
+  /** Construct a LoadBundleTaskProgress with specific state. **/
   LoadBundleTaskProgress(int32_t documents_loaded,
                          int32_t total_documents,
                          int64_t bytes_loaded,
@@ -78,6 +79,7 @@ class LoadBundleTaskProgress {
   State state_ = State::kInProgress;
 };
 
+/** LoadBundleTaskProgress equality operator. **/
 inline bool operator==(const LoadBundleTaskProgress& lhs,
                        const LoadBundleTaskProgress& rhs) {
   return lhs.state() == rhs.state() &&
@@ -87,6 +89,7 @@ inline bool operator==(const LoadBundleTaskProgress& lhs,
          lhs.total_documents() == rhs.total_documents();
 }
 
+/** LoadBundleTaskProgress inequality operator. **/
 inline bool operator!=(const LoadBundleTaskProgress& lhs,
                        const LoadBundleTaskProgress& rhs) {
   return !(lhs == rhs);

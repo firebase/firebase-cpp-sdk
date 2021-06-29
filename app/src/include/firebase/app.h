@@ -72,7 +72,7 @@ enum InitResult {
   /// @if swig_examples
   /// Use FirebaseApp.CheckDependencies() and
   /// FirebaseApp.FixDependenciesAsync() to resolve this issue.
-  /// @end swig_examples
+  /// @endif
   /// </SWIG>
   ///
   /// Also, on Android, this value can be returned if the Java dependencies of a
