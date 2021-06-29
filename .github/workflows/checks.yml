@@ -72,7 +72,8 @@ jobs:
         run: |
           cat doxygen_output.txt | grep -v SWIG | grep -v 'unable to resolve reference' > doxygen_output2.txt                                                   
           grep "warning:" doxygen_output2.txt                                                                                                                   
-          if grep -q "warning:" doxygen_output2.txt; then                                                                                                       
+          if grep -q "warning:" doxygen_output2.txt; then
+            # Grep for warnings and print them out (replacing \n with %0A for github log)
             grep -E "warning:|^  parameter" doxygen_output2.txt | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::error ::Doxygen errors:%0A/'
             exit 1                                                                                                                                              
           fi                                                                                                                                                    
