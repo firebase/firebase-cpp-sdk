@@ -23,8 +23,8 @@ EXTRACT_STATIC = YES  # Required for constant headers in firebase/analytics.
 ENABLED_SECTIONS=cpp_examples
 EXCLUDE_SYMBOLS = internal
 
-WARN_IF_UNDOCUMENTED   = YES
-WARN_IF_DOC_ERROR      = YES
+#WARN_IF_UNDOCUMENTED   = YES
+#WARN_IF_DOC_ERROR      = YES
 WARN_NO_PARAMDOC       = YES
 
 # Space-separated list of input files.
