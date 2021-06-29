@@ -67,14 +67,14 @@ jobs:
         run: |
           cp docs/Doxyfile /tmp/Doxyfile
           echo INPUT = $(find */src/include/firebase/ build/generated/ -name '*.h') >> /tmp/Doxyfile
-          doxygen /tmp/Doxyfile 2>&1 | tee doxygen_output.txt
+          doxygen /tmp/Doxyfile 2>doxygen_errors.txt
       - name: Check output
         run: |
           # Ignore SWIG-related xml tag errors.
-          cat doxygen_output.txt | grep -v '</*SWIG>' > doxygen_output2.txt
-          grep "warning:" doxygen_output2.txt
-          if grep -q "warning:" doxygen_output2.txt; then
+          cat doxygen_errors.txt | grep -v '</*SWIG>' > doxygen_errors2.txt
+          grep "warning:" doxygen_errors2.txt
+          if grep -q "warning:" doxygen_errors2.txt; then
             # Grep for warnings and print them out (replacing \n with %0A for github log)
-            grep -E "warning:|^  parameter" doxygen_output2.txt | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::error ::DOXYGEN ERRORS  %0A/'
+            grep -E "warning:|^  parameter" doxygen_errors2.txt | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::error ::DOXYGEN ERRORS  %0A/'
             exit 1
           fi
