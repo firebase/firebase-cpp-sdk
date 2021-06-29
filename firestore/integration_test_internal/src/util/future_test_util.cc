@@ -21,15 +21,14 @@ void PrintTo(std::ostream* os,
   *os << "}";
 }
 
-template <typename T>
-class FutureSucceedsImpl : public testing::MatcherInterface<const Future<T>&> {
+class FutureSucceedsImpl : public testing::MatcherInterface<const FutureBase&> {
  public:
   void DescribeTo(std::ostream* os) const override {
     PrintTo(os, FutureStatus::kFutureStatusComplete,
             firestore::Error::kErrorOk);
   }
 
-  bool MatchAndExplain(const Future<void>& future,
+  bool MatchAndExplain(const FutureBase& future,
                        testing::MatchResultListener*) const override {
     firestore::WaitUntilFutureCompletes(future);
     return future.status() == FutureStatus::kFutureStatusComplete &&
@@ -56,13 +55,8 @@ void PrintTo(const FutureBase& future, std::ostream* os) {
   PrintTo(os, future.status(), future.error(), future.error_message());
 }
 
-template <typename T>
-testing::Matcher<const Future<T>&> FutureSucceeds() {
-  return testing::Matcher<const Future<void>&>(new FutureSucceedsImpl<T>());
-}
-
-testing::Matcher<const Future<void>&> FutureSucceeds() {
-  return testing::Matcher<const Future<void>&>(new FutureSucceedsImpl<void>());
+testing::Matcher<const FutureBase&> FutureSucceeds() {
+  return testing::Matcher<const FutureBase&>(new FutureSucceedsImpl());
 }
 
 }  // namespace firebase

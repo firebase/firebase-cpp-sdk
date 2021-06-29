@@ -21,13 +21,7 @@ void PrintTo(const Future<void>& future, std::ostream* os);
 //
 // Here is an example of how this function could be used:
 // EXPECT_THAT(TestFirestore()->Terminate(), FutureSucceeds<QuerySnapshot>());
-template <typename T>
-testing::Matcher<const Future<T>&> FutureSucceeds();
-
-// Similar to the templated function but works for `Future<void>`. Note there's
-// no need to specify template parameters:
-// EXPECT_THAT(TestFirestore()->Terminate(), FutureSucceeds());
-testing::Matcher<const Future<void>&> FutureSucceeds();
+testing::Matcher<const FutureBase&> FutureSucceeds();
 
 // Converts a `FutureStatus` value to its enumerator name, and returns it. For
 // example, if `kFutureStatusComplete` is specified then "kFutureStatusComplete"
