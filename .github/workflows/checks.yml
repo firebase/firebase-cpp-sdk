@@ -68,7 +68,7 @@ jobs:
           cp docs/Doxyfile /tmp/Doxyfile
           echo INPUT = $(find */src/include/firebase/ build/generated/ -name '*.h') >> /tmp/Doxyfile
           doxygen /tmp/Doxyfile 2>doxygen_errors.txt
-          cat doxgen_errors.txt
+          cat doxygen_errors.txt
       - name: Check output
         run: |
           # Ignore SWIG-related xml tag errors.
