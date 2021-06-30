@@ -79,7 +79,7 @@ class LoadBundleTaskProgress {
   State state_ = State::kInProgress;
 };
 
-/** LoadBundleTaskProgress equality operator. **/
+/** LoadBundleTaskProgress == comparison operator. **/
 inline bool operator==(const LoadBundleTaskProgress& lhs,
                        const LoadBundleTaskProgress& rhs) {
   return lhs.state() == rhs.state() &&
@@ -89,7 +89,7 @@ inline bool operator==(const LoadBundleTaskProgress& lhs,
          lhs.total_documents() == rhs.total_documents();
 }
 
-/** LoadBundleTaskProgress inequality operator. **/
+/** LoadBundleTaskProgress != comparison operator. **/
 inline bool operator!=(const LoadBundleTaskProgress& lhs,
                        const LoadBundleTaskProgress& rhs) {
   return !(lhs == rhs);
