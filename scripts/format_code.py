@@ -271,7 +271,7 @@ def main(argv):
       if does_file_need_formatting(filename) and not is_file_objc_header(filename):
         exit_code = 1
         count += 1
-        github_log.add('- Requires reformatting: "{0}"'.format(filename))
+        github_log.append('- Requires reformatting: "{0}"'.format(filename))
         if FLAGS.verbose:
           print('  - Requires reformatting: "{0}"'.format(filename))
           print('------ BEGIN FORMATTING DIFF OF {0}'.format(filename))

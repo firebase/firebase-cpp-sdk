@@ -31,7 +31,7 @@ jobs:
         run: git fetch origin main
       - name: Detect Formatting Changes
         shell: bash
-        run: python3 scripts/format_code.py -git_diff -noformat_file -verbose
+        run: python3 scripts/format_code.py -git_diff -noformat_file -verbose -github_log
   
   check_integration_test_labels:
     # This check fails if integration tests are queued, in progress, or failed.
@@ -73,6 +73,6 @@ jobs:
         run: |
           if grep -Eq "error:|warning:" doxygen_errors.txt; then
             # Grep for warnings and print them out (replacing \n with %0A for github log)
-            grep -E "error:|warning:|^  parameter" doxygen_errors.txt | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::error ::DOXYGEN ERRORS  %0A/'
+            grep -E "error:|warning:|^  parameter" doxygen_errors.txt | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::error ::DOXYGEN ERRORS:  %0A/'
             exit 1
           fi
