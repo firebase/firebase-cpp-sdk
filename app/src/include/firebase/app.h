@@ -32,12 +32,7 @@
 #endif  // __OBJC__
 #endif  // FIREBASE_PLATFORM_IOS
 
-/// @brief Namespace that encompasses all Firebase APIs.
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 #ifdef FIREBASE_LINUX_BUILD_CONFIG_STRING
 // Check to see if the shared object compiler string matches the input
@@ -77,7 +72,7 @@ enum InitResult {
   /// @if swig_examples
   /// Use FirebaseApp.CheckDependencies() and
   /// FirebaseApp.FixDependenciesAsync() to resolve this issue.
-  /// @end swig_examples
+  /// @endif
   /// </SWIG>
   ///
   /// Also, on Android, this value can be returned if the Java dependencies of a
@@ -769,7 +764,6 @@ class App {
   /// @endcond
 };
 
-// NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_APP_H_

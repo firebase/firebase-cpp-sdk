@@ -50,6 +50,12 @@ generate_analytics_header(
   "${CMAKE_CURRENT_LIST_DIR}/ios_headers/FIRUserPropertyNames.h"
   "${user_property_names_header}"
 )
+add_custom_target(FIREBASE_ANALYTICS_GENERATED_HEADERS
+  DEPENDS 
+  "${user_property_names_header}"
+  "${parameter_names_header}"
+  "${event_names_header}"
+)
 
 # Common source files used by all platforms
 set(common_SRCS

@@ -18,11 +18,7 @@
 #include "app/memory/shared_ptr.h"
 #include "app/src/mutex.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace internal {
 
 // TODO(b/130544650): Add unit test to this file.
@@ -84,6 +80,6 @@ class SafeReferenceLock {
   if (!lock_name.GetReference()) return;
 
 }  // namespace internal
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_SAFE_REFERENCE_H_

@@ -32,10 +32,6 @@
   __FILE__ "(" FIREBASE_EXPAND_STRINGIFY(__LINE__) "): "
 #endif  // defined(NDEBUG)
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
 // FIREBASE_ASSERT_* macros are not compiled out of release builds. They should
 // be used for assertions that need to be propagated to end-users of SDKs.
 // FIREBASE_DEV_ASSERT_* macros are compiled out of release builds, similar to
@@ -47,7 +43,7 @@
 #define FIREBASE_ASSERT_WITH_EXPRESSION(condition, expression)      \
   do {                                                              \
     if (!(condition)) {                                             \
-      FIREBASE_NAMESPACE::LogAssert(                                \
+      firebase::LogAssert(                                          \
           FIREBASE_ASSERT_MESSAGE_PREFIX FIREBASE_EXPAND_STRINGIFY( \
               expression));                                         \
     }                                                               \
@@ -113,10 +109,10 @@
 #define FIREBASE_ASSERT_MESSAGE_WITH_EXPRESSION(condition, expression, ...) \
   do {                                                                      \
     if (!(condition)) {                                                     \
-      FIREBASE_NAMESPACE::LogError(                                         \
+      firebase::LogError(                                                   \
           FIREBASE_ASSERT_MESSAGE_PREFIX FIREBASE_EXPAND_STRINGIFY(         \
               expression));                                                 \
-      FIREBASE_NAMESPACE::LogAssert(__VA_ARGS__);                           \
+      firebase::LogAssert(__VA_ARGS__);                                     \
     }                                                                       \
   } while (false)
 

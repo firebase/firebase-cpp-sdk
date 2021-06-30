@@ -22,7 +22,7 @@
 // util_android.h is included for GetThreadsafeJNIEnv()
 #include "app/src/util_android.h"
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace internal {
 
 JObjectReference::JObjectReference() : java_vm_(nullptr), object_(nullptr) {}
@@ -109,4 +109,4 @@ JavaVM* JObjectReference::GetJavaVM(JNIEnv* env) {
 }
 
 }  // namespace internal
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

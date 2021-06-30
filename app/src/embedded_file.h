@@ -21,11 +21,7 @@
 
 #include <vector>
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif  // !defined(FIREBASE_NAMESPACE)
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace internal {
 
 // File embedded in the binary.
@@ -49,6 +45,6 @@ struct EmbeddedFile {
 };
 
 }  // namespace internal
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_EMBEDDED_FILE_H_

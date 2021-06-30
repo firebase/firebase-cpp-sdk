@@ -38,12 +38,7 @@ using ::testing::IsNull;
 using ::testing::Ne;
 using ::testing::NotNull;
 
-// Namespace to use to access library components under test.
-#if !defined(TEST_FIREBASE_NAMESPACE)
-#define TEST_FIREBASE_NAMESPACE firebase
-#endif  // !defined(TEST_FIREBASE_NAMESPACE)
-
-namespace TEST_FIREBASE_NAMESPACE {
+namespace firebase {
 namespace detail {
 namespace testing {
 
@@ -1564,4 +1559,4 @@ TEST_F(FutureTest, MemoryStressTest) {
 
 }  // namespace testing
 }  // namespace detail
-}  // namespace TEST_FIREBASE_NAMESPACE
+}  // namespace firebase

@@ -23,11 +23,7 @@
 #include "app/meta/move.h"
 #include "app/src/include/firebase/internal/type_traits.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 namespace internal {
 
@@ -49,7 +45,7 @@ class ControlBlock {
   uint64_t ref_count() const { return ref_count_.load(); }
 
  private:
-  ::FIREBASE_NAMESPACE::compat::Atomic<uint64_t> ref_count_;
+  ::firebase::compat::Atomic<uint64_t> ref_count_;
 };
 
 }  // namespace internal
@@ -229,5 +225,5 @@ void SharedPtr<T>::Clear() {
   ctrl_ = nullptr;
 }
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 #endif  // FIREBASE_APP_CLIENT_CPP_MEMORY_SHARED_PTR_H_

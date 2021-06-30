@@ -35,11 +35,7 @@
 #endif  // FIREBASE_LOG_DEBUG
 #endif  // !defined(FIREBASE_LOG_TO_FILE)
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 // Default log callback.
 static void DefaultLogCallback(LogLevel log_level, const char* message,
@@ -223,4 +219,4 @@ LogCallback LogGetCallback(void** callback_data) {
 }
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

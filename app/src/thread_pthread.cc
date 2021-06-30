@@ -22,11 +22,7 @@
 #include "app/src/mutex.h"
 #include "app/src/pthread_condvar.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 // Helper POD that holds data needed for the pthread start_routine. See
 // InitializeAndRun() for details on how it is used.
@@ -61,9 +57,9 @@ void* InitializeAndRun(void* data) {
   return nullptr;
 }
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 Thread::Thread() : is_joinable_(false) {}
 
@@ -145,6 +141,6 @@ void Thread::Detach() {
 }
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // defined(_STLPORT_VERSION)
