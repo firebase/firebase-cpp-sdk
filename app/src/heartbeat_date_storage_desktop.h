@@ -17,15 +17,12 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_HEARTBEAT_DATE_STORAGE_DESKTOP_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_HEARTBEAT_DATE_STORAGE_DESKTOP_H_
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
 #include <ctime>
 #include <map>
 #include <string>
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 // Reads and writes the last time heartbeat was sent for an SDK using persistent
 // storage.
@@ -74,6 +71,6 @@ class HeartbeatDateStorage {
   HeartbeatMap heartbeat_map_;
 };
 
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_HEARTBEAT_DATE_STORAGE_DESKTOP_H_

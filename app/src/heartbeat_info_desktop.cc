@@ -19,7 +19,7 @@
 #include "app/src/heartbeat_date_storage_desktop.h"
 #include "app/src/log.h"
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace {
 
 const std::time_t kHeartbeatIntervalSeconds = 86400;  // 24 hours
@@ -99,4 +99,4 @@ HeartbeatInfo::Code HeartbeatInfo::GetHeartbeatCode(const char* tag) {
   }
 }
 
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

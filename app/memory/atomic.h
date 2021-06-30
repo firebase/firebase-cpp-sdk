@@ -22,11 +22,8 @@
 #include <atomic>
 #endif  // !defined(_STLPORT_VERSION)
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace compat {
 
 // For now only the types below are allowed to be atomic. Feel free to add more
@@ -149,5 +146,5 @@ T Atomic<T>::fetch_sub(T arg) {
 
 }  // namespace compat
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 #endif  // FIREBASE_APP_CLIENT_CPP_MEMORY_ATOMIC_H_

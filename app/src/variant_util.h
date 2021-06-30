@@ -22,11 +22,8 @@
 #include "app/src/include/firebase/variant.h"
 #include "flatbuffers/flexbuffers.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace util {
 
 // Convert from a JSON string to a Variant.
@@ -78,6 +75,6 @@ bool VariantVectorToFlexbuffer(const std::vector<Variant>& vector,
 
 }  // namespace util
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_VARIANT_UTIL_H_

@@ -20,11 +20,8 @@
 
 #include <algorithm>
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 Mutex *CleanupNotifier::cleanup_notifiers_by_owner_mutex_ = new Mutex();
 std::map<void *, CleanupNotifier *>
@@ -121,4 +118,4 @@ CleanupNotifier *CleanupNotifier::FindByOwner(void *owner) {
 }
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

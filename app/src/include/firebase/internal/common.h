@@ -39,18 +39,15 @@
 #if defined(_STLPORT_VERSION)
 #include <cstddef>
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 template <std::size_t Length, std::size_t Alignment>
 struct AlignedStorage {
   struct type {
     alignas(Alignment) unsigned char data[Length];
   };
 };
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 #define FIREBASE_ALIGNED_STORAGE ::firebase::AlignedStorage
 #else
 #include <type_traits>
@@ -92,19 +89,19 @@ struct AlignedStorage {
 
 // Declare a module initializer variable as a global.
 #define FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_VARIABLE(module_name)     \
-  namespace FIREBASE_NAMESPACE {                                              \
+  namespace firebase {                                              \
   extern void* FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name); \
-  } /* namespace FIREBASE_NAMESPACE */
+  } /* namespace firebase */
 
 // Generates code which references a module initializer.
 // For example, FIREBASE_APP_REGISTER_REFERENCE(analytics) will register the
 // module initializer for the analytics module.
 #define FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(module_name)        \
   FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_VARIABLE(module_name)   \
-  namespace FIREBASE_NAMESPACE {                                      \
+  namespace firebase {                                      \
   static void* module_name##_ref FIREBASE_APP_KEEP_SYMBOL =           \
       &FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name); \
-  }     /* namespace FIREBASE_NAMESPACE */
+  }     /* namespace firebase */
 #endif  //  !defined(DOXYGEN) && !defined(SWIG)
 
 #if defined(SWIG) || defined(DOXYGEN)

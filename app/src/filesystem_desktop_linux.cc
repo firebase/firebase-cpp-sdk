@@ -21,7 +21,7 @@
 #include "app/src/filesystem.h"
 #include "app/src/util.h"
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 namespace {
 
@@ -107,4 +107,4 @@ std::string AppDataDir(const char* app_name, bool should_create,
   return home + "/" + app_dir;
 }
 
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

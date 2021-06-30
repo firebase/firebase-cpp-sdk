@@ -20,36 +20,33 @@
 
 #include "app/src/include/firebase/internal/common.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace internal {
 
 // Creates an alias of internal::JObjectReference named classname.
 // This is useful when defining the implementation of a forward declared class
 // using JObjectReference.
 #define JOBJECT_REFERENCE(classname)                                         \
-  class classname : public FIREBASE_NAMESPACE::internal::JObjectReference {  \
+  class classname : public firebase::internal::JObjectReference {  \
    public:                                                                   \
     explicit classname(JNIEnv* env)                                          \
-        : FIREBASE_NAMESPACE::internal::JObjectReference(env) {}             \
+        : firebase::internal::JObjectReference(env) {}             \
     explicit classname(                                                      \
-        const FIREBASE_NAMESPACE::internal::JObjectReference& obj)           \
-        : FIREBASE_NAMESPACE::internal::JObjectReference(obj) {}             \
-    explicit classname(FIREBASE_NAMESPACE::internal::JObjectReference&& obj) \
-        : FIREBASE_NAMESPACE::internal::JObjectReference(obj) {}             \
+        const firebase::internal::JObjectReference& obj)           \
+        : firebase::internal::JObjectReference(obj) {}             \
+    explicit classname(firebase::internal::JObjectReference&& obj) \
+        : firebase::internal::JObjectReference(obj) {}             \
     classname(JNIEnv* env, jobject obj)                                      \
-        : FIREBASE_NAMESPACE::internal::JObjectReference(env, obj) {}        \
+        : firebase::internal::JObjectReference(env, obj) {}        \
     classname& operator=(                                                    \
-        const FIREBASE_NAMESPACE::internal::JObjectReference& rhs) {         \
-      FIREBASE_NAMESPACE::internal::JObjectReference::operator=(rhs);        \
+        const firebase::internal::JObjectReference& rhs) {         \
+      firebase::internal::JObjectReference::operator=(rhs);        \
       return *this;                                                          \
     }                                                                        \
     classname& operator=(                                                    \
-        FIREBASE_NAMESPACE::internal::JObjectReference&& rhs) {              \
-      FIREBASE_NAMESPACE::internal::JObjectReference::operator=(rhs);        \
+        firebase::internal::JObjectReference&& rhs) {              \
+      firebase::internal::JObjectReference::operator=(rhs);        \
       return *this;                                                          \
     }                                                                        \
   }
@@ -118,6 +115,6 @@ class JObjectReference {
 };
 
 }  // namespace internal
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_JOBJECT_REFERENCE_H_

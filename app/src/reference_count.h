@@ -19,7 +19,7 @@
 
 #include "app/src/mutex.h"
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace internal {
 
 // Reference counter.
@@ -252,6 +252,6 @@ class ReferenceCountedInitializer {
 };
 
 }  // namespace internal
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_REFERENCE_COUNT_H_

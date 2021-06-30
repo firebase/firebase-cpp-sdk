@@ -22,11 +22,8 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/log.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 extern const LogLevel kDefaultLogLevel;
 
@@ -73,6 +70,6 @@ LogCallback LogGetCallback(void** callback_data);
 void LogInitialize();
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_LOG_H_

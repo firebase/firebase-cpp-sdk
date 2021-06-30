@@ -18,11 +18,8 @@
 
 #include "app/src/semaphore.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 namespace {
 
@@ -54,4 +51,4 @@ bool FutureBase::Wait(int timeout_milliseconds) const {
 }
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

@@ -28,11 +28,8 @@
 #include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 // Macros that allow Android code to easily fail initialization if Google Play
 // services is unavailable.
@@ -89,9 +86,9 @@ namespace FIREBASE_NAMESPACE {
 class AppCallback {
  public:
   // Method which initializes a Firebase module.
-  typedef InitResult (*Created)(FIREBASE_NAMESPACE::App* app);
+  typedef InitResult (*Created)(firebase::App* app);
   // Method which terminates / shuts down a Firebase module.
-  typedef void (*Destroyed)(FIREBASE_NAMESPACE::App* app);
+  typedef void (*Destroyed)(firebase::App* app);
 
   // Initialize a module instance.
   //
@@ -122,11 +119,11 @@ class AppCallback {
 
   // Called by firebase::App when an instance is created.
   static void NotifyAllAppCreated(
-      FIREBASE_NAMESPACE::App* app,
+      firebase::App* app,
       std::map<std::string, InitResult>* results = nullptr);
 
   // Called by firebase::App when an App instance is about to be destroyed.
-  static void NotifyAllAppDestroyed(FIREBASE_NAMESPACE::App* app);
+  static void NotifyAllAppDestroyed(firebase::App* app);
 
   // Enable a module callback by name.
   static void SetEnabledByName(const char* name, bool enable);
@@ -139,12 +136,12 @@ class AppCallback {
 
  private:
   // Called by App when an instance is created.
-  InitResult NotifyAppCreated(FIREBASE_NAMESPACE::App* app) const {
+  InitResult NotifyAppCreated(firebase::App* app) const {
     return created_ ? created_(app) : kInitResultSuccess;
   }
 
   // Called by App when an App instance is about to be destroyed.
-  void NotifyAppDestroyed(FIREBASE_NAMESPACE::App* app) const {
+  void NotifyAppDestroyed(firebase::App* app) const {
     if (destroyed_) destroyed_(app);
   }
 
@@ -240,6 +237,6 @@ class StaticFutureData {
 std::vector<std::string> SplitString(const std::string& s, char delimiter);
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_UTIL_H_

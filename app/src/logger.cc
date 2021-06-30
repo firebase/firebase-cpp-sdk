@@ -16,7 +16,7 @@
 
 #include "app/src/log.h"
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 LoggerBase::~LoggerBase() {}
 
@@ -77,16 +77,16 @@ void LoggerBase::FilterLogMessageV(LogLevel log_level, const char* format,
 SystemLogger::~SystemLogger() {}
 
 void SystemLogger::SetLogLevel(LogLevel log_level) {
-  ::FIREBASE_NAMESPACE::SetLogLevel(log_level);
+  ::firebase::SetLogLevel(log_level);
 }
 
 LogLevel SystemLogger::GetLogLevel() const {
-  return ::FIREBASE_NAMESPACE::GetLogLevel();
+  return ::firebase::GetLogLevel();
 }
 
 void SystemLogger::LogMessageImplV(LogLevel log_level, const char* format,
                                    va_list args) const {
-  ::FIREBASE_NAMESPACE::LogMessageWithCallbackV(log_level, format, args);
+  ::firebase::LogMessageWithCallbackV(log_level, format, args);
 }
 
 Logger::~Logger() {}
@@ -100,4 +100,4 @@ void Logger::LogMessageImplV(LogLevel log_level, const char* format,
   parent_logger_->LogMessageV(log_level, format, args);
 }
 
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

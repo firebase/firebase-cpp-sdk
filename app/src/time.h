@@ -35,11 +35,8 @@
 #endif  // FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS ||
         // FIREBASE_PLATFORM_TVOS
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace internal {
 
 // Some handy conversion constants.
@@ -75,8 +72,8 @@ inline void NormalizeTimespec(timespec* t) {
 
 // Utility function, for converting a timespec struct into milliseconds.
 inline int64_t TimespecToMs(timespec tm) {
-  return tm.tv_sec * FIREBASE_NAMESPACE::internal::kMillisecondsPerSecond +
-         tm.tv_nsec / FIREBASE_NAMESPACE::internal::kNanosecondsPerMillisecond;
+  return tm.tv_sec * firebase::internal::kMillisecondsPerSecond +
+         tm.tv_nsec / firebase::internal::kNanosecondsPerMillisecond;
 }
 
 // Utility function for converting milliseconds into a timespec structure.
@@ -239,6 +236,6 @@ class Timer {
 };
 }  // namespace internal
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_TIME_H_

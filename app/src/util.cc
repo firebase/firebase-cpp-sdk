@@ -32,11 +32,8 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 enum ModuleInitializerFn {
   kModuleInitializerInitialize,
@@ -328,4 +325,4 @@ std::vector<std::string> SplitString(const std::string& s,
 }
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

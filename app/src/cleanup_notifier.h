@@ -22,11 +22,8 @@
 
 #include "app/src/mutex.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 // If an object gives out other objects that refer back to it, the original
 // object can use this CleanupNotifier class to invalidate any other objects it
@@ -131,6 +128,6 @@ class TypedCleanupNotifier {
 };
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_CLEANUP_NOTIFIER_H_

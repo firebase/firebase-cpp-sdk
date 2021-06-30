@@ -17,12 +17,9 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_LOG_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_LOG_H_
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
 /// @brief Namespace that encompasses all Firebase APIs.
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 /// @brief Levels used when logging messages.
 enum LogLevel {
@@ -53,6 +50,6 @@ void SetLogLevel(LogLevel level);
 LogLevel GetLogLevel();
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_LOG_H_

@@ -24,11 +24,8 @@
 #include "app/src/semaphore.h"
 #include "app/src/thread.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace callback {
 
 class CallbackEntry;
@@ -339,4 +336,4 @@ void PollCallbacks() {
 
 }  // namespace callback
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

@@ -37,11 +37,8 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/log.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 // Log method in log_android.h.
 extern "C" JNIEXPORT void JNICALL
@@ -261,7 +258,7 @@ static const JNINativeMethod kJniCallbackMethod = {
 static const JNINativeMethod kNativeLogMethods[] = {
     {"nativeLog", "(ILjava/lang/String;Ljava/lang/String;)V",
      reinterpret_cast<void*>(
-         FIREBASE_NAMESPACE::
+         firebase::
              Java_com_google_firebase_app_internal_cpp_Log_nativeLog)}};
 
 static const char* kResourceTypeStrings[] = {
@@ -1605,7 +1602,7 @@ jclass FindClassInFiles(
       cache_dir, file::GetMethodId(file::kGetAbsolutePath));
   CheckAndClearJniExceptions(env);
   std::string cache_dir_path =
-      FIREBASE_NAMESPACE::util::JniStringToString(env, cache_dir_path_jstring);
+      firebase::util::JniStringToString(env, cache_dir_path_jstring);
 
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
   static const char kPathSeparator = '/';
@@ -1854,7 +1851,7 @@ extern "C" void DetachJVMThreads(void* stored_java_vm) {
   JavaVM* java_vm = static_cast<JavaVM*>(stored_java_vm);
   // AttachCurrentThread does nothing if we're already attached, but
   // calling it ensures that the DetachCurrentThread doesn't fail.
-  FIREBASE_NAMESPACE::util::AttachCurrentThread(java_vm, &jni_env);
+  firebase::util::AttachCurrentThread(java_vm, &jni_env);
   java_vm->DetachCurrentThread();
 }
 
@@ -1873,7 +1870,7 @@ JNIEnv* GetThreadsafeJNIEnv(JavaVM* java_vm) {
   pthread_setspecific(jni_env_key, java_vm);
 
   JNIEnv* env;
-  jint result = FIREBASE_NAMESPACE::util::AttachCurrentThread(java_vm, &env);
+  jint result = firebase::util::AttachCurrentThread(java_vm, &env);
   return result == JNI_OK ? env : nullptr;
 }
 
@@ -1897,4 +1894,4 @@ JNIEnv* GetJNIEnvFromApp() {
 
 }  // namespace util
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

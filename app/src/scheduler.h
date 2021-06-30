@@ -26,11 +26,8 @@
 #include "app/src/thread.h"
 #include "firebase/internal/common.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace scheduler {
 
 typedef uint64_t ScheduleTimeMs;
@@ -214,6 +211,6 @@ class Scheduler {
 
 }  // namespace scheduler
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_SCHEDULER_H_

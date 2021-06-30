@@ -25,11 +25,8 @@
 #include <thread>  // NOLINT
 #endif
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 // Representation of a single thread of execution.
 //
 // Limitations:
@@ -154,6 +151,6 @@ Thread::Thread(Thread::OneArgRoutine<T> start_routine, T* arg)
     : thread_(start_routine, arg) {}
 #endif
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_THREAD_H_

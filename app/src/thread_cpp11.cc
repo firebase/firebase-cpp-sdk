@@ -18,11 +18,8 @@
 
 #if !defined(_STLPORT_VERSION)
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 Thread::Thread() {}
 
@@ -59,5 +56,5 @@ void Thread::Join() { thread_.join(); }
 void Thread::Detach() { thread_.detach(); }
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 #endif

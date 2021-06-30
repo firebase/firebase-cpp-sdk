@@ -16,11 +16,8 @@
 
 #include "app/src/future_manager.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 FutureManager::FutureManager() {}
 
@@ -134,4 +131,4 @@ bool FutureManager::IsSafeToDeleteFutureApi(ReferenceCountedFutureImpl* api) {
 }
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

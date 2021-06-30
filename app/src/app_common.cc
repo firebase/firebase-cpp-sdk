@@ -40,11 +40,8 @@
 #define strtok_r strtok_s
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 #ifdef FIREBASE_LINUX_BUILD_CONFIG_STRING
 void CheckCompilerString(const char* input) {
@@ -487,4 +484,4 @@ Logger* FindAppLoggerByName(const char* name) {
 
 }  // namespace app_common
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

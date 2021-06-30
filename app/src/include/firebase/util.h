@@ -19,13 +19,10 @@
 
 #include "firebase/app.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
 #include "firebase/future.h"
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 struct ModuleInitializerData;
 
@@ -101,6 +98,6 @@ class ModuleInitializer {
 };
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_UTIL_H_

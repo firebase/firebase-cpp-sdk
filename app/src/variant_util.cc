@@ -27,11 +27,8 @@
 
 #define FLEXBUFFER_BUILDER_STARTING_SIZE 512
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace util {
 
 // Forward declarations for stringstream variations of the *ToJson functions
@@ -379,4 +376,4 @@ std::vector<uint8_t> VariantVectorToFlexbuffer(
 
 }  // namespace util
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
