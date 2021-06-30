@@ -265,7 +265,7 @@ def main(argv):
             print('  - OK:   "{0}"'.format(filename))
     print('  > Formatted {0} file(s).'.format(count))
   else:
-    github_log = ['::error ::CODE FORMATTING ERRORS:']
+    github_log = ['::error ::CODE FORMATTING ERRORS:','']
     count = 0
     for filename in filenames:
       if does_file_need_formatting(filename) and not is_file_objc_header(filename):
@@ -284,6 +284,9 @@ def main(argv):
       print('{0} file(s) need formatting.'.format(count))
       print('run scripts/format_code.py -git_diff')
     if exit_code and FLAGS.github_log:
+      github_log.append('')
+      github_log.append('{0} file(s) need formatting.'.format(count))
+      github_log.append('run scripts/format_code.py -git_diff')
       print('%0A'.join(github_log))
 
   sys.exit(exit_code)
