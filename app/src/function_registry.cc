@@ -18,11 +18,7 @@
 
 #include <assert.h>
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace internal {
 
 bool FunctionRegistry::RegisterFunction(
@@ -72,4 +68,4 @@ bool FunctionRegistry::CallFunction(FunctionId id, App* app, void* args,
 
 }  // namespace internal
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

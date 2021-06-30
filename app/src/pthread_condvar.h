@@ -26,11 +26,7 @@
 
 #include "app/src/time.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace internal {
 // A simple RAII wraper around pthread_cond_t.
 //
@@ -89,7 +85,7 @@ class ConditionVariable {
 
 }  // namespace internal
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // !FIREBASE_PLATFORM_WINDOWS
 

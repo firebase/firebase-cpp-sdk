@@ -92,6 +92,7 @@ class FirestoreInternal {
   Future<LoadBundleTaskProgress> LoadBundle(
       const std::string& bundle,
       std::function<void(const LoadBundleTaskProgress&)> progress_callback);
+  Future<Query> NamedQuery(const std::string& query_name);
 
   // Manages the ListenerRegistrationInternal objects.
   void RegisterListenerRegistration(ListenerRegistrationInternal* registration);

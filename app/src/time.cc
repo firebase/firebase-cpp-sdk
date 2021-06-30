@@ -16,15 +16,11 @@
 
 #include "app/src/time.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace internal {
 
 double Timer::tick_period_ = 0;
 
 }  // namespace internal
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

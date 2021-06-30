@@ -37,11 +37,7 @@
 #define FIREBASE_FUTURE_TRACE(...)
 #endif  // FIREBASE_FUTURE_TRACE_ENABLE
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 // See warning at the top of FutureBase's declaration for details.
 static_assert(sizeof(FutureBase) == sizeof(Future<int>),
@@ -904,4 +900,4 @@ void FutureHandle::Detach() {
 }
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

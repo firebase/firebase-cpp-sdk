@@ -28,11 +28,7 @@
 
 #include "app/src/assert.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 /// @brief A simple synchronization lock. Only one thread at a time can Acquire.
 class Mutex {
@@ -163,6 +159,6 @@ class MutexLock {
 };
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_MUTEX_H_

@@ -24,8 +24,10 @@
 
 namespace firebase {
 
+/// @cond FIREBASE_APP_INTERNAL
 template <typename T>
 class Future;
+/// @endcond
 
 namespace firestore {
 

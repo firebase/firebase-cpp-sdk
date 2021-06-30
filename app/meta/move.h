@@ -19,11 +19,7 @@
 
 #include "app/src/include/firebase/internal/type_traits.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 // Casts the argument to an rvalue-reference.
 //
@@ -51,6 +47,6 @@ inline T&& Forward(typename remove_reference<T>::type&& arg) {
 }
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_META_MOVE_H_

@@ -50,11 +50,7 @@
 #endif
 #endif
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 namespace emulate_std {
 
@@ -672,7 +668,7 @@ class intrusive_list {
   }
 };
 
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #if defined(_MSC_VER)
 #pragma warning(pop)
