@@ -282,11 +282,11 @@ def main(argv):
       print('  > Done. {0} file(s) need formatting.'.format(count))
     else:
       print('{0} file(s) need formatting.'.format(count))
-      print('run scripts/format_code.py -git_diff')
+      print('run: scripts/format_code.py -git_diff')
     if exit_code and FLAGS.github_log:
       github_log.append('')
       github_log.append('{0} file(s) need formatting.'.format(count))
-      github_log.append('run scripts/format_code.py -git_diff')
+      github_log.append('run: scripts/format_code.py -git_diff')
       print('%0A'.join(github_log))
 
   sys.exit(exit_code)
