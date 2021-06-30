@@ -70,6 +70,7 @@ jobs:
           doxygen /tmp/Doxyfile 2>doxygen_errors.txt
           cat doxygen_errors.txt
       - name: Check output
+        if: always()
         run: |
           if grep -Eq "error:|warning:" doxygen_errors.txt; then
             # Grep for warnings and print them out (replacing \n with %0A for github log)
