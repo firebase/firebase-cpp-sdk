@@ -919,28 +919,12 @@ jobs:
           python-version: ${{ env.pythonVersion }}
       - name: Install python deps
         run: pip install -r scripts/gha/requirements.txt
-      - id: get-device-type
-        run: |
-          echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.tvos_device }} )"
       - name: Run tvOS integration tests on Simulator locally
-        if: steps.get-device-type.outputs.device_type == 'virtual'
         run: |
           python scripts/gha/test_simulator.py --testapp_dir testapps \
             --tvos_device "${{ matrix.tvos_device }}" \
             --logfile_name "tvos-macos-latest-${{ matrix.tvos_device }}" \
             --ci
-      - name: Install Cloud SDK
-        if: steps.get-device-type.outputs.device_type == 'real'
-        uses: google-github-actions/setup-gcloud@master
-      - name: Run tvOS integration tests on Real Device via FTL
-        if: steps.get-device-type.outputs.device_type == 'real'
-        run: |
-          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
-          python scripts/gha/test_lab.py --testapp_dir testapps \
-            --tvos_device "${{ matrix.tvos_device }}" \
-            --logfile_name "tvos-macos-latest-${{ matrix.tvos_device }}" \
-            --code_platform cpp \
-            --key_file scripts/gha-encrypted/gcs_key_file.json
       - name: Upload tvOS test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v2.2.2
