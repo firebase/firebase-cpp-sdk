@@ -9,8 +9,8 @@ on:
   workflow_dispatch:
     inputs:
       platforms:
-        description: 'CSV of Desktop, Android and/or iOS'
-        default: 'Desktop,Android,iOS'
+        description: 'CSV of Desktop, Android and/or iOS, tvOS'
+        default: 'Desktop,Android,iOS,tvOS'
         required: true
       apis:
         description: 'CSV of apis to build and test'
@@ -26,7 +26,7 @@ on:
         required: true
       mobile_test_on:
         description: 'Run mobile tests on real and/or virtual devices? (separated by commas)'
-        default: 'real'
+        default: 'real,virtual'
         required: true 
       use_expanded_matrix:
         description: 'Use an expanded matrix? Note: above config will be ignored.'
@@ -150,6 +150,7 @@ jobs:
       mobile_test_on: ${{ steps.export-result.outputs.mobile_test_on }}
       android_device: ${{ steps.export-result.outputs.android_device }}
       ios_device: ${{ steps.export-result.outputs.ios_device }}
+      tvos_device: ${{ steps.export-result.outputs.tvos_device }}
       github_ref: ${{ steps.export-result.outputs.github_ref }}
     steps:
       - uses: actions/checkout@v2
@@ -189,6 +190,7 @@ jobs:
           echo "::set-output name=mobile_test_on::${mobile_test_on}"
           echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k android_device -t ${mobile_test_on} )"
           echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ios_device -t ${mobile_test_on} )"
+          echo "::set-output name=tvos_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k tvos_device -t ${mobile_test_on} )"
           if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
             echo "::warning ::Running on https://github.com/${{github.repository}}/commits/$GITHUB_SHA"
             echo "::set-output name=github_ref::$GITHUB_SHA"
@@ -581,6 +583,103 @@ jobs:
             exit 1
           fi
 
+  build_tvos:
+    name: build-tvos-macos-latest
+    needs: [check_trigger, prepare_matrix]
+    runs-on: macos-latest
+    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'tvOS') && contains(needs.prepare_matrix.outputs.matrix_os, 'macos-latest') && needs.prepare_matrix.outputs.apis != '' && !cancelled() && !failure()
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{needs.prepare_matrix.outputs.github_ref}}
+          submodules: true
+      - name: Set env vars (macOS)
+        run: echo "VCPKG_TRIPLET=x64-osx" >> $GITHUB_ENV
+      - name: Set env vars (all)
+        shell: bash
+        run: echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ env.VCPKG_TRIPLET }}_response_file.txt" >> $GITHUB_ENV
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.pythonVersion }}
+      - name: Update homebrew (avoid bintray errors)
+        run: |
+          # Temporarily here until Github runners have updated their version of
+          # homebrew. This prevents errors arising from the shut down of
+          # binutils, used by older version of homebrew for hosting packages.
+          brew update
+      - name: Install SDK tvOS prerequisites
+        run: build_scripts/tvos/install_prereqs.sh
+      - name: Prepare for integration tests
+        run: |
+          pip install -r scripts/gha/requirements.txt
+          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+      - name: Fetch prebuilt packaged SDK from previous run
+        uses: dawidd6/action-download-artifact@v2
+        if: ${{ github.event.inputs.test_packaged_sdk != '' }}
+        with:
+          name: 'firebase_cpp_sdk.zip'
+          workflow: 'cpp-packaging.yml'
+          run_id: ${{ github.event.inputs.test_packaged_sdk }}
+      - name: Build integration tests
+        shell: bash
+        run: |
+          declare -a additional_flags
+          if [[ -n "${{ github.event.inputs.test_packaged_sdk }}" ]]; then
+            # Building integration tests against a packaged SDK.
+            mkdir downloaded_sdk
+            cd downloaded_sdk
+            unzip -q ../firebase_cpp_sdk.zip
+            cd ..
+            additional_flags+=(--packaged_sdk downloaded_sdk/firebase_cpp_sdk)
+          fi
+          python scripts/gha/build_testapps.py --p tvOS \
+            --t ${{ needs.prepare_matrix.outputs.apis }}  \
+            --output_directory "${{ github.workspace }}" \
+            --artifact_name "tvos-macos-latest" \
+            --noadd_timestamp \
+            --short_output_paths \
+            ${additional_flags[*]} 
+      - name: Upload tvOS integration tests artifact
+        uses: actions/upload-artifact@v2.2.2
+        if: ${{ !cancelled() }}
+        with:
+          name: testapps-tvos-macos-latest
+          path: testapps-tvos-macos-latest
+          retention-days: ${{ env.artifactRetentionDays }}
+      - name: Upload tvOS build results artifact
+        uses: actions/upload-artifact@v2.2.2
+        if: ${{ !cancelled() }}
+        with:
+          name: log-artifact
+          path: build-results-tvos-macos-latest*
+          retention-days: ${{ env.artifactRetentionDays }}
+      - name: Download log artifacts
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: test_results
+          name: log-artifact
+      - name: Update PR label and comment
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
+        run: |
+          python scripts/gha/it_workflow.py --stage progress \
+            --token ${{github.token}} \
+            --issue_number ${{needs.check_trigger.outputs.pr_number}}\
+            --actor ${{github.actor}} \
+            --commit ${{needs.prepare_matrix.outputs.github_ref}} \
+            --run_id ${{github.run_id}}
+      - name: Summarize build results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cat build-results-tvos-macos-latest.log
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi
+
   test_desktop:
     name: test-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
     needs: [check_trigger, prepare_matrix, build_desktop]
@@ -796,9 +895,86 @@ jobs:
             exit 1
           fi
 
+  test_tvos:
+    name: test-tvos-macos-latest-${{ matrix.tvos_device }}
+    needs: [check_trigger, prepare_matrix, build_tvos]
+    runs-on: macos-latest
+    if: contains(needs.prepare_matrix.outputs.matrix_platform, 'tvOS') && needs.prepare_matrix.outputs.apis != '' && !cancelled()
+    strategy:
+      fail-fast: false
+      matrix:
+        tvos_device: ${{ fromJson(needs.prepare_matrix.outputs.tvos_device) }}
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{needs.prepare_matrix.outputs.github_ref}}
+      - name: Download tvOS integration tests artifact
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: testapps
+          name: testapps-tvos-macos-latest
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.pythonVersion }}
+      - name: Install python deps
+        run: pip install -r scripts/gha/requirements.txt
+      - id: get-device-type
+        run: |
+          echo "::set-output name=device_type::$( python scripts/gha/print_matrix_configuration.py -d -k ${{ matrix.tvos_device }} )"
+      - name: Run tvOS integration tests on Simulator locally
+        if: steps.get-device-type.outputs.device_type == 'virtual'
+        run: |
+          python scripts/gha/test_simulator.py --testapp_dir testapps \
+            --tvos_device "${{ matrix.tvos_device }}" \
+            --logfile_name "tvos-macos-latest-${{ matrix.tvos_device }}" \
+            --ci
+      - name: Install Cloud SDK
+        if: steps.get-device-type.outputs.device_type == 'real'
+        uses: google-github-actions/setup-gcloud@master
+      - name: Run tvOS integration tests on Real Device via FTL
+        if: steps.get-device-type.outputs.device_type == 'real'
+        run: |
+          python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}"
+          python scripts/gha/test_lab.py --testapp_dir testapps \
+            --tvos_device "${{ matrix.tvos_device }}" \
+            --logfile_name "tvos-macos-latest-${{ matrix.tvos_device }}" \
+            --code_platform cpp \
+            --key_file scripts/gha-encrypted/gcs_key_file.json
+      - name: Upload tvOS test results artifact
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v2.2.2
+        with:
+          name: log-artifact
+          path: testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}*
+          retention-days: ${{ env.artifactRetentionDays }}      
+      - name: Download log artifacts
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
+        uses: actions/download-artifact@v2.0.8
+        with:
+          path: test_results
+          name: log-artifact
+      - name: Update PR label and comment
+        if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
+        run: |
+          python scripts/gha/it_workflow.py --stage progress \
+            --token ${{github.token}} \
+            --issue_number ${{needs.check_trigger.outputs.pr_number}}\
+            --actor ${{github.actor}} \
+            --commit ${{needs.prepare_matrix.outputs.github_ref}} \
+            --run_id ${{github.run_id}}
+      - name: Summarize test results
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          cat "testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}.log"
+          if [[ "${{ job.status }}" != "success" ]]; then
+            exit 1
+          fi
+
   summarize_results:
     name: "summarize-results"
-    needs: [check_trigger, prepare_matrix, test_desktop, test_android, test_ios]
+    needs: [check_trigger, prepare_matrix, test_desktop, test_android, test_ios, test_tvos]
     runs-on: ubuntu-latest
     if: ${{ !cancelled() }}
     steps:
