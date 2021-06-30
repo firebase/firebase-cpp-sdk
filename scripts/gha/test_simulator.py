@@ -391,7 +391,7 @@ def _create_and_boot_simulator(apple_platform, device_name, device_os):
     logging.info("Download simulator: %s", " ".join(args))
     subprocess.run(args=args, check=False)
     
-    args = ["xcrun", "simctl", "create", device_name, device_name, "%s%s" % (apple_platform, device_os)]
+    args = ["xcrun", "simctl", "create", "test_simulator", device_name, "%s%s" % (apple_platform, device_os)]
     logging.info("Create test simulator: %s", " ".join(args))
     result = subprocess.run(args=args, capture_output=True, text=True, check=True)
     device_id = result.stdout.strip()
