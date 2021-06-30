@@ -42,8 +42,8 @@ jobs:
         none_of: "${{ env.statusLabelInProgress }},${{ env.statusLabelFailed }},${{ env.triggerLabelFull }},${{ env.triggerLabelQuick }}"
         repo_token: ${{ github.token }}
 
-  check_doxygen:
-    # This check fails if Doxygen documentation fails to generate.                                                                                              
+  generated_docs_check:
+    # This check succeeds if Doxygen documentation generates without errors.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -70,7 +70,6 @@ jobs:
           doxygen /tmp/Doxyfile 2>doxygen_errors.txt
           cat doxygen_errors.txt
       - name: Check output
-        if: always()
         run: |
           if grep -Eq "error:|warning:" doxygen_errors.txt; then
             # Grep for warnings and print them out (replacing \n with %0A for github log)

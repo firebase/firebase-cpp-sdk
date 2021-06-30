@@ -34,7 +34,7 @@ WARN_IF_DOC_ERROR = YES
 # Filter all header files to remove everything between <SWIG> and </SWIG> tags.
 # This is in lieu of performing a full header scrub.
 FILTER_SOURCE_FILES = YES
-INPUT_FILTER = sed '/<SWIG>/,/<\/SWIG>/d'
+INPUT_FILTER = "sed '/<SWIG>/,/<\/SWIG>/d'"
 
 # Space-separated list of input files.
 # This is commented out because the Doxygen script will append the correct list of headers here.
