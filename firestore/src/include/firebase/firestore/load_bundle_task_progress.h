@@ -90,7 +90,8 @@ inline bool operator==(const LoadBundleTaskProgress& lhs,
 }
 
 /** LoadBundleTaskProgress != comparison operator. **/
-inline bool operator!=(const LoadBundleTaskProgress& lhs, const LoadBundleTaskProgress& rhs) {
+inline bool operator!=(const LoadBundleTaskProgress& lhs,
+                       const LoadBundleTaskProgress& rhs) {
   return !(lhs == rhs);
 }
 

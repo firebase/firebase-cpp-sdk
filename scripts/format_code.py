@@ -265,7 +265,7 @@ def main(argv):
             print('  - OK:   "{0}"'.format(filename))
     print('  > Formatted {0} file(s).'.format(count))
   else:
-    github_log = ['::error ::CODE FORMATTING ERRORS:','']
+    github_log = ['::error ::FILE FORMATTING ERRORS:','']
     count = 0
     for filename in filenames:
       if does_file_need_formatting(filename) and not is_file_objc_header(filename):
