@@ -28,9 +28,6 @@
 #include "firebase/internal/common.h"
 
 /// @brief Namespace that encompasses all Firebase APIs.
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
 namespace firebase {
 namespace internal {
@@ -38,7 +35,7 @@ class VariantInternal;
 }
 }  // namespace firebase
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 // <SWIG>
 // SWIG uses the Variant class as a readonly object, and so ignores most of the
@@ -1195,6 +1192,6 @@ inline void Variant::set_value_t<char*>(char* value) {
 }
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_VARIANT_H_

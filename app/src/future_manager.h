@@ -20,16 +20,11 @@
 #include <map>
 #include <set>
 
+#include "app/src/include/firebase/future.h"
 #include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-#include "app/src/include/firebase/future.h"
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 // Class for handling Future APIs. These all work directly with
 // ReferenceCountedFutureImpl, as that is the Future API we use.
@@ -87,6 +82,6 @@ class FutureManager {
 };
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_FUTURE_MANAGER_H_

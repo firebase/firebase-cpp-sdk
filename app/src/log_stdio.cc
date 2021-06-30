@@ -29,11 +29,7 @@
 
 #include "app/src/mutex.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 // Prefix for log messages at each level.
 static const char* kLogLevelPrefix[] = {
@@ -79,4 +75,4 @@ void LogMessageV(LogLevel log_level, const char* format, va_list args) {
 }
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

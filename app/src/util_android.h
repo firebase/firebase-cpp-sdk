@@ -36,11 +36,7 @@
 // macro invocation.
 #define PROGUARD_KEEP_CLASS "%PG%"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 // Workaround the inconsistent definition of JNINativeMethod w.r.t. const char*.
 // Android JNI use const char* while Java JNI use char*. The latter has issue
 // when casting implicitly from string literals in C++11.
@@ -50,7 +46,7 @@ typedef struct {
   const char* signature;
   void* fnPtr;  // NOLINT
 } JNINativeMethod;
-// Converts FIREBASE_NAMESPACE::JNINativeMethod array to ::JNINativeMethod
+// Converts firebase::JNINativeMethod array to ::JNINativeMethod
 // array.
 // Caller ownes the result and must call CleanUpConvertedJNINativeMethod() to
 // release the allocation.
@@ -198,10 +194,10 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
 #define METHOD_NAME_SIGNATURE_4(id, name, signature, method_type) \
   METHOD_NAME_SIGNATURE_5(                                        \
       id, name, signature, method_type,                           \
-      ::FIREBASE_NAMESPACE::util::MethodRequirement::kMethodRequired)
+      ::firebase::util::MethodRequirement::kMethodRequired)
 #define METHOD_NAME_SIGNATURE_3(id, name, signature) \
   METHOD_NAME_SIGNATURE_4(id, name, signature,       \
-                          ::FIREBASE_NAMESPACE::util::kMethodTypeInstance)
+                          ::firebase::util::kMethodTypeInstance)
 #define METHOD_NAME_SIGNATURE(...)                                        \
   METHOD_NAME_INFO_EXPANDER(, ##__VA_ARGS__,                              \
                             METHOD_NAME_SIGNATURE_5(__VA_ARGS__),         \
@@ -226,16 +222,16 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
 #define FIELD_ID(...) METHOD_ID(__VA_ARGS__)
 
 // Used with METHOD_LOOKUP_DECLARATION to generate no method lookups.
-#define METHOD_LOOKUP_NONE(X)                                  \
-  X(InvalidMethod, nullptr, nullptr,                           \
-    ::FIREBASE_NAMESPACE::util::MethodType::kMethodTypeStatic, \
-    ::FIREBASE_NAMESPACE::util::MethodRequirement::kMethodOptional)
+#define METHOD_LOOKUP_NONE(X)                        \
+  X(InvalidMethod, nullptr, nullptr,                 \
+    ::firebase::util::MethodType::kMethodTypeStatic, \
+    ::firebase::util::MethodRequirement::kMethodOptional)
 
 // Used with METHOD_LOOKUP_DECLARATION to generate no field lookups.
-#define FIELD_LOOKUP_NONE(X)                                 \
-  X(InvalidField, nullptr, nullptr,                          \
-    ::FIREBASE_NAMESPACE::util::FieldType::kFieldTypeStatic, \
-    ::FIREBASE_NAMESPACE::util::MethodRequirement::kMethodOptional)
+#define FIELD_LOOKUP_NONE(X)                       \
+  X(InvalidField, nullptr, nullptr,                \
+    ::firebase::util::FieldType::kFieldTypeStatic, \
+    ::firebase::util::MethodRequirement::kMethodOptional)
 
 // Declares a namespace which caches class method IDs.
 // To make cached method IDs available in to other files or projects, this macro
@@ -265,7 +261,7 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
   /* CacheEmbeddedFiles(). */                                                 \
   jclass CacheClassFromFiles(                                                 \
       JNIEnv *env, jobject activity_object,                                   \
-      const std::vector<::FIREBASE_NAMESPACE::internal::EmbeddedFile>*        \
+      const std::vector<::firebase::internal::EmbeddedFile>*        \
           embedded_files);                                                    \
                                                                               \
   /* Find and hold a reference to this namespace's class. */                  \
@@ -326,12 +322,12 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
   static const char* kClassName =                                             \
       class_name[0] == '%' ? &class_name[4] : class_name;                     \
                                                                               \
-  static const ::FIREBASE_NAMESPACE::util::MethodNameSignature                \
+  static const ::firebase::util::MethodNameSignature                \
       kMethodSignatures[] = {                                                 \
     method_descriptor_macro(METHOD_NAME_SIGNATURE),                           \
   };                                                                          \
                                                                               \
-  static const ::FIREBASE_NAMESPACE::util::FieldDescriptor                    \
+  static const ::firebase::util::FieldDescriptor                    \
       kFieldDescriptors[] = {                                                 \
     field_descriptor_macro(FIELD_DESCRIPTOR),                                 \
   };                                                                          \
@@ -350,11 +346,11 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
   /* does not exist. */                                                       \
   jclass CacheClassFromFiles(                                                 \
       JNIEnv *env, jobject activity_object,                                   \
-      const std::vector<::FIREBASE_NAMESPACE::internal::EmbeddedFile>*        \
+      const std::vector<::firebase::internal::EmbeddedFile>*        \
           embedded_files,                                                     \
-      ::FIREBASE_NAMESPACE::util::ClassRequirement optional) {                \
+      ::firebase::util::ClassRequirement optional) {                \
     if (!g_class) {                                                           \
-      g_class = ::FIREBASE_NAMESPACE::util::FindClassGlobal(                  \
+      g_class = ::firebase::util::FindClassGlobal(                  \
           env, activity_object, embedded_files, kClassName, optional);        \
     }                                                                         \
     return g_class;                                                           \
@@ -362,16 +358,16 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
                                                                               \
   jclass CacheClassFromFiles(                                                 \
       JNIEnv *env, jobject activity_object,                                   \
-      const std::vector<::FIREBASE_NAMESPACE::internal::EmbeddedFile>*        \
+      const std::vector<::firebase::internal::EmbeddedFile>*        \
           embedded_files) {                                                   \
     return CacheClassFromFiles(                                               \
         env, activity_object, embedded_files,                                 \
-        ::FIREBASE_NAMESPACE::util::ClassRequirement::kClassRequired);        \
+        ::firebase::util::ClassRequirement::kClassRequired);        \
   }                                                                           \
                                                                               \
   /* Find and hold a reference to this namespace's class. */                  \
   jclass CacheClass(JNIEnv* env, jobject activity_object,                     \
-                    ::FIREBASE_NAMESPACE::util::ClassRequirement optional) {  \
+                    ::firebase::util::ClassRequirement optional) {  \
     return CacheClassFromFiles(env, activity_object, nullptr, optional);      \
   }                                                                           \
                                                                               \
@@ -379,7 +375,7 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
   jclass CacheClass(JNIEnv* env, jobject activity_object) {                   \
     return CacheClassFromFiles(                                               \
         env, activity_object, nullptr,                                        \
-        ::FIREBASE_NAMESPACE::util::ClassRequirement::kClassRequired);        \
+        ::firebase::util::ClassRequirement::kClassRequired);        \
   }                                                                           \
                                                                               \
   /* Get the cached class associated with this namespace. */                  \
@@ -389,12 +385,12 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
                        size_t number_of_native_methods) {                     \
     if (g_registered_natives) return false;                                   \
     const ::JNINativeMethod* true_native_methods =                            \
-        FIREBASE_NAMESPACE::ConvertJNINativeMethod(native_methods,            \
+        firebase::ConvertJNINativeMethod(native_methods,            \
                                          number_of_native_methods);           \
     const jint register_status = env->RegisterNatives(                        \
       GetClass(), true_native_methods, number_of_native_methods);             \
-    FIREBASE_NAMESPACE::CleanUpConvertedJNINativeMethod(true_native_methods); \
-    FIREBASE_NAMESPACE::util::CheckAndClearJniExceptions(env);                \
+    firebase::CleanUpConvertedJNINativeMethod(true_native_methods); \
+    firebase::util::CheckAndClearJniExceptions(env);                \
     g_registered_natives = register_status == JNI_OK;                         \
     return g_registered_natives;                                              \
   }                                                                           \
@@ -406,7 +402,7 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
         env->UnregisterNatives(g_class);                                      \
         g_registered_natives = false;                                         \
       }                                                                       \
-      FIREBASE_NAMESPACE::util::CheckAndClearJniExceptions(env);              \
+      firebase::util::CheckAndClearJniExceptions(env);              \
       env->DeleteGlobalRef(g_class);                                          \
       g_class = nullptr;                                                      \
     }                                                                         \
@@ -417,7 +413,7 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
   /* CacheClassFromFiles() before calling this function to cache method */    \
   /* IDs. */                                                                  \
   bool CacheMethodIds(JNIEnv* env, jobject activity_object) {                 \
-    return ::FIREBASE_NAMESPACE::util::LookupMethodIds(                       \
+    return ::firebase::util::LookupMethodIds(                       \
         env, CacheClass(env, activity_object), kMethodSignatures,             \
         kMethodCount, g_method_ids, kClassName);                              \
   }                                                                           \
@@ -434,7 +430,7 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
   /* CacheClassFromFiles() before calling this function to cache field */     \
   /* IDs. */                                                                  \
   bool CacheFieldIds(JNIEnv* env, jobject activity_object) {                  \
-    return ::FIREBASE_NAMESPACE::util::LookupFieldIds(                        \
+    return ::firebase::util::LookupFieldIds(                        \
         env, CacheClass(env, activity_object),                                \
         kFieldDescriptors, kFieldCount,                                       \
         g_field_ids, kClassName);                                             \
@@ -1108,12 +1104,12 @@ JNIEnv* GetThreadsafeJNIEnv(JavaVM* java_vm);
 jint AttachCurrentThread(JavaVM* java_vm, JNIEnv** env);
 
 // Returns a pointer to the JNI environment. This retrieves the JNIEnv from
-// FIREBASE_NAMESPACE::App, either the default App (if it exists) or any valid
+// firebase::App, either the default App (if it exists) or any valid
 // App. If there is no instantiated App, returns nullptr.
 JNIEnv* GetJNIEnvFromApp();
 
 }  // namespace util
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_UTIL_ANDROID_H_

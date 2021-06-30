@@ -31,7 +31,7 @@ jobs:
         run: git fetch origin main
       - name: Detect Formatting Changes
         shell: bash
-        run: python3 scripts/format_code.py -git_diff -noformat_file -verbose
+        run: python3 scripts/format_code.py -git_diff -noformat_file -verbose -github_log
   
   check_integration_test_labels:
     # This check fails if integration tests are queued, in progress, or failed.
@@ -42,4 +42,37 @@ jobs:
         none_of: "${{ env.statusLabelInProgress }},${{ env.statusLabelFailed }},${{ env.triggerLabelFull }},${{ env.triggerLabelQuick }}"
         repo_token: ${{ github.token }}
 
-
+  generated_docs_check:
+    # This check succeeds if Doxygen documentation generates without errors.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: false
+      - name: Setup python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.7
+      - name: Install prerequisites
+        run: python scripts/gha/install_prereqs_desktop.py
+      - name: Generate headers
+        run: |
+          mkdir build
+          cd build
+          cmake ..
+          cmake --build . --target FIREBASE_GENERATED_HEADERS
+      - name: Install doxygen
+        run: sudo apt-get install doxygen
+      - name: Run doxygen
+        run: |
+          cp docs/Doxyfile /tmp/Doxyfile
+          echo INPUT = $(find */src/include/firebase/ build/generated/ -name '*.h') >> /tmp/Doxyfile
+          doxygen /tmp/Doxyfile 2>doxygen_errors.txt
+          cat doxygen_errors.txt
+      - name: Check output
+        run: |
+          if grep -Eq "error:|warning:" doxygen_errors.txt; then
+            # Grep for warnings and print them out (replacing \n with %0A for github log)
+            grep -E "error:|warning:|^  parameter" doxygen_errors.txt | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::error ::DOXYGEN ERRORS:  %0A/'
+            exit 1
+          fi

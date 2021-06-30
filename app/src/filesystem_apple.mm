@@ -24,7 +24,7 @@
 #include "TargetConditionals.h"
 #endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 namespace {
 
@@ -79,4 +79,4 @@ std::string AppDataDir(const char* app_name, bool should_create, std::string* ou
   }
 }
 
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
