@@ -71,11 +71,8 @@ jobs:
           cat doxygen_errors.txt
       - name: Check output
         run: |
-          # Ignore SWIG-related xml tag errors.
-          cat doxygen_errors.txt | grep -v '</*SWIG>' > doxygen_errors2.txt
-          grep "warning:" doxygen_errors2.txt
-          if grep -q "warning:" doxygen_errors2.txt; then
+          if grep -Eq "error:|warning:" doxygen_errors.txt; then
             # Grep for warnings and print them out (replacing \n with %0A for github log)
-            grep -E "warning:|^  parameter" doxygen_errors2.txt | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::error ::DOXYGEN ERRORS  %0A/'
+            grep -E "error:|warning:|^  parameter" doxygen_errors.txt | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::error ::DOXYGEN ERRORS  %0A/'
             exit 1
           fi
