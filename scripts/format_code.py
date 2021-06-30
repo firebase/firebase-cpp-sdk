@@ -51,6 +51,7 @@ flags.DEFINE_boolean('r', False,
   "Recurse through the directory's children When formatting a target directory.")
 flags.DEFINE_boolean('format_file', True, 'Format files in place.')
 flags.DEFINE_boolean("verbose", False, 'Execute in verbose mode.')
+flags.DEFINE_boolean("github_log", False, 'Pring special github log format items.')
 
 # Constants:
 FILE_TYPE_EXTENSIONS = ('.cpp', '.cc', '.c', '.h')
@@ -58,7 +59,7 @@ FILE_TYPE_EXTENSIONS = ('.cpp', '.cc', '.c', '.h')
 Used to filter out results when searching across directories or git diffs.
 """
 
-# Functions:    
+# Functions:
 def get_formatting_diff_lines(filename):
   """Calculates and returns a printable diff of the formatting changes that
   would be applied to the given file by clang-format.
@@ -88,7 +89,7 @@ def does_file_need_formatting(filename):
   formatting changes the user needs to fix.
   Args:
     filename (string): path to the file to check.
-  
+
   Returns:
     bool: True if the file requires format changes, False if formatting would produce
     an identical file.
@@ -116,7 +117,7 @@ def format_file(filename):
 def git_diff_list_files():
   """Compares the current branch to master to assemble a list of source
   files which have been altered.
-  
+
   Returns:
     A list of file paths for each file in the git diff list with an extension
     matching one of those in FILE_TYPE_EXTENSIONS.
@@ -246,14 +247,14 @@ def main(argv):
 
   if FLAGS.verbose:
     print('Found {0} file(s). Checking their format.'.format(len(filenames)))
-  
+
   if FLAGS.format_file:
     count = 0
     for filename in filenames:
         if does_file_need_formatting(filename):
           if is_file_objc_header(filename):
             if FLAGS.verbose:
-              print('  - IGNORE OBJC: "{0}"'.format(filename)) 
+              print('  - IGNORE OBJC: "{0}"'.format(filename))
           else:
             if FLAGS.verbose:
               print('  - FRMT: "{0}"'.format(filename))
@@ -264,11 +265,13 @@ def main(argv):
             print('  - OK:   "{0}"'.format(filename))
     print('  > Formatted {0} file(s).'.format(count))
   else:
+    github_log = ['::error ::CODE FORMATTING ERRORS:']
     count = 0
-    for filename in filenames:      
-      if does_file_need_formatting(filename) and not is_file_objc_header(filename):    
+    for filename in filenames:
+      if does_file_need_formatting(filename) and not is_file_objc_header(filename):
         exit_code = 1
         count += 1
+        github_log.add('- Requires reformatting: "{0}"'.format(filename))
         if FLAGS.verbose:
           print('  - Requires reformatting: "{0}"'.format(filename))
           print('------ BEGIN FORMATTING DIFF OF {0}'.format(filename))
@@ -280,7 +283,9 @@ def main(argv):
     else:
       print('{0} file(s) need formatting.'.format(count))
       print('run scripts/format_code.py -git_diff')
-      
+    if exit_code and FLAGS.github_log:
+      print('%0A'.join(github_log))
+
   sys.exit(exit_code)
 
 if __name__ == '__main__':
