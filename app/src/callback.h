@@ -24,9 +24,6 @@
 #include <functional>
 #endif
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
 /// @cond FIREBASE_APP_INTERNAL
 
@@ -36,7 +33,7 @@
 
 #include <string>
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace callback {
 
 /// Initialize the Callback system.
@@ -397,7 +394,7 @@ void PollCallbacks();
 
 }  // namespace callback
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 /// @endcond
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_CALLBACK_H_

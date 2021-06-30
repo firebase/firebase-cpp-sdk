@@ -22,7 +22,7 @@
 #include "app/src/filesystem.h"
 #include "app/src/mutex.h"
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 namespace {
 
@@ -131,4 +131,4 @@ void HeartbeatDateStorage::Set(const std::string& tag, std::time_t last_sent) {
   heartbeat_map_[tag] = last_sent;
 }
 
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

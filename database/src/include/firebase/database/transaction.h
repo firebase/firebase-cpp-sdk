@@ -70,6 +70,7 @@ typedef TransactionResult (*DoTransaction)(MutableData* data);
 /// Best practices for this function are to ONLY rely on the data passed in.
 ///
 /// @param[in] data Mutable data, which the callback can edit.
+/// @param[in] context Context pointer, passed verbatim to the callback.
 ///
 /// @returns The callback should return kTransactionResultSuccess if the data
 /// was modified, or kTransactionResultAbort if it was unable to modify the

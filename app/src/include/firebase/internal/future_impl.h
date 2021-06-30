@@ -27,11 +27,8 @@
 #include <utility>
 #endif  // defined(FIREBASE_USE_MOVE_OPERATORS)
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 class ReferenceCountedFutureImpl;
 
@@ -143,8 +140,8 @@ class CompletionCallbackHandle {
         user_data_delete_fn_(nullptr) {}
 
  private:
-  friend class ::FIREBASE_NAMESPACE::FutureBase;
-  friend class ::FIREBASE_NAMESPACE::ReferenceCountedFutureImpl;
+  friend class ::firebase::FutureBase;
+  friend class ::firebase::ReferenceCountedFutureImpl;
   CompletionCallbackHandle(FutureBase::CompletionCallback callback,
                            void* user_data, void (*user_data_delete_fn)(void*))
       : callback_(callback),
@@ -320,7 +317,7 @@ inline FutureBase::CompletionCallbackHandle FutureBase::AddOnCompletion(
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 /// @endcond
 

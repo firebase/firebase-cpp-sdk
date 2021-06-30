@@ -17,11 +17,7 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_HEARTBEAT_INFO_DESKTOP_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_HEARTBEAT_INFO_DESKTOP_H_
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 // Gets the heartbeat code for a given SDK, updating the "last sent" time if
 // necessary. See
@@ -41,6 +37,6 @@ class HeartbeatInfo {
   static Code GetHeartbeatCode(const char* tag);
 };
 
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_HEARTBEAT_INFO_DESKTOP_H_

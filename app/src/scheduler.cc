@@ -20,11 +20,7 @@
 
 #include "app/src/time.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace scheduler {
 
 bool RequestHandle::Cancel() {
@@ -204,4 +200,4 @@ bool Scheduler::TriggerCallback(const RequestDataPtr& request) {
 
 }  // namespace scheduler
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

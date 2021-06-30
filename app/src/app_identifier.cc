@@ -22,7 +22,7 @@
 
 #include "app/src/include/firebase/app.h"
 
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 namespace internal {
 
 // Generate a unique identifier from the Firebase app options.
@@ -42,4 +42,4 @@ std::string CreateAppIdentifierFromOptions(const AppOptions& options) {
 }
 
 }  // namespace internal
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase

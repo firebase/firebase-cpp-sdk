@@ -19,11 +19,7 @@
 
 #include <string>
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 /**
  * Returns a system-defined best directory in which to create application
@@ -58,6 +54,6 @@ namespace FIREBASE_NAMESPACE {
 std::string AppDataDir(const char* app_name, bool should_create = true,
                        std::string* out_error = nullptr);
 
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_FILESYSTEM_H_

@@ -20,11 +20,7 @@
 #include "app/src/include/firebase/log.h"
 #include "app/src/log.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 // This is a base class for logger implementations.
 class LoggerBase {
@@ -122,6 +118,6 @@ class Logger : public LoggerBase {
   LogLevel log_level_;
 };
 
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_LOGGER_H_

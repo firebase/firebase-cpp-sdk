@@ -25,11 +25,7 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/logger.h"
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 // Default app name.
 extern const char* const kDefaultAppName;
@@ -102,6 +98,6 @@ Logger* FindAppLoggerByName(const char* name);
 
 }  // namespace app_common
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_APP_COMMON_H_

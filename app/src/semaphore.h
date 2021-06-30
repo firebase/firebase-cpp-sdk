@@ -42,11 +42,7 @@
 #endif  //  FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS ||
         //  FIREBASE_PLATFORM_TVOS
 
-#if !defined(FIREBASE_NAMESPACE)
-#define FIREBASE_NAMESPACE firebase
-#endif
-
-namespace FIREBASE_NAMESPACE {
+namespace firebase {
 
 class Semaphore {
  public:
@@ -199,6 +195,6 @@ class Semaphore {
 };
 
 // NOLINTNEXTLINE - allow namespace overridden
-}  // namespace FIREBASE_NAMESPACE
+}  // namespace firebase
 
 #endif  // FIREBASE_APP_CLIENT_CPP_SRC_SEMAPHORE_H_
