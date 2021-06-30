@@ -117,7 +117,7 @@ flags.DEFINE_string(
     "tvos_name", "Apple TV",
     "See module docstring for details on how to set and get this name.")
 flags.DEFINE_string(
-    "tvos_version", "14.5",
+    "tvos_version", "14.0",
     "See module docstring for details on how to set and get this version.")
 flags.DEFINE_string(
     "android_device", None,
@@ -187,7 +187,7 @@ def main(argv):
       device_name = FLAGS.ios_name
       device_os = FLAGS.ios_version
 
-    device_id = _create_and_boot_simulator(device_name, device_os)
+    device_id = _create_and_boot_simulator("iOS", device_name, device_os)
     if not device_id:
       logging.error("simulator created fail")
       return 21
@@ -228,7 +228,7 @@ def main(argv):
       device_name = FLAGS.tvos_name
       device_os = FLAGS.tvos_version
 
-    device_id = _create_and_boot_simulator(device_name, device_os)
+    device_id = _create_and_boot_simulator("tvOS", device_name, device_os)
     if not device_id:
       logging.error("simulator created fail")
       return 21
@@ -319,7 +319,7 @@ def _build_ios_gameloop(gameloop_project, device_name, device_os):
   
   for file_dir, _, file_names in os.walk(output_path):
     for file_name in file_names:
-      if file_name.endswith(".xctestrun"): 
+      if file_name.endswith(".xctestrun") and "iphonesimulator" in file_name: 
         return os.path.join(file_dir, file_name)
 
 
@@ -342,7 +342,7 @@ def _build_tvos_gameloop(gameloop_project, device_name, device_os):
   
   for file_dir, _, file_names in os.walk(output_path):
     for file_name in file_names:
-      if file_name.endswith(".xctestrun"): 
+      if file_name.endswith(".xctestrun") and "appletvsimulator" in file_name: 
         return os.path.join(file_dir, file_name)
 
 
@@ -372,7 +372,7 @@ def _shutdown_simulator():
   subprocess.run(args=args, check=True)
 
 
-def _create_and_boot_simulator(device_name, device_os):
+def _create_and_boot_simulator(apple_platform, device_name, device_os):
   """Create a simulator locally. Will wait until this simulator booted."""
   _shutdown_simulator()
   command = "xcrun xctrace list devices 2>&1 | grep \"%s (%s)\" | awk -F'[()]' '{print $4}'" % (device_name, device_os)
@@ -387,11 +387,11 @@ def _create_and_boot_simulator(device_name, device_os):
     logging.info("Download xcode-install: %s", " ".join(args))
     subprocess.run(args=args, check=True)
 
-    args = ["xcversion", "simulators", "--install=iOS %s" % device_os]
-    logging.info("Download iOS simulator: %s", " ".join(args))
+    args = ["xcversion", "simulators", "--install=%s %s" % (apple_platform, device_os)]
+    logging.info("Download simulator: %s", " ".join(args))
     subprocess.run(args=args, check=False)
     
-    args = ["xcrun", "simctl", "create", "test_simulator", device_name, "iOS%s" % device_os]
+    args = ["xcrun", "simctl", "create", "test_simulator", device_name, "%s%s" % (apple_platform, device_os)]
     logging.info("Create test simulator: %s", " ".join(args))
     result = subprocess.run(args=args, capture_output=True, text=True, check=True)
     device_id = result.stdout.strip()
