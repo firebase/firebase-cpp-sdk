@@ -42,7 +42,6 @@
 #endif  //  FIREBASE_PLATFORM_OSX || FIREBASE_PLATFORM_IOS ||
         //  FIREBASE_PLATFORM_TVOS
 
-
 namespace firebase {
 
 class Semaphore {

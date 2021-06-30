@@ -20,35 +20,31 @@
 
 #include "app/src/include/firebase/internal/common.h"
 
-
 namespace firebase {
 namespace internal {
 
 // Creates an alias of internal::JObjectReference named classname.
 // This is useful when defining the implementation of a forward declared class
 // using JObjectReference.
-#define JOBJECT_REFERENCE(classname)                                         \
-  class classname : public firebase::internal::JObjectReference {  \
-   public:                                                                   \
-    explicit classname(JNIEnv* env)                                          \
-        : firebase::internal::JObjectReference(env) {}             \
-    explicit classname(                                                      \
-        const firebase::internal::JObjectReference& obj)           \
-        : firebase::internal::JObjectReference(obj) {}             \
-    explicit classname(firebase::internal::JObjectReference&& obj) \
-        : firebase::internal::JObjectReference(obj) {}             \
-    classname(JNIEnv* env, jobject obj)                                      \
-        : firebase::internal::JObjectReference(env, obj) {}        \
-    classname& operator=(                                                    \
-        const firebase::internal::JObjectReference& rhs) {         \
-      firebase::internal::JObjectReference::operator=(rhs);        \
-      return *this;                                                          \
-    }                                                                        \
-    classname& operator=(                                                    \
-        firebase::internal::JObjectReference&& rhs) {              \
-      firebase::internal::JObjectReference::operator=(rhs);        \
-      return *this;                                                          \
-    }                                                                        \
+#define JOBJECT_REFERENCE(classname)                                        \
+  class classname : public firebase::internal::JObjectReference {           \
+   public:                                                                  \
+    explicit classname(JNIEnv* env)                                         \
+        : firebase::internal::JObjectReference(env) {}                      \
+    explicit classname(const firebase::internal::JObjectReference& obj)     \
+        : firebase::internal::JObjectReference(obj) {}                      \
+    explicit classname(firebase::internal::JObjectReference&& obj)          \
+        : firebase::internal::JObjectReference(obj) {}                      \
+    classname(JNIEnv* env, jobject obj)                                     \
+        : firebase::internal::JObjectReference(env, obj) {}                 \
+    classname& operator=(const firebase::internal::JObjectReference& rhs) { \
+      firebase::internal::JObjectReference::operator=(rhs);                 \
+      return *this;                                                         \
+    }                                                                       \
+    classname& operator=(firebase::internal::JObjectReference&& rhs) {      \
+      firebase::internal::JObjectReference::operator=(rhs);                 \
+      return *this;                                                         \
+    }                                                                       \
   }
 
 // Creates and holds a global reference to a Java object.

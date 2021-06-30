@@ -19,7 +19,6 @@
 
 #include <string>
 
-
 namespace firebase {
 
 /**

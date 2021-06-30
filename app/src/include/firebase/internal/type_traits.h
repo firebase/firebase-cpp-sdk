@@ -20,7 +20,6 @@
 #include <cstdlib>
 #include <type_traits>
 
-
 // Doxygen breaks trying to parse this file, and since it is internal logic,
 // it doesn't need to be included in the generated documentation.
 #ifndef DOXYGEN

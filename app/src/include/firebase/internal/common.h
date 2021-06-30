@@ -39,7 +39,6 @@
 #if defined(_STLPORT_VERSION)
 #include <cstddef>
 
-
 namespace firebase {
 template <std::size_t Length, std::size_t Alignment>
 struct AlignedStorage {
@@ -89,7 +88,7 @@ struct AlignedStorage {
 
 // Declare a module initializer variable as a global.
 #define FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_VARIABLE(module_name)     \
-  namespace firebase {                                              \
+  namespace firebase {                                                        \
   extern void* FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name); \
   } /* namespace firebase */
 
@@ -98,7 +97,7 @@ struct AlignedStorage {
 // module initializer for the analytics module.
 #define FIREBASE_APP_REGISTER_CALLBACKS_REFERENCE(module_name)        \
   FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_VARIABLE(module_name)   \
-  namespace firebase {                                      \
+  namespace firebase {                                                \
   static void* module_name##_ref FIREBASE_APP_KEEP_SYMBOL =           \
       &FIREBASE_APP_REGISTER_CALLBACKS_INITIALIZER_NAME(module_name); \
   }     /* namespace firebase */

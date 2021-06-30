@@ -27,7 +27,6 @@
 
 #define FLEXBUFFER_BUILDER_STARTING_SIZE 512
 
-
 namespace firebase {
 namespace util {
 

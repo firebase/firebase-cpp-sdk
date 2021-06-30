@@ -37,7 +37,6 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/log.h"
 
-
 namespace firebase {
 
 // Log method in log_android.h.
@@ -258,8 +257,7 @@ static const JNINativeMethod kJniCallbackMethod = {
 static const JNINativeMethod kNativeLogMethods[] = {
     {"nativeLog", "(ILjava/lang/String;Ljava/lang/String;)V",
      reinterpret_cast<void*>(
-         firebase::
-             Java_com_google_firebase_app_internal_cpp_Log_nativeLog)}};
+         firebase::Java_com_google_firebase_app_internal_cpp_Log_nativeLog)}};
 
 static const char* kResourceTypeStrings[] = {
     RESOURCE_TYPES(RESOURCE_TYPE_STRING),

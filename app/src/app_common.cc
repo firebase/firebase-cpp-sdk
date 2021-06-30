@@ -40,7 +40,6 @@
 #define strtok_r strtok_s
 #endif  // FIREBASE_PLATFORM_WINDOWS
 
-
 namespace firebase {
 
 #ifdef FIREBASE_LINUX_BUILD_CONFIG_STRING

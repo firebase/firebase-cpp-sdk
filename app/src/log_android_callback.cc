@@ -23,7 +23,6 @@
 #include "app/src/log.h"
 #include "app/src/util_android.h"
 
-
 namespace firebase {
 
 // Called from com.google.firebase.app.internal.cpp.Log.

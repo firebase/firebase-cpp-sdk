@@ -25,7 +25,6 @@
 #include <thread>  // NOLINT
 #endif
 
-
 namespace firebase {
 // Representation of a single thread of execution.
 //

@@ -24,7 +24,6 @@
 #include "app/src/semaphore.h"
 #include "app/src/thread.h"
 
-
 namespace firebase {
 namespace callback {
 

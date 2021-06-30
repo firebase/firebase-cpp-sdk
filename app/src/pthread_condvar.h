@@ -26,7 +26,6 @@
 
 #include "app/src/time.h"
 
-
 namespace firebase {
 namespace internal {
 // A simple RAII wraper around pthread_cond_t.

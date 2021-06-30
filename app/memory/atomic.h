@@ -22,7 +22,6 @@
 #include <atomic>
 #endif  // !defined(_STLPORT_VERSION)
 
-
 namespace firebase {
 namespace compat {
 

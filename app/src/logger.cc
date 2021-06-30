@@ -80,9 +80,7 @@ void SystemLogger::SetLogLevel(LogLevel log_level) {
   ::firebase::SetLogLevel(log_level);
 }
 
-LogLevel SystemLogger::GetLogLevel() const {
-  return ::firebase::GetLogLevel();
-}
+LogLevel SystemLogger::GetLogLevel() const { return ::firebase::GetLogLevel(); }
 
 void SystemLogger::LogMessageImplV(LogLevel log_level, const char* format,
                                    va_list args) const {

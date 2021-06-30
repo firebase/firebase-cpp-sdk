@@ -18,7 +18,6 @@
 
 #include "app/src/semaphore.h"
 
-
 namespace firebase {
 
 namespace {

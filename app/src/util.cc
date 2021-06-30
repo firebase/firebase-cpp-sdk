@@ -32,7 +32,6 @@
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util.h"
 
-
 namespace firebase {
 
 enum ModuleInitializerFn {

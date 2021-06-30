@@ -18,8 +18,6 @@
 #define FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_UTIL_H_
 
 #include "firebase/app.h"
-
-
 #include "firebase/future.h"
 
 namespace firebase {

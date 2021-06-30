@@ -18,7 +18,6 @@
 
 #if !defined(_STLPORT_VERSION)
 
-
 namespace firebase {
 
 Thread::Thread() {}

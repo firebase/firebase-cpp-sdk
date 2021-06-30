@@ -22,7 +22,6 @@
 #include "app/src/include/firebase/variant.h"
 #include "flatbuffers/flexbuffers.h"
 
-
 namespace firebase {
 namespace util {
 

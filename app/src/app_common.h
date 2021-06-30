@@ -25,7 +25,6 @@
 #include "app/src/include/firebase/app.h"
 #include "app/src/logger.h"
 
-
 namespace firebase {
 
 // Default app name.

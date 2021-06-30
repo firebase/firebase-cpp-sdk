@@ -28,7 +28,6 @@
 
 #include "app/src/assert.h"
 
-
 namespace firebase {
 
 /// @brief A simple synchronization lock. Only one thread at a time can Acquire.

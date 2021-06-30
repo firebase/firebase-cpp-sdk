@@ -17,7 +17,6 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_HEARTBEAT_DATE_STORAGE_DESKTOP_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_HEARTBEAT_DATE_STORAGE_DESKTOP_H_
 
-
 #include <ctime>
 #include <map>
 #include <string>

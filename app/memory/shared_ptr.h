@@ -23,7 +23,6 @@
 #include "app/meta/move.h"
 #include "app/src/include/firebase/internal/type_traits.h"
 
-
 namespace firebase {
 
 namespace internal {

@@ -37,7 +37,6 @@
 #define FIREBASE_FUTURE_TRACE(...)
 #endif  // FIREBASE_FUTURE_TRACE_ENABLE
 
-
 namespace firebase {
 
 // See warning at the top of FutureBase's declaration for details.

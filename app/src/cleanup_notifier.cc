@@ -20,7 +20,6 @@
 
 #include <algorithm>
 
-
 namespace firebase {
 
 Mutex *CleanupNotifier::cleanup_notifiers_by_owner_mutex_ = new Mutex();

@@ -22,7 +22,6 @@
 #include "app/src/include/firebase/internal/common.h"
 #include "app/src/include/firebase/log.h"
 
-
 namespace firebase {
 
 extern const LogLevel kDefaultLogLevel;

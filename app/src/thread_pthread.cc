@@ -22,7 +22,6 @@
 #include "app/src/mutex.h"
 #include "app/src/pthread_condvar.h"
 
-
 namespace firebase {
 
 // Helper POD that holds data needed for the pthread start_routine. See

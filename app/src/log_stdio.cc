@@ -29,7 +29,6 @@
 
 #include "app/src/mutex.h"
 
-
 namespace firebase {
 
 // Prefix for log messages at each level.

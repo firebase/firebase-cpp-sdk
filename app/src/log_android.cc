@@ -20,7 +20,6 @@
 #include <android/log.h>
 #endif  // !defined(FIREBASE_ANDROID_FOR_DESKTOP)
 
-
 #define STR_EXPAND(x) #x
 #define STR(x) STR_EXPAND(x)
 

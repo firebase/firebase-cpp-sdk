@@ -18,7 +18,6 @@
 #include "app/memory/shared_ptr.h"
 #include "app/src/mutex.h"
 
-
 namespace firebase {
 namespace internal {
 

@@ -36,7 +36,6 @@
 // macro invocation.
 #define PROGUARD_KEEP_CLASS "%PG%"
 
-
 namespace firebase {
 // Workaround the inconsistent definition of JNINativeMethod w.r.t. const char*.
 // Android JNI use const char* while Java JNI use char*. The latter has issue
@@ -223,14 +222,14 @@ bool LookupFieldIds(JNIEnv* env, jclass clazz,
 #define FIELD_ID(...) METHOD_ID(__VA_ARGS__)
 
 // Used with METHOD_LOOKUP_DECLARATION to generate no method lookups.
-#define METHOD_LOOKUP_NONE(X)                                  \
-  X(InvalidMethod, nullptr, nullptr,                           \
+#define METHOD_LOOKUP_NONE(X)                        \
+  X(InvalidMethod, nullptr, nullptr,                 \
     ::firebase::util::MethodType::kMethodTypeStatic, \
     ::firebase::util::MethodRequirement::kMethodOptional)
 
 // Used with METHOD_LOOKUP_DECLARATION to generate no field lookups.
-#define FIELD_LOOKUP_NONE(X)                                 \
-  X(InvalidField, nullptr, nullptr,                          \
+#define FIELD_LOOKUP_NONE(X)                       \
+  X(InvalidField, nullptr, nullptr,                \
     ::firebase::util::FieldType::kFieldTypeStatic, \
     ::firebase::util::MethodRequirement::kMethodOptional)
 

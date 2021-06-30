@@ -17,7 +17,6 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_LOG_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_LOG_H_
 
-
 /// @brief Namespace that encompasses all Firebase APIs.
 namespace firebase {
 

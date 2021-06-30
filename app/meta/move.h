@@ -19,7 +19,6 @@
 
 #include "app/src/include/firebase/internal/type_traits.h"
 
-
 namespace firebase {
 
 // Casts the argument to an rvalue-reference.

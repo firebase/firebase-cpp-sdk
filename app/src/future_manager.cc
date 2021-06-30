@@ -16,7 +16,6 @@
 
 #include "app/src/future_manager.h"
 
-
 namespace firebase {
 
 FutureManager::FutureManager() {}

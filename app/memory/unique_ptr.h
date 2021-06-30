@@ -20,7 +20,6 @@
 #include "app/meta/move.h"
 #include "app/src/include/firebase/internal/type_traits.h"
 
-
 namespace firebase {
 
 // Smart pointer that owns another object and releases it when destroyed.

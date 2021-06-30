@@ -18,7 +18,6 @@
 
 #include <assert.h>
 
-
 namespace firebase {
 namespace internal {
 

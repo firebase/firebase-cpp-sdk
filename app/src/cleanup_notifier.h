@@ -22,7 +22,6 @@
 
 #include "app/src/mutex.h"
 
-
 namespace firebase {
 
 // If an object gives out other objects that refer back to it, the original

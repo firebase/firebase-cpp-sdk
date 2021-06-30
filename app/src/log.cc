@@ -35,7 +35,6 @@
 #endif  // FIREBASE_LOG_DEBUG
 #endif  // !defined(FIREBASE_LOG_TO_FILE)
 
-
 namespace firebase {
 
 // Default log callback.

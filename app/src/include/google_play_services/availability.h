@@ -24,7 +24,6 @@
 #endif
 #include "app/src/include/firebase/future.h"
 
-
 /// @brief Google Play services APIs included with the Firebase C++ SDK.
 /// These APIs are Android-specific.
 namespace google_play_services {

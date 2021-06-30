@@ -20,7 +20,6 @@
 #include "app/src/include/firebase/log.h"
 #include "app/src/log.h"
 
-
 namespace firebase {
 
 // This is a base class for logger implementations.

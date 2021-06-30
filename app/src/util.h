@@ -28,7 +28,6 @@
 #include "app/src/mutex.h"
 #include "app/src/reference_counted_future_impl.h"
 
-
 namespace firebase {
 
 // Macros that allow Android code to easily fail initialization if Google Play
@@ -119,8 +118,7 @@ class AppCallback {
 
   // Called by firebase::App when an instance is created.
   static void NotifyAllAppCreated(
-      firebase::App* app,
-      std::map<std::string, InitResult>* results = nullptr);
+      firebase::App* app, std::map<std::string, InitResult>* results = nullptr);
 
   // Called by firebase::App when an App instance is about to be destroyed.
   static void NotifyAllAppDestroyed(firebase::App* app);

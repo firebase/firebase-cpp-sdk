@@ -50,7 +50,6 @@
 #endif
 #endif
 
-
 namespace firebase {
 
 namespace emulate_std {

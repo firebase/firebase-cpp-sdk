@@ -20,7 +20,6 @@
 
 #include "app/src/time.h"
 
-
 namespace firebase {
 namespace scheduler {
 

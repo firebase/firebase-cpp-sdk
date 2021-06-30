@@ -21,7 +21,6 @@
 
 #include <vector>
 
-
 namespace firebase {
 namespace internal {
 

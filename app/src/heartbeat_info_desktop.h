@@ -17,7 +17,6 @@
 #ifndef FIREBASE_APP_CLIENT_CPP_SRC_HEARTBEAT_INFO_DESKTOP_H_
 #define FIREBASE_APP_CLIENT_CPP_SRC_HEARTBEAT_INFO_DESKTOP_H_
 
-
 namespace firebase {
 
 // Gets the heartbeat code for a given SDK, updating the "last sent" time if

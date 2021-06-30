@@ -26,7 +26,6 @@
 #include "app/src/thread.h"
 #include "firebase/internal/common.h"
 
-
 namespace firebase {
 namespace scheduler {
 
