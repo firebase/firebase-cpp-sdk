@@ -98,7 +98,7 @@
       "full_name": "FirebaseInstallations",
       "bundle_id": "com.google.firebase.fis.testapp",
       "ios_target": "integration_test",
-      "tvos_target": "integration_test_tvos",
+      "tvos_target": "",
       "testapp_path": "installations/integration_test",
       "frameworks": [
         "firebase_installations.xcframework",

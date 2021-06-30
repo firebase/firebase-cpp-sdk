@@ -223,11 +223,6 @@ def main(argv):
 
   xcframework_dir = os.path.join(sdk_dir, "xcframeworks")
   xcframework_exist = os.path.isdir(xcframework_dir)
-  if not xcframework_exist:
-    if _IOS in platforms:
-      _generate_makefiles_from_repo(repo_dir, "ios", "ios_build")
-    elif _TVOS in platforms:
-      _generate_makefiles_from_repo(repo_dir, "tvos", "tvos_build")
 
   if update_pod_repo and (_IOS in platforms or _TVOS in platforms):
     _run(["pod", "repo", "update"])
@@ -499,49 +494,33 @@ def _validate_android_environment_variables():
   else:
     logging.warning("No NDK env var set. Set one of %s", ", ".join(ndk_vars))
 
-
-# If sdk_dir contains no xcframework, consider it is Github repo, then
-# generate makefiles for ios xcframeworks
-# the xcframeworks will be placed at repo_dir/ios_build
-def _generate_makefiles_from_repo(repo_dir, apple_platform, output_dir):
-  """Generates cmake makefiles for building iOS frameworks from SDK source."""
-  ios_framework_builder = os.path.join(
-      repo_dir, "build_scripts", apple_platform, "build.sh")
-  output_path = os.path.join(repo_dir, output_dir)
-  _rm_dir_safe(output_path)
-  framework_builder_args = [
-      ios_framework_builder,
-      "-b", output_path,
-      "-s", repo_dir,
-      "-c", "false"
-  ]
-  _run(framework_builder_args)
-
-
 # build required ios xcframeworks based on makefiles
 # the xcframeworks locates at repo_dir/ios_build
 def _build_xcframework_from_repo(repo_dir, apple_platform, output_dir, api_config):
   """Builds iOS framework from SDK source."""
-  ios_framework_builder = os.path.join(
-      repo_dir, "build_scripts", apple_platform, "build.sh")
+  output_path = os.path.join(repo_dir, output_dir)
+  _rm_dir_safe(output_path)
+  xcframework_builder = os.path.join(
+      repo_dir, "scripts", "gha", "build_ios_tvos.py")
 
   # build only required targets to save time
-  target = set()
+  target = []
 
   for framework in api_config.frameworks:
     # firebase_analytics.framework -> firebase_analytics
-    target.add(os.path.splitext(framework)[0])
+    target.append(os.path.splitext(framework)[0])
   # firebase is not a target in CMake, firebase_app is the target
   # firebase_app will be built by other target as well
   target.remove("firebase")
 
   framework_builder_args = [
-      ios_framework_builder,
-      "-b", os.path.join(repo_dir, output_dir),
+      sys.executable, xcframework_builder,
+      "-b", output_path,
       "-s", repo_dir,
-      "-t", ",".join(target),
-      "-g", "false"
+      "-o", apple_platform,
+      "-t"
   ]
+  framework_builder_args.extend(target)
   _run(framework_builder_args)
 
 
