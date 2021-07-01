@@ -38,7 +38,7 @@ public class RegistrationIntentService extends JobIntentService {
   // Fetch the latest registration token and notify the C++ layer.
   @Override
   protected void onHandleWork(Intent intent) {
-    Context context = this;
+    final Context context = this;
     FirebaseMessaging.getInstance().getToken()
       .addOnCompleteListener(new OnCompleteListener<String>() {
         @Override
