@@ -631,7 +631,7 @@ def _rm_dir_safe(directory_path):
     # There are two known cases where this can happen:
     # The directory doesn't exist (FileNotFoundError)
     # A file in the directory is open in another process (PermissionError)
-    logging.info("Failed to remove directory:\n%s", e)
+    logging.warning("Failed to remove directory:\n%s", e.strerror)
 
 
 def _fix_path(path):
