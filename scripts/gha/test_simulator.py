@@ -131,7 +131,7 @@ flags.DEFINE_string(
     "build_tools_version", "28.0.3",
     "android build_tools_version")
 flags.DEFINE_string(
-    "logfile_name", "",
+    "logfile_name", "simulator-test",
     "Create test log artifact test-results-$logfile_name.log."
     " logfile will be created and placed in testapp_dir.")   
 flags.DEFINE_boolean(

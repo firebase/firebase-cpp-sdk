@@ -318,7 +318,7 @@ def combine_configs(configs):
 #     ['ubuntu', 'windows', 'macos']
 #     -> ['All os']
 def combine_config(config, platform, k):
-  if k == 1 and (platform == "android" or platform == "ios" or platform == "tvos"):
+  if k == 1 and platform in ("android", "ios", "tvos"):
     # config_name = test_device here
     k = -1
   config_name = BUILD_CONFIGS[platform][k]

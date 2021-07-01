@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       platforms:
-        description: 'CSV of Desktop, Android and/or iOS, tvOS'
+        description: 'CSV of Desktop, Android, iOS and/or tvOS'
         default: 'Desktop,Android,iOS,tvOS'
         required: true
       apis:
@@ -380,19 +380,6 @@ jobs:
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
           submodules: true
-      - name: Set env vars (Linux)
-        if: startsWith(matrix.os, 'ubuntu')
-        run: echo "VCPKG_TRIPLET=x64-linux" >> $GITHUB_ENV
-      - name: Set env vars (macOS)
-        if: startsWith(matrix.os, 'macos')
-        run: echo "VCPKG_TRIPLET=x64-osx" >> $GITHUB_ENV
-      - name: Set env vars (Windows)
-        shell: bash
-        if: startsWith(matrix.os, 'Windows')
-        run: echo "VCPKG_TRIPLET=x64-windows-static" >> $GITHUB_ENV
-      - name: Set env vars (all)
-        shell: bash
-        run: echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ env.VCPKG_TRIPLET }}_response_file.txt" >> $GITHUB_ENV
       - name: Add msbuild to PATH (Windows)
         if: startsWith(matrix.os, 'windows')
         uses: microsoft/setup-msbuild@v1.0.2
@@ -497,11 +484,6 @@ jobs:
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
           submodules: true
-      - name: Set env vars (macOS)
-        run: echo "VCPKG_TRIPLET=x64-osx" >> $GITHUB_ENV
-      - name: Set env vars (all)
-        shell: bash
-        run: echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ env.VCPKG_TRIPLET }}_response_file.txt" >> $GITHUB_ENV
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -595,11 +577,6 @@ jobs:
         with:
           ref: ${{needs.prepare_matrix.outputs.github_ref}}
           submodules: true
-      - name: Set env vars (macOS)
-        run: echo "VCPKG_TRIPLET=x64-osx" >> $GITHUB_ENV
-      - name: Set env vars (all)
-        shell: bash
-        run: echo "VCPKG_RESPONSE_FILE=external/vcpkg_${{ env.VCPKG_TRIPLET }}_response_file.txt" >> $GITHUB_ENV
       - name: Setup python
         uses: actions/setup-python@v2
         with:
