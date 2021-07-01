@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/android/field_path_portable.h"
 
 #include <cctype>

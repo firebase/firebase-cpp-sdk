@@ -1,4 +1,6 @@
 #!/bin/bash -e
+
+# Copyright 2021 Google LLC
 #
 # Script to build iOS XCFrameworks
 # If built for all architectures (arm64 x86_64),

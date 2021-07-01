@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+# Copyright 2020 Google LLC
+
 readonly -a allowed_stl_variants=("c++" "gnustl")
 builtpath=$1
 packagepath=$2

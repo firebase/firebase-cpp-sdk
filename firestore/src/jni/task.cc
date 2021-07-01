@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/jni/task.h"
 
 #include "firestore/src/jni/env.h"

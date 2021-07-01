@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/android/field_path_portable.h"
 
 #include "firestore/src/common/macros.h"

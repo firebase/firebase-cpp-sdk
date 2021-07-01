@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+# Copyright 2021 Google LLC
+
 if [[ $(uname) != "Darwin" ]]; then
     echo "Unsupported platform, tvOS can only be build on a MacOS machine."
     exit 1

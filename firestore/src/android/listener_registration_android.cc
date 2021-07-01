@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/android/listener_registration_android.h"
 
 #include "app/src/assert.h"
