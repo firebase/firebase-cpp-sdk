@@ -1,4 +1,4 @@
-# Copyright 2018 Google
+# Copyright 2021 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,7 +49,8 @@ options=(
 result=$(git grep "${options[@]}" -- \
     '*.'{c,cc,cmake,h,js,m,mm,py,rb,sh,swift} \
     CMakeLists.txt '**/CMakeLists.txt' \
-    ':(exclude)**/third_party/**')
+    ':(exclude)**/third_party/**' \
+    ':(exclude)**/external/**')
 
 if [[ $result ]]; then
     if [[ $github_log -eq 1 ]]; then
