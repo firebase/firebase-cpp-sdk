@@ -20,32 +20,35 @@ namespace {
 // non-default app to avoid data ending up in the cache before tests run.
 static const char* kBootstrapAppName = "bootstrap";
 
-// Set Firestore up to use Firestore Emulator if it can be found.
+// Set Firestore up to use Firestore Emulator via USE_FIRESTORE_EMULATOR
 void LocateEmulator(Firestore* db) {
-  // iOS and Android pass emulator address differently, iOS writes it to a
-  // temp file, but there is no equivalent to `/tmp/` for Android, so it
-  // uses an environment variable instead.
-  // TODO(wuandy): See if we can use environment variable for iOS as well?
-  std::ifstream ifs("/tmp/emulator_address");
-  std::stringstream buffer;
-  buffer << ifs.rdbuf();
-  std::string address;
-  if (ifs.good()) {
-    address = buffer.str();
-  } else if (std::getenv("FIRESTORE_EMULATOR_HOST")) {
-    address = std::getenv("FIRESTORE_EMULATOR_HOST");
+  // Use emulator as long as this env variable is set, regardless its value.
+  if (std::getenv("USE_FIRESTORE_EMULATOR") == nullptr) {
+    LogDebug("Using Firestore Prod for testing.");
+    return;
   }
 
-#if !defined(__ANDROID__)
-  absl::StripAsciiWhitespace(&address);
-#endif  // !defined(__ANDROID__)
-  if (!address.empty()) {
-    auto settings = db->settings();
-    settings.set_host(address);
-    // Emulator does not support ssl yet.
-    settings.set_ssl_enabled(false);
-    db->set_settings(settings);
-  }
+#if defined(__ANDROID__)
+  // Special IP to access the hosting OS from Android Emulator.
+  std::string local_host = "10.0.2.2";
+#else
+  std::string local_host = "localhost";
+#endif  // defined(__ANDROID__)
+
+  // Use FIRESTORE_EMULATOR_PORT if it is set to non empty string,
+  // otherwise use the default port.
+  std::string port = std::getenv("FIRESTORE_EMULATOR_PORT")
+                         ? std::getenv("FIRESTORE_EMULATOR_PORT")
+                         : "8080";
+  std::string address =
+      port.empty() ? (local_host + ":8080") : (local_host + ":" + port);
+
+  LogInfo("Using Firestore Emulator (%s) for testing.", address.c_str());
+  auto settings = db->settings();
+  settings.set_host(address);
+  // Emulator does not support ssl yet.
+  settings.set_ssl_enabled(false);
+  db->set_settings(settings);
 }
 
 }  // namespace

@@ -478,6 +478,43 @@ std::string ReadTextInput(const char* title, const char* message,
   return g_text_entry_field_data->ReadText(title, message, placeholder);
 }
 
+void SetEnvironmentVariableFromStringExtra(JNIEnv* env, const char* extra_name,
+                                           jobject intent) {
+  jclass intent_class = env->GetObjectClass(intent);
+  jmethodID get_string_extra = env->GetMethodID(
+      intent_class, "getStringExtra", "(Ljava/lang/String;)Ljava/lang/String;");
+  env->DeleteLocalRef(intent_class);
+
+  jstring extra_name_jstring = env->NewStringUTF(extra_name);
+  jstring extra_value_jstring = (jstring)env->CallObjectMethod(
+      intent, get_string_extra, extra_name_jstring);
+  env->DeleteLocalRef(extra_name_jstring);
+
+  if (extra_value_jstring != nullptr) {
+    const char* extra_value =
+        env->GetStringUTFChars(extra_value_jstring, nullptr);
+    setenv(extra_name, extra_value, /*overwrite=*/1);
+    env->ReleaseStringUTFChars(extra_value_jstring, extra_value);
+    env->DeleteLocalRef(extra_value_jstring);
+  }
+}
+
+void SetExtrasAsEnvironmentVariables() {
+  JNIEnv* env = app_framework::GetJniEnv();
+  jobject activity = app_framework::GetActivity();
+
+  jclass activity_class = env->GetObjectClass(activity);
+  jmethodID get_intent = env->GetMethodID(activity_class, "getIntent",
+                                          "()Landroid/content/Intent;");
+  env->DeleteLocalRef(activity_class);
+
+  jobject intent = env->CallObjectMethod(activity, get_intent);
+  SetEnvironmentVariableFromStringExtra(env, "USE_FIRESTORE_EMULATOR", intent);
+  SetEnvironmentVariableFromStringExtra(env, "FIRESTORE_EMULATOR_PORT", intent);
+
+  env->DeleteLocalRef(intent);
+}
+
 }  // namespace app_framework
 
 // Execute common_main(), flush pending events and finish the activity.
@@ -519,6 +556,8 @@ extern "C" void android_main(struct android_app* state) {
   pthread_t thread;
   pthread_create(&thread, nullptr, app_framework::stdout_logger,
                  reinterpret_cast<void*>(filedes));
+
+  app_framework::SetExtrasAsEnvironmentVariables();
 
   // Execute cross platform entry point.
   // Copy the app name into a non-const array, as googletest requires that
