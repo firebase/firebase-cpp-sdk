@@ -43,7 +43,7 @@ options=(
   -E  # Use extended regexps
   -I  # Exclude binary files
   -L  # Show files that don't have a match
-  'Copyright [0-9]{4}.*Google'
+  'Copyright.*[0-9]{4}.*Google'
 )
 
 result=$(git grep "${options[@]}" -- \
