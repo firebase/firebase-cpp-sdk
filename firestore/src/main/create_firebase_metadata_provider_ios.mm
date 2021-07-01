@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/main/create_firebase_metadata_provider.h"
 
 #include "app/src/include/firebase/app.h"

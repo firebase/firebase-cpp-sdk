@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include <iostream>
 
 #include "app/src/include/firebase/app.h"

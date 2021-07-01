@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/android/transaction_android.h"
 
 #include <stdexcept>

@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 // This is a sanity test using gtest. The goal of this test is to make sure the
 // way we setup Android C++ test harness actually works. We write test in a
 // cross-platform way with gtest and run test with Android JUnit4 test runner

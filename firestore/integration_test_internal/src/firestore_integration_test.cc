@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore_integration_test.h"
 
 #include <cstdlib>

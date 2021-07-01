@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/main/transaction_main.h"
 
 #include <future>  // NOLINT(build/c++11)

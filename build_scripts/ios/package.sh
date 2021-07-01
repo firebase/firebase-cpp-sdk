@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+# Copyright 2020 Google LLC
+
 builtpath=$1
 packagepath=$2
 

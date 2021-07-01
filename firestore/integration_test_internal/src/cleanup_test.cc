@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "app/src/include/firebase/internal/common.h"
 #include "firebase/firestore.h"
 #include "firestore/src/common/futures.h"

@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/include/firebase/firestore/settings.h"
 
 #include <dispatch/dispatch.h>

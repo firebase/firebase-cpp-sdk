@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/android/document_reference_android.h"
 
 #include "app/meta/move.h"
