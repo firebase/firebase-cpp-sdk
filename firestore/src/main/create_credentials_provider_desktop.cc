@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "absl/memory/memory.h"
 #include "auth/src/include/firebase/auth.h"
 #include "firestore/src/main/create_credentials_provider.h"

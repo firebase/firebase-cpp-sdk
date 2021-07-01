@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/common/wrapper_assertions.h"
 
 #if defined(__ANDROID__)

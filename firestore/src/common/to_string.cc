@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/common/to_string.h"
 
 #include <ostream>

@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 // This file contains the declarations of common internal functions that are
 // needed for the android implementation of the Firebase Performance C++
 // bindings to work. Their definitions live in firebase_performance.cc.

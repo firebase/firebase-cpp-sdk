@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #if defined(FIREBASE_ANDROID_FOR_DESKTOP)
 #define __ANDROID__
 #include <jni.h>

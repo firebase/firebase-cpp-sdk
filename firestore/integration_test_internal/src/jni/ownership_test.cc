@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/jni/ownership.h"
 
 #include <jni.h>

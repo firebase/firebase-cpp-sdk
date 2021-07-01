@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/include/firebase/firestore/collection_reference.h"
 
 #include "app/meta/move.h"

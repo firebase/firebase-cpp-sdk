@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/android/jni_runnable_android.h"
 
 #include "app/src/assert.h"

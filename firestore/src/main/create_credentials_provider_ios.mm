@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/main/create_credentials_provider.h"
 
 #import "FirebaseCoreInternal.h"

@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/android/document_change_android.h"
 
 #include "firestore/src/android/document_change_type_android.h"

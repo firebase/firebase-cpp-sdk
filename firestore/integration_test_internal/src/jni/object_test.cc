@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/jni/object.h"
 
 #include <jni.h>

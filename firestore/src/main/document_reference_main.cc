@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/main/document_reference_main.h"
 
 #include "Firestore/core/src/api/listener_registration.h"

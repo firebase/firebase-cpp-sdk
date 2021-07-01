@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "absl/memory/memory.h"
 #include "firestore/src/main/create_firebase_metadata_provider.h"
 #include "firestore/src/main/firebase_metadata_provider_desktop.h"
