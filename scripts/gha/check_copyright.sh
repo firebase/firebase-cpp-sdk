@@ -12,25 +12,53 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+usage(){
+    echo "Usage: $0 [options]                                                                                          
+ options:                                                                                                              
+   -g          enable github log format"
+}
+
+github_log=0
+IFS=',' # split options on ',' characters                                                                              
+while getopts "hg" opt; do
+    case $opt in
+        h)
+            usage
+            exit 0
+            ;;
+        g)
+	    github_log=1
+            ;;
+        *)
+            echo "unknown parameter"
+            exit 2
+            ;;
+    esac
+done
+
+
 # Check source files for copyright notices
 
 options=(
   -E  # Use extended regexps
   -I  # Exclude binary files
   -L  # Show files that don't have a match
-  'Copyright [0-9]{4}.*Google LLC'
+  'Copyright [0-9]{4}.*Google'
 )
 
-list=$(git grep "${options[@]}" -- \
+result=$(git grep "${options[@]}" -- \
     '*.'{c,cc,cmake,h,js,m,mm,py,rb,sh,swift} \
     CMakeLists.txt '**/CMakeLists.txt' \
     ':(exclude)**/third_party/**')
 
-# Allow copyrights before 2020 without LLC.
-result=$(grep -L 'Copyright 20[0-1][0-9].*Google' $list)
-
 if [[ $result ]]; then
-    echo -n "::error ::Missing copyright notices in the following files: "
-    echo "$result" | sed ':a;N;$!ba;s/\n/%0A/g'
+    if [[ $github_log -eq 1 ]]; then
+	echo -n "::error ::Missing copyright notices in the following files:%0A"
+	# Print all files with %0A instead of newline.
+	echo "$result" | sed ':a;N;$!ba;s/\n/%0A/g'
+    else
+	echo "$result"
+	echo "ERROR: Missing copyright notices in the files above. Please fix."
+    fi
     exit 1
 fi

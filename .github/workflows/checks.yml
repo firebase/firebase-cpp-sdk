@@ -52,4 +52,4 @@ jobs:
       - name: Run check_copyright.sh
         run: |
           set -e
-          bash scripts/gha/check_copyright.sh
+          bash scripts/gha/check_copyright.sh -g
