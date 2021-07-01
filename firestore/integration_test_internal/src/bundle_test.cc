@@ -172,7 +172,8 @@ TEST_F(BundleTest, CanDeleteFirestoreFromProgressUpdate) {
 
   // This future is not completed, and returns back a nullptr for result when it
   // times out.
-  EXPECT_EQ(Await(result), nullptr);
+  EXPECT_TRUE(WaitUntilFutureCompletes(result));
+  EXPECT_EQ(result.result(), nullptr);
 
   // 3 progresses will be reported: initial, document 1, document 2.
   // Final progress update is missing because Firestore is deleted before that.

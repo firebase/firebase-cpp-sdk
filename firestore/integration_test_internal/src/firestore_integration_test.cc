@@ -286,8 +286,11 @@ bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,
 
 std::string FirestoreIntegrationTest::DescribeFailedFuture(
     const FutureBase& future) {
-  return "Future failed: " + ToFirestoreErrorCodeName(future.error()) + " (" +
-         std::to_string(future.error()) + "): " + future.error_message();
+  std::string error_message =
+      future.error_message() ? future.error_message() : "[no additional info]";
+  return std::string("Future failed: ") +
+         ToFirestoreErrorCodeName(future.error()) + " (" +
+         std::to_string(future.error()) + "): " + error_message;
 }
 
 bool ProcessEvents(int msec) { return app_framework::ProcessEvents(msec); }
