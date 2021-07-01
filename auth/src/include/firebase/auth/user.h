@@ -276,10 +276,9 @@ class User : public UserInfoInterface {
   /// AdditionalUserInfo inside the returned SignInResult.
   ///
   /// Returns an error if the existing credential is not for this user
-  /// or if sign-in with that credential failed. The user should remain
-  /// signed in even if this method failed. If the developer had held
-  /// a reference to that user, the reference will continue to be valid
-  /// after this operation.
+  /// or if sign-in with that credential failed.
+  /// @note: The current user may be signed out if this operation fails on
+  /// Android and desktop platforms.
   Future<SignInResult> ReauthenticateAndRetrieveData(
       const Credential& credential);
 
