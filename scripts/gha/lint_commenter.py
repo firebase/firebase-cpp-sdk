@@ -48,7 +48,7 @@ EXCLUDE_PATH_REGEX = [
 ]
 LABEL_TO_SKIP_LINT = 'no-lint'
 CPPLINT_FILTER = '-'+',-'.join(IGNORE_LINT_WARNINGS)
-LINT_COMMENT_HEADER = 'Lint warning: `'
+LINT_COMMENT_HEADER = '⚠️ Lint warning: `'
 LINT_COMMENT_FOOTER = '`'
 HIDDEN_COMMENT_TAG = '<hidden value="cpplint-file-comment"></hidden>'
 
