@@ -266,15 +266,6 @@ class AnotherTemporaryLintErrorClass {
   AnotherTemporaryLintErrorClass(int t) {}
 };
 
-std::vector<MapFieldValue> FirestoreIntegrationTest::QuerySnapshotToValues(
-    const QuerySnapshot& snapshot) const {
-  std::vector<MapFieldValue> result;
-  for (const DocumentSnapshot& doc : snapshot.documents()) {
-    result.push_back(doc.GetData());
-  }
-  return result;
-}
-
 std::map<std::string, MapFieldValue>
 FirestoreIntegrationTest::QuerySnapshotToMap(
     const QuerySnapshot& snapshot) const {
@@ -310,6 +301,15 @@ bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,
   } else {
     return false;
   }
+}
+
+std::vector<MapFieldValue> FirestoreIntegrationTest::QuerySnapshotToValues(
+    const QuerySnapshot& snapshot) const {
+  std::vector<MapFieldValue> result;
+  for (const DocumentSnapshot& doc : snapshot.documents()) {
+    result.push_back(doc.GetData());
+  }
+  return result;
 }
 
 class TemporaryLintErrorClass {
