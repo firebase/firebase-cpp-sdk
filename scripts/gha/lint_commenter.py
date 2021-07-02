@@ -91,6 +91,7 @@ def main():
        '-H', 'Authorization: token %s' % args.token,
        request_url
       ] + ([] if not args.verbose else ['-v'])).decode('utf-8').rstrip('\n'))
+
   commit_sha = pr_data['head']['sha']
   if args.verbose:
     print('Commit sha:', commit_sha)
@@ -101,7 +102,6 @@ def main():
       if label['name'] == LABEL_TO_SKIP_LINT:
         skip_lint = True
         break
-
   if skip_lint:
     print('PR #%s has "%s" label, skipping lint checks' % (args.pr_number, LABEL_TO_SKIP_LINT))
     exit(0)
@@ -110,8 +110,10 @@ def main():
   # GET /repos/{owner}/{repo}/pulls/{pull_number}
   request_url = 'https://api.github.com/repos/%s/%s/pulls/%s' % (repo_owner, repo_name, args.pr_number)
   header = 'Accept: application/vnd.github.VERSION.diff'
+
   if args.verbose:
     print('request_url: %s' % request_url)
+
   pr_diff = subprocess.check_output(
       [args.curl,
        '-s', '-o', '-', '-w', '\nHTTP status %{http_code}\n',
