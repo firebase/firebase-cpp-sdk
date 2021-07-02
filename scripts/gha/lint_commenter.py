@@ -162,6 +162,8 @@ def main():
 
   comments = []
   for line in lint_results:
+    # Match an output line from the linter, in this format:
+    # path/to/file:line#: Lint message goes here [lint type] [confidence#]
     m = re.match(r'([^:]+):([0-9]+): *(.*[^ ]) +\[([^]]+)\] \[(\d+)\]$', line)
     if m:
       comments.append({
