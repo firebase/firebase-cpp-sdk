@@ -36,12 +36,35 @@ import time
 from unidiff import PatchSet
 import urllib.parse
 
-CPPLINT_FILTER = '-build/header_guard,-readability/casting'
+# Put any lint warnings you want to fully ignore into this list.
+IGNORE_LINT_WARNINGS = [
+    'build/header_guard',
+    'readability/casting',
+    'whitespace/line_length'
+]
+# Exclude files within the following paths (specified as regexes)
+EXCLUDE_PATH_REGEX = [
+    r'^analytics/ios_headers/'
+]
+
+CPPLINT_FILTER = '-'+',-'.join(IGNORE_LINT_WARNINGS)
 LINT_COMMENT_HEADER = 'Lint warning: `'
 LINT_COMMENT_FOOTER = '`'
 HIDDEN_COMMENT_TAG = '<hidden value="cpplint-file-comment"></hidden>'
 
 def main():
+  # This script performs a number of steps:
+  #
+  # 1. Get the PR's diff to find the list of affected files and lines in the PR.
+  #
+  # 2. Run lint on all files in the PR. For each lint warning, check if it falls
+  #    within the range of lines affected by the diff. Omit that warning if it
+  #    doesn't fall in the affected lines.
+  #
+  # 3. Delete any prior lint warning comments posted by previous runs.
+  #
+  # 4. Post any lint warnings that fall within the range of the PR's diff.
+
   args = parse_cmdline_args()
   if args.repo is None:
       args.repo=subprocess.check_output(['git', 'config', '--get', 'remote.origin.url']).decode('utf-8').rstrip('\n').lower()
@@ -90,12 +113,17 @@ def main():
   for pr_patch_file in pr_patch:
     # Skip removed files.
     if pr_patch_file.removed: continue
+    # Skip files that match an EXCLUDE_PATH_REGEX
+    excluded = False
+    for exclude_regex in EXCLUDE_PATH_REGEX:
+      if re.search(exclude_regex, pr_patch_file.path):
+        excluded = True
+        break
+    if excluded: continue
     file_list.append(pr_patch_file.path)
     pr_file_position = 1
     line_reference[pr_patch_file.path] = {}
     for hunk in pr_patch_file:
-      if "includes_test.cc" in pr_patch_file.path:
-        print(hunk)
       pr_file_position = pr_file_position + 1
       for line in range(
           hunk.target_start,
@@ -183,12 +211,10 @@ def main():
               "<hidden value=%s></hidden>" % json.dumps(pr_comment['original_line'])
                    ),
           "path": pr_comment['filename'],
-          "line": pr_comment['line']
+          "line": pr_comment['line'],
           #"position": pr_comment['position'],
       })
-      print(pr_comment['position'], pr_comment['original_line'])
-      if len(comments_to_send) > 8:
-        break
+      print(pr_comment['original_line'])
 
     request_body = {
         "commit_id": commit_sha,
@@ -202,7 +228,19 @@ def main():
                                                      '-H', 'Authorization: token %s' % args.token,
                                                      request_url, '-d', json_text]
                                                     + ([] if not args.verbose else ['-v'])).decode('utf-8').rstrip('\n'))
-    print(run_output)
+    if 'message' in run_output and 'errors' in run_output:
+      print("%s error when posting comments:\n%s" %
+            (run_output['message'], "\n".join(run_output['errors'])))
+      exit(1)
+    else:
+      print("Posted %d lint warnings" % len(pr_comments))
+
+    if args.in_github_action and len(pr_comments) > 0:
+      # Also post a GitHub log comment.
+      lines = ["Found %d lint warnings" % len(pr_comments)]
+      for comment in pr_comments:
+        lines.append(comment['original_line'])
+      print("::warning ::%s" % "%0A".join(lines))
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Run cpplint on code and add results as PR comments.')
