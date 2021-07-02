@@ -5,7 +5,7 @@ on:
     types: [opened,synchronize]
 
 jobs:
-  run_lint:
+  lint_warnings_check_and_comment:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
