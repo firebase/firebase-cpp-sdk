@@ -21,7 +21,7 @@ https://docs.github.com/en/rest/reference/actions#create-a-workflow-dispatch-eve
 
 Usage:
 python lint_commenter.py -t github_token -p pr_number
-       [-r git_repo_url] [-C curl_command]
+       [-r git_repo_url] [-C curl_command] [-l lint_command]
 
 If -r is unspecified, uses the current repo.
 """
