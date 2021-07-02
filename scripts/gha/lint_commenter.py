@@ -143,7 +143,6 @@ def main():
     pr_file_position = 1
     line_reference[pr_patch_file.path] = {}
     for hunk in pr_patch_file:
-      pr_file_position = pr_file_position + 1
       for line in range(
           hunk.target_start,
           hunk.target_start + hunk.target_length):
