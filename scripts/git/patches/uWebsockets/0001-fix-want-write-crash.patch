@@ -15,7 +15,7 @@ index 2179ff8..a97360f 100644
          if (messageQueue.empty()) {
  
              if (ssl) {
-+              /* BEG Patched by firebase-cpp-sdk scripts/patch_websockets.py */
++              /* BEG Patched by firebase-cpp-sdk 00001-fix-want-write-crash.patch */
 +              bool continue_loop = true;
 +              do {
                  sent = SSL_write(ssl, message->data, message->length);
