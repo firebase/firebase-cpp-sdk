@@ -243,8 +243,6 @@ def main():
       for comment in pr_comments:
         lines.append(comment['original_line'])
       print("::warning ::%s" % "%0A".join(lines))
-      # In GitHub, return a failure if there were lint warnings posted.
-      exit(1)
   else:
     print("No lint warnings found.")
     exit(0)
