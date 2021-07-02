@@ -68,7 +68,8 @@ def main():
   args = parse_cmdline_args()
   if args.repo is None:
       args.repo=subprocess.check_output(['git', 'config', '--get', 'remote.origin.url']).decode('utf-8').rstrip('\n').lower()
-      print('autodetected repo: %s' % args.repo)
+      if args.verbose:
+        print('autodetected repo: %s' % args.repo)
   if not args.repo.startswith('https://github.com/'):
       print('Error, only https://github.com/ repositories are allowed.')
       exit(2)
@@ -186,7 +187,8 @@ def main():
     if len(comments) < per_page:
       # Stop once we're read less than a full page of comments.
       keep_reading = False
-  print("Delete previous lint comments:", comments_to_delete)
+  if comments_to_delete:
+    print("Delete previous lint comments:", comments_to_delete)
   for comment_id in comments_to_delete:
     # Delete all of these comments.
     # DELETE /repos/{owner}/{repo}/pulls/{pull_number}/comments
@@ -243,7 +245,9 @@ def main():
       print("::warning ::%s" % "%0A".join(lines))
       # In GitHub, return a failure if there were lint warnings posted.
       exit(1)
-
+  else:
+    print("No lint warnings found.")
+    exit(0)
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Run cpplint on code and add results as PR comments.')
