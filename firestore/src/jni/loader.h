@@ -49,7 +49,8 @@ class Loader {
   /**
    * Adds metadata about embedded class files in the binary distribution.
    */
-  void AddEmbeddedFile(const char* name, const unsigned char* data,
+  void AddEmbeddedFile(const char* name,
+                       const unsigned char* data,
                        size_t size);
   /**
    * Unpacks any embedded files added above and writes them out to a temporary
@@ -82,7 +83,8 @@ class Loader {
    * param existing_ref An existing local or global reference to a Java class.
    */
   template <typename... Members>
-  void LoadFromExistingClass(const char* class_name, jclass existing_ref,
+  void LoadFromExistingClass(const char* class_name,
+                             jclass existing_ref,
                              Members&&... members) {
     UsingExistingClass(class_name, existing_ref);
     LoadAll(Forward<Members>(members)...);

@@ -29,7 +29,8 @@ class String : public Object {
    * @param bytes A Java array of encoded bytes.
    * @param encoding A Java string naming the encoding of the bytes.
    */
-  static Local<String> Create(Env& env, const Array<uint8_t>& bytes,
+  static Local<String> Create(Env& env,
+                              const Array<uint8_t>& bytes,
                               const String& encoding);
 
   jstring get() const override { return static_cast<jstring>(object_); }

@@ -5,10 +5,8 @@
 #if defined(__ANDROID__)
 #include "firestore/src/android/field_value_android.h"
 #include "firestore/src/common/wrapper_assertions.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/field_value_stub.h"
 #else
-#include "firestore/src/ios/field_value_ios.h"
+#include "firestore/src/main/field_value_main.h"
 #endif  // defined(__ANDROID__)
 
 #include "gmock/gmock.h"
@@ -39,7 +37,7 @@ TEST_F(FieldValueTest, TestFieldValueTypes) {
   FieldValue::ArrayRemove(std::vector<FieldValue>{FieldValue::Null()});
 }
 
-#if defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
+#if defined(__ANDROID__)
 
 TEST_F(FieldValueTest, Construction) {
   testutil::AssertWrapperConstructionContract<FieldValue>();
@@ -49,9 +47,7 @@ TEST_F(FieldValueTest, Assignment) {
   testutil::AssertWrapperAssignmentContract<FieldValue>();
 }
 
-#endif  // defined(__ANDROID__) || defined(FIRESTORE_STUB_BUILD)
-
-#if !defined(FIRESTORE_STUB_BUILD)
+#endif  // defined(__ANDROID__)
 
 TEST_F(FieldValueTest, TestNullType) {
   FieldValue value = FieldValue::Null();
@@ -354,8 +350,6 @@ TEST_F(FieldValueTest, TestIncrementChoosesTheCorrectType) {
   // EXPECT_TRUE(FieldValue::Increment("abc").type() == Type::kIncrementInteger);
   // clang-format on
 }
-
-#endif  // !defined(FIRESTORE_STUB_BUILD)
 
 }  // namespace firestore
 }  // namespace firebase

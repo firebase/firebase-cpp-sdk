@@ -6,7 +6,7 @@
 #if __ANDROID__
 #include "firestore/src/android/firestore_android.h"
 #else
-#include "firestore/src/ios/firestore_ios.h"
+#include "firestore/src/main/firestore_main.h"
 #endif  // __ANDROID__
 
 #include "firestore/src/common/type_mapping.h"
@@ -23,7 +23,8 @@ class FirestoreInternal;
 // F is almost always FirestoreInternal unless one wants something else to
 // manage the cleanup process. We define type F to make this CleanupFn
 // implementation platform-independent.
-template <typename T, typename U = InternalType<T>,
+template <typename T,
+          typename U = InternalType<T>,
           typename F = FirestoreInternal>
 struct CleanupFn {
   static void Cleanup(void* obj_void) { DoCleanup(static_cast<T*>(obj_void)); }

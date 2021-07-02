@@ -7,10 +7,6 @@
 #endif
 #include <stdexcept>
 
-#if !defined(FIRESTORE_STUB_BUILD)
-#include "app/src/semaphore.h"
-#endif
-
 #if defined(__ANDROID__)
 #include "android/firestore_integration_test_android.h"
 #include "firestore/src/android/exception_android.h"
@@ -92,24 +88,6 @@ TEST_F(FirestoreIntegrationTest, TestCanCreateCollectionAndDocumentReferences) {
 
   // If any of these assert, the test will fail.
 }
-
-#if defined(FIRESTORE_STUB_BUILD)
-
-TEST_F(FirestoreIntegrationTest, TestStubsReturnFailedFutures) {
-  Firestore* db = TestFirestore();
-  Future<void> future = db->EnableNetwork();
-  Await(future);
-  EXPECT_EQ(FutureStatus::kFutureStatusComplete, future.status());
-  EXPECT_EQ(Error::kErrorFailedPrecondition, future.error());
-
-  future = db->Document("foo/bar").Set(
-      MapFieldValue{{"foo", FieldValue::String("bar")}});
-  Await(future);
-  EXPECT_EQ(FutureStatus::kFutureStatusComplete, future.status());
-  EXPECT_EQ(Error::kErrorFailedPrecondition, future.error());
-}
-
-#else  // defined(FIRESTORE_STUB_BUILD)
 
 TEST_F(FirestoreIntegrationTest, TestCanReadNonExistentDocuments) {
   DocumentReference doc = Collection("rooms").Document();
@@ -671,8 +649,7 @@ TEST_F(FirestoreIntegrationTest,
   class SnapshotTestEventListener : public TestEventListener<DocumentSnapshot> {
    public:
     SnapshotTestEventListener(std::string name, TestData& test_data)
-        : TestEventListener(std::move(name)), test_data_(test_data) {
-    }
+        : TestEventListener(std::move(name)), test_data_(test_data) {}
 
     void OnEvent(const DocumentSnapshot& value,
                  Error error_code,
@@ -700,12 +677,9 @@ TEST_F(FirestoreIntegrationTest,
 #else
   class SyncEventListener : public EventListener<void> {
    public:
-    explicit SyncEventListener(TestData& test_data) : test_data_(test_data) {
-    }
+    explicit SyncEventListener(TestData& test_data) : test_data_(test_data) {}
 
-    void OnEvent(Error) override {
-      test_data_.AddEvent("snapshots-in-sync");
-    }
+    void OnEvent(Error) override { test_data_.AddEvent("snapshots-in-sync"); }
 
    private:
     TestData& test_data_;
@@ -1027,7 +1001,7 @@ TEST_F(FirestoreIntegrationTest, TestDocumentReferenceExposesFirestore) {
   // aren't registered in the main cache. Because of that, Firestore objects
   // will lazily create a new Firestore instance upon the first access. This
   // doesn't affect production code, only tests.
-  // Also, the logic in `util_ios.h` can be modified to make sure that
+  // Also, the logic in `util_main.h` can be modified to make sure that
   // `TestFirestore()` doesn't create a new Firestore instance if there isn't
   // one already.
   EXPECT_NE(nullptr, db->Document("foo/bar").firestore());
@@ -1568,8 +1542,6 @@ TEST_F(FirestoreAndroidIntegrationTest,
   DisownFirestore(db);  // Avoid double-deletion of the `db`.
 }
 #endif  // defined(__ANDROID__)
-
-#endif  // defined(FIRESTORE_STUB_BUILD)
 
 }  // namespace firestore
 }  // namespace firebase

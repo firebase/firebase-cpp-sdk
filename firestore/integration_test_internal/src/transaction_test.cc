@@ -1,11 +1,9 @@
 #include <utility>
 #include <vector>
 
-#if !defined(FIRESTORE_STUB_BUILD)
 #include "app/src/mutex.h"
 #include "app/src/semaphore.h"
 #include "app/src/time.h"
-#endif
 
 #include "absl/strings/str_join.h"
 #include "firebase/firestore.h"
@@ -16,9 +14,6 @@
 #include "util/event_accumulator.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/transaction_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/transaction_stub.h"
-
 #endif  // defined(__ANDROID__)
 
 // These test cases are in sync with native iOS client SDK test
@@ -31,9 +26,6 @@
 
 namespace firebase {
 namespace firestore {
-
-// These tests don't work with the stubs.
-#if !defined(FIRESTORE_STUB_BUILD)
 
 using ::testing::HasSubstr;
 
@@ -101,8 +93,7 @@ class TransactionTest : public FirestoreIntegrationTest {
 
 class TestTransactionFunction : public TransactionFunction {
  public:
-  TestTransactionFunction(DocumentReference doc) : doc_(doc) {
-  }
+  TestTransactionFunction(DocumentReference doc) : doc_(doc) {}
 
   Error Apply(Transaction& transaction, std::string& error_message) override {
     Error error = Error::kErrorUnknown;
@@ -113,12 +104,8 @@ class TestTransactionFunction : public TransactionFunction {
     return error;
   }
 
-  std::string key() {
-    return key_;
-  }
-  std::string value() {
-    return value_;
-  }
+  std::string key() { return key_; }
+  std::string value() { return value_; }
 
  private:
   DocumentReference doc_;
@@ -145,12 +132,9 @@ class TransactionStage {
   TransactionStage(
       std::string tag,
       std::function<void(Transaction*, const DocumentReference&)> func)
-      : tag_(std::move(tag)), func_(std::move(func)) {
-  }
+      : tag_(std::move(tag)), func_(std::move(func)) {}
 
-  const std::string& tag() const {
-    return tag_;
-  }
+  const std::string& tag() const { return tag_; }
 
   void operator()(Transaction* transaction,
                   const DocumentReference& doc) const {
@@ -221,8 +205,7 @@ const auto get = new TransactionStage(
  */
 class TransactionTester {
  public:
-  explicit TransactionTester(Firestore* db) : db_(db) {
-  }
+  explicit TransactionTester(Firestore* db) : db_(db) {}
 
   template <typename... Args>
   TransactionTester& Run(Args... args) {
@@ -753,8 +736,6 @@ TEST_F(TransactionTest, TestCancellationOnError) {
 }
 
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
-
-#endif  // !defined(FIRESTORE_STUB_BUILD)
 
 }  // namespace firestore
 }  // namespace firebase

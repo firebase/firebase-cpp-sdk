@@ -1,11 +1,17 @@
 
 source 'https://github.com/CocoaPods/Specs.git'
-platform :ios, '10.0'
 # Cloud Functions for Firebase test application.
 
 target 'integration_test' do
-  pod 'Firebase/Functions', '7.11.0'
-  pod 'Firebase/Auth', '7.11.0'
+  platform :ios, '10.0'
+  pod 'Firebase/Functions', '8.1.1'
+  pod 'Firebase/Auth', '8.1.1'
+end
+
+target 'integration_test_tvos' do
+  platform :tvos, '10.0'
+  pod 'Firebase/Functions', '8.1.1'
+  pod 'Firebase/Auth', '8.1.1'
 end
 
 post_install do |installer|

@@ -15,6 +15,7 @@
 # Top level CMake file that defines the entire Firebase C++ SDK build.
 
 cmake_minimum_required (VERSION 3.1)
+
 set (CMAKE_CXX_STANDARD 11)
 
 # Turn on virtual folders for visual studio
@@ -65,16 +66,23 @@ option(FIREBASE_FORCE_FAKE_SECURE_STORAGE
 option(FIREBASE_CPP_BUILD_PACKAGE
        "Bundle the Firebase C++ libraries into a zip file." OFF)
 option(FIREBASE_CPP_USE_PRIOR_GRADLE_BUILD
-        "When building with Gradle, use the previously built libraries." OFF)
+       "When building with Gradle, use the previously built libraries." OFF)
 option(FIREBASE_USE_BORINGSSL
-        "Build against BoringSSL instead of using your system's OpenSSL." OFF)
+       "Build against BoringSSL instead of using your system's OpenSSL." OFF)
 option(FIREBASE_USE_LINUX_CXX11_ABI
-        "Build Linux SDK using the C++11 ABI instead of the legacy ABI." OFF)
+       "Build Linux SDK using the C++11 ABI instead of the legacy ABI." OFF)
+
+# This should only be enabled by the GitHub Action build script.
+option(FIREBASE_GITHUB_ACTION_BUILD
+       "Indicates that this build was created from a GitHub Action" OFF)
 
 set(FIREBASE_ANDROID_STL "" CACHE STRING "STL implementation to use.")
 if (NOT FIREBASE_ANDROID_STL STREQUAL "")
   set(ANDROID_STL ${FIREBASE_ANDROID_STL})
 endif()
+
+set(FIREBASE_PYTHON_EXECUTABLE "python" CACHE FILEPATH
+  "The Python interpreter to use, such as one from a venv")
 
 set(FIREBASE_XCODE_TARGET_FORMAT "frameworks" CACHE STRING
                                  "Format to output, 'frameworks' or 'libraries'")
@@ -136,6 +144,12 @@ if(DESKTOP AND NOT MSVC AND NOT APPLE)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D_GLIBCXX_USE_CXX11_ABI=0")
   endif()
+endif()
+
+if(FIREBASE_GITHUB_ACTION_BUILD)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIREBASE_GITHUB_ACTION_BUILD=1")
+else()
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DFIREBASE_GITHUB_ACTION_BUILD=0")
 endif()
 
 # Set directories needed by the Firebase subprojects

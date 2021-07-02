@@ -9,10 +9,8 @@
 #include "firestore/src/include/firebase/firestore/query.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/query_snapshot_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/query_snapshot_stub.h"
 #else
-#include "firestore/src/ios/query_snapshot_ios.h"
+#include "firestore/src/main/query_snapshot_main.h"
 #endif  // defined(__ANDROID__)
 
 namespace firebase {

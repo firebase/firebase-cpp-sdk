@@ -32,9 +32,14 @@ available simulators (supported models and versions) with the following commands
 
   xcrun simctl list
 
-Note: you need to combine Name and Version with "+". Examples:
-iPhone 11, OS 14.4:
-  --ios_device "iPhone 11+14.4"
+Device Information is stored in TEST_DEVICES in print_matrix_configuration.py
+Example:
+iPhone 8, OS 12.0:
+  --ios_name "iPhone 8" --ios_version "12.0"
+Alternatively, to set an iOS device, use the one of the values below:
+[simulator_min, simulator_target, simulator_latest]
+Example:
+  --ios_device "simulator_target"
 
 ----Android only----
 Java 8 is required
@@ -51,9 +56,15 @@ available tools with the following commands:
 
   $ANDROID_HOME/tools/bin/sdkmanager --list
 
-Note: you need to combine them with "+". Examples:
-sdk id "system-images;android-29;google_apis;x86", build tool version "29.0.3":
-  --android_device "system-images;android-29;google_apis;x86+29.0.3"
+Device Information is stored in TEST_DEVICES in print_matrix_configuration.py
+Example:
+sdk id "system-images;android-29;google_apis;x86":
+  --android_sdk "system-images;android-29;google_apis;x86" --build_tools_version "28.0.3"
+
+Alternatively, to set an Android device, use the one of the values below:
+[emulator_min, emulator_target, emulator_latest]
+Example:
+  --android_device "emulator_target" --build_tools_version "28.0.3"
 
 Returns:
    1: No iOS/Android integration_test apps found
@@ -76,6 +87,7 @@ from absl import flags
 from absl import logging
 import attr
 from integration_testing import test_validation
+from print_matrix_configuration import TEST_DEVICES
 
 _GAMELOOP_PACKAGE = "com.google.firebase.gameloop"
 _RESULT_FILE = "Results1.json"
@@ -86,11 +98,27 @@ flags.DEFINE_string(
     "testapp_dir", None,
     "Testapps in this directory will be tested.")
 flags.DEFINE_string(
-    "ios_device", "iPhone 8+12.0",
-    "iOS device, which is a combination of device name and os version")
+    "ios_device", None,
+    "iOS device, which is a combination of device name and os version"
+    "See module docstring for details on how to set and get this id. "
+    "If none, will use ios_name and ios_version.")
 flags.DEFINE_string(
-    "android_device", "system-images;android-28;google_apis;x86_64+28.0.3",
-    "android device, which is a combination of sdk id and build tool version")
+    "ios_name", "iPhone 8",
+    "See module docstring for details on how to set and get this name.")
+flags.DEFINE_string(
+    "ios_version", "12.0",
+    "See module docstring for details on how to set and get this version.")
+flags.DEFINE_string(
+    "android_device", None,
+    "Android device, which is the sdk id of an emulator image"
+    "See module docstring for details on how to set and get this id."
+    "If none, will use android_sdk.")
+flags.DEFINE_string(
+    "android_sdk", "system-images;android-29;google_apis;x86",
+    "See module docstring for details on how to set and get this id.")
+flags.DEFINE_string(
+    "build_tools_version", "28.0.3",
+    "android build_tools_version")
 flags.DEFINE_string(
     "logfile_name", "",
     "Create test log artifact test-results-$logfile_name.log."
@@ -134,13 +162,16 @@ def main(argv):
   if ios_testapps:
     logging.info("iOS Testapps found: %s", "\n".join(path for path in ios_testapps))
     
-    device_info = FLAGS.ios_device.split("+")
-    if len(device_info) != 2:
-      logging.error("Not a valid ios device: %s" % FLAGS.ios_device)
-      return 20
-
-    device_name = device_info[0]
-    device_os = device_info[1]
+    if FLAGS.ios_device:
+      device_info = TEST_DEVICES.get(FLAGS.ios_device)
+      if not device_info:
+        logging.error("Not a valid ios device: %s" % FLAGS.ios_device)
+        return 20
+      device_name = device_info.get("name")
+      device_os = device_info.get("version")
+    else:
+      device_name = FLAGS.ios_name
+      device_os = FLAGS.ios_version
 
     device_id = _create_and_boot_simulator(device_name, device_os)
     if not device_id:
@@ -148,7 +179,7 @@ def main(argv):
       return 21
 
     # A tool that enable game-loop test. This is a XCode project
-    ios_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop")
+    ios_gameloop_project = os.path.join(current_dir, "integration_testing", "gameloop_ios")
     ios_gameloop_app = _build_ios_gameloop(ios_gameloop_project, device_name, device_os)
     if not ios_gameloop_app:
       logging.error("gameloop app not found")
@@ -167,17 +198,23 @@ def main(argv):
                       testapp_path=app_path, 
                       logs=_run_ios_gameloop_test(bundle_id, app_path, ios_gameloop_app, device_id)))
 
+    _shutdown_simulator()
+
   if android_testapps:
     logging.info("Android Testapps found: %s", "\n".join(path for path in android_testapps))
 
-    device_info = FLAGS.android_device.split("+", 1)
-    if len(device_info) != 2:
-      logging.error("Not a valid android device: %s" % FLAGS.android_device)
-      return 30
+    if FLAGS.android_device:
+      device_info = TEST_DEVICES.get(FLAGS.android_device)
+      if not device_info:
+        logging.error("Not a valid android device: %s" % FLAGS.android_device)
+        return 30
+      sdk_id = device_info.get("image")
+    else:
+      sdk_id = FLAGS.android_sdk
 
-    sdk_id = device_info[0]
+    
     platform_version = sdk_id.split(";")[1]
-    build_tool_version = device_info[1]
+    build_tool_version = FLAGS.build_tools_version
 
     if not _check_java_version():
       logging.error("Please set JAVA_HOME to java 8")
@@ -195,6 +232,8 @@ def main(argv):
       tests.append(Test(
                       testapp_path=app_path, 
                       logs=_run_android_gameloop_test(package_name, app_path, android_gameloop_project)))
+
+    _shutdown_emulator()
 
   return test_validation.summarize_test_results(
     tests, 
@@ -248,12 +287,15 @@ def _run_xctest(gameloop_app, device_id):
   return log_path
 
 
-def _create_and_boot_simulator(device_name, device_os):
-  """Create a simulator locally. Will wait until this simulator booted."""
+def _shutdown_simulator():
   args = ["xcrun", "simctl", "shutdown", "all"]
   logging.info("Shutdown all simulators: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
+
+def _create_and_boot_simulator(device_name, device_os):
+  """Create a simulator locally. Will wait until this simulator booted."""
+  _shutdown_simulator()
   command = "xcrun xctrace list devices 2>&1 | grep \"%s (%s)\" | awk -F'[()]' '{print $4}'" % (device_name, device_os)
   logging.info("Get test simulator: %s", command)
   result = subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
@@ -383,6 +425,11 @@ def _setup_android(platform_version, build_tool_version, sdk_id):
   subprocess.run(args=args, check=True)
 
 
+def _shutdown_emulator():
+  command = "adb devices | grep emulator | cut -f1 | while read line; do adb -s $line emu kill; done"
+  logging.info("Kill all running emulator: %s", command)
+  subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
+
 def _create_and_boot_emulator(sdk_id):
   args = ["avdmanager", "-s", 
     "create", "avd", 
@@ -399,9 +446,7 @@ def _create_and_boot_emulator(sdk_id):
   logging.info("Start adb server: %s", " ".join(args))
   subprocess.run(args=args, check=True)
 
-  command = "adb devices | grep emulator | cut -f1 | while read line; do adb -s $line emu kill; done"
-  logging.info("Kill all running emulator: %s", command)
-  subprocess.Popen(command, universal_newlines=True, shell=True, stdout=subprocess.PIPE)
+  _shutdown_emulator()
 
   if not FLAGS.ci: 
     command = "$ANDROID_HOME/emulator/emulator -avd test_emulator &"

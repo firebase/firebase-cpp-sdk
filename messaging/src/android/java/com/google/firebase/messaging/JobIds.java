@@ -20,4 +20,5 @@ public final class JobIds {
   private JobIds() {}
 
   public static final int MESSAGE_FORWARDING_SERVICE = 1000;
+  public static final int REGISTRATION_INTENT_SERVICE = 1001;
 }

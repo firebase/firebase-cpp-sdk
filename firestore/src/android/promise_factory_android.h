@@ -46,7 +46,9 @@ class PromiseFactory {
 
   template <typename PublicT, typename InternalT = InternalType<PublicT>>
   Future<PublicT> NewFuture(
-      jni::Env& env, EnumT op, const jni::Task& task,
+      jni::Env& env,
+      EnumT op,
+      const jni::Task& task,
       typename Promise<PublicT, InternalT, EnumT>::Completion* completion =
           nullptr) {
     if (!env.ok()) return {};

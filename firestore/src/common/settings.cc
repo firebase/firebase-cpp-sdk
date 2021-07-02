@@ -5,7 +5,7 @@
 
 #include "app/meta/move.h"
 
-#if !defined(__ANDROID__) && !defined(FIRESTORE_STUB_BUILD)
+#if !defined(__ANDROID__)
 #include "Firestore/core/src/util/executor.h"
 #endif
 
@@ -55,9 +55,8 @@ std::ostream& operator<<(std::ostream& out, const Settings& settings) {
   return out << settings.ToString();
 }
 
-// Apple uses a different mechanism, defined in `settings_ios.mm`.
-#if !defined(__APPLE__) && !defined(__ANDROID__) && \
-    !defined(FIRESTORE_STUB_BUILD)
+// Apple uses a different mechanism, defined in `settings_apple.mm`.
+#if !defined(__APPLE__) && !defined(__ANDROID__)
 std::unique_ptr<util::Executor> Settings::CreateExecutor() const {
   return util::Executor::CreateSerial("integration_tests");
 }

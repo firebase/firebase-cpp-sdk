@@ -7,10 +7,8 @@
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/document_change_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/document_change_stub.h"
 #else
-#include "firestore/src/ios/document_change_ios.h"
+#include "firestore/src/main/document_change_main.h"
 #endif  // defined(__ANDROID__)
 
 namespace firebase {
@@ -23,6 +21,8 @@ using Type = DocumentChange::Type;
 // Older NDK (r16b) fails to define this properly. Fix this when support for
 // the older NDK is removed.
 const std::size_t DocumentChange::npos = static_cast<std::size_t>(-1);
+#else
+constexpr std::size_t DocumentChange::npos;
 #endif  // defined(ANDROID)
 
 DocumentChange::DocumentChange() {}

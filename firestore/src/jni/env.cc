@@ -119,7 +119,8 @@ bool Env::IsSameObject(const Object& object1, const Object& object2) {
   return result;
 }
 
-jmethodID Env::GetMethodId(const Class& clazz, const char* name,
+jmethodID Env::GetMethodId(const Class& clazz,
+                           const char* name,
                            const char* sig) {
   if (!ok()) return nullptr;
 
@@ -128,7 +129,8 @@ jmethodID Env::GetMethodId(const Class& clazz, const char* name,
   return result;
 }
 
-jfieldID Env::GetStaticFieldId(const Class& clazz, const char* name,
+jfieldID Env::GetStaticFieldId(const Class& clazz,
+                               const char* name,
                                const char* sig) {
   if (!ok()) return nullptr;
 
@@ -137,7 +139,8 @@ jfieldID Env::GetStaticFieldId(const Class& clazz, const char* name,
   return result;
 }
 
-jmethodID Env::GetStaticMethodId(const Class& clazz, const char* name,
+jmethodID Env::GetStaticMethodId(const Class& clazz,
+                                 const char* name,
                                  const char* sig) {
   if (!ok()) return nullptr;
 

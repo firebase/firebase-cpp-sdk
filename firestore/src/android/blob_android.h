@@ -15,7 +15,8 @@ class BlobInternal : public jni::Object {
 
   static jni::Class GetClass();
 
-  static jni::Local<BlobInternal> Create(jni::Env& env, const uint8_t* value,
+  static jni::Local<BlobInternal> Create(jni::Env& env,
+                                         const uint8_t* value,
                                          size_t size);
 
   jni::Local<jni::Array<uint8_t>> ToBytes(jni::Env& env) const;

@@ -43,7 +43,8 @@ class Promise {
   class Completion {
    public:
     virtual ~Completion() = default;
-    virtual void CompleteWith(Error error_code, const char* error_message,
+    virtual void CompleteWith(Error error_code,
+                              const char* error_message,
                               PublicType* result) = 0;
   };
 
@@ -70,7 +71,8 @@ class Promise {
  private:
   // The constructor is intentionally private.
   // Create instances with `PromiseFactory`.
-  Promise(ReferenceCountedFutureImpl* impl, FirestoreInternal* firestore,
+  Promise(ReferenceCountedFutureImpl* impl,
+          FirestoreInternal* firestore,
           Completion* completion)
       : completer_(MakeUnique<Completer<PublicType, InternalType>>(
             impl, firestore, completion)),
@@ -80,7 +82,8 @@ class Promise {
   class CompleterBase {
    public:
     CompleterBase(ReferenceCountedFutureImpl* impl,
-                  FirestoreInternal* firestore, Completion* completion)
+                  FirestoreInternal* firestore,
+                  Completion* completion)
         : impl_{impl}, firestore_{firestore}, completion_(completion) {}
 
     virtual ~CompleterBase() = default;
@@ -174,9 +177,11 @@ class Promise {
     }
   };
 
-  static void ResultCallback(JNIEnv* env, jobject result,
+  static void ResultCallback(JNIEnv* env,
+                             jobject result,
                              util::FutureResult result_code,
-                             const char* status_message, void* callback_data) {
+                             const char* status_message,
+                             void* callback_data) {
     if (callback_data != nullptr) {
       auto* data =
           static_cast<Completer<PublicType, InternalType>*>(callback_data);

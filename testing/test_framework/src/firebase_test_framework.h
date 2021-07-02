@@ -136,6 +136,17 @@ namespace firebase_test_framework {
 #define SKIP_TEST_ON_IOS ((void)0)
 #endif  // (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
 
+#if (defined(TARGET_OS_TV) && TARGET_OS_TV)
+#define SKIP_TEST_ON_TVOS                                               \
+  {                                                                     \
+    app_framework::LogInfo("Skipping %s on tvOS.", test_info_->name()); \
+    GTEST_SKIP();                                                       \
+    return;                                                             \
+  }
+#else
+#define SKIP_TEST_ON_TVOS ((void)0)
+#endif  // (defined(TARGET_OS_TV) && TARGET_OS_TV)
+
 #if defined(ANDROID)
 #define SKIP_TEST_ON_ANDROID                                               \
   {                                                                        \
@@ -225,6 +236,10 @@ class FirebaseTest : public testing::Test {
   // fully-automated tests should be run.
   bool AreInteractiveTestsAllowed();
 
+  // Give the static helper methods "public" visibility so that they can be used
+  // by helper functions defined outside of subclasses of `FirebaseTest`, such
+  // as functions defined in anonymous namespaces.
+ public:
   // Get a persistent string value that was previously set via
   // SetPersistentString. Returns true if the value was set, false if not or if
   // something went wrong.

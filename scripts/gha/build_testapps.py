@@ -74,23 +74,23 @@ modify your bashrc file to automatically set these variables.
 """
 
 import datetime
-from distutils import dir_util
 import os
 import platform
 import shutil
 import subprocess
 import sys
+import json
+import attr
 
 from absl import app
 from absl import flags
 from absl import logging
+from distutils import dir_util
 
-import attr
-
+import utils
 from integration_testing import config_reader
 from integration_testing import test_validation
 from integration_testing import xcodebuild
-import utils
 
 # Environment variables
 _JAVA_HOME = "JAVA_HOME"
@@ -255,7 +255,7 @@ def main(argv):
           short_output_paths=FLAGS.short_output_paths)
       logging.info("END building for %s", testapp)
   
-  _collect_integration_tests(testapps, root_output_dir, FLAGS.artifact_name)
+  _collect_integration_tests(testapps, root_output_dir, output_dir, FLAGS.artifact_name)
 
   _summarize_results(testapps, platforms, failures, root_output_dir, FLAGS.artifact_name)
   return 1 if failures else 0
@@ -329,7 +329,7 @@ def _build(
   return failures
 
 
-def _collect_integration_tests(testapps, output_dir, artifact_name):
+def _collect_integration_tests(testapps, root_output_dir, output_dir, artifact_name):
   testapps_artifact_dir = "testapps-" + artifact_name
   android_testapp_extension = ".apk"
   ios_testapp_extension = ".ipa"
@@ -349,7 +349,8 @@ def _collect_integration_tests(testapps, output_dir, artifact_name):
           or file_name.endswith(ios_testapp_extension)):
         testapp_paths.append(os.path.join(file_dir, file_name))
 
-  artifact_path = os.path.join(output_dir, testapps_artifact_dir)
+  artifact_path = os.path.join(root_output_dir, testapps_artifact_dir)
+  _rm_dir_safe(artifact_path)
   for testapp in testapps:
     os.makedirs(os.path.join(artifact_path, testapp))
   for path in testapp_paths:
@@ -362,7 +363,7 @@ def _collect_integration_tests(testapps, output_dir, artifact_name):
         break
 
 
-def _summarize_results(testapps, platforms, failures, output_dir, artifact_name):
+def _summarize_results(testapps, platforms, failures, root_output_dir, artifact_name):
   """Logs a readable summary of the results of the build."""
   file_name = "build-results-" + artifact_name + ".log"
 
@@ -374,13 +375,20 @@ def _summarize_results(testapps, platforms, failures, output_dir, artifact_name)
   if not failures:
     summary.append("ALL BUILDS SUCCEEDED")
   else:
-    summary.append("SOME FAILURES OCCURRED:")
+    summary.append("SOME ERRORS OCCURRED:")
     for i, failure in enumerate(failures, start=1):
       summary.append("%d: %s" % (i, failure.describe()))
   summary = "\n".join(summary)
 
   logging.info(summary)
-  test_validation.write_summary(output_dir, summary, file_name=file_name)
+  test_validation.write_summary(root_output_dir, summary, file_name=file_name)
+
+  summary_json = {}
+  summary_json["type"] = "build"
+  summary_json["testapps"] = testapps
+  summary_json["errors"] = {failure.testapp:failure.error_message for failure in failures}
+  with open(os.path.join(root_output_dir, file_name+".json"), "a") as f:
+    f.write(json.dumps(summary_json, indent=2))
 
 
 def _build_desktop(sdk_dir, cmake_flags):
@@ -465,10 +473,11 @@ def _generate_makefiles_from_repo(repo_dir):
   """Generates cmake makefiles for building iOS frameworks from SDK source."""
   ios_framework_builder = os.path.join(
       repo_dir, "build_scripts", "ios", "build.sh")
-
+  output_path = os.path.join(repo_dir, "ios_build")
+  _rm_dir_safe(output_path)
   framework_builder_args = [
       ios_framework_builder,
-      "-b", os.path.join(repo_dir, "ios_build"),
+      "-b", output_path,
       "-s", repo_dir,
       "-c", "false"
   ]
@@ -508,7 +517,7 @@ def _build_ios(
   if not ios_framework_exist:
     _build_ios_framework_from_repo(repo_dir, api_config)
     sdk_dir = os.path.join(repo_dir, "ios_build")
-    logging.info("iOS xcframework created at: %s", " ".join(sdk_dir))
+    logging.info("iOS xcframework created at: %s", sdk_dir)
 
   build_dir = os.path.join(project_dir, "ios_build")
   os.makedirs(build_dir)
@@ -522,14 +531,6 @@ def _build_ios(
     dir_util.copy_tree(framework_src_path, framework_dest_path)
     framework_paths.append(framework_dest_path)
 
-  podfile_tool_path = os.path.join(
-      repo_dir, "scripts", "gha", "integration_testing", "update_podfile.py")
-  podfile_patcher_args = [
-      sys.executable, podfile_tool_path,
-      "--sdk_podfile", os.path.join(repo_dir, "ios_pod", "Podfile"),
-      "--app_podfile", os.path.join(project_dir, "Podfile")
-  ]
-  _run(podfile_patcher_args)
   _run(["pod", "install"])
 
   entitlements_path = os.path.join(

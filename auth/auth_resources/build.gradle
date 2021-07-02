@@ -32,6 +32,10 @@ allprojects {
 apply plugin: 'com.android.library'
 
 android {
+  compileOptions {
+    sourceCompatibility 1.8
+    targetCompatibility 1.8
+  }
   compileSdkVersion 28
 
   sourceSets {
@@ -45,8 +49,8 @@ android {
 }
 
 dependencies {
-  implementation 'com.google.firebase:firebase-analytics:18.0.2'
-  implementation 'com.google.firebase:firebase-auth:20.0.2'
+  implementation 'com.google.firebase:firebase-analytics:19.0.0'
+  implementation 'com.google.firebase:firebase-auth:21.0.1'
   implementation project(':app:app_resources')
 }
 

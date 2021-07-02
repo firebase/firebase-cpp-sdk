@@ -98,7 +98,8 @@ std::string ExceptionInternal::ToString(Env& env, const Object& exception) {
   return exception.CastTo<Throwable>().GetMessage(env);
 }
 
-Local<Throwable> ExceptionInternal::Create(Env& env, Error code,
+Local<Throwable> ExceptionInternal::Create(Env& env,
+                                           Error code,
                                            const std::string& message) {
   if (code == Error::kErrorOk) {
     return {};

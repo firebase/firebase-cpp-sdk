@@ -14,10 +14,14 @@
 
 package com.google.firebase.messaging.cpp;
 
-import android.app.IntentService;
 import android.content.Context;
 import android.content.Intent;
-import com.google.firebase.iid.FirebaseInstanceId;
+import android.util.Log;
+import androidx.annotation.NonNull;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.messaging.FirebaseMessaging;
+import androidx.core.app.JobIntentService;
 import com.google.flatbuffers.FlatBufferBuilder;
 import java.io.FileOutputStream;
 import java.nio.ByteBuffer;
@@ -28,23 +32,31 @@ import java.nio.channels.FileLock;
  * A class that manages Registration Token generation and passes the generated tokens to the native
  * OnTokenReceived function.
  */
-public class RegistrationIntentService extends IntentService {
+public class RegistrationIntentService extends JobIntentService {
   private static final String TAG = "FirebaseRegService";
-
-  public RegistrationIntentService() {
-    // The tag here is used only to name the worker thread; it's important only for debugging.
-    // http://developer.android.com/reference/android/app/IntentService.html#IntentService(java.lang.String)
-    super(TAG);
-  }
 
   // Fetch the latest registration token and notify the C++ layer.
   @Override
-  protected void onHandleIntent(Intent intent) {
-    String token = FirebaseInstanceId.getInstance().getToken();
-    DebugLogging.log(TAG, String.format("onHandleIntent token=%s", token));
-    if (token != null) {
-      writeTokenToInternalStorage(this, token);
-    }
+  protected void onHandleWork(Intent intent) {
+    Context context = this;
+    FirebaseMessaging.getInstance().getToken()
+      .addOnCompleteListener(new OnCompleteListener<String>() {
+        @Override
+        public void onComplete(@NonNull Task<String> task) {
+          if (!task.isSuccessful()) {
+            Log.w(TAG, "Fetching FCM registration token failed", task.getException());
+            return;
+          }
+
+          // Get new FCM registration token
+          String token = task.getResult();
+
+          DebugLogging.log(TAG, String.format("onHandleWork token=%s", token));
+          if (token != null) {
+            writeTokenToInternalStorage(context, token);
+          }
+        }
+      });
   }
 
   /** Write token to internal storage so it can be accessed by the C++ layer. */

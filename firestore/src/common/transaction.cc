@@ -6,10 +6,8 @@
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/transaction_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/transaction_stub.h"
 #else
-#include "firestore/src/ios/transaction_ios.h"
+#include "firestore/src/main/transaction_main.h"
 #endif  // defined(__ANDROID__)
 
 namespace firebase {
@@ -29,7 +27,8 @@ Transaction::~Transaction() {
 }
 
 void Transaction::Set(const DocumentReference& document,
-                      const MapFieldValue& data, const SetOptions& options) {
+                      const MapFieldValue& data,
+                      const SetOptions& options) {
   if (!internal_) return;
   internal_->Set(document, data, options);
 }

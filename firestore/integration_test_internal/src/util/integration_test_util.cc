@@ -7,7 +7,7 @@
 #include "firebase/app.h"
 #include "firebase/firestore.h"
 #include "firestore/src/common/hard_assert_common.h"
-#include "firestore/src/ios/firestore_ios.h"
+#include "firestore/src/main/firestore_main.h"
 
 namespace firebase {
 namespace firestore {

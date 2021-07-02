@@ -14,10 +14,8 @@
 
 #if defined(__ANDROID__)
 #include "firestore/src/android/firestore_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/firestore_stub.h"
 #else
-#include "firestore/src/ios/firestore_ios.h"
+#include "firestore/src/main/firestore_main.h"
 #endif  // defined(__ANDROID__)
 
 #ifdef __APPLE__
@@ -138,8 +136,7 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
 }
 
 Firestore::Firestore(::firebase::App* app)
-    : Firestore{new FirestoreInternal{app}} {
-}
+    : Firestore{new FirestoreInternal{app}} {}
 
 Firestore::Firestore(FirestoreInternal* internal)
     // TODO(wuandy): use make_unique once it is supported for our build here.
@@ -167,9 +164,7 @@ Firestore::Firestore(FirestoreInternal* internal)
   }
 }
 
-Firestore::~Firestore() {
-  DeleteInternal();
-}
+Firestore::~Firestore() { DeleteInternal(); }
 
 void Firestore::DeleteInternal() {
   MutexLock lock(*g_firestores_lock);
@@ -341,11 +336,6 @@ Future<LoadBundleTaskProgress> Firestore::LoadBundle(
     std::function<void(const LoadBundleTaskProgress&)> progress_callback) {
   if (!internal_) return FailedFuture<LoadBundleTaskProgress>();
   return internal_->LoadBundle(bundle, std::move(progress_callback));
-}
-
-Future<Query> Firestore::NamedQuery(const std::string& query_name) {
-  if (!internal_) return FailedFuture<Query>();
-  return internal_->NamedQuery(query_name);
 }
 
 }  // namespace firestore

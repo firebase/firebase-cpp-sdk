@@ -6,10 +6,8 @@
 
 #if defined(__ANDROID__)
 #include "firestore/src/android/listener_registration_android.h"
-#elif defined(FIRESTORE_STUB_BUILD)
-#include "firestore/src/stub/listener_registration_stub.h"
 #else
-#include "firestore/src/ios/listener_registration_ios.h"
+#include "firestore/src/main/listener_registration_main.h"
 #endif  // defined(__ANDROID__)
 
 namespace firebase {

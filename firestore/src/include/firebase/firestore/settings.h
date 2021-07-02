@@ -29,7 +29,7 @@
 namespace firebase {
 namespace firestore {
 
-#if !defined(__ANDROID__) && !defined(FIRESTORE_STUB_BUILD)
+#if !defined(__ANDROID__)
 // <SWIG>
 // This declaration is guarded by a preprocessor macro because it causes
 // problems with name lookup on Android. Android implementation of the public
@@ -220,7 +220,7 @@ class Settings final {
   // TODO(varconst): fix Android problems and make these declarations
   // unconditional.
   // </SWIG>
-#if !defined(__ANDROID__) && !defined(FIRESTORE_STUB_BUILD)
+#if !defined(__ANDROID__)
   friend class FirestoreInternal;
   std::unique_ptr<util::Executor> CreateExecutor() const;
 
