@@ -1,6 +1,7 @@
 // Copyright 2021 Google LLC
 
 #include "firestore_integration_test.h"
+// The preceding line should have caused a lint warning.
 
 #include <cstdlib>
 #include <fstream>
