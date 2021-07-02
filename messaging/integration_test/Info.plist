@@ -29,7 +29,7 @@
 			<string>google</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+				<string>REPLACE_WITH_REVERSED_CLIENT_ID</string>
                                 <string>firebase-game-loop</string>
 			</array>
 		</dict>
