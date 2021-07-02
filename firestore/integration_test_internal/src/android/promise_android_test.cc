@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/android/promise_android.h"
 
 #include <string>

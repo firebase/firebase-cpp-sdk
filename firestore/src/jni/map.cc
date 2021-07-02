@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/jni/map.h"
 
 #include "app/src/util_android.h"

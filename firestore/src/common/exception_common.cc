@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/common/exception_common.h"
 
 #include <sstream>

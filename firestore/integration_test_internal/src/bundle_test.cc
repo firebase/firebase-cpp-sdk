@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include <future>
 #include <string>
 #include <vector>

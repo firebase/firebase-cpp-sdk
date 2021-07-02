@@ -1,4 +1,6 @@
 #!/bin/bash
+
+# Copyright 2020 Google LLC
 #
 # Script to finish packaging individual iOS/Mac libraries into
 # universal libraries, and then into frameworks.

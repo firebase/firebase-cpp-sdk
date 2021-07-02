@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #import <Foundation/Foundation.h>
 
 /** Defines the interface that allows adding/removing attributes to any object.

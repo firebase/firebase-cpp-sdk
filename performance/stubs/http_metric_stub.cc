@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include <iostream>
 
 #include "performance/src/include/firebase/performance/http_metric.h"

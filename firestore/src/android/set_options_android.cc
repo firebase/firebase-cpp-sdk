@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/android/set_options_android.h"
 
 #include <utility>

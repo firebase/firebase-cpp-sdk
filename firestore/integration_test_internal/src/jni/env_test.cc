@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/jni/env.h"
 
 #include "Firestore/core/src/util/firestore_exceptions.h"

@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/jni/declaration.h"
 
 #include "app/memory/unique_ptr.h"

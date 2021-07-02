@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "app/src/time.h"
 #include "firebase/firestore.h"
 #include "firebase/firestore/firestore_errors.h"

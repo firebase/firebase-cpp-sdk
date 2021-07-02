@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/main/user_data_converter_main.h"
 
 #include <set>

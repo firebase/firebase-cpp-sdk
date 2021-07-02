@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+# Copyright 2020 Google LLC
+
 if [[ $(uname) == "Darwin" ]]; then
     platform=darwin
     if [[ ! -z "${GHA_INSTALL_CCACHE}" ]]; then

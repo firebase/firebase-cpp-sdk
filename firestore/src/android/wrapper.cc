@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/android/wrapper.h"
 
 #include <iterator>
