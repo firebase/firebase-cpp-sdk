@@ -27,5 +27,6 @@ jobs:
       - name: Run lint
         shell: bash
         run: |
+          set -e
           cd firebase-cpp-sdk
           python3 scripts/gha/lint_commenter.py -l ../cpplint/cpplint.py -p ${{ github.event.pull_request.number }} -t ${{ github.token }} -A
