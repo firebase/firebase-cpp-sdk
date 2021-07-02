@@ -122,16 +122,17 @@ def main():
        '-H', 'Authorization: token %s' % args.token,
        request_url
       ] + ([] if not args.verbose else ['-v'])).decode('utf-8')
-  # Parse the diff to determine the position (within the PR) of each source line.
-  # Only lint lines that refer to valid positions in the PR will be displayed.
+  # Parse the diff to determine the whether each source line is touched.
+  # Only lint lines that refer to parts of files that are diffed will be shown.
   # Information on what this means here:
   # https://docs.github.com/en/rest/reference/pulls#create-a-review-comment-for-a-pull-request
-  line_reference = {}
+  valid_lines = {}
   file_list = []
   pr_patch = PatchSet(pr_diff)
   for pr_patch_file in pr_patch:
-    # Skip removed files.
-    if pr_patch_file.removed: continue
+    # Skip files that only remove code.
+    if pr_patch_file.removed and not pr_patch_file.added:
+      continue
     # Skip files that match an EXCLUDE_PATH_REGEX
     excluded = False
     for exclude_regex in EXCLUDE_PATH_REGEX:
@@ -140,17 +141,16 @@ def main():
         break
     if excluded: continue
     file_list.append(pr_patch_file.path)
-    pr_file_position = 0
-    line_reference[pr_patch_file.path] = {}
+    valid_lines[pr_patch_file.path] = set()
     for hunk in pr_patch_file:
-      pr_file_position = pr_file_position + 1
-      for line in range(
-          hunk.target_start,
-          hunk.target_start + hunk.target_length):
-        line_reference[pr_patch_file.path][line] = pr_file_position
-        pr_file_position = pr_file_position + 1
+      if hunk.target_length > 0:
+        for line_number in range(
+            hunk.target_start,
+            hunk.target_start + hunk.target_length):
+          # This line is modified by the diff, add it to the valid set of lines.
+          valid_lines[pr_patch_file.path].add(line_number)
 
-  # Now we have a list of files in repo
+  # Now we also have a list of files in repo.
   try:
     lint_results=subprocess.check_output([
         args.lint_command,
@@ -162,13 +162,13 @@ def main():
     # Nothing to do if there is an exception.
     lint_results=e.output.decode('utf-8').split('\n')
 
-  comments = []
+  all_comments = []
   for line in lint_results:
     # Match an output line from the linter, in this format:
     # path/to/file:line#: Lint message goes here [lint type] [confidence#]
     m = re.match(r'([^:]+):([0-9]+): *(.*[^ ]) +\[([^]]+)\] \[(\d+)\]$', line)
     if m:
-      comments.append({
+      all_comments.append({
           'filename': m.group(1),
           'line': int(m.group(2)),
           'text': m.group(3),
@@ -177,11 +177,10 @@ def main():
           'original_line': line})
 
   pr_comments = []
-  for comment in comments:
-    if comment['filename'] in line_reference:
-      if (comment['line'] in line_reference[comment['filename']] and
+  for comment in all_comments:
+    if comment['filename'] in valid_lines:
+      if (comment['line'] in valid_lines[comment['filename']] and
           comment['confidence'] >= MINIMUM_CONFIDENCE):
-        comment['position'] = line_reference[comment['filename']][comment['line']]
         pr_comments.append(comment)
   if args.verbose:
     print('Got %d relevant lint comments' % len(pr_comments))
@@ -233,9 +232,7 @@ def main():
               '<hidden value=%s></hidden>' % json.dumps(pr_comment['original_line'])
                    ),
           'path': pr_comment['filename'],
-          # 'line': pr_comment['line'],
-          # Use 'line' instead of 'position', it's more reliable.
-          'position': pr_comment['position'],
+          'line': pr_comment['line'],
       })
       print(pr_comment['original_line'])
 
