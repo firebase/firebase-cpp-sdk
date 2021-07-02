@@ -232,9 +232,9 @@ def main():
               '<hidden value=%s></hidden>' % json.dumps(pr_comment['original_line'])
                    ),
           'path': pr_comment['filename'],
-          'line': pr_comment['line'],
+          # 'line': pr_comment['line'],
           # Use 'line' instead of 'position', it's more reliable.
-          # 'position': pr_comment['position'],
+          'position': pr_comment['position'],
       })
       print(pr_comment['original_line'])
 
