@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v2
         with:
           submodules: false
-          path: firebase-cpp-sdk
+          path: firebase
       
       - name: Setup python
         uses: actions/setup-python@v2
@@ -29,5 +29,5 @@ jobs:
         shell: bash
         run: |
           set -e
-          cd firebase-cpp-sdk
+          cd firebase
           python3 scripts/gha/lint_commenter.py -l ../cpplint/cpplint.py -p ${{ github.event.pull_request.number }} -t ${{ github.token }} -A
