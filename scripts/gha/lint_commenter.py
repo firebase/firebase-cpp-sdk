@@ -235,12 +235,15 @@ def main():
     else:
       print("Posted %d lint warnings" % len(pr_comments))
 
-    if args.in_github_action and len(pr_comments) > 0:
+    if args.in_github_action:
       # Also post a GitHub log comment.
       lines = ["Found %d lint warnings" % len(pr_comments)]
       for comment in pr_comments:
         lines.append(comment['original_line'])
       print("::warning ::%s" % "%0A".join(lines))
+      # In GitHub, return a failure if there were lint warnings posted.
+      exit 1
+
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Run cpplint on code and add results as PR comments.')
