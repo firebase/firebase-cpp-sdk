@@ -23,6 +23,7 @@ jobs:
           python-version: 3.7
       - name: Install prerequisites
         run: |
+          cd firebase-cpp-sdk
           python3 scripts/gha/install_prereqs_desktop.py
           python3 -m pip install unidiff
       - name: Run lint
