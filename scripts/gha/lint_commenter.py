@@ -46,6 +46,11 @@ IGNORE_LINT_WARNINGS = [
 EXCLUDE_PATH_REGEX = [
     r'^analytics/ios_headers/'
 ]
+# The linter gives every error a confidence score.
+# 1 = It's most likely not really an issue.
+# 5 = It's definitely an issue.
+# Set this to 1 to show all warnings, or higher to show fewer warnings.
+MINIMUM_CONFIDENCE = 1
 LABEL_TO_SKIP_LINT = 'no-lint'
 CPPLINT_FILTER = '-'+',-'.join(IGNORE_LINT_WARNINGS)
 LINT_COMMENT_HEADER = '⚠️ Lint warning: `'
@@ -157,21 +162,21 @@ def main():
 
   comments = []
   for line in lint_results:
-    m = re.match(r'([^:]+):([0-9]+): *(.*[^ ]) +\[[^]]+\] \[\d+\]$', line)
+    m = re.match(r'([^:]+):([0-9]+): *(.*[^ ]) +\[([^]]+)\] \[(\d+)\]$', line)
     if m:
-      filename = m.group(1)
-      line_number = int(m.group(2))
-      lint_text = m.group(3)
       comments.append({
-          'filename': filename,
-          'line': line_number,
-          'text': lint_text,
+          'filename': m.group(1),
+          'line': int(m.group(2)),
+          'text': m.group(3),
+          'type': m.group(4),
+          'confidence': int(m.group(5)),
           'original_line': line})
 
   pr_comments = []
   for comment in comments:
     if comment['filename'] in line_reference:
-      if comment['line'] in line_reference[comment['filename']]:
+      if (comment['line'] in line_reference[comment['filename']] and
+          comment['confidence'] >= MINIMUM_CONFIDENCE):
         comment['position'] = line_reference[comment['filename']][comment['line']]
         pr_comments.append(comment)
   if args.verbose:
