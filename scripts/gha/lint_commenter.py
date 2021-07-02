@@ -242,7 +242,7 @@ def main():
         lines.append(comment['original_line'])
       print("::warning ::%s" % "%0A".join(lines))
       # In GitHub, return a failure if there were lint warnings posted.
-      exit 1
+      exit(1)
 
 
 def parse_cmdline_args():
