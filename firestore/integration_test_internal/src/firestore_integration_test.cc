@@ -307,6 +307,11 @@ bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,
   }
 }
 
+class TemporaryLintErrorClass {
+  // The below line should give a lint error.
+  TemporaryLintErrorClass(int t) {}
+};
+
 /* static */
 std::string FirestoreIntegrationTest::DescribeFailedFuture(
     const FutureBase& future) {
