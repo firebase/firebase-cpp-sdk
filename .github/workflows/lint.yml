@@ -23,11 +23,9 @@ jobs:
           python-version: 3.7
       - name: Install prerequisites
         run: |
-          cd firebase-cpp-sdk
-          python3 scripts/gha/install_prereqs_desktop.py
           python3 -m pip install unidiff
       - name: Run lint
         shell: bash
         run: |
           cd firebase-cpp-sdk
-          python3 scripts/gha/lint_commenter.py -l ../cpplint/cpplint.py -p ${{ github.event.pull_request.number }} -t {{ github.token }} -A
+          python3 scripts/gha/lint_commenter.py -l ../cpplint/cpplint.py -p ${{ github.event.pull_request.number }} -t ${{ github.token }} -A
