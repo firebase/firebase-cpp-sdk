@@ -254,7 +254,7 @@ def main():
 
     if args.in_github_action:
       # Also post a GitHub log comment.
-      lines = ['Found %d lint warnings' % len(pr_comments)]
+      lines = ['Found %d lint warnings:' % len(pr_comments)]
       for comment in pr_comments:
         lines.append(comment['original_line'])
       print('::warning ::%s' % '%0A'.join(lines))
