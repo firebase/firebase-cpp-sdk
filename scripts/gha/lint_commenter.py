@@ -92,6 +92,9 @@ def main():
        request_url
       ] + ([] if not args.verbose else ['-v'])).decode('utf-8').rstrip('\n'))
   commit_sha = pr_data['head']['sha']
+  if args.verbose:
+    print('Commit sha:', commit_sha)
+
   skip_lint = False
   if 'labels' in pr_data:
     for label in pr_data['labels']:
@@ -102,9 +105,6 @@ def main():
   if skip_lint:
     print('PR #%s has "%s" label, skipping lint checks' % (args.pr_number, LABEL_TO_SKIP_LINT))
     exit(0)
-
-  if args.verbose:
-    print('Commit sha:', commit_sha)
 
   # Get the diff for the pull request.
   # GET /repos/{owner}/{repo}/pulls/{pull_number}
