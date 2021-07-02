@@ -67,7 +67,7 @@ static const char kDomainUriPrefixInvalidError[] =
 
 // IMPORTANT: You need to set this to a valid URI prefix from the Firebase
 // console (see kDomainUriPrefixInvalidError for the details).
-static const char* kDomainUriPrefix = "https://REPLACE_WITH_YOUR_URI_PREFIX";
+static const char* kDomainUriPrefix = "https://zx93d.app.goo.gl";
 
 #define TARGET_URL_PREFIX "https://mysite.example.com"
 

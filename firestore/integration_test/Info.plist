@@ -25,7 +25,7 @@
 			<string>google</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>REPLACE_WITH_REVERSED_CLIENT_ID</string>
+				<string>com.googleusercontent.apps.80955193299-dpoqtev9j10pffr05pmsikfue7oc2dal</string>
 				<string>firebase-game-loop</string>
 			</array>
 		</dict>
