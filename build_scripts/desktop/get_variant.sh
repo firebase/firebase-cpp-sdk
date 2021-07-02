@@ -1,4 +1,6 @@
 #!/bin/bash
+
+# Copyright 2020 Google LLC
 set -e
 
 # Given a filename on the command-line, figure out what variant it should be packaged into.

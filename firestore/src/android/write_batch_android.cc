@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/android/write_batch_android.h"
 
 #include "firestore/src/android/document_reference_android.h"

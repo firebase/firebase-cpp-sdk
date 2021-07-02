@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #import "performance/src/include/firebase/performance/http_metric.h"
 
 #include <jni.h>

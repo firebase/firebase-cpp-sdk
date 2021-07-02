@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/android/geo_point_android.h"
 
 #include "firebase/firestore/geo_point.h"

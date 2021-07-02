@@ -76,3 +76,15 @@ jobs:
             grep -E "error:|warning:|^  parameter" doxygen_errors.txt | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::error ::DOXYGEN ERRORS:  %0A/'
             exit 1
           fi
+
+  copyright_check:
+    # Check for Google copyright in each file.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: false
+      - name: Run check_copyright.sh
+        run: |
+          set -e
+          bash scripts/gha/check_copyright.sh -g

@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/jni/task.h"
 
 #include "android/cancellation_token_source.h"

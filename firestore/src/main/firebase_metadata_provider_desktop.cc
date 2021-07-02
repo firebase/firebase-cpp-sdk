@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/main/firebase_metadata_provider_desktop.h"
 
 #include "app/src/heartbeat_info_desktop.h"

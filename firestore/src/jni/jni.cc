@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/jni/jni.h"
 
 #include <pthread.h>

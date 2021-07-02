@@ -43,7 +43,7 @@ namespace firebase_testapp_automated {
 // Your Firebase project's Server Key for Cloud Messaging goes here.
 // You can get this from Firebase Console, in your Project settings under Cloud
 // Messaging.
-const char kFcmServerKey[] = "REPLACE_WITH_YOUR_SERVER_KEY";
+const char kFcmServerKey[] = "AAAAM2ROZHA:APA91bHVTMuAdnIw014jKETAUYiy7qLvIo1zMHGMOszbZyZJaf_cEEd6MF9ad8qwS_DbgjYo36FeELhtTf-dsJCsLt6hurDnbRPIGcxMPtNMNSYC1Krh-KSn9GURceEwEA-sr-i3HTDU";
 
 const char kRestEndpoint[] = "https://fcm.googleapis.com/fcm/send";
 

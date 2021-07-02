@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #import "performance/src/include/firebase/performance/trace.h"
 
 #include "app/src/assert.h"

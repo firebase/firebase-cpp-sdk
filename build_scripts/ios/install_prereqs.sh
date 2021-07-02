@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+# Copyright 2020 Google LLC
+
 if [[ $(uname) != "Darwin" ]]; then
     echo "Unsupported platform, iOS can only be build on a MacOS machine."
     exit 1

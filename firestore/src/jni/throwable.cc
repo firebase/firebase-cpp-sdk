@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/jni/throwable.h"
 
 #include "app/src/util_android.h"

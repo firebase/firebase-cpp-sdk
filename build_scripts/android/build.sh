@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+# Copyright 2020 Google LLC
+
 buildpath=$1
 sourcepath=$2
 stl=$3

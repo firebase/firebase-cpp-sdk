@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 // This file contains the declarations of common functions that deal with
 // initialization of the Firebase Performance C++ API and how it deals with the
 // lifecycle of the common FirebaseApp instance. Some of these functions are

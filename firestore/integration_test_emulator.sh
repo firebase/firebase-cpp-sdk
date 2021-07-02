@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Copyright 2020 Google LLC
+
 source googletest.sh || exit 1
 
 # Copied from `googletest.sh`. The only difference is the original uses an
