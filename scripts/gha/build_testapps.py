@@ -218,13 +218,19 @@ def main(argv):
   else:
     output_dir = os.path.join(root_output_dir, "testapps" + timestamp)
 
+  config = config_reader.read_config()
+
   xcframework_dir = os.path.join(sdk_dir, "xcframeworks")
   xcframework_exist = os.path.isdir(xcframework_dir)
+  if not xcframework_exist:
+    if _IOS in platforms:
+      _build_xcframework_from_repo(repo_dir, "ios", testapps, config)
+    if _TVOS in platforms:
+      _build_xcframework_from_repo(repo_dir, "tvos", testapps, config)
 
   if update_pod_repo and (_IOS in platforms or _TVOS in platforms):
     _run(["pod", "repo", "update"])
 
-  config = config_reader.read_config()
   cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
   # VCPKG is used to install dependencies for the desktop SDK.
   # Building from source requires building the underlying SDK libraries,
@@ -500,19 +506,22 @@ def _validate_android_environment_variables():
 
 # build required ios xcframeworks based on makefiles
 # the xcframeworks locates at repo_dir/ios_build
-def _build_xcframework_from_repo(repo_dir, apple_platform, output_dir, api_config):
-  """Builds iOS framework from SDK source."""
-  output_path = os.path.join(repo_dir, output_dir)
+def _build_xcframework_from_repo(repo_dir, apple_platform, testapps, config):
+  """Builds xcframework from SDK source."""
+  output_path = os.path.join(repo_dir, apple_platform + "_build")
   _rm_dir_safe(output_path)
   xcframework_builder = os.path.join(
-      repo_dir, "scripts", "gha", "build_ios_tvos.py")
+    repo_dir, "scripts", "gha", "build_ios_tvos.py")
 
   # build only required targets to save time
-  target = []
+  target = set()
+  for testapp in testapps:
+    api_config = config.get_api(testapp)
+    if apple_platform == "ios" or (apple_platform == "tvos" and api_config.tvos_target):
+      for framework in api_config.frameworks:
+        # firebase_analytics.framework -> firebase_analytics
+        target.add(os.path.splitext(framework)[0])
 
-  for framework in api_config.frameworks:
-    # firebase_analytics.framework -> firebase_analytics
-    target.append(os.path.splitext(framework)[0])
   # firebase is not a target in CMake, firebase_app is the target
   # firebase_app will be built by other target as well
   target.remove("firebase")
@@ -534,9 +543,7 @@ def _build_apple(
   """Builds an iOS application (.app, .ipa or both)."""
   build_dir = apple_platfrom.lower() + "_build"
   if not xcframework_exist:
-    _build_xcframework_from_repo(repo_dir, apple_platfrom.lower(), build_dir, api_config)
     sdk_dir = os.path.join(repo_dir, build_dir)
-    logging.info("XCFramework created at: %s", sdk_dir)
 
   build_dir = os.path.join(project_dir, build_dir)
   os.makedirs(build_dir)

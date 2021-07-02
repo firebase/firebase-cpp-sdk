@@ -70,10 +70,8 @@ class GameLoopLauncherUITests: XCTestCase {
 
     //Launch Gameloop App
     app.launch()
-
     //Wait until Gameloop App open Integration Test App
-    sleep(20)
-
+    app.wait(for: .runningBackground, timeout: 20)
     //Wait until Integration Test App closed (testing finished)
     let expectation = XCTestExpectation(description: "Integration Test App closed")
     Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { (_) in
@@ -84,6 +82,7 @@ class GameLoopLauncherUITests: XCTestCase {
         NSLog("Testing... Gameloop App in background...")
       }
     }
+
     let timeout = getTimeout()
     let wait = XCTWaiter().wait(for: [expectation], timeout: timeout)
 
