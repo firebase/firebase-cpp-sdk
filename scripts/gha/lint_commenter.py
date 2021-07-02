@@ -46,7 +46,7 @@ IGNORE_LINT_WARNINGS = [
 EXCLUDE_PATH_REGEX = [
     r'^analytics/ios_headers/'
 ]
-
+LABEL_TO_SKIP_LINT = 'no-lint'
 CPPLINT_FILTER = '-'+',-'.join(IGNORE_LINT_WARNINGS)
 LINT_COMMENT_HEADER = 'Lint warning: `'
 LINT_COMMENT_FOOTER = '`'
@@ -78,7 +78,7 @@ def main():
   # Get the head commit for the pull request.
   # GET /repos/{owner}/{repo}/pulls/{pull_number}
   request_url = 'https://api.github.com/repos/%s/%s/pulls/%s' % (repo_owner, repo_name, args.pr_number)
-  header = "Accept: application/vnd.github.VERSION.json"
+  header = 'Accept: application/vnd.github.VERSION.json'
   pr_data = json.loads(subprocess.check_output(
       [args.curl,
        '-s', '-X', 'GET',
@@ -87,13 +87,24 @@ def main():
        request_url
       ] + ([] if not args.verbose else ['-v'])).decode('utf-8').rstrip('\n'))
   commit_sha = pr_data['head']['sha']
+  skip_lint = False
+  if 'labels' in pr_data:
+    for label in pr_data['labels']:
+      if label['name'] == LABEL_TO_SKIP_LINT:
+        skip_lint = True
+        break
+
+  if skip_lint:
+    print('PR #%s has "%s" label, skipping lint checks' % (args.pr_number, LABEL_TO_SKIP_LINT))
+    exit(0)
+
   if args.verbose:
-    print("Commit sha:", commit_sha)
+    print('Commit sha:', commit_sha)
 
   # Get the diff for the pull request.
   # GET /repos/{owner}/{repo}/pulls/{pull_number}
   request_url = 'https://api.github.com/repos/%s/%s/pulls/%s' % (repo_owner, repo_name, args.pr_number)
-  header = "Accept: application/vnd.github.VERSION.diff"
+  header = 'Accept: application/vnd.github.VERSION.diff'
   if args.verbose:
     print('request_url: %s' % request_url)
   pr_diff = subprocess.check_output(
@@ -164,7 +175,7 @@ def main():
         comment['position'] = line_reference[comment['filename']][comment['line']]
         pr_comments.append(comment)
   if args.verbose:
-    print("Got %d relevant lint comments" % len(pr_comments))
+    print('Got %d relevant lint comments' % len(pr_comments))
 
   # Next, get all existing review comments that we posted on the PR and delete them.
   comments_to_delete = []
@@ -173,7 +184,7 @@ def main():
   keep_reading = True
   while keep_reading:
     if args.verbose:
-      print("Read page %d of comments" % page)
+      print('Read page %d of comments' % page)
     request_url = 'https://api.github.com/repos/%s/%s/pulls/%s/comments?per_page=%d&page=%d' % (repo_owner, repo_name, args.pr_number, per_page, page)
     comments = json.loads(subprocess.check_output([args.curl,
                                                    '-s', '-X', 'GET',
@@ -188,7 +199,7 @@ def main():
       # Stop once we're read less than a full page of comments.
       keep_reading = False
   if comments_to_delete:
-    print("Delete previous lint comments:", comments_to_delete)
+    print('Delete previous lint comments:', comments_to_delete)
   for comment_id in comments_to_delete:
     # Delete all of these comments.
     # DELETE /repos/{owner}/{repo}/pulls/{pull_number}/comments
@@ -205,23 +216,24 @@ def main():
       # POST /repos/{owner}/{repo}/pulls/{pull_number}/comments
       request_url = 'https://api.github.com/repos/%s/%s/pulls/%s/reviews' % (repo_owner, repo_name, args.pr_number)
       comments_to_send.append({
-          "body": (
+          'body': (
               LINT_COMMENT_HEADER +
               pr_comment['text'] +
               LINT_COMMENT_FOOTER +
               HIDDEN_COMMENT_TAG +
-              "<hidden value=%s></hidden>" % json.dumps(pr_comment['original_line'])
+              '<hidden value=%s></hidden>' % json.dumps(pr_comment['original_line'])
                    ),
-          "path": pr_comment['filename'],
-          "line": pr_comment['line'],
-          #"position": pr_comment['position'],
+          'path': pr_comment['filename'],
+          'line': pr_comment['line'],
+          # Use 'line' instead of 'position', it's more reliable.
+          # 'position': pr_comment['position'],
       })
       print(pr_comment['original_line'])
 
     request_body = {
-        "commit_id": commit_sha,
-        "event": "COMMENT",
-        "comments": comments_to_send
+        'commit_id': commit_sha,
+        'event': 'COMMENT',
+        'comments': comments_to_send
     }
     json_text = json.dumps(request_body)
     run_output = json.loads(subprocess.check_output([args.curl,
@@ -231,27 +243,30 @@ def main():
                                                      request_url, '-d', json_text]
                                                     + ([] if not args.verbose else ['-v'])).decode('utf-8').rstrip('\n'))
     if 'message' in run_output and 'errors' in run_output:
-      print("%s error when posting comments:\n%s" %
-            (run_output['message'], "\n".join(run_output['errors'])))
+      print('%s error when posting comments:\n%s' %
+            (run_output['message'], '\n'.join(run_output['errors'])))
+      if args.in_github_action:
+        print('::error ::%s error when posting comments:%0A%s' %
+              (run_output['message'], '%0A'.join(run_output['errors'])))
       exit(1)
     else:
-      print("Posted %d lint warnings" % len(pr_comments))
+      print('Posted %d lint warnings successfully' % len(pr_comments))
 
     if args.in_github_action:
       # Also post a GitHub log comment.
-      lines = ["Found %d lint warnings" % len(pr_comments)]
+      lines = ['Found %d lint warnings' % len(pr_comments)]
       for comment in pr_comments:
         lines.append(comment['original_line'])
-      print("::warning ::%s" % "%0A".join(lines))
+      print('::warning ::%s' % '%0A'.join(lines))
   else:
-    print("No lint warnings found.")
+    print('No lint warnings found.')
     exit(0)
 
 def parse_cmdline_args():
   parser = argparse.ArgumentParser(description='Run cpplint on code and add results as PR comments.')
   parser.add_argument('-t', '--token', required=True, help='GitHub access token')
   parser.add_argument('-p', '--pr_number', required=True, help='Pull request number')
-  parser.add_argument('-l', '--lint_command', help='Lint command to run', default="cpplint.py")
+  parser.add_argument('-l', '--lint_command', help='Lint command to run', default='cpplint.py')
   parser.add_argument('-r', '--repo', metavar='URL', help='GitHub repo to trigger workflow on, default is current repo')
   parser.add_argument('-d', '--dryrun', action='store_true', help='Just print the URL and JSON and exit.')
   parser.add_argument('-v', '--verbose', action='store_true', help='Enable verbose mode')
