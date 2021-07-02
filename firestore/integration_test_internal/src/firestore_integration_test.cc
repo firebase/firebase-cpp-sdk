@@ -261,6 +261,11 @@ std::vector<std::string> FirestoreIntegrationTest::QuerySnapshotToIds(
   return result;
 }
 
+class AnotherTemporaryLintErrorClass {
+  // The below line should give a lint error.
+  AnotherTemporaryLintErrorClass(int t) {}
+};
+
 std::vector<MapFieldValue> FirestoreIntegrationTest::QuerySnapshotToValues(
     const QuerySnapshot& snapshot) const {
   std::vector<MapFieldValue> result;
