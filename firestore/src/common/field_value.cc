@@ -25,6 +25,14 @@ namespace {
 
 using Type = FieldValue::Type;
 
+template <typename T>
+std::string ValueToString(const T& value) {
+  // TODO(b/192885139): use `std::to_string` once possible.
+  std::ostringstream stream;
+  stream << value;
+  return stream.str();
+}
+
 // TODO(varconst): optional indentation.
 std::string ValueToString(const std::vector<FieldValue>& value) {
   std::string result = "[";
@@ -270,10 +278,10 @@ std::string FieldValue::ToString() const {
       return boolean_value() ? "true" : "false";
 
     case Type::kInteger:
-      return std::to_string(integer_value());
+      return ValueToString(integer_value());
 
     case Type::kDouble:
-      return std::to_string(double_value());
+      return ValueToString(double_value());
 
     case Type::kTimestamp:
       return timestamp_value().ToString();
