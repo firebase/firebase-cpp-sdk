@@ -1,9 +1,10 @@
 // Copyright 2021 Google LLC
 
+#include <memory>
+
 #include "firestore/src/jni/env.h"
 
 #include "Firestore/core/src/util/firestore_exceptions.h"
-#include "app/memory/unique_ptr.h"
 #include "app/meta/move.h"
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/common/macros.h"
@@ -17,7 +18,7 @@ namespace jni {
 
 class EnvTest : public FirestoreIntegrationTest {
  public:
-  EnvTest() : env_(MakeUnique<Env>(GetEnv())) {}
+  EnvTest() : env_(std::make_unique<Env>(GetEnv())) {}
 
   ~EnvTest() override {
     // Ensure that after the test is done that any pending exception is cleared
@@ -32,7 +33,7 @@ class EnvTest : public FirestoreIntegrationTest {
   // compiler to propagate this into `EnvTest`'s destructor, but this conflicts
   // with the declaration of the parent class. Holding `Env` with a unique
   // pointer sidesteps this restriction.
-  UniquePtr<Env> env_;
+  std::unique_ptr<Env> env_;
 };
 
 #if FIRESTORE_HAVE_EXCEPTIONS

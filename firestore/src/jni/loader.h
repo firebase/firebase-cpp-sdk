@@ -154,8 +154,7 @@ class Loader {
 
   bool ok_ = true;
 
-  // A list of classes that were successfully loaded. This is held as a
-  // UniquePtr to allow Loader to be move-only when built with STLPort.
+  // A list of classes that were successfully loaded.
   std::vector<jclass> loaded_classes_;
 
   // A list of embedded files from which to load classes

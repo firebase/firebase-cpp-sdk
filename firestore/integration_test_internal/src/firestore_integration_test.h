@@ -6,11 +6,11 @@
 #include <cstdio>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
 #include "app/meta/move.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -331,8 +331,9 @@ class FirestoreIntegrationTest : public testing::Test {
   class FirestoreInfo {
    public:
     FirestoreInfo() = default;
-    FirestoreInfo(const std::string& name, UniquePtr<Firestore>&& firestore)
-        : name_(name), firestore_(Move(firestore)) {}
+    FirestoreInfo(const std::string& name,
+                  std::unique_ptr<Firestore>&& firestore)
+        : name_(name), firestore_(std::move(firestore)) {}
 
     const std::string& name() const { return name_; }
     Firestore* firestore() const { return firestore_.get(); }
@@ -340,14 +341,14 @@ class FirestoreIntegrationTest : public testing::Test {
 
    private:
     std::string name_;
-    UniquePtr<Firestore> firestore_;
+    std::unique_ptr<Firestore> firestore_;
   };
 
   // The Firestore and App instance caches.
   // Note that `firestores_` is intentionally ordered *after* `apps_` so that
   // the Firestore pointers will be deleted before the App pointers when this
   // object is destructed.
-  mutable std::unordered_map<App*, UniquePtr<App>> apps_;
+  mutable std::unordered_map<App*, std::unique_ptr<App>> apps_;
   mutable std::unordered_map<Firestore*, FirestoreInfo> firestores_;
 };
 

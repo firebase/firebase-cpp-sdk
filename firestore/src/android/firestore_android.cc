@@ -263,7 +263,7 @@ FirestoreInternal::FirestoreInternal(App* app) {
   FIREBASE_ASSERT(java_user_callback_executor.get() != nullptr);
   user_callback_executor_ = java_user_callback_executor;
 
-  promises_ = MakeUnique<PromiseFactory<AsyncFn>>(this);
+  promises_ = std::make_unique<PromiseFactory<AsyncFn>>(this);
 }
 
 /* static */
