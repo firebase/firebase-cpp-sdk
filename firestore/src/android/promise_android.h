@@ -12,6 +12,7 @@
 #include "firestore/src/android/document_snapshot_android.h"
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/firestore_android.h"
+#include "firestore/src/android/make_unique.h"
 #include "firestore/src/android/query_snapshot_android.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/object.h"
@@ -76,7 +77,7 @@ class Promise {
   Promise(ReferenceCountedFutureImpl* impl,
           FirestoreInternal* firestore,
           Completion* completion)
-      : completer_(std::make_unique<Completer<PublicType, InternalType>>(
+      : completer_(make_unique<Completer<PublicType, InternalType>>(
             impl, firestore, completion)),
         impl_(impl) {}
 

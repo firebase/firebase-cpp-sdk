@@ -27,6 +27,7 @@
 #include "firestore/src/android/listener_registration_android.h"
 #include "firestore/src/android/load_bundle_task_android.h"
 #include "firestore/src/android/load_bundle_task_progress_android.h"
+#include "firestore/src/android/make_unique.h"
 #include "firestore/src/android/metadata_changes_android.h"
 #include "firestore/src/android/promise_android.h"
 #include "firestore/src/android/query_android.h"
@@ -263,7 +264,7 @@ FirestoreInternal::FirestoreInternal(App* app) {
   FIREBASE_ASSERT(java_user_callback_executor.get() != nullptr);
   user_callback_executor_ = java_user_callback_executor;
 
-  promises_ = std::make_unique<PromiseFactory<AsyncFn>>(this);
+  promises_ = make_unique<PromiseFactory<AsyncFn>>(this);
 }
 
 /* static */
