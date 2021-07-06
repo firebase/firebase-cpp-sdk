@@ -20,17 +20,16 @@ endif()
 
 set(uwebsockets_commit_tag 4d94401b9c98346f9afd838556fdc7dce30561eb)
 set(patch_file 
-  ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/uWebsockets/0001-fix-want-write-crash.patch)
+  ${CMAKE_CURRENT_LIST_DIR}/../../scripts/git/patches/uWebSockets/0001-fix-want-write-crash.patch)
 
 ExternalProject_Add(
   uWebSockets
 
   DOWNLOAD_COMMAND 
-    COMMAND git init uWebsockets
-    COMMAND cd uWebsockets && git fetch --depth=1 https://github.com/uNetworking/uWebSockets.git ${uwebsockets_commit_tag} && git reset --hard FETCH_HEAD
+    COMMAND git init uWebSockets
+    COMMAND cd uWebSockets && git fetch --depth=1 https://github.com/uNetworking/uWebSockets.git ${uwebsockets_commit_tag} && git reset --hard FETCH_HEAD
 
   PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
-
   PREFIX ${PROJECT_BINARY_DIR}
   CONFIGURE_COMMAND ""
   BUILD_COMMAND ""
