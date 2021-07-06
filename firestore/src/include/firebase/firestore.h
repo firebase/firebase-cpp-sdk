@@ -264,8 +264,16 @@ class Firestore {
    * transaction is valid as long as the Future has not yet completed.)
    *
    * @return A Future that will be resolved when the transaction finishes.
+   *
+   * @note This method is only available when using the STLPort C++ runtime
+   * library.
+   *
+   * @deprecated STLPort support in Firestore is deprecated and will be removed
+   * in a future release. Note that STLPort has been deprecated in the Android
+   * NDK since r17 (May 2018) and removed since r18 (September 2018).
    */
-  virtual Future<void> RunTransaction(TransactionFunction* update);
+  FIREBASE_DEPRECATED virtual Future<void> RunTransaction(
+      TransactionFunction* update);
 
   /**
    * Sets the log verbosity of all Firestore instances.
