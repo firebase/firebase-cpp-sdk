@@ -21,6 +21,7 @@
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_MAKE_UNIQUE_H_
 
 #include <memory>
+#include <utility>
 
 namespace firebase {
 namespace firestore {
