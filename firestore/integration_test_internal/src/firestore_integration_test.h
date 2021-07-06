@@ -57,15 +57,15 @@ class EventAccumulator;
 // An EventListener class for writing tests. This listener counts the number of
 // events as well as keeps track of the last result.
 template <typename T>
-class TestEventListener : public EventListener<T> {
+class TestEventListener {
  public:
   explicit TestEventListener(std::string name) : name_(std::move(name)) {}
 
-  ~TestEventListener() override {}
+  virtual ~TestEventListener() {}
 
-  void OnEvent(const T& value,
-               Error error_code,
-               const std::string& error_message) override {
+  virtual void OnEvent(const T& value,
+                       Error error_code,
+                       const std::string& error_message) {
     if (print_debug_info_) {
       std::cout << "TestEventListener got: ";
       if (error_code == Error::kErrorOk) {
@@ -110,20 +110,14 @@ class TestEventListener : public EventListener<T> {
     return last_results_[last_results_.size() - 1 - i];
   }
 
-  // Hides the STLPort-related quirk that `AddSnapshotListener` has different
-  // signatures depending on whether `std::function` is available.
   template <typename U>
   ListenerRegistration AttachTo(
       U* ref, MetadataChanges metadata_changes = MetadataChanges::kExclude) {
-#if defined(FIREBASE_USE_STD_FUNCTION)
     return ref->AddSnapshotListener(
         metadata_changes, [this](const T& result, Error error_code,
                                  const std::string& error_message) {
           OnEvent(result, error_code, error_message);
         });
-#else
-    return ref->AddSnapshotListener(metadata_changes, this);
-#endif
   }
 
   std::string first_error_message() {

@@ -163,8 +163,6 @@ Future<void> DocumentReferenceInternal::Delete() {
   return promises_.NewFuture<void>(env, AsyncFn::kDelete, task);
 }
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
-
 ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
     std::function<void(const DocumentSnapshot&, Error, const std::string&)>
@@ -175,8 +173,7 @@ ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
                              /*passing_listener_ownership=*/true);
 }
 
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
-
+// TODO(b/191969080): Remove the passing_listener_ownership if possible.
 ListenerRegistration DocumentReferenceInternal::AddSnapshotListener(
     MetadataChanges metadata_changes,
     EventListener<DocumentSnapshot>* listener,
