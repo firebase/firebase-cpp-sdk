@@ -8,6 +8,7 @@
 #include "Firestore/core/src/model/document_key.h"
 #include "Firestore/core/src/model/field_path.h"
 #include "Firestore/core/src/model/maybe_document.h"
+#include "FirebaseFirestore/core/src/util/exception.h"
 #include "Firestore/core/src/util/status.h"
 #include "Firestore/core/src/util/statusor.h"
 #include "absl/types/optional.h"
@@ -29,6 +30,7 @@ using model::Document;
 using model::MaybeDocument;
 using util::Status;
 using util::StatusOr;
+using util::ThrowInvalidArgument;
 
 const model::DocumentKey& GetKey(const DocumentReference& document) {
   return GetInternal(&document)->key();
@@ -81,7 +83,7 @@ TransactionInternal::TransactionInternal(
       user_data_converter_{&firestore_internal->database_id()} {}
 
 Firestore* TransactionInternal::firestore() {
-  return Firestore::GetInstance(firestore_internal_->app());
+  return firestore_internal_->firestore_public();
 }
 
 FirestoreInternal* TransactionInternal::firestore_internal() {
@@ -91,29 +93,34 @@ FirestoreInternal* TransactionInternal::firestore_internal() {
 void TransactionInternal::Set(const DocumentReference& document,
                               const MapFieldValue& data,
                               const SetOptions& options) {
+  ValidateReference(document);
   ParsedSetData parsed = user_data_converter_.ParseSetData(data, options);
   transaction_->Set(GetKey(document), std::move(parsed));
 }
 
 void TransactionInternal::Update(const DocumentReference& document,
                                  const MapFieldValue& data) {
+  ValidateReference(document);
   transaction_->Update(GetKey(document),
                        user_data_converter_.ParseUpdateData(data));
 }
 
 void TransactionInternal::Update(const DocumentReference& document,
                                  const MapFieldPathValue& data) {
+  ValidateReference(document);
   transaction_->Update(GetKey(document),
                        user_data_converter_.ParseUpdateData(data));
 }
 
 void TransactionInternal::Delete(const DocumentReference& document) {
+  ValidateReference(document);
   transaction_->Delete(GetKey(document));
 }
 
 DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
                                           Error* error_code,
                                           std::string* error_message) {
+  ValidateReference(document);
   std::promise<StatusOr<DocumentSnapshot>> promise;
   model::DocumentKey key = GetKey(document);
 
@@ -154,6 +161,15 @@ DocumentSnapshot TransactionInternal::Get(const DocumentReference& document,
 
 void TransactionInternal::MarkPermanentlyFailed() {
   transaction_->MarkPermanentlyFailed();
+}
+
+void TransactionInternal::ValidateReference(const DocumentReference& document) {
+  auto* internal_doc = GetInternal(&document);
+  if (internal_doc->firestore() != firestore()) {
+    ThrowInvalidArgument(
+        "Provided document reference is from a different Cloud Firestore "
+        "instance.");
+  }
 }
 
 }  // namespace firestore

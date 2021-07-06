@@ -1,5 +1,6 @@
 #include "firestore/src/main/firestore_main.h"
 
+#include <cstring>
 #include <sstream>
 #include <utility>
 
@@ -9,6 +10,7 @@
 #include "Firestore/core/src/model/resource_path.h"
 #include "Firestore/core/src/util/async_queue.h"
 #include "Firestore/core/src/util/byte_stream_cpp.h"
+#include "Firestore/core/src/util/exception.h"
 #include "Firestore/core/src/util/executor.h"
 #include "Firestore/core/src/util/log.h"
 #include "Firestore/core/src/util/status.h"
@@ -34,10 +36,10 @@ namespace {
 
 using auth::CredentialsProvider;
 using model::DatabaseId;
-using model::ResourcePath;
 using util::AsyncQueue;
 using util::Executor;
 using util::Status;
+using util::ThrowInvalidArgument;
 
 std::shared_ptr<AsyncQueue> CreateWorkerQueue() {
   auto executor = Executor::CreateSerial("com.google.firebase.firestore");
@@ -63,6 +65,13 @@ LoadBundleTaskProgress ToApiProgress(
           static_cast<int64_t>(internal_progress.bytes_loaded()),
           static_cast<int64_t>(internal_progress.total_bytes()),
           ToApiProgressState(internal_progress.state())};
+}
+
+void ValidateDoubleSlash(const char* path) {
+  if (std::strstr(path, "//") != nullptr) {
+    ThrowInvalidArgument(
+        "Invalid path (%s). Paths must not contain // in them.", path);
+  }
 }
 
 }  // namespace
@@ -97,16 +106,27 @@ std::shared_ptr<api::Firestore> FirestoreInternal::CreateFirestore(
 
 CollectionReference FirestoreInternal::Collection(
     const char* collection_path) const {
+  ValidateDoubleSlash(collection_path);
+
   auto result = firestore_core_->GetCollection(collection_path);
   return MakePublic(std::move(result));
 }
 
 DocumentReference FirestoreInternal::Document(const char* document_path) const {
+  ValidateDoubleSlash(document_path);
+
   auto result = firestore_core_->GetDocument(document_path);
   return MakePublic(std::move(result));
 }
 
 Query FirestoreInternal::CollectionGroup(const char* collection_id) const {
+  if (std::strchr(collection_id, '/') != nullptr) {
+    ThrowInvalidArgument(
+        "Invalid collection ID (%s). Collection IDs must not contain / in "
+        "them.",
+        collection_id);
+  }
+
   core::Query core_query = firestore_core_->GetCollectionGroup(collection_id);
   api::Query api_query(std::move(core_query), firestore_core_);
   return MakePublic(std::move(api_query));

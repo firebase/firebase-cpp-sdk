@@ -2,6 +2,7 @@
 
 #include "app/meta/move.h"
 #include "app/src/include/firebase/future.h"
+#include "firestore/src/common/exception_common.h"
 #include "firestore/src/common/futures.h"
 #include "firestore/src/common/util.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
@@ -70,6 +71,13 @@ DocumentReference CollectionReference::Document() const {
 
 DocumentReference CollectionReference::Document(
     const char* document_path) const {
+  if (!document_path) {
+    SimpleThrowInvalidArgument("Document path cannot be null.");
+  }
+  if (document_path[0] == '\0') {
+    SimpleThrowInvalidArgument("Document path cannot be empty.");
+  }
+
   if (!internal()) return {};
   return internal()->Document(document_path);
 }

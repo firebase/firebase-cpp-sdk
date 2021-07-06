@@ -2,10 +2,10 @@
 
 #include <utility>
 
-#include "app/src/assert.h"
 #include "app/src/include/firebase/future.h"
 #include "firestore/src/common/cleanup.h"
 #include "firestore/src/common/futures.h"
+#include "firestore/src/common/hard_assert_common.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
 #if defined(__ANDROID__)
 #include "firestore/src/android/write_batch_android.h"
@@ -34,7 +34,7 @@ WriteBatch::WriteBatch(WriteBatch&& value) {
 }
 
 WriteBatch::WriteBatch(WriteBatchInternal* internal) : internal_(internal) {
-  FIREBASE_ASSERT(internal != nullptr);
+  SIMPLE_HARD_ASSERT(internal != nullptr);
   CleanupFnWriteBatch::Register(this, internal_);
 }
 

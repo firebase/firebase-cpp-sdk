@@ -19,7 +19,6 @@ namespace firestore {
 
 using ServerTimestampBehavior = DocumentSnapshot::ServerTimestampBehavior;
 using Type = model::FieldValue::Type;
-using model::DocumentKey;
 
 DocumentSnapshotInternal::DocumentSnapshotInternal(
     api::DocumentSnapshot&& snapshot)

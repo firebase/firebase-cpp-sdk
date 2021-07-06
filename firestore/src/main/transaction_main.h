@@ -40,6 +40,8 @@ class TransactionInternal {
   void MarkPermanentlyFailed();
 
  private:
+  void ValidateReference(const DocumentReference& document);
+
   std::shared_ptr<core::Transaction> transaction_;
   FirestoreInternal* firestore_internal_ = nullptr;
   UserDataConverter user_data_converter_;
