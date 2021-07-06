@@ -331,8 +331,7 @@ class FirestoreIntegrationTest : public testing::Test {
   class FirestoreInfo {
    public:
     FirestoreInfo() = default;
-    FirestoreInfo(const std::string& name,
-                  std::unique_ptr<Firestore>&& firestore)
+    FirestoreInfo(const std::string& name, std::unique_ptr<Firestore> firestore)
         : name_(name), firestore_(std::move(firestore)) {}
 
     const std::string& name() const { return name_; }
