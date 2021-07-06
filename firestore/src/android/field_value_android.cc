@@ -256,16 +256,7 @@ const uint8_t* FieldValueInternal::blob_value() const {
     return nullptr;
   }
 
-  if (cached_blob_->empty()) {
-    // The return value doesn't matter, but we can't return
-    // `&cached_blob->front()` because calling `front` on an empty vector is
-    // undefined behavior. When we drop support for STLPort, we can use `data`
-    // instead which is defined, even for empty vectors.
-    // TODO(b/163140650): remove this special case.
-    return nullptr;
-  }
-
-  return &(cached_blob_->front());
+  return cached_blob_->data();
 }
 
 size_t FieldValueInternal::blob_size() const {
