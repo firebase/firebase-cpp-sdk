@@ -27,7 +27,7 @@ using Type = FieldValue::Type;
 
 template <typename T>
 std::string ValueToString(const T& value) {
-  // TODO(stlport): use `std::to_string` once possible.
+  // TODO(b/192885139): use `std::to_string` once possible.
   std::ostringstream stream;
   stream << value;
   return stream.str();

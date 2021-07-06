@@ -132,8 +132,7 @@ Firestore* Firestore::AddFirestoreToCache(Firestore* firestore,
     return nullptr;
   }
 
-  // Once we remove STLPort support, change this back to `emplace`.
-  FirestoreCache()->insert(std::make_pair(firestore->app(), firestore));
+  FirestoreCache()->emplace(firestore->app(), firestore);
   return firestore;
 }
 
