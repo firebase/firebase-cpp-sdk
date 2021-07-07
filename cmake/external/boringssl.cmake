@@ -28,7 +28,7 @@ ExternalProject_Add(
   
   DOWNLOAD_COMMAND 
     COMMAND git init boringssl
-    COMMAND cd boringssl && git fetch --depth=1 https://github.com/google/boringssl ${boringssl_commit_tag} && git reset --hard FETCH_HEAD
+    COMMAND cd boringssl && git fetch --depth=1 https://github.com/google/boringssl.git ${boringssl_commit_tag} && git reset --hard FETCH_HEAD
 
   PATCH_COMMAND git apply ${patch_file} && git gc --aggressive
   PREFIX ${PROJECT_BINARY_DIR}
