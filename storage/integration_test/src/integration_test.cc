@@ -711,7 +711,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
 
             // Ensure the Controller is valid now that we have associated it
             // with an operation.
-	    FLAKY_EXPECT_TRUE(controller.is_valid());
+            FLAKY_EXPECT_TRUE(controller.is_valid());
 
             while (controller.bytes_transferred() == 0) {
 #if FIREBASE_PLATFORM_DESKTOP
@@ -737,17 +737,17 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
             // The StorageListener's OnPaused will call Resume().
 
             LogDebug("Waiting for future.");
-	    FLAKY_WAIT_FOR_COMPLETION(future, "WriteLargeFile");
+            FLAKY_WAIT_FOR_COMPLETION(future, "WriteLargeFile");
             LogDebug("Upload complete.");
 
             // Ensure the various callbacks were called.
-	    FLAKY_EXPECT_TRUE(listener.on_paused_was_called());
-	    FLAKY_EXPECT_TRUE(listener.on_progress_was_called());
-	    FLAKY_EXPECT_TRUE(listener.resume_succeeded());
+            FLAKY_EXPECT_TRUE(listener.on_paused_was_called());
+            FLAKY_EXPECT_TRUE(listener.on_progress_was_called());
+            FLAKY_EXPECT_TRUE(listener.resume_succeeded());
 
             auto metadata = future.result();
-	    // If metadata reports incorrect size, file failed to upload.
-	    FLAKY_EXPECT_EQ(metadata->size_bytes(), test_file_size);
+            // If metadata reports incorrect size, file failed to upload.
+            FLAKY_EXPECT_EQ(metadata->size_bytes(), test_file_size);
             return true;
           },
           &context, "PutBytes")) {
