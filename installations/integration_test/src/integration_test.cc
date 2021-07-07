@@ -278,24 +278,55 @@ TEST_F(FirebaseInstallationsTest, TestGettingTokenTwiceMatches) {
 }
 
 TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewTokenNextTime) {
-  firebase::Future<std::string> token = installations_->GetToken(false);
-  WaitForCompletion(token, "GetToken");
-  EXPECT_NE(*token.result(), "");
-  std::string first_token = *token.result();
+  if (!RunFlakyBlock(
+          [](firebase::installations::Installations* installations) {
+            firebase::Future<std::string> token = installations->GetToken(false);
+            WaitForCompletionAnyResult(token, "GetToken");
+            if (token.error() != 0) {
+              LogError("GetToken returned error %d: %s", token.error(),
+                       token.error_message());
+              return false;
+            }
+            if (*token.result() == "") {
+              LogError("GetToken returned blank");
+              return false;
+            }
+            std::string first_token = *token.result();
 
-  firebase::Future<void> del = installations_->Delete();
-  WaitForCompletion(del, "Delete");
+            firebase::Future<void> del = installations->Delete();
+            WaitForCompletionAnyResult(del, "Delete");
+            if (del.error() != 0) {
+              LogError("Delete returned error %d: %s", token.error(),
+                       token.error_message());
+              return false;
+            }
 
-  // Ensure that we now get a different installations token.
-  token = installations_->GetToken(false);
-  WaitForCompletion(token, "GetToken 2");
-  EXPECT_NE(*token.result(), "");
+            // Ensure that we now get a different installations token.
+            token = installations->GetToken(false);
+            WaitForCompletionAnyResult(token, "GetToken 2");
+            if (token.error() != 0) {
+              LogError("GetToken 2 returned error %d: %s", token.error(),
+                       token.error_message());
+              return false;
+            }
+            if (*token.result() == "") {
+              LogError("GetToken 2 returned blank");
+              return false;
+            }
 #if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
-  // Desktop is a stub and returns the same token, but on mobile it should
-  // return a new token.
-  EXPECT_NE(*token.result(), first_token);
+            // Desktop is a stub and returns the same token, but on mobile it
+            // should return a new token.
+            if (*token.result() == first_token) {
+              LogError("Tokens match (should be different): %s", first_token.c_str());
+              return false;
+            }
 #endif  // defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
+            return true;
+          },
+          installations_)) {
+    FAIL() << "Test failed, check error log for details.";
+  }
 }
 
 TEST_F(FirebaseInstallationsTest, TestCanGetIdAndTokenTogether) {
