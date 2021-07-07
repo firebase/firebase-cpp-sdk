@@ -187,10 +187,10 @@ namespace firebase_test_framework {
   {                                                          \
     auto a_result = (a);                                     \
     auto b_result = (b);                                     \
-    std::stringstream a_str, b_str;                          \
-    a_str << a_result;                                       \
-    b_str << b_result;                                       \
     if ((a_result) != (b_result)) {                          \
+      std::stringstream a_str, b_str;                        \
+      a_str << a_result;                                     \
+      b_str << b_result;                                     \
       app_framework::LogError(                               \
           "Expected %s and %s to be equal, but they differ." \
           "first(%s) vs second(%s)",                         \
@@ -203,10 +203,10 @@ namespace firebase_test_framework {
   {                                                                         \
     auto a_result = (a);                                                    \
     auto b_result = (b);                                                    \
-    std::stringstream a_str, b_str;                                         \
-    a_str << a_result;                                                      \
-    b_str << b_result;                                                      \
     if ((a_result) == (b_result)) {                                         \
+      std::stringstream a_str, b_str;                                       \
+      a_str << a_result;                                                    \
+      b_str << b_result;                                                    \
       app_framework::LogError(                                              \
           "Expected %s and %s to differ, but they are equal. first(%s) vs " \
           "second(%s)",                                                     \
