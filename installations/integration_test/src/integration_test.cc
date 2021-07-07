@@ -239,8 +239,9 @@ TEST_F(FirebaseInstallationsTest, TestCanGetToken) {
 TEST_F(FirebaseInstallationsTest, TestGettingTokenTwiceMatches) {
   if (!RunFlakyBlock(
           [](firebase::installations::Installations* installations) {
-	    firebase::Future<std::string> token = installations->GetToken(false);
-	    WaitForCompletionAnyResult(token, "GetToken");
+            firebase::Future<std::string> token =
+                installations->GetToken(false);
+            WaitForCompletionAnyResult(token, "GetToken");
             if (token.error() != 0) {
               LogError("GetToken returned error %d: %s", token.error(),
                        token.error_message());
@@ -250,9 +251,9 @@ TEST_F(FirebaseInstallationsTest, TestGettingTokenTwiceMatches) {
               LogError("GetToken returned blank");
               return false;
             }
-	    std::string first_token = *token.result();
-	    token = installations->GetToken(false);
-	    WaitForCompletionAnyResult(token, "GetToken 2");
+            std::string first_token = *token.result();
+            token = installations->GetToken(false);
+            WaitForCompletionAnyResult(token, "GetToken 2");
             if (token.error() != 0) {
               LogError("GetId 2 returned error %d: %s", token.error(),
                        token.error_message());

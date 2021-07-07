@@ -221,7 +221,9 @@ bool FirebaseMessagingTest::CreateTestMessage(
     return false;
   }
   if (strcmp(kFcmServerKey, "REPLACE_WITH_YOUR_SERVER_KEY") == 0) {
-    LogWarning("Please put your Firebase Cloud Messaging server key in kFcmServerKey.");
+    LogWarning(
+        "Please put your Firebase Cloud Messaging server key in "
+        "kFcmServerKey.");
     LogWarning("Without a server key, most of these tests will fail.");
     return false;
   }
@@ -260,7 +262,7 @@ void FirebaseMessagingTest::SendTestMessage(
   std::string request;
   std::map<std::string, std::string> headers;
   EXPECT_TRUE(CreateTestMessage(send_to, notification_title, notification_body,
-				message_fields, &request, &headers));
+                                message_fields, &request, &headers));
   SendTestMessage(request, headers);
 }
 
@@ -439,7 +441,7 @@ TEST_F(FirebaseMessagingTest, TestNotification) {
     };
     EXPECT_TRUE(CreateTestMessage(shared_token_->c_str(), kNotificationTitle,
                                   kNotificationBody, message_fields, &request,
-				  &headers));
+                                  &headers));
     std::string html = ConstructHtmlToSendMessage(request, headers, 5);
     // We now have some HTML/Javascript to send the message request. Embed it in
     // a data: url so we can try receiving a message with the app in the
@@ -512,66 +514,74 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
   EXPECT_TRUE(RequestPermission());
   EXPECT_TRUE(WaitForToken());
 
-  if (!RunFlakyBlock([](FirebaseMessagingTest* this_) {
-		       std::string unique_id = this_->GetUniqueMessageId();
-		       const char kNotificationTitle[] = "Topic Test";
-		       const char kNotificationBody[] = "Topic Test notification body";
-		       // Create a somewhat unique topic name using 2 digits near the end of
-		       // unique_id (but not the LAST 2 digits, due to timestamp resolution on some
-		       // platforms).
-		       std::string unique_id_tag =
-			 (unique_id.length() >= 7 ? unique_id.substr(unique_id.length() - 5, 2)
-			  : "00");
-		       std::string topic = "FCMTestTopic" + unique_id_tag;
-		       firebase::Future<void> sub = firebase::messaging::Subscribe(topic.c_str());
-		       WaitForCompletionAnyResult(sub, "Subscribe");
-		       if (sub.error() != 0) {
-			 LogError("Subscribe returned error %d: %s", sub.error(),
-				  sub.error_message());
-		       }
-		       this_->SendTestMessage(("/topics/" + topic).c_str(), kNotificationTitle,
-					      kNotificationBody,
-					      {{"message", "Hello, world!"}, {"unique_id", unique_id}});
-		       firebase::messaging::Message message;
-		       if (!this_->WaitForMessage(&message)) {
-			 LogError("WaitForMessage failed");
-			 return false;
-		       }
-		       if(message.data["unique_id"] != unique_id) {
-			 LogError("unique_id doesn't match: got %s, expected %s",
-				  unique_id.c_str(), message.data["unique_id"].c_str());
-			 return false;
-		       }
-		       if (message.notification) {
-			 if (message.notification->title != kNotificationTitle) {
-			   LogError("notification.title doesn't match: got %s, expected %s",
-				    message.notification->title.c_str(), kNotificationTitle);
-			   return false;
-			 }
-			 if (message.notification->body != kNotificationBody) {
-			   LogError("notification.body doesn't match: got %s, expected %s",
-				    message.notification->body.c_str(), kNotificationBody);
-			   return false;
-			 }
-		       }
-		       firebase::Future<void> unsub = firebase::messaging::Unsubscribe(topic.c_str());
-		       WaitForCompletionAnyResult(unsub, "Unsubscribe");
-		       if (unsub.error() != 0) {
-			 LogError("Unsubscribe returned error %d: %s", sub.error(),
-				  unsub.error_message());
-		       }
-		       
-		       // Ensure that we *don't* receive a message now.
-		       unique_id = this_->GetUniqueMessageId();
-		       this_->SendTestMessage(("/topics/" + topic).c_str(), "Topic Title 2", "Topic Body 2",
-					      {{"message", "Hello, world!"}, {"unique_id", unique_id}});
-		       if (this_->WaitForMessage(&message, 5)) {
-			 LogError("WaitForMessage received a message but shouldn't have.");
-			 return false;
-		       }
+  if (!RunFlakyBlock(
+          [](FirebaseMessagingTest* this_) {
+            std::string unique_id = this_->GetUniqueMessageId();
+            const char kNotificationTitle[] = "Topic Test";
+            const char kNotificationBody[] = "Topic Test notification body";
+            // Create a somewhat unique topic name using 2 digits near the end
+            // of unique_id (but not the LAST 2 digits, due to timestamp
+            // resolution on some platforms).
+            std::string unique_id_tag =
+                (unique_id.length() >= 7
+                     ? unique_id.substr(unique_id.length() - 5, 2)
+                     : "00");
+            std::string topic = "FCMTestTopic" + unique_id_tag;
+            firebase::Future<void> sub =
+                firebase::messaging::Subscribe(topic.c_str());
+            WaitForCompletionAnyResult(sub, "Subscribe");
+            if (sub.error() != 0) {
+              LogError("Subscribe returned error %d: %s", sub.error(),
+                       sub.error_message());
+            }
+            this_->SendTestMessage(
+                ("/topics/" + topic).c_str(), kNotificationTitle,
+                kNotificationBody,
+                {{"message", "Hello, world!"}, {"unique_id", unique_id}});
+            firebase::messaging::Message message;
+            if (!this_->WaitForMessage(&message)) {
+              LogError("WaitForMessage failed");
+              return false;
+            }
+            if (message.data["unique_id"] != unique_id) {
+              LogError("unique_id doesn't match: got %s, expected %s",
+                       unique_id.c_str(), message.data["unique_id"].c_str());
+              return false;
+            }
+            if (message.notification) {
+              if (message.notification->title != kNotificationTitle) {
+                LogError(
+                    "notification.title doesn't match: got %s, expected %s",
+                    message.notification->title.c_str(), kNotificationTitle);
+                return false;
+              }
+              if (message.notification->body != kNotificationBody) {
+                LogError("notification.body doesn't match: got %s, expected %s",
+                         message.notification->body.c_str(), kNotificationBody);
+                return false;
+              }
+            }
+            firebase::Future<void> unsub =
+                firebase::messaging::Unsubscribe(topic.c_str());
+            WaitForCompletionAnyResult(unsub, "Unsubscribe");
+            if (unsub.error() != 0) {
+              LogError("Unsubscribe returned error %d: %s", sub.error(),
+                       unsub.error_message());
+            }
 
-		       return true;
-		     }, this)) {
+            // Ensure that we *don't* receive a message now.
+            unique_id = this_->GetUniqueMessageId();
+            this_->SendTestMessage(
+                ("/topics/" + topic).c_str(), "Topic Title 2", "Topic Body 2",
+                {{"message", "Hello, world!"}, {"unique_id", unique_id}});
+            if (this_->WaitForMessage(&message, 5)) {
+              LogError("WaitForMessage received a message but shouldn't have.");
+              return false;
+            }
+
+            return true;
+          },
+          this)) {
     FAIL() << "Test failed, check error log for details.";
   }
 }
