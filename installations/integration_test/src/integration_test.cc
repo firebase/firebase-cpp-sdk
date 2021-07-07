@@ -236,7 +236,7 @@ TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewTokenNextTime) {
 #if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
             // Desktop is a stub and returns the same token, but on mobile it
             // should return a new token.
-            FLAKY_EXPECT_EQ(*token.result(), first_token);
+            FLAKY_EXPECT_NE(*token.result(), first_token);
 #endif  // defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
 
