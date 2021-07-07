@@ -280,7 +280,8 @@ TEST_F(FirebaseInstallationsTest, TestGettingTokenTwiceMatches) {
 TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewTokenNextTime) {
   if (!RunFlakyBlock(
           [](firebase::installations::Installations* installations) {
-            firebase::Future<std::string> token = installations->GetToken(false);
+            firebase::Future<std::string> token =
+                installations->GetToken(false);
             WaitForCompletionAnyResult(token, "GetToken");
             if (token.error() != 0) {
               LogError("GetToken returned error %d: %s", token.error(),
@@ -317,7 +318,8 @@ TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewTokenNextTime) {
             // Desktop is a stub and returns the same token, but on mobile it
             // should return a new token.
             if (*token.result() == first_token) {
-              LogError("Tokens match (should be different): %s", first_token.c_str());
+              LogError("Tokens match (should be different): %s",
+                       first_token.c_str());
               return false;
             }
 #endif  // defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) &&
