@@ -1,9 +1,11 @@
 ### Description
 > Provide details of the change, and generalize the change in the PR title above.
+
+[replace this line]: # (Describe your changes in detail.)
 ***
 
 ### Type of change
-> Place an `x` the applicable box.
+Place an `x` the applicable box:
 - [ ] Bug fix. Add the issue # below if applicable.
 - [ ] New feature. A non-breaking change which adds functionality.
 - [ ] API change. An alteration to the public-facing API surface.
@@ -12,6 +14,9 @@
 
 ### Testing
 > Describe how you've tested these changes. Link any manually triggered `Integration tests` or `CPP binary SDK Packaging` Github Action workflows, if applicable.
+
+
+[replace this line]: # (Describe your testing in detail.)
 ***
 
 ### Release Notes Reminder
