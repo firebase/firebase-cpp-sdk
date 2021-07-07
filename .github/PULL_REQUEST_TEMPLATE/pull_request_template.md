@@ -4,7 +4,7 @@
 [replace this line]: # (Describe your changes in detail.)
 ***
 
-### Type of change
+### Type of Change
 Place an `x` the applicable box:
 - [ ] Bug fix. Add the issue # below if applicable.
 - [ ] New feature. A non-breaking change which adds functionality.
@@ -20,4 +20,4 @@ Place an `x` the applicable box:
 ***
 
 ### Release Notes Reminder
-Bug fixes, feature changes, and API changes require an update to the `Release Notes` section of `release_build_files/readme.md`.
+**Note:** Bug fixes, feature changes, and API changes require an update to the `Release Notes` section of `release_build_files/readme.md`.*
