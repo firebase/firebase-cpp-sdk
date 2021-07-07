@@ -179,12 +179,12 @@ void TransactionInternal::PreserveException(jni::Env& env,
   if (ExceptionInternal::IsAnyExceptionThrownByFirestore(env, exception)) {
     exception = ExceptionInternal::Wrap(env, Move(exception));
   }
-  *first_exception_ = Move(exception);
+  *first_exception_ = std::move(exception);
 }
 
 Local<Throwable> TransactionInternal::ClearExceptionOccurred() {
   if (!*first_exception_) return {};
-  return Move(*first_exception_);
+  return std::move(*first_exception_);
 }
 
 Local<Object> TransactionInternal::Create(Env& env,

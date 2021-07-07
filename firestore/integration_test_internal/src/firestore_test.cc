@@ -3,6 +3,7 @@
 #include "firebase/firestore.h"
 
 #include <algorithm>
+#include <memory>
 
 #if !defined(__ANDROID__)
 #include <future>  // NOLINT(build/c++11)
@@ -18,7 +19,6 @@
 #include "firestore/src/jni/task.h"
 #endif  // defined(__ANDROID__)
 
-#include "app/memory/unique_ptr.h"
 #include "app/src/mutex.h"
 #include "auth/src/include/firebase/auth.h"
 #include "firestore/src/common/macros.h"
@@ -671,25 +671,9 @@ TEST_F(FirestoreIntegrationTest,
   EXPECT_EQ(1, test_data.GetEventCount());
   test_data.ClearEvents();
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
   ListenerRegistration sync_registration =
       TestFirestore()->AddSnapshotsInSyncListener(
           [&test_data] { test_data.AddEvent("snapshots-in-sync"); });
-
-#else
-  class SyncEventListener : public EventListener<void> {
-   public:
-    explicit SyncEventListener(TestData& test_data) : test_data_(test_data) {}
-
-    void OnEvent(Error) override { test_data_.AddEvent("snapshots-in-sync"); }
-
-   private:
-    TestData& test_data_;
-  };
-  SyncEventListener sync_listener{test_data};
-  ListenerRegistration sync_registration =
-      TestFirestore()->AddSnapshotsInSyncListener(sync_listener);
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
   Await(document.Set(MapFieldValue{{"foo", FieldValue::Double(3.0)}}));
   // Wait for the snapshots-in-sync listener to fire afterwards.
@@ -737,7 +721,6 @@ TEST_F(FirestoreIntegrationTest, TestQueriesAreValidatedOnClient) {
 // The test harness will generate Java JUnit test regardless whether this is
 // inside a #if or not. So we move #if inside instead of enclose the whole case.
 TEST_F(FirestoreIntegrationTest, TestListenCanBeCalledMultipleTimes) {
-#if defined(FIREBASE_USE_STD_FUNCTION)
   class TestData {
    public:
     void SetDocumentSnapshot(const DocumentSnapshot& document_snapshot) {
@@ -781,7 +764,6 @@ TEST_F(FirestoreIntegrationTest, TestListenCanBeCalledMultipleTimes) {
 
   EXPECT_THAT(test_data.WaitForDocumentSnapshot().GetData(),
               ContainerEq(MapFieldValue{{"foo", FieldValue::String("bar")}}));
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 }
 
 TEST_F(FirestoreIntegrationTest, TestDocumentSnapshotEventsNonExistent) {
@@ -1474,7 +1456,7 @@ TEST_F(FirestoreIntegrationTest, AuthWorks) {
   EXPECT_NE(app, nullptr);
 
   InitResult init_result;
-  auto auth = UniquePtr<Auth>(Auth::GetAuth(app, &init_result));
+  auto auth = std::unique_ptr<Auth>(Auth::GetAuth(app, &init_result));
 #if defined(__ANDROID__)
   if (init_result != kInitResultSuccess) {
     // On Android, it's possible for the Auth library built at head to be too
@@ -1489,7 +1471,8 @@ TEST_F(FirestoreIntegrationTest, AuthWorks) {
   ASSERT_EQ(init_result, kInitResultSuccess);
 #endif
 
-  auto db = UniquePtr<Firestore>(Firestore::GetInstance(app, &init_result));
+  auto db =
+      std::unique_ptr<Firestore>(Firestore::GetInstance(app, &init_result));
   EXPECT_EQ(init_result, kInitResultSuccess);
 
   // Performing a write will initialize Firestore's worker and get the current

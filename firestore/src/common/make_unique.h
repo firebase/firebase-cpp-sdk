@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Google
+ * Copyright 2021 Google
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,24 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_MAP_FIELD_VALUE_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_MAP_FIELD_VALUE_H_
+// Note: This is needed since std::make_unique is only available starting C++14.
+// TODO(b/191981857): Remove this file when possible.
 
-#include <string>
-#include <unordered_map>
+#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_MAKE_UNIQUE_H_
+#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_MAKE_UNIQUE_H_
+
+#include <memory>
+#include <utility>
 
 namespace firebase {
 namespace firestore {
 
-class FieldPath;
-class FieldValue;
-
-/** @brief A map of `FieldValue`s indexed by stringified field paths. */
-using MapFieldValue = std::unordered_map<std::string, FieldValue>;
-/** @brief A map of `FieldValue`s indexed by field paths. */
-using MapFieldPathValue = std::unordered_map<FieldPath, FieldValue>;
+template <typename T, typename... Args>
+std::unique_ptr<T> make_unique(Args&&... args) {
+  return std::unique_ptr<T>(new T(std::forward<Args>(args)...));
+}
 
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_MAP_FIELD_VALUE_H_
+#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_MAKE_UNIQUE_H_

@@ -5,6 +5,7 @@
 
 #include <cstdlib>
 #include <fstream>
+#include <memory>
 #include <sstream>
 
 #if !defined(__ANDROID__)
@@ -127,13 +128,13 @@ Firestore* FirestoreIntegrationTest::TestFirestore(
 
   App* app = GetApp(name.c_str());
   if (apps_.find(app) == apps_.end()) {
-    apps_[app] = UniquePtr<App>(app);
+    apps_[app] = std::unique_ptr<App>(app);
   }
 
   // Firestore::set_log_level(LogLevel::kLogLevelDebug);
 
   Firestore* db = new Firestore(CreateTestFirestoreInternal(app));
-  firestores_[db] = FirestoreInfo(name, UniquePtr<Firestore>(db));
+  firestores_[db] = FirestoreInfo(name, std::unique_ptr<Firestore>(db));
 
   LocateEmulator(db);
   InitializeFirestore(db);

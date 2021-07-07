@@ -4,9 +4,9 @@
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_FIELD_VALUE_ANDROID_H_
 
 #include <cstdint>
+#include <memory>
 #include <string>
 
-#include "app/memory/shared_ptr.h"
 #include "firebase/firestore/geo_point.h"
 #include "firebase/firestore/timestamp.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
@@ -101,7 +101,7 @@ class FieldValueInternal {
   // Below are cached type information. It is costly to get type info from
   // jobject of Object type. So we cache it if we have already known.
   mutable Type cached_type_ = Type::kNull;
-  mutable SharedPtr<std::vector<uint8_t>> cached_blob_;
+  mutable std::shared_ptr<std::vector<uint8_t>> cached_blob_;
 };
 
 inline jni::Object ToJava(const FieldValue& value) {

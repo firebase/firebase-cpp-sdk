@@ -2,12 +2,12 @@
 
 #include "firestore/src/android/promise_android.h"
 
+#include <memory>
 #include <string>
 
 #include "android/cancellation_token_source.h"
 #include "android/firestore_integration_test_android.h"
 #include "android/task_completion_source.h"
-#include "app/memory/unique_ptr.h"
 #include "app/src/assert.h"
 #include "app/src/mutex.h"
 #include "app_framework.h"
@@ -17,6 +17,7 @@
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/promise_factory_android.h"
+#include "firestore/src/common/make_unique.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/integer.h"
@@ -195,12 +196,12 @@ class TestCompletion : public TestCompletionBase<PublicType, InternalType> {
     if (result == nullptr) {
       result_.reset(nullptr);
     } else {
-      result_ = MakeUnique<PublicType>(*result);
+      result_ = make_unique<PublicType>(*result);
     }
   }
 
  private:
-  UniquePtr<PublicType> result_;
+  std::unique_ptr<PublicType> result_;
 };
 
 // A specialization of `TestCompletionBase` that handles void `PublicType` and
