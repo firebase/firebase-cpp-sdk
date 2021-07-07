@@ -91,38 +91,26 @@ class TransactionTest : public FirestoreIntegrationTest {
   }
 };
 
-class TestTransactionFunction : public TransactionFunction {
- public:
-  TestTransactionFunction(DocumentReference doc) : doc_(doc) {}
-
-  Error Apply(Transaction& transaction, std::string& error_message) override {
-    Error error = Error::kErrorUnknown;
-    DocumentSnapshot snapshot = transaction.Get(doc_, &error, &error_message);
-    EXPECT_EQ(Error::kErrorOk, error);
-    EXPECT_FALSE(snapshot.exists());
-    transaction.Set(doc_, MapFieldValue{{key_, FieldValue::String(value_)}});
-    return error;
-  }
-
-  std::string key() { return key_; }
-  std::string value() { return value_; }
-
- private:
-  DocumentReference doc_;
-  const std::string key_{"foo"};
-  const std::string value_{"bar"};
-};
-
 TEST_F(TransactionTest, TestGetNonexistentDocumentThenCreatePortableVersion) {
   DocumentReference doc = TestFirestore()->Collection("towns").Document();
-  TestTransactionFunction transaction{doc};
-  Future<void> future = TestFirestore()->RunTransaction(&transaction);
+  std::string key = "foo";
+  std::string value = "bar";
+  Future<void> future = TestFirestore()->RunTransaction(
+      [this, doc, key, value](Transaction& transaction,
+                              std::string& error_message) {
+        Error error = Error::kErrorUnknown;
+        DocumentSnapshot snapshot =
+            transaction.Get(doc, &error, &error_message);
+        EXPECT_EQ(Error::kErrorOk, error);
+        EXPECT_FALSE(snapshot.exists());
+        transaction.Set(doc, MapFieldValue{{key, FieldValue::String(value)}});
+        return error;
+      });
   Await(future);
 
   EXPECT_EQ(Error::kErrorOk, future.error());
   DocumentSnapshot snapshot = ReadDocument(doc);
-  EXPECT_EQ(FieldValue::String(transaction.value()),
-            snapshot.Get(transaction.key()));
+  EXPECT_EQ(FieldValue::String(value), snapshot.Get(key));
 }
 
 class TransactionStage {
