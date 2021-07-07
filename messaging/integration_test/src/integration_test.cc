@@ -528,7 +528,7 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
             std::string topic = "FCMTestTopic" + unique_id_tag;
             firebase::Future<void> sub =
                 firebase::messaging::Subscribe(topic.c_str());
-	    FLAKY_WAIT_FOR_COMPLETION(sub, "Subscribe");
+            FLAKY_WAIT_FOR_COMPLETION(sub, "Subscribe");
             this_->SendTestMessage(
                 ("/topics/" + topic).c_str(), kNotificationTitle,
                 kNotificationBody,
@@ -536,14 +536,14 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
             firebase::messaging::Message message;
             FLAKY_EXPECT_TRUE(this_->WaitForMessage(&message));
 
-	    FLAKY_EXPECT_EQ(message.data["unique_id"], unique_id);
+            FLAKY_EXPECT_EQ(message.data["unique_id"], unique_id);
             if (message.notification) {
-	      FLAKY_EXPECT_EQ(message.notification->title, kNotificationTitle);
-	      FLAKY_EXPECT_EQ(message.notification->body, kNotificationBody);
+              FLAKY_EXPECT_EQ(message.notification->title, kNotificationTitle);
+              FLAKY_EXPECT_EQ(message.notification->body, kNotificationBody);
             }
             firebase::Future<void> unsub =
                 firebase::messaging::Unsubscribe(topic.c_str());
-	    FLAKY_WAIT_FOR_COMPLETION(unsub, "Unsubscribe");
+            FLAKY_WAIT_FOR_COMPLETION(unsub, "Unsubscribe");
 
             // Ensure that we *don't* receive a message now.
             unique_id = this_->GetUniqueMessageId();
@@ -551,8 +551,9 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
                 ("/topics/" + topic).c_str(), "Topic Title 2", "Topic Body 2",
                 {{"message", "Hello, world!"}, {"unique_id", unique_id}});
 
-	    // If this returns true, it means we received a message but shouldn't have.
-	    FLAKY_EXPECT_FALSE(this_->WaitForMessage(&message, 5));
+            // If this returns true, it means we received a message but
+            // shouldn't have.
+            FLAKY_EXPECT_FALSE(this_->WaitForMessage(&message, 5));
 
             return true;
           },

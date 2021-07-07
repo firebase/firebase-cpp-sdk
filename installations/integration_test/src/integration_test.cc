@@ -147,15 +147,15 @@ TEST_F(FirebaseInstallationsTest, TestGettingIdTwiceMatches) {
   if (!RunFlakyBlock(
           [](firebase::installations::Installations* installations) {
             firebase::Future<std::string> id = installations->GetId();
-	    FLAKY_WAIT_FOR_COMPLETION(id, "GetId");
-	    FLAKY_EXPECT_NE(*id.result(), "");  // ensure non-blank
+            FLAKY_WAIT_FOR_COMPLETION(id, "GetId");
+            FLAKY_EXPECT_NE(*id.result(), "");  // ensure non-blank
             std::string first_id = *id.result();
             id = installations->GetId();
-	    FLAKY_WAIT_FOR_COMPLETION(id, "GetId 2");
-	    FLAKY_EXPECT_NE(*id.result(), "");  // ensure non-blank
+            FLAKY_WAIT_FOR_COMPLETION(id, "GetId 2");
+            FLAKY_EXPECT_NE(*id.result(), "");  // ensure non-blank
 
-	    // Ensure the second ID returned is the same as the first.
-	    FLAKY_EXPECT_EQ(*id.result(), first_id);
+            // Ensure the second ID returned is the same as the first.
+            FLAKY_EXPECT_EQ(*id.result(), first_id);
             return true;
           },
           installations_)) {
@@ -167,22 +167,21 @@ TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewIdNextTime) {
   if (!RunFlakyBlock(
           [](firebase::installations::Installations* installations) {
             firebase::Future<std::string> id = installations->GetId();
-	    FLAKY_WAIT_FOR_COMPLETION(id, "GetId");
-	    FLAKY_EXPECT_NE(*id.result(), "");  // ensure non-blank
+            FLAKY_WAIT_FOR_COMPLETION(id, "GetId");
+            FLAKY_EXPECT_NE(*id.result(), "");  // ensure non-blank
             std::string first_id = *id.result();
 
             firebase::Future<void> del = installations->Delete();
-	    FLAKY_WAIT_FOR_COMPLETION(del, "Delete");
+            FLAKY_WAIT_FOR_COMPLETION(del, "Delete");
 
             // Ensure that we now get a different installations id.
             id = installations->GetId();
-	    FLAKY_WAIT_FOR_COMPLETION(id, "GetId 2");
-	    FLAKY_EXPECT_NE(*id.result(), "");  // ensure non-blank
-
+            FLAKY_WAIT_FOR_COMPLETION(id, "GetId 2");
+            FLAKY_EXPECT_NE(*id.result(), "");  // ensure non-blank
 #if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
             // Desktop is a stub and returns the same ID, but on mobile it
             // should return a new ID.
-	    FLAKY_EXPECT_NE(*id.result(), first_id);
+            FLAKY_EXPECT_NE(*id.result(), first_id);
 #endif  // defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
 
@@ -204,13 +203,13 @@ TEST_F(FirebaseInstallationsTest, TestGettingTokenTwiceMatches) {
           [](firebase::installations::Installations* installations) {
             firebase::Future<std::string> token =
                 installations->GetToken(false);
-	    FLAKY_WAIT_FOR_COMPLETION(token, "GetToken");
-	    FLAKY_EXPECT_NE(*token.result(), "");  // ensure non-blank
+            FLAKY_WAIT_FOR_COMPLETION(token, "GetToken");
+            FLAKY_EXPECT_NE(*token.result(), "");  // ensure non-blank
             std::string first_token = *token.result();
             token = installations->GetToken(false);
-	    FLAKY_WAIT_FOR_COMPLETION(token, "GetToken 2");
-	    FLAKY_EXPECT_NE(*token.result(), "");  // ensure non-blank
-	    FLAKY_EXPECT_EQ(*token.result(), first_token);
+            FLAKY_WAIT_FOR_COMPLETION(token, "GetToken 2");
+            FLAKY_EXPECT_NE(*token.result(), "");  // ensure non-blank
+            FLAKY_EXPECT_EQ(*token.result(), first_token);
             return true;
           },
           installations_)) {
@@ -223,22 +222,21 @@ TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewTokenNextTime) {
           [](firebase::installations::Installations* installations) {
             firebase::Future<std::string> token =
                 installations->GetToken(false);
-	    FLAKY_WAIT_FOR_COMPLETION(token, "GetToken");
-	    FLAKY_EXPECT_NE(*token.result(), "");  // ensure non-blank
+            FLAKY_WAIT_FOR_COMPLETION(token, "GetToken");
+            FLAKY_EXPECT_NE(*token.result(), "");  // ensure non-blank
             std::string first_token = *token.result();
 
             firebase::Future<void> del = installations->Delete();
-	    FLAKY_WAIT_FOR_COMPLETION(del, "Delete");
+            FLAKY_WAIT_FOR_COMPLETION(del, "Delete");
 
             // Ensure that we now get a different installations token.
             token = installations->GetToken(false);
-	    FLAKY_WAIT_FOR_COMPLETION(token, "GetToken 2");
-	    FLAKY_EXPECT_NE(*token.result(), "");  // ensure non-blank
-
+            FLAKY_WAIT_FOR_COMPLETION(token, "GetToken 2");
+            FLAKY_EXPECT_NE(*token.result(), "");  // ensure non-blank
 #if defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) && TARGET_OS_IPHONE)
             // Desktop is a stub and returns the same token, but on mobile it
             // should return a new token.
-	    FLAKY_EXPECT_EQ(*token.result(), first_token);
+            FLAKY_EXPECT_EQ(*token.result(), first_token);
 #endif  // defined(__ANDROID__) || (defined(TARGET_OS_IPHONE) &&
         // TARGET_OS_IPHONE)
 
