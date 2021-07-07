@@ -1,6 +1,5 @@
 // Copyright 2021 Google LLC
 
-// The following line should cause a lint warning.
 #include <future>
 #include <string>
 #include <vector>

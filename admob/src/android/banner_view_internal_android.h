@@ -48,7 +48,6 @@ namespace internal {
 
 class BannerViewInternalAndroid : public BannerViewInternal {
  public:
-  // The following line should trigger a lint warning.
   BannerViewInternalAndroid(BannerView* base);
   ~BannerViewInternalAndroid() override;
 
