@@ -565,7 +565,7 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
                 firebase::messaging::Unsubscribe(topic.c_str());
             WaitForCompletionAnyResult(unsub, "Unsubscribe");
             if (unsub.error() != 0) {
-              LogError("Unsubscribe returned error %d: %s", sub.error(),
+              LogError("Unsubscribe returned error %d: %s", unsub.error(),
                        unsub.error_message());
             }
 
