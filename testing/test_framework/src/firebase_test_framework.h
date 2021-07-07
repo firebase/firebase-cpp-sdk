@@ -16,6 +16,7 @@
 #define FIREBASE_TEST_FRAMEWORK_H_  // NOLINT
 
 #include <iostream>
+#include <sstream>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -178,6 +179,63 @@ namespace firebase_test_framework {
 #else
 #define DEATHTEST_SIGABRT ""
 #endif
+
+
+// Helper macros to assist with RunFlakyBlock.
+// Unlike EXPECT_*, FLAKY_EXPECT_* just prints out the error and returns
+// false, which will cause RunFlakyBlock to retry.
+#define FLAKY_EXPECT_EQ(a, b) {                                                \
+  auto a_result = (a);                                                         \
+  auto b_result = (b);                                                         \
+  std::stringstream a_str, b_str;                                              \
+  a_str << a_result;                                                           \
+  b_str << b_result;                                                           \
+  if ((a_result) != (b_result)) {                                              \
+    app_framework::LogError(                                                   \
+      "%s and %s expected to be equal, but differ. first(%s) vs second(%s)",   \
+      #a, #b, a_str.str().c_str(), b_str.str().c_str());                       \
+  return false;                                                                \
+  }                                                                            \
+}
+
+#define FLAKY_EXPECT_NE(a, b) {                                                \
+  auto a_result = (a);                                                         \
+  auto b_result = (b);                                                         \
+  std::stringstream a_str, b_str;                                              \
+  a_str << a_result;                                                           \
+  b_str << b_result;                                                           \
+  if ((a_result) == (b_result)) {                                              \
+    app_framework::LogError(                                                   \
+      "%s and %s expected to differ, but are equal. first(%s) vs second(%s)",  \
+      #a, #b, a_str.str().c_str(), b_str.str().c_str());                       \
+    return false;                                                              \
+  }                                                                            \
+}
+
+#define FLAKY_EXPECT_TRUE(a) {                                                 \
+  if (!(a)) {                                                                  \
+    app_framework::LogError("%s expected to be true, but was false.", #a);     \
+    return false;                                                              \
+  }                                                                            \
+}
+
+#define FLAKY_EXPECT_FALSE(a) {                                                \
+  if ((a)) {                                                                   \
+    app_framework::LogError("%s expected to be false, but was true.", #a);     \
+    return false;                                                              \
+  }                                                                            \
+}
+
+#define FLAKY_WAIT_FOR_COMPLETION(future, name) {                              \
+  auto f = (future);                                                           \
+  WaitForCompletionAnyResult(f, name);                                         \
+  if (f.error() != 0) {                                                        \
+    app_framework::LogError(                                                   \
+      "%s returned error %d: %s",                                              \
+      name, f.error(), f.error_message());                                     \
+    return false;                                                              \
+  }                                                                            \
+}
 
 class FirebaseTest : public testing::Test {
  public:

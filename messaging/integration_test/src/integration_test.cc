@@ -225,7 +225,6 @@ bool FirebaseMessagingTest::CreateTestMessage(
         "Please put your Firebase Cloud Messaging server key in "
         "kFcmServerKey.");
     LogWarning("Without a server key, most of these tests will fail.");
-    return false;
   }
   std::map<std::string, std::string> headers;
   headers.insert(std::make_pair("Content-type", "application/json"));
@@ -529,55 +528,31 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
             std::string topic = "FCMTestTopic" + unique_id_tag;
             firebase::Future<void> sub =
                 firebase::messaging::Subscribe(topic.c_str());
-            WaitForCompletionAnyResult(sub, "Subscribe");
-            if (sub.error() != 0) {
-              LogError("Subscribe returned error %d: %s", sub.error(),
-                       sub.error_message());
-            }
+	    FLAKY_WAIT_FOR_COMPLETION(sub, "Subscribe");
             this_->SendTestMessage(
                 ("/topics/" + topic).c_str(), kNotificationTitle,
                 kNotificationBody,
                 {{"message", "Hello, world!"}, {"unique_id", unique_id}});
             firebase::messaging::Message message;
-            if (!this_->WaitForMessage(&message)) {
-              LogError("WaitForMessage failed");
-              return false;
-            }
-            if (message.data["unique_id"] != unique_id) {
-              LogError("unique_id doesn't match: got %s, expected %s",
-                       unique_id.c_str(), message.data["unique_id"].c_str());
-              return false;
-            }
+            FLAKY_EXPECT_TRUE(this_->WaitForMessage(&message));
+
+	    FLAKY_EXPECT_EQ(message.data["unique_id"], unique_id);
             if (message.notification) {
-              if (message.notification->title != kNotificationTitle) {
-                LogError(
-                    "notification.title doesn't match: got %s, expected %s",
-                    message.notification->title.c_str(), kNotificationTitle);
-                return false;
-              }
-              if (message.notification->body != kNotificationBody) {
-                LogError("notification.body doesn't match: got %s, expected %s",
-                         message.notification->body.c_str(), kNotificationBody);
-                return false;
-              }
+	      FLAKY_EXPECT_EQ(message.notification->title, kNotificationTitle);
+	      FLAKY_EXPECT_EQ(message.notification->body, kNotificationBody);
             }
             firebase::Future<void> unsub =
                 firebase::messaging::Unsubscribe(topic.c_str());
-            WaitForCompletionAnyResult(unsub, "Unsubscribe");
-            if (unsub.error() != 0) {
-              LogError("Unsubscribe returned error %d: %s", unsub.error(),
-                       unsub.error_message());
-            }
+	    FLAKY_WAIT_FOR_COMPLETION(unsub, "Unsubscribe");
 
             // Ensure that we *don't* receive a message now.
             unique_id = this_->GetUniqueMessageId();
             this_->SendTestMessage(
                 ("/topics/" + topic).c_str(), "Topic Title 2", "Topic Body 2",
                 {{"message", "Hello, world!"}, {"unique_id", unique_id}});
-            if (this_->WaitForMessage(&message, 5)) {
-              LogError("WaitForMessage received a message but shouldn't have.");
-              return false;
-            }
+
+	    // If this returns true, it means we received a message but shouldn't have.
+	    FLAKY_EXPECT_FALSE(this_->WaitForMessage(&message, 5));
 
             return true;
           },
