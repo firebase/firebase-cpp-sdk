@@ -237,13 +237,36 @@ TEST_F(FirebaseInstallationsTest, TestCanGetToken) {
 }
 
 TEST_F(FirebaseInstallationsTest, TestGettingTokenTwiceMatches) {
-  firebase::Future<std::string> token = installations_->GetToken(false);
-  WaitForCompletion(token, "GetToken");
-  EXPECT_NE(*token.result(), "");
-  std::string first_token = *token.result();
-  token = installations_->GetToken(false);
-  WaitForCompletion(token, "GetToken 2");
-  EXPECT_EQ(*token.result(), first_token);
+  if (!RunFlakyBlock(
+          [](firebase::installations::Installations* installations) {
+	    firebase::Future<std::string> token = installations->GetToken(false);
+	    WaitForCompletionAnyResult(token, "GetToken");
+            if (token.error() != 0) {
+              LogError("GetToken returned error %d: %s", token.error(),
+                       token.error_message());
+              return false;
+            }
+            if (*token.result() == "") {
+              LogError("GetToken returned blank");
+              return false;
+            }
+	    std::string first_token = *token.result();
+	    token = installations->GetToken(false);
+	    WaitForCompletionAnyResult(token, "GetToken 2");
+            if (token.error() != 0) {
+              LogError("GetId 2 returned error %d: %s", token.error(),
+                       token.error_message());
+              return false;
+            }
+            if (*token.result() == "") {
+              LogError("GetToken 2 returned blank");
+              return false;
+            }
+            return true;
+          },
+          installations_)) {
+    FAIL() << "Test failed, check error log for details.";
+  }
 }
 
 TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewTokenNextTime) {
