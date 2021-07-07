@@ -5,6 +5,7 @@
       "full_name": "FirebaseApp",
       "bundle_id": "com.google.ios.analytics.testapp",
       "ios_target": "integration_test",
+      "tvos_target": "integration_test_tvos",
       "testapp_path": "analytics/integration_test",
       "frameworks": [
         "firebase_analytics.xcframework",
@@ -17,6 +18,7 @@
       "full_name": "FirebaseAdmob",
       "bundle_id": "com.google.ios.admob.testapp",
       "ios_target": "integration_test",
+      "tvos_target": "",
       "testapp_path": "admob/integration_test",
       "frameworks": [
         "firebase_admob.xcframework",
@@ -29,6 +31,7 @@
       "full_name": "FirebaseAnalytics",
       "bundle_id": "com.google.ios.analytics.testapp",
       "ios_target": "integration_test",
+      "tvos_target": "",
       "testapp_path": "analytics/integration_test",
       "frameworks": [
         "firebase_analytics.xcframework",
@@ -41,6 +44,7 @@
       "full_name": "FirebaseAuth",
       "bundle_id": "com.google.FirebaseCppAuthTestApp.dev",
       "ios_target": "integration_test",
+      "tvos_target": "integration_test_tvos",
       "testapp_path": "auth/integration_test",
       "frameworks": [
         "firebase_auth.xcframework",
@@ -53,6 +57,7 @@
       "full_name": "FirebaseDatabase",
       "bundle_id": "com.google.firebase.cpp.database.testapp",
       "ios_target": "integration_test",
+      "tvos_target": "integration_test_tvos",
       "testapp_path": "database/integration_test",
       "frameworks": [
         "firebase_auth.xcframework",
@@ -66,6 +71,7 @@
       "full_name": "FirebaseDynamicLinks",
       "bundle_id": "com.google.FirebaseCppDynamicLinksTestApp.dev",
       "ios_target": "integration_test",
+      "tvos_target": "",
       "testapp_path": "dynamic_links/integration_test",
       "frameworks": [
         "firebase_dynamic_links.xcframework",
@@ -78,6 +84,7 @@
       "full_name": "FirebaseFunctions",
       "bundle_id": "com.google.firebase.cpp.functions.testapp",
       "ios_target": "integration_test",
+      "tvos_target": "integration_test_tvos",
       "testapp_path": "functions/integration_test",
       "frameworks": [
         "firebase_auth.xcframework",
@@ -91,6 +98,7 @@
       "full_name": "FirebaseInstallations",
       "bundle_id": "com.google.firebase.fis.testapp",
       "ios_target": "integration_test",
+      "tvos_target": "",
       "testapp_path": "installations/integration_test",
       "frameworks": [
         "firebase_installations.xcframework",
@@ -103,6 +111,7 @@
       "full_name": "FirebaseMessaging",
       "bundle_id": "com.google.FirebaseCppMessagingTestApp.dev",
       "ios_target": "integration_test",
+      "tvos_target": "",
       "testapp_path": "messaging/integration_test",
       "frameworks": [
         "firebase_messaging.xcframework",
@@ -115,6 +124,7 @@
       "full_name": "FirebaseRemoteConfig",
       "bundle_id": "com.google.ios.remoteconfig.testapp",
       "ios_target": "integration_test",
+      "tvos_target": "integration_test_tvos",
       "testapp_path": "remote_config/integration_test",
       "frameworks": [
         "firebase_remote_config.xcframework",
@@ -127,6 +137,7 @@
       "full_name": "FirebaseStorage",
       "bundle_id": "com.google.firebase.cpp.storage.testapp",
       "ios_target": "integration_test",
+      "tvos_target": "integration_test_tvos",
       "testapp_path": "storage/integration_test",
       "frameworks": [
         "firebase_storage.xcframework",
@@ -140,6 +151,7 @@
       "full_name": "FirebaseFirestore",
       "bundle_id": "com.google.firebase.cpp.firestore.testapp",
       "ios_target": "integration_test",
+      "tvos_target": "integration_test_tvos",
       "testapp_path": "firestore/integration_test",
       "internal_testapp_path": "firestore/integration_test_internal",
       "frameworks": [
@@ -155,6 +167,7 @@
       "full_name": "FirebasePerformance",
       "bundle_id": "com.google.ios.performance.testapp",
       "ios_target": "testapp",
+      "tvos_target": "",
       "testapp_path": "firebase/performance/client/cpp/testapp",
       "frameworks": [
         "firebase_performance.xcframework",
@@ -167,6 +180,7 @@
       "full_name": "FirebaseTestLab",
       "bundle_id": "com.google.ios.testlab.testapp",
       "ios_target": "integration_test",
+      "tvos_target": "",
       "testapp_path": "testlab/integration_test",
       "frameworks": [
         "firebase_testlab.xcframework",

@@ -102,13 +102,14 @@ _ANDROID_NDK_HOME = "ANDROID_NDK_HOME"
 # Platforms
 _ANDROID = "Android"
 _IOS = "iOS"
+_TVOS = "tvOS"
 _DESKTOP = "Desktop"
-_SUPPORTED_PLATFORMS = (_ANDROID, _IOS, _DESKTOP)
+_SUPPORTED_PLATFORMS = (_ANDROID, _IOS, _TVOS, _DESKTOP)
 
 # Values for iOS SDK flag (where the iOS app will run)
-_IOS_SDK_DEVICE = "real"
-_IOS_SDK_SIMULATOR = "virtual"
-_SUPPORTED_IOS_SDK = (_IOS_SDK_DEVICE, _IOS_SDK_SIMULATOR)
+_APPLE_SDK_DEVICE = "real"
+_APPLE_SDK_SIMULATOR = "virtual"
+_SUPPORTED_APPLE_SDK = (_APPLE_SDK_DEVICE, _APPLE_SDK_SIMULATOR)
 
 FLAGS = flags.FLAGS
 
@@ -121,7 +122,7 @@ flags.DEFINE_string(
     "Build output will be placed in this directory.")
 
 flags.DEFINE_string(
-    "artifact_name", "",
+    "artifact_name", "local-build",
     "artifacts will be created and placed in output_directory."
     " testapps artifact is testapps-$artifact_name;"
     " build log artifact is build-results-$artifact_name.log.")    
@@ -146,14 +147,19 @@ flags.DEFINE_bool(
     " directory.")
 
 flags.DEFINE_list(
-    "ios_sdk", _IOS_SDK_DEVICE, 
+    "ios_sdk", _APPLE_SDK_DEVICE, 
     "(iOS only) Build for real device (.ipa), virtual device / simulator (.app), "
+    "or both. Building for both will produce both an .app and an .ipa.")
+
+flags.DEFINE_list(
+    "tvos_sdk", _APPLE_SDK_SIMULATOR, 
+    "(tvOS only) Build for real device (.ipa), virtual device / simulator (.app), "
     "or both. Building for both will produce both an .app and an .ipa.")
 
 flags.DEFINE_bool(
     "update_pod_repo", True,
-    "(iOS only) Will run 'pod repo update' before building for iOS to update"
-    " the local spec repos available on this machine. Must also include iOS"
+    "(iOS/tvOS only) Will run 'pod repo update' before building for iOS/tvOS to update"
+    " the local spec repos available on this machine. Must also include iOS/tvOS"
     " in platforms flag.")
 
 flags.DEFINE_string(
@@ -175,8 +181,14 @@ flags.register_validator(
 
 flags.register_validator(
     "ios_sdk",
-    lambda s: all(ios_sdk in _SUPPORTED_IOS_SDK for ios_sdk in s),
-    message="Valid platforms: " + ",".join(_SUPPORTED_IOS_SDK),
+    lambda s: all(ios_sdk in _SUPPORTED_APPLE_SDK for ios_sdk in s),
+    message="Valid platforms: " + ",".join(_SUPPORTED_APPLE_SDK),
+    flag_values=FLAGS)
+
+flags.register_validator(
+    "tvos_sdk",
+    lambda s: all(tvos_sdk in _SUPPORTED_APPLE_SDK for tvos_sdk in s),
+    message="Valid platforms: " + ",".join(_SUPPORTED_APPLE_SDK),
     flag_values=FLAGS)
 
 flags.DEFINE_bool(
@@ -206,15 +218,19 @@ def main(argv):
   else:
     output_dir = os.path.join(root_output_dir, "testapps" + timestamp)
 
-  ios_framework_dir = os.path.join(sdk_dir, "xcframeworks")
-  ios_framework_exist = os.path.isdir(ios_framework_dir)
-  if not ios_framework_exist and _IOS in platforms:
-    _generate_makefiles_from_repo(repo_dir)
+  config = config_reader.read_config()
 
-  if update_pod_repo and _IOS in platforms:
+  xcframework_dir = os.path.join(sdk_dir, "xcframeworks")
+  xcframework_exist = os.path.isdir(xcframework_dir)
+  if not xcframework_exist:
+    if _IOS in platforms:
+      _build_xcframework_from_repo(repo_dir, "ios", testapps, config)
+    if _TVOS in platforms:
+      _build_xcframework_from_repo(repo_dir, "tvos", testapps, config)
+
+  if update_pod_repo and (_IOS in platforms or _TVOS in platforms):
     _run(["pod", "repo", "update"])
 
-  config = config_reader.read_config()
   cmake_flags = _get_desktop_compiler_flags(FLAGS.compiler, config.compilers)
   # VCPKG is used to install dependencies for the desktop SDK.
   # Building from source requires building the underlying SDK libraries,
@@ -248,9 +264,10 @@ def main(argv):
           testapp_dir=testapp_dir,
           output_dir=output_dir,
           sdk_dir=sdk_dir,
-          ios_framework_exist=ios_framework_exist,
+          xcframework_exist=xcframework_exist,
           repo_dir=repo_dir,
           ios_sdk=FLAGS.ios_sdk,
+          tvos_sdk=FLAGS.tvos_sdk,
           cmake_flags=cmake_flags,
           short_output_paths=FLAGS.short_output_paths)
       logging.info("END building for %s", testapp)
@@ -262,8 +279,8 @@ def main(argv):
 
 
 def _build(
-    testapp, platforms, api_config, testapp_dir, output_dir, sdk_dir, ios_framework_exist,
-    repo_dir, ios_sdk, cmake_flags, short_output_paths):
+    testapp, platforms, api_config, testapp_dir, output_dir, sdk_dir, xcframework_exist,
+    repo_dir, ios_sdk, tvos_sdk, cmake_flags, short_output_paths):
   """Builds one testapp on each of the specified platforms."""
   os.chdir(repo_dir)
   project_dir = os.path.join(output_dir, api_config.name)
@@ -314,17 +331,39 @@ def _build(
   if _IOS in platforms:
     logging.info("BEGIN %s, %s", testapp, _IOS)
     try:
-      _build_ios(
+      _build_apple(
           sdk_dir=sdk_dir,
-          ios_framework_exist=ios_framework_exist,
+          xcframework_exist=xcframework_exist,
           project_dir=project_dir,
           repo_dir=repo_dir,
           api_config=api_config,
-          ios_sdk=ios_sdk)
+          target=api_config.ios_target,
+          scheme=api_config.ios_scheme,
+          apple_platfrom=_IOS,
+          apple_sdk=ios_sdk)
+
     except subprocess.SubprocessError as e:
       failures.append(
           Failure(testapp=testapp, platform=_IOS, error_message=str(e)))
     logging.info("END %s, %s", testapp, _IOS)
+
+  if _TVOS in platforms and api_config.tvos_target:
+    logging.info("BEGIN %s, %s", testapp, _TVOS)
+    try:
+      _build_apple(
+          sdk_dir=sdk_dir,
+          xcframework_exist=xcframework_exist,
+          project_dir=project_dir,
+          repo_dir=repo_dir,
+          api_config=api_config,
+          target=api_config.tvos_target,
+          scheme=api_config.tvos_scheme,
+          apple_platfrom=_TVOS,
+          apple_sdk=tvos_sdk)
+    except subprocess.SubprocessError as e:
+      failures.append(
+          Failure(testapp=testapp, platform=_TVOS, error_message=str(e)))
+    logging.info("END %s, %s", testapp, _TVOS)
 
   return failures
 
@@ -359,7 +398,7 @@ def _collect_integration_tests(testapps, root_output_dir, output_dir, artifact_n
         if os.path.isfile(path):
           shutil.copy(path, os.path.join(artifact_path, testapp))
         else:
-          dir_util.copy_tree(path, os.path.join(artifact_path, testapp, "integration_test.app"))
+          dir_util.copy_tree(path, os.path.join(artifact_path, testapp, os.path.basename(path)))
         break
 
 
@@ -465,64 +504,51 @@ def _validate_android_environment_variables():
   else:
     logging.warning("No NDK env var set. Set one of %s", ", ".join(ndk_vars))
 
-
-# If sdk_dir contains no xcframework, consider it is Github repo, then
-# generate makefiles for ios xcframeworks
-# the xcframeworks will be placed at repo_dir/ios_build
-def _generate_makefiles_from_repo(repo_dir):
-  """Generates cmake makefiles for building iOS frameworks from SDK source."""
-  ios_framework_builder = os.path.join(
-      repo_dir, "build_scripts", "ios", "build.sh")
-  output_path = os.path.join(repo_dir, "ios_build")
-  _rm_dir_safe(output_path)
-  framework_builder_args = [
-      ios_framework_builder,
-      "-b", output_path,
-      "-s", repo_dir,
-      "-c", "false"
-  ]
-  _run(framework_builder_args)
-
-
 # build required ios xcframeworks based on makefiles
 # the xcframeworks locates at repo_dir/ios_build
-def _build_ios_framework_from_repo(repo_dir, api_config):
-  """Builds iOS framework from SDK source."""
-  ios_framework_builder = os.path.join(
-      repo_dir, "build_scripts", "ios", "build.sh")
+def _build_xcframework_from_repo(repo_dir, apple_platform, testapps, config):
+  """Builds xcframework from SDK source."""
+  output_path = os.path.join(repo_dir, apple_platform + "_build")
+  _rm_dir_safe(output_path)
+  xcframework_builder = os.path.join(
+    repo_dir, "scripts", "gha", "build_ios_tvos.py")
 
   # build only required targets to save time
   target = set()
+  for testapp in testapps:
+    api_config = config.get_api(testapp)
+    if apple_platform == "ios" or (apple_platform == "tvos" and api_config.tvos_target):
+      for framework in api_config.frameworks:
+        # firebase_analytics.framework -> firebase_analytics
+        target.add(os.path.splitext(framework)[0])
 
-  for framework in api_config.frameworks:
-    # firebase_analytics.framework -> firebase_analytics
-    target.add(os.path.splitext(framework)[0])
   # firebase is not a target in CMake, firebase_app is the target
   # firebase_app will be built by other target as well
   target.remove("firebase")
 
   framework_builder_args = [
-      ios_framework_builder,
-      "-b", os.path.join(repo_dir, "ios_build"),
+      sys.executable, xcframework_builder,
+      "-b", output_path,
       "-s", repo_dir,
-      "-t", ",".join(target),
-      "-g", "false"
+      "-o", apple_platform,
+      "-t"
   ]
+  framework_builder_args.extend(target)
   _run(framework_builder_args)
 
 
-def _build_ios(
-    sdk_dir, ios_framework_exist, project_dir, repo_dir, api_config, ios_sdk):
+def _build_apple(
+    sdk_dir, xcframework_exist, project_dir, repo_dir, api_config, 
+    target, scheme, apple_platfrom, apple_sdk):
   """Builds an iOS application (.app, .ipa or both)."""
-  if not ios_framework_exist:
-    _build_ios_framework_from_repo(repo_dir, api_config)
-    sdk_dir = os.path.join(repo_dir, "ios_build")
-    logging.info("iOS xcframework created at: %s", sdk_dir)
+  build_dir = apple_platfrom.lower() + "_build"
+  if not xcframework_exist:
+    sdk_dir = os.path.join(repo_dir, build_dir)
 
-  build_dir = os.path.join(project_dir, "ios_build")
+  build_dir = os.path.join(project_dir, build_dir)
   os.makedirs(build_dir)
 
-  logging.info("Copying XCode frameworks")
+  logging.info("Copying XCFrameworks")
   framework_src_dir = os.path.join(sdk_dir, "xcframeworks")
   framework_paths = []  # Paths to the copied frameworks.
   for framework in api_config.frameworks:
@@ -540,7 +566,7 @@ def _build_ios(
   xcode_patcher_args = [
       "ruby", xcode_tool_path,
       "--XCodeCPP.xcodeProjectDir", project_dir,
-      "--XCodeCPP.target", api_config.ios_target,
+      "--XCodeCPP.target", target,
       "--XCodeCPP.frameworks", ",".join(framework_paths)
   ]
   # Internal integration tests require the SDK root as an include path.
@@ -553,23 +579,25 @@ def _build_ios(
     logging.info("No entitlements found at %s.", entitlements_path)
   _run(xcode_patcher_args)
 
-  xcode_path = os.path.join(project_dir, api_config.ios_target + ".xcworkspace")
-  if _IOS_SDK_SIMULATOR in ios_sdk:
+  xcode_path = os.path.join(project_dir, "integration_test.xcworkspace")
+  if _APPLE_SDK_SIMULATOR in apple_sdk:
     _run(
         xcodebuild.get_args_for_build(
             path=xcode_path,
-            scheme=api_config.scheme,
+            scheme=scheme,
             output_dir=build_dir,
-            ios_sdk=_IOS_SDK_SIMULATOR,
+            apple_platfrom=apple_platfrom,
+            apple_sdk=_APPLE_SDK_SIMULATOR,
             configuration="Debug"))
 
-  if _IOS_SDK_DEVICE in ios_sdk:
+  if _APPLE_SDK_DEVICE in apple_sdk:
     _run(
         xcodebuild.get_args_for_build(
             path=xcode_path,
-            scheme=api_config.scheme,
+            scheme=scheme,
             output_dir=build_dir,
-            ios_sdk=_IOS_SDK_DEVICE,
+            apple_platfrom=apple_platfrom,
+            apple_sdk=_APPLE_SDK_DEVICE,
             configuration="Debug"))
 
     xcodebuild.generate_unsigned_ipa(
@@ -610,7 +638,7 @@ def _rm_dir_safe(directory_path):
     # There are two known cases where this can happen:
     # The directory doesn't exist (FileNotFoundError)
     # A file in the directory is open in another process (PermissionError)
-    logging.warning("Failed to remove directory:\n%s", e)
+    logging.warning("Failed to remove directory:\n%s", e.strerror)
 
 
 def _fix_path(path):
