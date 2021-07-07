@@ -192,7 +192,7 @@ namespace firebase_test_framework {
       a_str << a_result;                                     \
       b_str << b_result;                                     \
       app_framework::LogError(                               \
-          "Expected %s and %s to be equal, but they differ." \
+          "Expected %s and %s to be equal, but they differ. "\
           "first(%s) vs second(%s)",                         \
           #a, #b, a_str.str().c_str(), b_str.str().c_str()); \
       return false;                                          \
