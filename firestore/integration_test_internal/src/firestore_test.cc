@@ -3,6 +3,7 @@
 #include "firebase/firestore.h"
 
 #include <algorithm>
+#include <memory>
 
 #if !defined(__ANDROID__)
 #include <future>  // NOLINT(build/c++11)
@@ -18,7 +19,6 @@
 #include "firestore/src/jni/task.h"
 #endif  // defined(__ANDROID__)
 
-#include "app/memory/unique_ptr.h"
 #include "app/src/mutex.h"
 #include "auth/src/include/firebase/auth.h"
 #include "firestore/src/common/macros.h"
@@ -1456,7 +1456,7 @@ TEST_F(FirestoreIntegrationTest, AuthWorks) {
   EXPECT_NE(app, nullptr);
 
   InitResult init_result;
-  auto auth = UniquePtr<Auth>(Auth::GetAuth(app, &init_result));
+  auto auth = std::unique_ptr<Auth>(Auth::GetAuth(app, &init_result));
 #if defined(__ANDROID__)
   if (init_result != kInitResultSuccess) {
     // On Android, it's possible for the Auth library built at head to be too
@@ -1471,7 +1471,8 @@ TEST_F(FirestoreIntegrationTest, AuthWorks) {
   ASSERT_EQ(init_result, kInitResultSuccess);
 #endif
 
-  auto db = UniquePtr<Firestore>(Firestore::GetInstance(app, &init_result));
+  auto db =
+      std::unique_ptr<Firestore>(Firestore::GetInstance(app, &init_result));
   EXPECT_EQ(init_result, kInitResultSuccess);
 
   // Performing a write will initialize Firestore's worker and get the current

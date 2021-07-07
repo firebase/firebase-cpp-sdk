@@ -40,6 +40,7 @@
 #include "firestore/src/android/transaction_android.h"
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/android/write_batch_android.h"
+#include "firestore/src/common/make_unique.h"
 #include "firestore/src/include/firebase/firestore.h"
 #include "firestore/src/jni/array.h"
 #include "firestore/src/jni/array_list.h"
@@ -263,7 +264,7 @@ FirestoreInternal::FirestoreInternal(App* app) {
   FIREBASE_ASSERT(java_user_callback_executor.get() != nullptr);
   user_callback_executor_ = java_user_callback_executor;
 
-  promises_ = MakeUnique<PromiseFactory<AsyncFn>>(this);
+  promises_ = make_unique<PromiseFactory<AsyncFn>>(this);
 }
 
 /* static */

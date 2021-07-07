@@ -278,11 +278,11 @@ void FieldValueInternal::EnsureCachedBlob(Env& env) const {
   Local<Array<uint8_t>> bytes = blob.ToBytes(env);
   size_t size = bytes.Size(env);
 
-  auto result = MakeShared<std::vector<uint8_t>>(size);
+  auto result = std::make_shared<std::vector<uint8_t>>(size);
   env.GetArrayRegion(bytes, 0, size, &(result->front()));
 
   if (env.ok()) {
-    cached_blob_ = Move(result);
+    cached_blob_ = std::move(result);
   }
 }
 

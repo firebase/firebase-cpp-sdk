@@ -6,9 +6,9 @@
 #include <cstdint>
 #include <functional>
 #include <list>
+#include <memory>
 #include <unordered_set>
 
-#include "app/memory/unique_ptr.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -192,7 +192,7 @@ class FirestoreInternal {
   std::list<LambdaEventListener<LoadBundleTaskProgress>> bundle_listeners_;
 
   FutureManager future_manager_;
-  UniquePtr<PromiseFactory<AsyncFn>> promises_;
+  std::unique_ptr<PromiseFactory<AsyncFn>> promises_;
 
   CleanupNotifier cleanup_;
 };
