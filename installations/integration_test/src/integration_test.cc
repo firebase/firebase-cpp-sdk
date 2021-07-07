@@ -263,6 +263,12 @@ TEST_F(FirebaseInstallationsTest, TestGettingTokenTwiceMatches) {
               LogError("GetToken 2 returned blank");
               return false;
             }
+            if (*token.result() != first_token) {
+              LogError(
+                  "GetToken 2 returned non-matching token: first(%s) vs second(%s)",
+                  first_token.c_str(), token.result()->c_str());
+              return false;
+            }
             return true;
           },
           installations_)) {
