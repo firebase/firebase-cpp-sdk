@@ -55,7 +55,9 @@ const int kTimeoutSeconds = 120;
 const char kTestingNotificationKey[] = "fcm_testing_notification";
 
 using app_framework::LogDebug;
+using app_framework::LogError;
 using app_framework::LogInfo;
+using app_framework::LogWarning;
 
 using app_framework::GetCurrentTimeInMicroseconds;
 using app_framework::PathForResource;
@@ -90,7 +92,6 @@ class FirebaseMessagingTest : public FirebaseTest {
       const char* notification_body,
       const std::map<std::string, std::string>& message_fields);
 
- protected:
   // Get a unique message ID so we can confirm the correct message is being
   // received.
   std::string GetUniqueMessageId();
@@ -106,6 +107,7 @@ class FirebaseMessagingTest : public FirebaseTest {
   bool WaitForMessage(firebase::messaging::Message* message_out,
                       int timeout = kTimeoutSeconds);
 
+ protected:
   static firebase::App* shared_app_;
   static firebase::messaging::PollableListener* shared_listener_;
   static std::string* shared_token_;
@@ -217,6 +219,12 @@ bool FirebaseMessagingTest::CreateTestMessage(
   if (is_desktop_stub_) {
     // Don't send HTTP requests in stub mode.
     return false;
+  }
+  if (strcmp(kFcmServerKey, "REPLACE_WITH_YOUR_SERVER_KEY") == 0) {
+    LogWarning(
+        "Please put your Firebase Cloud Messaging server key in "
+        "kFcmServerKey.");
+    LogWarning("Without a server key, most of these tests will fail.");
   }
   std::map<std::string, std::string> headers;
   headers.insert(std::make_pair("Content-type", "application/json"));
@@ -504,37 +512,54 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
 
   EXPECT_TRUE(RequestPermission());
   EXPECT_TRUE(WaitForToken());
-  std::string unique_id = GetUniqueMessageId();
-  const char kNotificationTitle[] = "Topic Test";
-  const char kNotificationBody[] = "Topic Test notification body";
-  // Create a somewhat unique topic name using 2 digits near the end of
-  // unique_id (but not the LAST 2 digits, due to timestamp resolution on some
-  // platforms).
-  std::string unique_id_tag =
-      (unique_id.length() >= 7 ? unique_id.substr(unique_id.length() - 5, 2)
-                               : "00");
-  std::string topic = "FCMTestTopic" + unique_id_tag;
-  EXPECT_TRUE(WaitForCompletion(firebase::messaging::Subscribe(topic.c_str()),
-                                "Subscribe"));
-  SendTestMessage(("/topics/" + topic).c_str(), kNotificationTitle,
-                  kNotificationBody,
-                  {{"message", "Hello, world!"}, {"unique_id", unique_id}});
-  firebase::messaging::Message message;
-  EXPECT_TRUE(WaitForMessage(&message));
-  EXPECT_EQ(message.data["unique_id"], unique_id);
-  if (message.notification) {
-    EXPECT_EQ(message.notification->title, kNotificationTitle);
-    EXPECT_EQ(message.notification->body, kNotificationBody);
+
+  if (!RunFlakyBlock(
+          [](FirebaseMessagingTest* this_) {
+            std::string unique_id = this_->GetUniqueMessageId();
+            const char kNotificationTitle[] = "Topic Test";
+            const char kNotificationBody[] = "Topic Test notification body";
+            // Create a somewhat unique topic name using 2 digits near the end
+            // of unique_id (but not the LAST 2 digits, due to timestamp
+            // resolution on some platforms).
+            std::string unique_id_tag =
+                (unique_id.length() >= 7
+                     ? unique_id.substr(unique_id.length() - 5, 2)
+                     : "00");
+            std::string topic = "FCMTestTopic" + unique_id_tag;
+            firebase::Future<void> sub =
+                firebase::messaging::Subscribe(topic.c_str());
+            FLAKY_WAIT_FOR_COMPLETION(sub, "Subscribe");
+            this_->SendTestMessage(
+                ("/topics/" + topic).c_str(), kNotificationTitle,
+                kNotificationBody,
+                {{"message", "Hello, world!"}, {"unique_id", unique_id}});
+            firebase::messaging::Message message;
+            FLAKY_EXPECT_TRUE(this_->WaitForMessage(&message));
+
+            FLAKY_EXPECT_EQ(message.data["unique_id"], unique_id);
+            if (message.notification) {
+              FLAKY_EXPECT_EQ(message.notification->title, kNotificationTitle);
+              FLAKY_EXPECT_EQ(message.notification->body, kNotificationBody);
+            }
+            firebase::Future<void> unsub =
+                firebase::messaging::Unsubscribe(topic.c_str());
+            FLAKY_WAIT_FOR_COMPLETION(unsub, "Unsubscribe");
+
+            // Ensure that we *don't* receive a message now.
+            unique_id = this_->GetUniqueMessageId();
+            this_->SendTestMessage(
+                ("/topics/" + topic).c_str(), "Topic Title 2", "Topic Body 2",
+                {{"message", "Hello, world!"}, {"unique_id", unique_id}});
+
+            // If this returns true, it means we received a message but
+            // shouldn't have.
+            FLAKY_EXPECT_FALSE(this_->WaitForMessage(&message, 5));
+
+            return true;
+          },
+          this)) {
+    FAIL() << "Test failed, check error log for details.";
   }
-
-  EXPECT_TRUE(WaitForCompletion(firebase::messaging::Unsubscribe(topic.c_str()),
-                                "Unsubscribe"));
-
-  // Ensure that we *don't* receive a message now.
-  unique_id = GetUniqueMessageId();
-  SendTestMessage(("/topics/" + topic).c_str(), "Topic Title 2", "Topic Body 2",
-                  {{"message", "Hello, world!"}, {"unique_id", unique_id}});
-  EXPECT_FALSE(WaitForMessage(&message, 5));
 }
 
 TEST_F(FirebaseMessagingTest, TestChangingListener) {
