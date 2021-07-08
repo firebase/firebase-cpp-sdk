@@ -24,7 +24,7 @@ buildscript {
     // that requires using a newer version of the JDK and at least Android N.
     // This has already been fixed at head, but a tagged release is not yet
     // available with that fix.
-    classpath 'com.google.flatbuffers:flatbuffers-java:1.9.0'
+    classpath 'com.google.flatbuffers:flatbuffers-java:1.12.0'
   }
 }
 allprojects {
@@ -57,7 +57,7 @@ android {
 dependencies {
   implementation 'com.google.firebase:firebase-analytics:19.0.0'
   implementation 'com.google.firebase:firebase-messaging:22.0.0'
-  implementation 'com.google.flatbuffers:flatbuffers-java:1.9.0'
+  implementation 'com.google.flatbuffers:flatbuffers-java:1.12.0'
 }
 
 afterEvaluate {
@@ -74,7 +74,7 @@ afterEvaluate {
         executable 'git'
         args 'clone',
              '--branch',
-             'v1.10.0',
+             'v1.12.0',
              '--depth',
              '1',
              'https://github.com/google/flatbuffers.git',

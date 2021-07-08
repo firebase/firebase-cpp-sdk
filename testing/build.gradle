@@ -20,11 +20,7 @@ buildscript {
   dependencies {
     classpath 'com.android.tools.build:gradle:3.3.3'
     classpath 'com.google.gms:google-services:4.2.0'
-    // This uses Flatbuffers at 1.9 because the 1.10 version added a feature
-    // that requires using a newer version of the JDK and at least Android N.
-    // This has already been fixed at head, but a tagged release is not yet
-    // available with that fix.
-    classpath 'com.google.flatbuffers:flatbuffers-java:1.9.0'
+    classpath 'com.google.flatbuffers:flatbuffers-java:1.12.0'
   }
 }
 
@@ -71,7 +67,7 @@ android {
 }
 
 dependencies {
-  implementation 'com.google.flatbuffers:flatbuffers-java:1.9.0'
+  implementation 'com.google.flatbuffers:flatbuffers-java:1.12.0'
 }
 
 afterEvaluate { project ->

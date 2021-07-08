@@ -567,6 +567,11 @@ code.
 
 ## Release Notes
 
+### 8.2.0
+-   Changes
+    -   General (Android): Updated Flatbuffers internal dependency from version
+        1.9 to 1.12.
+
 ### 8.1.0
 -   Changes
     -   Firestore: Fixed a linker error when `DocumentChange::npos` was used.
