@@ -66,9 +66,15 @@ def main
   raise OptionParser::MissingArgument,'-t' if @target_name.nil?
   raise OptionParser::MissingArgument,'-f' if @frameworks.nil?
 
-  project_path = "#@xcode_project_dir/#@target_name.xcodeproj"
+  project_path = "#@xcode_project_dir/integration_test.xcodeproj"
   @project = Xcodeproj::Project.open(project_path)
-  @target = @project.targets.first
+  for t in @project.targets
+    if t.name == @target_name
+      @target = t
+      puts "Find target #@target"
+      break
+    end 
+  end
 
   # Examine components rather than substrings to minimize false positives.
   # Note: this is not ideal. This tool should not be responsible for figuring
@@ -165,10 +171,8 @@ def add_custom_framework(framework_path)
   local_framework_path = "Frameworks/#{framework_name}"
   # Add the lib file as a reference
   libRef = @project['Frameworks'].new_file(framework_path)
-  # Get the build phase
-  framework_buildphase = @project.objects.select{|x| x.class == Xcodeproj::Project::Object::PBXFrameworksBuildPhase}[0]
   # Add it to the build phase
-  framework_buildphase.add_file_reference(libRef)
+  @target.frameworks_build_phase.add_file_reference(libRef)
   puts 'Finished adding framework.'
 end
 

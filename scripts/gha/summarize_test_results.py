@@ -76,6 +76,7 @@ CAPITALIZATIONS = {
     "ubuntu": "Linux",
     "windows": "Windows",
     "ios": "iOS",
+    "tvos": "tvOS",
     "android": "Android",
     "desktop": "Desktop",
 }
@@ -317,12 +318,12 @@ def combine_configs(configs):
 #     ['ubuntu', 'windows', 'macos']
 #     -> ['All os']
 def combine_config(config, platform, k):
-  if k == 1 and (platform == "android" or platform == "ios"):
+  if k == 1 and platform in ("android", "ios", "tvos"):
     # config_name = test_device here
     k = -1
   config_name = BUILD_CONFIGS[platform][k]
   config_value = PARAMETERS["integration_tests"]["matrix"][config_name]
-  if len(config) == len(config_value):
+  if len(config_value) > 1 and len(config) == len(config_value):
     config = ["All %s" % config_name]
   elif config_name == "ios_device":
     ftl_devices = {"ios_min", "ios_target", "ios_latest"}

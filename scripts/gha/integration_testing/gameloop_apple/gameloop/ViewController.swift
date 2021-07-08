@@ -39,8 +39,6 @@ class ViewController: UIViewController {
   /// Launch the app under test by calling our custom URL scheme.
   func launchGame() {
     let url = getURL()
-    let pasteboard = UIPasteboard.general
-    pasteboard.string = String(scenario)
     UIApplication.shared.open(url) { success in
       if !success {
         NSLog("Error launching game loop; skipping scenario \(self.scenario)")
