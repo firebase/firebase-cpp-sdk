@@ -4,14 +4,11 @@
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_FIRESTORE_ANDROID_H_
 
 #include <cstdint>
+#include <functional>
 #include <list>
+#include <memory>
 #include <unordered_set>
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
-#include <functional>
-#endif
-
-#include "app/memory/unique_ptr.h"
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
 #include "app/src/include/firebase/app.h"
@@ -97,12 +94,12 @@ class FirestoreInternal {
   WriteBatch batch() const;
 
   // Runs transaction atomically.
+  // TODO(b/191969448): Remove the is_lambda parameter if possible.
   Future<void> RunTransaction(TransactionFunction* update,
                               bool is_lambda = false);
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
+
   Future<void> RunTransaction(
       std::function<Error(Transaction&, std::string&)> update);
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
   // Disables network and gets anything from cache instead of server.
   Future<void> DisableNetwork();
@@ -119,10 +116,8 @@ class FirestoreInternal {
   ListenerRegistration AddSnapshotsInSyncListener(
       EventListener<void>* listener, bool passing_listener_ownership = false);
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
   ListenerRegistration AddSnapshotsInSyncListener(
       std::function<void()> callback);
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
   // Manages the ListenerRegistrationInternal objects.
   void RegisterListenerRegistration(ListenerRegistrationInternal* registration);
@@ -189,22 +184,7 @@ class FirestoreInternal {
   jni::Global<jni::Object> obj_;
 
   Mutex listener_registration_mutex_;  // For registering listener-registrations
-#if defined(_STLPORT_VERSION)
-  struct ListenerRegistrationInternalPointerHash {
-    std::size_t operator()(const ListenerRegistrationInternal* value) const {
-      uintptr_t address = reinterpret_cast<uintptr_t>(value);
-      // Simply returning address is a bad hash. Due to alignment, the right 3
-      // bits could all be 0. There could be better hash for pointers. We use
-      // this for the STLPort for now.
-      return address + (address >> 3);
-    }
-  };
-  std::tr1::unordered_set<ListenerRegistrationInternal*,
-                          ListenerRegistrationInternalPointerHash>
-      listener_registrations_;
-#else   //  defined(_STLPORT_VERSION)
   std::unordered_set<ListenerRegistrationInternal*> listener_registrations_;
-#endif  //  defined(_STLPORT_VERSION)
 
   Mutex bundle_listeners_mutex_;
   // Using a list to ensure listener instances cannot outlive
@@ -212,7 +192,7 @@ class FirestoreInternal {
   std::list<LambdaEventListener<LoadBundleTaskProgress>> bundle_listeners_;
 
   FutureManager future_manager_;
-  UniquePtr<PromiseFactory<AsyncFn>> promises_;
+  std::unique_ptr<PromiseFactory<AsyncFn>> promises_;
 
   CleanupNotifier cleanup_;
 };

@@ -248,18 +248,15 @@ TEST_F(ServerTimestampTest,
 }
 
 TEST_F(ServerTimestampTest, TestServerTimestampsWorkViaTransactionSet) {
-#if defined(FIREBASE_USE_STD_FUNCTION)
   Await(TestFirestore()->RunTransaction(
       [this](Transaction& transaction, std::string&) -> Error {
         transaction.Set(doc_, set_data_);
         return Error::kErrorOk;
       }));
   VerifyTimestampsAreResolved(accumulator_.AwaitRemoteEvent());
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 }
 
 TEST_F(ServerTimestampTest, TestServerTimestampsWorkViaTransactionUpdate) {
-#if defined(FIREBASE_USE_STD_FUNCTION)
   WriteInitialData();
   Await(TestFirestore()->RunTransaction(
       [this](Transaction& transaction, std::string&) -> Error {
@@ -267,12 +264,10 @@ TEST_F(ServerTimestampTest, TestServerTimestampsWorkViaTransactionUpdate) {
         return Error::kErrorOk;
       }));
   VerifyTimestampsAreResolved(accumulator_.AwaitRemoteEvent());
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 }
 
 TEST_F(ServerTimestampTest,
        TestServerTimestampsFailViaTransactionUpdateOnNonexistentDocument) {
-#if defined(FIREBASE_USE_STD_FUNCTION)
   Future<void> future = TestFirestore()->RunTransaction(
       [this](Transaction& transaction, std::string&) -> Error {
         transaction.Update(doc_, update_data_);
@@ -281,7 +276,6 @@ TEST_F(ServerTimestampTest,
   Await(future);
   EXPECT_EQ(FutureStatus::kFutureStatusComplete, future.status());
   EXPECT_EQ(Error::kErrorNotFound, future.error());
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 }
 
 TEST_F(ServerTimestampTest,

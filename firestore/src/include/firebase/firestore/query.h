@@ -19,13 +19,11 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <string>
 #include <vector>
 
 #include "firebase/internal/common.h"
-#if defined(FIREBASE_USE_STD_FUNCTION)
-#include <functional>
-#endif
 
 #include "firebase/firestore/firestore_errors.h"
 #include "firebase/firestore/metadata_changes.h"
@@ -605,7 +603,6 @@ class Query {
    */
   virtual Future<QuerySnapshot> Get(Source source = Source::kDefault) const;
 
-#if defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
   /**
    * @brief Starts listening to the QuerySnapshot events referenced by this
    * query.
@@ -616,9 +613,6 @@ class Query {
    * message is not available.
    *
    * @return A registration object that can be used to remove the listener.
-   *
-   * @note This method is not available when using the STLPort C++ runtime
-   * library.
    */
   virtual ListenerRegistration AddSnapshotListener(
       std::function<void(const QuerySnapshot&, Error, const std::string&)>
@@ -637,64 +631,11 @@ class Query {
    * message is not available.
    *
    * @return A registration object that can be used to remove the listener.
-   *
-   * @note This method is not available when using the STLPort C++ runtime
-   * library.
    */
   virtual ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
       std::function<void(const QuerySnapshot&, Error, const std::string&)>
           callback);
-#endif  // defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
-
-#if !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
-  /**
-   * @brief Starts listening to the QuerySnapshot events referenced by this
-   * query.
-   *
-   * @param[in] listener The event listener that will be called with the
-   * snapshots, which must remain in memory until you remove the listener
-   * from this Query. (Ownership is not transferred; you are responsible for
-   * making sure that listener is valid as long as this Query is valid and
-   * the listener is registered.)
-   *
-   * @return A registration object that can be used to remove the listener.
-   *
-   * @note This method is only available when using the STLPort C++ runtime
-   * library.
-   *
-   * @deprecated STLPort support in Firestore is deprecated and will be removed
-   * in a future release. Note that STLPort has been deprecated in the Android
-   * NDK since r17 (May 2018) and removed since r18 (September 2018).
-   */
-  FIREBASE_DEPRECATED virtual ListenerRegistration AddSnapshotListener(
-      EventListener<QuerySnapshot>* listener);
-
-  /**
-   * @brief Starts listening to the QuerySnapshot events referenced by this
-   * query.
-   *
-   * @param[in] metadata_changes Indicates whether metadata-only changes
-   * (that is, only DocumentSnapshot::metadata() changed) should trigger
-   * snapshot events.
-   * @param[in] listener The event listener that will be called with the
-   * snapshots, which must remain in memory until you remove the listener
-   * from this Query. (Ownership is not transferred; you are responsible for
-   * making sure that listener is valid as long as this Query is valid and
-   * the listener is registered.)
-   *
-   * @return A registration object that can be used to remove the listener.
-   *
-   * @note This method is only available when using the STLPort C++ runtime
-   * library.
-   *
-   * @deprecated STLPort support in Firestore is deprecated and will be removed
-   * in a future release. Note that STLPort has been deprecated in the Android
-   * NDK since r17 (May 2018) and removed since r18 (September 2018).
-   */
-  FIREBASE_DEPRECATED virtual ListenerRegistration AddSnapshotListener(
-      MetadataChanges metadata_changes, EventListener<QuerySnapshot>* listener);
-#endif  // !defined(FIREBASE_USE_STD_FUNCTION) || defined(DOXYGEN)
 
  private:
   friend bool operator==(const Query& lhs, const Query& rhs);

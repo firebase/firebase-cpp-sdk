@@ -18,9 +18,7 @@
 // For internal programming errors, including internal argument checking, use
 // HARD_ASSERT or HARD_FAIL().
 //
-// TODO(b/163140650): Remove this/unify with the iOS implementation.
-// On Android we still support customers building with STLPort, which precludes
-// use of Abseil here.
+// TODO(b/191981857): Remove this/unify with the iOS implementation.
 
 #include <string>
 

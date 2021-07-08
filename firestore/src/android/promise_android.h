@@ -4,8 +4,8 @@
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_PROMISE_ANDROID_H_
 
 #include <jni.h>
+#include <memory>
 
-#include "app/memory/unique_ptr.h"
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/util_android.h"
 #include "firestore/src/android/converter_android.h"
@@ -13,6 +13,7 @@
 #include "firestore/src/android/exception_android.h"
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/android/query_snapshot_android.h"
+#include "firestore/src/common/make_unique.h"
 #include "firestore/src/jni/env.h"
 #include "firestore/src/jni/object.h"
 #include "firestore/src/jni/task.h"
@@ -76,7 +77,7 @@ class Promise {
   Promise(ReferenceCountedFutureImpl* impl,
           FirestoreInternal* firestore,
           Completion* completion)
-      : completer_(MakeUnique<Completer<PublicType, InternalType>>(
+      : completer_(make_unique<Completer<PublicType, InternalType>>(
             impl, firestore, completion)),
         impl_(impl) {}
 
@@ -191,7 +192,7 @@ class Promise {
     }
   }
 
-  UniquePtr<Completer<PublicType, InternalType>> completer_;
+  std::unique_ptr<Completer<PublicType, InternalType>> completer_;
 
   // Keep these values separate from the Completer in case completion happens
   // before the future is constructed.

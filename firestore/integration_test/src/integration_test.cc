@@ -448,9 +448,6 @@ TEST_F(FirebaseFirestoreBasicTest, TestSetDelete) {
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestDocumentListener) {
-  SKIP_TEST_IF_USING_STLPORT;  // STLPort uses EventListener<T> rather than
-                               // std::function.
-#if !defined(STLPORT)
   SignIn();
 
   firebase::firestore::DocumentReference document = Doc();
@@ -487,7 +484,6 @@ TEST_F(FirebaseFirestoreBasicTest, TestDocumentListener) {
               {"val", firebase::firestore::FieldValue::String("start")}},
           firebase::firestore::MapFieldValue{
               {"val", firebase::firestore::FieldValue::String("update")}}));
-#endif  // !defined(STLPORT)
 }
 
 TEST_F(FirebaseFirestoreBasicTest, TestBatchWrite) {

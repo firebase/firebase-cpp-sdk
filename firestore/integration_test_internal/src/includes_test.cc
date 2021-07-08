@@ -20,8 +20,8 @@ class IncludesTest : public testing::Test {
 
 namespace {
 
-struct TestListener : EventListener<int> {
-  void OnEvent(const int&, Error, const std::string&) override {}
+struct TestListener {
+  void OnEvent(const int&, Error, const std::string&) {}
 };
 
 struct TestTransactionFunction : TransactionFunction {

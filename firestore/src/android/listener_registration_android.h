@@ -4,8 +4,8 @@
 #define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LISTENER_REGISTRATION_ANDROID_H_
 
 #include "firestore/src/android/firestore_android.h"
+#include "firestore/src/common/event_listener.h"
 #include "firestore/src/include/firebase/firestore/document_snapshot.h"
-#include "firestore/src/include/firebase/firestore/event_listener.h"
 #include "firestore/src/include/firebase/firestore/query_snapshot.h"
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
