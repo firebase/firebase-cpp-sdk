@@ -1,7 +1,7 @@
 // Copyright 2021 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_FIRESTORE_MAIN_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_FIRESTORE_MAIN_H_
+#ifndef FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_MAIN_H_
+#define FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_MAIN_H_
 
 #include <cstdint>
 #include <functional>
@@ -164,4 +164,4 @@ class FirestoreInternal {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_FIRESTORE_MAIN_H_
+#endif  // FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_MAIN_H_

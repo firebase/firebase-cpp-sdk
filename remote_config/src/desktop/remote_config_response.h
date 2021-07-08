@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_DESKTOP_REMOTE_CONFIG_RESPONSE_H_
-#define FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_DESKTOP_REMOTE_CONFIG_RESPONSE_H_
+#ifndef FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REMOTE_CONFIG_RESPONSE_H_
+#define FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REMOTE_CONFIG_RESPONSE_H_
 
 #include "app/rest/response_json.h"
 #include "app/src/include/firebase/variant.h"
@@ -59,4 +59,4 @@ class RemoteConfigResponse
 }  // namespace remote_config
 }  // namespace firebase
 
-#endif  // FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_DESKTOP_REMOTE_CONFIG_RESPONSE_H_
+#endif  // FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REMOTE_CONFIG_RESPONSE_H_

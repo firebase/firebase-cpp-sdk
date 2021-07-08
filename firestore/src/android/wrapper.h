@@ -1,7 +1,7 @@
 // Copyright 2020 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_WRAPPER_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_WRAPPER_H_
+#ifndef FIREBASE_FIRESTORE_SRC_ANDROID_WRAPPER_H_
+#define FIREBASE_FIRESTORE_SRC_ANDROID_WRAPPER_H_
 
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
@@ -53,4 +53,4 @@ class Wrapper {
 
 }  // namespace firestore
 }  // namespace firebase
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_WRAPPER_H_
+#endif  // FIREBASE_FIRESTORE_SRC_ANDROID_WRAPPER_H_

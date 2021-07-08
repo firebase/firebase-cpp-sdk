@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_FIS_CLIENT_CPP_SRC_COMMON_H_
-#define FIREBASE_FIS_CLIENT_CPP_SRC_COMMON_H_
+#ifndef FIREBASE_INSTALLATIONS_SRC_COMMON_H_
+#define FIREBASE_INSTALLATIONS_SRC_COMMON_H_
 
 namespace firebase {
 namespace installations {
@@ -38,4 +38,4 @@ enum InstallationsError {
 }  // namespace installations
 }  // namespace firebase
 
-#endif  // FIREBASE_FIS_CLIENT_CPP_SRC_COMMON_H_
+#endif  // FIREBASE_INSTALLATIONS_SRC_COMMON_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_DESKTOP_SERIALIZATION_H_
-#define FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_DESKTOP_SERIALIZATION_H_
+#ifndef FIREBASE_FUNCTIONS_SRC_DESKTOP_SERIALIZATION_H_
+#define FIREBASE_FUNCTIONS_SRC_DESKTOP_SERIALIZATION_H_
 
 #include "app/src/include/firebase/variant.h"
 
@@ -31,4 +31,4 @@ firebase::Variant Decode(const firebase::Variant& variant);
 }  // namespace functions
 }  // namespace firebase
 
-#endif  // FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_DESKTOP_SERIALIZATION_H_
+#endif  // FIREBASE_FUNCTIONS_SRC_DESKTOP_SERIALIZATION_H_

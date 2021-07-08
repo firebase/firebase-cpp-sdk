@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DYNAMIC_LINKS_CLIENT_CPP_SRC_INCLUDE_FIREBASE_DYNAMIC_LINKS_H_
-#define FIREBASE_DYNAMIC_LINKS_CLIENT_CPP_SRC_INCLUDE_FIREBASE_DYNAMIC_LINKS_H_
+#ifndef FIREBASE_DYNAMIC_LINKS_SRC_INCLUDE_FIREBASE_DYNAMIC_LINKS_H_
+#define FIREBASE_DYNAMIC_LINKS_SRC_INCLUDE_FIREBASE_DYNAMIC_LINKS_H_
 
 #include <string>
 
@@ -114,4 +114,4 @@ void Fetch();
 }  // namespace dynamic_links
 }  // namespace firebase
 
-#endif  // FIREBASE_DYNAMIC_LINKS_CLIENT_CPP_SRC_INCLUDE_FIREBASE_DYNAMIC_LINKS_H_
+#endif  // FIREBASE_DYNAMIC_LINKS_SRC_INCLUDE_FIREBASE_DYNAMIC_LINKS_H_

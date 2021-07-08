@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_REST_RESPONSE_H_
-#define FIREBASE_APP_CLIENT_CPP_REST_RESPONSE_H_
+#ifndef FIREBASE_APP_REST_RESPONSE_H_
+#define FIREBASE_APP_REST_RESPONSE_H_
 
 #include <cstddef>
 #include <ctime>
@@ -121,4 +121,4 @@ class Response : public Transfer {
 }  // namespace rest
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_REST_RESPONSE_H_
+#endif  // FIREBASE_APP_REST_RESPONSE_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_H_
+#ifndef FIREBASE_AUTH_SRC_INCLUDE_FIREBASE_AUTH_H_
+#define FIREBASE_AUTH_SRC_INCLUDE_FIREBASE_AUTH_H_
 
 #include <vector>
 
@@ -935,4 +935,4 @@ class FederatedOAuthProvider : public FederatedAuthProvider {
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_H_
+#endif  // FIREBASE_AUTH_SRC_INCLUDE_FIREBASE_AUTH_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_APP_IOS_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_APP_IOS_H_
+#ifndef FIREBASE_APP_SRC_APP_IOS_H_
+#define FIREBASE_APP_SRC_APP_IOS_H_
 #include "FIRApp.h"
 #include "app/src/util_ios.h"
 
@@ -27,4 +27,4 @@ OBJ_C_PTR_WRAPPER_NAMED(AppInternal, FIRApp);
 
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_APP_IOS_H_
+#endif  // FIREBASE_APP_SRC_APP_IOS_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_USER_DESKTOP_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_USER_DESKTOP_H_
+#ifndef FIREBASE_AUTH_SRC_DESKTOP_USER_DESKTOP_H_
+#define FIREBASE_AUTH_SRC_DESKTOP_USER_DESKTOP_H_
 
 #include <firebase/auth.h>
 
@@ -118,4 +118,4 @@ class UserDataPersist : public firebase::auth::AuthStateListener {
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_USER_DESKTOP_H_
+#endif  // FIREBASE_AUTH_SRC_DESKTOP_USER_DESKTOP_H_

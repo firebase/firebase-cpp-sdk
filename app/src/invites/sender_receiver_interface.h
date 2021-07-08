@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_INVITES_SENDER_RECEIVER_INTERFACE_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_INVITES_SENDER_RECEIVER_INTERFACE_H_
+#ifndef FIREBASE_APP_SRC_INVITES_SENDER_RECEIVER_INTERFACE_H_
+#define FIREBASE_APP_SRC_INVITES_SENDER_RECEIVER_INTERFACE_H_
 
 #include <string>
 #include <vector>
@@ -52,4 +52,4 @@ class SenderReceiverInterface : public ReceiverInterface {
 }  // namespace invites
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_INVITES_SENDER_RECEIVER_INTERFACE_H_
+#endif  // FIREBASE_APP_SRC_INVITES_SENDER_RECEIVER_INTERFACE_H_

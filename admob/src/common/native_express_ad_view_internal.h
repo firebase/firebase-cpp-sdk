@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_CLIENT_CPP_SRC_COMMON_NATIVE_EXPRESS_AD_VIEW_INTERNAL_H_
-#define FIREBASE_ADMOB_CLIENT_CPP_SRC_COMMON_NATIVE_EXPRESS_AD_VIEW_INTERNAL_H_
+#ifndef FIREBASE_ADMOB_SRC_COMMON_NATIVE_EXPRESS_AD_VIEW_INTERNAL_H_
+#define FIREBASE_ADMOB_SRC_COMMON_NATIVE_EXPRESS_AD_VIEW_INTERNAL_H_
 
 #include "admob/src/common/admob_common.h"
 #include "admob/src/include/firebase/admob/native_express_ad_view.h"
@@ -124,4 +124,4 @@ class NativeExpressAdViewInternal {
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_CLIENT_CPP_SRC_COMMON_NATIVE_EXPRESS_AD_VIEW_INTERNAL_H_
+#endif  // FIREBASE_ADMOB_SRC_COMMON_NATIVE_EXPRESS_AD_VIEW_INTERNAL_H_

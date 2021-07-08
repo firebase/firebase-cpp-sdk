@@ -1,7 +1,7 @@
 // Copyright 2020 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_FIELD_PATH_ANDROID_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_FIELD_PATH_ANDROID_H_
+#ifndef FIREBASE_FIRESTORE_SRC_ANDROID_FIELD_PATH_ANDROID_H_
+#define FIREBASE_FIRESTORE_SRC_ANDROID_FIELD_PATH_ANDROID_H_
 
 #include "firestore/src/include/firebase/firestore/field_path.h"
 #include "firestore/src/jni/jni_fwd.h"
@@ -26,4 +26,4 @@ class FieldPathConverter {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_FIELD_PATH_ANDROID_H_
+#endif  // FIREBASE_FIRESTORE_SRC_ANDROID_FIELD_PATH_ANDROID_H_

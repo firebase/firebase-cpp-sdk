@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_CLIENT_CPP_SRC_ANDROID_REWARDED_VIDEO_INTERNAL_ANDROID_H_
-#define FIREBASE_ADMOB_CLIENT_CPP_SRC_ANDROID_REWARDED_VIDEO_INTERNAL_ANDROID_H_
+#ifndef FIREBASE_ADMOB_SRC_ANDROID_REWARDED_VIDEO_INTERNAL_ANDROID_H_
+#define FIREBASE_ADMOB_SRC_ANDROID_REWARDED_VIDEO_INTERNAL_ANDROID_H_
 
 #include "admob/src/common/rewarded_video_internal.h"
 #include "app/src/util_android.h"
@@ -74,4 +74,4 @@ class RewardedVideoInternalAndroid : public RewardedVideoInternal {
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_CLIENT_CPP_SRC_ANDROID_REWARDED_VIDEO_INTERNAL_ANDROID_H_
+#endif  // FIREBASE_ADMOB_SRC_ANDROID_REWARDED_VIDEO_INTERNAL_ANDROID_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_TESTLAB_CLIENT_CPP_SRC_DESKTOP_TESTLAB_MACOS_H_
-#define FIREBASE_TESTLAB_CLIENT_CPP_SRC_DESKTOP_TESTLAB_MACOS_H_
+#ifndef FIREBASE_TESTLAB_SRC_DESKTOP_TESTLAB_MACOS_H_
+#define FIREBASE_TESTLAB_SRC_DESKTOP_TESTLAB_MACOS_H_
 
 #include <string>
 
@@ -30,4 +30,4 @@ std::vector<std::string> GetArguments();
 }  // namespace test_lab
 }  // namespace firebase
 
-#endif  //  FIREBASE_TESTLAB_CLIENT_CPP_SRC_DESKTOP_TESTLAB_MACOS_H_
+#endif  //  FIREBASE_TESTLAB_SRC_DESKTOP_TESTLAB_MACOS_H_

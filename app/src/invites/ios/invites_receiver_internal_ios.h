@@ -16,8 +16,8 @@
 
 // Internal header file for iOS Firebase invites sending functionality.
 
-#ifndef FIREBASE_INVITES_CLIENT_CPP_SRC_IOS_INVITES_RECEIVER_INTERNAL_IOS_H_
-#define FIREBASE_INVITES_CLIENT_CPP_SRC_IOS_INVITES_RECEIVER_INTERNAL_IOS_H_
+#ifndef FIREBASE_APP_SRC_INVITES_IOS_INVITES_RECEIVER_INTERNAL_IOS_H_
+#define FIREBASE_APP_SRC_INVITES_IOS_INVITES_RECEIVER_INTERNAL_IOS_H_
 
 #include <string>
 
@@ -148,4 +148,4 @@ class InvitesReceiverInternalIos : public InvitesReceiverInternal {
 }  // namespace invites
 }  // namespace firebase
 
-#endif  // FIREBASE_INVITES_CLIENT_CPP_SRC_IOS_INVITES_RECEIVER_INTERNAL_IOS_H_
+#endif  // FIREBASE_APP_SRC_INVITES_IOS_INVITES_RECEIVER_INTERNAL_IOS_H_

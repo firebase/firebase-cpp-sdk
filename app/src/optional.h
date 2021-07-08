@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_OPTIONAL_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_OPTIONAL_H_
+#ifndef FIREBASE_APP_SRC_OPTIONAL_H_
+#define FIREBASE_APP_SRC_OPTIONAL_H_
 
 #include <cassert>
 #include <cstdint>
@@ -209,4 +209,4 @@ bool operator!=(const Optional<T>& lhs, const Optional<T>& rhs) {
 
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_OPTIONAL_H_
+#endif  // FIREBASE_APP_SRC_OPTIONAL_H_

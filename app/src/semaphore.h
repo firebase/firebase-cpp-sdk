@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_SEMAPHORE_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_SEMAPHORE_H_
+#ifndef FIREBASE_APP_SRC_SEMAPHORE_H_
+#define FIREBASE_APP_SRC_SEMAPHORE_H_
 
 #include <errno.h>
 
@@ -197,4 +197,4 @@ class Semaphore {
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_SEMAPHORE_H_
+#endif  // FIREBASE_APP_SRC_SEMAPHORE_H_

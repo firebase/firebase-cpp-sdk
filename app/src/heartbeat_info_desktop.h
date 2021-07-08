@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_HEARTBEAT_INFO_DESKTOP_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_HEARTBEAT_INFO_DESKTOP_H_
+#ifndef FIREBASE_APP_SRC_HEARTBEAT_INFO_DESKTOP_H_
+#define FIREBASE_APP_SRC_HEARTBEAT_INFO_DESKTOP_H_
 
 namespace firebase {
 
@@ -39,4 +39,4 @@ class HeartbeatInfo {
 
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_HEARTBEAT_INFO_DESKTOP_H_
+#endif  // FIREBASE_APP_SRC_HEARTBEAT_INFO_DESKTOP_H_

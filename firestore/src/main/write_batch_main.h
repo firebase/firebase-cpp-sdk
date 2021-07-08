@@ -1,7 +1,7 @@
 // Copyright 2021 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_WRITE_BATCH_MAIN_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_WRITE_BATCH_MAIN_H_
+#ifndef FIREBASE_FIRESTORE_SRC_MAIN_WRITE_BATCH_MAIN_H_
+#define FIREBASE_FIRESTORE_SRC_MAIN_WRITE_BATCH_MAIN_H_
 
 #include "Firestore/core/src/api/write_batch.h"
 #include "firestore/src/include/firebase/firestore/document_reference.h"
@@ -46,4 +46,4 @@ class WriteBatchInternal {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_WRITE_BATCH_MAIN_H_
+#endif  // FIREBASE_FIRESTORE_SRC_MAIN_WRITE_BATCH_MAIN_H_

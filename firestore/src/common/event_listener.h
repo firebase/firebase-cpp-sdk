@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_EVENT_LISTENER_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_EVENT_LISTENER_H_
+#ifndef FIREBASE_FIRESTORE_SRC_COMMON_EVENT_LISTENER_H_
+#define FIREBASE_FIRESTORE_SRC_COMMON_EVENT_LISTENER_H_
 
 #include <string>
 
@@ -76,4 +76,4 @@ class EventListener<void> {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_EVENT_LISTENER_H_
+#endif  // FIREBASE_FIRESTORE_SRC_COMMON_EVENT_LISTENER_H_

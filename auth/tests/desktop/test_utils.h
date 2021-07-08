@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_TESTS_DESKTOP_TEST_UTILS_H_
-#define FIREBASE_AUTH_CLIENT_CPP_TESTS_DESKTOP_TEST_UTILS_H_
+#ifndef FIREBASE_AUTH_TESTS_DESKTOP_TEST_UTILS_H_
+#define FIREBASE_AUTH_TESTS_DESKTOP_TEST_UTILS_H_
 
 #include "app/src/include/firebase/future.h"
 #include "auth/src/desktop/auth_desktop.h"
@@ -298,4 +298,4 @@ void WaitForFuture(
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_TESTS_DESKTOP_TEST_UTILS_H_
+#endif  // FIREBASE_AUTH_TESTS_DESKTOP_TEST_UTILS_H_

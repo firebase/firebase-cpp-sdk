@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_REST_REQUEST_JSON_H_
-#define FIREBASE_APP_CLIENT_CPP_REST_REQUEST_JSON_H_
+#ifndef FIREBASE_APP_REST_REQUEST_JSON_H_
+#define FIREBASE_APP_REST_REQUEST_JSON_H_
 
 #include <string>
 
@@ -80,4 +80,4 @@ class RequestJson : public Request {
 }  // namespace rest
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_REST_REQUEST_JSON_H_
+#endif  // FIREBASE_APP_REST_REQUEST_JSON_H_

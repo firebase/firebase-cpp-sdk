@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_SERVER_VALUES_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_SERVER_VALUES_H_
+#ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_SERVER_VALUES_H_
+#define FIREBASE_DATABASE_SRC_DESKTOP_CORE_SERVER_VALUES_H_
 
 #include "app/src/include/firebase/variant.h"
 #include "database/src/desktop/core/compound_write.h"
@@ -41,4 +41,4 @@ CompoundWrite ResolveDeferredValueMerge(const CompoundWrite& merge,
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_SERVER_VALUES_H_
+#endif  // FIREBASE_DATABASE_SRC_DESKTOP_CORE_SERVER_VALUES_H_

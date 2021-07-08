@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_VALUE_EVENT_REGISTRATION_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_VALUE_EVENT_REGISTRATION_H_
+#ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_VALUE_EVENT_REGISTRATION_H_
+#define FIREBASE_DATABASE_SRC_DESKTOP_CORE_VALUE_EVENT_REGISTRATION_H_
 
 #include "app/src/path.h"
 #include "database/src/common/query_spec.h"
@@ -58,4 +58,4 @@ class ValueEventRegistration : public EventRegistration {
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_VALUE_EVENT_REGISTRATION_H_
+#endif  // FIREBASE_DATABASE_SRC_DESKTOP_CORE_VALUE_EVENT_REGISTRATION_H_

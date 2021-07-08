@@ -13,8 +13,8 @@
 // limitations under the License.
 
 // Stores all constants of Firebase Auth desktop implementation for developers.
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_CONSTANTS_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_CONSTANTS_H_
+#ifndef FIREBASE_AUTH_SRC_DESKTOP_AUTH_CONSTANTS_H_
+#define FIREBASE_AUTH_SRC_DESKTOP_AUTH_CONSTANTS_H_
 
 namespace firebase {
 namespace auth {
@@ -32,4 +32,4 @@ extern const char kGameCenterAuthProviderId[];
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_CONSTANTS_H_
+#endif  // FIREBASE_AUTH_SRC_DESKTOP_AUTH_CONSTANTS_H_

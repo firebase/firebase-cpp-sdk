@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LOAD_BUNDLE_TASK_ANDROID_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LOAD_BUNDLE_TASK_ANDROID_H_
+#ifndef FIREBASE_FIRESTORE_SRC_ANDROID_LOAD_BUNDLE_TASK_ANDROID_H_
+#define FIREBASE_FIRESTORE_SRC_ANDROID_LOAD_BUNDLE_TASK_ANDROID_H_
 
 #include "firestore/src/android/wrapper.h"
 #include "firestore/src/jni/env.h"
@@ -39,4 +39,4 @@ class LoadBundleTaskInternal : public jni::Task {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_LOAD_BUNDLE_TASK_ANDROID_H_
+#endif  // FIREBASE_FIRESTORE_SRC_ANDROID_LOAD_BUNDLE_TASK_ANDROID_H_

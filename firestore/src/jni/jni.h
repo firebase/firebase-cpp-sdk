@@ -1,7 +1,7 @@
 // Copyright 2020 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_JNI_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_JNI_H_
+#ifndef FIREBASE_FIRESTORE_SRC_JNI_JNI_H_
+#define FIREBASE_FIRESTORE_SRC_JNI_JNI_H_
 
 #include <jni.h>
 
@@ -24,4 +24,4 @@ JNIEnv* GetEnv();
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_JNI_H_
+#endif  // FIREBASE_FIRESTORE_SRC_JNI_JNI_H_

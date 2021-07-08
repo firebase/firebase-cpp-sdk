@@ -38,9 +38,9 @@ import urllib.parse
 
 # Put any lint warnings you want to fully ignore into this list.
 IGNORE_LINT_WARNINGS = [
-    'build/header_guard',
-    'readability/casting',
-    'whitespace/line_length'
+  'build/include_subdir',
+  'readability/casting',
+  'whitespace/indent',
 ]
 # Exclude files within the following paths (specified as regexes)
 EXCLUDE_PATH_REGEX = [
@@ -229,7 +229,7 @@ def main():
               pr_comment['text'] +
               LINT_COMMENT_FOOTER +
               HIDDEN_COMMENT_TAG +
-              '<hidden value=%s></hidden>' % json.dumps(pr_comment['original_line'])
+              '<hidden value=%s></hidden>' % json.dumps(pr_comment['original_line'].replace('"','&quot;'))
                    ),
           'path': pr_comment['filename'],
           'line': pr_comment['line'],

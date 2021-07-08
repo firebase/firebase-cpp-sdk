@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_CLIENT_CPP_SRC_COMMON_ADMOB_COMMON_H_
-#define FIREBASE_ADMOB_CLIENT_CPP_SRC_COMMON_ADMOB_COMMON_H_
+#ifndef FIREBASE_ADMOB_SRC_COMMON_ADMOB_COMMON_H_
+#define FIREBASE_ADMOB_SRC_COMMON_ADMOB_COMMON_H_
 
 #include <stdarg.h>
 
@@ -86,4 +86,4 @@ FutureCallbackData* CreateFutureCallbackData(FutureData* future_data,
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_CLIENT_CPP_SRC_COMMON_ADMOB_COMMON_H_
+#endif  // FIREBASE_ADMOB_SRC_COMMON_ADMOB_COMMON_H_

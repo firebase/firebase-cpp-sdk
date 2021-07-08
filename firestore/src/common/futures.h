@@ -1,7 +1,7 @@
 // Copyright 2020 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_FUTURES_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_FUTURES_H_
+#ifndef FIREBASE_FIRESTORE_SRC_COMMON_FUTURES_H_
+#define FIREBASE_FIRESTORE_SRC_COMMON_FUTURES_H_
 
 #include "app/meta/move.h"
 #include "app/src/include/firebase/future.h"
@@ -63,4 +63,4 @@ Future<T> FailedFuture() {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_FUTURES_H_
+#endif  // FIREBASE_FIRESTORE_SRC_COMMON_FUTURES_H_

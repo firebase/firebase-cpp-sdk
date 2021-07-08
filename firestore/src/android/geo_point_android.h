@@ -1,7 +1,7 @@
 // Copyright 2020 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_GEO_POINT_ANDROID_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_GEO_POINT_ANDROID_H_
+#ifndef FIREBASE_FIRESTORE_SRC_ANDROID_GEO_POINT_ANDROID_H_
+#define FIREBASE_FIRESTORE_SRC_ANDROID_GEO_POINT_ANDROID_H_
 
 #include "firebase/firestore/geo_point.h"
 #include "firestore/src/jni/jni_fwd.h"
@@ -29,4 +29,4 @@ class GeoPointInternal : public jni::Object {
 
 }  // namespace firestore
 }  // namespace firebase
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_GEO_POINT_ANDROID_H_
+#endif  // FIREBASE_FIRESTORE_SRC_ANDROID_GEO_POINT_ANDROID_H_

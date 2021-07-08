@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_
-#define FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_
+#ifndef FIREBASE_FUNCTIONS_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_
+#define FIREBASE_FUNCTIONS_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_
 
 #include "app/rest/transport_curl.h"
 #include "app/rest/transport_interface.h"
@@ -123,4 +123,4 @@ class HttpsCallableReferenceInternal {
 }  // namespace functions
 }  // namespace firebase
 
-#endif  // FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_
+#endif  // FIREBASE_FUNCTIONS_SRC_DESKTOP_CALLABLE_REFERENCE_DESKTOP_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CONNECTION_WEB_SOCKET_CLIENT_IMPL_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CONNECTION_WEB_SOCKET_CLIENT_IMPL_H_
+#ifndef FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_WEB_SOCKET_CLIENT_IMPL_H_
+#define FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_WEB_SOCKET_CLIENT_IMPL_H_
 
 #include <queue>
 #include <string>
@@ -172,4 +172,4 @@ class WebSocketClientImpl : public WebSocketClientInterface {
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CONNECTION_WEB_SOCKET_CLIENT_IMPL_H_
+#endif  // FIREBASE_DATABASE_SRC_DESKTOP_CONNECTION_WEB_SOCKET_CLIENT_IMPL_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_STORAGE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_STORAGE_COMMON_H_
-#define FIREBASE_STORAGE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_STORAGE_COMMON_H_
+#ifndef FIREBASE_STORAGE_SRC_INCLUDE_FIREBASE_STORAGE_COMMON_H_
+#define FIREBASE_STORAGE_SRC_INCLUDE_FIREBASE_STORAGE_COMMON_H_
 
 namespace firebase {
 namespace storage {
@@ -59,4 +59,4 @@ const char* GetErrorMessage(Error error);
 }  // namespace storage
 }  // namespace firebase
 
-#endif  // FIREBASE_STORAGE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_STORAGE_COMMON_H_
+#endif  // FIREBASE_STORAGE_SRC_INCLUDE_FIREBASE_STORAGE_COMMON_H_

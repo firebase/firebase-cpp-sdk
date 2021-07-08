@@ -1,7 +1,7 @@
 // Copyright 2020 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_LONG_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_LONG_H_
+#ifndef FIREBASE_FIRESTORE_SRC_JNI_LONG_H_
+#define FIREBASE_FIRESTORE_SRC_JNI_LONG_H_
 
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
@@ -28,4 +28,4 @@ class Long : public Object {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_LONG_H_
+#endif  // FIREBASE_FIRESTORE_SRC_JNI_LONG_H_
