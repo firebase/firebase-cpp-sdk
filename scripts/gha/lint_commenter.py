@@ -40,7 +40,6 @@ import urllib.parse
 IGNORE_LINT_WARNINGS = [
     'build/header_guard',
     'readability/casting',
-    'whitespace/line_length'
 ]
 # Exclude files within the following paths (specified as regexes)
 EXCLUDE_PATH_REGEX = [
