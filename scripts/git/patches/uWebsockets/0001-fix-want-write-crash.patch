@@ -1,0 +1,59 @@
+From d868ac6f2ce8c6ba8359e33616caeb889e0c57e7 Mon Sep 17 00:00:00 2001
+From: "google.com" <google.com>
+Date: Wed, 7 Jul 2021 19:00:49 -0400
+Subject: [PATCH] fix want_write crash
+
+---
+ src/Socket.h | 34 ++++++++++++++++++----------------
+ 1 file changed, 18 insertions(+), 16 deletions(-)
+
+diff --git a/src/Socket.h b/src/Socket.h
+index 2179ff8..521e798 100644
+--- a/src/Socket.h
++++ b/src/Socket.h
+@@ -306,24 +306,26 @@ protected:
+         if (messageQueue.empty()) {
+ 
+             if (ssl) {
+-                sent = SSL_write(ssl, message->data, message->length);
+-                if (sent == (ssize_t) message->length) {
+-                    wasTransferred = false;
+-                    return true;
+-                } else if (sent < 0) {
+-                    switch (SSL_get_error(ssl, sent)) {
+-                    case SSL_ERROR_WANT_READ:
+-                        break;
+-                    case SSL_ERROR_WANT_WRITE:
+-                        if ((getPoll() & UV_WRITABLE) == 0) {
+-                            setPoll(getPoll() | UV_WRITABLE);
+-                            changePoll(this);
++                /* BEG Patched by firebase-cpp-sdk 00001-fix-want-write-crash.patch */
++                bool continue_loop = true;
++                do {
++                    sent = SSL_write(ssl, message->data, message->length);
++                    if (sent == (ssize_t) message->length) {
++                        wasTransferred = false;
++                        return true;
++                    } else if (sent < 0) {
++                        switch (SSL_get_error(ssl, sent)) {
++                        case SSL_ERROR_WANT_READ:
++                            continue_loop = false;
++                            break;
++                        case SSL_ERROR_WANT_WRITE:
++                            break;
++                        default:
++                            return false;
+                         }
+-                        break;
+-                    default:
+-                        return false;
+                     }
+-                }
++                } while (continue_loop);
++                /* END Patched by firebase-cpp-sdk 00001-fix-want-write-crash.patch */
+             } else {
+                 sent = ::send(getFd(), message->data, message->length, MSG_NOSIGNAL);
+                 if (sent == (ssize_t) message->length) {
+-- 
+2.32.0.93.g670b81a890-goog
+
