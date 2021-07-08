@@ -38,7 +38,7 @@ import urllib.parse
 
 # Put any lint warnings you want to fully ignore into this list.
 IGNORE_LINT_WARNINGS = [
-  'build/header_guard',
+  'build/include_subdir',
   'readability/casting',
   'whitespace/indent',
 ]
