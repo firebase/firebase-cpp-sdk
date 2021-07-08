@@ -229,7 +229,7 @@ def main():
               pr_comment['text'] +
               LINT_COMMENT_FOOTER +
               HIDDEN_COMMENT_TAG +
-              '<hidden value=%s></hidden>' % json.dumps(pr_comment['original_line'])
+              '<hidden value=%s></hidden>' % json.dumps(pr_comment['original_line'].replace('"','&quot;'))
                    ),
           'path': pr_comment['filename'],
           'line': pr_comment['line'],
