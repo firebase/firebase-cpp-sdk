@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_CLIENT_CPP_SRC_IOS_BANNER_VIEW_INTERNAL_IOS_H_
-#define FIREBASE_ADMOB_CLIENT_CPP_SRC_IOS_BANNER_VIEW_INTERNAL_IOS_H_
+#ifndef FIREBASE_ADMOB_SRC_IOS_BANNER_VIEW_INTERNAL_IOS_H_
+#define FIREBASE_ADMOB_SRC_IOS_BANNER_VIEW_INTERNAL_IOS_H_
 
 extern "C" {
 #include <objc/objc.h>
@@ -69,4 +69,4 @@ class BannerViewInternalIOS : public BannerViewInternal {
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_CLIENT_CPP_SRC_IOS_BANNER_VIEW_INTERNAL_IOS_H_
+#endif  // FIREBASE_ADMOB_SRC_IOS_BANNER_VIEW_INTERNAL_IOS_H_

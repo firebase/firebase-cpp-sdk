@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_APP_IDENTIFIER_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_APP_IDENTIFIER_H_
+#ifndef FIREBASE_APP_SRC_APP_IDENTIFIER_H_
+#define FIREBASE_APP_SRC_APP_IDENTIFIER_H_
 
 #include <string>
 
@@ -30,4 +30,4 @@ std::string CreateAppIdentifierFromOptions(const AppOptions& options);
 }  // namespace internal
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_APP_IDENTIFIER_H_
+#endif  // FIREBASE_APP_SRC_APP_IDENTIFIER_H_

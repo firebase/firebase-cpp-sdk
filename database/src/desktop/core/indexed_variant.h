@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_INDEXED_VARIANT_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_INDEXED_VARIANT_H_
+#ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_INDEXED_VARIANT_H_
+#define FIREBASE_DATABASE_SRC_DESKTOP_CORE_INDEXED_VARIANT_H_
 
 #include <set>
 
@@ -120,4 +120,4 @@ bool operator!=(const IndexedVariant& lhs, const IndexedVariant& rhs);
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_INDEXED_VARIANT_H_
+#endif  // FIREBASE_DATABASE_SRC_DESKTOP_CORE_INDEXED_VARIANT_H_

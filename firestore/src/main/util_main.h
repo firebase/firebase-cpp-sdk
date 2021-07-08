@@ -1,7 +1,7 @@
 // Copyright 2021 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_UTIL_MAIN_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_UTIL_MAIN_H_
+#ifndef FIREBASE_FIRESTORE_SRC_MAIN_UTIL_MAIN_H_
+#define FIREBASE_FIRESTORE_SRC_MAIN_UTIL_MAIN_H_
 
 #include "Firestore/core/src/api/firestore.h"
 #include "firestore/src/include/firebase/firestore.h"
@@ -24,4 +24,4 @@ Firestore* GetFirestore(T* object) {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_UTIL_MAIN_H_
+#endif  // FIREBASE_FIRESTORE_SRC_MAIN_UTIL_MAIN_H_

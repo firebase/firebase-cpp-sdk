@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_MESSAGING_CLIENT_CPP_INCLUDE_FIREBASE_MESSAGING_H_
-#define FIREBASE_MESSAGING_CLIENT_CPP_INCLUDE_FIREBASE_MESSAGING_H_
+#ifndef FIREBASE_MESSAGING_SRC_INCLUDE_FIREBASE_MESSAGING_H_
+#define FIREBASE_MESSAGING_SRC_INCLUDE_FIREBASE_MESSAGING_H_
 
 #include <stdint.h>
 
@@ -725,4 +725,4 @@ class PollableListener : public Listener {
 }  // namespace messaging
 }  // namespace firebase
 
-#endif  // FIREBASE_MESSAGING_CLIENT_CPP_SRC_INCLUDE_FIREBASE_MESSAGING_H_
+#endif  // FIREBASE_MESSAGING_SRC_INCLUDE_FIREBASE_MESSAGING_H_

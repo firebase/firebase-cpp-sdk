@@ -1,7 +1,7 @@
 // Copyright 2020 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_QUERY_ANDROID_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_QUERY_ANDROID_H_
+#ifndef FIREBASE_FIRESTORE_SRC_ANDROID_QUERY_ANDROID_H_
+#define FIREBASE_FIRESTORE_SRC_ANDROID_QUERY_ANDROID_H_
 
 #include <cstdint>
 
@@ -398,4 +398,4 @@ inline bool operator!=(const QueryInternal& lhs, const QueryInternal& rhs) {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_QUERY_ANDROID_H_
+#endif  // FIREBASE_FIRESTORE_SRC_ANDROID_QUERY_ANDROID_H_

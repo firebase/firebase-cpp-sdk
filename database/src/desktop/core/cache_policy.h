@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_CACHE_POLICY_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_CACHE_POLICY_H_
+#ifndef FIREBASE_DATABASE_SRC_DESKTOP_CORE_CACHE_POLICY_H_
+#define FIREBASE_DATABASE_SRC_DESKTOP_CORE_CACHE_POLICY_H_
 
 #include <cstdint>
 
@@ -60,4 +60,4 @@ class LRUCachePolicy : public CachePolicy {
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_CORE_CACHE_POLICY_H_
+#endif  // FIREBASE_DATABASE_SRC_DESKTOP_CORE_CACHE_POLICY_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_OAUTH_AUTH_CREDENTIAL_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_OAUTH_AUTH_CREDENTIAL_H_
+#ifndef FIREBASE_AUTH_SRC_DESKTOP_AUTH_PROVIDERS_OAUTH_AUTH_CREDENTIAL_H_
+#define FIREBASE_AUTH_SRC_DESKTOP_AUTH_PROVIDERS_OAUTH_AUTH_CREDENTIAL_H_
 
 #include "auth/src/desktop/auth_constants.h"
 #include "auth/src/desktop/identity_provider_credential.h"
@@ -62,4 +62,4 @@ class OAuthCredential : public IdentityProviderCredential {
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_AUTH_PROVIDERS_OAUTH_AUTH_CREDENTIAL_H_
+#endif  // FIREBASE_AUTH_SRC_DESKTOP_AUTH_PROVIDERS_OAUTH_AUTH_CREDENTIAL_H_

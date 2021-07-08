@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_TESTLAB_CLIENT_CPP_SRC_ANDROID_UTIL_H_
-#define FIREBASE_TESTLAB_CLIENT_CPP_SRC_ANDROID_UTIL_H_
+#ifndef FIREBASE_TESTLAB_SRC_ANDROID_UTIL_H_
+#define FIREBASE_TESTLAB_SRC_ANDROID_UTIL_H_
 
 #include <jni.h>
 
@@ -45,4 +45,4 @@ void CallFinish();
 }  // namespace test_lab
 }  // namespace firebase
 
-#endif  // FIREBASE_TESTLAB_CLIENT_CPP_SRC_ANDROID_UTIL_H_
+#endif  // FIREBASE_TESTLAB_SRC_ANDROID_UTIL_H_

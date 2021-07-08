@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_UTIL_ANDROID_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_UTIL_ANDROID_H_
+#ifndef FIREBASE_APP_SRC_UTIL_ANDROID_H_
+#define FIREBASE_APP_SRC_UTIL_ANDROID_H_
 
 #include <jni.h>
 #include <stddef.h>
@@ -1112,4 +1112,4 @@ JNIEnv* GetJNIEnvFromApp();
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_UTIL_ANDROID_H_
+#endif  // FIREBASE_APP_SRC_UTIL_ANDROID_H_

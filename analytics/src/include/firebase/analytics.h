@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ANALYTICS_CLIENT_CPP_INCLUDE_FIREBASE_ANALYTICS_H_
-#define FIREBASE_ANALYTICS_CLIENT_CPP_INCLUDE_FIREBASE_ANALYTICS_H_
+#ifndef FIREBASE_ANALYTICS_SRC_INCLUDE_FIREBASE_ANALYTICS_H_
+#define FIREBASE_ANALYTICS_SRC_INCLUDE_FIREBASE_ANALYTICS_H_
 
 #include <cstddef>
 #include <cstdint>
@@ -521,4 +521,4 @@ Future<std::string> GetAnalyticsInstanceIdLastResult();
 }  // namespace analytics
 }  // namespace firebase
 
-#endif  // FIREBASE_ANALYTICS_CLIENT_CPP_INCLUDE_FIREBASE_ANALYTICS_H_
+#endif  // FIREBASE_ANALYTICS_SRC_INCLUDE_FIREBASE_ANALYTICS_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_USER_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_USER_H_
+#ifndef FIREBASE_AUTH_SRC_INCLUDE_FIREBASE_AUTH_USER_H_
+#define FIREBASE_AUTH_SRC_INCLUDE_FIREBASE_AUTH_USER_H_
 
 #include <string>
 #include <vector>
@@ -498,4 +498,4 @@ class User : public UserInfoInterface {
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_INCLUDE_FIREBASE_AUTH_USER_H_
+#endif  // FIREBASE_AUTH_SRC_INCLUDE_FIREBASE_AUTH_USER_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_DESKTOP_FUNCTIONS_DESKTOP_H_
-#define FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_DESKTOP_FUNCTIONS_DESKTOP_H_
+#ifndef FIREBASE_FUNCTIONS_SRC_DESKTOP_FUNCTIONS_DESKTOP_H_
+#define FIREBASE_FUNCTIONS_SRC_DESKTOP_FUNCTIONS_DESKTOP_H_
 
 #include "app/src/cleanup_notifier.h"
 #include "app/src/future_manager.h"
@@ -70,4 +70,4 @@ class FunctionsInternal {
 }  // namespace functions
 }  // namespace firebase
 
-#endif  // FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_DESKTOP_FUNCTIONS_DESKTOP_H_
+#endif  // FIREBASE_FUNCTIONS_SRC_DESKTOP_FUNCTIONS_DESKTOP_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_CREDENTIAL_UTIL_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_CREDENTIAL_UTIL_H_
+#ifndef FIREBASE_AUTH_SRC_DESKTOP_CREDENTIAL_UTIL_H_
+#define FIREBASE_AUTH_SRC_DESKTOP_CREDENTIAL_UTIL_H_
 
 #include <memory>
 #include <string>
@@ -58,4 +58,4 @@ const EmailAuthCredential* GetEmailCredential(const void* raw_credential_impl);
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_CREDENTIAL_UTIL_H_
+#endif  // FIREBASE_AUTH_SRC_DESKTOP_CREDENTIAL_UTIL_H_

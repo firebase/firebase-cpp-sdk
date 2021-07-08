@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_APP_COMMON_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_APP_COMMON_H_
+#ifndef FIREBASE_APP_SRC_APP_COMMON_H_
+#define FIREBASE_APP_SRC_APP_COMMON_H_
 
 #include <stddef.h>
 
@@ -100,4 +100,4 @@ Logger* FindAppLoggerByName(const char* name);
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_APP_COMMON_H_
+#endif  // FIREBASE_APP_SRC_APP_COMMON_H_

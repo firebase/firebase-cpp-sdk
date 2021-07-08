@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_BASE64_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_BASE64_H_
+#ifndef FIREBASE_APP_SRC_BASE64_H_
+#define FIREBASE_APP_SRC_BASE64_H_
 
 #include <string>
 
@@ -56,4 +56,4 @@ size_t GetBase64DecodedSize(const std::string& input);
 }  // namespace internal
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_BASE64_H_
+#endif  // FIREBASE_APP_SRC_BASE64_H_

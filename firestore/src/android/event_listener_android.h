@@ -1,7 +1,7 @@
 // Copyright 2020 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_EVENT_LISTENER_ANDROID_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_EVENT_LISTENER_ANDROID_H_
+#ifndef FIREBASE_FIRESTORE_SRC_ANDROID_EVENT_LISTENER_ANDROID_H_
+#define FIREBASE_FIRESTORE_SRC_ANDROID_EVENT_LISTENER_ANDROID_H_
 
 #include "firestore/src/android/firestore_android.h"
 #include "firestore/src/common/event_listener.h"
@@ -70,4 +70,4 @@ class EventListenerInternal {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_EVENT_LISTENER_ANDROID_H_
+#endif  // FIREBASE_FIRESTORE_SRC_ANDROID_EVENT_LISTENER_ANDROID_H_

@@ -17,8 +17,8 @@
 // Note: This is needed since std::make_unique is only available starting C++14.
 // TODO(b/191981857): Remove this file when possible.
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_MAKE_UNIQUE_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_MAKE_UNIQUE_H_
+#ifndef FIREBASE_FIRESTORE_SRC_COMMON_MAKE_UNIQUE_H_
+#define FIREBASE_FIRESTORE_SRC_COMMON_MAKE_UNIQUE_H_
 
 #include <memory>
 #include <utility>
@@ -34,4 +34,4 @@ std::unique_ptr<T> make_unique(Args&&... args) {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_MAKE_UNIQUE_H_
+#endif  // FIREBASE_FIRESTORE_SRC_COMMON_MAKE_UNIQUE_H_

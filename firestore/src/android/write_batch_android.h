@@ -1,7 +1,7 @@
 // Copyright 2020 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_WRITE_BATCH_ANDROID_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_WRITE_BATCH_ANDROID_H_
+#ifndef FIREBASE_FIRESTORE_SRC_ANDROID_WRITE_BATCH_ANDROID_H_
+#define FIREBASE_FIRESTORE_SRC_ANDROID_WRITE_BATCH_ANDROID_H_
 
 #include "firestore/src/android/promise_factory_android.h"
 #include "firestore/src/android/wrapper.h"
@@ -58,4 +58,4 @@ class WriteBatchInternal : public Wrapper {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_WRITE_BATCH_ANDROID_H_
+#endif  // FIREBASE_FIRESTORE_SRC_ANDROID_WRITE_BATCH_ANDROID_H_

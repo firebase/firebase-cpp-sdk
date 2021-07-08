@@ -1,7 +1,7 @@
 // Copyright 2020 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_TRAITS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_TRAITS_H_
+#ifndef FIREBASE_FIRESTORE_SRC_JNI_TRAITS_H_
+#define FIREBASE_FIRESTORE_SRC_JNI_TRAITS_H_
 
 #include <jni.h>
 
@@ -215,4 +215,4 @@ auto ToJni(const T& value)
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_TRAITS_H_
+#endif  // FIREBASE_FIRESTORE_SRC_JNI_TRAITS_H_

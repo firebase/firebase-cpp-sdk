@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_REST_RESPONSE_JSON_H_
-#define FIREBASE_APP_CLIENT_CPP_REST_RESPONSE_JSON_H_
+#ifndef FIREBASE_APP_REST_RESPONSE_JSON_H_
+#define FIREBASE_APP_REST_RESPONSE_JSON_H_
 
 #include <string>
 #include <utility>
@@ -100,4 +100,4 @@ class ResponseJson : public Response {
 }  // namespace rest
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_REST_RESPONSE_JSON_H_
+#endif  // FIREBASE_APP_REST_RESPONSE_JSON_H_

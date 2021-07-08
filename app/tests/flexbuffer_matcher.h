@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_APP_CLIENT_CPP_TESTS_FLEXBUFFER_MATCHER_H_
-#define FIREBASE_APP_CLIENT_CPP_TESTS_FLEXBUFFER_MATCHER_H_
+#ifndef FIREBASE_APP_TESTS_FLEXBUFFER_MATCHER_H_
+#define FIREBASE_APP_TESTS_FLEXBUFFER_MATCHER_H_
 
 #include "flatbuffers/flexbuffers.h"
 #include "gmock/gmock.h"
@@ -53,4 +53,4 @@ MATCHER_P(EqualsFlexbuffer, expected, "") {
   return EqualsFlexbufferImpl(expected, arg, "", result_listener);
 }
 
-#endif  // FIREBASE_APP_CLIENT_CPP_TESTS_FLEXBUFFER_MATCHER_H_
+#endif  // FIREBASE_APP_TESTS_FLEXBUFFER_MATCHER_H_

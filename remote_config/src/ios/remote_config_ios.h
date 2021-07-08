@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_IOS_REMOTE_CONFIG_IOS_H_
-#define FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_IOS_REMOTE_CONFIG_IOS_H_
+#ifndef FIREBASE_REMOTE_CONFIG_SRC_IOS_REMOTE_CONFIG_IOS_H_
+#define FIREBASE_REMOTE_CONFIG_SRC_IOS_REMOTE_CONFIG_IOS_H_
 
 #include "firebase/app.h"
 #include "app/memory/unique_ptr.h"
@@ -110,4 +110,4 @@ class RemoteConfigInternal {
 }  // namespace remote_config
 }  // namespace firebase
 
-#endif  // FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_IOS_REMOTE_CONFIG_IOS_H_
+#endif  // FIREBASE_REMOTE_CONFIG_SRC_IOS_REMOTE_CONFIG_IOS_H_

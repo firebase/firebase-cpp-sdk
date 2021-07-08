@@ -1,7 +1,7 @@
 // Copyright 2020 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_MACROS_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_MACROS_H_
+#ifndef FIREBASE_FIRESTORE_SRC_COMMON_MACROS_H_
+#define FIREBASE_FIRESTORE_SRC_COMMON_MACROS_H_
 
 #include <cstdlib>
 
@@ -97,4 +97,4 @@
 #define FIRESTORE_UNREACHABLE()  // nothing
 #endif                           // defined(__GNUC__) || defined(__clang__)
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_MACROS_H_
+#endif  // FIREBASE_FIRESTORE_SRC_COMMON_MACROS_H_

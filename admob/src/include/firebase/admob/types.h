@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_CLIENT_CPP_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
-#define FIREBASE_ADMOB_CLIENT_CPP_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
+#ifndef FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
+#define FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
 
 #include "firebase/internal/platform.h"
 
@@ -177,4 +177,4 @@ struct BoundingBox {
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_CLIENT_CPP_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_
+#endif  // FIREBASE_ADMOB_SRC_INCLUDE_FIREBASE_ADMOB_TYPES_H_

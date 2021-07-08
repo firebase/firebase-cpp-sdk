@@ -1,7 +1,7 @@
 // Copyright 2021 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_CONVERTER_MAIN_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_CONVERTER_MAIN_H_
+#ifndef FIREBASE_FIRESTORE_SRC_MAIN_CONVERTER_MAIN_H_
+#define FIREBASE_FIRESTORE_SRC_MAIN_CONVERTER_MAIN_H_
 
 #include <memory>
 #include <utility>
@@ -132,4 +132,4 @@ inline const api::DocumentSnapshot& GetCoreApi(const DocumentSnapshot& from) {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_CONVERTER_MAIN_H_
+#endif  // FIREBASE_FIRESTORE_SRC_MAIN_CONVERTER_MAIN_H_

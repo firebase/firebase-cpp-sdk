@@ -1,7 +1,7 @@
 // Copyright 2021 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_EXCEPTION_COMMON_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_EXCEPTION_COMMON_H_
+#ifndef FIREBASE_FIRESTORE_SRC_COMMON_EXCEPTION_COMMON_H_
+#define FIREBASE_FIRESTORE_SRC_COMMON_EXCEPTION_COMMON_H_
 
 // Routines in this file are used to throw an exception (or crash, depending on
 // platform) in response to API usage errors. Exceptions should only be used
@@ -110,4 +110,4 @@ FIRESTORE_ATTRIBUTE_NORETURN void SimpleThrowIllegalState(
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_EXCEPTION_COMMON_H_
+#endif  // FIREBASE_FIRESTORE_SRC_COMMON_EXCEPTION_COMMON_H_

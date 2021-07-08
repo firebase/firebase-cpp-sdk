@@ -1,7 +1,7 @@
 // Copyright 2020 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_PROMISE_FACTORY_ANDROID_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_PROMISE_FACTORY_ANDROID_H_
+#ifndef FIREBASE_FIRESTORE_SRC_ANDROID_PROMISE_FACTORY_ANDROID_H_
+#define FIREBASE_FIRESTORE_SRC_ANDROID_PROMISE_FACTORY_ANDROID_H_
 
 #include "firestore/src/android/promise_android.h"
 #include "firestore/src/common/type_mapping.h"
@@ -75,4 +75,4 @@ class PromiseFactory {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_PROMISE_FACTORY_ANDROID_H_
+#endif  // FIREBASE_FIRESTORE_SRC_ANDROID_PROMISE_FACTORY_ANDROID_H_

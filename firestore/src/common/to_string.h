@@ -1,7 +1,7 @@
 // Copyright 2020 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_TO_STRING_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_TO_STRING_H_
+#ifndef FIREBASE_FIRESTORE_SRC_COMMON_TO_STRING_H_
+#define FIREBASE_FIRESTORE_SRC_COMMON_TO_STRING_H_
 
 #include <iosfwd>
 #include <string>
@@ -32,4 +32,4 @@ std::ostream& operator<<(std::ostream& out, const MapFieldValue& value);
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_TO_STRING_H_
+#endif  // FIREBASE_FIRESTORE_SRC_COMMON_TO_STRING_H_

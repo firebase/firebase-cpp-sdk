@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_UUID_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_UUID_H_
+#ifndef FIREBASE_APP_SRC_UUID_H_
+#define FIREBASE_APP_SRC_UUID_H_
 
 #include <stdint.h>
 
@@ -33,4 +33,4 @@ struct Uuid {
 }  // namespace internal
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_UUID_H_
+#endif  // FIREBASE_APP_SRC_UUID_H_

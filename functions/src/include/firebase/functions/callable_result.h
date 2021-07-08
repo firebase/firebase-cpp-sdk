@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_
-#define FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_
+#ifndef FIREBASE_FUNCTIONS_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_
+#define FIREBASE_FUNCTIONS_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_
 
 #include "firebase/variant.h"
 #include "firebase/functions/common.h"
@@ -93,4 +93,4 @@ class HttpsCallableResult {
 }  // namespace functions
 }  // namespace firebase
 
-#endif  // FIREBASE_FUNCTIONS_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_
+#endif  // FIREBASE_FUNCTIONS_SRC_INCLUDE_FIREBASE_FUNCTIONS_CALLABLE_RESULT_H_

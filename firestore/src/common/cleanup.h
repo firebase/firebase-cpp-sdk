@@ -1,7 +1,7 @@
 // Copyright 2017 Google Inc. All Rights Reserved.
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_CLEANUP_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_CLEANUP_H_
+#ifndef FIREBASE_FIRESTORE_SRC_COMMON_CLEANUP_H_
+#define FIREBASE_FIRESTORE_SRC_COMMON_CLEANUP_H_
 
 #if __ANDROID__
 #include "firestore/src/android/firestore_android.h"
@@ -78,4 +78,4 @@ struct CleanupFn {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_CLEANUP_H_
+#endif  // FIREBASE_FIRESTORE_SRC_COMMON_CLEANUP_H_

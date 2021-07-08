@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DYNAMIC_LINKS_CLIENT_CPP_SRC_COMMON_H_
-#define FIREBASE_DYNAMIC_LINKS_CLIENT_CPP_SRC_COMMON_H_
+#ifndef FIREBASE_DYNAMIC_LINKS_SRC_COMMON_H_
+#define FIREBASE_DYNAMIC_LINKS_SRC_COMMON_H_
 
 #include "app/src/include/firebase/app.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -54,4 +54,4 @@ void DestroyReceiver();
 }  // namespace dynamic_links
 }  // namespace firebase
 
-#endif  // FIREBASE_DYNAMIC_LINKS_CLIENT_CPP_SRC_COMMON_H_
+#endif  // FIREBASE_DYNAMIC_LINKS_SRC_COMMON_H_

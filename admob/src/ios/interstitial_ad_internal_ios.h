@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_CLIENT_CPP_SRC_IOS_INTERSTITIAL_AD_INTERNAL_IOS_H_
-#define FIREBASE_ADMOB_CLIENT_CPP_SRC_IOS_INTERSTITIAL_AD_INTERNAL_IOS_H_
+#ifndef FIREBASE_ADMOB_SRC_IOS_INTERSTITIAL_AD_INTERNAL_IOS_H_
+#define FIREBASE_ADMOB_SRC_IOS_INTERSTITIAL_AD_INTERNAL_IOS_H_
 
 #ifdef __OBJC__
 #import "admob/src/ios/FADInterstitialDelegate.h"
@@ -82,4 +82,4 @@ class InterstitialAdInternalIOS : public InterstitialAdInternal {
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_CLIENT_CPP_SRC_IOS_INTERSTITIAL_AD_INTERNAL_IOS_H_
+#endif  // FIREBASE_ADMOB_SRC_IOS_INTERSTITIAL_AD_INTERNAL_IOS_H_

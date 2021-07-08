@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FUTURE_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FUTURE_H_
+#ifndef FIREBASE_APP_SRC_INCLUDE_FIREBASE_FUTURE_H_
+#define FIREBASE_APP_SRC_INCLUDE_FIREBASE_FUTURE_H_
 
 #include <stddef.h>
 #include <stdint.h>
@@ -523,4 +523,4 @@ class Future : public FutureBase {
 // Include the inline implementation.
 #include "firebase/internal/future_impl.h"
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FUTURE_H_
+#endif  // FIREBASE_APP_SRC_INCLUDE_FIREBASE_FUTURE_H_

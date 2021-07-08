@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_REFERENCE_COUNT_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_REFERENCE_COUNT_H_
+#ifndef FIREBASE_APP_SRC_REFERENCE_COUNT_H_
+#define FIREBASE_APP_SRC_REFERENCE_COUNT_H_
 
 #include "app/src/mutex.h"
 
@@ -254,4 +254,4 @@ class ReferenceCountedInitializer {
 }  // namespace internal
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_REFERENCE_COUNT_H_
+#endif  // FIREBASE_APP_SRC_REFERENCE_COUNT_H_

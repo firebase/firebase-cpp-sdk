@@ -1,7 +1,7 @@
 // Copyright 2021 Google LLC
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_JNI_RUNNABLE_ANDROID_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_JNI_RUNNABLE_ANDROID_H_
+#ifndef FIREBASE_FIRESTORE_SRC_ANDROID_JNI_RUNNABLE_ANDROID_H_
+#define FIREBASE_FIRESTORE_SRC_ANDROID_JNI_RUNNABLE_ANDROID_H_
 
 #include "app/meta/move.h"
 #include "firestore/src/jni/jni_fwd.h"
@@ -156,4 +156,4 @@ JniRunnable<CallbackT> MakeJniRunnable(jni::Env& env, CallbackT callback) {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_JNI_RUNNABLE_ANDROID_H_
+#endif  // FIREBASE_FIRESTORE_SRC_ANDROID_JNI_RUNNABLE_ANDROID_H_
