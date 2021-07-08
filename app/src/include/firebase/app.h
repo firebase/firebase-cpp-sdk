@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_SRC_INCLUDE_FIREBASE_APP_H_
-#define FIREBASE_APP_SRC_INCLUDE_FIREBASE_APP_H_
+#ifndef FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_APP_H_
+#define FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_APP_H_
 
 #include "firebase/internal/platform.h"
 
@@ -766,4 +766,4 @@ class App {
 
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_SRC_INCLUDE_FIREBASE_APP_H_
+#endif  // FIREBASE_APP_CLIENT_CPP_SRC_INCLUDE_FIREBASE_APP_H_
