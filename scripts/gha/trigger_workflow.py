@@ -54,6 +54,7 @@ def main():
   json_params = {}
   for param in args.param:
       json_params[param[0]] = param[1]
+  json_params["platforms"] = "Desktop,Android,iOS"
   json_text = '{"ref":%s,"inputs":%s}' % (json.dumps(args.branch), json.dumps(json_params))
   if args.verbose or args.dryrun:
     print('request_url: %s' % request_url)
