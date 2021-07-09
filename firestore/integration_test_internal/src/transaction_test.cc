@@ -31,12 +31,6 @@ namespace firestore {
 
 using ::testing::HasSubstr;
 
-// We will be using lambda in the test instead of defining a
-// TransactionFunction for each of the test case.
-//
-// We do have a TransactionFunction-version of the test
-// TestGetNonexistentDocumentThenCreate to test the non-lambda API.
-
 class TransactionTest : public FirestoreIntegrationTest {
  protected:
   // We occasionally get transient error like "Could not reach Cloud Firestore
@@ -91,13 +85,12 @@ class TransactionTest : public FirestoreIntegrationTest {
   }
 };
 
-TEST_F(TransactionTest, TestGetNonexistentDocumentThenCreatePortableVersion) {
+TEST_F(TransactionTest, TestGetNonexistentDocumentThenCreate) {
   DocumentReference doc = TestFirestore()->Collection("towns").Document();
   std::string key = "foo";
   std::string value = "bar";
   Future<void> future = TestFirestore()->RunTransaction(
-      [this, doc, key, value](Transaction& transaction,
-                              std::string& error_message) {
+      [&](Transaction& transaction, std::string& error_message) {
         Error error = Error::kErrorUnknown;
         DocumentSnapshot snapshot =
             transaction.Get(doc, &error, &error_message);
