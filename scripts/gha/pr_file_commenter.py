@@ -138,6 +138,7 @@ def main():
       last_comment['text'] += '\n`%s`' % line.rstrip('\n')
       all_comments.append(last_comment)
 
+  print(all_comments)
   pr_comments = []
   for comment in all_comments:
     if comment['filename'] in valid_lines:
