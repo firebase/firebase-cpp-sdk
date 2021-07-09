@@ -1,6 +1,7 @@
 // Copyright 2021 Google LLC
 
 #include "firestore_integration_test.h"
+// The preceding line should have caused a lint warning.
 
 #include <cstdlib>
 #include <fstream>
@@ -261,14 +262,10 @@ std::vector<std::string> FirestoreIntegrationTest::QuerySnapshotToIds(
   return result;
 }
 
-std::vector<MapFieldValue> FirestoreIntegrationTest::QuerySnapshotToValues(
-    const QuerySnapshot& snapshot) const {
-  std::vector<MapFieldValue> result;
-  for (const DocumentSnapshot& doc : snapshot.documents()) {
-    result.push_back(doc.GetData());
-  }
-  return result;
-}
+class AnotherTemporaryLintErrorClass {
+  // The below line should give a lint error.
+  AnotherTemporaryLintErrorClass(int t) {}
+};
 
 std::map<std::string, MapFieldValue>
 FirestoreIntegrationTest::QuerySnapshotToMap(
@@ -306,6 +303,20 @@ bool FirestoreIntegrationTest::FailIfUnsuccessful(const char* operation,
     return false;
   }
 }
+
+std::vector<MapFieldValue> FirestoreIntegrationTest::QuerySnapshotToValues(
+    const QuerySnapshot& snapshot) const {
+  std::vector<MapFieldValue> result;
+  for (const DocumentSnapshot& doc : snapshot.documents()) {
+    result.push_back(doc.GetData());
+  }
+  return result;
+}
+
+class TemporaryLintErrorClass {
+  // The below line should give a lint error.
+  TemporaryLintErrorClass(int t) {}
+};
 
 /* static */
 std::string FirestoreIntegrationTest::DescribeFailedFuture(
