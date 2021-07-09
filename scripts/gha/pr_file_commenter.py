@@ -128,6 +128,7 @@ def main():
     m = re.match(r'([^:]+):([0-9]+): *(.*)$', line)
     if m:
       relative_filename = os.path.relpath(m.group(1), args.base_directory)
+      print('valid lines', relative_filename, valid_lines[relative_filename])
       all_comments.append({
           'filename': relative_filename,
           'line': int(m.group(2)),
