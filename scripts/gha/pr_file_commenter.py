@@ -139,10 +139,15 @@ def main():
       all_comments.append(last_comment)
 
   pr_comments = []
+  seen_comments = set()
   for comment in all_comments:
-    if comment in pr_comments:
+    if ('%s:%d:%s' % (comment['filename'], comment['line'], comment['text'])
+        in seen_comments):
       # Don't add any comments already present.
       continue
+    else:
+      seen_comments.add('%s:%d:%s' %
+                           (comment['filename'], comment['line'], comment['text']))
 
     if comment['filename'] in valid_lines:
       if comment['line'] in valid_lines[comment['filename']]:
@@ -209,7 +214,6 @@ def main():
             'up' if pr_comment['adjust'] > 0 else 'down',
             pr_comment['text'].lstrip('`'))
         pr_comment['line'] += pr_comment['adjust']
-        print('Adjusted comment: %s' % pr_comment['text'])
       comment_body = (args.comment_prefix +
                       pr_comment['text'] +
                       args.comment_suffix)
