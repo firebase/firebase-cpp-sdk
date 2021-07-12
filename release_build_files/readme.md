@@ -134,7 +134,7 @@ Firebase Messaging         | libfirebase_messaging.a
 |                          | com.google.firebase:firebase-messaging:22.0.0 
 |                          | (Maven package)
 |                          | libmessaging_java.jar (Android service)
-|                          | androidx.core:core:1.7.0-alpha01 -rc01  (Maven package)
+|                          | androidx.core:core:1.6.0-rc01  (Maven package)
 Firebase Realtime Database | libfirebase_database.a
 |                          | libfirebase_auth.a
 |                          | libfirebase_app.a
