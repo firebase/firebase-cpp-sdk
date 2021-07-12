@@ -503,7 +503,7 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
             firebase::messaging::Message message;
             FLAKY_EXPECT_TRUE(this_->WaitForMessage(&message));
             FLAKY_EXPECT_EQ(message.data["unique_id"], unique_id);
-            FLAKY_EXPECT_NE(message.notification, nullptr);
+            FLAKY_EXPECT_NOTNULL(message.notification);
             if (message.notification) {
               FLAKY_EXPECT_EQ(message.notification->title, kNotificationTitle);
               FLAKY_EXPECT_EQ(message.notification->body, kNotificationBody);
