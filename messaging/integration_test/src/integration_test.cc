@@ -495,10 +495,10 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
             const char kNotificationTitle[] = "Token Test";
             const char kNotificationBody[] = "Token Test notification body";
             this_->SendTestMessage(this_->shared_token()->c_str(),
-                                  kNotificationTitle, kNotificationBody,
-                                  {{"message", "Hello, world!"},
-                                   {"unique_id", unique_id},
-                                   {kNotificationLinkKey, kTestLink}});
+                                   kNotificationTitle, kNotificationBody,
+                                   {{"message", "Hello, world!"},
+                                    {"unique_id", unique_id},
+                                    {kNotificationLinkKey, kTestLink}});
             LogDebug("Waiting for message.");
             firebase::messaging::Message message;
             FLAKY_EXPECT_TRUE(this_->WaitForMessage(&message));
@@ -509,7 +509,7 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
               FLAKY_EXPECT_EQ(message.notification->body, kNotificationBody);
             }
             FLAKY_EXPECT_EQ(message.link, kTestLink);
-	    return false;
+            return false;
           },
           this)) {
     FAIL() << "Test failed, check error log for details.";
