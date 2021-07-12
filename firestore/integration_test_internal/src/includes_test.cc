@@ -24,10 +24,6 @@ struct TestListener {
   void OnEvent(const int&, Error, const std::string&) {}
 };
 
-struct TestTransactionFunction : TransactionFunction {
-  Error Apply(Transaction&, std::string&) override { return Error::kErrorOk; }
-};
-
 }  // namespace
 
 // This test makes sure that all the objects in Firestore public API are
@@ -68,7 +64,6 @@ TEST_F(IncludesTest, TestIncludingFirestoreHeaderIsSufficient) {
       WriteBatch write_batch;
 
       TestListener test_listener;
-      TestTransactionFunction test_transaction_function;
 
       Timestamp timestamp;
       GeoPoint geo_point;
