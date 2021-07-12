@@ -183,20 +183,20 @@ namespace firebase_test_framework {
 // Helper macros to assist with RunFlakyBlock.
 // Unlike EXPECT_*, FLAKY_EXPECT_* just prints out the error and returns
 // false, which will cause RunFlakyBlock to retry.
-#define FLAKY_EXPECT_EQ(a, b)                                 \
-  {                                                           \
-    auto a_result = (a);                                      \
-    auto b_result = (b);                                      \
-    if ((a_result) != (b_result)) {                           \
-      std::stringstream a_str, b_str;                         \
-      a_str << (a_result == nullptr ? "(nullptr)" : a_result);\
-      b_str << (b_result == nullptr ? "(nullptr)" : b_result);\
-      app_framework::LogError(                                \
-          "Expected %s and %s to be equal, but they differ. " \
-          "first(%s) vs second(%s)",                          \
-          #a, #b, a_str.str().c_str(), b_str.str().c_str());  \
-      return false;                                           \
-    }                                                         \
+#define FLAKY_EXPECT_EQ(a, b)                                  \
+  {                                                            \
+    auto a_result = (a);                                       \
+    auto b_result = (b);                                       \
+    if ((a_result) != (b_result)) {                            \
+      std::stringstream a_str, b_str;                          \
+      a_str << (a_result == nullptr ? "(nullptr)" : a_result); \
+      b_str << (b_result == nullptr ? "(nullptr)" : b_result); \
+      app_framework::LogError(                                 \
+          "Expected %s and %s to be equal, but they differ. "  \
+          "first(%s) vs second(%s)",                           \
+          #a, #b, a_str.str().c_str(), b_str.str().c_str());   \
+      return false;                                            \
+    }                                                          \
   }
 
 #define FLAKY_EXPECT_NE(a, b)                                               \
@@ -205,8 +205,8 @@ namespace firebase_test_framework {
     auto b_result = (b);                                                    \
     if ((a_result) == (b_result)) {                                         \
       std::stringstream a_str, b_str;                                       \
-      a_str << (a_result == nullptr ? "(nullptr)" : a_result);		    \
-      b_str << (b_result == nullptr ? "(nullptr)" : b_result);		    \
+      a_str << (a_result == nullptr ? "(nullptr)" : a_result);              \
+      b_str << (b_result == nullptr ? "(nullptr)" : b_result);              \
       app_framework::LogError(                                              \
           "Expected %s and %s to differ, but they are equal. first(%s) vs " \
           "second(%s)",                                                     \
