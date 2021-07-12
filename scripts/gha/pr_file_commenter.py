@@ -162,7 +162,7 @@ def main():
       if comment['line'] in valid_lines[comment['filename']]:
         pr_comments.append(comment)
       elif args.fuzzy_lines != 0:
-        # Search within +/- lines for a valid line. Prefer -.
+        # Search within +/- lines for a valid line. Prefer +.
         for try_line in range(1, args.fuzzy_lines+1):
           if comment['line'] + try_line in valid_lines[comment['filename']]:
             comment['adjust'] = try_line
