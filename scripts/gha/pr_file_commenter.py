@@ -156,12 +156,10 @@ def main():
         # Search within +/- lines for a valid line. Prefer -.
         for try_line in range(1, args.fuzzy_lines+1):
           if comment['line'] + try_line in valid_lines[comment['filename']]:
-            print('adjusted by %d' % try_line)
             comment['adjust'] = try_line
             pr_comments.append(comment)
             break
           elif comment['line'] -try_line in valid_lines[comment['filename']]:
-            print('adjusted by %d' % -try_line)
             comment['adjust'] = -try_line
             pr_comments.append(comment)
             break
@@ -214,11 +212,11 @@ def main():
             'up' if pr_comment['adjust'] > 0 else 'down',
             pr_comment['text'].lstrip('`'))
         pr_comment['line'] += pr_comment['adjust']
-      comment_body = (args.comment_prefix +
-                      pr_comment['text'] +
-                      args.comment_suffix)
       comments_to_send.append({
-          'body': comment_body + HIDDEN_COMMENT_TAG,
+          'body': (args.comment_prefix +
+                   pr_comment['text'] +
+                   args.comment_suffix +
+                   HIDDEN_COMMENT_TAG),
           'path': pr_comment['filename'],
           'line': pr_comment['line'],
       })
