@@ -571,6 +571,9 @@ code.
 -   Changes
     -   General (Android): Updated Flatbuffers internal dependency from version
         1.9 to 1.12.
+    -   Deprecated the `Firestore::RunTransaction(TransactionFunction*)`
+        function. Please use the overload that takes a `std::function` argument
+        instead.
     -   Firestore: Removed the deprecated `EventListener` class.
     -   Firestore: Removed the deprecated overloads of `AddSnapshotListener` and
         `AddSnapshotsInSyncListener` functions that take an `EventListener*`
