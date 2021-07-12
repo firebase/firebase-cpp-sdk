@@ -31,8 +31,8 @@ WARN_IF_DOC_ERROR = YES
 # WARN_IF_INCOMPLETE_DOC = YES
 
 
-# Filter all header files to remove everything between <SWIG> and </SWIG> tags.
-# This is in lieu of performing a full header scrub.
+# Filter all header files to blank out all lines between <SWIG> and </SWIG>
+# tags, inclusively. This is in lieu of performing a full header scrub.
 FILTER_SOURCE_FILES = YES
 INPUT_FILTER = "sed '/<SWIG>/,/<\/SWIG>/ s/.*//'"
 
