@@ -107,7 +107,7 @@ class FirebaseMessagingTest : public FirebaseTest {
   bool WaitForMessage(firebase::messaging::Message* message_out,
                       int timeout = kTimeoutSeconds);
 
-  const std::string& shared_token() { return shared_token_; }
+  const std::string* shared_token() { return shared_token_; }
 
  protected:
   static firebase::App* shared_app_;
@@ -494,7 +494,7 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
             std::string unique_id = this_->GetUniqueMessageId();
             const char kNotificationTitle[] = "Token Test";
             const char kNotificationBody[] = "Token Test notification body";
-            this->SendTestMessage(this_->shared_token()->c_str(),
+            this_->SendTestMessage(this_->shared_token()->c_str(),
                                   kNotificationTitle, kNotificationBody,
                                   {{"message", "Hello, world!"},
                                    {"unique_id", unique_id},
@@ -509,6 +509,7 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
               FLAKY_EXPECT_EQ(message.notification->body, kNotificationBody);
             }
             FLAKY_EXPECT_EQ(message.link, kTestLink);
+	    return false;
           },
           this)) {
     FAIL() << "Test failed, check error log for details.";
