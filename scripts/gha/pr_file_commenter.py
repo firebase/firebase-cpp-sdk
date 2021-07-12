@@ -26,6 +26,9 @@ path/to/first_filename:line_number: comment text
  optional comment text continuation
 path/to/second_filename:line_number: comment text
 
+This script will scan through the comments and post any that fall into the diff
+range of the given PR as file comments on that PR.
+
 If -r is unspecified, uses the current repo.
 """
 
@@ -122,21 +125,27 @@ def main():
   comment_data = sys.stdin.readlines()
 
   all_comments = []
+  in_comment = False
   for line in comment_data:
     # Match an line in this format:
     # path/to/file:line#: Message goes here
     m = re.match(r'([^:]+):([0-9]+): *(.*)$', line)
     if m:
+      in_comment = True
       relative_filename = os.path.relpath(m.group(1), args.base_directory)
       all_comments.append({
           'filename': relative_filename,
           'line': int(m.group(2)),
           'text': '`%s`' % m.group(3)})
-    elif len(all_comments) > 0 and line.startswith(' '):
+    elif in_comment and line.startswith(' '):
       # Capture subsequent lines starting with space
       last_comment = all_comments.pop()
       last_comment['text'] += '\n`%s`' % line.rstrip('\n')
       all_comments.append(last_comment)
+    else:
+      # If any line begins with anything other than "path:#: " or a space,
+      # we are no longer inside a comment.
+      in_comment = False
 
   pr_comments = []
   seen_comments = set()
