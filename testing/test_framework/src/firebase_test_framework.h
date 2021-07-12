@@ -229,10 +229,7 @@ namespace firebase_test_framework {
   }
 #define FLAKY_EXPECT_NOTNULL(a)                                              \
   {                                                                          \
-    auto a_result = (a);                                                     \
-    if ((a_result) == nullptr) {                                             \
-      std::stringstream a_str;                                               \
-      a_str << a_result;                                                     \
+    if ((a) == nullptr) {                                                    \
       app_framework::LogError("Expected %s to be non-null, but it is null.", \
                               #a);                                           \
       return false;                                                          \
