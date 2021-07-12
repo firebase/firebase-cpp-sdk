@@ -571,6 +571,11 @@ code.
 -   Changes
     -   General (Android): Updated Flatbuffers internal dependency from version
         1.9 to 1.12.
+    -   Firestore: Removed the deprecated `EventListener` class.
+    -   Firestore: Removed the deprecated overloads of `AddSnapshotListener` and
+        `AddSnapshotsInSyncListener` functions that take an `EventListener*`
+        argument. Please use the overloads that take a `std::function` argument
+        instead.
 
 ### 8.1.0
 -   Changes
