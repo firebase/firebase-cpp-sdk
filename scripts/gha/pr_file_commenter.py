@@ -140,9 +140,27 @@ def main():
 
   pr_comments = []
   for comment in all_comments:
+    if comment in pr_comments:
+      # Don't add any comments already present.
+      continue
+
     if comment['filename'] in valid_lines:
-      if (comment['line'] in valid_lines[comment['filename']]) and comment not in pr_comments:
+      if comment['line'] in valid_lines[comment['filename']]:
         pr_comments.append(comment)
+      elif args.fuzzy_lines != 0:
+        # Search within +/- lines for a valid line. Prefer -.
+        for try_line in range(1, args.fuzzy_lines+1):
+          if comment['line'] + try_line in valid_lines[comment['filename']]:
+            print('adjusted by %d' % try_line)
+            comment['adjust'] = try_line
+            pr_comments.append(comment)
+            break
+          elif comment['line'] -try_line in valid_lines[comment['filename']]:
+            print('adjusted by %d' % -try_line)
+            comment['adjust'] = -try_line
+            pr_comments.append(comment)
+            break
+
   if args.verbose:
     print('Got %d relevant comments' % len(pr_comments))
 
@@ -184,12 +202,19 @@ def main():
       # Post each comment.
       # POST /repos/{owner}/{repo}/pulls/{pull_number}/comments
       request_url = 'https://api.github.com/repos/%s/%s/pulls/%s/reviews' % (repo_owner, repo_name, args.pr_number)
+      if 'adjust' in pr_comment:
+        pr_comment['text'] = '`[%d line%s %s] %s' % (
+            abs(pr_comment['adjust']),
+            '' if abs(pr_comment['adjust']) == 1 else 's',
+            'up' if pr_comment['adjust'] > 0 else 'down',
+            pr_comment['text'].lstrip('`'))
+        pr_comment['line'] += pr_comment['adjust']
+        print('Adjusted comment: %s' % pr_comment['text'])
+      comment_body = (args.comment_prefix +
+                      pr_comment['text'] +
+                      args.comment_suffix)
       comments_to_send.append({
-          'body': (
-              args.comment_prefix +
-              pr_comment['text'] +
-              args.comment_suffix +
-              HIDDEN_COMMENT_TAG),
+          'body': comment_body + HIDDEN_COMMENT_TAG,
           'path': pr_comment['filename'],
           'line': pr_comment['line'],
       })
@@ -227,6 +252,7 @@ def parse_cmdline_args():
   parser.add_argument('-P', '--comment_prefix', default='', metavar='TEXT', help='Prefix for comment')
   parser.add_argument('-S', '--comment_suffix', default='', metavar='TEXT', help='Suffix for comment')
   parser.add_argument('-T', '--comment_tag', required=True, metavar='TAG', help='Hidden text, used to identify and delete old comments')
+  parser.add_argument('-f', '--fuzzy_lines', default='0', metavar='COUNT', type=int, help='If comment lines are outside the diff, adjust them by up to this amount')
   parser.add_argument('-d', '--base_directory', default=os.curdir, metavar='DIRECTORY', help='Base directory to use for file relative paths')
   args = parser.parse_args()
   return args
