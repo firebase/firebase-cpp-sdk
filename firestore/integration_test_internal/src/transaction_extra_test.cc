@@ -18,12 +18,6 @@
 namespace firebase {
 namespace firestore {
 
-// We will be using lambda in the test instead of defining a
-// TransactionFunction for each of the test case.
-//
-// We do have a TransactionFunction-version of the test
-// TestGetNonexistentDocumentThenCreate to test the non-lambda API.
-
 using TransactionExtraTest = FirestoreIntegrationTest;
 
 TEST_F(TransactionExtraTest,
