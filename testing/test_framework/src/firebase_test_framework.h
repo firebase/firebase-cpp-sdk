@@ -264,6 +264,18 @@ namespace firebase_test_framework {
     }                                                                      \
   }
 
+#define FLAKY_WAIT_FOR_COMPLETION_WITH_ERROR(future, name, expected_error) \
+  {                                                                        \
+    auto f = (future);                                                     \
+    WaitForCompletionAnyResult(f, name);                                   \
+    if (f.error() != expected_error) {                                     \
+      app_framework::LogError(                                             \
+          "%s expected error %d but returned error %d: %s", name,          \
+          expected_error, f.error(), f.error_message());                   \
+      return false;                                                        \
+    }                                                                      \
+  }
+
 class FirebaseTest : public testing::Test {
  public:
   FirebaseTest();
