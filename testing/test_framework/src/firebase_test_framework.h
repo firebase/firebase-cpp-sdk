@@ -15,9 +15,9 @@
 #ifndef FIREBASE_TEST_FRAMEWORK_H_  // NOLINT
 #define FIREBASE_TEST_FRAMEWORK_H_  // NOLINT
 
+#include <functional>
 #include <iostream>
 #include <sstream>
-#include <functional>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"
@@ -427,8 +427,8 @@ class FirebaseTest : public testing::Test {
 
   // Same as RunWithRetry above, but use std::function to allow captures.
   static firebase::FutureBase RunWithRetry(
-      std::function<firebase::FutureBase()> run_future,
-      const char* name = "", int expected_error = 0) {
+      std::function<firebase::FutureBase()> run_future, const char* name = "",
+      int expected_error = 0) {
     struct RunData {
       std::function<firebase::FutureBase()>* callback;
     };

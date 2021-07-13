@@ -403,8 +403,8 @@ TEST_F(FirebaseStorageTest, TestWriteAndReadByteBuffer) {
     LogDebug("Upload sample file from memory.");
     firebase::Future<firebase::storage::Metadata> future =
         RunWithRetry<firebase::storage::Metadata>([&]() {
-          return ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size()); }
-          );
+          return ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size());
+        });
     WaitForCompletion(future, "PutBytes");
     auto metadata = future.result();
     EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
@@ -417,10 +417,8 @@ TEST_F(FirebaseStorageTest, TestWriteAndReadByteBuffer) {
     char buffer[kBufferSize];
     memset(buffer, 0, sizeof(buffer));
 
-    firebase::Future<size_t> future =
-        RunWithRetry<size_t>([&]() {
-          return ref.GetBytes(buffer, kBufferSize);
-        });
+    firebase::Future<size_t> future = RunWithRetry<size_t>(
+        [&]() { return ref.GetBytes(buffer, kBufferSize); });
     WaitForCompletion(future, "GetBytes");
     ASSERT_NE(future.result(), nullptr);
     size_t file_size = *future.result();
@@ -522,8 +520,7 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
     LogDebug("Creating local file: %s", path.c_str());
 
     FILE* file = fopen(path.c_str(), "wb");
-    std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(),
-                file);
+    std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
     fclose(file);
 
     firebase::storage::Metadata new_metadata;
@@ -531,9 +528,8 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
     new_metadata.set_content_type(content_type);
 
     LogDebug("Uploading sample file from disk.");
-    firebase::Future<firebase::storage::Metadata> future =
-        RunWithRetry([&]() {
-          return ref.PutFile(file_path.c_str(), new_metadata);});
+    firebase::Future<firebase::storage::Metadata> future = RunWithRetry(
+        [&]() { return ref.PutFile(file_path.c_str(), new_metadata); });
     WaitForCompletion(future, "PutFile");
     EXPECT_NE(future.result(), nullptr);
     const firebase::storage::Metadata* metadata = future.result();
@@ -553,8 +549,7 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
     EXPECT_NE(future.result(), nullptr);
     size_t file_size = *future.result();
     EXPECT_EQ(file_size, kSimpleTestFile.size());
-    EXPECT_EQ(
-        memcmp(&kSimpleTestFile[0], &buffer[0], file_size), 0);
+    EXPECT_EQ(memcmp(&kSimpleTestFile[0], &buffer[0], file_size), 0);
   }
   // Test GetFile to ensure we can download to a file.
   {
@@ -565,7 +560,8 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
 
     LogDebug("Saving to local file: %s", path.c_str());
 
-    firebase::Future<size_t> future = RunWithRetry([&]() { return ref.GetFile(file_path.c_str()); });
+    firebase::Future<size_t> future =
+        RunWithRetry([&]() { return ref.GetFile(file_path.c_str()); });
     WaitForCompletion(future, "GetFile");
     EXPECT_NE(future.result(), nullptr);
     EXPECT_EQ(*future.result(), kSimpleTestFile.size());
@@ -575,8 +571,7 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
     EXPECT_NE(file, nullptr);
     std::fread(&buffer[0], 1, kSimpleTestFile.size(), file);
     fclose(file);
-    EXPECT_EQ(
-        memcmp(&kSimpleTestFile[0], &buffer[0], buffer.size()), 0);
+    EXPECT_EQ(memcmp(&kSimpleTestFile[0], &buffer[0], buffer.size()), 0);
   }
 }
 
