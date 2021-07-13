@@ -227,7 +227,6 @@ def summarize_logs(dir, markdown=False, github_log=False):
         any_failures = True
         log_data.setdefault(MISSING_LOG, {}).setdefault("test", {}).setdefault("errors", []).append(configs)
       else:
-        print(log_reader.read())
         log_reader_data = json.loads(log_text)
         for (testapp, error) in log_reader_data["errors"].items():
           any_failures = True
