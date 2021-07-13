@@ -22,7 +22,8 @@ Example table mode output (with --markdown):
 
 | Failures   |                    Configs                         |
 |------------|----------------------------------------------------|
-| messaging  |[BUILD] [ERROR] [Windows] [boringssl]               |
+| missing_log|[BUILD] [ERROR] [Windows] [boringssl]               |
+| messaging  |[BUILD] [ERROR] [Windows] [openssl]                 |
 |            |[TEST] [ERROR] [Android] [All os] [emulator_min]    |
 |            |[TEST] [FAILURE] [Android] [macos] [emulator_target]|
 |            |▼(1 failed tests)                                   |
