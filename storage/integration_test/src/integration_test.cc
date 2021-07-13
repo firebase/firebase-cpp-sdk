@@ -82,7 +82,6 @@ class FirebaseStorageTest : public FirebaseTest {
   // Create a unique working folder and return a reference to it.
   firebase::storage::StorageReference CreateFolder();
 
-
   // File references that we need to delete on test exit.
   std::vector<firebase::storage::StorageReference>& cleanup_files() {
     return cleanup_files_;
@@ -513,13 +512,15 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
             {
               // Write file that we're going to upload.
               std::string path = PathForResource() + kPutFileTestFile;
-              // Cloud Storage expects a URI, so add file:// in front of local paths.
+              // Cloud Storage expects a URI, so add file:// in front of local
+              // paths.
               std::string file_path = kFileUriScheme + path;
 
               LogDebug("Creating local file: %s", path.c_str());
 
               FILE* file = fopen(path.c_str(), "wb");
-              std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(), file);
+              std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(),
+                          file);
               fclose(file);
 
               firebase::storage::Metadata new_metadata;
@@ -542,17 +543,20 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
               char buffer[kBufferSize];
               memset(buffer, 0, sizeof(buffer));
 
-              firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
+              firebase::Future<size_t> future =
+                  ref.GetBytes(buffer, kBufferSize);
               FLAKY_WAIT_FOR_COMPLETION(future, "GetBytes");
               FLAKY_EXPECT_NONNULL(future.result());
               size_t file_size = *future.result();
               FLAKY_EXPECT_EQ(file_size, kSimpleTestFile.size());
-              FLAKY_EXPECT_EQ(memcmp(&kSimpleTestFile[0], &buffer[0], file_size), 0);
+              FLAKY_EXPECT_EQ(
+                  memcmp(&kSimpleTestFile[0], &buffer[0], file_size), 0);
             }
             // Test GetFile to ensure we can download to a file.
             {
               std::string path = PathForResource() + kGetFileTestFile;
-              // Cloud Storage expects a URI, so add file:// in front of local paths.
+              // Cloud Storage expects a URI, so add file:// in front of local
+              // paths.
               std::string file_path = kFileUriScheme + path;
 
               LogDebug("Saving to local file: %s", path.c_str());
@@ -567,10 +571,12 @@ TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
               FLAKY_EXPECT_NONNULL(file);
               std::fread(&buffer[0], 1, kSimpleTestFile.size(), file);
               fclose(file);
-              FLAKY_EXPECT_EQ(memcmp(&kSimpleTestFile[0], &buffer[0], buffer.size()), 0);
+              FLAKY_EXPECT_EQ(
+                  memcmp(&kSimpleTestFile[0], &buffer[0], buffer.size()), 0);
             }
             return true;
-          }, this)) {
+          },
+          this)) {
     FAIL() << "Upload and download file failed, check log for details.";
   }
 }
