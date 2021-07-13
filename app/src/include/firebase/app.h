@@ -302,7 +302,7 @@ class AppOptions {
 
   /// @brief Load options from a config string.
   ///
-  /// @param[in] confirg A JSON string that contains Firebase configuration i.e.
+  /// @param[in] config A JSON string that contains Firebase configuration i.e.
   /// the content of the downloaded google-services.json file.
   /// @param[out] options Optional: If provided, load options into it.
   ///
