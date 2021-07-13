@@ -49,7 +49,6 @@ namespace {
 
 enum class ErrorCase {
   kSettingsAfterUse,
-  kSettingsDisableSsl,
   kFieldValueDeleteInSet,
   kFieldValueDeleteNested,
   kFieldNameEmpty1,
@@ -85,15 +84,6 @@ std::string ErrorMessage(ErrorCase error_case) {
       return "Firestore instance has already been started and its settings can "
              "no longer be changed. You can only set settings before calling "
              "any other methods on a Firestore instance.";
-#endif
-
-    case ErrorCase::kSettingsDisableSsl:
-#ifdef __ANDROID__
-      return "You can't set the 'sslEnabled' setting unless you also set a "
-             "non-default 'host'.";
-#else
-      return "You can't set the 'sslEnabled' setting unless you also set a "
-             "non-default 'host'.";
 #endif
 
     case ErrorCase::kFieldValueDeleteInSet:
@@ -323,8 +313,10 @@ class ValidationTest : public FirestoreIntegrationTest {
    * Performs a write using each set and/or update API and makes sure it fails
    * with the expected reason.
    */
-  void ExpectWriteError(const MapFieldValue& data, const std::string& reason,
-                        bool include_sets, bool include_updates) {
+  void ExpectWriteError(const MapFieldValue& data,
+                        const std::string& reason,
+                        bool include_sets,
+                        bool include_updates) {
     DocumentReference document = Document();
 
     if (include_sets) {
@@ -377,7 +369,7 @@ class ValidationTest : public FirestoreIntegrationTest {
     EXPECT_ERROR_EITHER(
         document.Update(MapFieldValue{{path, FieldValue::Integer(1)}}), reason,
         // TODO(b/171990785): Unify Android and C++ validation error messages.
-        // When validated by Android Java code
+        // The Android SDK uses a different error message in this case.
         "Use FieldPath.of() for field names containing '~*/[]'.");
   }
 };
@@ -399,7 +391,8 @@ TEST_F(ValidationTest, DisableSslWithoutSettingHostFails) {
   Settings setting;
   setting.set_ssl_enabled(false);
   EXPECT_ERROR(TestFirestore()->set_settings(setting),
-               ErrorMessage(ErrorCase::kSettingsDisableSsl));
+               "You can't set the 'sslEnabled' setting unless you also set a "
+               "non-default 'host'.");
 }
 
 TEST_F(ValidationTest, FirestoreGetInstanceWithNullAppFails) {
@@ -515,12 +508,14 @@ TEST_F(ValidationTest, WritesMayContainIndirectlyNestedLists) {
 #endif  // defined(FIREBASE_USE_STD_FUNCTION)
 }
 
-// TODO(b/136012313): batches and transactions don't currently throw.
-// TEST_F(ValidationTest, WritesMustNotContainReferencesToADifferentDatabase) {
-//   DocumentReference ref = TestFirestore("different-db")->Document("baz/quu");
-//   auto data = FieldValue::Reference(ref);
-//   ExpectWriteError(MapFieldValue{{"foo", data}}, "Abc");
-// }
+TEST_F(ValidationTest, WritesMustNotContainReferencesToADifferentDatabase) {
+  // TODO(b/136012313): batches and transactions don't currently throw.
+  GTEST_SKIP();
+
+  DocumentReference ref = TestFirestore("different-db")->Document("baz/quu");
+  auto data = FieldValue::Reference(ref);
+  ExpectWriteError(MapFieldValue{{"foo", data}}, "Abc");
+}
 
 TEST_F(ValidationTest, WritesMustNotContainReservedFieldNames) {
   SCOPED_TRACE("WritesMustNotContainReservedFieldNames");

@@ -8,7 +8,7 @@
 #include "Firestore/core/src/model/document_key.h"
 #include "Firestore/core/src/model/field_path.h"
 #include "Firestore/core/src/model/maybe_document.h"
-#include "FirebaseFirestore/core/src/util/exception.h"
+#include "Firestore/core/src/util/exception.h"
 #include "Firestore/core/src/util/status.h"
 #include "Firestore/core/src/util/statusor.h"
 #include "absl/types/optional.h"

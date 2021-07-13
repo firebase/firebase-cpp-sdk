@@ -56,6 +56,7 @@ LoadBundleTaskProgress::State ToApiProgressState(
     case api::LoadBundleTaskState::kInProgress:
       return LoadBundleTaskProgress::State::kInProgress;
   }
+  UNREACHABLE();
 }
 
 LoadBundleTaskProgress ToApiProgress(
