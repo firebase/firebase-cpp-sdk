@@ -215,6 +215,27 @@ namespace firebase_test_framework {
     }                                                                       \
   }
 
+#define FLAKY_EXPECT_NULL(a)                                           \
+  {                                                                    \
+    auto a_result = (a);                                               \
+    if ((a_result) != nullptr) {                                       \
+      std::stringstream a_str;                                         \
+      a_str << a_result;                                               \
+      app_framework::LogError(                                         \
+          "Expected %s to be null, but it is not null. value(%s)", #a, \
+          a_str.str().c_str());                                        \
+      return false;                                                    \
+    }                                                                  \
+  }
+#define FLAKY_EXPECT_NOTNULL(a)                                              \
+  {                                                                          \
+    if ((a) == nullptr) {                                                    \
+      app_framework::LogError("Expected %s to be non-null, but it is null.", \
+                              #a);                                           \
+      return false;                                                          \
+    }                                                                        \
+  }
+#define FLAKY_EXPECT_NONNULL(a) FLAKY_EXPECT_NOTNULL(a)
 #define FLAKY_EXPECT_TRUE(a)                                                   \
   {                                                                            \
     if (!(a)) {                                                                \
