@@ -489,7 +489,7 @@ def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
     pkg = m.group('pkg').replace('-', '_').replace(':', '.')
     if pkg not in version_map:
       return m.group(0)
-    repl = '|%s| %s:%s ' % (m.group('spaces'), m.group('pkg'), version_map[pkg])
+    repl = '|%s| %s:%s' % (m.group('spaces'), m.group('pkg'), version_map[pkg])
     return repl
 
   substituted_pairs = []
