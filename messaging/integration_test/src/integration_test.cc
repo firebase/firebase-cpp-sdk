@@ -509,7 +509,7 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
               FLAKY_EXPECT_EQ(message.notification->body, kNotificationBody);
             }
             FLAKY_EXPECT_EQ(message.link, kTestLink);
-            return false;
+            return true;
           },
           this)) {
     FAIL() << "Test failed, check error log for details.";
