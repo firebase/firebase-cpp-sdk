@@ -373,7 +373,7 @@ Java_com_google_firebase_admob_internal_cpp_RewardedVideoHelper_notifyPresentati
 extern "C" JNIEXPORT void JNICALL
 Java_com_google_firebase_admob_internal_cpp_RewardedVideoHelper_grantReward(
     JNIEnv* env, jclass clazz, jlong data_ptr, jint amount,
-    jstring rewardType) {
+    jstring rewardType, jstring juserid) {
   if (data_ptr == 0) return;  // test call only
 
   firebase::admob::rewarded_video::internal::RewardedVideoInternal* internal =
@@ -389,6 +389,11 @@ Java_com_google_firebase_admob_internal_cpp_RewardedVideoHelper_grantReward(
   const char* chars = env->GetStringUTFChars(rewardType, 0);
   reward.reward_type = chars;
   env->ReleaseStringUTFChars(rewardType, chars);
+
+  const char* cuserid = env->GetStringUTFChars(juserid, 0);
+  reward.reward_type = cuserid;
+  env->ReleaseStringUTFChars(juserid, cuserid);
+
   internal->NotifyListenerOfReward(reward);
 }
 

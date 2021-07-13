@@ -35,7 +35,7 @@ class RewardedVideoInternalStub : public RewardedVideoInternal {
     return CreateAndCompleteFutureStub(kRewardedVideoFnInitialize);
   }
 
-  Future<void> LoadAd(const char* ad_unit_id,
+  Future<void> LoadAd(const char* ad_unit_id, const char* user_id,
                       const AdRequest& request) override {
     return CreateAndCompleteFutureStub(kRewardedVideoFnLoadAd);
   }

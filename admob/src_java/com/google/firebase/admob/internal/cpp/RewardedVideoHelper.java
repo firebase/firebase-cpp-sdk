@@ -116,7 +116,7 @@ public class RewardedVideoHelper {
     completeRewardedVideoFutureCallback(
         CPP_NULLPTR, 0, ConstantsHelper.CALLBACK_ERROR_MESSAGE_NONE);
     notifyPresentationStateChanged(CPP_NULLPTR, mCurrentPresentationState);
-    grantReward(CPP_NULLPTR, 0, DEFAULT_REWARD_TYPE);
+    grantReward(CPP_NULLPTR, 0, DEFAULT_REWARD_TYPE, "");
   }
 
   /**
@@ -158,7 +158,7 @@ public class RewardedVideoHelper {
    * @param adUnitId the AdMob ad unit ID to use in making the request.
    * @param request an AdRequest object with targeting/extra info.
    */
-  public void loadAd(long callbackDataPtr, final String adUnitId, final AdRequest request) {
+  public void loadAd(long callbackDataPtr, final String adUnitId, final String userId, final AdRequest request) {
     synchronized (mRewardedVideoLock) {
       if (mLoadAdCallbackDataPtr != CPP_NULLPTR) {
         completeRewardedVideoFutureCallback(
@@ -176,6 +176,7 @@ public class RewardedVideoHelper {
           @Override
           public void run() {
             RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
+            if (userId != null) ad.setUserId(userId);
             ad.loadAd(adUnitId, request);
           }
         });
@@ -380,7 +381,11 @@ public class RewardedVideoHelper {
             rewardType = DEFAULT_REWARD_TYPE;
           }
 
-          grantReward(mRewardedVideoInternalPtr, rewardItem.getAmount(), rewardType);
+          RewardedVideoAd ad = MobileAds.getRewardedVideoAdInstance(mActivity);
+          String ssvUserId = ad.getUserId();
+          if (ssvUserId == null) ssvUserId = "";
+
+          grantReward(mRewardedVideoInternalPtr, rewardItem.getAmount(), rewardType, ssvUserId);
         }
       }
     }
@@ -414,5 +419,5 @@ public class RewardedVideoHelper {
   public static native void notifyPresentationStateChanged(long nativeInternalPtr, int state);
 
   /** Native callback to notify the C++ wrapper that a reward should be given. */
-  public static native void grantReward(long nativeInternalPtr, int amount, String rewardType);
+  public static native void grantReward(long nativeInternalPtr, int amount, String rewardType, String ssvUserId);
 }

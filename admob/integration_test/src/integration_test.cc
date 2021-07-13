@@ -435,6 +435,7 @@ class TestRewardedVideoListener
     got_reward_ = true;
     reward_type_ = reward.reward_type;
     reward_amount_ = reward.amount;
+    ssv_user_id_ = reward.ssv_user_id;
   }
   void OnPresentationStateChanged(
       firebase::admob::rewarded_video::PresentationState state) override {
@@ -442,6 +443,7 @@ class TestRewardedVideoListener
   }
   bool got_reward_;
   std::string reward_type_;
+  std::string ssv_user_id_;
   float reward_amount_;
   std::vector<firebase::admob::rewarded_video::PresentationState>
       presentation_states_;
@@ -457,7 +459,7 @@ TEST_F(FirebaseAdMobTest, TestRewardedVideoAd) {
   rewarded_video::SetListener(&rewarded_listener);
 
   firebase::admob::AdRequest request = GetAdRequest();
-  WaitForCompletion(rewarded_video::LoadAd(kRewardedVideoAdUnit, request),
+  WaitForCompletion(rewarded_video::LoadAd(kRewardedVideoAdUnit, kSSVUserId, request),
                     "LoadAd");
 
   std::vector<rewarded_video::PresentationState> expected_presentation_states;
@@ -489,6 +491,7 @@ TEST_F(FirebaseAdMobTest, TestRewardedVideoAd) {
   EXPECT_TRUE(rewarded_listener.got_reward_);
   EXPECT_NE(rewarded_listener.reward_type_, "");
   EXPECT_NE(rewarded_listener.reward_amount_, 0);
+  EXPECT_EQ(rewarded_listener.ssv_user_id_, kSSVUserId);
   LogDebug("Got reward: %.02f %s", rewarded_listener.reward_amount_,
            rewarded_listener.reward_type_.c_str());
 
