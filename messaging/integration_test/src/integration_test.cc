@@ -107,6 +107,8 @@ class FirebaseMessagingTest : public FirebaseTest {
   bool WaitForMessage(firebase::messaging::Message* message_out,
                       int timeout = kTimeoutSeconds);
 
+  const std::string* shared_token() { return shared_token_; }
+
  protected:
   static firebase::App* shared_app_;
   static firebase::messaging::PollableListener* shared_listener_;
@@ -487,23 +489,31 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
 
   EXPECT_TRUE(RequestPermission());
   EXPECT_TRUE(WaitForToken());
-  std::string unique_id = GetUniqueMessageId();
-  const char kNotificationTitle[] = "Token Test";
-  const char kNotificationBody[] = "Token Test notification body";
-  SendTestMessage(shared_token_->c_str(), kNotificationTitle, kNotificationBody,
-                  {{"message", "Hello, world!"},
-                   {"unique_id", unique_id},
-                   {kNotificationLinkKey, kTestLink}});
-  LogDebug("Waiting for message.");
-  firebase::messaging::Message message;
-  EXPECT_TRUE(WaitForMessage(&message));
-  EXPECT_EQ(message.data["unique_id"], unique_id);
-  EXPECT_NE(message.notification, nullptr);
-  if (message.notification) {
-    EXPECT_EQ(message.notification->title, kNotificationTitle);
-    EXPECT_EQ(message.notification->body, kNotificationBody);
+  if (!RunFlakyBlock(
+          [](FirebaseMessagingTest* this_) {
+            std::string unique_id = this_->GetUniqueMessageId();
+            const char kNotificationTitle[] = "Token Test";
+            const char kNotificationBody[] = "Token Test notification body";
+            this_->SendTestMessage(this_->shared_token()->c_str(),
+                                   kNotificationTitle, kNotificationBody,
+                                   {{"message", "Hello, world!"},
+                                    {"unique_id", unique_id},
+                                    {kNotificationLinkKey, kTestLink}});
+            LogDebug("Waiting for message.");
+            firebase::messaging::Message message;
+            FLAKY_EXPECT_TRUE(this_->WaitForMessage(&message));
+            FLAKY_EXPECT_EQ(message.data["unique_id"], unique_id);
+            FLAKY_EXPECT_NOTNULL(message.notification);
+            if (message.notification) {
+              FLAKY_EXPECT_EQ(message.notification->title, kNotificationTitle);
+              FLAKY_EXPECT_EQ(message.notification->body, kNotificationBody);
+            }
+            FLAKY_EXPECT_EQ(message.link, kTestLink);
+            return true;
+          },
+          this)) {
+    FAIL() << "Test failed, check error log for details.";
   }
-  EXPECT_EQ(message.link, kTestLink);
 }
 
 TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
