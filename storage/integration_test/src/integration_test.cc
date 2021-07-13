@@ -402,7 +402,9 @@ TEST_F(FirebaseStorageTest, TestWriteAndReadByteBuffer) {
   {
     LogDebug("Upload sample file from memory.");
     firebase::Future<firebase::storage::Metadata> future =
-        ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size());
+        RunWithRetry<firebase::storage::Metadata>([&]() {
+          return ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size()); }
+          );
     WaitForCompletion(future, "PutBytes");
     auto metadata = future.result();
     EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
@@ -415,7 +417,10 @@ TEST_F(FirebaseStorageTest, TestWriteAndReadByteBuffer) {
     char buffer[kBufferSize];
     memset(buffer, 0, sizeof(buffer));
 
-    firebase::Future<size_t> future = ref.GetBytes(buffer, kBufferSize);
+    firebase::Future<size_t> future =
+        RunWithRetry<size_t>([&]() {
+          return ref.GetBytes(buffer, kBufferSize);
+        });
     WaitForCompletion(future, "GetBytes");
     ASSERT_NE(future.result(), nullptr);
     size_t file_size = *future.result();
@@ -502,82 +507,76 @@ const char kFileUriScheme[] = "file://";
 TEST_F(FirebaseStorageTest, TestPutFileAndGetFile) {
   SignIn();
 
-  if (!RunFlakyBlock(
-          [](FirebaseStorageTest* this_) {
-            firebase::storage::StorageReference ref =
-                this_->CreateFolder().Child("TestFile-FileIO.txt");
-            this_->cleanup_files().push_back(ref);
+  firebase::storage::StorageReference ref =
+      CreateFolder().Child("TestFile-FileIO.txt");
+  cleanup_files_.push_back(ref);
 
-            // Upload a file.
-            {
-              // Write file that we're going to upload.
-              std::string path = PathForResource() + kPutFileTestFile;
-              // Cloud Storage expects a URI, so add file:// in front of local
-              // paths.
-              std::string file_path = kFileUriScheme + path;
+  // Upload a file.
+  {
+    // Write file that we're going to upload.
+    std::string path = PathForResource() + kPutFileTestFile;
+    // Cloud Storage expects a URI, so add file:// in front of local
+    // paths.
+    std::string file_path = kFileUriScheme + path;
 
-              LogDebug("Creating local file: %s", path.c_str());
+    LogDebug("Creating local file: %s", path.c_str());
 
-              FILE* file = fopen(path.c_str(), "wb");
-              std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(),
-                          file);
-              fclose(file);
+    FILE* file = fopen(path.c_str(), "wb");
+    std::fwrite(kSimpleTestFile.c_str(), 1, kSimpleTestFile.size(),
+                file);
+    fclose(file);
 
-              firebase::storage::Metadata new_metadata;
-              std::string content_type = "text/plain";
-              new_metadata.set_content_type(content_type);
+    firebase::storage::Metadata new_metadata;
+    std::string content_type = "text/plain";
+    new_metadata.set_content_type(content_type);
 
-              LogDebug("Uploading sample file from disk.");
-              firebase::Future<firebase::storage::Metadata> future =
-                  ref.PutFile(file_path.c_str(), new_metadata);
-              FLAKY_WAIT_FOR_COMPLETION(future, "PutFile");
-              FLAKY_EXPECT_NONNULL(future.result());
-              const firebase::storage::Metadata* metadata = future.result();
-              FLAKY_EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
-              FLAKY_EXPECT_EQ(metadata->content_type(), content_type);
-            }
-            // Use GetBytes to ensure the file uploaded correctly.
-            {
-              LogDebug("Downloading file to disk.");
-              const size_t kBufferSize = 1024;
-              char buffer[kBufferSize];
-              memset(buffer, 0, sizeof(buffer));
+    LogDebug("Uploading sample file from disk.");
+    firebase::Future<firebase::storage::Metadata> future =
+        RunWithRetry([&]() {
+          return ref.PutFile(file_path.c_str(), new_metadata);});
+    WaitForCompletion(future, "PutFile");
+    EXPECT_NE(future.result(), nullptr);
+    const firebase::storage::Metadata* metadata = future.result();
+    EXPECT_EQ(metadata->size_bytes(), kSimpleTestFile.size());
+    EXPECT_EQ(metadata->content_type(), content_type);
+  }
+  // Use GetBytes to ensure the file uploaded correctly.
+  {
+    LogDebug("Downloading file to disk.");
+    const size_t kBufferSize = 1024;
+    char buffer[kBufferSize];
+    memset(buffer, 0, sizeof(buffer));
 
-              firebase::Future<size_t> future =
-                  ref.GetBytes(buffer, kBufferSize);
-              FLAKY_WAIT_FOR_COMPLETION(future, "GetBytes");
-              FLAKY_EXPECT_NONNULL(future.result());
-              size_t file_size = *future.result();
-              FLAKY_EXPECT_EQ(file_size, kSimpleTestFile.size());
-              FLAKY_EXPECT_EQ(
-                  memcmp(&kSimpleTestFile[0], &buffer[0], file_size), 0);
-            }
-            // Test GetFile to ensure we can download to a file.
-            {
-              std::string path = PathForResource() + kGetFileTestFile;
-              // Cloud Storage expects a URI, so add file:// in front of local
-              // paths.
-              std::string file_path = kFileUriScheme + path;
+    firebase::Future<size_t> future =
+        RunWithRetry([&]() { return ref.GetBytes(buffer, kBufferSize); });
+    WaitForCompletion(future, "GetBytes");
+    EXPECT_NE(future.result(), nullptr);
+    size_t file_size = *future.result();
+    EXPECT_EQ(file_size, kSimpleTestFile.size());
+    EXPECT_EQ(
+        memcmp(&kSimpleTestFile[0], &buffer[0], file_size), 0);
+  }
+  // Test GetFile to ensure we can download to a file.
+  {
+    std::string path = PathForResource() + kGetFileTestFile;
+    // Cloud Storage expects a URI, so add file:// in front of local
+    // paths.
+    std::string file_path = kFileUriScheme + path;
 
-              LogDebug("Saving to local file: %s", path.c_str());
+    LogDebug("Saving to local file: %s", path.c_str());
 
-              firebase::Future<size_t> future = ref.GetFile(file_path.c_str());
-              FLAKY_WAIT_FOR_COMPLETION(future, "GetFile");
-              FLAKY_EXPECT_NONNULL(future.result());
-              FLAKY_EXPECT_EQ(*future.result(), kSimpleTestFile.size());
+    firebase::Future<size_t> future = RunWithRetry([&]() { return ref.GetFile(file_path.c_str()); });
+    WaitForCompletion(future, "GetFile");
+    EXPECT_NE(future.result(), nullptr);
+    EXPECT_EQ(*future.result(), kSimpleTestFile.size());
 
-              std::vector<char> buffer(kSimpleTestFile.size());
-              FILE* file = fopen(path.c_str(), "rb");
-              FLAKY_EXPECT_NONNULL(file);
-              std::fread(&buffer[0], 1, kSimpleTestFile.size(), file);
-              fclose(file);
-              FLAKY_EXPECT_EQ(
-                  memcmp(&kSimpleTestFile[0], &buffer[0], buffer.size()), 0);
-            }
-            return true;
-          },
-          this)) {
-    FAIL() << "Upload and download file failed, check log for details.";
+    std::vector<char> buffer(kSimpleTestFile.size());
+    FILE* file = fopen(path.c_str(), "rb");
+    EXPECT_NE(file, nullptr);
+    std::fread(&buffer[0], 1, kSimpleTestFile.size(), file);
+    fclose(file);
+    EXPECT_EQ(
+        memcmp(&kSimpleTestFile[0], &buffer[0], buffer.size()), 0);
   }
 }
 
