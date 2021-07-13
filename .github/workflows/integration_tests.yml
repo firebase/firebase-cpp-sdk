@@ -248,12 +248,16 @@ jobs:
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Update homebrew (avoid bintray errors)
+        uses: nick-invision/retry@v2
         if: startsWith(matrix.os, 'macos')
-        run: |
-          # Temporarily here until Github runners have updated their version of
-          # homebrew. This prevents errors arising from the shut down of
-          # binutils, used by older version of homebrew for hosting packages.
-          brew update
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            # Temporarily here until Github runners have updated their version of
+            # homebrew. This prevents errors arising from the shut down of
+            # binutils, used by older version of homebrew for hosting packages.
+            brew update
       - name: Install SDK Desktop prerequisites
         run: |
           python scripts/gha/install_prereqs_desktop.py
@@ -394,12 +398,16 @@ jobs:
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Update homebrew (avoid bintray errors)
+        uses: nick-invision/retry@v2
         if: startsWith(matrix.os, 'macos')
-        run: |
-          # Temporarily here until Github runners have updated their version of
-          # homebrew. This prevents errors arising from the shut down of
-          # binutils, used by older version of homebrew for hosting packages.
-          brew update
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            # Temporarily here until Github runners have updated their version of
+            # homebrew. This prevents errors arising from the shut down of
+            # binutils, used by older version of homebrew for hosting packages.
+            brew update
       - name: Install SDK Android prerequisites
         shell: bash
         run: |
@@ -489,11 +497,16 @@ jobs:
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Update homebrew (avoid bintray errors)
-        run: |
-          # Temporarily here until Github runners have updated their version of
-          # homebrew. This prevents errors arising from the shut down of
-          # binutils, used by older version of homebrew for hosting packages.
-          brew update
+        uses: nick-invision/retry@v2
+        if: startsWith(matrix.os, 'macos')
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            # Temporarily here until Github runners have updated their version of
+            # homebrew. This prevents errors arising from the shut down of
+            # binutils, used by older version of homebrew for hosting packages.
+            brew update
       - name: Install SDK iOS prerequisites
         run: build_scripts/ios/install_prereqs.sh
       - name: Prepare for integration tests
@@ -582,11 +595,16 @@ jobs:
         with:
           python-version: ${{ env.pythonVersion }}
       - name: Update homebrew (avoid bintray errors)
-        run: |
-          # Temporarily here until Github runners have updated their version of
-          # homebrew. This prevents errors arising from the shut down of
-          # binutils, used by older version of homebrew for hosting packages.
-          brew update
+        uses: nick-invision/retry@v2
+        if: startsWith(matrix.os, 'macos')
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            # Temporarily here until Github runners have updated their version of
+            # homebrew. This prevents errors arising from the shut down of
+            # binutils, used by older version of homebrew for hosting packages.
+            brew update
       - name: Install SDK tvOS prerequisites
         run: build_scripts/tvos/install_prereqs.sh
       - name: Prepare for integration tests
