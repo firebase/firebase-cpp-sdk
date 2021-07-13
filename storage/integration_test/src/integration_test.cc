@@ -902,9 +902,8 @@ TEST_F(FirebaseStorageTest, TestLargeFileCancelUpload) {
         LogDebug("Write a large file and cancel mid-way.");
         StorageListener listener;
         firebase::storage::Controller controller;
-        firebase::Future<firebase::storage::Metadata> future =
-            ref.PutBytes(kLargeTestFile.c_str(), kLargeFileSize,
-                         &listener, &controller);
+        firebase::Future<firebase::storage::Metadata> future = ref.PutBytes(
+            kLargeTestFile.c_str(), kLargeFileSize, &listener, &controller);
 
         // Ensure the Controller is valid now that we have associated it with an
         // operation.
