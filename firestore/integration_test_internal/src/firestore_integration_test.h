@@ -285,7 +285,7 @@ class FirestoreIntegrationTest : public testing::Test {
 
   // TODO(zxu): add a helper function to block on signal.
 
-  // Blocks until the future completes and returns the future result.
+  // Blocks until the future is completed and returns the future result.
   template <typename T>
   static const T* Await(const Future<T>& future) {
     EXPECT_TRUE(WaitUntilFutureCompletes(future)) << "Future<T> timed out.";
@@ -305,7 +305,7 @@ class FirestoreIntegrationTest : public testing::Test {
   static void Await(const TestEventListener<T>& listener, int event_count = 1) {
     bool success =
         WaitUntil([&] { return listener.event_count() >= event_count; });
-    EXPECT_TRUE(success) << "Waiting listener timed out.";
+    EXPECT_TRUE(success) << "Waiting for a listener timed out.";
   }
 
   // Fails the current test if the given future did not complete or contained an
