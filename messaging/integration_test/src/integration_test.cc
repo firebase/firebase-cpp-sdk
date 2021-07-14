@@ -580,35 +580,36 @@ TEST_F(FirebaseMessagingTest, TestChangingListener) {
   EXPECT_TRUE(WaitForToken());
 
   if (!RunFlakyBlock([&]() {
-    // Back up the previous listener object and create a new one.
-    firebase::messaging::PollableListener* old_listener_ = shared_listener_;
-    // WaitForMessage() uses whatever shared_listener_ is set to.
-    shared_listener_ = new firebase::messaging::PollableListener();
-    firebase::messaging::SetListener(shared_listener_);
-    // Pause a moment to make sure old listeners are deleted.
-    ProcessEvents(1000);
+        // Back up the previous listener object and create a new one.
+        firebase::messaging::PollableListener* old_listener_ = shared_listener_;
+        // WaitForMessage() uses whatever shared_listener_ is set to.
+        shared_listener_ = new firebase::messaging::PollableListener();
+        firebase::messaging::SetListener(shared_listener_);
+        // Pause a moment to make sure old listeners are deleted.
+        ProcessEvents(1000);
 
-    std::string unique_id = GetUniqueMessageId();
-    const char kNotificationTitle[] = "New Listener Test";
-    const char kNotificationBody[] = "New Listener Test notification body";
-    SendTestMessage(shared_token_->c_str(), kNotificationTitle, kNotificationBody,
-                    {{"message", "Hello, world!"}, {"unique_id", unique_id}});
-    LogDebug("Waiting for message.");
-    firebase::messaging::Message message;
-    FLAKY_EXPECT_TRUE(WaitForMessage(&message));
-    FLAKY_EXPECT_EQ(message.data["unique_id"], unique_id);
-    if (message.notification) {
-      FLAKY_EXPECT_EQ(message.notification->title, kNotificationTitle);
-      FLAKY_EXPECT_EQ(message.notification->body, kNotificationBody);
-    }
+        std::string unique_id = GetUniqueMessageId();
+        const char kNotificationTitle[] = "New Listener Test";
+        const char kNotificationBody[] = "New Listener Test notification body";
+        SendTestMessage(
+            shared_token_->c_str(), kNotificationTitle, kNotificationBody,
+            {{"message", "Hello, world!"}, {"unique_id", unique_id}});
+        LogDebug("Waiting for message.");
+        firebase::messaging::Message message;
+        FLAKY_EXPECT_TRUE(WaitForMessage(&message));
+        FLAKY_EXPECT_EQ(message.data["unique_id"], unique_id);
+        if (message.notification) {
+          FLAKY_EXPECT_EQ(message.notification->title, kNotificationTitle);
+          FLAKY_EXPECT_EQ(message.notification->body, kNotificationBody);
+        }
 
-    // Set back to the previous listener.
-    firebase::messaging::SetListener(old_listener_);
-    delete shared_listener_;
-    shared_listener_ = old_listener_;
+        // Set back to the previous listener.
+        firebase::messaging::SetListener(old_listener_);
+        delete shared_listener_;
+        shared_listener_ = old_listener_;
 
-    FLAKY_SUCCESS();
-  })) {
+        FLAKY_SUCCESS();
+      })) {
     FAIL() << "Test failed, see error log for details.";
   }
 }
