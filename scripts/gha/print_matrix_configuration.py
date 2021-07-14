@@ -267,7 +267,7 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       if path in file_redirects:
         if file_redirects[path] is None:
           continue
-        else
+        else:
           path = os.path.join(file_redirects[path], path)
       topdir = path.split(os.path.sep)[0]
       if topdir in custom_triggers:
