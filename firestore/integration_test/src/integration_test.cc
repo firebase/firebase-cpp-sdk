@@ -12,9 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-// -- Innocuous change.
-
 /*
    IMPORTANT: This file is used by both the regular and the internal Firestore
    integration tests, and needs to be present and identical in both.
