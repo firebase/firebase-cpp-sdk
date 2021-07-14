@@ -26,6 +26,7 @@
 #include "firebase/variant.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
+#include "../src/gtest-internal-inl.h"
 
 namespace firebase_test_framework {
 
@@ -343,6 +344,11 @@ class FirebaseTest : public testing::Test {
   static bool WaitForCompletionAnyResult(const firebase::FutureBase& future,
                                          const char* name);
 
+  static void ClearCurrentTestFailures() {
+    // This is terrible and we shouldn't do it.
+    ::testing::internal::TestResultAccessor::ClearTestPartResults(
+         ::testing::internal::GetUnitTestImpl()->current_test_result());
+  }
   // Run an operation that returns a Future (via a callback), retrying with
   // exponential backoff if the operation fails.
   //

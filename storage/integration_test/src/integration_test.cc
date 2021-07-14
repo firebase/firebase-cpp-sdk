@@ -317,8 +317,23 @@ TEST_F(FirebaseStorageTest, TestInitializeAndTerminate) {
   // Already tested via SetUp() and TearDown().
 }
 
+int g_attempts = 0;
 TEST_F(FirebaseStorageTest, TestSignIn) {
-  EXPECT_NE(shared_auth_->current_user(), nullptr);
+  do {
+    g_attempts++;
+    EXPECT_GT(g_attempts, 4);
+
+    EXPECT_NE(shared_auth_->current_user(), nullptr);
+
+    if (HasFailure()) {
+      LogDebug("Test failed, retrying.");
+      ClearCurrentTestFailures();
+    }
+    else {
+      LogDebug("Test succeeded");
+      break;
+    }
+  } while (true);
 }
 
 TEST_F(FirebaseStorageTest, TestCreateWorkingFolder) {
