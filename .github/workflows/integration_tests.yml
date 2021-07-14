@@ -164,8 +164,6 @@ jobs:
       - name: Set auto-diff option if specified.
         if: needs.check_trigger.outputs.requested_tests == 'auto'
         run: |
-          MERGE_BASE=$(git merge-base HEAD main)
-          echo "::warning ::${MERGE_BASE}"
           echo "::warning ::${{github.event.pull_request.head.ref}}"
           echo "::warning ::${{github.event.pull_request.base.ref}}"
           MERGE_BASE=$(git merge-base origin/${{github.event.pull_request.head.ref}} origin/${{github.event.pull_request.base.ref}})
