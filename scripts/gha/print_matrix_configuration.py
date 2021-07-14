@@ -243,10 +243,10 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       # Any top-level directories set to None are completely ignored.
       "external": None,
       "release_build_files": None,
-      # Uncomment the two below when debugging this script or GitHub
+      # Uncomment the two below lines when debugging this script, or GitHub
       # actions related to auto-diff mode.
-      ".github": None,
-      "scripts": None,
+      # ".github": None,
+      # "scripts": None,
       # Top-level directories listed below trigger additional APIs being tested.
       # For example, if auth is touched by a PR, we also need to test functions,
       # database, firestore, and storage.
