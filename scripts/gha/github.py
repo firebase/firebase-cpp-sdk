@@ -27,7 +27,7 @@ from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 
 RETRIES = 3
-BACKOFF = 3
+BACKOFF = 5
 RETRY_STATUS = (403, 500, 502, 504)
 TIMEOUT = 5
 
@@ -91,10 +91,10 @@ def search_issues_by_label(label):
     return response.json()["items"]
 
 
-def list_comments(issue_number):
+def list_comments(token, issue_number):
   """https://docs.github.com/en/rest/reference/issues#list-issue-comments"""
   url = f'{FIREBASE_URL}/issues/{issue_number}/comments' 
-  headers = {'Accept': 'application/vnd.github.v3+json'}
+  headers = {'Accept': 'application/vnd.github.v3+json', 'Authorization': f'token {token}'}
   with requests_retry_session().get(url, headers=headers, timeout=TIMEOUT) as response:
     logging.info("list_comments: %s response: %s", url, response)
     return response.json()
