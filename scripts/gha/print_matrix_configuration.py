@@ -255,9 +255,9 @@ def filter_values_on_diff(parm_key, value, auto_diff):
     file_redirects = {
       # Custom handling for specific files, to be treated as a different path or
       # ignored completely (set to None).
-      "cmake/external/firestore.cmake": "firestore"
-      "cmake/external/libuv.cmake": "database"
-      "cmake/external/uWebSockets.cmake": "database"
+      "cmake/external/firestore.cmake": "firestore",
+      "cmake/external/libuv.cmake": "database",
+      "cmake/external/uWebSockets.cmake": "database",
     }
     requested_api_list = set(value.split(','))
     filtered_api_list = set()
