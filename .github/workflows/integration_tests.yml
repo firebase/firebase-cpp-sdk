@@ -174,9 +174,8 @@ jobs:
             # "git merge-base main branch_name" will give the common ancestor of both branches.
             MERGE_BASE=$(git merge-base origin/${{github.event.pull_request.head.ref}} origin/${{github.event.pull_request.base.ref}})
             echo "::warning ::Auto-diff against origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}"
+            git diff --name-only origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}
             echo "AUTO_DIFF_PARAM=--auto_diff origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}" >> $GITHUB_ENV
-            #echo "==================== Debugging diff:"
-            #git diff origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}
           fi
       - id: export-result
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
