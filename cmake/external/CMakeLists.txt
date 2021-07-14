@@ -38,7 +38,7 @@ if (${FIREBASE_EXTERNAL_PLATFORM} STREQUAL "DESKTOP")
 endif()
 
 # Support files for the test framework.
-if(FIREBASE_CPP_BUILD_TESTS)
+if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
   include(googletest)
 
   # Download the iOS SDK Frameworks required for linking the tests.
