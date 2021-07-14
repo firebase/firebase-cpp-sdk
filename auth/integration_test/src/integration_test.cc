@@ -735,7 +735,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithAnonymousSignin) {
         FLAKY_EXPECT_TRUE(auth_->current_user()->is_anonymous());
         DeleteUser();
 
-        return true;
+        FLAKY_SUCCESS();
       })) {
     FAIL() << "Test failed, see log for details.";
   }
@@ -783,7 +783,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
         FLAKY_EXPECT_NONNULL(auth_->current_user());
         DeleteUser();
 
-        return true;
+        FLAKEY_SUCCESS();
       })) {
     FAIL() << "Test failed, see log for details.";
   }
@@ -930,7 +930,7 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
         ProcessEvents(1000);
         DeleteUser();
 
-        return true;
+        FLAKY_SUCCESS();
       })) {
     FAIL() << "Phone auth failed, see log for details.";
   }

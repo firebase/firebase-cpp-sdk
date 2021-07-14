@@ -276,6 +276,9 @@ namespace firebase_test_framework {
     }                                                                      \
   }
 
+// Put this at the end of each RunFlakyBlock function. It will return true.
+#define FLAKY_SUCCESS() { return true; }
+
 class FirebaseTest : public testing::Test {
  public:
   FirebaseTest();

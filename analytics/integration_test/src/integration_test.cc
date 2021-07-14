@@ -147,7 +147,8 @@ TEST_F(FirebaseAnalyticsTest, TestResettingGivesNewInstanceId) {
         std::string new_instance_id = *future.result();
         FLAKY_EXPECT_FALSE(future.result()->empty());
         FLAKY_EXPECT_NE(instance_id, new_instance_id);
-        return true;
+
+        FLAKY_SUCCESS();
       })) {
     FAIL() << "Failed, see error log for details.";
   }
