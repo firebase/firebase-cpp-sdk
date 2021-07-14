@@ -192,6 +192,7 @@ set(main_SRCS
     src/main/field_value_main.h
     src/main/firestore_main.cc
     src/main/firestore_main.h
+    src/main/firestore_exceptions_main.h
     src/main/listener_main.h
     src/main/listener_registration_main.cc
     src/main/listener_registration_main.h
