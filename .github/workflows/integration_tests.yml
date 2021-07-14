@@ -161,6 +161,7 @@ jobs:
         if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1' || needs.check_trigger.outputs.requested_tests == 'full'
         run: |
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
+          echo "::warning ::Running on the expanded matrix (auto_diff still apply)"
       - name: Set auto-diff option if specified.
         if: needs.check_trigger.outputs.requested_tests == 'auto'
         run: |

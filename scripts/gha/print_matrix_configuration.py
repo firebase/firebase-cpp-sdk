@@ -115,10 +115,6 @@ PARAMETERS = {
       "build_tools_version": ["28.0.3"],
 
       EXPANDED_KEY: {
-        # architecture_windows_linux, ndk_version, msvc_runtime: not enabled yet
-        "architecture_windows_linux": ["x64", "x86"],
-        "ndk_version": ["r22b"],
-        "msvc_runtime": ["static", "dynamic"],
         "ssl_lib": ["openssl", "boringssl"],
         "android_device": ["android_min", "android_latest", "android_latest", "emulator_min", "emulator_target", "emulator_latest"],
         "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
