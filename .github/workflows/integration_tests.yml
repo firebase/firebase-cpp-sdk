@@ -172,20 +172,11 @@ jobs:
           else
             # If running in a PR, diff against the PR's base.
             # "git merge-base main branch_name" will give the common ancestor of both branches.
-            git show --name-only HEAD
-            git show --name-only HEAD~1
-            git show --name-only HEAD~2
-            git show --name-only HEAD~3
-            git show --name-only HEAD~4
-            git show --name-only HEAD~5
-            git show --name-only HEAD~6
             MERGE_BASE=$(git merge-base origin/${{github.event.pull_request.head.ref}} origin/${{github.event.pull_request.base.ref}})
             echo "::warning ::Auto-diff against origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}"
-            echo "AUTO_DIFF_PARAM=--auto_diff origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}"
-            echo "===================="
-            git diff origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}
-            echo "===================="
-            git diff origin/${{github.event.pull_request.head.ref}}..origin/${{github.event.pull_request.base.ref}}
+            echo "AUTO_DIFF_PARAM=--auto_diff origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}" >> $GITHUB_ENV
+            #echo "==================== Debugging diff:"
+            #git diff origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}
           fi
       - id: export-result
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
