@@ -732,7 +732,7 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
                 },
                 &controller, "Pause")) {
           LogError("Pause failed.");
-          return false;
+          FLAKY_FAIL();
         }
 
         // The StorageListener's OnPaused will call Resume().
@@ -749,7 +749,8 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
         auto metadata = future.result();
         // If metadata reports incorrect size, file failed to upload.
         FLAKY_EXPECT_EQ(metadata->size_bytes(), kLargeFileSize);
-        return true;
+
+        FLAKY_SUCCESS();
       })) {
     FAIL() << "Upload with pause/resume failed, check error log for details.";
   }
@@ -771,69 +772,45 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
   }
 #if FIREBASE_PLATFORM_DESKTOP
   if (!RunFlakyBlock([&]() {
-        // Test pausing/resuming while downloading (desktop only).
-        std::vector<char> buffer(kLargeFileSize);
-        memset(&buffer[0], 0, kLargeFileSize);
-        LogDebug("Downloading large file with pausing/resuming.");
-        StorageListener listener;
-        firebase::storage::Controller controller;
-        firebase::Future<size_t> future =
-            ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
-        if (!controller.is_valid()) {
-          LogError("Controller invalid");
-          return false;
-        }
+    // Test pausing/resuming while downloading (desktop only).
+    std::vector<char> buffer(kLargeFileSize);
+    memset(&buffer[0], 0, kLargeFileSize);
+    LogDebug("Downloading large file with pausing/resuming.");
+    StorageListener listener;
+    firebase::storage::Controller controller;
+    firebase::Future<size_t> future =
+        ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
+    FLAKY_EXPECT_TRUE(controller.is_valid());
 
-        while (controller.bytes_transferred() == 0) {
-          ProcessEvents(1);
-        }
+    while (controller.bytes_transferred() == 0) {
+      ProcessEvents(1);
+    }
 
-        LogDebug("Pausing download.");
-        if (!FirebaseTest::RunFlakyBlock(
-                [](firebase::storage::Controller* controller) {
-                  return controller->Pause();
-                },
-                &controller, "Pause")) {
-          LogError("Pause failed.");
-          return false;
-        }
+    LogDebug("Pausing download.");
+    if (!FirebaseTest::RunFlakyBlock(
+            [](firebase::storage::Controller* controller) {
+              return controller->Pause();
+            },
+            &controller, "Pause")) {
+      LogError("Pause failed.");
+      FLAKY_FAIL();
+    }
 
-        WaitForCompletionAnyResult(future, "GetBytes");
-        if (future.error() != firebase::storage::kErrorNone) {
-          LogError("GetBytes returned error %d: %s", future.error(),
-                   future.error_message());
-          return false;
-        }
-        LogDebug("Download complete.");
+    FLAKY_WAIT_FOR_COMPLETION(future, "GetBytes");
 
-        // Ensure the progress and pause callbacks were called.
-        if (!listener.on_paused_was_called()) {
-          LogError("Listener::OnPaused was not called");
-          return false;
-        }
-        if (!listener.on_progress_was_called()) {
-          LogError("Listener::OnProgress was not called");
-          return false;
-        }
-        if (!listener.resume_succeeded()) {
-          LogError("Resume failed");
-          return false;
-        }
-        if (future.result() == nullptr) {
-          LogError("Future returned null data");
-          return false;
-        }
-        size_t file_size = *future.result();
-        if (file_size != kLargeFileSize) {
-          LogError("Read size with pause/resume did not match");
-          return false;
-        }
-        if (memcmp(kLargeTestFile.c_str(), &buffer[0], kLargeFileSize) != 0) {
-          LogError("Read large file failed, contents did not match.");
-          return false;
-        }
-        return true;
-      })) {
+    LogDebug("Download complete.");
+
+    // Ensure the progress and pause callbacks were called.
+    FLAKY_EXPECT_TRUE(listener.on_paused_was_called());
+    FLAKY_EXPECT_TRUE(listener.on_progress_was_called());
+    FLAKY_EXPECT_TRUE(listener.resume_succeeded());
+    FLAKY_EXPECT_NONNULL(future.result());
+    size_t file_size = *future.result();
+    FLAKY_EXPECT_EQ(file_size, kLargeFileSize);
+    FLAKY_EXPECT_EQ(memcmp(kLargeTestFile.c_str(), &buffer[0], kLargeFileSize),
+                    0) {
+      FLAKY_SUCCESS();
+    })) {
     FAIL() << "Download of file with pause/resume failed, see error log";
   }
 #else
@@ -865,118 +842,118 @@ TEST_F(FirebaseStorageTest, TestLargeFilePauseResumeAndDownloadCancel) {
   }
 #endif  // FIREBASE_PLATFORM_DESKTOP
 
-  // Try canceling while downloading.
-  if (!RunFlakyBlock([&]() {
-        std::vector<char> buffer(kLargeFileSize);
-        LogDebug("Downloading large file with cancellation.");
-        StorageListener listener;
-        firebase::storage::Controller controller;
-        firebase::Future<size_t> future =
-            ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
-        FLAKY_EXPECT_TRUE(controller.is_valid());
+    // Try canceling while downloading.
+    if (!RunFlakyBlock([&]() {
+          std::vector<char> buffer(kLargeFileSize);
+          LogDebug("Downloading large file with cancellation.");
+          StorageListener listener;
+          firebase::storage::Controller controller;
+          firebase::Future<size_t> future =
+              ref.GetBytes(&buffer[0], kLargeFileSize, &listener, &controller);
+          FLAKY_EXPECT_TRUE(controller.is_valid());
 
-        while (controller.bytes_transferred() == 0) {
-          ProcessEvents(1);
-        }
+          while (controller.bytes_transferred() == 0) {
+            ProcessEvents(1);
+          }
 
-        LogDebug("Cancelling download.");
-        FLAKY_EXPECT_TRUE(controller.Cancel());
-        FLAKY_WAIT_FOR_COMPLETION_WITH_ERROR(
-            future, "GetBytes", firebase::storage::kErrorCancelled);
+          LogDebug("Cancelling download.");
+          FLAKY_EXPECT_TRUE(controller.Cancel());
+          FLAKY_WAIT_FOR_COMPLETION_WITH_ERROR(
+              future, "GetBytes", firebase::storage::kErrorCancelled);
 
-        return true;
-      })) {
-    FAIL() << "Cancel file download failed, see log for details";
-  }
+          FLAKJY_SUCCESS();
+        })) {
+      FAIL() << "Cancel file download failed, see log for details";
+    }
 }
 
 TEST_F(FirebaseStorageTest, TestLargeFileCancelUpload) {
-  SignIn();
+    SignIn();
 
-  firebase::storage::StorageReference ref =
-      CreateFolder().Child("TestFile-LargeFileCancel.txt");
+    firebase::storage::StorageReference ref =
+        CreateFolder().Child("TestFile-LargeFileCancel.txt");
 
-  const size_t kLargeFileSize = kLargeFileMegabytes * 1024 * 1024;
-  const std::string kLargeTestFile = CreateDataForLargeFile(kLargeFileSize);
-  if (!RunFlakyBlock([&]() {
-        LogDebug("Write a large file and cancel mid-way.");
-        StorageListener listener;
-        firebase::storage::Controller controller;
-        firebase::Future<firebase::storage::Metadata> future = ref.PutBytes(
-            kLargeTestFile.c_str(), kLargeFileSize, &listener, &controller);
+    const size_t kLargeFileSize = kLargeFileMegabytes * 1024 * 1024;
+    const std::string kLargeTestFile = CreateDataForLargeFile(kLargeFileSize);
+    if (!RunFlakyBlock([&]() {
+          LogDebug("Write a large file and cancel mid-way.");
+          StorageListener listener;
+          firebase::storage::Controller controller;
+          firebase::Future<firebase::storage::Metadata> future = ref.PutBytes(
+              kLargeTestFile.c_str(), kLargeFileSize, &listener, &controller);
 
-        // Ensure the Controller is valid now that we have associated it with an
-        // operation.
-        FLAKY_EXPECT_TRUE(controller.is_valid());
+          // Ensure the Controller is valid now that we have associated it with
+          // an operation.
+          FLAKY_EXPECT_TRUE(controller.is_valid());
 
-        while (controller.bytes_transferred() == 0) {
-          ProcessEvents(1);
-        }
+          while (controller.bytes_transferred() == 0) {
+            ProcessEvents(1);
+          }
 
-        LogDebug("Cancelling upload.");
-        // Cancel the operation and verify it was successfully canceled.
-        FLAKY_EXPECT_TRUE(controller.Cancel());
+          LogDebug("Cancelling upload.");
+          // Cancel the operation and verify it was successfully canceled.
+          FLAKY_EXPECT_TRUE(controller.Cancel());
 
-        FLAKY_WAIT_FOR_COMPLETION_WITH_ERROR(
-            future, "PutBytes", firebase::storage::kErrorCancelled);
+          FLAKY_WAIT_FOR_COMPLETION_WITH_ERROR(
+              future, "PutBytes", firebase::storage::kErrorCancelled);
 
-        return true;
-      })) {
-    FAIL() << "Cancel file upload failed, see log for details";
-  }
+          FLAKY_SUCCESS();
+        })) {
+      FAIL() << "Cancel file upload failed, see log for details";
+    }
 }
 
 TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingStorage) {
-  SignIn();
+    SignIn();
 
-  // Create a file so we can get its metadata and check that it's properly
-  // invalidated.
-  firebase::storage::StorageReference ref =
-      CreateFolder().Child("TestFile-InvalidateReferencesDeletingStorage.txt");
-  // Don't clean up, will be manually deleted.
+    // Create a file so we can get its metadata and check that it's properly
+    // invalidated.
+    firebase::storage::StorageReference ref = CreateFolder().Child(
+        "TestFile-InvalidateReferencesDeletingStorage.txt");
+    // Don't clean up, will be manually deleted.
 
-  WaitForCompletion(ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size()),
-                    "PutBytes");
-  ASSERT_NE(ref.PutBytesLastResult().result(), nullptr);
-  firebase::storage::Metadata metadata = *ref.PutBytesLastResult().result();
-  WaitForCompletion(ref.Delete(), "Delete");
+    WaitForCompletion(ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size()),
+                      "PutBytes");
+    ASSERT_NE(ref.PutBytesLastResult().result(), nullptr);
+    firebase::storage::Metadata metadata = *ref.PutBytesLastResult().result();
+    WaitForCompletion(ref.Delete(), "Delete");
 
-  ASSERT_TRUE(ref.is_valid());
-  ASSERT_TRUE(metadata.is_valid());
-  delete storage_;
-  storage_ = nullptr;
-  EXPECT_FALSE(ref.is_valid());
-  EXPECT_FALSE(metadata.is_valid());
+    ASSERT_TRUE(ref.is_valid());
+    ASSERT_TRUE(metadata.is_valid());
+    delete storage_;
+    storage_ = nullptr;
+    EXPECT_FALSE(ref.is_valid());
+    EXPECT_FALSE(metadata.is_valid());
 }
 
 TEST_F(FirebaseStorageTest, TestInvalidatingReferencesWhenDeletingApp) {
-  SignIn();
+    SignIn();
 
-  // Create a file so we can get its metadata and check that it's properly
-  // invalidated.
-  firebase::storage::StorageReference ref =
-      CreateFolder().Child("TestFile-InvalidateReferencesDeletingApp.txt");
-  // Don't clean up, will be manually deleted.
+    // Create a file so we can get its metadata and check that it's properly
+    // invalidated.
+    firebase::storage::StorageReference ref =
+        CreateFolder().Child("TestFile-InvalidateReferencesDeletingApp.txt");
+    // Don't clean up, will be manually deleted.
 
-  WaitForCompletion(ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size()),
-                    "PutBytes");
-  ASSERT_NE(ref.PutBytesLastResult().result(), nullptr);
-  firebase::storage::Metadata metadata = *ref.PutBytesLastResult().result();
-  WaitForCompletion(ref.Delete(), "Delete");
+    WaitForCompletion(ref.PutBytes(&kSimpleTestFile[0], kSimpleTestFile.size()),
+                      "PutBytes");
+    ASSERT_NE(ref.PutBytesLastResult().result(), nullptr);
+    firebase::storage::Metadata metadata = *ref.PutBytesLastResult().result();
+    WaitForCompletion(ref.Delete(), "Delete");
 
-  ASSERT_TRUE(ref.is_valid());
-  ASSERT_TRUE(metadata.is_valid());
+    ASSERT_TRUE(ref.is_valid());
+    ASSERT_TRUE(metadata.is_valid());
 
-  delete shared_app_;
-  shared_app_ = nullptr;
+    delete shared_app_;
+    shared_app_ = nullptr;
 
-  EXPECT_FALSE(ref.is_valid());
-  EXPECT_FALSE(metadata.is_valid());
+    EXPECT_FALSE(ref.is_valid());
+    EXPECT_FALSE(metadata.is_valid());
 
-  // Fully shut down App and Auth so they can be reinitialized.
-  TerminateAppAndAuth();
-  // Reinitialize App and Auth.
-  InitializeAppAndAuth();
+    // Fully shut down App and Auth so they can be reinitialized.
+    TerminateAppAndAuth();
+    // Reinitialize App and Auth.
+    InitializeAppAndAuth();
 }
 
 }  // namespace firebase_testapp_automated

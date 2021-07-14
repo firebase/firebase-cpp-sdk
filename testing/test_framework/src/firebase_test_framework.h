@@ -184,6 +184,14 @@ namespace firebase_test_framework {
 // Helper macros to assist with RunFlakyBlock.
 // Unlike EXPECT_*, FLAKY_EXPECT_* just prints out the error and returns
 // false, which will cause RunFlakyBlock to retry.
+
+// This returns false, which will make RunFlakyBlock retry.
+#define FLAKY_FAIL() \
+  { return false; }
+// Put this at the end of each RunFlakyBlock function. It will return true.
+#define FLAKY_SUCCESS() \
+  { return true; }
+
 #define FLAKY_EXPECT_EQ(a, b)                                 \
   {                                                           \
     auto a_result = (a);                                      \
@@ -275,9 +283,6 @@ namespace firebase_test_framework {
       return false;                                                        \
     }                                                                      \
   }
-
-// Put this at the end of each RunFlakyBlock function. It will return true.
-#define FLAKY_SUCCESS() { return true; }
 
 class FirebaseTest : public testing::Test {
  public:

@@ -911,7 +911,7 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
                 "SignInWithCredential(PhoneCredential) automatic");
           } else if (listener.on_verification_failed_count() > 0) {
             LogError("Automatic verification failed.");
-            return false;
+            FLAKY_FAIL();
           } else {
             // Did not automatically verify, submit verification code manually.
             FLAKY_EXPECT_TRUE(listener.on_code_auto_retrieval_time_out_count() >
