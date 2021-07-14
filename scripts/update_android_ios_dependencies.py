@@ -510,7 +510,7 @@ def modify_dependency_file(dependency_filepath, version_map, dryrun=True):
 
 
 RE_README_ANDROID_VERSION = re.compile(
-    r"\|(?P<spaces>\s+)\| (?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([0-9.]+)")
+    r"\|(?P<spaces>\s+)\| (?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([a-zA-Z0-9._-]+)")
 
 
 def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
@@ -572,7 +572,7 @@ def modify_readme_file_android(readme_filepath, version_map, dryrun=True):
 # Regex to match lines like:
 # implementation 'com.google.firebase:firebase-auth:1.2.3'
 RE_GRADLE_COMPILE_MODULE = re.compile(
-    r"implementation\s*\'(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([0-9.]+)\'")
+    r"implementation\s*\'(?P<pkg>[a-zA-Z0-9._-]+:[a-zA-Z0-9._-]+):([a-zA-Z0-9._-]+)\'")
 
 
 def modify_gradle_file(gradle_filepath, version_map, dryrun=True):
