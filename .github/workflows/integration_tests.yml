@@ -171,7 +171,7 @@ jobs:
             echo "AUTO_DIFF_PARAM=--auto_diff main" >> $GITHUB_ENV
           else
             # If running in a PR, diff against the PR's base.
-            echo "::warning ::Auto-diff against ${{github.event.pull_request}}"
+            echo "::warning ::Auto-diff against ${{toJSON(github.event.pull_request)}}"
             echo "AUTO_DIFF_PARAM=--auto_diff ${{github.event.pull_request.base.sha}}" >> $GITHUB_ENV
           fi
       - id: export-result
