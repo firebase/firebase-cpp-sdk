@@ -158,7 +158,7 @@ jobs:
           fetch-depth: 0
           submodules: false
       - name: Use expanded matrix
-        if: github.event.inputs.use_expanded_matrix == '1' || needs.check_trigger.outputs.requested_tests == 'full'
+        if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1' || needs.check_trigger.outputs.requested_tests == 'full'
         run: |
           echo "EXPANDED_MATRIX_PARAM=-e=1" >> $GITHUB_ENV
       - name: Set auto-diff option if specified.
@@ -167,10 +167,25 @@ jobs:
           echo "Autodetecting which tests to run."
           if [[ -n "${{github.event.inputs.test_pull_request}}" ]]; then
             # If running this manually, diff against main.
+            echo "::warning ::Auto-diff against main"
             echo "AUTO_DIFF_PARAM=--auto_diff main" >> $GITHUB_ENV
           else
             # If running in a PR, diff against the PR's base.
-            echo "AUTO_DIFF_PARAM=--auto_diff ${{github.event.pull_request.base.sha}}" >> $GITHUB_ENV
+            # "git merge-base main branch_name" will give the common ancestor of both branches.
+            git show --name-only HEAD
+            git show --name-only HEAD~1
+            git show --name-only HEAD~2
+            git show --name-only HEAD~3
+            git show --name-only HEAD~4
+            git show --name-only HEAD~5
+            git show --name-only HEAD~6
+            MERGE_BASE=$(git merge-base origin/${{github.event.pull_request.head.ref}} origin/${{github.event.pull_request.base.ref}})
+            echo "::warning ::Auto-diff against origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}"
+            echo "AUTO_DIFF_PARAM=--auto_diff origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}"
+            echo "===================="
+            git diff origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}
+            echo "===================="
+            git diff origin/${{github.event.pull_request.head.ref}}..origin/${{github.event.pull_request.base.ref}}
           fi
       - id: export-result
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
