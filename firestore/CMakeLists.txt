@@ -32,6 +32,7 @@ set(common_SRCS
     src/common/field_path.cc
     src/common/field_value.cc
     src/common/firestore.cc
+    src/common/firestore_exceptions_main.h
     src/common/futures.cc
     src/common/futures.h
     src/common/hard_assert_common.cc
@@ -192,7 +193,6 @@ set(main_SRCS
     src/main/field_value_main.h
     src/main/firestore_main.cc
     src/main/firestore_main.h
-    src/main/firestore_exceptions_main.h
     src/main/listener_main.h
     src/main/listener_registration_main.cc
     src/main/listener_registration_main.h
