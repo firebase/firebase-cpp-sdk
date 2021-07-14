@@ -168,7 +168,6 @@ void TransactionInternal::ValidateReference(const DocumentReference& document) {
 
   if (!internal_doc) {
     ThrowInvalidArgument("Invalid document reference provided.");
-    "
   }
 
   if (internal_doc->firestore() != firestore()) {
