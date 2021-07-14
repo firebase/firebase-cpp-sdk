@@ -438,7 +438,7 @@ def get_latest_maven_versions(ignore_packages=None):
     for group_child in group_xml:
       package_name = group_child.tag.replace('-', '_')
       package_full_name = group_name + "." + package_name
-      if any(ignore_package.lower() in package_full_name.lower()
+      if any(ignore_package.lower().replace('-', '_') in package_full_name.lower()
               for ignore_package in ignore_packages):
         continue
       package_version = group_child.attrib['versions'].split(',')[-1]
@@ -705,7 +705,7 @@ def main():
 
   if not args.skip_android:
     latest_android_versions_map = get_latest_maven_versions(
-      args.ignore_android_packages)
+      set(args.ignore_android_packages))
     dep_files = get_files(args.depfiles, file_extension='.gradle',
                           file_name='firebase_dependencies.gradle',
                           ignore_directories=set(args.ignore_directories))
