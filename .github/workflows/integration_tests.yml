@@ -182,6 +182,10 @@ jobs:
             MERGE_BASE=$(git merge-base origin/${{github.event.pull_request.head.ref}} origin/${{github.event.pull_request.base.ref}})
             echo "::warning ::Auto-diff against origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}"
             echo "AUTO_DIFF_PARAM=--auto_diff origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}"
+            echo "===================="
+            git diff origin/${{github.event.pull_request.head.ref}}..${MERGE_BASE}
+            echo "===================="
+            git diff origin/${{github.event.pull_request.head.ref}}..origin/${{github.event.pull_request.base.ref}}
           fi
       - id: export-result
         # e.g. 'ubuntu-latest,macos-latest' -> '["ubuntu-latest","macos-latest"]'
