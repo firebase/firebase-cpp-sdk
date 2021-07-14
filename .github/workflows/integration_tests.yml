@@ -314,6 +314,14 @@ jobs:
             --noadd_timestamp \
             --short_output_paths \
             ${additional_flags[*]}
+      - name: Prepare results summary artifact
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          if [ ! -f build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json ]; then
+            # No summary was created, make a placeholder one.
+            echo "__SUMMARY_MISSING__" > build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json
+          fi
       - name: Upload Desktop integration tests artifact
         uses: actions/upload-artifact@v2.2.2
         if: ${{ !cancelled() }}
@@ -442,6 +450,13 @@ jobs:
             --noadd_timestamp \
             --short_output_paths \
             ${additional_flags[*]} 
+      - name: Prepare results summary artifact
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          if [ ! -f build-results-android-${{ matrix.os }}.log.json ]; then
+            echo "__SUMMARY_MISSING__" > build-results-android-${{ matrix.os }}.log.json
+          fi
       - name: Upload Android integration tests artifact
         uses: actions/upload-artifact@v2.2.2
         if: ${{ !cancelled() }}
@@ -540,6 +555,13 @@ jobs:
             --noadd_timestamp \
             --short_output_paths \
             ${additional_flags[*]} 
+      - name: Prepare results summary artifact
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          if [ ! -f build-results-ios-macos-latest.log.json ]; then
+            echo "__SUMMARY_MISSING__" > build-results-ios-macos-latest.log.json
+          fi
       - name: Upload iOS integration tests artifact
         uses: actions/upload-artifact@v2.2.2
         if: ${{ !cancelled() }}
@@ -637,6 +659,13 @@ jobs:
             --noadd_timestamp \
             --short_output_paths \
             ${additional_flags[*]} 
+      - name: Prepare results summary artifact
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          if [ ! -f build-results-tvos-macos-latest.log.json ]; then
+            echo "__SUMMARY_MISSING__" > build-results-tvos-macos-latest.log.json
+          fi
       - name: Upload tvOS integration tests artifact
         uses: actions/upload-artifact@v2.2.2
         if: ${{ !cancelled() }}
@@ -704,6 +733,13 @@ jobs:
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
       - name: Run Desktop integration tests
         run: python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
+      - name: Prepare results summary artifact
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          if [ ! -f testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json ]; then
+            echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json
+          fi
       - name: Upload Desktop test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v2.2.2
@@ -782,6 +818,13 @@ jobs:
             --logfile_name "android-${{ matrix.build_os }}-${{ matrix.android_device }}" \
             --code_platform cpp \
             --key_file scripts/gha-encrypted/gcs_key_file.json
+      - name: Prepare results summary artifact
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          if [ ! -f "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log.json" ]; then
+            echo "__SUMMARY_MISSING__" > "testapps/test-results-android-${{ matrix.build_os }}-${{ matrix.android_device }}.log.json"
+          fi
       - name: Upload Android test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v2.2.2
@@ -859,6 +902,13 @@ jobs:
             --logfile_name "ios-macos-latest-${{ matrix.ios_device }}" \
             --code_platform cpp \
             --key_file scripts/gha-encrypted/gcs_key_file.json
+      - name: Prepare results summary artifact
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          if [ ! -f "testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}.log.json" ]; then
+            echo "__SUMMARY_MISSING__" > "testapps/test-results-ios-macos-latest-${{ matrix.ios_device }}.log.json"
+          fi
       - name: Upload iOS test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v2.2.2
@@ -920,6 +970,13 @@ jobs:
             --tvos_device "${{ matrix.tvos_device }}" \
             --logfile_name "tvos-macos-latest-${{ matrix.tvos_device }}" \
             --ci
+      - name: Prepare results summary artifact
+        if: ${{ !cancelled() }}
+        shell: bash
+        run: |
+          if [ ! -f "testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}.log.json" ]; then
+            echo "__SUMMARY_MISSING__" > "testapps/test-results-tvos-macos-latest-${{ matrix.tvos_device }}.log.json"
+          fi
       - name: Upload tvOS test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v2.2.2
