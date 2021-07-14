@@ -179,7 +179,7 @@ jobs:
             git show --name-only HEAD~4
             git show --name-only HEAD~5
             git show --name-only HEAD~6
-            MERGE_BASE=$(git merge-base ${{github.event.pull_request.base.sha}} HEAD))
+            MERGE_BASE=$(git merge-base ${{github.event.pull_request.base.sha}} HEAD)
             echo "::warning ::Auto-diff against ${{github.event.pull_request.head.sha}}..${MERGE_BASE}"
             echo "AUTO_DIFF_PARAM=--auto_diff ${{github.event.pull_request.head.sha}}..${MERGE_BASE}"
           fi
