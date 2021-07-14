@@ -243,7 +243,8 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       # Any top-level directories set to None are completely ignored.
       "external": None,
       "release_build_files": None,
-      # Temporarily ignore .github and scripts directories.
+      # Uncomment the two below when debugging this script or GitHub
+      # actions related to auto-diff mode.
       ".github": None,
       "scripts": None,
       # Top-level directories listed below trigger additional APIs being tested.
@@ -251,11 +252,23 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       # database, firestore, and storage.
       "auth": "auth,functions,database,firestore,storage",
     }
+    file_redirects = {
+      # Custom handling for specific files, to be treated as a different path or
+      # ignored completely (set to None).
+      "cmake/external/firestore.cmake": "firestore"
+      "cmake/external/libuv.cmake": "database"
+      "cmake/external/uWebSockets.cmake": "database"
+    }
     requested_api_list = set(value.split(','))
     filtered_api_list = set()
 
     for path in file_list:
       if len(path) == 0: continue
+      if path in file_redirects:
+        if file_redirects[path] is None:
+          continue
+        else
+          path = os.path.join(file_redirects[path], path)
       topdir = path.split(os.path.sep)[0]
       if topdir in custom_triggers:
         if not custom_triggers[topdir]: continue  # Skip ones set to None.
