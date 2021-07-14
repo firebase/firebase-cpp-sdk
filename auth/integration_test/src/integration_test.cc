@@ -783,7 +783,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
         FLAKY_EXPECT_NONNULL(auth_->current_user());
         DeleteUser();
 
-        FLAKEY_SUCCESS();
+        FLAKY_SUCCESS();
       })) {
     FAIL() << "Test failed, see log for details.";
   }
