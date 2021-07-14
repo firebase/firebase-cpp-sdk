@@ -418,16 +418,16 @@ def _get_bundle_id(app_path, config):
       return api["bundle_id"]
 
 
-def _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry=0):
+def _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry=1):
   """Run gameloop test and collect test result."""
   logging.info("Running apple gameloop test: %s, %s, %s, %s", bundle_id, app_path, gameloop_app, device_id)
   _install_apple_app(app_path, device_id)
   _run_xctest(gameloop_app, device_id)
   logs = _get_apple_test_log(bundle_id, app_path, device_id)
   _uninstall_apple_app(bundle_id, device_id)
-  if retry > 0:
+  if retry > 1:
     results = test_validation.validate_results_cpp(logs)
-    if (not results.complete) or (results.fails > 0):
+    if not results.complete:
       return _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry=retry-1)
   
   return logs
@@ -559,15 +559,15 @@ def _get_package_name(app_path):
   return package_name  
 
 
-def _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=0): 
+def _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=1): 
   logging.info("Running android gameloop test: %s, %s, %s", package_name, app_path, gameloop_project)
   _install_android_app(app_path)
   _run_instrumented_test()
   logs = _get_android_test_log(package_name)
   _uninstall_android_app(package_name)
-  if retry > 0:
+  if retry > 1:
     results = test_validation.validate_results_cpp(logs)
-    if (not results.complete) or (results.fails > 0):
+    if not results.complete:
       return _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=retry-1)
   
   return logs
