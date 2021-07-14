@@ -36,8 +36,12 @@ Usage:
 # preview) - Update versions in default set of files in the repository.
 python3 scripts/update_android_ios_dependencies.py --dryrun
 
-# Update versions in default set of files in the repository
+# Update versions in default set of files in the repository.
 python3 scripts/update_android_ios_dependencies.py
+
+# Update versions in default set of files in the repository. (allow updating to
+# experimental versions)
+python3 scripts/update_android_ios_dependencies.py --allow_experimental
 
 # Update only Android packages
 python3 scripts/update_android_ios_dependencies.py --skip_ios
@@ -74,8 +78,8 @@ import sys
 import tempfile
 
 from collections import defaultdict
-from pkg_resources import packaging
 from xml.etree import ElementTree
+from pkg_resources import packaging
 
 
 def get_files_from_directory(dirpath, file_extension, file_name=None,
@@ -152,6 +156,8 @@ def get_files(dirs_and_files, file_extension, file_name=None,
       files.append(abspath)
   return files
 
+# Regex to match versions with just digits (ignoring things like -alpha, -beta)
+NON_EXPERIMENTAL_VERSION_RE = re.compile('[0-9.]+$')
 
 ##########  iOS pods versions update #######################################
 
@@ -178,7 +184,8 @@ PODS = (
 )
 
 
-def get_pod_versions(specs_repo, pods=PODS, ignore_pods=None):
+def get_pod_versions(specs_repo, pods=PODS, ignore_pods=None,
+                     allow_experimental=False):
   """Get available pods and their versions from the specs repo
 
   Args:
@@ -186,10 +193,12 @@ def get_pod_versions(specs_repo, pods=PODS, ignore_pods=None):
       pods (iterable(str), optional): List of pods whose versions we need.
         Defaults to PODS.
       ignore_pods (list[str], optional): Case insensitive list of substrings
-        If any of these substrings are present in the pod name, it will not be 
+        If any of these substrings are present in the pod name, it will not be
         updated.
         Eg: ['foo', 'bar'] will ignore all pods that have 'foo' or
         'bar' in their name. For example, 'test_foo', 'test_foo_baz'
+      allow_experimental (bool): Allow experimental versions.
+        Eg: 1.2.3-alpha, 1.2.3-beta, 1.2.3-rc
   Returns:
       dict: Map of the form {<str>:list(str)}
         Containing a mapping of podnames to available versions.
@@ -211,12 +220,16 @@ def get_pod_versions(specs_repo, pods=PODS, ignore_pods=None):
       continue
     parent_dir = os.path.dirname(podspec_file)
     version = os.path.basename(parent_dir)
+    if not allow_experimental and '-cppsdk' not in version:
+      if not re.match(NON_EXPERIMENTAL_VERSION_RE, version):
+        continue
     all_versions[podname].append(version)
 
   return all_versions
 
 
-def get_latest_pod_versions(specs_repo=None, pods=PODS, ignore_pods=None):
+def get_latest_pod_versions(specs_repo=None, pods=PODS, ignore_pods=None,
+                            allow_experimental=None):
   """Get latest versions for specified pods.
 
   Args:
@@ -228,6 +241,8 @@ def get_latest_pod_versions(specs_repo=None, pods=PODS, ignore_pods=None):
         updated.
         Eg: ['Foo', 'bar'] will ignore all pods that have 'foo' or
         'bar' in their name. For example, 'test_foo', 'test_foo_baz'
+      allow_experimental (bool): Allow experimental versions.
+        Eg: 1.2.3-alpha, 1.2.3-beta, 1.2.3-rc
 
   Returns:
       dict: Map of the form {<str>:<str>} containing a mapping of podnames to
@@ -246,7 +261,8 @@ def get_latest_pod_versions(specs_repo=None, pods=PODS, ignore_pods=None):
     # Temporary directory should be cleaned up after use.
     cleanup_required = True
 
-  all_versions = get_pod_versions(specs_repo, pods, ignore_pods)
+  all_versions = get_pod_versions(specs_repo, pods, ignore_pods,
+                                  allow_experimental)
   if cleanup_required:
     shutil.rmtree(specs_repo)
 
@@ -410,7 +426,7 @@ GMAVEN_MASTER_INDEX = "https://dl.google.com/dl/android/maven2/master-index.xml"
 GMAVEN_GROUP_INDEX = "https://dl.google.com/dl/android/maven2/{0}/group-index.xml"
 
 
-def get_latest_maven_versions(ignore_packages=None):
+def get_latest_maven_versions(ignore_packages=None, allow_experimental=False):
   """Gets latest versions of android packages from google Maven repository.
 
   Args:
@@ -420,9 +436,12 @@ def get_latest_maven_versions(ignore_packages=None):
         Eg: ['Foo', 'bar'] will ignore all android packages that have 'foo' or
         'bar' in their name. For example, 'my.android.foo.package',
         'myfoo.android.package'
+      allow_experimental (bool): Allow experimental versions.
+        Eg: 1.2.3-alpha, 1.2.3-beta, 1.2.3-rc
 
   Returns:
-      [type]: [description]
+      dict: Dictionary of the form {<str>: list(str)} containing full name of
+        android package as the key and its list of versions as value.
   """
   if ignore_packages is None:
     ignore_packages = []
@@ -441,8 +460,13 @@ def get_latest_maven_versions(ignore_packages=None):
       if any(ignore_package.lower().replace('-', '_') in package_full_name.lower()
               for ignore_package in ignore_packages):
         continue
-      package_version = group_child.attrib['versions'].split(',')[-1]
-      latest_versions[package_full_name] = package_version
+      versions = group_child.attrib['versions'].split(',')
+      if not allow_experimental:
+        versions = [version for version in versions
+          if re.match(NON_EXPERIMENTAL_VERSION_RE, version) or '-cppsdk' in version]
+      if versions:
+        latest_valid_version = versions[-1]
+        latest_versions[package_full_name] = latest_valid_version
   return latest_versions
 
 
@@ -638,6 +662,8 @@ def parse_cmdline_args():
             help="Logging level (debug, warning, info)")
   parser.add_argument('--ignore_directories', nargs='+',
             help='Ignore updating any files in these directories (names).')
+  parser.add_argument('--allow_experimental', action='store_true',
+            help='Allow updating to experimental versions (eg:1.2.3-alpha))')
   # iOS options
   parser.add_argument('--skip_ios', action='store_true',
             help='Skip iOS pod version update completely.')
@@ -695,7 +721,7 @@ def main():
 
   if not args.skip_ios:
     latest_pod_versions_map = get_latest_pod_versions(args.specs_repo, PODS,
-                                                      set(args.ignore_ios_pods))
+      set(args.ignore_ios_pods), args.allow_experimental)
     pod_files = get_files(args.podfiles, file_extension='', file_name='Podfile',
                           ignore_directories=set(args.ignore_directories))
     for pod_file in pod_files:
@@ -705,7 +731,7 @@ def main():
 
   if not args.skip_android:
     latest_android_versions_map = get_latest_maven_versions(
-      set(args.ignore_android_packages))
+      set(args.ignore_android_packages), args.allow_experimental)
     dep_files = get_files(args.depfiles, file_extension='.gradle',
                           file_name='firebase_dependencies.gradle',
                           ignore_directories=set(args.ignore_directories))
