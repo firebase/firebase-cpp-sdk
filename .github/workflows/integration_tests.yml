@@ -173,6 +173,7 @@ jobs:
             # If running in a PR, diff against the PR's base.
             # "git merge-base main branch_name" will give the common ancestor of both branches.
             echo "::warning ::Auto-diff against $(git merge-base ${{github.event.pull_request.base.sha}} ${{github.event.pull_request.head.sha}})"
+            echo '${{toJSON(github.event.pull_request)}}'
             echo "AUTO_DIFF_PARAM=--auto_diff $(git merge-base ${{github.event.pull_request.base.sha}} ${{github.event.pull_request.head.sha}})" >> $GITHUB_ENV
           fi
       - id: export-result
