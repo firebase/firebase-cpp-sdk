@@ -34,24 +34,24 @@ There are 3 types of files being updated by this script,
 Usage:
 # Dryrun (does not update any files on disk but prints out all replacements for
 # preview) - Update versions in default set of files in the repository.
-python3 scripts/update_ios_android_dependencies.py --dryrun
+python3 scripts/update_android_ios_dependencies.py --dryrun
 
 # Update versions in default set of files in the repository
-python3 scripts/update_ios_android_dependencies.py
+python3 scripts/update_android_ios_dependencies.py
 
 # Update only Android packages
-python3 scripts/update_ios_android_dependencies.py --skip_ios
+python3 scripts/update_android_ios_dependencies.py --skip_ios
 
 # Update specific pod files (or directories containing pod files)
-python3 scripts/update_ios_android_dependencies.py --podfiles foo/Podfile
+python3 scripts/update_android_ios_dependencies.py --podfiles foo/Podfile
                                                               dir_with_podfiles
 
 # Update all Android packages except any names containing androidx and auth
-python3 scripts/update_ios_android_dependencies.py --skip_ios
+python3 scripts/update_android_ios_dependencies.py --skip_ios
   --ignore_android_packages auth androidx
 
 # Ignore updating any files in gameloop_android and test directories
-python3 scripts/update_ios_android_dependencies.py --ignore_directories test
+python3 scripts/update_android_ios_dependencies.py --ignore_directories test
   gameloop_android
 
 Other similar flags:
