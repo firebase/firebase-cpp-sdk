@@ -254,9 +254,6 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       # Any top-level directories set to None are completely ignored.
       "external": None,
       "release_build_files": None,
-      # Temporarily ignore .github and scripts directories.
-      ".github": None,
-      "scripts": None,
       # Top-level directories listed below trigger additional APIs being tested.
       # For example, if auth is touched by a PR, we also need to test functions,
       # database, firestore, and storage.
@@ -277,7 +274,7 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       else:
         # Something was modified that's not a known subdirectory.
         # Abort this whole process and just return the original api list.
-        sys.stderr.write("Path '%s' is outside known directories, defaulting to all APIs: %s\n" % (path, value))
+        sys.stderr.write("Defaulting to all APIs: %s\n" % value)
         return value
     sys.stderr.write("::warning::Autodetected APIs: %s\n" % ','.join(sorted(filtered_api_list)))
     return ','.join(sorted(filtered_api_list))
