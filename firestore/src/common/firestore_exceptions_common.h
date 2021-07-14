@@ -12,11 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_EXCEPTIONS_MAIN_H_
-#define FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_EXCEPTIONS_MAIN_H_
+#ifndef FIREBASE_FIRESTORE_SRC_COMMON_FIRESTORE_EXCEPTIONS_COMMON_H_
+#define FIREBASE_FIRESTORE_SRC_COMMON_FIRESTORE_EXCEPTIONS_COMMON_H_
 
 // Note: this header only exists to simplify the Unity build (the SWIG build has
 // trouble directly including a header that comes from the iOS repo).
 #include "Firestore/core/src/util/firestore_exceptions.h"
 
-#endif  // FIREBASE_FIRESTORE_SRC_MAIN_FIRESTORE_EXCEPTIONS_MAIN_H_
+#endif  // FIREBASE_FIRESTORE_SRC_COMMON_FIRESTORE_EXCEPTIONS_COMMON_H_
