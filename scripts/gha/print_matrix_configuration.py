@@ -266,7 +266,7 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       else:
         # Something was modified that's not a known subdirectory.
         # Abort this whole process and just return the original api list.
-        sys.stderr.write("Defaulting to all APIs: %s\n" % value)
+        sys.stderr.write("Path '%s' is outside known directories, defaulting to all APIs: %s\n" % (path, value))
         return value
     sys.stderr.write("::warning::Autodetected APIs: %s\n" % ','.join(sorted(filtered_api_list)))
     return ','.join(sorted(filtered_api_list))
