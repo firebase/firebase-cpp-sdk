@@ -50,7 +50,6 @@ StaticField<Object> kTaskStateSuccess(
 StaticField<Object> kTaskStateRunning(
     "RUNNING",
     "Lcom/google/firebase/firestore/LoadBundleTaskProgress$TaskState;");
-Method<String> kName("name", "()Ljava/lang/String;");
 
 jclass g_clazz = nullptr;
 
