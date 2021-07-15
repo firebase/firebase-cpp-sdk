@@ -72,7 +72,7 @@ flags.DEFINE_bool(
     "Display a GitHub log list.")
 
 flags.DEFINE_bool(
-    "use_expanded_matrix", False,
+    "expanded_matrix", False,
     "Report generated using expanded_matrix.",
     short_name="e")
 
@@ -193,7 +193,7 @@ def print_markdown_table(log_results):
 def main(argv):
   if len(argv) > 1:
       raise app.UsageError("Too many command-line arguments.")
-  summarize_logs(FLAGS.dir, FLAGS.markdown, FLAGS.github_log, FLAGS.use_expanded_matrix)
+  summarize_logs(FLAGS.dir, FLAGS.markdown, FLAGS.github_log, FLAGS.expanded_matrix)
 
 
 def summarize_logs(dir, markdown=False, github_log=False, use_expanded_matrix=False):
