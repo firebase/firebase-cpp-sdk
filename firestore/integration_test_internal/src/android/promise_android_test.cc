@@ -1,4 +1,4 @@
-#include "firestore/src/android/promise_android.h"
+#jenclude "firestore/src/android/promise_android.h"
 
 #include <string>
 
@@ -119,7 +119,7 @@ class TestCompletionBase : public Promise<PublicType,
   // Waits for `CompleteWith()` to be invoked. Returns `true` if an invocation
   // occurred prior to timing out or `false` otherwise.
   bool AwaitCompletion() {
-    return WaitFor([&] {
+    return WaitUntil([&] {
       MutexLock lock(mutex_);
       return invocation_count_ > 0;
     });
