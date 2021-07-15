@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/android/snapshot_metadata_android.h"
 
 #include "firestore/src/jni/env.h"

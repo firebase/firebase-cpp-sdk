@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/android/field_value_android.h"
 
 #include "app/meta/move.h"
@@ -254,16 +256,7 @@ const uint8_t* FieldValueInternal::blob_value() const {
     return nullptr;
   }
 
-  if (cached_blob_->empty()) {
-    // The return value doesn't matter, but we can't return
-    // `&cached_blob->front()` because calling `front` on an empty vector is
-    // undefined behavior. When we drop support for STLPort, we can use `data`
-    // instead which is defined, even for empty vectors.
-    // TODO(b/163140650): remove this special case.
-    return nullptr;
-  }
-
-  return &(cached_blob_->front());
+  return cached_blob_->data();
 }
 
 size_t FieldValueInternal::blob_size() const {
@@ -285,11 +278,11 @@ void FieldValueInternal::EnsureCachedBlob(Env& env) const {
   Local<Array<uint8_t>> bytes = blob.ToBytes(env);
   size_t size = bytes.Size(env);
 
-  auto result = MakeShared<std::vector<uint8_t>>(size);
+  auto result = std::make_shared<std::vector<uint8_t>>(size);
   env.GetArrayRegion(bytes, 0, size, &(result->front()));
 
   if (env.ok()) {
-    cached_blob_ = Move(result);
+    cached_blob_ = std::move(result);
   }
 }
 

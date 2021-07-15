@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_EVENT_TYPE_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_EVENT_TYPE_H_
+#ifndef FIREBASE_DATABASE_SRC_DESKTOP_VIEW_EVENT_TYPE_H_
+#define FIREBASE_DATABASE_SRC_DESKTOP_VIEW_EVENT_TYPE_H_
 
 namespace firebase {
 namespace database {
@@ -36,4 +36,4 @@ enum EventType {
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_DESKTOP_VIEW_EVENT_TYPE_H_
+#endif  // FIREBASE_DATABASE_SRC_DESKTOP_VIEW_EVENT_TYPE_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_REST_REQUEST_BINARY_H_
-#define FIREBASE_APP_CLIENT_CPP_REST_REQUEST_BINARY_H_
+#ifndef FIREBASE_APP_REST_REQUEST_BINARY_H_
+#define FIREBASE_APP_REST_REQUEST_BINARY_H_
 
 #include <cstddef>
 
@@ -45,4 +45,4 @@ class RequestBinary : public Request {
 }  // namespace rest
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_REST_REQUEST_BINARY_H_
+#endif  // FIREBASE_APP_REST_REQUEST_BINARY_H_

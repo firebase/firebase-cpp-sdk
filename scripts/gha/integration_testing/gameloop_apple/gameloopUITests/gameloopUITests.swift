@@ -46,7 +46,8 @@ class GameLoopLauncherUITests: XCTestCase {
     app.launchEnvironment[Constants.gameLoopScenario] = scenario
 
     // Periodically check and dismiss dialogs with "Allow" or "OK"
-    Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { (_) in
+    Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { (_) in
+#if os(iOS)
       let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
       for button in [springboard.buttons["Open"], springboard.buttons["Allow"], springboard.buttons["OK"]] {
         if button.exists {
@@ -54,51 +55,54 @@ class GameLoopLauncherUITests: XCTestCase {
           button.tap()
         }
       }
+#elseif os(tvOS)
+      NSLog("finding pineboard ...")
+      let pineboard = XCUIApplication(bundleIdentifier: "com.apple.PineBoard")
+      for button in [pineboard.buttons["Open"], pineboard.buttons["Allow"], pineboard.buttons["OK"]] {
+        if button.exists {
+          NSLog("Dismissing system dialog")
+          let remote: XCUIRemote = XCUIRemote.shared
+          remote.press(.select)
+        }
+      }
+#endif
     }
 
+    //Launch Gameloop App
     app.launch()
-
-    let result = waitForLoopCompletion(for: app)
-    attachResults()
-    // Terminate the app under test to clear its state
-    if bundleId != nil {
-      XCUIApplication(bundleIdentifier: bundleId!).terminate()
+    //Wait until Gameloop App open Integration Test App
+    app.wait(for: .runningBackground, timeout: 20)
+    //Wait until Integration Test App closed (testing finished)
+    let expectation = XCTestExpectation(description: "Integration Test App closed")
+    Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { (_) in
+      if app.state == .runningForeground {
+        NSLog("Integration Test App closed... Gameloop App back to foreground...")
+        expectation.fulfill()
+      } else {
+        NSLog("Testing... Gameloop App in background...")
+      }
     }
-    XCTAssert(result == .completed)
-  }
 
-  /// Wait for the game loop to complete or time out
-  func waitForLoopCompletion(for app: XCUIApplication) -> XCTWaiter.Result {
-    let existsPredicate = NSPredicate(format: "exists == true")
-    let expectation = XCTNSPredicateExpectation(
-      predicate: existsPredicate,
-      object: app.staticTexts[Constants.completeText])
-    let timeout = getTimeout(for: app)
-    return XCTWaiter().wait(for: [expectation], timeout: timeout)
+    let timeout = getTimeout()
+    let wait = XCTWaiter().wait(for: [expectation], timeout: timeout)
+
+    if wait == .completed {
+      let result = app.staticTexts[Constants.completeText].waitForExistence(timeout: 10)
+      XCTAssert(result)
+    } else {
+      XCTAssert(false)
+    }
   }
 
   /// Obtain the timeout from the runtime environment.
-  func getTimeout(for app: XCUIApplication) -> TimeInterval {
+  func getTimeout() -> TimeInterval {
     if let timeoutString = ProcessInfo.processInfo.environment[Constants.gameLoopTimeout],
       let timeoutSecs = TimeInterval(timeoutString)
     {
       return timeoutSecs
     } else {
-      // Default 5 minutes
-      return TimeInterval(60 * 5)
+      // Default 8 minutes
+      return TimeInterval(8 * 60)
     }
-  }
-
-  /// Collect all the strings in the general UIPasteboard and attach them as a test result.
-  func attachResults() {
-    let pasteboard = UIPasteboard.general
-    guard pasteboard.hasStrings else {
-      // No output data; do nothing
-      return
-    }
-    let allStrings = pasteboard.strings!
-    let joined = allStrings.joined(separator: "\n")
-    let attachment = XCTAttachment(string: joined)
-    add(attachment)
   }
 }

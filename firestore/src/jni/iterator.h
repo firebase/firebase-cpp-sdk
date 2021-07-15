@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_ITERATOR_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_ITERATOR_H_
+// Copyright 2020 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_JNI_ITERATOR_H_
+#define FIREBASE_FIRESTORE_SRC_JNI_ITERATOR_H_
 
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
@@ -23,4 +25,4 @@ class Iterator : public Object {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_ITERATOR_H_
+#endif  // FIREBASE_FIRESTORE_SRC_JNI_ITERATOR_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_ADMOB_CLIENT_CPP_SRC_ANDROID_INTERSTITIAL_AD_INTERNAL_ANDROID_H_
-#define FIREBASE_ADMOB_CLIENT_CPP_SRC_ANDROID_INTERSTITIAL_AD_INTERNAL_ANDROID_H_
+#ifndef FIREBASE_ADMOB_SRC_ANDROID_INTERSTITIAL_AD_INTERNAL_ANDROID_H_
+#define FIREBASE_ADMOB_SRC_ANDROID_INTERSTITIAL_AD_INTERNAL_ANDROID_H_
 
 #include "admob/src/common/interstitial_ad_internal.h"
 #include "app/src/util_android.h"
@@ -60,4 +60,4 @@ class InterstitialAdInternalAndroid : public InterstitialAdInternal {
 }  // namespace admob
 }  // namespace firebase
 
-#endif  // FIREBASE_ADMOB_CLIENT_CPP_SRC_ANDROID_INTERSTITIAL_AD_INTERNAL_ANDROID_H_
+#endif  // FIREBASE_ADMOB_SRC_ANDROID_INTERSTITIAL_AD_INTERNAL_ANDROID_H_

@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "util/future_test_util.h"
 
 #include <ostream>

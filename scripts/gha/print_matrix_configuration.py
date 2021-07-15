@@ -98,10 +98,11 @@ PARAMETERS = {
   "integration_tests": {
     "matrix": {
       "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
-      "platform": ["Desktop", "Android", "iOS"],
-      "ssl_lib": ["openssl", "boringssl"],
+      "platform": ["Desktop", "Android", "iOS", "tvOS"],
+      "ssl_lib": ["openssl"],
       "android_device": ["android_latest", "emulator_target"],
       "ios_device": ["ios_target", "simulator_target"],
+      "tvos_device": ["tvos_simulator"],
       "build_type": ["Debug"],
       "architecture_windows_linux": ["x64"],
       "architecture_macos": ["x64"],
@@ -112,10 +113,17 @@ PARAMETERS = {
       "ndk_version": ["r22b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
+
+      EXPANDED_KEY: {
+        "ssl_lib": ["openssl", "boringssl"],
+        "android_device": ["android_min", "android_latest", "android_latest", "emulator_min", "emulator_target", "emulator_latest"],
+        "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
+        "tvos_device": ["tvos_simulator"],
+      }
     },
     "config": {
       "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage",
-      "mobile_test_on": "real"
+      "mobile_test_on": "real,virtual"
     }
   },
 
@@ -138,7 +146,8 @@ BUILD_CONFIGS = {
   "ubuntu": ["ssl_lib", "build_type", "architecture_windows_linux", "cpp_compiler_linux"],
   "macos": ["ssl_lib", "architecture_macos", "xcode_version"],
   "android": ["os", "ndk_version", "build_tools", "platform_version", "android_device"],
-  "ios": ["os", "xcode_version", "ios_device"]
+  "ios": ["os", "xcode_version", "ios_device"],
+  "tvos": ["os", "xcode_version", "tvos_device"]
 }
 
 TEST_DEVICES = {
@@ -149,11 +158,12 @@ TEST_DEVICES = {
   "emulator_target": {"type": "virtual", "image":"system-images;android-28;google_apis;x86_64"},
   "emulator_latest": {"type": "virtual", "image":"system-images;android-29;default;x86"},
   "ios_min": {"type": "real", "model":"iphone8", "version":"11.4"},
-  "ios_target": {"type": "real", "model":"iphone6s", "version":"12.0"},
-  "ios_latest": {"type": "real", "model":"iphone11pro", "version":"14.1"},
+  "ios_target": {"type": "real", "model":"iphone8plus", "version":"12.0"},
+  "ios_latest": {"type": "real", "model":"iphone11", "version":"13.6"},
   "simulator_min": {"type": "virtual", "name":"iPhone 6", "version":"11.4"},
   "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"12.0"},
   "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"14.4"},
+  "tvos_simulator": {"type": "virtual", "name":"Apple TV", "version":"14.0"},
 }
  
 
@@ -240,16 +250,32 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       # Any top-level directories set to None are completely ignored.
       "external": None,
       "release_build_files": None,
+      # Uncomment the two below lines when debugging this script, or GitHub
+      # actions related to auto-diff mode.
+      # ".github": None,
+      # "scripts": None,
       # Top-level directories listed below trigger additional APIs being tested.
       # For example, if auth is touched by a PR, we also need to test functions,
       # database, firestore, and storage.
       "auth": "auth,functions,database,firestore,storage",
+    }
+    file_redirects = {
+      # Custom handling for specific files, to be treated as a different path or
+      # ignored completely (set to None).
+      "cmake/external/firestore.cmake": "firestore",
+      "cmake/external/libuv.cmake": "database",
+      "cmake/external/uWebSockets.cmake": "database",
     }
     requested_api_list = set(value.split(','))
     filtered_api_list = set()
 
     for path in file_list:
       if len(path) == 0: continue
+      if path in file_redirects:
+        if file_redirects[path] is None:
+          continue
+        else:
+          path = os.path.join(file_redirects[path], path)
       topdir = path.split(os.path.sep)[0]
       if topdir in custom_triggers:
         if not custom_triggers[topdir]: continue  # Skip ones set to None.
@@ -260,7 +286,7 @@ def filter_values_on_diff(parm_key, value, auto_diff):
       else:
         # Something was modified that's not a known subdirectory.
         # Abort this whole process and just return the original api list.
-        sys.stderr.write("Defaulting to all APIs: %s\n" % value)
+        sys.stderr.write("Path '%s' is outside known directories, defaulting to all APIs: %s\n" % (path, value))
         return value
     sys.stderr.write("::warning::Autodetected APIs: %s\n" % ','.join(sorted(filtered_api_list)))
     return ','.join(sorted(filtered_api_list))

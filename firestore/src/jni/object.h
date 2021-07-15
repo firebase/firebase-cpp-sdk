@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_OBJECT_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_OBJECT_H_
+// Copyright 2020 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_JNI_OBJECT_H_
+#define FIREBASE_FIRESTORE_SRC_JNI_OBJECT_H_
 
 #include <jni.h>
 
@@ -70,4 +72,4 @@ inline bool operator!=(const Object& lhs, const Object& rhs) {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_OBJECT_H_
+#endif  // FIREBASE_FIRESTORE_SRC_JNI_OBJECT_H_

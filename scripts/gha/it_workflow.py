@@ -192,15 +192,15 @@ def _get_issue_number(token, title, label):
 
 
 def _update_comment(token, issue_number, comment):
-  comment_id = _get_comment_id(issue_number, _COMMENT_SUFFIX)
+  comment_id = _get_comment_id(token, issue_number, _COMMENT_SUFFIX)
   if not comment_id:
     github.add_comment(token, issue_number, comment)
   else:
     github.update_comment(token, comment_id, comment)
 
   
-def _get_comment_id(issue_number, comment_identifier):
-  comments = github.list_comments(issue_number)
+def _get_comment_id(token, issue_number, comment_identifier):
+  comments = github.list_comments(token, issue_number)
   for comment in comments:
     if comment_identifier in comment['body']:
       return comment['id']

@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_QUERY_MAIN_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_QUERY_MAIN_H_
+// Copyright 2021 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_MAIN_QUERY_MAIN_H_
+#define FIREBASE_FIRESTORE_SRC_MAIN_QUERY_MAIN_H_
 
 #include <cstdint>
 #include <vector>
@@ -196,4 +198,4 @@ inline bool operator!=(const QueryInternal& lhs, const QueryInternal& rhs) {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_MAIN_QUERY_MAIN_H_
+#endif  // FIREBASE_FIRESTORE_SRC_MAIN_QUERY_MAIN_H_

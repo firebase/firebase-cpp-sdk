@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_JNI_FWD_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_JNI_FWD_H_
+// Copyright 2020 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_JNI_JNI_FWD_H_
+#define FIREBASE_FIRESTORE_SRC_JNI_JNI_FWD_H_
 
 #include <jni.h>
 
@@ -64,4 +66,4 @@ class Map;
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_JNI_FWD_H_
+#endif  // FIREBASE_FIRESTORE_SRC_JNI_JNI_FWD_H_

@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_INTRUSIVE_LIST_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_INTRUSIVE_LIST_H_
+#ifndef FIREBASE_APP_SRC_INTRUSIVE_LIST_H_
+#define FIREBASE_APP_SRC_INTRUSIVE_LIST_H_
 
 // This code is essentially a copy of
 // https://github.com/google/fplutil/blob/master/libfplutil/include/fplutil/intrusive_list.h
@@ -674,4 +674,4 @@ class intrusive_list {
 #pragma warning(pop)
 #endif  // defined(_MSC_VER)
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_INTRUSIVE_LIST_H_
+#endif  // FIREBASE_APP_SRC_INTRUSIVE_LIST_H_

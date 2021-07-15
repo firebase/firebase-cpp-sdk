@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_VERIFY_CUSTOM_TOKEN_REQUEST_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_VERIFY_CUSTOM_TOKEN_REQUEST_H_
+#ifndef FIREBASE_AUTH_SRC_DESKTOP_RPCS_VERIFY_CUSTOM_TOKEN_REQUEST_H_
+#define FIREBASE_AUTH_SRC_DESKTOP_RPCS_VERIFY_CUSTOM_TOKEN_REQUEST_H_
 
 #include "auth/request_generated.h"
 #include "auth/request_resource.h"
@@ -32,4 +32,4 @@ class VerifyCustomTokenRequest : public AuthRequest {
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_RPCS_VERIFY_CUSTOM_TOKEN_REQUEST_H_
+#endif  // FIREBASE_AUTH_SRC_DESKTOP_RPCS_VERIFY_CUSTOM_TOKEN_REQUEST_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_MEMORY_ATOMIC_H_
-#define FIREBASE_APP_CLIENT_CPP_MEMORY_ATOMIC_H_
+#ifndef FIREBASE_APP_MEMORY_ATOMIC_H_
+#define FIREBASE_APP_MEMORY_ATOMIC_H_
 #include <cstddef>
 #include <cstdint>
 #if !defined(_STLPORT_VERSION)
@@ -146,4 +146,4 @@ T Atomic<T>::fetch_sub(T arg) {
 }  // namespace compat
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
-#endif  // FIREBASE_APP_CLIENT_CPP_MEMORY_ATOMIC_H_
+#endif  // FIREBASE_APP_MEMORY_ATOMIC_H_

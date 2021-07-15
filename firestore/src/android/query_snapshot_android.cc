@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/android/query_snapshot_android.h"
 
 #include "app/src/assert.h"

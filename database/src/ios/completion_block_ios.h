@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_SRC_IOS_COMPLETION_BLOCK_IOS_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_SRC_IOS_COMPLETION_BLOCK_IOS_H_
+#ifndef FIREBASE_DATABASE_SRC_IOS_COMPLETION_BLOCK_IOS_H_
+#define FIREBASE_DATABASE_SRC_IOS_COMPLETION_BLOCK_IOS_H_
 
 #include "app/src/include/firebase/future.h"
 #include "app/src/reference_counted_future_impl.h"
@@ -55,4 +55,4 @@ CompletionBlock _Nonnull CreateCompletionBlock(SafeFutureHandle<void> handle,
 }  // namespace database
 }  // namespace firebase
 
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_SRC_IOS_COMPLETION_BLOCK_IOS_H_
+#endif  // FIREBASE_DATABASE_SRC_IOS_COMPLETION_BLOCK_IOS_H_

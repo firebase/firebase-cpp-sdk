@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_HARD_ASSERT_COMMON_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_HARD_ASSERT_COMMON_H_
+#ifndef FIREBASE_FIRESTORE_SRC_COMMON_HARD_ASSERT_COMMON_H_
+#define FIREBASE_FIRESTORE_SRC_COMMON_HARD_ASSERT_COMMON_H_
 
 // TODO(b/163140650): Remove this/unify with the iOS implementation.
 // On Android we still support customers building with STLPort, which precludes
@@ -123,4 +123,4 @@ FIRESTORE_ATTRIBUTE_NORETURN void FailAssertion(const char* file,
 
 #endif  // defined(__ANDROID__)
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_COMMON_HARD_ASSERT_COMMON_H_
+#endif  // FIREBASE_FIRESTORE_SRC_COMMON_HARD_ASSERT_COMMON_H_

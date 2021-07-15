@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_PROVIDER_USER_INFO_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_PROVIDER_USER_INFO_H_
+#ifndef FIREBASE_AUTH_SRC_DESKTOP_PROVIDER_USER_INFO_H_
+#define FIREBASE_AUTH_SRC_DESKTOP_PROVIDER_USER_INFO_H_
 
 #include <string>
 #include <vector>
@@ -66,4 +66,4 @@ std::vector<UserInfoImpl> ParseProviderUserInfo(const ResponseT& response) {
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_PROVIDER_USER_INFO_H_
+#endif  // FIREBASE_AUTH_SRC_DESKTOP_PROVIDER_USER_INFO_H_

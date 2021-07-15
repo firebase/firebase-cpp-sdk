@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_SET_ACCOUNT_INFO_RESULT_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_SET_ACCOUNT_INFO_RESULT_H_
+#ifndef FIREBASE_AUTH_SRC_DESKTOP_SET_ACCOUNT_INFO_RESULT_H_
+#define FIREBASE_AUTH_SRC_DESKTOP_SET_ACCOUNT_INFO_RESULT_H_
 
 #include <vector>
 
@@ -99,4 +99,4 @@ class SetAccountInfoResult {
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_DESKTOP_SET_ACCOUNT_INFO_RESULT_H_
+#endif  // FIREBASE_AUTH_SRC_DESKTOP_SET_ACCOUNT_INFO_RESULT_H_

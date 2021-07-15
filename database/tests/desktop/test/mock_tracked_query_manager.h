@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_TRACKED_QUERY_MANAGER_H_
-#define FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_TRACKED_QUERY_MANAGER_H_
+#ifndef FIREBASE_DATABASE_TESTS_DESKTOP_TEST_MOCK_TRACKED_QUERY_MANAGER_H_
+#define FIREBASE_DATABASE_TESTS_DESKTOP_TEST_MOCK_TRACKED_QUERY_MANAGER_H_
 
 #include "database/src/common/query_spec.h"
 #include "database/src/desktop/core/tracked_query_manager.h"
@@ -49,4 +49,4 @@ class MockTrackedQueryManager : public TrackedQueryManagerInterface {
 }  // namespace internal
 }  // namespace database
 }  // namespace firebase
-#endif  // FIREBASE_DATABASE_CLIENT_CPP_TESTS_DESKTOP_TEST_MOCK_TRACKED_QUERY_MANAGER_H_
+#endif  // FIREBASE_DATABASE_TESTS_DESKTOP_TEST_MOCK_TRACKED_QUERY_MANAGER_H_

@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_QUERY_ANDROID_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_QUERY_ANDROID_H_
+// Copyright 2020 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_ANDROID_QUERY_ANDROID_H_
+#define FIREBASE_FIRESTORE_SRC_ANDROID_QUERY_ANDROID_H_
 
 #include <cstdint>
 
@@ -328,7 +330,6 @@ class QueryInternal : public Wrapper {
    */
   virtual Future<QuerySnapshot> Get(Source source);
 
-#if defined(FIREBASE_USE_STD_FUNCTION)
   /**
    * @brief Starts listening to the QuerySnapshot events referenced by this
    * query.
@@ -339,16 +340,11 @@ class QueryInternal : public Wrapper {
    * only if error is Error::kOk.
    *
    * @return A registration object that can be used to remove the listener.
-   *
-   * @note This method is not available when using the STLPort C++ runtime
-   * library.
    */
   ListenerRegistration AddSnapshotListener(
       MetadataChanges metadata_changes,
       std::function<void(const QuerySnapshot&, Error, const std::string&)>
           callback);
-
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
   /**
    * @brief Starts listening to the QuerySnapshot events referenced by this
@@ -402,4 +398,4 @@ inline bool operator!=(const QueryInternal& lhs, const QueryInternal& rhs) {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_QUERY_ANDROID_H_
+#endif  // FIREBASE_FIRESTORE_SRC_ANDROID_QUERY_ANDROID_H_

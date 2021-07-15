@@ -1,4 +1,6 @@
 #!/bin/bash
+
+# Copyright 2020 Google LLC
 #
 # Script to package desktop SDK
 set -e

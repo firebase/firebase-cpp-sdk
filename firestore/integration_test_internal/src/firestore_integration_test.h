@@ -1,15 +1,17 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_TESTS_FIRESTORE_INTEGRATION_TEST_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_TESTS_FIRESTORE_INTEGRATION_TEST_H_
+// Copyright 2021 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_INTEGRATION_TEST_INTERNAL_SRC_FIRESTORE_INTEGRATION_TEST_H_
+#define FIREBASE_FIRESTORE_INTEGRATION_TEST_INTERNAL_SRC_FIRESTORE_INTEGRATION_TEST_H_
 
 #include <chrono>  // NOLINT(build/c++11)
 #include <cstdio>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-#include "app/memory/unique_ptr.h"
 #include "app/meta/move.h"
 #include "app/src/assert.h"
 #include "app/src/include/firebase/internal/common.h"
@@ -60,15 +62,15 @@ class EventAccumulator;
 // An EventListener class for writing tests. This listener counts the number of
 // events as well as keeps track of the last result.
 template <typename T>
-class TestEventListener : public EventListener<T> {
+class TestEventListener {
  public:
   explicit TestEventListener(std::string name) : name_(std::move(name)) {}
 
-  ~TestEventListener() override {}
+  virtual ~TestEventListener() {}
 
-  void OnEvent(const T& value,
-               Error error_code,
-               const std::string& error_message) override {
+  virtual void OnEvent(const T& value,
+                       Error error_code,
+                       const std::string& error_message) {
     if (print_debug_info_) {
       std::cout << "TestEventListener got: ";
       if (error_code == Error::kErrorOk) {
@@ -113,20 +115,14 @@ class TestEventListener : public EventListener<T> {
     return last_results_[last_results_.size() - 1 - i];
   }
 
-  // Hides the STLPort-related quirk that `AddSnapshotListener` has different
-  // signatures depending on whether `std::function` is available.
   template <typename U>
   ListenerRegistration AttachTo(
       U* ref, MetadataChanges metadata_changes = MetadataChanges::kExclude) {
-#if defined(FIREBASE_USE_STD_FUNCTION)
     return ref->AddSnapshotListener(
         metadata_changes, [this](const T& result, Error error_code,
                                  const std::string& error_message) {
           OnEvent(result, error_code, error_message);
         });
-#else
-    return ref->AddSnapshotListener(metadata_changes, this);
-#endif
   }
 
   std::string first_error_message() {
@@ -330,8 +326,8 @@ class FirestoreIntegrationTest : public testing::Test {
   class FirestoreInfo {
    public:
     FirestoreInfo() = default;
-    FirestoreInfo(const std::string& name, UniquePtr<Firestore>&& firestore)
-        : name_(name), firestore_(Move(firestore)) {}
+    FirestoreInfo(const std::string& name, std::unique_ptr<Firestore> firestore)
+        : name_(name), firestore_(std::move(firestore)) {}
 
     const std::string& name() const { return name_; }
     Firestore* firestore() const { return firestore_.get(); }
@@ -339,14 +335,14 @@ class FirestoreIntegrationTest : public testing::Test {
 
    private:
     std::string name_;
-    UniquePtr<Firestore> firestore_;
+    std::unique_ptr<Firestore> firestore_;
   };
 
   // The Firestore and App instance caches.
   // Note that `firestores_` is intentionally ordered *after* `apps_` so that
   // the Firestore pointers will be deleted before the App pointers when this
   // object is destructed.
-  mutable std::unordered_map<App*, UniquePtr<App>> apps_;
+  mutable std::unordered_map<App*, std::unique_ptr<App>> apps_;
   mutable std::unordered_map<Firestore*, FirestoreInfo> firestores_;
 };
 
@@ -371,4 +367,4 @@ bool WaitUntil(const PredT& pred, int timeout_ms) {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_TESTS_FIRESTORE_INTEGRATION_TEST_H_
+#endif  // FIREBASE_FIRESTORE_INTEGRATION_TEST_INTERNAL_SRC_FIRESTORE_INTEGRATION_TEST_H_

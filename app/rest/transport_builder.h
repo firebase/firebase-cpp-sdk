@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_REST_TRANSPORT_BUILDER_H_
-#define FIREBASE_APP_CLIENT_CPP_REST_TRANSPORT_BUILDER_H_
+#ifndef FIREBASE_APP_REST_TRANSPORT_BUILDER_H_
+#define FIREBASE_APP_REST_TRANSPORT_BUILDER_H_
 
 #include <limits>
 #include <memory>
@@ -38,4 +38,4 @@ void SetTransportBuilder(flatbuffers::unique_ptr<Transport> (*builder)());
 }  // namespace rest
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_REST_TRANSPORT_BUILDER_H_
+#endif  // FIREBASE_APP_REST_TRANSPORT_BUILDER_H_

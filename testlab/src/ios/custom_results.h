@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_TESTLAB_CLIENT_CPP_SRC_IOS_CUSTOM_RESULTS_H_
-#define FIREBASE_TESTLAB_CLIENT_CPP_SRC_IOS_CUSTOM_RESULTS_H_
+#ifndef FIREBASE_TESTLAB_SRC_IOS_CUSTOM_RESULTS_H_
+#define FIREBASE_TESTLAB_SRC_IOS_CUSTOM_RESULTS_H_
 
 #include <stdio.h>
 
@@ -35,4 +35,4 @@ FILE* CreateLogFile();
 }  // namespace test_lab
 }  // namespace firebase
 
-#endif  // FIREBASE_TESTLAB_CLIENT_CPP_SRC_IOS_CUSTOM_RESULTS_H_
+#endif  // FIREBASE_TESTLAB_SRC_IOS_CUSTOM_RESULTS_H_

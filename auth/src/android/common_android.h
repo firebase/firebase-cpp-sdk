@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_SRC_ANDROID_COMMON_ANDROID_H_
-#define FIREBASE_AUTH_CLIENT_CPP_SRC_ANDROID_COMMON_ANDROID_H_
+#ifndef FIREBASE_AUTH_SRC_ANDROID_COMMON_ANDROID_H_
+#define FIREBASE_AUTH_SRC_ANDROID_COMMON_ANDROID_H_
 
 #include "app/src/embedded_file.h"
 #include "app/src/util_android.h"
@@ -279,4 +279,4 @@ bool CheckAndCompleteFutureOnError(JNIEnv* env,
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_SRC_ANDROID_COMMON_ANDROID_H_
+#endif  // FIREBASE_AUTH_SRC_ANDROID_COMMON_ANDROID_H_

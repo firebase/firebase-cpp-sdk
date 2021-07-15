@@ -19,7 +19,7 @@ import org.junit.runner.RunWith
 class GameLoopUITest {
 
   companion object {
-    const val GAMELOOP_TIMEOUT = 7 * 60 * 1000L
+    const val GAMELOOP_TIMEOUT = 10 * 60 * 1000L
   }
 
   private lateinit var device: UiDevice

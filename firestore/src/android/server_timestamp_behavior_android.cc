@@ -1,3 +1,5 @@
+// Copyright 2020 Google LLC
+
 #include "firestore/src/android/server_timestamp_behavior_android.h"
 
 #include "firestore/src/jni/env.h"

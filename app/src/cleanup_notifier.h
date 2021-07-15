@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_SRC_CLEANUP_NOTIFIER_H_
-#define FIREBASE_APP_CLIENT_CPP_SRC_CLEANUP_NOTIFIER_H_
+#ifndef FIREBASE_APP_SRC_CLEANUP_NOTIFIER_H_
+#define FIREBASE_APP_SRC_CLEANUP_NOTIFIER_H_
 
 #include <map>
 #include <vector>
@@ -129,4 +129,4 @@ class TypedCleanupNotifier {
 // NOLINTNEXTLINE - allow namespace overridden
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_SRC_CLEANUP_NOTIFIER_H_
+#endif  // FIREBASE_APP_SRC_CLEANUP_NOTIFIER_H_

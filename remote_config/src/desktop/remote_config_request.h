@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_DESKTOP_REMOTE_CONFIG_REQUEST_H_
-#define FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_DESKTOP_REMOTE_CONFIG_REQUEST_H_
+#ifndef FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REMOTE_CONFIG_REQUEST_H_
+#define FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REMOTE_CONFIG_REQUEST_H_
 
 #include "app/rest/request_json.h"
 #include "remote_config/request_generated.h"
@@ -94,4 +94,4 @@ class RemoteConfigRequest
 }  // namespace remote_config
 }  // namespace firebase
 
-#endif  // FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_DESKTOP_REMOTE_CONFIG_REQUEST_H_
+#endif  // FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_REMOTE_CONFIG_REQUEST_H_

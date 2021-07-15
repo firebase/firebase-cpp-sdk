@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_DESKTOP_METADATA_H_
-#define FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_DESKTOP_METADATA_H_
+#ifndef FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_METADATA_H_
+#define FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_METADATA_H_
 
 #include <map>
 #include <string>
@@ -95,4 +95,4 @@ inline void DeserializeMap(T* map, const flexbuffers::Map& map_ref) {
 }  // namespace remote_config
 }  // namespace firebase
 
-#endif  // FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_DESKTOP_METADATA_H_
+#endif  // FIREBASE_REMOTE_CONFIG_SRC_DESKTOP_METADATA_H_

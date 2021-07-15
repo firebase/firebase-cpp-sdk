@@ -328,12 +328,16 @@ jobs:
           python-version: ${{ matrix.python_version }}
 
       - name: Update homebrew (avoid bintray errors)
+        uses: nick-invision/retry@v2
         if: runner.os == 'macOS'
-        run: |
-          # Temporarily here until Github runners have updated their version of
-          # homebrew. This prevents errors arising from the shut down of
-          # binutils, used by older version of homebrew for hosting packages.
-          brew update
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            # Temporarily here until Github runners have updated their version of
+            # homebrew. This prevents errors arising from the shut down of
+            # binutils, used by older version of homebrew for hosting packages.
+            brew update
 
       - name: Install prerequisites
         run: |
@@ -449,12 +453,16 @@ jobs:
           python-version: 3.7
 
       - name: Update homebrew (avoid bintray errors)
+        uses: nick-invision/retry@v2
         if: runner.os == 'macOS'
-        run: |
-          # Temporarily here until Github runners have updated their version of
-          # homebrew. This prevents errors arising from the shut down of
-          # binutils, used by older version of homebrew for hosting packages.
-          brew update
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            # Temporarily here until Github runners have updated their version of
+            # homebrew. This prevents errors arising from the shut down of
+            # binutils, used by older version of homebrew for hosting packages.
+            brew update
 
       - name: Install prerequisites
         run: |
@@ -685,7 +693,7 @@ jobs:
       with:
         python-version: '3.7'
     - name: Use expanded matrix
-      if: github.event.inputs.use_expanded_matrix == '1'
+      if: github.event_name == 'schedule' || github.event.inputs.use_expanded_matrix == '1'
       run: |
         echo "USE_EXPANDED_MATRIX=1" >> $GITHUB_ENV
     - name: Generate token for GitHub API

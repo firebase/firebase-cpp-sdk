@@ -36,7 +36,7 @@ set(ZIP_FILENAME "./firebase_sdk_${SDK_VERSION}.zip")
 set(OUTDIR "./firebase_ios_sdk/")
 
 # Download as required.
-if(FIREBASE_CPP_BUILD_TESTS)
+if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
   if(NOT EXISTS ${OUTDIR})
     if(NOT EXISTS ${ZIP_FILENAME})
       file(DOWNLOAD ${URL} ${ZIP_FILENAME}) 

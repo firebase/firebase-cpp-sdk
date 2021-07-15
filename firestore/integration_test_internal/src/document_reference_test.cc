@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include <utility>
 
 #include "firebase/firestore.h"

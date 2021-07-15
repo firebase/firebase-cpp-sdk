@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_THROWABLE_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_THROWABLE_H_
+// Copyright 2020 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_JNI_THROWABLE_H_
+#define FIREBASE_FIRESTORE_SRC_JNI_THROWABLE_H_
 
 #include "firestore/src/jni/object.h"
 
@@ -34,4 +36,4 @@ class Throwable : public Object {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_THROWABLE_H_
+#endif  // FIREBASE_FIRESTORE_SRC_JNI_THROWABLE_H_

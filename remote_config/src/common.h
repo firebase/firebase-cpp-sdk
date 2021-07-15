@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_COMMON_H_
-#define FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_COMMON_H_
+#ifndef FIREBASE_REMOTE_CONFIG_SRC_COMMON_H_
+#define FIREBASE_REMOTE_CONFIG_SRC_COMMON_H_
 
 #include "app/src/reference_counted_future_impl.h"
 #include "app/src/semaphore.h"
@@ -101,4 +101,4 @@ void WaitForFuture(const firebase::Future<T>& future, Semaphore* future_sem,
 }  // namespace remote_config
 }  // namespace firebase
 
-#endif  // FIREBASE_REMOTE_CONFIG_CLIENT_CPP_SRC_COMMON_H_
+#endif  // FIREBASE_REMOTE_CONFIG_SRC_COMMON_H_

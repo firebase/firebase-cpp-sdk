@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "android/task_completion_source.h"
 
 #include "firestore/src/jni/env.h"

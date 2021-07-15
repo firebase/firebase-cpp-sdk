@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_BLOB_ANDROID_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_BLOB_ANDROID_H_
+// Copyright 2020 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_ANDROID_BLOB_ANDROID_H_
+#define FIREBASE_FIRESTORE_SRC_ANDROID_BLOB_ANDROID_H_
 
 #include "firestore/src/jni/jni_fwd.h"
 #include "firestore/src/jni/object.h"
@@ -25,4 +27,4 @@ class BlobInternal : public jni::Object {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_ANDROID_BLOB_ANDROID_H_
+#endif  // FIREBASE_FIRESTORE_SRC_ANDROID_BLOB_ANDROID_H_

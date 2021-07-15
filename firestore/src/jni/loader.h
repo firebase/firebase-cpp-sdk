@@ -1,5 +1,7 @@
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_LOADER_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_LOADER_H_
+// Copyright 2020 Google LLC
+
+#ifndef FIREBASE_FIRESTORE_SRC_JNI_LOADER_H_
+#define FIREBASE_FIRESTORE_SRC_JNI_LOADER_H_
 
 #include <jni.h>
 
@@ -152,8 +154,7 @@ class Loader {
 
   bool ok_ = true;
 
-  // A list of classes that were successfully loaded. This is held as a
-  // UniquePtr to allow Loader to be move-only when built with STLPort.
+  // A list of classes that were successfully loaded.
   std::vector<jclass> loaded_classes_;
 
   // A list of embedded files from which to load classes
@@ -164,4 +165,4 @@ class Loader {
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_JNI_LOADER_H_
+#endif  // FIREBASE_FIRESTORE_SRC_JNI_LOADER_H_

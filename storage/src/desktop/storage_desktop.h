@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_STORAGE_CLIENT_CPP_SRC_DESKTOP_STORAGE_DESKTOP_H_
-#define FIREBASE_STORAGE_CLIENT_CPP_SRC_DESKTOP_STORAGE_DESKTOP_H_
+#ifndef FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_DESKTOP_H_
+#define FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_DESKTOP_H_
 
 #include <string>
 #include <vector>
@@ -125,4 +125,4 @@ class StorageInternal {
 }  // namespace storage
 }  // namespace firebase
 
-#endif  // FIREBASE_STORAGE_CLIENT_CPP_SRC_DESKTOP_STORAGE_DESKTOP_H_
+#endif  // FIREBASE_STORAGE_SRC_DESKTOP_STORAGE_DESKTOP_H_

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_MAP_FIELD_VALUE_H_
-#define FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_MAP_FIELD_VALUE_H_
+#ifndef FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_MAP_FIELD_VALUE_H_
+#define FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_MAP_FIELD_VALUE_H_
 
 #include <string>
 #include <unordered_map>
@@ -26,19 +26,12 @@ namespace firestore {
 class FieldPath;
 class FieldValue;
 
-#ifdef STLPORT
-/** @brief A map of `FieldValue`s indexed by stringified field paths. */
-using MapFieldValue = std::tr1::unordered_map<std::string, FieldValue>;
-/** @brief A map of `FieldValue`s indexed by field paths. */
-using MapFieldPathValue = std::tr1::unordered_map<FieldPath, FieldValue>;
-#else
 /** @brief A map of `FieldValue`s indexed by stringified field paths. */
 using MapFieldValue = std::unordered_map<std::string, FieldValue>;
 /** @brief A map of `FieldValue`s indexed by field paths. */
 using MapFieldPathValue = std::unordered_map<FieldPath, FieldValue>;
-#endif
 
 }  // namespace firestore
 }  // namespace firebase
 
-#endif  // FIREBASE_FIRESTORE_CLIENT_CPP_SRC_INCLUDE_FIREBASE_FIRESTORE_MAP_FIELD_VALUE_H_
+#endif  // FIREBASE_FIRESTORE_SRC_INCLUDE_FIREBASE_FIRESTORE_MAP_FIELD_VALUE_H_

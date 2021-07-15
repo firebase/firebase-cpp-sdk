@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef FIREBASE_APP_CLIENT_CPP_REST_WWW_FORM_URL_ENCODED_H_
-#define FIREBASE_APP_CLIENT_CPP_REST_WWW_FORM_URL_ENCODED_H_
+#ifndef FIREBASE_APP_REST_WWW_FORM_URL_ENCODED_H_
+#define FIREBASE_APP_REST_WWW_FORM_URL_ENCODED_H_
 
 #include <string>
 #include <vector>
@@ -61,4 +61,4 @@ class WwwFormUrlEncoded {
 }  // namespace rest
 }  // namespace firebase
 
-#endif  // FIREBASE_APP_CLIENT_CPP_REST_WWW_FORM_URL_ENCODED_H_
+#endif  // FIREBASE_APP_REST_WWW_FORM_URL_ENCODED_H_

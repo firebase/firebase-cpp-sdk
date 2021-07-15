@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "firestore/src/android/snapshot_metadata_android.h"
 
 #include "android/firestore_integration_test_android.h"

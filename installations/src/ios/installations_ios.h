@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_FIS_CLIENT_CPP_SRC_IOS_INSTALLATIONS_IOS_H_
-#define FIREBASE_FIS_CLIENT_CPP_SRC_IOS_INSTALLATIONS_IOS_H_
+#ifndef FIREBASE_INSTALLATIONS_SRC_IOS_INSTALLATIONS_IOS_H_
+#define FIREBASE_INSTALLATIONS_SRC_IOS_INSTALLATIONS_IOS_H_
 
 #include "firebase/app.h"
 #include "app/memory/unique_ptr.h"
@@ -72,4 +72,4 @@ class InstallationsInternal {
 }  // namespace installations
 }  // namespace firebase
 
-#endif  // FIREBASE_FIS_CLIENT_CPP_SRC_IOS_INSTALLATIONS_IOS_H_
+#endif  // FIREBASE_INSTALLATIONS_SRC_IOS_INSTALLATIONS_IOS_H_

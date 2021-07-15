@@ -1,3 +1,5 @@
+// Copyright 2021 Google LLC
+
 #include "app/src/time.h"
 #include "firebase/firestore.h"
 #include "firebase/firestore/firestore_errors.h"
@@ -16,15 +18,7 @@
 namespace firebase {
 namespace firestore {
 
-// We will be using lambda in the test instead of defining a
-// TransactionFunction for each of the test case.
-//
-// We do have a TransactionFunction-version of the test
-// TestGetNonexistentDocumentThenCreate to test the non-lambda API.
-
 using TransactionExtraTest = FirestoreIntegrationTest;
-
-#if defined(FIREBASE_USE_STD_FUNCTION)
 
 TEST_F(TransactionExtraTest,
        TestRetriesWhenDocumentThatWasReadWithoutBeingWrittenChanges) {
@@ -102,8 +96,6 @@ TEST_F(TransactionExtraTest, TestReadingADocTwiceWithDifferentVersions) {
 
   DocumentSnapshot snapshot = ReadDocument(doc);
 }
-
-#endif  // defined(FIREBASE_USE_STD_FUNCTION)
 
 }  // namespace firestore
 }  // namespace firebase

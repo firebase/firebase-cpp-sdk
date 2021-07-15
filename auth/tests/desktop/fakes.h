@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef FIREBASE_AUTH_CLIENT_CPP_TESTS_DESKTOP_FAKES_H_
-#define FIREBASE_AUTH_CLIENT_CPP_TESTS_DESKTOP_FAKES_H_
+#ifndef FIREBASE_AUTH_TESTS_DESKTOP_FAKES_H_
+#define FIREBASE_AUTH_TESTS_DESKTOP_FAKES_H_
 
 #include <string>
 #include <unordered_map>
@@ -61,4 +61,4 @@ std::string CreateErrorHttpResponse(const std::string& error = "");
 }  // namespace auth
 }  // namespace firebase
 
-#endif  // FIREBASE_AUTH_CLIENT_CPP_TESTS_DESKTOP_FAKES_H_
+#endif  // FIREBASE_AUTH_TESTS_DESKTOP_FAKES_H_
