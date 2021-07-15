@@ -428,6 +428,7 @@ def _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry
   if retry > 1:
     results = test_validation.validate_results_cpp(logs)
     if not results.complete:
+      logging.info("Retry _run_apple_gameloop_test. Remaining retry: %s", retry-1)
       return _run_apple_gameloop_test(bundle_id, app_path, gameloop_app, device_id, retry=retry-1)
   
   return logs
@@ -470,7 +471,7 @@ def _read_file(path):
       test_result = f.read()
 
     logging.info("Reading file: %s", path)
-    logging.info("File contant: %s", test_result)
+    logging.info("File content: %s", test_result)
     return test_result
 
 
@@ -567,6 +568,7 @@ def _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=1
   if retry > 1:
     results = test_validation.validate_results_cpp(logs)
     if not results.complete:
+      logging.info("Retry _run_android_gameloop_test. Remaining retry: %s", retry-1)
       return _run_android_gameloop_test(package_name, app_path, gameloop_project, retry=retry-1)
   
   return logs
