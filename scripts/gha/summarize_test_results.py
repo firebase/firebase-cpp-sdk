@@ -270,7 +270,7 @@ def get_configs_from_file_name(file_name, file_name_re):
   # Split the matrix name into components.
   configs = re.sub('-', ' ', configs).split()
   # Remove redundant components. e.g. "latest" in "windows-latest"
-  del configs[2]
+  configs.remove("latest")
   if "desktop" in configs: configs.remove("desktop")
   return configs
 
@@ -278,7 +278,7 @@ def reorganize_log(log_data, use_expanded_matrix):
   log_results = {}
   for (testapp, errors) in log_data.items():
     if errors.get("build"):
-      combined_configs = combine_configs(errors.get("build"))
+      combined_configs = combine_configs(errors.get("build"), use_expanded_matrix)
       for (platform, configs) in combined_configs.items():
         for config in configs:
           all_configs = [["BUILD"], ["ERROR"], [CAPITALIZATIONS[platform]]]
@@ -286,7 +286,7 @@ def reorganize_log(log_data, use_expanded_matrix):
           log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), [])
           
     if errors.get("test",{}).get("errors"):
-      combined_configs = combine_configs(errors.get("test",{}).get("errors"))
+      combined_configs = combine_configs(errors.get("test",{}).get("errors"), use_expanded_matrix)
       for (platform, configs) in combined_configs.items():
         for config in configs:
           all_configs = [["TEST"], ["ERROR"], [CAPITALIZATIONS[platform]]]
@@ -347,6 +347,8 @@ def combine_config(config, platform, k, use_expanded_matrix):
     # config_name = test_device here
     k = -1
   config_name = BUILD_CONFIGS[platform][k]
+  if "ignore" in config_name: 
+    return
   if use_expanded_matrix and config_name in PARAMETERS["integration_tests"]["matrix"][EXPANDED_KEY]:
     config_value = PARAMETERS["integration_tests"]["matrix"][EXPANDED_KEY][config_name]
   else:
@@ -380,7 +382,7 @@ def combine_config(config, platform, k, use_expanded_matrix):
 #     [['TEST'], ['FAILURE'], ['iOS'], ['macos'], ['simulator_min', 'simulator_target']]
 #     -> '[TEST] [FAILURE] [iOS] [macos] [simulator_min, simulator_target]'
 def flat_config(configs):
-  configs = [str(conf).replace('\'','') for conf in configs]
+  configs = [str(conf).replace('\'','') for conf in configs if conf]
   return " ".join(configs)
 
 
