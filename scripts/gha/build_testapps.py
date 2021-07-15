@@ -106,6 +106,17 @@ _TVOS = "tvOS"
 _DESKTOP = "Desktop"
 _SUPPORTED_PLATFORMS = (_ANDROID, _IOS, _TVOS, _DESKTOP)
 
+# Values for Desktop
+_ARCHITECTURE_X64 = "x64"
+_ARCHITECTURE_X86 = "x86"
+_SUPPORTED_ARCHITECTURE = (_ARCHITECTURE_X64, _ARCHITECTURE_X86)
+_BUILD_TYPE_RELEASE = "Release"
+_BUILD_TYPE_DEBUG = "Debug"
+_SUPPORTED_BUILD_TYPE = (_BUILD_TYPE_RELEASE, _BUILD_TYPE_DEBUG)
+_MSVC_RUNTIME_STATIC = "static"
+_MSVC_RUNTIME_DYNAMIC = "dynamic"
+_SUPPORTED_MSVC_RUNTIME = (_MSVC_RUNTIME_STATIC, _MSVC_RUNTIME_DYNAMIC)
+
 # Values for iOS SDK flag (where the iOS app will run)
 _APPLE_SDK_DEVICE = "real"
 _APPLE_SDK_SIMULATOR = "virtual"
@@ -152,6 +163,18 @@ flags.DEFINE_list(
     "or both. Building for both will produce both an .app and an .ipa.")
 
 flags.DEFINE_list(
+    "arch_windows_linux", _ARCHITECTURE_X64, 
+    "(Windows and Linux Desktop only) Platform architecture (x64, x86).")
+
+flags.DEFINE_list(
+    "build_type", _BUILD_TYPE_DEBUG, 
+    "(Windows Desktop only) Release/Debug config.")
+
+flags.DEFINE_list(
+    "msvc_runtime", _MSVC_RUNTIME_DYNAMIC, 
+    "(Windows Desktop only) Runtime library for MSVC (static(/MT) or dynamic(/MD).")
+
+flags.DEFINE_list(
     "tvos_sdk", _APPLE_SDK_SIMULATOR, 
     "(tvOS only) Build for real device (.ipa), virtual device / simulator (.app), "
     "or both. Building for both will produce both an .app and an .ipa.")
@@ -183,6 +206,24 @@ flags.register_validator(
     "ios_sdk",
     lambda s: all(ios_sdk in _SUPPORTED_APPLE_SDK for ios_sdk in s),
     message="Valid platforms: " + ",".join(_SUPPORTED_APPLE_SDK),
+    flag_values=FLAGS)
+
+flags.register_validator(
+    "arch_windows_linux",
+    lambda a: all(arch in _SUPPORTED_ARCHITECTURE for arch in a),
+    message="Valid arch for Windows/Linux: " + ",".join(_SUPPORTED_ARCHITECTURE),
+    flag_values=FLAGS)
+
+flags.register_validator(
+    "build_type",
+    lambda b: all(build_type in _SUPPORTED_BUILD_TYPE for build_type in b),
+    message="Valid build_type for Windows: " + ",".join(_SUPPORTED_BUILD_TYPE),
+    flag_values=FLAGS)
+
+flags.register_validator(
+    "msvc_runtime",
+    lambda m: all(msvc_runtime in _SUPPORTED_MSVC_RUNTIME for msvc_runtime in m),
+    message="Valid msvc_runtime for Windows: " + ",".join(_SUPPORTED_MSVC_RUNTIME),
     flag_values=FLAGS)
 
 flags.register_validator(
@@ -237,13 +278,14 @@ def main(argv):
   # so we need to use VCPKG as well.
   if _DESKTOP in platforms and not FLAGS.packaged_sdk:
     installer = os.path.join(repo_dir, "scripts", "gha", "build_desktop.py")
-    _run([sys.executable, installer, "--vcpkg_step_only"])
-    toolchain_file = os.path.join(
-        repo_dir, "external", "vcpkg", "scripts", "buildsystems", "vcpkg.cmake")
-    cmake_flags.extend((
-        "-DCMAKE_TOOLCHAIN_FILE=%s" % toolchain_file,
-        "-DVCPKG_TARGET_TRIPLET=%s" % utils.get_vcpkg_triplet(arch="x64")
-    ))
+    desktop_builder_args = [
+      sys.executable, installer,
+      "--arch", FLAGS.arch_windows_linux, 
+      "--config", FLAGS.build_type, 
+      "--msvc_runtime_library", FLAGS.msvc_runtime,
+      "--vcpkg_step_only"
+    ]
+    _run(desktop_builder_args)
 
   if FLAGS.cmake_flag:
     cmake_flags.extend(FLAGS.cmake_flag)

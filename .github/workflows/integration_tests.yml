@@ -191,6 +191,9 @@ jobs:
           echo "::set-output name=android_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k android_device -t ${mobile_test_on} )"
           echo "::set-output name=ios_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k ios_device -t ${mobile_test_on} )"
           echo "::set-output name=tvos_device::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k tvos_device -t ${mobile_test_on} )"
+          echo "::set-output name=matrix_build_type::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k build_type )"
+          echo "::set-output name=matrix_msvc_runtime::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k msvc_runtime )"
+          echo "::set-output name=matrix_architecture::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k architecture_windows_linux )"
           if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
             echo "::warning ::Running on https://github.com/${{github.repository}}/commits/$GITHUB_SHA"
             echo "::set-output name=github_ref::$GITHUB_SHA"
@@ -205,7 +208,7 @@ jobs:
           fi
 
   build_desktop:
-    name: build-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+    name: build-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}
     needs: [check_trigger, prepare_matrix]
     runs-on: ${{ matrix.os }}
     # Skip this if there is an empty matrix (which can happen if "auto" was set above).
@@ -216,6 +219,20 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
         ssl_variant: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ssl) }}
+        build_type: ${{ fromJson(needs.prepare_matrix.outputs.matrix_build_type) }}
+        architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_msvc_runtime) }}
+        msvc_runtime: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
+        exclude:
+        - os: macos-latest
+          architecture: "x86"
+        - os: macos-latest
+          msvc_runtime: "dynamic"
+        - os: macos-latest
+          build_type: "Debug"
+        - os: ubuntu-latest
+          msvc_runtime: "dynamic"
+        - os: ubuntu-latest
+          build_type: "Debug"
     steps:
       - uses: actions/checkout@v2
         with:
@@ -309,8 +326,11 @@ jobs:
           fi
           python scripts/gha/build_testapps.py --p Desktop \
             --t ${{ needs.prepare_matrix.outputs.apis }} \
+            --arch_windows_linux ${{ matrix.architecture }} \
+            --build_type ${{ matrix.build_type }} \
+            --msvc_runtime ${{ matrix.msvc_runtime }} \
             --output_directory "${{ github.workspace }}" \
-            --artifact_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}" \
+            --artifact_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}" \
             --noadd_timestamp \
             --short_output_paths \
             ${additional_flags[*]}
@@ -318,28 +338,28 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          if [ ! -f build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json ]; then
+          if [ ! -f build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}.log.json ]; then
             # No summary was created, make a placeholder one.
-            echo "__SUMMARY_MISSING__" > build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json
+            echo "__SUMMARY_MISSING__" > build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}.log.json
           fi
       - name: Upload Desktop integration tests artifact
         uses: actions/upload-artifact@v2.2.2
         if: ${{ !cancelled() }}
         with:
-          name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
-          path: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+          name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}
+          path: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Upload Desktop build results artifact
         uses: actions/upload-artifact@v2.2.2
         if: ${{ !cancelled() }}
         with:
           name: log-artifact
-          path: build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}*
+          path: build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Cleanup Local Copies of Uploaded Artifacts
         shell: bash
         run: |
-          rm -rf testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+          rm -rf testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}
       - name: Set CLOUDSDK_PYTHON (Windows)
         shell: bash
         if: startsWith(matrix.os, 'windows') && !cancelled()
@@ -373,7 +393,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
+          cat build-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
@@ -705,7 +725,7 @@ jobs:
           fi
 
   test_desktop:
-    name: test-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+    name: test-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}
     needs: [check_trigger, prepare_matrix, build_desktop]
     runs-on: ${{ matrix.os }}
     if: contains(needs.prepare_matrix.outputs.matrix_platform, 'Desktop') && needs.prepare_matrix.outputs.apis != '' && !cancelled()
@@ -714,6 +734,20 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
         ssl_variant: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ssl) }}
+        build_type: ${{ fromJson(needs.prepare_matrix.outputs.matrix_build_type) }}
+        architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_msvc_runtime) }}
+        msvc_runtime: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
+        exclude:
+        - os: macos-latest
+          architecture: "x86"
+        - os: macos-latest
+          msvc_runtime: "dynamic"
+        - os: macos-latest
+          build_type: "Debug"
+        - os: ubuntu-latest
+          msvc_runtime: "dynamic"
+        - os: ubuntu-latest
+          build_type: "Debug"
     steps:
       - uses: actions/checkout@v2
         with:
@@ -722,7 +756,7 @@ jobs:
         uses: actions/download-artifact@v2.0.8
         with:
           path: testapps
-          name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}
+          name: testapps-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}
       - name: Setup python
         uses: actions/setup-python@v2
         with:
@@ -732,20 +766,20 @@ jobs:
           pip install -r scripts/gha/requirements.txt
           python scripts/gha/restore_secrets.py --passphrase "${{ secrets.TEST_SECRET }}" --artifact testapps
       - name: Run Desktop integration tests
-        run: python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}"
+        run: python scripts/gha/desktop_tester.py --testapp_dir testapps --logfile_name "desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}"
       - name: Prepare results summary artifact
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          if [ ! -f testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json ]; then
-            echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log.json
+          if [ ! -f testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}.log.json ]; then
+            echo "__SUMMARY_MISSING__" > testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}.log.json
           fi
       - name: Upload Desktop test results artifact
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v2.2.2
         with:
           name: log-artifact
-          path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}*
+          path: testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}*
           retention-days: ${{ env.artifactRetentionDays }}
       - name: Download log artifacts
         if: ${{ needs.check_trigger.outputs.should_update_pr && failure() && !cancelled() }}
@@ -766,7 +800,7 @@ jobs:
         if: ${{ !cancelled() }}
         shell: bash
         run: |
-          cat testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}.log
+          cat testapps/test-results-desktop-${{ matrix.os }}-${{ matrix.ssl_variant }}-${{ matrix.architecture }}-${{ matrix.msvc_runtime }}-${{ matrix.build_type }}.log
           if [[ "${{ job.status }}" != "success" ]]; then
             exit 1
           fi
