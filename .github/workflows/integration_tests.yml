@@ -167,7 +167,7 @@ jobs:
           echo "Autodetecting which tests to run."
           if [[ -n "${{github.event.inputs.test_pull_request}}" ]]; then
             # If running this manually, diff against our common ancestor with main.
-            MERGE_BASE=$(git merge-base HEAD main)
+            MERGE_BASE=$(git merge-base HEAD origin/main)
             echo "::warning ::Auto-diff HEAD..${MERGE_BASE}"
             git diff --name-only HEAD..${MERGE_BASE}
             echo "AUTO_DIFF_PARAM=--auto_diff HEAD..${MERGE_BASE}" >> $GITHUB_ENV
