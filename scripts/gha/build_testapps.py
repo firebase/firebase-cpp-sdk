@@ -162,15 +162,15 @@ flags.DEFINE_list(
     "(iOS only) Build for real device (.ipa), virtual device / simulator (.app), "
     "or both. Building for both will produce both an .app and an .ipa.")
 
-flags.DEFINE_list(
+flags.DEFINE_string(
     "arch_windows_linux", _ARCHITECTURE_X64, 
     "(Windows and Linux Desktop only) Platform architecture (x64, x86).")
 
-flags.DEFINE_list(
+flags.DEFINE_string(
     "build_type", _BUILD_TYPE_DEBUG, 
     "(Windows Desktop only) Release/Debug config.")
 
-flags.DEFINE_list(
+flags.DEFINE_string(
     "msvc_runtime", _MSVC_RUNTIME_DYNAMIC, 
     "(Windows Desktop only) Runtime library for MSVC (static(/MT) or dynamic(/MD).")
 
@@ -210,19 +210,19 @@ flags.register_validator(
 
 flags.register_validator(
     "arch_windows_linux",
-    lambda a: all(arch in _SUPPORTED_ARCHITECTURE for arch in a),
+    lambda a: a in _SUPPORTED_ARCHITECTURE,
     message="Valid arch for Windows/Linux: " + ",".join(_SUPPORTED_ARCHITECTURE),
     flag_values=FLAGS)
 
 flags.register_validator(
     "build_type",
-    lambda b: all(build_type in _SUPPORTED_BUILD_TYPE for build_type in b),
+    lambda b: b in _SUPPORTED_BUILD_TYPE,
     message="Valid build_type for Windows: " + ",".join(_SUPPORTED_BUILD_TYPE),
     flag_values=FLAGS)
 
 flags.register_validator(
     "msvc_runtime",
-    lambda m: all(msvc_runtime in _SUPPORTED_MSVC_RUNTIME for msvc_runtime in m),
+    lambda m: m in _SUPPORTED_MSVC_RUNTIME,
     message="Valid msvc_runtime for Windows: " + ",".join(_SUPPORTED_MSVC_RUNTIME),
     flag_values=FLAGS)
 
