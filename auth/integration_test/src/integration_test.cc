@@ -721,7 +721,7 @@ TEST_F(FirebaseAuthTest, TestWithCustomEmailAndPassword) {
 
 TEST_F(FirebaseAuthTest, TestAuthPersistenceWithAnonymousSignin) {
   // Automated test is disabled on linux due to the need to unlock the keystore.
-  if (!IsUserInteractionAllowed()) SKIP_TEST_ON_LINUX;
+  SKIP_TEST_ON_LINUX;
 
   FLAKY_TEST_SECTION_BEGIN();
 
@@ -740,7 +740,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithAnonymousSignin) {
 }
 TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   // Automated test is disabled on linux due to the need to unlock the keystore.
-  if (!IsUserInteractionAllowed()) SKIP_TEST_ON_LINUX;
+  SKIP_TEST_ON_LINUX;
 
   FLAKY_TEST_SECTION_BEGIN();
 
