@@ -224,9 +224,9 @@ jobs:
       matrix:
         os: ${{ fromJson(needs.prepare_matrix.outputs.matrix_os) }}
         ssl_variant: ${{ fromJson(needs.prepare_matrix.outputs.matrix_ssl) }}
+        architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
+        msvc_runtime: ${{ fromJson(needs.prepare_matrix.outputs.matrix_msvc_runtime) }}
         build_type: ${{ fromJson(needs.prepare_matrix.outputs.matrix_build_type) }}
-        architecture: ${{ fromJson(needs.prepare_matrix.outputs.matrix_msvc_runtime) }}
-        msvc_runtime: ${{ fromJson(needs.prepare_matrix.outputs.matrix_architecture) }}
         exclude:
         - os: macos-latest
           architecture: "x86"
