@@ -105,11 +105,6 @@ flags.DEFINE_string(
     "Use a different token to remove the \"in-progress\" label,"
     "to allow the removal to trigger the \"Check Labels\" workflow.")
 
-flags.DEFINE_bool(
-    "use_expanded_matrix", False,
-    "Report generated using expanded_matrix.",
-    short_name="e")
-
 def test_start(token, issue_number, actor, commit, run_id):
   """In PR, when start testing, add comment and label \"tests: in-progress\""""
   github.add_label(token, issue_number, _LABEL_PROGRESS)
