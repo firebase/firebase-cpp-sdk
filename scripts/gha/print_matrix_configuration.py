@@ -99,10 +99,10 @@ PARAMETERS = {
     "matrix": {
       "os": ["ubuntu-latest", "macos-latest", "windows-latest"],
       "platform": ["Desktop", "Android", "iOS", "tvOS"],
-      "ssl_lib": ["openssl", "boringssl"],
+      "ssl_lib": ["openssl"],
       "android_device": ["android_latest", "emulator_target"],
       "ios_device": ["ios_target", "simulator_target"],
-      "tvos_device": ["tvos_simulator_target"],
+      "tvos_device": ["tvos_simulator"],
       "build_type": ["Debug"],
       "architecture_windows_linux": ["x64"],
       "architecture_macos": ["x64"],
@@ -113,6 +113,13 @@ PARAMETERS = {
       "ndk_version": ["r22b"],
       "platform_version": ["28"],
       "build_tools_version": ["28.0.3"],
+
+      EXPANDED_KEY: {
+        "ssl_lib": ["openssl", "boringssl"],
+        "android_device": ["android_min", "android_latest", "android_latest", "emulator_min", "emulator_target", "emulator_latest"],
+        "ios_device": ["ios_min", "ios_target", "ios_latest", "simulator_min", "simulator_target", "simulator_latest"],
+        "tvos_device": ["tvos_simulator"],
+      }
     },
     "config": {
       "apis": "admob,analytics,auth,database,dynamic_links,firestore,functions,installations,messaging,remote_config,storage",
@@ -156,7 +163,7 @@ TEST_DEVICES = {
   "simulator_min": {"type": "virtual", "name":"iPhone 6", "version":"11.4"},
   "simulator_target": {"type": "virtual", "name":"iPhone 8", "version":"12.0"},
   "simulator_latest": {"type": "virtual", "name":"iPhone 11", "version":"14.4"},
-  "tvos_simulator_target": {"type": "virtual", "name":"Apple TV", "version":"14.0"},
+  "tvos_simulator": {"type": "virtual", "name":"Apple TV", "version":"14.0"},
 }
  
 
