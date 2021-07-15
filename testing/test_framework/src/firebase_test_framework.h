@@ -15,6 +15,7 @@
 #ifndef FIREBASE_TEST_FRAMEWORK_H_  // NOLINT
 #define FIREBASE_TEST_FRAMEWORK_H_  // NOLINT
 
+#include <functional>
 #include <iostream>
 #include <sstream>
 
@@ -183,6 +184,14 @@ namespace firebase_test_framework {
 // Helper macros to assist with RunFlakyBlock.
 // Unlike EXPECT_*, FLAKY_EXPECT_* just prints out the error and returns
 // false, which will cause RunFlakyBlock to retry.
+
+// This returns false, which will make RunFlakyBlock retry.
+#define FLAKY_FAIL() \
+  { return false; }
+// Put this at the end of each RunFlakyBlock function. It will return true.
+#define FLAKY_SUCCESS() \
+  { return true; }
+
 #define FLAKY_EXPECT_EQ(a, b)                                 \
   {                                                           \
     auto a_result = (a);                                      \
@@ -263,6 +272,18 @@ namespace firebase_test_framework {
     }                                                                      \
   }
 
+#define FLAKY_WAIT_FOR_COMPLETION_WITH_ERROR(future, name, expected_error) \
+  {                                                                        \
+    auto f = (future);                                                     \
+    WaitForCompletionAnyResult(f, name);                                   \
+    if (f.error() != expected_error) {                                     \
+      app_framework::LogError(                                             \
+          "%s expected error %d but returned error %d: %s", name,          \
+          expected_error, f.error(), f.error_message());                   \
+      return false;                                                        \
+    }                                                                      \
+  }
+
 class FirebaseTest : public testing::Test {
  public:
   FirebaseTest();
@@ -306,6 +327,21 @@ class FirebaseTest : public testing::Test {
           CallbackType callback = static_cast<RunData*>(ctx)->callback;
           ContextType* context = static_cast<RunData*>(ctx)->context;
           return callback(context);
+        },
+        static_cast<void*>(&run_data), name);
+  }
+
+  // Same as RunFlakyBlock above, but use std::function to allow captures.
+  static bool RunFlakyBlock(std::function<bool()> flaky_callback,
+                            const char* name = "") {
+    struct RunData {
+      std::function<bool()>* callback;
+    };
+    RunData run_data = {&flaky_callback};
+    return RunFlakyBlockBase(
+        [](void* ctx) {
+          auto& callback = *static_cast<RunData*>(ctx)->callback;
+          return callback();
         },
         static_cast<void*>(&run_data), name);
   }
@@ -402,6 +438,44 @@ class FirebaseTest : public testing::Test {
           // Future<ResultType>. If it returns any other type, the compiler will
           // complain about implicit conversion to Future<ResultType> here.
           firebase::Future<ResultType> future_result = callback(context);
+          return static_cast<firebase::FutureBase>(future_result);
+        },
+        static_cast<void*>(&run_data), name, expected_error);
+    // Future<T> and FutureBase are reinterpret_cast-compatible, by design.
+    return *reinterpret_cast<firebase::Future<ResultType>*>(&result_base);
+  }
+
+  // Same as RunWithRetry above, but use std::function to allow captures.
+  static firebase::FutureBase RunWithRetry(
+      std::function<firebase::FutureBase()> run_future, const char* name = "",
+      int expected_error = 0) {
+    struct RunData {
+      std::function<firebase::FutureBase()>* callback;
+    };
+    RunData run_data = {&run_future};
+    return RunWithRetryBase(
+        [](void* ctx) {
+          auto& callback = *static_cast<RunData*>(ctx)->callback;
+          return static_cast<firebase::FutureBase>(callback());
+        },
+        static_cast<void*>(&run_data), name, expected_error);
+  }
+  // Same as RunWithRetry<type>, but use std::function to allow captures.
+  template <class ResultType>
+  static firebase::Future<ResultType> RunWithRetry(
+      std::function<firebase::Future<ResultType>()> run_future,
+      const char* name = "", int expected_error = 0) {
+    struct RunData {
+      std::function<firebase::Future<ResultType>()>* callback;
+    };
+    RunData run_data = {&run_future};
+    firebase::FutureBase result_base = RunWithRetryBase(
+        [](void* ctx) {
+          auto& callback = *static_cast<RunData*>(ctx)->callback;
+          // The following line checks that CallbackType actually returns a
+          // Future<ResultType>. If it returns any other type, the compiler will
+          // complain about implicit conversion to Future<ResultType> here.
+          firebase::Future<ResultType> future_result = callback();
           return static_cast<firebase::FutureBase>(future_result);
         },
         static_cast<void*>(&run_data), name, expected_error);

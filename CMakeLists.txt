@@ -61,6 +61,8 @@ option(FIREBASE_INCLUDE_STORAGE
 
 option(FIREBASE_CPP_BUILD_TESTS
        "Enable the Firebase C++ Build Tests." OFF)
+option(FIREBASE_CPP_BUILD_STUB_TESTS
+       "Enable the Firebase C++ Build Stub Tests." OFF)
 option(FIREBASE_FORCE_FAKE_SECURE_STORAGE
        "Disable use of platform secret store and use fake impl." OFF)
 option(FIREBASE_CPP_BUILD_PACKAGE
@@ -107,7 +109,7 @@ list(INSERT CMAKE_MODULE_PATH 0 ${CMAKE_CURRENT_LIST_DIR}/cmake)
 include(external_rules)
 include(cpp_pack)
 
-if(FIREBASE_CPP_BUILD_TESTS)
+if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
   enable_testing()
   include(test_rules)
   # Copy the custom CTest file into the binary directory, so that it is used.
@@ -296,11 +298,13 @@ endif()
 if(FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
   set(FIRESTORE_BINARY_DIR ${FIRESTORE_SOURCE_DIR}-build)
 
-  set(
-    FIREBASE_IOS_BUILD_TESTS
-    ${FIREBASE_CPP_BUILD_TESTS}
-    CACHE BOOL "Force Firestore build tests to match"
-  )
+  if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
+    set(FIREBASE_IOS_BUILD_TESTS ON
+    CACHE BOOL "Force Firestore build tests to match")
+  else()
+    set(FIREBASE_IOS_BUILD_TESTS OFF
+    CACHE BOOL "Force Firestore build tests to match")
+  endif()
 
   add_subdirectory(${FIRESTORE_SOURCE_DIR} ${FIRESTORE_BINARY_DIR})
 
@@ -328,9 +332,11 @@ else()
   add_external_library(flatbuffers)
 endif()
 
-if(FIREBASE_CPP_BUILD_TESTS AND NOT FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
-  # Firestore's external build pulls in GoogleTest
-  add_external_library(googletest)
+if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTSAND)
+  if (NOT FIRESTORE_USE_EXTERNAL_CMAKE_BUILD)
+    # Firestore's external build pulls in GoogleTest
+    add_external_library(googletest)
+  endif()
 endif()
 
 if((FIREBASE_INCLUDE_DATABASE AND DESKTOP) AND NOT FIREBASE_INCLUDE_FIRESTORE)
@@ -525,7 +531,7 @@ add_subdirectory(ios_pod)
 
 # If we're building tests, we need to include the 'testing' folder before any
 # of the tests actually get built.
-if(FIREBASE_CPP_BUILD_TESTS)
+if(FIREBASE_CPP_BUILD_TESTS OR FIREBASE_CPP_BUILD_STUB_TESTS)
   add_subdirectory(testing)
 endif()
 

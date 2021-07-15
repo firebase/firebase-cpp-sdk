@@ -22,7 +22,8 @@ Example table mode output (with --markdown):
 
 | Failures   |                    Configs                         |
 |------------|----------------------------------------------------|
-| messaging  |[BUILD] [ERROR] [Windows] [boringssl]               |
+| missing_log|[BUILD] [ERROR] [Windows] [boringssl]               |
+| messaging  |[BUILD] [ERROR] [Windows] [openssl]                 |
 |            |[TEST] [ERROR] [Android] [All os] [emulator_min]    |
 |            |[TEST] [FAILURE] [Android] [macos] [emulator_target]|
 |            |▼(1 failed tests)                                   |
@@ -86,6 +87,7 @@ TEST_FILE_PATTERN = "test-results-*.log.json"
 
 TESTAPPS_HEADER = "Failures"
 CONFIGS_HEADER = "Configs"
+MISSING_LOG = "missing_log"
 
 LOG_HEADER = "INTEGRATION TEST FAILURES"
 
@@ -110,6 +112,13 @@ def print_table(log_results,
   output_lines.append(("|" + "-%s-|" * len(headers)) %
                       tuple([ re.sub("[^|]","-", header) for header in headers ]))
 
+  if MISSING_LOG in log_results.keys():
+    columns = [
+      re.sub(r'\b \b', space_char, MISSING_LOG.ljust(testapps_width)),
+      format_result(log_results.pop(MISSING_LOG), space_char=space_char, list_separator=list_separator, justify=configs_width)
+    ]
+    output_lines.append(("|" + " %s |" * len(headers)) % tuple(columns))
+  
   # Iterate through platforms and print out table lines.
   for testapp in sorted(log_results.keys()):
     columns = [
@@ -195,27 +204,37 @@ def summarize_logs(dir, markdown=False, github_log=False):
   log_data = {}
   # log_data format:
   #   { testapps: {"build": [configs]},
-  #                "test": {"errors": [configs]},
+  #               {"test": {"errors": [configs]},
   #                        {"failures": {failed_test: [configs]}}}}
   for build_log_file in build_log_files:
     configs = get_configs_from_file_name(build_log_file, build_log_name_re)
     with open(build_log_file, "r") as log_reader:
-      log_reader_data = json.loads(log_reader.read())
-      for (testapp, error) in log_reader_data["errors"].items():
+      log_text = log_reader.read()
+      if "__SUMMARY_MISSING__" in log_text:
         any_failures = True
-        log_data.setdefault(testapp, {}).setdefault("build", []).append(configs)
+        log_data.setdefault(MISSING_LOG, {}).setdefault("build", []).append(configs)
+      else:
+        log_reader_data = json.loads(log_text)
+        for (testapp, error) in log_reader_data["errors"].items():
+          any_failures = True
+          log_data.setdefault(testapp, {}).setdefault("build", []).append(configs)
 
   for test_log_file in test_log_files:
     configs = get_configs_from_file_name(test_log_file, test_log_name_re)
     with open(test_log_file, "r") as log_reader:
-      log_reader_data = json.loads(log_reader.read())
-      for (testapp, error) in log_reader_data["errors"].items():
+      log_text = log_reader.read()
+      if "__SUMMARY_MISSING__" in log_text:
         any_failures = True
-        log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("errors", []).append(configs)
-      for (testapp, failures) in log_reader_data["failures"].items():
-        for (test, failure) in failures["failed_tests"].items():
+        log_data.setdefault(MISSING_LOG, {}).setdefault("test", {}).setdefault("errors", []).append(configs)
+      else:
+        log_reader_data = json.loads(log_text)
+        for (testapp, error) in log_reader_data["errors"].items():
           any_failures = True
-          log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("failures", {}).setdefault(test, []).append(configs)
+          log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("errors", []).append(configs)
+        for (testapp, failures) in log_reader_data["failures"].items():
+          for (test, failure) in failures["failed_tests"].items():
+            any_failures = True
+            log_data.setdefault(testapp, {}).setdefault("test", {}).setdefault("failures", {}).setdefault(test, []).append(configs)
 
   # log_results format:
   #   { testapps: {configs: [failed tests]} }

@@ -54,7 +54,9 @@ jobs:
         with:
           python-version: 3.7
       - name: Install prerequisites
-        run: python scripts/gha/install_prereqs_desktop.py
+        run: |
+          python scripts/gha/install_prereqs_desktop.py
+          python -m pip install unidiff
       - name: Generate headers
         run: |
           mkdir build
@@ -73,7 +75,9 @@ jobs:
         run: |
           if grep -Eq "error:|warning:" doxygen_errors.txt; then
             # Grep for warnings and print them out (replacing \n with %0A for github log)
-            grep -E "error:|warning:|^  parameter" doxygen_errors.txt | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::error ::DOXYGEN ERRORS:  %0A/'
+            grep -E "error:|warning:|^  parameter" doxygen_errors.txt > doxygen_errors_filtered.txt
+            cat doxygen_errors_filtered.txt | sed ':a;N;$!ba;s/\n/%0A/g' | sed 's/^/::error ::DOXYGEN ERRORS:  %0A/'
+            python scripts/gha/pr_file_commenter.py -t ${{ github.token }} -p ${{ github.event.pull_request.number }} -T hidden-doxygen-comment-tag -P '📝 __Documentation issue:__ ' -S '' -f 10 < doxygen_errors_filtered.txt || true
             exit 1
           fi
 
