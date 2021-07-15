@@ -194,8 +194,7 @@ TEST_F(FirebaseInstallationsTest, TestCanGetToken) {
 TEST_F(FirebaseInstallationsTest, TestGettingTokenTwiceMatches) {
   FLAKY_TEST_SECTION_BEGIN();
 
-  firebase::Future<std::string> token =
-      installations_->GetToken(false);
+  firebase::Future<std::string> token = installations_->GetToken(false);
   WaitForCompletion(token, "GetToken");
   EXPECT_NE(*token.result(), "");  // ensure non-blank
   std::string first_token = *token.result();
@@ -210,8 +209,7 @@ TEST_F(FirebaseInstallationsTest, TestGettingTokenTwiceMatches) {
 TEST_F(FirebaseInstallationsTest, TestDeleteGivesNewTokenNextTime) {
   FLAKY_TEST_SECTION_BEGIN();
 
-  firebase::Future<std::string> token =
-      installations_->GetToken(false);
+  firebase::Future<std::string> token = installations_->GetToken(false);
   WaitForCompletion(token, "GetToken");
   EXPECT_NE(*token.result(), "");  // ensure non-blank
   std::string first_token = *token.result();

@@ -495,8 +495,8 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToToken) {
   std::string unique_id = GetUniqueMessageId();
   const char kNotificationTitle[] = "Token Test";
   const char kNotificationBody[] = "Token Test notification body";
-  SendTestMessage(shared_token()->c_str(),
-                  kNotificationTitle, kNotificationBody,
+  SendTestMessage(shared_token()->c_str(), kNotificationTitle,
+                  kNotificationBody,
                   {{"message", "Hello, world!"},
                    {"unique_id", unique_id},
                    {kNotificationLinkKey, kTestLink}});
@@ -530,17 +530,14 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
   // of unique_id (but not the LAST 2 digits, due to timestamp
   // resolution on some platforms).
   std::string unique_id_tag =
-      (unique_id.length() >= 7
-       ? unique_id.substr(unique_id.length() - 5, 2)
-       : "00");
+      (unique_id.length() >= 7 ? unique_id.substr(unique_id.length() - 5, 2)
+                               : "00");
   std::string topic = "FCMTestTopic" + unique_id_tag;
-  firebase::Future<void> sub =
-      firebase::messaging::Subscribe(topic.c_str());
+  firebase::Future<void> sub = firebase::messaging::Subscribe(topic.c_str());
   WaitForCompletion(sub, "Subscribe");
-  SendTestMessage(
-      ("/topics/" + topic).c_str(), kNotificationTitle,
-      kNotificationBody,
-      {{"message", "Hello, world!"}, {"unique_id", unique_id}});
+  SendTestMessage(("/topics/" + topic).c_str(), kNotificationTitle,
+                  kNotificationBody,
+                  {{"message", "Hello, world!"}, {"unique_id", unique_id}});
   firebase::messaging::Message message;
   EXPECT_TRUE(WaitForMessage(&message));
 
@@ -555,9 +552,8 @@ TEST_F(FirebaseMessagingTest, TestSendMessageToTopic) {
 
   // Ensure that we *don't* receive a message now.
   unique_id = GetUniqueMessageId();
-  SendTestMessage(
-      ("/topics/" + topic).c_str(), "Topic Title 2", "Topic Body 2",
-      {{"message", "Hello, world!"}, {"unique_id", unique_id}});
+  SendTestMessage(("/topics/" + topic).c_str(), "Topic Title 2", "Topic Body 2",
+                  {{"message", "Hello, world!"}, {"unique_id", unique_id}});
 
   // If this returns true, it means we received a message but
   // shouldn't have.
@@ -586,9 +582,8 @@ TEST_F(FirebaseMessagingTest, TestChangingListener) {
   std::string unique_id = GetUniqueMessageId();
   const char kNotificationTitle[] = "New Listener Test";
   const char kNotificationBody[] = "New Listener Test notification body";
-  SendTestMessage(
-      shared_token_->c_str(), kNotificationTitle, kNotificationBody,
-      {{"message", "Hello, world!"}, {"unique_id", unique_id}});
+  SendTestMessage(shared_token_->c_str(), kNotificationTitle, kNotificationBody,
+                  {{"message", "Hello, world!"}, {"unique_id", unique_id}});
   LogDebug("Waiting for message.");
   firebase::messaging::Message message;
   EXPECT_TRUE(WaitForMessage(&message));

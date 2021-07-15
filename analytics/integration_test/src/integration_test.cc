@@ -145,8 +145,7 @@ TEST_F(FirebaseAnalyticsTest, TestResettingGivesNewInstanceId) {
   firebase::analytics::ResetAnalyticsData();
 
   future = firebase::analytics::GetAnalyticsInstanceId();
-  WaitForCompletion(
-      future, "GetAnalyticsInstanceId after ResetAnalyticsData");
+  WaitForCompletion(future, "GetAnalyticsInstanceId after ResetAnalyticsData");
   std::string new_instance_id = *future.result();
   EXPECT_FALSE(future.result()->empty());
   EXPECT_NE(instance_id, new_instance_id);

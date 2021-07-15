@@ -725,8 +725,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithAnonymousSignin) {
 
   FLAKY_TEST_SECTION_BEGIN();
 
-  WaitForCompletion(auth_->SignInAnonymously(),
-                    "SignInAnonymously");
+  WaitForCompletion(auth_->SignInAnonymously(), "SignInAnonymously");
   EXPECT_NE(auth_->current_user(), nullptr);
   EXPECT_TRUE(auth_->current_user()->is_anonymous());
   Terminate();
@@ -755,8 +754,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   // Save the old provider ID list so we can make sure it's the same once
   // it's loaded again.
   std::vector<std::string> prev_provider_data_ids;
-  for (int i = 0; i < auth_->current_user()->provider_data().size();
-       i++) {
+  for (int i = 0; i < auth_->current_user()->provider_data().size(); i++) {
     prev_provider_data_ids.push_back(
         auth_->current_user()->provider_data()[i]->provider_id());
   }
@@ -769,8 +767,7 @@ TEST_F(FirebaseAuthTest, TestAuthPersistenceWithEmailSignin) {
   // Make sure the provider IDs are the same as they were before.
   EXPECT_EQ(auth_->current_user()->provider_id(), prev_provider_id);
   std::vector<std::string> loaded_provider_data_ids;
-  for (int i = 0; i < auth_->current_user()->provider_data().size();
-       i++) {
+  for (int i = 0; i < auth_->current_user()->provider_data().size(); i++) {
     loaded_provider_data_ids.push_back(
         auth_->current_user()->provider_data()[i]->provider_id());
   }
@@ -883,8 +880,8 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
       app_framework::GetCurrentTimeInMicroseconds() %
       kPhoneAuthTestNumPhoneNumbers;
   phone_provider.VerifyPhoneNumber(
-      kPhoneAuthTestPhoneNumbers[random_phone_number],
-      kPhoneAuthTimeoutMs, nullptr, &listener);
+      kPhoneAuthTestPhoneNumbers[random_phone_number], kPhoneAuthTimeoutMs,
+      nullptr, &listener);
 
   // Wait for OnCodeSent() callback.
   int wait_ms = 0;
@@ -906,24 +903,21 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
   }
   if (listener.on_verification_complete_count() > 0) {
     LogDebug("Signing in with automatic verification code.");
-    WaitForCompletion(
-        auth_->SignInWithCredential(listener.credential()),
-        "SignInWithCredential(PhoneCredential) automatic");
+    WaitForCompletion(auth_->SignInWithCredential(listener.credential()),
+                      "SignInWithCredential(PhoneCredential) automatic");
   } else if (listener.on_verification_failed_count() > 0) {
-    FAIL() << "Automatic verification failed." ;
+    FAIL() << "Automatic verification failed.";
   } else {
     // Did not automatically verify, submit verification code manually.
-    EXPECT_TRUE(listener.on_code_auto_retrieval_time_out_count() >
-                      0);
+    EXPECT_TRUE(listener.on_code_auto_retrieval_time_out_count() > 0);
     EXPECT_NE(listener.verification_id(), "");
     LogDebug("Signing in with verification code.");
     const firebase::auth::Credential phone_credential =
         phone_provider.GetCredential(listener.verification_id().c_str(),
                                      kPhoneAuthTestVerificationCode);
 
-    WaitForCompletion(
-        auth_->SignInWithCredential(phone_credential),
-        "SignInWithCredential(PhoneCredential)");
+    WaitForCompletion(auth_->SignInWithCredential(phone_credential),
+                      "SignInWithCredential(PhoneCredential)");
   }
 
   ProcessEvents(1000);
