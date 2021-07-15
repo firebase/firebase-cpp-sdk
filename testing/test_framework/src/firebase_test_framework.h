@@ -18,6 +18,7 @@
 #include <functional>
 #include <iostream>
 #include <sstream>
+#include <vector>
 
 #include "app_framework.h"  // NOLINT
 #include "firebase/app.h"

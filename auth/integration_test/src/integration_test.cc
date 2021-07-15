@@ -909,7 +909,7 @@ TEST_F(FirebaseAuthTest, TestPhoneAuth) {
     FAIL() << "Automatic verification failed.";
   } else {
     // Did not automatically verify, submit verification code manually.
-    EXPECT_TRUE(listener.on_code_auto_retrieval_time_out_count() > 0);
+    EXPECT_GT(listener.on_code_auto_retrieval_time_out_count(), 0);
     EXPECT_NE(listener.verification_id(), "");
     LogDebug("Signing in with verification code.");
     const firebase::auth::Credential phone_credential =
