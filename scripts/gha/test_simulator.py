@@ -465,14 +465,13 @@ def _get_apple_test_log(bundle_id, app_path, device_id):
 
 def _read_file(path):
   """Extracts the contents of a file."""
-  with open(path, "r") as f:
-    test_result = f.read()
+  if os.path.isfile(path):
+    with open(path, "r") as f:
+      test_result = f.read()
 
-  logging.info("Reading file: %s", path)
-  logging.info("File contant: %s", test_result)
-  return test_result
-
-
+    logging.info("Reading file: %s", path)
+    logging.info("File contant: %s", test_result)
+    return test_result
 
 
 # -------------------Android Only-------------------
