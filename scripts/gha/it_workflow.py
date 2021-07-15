@@ -103,7 +103,12 @@ flags.DEFINE_string(
     "new_token", None,
     "Only used with --stage end"
     "Use a different token to remove the \"in-progress\" label,"
-    "to allow the removal to trigger the \"Check Labels\" workflow.")                    
+    "to allow the removal to trigger the \"Check Labels\" workflow.")
+
+flags.DEFINE_bool(
+    "use_expanded_matrix", False,
+    "Report generated using expanded_matrix.",
+    short_name="e")
 
 def test_start(token, issue_number, actor, commit, run_id):
   """In PR, when start testing, add comment and label \"tests: in-progress\""""
@@ -228,7 +233,7 @@ def _get_summary_talbe(token, run_id):
   # artifact_path = _LOG_ARTIFACT_NAME + ".zip"
   # github.download_artifact(token, artifact_id, artifact_path)
   # shutil.unpack_archive(artifact_path, _LOG_OUTPUT_DIR)
-  summary_talbe = summarize.summarize_logs(dir=_LOG_OUTPUT_DIR, markdown=True)
+  summary_talbe = summarize.summarize_logs(dir=_LOG_OUTPUT_DIR, markdown=True, use_expanded_matrix=FLAGS.use_expanded_matrix)
   return summary_talbe
 
 

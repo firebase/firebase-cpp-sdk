@@ -146,11 +146,15 @@ jobs:
       matrix_platform: ${{ steps.export-result.outputs.matrix_platform }}
       matrix_os: ${{ steps.export-result.outputs.matrix_os }}
       matrix_ssl: ${{ steps.export-result.outputs.matrix_ssl }}
+      matrix_build_type: ${{ steps.export-result.outputs.matrix_build_type }}
+      matrix_msvc_runtime: ${{ steps.export-result.outputs.matrix_msvc_runtime }}
+      matrix_architecture: ${{ steps.export-result.outputs.matrix_architecture }}
       apis: ${{ steps.export-result.outputs.apis }}
       mobile_test_on: ${{ steps.export-result.outputs.mobile_test_on }}
       android_device: ${{ steps.export-result.outputs.android_device }}
       ios_device: ${{ steps.export-result.outputs.ios_device }}
       tvos_device: ${{ steps.export-result.outputs.tvos_device }}
+      expanded_matrix: ${{ steps.export-result.outputs.expanded_matrix }}
       github_ref: ${{ steps.export-result.outputs.github_ref }}
     steps:
       - uses: actions/checkout@v2
@@ -194,6 +198,7 @@ jobs:
           echo "::set-output name=matrix_build_type::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k build_type )"
           echo "::set-output name=matrix_msvc_runtime::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k msvc_runtime )"
           echo "::set-output name=matrix_architecture::$( python scripts/gha/print_matrix_configuration.py -w integration_tests ${EXPANDED_MATRIX_PARAM} -k architecture_windows_linux )"
+          echo "::set-output name=expanded_matrix::${EXPANDED_MATRIX_PARAM}"
           if [[ -z "${{github.event.inputs.test_pull_request}}" ]]; then
             echo "::warning ::Running on https://github.com/${{github.repository}}/commits/$GITHUB_SHA"
             echo "::set-output name=github_ref::$GITHUB_SHA"
@@ -388,7 +393,8 @@ jobs:
             --issue_number ${{needs.check_trigger.outputs.pr_number}}\
             --actor ${{github.actor}} \
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
-            --run_id ${{github.run_id}}
+            --run_id ${{github.run_id}} \
+            ${{needs.prepare_matrix.outputs.expanded_matrix}}
       - name: Summarize build results
         if: ${{ !cancelled() }}
         shell: bash
@@ -505,7 +511,8 @@ jobs:
             --issue_number ${{needs.check_trigger.outputs.pr_number}}\
             --actor ${{github.actor}} \
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
-            --run_id ${{github.run_id}}
+            --run_id ${{github.run_id}} \
+            ${{needs.prepare_matrix.outputs.expanded_matrix}}
       - name: Summarize build results
         if: ${{ !cancelled() }}
         shell: bash
@@ -610,7 +617,8 @@ jobs:
             --issue_number ${{needs.check_trigger.outputs.pr_number}}\
             --actor ${{github.actor}} \
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
-            --run_id ${{github.run_id}}
+            --run_id ${{github.run_id}} \
+            ${{needs.prepare_matrix.outputs.expanded_matrix}}
       - name: Summarize build results
         if: ${{ !cancelled() }}
         shell: bash
@@ -714,7 +722,8 @@ jobs:
             --issue_number ${{needs.check_trigger.outputs.pr_number}}\
             --actor ${{github.actor}} \
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
-            --run_id ${{github.run_id}}
+            --run_id ${{github.run_id}} \
+            ${{needs.prepare_matrix.outputs.expanded_matrix}}
       - name: Summarize build results
         if: ${{ !cancelled() }}
         shell: bash
@@ -795,7 +804,8 @@ jobs:
             --issue_number ${{needs.check_trigger.outputs.pr_number}}\
             --actor ${{github.actor}} \
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
-            --run_id ${{github.run_id}}       
+            --run_id ${{github.run_id}} \
+            ${{needs.prepare_matrix.outputs.expanded_matrix}}
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
@@ -880,7 +890,8 @@ jobs:
             --issue_number ${{needs.check_trigger.outputs.pr_number}}\
             --actor ${{github.actor}} \
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
-            --run_id ${{github.run_id}}
+            --run_id ${{github.run_id}} \
+            ${{needs.prepare_matrix.outputs.expanded_matrix}}
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
@@ -964,7 +975,8 @@ jobs:
             --issue_number ${{needs.check_trigger.outputs.pr_number}}\
             --actor ${{github.actor}} \
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
-            --run_id ${{github.run_id}}
+            --run_id ${{github.run_id}} \
+            ${{needs.prepare_matrix.outputs.expanded_matrix}}
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
@@ -1032,7 +1044,8 @@ jobs:
             --issue_number ${{needs.check_trigger.outputs.pr_number}}\
             --actor ${{github.actor}} \
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
-            --run_id ${{github.run_id}}
+            --run_id ${{github.run_id}} \
+            ${{needs.prepare_matrix.outputs.expanded_matrix}}
       - name: Summarize test results
         if: ${{ !cancelled() }}
         shell: bash
@@ -1079,7 +1092,8 @@ jobs:
             --actor ${{github.actor}} \
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
             --run_id ${{github.run_id}} \
-            --new_token ${{steps.generate-token.outputs.token}}
+            --new_token ${{steps.generate-token.outputs.token}} \
+            ${{needs.prepare_matrix.outputs.expanded_matrix}}
       - name: Update Daily Report
         if: ${{ github.event_name == 'schedule' }}
         run: |
@@ -1087,6 +1101,7 @@ jobs:
             --token ${{github.token}} \
             --actor ${{github.actor}} \
             --commit ${{needs.prepare_matrix.outputs.github_ref}} \
-            --run_id ${{github.run_id}}
+            --run_id ${{github.run_id}} \
+            ${{needs.prepare_matrix.outputs.expanded_matrix}}
       - name: Summarize results into GitHub log
-        run: python scripts/gha/summarize_test_results.py --dir test_results --github_log
+        run: python scripts/gha/summarize_test_results.py --dir test_results --github_log ${{needs.prepare_matrix.outputs.expanded_matrix}}

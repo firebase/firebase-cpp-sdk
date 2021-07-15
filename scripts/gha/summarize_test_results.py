@@ -49,6 +49,7 @@ from absl import flags
 from absl import logging
 from print_matrix_configuration import PARAMETERS
 from print_matrix_configuration import BUILD_CONFIGS
+from print_matrix_configuration import EXPANDED_KEY
 
 import glob
 import re
@@ -69,6 +70,11 @@ flags.DEFINE_bool(
 flags.DEFINE_bool(
     "github_log", False,
     "Display a GitHub log list.")
+
+flags.DEFINE_bool(
+    "use_expanded_matrix", False,
+    "Report generated using expanded_matrix.",
+    short_name="e")
 
 LIST_MAX = 3
 
@@ -187,10 +193,10 @@ def print_markdown_table(log_results):
 def main(argv):
   if len(argv) > 1:
       raise app.UsageError("Too many command-line arguments.")
-  summarize_logs(FLAGS.dir, FLAGS.markdown, FLAGS.github_log)
+  summarize_logs(FLAGS.dir, FLAGS.markdown, FLAGS.github_log, FLAGS.use_expanded_matrix)
 
 
-def summarize_logs(dir, markdown=False, github_log=False):
+def summarize_logs(dir, markdown=False, github_log=False, use_expanded_matrix=FLAGS.use_expanded_matrix):
   build_log_files = glob.glob(os.path.join(dir, BUILD_FILE_PATTERN))
   test_log_files = glob.glob(os.path.join(dir, TEST_FILE_PATTERN))
   # Replace the "*" in the file glob with a regex capture group,
@@ -238,7 +244,7 @@ def summarize_logs(dir, markdown=False, github_log=False):
 
   # log_results format:
   #   { testapps: {configs: [failed tests]} }
-  log_results = reorganize_log(log_data)
+  log_results = reorganize_log(log_data, use_expanded_matrix)
 
   if not any_failures:
     # No failures occurred, nothing to log.
@@ -268,7 +274,7 @@ def get_configs_from_file_name(file_name, file_name_re):
   if "desktop" in configs: configs.remove("desktop")
   return configs
 
-def reorganize_log(log_data):
+def reorganize_log(log_data, use_expanded_matrix):
   log_results = {}
   for (testapp, errors) in log_data.items():
     if errors.get("build"):
@@ -287,7 +293,7 @@ def reorganize_log(log_data):
           all_configs.extend(config)
           log_results.setdefault(testapp, {}).setdefault(flat_config(all_configs), [])
     for (test, configs) in errors.get("test",{}).get("failures",{}).items():
-      combined_configs = combine_configs(configs)
+      combined_configs = combine_configs(configs, use_expanded_matrix)
       for (platform, configs) in combined_configs.items():
         for config in configs:
           all_configs = [["TEST"], ["FAILURE"], [CAPITALIZATIONS[platform]]]
@@ -301,7 +307,7 @@ def reorganize_log(log_data):
 # e.g.
 #     [['macos', 'simulator_min'], ['macos', 'simulator_target']]
 #     -> [[['macos'], ['simulator_min', 'simulator_target']]]
-def combine_configs(configs):
+def combine_configs(configs, use_expanded_matrix):
   platform_configs = {}
   for config in configs:
     platform = config[0]
@@ -324,7 +330,7 @@ def combine_configs(configs):
             if equals(configs_i, configs_j):
               remove_configs.append(configs_list[j])
               configk.append(configs_list[j][k])
-        configk = combine_config(configk, platform, k)
+        configk = combine_config(configk, platform, k, use_expanded_matrix)
         configs_list[i][k] = configk
       for config in remove_configs:
         configs_list.remove(config)
@@ -336,12 +342,15 @@ def combine_configs(configs):
 # e.g.
 #     ['ubuntu', 'windows', 'macos']
 #     -> ['All os']
-def combine_config(config, platform, k):
+def combine_config(config, platform, k, use_expanded_matrix):
   if k == 1 and platform in ("android", "ios", "tvos"):
     # config_name = test_device here
     k = -1
   config_name = BUILD_CONFIGS[platform][k]
-  config_value = PARAMETERS["integration_tests"]["matrix"][config_name]
+  if use_expanded_matrix and config_name in PARAMETERS["integration_tests"]["matrix"][EXPANDED_KEY]:
+    config_value = PARAMETERS["integration_tests"]["matrix"][EXPANDED_KEY][config_name]
+  else:
+    config_value = PARAMETERS["integration_tests"]["matrix"][config_name]
   if len(config_value) > 1 and len(config) == len(config_value):
     config = ["All %s" % config_name]
   elif config_name == "ios_device":
