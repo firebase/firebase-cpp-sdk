@@ -164,10 +164,6 @@ jobs:
       - name: Set auto-diff option if specified.
         if: needs.check_trigger.outputs.requested_tests == 'auto'
         run: |
-          echo "::warning ::${{github.event.pull_request.head.ref}}"
-          echo "::warning ::${{github.event.pull_request.base.ref}}"
-          MERGE_BASE=$(git merge-base origin/${{github.event.pull_request.head.ref}} origin/${{github.event.pull_request.base.ref}})
-          echo "::warning ::${MERGE_BASE}"
           echo "Autodetecting which tests to run."
           if [[ -n "${{github.event.inputs.test_pull_request}}" ]]; then
             # If running this manually, diff against main.
