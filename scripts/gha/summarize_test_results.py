@@ -196,7 +196,7 @@ def main(argv):
   summarize_logs(FLAGS.dir, FLAGS.markdown, FLAGS.github_log, FLAGS.use_expanded_matrix)
 
 
-def summarize_logs(dir, markdown=False, github_log=False, use_expanded_matrix=FLAGS.use_expanded_matrix):
+def summarize_logs(dir, markdown=False, github_log=False, use_expanded_matrix=False):
   build_log_files = glob.glob(os.path.join(dir, BUILD_FILE_PATTERN))
   test_log_files = glob.glob(os.path.join(dir, TEST_FILE_PATTERN))
   # Replace the "*" in the file glob with a regex capture group,
